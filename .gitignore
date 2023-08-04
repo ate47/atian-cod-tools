@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# VS
+/.vs/
+/x64
+/Release
+/Debug
+
+# tools files
+strings.txt
+pool.csv
