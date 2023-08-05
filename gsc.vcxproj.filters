@@ -1,60 +1,64 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Fichiers sources">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Fichiers d%27en-tête">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Fichiers de ressources">
+    <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Fichiers sources\tools">
-      <UniqueIdentifier>{8fada356-81b7-4544-97a6-dab92160c289}</UniqueIdentifier>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Fichiers d%27en-tête\tools">
-      <UniqueIdentifier>{4f45ef27-e77c-4861-8c3b-6e1a70034e8f}</UniqueIdentifier>
+    <Filter Include="Source Files\tools">
+      <UniqueIdentifier>{41f46c40-2032-4b5c-8e86-4d12601bffcb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\hashutils.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="memapi.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hashutils.cpp">
-      <Filter>Fichiers sources</Filter>
+    <ClCompile Include="src\memapi.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tools\hash.cpp">
-      <Filter>Fichiers sources\tools</Filter>
+    <ClCompile Include="src\tools\dump.cpp">
+      <Filter>Source Files\tools</Filter>
     </ClCompile>
-    <ClCompile Include="tools\dump.cpp">
-      <Filter>Fichiers sources\tools</Filter>
+    <ClCompile Include="src\tools\hash.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scriptinstance.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="memapi.hpp">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="src\hashutils.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes.hpp">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="src\includes.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="hashutils.hpp">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="src\memapi.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="tools\hash.hpp">
-      <Filter>Fichiers d%27en-tête\tools</Filter>
+    <ClInclude Include="src\offsets.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="tools\dump.hpp">
-      <Filter>Fichiers d%27en-tête\tools</Filter>
+    <ClInclude Include="src\tools\dump.hpp">
+      <Filter>Source Files\tools</Filter>
     </ClInclude>
-    <ClInclude Include="offsets.hpp">
-      <Filter>Fichiers d%27en-tête</Filter>
+    <ClInclude Include="src\tools\hash.hpp">
+      <Filter>Source Files\tools</Filter>
     </ClInclude>
+    <ClInclude Include="src\scriptinstance.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

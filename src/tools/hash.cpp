@@ -1,4 +1,4 @@
-#include "../includes.hpp"
+#include <includes.hpp>
 
 int tool::hash::lookuptool(const process& proc, int argc, const char* argv[]) {
 	std::cout << std::hex;

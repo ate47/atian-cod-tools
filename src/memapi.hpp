@@ -20,6 +20,18 @@ public:
 	// @return if the process was found
 	bool operatorbool() const;
 	/*
+	 * Get the offset inside the module
+	 * @param offset Relative offset
+	 * @return absolute offset
+	 */
+	uintptr_t operator[](UINT64 offset) const;
+	/*
+	 * Get the relative offset of a ptr inside the module
+	 * @param ptr Pointer
+	 * @return relative offset, can be negative if the pointer is before the module
+	 */
+	INT64 GetModuleRelativeOffset(uintptr_t ptr) const;
+	/*
 	 * Allocate memory in the process
 	 * @param size Size to allocate
 	 * @return pointer or null
@@ -68,12 +80,6 @@ public:
 	bool IsInsideModule(uintptr_t ptr) const;
 	// process pid
 	DWORD m_pid;
-	/*
-	 * Get the offset inside the module
-	 * @param offset Relative offset
-	 * @return absolute offset
-	 */
-	uintptr_t operator[](UINT64 offset) const;
 private:
 	static DWORD GetProcId(LPCWCH name);
 	static bool GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize);

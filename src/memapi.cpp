@@ -1,4 +1,4 @@
-#include "includes.hpp"
+#include <includes.hpp>
 
 DWORD process::GetProcId(LPCWCH name) {
 	DWORD pid = 0;
@@ -89,6 +89,10 @@ bool process::operatorbool() const {
 
 uintptr_t process::operator[](UINT64 offset) const {
 	return m_modAddress + offset;
+}
+
+INT64 process::GetModuleRelativeOffset(uintptr_t ptr) const {
+	return ptr - m_modAddress;
 }
 
 uintptr_t process::AllocateMemory(SIZE_T size) const {

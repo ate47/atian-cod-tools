@@ -40,3 +40,6 @@
 # tools files
 strings.txt
 pool.csv
+linked.csv
+events.csv
+funcs.csv

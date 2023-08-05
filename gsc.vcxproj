@@ -18,6 +18,26 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\hashutils.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\memapi.cpp" />
+    <ClCompile Include="src\scriptinstance.cpp" />
+    <ClCompile Include="src\tools\dump.cpp" />
+    <ClCompile Include="src\tools\hash.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\hashutils.hpp" />
+    <ClInclude Include="src\includes.hpp" />
+    <ClInclude Include="src\memapi.hpp" />
+    <ClInclude Include="src\offsets.hpp" />
+    <ClInclude Include="src\scriptinstance.hpp" />
+    <ClInclude Include="src\tools\dump.hpp" />
+    <ClInclude Include="src\tools\hash.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -70,6 +90,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(MSBuildProjectDirectory)\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(MSBuildProjectDirectory)\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -105,6 +131,8 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeaderFile>includes.hpp</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,6 +148,8 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeaderFile>includes.hpp</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -128,21 +158,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="hashutils.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="memapi.cpp" />
-    <ClCompile Include="tools\dump.cpp" />
-    <ClCompile Include="tools\hash.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="hashutils.hpp" />
-    <ClInclude Include="includes.hpp" />
-    <ClInclude Include="memapi.hpp" />
-    <ClInclude Include="offsets.hpp" />
-    <ClInclude Include="tools\hash.hpp" />
-    <ClInclude Include="tools\dump.hpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

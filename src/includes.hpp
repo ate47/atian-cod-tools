@@ -11,6 +11,7 @@
 
 #include "memapi.hpp"
 #include "hashutils.hpp"
+#include "scriptinstance.hpp"
 
 #include "tools/hash.hpp"
 #include "tools/dump.hpp"

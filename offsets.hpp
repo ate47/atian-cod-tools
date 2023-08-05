@@ -1,3 +1,0 @@
-#pragma once
-
-#define OFFSET_XASSET_SCRIPTPARSETREE 0x912abb0
