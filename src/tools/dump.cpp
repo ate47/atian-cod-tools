@@ -47,6 +47,77 @@ int tool::dump::poolscripts(const process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
+int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv[]) {
+    uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[OFFSET_XASSET_SCRIPTPARSETREE]);
+    INT32 poolSize = proc.ReadMemory<INT32>(proc[OFFSET_XASSET_SCRIPTPARSETREE + 0x14]);
+    T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
+
+    std::cout << std::hex << "pool: " << poolPtr << ", elements: " << std::dec << poolSize << "\n";
+
+    if (!proc.ReadMemory(buffer, poolPtr, sizeof * buffer * poolSize)) {
+        std::cerr << "Can't read pool data\n";
+        delete[] buffer;
+        return -1;
+    }
+
+    // cache reading to avoid writing empty file
+    hashutils::ReadDefaultFile();
+
+    LPCCH outFile;
+    if (argc == 2) {
+        outFile = "scriptparsetree";
+    }
+    else {
+        outFile = argv[2];
+    }
+
+    size_t allocated = 0x1000;
+    void* storage = std::malloc(allocated);
+    char nameBuffer[1000];
+
+    for (size_t i = 0; i < poolSize; i++) {
+        const auto& ref = buffer[i];
+
+        if (allocated < ref.size) {
+            void* ns = std::realloc(storage, ref.size + 100);
+            if (ns) {
+                allocated = ref.size + 100;
+                storage = ns;
+            }
+            else {
+                std::cerr << "Can't allocate buffer for address " << std::hex << ref.buffer << " of size " << std::dec << ref.size << "\n";
+                continue; // bad size?
+            }
+        }
+
+        if (!proc.ReadMemory(storage, ref.buffer, ref.size)) {
+            std::cerr << "Can't read pooled buffer at address " << std::hex << ref.buffer << " of size "<< std::dec << ref.size << "\n";
+            continue;
+        }
+
+        LPCCH name = hashutils::ExtractPtr(ref.name);
+        if (name) {
+            snprintf(nameBuffer, 1000, "%s/%sbin", outFile, name);
+        }
+        else {
+            // split into multiple directories to avoid creating a big directory
+            snprintf(nameBuffer, 1000, "%s/hashed-%lld/script_%llx.gscbin", outFile, (ref.name % 3 + 1), ref.name);
+        }
+
+        std::filesystem::path file(nameBuffer);
+        std::filesystem::create_directories(file.parent_path());
+
+        std::ofstream out{ nameBuffer, std::ios::binary | std::ios::out };
+        out.write(reinterpret_cast<char*>(storage), ref.size);
+        out.close();
+    }
+
+    std::free(storage);
+    delete[] buffer;
+
+    return 0;
+}
+
 int tool::dump::linkedscripts(const process& proc, int argc, const char* argv[]) {
     UINT32 bufferCount[2];
     if (!proc.ReadMemory(bufferCount, proc[OFFSET_gObjFileInfoCount], sizeof *bufferCount * 2)) {
@@ -184,6 +255,14 @@ struct FunctionPoolDef {
     UINT32 size;
 };
 
+/*
+Can be extract from these functions, you can also search for the hash32("spawn") in the executable, 
+it'll find the location of a pool search the x ref to it. (spawn is available in both CSC/GSC)
+Scr_GetFunction sub_33AF840
+Scr_GetMethod sub_33AFC20
+CScr_GetFunction sub_1F13140
+CScr_GetMethod sub_1F13650
+*/
 static FunctionPoolDef g_functionPool[] = {
     { scriptinstance::SI_SERVER, false, 0x49b60c0, 8 },
     { scriptinstance::SI_SERVER, false, 0x4f437c0, 370 },

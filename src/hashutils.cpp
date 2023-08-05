@@ -11,8 +11,7 @@ void hashutils::ReadDefaultFile() {
 	});
 }
 
-void hashutils::LoadMap(LPCWCH file)
-{
+void hashutils::LoadMap(LPCWCH file) {
 	std::ifstream s(file);
 
 	if (!s) {

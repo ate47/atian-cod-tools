@@ -27,6 +27,7 @@ int main(int argc, const char *argv[]) {
 	g_tools["h32"] = { " (string)*", "hash strings", false, tool::hash::hash32 };
 	g_tools["h64"] = { " (string)*", "hash strings", false, tool::hash::hash64 };
 	g_tools["dps"] = { " [output=pool.csv]", "dump pooled scripts", true, tool::dump::poolscripts };
+	g_tools["wps"] = { " [output=scriptparsetree]", "write pooled scripts", true, tool::dump::writepoolscripts };
 	g_tools["dls"] = { " [output=linked.csv]", "dump linked scripts", true, tool::dump::linkedscripts };
 	g_tools["dfunc"] = { " [output=funcs.csv]", "dump functions", true, tool::dump::dumpfunctions };
 	g_tools["devents"] = { " [output=events.csv]", "dump registered instance events", true, tool::dump::events };

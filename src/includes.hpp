@@ -8,6 +8,7 @@
 #include <map>
 #include <unordered_map>
 #include <mutex>
+#include <filesystem>
 
 #include "memapi.hpp"
 #include "hashutils.hpp"
