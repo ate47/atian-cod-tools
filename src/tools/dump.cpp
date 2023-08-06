@@ -106,8 +106,8 @@ int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv
 
         std::filesystem::path file(nameBuffer);
         
-        if (!std::filesystem::create_directories(file.parent_path())
-            || !utils::WriteFile(file, storage, ref.size)) {
+        std::filesystem::create_directories(file.parent_path());
+        if (!utils::WriteFile(file, storage, ref.size)) {
             std::cerr << "Error when writing " << nameBuffer << "\n";
         }
     }

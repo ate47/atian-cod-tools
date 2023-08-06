@@ -36,10 +36,12 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
         << "// fixup_offset ........ " << data->fixup_offset << "\n"
         << "// globalvar_offset .... " << data->globalvar_offset << "\n"
         << "// script_size ......... " << data->script_size << "\n"
-        << "// ukn4c ............... " << data->ukn4c << "\n"
+        << "// ukn4c_offset ........ " << data->ukn4c_offset << "\n"
         << "// ukn50 ............... " << data->ukn50 << "\n"
         << "// ukn54 ............... " << data->ukn54 << "\n"
-        << "// include_count ....... " << data->include_count << "\n";
+        << "// include_count ....... " << data->include_count << "\n"
+        << "// ukn5a ............... " << (int)data->ukn5a << "\n"
+        << "// ukn4c_count ......... " << (int)data->ukn4c_count << "\n";
 
     UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
 
@@ -95,17 +97,29 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
     }
 
-    auto* imports = reinterpret_cast<tool::gsc::T8GSCImport*>(&data->magic[data->imports_offset]);
+    uintptr_t import_location = reinterpret_cast<uintptr_t>(data->magic) + data->imports_offset;
 
     for (size_t i = 0; i < data->imports_count; i++) {
-        const auto& imp = imports[i];
-        asmout << std::hex << "-- import " << hashutils::ExtractTmp("namespace", imp.import_namespace) << std::flush;
-        asmout << std::hex << "::" << hashutils::ExtractTmp("function", imp.name) << " --\n";
-        asmout << std::hex << "address: " << imp.num_address <<
-            ", params: " << (int)imp.param_count <<
-            ", flags: " << std::hex << (UINT16)(imp.flags) <<
-            ", address2: " << imp.ukn << "\n";
+
+        const auto* imp = reinterpret_cast<tool::gsc::T8GSCImport*>(import_location);
+        asmout << std::hex << "-- import " << hashutils::ExtractTmp("namespace", imp->import_namespace) << std::flush;
+        asmout << std::hex << "::" << hashutils::ExtractTmp("function", imp->name) << " --\n";
+        asmout << std::hex << "address: " << imp->num_address <<
+            ", params: " << (int)imp->param_count <<
+            ", flags: " << std::hex << (UINT16)(imp->flags) << "\n";
+
+        asmout << "location(s): ";
+
+        const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
+        asmout << std::hex << imports[0];
+        for (size_t j = 1; j < imp->num_address; j++) {
+            asmout << std::hex << "," << imports[j];
+        }
+        asmout << "\n";
+
         asmout << "--------------\n";
+
+        str_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
     }
 
     auto* exports = reinterpret_cast<tool::gsc::T8GSCExport*>(&data->magic[data->export_table_offset]);
@@ -139,6 +153,11 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
         asmout << hashutils::ExtractTmp("function", exp.name) << "() {}\n";
 
     }
+    auto* ukn4c = reinterpret_cast<UINT64*>(&data->magic[data->ukn4c_offset]);
+
+    for (size_t i = 0; i < data->ukn4c_count; i++) {
+        asmout << "ukn4c: "  << hashutils::ExtractTmp("hash", ukn4c[i]) << "\n";
+    }
 
     asmout.close();
 
@@ -147,7 +166,6 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
 
 int GscInfoFile(const std::filesystem::path& path) {
     if (std::filesystem::is_directory(path)) {
-        std::cout << "Dir " << path << "\n";
         // directory
         auto ret = 0;
         for (const auto& sub : std::filesystem::directory_iterator{path}) {
@@ -189,7 +207,7 @@ int GscInfoFile(const std::filesystem::path& path) {
 
 int tool::gsc::gscinfo(const process& proc, int argc, const char* argv[]) {
     if (argc == 2) {
-        return tool::errorcode::BAD_USAGE;
+        return GscInfoFile("scriptparsetree");
     }
 
     auto ret = 0;
@@ -200,6 +218,113 @@ int tool::gsc::gscinfo(const process& proc, int argc, const char* argv[]) {
         }
     }
 	return ret;
+}
+
+int DumpInfoFileData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, std::unordered_map<UINT64, LPCCH>& dataset) {
+    // name
+    dataset.insert({ data->name, "script" });
+
+
+    UINT64* includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
+    for (size_t i = 0; i < data->include_count; i++) {
+        dataset.insert({ includes[i], "script" });
+    }
+
+    uintptr_t gvars_location = reinterpret_cast<uintptr_t>(data->magic) + data->globalvar_offset;
+    for (size_t i = 0; i < data->globalvar_count; i++) {
+        const auto* globalvar = reinterpret_cast<tool::gsc::T8GSCGlobalVar*>(gvars_location);
+        dataset.insert({ globalvar->name, "var" });
+
+        gvars_location += sizeof(*globalvar) + sizeof(UINT32) * globalvar->num_address;
+    }
+
+
+    auto* exports = reinterpret_cast<tool::gsc::T8GSCExport*>(&data->magic[data->export_table_offset]);
+    for (size_t i = 0; i < data->exports_count; i++) {
+        const auto& exp = exports[i];
+        dataset.insert({ exp.name_space, "namespace" });
+        dataset.insert({ exp.name, "function" });
+
+        if (exp.flags & tool::gsc::T8GSCExportFlags::EVENT) {
+            dataset.insert({ exp.callback_event, "event" });
+        }
+    }
+
+    return 0;
+}
+
+int DumpInfoFile(const std::filesystem::path& path, std::unordered_map<UINT64, LPCCH>& dataset) {
+    if (std::filesystem::is_directory(path)) {
+        // directory
+        auto ret = 0;
+        for (const auto& sub : std::filesystem::directory_iterator{ path }) {
+            auto lret = DumpInfoFile(sub.path(), dataset);
+            if (!ret) {
+                ret = lret;
+            }
+        }
+        return ret;
+    }
+    auto pathname = path.generic_string();
+
+    if (!(
+        pathname.ends_with(".gscc") || pathname.ends_with(".cscc")
+        || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin")
+        )) {
+        return 0;
+    }
+
+    std::cout << "Reading " << pathname << "\n";
+
+    LPVOID buffer = NULL;
+    size_t size;
+    if (!utils::ReadFile(path, buffer, size)) {
+        std::cerr << "Can't read file data for " << path << "\n";
+        return -1;
+    }
+
+    if (size < sizeof(tool::gsc::T8GSCOBJ)) {
+        std::cerr << "Bad header, file size: " << std::hex << size << "/" << sizeof(tool::gsc::T8GSCOBJ) << " for " << path << "\n";
+        std::free(buffer);
+        return -1;
+    }
+
+    auto ret = DumpInfoFileData(reinterpret_cast<tool::gsc::T8GSCOBJ*>(buffer), size, pathname.c_str(), dataset);
+    std::free(buffer);
+    return ret;
+}
+
+int tool::gsc::dumpdataset(const process& proc, int argc, const char* argv[]) {
+    hashutils::ReadDefaultFile();
+    // scriptparsetree] [output=dataset.txt]
+    LPCCH inputFile = "scriptparsetree";
+    LPCCH outputFile = "dataset.csv";
+    if (argc > 2) {
+        inputFile = argv[2];
+        if (argc > 3) {
+            inputFile = argv[3];
+        }
+    }
+
+    std::unordered_map<UINT64, LPCCH> dataset{};
+
+    int ret = DumpInfoFile(inputFile, dataset);
+    if (ret) {
+        return ret;
+    }
+
+    std::ofstream out{ outputFile };
+    if (!out) {
+        std::cerr << "Can't open output file\n";
+    }
+
+    out << "type,name\n";
+
+    for (const auto& [hash, type] : dataset) {
+        out << std::hex << type << "," << hashutils::ExtractTmp(type, hash) << "\n";
+    }
+    out.close();
+    return 0;
 }
 
 void tool::gsc::T8GSCOBJ::PatchCode() {

@@ -22,10 +22,12 @@ namespace tool::gsc {
         INT32 fixup_offset;
         INT32 globalvar_offset;
         INT32 script_size;
-        INT32 ukn4c;
+        INT32 ukn4c_offset;
         INT32 ukn50;
         INT32 ukn54;
         UINT16 include_count;
+        BYTE ukn5a;
+        BYTE ukn4c_count;
 
         /*
          * Path the code to remove linking
@@ -44,7 +46,6 @@ namespace tool::gsc {
         UINT16 num_address;
         UINT8 param_count;
         UINT8 flags;
-        UINT16 ukn;
     };
 
     struct T8GSCGlobalVar {
@@ -83,5 +84,6 @@ namespace tool::gsc {
 
 
 
-	int gscinfo(const process& proc, int argc, const char* argv[]);
+    int gscinfo(const process& proc, int argc, const char* argv[]);
+    int dumpdataset(const process& proc, int argc, const char* argv[]);
 }
