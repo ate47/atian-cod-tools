@@ -105,11 +105,11 @@ int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv
         }
 
         std::filesystem::path file(nameBuffer);
-        std::filesystem::create_directories(file.parent_path());
-
-        std::ofstream out{ nameBuffer, std::ios::binary | std::ios::out };
-        out.write(reinterpret_cast<char*>(storage), ref.size);
-        out.close();
+        
+        if (!std::filesystem::create_directories(file.parent_path())
+            || !utils::WriteFile(file, storage, ref.size)) {
+            std::cerr << "Error when writing " << nameBuffer << "\n";
+        }
     }
 
     std::free(storage);

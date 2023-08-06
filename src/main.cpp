@@ -4,7 +4,7 @@ struct toolfunctiondata {
 	LPCCH usage;
 	LPCCH description;
 	bool needGame;
-	toolfunction func;
+	tool::toolfunction func;
 };
 static std::map<std::string, toolfunctiondata> g_tools;
 
@@ -28,6 +28,7 @@ int main(int argc, const char *argv[]) {
 	g_tools["h64"] = { " (string)*", "hash strings", false, tool::hash::hash64 };
 	g_tools["dps"] = { " [output=pool.csv]", "dump pooled scripts", true, tool::dump::poolscripts };
 	g_tools["wps"] = { " [output=scriptparsetree]", "write pooled scripts", true, tool::dump::writepoolscripts };
+	g_tools["gscinfo"] = { " (intput)*", "write info about a script in asm file", false, tool::gsc::gscinfo };
 	g_tools["dls"] = { " [output=linked.csv]", "dump linked scripts", true, tool::dump::linkedscripts };
 	g_tools["dfunc"] = { " [output=funcs.csv]", "dump functions", true, tool::dump::dumpfunctions };
 	g_tools["devents"] = { " [output=events.csv]", "dump registered instance events", true, tool::dump::events };
@@ -61,5 +62,12 @@ int main(int argc, const char *argv[]) {
 		}
 	}
 
-	return tool->second.func(proc, argc, argv);
+	int output = tool->second.func(proc, argc, argv);
+
+	if (output == tool::BAD_USAGE) {
+		char buff[2000];
+		snprintf(buff, 2000, "Bad tool usage: %s %s%s", *argv, argv[1], tool->second.usage);
+		usage(buff, *argv);
+		return -1;
+	}
 }

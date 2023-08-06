@@ -23,8 +23,12 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\memapi.cpp" />
     <ClCompile Include="src\scriptinstance.cpp" />
+    <ClCompile Include="src\tools\decrypt.cpp" />
     <ClCompile Include="src\tools\dump.cpp" />
+    <ClCompile Include="src\tools\gsc_opcodes.cpp" />
+    <ClCompile Include="src\tools\gsc.cpp" />
     <ClCompile Include="src\tools\hash.cpp" />
+    <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\hashutils.hpp" />
@@ -32,8 +36,13 @@
     <ClInclude Include="src\memapi.hpp" />
     <ClInclude Include="src\offsets.hpp" />
     <ClInclude Include="src\scriptinstance.hpp" />
+    <ClInclude Include="src\tools\decrypt.hpp" />
     <ClInclude Include="src\tools\dump.hpp" />
+    <ClInclude Include="src\tools\gsc.hpp" />
+    <ClInclude Include="src\tools\gsc_opcodes.hpp" />
     <ClInclude Include="src\tools\hash.hpp" />
+    <ClInclude Include="src\tools\tools.hpp" />
+    <ClInclude Include="src\utils.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

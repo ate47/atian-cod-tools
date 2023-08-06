@@ -32,6 +32,18 @@
     <ClCompile Include="src\scriptinstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\tools\gsc.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools\gsc_opcodes.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools\decrypt.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\hashutils.hpp">
@@ -54,6 +66,21 @@
     </ClInclude>
     <ClInclude Include="src\scriptinstance.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\gsc.hpp">
+      <Filter>Source Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\tools.hpp">
+      <Filter>Source Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\gsc_opcodes.hpp">
+      <Filter>Source Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\decrypt.hpp">
+      <Filter>Source Files\tools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -13,10 +13,13 @@
 #include "memapi.hpp"
 #include "hashutils.hpp"
 #include "scriptinstance.hpp"
+#include "utils.hpp"
 
+#include "tools/tools.hpp"
 #include "tools/hash.hpp"
 #include "tools/dump.hpp"
+#include "tools/gsc.hpp"
+#include "tools/decrypt.hpp"
+#include "tools/gsc_opcodes.hpp"
 
 #include "offsets.hpp"
-
-typedef int(*toolfunction)(const process& proc, int argc, const char* argv[]);
