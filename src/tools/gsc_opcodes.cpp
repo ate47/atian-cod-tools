@@ -54,7 +54,7 @@ public:
 			bytecode += 4;
 			BYTE flags = *(bytecode++);
 
-			context.m_localvars.push_back(varName);
+			context.m_localvars.push_back({ varName, flags });
 
 			out << hashutils::ExtractTmp("var", varName);
 
@@ -145,7 +145,7 @@ public:
 		
 		locref.ref = true;
 
-		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << locref.rloc << "\n";
+		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << locref.rloc << " (delta:0x" << delta << ")\n";
 
 		return m_id == OPCODE_Jump ? -2 : 0; // no code after jump
 	}
@@ -274,7 +274,7 @@ public:
 		out << std::dec << "params: " << (int)params << " ";
 
 		if (data[1]
-			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or "" or
+			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
 			&& m_id != OPCODE_CallBuiltinFunction
 			&& m_id != OPCODE_CallBuiltinMethod) { // builtin call
 			out << hashutils::ExtractTmp("namespace", data[1]) << "::" << std::flush;
@@ -297,8 +297,10 @@ public:
 
 		bytecode += 8;
 
-
-		if (data[1] && data[1] != 0x222276a9 && data[1] != 0xc1243180) { // "sys" or ""
+		out << "&";
+		if (data[1] 
+			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
+			&& m_id != OPCODE_GetResolveFunction) { // resolved function
 			out << hashutils::ExtractTmp("namespace", data[1]) << std::flush << "::";
 		}
 		out << hashutils::ExtractTmp("function", data[0]) << std::endl;
@@ -424,7 +426,7 @@ public:
 			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
-			out << hashutils::ExtractTmp("var", context.m_localvars[lvar]) << std::endl;
+			out << hashutils::ExtractTmp("var", context.m_localvars[lvar].name) << std::endl;
 		}
 
 		return 0;
@@ -694,7 +696,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_FuncCallPtr(OPCODE_ScriptMethodCallPointer, "ScriptMethodCallPointer"));
 
 		// linked ref
-		RegisterOpCodeHandler(new opcodeinfo_FuncGet(OPCODE_GetAPIFunction, "GetAPIFunction"));
+		RegisterOpCodeHandler(new opcodeinfo_FuncGet(OPCODE_GetResolveFunction, "GetResolveFunction"));
 		RegisterOpCodeHandler(new opcodeinfo_FuncGet(OPCODE_GetFunction, "GetFunction"));
 		RegisterOpCodeHandler(new opcodeinfo_GetString());
 		RegisterOpCodeHandler(new opcodeinfo_GetGlobal(OPCODE_GetGlobal, "GetGlobal"));
@@ -1034,7 +1036,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 			0xc22, 0xe3b);
 		RegisterOpCode(OPCODE_GetSelf, 0x16e, 0x1be, 0x205, 0x209, 0x252, 0x25a, 0x260, 0x5de, 0x653, 0x72a, 0x763, 0x767, 0x83a, 0x844, 0x846, 0xa54, 0xb4f,
 			0xcf9, 0xda7, 0xe76, 0xf56, 0xf88);
-		RegisterOpCode(OPCODE_GetAPIFunction, 0x181, 0x222, 0x230, 0x232, 0x2aa, 0x2e0, 0x34d, 0x402, 0x434, 0x4db, 0x4e6, 0x558, 0x670, 0x6f7, 0x745, 0x74c,
+		RegisterOpCode(OPCODE_GetResolveFunction, 0x181, 0x222, 0x230, 0x232, 0x2aa, 0x2e0, 0x34d, 0x402, 0x434, 0x4db, 0x4e6, 0x558, 0x670, 0x6f7, 0x745, 0x74c,
 			0x7d3, 0x86c, 0x8c1, 0x9ee, 0xa62, 0xa8e, 0xc01, 0xc4a, 0xcb6, 0xcc3, 0xf42, 0xfcc);
 		RegisterOpCode(OPCODE_GetGlobalObject, 0x187, 0x1bb, 0x250, 0x2db, 0x30a, 0x338, 0x39d, 0x470, 0x4bb, 0x4ea, 0x51c, 0x54c, 0x5da, 0x60d, 0x6a5, 0x6a9, 
 			0x8f6, 0x8ff, 0x92e, 0x947, 0xb1b, 0xc4c, 0xd24, 0xe29, 0xeef, 0xefb, 0xf26);
@@ -1097,7 +1099,7 @@ asmcontextlocation& asmcontext::PushLocation(BYTE* location) {
 	return ref;
 }
 
-asmcontextlocation::asmcontextlocation() : handled(false), ref(false) {}
+asmcontextlocation::asmcontextlocation() : handled(false), ref(false), rloc(0) {}
 
 bool asmcontext::FindNextLocation() {
 	INT64 min = 0xFFFFFFFFFF;

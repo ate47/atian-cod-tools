@@ -122,7 +122,7 @@ namespace tool::gsc::opcode {
 		OPCODE_ClearFieldVariable,
 		OPCODE_EvalFieldObjectFromRef,
 		OPCODE_GetSelf,
-		OPCODE_GetAPIFunction,
+		OPCODE_GetResolveFunction,
 		OPCODE_GetGlobalObject,
 		OPCODE_GetByte,
 		OPCODE_CastFieldObject,
@@ -159,56 +159,6 @@ namespace tool::gsc::opcode {
 	enum T8GSCLocalVarFlag : UINT8 {
 		ARRAY_REF = 0x01,
 		VARIADIC = 0x02
-	};
-
-	struct asmcontextlocation {
-		INT32 rloc;
-		bool handled;
-		bool ref;
-		asmcontextlocation();
-	};
-
-	class asmcontext {
-	public:
-		// fonction start location
-		BYTE* m_fonctionStart;
-		// locations
-		std::map<INT32, asmcontextlocation> m_locs{};
-		// current context location
-		BYTE* m_bcl;
-		std::vector<UINT32> m_localvars{};
-
-		asmcontext(BYTE* fonctionStart);
-
-		// @return relative location in the function
-		inline INT32 FunctionRelativeLocation() {
-			return FunctionRelativeLocation(m_bcl);
-		}
-		// Push the current location to the locations
-		inline asmcontextlocation& PushLocation() {
-			return PushLocation(m_bcl);
-		}
-		// @return Push a location to the locations and return it
-		asmcontextlocation& PushLocation(BYTE* location);
-
-		// @return find the next location to handle, false if no new location can be find, false otherwise
-		bool FindNextLocation();
-		/*
-		 * Get a relative location from the function start
-		 * @param bytecodeLocation Location
-		 * @return relative from function start
-		 */
-		INT32 FunctionRelativeLocation(BYTE* bytecodeLocation);
-		// @return align and return m_bcl on a particular datatype
-		template<typename Type>
-		inline BYTE*& Aligned() {
-			return m_bcl = utils::Aligned<Type>(m_bcl);
-		}
-		// @return Write asm padding and return out
-		std::ostream& WritePadding(std::ostream& out);
-
-		// @return the Final size of the function by looking at the last position
-		UINT FinalSize() const;
 	};
 
 	class opcodeinfo {

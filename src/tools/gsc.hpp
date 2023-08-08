@@ -2,6 +2,64 @@
 #include <includes.hpp>
 
 namespace tool::gsc {
+    namespace opcode {
+
+
+        struct asmcontextlocation {
+            INT32 rloc;
+            bool handled;
+            bool ref;
+            asmcontextlocation();
+        };
+
+        struct asmcontextlocalvar {
+            UINT32 name;
+            BYTE flags;
+        };
+
+        class asmcontext {
+        public:
+            // fonction start location
+            BYTE* m_fonctionStart;
+            // locations
+            std::map<INT32, asmcontextlocation> m_locs{};
+            // current context location
+            BYTE* m_bcl;
+            std::vector<asmcontextlocalvar> m_localvars{};
+
+            asmcontext(BYTE* fonctionStart);
+
+            // @return relative location in the function
+            inline INT32 FunctionRelativeLocation() {
+                return FunctionRelativeLocation(m_bcl);
+            }
+            // Push the current location to the locations
+            inline asmcontextlocation& PushLocation() {
+                return PushLocation(m_bcl);
+            }
+            // @return Push a location to the locations and return it
+            asmcontextlocation& PushLocation(BYTE* location);
+
+            // @return find the next location to handle, false if no new location can be find, false otherwise
+            bool FindNextLocation();
+            /*
+             * Get a relative location from the function start
+             * @param bytecodeLocation Location
+             * @return relative from function start
+             */
+            INT32 FunctionRelativeLocation(BYTE* bytecodeLocation);
+            // @return align and return m_bcl on a particular datatype
+            template<typename Type>
+            inline BYTE*& Aligned() {
+                return m_bcl = utils::Aligned<Type>(m_bcl);
+            }
+            // @return Write asm padding and return out
+            std::ostream& WritePadding(std::ostream& out);
+
+            // @return the Final size of the function by looking at the last position
+            UINT FinalSize() const;
+        };
+    }
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
@@ -97,7 +155,8 @@ namespace tool::gsc {
         UINT8 flags;
         UINT16 padding;
 
-        int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx) const;
+        void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx) const;
+        int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx) const;
     };
 
     enum T8GSCExportFlags : UINT8 {

@@ -4,10 +4,10 @@ Tools for Black ops 4
 
 ## Tools
 
-- dump api function
+- dump api functions
 - dump pooled scripts
 - dump linked scripts
-- gsc disassembler, made in 3 days with a lot of alcohol so don't use it
+- gsc disassembler, made in 3 days with a lot of alcohol so don't use it. `gsc.exe gscinfo [yourfile.gscbin] -a`
 
 ## Lookup
 
