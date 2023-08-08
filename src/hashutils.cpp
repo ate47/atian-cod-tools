@@ -18,6 +18,36 @@ void hashutils::LoadMap(LPCWCH file) {
 		return; // nothing to read
 	}
 
+	// add common hashes
+	
+	// self and vararg
+	Add("self");
+	Add("vararg");
+	
+	// call special functions
+	Add("__constructor");
+	Add("__destructor");
+
+	// global vars
+	Add("level");
+	Add("game");
+	Add("classes");
+	Add("mission");
+	Add("anim");
+	Add("world");
+	Add("memory");
+
+	// structure basic hashes
+	Add("system");
+	Add("scripts/core_common/system_shared.csc");
+	Add("scripts/core_common/system_shared.gsc");
+	Add("register");
+	Add("__init__system__");
+	Add("__init__");
+	Add("__main__");
+	Add("main");
+	Add("init");
+
 	std::string line;
 	while (s.good() && std::getline(s, line)) {
 		Add(line.c_str());

@@ -8,6 +8,195 @@ static std::unordered_map<opcode, const opcodeinfo*> g_opcodeHandlerMap{};
 opcodeinfo::opcodeinfo(opcode id, LPCCH name) : m_id(id), m_name(name) {
 }
 
+
+tool::gsc::opcode::asmcontextnode::asmcontextnode(asmcontextnode_priority priority) : m_priority(priority) {
+}
+
+tool::gsc::opcode::asmcontextnode::~asmcontextnode() {
+}
+
+void tool::gsc::opcode::asmcontextnode::Dump(std::ostream& out, decompcontext& ctx) const {
+	// nothing by default
+}
+
+template<typename Type>
+class asmcontextnode_Value : public asmcontextnode {
+public:
+	Type m_value;
+	asmcontextnode_Value(Type value) : asmcontextnode(PRIORITY_VALUE), m_value(value) {
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << m_value;
+	}
+};
+class asmcontextnode_Identifier : public asmcontextnode {
+public:
+	UINT32 m_value;
+	LPCCH m_type;
+	asmcontextnode_Identifier(UINT32 value, LPCCH type = "var") : asmcontextnode(PRIORITY_VALUE), m_value(value), m_type(type) {
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << hashutils::ExtractTmp(m_type, m_value) << std::flush;
+	}
+};
+
+class asmcontextnode_Hash : public asmcontextnode {
+public:
+	UINT64 m_value;
+	asmcontextnode_Hash(UINT64 value) : asmcontextnode(PRIORITY_VALUE), m_value(value) {
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "#\"" << hashutils::ExtractTmp("hash", m_value) << '"' << std::flush;
+	}
+};
+
+class asmcontextnode_String : public asmcontextnode {
+public:
+	LPCCH m_value;
+	asmcontextnode_String(LPCCH value) : asmcontextnode(PRIORITY_VALUE), m_value(value) {
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "\"" << m_value << '"' << std::flush;
+	}
+};
+
+class asmcontextnode_FuncRef : public asmcontextnode {
+public:
+	LPCCH m_op;
+	UINT32 m_func;
+	UINT32 m_nsp;
+	UINT64 m_script;
+	asmcontextnode_FuncRef(LPCCH op, UINT32 func, UINT32 nsp = 0, UINT64 script = 0) : asmcontextnode(PRIORITY_VALUE), 
+		m_op(op), m_func(func), m_nsp(nsp), m_script(script) {
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << m_op;
+		if (m_nsp) {
+			out << hashutils::ExtractTmp("namespace", m_nsp) << std::flush;
+			if (m_script) {
+				out << "<" << hashutils::ExtractTmp("script", m_script) << ">" << std::flush;
+			}
+			out << "::";
+		}
+		out << hashutils::ExtractTmp("function", m_func) << std::flush;
+	}
+};
+
+class asmcontextnode_Op2 : public asmcontextnode {
+public:
+	LPCCH m_description;
+	asmcontextnode* m_operand1;
+	asmcontextnode* m_operand2;
+	asmcontextnode_Op2(LPCCH description, asmcontextnode_priority priority, asmcontextnode* operand1, asmcontextnode* operand2) :
+		asmcontextnode(priority), m_description(description), m_operand1(operand1), m_operand2(operand2) {
+	}
+	~asmcontextnode_Op2() {
+		delete m_operand1;
+		delete m_operand2;
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		if (m_operand1->m_priority < m_priority) {
+			out << "(";
+			m_operand1->Dump(out, ctx);
+			out << ")";
+		}
+		else {
+			m_operand1->Dump(out, ctx);
+		}
+
+		out << " " << m_description << " ";
+
+		if (m_operand2->m_priority < m_priority) {
+			out << "(";
+			m_operand2->Dump(out, ctx);
+			out << ")";
+		}
+		else {
+			m_operand2->Dump(out, ctx);
+		}
+	}
+};
+
+class asmcontextnode_Op1 : public asmcontextnode {
+public:
+	LPCCH m_description;
+	bool m_prefix;
+	asmcontextnode* m_operand;
+	asmcontextnode_Op1(LPCCH description, bool prefix, asmcontextnode* operand) :
+		asmcontextnode(PRIORITY_UNARY), m_prefix(prefix), m_description(description), m_operand(operand) {
+	}
+	~asmcontextnode_Op1() {
+		delete m_operand;
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		if (m_prefix) {
+			out << m_description;
+		}
+		if (m_operand->m_priority < m_priority) {
+			out << "(";
+			m_operand->Dump(out, ctx);
+			out << ")";
+		}
+		else {
+			m_operand->Dump(out, ctx);
+		}
+
+		if (!m_prefix) {
+			out << m_description;
+		}
+	}
+};
+
+class asmcontextnode_MultOp : public asmcontextnode {
+public:
+	LPCCH m_description;
+	bool m_caller;
+	std::vector<asmcontextnode*> m_operands{};
+	asmcontextnode_MultOp(LPCCH description, bool caller) :
+		asmcontextnode(PRIORITY_INST), m_description(description), m_caller(caller) {
+	}
+	~asmcontextnode_MultOp() {
+		for (auto& ref : m_operands) {
+			delete ref;
+		}
+	}
+
+	void AddParam(asmcontextnode* node) {
+		m_operands.push_back(node);
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		size_t start = 0;
+		if (m_caller) {
+			if (!m_operands.size()) {
+				std::cerr << "empty MultOp " << m_description << "\n";
+				return; // wtf?
+			}
+			m_operands[0]->Dump(out, ctx);
+			out << " ";
+			start = 1;
+		}
+		out << m_description << "(";
+
+		for (size_t i = start; i < m_operands.size(); i++) {
+			const auto& operand = m_operands[i];
+			if (i != start) {
+				out << ", ";
+			}
+			operand->Dump(out, ctx);
+		}
+		out << ")";
+	}
+};
+
+
 int opcodeinfo::Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const {
 	out << "\n";
 	return 0; // by default nop
@@ -209,19 +398,6 @@ public:
 		BYTE flag = *(context.m_bcl++);
 
 		out << "(" << OfFlag(flag >> 4) << ", " << OfFlag(flag >> 2) << ", " << OfFlag(flag) << ")\n";
-
-		return 0;
-	}
-};
-
-class opcodeinfo_Count : public opcodeinfo {
-public:
-	using opcodeinfo::opcodeinfo;
-
-	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		BYTE count = *(context.m_bcl++);
-
-		out << "count:" << (int)count << "\n";
 
 		return 0;
 	}
@@ -519,11 +695,80 @@ public:
 		return 0;
 	}
 };
+class opcodeinfo_pushopn : public opcodeinfo {
+public:
+	INT m_n;
+	LPCCH m_op;
+	asmcontextnode_priority m_priority;
+	bool m_caller;
+	opcodeinfo_pushopn(opcode id, LPCCH name, INT n, LPCCH op, asmcontextnode_priority priority, bool caller = false) : opcodeinfo(id, name), 
+		m_n(n), m_op(op), m_priority(priority), m_caller(caller) {
+	}
+
+	int Dump(std::ostream& out, UINT16 v, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		if (m_n == 1) {
+			context.PushASMCNode(new asmcontextnode_Op1(m_op, m_caller, context.PopASMCNode()));
+		}
+		else if (m_n == 2 && !m_caller) {
+			// reverse order
+			asmcontextnode* op2 = context.PopASMCNode();
+			asmcontextnode* op1 = context.PopASMCNode();
+
+			context.PushASMCNode(new asmcontextnode_Op2(m_op, m_priority, op1, op2));
+		}
+		else {
+			asmcontextnode_MultOp* node = new asmcontextnode_MultOp(m_op, m_caller);
+
+			for (size_t i = 0; i < m_n; i++) {
+				node->AddParam(context.PopASMCNode());
+			}
+
+			context.PushASMCNode(node);
+		}
+		return 0;
+	}
+};
+
+class opcodeinfo_Count : public opcodeinfo {
+public:
+	using opcodeinfo::opcodeinfo;
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		BYTE count = *(context.m_bcl++);
+
+		out << "count:" << (int)count << "\n";
+
+		return 0;
+	}
+};
 
 class opcodeinfo_nop : public opcodeinfo {
 public:
 	using opcodeinfo::opcodeinfo;
 };
+
+// T8-Compiler custom opcode
+class opcodeinfo_T8C_GetLazyFunction : public opcodeinfo {
+public:
+	opcodeinfo_T8C_GetLazyFunction() : opcodeinfo(OPCODE_T8C_GetLazyFunction, "T8C_GetLazyFunction") {}
+
+	int Dump(std::ostream& out, UINT16 v, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& base = context.Aligned<INT32>();
+
+		UINT32 nsp = *(UINT32*)base;
+		UINT32 function = *(UINT32*)(base + 4);
+		UINT64 script = *(UINT64*)(base + 8);
+
+		base += 16;
+
+		out << "@" << hashutils::ExtractTmp("namespace", nsp)
+			<< "<" << std::flush << hashutils::ExtractTmp("script", script)
+			<< ">::" << std::flush << hashutils::ExtractTmp("function", function) << std::endl;
+
+		return 0;
+	}
+};
+
 static const opcodeinfo* g_unknownOpcode = new opcodeinfo_unknown(OPCODE_Undefined, "Undefined");
 
 void tool::gsc::opcode::RegisterOpCode(opcode enumValue, UINT16 op) {
@@ -591,33 +836,36 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		// control
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_EndOnCallback, "EndOnCallback"));
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_EndOn, "EndOn"));
+
+		// ret control
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaitTill, "WaitTill"));
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout"));
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaitTillMatch, "WaitTillMatch"));
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaittillTimeout, "WaittillTimeout"));
 
 		// operation
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Bit_And, "Bit_And"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_GreaterThan, "GreaterThan"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_BoolNot, "BoolNot"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CastBool, "CastBool"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Equal, "Equal"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_ShiftRight, "ShiftRight"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_ShiftLeft, "ShiftLeft"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Plus, "Plus"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_SuperEqual, "SuperEqual"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_BoolComplement, "BoolComplement"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Bit_Or, "Bit_Or"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Bit_Xor, "Bit_Xor"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Divide, "Divide"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Minus, "Minus"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Modulus, "Modulus"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Multiply, "Multiply"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_LessThan, "LessThan"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_GreaterThanOrEqualTo, "GreaterThanOrEqualTo"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_LessThanOrEqualTo, "LessThanOrEqualTo"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_NotEqual, "NotEqual"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_SuperNotEqual, "SuperNotEqual"));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Bit_And, "Bit_And", 2, "&", PRIORITY_BIT_AND));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Bit_Or, "Bit_Or", 2, "|", PRIORITY_BIT_OR));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Bit_Xor, "Bit_Xor", 2, "^", PRIORITY_BIT_XOR));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_GreaterThan, "GreaterThan", 2, ">", PRIORITY_COMPARE));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_LessThan, "LessThan", 2, "<", PRIORITY_COMPARE));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_GreaterThanOrEqualTo, "GreaterThanOrEqualTo", 2, ">=", PRIORITY_COMPARE));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_LessThanOrEqualTo, "LessThanOrEqualTo", 2, "<=", PRIORITY_COMPARE));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_ShiftRight, "ShiftRight", 2, ">>", PRIORITY_BIT_SHIFTS));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_ShiftLeft, "ShiftLeft", 2, "<<", PRIORITY_BIT_SHIFTS));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Plus, "Plus", 2, "+", PRIORITY_PLUS));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Minus, "Minus", 2, "-", PRIORITY_PLUS));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Divide, "Divide", 2, "/", PRIORITY_MULT));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Modulus, "Modulus", 2, "%", PRIORITY_MULT));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Multiply, "Multiply", 2, "*", PRIORITY_MULT));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Equal, "Equal", 2, "==", PRIORITY_EQUALS));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_SuperEqual, "SuperEqual", 2, "===", PRIORITY_EQUALS));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_NotEqual, "NotEqual", 2, "!=", PRIORITY_EQUALS));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_SuperNotEqual, "SuperNotEqual", 2, "!==", PRIORITY_EQUALS));
+
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolComplement, "BoolComplement", 1, "~", PRIORITY_UNARY));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolNot, "BoolNot", 1, "!", PRIORITY_UNARY));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_CastBool, "CastBool", 1, "(bool)", PRIORITY_UNARY));
 
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_ClearParams, "ClearParams"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CheckClearParams, "CheckClearParams"));
@@ -718,6 +966,9 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_EvalGlobalObjectFieldVariable());
 		RegisterOpCodeHandler(new opcodeinfo_Switch());
 		RegisterOpCodeHandler(new opcodeinfo_EndSwitch());
+
+		// T8compiler custom opcode
+		RegisterOpCodeHandler(new opcodeinfo_T8C_GetLazyFunction());
 
 		// Register mapping
 		// todo: create file containing it
@@ -1060,6 +1311,9 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCode(OPCODE_EvalArrayRef, 0x3c1, 0x3da, 0x4a8, 0x4ce, 0x527, 0x5c9, 0x6a8, 0x782, 0x884, 0x887, 0x9a2, 0xa9d, 0xaae, 0xae6, 0xb06, 0xb35, 0xc85, 0xce4, 0xdea, 0xf05, 0xfe6);
 		RegisterOpCode(OPCODE_EvalFieldVariable, 0x400, 0x4a9, 0x548, 0x551, 0x68b, 0x746, 0x7b3, 0x7c4, 0xd4f, 0xe1a, 0xed1);
 		RegisterOpCode(OPCODE_GetFunction, 0x432, 0x5d8, 0x6a1, 0x718, 0xb64, 0xb9c, 0xc91, 0xcb1, 0xedb, 0xf16);
+
+		// T8-Compiler opcodes
+		RegisterOpCode(OPCODE_T8C_GetLazyFunction, 0x16);
 	});
 }
 
@@ -1085,7 +1339,7 @@ const opcodeinfo* tool::gsc::opcode::LookupOpCode(UINT16 opcode) {
 	return refHandler->second;
 }
 
-asmcontext::asmcontext(BYTE* fonctionStart) : m_fonctionStart(fonctionStart), m_bcl(fonctionStart) {
+asmcontext::asmcontext(BYTE* fonctionStart) : m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_lastOpCodeBase(-1) {
 	// set start as unhandled
 	PushLocation();
 }
@@ -1132,4 +1386,26 @@ UINT asmcontext::FinalSize() const {
 		}
 	}
 	return (UINT)max + 2; // +1 for the Return/End operator
+}
+
+void asmcontext::PushASMCNode(asmcontextnode* node) {
+	m_stack.push_back(node);
+}
+
+asmcontextnode* asmcontext::PopASMCNode() {
+	if (!m_stack.size()) {
+		return nullptr;
+	}
+	asmcontextnode* val = m_stack[m_stack.size() - 1];
+	m_stack.pop_back();
+	return val;
+}
+
+void asmcontext::CompleteStatement() {
+	if (m_lastOpCodeBase == -1) {
+		std::cerr << "bad complete statement\n"; // wtf?
+		return;
+	}
+	m_nodes.push_back({ PopASMCNode(), m_locs[m_lastOpCodeBase]});
+	m_lastOpCodeBase = -1;
 }

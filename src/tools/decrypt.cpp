@@ -460,6 +460,12 @@ static INT32 encryptiontable[] = {
 };
 #pragma endregion
 
+// idc
+#pragma warning(push)
+#pragma warning(disable:6385)
+#pragma warning(disable:4244)
+#pragma warning(disable:4101)
+
 // sub:3C4E300
 char* tool::decrypt::decryptfunc(char* str) {
 
@@ -4625,3 +4631,5 @@ LABEL_713:
 	}
 	goto LABEL_757;
 }
+
+#pragma warning(pop)

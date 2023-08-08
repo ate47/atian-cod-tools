@@ -154,6 +154,9 @@ namespace tool::gsc::opcode {
 		OPCODE_EvalLocalVariableRefCached,
 		OPCODE_EvalGlobalObjectFieldVariable,
 		OPCODE_EvalLocalVariableDefined,
+
+		// T8-Compiler Custom opcodes
+		OPCODE_T8C_GetLazyFunction,
 	};
 
 	enum T8GSCLocalVarFlag : UINT8 {

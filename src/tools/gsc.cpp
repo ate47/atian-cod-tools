@@ -10,6 +10,9 @@ public:
     bool m_imports;
     bool m_strings;
     bool m_gvars;
+    bool m_includes;
+    bool m_exptests;
+    bool m_patch;
 
     std::vector<LPCCH> m_inputFiles{};
     bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
@@ -22,34 +25,46 @@ public:
         m_imports = false;
         m_strings = false;
         m_gvars = false;
+        m_includes = true;
+        m_exptests = false;
+        m_patch = true;
         m_inputFiles.clear();
 
         for (size_t i = startIndex; i < endIndex; i++) {
             LPCCH arg = args[i];
 
-            if (!_strcmpi("-?", arg) || !_strcmpi("--help", arg) || !_strcmpi("-h", arg)) {
+            if (!strcmp("-?", arg) || !strcmp("--help", arg) || !strcmp("-h", arg)) {
                 m_help = true;
             }
-            else if (!_strcmpi("-g", arg) || !_strcmpi("--gsc", arg)) {
+            else if (!strcmp("-g", arg) || !strcmp("--gsc", arg)) {
                 m_dcomp = true;
             }
-            else if (!_strcmpi("-a", arg) || !_strcmpi("--asm", arg)) {
+            else if (!strcmp("-a", arg) || !strcmp("--asm", arg)) {
                 m_dasm = true;
             }
-            else if (!_strcmpi("-s", arg) || !_strcmpi("--silent", arg)) {
+            else if (!strcmp("-s", arg) || !strcmp("--silent", arg)) {
                 m_verbose = false;
             }
-            else if (!_strcmpi("-H", arg) || !_strcmpi("--header", arg)) {
+            else if (!strcmp("-H", arg) || !strcmp("--header", arg)) {
                 m_header = true;
             }
-            else if (!_strcmpi("-I", arg) || !_strcmpi("--imports", arg)) {
+            else if (!strcmp("-I", arg) || !strcmp("--imports", arg)) {
                 m_imports = true;
             }
-            else if (!_strcmpi("-S", arg) || !_strcmpi("--strings", arg)) {
+            else if (!strcmp("-S", arg) || !strcmp("--strings", arg)) {
                 m_strings = true;
             }
-            else if (!_strcmpi("-G", arg) || !_strcmpi("--gvars", arg)) {
+            else if (!strcmp("-G", arg) || !strcmp("--gvars", arg)) {
                 m_gvars = true;
+            }
+            else if (!strcmp("-U", arg) || !strcmp("--noincludes", arg)) {
+                m_includes = false;
+            }
+            else if (!strcmp("-X", arg) || !strcmp("--exptests", arg)) {
+                m_exptests = true;
+            }
+            else if (!strcmp("-P", arg) || !strcmp("--nopatch", arg)) {
+                m_patch = false;
             }
             else if (*arg == '-') {
                 std::cerr << "Unknown option: " << arg << "!\n";
@@ -65,14 +80,16 @@ public:
         return true;
     }
     void PrintHelp(std::ostream& out) {
-        out << "-h --help    : Print help\n";
-        out << "-g --gsc     : Produce GSC\n";
-        out << "-a --asm     : Produce ASM\n";
-        out << "-s --silent  : Silent output, only errors\n";
-        out << "-H --header  : Write file header\n";
-        out << "-I --imports : Write imports\n";
-        out << "-S --strings : Write strings\n";
-        out << "-G --gvars   : Write gvars\n";
+        out << "-h --help       : Print help\n";
+        out << "-g --gsc        : Produce GSC\n";
+        out << "-a --asm        : Produce ASM\n";
+        out << "-s --silent     : Silent output, only errors\n";
+        out << "-H --header     : Write file header\n";
+        out << "-I --imports    : Write imports\n";
+        out << "-S --strings    : Write strings\n";
+        out << "-G --gvars      : Write gvars\n";
+        out << "-U --noincludes : No includes\n";
+        out << "-X --exptests   : Enable UNK tests\n";
     }
 };
 
@@ -82,8 +99,10 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
     T8GSCOBJContext ctx{};
 
-    // unlink the script and write custom gvar/string ids
-    data->PatchCode(ctx);
+    if (opt.m_patch) {
+        // unlink the script and write custom gvar/string ids
+        data->PatchCode(ctx);
+    }
 
     char asmfnamebuff[1000];
     snprintf(asmfnamebuff, 1000, "%sasm", path);
@@ -124,25 +143,28 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             << "// ukn4c_count ......... " << (int)data->ukn4c_count << "\n";
     }
 
-    UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
+    if (opt.m_includes) {
+        UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
 
-    for (size_t i = 0; i < data->include_count; i++) {
-        asmout << "#include " << hashutils::ExtractTmp("script", includes[i]) << "\n";
-    }
-    if (data->include_count) {
-        asmout << "\n";
-    }
-
-
-    auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
-
-    for (size_t i = 0; i < data->fixup_count; i++) {
-        const auto& fixup = fixups[i];
-        asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << "\n";
+        for (size_t i = 0; i < data->include_count; i++) {
+            asmout << "#include " << hashutils::ExtractTmp("script", includes[i]) << "\n";
+        }
+        if (data->include_count) {
+            asmout << "\n";
+        }
     }
 
-    if (data->fixup_count) {
-        asmout << "\n";
+    if (opt.m_exptests) {
+        auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
+
+        for (size_t i = 0; i < data->fixup_count; i++) {
+            const auto& fixup = fixups[i];
+            asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << "\n";
+        }
+
+        if (data->fixup_count) {
+            asmout << "\n";
+        }
     }
 
     if (opt.m_gvars) {
@@ -271,7 +293,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
         exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
 
-        output << "{ __gscasm{\n";
+        output << " { __gscasm{\n";
 
         exp.DumpAsm(output, data->magic, ctx, asmctx);
 
@@ -286,10 +308,12 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             asmout << "}\n\n";
         }
     }
-    auto* ukn4c = reinterpret_cast<UINT64*>(&data->magic[data->ukn4c_offset]);
+    if (opt.m_exptests) {
+        auto* ukn4c = reinterpret_cast<UINT64*>(&data->magic[data->ukn4c_offset]);
 
-    for (size_t i = 0; i < data->ukn4c_count; i++) {
-        asmout << "ukn4c: "  << hashutils::ExtractTmp("hash", ukn4c[i]) << "\n";
+        for (size_t i = 0; i < data->ukn4c_count; i++) {
+            asmout << "ukn4c: " << hashutils::ExtractTmp("hash", ukn4c[i]) << "\n";
+        }
     }
 
     asmout.close();
@@ -556,18 +580,19 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
             auto& base = ctx.Aligned<UINT16>();
 
             // mark the current location as handled
-            ctx.PushLocation().handled = true;
+            auto& loc = ctx.PushLocation();
+            loc.handled = true;
+
+            if (ctx.m_lastOpCodeBase == -1) {
+                ctx.m_lastOpCodeBase = loc.rloc;
+            }
 
             UINT16 opCode = *(UINT16*)base;
-            // pass the opcode
-            auto location = ctx.FunctionRelativeLocation();
-
-            base += 2;
          
             const auto* handler = tool::gsc::opcode::LookupOpCode(opCode);
 
 
-            out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << location << ": ";
+            out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << loc.rloc << ": ";
 
             if (opCode & 0x1000) {
                 out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(" << opCode << ")" << "\n";
@@ -579,6 +604,10 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
                 << " "
                 << std::setfill(' ') << std::setw(25) << std::left << handler->m_name << std::right
                 << " ";
+
+
+            // pass the opcode
+            base += 2;
 
             // update asmcontext::WritePadding if you change the format
 
@@ -627,9 +656,6 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
     }
     if (flags & T8GSCExportFlags::PRIVATE) {
         asmout << "private ";
-    }
-    if (flags & T8GSCExportFlags::VE) {
-        asmout << "ve ";
     }
 
     if (flags & T8GSCExportFlags::CLASS_DESTRUCTOR) {

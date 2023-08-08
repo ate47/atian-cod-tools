@@ -3,7 +3,36 @@
 
 namespace tool::gsc {
     namespace opcode {
+        struct decompcontext {
+            int padding{};
+        };
+        enum asmcontextnode_priority : UINT {
+            PRIORITY_INST,
 
+            PRIORITY_BIT_OR,
+            PRIORITY_BIT_XOR,
+            PRIORITY_BIT_AND,
+
+            PRIORITY_EQUALS,
+            PRIORITY_COMPARE,
+
+            PRIORITY_BIT_SHIFTS,
+            PRIORITY_PLUS,
+            PRIORITY_MULT,
+
+            PRIORITY_DOT,
+
+            PRIORITY_UNARY,
+
+            PRIORITY_VALUE
+        };
+        class asmcontextnode {
+        public:
+            asmcontextnode_priority m_priority;
+            asmcontextnode(asmcontextnode_priority priority);
+            virtual ~asmcontextnode();
+            virtual void Dump(std::ostream& out, decompcontext& ctx) const;
+        };
 
         struct asmcontextlocation {
             INT32 rloc;
@@ -17,6 +46,11 @@ namespace tool::gsc {
             BYTE flags;
         };
 
+        struct asmcontextstatement {
+            asmcontextnode* node;
+            asmcontextlocation& location;
+        };
+
         class asmcontext {
         public:
             // fonction start location
@@ -25,6 +59,13 @@ namespace tool::gsc {
             std::map<INT32, asmcontextlocation> m_locs{};
             // current context location
             BYTE* m_bcl;
+            // last op base
+            INT32 m_lastOpCodeBase;
+            // context stack
+            std::vector<asmcontextnode*> m_stack{};
+            // decompiled nodes
+            std::vector<asmcontextstatement> m_nodes{};
+            // local vars
             std::vector<asmcontextlocalvar> m_localvars{};
 
             asmcontext(BYTE* fonctionStart);
@@ -58,6 +99,11 @@ namespace tool::gsc {
 
             // @return the Final size of the function by looking at the last position
             UINT FinalSize() const;
+
+            void PushASMCNode(asmcontextnode* node);
+            asmcontextnode* PopASMCNode();
+
+            void CompleteStatement();
         };
     }
     // Result context for T8GSCOBJ::PatchCode
