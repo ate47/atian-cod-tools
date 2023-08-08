@@ -1,4 +1,5 @@
 # T8 Tools
+
 Tools for Black ops 4
 
 ## Tools
@@ -6,6 +7,7 @@ Tools for Black ops 4
 - dump api function
 - dump pooled scripts
 - dump linked scripts
+- gsc disassembler, made in 3 days with a lot of alcohol so don't use it
 
 ## Lookup
 

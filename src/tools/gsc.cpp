@@ -1,9 +1,13 @@
 #include <includes.hpp>
 
 int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) {
+    using namespace tool::gsc;
     hashutils::ReadDefaultFile();
 
-    data->PatchCode();
+    T8GSCOBJContext ctx{};
+
+    // unlink the script and write custom gvar/string ids
+    data->PatchCode(ctx);
 
     char asmfnamebuff[1000];
     snprintf(asmfnamebuff, 1000, "%sasm", path);
@@ -50,7 +54,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
     }
 
 
-    auto* fixups = reinterpret_cast<tool::gsc::T8GSCFixup*>(&data->magic[data->fixup_offset]);
+    auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
 
     for (size_t i = 0; i < data->fixup_count; i++) {
         const auto& fixup = fixups[i];
@@ -60,7 +64,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
     uintptr_t gvars_location = reinterpret_cast<uintptr_t>(data->magic) + data->globalvar_offset;
 
     for (size_t i = 0; i < data->globalvar_count; i++) {
-        const auto* globalvar = reinterpret_cast<tool::gsc::T8GSCGlobalVar*>(gvars_location);
+        const auto* globalvar = reinterpret_cast<T8GSCGlobalVar*>(gvars_location);
         asmout << std::hex << "Global var " << hashutils::ExtractTmp("var", globalvar->name) << " " << globalvar->num_address << "\n";
 
         asmout << "location(s): ";
@@ -78,7 +82,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
 
     for (size_t i = 0; i < data->string_count; i++) {
 
-        const auto* str = reinterpret_cast<tool::gsc::T8GSCString*>(str_location);
+        const auto* str = reinterpret_cast<T8GSCString*>(str_location);
 
         asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << ", type:" << (int)str->type << "\n";
 
@@ -101,12 +105,44 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
 
     for (size_t i = 0; i < data->imports_count; i++) {
 
-        const auto* imp = reinterpret_cast<tool::gsc::T8GSCImport*>(import_location);
-        asmout << std::hex << "-- import " << hashutils::ExtractTmp("namespace", imp->import_namespace) << std::flush;
-        asmout << std::hex << "::" << hashutils::ExtractTmp("function", imp->name) << " --\n";
+        const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
+        asmout << std::hex << "import ";
+
+        switch (imp->flags & T8GSCImportFlags::CALLTYPE_MASK) {
+        case FUNC_METHOD: asmout << "funcmethod "; break;
+        case FUNCTION: asmout << "function "; break;
+        case FUNCTION_THREAD: asmout << "function thread "; break;
+        case FUNCTION_THREAD_ENDON: asmout << "function threadendon "; break;
+        case METHOD: asmout << "method "; break;
+        case METHOD_THREAD: asmout << "method thread "; break;
+        case METHOD_THREAD_ENDON: asmout << "method threadendon "; break;
+        default:
+            asmout << "<errorflag:" << std::hex << (imp->flags & 0xF) << "> ";
+            break;
+        }
+
+        if (imp->flags & T8GSCImportFlags::DEV_CALL) {
+            asmout << "devcall ";
+        }
+
+        // they both seem unused
+        if (imp->flags & T8GSCImportFlags::UKN40) {
+            asmout << "ukn40 ";
+        }
+        if (imp->flags & T8GSCImportFlags::UKN80) {
+            asmout << "ukn80 ";
+        }
+
+        if ((imp->flags & T8GSCImportFlags::GET_CALL) == 0) {
+            // no need for namespace if we are getting the call dynamically (api or inside-code script)
+            asmout << hashutils::ExtractTmp("namespace", imp->import_namespace) << std::flush << "::";
+        }
+
+        asmout << std::hex << hashutils::ExtractTmp("function", imp->name) << "\n";
+
         asmout << std::hex << "address: " << imp->num_address <<
             ", params: " << (int)imp->param_count <<
-            ", flags: " << std::hex << (UINT16)(imp->flags) << "\n";
+            ", iflags: 0x" << std::hex << (UINT16)(imp->flags) << "\n";
 
         asmout << "location(s): ";
 
@@ -119,39 +155,59 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path) 
 
         asmout << "--------------\n";
 
-        str_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
+        import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
     }
 
-    auto* exports = reinterpret_cast<tool::gsc::T8GSCExport*>(&data->magic[data->export_table_offset]);
+    auto* exports = reinterpret_cast<T8GSCExport*>(&data->magic[data->export_table_offset]);
 
     for (size_t i = 0; i < data->exports_count; i++) {
         const auto& exp = exports[i];
-        asmout << "// Namespace " << hashutils::ExtractTmp("namespace", exp.name_space) << std::endl;
-        asmout << "// Params " << (int)exp.param_count << ", Flags: 0x" << std::hex << (int)exp.flags << std::endl;
+        bool classMember = exp.flags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
+        asmout << "// Namespace " 
+                << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.name_space) << std::flush<< "/"
+                << hashutils::ExtractTmp((exp.flags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.callback_event) << std::endl;
+        asmout << "// Params " << (int)exp.param_count << ", eflags: 0x" << std::hex << (int)exp.flags;
+
+        if (exp.flags & T8GSCExportFlags::LINKED) {
+            asmout << " linked";
+        }
+        if (exp.flags & T8GSCExportFlags::CLASS_LINKED) {
+            asmout << " class_linked";
+        }
+
+        asmout << std::endl;
         asmout << std::hex << "// Checksum 0x" << exp.checksum << ", Offset: 0x" << (int)exp.address << std::endl;
 
         asmout << "function ";
-        if (exp.flags & tool::gsc::T8GSCExportFlags::AUTOEXEC) {
+        if (exp.flags & T8GSCExportFlags::AUTOEXEC) {
             asmout << "autoexec ";
         }
-        if (exp.flags & tool::gsc::T8GSCExportFlags::EVENT) {
+        if (exp.flags & T8GSCExportFlags::EVENT) {
             asmout << "event<" << hashutils::ExtractTmp("event", exp.callback_event) << "> " << std::flush;
         }
-        if (exp.flags & tool::gsc::T8GSCExportFlags::PRIVATE) {
+        if (exp.flags & T8GSCExportFlags::PRIVATE) {
             asmout << "private ";
         }
-        if (exp.flags & tool::gsc::T8GSCExportFlags::UKN08) {
-            asmout << "unk08 ";
-        }
-        if (exp.flags & tool::gsc::T8GSCExportFlags::UKN10) {
-            asmout << "unk10 ";
-        }
-        if (exp.flags & tool::gsc::T8GSCExportFlags::UKN20) {
-            asmout << "ukn20 ";
+        if (exp.flags & T8GSCExportFlags::VE) {
+            asmout << "ve ";
         }
 
-        asmout << hashutils::ExtractTmp("function", exp.name) << "() {}\n";
+        if (exp.flags & T8GSCExportFlags::CLASS_DESTRUCTOR) {
+            const auto* cls = hashutils::ExtractTmp("class", exp.name_space);
+            asmout << cls << "::~";
+        } 
+        else if (classMember) {
+            asmout << hashutils::ExtractTmp("class", exp.name_space) 
+                << std::flush << "::";
+        }
 
+        asmout << hashutils::ExtractTmp("function", exp.name);
+
+        asmout << "() { __gscasm {\n";
+
+        exp.DumpAsm(asmout, data->magic, ctx);
+
+        asmout << "} } \n";
     }
     auto* ukn4c = reinterpret_cast<UINT64*>(&data->magic[data->ukn4c_offset]);
 
@@ -189,19 +245,21 @@ int GscInfoFile(const std::filesystem::path& path) {
 
     LPVOID buffer = NULL;
     size_t size;
-    if (!utils::ReadFile(path, buffer, size)) {
+    LPVOID bufferNoAlign = NULL;
+    size_t sizeNoAlign;
+    if (!utils::ReadFileAlign(path, bufferNoAlign, buffer, sizeNoAlign, size)) {
         std::cerr << "Can't read file data for " << path << "\n";
         return -1;
     }
 
     if (size < sizeof(tool::gsc::T8GSCOBJ)) {
         std::cerr << "Bad header, file size: " << std::hex << size << "/" << sizeof(tool::gsc::T8GSCOBJ) << " for " << path << "\n";
-        std::free(buffer);
+        std::free(bufferNoAlign);
         return -1;
     }
 
     auto ret = GscInfoHandleData(reinterpret_cast<tool::gsc::T8GSCOBJ*>(buffer), size, pathname.c_str());
-    std::free(buffer);
+    std::free(bufferNoAlign);
     return ret;
 }
 
@@ -278,19 +336,21 @@ int DumpInfoFile(const std::filesystem::path& path, std::unordered_map<UINT64, L
 
     LPVOID buffer = NULL;
     size_t size;
-    if (!utils::ReadFile(path, buffer, size)) {
+    LPVOID bufferNoAlign = NULL;
+    size_t sizeNoAlign;
+    if (!utils::ReadFileAlign(path, bufferNoAlign, buffer, sizeNoAlign, size)) {
         std::cerr << "Can't read file data for " << path << "\n";
         return -1;
     }
 
     if (size < sizeof(tool::gsc::T8GSCOBJ)) {
         std::cerr << "Bad header, file size: " << std::hex << size << "/" << sizeof(tool::gsc::T8GSCOBJ) << " for " << path << "\n";
-        std::free(buffer);
+        std::free(bufferNoAlign);
         return -1;
     }
 
     auto ret = DumpInfoFileData(reinterpret_cast<tool::gsc::T8GSCOBJ*>(buffer), size, pathname.c_str(), dataset);
-    std::free(buffer);
+    std::free(bufferNoAlign);
     return ret;
 }
 
@@ -327,5 +387,146 @@ int tool::gsc::dumpdataset(const process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-void tool::gsc::T8GSCOBJ::PatchCode() {
+tool::gsc::T8GSCOBJContext::T8GSCOBJContext() {}
+
+// apply ~ to ref to avoid using 0, 1, 2 which might already be used
+
+UINT32 tool::gsc::T8GSCOBJContext::GetGlobalVarName(UINT16 gvarRef) {
+    auto f = m_gvars.find(gvarRef);
+    if (f == m_gvars.end()) {
+        return 0;
+    }
+    return f->second;
+}
+
+LPCCH tool::gsc::T8GSCOBJContext::GetStringValue(UINT32 stringRef) {
+    auto f = m_stringRefs.find(stringRef);
+    if (f == m_stringRefs.end()) {
+        return NULL;
+    }
+    return f->second;
+}
+
+UINT16 tool::gsc::T8GSCOBJContext::AddGlobalVarName(UINT32 value) {
+    UINT16 id = ((UINT16)m_gvars.size());
+    m_gvars[id] = value;
+    return id;
+}
+
+UINT32 tool::gsc::T8GSCOBJContext::AddStringValue(LPCCH value) {
+    UINT32 id = ((UINT32)m_stringRefs.size());
+    m_stringRefs[id] = value;
+    return id;
+}
+
+
+void tool::gsc::T8GSCOBJ::PatchCode(T8GSCOBJContext& ctx) {
+    // patching imports unlink the script refs to write namespace::import_name instead of the address
+    uintptr_t import_location = reinterpret_cast<uintptr_t>(&magic[0]) + imports_offset;
+    for (size_t i = 0; i < imports_count; i++) {
+
+        const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
+
+        const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
+        for (size_t j = 0; j < imp->num_address; j++) {
+            UINT32* loc;
+            switch (imp->flags & 0xF) {
+            case 1:
+                loc = (UINT32*)(magic + ((imports[j] + 2 + 7) & ~7));
+                break;
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                loc = (UINT32*)(magic + ((imports[j] + 2 + 1 + 7) & ~7));
+                break;
+            default:
+                loc = nullptr;
+                break;
+            }
+            if (loc) {
+                loc[0] = imp->name;
+                loc[1] = imp->import_namespace;
+            }
+        }
+        import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
+    }
+
+    uintptr_t gvars_location = reinterpret_cast<uintptr_t>(magic) + globalvar_offset;
+    for (size_t i = 0; i < globalvar_count; i++) {
+        const auto* globalvar = reinterpret_cast<T8GSCGlobalVar*>(gvars_location);
+        UINT16 ref = ctx.AddGlobalVarName(globalvar->name);
+
+        const auto* vars = reinterpret_cast<const UINT32*>(&globalvar[1]);
+        for (size_t j = 0; j < globalvar->num_address; j++) {
+            // no align, no opcode to pass, directly the fucking location, cool.
+            *(UINT16*)(magic + vars[j]) = ref;
+        }
+        gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
+    }
+
+    uintptr_t str_location = reinterpret_cast<uintptr_t>(magic) + string_offset;
+    for (size_t i = 0; i < string_count; i++) {
+
+        const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+        LPCH cstr = tool::decrypt::decryptfunc(reinterpret_cast<LPCH>(&magic[str->string]));
+        UINT32 ref = ctx.AddStringValue(cstr);
+
+        const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
+        for (size_t j = 0; j < str->num_address; j++) {
+            // no align too....
+            *(UINT32*)(magic + strings[j]) = ref;
+        }
+        str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
+    }
+}
+
+int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx) const {
+    auto ctx = opcode::asmcontext(&gscFile[address]);
+
+    while (ctx.FindNextLocation()) {
+        while (true) {
+            auto& base = ctx.Aligned<UINT16>();
+
+            // mark the current location as handled
+            ctx.PushLocation().handled = true;
+
+            UINT16 opCode = *(UINT16*)base;
+            // pass the opcode
+            auto location = ctx.FunctionRelativeLocation();
+
+            base += 2;
+         
+            const auto* handler = tool::gsc::opcode::LookupOpCode(opCode);
+
+
+            out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << location << ": ";
+
+            if (opCode & 0x1000) {
+                out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(" << opCode << ")" << "\n";
+                opCode &= 0xFFF;
+                break;
+            }
+
+            out << std::hex << std::setfill('0') << std::setw(sizeof(INT16) << 1) << opCode
+                << " "
+                << std::setfill(' ') << std::setw(25) << std::left << handler->m_name << std::right
+                << " ";
+
+            // update asmcontext::WritePadding if you change the format
+
+            auto ret = handler->Dump(out, opCode, ctx, objctx);
+
+            if (ret) {
+                break;
+            }
+        }
+    }
+    // no more location, we can assume the final size
+    // maybe we don't end on a return/end, to check?
+    out << "// final size: 0x" << std::hex << ctx.FinalSize() << "\n";
+
+    return 0;
 }
