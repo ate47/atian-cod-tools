@@ -13,6 +13,8 @@ public:
     bool m_includes;
     bool m_exptests;
     bool m_patch;
+    bool m_func;
+    LPCCH m_outputDir;
 
     std::vector<LPCCH> m_inputFiles{};
     bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
@@ -28,6 +30,8 @@ public:
         m_includes = true;
         m_exptests = false;
         m_patch = true;
+        m_func = true;
+        m_outputDir = NULL;
         m_inputFiles.clear();
 
         for (size_t i = startIndex; i < endIndex; i++) {
@@ -63,8 +67,18 @@ public:
             else if (!strcmp("-X", arg) || !strcmp("--exptests", arg)) {
                 m_exptests = true;
             }
+            else if (!strcmp("-F", arg) || !strcmp("--nofunc", arg)) {
+                m_func = false;
+            }
             else if (!strcmp("-P", arg) || !strcmp("--nopatch", arg)) {
                 m_patch = false;
+            }
+            else if (!strcmp("-o", arg) || !strcmp("--output", arg)) {
+                if (i + 1 == endIndex) {
+                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    return false;
+                }
+                m_outputDir = args[++i];
             }
             else if (*arg == '-') {
                 std::cerr << "Unknown option: " << arg << "!\n";
@@ -83,6 +97,7 @@ public:
         out << "-h --help       : Print help\n";
         out << "-g --gsc        : Produce GSC\n";
         out << "-a --asm        : Produce ASM\n";
+        out << "-o --output     : ASM/GSC output dir, default same.gscasm\n";
         out << "-s --silent     : Silent output, only errors\n";
         out << "-H --header     : Write file header\n";
         out << "-I --imports    : Write imports\n";
@@ -105,9 +120,25 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     }
 
     char asmfnamebuff[1000];
-    snprintf(asmfnamebuff, 1000, "%sasm", path);
 
-    std::ofstream asmout{ asmfnamebuff };
+    if (opt.m_outputDir) {
+        LPCCH name = hashutils::ExtractPtr(data->name);
+        if (!name) {
+            snprintf(asmfnamebuff, 1000, "%s/hashed-%d/%llx.gsc", opt.m_outputDir, (int)(data->name % 3) + 1, data->name);
+        }
+        else {
+            snprintf(asmfnamebuff, 1000, "%s/%s", opt.m_outputDir, name);
+        }
+    }
+    else {
+        snprintf(asmfnamebuff, 1000, "%sasm", path);
+    }
+
+    std::filesystem::path file(asmfnamebuff);
+
+    std::filesystem::create_directories(file.parent_path());
+
+    std::ofstream asmout{ file };
 
     if (!asmout) {
         std::cerr << "Can't open output file " << asmfnamebuff << "\n";
@@ -147,7 +178,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
 
         for (size_t i = 0; i < data->include_count; i++) {
-            asmout << "#include " << hashutils::ExtractTmp("script", includes[i]) << "\n";
+            asmout << "#include " << hashutils::ExtractTmp("script", includes[i]) << ";\n";
         }
         if (data->include_count) {
             asmout << "\n";
@@ -159,7 +190,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
         for (size_t i = 0; i < data->fixup_count; i++) {
             const auto& fixup = fixups[i];
-            asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << "\n";
+            asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
         }
 
         if (data->fixup_count) {
@@ -279,35 +310,49 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         }
     }
 
-    auto* exports = reinterpret_cast<T8GSCExport*>(&data->magic[data->export_table_offset]);
+    if (opt.m_func) {
+        auto* exports = reinterpret_cast<T8GSCExport*>(&data->magic[data->export_table_offset]);
 
-    for (size_t i = 0; i < data->exports_count; i++) {
-        const auto& exp = exports[i];
-        auto asmctx = opcode::asmcontext(&data->magic[exp.address]);
+        for (size_t i = 0; i < data->exports_count; i++) {
+            const auto& exp = exports[i];
+            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt.m_dcomp);
 
-        std::ofstream nullstream;
-        nullstream.setstate(std::ios_base::badbit);
+            std::ofstream nullstream;
+            nullstream.setstate(std::ios_base::badbit);
 
-        std::ostream& output = opt.m_dasm ? asmout : nullstream;
+            std::ostream& output = opt.m_dasm ? asmout : nullstream;
 
 
-        exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
+            exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
 
-        output << " { __gscasm{\n";
+            output << " { __gscasm{\n";
 
-        exp.DumpAsm(output, data->magic, ctx, asmctx);
+            exp.DumpAsm(output, data->magic, ctx, asmctx);
 
-        output << "} } \n";
+            output << "} } \n";
 
-        if (opt.m_dcomp) {
-            exp.DumpFunctionHeader(asmout, data->magic, ctx, asmctx);
-            asmout << " {\n";
+            if (asmctx.m_runDecompiler) {
+                exp.DumpFunctionHeader(asmout, data->magic, ctx, asmctx);
+                asmout << " {\n";
 
-            // decompile ctx
+                opcode::decompcontext dctx{ 1 };
+                // decompile ctx
+                for (const auto& ref : asmctx.m_nodes) {
+                    dctx.WritePadding(asmout);
+                    if (!ref.node) {
+                        asmout << "empty asm node";
+                    }
+                    else {
+                        ref.node->Dump(asmout, dctx);
+                    }
+                    asmout << ";\n";
+                }
 
-            asmout << "}\n\n";
+                asmout << "}\n\n";
+            }
         }
     }
+
     if (opt.m_exptests) {
         auto* ukn4c = reinterpret_cast<UINT64*>(&data->magic[data->ukn4c_offset]);
 
@@ -575,6 +620,7 @@ void tool::gsc::T8GSCOBJ::PatchCode(T8GSCOBJContext& ctx) {
 }
 
 int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx) const {
+    // reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
             auto& base = ctx.Aligned<UINT16>();

@@ -10,6 +10,7 @@
 #include <set>
 #include <mutex>
 #include <filesystem>
+#include <cassert>
 
 #include "memapi.hpp"
 #include "hashutils.hpp"

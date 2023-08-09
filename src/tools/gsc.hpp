@@ -5,9 +5,13 @@ namespace tool::gsc {
     namespace opcode {
         struct decompcontext {
             int padding{};
+
+            std::ostream& WritePadding(std::ostream& out);
         };
         enum asmcontextnode_priority : UINT {
             PRIORITY_INST,
+
+            PRIORITY_SET,
 
             PRIORITY_BIT_OR,
             PRIORITY_BIT_XOR,
@@ -20,9 +24,9 @@ namespace tool::gsc {
             PRIORITY_PLUS,
             PRIORITY_MULT,
 
-            PRIORITY_DOT,
-
             PRIORITY_UNARY,
+
+            PRIORITY_ACCESS,
 
             PRIORITY_VALUE
         };
@@ -32,12 +36,16 @@ namespace tool::gsc {
             asmcontextnode(asmcontextnode_priority priority);
             virtual ~asmcontextnode();
             virtual void Dump(std::ostream& out, decompcontext& ctx) const;
+            virtual asmcontextnode* Clone() const;
         };
 
         struct asmcontextlocation {
             INT32 rloc;
             bool handled;
             bool ref;
+            asmcontextnode* objectId = nullptr;
+            asmcontextnode* fieldId = nullptr;
+            std::vector<asmcontextnode*> m_stack{};
             asmcontextlocation();
         };
 
@@ -53,6 +61,7 @@ namespace tool::gsc {
 
         class asmcontext {
         public:
+            bool m_runDecompiler;
             // fonction start location
             BYTE* m_fonctionStart;
             // locations
@@ -61,6 +70,10 @@ namespace tool::gsc {
             BYTE* m_bcl;
             // last op base
             INT32 m_lastOpCodeBase;
+            // current objectid
+            asmcontextnode* m_objectId = nullptr;
+            // current fieldid
+            asmcontextnode* m_fieldId = nullptr;
             // context stack
             std::vector<asmcontextnode*> m_stack{};
             // decompiled nodes
@@ -68,7 +81,7 @@ namespace tool::gsc {
             // local vars
             std::vector<asmcontextlocalvar> m_localvars{};
 
-            asmcontext(BYTE* fonctionStart);
+            asmcontext(BYTE* fonctionStart, bool runDecompiler);
 
             // @return relative location in the function
             inline INT32 FunctionRelativeLocation() {
@@ -101,6 +114,8 @@ namespace tool::gsc {
             UINT FinalSize() const;
 
             void PushASMCNode(asmcontextnode* node);
+            void SetObjectIdASMCNode(asmcontextnode* node);
+            void SetFieldIdASMCNode(asmcontextnode* node);
             asmcontextnode* PopASMCNode();
 
             void CompleteStatement();

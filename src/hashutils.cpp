@@ -12,12 +12,6 @@ void hashutils::ReadDefaultFile() {
 }
 
 void hashutils::LoadMap(LPCWCH file) {
-	std::ifstream s(file);
-
-	if (!s) {
-		return; // nothing to read
-	}
-
 	// add common hashes
 	
 	// self and vararg
@@ -48,10 +42,17 @@ void hashutils::LoadMap(LPCWCH file) {
 	Add("main");
 	Add("init");
 
+	std::ifstream s(file);
+
+	if (!s) {
+		return; // nothing to read
+	}
+
 	std::string line;
 	while (s.good() && std::getline(s, line)) {
 		Add(line.c_str());
 	}
+
 	s.close();
 }
 
