@@ -2,6 +2,43 @@
 #include <includes.hpp>
 
 namespace tool::gsc {
+
+    // cli options
+    class GscInfoOption {
+    public:
+        bool m_dcomp = false;
+        bool m_dasm = false;
+        bool m_help = false;
+        bool m_verbose = true;
+        bool m_header = false;
+        bool m_imports = false;
+        bool m_strings = false;
+        bool m_gvars = false;
+        bool m_includes = true;
+        bool m_exptests = false;
+        bool m_patch = true;
+        bool m_func = true;
+        bool m_func_header = true;
+        bool m_func_header_post = false;
+        LPCCH m_outputDir = NULL;
+        LPCCH m_copyright = NULL;
+
+        std::vector<LPCCH> m_inputFiles{};
+        /*
+         * Compute options
+         * @param args Arguments
+         * @param startIndex Start index in args
+         * @param startIndex End index in args (exclusive)
+         * @return if the arguments were correctly computed
+         */
+        bool Compute(LPCCH* args, INT startIndex, INT endIndex);
+        /*
+         * Print help in a stream
+         * @param out stream
+         */
+        void PrintHelp(std::ostream& out);
+    };
+
     namespace opcode {
         struct decompcontext {
             int padding{};
@@ -61,6 +98,9 @@ namespace tool::gsc {
 
         class asmcontext {
         public:
+            // cli opt
+            const GscInfoOption& m_opt;
+            // run the decompiler logic
             bool m_runDecompiler;
             // fonction start location
             BYTE* m_fonctionStart;
@@ -81,7 +121,7 @@ namespace tool::gsc {
             // local vars
             std::vector<asmcontextlocalvar> m_localvars{};
 
-            asmcontext(BYTE* fonctionStart, bool runDecompiler);
+            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt);
 
             // @return relative location in the function
             inline INT32 FunctionRelativeLocation() {
@@ -113,11 +153,33 @@ namespace tool::gsc {
             // @return the Final size of the function by looking at the last position
             UINT FinalSize() const;
 
+            /*
+             * Push an asmcontext (ASMC) node on the stack
+             * @param node Node
+             */
             void PushASMCNode(asmcontextnode* node);
-            void SetObjectIdASMCNode(asmcontextnode* node);
-            void SetFieldIdASMCNode(asmcontextnode* node);
+
+            /*
+             * Pop an asmcontext (ASMC) node from the stack
+             * @return Node
+             */
             asmcontextnode* PopASMCNode();
 
+            /*
+             * Free the previous ObjectId ASCM node and put a new node
+             * @param node Nullable node
+             */
+            void SetObjectIdASMCNode(asmcontextnode* node);
+
+            /*
+             * Free the previous FieldId ASCM node and put a new node
+             * @param node Nullable node
+             */
+            void SetFieldIdASMCNode(asmcontextnode* node);
+
+            /*
+             * Complete any statement on the ASCM stack
+             */
             void CompleteStatement();
         };
     }

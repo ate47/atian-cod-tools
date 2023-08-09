@@ -490,7 +490,13 @@ public:
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		BYTE count = *context.m_bcl++;
 
+		context.m_localvars.reserve((size_t) count + 1);
+
 		out << std::hex << "count: 0x" << (int)count << "\n";
+		if (!context.m_localvars.size()) {
+			// the local variables starts at 1
+			context.m_localvars.insert(context.m_localvars.begin(), {hashutils::Hash32("<error>"), 0});
+		}
 
 		for (size_t i = 0; i < count; i++) {
 			auto& bytecode = context.Aligned<UINT32>();
@@ -499,7 +505,8 @@ public:
 			bytecode += 4;
 			BYTE flags = *(bytecode++);
 
-			context.m_localvars.push_back({ varName, flags });
+			// the variables are in reversed order
+			context.m_localvars.insert(context.m_localvars.begin(), { varName, flags });
 
 			out << hashutils::ExtractTmp("var", varName);
 
@@ -2033,7 +2040,7 @@ const opcodeinfo* tool::gsc::opcode::LookupOpCode(UINT16 opcode) {
 	return refHandler->second;
 }
 
-asmcontext::asmcontext(BYTE* fonctionStart, bool runDecompiler) : m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_runDecompiler(runDecompiler), m_lastOpCodeBase(-1){
+asmcontext::asmcontext(BYTE* fonctionStart, const GscInfoOption& opt) : m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), m_lastOpCodeBase(-1){
 	// set start as unhandled
 	PushLocation();
 }
@@ -2146,7 +2153,7 @@ asmcontextnode* asmcontext::PopASMCNode() {
 }
 
 void asmcontext::CompleteStatement() {
-	if (m_lastOpCodeBase != -1) { // empty func tests
+	if (m_stack.size() && m_lastOpCodeBase != -1) { // empty func tests
 		m_nodes.push_back({ PopASMCNode(), m_locs[m_lastOpCodeBase]});
 		m_lastOpCodeBase = -1;
 	}
