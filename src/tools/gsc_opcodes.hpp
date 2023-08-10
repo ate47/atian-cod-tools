@@ -64,7 +64,7 @@ namespace tool::gsc::opcode {
 		OPCODE_AddToArray,
 		OPCODE_Wait,
 		OPCODE_SuperEqual,
-		OPCODE_ScriptFunctionThreadCall,
+		OPCODE_ScriptFunctionCall,
 		OPCODE_JumpOnTrueExpr,
 		OPCODE_CreateArray,
 		OPCODE_Inc,

@@ -312,6 +312,9 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
                     // decompile ctx
                     for (const auto& ref : asmctx.m_nodes) {
+                        if (ref.location.ref) {
+                            asmout << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
+                        }
                         dctx.WritePadding(asmout);
                         if (!ref.node) {
                             asmout << "empty asm node";
@@ -322,6 +325,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                         asmout << ";\n";
                     }
 
+                    asmout << "}\n";
                 }
                 else {
                     asmout << ";\n\n";

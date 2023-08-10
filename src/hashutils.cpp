@@ -18,9 +18,11 @@ void hashutils::LoadMap(LPCWCH file) {
 	Add("self");
 	Add("vararg");
 	
-	// call special functions
+	// class special things
 	Add("__constructor");
 	Add("__destructor");
+	Add("__vtable");
+	Add("_deleted");
 
 	// global vars
 	Add("<error>");

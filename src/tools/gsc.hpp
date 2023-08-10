@@ -84,6 +84,7 @@ namespace tool::gsc {
             asmcontextnode* fieldId = nullptr;
             std::vector<asmcontextnode*> m_stack{};
             asmcontextlocation();
+            ~asmcontextlocation();
         };
 
         struct asmcontextlocalvar {
@@ -92,7 +93,7 @@ namespace tool::gsc {
         };
 
         struct asmcontextstatement {
-            asmcontextnode* node;
+            asmcontextnode* node = nullptr;
             asmcontextlocation& location;
         };
 
@@ -122,6 +123,7 @@ namespace tool::gsc {
             std::vector<asmcontextlocalvar> m_localvars{};
 
             asmcontext(BYTE* fonctionStart, const GscInfoOption& opt);
+            ~asmcontext();
 
             // @return relative location in the function
             inline INT32 FunctionRelativeLocation() {
@@ -176,6 +178,18 @@ namespace tool::gsc {
              * @param node Nullable node
              */
             void SetFieldIdASMCNode(asmcontextnode* node);
+
+            /*
+             * Get the previous ObjectId ASCM node and put a new node
+             * @param node Nullable node
+             */
+            asmcontextnode* GetObjectIdASMCNode();
+
+            /*
+             * Get the previous FieldId ASCM node and put a new node
+             * @param node Nullable node
+             */
+            asmcontextnode* GetFieldIdASMCNode();
 
             /*
              * Complete any statement on the ASCM stack
