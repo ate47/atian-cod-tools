@@ -51,7 +51,6 @@ int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[OFFSET_XASSET_SCRIPTPARSETREE]);
     INT32 poolSize = proc.ReadMemory<INT32>(proc[OFFSET_XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
-
     std::cout << std::hex << "pool: " << poolPtr << ", elements: " << std::dec << poolSize << "\n";
 
     if (!proc.ReadMemory(buffer, poolPtr, sizeof * buffer * poolSize)) {
@@ -70,6 +69,10 @@ int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv
     else {
         outFile = argv[2];
     }
+
+    int readFile = 0;
+    int readFileOrigin[3] = {0,0,0};
+    std::error_code ec;
 
     size_t allocated = 0x1000;
     void* storage = std::malloc(allocated);
@@ -90,11 +93,6 @@ int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv
             }
         }
 
-        if (!proc.ReadMemory(storage, ref.buffer, ref.size)) {
-            std::cerr << "Can't read pooled buffer at address " << std::hex << ref.buffer << " of size "<< std::dec << ref.size << "\n";
-            continue;
-        }
-
         LPCCH name = hashutils::ExtractPtr(ref.name);
         if (name) {
             snprintf(nameBuffer, 1000, "%s/%sbin", outFile, name);
@@ -104,16 +102,108 @@ int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv
             snprintf(nameBuffer, 1000, "%s/hashed-%lld/script_%llx.gscbin", outFile, (ref.name % 3 + 1), ref.name);
         }
 
+        if (!proc.ReadMemory(storage, ref.buffer, ref.size)) {
+            std::cerr << "Can't read pooled buffer at address " << std::hex << ref.buffer << " of size " << std::dec << ref.size << " for file " << nameBuffer << "\n";
+            continue;
+        }
+
         std::filesystem::path file(nameBuffer);
         
-        std::filesystem::create_directories(file.parent_path());
+        std::filesystem::create_directories(file.parent_path(), ec);
+        if (!std::filesystem::exists(file, ec)) {
+            readFile++;
+            readFileOrigin[0]++;
+        }
         if (!utils::WriteFile(file, storage, ref.size)) {
             std::cerr << "Error when writing " << nameBuffer << "\n";
         }
     }
 
-    std::free(storage);
     delete[] buffer;
+
+
+
+    UINT32 bufferCount[2];
+    if (!proc.ReadMemory(bufferCount, proc[OFFSET_gObjFileInfoCount], sizeof * bufferCount * 2)) {
+        std::cerr << "Can't read pool count data\n";
+        return -1;
+    }
+
+    const int size = 650;
+    T8ObjFileInfo* bufferLinked = new T8ObjFileInfo[2 * size];
+
+    if (!proc.ReadMemory(bufferLinked, proc[OFFSET_gObjFileInfo], sizeof * bufferLinked * size * 2)) {
+        std::cerr << "Can't read linked data\n";
+        delete[] bufferLinked;
+        return -1;
+    }
+
+    gsc::T8GSCOBJ gsc;
+    const BYTE magic[8] = { 0x80, 0x47, 0x53, 0x43, 0x0D, 0x0A, 0x00, 0x36 };
+    const UINT64 magicLong = *(UINT64*)(&magic[0]);
+
+    for (size_t inst = 0; inst < scriptinstance::SI_COUNT; inst++) {
+        std::cout << std::dec << "Reading " << bufferCount[inst] << " " << scriptinstance::Name(inst) << " linked script(s)\n";
+        for (size_t i = 0; i < bufferCount[inst]; i++) {
+            const auto& ref = bufferLinked[i + size * inst];
+
+            if (!proc.ReadMemory(&gsc, ref.activeVersion, sizeof gsc)) {
+                std::cerr << "Can't read memory from location " << std::hex << ref.activeVersion << ", index: " << i << "\n";
+                continue;
+            }
+            if (*(UINT64*)(&gsc.magic[0]) != magicLong) {
+                std::cerr << "Bad magic for location " << std::hex << ref.activeVersion << " " << *(UINT64*)(&gsc.magic[0]) << " != " << magicLong << "\n";
+                continue;
+            }
+
+            if (allocated < gsc.script_size) {
+                void* ns = std::realloc(storage, gsc.script_size + 100);
+                if (ns) {
+                    allocated = gsc.script_size + 100;
+                    storage = ns;
+                }
+                else {
+                    std::cerr << "Can't allocate buffer for address " << std::hex << ref.activeVersion << " of size " << std::dec << gsc.script_size << "\n";
+                    continue; // bad size?
+                }
+            }
+
+            LPCCH name = hashutils::ExtractPtr(gsc.name);
+            if (name) {
+                snprintf(nameBuffer, 1000, "%s/%sbin", outFile, name);
+            }
+            else {
+                // split into multiple directories to avoid creating a big directory
+                snprintf(nameBuffer, 1000, "%s/hashed-%lld/script_%llx.gscbin", outFile, (gsc.name % 3 + 1), gsc.name);
+            }
+
+            if (!proc.ReadMemory(storage, ref.activeVersion, gsc.script_size)) {
+                std::cerr << "Can't read pooled buffer at address " << std::hex << ref.activeVersion << " of size " << std::dec << gsc.script_size << " for file " << nameBuffer << "\n";
+                continue;
+            }
+
+            std::filesystem::path file(nameBuffer);
+
+            std::filesystem::create_directories(file.parent_path(), ec);
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                readFileOrigin[1 + inst]++;
+                //std::cout << "The script " << nameBuffer << " is linked, but wasn't found in the pool\n";
+            }
+            if (!utils::WriteFile(file, storage, gsc.script_size)) {
+                std::cerr << "Error when writing " << nameBuffer << "\n";
+            }
+        }
+    }
+
+    std::cout << std::dec << readFile << " new file(s) created.\n"
+        << "Pool ... " << readFileOrigin[0] << "\n"
+        << "Linked . " << readFileOrigin[1] << " (" << scriptinstance::Name(0) << ")\n"
+        << "Linked . " << readFileOrigin[2] << " (" << scriptinstance::Name(1) << ")\n";
+    
+
+    std::free(storage);
+    delete[] bufferLinked;
 
     return 0;
 }

@@ -14,10 +14,6 @@ void hashutils::ReadDefaultFile() {
 void hashutils::LoadMap(LPCWCH file) {
 	// add common hashes
 	
-	// self and vararg
-	Add("self");
-	Add("vararg");
-	
 	// class special things
 	Add("__constructor");
 	Add("__destructor");
@@ -25,7 +21,6 @@ void hashutils::LoadMap(LPCWCH file) {
 	Add("_deleted");
 
 	// global vars
-	Add("<error>");
 	Add("level");
 	Add("game");
 	Add("classes");
@@ -44,6 +39,12 @@ void hashutils::LoadMap(LPCWCH file) {
 	Add("__main__");
 	Add("main");
 	Add("init");
+	// it seems all the varargs are called "vararg", but a flag is also describing, so idk
+	Add("vararg"); 
+
+	// Decompiler special values
+	Add("<error>");
+	Add("self");
 
 	std::ifstream s(file);
 

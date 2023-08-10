@@ -135,7 +135,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     }
     if (opt.m_header) {
         asmout
-            << "// " << hashutils::ExtractTmp("script", data->name) << " (" << data->name << ")" << " (size: " << size << "B / " << std::hex << "0x" << size << ")\n"
+            << "// " << hashutils::ExtractTmp("script", data->name) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n"
             << "// magic .... 0x" << *reinterpret_cast<UINT64*>(&data->magic[0]) << " vm: 0x" << (UINT32)data->magic[7] << " crc: 0x" << data->crc << "\n"
             << std::left << std::setfill(' ')
             << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
@@ -144,6 +144,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
             << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
             << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
+            << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << std::right
             << std::flush;
     }
@@ -315,22 +316,20 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                         if (ref.location.ref) {
                             asmout << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
                         }
-                        dctx.WritePadding(asmout);
-                        if (!ref.node) {
-                            asmout << "empty asm node";
-                        }
-                        else {
+                        if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_END) {
+                            dctx.WritePadding(asmout);
                             ref.node->Dump(asmout, dctx);
+                            asmout << ";\n";
                         }
-                        asmout << ";\n";
                     }
 
                     asmout << "}\n";
                 }
                 else {
-                    asmout << ";\n\n";
+                    asmout << ";\n";
                 }
             }
+            asmout << "\n";
         }
     }
 

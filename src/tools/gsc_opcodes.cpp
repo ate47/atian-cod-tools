@@ -9,7 +9,7 @@ opcodeinfo::opcodeinfo(opcode id, LPCCH name) : m_id(id), m_name(name) {
 }
 
 
-tool::gsc::opcode::asmcontextnode::asmcontextnode(asmcontextnode_priority priority) : m_priority(priority) {
+tool::gsc::opcode::asmcontextnode::asmcontextnode(asmcontextnode_priority priority, asmcontextnode_type type) : m_priority(priority), m_type(type) {
 }
 
 tool::gsc::opcode::asmcontextnode::~asmcontextnode() {
@@ -143,6 +143,38 @@ public:
 
 	asmcontextnode* Clone() const override {
 		return new asmcontextnode_FuncRef(m_op, m_func, m_nsp, m_script);
+	}
+};
+class asmcontextnode_ArrayAccess : public asmcontextnode {
+public:
+	asmcontextnode* m_operandleft;
+	asmcontextnode* m_operandright;
+	asmcontextnode_ArrayAccess(asmcontextnode* operandleft, asmcontextnode* operandright) : 
+		asmcontextnode(PRIORITY_ACCESS), m_operandleft(operandleft), m_operandright(operandright) {
+	}
+	~asmcontextnode_ArrayAccess() {
+		delete m_operandleft;
+		delete m_operandright;
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		if (m_operandleft->m_priority < m_priority) {
+			out << "(";
+			m_operandleft->Dump(out, ctx);
+			out << ")";
+		}
+		else {
+			m_operandleft->Dump(out, ctx);
+		}
+		out << "[";
+
+		m_operandright->Dump(out, ctx);
+
+		out << "]";
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_ArrayAccess(m_operandleft->Clone(), m_operandright->Clone());
 	}
 };
 
@@ -319,7 +351,7 @@ public:
 	bool m_caller;
 	std::vector<asmcontextnode*> m_operands{};
 	asmcontextnode_MultOp(LPCCH description, bool caller) :
-		asmcontextnode(PRIORITY_INST), m_description(description), m_caller(caller) {
+		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_description(description), m_caller(caller) {
 	}
 	~asmcontextnode_MultOp() {
 		for (auto& ref : m_operands) {
@@ -371,7 +403,7 @@ public:
 	asmcontextnode* m_self;
 	asmcontextnode* m_operand;
 	asmcontextnode_FunctionOperator(LPCCH operatorName, asmcontextnode* self, asmcontextnode* operand) :
-		asmcontextnode(PRIORITY_INST), m_operatorName(operatorName), m_self(self), m_operand(operand) {
+		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_operatorName(operatorName), m_self(self), m_operand(operand) {
 		assert(operand);
 	}
 	~asmcontextnode_FunctionOperator() {
@@ -402,8 +434,8 @@ public:
 	LPCCH m_operatorName;
 	asmcontextnode* m_operand;
 	INT64 m_location;
-	asmcontextnode_JumpOperator(LPCCH operatorName, asmcontextnode* operand, INT64 location) :
-		asmcontextnode(PRIORITY_INST), m_operatorName(operatorName), m_operand(operand), m_location(location) {
+	asmcontextnode_JumpOperator(LPCCH operatorName, asmcontextnode* operand, INT64 location, asmcontextnode_type type) :
+		asmcontextnode(PRIORITY_INST, type), m_operatorName(operatorName), m_operand(operand), m_location(location) {
 	}
 	~asmcontextnode_JumpOperator() {
 		if (m_operand) {
@@ -412,7 +444,7 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_JumpOperator(m_operatorName, m_operand ? m_operand->Clone() : nullptr, m_location);
+		return new asmcontextnode_JumpOperator(m_operatorName, m_operand ? m_operand->Clone() : nullptr, m_location, m_type);
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
@@ -616,7 +648,7 @@ public:
 	int Dump(std::ostream& out, UINT16 v, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(left, new asmcontextnode_Value<LPCCH>("size"), ".", PRIORITY_UNARY));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(left, new asmcontextnode_Value<LPCCH>("size"), ".", PRIORITY_ACCESS));
 		}
 
 		out << "\n";
@@ -694,6 +726,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		asmcontextnode* node = nullptr;
+		asmcontextnode_type type = TYPE_JUMP;
 		bool pushBack = false;
 		if (context.m_runDecompiler) {
 			switch (m_id) {
@@ -704,6 +737,7 @@ public:
 				asmcontextnode* op2 = context.PopASMCNode();
 				asmcontextnode* op1 = context.PopASMCNode();
 				node = new asmcontextnode_Op2(m_id == OPCODE_JumpOnGreaterThan ? ">" : "<", PRIORITY_COMPARE, op1, op2);
+				type = TYPE_JUMP_ONTRUE;
 			}
 				break;
 				// the only diff between JumpOnXXXX and JumpOnXXXXExpr is if we cast the result or not to bool,
@@ -713,11 +747,16 @@ public:
 			case OPCODE_JumpOnFalse:
 				// keep it like this for render, we'll see later
 				node = new asmcontextnode_Op1("!", true, context.PopASMCNode());
+				type = TYPE_JUMP_ONFALSE;
 				break;
 			case OPCODE_JumpOnTrueExpr:
 				pushBack = true;
 			case OPCODE_JumpOnTrue:
 				node = context.PopASMCNode();
+				type = TYPE_JUMP_ONTRUE;
+				break;
+			case OPCODE_DevblockBegin:
+				type = TYPE_JUMP_DEVBLOCK;
 				break;
 			}
 		}
@@ -743,10 +782,10 @@ public:
 
 		if (context.m_runDecompiler) {
 			if (node) {
-				context.PushASMCNode(new asmcontextnode_JumpOperator("jumpif", node, locref.rloc));
+				context.PushASMCNode(new asmcontextnode_JumpOperator("jumpif", node, locref.rloc, type));
 			}
 			else {
-				context.PushASMCNode(new asmcontextnode_JumpOperator(m_id == OPCODE_Jump ? "jump" : m_id == OPCODE_DevblockBegin ? "jumpdev" : "jumpukn", nullptr, locref.rloc));
+				context.PushASMCNode(new asmcontextnode_JumpOperator(m_id == OPCODE_Jump ? "jump" : m_id == OPCODE_DevblockBegin ? "jumpdev" : "jumpukn", nullptr, locref.rloc, type));
 			}
 			context.CompleteStatement();
 		}
@@ -771,7 +810,7 @@ public:
 		bytecode += 8;
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new asmcontextnode_JumpOperator("jumppush", nullptr, location));
+			context.PushASMCNode(new asmcontextnode_JumpOperator("jumppush", nullptr, location, TYPE_STATEMENT));
 			context.CompleteStatement();
 		}
 
@@ -891,7 +930,7 @@ public:
 		out << hashutils::ExtractTmp("var", name) << std::endl;
 
 		if (context.m_runDecompiler) {
-			context.SetFieldIdASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_UNARY));
+			context.SetFieldIdASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS));
 			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET));
 		}
 
@@ -905,7 +944,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "";
+		out << "\n";
 
 		if (context.m_runDecompiler) {
 			context.SetFieldIdASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET));
@@ -931,7 +970,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(new asmcontextnode_Identifier(hashutils::Hash32("self")));
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_UNARY));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS));
 		}
 
 		return 0;
@@ -962,8 +1001,8 @@ public:
 
 		if (context.m_runDecompiler) {
 			asmcontextnode* nameNode = m_stack ? context.PopASMCNode() : new asmcontextnode_Identifier(name);
-			asmcontextnode* fieldAccessNode = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_UNARY);
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(fieldAccessNode, new asmcontextnode_Value<LPCCH>("undefined"), " = ", PRIORITY_UNARY));
+			asmcontextnode* fieldAccessNode = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS);
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(fieldAccessNode, new asmcontextnode_Value<LPCCH>("undefined"), " = ", PRIORITY_SET));
 		}
 
 		return 0;
@@ -997,7 +1036,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(new asmcontextnode_Identifier(name));
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(fieldName), ".", PRIORITY_UNARY));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(fieldName), ".", PRIORITY_ACCESS));
 		}
 
 		return 0;
@@ -1020,7 +1059,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(context.PopASMCNode());
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_UNARY));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS));
 		}
 
 		return 0;
@@ -1052,7 +1091,7 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			asmcontextnode* node = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), m_stack ? context.PopASMCNode() : new asmcontextnode_Identifier(name), ".", PRIORITY_UNARY);
+			asmcontextnode* node = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), m_stack ? context.PopASMCNode() : new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS);
 
 			if (m_ref) {
 				context.SetFieldIdASMCNode(node);
@@ -1074,7 +1113,7 @@ public:
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		INT32 name;
+		UINT32 name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -1103,7 +1142,7 @@ public:
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		INT32 name;
+		UINT32 name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -1138,7 +1177,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		INT32 name;
+		UINT32 name;
 		if (!m_stack) {
 			int lvar = (int)*(context.m_bcl++);
 
@@ -1182,7 +1221,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		INT32 name;
+		UINT32 name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -1210,6 +1249,113 @@ public:
 	}
 };
 
+class opcodeinfo_EvalFieldObjectFromRef : public opcodeinfo {
+public:
+	opcodeinfo_EvalFieldObjectFromRef(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		UINT32 name;
+		int lvar = (int)*(context.m_bcl++);
+
+		if (lvar >= context.m_localvars.size()) {
+			name = hashutils::Hash32("<error>");
+			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+		}
+		else {
+			name = context.m_localvars[lvar].name;
+			out << hashutils::ExtractTmp("var", name) << std::endl;
+		}
+
+		if (context.m_runDecompiler) {
+			context.SetObjectIdASMCNode(new asmcontextnode_Identifier(name));
+		}
+
+		return 0;
+	}
+};
+
+class opcodeinfo_EvalLocalVariableRefCached : public opcodeinfo {
+public:
+	opcodeinfo_EvalLocalVariableRefCached(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		UINT32 name;
+		int lvar = (int)*(context.m_bcl++);
+
+		if (lvar >= context.m_localvars.size()) {
+			name = hashutils::Hash32("<error>");
+			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+		}
+		else {
+			name = context.m_localvars[lvar].name;
+			out << hashutils::ExtractTmp("var", name) << std::endl;
+		}
+
+		if (context.m_runDecompiler) {
+			context.SetFieldIdASMCNode(new asmcontextnode_Identifier(name));
+		}
+
+		return 0;
+	}
+};
+
+class opcodeinfo_EvalLocalVariableDefined : public opcodeinfo {
+public:
+	opcodeinfo_EvalLocalVariableDefined(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		UINT32 name;
+		int lvar = (int)*(context.m_bcl++);
+
+		if (lvar >= context.m_localvars.size()) {
+			name = hashutils::Hash32("<error>");
+			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+		}
+		else {
+			name = context.m_localvars[lvar].name;
+			out << hashutils::ExtractTmp("var", name) << std::endl;
+		}
+
+		if (context.m_runDecompiler) {
+			context.PushASMCNode(new asmcontextnode_FunctionOperator("isdefined", nullptr, new asmcontextnode_Identifier(name)));
+		}
+
+		return 0;
+	}
+};
+
+
+class opcodeinfo_EvalArray : public opcodeinfo {
+private:
+	bool m_stack;
+public:
+	opcodeinfo_EvalArray(opcode id, LPCCH name, bool stack) : opcodeinfo(id, name), m_stack(stack) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		out << "\n";
+
+		if (context.m_runDecompiler) {
+			asmcontextnode* arrayNode = m_stack ? context.PopASMCNode() : context.GetObjectIdASMCNode();
+			asmcontextnode* accessNode = new asmcontextnode_ArrayAccess(arrayNode, context.PopASMCNode());
+			if (m_stack) {
+				context.PushASMCNode(accessNode);
+			}
+			else {
+				context.SetFieldIdASMCNode(accessNode);
+			}
+		}
+
+		return 0;
+	}
+};
 
 
 /*
@@ -1217,14 +1363,7 @@ RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToArray, "AddToArray"));
 RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateArray, "CreateArray"));
 RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToStruct, "AddToStruct"));
 RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CastFieldObject, "CastFieldObject"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_EvalArrayRef, "EvalArrayRef"));
 RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateStruct, "CreateStruct"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_EvalArray, "EvalArray"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Unknown35, "Unknown35"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Unknown9e, "Unknown9e"));
-RegisterOpCodeHandler(new opcodeinfo_GetLocalVar(OPCODE_EvalLocalVariableRefCached, "EvalLocalVariableRefCached"));
-RegisterOpCodeHandler(new opcodeinfo_GetLocalVar(OPCODE_EvalLocalVariableDefined, "EvalLocalVariableDefined"));
-RegisterOpCodeHandler(new opcodeinfo_GetLocalVar(OPCODE_EvalFieldObjectFromRef, "EvalFieldObjectFromRef"));
 */
 
 
@@ -1241,9 +1380,17 @@ public:
 				auto* ref = new asmcontextnode_Op1("return ", true, context.PopASMCNode());
 				// convert it to statement
 				ref->m_priority = PRIORITY_INST;
+				ref->m_type = TYPE_STATEMENT;
 				context.PushASMCNode(ref);
 			}
 			context.CompleteStatement();
+			if (!m_isReturn) {
+				// special node to print end ref
+				auto* ref = new asmcontextnode_Value<LPCCH>("<END>");
+				ref->m_type = TYPE_END;
+				context.PushASMCNode(ref);
+				context.CompleteStatement();
+			}
 		}
 		out << "\n";
 		return -2;
@@ -1263,6 +1410,7 @@ public:
 			auto* ref = new asmcontextnode_Value<LPCCH>(m_operatorName);
 			// convert it to statement
 			ref->m_priority = PRIORITY_INST;
+			ref->m_type = TYPE_STATEMENT;
 			context.PushASMCNode(ref);
 			context.CompleteStatement();
 		}
@@ -1818,8 +1966,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_Statement(OPCODE_Unknown126, "Unknown126", "operator_Unknown126()"));
 
 		// end
-		RegisterOpCodeHandler(new opcodeinfo_End(OPCODE_End, "End"));
-		RegisterOpCodeHandler(new opcodeinfo_End(OPCODE_Return, "Return"));
+		RegisterOpCodeHandler(new opcodeinfo_End(OPCODE_End, "End", false));
+		RegisterOpCodeHandler(new opcodeinfo_End(OPCODE_Return, "Return", true));
 
 		// switch
 		RegisterOpCodeHandler(new opcodeinfo_Switch());
@@ -1838,13 +1986,13 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_JumpPush());
 
 
+		RegisterOpCodeHandler(new opcodeinfo_EvalArray(OPCODE_EvalArrayRef, "EvalArrayRef", false));
+		RegisterOpCodeHandler(new opcodeinfo_EvalArray(OPCODE_EvalArray, "EvalArray", true));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToArray, "AddToArray"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateArray, "CreateArray"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToStruct, "AddToStruct"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CastFieldObject, "CastFieldObject"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_EvalArrayRef, "EvalArrayRef"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateStruct, "CreateStruct"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_EvalArray, "EvalArray"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Unknown35, "Unknown35"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Unknown9e, "Unknown9e"));
 
@@ -1870,10 +2018,10 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_FirstArrayKey(OPCODE_FirstArrayKey, "FirstArrayKey", true));
 		RegisterOpCodeHandler(new opcodeinfo_FirstArrayKey(OPCODE_FirstArrayKeyCached, "FirstArrayKeyCached", false));
 		RegisterOpCodeHandler(new opcodeinfo_SetNextArrayKeyCached(OPCODE_SetNextArrayKeyCached, "SetNextArrayKeyCached"));
-		RegisterOpCodeHandler(new opcodeinfo_GetLocalVar(OPCODE_EvalLocalVariableRefCached, "EvalLocalVariableRefCached"));
-		RegisterOpCodeHandler(new opcodeinfo_GetLocalVar(OPCODE_EvalLocalVariableDefined, "EvalLocalVariableDefined"));
-		RegisterOpCodeHandler(new opcodeinfo_GetLocalVar(OPCODE_EvalFieldObjectFromRef, "EvalFieldObjectFromRef"));
-
+		RegisterOpCodeHandler(new opcodeinfo_EvalLocalVariableRefCached(OPCODE_EvalLocalVariableRefCached, "EvalLocalVariableRefCached"));
+		RegisterOpCodeHandler(new opcodeinfo_EvalLocalVariableDefined(OPCODE_EvalLocalVariableDefined, "EvalLocalVariableDefined"));
+		RegisterOpCodeHandler(new opcodeinfo_EvalFieldObjectFromRef(OPCODE_EvalFieldObjectFromRef, "EvalFieldObjectFromRef"));
+		  
 		// idc
 		RegisterOpCodeHandler(new opcodeinfo_Name(OPCODE_EvalLocalVariableCachedDebug, "EvalLocalVariableCachedDebug", "var"));
 		RegisterOpCodeHandler(new opcodeinfo_Name(OPCODE_EvalLocalVariableRefCachedDebug, "EvalLocalVariableRefCachedDebug", "var"));

@@ -67,10 +67,24 @@ namespace tool::gsc {
 
             PRIORITY_VALUE
         };
+        enum asmcontextnode_type : UINT {
+            TYPE_STATEMENT,
+
+            TYPE_JUMP,
+            TYPE_JUMP_ONFALSE,
+            TYPE_JUMP_ONTRUE,
+            TYPE_JUMP_DEVBLOCK,
+
+            TYPE_END,
+
+            TYPE_UNDEFINED
+        };
         class asmcontextnode {
         public:
             asmcontextnode_priority m_priority;
-            asmcontextnode(asmcontextnode_priority priority);
+            asmcontextnode_type m_type;
+
+            asmcontextnode(asmcontextnode_priority priority, asmcontextnode_type type = TYPE_UNDEFINED);
             virtual ~asmcontextnode();
             virtual void Dump(std::ostream& out, decompcontext& ctx) const;
             virtual asmcontextnode* Clone() const;
