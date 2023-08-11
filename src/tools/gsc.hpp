@@ -85,6 +85,7 @@ namespace tool::gsc {
 
             TYPE_PRECODEPOS,
             TYPE_END,
+            TYPE_NEW,
 
             TYPE_UNDEFINED
         };
@@ -228,12 +229,22 @@ namespace tool::gsc {
             void CompleteStatement();
         };
     }
+    struct asmcontext_func {
+        UINT32 name;
+        UINT32 nsp;
+    };
+    struct gscclass {
+        std::set<UINT32> m_superClass{};
+        std::set<UINT32> m_methods{};
+        std::unordered_map<UINT64, asmcontext_func> m_vtable{};
+    };
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
         std::unordered_map<UINT16, UINT32> m_gvars;
         std::unordered_map<UINT32, LPCCH> m_stringRefs;
     public:
+        std::unordered_map<UINT32, gscclass> m_classes;
         T8GSCOBJContext();
 
         /*
@@ -260,6 +271,8 @@ namespace tool::gsc {
          * @return new string ref
          */
         UINT32 AddStringValue(LPCCH value);
+
+
     };
     struct T8GSCOBJ {
         BYTE magic[8];
@@ -325,6 +338,7 @@ namespace tool::gsc {
 
         void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx) const;
         int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx) const;
+        int DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx, opcode::decompcontext& dctxt) const;
     };
 
     enum T8GSCExportFlags : UINT8 {
@@ -336,6 +350,7 @@ namespace tool::gsc {
         VE = 0x20,
         EVENT = 0x40,
         CLASS_LINKED = 0x80,
+        CLASS_VTABLE = 0x86
     };
 
     enum T8GSCImportFlags : UINT8 {

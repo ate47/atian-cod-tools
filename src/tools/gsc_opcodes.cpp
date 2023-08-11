@@ -294,6 +294,7 @@ public:
 
 enum asmcontextnode_CallFuncPtrType {
 	CLASS_CALL,
+	PARAMS_CALL,
 	POINTER_CALL,
 	FUNCTION_CALL
 };
@@ -365,6 +366,9 @@ public:
 			assert(m_operands.size() >= start + 1);
 			m_operands[start]->Dump(out, ctx);
 			start++;
+			break;
+		case asmcontextnode_CallFuncPtrType::PARAMS_CALL:
+			// a params call is only printing the params
 			break;
 		default:
 			out << "<error CallFuncPtrType:" << m_type << ">";
@@ -597,6 +601,31 @@ public:
 		m_right->Dump(out, ctx);
 	}
 };
+class asmcontextnode_New: public asmcontextnode {
+public:
+	UINT32 m_classname;
+	asmcontextnode* m_constructorCall;
+	bool m_constructorCallDec;
+	asmcontextnode_New(UINT32 clsName, asmcontextnode* constructorCall = nullptr, bool constructorCallDec = false) :
+		asmcontextnode(PRIORITY_VALUE, TYPE_NEW), m_classname(clsName), m_constructorCall(constructorCall), m_constructorCallDec(constructorCallDec) {
+	}
+	~asmcontextnode_New() {
+		if (m_constructorCall) {
+			delete m_constructorCall;
+		}
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_New(m_classname, m_constructorCall ? m_constructorCall->Clone() : nullptr, m_constructorCallDec);
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "new " << hashutils::ExtractTmp("class", m_classname) << std::flush;
+		if (m_constructorCall) {
+			m_constructorCall->Dump(out, ctx);
+		}
+	}
+};
 
 int opcodeinfo::Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const {
 	out << "\n";
@@ -667,6 +696,30 @@ public:
 			}
 
 			out << std::endl;
+		}
+
+		return 0;
+	}
+};
+
+
+class opcodeinfo_GetObjectType : public opcodeinfo {
+public:
+	opcodeinfo_GetObjectType(opcode id, LPCCH name, LPCCH hashType) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& ref = context.Aligned<UINT32>();
+
+		auto name = *(UINT32*)ref;
+
+		ref += 4;
+
+		out << hashutils::ExtractTmp("class", name) << std::endl;
+
+		if (context.m_runDecompiler) {
+			context.PushASMCNode(new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS));
+			context.PushASMCNode(new asmcontextnode_New(name));
 		}
 
 		return 0;
@@ -1865,6 +1918,10 @@ public:
 		out << std::dec << "params: " << (int)params << ", function: " << std::hex << hashutils::ExtractTmp("function", function) << std::endl;
 
 		if (context.m_runDecompiler) {
+			static UINT32 constructorName = hashutils::Hash32("__constructor");
+
+			auto* caller = context.PopASMCNode();
+
 			BYTE flags = 0;
 
 			if (m_id == OPCODE_ClassFunctionThreadCall) {
@@ -1874,23 +1931,43 @@ public:
 				flags |= THREADENDON_CALL;
 			}
 
-			// classes-calls are by definition without self
+			if (!flags && caller->m_type == TYPE_NEW && function == constructorName) {
+				// calling new constructor
+				auto* newNode = dynamic_cast<asmcontextnode_New*>(caller);
 
-			auto* ptr = new asmcontextnode_CallFuncPtr(CLASS_CALL, flags);
+				auto* ptr = new asmcontextnode_CallFuncPtr(PARAMS_CALL, 0);
 
-			// this
-			ptr->AddParam(context.PopASMCNode());
-			ptr->AddParam(new asmcontextnode_Identifier(function, "function"));
-			for (size_t i = 0; i < params; i++) {
-				ptr->AddParam(context.PopASMCNode());
+				for (size_t i = 0; i < params; i++) {
+					ptr->AddParam(context.PopASMCNode());
+				}
+
+				if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+					// clear PreScriptCall
+					delete context.PopASMCNode();
+				}
+				newNode->m_constructorCall = ptr;
+				context.PushASMCNode(newNode);
+			}
+			else {
+				// classes-calls are by definition without self
+
+				auto* ptr = new asmcontextnode_CallFuncPtr(CLASS_CALL, flags);
+
+				// this
+				ptr->AddParam(caller);
+				ptr->AddParam(new asmcontextnode_Identifier(function, "function"));
+				for (size_t i = 0; i < params; i++) {
+					ptr->AddParam(context.PopASMCNode());
+				}
+
+				if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+					// clear PreScriptCall
+					delete context.PopASMCNode();
+				}
+
+				context.PushASMCNode(ptr);
 			}
 
-			if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
-				// clear PreScriptCall
-				delete context.PopASMCNode();
-			}
-
-			context.PushASMCNode(ptr);
 		}
 		return 0;
 	}
@@ -2172,8 +2249,21 @@ public:
 
 	int Dump(std::ostream& out, UINT16 v, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
+
+			if (context.m_stack.size()) {
+				auto* peek = context.PeekASMCNode();
+				if (peek->m_type == TYPE_NEW) {
+					auto* newNode = dynamic_cast<asmcontextnode_New*>(peek);
+					if (!newNode->m_constructorCallDec) {
+						newNode->m_constructorCallDec = true;
+						// calling new constructor, we ignore the return result
+						goto end;
+					}
+				}
+			}
 			context.CompleteStatement();
 		}
+	end:
 		out << "\n";
 		return 0;
 	}
@@ -2408,11 +2498,11 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_dec(OPCODE_SafeDecTop, "SafeDecTop"));
 
 		// gets
-		RegisterOpCodeHandler(new opcodeinfo_GetConstant<INT32>(OPCODE_GetZero, "GetZero", 0));
 		RegisterOpCodeHandler(new opcodeinfo_GetConstant<LPCCH>(OPCODE_GetUndefined, "GetUndefined", "undefined"));
 		RegisterOpCodeHandler(new opcodeinfo_GetConstant(OPCODE_GetSelf, "GetSelf", "self"));
 		RegisterOpCodeHandler(new opcodeinfo_GetConstant(OPCODE_GetTime, "GetTime", "gettime()"));
 		RegisterOpCodeHandler(new opcodeinfo_GetHash());
+		RegisterOpCodeHandler(new opcodeinfo_GetConstant<INT32>(OPCODE_GetZero, "GetZero", 0));
 		RegisterOpCodeHandler(new opcodeinfo_GetNeg<UINT16>(OPCODE_GetNegUnsignedShort, "GetNegUnsignedShort"));
 		RegisterOpCodeHandler(new opcodeinfo_GetNeg<UINT8>(OPCODE_GetNegByte, "GetNegByte"));
 		RegisterOpCodeHandler(new opcodeinfo_GetNumber<BYTE>(OPCODE_GetByte, "GetByte"));
@@ -2445,7 +2535,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_GetConstantRef(OPCODE_GetSelfObject, "GetSelfObject", "self"));
 
 		// class stuff
-		RegisterOpCodeHandler(new opcodeinfo_Name(OPCODE_GetObjectType, "GetObjectType", "class"));
+		RegisterOpCodeHandler(new opcodeinfo_GetObjectType(OPCODE_GetObjectType, "GetObjectType", "class"));
 		RegisterOpCodeHandler(new opcodeinfo_FuncClassCall(OPCODE_ClassFunctionCall, "ClassFunctionCall"));
 		RegisterOpCodeHandler(new opcodeinfo_FuncClassCall(OPCODE_ClassFunctionThreadCall, "ClassFunctionThreadCall"));
 		RegisterOpCodeHandler(new opcodeinfo_FuncClassCall(OPCODE_ClassFunctionThreadCallEndOn, "ClassFunctionThreadCallEndOn"));

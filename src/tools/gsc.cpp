@@ -319,28 +319,33 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                 opcode::decompcontext dctx{ 1 };
                 if (opt.m_dcomp) {
                     asmout << " {\n";
+                if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
+                    asmctx.m_bcl = &data->magic[exp.address];
+                    exp.DumpVTable(asmout, data->magic, ctx, asmctx, dctx);
+                }
+                else {
 
-                    // decompile ctx
-                    for (size_t i = 0; i < asmctx.m_nodes.size(); i++) {
-                        const auto& ref = asmctx.m_nodes[i];
-                        if (ref.location.ref) {
-                            asmout << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
-                        }
-                        if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_END) {
-                            if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_PRECODEPOS) {
+                        // decompile ctx
+                        for (size_t i = 0; i < asmctx.m_nodes.size(); i++) {
+                            const auto& ref = asmctx.m_nodes[i];
+                            if (ref.location.ref) {
+                                asmout << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
+                            }
+                            if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_END) {
+                                if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_PRECODEPOS) {
+                                    dctx.WritePadding(asmout);
+                                    ref.node->Dump(asmout, dctx);
+                                    asmout << ";\n";
+                                }
+                            }
+                            else if (i != asmctx.m_nodes.size() - 1) {
                                 dctx.WritePadding(asmout);
-                                ref.node->Dump(asmout, dctx);
-                                asmout << ";\n";
+                                // if we're not at the end, it means we are reading a return;
+                                asmout << "return;\n";
                             }
                         }
-                        else if (i != asmctx.m_nodes.size() - 1) {
-                            dctx.WritePadding(asmout);
-                            // if we're not at the end, it means we are reading a return;
-                            asmout << "return;\n";
-                        }
                     }
-
-                    asmout << "}\n";
+                asmout << "}\n";
                 }
                 else {
                     asmout << ";\n";
@@ -639,7 +644,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
             }
 
             UINT16 opCode = *(UINT16*)base;
-         
+
             const auto* handler = tool::gsc::opcode::LookupOpCode(opCode);
 
 
@@ -676,6 +681,202 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
     return 0;
 }
 
+
+int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx, opcode::decompcontext& dctxt) const {
+    using namespace tool::gsc::opcode;
+    UINT16 code = *(UINT16*)ctx.Aligned<UINT16>();
+    // main reading loop
+    const auto* ccp = tool::gsc::opcode::LookupOpCode(code);
+
+/*
+ * Start
+ .00000000: 000d CheckClearParams
+ .00000002: 000e PreScriptCall
+ .00000004: 0eca ScriptFunctionCall        params: 0 spawnstruct
+ .00000010: 0b16 GetZero
+ .00000012: 0eef GetGlobalObject           classes
+ .00000016: 05c0 EvalFieldVariableRef      cct_shared_warning
+ .0000001c: 04ce EvalArrayRef
+ .0000001e: 0c18 SetVariableField
+*/
+    
+    if (!ccp || ccp->m_id != OPCODE_CheckClearParams) {
+        dctxt.WritePadding(out) << "Bad opcode: " << std::hex << code << ", expected CheckClearParams\n";
+        return -1;
+    }
+
+    ctx.m_bcl += 2;
+
+    const auto* preScriptCall = tool::gsc::opcode::LookupOpCode(code = *(UINT16*)ctx.Aligned<UINT16>());
+
+
+    if (!preScriptCall || preScriptCall->m_id != OPCODE_PreScriptCall) {
+        dctxt.WritePadding(out) << "Bad opcode: " << std::hex << code << ", expected PreScriptCall\n";
+        return -1;
+    }
+
+    ctx.m_bcl += 2;
+
+    const auto* spawnStruct = tool::gsc::opcode::LookupOpCode(code = *(UINT16*)ctx.Aligned<UINT16>());
+
+    
+    if (!spawnStruct || (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction)) {
+        dctxt.WritePadding(out) << "Bad opcode: " << std::hex << code << ", expected ScriptFunctionCall\n";
+        return -1;
+    }
+
+    ctx.m_bcl += 2 + 1;
+    ctx.Aligned<UINT64>() += 8; // assume that we have a spawnstruct
+
+    ctx.Aligned<UINT16>() += 2; // GetZero
+
+    ctx.Aligned<UINT16>() += 2; // GetGlobalObject
+    ctx.Aligned<UINT16>() += 2; // - classes
+
+    ctx.Aligned<UINT16>() += 2; // EvalFieldVariableRef
+
+    auto& clsName = ctx.Aligned<UINT32>();
+
+    UINT32 name = *(UINT32*)clsName; // __vtable
+
+    auto& cls = objctx.m_classes[name];
+
+    clsName += 4;
+
+    ctx.Aligned<UINT16>() += 2; // EvalArrayRef
+    ctx.Aligned<UINT16>() += 2; // SetVariableField
+
+    while (true) {
+        auto& func = ctx.Aligned<UINT16>();
+
+        UINT16 opcode = *(UINT16*)func;
+        func += 2;
+
+        const auto* funcOpCode = tool::gsc::opcode::LookupOpCode(opcode);
+
+        if (!funcOpCode) {
+            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << opcode << "\n";
+            return -1;
+        }
+        if (funcOpCode->m_id == OPCODE_End) {
+            break; // end
+        }
+        if (funcOpCode->m_id != OPCODE_GetResolveFunction) {
+            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << opcode << ", excepted GetResolveFunction or End\n";
+            return -1;
+        }
+
+        auto& getFuncBase = ctx.Aligned<UINT64>();
+        UINT32 methodName = ((UINT32*)getFuncBase)[0];
+        UINT32 methodClsName = ((UINT32*)getFuncBase)[1];
+        getFuncBase += 8;
+
+        auto& uidCodeBase = ctx.Aligned<UINT16>();
+
+        UINT16 uidCodeOp = *(UINT16*)uidCodeBase;
+
+        const auto* uidCodeOpCode = tool::gsc::opcode::LookupOpCode(uidCodeOp);
+
+        uidCodeBase += 2;
+
+        if (!uidCodeOpCode) {
+            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << uidCodeOp << ", excepted Getter\n";
+            return -1;
+        }
+
+        UINT64 uid;
+
+        switch (uidCodeOpCode->m_id) {
+        case OPCODE_GetZero: // INT32
+            uid = 0;
+            break;
+        case OPCODE_GetNegUnsignedShort: // UINT16
+            uid = -*(UINT16*)ctx.Aligned<UINT16>();
+            ctx.m_bcl += 2;
+            break;
+        case OPCODE_GetNegByte: // UINT8
+            uid = -*(UINT8*)ctx.Aligned<UINT8>();
+            ctx.m_bcl++;
+            break;
+        case OPCODE_GetByte: // BYTE
+            uid = *(BYTE*)ctx.Aligned<BYTE>();
+            ctx.m_bcl++;
+            break;
+        case OPCODE_GetInteger: // INT32
+            uid = *(INT32*)ctx.Aligned<INT32>();
+            ctx.m_bcl += 4;
+            break;
+        case OPCODE_GetLongInteger: // INT64
+            uid = *(INT64*)ctx.Aligned<INT64>();
+            ctx.m_bcl += 8;
+            break;
+        case OPCODE_GetUnsignedInteger: // UINT32
+            uid = *(UINT32*)ctx.Aligned<UINT32>();
+            ctx.m_bcl += 4;
+            break;
+        case OPCODE_GetUnsignedShort: // UINT16
+            uid = *(UINT16*)ctx.Aligned<UINT16>();
+            ctx.m_bcl += 2;
+            break;
+        default:
+            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << uidCodeOpCode->m_id << ", excepted Getter\n";
+            return -1;
+        }
+
+        if (methodClsName == name) {
+            cls.m_methods.emplace(methodName);
+        }
+        else {
+            cls.m_superClass.emplace(methodClsName);
+        }
+        auto& mtd = cls.m_vtable[uid];
+        mtd.name = methodName;
+        mtd.nsp = methodClsName;
+        dctxt.WritePadding(out) << "0x" << std::hex << std::setfill('0') << std::setw(sizeof(uid)) << uid
+            << " -> &" << hashutils::ExtractTmp("class", methodClsName) << std::flush 
+            << "::" << hashutils::ExtractTmp("function", methodName) << ";" << std::endl;
+
+        ctx.Aligned<UINT16>() += 2; // GetZero
+
+        ctx.Aligned<UINT16>() += 2; // EvalGlobalObjectFieldVariable
+        ctx.Aligned<UINT16>() += 2; // - gvar
+        ctx.Aligned<UINT32>() += 4; // - ref
+        ctx.Aligned<UINT16>() += 2; // EvalArray
+        ctx.Aligned<UINT16>() += 2; // CastFieldObject
+        ctx.Aligned<UINT16>() += 2; // EvalFieldVariableRef
+        ctx.Aligned<UINT32>() += 4; // - ref
+        ctx.Aligned<UINT16>() += 2; // EvalArrayRef
+        ctx.Aligned<UINT16>() += 2; // SetVariableField
+
+    }
+/*
+* Field
+.000002f4: 086c GetResolveFunction        &cct_shared_warning::__constructor
+.00000300: 0a9a GetInteger                674154906
+.00000308: 056d GetZero
+.0000030a: 07f7 EvalGlobalObjectFieldVariable classes.cct_shared_warning
+.00000314: 09e4 EvalArray
+.00000316: 05e3 CastFieldObject
+.00000318: 0af5 EvalFieldVariableRef      __vtable
+.00000320: 0887 EvalArrayRef
+.00000322: 00f3 SetVariableField
+* End
+End
+*/
+    dctxt.WritePadding(out) << "// class " << hashutils::ExtractTmp("class", name) << std::flush;
+    if (cls.m_superClass.size()) {
+        out << " : ";
+        for (auto it = cls.m_superClass.begin(); it != cls.m_superClass.end(); it++) {
+            if (it != cls.m_superClass.begin()) {
+                out << ", ";
+            }
+            out << hashutils::ExtractTmp("class", *it) << std::flush;
+        }
+    }
+    out << "\n";
+    return 0;
+}
+
 void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx) const {
     bool classMember = flags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
@@ -685,11 +886,16 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
             << hashutils::ExtractTmp((flags & T8GSCExportFlags::EVENT) ? "event" : "namespace", callback_event) << std::endl;
         asmout << "// Params " << (int)param_count << ", eflags: 0x" << std::hex << (int)flags;
 
-        if (flags & T8GSCExportFlags::LINKED) {
-            asmout << " linked";
+        if (flags == T8GSCExportFlags::CLASS_VTABLE) {
+            asmout << " vtable";
         }
-        if (flags & T8GSCExportFlags::CLASS_LINKED) {
-            asmout << " class_linked";
+        else {
+            if (flags & T8GSCExportFlags::LINKED) {
+                asmout << " linked";
+            }
+            if (flags & T8GSCExportFlags::CLASS_LINKED) {
+                asmout << " class_linked";
+            }
         }
 
         asmout << std::endl;
@@ -701,29 +907,33 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
         }
     }
 
-    asmout << "function ";
-    if (flags & T8GSCExportFlags::AUTOEXEC) {
-        asmout << "autoexec ";
-    }
-    if (flags & T8GSCExportFlags::EVENT) {
-        asmout << "event<" << hashutils::ExtractTmp("event", callback_event) << "> " << std::flush;
-    }
-    if (flags & T8GSCExportFlags::PRIVATE) {
-        asmout << "private ";
+    if (flags == T8GSCExportFlags::CLASS_VTABLE) {
+        asmout << "vtable " << hashutils::ExtractTmp("class", name);
+    } else {
+        asmout << "function ";
+        if (flags & T8GSCExportFlags::AUTOEXEC) {
+            asmout << "autoexec ";
+        }
+        if (flags & T8GSCExportFlags::EVENT) {
+            asmout << "event<" << hashutils::ExtractTmp("event", callback_event) << "> " << std::flush;
+        }
+        if (flags & T8GSCExportFlags::PRIVATE) {
+            asmout << "private ";
+        }
+
+        if (flags & T8GSCExportFlags::CLASS_DESTRUCTOR) {
+            const auto* cls = hashutils::ExtractTmp("class", name_space);
+            asmout << cls << "::~";
+        }
+        else if (classMember) {
+            asmout << hashutils::ExtractTmp("class", name_space)
+                << std::flush << "::";
+        }
+
+        asmout << hashutils::ExtractTmp("function", name);
     }
 
-    if (flags & T8GSCExportFlags::CLASS_DESTRUCTOR) {
-        const auto* cls = hashutils::ExtractTmp("class", name_space);
-        asmout << cls << "::~";
-    }
-    else if (classMember) {
-        asmout << hashutils::ExtractTmp("class", name_space)
-            << std::flush << "::";
-    }
-
-    asmout << hashutils::ExtractTmp("function", name);
-
-    asmout << "(";
+    asmout << std::flush << "(";
 
     // local var size = <empty>, <params>, <localvars> so we need to check that we have at least param_count + 1
     if (ctx.m_localvars.size() > param_count) {

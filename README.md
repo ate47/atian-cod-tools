@@ -15,4 +15,6 @@ Tools for Black ops 4
 
 To have a lookup over the extracted hashes, you can use a file named `strings.txt` when using the process, it will be loaded automatically, one string per line.
 
+## Credits
+
 - Serious's t8-compiler for some opcodes, it fasted up the process of understanding the internal game functions.
