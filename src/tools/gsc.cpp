@@ -286,11 +286,20 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     }
 
     if (opt.m_func) {
+        // current namespace
+        UINT32 currentNSP = 0;
+
         auto* exports = reinterpret_cast<T8GSCExport*>(&data->magic[data->export_table_offset]);
 
         for (size_t i = 0; i < data->exports_count; i++) {
             const auto& exp = exports[i];
-            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt);
+
+            if (exp.name_space != currentNSP) {
+                currentNSP = exp.name_space;
+                asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
+            }
+
+            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt, currentNSP);
 
             std::ofstream nullstream;
             nullstream.setstate(std::ios_base::badbit);
@@ -312,14 +321,22 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                     asmout << " {\n";
 
                     // decompile ctx
-                    for (const auto& ref : asmctx.m_nodes) {
+                    for (size_t i = 0; i < asmctx.m_nodes.size(); i++) {
+                        const auto& ref = asmctx.m_nodes[i];
                         if (ref.location.ref) {
                             asmout << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
                         }
                         if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_END) {
+                            if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_PRECODEPOS) {
+                                dctx.WritePadding(asmout);
+                                ref.node->Dump(asmout, dctx);
+                                asmout << ";\n";
+                            }
+                        }
+                        else if (i != asmctx.m_nodes.size() - 1) {
                             dctx.WritePadding(asmout);
-                            ref.node->Dump(asmout, dctx);
-                            asmout << ";\n";
+                            // if we're not at the end, it means we are reading a return;
+                            asmout << "return;\n";
                         }
                     }
 
@@ -608,7 +625,7 @@ void tool::gsc::T8GSCOBJ::PatchCode(T8GSCOBJContext& ctx) {
 }
 
 int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx) const {
-    // reading loop
+    // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
             auto& base = ctx.Aligned<UINT16>();

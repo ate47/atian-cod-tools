@@ -75,6 +75,15 @@ namespace tool::gsc {
             TYPE_JUMP_ONTRUE,
             TYPE_JUMP_DEVBLOCK,
 
+            TYPE_CONST_HASH,
+            TYPE_STRING,
+
+            TYPE_ARRAY_BUILD,
+            TYPE_STRUCT_BUILD,
+
+            TYPE_FUNC_CALL,
+
+            TYPE_PRECODEPOS,
             TYPE_END,
 
             TYPE_UNDEFINED
@@ -125,6 +134,8 @@ namespace tool::gsc {
             BYTE* m_bcl;
             // last op base
             INT32 m_lastOpCodeBase;
+            // export namespace
+            UINT32 m_namespace;
             // current objectid
             asmcontextnode* m_objectId = nullptr;
             // current fieldid
@@ -136,7 +147,7 @@ namespace tool::gsc {
             // local vars
             std::vector<asmcontextlocalvar> m_localvars{};
 
-            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt);
+            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp);
             ~asmcontext();
 
             // @return relative location in the function
@@ -180,6 +191,12 @@ namespace tool::gsc {
              * @return Node
              */
             asmcontextnode* PopASMCNode();
+
+            /*
+             * Peek an asmcontext (ASMC) node from the stack
+             * @return Node
+             */
+            asmcontextnode* PeekASMCNode();
 
             /*
              * Free the previous ObjectId ASCM node and put a new node

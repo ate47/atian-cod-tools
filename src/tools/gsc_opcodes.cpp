@@ -28,7 +28,7 @@ template<typename Type>
 class asmcontextnode_Value : public asmcontextnode {
 public:
 	Type m_value;
-	asmcontextnode_Value(Type value) : asmcontextnode(PRIORITY_VALUE), m_value(value) {
+	asmcontextnode_Value(Type value, asmcontextnode_type type = TYPE_UNDEFINED) : asmcontextnode(PRIORITY_VALUE, type), m_value(value) {
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
@@ -36,7 +36,7 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_Value<Type>(m_value);
+		return new asmcontextnode_Value<Type>(m_value, m_type);
 	}
 };
 class asmcontextnode_Identifier : public asmcontextnode {
@@ -58,15 +58,21 @@ public:
 class asmcontextnode_Hash : public asmcontextnode {
 public:
 	UINT64 m_value;
-	asmcontextnode_Hash(UINT64 value) : asmcontextnode(PRIORITY_VALUE), m_value(value) {
+	bool m_canonid;
+	asmcontextnode_Hash(UINT64 value, bool canonid = false) : asmcontextnode(PRIORITY_VALUE, TYPE_CONST_HASH), m_value(value), m_canonid(canonid) {
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
-		out << "#\"" << hashutils::ExtractTmp("hash", m_value) << '"' << std::flush;
+		if (m_canonid) {
+			out << "#" << hashutils::ExtractTmp("var", m_value) << std::flush;
+		}
+		else {
+			out << "#\"" << hashutils::ExtractTmp("hash", m_value) << '"' << std::flush;
+		}
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_Hash(m_value);
+		return new asmcontextnode_Hash(m_value, m_canonid);
 	}
 };
 
@@ -149,7 +155,7 @@ class asmcontextnode_ArrayAccess : public asmcontextnode {
 public:
 	asmcontextnode* m_operandleft;
 	asmcontextnode* m_operandright;
-	asmcontextnode_ArrayAccess(asmcontextnode* operandleft, asmcontextnode* operandright) : 
+	asmcontextnode_ArrayAccess(asmcontextnode* operandleft, asmcontextnode* operandright) :
 		asmcontextnode(PRIORITY_ACCESS), m_operandleft(operandleft), m_operandright(operandright) {
 	}
 	~asmcontextnode_ArrayAccess() {
@@ -177,6 +183,114 @@ public:
 		return new asmcontextnode_ArrayAccess(m_operandleft->Clone(), m_operandright->Clone());
 	}
 };
+class asmcontextnode_ArrayBuildNode : public asmcontextnode {
+public:
+	asmcontextnode* m_key;
+	asmcontextnode* m_value;
+	asmcontextnode_ArrayBuildNode(asmcontextnode* key, asmcontextnode* value) :
+		asmcontextnode(PRIORITY_SET), m_key(key), m_value(value) {
+	}
+	~asmcontextnode_ArrayBuildNode() {
+		delete m_key;
+		delete m_value;
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		m_key->Dump(out, ctx);
+
+		out << ":";
+
+		m_value->Dump(out, ctx);
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_ArrayBuildNode(m_key->Clone(), m_value->Clone());
+	}
+};
+class asmcontextnode_ArrayBuild : public asmcontextnode {
+public:
+	std::vector<asmcontextnode_ArrayBuildNode*> m_operands{};
+	asmcontextnode_ArrayBuild() :
+		asmcontextnode(PRIORITY_ACCESS, TYPE_ARRAY_BUILD) {
+	}
+	~asmcontextnode_ArrayBuild() {
+		for (auto& ref : m_operands) {
+			delete ref;
+		}
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "[";
+
+		if (m_operands.size()) {
+			m_operands[0]->Dump(out, ctx);
+		}
+		for (size_t i = 1; i < m_operands.size(); i++) {
+			out << ", ";
+			m_operands[i]->Dump(out, ctx);
+		}
+
+		out << "]";
+	}
+
+	void AddValue(asmcontextnode* key, asmcontextnode* value) {
+		m_operands.push_back(new asmcontextnode_ArrayBuildNode(key, value));
+	}
+
+	asmcontextnode* Clone() const override {
+		auto* n = new asmcontextnode_ArrayBuild();
+
+		for (const auto& ref : m_operands) {
+			n->AddValue(ref->m_key->Clone(), ref->m_value->Clone());
+		}
+
+		return n;
+	}
+};
+class asmcontextnode_StructBuild : public asmcontextnode {
+public:
+	std::vector<asmcontextnode_ArrayBuildNode*> m_operands{};
+	asmcontextnode_StructBuild() :
+		asmcontextnode(PRIORITY_ACCESS, TYPE_STRUCT_BUILD) {
+	}
+	~asmcontextnode_StructBuild() {
+		for (auto& ref : m_operands) {
+			delete ref;
+		}
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "{";
+
+		if (m_operands.size()) {
+			m_operands[0]->Dump(out, ctx);
+		}
+		for (size_t i = 1; i < m_operands.size(); i++) {
+			out << ", ";
+			m_operands[i]->Dump(out, ctx);
+		}
+
+		out << "}";
+	}
+
+	void AddValue(asmcontextnode* key, asmcontextnode* value) {
+		if (key->m_type == TYPE_CONST_HASH) {
+			// this hash is a canon id, not a fnva1
+			dynamic_cast<asmcontextnode_Hash*>(key)->m_canonid = true;
+		}
+		m_operands.push_back(new asmcontextnode_ArrayBuildNode(key, value));
+	}
+
+	asmcontextnode* Clone() const override {
+		auto* n = new asmcontextnode_StructBuild();
+
+		for (const auto& ref : m_operands) {
+			n->AddValue(ref->m_key->Clone(), ref->m_value->Clone());
+		}
+
+		return n;
+	}
+};
 
 enum asmcontextnode_CallFuncPtrType {
 	CLASS_CALL,
@@ -195,7 +309,7 @@ private:
 	BYTE m_flags;
 public:
 	std::vector<asmcontextnode*> m_operands{};
-	asmcontextnode_CallFuncPtr(asmcontextnode_CallFuncPtrType type, BYTE flags) : asmcontextnode(PRIORITY_ACCESS), m_type(type), m_flags(flags) {
+	asmcontextnode_CallFuncPtr(asmcontextnode_CallFuncPtrType type, BYTE flags) : asmcontextnode(PRIORITY_ACCESS, TYPE_FUNC_CALL), m_type(type), m_flags(flags) {
 	}
 	~asmcontextnode_CallFuncPtr() {
 		for (auto& ref : m_operands) {
@@ -483,7 +597,6 @@ public:
 		m_right->Dump(out, ctx);
 	}
 };
-
 
 int opcodeinfo::Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const {
 	out << "\n";
@@ -930,8 +1043,12 @@ public:
 		out << hashutils::ExtractTmp("var", name) << std::endl;
 
 		if (context.m_runDecompiler) {
-			context.SetFieldIdASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS));
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET));
+			auto* node = new asmcontextnode_LeftRightOperator(
+				new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS), 
+				context.PopASMCNode(), " = ", PRIORITY_SET);
+			context.SetFieldIdASMCNode(node->Clone());
+			context.PushASMCNode(node);
+			context.CompleteStatement();
 		}
 
 		return 0;
@@ -947,7 +1064,8 @@ public:
 		out << "\n";
 
 		if (context.m_runDecompiler) {
-			context.SetFieldIdASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET));
+			context.CompleteStatement();
 		}
 
 		return 0;
@@ -1343,6 +1461,9 @@ public:
 		out << "\n";
 
 		if (context.m_runDecompiler) {
+			if (!m_stack) {
+				context.SetObjectIdASMCNode(context.GetFieldIdASMCNode());
+			}
 			asmcontextnode* arrayNode = m_stack ? context.PopASMCNode() : context.GetObjectIdASMCNode();
 			asmcontextnode* accessNode = new asmcontextnode_ArrayAccess(arrayNode, context.PopASMCNode());
 			if (m_stack) {
@@ -1357,14 +1478,140 @@ public:
 	}
 };
 
+class opcodeinfo_CreateArray : public opcodeinfo {
+public:
+	opcodeinfo_CreateArray(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
 
-/*
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToArray, "AddToArray"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateArray, "CreateArray"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToStruct, "AddToStruct"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CastFieldObject, "CastFieldObject"));
-RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateStruct, "CreateStruct"));
-*/
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		out << "\n";
+
+		if (context.m_runDecompiler) {
+			context.PushASMCNode(new asmcontextnode_ArrayBuild());
+		}
+
+		return 0;
+	}
+};
+
+class opcodeinfo_AddToArray : public opcodeinfo {
+public:
+	opcodeinfo_AddToArray(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		out << "\n";
+
+		if (context.m_runDecompiler) {
+			asmcontextnode* key = context.PopASMCNode();
+			asmcontextnode* value = context.PopASMCNode();
+			asmcontextnode* arrayVal = context.PeekASMCNode();
+
+			if (arrayVal->m_type == TYPE_ARRAY_BUILD) {
+				// we are building an array, we can add the value
+				dynamic_cast<asmcontextnode_ArrayBuild*>(arrayVal)->AddValue(key, value);
+			}
+			else {
+				asmcontextnode_MultOp* node = new asmcontextnode_MultOp("$addtoarray", false);
+
+
+				node->AddParam(context.PopASMCNode());
+				node->AddParam(key);
+				node->AddParam(value);
+
+				context.PushASMCNode(node);
+			}
+		}
+
+		return 0;
+	}
+};
+
+class opcodeinfo_CreateStruct : public opcodeinfo {
+public:
+	opcodeinfo_CreateStruct(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		out << "\n";
+
+		if (context.m_runDecompiler) {
+			context.PushASMCNode(new asmcontextnode_StructBuild());
+		}
+
+		return 0;
+	}
+};
+
+class opcodeinfo_AddToStruct : public opcodeinfo {
+public:
+	opcodeinfo_AddToStruct(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		out << "\n";
+
+		if (context.m_runDecompiler) {
+			asmcontextnode* key = context.PopASMCNode();
+			asmcontextnode* value = context.PopASMCNode();
+			asmcontextnode* structVal = context.PeekASMCNode();
+
+			if (structVal->m_type == TYPE_STRUCT_BUILD) {
+				// we are building an array, we can add the value
+				dynamic_cast<asmcontextnode_StructBuild*>(structVal)->AddValue(key, value);
+			}
+			else {
+				asmcontextnode_MultOp* node = new asmcontextnode_MultOp("addtostruct", false);
+
+				node->AddParam(context.PopASMCNode());
+				node->AddParam(key);
+				node->AddParam(value);
+
+				context.PushASMCNode(node);
+			}
+		}
+
+		return 0;
+	}
+};
+class opcodeinfo_CastFieldObject : public opcodeinfo {
+public:
+	opcodeinfo_CastFieldObject(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		out << "\n";
+
+		if (context.m_runDecompiler) {
+			context.SetObjectIdASMCNode(context.PopASMCNode());
+		}
+
+		return 0;
+	}
+};
+class opcodeinfo_PreScriptCall : public opcodeinfo {
+public:
+	opcodeinfo_PreScriptCall(opcode id, LPCCH name) : opcodeinfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+
+		out << "\n";
+
+		if (context.m_runDecompiler) {
+			context.PushASMCNode(new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS));
+		}
+
+		return 0;
+	}
+};
+
+
 
 
 class opcodeinfo_End : public opcodeinfo {
@@ -1412,7 +1659,6 @@ public:
 			ref->m_priority = PRIORITY_INST;
 			ref->m_type = TYPE_STATEMENT;
 			context.PushASMCNode(ref);
-			context.CompleteStatement();
 		}
 		out << "\n";
 		return 0;
@@ -1422,17 +1668,67 @@ public:
 class opcodeinfo_FunctionOperator : public opcodeinfo {
 	LPCCH m_operatorName;
 	bool m_hasSelf;
+	bool m_complete;
+	bool m_canHaveArg2;
 public:
-	opcodeinfo_FunctionOperator(opcode id, LPCCH name, LPCCH operatorName, bool hasSelf = false) : opcodeinfo(id, name),
-		m_operatorName(operatorName), m_hasSelf(hasSelf) {
+	opcodeinfo_FunctionOperator(opcode id, LPCCH name, LPCCH operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false) : opcodeinfo(id, name),
+		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2) {
 	}
 	using opcodeinfo::opcodeinfo;
 
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			auto* self = m_hasSelf ? context.PopASMCNode() : nullptr;
+			asmcontextnode_MultOp* node = new asmcontextnode_MultOp(m_operatorName, m_hasSelf);
+			if (m_hasSelf) {
+				node->AddParam(context.PopASMCNode());
+			}
+			node->AddParam(context.PopASMCNode());
+			//if (m_canHaveArg2) { // TODO: compute
+			//	node->AddParam(context.PopASMCNode());
+			//}
 
-			context.PushASMCNode(new asmcontextnode_FunctionOperator(m_operatorName, self, context.PopASMCNode()));
+			context.PushASMCNode(node);
+			if (m_complete) {
+				context.CompleteStatement();
+			}
+		}
+		out << "\n";
+		return 0;
+	}
+};
+
+
+class opcodeinfo_Notify : public opcodeinfo {
+public:
+	opcodeinfo_Notify(opcode id, LPCCH name) : opcodeinfo(id, name){
+	}
+	using opcodeinfo::opcodeinfo;
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		if (context.m_runDecompiler) {
+			asmcontextnode_MultOp* node = new asmcontextnode_MultOp("notify", true);
+			// self
+			node->AddParam(context.PopASMCNode());
+			// param
+			node->AddParam(context.PopASMCNode());
+
+			//node->AddParam();
+
+			if (context.m_stack.size()) {
+				if (context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+					// clear PreScriptCall
+					delete context.PopASMCNode();
+				}
+				else {
+					node->AddParam(context.PopASMCNode());
+					if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+						// clear PreScriptCall
+						delete context.PopASMCNode();
+					}
+				}
+			}
+
+			context.PushASMCNode(node);
 			context.CompleteStatement();
 		}
 		out << "\n";
@@ -1511,6 +1807,11 @@ public:
 				ptr->AddParam(context.PopASMCNode());
 			}
 
+			if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+				// clear PreScriptCall
+				delete context.PopASMCNode();
+			}
+
 			context.PushASMCNode(ptr);
 		}
 
@@ -1535,7 +1836,7 @@ public:
 
 		if (data[1] 
 			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
-			&& m_id != OPCODE_GetResolveFunction) { // resolved function
+			&& data[1] != context.m_namespace) { // current namespace
 			out << hashutils::ExtractTmp("namespace", data[1]) << std::flush << "::";
 			nsp = data[1];
 		}
@@ -1582,6 +1883,11 @@ public:
 			ptr->AddParam(new asmcontextnode_Identifier(function, "function"));
 			for (size_t i = 0; i < params; i++) {
 				ptr->AddParam(context.PopASMCNode());
+			}
+
+			if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+				// clear PreScriptCall
+				delete context.PopASMCNode();
 			}
 
 			context.PushASMCNode(ptr);
@@ -1638,6 +1944,11 @@ public:
 			// use <= to add the function pointer
 			for (size_t i = 0; i <= params; i++) {
 				ptr->AddParam(context.PopASMCNode());
+			}
+
+			if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+				// clear PreScriptCall
+				delete context.PopASMCNode();
 			}
 
 			context.PushASMCNode(ptr);
@@ -1822,16 +2133,17 @@ public:
 	LPCCH m_op;
 	asmcontextnode_priority m_priority;
 	bool m_caller;
-	opcodeinfo_pushopn(opcode id, LPCCH name, INT n, LPCCH op, asmcontextnode_priority priority, bool caller = false) : opcodeinfo(id, name),
-		m_n(n), m_op(op), m_priority(priority), m_caller(caller) {
+	bool m_forceFunc;
+	opcodeinfo_pushopn(opcode id, LPCCH name, INT n, LPCCH op, asmcontextnode_priority priority, bool caller = false, bool forceFunc = false) : opcodeinfo(id, name),
+		m_n(n), m_op(op), m_priority(priority), m_caller(caller), m_forceFunc(forceFunc) {
 	}
 
 	int Dump(std::ostream& out, UINT16 v, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			if (m_n == 1) {
+			if (m_n == 1 && !m_forceFunc) {
 				context.PushASMCNode(new asmcontextnode_Op1(m_op, m_caller, context.PopASMCNode()));
 			}
-			else if (m_n == 2 && !m_caller) {
+			else if (m_n == 2 && !m_caller && !m_forceFunc) {
 				// reverse order
 				asmcontextnode* op2 = context.PopASMCNode();
 				asmcontextnode* op1 = context.PopASMCNode();
@@ -1884,6 +2196,8 @@ public:
 		if (context.m_runDecompiler) {
 			asmcontextnode_MultOp* node = new asmcontextnode_MultOp(m_op, true);
 
+			// self
+			node->AddParam(context.PopASMCNode());
 
 			for (size_t i = 0; i < count; i++) {
 				node->AddParam(context.PopASMCNode());
@@ -1891,7 +2205,7 @@ public:
 
 			context.PushASMCNode(node);
 
-			if (m_pushReturn) {
+			if (!m_pushReturn) {
 				context.CompleteStatement();
 			}
 		}
@@ -1926,6 +2240,29 @@ public:
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new asmcontextnode_FuncRef("@", function, nsp, script));
 		}
+		return 0;
+	}
+};
+
+
+class opcodeinfo_DeltaVal : public opcodeinfo {
+public:
+	LPCCH m_op;
+	opcodeinfo_DeltaVal(opcode id, LPCCH name, LPCCH op) : opcodeinfo(id, name), m_op(op) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		out << m_op << "\n";
+
+		if (context.m_runDecompiler) {
+			if (context.m_fieldId) {
+				context.SetFieldIdASMCNode(new asmcontextnode_Op1(m_op, false, context.GetFieldIdASMCNode()));
+			}
+			else {
+				context.PushASMCNode(new asmcontextnode_Op1(m_op, false, context.GetFieldIdASMCNode()));
+			}
+		}
+
 		return 0;
 	}
 };
@@ -1988,11 +2325,11 @@ void tool::gsc::opcode::RegisterOpCodes() {
 
 		RegisterOpCodeHandler(new opcodeinfo_EvalArray(OPCODE_EvalArrayRef, "EvalArrayRef", false));
 		RegisterOpCodeHandler(new opcodeinfo_EvalArray(OPCODE_EvalArray, "EvalArray", true));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToArray, "AddToArray"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateArray, "CreateArray"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_AddToStruct, "AddToStruct"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CastFieldObject, "CastFieldObject"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CreateStruct, "CreateStruct"));
+		RegisterOpCodeHandler(new opcodeinfo_CreateArray(OPCODE_CreateArray, "CreateArray"));
+		RegisterOpCodeHandler(new opcodeinfo_AddToArray(OPCODE_AddToArray, "AddToArray"));
+		RegisterOpCodeHandler(new opcodeinfo_CreateStruct(OPCODE_CreateStruct, "CreateStruct"));
+		RegisterOpCodeHandler(new opcodeinfo_AddToStruct(OPCODE_AddToStruct, "AddToStruct"));
+		RegisterOpCodeHandler(new opcodeinfo_CastFieldObject(OPCODE_CastFieldObject, "CastFieldObject"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Unknown35, "Unknown35"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_Unknown9e, "Unknown9e"));
 
@@ -2028,15 +2365,15 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_GetLocalVar(OPCODE_Unknownc7, "Unknownc7"));
 
 		// ref op
-		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Dec, "Dec", 1, "--", PRIORITY_UNARY));
-		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_Inc, "Inc", 1, "++", PRIORITY_UNARY));
+		RegisterOpCodeHandler(new opcodeinfo_DeltaVal(OPCODE_Dec, "Dec", "--"));
+		RegisterOpCodeHandler(new opcodeinfo_DeltaVal(OPCODE_Inc, "Inc", "++"));
 
 		// control
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_EndOnCallback, "EndOnCallback", "endoncallback", false)); // count = params + self
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_EndOn, "EndOn", "endon", false)); // count = params + self
 
 		// ret control
-		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaitTill, "WaitTill", "waitfill", true)); // count = params + self
+		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaitTill, "WaitTill", "waittill", true)); // count = params + self
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout", "waittillmatchtimeout", true));
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaitTillMatch, "WaitTillMatch", "waittillmatch", true)); // count = params + self
 		RegisterOpCodeHandler(new opcodeinfo_Count(OPCODE_WaittillTimeout, "WaittillTimeout", "waittilltimeout", true)); // count = params + self
@@ -2063,8 +2400,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 
 		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolComplement, "BoolComplement", 1, "~", PRIORITY_UNARY));
 		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolNot, "BoolNot", 1, "!", PRIORITY_UNARY));
-		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_CastBool, "CastBool", 1, "(bool)", PRIORITY_UNARY));
-		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_CastCanon, "CastCanon", 1, "(ref)", PRIORITY_UNARY));
+		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CastBool, "CastBool")); // we ignore this one
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_CastCanon, "CastCanon", 1, "", PRIORITY_UNARY, false, true)); // context dependent, the "" can be replaced to tag them
 
 		// Remove return value from operator
 		RegisterOpCodeHandler(new opcodeinfo_dec(OPCODE_DecTop, "DecTop"));
@@ -2095,13 +2432,13 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_Statement(OPCODE_WaitTillFrameEnd, "WaitTillFrameEnd", "waitframe 1"));
 		RegisterOpCodeHandler(new opcodeinfo_FunctionOperator(OPCODE_Wait, "Wait", "wait"));
 		RegisterOpCodeHandler(new opcodeinfo_FunctionOperator(OPCODE_WaitFrame, "WaitFrame", "waitframe"));
-		RegisterOpCodeHandler(new opcodeinfo_FunctionOperator(OPCODE_Notify, "Notify", "notify", true));
-		RegisterOpCodeHandler(new opcodeinfo_FunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined"));
+		RegisterOpCodeHandler(new opcodeinfo_Notify(OPCODE_Notify, "Notify"));
+		RegisterOpCodeHandler(new opcodeinfo_FunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined", false, false));
 
 		// PRECODEPOS/CODEPOS on stack
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_ClearParams, "ClearParams"));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CheckClearParams, "CheckClearParams"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_PreScriptCall, "PreScriptCall"));
+		RegisterOpCodeHandler(new opcodeinfo_PreScriptCall(OPCODE_PreScriptCall, "PreScriptCall"));
 
 		RegisterOpCodeHandler(new opcodeinfo_GetConstant<LPCCH>(OPCODE_EmptyArray, "EmptyArray", "[]"));
 		RegisterOpCodeHandler(new opcodeinfo_GetConstantSet<LPCCH>(OPCODE_ClearArray, "ClearArray", "[]", true));
@@ -2509,7 +2846,8 @@ const opcodeinfo* tool::gsc::opcode::LookupOpCode(UINT16 opcode) {
 	return refHandler->second;
 }
 
-asmcontext::asmcontext(BYTE* fonctionStart, const GscInfoOption& opt) : m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), m_lastOpCodeBase(-1) {
+asmcontext::asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp) 
+		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), m_lastOpCodeBase(-1), m_namespace(nsp) {
 	// set start as unhandled
 	PushLocation();
 }
@@ -2663,6 +3001,14 @@ asmcontextnode* asmcontext::PopASMCNode() {
 	asmcontextnode* val = m_stack[m_stack.size() - 1];
 	m_stack.pop_back();
 	return val;
+}
+
+asmcontextnode* asmcontext::PeekASMCNode() {
+	if (!m_stack.size()) {
+		// create fake value for the decompiler
+		PushASMCNode(new asmcontextnode_Value<LPCCH>("<error pop>"));
+	}
+	return m_stack[m_stack.size() - 1];
 }
 
 void asmcontext::CompleteStatement() {
