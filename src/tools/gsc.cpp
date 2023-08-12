@@ -293,7 +293,6 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
         for (size_t i = 0; i < data->exports_count; i++) {
             const auto& exp = exports[i];
-
             if (exp.name_space != currentNSP) {
                 currentNSP = exp.name_space;
                 asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
@@ -314,41 +313,43 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             output << "} } \n";
 
+            std::ostream& outputdecomp = opt.m_dcomp ? asmout : nullstream;
+
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
-                exp.DumpFunctionHeader(asmout, data->magic, ctx, asmctx);
+                exp.DumpFunctionHeader(outputdecomp, data->magic, ctx, asmctx);
                 opcode::decompcontext dctx{ 1 };
                 if (opt.m_dcomp) {
-                    asmout << " {\n";
-                if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
-                    asmctx.m_bcl = &data->magic[exp.address];
-                    exp.DumpVTable(asmout, data->magic, ctx, asmctx, dctx);
-                }
-                else {
+                    outputdecomp << " {\n";
+                    if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
+                        asmctx.m_bcl = &data->magic[exp.address];
+                        exp.DumpVTable(outputdecomp, data->magic, ctx, asmctx, dctx);
+                    }
+                    else {
 
-                        // decompile ctx
-                        for (size_t i = 0; i < asmctx.m_nodes.size(); i++) {
-                            const auto& ref = asmctx.m_nodes[i];
-                            if (ref.location.ref) {
-                                asmout << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
-                            }
-                            if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_END) {
-                                if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_PRECODEPOS) {
-                                    dctx.WritePadding(asmout);
-                                    ref.node->Dump(asmout, dctx);
-                                    asmout << ";\n";
+                            // decompile ctx
+                            for (size_t i = 0; i < asmctx.m_nodes.size(); i++) {
+                                const auto& ref = asmctx.m_nodes[i];
+                                if (ref.location.ref) {
+                                    outputdecomp << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
+                                }
+                                if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_END) {
+                                    if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_PRECODEPOS) {
+                                        dctx.WritePadding(outputdecomp);
+                                        ref.node->Dump(outputdecomp, dctx);
+                                        outputdecomp << ";\n";
+                                    }
+                                }
+                                else if (i != asmctx.m_nodes.size() - 1) {
+                                    dctx.WritePadding(outputdecomp);
+                                    // if we're not at the end, it means we are reading a return;
+                                    outputdecomp << "return;\n";
                                 }
                             }
-                            else if (i != asmctx.m_nodes.size() - 1) {
-                                dctx.WritePadding(asmout);
-                                // if we're not at the end, it means we are reading a return;
-                                asmout << "return;\n";
-                            }
                         }
-                    }
-                asmout << "}\n";
+                    outputdecomp << "}\n";
                 }
                 else {
-                    asmout << ";\n";
+                    outputdecomp << ";\n";
                 }
             }
             asmout << "\n";

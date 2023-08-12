@@ -1866,6 +1866,15 @@ public:
 			}
 
 			context.PushASMCNode(ptr);
+
+			if (context.m_fieldId) {
+				delete context.m_fieldId;
+				context.m_fieldId = nullptr;
+			}
+			if (context.m_objectId) {
+				delete context.m_objectId;
+				context.m_objectId = nullptr;
+			}
 		}
 
 		return 0;
@@ -1968,6 +1977,14 @@ public:
 				context.PushASMCNode(ptr);
 			}
 
+			if (context.m_fieldId) {
+				delete context.m_fieldId;
+				context.m_fieldId = nullptr;
+			}
+			if (context.m_objectId) {
+				delete context.m_objectId;
+				context.m_objectId = nullptr;
+			}
 		}
 		return 0;
 	}
@@ -2029,6 +2046,15 @@ public:
 			}
 
 			context.PushASMCNode(ptr);
+
+			if (context.m_fieldId) {
+				delete context.m_fieldId;
+				context.m_fieldId = nullptr;
+			}
+			if (context.m_objectId) {
+				delete context.m_objectId;
+				context.m_objectId = nullptr;
+			}
 		}
 
 		return 0;
@@ -2346,11 +2372,12 @@ public:
 
 		if (context.m_runDecompiler) {
 			if (context.m_fieldId) {
-				context.SetFieldIdASMCNode(new asmcontextnode_Op1(m_op, false, context.GetFieldIdASMCNode()));
-			}
-			else {
 				context.PushASMCNode(new asmcontextnode_Op1(m_op, false, context.GetFieldIdASMCNode()));
 			}
+			else {
+				context.PushASMCNode(new asmcontextnode_Op1(m_op, false, context.PopASMCNode()));
+			}
+			context.CompleteStatement();
 		}
 
 		return 0;
@@ -2488,8 +2515,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_NotEqual, "NotEqual", 2, "!=", PRIORITY_EQUALS));
 		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_SuperNotEqual, "SuperNotEqual", 2, "!==", PRIORITY_EQUALS));
 
-		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolComplement, "BoolComplement", 1, "~", PRIORITY_UNARY));
-		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolNot, "BoolNot", 1, "!", PRIORITY_UNARY));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolComplement, "BoolComplement", 1, "~", PRIORITY_UNARY, true));
+		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_BoolNot, "BoolNot", 1, "!", PRIORITY_UNARY, true));
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CastBool, "CastBool")); // we ignore this one
 		RegisterOpCodeHandler(new opcodeinfo_pushopn(OPCODE_CastCanon, "CastCanon", 1, "", PRIORITY_UNARY, false, true)); // context dependent, the "" can be replaced to tag them
 
@@ -3103,6 +3130,14 @@ asmcontextnode* asmcontext::PeekASMCNode() {
 
 void asmcontext::CompleteStatement() {
 	if (m_stack.size() && m_lastOpCodeBase != -1) { // empty func tests
+		if (m_fieldId) {
+			delete m_fieldId;
+			m_fieldId = nullptr;
+		}
+		if (m_objectId) {
+			delete m_objectId;
+			m_objectId = nullptr;
+		}
 		m_nodes.push_back({ PopASMCNode(), m_locs[m_lastOpCodeBase]});
 		m_lastOpCodeBase = -1;
 	}
