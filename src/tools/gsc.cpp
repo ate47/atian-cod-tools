@@ -307,46 +307,30 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
 
-            output << " { __gscasm{\n";
+            output << " gscasm {\n";
 
             exp.DumpAsm(output, data->magic, ctx, asmctx);
 
-            output << "} } \n";
+            output << "}\n";
 
             std::ostream& outputdecomp = opt.m_dcomp ? asmout : nullstream;
 
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
                 exp.DumpFunctionHeader(outputdecomp, data->magic, ctx, asmctx);
-                opcode::decompcontext dctx{ 1 };
+                outputdecomp << std::flush;
+                opcode::decompcontext dctx{};
                 if (opt.m_dcomp) {
-                    outputdecomp << " {\n";
                     if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = &data->magic[exp.address];
+                        outputdecomp << " {\n";
                         exp.DumpVTable(outputdecomp, data->magic, ctx, asmctx, dctx);
+                        outputdecomp << "}\n";
                     }
                     else {
-
-                            // decompile ctx
-                            for (size_t i = 0; i < asmctx.m_nodes.size(); i++) {
-                                const auto& ref = asmctx.m_nodes[i];
-                                if (ref.location.ref) {
-                                    outputdecomp << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location.rloc << ":\n";
-                                }
-                                if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_END) {
-                                    if (ref.node->m_type != opcode::asmcontextnode_type::TYPE_PRECODEPOS) {
-                                        dctx.WritePadding(outputdecomp);
-                                        ref.node->Dump(outputdecomp, dctx);
-                                        outputdecomp << ";\n";
-                                    }
-                                }
-                                else if (i != asmctx.m_nodes.size() - 1) {
-                                    dctx.WritePadding(outputdecomp);
-                                    // if we're not at the end, it means we are reading a return;
-                                    outputdecomp << "return;\n";
-                                }
-                            }
-                        }
-                    outputdecomp << "}\n";
+                        outputdecomp << " "; // padding between block/parameters
+                        asmctx.m_funcBlock.ComputeDevBlocks();
+                        asmctx.m_funcBlock.Dump(outputdecomp, dctx);
+                    }
                 }
                 else {
                     outputdecomp << ";\n";

@@ -41,7 +41,7 @@ namespace tool::gsc {
 
     namespace opcode {
         struct decompcontext {
-            int padding{};
+            int padding = 0;
 
             std::ostream& WritePadding(std::ostream& out);
         };
@@ -68,6 +68,7 @@ namespace tool::gsc {
             PRIORITY_VALUE
         };
         enum asmcontextnode_type : UINT {
+            TYPE_BLOCK,
             TYPE_STATEMENT,
 
             TYPE_JUMP,
@@ -100,10 +101,11 @@ namespace tool::gsc {
             virtual asmcontextnode* Clone() const;
         };
 
+
         struct asmcontextlocation {
             INT32 rloc;
             bool handled;
-            bool ref;
+            int ref;
             asmcontextnode* objectId = nullptr;
             asmcontextnode* fieldId = nullptr;
             std::vector<asmcontextnode*> m_stack{};
@@ -111,14 +113,25 @@ namespace tool::gsc {
             ~asmcontextlocation();
         };
 
+        struct asmcontextstatement {
+            asmcontextnode* node = nullptr;
+            asmcontextlocation* location;
+        };
+
+        class asmcontextnodeblock : asmcontextnode {
+        public:
+            std::vector<asmcontextstatement> m_statements{};
+            bool m_devBlock;
+            asmcontextnodeblock(bool devBlock = false);
+            ~asmcontextnodeblock();
+            void Dump(std::ostream& out, decompcontext& ctx) const override;
+            asmcontextnode* Clone() const override;
+            int ComputeDevBlocks();
+        };
+
         struct asmcontextlocalvar {
             UINT32 name;
             BYTE flags;
-        };
-
-        struct asmcontextstatement {
-            asmcontextnode* node = nullptr;
-            asmcontextlocation& location;
         };
 
         class asmcontext {
@@ -144,7 +157,7 @@ namespace tool::gsc {
             // context stack
             std::vector<asmcontextnode*> m_stack{};
             // decompiled nodes
-            std::vector<asmcontextstatement> m_nodes{};
+            asmcontextnodeblock m_funcBlock;
             // local vars
             std::vector<asmcontextlocalvar> m_localvars{};
 
@@ -241,10 +254,10 @@ namespace tool::gsc {
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
-        std::unordered_map<UINT16, UINT32> m_gvars;
-        std::unordered_map<UINT32, LPCCH> m_stringRefs;
+        std::unordered_map<UINT16, UINT32> m_gvars{};
+        std::unordered_map<UINT32, LPCCH> m_stringRefs{};
     public:
-        std::unordered_map<UINT32, gscclass> m_classes;
+        std::unordered_map<UINT32, gscclass> m_classes{};
         T8GSCOBJContext();
 
         /*

@@ -15,6 +15,69 @@ tool::gsc::opcode::asmcontextnode::asmcontextnode(asmcontextnode_priority priori
 tool::gsc::opcode::asmcontextnode::~asmcontextnode() {
 }
 
+
+asmcontextnodeblock::asmcontextnodeblock(bool devBlock) : asmcontextnode(PRIORITY_INST, TYPE_BLOCK), m_devBlock(devBlock) {
+}
+asmcontextnodeblock::~asmcontextnodeblock() {
+	for (auto& ref : m_statements) {
+		delete ref.node;
+	}
+}
+void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
+	if (m_devBlock) {
+		out << "/#\n";
+	}
+	else {
+		out << "{\n";
+	}
+
+	ctx.padding++;
+
+	// decompiler proto block loop
+
+	for (size_t i = 0; i < m_statements.size(); i++) {
+		const auto& ref = m_statements[i];
+		if (ref.location->ref) {
+			// write the label one layer bellow the current block
+			ctx.padding--;
+			ctx.WritePadding(out) << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location->rloc << ":\n";
+			ctx.padding++;
+		}
+		if (ref.node->m_type != TYPE_END) {
+			if (ref.node->m_type != TYPE_PRECODEPOS) {
+				ctx.WritePadding(out);
+				ref.node->Dump(out, ctx);
+
+				if (ref.node->m_type != TYPE_BLOCK) {
+					out << ";\n";
+				}
+			}
+		}
+		else if (i != m_statements.size() - 1) {
+			ctx.WritePadding(out);
+			// if we're not at the end, it means we are reading a return;
+			out << "return;\n";
+		}
+		out << std::flush;
+	}
+
+	ctx.padding--;
+
+	if (m_devBlock) {
+		ctx.WritePadding(out) << "#/\n";
+	}
+	else {
+		ctx.WritePadding(out) << "}\n";
+	}
+}
+asmcontextnode* asmcontextnodeblock::Clone() const {
+	asmcontextnodeblock* n = new asmcontextnodeblock(m_devBlock);
+	for (auto& node : m_statements) {
+		n->m_statements.push_back({ node.node->Clone(), node.location });
+	}
+	return n;
+}
+
 void tool::gsc::opcode::asmcontextnode::Dump(std::ostream& out, decompcontext& ctx) const {
 	// nothing by default
 }
@@ -956,7 +1019,7 @@ public:
 			context.CompleteStatement();
 		}
 		
-		locref.ref = true;
+		locref.ref++;
 
 		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << locref.rloc << " (delta:0x" << delta << ")\n";
 
@@ -2964,7 +3027,7 @@ const opcodeinfo* tool::gsc::opcode::LookupOpCode(UINT16 opcode) {
 }
 
 asmcontext::asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp) 
-		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), m_lastOpCodeBase(-1), m_namespace(nsp) {
+		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(false) {
 	// set start as unhandled
 	PushLocation();
 }
@@ -2979,12 +3042,9 @@ asmcontext::~asmcontext() {
 	for (auto& ref : m_stack) {
 		delete ref;
 	}
-	for (auto& ref : m_nodes) {
-		delete ref.node;
-	}
 }
 
-asmcontextlocation::asmcontextlocation() : handled(false), ref(false), rloc(0) {}
+asmcontextlocation::asmcontextlocation() : handled(false), ref(0), rloc(0) {}
 asmcontextlocation::~asmcontextlocation() {
 	if (fieldId) {
 		delete fieldId;
@@ -3138,11 +3198,53 @@ void asmcontext::CompleteStatement() {
 			delete m_objectId;
 			m_objectId = nullptr;
 		}
-		m_nodes.push_back({ PopASMCNode(), m_locs[m_lastOpCodeBase]});
+		m_funcBlock.m_statements.push_back({ PopASMCNode(), &m_locs[m_lastOpCodeBase]});
 		m_lastOpCodeBase = -1;
 	}
 }
 
 std::ostream& decompcontext::WritePadding(std::ostream& out) {
-	return out << std::setfill(' ') << std::setw(padding * 4) << " "; // (4 spaces per padding)
+	for (size_t i = 0; i < padding; i++) {
+		out << "    ";
+	}
+	return out;
+}
+
+int asmcontextnodeblock::ComputeDevBlocks() {
+	auto it = m_statements.begin();
+	while (it != m_statements.end()) {
+		auto& b = *it;
+		if (b.node->m_type != TYPE_JUMP_DEVBLOCK) {
+			it++;
+			continue;
+		}
+
+		// we are reading a devblock jump
+		auto* jump = dynamic_cast<asmcontextnode_JumpOperator*>(b.node);
+		INT64 end = jump->m_location;
+		asmcontextnodeblock* devBlock = new asmcontextnodeblock(true);
+		// we replace the block by our node
+		b.node = devBlock;
+
+		// we move to the next node
+		it++;
+		// put all the statements into the dev block
+		while (it != m_statements.end() && it->location->rloc < end) {
+			devBlock->m_statements.push_back(*it);
+			it = m_statements.erase(it);
+		}
+
+		// compute nested dev blocks
+		devBlock->ComputeDevBlocks();
+
+		// delete the jump operator
+		delete jump;
+
+		if (it != m_statements.end() && it->location->rloc == end) {
+			// remove the dev block jump reference
+			it->location->ref--;
+		}
+	}
+
+	return 0;
 }
