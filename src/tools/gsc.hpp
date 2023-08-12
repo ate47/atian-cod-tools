@@ -22,6 +22,7 @@ namespace tool::gsc {
         bool m_func_header_post = false;
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
+        bool m_show_internal_blocks = false;
 
         std::vector<LPCCH> m_inputFiles{};
         /*
@@ -38,10 +39,14 @@ namespace tool::gsc {
          */
         void PrintHelp(std::ostream& out);
     };
+    struct T8GSCExport;
 
     namespace opcode {
+        class asmcontext;
+
         struct decompcontext {
             int padding = 0;
+            const asmcontext& asmctx;
 
             std::ostream& WritePadding(std::ostream& out);
         };
@@ -70,6 +75,7 @@ namespace tool::gsc {
         enum asmcontextnode_type : UINT {
             TYPE_BLOCK,
             TYPE_STATEMENT,
+            TYPE_IDENTIFIER,
 
             TYPE_JUMP,
             TYPE_JUMP_ONFALSE,
@@ -83,8 +89,11 @@ namespace tool::gsc {
             TYPE_STRUCT_BUILD,
 
             TYPE_FUNC_CALL,
+            TYPE_FUNC_IS_DEFINED,
 
             TYPE_PRECODEPOS,
+            TYPE_SET,
+            TYPE_ACCESS,
             TYPE_END,
             TYPE_NEW,
 
@@ -132,6 +141,7 @@ namespace tool::gsc {
         struct asmcontextlocalvar {
             UINT32 name;
             BYTE flags;
+            asmcontextnode* defaultValueNode = nullptr;
         };
 
         class asmcontext {
@@ -160,8 +170,10 @@ namespace tool::gsc {
             asmcontextnodeblock m_funcBlock;
             // local vars
             std::vector<asmcontextlocalvar> m_localvars{};
+            // export
+            const T8GSCExport& m_exp;
 
-            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp);
+            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp);
             ~asmcontext();
 
             // @return relative location in the function
@@ -193,6 +205,13 @@ namespace tool::gsc {
 
             // @return the Final size of the function by looking at the last position
             UINT FinalSize() const;
+
+            /*
+             * Get a local var id by its name
+             * @param name Var name
+             * @return local var id or -1 if not defined in this context
+             */
+            int GetLocalVarIdByName(UINT32 name) const;
 
             /*
              * Push an asmcontext (ASMC) node on the stack
@@ -240,6 +259,11 @@ namespace tool::gsc {
              * Complete any statement on the ASCM stack
              */
             void CompleteStatement();
+
+            /*
+             * Compute the default param value from the function block
+             */
+            void SearchDefaultParamValue();
         };
     }
     struct asmcontext_func {

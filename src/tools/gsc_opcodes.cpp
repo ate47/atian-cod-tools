@@ -23,53 +23,6 @@ asmcontextnodeblock::~asmcontextnodeblock() {
 		delete ref.node;
 	}
 }
-void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
-	if (m_devBlock) {
-		out << "/#\n";
-	}
-	else {
-		out << "{\n";
-	}
-
-	ctx.padding++;
-
-	// decompiler proto block loop
-
-	for (size_t i = 0; i < m_statements.size(); i++) {
-		const auto& ref = m_statements[i];
-		if (ref.location->ref) {
-			// write the label one layer bellow the current block
-			ctx.padding--;
-			ctx.WritePadding(out) << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location->rloc << ":\n";
-			ctx.padding++;
-		}
-		if (ref.node->m_type != TYPE_END) {
-			if (ref.node->m_type != TYPE_PRECODEPOS) {
-				ctx.WritePadding(out);
-				ref.node->Dump(out, ctx);
-
-				if (ref.node->m_type != TYPE_BLOCK) {
-					out << ";\n";
-				}
-			}
-		}
-		else if (i != m_statements.size() - 1) {
-			ctx.WritePadding(out);
-			// if we're not at the end, it means we are reading a return;
-			out << "return;\n";
-		}
-		out << std::flush;
-	}
-
-	ctx.padding--;
-
-	if (m_devBlock) {
-		ctx.WritePadding(out) << "#/\n";
-	}
-	else {
-		ctx.WritePadding(out) << "}\n";
-	}
-}
 asmcontextnode* asmcontextnodeblock::Clone() const {
 	asmcontextnodeblock* n = new asmcontextnodeblock(m_devBlock);
 	for (auto& node : m_statements) {
@@ -106,7 +59,7 @@ class asmcontextnode_Identifier : public asmcontextnode {
 public:
 	UINT32 m_value;
 	LPCCH m_type;
-	asmcontextnode_Identifier(UINT32 value, LPCCH type = "var") : asmcontextnode(PRIORITY_VALUE), m_value(value), m_type(type) {
+	asmcontextnode_Identifier(UINT32 value, LPCCH type = "var") : asmcontextnode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(value), m_type(type) {
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
@@ -583,8 +536,8 @@ public:
 	LPCCH m_operatorName;
 	asmcontextnode* m_self;
 	asmcontextnode* m_operand;
-	asmcontextnode_FunctionOperator(LPCCH operatorName, asmcontextnode* self, asmcontextnode* operand) :
-		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_operatorName(operatorName), m_self(self), m_operand(operand) {
+	asmcontextnode_FunctionOperator(LPCCH operatorName, asmcontextnode* self, asmcontextnode* operand, asmcontextnode_type type = TYPE_STATEMENT) :
+		asmcontextnode(PRIORITY_INST, type), m_operatorName(operatorName), m_self(self), m_operand(operand) {
 		assert(operand);
 	}
 	~asmcontextnode_FunctionOperator() {
@@ -595,7 +548,7 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_FunctionOperator(m_operatorName, m_self ? m_self->Clone() : nullptr, m_operand->Clone());
+		return new asmcontextnode_FunctionOperator(m_operatorName, m_self ? m_self->Clone() : nullptr, m_operand->Clone(), m_type);
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
@@ -644,8 +597,8 @@ public:
 	LPCCH m_operatorName;
 	asmcontextnode* m_left;
 	asmcontextnode* m_right;
-	asmcontextnode_LeftRightOperator(asmcontextnode* left, asmcontextnode* right, LPCCH operatorName = " = ", asmcontextnode_priority priority = PRIORITY_SET) :
-		asmcontextnode(priority), m_operatorName(operatorName), m_left(left), m_right(right) {
+	asmcontextnode_LeftRightOperator(asmcontextnode* left, asmcontextnode* right, LPCCH operatorName = " = ", asmcontextnode_priority priority = PRIORITY_SET, asmcontextnode_type type = TYPE_SET) :
+		asmcontextnode(priority, type), m_operatorName(operatorName), m_left(left), m_right(right) {
 	}
 	~asmcontextnode_LeftRightOperator() {
 		delete m_left;
@@ -653,7 +606,7 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_LeftRightOperator(m_left->Clone(), m_right->Clone(), m_operatorName, m_priority);
+		return new asmcontextnode_LeftRightOperator(m_left->Clone(), m_right->Clone(), m_operatorName, m_priority, m_type);
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
@@ -877,7 +830,7 @@ public:
 	int Dump(std::ostream& out, UINT16 v, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(left, new asmcontextnode_Value<LPCCH>("size"), ".", PRIORITY_ACCESS));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(left, new asmcontextnode_Value<LPCCH>("size"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		out << "\n";
@@ -1160,8 +1113,8 @@ public:
 
 		if (context.m_runDecompiler) {
 			auto* node = new asmcontextnode_LeftRightOperator(
-				new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS), 
-				context.PopASMCNode(), " = ", PRIORITY_SET);
+				new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS),
+				context.PopASMCNode(), " = ", PRIORITY_SET, TYPE_SET);
 			context.SetFieldIdASMCNode(node->Clone());
 			context.PushASMCNode(node);
 			context.CompleteStatement();
@@ -1180,7 +1133,7 @@ public:
 		out << "\n";
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET, TYPE_SET));
 			context.CompleteStatement();
 		}
 
@@ -1204,7 +1157,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(new asmcontextnode_Identifier(hashutils::Hash32("self")));
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		return 0;
@@ -1235,8 +1188,8 @@ public:
 
 		if (context.m_runDecompiler) {
 			asmcontextnode* nameNode = m_stack ? context.PopASMCNode() : new asmcontextnode_Identifier(name);
-			asmcontextnode* fieldAccessNode = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS);
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(fieldAccessNode, new asmcontextnode_Value<LPCCH>("undefined"), " = ", PRIORITY_SET));
+			asmcontextnode* fieldAccessNode = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(fieldAccessNode, new asmcontextnode_Value<LPCCH>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
 		}
 
 		return 0;
@@ -1270,7 +1223,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(new asmcontextnode_Identifier(name));
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(fieldName), ".", PRIORITY_ACCESS));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(fieldName), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		return 0;
@@ -1293,7 +1246,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(context.PopASMCNode());
-			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS));
+			context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		return 0;
@@ -1325,7 +1278,7 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			asmcontextnode* node = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), m_stack ? context.PopASMCNode() : new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS);
+			asmcontextnode* node = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), m_stack ? context.PopASMCNode() : new asmcontextnode_Identifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS);
 
 			if (m_ref) {
 				context.SetFieldIdASMCNode(node);
@@ -1390,10 +1343,10 @@ public:
 		if (context.m_runDecompiler) {
 			if (!m_stack) {
 				context.SetFieldIdASMCNode(new asmcontextnode_Identifier(name));
-				context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET));
+				context.PushASMCNode(new asmcontextnode_LeftRightOperator(context.GetFieldIdASMCNode(), context.PopASMCNode(), " = ", PRIORITY_SET, TYPE_SET));
 			}
 			else {
-				context.PushASMCNode(new asmcontextnode_LeftRightOperator(new asmcontextnode_Identifier(name), context.PopASMCNode(), " = ", PRIORITY_SET));
+				context.PushASMCNode(new asmcontextnode_LeftRightOperator(new asmcontextnode_Identifier(name), context.PopASMCNode(), " = ", PRIORITY_SET, TYPE_SET));
 			}
 			context.CompleteStatement();
 		}
@@ -1557,7 +1510,7 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new asmcontextnode_FunctionOperator("isdefined", nullptr, new asmcontextnode_Identifier(name)));
+			context.PushASMCNode(new asmcontextnode_FunctionOperator("isdefined", nullptr, new asmcontextnode_Identifier(name), TYPE_FUNC_IS_DEFINED));
 		}
 
 		return 0;
@@ -1799,9 +1752,6 @@ public:
 				node->AddParam(context.PopASMCNode());
 			}
 			node->AddParam(context.PopASMCNode());
-			//if (m_canHaveArg2) { // TODO: compute
-			//	node->AddParam(context.PopASMCNode());
-			//}
 
 			context.PushASMCNode(node);
 			if (m_complete) {
@@ -3025,8 +2975,9 @@ const opcodeinfo* tool::gsc::opcode::LookupOpCode(UINT16 opcode) {
 	return refHandler->second;
 }
 
-asmcontext::asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp) 
-		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(false) {
+asmcontext::asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp)
+		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), 
+			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(false), m_exp(exp) {
 	// set start as unhandled
 	PushLocation();
 }
@@ -3135,6 +3086,15 @@ UINT asmcontext::FinalSize() const {
 	return (UINT)max + 2; // +1 for the Return/End operator
 }
 
+int asmcontext::GetLocalVarIdByName(UINT32 name) const {
+	for (size_t i = 0; i < m_localvars.size(); i++) {
+		if (m_localvars[i].name == name) {
+			return (int) i;
+		}
+	}
+
+	return -1;
+}
 void asmcontext::PushASMCNode(asmcontextnode* node) {
 	assert(node);
 	m_stack.push_back(node);
@@ -3202,11 +3162,152 @@ void asmcontext::CompleteStatement() {
 	}
 }
 
+void asmcontext::SearchDefaultParamValue() {
+	if (m_funcBlock.m_statements.size() < 2) {
+		return; // we need at least 2 elements
+	}
+	auto it = m_funcBlock.m_statements.begin();
+
+	int headerSize = 0;
+	while (it != m_funcBlock.m_statements.end()) {
+
+		// jumpif(isdefined(param_name)) after;
+		// param_name = RIGHT_VALUE;
+		// after:
+
+
+		auto& param1 = it->node;
+		if (param1->m_type != TYPE_JUMP_ONTRUE) {
+			break;
+		}
+		it++;
+		if (it == m_funcBlock.m_statements.end() || it->node->m_type != TYPE_SET) {
+			break;
+		}
+
+		auto* jump = dynamic_cast<asmcontextnode_JumpOperator*>(param1);
+		auto* set = dynamic_cast<asmcontextnode_LeftRightOperator*>(it->node);
+		auto end = jump->m_location;
+
+
+		it++;
+		asmcontextlocation* jumpEndLocation = nullptr;
+		if (it != m_funcBlock.m_statements.end()) {
+			jumpEndLocation = it->location;
+			if (jumpEndLocation->rloc < end) {
+				break; // jump too far
+			}
+		}
+
+		if (!jump->m_operand || jump->m_operand->m_type != TYPE_FUNC_IS_DEFINED) {
+			break; // not jumpif(isdefined(??))
+		}
+
+		auto* isDefinedFunc = dynamic_cast<asmcontextnode_FunctionOperator*>(jump->m_operand);
+
+		if (isDefinedFunc->m_operand->m_type != TYPE_IDENTIFIER || set->m_left->m_type != TYPE_IDENTIFIER || !set->m_right) {
+			break; // not isdefined(param_name) or not param_name = ...
+		}
+		UINT32 name = dynamic_cast<asmcontextnode_Identifier*>(set->m_left)->m_value;
+
+		if (dynamic_cast<asmcontextnode_Identifier*>(isDefinedFunc->m_operand)->m_value != name) {
+			break; // not the same name value
+		}
+
+		int localVar = GetLocalVarIdByName(name);
+
+		// the local variables are reversed and the first is an error check, so - 1 - params
+		if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.param_count || m_localvars[localVar].defaultValueNode) {
+			break; // not a param var or already defined as default
+		}
+
+		//std::cout << hashutils::ExtractTmp("function", m_exp.name) << std::flush << "-" << hashutils::ExtractTmp("var", name) << ":" << localVar << "/" << m_localvars.size() << "/" << (int)m_exp.param_count << std::endl;
+
+		// add default value node
+		m_localvars[localVar].defaultValueNode = set->m_right->Clone();
+
+		if (jumpEndLocation) {
+			// remove one ref
+			jumpEndLocation->ref--;
+		}
+
+		headerSize += 2;
+	}
+
+	if (!headerSize) {
+		return; // nothing to delete
+	}
+
+	auto ith = m_funcBlock.m_statements.begin();
+
+	// clear nodes
+	for (size_t i = 0; i < headerSize; i++) {
+		delete ith->node;
+		ith++;
+	}
+
+	m_funcBlock.m_statements.erase(m_funcBlock.m_statements.begin(), ith);
+}
+
 std::ostream& decompcontext::WritePadding(std::ostream& out) {
 	for (size_t i = 0; i < padding; i++) {
 		out << "    ";
 	}
 	return out;
+}
+
+void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
+	if (m_devBlock) {
+		out << "/#\n";
+	}
+	else {
+		out << "{\n";
+	}
+
+	ctx.padding++;
+
+	// decompiler proto block loop
+
+	for (size_t i = 0; i < m_statements.size(); i++) {
+		const auto& ref = m_statements[i];
+		if (ref.location->ref) {
+			// write the label one layer bellow the current block
+			ctx.padding--;
+			ctx.WritePadding(out) << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location->rloc << ":\n";
+			ctx.padding++;
+		}
+		if (ref.node->m_type != TYPE_END) {
+			if (ref.node->m_type != TYPE_PRECODEPOS) {
+				ctx.WritePadding(out);
+				ref.node->Dump(out, ctx);
+
+				if (ref.node->m_type != TYPE_BLOCK) {
+					out << ";\n";
+				}
+			}
+			else if (ctx.asmctx.m_opt.m_show_internal_blocks) {
+				ctx.WritePadding(out) << "<precodepos>;\n";
+			}
+		}
+		else if (i != m_statements.size() - 1) {
+			ctx.WritePadding(out);
+			// if we're not at the end, it means we are reading a return;
+			out << "return;\n";
+		}
+		else if (ctx.asmctx.m_opt.m_show_internal_blocks) {
+			ctx.WritePadding(out) << "<end>;\n";
+		}
+		out << std::flush;
+	}
+
+	ctx.padding--;
+
+	if (m_devBlock) {
+		ctx.WritePadding(out) << "#/\n";
+	}
+	else {
+		ctx.WritePadding(out) << "}\n";
+	}
 }
 
 int asmcontextnodeblock::ComputeDevBlocks() {
@@ -3233,16 +3334,18 @@ int asmcontextnodeblock::ComputeDevBlocks() {
 			it = m_statements.erase(it);
 		}
 
+		if (it != m_statements.end() && it->location->rloc == end) {
+			// add end devblock
+			devBlock->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS), it->location });
+			// remove the dev block jump reference
+			it->location->ref--;
+		}
+
 		// compute nested dev blocks
 		devBlock->ComputeDevBlocks();
 
 		// delete the jump operator
 		delete jump;
-
-		if (it != m_statements.end() && it->location->rloc == end) {
-			// remove the dev block jump reference
-			it->location->ref--;
-		}
 	}
 
 	return 0;

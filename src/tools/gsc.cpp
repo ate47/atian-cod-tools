@@ -49,6 +49,9 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!strcmp("-P", arg) || !_strcmpi("--nopatch", arg)) {
             m_patch = false;
         }
+        else if (!_strcmpi("--internalblocks", arg)) {
+            m_show_internal_blocks = true;
+        }
         else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
             if (i + 1 == endIndex) {
                 std::cerr << "Missing value for param: " << arg << "!\n";
@@ -298,7 +301,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                 asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
             }
 
-            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt, currentNSP);
+            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt, currentNSP, exp);
 
             std::ofstream nullstream;
             nullstream.setstate(std::ios_base::badbit);
@@ -316,9 +319,10 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             std::ostream& outputdecomp = opt.m_dcomp ? asmout : nullstream;
 
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
+                asmctx.SearchDefaultParamValue();
                 exp.DumpFunctionHeader(outputdecomp, data->magic, ctx, asmctx);
                 outputdecomp << std::flush;
-                opcode::decompcontext dctx{};
+                opcode::decompcontext dctx{0, asmctx};
                 if (opt.m_dcomp) {
                     if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = &data->magic[exp.address];
@@ -940,7 +944,12 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
             }
 
             if (lvar.flags & ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF)) {
-                asmout << " unk flags: " << std::hex << (int)lvar.flags;
+                asmout << " (unk flags: " << std::hex << (int)lvar.flags << ")";
+            }
+            if (lvar.defaultValueNode) {
+                asmout << " = ";
+                opcode::decompcontext dctx = { 0, ctx };
+                lvar.defaultValueNode->Dump(asmout, dctx);
             }
         }
     }
