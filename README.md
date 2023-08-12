@@ -10,6 +10,7 @@ Tools for Black ops 4
 - dump linked scripts `gsc dls [output=linked.csv]` (need the game started)
 - dump linked/pooled scripts on disk `gsc wps [output=scriptparsetree]` (need the game started)
 - gsc disassembler, made in 3 days with a lot of alcohol so don't use it. `gsc gscinfo -a -o "output" [input=scriptparsetree]`
+- gsc decompiler, same as the disassembler, not any better, some structures are missing. `gsc gscinfo -g -o "output" [input=scriptparsetree]`
 
 ## Lookup
 

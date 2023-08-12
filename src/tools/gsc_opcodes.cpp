@@ -1869,8 +1869,7 @@ public:
 		UINT32 nsp = 0;
 		if (data[1]
 			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
-			&& m_id != OPCODE_CallBuiltinFunction
-			&& m_id != OPCODE_CallBuiltinMethod) { // builtin call
+			&& data[1] != context.m_namespace) { // same namespace call
 			nsp = data[1];
 			out << hashutils::ExtractTmp("namespace", nsp) << "::" << std::flush;
 		}
