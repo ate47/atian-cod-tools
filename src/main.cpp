@@ -33,6 +33,8 @@ int main(int argc, const char *argv[]) {
 	g_tools["dfunc"] = { " [output=funcs.csv]", "dump functions", true, tool::dump::dumpfunctions };
 	g_tools["devents"] = { " [output=events.csv]", "dump registered instance events", true, tool::dump::events };
 	g_tools["dds"] = { " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", false, tool::gsc::dumpdataset };
+
+	std::cout << "Atian Call of Duty tools\n\n";
 	
 	if (argc == 1) {
 		usage("No input", *argv);

@@ -1,6 +1,9 @@
-# T8 Tools
+# Atian Call of Duty Tools
 
-Tools for Black ops 4
+My set of tools for Call of Duty.
+
+**Supported games**
+- Call of Duty: Black Ops 4 (T8)
 
 ## Tools
 
