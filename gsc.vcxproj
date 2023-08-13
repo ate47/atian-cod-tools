@@ -27,6 +27,7 @@
     <ClCompile Include="src\tools\dump.cpp" />
     <ClCompile Include="src\tools\gsc_opcodes.cpp" />
     <ClCompile Include="src\tools\gsc.cpp" />
+    <ClCompile Include="src\tools\gsc_opcodes_load.cpp" />
     <ClCompile Include="src\tools\hash.cpp" />
     <ClCompile Include="src\utils.cpp" />
   </ItemGroup>
@@ -40,6 +41,7 @@
     <ClInclude Include="src\tools\dump.hpp" />
     <ClInclude Include="src\tools\gsc.hpp" />
     <ClInclude Include="src\tools\gsc_opcodes.hpp" />
+    <ClInclude Include="src\tools\gsc_opcodes_load.hpp" />
     <ClInclude Include="src\tools\hash.hpp" />
     <ClInclude Include="src\tools\tools.hpp" />
     <ClInclude Include="src\utils.hpp" />

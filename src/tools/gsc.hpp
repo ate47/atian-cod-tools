@@ -1,4 +1,5 @@
 #pragma once
+#include "gsc_opcodes.hpp"
 #include <includes.hpp>
 
 namespace tool::gsc {
@@ -18,6 +19,7 @@ namespace tool::gsc {
         bool m_exptests = false;
         bool m_patch = true;
         bool m_func = true;
+        bool m_func_rloc = false;
         bool m_func_header = true;
         bool m_func_header_post = false;
         LPCCH m_outputDir = NULL;
@@ -40,15 +42,21 @@ namespace tool::gsc {
         void PrintHelp(std::ostream& out);
     };
     struct T8GSCExport;
+    class T8GSCOBJContext;
 
     namespace opcode {
         class asmcontext;
+        class opcodeinfo;
 
         struct decompcontext {
             int padding = 0;
+            int rloc = 0;
             const asmcontext& asmctx;
 
-            std::ostream& WritePadding(std::ostream& out);
+            std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc);
+            inline std::ostream& WritePadding(std::ostream& out) {
+                return WritePadding(out, false);
+            }
         };
         enum asmcontextnode_priority : UINT {
             PRIORITY_INST,
@@ -80,6 +88,10 @@ namespace tool::gsc {
             TYPE_JUMP,
             TYPE_JUMP_ONFALSE,
             TYPE_JUMP_ONTRUE,
+            TYPE_JUMP_LOWERTHAN,
+            TYPE_JUMP_GREATERTHAN,
+            TYPE_JUMP_ONFALSEEXPR,
+            TYPE_JUMP_ONTRUEEXPR,
             TYPE_JUMP_DEVBLOCK,
 
             TYPE_CONST_HASH,
@@ -98,6 +110,19 @@ namespace tool::gsc {
             TYPE_NEW,
 
             TYPE_UNDEFINED
+        };
+        enum T8GSCLocalVarFlag : UINT8 {
+            ARRAY_REF = 0x01,
+            VARIADIC = 0x02
+        };
+
+        class opcodeinfo {
+        public:
+            opcode m_id;
+            LPCCH m_name;
+
+            opcodeinfo(opcode id, LPCCH name);
+            virtual int Dump(std::ostream& out, UINT16 value, asmcontext& context, T8GSCOBJContext& objctx) const;
         };
         class asmcontextnode {
         public:
@@ -172,8 +197,10 @@ namespace tool::gsc {
             std::vector<asmcontextlocalvar> m_localvars{};
             // export
             const T8GSCExport& m_exp;
+            // file vm
+            BYTE m_vm;
 
-            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp);
+            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm);
             ~asmcontext();
 
             // @return relative location in the function
@@ -205,6 +232,15 @@ namespace tool::gsc {
 
             // @return the Final size of the function by looking at the last position
             UINT FinalSize() const;
+
+            /*
+             * Call LookupOpCode with the ctx vm
+             * @param opcode op code
+             * @return handler
+             */
+            inline const tool::gsc::opcode::opcodeinfo* LookupOpCode(UINT16 opcode) {
+                return tool::gsc::opcode::LookupOpCode(m_vm, opcode);
+            }
 
             /*
              * Get a local var id by its name
@@ -263,7 +299,20 @@ namespace tool::gsc {
             /*
              * Compute the default param value from the function block
              */
-            void SearchDefaultParamValue();
+            void ComputeDefaultParamValue();
+
+            /*
+             * Compute the dev blocks
+             */
+            inline void ComputeDevBlocks() {
+                m_funcBlock.ComputeDevBlocks();
+            }
+            /*
+             * Dump the function block
+             */
+            inline void Dump(std::ostream& out, decompcontext& ctx) const {
+                m_funcBlock.Dump(out, ctx);
+            }
         };
     }
     struct asmcontext_func {
@@ -343,6 +392,11 @@ namespace tool::gsc {
          * @param context Context to fill during patching
          */
         void PatchCode(T8GSCOBJContext& context);
+
+        // @return the vm
+        inline BYTE GetVm() {
+            return magic[7];
+        }
     };
 
     struct T8GSCFixup {

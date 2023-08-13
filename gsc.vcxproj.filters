@@ -44,6 +44,9 @@
     <ClCompile Include="src\tools\decrypt.cpp">
       <Filter>Source Files\tools</Filter>
     </ClCompile>
+    <ClCompile Include="src\tools\gsc_opcodes_load.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\hashutils.hpp">
@@ -80,6 +83,9 @@
       <Filter>Source Files\tools</Filter>
     </ClInclude>
     <ClInclude Include="src\tools\decrypt.hpp">
+      <Filter>Source Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\gsc_opcodes_load.hpp">
       <Filter>Source Files\tools</Filter>
     </ClInclude>
   </ItemGroup>

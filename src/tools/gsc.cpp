@@ -46,6 +46,9 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!strcmp("-p", arg) || !_strcmpi("--postfunchead", arg)) {
             m_func_header_post = true;
         }
+        else if (!strcmp("-l", arg) || !_strcmpi("--rloc", arg)) {
+            m_func_rloc = true;
+        }
         else if (!strcmp("-P", arg) || !_strcmpi("--nopatch", arg)) {
             m_patch = false;
         }
@@ -88,6 +91,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-s --silent        : Silent output, only errors\n"
         << "-H --header        : Write file header\n"
         << "-f --nofunc        : No function write\n"
+        << "-l --rloc          : Write relative location of the function code\n"
         << "-F --nofuncheader  : No function header\n"
         << "-p --postfunchead  : Write post function header in ASM mode\n"
         << "-I --imports       : Write imports\n"
@@ -100,6 +104,12 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
 
 int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, const GscInfoOption& opt) {
     hashutils::ReadDefaultFile();
+
+    opcode::vminfo* vmInfo;
+    if (!opcode::IsValidVm(data->GetVm(), vmInfo)) {
+        std::cerr << "Bad vm 0x" << std::hex << (int)data->GetVm() << " for file " << path << "\n";
+        return -1;
+    }
 
     T8GSCOBJContext ctx{};
 
@@ -139,15 +149,17 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     if (opt.m_header) {
         asmout
             << "// " << hashutils::ExtractTmp("script", data->name) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n"
-            << "// magic .... 0x" << *reinterpret_cast<UINT64*>(&data->magic[0]) << " vm: 0x" << (UINT32)data->magic[7] << " crc: 0x" << data->crc << "\n"
+            << "// magic .... 0x" << *reinterpret_cast<UINT64*>(&data->magic[0]) 
+                << " vm: 0x" << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")"
+                << " crc: 0x" << std::hex << data->crc << "\n"
             << std::left << std::setfill(' ')
+            << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
             << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
             << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
             << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
             << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
-            << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << std::right
             << std::flush;
     }
@@ -301,7 +313,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                 asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
             }
 
-            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt, currentNSP, exp);
+            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt, currentNSP, exp, data->GetVm());
 
             std::ofstream nullstream;
             nullstream.setstate(std::ios_base::badbit);
@@ -319,10 +331,10 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             std::ostream& outputdecomp = opt.m_dcomp ? asmout : nullstream;
 
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
-                asmctx.SearchDefaultParamValue();
+                asmctx.ComputeDefaultParamValue();
                 exp.DumpFunctionHeader(outputdecomp, data->magic, ctx, asmctx);
                 outputdecomp << std::flush;
-                opcode::decompcontext dctx{0, asmctx};
+                opcode::decompcontext dctx{0, 0, asmctx};
                 if (opt.m_dcomp) {
                     if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = &data->magic[exp.address];
@@ -332,8 +344,8 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                     }
                     else {
                         outputdecomp << " "; // padding between block/parameters
-                        asmctx.m_funcBlock.ComputeDevBlocks();
-                        asmctx.m_funcBlock.Dump(outputdecomp, dctx);
+                        asmctx.ComputeDevBlocks();
+                        asmctx.Dump(outputdecomp, dctx);
                     }
                 }
                 else {
@@ -634,7 +646,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
 
             UINT16 opCode = *(UINT16*)base;
 
-            const auto* handler = tool::gsc::opcode::LookupOpCode(opCode);
+            const auto* handler = ctx.LookupOpCode(opCode);
 
 
             out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << loc.rloc << ": ";
@@ -675,7 +687,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
     using namespace tool::gsc::opcode;
     UINT16 code = *(UINT16*)ctx.Aligned<UINT16>();
     // main reading loop
-    const auto* ccp = tool::gsc::opcode::LookupOpCode(code);
+    const auto* ccp = ctx.LookupOpCode(code);
 
 /*
  * Start
@@ -696,7 +708,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
 
     ctx.m_bcl += 2;
 
-    const auto* preScriptCall = tool::gsc::opcode::LookupOpCode(code = *(UINT16*)ctx.Aligned<UINT16>());
+    const auto* preScriptCall = ctx.LookupOpCode(code = *(UINT16*)ctx.Aligned<UINT16>());
 
 
     if (!preScriptCall || preScriptCall->m_id != OPCODE_PreScriptCall) {
@@ -706,7 +718,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
 
     ctx.m_bcl += 2;
 
-    const auto* spawnStruct = tool::gsc::opcode::LookupOpCode(code = *(UINT16*)ctx.Aligned<UINT16>());
+    const auto* spawnStruct = ctx.LookupOpCode(code = *(UINT16*)ctx.Aligned<UINT16>());
 
     
     if (!spawnStruct || (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction)) {
@@ -741,7 +753,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
         UINT16 opcode = *(UINT16*)func;
         func += 2;
 
-        const auto* funcOpCode = tool::gsc::opcode::LookupOpCode(opcode);
+        const auto* funcOpCode = ctx.LookupOpCode(opcode);
 
         if (!funcOpCode) {
             dctxt.WritePadding(out) << "Bad opcode: " << std::hex << opcode << "\n";
@@ -764,7 +776,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
 
         UINT16 uidCodeOp = *(UINT16*)uidCodeBase;
 
-        const auto* uidCodeOpCode = tool::gsc::opcode::LookupOpCode(uidCodeOp);
+        const auto* uidCodeOpCode = ctx.LookupOpCode(uidCodeOp);
 
         uidCodeBase += 2;
 
@@ -948,7 +960,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
             }
             if (lvar.defaultValueNode) {
                 asmout << " = ";
-                opcode::decompcontext dctx = { 0, ctx };
+                opcode::decompcontext dctx = { 0, 0, ctx };
                 lvar.defaultValueNode->Dump(asmout, dctx);
             }
         }
