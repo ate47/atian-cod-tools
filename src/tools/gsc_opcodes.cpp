@@ -16,8 +16,8 @@ tool::gsc::opcode::asmcontextnode::asmcontextnode(asmcontextnode_priority priori
 tool::gsc::opcode::asmcontextnode::~asmcontextnode() {
 }
 
-
-asmcontextnodeblock::asmcontextnodeblock(bool devBlock) : asmcontextnode(PRIORITY_INST, TYPE_BLOCK), m_devBlock(devBlock) {
+asmcontextnodeblock::asmcontextnodeblock(nodeblocktype blockType) : asmcontextnode(PRIORITY_INST, TYPE_BLOCK), m_blockType(blockType) {
+	m_renderSemicolon = false;
 }
 asmcontextnodeblock::~asmcontextnodeblock() {
 	for (auto& ref : m_statements) {
@@ -25,7 +25,7 @@ asmcontextnodeblock::~asmcontextnodeblock() {
 	}
 }
 asmcontextnode* asmcontextnodeblock::Clone() const {
-	asmcontextnodeblock* n = new asmcontextnodeblock(m_devBlock);
+	asmcontextnodeblock* n = new asmcontextnodeblock(m_blockType);
 	for (auto& node : m_statements) {
 		n->m_statements.push_back({ node.node->Clone(), node.location });
 	}
@@ -293,7 +293,7 @@ public:
 	void AddValue(asmcontextnode* key, asmcontextnode* value) {
 		if (key->m_type == TYPE_CONST_HASH) {
 			// this hash is a canon id, not a fnva1
-			dynamic_cast<asmcontextnode_Hash*>(key)->m_canonid = true;
+			static_cast<asmcontextnode_Hash*>(key)->m_canonid = true;
 		}
 		m_operands.push_back(new asmcontextnode_ArrayBuildNode(key, value));
 	}
@@ -570,8 +570,9 @@ public:
 	asmcontextnode* m_operand;
 	INT64 m_location;
 	INT32 m_opLoc;
-	asmcontextnode_JumpOperator(LPCCH operatorName, asmcontextnode* operand, INT64 location, asmcontextnode_type type, INT32 opLoc) :
-		asmcontextnode(PRIORITY_INST, type), m_operatorName(operatorName), m_operand(operand), m_location(location), m_opLoc(opLoc){
+	bool m_showJump;
+	asmcontextnode_JumpOperator(LPCCH operatorName, asmcontextnode* operand, INT64 location, asmcontextnode_type type, INT32 opLoc, bool showJump = true) :
+		asmcontextnode(PRIORITY_INST, type), m_operatorName(operatorName), m_operand(operand), m_location(location), m_opLoc(opLoc), m_showJump(showJump){
 	}
 	~asmcontextnode_JumpOperator() {
 		if (m_operand) {
@@ -580,11 +581,14 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_JumpOperator(m_operatorName, m_operand ? m_operand->Clone() : nullptr, m_location, m_type, m_opLoc);
+		return new asmcontextnode_JumpOperator(m_operatorName, m_operand ? m_operand->Clone() : nullptr, m_location, m_type, m_opLoc, m_showJump);
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
-		out << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_opLoc << ":";
+		// we don't show the jump if asked, continue/break?
+		if (m_showJump) {
+			out << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_opLoc << ":";
+		}
 		out << m_operatorName;
 
 		if (m_operand) {
@@ -592,7 +596,9 @@ public:
 			m_operand->Dump(out, ctx);
 			out << ")";
 		}
-		out << " LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_location;
+		if (m_showJump) {
+			out << " LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_location;
+		}
 	}
 };
 
@@ -622,7 +628,7 @@ public:
 	}
 };
 
-class asmcontextnode_New: public asmcontextnode {
+class asmcontextnode_New : public asmcontextnode {
 public:
 	UINT32 m_classname;
 	asmcontextnode* m_constructorCall;
@@ -645,6 +651,115 @@ public:
 		if (m_constructorCall) {
 			m_constructorCall->Dump(out, ctx);
 		}
+	}
+};
+
+struct switchcase {
+	asmcontextnode* casenode = nullptr;
+	INT32 jumpLocation = 0;
+};
+
+class asmcontextnode_SwitchPreCompute : public asmcontextnode {
+public:
+	asmcontextnode* m_node;
+	std::vector<switchcase> m_cases{};
+	INT32 m_endLocation;
+	asmcontextnode_SwitchPreCompute(asmcontextnode* node, INT32 endLocation = 0) :
+		asmcontextnode(PRIORITY_INST, TYPE_SWITCH_PRECOMPUTE), m_node(node), m_endLocation(endLocation) {
+		m_renderSemicolon = false;
+	}
+	~asmcontextnode_SwitchPreCompute() {
+		delete m_node;
+		for (auto& cs : m_cases) {
+			if (cs.casenode) {
+				delete cs.casenode;
+			}
+		}
+	}
+
+	asmcontextnode* Clone() const override {
+		auto* sw = new asmcontextnode_SwitchPreCompute(m_node->Clone(), m_endLocation);
+		sw->m_cases.reserve(m_cases.size());
+		for (const auto& cs : m_cases) {
+			sw->m_cases.push_back({ cs.casenode ? cs.casenode->Clone() : cs.casenode, cs.jumpLocation });
+		}
+		return sw;
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "switchpre(";
+		m_node->Dump(out, ctx);
+		out << ") {\n";
+		ctx.padding++;
+
+		for (const auto& cs : m_cases) {
+			if (cs.casenode) {
+				ctx.WritePadding(out, true) << "case ";
+				cs.casenode->Dump(out, ctx);
+			}
+			else {
+				ctx.WritePadding(out, true) << "default";
+			}
+			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << cs.jumpLocation << ";\n";
+		}
+
+		ctx.WritePadding(out, true) << "end: ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_endLocation << ";\n";
+		ctx.padding--;
+		//
+		ctx.WritePadding(out, true) << "}\n";
+	}
+};
+
+struct switchcasepost{
+	asmcontextnode* value;
+	asmcontextnodeblock* block;
+};
+
+class asmcontextnode_SwitchPostCompute : public asmcontextnode {
+public:
+	asmcontextnode* m_node;
+	std::vector<switchcasepost> m_cases{};
+	asmcontextnode_SwitchPostCompute(asmcontextnode* node) :
+		asmcontextnode(PRIORITY_INST, TYPE_SWITCH_PRECOMPUTE), m_node(node) {
+		m_renderSemicolon = false;
+	}
+	~asmcontextnode_SwitchPostCompute() {
+		delete m_node;
+		for (auto& cs : m_cases) {
+			if (cs.value) {
+				delete cs.value;
+			}
+			delete cs.block;
+		}
+	}
+
+	asmcontextnode* Clone() const override {
+		auto* sw = new asmcontextnode_SwitchPostCompute(m_node->Clone());
+		sw->m_cases.reserve(m_cases.size());
+		for (const auto& cs : m_cases) {
+			sw->m_cases.push_back({ cs.value ? cs.value->Clone() : cs.value, static_cast<asmcontextnodeblock*>(cs.block->Clone()) });
+		}
+		return sw;
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "switch (";
+		m_node->Dump(out, ctx);
+		out << ") {\n";
+
+		for (const auto& cs : m_cases) {
+			if (cs.value) {
+				ctx.WritePadding(out, true) << "case ";
+				cs.value->Dump(out, ctx);
+				out << ":";
+			}
+			else {
+				ctx.WritePadding(out, true) << "default:";
+			}
+			cs.block->Dump(out, ctx);
+		}
+
+		ctx.WritePadding(out, true) << "}\n";
 	}
 };
 
@@ -1611,7 +1726,7 @@ public:
 
 			if (arrayVal->m_type == TYPE_ARRAY_BUILD) {
 				// we are building an array, we can add the value
-				dynamic_cast<asmcontextnode_ArrayBuild*>(arrayVal)->AddValue(key, value);
+				static_cast<asmcontextnode_ArrayBuild*>(arrayVal)->AddValue(key, value);
 			}
 			else {
 				asmcontextnode_MultOp* node = new asmcontextnode_MultOp("$addtoarray", false);
@@ -1662,7 +1777,7 @@ public:
 
 			if (structVal->m_type == TYPE_STRUCT_BUILD) {
 				// we are building an array, we can add the value
-				dynamic_cast<asmcontextnode_StructBuild*>(structVal)->AddValue(key, value);
+				static_cast<asmcontextnode_StructBuild*>(structVal)->AddValue(key, value);
 			}
 			else {
 				asmcontextnode_MultOp* node = new asmcontextnode_MultOp("addtostruct", false);
@@ -1985,7 +2100,7 @@ public:
 
 			if (!flags && caller->m_type == TYPE_NEW && function == constructorName) {
 				// calling new constructor
-				auto* newNode = dynamic_cast<asmcontextnode_New*>(caller);
+				auto* newNode = static_cast<asmcontextnode_New*>(caller);
 
 				auto* ptr = new asmcontextnode_CallFuncPtr(PARAMS_CALL, 0);
 
@@ -2209,6 +2324,11 @@ public:
 		out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) 
 			<< context.FunctionRelativeLocation(utils::Aligned<INT64>(baseTable)) << " cases: " << cases << "\n";
 
+		asmcontextnode_SwitchPreCompute* node = nullptr;
+		if (context.m_runDecompiler) {
+			node = new asmcontextnode_SwitchPreCompute(context.PopASMCNode());
+		}
+
 		for (size_t c = 1; c <= cases; c++) {
 			auto& baseCaseValue = context.Aligned<INT64>();
 
@@ -2220,32 +2340,56 @@ public:
 			INT64 caseDelta = *(INT64*)baseCaseDelta;
 			baseCaseDelta += 8;
 
+			auto caseRLoc = context.PushLocation(&baseCaseDelta[caseDelta]).rloc;
+
 			if (c == cases && !caseValue) {
 				out << "default";
+				if (node) {
+					node->m_cases.push_back({ nullptr, caseRLoc });
+				}
 			}
 			else {
 				out << "case ";
 				if (caseValue >= 0x100000000LL) {
 					// assume it's an hash after INT32 max value
 					out << "#\"" << hashutils::ExtractTmp("hash", caseValue) << "\"" << std::flush;
+					if (node) {
+						node->m_cases.push_back({ new asmcontextnode_Hash(caseValue), caseRLoc });
+					}
 				}
 				else {
 					out << std::dec << caseValue;
+					if (node) {
+						node->m_cases.push_back({new asmcontextnode_Value<INT64>(caseValue), caseRLoc });
+					}
 				}
 			}
 
 			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1)
-				<< context.PushLocation(&baseCaseDelta[caseDelta]).rloc << "\n";
+				<< caseRLoc << "\n";
 
-			if (c == cases && !caseValue) {
-				baseCaseDelta += caseDelta;
+			if (c == cases) {
+				if (node) {
+					node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<UINT16>(context.m_bcl));
+				}
+
+				if (!caseValue) {
+					baseCaseDelta += caseDelta;
+				}
 			}
 			else {
 				// align to the next opcode
 				context.Aligned<UINT16>();
-				// Write next field
-				//context.WritePadding(out) << "Next ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << context.FunctionRelativeLocation() << "\n";
 			}
+		}
+
+		if (node) {
+			if (!node->m_endLocation) {
+				// wtf? no cases???
+				node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<UINT16>(context.m_bcl));
+			}
+			context.PushASMCNode(node);
+			context.CompleteStatement();
 		}
 
 		context.PushLocation();
@@ -2258,6 +2402,7 @@ public:
 	opcodeinfo_EndSwitch() : opcodeinfo(OPCODE_EndSwitch, "EndSwitch") {}
 
 	int Dump(std::ostream& out, UINT16 v, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		INT32 jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		auto& baseCount = context.Aligned<INT32>();
 
 		INT32 count = *(INT32*)baseCount;
@@ -2268,7 +2413,14 @@ public:
 
 		ptrBase += 16 * count;
 
-		out << "End to 0x" << std::hex << context.FunctionRelativeLocation() << "\n";
+		auto rloc = context.FunctionRelativeLocation();
+
+		if (context.m_runDecompiler) {
+			context.PushASMCNode(new asmcontextnode_JumpOperator("endswitch", nullptr, rloc, TYPE_JUMP_ENDSWITCH, jumpLocation));
+			context.CompleteStatement();
+		}
+
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << std::hex << rloc << "\n";
 
 		return 0;
 	}
@@ -2322,7 +2474,7 @@ public:
 			if (context.m_stack.size()) {
 				auto* peek = context.PeekASMCNode();
 				if (peek->m_type == TYPE_NEW) {
-					auto* newNode = dynamic_cast<asmcontextnode_New*>(peek);
+					auto* newNode = static_cast<asmcontextnode_New*>(peek);
 					if (!newNode->m_constructorCallDec) {
 						newNode->m_constructorCallDec = true;
 						// calling new constructor, we ignore the return result
@@ -2694,7 +2846,7 @@ const opcodeinfo* tool::gsc::opcode::LookupOpCode(BYTE vm, UINT16 opcode) {
 
 asmcontext::asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), 
-			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(false), m_exp(exp), m_vm(vm) {
+			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_vm(vm) {
 	// set start as unhandled
 	PushLocation();
 }
@@ -2899,11 +3051,16 @@ std::ostream& decompcontext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 }
 
 void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
-	if (m_devBlock) {
-		out << "/#\n";
-	}
-	else {
+	switch (m_blockType) {
+	case BLOCK_DEFAULT:
 		out << "{\n";
+		break;
+	case BLOCK_DEV:
+		out << "/#\n";
+		break;
+	default:
+		out << "\n";
+		break;
 	}
 
 	ctx.padding++;
@@ -2926,7 +3083,7 @@ void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
 				ctx.WritePadding(out);
 				ref.node->Dump(out, ctx);
 
-				if (ref.node->m_type != TYPE_BLOCK) {
+				if (ref.node->m_renderSemicolon) {
 					out << ";\n";
 				}
 			}
@@ -2949,11 +3106,13 @@ void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
 
 	ctx.padding--;
 
-	if (m_devBlock) {
-		ctx.WritePadding(out, true) << "#/\n";
-	}
-	else {
+	switch (m_blockType) {
+	case BLOCK_DEFAULT:
 		ctx.WritePadding(out, true) << "}\n";
+		break;
+	case BLOCK_DEV:
+		ctx.WritePadding(out, true) << "#/\n";
+		break;
 	}
 }
 
@@ -2980,8 +3139,8 @@ void asmcontext::ComputeDefaultParamValue() {
 			break;
 		}
 
-		auto* jump = dynamic_cast<asmcontextnode_JumpOperator*>(param1);
-		auto* set = dynamic_cast<asmcontextnode_LeftRightOperator*>(it->node);
+		auto* jump = static_cast<asmcontextnode_JumpOperator*>(param1);
+		auto* set = static_cast<asmcontextnode_LeftRightOperator*>(it->node);
 		auto end = jump->m_location;
 
 
@@ -2998,14 +3157,14 @@ void asmcontext::ComputeDefaultParamValue() {
 			break; // not jumpif(isdefined(??))
 		}
 
-		auto* isDefinedFunc = dynamic_cast<asmcontextnode_FunctionOperator*>(jump->m_operand);
+		auto* isDefinedFunc = static_cast<asmcontextnode_FunctionOperator*>(jump->m_operand);
 
 		if (isDefinedFunc->m_operand->m_type != TYPE_IDENTIFIER || set->m_left->m_type != TYPE_IDENTIFIER || !set->m_right) {
 			break; // not isdefined(param_name) or not param_name = ...
 		}
-		UINT32 name = dynamic_cast<asmcontextnode_Identifier*>(set->m_left)->m_value;
+		UINT32 name = static_cast<asmcontextnode_Identifier*>(set->m_left)->m_value;
 
-		if (dynamic_cast<asmcontextnode_Identifier*>(isDefinedFunc->m_operand)->m_value != name) {
+		if (static_cast<asmcontextnode_Identifier*>(isDefinedFunc->m_operand)->m_value != name) {
 			break; // not the same name value
 		}
 
@@ -3055,9 +3214,9 @@ int asmcontextnodeblock::ComputeDevBlocks() {
 		}
 
 		// we are reading a devblock jump
-		auto* jump = dynamic_cast<asmcontextnode_JumpOperator*>(b.node);
+		auto* jump = static_cast<asmcontextnode_JumpOperator*>(b.node);
 		INT64 end = jump->m_location;
-		asmcontextnodeblock* devBlock = new asmcontextnodeblock(true);
+		asmcontextnodeblock* devBlock = new asmcontextnodeblock(BLOCK_DEV);
 		// we replace the block by our node
 		b.node = devBlock;
 
@@ -3081,6 +3240,120 @@ int asmcontextnodeblock::ComputeDevBlocks() {
 
 		// delete the jump operator
 		delete jump;
+	}
+
+	return 0;
+}
+int asmcontextnodeblock::ComputeSwitchBlocks() {
+
+	auto it = this->m_statements.begin();
+	while (it != m_statements.end()) {
+		auto& b = *it;
+		if (b.node->m_type != TYPE_SWITCH_PRECOMPUTE) {
+			if (b.node->m_type == TYPE_BLOCK) {
+				// compute the sub block
+				auto ret = static_cast<asmcontextnodeblock*>(b.node)->ComputeSwitchBlocks();
+				if (ret) {
+					return ret;
+				}
+			}
+			// not a switch to compute, we pass to the next pointer
+			it++;
+			continue;
+		}
+
+		// we are reading a devblock jump
+		auto* switchPreCompute = static_cast<asmcontextnode_SwitchPreCompute*>(b.node);
+		INT64 end = switchPreCompute->m_endLocation;
+		asmcontextnode_SwitchPostCompute* switchBlock = new asmcontextnode_SwitchPostCompute(switchPreCompute->m_node->Clone());
+		// replace with the computed switch
+		auto& cases = switchPreCompute->m_cases;
+
+		// sort the cases by their locations, we know a default won't be reordered 
+		// because it was parsed during the precompute node creation.
+		std::sort(cases.begin(), cases.end(), [](const switchcase& e1, const switchcase& e2) {
+			return e1.jumpLocation < e2.jumpLocation;
+		});
+		// first node
+		it++;
+
+		// check that the index is logic
+		if (cases.size() && cases[cases.size() - 1].jumpLocation > end) {
+			std::cerr << "Error when parsing switch, a case is after the end\n";
+			assert(0);
+			continue;
+		}
+
+
+		if (it == m_statements.end()) {
+			std::cerr << "Error when parsing switch, end before start of the cases\n";
+			assert(0);
+			return -1;
+		}
+
+		b.node = switchBlock;
+
+		int refCount = 0;
+		if (cases.size()) {
+			// we have at least one case
+			auto cit = cases.begin();
+
+			do {
+				asmcontextnodeblock* block = new asmcontextnodeblock(BLOCK_PADDING);
+				switchBlock->m_cases.push_back({ cit->casenode ? cit->casenode->Clone() : nullptr, block });
+				// we pass this case to fetch the end
+				cit++;
+
+				INT64 endCase;
+
+				if (cit == cases.end()) {
+					endCase = end;
+				}
+				else {
+					endCase = cit->jumpLocation;
+				}
+
+				while (it != m_statements.end()) {
+					if (it->location->rloc >= endCase) {
+						break; // end of the case
+					}
+
+					if (it->node->m_type == TYPE_JUMP || it->node->m_type == TYPE_JUMP_ENDSWITCH) {
+						auto* jump = static_cast<asmcontextnode_JumpOperator*>(it->node);
+						// convert this to a break statement
+						if (jump->m_location == end) {
+							jump->m_operatorName = "break";
+							jump->m_showJump = false;
+							if (it->node->m_type != TYPE_JUMP_ENDSWITCH) {
+								// the end switches aren't creating references
+								refCount++;
+							}
+						}
+					}
+
+					// we add all the location to this case
+					block->m_statements.push_back({ it->node->Clone(), it->location });
+					it = m_statements.erase(it);
+				}
+			} while (cit != cases.end());
+		} else if (it->node->m_type == TYPE_JUMP_ENDSWITCH) {
+			auto* jump = static_cast<asmcontextnode_JumpOperator*>(it->node);
+			// convert this to a break statement
+			if (jump->m_location == end) {
+				jump->m_operatorName = "break";
+				jump->m_showJump = false;
+			}
+			it++;
+		}
+
+		if (it != m_statements.end() && it->location->rloc == end) {
+			// we remove the ref count from the switch value
+			it->location->ref -= refCount;
+			assert(it->location->ref >= 0);
+		}
+
+		// delete the precompute operator
+		delete switchPreCompute;
 	}
 
 	return 0;

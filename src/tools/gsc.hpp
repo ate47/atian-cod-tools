@@ -93,6 +93,9 @@ namespace tool::gsc {
             TYPE_JUMP_ONFALSEEXPR,
             TYPE_JUMP_ONTRUEEXPR,
             TYPE_JUMP_DEVBLOCK,
+            TYPE_JUMP_ENDSWITCH,
+
+            TYPE_SWITCH_PRECOMPUTE,
 
             TYPE_CONST_HASH,
             TYPE_STRING,
@@ -128,6 +131,7 @@ namespace tool::gsc {
         public:
             asmcontextnode_priority m_priority;
             asmcontextnode_type m_type;
+            bool m_renderSemicolon = true;
 
             asmcontextnode(asmcontextnode_priority priority, asmcontextnode_type type = TYPE_UNDEFINED);
             virtual ~asmcontextnode();
@@ -152,15 +156,22 @@ namespace tool::gsc {
             asmcontextlocation* location;
         };
 
-        class asmcontextnodeblock : asmcontextnode {
+        enum nodeblocktype {
+            BLOCK_DEFAULT,
+            BLOCK_DEV,
+            BLOCK_PADDING
+        };
+
+        class asmcontextnodeblock : public asmcontextnode {
         public:
             std::vector<asmcontextstatement> m_statements{};
-            bool m_devBlock;
-            asmcontextnodeblock(bool devBlock = false);
+            nodeblocktype m_blockType;
+            asmcontextnodeblock(nodeblocktype blockType = BLOCK_DEFAULT);
             ~asmcontextnodeblock();
             void Dump(std::ostream& out, decompcontext& ctx) const override;
             asmcontextnode* Clone() const override;
             int ComputeDevBlocks();
+            int ComputeSwitchBlocks();
         };
 
         struct asmcontextlocalvar {
@@ -306,6 +317,12 @@ namespace tool::gsc {
              */
             inline void ComputeDevBlocks() {
                 m_funcBlock.ComputeDevBlocks();
+            }
+            /*
+             * Compute the switch blocks
+             */
+            inline void ComputeSwitchBlocks() {
+                m_funcBlock.ComputeSwitchBlocks();
             }
             /*
              * Dump the function block
