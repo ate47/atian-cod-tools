@@ -645,6 +645,11 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
                 ctx.m_lastOpCodeBase = loc.rloc;
             }
 
+            // compute the late operations (OR|AND)
+            for (const auto& lateop : loc.m_lateop) {
+                lateop->Run(ctx, objctx);
+            }
+
             UINT16 opCode = *(UINT16*)base;
 
             const auto* handler = ctx.LookupOpCode(opCode);

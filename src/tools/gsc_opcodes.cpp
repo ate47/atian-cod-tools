@@ -10,10 +10,17 @@ opcodeinfo::opcodeinfo(opcode id, LPCCH name) : m_id(id), m_name(name) {
 }
 
 
-tool::gsc::opcode::asmcontextnode::asmcontextnode(asmcontextnode_priority priority, asmcontextnode_type type) : m_priority(priority), m_type(type) {
+asmcontextlocationop::~asmcontextlocationop() {
 }
 
-tool::gsc::opcode::asmcontextnode::~asmcontextnode() {
+void asmcontextlocationop::Run(asmcontext& context, T8GSCOBJContext& objctx) const {
+	assert(0);
+}
+
+asmcontextnode::asmcontextnode(asmcontextnode_priority priority, asmcontextnode_type type) : m_priority(priority), m_type(type) {
+}
+
+asmcontextnode::~asmcontextnode() {
 }
 
 asmcontextnodeblock::asmcontextnodeblock(nodeblocktype blockType) : asmcontextnode(PRIORITY_INST, TYPE_BLOCK), m_blockType(blockType) {
@@ -32,7 +39,7 @@ asmcontextnode* asmcontextnodeblock::Clone() const {
 	return n;
 }
 
-void tool::gsc::opcode::asmcontextnode::Dump(std::ostream& out, decompcontext& ctx) const {
+void asmcontextnode::Dump(std::ostream& out, decompcontext& ctx) const {
 	// nothing by default
 }
 
@@ -486,7 +493,7 @@ public:
 	bool m_caller;
 	std::vector<asmcontextnode*> m_operands{};
 	asmcontextnode_MultOp(LPCCH description, bool caller) :
-		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_description(description), m_caller(caller) {
+		asmcontextnode(PRIORITY_VALUE, TYPE_STATEMENT), m_description(description), m_caller(caller) {
 	}
 	~asmcontextnode_MultOp() {
 		for (auto& ref : m_operands) {
@@ -538,7 +545,7 @@ public:
 	asmcontextnode* m_self;
 	asmcontextnode* m_operand;
 	asmcontextnode_FunctionOperator(LPCCH operatorName, asmcontextnode* self, asmcontextnode* operand, asmcontextnode_type type = TYPE_STATEMENT) :
-		asmcontextnode(PRIORITY_INST, type), m_operatorName(operatorName), m_self(self), m_operand(operand) {
+		asmcontextnode(PRIORITY_VALUE, type), m_operatorName(operatorName), m_self(self), m_operand(operand) {
 		assert(operand);
 	}
 	~asmcontextnode_FunctionOperator() {
@@ -762,6 +769,28 @@ public:
 		ctx.WritePadding(out, true) << "}\n";
 	}
 };
+
+
+class asmcontextlocationop_Op : public asmcontextlocationop {
+private:
+	asmcontextnode* m_node;
+	asmcontextnode_priority m_priority;
+	LPCCH m_description;
+public:
+	asmcontextlocationop_Op(asmcontextnode* node, LPCCH description, asmcontextnode_priority priority) : 
+		asmcontextlocationop(), m_node(node), m_description(description), m_priority(priority) {
+	}
+	~asmcontextlocationop_Op() {
+		if (m_node) {
+			delete m_node;
+		}
+	}
+	void Run(asmcontext& context, tool::gsc::T8GSCOBJContext& objctx)  const override {
+		auto* right = context.PopASMCNode();
+		context.PushASMCNode(new asmcontextnode_Op2(m_description, m_priority, m_node ? m_node->Clone() : nullptr, right));
+	}
+};
+
 
 int opcodeinfo::Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const {
 	out << "\n";
@@ -1055,7 +1084,7 @@ public:
 				type = TYPE_JUMP_LOWERTHAN;
 				name = "jumpcmp";
 			}
-				break;
+			break;
 			case OPCODE_JumpOnFalseExpr:
 				pushBack = true;
 				name = "jumpiffalseexpr";
@@ -1103,20 +1132,61 @@ public:
 		BYTE* newLoc = &context.m_bcl[delta];
 
 		// push the node value during the jump if the operator is asking for it
-		if (pushBack) {
-			context.PushASMCNode(node);
-		}
 		auto& locref = context.PushLocation(newLoc);
-
-		if (pushBack) {
-			context.PopASMCNode();
-		}
 
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new asmcontextnode_JumpOperator(name, node, locref.rloc, type, m_jumpLocation));
 			context.CompleteStatement();
 		}
-		
+
+		locref.ref++;
+
+		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
+
+		return m_id == OPCODE_Jump ? -2 : 0; // no code after jump
+	}
+};
+class opcodeinfo_JumpExpr : public opcodeinfo {
+public:
+	using opcodeinfo::opcodeinfo;
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		// get the jump opcode location
+
+		auto& bytecode = context.Aligned<INT16>();
+
+		INT16 delta = *(INT16*)bytecode;
+
+		bytecode += 2;
+
+		// push a location and mark it as referenced
+		BYTE* newLoc = &context.m_bcl[delta];
+
+		// push the node value during the jump if the operator is asking for it
+		auto& locref = context.PushLocation(newLoc);
+
+		if (context.m_runDecompiler) {
+			asmcontextnode_priority priority = PRIORITY_VALUE;
+			LPCCH desc = "<err>";
+			if (context.m_runDecompiler) {
+				switch (m_id) {
+				case OPCODE_JumpOnFalseExpr:
+					priority = PRIORITY_BOOL_AND;
+					desc = "&&";
+					break;
+				case OPCODE_JumpOnTrueExpr:
+					priority = PRIORITY_BOOL_OR;
+					desc = "||";
+					break;
+				default:
+					out << "bad op code jumpexpr: " << std::hex << m_id << "\n";
+					return -1;
+				}
+			}
+			asmcontextnode* node = context.PopASMCNode();
+			locref.m_lateop.push_back(new asmcontextlocationop_Op(node, desc, priority));
+		}
+
 		locref.ref++;
 
 		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
@@ -2635,11 +2705,11 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_DevblockBegin, "DevblockBegin"));
 		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_Jump, "Jump"));
 		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_JumpOnTrue, "JumpOnTrue"));
-		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_JumpOnTrueExpr, "JumpOnTrueExpr"));
 		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_JumpOnGreaterThan, "JumpOnGreaterThan"));
 		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_JumpOnFalse, "JumpOnFalse"));
-		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_JumpOnFalseExpr, "JumpOnFalseExpr"));
 		RegisterOpCodeHandler(new opcodeinfo_Jump(OPCODE_JumpOnLessThan, "JumpOnLessThan"));
+		RegisterOpCodeHandler(new opcodeinfo_JumpExpr(OPCODE_JumpOnFalseExpr, "JumpOnFalseExpr"));
+		RegisterOpCodeHandler(new opcodeinfo_JumpExpr(OPCODE_JumpOnTrueExpr, "JumpOnTrueExpr"));
 
 		// ukn jump
 		RegisterOpCodeHandler(new opcodeinfo_JumpPush());
@@ -2872,6 +2942,9 @@ asmcontextlocation::~asmcontextlocation() {
 		delete objectId;
 	}
 	for (auto& ref : m_stack) {
+		delete ref;
+	}
+	for (auto& ref : m_lateop) {
 		delete ref;
 	}
 }

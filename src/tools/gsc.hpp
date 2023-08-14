@@ -63,6 +63,9 @@ namespace tool::gsc {
 
             PRIORITY_SET,
 
+            PRIORITY_BOOL_OR,
+            PRIORITY_BOOL_AND,
+
             PRIORITY_BIT_OR,
             PRIORITY_BIT_XOR,
             PRIORITY_BIT_AND,
@@ -139,6 +142,11 @@ namespace tool::gsc {
             virtual asmcontextnode* Clone() const;
         };
 
+        class asmcontextlocationop{
+        public:
+            virtual ~asmcontextlocationop();
+            virtual void Run(asmcontext& context, T8GSCOBJContext& objctx) const;
+        };
 
         struct asmcontextlocation {
             INT32 rloc;
@@ -147,6 +155,7 @@ namespace tool::gsc {
             asmcontextnode* objectId = nullptr;
             asmcontextnode* fieldId = nullptr;
             std::vector<asmcontextnode*> m_stack{};
+            std::vector<asmcontextlocationop*> m_lateop{};
             asmcontextlocation();
             ~asmcontextlocation();
         };
