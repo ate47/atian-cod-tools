@@ -55,6 +55,9 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--internalblocks", arg)) {
             m_show_internal_blocks = true;
         }
+        else if (!_strcmpi("--jumpdelta", arg)) {
+            m_show_jump_delta = true;
+        }
         else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
             if (i + 1 == endIndex) {
                 std::cerr << "Missing value for param: " << arg << "!\n";

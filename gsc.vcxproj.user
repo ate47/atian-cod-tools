@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>gscinfo -a -g -H -o output ./scriptparsetree/scripts/zm_common/trials/zm_trial_kill_with_special.gscbin</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>gscinfo -a -g -H -o output</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

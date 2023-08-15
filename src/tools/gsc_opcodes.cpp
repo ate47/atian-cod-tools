@@ -586,8 +586,9 @@ public:
 	INT64 m_location;
 	INT32 m_opLoc;
 	bool m_showJump;
-	asmcontextnode_JumpOperator(LPCCH operatorName, asmcontextnode* operand, INT64 location, asmcontextnode_type type, INT32 opLoc, bool showJump = true) :
-		asmcontextnode(PRIORITY_INST, type), m_operatorName(operatorName), m_operand(operand), m_location(location), m_opLoc(opLoc), m_showJump(showJump){
+	INT64 m_delta;
+	asmcontextnode_JumpOperator(LPCCH operatorName, asmcontextnode* operand, INT64 location, asmcontextnode_type type, INT32 opLoc, bool showJump = true, INT64 delta = 0) :
+		asmcontextnode(PRIORITY_INST, type), m_operatorName(operatorName), m_operand(operand), m_location(location), m_opLoc(opLoc), m_showJump(showJump), m_delta(delta){
 	}
 	~asmcontextnode_JumpOperator() {
 		if (m_operand) {
@@ -596,7 +597,7 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_JumpOperator(m_operatorName, m_operand ? m_operand->Clone() : nullptr, m_location, m_type, m_opLoc, m_showJump);
+		return new asmcontextnode_JumpOperator(m_operatorName, m_operand ? m_operand->Clone() : nullptr, m_location, m_type, m_opLoc, m_showJump, m_delta);
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
@@ -613,6 +614,9 @@ public:
 		}
 		if (m_showJump) {
 			out << " LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_location;
+		}
+		if (ctx.asmctx.m_opt.m_show_jump_delta) {
+			out << " delta: " << std::hex << (m_delta < 0 ? "-0x" : "0x") << (m_delta < 0 ? -m_delta : m_delta);
 		}
 	}
 };
@@ -790,7 +794,7 @@ public:
 	asmcontextnode* m_arrayNode;
 	asmcontextnodeblock* m_block;
 	asmcontextnode_ForEach(asmcontextnode* arrayNode, asmcontextnodeblock* block, UINT32 key, UINT32 item) :
-		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_arrayNode(arrayNode), m_block(block), m_key(key), m_item(item){
+		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_arrayNode(arrayNode), m_block(block), m_key(key), m_item(item) {
 		m_renderSemicolon = false;
 	}
 	~asmcontextnode_ForEach() {
@@ -811,6 +815,35 @@ public:
 		m_arrayNode->Dump(out, ctx);
 		out << ") ";
 		m_block->Dump(out, ctx);
+	}
+	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+		func(m_block, ctx);
+	}
+};
+
+class asmcontextnode_DoWhile : public asmcontextnode {
+public:
+	asmcontextnode* m_condition;
+	asmcontextnodeblock* m_block;
+	asmcontextnode_DoWhile(asmcontextnode* condition, asmcontextnodeblock* block) :
+		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_condition(condition), m_block(block) {
+		block->m_blockType = BLOCK_PADDING; // use custom block, no need to write the { }
+	}
+	~asmcontextnode_DoWhile() {
+		delete m_condition;
+		delete m_block;
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_DoWhile(m_condition->Clone(), static_cast<asmcontextnodeblock*>(m_block->Clone()));
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "do {";
+		m_block->Dump(out, ctx);
+		ctx.WritePadding(out, true) << "} while(";
+		m_condition->Dump(out, ctx);
+		out << ")";
 	}
 	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
 		func(m_block, ctx);
@@ -908,7 +941,8 @@ public:
 
 			out << std::endl;
 		}
-
+		// don't create statement, we can ignore it, TODO: add option to write all local vars
+		context.m_lastOpCodeBase = -1;
 		return 0;
 	}
 };
@@ -1181,7 +1215,7 @@ public:
 		auto& locref = context.PushLocation(newLoc);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new asmcontextnode_JumpOperator(name, node, locref.rloc, type, m_jumpLocation));
+			context.PushASMCNode(new asmcontextnode_JumpOperator(name, node, locref.rloc, type, m_jumpLocation, true, delta));
 			context.CompleteStatement();
 		}
 
@@ -3200,7 +3234,7 @@ void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
 	for (size_t i = 0; i < m_statements.size(); i++) {
 		const auto& ref = m_statements[i];
 		ctx.rloc = ref.location->rloc;
-		if (ref.location->ref) {
+		if (ref.location->ref && ref.node->m_renderRefIfAny) {
 			// write the label one layer bellow the current block
 			ctx.padding--;
 			ctx.WritePadding(out, true) << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location->rloc << ":\n";
@@ -3738,7 +3772,129 @@ int asmcontextnodeblock::ComputeForEachBlocks(asmcontext& ctx) {
 	return 0;
 }
 
+asmcontextnode* JumpCondition(asmcontextnode_JumpOperator* op) {
+	switch (op->m_type) {
+	case TYPE_JUMP_GREATERTHAN:
+	case TYPE_JUMP_LOWERTHAN:
+	case TYPE_JUMP_ONTRUE:
+	case TYPE_JUMP_ONTRUEEXPR:
+		// already done
+		return op->m_operand->Clone();
+
+	case TYPE_JUMP_ONFALSE:
+	case TYPE_JUMP_ONFALSEEXPR:
+		return new asmcontextnode_Op1("!", true, op->m_operand->Clone());
+	default:
+		return nullptr;
+	}
+}
+
 int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
+	size_t index = 0;
+	while (index < m_statements.size()) {
+		auto& jumpStmt = m_statements[index];
+		jumpStmt.node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
+			block->ComputeWhileBlocks(ctx);
+		}, ctx);
+		if (!IsJumpType(jumpStmt.node->m_type)) {
+			index++;
+			continue; // not a jump
+		}
+		auto* jumpOp = static_cast<asmcontextnode_JumpOperator*>(jumpStmt.node);
+		if (jumpOp->m_delta >= 0) {
+			index++;
+			continue; // not a back jump
+		}
+
+		if (jumpOp->m_type == TYPE_JUMP) {
+			// for/while/loop
+
+
+			index++;
+		}
+		else {
+			// do {} while(...);
+			auto* cond = JumpCondition(jumpOp);
+			auto& endLocation = m_statements[index + 1].location;
+			auto* condLocation = jumpStmt.location;
+
+			// end location for the break
+			INT32 breakLoc = endLocation->rloc;
+			// loop location for the continue
+			INT64 continueLoc = jumpOp->m_location;
+
+			size_t startIndex = 0;
+			while (startIndex < index && m_statements[startIndex].location->rloc < continueLoc) {
+				startIndex++;
+			}
+
+			auto* doWhileLoc = m_statements[startIndex].location;
+
+			// remove loop ref
+			doWhileLoc->ref--;
+
+			if (startIndex == index) {
+				index++;
+				assert(false); // wtf? bad ref
+				continue;
+			}
+
+			auto* newBlock = new asmcontextnodeblock();
+			auto* doWhile = new asmcontextnode_DoWhile(cond, newBlock);
+
+			auto it = m_statements.begin() + startIndex;
+			for (size_t i = startIndex; i < index; i++) {
+				auto& stmt = m_statements[startIndex];
+
+				// compute special jump
+				if (stmt.node->m_type == TYPE_JUMP) {
+					auto* j = static_cast<asmcontextnode_JumpOperator*>(stmt.node);
+					if (j->m_location == breakLoc) {
+						j->m_operatorName = "break";
+						j->m_showJump = false;
+						endLocation->ref--;
+					} else if (j->m_location == continueLoc) {
+						j->m_operatorName = "continue";
+						j->m_showJump = false;
+						condLocation->ref--;
+					}
+				}
+
+				newBlock->m_statements.push_back({stmt.node->Clone(), stmt.location});
+				// clear node
+				delete stmt.node;
+				it = m_statements.erase(it);
+			}
+			// clear the jump node
+			index = startIndex;
+			delete m_statements[index].node;
+			m_statements[index].node = doWhile;
+			m_statements[index].location = doWhileLoc;
+		}
+	}
+	/*
+	while() {}
+	LOC_000001d6:
+		LOC_00000208:jumpiffalse(self isgrappling() && self getcurrentoffhand() == weapon) LOC_00000256 delta: 0x4a;
+		self waittill(#"hash_347a612b61067eb3");
+		self bot_action::function_8a2b82ad(actionparams);
+		self bot_action::aim_at_target(actionparams);
+		LOC_00000252:goto LOC_000001d6 delta: -0x80;
+	LOC_00000256:
+	*/
+
+	// TODO: implement
+
+
+
+
+	/*
+	do while() {}
+	LOC_00000022:
+		waitframe(1);
+		LOC_0000004a:jumpiftrue(self getzbarrierpiecestate(5) == "closing") LOC_00000022 delta : -0x2c;
+	*/
+
 	// TODO: implement
 	return 0;
 }

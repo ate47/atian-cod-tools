@@ -22,6 +22,7 @@ namespace tool::gsc {
         bool m_func_rloc = false;
         bool m_func_header = true;
         bool m_func_header_post = false;
+        bool m_show_jump_delta = false;
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;
@@ -121,7 +122,25 @@ namespace tool::gsc {
             TYPE_NEW,
 
             TYPE_UNDEFINED
+
         };
+
+        inline bool IsJumpType(asmcontextnode_type type) {
+            switch (type) {
+            case TYPE_JUMP:
+            case TYPE_JUMP_ONFALSE:
+            case TYPE_JUMP_ONTRUE:
+            case TYPE_JUMP_LOWERTHAN:
+            case TYPE_JUMP_GREATERTHAN:
+            case TYPE_JUMP_ONFALSEEXPR:
+            case TYPE_JUMP_ONTRUEEXPR:
+            case TYPE_JUMP_DEVBLOCK:
+            case TYPE_JUMP_ENDSWITCH:
+                return true;
+            default:
+                return false;
+            }
+        }
         enum T8GSCLocalVarFlag : UINT8 {
             ARRAY_REF = 0x01,
             VARIADIC = 0x02
@@ -139,6 +158,7 @@ namespace tool::gsc {
         public:
             asmcontextnode_priority m_priority;
             asmcontextnode_type m_type;
+            bool m_renderRefIfAny = true;
             bool m_renderSemicolon = true;
 
             asmcontextnode(asmcontextnode_priority priority, asmcontextnode_type type = TYPE_UNDEFINED);
