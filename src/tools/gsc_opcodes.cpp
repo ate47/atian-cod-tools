@@ -826,7 +826,7 @@ public:
 	asmcontextnode* m_condition;
 	asmcontextnodeblock* m_block;
 	asmcontextnode_DoWhile(asmcontextnode* condition, asmcontextnodeblock* block) :
-		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_condition(condition), m_block(block) {
+		asmcontextnode(PRIORITY_INST, TYPE_DO_WHILE), m_condition(condition), m_block(block) {
 		block->m_blockType = BLOCK_PADDING; // use custom block, no need to write the { }
 	}
 	~asmcontextnode_DoWhile() {
@@ -844,6 +844,42 @@ public:
 		ctx.WritePadding(out, true) << "} while(";
 		m_condition->Dump(out, ctx);
 		out << ")";
+	}
+	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+		func(m_block, ctx);
+	}
+};
+
+class asmcontextnode_While : public asmcontextnode {
+public:
+	asmcontextnode* m_condition;
+	asmcontextnodeblock* m_block;
+	asmcontextnode_While(asmcontextnode* condition, asmcontextnodeblock* block) :
+		asmcontextnode(PRIORITY_INST, TYPE_WHILE), m_condition(condition), m_block(block) {
+		m_renderSemicolon = false;
+	}
+	~asmcontextnode_While() {
+		if (m_condition) {
+			delete m_condition;
+		}
+		delete m_block;
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_While(m_condition ? m_condition->Clone() : nullptr, static_cast<asmcontextnodeblock*>(m_block->Clone()));
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		if (m_condition) {
+			out << "while (";
+			m_condition->Dump(out, ctx);
+			out << ") ";
+		}
+		else {
+			// while without condition, equivalent as "for (;;)"
+			out << "for (;;) ";
+		}
+		m_block->Dump(out, ctx);
 	}
 	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
 		func(m_block, ctx);
@@ -908,12 +944,12 @@ public:
 	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		BYTE count = *context.m_bcl++;
 
-		context.m_localvars.reserve((size_t) count + 1);
+		context.m_localvars.reserve((size_t)count + 1);
 
 		out << std::hex << "count: 0x" << (int)count << "\n";
 		if (!context.m_localvars.size()) {
 			// the local variables starts at 1
-			context.m_localvars.insert(context.m_localvars.begin(), {hashutils::Hash32("<error>"), 0});
+			context.m_localvars.insert(context.m_localvars.begin(), { hashutils::Hash32("<error>"), 0 });
 		}
 
 		for (size_t i = 0; i < count; i++) {
@@ -946,6 +982,17 @@ public:
 		return 0;
 	}
 };
+class opcodeinfo_CheckClearParams : public opcodeinfo {
+public:
+	opcodeinfo_CheckClearParams() : opcodeinfo(OPCODE_CheckClearParams, "CheckClearParams") {}
+
+	int Dump(std::ostream& out, UINT16 value, asmcontext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		out << "\n";
+		// don't create statement, we can ignore it
+		context.m_lastOpCodeBase = -1;
+		return 0;
+	}
+};
 
 
 class opcodeinfo_GetObjectType : public opcodeinfo {
@@ -963,7 +1010,7 @@ public:
 		out << hashutils::ExtractTmp("class", name) << std::endl;
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS));
+			context.PushASMCNode(new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS));
 			context.PushASMCNode(new asmcontextnode_New(name));
 		}
 
@@ -1486,6 +1533,7 @@ public:
 			asmcontextnode* nameNode = m_stack ? context.PopASMCNode() : new asmcontextnode_Identifier(name);
 			asmcontextnode* fieldAccessNode = new asmcontextnode_LeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
 			context.PushASMCNode(new asmcontextnode_LeftRightOperator(fieldAccessNode, new asmcontextnode_Value<LPCCH>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+			context.CompleteStatement();
 		}
 
 		return 0;
@@ -1976,7 +2024,7 @@ public:
 		out << "\n";
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS));
+			context.PushASMCNode(new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS));
 		}
 
 		return 0;
@@ -2828,6 +2876,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new opcodeinfo_EvalFieldVariable(OPCODE_EvalFieldVariableOnStackRef, "EvalFieldVariableOnStackRef", true, true));
 
 		// localvar related
+		RegisterOpCodeHandler(new opcodeinfo_CheckClearParams());
 		RegisterOpCodeHandler(new opcodeinfo_SafeCreateLocalVariables());
 		RegisterOpCodeHandler(new opcodeinfo_EvalLocalVariableCached(OPCODE_EvalLocalVariableCached, "EvalLocalVariableCached"));
 		RegisterOpCodeHandler(new opcodeinfo_EvalLocalVariableCached(OPCODE_EvalLocalVariableCachedSafe, "EvalLocalVariableCachedSafe"));
@@ -2918,7 +2967,6 @@ void tool::gsc::opcode::RegisterOpCodes() {
 
 		// PRECODEPOS/CODEPOS on stack
 		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_ClearParams, "ClearParams"));
-		RegisterOpCodeHandler(new opcodeinfo_nop(OPCODE_CheckClearParams, "CheckClearParams"));
 		RegisterOpCodeHandler(new opcodeinfo_PreScriptCall(OPCODE_PreScriptCall, "PreScriptCall"));
 
 		RegisterOpCodeHandler(new opcodeinfo_GetConstant<LPCCH>(OPCODE_EmptyArray, "EmptyArray", "[]"));
@@ -3250,7 +3298,7 @@ void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
 				}
 			}
 			else if (ctx.asmctx.m_opt.m_show_internal_blocks) {
-				ctx.WritePadding(out) << "<precodepos>;\n";
+				ctx.WritePadding(out) << "<emptypos>;\n";
 			}
 		}
 		else if (i != m_statements.size() - 1) {
@@ -3399,7 +3447,7 @@ int asmcontextnodeblock::ComputeDevBlocks(asmcontext& ctx) {
 
 		if (it != m_statements.end() && it->location->rloc == end) {
 			// add end devblock
-			devBlock->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS), it->location });
+			devBlock->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), it->location });
 			// remove the dev block jump reference
 			it->location->ref--;
 		}
@@ -3761,7 +3809,7 @@ int asmcontextnodeblock::ComputeForEachBlocks(asmcontext& ctx) {
 			// remove component statement
 			delete it->node;
 			if (it->location->ref) {
-				block->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS), it->location });
+				block->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), it->location });
 			}
 			it = m_statements.erase(it);
 		}
@@ -3807,10 +3855,76 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 		}
 
 		if (jumpOp->m_type == TYPE_JUMP) {
-			// for/while/loop
+			// location for the continue
+			INT64 startLoc = jumpOp->m_location;
 
+			size_t startIndex = 0;
+			while (startIndex < index && m_statements[startIndex].location->rloc < startLoc) {
+				startIndex++;
+			}
 
-			index++;
+			if (startIndex == index) {
+				index++; // not in the same block
+				continue;
+			}
+
+			// start of the loop location
+			auto* continueLocation = jumpStmt.location;
+			// start of the loop location
+			INT32 continueLoc = continueLocation->rloc;
+
+			// end location for the break, can be an infinite loop, so we consider it
+			asmcontextlocation* endLocation = nullptr;
+			INT64 breakLoc = -0xFFFF; // random value
+			if (index + 1 < m_statements.size()) {
+				endLocation = m_statements[index + 1].location;
+				breakLoc = endLocation->rloc;
+			}
+
+			auto& firstNode = m_statements[startIndex];
+			auto* firstNodeLocation = firstNode.location;
+
+			if (IsJumpType(firstNode.node->m_type)) {
+				// while/for
+
+				index++;
+			}
+			else {
+				// loop
+				auto* block = new asmcontextnodeblock();
+				auto* node = new asmcontextnode_While(nullptr, block);
+
+				auto it = m_statements.begin() + startIndex;
+				for (size_t i = startIndex; i < index; i++) {
+					auto* ref = it->node;
+
+					if (IsJumpType(ref->m_type)) {
+						// replace jumps
+						auto* j = static_cast<asmcontextnode_JumpOperator*>(ref);
+						if (j->m_location == breakLoc) {
+							j->m_operatorName = "break";
+							j->m_showJump = false;
+							assert(endLocation); // it would mean breakLoc was set
+							endLocation->ref--;
+						}
+						else if (j->m_location == continueLoc) {
+							j->m_operatorName = "continue";
+							j->m_showJump = false;
+							continueLocation->ref--;
+						}
+					}
+
+					block->m_statements.push_back({ ref->Clone(), it->location });
+					delete it->node;
+					it = m_statements.erase(it);
+				}
+				block->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), it->location });
+				// it = jump
+				firstNodeLocation->ref--;
+				it->location = firstNodeLocation;
+				delete it->node;
+				it->node = node;
+			}
 		}
 		else {
 			// do {} while(...);
@@ -3828,16 +3942,16 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 				startIndex++;
 			}
 
-			auto* doWhileLoc = m_statements[startIndex].location;
-
-			// remove loop ref
-			doWhileLoc->ref--;
-
 			if (startIndex == index) {
 				index++;
 				assert(false); // wtf? bad ref
 				continue;
 			}
+
+			auto* doWhileLoc = m_statements[startIndex].location;
+
+			// remove loop ref
+			doWhileLoc->ref--;
 
 			auto* newBlock = new asmcontextnodeblock();
 			auto* doWhile = new asmcontextnode_DoWhile(cond, newBlock);
@@ -3867,6 +3981,7 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 			}
 			// clear the jump node
 			index = startIndex;
+			newBlock->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), m_statements[index].location });
 			delete m_statements[index].node;
 			m_statements[index].node = doWhile;
 			m_statements[index].location = doWhileLoc;

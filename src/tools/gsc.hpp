@@ -23,6 +23,7 @@ namespace tool::gsc {
         bool m_func_header = true;
         bool m_func_header_post = false;
         bool m_show_jump_delta = false;
+        bool m_show_pre_dump = false;
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;
@@ -88,6 +89,10 @@ namespace tool::gsc {
         enum asmcontextnode_type : UINT {
             TYPE_BLOCK,
             TYPE_STATEMENT,
+            TYPE_DO_WHILE,
+            TYPE_WHILE,
+            TYPE_FOR,
+            TYPE_FOR_EACH,
             TYPE_IDENTIFIER,
 
             TYPE_JUMP,
