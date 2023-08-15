@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>gscinfo -g -H -l -o output --internalblocks --prestruct --jumpdelta -C "atian-t8gscd test" -a .\scriptparsetree\hashed-1\script_20d98d310047c954.gscbin</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>gscinfo -g -H -l -o output --internalblocks --prestruct --jumpdelta -C "atian-t8gscd test" -a scriptparsetree/hashed-1/script_38d8d53b996381a4.gscbin</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

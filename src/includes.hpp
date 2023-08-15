@@ -11,6 +11,7 @@
 #include <mutex>
 #include <filesystem>
 #include <cassert>
+#include <functional>
 
 #include "memapi.hpp"
 #include "hashutils.hpp"

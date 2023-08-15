@@ -170,7 +170,8 @@ namespace tool::gsc {
             virtual ~asmcontextnode();
             virtual void Dump(std::ostream& out, decompcontext& ctx) const;
             virtual asmcontextnode* Clone() const;
-            virtual void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx);
+
+            virtual void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>&, asmcontext& ctx);
         };
 
         class asmcontextlocationop{
@@ -217,7 +218,7 @@ namespace tool::gsc {
             int ComputeIfBlocks(asmcontext& ctx);
             int ComputeSwitchBlocks(asmcontext& ctx);
 
-            void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override;
+            void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>&, asmcontext& ctx) override;
         };
 
         struct asmcontextlocalvar {

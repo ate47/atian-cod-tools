@@ -23,7 +23,7 @@ asmcontextnode::asmcontextnode(asmcontextnode_priority priority, asmcontextnode_
 asmcontextnode::~asmcontextnode() {
 }
 
-void asmcontextnode::ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) {
+void asmcontextnode::ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>&, asmcontext& ctx) {
 	// do nothing, no sub blocks
 }
 
@@ -42,7 +42,7 @@ asmcontextnode* asmcontextnodeblock::Clone() const {
 	}
 	return n;
 }
-void asmcontextnodeblock::ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) {
+void asmcontextnodeblock::ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) {
 	// apply to this
 	func(this, ctx);
 }
@@ -780,7 +780,7 @@ public:
 
 		ctx.WritePadding(out, true) << "}\n";
 	}
-	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+	void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) override {
 		for (const auto& cs : m_cases) {
 			func(cs.block, ctx);
 		}
@@ -816,7 +816,7 @@ public:
 		out << ") ";
 		m_block->Dump(out, ctx);
 	}
-	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+	void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) override {
 		func(m_block, ctx);
 	}
 };
@@ -845,7 +845,7 @@ public:
 		m_condition->Dump(out, ctx);
 		out << ")";
 	}
-	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+	void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) override {
 		func(m_block, ctx);
 	}
 };
@@ -881,7 +881,7 @@ public:
 		}
 		m_block->Dump(out, ctx);
 	}
-	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+	void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) override {
 		func(m_block, ctx);
 	}
 };
@@ -3820,17 +3820,29 @@ int asmcontextnodeblock::ComputeForEachBlocks(asmcontext& ctx) {
 	return 0;
 }
 
-asmcontextnode* JumpCondition(asmcontextnode_JumpOperator* op) {
+asmcontextnode* JumpCondition(asmcontextnode_JumpOperator* op, bool reversed) {
 	switch (op->m_type) {
 	case TYPE_JUMP_GREATERTHAN:
 	case TYPE_JUMP_LOWERTHAN:
+	{
+		auto* clo = static_cast<asmcontextnode_Op2*>(op->m_operand->Clone());
+		if (reversed) {
+			clo->m_description = op->m_type == TYPE_JUMP_GREATERTHAN ? "<" : ">";
+		}
+		return clo;
+	}
 	case TYPE_JUMP_ONTRUE:
 	case TYPE_JUMP_ONTRUEEXPR:
-		// already done
+		if (reversed) {
+			return new asmcontextnode_Op1("!", true, op->m_operand->Clone());
+		}
 		return op->m_operand->Clone();
 
 	case TYPE_JUMP_ONFALSE:
 	case TYPE_JUMP_ONFALSEEXPR:
+		if (reversed) {
+			return op->m_operand->Clone();
+		}
 		return new asmcontextnode_Op1("!", true, op->m_operand->Clone());
 	default:
 		return nullptr;
@@ -3838,6 +3850,30 @@ asmcontextnode* JumpCondition(asmcontextnode_JumpOperator* op) {
 }
 
 int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
+	/*
+	while() {}
+
+	LOC_000001d6:
+		LOC_00000208:jumpiffalse(self isgrappling() && self getcurrentoffhand() == weapon) LOC_00000256 delta: 0x4a;
+		self waittill(#"hash_347a612b61067eb3");
+		self bot_action::function_8a2b82ad(actionparams);
+		self bot_action::aim_at_target(actionparams);
+		LOC_00000252:goto LOC_000001d6 delta: -0x80;
+	LOC_00000256:
+
+	a continue is pointing to the negative goto, only one negative goto.
+
+	a break is pointing to after the loop.
+
+	do while() {}
+
+	LOC_00000022:
+		waitframe(1);
+		LOC_0000004a:jumpiftrue(self getzbarrierpiecestate(5) == "closing") LOC_00000022 delta : -0x2c;
+
+	for (;;) is a negative goto that isn't pointing to a jumpif
+
+	*/
 	size_t index = 0;
 	while (index < m_statements.size()) {
 		auto& jumpStmt = m_statements[index];
@@ -3883,52 +3919,58 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 
 			auto& firstNode = m_statements[startIndex];
 			auto* firstNodeLocation = firstNode.location;
+			asmcontextnode* cond = nullptr;
+
+			auto it = m_statements.begin() + startIndex;
 
 			if (IsJumpType(firstNode.node->m_type)) {
+				// clone and erase the condition
 				// while/for
+				cond = JumpCondition(static_cast<asmcontextnode_JumpOperator*>(firstNode.node), true);
+				delete firstNode.node;
+				startIndex++;
 
-				index++;
-			}
-			else {
-				// loop
-				auto* block = new asmcontextnodeblock();
-				auto* node = new asmcontextnode_While(nullptr, block);
-
-				auto it = m_statements.begin() + startIndex;
-				for (size_t i = startIndex; i < index; i++) {
-					auto* ref = it->node;
-
-					if (IsJumpType(ref->m_type)) {
-						// replace jumps
-						auto* j = static_cast<asmcontextnode_JumpOperator*>(ref);
-						if (j->m_location == breakLoc) {
-							j->m_operatorName = "break";
-							j->m_showJump = false;
-							assert(endLocation); // it would mean breakLoc was set
-							endLocation->ref--;
-						}
-						else if (j->m_location == continueLoc) {
-							j->m_operatorName = "continue";
-							j->m_showJump = false;
-							continueLocation->ref--;
-						}
-					}
-
-					block->m_statements.push_back({ ref->Clone(), it->location });
-					delete it->node;
-					it = m_statements.erase(it);
+				it = m_statements.erase(it);
+				if (endLocation) {
+					endLocation->ref--;
 				}
-				block->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), it->location });
-				// it = jump
-				firstNodeLocation->ref--;
-				it->location = firstNodeLocation;
-				delete it->node;
-				it->node = node;
 			}
+
+			auto* block = new asmcontextnodeblock();
+			auto* node = new asmcontextnode_While(cond, block);
+			for (size_t i = startIndex; i < index; i++) {
+				auto* ref = it->node;
+
+				if (ref->m_type == TYPE_JUMP) {
+					// replace jumps
+					auto* j = static_cast<asmcontextnode_JumpOperator*>(ref);
+					if (j->m_location == breakLoc) {
+						j->m_operatorName = "break";
+						j->m_showJump = false;
+						assert(endLocation); // it would mean breakLoc was set
+						endLocation->ref--;
+					}
+					else if (j->m_location == continueLoc) {
+						j->m_operatorName = "continue";
+						j->m_showJump = false;
+						continueLocation->ref--;
+					}
+				}
+
+				block->m_statements.push_back({ ref->Clone(), it->location });
+				delete it->node;
+				it = m_statements.erase(it);
+			}
+			block->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), it->location });
+			// it = jump
+			firstNodeLocation->ref--;
+			it->location = firstNodeLocation;
+			delete it->node;
+			it->node = node;
 		}
 		else {
 			// do {} while(...);
-			auto* cond = JumpCondition(jumpOp);
+			auto* cond = JumpCondition(jumpOp, false);
 			auto& endLocation = m_statements[index + 1].location;
 			auto* condLocation = jumpStmt.location;
 
@@ -3987,46 +4029,6 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 			m_statements[index].location = doWhileLoc;
 		}
 	}
-	/*
-	while() {}
-	LOC_000001d6:
-		LOC_00000208:jumpiffalse(self isgrappling() && self getcurrentoffhand() == weapon) LOC_00000256 delta: 0x4a;
-		self waittill(#"hash_347a612b61067eb3");
-		self bot_action::function_8a2b82ad(actionparams);
-		self bot_action::aim_at_target(actionparams);
-		LOC_00000252:goto LOC_000001d6 delta: -0x80;
-	LOC_00000256:
-	*/
-
-	// TODO: implement
-
-
-
-
-	/*
-	do while() {}
-	LOC_00000022:
-		waitframe(1);
-		LOC_0000004a:jumpiftrue(self getzbarrierpiecestate(5) == "closing") LOC_00000022 delta : -0x2c;
-	*/
-
-	// TODO: implement
-	return 0;
-}
-
-int asmcontextnodeblock::ComputeForBlocks(asmcontext& ctx) {
-	/*
-		i = 0;
-		LOC_00000048:
-			LOC_00000056:jumpcmp(i > level.var_d668eae7.size) LOC_0000009e;
-			level.var_d668eae7[i].is_enabled = 1;
-			level.var_d668eae7[i].script_forcespawn = 1;
-			i++;
-			LOC_0000009a:goto LOC_00000048;
-		LOC_0000009e:
-	*/
-
-	// TODO: implement
 	return 0;
 }
 
@@ -4047,5 +4049,61 @@ int asmcontextnodeblock::ComputeIfBlocks(asmcontext& ctx) {
     LOC_00000214:
 	
 	*/
+	return 0;
+	size_t index = 0;
+	while (index < m_statements.size()) {
+		auto& jumpStmt = m_statements[index];
+		jumpStmt.node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
+			block->ComputeIfBlocks(ctx);
+			}, ctx);
+		if (!IsJumpType(jumpStmt.node->m_type) || jumpStmt.node->m_type == TYPE_JUMP) {
+			index++;
+			continue; // not a jump for an if
+		}
+		auto* jumpOp = static_cast<asmcontextnode_JumpOperator*>(jumpStmt.node);
+		if (jumpOp->m_delta < 0) {
+			index++;
+			continue; // not a front jump; is this even possible knowing we already did the loops???
+		}
+
+		auto elsePart = jumpOp->m_location;
+
+		auto endIndex = index + 1;
+		while (endIndex < m_statements.size() && m_statements[endIndex].location->rloc < elsePart) {
+			endIndex++;
+		}
+
+		if (endIndex == m_statements.size()) {
+			index++;
+			assert(0); // wtf?
+			continue;
+		}
+
+		auto elsePartNode = m_statements[endIndex];
+
+		if (elsePartNode.location->rloc != elsePart) {
+			index++; // bad jump?
+			continue;
+		}
+
+	}
+
+
+	return 0;
+}
+
+int asmcontextnodeblock::ComputeForBlocks(asmcontext& ctx) {
+	/*
+		i = 0;
+		LOC_00000048:
+			LOC_00000056:jumpcmp(i > level.var_d668eae7.size) LOC_0000009e;
+			level.var_d668eae7[i].is_enabled = 1;
+			level.var_d668eae7[i].script_forcespawn = 1;
+			i++;
+			LOC_0000009a:goto LOC_00000048;
+		LOC_0000009e:
+	*/
+
+	// TODO: implement
 	return 0;
 }
