@@ -93,6 +93,7 @@ namespace tool::gsc {
             TYPE_WHILE,
             TYPE_FOR,
             TYPE_FOR_EACH,
+            TYPE_IF,
             TYPE_IDENTIFIER,
 
             TYPE_JUMP,

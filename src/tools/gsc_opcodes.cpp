@@ -5,6 +5,26 @@ using namespace tool::gsc::opcode;
 static std::unordered_map<BYTE, vminfo> g_opcodeMap{};
 static std::unordered_map<opcode, const opcodeinfo*> g_opcodeHandlerMap{};
 
+size_t SizeNoEmptyNode(const std::vector<asmcontextstatement> statements) {
+	size_t acc = 0;
+	for (const auto& stmt : statements) {
+		if (stmt.node->m_type != TYPE_PRECODEPOS) {
+			acc++;
+		}
+	}
+	return acc;
+}
+asmcontextnode* GetNoEmptyNode(const std::vector<asmcontextstatement> statements, size_t index) {
+	for (const auto& stmt : statements) {
+		if (stmt.node->m_type != TYPE_PRECODEPOS) {
+			if (index-- == 0) {
+				return stmt.node;
+			}
+		}
+	}
+	assert(0);
+	return nullptr;
+}
 
 opcodeinfo::opcodeinfo(opcode id, LPCCH name) : m_id(id), m_name(name) {
 }
@@ -883,6 +903,69 @@ public:
 	}
 	void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) override {
 		func(m_block, ctx);
+	}
+};
+class asmcontextnode_IfElse : public asmcontextnode {
+public:
+	asmcontextnode* m_condition;
+	asmcontextnodeblock* m_ifblock;
+	asmcontextnodeblock* m_elseblock;
+	asmcontextnode_IfElse(asmcontextnode* condition, asmcontextnodeblock* ifblock, asmcontextnodeblock* elseblock) :
+		asmcontextnode(PRIORITY_INST, TYPE_IF), m_condition(condition), m_ifblock(ifblock), m_elseblock(elseblock){
+		m_renderSemicolon = false;
+		// set padding
+		if (ifblock) {
+			ifblock->m_blockType = BLOCK_PADDING;
+		}
+		if (elseblock) {
+			elseblock->m_blockType = BLOCK_PADDING;
+		}
+	}
+	~asmcontextnode_IfElse() {
+		delete m_condition;
+		delete m_ifblock;
+		if (m_elseblock) {
+			delete m_elseblock;
+		}
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_IfElse(m_condition->Clone(), 
+			static_cast<asmcontextnodeblock*>(m_ifblock->Clone()), 
+			m_elseblock ? static_cast<asmcontextnodeblock*>(m_elseblock->Clone()) : nullptr);
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "if (";
+		m_condition->Dump(out, ctx);
+		out << ") {";
+		m_ifblock->Dump(out, ctx);
+		asmcontextnodeblock* elseBlock = m_elseblock;
+
+		// loop over all the nested if blocks to create a pretty itie*e output
+		while (elseBlock && SizeNoEmptyNode(elseBlock->m_statements) == 1) {
+			auto* ref = GetNoEmptyNode(elseBlock->m_statements, 0);
+			if (ref->m_type != TYPE_IF) {
+				break;
+			}
+			auto* ifb = static_cast<asmcontextnode_IfElse*>(ref);
+			ctx.WritePadding(out, true) << "} else if (";
+			ifb->m_condition->Dump(out, ctx);
+			out << ") {";
+			ifb->m_ifblock->Dump(out, ctx);
+			elseBlock = ifb->m_elseblock;
+		}
+		if (elseBlock) {
+			ctx.WritePadding(out, true) << "} else {";
+			elseBlock->Dump(out, ctx);
+		}
+		ctx.WritePadding(out, true) << "}\n";
+	}
+	void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) override {
+		func(m_ifblock, ctx);
+		if (m_elseblock) {
+			m_elseblock->ApplySubBlocks(func, ctx);
+		}
 	}
 };
 
@@ -3876,19 +3959,31 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 	*/
 	size_t index = 0;
 	while (index < m_statements.size()) {
-		auto& jumpStmt = m_statements[index];
-		jumpStmt.node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
+		auto& jumpStmtVal = m_statements[index];
+		jumpStmtVal.node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
 			block->ComputeWhileBlocks(ctx);
 		}, ctx);
-		if (!IsJumpType(jumpStmt.node->m_type)) {
+		if (!IsJumpType(jumpStmtVal.node->m_type)) {
 			index++;
 			continue; // not a jump
 		}
-		auto* jumpOp = static_cast<asmcontextnode_JumpOperator*>(jumpStmt.node);
+		auto* jumpOp = static_cast<asmcontextnode_JumpOperator*>(jumpStmtVal.node);
 		if (jumpOp->m_delta >= 0) {
 			index++;
 			continue; // not a back jump
 		}
+
+		// we search the last ref to the start, index element can be a continue
+		for (size_t i = index + 1; i < m_statements.size(); i++) {
+			if (IsJumpType(m_statements[i].node->m_type)) {
+				auto* jumpOp2 = static_cast<asmcontextnode_JumpOperator*>(m_statements[i].node);
+				if (jumpOp2->m_location == jumpOp->m_location) {
+					jumpOp = jumpOp2;
+					index = i;
+				}
+			}
+		}
+		auto& jumpStmt = m_statements[index];
 
 		if (jumpOp->m_type == TYPE_JUMP) {
 			// location for the continue
@@ -3954,6 +4049,11 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 						j->m_operatorName = "continue";
 						j->m_showJump = false;
 						continueLocation->ref--;
+					}
+					else if (j->m_location == jumpOp->m_location) {
+						j->m_operatorName = "continue";
+						j->m_showJump = false;
+						firstNodeLocation->ref--;
 					}
 				}
 
@@ -4049,7 +4149,6 @@ int asmcontextnodeblock::ComputeIfBlocks(asmcontext& ctx) {
     LOC_00000214:
 	
 	*/
-	return 0;
 	size_t index = 0;
 	while (index < m_statements.size()) {
 		auto& jumpStmt = m_statements[index];
@@ -4074,20 +4173,93 @@ int asmcontextnodeblock::ComputeIfBlocks(asmcontext& ctx) {
 		}
 
 		if (endIndex == m_statements.size()) {
-			index++;
-			assert(0); // wtf?
+			index++; // break; continue
 			continue;
 		}
 
 		auto elsePartNode = m_statements[endIndex];
+		auto* elsePartNodeLoc = elsePartNode.location;
 
-		if (elsePartNode.location->rloc != elsePart) {
-			index++; // bad jump?
+		if (elsePartNodeLoc->rloc != elsePart) {
+			index++; // bad jump? (ternaries aren't made when I'm writing that)
 			continue;
 		}
 
+		asmcontextnodeblock* blockIf = new asmcontextnodeblock();
+		asmcontextnodeblock* blockElse = nullptr;
+		bool ignoreLast = false;
+
+		// remove if ref
+		elsePartNodeLoc->ref--;
+
+		if (m_statements[endIndex - 1].node->m_type == TYPE_JUMP) {
+			auto* jumpOpEndElse = static_cast<asmcontextnode_JumpOperator*>(m_statements[endIndex - 1].node);
+			// after else goto
+			if (jumpOpEndElse->m_delta > 0) {
+				auto endElseLoc = jumpOpEndElse->m_location;
+				// should be positive
+
+				auto endElseIndex = endIndex;
+				while (endElseIndex < m_statements.size() && m_statements[endElseIndex].location->rloc < endElseLoc) {
+					endElseIndex++;
+				}
+
+				if (endElseIndex < m_statements.size() && m_statements[endElseIndex].location->rloc == endElseLoc) {
+					blockElse = new asmcontextnodeblock();
+
+					// remove ref else
+					auto* endElseFinalLoc = m_statements[endElseIndex].location;
+					endElseFinalLoc->ref--;
+					
+					ignoreLast = true; // ignore last element of the ifblock
+
+					// else block
+					auto it = m_statements.begin() + endIndex;
+					for (size_t i = endIndex; i < endElseIndex; i++) {
+						// fill the else node
+						blockElse->m_statements.push_back({ it->node->Clone(), it->location });
+
+						delete it->node;
+						it = m_statements.erase(it);
+					}
+					blockElse->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), endElseFinalLoc });
+				}
+			}
+		}
+
+		auto it = m_statements.begin() + (index + 1);
+		if (ignoreLast) {
+			endIndex--;
+		}
+		for (size_t i = index + 1; i < endIndex; i++) {
+			// fill the if node
+			blockIf->m_statements.push_back({ it->node->Clone(), it->location });
+
+			delete it->node;
+			it = m_statements.erase(it);
+		}
+		if (ignoreLast) {
+			blockIf->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), it->location });
+			delete it->node;
+			it = m_statements.erase(it);
+		}
+		else {
+			blockIf->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<emptypos>", TYPE_PRECODEPOS), elsePartNodeLoc });
+		}
+
+		// swap the jump with the new if statement
+		assert(IsJumpType(m_statements[index].node->m_type));
+		auto* ifElse = new asmcontextnode_IfElse(JumpCondition(static_cast<asmcontextnode_JumpOperator*>(m_statements[index].node), true), blockIf, blockElse);
+		delete m_statements[index].node;
+		m_statements[index].node = ifElse;
 	}
 
+
+	// TODO: conditional breaks:
+	/*
+	
+	LOC_00000440:jumpiftrue(b_success) LOC_0000044c delta: 0x8;
+	*/
 
 	return 0;
 }
