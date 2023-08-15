@@ -47,6 +47,7 @@ namespace tool::gsc {
     namespace opcode {
         class asmcontext;
         class opcodeinfo;
+        class asmcontextnodeblock;
 
         struct decompcontext {
             int padding = 0;
@@ -103,6 +104,9 @@ namespace tool::gsc {
             TYPE_CONST_HASH,
             TYPE_STRING,
 
+            TYPE_ARRAY_FIRSTKEY,
+            TYPE_ARRAY_NEXTKEY,
+
             TYPE_ARRAY_BUILD,
             TYPE_STRUCT_BUILD,
 
@@ -113,6 +117,7 @@ namespace tool::gsc {
             TYPE_SET,
             TYPE_ACCESS,
             TYPE_END,
+            TYPE_RETURN,
             TYPE_NEW,
 
             TYPE_UNDEFINED
@@ -140,6 +145,7 @@ namespace tool::gsc {
             virtual ~asmcontextnode();
             virtual void Dump(std::ostream& out, decompcontext& ctx) const;
             virtual asmcontextnode* Clone() const;
+            virtual void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx);
         };
 
         class asmcontextlocationop{
@@ -179,8 +185,14 @@ namespace tool::gsc {
             ~asmcontextnodeblock();
             void Dump(std::ostream& out, decompcontext& ctx) const override;
             asmcontextnode* Clone() const override;
-            int ComputeDevBlocks();
-            int ComputeSwitchBlocks();
+            int ComputeDevBlocks(asmcontext& ctx);
+            int ComputeForEachBlocks(asmcontext& ctx);
+            int ComputeForBlocks(asmcontext& ctx);
+            int ComputeWhileBlocks(asmcontext& ctx);
+            int ComputeIfBlocks(asmcontext& ctx);
+            int ComputeSwitchBlocks(asmcontext& ctx);
+
+            void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override;
         };
 
         struct asmcontextlocalvar {
@@ -215,6 +227,8 @@ namespace tool::gsc {
             asmcontextnodeblock m_funcBlock;
             // local vars
             std::vector<asmcontextlocalvar> m_localvars{};
+            // local vars ref
+            std::unordered_map<UINT32, INT32> m_localvars_ref{};
             // export
             const T8GSCExport& m_exp;
             // file vm
@@ -324,14 +338,38 @@ namespace tool::gsc {
             /*
              * Compute the dev blocks
              */
-            inline void ComputeDevBlocks() {
-                m_funcBlock.ComputeDevBlocks();
+            inline void ComputeDevBlocks(asmcontext& ctx) {
+                m_funcBlock.ComputeDevBlocks(ctx);
             }
             /*
              * Compute the switch blocks
              */
-            inline void ComputeSwitchBlocks() {
-                m_funcBlock.ComputeSwitchBlocks();
+            inline void ComputeSwitchBlocks(asmcontext& ctx) {
+                m_funcBlock.ComputeSwitchBlocks(ctx);
+            }
+            /*
+             * Compute the for blocks
+             */
+            inline void ComputeForBlocks(asmcontext& ctx) {
+                m_funcBlock.ComputeForBlocks(ctx);
+            }
+            /*
+             * Compute the for each blocks
+             */
+            inline void ComputeForEachBlocks(asmcontext& ctx) {
+                m_funcBlock.ComputeForEachBlocks(ctx);
+            }
+            /*
+             * Compute the while blocks
+             */
+            inline void ComputeWhileBlocks(asmcontext& ctx) {
+                m_funcBlock.ComputeWhileBlocks(ctx);
+            }
+            /*
+             * Compute the if blocks
+             */
+            inline void ComputeIfBlocks(asmcontext& ctx) {
+                m_funcBlock.ComputeIfBlocks(ctx);
             }
             /*
              * Dump the function block

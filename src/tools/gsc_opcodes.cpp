@@ -23,6 +23,10 @@ asmcontextnode::asmcontextnode(asmcontextnode_priority priority, asmcontextnode_
 asmcontextnode::~asmcontextnode() {
 }
 
+void asmcontextnode::ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) {
+	// do nothing, no sub blocks
+}
+
 asmcontextnodeblock::asmcontextnodeblock(nodeblocktype blockType) : asmcontextnode(PRIORITY_INST, TYPE_BLOCK), m_blockType(blockType) {
 	m_renderSemicolon = false;
 }
@@ -37,6 +41,10 @@ asmcontextnode* asmcontextnodeblock::Clone() const {
 		n->m_statements.push_back({ node.node->Clone(), node.location });
 	}
 	return n;
+}
+void asmcontextnodeblock::ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) {
+	// apply to this
+	func(this, ctx);
 }
 
 void asmcontextnode::Dump(std::ostream& out, decompcontext& ctx) const {
@@ -456,8 +464,8 @@ public:
 	LPCCH m_description;
 	bool m_prefix;
 	asmcontextnode* m_operand;
-	asmcontextnode_Op1(LPCCH description, bool prefix, asmcontextnode* operand) :
-		asmcontextnode(PRIORITY_UNARY), m_prefix(prefix), m_description(description), m_operand(operand) {
+	asmcontextnode_Op1(LPCCH description, bool prefix, asmcontextnode* operand, asmcontextnode_type type = TYPE_UNDEFINED) :
+		asmcontextnode(PRIORITY_UNARY, type), m_prefix(prefix), m_description(description), m_operand(operand) {
 		assert(operand);
 	}
 	~asmcontextnode_Op1() {
@@ -465,7 +473,7 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		return new asmcontextnode_Op1(m_description, m_prefix, m_operand->Clone());
+		return new asmcontextnode_Op1(m_description, m_prefix, m_operand->Clone(), m_type);
 	}
 
 	void Dump(std::ostream& out, decompcontext& ctx) const override {
@@ -492,8 +500,8 @@ public:
 	LPCCH m_description;
 	bool m_caller;
 	std::vector<asmcontextnode*> m_operands{};
-	asmcontextnode_MultOp(LPCCH description, bool caller) :
-		asmcontextnode(PRIORITY_VALUE, TYPE_STATEMENT), m_description(description), m_caller(caller) {
+	asmcontextnode_MultOp(LPCCH description, bool caller, asmcontextnode_type type = TYPE_STATEMENT) :
+		asmcontextnode(PRIORITY_VALUE, type), m_description(description), m_caller(caller) {
 	}
 	~asmcontextnode_MultOp() {
 		for (auto& ref : m_operands) {
@@ -502,7 +510,7 @@ public:
 	}
 
 	asmcontextnode* Clone() const override {
-		auto* ref = new asmcontextnode_MultOp(m_description, m_caller);
+		auto* ref = new asmcontextnode_MultOp(m_description, m_caller, m_type);
 		ref->m_operands.reserve(m_operands.size());
 		for (const auto& op : m_operands) {
 			ref->m_operands.push_back(op->Clone());
@@ -768,8 +776,46 @@ public:
 
 		ctx.WritePadding(out, true) << "}\n";
 	}
+	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+		for (const auto& cs : m_cases) {
+			func(cs.block, ctx);
+		}
+	}
 };
 
+class asmcontextnode_ForEach : public asmcontextnode {
+public:
+	UINT32 m_key;
+	UINT32 m_item;
+	asmcontextnode* m_arrayNode;
+	asmcontextnodeblock* m_block;
+	asmcontextnode_ForEach(asmcontextnode* arrayNode, asmcontextnodeblock* block, UINT32 key, UINT32 item) :
+		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_arrayNode(arrayNode), m_block(block), m_key(key), m_item(item){
+		m_renderSemicolon = false;
+	}
+	~asmcontextnode_ForEach() {
+		delete m_arrayNode;
+		delete m_block;
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_ForEach(m_arrayNode->Clone(), static_cast<asmcontextnodeblock*>(m_block->Clone()), m_key, m_item);
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "foreach (";
+		if (m_key) {
+			out << hashutils::ExtractTmp("var", m_key) << std::flush << ", ";
+		}
+		out << hashutils::ExtractTmp("var", m_item) << std::flush << " in ";
+		m_arrayNode->Dump(out, ctx);
+		out << ") ";
+		m_block->Dump(out, ctx);
+	}
+	void ApplySubBlocks(void (*func)(asmcontextnodeblock* block, asmcontext& ctx), asmcontext& ctx) override {
+		func(m_block, ctx);
+	}
+};
 
 class asmcontextlocationop_Op : public asmcontextlocationop {
 private:
@@ -1112,7 +1158,7 @@ public:
 				name = "jumpdev";
 				break;
 			case OPCODE_Jump:
-				name = "jump";
+				name = "goto";
 				break;
 			default:
 				name = "jumpukn";
@@ -1524,6 +1570,7 @@ public:
 		}
 		else {
 			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 
@@ -1553,6 +1600,7 @@ public:
 		}
 		else {
 			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 
@@ -1590,6 +1638,7 @@ public:
 			}
 			else {
 				name = context.m_localvars[lvar].name;
+				context.m_localvars_ref[name]++;
 				out << hashutils::ExtractTmp("var", name) << std::endl;
 			}
 		}
@@ -1606,7 +1655,7 @@ public:
 				arrayNode = new asmcontextnode_Identifier(name);
 			}
 
-			asmcontextnode_MultOp* node = new asmcontextnode_MultOp("firstarray", false);
+			asmcontextnode_MultOp* node = new asmcontextnode_MultOp("firstarray", false, TYPE_ARRAY_FIRSTKEY);
 
 			node->AddParam(arrayNode);
 
@@ -1633,13 +1682,14 @@ public:
 		}
 		else {
 			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 
 		if (context.m_runDecompiler) {
 			asmcontextnode* arrayNode = context.PopASMCNode();
 
-			asmcontextnode_MultOp* node = new asmcontextnode_MultOp("nextarray", false);
+			asmcontextnode_MultOp* node = new asmcontextnode_MultOp("nextarray", false, TYPE_ARRAY_NEXTKEY);
 
 			node->AddParam(arrayNode);
 			node->AddParam(new asmcontextnode_Identifier(name));
@@ -1668,6 +1718,7 @@ public:
 		}
 		else {
 			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 
@@ -1695,6 +1746,7 @@ public:
 		}
 		else {
 			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 
@@ -1722,6 +1774,7 @@ public:
 		}
 		else {
 			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 
@@ -1912,7 +1965,7 @@ public:
 				auto* ref = new asmcontextnode_Op1("return ", true, context.PopASMCNode());
 				// convert it to statement
 				ref->m_priority = PRIORITY_INST;
-				ref->m_type = TYPE_STATEMENT;
+				ref->m_type = TYPE_RETURN;
 				context.PushASMCNode(ref);
 			}
 			context.CompleteStatement();
@@ -2364,7 +2417,9 @@ public:
 			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
-			out << hashutils::ExtractTmp("var", context.m_localvars[lvar].name) << std::endl;
+			UINT32 name = context.m_localvars[lvar].name;
+			out << hashutils::ExtractTmp("var", name) << std::endl;
+			context.m_localvars_ref[name]++;
 		}
 
 		return 0;
@@ -3277,10 +3332,13 @@ void asmcontext::ComputeDefaultParamValue() {
 }
 
 
-int asmcontextnodeblock::ComputeDevBlocks() {
+int asmcontextnodeblock::ComputeDevBlocks(asmcontext& ctx) {
 	auto it = m_statements.begin();
 	while (it != m_statements.end()) {
 		auto& b = *it;
+		it->node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
+			block->ComputeDevBlocks(ctx);
+		}, ctx);
 		if (b.node->m_type != TYPE_JUMP_DEVBLOCK) {
 			it++;
 			continue;
@@ -3309,7 +3367,7 @@ int asmcontextnodeblock::ComputeDevBlocks() {
 		}
 
 		// compute nested dev blocks
-		devBlock->ComputeDevBlocks();
+		devBlock->ComputeDevBlocks(ctx);
 
 		// delete the jump operator
 		delete jump;
@@ -3317,19 +3375,15 @@ int asmcontextnodeblock::ComputeDevBlocks() {
 
 	return 0;
 }
-int asmcontextnodeblock::ComputeSwitchBlocks() {
+int asmcontextnodeblock::ComputeSwitchBlocks(asmcontext& ctx) {
 
 	auto it = this->m_statements.begin();
 	while (it != m_statements.end()) {
 		auto& b = *it;
+		it->node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
+			block->ComputeSwitchBlocks(ctx);
+		}, ctx);
 		if (b.node->m_type != TYPE_SWITCH_PRECOMPUTE) {
-			if (b.node->m_type == TYPE_BLOCK) {
-				// compute the sub block
-				auto ret = static_cast<asmcontextnodeblock*>(b.node)->ComputeSwitchBlocks();
-				if (ret) {
-					return ret;
-				}
-			}
 			// not a switch to compute, we pass to the next pointer
 			it++;
 			continue;
@@ -3429,5 +3483,278 @@ int asmcontextnodeblock::ComputeSwitchBlocks() {
 		delete switchPreCompute;
 	}
 
+	return 0;
+}
+
+int asmcontextnodeblock::ComputeForEachBlocks(asmcontext& ctx) {
+	/*
+	// INIT STEP
+		var_f15d3f7b = doorblockers;
+		key = firstarray(var_f15d3f7b);
+	// LOOP STEP
+	LOC_000000fc:
+		LOC_00000100:jumpiffalse(isdefined(key)) LOC_000002f0;
+		doorblocker = var_f15d3f7b[key];
+		nextarray(var_f15d3f7b, var_7cbeb6de)
+
+		// loop code
+		
+		jump LOC_000002f0 = break;
+		jump LOC_000002e4 = continue;
+
+	// N+1 STEP
+	LOC_000002e4:
+		key = var_7cbeb6de;
+		LOC_000002ec:jump LOC_000000fc;
+	// END STEP
+	LOC_000002f0:
+
+	var_f15d3f7b is an internal name for the array pointer
+	var_7cbeb6de is an internal name to compute the next array element
+	key is the key name, it might not be used, idea: counting the ref?
+	*/
+
+	size_t index = 0;
+
+	while (index < m_statements.size()) {
+		auto& arrayRefLoc = m_statements[index];
+		arrayRefLoc.node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
+			block->ComputeForEachBlocks(ctx);
+		}, ctx);
+		const auto startIndex = index;
+		int moveDelta = 1;
+
+		/*
+			var_f15d3f7b = doorblockers;
+			key = firstarray(var_f15d3f7b);
+		*/
+
+
+		// matching "var_f15d3f7b = doorblockers", var_f15d3f7b = array ref;
+		if (arrayRefLoc.node->m_type != TYPE_SET) {
+			index += moveDelta;
+			continue;
+		}
+
+		auto* setOp = static_cast<asmcontextnode_LeftRightOperator*>(arrayRefLoc.node);
+
+		if (setOp->m_left->m_type != TYPE_IDENTIFIER) {
+			index += moveDelta;
+			continue;
+		}
+
+
+		// array ref name
+		UINT32 arrayRefName = static_cast<asmcontextnode_Identifier*>(setOp->m_left)->m_value;
+
+		auto arrayRefIndex = index;
+
+		index++;
+		moveDelta--;
+
+		if (index >= m_statements.size()) {
+			index += moveDelta;
+			continue;
+		}
+		auto& firstArrayLoc = m_statements[index];
+		if (firstArrayLoc.node->m_type != TYPE_SET) {
+			index += moveDelta;
+			continue;
+		}
+		auto* setFirstArrayOp = static_cast<asmcontextnode_LeftRightOperator*>(firstArrayLoc.node);
+
+		if (setFirstArrayOp->m_left->m_type != TYPE_IDENTIFIER || setFirstArrayOp->m_right->m_type != TYPE_ARRAY_FIRSTKEY) {
+			index += moveDelta;
+			continue; // not key = firstarray(...)
+		}
+
+		UINT32 keyValName = static_cast<asmcontextnode_Identifier*>(setFirstArrayOp->m_left)->m_value;
+
+		/*
+		LOC_000000fc:
+			LOC_00000100:jumpiffalse(isdefined(key)) LOC_000002f0;
+			doorblocker = var_f15d3f7b[key];
+			nextarray(var_f15d3f7b, var_7cbeb6de)
+		*/
+
+		index++;
+		moveDelta--;
+
+
+		if (index + 3 >= m_statements.size()) {
+			index += moveDelta;
+			continue;
+		}
+		auto& condJump = m_statements[index];
+
+		if (condJump.node->m_type != TYPE_JUMP_ONFALSE) {
+			index += moveDelta;
+			continue;
+		}
+
+		index++;
+		moveDelta--;
+
+		auto* jumpOp = static_cast<asmcontextnode_JumpOperator*>(condJump.node);
+
+		auto& itemSetStmt = m_statements[index];
+
+		if (itemSetStmt.node->m_type != TYPE_SET) {
+			index += moveDelta;
+			continue;
+		}
+
+		index++;
+		moveDelta--;
+		auto& nextArrayStmt = m_statements[index];
+
+		if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY) {
+			index += moveDelta;
+			continue;
+		}
+		auto* setKeyArrayOp = static_cast<asmcontextnode_LeftRightOperator*>(itemSetStmt.node);
+
+		if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
+			index += moveDelta;
+			continue; // not key = firstarray(...)
+		}
+
+		UINT32 itemValName = static_cast<asmcontextnode_Identifier*>(setKeyArrayOp->m_left)->m_value;
+
+		index++;
+		moveDelta--;
+
+		/*
+		LOC_000002e4:
+			key = var_7cbeb6de;
+			LOC_000002ec:jump LOC_000000fc;
+		*/
+
+		// internal location in the foreach
+		INT64 endLoc = jumpOp->m_location; // jump location for the break
+		INT64 condLoc = condJump.location->rloc; // jump back location for the end of the loop
+		// index of the last node (at least + 2 for the next value set and the jump)
+		auto endNodeIndex = index;
+
+
+		while (endNodeIndex < m_statements.size() && m_statements[endNodeIndex].location->rloc < endLoc) {
+			endNodeIndex++;
+		}
+
+		if (endNodeIndex > m_statements.size()) {
+			std::cerr << "Bad foreach node endNodeIndex\n";
+			assert(0);
+			index += moveDelta;
+			continue;
+		}
+
+		auto incrementIndex = endNodeIndex - 2;
+
+		auto& setNextKeyStmt = m_statements[incrementIndex];
+		auto& jumpBackStmt = m_statements[incrementIndex + 1];
+
+		// at the end ot the loop we can continue, break, return or return <...>
+		if (jumpBackStmt.node->m_type != TYPE_END && jumpBackStmt.node->m_type != TYPE_RETURN && (jumpBackStmt.node->m_type != TYPE_JUMP
+			|| (static_cast<asmcontextnode_JumpOperator*>(jumpBackStmt.node)->m_location != condLoc
+				&& static_cast<asmcontextnode_JumpOperator*>(jumpBackStmt.node)->m_location != endLoc))) {
+			// not a good increment (wtf?)
+			index += moveDelta;
+			continue;
+		}
+		INT64 incrementLoc;
+		if (setNextKeyStmt.node->m_type != TYPE_SET) {
+			incrementIndex += 2,
+			incrementLoc = jumpBackStmt.location->rloc; // jump location for the continue
+		}
+		else {
+			incrementLoc = setNextKeyStmt.location->rloc; // jump location for the continue
+		}
+		
+		// assume set good
+
+
+		// we found the foreach, we can now patch the jumps (TODO: find if we need to specify the jump location, i.e.: nested foreach)
+		for (size_t i = index; i < incrementIndex; i++) {
+			auto& stmt = m_statements[i];
+
+			if (stmt.node->m_type != TYPE_JUMP) {
+				continue;
+			}
+
+			auto* j = static_cast<asmcontextnode_JumpOperator*>(stmt.node);
+			if (j->m_location == endLoc) {
+				j->m_operatorName = "break";
+				j->m_showJump = false;
+				condJump.location->ref--;
+			} else if (j->m_location == incrementLoc) {
+				j->m_operatorName = "continue";
+				j->m_showJump = false;
+				setNextKeyStmt.location->ref--;
+			}
+		}
+
+		if (endNodeIndex != m_statements.size()) {
+			m_statements[endNodeIndex].location->ref--;
+		}
+
+		// replace this whole mess by a cool foreach block keyValName
+		auto* block = new asmcontextnodeblock();
+
+		// remove the number of references for the key because maybe we don't use it
+		auto& keyRef = ctx.m_localvars_ref[keyValName];
+		keyRef = max(keyRef - 5, 0);
+
+		auto* forEachNode = new asmcontextnode_ForEach(setOp->m_right->Clone(), block, ctx.m_localvars_ref[keyValName] ? keyValName : 0, itemValName);
+
+		auto it = m_statements.begin() + startIndex;
+		delete it->node;
+		it->node = forEachNode;
+
+		it++;
+		for (size_t i = startIndex + 1; i < index; i++) {
+			// remove component statement
+			it = m_statements.erase(it);
+		}
+		for (size_t i = index; i < incrementIndex; i++) {
+			block->m_statements.push_back({ it->node, it->location });
+			it = m_statements.erase(it);
+		}
+		for (size_t i = incrementIndex; i < endNodeIndex; i++) {
+			// remove component statement
+			delete it->node;
+			if (it->location->ref) {
+				block->m_statements.push_back({ new asmcontextnode_Value<LPCCH>("<precodepos>", TYPE_PRECODEPOS), it->location });
+			}
+			it = m_statements.erase(it);
+		}
+		// go back to the first index
+		index = startIndex;
+	}
+
+	return 0;
+}
+
+int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
+	// TODO: implement
+	return 0;
+}
+
+int asmcontextnodeblock::ComputeForBlocks(asmcontext& ctx) {
+	/*
+		LOC_00000048:
+			LOC_00000056:jumpcmp(i > level.var_d668eae7.size) LOC_0000009e;
+			level.var_d668eae7[i].is_enabled = 1;
+			level.var_d668eae7[i].script_forcespawn = 1;
+			i++;
+			LOC_0000009a:jump LOC_00000048;
+		LOC_0000009e:
+	*/
+
+	// TODO: implement
+	return 0;
+}
+
+int asmcontextnodeblock::ComputeIfBlocks(asmcontext& ctx) {
+	// TODO: implement
 	return 0;
 }

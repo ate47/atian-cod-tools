@@ -344,8 +344,12 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                     }
                     else {
                         outputdecomp << " "; // padding between block/parameters
-                        asmctx.ComputeDevBlocks();
-                        asmctx.ComputeSwitchBlocks();
+                        asmctx.ComputeDevBlocks(asmctx);
+                        asmctx.ComputeSwitchBlocks(asmctx);
+                        asmctx.ComputeForEachBlocks(asmctx);
+                        asmctx.ComputeWhileBlocks(asmctx);
+                        asmctx.ComputeForBlocks(asmctx);
+                        asmctx.ComputeIfBlocks(asmctx);
                         asmctx.Dump(outputdecomp, dctx);
                     }
                 }
