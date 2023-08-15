@@ -3227,6 +3227,10 @@ void asmcontextnodeblock::Dump(std::ostream& out, decompcontext& ctx) const {
 		else if (ctx.asmctx.m_opt.m_show_internal_blocks) {
 			ctx.WritePadding(out) << "<end>;\n";
 		}
+		else if (m_statements.size() == 1) {
+			// empty end block, write a small empty line
+			ctx.WritePadding(out) << "\n";
+		}
 		out << std::flush;
 	}
 	// pop back rloc
@@ -3741,12 +3745,13 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 
 int asmcontextnodeblock::ComputeForBlocks(asmcontext& ctx) {
 	/*
+		i = 0;
 		LOC_00000048:
 			LOC_00000056:jumpcmp(i > level.var_d668eae7.size) LOC_0000009e;
 			level.var_d668eae7[i].is_enabled = 1;
 			level.var_d668eae7[i].script_forcespawn = 1;
 			i++;
-			LOC_0000009a:jump LOC_00000048;
+			LOC_0000009a:goto LOC_00000048;
 		LOC_0000009e:
 	*/
 
@@ -3756,5 +3761,20 @@ int asmcontextnodeblock::ComputeForBlocks(asmcontext& ctx) {
 
 int asmcontextnodeblock::ComputeIfBlocks(asmcontext& ctx) {
 	// TODO: implement
+	/*
+	ITEIE:
+	    LOC_000001a2:jumpiffalse(state == "loot_case_open") LOC_000001c0;
+        var_f56984dc = "crateidle";
+        var_61de15c5 = "open";
+        LOC_000001bc:goto LOC_00000214;
+    LOC_000001c0:
+        LOC_000001da:jumpiffalse(level.var_cf24a85f.var_f56984dc === "idle") LOC_000001e8;
+        var_f56984dc = "crate";
+    LOC_000001e8:
+        level.var_cf24a85f.var_63efd7bf = "loot_case";
+        var_ac97b37c = #"hash_31c4c4c8b87dc6a4";
+    LOC_00000214:
+	
+	*/
 	return 0;
 }
