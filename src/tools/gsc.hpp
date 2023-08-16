@@ -24,6 +24,7 @@ namespace tool::gsc {
         bool m_func_header_post = false;
         bool m_show_jump_delta = false;
         bool m_show_pre_dump = false;
+        bool m_show_ref_count = false;
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;
@@ -147,6 +148,17 @@ namespace tool::gsc {
                 return false;
             }
         }
+
+        inline bool IsNoParamJumpType(asmcontextnode_type type) {
+            switch (type) {
+            case TYPE_JUMP:
+            case TYPE_JUMP_DEVBLOCK:
+            case TYPE_JUMP_ENDSWITCH:
+                return true;
+            default:
+                return false;
+            }
+        }
         enum T8GSCLocalVarFlag : UINT8 {
             ARRAY_REF = 0x01,
             VARIADIC = 0x02
@@ -182,15 +194,17 @@ namespace tool::gsc {
         };
 
         struct asmcontextlocation {
-            INT32 rloc;
-            bool handled;
-            int ref;
+            INT32 rloc = 0;
+            bool handled = false;
+            std::set<INT32> refs{};
             asmcontextnode* objectId = nullptr;
             asmcontextnode* fieldId = nullptr;
             std::vector<asmcontextnode*> m_stack{};
             std::vector<asmcontextlocationop*> m_lateop{};
             asmcontextlocation();
             ~asmcontextlocation();
+
+            void RemoveRef(INT32 origin);
         };
 
         struct asmcontextstatement {
@@ -218,6 +232,8 @@ namespace tool::gsc {
             int ComputeWhileBlocks(asmcontext& ctx);
             int ComputeIfBlocks(asmcontext& ctx);
             int ComputeSwitchBlocks(asmcontext& ctx);
+
+            asmcontextstatement* FetchFirstForLocation(INT64 rloc);
 
             void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>&, asmcontext& ctx) override;
         };

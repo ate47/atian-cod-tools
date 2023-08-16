@@ -61,6 +61,9 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--prestruct", arg)) {
             m_show_pre_dump = true;
         }
+        else if (!_strcmpi("--refcount", arg)) {
+            m_show_ref_count = true;
+        }
         else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
             if (i + 1 == endIndex) {
                 std::cerr << "Missing value for param: " << arg << "!\n";
@@ -359,7 +362,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                         outputdecomp << " "; // padding between block/parameters
                         asmctx.ComputeForEachBlocks(asmctx);
                         asmctx.ComputeWhileBlocks(asmctx);
-                        asmctx.ComputeIfBlocks(asmctx);
+                        //asmctx.ComputeIfBlocks(asmctx);
                         asmctx.ComputeForBlocks(asmctx);
                         asmctx.Dump(outputdecomp, dctx);
                     }
