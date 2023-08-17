@@ -11,7 +11,7 @@ static std::unordered_map<opcode, const opcodeinfo*> g_opcodeHandlerMap{};
 
 #pragma region opcode_node
 
-size_t SizeNoEmptyNode(const std::vector<asmcontextstatement> statements) {
+size_t SizeNoEmptyNode(const std::vector<asmcontextstatement>& statements) {
 	size_t acc = 0;
 	for (const auto& stmt : statements) {
 		if (stmt.node->m_type != TYPE_PRECODEPOS) {
@@ -21,7 +21,7 @@ size_t SizeNoEmptyNode(const std::vector<asmcontextstatement> statements) {
 	return acc;
 }
 
-asmcontextnode* GetNoEmptyNode(const std::vector<asmcontextstatement> statements, size_t index) {
+asmcontextnode* GetNoEmptyNode(const std::vector<asmcontextstatement>& statements, size_t index) {
 	for (const auto& stmt : statements) {
 		if (stmt.node->m_type != TYPE_PRECODEPOS) {
 			if (index-- == 0) {
@@ -873,7 +873,7 @@ public:
 	asmcontextnode* m_arrayNode;
 	asmcontextnodeblock* m_block;
 	asmcontextnode_ForEach(asmcontextnode* arrayNode, asmcontextnodeblock* block, UINT32 key, UINT32 item) :
-		asmcontextnode(PRIORITY_INST, TYPE_STATEMENT), m_arrayNode(arrayNode), m_block(block), m_key(key), m_item(item) {
+		asmcontextnode(PRIORITY_INST, TYPE_FOR_EACH), m_arrayNode(arrayNode), m_block(block), m_key(key), m_item(item) {
 		m_renderSemicolon = false;
 	}
 	~asmcontextnode_ForEach() {
@@ -892,6 +892,48 @@ public:
 		}
 		out << hashutils::ExtractTmp("var", m_item) << std::flush << " in ";
 		m_arrayNode->Dump(out, ctx);
+		out << ") ";
+		m_block->Dump(out, ctx);
+	}
+	void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>& func, asmcontext& ctx) override {
+		m_block->ApplySubBlocks(func, ctx);
+	}
+};
+
+class asmcontextnode_ForDelta : public asmcontextnode {
+public:
+	asmcontextnode* m_init;
+	asmcontextnode* m_cond;
+	asmcontextnode* m_delta;
+	asmcontextnodeblock* m_block;
+	asmcontextnode_ForDelta(asmcontextnode* init, asmcontextnode* cond, asmcontextnode* delta, asmcontextnodeblock* block) :
+		asmcontextnode(PRIORITY_INST, TYPE_FOR), m_init(init), m_cond(cond), m_delta(delta), m_block(block) {
+		assert(init);
+		// condition can be null for(;;) converted into for(i=0;;i++)
+		assert(delta);
+		assert(block);
+		m_renderSemicolon = false;
+	}
+	~asmcontextnode_ForDelta() {
+		delete m_init;
+		delete m_cond;
+		delete m_delta;
+		delete m_block;
+	}
+
+	asmcontextnode* Clone() const override {
+		return new asmcontextnode_ForDelta(m_init->Clone(), m_cond ? m_cond->Clone() : nullptr, m_delta->Clone(), static_cast<asmcontextnodeblock*>(m_block->Clone()));
+	}
+
+	void Dump(std::ostream& out, decompcontext& ctx) const override {
+		out << "for (";
+		m_init->Dump(out, ctx);
+		out << "; ";
+		if (m_cond) {
+			m_cond->Dump(out, ctx);
+		}
+		out << "; ";
+		m_delta->Dump(out, ctx);
 		out << ") ";
 		m_block->Dump(out, ctx);
 	}
@@ -941,7 +983,9 @@ public:
 		if (m_condition) {
 			delete m_condition;
 		}
-		delete m_block;
+		if (m_block) {
+			delete m_block;
+		}
 	}
 
 	asmcontextnode* Clone() const override {
@@ -2198,15 +2242,13 @@ public:
 				ref->m_priority = PRIORITY_INST;
 				ref->m_type = TYPE_RETURN;
 				context.PushASMCNode(ref);
-			}
-			context.CompleteStatement();
-			if (!m_isReturn) {
+			} else {
 				// special node to print end ref
 				auto* ref = new asmcontextnode_Value<LPCCH>("<END>");
 				ref->m_type = TYPE_END;
 				context.PushASMCNode(ref);
-				context.CompleteStatement();
 			}
+			context.CompleteStatement();
 		}
 		out << "\n";
 		INT64 rloc = context.FunctionRelativeLocation();
@@ -2936,10 +2978,10 @@ public:
 
 		if (context.m_runDecompiler) {
 			if (context.m_fieldId) {
-				context.PushASMCNode(new asmcontextnode_Op1(m_op, false, context.GetFieldIdASMCNode()));
+				context.PushASMCNode(new asmcontextnode_Op1(m_op, false, context.GetFieldIdASMCNode(), TYPE_DELTA));
 			}
 			else {
-				context.PushASMCNode(new asmcontextnode_Op1(m_op, false, context.PopASMCNode()));
+				context.PushASMCNode(new asmcontextnode_Op1(m_op, false, context.PopASMCNode(), TYPE_DELTA));
 			}
 			context.CompleteStatement();
 		}
@@ -4520,16 +4562,108 @@ int asmcontextnodeblock::ComputeIfBlocks(asmcontext& ctx) {
 
 int asmcontextnodeblock::ComputeForBlocks(asmcontext& ctx) {
 	/*
-		i = 0;
-		LOC_00000048:
-			LOC_00000056:jumpcmp(i > level.var_d668eae7.size) LOC_0000009e;
-			level.var_d668eae7[i].is_enabled = 1;
-			level.var_d668eae7[i].script_forcespawn = 1;
-			i++;
-			LOC_0000009a:goto LOC_00000048;
-		LOC_0000009e:
+
+	    i = 0;
+	    while (i < var_8f5e3947.size) {
+	        var_4e2b3e3a[i] = var_8f5e3947[i].origin;
+	        i++;
+	        <emptypos_inf_end>;
+		}
 	*/
 
-	// TODO: implement
+	size_t index = 0;
+	while (index < m_statements.size()) {
+		auto& whileStmt = m_statements[index];
+		whileStmt.node->ApplySubBlocks([](asmcontextnodeblock* block, asmcontext& ctx) {
+			block->ComputeForBlocks(ctx);
+		}, ctx);
+
+		if (index == 0 || whileStmt.node->m_type != TYPE_WHILE) {
+			index++;
+			continue; // at least one statement before and a while
+		}
+
+		auto& initValStmt = m_statements[index - 1];
+		auto* initValNode = initValStmt.node;
+
+		if (initValNode->m_type != TYPE_SET) {
+			index++;
+			continue; // not a delta for part
+		}
+
+		auto* setOp = static_cast<asmcontextnode_LeftRightOperator*>(initValNode);
+
+		if (setOp->m_left->m_type != TYPE_IDENTIFIER) {
+			index++;
+			continue; // not an I = ...
+		}
+
+		UINT32 incrementName = static_cast<asmcontextnode_Identifier*>(setOp->m_left)->m_value;
+
+		auto* whileBlock = static_cast<asmcontextnode_While*>(whileStmt.node);
+
+		size_t blockSize = SizeNoEmptyNode(whileBlock->m_block->m_statements);
+
+		if (!blockSize) {
+			index++;
+			continue; // at least one statement in the while
+		}
+
+		size_t lastIndex = whileBlock->m_block->m_statements.size() - 1;
+
+		while (whileBlock->m_block->m_statements[lastIndex].node->m_type == TYPE_PRECODEPOS) {
+			lastIndex--;
+		}
+
+		auto& deltaStmt = whileBlock->m_block->m_statements[lastIndex];
+
+		if (deltaStmt.node->m_type != TYPE_DELTA) {
+			index++;
+			continue; // not a delta for part
+		}
+		auto* deltaPart = static_cast<asmcontextnode_Op1*>(deltaStmt.node);
+
+		if (deltaPart->m_operand->m_type != TYPE_IDENTIFIER || static_cast<asmcontextnode_Identifier*>(deltaPart->m_operand)->m_value != incrementName) {
+			index++;
+			continue; // not an identifier delta
+		}
+
+		auto* forDeltaNode = new asmcontextnode_ForDelta(initValNode->Clone(), whileBlock->m_condition, deltaPart->Clone(), whileBlock->m_block);
+		whileBlock->m_block = nullptr;
+		whileBlock->m_condition = nullptr;
+		delete whileStmt.node;
+		whileStmt.node = forDeltaNode;
+
+
+		delete initValStmt.node;
+		initValStmt.node = new asmcontextnode_Value<LPCCH>("<for_init>", TYPE_PRECODEPOS);
+
+		delete deltaStmt.node;
+		deltaStmt.node = new asmcontextnode_Value<LPCCH>("<for_continue>", TYPE_PRECODEPOS);
+		auto* continueLoc = deltaStmt.location;
+
+		std::function<void(asmcontextnodeblock* block, asmcontext& ctx)> func;
+
+		// continue
+		func = [&func, continueLoc](asmcontextnodeblock* block, asmcontext& ctx) {
+			for (auto& bs : block->m_statements) {
+				if (!IsJumpType(bs.node->m_type)) {
+					bs.node->ApplySubBlocks(func, ctx);
+					continue;
+				}
+
+				auto* j = static_cast<asmcontextnode_JumpOperator*>(bs.node);
+				if (j->m_location == continueLoc->rloc) {
+					j->m_operatorName = "continue";
+					j->m_showJump = false;
+					j->m_special_op = SPECIAL_JUMP_CONTINUE;
+					continueLoc->RemoveRef(j->m_opLoc);
+				}
+			}
+		};
+
+		forDeltaNode->ApplySubBlocks(func, ctx);
+	}
+
 	return 0;
 }
