@@ -44,6 +44,6 @@ linked.csv
 events.csv
 funcs.csv
 dataset.csv
-scriptparsetree
+scriptparsetree*
 cw
-output
+output*

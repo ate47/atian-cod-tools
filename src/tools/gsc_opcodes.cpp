@@ -2553,11 +2553,14 @@ public:
 
 			// this
 
+			auto* func = context.PopASMCNode();
+
 			if (flags & SELF_CALL) {
 				ptr->AddParam(context.PopASMCNode());
 			}
+			ptr->AddParam(func);
 			// use <= to add the function pointer
-			for (size_t i = 0; i <= params; i++) {
+			for (size_t i = 1; i <= params; i++) {
 				ptr->AddParam(context.PopASMCNode());
 			}
 
