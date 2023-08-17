@@ -52,6 +52,9 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!strcmp("-P", arg) || !_strcmpi("--nopatch", arg)) {
             m_patch = false;
         }
+        else if (!strcmp("-V", arg) || !_strcmpi("--vars", arg)) {
+            m_show_func_vars = true;
+        }
         else if (!_strcmpi("--internalblocks", arg)) {
             m_show_internal_blocks = true;
         }
@@ -107,6 +110,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-S --strings       : Write strings\n"
         << "-G --gvars         : Write gvars\n"
         << "-U --noincludes    : No includes\n"
+        << "-V --vars          : Show all func vars\n"
         << "-X --exptests      : Enable UNK tests\n"
         << "-C --copyright [t] : Set a comment text to put in front of every file\n";
 }
@@ -362,7 +366,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                         outputdecomp << " "; // padding between block/parameters
                         asmctx.ComputeForEachBlocks(asmctx);
                         asmctx.ComputeWhileBlocks(asmctx);
-                        //asmctx.ComputeIfBlocks(asmctx);
+                        asmctx.ComputeIfBlocks(asmctx);
                         asmctx.ComputeForBlocks(asmctx);
                         asmctx.Dump(outputdecomp, dctx);
                     }

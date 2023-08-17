@@ -28,6 +28,7 @@ namespace tool::gsc {
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;
+        bool m_show_func_vars = false;
 
         std::vector<LPCCH> m_inputFiles{};
         /*
@@ -108,6 +109,7 @@ namespace tool::gsc {
             TYPE_JUMP_ENDSWITCH,
 
             TYPE_SWITCH_PRECOMPUTE,
+            TYPE_SWITCH_POSTCOMPUTE,
 
             TYPE_CONST_HASH,
             TYPE_STRING,
