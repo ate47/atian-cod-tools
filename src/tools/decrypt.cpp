@@ -467,7 +467,7 @@ static INT32 encryptiontable[] = {
 #pragma warning(disable:4101)
 
 // sub:3C4E300
-char* tool::decrypt::decryptfunc(char* str) {
+char* tool::decrypt::DecryptString(char* str) {
 
 #pragma region Vars
 	UINT8* tmp; // rdi

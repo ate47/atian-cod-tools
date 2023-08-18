@@ -49,7 +49,7 @@ int main(int argc, const char *argv[]) {
 	}
 
 	const auto app = L"blackops4.exe";
-	process proc(app);
+	Process proc(app);
 
 	if (tool->second.needGame) {
 

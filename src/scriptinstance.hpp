@@ -2,13 +2,13 @@
 #include <Windows.h>
 
 namespace scriptinstance {
-	enum scriptinstance : UINT32 {
+	enum ScriptInstance : UINT32 {
 		SI_SERVER = 0,
 		SI_CLIENT = 1,
 		SI_COUNT = 2
 	};
-	LPCCH Name(scriptinstance inst);
+	LPCCH Name(ScriptInstance inst);
 	inline LPCCH Name(UINT64 inst) {
-		return Name((scriptinstance)inst);
+		return Name((ScriptInstance)inst);
 	}
 }

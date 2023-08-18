@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-DWORD process::GetProcId(LPCWCH name) {
+DWORD Process::GetProcId(LPCWCH name) {
 	DWORD pid = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (hSnap != INVALID_HANDLE_VALUE) {
@@ -19,7 +19,7 @@ DWORD process::GetProcId(LPCWCH name) {
 	return pid;
 }
 
-bool process::GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize) {
+bool Process::GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize) {
 	*hModule = 0;
 	*modSize = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
@@ -46,7 +46,7 @@ bool process::GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD
 	return *hModule != 0;
 }
 
-process::process(LPCWCH processName, LPCWCH moduleName) {
+Process::Process(LPCWCH processName, LPCWCH moduleName) {
 	m_pid = GetProcId(processName);
 
 	if (!m_pid || !GetModuleAddress(m_pid, moduleName, &m_modAddress, &m_modSize)) {
@@ -56,11 +56,11 @@ process::process(LPCWCH processName, LPCWCH moduleName) {
 	m_handle = NULL;
 }
 
-process::~process() {
+Process::~Process() {
 	Close();
 }
 
-bool process::Open() {
+bool Process::Open() {
 	if (!this) {
 		return false;
 	}
@@ -72,47 +72,47 @@ bool process::Open() {
 	return m_handle != NULL;
 }
 
-void process::Close() {
+void Process::Close() {
 	if (m_handle) {
 		CloseHandle(m_handle);
 		m_handle = NULL;
 	}
 }
 
-bool process::operator!() const {
+bool Process::operator!() const {
 	return m_pid == 0;
 }
 
-bool process::operatorbool() const {
+bool Process::operatorbool() const {
 	return m_pid != 0;
 }
 
-uintptr_t process::operator[](UINT64 offset) const {
+uintptr_t Process::operator[](UINT64 offset) const {
 	return m_modAddress + offset;
 }
 
-INT64 process::GetModuleRelativeOffset(uintptr_t ptr) const {
+INT64 Process::GetModuleRelativeOffset(uintptr_t ptr) const {
 	return ptr - m_modAddress;
 }
 
-uintptr_t process::AllocateMemory(SIZE_T size) const {
+uintptr_t Process::AllocateMemory(SIZE_T size) const {
 	if (m_handle) {
 		return reinterpret_cast<uintptr_t>(VirtualAllocEx(m_handle, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
 	}
 	return NULL;
 }
 
-bool process::IsInsideModule(uintptr_t ptr) const {
+bool Process::IsInsideModule(uintptr_t ptr) const {
 	return ptr >= m_modAddress && ptr < m_modAddress + m_modSize;
 }
 
-void process::FreeMemory(uintptr_t ptr, SIZE_T size) const {
+void Process::FreeMemory(uintptr_t ptr, SIZE_T size) const {
 	if (m_handle) {
 		VirtualFreeEx(m_handle, reinterpret_cast<LPVOID>(ptr), size, MEM_FREE);
 	}
 }
 
-bool process::ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const {
+bool Process::ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const {
 	if (m_handle) {
 		SIZE_T out = 0;
 		if (!ReadProcessMemory(m_handle, reinterpret_cast<LPVOID>(src), dest, size, &out)) {
@@ -123,7 +123,7 @@ bool process::ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const {
 	return false;
 }
 
-bool process::WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const {
+bool Process::WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const {
 	if (m_handle) {
 		SIZE_T out = 0;
 		if (!WriteProcessMemory(m_handle, reinterpret_cast<LPVOID>(dest), src, size, &out)) {

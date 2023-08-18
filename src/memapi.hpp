@@ -2,10 +2,10 @@
 #include <Windows.h>
 
 // ugly class I quickly wrote to access process memory
-class process {
+class Process {
 public:
-	process(LPCWCH processName, LPCWCH moduleName = NULL);
-	~process();
+	Process(LPCWCH processName, LPCWCH moduleName = NULL);
+	~Process();
 	/*
 	 * Open the process
 	 * @return if the process was open

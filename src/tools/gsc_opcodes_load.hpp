@@ -2,7 +2,7 @@
 
 namespace tool::gsc::opcode {
 
-	enum opcode : UINT16 {
+	enum OPCode : UINT16 {
 		OPCODE_Undefined,
 		OPCODE_Unknown0,
 		OPCODE_Unknown1,

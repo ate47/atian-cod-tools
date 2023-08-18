@@ -7,5 +7,5 @@ namespace tool {
 		BAD_USAGE = -2
 	};
 
-	typedef int(*toolfunction)(const process& proc, int argc, const char* argv[]);
+	typedef int(*toolfunction)(const Process& proc, int argc, const char* argv[]);
 }

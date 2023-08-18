@@ -4,22 +4,22 @@
 #include <unordered_map>
 
 namespace tool::gsc::opcode {
-	class opcodeinfo;
-	struct vminfo {
+	class OPCodeInfo;
+	struct VmInfo {
 		BYTE vm;
 		LPCCH name;
-		std::unordered_map<UINT16, opcode> opcodemap{};
+		std::unordered_map<UINT16, OPCode> opcodemap{};
 	};
-	bool IsValidVm(BYTE vm, vminfo*& info);
-	const opcodeinfo* LookupOpCode(BYTE vm, UINT16 opcode);
-	void RegisterOpCodeHandler(const opcodeinfo* info);
+	bool IsValidVm(BYTE vm, VmInfo*& info);
+	const OPCodeInfo* LookupOpCode(BYTE vm, UINT16 opcode);
+	void RegisterOpCodeHandler(const OPCodeInfo* info);
 	void RegisterVM(BYTE vm, LPCCH name);
-	void RegisterOpCode(BYTE vm, opcode enumValue, UINT16 op);
+	void RegisterOpCode(BYTE vm, OPCode enumValue, UINT16 op);
 	void RegisterOpCodes();
 
-	inline void RegisterOpCode(BYTE vm, opcode enumValue) {}
+	inline void RegisterOpCode(BYTE vm, OPCode enumValue) {}
 	template<typename... OpTypes>
-	inline void RegisterOpCode(BYTE vm, opcode enumValue, UINT16 op, OpTypes... ops) {
+	inline void RegisterOpCode(BYTE vm, OPCode enumValue, UINT16 op, OpTypes... ops) {
 		RegisterOpCode(vm, enumValue, op);
 		RegisterOpCode(vm, enumValue, ops...);
 	}

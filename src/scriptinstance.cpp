@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-LPCCH scriptinstance::Name(scriptinstance inst) {
+LPCCH scriptinstance::Name(ScriptInstance inst) {
 	switch (inst) {
 	case SI_SERVER:
 		return "server";

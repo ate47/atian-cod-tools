@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-int tool::dump::poolscripts(const process& proc, int argc, const char* argv[]) {
+int tool::dump::poolscripts(const Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[OFFSET_XASSET_SCRIPTPARSETREE]);
     INT32 poolSize = proc.ReadMemory<INT32>(proc[OFFSET_XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
@@ -47,7 +47,7 @@ int tool::dump::poolscripts(const process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv[]) {
+int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[OFFSET_XASSET_SCRIPTPARSETREE]);
     INT32 poolSize = proc.ReadMemory<INT32>(proc[OFFSET_XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
@@ -208,7 +208,7 @@ int tool::dump::writepoolscripts(const process& proc, int argc, const char* argv
     return 0;
 }
 
-int tool::dump::linkedscripts(const process& proc, int argc, const char* argv[]) {
+int tool::dump::linkedscripts(const Process& proc, int argc, const char* argv[]) {
     UINT32 bufferCount[2];
     if (!proc.ReadMemory(bufferCount, proc[OFFSET_gObjFileInfoCount], sizeof *bufferCount * 2)) {
         std::cerr << "Can't read count data\n";
@@ -284,7 +284,7 @@ int tool::dump::linkedscripts(const process& proc, int argc, const char* argv[])
     return 0;
 }
 
-int tool::dump::events(const process& proc, int argc, const char* argv[]) {
+int tool::dump::events(const Process& proc, int argc, const char* argv[]) {
     const int size = 512;
     T8EventMapObj* buffer = new T8EventMapObj[2 * size];
 
@@ -339,7 +339,7 @@ int tool::dump::events(const process& proc, int argc, const char* argv[]) {
 }
 
 struct FunctionPoolDef {
-    scriptinstance::scriptinstance instance;
+    scriptinstance::ScriptInstance instance;
     bool methodPool;
     UINT64 offset;
     UINT32 size;
@@ -398,7 +398,7 @@ static FunctionPoolDef g_functionPool[] = {
 };
 
 
-int tool::dump::dumpfunctions(const process& proc, int argc, const char* argv[]) {
+int tool::dump::dumpfunctions(const Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 

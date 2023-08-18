@@ -44,9 +44,9 @@ namespace tool::dump {
         UINT32 pad02;
     };
 
-    int poolscripts(const process& proc, int argc, const char* argv[]);
-    int writepoolscripts(const process& proc, int argc, const char* argv[]);
-	int linkedscripts(const process& proc, int argc, const char* argv[]);
-    int events(const process& proc, int argc, const char* argv[]);
-    int dumpfunctions(const process& proc, int argc, const char* argv[]);
+    int poolscripts(const Process& proc, int argc, const char* argv[]);
+    int writepoolscripts(const Process& proc, int argc, const char* argv[]);
+	int linkedscripts(const Process& proc, int argc, const char* argv[]);
+    int events(const Process& proc, int argc, const char* argv[]);
+    int dumpfunctions(const Process& proc, int argc, const char* argv[]);
 }

@@ -121,7 +121,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
 int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, const GscInfoOption& opt) {
     hashutils::ReadDefaultFile();
 
-    opcode::vminfo* vmInfo;
+    opcode::VmInfo* vmInfo;
     if (!opcode::IsValidVm(data->GetVm(), vmInfo)) {
         std::cerr << "Bad vm 0x" << std::hex << (int)data->GetVm() << " for file " << path << "\n";
         return -1;
@@ -192,7 +192,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             asmout << "encryption: 0x" << std::hex << (int)type << " len: " << std::dec << len << " -> " << std::flush;
 
-            LPCH cstr = tool::decrypt::decryptfunc(encryptedString);
+            LPCH cstr = tool::decrypt::DecryptString(encryptedString);
 
             asmout << '"' << cstr << "\"";
 
@@ -338,7 +338,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         UINT32 currentNSP = 0;
 
         auto* exports = reinterpret_cast<T8GSCExport*>(&data->magic[data->export_table_offset]);
-        std::unordered_map<UINT64, opcode::asmcontext> contextes{};
+        std::unordered_map<UINT64, opcode::ASMContext> contextes{};
 
         for (size_t i = 0; i < data->exports_count; i++) {
             const auto& exp = exports[i];
@@ -385,7 +385,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                     exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
                 }
                 output << std::flush;
-                opcode::decompcontext dctx{ 0, 0, asmctx };
+                opcode::DecompContext dctx{ 0, 0, asmctx };
                 if (opt.m_dcomp) {
                     if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = &data->magic[exp.address];
@@ -456,7 +456,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
                     e.m_exp.DumpFunctionHeader(asmout, data->magic, ctx, e, 1);
                     asmout << " ";
-                    opcode::decompcontext dctx{ 1, 0, e };
+                    opcode::DecompContext dctx{ 1, 0, e };
                     e.Dump(asmout, dctx);
                     asmout << "\n";
 
@@ -499,7 +499,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
                 exp.DumpFunctionHeader(asmout, data->magic, ctx, asmctx);
                 asmout << " ";
-                opcode::decompcontext dctx{ 0, 0, asmctx };
+                opcode::DecompContext dctx{ 0, 0, asmctx };
                 asmctx.Dump(asmout, dctx);
                 asmout << "\n";
             }
@@ -639,7 +639,7 @@ int DumpInfoFile(const std::filesystem::path& path, std::unordered_map<UINT64, L
     return ret;
 }
 
-int tool::gsc::dumpdataset(const process& proc, int argc, const char* argv[]) {
+int tool::gsc::dumpdataset(const Process& proc, int argc, const char* argv[]) {
     hashutils::ReadDefaultFile();
     // scriptparsetree] [output=dataset.txt]
     LPCCH inputFile = "scriptparsetree";
@@ -768,7 +768,7 @@ void tool::gsc::T8GSCOBJ::PatchCode(T8GSCOBJContext& ctx) {
     for (size_t i = 0; i < string_count; i++) {
 
         const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-        LPCH cstr = tool::decrypt::decryptfunc(reinterpret_cast<LPCH>(&magic[str->string]));
+        LPCH cstr = tool::decrypt::DecryptString(reinterpret_cast<LPCH>(&magic[str->string]));
         UINT32 ref = ctx.AddStringValue(cstr);
 
         const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
@@ -780,7 +780,7 @@ void tool::gsc::T8GSCOBJ::PatchCode(T8GSCOBJContext& ctx) {
     }
 }
 
-int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx) const {
+int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx) const {
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
@@ -821,7 +821,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
             // pass the opcode
             base += 2;
 
-            // update asmcontext::WritePadding if you change the format
+            // update ASMContext::WritePadding if you change the format
 
             auto ret = handler->Dump(out, opCode, ctx, objctx);
 
@@ -838,7 +838,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
 }
 
 
-int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx, opcode::decompcontext& dctxt) const {
+int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const {
     using namespace tool::gsc::opcode;
     UINT16 code = *(UINT16*)ctx.Aligned<UINT16>();
     // main reading loop
@@ -1035,7 +1035,7 @@ End
 }
 
 
-void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx, int padding) const {
+void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding) const {
     bool classMember = flags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
     if (ctx.m_opt.m_func_header) {
@@ -1125,7 +1125,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
             }
             if (lvar.defaultValueNode) {
                 asmout << " = ";
-                opcode::decompcontext dctx = { 0, 0, ctx };
+                opcode::DecompContext dctx = { 0, 0, ctx };
                 lvar.defaultValueNode->Dump(asmout, dctx);
             }
         }
@@ -1133,7 +1133,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
     asmout << ")";
 }
 
-int tool::gsc::gscinfo(const process& proc, int argc, const char* argv[]) {
+int tool::gsc::gscinfo(const Process& proc, int argc, const char* argv[]) {
     GscInfoOption opt{};
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {

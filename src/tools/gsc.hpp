@@ -49,21 +49,21 @@ namespace tool::gsc {
     class T8GSCOBJContext;
 
     namespace opcode {
-        class asmcontext;
-        class opcodeinfo;
-        class asmcontextnodeblock;
+        class ASMContext;
+        class OPCodeInfo;
+        class ASMContextNodeBlock;
 
-        struct decompcontext {
+        struct DecompContext {
             int padding = 0;
             int rloc = 0;
-            const asmcontext& asmctx;
+            const ASMContext& asmctx;
 
             std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc);
             inline std::ostream& WritePadding(std::ostream& out) {
                 return WritePadding(out, false);
             }
         };
-        enum asmcontextnode_priority : UINT {
+        enum ASMContextNodePriority : UINT {
             PRIORITY_INST,
 
             PRIORITY_SET,
@@ -88,7 +88,7 @@ namespace tool::gsc {
 
             PRIORITY_VALUE
         };
-        enum asmcontextnode_type : UINT {
+        enum ASMContextNodeType : UINT {
             TYPE_BLOCK,
             TYPE_STATEMENT,
             TYPE_DO_WHILE,
@@ -135,7 +135,7 @@ namespace tool::gsc {
 
         };
 
-        inline bool IsJumpType(asmcontextnode_type type) {
+        inline bool IsJumpType(ASMContextNodeType type) {
             switch (type) {
             case TYPE_JUMP:
             case TYPE_JUMP_ONFALSE:
@@ -152,7 +152,7 @@ namespace tool::gsc {
             }
         }
 
-        inline bool IsNoParamJumpType(asmcontextnode_type type) {
+        inline bool IsNoParamJumpType(ASMContextNodeType type) {
             switch (type) {
             case TYPE_JUMP:
             case TYPE_JUMP_DEVBLOCK:
@@ -167,51 +167,51 @@ namespace tool::gsc {
             VARIADIC = 0x02
         };
 
-        class opcodeinfo {
+        class OPCodeInfo {
         public:
-            opcode m_id;
+            OPCode m_id;
             LPCCH m_name;
 
-            opcodeinfo(opcode id, LPCCH name);
-            virtual int Dump(std::ostream& out, UINT16 value, asmcontext& context, T8GSCOBJContext& objctx) const;
+            OPCodeInfo(OPCode id, LPCCH name);
+            virtual int Dump(std::ostream& out, UINT16 value, ASMContext& context, T8GSCOBJContext& objctx) const;
         };
-        class asmcontextnode {
+        class ASMContextNode {
         public:
-            asmcontextnode_priority m_priority;
-            asmcontextnode_type m_type;
+            ASMContextNodePriority m_priority;
+            ASMContextNodeType m_type;
             bool m_renderRefIfAny = true;
             bool m_renderSemicolon = true;
 
-            asmcontextnode(asmcontextnode_priority priority, asmcontextnode_type type = TYPE_UNDEFINED);
-            virtual ~asmcontextnode();
-            virtual void Dump(std::ostream& out, decompcontext& ctx) const;
-            virtual asmcontextnode* Clone() const;
+            ASMContextNode(ASMContextNodePriority priority, ASMContextNodeType type = TYPE_UNDEFINED);
+            virtual ~ASMContextNode();
+            virtual void Dump(std::ostream& out, DecompContext& ctx) const;
+            virtual ASMContextNode* Clone() const;
 
-            virtual void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>&, asmcontext& ctx);
+            virtual void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx);
         };
 
-        class asmcontextlocationop{
+        class ASMContextLocationOp{
         public:
-            virtual ~asmcontextlocationop();
-            virtual void Run(asmcontext& context, T8GSCOBJContext& objctx) const;
+            virtual ~ASMContextLocationOp();
+            virtual void Run(ASMContext& context, T8GSCOBJContext& objctx) const;
         };
 
         struct asmcontextlocation {
             INT32 rloc = 0;
             bool handled = false;
             std::set<INT32> refs{};
-            asmcontextnode* objectId = nullptr;
-            asmcontextnode* fieldId = nullptr;
-            std::vector<asmcontextnode*> m_stack{};
-            std::vector<asmcontextlocationop*> m_lateop{};
+            ASMContextNode* objectId = nullptr;
+            ASMContextNode* fieldId = nullptr;
+            std::vector<ASMContextNode*> m_stack{};
+            std::vector<ASMContextLocationOp*> m_lateop{};
             asmcontextlocation();
             ~asmcontextlocation();
 
             void RemoveRef(INT32 origin);
         };
 
-        struct asmcontextstatement {
-            asmcontextnode* node = nullptr;
+        struct ASMContextStatement {
+            ASMContextNode* node = nullptr;
             asmcontextlocation* location;
         };
 
@@ -221,33 +221,33 @@ namespace tool::gsc {
             BLOCK_PADDING
         };
 
-        class asmcontextnodeblock : public asmcontextnode {
+        class ASMContextNodeBlock : public ASMContextNode {
         public:
-            std::vector<asmcontextstatement> m_statements{};
+            std::vector<ASMContextStatement> m_statements{};
             nodeblocktype m_blockType;
-            asmcontextnodeblock(nodeblocktype blockType = BLOCK_DEFAULT);
-            ~asmcontextnodeblock();
-            void Dump(std::ostream& out, decompcontext& ctx) const override;
-            asmcontextnode* Clone() const override;
-            int ComputeDevBlocks(asmcontext& ctx);
-            int ComputeForEachBlocks(asmcontext& ctx);
-            int ComputeForBlocks(asmcontext& ctx);
-            int ComputeWhileBlocks(asmcontext& ctx);
-            int ComputeIfBlocks(asmcontext& ctx);
-            int ComputeSwitchBlocks(asmcontext& ctx);
+            ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT);
+            ~ASMContextNodeBlock();
+            void Dump(std::ostream& out, DecompContext& ctx) const override;
+            ASMContextNode* Clone() const override;
+            int ComputeDevBlocks(ASMContext& ctx);
+            int ComputeForEachBlocks(ASMContext& ctx);
+            int ComputeForBlocks(ASMContext& ctx);
+            int ComputeWhileBlocks(ASMContext& ctx);
+            int ComputeIfBlocks(ASMContext& ctx);
+            int ComputeSwitchBlocks(ASMContext& ctx);
 
-            asmcontextstatement* FetchFirstForLocation(INT64 rloc);
+            ASMContextStatement* FetchFirstForLocation(INT64 rloc);
 
-            void ApplySubBlocks(const std::function<void(asmcontextnodeblock* block, asmcontext& ctx)>&, asmcontext& ctx) override;
+            void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx) override;
         };
 
-        struct asmcontextlocalvar {
+        struct ASMContextLocalVar {
             UINT32 name;
             BYTE flags;
-            asmcontextnode* defaultValueNode = nullptr;
+            ASMContextNode* defaultValueNode = nullptr;
         };
 
-        class asmcontext {
+        class ASMContext {
         public:
             // cli opt
             const GscInfoOption& m_opt;
@@ -264,15 +264,15 @@ namespace tool::gsc {
             // export namespace
             UINT32 m_namespace;
             // current objectid
-            asmcontextnode* m_objectId = nullptr;
+            ASMContextNode* m_objectId = nullptr;
             // current fieldid
-            asmcontextnode* m_fieldId = nullptr;
+            ASMContextNode* m_fieldId = nullptr;
             // context stack
-            std::vector<asmcontextnode*> m_stack{};
+            std::vector<ASMContextNode*> m_stack{};
             // decompiled nodes
-            asmcontextnodeblock m_funcBlock;
+            ASMContextNodeBlock m_funcBlock;
             // local vars
-            std::vector<asmcontextlocalvar> m_localvars{};
+            std::vector<ASMContextLocalVar> m_localvars{};
             // local vars ref
             std::unordered_map<UINT32, INT32> m_localvars_ref{};
             // export
@@ -280,8 +280,8 @@ namespace tool::gsc {
             // file vm
             BYTE m_vm;
 
-            asmcontext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm);
-            ~asmcontext();
+            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm);
+            ~ASMContext();
 
             // @return relative location in the function
             inline INT32 FunctionRelativeLocation() {
@@ -318,7 +318,7 @@ namespace tool::gsc {
              * @param opcode op code
              * @return handler
              */
-            inline const tool::gsc::opcode::opcodeinfo* LookupOpCode(UINT16 opcode) {
+            inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(UINT16 opcode) {
                 return tool::gsc::opcode::LookupOpCode(m_vm, opcode);
             }
 
@@ -330,46 +330,46 @@ namespace tool::gsc {
             int GetLocalVarIdByName(UINT32 name) const;
 
             /*
-             * Push an asmcontext (ASMC) node on the stack
+             * Push an ASMContext (ASMC) node on the stack
              * @param node Node
              */
-            void PushASMCNode(asmcontextnode* node);
+            void PushASMCNode(ASMContextNode* node);
 
             /*
-             * Pop an asmcontext (ASMC) node from the stack
+             * Pop an ASMContext (ASMC) node from the stack
              * @return Node
              */
-            asmcontextnode* PopASMCNode();
+            ASMContextNode* PopASMCNode();
 
             /*
-             * Peek an asmcontext (ASMC) node from the stack
+             * Peek an ASMContext (ASMC) node from the stack
              * @return Node
              */
-            asmcontextnode* PeekASMCNode();
+            ASMContextNode* PeekASMCNode();
 
             /*
              * Free the previous ObjectId ASCM node and put a new node
              * @param node Nullable node
              */
-            void SetObjectIdASMCNode(asmcontextnode* node);
+            void SetObjectIdASMCNode(ASMContextNode* node);
 
             /*
              * Free the previous FieldId ASCM node and put a new node
              * @param node Nullable node
              */
-            void SetFieldIdASMCNode(asmcontextnode* node);
+            void SetFieldIdASMCNode(ASMContextNode* node);
 
             /*
              * Get the previous ObjectId ASCM node and put a new node
              * @param node Nullable node
              */
-            asmcontextnode* GetObjectIdASMCNode();
+            ASMContextNode* GetObjectIdASMCNode();
 
             /*
              * Get the previous FieldId ASCM node and put a new node
              * @param node Nullable node
              */
-            asmcontextnode* GetFieldIdASMCNode();
+            ASMContextNode* GetFieldIdASMCNode();
 
             /*
              * Complete any statement on the ASCM stack
@@ -384,43 +384,43 @@ namespace tool::gsc {
             /*
              * Compute the dev blocks
              */
-            inline void ComputeDevBlocks(asmcontext& ctx) {
+            inline void ComputeDevBlocks(ASMContext& ctx) {
                 m_funcBlock.ComputeDevBlocks(ctx);
             }
             /*
              * Compute the switch blocks
              */
-            inline void ComputeSwitchBlocks(asmcontext& ctx) {
+            inline void ComputeSwitchBlocks(ASMContext& ctx) {
                 m_funcBlock.ComputeSwitchBlocks(ctx);
             }
             /*
              * Compute the for blocks
              */
-            inline void ComputeForBlocks(asmcontext& ctx) {
+            inline void ComputeForBlocks(ASMContext& ctx) {
                 m_funcBlock.ComputeForBlocks(ctx);
             }
             /*
              * Compute the for each blocks
              */
-            inline void ComputeForEachBlocks(asmcontext& ctx) {
+            inline void ComputeForEachBlocks(ASMContext& ctx) {
                 m_funcBlock.ComputeForEachBlocks(ctx);
             }
             /*
              * Compute the while blocks
              */
-            inline void ComputeWhileBlocks(asmcontext& ctx) {
+            inline void ComputeWhileBlocks(ASMContext& ctx) {
                 m_funcBlock.ComputeWhileBlocks(ctx);
             }
             /*
              * Compute the if blocks
              */
-            inline void ComputeIfBlocks(asmcontext& ctx) {
+            inline void ComputeIfBlocks(ASMContext& ctx) {
                 m_funcBlock.ComputeIfBlocks(ctx);
             }
             /*
              * Dump the function block
              */
-            inline void Dump(std::ostream& out, decompcontext& ctx) const {
+            inline void Dump(std::ostream& out, DecompContext& ctx) const {
                 m_funcBlock.Dump(out, ctx);
             }
         };
@@ -538,9 +538,9 @@ namespace tool::gsc {
         UINT8 flags;
         UINT16 padding;
 
-        void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx, int padding = 0) const;
-        int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx) const;
-        int DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx, opcode::decompcontext& dctxt) const;
+        void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0) const;
+        int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx) const;
+        int DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const;
     };
 
     enum T8GSCExportFlags : UINT8 {
@@ -577,6 +577,6 @@ namespace tool::gsc {
         UINT16 pad;
     };
 
-    int gscinfo(const process& proc, int argc, const char* argv[]);
-    int dumpdataset(const process& proc, int argc, const char* argv[]);
+    int gscinfo(const Process& proc, int argc, const char* argv[]);
+    int dumpdataset(const Process& proc, int argc, const char* argv[]);
 }
