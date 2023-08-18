@@ -3457,6 +3457,7 @@ void asmcontext::CompleteStatement() {
 }
 
 #pragma endregion
+#pragma region asm_block
 
 std::ostream& decompcontext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 	if (asmctx.m_opt.m_func_rloc) {
@@ -3471,9 +3472,7 @@ std::ostream& decompcontext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 		}
 		out << "*/";
 	}
-	for (size_t i = 0; i < padding; i++) {
-		out << "    ";
-	}
+	utils::Padding(out, padding);
 	return out;
 }
 
@@ -3851,7 +3850,6 @@ asmcontextnode* JumpCondition(asmcontextnode_JumpOperator* op, bool reversed) {
 		return nullptr;
 	}
 }
-
 
 int asmcontextnodeblock::ComputeForEachBlocks(asmcontext& ctx) {
 	/*
@@ -4261,40 +4259,34 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 									if (!j->m_special_op) {
 										j->m_operatorName = "break";
 										j->m_special_op = SPECIAL_JUMP_BREAK;
+										j->m_showJump = false;
 									}
 									if (ref->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										assert(endLocation); // it would mean breakLoc was set
 										endLocation->RemoveRef(j->m_opLoc);
 									}
-									else {
-										j->m_showJump = true;
-									}
 								}
 								else if (j->m_location == continueLoc) {
 									if (!j->m_special_op) {
 										j->m_operatorName = "continue";
 										j->m_special_op = SPECIAL_JUMP_CONTINUE;
+										j->m_showJump = false;
 									}
 									if (ref->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										continueLocation->RemoveRef(j->m_opLoc);
-									}
-									else {
-										j->m_showJump = true;
 									}
 								}
 								else if (j->m_location == jumpOp->m_location) {
 									if (!j->m_special_op) {
 										j->m_operatorName = "continue";
 										j->m_special_op = SPECIAL_JUMP_CONTINUE;
+										j->m_showJump = false;
 									}
 									if (ref->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										firstNodeLocation->RemoveRef(j->m_opLoc);
-									}
-									else {
-										j->m_showJump = true;
 									}
 								}
 							}
@@ -4380,26 +4372,24 @@ int asmcontextnodeblock::ComputeWhileBlocks(asmcontext& ctx) {
 									if (!j->m_special_op) {
 										j->m_operatorName = "break";
 										j->m_special_op = SPECIAL_JUMP_BREAK;
+										//j->m_showJump = true;
+										j->m_showJump = false;
 									}
 									if (stmt.node->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										endLocation->RemoveRef(j->m_opLoc);
-									}
-									else {
-										j->m_showJump = true;
 									}
 								}
 								else if (j->m_location == continueLoc) {
 									if (!j->m_special_op) {
 										j->m_operatorName = "continue";
 										j->m_special_op = SPECIAL_JUMP_CONTINUE;
+										//j->m_showJump = true;
+										j->m_showJump = false;
 									}
 									if (stmt.node->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										condLocation->RemoveRef(j->m_opLoc);
-									}
-									else {
-										j->m_showJump = true;
 									}
 								}
 							}
@@ -4474,8 +4464,7 @@ int asmcontextnodeblock::ComputeIfBlocks(asmcontext& ctx) {
 			continue;
 		}
 
-		auto elsePartNode = m_statements[endIndex];
-		auto* elsePartNodeLoc = elsePartNode.location;
+		auto* elsePartNodeLoc = m_statements[endIndex].location;
 
 		if (elsePartNodeLoc->rloc != elsePart) {
 			index++; // bad jump? (ternaries aren't made when I'm writing that)
@@ -4667,3 +4656,5 @@ int asmcontextnodeblock::ComputeForBlocks(asmcontext& ctx) {
 
 	return 0;
 }
+
+#pragma endregion

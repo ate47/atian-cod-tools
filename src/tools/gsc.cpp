@@ -2,6 +2,9 @@
 
 using namespace tool::gsc;
 
+static UINT32 g_constructorName = hashutils::Hash32("__constructor");
+static UINT32 g_destructorName = hashutils::Hash32("__destructor");
+
 bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
     // default values
     for (size_t i = startIndex; i < endIndex; i++) {
@@ -126,11 +129,6 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
     T8GSCOBJContext ctx{};
 
-    if (opt.m_patch) {
-        // unlink the script and write custom gvar/string ids
-        data->PatchCode(ctx);
-    }
-
     char asmfnamebuff[1000];
 
     if (opt.m_outputDir) {
@@ -177,6 +175,56 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             << std::flush;
     }
 
+    // write the strings before the patch to avoid reading pre-decrypted strings
+    if (opt.m_strings) {
+        uintptr_t str_location = reinterpret_cast<uintptr_t>(data->magic) + data->string_offset;
+
+        for (size_t i = 0; i < data->string_count; i++) {
+
+            const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+
+            asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << ", type:" << (int)str->type << "\n";
+
+            LPCH encryptedString = reinterpret_cast<LPCH>(&data->magic[str->string]);
+
+            size_t len = (size_t)reinterpret_cast<BYTE*>(encryptedString)[1] - 1;
+            BYTE type = *reinterpret_cast<BYTE*>(encryptedString);
+
+            asmout << "encryption: 0x" << std::hex << (int)type << " len: " << std::dec << len << " -> " << std::flush;
+
+            LPCH cstr = tool::decrypt::decryptfunc(encryptedString);
+
+            asmout << '"' << cstr << "\"";
+
+            size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
+
+            if (lenAfterDecrypt != len) {
+                asmout << " ERROR LEN (" << std::dec << lenAfterDecrypt << " != " << len << " for type 0x" << std::hex << (int)type << ")";
+                assert(false);
+            }
+
+            asmout << "\n";
+
+            asmout << "location(s): ";
+
+            const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
+            asmout << std::hex << strings[0];
+            for (size_t j = 1; j < str->num_address; j++) {
+                asmout << std::hex << "," << strings[j];
+            }
+            asmout << "\n";
+            str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
+        }
+        if (data->string_count) {
+            asmout << "\n";
+        }
+    }
+
+    if (opt.m_patch) {
+        // unlink the script and write custom gvar/string ids
+        data->PatchCode(ctx);
+    }
+
     if (opt.m_includes) {
         UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
 
@@ -219,34 +267,6 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
         }
         if (data->globalvar_count) {
-            asmout << "\n";
-        }
-    }
-
-    if (opt.m_strings) {
-        uintptr_t str_location = reinterpret_cast<uintptr_t>(data->magic) + data->string_offset;
-
-        for (size_t i = 0; i < data->string_count; i++) {
-
-            const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-
-            asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << ", type:" << (int)str->type << "\n";
-
-            LPCH cstr = tool::decrypt::decryptfunc(reinterpret_cast<LPCH>(&data->magic[str->string]));
-
-            asmout << '"' << cstr << "\"\n";
-
-            asmout << "location(s): ";
-
-            const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
-            asmout << std::hex << strings[0];
-            for (size_t j = 1; j < str->num_address; j++) {
-                asmout << std::hex << "," << strings[j];
-            }
-            asmout << "\n";
-            str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
-        }
-        if (data->string_count) {
             asmout << "\n";
         }
     }
@@ -318,20 +338,37 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         UINT32 currentNSP = 0;
 
         auto* exports = reinterpret_cast<T8GSCExport*>(&data->magic[data->export_table_offset]);
+        std::unordered_map<UINT64, opcode::asmcontext> contextes{};
 
         for (size_t i = 0; i < data->exports_count; i++) {
             const auto& exp = exports[i];
-            if (exp.name_space != currentNSP) {
-                currentNSP = exp.name_space;
-                asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
-            }
-
-            auto asmctx = opcode::asmcontext(&data->magic[exp.address], opt, currentNSP, exp, data->GetVm());
 
             std::ofstream nullstream;
             nullstream.setstate(std::ios_base::badbit);
 
+            // if we aren't dumping the ASM, we compute all the nodes first
             std::ostream& output = opt.m_dasm ? asmout : nullstream;
+
+            if (exp.name_space != currentNSP) {
+                currentNSP = exp.name_space;
+
+                if (opt.m_dasm) {
+                    output << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
+                }
+            }
+
+            UINT64 rname = utils::CatLocated(exp.name_space, exp.name);
+
+            auto r = contextes.try_emplace(rname, &data->magic[exp.address], opt, currentNSP, exp, data->GetVm());
+
+            if (!r.second) {
+                asmout << "Duplicate node "
+                    << hashutils::ExtractTmp("namespace", exp.name_space) << std::flush << "::"
+                    << hashutils::ExtractTmp("function", exp.name) << std::endl;
+                continue;
+            }
+
+            auto& asmctx = r.first->second;
 
             exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
 
@@ -341,41 +378,131 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             output << "}\n";
 
-            std::ostream& outputdecomp = opt.m_dcomp ? asmout : nullstream;
 
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
                 asmctx.ComputeDefaultParamValue();
-                exp.DumpFunctionHeader(outputdecomp, data->magic, ctx, asmctx);
-                outputdecomp << std::flush;
-                opcode::decompcontext dctx{0, 0, asmctx};
+                if (opt.m_dasm || opt.m_func_header_post) {
+                    exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
+                }
+                output << std::flush;
+                opcode::decompcontext dctx{ 0, 0, asmctx };
                 if (opt.m_dcomp) {
                     if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = &data->magic[exp.address];
-                        outputdecomp << " {\n";
-                        exp.DumpVTable(outputdecomp, data->magic, ctx, asmctx, dctx);
-                        outputdecomp << "}\n";
+                        output << " {\n";
+                        exp.DumpVTable(output, data->magic, ctx, asmctx, dctx);
+                        output << "}\n";
                     }
                     else {
                         asmctx.ComputeDevBlocks(asmctx);
                         asmctx.ComputeSwitchBlocks(asmctx);
-                        if (opt.m_show_pre_dump) {
-                            outputdecomp << " PREDUMP:";
-                            asmctx.Dump(outputdecomp, dctx);
-                            outputdecomp << " \nrealdump:";
-                        }
-                        outputdecomp << " "; // padding between block/parameters
                         asmctx.ComputeForEachBlocks(asmctx);
                         asmctx.ComputeWhileBlocks(asmctx);
                         asmctx.ComputeIfBlocks(asmctx);
                         asmctx.ComputeForBlocks(asmctx);
-                        asmctx.Dump(outputdecomp, dctx);
+                        if (opt.m_dasm) {
+                            asmctx.Dump(output, dctx);
+                        }
                     }
                 }
                 else {
-                    outputdecomp << ";\n";
+                    output << ";\n";
                 }
             }
-            asmout << "\n";
+            output << "\n";
+        }
+
+        if (!opt.m_dasm && opt.m_dcomp) {
+            // current namespace
+            currentNSP = 0;
+
+            for (const auto& [name, cls] : ctx.m_classes) {
+                if (cls.name_space != currentNSP) {
+                    currentNSP = cls.name_space;
+
+                    asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
+                }
+
+                asmout << "// Namespace " << hashutils::ExtractTmp("namespace", cls.name_space) << std::endl;
+                asmout << "// Method(s) " << std::dec << cls.m_methods.size() << " Total "  << cls.m_vtable.size() << "\n";
+                asmout << "class " << hashutils::ExtractTmp("class", name) << std::flush;
+
+                if (cls.m_superClass.size()) {
+                    // write superclasses
+                    asmout << " : ";
+                    auto it = cls.m_superClass.begin();
+                    asmout << hashutils::ExtractTmp("class", *it) << std::flush;
+                    it++;
+
+                    while (it != cls.m_superClass.end()) {
+                        asmout << ", " << hashutils::ExtractTmp("class", *it) << std::flush;
+                        it++;
+                    }
+                }
+                asmout << " {\n\n";
+
+                
+
+                auto handleMethod = [&contextes, &asmout, name, data, &ctx](UINT32 method) -> void {
+                    auto lname = utils::CatLocated(name, method);
+
+                    auto masmctxit = contextes.find(lname);
+
+                    if (masmctxit == contextes.end()) {
+                        return;
+                    }
+
+                    auto& e = masmctxit->second;
+
+                    e.m_exp.DumpFunctionHeader(asmout, data->magic, ctx, e, 1);
+                    asmout << " ";
+                    opcode::decompcontext dctx{ 1, 0, e };
+                    e.Dump(asmout, dctx);
+                    asmout << "\n";
+
+                    contextes.erase(masmctxit);
+                };
+
+                // handle first the constructor/destructor
+                handleMethod(g_constructorName);
+                handleMethod(g_destructorName);
+
+                for (const auto& method : cls.m_methods) {
+                    handleMethod(method);
+                }
+
+                asmout << "}\n\n";
+            }
+
+            for (size_t i = 0; i < data->exports_count; i++) {
+                const auto& exp = exports[i];
+
+                if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
+                    continue;
+                }
+
+                UINT64 lname = utils::CatLocated(exp.name_space, exp.name);
+
+                auto f = contextes.find(lname);
+
+                if (f == contextes.end()) {
+                    continue; // already parsed
+                }
+
+                if (exp.name_space != currentNSP) {
+                    currentNSP = exp.name_space;
+
+                    asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
+                }
+
+                auto& asmctx = f->second;
+
+                exp.DumpFunctionHeader(asmout, data->magic, ctx, asmctx);
+                asmout << " ";
+                opcode::decompcontext dctx{ 0, 0, asmctx };
+                asmctx.Dump(asmout, dctx);
+                asmout << "\n";
+            }
         }
     }
 
@@ -769,6 +896,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
     UINT32 name = *(UINT32*)clsName; // __vtable
 
     auto& cls = objctx.m_classes[name];
+    cls.name_space = name_space;
 
     clsName += 4;
 
@@ -853,7 +981,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
         }
 
         if (methodClsName == name) {
-            cls.m_methods.emplace(methodName);
+            cls.m_methods.push_back(methodName);
         }
         else {
             cls.m_superClass.emplace(methodClsName);
@@ -906,14 +1034,15 @@ End
     return 0;
 }
 
-void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx) const {
+
+void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx, int padding) const {
     bool classMember = flags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
     if (ctx.m_opt.m_func_header) {
-        asmout << "// Namespace "
+        utils::Padding(asmout, padding) << "// Namespace "
             << hashutils::ExtractTmp(classMember ? "class" : "namespace", name_space) << std::flush << "/"
             << hashutils::ExtractTmp((flags & T8GSCExportFlags::EVENT) ? "event" : "namespace", callback_event) << std::endl;
-        asmout << "// Params " << (int)param_count << ", eflags: 0x" << std::hex << (int)flags;
+        utils::Padding(asmout, padding) << "// Params " << (int)param_count << ", eflags: 0x" << std::hex << (int)flags;
 
         if (flags == T8GSCExportFlags::CLASS_VTABLE) {
             asmout << " vtable";
@@ -928,18 +1057,26 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
         }
 
         asmout << std::endl;
-        asmout << std::hex << "// Checksum 0x" << checksum << ", Offset: 0x" << (int)address << std::endl;
+        utils::Padding(asmout, padding) << std::hex << "// Checksum 0x" << checksum << ", Offset: 0x" << (int)address << std::endl;
 
         auto size = ctx.FinalSize();
         if (size > 2) { // at least one opcode
-            asmout << std::hex << "// Size: 0x" << size << "\n";
+            utils::Padding(asmout, padding) << std::hex << "// Size: 0x" << size << "\n";
         }
     }
 
     if (flags == T8GSCExportFlags::CLASS_VTABLE) {
-        asmout << "vtable " << hashutils::ExtractTmp("class", name);
+        utils::Padding(asmout, padding) << "vtable " << hashutils::ExtractTmp("class", name);
     } else {
-        asmout << "function ";
+
+        bool specialClassMember = !ctx.m_opt.m_dasm && classMember && 
+            ((flags & T8GSCExportFlags::CLASS_DESTRUCTOR) || g_constructorName == name);
+
+        utils::Padding(asmout, padding);
+
+        if (!specialClassMember) {
+            asmout << "function ";
+        }
         if (flags & T8GSCExportFlags::AUTOEXEC) {
             asmout << "autoexec ";
         }
@@ -950,13 +1087,13 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
             asmout << "private ";
         }
 
-        if (flags & T8GSCExportFlags::CLASS_DESTRUCTOR) {
-            const auto* cls = hashutils::ExtractTmp("class", name_space);
-            asmout << cls << "::~";
-        }
-        else if (classMember) {
+        if (ctx.m_opt.m_dasm && (classMember || (flags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
             asmout << hashutils::ExtractTmp("class", name_space)
                 << std::flush << "::";
+
+            if (flags & T8GSCExportFlags::CLASS_DESTRUCTOR) {
+                asmout << "~";
+            }
         }
 
         asmout << hashutils::ExtractTmp("function", name);

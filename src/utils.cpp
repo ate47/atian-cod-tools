@@ -80,3 +80,20 @@ bool utils::WriteFile(const std::filesystem::path& path, LPCVOID ptr, size_t siz
     out.close();
     return true;
 }
+
+std::ostream& utils::Padding(std::ostream& out, int padding) {
+    for (size_t i = 0; i < padding; i++) {
+        out << "    ";
+    }
+    return out;
+}
+
+UINT64 utils::CatLocated(UINT32 name_space, UINT32 local) {
+    return ((UINT64)local << 32) | name_space;
+}
+
+std::pair<UINT32, UINT32> utils::UnCatLocated(UINT64 located) {
+    UINT32 name_space = (located << 32) >> 32;
+    UINT32 local = located >> 32;
+    return std::make_pair<>(name_space, local);
+}

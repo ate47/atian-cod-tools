@@ -430,8 +430,9 @@ namespace tool::gsc {
         UINT32 nsp;
     };
     struct gscclass {
+        UINT32 name_space = 0;
         std::set<UINT32> m_superClass{};
-        std::set<UINT32> m_methods{};
+        std::vector<UINT32> m_methods{};
         std::unordered_map<UINT64, asmcontext_func> m_vtable{};
     };
     // Result context for T8GSCOBJ::PatchCode
@@ -537,7 +538,7 @@ namespace tool::gsc {
         UINT8 flags;
         UINT16 padding;
 
-        void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx) const;
+        void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx, int padding = 0) const;
         int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::asmcontext& asmctx) const;
         int DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::asmcontext& ctx, opcode::decompcontext& dctxt) const;
     };
