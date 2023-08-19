@@ -70,6 +70,44 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--refcount", arg)) {
             m_show_ref_count = true;
         }
+        else if (!strcmp("-i", arg) || !_strcmpi("--ignore", arg)) {
+            if (i + 1 == endIndex) {
+                std::cerr << "Missing value for param: " << arg << "!\n";
+                return false;
+            }
+
+            for (const char* param = args[++i]; *param; param++) {
+                switch (*param) {
+                case 'd':
+                case 'D':
+                    m_stepskip |= STEPSKIP_DEV;
+                    break;
+                case 's':
+                case 'S':
+                    m_stepskip |= STEPSKIP_SWITCH;
+                    break;
+                case 'e':
+                case 'E':
+                    m_stepskip |= STEPSKIP_FOREACH;
+                    break;
+                case 'w':
+                case 'W':
+                    m_stepskip |= STEPSKIP_WHILE;
+                    break;
+                case 'i':
+                case 'I':
+                    m_stepskip |= STEPSKIP_IF;
+                    break;
+                case 'f':
+                case 'F':
+                    m_stepskip |= STEPSKIP_FOR;
+                    break;
+                default:
+                    std::cerr << "Bad param for " << arg << ": '" << *param << "'!\n";
+                    return false;
+                }
+            }
+        }
         else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
             if (i + 1 == endIndex) {
                 std::cerr << "Missing value for param: " << arg << "!\n";
@@ -394,13 +432,26 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                         output << "}\n";
                     }
                     else {
-                        asmctx.ComputeDevBlocks(asmctx);
-                        asmctx.ComputeSwitchBlocks(asmctx);
-                        asmctx.ComputeForEachBlocks(asmctx);
-                        asmctx.ComputeWhileBlocks(asmctx);
-                        asmctx.ComputeIfBlocks(asmctx);
-                        asmctx.ComputeForBlocks(asmctx);
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_DEV)) {
+                            asmctx.ComputeDevBlocks(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_SWITCH)) {
+                            asmctx.ComputeSwitchBlocks(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_FOREACH)) {
+                            asmctx.ComputeForEachBlocks(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_WHILE)) {
+                            asmctx.ComputeWhileBlocks(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_IF)) {
+                            asmctx.ComputeIfBlocks(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_FOR)) {
+                            asmctx.ComputeForBlocks(asmctx);
+                        }
                         if (opt.m_dasm) {
+                            output << " ";
                             asmctx.Dump(output, dctx);
                         }
                     }

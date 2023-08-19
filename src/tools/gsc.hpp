@@ -3,7 +3,14 @@
 #include <includes.hpp>
 
 namespace tool::gsc {
-
+    enum GscInfoOptionStepSkip {
+        STEPSKIP_DEV = 1,
+        STEPSKIP_SWITCH = 2,
+        STEPSKIP_FOREACH = 4,
+        STEPSKIP_WHILE = 8,
+        STEPSKIP_IF = 0x10,
+        STEPSKIP_FOR = 0x20,
+    };
     // cli options
     class GscInfoOption {
     public:
@@ -29,6 +36,7 @@ namespace tool::gsc {
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;
         bool m_show_func_vars = false;
+        UINT32 m_stepskip = 0;
 
         std::vector<LPCCH> m_inputFiles{};
         /*
@@ -67,6 +75,7 @@ namespace tool::gsc {
             PRIORITY_INST,
 
             PRIORITY_SET,
+            PRIORITY_TERNARY,
 
             PRIORITY_BOOL_OR,
             PRIORITY_BOOL_AND,
@@ -96,6 +105,7 @@ namespace tool::gsc {
             TYPE_FOR,
             TYPE_FOR_EACH,
             TYPE_IF,
+            TYPE_TERNARY,
             TYPE_IDENTIFIER,
 
             TYPE_JUMP,
@@ -131,8 +141,9 @@ namespace tool::gsc {
             TYPE_RETURN,
             TYPE_NEW,
 
-            TYPE_UNDEFINED
+            TYPE_UNDEFINED,
 
+            TYPE_JUMP_STACK_TOP
         };
 
         inline bool IsJumpType(ASMContextNodeType type) {
@@ -181,6 +192,7 @@ namespace tool::gsc {
             ASMContextNodeType m_type;
             bool m_renderRefIfAny = true;
             bool m_renderSemicolon = true;
+            INT32 m_rlocEstimated = -1;
 
             ASMContextNode(ASMContextNodePriority priority, ASMContextNodeType type = TYPE_UNDEFINED);
             virtual ~ASMContextNode();

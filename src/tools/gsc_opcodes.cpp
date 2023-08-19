@@ -463,6 +463,59 @@ public:
 	}
 };
 
+class ASMContextNodeTernary : public ASMContextNode {
+public:
+	ASMContextNode* m_operand1;
+	ASMContextNode* m_operand2;
+	ASMContextNode* m_operand3;
+	ASMContextNodeTernary(ASMContextNode* operand1, ASMContextNode* operand2, ASMContextNode* operand3) :
+		ASMContextNode(PRIORITY_TERNARY, TYPE_TERNARY), m_operand1(operand1), m_operand2(operand2), m_operand3(operand3) {
+	}
+	~ASMContextNodeTernary() {
+		delete m_operand1;
+		delete m_operand2;
+		delete m_operand3;
+	}
+
+	ASMContextNode* Clone() const override {
+		return new ASMContextNodeTernary(m_operand1->Clone(), m_operand2->Clone(), m_operand3->Clone());
+	}
+
+	void Dump(std::ostream& out, DecompContext& ctx) const override {
+		if (m_operand1->m_priority < m_priority) {
+			out << "(";
+			m_operand1->Dump(out, ctx);
+			out << ")";
+		}
+		else {
+			m_operand1->Dump(out, ctx);
+		}
+
+		out << " ? ";
+
+		if (m_operand2->m_priority < m_priority) {
+			out << "(";
+			m_operand2->Dump(out, ctx);
+			out << ")";
+		}
+		else {
+			m_operand2->Dump(out, ctx);
+		}
+
+		out << " : ";
+
+		if (m_operand3->m_priority < m_priority) {
+			out << "(";
+			m_operand3->Dump(out, ctx);
+			out << ")";
+		}
+		else {
+			m_operand3->Dump(out, ctx);
+		}
+
+	}
+};
+
 class ASMContextNodeOp2 : public ASMContextNode {
 public:
 	LPCCH m_description;
@@ -669,18 +722,27 @@ public:
 		}
 
 		if (m_operand) {
-			if (fakeIf) {
-				out << "if ";
+			if (m_operand->m_type != TYPE_JUMP_STACK_TOP) {
+				if (fakeIf) {
+					out << "if ";
+				}
+				out << "(";
+				m_operand->Dump(out, ctx);
+				out << ")";
+				if (fakeIf) {
+					out << " {\n";
+					ctx.padding++;
+					ctx.WritePadding(out);
+					out << m_operatorName;
+				}
 			}
-			out << "(";
-			m_operand->Dump(out, ctx);
-			out << ")";
-			if (fakeIf) {
-				out << " {\n";
-				ctx.padding++;
-				ctx.WritePadding(out);
-				out << m_operatorName;
+			else if (ctx.asmctx.m_opt.m_show_jump_delta) {
+				m_operand->Dump(out, ctx);
+				out << " stored:(";
+				static_cast<ASMContextNodeValue<ASMContextNode*>*>(m_operand)->m_value->Dump(out, ctx);
+				out << ")";
 			}
+
 		}
 		if (m_showJump || ctx.asmctx.m_opt.m_show_jump_delta) {
 			out << " LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_location;
@@ -1081,7 +1143,7 @@ private:
 	ASMContextNodePriority m_priority;
 	LPCCH m_description;
 public:
-	ASMContextLocationOpOp(ASMContextNode* node, LPCCH description, ASMContextNodePriority priority) : 
+	ASMContextLocationOpOp(ASMContextNode* node, LPCCH description, ASMContextNodePriority priority) :
 		ASMContextLocationOp(), m_node(node), m_description(description), m_priority(priority) {
 	}
 	~ASMContextLocationOpOp() {
@@ -1092,6 +1154,25 @@ public:
 	void Run(ASMContext& context, tool::gsc::T8GSCOBJContext& objctx)  const override {
 		auto* right = context.PopASMCNode();
 		context.PushASMCNode(new ASMContextNodeOp2(m_description, m_priority, m_node ? m_node->Clone() : nullptr, right));
+	}
+};
+class ASMContextLocationOpCompleteTernary : public ASMContextLocationOp {
+private:
+	ASMContextNode* m_operand1;
+	ASMContextNode* m_operand2;
+public:
+	ASMContextLocationOpCompleteTernary(ASMContextNode* operand1, ASMContextNode* operand2) :
+		ASMContextLocationOp(), m_operand1(operand1), m_operand2(operand2) {
+		assert(operand1);
+		assert(operand2);
+	}
+	~ASMContextLocationOpCompleteTernary() {
+		delete m_operand1;
+		delete m_operand2;
+	}
+	void Run(ASMContext& context, tool::gsc::T8GSCOBJContext& objctx)  const override {
+		auto* operand3 = context.PopASMCNode();
+		context.PushASMCNode(new ASMContextNodeTernary(m_operand1->Clone(), m_operand2->Clone(), operand3));
 	}
 };
 
@@ -1405,22 +1486,10 @@ public:
 				name = "jumpcmp";
 			}
 			break;
-			case OPCODE_JumpOnFalseExpr:
-				pushBack = true;
-				name = "jumpiffalseexpr";
-				node = context.PopASMCNode();
-				type = TYPE_JUMP_ONFALSEEXPR;
-				break;
 			case OPCODE_JumpOnFalse:
 				node = context.PopASMCNode();
 				type = TYPE_JUMP_ONFALSE;
 				name = "jumpiffalse";
-				break;
-			case OPCODE_JumpOnTrueExpr:
-				pushBack = true;
-				name = "jumpiftrueexpr";
-				node = context.PopASMCNode();
-				type = TYPE_JUMP_ONTRUEEXPR;
 				break;
 			case OPCODE_JumpOnTrue:
 				node = context.PopASMCNode();
@@ -1436,6 +1505,7 @@ public:
 				break;
 			default:
 				name = "jumpukn";
+				assert(0);
 				break;
 			}
 		}
@@ -1455,8 +1525,40 @@ public:
 		auto& locref = context.PushLocation(newLoc);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeJumpOperator(name, node, locref.rloc, type, m_jumpLocation, true, delta));
-			context.CompleteStatement();
+			bool inject = true;
+			if (m_id == OPCODE_Jump && delta > 0) {
+				// might be ternary
+				//ASMContextNodeTernary
+				if (context.m_stack.size() && context.m_funcBlock.m_statements.size()) {
+					// at least one node in the stack and a previous statement
+					auto& last = context.m_funcBlock.m_statements[context.m_funcBlock.m_statements.size() - 1];
+					if (last.node->m_type != TYPE_JUMP && IsJumpType(last.node->m_type)) {
+						auto* jumpNode = static_cast<ASMContextNodeJumpOperator*>(last.node);
+						// is this operator pointing just after us?
+						if (jumpNode->m_delta > 0 && jumpNode->m_location == context.FunctionRelativeLocation(utils::Aligned<INT16>(context.m_bcl))) {
+							auto* top = context.PopASMCNode();
+							if (top->m_type != TYPE_PRECODEPOS) {
+								// bad top, no data
+								//node = new ASMContextNodeValue<ASMContextNode*>(top, TYPE_JUMP_STACK_TOP);
+								// we can remove the jump node, we won't need it
+								context.m_lastOpCodeBase = last.location->rloc;
+								context.m_funcBlock.m_statements.pop_back();
+								locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(jumpNode->m_operand, top));
+								jumpNode->m_operand = nullptr;
+								delete jumpNode;
+								inject = false;
+							}
+							else {
+								delete top;
+							}
+						}
+					}
+				}
+			}
+			if (inject) {
+				context.PushASMCNode(new ASMContextNodeJumpOperator(name, node, locref.rloc, type, m_jumpLocation, true, delta));
+				context.CompleteStatement();
+			}
 		}
 
 		locref.refs.insert(m_jumpLocation);
@@ -1965,10 +2067,12 @@ public:
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* arrayNode = context.PopASMCNode();
+			ASMContextNode* thingNode = context.PopASMCNode();
 
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("nextarray", false, TYPE_ARRAY_NEXTKEY);
 
 			node->AddParam(arrayNode);
+			node->AddParam(thingNode);
 			node->AddParam(new ASMContextNodeIdentifier(name));
 
 			context.PushASMCNode(node);
@@ -3390,6 +3494,9 @@ int ASMContext::GetLocalVarIdByName(UINT32 name) const {
 }
 void ASMContext::PushASMCNode(ASMContextNode* node) {
 	assert(node);
+	if (node->m_rlocEstimated == -1) {
+		node->m_rlocEstimated = m_lastOpCodeBase;
+	}
 	m_stack.push_back(node);
 }
 
@@ -3452,6 +3559,11 @@ void ASMContext::CompleteStatement() {
 		}
 		m_funcBlock.m_statements.push_back({ PopASMCNode(), &m_locs[m_lastOpCodeBase]});
 		m_lastOpCodeBase = -1;
+		//// clear stack
+		//for (auto& n : m_stack) {
+		//	delete n;
+		//}
+		//m_stack.clear();
 	}
 }
 
