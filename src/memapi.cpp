@@ -123,6 +123,24 @@ bool Process::ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const {
 	return false;
 }
 
+INT64 Process::ReadString(LPCH dest, uintptr_t src, SIZE_T size) const {
+	INT64 len = 0;
+
+	CHAR c = -1;
+	// TODO: use buffer
+	while (c) {
+		if (!ReadMemory(&c, src++, 1)) {
+			return -1; // can't read memory
+		}
+		if (len == size) {
+			return -2; // not enought space
+		}
+		dest[len++] = c;
+	}
+
+	return len;
+}
+
 bool Process::WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const {
 	if (m_handle) {
 		SIZE_T out = 0;

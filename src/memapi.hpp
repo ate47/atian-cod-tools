@@ -52,6 +52,14 @@ public:
 	 */
 	bool ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const;
 	/*
+	 * Read c string from a source to a destination
+	 * @param dest Local destination
+	 * @param src Process source
+	 * @param size Max buffer size to read
+	 * @return read string size, -2 if the buffer is too small, -1 if can't read
+	 */
+	INT64 ReadString(LPCH dest, uintptr_t src, SIZE_T size) const;
+	/*
 	 * Write memory from a source to a destination
 	 * @param dest Process destination
 	 * @param src Local source

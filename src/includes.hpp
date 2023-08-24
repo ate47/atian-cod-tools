@@ -24,5 +24,6 @@
 #include "tools/gsc.hpp"
 #include "tools/decrypt.hpp"
 #include "tools/gsc_opcodes.hpp"
+#include "tools/pool.hpp"
 
 #include "offsets.hpp"
