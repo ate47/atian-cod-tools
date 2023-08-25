@@ -36,6 +36,7 @@
 /x64
 /Release
 /Debug
+/build/
 
 # tools files
 strings.txt
