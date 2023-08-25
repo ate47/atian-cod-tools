@@ -172,7 +172,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     if (opt.m_outputDir) {
         LPCCH name = hashutils::ExtractPtr(data->name);
         if (!name) {
-            snprintf(asmfnamebuff, 1000, "%s/hashed-%d/script_%llx.gsc", opt.m_outputDir, (int)(data->name % 3) + 1, data->name);
+            snprintf(asmfnamebuff, 1000, "%s/hashed/script_%llx.gsc", opt.m_outputDir, data->name);
         }
         else {
             snprintf(asmfnamebuff, 1000, "%s/%s", opt.m_outputDir, name);

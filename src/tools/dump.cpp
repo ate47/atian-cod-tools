@@ -93,14 +93,7 @@ int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv
             }
         }
 
-        LPCCH name = hashutils::ExtractPtr(ref.name);
-        if (name) {
-            snprintf(nameBuffer, 1000, "%s/%sbin", outFile, name);
-        }
-        else {
-            // split into multiple directories to avoid creating a big directory
-            snprintf(nameBuffer, 1000, "%s/hashed-%lld/script_%llx.gscbin", outFile, (ref.name % 3 + 1), ref.name);
-        }
+        snprintf(nameBuffer, 1000, "%s/script_%llx.gscc", outFile, ref.name);
 
         if (!proc.ReadMemory(storage, ref.buffer, ref.size)) {
             std::cerr << "Can't read pooled buffer at address " << std::hex << ref.buffer << " of size " << std::dec << ref.size << " for file " << nameBuffer << "\n";
@@ -168,14 +161,7 @@ int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv
                 }
             }
 
-            LPCCH name = hashutils::ExtractPtr(gsc.name);
-            if (name) {
-                snprintf(nameBuffer, 1000, "%s/%sbin", outFile, name);
-            }
-            else {
-                // split into multiple directories to avoid creating a big directory
-                snprintf(nameBuffer, 1000, "%s/hashed-%lld/script_%llx.gscbin", outFile, (gsc.name % 3 + 1), gsc.name);
-            }
+            snprintf(nameBuffer, 1000, "%s/script_%llx.gscc", outFile, gsc.name);
 
             if (!proc.ReadMemory(storage, ref.activeVersion, gsc.script_size)) {
                 std::cerr << "Can't read pooled buffer at address " << std::hex << ref.activeVersion << " of size " << std::dec << gsc.script_size << " for file " << nameBuffer << "\n";
