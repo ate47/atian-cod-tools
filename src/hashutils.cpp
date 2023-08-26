@@ -19,7 +19,7 @@ void hashutils::LoadMap(LPCWCH file) {
 	Add("__destructor");
 	Add("__vtable");
 	Add("_deleted");
-zdqzqd
+
 	// global vars
 	Add("level");
 	Add("game");
