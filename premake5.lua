@@ -18,6 +18,8 @@ workspace "AtianCodTools"
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
+        
+    filter {} -- Reset filters
 
 project "AtianCodTools"
     kind "ConsoleApp"
