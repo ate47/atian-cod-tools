@@ -1,6 +1,14 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - "src/**"
+      - "premake5.lua"
+  pull_request:
+    paths:
+      - "src/**"
+  workflow_dispatch:
 
 jobs:
   build:

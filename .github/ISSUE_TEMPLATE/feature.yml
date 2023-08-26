@@ -1,0 +1,42 @@
+name: Feature request 🌟
+description: Ask a new feature
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping to improve this repository!
+  - type: input
+    id: game
+    attributes:
+      label: Game (If relevant)
+      description: Game (If relevant)
+      placeholder: "Black Ops 4"
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Description of the request
+      description: Small description of the request
+      placeholder: |
+        I want to be able to...
+        I want to have...
+    validations:
+      required: true
+  - type: dropdown
+    id: dropdown_id
+    attributes:
+      label: Do I want to contribute to make it?
+      description: Do I want to contribute to make it?
+      options:
+        - "No"
+        - "Yes"
+        - "Maybe"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Something else?
+      description: Something else to inform us?
+    validations:
+      required: false

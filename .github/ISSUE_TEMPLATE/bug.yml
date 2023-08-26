@@ -1,0 +1,60 @@
+name: Bug Report 🔥
+description: Report a bug
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping to improve this repository!
+  - type: input
+    id: version
+    attributes:
+      label: Tools version
+      description: Tools version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Game
+      description: Game
+      placeholder: "Black Ops 4"
+    validations:
+      required: true
+  - type: dropdown
+    id: dropdown_pf
+    attributes:
+      label: Platform
+      description: Platform
+      options:
+        - "Windows"
+        - "Linux"
+        - "Other (write it in the next field)"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Description of the issue
+      description: Small description of the issue
+      placeholder: |
+        my problem is...
+    validations:
+      required: true
+  - type: dropdown
+    id: dropdown_id
+    attributes:
+      label: Do I want to contribute to fix it?
+      description: Do I want to contribute to fix it?
+      options:
+        - "No"
+        - "Yes"
+        - "Maybe"
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Something else?
+      description: Something else to inform us?
+    validations:
+      required: false
