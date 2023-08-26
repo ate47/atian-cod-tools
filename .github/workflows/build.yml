@@ -28,7 +28,7 @@ jobs:
           msbuild build/AtianCodTools.sln /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
       - name: Upload files
         uses: actions/upload-artifact@v1
-        if: matrix.cfg == "Release"
+        if: matrix.cfg == 'Release'
         with:
           name: "Windows"
           path: "build/bin/acts.exe"
