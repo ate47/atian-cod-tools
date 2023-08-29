@@ -1132,7 +1132,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
             asmout << "autoexec ";
         }
         if (flags & T8GSCExportFlags::EVENT) {
-            asmout << "event<" << hashutils::ExtractTmp("event", callback_event) << "> " << std::flush;
+            asmout << "event_handler[" << hashutils::ExtractTmp("event", callback_event) << "] " << std::flush;
         }
         if (flags & T8GSCExportFlags::PRIVATE) {
             asmout << "private ";
@@ -1162,14 +1162,17 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
             // -1 to avoid the <empty> object, -1 because we are in reverse order
             const auto& lvar = ctx.m_localvars[ctx.m_localvars.size() - i - 2];
 
-            asmout << hashutils::ExtractTmp("var", lvar.name) << std::flush;
-
             if (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC) {
                 asmout << "...";
             }
-            else if (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF) {
-                asmout << "&";
+            else {
+                if (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF) {
+                    asmout << "&";
+                }
+
+                asmout << hashutils::ExtractTmp("var", lvar.name) << std::flush;
             }
+
 
             if (lvar.flags & ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF)) {
                 asmout << " (unk flags: " << std::hex << (int)lvar.flags << ")";
