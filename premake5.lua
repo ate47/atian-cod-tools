@@ -67,6 +67,7 @@ group "deps"
         language "C++"
         kind "StaticLib"
         cppdialect "C++20"
+        warnings "Off"
 
         targetname "antlr4-runtime"
         targetdir "%{wks.location}/bin/"
