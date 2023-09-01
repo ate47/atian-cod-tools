@@ -61,6 +61,7 @@ project "AtianCodTools"
         "ANTLR4CPP_STATIC"
     }
     links { "antlr4-runtime" }
+    dependson "antlr4-runtime"
 
 group "deps"
     project "antlr4-runtime"

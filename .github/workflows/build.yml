@@ -5,6 +5,7 @@ on:
     paths:
       - "src/**"
       - "premake5.lua"
+      - ".github/workflows/build.yml"
   pull_request:
     paths:
       - "src/**"
@@ -23,8 +24,12 @@ jobs:
           - x64
     steps:
       - uses: actions/checkout@v3.5.3
+        with:
+          submodules: true
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.3.1
+        with:
+          msbuild-architecture: x64
       - name: Setup premake5
         uses: abel0b/setup-premake@v2.3
         with:
@@ -33,7 +38,10 @@ jobs:
         shell: pwsh
         run: scripts/setup.ps1
       - name: Build project
+        shell: pwsh
         run: |
+          (ls deps).FullName
+          (ls build).FullName
           msbuild build/AtianCodTools.sln /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
 #      - name: Upload files
 #        uses: actions/upload-artifact@v1
