@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace utils {
-	bool ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, size_t& size);
+	bool ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, size_t& size, bool nullTerminate = false);
 	bool ReadFileAlign(const std::filesystem::path& path, LPVOID& buffer, LPVOID& bufferAligned, size_t& size, size_t& sizeAligned);
 	bool WriteFile(const std::filesystem::path& path, LPCVOID ptr, size_t size);
 

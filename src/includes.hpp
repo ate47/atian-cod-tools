@@ -18,6 +18,8 @@
 #include "scriptinstance.hpp"
 #include "utils.hpp"
 
+#include "compiler/gsc_compiler.hpp"
+
 #include "tools/tools.hpp"
 #include "tools/hash.hpp"
 #include "tools/dump.hpp"

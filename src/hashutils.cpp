@@ -119,3 +119,35 @@ UINT64 hashutils::Hash64(LPCCH str) {
 	return hash & 0x7FFFFFFFFFFFFFFF;
 }
 
+UINT32 hashutils::Hash32Pattern(LPCCH str) {
+	std::string_view v{ str };
+
+	if (!v.rfind("var_", 0)) {
+		return std::strtoul(&str[4], nullptr, 16);
+	}
+	if (!v.rfind("event_", 0)) {
+		return std::strtoul(&str[6], nullptr, 16);
+	}
+	if (!v.rfind("function_", 0)) {
+		return std::strtoul(&str[9], nullptr, 16);
+	}
+	if (!v.rfind("namespace_", 0)) {
+		return std::strtoul(&str[10], nullptr, 16);
+	}
+
+	return Hash32(str);
+}
+
+UINT64 hashutils::Hash64Pattern(LPCCH str) {
+	std::string_view v{ str };
+
+	if (!v.rfind("string_", 0)) {
+		return std::strtoull(&str[7], nullptr, 16);
+	}
+
+	if (!v.rfind("hash_", 0)) {
+		return std::strtoull(&str[5], nullptr, 16);
+	}
+
+	return Hash64(str);
+}

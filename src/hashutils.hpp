@@ -12,4 +12,6 @@ namespace hashutils {
 
 	UINT32 Hash32(LPCCH str);
 	UINT64 Hash64(LPCCH str);
+	UINT32 Hash32Pattern(LPCCH str);
+	UINT64 Hash64Pattern(LPCCH str);
 }

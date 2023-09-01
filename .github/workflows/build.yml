@@ -30,14 +30,15 @@ jobs:
         with:
           version: "5.0.0-beta2"
       - name: Create project
-        run: premake5 vs2022
+        shell: pwsh
+        run: scripts/setup.ps1
       - name: Build project
         run: |
           msbuild build/AtianCodTools.sln /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
-      - name: Upload files
-        uses: actions/upload-artifact@v1
-        if: matrix.cfg == 'Release'
-        with:
-          name: "Windows"
-          path: "build/bin/acts.exe"
+#      - name: Upload files
+#        uses: actions/upload-artifact@v1
+#        if: matrix.cfg == 'Release'
+#        with:
+#          name: "Windows"
+#          path: "build/bin/acts.exe"
 

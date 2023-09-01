@@ -1,6 +1,6 @@
 #include "includes.hpp"
 
-bool utils::ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, size_t& size) {
+bool utils::ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, size_t& size, bool nullTerminate) {
     std::ifstream in{ path, std::ios::binary };
     if (!in) {
         return false;
@@ -12,7 +12,7 @@ bool utils::ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, 
 
     
     if (buffer) {
-        LPVOID all = std::realloc(buffer, length);
+        LPVOID all = std::realloc(buffer, length + (nullTerminate ? 1 : 0));
         if (!all) {
             std::free(buffer);
             buffer = NULL;
@@ -20,13 +20,17 @@ bool utils::ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, 
         }
     }
     else {
-        buffer = std::malloc(length);
+        buffer = std::malloc(length + (nullTerminate ? 1 : 0));
         if (!buffer) {
             return false; // error malloc
         }
     }
 
-    in.read(reinterpret_cast<char*>(buffer), length);
+    auto* buff = reinterpret_cast<char*>(buffer);
+    in.read(buff, length);
+    if (nullTerminate) {
+        buff[length] = 0;
+    }
     size = length;
 
     in.close();

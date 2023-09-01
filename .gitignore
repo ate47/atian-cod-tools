@@ -30,9 +30,13 @@
 *.exe
 *.out
 *.app
+.antlr
+scripts/antlr4.jar
+.antlr4
 
 # VS
 /.vs/
+/.vscode/
 /x64
 /Release
 /Debug
