@@ -115,6 +115,13 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
             }
             m_outputDir = args[++i];
         }
+        else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
+            if (i + 1 == endIndex) {
+                std::cerr << "Missing value for param: " << arg << "!\n";
+                return false;
+            }
+            m_dump_hashmap = args[++i];
+        }
         else if (!strcmp("-C", arg) || !_strcmpi("--copyright", arg)) {
             if (i + 1 == endIndex) {
                 std::cerr << "Missing value for param: " << arg << "!\n";
@@ -143,6 +150,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-o --output [d]    : ASM/GSC output dir, default same.gscasm\n"
         << "-s --silent        : Silent output, only errors\n"
         << "-H --header        : Write file header\n"
+        << "-m --hashmap [f]   : Write hashmap in a file f\n"
         << "-f --nofunc        : No function write\n"
         << "-l --rloc          : Write relative location of the function code\n"
         << "-F --nofuncheader  : No function header\n"
@@ -1196,6 +1204,7 @@ int tool::gsc::gscinfo(const Process& proc, int argc, const char* argv[]) {
         return 0;
     }
 
+    hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
     bool computed = false;
     auto ret = 0;
     for (const auto& file : opt.m_inputFiles) {
@@ -1204,5 +1213,6 @@ int tool::gsc::gscinfo(const Process& proc, int argc, const char* argv[]) {
             ret = lret;
         }
     }
+    hashutils::WriteExtracted(opt.m_dump_hashmap);
     return ret;
 }

@@ -11,6 +11,14 @@ namespace hashutils {
 	 */
 	void LoadMap(LPCWCH file);
 	/*
+	 * Save the extract hashes for a future use with WriteExtracted
+	 */
+	void SaveExtracted(bool value);
+	/*
+	 * Save the extract hashes
+	 */
+	void WriteExtracted(LPCCH file);
+	/*
 	 * Add a hash into the map
 	 */
 	void Add(LPCCH str);

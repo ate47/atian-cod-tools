@@ -32,6 +32,7 @@ namespace tool::gsc {
         bool m_show_jump_delta = false;
         bool m_show_pre_dump = false;
         bool m_show_ref_count = false;
+        LPCCH m_dump_hashmap = NULL;
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;

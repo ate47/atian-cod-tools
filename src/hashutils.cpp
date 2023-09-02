@@ -1,7 +1,9 @@
 #include <includes.hpp>
 
-static std::unordered_map<INT64, std::string> g_hashMap;
+static std::unordered_map<UINT64, std::string> g_hashMap{};
 static CHAR g_buffer[2048];
+static std::set<UINT64> g_extracted{};
+static bool g_saveExtracted = false;
 
 void hashutils::ReadDefaultFile() {
 	static std::once_flag f{};
@@ -9,6 +11,33 @@ void hashutils::ReadDefaultFile() {
 	std::call_once(f, [] {
 		LoadMap(L"strings.txt");
 	});
+}
+
+void hashutils::SaveExtracted(bool value) {
+	g_saveExtracted = value;
+	g_extracted.clear();
+}
+
+void hashutils::WriteExtracted(LPCCH file) {
+	if (!g_saveExtracted || !file) {
+		return; // nothing to do
+	}
+	std::ofstream out{ file };
+
+	if (!out) {
+		std::cerr << "Can't open extracted file " << file << "\n";
+		return;
+	}
+
+	for (const auto& v : g_extracted) {
+		auto e = g_hashMap.find(v);
+		assert(e != g_hashMap.end());
+		out << std::hex << v << "," << e->second << "\n";
+	}
+
+	out.close();
+	// clear and unset extract
+	SaveExtracted(false);
 }
 
 void hashutils::LoadMap(LPCWCH file) {
@@ -73,6 +102,9 @@ bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {
 		return false;
 	}
 	snprintf(out, outSize, "%s", res->second.c_str());
+	if (g_saveExtracted) {
+		g_extracted.emplace(hash);
+	}
 	return true;
 }
 
