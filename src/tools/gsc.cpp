@@ -1129,14 +1129,14 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
         if (!specialClassMember) {
             asmout << "function ";
         }
+        if (flags & T8GSCExportFlags::PRIVATE) {
+            asmout << "private ";
+        }
         if (flags & T8GSCExportFlags::AUTOEXEC) {
             asmout << "autoexec ";
         }
         if (flags & T8GSCExportFlags::EVENT) {
             asmout << "event_handler[" << hashutils::ExtractTmp("event", callback_event) << "] " << std::flush;
-        }
-        if (flags & T8GSCExportFlags::PRIVATE) {
-            asmout << "private ";
         }
 
         if (ctx.m_opt.m_dasm && (classMember || (flags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
