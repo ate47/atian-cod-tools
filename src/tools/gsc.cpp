@@ -192,6 +192,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         std::cerr << "Can't open output file " << asmfnamebuff << "\n";
         return -1;
     }
+    std::cout << "Decompiling into '" << asmfnamebuff << "'...\n";
     if (opt.m_copyright) {
         asmout << "// " << opt.m_copyright << "\n";
     }
@@ -267,7 +268,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
 
         for (size_t i = 0; i < data->include_count; i++) {
-            asmout << "#include " << hashutils::ExtractTmp("script", includes[i]) << ";\n";
+            asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
         }
         if (data->include_count) {
             asmout << "\n";
@@ -1128,14 +1129,14 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
         if (!specialClassMember) {
             asmout << "function ";
         }
+        if (flags & T8GSCExportFlags::PRIVATE) {
+            asmout << "private ";
+        }
         if (flags & T8GSCExportFlags::AUTOEXEC) {
             asmout << "autoexec ";
         }
         if (flags & T8GSCExportFlags::EVENT) {
             asmout << "event_handler[" << hashutils::ExtractTmp("event", callback_event) << "] " << std::flush;
-        }
-        if (flags & T8GSCExportFlags::PRIVATE) {
-            asmout << "private ";
         }
 
         if (ctx.m_opt.m_dasm && (classMember || (flags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
