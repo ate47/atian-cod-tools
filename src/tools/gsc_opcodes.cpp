@@ -211,7 +211,7 @@ public:
 		if (m_nsp) {
 			out << hashutils::ExtractTmp("namespace", m_nsp) << std::flush;
 			if (m_script) {
-				out << "<" << hashutils::ExtractTmp("script", m_script) << ">" << std::flush;
+				out << "<" << hashutils::ExtractTmpScript(m_script) << ">" << std::flush;
 			}
 			out << "::";
 		}
@@ -2367,6 +2367,28 @@ public:
 	}
 };
 
+class OPCodeInfoClearArray : public OPCodeInfo {
+public:
+	OPCodeInfoClearArray(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	}
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		if (context.m_runDecompiler) {
+			auto* fieldId = context.GetFieldIdASMCNode();
+			auto* key = context.PopASMCNode();
+
+			ASMContextNode* accessNode = new ASMContextNodeArrayAccess(fieldId, key);
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(accessNode, new ASMContextNodeValue<LPCCH>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+
+			context.CompleteStatement();
+		}
+		out << "\n";
+
+		return 0;
+	}
+};
+
 class OPCodeInfoStatement : public OPCodeInfo {
 	LPCCH m_operatorName;
 public:
@@ -3059,7 +3081,7 @@ public:
 		base += 16;
 
 		out << "@" << hashutils::ExtractTmp("namespace", nsp)
-			<< "<" << std::flush << hashutils::ExtractTmp("script", script)
+			<< "<" << std::flush << hashutils::ExtractTmpScript(script)
 			<< ">::" << std::flush << hashutils::ExtractTmp("function", function) << std::endl;
 
 		if (context.m_runDecompiler) {
@@ -3279,7 +3301,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoPreScriptCall(OPCODE_PreScriptCall, "PreScriptCall"));
 
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant<LPCCH>(OPCODE_EmptyArray, "EmptyArray", "[]"));
-		RegisterOpCodeHandler(new OPCodeInfoGetConstantSet<LPCCH>(OPCODE_ClearArray, "ClearArray", "[]", true));
+		RegisterOpCodeHandler(new OPCodeInfoClearArray(OPCODE_ClearArray, "ClearArray"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstantRef(OPCODE_GetSelfObject, "GetSelfObject", "self"));
 
 		// class stuff

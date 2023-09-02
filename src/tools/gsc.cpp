@@ -192,6 +192,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         std::cerr << "Can't open output file " << asmfnamebuff << "\n";
         return -1;
     }
+    std::cout << "Decompiling into '" << asmfnamebuff << "'...\n";
     if (opt.m_copyright) {
         asmout << "// " << opt.m_copyright << "\n";
     }
@@ -267,7 +268,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
 
         for (size_t i = 0; i < data->include_count; i++) {
-            asmout << "#include " << hashutils::ExtractTmp("script", includes[i]) << ";\n";
+            asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
         }
         if (data->include_count) {
             asmout << "\n";

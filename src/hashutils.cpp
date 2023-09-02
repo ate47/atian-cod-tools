@@ -76,7 +76,7 @@ bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {
 	return true;
 }
 
-LPCCH hashutils::ExtractTmp(LPCCH type, UINT64 hash) {
+LPCH hashutils::ExtractTmp(LPCCH type, UINT64 hash) {
 	ReadDefaultFile();
 	Extract(type, hash, g_buffer, 2048);
 	return g_buffer;
@@ -108,11 +108,22 @@ UINT32 hashutils::Hash32(LPCCH str) {
 	return 0x8001 * ((9 * hash) ^ ((9 * hash) >> 11));
 }
 
-UINT64 hashutils::Hash64(LPCCH str) {
-	UINT64 hash = 0xcbf29ce484222325LL;
+UINT64 hashutils::Hash64(LPCCH str, UINT64 start) {
+	UINT64 hash = start;
 
 	for (LPCCH data = str; *data; data++) {
-		hash = hash ^ tolower(*data);
+		if (*data >= 'A' && *data <= 'Z') {
+			// to lower
+			hash = hash ^ (UINT8)(*data - 'A');
+		}
+		else if (*data == '\\') {
+			// replace path char
+			hash = hash ^ '/';
+		}
+		else {
+			hash = hash ^ *data;
+		}
+		
 		hash *= 0x100000001b3;
 	}
 
