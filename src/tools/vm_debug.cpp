@@ -1,5 +1,54 @@
 #include <includes.hpp>
 
+class VmDebugOption {
+public:
+	bool m_help = false;
+	bool m_stack = false;
+	bool m_vars = false;
+	int m_deep_struct = 0;
+	int m_deep_array = 0;
+
+	bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+
+		// default values
+		for (size_t i = startIndex; i < endIndex; i++) {
+			LPCCH arg = args[i];
+
+			if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
+				m_help = true;
+			}
+			else if (!strcmp("-s", arg) || !_strcmpi("--stack", arg)) {
+				m_stack = true;
+			}
+			else if (!strcmp("-v", arg) || !_strcmpi("--vars", arg)) {
+				m_vars = true;
+			}
+			else if (!strcmp("-S", arg) || !_strcmpi("--struct-deep", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				m_deep_struct = std::atoi(args[++i]);
+			}
+			else if (!strcmp("-A", arg) || !_strcmpi("--array-deep", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				m_deep_array = std::atoi(args[++i]);
+			}
+		}
+		return true;
+	}
+	void PrintHelp(std::ostream& out) {
+		out << "-h --help            : Print help\n"
+			<< "-s --stack           : Print stack\n"
+			<< "-v --vars            : Print local variables\n"
+			<< "-S --struct-deep [d] : Struct max depth\n"
+			<< "-A --array-deep [d]  : Array max depth\n";
+	}
+};
+
 enum ScrVarType : UINT32 {
 	TYPE_UNDEFINED = 0x0,
 	TYPE_POINTER = 0x1,
@@ -234,7 +283,7 @@ bool FindByteCodeLocationInfo(int inst, const Process& proc, ByteCodeLocationInf
 	return true;
 }
 
-std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, ScrVar& var, scrVarGlob& glob) {
+std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, ScrVar& var, scrVarGlob& glob, const VmDebugOption& opt, int deep = 0) {
 	switch (var.type) {
 	case TYPE_HASH:
 		out << "#\"" << hashutils::ExtractTmp("hash", var.value.ull) << "\"" << std::flush;
@@ -315,22 +364,9 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 		else {
 			switch (ptrvar.type) {
 			case TYPE_ARRAY:
-			{
-				out << "[";
-				ScrVarObjectInfo1 info;
-				if (!proc.ReadMemory(&info, glob.scriptVariablesObjectInfo1 + sizeof(ScrVarObjectInfo1) * var.value.ui, sizeof(ScrVarObjectInfo1))) {
-					out << "error_array:" << var.value.ui;
-				}
-				else if (info.ui) {
-					out << "size:" << info.ui;
-				}
-				out << "]";
-
-			}
-			break;
 			case TYPE_STRUCT:
 			{
-				out << "{";
+				out << (ptrvar.type == TYPE_ARRAY ? "[" : "{");
 				ScrVarObjectInfo1 info;
 				ScrVarRef ref;
 				UINT32 refLoc = ptrvar.value.ui;
@@ -338,36 +374,53 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 					out << "error_struct1:" << var.value.ui;
 				}
 				else if (info.ui) { // info.ui = size
-					if (!proc.ReadMemory(&ref, glob.scriptVariables + sizeof(ScrVarRef) * refLoc, sizeof(ScrVarRef))) {
-						out << "error_struct2:" << var.value.ui;
-					}
-					ScrVar field;
-					while (true) {
-						out << "#" << hashutils::ExtractTmp("var", ref.nameIndex) << std::flush << ":";
-						if (!proc.ReadMemory(&field, glob.scriptValues + sizeof(ScrVar) * refLoc, sizeof(ScrVar))) {
-							out << "error_struct3" << std::hex << refLoc;
-						}
-						else {
-							GetScrVarInfo(out, inst, proc, field, glob);
-						}
-
-						if (!ref.nextSibling) {
-							// end
-							break;
-						}
-						refLoc = ref.nextSibling;
+					if ((ptrvar.type == TYPE_ARRAY && deep <= opt.m_deep_array) || (ptrvar.type == TYPE_STRUCT && deep <= opt.m_deep_struct)) {
 						if (!proc.ReadMemory(&ref, glob.scriptVariables + sizeof(ScrVarRef) * refLoc, sizeof(ScrVarRef))) {
-							out << "error_struct4:" << ref.nextSibling << "/" << ptrvar.value.ui;
-							break;
+							out << "error_struct2:" << var.value.ui;
 						}
-						out << ", ";
+						ScrVar field;
+						while (true) {
+							if (ptrvar.type == TYPE_STRUCT) {
+								out << "#" << hashutils::ExtractTmp("var", ref.nameIndex);
+							}
+							else {
+								if (ref.nameIndex > 0xFFFFFFFF) {
+									out << "#\"" << hashutils::ExtractTmp("hash", ref.nameIndex) << "\"";
+								}
+								else {
+									out << std::dec << ref.nameIndex;
+								}
+							}
+							out << std::flush << ":";
+							if (!proc.ReadMemory(&field, glob.scriptValues + sizeof(ScrVar) * refLoc, sizeof(ScrVar))) {
+								out << "error_struct3" << std::hex << refLoc;
+							}
+							else {
+								GetScrVarInfo(out, inst, proc, field, glob, opt, deep + 1);
+							}
+
+							if (!ref.nextSibling) {
+								// end
+								break;
+							}
+							refLoc = ref.nextSibling;
+							if (!proc.ReadMemory(&ref, glob.scriptVariables + sizeof(ScrVarRef) * refLoc, sizeof(ScrVarRef))) {
+								out << "error_struct4:" << ref.nextSibling << "/" << ptrvar.value.ui;
+								break;
+							}
+							out << ", ";
+						}
+					}
+					else {
+						// only write this if we have at least one element
+						out << " ... ";
 					}
 				}
-				out << "}";
+				out << (ptrvar.type == TYPE_ARRAY ? "]" : "}");
 			}
 			break;
 			default:
-				return GetScrVarInfo(out, inst, proc, ptrvar, glob);
+				return GetScrVarInfo(out, inst, proc, ptrvar, glob, opt, deep + 1);
 			}
 		}
 	}
@@ -396,6 +449,13 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 }
 
 int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
+	VmDebugOption opt{};
+
+	if (!opt.Compute(argv, 2, argc) || opt.m_help) {
+		opt.PrintHelp(std::cout);
+		return 0;
+	}
+
 	hashutils::ReadDefaultFile();
 	auto vms = std::make_unique<scrVmPub[]>(2);
 	auto globs = std::make_unique<scrVarGlob[]>(2);
@@ -503,7 +563,7 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 				auto opcode = tool::gsc::opcode::LookupOpCode(info.obj.GetVm(), opcodeVal);
 
 				// dump local variables (if any)
-				if (opcode && opcode->m_id == tool::gsc::opcode::OPCODE_SafeCreateLocalVariables) {
+				if (opt.m_vars && opcode && opcode->m_id == tool::gsc::opcode::OPCODE_SafeCreateLocalVariables) {
 					BYTE lvars = *(bytecodeStart += 2);
 					std::cout << "+-+-- vars (" << std::dec << (int) lvars << ")\n";
 					bytecodeStart++;
@@ -513,7 +573,14 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 						UINT32 varname = *reinterpret_cast<UINT32*>(bytecodeStart);
 						bytecodeStart += 5; // name + flags
 
-						std::cout << "| +- " << hashutils::ExtractTmp("var", varname) << " = " << std::flush;
+						if (opt.m_stack) {
+							std::cout << "|";
+						}
+						else {
+							std::cout << " ";
+						}
+
+						std::cout << " +- " << hashutils::ExtractTmp("var", varname) << " = " << std::flush;
 
 						//parentID = scrVmPub[inst].localVars[-*localvar_id],
 						UINT32 id = proc.ReadMemory<UINT32>(vm.localVars - sizeof(UINT32) * (lvars - i - 1 + localvarshift));
@@ -527,29 +594,31 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 							std::cout << "Error reading value\n";
 							break;
 						}
-						GetScrVarInfo(std::cout, (int)inst, proc, localvarvalue, glob) << "\n";
+						GetScrVarInfo(std::cout, (int)inst, proc, localvarvalue, glob, opt) << "\n";
 					}
 					localvarshift += lvars;
 
 				}
 
 				// dump stack, a CODEPOS should be at the bottom
-				std::cout << "+-+-- stack:\n";
+				if (opt.m_stack) {
+					std::cout << "+-+-- stack:\n";
 
-				ScrVar top;
-				uintptr_t topPtr = stack.top + sizeof(ScrVar);
-				int index = 1;
-				do {
-					topPtr -= sizeof(ScrVar);
-					index--;
+					ScrVar top;
+					uintptr_t topPtr = stack.top + sizeof(ScrVar);
+					int index = 1;
+					do {
+						topPtr -= sizeof(ScrVar);
+						index--;
 
-					std::cout << "  +- " << std::dec << std::setw(2) << std::setfill(' ') << index << ":";
-					if (!proc.ReadMemory(&top, topPtr, sizeof(ScrVar))) {
-						std::cout << "Error reading\n";
-						break;
-					}
-					GetScrVarInfo(std::cout, (int)inst, proc, top, glob) << "\n";
-				} while (top.type != TYPE_CODEPOS);
+						std::cout << "  +- " << std::dec << std::setw(2) << std::setfill(' ') << index << ":";
+						if (!proc.ReadMemory(&top, topPtr, sizeof(ScrVar))) {
+							std::cout << "Error reading\n";
+							break;
+						}
+						GetScrVarInfo(std::cout, (int)inst, proc, top, glob, opt) << "\n";
+					} while (top.type != TYPE_CODEPOS);
+				}
 
 				// we do it here so we can access the script data
 				std::free(info.scriptData);
