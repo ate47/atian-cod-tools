@@ -35,6 +35,7 @@ int main(int argc, const char *argv[]) {
 	g_tools["dds"] = { " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", false, tool::gsc::dumpdataset };
 	g_tools["dp"] = { " [input=pool_name] (output=pool_id)", "dump pool", true, tool::pool::pooltool };
 	g_tools["compiler"] = { " --help", "gsc compiler", false, gsc::compiler::compiler };
+	g_tools["dbg"] = { "", "vm debuger", true, tool::vm_debug::vmdebug };
 
 	std::cout << "Atian Call of Duty tools\n\n";
 	

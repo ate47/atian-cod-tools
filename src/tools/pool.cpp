@@ -65,11 +65,11 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
         XAssetPoolEntry entry[count];
         uintptr_t entryNames[count];
 
-        if (!proc.ReadMemory(&entry, proc[OFFSET_assetPool], sizeof(*entry) * count)) {
+        if (!proc.ReadMemory(&entry, proc[offset::assetPool], sizeof(*entry) * count)) {
             std::cerr << "Can't read pool entry\n";
             return tool::BASIC_ERROR;
         }
-        if (!proc.ReadMemory(&entryNames, proc[OFFSET_g_assetNames], sizeof(*entryNames) * count)) {
+        if (!proc.ReadMemory(&entryNames, proc[offset::g_assetNames], sizeof(*entryNames) * count)) {
             std::cerr << "Can't read xasset names\n";
             return tool::BASIC_ERROR;
         }
@@ -102,7 +102,7 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
 
     XAssetPoolEntry entry;
 
-    if (!proc.ReadMemory(&entry, proc[OFFSET_assetPool] + sizeof(entry) * id, sizeof(entry))) {
+    if (!proc.ReadMemory(&entry, proc[offset::assetPool] + sizeof(entry) * id, sizeof(entry))) {
         std::cerr << "Can't read pool entry\n";
         return tool::BASIC_ERROR;
     }

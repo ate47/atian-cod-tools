@@ -1,8 +1,8 @@
 #include <includes.hpp>
 
 int tool::dump::poolscripts(const Process& proc, int argc, const char* argv[]) {
-    uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[OFFSET_XASSET_SCRIPTPARSETREE]);
-    INT32 poolSize = proc.ReadMemory<INT32>(proc[OFFSET_XASSET_SCRIPTPARSETREE + 0x14]);
+    uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
+    INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
 
     std::cout << std::hex << "pool: " << poolPtr << ", elements: " << std::dec << poolSize << "\n";
@@ -48,8 +48,8 @@ int tool::dump::poolscripts(const Process& proc, int argc, const char* argv[]) {
 }
 
 int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv[]) {
-    uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[OFFSET_XASSET_SCRIPTPARSETREE]);
-    INT32 poolSize = proc.ReadMemory<INT32>(proc[OFFSET_XASSET_SCRIPTPARSETREE + 0x14]);
+    uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
+    INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
     std::cout << std::hex << "pool: " << poolPtr << ", elements: " << std::dec << poolSize << "\n";
 
@@ -117,7 +117,7 @@ int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv
 
 
     UINT32 bufferCount[2];
-    if (!proc.ReadMemory(bufferCount, proc[OFFSET_gObjFileInfoCount], sizeof * bufferCount * 2)) {
+    if (!proc.ReadMemory(bufferCount, proc[offset::gObjFileInfoCount], sizeof * bufferCount * 2)) {
         std::cerr << "Can't read pool count data\n";
         return -1;
     }
@@ -125,7 +125,7 @@ int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv
     const int size = 650;
     T8ObjFileInfo* bufferLinked = new T8ObjFileInfo[2 * size];
 
-    if (!proc.ReadMemory(bufferLinked, proc[OFFSET_gObjFileInfo], sizeof * bufferLinked * size * 2)) {
+    if (!proc.ReadMemory(bufferLinked, proc[offset::gObjFileInfo], sizeof * bufferLinked * size * 2)) {
         std::cerr << "Can't read linked data\n";
         delete[] bufferLinked;
         return -1;
@@ -196,7 +196,7 @@ int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv
 
 int tool::dump::linkedscripts(const Process& proc, int argc, const char* argv[]) {
     UINT32 bufferCount[2];
-    if (!proc.ReadMemory(bufferCount, proc[OFFSET_gObjFileInfoCount], sizeof *bufferCount * 2)) {
+    if (!proc.ReadMemory(bufferCount, proc[offset::gObjFileInfoCount], sizeof *bufferCount * 2)) {
         std::cerr << "Can't read count data\n";
         return -1;
     }
@@ -204,7 +204,7 @@ int tool::dump::linkedscripts(const Process& proc, int argc, const char* argv[])
     const int size = 650;
     T8ObjFileInfo* buffer = new T8ObjFileInfo[2 * size];
 
-    if (!proc.ReadMemory(buffer, proc[OFFSET_gObjFileInfo], sizeof *buffer * size * 2)) {
+    if (!proc.ReadMemory(buffer, proc[offset::gObjFileInfo], sizeof *buffer * size * 2)) {
         std::cerr << "Can't read linked data\n";
         delete[] buffer;
         return -1;
@@ -274,7 +274,7 @@ int tool::dump::events(const Process& proc, int argc, const char* argv[]) {
     const int size = 512;
     T8EventMapObj* buffer = new T8EventMapObj[2 * size];
 
-    if (!proc.ReadMemory(buffer, proc[OFFSET_VM_EVENT], sizeof * buffer * size * 2)) {
+    if (!proc.ReadMemory(buffer, proc[offset::VM_EVENT], sizeof * buffer * size * 2)) {
         std::cerr << "Can't read event data\n";
         delete[] buffer;
         return -1;

@@ -27,5 +27,6 @@
 #include "tools/decrypt.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/pool.hpp"
+#include "tools/vm_debug.hpp"
 
 #include "offsets.hpp"
