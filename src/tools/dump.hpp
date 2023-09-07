@@ -49,4 +49,5 @@ namespace tool::dump {
 	int linkedscripts(const Process& proc, int argc, const char* argv[]);
     int events(const Process& proc, int argc, const char* argv[]);
     int dumpfunctions(const Process& proc, int argc, const char* argv[]);
+    int dumpcmdfunctions(const Process& proc, int argc, const char* argv[]);
 }

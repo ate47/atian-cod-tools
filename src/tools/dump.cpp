@@ -430,13 +430,79 @@ int tool::dump::dumpfunctions(const Process& proc, int argc, const char* argv[])
                 << "," << func.minArgs
                 << "," << func.maxArgs
                 << "," << func.type
-                << ",sub:" << std::hex << proc.GetModuleRelativeOffset(func.function)
-                << "\n";
+                << ",";
+            proc.WriteLocation(out, func.function) << "\n";
         }
     }
 
     out.close();
     delete[] buffer;
+
+    return 0;
+}
+
+struct cmd_function_t {
+    uintptr_t next; // cmd_function_t*
+    uint64_t name;
+    uint64_t pad0;
+    uint64_t pad1;
+    uint64_t pad2;
+    uintptr_t function; // xcommand_t
+};
+
+int tool::dump::dumpcmdfunctions(const Process& proc, int argc, const char* argv[]) {
+    // cache reading to avoid writing empty file
+    hashutils::ReadDefaultFile();
+
+    LPCCH outFile;
+    if (argc == 2) {
+        outFile = "cfuncs.csv";
+    }
+    else {
+        outFile = argv[2];
+    }
+
+    std::ofstream out{ outFile, std::ios::out };
+
+    if (!out) {
+        std::cerr << "Can't open output file '" << outFile << "'\n";
+        return -1;
+    }
+
+    // csv header
+    out << "location,name,func\n";
+
+    cmd_function_t func{};
+
+    uintptr_t next = proc[offset::cmd_functions];
+
+    // the first one is an header, I guess?
+    if (!proc.ReadMemory(&func, next, sizeof(func))) {
+        proc.WriteLocation(std::cerr << "Can't read next function at location ", next) << "\n";
+    }
+
+    next = func.next;
+
+    int count = 0;
+    do {
+        proc.WriteLocation(out, next) << ",";
+
+        if (!proc.ReadMemory(&func, next, sizeof(func))) {
+            proc.WriteLocation(std::cerr << "Can't read next function at location ", next) << "\n";
+            break;
+        }
+        next = func.next;
+
+        out << hashutils::ExtractTmp("hash", func.name) << std::flush << ",";
+
+        proc.WriteLocation(out, func.function) << "\n";
+
+        count++;
+    } while (next);
+
+    out.close();
+
+    std::cout << "Write " << std::dec << count << " functions into " << outFile << "\n";
 
     return 0;
 }

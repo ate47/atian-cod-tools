@@ -32,9 +32,10 @@ int main(int argc, const char *argv[]) {
 	g_tools["dls"] = { " [output=linked.csv]", "dump linked scripts", true, tool::dump::linkedscripts };
 	g_tools["dfunc"] = { " [output=funcs.csv]", "dump functions", true, tool::dump::dumpfunctions };
 	g_tools["devents"] = { " [output=events.csv]", "dump registered instance events", true, tool::dump::events };
+	g_tools["dcfunc"] = { " [output=cfuncs.csv]", "dump cmd functions", true, tool::dump::dumpcmdfunctions };
 	g_tools["dds"] = { " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", false, tool::gsc::dumpdataset };
 	g_tools["dp"] = { " [input=pool_name] (output=pool_id)", "dump pool", true, tool::pool::pooltool };
-	g_tools["compiler"] = { " --help", "gsc compiler", false, gsc::compiler::compiler };
+	//g_tools["compiler"] = { " --help", "gsc compiler", false, gsc::compiler::compiler };
 	g_tools["dbg"] = { "", "vm debuger", true, tool::vm_debug::vmdebug };
 
 	std::cout << "Atian Call of Duty tools\n\n";

@@ -5,6 +5,7 @@ public:
 	bool m_help = false;
 	bool m_stack = false;
 	bool m_vars = false;
+	bool m_archived = false;
 	int m_deep_struct = 0;
 	int m_deep_array = 0;
 
@@ -22,6 +23,9 @@ public:
 			}
 			else if (!strcmp("-v", arg) || !_strcmpi("--vars", arg)) {
 				m_vars = true;
+			}
+			else if (!strcmp("-a", arg) || !_strcmpi("--archived", arg)) {
+				m_archived = true;
 			}
 			else if (!strcmp("-S", arg) || !_strcmpi("--struct-deep", arg)) {
 				if (i + 1 == endIndex) {
@@ -45,7 +49,9 @@ public:
 			<< "-s --stack           : Print stack\n"
 			<< "-v --vars            : Print local variables\n"
 			<< "-S --struct-deep [d] : Struct max depth\n"
-			<< "-A --array-deep [d]  : Array max depth\n";
+			<< "-A --array-deep [d]  : Array max depth\n"
+			<< "-a --archived        : Show archived stacks\n"
+			;
 	}
 };
 
@@ -111,10 +117,11 @@ struct __declspec(align(8)) FunctionStack {
 	uintptr_t bytecodeLocation;
 	// ScrVar*
 	uintptr_t top;
-	UINT32 threadId;
-	UINT32 localVarCount;
 	// ScrVar*
 	uintptr_t startTop;
+	UINT32 threadId;
+	uint16_t localVarCount;
+	uint16_t profileInfoCount;
 };
 
 struct __declspec(align(8)) scrVmPub {
@@ -154,13 +161,20 @@ union ScrVarObjectInfo1 {
 };
 
 struct __declspec(align(8)) scrVarGlob {
-	uintptr_t scriptNameSearchHashList;//ScrVarIndex_t*
+	uintptr_t scriptNameSearchHashList;//ScrVarIndex*
 	uintptr_t scriptVariables;//ScrVarRef*
 	uintptr_t scriptVariablesObjectInfo1;//ScrVarObjectInfo1* 8 bytes
 	uintptr_t scriptVariablesObjectInfo2;//ScrVarObjectInfo2* 4 bytes
 	uintptr_t scriptValues;//ScrVarValue_t*
 };
 
+struct __declspec(align(8)) ScrVarStackBuffer {
+	byte* pos;
+	UINT16 size;
+	UINT16 bufLen;
+	UINT32 threadId; // ScrVarIndex
+	byte buf[1]; // depends on the allocated size
+};
 
 
 struct ByteCodeLocationInfo {
@@ -246,7 +260,7 @@ bool FindByteCodeLocationInfo(int inst, const Process& proc, ByteCodeLocationInf
 		return false; // not a good location?
 	}
 
-	info.scriptData = (BYTE*) std::malloc(info.obj.script_size + 0xF);
+	info.scriptData = (BYTE*) std::malloc((size_t) info.obj.script_size + 0xF);
 	info.script = reinterpret_cast<T8GSCOBJ*>(utils::Aligned<UINT64>(info.scriptData));
 
 	if (!info.script || !proc.ReadMemory(info.script, candidate, info.obj.script_size)) {
@@ -530,9 +544,13 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 			continue;
 		}
 
-		if (vm.function_count < 0 || vm.function_count > 64) {
-			std::cerr << "Stack overflow\n";
+		if (vm.function_count < 0) {
+			std::cerr << "Stack Error\n";
 			continue;
+		}
+		if (vm.function_count >= 64) {
+			std::cerr << "Stack overflow\n";
+			vm.function_count = 63;
 		}
 
 		// reading stack trace

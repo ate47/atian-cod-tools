@@ -1,5 +1,11 @@
 #include <includes.hpp>
 
+static ProcessModule g_invalidModule = { .handle = INVALID_HANDLE_VALUE };
+
+INT64 ProcessModule::GetRelativeOffset(uintptr_t ptr) const {
+	return ptr - start;
+}
+
 DWORD Process::GetProcId(LPCWCH name) {
 	DWORD pid = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -69,6 +75,8 @@ bool Process::Open() {
 	}
 	m_handle = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, FALSE, m_pid);
 
+	ComputeModules();
+
 	return m_handle != NULL;
 }
 
@@ -77,6 +85,7 @@ void Process::Close() {
 		CloseHandle(m_handle);
 		m_handle = NULL;
 	}
+	m_modules.clear();
 }
 
 bool Process::operator!() const {
@@ -150,4 +159,70 @@ bool Process::WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const {
 		return out == size;
 	}
 	return false;
+}
+
+void Process::ComputeModules() {
+	m_modules.clear();
+
+	if (!this || !m_handle) {
+		return;
+	}
+
+	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, m_pid);
+	if (hSnap != INVALID_HANDLE_VALUE) {
+		MODULEENTRY32W entry{};
+		entry.dwSize = sizeof(entry);
+
+		if (Module32First(hSnap, &entry)) {
+			do {
+				auto& e = m_modules.emplace_back();
+
+				// convert to ascii string, assume that the name is correct
+				LPWCH p = entry.szModule;
+				LPCH s = e.name;
+
+				while (*p) {
+					*(s++) = (CHAR)*(p++);
+				}
+				*s = 0;
+				
+				e.handle = entry.hModule;
+				e.size = entry.modBaseSize;
+				e.start = reinterpret_cast<uintptr_t>(entry.modBaseAddr);
+			} while (Module32Next(hSnap, &entry));
+		}
+	}
+	CloseHandle(hSnap);
+}
+
+std::ostream& Process::WriteLocation(std::ostream& out, uintptr_t location) const {
+	const auto& mod = GetLocationModule(location);
+	if (mod.handle == INVALID_HANDLE_VALUE) {
+		// not in a module
+		out << std::hex << location;
+	}
+	else {
+		out << mod.name << "+" << std::hex << mod.GetRelativeOffset(location);
+	}
+	return out;
+}
+
+const ProcessModule& Process::operator[](LPCCH module) const {
+	for (const auto& mod : m_modules) {
+		if (!strncmp(mod.name, module, MAX_MODULE_NAME32)) {
+			return mod;
+		}
+	}
+
+	return g_invalidModule;
+}
+
+const ProcessModule& Process::GetLocationModule(uintptr_t ptr) const {
+	for (const auto& mod : m_modules) {
+		if (ptr >= mod.start && ptr < mod.start + mod.size) {
+			return mod;
+		}
+	}
+
+	return g_invalidModule;
 }

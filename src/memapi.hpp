@@ -1,6 +1,19 @@
 #pragma once
 #include <Windows.h>
 
+struct ProcessModule {
+	CHAR name[MAX_MODULE_NAME32 + 1];
+	uintptr_t start;
+	DWORD size;
+	HANDLE handle;
+
+	/*
+	 * Get a relative offset in a module
+	 * @param ptr Pointer
+	 * @return Location in the module
+	 */
+	INT64 GetRelativeOffset(uintptr_t ptr) const;
+};
 // ugly class I quickly wrote to access process memory
 class Process {
 public:
@@ -26,11 +39,23 @@ public:
 	 */
 	uintptr_t operator[](UINT64 offset) const;
 	/*
+	 * Get a module inside the process
+	 * @param module Module name
+	 * @return Module, if the handle is equals to INVALID_HANDLE_VALUE, the module isn't valid
+	 */
+	const ProcessModule& operator[](LPCCH module) const;
+	/*
 	 * Get the relative offset of a ptr inside the module
 	 * @param ptr Pointer
 	 * @return relative offset, can be negative if the pointer is before the module
 	 */
 	INT64 GetModuleRelativeOffset(uintptr_t ptr) const;
+	/*
+	 * Get the module of an absolute location
+	 * @param ptr Pointer
+	 * @return module, if the handle is equals to INVALID_HANDLE_VALUE, the module isn't valid
+	 */
+	const ProcessModule& GetLocationModule(uintptr_t ptr) const;
 	/*
 	 * Allocate memory in the process
 	 * @param size Size to allocate
@@ -68,6 +93,13 @@ public:
 	 */
 	bool WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const;
 	/*
+	 * Write a location in a stream
+	 * @param out output stream
+	 * @param location location
+	 * @return out with module+relative_location
+	 */
+	std::ostream& WriteLocation(std::ostream& out, uintptr_t location) const;
+	/*
 	 * Read memory integer type
 	 * @param location Process location to read
 	 * @return value or 0 if nothing was read
@@ -91,6 +123,8 @@ public:
 private:
 	static DWORD GetProcId(LPCWCH name);
 	static bool GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize);
+	std::vector<ProcessModule> m_modules{};
+	void ComputeModules();
 	uintptr_t m_modAddress;
 	DWORD m_modSize;
 	HANDLE m_handle;

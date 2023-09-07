@@ -13,4 +13,5 @@ namespace offset {
 	constexpr auto scrVmErrorCode = 0xFC63E18;
 	constexpr auto scrVmError = 0xFC60830;
 	constexpr auto mt_buffer = 0x7DAFC20;
+	constexpr auto cmd_functions = 0xF99B188;
 }
