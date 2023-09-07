@@ -376,7 +376,7 @@ enum ASMContextNodeCallFuncPtrType {
 
 enum ASMContextNodeCallFuncFlag : BYTE {
 	THREAD_CALL = 1,
-	THREADENDON_CALL = 2,
+	CHILDTHREAD_CALL = 2,
 	SELF_CALL = 4
 };
 
@@ -415,8 +415,8 @@ public:
 			out << " ";
 			start++;
 		}
-		if (m_flags & THREADENDON_CALL) {
-			out << "threadendon ";
+		if (m_flags & CHILDTHREAD_CALL) {
+			out << "childthread ";
 		}
 		else if (m_flags & THREAD_CALL) {
 			out << "thread ";
@@ -2513,10 +2513,10 @@ public:
 				flags |= THREAD_CALL | SELF_CALL;
 				break;
 			case OPCODE_ScriptThreadCallEndOn:
-				flags |= THREADENDON_CALL;
+				flags |= CHILDTHREAD_CALL;
 				break;
 			case OPCODE_ScriptMethodThreadCallEndOn:
-				flags |= THREADENDON_CALL | SELF_CALL;
+				flags |= CHILDTHREAD_CALL | SELF_CALL;
 				break;
 			case OPCODE_ScriptMethodCall:
 				flags |= SELF_CALL;
@@ -2625,7 +2625,7 @@ public:
 				flags |= THREAD_CALL;
 			}
 			else if (m_id == OPCODE_ClassFunctionThreadCallEndOn) {
-				flags |= THREADENDON_CALL;
+				flags |= CHILDTHREAD_CALL;
 			}
 
 			if (!flags && caller->m_type == TYPE_NEW && function == constructorName) {
@@ -2699,10 +2699,10 @@ public:
 				flags |= THREAD_CALL | SELF_CALL;
 				break;
 			case OPCODE_ScriptThreadCallPointerEndOn:
-				flags |= THREADENDON_CALL;
+				flags |= CHILDTHREAD_CALL;
 				break;
 			case OPCODE_ScriptMethodThreadCallPointerEndOn:
-				flags |= THREADENDON_CALL | SELF_CALL;
+				flags |= CHILDTHREAD_CALL | SELF_CALL;
 				break;
 			case OPCODE_ScriptMethodCallPointer:
 				flags |= SELF_CALL;

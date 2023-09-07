@@ -330,10 +330,10 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             case FUNC_METHOD: asmout << "funcmethod "; break;
             case FUNCTION: asmout << "function "; break;
             case FUNCTION_THREAD: asmout << "function thread "; break;
-            case FUNCTION_THREAD_ENDON: asmout << "function threadendon "; break;
+            case FUNCTION_CHILDTHREAD: asmout << "function childthread "; break;
             case METHOD: asmout << "method "; break;
             case METHOD_THREAD: asmout << "method thread "; break;
-            case METHOD_THREAD_ENDON: asmout << "method threadendon "; break;
+            case METHOD_CHILDTHREAD: asmout << "method childthread "; break;
             default:
                 asmout << "<errorflag:" << std::hex << (imp->flags & 0xF) << "> ";
                 break;

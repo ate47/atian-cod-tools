@@ -39,4 +39,4 @@ To have a lookup over the extracted hashes, you can use a file named `strings.tx
 
 ## Credits
 
-- Serious's t8-compiler for some opcodes, it fasted up the process of understanding the internal game functions.
+- Serious's t8-compiler for some opcodes, it fasted up the process of understanding the internal game functions. Also for the childthread operator syntax.
