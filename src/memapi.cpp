@@ -1,6 +1,7 @@
 #include <includes.hpp>
 
-static ProcessModule g_invalidModule = { .handle = INVALID_HANDLE_VALUE };
+ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0) {
+}
 
 INT64 ProcessModule::GetRelativeOffset(uintptr_t ptr) const {
 	return ptr - start;
@@ -52,7 +53,7 @@ bool Process::GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD
 	return *hModule != 0;
 }
 
-Process::Process(LPCWCH processName, LPCWCH moduleName) {
+Process::Process(LPCWCH processName, LPCWCH moduleName) : m_invalid(ProcessModule(*this)) {
 	m_pid = GetProcId(processName);
 
 	if (!m_pid || !GetModuleAddress(m_pid, moduleName, &m_modAddress, &m_modSize)) {
@@ -60,6 +61,38 @@ Process::Process(LPCWCH processName, LPCWCH moduleName) {
 		m_modSize = 0;
 	}
 	m_handle = NULL;
+}
+
+Process::Process(LPCCH processName, LPCCH moduleName) : m_invalid(ProcessModule(*this)) {
+	WCHAR processNameW[MAX_PATH + 1] = { 0 };
+	size_t i;
+	for (i = 0; processName[i]; i++) {
+		processNameW[i] = (WCHAR)processName[i];
+	}
+	processNameW[i] = 0;
+
+	m_pid = GetProcId(processNameW);
+
+	if (moduleName) {
+		WCHAR moduleNameW[MAX_PATH + 1] = { 0 };
+		for (i = 0; moduleName[i]; i++) {
+			moduleNameW[i] = (WCHAR)moduleName[i];
+		}
+		moduleNameW[i] = 0;
+		if (!m_pid || !GetModuleAddress(m_pid, moduleNameW, &m_modAddress, &m_modSize)) {
+			m_modAddress = 0;
+			m_modSize = 0;
+		}
+	}
+	else {
+		if (!m_pid || !GetModuleAddress(m_pid, NULL, &m_modAddress, &m_modSize)) {
+			m_modAddress = 0;
+			m_modSize = 0;
+		}
+	}
+
+	m_handle = NULL;
+
 }
 
 Process::~Process() {
@@ -150,6 +183,24 @@ INT64 Process::ReadString(LPCH dest, uintptr_t src, SIZE_T size) const {
 	return len;
 }
 
+INT64 Process::ReadWString(LPWCH dest, uintptr_t src, SIZE_T size) const {
+	INT64 len = 0;
+
+	WCHAR c = -1;
+	// TODO: use buffer
+	while (c) {
+		if (!ReadMemory(&c, src++, 1)) {
+			return -1; // can't read memory
+		}
+		if (len == size) {
+			return -2; // not enought space
+		}
+		dest[len++] = c;
+	}
+
+	return len;
+}
+
 bool Process::WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const {
 	if (m_handle) {
 		SIZE_T out = 0;
@@ -175,14 +226,22 @@ void Process::ComputeModules() {
 
 		if (Module32First(hSnap, &entry)) {
 			do {
-				auto& e = m_modules.emplace_back();
+				ProcessModule& e = m_modules.emplace_back(ProcessModule(*this));
 
 				// convert to ascii string, assume that the name is correct
 				LPWCH p = entry.szModule;
 				LPCH s = e.name;
 
 				while (*p) {
-					*(s++) = (CHAR)*(p++);
+					*(s++) = (CHAR) * (p++);
+				}
+				*s = 0;
+
+				p = entry.szExePath;
+				s = e.path;
+
+				while (*p) {
+					*(s++) = (CHAR) * (p++);
 				}
 				*s = 0;
 				
@@ -207,14 +266,36 @@ std::ostream& Process::WriteLocation(std::ostream& out, uintptr_t location) cons
 	return out;
 }
 
-const ProcessModule& Process::operator[](LPCCH module) const {
-	for (const auto& mod : m_modules) {
-		if (!strncmp(mod.name, module, MAX_MODULE_NAME32)) {
+ProcessModule& Process::operator[](LPCCH module) {
+	if (!module) {
+		if (m_modules.size()) {
+			return m_modules[0];
+		}
+		return m_invalid;
+	}
+	for (auto& mod : m_modules) {
+		if (!_strcmpi(mod.name, module)) {
 			return mod;
 		}
 	}
 
-	return g_invalidModule;
+	return m_invalid;
+}
+
+const ProcessModule& Process::operator[](LPCCH module) const {
+	if (!module) {
+		if (m_modules.size()) {
+			return m_modules[0];
+		}
+		return m_invalid;
+	}
+	for (const auto& mod : m_modules) {
+		if (!_strcmpi(mod.name, module)) {
+			return mod;
+		}
+	}
+
+	return m_invalid;
 }
 
 const ProcessModule& Process::GetLocationModule(uintptr_t ptr) const {
@@ -224,5 +305,81 @@ const ProcessModule& Process::GetLocationModule(uintptr_t ptr) const {
 		}
 	}
 
-	return g_invalidModule;
+	return m_invalid;
+}
+
+void ProcessModule::ComputeExports() {
+	m_export_computed = true;
+
+
+	if (!this) {
+		return;
+	}
+
+	IMAGE_DOS_HEADER dosHeader;
+
+	if (!m_parent.ReadMemory(&dosHeader, start, sizeof(dosHeader)) || dosHeader.e_magic != IMAGE_DOS_SIGNATURE) {
+		std::cerr << "Can't read dos module header\n";
+		return;
+	}
+	IMAGE_NT_HEADERS ntHeader;
+
+	if (!m_parent.ReadMemory(&ntHeader, start + dosHeader.e_lfanew, sizeof(ntHeader)) || ntHeader.Signature != IMAGE_NT_SIGNATURE) {
+		std::cerr << "Can't read nt module header\n";
+		return;
+	}
+
+	IMAGE_EXPORT_DIRECTORY exports;
+
+	if (!m_parent.ReadMemory(&exports, start + ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress, sizeof(exports))) {
+		std::cerr << "Can't read module exports\n";
+		return;
+	}
+
+	CHAR name[2000];
+
+
+	auto names = std::make_unique<DWORD[]>(exports.NumberOfNames);
+	if (!m_parent.ReadMemory(&names[0], start + exports.AddressOfNames, sizeof(names[0]) * exports.NumberOfNames)) {
+		std::cerr << "Can't read module exports names\n";
+		return;
+	}
+	auto ordinals = std::make_unique<WORD[]>(exports.NumberOfNames);
+	if (!m_parent.ReadMemory(&ordinals[0], start + exports.AddressOfNameOrdinals, sizeof(ordinals[0]) * exports.NumberOfNames)) {
+		std::cerr << "Can't read module exports ordinals\n";
+		return;
+	}
+	auto functions = std::make_unique<DWORD[]>(exports.NumberOfFunctions);
+	if (!m_parent.ReadMemory(&functions[0], start + exports.AddressOfNameOrdinals, sizeof(functions[0]) * exports.NumberOfNames)) {
+		std::cerr << "Can't read module exports functions\n";
+		return;
+	}
+
+	bool found = false;
+	for (size_t i = 0; i < exports.NumberOfNames; i++) {
+		uintptr_t loc = start + names[i];
+		if (m_parent.ReadString(name, loc, 2000) < 0) {
+			std::cerr << "Can't read name at loc 0x" << std::hex << loc << " " << std::dec << i << "/" << exports.NumberOfNames << "\n";
+			return;
+		}
+
+		m_exports.emplace_back(*this, name, start + functions[ordinals[i]]);
+	}
+}
+
+ProcessModuleExport& ProcessModule::operator[](LPCCH name) {
+	if (!m_export_computed) {
+		ComputeExports();
+	}
+	for (auto& exp : m_exports) {
+		if (!_strcmpi(&exp.m_name[0], name)) {
+			return exp;
+		}
+	}
+	return m_invalid;
+}
+
+ProcessModuleExport::ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location) 
+	: m_module(module), m_location(location), m_name(std::make_unique<CHAR[]>(strlen(name) + 1)) {
+	strcpy_s(&m_name[0], strlen(name) + 1, name);
 }

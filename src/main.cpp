@@ -26,6 +26,7 @@ int main(int argc, const char *argv[]) {
 	g_tools["lookup"] = { " (string)*", "lookup strings", false, tool::hash::lookuptool };
 	g_tools["h32"] = { " (string)*", "hash strings", false, tool::hash::hash32 };
 	g_tools["h64"] = { " (string)*", "hash strings", false, tool::hash::hash64 };
+	g_tools["str"] = { "", "check collisions in the string file", false, tool::hash::collisiontool };
 	g_tools["dps"] = { " [output=pool.csv]", "dump pooled scripts", true, tool::dump::poolscripts };
 	g_tools["wps"] = { " [output=scriptparsetree]", "write pooled scripts", true, tool::dump::writepoolscripts };
 	g_tools["gscinfo"] = { " (intput)*", "write info about a script in asm file", false, tool::gsc::gscinfo };
@@ -35,8 +36,12 @@ int main(int argc, const char *argv[]) {
 	g_tools["dcfunc"] = { " [output=cfuncs.csv]", "dump cmd functions", true, tool::dump::dumpcmdfunctions };
 	g_tools["dds"] = { " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", false, tool::gsc::dumpdataset };
 	g_tools["dp"] = { " [input=pool_name] (output=pool_id)", "dump pool", true, tool::pool::pooltool };
-	//g_tools["compiler"] = { " --help", "gsc compiler", false, gsc::compiler::compiler };
+#ifdef DEBUG
+	g_tools["compiler"] = { " --help", "gsc compiler", false, gsc::compiler::compiler };
+#endif
 	g_tools["dbg"] = { "", "vm debuger", true, tool::vm_debug::vmdebug };
+	g_tools["proc"] = { " (process) [module] [function]", "process explorer", false, tool::process::processtool };
+	
 
 	std::cout << "Atian Call of Duty tools\n\n";
 	

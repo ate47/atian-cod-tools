@@ -5,11 +5,11 @@ static CHAR g_buffer[2048];
 static std::set<UINT64> g_extracted{};
 static bool g_saveExtracted = false;
 
-void hashutils::ReadDefaultFile() {
+void hashutils::ReadDefaultFile(bool ignoreCol) {
 	static std::once_flag f{};
-
-	std::call_once(f, [] {
-		LoadMap(L"strings.txt");
+	
+	std::call_once(f, [ignoreCol] {
+		LoadMap(DEFAULT_HASH_FILE, ignoreCol);
 	});
 }
 
@@ -40,7 +40,7 @@ void hashutils::WriteExtracted(LPCCH file) {
 	SaveExtracted(false);
 }
 
-void hashutils::LoadMap(LPCWCH file) {
+int hashutils::LoadMap(LPCWCH file, bool ignoreCol) {
 	// add common hashes
 	
 	// class special things
@@ -56,6 +56,7 @@ void hashutils::LoadMap(LPCWCH file) {
 	Add("mission");
 	Add("anim");
 	Add("world");
+	Add("sharedstructs");
 	Add("memory");
 
 	// structure basic hashes
@@ -69,7 +70,14 @@ void hashutils::LoadMap(LPCWCH file) {
 	Add("main");
 	Add("init");
 	// it seems all the varargs are called "vararg", but a flag is also describing, so idk
-	Add("vararg"); 
+	Add("vararg");
+
+	// basic letter
+	CHAR buff[2] = { 0, 0 };
+	for (char c = 'A'; c < 'Z'; c++) {
+		*buff = c;
+		Add(buff);
+	}
 
 	// Decompiler special values
 	Add("<error>");
@@ -78,20 +86,49 @@ void hashutils::LoadMap(LPCWCH file) {
 	std::ifstream s(file);
 
 	if (!s) {
-		return; // nothing to read
+		return 0; // nothing to read
 	}
 
 	std::string line;
+	int issues = 0;
 	while (s.good() && std::getline(s, line)) {
-		Add(line.c_str());
+		if (!Add(line.c_str(), ignoreCol)) {
+			issues++;
+		}
 	}
 
 	s.close();
+	return issues;
 }
 
-void hashutils::Add(LPCCH str) {
-	g_hashMap.emplace(hashutils::Hash32(str), str);
+bool hashutils::Add(LPCCH str, bool ignoreCol) {
 	g_hashMap.emplace(hashutils::Hash64(str), str);
+	bool cand32 = true;
+
+	for (LPCCH s = str; *s; s++) {
+		auto c = *s;
+		if (!(
+			(c >= 'A' && c <= 'Z')
+			|| (c >= 'a' && c <= 'z')
+			|| (c >= '0' && c <= '9')
+			|| c == '_')) {
+			cand32 = false; // a hash32 can only match [a-z0-9A-Z_]* in this context
+			break;
+		}
+	}
+
+	if (cand32) {
+		auto h = hashutils::Hash32(str);
+		if (!ignoreCol) {
+			auto find = g_hashMap.find(h);
+			if (find != g_hashMap.end() && _strcmpi(str, find->second.data())) {
+				std::cerr << "Coll '" << str << "'='" << find->second.data() << "' #" << std::hex << h << "\n";
+				return false;
+			}
+		}
+		g_hashMap.emplace(h, str);
+	}
+	return true;
 }
 
 bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {

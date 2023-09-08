@@ -1,11 +1,42 @@
 #pragma once
 #include <Windows.h>
 
-struct ProcessModule {
-	CHAR name[MAX_MODULE_NAME32 + 1];
-	uintptr_t start;
-	DWORD size;
-	HANDLE handle;
+class Process;
+class ProcessModule;
+class ProcessModuleExport;
+
+// ugly module I quickly wrote to access process memory
+
+// Process module export
+class ProcessModuleExport {
+public:
+	std::unique_ptr<CHAR[]> m_name;
+	uintptr_t m_location;
+
+	ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location);
+	// @return if the export is invalid
+	inline bool operator!() const {
+		return m_location == 0;
+	}
+	// @return if the export is valid
+	inline bool operatorbool() const {
+		return m_location != 0;
+	}
+private:
+	ProcessModule& m_module;
+};
+
+// Process module
+class ProcessModule {
+public:
+	Process& m_parent;
+	CHAR name[MAX_MODULE_NAME32 + 1] = { 0 };
+	CHAR path[MAX_PATH + 1] = { 0 };
+	uintptr_t start = 0;
+	DWORD size = 0;
+	HANDLE handle = 0;
+
+	ProcessModule(Process& parent);
 
 	/*
 	 * Get a relative offset in a module
@@ -13,11 +44,42 @@ struct ProcessModule {
 	 * @return Location in the module
 	 */
 	INT64 GetRelativeOffset(uintptr_t ptr) const;
+	// @return if the module is invalid
+	inline bool operator!() const {
+		return handle == INVALID_HANDLE_VALUE;
+	}
+	// @return if the module is valid
+	inline bool operatorbool() const {
+		return handle != INVALID_HANDLE_VALUE;
+	}
+
+	/*
+	 * Compute the export names
+	 */
+	void ComputeExports();
+	/*
+	 * Search for an export name
+	 * @param name name
+	 * @return export location or 0 if it can't be find
+	 */
+	ProcessModuleExport& operator[](LPCCH name);
+	/*
+	 * @return the proccess modules
+	 */
+	inline const std::vector<ProcessModuleExport>& exports() const {
+		return m_exports;
+	}
+private:
+	std::vector<ProcessModuleExport> m_exports{};
+	ProcessModuleExport m_invalid;
+	bool m_export_computed = false;
 };
-// ugly class I quickly wrote to access process memory
+
+// Process
 class Process {
 public:
 	Process(LPCWCH processName, LPCWCH moduleName = NULL);
+	Process(LPCCH processName, LPCCH moduleName = NULL);
 	~Process();
 	/*
 	 * Open the process
@@ -38,6 +100,12 @@ public:
 	 * @return absolute offset
 	 */
 	uintptr_t operator[](UINT64 offset) const;
+	/*
+	 * Get a module inside the process
+	 * @param module Module name
+	 * @return Module, if the handle is equals to INVALID_HANDLE_VALUE, the module isn't valid
+	 */
+	ProcessModule& operator[](LPCCH module);
 	/*
 	 * Get a module inside the process
 	 * @param module Module name
@@ -85,6 +153,14 @@ public:
 	 */
 	INT64 ReadString(LPCH dest, uintptr_t src, SIZE_T size) const;
 	/*
+	 * Read wc string from a source to a destination
+	 * @param dest Local destination
+	 * @param src Process source
+	 * @param size Max buffer size to read
+	 * @return read string size, -2 if the buffer is too small, -1 if can't read
+	 */
+	INT64 ReadWString(LPWCH dest, uintptr_t src, SIZE_T size) const;
+	/*
 	 * Write memory from a source to a destination
 	 * @param dest Process destination
 	 * @param src Local source
@@ -120,11 +196,21 @@ public:
 	bool IsInsideModule(uintptr_t ptr) const;
 	// process pid
 	DWORD m_pid;
+	/*
+	 * @return the proccess modules
+	 */
+	inline const std::vector<ProcessModule>& modules() const {
+		return m_modules;
+	}
+	/*
+	 * Compute the modules names
+	 */
+	void ComputeModules();
 private:
 	static DWORD GetProcId(LPCWCH name);
 	static bool GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize);
 	std::vector<ProcessModule> m_modules{};
-	void ComputeModules();
+	ProcessModule m_invalid;
 	uintptr_t m_modAddress;
 	DWORD m_modSize;
 	HANDLE m_handle;

@@ -4,6 +4,9 @@ class VmDebugOption {
 public:
 	bool m_help = false;
 	bool m_stack = false;
+	bool m_gvars = false;
+	bool m_pretty = false;
+	bool m_dumpstring = false;
 	bool m_vars = false;
 	bool m_archived = false;
 	int m_deep_struct = 0;
@@ -23,6 +26,15 @@ public:
 			}
 			else if (!strcmp("-v", arg) || !_strcmpi("--vars", arg)) {
 				m_vars = true;
+			}
+			else if (!strcmp("-g", arg) || !_strcmpi("--gvars", arg)) {
+				m_gvars = true;
+			}
+			else if (!strcmp("-p", arg) || !_strcmpi("--pretty", arg)) {
+				m_pretty = true;
+			}
+			else if (!_strcmpi("--dstr", arg)) {
+				m_dumpstring = true;
 			}
 			else if (!strcmp("-a", arg) || !_strcmpi("--archived", arg)) {
 				m_archived = true;
@@ -48,9 +60,12 @@ public:
 		out << "-h --help            : Print help\n"
 			<< "-s --stack           : Print stack\n"
 			<< "-v --vars            : Print local variables\n"
+			<< "-g --gvars           : Print global variables\n"
+			<< "-p --pretty          : Format struct/array output\n"
 			<< "-S --struct-deep [d] : Struct max depth\n"
 			<< "-A --array-deep [d]  : Array max depth\n"
 			<< "-a --archived        : Show archived stacks\n"
+			<< "--dstr               : Dump strings\n"
 			;
 	}
 };
@@ -87,6 +102,20 @@ enum ScrVarType : UINT32 {
 	TYPE_ENT_LIST = 0x1c
 };
 
+struct WeaponInfo {
+	UINT64 weaponIdx : 9;
+	UINT64 attachment1 : 6;
+	UINT64 attachment2 : 6;
+	UINT64 attachment3 : 6;
+	UINT64 attachment4 : 6;
+	UINT64 attachment5 : 6;
+	UINT64 attachment6 : 6;
+	UINT64 attachment7 : 6;
+	UINT64 attachment8 : 6;
+	UINT64 padding : 7;
+};
+
+
 struct ScrVarRef {
 	UINT64 nameIndex;
 	UINT32 _anon_0;
@@ -97,17 +126,35 @@ struct ScrVarRef {
 	UINT32 pad0;
 };
 
+struct ScrVarEntityInfo {
+	UINT16 classnum;
+	UINT16 clientNum;
+};
+
+
+union UnionAll32 {
+	UINT32 ui;
+	INT64 ll;
+	INT32 i;
+	FLOAT f;
+	ScrVarEntityInfo entVar;
+};
+
+union UnionAll {
+	UINT64 ull;
+	UINT32 ui;
+	INT64 ll;
+	INT32 i;
+	DOUBLE d;
+	FLOAT f;
+	uintptr_t ptr;
+	ScrVarEntityInfo entVar;
+	WeaponInfo weaponInfo;
+	UnionAll32 b32;
+};
 
 struct ScrVar {
-	union {
-		UINT64 ull;
-		UINT32 ui;
-		INT64 ll;
-		INT32 i;
-		DOUBLE d;
-		FLOAT f;
-		uintptr_t ptr;
-	} value;
+	UnionAll value;
 	ScrVarType type;
 	UINT32 pad0;
 };
@@ -160,12 +207,101 @@ union ScrVarObjectInfo1 {
 	UINT32 ui;
 };
 
+enum LocalClientNum : UINT32 {
+	INVALID_LOCAL_CLIENT = 0xFFFFFFFF,
+	LOCAL_CLIENT_0 = 0x0,
+	LOCAL_CLIENT_FIRST = 0x0,
+	LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
+	LOCAL_CLIENT_1 = 0x1,
+	LOCAL_CLIENT_2 = 0x2,
+	LOCAL_CLIENT_3 = 0x3,
+	LOCAL_CLIENT_COUNT = 0x4,
+};
+
+
+enum ClassNum : UINT16 {
+	CLASSNUM_ENTITY = 0,
+	CLASSNUM_HUD_ELEM = 1,
+	CLASSNUM_PATHNODE = 2,
+	CLASSNUM_VEHICLENODE = 3,
+	CLASSNUM_TACPOINT = 4,
+	CLASSNUM_DYNENT = 5,
+	CLASSNUM_WEAPON = 6,
+	CLASSNUM_COUNT = 0x7,
+};
+
+struct ScrEntityRef {
+	UnionAll u;
+	ClassNum classnum;
+	LocalClientNum client;
+};
+
+enum FieldType : UINT32
+{
+	F_INT = 0x0,
+	F_SHORT = 0x1,
+	F_BYTE = 0x2,
+	F_BOOL = 0x2,
+	F_FLOAT = 0x3,
+	F_LSTRING = 0x4,
+	F_STRING = 0x5,
+	F_VECTOR = 0x6,
+	F_ENTITY = 0x7,
+	F_ENTHANDLE = 0x8,
+	F_ACTOR = 0x9,
+	F_SENTIENT = 0xA,
+	F_SENTIENTHANDLE = 0xB,
+	F_CLIENT = 0xC,
+	F_PATHNODE = 0xD,
+	F_ACTORGROUP = 0xE,
+	F_OBJECT = 0xF,
+	F_XMODEL_INDEX = 0x10,
+	F_XMODEL = 0x11,
+	F_BITFLAG = 0x12,
+	F_BITFLAG64 = 0x13,
+	F_FX = 0x14,
+	F_WEAPON = 0x15,
+	F_RUMBLE = 0x16,
+	F_SCRIPTBUNDLE = 0x17,
+	F_COUNT = 0x18,
+};
+
+enum WeaponFieldType : UINT32
+{
+	F_WEAPON_INVALID = 0x0,
+	F_WEAPON_DEF = 0x1,
+};
+
+
+struct ScrWeaponField
+{
+	UINT32 canonId;
+	FieldType type;
+	bool isreadonly;
+	int ofs;
+	int size;
+	WeaponFieldType weaponType;
+	uintptr_t getter; // void (*ScriptCallbackWeapon)(scriptInstance_t, Weapon, const scr_weapon_field_t *)
+};
+
 struct __declspec(align(8)) scrVarGlob {
 	uintptr_t scriptNameSearchHashList;//ScrVarIndex*
 	uintptr_t scriptVariables;//ScrVarRef*
 	uintptr_t scriptVariablesObjectInfo1;//ScrVarObjectInfo1* 8 bytes
 	uintptr_t scriptVariablesObjectInfo2;//ScrVarObjectInfo2* 4 bytes
 	uintptr_t scriptValues;//ScrVarValue_t*
+
+
+	bool GetEntityRef(ScrEntityRef& ref, const Process& proc, UINT32 entId) {
+		UnionAll32 all;
+		if (!proc.ReadMemory(&all, scriptVariablesObjectInfo2 + entId * 4, 4)) {
+			return false;
+		}
+		ref.u.b32 = all;
+		ref.classnum = (ClassNum)all.entVar.classnum;
+		ref.client = (LocalClientNum)all.entVar.clientNum;
+		return true;
+	}
 };
 
 struct __declspec(align(8)) ScrVarStackBuffer {
@@ -174,6 +310,31 @@ struct __declspec(align(8)) ScrVarStackBuffer {
 	UINT16 bufLen;
 	UINT32 threadId; // ScrVarIndex
 	byte buf[1]; // depends on the allocated size
+};
+
+struct __declspec(align(4)) ScrVarGlobalVars {
+	UINT32 name;
+	UINT32 id; // ScrVarIndex
+	bool persist;
+};
+
+
+struct __declspec(align(8)) scrVarPub {
+	uintptr_t fieldBuffer; // const char*
+	uintptr_t error_message; // const char*
+	uintptr_t programBuffer; // byte*
+	uintptr_t endScriptBuffer; // byte*
+	uintptr_t programHunkUser; // HunkUser*
+	ScrVarGlobalVars globalVars[16];
+	UINT64 entFieldNameIndex; // ScrVarNameIndex_t
+	UINT32 freeEntList; // ScrVarIndex_t
+	UINT32 tempVariable; // ScrVarIndex_t
+	UINT32 checksum;
+	UINT32 entId;
+	UINT32 varHighWatermark;
+	UINT32 numScriptThreads;
+	UINT32 numVarAllocations;
+	INT32 varHighWatermarkId;
 };
 
 
@@ -219,6 +380,7 @@ LPCCH ScrVarTypeName(ScrVarType type) {
 	default: return "<unknown type>";
 	}
 }
+
 
 bool FindByteCodeLocationInfo(int inst, const Process& proc, ByteCodeLocationInfo& info, uintptr_t loc, bool allocScript = false) {
 	using namespace tool::dump;
@@ -297,7 +459,100 @@ bool FindByteCodeLocationInfo(int inst, const Process& proc, ByteCodeLocationInf
 	return true;
 }
 
-std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, ScrVar& var, scrVarGlob& glob, const VmDebugOption& opt, int deep = 0) {
+std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, ScrVar& var, scrVarGlob& glob, const VmDebugOption& opt, int deep = 0);
+
+std::ostream& GetScrVarInfoPtr(std::ostream& out, int inst, const Process& proc, ScrVar& ptrvar, UINT32 valId, scrVarGlob& glob, const VmDebugOption& opt, int deep = 0) {
+	switch (ptrvar.type) {
+	case TYPE_SHARED_STRUCT:
+	case TYPE_ENTITY:
+	case TYPE_ARRAY:
+	case TYPE_STRUCT:
+	{
+		switch (ptrvar.type) {
+		case TYPE_ARRAY:
+			out << "[";
+			break;
+		case TYPE_STRUCT:
+			out << "{";
+			break;
+		case TYPE_SHARED_STRUCT:
+			out << "Shared{";
+			break;
+		case TYPE_ENTITY:
+			out << "Entity{";
+			break;
+		default:
+			out << "Error{";
+			break;
+			break;
+		}
+		ScrVarObjectInfo1 info;
+		ScrVarRef ref;
+		UINT32 refLoc = ptrvar.value.ui;
+		if (!proc.ReadMemory(&info, glob.scriptVariablesObjectInfo1 + sizeof(ScrVarObjectInfo1) * valId, sizeof(ScrVarObjectInfo1))) {
+			out << "error_struct1:" << valId;
+		}
+		else if (info.ui) { // info.ui = size
+			if ((ptrvar.type == TYPE_ARRAY && deep <= opt.m_deep_array) || (ptrvar.type != TYPE_ARRAY && deep <= opt.m_deep_struct)) {
+				if (!proc.ReadMemory(&ref, glob.scriptVariables + sizeof(ScrVarRef) * refLoc, sizeof(ScrVarRef))) {
+					out << "error_struct2:" << valId;
+				}
+				ScrVar field;
+				while (true) {
+					if (opt.m_pretty) {
+						out << "\n";
+						utils::Padding(out, deep + 1);
+					}
+					if (ptrvar.type == TYPE_STRUCT) {
+						out << "#" << hashutils::ExtractTmp("var", ref.nameIndex);
+					}
+					else {
+						if (ref.nameIndex > 0xFFFFFFFF) {
+							out << "#\"" << hashutils::ExtractTmp("hash", ref.nameIndex) << "\"";
+						}
+						else {
+							out << std::dec << ref.nameIndex;
+						}
+					}
+					out << std::flush << ":";
+					if (!proc.ReadMemory(&field, glob.scriptValues + sizeof(ScrVar) * refLoc, sizeof(ScrVar))) {
+						out << "error_struct3" << std::hex << refLoc;
+					}
+					else {
+						GetScrVarInfo(out, inst, proc, field, glob, opt, deep + 1);
+					}
+
+					if (!ref.nextSibling) {
+						// end
+						break;
+					}
+					refLoc = ref.nextSibling;
+					if (!proc.ReadMemory(&ref, glob.scriptVariables + sizeof(ScrVarRef) * refLoc, sizeof(ScrVarRef))) {
+						out << "error_struct4:" << ref.nextSibling << "/" << ptrvar.value.ui;
+						break;
+					}
+					out << ", ";
+				}
+				if (opt.m_pretty) {
+					out << "\n";
+					utils::Padding(out, deep);
+				}
+			}
+			else {
+				// only write this if we have at least one element
+				out << " ... ";
+			}
+		}
+		out << (ptrvar.type == TYPE_ARRAY ? "]" : "}");
+	}
+	break;
+	default:
+		return GetScrVarInfo(out, inst, proc, ptrvar, glob, opt, deep + 1);
+	}
+	return out;
+}
+
+std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, ScrVar& var, scrVarGlob& glob, const VmDebugOption& opt, int deep) {
 	switch (var.type) {
 	case TYPE_HASH:
 		out << "#\"" << hashutils::ExtractTmp("hash", var.value.ull) << "\"" << std::flush;
@@ -323,12 +578,19 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 		}
 		else {
 			auto flag = proc.ReadMemory<CHAR>(strptr + 2);
+			LPCCH strDec;
 			if ((flag & 0x40) || flag >= 0) {
 				// not encrypted
-				out << "\"" << str_read << "\"";
+				strDec = str_read;
 			}
 			else {
-				out << "\"" << tool::decrypt::DecryptString(str_read) << "\"";
+				strDec = tool::decrypt::DecryptString(str_read);
+			}
+
+			out << "\"" << strDec<< "\"";
+
+			if (opt.m_dumpstring) {
+				std::cout << strDec << "\n";
 			}
 		}
 	}
@@ -376,66 +638,7 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 			out << "ptrerror_err:" << std::hex << var.value.ui;
 		}
 		else {
-			switch (ptrvar.type) {
-			case TYPE_ARRAY:
-			case TYPE_STRUCT:
-			{
-				out << (ptrvar.type == TYPE_ARRAY ? "[" : "{");
-				ScrVarObjectInfo1 info;
-				ScrVarRef ref;
-				UINT32 refLoc = ptrvar.value.ui;
-				if (!proc.ReadMemory(&info, glob.scriptVariablesObjectInfo1 + sizeof(ScrVarObjectInfo1) * var.value.ui, sizeof(ScrVarObjectInfo1))) {
-					out << "error_struct1:" << var.value.ui;
-				}
-				else if (info.ui) { // info.ui = size
-					if ((ptrvar.type == TYPE_ARRAY && deep <= opt.m_deep_array) || (ptrvar.type == TYPE_STRUCT && deep <= opt.m_deep_struct)) {
-						if (!proc.ReadMemory(&ref, glob.scriptVariables + sizeof(ScrVarRef) * refLoc, sizeof(ScrVarRef))) {
-							out << "error_struct2:" << var.value.ui;
-						}
-						ScrVar field;
-						while (true) {
-							if (ptrvar.type == TYPE_STRUCT) {
-								out << "#" << hashutils::ExtractTmp("var", ref.nameIndex);
-							}
-							else {
-								if (ref.nameIndex > 0xFFFFFFFF) {
-									out << "#\"" << hashutils::ExtractTmp("hash", ref.nameIndex) << "\"";
-								}
-								else {
-									out << std::dec << ref.nameIndex;
-								}
-							}
-							out << std::flush << ":";
-							if (!proc.ReadMemory(&field, glob.scriptValues + sizeof(ScrVar) * refLoc, sizeof(ScrVar))) {
-								out << "error_struct3" << std::hex << refLoc;
-							}
-							else {
-								GetScrVarInfo(out, inst, proc, field, glob, opt, deep + 1);
-							}
-
-							if (!ref.nextSibling) {
-								// end
-								break;
-							}
-							refLoc = ref.nextSibling;
-							if (!proc.ReadMemory(&ref, glob.scriptVariables + sizeof(ScrVarRef) * refLoc, sizeof(ScrVarRef))) {
-								out << "error_struct4:" << ref.nextSibling << "/" << ptrvar.value.ui;
-								break;
-							}
-							out << ", ";
-						}
-					}
-					else {
-						// only write this if we have at least one element
-						out << " ... ";
-					}
-				}
-				out << (ptrvar.type == TYPE_ARRAY ? "]" : "}");
-			}
-			break;
-			default:
-				return GetScrVarInfo(out, inst, proc, ptrvar, glob, opt, deep + 1);
-			}
+			return GetScrVarInfoPtr(out, inst, proc, ptrvar, var.value.ui, glob, opt, deep);
 		}
 	}
 		break;
@@ -472,15 +675,20 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 
 	hashutils::ReadDefaultFile();
 	auto vms = std::make_unique<scrVmPub[]>(2);
-	auto globs = std::make_unique<scrVarGlob[]>(2);
-
+	
 
 	if (!proc.ReadMemory(&vms[0], proc[offset::scrVmPub], sizeof(scrVmPub) * 2)) {
 		std::cerr << "Can't read vm\n";
 		return BASIC_ERROR;
 	}
+	auto globs = std::make_unique<scrVarGlob[]>(2);
 	if (!proc.ReadMemory(&globs[0], proc[offset::scrVarGlob], sizeof(scrVarGlob) * 2)) {
 		std::cerr << "Can't read glob\n";
+		return BASIC_ERROR;
+	}
+	auto pubs = std::make_unique<scrVarPub[]>(2);
+	if (!proc.ReadMemory(&pubs[0], proc[offset::gScrVarPub], sizeof(scrVarPub) * 2)) {
+		std::cerr << "Can't read pub\n";
 		return BASIC_ERROR;
 	}
 
@@ -524,6 +732,7 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 	for (size_t inst = 0; inst < scriptinstance::SI_COUNT; inst++) {
 		auto& vm = vms[inst];
 		auto& glob = globs[inst];
+		auto& pub = pubs[inst];
 
 		std::cout
 			<< std::dec
@@ -537,7 +746,32 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 		std::cout << "time/frame: " << std::dec << vm.time << "/" << vm.frame << "\n";
 
 		std::cout << "maxstack/top: " << std::hex << vm.maxstack << "/" << vm.top << "\n";
+		
+		if (opt.m_gvars) {
 
+
+			std::ofstream nullstream;
+			nullstream.setstate(std::ios_base::badbit);
+
+			std::ostream& out = (opt.m_dumpstring) ? nullstream : std::cout;
+
+			std::cout << "global vars:\n";
+
+			ScrVar gvarVar;
+			for (const auto& gv : pub.globalVars) {
+				if (!gv.id) {
+					continue;
+				}
+				out << "- " << hashutils::ExtractTmp("var", gv.name) << " id: " << std::dec << gv.id << ", persist: " << (gv.persist ? "true" : "false");
+				if (!proc.ReadMemory(&gvarVar, glob.scriptValues + sizeof(ScrVar) * gv.id, sizeof(ScrVar))) {
+					std::cout << "Error reading value\n";
+					break;
+				}
+				GetScrVarInfoPtr(out << " = ", (int)inst, proc, gvarVar, gv.id, glob, opt) << "\n";
+			}
+
+			
+		}
 
 		if (!vm.function_count) {
 			std::cout << "Empty function stack\n";

@@ -31,3 +31,17 @@ int tool::hash::hash64(const Process& proc, int argc, const char* argv[]) {
 	}
 	return 0;
 }
+
+int tool::hash::collisiontool(const Process& proc, int argc, const char* argv[]) {
+	std::cout << "Searching...\n";
+	int issues = hashutils::LoadMap(hashutils::DEFAULT_HASH_FILE, false);
+
+	if (issues) {
+		std::cerr << "Found " << issues << " collision(s)\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "No collision.\n";
+	return OK;
+}
+

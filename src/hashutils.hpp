@@ -2,26 +2,36 @@
 #include <Windows.h>
 
 namespace hashutils {
+	constexpr auto DEFAULT_HASH_FILE = L"strings.txt";
 	/*
 	 * Read the default hash file
+	 * @param ignoreCol ignore collisions
 	 */
-	void ReadDefaultFile();
+	void ReadDefaultFile(bool ignoreCol = true);
 	/*
 	 * Load a hash file
+	 * @param file file to load
+	 * @param ignoreCol ignore collisions
+	 * @return collisions found (if ignoreCol = false)
 	 */
-	void LoadMap(LPCWCH file);
+	int LoadMap(LPCWCH file, bool ignoreCol = true);
 	/*
 	 * Save the extract hashes for a future use with WriteExtracted
+	 * @param value save extracted
 	 */
 	void SaveExtracted(bool value);
 	/*
 	 * Save the extract hashes
+	 * @param file file to read
 	 */
 	void WriteExtracted(LPCCH file);
 	/*
 	 * Add a hash into the map
+	 * @param str string
+	 * @param ignoreCol ignore collisions
+	 * @return if it collided with another string
 	 */
-	void Add(LPCCH str);
+	bool Add(LPCCH str, bool ignoreCol = true);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type

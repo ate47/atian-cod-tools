@@ -9,6 +9,8 @@ namespace offset {
 	constexpr auto g_assetNames = 0x04F13260;
 	constexpr auto gFs = 0x833CBD0;
 	constexpr auto scrVmPub = 0x8307aa0;
+	constexpr auto gScrClassMap = 0x04EED230;
+	constexpr auto gScrVarPub = 0x8307880;
 	constexpr auto scrVarGlob = 0x8307830;
 	constexpr auto scrVmErrorCode = 0xFC63E18;
 	constexpr auto scrVmError = 0xFC60830;
