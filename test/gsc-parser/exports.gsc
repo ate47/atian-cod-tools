@@ -1,6 +1,7 @@
 #include scripts\core_common\struct;
 #include scripts\core_common\callbacks_shared;
-#include scripts\core_common\system_shared;
+#include scripts\core_common\system_shared.csc;
+#include script_123456789;
 
 #namespace atiancodtools;
 

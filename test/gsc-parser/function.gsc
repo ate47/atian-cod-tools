@@ -7,4 +7,6 @@ function functiontest() {
     thread atiancodtools::test(2, 3, 4, 5);
     self atiancodtools::test(2, 3, 4, 5);
     childthread atiancodtools::test(2, 3, 4, 5);
+    childthread [[ test ]](2, 3, 4, 5);
+    thread [[ test ]]->test(2, 3, 4, 5);
 }

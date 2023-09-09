@@ -221,7 +221,7 @@ UINT32 hashutils::Hash32Pattern(LPCCH str) {
 UINT64 hashutils::Hash64Pattern(LPCCH str) {
 	std::string_view v{ str };
 
-	if (!v.rfind("string_", 0)) {
+	if (!v.rfind("script_", 0)) {
 		return std::strtoull(&str[7], nullptr, 16);
 	}
 

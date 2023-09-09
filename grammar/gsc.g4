@@ -2,7 +2,7 @@ grammar gsc;
 
 prog: (function | include | namespace)* EOF;
 
-include: '#include' (IDENTIFIER | PATH) ';';
+include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
 namespace: '#namespace' IDENTIFIER ';';
 
 function
@@ -25,7 +25,8 @@ statement:
 	| statement_for
 	| statement_if
 	| statement_foreach
-	| statement_inst;
+	| statement_inst
+	| statement_switch;
 
 statement_for:
 	'for' '(' expression? ';' expression? ';' expression? ')' statement;
@@ -33,27 +34,75 @@ statement_for:
 statement_foreach:
 	'foreach' '(' IDENTIFIER (',' IDENTIFIER)? 'in' expression ')' statement;
 
-statement_if:
-	'if' '(' expression ')' statement ('else' statement)?;
-
+statement_if: 'if' '(' expression ')' statement ('else' statement)?;
+statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
 statement_inst: (function_call | operator_inst)? ';';
 
-function_call: (expression)? ('thread' | 'childthread')? (
-		IDENTIFIER '::'
-	)? IDENTIFIER '(' expression_list ')';
+function_call: (expression)? ('thread' | 'childthread')? function_component '(' expression_list ')';
+
+function_component: ( IDENTIFIER '::')? IDENTIFIER | '[[' expression ']]' | '[[' expression ']]' '->' IDENTIFIER;
 
 operator_inst: IDENTIFIER (expression)?;
 
-expression
-    : IDENTIFIER 
-    | const_expr
+
+expression:
+	set_expression
+	| expression1
     ;
 
-const_expr:
+set_expression:
+	left_value (
+		'='
+		| '+='
+		| '-='
+		| '/='
+		| '*='
+		| '%='
+		| '&='
+		| '|='
+		| '^='
+		| '<<='
+		| '>>='
+		| '~='
+	) expression
+;
+
+expression1: expression1 '||' expression2 | expression2;
+expression2: expression2 '&&' expression3 | expression3;
+expression3: expression3 '|' expression4 | expression4;
+expression4: expression4 '^' expression5 | expression5;
+expression5: expression5 '&' expression6 | expression6;
+expression6:
+	expression6 ('!=' | '==' | '!==' | '===') expression7
+	| expression7;
+expression7:
+	expression7 ('<' | '<=' | '>' | '>=') expression8
+	| expression8;
+expression8: expression8 ('<' | '<=') expression9 | expression9;
+expression9: expression9 ('<<' | '>>') expression10 | expression10;
+expression10: expression10 ('+' | '-') expression11 | expression11;
+expression11: expression11 ('*' | '/' | '%') expression12 | expression12;
+expression12: ('!' | '~') expression13 | ('++' | '--') left_value | expression13;
+
+expression13: const_expr | ('(' expression ')') | left_value;
+
+left_value:
 	vector_value
 	| array_def
 	| struct_def
-	| number
+	| IDENTIFIER
+	| '[[' expression ']]' '->' IDENTIFIER
+	| (const_expr | ('(' expression ')')) '.' (IDENTIFIER | ('(' expression ')'))
+	| (const_expr | ('(' expression ')')) '[' expression ']'
+	| (const_expr | ('(' expression ')')) function_component '(' expression_list ')'
+	| left_value '.' (IDENTIFIER | ('(' expression ')'))
+	| left_value '[' expression ']'
+	| left_value function_component '(' expression_list ')'
+	| function_component '(' expression_list ')';
+
+
+const_expr:
+	number
     | BOOL_VALUE
     | FLOATVAL
     | STRING
@@ -61,6 +110,7 @@ const_expr:
 	| UNDEFINED_VALUE
 	| function_ref
 ;
+
 function_ref:
 	'&' (IDENTIFIER '::')? IDENTIFIER
 	| '@' IDENTIFIER '<' PATH '>' '::' IDENTIFIER

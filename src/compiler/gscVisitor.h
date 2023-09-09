@@ -43,13 +43,47 @@ public:
 
     virtual std::any visitStatement_if(gscParser::Statement_ifContext *context) = 0;
 
+    virtual std::any visitStatement_switch(gscParser::Statement_switchContext *context) = 0;
+
     virtual std::any visitStatement_inst(gscParser::Statement_instContext *context) = 0;
 
     virtual std::any visitFunction_call(gscParser::Function_callContext *context) = 0;
 
+    virtual std::any visitFunction_component(gscParser::Function_componentContext *context) = 0;
+
     virtual std::any visitOperator_inst(gscParser::Operator_instContext *context) = 0;
 
     virtual std::any visitExpression(gscParser::ExpressionContext *context) = 0;
+
+    virtual std::any visitSet_expression(gscParser::Set_expressionContext *context) = 0;
+
+    virtual std::any visitExpression1(gscParser::Expression1Context *context) = 0;
+
+    virtual std::any visitExpression2(gscParser::Expression2Context *context) = 0;
+
+    virtual std::any visitExpression3(gscParser::Expression3Context *context) = 0;
+
+    virtual std::any visitExpression4(gscParser::Expression4Context *context) = 0;
+
+    virtual std::any visitExpression5(gscParser::Expression5Context *context) = 0;
+
+    virtual std::any visitExpression6(gscParser::Expression6Context *context) = 0;
+
+    virtual std::any visitExpression7(gscParser::Expression7Context *context) = 0;
+
+    virtual std::any visitExpression8(gscParser::Expression8Context *context) = 0;
+
+    virtual std::any visitExpression9(gscParser::Expression9Context *context) = 0;
+
+    virtual std::any visitExpression10(gscParser::Expression10Context *context) = 0;
+
+    virtual std::any visitExpression11(gscParser::Expression11Context *context) = 0;
+
+    virtual std::any visitExpression12(gscParser::Expression12Context *context) = 0;
+
+    virtual std::any visitExpression13(gscParser::Expression13Context *context) = 0;
+
+    virtual std::any visitLeft_value(gscParser::Left_valueContext *context) = 0;
 
     virtual std::any visitConst_expr(gscParser::Const_exprContext *context) = 0;
 

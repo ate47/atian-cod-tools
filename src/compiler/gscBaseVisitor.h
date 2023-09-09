@@ -63,6 +63,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitStatement_switch(gscParser::Statement_switchContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitStatement_inst(gscParser::Statement_instContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -71,11 +75,75 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitFunction_component(gscParser::Function_componentContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitOperator_inst(gscParser::Operator_instContext *ctx) override {
     return visitChildren(ctx);
   }
 
   virtual std::any visitExpression(gscParser::ExpressionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitSet_expression(gscParser::Set_expressionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression1(gscParser::Expression1Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression2(gscParser::Expression2Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression3(gscParser::Expression3Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression4(gscParser::Expression4Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression5(gscParser::Expression5Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression6(gscParser::Expression6Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression7(gscParser::Expression7Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression8(gscParser::Expression8Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression9(gscParser::Expression9Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression10(gscParser::Expression10Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression11(gscParser::Expression11Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression12(gscParser::Expression12Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpression13(gscParser::Expression13Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLeft_value(gscParser::Left_valueContext *ctx) override {
     return visitChildren(ctx);
   }
 
