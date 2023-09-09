@@ -12,8 +12,9 @@ class ProcessModuleExport {
 public:
 	std::unique_ptr<CHAR[]> m_name;
 	uintptr_t m_location;
+	WORD m_ordinal = 0;
 
-	ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location);
+	ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location, WORD ordinal);
 	// @return if the export is invalid
 	inline bool operator!() const {
 		return m_location == 0;

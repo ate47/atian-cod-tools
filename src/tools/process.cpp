@@ -37,7 +37,7 @@ int tool::process::processtool(const Process& unused, int argc, const char* argv
 
 	if (argc <= 4) {
 		for (const auto& exp : mod.exports()) {
-			std::cout << exp.m_name << " " << mod.name << "+" << std::hex << exp.m_location << "\n";
+			std::cout << std::dec << exp.m_ordinal << ":" << exp.m_name << " " << mod.name << "+" << std::hex << (exp.m_location - mod.start) << "\n";
 		}
 		return OK;
 	}
@@ -49,7 +49,7 @@ int tool::process::processtool(const Process& unused, int argc, const char* argv
 		return BASIC_ERROR;
 	}
 
-	std::cout << exp.m_name << " " << mod.name << "+" << std::hex << exp.m_location << "\n";
+	std::cout << std::dec << exp.m_ordinal << ":" << exp.m_name << " " << mod.name << "+" << std::hex << (exp.m_location - mod.start) << "\n";
 
 	return OK;
 }

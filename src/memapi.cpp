@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0) {
+ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0, 0) {
 }
 
 INT64 ProcessModule::GetRelativeOffset(uintptr_t ptr) const {
@@ -350,7 +350,7 @@ void ProcessModule::ComputeExports() {
 		return;
 	}
 	auto functions = std::make_unique<DWORD[]>(exports.NumberOfFunctions);
-	if (!m_parent.ReadMemory(&functions[0], start + exports.AddressOfNameOrdinals, sizeof(functions[0]) * exports.NumberOfNames)) {
+	if (!m_parent.ReadMemory(&functions[0], start + exports.AddressOfFunctions, sizeof(functions[0]) * (size_t)(exports.NumberOfFunctions))) {
 		std::cerr << "Can't read module exports functions\n";
 		return;
 	}
@@ -363,7 +363,8 @@ void ProcessModule::ComputeExports() {
 			return;
 		}
 
-		m_exports.emplace_back(*this, name, start + functions[ordinals[i]]);
+		WORD ord = ordinals[i];
+		m_exports.emplace_back(*this, name, start + functions[ord], (WORD)(exports.Base + ord));
 	}
 }
 
@@ -379,7 +380,7 @@ ProcessModuleExport& ProcessModule::operator[](LPCCH name) {
 	return m_invalid;
 }
 
-ProcessModuleExport::ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location) 
-	: m_module(module), m_location(location), m_name(std::make_unique<CHAR[]>(strlen(name) + 1)) {
+ProcessModuleExport::ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location, WORD ordinal)
+	: m_module(module), m_location(location), m_name(std::make_unique<CHAR[]>(strlen(name) + 1)), m_ordinal(ordinal) {
 	strcpy_s(&m_name[0], strlen(name) + 1, name);
 }
