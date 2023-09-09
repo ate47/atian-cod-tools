@@ -13,7 +13,7 @@ try {
         Invoke-WebRequest "https://www.antlr.org/download/antlr-4.13.0-complete.jar" -o scripts/antlr4.jar
     }
     
-    java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor
+    java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor -Werror
 
     Move-Item .antlr4\grammar\*.c src\compiler -Force
     Move-Item .antlr4\grammar\*.cpp src\compiler -Force

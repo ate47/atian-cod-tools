@@ -40,7 +40,7 @@ int main(int argc, const char *argv[]) {
 	g_tools["compiler"] = { " --help", "gsc compiler", false, gsc::compiler::compiler };
 #endif
 	g_tools["dbg"] = { "", "vm debuger", true, tool::vm_debug::vmdebug };
-	g_tools["proc"] = { " (process) [module] [function]", "process explorer", false, tool::process::processtool };
+	g_tools["proc"] = { " (process) (s) [module] [function]", "process explorer", false, tool::process::processtool };
 	
 
 	std::cout << "Atian Call of Duty tools\n\n";

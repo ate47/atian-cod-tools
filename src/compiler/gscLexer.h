@@ -12,8 +12,14 @@
 class  gscLexer : public antlr4::Lexer {
 public:
   enum {
-    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, IDENTIFIER = 7, 
-    PATH = 8, SEMICO = 9, NEWLINE = 10, WHITESPACE = 11
+    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
+    T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, T__13 = 14, 
+    T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
+    T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, T__25 = 26, 
+    T__26 = 27, T__27 = 28, T__28 = 29, NEWLINE = 30, WHITESPACE = 31, INTEGER10 = 32, 
+    INTEGER16 = 33, INTEGER8 = 34, INTEGER2 = 35, FLOATVAL = 36, IDENTIFIER = 37, 
+    STRUCT_IDENTIFIER = 38, PATH = 39, STRING = 40, HASHSTRING = 41, BOOL_VALUE = 42, 
+    UNDEFINED_VALUE = 43
   };
 
   explicit gscLexer(antlr4::CharStream *input);

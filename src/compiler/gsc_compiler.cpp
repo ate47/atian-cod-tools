@@ -114,11 +114,11 @@ int gsc::compiler::compiler(const Process& proc, int argc, const char* argv[]) {
     antlr4::CommonTokenStream tokens{ &lexer };
 
     tokens.fill();
-
     gscParser parser{ &tokens };
+
     antlr4::tree::ParseTree* tree = parser.prog();
 
-    std::cout << tree->toStringTree(&parser) << std::endl;
+    std::cout << tree->toStringTree(&parser, true) << std::endl;
 
 
 
