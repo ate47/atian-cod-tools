@@ -7,6 +7,10 @@ My set of tools for Call of Duty.
 
 ## Tools
 
+### Mods
+
+- `acts mod_t8_cee` - enable EEs in Custom mutations, offline or casual (Black Ops 4).
+
 ### Dump tools
 
 Tools to dump from the game memory, most of these files can be seen in the [t8-atian-menu repo](https://github.com/ate47/t8-atian-menu/tree/master/docs/notes) in my notes.

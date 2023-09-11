@@ -12,6 +12,10 @@ namespace utils {
 	inline BYTE* Aligned(BYTE* ptr) {
 		return reinterpret_cast<BYTE*>((reinterpret_cast<uintptr_t>(ptr) + (sizeof(Type) - 1)) & ~(sizeof(Type) - 1));
 	}
+	template<typename Type>
+	inline uintptr_t Aligned(uintptr_t ptr) {
+		return (ptr + (sizeof(Type) - 1)) & ~(sizeof(Type) - 1);
+	}
 	std::ostream& Padding(std::ostream& out, int padding);
 	UINT64 CatLocated(UINT32 name_space, UINT32 local);
 	std::pair<UINT32, UINT32> UnCatLocated(UINT64 located);

@@ -41,6 +41,7 @@ int main(int argc, const char *argv[]) {
 #endif
 	g_tools["dbg"] = { "", "vm debuger", true, tool::vm_debug::vmdebug };
 	g_tools["proc"] = { " (process) (s) [module] [function]", "process explorer", false, tool::process::processtool };
+	g_tools["mod_t8_cee"] = { "", "Enable EEs in custom mutation/offline/casual", false, mods::t8customee::t8customee };
 	
 
 	std::cout << "Atian Call of Duty tools\n\n";

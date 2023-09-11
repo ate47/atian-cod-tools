@@ -16,6 +16,12 @@ constexpr auto TREE_RULE = ParseTreeType::RULE;
 constexpr auto TREE_TERMINAL = ParseTreeType::TERMINAL;
 #pragma pop_macro("ERROR")
 
+class GscCompilerOption;
+class FunctionObject;
+class CompileObject;
+class ACTSErrorListener;
+struct InputInfo;
+
 class GscCompilerOption {
 public:
     bool m_help = false;
@@ -46,7 +52,7 @@ public:
     void PrintHelp(std::ostream& out) {
         out << "-h --help          : Print help\n";
     }
-};
+};  
 
 enum GscFileType {
     FILE_GSC,
@@ -58,11 +64,45 @@ public:
     LPCCH filename;
     GscFileType type;
     size_t start;
+    size_t startLine;
     LPCH buffer;
     size_t size;
+    size_t sizeLine;
 
     ~GscFile() {
         std::free(buffer);
+    }
+};
+
+struct InputInfo {
+    std::vector<GscFile> files{};
+    std::string gscData{};
+    std::string cscData{};
+
+
+    const GscFile& FindFile(size_t line) {
+        for (auto& f : files) {
+            if (line >= f.startLine && line < f.startLine + f.sizeLine) {
+                return f;
+            }
+        }
+        return files[files.size() - 1];
+    }
+
+    std::ostream& PrintLineMessage(std::ostream& out, size_t line, size_t charPositionInLine) {
+        const auto& f = FindFile(line);
+        
+        out
+            << f.filename
+            << "#" << (f.startLine < line ? (line - f.startLine) : f.sizeLine); 
+        
+        if (charPositionInLine) {
+            out << ":" << charPositionInLine;
+        }
+        return out << " ";
+    }
+    inline std::ostream& PrintLineMessage(std::ostream& out, Token* token) {
+        return PrintLineMessage(out, token->getLine(), token->getCharPositionInLine());
     }
 };
 
@@ -84,6 +124,7 @@ public:
 
 class CompileObject {
 public:
+    InputInfo& info;
     GscFileType type;
     UINT32 currentNamespace = hashutils::Hash32("");
     std::set<UINT64> includes{};
@@ -91,7 +132,7 @@ public:
 
     std::unordered_set<std::string> hashes{};
 
-    CompileObject(GscFileType file) : type(file) {
+    CompileObject(GscFileType file, InputInfo& nfo) : type(file), info(nfo) {
     }
 
     UINT64 GetScPath(std::string& data) {
@@ -122,7 +163,8 @@ public:
 
 bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileObject& obj) {
     if (func->children.size() < 5) { // 0IDF 1( 2params 3) 4block
-        std::cerr << "Bad function declaration " << func << "\n";
+        obj.info.PrintLineMessage(std::cerr, func->getStart())
+            << "Bad function declaration\n";
         return false;
     }
 
@@ -131,11 +173,14 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
 
     if (!IS_TERMINAL_TYPE(nameTerm, gscParser::IDENTIFIER)) {
-        std::cerr << "Bad function name declaration " << func << "\n";
+        obj.info.PrintLineMessage(std::cerr, func->getStart())
+            << "Bad function name declaration\n";
         return false;
     }
 
-    auto name = static_cast<TerminalNode*>(nameTerm)->getText();
+    auto* termNode = static_cast<TerminalNode*>(nameTerm);
+    
+    auto name = termNode->getText();
 
     obj.hashes.insert(name);
     UINT32 nameHashed = hashutils::Hash32Pattern(name.data());
@@ -143,18 +188,21 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto expRes = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace);
 
     if (!expRes.second) {
-        std::cerr << "The export " << name << " was defined twice\n";
+        obj.info.PrintLineMessage(std::cerr, func->getStart())
+            << "The export " << name << " was defined twice\n";
         return false;
     }
 
     auto exp = expRes.first->second;
 
     if (!IS_RULE_TYPE(paramsRule, gscParser::RuleParam_list)) {
-        std::cerr << "Bad function " << name << " params declaration " << func << "\n";
+        obj.info.PrintLineMessage(std::cerr, func->getStart())
+            << "Bad function " << name << " params declaration " << func << "\n";
         return false;
     }
     if (!IS_RULE_TYPE(blockRule, gscParser::RuleStatement_block)) {
-        std::cerr << "Bad function block declaration " << func << "\n";
+        obj.info.PrintLineMessage(std::cerr, func->getStart())
+            << "Bad function block declaration " << func << "\n";
         return false;
     }
 
@@ -166,7 +214,8 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     for (size_t i = 0; i < func->children.size() - 5; i++) {
         auto* mod = func->children[i];
         if (mod->getTreeType() != TREE_TERMINAL) {
-            std::cerr << "bad modifier for " << name << "\n";
+            obj.info.PrintLineMessage(std::cerr, func->getStart())
+                << "bad modifier for " << name << "\n";
             return false;
         }
 
@@ -188,7 +237,8 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto* ev = func->children[i += 2];
             i++; // ']'
             if (ev->getTreeType() != TREE_TERMINAL) {
-                std::cerr << "bad event for " << name  << "\n";
+                obj.info.PrintLineMessage(std::cerr, func->getStart())
+                    << "bad event for " << name  << "\n";
                 return false;
             }
 
@@ -206,6 +256,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
     return true;
 }
+
 bool ParseInclude(gscParser::IncludeContext* nsp, gscParser& parser, CompileObject& obj) {
     if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
         return false; // bad
@@ -218,6 +269,7 @@ bool ParseInclude(gscParser::IncludeContext* nsp, gscParser& parser, CompileObje
 
     return true;
 }
+
 bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, CompileObject& obj) {
     if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
         return false; // bad
@@ -233,10 +285,9 @@ bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, Compile
     return true;
 }
 
-
 bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& obj) {
     if (prog->getTreeType() == TREE_ERROR) {
-        std::cerr << "Bad prog context";
+        obj.info.PrintLineMessage(std::cerr, prog->getStart()) << "Bad prog context\n";
         return false;
     }
 
@@ -247,7 +298,7 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             return true; // done
         }
         if (e->getTreeType() != TREE_RULE) {
-            std::cerr << "Bad export rule type " << (size_t)e->getTreeType() << "\n";
+            obj.info.PrintLineMessage(std::cerr, prog->getStart()) << "Bad export rule type\n";
             return false;
         }
 
@@ -270,13 +321,25 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             }
             break;
         default:
-            std::cerr << "Bad export rule " << rule << "\n";
+            obj.info.PrintLineMessage(std::cerr, prog->getStart()) << "Bad export rule\n";
             return false;
         }
     }
 
     return true;
 }
+
+class ACTSErrorListener : public ConsoleErrorListener {
+    InputInfo& m_info;
+public:
+    ACTSErrorListener(InputInfo& info) : m_info(info) {
+    }
+
+    void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line, size_t charPositionInLine,
+        const std::string& msg, std::exception_ptr e) override {
+        m_info.PrintLineMessage(std::cerr, line, charPositionInLine) << msg << "\n";
+    }
+};
 
 int gsc::compiler::compiler(const Process& proc, int argc, const char* argv[]) {
     GscCompilerOption opt;
@@ -285,54 +348,68 @@ int gsc::compiler::compiler(const Process& proc, int argc, const char* argv[]) {
         return 0;
     }
 
-    std::vector<GscFile> files{};
-    std::string gscData{};
-    std::string cscData{};
+    InputInfo info{};
+    size_t lineGsc = 0;
+    size_t lineCsc = 0;
 
     for (const auto& file : opt.m_inputFiles) {
         auto s = strlen(file);
 
         GscFileType type;
         size_t start;
+        size_t startLine;
         if (s < 4) {
             continue;
         }
         if (!strncmp(&file[s - 4], ".gsc", 4)) {
             type = FILE_GSC;
-            start = gscData.size();
+            start = info.gscData.size();
+            startLine = lineGsc;
         }
         else if (!strncmp(&file[s - 4], ".csc", 4)) {
             type = FILE_GSC;
-            start = cscData.size();
+            start = info.cscData.size();
+            startLine = lineCsc;
         }
         else {
             continue; // not a known file type, ignore
         }
 
-        auto& dt = files.emplace_back(file, type, start);
+        auto& dt = info.files.emplace_back(file, type, start, startLine);
 
         if (!utils::ReadFileNotAlign(file, reinterpret_cast<LPVOID&>(dt.buffer), dt.size, true)) {
             std::cerr << "Can't read file " << file << "\n";
             return tool::BASIC_ERROR;
         }
 
+        size_t lineCount = 1; // 1 for the one we'll add at the end
+
+        LPCCH b = dt.buffer;
+        while (*b) {
+            if (*(b++) == '\n') {
+                lineCount++;
+            }
+        }
+
+        dt.sizeLine = lineCount;
+
 
         switch (type)
         {
         case FILE_GSC:
-            gscData = gscData + dt.buffer + "\n";
+            info.gscData = info.gscData + dt.buffer + "\n";
+            lineGsc += lineCount;
             break;
         case FILE_CSC:
-            cscData = cscData + dt.buffer + "\n";
+            info.cscData = info.cscData + dt.buffer + "\n";
+            lineCsc += lineCount;
             break;
         default:
             break;
         }
     }
 
-
-
-    ANTLRInputStream is{ gscData };
+    ANTLRInputStream is{ info.gscData };
 
     gscLexer lexer{ &is };
     CommonTokenStream tokens{ &lexer };
@@ -340,15 +417,27 @@ int gsc::compiler::compiler(const Process& proc, int argc, const char* argv[]) {
     tokens.fill();
     gscParser parser{ &tokens };
 
+    auto errList = std::make_unique<ACTSErrorListener>(info);
+
+    parser.removeErrorListeners();
+
+    parser.addErrorListener(&*errList);
+
     gscParser::ProgContext* prog = parser.prog();
-    CompileObject obj{ FILE_GSC};
+    CompileObject obj{ FILE_GSC, info};
+
+    auto error = parser.getNumberOfSyntaxErrors();
+    if (error) {
+        std::cerr << std::dec << error << " error(s) detected, abort\n";
+        return tool:: BASIC_ERROR;
+    }
 
     if (!ParseProg(prog, parser, obj)) {
         std::cerr << "Error when compiling the object\n";
         return tool::BASIC_ERROR;
     }
 
-    //std::cout << prog->toStringTree(&parser, true) << std::endl;
+    std::cout << "Done\n";
 
 
     return 0;

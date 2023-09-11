@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include <conio.h>
 #include <TlHelp32.h>
 #include <fstream>
 #include <iostream>
@@ -17,8 +18,11 @@
 #include "hashutils.hpp"
 #include "scriptinstance.hpp"
 #include "utils.hpp"
+#include "logs.hpp"
 
 #include "compiler/gsc_compiler.hpp"
+
+#include "mods/t8_custom_ee.hpp"
 
 #include "tools/tools.hpp"
 #include "tools/decrypt.hpp"
