@@ -32,6 +32,36 @@ struct GametypeEntry {
     uintptr_t v5; // 0x28
 };
 
+enum StringTableCellType : INT {
+    STC_TYPE_UNDEFINED = 0,
+    STC_TYPE_STRING = 1,
+    STC_TYPE_HASHED2 = 2, // weapon?
+    STC_TYPE_INT = 4,
+    STC_TYPE_FLOAT = 5,
+    STC_TYPE_BOOL = 6,
+    STC_TYPE_HASHED7 = 7,
+    STC_TYPE_HASHED8 = 8,
+};
+
+
+struct StringTableCell {
+    BYTE value[20];
+    StringTableCellType type;
+};
+// item size ... 40
+struct StringTableEntry {
+    UINT64 name; // 8
+    int unk8; // 12
+    int unk10; // 16
+    int columnCount; // 20
+    int rowCount; // 24
+    int cellscount; // 28 empty?
+    int unk24; // 32
+    uintptr_t cells; // 40
+    uintptr_t values; // 48 StringTableCell
+    uintptr_t unk48; // 56
+    uintptr_t unk56; // 64
+};
 void WriteHex(BYTE* buff, SIZE_T size) {
     for (size_t j = 0; j < size; j++) {
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)buff[j] << " ";
@@ -119,7 +149,7 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
         ;
 
     switch (id) {
-    case 0x10: // translation
+    case ASSET_TYPE_LOCALIZE_ENTRY:
     {
         hashutils::ReadDefaultFile();
 
@@ -150,6 +180,115 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
         }
         out.close();
         delete[] raw;
+    }
+    break;
+    case ASSET_TYPE_STRINGTABLE:
+    {
+        auto pool = std::make_unique<StringTableEntry[]>(entry.itemAllocCount);
+        std::filesystem::create_directories("pool/stringtables", ec);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        CHAR dumpbuff[1000];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        CHAR namebuf[2000];
+        const size_t namebufsize = sizeof(namebuf);
+        StringTableCell cell[200];
+        const size_t cellsize = sizeof(cell) / sizeof(cell[0]);
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& e = pool[i];
+
+
+
+
+            auto n = hashutils::ExtractPtr(e.name);
+
+            std::cout << std::dec << i << ": ";
+            
+            if (n) {
+                std::cout << n;
+                snprintf(dumpbuff, dumpbuffsize, "pool/stringtables/%s", n);
+            }
+            else {
+                std::cout << "file_" << std::hex << e.name << std::dec;
+                snprintf(dumpbuff, dumpbuffsize, "pool/stringtables/%llx.csv", e.name);
+
+            }
+
+            std::cout << " (columns: " << e.columnCount << ", rows:" << e.rowCount << ") into " << dumpbuff << "\n";
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open file " << file << "\n";
+                continue;
+            }
+
+            //e.cells
+            if (!(e.columnCount * e.rowCount)) {
+                out.close();
+                continue;
+            }
+
+            for (size_t i = 0; i < e.rowCount; i++) {
+                if (!proc.ReadMemory(&cell[0], e.values + sizeof(cell[0]) * e.columnCount * i, sizeof(cell[0]) * min(cellsize, e.columnCount))) {
+                    std::cerr << "can't read cells\n";
+                    out.close();
+                    continue;
+                }
+                for (size_t j = 0; j < e.columnCount; j++) {
+                    switch (cell[j].type)
+                    {
+                    case STC_TYPE_UNDEFINED:
+                        out << "undefined";
+                        break;
+                    case STC_TYPE_STRING: 
+                        if (proc.ReadString(namebuf, *reinterpret_cast<uintptr_t*>(&cell[j].value[0]), namebufsize) < 0) {
+                            out << "<bad_str>";
+                        }
+                        else {
+                            out << namebuf;
+                        }
+                        break;
+                    case STC_TYPE_INT:
+                        out << *reinterpret_cast<INT*>(&cell[j].value[0]);
+                        break;
+                    case STC_TYPE_FLOAT:
+                        out << *reinterpret_cast<FLOAT*>(&cell[j].value[0]);
+                        break;
+                    case STC_TYPE_BOOL: 
+                        out << (cell[j].value[0] ? "true" : "false");
+                        break;
+                    case STC_TYPE_HASHED7:
+                    case STC_TYPE_HASHED8:
+                        out << cell[j].type;
+                    case STC_TYPE_HASHED2:
+                        out << "#" << hashutils::ExtractTmp("hash", *reinterpret_cast<UINT64*>(&cell[j].value[0]));
+                        break;
+                    default:
+                        out << "unk type: " << cell[j].type;
+                        out << "#" << std::hex 
+                            << *reinterpret_cast<UINT64*>(&cell[j].value[0])
+                            << ':' << *reinterpret_cast<UINT64*>(&cell[j].value[8])
+                            << ':' << *reinterpret_cast<UINT32*>(&cell[j].value[16])
+                            << std::dec;
+                        break;
+                    }
+                    if (j + 1 != e.columnCount) {
+                        out << ",";
+                    }
+                }
+                out << "\n";
+            }
+            out.close();
+        }
     }
     break;
     default:
