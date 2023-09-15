@@ -1,5 +1,44 @@
 #include <includes.hpp>
 
+class PoolOption {
+public:
+    bool m_help = false;
+    LPCCH m_output = "pool";
+    LPCCH m_dump_hashmap = NULL;
+
+    bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+
+        // default values
+        for (size_t i = startIndex; i < endIndex; i++) {
+            LPCCH arg = args[i];
+
+            if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
+                m_help = true;
+            }
+            else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
+                if (i + 1 == endIndex) {
+                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    return false;
+                }
+                m_output = args[++i];
+            }
+            else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
+                if (i + 1 == endIndex) {
+                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    return false;
+                }
+                m_dump_hashmap = args[++i];
+            }
+        }
+        return true;
+    }
+    void PrintHelp(std::ostream& out) {
+        out << "-h --help            : Print help\n"
+            << "-o --output [d]      : Output dir\n"
+            ;
+    }
+};
+
 struct XAssetPoolEntry {
     uintptr_t pool;
     UINT32 itemSize;
@@ -77,13 +116,22 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
     if (argc < 3) {
         return tool::BAD_USAGE;
     }
+    PoolOption opt;
+
+    if (!opt.Compute(argv, 2, argc) || opt.m_help) {
+        opt.PrintHelp(std::cout);
+        return tool::OK;
+    }
+
+    hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
 
     std::error_code ec;
-    std::filesystem::create_directories("pool", ec);
+    std::filesystem::create_directories(opt.m_output, ec);
 
     CHAR outputName[256];
     if (!_strcmpi(argv[2], "all")) {
-        std::ofstream out{ "pool/xassetpools.csv", std::ios::out };
+        snprintf(outputName, sizeof(outputName), "%s/xassetpools.csv", opt.m_output);
+        std::ofstream out{ outputName, std::ios::out };
 
         if (!out) {
             std::cerr << "Can't open output file '" << outputName << "'\n";
@@ -131,14 +179,14 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
     std::cout << std::hex << "pool id: " << id << "\n";
 
-    XAssetPoolEntry entry;
+    XAssetPoolEntry entry{};
 
     if (!proc.ReadMemory(&entry, proc[offset::assetPool] + sizeof(entry) * id, sizeof(entry))) {
         std::cerr << "Can't read pool entry\n";
         return tool::BASIC_ERROR;
     }
 
-    snprintf(outputName, 256, "pool/pool_%x", id);
+    snprintf(outputName, 256, "%s/pool_%x", opt.m_output, id);
 
     std::cout << std::hex
         << "pool ........ " << entry.pool << "\n"
@@ -188,7 +236,6 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         hashutils::ReadDefaultFile();
 
         auto pool = std::make_unique<StringTableEntry[]>(entry.itemAllocCount);
-        std::filesystem::create_directories("pool/stringtables", ec);
 
         if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
             std::cerr << "Can't read pool data\n";
@@ -219,11 +266,11 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
             
             if (n) {
                 std::cout << n;
-                snprintf(dumpbuff, dumpbuffsize, "pool/stringtables/%s", n);
+                snprintf(dumpbuff, dumpbuffsize, "%s/%s", opt.m_output, n);
             }
             else {
                 std::cout << "file_" << std::hex << e.name << std::dec;
-                snprintf(dumpbuff, dumpbuffsize, "pool/stringtables/file_%llx.csv", e.name);
+                snprintf(dumpbuff, dumpbuffsize, "%s/hashed/stringtables/file_%llx.csv", opt.m_output, e.name);
 
             }
 
@@ -283,16 +330,16 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
                         break;
                     case STC_TYPE_HASHED7:
                     case STC_TYPE_HASHED8:
-                        out << cell[j].type;
+                        //out << cell[j].type;
                     case STC_TYPE_HASHED2:
                         out << "#" << hashutils::ExtractTmp("hash", *reinterpret_cast<UINT64*>(&cell[j].value[0]));
                         break;
                     default:
-                        out << "unk type: " << cell[j].type;
-                        out << "#" << std::hex 
+                        //out << "unk type: " << cell[j].type;
+                        out << "?" << std::hex
                             << *reinterpret_cast<UINT64*>(&cell[j].value[0])
-                            << ':' << *reinterpret_cast<UINT64*>(&cell[j].value[8])
-                            << ':' << *reinterpret_cast<UINT32*>(&cell[j].value[16])
+                        //    << ':' << *reinterpret_cast<UINT64*>(&cell[j].value[8])
+                        //    << ':' << *reinterpret_cast<UINT32*>(&cell[j].value[16])
                             << std::dec;
                         break;
                     }
@@ -335,7 +382,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         break;
     }
 
-
+    hashutils::WriteExtracted(opt.m_dump_hashmap);
 	return tool::OK;
 }
 

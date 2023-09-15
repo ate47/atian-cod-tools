@@ -74,7 +74,11 @@ int hashutils::LoadMap(LPCWCH file, bool ignoreCol) {
 
 	// basic letter
 	CHAR buff[2] = { 0, 0 };
-	for (char c = 'A'; c < 'Z'; c++) {
+	for (char c = 'a'; c <= 'z'; c++) {
+		*buff = c;
+		Add(buff);
+	}
+	for (char c = '0'; c <= '9'; c++) {
 		*buff = c;
 		Add(buff);
 	}
