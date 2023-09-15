@@ -1,6 +1,8 @@
 #include <includes.hpp>
 
-int tool::dump::poolscripts(const Process& proc, int argc, const char* argv[]) {
+using namespace tool::dump;
+
+int poolscripts(const Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
     INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
@@ -47,7 +49,7 @@ int tool::dump::poolscripts(const Process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv[]) {
+int writepoolscripts(const Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
     INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
@@ -131,7 +133,7 @@ int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv
         return -1;
     }
 
-    gsc::T8GSCOBJ gsc;
+    tool::gsc::T8GSCOBJ gsc;
     const BYTE magic[8] = { 0x80, 0x47, 0x53, 0x43, 0x0D, 0x0A, 0x00, 0x36 };
     const UINT64 magicLong = *(UINT64*)(&magic[0]);
 
@@ -194,7 +196,7 @@ int tool::dump::writepoolscripts(const Process& proc, int argc, const char* argv
     return 0;
 }
 
-int tool::dump::linkedscripts(const Process& proc, int argc, const char* argv[]) {
+int linkedscripts(const Process& proc, int argc, const char* argv[]) {
     UINT32 bufferCount[2];
     if (!proc.ReadMemory(bufferCount, proc[offset::gObjFileInfoCount], sizeof *bufferCount * 2)) {
         std::cerr << "Can't read count data\n";
@@ -270,7 +272,7 @@ int tool::dump::linkedscripts(const Process& proc, int argc, const char* argv[])
     return 0;
 }
 
-int tool::dump::events(const Process& proc, int argc, const char* argv[]) {
+int events(const Process& proc, int argc, const char* argv[]) {
     const int size = 512;
     T8EventMapObj* buffer = new T8EventMapObj[2 * size];
 
@@ -384,7 +386,7 @@ static FunctionPoolDef g_functionPool[] = {
 };
 
 
-int tool::dump::dumpfunctions(const Process& proc, int argc, const char* argv[]) {
+int dumpfunctions(const Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
@@ -450,7 +452,7 @@ struct cmd_function_t {
     uintptr_t function; // xcommand_t
 };
 
-int tool::dump::dumpcmdfunctions(const Process& proc, int argc, const char* argv[]) {
+int dumpcmdfunctions(const Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
@@ -506,3 +508,11 @@ int tool::dump::dumpcmdfunctions(const Process& proc, int argc, const char* argv
 
     return 0;
 }
+
+
+ADD_TOOL("dps", " [output=pool.csv]", "dump pooled scripts", true, poolscripts);
+ADD_TOOL("wps", " [output=scriptparsetree]", "write pooled scripts", true, writepoolscripts);
+ADD_TOOL("dls", " [output=linked.csv]", "dump linked scripts", true, linkedscripts);
+ADD_TOOL("dfunc", " [output=funcs.csv]", "dump functions", true, dumpfunctions);
+ADD_TOOL("devents", " [output=events.csv]", "dump registered instance events", true, events);
+ADD_TOOL("dcfunc", " [output=cfuncs.csv]", "dump cmd functions", true, dumpcmdfunctions);

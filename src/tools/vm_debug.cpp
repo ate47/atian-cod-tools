@@ -584,7 +584,7 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 				strDec = str_read;
 			}
 			else {
-				strDec = tool::decrypt::DecryptString(str_read);
+				strDec = decrypt::DecryptString(str_read);
 			}
 
 			out << "\"" << strDec<< "\"";
@@ -665,7 +665,7 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 	return out;
 }
 
-int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
+int vmdebug(const Process& proc, int argc, const char* argv[]) {
 	VmDebugOption opt{};
 
 	if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -679,17 +679,17 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 
 	if (!proc.ReadMemory(&vms[0], proc[offset::scrVmPub], sizeof(scrVmPub) * 2)) {
 		std::cerr << "Can't read vm\n";
-		return BASIC_ERROR;
+		return tool::BASIC_ERROR;
 	}
 	auto globs = std::make_unique<scrVarGlob[]>(2);
 	if (!proc.ReadMemory(&globs[0], proc[offset::scrVarGlob], sizeof(scrVarGlob) * 2)) {
 		std::cerr << "Can't read glob\n";
-		return BASIC_ERROR;
+		return tool::BASIC_ERROR;
 	}
 	auto pubs = std::make_unique<scrVarPub[]>(2);
 	if (!proc.ReadMemory(&pubs[0], proc[offset::gScrVarPub], sizeof(scrVarPub) * 2)) {
 		std::cerr << "Can't read pub\n";
-		return BASIC_ERROR;
+		return tool::BASIC_ERROR;
 	}
 
 	BYTE vmError = proc.ReadMemory<BYTE>(offset::scrVmError);
@@ -882,3 +882,5 @@ int tool::vm_debug::vmdebug(const Process& proc, int argc, const char* argv[]) {
 
 	return tool::OK;
 }
+
+ADD_TOOL("dbg", "", "vm debuger", true, vmdebug);

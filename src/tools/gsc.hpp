@@ -589,7 +589,4 @@ namespace tool::gsc {
         UINT8 type;
         UINT16 pad;
     };
-
-    int gscinfo(const Process& proc, int argc, const char* argv[]);
-    int dumpdataset(const Process& proc, int argc, const char* argv[]);
 }

@@ -1,4 +1,4 @@
-#include "process.hpp"
+#include <includes.hpp>
 
 int PTSearch(Process& proc, int argc, const char* argv[]) {
 	using namespace tool;
@@ -74,17 +74,17 @@ int PTAlloc(Process& proc, int argc, const char* argv[]) {
 	return OK;
 }
 
-int tool::process::processtool(const Process& unused, int argc, const char* argv[]) {
+int processtool(const Process& unused, int argc, const char* argv[]) {
 	if (argc <= 3) {
 		std::cerr << "Missing process name and tool\n";
-		return BAD_USAGE;
+		return tool::BAD_USAGE;
 	}
 
 	Process proc{ argv[2] };
 
 	if (!proc) {
 		std::cerr << "Can't find proc '" << argv[2] << "'\n";
-		return BASIC_ERROR;
+		return tool::BASIC_ERROR;
 	}
 
 	std::cout << argv[2] << ": " << std::dec << proc.m_pid << "\n";
@@ -100,10 +100,12 @@ int tool::process::processtool(const Process& unused, int argc, const char* argv
 
 	if (!func) {
 		std::cerr << "Bad function: " << argv[3] << "\n";
-		return BAD_USAGE;
+		return tool::BAD_USAGE;
 	}
 
 	proc.Open();
 
 	return func(proc, argc, argv);
 }
+
+ADD_TOOL("proc", " (process) (s) [module] [function]", "process explorer", false, processtool);

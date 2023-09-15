@@ -1,5 +1,5 @@
 #pragma once
 
-namespace tool::decrypt {
+namespace decrypt {
 	char* DecryptString(char* str);
 }

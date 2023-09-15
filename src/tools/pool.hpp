@@ -2,8 +2,6 @@
 #include <includes.hpp>
 
 namespace tool::pool {
-	int pooltool(const Process& proc, int argc, const char* argv[]);
-
     enum XAssetType : BYTE{
         ASSET_TYPE_PHYSPRESET = 0,
         ASSET_TYPE_PHYSCONSTRAINTS = 1,

@@ -19,19 +19,14 @@
 #include "scriptinstance.hpp"
 #include "utils.hpp"
 #include "logs.hpp"
+#include "decrypt.hpp"
 
-#include "compiler/gsc_compiler.hpp"
-
-#include "mods/t8_custom_ee.hpp"
+#include "mods/mods.hpp"
 
 #include "tools/tools.hpp"
-#include "tools/decrypt.hpp"
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
-#include "tools/hash.hpp"
 #include "tools/pool.hpp"
-#include "tools/process.hpp"
-#include "tools/vm_debug.hpp"
 
 #include "offsets.hpp"

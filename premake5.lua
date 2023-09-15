@@ -39,6 +39,7 @@ project "AtianCodTools"
         "./gsc/**.csc",
         "./grammar/**.g4",
         "./scripts/**.ps1",
+        "./resources/**",
         ".gitignore",
         "premake5.lua",
         "packages.txt",

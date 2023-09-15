@@ -51,8 +51,8 @@ struct StringTableCell {
 // item size ... 40
 struct StringTableEntry {
     UINT64 name; // 8
-    int unk8; // 12
-    int unk10; // 16
+    int pad8; // 12
+    int pad12; // 16
     int columnCount; // 20
     int rowCount; // 24
     int cellscount; // 28 empty?
@@ -72,7 +72,8 @@ void WriteHex(BYTE* buff, SIZE_T size) {
     std::cout << "\n";
 }
 
-int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
+int pooltool(const Process& proc, int argc, const char* argv[]) {
+    using namespace tool::pool;
     if (argc < 3) {
         return tool::BAD_USAGE;
     }
@@ -184,6 +185,8 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
     break;
     case ASSET_TYPE_STRINGTABLE:
     {
+        hashutils::ReadDefaultFile();
+
         auto pool = std::make_unique<StringTableEntry[]>(entry.itemAllocCount);
         std::filesystem::create_directories("pool/stringtables", ec);
 
@@ -192,18 +195,23 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
             return tool::BASIC_ERROR;
         }
 
-        CHAR dumpbuff[1000];
+        CHAR dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
         CHAR namebuf[2000];
         const size_t namebufsize = sizeof(namebuf);
         StringTableCell cell[200];
         const size_t cellsize = sizeof(cell) / sizeof(cell[0]);
 
-        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < min(entry.itemAllocCount, entry.itemCount); i++) {
             const auto& e = pool[i];
 
+            const auto size = e.columnCount * e.rowCount;
 
-
+            if (!e.values || (size && !proc.ReadMemory(&cell, e.values, sizeof(cell[0])))) {
+                continue; // check that we can read at least the cell
+            }
 
             auto n = hashutils::ExtractPtr(e.name);
 
@@ -215,14 +223,21 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
             }
             else {
                 std::cout << "file_" << std::hex << e.name << std::dec;
-                snprintf(dumpbuff, dumpbuffsize, "pool/stringtables/%llx.csv", e.name);
+                snprintf(dumpbuff, dumpbuffsize, "pool/stringtables/file_%llx.csv", e.name);
 
             }
 
-            std::cout << " (columns: " << e.columnCount << ", rows:" << e.rowCount << ") into " << dumpbuff << "\n";
+            std::cout << " (columns: " << e.columnCount << ", rows:" << e.rowCount << "/" << std::hex << (entry.pool + i * sizeof(entry)) << std::dec << ") into " << dumpbuff;
+
 
             std::filesystem::path file(dumpbuff);
             std::filesystem::create_directories(file.parent_path(), ec);
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+            std::cout << "\n";
 
             std::ofstream out{ file };
 
@@ -232,14 +247,14 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
             }
 
             //e.cells
-            if (!(e.columnCount * e.rowCount)) {
+            if (!(size)) {
                 out.close();
                 continue;
             }
 
             for (size_t i = 0; i < e.rowCount; i++) {
                 if (!proc.ReadMemory(&cell[0], e.values + sizeof(cell[0]) * e.columnCount * i, sizeof(cell[0]) * min(cellsize, e.columnCount))) {
-                    std::cerr << "can't read cells\n";
+                    std::cerr << "can't read cells for " << dumpbuff << "\n";
                     out.close();
                     continue;
                 }
@@ -258,7 +273,7 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
                         }
                         break;
                     case STC_TYPE_INT:
-                        out << *reinterpret_cast<INT*>(&cell[j].value[0]);
+                        out << *reinterpret_cast<INT64*>(&cell[j].value[0]);
                         break;
                     case STC_TYPE_FLOAT:
                         out << *reinterpret_cast<FLOAT*>(&cell[j].value[0]);
@@ -289,6 +304,7 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
             }
             out.close();
         }
+        std::cout << "Dump " << readFile << " new file(s)\n";
     }
     break;
     default:
@@ -322,3 +338,5 @@ int tool::pool::pooltool(const Process& proc, int argc, const char* argv[]) {
 
 	return tool::OK;
 }
+
+ADD_TOOL("dp", " [input=pool_name] (output=pool_id)", "dump pool", true, pooltool);

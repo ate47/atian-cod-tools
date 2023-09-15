@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-int tool::hash::lookuptool(const Process& proc, int argc, const char* argv[]) {
+int lookuptool(const Process& proc, int argc, const char* argv[]) {
 	std::cout << std::hex;
 	for (int i = 2; i < argc; i++) {
 		INT64 v = strtoull(argv[i], nullptr, 0x10);
@@ -16,7 +16,7 @@ int tool::hash::lookuptool(const Process& proc, int argc, const char* argv[]) {
 	return 0;
 }
 
-int tool::hash::hash32(const Process& proc, int argc, const char* argv[]) {
+int hash32(const Process& proc, int argc, const char* argv[]) {
 	std::cout << std::hex;
 	for (int i = 2; i < argc; i++) {
 		std::cout << argv[i] << "=" << hashutils::Hash32(argv[i]) << "\n";
@@ -24,7 +24,7 @@ int tool::hash::hash32(const Process& proc, int argc, const char* argv[]) {
 	return 0;
 }
 
-int tool::hash::hash64(const Process& proc, int argc, const char* argv[]) {
+int hash64(const Process& proc, int argc, const char* argv[]) {
 	std::cout << std::hex;
 	for (int i = 2; i < argc; i++) {
 		std::cout << argv[i] << "=" << hashutils::Hash64(argv[i]) << "\n";
@@ -32,7 +32,7 @@ int tool::hash::hash64(const Process& proc, int argc, const char* argv[]) {
 	return 0;
 }
 
-int tool::hash::collisiontool(const Process& proc, int argc, const char* argv[]) {
+int collisiontool(const Process& proc, int argc, const char* argv[]) {
 	std::cout << "Searching...\n";
 	int issues = hashutils::LoadMap(hashutils::DEFAULT_HASH_FILE, false);
 
@@ -42,6 +42,10 @@ int tool::hash::collisiontool(const Process& proc, int argc, const char* argv[])
 	}
 
 	std::cout << "No collision.\n";
-	return OK;
+	return tool::OK;
 }
 
+ADD_TOOL("lookup", " (string)*", "lookup strings", false, lookuptool);
+ADD_TOOL("h32", " (string)*", "hash strings", false, hash32);
+ADD_TOOL("h64", " (string)*", "hash strings", false, hash64);
+ADD_TOOL("str", "", "check collisions in the string file", false, collisiontool);

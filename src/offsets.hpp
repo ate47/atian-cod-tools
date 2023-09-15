@@ -1,11 +1,11 @@
 #pragma once
 
 namespace offset {
-	constexpr auto XASSET_SCRIPTPARSETREE = 0x912abb0;
 	constexpr auto VM_EVENT = 0x7D9BC10;
 	constexpr auto gObjFileInfo = 0x82efcd0;
 	constexpr auto gObjFileInfoCount = 0x82f76b0;
 	constexpr auto assetPool = 0x912a5b0;
+	constexpr auto XASSET_SCRIPTPARSETREE = 0x912abb0;
 	constexpr auto g_assetNames = 0x04F13260;
 	constexpr auto gFs = 0x833CBD0;
 	constexpr auto scrVmPub = 0x8307aa0;

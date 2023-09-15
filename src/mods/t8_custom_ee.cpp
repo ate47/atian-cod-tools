@@ -1,4 +1,9 @@
 #include <includes.hpp>
+ 
+/*
+ * integrated version of the T8CustomEE mod.
+ * https://github.com/ate47/t8-custom-ee
+ */
 
 class TargetReplace {
 public:
@@ -15,7 +20,7 @@ public:
 	}
 };
 
-int mods::t8customee::t8customee(const Process& unused, int argc, const char* argv[]) {
+int t8customee(int argc, const char* argv[]) {
 	Process proc{ L"blackops4.exe" };
 
 	if (!proc) {
@@ -50,6 +55,10 @@ int mods::t8customee::t8customee(const Process& unused, int argc, const char* ar
 	UINT64 name = hashutils::Hash64("scripts/zm_common/zm_utility");
 	UINT32 targetFunction = hashutils::Hash32("is_ee_enabled");
 
+	// CheckClearParams 0x000d
+	// GetByte 0x018a 0x01
+	// Align 0x00
+	// Return 0x003c
 	BYTE data[] = {0x0d, 0x00, 0x8a, 0x01, 0x01, 0x00, 0x3c, 0x00};
 
 	TargetReplace targets[2] = {
@@ -175,3 +184,5 @@ int mods::t8customee::t8customee(const Process& unused, int argc, const char* ar
 
 	return tool::OK;
 }
+
+ADD_MOD("t8cee", "Enable EEs in custom mutation/offline/casual", t8customee);

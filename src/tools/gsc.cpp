@@ -239,7 +239,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             asmout << "encryption: 0x" << std::hex << (int)type << " len: " << std::dec << len << " -> " << std::flush;
 
-            LPCH cstr = tool::decrypt::DecryptString(encryptedString);
+            LPCH cstr = decrypt::DecryptString(encryptedString);
 
             asmout << '"' << cstr << "\"";
 
@@ -699,7 +699,7 @@ int DumpInfoFile(const std::filesystem::path& path, std::unordered_map<UINT64, L
     return ret;
 }
 
-int tool::gsc::dumpdataset(const Process& proc, int argc, const char* argv[]) {
+int dumpdataset(const Process& proc, int argc, const char* argv[]) {
     hashutils::ReadDefaultFile();
     // scriptparsetree] [output=dataset.txt]
     LPCCH inputFile = "scriptparsetree";
@@ -828,7 +828,7 @@ void tool::gsc::T8GSCOBJ::PatchCode(T8GSCOBJContext& ctx) {
     for (size_t i = 0; i < string_count; i++) {
 
         const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-        LPCH cstr = tool::decrypt::DecryptString(reinterpret_cast<LPCH>(&magic[str->string]));
+        LPCH cstr = decrypt::DecryptString(reinterpret_cast<LPCH>(&magic[str->string]));
         UINT32 ref = ctx.AddStringValue(cstr);
 
         const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
@@ -1196,7 +1196,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
     asmout << ")";
 }
 
-int tool::gsc::gscinfo(const Process& proc, int argc, const char* argv[]) {
+int gscinfo(const Process& proc, int argc, const char* argv[]) {
     GscInfoOption opt{};
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -1216,3 +1216,6 @@ int tool::gsc::gscinfo(const Process& proc, int argc, const char* argv[]) {
     hashutils::WriteExtracted(opt.m_dump_hashmap);
     return ret;
 }
+
+ADD_TOOL("gscinfo", " (intput)*", "write info about a script in asm file", false, gscinfo);
+ADD_TOOL("dds", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", false, dumpdataset);

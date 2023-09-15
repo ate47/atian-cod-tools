@@ -341,7 +341,7 @@ public:
     }
 };
 
-int gsc::compiler::compiler(const Process& proc, int argc, const char* argv[]) {
+int compiler(const Process& proc, int argc, const char* argv[]) {
     GscCompilerOption opt;
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
         opt.PrintHelp(std::cout);
@@ -442,3 +442,7 @@ int gsc::compiler::compiler(const Process& proc, int argc, const char* argv[]) {
 
     return 0;
 }
+
+#ifdef DEBUG
+ADD_TOOL("compiler", " --help", "gsc compiler", false, compiler);
+#endif
