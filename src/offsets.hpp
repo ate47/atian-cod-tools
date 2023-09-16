@@ -7,6 +7,7 @@ namespace offset {
 	constexpr auto assetPool = 0x912a5b0;
 	constexpr auto XASSET_SCRIPTPARSETREE = 0x912abb0;
 	constexpr auto g_assetNames = 0x04F13260;
+	constexpr auto s_XAssetTypeInfo = 0x498BB00;
 	constexpr auto gFs = 0x833CBD0;
 	constexpr auto scrVmPub = 0x8307aa0;
 	constexpr auto gScrClassMap = 0x04EED230;

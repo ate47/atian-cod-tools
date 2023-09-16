@@ -39,6 +39,14 @@ public:
     }
 };
 
+struct XAssetTypeInfo {
+    uintptr_t name; // const char*
+    uint64_t size;
+    uint64_t unk20;
+    uintptr_t GetName; // const char* (__cdecl*)(const XAssetHeader*);
+    uintptr_t SetName; // void(__cdecl* )(XAssetHeader*, uint64_t*);
+};
+
 struct XAssetPoolEntry {
     uintptr_t pool;
     UINT32 itemSize;
@@ -138,37 +146,39 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
             return -1;
         }
 
-        out << "id,name,location,itemsize,items,max,singleton\n";
+        out << "id,name,location,itemsize,items,max,singleton,setname,getname\n";
 
         const auto count = 0xa8;
         XAssetPoolEntry entry[count];
-        uintptr_t entryNames[count];
+        XAssetTypeInfo entryinfo[count];
 
         if (!proc.ReadMemory(&entry, proc[offset::assetPool], sizeof(*entry) * count)) {
             std::cerr << "Can't read pool entry\n";
             return tool::BASIC_ERROR;
         }
-        if (!proc.ReadMemory(&entryNames, proc[offset::g_assetNames], sizeof(*entryNames) * count)) {
-            std::cerr << "Can't read xasset names\n";
+        if (!proc.ReadMemory(&entryinfo, proc[offset::s_XAssetTypeInfo], sizeof(*entryinfo) * count)) {
+            std::cerr << "Can't read xasset info\n";
             return tool::BASIC_ERROR;
         }
 
         CHAR str[100];
         for (size_t i = 0; i < count; i++) {
-            out << std::dec
-                << i << ",";
-            if (proc.ReadString(str, entryNames[i], 100) < 0) {
-                std::cerr << "Can't read xasset name from " << std::hex << entryNames[i] << "\n";
+            if (proc.ReadString(str, entryinfo[i].name, sizeof(str) - 1) < 0) {
+                std::cerr << "Can't read xasset name from " << std::hex << entryinfo[i].name << "\n";
                 continue;
             }
             auto e = entry[i];
-            out << std::hex
+            out << std::dec
+                << i << std::hex << ","
                 << str << ","
                 << e.pool << ","
                 << e.itemSize << ","
                 << e.itemAllocCount << ","
                 << e.itemCount << ","
-                << (e.isSingleton ? "true" : "false") << "\n";
+                << (e.isSingleton ? "true" : "false") << ",";
+
+            proc.WriteLocation(out, entryinfo[i].SetName) << ",";
+            proc.WriteLocation(out, entryinfo[i].GetName) << "\n";
         }
         out.close();
 

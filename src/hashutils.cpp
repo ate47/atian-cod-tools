@@ -42,6 +42,9 @@ void hashutils::WriteExtracted(LPCCH file) {
 
 int hashutils::LoadMap(LPCWCH file, bool ignoreCol) {
 	// add common hashes
+
+	// special value
+	g_hashMap[0] = "";
 	
 	// class special things
 	Add("__constructor");

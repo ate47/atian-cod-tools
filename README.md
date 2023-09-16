@@ -9,7 +9,9 @@ My set of tools for Call of Duty.
 
 ### Mods
 
-- `acts mod_t8_cee` - enable EEs in Custom mutations, offline or casual (Black Ops 4).
+Mods implemented in my tool, run `acts mod` for the list.
+
+- `acts mod t8cee` - enable EEs in Custom mutations, offline or casual (Black Ops 4).
 
 ### Dump tools
 
