@@ -66,10 +66,15 @@ struct RawEntry {
     uintptr_t unk3; // 0x18
 };
 struct RawFileEntry {
-    uintptr_t unk1; // 0x8
-    uintptr_t unk2; // 0x10
-    uintptr_t unk3; // 0x18
-    uintptr_t unk4; // 0x20
+    uintptr_t name; // 0x8
+    uintptr_t pad0; // 0x10
+    uintptr_t size; // 0x18
+    uintptr_t buffer; // 0x20
+};
+struct RawString {
+    uintptr_t name; // 0x8
+    uintptr_t padding; // 0x10 0
+    uintptr_t stringvalue; // 0x18 const char*
 };
 struct GametypeEntry {
     uintptr_t v1; // 0x8
@@ -364,6 +369,124 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
     break;
+    case ASSET_TYPE_RAWSTRING:
+    {
+        hashutils::ReadDefaultFile();
+
+        snprintf(outputName, sizeof(outputName), "%s/strings.csv", opt.m_output);
+
+        std::filesystem::path file(outputName);
+        std::filesystem::create_directories(file.parent_path(), ec);
+
+        std::ofstream out{ file };
+
+        if (!out) {
+            std::cerr << "Can't open file " << file << "\n";
+            return tool::BASIC_ERROR;
+        }
+
+
+        auto pool = std::make_unique<RawString[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR str[4096];
+        out << "name,string\n";
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+            const auto* name = hashutils::ExtractTmp("hash", p.name);
+            if (proc.ReadString(str, p.stringvalue, sizeof(str) - 1) < 0) {
+                std::cerr << "error when reading " << std::dec << i << " (" << name << ")" << " at " << p.stringvalue << "\n";
+                continue;
+            }
+
+            out << "#" << name << "," << str << "\n";
+        }
+
+        std::cout << "Dump into " << file << "\n";
+    }
+    break;
+    case ASSET_TYPE_RAWFILE:
+    {
+
+        hashutils::ReadDefaultFile();
+
+
+        auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            auto n = hashutils::ExtractPtr(p.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                snprintf(dumpbuff, dumpbuffsize, "%s/%s", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name << std::dec;
+                snprintf(dumpbuff, dumpbuffsize, "%s/hashed/rawfile/file_%llx.raw", opt.m_output, p.name);
+            }
+
+            if (!p.buffer || !proc.ReadMemory<UINT64>(p.buffer)) {
+                std::cerr << "error when reading buffer at " << p.buffer << "\n";
+                continue;
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+            std::cout << "\n";
+
+            LPCVOID output;
+            size_t outputsize;
+
+            // empty file
+            if (!p.size) {
+                output = "";
+                outputsize = 0;
+            }
+            else {
+                read.resize(p.size);
+                std::fill(read.begin(), read.end(), 0);
+
+                if (!proc.ReadMemory(&read[0], p.buffer, p.size)) {
+                    std::cerr << "error when reading buffer at " << p.buffer << "\n";
+                    continue;
+                }
+                output = &read[0];
+                outputsize = p.size;
+            }
+
+
+            if (!utils::WriteFile(file, output, outputsize)) {
+                std::cerr << "error when writting file " << file << "\n";
+            }
+
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+        break;
     default:
     {
         std::cout << "Item data\n";
