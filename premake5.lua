@@ -17,7 +17,7 @@ workspace "AtianCodTools"
 
     filter "configurations:Release"
         defines { "NDEBUG" }
-        optimize "On"
+        optimize "Size"
         
     filter {} -- Reset filters
 

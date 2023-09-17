@@ -132,6 +132,29 @@ public:
 	 */
 	uintptr_t AllocateMemory(SIZE_T size) const;
 	/*
+	 * Allocate memory in the process with protection
+	 * @param size Size to allocate
+	 * @param protection Protection
+	 * @return pointer or null
+	 */
+	uintptr_t AllocateMemory(SIZE_T size, DWORD protection) const;
+	/*
+	 * Set the protection of a location in memory
+	 * @param ptr Pointer to set
+	 * @param size Size of the pointer
+	 * @param flNewProtected New protect value
+	 * @param lpflOldProtect Old protect value to write
+	 * @return pointer or null
+	 */
+	bool SetMemoryProtection(uintptr_t ptr, SIZE_T size, DWORD flNewProtected, DWORD& lpflOldProtect) const;
+	/*
+	 * Create a thread in the process
+	 * @param location Pointer to the function
+	 * @param arg Pointer to the argument
+	 * @return handle to the thread or INVALID_HANDLE_VALUE in case of error
+	 */
+	HANDLE Exec(uintptr_t location, uintptr_t arg) const;
+	/*
 	 * Free memory in the process
 	 * @param ptr Pointer to free
 	 * @param size Pointer size
@@ -207,6 +230,12 @@ public:
 	 * Compute the modules names
 	 */
 	void ComputeModules();
+	/*
+	 * @return handle
+	 */
+	inline HANDLE GetHandle() {
+		return m_handle;
+	}
 private:
 	static DWORD GetProcId(LPCWCH name);
 	static bool GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize);

@@ -138,18 +138,43 @@ INT64 Process::GetModuleRelativeOffset(uintptr_t ptr) const {
 }
 
 uintptr_t Process::AllocateMemory(SIZE_T size) const {
+	return AllocateMemory(size, PAGE_READWRITE);
+}
+
+uintptr_t Process::AllocateMemory(SIZE_T size, DWORD protection) const {
 	if (m_handle) {
-		return reinterpret_cast<uintptr_t>(VirtualAllocEx(m_handle, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+		return reinterpret_cast<uintptr_t>(VirtualAllocEx(m_handle, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, protection));
 	}
 	return NULL;
+}
+
+bool Process::SetMemoryProtection(uintptr_t ptr, SIZE_T size, DWORD flNewProtected, DWORD& lpflOldProtect) const {
+	if (m_handle) {
+		return VirtualProtectEx(m_handle, reinterpret_cast<LPVOID>(ptr), size, flNewProtected, &lpflOldProtect);
+	}
+	return false;
 }
 
 bool Process::IsInsideModule(uintptr_t ptr) const {
 	return ptr >= m_modAddress && ptr < m_modAddress + m_modSize;
 }
 
+
+HANDLE Process::Exec(uintptr_t location, uintptr_t arg) const {
+	if (!m_handle) {
+		return INVALID_HANDLE_VALUE;
+	}
+
+	 return CreateRemoteThread(
+		m_handle, 0, 0,
+		reinterpret_cast<LPTHREAD_START_ROUTINE>(location), 
+		reinterpret_cast<LPVOID>(arg), 
+		0, 0
+	 );
+}
+
 void Process::FreeMemory(uintptr_t ptr, SIZE_T size) const {
-	if (m_handle) {
+	if (m_handle && ptr) {
 		VirtualFreeEx(m_handle, reinterpret_cast<LPVOID>(ptr), size, MEM_FREE);
 	}
 }
