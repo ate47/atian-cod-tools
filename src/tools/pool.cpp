@@ -72,9 +72,22 @@ struct RawFileEntry {
     uintptr_t buffer; // 0x20
 };
 struct RawString {
-    uintptr_t name; // 0x8
+    UINT64 name; // 0x8
     uintptr_t padding; // 0x10 0
     uintptr_t stringvalue; // 0x18 const char*
+};
+struct DDLEntry {
+    UINT64 name; // 0x8
+    uintptr_t unk8;  // 0x10
+    uintptr_t buffer; // 0x18
+    uintptr_t unk18; // 0x20
+    uintptr_t unk20; // 0x28
+    uintptr_t unk28; // 0x30
+    uintptr_t unk30; // 0x38
+    uintptr_t unk38; // 0x40
+    uintptr_t unk40; // 0x48
+    uintptr_t unk48; // 0x50
+    uintptr_t unk50; // 0x58
 };
 struct GametypeEntry {
     uintptr_t v1; // 0x8
@@ -87,7 +100,7 @@ struct GametypeEntry {
 enum StringTableCellType : INT {
     STC_TYPE_UNDEFINED = 0,
     STC_TYPE_STRING = 1,
-    STC_TYPE_HASHED2 = 2, // weapon?
+    STC_TYPE_HASHED2 = 2,
     STC_TYPE_INT = 4,
     STC_TYPE_FLOAT = 5,
     STC_TYPE_BOOL = 6,
@@ -114,10 +127,60 @@ struct StringTableEntry {
     uintptr_t unk48; // 56
     uintptr_t unk56; // 64
 };
-void WriteHex(BYTE* buff, SIZE_T size) {
+
+inline bool HexValidString(LPCCH str) {
+    if (!*str) {
+        return false;
+    }
+    for (LPCCH s = str; *s; s++) {
+        if (*s < ' ' || *s > '~') {
+            return false;
+        }
+    }
+    return true;
+}
+
+void WriteHex(uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
+    CHAR strBuffer[101];
     for (size_t j = 0; j < size; j++) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)buff[j] << " ";
-        if ((j + 1) % 4 == 0) {
+        if (j % 8 == 0) {
+            if (base) {
+                std::cout << std::hex << std::setw(16) << std::setfill('0') << (base + j) << "~";
+            }
+            std::cout << std::hex << std::setw(3) << std::setfill('0') << j << "|";
+            if (j + 7 < size) {
+                std::cout << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<UINT64*>(&buff[j]);
+            }
+        }
+        if (j - j % 8 + 7 >= size) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)buff[j];
+        }
+        if ((j + 1) % 8 == 0) {
+            // check x64 values
+            if (j >= 7) {
+                auto val = *reinterpret_cast<UINT64*>(&buff[j - 7]);
+                if (val) {
+                    // not null, hash?
+                    auto* h = hashutils::ExtractPtr(val);
+                    if (h) {
+                        std::cout << " #" << h;
+                    }
+                    else if (proc.ReadString(strBuffer, val, sizeof(strBuffer) - 1) >= 0 && HexValidString(strBuffer)) {
+                        std::cout << " ->" << strBuffer;
+                    }
+                    else if (proc.ReadMemory(strBuffer, val, sizeof(UINT64))) {
+                        auto r = *reinterpret_cast<UINT64*>(strBuffer);
+
+                        auto* h = hashutils::ExtractPtr(r);
+                        if (h) {
+                            std::cout << " ->#" << h;
+                        }
+                        else {
+                            std::cout << " ->0x" << std::hex << r;
+                        }
+                    }
+                }
+            }
             std::cout << "\n";
         }
     }
@@ -487,6 +550,42 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
         break;
+    case ASSET_TYPE_DDL:
+    {
+
+        hashutils::ReadDefaultFile();
+        
+
+        auto pool = std::make_unique<DDLEntry[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+        BYTE test[0x100];
+
+        for (size_t i = 0; i < min(10, entry.itemAllocCount); i++) {
+            const auto& p = pool[i];
+
+            auto n = hashutils::ExtractPtr(p.name);
+            std::cout << "- " << std::dec << i << " : " << hashutils::ExtractTmp("file", p.name) << ": " << std::hex << p.buffer << "\n";
+
+            if (!proc.ReadMemory(test, p.buffer, sizeof(test))) {
+                std::cerr << "Bad read\n";
+                continue;
+            }
+
+            WriteHex(p.buffer, test, sizeof(test), proc);
+
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    break;
     default:
     {
         std::cout << "Item data\n";
@@ -501,13 +600,8 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
         for (size_t i = 0; i < min(10, entry.itemAllocCount); i++) {
             std::cout << "Element #" << std::dec << i << " " << std::hex << (entry.pool + i * entry.itemSize) << "\n";
-            for (size_t j = 0; j < entry.itemSize; j++) {
-                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)raw[i * entry.itemSize + j] << " ";
-                if ((j + 1) % 4 == 0) {
-                    std::cout << "\n";
-                }
-            }
-            std::cout << "\n";
+
+            WriteHex(entry.pool, &raw[i * entry.itemSize], entry.itemSize, proc);
         }
 
         delete[] raw;
