@@ -5,6 +5,13 @@ My set of tools for Call of Duty.
 **Supported games**
 - Call of Duty: Black Ops 4 (T8)
 
+## Usage
+
+This tool is using
+
+- [ANTLR-4](https://github.com/antlr/antlr4) - [BSD-3-Clause license](https://github.com/antlr/antlr4/blob/master/LICENSE.txt).
+- [Detours](https://github.com/microsoft/Detours) - [MIT license](https://github.com/microsoft/Detours/blob/main/LICENSE.md).
+
 ## Tools
 
 ### Mods

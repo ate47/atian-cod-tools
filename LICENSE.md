@@ -1,4 +1,9 @@
-MIT License
+This software depends on libraries with a different License.
+
+- [ANTLR/ANTLR-4](https://github.com/antlr/antlr4) - [BSD-3-Clause license](https://github.com/antlr/antlr4/blob/master/LICENSE.txt).
+- [Microsoft/Detours](https://github.com/microsoft/Detours) - [MIT license](https://github.com/microsoft/Detours/blob/main/LICENSE.md).
+
+# MIT License
 
 Copyright (c) 2023 Antoine Willerval
 
