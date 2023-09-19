@@ -56,3 +56,6 @@ scriptparsetree*
 cw
 output*
 /pool/
+
+
+*.log

@@ -62,6 +62,8 @@ project "ACTS-BO4-DLL"
     includedirs {
         "src/bo4-dll",
         "src/shared",
+    -- link detours
+		"deps/Detours/src/"
     }
 
     vpaths {
@@ -69,7 +71,9 @@ project "ACTS-BO4-DLL"
     }
     
     links { "ACTSSharedLibrary" }
+    links { "detours" }
     dependson "ACTSSharedLibrary"
+    dependson "detours"
 
 project "AtianCodTools"
     kind "ConsoleApp"
@@ -142,4 +146,30 @@ group "deps"
         defines { 
             --"ANTLR4CPP_DLL", -- for SharedLib kind
             "ANTLR4CPP_STATIC"
+        }
+    project "detours"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++20"
+        warnings "Off"
+
+        targetname "detours"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+        
+        files {
+            "deps/Detours/src/detours.*",
+            "deps/Detours/src/modules.*",
+            "deps/Detours/src/disasm.*",
+            "deps/Detours/src/image.*",
+            "deps/Detours/src/creatwth.*",
+            "deps/Detours/src/disolx86.*",
+            "deps/Detours/src/disolx64.*",
+            "deps/Detours/src/disolia64.*",
+            "deps/Detours/src/disolarm.*",
+            "deps/Detours/src/disolarm64.*"
+        }
+
+        includedirs {
+            "deps/Detours/src/"
         }

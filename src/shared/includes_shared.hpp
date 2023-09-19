@@ -17,3 +17,6 @@
 #include "logs.hpp"
 #include "decrypt.hpp"
 #include "clisync.hpp"
+#include "offsets.hpp"
+#include "hash.hpp"
+#include "pool.hpp"

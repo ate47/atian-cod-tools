@@ -1,5 +1,6 @@
 #pragma once
 #include <Windows.h>
+#include <hash.hpp>
 
 namespace hashutils {
 	constexpr auto DEFAULT_HASH_FILE = L"strings.txt";
@@ -81,24 +82,24 @@ namespace hashutils {
 	 * @param str String to compute
 	 * @return hashed value
 	 */
-	UINT32 Hash32(LPCCH str);
+	inline UINT32 Hash32(LPCCH str) { return hash::Hash32(str); }
 	/*
 	 * Compute the hash64 on a string (fnva1), path are unformatted
 	 * @param str String to compute
 	 * @param start Start value, can be a previous hash to concatenate hashes
 	 * @return Hashed value
 	 */
-	UINT64 Hash64(LPCCH str, UINT64 start = 0xcbf29ce484222325LL);
+	inline UINT64 Hash64(LPCCH str, UINT64 start = 0xcbf29ce484222325LL) { return hash::Hash64(str, start); }
 	/*
 	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	UINT32 Hash32Pattern(LPCCH str);
+	inline UINT32 Hash32Pattern(LPCCH str) { return hash::Hash32Pattern(str); }
 	/*
 	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	UINT64 Hash64Pattern(LPCCH str);
+	inline UINT64 Hash64Pattern(LPCCH str) { return hash::Hash64Pattern(str); }
 }

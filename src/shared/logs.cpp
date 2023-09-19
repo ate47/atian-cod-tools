@@ -16,6 +16,8 @@ LPCCH alogs::name(loglevel lvl) {
 	}
 }
 static alogs::loglevel g_loglevel = alogs::LVL_INFO;
+static LPCCH g_logfile = NULL;
+
 void alogs::setlevel(loglevel lvl) {
 	g_loglevel = lvl;
 }
@@ -23,12 +25,51 @@ alogs::loglevel alogs::getlevel() {
 	return g_loglevel;
 }
 
-std::ostream& alogs::log(loglevel level) {
-	if (g_loglevel > level) {
-		static std::ofstream nullstream{};
-		nullstream.setstate(std::ios_base::badbit);
-		// basic impl
-		return nullstream;
+void alogs::setfile(LPCCH filename) {
+	g_logfile = filename;
+}
+LPCCH alogs::logfile() {
+	return g_logfile;
+}
+
+inline std::tm localtime_xp(std::time_t timer) {
+	// https://stackoverflow.com/questions/38034033/c-localtime-this-function-or-variable-may-be-unsafe
+	std::tm bt{};
+#if defined(__unix__)
+	localtime_r(&timer, &bt);
+#elif defined(_MSC_VER)
+	localtime_s(&bt, &timer);
+#else
+	static std::mutex mtx;
+	std::lock_guard<std::mutex> lock(mtx);
+	bt = *std::localtime(&timer);
+#endif
+	return bt;
+}
+
+void alogs::log(loglevel level, std::string&& str) {
+	if (getlevel() > level) {
+		return;
 	}
-	return (level > LVL_WARNING ? std::cout : std::cerr) << '[' << name(level) << "] ";
+
+	auto f = [&](std::ostream& out) {
+		std::tm tm = localtime_xp(std::time(nullptr));
+		out
+			<< "[" << std::put_time(&tm, "%H:%M:%S") << "]"
+			<< '[' << name(level) << "] "
+			<< str
+			<< "\n";
+		};
+
+	auto* lf = logfile();
+	if (lf) {
+		std::ofstream out{ lf, std::ios::app };
+
+		f(out);
+
+		out.close();
+	}
+	else {
+		f(level > LVL_WARNING ? std::cout : std::cerr);
+	}
 }

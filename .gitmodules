@@ -1,3 +1,7 @@
 [submodule "deps/antlr4"]
 	path = deps/antlr4
 	url = https://github.com/antlr/antlr4
+[submodule "deps/Detours"]
+	path = deps/Detours
+	url = https://github.com/microsoft/Detours
+	branch = 4.0.1

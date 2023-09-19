@@ -188,7 +188,7 @@ void WriteHex(uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
 }
 
 int pooltool(const Process& proc, int argc, const char* argv[]) {
-    using namespace tool::pool;
+    using namespace pool;
     if (argc < 3) {
         return tool::BAD_USAGE;
     }

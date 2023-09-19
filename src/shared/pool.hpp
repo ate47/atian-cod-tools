@@ -1,7 +1,7 @@
 #pragma once
-#include <includes.hpp>
+#include <includes_shared.hpp>
 
-namespace tool::pool {
+namespace pool {
     enum XAssetType : BYTE{
         ASSET_TYPE_PHYSPRESET = 0,
         ASSET_TYPE_PHYSCONSTRAINTS = 1,

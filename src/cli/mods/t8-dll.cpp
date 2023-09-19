@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-constexpr auto gameName = "notepad.exe";
+constexpr auto gameName = "blackops4.exe";
 constexpr auto dllName = "acts-bo4-dll.dll";
 
 int t8dll(int argc, const char* argv[]) {
