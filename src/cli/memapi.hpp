@@ -199,6 +199,13 @@ public:
 	 * @return out with module+relative_location
 	 */
 	std::ostream& WriteLocation(std::ostream& out, uintptr_t location) const;
+
+	/*
+	 * Inject a dll in the process
+	 * @param dll Dll file
+	 * @return if the dll was injected
+	 */
+	bool LoadDll(LPCCH dll);
 	/*
 	 * Read memory integer type
 	 * @param location Process location to read

@@ -46,7 +46,7 @@ int t8customee(int argc, const char* argv[]) {
 
 	auto buffer = std::make_unique<tool::dump::T8ScriptParseTreeEntry[]>(poolSize);
 
-
+	
 	if (!proc.ReadMemory(&buffer[0], poolPtr, poolSize * sizeof(buffer[0]))) {
 		std::cerr << "Can't read scriptparsetree buffer" << poolPtr << "\n";
 		return tool::BASIC_ERROR; // can't read buffer

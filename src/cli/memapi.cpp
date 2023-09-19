@@ -291,6 +291,35 @@ std::ostream& Process::WriteLocation(std::ostream& out, uintptr_t location) cons
 	return out;
 }
 
+bool Process::LoadDll(LPCCH dll) {
+	ProcessModuleExport& rLoadLibraryA =  (*this)["kernel32.dll"]["LoadLibraryA"];
+
+	if (!rLoadLibraryA) {
+		return false;
+	}
+	auto dllsize = strlen(dll) + 1;
+	auto argptr = AllocateMemory(dllsize, PAGE_READWRITE);
+
+	if (!argptr || !WriteMemory(argptr, dll, dllsize)) {
+		FreeMemory(argptr, dllsize);
+		return false;
+	}
+
+	auto thr = Exec(rLoadLibraryA.m_location, argptr);
+
+	if (thr == INVALID_HANDLE_VALUE || !thr) {
+		FreeMemory(argptr, dllsize);
+		return false;
+	}
+	WaitForSingleObject(thr, INFINITE);
+	CloseHandle(thr);
+	FreeMemory(argptr, dllsize);
+	// we need to recompute the modules because a new one was injected
+	ComputeModules();
+
+	return true;
+}
+
 ProcessModule& Process::operator[](LPCCH module) {
 	if (!module) {
 		if (m_modules.size()) {

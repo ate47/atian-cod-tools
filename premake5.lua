@@ -21,6 +21,56 @@ workspace "AtianCodTools"
         
     filter {} -- Reset filters
 
+project "ACTSSharedLibrary"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "actsshared"
+    
+    files {
+        "./src/shared/**.hpp",
+        "./src/shared/**.h",
+        "./src/shared/**.cpp",
+    }
+
+    includedirs {
+        "src/shared",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+
+project "ACTS-BO4-DLL"
+    kind "SharedLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts-bo4-dll"
+    
+    files {
+        "./src/bo4-dll/**.hpp",
+        "./src/bo4-dll/**.h",
+        "./src/bo4-dll/**.cpp",
+    }
+
+    includedirs {
+        "src/bo4-dll",
+        "src/shared",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    dependson "ACTSSharedLibrary"
+
 project "AtianCodTools"
     kind "ConsoleApp"
     language "C++"
@@ -32,9 +82,9 @@ project "AtianCodTools"
     
     files {
         "./.github/workflows/**",
-        "./src/**.hpp",
-        "./src/**.h",
-        "./src/**.cpp",
+        "./src/cli/**.hpp",
+        "./src/cli/**.h",
+        "./src/cli/**.cpp",
         "./gsc/**.gsc",
         "./gsc/**.csc",
         "./grammar/**.g4",
@@ -49,7 +99,8 @@ project "AtianCodTools"
     }
 
     includedirs {
-        "src",
+        "src/cli",
+        "src/shared",
     -- link antlr4
 		"deps/antlr4/runtime/Cpp/runtime/src/"
     }
@@ -61,8 +112,11 @@ project "AtianCodTools"
     defines { 
         "ANTLR4CPP_STATIC"
     }
+    
     links { "antlr4-runtime" }
+    links { "ACTSSharedLibrary" }
     dependson "antlr4-runtime"
+    dependson "ACTSSharedLibrary"
 
 group "deps"
     project "antlr4-runtime"

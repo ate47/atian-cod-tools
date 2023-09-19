@@ -1,6 +1,8 @@
 #include <includes.hpp>
 
 int main(int argc, const char *argv[]) {
+	g_progPath = argv[0];
+
 	std::cout << "Atian Call of Duty tools\n\n";
 	
 	if (argc == 1) {
