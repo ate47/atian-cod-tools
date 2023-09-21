@@ -46,6 +46,8 @@ scripts/antlr4.jar
 
 # tools files
 strings.txt
+hashes.txt
+brute.txt
 pool.csv
 linked.csv
 events.csv

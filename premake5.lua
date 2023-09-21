@@ -97,6 +97,7 @@ project "AtianCodTools"
         ".gitignore",
         "premake5.lua",
         "packages.txt",
+        "resolver.cfg",
         "gsc.conf",
         "LICENSE",
         "README.md"
