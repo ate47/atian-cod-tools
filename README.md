@@ -50,6 +50,18 @@ Tools to help with the GSC development.
 
 To have a lookup over the extracted hashes, you can use a file named `strings.txt` when using the process, it will be loaded automatically, one string per line.
 
+## Hash resolver tool
+
+The hash resolver tool is to test hash64 values, to use it, you need to create a config file, one config per line.
+
+configs:
+
+- `hashes [file]` - open a file with hashes, one hash per line, example: 
+- `add [hash]` - add a hash in the list, example: `add 138f012bb30beb55`
+- `dict [list]` - set the dictionary, example: `dict abcdefghijklmnopqrstuvwxyz0123456789_/`
+- `pattern [pattern]` - set the pattern, a `???` should be put to tell where to put the search, example: `pattern scripts/zm_common/zm_???.gsc`
+- `output [file]` - set the output file, example: `output brute.txt`
+
 ## Credits
 
 - Serious's t8-compiler for some opcodes, it fasted up the process of understanding the internal game functions. Also for the childthread operator syntax.

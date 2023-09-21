@@ -39,14 +39,24 @@ jobs:
         run: scripts/setup.ps1
       - name: Build project
         shell: pwsh
-        run: |
-          (ls deps).FullName
-          (ls build).FullName
-          msbuild build/AtianCodTools.sln /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
-#      - name: Upload files
-#        uses: actions/upload-artifact@v1
-#        if: matrix.cfg == 'Release'
-#        with:
-#          name: "Windows"
-#          path: "build/bin/acts.exe"
+        run: msbuild build/AtianCodTools.sln /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
+      - name: Package project
+        if: matrix.cfg == 'Release'
+        shell: pwsh
+        run: scripts/package.ps1
+      - name: Upload dev release
+        uses: ncipollo/release-action@v1
+        if: matrix.cfg == 'Release' && github.ref == 'refs/heads/main'
+        with:
+          commit: ${{ github.sha }}
+          allowUpdates: true
+          tag: "latest_build"
+          artifacts: "build/package/acts.zip"
+          artifactErrorsFailBuild: true
+          makeLatest: false
+          removeArtifacts: true
+          replacesArtifacts: true
+          name: "Dev build"
+          body: "Latest dev build, [get the latest release build here](https://github.com/ate47/atian-cod-tools/releases/latest)."
+          token: ${{ secrets.GITHUB_TOKEN }}
 
