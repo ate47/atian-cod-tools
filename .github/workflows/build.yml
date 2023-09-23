@@ -37,7 +37,6 @@ jobs:
           msbuild-architecture: x64
       - name: Get version
         id: get_version
-        if: inputs.release && matrix.cfg == 'Release' && github.ref == 'refs/heads/main'
         shell: pwsh
         run: "\"version=$(scripts/getversion.ps1)\" | Out-File $env:GITHUB_OUTPUT"
       - name: Version
@@ -69,7 +68,7 @@ jobs:
           removeArtifacts: true
           replacesArtifacts: true
           allowUpdates: true
-          name: "Dev build"
+          name: "Dev build ${{ steps.get_version.outputs.version }}"
           body: "Latest dev build, [get the latest release build here](https://github.com/ate47/atian-cod-tools/releases/latest)."
       - name: Upload release
         if: inputs.release && matrix.cfg == 'Release' && github.ref == 'refs/heads/main'
