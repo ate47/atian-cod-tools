@@ -5,3 +5,7 @@
 	path = deps/Detours
 	url = https://github.com/microsoft/Detours
 	branch = 4.0.1
+[submodule "deps/zlib"]
+	path = deps/zlib
+	url = https://github.com/madler/zlib
+	branch = master

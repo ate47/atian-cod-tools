@@ -1,6 +1,7 @@
 #pragma once
 
 #include <includes_shared.hpp>
+#include <zlib.h>
 
 #include "memapi.hpp"
 #include "hashutils.hpp"

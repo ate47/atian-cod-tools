@@ -107,7 +107,8 @@ project "AtianCodTools"
         "src/cli",
         "src/shared",
     -- link antlr4
-		"deps/antlr4/runtime/Cpp/runtime/src/"
+		"deps/antlr4/runtime/Cpp/runtime/src/",
+		"deps/zlib/"
     }
 
     vpaths {
@@ -120,8 +121,10 @@ project "AtianCodTools"
     
     links { "antlr4-runtime" }
     links { "ACTSSharedLibrary" }
+    links { "zlib" }
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
+    dependson "zlib"
 
 group "deps"
     project "antlr4-runtime"
@@ -173,4 +176,17 @@ group "deps"
 
         includedirs {
             "deps/Detours/src/"
+        }
+    project "zlib"
+        language "C"
+        kind "StaticLib"
+        warnings "Off"
+
+        targetname "zlib"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+        
+        files {
+            "deps/zlib/*.c",
+            "deps/zlib/*.h",
         }

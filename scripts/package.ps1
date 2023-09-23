@@ -30,6 +30,7 @@ try {
     Copy-Item "LICENSE.md" "$base/licenses/license_acts.md" > $null
     Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/license_antlr4.md" > $null
     Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/license_detours.md" > $null
+    Copy-Item "deps/zlib/LICENSE" "$base/licenses/license_zlib.md" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

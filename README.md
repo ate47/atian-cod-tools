@@ -5,12 +5,20 @@ My set of tools for Call of Duty.
 **Supported games**
 - Call of Duty: Black Ops 4 (T8)
 
-## Usage
+## Dependencies
 
-This tool is using
+This tool is using and providing
 
 - [ANTLR-4](https://github.com/antlr/antlr4) - [BSD-3-Clause license](https://github.com/antlr/antlr4/blob/master/LICENSE.txt).
 - [Detours](https://github.com/microsoft/Detours) - [MIT license](https://github.com/microsoft/Detours/blob/main/LICENSE.md).
+- [Madler/zlib](https://github.com/madler/zlib) - [Custom license](https://github.com/madler/zlib/blob/master/LICENSE).
+
+## Downloads
+
+You can download the latest release here:
+
+- [Latest Release](https://github.com/ate47/atian-cod-tools/releases/latest)
+- [Latest Dev Build](https://github.com/ate47/atian-cod-tools/releases/tag/latest_build) (Might be unstable)
 
 ## Tools
 
