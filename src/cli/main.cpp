@@ -3,7 +3,7 @@
 int main(int argc, const char *argv[]) {
 	g_progPath = argv[0];
 
-	std::cout << "Atian Call of Duty tools\n\n";
+	std::cout << "Atian tools " << actsinfo::VERSION << " \n\n";
 	
 	if (argc == 1) {
 		tool::usage("No input", *argv);

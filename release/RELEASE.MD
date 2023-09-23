@@ -1,0 +1,5 @@
+- threadendon -> childthread syntax
+- collision tool
+- t8cee mod
+- BO4 dll mod
+- hash resolver

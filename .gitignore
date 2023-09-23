@@ -39,9 +39,6 @@ scripts/antlr4.jar
 # VS
 /.vs/
 /.vscode/
-/x64
-/Release
-/Debug
 /build/
 
 # tools files

@@ -1,3 +1,32 @@
+newoption {
+   trigger = "ci-build",
+   description = "CI build define"
+}
+
+function buildinfo()
+
+    local versionfile = assert(io.open("release/version", "r"))
+    local version = assert(versionfile:read())
+    local versionid = assert(versionfile:read())
+    versionfile:close()
+
+    -- set version
+    local file = assert(io.open("src/shared/actsinfo.hpp", "w"))
+    file:write("#pragma once\n")
+    file:write("namespace actsinfo {\n")
+    file:write("    // Do not write in this file, it is updated by premake\n")
+    file:write("#ifdef DEBUG\n\n")
+    file:write("    constexpr const char* VERSION = \"Debug\";\n")
+    file:write("    constexpr unsigned int VERSION_ID = 0xFFFFFFFF;\n")
+    file:write("\n#else\n\n")
+    file:write("    // Version used for the release\n")
+    file:write("    constexpr const char* VERSION = \"" .. version .. "\";\n")
+    file:write("    constexpr unsigned int VERSION_ID = 0x" .. versionid .. ";\n")
+    file:write("\n#endif\n")
+    file:write("}\n")
+    file:close()
+
+end
 
 workspace "AtianCodTools"
     startproject "AtianCodTools"
@@ -10,6 +39,10 @@ workspace "AtianCodTools"
     architecture "x86_64"
     platforms "x64"
 
+    buildinfo()
+
+    filter { "options:ci-build" }
+        defines { "CI_BUILD" }
     
     filter "configurations:Debug"
         defines { "DEBUG" }

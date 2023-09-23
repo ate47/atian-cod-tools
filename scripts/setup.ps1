@@ -1,4 +1,6 @@
 param(
+    [switch]
+    $ci
 )
 
 
@@ -14,7 +16,11 @@ try {
     # install packages
     vcpkg install "@.\packages.txt"
     # create solution
-    premake5 vs2022
+    if ($ci) {
+        premake5 vs2022 --ci-build
+    } else {
+        premake5 vs2022
+    }
 }
 finally {
     $prevPwd | Set-Location

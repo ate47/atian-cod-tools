@@ -81,8 +81,4 @@ int t8dll(int argc, const char* argv[]) {
 	return tool::OK;
 }
 
-#ifdef DEBUG
-
 ADD_MOD("t8dll", "Inject BO4 DLL", t8dll);
-
-#endif

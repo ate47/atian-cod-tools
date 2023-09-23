@@ -22,3 +22,4 @@
 #include "hash.hpp"
 #include "pool.hpp"
 #include "scriptinstance.hpp"
+#include "actsinfo.hpp"
