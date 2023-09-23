@@ -1,4 +1,4 @@
-#include <includes.hpp>
+#include <includes_shared.hpp>
 
 LPCCH scriptinstance::Name(ScriptInstance inst) {
 	switch (inst) {

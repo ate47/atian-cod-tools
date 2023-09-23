@@ -1,33 +1,21 @@
 #include <dll_includes.hpp>
+#include "cli_connect.hpp"
 
 clisync::CliSyncData g_cliData{};
 
-// void* StringTable_GetAsset(char const*).text 0x28A2660.
-// void* DB_FindXAssetHeader(XAssetType, char const*, bool, int).text 0x2EB75B0
+struct DetourRegistryData {
+	LPCCH title;
+	LPVOID pointer;
+	LPVOID detour;
+};
 
-typedef void* (__fastcall* tStringTable_GetAsset)(char const*);
-typedef void* (__fastcall* tDB_FindXAssetHeader)(BYTE type, UINT64* name, bool errorIfMissing, int waitTime);
-tStringTable_GetAsset trueStringTable_GetAsset = NULL;
-tDB_FindXAssetHeader trueDB_FindXAssetHeader = NULL;
+static std::vector<DetourRegistryData>& detourRegistryData() {
+	static std::vector<DetourRegistryData> vec{};
+	return vec;
+};
 
-
-void* StringTable_GetAsset(char const* name) {
-	static std::map<std::string, void*> loadedMap{};
-	void* sTable = trueStringTable_GetAsset(name);
-
-	auto& m = loadedMap[name];
-
-	if (!m || m != sTable) {
-		m = sTable;
-		LOG_INFO("loading StringTable {} -> {}", name, m);
-	}
-
-	return sTable;
-}
-
-void* DB_FindXAssetHeader(BYTE type, UINT64* name, bool errorIfMissing, int waitTime) {
-	// for later
-	return trueDB_FindXAssetHeader(type, name, errorIfMissing, waitTime);
+void cliconnect::RegisterDetour(LPCCH title, LPVOID pointer, LPVOID detour) {
+	detourRegistryData().emplace_back(title, pointer, detour);
 }
 
 void SyncCLIOnce(clisync::CliSyncData* data) {
@@ -58,11 +46,40 @@ void SyncCLIOnce(clisync::CliSyncData* data) {
 
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
-	trueStringTable_GetAsset = reinterpret_cast<tStringTable_GetAsset>(&modStart[0x28A2660]);
-	DetourAttach((PVOID*)&trueStringTable_GetAsset, StringTable_GetAsset);
-	trueDB_FindXAssetHeader = reinterpret_cast<tDB_FindXAssetHeader>(&modStart[0x2EB75B0]);
-	DetourAttach((PVOID*)&trueDB_FindXAssetHeader, DB_FindXAssetHeader);
-	DetourTransactionCommit();
+
+	auto error = false;
+	LONG err;
+	for (auto& detourData : detourRegistryData()) {
+		LOG_INFO("detouring {}@{:x}->{:x}", detourData.title, reinterpret_cast<uintptr_t>(detourData.pointer), reinterpret_cast<uintptr_t>(detourData.detour));
+		err = DetourAttach(reinterpret_cast<PVOID*>(detourData.pointer), detourData.detour);
+
+		if (err != NO_ERROR) {
+			error = true;
+			LPSTR messageBuffer = nullptr;
+			FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+			LOG_ERROR("Error when attaching detour {}: {} ({:x})", detourData.title, messageBuffer, err);
+			LocalFree(messageBuffer);
+			break;
+		}
+	}
+
+	if (!error) {
+		err = DetourTransactionCommit();
+		if (err != NO_ERROR) {
+			error = true;
+			LPSTR messageBuffer = nullptr;
+			FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+			LOG_ERROR("Error when commit transaction: {} ({:x})", messageBuffer, err);
+			LocalFree(messageBuffer);
+		}
+	}
+
+	if (error) {
+		DetourTransactionAbort();
+		return;
+	}
 
 	LOG_INFO("Done.");
 }

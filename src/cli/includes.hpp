@@ -5,7 +5,6 @@
 
 #include "memapi.hpp"
 #include "hashutils.hpp"
-#include "scriptinstance.hpp"
 
 #include "mods/mods.hpp"
 

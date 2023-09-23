@@ -21,3 +21,4 @@
 #include "offsets.hpp"
 #include "hash.hpp"
 #include "pool.hpp"
+#include "scriptinstance.hpp"
