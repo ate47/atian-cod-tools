@@ -167,13 +167,61 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
 int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, const GscInfoOption& opt) {
     hashutils::ReadDefaultFile();
 
+
+    T8GSCOBJContext ctx{};
+    auto& gsicInfo = ctx.m_gsicInfo;
+
+    gsicInfo.isGsic = size > 4 && !memcmp(&data->magic[0], "GSIC", 4);
+    if (gsicInfo.isGsic) {
+        std::cout << "Reading GSIC Compiled Script data\n";
+
+        size_t gsicSize = 4; // preamble
+
+        auto numFields = *reinterpret_cast<INT32*>(&data->magic[gsicSize]);
+        gsicSize += 4;
+
+        bool gsicError = false;
+        for (size_t i = 0; i < numFields; i++) {
+            auto fieldType = *reinterpret_cast<INT32*>(&data->magic[gsicSize]);
+            gsicSize += 4;
+            switch (fieldType) {
+            case 0: // Detour
+            {
+                auto detourCount = *reinterpret_cast<INT32*>(&data->magic[gsicSize]);
+                gsicSize += 4;
+                for (size_t j = 0; j < detourCount; j++) {
+                    GsicDetour* detour = reinterpret_cast<GsicDetour*>(&data->magic[gsicSize]);
+                    gsicSize += (size_t)(28 + 256 - 1 - (5 * 4) + 1 - 8);
+
+                    // register detour
+                    gsicInfo.detours[detour->fixupOffset] = detour;
+                }
+            }
+            break;
+            default:
+                std::cerr << "Bad GSIC field type: " << std::dec << fieldType << "\n";
+                gsicError = true;
+                break;
+            }
+            if (gsicError) {
+                break;
+            }
+        }
+
+        if (gsicError) {
+            return tool::BASIC_ERROR;
+        }
+
+        // pass the GSIC data
+        gsicInfo.headerSize = gsicSize;
+        data = reinterpret_cast<T8GSCOBJ*>(data->magic + gsicSize);
+    }
+
     opcode::VmInfo* vmInfo;
     if (!opcode::IsValidVm(data->GetVm(), vmInfo)) {
         std::cerr << "Bad vm 0x" << std::hex << (int)data->GetVm() << " for file " << path << "\n";
         return -1;
     }
-
-    T8GSCOBJContext ctx{};
 
     char asmfnamebuff[1000];
 
@@ -200,13 +248,42 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         std::cerr << "Can't open output file " << asmfnamebuff << "\n";
         return -1;
     }
-    std::cout << "Decompiling into '" << asmfnamebuff << "'...\n";
+    std::cout << "Decompiling into '" << asmfnamebuff << (gsicInfo.isGsic ? " (GSIC)" : "") << "'...\n";
     if (opt.m_copyright) {
         asmout << "// " << opt.m_copyright << "\n";
     }
+
     if (opt.m_header) {
+
         asmout
-            << "// " << hashutils::ExtractTmp("script", data->name) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n"
+            << "// " << hashutils::ExtractTmp("script", data->name) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n";
+
+        if (gsicInfo.isGsic) {
+            asmout
+                << "// GSIC Compiled script" << ", header: 0x" << std::hex << gsicInfo.headerSize << "\n"
+                << "// detours: " << std::dec << gsicInfo.detours.size() << "\n";
+            for (const auto& [key, detour] : gsicInfo.detours) {
+                asmout << "// - ";
+
+                if (detour->replaceNamespace) {
+                    asmout << hashutils::ExtractTmp("namespace", detour->replaceNamespace) << std::flush;
+                }
+                auto replaceScript = *reinterpret_cast<UINT64*>(&detour->replaceScriptTop);
+                if (replaceScript) {
+                    asmout << "<" << hashutils::ExtractTmpScript(replaceScript) << ">" << std::flush;
+                }
+
+                if (detour->replaceNamespace) {
+                    asmout << "::";
+                }
+
+                asmout
+                    << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush
+                    << " offset: 0x" << std::hex << detour->fixupOffset << ", size: 0x" << detour->fixupSize << "\n";
+            }
+        }
+
+        asmout
             << "// magic .... 0x" << *reinterpret_cast<UINT64*>(&data->magic[0]) 
                 << " vm: 0x" << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")"
                 << " crc: 0x" << std::hex << data->crc << "\n"
@@ -595,7 +672,8 @@ int GscInfoFile(const std::filesystem::path& path, const GscInfoOption& opt) {
 
     if (!(
         pathname.ends_with(".gscc") || pathname.ends_with(".cscc")
-            || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin")
+        || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin")
+        || pathname.ends_with(".gsic") || pathname.ends_with(".csic") // Serious GSIC format
         )) {
         return 0;
     }
@@ -1096,6 +1174,8 @@ End
 
 
 void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding) const {
+
+
     bool classMember = flags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
     if (ctx.m_opt.m_func_header) {
@@ -1127,9 +1207,10 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
 
     if (flags == T8GSCExportFlags::CLASS_VTABLE) {
         utils::Padding(asmout, padding) << "vtable " << hashutils::ExtractTmp("class", name);
-    } else {
+    }
+    else {
 
-        bool specialClassMember = !ctx.m_opt.m_dasm && classMember && 
+        bool specialClassMember = !ctx.m_opt.m_dasm && classMember &&
             ((flags & T8GSCExportFlags::CLASS_DESTRUCTOR) || g_constructorName == name);
 
         utils::Padding(asmout, padding);
@@ -1155,9 +1236,33 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
                 asmout << "~";
             }
         }
+        auto detourVal = objctx.m_gsicInfo.detours.find(address);
 
-        asmout << hashutils::ExtractTmp("function", name);
+        if (detourVal != objctx.m_gsicInfo.detours.end()) {
+            auto* detour = detourVal->second;
+
+            asmout << "detour ";
+            if (detour->replaceNamespace) {
+                asmout << hashutils::ExtractTmp("namespace", detour->replaceNamespace) << std::flush;
+            }
+            auto replaceScript = *reinterpret_cast<UINT64*>(&detour->replaceScriptTop);
+            if (replaceScript) {
+                asmout << "<" << hashutils::ExtractTmpScript(replaceScript) << ">" << std::flush;
+            }
+
+            if (detour->replaceNamespace) {
+                asmout << "::";
+            }
+
+            asmout
+                << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush;
+        }
+        else {
+            asmout << hashutils::ExtractTmp("function", name);
+        }
+
     }
+
 
     asmout << std::flush << "(";
 

@@ -438,6 +438,21 @@ namespace tool::gsc {
             }
         };
     }
+
+    struct GsicDetour {
+        UINT32 name;
+        UINT32 replaceNamespace;
+        UINT32 replaceFunction;
+        INT32 fixupOffset;
+        INT32 fixupSize;
+        INT32 replaceScriptTop;
+        INT32 replaceScriptBottom;
+    };
+    struct GsicInfo {
+        bool isGsic = false;
+        size_t headerSize = 0;
+        std::unordered_map<UINT32, GsicDetour*> detours{};
+    };
     struct asmcontext_func {
         UINT32 name;
         UINT32 nsp;
@@ -454,6 +469,7 @@ namespace tool::gsc {
         std::unordered_map<UINT16, UINT32> m_gvars{};
         std::unordered_map<UINT32, LPCCH> m_stringRefs{};
     public:
+        GsicInfo m_gsicInfo{};
         std::unordered_map<UINT32, gscclass> m_classes{};
         T8GSCOBJContext();
 
