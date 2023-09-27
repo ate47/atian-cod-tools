@@ -23,3 +23,5 @@
 #include "pool.hpp"
 #include "scriptinstance.hpp"
 #include "actsinfo.hpp"
+
+#include "t8_internal.hpp"

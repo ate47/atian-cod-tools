@@ -9,6 +9,7 @@ static void* DB_FindXAssetHeader(BYTE type, UINT64* name, bool errorIfMissing, i
 static void* StringTable_GetAsset(char const* name);
 static void Scr_LogCompilerError(char const* name, ...);
 static void Error(UINT32 code, const char* empty);
+static void ScrVm_RuntimeError(uint32_t errorCode, scriptinstance::ScriptInstance inst, byte* codePos, const char* msg, bool terminalError);
 
 static bool CScr_GetFunctionReverseLookup(byte* func, UINT32* hash, bool* isFunction);
 static bool Scr_GetFunctionReverseLookup(byte* func, UINT32* hash, bool* isFunction);
@@ -19,11 +20,12 @@ static BuiltinFunction CScr_GetMethod(UINT32 name, BuiltinType* type, int* min_a
 
 
 // Detours
-static cliconnect::DetourInfo<void, uint64_t, scriptinstance::ScriptInstance, char*, bool> dScrVm_Error{ "ScrVm_Error", bo4::OFFSET_ScrVm_Error, ScrVm_Error };
+static cliconnect::DetourInfo<void, UINT64, scriptinstance::ScriptInstance, char*, bool> dScrVm_Error{ "ScrVm_Error", bo4::OFFSET_ScrVm_Error, ScrVm_Error };
 static cliconnect::DetourInfo<void*, BYTE, UINT64*, bool, int> dDB_FindXAssetHeader{ "DB_FindXAssetHeader", bo4::OFFSET_DB_FindXAssetHeader, DB_FindXAssetHeader };
 static cliconnect::DetourInfo<void*, char const*> dStringTable_GetAsset{ "StringTable_GetAsset", bo4::OFFSET_StringTable_GetAsset, StringTable_GetAsset };
 static cliconnect::DetourInfo<void> dScr_LogCompilerError{ "Scr_LogCompilerError", bo4::OFFSET_LogCompilerError, reinterpret_cast<void (*)()>(Scr_LogCompilerError) };
 static cliconnect::DetourInfo<void, UINT32, const char*> dError{ "Error", bo4::OFFSET_Error, Error };
+static cliconnect::DetourInfo<void, uint32_t, scriptinstance::ScriptInstance, byte*, const char*, bool> dScrVm_RuntimeError{ "ScrVm_RuntimeError", bo4::OFFSET_ScrVm_RuntimeError, ScrVm_RuntimeError };
 
 static cliconnect::DetourInfo<bool, byte*, UINT32*, bool*> dCScr_GetFunctionReverseLookup{ "CScr_GetFunctionReverseLookup", bo4::OFFSET_CScr_GetFunctionReverseLookup, CScr_GetFunctionReverseLookup };
 static cliconnect::DetourInfo<bool, byte*, UINT32*, bool*> dScr_GetFunctionReverseLookup{ "Scr_GetFunctionReverseLookup", bo4::OFFSET_Scr_GetFunctionReverseLookup, Scr_GetFunctionReverseLookup };
@@ -33,8 +35,18 @@ static cliconnect::DetourInfo<BuiltinFunction, UINT32, BuiltinType*, int*, int*>
 static cliconnect::DetourInfo<BuiltinFunction, UINT32, BuiltinType*, int*, int*> dCScr_GetMethod{ "CScr_GetMethod", bo4::OFFSET_CScr_GetMethod, CScr_GetMethod };
 
 // Custom detours
-static void ScrVm_Error(uint64_t code, scriptinstance::ScriptInstance inst, char* unk, bool terminal) {
-	LOG_ERROR("VM {} Error code={} '{}' terminal={}", scriptinstance::Name(inst), code, unk, terminal ? "true" : "false");
+static void ScrVm_Error(UINT64 code, scriptinstance::ScriptInstance inst, char* unk, bool terminal) {
+	if (code == custom_gsc_func::custom_error_id) { // detect custom error
+		LOG_ERROR("VM {} ACTS Error '{}' terminal={}", scriptinstance::Name(inst), unk, terminal ? "true" : "false");
+	}
+	else {
+		auto desc = error_handler::FindDesc((UINT32)code);
+		LOG_ERROR("VM {} Error code={} '{}' terminal={}", scriptinstance::Name(inst), code, unk, terminal ? "true" : "false");
+		if (desc) {
+			// update the error info to match the error
+			bo4::scrVarPub[inst].error_message = desc;
+		}
+	}
 	dScrVm_Error(code, inst, unk, terminal);
 }
 
@@ -50,6 +62,26 @@ static void Scr_LogCompilerError(char const* name, ...) {
 	}
 
 	LOG_ERROR("LogCompilerError {}", buffer);
+}
+static void ScrVm_RuntimeError(uint32_t errorCode, scriptinstance::ScriptInstance inst, byte* codePos, const char* msg, bool terminalError) {
+	static CHAR error_buffer[2][0x2000];
+	bo4::GSCExport *exp;
+	bo4::GSCOBJ *obj;
+	scriptinstance::ScriptInstance inst2;
+	UINT32 rloc;
+
+	auto& buff = error_buffer[inst];
+
+	// add script location at the end of the message
+	if (bo4::FindGSCFuncLocation(codePos, inst2, obj, exp, rloc)) {
+		auto w = snprintf(buff, sizeof(buff), "%s (%s", msg, hash_lookup::ExtractTmp(inst, obj->name));
+		snprintf(&buff[w], sizeof(buff) - w, "@%s:%x)", hash_lookup::ExtractTmp(inst, exp->name), rloc);
+	}
+	else {
+		snprintf(buff, sizeof(buff), "%s (Can't find script at %llx)", msg, reinterpret_cast<UINT64>(codePos));
+	}
+
+	dScrVm_RuntimeError(errorCode, inst, codePos, buff, terminalError);
 }
 
 static void Error(UINT32 code, const char* empty) {
@@ -91,8 +123,6 @@ static bool CScr_GetFunctionReverseLookup(BYTE* func, UINT32* hash, bool* isFunc
 		}
 	}
 
-	LOG_ERROR("Vm {} Can't reverse lookup API function {:x}", scriptinstance::Name(scriptinstance::SI_CLIENT), reinterpret_cast<uintptr_t>(func));
-
 	return false;
 }
 
@@ -109,8 +139,6 @@ static bool Scr_GetFunctionReverseLookup(BYTE* func, UINT32* hash, bool* isFunct
 			return true;
 		}
 	}
-
-	LOG_ERROR("Vm {} Can't reverse lookup API function {:x}", scriptinstance::Name(scriptinstance::SI_SERVER), reinterpret_cast<uintptr_t>(func));
 
 	return false;
 }

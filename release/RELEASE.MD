@@ -1,5 +1,9 @@
-- threadendon -> childthread syntax
-- collision tool
-- t8cee mod
-- BO4 dll mod
-- hash resolver
+- bo4 dll
+	- add gsc builtin function `ACTSLogPrint(object)->undefined` to print an object
+	- add gsc builtin function `ACTSLookup(hash|string?)->hash|string?` lookup an object
+	- allow dev calls
+	- log error messages in acts-bo4.log
+	- use strings.txt if available
+	- print location in case of runtime errors
+- gsc decompiler
+	- add support for gsic files

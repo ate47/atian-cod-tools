@@ -81,6 +81,14 @@ void SyncCLIOnce(clisync::CliSyncData* data) {
 		return;
 	}
 
+
+	auto strLookup = (std::filesystem::path{ g_cliData.workDir } / "strings.txt").string();
+
+	LOG_INFO("Syncing hash map '{}'", strLookup.data());
+
+	hash_lookup::LoadFile(strLookup.data());
+
+
 	LOG_INFO("Done.");
 }
 

@@ -16,7 +16,7 @@ function buildinfo()
     file:write("namespace actsinfo {\n")
     file:write("    // Do not write in this file, it is updated by premake\n")
     file:write("#ifdef DEBUG\n\n")
-    file:write("    constexpr const char* VERSION = \"Debug\";\n")
+    file:write("    constexpr const char* VERSION = \"Dev\";\n")
     file:write("    constexpr unsigned int VERSION_ID = 0xFFFFFFFF;\n")
     file:write("\n#else\n\n")
     file:write("    // Version used for the release\n")
@@ -126,6 +126,7 @@ project "AtianCodTools"
         "./gsc/**.csc",
         "./grammar/**.g4",
         "./scripts/**.ps1",
+        "./release/**",
         "./resources/**",
         ".gitignore",
         "premake5.lua",

@@ -4,6 +4,8 @@
 namespace custom_gsc_func {
 	typedef void (*BuiltinFunction)(scriptinstance::ScriptInstance inst);
 
+	// (dank) custom error 1114190337 ( Juliett 694 Boiling Bison )
+	constexpr auto custom_error_id = 0x42693201;
 
 	enum BuiltinType : int {
 		BUILTIN_DEFAULT = 0,

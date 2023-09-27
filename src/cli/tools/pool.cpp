@@ -60,11 +60,6 @@ struct TranslationEntry {
     uintptr_t name;
     UINT64 pad0;
 };
-struct RawEntry {
-    uintptr_t unk1; // 0x8
-    uintptr_t pad0; // 0x10
-    uintptr_t unk3; // 0x18
-};
 struct RawFileEntry {
     uintptr_t name; // 0x8
     uintptr_t pad0; // 0x10

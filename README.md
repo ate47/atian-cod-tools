@@ -27,6 +27,7 @@ You can download the latest release here:
 Mods implemented in my tool, run `acts mod` for the list.
 
 - `acts mod t8cee` - enable EEs in Custom mutations, offline or casual (Black Ops 4).
+- `acts mod t8dll` - Inject bo4 tool dll (Project BO4 or equivalent)
 
 ### Dump tools
 
