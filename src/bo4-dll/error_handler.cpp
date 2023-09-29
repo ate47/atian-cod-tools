@@ -1,94 +1,46 @@
 #include <dll_includes.hpp>
 
-std::vector<error_handler::error_info> error_handler::errors{
-	{
-		.code = 1252503459,
-		.description = "caller is not an entity"
-	},
-	{
-		.code = 3122940489,
-		.description = "caller is not an entity"
-	},
-	{
-		.code = 2116335949,
-		.description = "function called with too many parameters"
-	},
-	{
-		.code = 219686544,
-		.description = "object is not an array index"
-	},
-	{
-		.code = 744499668,
-		.description = "too many vehicles"
-	},
-	{
-		.code = 317100267,
-		.description = "unmatching types"
-	},
-	{
-		.code = 4104994143,
-		.description = "can't allocate more script variables"
-	},
-	{
-		.code = 1609894461,
-		.description = "bad entity"
-	},
-	{
-		.code = 1670707254,
-		.description = "linking error"
-	},
-	{
-		.code = 3222417139,
-		.description = "Usage of .size outside of a string or array"
-	},
-	{
-		.code = 2681972741,
-		.description = "bad clientfield for name"
-	},
-	{
-		.code = 2681972741,
-		.description = "bad clientfield for name"
-	},
-	{
-		.code = 3654063291,
-		.description = "ScrEvent map is full, unable to register new event"
-	},
-	{
-		.code = 829015102,
-		.description = "var isn't a field object"
-	},
-	{
-		.code = 2751867714,
-		.description = "self isn't a field object"
-	},
-	{
-		.code = 1427704235,
-		.description = "add to struct with a non pointer/struct value"
-	},
-	{
-		.code = 512306404,
-		.description = "not a function pointer"
-	},
-	{
-		.code = 2538360978,
-		.description = "not a function pointer"
-	},
-	{
-		.code = 2448966512,
-		.description = "string too long"
-	},
-	{
-		.code = 245612264,
-		.description = "foreach should be used with an array"
-	},
-	{
-		.code = 647662103,
-		.description = "var can't be converted to string"
-	}
+// map used to translate the error codes
+std::unordered_map<UINT64, LPCCH> error_handler::errors = {
+	{ 1252503459, "caller is not an entity" },
+	{ 3122940489, "caller is not an entity" },
+	{ 2116335949, "function called with too many parameters" },
+	{ 219686544, "object is not an array index" },
+	{ 744499668, "too many vehicles" },
+	{ 317100267, "unmatching types" },
+	{ 4104994143, "can't allocate more script variables" },
+	{ 1609894461, "bad entity" },
+	{ 1670707254, "linking error" },
+	{ 3222417139, "Usage of .size outside of a string or array" },
+	{ 2681972741, "bad clientfield for name" },
+	{ 2681972741, "bad clientfield for name" },
+	{ 3654063291, "ScrEvent map is full, unable to register new event" },
+	{ 829015102, "var isn't a field object" },
+	{ 2751867714, "self isn't a field object" },
+	{ 1427704235, "add to struct with a non pointer/struct value" },
+	{ 512306404, "not a function pointer" },
+	{ 2538360978, "not a function pointer" },
+	{ 2448966512, "string too long" },
+	{ 245612264, "foreach should be used with an array" },
+	{ 647662103, "var can't be converted to string" },
+	{ 4213634562, "precacheLeaderboards must be called before any wait statements in the gametype or level script" },
+	{ 3143575744, "parameter does not exist" }, // GetVector
+	{ 2517242050, "parameter does not exist" }, // GetString
+	{ 4196473479, "parameter does not exist" }, // GetBool
+	{ 3699844858, "parameter does not exist" }, // GetType
+	{ 280703902, "parameter does not exist" }, // GetPointerType
+	{ 312545010, "not a vector" },
+	{ 647662103, "parameter can't be cast to a string" },
+	{ 952690413, "parameter can't be cast to a boolean" },
+	{ 3761634992, "not a pointer" },
+	{ 754846421, "invalid vehicle spawn origin" },
 };
 
-LPCCH error_handler::FindDesc(UINT32 code) {
-	auto nfo = std::find_if(errors.begin(), errors.end(), [code](const error_handler::error_info& v) { return v.code == code; });
+LPCCH error_handler::FindDesc(UINT64 code) {
+	auto nfo = errors.find(code);
 
-	return nfo == errors.end() ? NULL : nfo->description;
+	if (nfo == errors.end()) {
+		return NULL;
+	}
+	return nfo->second;
 }

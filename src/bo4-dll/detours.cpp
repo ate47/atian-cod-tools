@@ -71,14 +71,24 @@ static void ScrVm_RuntimeError(uint32_t errorCode, scriptinstance::ScriptInstanc
 	UINT32 rloc;
 
 	auto& buff = error_buffer[inst];
+	auto& vm = bo4::scrVmPub[inst];
 
-	// add script location at the end of the message
-	if (bo4::FindGSCFuncLocation(codePos, inst2, obj, exp, rloc)) {
-		auto w = snprintf(buff, sizeof(buff), "%s (%s", msg, hash_lookup::ExtractTmp(inst, obj->name));
-		snprintf(&buff[w], sizeof(buff) - w, "@%s:%x)", hash_lookup::ExtractTmp(inst, exp->name), rloc);
-	}
-	else {
-		snprintf(buff, sizeof(buff), "%s (Can't find script at %llx)", msg, reinterpret_cast<UINT64>(codePos));
+	size_t w = snprintf(buff, sizeof(buff), "%s", msg);
+
+	for (int i = vm.function_count; i > 0; i--) {
+		auto& stack = vm.function_frame_start[i];
+		if (w + 1 >= sizeof(buff)) {
+			continue; // too many chars
+		}
+
+		// add script location at the end of the message
+		if (bo4::FindGSCFuncLocation(reinterpret_cast<BYTE*>(stack.bytecodeLocation), inst2, obj, exp, rloc)) {
+			w += snprintf(&buff[w], sizeof(buff) - w, "\n%s", hash_lookup::ExtractTmp(inst, obj->name));
+			w += snprintf(&buff[w], sizeof(buff) - w, "@%s:%x", hash_lookup::ExtractTmp(inst, exp->name), rloc);
+		}
+		else {
+			snprintf(buff, sizeof(buff), "%s (Can't find script at %llx)", msg, reinterpret_cast<UINT64>(codePos));
+		}
 	}
 
 	dScrVm_RuntimeError(errorCode, inst, codePos, buff, terminalError);

@@ -4,17 +4,12 @@
 
 namespace error_handler {
 
-	struct error_info {
-		UINT32 code;
-		LPCCH description;
-	};
-
-	extern std::vector<error_info> errors;
+	extern std::unordered_map<UINT64, LPCCH> errors;
 
 	/*
 	 * Find the description of an error code
 	 * @param code code
 	 * @return Description or NULL
 	 */
-	LPCCH FindDesc(UINT32 code);
+	LPCCH FindDesc(UINT64 code);
 }
