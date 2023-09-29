@@ -8,6 +8,7 @@
 
 using namespace antlr4;
 using namespace antlr4::tree;
+using namespace tool::gsc::opcode;
 
 #pragma push_macro("ERROR")
 #undef ERROR
@@ -21,6 +22,48 @@ class FunctionObject;
 class CompileObject;
 class ACTSErrorListener;
 struct InputInfo;
+
+
+class AscmNode {
+public:
+    UINT32 rloc = 0;
+
+    virtual ~AscmNode() {};
+
+    virtual UINT32 ShiftSize(UINT32 start) const {
+        return start; // empty by default
+    }
+
+    virtual bool Write(std::vector<BYTE>& data) {
+        // nothing by default
+        return true;
+    }
+};
+
+class AscmNodeOpCode : public AscmNode {
+public:
+    OPCode opcode;
+
+    AscmNodeOpCode(OPCode opcode) : opcode(opcode) {
+    }
+
+    UINT32 ShiftSize(UINT32 start) const override {
+        return utils::Aligned<UINT16>(start) + sizeof(UINT16);
+    }
+
+    bool Write(std::vector<BYTE>& data) override  {
+        auto [err, op] = GetOpCodeId(VM_T8, opcode);
+        if (err) {
+            return false;
+        }
+
+        utils::Aligned<UINT16>(data);
+        utils::WriteValue(data, op);
+        
+        // nothing by default
+        return true;
+    }
+};
 
 class GscCompilerOption {
 public:
@@ -113,12 +156,31 @@ public:
     UINT32 m_data_name;
     BYTE m_params = 0;
     BYTE m_flags = 0;
+    std::vector<std::string> m_vars{};
+    std::vector<AscmNode*> m_nodes{};
     FunctionObject(
         UINT32 name,
         UINT32 name_space
     ) : m_name(name), m_name_space(name_space), m_data_name(name_space) {
     }
+    ~FunctionObject() {
+        for (auto* node : m_nodes) {
+            delete node;
+        }
+    }
 
+    /*
+     * Compute the nodes relative locations
+     */
+    void ComputeRelativeLocations() {
+        // we start at 0 and we assume that the start location is already aligned
+        UINT32 current = 0;
+
+        for (auto node : m_nodes) {
+            node->rloc = current;
+            current = node->ShiftSize(current);
+        }
+    }
 };
 
 
@@ -160,6 +222,123 @@ public:
 #define IS_RULE_TYPE(rule, index) (rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
 #define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
 
+bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
+    if (exp->getTreeType() == TREE_ERROR) {
+        return false;
+    }
+
+    if (exp->getTreeType() == TREE_RULE) {
+        auto* rule = dynamic_cast<RuleContext*>(exp);
+
+        switch (rule->getRuleIndex()) {
+        case gscParser::RuleExpression:
+        case gscParser::RuleExpression1:
+        case gscParser::RuleExpression2:
+        case gscParser::RuleExpression3:
+        case gscParser::RuleExpression4:
+        case gscParser::RuleExpression5:
+        case gscParser::RuleExpression6:
+        case gscParser::RuleExpression7:
+        case gscParser::RuleExpression8:
+        case gscParser::RuleExpression9:
+        case gscParser::RuleExpression10:
+        case gscParser::RuleExpression11:
+        case gscParser::RuleExpression12:
+        case gscParser::RuleSet_expression: {
+            if (rule->children.size() == 1) {
+                // simple rules recursion
+                return ParseExpressionNode(rule->children[0], parser, obj, fobj);
+            }
+            if (rule->children.size() == 2) {
+                // (++|--|~|!) exp
+
+
+                return true;
+            }
+            assert(rule->children.size() == 3 && "Expression should have 3 components");
+
+            auto op = rule->children[1]->getText();
+
+            // TODO: bool operator
+            if (op == "||") {
+
+            }
+            else if (op == "&&") {
+
+            }
+            else {
+                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj)) {
+                    return false;
+                }
+                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj)) {
+                    return false;
+                }
+                // TODO: push operator
+                if (op == "|") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Or));
+                }
+                else if (op == "^") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Xor));
+                }
+                else if (op == "&") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_And));
+                }
+                else if (op == "!=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_NotEqual));
+                }
+                else if (op == "!==") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SuperNotEqual));
+                }
+                else if (op == "==") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Equal));
+                }
+                else if (op == "===") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SuperEqual));
+                }
+                else if (op == "<") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_LessThan));
+                }
+                else if (op == "<=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_LessThanOrEqualTo));
+                }
+                else if (op == ">") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GreaterThan));
+                }
+                else if (op == ">=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GreaterThanOrEqualTo));
+                }
+                else if (op == "+") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Plus));
+                }
+                else if (op == "-") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Minus));
+                }
+                else if (op == "*") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Multiply));
+                }
+                else if (op == "/") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Divide));
+                }
+                else if (op == "%") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Modulus));
+                }
+                else {
+                    obj.info.PrintLineMessage(std::cerr, 0)
+                        << "unhandled operator: " << op << "\n";
+                    return false;
+                }
+                return true;
+            }
+        }
+            break;
+        case gscParser::RuleExpression13:
+            return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj);
+        }
+
+    }
+
+    return true;
+}
 
 bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileObject& obj) {
     if (func->children.size() < 5) { // 0IDF 1( 2params 3) 4block
@@ -185,15 +364,15 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     obj.hashes.insert(name);
     UINT32 nameHashed = hashutils::Hash32Pattern(name.data());
 
-    auto expRes = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace);
+    auto [res, err] = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace);
 
-    if (!expRes.second) {
+    if (!err) {
         obj.info.PrintLineMessage(std::cerr, func->getStart())
             << "The export " << name << " was defined twice\n";
         return false;
     }
 
-    auto exp = expRes.first->second;
+    auto& exp = res->second;
 
     if (!IS_RULE_TYPE(paramsRule, gscParser::RuleParam_list)) {
         obj.info.PrintLineMessage(std::cerr, func->getStart())
@@ -205,9 +384,6 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             << "Bad function block declaration " << func << "\n";
         return false;
     }
-
-    auto* params = dynamic_cast<gscParser::Param_listContext*>(paramsRule);
-    auto* block = dynamic_cast<gscParser::Statement_blockContext*>(blockRule);
 
     // handle modifiers
 
@@ -252,7 +428,50 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
     // handle params
 
+    auto* params = dynamic_cast<gscParser::Param_listContext*>(paramsRule);
+
+    size_t index = 0;
+    for (auto* child : params->children) {
+        if (index++ % 2) {
+            continue; // coma
+        }
+        assert(IS_RULE_TYPE(child, gscParser::RuleParam_val));
+        auto* param = dynamic_cast<gscParser::Param_valContext*>(child);
+        assert(IS_TERMINAL_TYPE(param->children[0], gscParser::IDENTIFIER));
+        auto* idfNode = dynamic_cast<TerminalNode*>(param->children[0]);
+        auto paramIdf = idfNode->getText();
+        if (exp.m_params == 256) {
+            obj.info.PrintLineMessage(std::cerr, idfNode->getSymbol())
+                << "Too many variables\n";
+            return false;
+        }
+
+        exp.m_params++;
+
+
+        if (std::find(exp.m_vars.begin(), exp.m_vars.end(), paramIdf) != exp.m_vars.end()) {
+            obj.info.PrintLineMessage(std::cerr, idfNode->getSymbol())
+                << "The parameter '" << paramIdf << "' was registered twice\n";
+
+            return false;
+        }
+
+        exp.m_vars.push_back(paramIdf);
+
+        if (param->children.size() == 3) {
+            // default value
+            assert(IS_RULE_TYPE(param->children[2], gscParser::RuleExpression));
+            auto defaultValueExp = dynamic_cast<gscParser*>(param->children[2]);
+
+            // todo: add default block
+
+        }
+
+    }
+
     // handle block
+
+    auto* block = dynamic_cast<gscParser::Statement_blockContext*>(blockRule);
 
     return true;
 }

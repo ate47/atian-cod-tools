@@ -3130,7 +3130,10 @@ void tool::gsc::opcode::RegisterOpCode(BYTE vm, OPCode enumValue, UINT16 op) {
 		return;
 	}
 
-	ref->second.opcodemap[op] = enumValue;
+	auto& opnfo = ref->second;
+
+	opnfo.opcodemap[op] = enumValue;
+	opnfo.opcodemaplookup[enumValue] = op;
 }
 
 void tool::gsc::opcode::RegisterOpCodes() {
@@ -3380,6 +3383,24 @@ const OPCodeInfo* tool::gsc::opcode::LookupOpCode(BYTE vm, UINT16 opcode) {
 	}
 
 	return refHandler->second;
+}
+std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, OPCode opcode) {
+	RegisterOpCodes();
+
+	VmInfo* info;
+
+	if (!(IsValidVm(vm, info))) {
+		return std::make_pair(false, 0);
+	}
+
+
+	auto ref = info->opcodemaplookup.find(opcode);
+
+	if (ref == info->opcodemaplookup.end()) {
+		return std::make_pair(false, 0);
+	}
+
+	return std::make_pair(true, ref->second);
 }
 
 #pragma endregion

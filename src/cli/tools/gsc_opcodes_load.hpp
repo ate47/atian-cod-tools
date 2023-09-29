@@ -2,6 +2,12 @@
 
 namespace tool::gsc::opcode {
 
+	enum VM : BYTE {
+		VM_T8 = 0x36,
+		VM_T2020 = 0x37,
+		VM_T9 = 0x38
+	};
+
 	enum OPCode : UINT16 {
 		OPCODE_Undefined,
 		OPCODE_Unknown0,
