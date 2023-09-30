@@ -1,4 +1,4 @@
-#include "dll_includes.hpp"
+#include <dll_includes.hpp>
 
 
 using namespace custom_gsc_func;
@@ -17,7 +17,6 @@ static BuiltinFunction Scr_GetFunction(UINT32 name, BuiltinType* type, int* min_
 static BuiltinFunction CScr_GetFunction(UINT32 name, BuiltinType* type, int* min_args, int* max_args);
 static BuiltinFunction Scr_GetMethod(UINT32 name, BuiltinType* type, int* min_args, int* max_args);
 static BuiltinFunction CScr_GetMethod(UINT32 name, BuiltinType* type, int* min_args, int* max_args);
-
 
 // Detours
 static cliconnect::DetourInfo<void, UINT64, scriptinstance::ScriptInstance, char*, bool> dScrVm_Error{ "ScrVm_Error", bo4::OFFSET_ScrVm_Error, ScrVm_Error };
@@ -115,7 +114,13 @@ static void* StringTable_GetAsset(char const* name) {
 }
 
 static void* DB_FindXAssetHeader(BYTE type, UINT64* name, bool errorIfMissing, int waitTime) {
-	// for later
+	if (type == pool::ASSET_TYPE_STRINGTABLE) {
+		auto* ptr = stringtables::GetTable(*name);
+
+		if (ptr) {
+			return ptr;
+		}
+	}
 	return dDB_FindXAssetHeader(type, name, errorIfMissing, waitTime);
 }
 

@@ -135,22 +135,33 @@ inline bool HexValidString(LPCCH str) {
     return true;
 }
 
-void WriteHex(uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
+void WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
     CHAR strBuffer[101];
     for (size_t j = 0; j < size; j++) {
         if (j % 8 == 0) {
             if (base) {
-                std::cout << std::hex << std::setw(16) << std::setfill('0') << (base + j) << "~";
+                out << std::hex << std::setw(16) << std::setfill('0') << (base + j) << "~";
             }
-            std::cout << std::hex << std::setw(3) << std::setfill('0') << j << "|";
+            out << std::hex << std::setw(3) << std::setfill('0') << j << "|";
             if (j + 7 < size) {
-                std::cout << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<UINT64*>(&buff[j]);
+                out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<UINT64*>(&buff[j]);
             }
         }
         if (j - j % 8 + 7 >= size) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)buff[j];
+            out << std::hex << std::setw(2) << std::setfill('0') << (int)buff[j];
         }
         if ((j + 1) % 8 == 0) {
+            out << "|";
+
+            for (size_t i = j - 7; i <= j; i++) {
+                if (buff[i] >= ' ' && buff[i] <= '~') {
+                    out << (char)buff[i];
+                }
+                else {
+                    out << ".";
+                }
+            }
+
             // check x64 values
             if (j >= 7) {
                 auto val = *reinterpret_cast<UINT64*>(&buff[j - 7]);
@@ -158,28 +169,28 @@ void WriteHex(uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
                     // not null, hash?
                     auto* h = hashutils::ExtractPtr(val);
                     if (h) {
-                        std::cout << " #" << h;
+                        out << " #" << h;
                     }
                     else if (proc.ReadString(strBuffer, val, sizeof(strBuffer) - 1) >= 0 && HexValidString(strBuffer)) {
-                        std::cout << " ->" << strBuffer;
+                        out << " ->" << strBuffer;
                     }
                     else if (proc.ReadMemory(strBuffer, val, sizeof(UINT64))) {
                         auto r = *reinterpret_cast<UINT64*>(strBuffer);
 
                         auto* h = hashutils::ExtractPtr(r);
                         if (h) {
-                            std::cout << " ->#" << h;
+                            out << " ->#" << h;
                         }
                         else {
-                            std::cout << " ->0x" << std::hex << r;
+                            out << " ->0x" << std::hex << r;
                         }
                     }
                 }
             }
-            std::cout << "\n";
+            out << "\n";
         }
     }
-    std::cout << "\n";
+    out << "\n";
 }
 
 int pooltool(const Process& proc, int argc, const char* argv[]) {
@@ -574,7 +585,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
                 continue;
             }
 
-            WriteHex(p.buffer, test, sizeof(test), proc);
+            WriteHex(std::cout, p.buffer, test, sizeof(test), proc);
 
         }
 
@@ -596,7 +607,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         for (size_t i = 0; i < min(10, entry.itemAllocCount); i++) {
             std::cout << "Element #" << std::dec << i << " " << std::hex << (entry.pool + i * entry.itemSize) << "\n";
 
-            WriteHex(entry.pool, &raw[i * entry.itemSize], entry.itemSize, proc);
+            WriteHex(std::cout, entry.pool, &raw[i * entry.itemSize], entry.itemSize, proc);
         }
 
         delete[] raw;

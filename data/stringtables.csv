@@ -1,0 +1,6 @@
+file_name,stringtable_name
+events_schedule.csv,gamedata/events/schedule_pc.csv
+events_schedule.csv,gamedata/events/schedule_xbox.csv
+events_schedule.csv,gamedata/events/schedule_ps4.csv
+badwords.csv,gamedata/tables/badwords.csv
+test_injection.csv,acts/test_injection.csv

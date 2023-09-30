@@ -88,6 +88,11 @@ void SyncCLIOnce(clisync::CliSyncData* data) {
 
 	hash_lookup::LoadFile(strLookup.data());
 
+	stringtables::SyncTables();
+
+	// add the commands
+
+	REGISTER_COMMAND(ACTS_CSV_READER, "acts_csv", []() { stringtables::SyncTables(); });
 
 	LOG_INFO("Done.");
 }

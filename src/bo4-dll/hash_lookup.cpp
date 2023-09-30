@@ -1,7 +1,7 @@
 #include <dll_includes.hpp>
 
 static std::unordered_map<UINT64, std::string> g_lookupMap{};
-static CHAR g_tempBuffer[2][2000];
+static CHAR g_tempBuffer[3][2000];
 
 
 bool Add(LPCCH str) {

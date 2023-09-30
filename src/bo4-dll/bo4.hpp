@@ -127,40 +127,52 @@ namespace bo4 {
         INT32 Pad0;
     };
 
-	enum offsetbo4 : uintptr_t {
-		OFFSET_ScrVm_Error = 0x2770330,
-		OFFSET_ScrVm_RuntimeError = 0x27775B0,
-		OFFSET_DB_FindXAssetHeader = 0x2EB75B0,
-		OFFSET_StringTable_GetAsset = 0x28A2660,
-		OFFSET_LogCompilerError = 0x2890470,
-		OFFSET_Error = 0x3D36CC0,
+    struct CmdFunction
+    {
+        CmdFunction* next;
+        uint64_t name;
+        uint64_t pad0;
+        uint64_t pad1;
+        uint64_t pad2;
+        void (*function)();
+    };
 
-		// Scr link functions
-		OFFSET_Scr_GetFunctionReverseLookup = 0x33AF8A0,
-		OFFSET_CScr_GetFunctionReverseLookup = 0x1F132A0,
-		OFFSET_Scr_GetFunction = 0x1F13140,
-		OFFSET_CScr_GetFunction = 0x33AF840,
-		OFFSET_Scr_GetMethod = 0x33AFC20,
-		OFFSET_CScr_GetMethod = 0x1F13650,
+    enum offsetbo4 : uintptr_t {
+        OFFSET_ScrVm_Error = 0x2770330,
+        OFFSET_ScrVm_RuntimeError = 0x27775B0,
+        OFFSET_DB_FindXAssetHeader = 0x2EB75B0,
+        OFFSET_StringTable_GetAsset = 0x28A2660,
+        OFFSET_LogCompilerError = 0x2890470,
+        OFFSET_Error = 0x3D36CC0,
 
-		// Scr vm functions
-		OFFSET_ScrVm_AddBool = 0x276E760,
-		OFFSET_ScrVm_AddFloat = 0x276E9B0,
-		OFFSET_ScrVm_AddHash = 0x276EAB0,
-		OFFSET_ScrVm_AddInt = 0x276EB80,
-		OFFSET_ScrVm_AddString = 0x276EE30,
-		OFFSET_ScrVm_AddUndefined = 0x276F3C0,
-		OFFSET_ScrVm_AddConstString = 0x276E5F0,
-		OFFSET_ScrVm_GetBool = 0x2772AB0,
-		OFFSET_ScrVm_GetFloat = 0x27733F0,
-		OFFSET_ScrVm_GetHash = 0x27738E0,
-		OFFSET_ScrVm_GetInt = 0x2773B50,
-		OFFSET_ScrVm_GetNumParam = 0x2774440,
-		OFFSET_ScrVm_GetPointerType = 0x27746E0,
-		OFFSET_ScrVm_GetString = 0x2774840,
-		OFFSET_ScrVm_GetType = 0x2774A20,
-		OFFSET_ScrVm_GetVector = 0x2774E40,
-		OFFSET_ScrVm_GetConstString = 0x02772E10
+        // Scr link functions
+        OFFSET_Scr_GetFunctionReverseLookup = 0x33AF8A0,
+        OFFSET_CScr_GetFunctionReverseLookup = 0x1F132A0,
+        OFFSET_Scr_GetFunction = 0x1F13140,
+        OFFSET_CScr_GetFunction = 0x33AF840,
+        OFFSET_Scr_GetMethod = 0x33AFC20,
+        OFFSET_CScr_GetMethod = 0x1F13650,
+
+        // Scr vm functions
+        OFFSET_ScrVm_AddBool = 0x276E760,
+        OFFSET_ScrVm_AddFloat = 0x276E9B0,
+        OFFSET_ScrVm_AddHash = 0x276EAB0,
+        OFFSET_ScrVm_AddInt = 0x276EB80,
+        OFFSET_ScrVm_AddString = 0x276EE30,
+        OFFSET_ScrVm_AddUndefined = 0x276F3C0,
+        OFFSET_ScrVm_AddConstString = 0x276E5F0,
+        OFFSET_ScrVm_GetBool = 0x2772AB0,
+        OFFSET_ScrVm_GetFloat = 0x27733F0,
+        OFFSET_ScrVm_GetHash = 0x27738E0,
+        OFFSET_ScrVm_GetInt = 0x2773B50,
+        OFFSET_ScrVm_GetNumParam = 0x2774440,
+        OFFSET_ScrVm_GetPointerType = 0x27746E0,
+        OFFSET_ScrVm_GetString = 0x2774840,
+        OFFSET_ScrVm_GetType = 0x2774A20,
+        OFFSET_ScrVm_GetVector = 0x2774E40,
+        OFFSET_ScrVm_GetConstString = 0x02772E10,
+
+        OFFSET_Cmd_AddCommandInternal = 0x3CDEE80,
 	};
     typedef ObjFileInfo ObjFileInfoTable[650];
 
@@ -185,6 +197,8 @@ namespace bo4 {
 	const auto ScrVm_GetType = reinterpret_cast<t8internal::ScrVarType(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetType));
 	const auto Internal_ScrVm_Error = reinterpret_cast<void(__fastcall*)(uint64_t code, scriptinstance::ScriptInstance inst, char* unk, bool terminal)>(Relativise(OFFSET_ScrVm_Error));
 
+    const auto Cmd_AddCommandInternal = reinterpret_cast<void(__fastcall*)(Hash* cmdName, void (*command)(), CmdFunction* alloc)>(Relativise(OFFSET_Cmd_AddCommandInternal));
+
 	extern t8internal::scrVmPub* scrVmPub;
 	extern t8internal::scrVarPub* scrVarPub;
     extern ObjFileInfoTable* objFileInfo;
@@ -195,3 +209,6 @@ namespace bo4 {
     bool FindGSCFuncLocation(BYTE* location, scriptinstance::ScriptInstance& inst, GSCOBJ*& obj, GSCExport*& exp, UINT32& rloc);
 	
 }
+#define REGISTER_COMMAND(id, name, cmd) static bo4::CmdFunction alloc_func_##id;\
+    static bo4::Hash alloc_func_hash##id = { hash::Hash64Pattern(name) };\
+    bo4::Cmd_AddCommandInternal(&alloc_func_hash##id, cmd, &alloc_func_##id)

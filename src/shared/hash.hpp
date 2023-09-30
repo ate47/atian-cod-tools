@@ -82,6 +82,10 @@ namespace hash {
 			return std::strtoull(&str[5], nullptr, 16);
 		}
 
+		if (!v.rfind("file_", 0)) {
+			return std::strtoull(&str[5], nullptr, 16);
+		}
+
 		return Hash64(str);
 	}
 }
