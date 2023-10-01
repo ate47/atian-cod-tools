@@ -23,10 +23,12 @@ class CompileObject;
 class ACTSErrorListener;
 struct InputInfo;
 
+constexpr INT64 MAX_JUMP = (1 << (sizeof(INT16) << 3));
+
 
 class AscmNode {
 public:
-    UINT32 rloc = 0;
+    INT32 rloc = 0;
 
     virtual ~AscmNode() {};
 
@@ -51,7 +53,7 @@ public:
         return utils::Aligned<UINT16>(start) + sizeof(UINT16);
     }
 
-    bool Write(std::vector<BYTE>& data) override  {
+    bool Write(std::vector<BYTE>& data) override {
         auto [err, op] = GetOpCodeId(VM_T8, opcode);
         if (err) {
             return false;
@@ -59,8 +61,89 @@ public:
 
         utils::Aligned<UINT16>(data);
         utils::WriteValue(data, op);
+
+        return true;
+    }
+};
+
+template<typename Type>
+class AscmNodeData : public AscmNodeOpCode {
+public:
+    Type val;
+
+    AscmNodeData(Type val, OPCode opcode) : AscmNodeOpCode(opcode), val(val) {
+    }
+
+    UINT32 ShiftSize(UINT32 start) const override {
+        return utils::Aligned<Type>(AscmNodeOpCode::ShiftSize(start)) + sizeof(Type);
+    }
+
+    bool Write(std::vector<BYTE>& data) override {
+        utils::Aligned<Type>(data);
+        utils::WriteValue<Type>(data, val);
+        return true;
+    }
+};
+
+/*
+ * Compute the node using the minimum amount of bits
+ * @return node
+ */
+AscmNodeOpCode* BuildAscmNodeData(INT64 val) {
+    if (val == 0) {
+        return new AscmNodeOpCode(OPCODE_GetZero);
+    }
+    if (val > 0) {
+        if (val < 256) {
+            return new AscmNodeData<BYTE>((BYTE)val, OPCODE_GetByte);
+        }
+        if (val < 65536) {
+            return new AscmNodeData<UINT16>((UINT16)val, OPCODE_GetUnsignedShort);
+        }
+        if (val < 4294967295) {
+            return new AscmNodeData<UINT32>((UINT32)val, OPCODE_GetUnsignedInteger);
+        }
+    } else {
+        if (val > -256) {
+            return new AscmNodeData<BYTE>((BYTE)(-val), OPCODE_GetNegByte);
+        }
+        if (val > -65536) {
+            return new AscmNodeData<UINT16>((UINT16)(-val), OPCODE_GetNegUnsignedShort);
+        }
+        if (val >= -2147483648) {
+            return new AscmNodeData<INT32>((INT32)val, OPCODE_GetInteger);
+        }
+    }
+
+    return new AscmNodeData<INT64>((INT64)val, OPCODE_GetLongInteger);
+}
+
+class AscmNodeJump : public AscmNodeOpCode {
+public:
+    AscmNode* location;
+    AscmNodeJump(AscmNode* location, OPCode opcode) : AscmNodeOpCode(opcode), location(location) {
+    }
+
+    UINT32 ShiftSize(UINT32 start) const override {
+        return utils::Aligned<INT16>(AscmNodeOpCode::ShiftSize(start)) + sizeof(INT16);
+    }
+
+    bool Write(std::vector<BYTE>& data) override {
+        if (!AscmNodeOpCode::Write(data)) {
+            return false;
+        }
+
+        auto delta = location->rloc - ShiftSize(rloc);
+
+        if (delta >= MAX_JUMP) {
+            std::cerr << "Max delta size\n";
+            return false;
+        }
         
-        // nothing by default
+        // write jump
+        utils::Aligned<INT16>(data);
+        utils::WriteValue<INT16>(data, (INT16) delta);
+
         return true;
     }
 };
@@ -171,15 +254,20 @@ public:
 
     /*
      * Compute the nodes relative locations
+     * @return no error
      */
-    void ComputeRelativeLocations() {
+    bool ComputeRelativeLocations() {
         // we start at 0 and we assume that the start location is already aligned
-        UINT32 current = 0;
+        INT32 current = 0;
 
         for (auto node : m_nodes) {
             node->rloc = current;
             current = node->ShiftSize(current);
+            if (node->rloc > current) {
+                return false;
+            }
         }
+        return true;
     }
 };
 
@@ -243,8 +331,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleExpression9:
         case gscParser::RuleExpression10:
         case gscParser::RuleExpression11:
-        case gscParser::RuleExpression12:
-        case gscParser::RuleSet_expression: {
+        case gscParser::RuleExpression12: {
             if (rule->children.size() == 1) {
                 // simple rules recursion
                 return ParseExpressionNode(rule->children[0], parser, obj, fobj);
@@ -259,21 +346,33 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             auto op = rule->children[1]->getText();
 
-            // TODO: bool operator
-            if (op == "||") {
+            if (op == "||" || op == "&&") {
+                // boolean operators are defined using jumps, we need to handle them
+                // push op left
+                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj)) {
+                    return false;
+                }
+                auto* after = new AscmNode();
 
-            }
-            else if (op == "&&") {
+                fobj.m_nodes.push_back(new AscmNodeJump(after, op == "&&" ? OPCODE_JumpOnFalseExpr : OPCODE_JumpOnTrueExpr));
 
+                // push op right
+                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj)) {
+                    return false;
+                }
+
+                // after the operator
+                fobj.m_nodes.push_back(after);
             }
             else {
+                // push operands
                 if (!ParseExpressionNode(rule->children[0], parser, obj, fobj)) {
                     return false;
                 }
                 if (!ParseExpressionNode(rule->children[2], parser, obj, fobj)) {
                     return false;
                 }
-                // TODO: push operator
+
                 if (op == "|") {
                     fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Or));
                 }
@@ -331,13 +430,74 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             }
         }
             break;
+        case gscParser::RuleConst_expr:
+        case gscParser::RuleNumber:
         case gscParser::RuleExpression13:
             return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj);
+        case gscParser::RuleSet_expression: {
+            auto* opVal = rule->children[1];
+            // TODO
+
+            return false;
+        }
         }
 
+        obj.info.PrintLineMessage(std::cerr, 0)
+            << "unhandled rule: " << rule->getText() << "\n";
+        return false;
     }
 
-    return true;
+    assert(exp->getTreeType() == TREE_TERMINAL && "unknown tree type");
+
+    auto* term = dynamic_cast<TerminalNode*>(exp);
+
+    auto len = term->getText().size();
+
+    switch (term->getSymbol()->getType()) {
+    case gscParser::UNDEFINED_VALUE:
+        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GetUndefined));
+        return true;
+    case gscParser::BOOL_VALUE:
+        fobj.m_nodes.push_back(BuildAscmNodeData(term->getText() == "true"));
+        return true;
+    case gscParser::FLOATVAL:
+        fobj.m_nodes.push_back(new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), NULL), OPCODE_GetFloat));
+        return true;
+    case gscParser::INTEGER10:
+        fobj.m_nodes.push_back(BuildAscmNodeData(std::strtoll(term->getText().c_str(), NULL, 10)));
+        return true;
+    case gscParser::INTEGER16: {
+        bool neg = term->getText()[0] == '-';
+        auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 16);
+        fobj.m_nodes.push_back(BuildAscmNodeData(neg ? -val : val));
+        return true;
+    }
+    case gscParser::INTEGER8: {
+        bool neg = term->getText()[0] == '-';
+        auto val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), NULL, 8);
+        fobj.m_nodes.push_back(BuildAscmNodeData(neg ? -val : val));
+        return true;
+    }
+    case gscParser::INTEGER2: {
+        bool neg = term->getText()[0] == '-';
+        auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 2);
+        fobj.m_nodes.push_back(BuildAscmNodeData(neg ? -val : val));
+        return true;
+    }
+    case gscParser::HASHSTRING: {
+        auto sub = term->getText().substr(2, len - 3);
+        fobj.m_nodes.push_back(new AscmNodeData<UINT64>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
+        return true;
+    }
+    case gscParser::STRING: {
+        // TODO
+    }
+        break;
+    }
+
+    obj.info.PrintLineMessage(std::cerr, 0)
+        << "unhandled terminal: " << term->getText() << "\n";
+    return false;
 }
 
 bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileObject& obj) {

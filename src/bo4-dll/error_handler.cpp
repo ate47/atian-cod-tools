@@ -34,7 +34,22 @@ std::unordered_map<UINT64, LPCCH> error_handler::errors = {
 	{ 952690413, "parameter can't be cast to a boolean" },
 	{ 3761634992, "not a pointer" },
 	{ 754846421, "invalid vehicle spawn origin" },
-};
+	{ 1909233687, "Optional argument must be a vector type" },
+	{ 1895566756, "dvar is not a 3d vector, but GetDvarVector3D has been called on it" },
+	{ 4163774148, "Optional argument must be a float or integer type" },
+	{ 941828720, "exitlevel already called" },
+	{ 946363963, "Invalid opcode" },
+	{ 4047738848, "Invalid opcode (Recovery)" },
+	{ 4106063796, "key value provided for array is not valid" },
+	{ 3288551912, "expected array type to add value pair" },
+	{ 876169112, "key value provided for struct is not valid" },
+	{ 1427704235, "expected struct type to add value pair" },
+	{ 104978404, "cannot cast type to canon" },
+	{ 1999906612, "type is not a integer or float" },
+	{ 2572009355, "vector scale expecting vector" },
+	{ 2269096660, "vector scale expecting vector" },
+	{ 3222417139, "size cannot be applied to type" },
+}; 
 
 LPCCH error_handler::FindDesc(UINT64 code) {
 	auto nfo = errors.find(code);

@@ -130,11 +130,11 @@ struct_def: '{' (STRUCT_IDENTIFIER ':' expression (',')?)* '}';
 NEWLINE: ('\r'? '\n' | '\r') -> skip;
 WHITESPACE: ('\t' | ' ') -> skip;
 
-INTEGER10: [1-9]([0-9])*;
-INTEGER16: '0x' ([0-9a-f])+;
-INTEGER8: '0' ([0-7])*;
-INTEGER2: '0b' ([01])*;
-FLOATVAL: ((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
+INTEGER10: '-'?[1-9]([0-9])*;
+INTEGER16: '-'? '0x' ([0-9a-f])+;
+INTEGER8: '-'? '0' ([0-7])*;
+INTEGER2: '-'? '0b' ([01])*;
+FLOATVAL: '-'?((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
 IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;
 STRUCT_IDENTIFIER: '#' [a-z_A-Z] ([a-z_A-Z0-9])*;
 PATH: [a-z_A-Z0-9\\/]+ ('.gsc' | '.csc')?;
