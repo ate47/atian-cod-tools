@@ -61,12 +61,15 @@ LPCCH hash_lookup::Extract(UINT64 hash) {
 	return res->second.data();
 }
 
-LPCCH hash_lookup::ExtractTmp(scriptinstance::ScriptInstance inst, UINT64 hash) {
+LPCCH hash_lookup::ExtractTmp(scriptinstance::ScriptInstance inst, UINT64 hash, LPCCH prefix) {
 	auto& buff = g_tempBuffer[inst];
 
 	auto res = Extract(hash);
 	if (res) {
 		snprintf(buff, sizeof(buff), "%s", res);
+	}
+	else if (prefix) {
+		snprintf(buff, sizeof(buff), "%s_%llx", prefix, hash);
 	}
 	else {
 		snprintf(buff, sizeof(buff), "%llx", hash);

@@ -1,8 +1,5 @@
 #include <dll_includes.hpp>
 
-
-using namespace custom_gsc_func;
-
 // Prototype
 static void ScrVm_Error(uint64_t code, scriptinstance::ScriptInstance inst, char* unk, bool terminal);
 static void* DB_FindXAssetHeader(BYTE type, UINT64* name, bool errorIfMissing, int waitTime);
@@ -13,10 +10,10 @@ static void ScrVm_RuntimeError(uint32_t errorCode, scriptinstance::ScriptInstanc
 
 static bool CScr_GetFunctionReverseLookup(byte* func, UINT32* hash, bool* isFunction);
 static bool Scr_GetFunctionReverseLookup(byte* func, UINT32* hash, bool* isFunction);
-static BuiltinFunction Scr_GetFunction(UINT32 name, BuiltinType* type, int* min_args, int* max_args);
-static BuiltinFunction CScr_GetFunction(UINT32 name, BuiltinType* type, int* min_args, int* max_args);
-static BuiltinFunction Scr_GetMethod(UINT32 name, BuiltinType* type, int* min_args, int* max_args);
-static BuiltinFunction CScr_GetMethod(UINT32 name, BuiltinType* type, int* min_args, int* max_args);
+static bo4::BuiltinFunction Scr_GetFunction(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args);
+static bo4::BuiltinFunction CScr_GetFunction(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args);
+static bo4::BuiltinFunction Scr_GetMethod(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args);
+static bo4::BuiltinFunction CScr_GetMethod(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args);
 
 // Detours
 static cliconnect::DetourInfo<void, UINT64, scriptinstance::ScriptInstance, char*, bool> dScrVm_Error{ "ScrVm_Error", bo4::OFFSET_ScrVm_Error, ScrVm_Error };
@@ -28,10 +25,10 @@ static cliconnect::DetourInfo<void, uint32_t, scriptinstance::ScriptInstance, by
 
 static cliconnect::DetourInfo<bool, byte*, UINT32*, bool*> dCScr_GetFunctionReverseLookup{ "CScr_GetFunctionReverseLookup", bo4::OFFSET_CScr_GetFunctionReverseLookup, CScr_GetFunctionReverseLookup };
 static cliconnect::DetourInfo<bool, byte*, UINT32*, bool*> dScr_GetFunctionReverseLookup{ "Scr_GetFunctionReverseLookup", bo4::OFFSET_Scr_GetFunctionReverseLookup, Scr_GetFunctionReverseLookup };
-static cliconnect::DetourInfo<BuiltinFunction, UINT32, BuiltinType*, int*, int*> dScr_GetFunction{ "Scr_GetFunction", bo4::OFFSET_Scr_GetFunction, Scr_GetFunction };
-static cliconnect::DetourInfo<BuiltinFunction, UINT32, BuiltinType*, int*, int*> dCScr_GetFunction{ "CScr_GetFunction", bo4::OFFSET_CScr_GetFunction, CScr_GetFunction };
-static cliconnect::DetourInfo<BuiltinFunction, UINT32, BuiltinType*, int*, int*> dScr_GetMethod{ "Scr_GetMethod", bo4::OFFSET_Scr_GetMethod, Scr_GetMethod };
-static cliconnect::DetourInfo<BuiltinFunction, UINT32, BuiltinType*, int*, int*> dCScr_GetMethod{ "CScr_GetMethod", bo4::OFFSET_CScr_GetMethod, CScr_GetMethod };
+static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dScr_GetFunction{ "Scr_GetFunction", bo4::OFFSET_Scr_GetFunction, Scr_GetFunction };
+static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dCScr_GetFunction{ "CScr_GetFunction", bo4::OFFSET_CScr_GetFunction, CScr_GetFunction };
+static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dScr_GetMethod{ "Scr_GetMethod", bo4::OFFSET_Scr_GetMethod, Scr_GetMethod };
+static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dCScr_GetMethod{ "CScr_GetMethod", bo4::OFFSET_CScr_GetMethod, CScr_GetMethod };
 
 // Custom detours
 static void ScrVm_Error(UINT64 code, scriptinstance::ScriptInstance inst, char* unk, bool terminal) {
@@ -95,6 +92,17 @@ static void ScrVm_RuntimeError(uint32_t errorCode, scriptinstance::ScriptInstanc
 
 static void Error(UINT32 code, const char* empty) {
 	// hard error
+	if (code == find_linking::ERROR_LINKING) {
+		int err = 0;
+		for (size_t inst = 0; inst < scriptinstance::SI_COUNT; inst++) {
+			err += find_linking::CheckLinkingError((scriptinstance::ScriptInstance)inst);
+		}
+		static CHAR linkingErrorBuff[0x100];
+		if (err) {
+			snprintf(linkingErrorBuff, sizeof(linkingErrorBuff), "Find %d errors, check ACTS logs", err);
+			empty = linkingErrorBuff;
+		}
+	}
 	LOG_ERROR("Scr_Error {}{}", code, empty);
 	dError(code, empty);
 }
@@ -130,7 +138,7 @@ static bool CScr_GetFunctionReverseLookup(BYTE* func, UINT32* hash, bool* isFunc
 		return res;
 	}
 
-	for (auto& blt : custom_functions[scriptinstance::SI_CLIENT]) {
+	for (auto& blt : custom_gsc_func::custom_functions[scriptinstance::SI_CLIENT]) {
 		if (reinterpret_cast<BYTE*>(blt.actionFunc) == func) {
 			*hash = blt.name;
 			*isFunction = true;
@@ -147,7 +155,7 @@ static bool Scr_GetFunctionReverseLookup(BYTE* func, UINT32* hash, bool* isFunct
 		return res;
 	}
 
-	for (auto& blt : custom_functions[scriptinstance::SI_SERVER]) {
+	for (auto& blt : custom_gsc_func::custom_functions[scriptinstance::SI_SERVER]) {
 		if (reinterpret_cast<BYTE*>(blt.actionFunc) == func) {
 			*hash = blt.name;
 			*isFunction = true;
@@ -158,15 +166,15 @@ static bool Scr_GetFunctionReverseLookup(BYTE* func, UINT32* hash, bool* isFunct
 	return false;
 }
 
-static BuiltinFunction Scr_GetFunction(UINT32 name, BuiltinType* type, int* min_args, int* max_args) {
+static bo4::BuiltinFunction Scr_GetFunction(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args) {
 	auto res = dScr_GetFunction(name, type, min_args, max_args);
 	// allow dev functions
-	*type = BUILTIN_DEFAULT;
+	*type = bo4::BUILTIN_DEFAULT;
 	if (res) {
 		return res;
 	}
 
-	for (auto& blt : custom_functions[scriptinstance::SI_SERVER]) {
+	for (auto& blt : custom_gsc_func::custom_functions[scriptinstance::SI_SERVER]) {
 		if (blt.name == name) {
 			//*type = blt.type;
 			*min_args = blt.min_args;
@@ -178,15 +186,15 @@ static BuiltinFunction Scr_GetFunction(UINT32 name, BuiltinType* type, int* min_
 	return NULL;
 }
 
-static BuiltinFunction CScr_GetFunction(UINT32 name, BuiltinType* type, int* min_args, int* max_args) {
+static bo4::BuiltinFunction CScr_GetFunction(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args) {
 	auto res = dCScr_GetFunction(name, type, min_args, max_args);
 	// allow dev functions
-	*type = BUILTIN_DEFAULT;
+	*type = bo4::BUILTIN_DEFAULT;
 	if (res) {
 		return res;
 	}
 
-	for (auto& blt : custom_functions[scriptinstance::SI_CLIENT]) {
+	for (auto& blt : custom_gsc_func::custom_functions[scriptinstance::SI_CLIENT]) {
 		if (blt.name == name) {
 			//*type = blt.type;
 			*min_args = blt.min_args;
@@ -198,10 +206,10 @@ static BuiltinFunction CScr_GetFunction(UINT32 name, BuiltinType* type, int* min
 	return NULL;
 }
 
-static BuiltinFunction Scr_GetMethod(UINT32 name, BuiltinType* type, int* min_args, int* max_args) {
+static bo4::BuiltinFunction Scr_GetMethod(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args) {
 	auto res = dScr_GetMethod(name, type, min_args, max_args);
 	// allow dev methods
-	*type = BUILTIN_DEFAULT;
+	*type = bo4::BUILTIN_DEFAULT;
 	if (res) {
 		return res;
 	}
@@ -209,10 +217,10 @@ static BuiltinFunction Scr_GetMethod(UINT32 name, BuiltinType* type, int* min_ar
 	return NULL;
 }
 
-static BuiltinFunction CScr_GetMethod(UINT32 name, BuiltinType* type, int* min_args, int* max_args) {
+static bo4::BuiltinFunction CScr_GetMethod(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args) {
 	auto res = dCScr_GetMethod(name, type, min_args, max_args);
 	// allow dev methods
-	*type = BUILTIN_DEFAULT;
+	*type = bo4::BUILTIN_DEFAULT;
 	if (res) {
 		return res;
 	}

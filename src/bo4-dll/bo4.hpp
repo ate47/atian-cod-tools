@@ -27,6 +27,21 @@ namespace bo4 {
 		float w;
 	};
 
+    typedef void (*BuiltinFunction)(scriptinstance::ScriptInstance inst);
+
+    enum BuiltinType : int {
+        BUILTIN_DEFAULT = 0,
+        BUILTIN_DEV = 1
+    };
+
+    struct __declspec(align(8)) Builtin {
+        UINT32 name;
+        int min_args;
+        int max_args;
+        BuiltinFunction actionFunc;
+        BuiltinType type;
+    };
+
 
     struct GSCOBJ {
         BYTE magic[8];
@@ -148,10 +163,10 @@ namespace bo4 {
         // Scr link functions
         OFFSET_Scr_GetFunctionReverseLookup = 0x33AF8A0,
         OFFSET_CScr_GetFunctionReverseLookup = 0x1F132A0,
-        OFFSET_Scr_GetFunction = 0x1F13140,
-        OFFSET_CScr_GetFunction = 0x33AF840,
-        OFFSET_Scr_GetMethod = 0x33AFC20,
+        OFFSET_CScr_GetFunction = 0x1F13140,
         OFFSET_CScr_GetMethod = 0x1F13650,
+        OFFSET_Scr_GetFunction = 0x33AF840,
+        OFFSET_Scr_GetMethod = 0x33AFC20,
 
         // Scr vm functions
         OFFSET_ScrVm_AddBool = 0x276E760,
@@ -196,6 +211,11 @@ namespace bo4 {
 	const auto ScrVm_GetPointerType = reinterpret_cast<t8internal::ScrVarType(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetPointerType));
 	const auto ScrVm_GetType = reinterpret_cast<t8internal::ScrVarType(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetType));
 	const auto Internal_ScrVm_Error = reinterpret_cast<void(__fastcall*)(uint64_t code, scriptinstance::ScriptInstance inst, char* unk, bool terminal)>(Relativise(OFFSET_ScrVm_Error));
+
+    const auto Scr_GetFunction = reinterpret_cast<BuiltinFunction(__fastcall*)(UINT32 name, BuiltinType* type, int* min_args, int* max_args)> (Relativise(OFFSET_Scr_GetFunction));
+    const auto CScr_GetFunction = reinterpret_cast<BuiltinFunction(__fastcall*)(UINT32 name, BuiltinType * type, int* min_args, int* max_args)> (Relativise(OFFSET_CScr_GetFunction));
+    const auto Scr_GetMethod = reinterpret_cast<BuiltinFunction(__fastcall*)(UINT32 name, BuiltinType * type, int* min_args, int* max_args)> (Relativise(OFFSET_Scr_GetMethod));
+    const auto CScr_GetMethod = reinterpret_cast<BuiltinFunction(__fastcall*)(UINT32 name, BuiltinType * type, int* min_args, int* max_args)> (Relativise(OFFSET_CScr_GetMethod));
 
     const auto Cmd_AddCommandInternal = reinterpret_cast<void(__fastcall*)(Hash* cmdName, void (*command)(), CmdFunction* alloc)>(Relativise(OFFSET_Cmd_AddCommandInternal));
 
