@@ -32,8 +32,24 @@ static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, i
 
 // Custom detours
 static void ScrVm_Error(UINT64 code, scriptinstance::ScriptInstance inst, char* unk, bool terminal) {
-	if (code == custom_gsc_func::custom_error_id) { // detect custom error
+	static CHAR errorBuffer[2][0x200] = { 0 };
+	if (code == custom_gsc_func::custom_error_id) { // ACTS detect custom error, the error is already set
 		LOG_ERROR("VM {} ACTS Error '{}' terminal={}", scriptinstance::Name(inst), unk, terminal ? "true" : "false");
+	}
+	else if (code == 2737681163) { // Assert(val, msg) with message error
+		const auto* msg = bo4::ScrVm_GetString(inst, 2);
+		snprintf(errorBuffer[inst], sizeof(errorBuffer[inst]), "assert fail: %s", msg);
+		bo4::scrVarPub[inst].error_message = errorBuffer[inst];
+	}
+	else if (code == 1385570291) { // AssertMsg(msg)
+		const auto* msg = bo4::ScrVm_GetString(inst, 1);
+		snprintf(errorBuffer[inst], sizeof(errorBuffer[inst]), "assert fail: %s", msg);
+		bo4::scrVarPub[inst].error_message = errorBuffer[inst];
+	}
+	else if (code == 2532286589) { // ErrorMsg(msg)
+		const auto* msg = bo4::ScrVm_GetString(inst, 1);
+		snprintf(errorBuffer[inst], sizeof(errorBuffer[inst]), "error: %s", msg);
+		bo4::scrVarPub[inst].error_message = errorBuffer[inst];
 	}
 	else {
 		auto desc = error_handler::FindDesc((UINT32)code);
@@ -42,6 +58,7 @@ static void ScrVm_Error(UINT64 code, scriptinstance::ScriptInstance inst, char* 
 			// update the error info to match the error
 			bo4::scrVarPub[inst].error_message = desc;
 		}
+
 	}
 	dScrVm_Error(code, inst, unk, terminal);
 }

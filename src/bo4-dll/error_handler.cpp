@@ -38,6 +38,7 @@ std::unordered_map<UINT64, LPCCH> error_handler::errors = {
 	{ 1895566756, "dvar is not a 3d vector, but GetDvarVector3D has been called on it" },
 	{ 4163774148, "Optional argument must be a float or integer type" },
 	{ 941828720, "exitlevel already called" },
+	{ 1047729873, "exitlevel already called" },
 	{ 946363963, "Invalid opcode" },
 	{ 4047738848, "Invalid opcode (Recovery)" },
 	{ 4106063796, "key value provided for array is not valid" },
@@ -49,6 +50,25 @@ std::unordered_map<UINT64, LPCCH> error_handler::errors = {
 	{ 2572009355, "vector scale expecting vector" },
 	{ 2269096660, "vector scale expecting vector" },
 	{ 3222417139, "size cannot be applied to type" },
+	{ 219569925, "hasperk() can only be called on local players" },
+	{ 968521323, "player hasperk(<localClientNum>, <perk>): localClientNum out of range" },
+	{ 57350207, "Unknown perk" },
+	{ 3015158315, "getperks() can only be called on local players" },
+	{ 3990130335, "player getperks(<localClientNum>): localClientNum out of range" },
+	{ 665902298, "Parameter must be an array" },
+	{ 2687742442, "Forced script exception." },
+	{ 1850691545, "Debug Break" },
+	{ 2344222932, "assert fail" },
+	{ 209668787, "RandomInt parm must be positive integer." },
+	{ 753495682, "RandomIntRange's second parameter must be greater than the first." },
+	{ 1045192683, "Scr_RandomFloatRange's second parameter must be greater than the first." },
+
+	// messages handled by detours
+	{ 2737681163, "assert fail (with message)" },
+	{ 1385570291, "assert fail (with message)" },
+	{ 2532286589, "error message"},
+
+	
 }; 
 
 LPCCH error_handler::FindDesc(UINT64 code) {
