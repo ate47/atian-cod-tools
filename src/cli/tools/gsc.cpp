@@ -129,6 +129,14 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
             }
             m_copyright = args[++i];
         }
+        else if (!strcmp("-r", arg) || !_strcmpi("--rosetta", arg)) {
+            if (i + 1 == endIndex) {
+                std::cerr << "Missing value for param: " << arg << "!\n";
+                return false;
+            }
+            m_rosetta = args[++i];
+        }
+
         else if (*arg == '-') {
             std::cerr << "Unknown option: " << arg << "!\n";
             return false;
@@ -160,8 +168,34 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-G --gvars         : Write gvars\n"
         << "-U --noincludes    : No includes\n"
         << "-V --vars          : Show all func vars\n"
+        << "-r --rosetta [f]   : Create Rosetta file\n"
         << "-X --exptests      : Enable UNK tests\n"
         << "-C --copyright [t] : Set a comment text to put in front of every file\n";
+}
+
+static LPCCH gRosettaOutput = NULL;
+static UINT64 gRosettaCurrent = 0;
+static std::map<UINT64, RosettaFileData> gRosettaBlocks{};
+
+void tool::gsc::RosettaStartFile(T8GSCOBJ* obj) {
+    if (!gRosettaOutput) {
+        return;
+    }
+
+    
+    auto& block = gRosettaBlocks[gRosettaCurrent = obj->name];
+    // clone the header for the finder
+    memcpy(&block.header, obj, sizeof(*obj));
+}
+
+void tool::gsc::RosettaAddOpCode(UINT32 loc, UINT16 opcode) {
+    if (!gRosettaOutput) {
+        return;
+    }
+
+    auto& block = gRosettaBlocks[gRosettaCurrent].blocks;
+
+    block.push_back(tool::gsc::RosettaOpCodeBlock{ .location = loc, .opcode = opcode });
 }
 
 int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, const GscInfoOption& opt) {
@@ -222,6 +256,8 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         std::cerr << "Bad vm 0x" << std::hex << (int)data->GetVm() << " for file " << path << "\n";
         return -1;
     }
+
+    tool::gsc::RosettaStartFile(data);
 
     char asmfnamebuff[1000];
 
@@ -955,6 +991,8 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
                 << std::setfill(' ') << std::setw(25) << std::left << handler->m_name << std::right
                 << " ";
 
+            // dump rosetta data
+            RosettaAddOpCode((UINT32)(reinterpret_cast<UINT64>(base) - reinterpret_cast<UINT64>(gscFile)), handler->m_id);
 
             // pass the opcode
             base += 2;
@@ -1309,6 +1347,8 @@ int gscinfo(const Process& proc, int argc, const char* argv[]) {
         return 0;
     }
 
+    gRosettaOutput = opt.m_rosetta;
+
     hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
     bool computed = false;
     auto ret = 0;
@@ -1319,6 +1359,39 @@ int gscinfo(const Process& proc, int argc, const char* argv[]) {
         }
     }
     hashutils::WriteExtracted(opt.m_dump_hashmap);
+
+    if (gRosettaOutput) {
+        std::ofstream os{ gRosettaOutput, std::ios::binary };
+
+        if (!os) {
+            std::cerr << "Can't open rosetta output\n";
+        }
+        else {
+            os.write("ROSE", 4);
+
+            auto len = gRosettaBlocks.size();
+            os.write(reinterpret_cast<const char*>(&len), sizeof(len));
+
+            for (const auto& [key, data] : gRosettaBlocks) {
+                // gsc header
+                os.write(reinterpret_cast<const char*>(&data.header), sizeof(data.header));
+                len = data.blocks.size();
+                os.write(reinterpret_cast<const char*>(&len), sizeof(len));
+                for (const auto& block : data.blocks) {
+                    os.write(reinterpret_cast<const char*>(&block), sizeof(block));
+                }
+            }
+
+            // TODO: add crc
+            os.write("END", 3);
+
+
+            os.close();
+            std::cerr << "Rosetta index created into '" << gRosettaOutput << "'\n";
+        }
+
+
+    }
     return ret;
 }
 

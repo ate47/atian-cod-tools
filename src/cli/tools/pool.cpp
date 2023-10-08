@@ -1,5 +1,7 @@
 #include <includes.hpp>
 
+using namespace tool::pool;
+
 class PoolOption {
 public:
     bool m_help = false;
@@ -135,7 +137,7 @@ inline bool HexValidString(LPCCH str) {
     return true;
 }
 
-void WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
+void tool::pool::WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
     CHAR strBuffer[101];
     for (size_t j = 0; j < size; j++) {
         if (j % 8 == 0) {
@@ -574,11 +576,14 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         size_t readFile = 0;
         BYTE test[0x100];
 
-        for (size_t i = 0; i < min(10, entry.itemAllocCount); i++) {
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
             const auto& p = pool[i];
+
 
             auto n = hashutils::ExtractPtr(p.name);
             std::cout << "- " << std::dec << i << " : " << hashutils::ExtractTmp("file", p.name) << ": " << std::hex << p.buffer << "\n";
+
+            // WriteHex(std::cout, entry.pool + i * sizeof(pool[0]), (BYTE*)& p, sizeof(p), proc); // padding
 
             if (!proc.ReadMemory(test, p.buffer, sizeof(test))) {
                 std::cerr << "Bad read\n";

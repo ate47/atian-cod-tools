@@ -163,4 +163,6 @@ namespace tool::gsc::opcode {
 		OPCODE_T8C_GetLazyFunction,
 	};
 	void RegisterOpCodesMap();
+
+	LPCCH OpCodeName(OPCode op);
 }

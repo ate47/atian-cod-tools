@@ -32,12 +32,14 @@ namespace tool::gsc {
         bool m_show_jump_delta = false;
         bool m_show_pre_dump = false;
         bool m_show_ref_count = false;
+        LPCCH m_rosetta = NULL;
         LPCCH m_dump_hashmap = NULL;
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;
         bool m_show_func_vars = false;
         UINT32 m_stepskip = 0;
+
 
         std::vector<LPCCH> m_inputFiles{};
         /*
@@ -605,4 +607,29 @@ namespace tool::gsc {
         UINT8 type;
         UINT16 pad;
     };
+
+    enum RosettaBlockType : BYTE {
+        RBT_START = 0x50,
+        RBT_OPCODE = 0x51,
+    };
+    struct RosettaOpCodeBlock {
+        UINT32 location;
+        UINT16 opcode;
+    };
+    struct RosettaFileData {
+        T8GSCOBJ header;
+        std::vector<RosettaOpCodeBlock> blocks{};
+    };
+
+    /*
+     * Begin rosetta file data
+     * @param obj script
+     */
+    void RosettaStartFile(tool::gsc::T8GSCOBJ* obj);
+    /*
+     * Add rosetta opcode data
+     * @param loc opcode location
+     * @param opcode opcode
+     */
+    void RosettaAddOpCode(UINT32 loc, UINT16 opcode);
 }

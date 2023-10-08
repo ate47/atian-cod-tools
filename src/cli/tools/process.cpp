@@ -3,6 +3,7 @@
 int PTSearch(Process& proc, int argc, const char* argv[]);
 int PTAlloc(Process& proc, int argc, const char* argv[]);
 int PTCall(Process& proc, int argc, const char* argv[]);
+int PTRead(Process& proc, int argc, const char* argv[]);
 
 int processtool(const Process& unused, int argc, const char* argv[]) {
 	if (argc <= 3) {
@@ -29,6 +30,9 @@ int processtool(const Process& unused, int argc, const char* argv[]) {
 	}
 	else if (!_strcmpi("call", argv[3])) {
 		func = PTCall;
+	}
+	else if (!_strcmpi("r", argv[3])) {
+		func = PTRead;
 	}
 
 	if (!func) {
@@ -236,3 +240,31 @@ int PTCall(Process& proc, int argc, const char* argv[]) {
 
 	return tool::OK;
 }
+
+int PTRead(Process& proc, int argc, const char* argv[]) {
+	if (argc <= 5) {
+		std::cerr << argv[0] << " " << argv[1] << " " << argv[2] << " " << argv[3] << " [(+)location] [size]";
+		return tool::BASIC_ERROR;
+	}
+
+	hashutils::ReadDefaultFile();
+
+	bool relative = argv[4][0] == '+';
+	auto idx = std::stoull(argv[4], nullptr, 16);
+	if (relative) idx = proc[idx];
+	auto len = std::stoull(argv[5], nullptr, 16);
+
+	std::cout << std::hex << "reading 0x" << idx << "[0:" << len << "]...\n";
+
+	auto buffer = std::make_unique<BYTE[]>(len);
+
+	if (!proc.ReadMemory(&buffer[0], (uintptr_t)idx, (size_t)len)) {
+		std::cerr << "Error when reading memory\n";
+		return tool::BASIC_ERROR;
+	}
+
+	tool::pool::WriteHex(std::cout, idx, &buffer[0], len, proc);
+
+	return tool::OK;
+}
+

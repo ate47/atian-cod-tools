@@ -24,14 +24,16 @@ std::unordered_map<UINT64, LPCCH> error_handler::errors = {
 	{ 245612264, "foreach should be used with an array" },
 	{ 647662103, "var can't be converted to string" },
 	{ 4213634562, "precacheLeaderboards must be called before any wait statements in the gametype or level script" },
-	{ 3143575744, "parameter does not exist" }, // GetVector
-	{ 2517242050, "parameter does not exist" }, // GetString
-	{ 4196473479, "parameter does not exist" }, // GetBool
-	{ 3699844858, "parameter does not exist" }, // GetType
-	{ 280703902, "parameter does not exist" }, // GetPointerType
+	{ 3143575744, "parameter does not exist" },
+	{ 2517242050, "parameter does not exist" },
+	{ 4196473479, "parameter does not exist" },
+	{ 3699844858, "parameter does not exist" },
+	{ 280703902, "parameter does not exist" },
+	{ 2606724305, "parameter does not exist" },
 	{ 312545010, "not a vector" },
 	{ 647662103, "parameter can't be cast to a string" },
 	{ 952690413, "parameter can't be cast to a boolean" },
+	{ 1412130119, "parameter can't be cast to a hash" },
 	{ 3761634992, "not a pointer" },
 	{ 754846421, "invalid vehicle spawn origin" },
 	{ 1909233687, "Optional argument must be a vector type" },
@@ -62,6 +64,16 @@ std::unordered_map<UINT64, LPCCH> error_handler::errors = {
 	{ 209668787, "RandomInt parm must be positive integer." },
 	{ 753495682, "RandomIntRange's second parameter must be greater than the first." },
 	{ 1045192683, "Scr_RandomFloatRange's second parameter must be greater than the first." },
+	{ 1377489376, "Gesture key can't have the higher bit set" },
+	{ 2355618801, "Gesture table key can't have the higher bit set" },
+	{ 2838301872, "Gesture table key can't have the higher bit set" },
+	{ 1099145600, "Can't find asset" },
+	{ 4088624643, "Can't find asset" },
+	{ 3016026156, "Can't find asset" },
+	{ 3251676101, "Could not load raw file" },
+	{ 1088278929, "Raw file is not a file of the right type" },
+	{ 1072585573, "Raw file is not a file of the right type" },
+	{ 3894031202, "Can't find gamedata/playeranim/playeranimtypes.txt" },
 
 	// messages handled by detours
 	{ 2737681163, "assert fail (with message)" },

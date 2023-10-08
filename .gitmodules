@@ -9,3 +9,11 @@
 	path = deps/zlib
 	url = https://github.com/madler/zlib
 	branch = master
+[submodule "deps/jit-lua"]
+	path = deps/jit-lua
+	url = https://github.com/Pirulax/luajit-premake
+	branch = master
+[submodule "deps/ps4debug"]
+	path = deps/ps4debug
+	url = https://github.com/jogolden/ps4debug
+	branch = master

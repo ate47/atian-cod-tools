@@ -33,6 +33,7 @@
 .antlr
 scripts/antlr4.jar
 .antlr4
+src/cli/tools/ps4/*
 
 *.aps
 

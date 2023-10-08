@@ -128,10 +128,10 @@ project "AtianCodTools"
         "./scripts/**.ps1",
         "./release/**",
         "./resources/**",
+        "./config/**",
         ".gitignore",
         "premake5.lua",
         "packages.txt",
-        "resolver.cfg",
         "gsc.conf",
         "LICENSE",
         "README.md"
@@ -142,7 +142,8 @@ project "AtianCodTools"
         "src/shared",
     -- link antlr4
 		"deps/antlr4/runtime/Cpp/runtime/src/",
-		"deps/zlib/"
+		"deps/zlib/",
+        "deps/ps4debug/libdebug/cpp/include/",
     }
 
     vpaths {
@@ -156,9 +157,11 @@ project "AtianCodTools"
     links { "antlr4-runtime" }
     links { "ACTSSharedLibrary" }
     links { "zlib" }
+    links { "libps4debug" }
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
     dependson "zlib"
+    dependson "libps4debug"
 
 group "deps"
     project "antlr4-runtime"
@@ -224,3 +227,22 @@ group "deps"
             "deps/zlib/*.c",
             "deps/zlib/*.h",
         }
+    project "libps4debug"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++17"
+        warnings "Off"
+
+        targetname "libps4debug"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/ps4debug/libdebug/cpp/source/*.cpp",
+            "deps/ps4debug/libdebug/cpp/include/*.hpp"
+        }
+
+        includedirs {
+            "deps/ps4debug/libdebug/cpp/include/"
+        }
+
