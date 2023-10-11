@@ -58,6 +58,18 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!strcmp("-V", arg) || !_strcmpi("--vars", arg)) {
             m_show_func_vars = true;
         }
+        else if (!strcmp("-t", arg) || !_strcmpi("--type", arg)) {
+            if (i + 1 == endIndex) {
+                std::cerr << "Missing value for param: " << arg << "!\n";
+                return false;
+            }
+            m_platform = opcode::PlatformOf(args[++i]);
+
+            if (!m_platform) {
+                std::cerr << "Unknown platform: " << args[i] << "!\n";
+                return false;
+            }
+        }
         else if (!_strcmpi("--internalblocks", arg)) {
             m_show_internal_blocks = true;
         }
@@ -169,6 +181,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-U --noincludes    : No includes\n"
         << "-V --vars          : Show all func vars\n"
         << "-r --rosetta [f]   : Create Rosetta file\n"
+        << "-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'\n"
         << "-X --exptests      : Enable UNK tests\n"
         << "-C --copyright [t] : Set a comment text to put in front of every file\n";
 }
@@ -519,7 +532,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             UINT64 rname = utils::CatLocated(exp.name_space, exp.name);
 
-            auto r = contextes.try_emplace(rname, &data->magic[exp.address], opt, currentNSP, exp, data->GetVm());
+            auto r = contextes.try_emplace(rname, &data->magic[exp.address], opt, currentNSP, exp, data->GetVm(), opt.m_platform);
 
             if (!r.second) {
                 asmout << "Duplicate node "

@@ -54,7 +54,8 @@ public:
     }
 
     bool Write(std::vector<BYTE>& data) override {
-        auto [err, op] = GetOpCodeId(VM_T8, opcode);
+        // TODO: config platform
+        auto [err, op] = GetOpCodeId(VM_T8, PLATFORM_PC, opcode);
         if (err) {
             return false;
         }

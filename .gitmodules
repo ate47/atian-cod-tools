@@ -17,3 +17,5 @@
 	path = deps/ps4debug
 	url = https://github.com/jogolden/ps4debug
 	branch = master
+[submodule ".\\deps\\ps4debug\\"]
+	url = https://github.com/ate47/ps4debug

@@ -39,6 +39,7 @@ namespace tool::gsc {
         bool m_show_internal_blocks = false;
         bool m_show_func_vars = false;
         UINT32 m_stepskip = 0;
+        opcode::Platform m_platform = opcode::Platform::PLATFORM_PC;
 
 
         std::vector<LPCCH> m_inputFiles{};
@@ -294,8 +295,10 @@ namespace tool::gsc {
             const T8GSCExport& m_exp;
             // file vm
             BYTE m_vm;
+            // file platform
+            Platform m_platform;
 
-            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm);
+            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm, Platform platform);
             ~ASMContext();
 
             // @return relative location in the function
@@ -334,7 +337,7 @@ namespace tool::gsc {
              * @return handler
              */
             inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(UINT16 opcode) {
-                return tool::gsc::opcode::LookupOpCode(m_vm, opcode);
+                return tool::gsc::opcode::LookupOpCode(m_vm, m_platform, opcode);
             }
 
             /*

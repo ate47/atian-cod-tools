@@ -17,10 +17,10 @@ try {
     Write-Host "-- Install packages"
     vcpkg install "@.\packages.txt"
 
-    Write-Host "-- Create jit-lua projects"
-    Push-Location deps\jit-lua
-    premake5 vs2022
-    Pop-Location
+    #Write-Host "-- Create jit-lua projects"
+    #Push-Location deps\jit-lua
+    #premake5 vs2022
+    #Pop-Location
 
     Write-Host "-- Create solution"
     if ($ci) {

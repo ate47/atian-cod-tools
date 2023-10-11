@@ -20,4 +20,10 @@
 #include "tools/gsc_opcodes.hpp"
 #include "tools/pool.hpp"
 
+#if __has_include("tools/ps4/ps4_includes.hpp")
+
+#include "tools/ps4/ps4_includes.hpp"
+
+#endif
+
 extern LPCCH g_progPath;

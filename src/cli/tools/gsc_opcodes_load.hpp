@@ -8,6 +8,15 @@ namespace tool::gsc::opcode {
 		VM_T9 = 0x38
 	};
 
+	enum Platform : BYTE {
+		PLATFORM_UNKNOWN = 0,
+		PLATFORM_PC,
+		PLATFORM_XBOX,
+		PLATFORM_PLAYSTATION,
+	};
+
+	Platform PlatformOf(LPCCH name);
+
 	enum OPCode : UINT16 {
 		OPCODE_Undefined,
 		OPCODE_Unknown0,

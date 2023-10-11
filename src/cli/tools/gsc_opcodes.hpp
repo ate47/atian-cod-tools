@@ -8,22 +8,22 @@ namespace tool::gsc::opcode {
 	struct VmInfo {
 		BYTE vm;
 		LPCCH name;
-		std::unordered_map<UINT16, OPCode> opcodemap{};
-		std::unordered_map<OPCode, UINT16> opcodemaplookup{};
+		std::unordered_map<UINT16, std::unordered_map<Platform, OPCode>> opcodemap{};
+		std::unordered_map<OPCode, std::unordered_map<Platform, UINT16>> opcodemaplookup{};
 	};
 	bool IsValidVm(BYTE vm, VmInfo*& info);
-	const OPCodeInfo* LookupOpCode(BYTE vm, UINT16 opcode);
-	std::pair<bool, UINT16> GetOpCodeId(BYTE vm, OPCode opcode);
+	const OPCodeInfo* LookupOpCode(BYTE vm, Platform platform, UINT16 opcode);
+	std::pair<bool, UINT16> GetOpCodeId(BYTE vm, Platform platform, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
 	void RegisterVM(BYTE vm, LPCCH name);
-	void RegisterOpCode(BYTE vm, OPCode enumValue, UINT16 op);
+	void RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op);
 	void RegisterOpCodes();
 
-	inline void RegisterOpCode(BYTE vm, OPCode enumValue) {}
+	inline void RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue) {}
 	template<typename... OpTypes>
-	inline void RegisterOpCode(BYTE vm, OPCode enumValue, UINT16 op, OpTypes... ops) {
-		RegisterOpCode(vm, enumValue, op);
-		RegisterOpCode(vm, enumValue, ops...);
+	inline void RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op, OpTypes... ops) {
+		RegisterOpCode(vm, platform, enumValue, op);
+		RegisterOpCode(vm, platform, enumValue, ops...);
 	}
 
 }

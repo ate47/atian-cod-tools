@@ -533,7 +533,7 @@ int vmdebug(const Process& proc, int argc, const char* argv[]) {
 				BYTE* bytecodeStart = utils::Aligned<UINT16>(&info.script->magic[info.exp.address]);
 
 				UINT16 opcodeVal = *reinterpret_cast<UINT16*>(bytecodeStart);
-				auto opcode = tool::gsc::opcode::LookupOpCode(info.obj.GetVm(), opcodeVal);
+				auto opcode = tool::gsc::opcode::LookupOpCode(info.obj.GetVm(), tool::gsc::opcode::PLATFORM_PC, opcodeVal);
 
 				// dump local variables (if any)
 				if (opt.m_vars && opcode && opcode->m_id == tool::gsc::opcode::OPCODE_SafeCreateLocalVariables) {

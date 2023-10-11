@@ -11,6 +11,20 @@ static std::unordered_map<OPCode, const OPCodeInfo*> g_opcodeHandlerMap{};
 
 #pragma region opcode_node
 
+
+Platform tool::gsc::opcode::PlatformOf(LPCCH name) {
+	if (!_strcmpi("pc", name)) {
+		return PLATFORM_PC;
+	}
+	if (!_strcmpi("xbox", name) || !_strcmpi("xb", name)) {
+		return PLATFORM_XBOX;
+	}
+	if (!_strcmpi("ps", name) || !_strcmpi("ps4", name) || !_strcmpi("playstation", name)) {
+		return PLATFORM_PLAYSTATION;
+	}
+	return PLATFORM_UNKNOWN;
+}
+
 size_t SizeNoEmptyNode(const std::vector<ASMContextStatement>& statements) {
 	size_t acc = 0;
 	for (const auto& stmt : statements) {
@@ -1510,7 +1524,7 @@ public:
 			}
 		}
 
-		assert(name != nullptr);
+		assert(!context.m_runDecompiler || name != nullptr);
 
 		auto& bytecode = context.Aligned<INT16>();
 
@@ -3122,7 +3136,7 @@ static const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefine
 void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name) {
 	g_opcodeMap[vm] = { vm, name, {} };
 }
-void tool::gsc::opcode::RegisterOpCode(BYTE vm, OPCode enumValue, UINT16 op) {
+void tool::gsc::opcode::RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op) {
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
 		assert(0);
@@ -3132,8 +3146,8 @@ void tool::gsc::opcode::RegisterOpCode(BYTE vm, OPCode enumValue, UINT16 op) {
 
 	auto& opnfo = ref->second;
 
-	opnfo.opcodemap[op] = enumValue;
-	opnfo.opcodemaplookup[enumValue] = op;
+	opnfo.opcodemap[op][platform] = enumValue;
+	opnfo.opcodemaplookup[enumValue][platform] = op;
 }
 
 void tool::gsc::opcode::RegisterOpCodes() {
@@ -3360,7 +3374,7 @@ bool tool::gsc::opcode::IsValidVm(BYTE vm, VmInfo*& info) {
 	return true;
 }
 
-const OPCodeInfo* tool::gsc::opcode::LookupOpCode(BYTE vm, UINT16 opcode) {
+const OPCodeInfo* tool::gsc::opcode::LookupOpCode(BYTE vm, Platform platform, UINT16 opcode) {
 	// build map
 	RegisterOpCodes();
 
@@ -3376,7 +3390,13 @@ const OPCodeInfo* tool::gsc::opcode::LookupOpCode(BYTE vm, UINT16 opcode) {
 		return g_unknownOpcode;
 	}
 
-	const auto refHandler = g_opcodeHandlerMap.find(ref->second);
+	auto ref2 = ref->second.find(platform);
+
+	if (ref2 == ref->second.end()) {
+		return g_unknownOpcode;
+	}
+
+	const auto refHandler = g_opcodeHandlerMap.find(ref2->second);
 
 	if (refHandler == g_opcodeHandlerMap.end()) {
 		return g_unknownOpcode;
@@ -3384,7 +3404,7 @@ const OPCodeInfo* tool::gsc::opcode::LookupOpCode(BYTE vm, UINT16 opcode) {
 
 	return refHandler->second;
 }
-std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, OPCode opcode) {
+std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, Platform platform, OPCode opcode) {
 	RegisterOpCodes();
 
 	VmInfo* info;
@@ -3400,14 +3420,21 @@ std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, OPCode opcode) {
 		return std::make_pair(false, 0);
 	}
 
-	return std::make_pair(true, ref->second);
+	auto ref2 = ref->second.find(platform);
+
+
+	if (ref2 == ref->second.end()) {
+		return std::make_pair(false, 0);
+	}
+
+	return std::make_pair(true, ref2->second);
 }
 
 #pragma endregion
 #pragma region asmctx 
-ASMContext::ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm)
+ASMContext::ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm, Platform platform)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), 
-			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_vm(vm) {
+			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_vm(vm), m_platform(platform) {
 	// set start as unhandled
 	PushLocation();
 }
