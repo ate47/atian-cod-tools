@@ -95,7 +95,7 @@ int writepoolscripts(const Process& proc, int argc, const char* argv[]) {
             }
         }
 
-        snprintf(nameBuffer, 1000, "%s/script_%llx.gscc", outFile, ref.name);
+        sprintf_s(nameBuffer, "%s/script_%llx.gscc", outFile, ref.name);
 
         if (!proc.ReadMemory(storage, ref.buffer, ref.size)) {
             std::cerr << "Can't read pooled buffer at address " << std::hex << ref.buffer << " of size " << std::dec << ref.size << " for file " << nameBuffer << "\n";
@@ -163,7 +163,7 @@ int writepoolscripts(const Process& proc, int argc, const char* argv[]) {
                 }
             }
 
-            snprintf(nameBuffer, 1000, "%s/script_%llx.gscc", outFile, gsc.name);
+            sprintf_s(nameBuffer, "%s/script_%llx.gscc", outFile, gsc.name);
 
             if (!proc.ReadMemory(storage, ref.activeVersion, gsc.script_size)) {
                 std::cerr << "Can't read pooled buffer at address " << std::hex << ref.activeVersion << " of size " << std::dec << gsc.script_size << " for file " << nameBuffer << "\n";

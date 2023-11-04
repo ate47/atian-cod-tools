@@ -1,4 +1,4 @@
-#include <includes.hpp>
+#include <includes_shared.hpp>
 
 ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0, 0) {
 }
@@ -214,7 +214,7 @@ INT64 Process::ReadWString(LPWCH dest, uintptr_t src, SIZE_T size) const {
 	WCHAR c = -1;
 	// TODO: use buffer
 	while (c) {
-		if (!ReadMemory(&c, src++, 1)) {
+		if (!ReadMemory(&c, src++, 2)) {
 			return -1; // can't read memory
 		}
 		if (len == size) {
@@ -292,7 +292,7 @@ std::ostream& Process::WriteLocation(std::ostream& out, uintptr_t location) cons
 }
 
 bool Process::LoadDll(LPCCH dll) {
-	ProcessModuleExport& rLoadLibraryA =  (*this)["kernel32.dll"]["LoadLibraryA"];
+	ProcessModuleExport& rLoadLibraryA = (*this)["Kernel32.dll"]["LoadLibraryA"];
 
 	if (!rLoadLibraryA) {
 		return false;
@@ -437,4 +437,28 @@ ProcessModuleExport& ProcessModule::operator[](LPCCH name) {
 ProcessModuleExport::ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location, WORD ordinal)
 	: m_module(module), m_location(location), m_name(std::make_unique<CHAR[]>(strlen(name) + 1)), m_ordinal(ordinal) {
 	strcpy_s(&m_name[0], strlen(name) + 1, name);
+}
+
+std::ostream& operator<<(std::ostream& os, const Process& obj) {
+	if (!obj) {
+		return os << "[BAD_PROCESS]";
+	}
+	return os << "[proc: pid=" << obj.m_pid << "]";
+}
+
+std::ostream& operator<<(std::ostream& os, const ProcessModule& obj) {
+	if (!obj) {
+		return os << "[BAD_MODULE]";
+	}
+	return os << "[" << obj.name << "@" << std::hex << obj.start << "]";
+}
+
+std::ostream& operator<<(std::ostream& os, const ProcessModuleExport& obj) {
+	if (!obj) {
+		return os << "[BAD_EXPORT]";
+	}
+	if (obj.m_location >= obj.m_module.start) {
+		return os << "[" << obj.m_name << "@" << obj.m_module.name << "+" << std::hex << (obj.m_location - obj.m_module.start) << "]";
+	}
+	return os << "[" << obj.m_name << "@" << std::hex << obj.m_location << "]";
 }

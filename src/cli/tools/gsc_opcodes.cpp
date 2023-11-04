@@ -25,6 +25,15 @@ Platform tool::gsc::opcode::PlatformOf(LPCCH name) {
 	return PLATFORM_UNKNOWN;
 }
 
+LPCCH tool::gsc::opcode::PlatformName(Platform plt) {
+	switch (plt) {
+	case PLATFORM_PC: return "PC";
+	case PLATFORM_XBOX: return "Xbox";
+	case PLATFORM_PLAYSTATION: return "PlayStation";
+	default: return "Unknown";
+	}
+}
+
 size_t SizeNoEmptyNode(const std::vector<ASMContextStatement>& statements) {
 	size_t acc = 0;
 	for (const auto& stmt : statements) {
@@ -1195,12 +1204,20 @@ int OPCodeInfo::Dump(std::ostream& out, UINT16 value, ASMContext& context, tool:
 	return 0; // by default nop
 }
 
+int tool::gsc::opcode::OPCodeInfo::Skip(UINT16 value, ASMSkipContext& ctx) const {
+	return 0; // by default nop
+}
+
 class OPCodeInfounknown : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "Unknown operator: " << std::hex << value << "\n";
+		return -1;
+	}
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_error = std::format("Unknown operator: {:x}", value);
 		return -1;
 	}
 };
@@ -1216,6 +1233,11 @@ public:
 
 		loc += 2;
 		out << std::hex << val << "\n";
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT16>() += 2;
 		return 0;
 	}
 };
@@ -1270,6 +1292,17 @@ public:
 		context.m_lastOpCodeBase = -1;
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		BYTE count = *ctx.m_bcl++;
+		for (size_t i = 0; i < count; i++) {
+			// skip name
+			ctx.Aligned<UINT32>() += 4;
+			// skip flag
+			ctx.m_bcl++;
+		}
+		return 0;
+	}
 };
 class OPCodeInfoCheckClearParams : public OPCodeInfo {
 public:
@@ -1279,6 +1312,10 @@ public:
 		out << "\n";
 		// don't create statement, we can ignore it
 		context.m_lastOpCodeBase = -1;
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -1304,6 +1341,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT32>() += 4;
+		return 0;
+	}
 };
 
 template<typename Type>
@@ -1326,6 +1368,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<Type>() += sizeof(Type);
+		return 0;
+	}
 };
 
 template<typename Type>
@@ -1344,6 +1391,10 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 template<typename Type>
@@ -1360,6 +1411,10 @@ public:
 
 		out << "\n";
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -1385,6 +1440,10 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 class OPCodeInfoGetObjectSize : public OPCodeInfo {
@@ -1399,6 +1458,10 @@ public:
 
 		out << "\n";
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -1419,6 +1482,10 @@ public:
 
 		out << "\n";
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -1443,6 +1510,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<Type>() += sizeof(Type);
+		return 0;
+	}
 };
 
 class OPCodeInfoGetHash : public OPCodeInfo {
@@ -1462,6 +1534,11 @@ public:
 
 		out << "#\"" << hashutils::ExtractTmp("hash", hash) << "\" (#" << std::hex << hash << ")" << std::endl;
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT64>() += 8;
 		return 0;
 	}
 };
@@ -1582,6 +1659,19 @@ public:
 		return 0;
 		//return m_id == OPCODE_Jump ? -2 : 0; // no code after jump
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		INT32 m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
+		auto& bytecode = ctx.Aligned<INT16>();
+
+		INT16 delta = *(INT16*)bytecode;
+
+		bytecode += 2;
+
+		ctx.PushLocation(&ctx.m_bcl[delta]);
+
+		return 0;
+	}
 };
 
 class OPCodeInfoJumpExpr : public OPCodeInfo {
@@ -1632,6 +1722,20 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		INT32 m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
+		// get the jump opcode location
+
+		auto& bytecode = ctx.Aligned<INT16>();
+
+		INT16 delta = *(INT16*)bytecode;
+
+		bytecode += 2;
+		
+		ctx.PushLocation(&ctx.m_bcl[delta]);
+		return 0;
+	}
 };
 
 class OPCodeInfoJumpPush : public OPCodeInfo {
@@ -1655,6 +1759,11 @@ public:
 
 		return -2; // no code after that
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uintptr_t>() += 8;
+		return -2;
+	}
 };
 
 class OPCodeInfoVector : public OPCodeInfo {
@@ -1670,6 +1779,10 @@ public:
 		}
 
 		out << "\n";
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -1697,6 +1810,13 @@ public:
 		}
 		out << "(" << x << ", " << y << ", " << z << ")\n";
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<FLOAT>() += 4;
+		ctx.Aligned<FLOAT>() += 4;
+		ctx.Aligned<FLOAT>() += 4;
 		return 0;
 	}
 };
@@ -1729,6 +1849,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
+		return 0;
+	}
 };
 
 class OPCodeInfoName : public OPCodeInfo {
@@ -1747,6 +1872,11 @@ public:
 
 		out << hashutils::ExtractTmp(m_hashType, name) << std::endl;
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT32>() += 4;
 		return 0;
 	}
 };
@@ -1776,6 +1906,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT32>() += 4;
+		return 0;
+	}
 };
 
 class OPCodeInfoSetVariableField : public OPCodeInfo {
@@ -1791,6 +1926,10 @@ public:
 			context.CompleteStatement();
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -1814,6 +1953,11 @@ public:
 			context.PushASMCNode(new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), new ASMContextNodeIdentifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT32>() += 4;
 		return 0;
 	}
 };
@@ -1847,6 +1991,13 @@ public:
 			context.CompleteStatement();
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		if (!m_stack) {
+			ctx.Aligned<UINT32>() += 4;
+		}
 		return 0;
 	}
 };
@@ -1883,6 +2034,12 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT16>() += 2;
+		ctx.Aligned<UINT32>() += 4;
+		return 0;
+	}
 };
 
 class OPCodeInfoCastAndEvalFieldVariable : public OPCodeInfo {
@@ -1904,6 +2061,11 @@ public:
 			context.PushASMCNode(new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), new ASMContextNodeIdentifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT32>() += 4;
 		return 0;
 	}
 };
@@ -1945,6 +2107,13 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		if (!m_stack) {
+			ctx.Aligned<UINT32>() += 4;
+		}
+		return 0;
+	}
 };
 
 class OPCodeInfoEvalLocalVariableCached : public OPCodeInfo {
@@ -1971,6 +2140,11 @@ public:
 			context.PushASMCNode(new ASMContextNodeIdentifier(name));
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
 		return 0;
 	}
 };
@@ -2008,6 +2182,11 @@ public:
 			context.CompleteStatement();
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
 		return 0;
 	}
 };
@@ -2057,6 +2236,13 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		if (!m_stack) {
+			ctx.m_bcl++;
+		}
+		return 0;
+	}
 };
 
 class OPCodeInfoSetNextArrayKeyCached : public OPCodeInfo {
@@ -2095,6 +2281,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
+		return 0;
+	}
 };
 
 class OPCodeInfoEvalFieldObjectFromRef : public OPCodeInfo {
@@ -2121,6 +2312,11 @@ public:
 			context.SetObjectIdASMCNode(new ASMContextNodeIdentifier(name));
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
 		return 0;
 	}
 };
@@ -2151,6 +2347,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
+		return 0;
+	}
 };
 
 class OPCodeInfoEvalLocalVariableDefined : public OPCodeInfo {
@@ -2177,6 +2378,11 @@ public:
 			context.PushASMCNode(new ASMContextNodeFunctionOperator("isdefined", nullptr, new ASMContextNodeIdentifier(name), TYPE_FUNC_IS_DEFINED));
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
 		return 0;
 	}
 };
@@ -2208,6 +2414,10 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 class OPCodeInfoCreateArray : public OPCodeInfo {
@@ -2223,6 +2433,10 @@ public:
 			context.PushASMCNode(new ASMContextNodeArrayBuild());
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2259,6 +2473,10 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 class OPCodeInfoCreateStruct : public OPCodeInfo {
@@ -2274,6 +2492,10 @@ public:
 			context.PushASMCNode(new ASMContextNodeStructBuild());
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2309,6 +2531,10 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 class OPCodeInfoCastFieldObject : public OPCodeInfo {
@@ -2326,6 +2552,10 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 class OPCodeInfoPreScriptCall : public OPCodeInfo {
@@ -2341,6 +2571,10 @@ public:
 			context.PushASMCNode(new ASMContextNodeValue<LPCCH>("<emptypos_prescriptcall>", TYPE_PRECODEPOS));
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2379,6 +2613,17 @@ public:
 
 		return -2;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		INT64 rloc = ctx.FunctionRelativeLocation();
+		for (const auto& loc : ctx.m_locs) {
+			if (loc.second.rloc > rloc) {
+				// not the end, we can continue
+				return 0;
+			}
+		}
+		return -2;
+	}
 };
 
 class OPCodeInfoClearArray : public OPCodeInfo {
@@ -2401,6 +2646,10 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 class OPCodeInfoStatement : public OPCodeInfo {
@@ -2421,6 +2670,9 @@ public:
 			context.CompleteStatement();
 		}
 		out << "\n";
+		return 0;
+	}
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2450,6 +2702,9 @@ public:
 			}
 		}
 		out << "\n";
+		return 0;
+	}
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2488,6 +2743,9 @@ public:
 			context.CompleteStatement();
 		}
 		out << "\n";
+		return 0;
+	}
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2581,6 +2839,12 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++; // params
+		ctx.Aligned<UINT64>() += 8; // import
+		return 0;
+	}
 };
 
 class OPCodeInfoFuncGet : public OPCodeInfo {
@@ -2610,6 +2874,11 @@ public:
 			context.PushASMCNode(new ASMContextNodeFuncRef("&", data[0], nsp));
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT64>() += 8; // import
 		return 0;
 	}
 };
@@ -2690,6 +2959,12 @@ public:
 		}
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++; // params
+		ctx.Aligned<UINT32>() += 4; // name
+		return 0;
+	}
 };
 
 class OPCodeInfoFuncCallPtr : public OPCodeInfo {
@@ -2764,6 +3039,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
+		return 0;
+	}
 };
 
 class OPCodeInfoGetString : public OPCodeInfo {
@@ -2794,6 +3074,11 @@ public:
 		}
 
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<INT32>() += 4;
 		return 0;
 	}
 };
@@ -2829,6 +3114,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT16>() += 2;
+		return 0;
+	}
 };
 
 class OPCodeInfoGetLocalVar : public OPCodeInfo {
@@ -2847,6 +3137,11 @@ public:
 			context.m_localvars_ref[name]++;
 		}
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
 		return 0;
 	}
 };
@@ -2946,6 +3241,43 @@ public:
 		context.PushLocation();
 		return -2; // use pushed location to get asm from previous value
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		auto& baseTable = ctx.Aligned<INT32>();
+		INT32 table = *(INT32*)baseTable;
+		// we move to the table
+		baseTable += 4 + table;
+
+		auto& baseCases = ctx.Aligned<INT32>();
+
+		INT32 cases = *(INT32*)baseCases;
+
+		baseCases += 4;
+
+		for (size_t c = 1; c <= cases; c++) {
+			auto& baseCaseValue = ctx.Aligned<INT64>();
+			INT64 caseValue = *(INT64*)baseCaseValue;
+			baseCaseValue += 8;
+			auto& baseCaseDelta = ctx.Aligned<INT64>();
+			INT64 caseDelta = *(INT64*)baseCaseDelta;
+			baseCaseDelta += 8;
+
+			auto caseRLoc = ctx.PushLocation(&baseCaseDelta[caseDelta]).rloc;
+
+			if (c == cases) {
+				if (!caseValue) {
+					baseCaseDelta += caseDelta;
+				}
+			}
+			else {
+				// align to the next opcode
+				ctx.Aligned<UINT16>();
+			}
+		}
+
+		ctx.PushLocation();
+		return -2; // use pushed location to get asm from previous value
+	}
 };
 
 class OPCodeInfoEndSwitch : public OPCodeInfo {
@@ -2973,6 +3305,17 @@ public:
 
 		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << std::hex << rloc << "\n";
 
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		auto& baseCount = ctx.Aligned<INT32>();
+
+		INT32 count = *(INT32*)baseCount;
+
+		baseCount += 4;
+
+		auto& ptrBase = ctx.Aligned<INT64>() += 16 * count;
 		return 0;
 	}
 };
@@ -3013,6 +3356,10 @@ public:
 		out << "\n";
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
 };
 
 class OPCodeInfodec : public OPCodeInfo {
@@ -3038,6 +3385,10 @@ public:
 		}
 	end:
 		out << "\n";
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -3073,6 +3424,11 @@ public:
 
 		return 0;
 	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
+		return 0;
+	}
 };
 
 class OPCodeInfonop : public OPCodeInfo {
@@ -3101,6 +3457,11 @@ public:
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeFuncRef("@", function, nsp, script));
 		}
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<UINT32>() += 16; // nsp32:func32:script64
 		return 0;
 	}
 };
@@ -3439,6 +3800,12 @@ ASMContext::ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp
 	PushLocation();
 }
 
+
+tool::gsc::opcode::ASMSkipContext::ASMSkipContext(BYTE* fonctionStart, BYTE vm, Platform platform) 
+	: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_vm(vm), m_platform(platform) {
+	PushLocation();
+}
+
 ASMContext::~ASMContext() {
 	if (m_fieldId) {
 		delete m_fieldId;
@@ -3497,6 +3864,37 @@ asmcontextlocation& ASMContext::PushLocation(BYTE* location) {
 	ref.rloc = loc;
 	return ref;
 }
+
+asmcontextlocation& ASMSkipContext::PushLocation(BYTE* location) {
+	// push aligned location to avoid missing a location
+	auto loc = FunctionRelativeLocation(utils::Aligned<UINT16>(location));
+	auto& ref = m_locs[loc];
+
+	// we write the location for the return value
+	ref.rloc = loc;
+	return ref;
+}
+
+bool tool::gsc::opcode::ASMSkipContext::FindNextLocation() {
+	INT64 min = 0xFFFFFFFFFF;
+	INT32 minloc = 0;
+	for (const auto& [location, loc] : m_locs) {
+		if (!loc.handled) {
+			if (min > loc.rloc) {
+				min = loc.rloc;
+				minloc = location;
+			}
+		}
+	}
+	if (min != 0xFFFFFFFFFF) {
+		m_bcl = &m_fonctionStart[minloc];
+
+		return true;
+	}
+
+	return false;
+}
+
 bool ASMContext::FindNextLocation() {
 	INT64 min = 0xFFFFFFFFFF;
 	INT32 minloc = 0;

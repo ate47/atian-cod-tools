@@ -5,11 +5,11 @@ static CHAR g_buffer[2048];
 static std::set<UINT64> g_extracted{};
 static bool g_saveExtracted = false;
 
-void hashutils::ReadDefaultFile(bool ignoreCol) {
+void hashutils::ReadDefaultFile(bool ignoreCol, bool iw) {
 	static std::once_flag f{};
 	
-	std::call_once(f, [ignoreCol] {
-		LoadMap(DEFAULT_HASH_FILE, ignoreCol);
+	std::call_once(f, [ignoreCol, iw] {
+		LoadMap(DEFAULT_HASH_FILE, ignoreCol, iw);
 	});
 }
 
@@ -40,55 +40,55 @@ void hashutils::WriteExtracted(LPCCH file) {
 	SaveExtracted(false);
 }
 
-int hashutils::LoadMap(LPCWCH file, bool ignoreCol) {
+int hashutils::LoadMap(LPCWCH file, bool ignoreCol, bool iw) {
 	// add common hashes
 
 	// special value
 	g_hashMap[0] = "";
 	
 	// class special things
-	Add("__constructor");
-	Add("__destructor");
-	Add("__vtable");
-	Add("_deleted");
+	Add("__constructor", true, iw);
+	Add("__destructor", true, iw);
+	Add("__vtable", true, iw);
+	Add("_deleted", true, iw);
 
 	// global vars
-	Add("level");
-	Add("game");
-	Add("classes");
-	Add("mission");
-	Add("anim");
-	Add("world");
-	Add("sharedstructs");
-	Add("memory");
+	Add("level", true, iw);
+	Add("game", true, iw);
+	Add("classes", true, iw);
+	Add("mission", true, iw);
+	Add("anim", true, iw);
+	Add("world", true, iw);
+	Add("sharedstructs", true, iw);
+	Add("memory", true, iw);
 
 	// structure basic hashes
-	Add("system");
-	Add("scripts/core_common/system_shared.csc");
-	Add("scripts/core_common/system_shared.gsc");
-	Add("register");
-	Add("__init__system__");
-	Add("__init__");
-	Add("__main__");
-	Add("main");
-	Add("init");
+	Add("system", true, iw);
+	Add("scripts/core_common/system_shared.csc", true,iw);
+	Add("scripts/core_common/system_shared.gsc", true,iw);
+	Add("register", true, iw);
+	Add("__init__system__", true, iw);
+	Add("__init__", true, iw);
+	Add("__main__", true, iw);
+	Add("main", true, iw);
+	Add("init", true, iw);
 	// it seems all the varargs are called "vararg", but a flag is also describing, so idk
-	Add("vararg");
+	Add("vararg", true, iw);
 
 	// basic letter
 	CHAR buff[2] = { 0, 0 };
 	for (char c = 'a'; c <= 'z'; c++) {
 		*buff = c;
-		Add(buff);
+		Add(buff, true, iw);
 	}
 	for (char c = '0'; c <= '9'; c++) {
 		*buff = c;
-		Add(buff);
+		Add(buff, true, iw);
 	}
 
 	// Decompiler special values
-	Add("<error>");
-	Add("self");
+	Add("<error>", true, iw);
+	Add("self", true, iw);
 
 	std::ifstream s(file);
 
@@ -99,7 +99,7 @@ int hashutils::LoadMap(LPCWCH file, bool ignoreCol) {
 	std::string line;
 	int issues = 0;
 	while (s.good() && std::getline(s, line)) {
-		if (!Add(line.c_str(), ignoreCol)) {
+		if (!Add(line.c_str(), ignoreCol, iw)) {
 			issues++;
 		}
 	}
@@ -108,8 +108,13 @@ int hashutils::LoadMap(LPCWCH file, bool ignoreCol) {
 	return issues;
 }
 
-bool hashutils::Add(LPCCH str, bool ignoreCol) {
+bool hashutils::Add(LPCCH str, bool ignoreCol, bool iw) {
 	g_hashMap.emplace(hashutils::Hash64(str), str);
+	if (iw) {
+		g_hashMap.emplace(hashutils::HashIW(str), str);
+		g_hashMap.emplace(hashutils::HashIW2(str), str);
+		return true;
+	}
 	bool cand32 = true;
 
 	for (LPCCH s = str; *s; s++) {

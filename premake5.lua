@@ -17,10 +17,12 @@ function buildinfo()
     file:write("    // Do not write in this file, it is updated by premake\n")
     file:write("#ifdef DEBUG\n\n")
     file:write("    constexpr const char* VERSION = \"Dev\";\n")
+    file:write("    constexpr const wchar_t* VERSIONW = L\"Dev\";\n")
     file:write("    constexpr unsigned int VERSION_ID = 0xFFFFFFFF;\n")
     file:write("\n#else\n\n")
     file:write("    // Version used for the release\n")
     file:write("    constexpr const char* VERSION = \"" .. version .. "\";\n")
+    file:write("    constexpr const wchar_t* VERSIONW = L\"" .. version .. "\";\n")
     file:write("    constexpr unsigned int VERSION_ID = 0x" .. versionid .. ";\n")
     file:write("\n#endif\n")
     file:write("}\n")
@@ -32,8 +34,8 @@ workspace "AtianCodTools"
     startproject "AtianCodTools"
     location "./build"
     configurations { 
-        "Debug", 
-        "Release" 
+        "Debug",
+        "Release"
     }
 
     architecture "x86_64"
@@ -71,13 +73,16 @@ project "ACTSSharedLibrary"
 
     includedirs {
         "src/shared",
+        "deps/asmjit/src/",
     }
 
     vpaths {
         ["*"] = "*"
     }
+    links { "asmjit" }
+    dependson "asmjit"
 
-project "ACTS-BO4-DLL"
+project "AtianCodToolsBO4DLL"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
@@ -96,7 +101,8 @@ project "ACTS-BO4-DLL"
         "src/bo4-dll",
         "src/shared",
     -- link detours
-		"deps/Detours/src/"
+		"deps/Detours/src/",
+        "deps/asmjit/src/",
     }
 
     vpaths {
@@ -105,8 +111,42 @@ project "ACTS-BO4-DLL"
     
     links { "ACTSSharedLibrary" }
     links { "detours" }
+    links { "asmjit" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
+    dependson "asmjit"
+
+project "AtianCodToolsUI"
+    kind "WindowedApp"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+    targetname "acts-ui"
+    
+    files {
+        "./src/ui/**.hpp",
+        "./src/ui/**.cpp",
+        "./resources/**",
+    }
+
+    includedirs {
+        "src/ui",
+        "src/shared",
+        "deps/ps4debug/libdebug/cpp/include/",
+        "deps/asmjit/src/",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    links { "libps4debug" }
+    links { "asmjit" }
+    dependson "ACTSSharedLibrary"
+    dependson "libps4debug"
+    dependson "asmjit"
 
 project "AtianCodTools"
     kind "ConsoleApp"
@@ -144,6 +184,7 @@ project "AtianCodTools"
 		"deps/antlr4/runtime/Cpp/runtime/src/",
 		"deps/zlib/",
         "deps/ps4debug/libdebug/cpp/include/",
+        "deps/asmjit/src/",
     }
 
     vpaths {
@@ -158,10 +199,35 @@ project "AtianCodTools"
     links { "ACTSSharedLibrary" }
     links { "zlib" }
     links { "libps4debug" }
+    links { "asmjit" }
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
     dependson "zlib"
     dependson "libps4debug"
+    dependson "asmjit"
+
+project "TestDll"
+    kind "SharedLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "test-dll"
+    
+    files {
+        "./src/test-dll/**.hpp",
+        "./src/test-dll/**.h",
+        "./src/test-dll/**.cpp",
+    }
+
+    includedirs {
+        "./src/test-dll",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
 
 group "deps"
     project "antlr4-runtime"
@@ -227,6 +293,26 @@ group "deps"
             "deps/zlib/*.c",
             "deps/zlib/*.h",
         }
+    project "asmjit"
+        language "C++"
+        kind "StaticLib"
+        warnings "Off"
+
+        targetname "asmjit"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+        
+        files {
+            "deps/asmjit/src/**.cpp",
+            "deps/asmjit/src/**.h",
+        }
+        defines { 
+            "ASMJIT_STATIC",
+            "ASMJIT_NO_AARCH64",
+            "ASMJIT_BUILD_RELEASE",
+            "ASMJIT_NO_FOREIGN"
+        }
+        
     project "libps4debug"
         language "C++"
         kind "StaticLib"

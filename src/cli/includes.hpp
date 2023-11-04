@@ -9,7 +9,6 @@
 #include <PS4DBG.hpp>
 #pragma warning(pop)
 
-#include "memapi.hpp"
 #include "hashutils.hpp"
 
 #include "mods/mods.hpp"
@@ -19,6 +18,8 @@
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/pool.hpp"
+
+#include "compatibility/serious.hpp"
 
 #if __has_include("tools/ps4/ps4_includes.hpp")
 

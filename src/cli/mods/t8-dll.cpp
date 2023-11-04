@@ -23,7 +23,7 @@ int t8dll(int argc, const char* argv[]) {
 		std::wcerr << L"Can't find game process\n";
 		return tool::BASIC_ERROR;
 	}
-
+	
 	if (!proc.Open()) {
 		std::cerr << "Can't open game process: x" << std::hex << GetLastError() << "\n";
 		return tool::BASIC_ERROR;

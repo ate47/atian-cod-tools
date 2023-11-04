@@ -138,7 +138,7 @@ FLOATVAL: '-'?((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
 IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;
 STRUCT_IDENTIFIER: '#' [a-z_A-Z] ([a-z_A-Z0-9])*;
 PATH: [a-z_A-Z0-9\\/]+ ('.gsc' | '.csc')?;
-STRING: '"' (~["\\])* '"';
+STRING: '"' (~["\\] | ('\\'.))* '"';
 HASHSTRING: [#] STRING;
 BOOL_VALUE: 'true' | 'false';
 UNDEFINED_VALUE: 'undefined';

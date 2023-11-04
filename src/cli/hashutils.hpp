@@ -4,18 +4,22 @@
 
 namespace hashutils {
 	constexpr auto DEFAULT_HASH_FILE = L"strings.txt";
+
+
 	/*
 	 * Read the default hash file
 	 * @param ignoreCol ignore collisions
+	 * @param iw hash
 	 */
-	void ReadDefaultFile(bool ignoreCol = true);
+	void ReadDefaultFile(bool ignoreCol = true, bool iw = false);
 	/*
 	 * Load a hash file
 	 * @param file file to load
 	 * @param ignoreCol ignore collisions
+	 * @param iw hash
 	 * @return collisions found (if ignoreCol = false)
 	 */
-	int LoadMap(LPCWCH file, bool ignoreCol = true);
+	int LoadMap(LPCWCH file, bool ignoreCol = true, bool iw = false);
 	/*
 	 * Save the extract hashes for a future use with WriteExtracted
 	 * @param value save extracted
@@ -30,9 +34,10 @@ namespace hashutils {
 	 * Add a hash into the map
 	 * @param str string
 	 * @param ignoreCol ignore collisions
+	 * @param iw hash
 	 * @return if it collided with another string
 	 */
-	bool Add(LPCCH str, bool ignoreCol = true);
+	bool Add(LPCCH str, bool ignoreCol = true, bool iw = false);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type
@@ -89,7 +94,9 @@ namespace hashutils {
 	 * @param start Start value, can be a previous hash to concatenate hashes
 	 * @return Hashed value
 	 */
-	inline UINT64 Hash64(LPCCH str, UINT64 start = 0xcbf29ce484222325LL) { return hash::Hash64(str, start); }
+	inline UINT64 Hash64(LPCCH str, UINT64 start = 0xcbf29ce484222325LL, UINT64 iv = 0x100000001b3) { return hash::Hash64(str, start, iv); }
+	inline UINT64 HashIW(LPCCH str) { return hash::Hash64(str, 0x47F5817A5EF961BA); }
+	inline UINT64 HashIW2(LPCCH str) { return hash::Hash64(str, 0x79D6530B0BB9B5D1, 0x10000000233); }
 	/*
 	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
 	 * @param str String to compute

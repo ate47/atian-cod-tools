@@ -1,9 +1,5 @@
 #include <dll_includes.hpp>
 
-BYTE* bo4::BasePtr() {
-	return reinterpret_cast<BYTE*>(GetModuleHandleA(NULL));
-}
-
 t8internal::scrVmPub* bo4::scrVmPub = reinterpret_cast<t8internal::scrVmPub*>(Relativise(offset::scrVmPub));
 t8internal::scrVarPub* bo4::scrVarPub = reinterpret_cast<t8internal::scrVarPub*>(Relativise(offset::gScrVarPub));
 bo4::ObjFileInfoTable* bo4::objFileInfo = reinterpret_cast<bo4::ObjFileInfoTable*>(Relativise(offset::gObjFileInfo));
@@ -17,7 +13,9 @@ void bo4::ScrVm_Error(scriptinstance::ScriptInstance inst, const char* format, b
 
 	auto& msg = errorMessage[inst];
 
-	vsnprintf(msg, sizeof(msg), format, va);
+	vsprintf_s(msg, format, va);
+
+	va_end(va);
 
 	scrVarPub[inst].error_message = msg;
 

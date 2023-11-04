@@ -12,6 +12,7 @@ This tool is using and providing
 - [ANTLR-4](https://github.com/antlr/antlr4) - [BSD-3-Clause license](https://github.com/antlr/antlr4/blob/master/LICENSE.txt).
 - [Detours](https://github.com/microsoft/Detours) - [MIT license](https://github.com/microsoft/Detours/blob/main/LICENSE.md).
 - [Madler/zlib](https://github.com/madler/zlib) - [Custom license](https://github.com/madler/zlib/blob/master/LICENSE).
+- [asmjit](https://github.com/asmjit/asmjit) - [ZLib license](https://github.com/asmjit/asmjit/blob/master/LICENSE.md).
 
 ## Downloads
 
@@ -27,7 +28,6 @@ You can download the latest release here:
 Mods implemented in my tool, run `acts mod` for the list.
 
 - `acts mod t8cee` - enable EEs in Custom mutations, offline or casual (Black Ops 4).
-- `acts mod t8dll` - Inject bo4 tool dll (Project BO4 or equivalent)
 
 ### Dump tools
 

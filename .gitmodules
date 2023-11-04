@@ -19,3 +19,6 @@
 	branch = master
 [submodule ".\\deps\\ps4debug\\"]
 	url = https://github.com/ate47/ps4debug
+[submodule "deps/asmjit"]
+	path = deps/asmjit
+	url = https://github.com/asmjit/asmjit

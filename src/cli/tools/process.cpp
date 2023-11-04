@@ -1,9 +1,18 @@
 #include <includes.hpp>
 
+/*
+ * memapi test commands
+ */
+
 int PTSearch(Process& proc, int argc, const char* argv[]);
 int PTAlloc(Process& proc, int argc, const char* argv[]);
 int PTCall(Process& proc, int argc, const char* argv[]);
 int PTRead(Process& proc, int argc, const char* argv[]);
+int PTCallExt(Process& proc, int argc, const char* argv[]);
+int PTCallExt2(Process& proc, int argc, const char* argv[]);
+int PTCallExt3(Process& proc, int argc, const char* argv[]);
+int PTCallExt4(Process& proc, int argc, const char* argv[]);
+int PTCallExt5(Process& proc, int argc, const char* argv[]);
 
 int processtool(const Process& unused, int argc, const char* argv[]) {
 	if (argc <= 3) {
@@ -34,6 +43,23 @@ int processtool(const Process& unused, int argc, const char* argv[]) {
 	else if (!_strcmpi("r", argv[3])) {
 		func = PTRead;
 	}
+	else if (!_strcmpi("ce", argv[3])) {
+		func = PTCallExt;
+	}
+#ifndef CI
+	else if (!_strcmpi("ce2", argv[3])) {
+		func = PTCallExt2;
+	}
+	else if (!_strcmpi("ce3", argv[3])) {
+		func = PTCallExt3;
+	}
+	else if (!_strcmpi("ce4", argv[3])) {
+		func = PTCallExt4;
+	}
+	else if (!_strcmpi("ce5", argv[3])) {
+		func = PTCallExt5;
+	}
+#endif // !CI
 
 	if (!func) {
 		std::cerr << "Bad function: " << argv[3] << "\n";
@@ -121,29 +147,6 @@ int PTAlloc(Process& proc, int argc, const char* argv[]) {
 	return OK;
 }
 
-/*
-sizeof(*str) = 28
-reinterpret_cast<void(*)(int, UINT64, UINT64, UINT64, UINT64)>(0x7ffcafe67260)(str->a, str->b, str->c, str->d, str->e);
-var_18 = qword ptr -18h
-
-// rcx, rdx, r8, r9 -> stack
-
-rcx = str
-
-sub     rsp, 38h			   ; 0x48, 0x83, 0xEC, 0x38
-mov     rax, [rcx+20h]		   ; 0x48, 0x8B, 0x41, 0x20
-mov     r9, [rcx+18h]		   ; 0x4C, 0x8B, 0x49, 0x18
-mov     r8, [rcx+10h]		   ; 0x4C, 0x8B, 0x41, 0x10
-mov     rdx, [rcx+8]		   ; 0x48, 0x8B, 0x51, 0x08
-mov     rcx, [rcx]			   ; 0x48, 0x8B, 0x09
-mov     [rsp+38h+var_18], rax  ; 0x48, 0x89, 0x44, 0x24, 0x20
-mov     rax, 7FFCAFE67260h	   ; 0x48, 0xB8, 0x60, 0x72, 0xE6, 0xAF, 0xFC, 0x7F, 0x00, 0x00
-call    rax					   ; 0xFF, 0xD0
-add     rsp, 38h			   ; 0x48, 0x83, 0xC4, 0x38
-retn                           ; 0xC3
-
-*/
-
 struct TestStruct {
 	UINT64 a;
 	UINT64 b;
@@ -154,6 +157,102 @@ struct TestStruct {
 
 void __declspec(noinline) __declspec(cdecl) Test(TestStruct* str) {
 	reinterpret_cast<void(*)(UINT64, UINT64, UINT64, UINT64, UINT64)>(0x7ffcafe67260)(str->a, str->b, str->c, str->d, str->e);
+}
+
+int PTCallExt(Process& proc, int argc, const char* argv[]) {
+	Beep(750, 300);
+	auto ret = proc.Call<DWORD, DWORD>(proc["Kernel32.dll"]["beep"], 750, 300); // r8 r9
+	if (!ret) {
+		std::cerr << "Error when calling func\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "ok\n";
+
+	return tool::OK;
+}
+
+void TestFunc1(void* value, LPCWCH value2, int value3, int value4, int value5, int value6, int value7) {
+	std::wcout << value << ":" << value2 << ":" << value3 << ":" << value4 << ":" << value5 << ":" << value6 << ":" << value7 << "\n";
+}
+
+int PTCallExt2(Process& proc, int argc, const char* argv[]) {
+	auto ret = proc.Call<void*, LPCWCH, int, int, int, int, int>(reinterpret_cast<uintptr_t>(&TestFunc1), nullptr, L"test", 32, 42, 65, 72, 85);
+
+	if (!ret) {
+		std::cerr << "Error when calling func\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "ok\n";
+
+	return tool::OK;
+}
+
+void TestFunc2(double value, LPCWCH value2, int value3, int value4, int value5, LPCWCH value6, double value7) {
+	std::wcout << value << ":" << value2 << ":" << value3 << ":" << value4 << ":" << value5 << ":" << value6 << ":" << value7 << "\n";
+}
+
+int PTCallExt3(Process& proc, int argc, const char* argv[]) {
+	auto ret = proc.Call<double, LPCWCH, int, int, int, LPCWCH, double>(reinterpret_cast<uintptr_t>(&TestFunc2), 12.3, L"test", 32, 42, 65, L"test 3", 85.65);
+
+	if (!ret) {
+		std::cerr << "Error when calling func\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "ok\n";
+
+	return tool::OK;
+}
+
+void TestFunc3() {
+	std::cout << "Hello world\n";
+}
+
+int PTCallExt4(Process& proc, int argc, const char* argv[]) {
+	auto ret = proc.Call<>(reinterpret_cast<uintptr_t>(&TestFunc3));
+
+	if (!ret) {
+		std::cerr << "Error when calling func\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "ok\n";
+
+	return tool::OK;
+}
+
+int PTCallExt5(Process& proc, int argc, const char* argv[]) {
+	if (!proc.LoadDll("test-dll.dll")) {
+		std::cerr << "Can't inject test dll\n";
+		return tool::BASIC_ERROR;
+	}
+
+	auto& mod = proc["test-dll.dll"];
+	auto& ProcessInjectionTest1 = mod["ProcessInjectionTest1"];
+	auto& ProcessInjectionTest2 = mod["ProcessInjectionTest2"];
+
+
+	std::cout << "dll: " << mod << "\n"
+		<< "test1: " << ProcessInjectionTest1 << "\n"
+		<< "test2: " << ProcessInjectionTest2 << "\n";
+
+	if (!proc.Call<>(ProcessInjectionTest1)) {
+		std::cerr << "Error when calling ProcessInjectionTest1\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "ok 1\n";
+
+	if (!proc.Call<int, double, float, LPCWCH, bool>(ProcessInjectionTest2, 2, 3.5, 4.5, L"Hello", true)) {
+		std::cerr << "Error when calling ProcessInjectionTest2\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "ok 2\n";
+
+	return tool::OK;
 }
 
 int PTCall(Process& proc, int argc, const char* argv[]) {

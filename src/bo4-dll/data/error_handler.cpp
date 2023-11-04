@@ -77,13 +77,21 @@ std::unordered_map<UINT64, LPCCH> error_handler::errors = {
 	{ 1088278929, "Raw file is not a file of the right type" },
 	{ 1072585573, "Raw file is not a file of the right type" },
 	{ 3894031202, "Can't find gamedata/playeranim/playeranimtypes.txt" },
+	{ 4103906837, "Entity is not an item." },
+	{ 269518924, "Ammo count must not be negative" },
+	{ 3524483616, "Ammo count must not be negative" },
+	{ 1517473035, "Value out of range.  Allowed values: 0 to 2" },
+	{ 962032109, "Entity does not exist." },
+	{ 580674660, "Unknown ent type in GScr_GetFieldSetForEntityType." },
+	{ 409067247, "No clientfield named found in set." },
+	{ 2855209542, "Cannot call IncrementClientField on a non-'counter' type clientfield." },
+	{ 4220857104, "Cannot call IncrementClientField on a 'counter' type clientfield on the frame it is spawned, since newEnts on the clientside will not process 'counter' type clientfields." },
+	{ 359760836, "G_Spawn: no free entities." },
 
 	// messages handled by detours
 	{ 2737681163, "assert fail (with message)" },
 	{ 1385570291, "assert fail (with message)" },
 	{ 2532286589, "error message"},
-
-	
 }; 
 
 LPCCH error_handler::FindDesc(UINT64 code) {

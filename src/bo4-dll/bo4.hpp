@@ -3,11 +3,9 @@
 #include <dll_includes.hpp>
 
 namespace bo4 {
-	BYTE* BasePtr();
-
-	inline BYTE* Relativise(uintptr_t location) {
-		return &BasePtr()[location];
-	}
+    inline BYTE* Relativise(uintptr_t location) {
+        return process::Relativise(location);
+    }
 
 	struct Hash {
 		UINT64 hash;

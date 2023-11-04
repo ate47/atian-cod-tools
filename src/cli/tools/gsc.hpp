@@ -62,6 +62,7 @@ namespace tool::gsc {
 
     namespace opcode {
         class ASMContext;
+        class ASMSkipContext;
         class OPCodeInfo;
         class ASMContextNodeBlock;
 
@@ -189,6 +190,7 @@ namespace tool::gsc {
 
             OPCodeInfo(OPCode id, LPCCH name);
             virtual int Dump(std::ostream& out, UINT16 value, ASMContext& context, T8GSCOBJContext& objctx) const;
+            virtual int Skip(UINT16 value, ASMSkipContext& ctx) const;
         };
         class ASMContextNode {
         public:
@@ -261,6 +263,49 @@ namespace tool::gsc {
             UINT32 name;
             BYTE flags;
             ASMContextNode* defaultValueNode = nullptr;
+        };
+
+        class ASMSkipContext {
+        public:
+            // fonction start location
+            BYTE* m_fonctionStart;
+            // file vm
+            BYTE m_vm;
+            // file platform
+            Platform m_platform;
+            // locations
+            std::map<INT32, asmcontextlocation> m_locs{};
+            // current context location
+            BYTE* m_bcl;
+            // error
+            std::string m_error{};
+
+            ASMSkipContext(BYTE* fonctionStart, BYTE vm, Platform platform);
+
+            // @return align and return m_bcl on a particular datatype
+            template<typename Type>
+            inline BYTE*& Aligned() {
+                return m_bcl = utils::Aligned<Type>(m_bcl);
+            }
+
+            inline INT32 FunctionRelativeLocation(BYTE* bytecodeLocation) {
+                return (INT32)(reinterpret_cast<uintptr_t>(bytecodeLocation) - reinterpret_cast<uintptr_t>(m_fonctionStart));
+            }
+            inline INT32 FunctionRelativeLocation() {
+                return FunctionRelativeLocation(m_bcl);
+            }
+            // Push the current location to the locations
+            inline asmcontextlocation& PushLocation() {
+                return PushLocation(m_bcl);
+            }
+            // @return Push a location to the locations and return it
+            asmcontextlocation& PushLocation(BYTE* location);
+
+            // find next location
+            bool FindNextLocation();
+            inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(UINT16 opcode) {
+                return tool::gsc::opcode::LookupOpCode(m_vm, m_platform, opcode);
+            }
         };
 
         class ASMContext {
@@ -575,6 +620,14 @@ namespace tool::gsc {
         void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0) const;
         int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx) const;
         int DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const;
+        /*
+         * Compute the size of this export's bytecode
+         * @param gscFile origin gsc file
+         * @param plt origin platform
+         * @param vm origin vm
+         * @return size or 0 if a bad opcode was found
+         */
+        int ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) const;
     };
 
     enum T8GSCExportFlags : UINT8 {

@@ -85,6 +85,26 @@ public:
         return true;
     }
 };
+class AscmNodeLazyLink : public AscmNodeOpCode {
+public:
+    UINT64 path;
+    UINT32 nsp;
+    UINT32 func;
+    AscmNodeLazyLink(UINT64 path, UINT32 nsp, UINT32 func) : AscmNodeOpCode(OPCode::OPCODE_T8C_GetLazyFunction), path(path), func(func), nsp(nsp) {
+    }
+
+    UINT32 ShiftSize(UINT32 start) const override {
+        return utils::Aligned<UINT32>(AscmNodeOpCode::ShiftSize(start)) + 16;
+    }
+
+    bool Write(std::vector<BYTE>& data) override {
+        utils::Aligned<UINT32>(data);
+        utils::WriteValue<UINT32>(data, nsp);
+        utils::WriteValue<UINT32>(data, func);
+        utils::WriteValue<UINT64>(data, path);
+        return true;
+    }
+};
 
 /*
  * Compute the node using the minimum amount of bits
@@ -233,6 +253,16 @@ struct InputInfo {
     }
 };
 
+class RefObject {
+public:
+    UINT32 location = 0;
+    std::vector<AscmNode*> nodes{};
+};
+class ImportObject {
+public:
+    BYTE flags;
+    std::vector<AscmNode*> nodes{};
+};
 class FunctionObject {
 public:
     UINT32 m_name;
@@ -240,6 +270,7 @@ public:
     UINT32 m_data_name;
     BYTE m_params = 0;
     BYTE m_flags = 0;
+    UINT32 location = 0;
     std::vector<std::string> m_vars{};
     std::vector<AscmNode*> m_nodes{};
     FunctionObject(
@@ -280,6 +311,8 @@ public:
     UINT32 currentNamespace = hashutils::Hash32("");
     std::set<UINT64> includes{};
     std::unordered_map<UINT32, FunctionObject> exports{};
+    std::unordered_map<std::string, RefObject> strings{};
+    std::unordered_map<UINT64, std::vector<ImportObject>> imports{};
 
     std::unordered_set<std::string> hashes{};
 
@@ -439,7 +472,58 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             auto* opVal = rule->children[1];
             // TODO
 
+        }
             return false;
+        case gscParser::RuleFunction_ref: {
+            if (rule->children.size() == 7) {
+                // @nsp<path>::func
+                auto nsp = rule->children[1]->getText();
+                auto path = rule->children[3]->getText();
+                auto funcName = rule->children[6]->getText();
+
+                
+                fobj.m_nodes.push_back(new AscmNodeLazyLink(
+                    hashutils::Hash64Pattern(path.c_str()),
+                    hashutils::Hash32Pattern(nsp.c_str()),
+                    hashutils::Hash32Pattern(funcName.c_str())
+                ));
+                return true;
+            }
+            // &nsp::func || &func
+            auto nsp = obj.currentNamespace;
+
+            if (rule->children.size() == 4) {
+                // with nsp
+                auto nspStr = rule->children[1]->getText();
+                nsp = hashutils::Hash32Pattern(nspStr.c_str());
+            }
+
+            assert(rule->children.size());
+
+            auto funcStr = rule->children[rule->children.size() - 1]->getText();
+            auto func = hashutils::Hash32Pattern(funcStr.c_str());
+
+            // link by the game, but we write it for test
+            auto located = utils::CatLocated(nsp, func);
+            auto* asmc = new AscmNodeData<UINT64>(located, OPCODE_GetFunction);
+            fobj.m_nodes.push_back(asmc);
+
+            auto& impList = obj.imports[located];
+
+            BYTE flags = tool::gsc::T8GSCImportFlags::GET_CALL;
+
+            auto it = std::find_if(impList.begin(), impList.end(), [flags](const auto& e) { return e.flags == flags; });
+
+            if (it == impList.end()) {
+                // no equivalent, we need to create our own node
+                impList.emplace_back(flags).nodes.push_back(asmc);
+            }
+            else {
+                // same local/flags, we can add our node
+                it->nodes.push_back(asmc);
+            }
+
+            return true;
         }
         }
 
@@ -491,9 +575,49 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         return true;
     }
     case gscParser::STRING: {
-        // TODO
+        auto node = term->getText();
+        auto newStr = std::make_unique<char[]>(node.length() + 1);
+        auto* newStrWriter = &newStr[0];
+
+        // format string
+        for (size_t i = 0; i < node.length(); i++) {
+            if (node[i] != '\\') {
+                *(newStrWriter++) = node[i];
+                continue; // default case
+            }
+
+            i++;
+
+            assert(i < node.length() && "bad format, \\ before end");
+
+            switch (node[i]) {
+            case 'n':
+                *(newStrWriter++) = '\n';
+                break;
+            case 't':
+                *(newStrWriter++) = '\t';
+                break;
+            case 'r':
+                *(newStrWriter++) = '\r';
+                break;
+            case 'b':
+                *(newStrWriter++) = '\b';
+                break;
+            default:
+                *(newStrWriter++) = node[i];
+                break;
+            }
+        }
+        *(newStrWriter++) = 0; // end char
+
+        // link by the game
+        auto* asmc = new AscmNodeData<UINT32>(0, OPCODE_GetString);
+        fobj.m_nodes.push_back(asmc);
+
+        auto& str = obj.strings[&newStr[0]];
+        str.nodes.push_back(asmc);
+        return true;
     }
-        break;
     }
 
     obj.info.PrintLineMessage(std::cerr, 0)

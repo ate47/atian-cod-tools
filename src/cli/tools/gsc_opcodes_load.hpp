@@ -16,6 +16,7 @@ namespace tool::gsc::opcode {
 	};
 
 	Platform PlatformOf(LPCCH name);
+	LPCCH PlatformName(Platform plt);
 
 	enum OPCode : UINT16 {
 		OPCODE_Undefined,

@@ -101,3 +101,27 @@ std::pair<UINT32, UINT32> utils::UnCatLocated(UINT64 located) {
     UINT32 local = located >> 32;
     return std::make_pair<>(name_space, local);
 }
+
+static void GetFileRecurse0(const std::filesystem::path& dir, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate) {
+    if (std::filesystem::is_directory(dir)) {
+        for (const auto& sub : std::filesystem::directory_iterator{ dir }) {
+            GetFileRecurse0(sub, files, predicate);
+        }
+        return;
+    }
+    if (predicate(dir)) {
+        files.emplace_back(dir);
+    }
+}
+
+void utils::GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate) {
+    if (!std::filesystem::exists(parent)) {
+        return;
+    }
+    GetFileRecurse0(parent, files, predicate);
+}
+
+
+void utils::GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files) {
+    GetFileRecurse(parent, files, [](const auto& ref) { return true; });
+}

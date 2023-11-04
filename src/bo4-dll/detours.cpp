@@ -16,19 +16,19 @@ static bo4::BuiltinFunction Scr_GetMethod(UINT32 name, bo4::BuiltinType* type, i
 static bo4::BuiltinFunction CScr_GetMethod(UINT32 name, bo4::BuiltinType* type, int* min_args, int* max_args);
 
 // Detours
-static cliconnect::DetourInfo<void, UINT64, scriptinstance::ScriptInstance, char*, bool> dScrVm_Error{ "ScrVm_Error", bo4::OFFSET_ScrVm_Error, ScrVm_Error };
-static cliconnect::DetourInfo<void*, BYTE, UINT64*, bool, int> dDB_FindXAssetHeader{ "DB_FindXAssetHeader", bo4::OFFSET_DB_FindXAssetHeader, DB_FindXAssetHeader };
-static cliconnect::DetourInfo<void*, char const*> dStringTable_GetAsset{ "StringTable_GetAsset", bo4::OFFSET_StringTable_GetAsset, StringTable_GetAsset };
-static cliconnect::DetourInfo<void> dScr_LogCompilerError{ "Scr_LogCompilerError", bo4::OFFSET_LogCompilerError, reinterpret_cast<void (*)()>(Scr_LogCompilerError) };
-static cliconnect::DetourInfo<void, UINT32, const char*> dError{ "Error", bo4::OFFSET_Error, Error };
-static cliconnect::DetourInfo<void, uint32_t, scriptinstance::ScriptInstance, byte*, const char*, bool> dScrVm_RuntimeError{ "ScrVm_RuntimeError", bo4::OFFSET_ScrVm_RuntimeError, ScrVm_RuntimeError };
+static inject::DetourInfo<void, UINT64, scriptinstance::ScriptInstance, char*, bool> dScrVm_Error{ "ScrVm_Error", bo4::OFFSET_ScrVm_Error, ScrVm_Error };
+static inject::DetourInfo<void*, BYTE, UINT64*, bool, int> dDB_FindXAssetHeader{ "DB_FindXAssetHeader", bo4::OFFSET_DB_FindXAssetHeader, DB_FindXAssetHeader };
+static inject::DetourInfo<void*, char const*> dStringTable_GetAsset{ "StringTable_GetAsset", bo4::OFFSET_StringTable_GetAsset, StringTable_GetAsset };
+static inject::DetourInfo<void> dScr_LogCompilerError{ "Scr_LogCompilerError", bo4::OFFSET_LogCompilerError, reinterpret_cast<void (*)()>(Scr_LogCompilerError) };
+static inject::DetourInfo<void, UINT32, const char*> dError{ "Error", bo4::OFFSET_Error, Error };
+static inject::DetourInfo<void, uint32_t, scriptinstance::ScriptInstance, byte*, const char*, bool> dScrVm_RuntimeError{ "ScrVm_RuntimeError", bo4::OFFSET_ScrVm_RuntimeError, ScrVm_RuntimeError };
 
-static cliconnect::DetourInfo<bool, byte*, UINT32*, bool*> dCScr_GetFunctionReverseLookup{ "CScr_GetFunctionReverseLookup", bo4::OFFSET_CScr_GetFunctionReverseLookup, CScr_GetFunctionReverseLookup };
-static cliconnect::DetourInfo<bool, byte*, UINT32*, bool*> dScr_GetFunctionReverseLookup{ "Scr_GetFunctionReverseLookup", bo4::OFFSET_Scr_GetFunctionReverseLookup, Scr_GetFunctionReverseLookup };
-static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dScr_GetFunction{ "Scr_GetFunction", bo4::OFFSET_Scr_GetFunction, Scr_GetFunction };
-static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dCScr_GetFunction{ "CScr_GetFunction", bo4::OFFSET_CScr_GetFunction, CScr_GetFunction };
-static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dScr_GetMethod{ "Scr_GetMethod", bo4::OFFSET_Scr_GetMethod, Scr_GetMethod };
-static cliconnect::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dCScr_GetMethod{ "CScr_GetMethod", bo4::OFFSET_CScr_GetMethod, CScr_GetMethod };
+static inject::DetourInfo<bool, byte*, UINT32*, bool*> dCScr_GetFunctionReverseLookup{ "CScr_GetFunctionReverseLookup", bo4::OFFSET_CScr_GetFunctionReverseLookup, CScr_GetFunctionReverseLookup };
+static inject::DetourInfo<bool, byte*, UINT32*, bool*> dScr_GetFunctionReverseLookup{ "Scr_GetFunctionReverseLookup", bo4::OFFSET_Scr_GetFunctionReverseLookup, Scr_GetFunctionReverseLookup };
+static inject::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dScr_GetFunction{ "Scr_GetFunction", bo4::OFFSET_Scr_GetFunction, Scr_GetFunction };
+static inject::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dCScr_GetFunction{ "CScr_GetFunction", bo4::OFFSET_CScr_GetFunction, CScr_GetFunction };
+static inject::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dScr_GetMethod{ "Scr_GetMethod", bo4::OFFSET_Scr_GetMethod, Scr_GetMethod };
+static inject::DetourInfo<bo4::BuiltinFunction, UINT32, bo4::BuiltinType*, int*, int*> dCScr_GetMethod{ "CScr_GetMethod", bo4::OFFSET_CScr_GetMethod, CScr_GetMethod };
 
 // Custom detours
 static void ScrVm_Error(UINT64 code, scriptinstance::ScriptInstance inst, char* unk, bool terminal) {
@@ -37,18 +37,18 @@ static void ScrVm_Error(UINT64 code, scriptinstance::ScriptInstance inst, char* 
 		LOG_ERROR("VM {} ACTS Error '{}' terminal={}", scriptinstance::Name(inst), unk, terminal ? "true" : "false");
 	}
 	else if (code == 2737681163) { // Assert(val, msg) with message error
-		const auto* msg = bo4::ScrVm_GetString(inst, 2);
-		snprintf(errorBuffer[inst], sizeof(errorBuffer[inst]), "assert fail: %s", msg);
+		const auto* msg = bo4::ScrVm_GetString(inst, 1);
+		sprintf_s(errorBuffer[inst], "assert fail: %s", msg);
 		bo4::scrVarPub[inst].error_message = errorBuffer[inst];
 	}
 	else if (code == 1385570291) { // AssertMsg(msg)
-		const auto* msg = bo4::ScrVm_GetString(inst, 1);
-		snprintf(errorBuffer[inst], sizeof(errorBuffer[inst]), "assert fail: %s", msg);
+		const auto* msg = bo4::ScrVm_GetString(inst, 0);
+		sprintf_s(errorBuffer[inst], "assert fail: %s", msg);
 		bo4::scrVarPub[inst].error_message = errorBuffer[inst];
 	}
 	else if (code == 2532286589) { // ErrorMsg(msg)
-		const auto* msg = bo4::ScrVm_GetString(inst, 1);
-		snprintf(errorBuffer[inst], sizeof(errorBuffer[inst]), "error: %s", msg);
+		const auto* msg = bo4::ScrVm_GetString(inst, 0);
+		sprintf_s(errorBuffer[inst], "error: %s", msg);
 		bo4::scrVarPub[inst].error_message = errorBuffer[inst];
 	}
 	else {
@@ -68,7 +68,8 @@ static void Scr_LogCompilerError(char const* name, ...) {
 	va_start(va, name);
 	CHAR buffer[2000];
 
-	auto e = vsnprintf(buffer, sizeof(buffer), name, va);
+	auto e = vsprintf_s(buffer, name, va);
+	va_end(va);
 
 	if (e > 0 && buffer[e - 1] == '\n') {
 		buffer[e - 1] = 0; // remove end new line
@@ -86,7 +87,7 @@ static void ScrVm_RuntimeError(uint32_t errorCode, scriptinstance::ScriptInstanc
 	auto& buff = error_buffer[inst];
 	auto& vm = bo4::scrVmPub[inst];
 
-	size_t w = snprintf(buff, sizeof(buff), "%s", msg);
+	size_t w = sprintf_s(buff, "%s", msg);
 
 	for (int i = vm.function_count; i > 0; i--) {
 		auto& stack = vm.function_frame_start[i];
@@ -100,7 +101,7 @@ static void ScrVm_RuntimeError(uint32_t errorCode, scriptinstance::ScriptInstanc
 			w += snprintf(&buff[w], sizeof(buff) - w, "@%s:%x", hash_lookup::ExtractTmp(inst, exp->name), rloc);
 		}
 		else {
-			snprintf(buff, sizeof(buff), "%s (Can't find script at %llx)", msg, reinterpret_cast<UINT64>(codePos));
+			w += snprintf(&buff[w], sizeof(buff) - w, "%s (Can't find script at %llx)", msg, reinterpret_cast<UINT64>(codePos));
 		}
 	}
 
@@ -116,7 +117,7 @@ static void Error(UINT32 code, const char* empty) {
 		}
 		static CHAR linkingErrorBuff[0x100];
 		if (err) {
-			snprintf(linkingErrorBuff, sizeof(linkingErrorBuff), "Find %d errors, check ACTS logs", err);
+			sprintf_s(linkingErrorBuff, "Find %d errors, check ACTS logs", err);
 			empty = linkingErrorBuff;
 		}
 	}

@@ -11,6 +11,8 @@ LPCCH alogs::name(loglevel lvl) {
 		return "WARN.";
 	case alogs::LVL_INFO:
 		return "INFO.";
+	case alogs::LVL_DEBUG:
+		return "DEBUG";
 	default:
 		return "UKN..";
 	}

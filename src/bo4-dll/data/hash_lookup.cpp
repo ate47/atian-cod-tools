@@ -66,13 +66,13 @@ LPCCH hash_lookup::ExtractTmp(scriptinstance::ScriptInstance inst, UINT64 hash, 
 
 	auto res = Extract(hash);
 	if (res) {
-		snprintf(buff, sizeof(buff), "%s", res);
+		sprintf_s(buff, "%s", res);
 	}
 	else if (prefix) {
-		snprintf(buff, sizeof(buff), "%s_%llx", prefix, hash);
+		sprintf_s(buff, "%s_%llx", prefix, hash);
 	}
 	else {
-		snprintf(buff, sizeof(buff), "%llx", hash);
+		sprintf_s(buff, "%llx", hash);
 	}
 
 

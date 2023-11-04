@@ -82,6 +82,24 @@ namespace utils {
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
 	}
 	/*
+	 * Write a value into a vector buffer
+	 * @param Type value type
+	 * @param data buffer
+	 * @param val value to write
+	 */
+	template<typename SizeType, typename Type>
+	inline void WritePaddedValue(std::vector<BYTE>& data, Type val) {
+		BYTE* valLoc = reinterpret_cast<BYTE*>(&val);
+		data.insert(data.end(), valLoc, valLoc + sizeof(val));
+		static_assert(sizeof(SizeType) >= sizeof(Type), "Trying to write bigger elements possible");
+		constexpr auto delta = sizeof(SizeType) - sizeof(Type);
+		if (delta) {
+			Type t{};
+			// fill with 0
+			data.insert(data.end(), reinterpret_cast<BYTE*>(&t), reinterpret_cast<BYTE*>(&t) + delta);
+		}
+	}
+	/*
 	 * Write a padding into a stream
 	 * @param out stream
 	 * @param padding padding size
@@ -101,4 +119,19 @@ namespace utils {
 	 * @return high value and low value
 	 */
 	std::pair<UINT32, UINT32> UnCatLocated(UINT64 located);
+
+	/*
+	 * Get all the files in a directory
+	 * @param parent parent dir
+	 * @param files output files
+	 */
+	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files);
+
+	/*
+	 * Get all the files in a directory matching a predicate
+	 * @param parent parent dir
+	 * @param files output files
+	 * @param predicate predicate
+	 */
+	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate);
 }

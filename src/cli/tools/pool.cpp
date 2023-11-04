@@ -214,7 +214,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
     CHAR outputName[256];
     if (!_strcmpi(argv[2], "all")) {
-        snprintf(outputName, sizeof(outputName), "%s/xassetpools.csv", opt.m_output);
+        sprintf_s(outputName, "%s/xassetpools.csv", opt.m_output);
         std::ofstream out{ outputName, std::ios::out };
 
         if (!out) {
@@ -272,7 +272,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         return tool::BASIC_ERROR;
     }
 
-    snprintf(outputName, 256, "%s/pool_%x", opt.m_output, id);
+    sprintf_s(outputName, "%s/pool_%x", opt.m_output, id);
 
     std::cout << std::hex
         << "pool ........ " << entry.pool << "\n"
@@ -329,9 +329,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         }
 
         CHAR dumpbuff[MAX_PATH + 10];
-        const size_t dumpbuffsize = sizeof(dumpbuff);
         CHAR namebuf[2000];
-        const size_t namebufsize = sizeof(namebuf);
         StringTableCell cell[200];
         const size_t cellsize = sizeof(cell) / sizeof(cell[0]);
 
@@ -352,11 +350,11 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
             
             if (n) {
                 std::cout << n;
-                snprintf(dumpbuff, dumpbuffsize, "%s/%s", opt.m_output, n);
+                sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
             }
             else {
                 std::cout << "file_" << std::hex << e.name << std::dec;
-                snprintf(dumpbuff, dumpbuffsize, "%s/hashed/stringtables/file_%llx.csv", opt.m_output, e.name);
+                sprintf_s(dumpbuff, "%s/hashed/stringtables/file_%llx.csv", opt.m_output, e.name);
 
             }
 
@@ -398,7 +396,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
                         out << "undefined";
                         break;
                     case STC_TYPE_STRING: 
-                        if (proc.ReadString(namebuf, *reinterpret_cast<uintptr_t*>(&cell[j].value[0]), namebufsize) < 0) {
+                        if (proc.ReadString(namebuf, *reinterpret_cast<uintptr_t*>(&cell[j].value[0]), sizeof(namebuf)) < 0) {
                             out << "<bad_str>";
                         }
                         else {
@@ -444,7 +442,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
     {
         hashutils::ReadDefaultFile();
 
-        snprintf(outputName, sizeof(outputName), "%s/strings.csv", opt.m_output);
+        sprintf_s(outputName, "%s/strings.csv", opt.m_output);
 
         std::filesystem::path file(outputName);
         std::filesystem::create_directories(file.parent_path(), ec);
@@ -492,7 +490,6 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
             return tool::BASIC_ERROR;
         }
         CHAR dumpbuff[MAX_PATH + 10];
-        const size_t dumpbuffsize = sizeof(dumpbuff);
         std::vector<BYTE> read{};
         size_t readFile = 0;
 
@@ -505,11 +502,11 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
             if (n) {
                 std::cout << n;
-                snprintf(dumpbuff, dumpbuffsize, "%s/%s", opt.m_output, n);
+                sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
             }
             else {
                 std::cout << "file_" << std::hex << p.name << std::dec;
-                snprintf(dumpbuff, dumpbuffsize, "%s/hashed/rawfile/file_%llx.raw", opt.m_output, p.name);
+                sprintf_s(dumpbuff, "%s/hashed/rawfile/file_%llx.raw", opt.m_output, p.name);
             }
 
             if (!p.buffer || !proc.ReadMemory<UINT64>(p.buffer)) {

@@ -277,14 +277,14 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     if (opt.m_outputDir) {
         LPCCH name = hashutils::ExtractPtr(data->name);
         if (!name) {
-            snprintf(asmfnamebuff, 1000, "%s/hashed/script/script_%llx.gsc", opt.m_outputDir, data->name);
+            sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", opt.m_outputDir, data->name);
         }
         else {
-            snprintf(asmfnamebuff, 1000, "%s/%s", opt.m_outputDir, name);
+            sprintf_s(asmfnamebuff, "%s/%s", opt.m_outputDir, name);
         }
     }
     else {
-        snprintf(asmfnamebuff, 1000, "%sasm", path);
+        sprintf_s(asmfnamebuff, "%sasm", path);
     }
 
     std::filesystem::path file(asmfnamebuff);
@@ -1221,6 +1221,47 @@ End
     }
     out << "\n";
     return 0;
+}
+
+int tool::gsc::T8GSCExport::ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) const {
+    using namespace opcode;
+    BYTE* loc = gscFile + address;
+
+    ASMSkipContext ctx{ loc, vm, plt };
+
+    while (ctx.FindNextLocation()) {
+        while (true) {
+            // align to next opcode
+            auto& base = ctx.Aligned<UINT16>();
+
+            // mark the current location as handled
+            auto& loc = ctx.PushLocation();
+            loc.handled = true;
+
+            UINT16 opCode = *(UINT16*)base;
+
+            const auto* handler = ctx.LookupOpCode(opCode);
+
+            if (opCode & 0x1000) {
+                return 0; // bad code
+            }
+
+            // pass the opcode
+            base += 2;
+
+            if (handler->Skip(opCode, ctx)) {
+                break;
+            }
+        }
+    }
+
+    int max = 0;
+    for (auto& [loc, ref] : ctx.m_locs) {
+        if (max < ref.rloc) {
+            max = ref.rloc;
+        }
+    }
+    return max + 2; // +1 for the Return/End operator
 }
 
 

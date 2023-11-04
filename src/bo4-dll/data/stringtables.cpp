@@ -38,7 +38,7 @@ std::mutex customStringTableEntriesMutex{};
 
 
 void stringtables::SyncTables() {
-	auto parentDir = std::filesystem::path{ g_cliData.workDir } / "data";
+	auto parentDir = std::filesystem::path{ inject::g_cliData.workDir } / "data";
 	auto cstFile = parentDir / "stringtables.csv";
 
 	LOG_INFO("Syncing custom stringtable '{}'", cstFile.string());
@@ -270,3 +270,19 @@ LPVOID stringtables::GetTable(UINT64 name) {
 	}
 	return ret;
 }
+
+void SyncStringTable() {
+	auto strLookup = (std::filesystem::path{ inject::g_cliData.workDir } / "strings.txt").string();
+
+	LOG_INFO("Syncing hash map '{}'", strLookup.data());
+
+	hash_lookup::LoadFile(strLookup.data());
+
+	stringtables::SyncTables();
+
+	// add the commands
+
+	REGISTER_COMMAND(ACTS_CSV_READER, "acts_csv", []() { stringtables::SyncTables(); });
+}
+
+ADD_INJECTED_SYSTEM(stringtables, "stringtables", inject::PRIORITY_NORMAL, nullptr, SyncStringTable);

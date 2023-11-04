@@ -26,8 +26,17 @@ int hash32(const Process& proc, int argc, const char* argv[]) {
 
 int hash64(const Process& proc, int argc, const char* argv[]) {
 	std::cout << std::hex;
-	for (int i = 2; i < argc; i++) {
-		std::cout << argv[i] << "=" << hashutils::Hash64(argv[i]) << "\n";
+	UINT64 sur;
+	int i = 2;
+	if (argc >= 3 && !_strcmpi("--iw", argv[2])) {
+		sur = 0x47f5817a5ef961baLL;
+		i++;
+		std::cout << "iw\n";
+	} else{
+		sur = 0xcbf29ce484222325LL;
+	}
+	for (; i < argc; i++) {
+		std::cout << argv[i] << "=" << hashutils::Hash64(argv[i], sur) << "\n";
 	}
 	return 0;
 }
