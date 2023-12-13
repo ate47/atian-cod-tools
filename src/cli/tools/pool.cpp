@@ -73,6 +73,12 @@ struct RawString {
     uintptr_t padding; // 0x10 0
     uintptr_t stringvalue; // 0x18 const char*
 };
+struct LuaFile {
+    UINT64 name;
+    UINT64 pad08;
+    UINT32 size;
+    uintptr_t buffer;
+};
 struct DDLEntry {
     UINT64 name; // 0x8
     uintptr_t unk8;  // 0x10
@@ -477,6 +483,50 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         std::cout << "Dump into " << file << "\n";
     }
     break;
+    case ASSET_TYPE_LUAFILE:
+    {
+        hashutils::ReadDefaultFile();
+
+        auto pool = std::make_unique<LuaFile[]>(entry.itemAllocCount);
+
+        sprintf_s(outputName, "%s/luapool", opt.m_output);
+
+        std::filesystem::path outDir{ outputName };
+
+        std::filesystem::create_directories(outDir);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            auto name = hashutils::ExtractPtr(p.name);
+
+            std::filesystem::path outFile;
+            if (name) {
+                outFile = outDir / name;
+                std::filesystem::create_directories(outFile.parent_path());
+            }
+            else {
+                outFile = outDir / std::format("hashed/{:x}.lua", p.name);
+            }
+            {
+                auto buffer = std::make_unique<BYTE[]>(p.size);
+
+                if (!proc.ReadMemory(&buffer[0], p.buffer, p.size)) {
+                    std::cerr << "Can't read buffer for " << outFile.string() << "\n";
+                    continue;
+                }
+
+                utils::WriteFile(outFile, &buffer[0], p.size);
+                std::cout << "Dumped " << outFile.string() << "\n";
+            }
+        }
+    }
+        break;
     case ASSET_TYPE_RAWFILE:
     {
 

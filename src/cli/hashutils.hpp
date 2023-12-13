@@ -55,12 +55,13 @@ namespace hashutils {
 	 */
 	LPCH ExtractTmp(LPCCH type, UINT64 hash);
 	/*
-	 * Call ExtractTmp for a script name and apply formatting
+	 * Call ExtractTmp for a path name and apply formatting
+	 * @param type Hash type
 	 * @param hash Script hash
 	 * @return script formatted value, same condition as ExtractTmp
 	 */
-	inline LPCH ExtractTmpScript(UINT64 hash) {
-		LPCH unhash = ExtractTmp("script", hash);
+	inline LPCH ExtractTmpPath(LPCCH type, UINT64 hash) {
+		LPCH unhash = ExtractTmp(type, hash);
 
 		// replace '/' -> '\' in script
 		for (LPCH script = unhash; *script; script++) {
@@ -70,6 +71,14 @@ namespace hashutils {
 		}
 
 		return unhash;
+	}
+	/*
+	 * Call ExtractTmp for a script name and apply formatting
+	 * @param hash Script hash
+	 * @return script formatted value, same condition as ExtractTmp
+	 */
+	inline LPCH ExtractTmpScript(UINT64 hash) {
+		return ExtractTmpPath("script", hash);
 	}
 	/*
 	 * Extract a pointer to a hash value
