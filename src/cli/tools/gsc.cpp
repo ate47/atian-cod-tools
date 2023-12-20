@@ -409,6 +409,17 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         }
     }
 
+    // no clue what this thing is doing
+    UINT64* requires_implements_table = reinterpret_cast<UINT64*>(&data->magic[data->requires_implements_offset]);
+
+    for (size_t i = 0; i < data->requires_implements_count; i++) {
+        asmout << "#precache(\"requires_implements\" #\"" << hashutils::ExtractTmp("hash", requires_implements_table[i]) << "\");\n";
+    }
+
+    if (data->requires_implements_count) {
+        asmout << "\n";
+    }
+
     if (opt.m_exptests) {
         auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
 
@@ -689,14 +700,6 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                 asmctx.Dump(asmout, dctx);
                 asmout << "\n";
             }
-        }
-    }
-
-    if (opt.m_exptests) {
-        auto* ukn4c = reinterpret_cast<UINT64*>(&data->magic[data->ukn4c_offset]);
-
-        for (size_t i = 0; i < data->ukn4c_count; i++) {
-            asmout << "ukn4c: " << hashutils::ExtractTmp("hash", ukn4c[i]) << "\n";
         }
     }
 

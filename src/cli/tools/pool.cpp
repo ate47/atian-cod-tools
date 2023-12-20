@@ -92,6 +92,39 @@ struct DDLEntry {
     uintptr_t unk48; // 0x50
     uintptr_t unk50; // 0x58
 };
+struct BGCache {
+    UINT64 name;
+    UINT64 pad08;
+    uintptr_t def;
+    UINT32 count;
+};
+
+struct BGCacheInfoDef {
+    pool::BGCacheTypes type;
+    uint64_t name;
+    uint64_t pad10;
+    uint64_t unk18;
+};
+
+struct BGCacheInfo {
+    uintptr_t name;
+    pool::XAssetType assetType;
+    uint32_t unkc;
+    uintptr_t registerFunc;
+    uintptr_t unregisterFunc;
+    uint64_t hash;
+    uint64_t hashnull;
+    uint64_t unk30;
+    uint32_t unk38;
+    uint32_t unk3c;
+    uint32_t checksum;
+    byte unk44;
+    byte unk45;
+    byte unk46;
+    byte unk47;
+};
+
+
 struct GametypeEntry {
     uintptr_t v1; // 0x8
     uintptr_t pad0; // 0x10
@@ -644,6 +677,104 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
     break;
+    case ASSET_TYPE_BG_CACHE: {
+        hashutils::ReadDefaultFile();
+        
+
+        auto pool = std::make_unique<BGCache[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+
+
+        BGCacheInfo entryinfo[pool::BG_CACHE_TYPE_COUNT]{};
+
+        if (!proc.ReadMemory(&entryinfo[0], proc[0x4EC9A90], sizeof(entryinfo))) {
+            std::cerr << "Can't read cache\n";
+            return tool::BASIC_ERROR;
+        }
+
+        CHAR nameInfo[pool::BG_CACHE_TYPE_COUNT][200] = {};
+        // buffer pool names
+        for (size_t i = 0; i < pool::BG_CACHE_TYPE_COUNT; i++) {
+            if (proc.ReadString(nameInfo[i], entryinfo[i].name, sizeof(nameInfo[i])) < 0) {
+                std::cerr << "Can't read bgcache info names\n";
+                return tool::BASIC_ERROR;
+            }
+        }
+
+        CHAR dumpbuff[MAX_PATH + 10];
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (!p.name || !p.def) {
+                continue;
+            }
+
+
+            auto n = hashutils::ExtractPtr(p.name);
+
+            std::cout << std::dec << i << ": " << std::dec << p.count << " elem (0x" << std::hex << p.def << ") : ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/bgcache/%s.csv", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name << std::dec;
+                sprintf_s(dumpbuff, "%s/bgcache/file_%llx.csv", opt.m_output, p.name);
+            }
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+            std::cout << "\n";
+
+
+
+            auto defs = std::make_unique<BGCacheInfoDef[]>(p.count);
+
+            if (!proc.ReadMemory(&defs[0], p.def, sizeof(defs[0]) * p.count)) {
+                std::cerr << "Can't def data\n";
+                continue;
+            }
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "type,name,ptr";
+
+            for (size_t i = 0; i < p.count; i++) {
+                auto& p2 = defs[i];
+
+                defout << "\n" 
+                    << (p2.type >= 0 && p2.type < pool::BG_CACHE_TYPE_COUNT ? nameInfo[p2.type] : "<error>") << ","
+                    << hashutils::ExtractTmp("hash", p2.name) << "," 
+                    << std::hex << p2.unk18
+                    << std::flush;
+            }
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+        break;
     default:
     {
         std::cout << "Item data\n";
@@ -671,4 +802,84 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 	return tool::OK;
 }
 
+int dumpbgcache(const Process& proc, int argc, const char* argv[]) {
+    BGCacheInfo info[40]{};
+
+    if (!proc.ReadMemory(&info[0], proc[0x4EC9A90], sizeof(info))) {
+        std::cerr << "Can't read cache\n";
+        return tool::BASIC_ERROR;
+    }
+    XAssetTypeInfo entryinfo[pool::ASSET_TYPE_COUNT];
+
+    if (!proc.ReadMemory(&entryinfo, proc[offset::s_XAssetTypeInfo], sizeof(entryinfo))) {
+        std::cerr << "Can't read xasset info\n";
+        return tool::BASIC_ERROR;
+    }
+
+    std::ofstream out{ "bgcache.csv" };
+
+    if (!out) {
+        std::cerr << "Can't open output\n";
+        return tool::BASIC_ERROR;
+    }
+
+    hashutils::ReadDefaultFile();
+
+    CHAR strBuff[0x100] = { 0 };
+
+    out << "id,name,xasset,unkc,registerfunc,unregisterFunc,hash,unk30,unk38,unk3C,checksum,b1,b2,b3,b4";
+
+    for (size_t i = 0; i < (sizeof(info) / sizeof(info[0])); i++)
+    {
+        auto& nfo = info[i];
+        out << "\n" << std::dec << i << ",";
+
+        if (nfo.name) {
+            if (proc.ReadString(strBuff, nfo.name, sizeof(strBuff)) < 0) {
+                out << "<error>";
+            }
+            else {
+                out << strBuff;
+            }
+        }
+        else {
+            out << "<undef>";
+        }
+
+        out << ",";
+
+        if (nfo.assetType >= 0 && nfo.assetType < pool::ASSET_TYPE_COUNT && entryinfo[nfo.assetType].name) {
+            if (proc.ReadString(strBuff, entryinfo[nfo.assetType].name, sizeof(strBuff)) < 0) {
+                out << "<error>";
+            }
+            else {
+                out << strBuff;
+            }
+        }
+        else {
+            out << "<none>";
+        }
+        
+        out << "," << nfo.unkc << ",";
+
+        proc.WriteLocation(out, nfo.registerFunc) << ",";
+        proc.WriteLocation(out, nfo.unregisterFunc) << ",";
+
+        out << hashutils::ExtractTmp("hash", nfo.hash) << "," << std::flush
+            << nfo.unk30 << ","
+            << nfo.unk38 << ","
+            << nfo.unk3c << ","
+            << nfo.checksum << ","
+            << (int)nfo.unk44 << ","
+            << (int)nfo.unk45 << ","
+            << (int)nfo.unk46 << ","
+            << (int)nfo.unk47;
+    }
+
+    out.close();
+
+    return tool::OK;
+}
+
 ADD_TOOL("dp", " [input=pool_name] (output=pool_id)", "dump pool", true, pooltool);
+ADD_TOOL("dbgcache", "", "dump bg cache", true, dumpbgcache);

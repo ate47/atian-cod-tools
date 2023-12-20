@@ -280,6 +280,9 @@ void Process::ComputeModules() {
 }
 
 std::ostream& Process::WriteLocation(std::ostream& out, uintptr_t location) const {
+	if (!location) {
+		return out << "NULL";
+	}
 	const auto& mod = GetLocationModule(location);
 	if (mod.handle == INVALID_HANDLE_VALUE) {
 		// not in a module

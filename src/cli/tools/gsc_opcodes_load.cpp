@@ -354,6 +354,10 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 		// T8-Compiler opcodes
 		RegisterOpCode(0x36, PLATFORM_PC, OPCODE_T8C_GetLazyFunction, 0x16);
 
+		RegisterVM(0x37, "Call of Duty 2020");
+
+		RegisterVM(0x38, "Call of Duty: Black Ops Cold War");
+
 #ifdef PS4_INCLUDES
 		ps4::RegisterPS4OpCodes();
 #endif

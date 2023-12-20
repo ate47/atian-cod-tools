@@ -129,7 +129,7 @@ namespace {
 	struct GscObj23 {
 		byte magic[8];
 		uint64_t name;
-		uint16_t unk10;
+		uint16_t size;
 		uint16_t unk2c_count;
 		uint16_t unk30_count;
 		uint16_t unk16;
@@ -372,7 +372,7 @@ namespace {
 
 			asmout
 				<< "nfo\n"
-				<< "Unk10:   " << std::hex << file->unk10 << " (" << sizeof(file->unk10) << ")\n"
+				<< "Unk10:   " << std::hex << file->size << " (" << sizeof(file->size) << ")\n"
 				<< "Unk16:   " << std::hex << file->unk16 << " (" << sizeof(file->unk16) << ")\n"
 				<< "Unk1C:   " << std::hex << file->unk1C << " (" << sizeof(file->unk1C) << ")\n"
 				<< "Unk22:   " << std::hex << file->unk22 << " (" << sizeof(file->unk22) << ")\n"

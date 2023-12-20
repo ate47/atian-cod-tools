@@ -570,12 +570,12 @@ namespace tool::gsc {
         INT32 fixup_offset;
         INT32 globalvar_offset;
         INT32 script_size;
-        INT32 ukn4c_offset;
+        INT32 requires_implements_offset;
         INT32 ukn50;
         INT32 ukn54;
         UINT16 include_count;
         BYTE ukn5a;
-        BYTE ukn4c_count;
+        BYTE requires_implements_count;
 
         /*
          * Path the code to remove linking
