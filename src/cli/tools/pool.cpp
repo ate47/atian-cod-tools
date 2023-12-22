@@ -123,7 +123,21 @@ struct BGCacheInfo {
     byte unk46;
     byte unk47;
 };
+struct SB_ObjectsArray {
+    uint64_t sbObjectCount;
+    uintptr_t sbObjects; // SB_Object
+    uint64_t sbSubCount;
+    uintptr_t sbSubs;
+};
 
+struct ScriptBundle {
+    uint64_t hash;
+    uint64_t hashnull;
+    uint32_t count_sub;
+    uint32_t unk14;
+    uint64_t unk18;
+    SB_ObjectsArray sbObjectsArray;
+};
 
 struct GametypeEntry {
     uintptr_t v1; // 0x8
@@ -232,6 +246,227 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T 
         }
     }
     out << "\n";
+}
+
+const char* ReadMTString(const Process& proc, uint32_t val) {
+    static CHAR str_read[0x2001];
+    auto strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (UINT32)(0x14 * val);
+    if (!proc.ReadMemory<INT16>(strptr) || proc.ReadMemory<BYTE>(strptr + 3) != 7) {
+        return nullptr;
+    }
+    
+    if (!strptr || proc.ReadString(str_read, strptr + 0x10, 0x2001) < 0) {
+        return nullptr;
+    }
+
+    auto flag = proc.ReadMemory<CHAR>(strptr + 2);
+    LPCCH strDec;
+    if ((flag & 0x40) || flag >= 0) {
+        // not encrypted
+        strDec = str_read;
+    }
+    else {
+        strDec = decrypt::DecryptString(str_read);
+    }
+
+    return strDec;
+}
+
+struct SB_Object {
+    uint32_t unk0;
+    uint32_t unk8;
+    uint32_t kvpCount;
+    uint64_t hash;
+    uint64_t sbObjectCount;
+    uint32_t name; // ScrString_t 
+    uint32_t stringRef; // ScrString_t 
+    uint32_t type;
+    union {
+        int32_t intVal;
+        float floatVal;
+    } value;
+};
+
+void ReadSBName(const Process& proc, const SB_ObjectsArray& arr) {
+    // ugly, but good enought to get the name
+    if (!arr.sbObjectCount || arr.sbObjectCount > 10000 || arr.sbSubCount > 10000) {
+        return; // bad read, wtf?
+    }
+
+    auto objects = std::make_unique<SB_Object[]>(arr.sbObjectCount + 1);
+
+    if (!proc.ReadMemory(&objects[0], arr.sbObjects, sizeof(objects[0]) * arr.sbObjectCount)) {
+        return;
+    }
+
+    static UINT32 nameHash = hash::Hash32("name");
+
+    for (size_t i = 0; i < arr.sbObjectCount; i++) {
+        auto& obj = objects[i];
+
+        if (obj.name != nameHash) {
+            continue;
+        }
+
+        if (obj.stringRef) {
+            // str?
+            auto* strval = ReadMTString(proc, obj.stringRef);
+
+            if (strval) {
+                hashutils::Add(strval); // add name to pool
+                continue;
+            }
+        }
+        return;
+    }
+
+}
+
+bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB_ObjectsArray& arr, std::unordered_set<std::string>& strings) {
+
+    if (!arr.sbObjectCount && !arr.sbSubCount) {
+        defout << "{}";
+        return true;
+    }
+    if (arr.sbObjectCount > 10000 || arr.sbSubCount > 10000) {
+        return false; // bad read, wtf?
+    }
+    auto objects = std::make_unique<SB_Object[]>(arr.sbObjectCount + 1);
+
+    if (!proc.ReadMemory(&objects[0], arr.sbObjects, sizeof(objects[0]) * arr.sbObjectCount)) {
+        std::cerr << "Error when reading object at depth " << std::dec << depth << "\n";
+        return false;
+    }
+
+    defout << "{";
+
+    bool nofirst = false;
+
+    std::unordered_set<UINT32> keys{};
+
+    if (arr.sbSubCount) {
+        struct SB_Sub {
+            uint32_t keyname;
+            uint32_t unk4;
+            uint64_t size;
+            uintptr_t item;
+        };
+        auto subs = std::make_unique<SB_Sub[]>(arr.sbSubCount);
+
+        if (!proc.ReadMemory(&subs[0], arr.sbSubs, sizeof(subs[0]) * arr.sbSubCount)) {
+            std::cerr << "Error when reading object at depth " << std::dec << depth << "\n";
+            return false;
+        }
+
+        for (size_t i = 0; i < arr.sbSubCount; i++) {
+            auto& sub = subs[i];
+
+            if (nofirst) {
+                defout << ",";
+            }
+            nofirst = true;
+            utils::Padding(defout << "\n", depth + 1);
+
+            auto* strval = ReadMTString(proc, sub.keyname);
+
+            if (!strval) {
+                std::cerr << "Can't read array key\n";
+                return false;
+            }
+            keys.insert(hash::Hash32(strval));
+            defout << "\"" << strval << "\": [";
+
+            for (size_t j = 0; j < sub.size; j++) {
+                if (j) {
+                    defout << ",";
+                }
+                utils::Padding(defout << "\n", depth + 2);
+                SB_ObjectsArray item{};
+
+                if (!proc.ReadMemory(&item, sub.item + sizeof(item) * j, sizeof(item))
+                    || !ReadSBObject(proc, defout, depth + 2, item, strings)) {
+                    std::cerr << "Can't read array item\n";
+                    return false;
+                }
+            }
+            if (sub.size) {
+                utils::Padding(defout << "\n", depth + 1) << "]";
+            }
+            else {
+                defout << "]";
+            }
+
+        }
+    }
+    
+    if (arr.sbObjectCount) {
+        for (size_t i = 0; i < arr.sbObjectCount; i++) {
+            auto& obj = objects[i];
+
+            // no idea why
+            switch (obj.type) {
+            case 2:
+            case 25:
+                if (!obj.value.intVal) {
+                    continue;
+                }
+            case 3:
+                if (!obj.value.floatVal) {
+                    continue;
+                }
+            }
+
+            if (keys.find(obj.name) != keys.end()) {
+                continue; // already computed
+            }
+
+            if (nofirst) {
+                defout << ",";
+            }
+
+            nofirst = true;
+            utils::Padding(defout << "\n", depth + 1);
+
+            defout << "\"" << hashutils::ExtractTmp("var", obj.name) << "\": ";
+
+            switch (obj.type) {
+            case 2: 
+            case 22:
+            case 25:
+                defout << std::dec << obj.value.intVal;
+                break;
+            case 3: // float?
+                defout << obj.value.floatVal;
+                break;
+            case 20:
+                // TODO
+                defout << "<error reading:" << hashutils::ExtractTmp("hash", obj.hash) << ">";
+                break;
+            default:
+                if (obj.stringRef) {
+                    // str?
+                    auto* strval = ReadMTString(proc, obj.stringRef);
+
+                    if (strval) {
+                        strings.insert(strval);
+                        defout << "\"" << strval << "\"";
+                        continue;
+                    }
+                }
+                else if (obj.hash & 0x7FFFFFFFFFFFFFFF) {
+                    // hash?
+                    defout << "\"#" << hashutils::ExtractTmp("hash", obj.hash) << "\"";
+                    continue;
+                }
+                defout << "<unk:" << obj.type << ">";
+                break;
+            }
+        }
+    }
+
+    utils::Padding(defout << "\n", depth) << "}";
+
+    return true;
 }
 
 int pooltool(const Process& proc, int argc, const char* argv[]) {
@@ -775,6 +1010,87 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
         break;
+    case pool::ASSET_TYPE_SCRIPTBUNDLE: {
+        hashutils::ReadDefaultFile();
+
+
+        auto pool = std::make_unique<ScriptBundle[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        std::unordered_set<std::string> strings{};
+
+        CHAR dumpbuff[MAX_PATH + 10];
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (!p.hash) {
+                continue;
+            }
+
+            ReadSBName(proc, p.sbObjectsArray);
+
+
+            auto n = hashutils::ExtractPtr(p.hash);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/scriptbundle/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.hash << std::dec;
+                sprintf_s(dumpbuff, "%s/scriptbundle/file_%llx.json", opt.m_output, p.hash);
+            }
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+            std::cout << "\n";
+
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            if (!ReadSBObject(proc, defout, 0, p.sbObjectsArray, strings)) {
+                std::cerr << "Error when reading array\n";
+                defout.close();
+                std::filesystem::remove(file);
+                continue;
+            }
+
+            defout.close();
+        }
+
+        std::ofstream outStr{ std::format("{}/scriptbundle_str.txt", opt.m_output) };
+
+        if (outStr) {
+            for (const auto& st : strings) {
+                outStr << st << "\n";
+            }
+            outStr.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+        break;
     default:
     {
         std::cout << "Item data\n";
@@ -881,5 +1197,40 @@ int dumpbgcache(const Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
+int dbmtstrs(const Process& proc, int argc, const char* argv[]) {
+    std::unordered_set<std::string> buffer{};
+
+    // no clue how big it is
+    uint32_t max = 0x100000;
+
+    for (uint32_t i = 0; i < max; i++) {
+        auto* str = ReadMTString(proc, i);
+        if (str) {
+            buffer.insert(str);
+        }
+        if ((i + 1) % (max / 20) == 0) {
+            std::cout << std::dec << (i * 100 / max) << "% : " << buffer.size() << "read\n";
+        }
+    }
+
+    std::ofstream outStr{ "mtstrings.txt" };
+
+    if (!outStr) {
+        std::cerr << "Can't open output\n";
+        return tool::BASIC_ERROR;
+    }
+
+    for (const auto& st : buffer) {
+        outStr << st << "\n";
+    }
+
+    outStr.close();
+
+    std::cout << "done.\n";
+
+    return tool::OK;
+}
+
 ADD_TOOL("dp", " [input=pool_name] (output=pool_id)", "dump pool", true, pooltool);
 ADD_TOOL("dbgcache", "", "dump bg cache", true, dumpbgcache);
+ADD_TOOL("dbmtstrs", "", "dump mt strings", true, dbmtstrs);
