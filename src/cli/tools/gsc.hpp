@@ -550,6 +550,7 @@ namespace tool::gsc {
 
 
     };
+
     struct T8GSCOBJ {
         BYTE magic[8];
         INT32 crc;

@@ -211,6 +211,28 @@ void tool::gsc::RosettaAddOpCode(UINT32 loc, UINT16 opcode) {
     block.push_back(tool::gsc::RosettaOpCodeBlock{ .location = loc, .opcode = opcode });
 }
 
+
+struct T9GSCOBJ {
+    BYTE magic[8];
+    INT32 crc;
+    INT32 pad;
+    // 10
+    UINT64 name;
+    UINT16 unk18;  // 18
+    UINT16 exports_count;  // 1A
+    UINT32 unk1c;
+    // 20
+    UINT32 unk20;
+    UINT16 includes_count;
+    UINT16 unk26;
+    UINT32 loc_28;
+    UINT32 loc_2C;
+    UINT32 loc_30;
+    UINT32 includes_table; // 34
+    UINT32 exports_tables;
+};
+
+
 int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, const GscInfoOption& opt) {
     hashutils::ReadDefaultFile();
 
@@ -303,6 +325,48 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     }
 
     if (opt.m_header) {
+        if (data->GetVm() == 0x38) {
+            auto* cw = reinterpret_cast<T9GSCOBJ*>(data);
+
+            std::cout << "cw file\n"
+                << std::hex << hashutils::ExtractTmpScript(cw->name) << std::endl;
+
+            auto* includes = reinterpret_cast<UINT64*>(cw->magic + cw->includes_table);
+
+            for (size_t i = 0; i < cw->includes_count; i++) {
+                std::cout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";" << std::endl;
+            }
+
+            auto* exports = reinterpret_cast<T8GSCExport*>(cw->magic + cw->exports_tables);
+
+            std::cout << "exports: \n";
+            for (size_t i = 0; i < cw->exports_count;i++) {
+                auto& exp = exports[i];
+
+                static auto search = 0xd34511e6; // hash::Hash32Pattern("is_ee_enabled");
+
+                //if (exp.name != search) {
+                //    continue;
+                //}
+                
+                std::cout << std::hex << "#" << i << " " << hashutils::ExtractTmp("namespace", exp.name_space)
+                    << std::flush << "::" << hashutils::ExtractTmp("function", exp.name) << " off: " << exp.address
+                    << " crc: " << exp.checksum << " event: " << hashutils::ExtractTmp("namespace", exp.callback_event) << std::endl;
+
+                
+                auto* bc = cw->magic + exp.address;
+
+                for (size_t i = 0; i < 8; i++) {
+                    std::cout << std::hex << "0x" << std::setw(2) << std::setfill('0') << (int)bc[i] << " ";
+                }
+
+                std::cout << "\n";
+
+            }
+
+            return 0;
+        }
+
 
         asmout
             << "// " << hashutils::ExtractTmp("script", data->name) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n";

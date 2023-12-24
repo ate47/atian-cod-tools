@@ -361,6 +361,17 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 #ifdef PS4_INCLUDES
 		ps4::RegisterPS4OpCodes();
 #endif
+
+		RegisterVM(0x38, "Call of Duty: Black ops Cold War retail");
+
+		RegisterOpCode(0x38, PLATFORM_PC, OPCODE_ClearParams, 0xc);
+		RegisterOpCode(0x38, PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
+		RegisterOpCode(0x38, PLATFORM_PC, OPCODE_PreScriptCall, 0xe);
+		RegisterOpCode(0x38, PLATFORM_PC, OPCODE_CallBuiltinFunction, 0xf);
+		RegisterOpCode(0x38, PLATFORM_PC, OPCODE_CallBuiltinMethod, 0x10);
+		RegisterOpCode(0x38, PLATFORM_PC, OPCODE_End, 0x11);
+
+
 	});
 }
 
