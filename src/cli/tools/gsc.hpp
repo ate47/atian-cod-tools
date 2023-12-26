@@ -631,6 +631,80 @@ namespace tool::gsc {
         int ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) const;
     };
 
+    class GSCOBJReader {
+    public:
+        BYTE* file;
+
+        GSCOBJReader(BYTE* file);
+
+        /*
+         * Return a pointer at a particular shift
+         * @param shift in the file
+         * @param T align type
+         * @return Pointer
+         */
+        template<typename T = BYTE>
+        inline T* Ptr(size_t shift = 0) {
+            return reinterpret_cast<T*>(file + shift);
+        }
+
+        /*
+         * Return a pointer at a particular shift aligned to a type
+         * @param shift in the file
+         * @param T align type
+         * @param R return type
+         * @return Pointer
+         */
+        template<typename T = BYTE, typename R = T>
+        inline R* PtrAlign(size_t shift = 0) {
+            return reinterpret_cast<R*>(utils::Aligned<T>(file + shift));
+        }
+
+        /*
+         * Return a reference to a particular shift
+         * @param shift in the file
+         * @param T align type
+         * @return Ref
+         */
+        template<typename T = BYTE>
+        inline T& Ref(size_t shift = 0) {
+            return *Ptr<T>(shift);
+        }
+
+        /*
+         * Return a reference to a particular shift aligned to a type
+         * @param shift in the file
+         * @param T align type
+         * @param R return type
+         * @return Ref
+         */
+        template<typename T = BYTE, typename R = T>
+        inline R& RefAlign(size_t shift = 0) {
+            return *PtrAlign<T, R>(shift);
+        }
+
+        BYTE GetVM() {
+            return file[7];
+        }
+
+        virtual UINT64 GetName() = 0;
+        virtual UINT16 GetExportsCount() = 0;
+        virtual UINT32 GetExportsOffset() = 0;
+        virtual UINT16 GetIncludesCount() = 0;
+        virtual UINT32 GetIncludesOffset() = 0;
+        virtual UINT16 GetImportsCount() = 0;
+        virtual UINT32 GetImportsOffset() = 0;
+        virtual UINT16 GetStringsCount() = 0;
+        virtual UINT32 GetStringsOffset() = 0;
+        virtual UINT16 GetGVarsCount() = 0;
+        virtual UINT32 GetGVarsOffset() = 0;
+        virtual size_t GetHeaderSize() = 0;
+
+        virtual void DumpHeader(std::ostream& asmout) = 0;
+        void PatchCode(T8GSCOBJContext& ctx);
+        virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt);
+    };
+
     enum T8GSCExportFlags : UINT8 {
         LINKED = 0x01,
         AUTOEXEC = 0x02,
@@ -680,9 +754,9 @@ namespace tool::gsc {
 
     /*
      * Begin rosetta file data
-     * @param obj script
+     * @param reader reader
      */
-    void RosettaStartFile(tool::gsc::T8GSCOBJ* obj);
+    void RosettaStartFile(GSCOBJReader& reader);
     /*
      * Add rosetta opcode data
      * @param loc opcode location

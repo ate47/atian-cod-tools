@@ -179,11 +179,115 @@ namespace {
 	}
 
 
+
+	int gscfreq(const Process& proc, int argc, const char* argv[]) {
+		using namespace tool::gsc::opcode;
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+
+		BYTE vm = (BYTE)std::stol(argv[2], nullptr, 16);
+
+		VmInfo* info;
+
+		if (!IsValidVm(vm, info)) {
+			std::cerr << "Bad vm: " << std::hex << (int)vm << "\n";
+			return tool::BASIC_ERROR;
+		}
+
+		std::cout << "Reading " << info->name << "\n";
+
+		struct Count {
+			OPCode opcode{};
+			int count{};
+		};
+
+		Count freq[OPCODE_COUNT];
+
+		for (size_t i = 0; i < OPCODE_COUNT; i++) {
+			freq[i].count = 0;
+			freq[i].opcode = (OPCode)i;
+		}
+
+		for (UINT16 i = 0; i < 0x1000; i++) {
+			auto* ci = LookupOpCode(vm, PLATFORM_PC, i);
+
+			freq[(size_t)ci->m_id].count++;
+		}
+
+		std::sort(std::begin(freq), std::end(freq), [](const Count& a, const Count& b) { return a.count > b.count; });
+
+		for (size_t i = 0; i < OPCODE_COUNT; i++) {
+			if (!freq[i].count) {
+				continue;
+			}
+			std::cout << "Opcode " << OpCodeName(freq[i].opcode) << " -> " << std::dec << freq[i].count << "\n";
+		}
+
+
+		return tool::OK;
+	}
+
+	int vtabledumread(const Process& proc, int argc, const char* argv[]) {
+		using namespace tool::gsc::opcode;
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+
+		PVOID buffer = NULL;
+		size_t bufferSize = 0;
+
+		if (!utils::ReadFileNotAlign(argv[2], buffer, bufferSize)) {
+			std::cerr << "Can't read " << argv[2] << "!\n";
+			return tool::BASIC_ERROR;
+		}
+
+		struct OpCode {
+			uintptr_t val1;
+			uintptr_t val2;
+			uintptr_t val3;
+			uintptr_t val4;
+		};
+
+		struct OpCodeCount {
+			int val1;
+			int val2;
+			int val3;
+			int val4;
+		};
+
+		auto* codes = reinterpret_cast<OpCode*>(buffer);
+
+		std::map<uintptr_t, OpCodeCount> map{};
+
+		for (size_t i = 0; i < 0xFFF; i++) {
+			auto& c = codes[i];
+
+			map[c.val1].val1++;
+			map[c.val2].val2++;
+			map[c.val3].val3++;
+			map[c.val4].val4++;
+		}
+
+		for (const auto& [loc, count] : map) {
+			std::cout << std::hex << loc << " -> " 
+				<< std::dec << count.val1 << "/" << count.val2 << "/" << count.val3 << "/" << count.val4 << "\n";
+		}
+
+
+		std::free(buffer);
+
+		std::cout << "done\n";
+
+		return tool::OK;
+	}
 }
 
 #ifndef CI_BUILD
 
 // removed from CI build to add some challenge to the skids
 ADD_TOOL("rosetta", " [rosetta_file] [compiled script dump]", "Compute the opcodes of a dump using a Rosetta file", false, rosetta);
+ADD_TOOL("gscfreq", "", "Frequency of opcodes", false, gscfreq);
+ADD_TOOL("vtdr", "", "VTable tests", false, vtabledumread);
 
 #endif

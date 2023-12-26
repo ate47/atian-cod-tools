@@ -190,15 +190,15 @@ static LPCCH gRosettaOutput = NULL;
 static UINT64 gRosettaCurrent = 0;
 static std::map<UINT64, RosettaFileData> gRosettaBlocks{};
 
-void tool::gsc::RosettaStartFile(T8GSCOBJ* obj) {
+void tool::gsc::RosettaStartFile(GSCOBJReader& reader) {
     if (!gRosettaOutput) {
         return;
     }
 
     
-    auto& block = gRosettaBlocks[gRosettaCurrent = obj->name];
+    auto& block = gRosettaBlocks[gRosettaCurrent = reader.GetName()];
     // clone the header for the finder
-    memcpy(&block.header, obj, sizeof(*obj));
+    memcpy(&block.header, reader.Ptr(), reader.GetHeaderSize());
 }
 
 void tool::gsc::RosettaAddOpCode(UINT32 loc, UINT16 opcode) {
@@ -210,7 +210,6 @@ void tool::gsc::RosettaAddOpCode(UINT32 loc, UINT16 opcode) {
 
     block.push_back(tool::gsc::RosettaOpCodeBlock{ .location = loc, .opcode = opcode });
 }
-
 
 struct T9GSCOBJ {
     BYTE magic[8];
@@ -229,37 +228,282 @@ struct T9GSCOBJ {
     UINT32 loc_2C;
     UINT32 loc_30;
     UINT32 includes_table; // 34
-    UINT32 exports_tables;
+    UINT32 exports_tables; // 38
+    UINT32 import_tables;
+    UINT32 unk_3C;
+    UINT32 unk_40;
+    UINT32 file_size;
+    UINT32 unk_48;
+    UINT32 unk_4C;
+    UINT32 unk_50;
+    UINT16 unk_54;
+    UINT16 unk_56;
 };
 
+GSCOBJReader::GSCOBJReader(BYTE* file) : file(file) {}
 
-int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, const GscInfoOption& opt) {
+void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
+    // patching imports unlink the script refs to write namespace::import_name instead of the address
+    auto imports_count = (int)GetImportsCount();
+    uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + GetImportsOffset();
+    for (size_t i = 0; i < imports_count; i++) {
+
+        const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
+
+        const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
+        for (size_t j = 0; j < imp->num_address; j++) {
+            UINT32* loc;
+            switch (imp->flags & 0xF) {
+            case 1:
+                loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
+                break;
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                // here the game fix function calls with a bad number of params,
+                // but for the decomp/dasm we don't care because we only mind about
+                // what we'll find on the stack.
+                Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
+                loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
+                break;
+            default:
+                loc = nullptr;
+                break;
+            }
+            if (loc) {
+                loc[0] = imp->name;
+
+                if (imp->flags & T8GSCImportFlags::GET_CALL) {
+                    // no need for namespace if we are getting the call dynamically (api or inside-code script)
+                    loc[1] = 0xc1243180; // ""
+                }
+                else {
+                    loc[1] = imp->import_namespace;
+                }
+
+            }
+        }
+        import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
+    }
+
+    uintptr_t gvars_location = reinterpret_cast<uintptr_t>(file) + GetGVarsOffset();
+    auto globalvar_count = (int)GetGVarsCount();
+    for (size_t i = 0; i < globalvar_count; i++) {
+        const auto* globalvar = reinterpret_cast<T8GSCGlobalVar*>(gvars_location);
+        UINT16 ref = ctx.AddGlobalVarName(globalvar->name);
+
+        const auto* vars = reinterpret_cast<const UINT32*>(&globalvar[1]);
+        for (size_t j = 0; j < globalvar->num_address; j++) {
+            // no align, no opcode to pass, directly the fucking location, cool.
+            Ref<UINT16>(vars[j]) = ref;
+        }
+        gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
+    }
+
+    uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
+    auto string_count = (int)GetStringsCount();
+    for (size_t i = 0; i < string_count; i++) {
+
+        const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+        LPCH cstr = decrypt::DecryptString(Ptr<CHAR>(str->string));
+        UINT32 ref = ctx.AddStringValue(cstr);
+
+        const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
+        for (size_t j = 0; j < str->num_address; j++) {
+            // no align too....
+            Ref<UINT32>(strings[j]) = ref;
+        }
+        str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
+    }
+}
+
+void tool::gsc::GSCOBJReader::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) {
+}
+
+namespace {
+    class T8GSCOBJReader : public GSCOBJReader {
+        using GSCOBJReader::GSCOBJReader;
+
+        void DumpHeader(std::ostream& asmout) override {
+            auto* data = Ptr<T8GSCOBJ>();
+            asmout
+                << std::hex
+                << "// crc: 0x" << std::hex << data->crc << "\n"
+                << std::left << std::setfill(' ')
+                << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
+                << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
+                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
+                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
+                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
+                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
+                << std::right
+                << std::flush;
+        }
+        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+            auto* data = Ptr<T8GSCOBJ>();
+
+            // no clue what this thing is doing
+            UINT64* requires_implements_table = reinterpret_cast<UINT64*>(&data->magic[data->requires_implements_offset]);
+
+            for (size_t i = 0; i < data->requires_implements_count; i++) {
+                asmout << "#precache(\"requires_implements\" #\"" << hashutils::ExtractTmp("hash", requires_implements_table[i]) << "\");\n";
+            }
+
+            if (data->requires_implements_count) {
+                asmout << "\n";
+            }
+
+            if (opt.m_exptests) {
+                auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
+
+                for (size_t i = 0; i < data->fixup_count; i++) {
+                    const auto& fixup = fixups[i];
+                    asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
+                }
+
+                if (data->fixup_count) {
+                    asmout << "\n";
+                }
+            }
+        }
+
+        UINT64 GetName() override {
+            return Ptr<T8GSCOBJ>()->name;
+        }
+        UINT16 GetExportsCount() override {
+            return Ptr<T8GSCOBJ>()->exports_count;
+        }
+        UINT32 GetExportsOffset() override {
+            return Ptr<T8GSCOBJ>()->export_table_offset;
+        }
+        UINT16 GetIncludesCount() override {
+            return Ptr<T8GSCOBJ>()->include_count;
+        }
+        UINT32 GetIncludesOffset() override {
+            return Ptr<T8GSCOBJ>()->include_offset;
+        }
+        UINT16 GetImportsCount() override {
+            return Ptr<T8GSCOBJ>()->imports_count;
+        }
+        UINT32 GetImportsOffset() override {
+            return Ptr<T8GSCOBJ>()->imports_offset;
+        }
+        UINT16 GetGVarsCount() override {
+            return Ptr<T8GSCOBJ>()->globalvar_count;
+        }
+        UINT32 GetGVarsOffset() override {
+            return Ptr<T8GSCOBJ>()->globalvar_offset;
+        }
+        UINT16 GetStringsCount() override {
+            return Ptr<T8GSCOBJ>()->string_count;
+        }
+        UINT32 GetStringsOffset() override {
+            return Ptr<T8GSCOBJ>()->string_offset;
+        }
+        size_t GetHeaderSize() override {
+            return sizeof(T8GSCOBJ);
+        }
+    };
+
+    /*
+    class T9GSCOBJReader : public GSCOBJReader {
+        using GSCOBJReader::GSCOBJReader;
+
+        void DumpHeader(std::ostream& asmout) override {
+            auto* data = Ptr<T9GSCOBJ>();
+            asmout
+                << std::hex
+                << "// crc: 0x" << std::hex << data->crc << "\n"
+                << std::left << std::setfill(' ')
+                << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
+                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
+                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
+                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
+                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
+                << std::right
+                << std::flush;
+        }
+        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+        }
+
+        UINT64 GetName() override {
+            return Ptr<T9GSCOBJ>()->name;
+        }
+        UINT16 GetExportsCount() override {
+            return Ptr<T9GSCOBJ>()->exports_count;
+        }
+        UINT32 GetExportsOffset() override {
+            return Ptr<T9GSCOBJ>()->export_table_offset;
+        }
+        UINT16 GetIncludesCount() override {
+            return Ptr<T9GSCOBJ>()->include_count;
+        }
+        UINT32 GetIncludesOffset() override {
+            return Ptr<T9GSCOBJ>()->include_offset;
+        }
+        UINT16 GetImportsCount() override {
+            return Ptr<T9GSCOBJ>()->imports_count;
+        }
+        UINT32 GetImportsOffset() override {
+            return Ptr<T9GSCOBJ>()->imports_offset;
+        }
+        UINT16 GetGVarsCount() override {
+            return Ptr<T9GSCOBJ>()->globalvar_count;
+        }
+        UINT32 GetGVarsOffset() override {
+            return Ptr<T9GSCOBJ>()->globalvar_offset;
+        }
+        UINT16 GetStringsCount() override {
+            return Ptr<T9GSCOBJ>()->string_count;
+        }
+        UINT32 GetStringsOffset() override {
+            return Ptr<T9GSCOBJ>()->string_offset;
+        }
+        size_t GetHeaderSize() override {
+            return sizeof(T9GSCOBJ);
+        }
+    };
+
+    */
+
+    std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*)>> gscReaders = {
+        { tool::gsc::opcode::VM_T8,[](BYTE* file) { return std::make_shared<T8GSCOBJReader>(file); }},
+        //{ tool::gsc::opcode::VM_T9,[](BYTE* file) { return std::make_shared<T9GSCOBJReader>(file); }},
+    };
+}
+
+int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOption& opt) {
     hashutils::ReadDefaultFile();
 
 
     T8GSCOBJContext ctx{};
     auto& gsicInfo = ctx.m_gsicInfo;
 
-    gsicInfo.isGsic = size > 4 && !memcmp(&data->magic[0], "GSIC", 4);
+    gsicInfo.isGsic = size > 4 && !memcmp(data, "GSIC", 4);
     if (gsicInfo.isGsic) {
         std::cout << "Reading GSIC Compiled Script data\n";
 
         size_t gsicSize = 4; // preamble
 
-        auto numFields = *reinterpret_cast<INT32*>(&data->magic[gsicSize]);
+        auto numFields = *reinterpret_cast<INT32*>(&data[gsicSize]);
         gsicSize += 4;
 
         bool gsicError = false;
         for (size_t i = 0; i < numFields; i++) {
-            auto fieldType = *reinterpret_cast<INT32*>(&data->magic[gsicSize]);
+            auto fieldType = *reinterpret_cast<INT32*>(&data[gsicSize]);
             gsicSize += 4;
             switch (fieldType) {
             case 0: // Detour
             {
-                auto detourCount = *reinterpret_cast<INT32*>(&data->magic[gsicSize]);
+                auto detourCount = *reinterpret_cast<INT32*>(&data[gsicSize]);
                 gsicSize += 4;
                 for (size_t j = 0; j < detourCount; j++) {
-                    GsicDetour* detour = reinterpret_cast<GsicDetour*>(&data->magic[gsicSize]);
+                    GsicDetour* detour = reinterpret_cast<GsicDetour*>(&data[gsicSize]);
                     gsicSize += (size_t)(28 + 256 - 1 - (5 * 4) + 1 - 8);
 
                     // register detour
@@ -283,23 +527,89 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
         // pass the GSIC data
         gsicInfo.headerSize = gsicSize;
-        data = reinterpret_cast<T8GSCOBJ*>(data->magic + gsicSize);
+        data += gsicSize;
     }
 
+    BYTE vm = data[7];
+
     opcode::VmInfo* vmInfo;
-    if (!opcode::IsValidVm(data->GetVm(), vmInfo)) {
-        std::cerr << "Bad vm 0x" << std::hex << (int)data->GetVm() << " for file " << path << "\n";
+    if (!opcode::IsValidVm(vm, vmInfo)) {
+        std::cerr << "Bad vm 0x" << std::hex << (int)vm << " for file " << path << "\n";
         return -1;
     }
 
-    tool::gsc::RosettaStartFile(data);
+    if (vm == opcode::VM_T9) {
+        auto* cw = reinterpret_cast<T9GSCOBJ*>(data);
+
+        std::cout << "cw file\n"
+            << std::hex << hashutils::ExtractTmpScript(cw->name) << std::endl;
+
+        std::cout << "unk18..........: 0x" << cw->unk18 << "\n";
+        std::cout << "exports_count..: 0x" << cw->exports_count << "\n";
+        std::cout << "unk1c..........: 0x" << cw->unk1c << "\n";
+        std::cout << "unk20..........: 0x" << cw->unk20 << "\n";
+        std::cout << "includes_count.: 0x" << cw->includes_count << "\n";
+        std::cout << "unk26..........: 0x" << cw->unk26 << "\n";
+        std::cout << "loc_28.........: 0x" << cw->loc_28 << "\n";
+        std::cout << "loc_2C.........: 0x" << cw->loc_2C << "\n";
+        std::cout << "loc_30.........: 0x" << cw->loc_30 << "\n";
+        std::cout << "includes_table.: 0x" << cw->includes_table << "\n";
+        std::cout << "exports_tables.: 0x" << cw->exports_tables << "\n";
+        std::cout << "import_tables..: 0x" << cw->import_tables << "\n";
+        std::cout << "unk_3C.........: 0x" << cw->unk_3C << "\n";
+        std::cout << "unk_40.........: 0x" << cw->unk_40 << "\n";
+        std::cout << "file_size......: 0x" << cw->file_size << "\n";
+        std::cout << "unk_48.........: 0x" << cw->unk_48 << "\n";
+        std::cout << "unk_4C.........: 0x" << cw->unk_4C << "\n";
+        std::cout << "unk_50.........: 0x" << cw->unk_50 << "\n";
+        std::cout << "unk_54.........: 0x" << cw->unk_54 << "\n";
+        std::cout << "unk_56.........: 0x" << cw->unk_56 << "\n";
+
+        std::cout << "sizes..........: 0x" << sizeof(*cw) << "/0x" << size << "\n";
+
+        auto* imps = reinterpret_cast<T8GSCImport*>(cw->magic + cw->import_tables);
+
+        for (size_t i = 0; i < 4; i++) {
+            std::cout << i << "-" << hashutils::ExtractTmp("namespace", imps->import_namespace) << std::flush << "::" 
+                << hashutils::ExtractTmp("function", imps->name) 
+                << " adds: " << std::dec << imps->num_address << " params:" << (int)imps->param_count
+                << "\nloc: ";
+            auto* offs = reinterpret_cast<UINT32*>(imps + 1);
+            for (size_t i = 0; i < imps->num_address; i++) {
+                if (i) {
+                    std::cout << ", ";
+                }
+                std::cout << std::hex << offs[i];
+            }
+            std::cout << "\n";
+            imps = reinterpret_cast<T8GSCImport*>(offs + imps->param_count);
+        }
+
+
+
+        std::cout << hashutils::ExtractTmp("hash", reinterpret_cast<T8GSCGlobalVar*>(cw->magic + cw->unk_3C)->name) << "\n";
+        std::cout << hashutils::ExtractTmp("hash", reinterpret_cast<T8GSCGlobalVar*>(cw->magic + cw->unk_40)->name) << "\n";
+
+        return 0;
+    }
+
+    auto readerBuilder = gscReaders.find(vm);
+
+    if (readerBuilder == gscReaders.end()) {
+        std::cerr << "No reader available for vm 0x" << std::hex << (int)vm << " for file " << path << "\n";
+        return -1;
+    }
+
+    std::shared_ptr<GSCOBJReader> scriptfile = readerBuilder->second(data);
+
+    tool::gsc::RosettaStartFile(*scriptfile);
 
     char asmfnamebuff[1000];
 
     if (opt.m_outputDir) {
-        LPCCH name = hashutils::ExtractPtr(data->name);
+        LPCCH name = hashutils::ExtractPtr(scriptfile->GetName());
         if (!name) {
-            sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", opt.m_outputDir, data->name);
+            sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", opt.m_outputDir, scriptfile->GetName());
         }
         else {
             sprintf_s(asmfnamebuff, "%s/%s", opt.m_outputDir, name);
@@ -325,51 +635,8 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
     }
 
     if (opt.m_header) {
-        if (data->GetVm() == 0x38) {
-            auto* cw = reinterpret_cast<T9GSCOBJ*>(data);
-
-            std::cout << "cw file\n"
-                << std::hex << hashutils::ExtractTmpScript(cw->name) << std::endl;
-
-            auto* includes = reinterpret_cast<UINT64*>(cw->magic + cw->includes_table);
-
-            for (size_t i = 0; i < cw->includes_count; i++) {
-                std::cout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";" << std::endl;
-            }
-
-            auto* exports = reinterpret_cast<T8GSCExport*>(cw->magic + cw->exports_tables);
-
-            std::cout << "exports: \n";
-            for (size_t i = 0; i < cw->exports_count;i++) {
-                auto& exp = exports[i];
-
-                static auto search = 0xd34511e6; // hash::Hash32Pattern("is_ee_enabled");
-
-                //if (exp.name != search) {
-                //    continue;
-                //}
-                
-                std::cout << std::hex << "#" << i << " " << hashutils::ExtractTmp("namespace", exp.name_space)
-                    << std::flush << "::" << hashutils::ExtractTmp("function", exp.name) << " off: " << exp.address
-                    << " crc: " << exp.checksum << " event: " << hashutils::ExtractTmp("namespace", exp.callback_event) << std::endl;
-
-                
-                auto* bc = cw->magic + exp.address;
-
-                for (size_t i = 0; i < 8; i++) {
-                    std::cout << std::hex << "0x" << std::setw(2) << std::setfill('0') << (int)bc[i] << " ";
-                }
-
-                std::cout << "\n";
-
-            }
-
-            return 0;
-        }
-
-
         asmout
-            << "// " << hashutils::ExtractTmp("script", data->name) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n";
+            << "// " << hashutils::ExtractTmpScript(scriptfile->GetName()) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n";
 
         if (gsicInfo.isGsic) {
             asmout
@@ -397,32 +664,23 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         }
 
         asmout
-            << "// magic .... 0x" << *reinterpret_cast<UINT64*>(&data->magic[0]) 
-                << " vm: 0x" << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")"
-                << " crc: 0x" << std::hex << data->crc << "\n"
-            << std::left << std::setfill(' ')
-            << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
-            << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
-            << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-            << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
-            << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
-            << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-            << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
-            << std::right
-            << std::flush;
+            << "// magic .... 0x" << scriptfile->Ref<UINT64>()
+            << " vm: 0x" << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")\n";
+
+        scriptfile->DumpHeader(asmout);
     }
 
     // write the strings before the patch to avoid reading pre-decrypted strings
     if (opt.m_strings) {
-        uintptr_t str_location = reinterpret_cast<uintptr_t>(data->magic) + data->string_offset;
+        uintptr_t str_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetStringsOffset()));
 
-        for (size_t i = 0; i < data->string_count; i++) {
+        for (size_t i = 0; i < scriptfile->GetStringsCount(); i++) {
 
             const auto* str = reinterpret_cast<T8GSCString*>(str_location);
 
             asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << ", type:" << (int)str->type << "\n";
 
-            LPCH encryptedString = reinterpret_cast<LPCH>(&data->magic[str->string]);
+            LPCH encryptedString = scriptfile->Ptr<CHAR>(str->string);
 
             size_t len = (size_t)reinterpret_cast<BYTE*>(encryptedString)[1] - 1;
             BYTE type = *reinterpret_cast<BYTE*>(encryptedString);
@@ -452,55 +710,33 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             asmout << "\n";
             str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
         }
-        if (data->string_count) {
+        if (scriptfile->GetStringsCount()) {
             asmout << "\n";
         }
     }
 
     if (opt.m_patch) {
         // unlink the script and write custom gvar/string ids
-        data->PatchCode(ctx);
+        scriptfile->PatchCode(ctx);
     }
 
     if (opt.m_includes) {
-        UINT64 *includes = reinterpret_cast<UINT64*>(&data->magic[data->include_offset]);
+        auto* includes = scriptfile->Ptr<UINT64>(scriptfile->GetIncludesOffset());
 
-        for (size_t i = 0; i < data->include_count; i++) {
+        for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
             asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
         }
-        if (data->include_count) {
+        if (scriptfile->GetIncludesCount()) {
             asmout << "\n";
         }
     }
 
-    // no clue what this thing is doing
-    UINT64* requires_implements_table = reinterpret_cast<UINT64*>(&data->magic[data->requires_implements_offset]);
-
-    for (size_t i = 0; i < data->requires_implements_count; i++) {
-        asmout << "#precache(\"requires_implements\" #\"" << hashutils::ExtractTmp("hash", requires_implements_table[i]) << "\");\n";
-    }
-
-    if (data->requires_implements_count) {
-        asmout << "\n";
-    }
-
-    if (opt.m_exptests) {
-        auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
-
-        for (size_t i = 0; i < data->fixup_count; i++) {
-            const auto& fixup = fixups[i];
-            asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
-        }
-
-        if (data->fixup_count) {
-            asmout << "\n";
-        }
-    }
+    scriptfile->DumpExperimental(asmout, opt);
 
     if (opt.m_gvars) {
-        uintptr_t gvars_location = reinterpret_cast<uintptr_t>(data->magic) + data->globalvar_offset;
+        uintptr_t gvars_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetGVarsOffset()));
 
-        for (size_t i = 0; i < data->globalvar_count; i++) {
+        for (size_t i = 0; i < scriptfile->GetGVarsCount(); i++) {
             const auto* globalvar = reinterpret_cast<T8GSCGlobalVar*>(gvars_location);
             asmout << std::hex << "Global var " << hashutils::ExtractTmp("var", globalvar->name) << " " << globalvar->num_address << "\n";
 
@@ -514,15 +750,15 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             asmout << "\n";
             gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
         }
-        if (data->globalvar_count) {
+        if (scriptfile->GetGVarsCount()) {
             asmout << "\n";
         }
     }
 
     if (opt.m_imports) {
-        uintptr_t import_location = reinterpret_cast<uintptr_t>(data->magic) + data->imports_offset;
+        uintptr_t import_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetImportsOffset()));
 
-        for (size_t i = 0; i < data->imports_count; i++) {
+        for (size_t i = 0; i < scriptfile->GetImportsCount(); i++) {
 
             const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
             asmout << std::hex << "import ";
@@ -576,7 +812,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
         }
-        if (data->imports_count) {
+        if (scriptfile->GetImportsCount()) {
             asmout << "\n";
         }
     }
@@ -585,10 +821,10 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
         // current namespace
         UINT32 currentNSP = 0;
 
-        auto* exports = reinterpret_cast<T8GSCExport*>(&data->magic[data->export_table_offset]);
+        auto* exports = scriptfile->Ptr<T8GSCExport>(scriptfile->GetExportsOffset());
         std::unordered_map<UINT64, opcode::ASMContext> contextes{};
 
-        for (size_t i = 0; i < data->exports_count; i++) {
+        for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
             const auto& exp = exports[i];
 
             std::ofstream nullstream;
@@ -607,7 +843,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             UINT64 rname = utils::CatLocated(exp.name_space, exp.name);
 
-            auto r = contextes.try_emplace(rname, &data->magic[exp.address], opt, currentNSP, exp, data->GetVm(), opt.m_platform);
+            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp.address), opt, currentNSP, exp, vm, opt.m_platform);
 
             if (!r.second) {
                 asmout << "Duplicate node "
@@ -618,11 +854,11 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
             auto& asmctx = r.first->second;
 
-            exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
+            exp.DumpFunctionHeader(output, scriptfile->Ptr(), ctx, asmctx);
 
             output << " gscasm {\n";
 
-            exp.DumpAsm(output, data->magic, ctx, asmctx);
+            exp.DumpAsm(output, scriptfile->Ptr(), ctx, asmctx);
 
             output << "}\n";
 
@@ -630,15 +866,15 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
                 asmctx.ComputeDefaultParamValue();
                 if (opt.m_dasm || opt.m_func_header_post) {
-                    exp.DumpFunctionHeader(output, data->magic, ctx, asmctx);
+                    exp.DumpFunctionHeader(output, scriptfile->Ptr(), ctx, asmctx);
                 }
                 output << std::flush;
                 opcode::DecompContext dctx{ 0, 0, asmctx };
                 if (opt.m_dcomp) {
                     if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
-                        asmctx.m_bcl = &data->magic[exp.address];
+                        asmctx.m_bcl = scriptfile->Ptr(exp.address);
                         output << " {\n";
-                        exp.DumpVTable(output, data->magic, ctx, asmctx, dctx);
+                        exp.DumpVTable(output, scriptfile->Ptr(), ctx, asmctx, dctx);
                         output << "}\n";
                     }
                     else {
@@ -704,7 +940,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
                 
 
-                auto handleMethod = [&contextes, &asmout, name, data, &ctx](UINT32 method) -> void {
+                auto handleMethod = [&contextes, &asmout, &scriptfile, name, &ctx](UINT32 method) -> void {
                     auto lname = utils::CatLocated(name, method);
 
                     auto masmctxit = contextes.find(lname);
@@ -715,7 +951,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
                     auto& e = masmctxit->second;
 
-                    e.m_exp.DumpFunctionHeader(asmout, data->magic, ctx, e, 1);
+                    e.m_exp.DumpFunctionHeader(asmout, scriptfile->Ptr(), ctx, e, 1);
                     asmout << " ";
                     opcode::DecompContext dctx{ 1, 0, e };
                     e.Dump(asmout, dctx);
@@ -735,7 +971,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
                 asmout << "}\n\n";
             }
 
-            for (size_t i = 0; i < data->exports_count; i++) {
+            for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
                 const auto& exp = exports[i];
 
                 if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
@@ -758,7 +994,7 @@ int GscInfoHandleData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, 
 
                 auto& asmctx = f->second;
 
-                exp.DumpFunctionHeader(asmout, data->magic, ctx, asmctx);
+                exp.DumpFunctionHeader(asmout, scriptfile->Ptr(), ctx, asmctx);
                 asmout << " ";
                 opcode::DecompContext dctx{ 0, 0, asmctx };
                 asmctx.Dump(asmout, dctx);
@@ -812,7 +1048,7 @@ int GscInfoFile(const std::filesystem::path& path, const GscInfoOption& opt) {
         return -1;
     }
 
-    auto ret = GscInfoHandleData(reinterpret_cast<tool::gsc::T8GSCOBJ*>(buffer), size, pathname.c_str(), opt);
+    auto ret = GscInfoHandleData(reinterpret_cast<BYTE*>(buffer), size, pathname.c_str(), opt);
     std::free(bufferNoAlign);
     return ret;
 }
@@ -956,82 +1192,6 @@ UINT32 tool::gsc::T8GSCOBJContext::AddStringValue(LPCCH value) {
     UINT32 id = ((UINT32)m_stringRefs.size());
     m_stringRefs[id] = value;
     return id;
-}
-
-
-void tool::gsc::T8GSCOBJ::PatchCode(T8GSCOBJContext& ctx) {
-    // patching imports unlink the script refs to write namespace::import_name instead of the address
-    uintptr_t import_location = reinterpret_cast<uintptr_t>(&magic[0]) + imports_offset;
-    for (size_t i = 0; i < imports_count; i++) {
-
-        const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
-
-        const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
-        for (size_t j = 0; j < imp->num_address; j++) {
-            UINT32* loc;
-            switch (imp->flags & 0xF) {
-            case 1:
-                loc = (UINT32*)(magic + ((imports[j] + 2 + 7) & ~7));
-                break;
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-                // here the game fix function calls with a bad number of params,
-                // but for the decomp/dasm we don't care because we only mind about
-                // what we'll find on the stack.
-                *(BYTE*)(magic + imports[j] + 2) = imp->param_count;
-                loc = (UINT32*)(magic + ((imports[j] + 2 + 1 + 7) & ~7));
-                break;
-            default:
-                loc = nullptr;
-                break;
-            }
-            if (loc) {
-                loc[0] = imp->name;
-
-                if (imp->flags & T8GSCImportFlags::GET_CALL) {
-                    // no need for namespace if we are getting the call dynamically (api or inside-code script)
-                    loc[1] = 0xc1243180; // ""
-                }
-                else {
-                    loc[1] = imp->import_namespace;
-                }
-
-            }
-        }
-        import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
-    }
-
-    uintptr_t gvars_location = reinterpret_cast<uintptr_t>(magic) + globalvar_offset;
-    for (size_t i = 0; i < globalvar_count; i++) {
-        const auto* globalvar = reinterpret_cast<T8GSCGlobalVar*>(gvars_location);
-        UINT16 ref = ctx.AddGlobalVarName(globalvar->name);
-
-        const auto* vars = reinterpret_cast<const UINT32*>(&globalvar[1]);
-        for (size_t j = 0; j < globalvar->num_address; j++) {
-            // no align, no opcode to pass, directly the fucking location, cool.
-            *(UINT16*)(magic + vars[j]) = ref;
-        }
-        gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
-    }
-
-    uintptr_t str_location = reinterpret_cast<uintptr_t>(magic) + string_offset;
-    for (size_t i = 0; i < string_count; i++) {
-
-        const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-        LPCH cstr = decrypt::DecryptString(reinterpret_cast<LPCH>(&magic[str->string]));
-        UINT32 ref = ctx.AddStringValue(cstr);
-
-        const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
-        for (size_t j = 0; j < str->num_address; j++) {
-            // no align too....
-            *(UINT32*)(magic + strings[j]) = ref;
-        }
-        str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
-    }
 }
 
 int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx) const {
@@ -1510,9 +1670,9 @@ int gscinfo(const Process& proc, int argc, const char* argv[]) {
             os.close();
             std::cerr << "Rosetta index created into '" << gRosettaOutput << "'\n";
         }
-
-
     }
+
+    std::cout << "done.\n";
     return ret;
 }
 

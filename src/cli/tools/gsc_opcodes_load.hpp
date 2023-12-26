@@ -171,6 +171,8 @@ namespace tool::gsc::opcode {
 
 		// T8-Compiler Custom opcodes
 		OPCODE_T8C_GetLazyFunction,
+
+		OPCODE_COUNT,
 	};
 	void RegisterOpCodesMap();
 
