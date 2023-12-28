@@ -57,5 +57,6 @@ cw
 output*
 /pool/
 vm_codes.db2
+bgpool
 
 *.log

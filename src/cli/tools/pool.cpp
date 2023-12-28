@@ -92,6 +92,12 @@ struct DDLEntry {
     uintptr_t unk48; // 0x50
     uintptr_t unk50; // 0x58
 };
+struct BGPoolEntry {
+    UINT64 name;
+    UINT64 namepad;
+    uintptr_t assetHeader;
+};
+
 struct BGCache {
     UINT64 name;
     UINT64 pad08;
@@ -109,13 +115,17 @@ struct BGCacheInfoDef {
 struct BGCacheInfo {
     uintptr_t name;
     pool::XAssetType assetType;
-    uint32_t unkc;
+    uint32_t allocItems;
     uintptr_t registerFunc;
     uintptr_t unregisterFunc;
     uint64_t hash;
     uint64_t hashnull;
-    uint64_t unk30;
-    uint32_t unk38;
+    byte demoOnly;
+    byte unk31;
+    byte unk32;
+    byte unk33;
+    uint32_t defaultEntryIndex;
+    uint32_t startIndex;
     uint32_t unk3c;
     uint32_t checksum;
     byte unk44;
@@ -432,15 +442,15 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
             switch (obj.type) {
             case 2: 
             case 22:
-            case 25:
+            case 25: // int?
                 defout << std::dec << obj.value.intVal;
                 break;
             case 3: // float?
                 defout << obj.value.floatVal;
                 break;
             case 20:
-                // TODO
-                defout << "<error reading:" << hashutils::ExtractTmp("hash", obj.hash) << ">";
+                // weapon
+                defout << "\"weapon#" << hashutils::ExtractTmp("hash", obj.hash) << "\"";
                 break;
             default:
                 if (obj.stringRef) {
@@ -1143,7 +1153,7 @@ int dumpbgcache(const Process& proc, int argc, const char* argv[]) {
 
     CHAR strBuff[0x100] = { 0 };
 
-    out << "id,name,xasset,unkc,registerfunc,unregisterFunc,hash,unk30,unk38,unk3C,checksum,b1,b2,b3,b4";
+    out << "id,name,xasset,count,registerfunc,unregisterFunc,hash,start,checksum";
 
     for (size_t i = 0; i < (sizeof(info) / sizeof(info[0])); i++)
     {
@@ -1176,20 +1186,14 @@ int dumpbgcache(const Process& proc, int argc, const char* argv[]) {
             out << "<none>";
         }
         
-        out << "," << nfo.unkc << ",";
+        out << "," << nfo.allocItems << ",";
 
         proc.WriteLocation(out, nfo.registerFunc) << ",";
         proc.WriteLocation(out, nfo.unregisterFunc) << ",";
 
         out << hashutils::ExtractTmp("hash", nfo.hash) << "," << std::flush
-            << nfo.unk30 << ","
-            << nfo.unk38 << ","
-            << nfo.unk3c << ","
-            << nfo.checksum << ","
-            << (int)nfo.unk44 << ","
-            << (int)nfo.unk45 << ","
-            << (int)nfo.unk46 << ","
-            << (int)nfo.unk47;
+            << nfo.startIndex << ","
+            << nfo.checksum;
     }
 
     out.close();
@@ -1231,6 +1235,85 @@ int dbmtstrs(const Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
+int dbgp(const Process& proc, int argc, const char* argv[]) {
+    BGCacheInfo info[40] = {};
+
+    if (!proc.ReadMemory(&info[0], proc[0x4EC9A90], sizeof(info))) {
+        std::cerr << "Can't read cache\n";
+        return tool::BASIC_ERROR;
+    }
+
+    
+    std::filesystem::path out{ "bgpool" };
+
+    std::filesystem::create_directories(out);
+    hashutils::ReadDefaultFile();
+
+    std::ofstream outInfo{ out / "caches.csv" };
+
+    if (!outInfo) {
+        std::cerr << "Can't open caches.csv file\n";
+        return tool::BASIC_ERROR;
+    }
+
+
+    outInfo << "id,name,start,count";
+
+    auto pool = proc[0x5D9D6D0];
+
+    CHAR nameInfo[200] = {};
+    CHAR fileInfo[200] = {};
+    // buffer pool names
+    for (size_t i = 0; i < pool::BG_CACHE_TYPE_COUNT; i++) {
+        if (proc.ReadString(nameInfo, info[i].name, sizeof(nameInfo)) < 0) {
+            std::cerr << "Can't read bgcache info names\n";
+            break;
+        }
+
+        outInfo << "\n" << std::dec << i << "," << nameInfo << "," << info[i].startIndex << "," << info[i].allocItems;
+
+
+        auto entries = std::make_unique<BGPoolEntry[]>(info[i].allocItems);
+
+        if (!proc.ReadMemory(&entries[0], pool + sizeof(entries[0]) * info[i].startIndex, sizeof(entries[0]) * info[i].allocItems)) {
+            std::cerr << "Can't read cache entries\n";
+            break;
+        }
+
+        sprintf_s(fileInfo, "%s.csv", nameInfo);
+
+        std::filesystem::path entriesPath = out / fileInfo;
+
+        std::ofstream entriesFile{ entriesPath };
+
+        if (!entriesFile) {
+            std::cerr << "Can't open entries file\n";
+            break;
+        }
+
+        entriesFile << "id,pool,name,ptr";
+
+        size_t res = 0;
+
+        for (size_t j = 0; j < info[i].allocItems; j++) {
+            if (!entries[j].name) {
+                continue;
+            }
+            entriesFile << "\n" << std::dec << j << "," << nameInfo << "," << hashutils::ExtractTmp("hash", entries[j].name) << "," << std::hex << entries[j].assetHeader;
+            res++;
+        }
+
+        entriesFile.close();
+        std::cout << "write " << entriesPath.string() << " with " << std::dec << res << " entries\n";
+    }
+    outInfo.close();
+
+    std::cout << "done into " << out.string() << "\n";
+
+    return tool::OK;
+}
+
 ADD_TOOL("dp", " [input=pool_name] (output=pool_id)", "dump pool", true, pooltool);
 ADD_TOOL("dbgcache", "", "dump bg cache", true, dumpbgcache);
 ADD_TOOL("dbmtstrs", "", "dump mt strings", true, dbmtstrs);
+ADD_TOOL("dbgp", "", "dump bg pool", true, dbgp);
