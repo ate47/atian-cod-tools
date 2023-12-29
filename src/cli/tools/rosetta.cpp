@@ -242,36 +242,22 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		struct OpCode {
-			uintptr_t val1;
-			uintptr_t val2;
-			uintptr_t val3;
-			uintptr_t val4;
-		};
+		std::map<uintptr_t, std::vector<size_t>> map{};
+		auto* codes = reinterpret_cast<uintptr_t*>(buffer);
 
-		struct OpCodeCount {
-			int val1;
-			int val2;
-			int val3;
-			int val4;
-		};
-
-		auto* codes = reinterpret_cast<OpCode*>(buffer);
-
-		std::map<uintptr_t, OpCodeCount> map{};
-
-		for (size_t i = 0; i < 0xFFF; i++) {
-			auto& c = codes[i];
-
-			map[c.val1].val1++;
-			map[c.val2].val2++;
-			map[c.val3].val3++;
-			map[c.val4].val4++;
+		for (size_t i = 0; i < 0x1000; i++) {
+			map[codes[i]].push_back(i);
 		}
 
-		for (const auto& [loc, count] : map) {
-			std::cout << std::hex << loc << " -> " 
-				<< std::dec << count.val1 << "/" << count.val2 << "/" << count.val3 << "/" << count.val4 << "\n";
+		for (const auto& [loc, map] : map) {
+			std::cout << std::hex << std::setfill('0') << std::setw(3) << map[0] << ":" << loc << " -> {";
+			for (size_t i = 0; i < map.size(); i++) {
+				if (i) {
+					std::cout << ", ";
+				}
+				std::cout << std::hex << "0x" << map[i];
+			}
+			std::cout << "}\n";
 		}
 
 

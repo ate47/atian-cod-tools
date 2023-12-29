@@ -27,4 +27,10 @@
 
 #endif
 
+#if __has_include("tools/cw/cw.hpp")
+
+#include "tools/cw/cw.hpp"
+
+#endif
+
 extern LPCCH g_progPath;

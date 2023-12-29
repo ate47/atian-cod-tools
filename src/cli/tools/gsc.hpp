@@ -180,7 +180,8 @@ namespace tool::gsc {
         }
         enum T8GSCLocalVarFlag : UINT8 {
             ARRAY_REF = 0x01,
-            VARIADIC = 0x02
+            VARIADIC = 0x02,
+            FLAG_UNK_4 = 0x04 // T9
         };
 
         class OPCodeInfo {
@@ -698,7 +699,9 @@ namespace tool::gsc {
         virtual UINT32 GetStringsOffset() = 0;
         virtual UINT16 GetGVarsCount() = 0;
         virtual UINT32 GetGVarsOffset() = 0;
+        virtual UINT32 GetFileSize() = 0;
         virtual size_t GetHeaderSize() = 0;
+        virtual char* DecryptString(char* str) = 0;
 
         virtual void DumpHeader(std::ostream& asmout) = 0;
         void PatchCode(T8GSCOBJContext& ctx);

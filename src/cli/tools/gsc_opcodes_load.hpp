@@ -172,6 +172,18 @@ namespace tool::gsc::opcode {
 		// T8-Compiler Custom opcodes
 		OPCODE_T8C_GetLazyFunction,
 
+		// T9
+		OPCODE_ProfileNamedStart,
+		OPCODE_ProfileNamedEnd,
+		OPCODE_GetNegUnsignedInteger,
+		OPCODE_T9_Unknown1de,
+		OPCODE_T9_EvalFieldVariableFromObjectFromRef,
+		OPCODE_T9_SetFieldVariableFromObjectFromRef,
+		OPCODE_T9_EvalLocalVariableCachedDouble,
+		OPCODE_T9_EvalFieldVariableFromGlobalObject,
+		OPCODE_T9_SetVariableFieldFromEvalArrayRef,
+		OPCODE_T9_IncLocalVariableCached,
+
 		OPCODE_COUNT,
 	};
 	void RegisterOpCodesMap();

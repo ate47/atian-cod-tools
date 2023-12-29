@@ -44,7 +44,7 @@ public:
 struct XAssetTypeInfo {
     uintptr_t name; // const char*
     uint64_t size;
-    uint64_t unk20;
+    uint64_t globalvar_count;
     uintptr_t GetName; // const char* (__cdecl*)(const XAssetHeader*);
     uintptr_t SetName; // void(__cdecl* )(XAssetHeader*, uint64_t*);
 };
@@ -83,8 +83,8 @@ struct DDLEntry {
     UINT64 name; // 0x8
     uintptr_t unk8;  // 0x10
     uintptr_t buffer; // 0x18
-    uintptr_t unk18; // 0x20
-    uintptr_t unk20; // 0x28
+    uintptr_t string_count; // 0x20
+    uintptr_t globalvar_count; // 0x28
     uintptr_t unk28; // 0x30
     uintptr_t unk30; // 0x38
     uintptr_t unk38; // 0x40
@@ -109,7 +109,7 @@ struct BGCacheInfoDef {
     pool::BGCacheTypes type;
     uint64_t name;
     uint64_t pad10;
-    uint64_t unk18;
+    uint64_t string_count;
 };
 
 struct BGCacheInfo {
@@ -145,7 +145,7 @@ struct ScriptBundle {
     uint64_t hashnull;
     uint32_t count_sub;
     uint32_t unk14;
-    uint64_t unk18;
+    uint64_t string_count;
     SB_ObjectsArray sbObjectsArray;
 };
 
@@ -1010,7 +1010,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
                 defout << "\n" 
                     << (p2.type >= 0 && p2.type < pool::BG_CACHE_TYPE_COUNT ? nameInfo[p2.type] : "<error>") << ","
                     << hashutils::ExtractTmp("hash", p2.name) << "," 
-                    << std::hex << p2.unk18
+                    << std::hex << p2.string_count
                     << std::flush;
             }
 

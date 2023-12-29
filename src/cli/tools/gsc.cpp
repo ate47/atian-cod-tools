@@ -215,27 +215,26 @@ struct T9GSCOBJ {
     BYTE magic[8];
     INT32 crc;
     INT32 pad;
-    // 10
     UINT64 name;
-    UINT16 unk18;  // 18
-    UINT16 exports_count;  // 1A
-    UINT32 unk1c;
-    // 20
-    UINT32 unk20;
+    UINT16 string_count;
+    UINT16 exports_count;
+    UINT16 imports_count;
+    UINT16 unk1E;
+    UINT32 globalvar_count;
     UINT16 includes_count;
     UINT16 unk26;
     UINT32 loc_28;
     UINT32 loc_2C;
-    UINT32 loc_30;
-    UINT32 includes_table; // 34
-    UINT32 exports_tables; // 38
+    UINT32 string_offset;
+    UINT32 includes_table;
+    UINT32 exports_tables;
     UINT32 import_tables;
-    UINT32 unk_3C;
-    UINT32 unk_40;
+    UINT32 globalvar_offset;
     UINT32 file_size;
     UINT32 unk_48;
     UINT32 unk_4C;
-    UINT32 unk_50;
+    UINT16 unk_50;
+    UINT16 unk_52;
     UINT16 unk_54;
     UINT16 unk_56;
 };
@@ -253,25 +252,46 @@ void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
         const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
         for (size_t j = 0; j < imp->num_address; j++) {
             UINT32* loc;
-            switch (imp->flags & 0xF) {
-            case 1:
-                loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
-                break;
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-                // here the game fix function calls with a bad number of params,
-                // but for the decomp/dasm we don't care because we only mind about
-                // what we'll find on the stack.
-                Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
-                loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
-                break;
-            default:
-                loc = nullptr;
-                break;
+            if (GetVM() == opcode::VM_T9) {
+                switch (imp->flags & 0xF) {
+                case 5:
+                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
+                    break;
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 6:
+                case 7:
+                    Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
+                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
+                    break;
+                default:
+                    loc = nullptr;
+                    break;
+                }
+            }
+            else {
+                switch (imp->flags & 0xF) {
+                case 1:
+                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
+                    break;
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                    // here the game fix function calls with a bad number of params,
+                    // but for the decomp/dasm we don't care because we only mind about
+                    // what we'll find on the stack.
+                    Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
+                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
+                    break;
+                default:
+                    loc = nullptr;
+                    break;
+                }
             }
             if (loc) {
                 loc[0] = imp->name;
@@ -308,7 +328,7 @@ void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
     for (size_t i = 0; i < string_count; i++) {
 
         const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-        LPCH cstr = decrypt::DecryptString(Ptr<CHAR>(str->string));
+        LPCH cstr = DecryptString(Ptr<CHAR>(str->string));
         UINT32 ref = ctx.AddStringValue(cstr);
 
         const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
@@ -404,12 +424,17 @@ namespace {
         UINT32 GetStringsOffset() override {
             return Ptr<T8GSCOBJ>()->string_offset;
         }
+        UINT32 GetFileSize() override {
+            return Ptr<T8GSCOBJ>()->script_size;
+        }
         size_t GetHeaderSize() override {
             return sizeof(T8GSCOBJ);
         }
+        char* DecryptString(char* str) override {
+            return decrypt::DecryptString(str);
+        }
     };
 
-    /*
     class T9GSCOBJReader : public GSCOBJReader {
         using GSCOBJReader::GSCOBJReader;
 
@@ -419,14 +444,14 @@ namespace {
                 << std::hex
                 << "// crc: 0x" << std::hex << data->crc << "\n"
                 << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
+                << "// size ..... " << std::dec << std::setw(3) << data->file_size << "\n"
                 << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
                 << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
+                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
+                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_tables << ")\n"
                 << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
                 << std::right
-                << std::flush;
+                << std::flush; 
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
         }
@@ -438,19 +463,19 @@ namespace {
             return Ptr<T9GSCOBJ>()->exports_count;
         }
         UINT32 GetExportsOffset() override {
-            return Ptr<T9GSCOBJ>()->export_table_offset;
+            return Ptr<T9GSCOBJ>()->exports_tables;
         }
         UINT16 GetIncludesCount() override {
-            return Ptr<T9GSCOBJ>()->include_count;
+            return Ptr<T9GSCOBJ>()->includes_count;
         }
         UINT32 GetIncludesOffset() override {
-            return Ptr<T9GSCOBJ>()->include_offset;
+            return Ptr<T9GSCOBJ>()->includes_table;
         }
         UINT16 GetImportsCount() override {
             return Ptr<T9GSCOBJ>()->imports_count;
         }
         UINT32 GetImportsOffset() override {
-            return Ptr<T9GSCOBJ>()->imports_offset;
+            return Ptr<T9GSCOBJ>()->import_tables;
         }
         UINT16 GetGVarsCount() override {
             return Ptr<T9GSCOBJ>()->globalvar_count;
@@ -464,16 +489,24 @@ namespace {
         UINT32 GetStringsOffset() override {
             return Ptr<T9GSCOBJ>()->string_offset;
         }
+        UINT32 GetFileSize() override {
+            return Ptr<T8GSCOBJ>()->script_size;
+        }
         size_t GetHeaderSize() override {
             return sizeof(T9GSCOBJ);
         }
+        char* DecryptString(char* str) override {
+#ifdef CW_INCLUDES
+            return cw::DecryptString(str);
+#else
+            return str;
+#endif
+        }
     };
-
-    */
 
     std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*)>> gscReaders = {
         { tool::gsc::opcode::VM_T8,[](BYTE* file) { return std::make_shared<T8GSCOBJReader>(file); }},
-        //{ tool::gsc::opcode::VM_T9,[](BYTE* file) { return std::make_shared<T9GSCOBJReader>(file); }},
+        { tool::gsc::opcode::VM_T9,[](BYTE* file) { return std::make_shared<T9GSCOBJReader>(file); }},
     };
 }
 
@@ -536,61 +569,6 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     if (!opcode::IsValidVm(vm, vmInfo)) {
         std::cerr << "Bad vm 0x" << std::hex << (int)vm << " for file " << path << "\n";
         return -1;
-    }
-
-    if (vm == opcode::VM_T9) {
-        auto* cw = reinterpret_cast<T9GSCOBJ*>(data);
-
-        std::cout << "cw file\n"
-            << std::hex << hashutils::ExtractTmpScript(cw->name) << std::endl;
-
-        std::cout << "unk18..........: 0x" << cw->unk18 << "\n";
-        std::cout << "exports_count..: 0x" << cw->exports_count << "\n";
-        std::cout << "unk1c..........: 0x" << cw->unk1c << "\n";
-        std::cout << "unk20..........: 0x" << cw->unk20 << "\n";
-        std::cout << "includes_count.: 0x" << cw->includes_count << "\n";
-        std::cout << "unk26..........: 0x" << cw->unk26 << "\n";
-        std::cout << "loc_28.........: 0x" << cw->loc_28 << "\n";
-        std::cout << "loc_2C.........: 0x" << cw->loc_2C << "\n";
-        std::cout << "loc_30.........: 0x" << cw->loc_30 << "\n";
-        std::cout << "includes_table.: 0x" << cw->includes_table << "\n";
-        std::cout << "exports_tables.: 0x" << cw->exports_tables << "\n";
-        std::cout << "import_tables..: 0x" << cw->import_tables << "\n";
-        std::cout << "unk_3C.........: 0x" << cw->unk_3C << "\n";
-        std::cout << "unk_40.........: 0x" << cw->unk_40 << "\n";
-        std::cout << "file_size......: 0x" << cw->file_size << "\n";
-        std::cout << "unk_48.........: 0x" << cw->unk_48 << "\n";
-        std::cout << "unk_4C.........: 0x" << cw->unk_4C << "\n";
-        std::cout << "unk_50.........: 0x" << cw->unk_50 << "\n";
-        std::cout << "unk_54.........: 0x" << cw->unk_54 << "\n";
-        std::cout << "unk_56.........: 0x" << cw->unk_56 << "\n";
-
-        std::cout << "sizes..........: 0x" << sizeof(*cw) << "/0x" << size << "\n";
-
-        auto* imps = reinterpret_cast<T8GSCImport*>(cw->magic + cw->import_tables);
-
-        for (size_t i = 0; i < 4; i++) {
-            std::cout << i << "-" << hashutils::ExtractTmp("namespace", imps->import_namespace) << std::flush << "::" 
-                << hashutils::ExtractTmp("function", imps->name) 
-                << " adds: " << std::dec << imps->num_address << " params:" << (int)imps->param_count
-                << "\nloc: ";
-            auto* offs = reinterpret_cast<UINT32*>(imps + 1);
-            for (size_t i = 0; i < imps->num_address; i++) {
-                if (i) {
-                    std::cout << ", ";
-                }
-                std::cout << std::hex << offs[i];
-            }
-            std::cout << "\n";
-            imps = reinterpret_cast<T8GSCImport*>(offs + imps->param_count);
-        }
-
-
-
-        std::cout << hashutils::ExtractTmp("hash", reinterpret_cast<T8GSCGlobalVar*>(cw->magic + cw->unk_3C)->name) << "\n";
-        std::cout << hashutils::ExtractTmp("hash", reinterpret_cast<T8GSCGlobalVar*>(cw->magic + cw->unk_40)->name) << "\n";
-
-        return 0;
     }
 
     auto readerBuilder = gscReaders.find(vm);
@@ -685,17 +663,29 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             size_t len = (size_t)reinterpret_cast<BYTE*>(encryptedString)[1] - 1;
             BYTE type = *reinterpret_cast<BYTE*>(encryptedString);
 
-            asmout << "encryption: 0x" << std::hex << (int)type << " len: " << std::dec << len << " -> " << std::flush;
+            if (str->string + len + 1 > scriptfile->GetFileSize()) {
+                asmout << "bad string location\n";
+                break;
+            }
 
-            LPCH cstr = decrypt::DecryptString(encryptedString);
+            asmout << "encryption: ";
+            if ((type & 0xC0) != 0x80) {
+                asmout << "0x" << std::hex << (int)type;
+            }
+            else {
+                asmout << "none";
+            }
+            asmout << " len: " << std::dec << len << " -> " << std::flush;
 
-            asmout << '"' << cstr << "\"";
+            LPCH cstr = scriptfile->DecryptString(encryptedString);
+
+            asmout << '"' << cstr << "\"" << std::flush;
 
             size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
 
             if (lenAfterDecrypt != len) {
                 asmout << " ERROR LEN (" << std::dec << lenAfterDecrypt << " != " << len << " for type 0x" << std::hex << (int)type << ")";
-                assert(false);
+            //    assert(false);
             }
 
             asmout << "\n";
@@ -1218,9 +1208,9 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
             const auto* handler = ctx.LookupOpCode(opCode);
 
 
-            out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << loc.rloc << ": ";
+            out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << loc.rloc << ": " << std::flush;
 
-            if (opCode & 0x1000) {
+            if (opCode & ~0xFFF) {
                 out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(" << opCode << ")" << "\n";
                 opCode &= 0xFFF;
                 break;
@@ -1229,7 +1219,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
             out << std::hex << std::setfill('0') << std::setw(sizeof(INT16) << 1) << opCode
                 << " "
                 << std::setfill(' ') << std::setw(25) << std::left << handler->m_name << std::right
-                << " ";
+                << " " << std::flush;
 
             // dump rosetta data
             RosettaAddOpCode((UINT32)(reinterpret_cast<UINT64>(base) - reinterpret_cast<UINT64>(gscFile)), handler->m_id);
@@ -1606,8 +1596,13 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
                 asmout << hashutils::ExtractTmp("var", lvar.name) << std::flush;
             }
 
+            BYTE mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
-            if (lvar.flags & ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF)) {
+            if (ctx.m_vm == opcode::VM_T9) {
+                mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::FLAG_UNK_4;
+            }
+            
+            if (lvar.flags & mask) {
                 asmout << " (unk flags: " << std::hex << (int)lvar.flags << ")";
             }
             if (lvar.defaultValueNode) {
