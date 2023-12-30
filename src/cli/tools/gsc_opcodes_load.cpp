@@ -356,10 +356,6 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 
 		RegisterVM(0x37, "Call of Duty 2020");
 
-#ifdef PS4_INCLUDES
-		ps4::RegisterPS4OpCodes();
-#endif
-
 		RegisterVM(0x38, "Call of Duty: Black ops Cold War");
 
 		RegisterOpCode(0x38, PLATFORM_PC, OPCODE_Unknown0, 0x0);
@@ -501,6 +497,12 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 			0x6d, 0xe3, 0xe6, 0x1d7, 0x1db, 0x20d, 0x22a, 0x2a3, 0x2c8, 0x36e, 0x466, 0x576, 0x58c, 
 			0x6fc, 0x714, 0x72d, 0x837, 0x861, 0xb93, 0xbb6, 0xc20, 0xd17, 0xd84, 0xe0c, 0xe17
 		);
+
+
+		// stuff some people don't want public (as a bo4 pc/xbox player idc, but whatever)
+#ifdef PS4_INCLUDES
+		ps4::RegisterPS4OpCodes();
+#endif
 
 #ifdef CW_INCLUDES
 		cw::RegisterCWOpCodes();

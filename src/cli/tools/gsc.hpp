@@ -735,6 +735,33 @@ namespace tool::gsc {
         UKN80 = 0x80
     };
 
+    enum T9GSCExportFlags : UINT8 {
+        AUTOEXEC = 0x01,
+        LINKED = 0x02,
+        PRIVATE = 0x04,
+        CLASS_MEMBER = 0x08,
+        CLASS_DESTRUCTOR = 0x10,
+        VE = 0x20,
+        EVENT = 0x40,
+        CLASS_LINKED = 0x80,
+        CLASS_VTABLE = 0x86
+    };
+
+    enum T9GSCImportFlags : UINT8 {
+        METHOD_CHILDTHREAD = 0x1,
+        METHOD_THREAD = 0x2,
+        FUNCTION_CHILDTHREAD = 0x3,
+        FUNCTION = 0x4,
+        FUNC_METHOD = 0x5,
+        FUNCTION_THREAD = 0x6,
+        METHOD = 0x7,
+        CALLTYPE_MASK = 0xF,
+        DEV_CALL = 0x10,
+        GET_CALL = 0x20,
+        UKN40 = 0x40,
+        UKN80 = 0x80
+    };
+
     struct T8GSCString {
         UINT32 string;
         UINT8 num_address;

@@ -2004,6 +2004,69 @@ public:
 	}
 };
 
+class OPCodeT9Unk4d : public OPCodeInfo {
+public:
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		out << "\n";
+		if (context.m_runDecompiler) {
+			// array shit
+			// TODO:
+			//context.PopASMCNode();
+			// ....??
+			///context.PushASMCNode(...);
+		}
+
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
+};
+
+class OPCodeT9Unk42 : public OPCodeInfo {
+public:
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		out << "\n";
+		if (context.m_runDecompiler) {
+			// TODO:
+			//context.GetFieldIdASMCNode();
+			// ....??
+			///context.PushASMCNode(...);
+		}
+
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
+};
+
+class OPCodeT9Unk77 : public OPCodeInfo {
+public:
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto val = *(context.m_bcl++);
+		out << std::hex << "0x" << (int)val << "\n";
+		if (context.m_runDecompiler) {
+			// TODO:
+		}
+
+		return 0;
+	}
+
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
+		return 0;
+	}
+};
+
 class OPCodeInfoEvalSelfFieldVariable : public OPCodeInfo {
 public:
 	OPCodeInfoEvalSelfFieldVariable(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
@@ -2092,7 +2155,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 		else {
-			out << "bad objectid ref: 0x" << std::hex << objectid;
+			out << "bad objectid stack: 0x" << std::hex << objectid;
 		}
 
 		out << "." << hashutils::ExtractTmp("var", fieldName) << std::endl;
@@ -2202,7 +2265,7 @@ public:
 			UINT32 name;
 			if (lvar >= context.m_localvars.size()) {
 				name = hashutils::Hash32("<error>");
-				out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 			}
 			else {
 				name = context.m_localvars[lvar].name;
@@ -2238,7 +2301,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2281,7 +2344,7 @@ public:
 
 			if (lvar >= context.m_localvars.size()) {
 				name = hashutils::Hash32("<error>");
-				out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 			}
 			else {
 				name = context.m_localvars[lvar].name;
@@ -2332,7 +2395,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2375,7 +2438,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2408,7 +2471,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2441,7 +2504,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2768,10 +2831,7 @@ public:
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("profileNamedStart", false);
 
-			// self
-			node->AddParam(context.PopASMCNode());
-
-			context.PushASMCNode(new ASMContextNodeHash(hash));
+			node->AddParam(new ASMContextNodeHash(hash));
 			// convert it to statement
 			node->m_priority = PRIORITY_INST;
 			node->m_type = TYPE_STATEMENT;
@@ -2788,11 +2848,11 @@ public:
 	}
 };
 
-class OPCodeT9EvalFieldVariableFromObjectFromRef : public OPCodeInfo {
+class OPCodeT9EvalFieldVariableFromObject : public OPCodeInfo {
+	bool stack;
 public:
-	OPCodeT9EvalFieldVariableFromObjectFromRef() : OPCodeInfo(OPCODE_T9_EvalFieldVariableFromObjectFromRef, "EvalFieldVariableFromObjectFromRef") {
+	OPCodeT9EvalFieldVariableFromObject(OPCode id, LPCCH name, bool stack) : OPCodeInfo(id, name), stack(stack) {
 	}
-	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
@@ -2803,7 +2863,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar;
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2820,7 +2880,45 @@ public:
 			auto* left = new ASMContextNodeIdentifier(name);
 			auto* right = new ASMContextNodeIdentifier(field);
 
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, right, ".", PRIORITY_ACCESS, TYPE_ACCESS));
+			auto* res = new ASMContextNodeLeftRightOperator(left, right, ".", PRIORITY_ACCESS, TYPE_ACCESS);
+			if (stack) {
+				context.PushASMCNode(res);
+			}
+			else {
+				context.SetFieldIdASMCNode(res);
+			}
+		}
+		return 0;
+	}
+	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++; // lvar
+		ctx.Aligned<UINT32>() += 4; // field
+		return 0;
+	}
+};
+
+class OPCodeT9EvalArrayCached : public OPCodeInfo {
+public:
+	OPCodeT9EvalArrayCached(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int lvar = (int)*(context.m_bcl++);
+
+		UINT32 name;
+
+		if (lvar >= context.m_localvars.size()) {
+			name = hashutils::Hash32("<error>");
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+		}
+		else {
+			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
+			out << hashutils::ExtractTmp("var", name) << std::endl;
+		}
+
+		if (context.m_runDecompiler) {
+			context.PushASMCNode(new ASMContextNodeArrayAccess(new ASMContextNodeIdentifier(name), context.PopASMCNode()));
 		}
 		return 0;
 	}
@@ -2845,7 +2943,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar;
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -3269,7 +3367,7 @@ public:
 		}
 		else {
 			// probably only dev blocks
-			out << "bad str ref: 0x" << std::hex << ref << "\n";
+			out << "bad str stack: 0x" << std::hex << ref << "\n";
 			if (context.m_runDecompiler) {
 				context.PushASMCNode(new ASMContextNodeString("<unknown string>"));
 			}
@@ -3302,7 +3400,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 		else {
-			out << "bad gvar ref: 0x" << std::hex << ref << "\n";
+			out << "bad gvar stack: 0x" << std::hex << ref << "\n";
 		}
 
 		if (context.m_runDecompiler) {
@@ -3347,7 +3445,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 		else {
-			out << "bad gvar ref: 0x" << std::hex << ref;
+			out << "bad gvar stack: 0x" << std::hex << ref;
 		}
 
 		out << "." << hashutils::ExtractTmp("var", field) << std::endl;
@@ -3378,7 +3476,7 @@ public:
 		int lvar = (int) *(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
 			UINT32 name = context.m_localvars[lvar].name;
@@ -3751,7 +3849,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar ref: 0x" << std::hex << (int)lvar;
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -3941,7 +4039,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetTime, "GetTime", "gettime()"));
 		RegisterOpCodeHandler(new OPCodeInfoGetHash());
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant<INT32>(OPCODE_GetZero, "GetZero", 0));
-		RegisterOpCodeHandler(new OPCodeInfoGetNeg<UINT32>(OPCODE_GetNegUnsignedInteger, "OPCODE_GetNegUnsignedInteger"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNeg<UINT32>(OPCODE_GetNegUnsignedInteger, "GetNegUnsignedInteger"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNeg<UINT16>(OPCODE_GetNegUnsignedShort, "GetNegUnsignedShort"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNeg<UINT8>(OPCODE_GetNegByte, "GetNegByte"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<BYTE>(OPCODE_GetByte, "GetByte"));
@@ -4003,11 +4101,20 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetGlobalObject, "GetGlobalObject"));
 
 		// T9
-		RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromObjectFromRef());
+		RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromObject(OPCODE_T9_EvalFieldVariableFromObjectFromRef, "EvalFieldVariableFromObjectFromRef", true));
+		RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromObject(OPCODE_T9_EvalFieldVariableFromObjectCached, "EvalFieldVariableFromObjectCached", false));
 		RegisterOpCodeHandler(new OPCodeT9SetFieldVariableFromObjectFromRef());
 		RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromGlobalObject());
-		RegisterOpCodeHandler(new OPCodeT9SetVariableFieldFromEvalArrayRef());
-		RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_IncLocalVariableCached, "T9IncLocalVariableCached", "++"));
+		RegisterOpCodeHandler(new OPCodeT9SetVariableFieldFromEvalArrayRef()); 
+		RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_T9_EvalArrayCached, "EvalArrayCached"));
+		RegisterOpCodeHandler(new OPCodeT9Unk4d(OPCODE_T9_Unknown1c, "T9Unk1c"));
+		RegisterOpCodeHandler(new OPCodeT9Unk4d(OPCODE_T9_Unknown4d, "T9Unk4d"));
+		RegisterOpCodeHandler(new OPCodeT9Unk4d(OPCODE_T9_Unknown1de, "T9Unk1de"));
+		RegisterOpCodeHandler(new OPCodeT9Unk42(OPCODE_T9_Unknown42, "T9Unk42"));
+		RegisterOpCodeHandler(new OPCodeT9Unk77(OPCODE_T9_Unknown77, "T9Unk77"));
+		
+		RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_IncLocalVariableCached, "IncLocalVariableCached", "++"));
+		RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_DecLocalVariableCached, "DecLocalVariableCached", "--"));
 		
 		RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_T9_EvalLocalVariableCachedDouble, "EvalLocalVariableCached2n", 2));
 		
@@ -4382,7 +4489,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 			ctx.padding--;
 			ctx.WritePadding(out, true) << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location->rloc;
 			if (ctx.asmctx.m_opt.m_show_ref_count) {
-				out << std::dec << " (ref:";
+				out << std::dec << " (stack:";
 
 				auto it = ref.location->refs.begin();
 				out << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << *it;
