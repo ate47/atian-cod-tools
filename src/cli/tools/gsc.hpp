@@ -736,30 +736,30 @@ namespace tool::gsc {
     };
 
     enum T9GSCExportFlags : UINT8 {
-        AUTOEXEC = 0x01,
-        LINKED = 0x02,
-        PRIVATE = 0x04,
-        CLASS_MEMBER = 0x08,
-        CLASS_DESTRUCTOR = 0x10,
-        VE = 0x20,
-        EVENT = 0x40,
-        CLASS_LINKED = 0x80,
-        CLASS_VTABLE = 0x86
+        T9_EF_AUTOEXEC = 0x01,
+        T9_EF_LINKED = 0x02,
+        T9_EF_PRIVATE = 0x04,
+        T9_EF_CLASS_MEMBER = 0x08,
+        T9_EF_CLASS_DESTRUCTOR = 0x10,
+        T9_EF_VE = 0x20,
+        T9_EF_EVENT = 0x40,
+        T9_EF_CLASS_LINKED = 0x80,
+        T9_EF_CLASS_VTABLE = 0x86
     };
 
     enum T9GSCImportFlags : UINT8 {
-        METHOD_CHILDTHREAD = 0x1,
-        METHOD_THREAD = 0x2,
-        FUNCTION_CHILDTHREAD = 0x3,
-        FUNCTION = 0x4,
-        FUNC_METHOD = 0x5,
-        FUNCTION_THREAD = 0x6,
-        METHOD = 0x7,
-        CALLTYPE_MASK = 0xF,
-        DEV_CALL = 0x10,
-        GET_CALL = 0x20,
-        UKN40 = 0x40,
-        UKN80 = 0x80
+        T9_IF_METHOD_CHILDTHREAD = 0x1,
+        T9_IF_METHOD_THREAD = 0x2,
+        T9_IF_FUNCTION_CHILDTHREAD = 0x3,
+        T9_IF_FUNCTION = 0x4,
+        T9_IF_FUNC_METHOD = 0x5,
+        T9_IF_FUNCTION_THREAD = 0x6,
+        T9_IF_METHOD = 0x7,
+        T9_IF_CALLTYPE_MASK = 0xF,
+        T9_IF_DEV_CALL = 0x10,
+        T9_IF_GET_CALL = 0x20,
+        T9_IF_UKN40 = 0x40,
+        T9_IF_UKN80 = 0x80
     };
 
     struct T8GSCString {

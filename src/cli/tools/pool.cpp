@@ -149,6 +149,71 @@ struct ScriptBundle {
     SB_ObjectsArray sbObjectsArray;
 };
 
+enum eModes : INT32 {
+    MODE_ZOMBIES = 0x0,
+    MODE_MULTIPLAYER = 0x1,
+    MODE_CAMPAIGN = 0x2,
+    MODE_WARZONE = 0x3,
+    MODE_COUNT = 0x4,
+    MODE_INVALID = 0x4,
+    MODE_FIRST = 0x0,
+};
+
+const char* EModeName(eModes mode) {
+    switch (mode) {
+    case MODE_ZOMBIES: return "zombies";
+    case MODE_MULTIPLAYER: return "multiplayer";
+    case MODE_CAMPAIGN: return "campaign";
+    case MODE_WARZONE: return "warzone";
+    default: return "<invalid>";
+    }
+
+}
+
+struct Hash {
+    uint64_t name;
+    uint64_t nullpad;
+};
+
+struct GameTypeTableEntry {
+    Hash name;
+    Hash baseGameType;
+    uint64_t unk20;
+    Hash nameRef;
+    Hash nameRefCaps;
+    Hash descriptionRef;
+    Hash unk58;
+    bool isHardcoreAvailable;
+    Hash hardcoreNameRef;
+    bool isTeamBased;
+    bool hideHudScore;
+    uint64_t groupName;
+    uintptr_t image; // GfxImage*
+    Hash presenceString;
+    uint64_t unkA8;
+    uint64_t scoreInfoFile;
+    uint64_t unkB8;
+    uint64_t unkC0;
+    uint64_t unkC8;
+    uint64_t unkD0;
+    uint64_t unkD8;
+    uint64_t unkE0;
+    uint64_t unkE8;
+    uint64_t unkF0;
+    int uniqueID;
+    uint64_t unk100;
+    uint64_t unk108;
+};
+
+struct GameTypeTable {
+    UINT64 name;
+    UINT64 namepad;
+    UINT32 gameTypeCount;
+    uintptr_t gameTypes; // GameTypeTableEntry*
+    eModes sessionMode;
+};
+
+
 struct GametypeEntry {
     uintptr_t v1; // 0x8
     uintptr_t pad0; // 0x10
@@ -477,6 +542,15 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
     utils::Padding(defout << "\n", depth) << "}";
 
     return true;
+}
+
+const char* ReadTmpStr(const Process& proc, uintptr_t location) {
+    static CHAR tmp_buff[0x1000];
+
+    if (proc.ReadString(tmp_buff, location, sizeof(tmp_buff)) < 0) {
+        sprintf_s(tmp_buff, "<invalid:%llx>", location);
+    }
+    return tmp_buff;
 }
 
 int pooltool(const Process& proc, int argc, const char* argv[]) {
@@ -883,6 +957,114 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
         break;
+    case ASSET_TYPE_GAMETYPETABLE:
+    {
+        hashutils::ReadDefaultFile();
+        size_t readFile = 0;
+
+
+        auto pool = std::make_unique<GameTypeTable[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            auto n = hashutils::ExtractPtr(p.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/gametypetable/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name << std::dec;
+                sprintf_s(dumpbuff, "%s/gametypetable/file_%llx.json", opt.m_output, p.name);
+            }
+
+            if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
+                std::cerr << "error when reading buffer at " << p.gameTypes << "\n";
+                continue;
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            auto entries = std::make_unique<GameTypeTableEntry[]>(p.gameTypeCount);
+
+
+            if (!proc.ReadMemory(&entries[0], p.gameTypes, sizeof(entries[0]) * p.gameTypeCount)) {
+                std::cerr << "Can't read entries data\n";
+                break;
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out
+                << "{\n"
+                << "    \"name\": \"" << hashutils::ExtractTmp("hash", p.name) << std::flush << "\",\n"
+                << "    \"sessionMode\": \"" << EModeName(p.sessionMode) << "\",\n"
+                << "    \"gametypes\": ["
+                ;
+
+            for (size_t j = 0; j < p.gameTypeCount; j++) {
+                auto& e = entries[j];
+
+                if (j) {
+                    out << ",";
+                }
+                out
+                    << "\n"
+                    << "        {\n"
+                    << "            \"uniqueID\": " << std::dec << e.uniqueID << ",\n"
+                    << "            \"name\": \"" << ReadTmpStr(proc, e.name.name) << std::flush << "\",\n"
+                    << "            \"baseGameType\": \"" << ReadTmpStr(proc, e.baseGameType.name) << std::flush << "\",\n"
+                    << "            \"nameRef\": \"#" << hashutils::ExtractTmp("hash", e.nameRef.name) << std::flush << "\",\n"
+                    << "            \"nameRefCaps\": \"#" << hashutils::ExtractTmp("hash", e.nameRefCaps.name) << std::flush << "\",\n"
+                    << "            \"descriptionRef\": \"#" << hashutils::ExtractTmp("hash", e.descriptionRef.name) << std::flush << "\",\n"
+                    << "            \"isHardcoreAvailable\": " << (e.isHardcoreAvailable ? "true" : "false") << ",\n"
+                    << "            \"hardcoreNameRef\": \"#" << hashutils::ExtractTmp("hash", e.hardcoreNameRef.name) << std::flush << "\",\n"
+                    << "            \"isTeamBased\": " << (e.isTeamBased ? "true" : "false") << ",\n"
+                    << "            \"hideHudScore\": " << (e.hideHudScore ? "true" : "false") << ",\n"
+                    << "            \"groupname\": \"" << ReadTmpStr(proc, e.groupName) << "\",\n"
+                    << "            \"presenceString\": \"#" << hashutils::ExtractTmp("hash", e.presenceString.name) << std::flush << "\"\n"
+                    << "        }"
+                    ;
+            }
+
+            out
+                << "\n"
+                << "    ]\n"
+                << "}"
+                ;
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+
+
+        break;
+    }
     case ASSET_TYPE_DDL:
     {
 
