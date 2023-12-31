@@ -212,6 +212,33 @@ struct GameTypeTable {
     uintptr_t gameTypes; // GameTypeTableEntry*
     eModes sessionMode;
 };
+struct MapTable {//30
+    UINT64 name;
+    UINT64 namepad;
+    UINT32 mapCount;
+    uintptr_t maps; // MapTableEntry*
+    eModes sessionMode;
+    UINT32 campaignMode;
+    UINT32 dlcIndex;
+};
+struct MapTableListElem
+{
+    uint64_t count;
+    uintptr_t names; // Hash*
+    uint64_t unk10;
+    uint64_t unk18;
+};
+
+struct MapTableList
+{
+    Hash name;
+    MapTableListElem list_campaign;
+    MapTableListElem list_multiplayer;
+    MapTableListElem list_zombies;
+    MapTableListElem list_warzone;
+};
+
+
 
 
 struct GametypeEntry {
@@ -1061,6 +1088,228 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
         }
         std::cout << "Dump " << readFile << " new file(s)\n";
+
+
+        break;
+    }
+    case ASSET_TYPE_MAPTABLE:
+    {
+        hashutils::ReadDefaultFile();
+        size_t readFile = 0;
+
+
+        auto pool = std::make_unique<MapTable[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            auto n = hashutils::ExtractPtr(p.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/maptable/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name << std::dec;
+                sprintf_s(dumpbuff, "%s/maptable/file_%llx.json", opt.m_output, p.name);
+            }
+
+            if (!p.maps || !proc.ReadMemory<UINT64>(p.maps)) {
+                std::cerr << "error when reading buffer at " << p.maps << "\n";
+                continue;
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            struct __declspec(align(8)) MapTableEntry
+            {
+                uintptr_t name;
+                Hash name_hashed;
+                int size;
+                Hash mapName;
+                Hash rootMapName;
+                uintptr_t missionName;
+                Hash mapDescription;
+                uint64_t unk58;
+                uint64_t pad[18];
+                uintptr_t loadingmovie;
+                uint64_t pad1[20];
+                uint64_t uniqueID;
+            };
+
+
+
+            auto entries = std::make_unique<MapTableEntry[]>(p.mapCount);
+
+
+            if (!proc.ReadMemory(&entries[0], p.maps, sizeof(entries[0]) * p.mapCount)) {
+                std::cerr << "Can't read entries data\n";
+                break;
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out
+                << "{\n"
+                << "    \"name\": \"" << hashutils::ExtractTmp("hash", p.name) << std::flush << "\",\n"
+                << "    \"sessionMode\": \"" << EModeName(p.sessionMode) << "\",\n"
+                << "    \"maps\": ["
+                ;
+
+            for (size_t j = 0; j < p.mapCount; j++) {
+                auto& e = entries[j];
+
+                if (j) {
+                    out << ",";
+                }
+                out
+                    << "\n"
+                    << "        {\n"
+                    << "            \"uniqueID\": " << std::dec << e.uniqueID << ",\n"
+                    << "            \"name\": \"" << ReadTmpStr(proc, e.name) << std::flush << "\",\n"
+                    << "            \"hashname\": \"#" << hashutils::ExtractTmp("hash", e.name_hashed.name) << std::flush << "\",\n"
+                    << "            \"missionName\": \"" << ReadTmpStr(proc, e.missionName) << std::flush << "\",\n"
+                    << "            \"mapName\": \"#" << hashutils::ExtractTmp("hash", e.mapName.name) << std::flush << "\",\n"
+                    << "            \"rootMapName\": \"#" << hashutils::ExtractTmp("hash", e.rootMapName.name) << std::flush << "\",\n"
+                    << "            \"mapDescription\": \"#" << hashutils::ExtractTmp("hash", e.mapDescription.name) << std::flush << "\",\n"
+                    ;
+
+                if (e.loadingmovie) {
+                    out
+                        << "            \"loadingmovie\": \"" << ReadTmpStr(proc, e.loadingmovie) << std::flush << "\",\n"
+                        ;
+                }
+
+                out
+                    << "            \"size\": " << std::dec << e.size << "\n"
+                    << "        }"
+                    ;
+            }
+
+            out
+                << "\n"
+                << "    ]\n"
+                << "}"
+                ;
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+
+
+        break;
+    }
+    case ASSET_TYPE_MAPTABLE_LIST:
+    {
+        hashutils::ReadDefaultFile();
+
+
+        auto pool = std::make_unique<MapTableList[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/maptable/list/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/maptable/list/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << " -> " << dumpbuff << "\n";
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+
+            auto names = std::make_unique<Hash[]>(
+                max(
+                    max(p.list_campaign.count, p.list_multiplayer.count),
+                    max(p.list_warzone.count, p.list_zombies.count)
+                )
+            );
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open file\n";
+                continue;
+            }
+
+
+            auto func = [&proc, &names, &out](MapTableListElem& lst, const char* name, bool begin = false) {
+                if (!begin) {
+                    out << ",";
+                }
+                out
+                    << "\n"
+                    << "    \"" << name << "\": [";
+
+                if (lst.count && !proc.ReadMemory(&names[0], lst.names, sizeof(names[0]) * lst.count)) {
+                    std::cerr << "Can't read count\n";
+                    return;
+                }
+
+                for (size_t j = 0; j < lst.count; j++)
+                {
+                    if (j) {
+                        out << ",";
+                    }
+                    out << "\n";
+                    out << "        \"#" << hashutils::ExtractTmp("hash", names[j].name) << "\"";
+                }
+
+                out << "\n    ]";
+            };
+
+            out << "{";
+
+            func(p.list_campaign, "cp", true);
+            func(p.list_multiplayer, "mp");
+            func(p.list_zombies, "zm");
+            func(p.list_warzone, "wz");
+
+            out << "\n}";
+
+
+            out.close();
+        }
 
 
         break;
