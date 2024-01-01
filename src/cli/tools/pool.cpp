@@ -1007,11 +1007,11 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
             if (n) {
                 std::cout << n;
-                sprintf_s(dumpbuff, "%s/gametypetable/%s.json", opt.m_output, n);
+                sprintf_s(dumpbuff, "%s/tables/gametype/%s.json", opt.m_output, n);
             }
             else {
                 std::cout << "file_" << std::hex << p.name << std::dec;
-                sprintf_s(dumpbuff, "%s/gametypetable/file_%llx.json", opt.m_output, p.name);
+                sprintf_s(dumpbuff, "%s/tables/gametype/file_%llx.json", opt.m_output, p.name);
             }
 
             if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
@@ -1092,6 +1092,269 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
         break;
     }
+    case ASSET_TYPE_CUSTOMIZATION_TABLE:
+    {
+        hashutils::ReadDefaultFile();
+        struct CustomizationTable
+        {
+            Hash name;
+            UINT32 numPlayerRoles;
+            uintptr_t playerRoles; // PlayerRoleLevelsPtr*
+            UINT32 numHeads;
+            uintptr_t heads; // CharacterHead*
+        };
+
+
+        auto pool = std::make_unique<CustomizationTable[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        std::unordered_set<std::string> strings{};
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/tables/customization/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/tables/customization/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << " -> " << dumpbuff << "\n";
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open " << file << "\n";
+                break;
+            }
+
+            out << "{\n"
+                << "    \"heads\": ["
+                ;
+
+            if (p.numHeads) {
+                struct CharacterHead {
+                    Hash assetName;
+                    Hash displayName;
+                    uint64_t icon;
+                    uint64_t xmodel;
+                    uint32_t gender;
+                    uint32_t kvpCount;
+                    uintptr_t kvpItems;
+                    uint64_t unk40;
+                    uint64_t unk48;
+                    uint64_t unk50;
+                    uint64_t unk58;
+                };
+                auto heads = std::make_unique<CharacterHead[]>(p.numHeads);
+
+                if (!proc.ReadMemory(&heads[0], p.heads, sizeof(heads[0]) * p.numHeads)) {
+                    std::cerr << "Can't read heads\n";
+                    break;
+                }
+
+                for (size_t j = 0; j < p.numHeads; j++) {
+                    if (j) {
+                        out << ",";
+                    }
+                    auto& h = heads[j];
+
+                    out 
+                        << "\n"
+                        << "        {\n"
+                        << "            \"name\": \"#" << hashutils::ExtractTmp("hash", h.assetName.name) << "\",\n"
+                        << "            \"displayName\": \"#" << hashutils::ExtractTmp("hash", h.displayName.name) << "\",\n"
+                        << "            \"xmodel\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(h.xmodel)) << "\",\n"
+                        << "            \"gender\": " << std::dec << h.gender << "\n"
+                        << "        }"
+                        ;
+                }
+
+            }
+
+
+            out
+                << "\n"
+                << "    ],\n"
+                << "    \"playerRoles\": ["
+                ;
+
+            if (p.numPlayerRoles) {
+                auto roles = std::make_unique<uintptr_t[]>(p.numPlayerRoles);
+                if (!proc.ReadMemory(&roles[0], p.playerRoles, sizeof(roles[0]) * p.numPlayerRoles)) {
+                    std::cerr << "Can't read roles\n";
+                    break;
+                }
+
+                for (size_t j = 0; j < p.numPlayerRoles; j++) {
+                    if (j) {
+                        out << ",";
+                    }
+                    out << "\n";
+                    if (!roles[j]) {
+                        out << "        null";
+                        continue;
+                    }
+
+                    struct PlayerRoleLevels {
+                        bool enabled;
+                        uintptr_t data; // PlayerRoleTemplate
+                    };
+                    struct PlayerRoleTemplate {
+                        Hash name;
+                        uint64_t unk10;
+                        uint64_t unk18;
+                        Hash unk20;
+                        uintptr_t bodyType; //CharacterBodyType*
+                        uintptr_t category; //PlayerRoleCategory*
+                        uint64_t unk40;
+                        uint64_t unk48;
+                        Hash specialistEquipment;
+                        Hash specialistWeapon;
+                        Hash ultimateWeapon;
+                        uint64_t pad[10];
+                    };
+
+                    struct CharacterBodyType {
+                        Hash name;
+                        Hash displayName;
+                        Hash description;
+                        Hash heroWeapon;
+                        uintptr_t mpDialog; // ScriptBundle*
+                        uintptr_t chrName; // const char*
+
+                        UINT64 pad[13];
+                        uint32_t gender;
+                        uint32_t unkbc;
+                        uint64_t unkc0;
+                        SB_ObjectsArray kvp;
+                    };
+
+                    struct PlayerRoleCategory {
+                        Hash name;
+                        Hash displayName;
+                        Hash description;
+                        uintptr_t icon;
+                        int sortOrder;
+                        SB_ObjectsArray kvp;
+                    };
+
+                    PlayerRoleLevels prl;
+                    PlayerRoleTemplate tmpl;
+
+                    if (!proc.ReadMemory(&prl, roles[j], sizeof(prl))) {
+                        std::cerr << "Can't read player roles\n";
+                        break;
+                    }
+
+                    if (!proc.ReadMemory(&tmpl, prl.data, sizeof(tmpl))) {
+                        std::cerr << "Can't read player roles\n";
+                        break;
+                    }
+
+                    CharacterBodyType body;
+
+                    if (!proc.ReadMemory(&body, tmpl.bodyType, sizeof(body))) {
+                        std::cerr << "Can't read character body\n";
+                        break;
+                    }
+
+                    out
+                        << "        {\n"
+                        << "            \"id\": " << std::dec << j << ",\n"
+                        << "            \"enabled\": " << (prl.enabled ? "true" : "false") << ",\n"
+                        << "            \"name\": \"#" << hashutils::ExtractTmp("hash", tmpl.name.name) << "\",\n"
+                        << "            \"specialistEquipment\": \"#" << hashutils::ExtractTmp("hash", tmpl.specialistEquipment.name) << "\",\n"
+                        << "            \"specialistWeapon\": \"#" << hashutils::ExtractTmp("hash", tmpl.specialistWeapon.name) << "\",\n"
+                        << "            \"ultimateWeapon\": \"#" << hashutils::ExtractTmp("hash", tmpl.ultimateWeapon.name) << "\",\n"
+                        ;
+
+                    if (tmpl.category) {
+                        PlayerRoleCategory cat;
+                        if (!proc.ReadMemory(&cat, tmpl.category, sizeof(cat))) {
+                            std::cerr << "Can't read category\n";
+                            break;
+                        }
+                        out
+                            << "            \"category\": {\n"
+                            << "                \"name\": \"#" << hashutils::ExtractTmp("hash", cat.name.name) << "\",\n"
+                            << "                \"displayName\": \"#" << hashutils::ExtractTmp("hash", cat.displayName.name) << "\",\n"
+                            << "                \"description\": \"#" << hashutils::ExtractTmp("hash", cat.description.name) << "\",\n"
+                            << "                \"sortOrder\": " << std::dec << cat.sortOrder << ",\n"
+                            << "                \"fields\": "
+                            ;
+
+                        if (!ReadSBObject(proc, out, 4, cat.kvp, strings)) {
+                            std::cerr << "Can't read cat kvp array\n";
+                            break;
+                        }
+
+                        out
+                            << "\n"
+                            << "            },\n"
+                            ;
+                    }
+
+                    out
+                        << "            \"body\": {\n"
+                        << "                \"name\": \"#" << hashutils::ExtractTmp("hash", body.name.name) << "\",\n"
+                        << "                \"displayName\": \"#" << hashutils::ExtractTmp("hash", body.displayName.name) << "\",\n"
+                        << "                \"description\": \"#" << hashutils::ExtractTmp("hash", body.description.name) << "\",\n"
+                        << "                \"heroWeapon\": \"#" << hashutils::ExtractTmp("hash", body.heroWeapon.name) << "\",\n"
+                        << "                \"gender\": \"" << (body.gender ? "female" : "male") << "\",\n"
+                        ;
+                    if (body.mpDialog) {
+                        out << "                \"mpDialogBundle\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(body.mpDialog)) << "\",\n";
+                    }
+                    if (body.chrName) {
+                        out << "                \"chrName\": \"" << ReadTmpStr(proc, body.chrName) << "\",\n";
+                    }
+
+
+                    out
+                        << "                \"fields\": "
+                        ;
+
+                    if (!ReadSBObject(proc, out, 4, body.kvp, strings)) {
+                        std::cerr << "Can't read kvp array\n";
+                        break;
+                    }
+
+                    out
+                        << "\n"
+                        << "            }\n"
+                        << "        }"
+                        ;
+
+                }
+            }
+
+            out
+                << "\n"
+                << "    ]\n"
+                << "}";
+
+
+            out.close();
+        }
+
+    }
+        break;
     case ASSET_TYPE_MAPTABLE:
     {
         hashutils::ReadDefaultFile();
@@ -1115,11 +1378,11 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
             if (n) {
                 std::cout << n;
-                sprintf_s(dumpbuff, "%s/maptable/%s.json", opt.m_output, n);
+                sprintf_s(dumpbuff, "%s/tables/map/%s.json", opt.m_output, n);
             }
             else {
                 std::cout << "file_" << std::hex << p.name << std::dec;
-                sprintf_s(dumpbuff, "%s/maptable/file_%llx.json", opt.m_output, p.name);
+                sprintf_s(dumpbuff, "%s/tables/map/file_%llx.json", opt.m_output, p.name);
             }
 
             if (!p.maps || !proc.ReadMemory<UINT64>(p.maps)) {
@@ -1245,11 +1508,11 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
             if (n) {
                 std::cout << n;
-                sprintf_s(dumpbuff, "%s/maptable/list/%s.json", opt.m_output, n);
+                sprintf_s(dumpbuff, "%s/tables/map/list/%s.json", opt.m_output, n);
             }
             else {
                 std::cout << "file_" << std::hex << p.name.name << std::dec;
-                sprintf_s(dumpbuff, "%s/maptable/list/file_%llx.json", opt.m_output, p.name.name);
+                sprintf_s(dumpbuff, "%s/tables/map/list/file_%llx.json", opt.m_output, p.name.name);
             }
 
             std::cout << " -> " << dumpbuff << "\n";
