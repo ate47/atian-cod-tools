@@ -1486,6 +1486,86 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
         break;
     }
+    case ASSET_TYPE_WEAPON:
+    {
+        struct Weapon
+        {
+            Hash name;
+            Hash baseWeapon;
+            Hash description;
+            byte pad[0x1520];
+        };
+
+        auto pool = std::make_unique<Weapon[]>(entry.itemAllocCount);
+
+        if (sizeof(Weapon) != entry.itemSize) {
+            std::cerr << "bad itemsize: " << std::hex << sizeof(Weapon) << "/" << entry.itemSize << "\n";
+            return tool::BASIC_ERROR;
+        }
+
+        size_t readFile = 0;
+        hashutils::ReadDefaultFile();
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/tables/weapon/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/tables/weapon/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out
+                << "{\n"
+                << "    \"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << std::flush << "\",\n"
+                << "    \"baseWeapon\": \"#" << hashutils::ExtractTmp("hash", p.baseWeapon.name) << std::flush << "\",\n"
+                << "    \"description\": \"#" << hashutils::ExtractTmp("hash", p.description.name) << std::flush << "\"\n"
+                << "}\n"
+                ;
+            tool::pool::WriteHex(out, entry.pool + sizeof(pool[0]) * i, (BYTE*)&p, sizeof(p), proc);
+            
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+
+
+        break;
+    }
     case ASSET_TYPE_MAPTABLE_LIST:
     {
         hashutils::ReadDefaultFile();
@@ -1577,7 +1657,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 
         break;
     }
-    case ASSET_TYPE_DDL:
+    case ASSET_TYPE_DDL + 200:
     {
 
         hashutils::ReadDefaultFile();
@@ -1799,21 +1879,36 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
     {
         std::cout << "Item data\n";
 
-        BYTE* raw = new BYTE[entry.itemSize * entry.itemAllocCount];
+        auto raw = std::make_unique<BYTE[]>(entry.itemSize * entry.itemAllocCount);
 
-        if (!proc.ReadMemory(raw, entry.pool, entry.itemSize * entry.itemAllocCount)) {
-            delete[] raw;
+        if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
 
-        for (size_t i = 0; i < min(10, entry.itemAllocCount); i++) {
-            std::cout << "Element #" << std::dec << i << " " << std::hex << (entry.pool + i * entry.itemSize) << "\n";
+        CHAR dumpbuff[MAX_PATH + 10];
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            sprintf_s(dumpbuff, "%s/rawpool/%d/%lld.json", opt.m_output, (int)id, i);
 
-            WriteHex(std::cout, entry.pool, &raw[i * entry.itemSize], entry.itemSize, proc);
+            std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            tool::pool::WriteHex(defout, entry.pool + entry.itemSize * i, &raw[0] + (entry.itemSize * i), entry.itemSize, proc);
+
+            defout.close();
         }
 
-        delete[] raw;
     }
         break;
     }
