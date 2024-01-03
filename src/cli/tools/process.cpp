@@ -13,6 +13,7 @@ int PTCallExt2(Process& proc, int argc, const char* argv[]);
 int PTCallExt3(Process& proc, int argc, const char* argv[]);
 int PTCallExt4(Process& proc, int argc, const char* argv[]);
 int PTCallExt5(Process& proc, int argc, const char* argv[]);
+int PTCallExt6(Process& proc, int argc, const char* argv[]);
 
 int processtool(const Process& unused, int argc, const char* argv[]) {
 	if (argc <= 3) {
@@ -59,6 +60,9 @@ int processtool(const Process& unused, int argc, const char* argv[]) {
 	else if (!_strcmpi("ce5", argv[3])) {
 		func = PTCallExt5;
 	}
+	else if (!_strcmpi("ce6", argv[3])) {
+		func = PTCallExt6;
+	}
 #endif // !CI
 
 	if (!func) {
@@ -71,7 +75,7 @@ int processtool(const Process& unused, int argc, const char* argv[]) {
 	return func(proc, argc, argv);
 }
 
-ADD_TOOL("proc", " (process) (s) [module] [function]", "process explorer", false, processtool);
+ADD_TOOL("proc", " (process) (s) [module] [function]", "process explorer", nullptr, processtool);
 
 int PTSearch(Process& proc, int argc, const char* argv[]) {
 	using namespace tool;
@@ -251,6 +255,67 @@ int PTCallExt5(Process& proc, int argc, const char* argv[]) {
 	}
 
 	std::cout << "ok 2\n";
+
+	return tool::OK;
+}
+
+int PTCallExt6(Process& proc, int argc, const char* argv[]) {
+	if (!proc.LoadDll("test-dll.dll")) {
+		std::cerr << "Can't inject test dll\n";
+		return tool::BASIC_ERROR;
+	}
+
+	auto& mod = proc["test-dll.dll"];
+	auto& TestFunctionScan = mod["TestFunctionScan"];
+
+	std::cout << "dll: " << mod << "\n"
+		<< "test1: " << TestFunctionScan << "\n";
+
+	if (!proc.Call<>(TestFunctionScan)) {
+		std::cerr << "Error when calling TestFunctionScan\n";
+		return tool::BASIC_ERROR;
+	}
+
+	std::cout << "prepatch\n";
+
+	auto scan1 = mod.Scan("01 02 03 04 ?? ?? ?? ?? 09 10");
+	proc.WriteLocation(std::cout << "scan1: ", scan1) << "\n";
+
+	auto scan2 = mod.Scan("01 02 03 04 ?? ?? ?? ?? 09 10", (DWORD)((scan1 + 1) - mod.start));
+	proc.WriteLocation(std::cout << "scan2: ", scan2) << "\n";
+
+	auto scan3 = mod.Scan("01 02 03 04 ?? ?? ?? ?? 09 10", (DWORD)((scan2 + 1) - mod.start));
+	proc.WriteLocation(std::cout << "scan3: ", scan3) << "\n";
+
+
+	if (!scan1) {
+		std::cerr << "Bad scan\n";
+		return tool::BASIC_ERROR;
+	}
+
+	if (!scan2) {
+		std::cerr << "Bad scan2\n";
+		return tool::BASIC_ERROR;
+	}
+
+	int over = 0x08070605;
+
+	if (!proc.WriteMemory(scan1 + 4, &over, sizeof(over))) {
+		std::cerr << "Can't write memory 1\n";
+		return tool::BASIC_ERROR;
+	}
+
+	over = 0x05060708;
+
+	if (!proc.WriteMemory(scan2 + 4, &over, sizeof(over))) {
+		std::cerr << "Can't write memory 2\n";
+		return tool::BASIC_ERROR;
+	}
+
+	if (!proc.Call<>(TestFunctionScan)) {
+		std::cerr << "Error when calling TestFunctionScan\n";
+		return tool::BASIC_ERROR;
+	}
 
 	return tool::OK;
 }

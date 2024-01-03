@@ -2102,7 +2102,7 @@ int dbgp(const Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
-ADD_TOOL("dp", " [input=pool_name] (output=pool_id)", "dump pool", true, pooltool);
-ADD_TOOL("dbgcache", "", "dump bg cache", true, dumpbgcache);
-ADD_TOOL("dbmtstrs", "", "dump mt strings", true, dbmtstrs);
-ADD_TOOL("dbgp", "", "dump bg pool", true, dbgp);
+ADD_TOOL("dp", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOps4.exe", pooltool);
+ADD_TOOL("dbgcache", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
+ADD_TOOL("dbmtstrs", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
+ADD_TOOL("dbgp", "", "dump bg pool", L"BlackOps4.exe", dbgp);

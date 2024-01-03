@@ -85,6 +85,6 @@ static int ps4reader(const Process& _, int argc, const char* argv[]) {
 
 #ifndef CI_BUILD
 
-ADD_TOOL("ps4r", " [ip:port] [loc] [size]", "ps4reader", false, ps4reader);
+ADD_TOOL("ps4r", " [ip:port] [loc] [size]", "ps4reader", nullptr, ps4reader);
 
 #endif

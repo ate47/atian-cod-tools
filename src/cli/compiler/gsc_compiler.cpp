@@ -948,5 +948,5 @@ int compiler(const Process& proc, int argc, const char* argv[]) {
 }
 
 #ifdef DEBUG
-ADD_TOOL("compiler", " --help", "gsc compiler", false, compiler);
+ADD_TOOL("compiler", " --help", "gsc compiler", nullptr, compiler);
 #endif

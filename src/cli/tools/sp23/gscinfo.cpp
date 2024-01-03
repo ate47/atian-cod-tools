@@ -1205,6 +1205,6 @@ namespace {
 	}
 }
 
-ADD_TOOL("gscinfo23", " [file]", "gsc info 23", false, gscinfo);
-ADD_TOOL("local23", " [file]", "decrypt local dump 23", false, decryptlocalize);
-ADD_TOOL("hash23", " [str]", "hash using iw values", false, hash23);
+ADD_TOOL("gscinfo23", " [file]", "gsc info 23", nullptr, gscinfo);
+ADD_TOOL("local23", " [file]", "decrypt local dump 23", nullptr, decryptlocalize);
+ADD_TOOL("hash23", " [str]", "hash using iw values", nullptr, hash23);

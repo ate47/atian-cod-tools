@@ -120,7 +120,7 @@ namespace {
 
 		return tool::OK;
 	}
-
-	ADD_TOOL("serious_fake_db", " [type] [vm]", "Create a FAKE t7compiler database", false, fakedb);
+	
+	ADD_TOOL("serious_fake_db", " [type] [vm]", "Create a FAKE t7compiler database", nullptr, fakedb);
 }
 

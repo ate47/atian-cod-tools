@@ -510,9 +510,9 @@ int dumpcmdfunctions(const Process& proc, int argc, const char* argv[]) {
 }
 
 
-ADD_TOOL("dps", " [output=pool.csv]", "dump pooled scripts", true, poolscripts);
-ADD_TOOL("wps", " [output=scriptparsetree]", "write pooled scripts", true, writepoolscripts);
-ADD_TOOL("dls", " [output=linked.csv]", "dump linked scripts", true, linkedscripts);
-ADD_TOOL("dfunc", " [output=funcs.csv]", "dump functions", true, dumpfunctions);
-ADD_TOOL("devents", " [output=events.csv]", "dump registered instance events", true, events);
-ADD_TOOL("dcfunc", " [output=cfuncs.csv]", "dump cmd functions", true, dumpcmdfunctions);
+ADD_TOOL("dps", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
+ADD_TOOL("wps", " [output=scriptparsetree]", "write pooled scripts", L"BlackOps4.exe", writepoolscripts);
+ADD_TOOL("dls", " [output=linked.csv]", "dump linked scripts", L"BlackOps4.exe", linkedscripts);
+ADD_TOOL("dfunc", " [output=funcs.csv]", "dump functions", L"BlackOps4.exe", dumpfunctions);
+ADD_TOOL("devents", " [output=events.csv]", "dump registered instance events", L"BlackOps4.exe", events);
+ADD_TOOL("dcfunc", " [output=cfuncs.csv]", "dump cmd functions", L"BlackOps4.exe", dumpcmdfunctions);

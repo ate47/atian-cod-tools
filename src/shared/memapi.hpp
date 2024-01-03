@@ -31,6 +31,7 @@ public:
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const ProcessModuleExport& obj);
+	friend std::wostream& operator<<(std::wostream& os, const ProcessModuleExport& obj);
 private:
 	ProcessModule& m_module;
 };
@@ -63,6 +64,14 @@ public:
 	}
 
 	/*
+	 * Scan for a pattern inside the module
+	 * @param pattern pattern to search
+	 * @param start start location in the module
+	 * @return scan result or 0 for no search
+	 */
+	uintptr_t Scan(const char* pattern, DWORD start = 0);
+
+	/*
 	 * Compute the export names
 	 */
 	void ComputeExports();
@@ -79,6 +88,7 @@ public:
 		return m_exports;
 	}
 	friend std::ostream& operator<<(std::ostream& os, const ProcessModule& obj);
+	friend std::wostream& operator<<(std::wostream& os, const ProcessModule& obj);
 private:
 	std::vector<ProcessModuleExport> m_exports{};
 	ProcessModuleExport m_invalid;
@@ -478,3 +488,6 @@ private:
 std::ostream& operator<<(std::ostream& os, const Process& obj);
 std::ostream& operator<<(std::ostream& os, const ProcessModule& obj);
 std::ostream& operator<<(std::ostream& os, const ProcessModuleExport& obj);
+std::wostream& operator<<(std::wostream& os, const Process& obj);
+std::wostream& operator<<(std::wostream& os, const ProcessModule& obj);
+std::wostream& operator<<(std::wostream& os, const ProcessModuleExport& obj);

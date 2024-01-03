@@ -54,41 +54,51 @@ bool Process::GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD
 }
 
 Process::Process(LPCWCH processName, LPCWCH moduleName) : m_invalid(ProcessModule(*this)) {
-	m_pid = GetProcId(processName);
+	if (processName && *processName) {
+		m_pid = GetProcId(processName);
 
-	if (!m_pid || !GetModuleAddress(m_pid, moduleName, &m_modAddress, &m_modSize)) {
-		m_modAddress = 0;
-		m_modSize = 0;
-	}
-	m_handle = NULL;
-}
-
-Process::Process(LPCCH processName, LPCCH moduleName) : m_invalid(ProcessModule(*this)) {
-	WCHAR processNameW[MAX_PATH + 1] = { 0 };
-	size_t i;
-	for (i = 0; processName[i]; i++) {
-		processNameW[i] = (WCHAR)processName[i];
-	}
-	processNameW[i] = 0;
-
-	m_pid = GetProcId(processNameW);
-
-	if (moduleName) {
-		WCHAR moduleNameW[MAX_PATH + 1] = { 0 };
-		for (i = 0; moduleName[i]; i++) {
-			moduleNameW[i] = (WCHAR)moduleName[i];
-		}
-		moduleNameW[i] = 0;
-		if (!m_pid || !GetModuleAddress(m_pid, moduleNameW, &m_modAddress, &m_modSize)) {
+		if (!m_pid || !GetModuleAddress(m_pid, moduleName, &m_modAddress, &m_modSize)) {
 			m_modAddress = 0;
 			m_modSize = 0;
 		}
 	}
 	else {
-		if (!m_pid || !GetModuleAddress(m_pid, NULL, &m_modAddress, &m_modSize)) {
-			m_modAddress = 0;
-			m_modSize = 0;
+		m_pid = 0;
+	}
+	m_handle = NULL;
+}
+
+Process::Process(LPCCH processName, LPCCH moduleName) : m_invalid(ProcessModule(*this)) {
+	if (processName && *processName) {
+		WCHAR processNameW[MAX_PATH + 1] = { 0 };
+		size_t i;
+		for (i = 0; processName[i]; i++) {
+			processNameW[i] = (WCHAR)processName[i];
 		}
+		processNameW[i] = 0;
+
+		m_pid = GetProcId(processNameW);
+
+		if (moduleName) {
+			WCHAR moduleNameW[MAX_PATH + 1] = { 0 };
+			for (i = 0; moduleName[i]; i++) {
+				moduleNameW[i] = (WCHAR)moduleName[i];
+			}
+			moduleNameW[i] = 0;
+			if (!m_pid || !GetModuleAddress(m_pid, moduleNameW, &m_modAddress, &m_modSize)) {
+				m_modAddress = 0;
+				m_modSize = 0;
+			}
+		}
+		else {
+			if (!m_pid || !GetModuleAddress(m_pid, NULL, &m_modAddress, &m_modSize)) {
+				m_modAddress = 0;
+				m_modSize = 0;
+			}
+		}
+	}
+	else {
+		m_pid = 0;
 	}
 
 	m_handle = NULL;
@@ -324,7 +334,7 @@ bool Process::LoadDll(LPCCH dll) {
 }
 
 ProcessModule& Process::operator[](LPCCH module) {
-	if (!module) {
+	if (!module || !*module) {
 		if (m_modules.size()) {
 			return m_modules[0];
 		}
@@ -363,6 +373,144 @@ const ProcessModule& Process::GetLocationModule(uintptr_t ptr) const {
 	}
 
 	return m_invalid;
+}
+
+uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
+	if (!pattern || !*pattern) {
+		return 0; // bad pattern
+	}
+	std::vector<BYTE*> find{};
+
+	std::vector<BYTE> mask{};
+	std::vector<BYTE> searched{};
+
+	bool mid = true;
+
+	// parse pattern
+	const char* str = pattern;
+	while (*str) {
+		char c = *(str++);
+		if (isspace(c)) {
+			continue;
+		}
+
+		mid = !mid;
+
+		if (c == '?') {
+			if (!mid) {
+				mask.push_back(0);
+				searched.push_back(0);
+			}
+			continue;
+		}
+
+		auto b = utils::ctob(c);
+
+		if (mid) {
+			*(mask.end() - 1) |= 0xF;
+			*(searched.end() - 1) |= b;
+		}
+		else {
+			mask.push_back(0xF0);
+			searched.push_back(b << 4);
+		}
+	}
+
+	// reversed because we set it by default to 0
+	if (!mid) {
+		throw std::runtime_error("Scan pattern has half byte!");
+	}
+
+
+	auto it1 = mask.begin();
+	auto it2 = searched.begin();
+
+	// clear start
+	while (it1 != mask.end()) {
+		if (*it1) {
+			break;
+		}
+		it1 = mask.erase(it1);
+		it2 = searched.erase(it2);
+	}
+
+	if (!mask.size()) {
+		throw std::runtime_error("Empty pattern!");
+	}
+
+	// clear end
+	auto eit1 = mask.end() - 1;
+	auto eit2 = searched.end() - 1;
+	while (eit1 != mask.begin()) {
+		if (*eit1) {
+			break;
+		}
+		eit1 = mask.erase(eit1) - 1;
+		eit2 = searched.erase(eit2) - 1;
+	}
+
+	if (!mask.size()) {
+		throw std::runtime_error("Empty pattern!");
+	}
+
+	if (size <= start_ptr) {
+		// empty
+		return 0;
+	}
+
+	uintptr_t ptr = start + start_ptr;
+	uintptr_t il = size;
+
+	if (il - start_ptr < mask.size()) {
+		// empty
+		return 0;
+	}
+	uintptr_t end = ptr + (il - mask.size() - start_ptr);
+	uintptr_t module_end = start + il;
+
+	if (mask.size() > 0x1000) {
+		throw std::runtime_error("pattern too big!"); // ate lazy
+	}
+
+	CHAR tmpBuffer[0x1000];
+	uintptr_t buff_location = ptr;
+
+	if (!this->m_parent.ReadMemory(tmpBuffer, buff_location, min(buff_location + sizeof(tmpBuffer), module_end) - buff_location)) {
+		// can't read memory
+		std::cerr << "Can't read start memory\n";
+		return 0;
+	}
+
+	while (ptr != end) {
+		if (ptr + mask.size() > buff_location + sizeof(tmpBuffer)) {
+			buff_location = ptr;
+			// 0x00007ffac91de000 > 
+			// 0x00007ffac91defa6
+			assert(module_end > buff_location);
+			auto len = min(buff_location + sizeof(tmpBuffer), module_end) - buff_location;
+			if (!this->m_parent.ReadMemory(tmpBuffer, buff_location, len)) {
+				// can't read memory
+				std::cerr << "Can't read next memory block of size 0x" << std::hex << len << " at 0x" << buff_location << "\n";
+				return 0;
+			}
+		}
+		size_t loc = 0;
+
+		do {
+			if ((tmpBuffer[ptr - buff_location + loc] & mask[loc]) != searched[loc]) {
+				break;
+			}
+		} while (++loc < mask.size());
+
+		// it's a match
+		if (loc == mask.size()) {
+			return ptr;
+		}
+
+		ptr++;
+	}
+
+	return 0;
 }
 
 void ProcessModule::ComputeExports() {
@@ -457,6 +605,31 @@ std::ostream& operator<<(std::ostream& os, const ProcessModule& obj) {
 }
 
 std::ostream& operator<<(std::ostream& os, const ProcessModuleExport& obj) {
+	if (!obj) {
+		return os << "[BAD_EXPORT]";
+	}
+	if (obj.m_location >= obj.m_module.start) {
+		return os << "[" << obj.m_name << "@" << obj.m_module.name << "+" << std::hex << (obj.m_location - obj.m_module.start) << "]";
+	}
+	return os << "[" << obj.m_name << "@" << std::hex << obj.m_location << "]";
+}
+
+
+std::wostream& operator<<(std::wostream& os, const Process& obj) {
+	if (!obj) {
+		return os << "[BAD_PROCESS]";
+	}
+	return os << "[proc: pid=" << obj.m_pid << "]";
+}
+
+std::wostream& operator<<(std::wostream& os, const ProcessModule& obj) {
+	if (!obj) {
+		return os << "[BAD_MODULE]";
+	}
+	return os << "[" << obj.name << "@" << std::hex << obj.start << "]";
+}
+
+std::wostream& operator<<(std::wostream& os, const ProcessModuleExport& obj) {
 	if (!obj) {
 		return os << "[BAD_EXPORT]";
 	}

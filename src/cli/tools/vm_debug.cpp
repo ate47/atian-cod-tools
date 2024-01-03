@@ -604,4 +604,4 @@ int vmdebug(const Process& proc, int argc, const char* argv[]) {
 	return tool::OK;
 }
 
-ADD_TOOL("dbg", "", "vm debuger", true, vmdebug);
+ADD_TOOL("dbg", "", "vm debuger", nullptr, vmdebug);

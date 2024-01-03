@@ -272,8 +272,8 @@ namespace {
 #ifndef CI_BUILD
 
 // removed from CI build to add some challenge to the skids
-ADD_TOOL("rosetta", " [rosetta_file] [compiled script dump]", "Compute the opcodes of a dump using a Rosetta file", false, rosetta);
-ADD_TOOL("gscfreq", "", "Frequency of opcodes", false, gscfreq);
-ADD_TOOL("vtdr", "", "VTable tests", false, vtabledumread);
+ADD_TOOL("rosetta", " [rosetta_file] [compiled script dump]", "Compute the opcodes of a dump using a Rosetta file", nullptr, rosetta);
+ADD_TOOL("gscfreq", "", "Frequency of opcodes", nullptr, gscfreq);
+ADD_TOOL("vtdr", "", "VTable tests", nullptr, vtabledumread);
 
 #endif

@@ -114,7 +114,7 @@ namespace {
 
 #ifdef DEBUG
 
-ADD_TOOL("gscmerge", "[output] [files]+", "merge GSC files", false, gscmerge);
+ADD_TOOL("gscmerge", "[output] [files]+", "merge GSC files", nullptr, gscmerge);
 
 #endif
 

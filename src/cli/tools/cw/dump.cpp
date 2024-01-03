@@ -275,13 +275,7 @@ namespace {
         ASSET_TYPE_COUNT
     };
 
-	int dumppoolcw(const Process& __proc, int argc, const char* argv[]) {
-		Process proc{ "BlackOpsColdWar.exe" };
-
-		if (!proc || !proc.Open()) {
-			std::cerr << "Can't find process\n";
-			return tool::BASIC_ERROR;
-		}
+	int dumppoolcw(const Process& proc, int argc, const char* argv[]) {
 
 		LPCCH outFile;
 		if (argc == 2) {
@@ -395,13 +389,7 @@ namespace {
 		return tmp_buff;
 	}
 
-	int dpnamescw(const Process& __proc, int argc, const char* argv[]) {
-		Process proc{ "BlackOpsColdWar.exe" };
-
-		if (!proc || !proc.Open()) {
-			std::cerr << "Can't find process\n";
-			return tool::BASIC_ERROR;
-		}
+	int dpnamescw(const Process& proc, int argc, const char* argv[]) {
 
 		auto loc = proc[0xD7C8D90];
 
@@ -431,5 +419,5 @@ namespace {
 	}
 
 }
-ADD_TOOL("wpscw", "", "write pooled scripts (cw)", false, dumppoolcw);
-ADD_TOOL("dpncw", "", "dump pool names (cw)", false, dpnamescw);
+ADD_TOOL("wpscw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
+ADD_TOOL("dpncw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);

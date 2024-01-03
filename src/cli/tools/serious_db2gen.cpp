@@ -89,7 +89,7 @@ namespace {
 
 		return tool::OK;
 	}
-
-	ADD_TOOL("serious_db", " ([type] [vm])+", "Create a t7compiler database", false, builddb);
+	
+	ADD_TOOL("serious_db", " ([type] [vm])+", "Create a t7compiler database", nullptr, builddb);
 }
 

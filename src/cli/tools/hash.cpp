@@ -54,7 +54,7 @@ int collisiontool(const Process& proc, int argc, const char* argv[]) {
 	return tool::OK;
 }
 
-ADD_TOOL("lookup", " (string)*", "lookup strings", false, lookuptool);
-ADD_TOOL("h32", " (string)*", "hash strings", false, hash32);
-ADD_TOOL("h64", " (string)*", "hash strings", false, hash64);
-ADD_TOOL("str", "", "check collisions in the string file", false, collisiontool);
+ADD_TOOL("lookup", " (string)*", "lookup strings", nullptr, lookuptool);
+ADD_TOOL("h32", " (string)*", "hash strings", nullptr, hash32);
+ADD_TOOL("h64", " (string)*", "hash strings", nullptr, hash64);
+ADD_TOOL("str", "", "check collisions in the string file", nullptr, collisiontool);

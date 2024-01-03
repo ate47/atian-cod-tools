@@ -40,5 +40,5 @@ static int resolver(const Process& unused, int argc, const char* argv[]) {
 }
 
 #ifdef DEBUG
-ADD_TOOL("zlib", " [file]", "zlib extract", false, resolver);
+ADD_TOOL("zlib", " [file]", "zlib extract", nullptr, resolver);
 #endif

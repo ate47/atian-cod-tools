@@ -5,8 +5,8 @@ std::map<std::string, tool::toolfunctiondata*>& tool::tools() {
 	return map;
 }
 
-tool::toolfunctiondata::toolfunctiondata(LPCCH name, LPCCH usage, LPCCH description, bool needGame, tool::toolfunction func)
-	: m_name(name), m_usage(usage), m_description(description), m_needGame(needGame), m_func(func) {
+tool::toolfunctiondata::toolfunctiondata(LPCCH name, LPCCH usage, LPCCH description, LPCWCH game, tool::toolfunction func)
+	: m_name(name), m_usage(usage), m_description(description), m_game(game), m_func(func) {
 	if (name) {
 		tools()[name] = this;
 	}
@@ -21,7 +21,7 @@ bool tool::toolfunctiondata::operatorbool() const {
 }
 
 const tool::toolfunctiondata& tool::findtool(LPCCH name) {
-	static tool::toolfunctiondata invalid{ NULL, NULL, NULL, false, NULL };
+	static tool::toolfunctiondata invalid{ NULL, NULL, NULL, NULL, NULL };
 
 	auto& tls = tools();
 

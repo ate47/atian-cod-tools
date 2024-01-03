@@ -56,4 +56,4 @@ namespace {
 
 }
 
-ADD_TOOL("dluif", "", "dump lui cfunc", true, dump_luifuncs);
+ADD_TOOL("dluif", "", "dump lui cfunc", L"BlackOps4.exe", dump_luifuncs);

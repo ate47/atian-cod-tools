@@ -134,4 +134,22 @@ namespace utils {
 	 * @param predicate predicate
 	 */
 	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate);
+
+	/*
+	 * Get a char to a byte value, throw invalid_argument for bad character
+	 * @param c char value (a-fA-F0-9)
+	 * @return BYTE value 0x0-0xf
+	 */
+	inline BYTE ctob(char c) {
+		if (c >= 'A' && c <= 'F') {
+			return (BYTE)(c - 'A' + 0xA);
+		}
+		if (c >= 'a' && c <= 'f') {
+			return (BYTE)(c - 'a' + 0xA);
+		}
+		if (c >= '0' && c <= '9') {
+			return (BYTE)(c - '0' + 0);
+		}
+		throw std::invalid_argument(std::format("Invalid character {:x}", c));
+	}
 }

@@ -253,4 +253,4 @@ static int resolver(const Process& unused, int argc, const char* argv[]) {
 }
 
 
-ADD_TOOL("resolver", " [cfg_file]", "hash resolver", false, resolver);
+ADD_TOOL("resolver", " [cfg_file]", "hash resolver", nullptr, resolver);

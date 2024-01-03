@@ -59,4 +59,4 @@ int mod(const Process& unused, int argc, const char* argv[]) {
 	return md.m_func(argc, argv);
 }
 
-ADD_TOOL("mod", " [modname] [options]", "mods", false, mod);
+ADD_TOOL("mod", " [modname] [options]", "mods", nullptr, mod);

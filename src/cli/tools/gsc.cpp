@@ -1671,5 +1671,5 @@ int gscinfo(const Process& proc, int argc, const char* argv[]) {
     return ret;
 }
 
-ADD_TOOL("gscinfo", " (intput)*", "write info about a script in asm file", false, gscinfo);
-ADD_TOOL("dds", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", false, dumpdataset);
+ADD_TOOL("gscinfo", " (intput)*", "write info about a script in asm file", nullptr, gscinfo);
+ADD_TOOL("dds", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", nullptr, dumpdataset);

@@ -17,16 +17,15 @@ int main(int argc, const char *argv[]) {
 		return -1;
 	}
 
-	const auto app = L"blackops4.exe";
-	Process proc(app);
+	Process proc(tool.m_game);
 
-	if (tool.m_needGame) {
+	if (tool.m_game) {
 
 		if (!proc) {
-			std::wcerr << L"Can't find game process " << app << L"\n";
+			std::wcerr << L"Can't find game process " << tool.m_game << L"\n";
 			return -1;
 		}
-		std::wcout << std::hex << L"Find process " << app << L":" << proc.m_pid << L"\n";
+		std::wcout << "Find process " << tool.m_game << proc << "\n";
 
 		if (!proc.Open()) {
 			std::cerr << "Can't open game process: x" << std::hex << GetLastError() << "\n";

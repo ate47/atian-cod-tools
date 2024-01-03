@@ -14,9 +14,9 @@ namespace tool {
 		LPCCH m_name;
 		LPCCH m_usage;
 		LPCCH m_description;
-		bool m_needGame;
+		LPCWCH m_game;
 		tool::toolfunction m_func;
-		toolfunctiondata(LPCCH name, LPCCH usage, LPCCH description, bool needGame, tool::toolfunction func);
+		toolfunctiondata(LPCCH name, LPCCH usage, LPCCH description, LPCWCH game, tool::toolfunction func);
 
 		bool operator!() const;
 		bool operatorbool() const;
