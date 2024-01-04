@@ -1,9 +1,12 @@
-- bo4 dll
-	- add gsc builtin function `ACTSLogPrint(object)->undefined` to print an object
-	- add gsc builtin function `ACTSLookup(hash|string?)->hash|string?` lookup an object
-	- allow dev calls
-	- log error messages in acts-bo4.log
-	- use strings.txt if available
-	- print location in case of runtime errors
+- cw dll
+  - decrypt GSC strings
 - gsc decompiler
-	- add support for gsic files
+	- add support for CW GSC VM38
+- tools
+  - tools to dump bo4 pools (ScriptBundles, BGCache, Gametype, Maps)
+  - tools to dump cw compiled scripts and pools
+  - HKS LUA header dump
+  - LUI func dump
+- mods
+  - bocw dll inject
+  - bocw EE unlocker
