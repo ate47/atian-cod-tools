@@ -1,6 +1,6 @@
 # Atian Call of Duty Tools
 
-My set of tools for Call of Duty. The code is more important that the features, so feel free to reuse it.
+My set of tools for Call of Duty. The code is more important than the features, so feel free to reuse it. 🙂
 
 **Supported games**
 - Call of Duty: Black Ops 4 (T8)
