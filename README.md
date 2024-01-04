@@ -44,7 +44,7 @@ Tools to dump from the game memory, most of these files can be seen in the [t8-a
 
 ### Decompiler/Disassembler
 
-Tools to decompile or disassemble the GSC scripts, a bo4 script decompilation is available in the [bo4-source repo](https://github.com/ate47/bo4-source).
+Tools to decompile or disassemble the GSC scripts, a bo4 script decompilation is available in the [bo4-source](https://github.com/ate47/bo4-source) and [bocw-source](https://github.com/ate47/bocw-source) repositories.
 
 - gsc disassembler, made in 3 days with a lot of alcohol so don't use it. `acts gscinfo -a -o "output" [input=scriptparsetree]`
 - gsc decompiler, same as the disassembler, but 10 days after, not any better. `acts gscinfo -g -o "output" [input=scriptparsetree]`
