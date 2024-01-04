@@ -42,14 +42,54 @@ namespace {
     };
     
     struct ScriptParseTree {
-        uint64_t name;
+        UINT64 name;
         uintptr_t buffer; // GSC_OBJ*
         int len;
     };
-
-
-    enum XAssetType : BYTE
+    union __declspec(align(8)) stringtable_cell_value
     {
+        byte bytes[16];
+        const char* string_value;
+        int64_t int_value;
+        float float_value;
+        byte bool_value;
+        UINT64 hash_value;
+    };
+    enum stringtable_cell_type : BYTE {
+        STC_TYPE_UNDEFINED = 0x0,
+        STC_TYPE_STRING = 0x1,
+        STC_TYPE_HASHED2 = 0x2,
+        STC_TYPE_INT = 0x4,
+        STC_TYPE_FLOAT = 0x5,
+        STC_TYPE_BOOL = 0x6,
+        STC_TYPE_HASHED7 = 0x7,
+        STC_TYPE_HASHED8 = 0x8,
+    };
+
+    struct stringtable_cell {
+        stringtable_cell_value value;
+        uint32_t pad10;
+        stringtable_cell_type type;
+    };
+
+
+    struct StringTable  {
+        UINT64 name;
+        int columnCount;
+        int rowCount;
+        int cellcount;
+        int unk24;
+        uintptr_t cells;
+        uintptr_t values; // stringtable_cell* 
+    };
+
+    struct FuncInfo {
+        const char* pool;
+        uintptr_t offset;
+        int size;
+    };
+
+    enum XAssetType : BYTE {
         ASSET_TYPE_ZONE = 0,
         ASSET_TYPE_ASSETLIST = 1,
         ASSET_TYPE_PHYSPRESET = 2,
@@ -273,6 +313,52 @@ namespace {
         ASSET_TYPE_SCENARIO = 220,
         ASSET_TYPE_COUNT
     };
+    
+    FuncInfo func_info_cw[] = {
+        { "GSC-Function-d7b8d60", 0xD7B8D60, 0x8 },
+        { "GSC-Function-deb19b0", 0xDEB19B0, 0x1C1 },
+        { "GSC-Function-d7a3660", 0xD7A3660, 0x1AE },
+        { "GSC-Function-d8136b0", 0xD8136B0, 0x4D },
+        { "GSC-Function-d7c1270", 0xD7C1270, 0x99 },
+        { "GSC-Function-d7d4d00", 0xD7D4D00, 0x4E },
+        { "GSC-Function-d7fffc0", 0xD7FFFC0, 0x1A },
+        { "GSC-Function-d7f1950", 0xD7F1950, 0xC },
+        { "GSC-Function-d7d3590", 0xD7D3590, 0xD },
+        { "GSC-Function-d7d85e0", 0xD7D85E0, 0x6 },
+        { "GSC-Function-d7f1ad0", 0xD7F1AD0, 0x1 },
+        { "GSC-Function-d7ed260", 0xD7ED260, 0x1 },
+        { "GSC-Function-d76d7d0", 0xD76D7D0, 0x1 },
+        { "CSC-Function-deae040", 0xDEAE040, 0x1AA },
+        { "CSC-Function-d8136b0", 0xD8136B0, 0x4D },
+        { "CSC-Function-d7c1270", 0xD7C1270, 0x99 },
+        { "CSC-Function-d7d4d00", 0xD7D4D00, 0x4E },
+        { "CSC-Function-d7fffc0", 0xD7FFFC0, 0x1A  },
+        { "CSC-Function-dec5d10", 0xDEC5D10, 0x7A },
+        { "CSC-Function-d7f1200", 0xD7F1200, 0x2C },
+        { "CSC-Function-d7f37f0", 0xD7F37F0, 0xF },
+        { "CSC-Function-d7d82e0", 0xD7D82E0, 0x10 },
+        { "CSC-Function-d7d8800", 0xD7D8800, 0x24 },
+        { "CSC-Function-d7d9410", 0xD7D9410, 0x28 },
+        { "GSC-Method-d7a8ef0", 0xD7A8EF0, 0x23B },
+        { "GSC-Method-d7b8ea0", 0xD7B8EA0, 0x2C },
+        { "GSC-Method-d7b8620", 0xD7B8620, 0x3A },
+        { "GSC-Method-d7ecd70", 0xD7ECD70, 0x15 },
+        { "GSC-Method-d7b3a60", 0xD7B3A60, 0x94 },
+        { "GSC-Method-d7ed580", 0xD7ED580, 0x4 },
+        { "GSC-Method-d7bba50", 0xD7BBA50, 0x98 },
+        { "GSC-Method-d7c26f0", 0xD7C26F0, 0xA },
+        { "GSC-Method-d7afd00", 0xD7AFD00, 0x10E },
+        { "GSC-Method-d7d3730", 0xD7D3730, 0x1 },
+        { "GSC-Method-d7f1b60", 0xD7F1B60, 0x6 },
+        { "GSC-Method-d7efd70", 0xD7EFD70, 0x15 },
+        { "GSC-Method-deb52d0", 0xDEB52D0, 0x1B4 },
+        { "CSC-Method-d79e840", 0xD79E840, 0x186 },
+        { "CSC-Method-d7b9730", 0xD7B9730, 0x17 },
+        { "CSC-Method-d7f1060", 0xD7F1060, 0xD },
+        { "CSC-Method-d7d84e0", 0xD7D84E0, 0x4 },
+        { "CSC-Method-d7d8c80", 0xD7D8C80, 0x3 },
+        { "CSC-Method-d7d9940", 0xD7D9940, 0x13 },
+    };
 
 	int dumppoolcw(const Process& proc, int argc, const char* argv[]) {
 
@@ -416,7 +502,53 @@ namespace {
 
 		return tool::OK;
 	}
+    int dfuncscw(const Process& proc, int argc, const char* argv[]) {
+        hashutils::ReadDefaultFile();
+        std::ofstream out{ "funcs_cw.csv" };
 
+        if (!out) {
+            std::cerr << "Can't open output file\n";
+            return tool::BASIC_ERROR;
+        }
+
+        out << "pool,func,minargs,maxargs,type,address,definition";
+
+        struct BuiltinFunctionDef {
+            UINT32 canonId;
+            int min_args;
+            int max_args;
+            uintptr_t actionFunc;
+            int type;
+        };
+
+        for (const auto& func : func_info_cw) {
+            auto pool = std::make_unique<BuiltinFunctionDef[]>(func.size);
+            
+            if (!proc.ReadMemory(&pool[0], proc[func.offset], sizeof(pool[0]) * func.size)) {
+                std::cerr << "Can't read pool " << std::hex << func.offset << "\n";
+                continue;
+            }
+
+            for (size_t i = 0; i < func.size; i++) {
+                out
+                    << "\n" 
+                    << func.pool << "," 
+                    << hashutils::ExtractTmp("function", pool[i].canonId) << ","
+                    << pool[i].min_args << ","
+                    << pool[i].max_args << ","
+                    << pool[i].type << ","
+                    ;
+                proc.WriteLocation(out, pool[i].actionFunc) << ",";
+            }
+        }
+
+        out.close();
+
+        std::cout << "done\n";
+
+        return tool::OK;
+    }
 }
 ADD_TOOL("wpscw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
 ADD_TOOL("dpncw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
+ADD_TOOL("dfuncscw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
