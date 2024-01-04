@@ -115,6 +115,40 @@ project "AtianCodToolsBO4DLL"
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
+    
+project "AtianCodToolsBOCWDLL"
+    kind "SharedLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts-bocw-dll"
+    
+    files {
+        "./src/bocw-dll/**.hpp",
+        "./src/bocw-dll/**.h",
+        "./src/bocw-dll/**.cpp",
+    }
+
+    includedirs {
+        "src/bo4-dll",
+        "src/shared",
+    -- link detours
+		"deps/Detours/src/",
+        "deps/asmjit/src/",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    links { "detours" }
+    links { "asmjit" }
+    dependson "ACTSSharedLibrary"
+    dependson "detours"
+    dependson "asmjit"
 
 project "AtianCodToolsUI"
     kind "WindowedApp"

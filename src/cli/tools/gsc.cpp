@@ -224,19 +224,18 @@ struct T9GSCOBJ {
     UINT16 includes_count;
     UINT16 unk26;
     UINT32 loc_28;
-    UINT32 loc_2C;
+    UINT32 start_exports;
     UINT32 string_offset;
     UINT32 includes_table;
     UINT32 exports_tables;
     UINT32 import_tables;
+    UINT32 unk_40;
     UINT32 globalvar_offset;
     UINT32 file_size;
-    UINT32 unk_48;
     UINT32 unk_4C;
-    UINT16 unk_50;
+    UINT16 export_size;
     UINT16 unk_52;
-    UINT16 unk_54;
-    UINT16 unk_56;
+    UINT32 unk_54;
 };
 
 GSCOBJReader::GSCOBJReader(BYTE* file) : file(file) {}
@@ -433,6 +432,9 @@ namespace {
         char* DecryptString(char* str) override {
             return decrypt::DecryptString(str);
         }
+        bool IsValidMagic() override {
+            return *reinterpret_cast<UINT64*>(file) == 0x36000a0d43534780;
+        }
     };
 
     class T9GSCOBJReader : public GSCOBJReader {
@@ -444,14 +446,14 @@ namespace {
                 << std::hex
                 << "// crc: 0x" << std::hex << data->crc << "\n"
                 << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->file_size << "\n"
+                << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
                 << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
                 << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
                 << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
                 << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_tables << ")\n"
                 << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
                 << std::right
-                << std::flush; 
+                << std::flush;
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
         }
@@ -490,7 +492,7 @@ namespace {
             return Ptr<T9GSCOBJ>()->string_offset;
         }
         UINT32 GetFileSize() override {
-            return Ptr<T8GSCOBJ>()->script_size;
+            return Ptr<T9GSCOBJ>()->file_size;
         }
         size_t GetHeaderSize() override {
             return sizeof(T9GSCOBJ);
@@ -501,6 +503,9 @@ namespace {
 #else
             return str;
 #endif
+        }
+        bool IsValidMagic() override {
+            return *reinterpret_cast<UINT64*>(file) == 0x38000a0d43534780;
         }
     };
 
@@ -579,6 +584,11 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     }
 
     std::shared_ptr<GSCOBJReader> scriptfile = readerBuilder->second(data);
+
+    if (!scriptfile->IsValidMagic()) {
+        std::cerr << "Bad magic 0x" << std::hex << scriptfile->Ref<UINT64>() << " for file " << path << "\n";
+        return -1;
+    }
 
     tool::gsc::RosettaStartFile(*scriptfile);
 
@@ -660,32 +670,38 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             LPCH encryptedString = scriptfile->Ptr<CHAR>(str->string);
 
-            size_t len = (size_t)reinterpret_cast<BYTE*>(encryptedString)[1] - 1;
-            BYTE type = *reinterpret_cast<BYTE*>(encryptedString);
+            size_t len{};
+            BYTE type{};
+            if (scriptfile->GetVM() != opcode::VM_T9) {
+                len = (size_t)reinterpret_cast<BYTE*>(encryptedString)[1] - 1;
+                type = *reinterpret_cast<BYTE*>(encryptedString);
 
-            if (str->string + len + 1 > scriptfile->GetFileSize()) {
-                asmout << "bad string location\n";
-                break;
-            }
+                if (str->string + len + 1 > scriptfile->GetFileSize()) {
+                    asmout << "bad string location\n";
+                    break;
+                }
 
-            asmout << "encryption: ";
-            if ((type & 0xC0) != 0x80) {
-                asmout << "0x" << std::hex << (int)type;
-            }
-            else {
-                asmout << "none";
-            }
-            asmout << " len: " << std::dec << len << " -> " << std::flush;
+                asmout << "encryption: ";
+                if ((type & 0xC0) != 0x80) {
+                    asmout << "0x" << std::hex << (int)type;
+                }
+                else {
+                    asmout << "none";
+                }
+                asmout << " len: " << std::dec << len << " -> " << std::flush;
 
+            }
             LPCH cstr = scriptfile->DecryptString(encryptedString);
 
             asmout << '"' << cstr << "\"" << std::flush;
 
-            size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
+            if (scriptfile->GetVM() != opcode::VM_T9) {
+                size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
 
-            if (lenAfterDecrypt != len) {
-                asmout << " ERROR LEN (" << std::dec << lenAfterDecrypt << " != " << len << " for type 0x" << std::hex << (int)type << ")";
-            //    assert(false);
+                if (lenAfterDecrypt != len) {
+                    asmout << " ERROR LEN (" << std::dec << lenAfterDecrypt << " != " << len << " for type 0x" << std::hex << (int)type << ")";
+                    assert(false);
+                }
             }
 
             asmout << "\n";

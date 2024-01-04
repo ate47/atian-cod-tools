@@ -689,6 +689,7 @@ namespace tool::gsc {
         }
 
         virtual UINT64 GetName() = 0;
+        virtual bool IsValidMagic() = 0;
         virtual UINT16 GetExportsCount() = 0;
         virtual UINT32 GetExportsOffset() = 0;
         virtual UINT16 GetIncludesCount() = 0;

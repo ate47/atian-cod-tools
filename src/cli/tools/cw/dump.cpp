@@ -5,33 +5,32 @@ namespace {
 
 	constexpr auto s_assetPools_off = 0x11E50670;
 
-	struct T9GSCOBJ {
-		BYTE magic[8];
-		INT32 crc;
-		INT32 pad;
-		UINT64 name;
-		UINT16 string_count;
-		UINT16 exports_count;
-		UINT16 imports_count;
-		UINT16 unk1E;
-		UINT32 globalvar_count;
-		UINT16 includes_count;
-		UINT16 unk26;
-		UINT32 loc_28;
-		UINT32 loc_2C;
-		UINT32 string_offset;
-		UINT32 includes_table;
-		UINT32 exports_tables;
-		UINT32 import_tables;
-		UINT32 globalvar_offset;
-		UINT32 file_size;
-		UINT32 unk_48;
-		UINT32 unk_4C;
-		UINT16 unk_50;
-		UINT16 unk_52;
-		UINT16 unk_54;
-		UINT16 unk_56;
-	};
+    struct T9GSCOBJ {
+        BYTE magic[8];
+        INT32 crc;
+        INT32 pad;
+        UINT64 name;
+        UINT16 string_count;
+        UINT16 exports_count;
+        UINT16 imports_count;
+        UINT16 unk1E;
+        UINT32 globalvar_count;
+        UINT16 includes_count;
+        UINT16 unk26;
+        UINT32 loc_28;
+        UINT32 start_exports;
+        UINT32 string_offset;
+        UINT32 includes_table;
+        UINT32 exports_tables;
+        UINT32 import_tables;
+        UINT32 unk_40;
+        UINT32 globalvar_offset;
+        UINT32 file_size;
+        UINT32 unk_4C;
+        UINT16 export_size;
+        UINT16 unk_52;
+        UINT32 unk_54;
+    };
 
     struct XAssetPool {
         uintptr_t pool; // void*
