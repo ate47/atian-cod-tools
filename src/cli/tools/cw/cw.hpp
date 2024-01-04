@@ -37,7 +37,6 @@ namespace cw {
 		TYPE_ENT_LIST = 0x1D,
 	};
 
-	void RegisterCWOpCodes();
 	char* DecryptString(char* str);
 }
 

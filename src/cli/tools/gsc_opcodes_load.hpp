@@ -185,11 +185,11 @@ namespace tool::gsc::opcode {
 		OPCODE_T9_IncLocalVariableCached,
 		OPCODE_T9_DecLocalVariableCached,
 		OPCODE_T9_EvalArrayCached,
-		OPCODE_T9_Unknown1de,
-		OPCODE_T9_Unknown42,
-		OPCODE_T9_Unknown77,
-		OPCODE_T9_Unknown4d,
-		OPCODE_T9_Unknown1c,
+		OPCODE_T9_EndOnCallbackParam,
+		OPCODE_T9_GetVarRef,
+		OPCODE_T9_IteratorKey,
+		OPCODE_T9_IteratorVal,
+		OPCODE_T9_IteratorNext,
 
 		OPCODE_COUNT,
 	};

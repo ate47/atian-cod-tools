@@ -1665,6 +1665,9 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
                 if (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF) {
                     asmout << "&";
                 }
+                else if (gscFile.GetVM() == tool::gsc::opcode::VM_T9 && (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
+                    asmout << "*";
+                }
 
                 asmout << hashutils::ExtractTmp("var", lvar.name) << std::flush;
             }
@@ -1672,7 +1675,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
             BYTE mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
             if (ctx.m_vm == opcode::VM_T9) {
-                mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::FLAG_UNK_4;
+                mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
             }
             
             if (lvar.flags & mask) {

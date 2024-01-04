@@ -132,6 +132,9 @@ namespace tool::gsc {
 
             TYPE_ARRAY_FIRSTKEY,
             TYPE_ARRAY_NEXTKEY,
+            TYPE_ARRAY_NEXTKEY_IT,
+            TYPE_ARRAY_NEXTVAL_IT,
+            TYPE_ARRAY_NEXT_IT,
 
             TYPE_ARRAY_BUILD,
             TYPE_STRUCT_BUILD,
@@ -182,7 +185,7 @@ namespace tool::gsc {
         enum T8GSCLocalVarFlag : UINT8 {
             ARRAY_REF = 0x01,
             VARIADIC = 0x02,
-            FLAG_UNK_4 = 0x04 // T9
+            T9_VAR_REF = 0x04 // T9
         };
 
         class OPCodeInfo {
@@ -579,12 +582,6 @@ namespace tool::gsc {
         UINT16 include_count;
         BYTE ukn5a;
         BYTE requires_implements_count;
-
-        /*
-         * Path the code to remove linking
-         * @param context Context to fill during patching
-         */
-        void PatchCode(T8GSCOBJContext& context);
 
         // @return the vm
         inline BYTE GetVm() {

@@ -246,6 +246,24 @@ public:
 	}
 };
 
+class ASMContextNodeRef : public ASMContextNode {
+public:
+	LPCCH m_op;
+	ASMContextNode* m_var;
+	ASMContextNodeRef(LPCCH op, ASMContextNode* var) : ASMContextNode(PRIORITY_VALUE),
+		m_op(op), m_var(var) {
+	}
+
+	void Dump(std::ostream& out, DecompContext& ctx) const override {
+		out << m_op;
+		m_var->Dump(out, ctx);
+	}
+
+	ASMContextNode* Clone() const override {
+		return new ASMContextNodeRef(m_op, m_var->Clone());
+	}
+};
+
 class ASMContextNodeArrayAccess : public ASMContextNode {
 public:
 	ASMContextNode* m_operandleft;
@@ -1309,15 +1327,15 @@ public:
 			else if (flags & T8GSCLocalVarFlag::ARRAY_REF) {
 				out << "&";
 			}
-			else if (context.m_vm == tool::gsc::opcode::VM_T9 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::FLAG_UNK_4)) {
-				out << "?"; // const?
+			else if (context.m_vm == tool::gsc::opcode::VM_T9 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
+				out << "*";
 			}
 
 
 			BYTE mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
 			if (context.m_vm == tool::gsc::opcode::VM_T9) {
-				mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::FLAG_UNK_4;
+				mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
 			}
 
 			if (flags & mask) {
@@ -2004,18 +2022,23 @@ public:
 	}
 };
 
-class OPCodeT9Unk4d : public OPCodeInfo {
+class OPCodeT9Iterator : public OPCodeInfo {
 public:
-	using OPCodeInfo::OPCodeInfo;
+	LPCCH m_op;
+	ASMContextNodeType m_ittype;
+	OPCodeT9Iterator(OPCode id, LPCCH name, LPCCH op, ASMContextNodeType ittype) : OPCodeInfo(id, name), m_op(op), m_ittype(ittype) {
+	}
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 		if (context.m_runDecompiler) {
-			// array shit
-			// TODO:
-			//context.PopASMCNode();
-			// ....??
-			///context.PushASMCNode(...);
+			ASMContextNode* iterator = context.PopASMCNode();
+
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, false, m_ittype);
+
+			node->AddParam(iterator);
+
+			context.PushASMCNode(node);
 		}
 
 		return 0;
@@ -2026,43 +2049,21 @@ public:
 	}
 };
 
-class OPCodeT9Unk42 : public OPCodeInfo {
+class OPCodeT9GetVarRef : public OPCodeInfo {
 public:
+	OPCodeT9GetVarRef() : OPCodeInfo(OPCODE_T9_GetVarRef, "GetVarRef") {}
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 		if (context.m_runDecompiler) {
-			// TODO:
-			//context.GetFieldIdASMCNode();
-			// ....??
-			///context.PushASMCNode(...);
+			context.PushASMCNode(new ASMContextNodeRef("&", context.GetFieldIdASMCNode()->Clone()));
 		}
 
 		return 0;
 	}
 
 	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		return 0;
-	}
-};
-
-class OPCodeT9Unk77 : public OPCodeInfo {
-public:
-	using OPCodeInfo::OPCodeInfo;
-
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto val = *(context.m_bcl++);
-		out << std::hex << "0x" << (int)val << "\n";
-		if (context.m_runDecompiler) {
-			// TODO:
-		}
-
-		return 0;
-	}
-
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.m_bcl++;
 		return 0;
 	}
 };
@@ -2365,7 +2366,7 @@ public:
 				arrayNode = new ASMContextNodeIdentifier(name);
 			}
 
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("firstarray", false, TYPE_ARRAY_FIRSTKEY);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("iterator", false, TYPE_ARRAY_FIRSTKEY);
 
 			node->AddParam(arrayNode);
 
@@ -3997,7 +3998,6 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		// control
 		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_EndOnCallback, "EndOnCallback", "endoncallback", false)); // count = params + self
 		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_EndOn, "EndOn", "endon", false)); // count = params + self
-
 		// ret control
 		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_WaitTill, "WaitTill", "waittill", true)); // count = params + self
 		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout", "waittillmatchtimeout", true));
@@ -4107,11 +4107,11 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromGlobalObject());
 		RegisterOpCodeHandler(new OPCodeT9SetVariableFieldFromEvalArrayRef()); 
 		RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_T9_EvalArrayCached, "EvalArrayCached"));
-		RegisterOpCodeHandler(new OPCodeT9Unk4d(OPCODE_T9_Unknown1c, "T9Unk1c"));
-		RegisterOpCodeHandler(new OPCodeT9Unk4d(OPCODE_T9_Unknown4d, "T9Unk4d"));
-		RegisterOpCodeHandler(new OPCodeT9Unk4d(OPCODE_T9_Unknown1de, "T9Unk1de"));
-		RegisterOpCodeHandler(new OPCodeT9Unk42(OPCODE_T9_Unknown42, "T9Unk42"));
-		RegisterOpCodeHandler(new OPCodeT9Unk77(OPCODE_T9_Unknown77, "T9Unk77"));
+		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_T9_EndOnCallbackParam, "EndOnCallbackParam", "endoncallbackparam", false)); // count = params + self
+		RegisterOpCodeHandler(new OPCodeT9GetVarRef());
+		RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorKey, "IteratorKey", "iteratorkey", TYPE_ARRAY_NEXTKEY_IT));
+		RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorVal, "IteratorVal", "iteratorval", TYPE_ARRAY_NEXTVAL_IT));
+		RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorNext, "IteratorNext", "iteratornext", TYPE_ARRAY_NEXT_IT));
 		
 		RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_IncLocalVariableCached, "IncLocalVariableCached", "++"));
 		RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_DecLocalVariableCached, "DecLocalVariableCached", "--"));
@@ -4839,8 +4839,9 @@ ASMContextNode* JumpCondition(ASMContextNodeJumpOperator* op, bool reversed) {
 int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	/*
 	// INIT STEP
+	// T8
 		var_f15d3f7b = doorblockers;
-		key = firstarray(var_f15d3f7b);
+		key = iterator(var_f15d3f7b);
 	// LOOP STEP
 	LOC_000000fc:
 		LOC_00000100:jumpiffalse(isdefined(key)) LOC_000002f0;
@@ -4862,6 +4863,26 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	var_f15d3f7b is an internal name for the array pointer
 	var_7cbeb6de is an internal name to compute the next array element
 	key is the key name, it might not be used, idea: counting the ref?
+
+	// T9
+	
+	var_a970ac8 = var_f04dd3ef;
+	var_b4eeb030 = iterator(var_a970ac8);
+	while (isdefined(var_b4eeb030)) {
+	    var_23ea8daa = iteratorkey(var_b4eeb030);
+	    e_clip = iteratorval(var_b4eeb030);
+	    var_bff7a077 = iteratornext(var_b4eeb030);
+
+		// loop code
+
+		// N+1 STEP
+	    var_b4eeb030 = var_bff7a077;
+	}
+	var_a970ac8 is a ref to the array
+	var_b4eeb030 is an iterator
+
+	var_23ea8daa is the key, it might not be used, idea: counting the ref?
+	e_clip is the value
 	*/
 
 	size_t index = 0;
@@ -4918,6 +4939,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			continue; // not key = firstarray(...)
 		}
 
+		// For T9 it is the iterator name
 		UINT32 keyValName = static_cast<ASMContextNodeIdentifier*>(setFirstArrayOp->m_left)->m_value;
 
 		/*
@@ -4930,8 +4952,9 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
+		size_t forincsize = ctx.m_vm == VM_T9 ? 4 : 3;
 
-		if (index + 3 >= m_statements.size()) {
+		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
 			continue;
 		}
@@ -4953,26 +4976,74 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			index += moveDelta;
 			continue;
 		}
-
 		index++;
 		moveDelta--;
-		auto& nextArrayStmt = m_statements[index];
 
-		if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY) {
-			index += moveDelta;
-			continue;
+		// keyValName
+		UINT32 itemValName;
+		if (ctx.m_vm == VM_T9) {
+			/*
+				var_d9f19f82 = iteratorkey(var_e4aec0cf);
+				var_8487602c = iteratorval(var_e4aec0cf);
+				var_60ff8ae8 = iteratornext(var_e4aec0cf);
+			*/
+			auto& iteratorvalStmt = m_statements[index];
+
+			if (iteratorvalStmt.node->m_type != TYPE_SET) {
+				index += moveDelta;
+				continue;
+			}
+			index++;
+			moveDelta--;
+
+			auto& iteratornextStmt = m_statements[index];
+
+			if (iteratornextStmt.node->m_type != TYPE_SET) {
+				index += moveDelta;
+				continue;
+			}
+
+			auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
+			auto* setValArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(iteratorvalStmt.node);
+			auto* setNextArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(iteratornextStmt.node);
+
+			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER 
+				|| setValArrayOp->m_left->m_type != TYPE_IDENTIFIER 
+				|| setNextArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
+				index += moveDelta;
+				continue; // not our 3 sets
+			}
+
+			keyValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
+			itemValName = static_cast<ASMContextNodeIdentifier*>(setValArrayOp->m_left)->m_value;
+
+			index++;
+			moveDelta--;
 		}
-		auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
+		else {
+			/*
+				doorblocker = var_f15d3f7b[key];
+				nextarray(var_f15d3f7b, var_7cbeb6de)
+			*/
+			auto& nextArrayStmt = m_statements[index];
 
-		if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
-			index += moveDelta;
-			continue; // not key = firstarray(...)
+			if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY) {
+				index += moveDelta;
+				continue;
+			}
+			auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
+
+			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
+				index += moveDelta;
+				continue; // not itemValName = firstarray(...)
+			}
+
+			itemValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
+
+			index++;
+			moveDelta--;
 		}
 
-		UINT32 itemValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
-
-		index++;
-		moveDelta--;
 
 		/*
 		LOC_000002e4:
