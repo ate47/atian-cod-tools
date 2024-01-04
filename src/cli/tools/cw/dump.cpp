@@ -48,12 +48,13 @@ namespace {
     };
     union __declspec(align(8)) stringtable_cell_value
     {
-        byte bytes[16];
+        byte bytes[8];
         const char* string_value;
         int64_t int_value;
         float float_value;
         byte bool_value;
         UINT64 hash_value;
+        uintptr_t pointer_value;
     };
     enum stringtable_cell_type : BYTE {
         STC_TYPE_UNDEFINED = 0x0,
@@ -72,15 +73,22 @@ namespace {
         stringtable_cell_type type;
     };
 
+    struct RawFileEntry {
+        uintptr_t name; // 0x8
+        uintptr_t size; // 0x18
+        uintptr_t buffer; // 0x20
+    };
 
     struct StringTable  {
         UINT64 name;
         int columnCount;
         int rowCount;
         int cellcount;
-        int unk24;
-        uintptr_t cells;
+        int unk14;
         uintptr_t values; // stringtable_cell* 
+        uintptr_t unk20;
+        uintptr_t unk28;
+        uintptr_t unk30;
     };
 
     struct FuncInfo {
@@ -548,7 +556,301 @@ namespace {
 
         return tool::OK;
     }
+
+    class PoolOption {
+    public:
+        bool m_help = false;
+        LPCCH m_output = "poolcw";
+        LPCCH m_dump_hashmap = NULL;
+
+        bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+
+            // default values
+            for (size_t i = startIndex; i < endIndex; i++) {
+                LPCCH arg = args[i];
+
+                if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
+                    m_help = true;
+                }
+                else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
+                    if (i + 1 == endIndex) {
+                        std::cerr << "Missing value for param: " << arg << "!\n";
+                        return false;
+                    }
+                    m_output = args[++i];
+                }
+                else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
+                    if (i + 1 == endIndex) {
+                        std::cerr << "Missing value for param: " << arg << "!\n";
+                        return false;
+                    }
+                    m_dump_hashmap = args[++i];
+                }
+            }
+            return true;
+        }
+        void PrintHelp(std::ostream& out) {
+            out << "-h --help            : Print help\n"
+                << "-o --output [d]      : Output dir\n"
+                ;
+        }
+    };
+
+    int pooltool(const Process& proc, int argc, const char* argv[]) {
+        using namespace pool;
+        if (argc < 3) {
+            return tool::BAD_USAGE;
+        }
+        PoolOption opt;
+
+        if (!opt.Compute(argv, 2, argc) || opt.m_help) {
+            opt.PrintHelp(std::cout);
+            return tool::OK;
+        }
+
+        hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
+        hashutils::ReadDefaultFile();
+
+        std::error_code ec;
+        std::filesystem::create_directories(opt.m_output, ec);
+
+        auto id = std::atoi(argv[2]);
+
+        std::cout << std::hex << "pool id: " << id << "\n";
+
+        XAssetPool entry{};
+
+        if (!proc.ReadMemory(&entry, proc[s_assetPools_off] + sizeof(entry) * id, sizeof(entry))) {
+            std::cerr << "Can't read pool entry\n";
+            return tool::BASIC_ERROR;
+        }
+
+        CHAR outputName[256];
+        sprintf_s(outputName, "%s/pool_%x", opt.m_output, id);
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        std::cout << std::hex
+            << "pool ........ " << entry.pool << "\n"
+            << "free head ... " << entry.freeHead << "\n"
+            << "item size ... " << entry.itemSize << "\n"
+            << "count ....... " << entry.itemCount << "\n"
+            << "alloc count . " << entry.itemAllocCount << "\n"
+            << "singleton ... " << (entry.isSingleton ? "true" : "false") << "\n"
+            ;
+
+        switch (id) {
+        case ASSET_TYPE_STRINGTABLE: {
+
+            auto stPool = std::make_unique<StringTable[]>(entry.itemAllocCount);
+
+            if (!proc.ReadMemory(&stPool[0], entry.pool, sizeof(stPool[0]) * entry.itemAllocCount)) {
+                std::cerr << "Can't read pool data\n";
+                return tool::BASIC_ERROR;
+            }
+
+            size_t readFile = 0;
+            for (size_t i = 0; i < entry.itemAllocCount; i++) {
+                const auto& e = stPool[i];
+
+                const auto size = e.columnCount * e.rowCount;
+
+                int test;
+                if (!e.values || (size && !proc.ReadMemory(&test, e.values, sizeof(test)))) {
+                    continue; // check that we can read at least the cell
+                }
+
+                auto n = hashutils::ExtractPtr(e.name);
+
+                std::cout << std::dec << i << ": ";
+
+                if (n) {
+                    std::cout << n;
+                    sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+                }
+                else {
+                    std::cout << "file_" << std::hex << e.name << std::dec;
+                    sprintf_s(dumpbuff, "%s/hashed/stringtables/file_%llx.csv", opt.m_output, e.name);
+
+                }
+
+                std::cout << " (columns: " << e.columnCount << ", rows:" << e.rowCount << "/" << std::hex << (entry.pool + i * sizeof(entry)) << std::dec << ") into " << dumpbuff;
+
+
+                std::filesystem::path file(dumpbuff);
+                std::filesystem::create_directories(file.parent_path(), ec);
+
+                if (!std::filesystem::exists(file, ec)) {
+                    readFile++;
+                    std::cout << " (new)";
+                }
+                std::cout << "\n";
+
+                std::ofstream out{ file };
+
+                if (!out) {
+                    std::cerr << "Can't open file " << file << "\n";
+                    continue;
+                }
+
+                auto cell = std::make_unique<stringtable_cell[]>(e.columnCount);
+
+                //e.cells
+                if (!(size)) {
+                    out.close();
+                    continue;
+                }
+
+                for (size_t i = 0; i < e.rowCount; i++) {
+                    if (!proc.ReadMemory(&cell[0], e.values + sizeof(cell[0]) * e.columnCount * i, sizeof(cell[0]) * e.columnCount)) {
+                        std::cerr << "can't read cells for " << dumpbuff << "\n";
+                        out.close();
+                        continue;
+                    }
+                    for (size_t j = 0; j < e.columnCount; j++) {
+                        switch (cell[j].type)
+                        {
+                        case STC_TYPE_UNDEFINED:
+                            out << "undefined";
+                            break;
+                        case STC_TYPE_STRING:
+                            out << ReadTmpStr(proc, cell[j].value.pointer_value);
+                            break;
+                        case STC_TYPE_INT:
+                            out << cell[j].value.int_value;
+                            break;
+                        case STC_TYPE_FLOAT:
+                            out << cell[j].value.float_value;
+                            break;
+                        case STC_TYPE_BOOL:
+                            out << (cell[j].value.bool_value ? "true" : "false");
+                            break;
+                        case STC_TYPE_HASHED7:
+                        case STC_TYPE_HASHED8:
+                            //out << cell[j].type;
+                        case STC_TYPE_HASHED2:
+                            out << "#" << hashutils::ExtractTmp("hash", cell[j].value.hash_value);
+                            break;
+                        default:
+                            //out << "unk type: " << cell[j].type;
+                            out << "?" << std::hex
+                                << cell[j].value.hash_value
+                                //    << ':' << *reinterpret_cast<UINT64*>(&cell[j].value[8])
+                                //    << ':' << *reinterpret_cast<UINT32*>(&cell[j].value[16])
+                                << std::dec;
+                            break;
+                        }
+                        if (j + 1 != e.columnCount) {
+                            out << ",";
+                        }
+                    }
+                    out << "\n";
+                }
+                out.close();
+            }
+            std::cout << "Dump " << readFile << " new file(s)\n";
+            break;
+        }
+        case ASSET_TYPE_RAWFILE:
+        case ASSET_TYPE_RAWFILEPREPROC: {
+            auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
+
+            if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+                std::cerr << "Can't read pool data\n";
+                return tool::BASIC_ERROR;
+            }
+
+            size_t readFile = 0;
+            for (size_t i = 0; i < entry.itemAllocCount; i++) {
+                const auto& e = pool[i];
+
+                int test;
+                if (!e.buffer || (e.size && !proc.ReadMemory(&test, e.buffer, sizeof(test)))) {
+                    continue; // check that we can read at least the data
+                }
+
+                auto n = hashutils::ExtractPtr(e.name);
+
+                std::cout << std::dec << i << ": ";
+
+                if (n) {
+                    std::cout << n;
+                    sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+                }
+                else {
+                    std::cout << "file_" << std::hex << e.name << std::dec;
+                    sprintf_s(dumpbuff, "%s/hashed/rawfile/file_%llx.raw", opt.m_output, e.name);
+
+                }
+
+                std::cout << " into " << dumpbuff;
+
+
+                std::filesystem::path file(dumpbuff);
+                std::filesystem::create_directories(file.parent_path(), ec);
+
+                if (!std::filesystem::exists(file, ec)) {
+                    readFile++;
+                    std::cout << " (new)";
+                }
+                std::cout << "\n";
+
+
+                auto buff = std::make_unique<BYTE[]>(e.size);
+
+                if (!proc.ReadMemory(&buff[0], e.buffer, e.size)) {
+                    std::cerr << "Can't read buffer\n";
+                    continue;
+                }
+
+                if (!utils::WriteFile(file, &buff[0], e.size)) {
+                    std::cerr << "Can't write file\n";
+                    continue;
+                }
+            }
+            std::cout << "Dump " << readFile << " new file(s)\n";
+            break;
+        }
+        default: {
+            std::cout << "Item data\n";
+
+            auto raw = std::make_unique<BYTE[]>(entry.itemSize * entry.itemAllocCount);
+
+            if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
+                std::cerr << "Can't read pool data\n";
+                return tool::BASIC_ERROR;
+            }
+
+            CHAR dumpbuff[MAX_PATH + 10];
+            for (size_t i = 0; i < entry.itemAllocCount; i++) {
+                sprintf_s(dumpbuff, "%s/rawpool/%d/%lld.json", opt.m_output, (int)id, i);
+
+                std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+                std::filesystem::path file(dumpbuff);
+                std::filesystem::create_directories(file.parent_path(), ec);
+
+                std::ofstream defout{ file };
+
+                if (!defout) {
+                    std::cerr << "Can't open output file\n";
+                    continue;
+                }
+
+                tool::pool::WriteHex(defout, entry.pool + entry.itemSize * i, &raw[0] + (entry.itemSize * i), entry.itemSize, proc);
+
+                defout.close();
+            }
+
+        }
+        break;
+        }
+
+        return tool::OK;
+    }
 }
+ADD_TOOL("dpcw", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOpsColdWar.exe", pooltool);
 ADD_TOOL("wpscw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
 ADD_TOOL("dpncw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
 ADD_TOOL("dfuncscw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);

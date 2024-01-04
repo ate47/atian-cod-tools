@@ -55,6 +55,7 @@ dataset.csv
 scriptparsetree*
 output*
 /pool/
+/poolcw/
 vm_codes.db2
 bgpool
 
