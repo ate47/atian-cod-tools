@@ -240,6 +240,14 @@ struct T9GSCOBJ {
 
 GSCOBJReader::GSCOBJReader(BYTE* file) : file(file) {}
 
+// by default no remapping
+BYTE GSCOBJReader::RemapFlagsImport(BYTE flags) {
+    return flags;
+}
+BYTE GSCOBJReader::RemapFlagsExport(BYTE flags) {
+    return flags;
+}
+
 void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
     // patching imports unlink the script refs to write namespace::import_name instead of the address
     auto imports_count = (int)GetImportsCount();
@@ -251,51 +259,32 @@ void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
         const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
         for (size_t j = 0; j < imp->num_address; j++) {
             UINT32* loc;
-            if (GetVM() == opcode::VM_T9) {
-                switch (imp->flags & 0xF) {
-                case 5:
-                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
-                    break;
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 6:
-                case 7:
-                    Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
-                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
-                    break;
-                default:
-                    loc = nullptr;
-                    break;
-                }
-            }
-            else {
-                switch (imp->flags & 0xF) {
-                case 1:
-                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
-                    break;
-                case 2:
-                case 3:
-                case 4:
-                case 5:
-                case 6:
-                case 7:
-                    // here the game fix function calls with a bad number of params,
-                    // but for the decomp/dasm we don't care because we only mind about
-                    // what we'll find on the stack.
-                    Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
-                    loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
-                    break;
-                default:
-                    loc = nullptr;
-                    break;
-                }
+            auto remapedFlags = RemapFlagsImport(imp->flags);
+
+            switch (remapedFlags & CALLTYPE_MASK) {
+            case FUNC_METHOD:
+                loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
+                break;
+            case FUNCTION:
+            case FUNCTION_THREAD:
+            case FUNCTION_CHILDTHREAD:
+            case METHOD:
+            case METHOD_THREAD:
+            case METHOD_CHILDTHREAD:
+                // here the game fix function calls with a bad number of params,
+                // but for the decomp/dasm we don't care because we only mind about
+                // what we'll find on the stack.
+                Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
+                loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
+                break;
+            default:
+                loc = nullptr;
+                break;
             }
             if (loc) {
                 loc[0] = imp->name;
 
-                if (imp->flags & T8GSCImportFlags::GET_CALL) {
+                if (remapedFlags & T8GSCImportFlags::GET_CALL) {
                     // no need for namespace if we are getting the call dynamically (api or inside-code script)
                     loc[1] = 0xc1243180; // ""
                 }
@@ -506,6 +495,43 @@ namespace {
         }
         bool IsValidMagic() override {
             return *reinterpret_cast<UINT64*>(file) == 0x38000a0d43534780;
+        }
+
+        BYTE RemapFlagsImport(BYTE flags) override {
+            BYTE nflags = 0;
+            
+            switch (flags & T9_IF_CALLTYPE_MASK) {
+                case T9_IF_METHOD_CHILDTHREAD: nflags |= METHOD_CHILDTHREAD; break;
+                case T9_IF_METHOD_THREAD: nflags |= METHOD_THREAD; break;
+                case T9_IF_FUNCTION_CHILDTHREAD: nflags |= FUNCTION_CHILDTHREAD; break;
+                case T9_IF_FUNCTION: nflags |= FUNCTION; break;
+                case T9_IF_FUNC_METHOD: nflags |= FUNC_METHOD; break;
+                case T9_IF_FUNCTION_THREAD: nflags |= FUNCTION_THREAD; break;
+                case T9_IF_METHOD: nflags |= METHOD; break;
+                default: nflags |= flags & 0xF; // wtf?
+            }
+
+            nflags |= flags & ~T9_IF_CALLTYPE_MASK;
+
+            return nflags;
+        }
+
+        BYTE RemapFlagsExport(BYTE flags) override {
+            if (flags == T9_EF_CLASS_VTABLE) {
+                return CLASS_VTABLE;
+            }
+            BYTE nflags = 0;
+
+            if (flags & T9_EF_AUTOEXEC) nflags |= AUTOEXEC;
+            if (flags & T9_EF_LINKED) nflags |= LINKED;
+            if (flags & T9_EF_PRIVATE) nflags |= PRIVATE;
+            if (flags & T9_EF_CLASS_MEMBER) nflags |= CLASS_MEMBER;
+            if (flags & T9_EF_EVENT) nflags |= EVENT;
+            if (flags & T9_EF_VE) nflags |= VE;
+            if (flags & T9_EF_CLASS_LINKED) nflags |= CLASS_LINKED;
+            if (flags & T9_EF_CLASS_DESTRUCTOR) nflags |= CLASS_DESTRUCTOR;
+
+            return nflags;
         }
     };
 
@@ -769,7 +795,9 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
             asmout << std::hex << "import ";
 
-            switch (imp->flags & T8GSCImportFlags::CALLTYPE_MASK) {
+            auto remapedFlags = scriptfile->RemapFlagsImport(imp->flags);
+
+            switch (remapedFlags & T8GSCImportFlags::CALLTYPE_MASK) {
             case FUNC_METHOD: asmout << "funcmethod "; break;
             case FUNCTION: asmout << "function "; break;
             case FUNCTION_THREAD: asmout << "function thread "; break;
@@ -778,23 +806,23 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             case METHOD_THREAD: asmout << "method thread "; break;
             case METHOD_CHILDTHREAD: asmout << "method childthread "; break;
             default:
-                asmout << "<errorflag:" << std::hex << (imp->flags & 0xF) << "> ";
+                asmout << "<errorflag:" << std::hex << (remapedFlags & 0xF) << "> ";
                 break;
             }
 
-            if (imp->flags & T8GSCImportFlags::DEV_CALL) {
+            if (remapedFlags & T8GSCImportFlags::DEV_CALL) {
                 asmout << "devcall ";
             }
 
             // they both seem unused
-            if (imp->flags & T8GSCImportFlags::UKN40) {
+            if (remapedFlags & T8GSCImportFlags::UKN40) {
                 asmout << "ukn40 ";
             }
-            if (imp->flags & T8GSCImportFlags::UKN80) {
+            if (remapedFlags & T8GSCImportFlags::UKN80) {
                 asmout << "ukn80 ";
             }
 
-            if ((imp->flags & T8GSCImportFlags::GET_CALL) == 0) {
+            if ((remapedFlags & T8GSCImportFlags::GET_CALL) == 0) {
                 // no need for namespace if we are getting the call dynamically (api or inside-code script)
                 asmout << hashutils::ExtractTmp("namespace", imp->import_namespace) << std::flush << "::";
             }
@@ -860,11 +888,11 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             auto& asmctx = r.first->second;
 
-            exp.DumpFunctionHeader(output, scriptfile->Ptr(), ctx, asmctx);
+            exp.DumpFunctionHeader(output, *scriptfile, ctx, asmctx);
 
             output << " gscasm {\n";
 
-            exp.DumpAsm(output, scriptfile->Ptr(), ctx, asmctx);
+            exp.DumpAsm(output, *scriptfile, ctx, asmctx);
 
             output << "}\n";
 
@@ -872,15 +900,15 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
                 asmctx.ComputeDefaultParamValue();
                 if (opt.m_dasm || opt.m_func_header_post) {
-                    exp.DumpFunctionHeader(output, scriptfile->Ptr(), ctx, asmctx);
+                    exp.DumpFunctionHeader(output, *scriptfile, ctx, asmctx);
                 }
                 output << std::flush;
                 opcode::DecompContext dctx{ 0, 0, asmctx };
                 if (opt.m_dcomp) {
-                    if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
+                    if (scriptfile->RemapFlagsExport(exp.flags) == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = scriptfile->Ptr(exp.address);
                         output << " {\n";
-                        exp.DumpVTable(output, scriptfile->Ptr(), ctx, asmctx, dctx);
+                        exp.DumpVTable(output, *scriptfile, ctx, asmctx, dctx);
                         output << "}\n";
                     }
                     else {
@@ -957,7 +985,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
                     auto& e = masmctxit->second;
 
-                    e.m_exp.DumpFunctionHeader(asmout, scriptfile->Ptr(), ctx, e, 1);
+                    e.m_exp.DumpFunctionHeader(asmout, *scriptfile, ctx, e, 1);
                     asmout << " ";
                     opcode::DecompContext dctx{ 1, 0, e };
                     e.Dump(asmout, dctx);
@@ -980,7 +1008,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
                 const auto& exp = exports[i];
 
-                if (exp.flags == T8GSCExportFlags::CLASS_VTABLE) {
+                if (scriptfile->RemapFlagsExport(exp.flags) == T8GSCExportFlags::CLASS_VTABLE) {
                     continue;
                 }
 
@@ -1000,7 +1028,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
                 auto& asmctx = f->second;
 
-                exp.DumpFunctionHeader(asmout, scriptfile->Ptr(), ctx, asmctx);
+                exp.DumpFunctionHeader(asmout, *scriptfile, ctx, asmctx);
                 asmout << " ";
                 opcode::DecompContext dctx{ 0, 0, asmctx };
                 asmctx.Dump(asmout, dctx);
@@ -1200,7 +1228,7 @@ UINT32 tool::gsc::T8GSCOBJContext::AddStringValue(LPCCH value) {
     return id;
 }
 
-int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx) const {
+int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx) const {
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
@@ -1238,7 +1266,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
                 << " " << std::flush;
 
             // dump rosetta data
-            RosettaAddOpCode((UINT32)(reinterpret_cast<UINT64>(base) - reinterpret_cast<UINT64>(gscFile)), handler->m_id);
+            RosettaAddOpCode((UINT32)(reinterpret_cast<UINT64>(base) - reinterpret_cast<UINT64>(gscFile.Ptr())), handler->m_id);
 
             // pass the opcode
             base += 2;
@@ -1260,7 +1288,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJCo
 }
 
 
-int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const {
+int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const {
     using namespace tool::gsc::opcode;
     UINT16 code = *(UINT16*)ctx.Aligned<UINT16>();
     // main reading loop
@@ -1279,7 +1307,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
 */
     
     if (!ccp || ccp->m_id != OPCODE_CheckClearParams) {
-        dctxt.WritePadding(out) << "Bad opcode: " << std::hex << code << ", expected CheckClearParams\n";
+        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected CheckClearParams\n";
         return -1;
     }
 
@@ -1289,7 +1317,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
 
 
     if (!preScriptCall || preScriptCall->m_id != OPCODE_PreScriptCall) {
-        dctxt.WritePadding(out) << "Bad opcode: " << std::hex << code << ", expected PreScriptCall\n";
+        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected PreScriptCall\n";
         return -1;
     }
 
@@ -1298,8 +1326,16 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
     const auto* spawnStruct = ctx.LookupOpCode(code = *(UINT16*)ctx.Aligned<UINT16>());
 
     
-    if (!spawnStruct || (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction)) {
-        dctxt.WritePadding(out) << "Bad opcode: " << std::hex << code << ", expected ScriptFunctionCall\n";
+    if (!spawnStruct) {
+        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << "\n";
+        return -1;
+    }
+
+    if (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction) {
+        if (gscFile.GetVM() == VM_T9) {
+            return 0; // crc dump
+        }
+        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected ScriptFunctionCall\n";
         return -1;
     }
 
@@ -1308,10 +1344,18 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
 
     ctx.Aligned<UINT16>() += 2; // GetZero
 
-    ctx.Aligned<UINT16>() += 2; // GetGlobalObject
-    ctx.Aligned<UINT16>() += 2; // - classes
 
-    ctx.Aligned<UINT16>() += 2; // EvalFieldVariableRef
+    if (gscFile.GetVM() == VM_T9) {
+        ctx.Aligned<UINT16>() += 2; // EvalFieldVariableFromGlobalObject
+        ctx.Aligned<UINT16>() += 2; // - classes
+    }
+    else {
+
+        ctx.Aligned<UINT16>() += 2; // GetGlobalObject
+        ctx.Aligned<UINT16>() += 2; // - classes
+
+        ctx.Aligned<UINT16>() += 2; // EvalFieldVariableRef
+    }
 
     auto& clsName = ctx.Aligned<UINT32>();
 
@@ -1322,8 +1366,13 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
 
     clsName += 4;
 
-    ctx.Aligned<UINT16>() += 2; // EvalArrayRef
-    ctx.Aligned<UINT16>() += 2; // SetVariableField
+    if (gscFile.GetVM() == VM_T9) {
+        ctx.Aligned<UINT16>() += 2; // SetVariableFieldFromEvalArrayRef
+    }
+    else {
+        ctx.Aligned<UINT16>() += 2; // EvalArrayRef
+        ctx.Aligned<UINT16>() += 2; // SetVariableField
+    }
 
     while (true) {
         auto& func = ctx.Aligned<UINT16>();
@@ -1334,14 +1383,14 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
         const auto* funcOpCode = ctx.LookupOpCode(opcode);
 
         if (!funcOpCode) {
-            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << opcode << "\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << opcode << "\n";
             return -1;
         }
         if (funcOpCode->m_id == OPCODE_End) {
             break; // end
         }
         if (funcOpCode->m_id != OPCODE_GetResolveFunction) {
-            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << opcode << ", excepted GetResolveFunction or End\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << opcode << ", excepted GetResolveFunction or End\n";
             return -1;
         }
 
@@ -1359,7 +1408,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
         uidCodeBase += 2;
 
         if (!uidCodeOpCode) {
-            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << uidCodeOp << ", excepted Getter\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOp << ", excepted Getter\n";
             return -1;
         }
 
@@ -1368,6 +1417,10 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
         switch (uidCodeOpCode->m_id) {
         case OPCODE_GetZero: // INT32
             uid = 0;
+            break;
+        case OPCODE_GetNegUnsignedInteger: // INT32
+            uid = -*(INT32*)ctx.Aligned<INT32>();
+            ctx.m_bcl += 4;
             break;
         case OPCODE_GetNegUnsignedShort: // UINT16
             uid = -*(UINT16*)ctx.Aligned<UINT16>();
@@ -1398,7 +1451,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
             ctx.m_bcl += 2;
             break;
         default:
-            dctxt.WritePadding(out) << "Bad opcode: " << std::hex << uidCodeOpCode->m_id << ", excepted Getter\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOpCode->m_id << ", excepted Getter\n";
             return -1;
         }
 
@@ -1424,9 +1477,14 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOB
         ctx.Aligned<UINT16>() += 2; // CastFieldObject
         ctx.Aligned<UINT16>() += 2; // EvalFieldVariableRef
         ctx.Aligned<UINT32>() += 4; // - ref
-        ctx.Aligned<UINT16>() += 2; // EvalArrayRef
-        ctx.Aligned<UINT16>() += 2; // SetVariableField
 
+        if (gscFile.GetVM() == VM_T9) {
+            ctx.Aligned<UINT16>() += 2; // SetVariableFieldFromEvalArrayRef
+        }
+        else {
+            ctx.Aligned<UINT16>() += 2; // EvalArrayRef
+            ctx.Aligned<UINT16>() += 2; // SetVariableField
+        }
     }
 /*
 * Field
@@ -1498,25 +1556,24 @@ int tool::gsc::T8GSCExport::ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt
 }
 
 
-void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding) const {
-
-
-    bool classMember = flags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
+void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding) const {
+    auto remapedFlags = gscFile.RemapFlagsExport(flags);
+    bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
     if (ctx.m_opt.m_func_header) {
         utils::Padding(asmout, padding) << "// Namespace "
             << hashutils::ExtractTmp(classMember ? "class" : "namespace", name_space) << std::flush << "/"
-            << hashutils::ExtractTmp((flags & T8GSCExportFlags::EVENT) ? "event" : "namespace", callback_event) << std::endl;
+            << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", callback_event) << std::endl;
         utils::Padding(asmout, padding) << "// Params " << (int)param_count << ", eflags: 0x" << std::hex << (int)flags;
 
-        if (flags == T8GSCExportFlags::CLASS_VTABLE) {
+        if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
             asmout << " vtable";
         }
         else {
-            if (flags & T8GSCExportFlags::LINKED) {
+            if (remapedFlags & T8GSCExportFlags::LINKED) {
                 asmout << " linked";
             }
-            if (flags & T8GSCExportFlags::CLASS_LINKED) {
+            if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
                 asmout << " class_linked";
             }
         }
@@ -1530,30 +1587,30 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, BYTE* gscF
         }
     }
 
-    if (flags == T8GSCExportFlags::CLASS_VTABLE) {
+    if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
         utils::Padding(asmout, padding) << "vtable " << hashutils::ExtractTmp("class", name);
     }
     else {
 
         bool specialClassMember = !ctx.m_opt.m_dasm && classMember &&
-            ((flags & T8GSCExportFlags::CLASS_DESTRUCTOR) || g_constructorName == name);
+            ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || g_constructorName == name);
 
         utils::Padding(asmout, padding);
 
         if (!specialClassMember) {
             asmout << "function ";
         }
-        if (flags & T8GSCExportFlags::PRIVATE) {
+        if (remapedFlags & T8GSCExportFlags::PRIVATE) {
             asmout << "private ";
         }
-        if (flags & T8GSCExportFlags::AUTOEXEC) {
+        if (remapedFlags & T8GSCExportFlags::AUTOEXEC) {
             asmout << "autoexec ";
         }
-        if (flags & T8GSCExportFlags::EVENT) {
+        if (remapedFlags & T8GSCExportFlags::EVENT) {
             asmout << "event_handler[" << hashutils::ExtractTmp("event", callback_event) << "] " << std::flush;
         }
 
-        if (ctx.m_opt.m_dasm && (classMember || (flags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
+        if (ctx.m_opt.m_dasm && (classMember || (remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
             asmout << hashutils::ExtractTmp("class", name_space)
                 << std::flush << "::";
 

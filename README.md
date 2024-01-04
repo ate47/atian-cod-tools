@@ -1,9 +1,10 @@
 # Atian Call of Duty Tools
 
-My set of tools for Call of Duty.
+My set of tools for Call of Duty. The code is more important that the features, so feel free to reuse it.
 
 **Supported games**
 - Call of Duty: Black Ops 4 (T8)
+- Call of Duty: Black Ops Cold War (T9)
 
 ## Dependencies
 
@@ -28,6 +29,7 @@ You can download the latest release here:
 Mods implemented in my tool, run `acts mod` for the list.
 
 - `acts mod t8cee` - enable EEs in Custom mutations, offline or casual (Black Ops 4).
+- `acts mod t9cee` - enable EEs in offline (Black Ops Cold War).
 
 ### Dump tools
 

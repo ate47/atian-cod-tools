@@ -59,6 +59,7 @@ namespace tool::gsc {
     };
     struct T8GSCExport;
     class T8GSCOBJContext;
+    class GSCOBJReader;
 
     namespace opcode {
         class ASMContext;
@@ -619,9 +620,9 @@ namespace tool::gsc {
         UINT8 flags;
         UINT16 padding;
 
-        void DumpFunctionHeader(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0) const;
-        int DumpAsm(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx) const;
-        int DumpVTable(std::ostream& out, BYTE* gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const;
+        void DumpFunctionHeader(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0) const;
+        int DumpAsm(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx) const;
+        int DumpVTable(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const;
         /*
          * Compute the size of this export's bytecode
          * @param gscFile origin gsc file
@@ -703,6 +704,8 @@ namespace tool::gsc {
         virtual UINT32 GetFileSize() = 0;
         virtual size_t GetHeaderSize() = 0;
         virtual char* DecryptString(char* str) = 0;
+        virtual BYTE RemapFlagsImport(BYTE flags);
+        virtual BYTE RemapFlagsExport(BYTE flags);
 
         virtual void DumpHeader(std::ostream& asmout) = 0;
         void PatchCode(T8GSCOBJContext& ctx);
@@ -742,10 +745,10 @@ namespace tool::gsc {
         T9_EF_PRIVATE = 0x04,
         T9_EF_CLASS_MEMBER = 0x08,
         T9_EF_CLASS_DESTRUCTOR = 0x10,
-        T9_EF_VE = 0x20,
-        T9_EF_EVENT = 0x40,
+        T9_EF_EVENT = 0x20,
+        T9_EF_VE = 0x40,
         T9_EF_CLASS_LINKED = 0x80,
-        T9_EF_CLASS_VTABLE = 0x86
+        T9_EF_CLASS_VTABLE = 0x15
     };
 
     enum T9GSCImportFlags : UINT8 {
