@@ -35,6 +35,7 @@ namespace tool::gsc {
         bool m_test_header = false;
         LPCCH m_rosetta = NULL;
         LPCCH m_dump_hashmap = NULL;
+        LPCCH m_dump_strings = NULL;
         LPCCH m_outputDir = NULL;
         LPCCH m_copyright = NULL;
         bool m_show_internal_blocks = false;

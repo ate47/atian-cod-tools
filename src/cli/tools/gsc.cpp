@@ -137,6 +137,13 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
             }
             m_dump_hashmap = args[++i];
         }
+        else if (!_strcmpi("--dumpstrings", arg)) {
+            if (i + 1 == endIndex) {
+                std::cerr << "Missing value for param: " << arg << "!\n";
+                return false;
+            }
+            m_dump_strings = args[++i];
+        }
         else if (!strcmp("-C", arg) || !_strcmpi("--copyright", arg)) {
             if (i + 1 == endIndex) {
                 std::cerr << "Missing value for param: " << arg << "!\n";
@@ -181,6 +188,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-p --postfunchead  : Write post function header in ASM mode\n"
         << "-I --imports       : Write imports\n"
         << "-S --strings       : Write strings\n"
+        << "--dumpstrings [f]  : Dump strings in f\n"
         << "-G --gvars         : Write gvars\n"
         << "-U --noincludes    : No includes\n"
         << "-V --vars          : Show all func vars\n"
@@ -190,6 +198,8 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-C --copyright [t] : Set a comment text to put in front of every file\n";
 }
 
+static LPCCH gDumpStrings = NULL;
+static std::unordered_set<std::string> gDumpStringsStore{};
 static LPCCH gRosettaOutput = NULL;
 static UINT64 gRosettaCurrent = 0;
 static std::map<UINT64, RosettaFileData> gRosettaBlocks{};
@@ -294,6 +304,9 @@ void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
 
         const auto* str = reinterpret_cast<T8GSCString*>(str_location);
         LPCH cstr = DecryptString(Ptr<CHAR>(str->string));
+        if (gDumpStrings) {
+            gDumpStringsStore.insert(cstr);
+        }
         UINT32 ref = ctx.AddStringValue(cstr);
 
         const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
@@ -1717,6 +1730,7 @@ int gscinfo(Process& proc, int argc, const char* argv[]) {
     }
 
     gRosettaOutput = opt.m_rosetta;
+    gDumpStrings = opt.m_dump_strings;
 
     hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
     bool computed = false;
@@ -1729,6 +1743,16 @@ int gscinfo(Process& proc, int argc, const char* argv[]) {
     }
     hashutils::WriteExtracted(opt.m_dump_hashmap);
 
+    if (gDumpStrings) {
+        std::ofstream os{ gDumpStrings };
+        if (!os) {
+            std::cerr << "Can't open string output\n";
+        }
+        for (const auto& str : gDumpStringsStore) {
+            os << str << "\n";
+        }
+        os.close();
+    }
     if (gRosettaOutput) {
         std::ofstream os{ gRosettaOutput, std::ios::binary };
 
