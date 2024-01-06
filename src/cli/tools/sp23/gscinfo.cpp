@@ -559,7 +559,7 @@ namespace {
 		return tool::OK;
 	}
 
-	int gscinfo(const Process& _, int argc, const char* argv[]) {
+	int gscinfo(Process& _, int argc, const char* argv[]) {
 		if (argc < 4) {
 			return tool::BAD_USAGE;
 		}
@@ -1123,7 +1123,7 @@ namespace {
 
 
 
-	int decryptlocalize(const Process& _, int argc, const char* argv[]) {
+	int decryptlocalize(Process& _, int argc, const char* argv[]) {
 		if (argc < 3) {
 			return tool::BAD_USAGE;
 		}
@@ -1177,7 +1177,7 @@ namespace {
 		return tool::OK;
 	}
 
-	int hash23(const Process& _, int argc, const char* argv[]) {
+	int hash23(Process& _, int argc, const char* argv[]) {
 		for (size_t i = 2; i < argc; i++) {
 
 			std::cout << "--- " << argv[i] << "\n";

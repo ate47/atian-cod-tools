@@ -181,7 +181,7 @@ namespace {
 		return true;
 	}
 
-	int hks_bytecode(const Process& proc, int argc, const char* argv[]) {
+	int hks_bytecode(Process& proc, int argc, const char* argv[]) {
 		CLIOption opt{};
 
 		if (!opt.Compute(argv, 2, argc) || opt.m_help || !opt.m_inputFiles.size()) {

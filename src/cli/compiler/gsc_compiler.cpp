@@ -845,7 +845,7 @@ public:
     }
 };
 
-int compiler(const Process& proc, int argc, const char* argv[]) {
+int compiler(Process& proc, int argc, const char* argv[]) {
     GscCompilerOption opt;
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
         opt.PrintHelp(std::cout);

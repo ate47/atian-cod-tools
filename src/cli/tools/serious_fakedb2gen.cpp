@@ -4,7 +4,7 @@ namespace {
 	using namespace tool::gsc::opcode;
 	using namespace compatibility::serious;
 
-	int fakedb(const Process& proc, int argc, const char* argv[]) {
+	int fakedb(Process& proc, int argc, const char* argv[]) {
 		if (argc < 4) {
 			return tool::BAD_USAGE;
 		}

@@ -580,7 +580,7 @@ const char* ReadTmpStr(const Process& proc, uintptr_t location) {
     return tmp_buff;
 }
 
-int pooltool(const Process& proc, int argc, const char* argv[]) {
+int pooltool(Process& proc, int argc, const char* argv[]) {
     using namespace pool;
     if (argc < 3) {
         return tool::BAD_USAGE;
@@ -1917,7 +1917,7 @@ int pooltool(const Process& proc, int argc, const char* argv[]) {
 	return tool::OK;
 }
 
-int dumpbgcache(const Process& proc, int argc, const char* argv[]) {
+int dumpbgcache(Process& proc, int argc, const char* argv[]) {
     BGCacheInfo info[40]{};
 
     if (!proc.ReadMemory(&info[0], proc[0x4EC9A90], sizeof(info))) {
@@ -1990,7 +1990,7 @@ int dumpbgcache(const Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
-int dbmtstrs(const Process& proc, int argc, const char* argv[]) {
+int dbmtstrs(Process& proc, int argc, const char* argv[]) {
     std::unordered_set<std::string> buffer{};
 
     // no clue how big it is
@@ -2024,7 +2024,7 @@ int dbmtstrs(const Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
-int dbgp(const Process& proc, int argc, const char* argv[]) {
+int dbgp(Process& proc, int argc, const char* argv[]) {
     BGCacheInfo info[40] = {};
 
     if (!proc.ReadMemory(&info[0], proc[0x4EC9A90], sizeof(info))) {

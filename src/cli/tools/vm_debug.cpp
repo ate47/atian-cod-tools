@@ -386,7 +386,7 @@ std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, Sc
 	return out;
 }
 
-int vmdebug(const Process& proc, int argc, const char* argv[]) {
+int vmdebug(Process& proc, int argc, const char* argv[]) {
 	VmDebugOption opt{};
 
 	if (!opt.Compute(argv, 2, argc) || opt.m_help) {

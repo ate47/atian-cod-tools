@@ -24,7 +24,7 @@ namespace {
 		paths.push_back(path);
 	}
 
-	int rosetta(const Process& proc, int argc, const char* argv[]) {
+	int rosetta(Process& proc, int argc, const char* argv[]) {
 
 		if (argc < 4) {
 			return tool::BAD_USAGE;
@@ -180,7 +180,7 @@ namespace {
 
 
 
-	int gscfreq(const Process& proc, int argc, const char* argv[]) {
+	int gscfreq(Process& proc, int argc, const char* argv[]) {
 		using namespace tool::gsc::opcode;
 		if (argc < 3) {
 			return tool::BAD_USAGE;
@@ -228,7 +228,7 @@ namespace {
 		return tool::OK;
 	}
 
-	int vtabledumread(const Process& proc, int argc, const char* argv[]) {
+	int vtabledumread(Process& proc, int argc, const char* argv[]) {
 		using namespace tool::gsc::opcode;
 		if (argc < 3) {
 			return tool::BAD_USAGE;

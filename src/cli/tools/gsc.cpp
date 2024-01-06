@@ -58,6 +58,9 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!strcmp("-V", arg) || !_strcmpi("--vars", arg)) {
             m_show_func_vars = true;
         }
+        else if (!_strcmpi("--test-header", arg)) {
+            m_test_header = true;
+        }
         else if (!strcmp("-t", arg) || !_strcmpi("--type", arg)) {
             if (i + 1 == endIndex) {
                 std::cerr << "Missing value for param: " << arg << "!\n";
@@ -170,6 +173,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-o --output [d]    : ASM/GSC output dir, default same.gscasm\n"
         << "-s --silent        : Silent output, only errors\n"
         << "-H --header        : Write file header\n"
+        << "--test-header      : Write test header\n"
         << "-m --hashmap [f]   : Write hashmap in a file f\n"
         << "-f --nofunc        : No function write\n"
         << "-l --rloc          : Write relative location of the function code\n"
@@ -211,34 +215,7 @@ void tool::gsc::RosettaAddOpCode(UINT32 loc, UINT16 opcode) {
     block.push_back(tool::gsc::RosettaOpCodeBlock{ .location = loc, .opcode = opcode });
 }
 
-struct T9GSCOBJ {
-    BYTE magic[8];
-    INT32 crc;
-    INT32 pad;
-    UINT64 name;
-    UINT16 string_count;
-    UINT16 exports_count;
-    UINT16 imports_count;
-    UINT16 unk1E;
-    UINT32 globalvar_count;
-    UINT16 includes_count;
-    UINT16 unk26;
-    UINT32 loc_28;
-    UINT32 start_exports;
-    UINT32 string_offset;
-    UINT32 includes_table;
-    UINT32 exports_tables;
-    UINT32 import_tables;
-    UINT32 unk_40;
-    UINT32 globalvar_offset;
-    UINT32 file_size;
-    UINT32 unk_4C;
-    UINT16 export_size;
-    UINT16 unk_52;
-    UINT32 unk_54;
-};
-
-GSCOBJReader::GSCOBJReader(BYTE* file) : file(file) {}
+GSCOBJReader::GSCOBJReader(BYTE* file, const GscInfoOption& opt) : file(file), opt(opt) {}
 
 // by default no remapping
 BYTE GSCOBJReader::RemapFlagsImport(BYTE flags) {
@@ -348,8 +325,19 @@ namespace {
                 << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
                 << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
                 << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
+                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
                 << std::right
                 << std::flush;
+
+            if (opt.m_test_header) {
+                asmout
+                    << "// ukn0c .... " << std::dec << data->pad << " / 0x" << std::hex << data->pad << "\n"
+                    << "// ukn2c .... " << std::dec << data->ukn2c << " / 0x" << std::hex << data->ukn2c << "\n"
+                    << "// ukn34 .... " << std::dec << data->ukn34 << " / 0x" << std::hex << data->ukn34 << "\n"
+                    << "// ukn50 .... " << std::dec << data->ukn50 << " / 0x" << std::hex << data->ukn50 << "\n"
+                    << "// ukn5a .... " << std::dec << (int)data->ukn5a << " / 0x" << std::hex << (int)data->ukn5a << "\n"
+                    ;
+            }
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T8GSCOBJ>();
@@ -441,8 +429,22 @@ namespace {
                 << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
                 << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_tables << ")\n"
                 << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
+                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
                 << std::right
                 << std::flush;
+
+            if (opt.m_test_header) {
+                asmout
+                    << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
+                    << "// unk1e .... " << std::dec << data->unk1e << " / 0x" << std::hex << data->unk1e << "\n"
+                    << "// unk22 .... " << std::dec << data->unk22 << " / 0x" << std::hex << data->unk22 << "\n"
+                    << "// unk26 .... " << std::dec << data->unk26 << " / 0x" << std::hex << data->unk26 << "\n"
+                    << "// unk28 .... " << std::dec << data->unk28 << " / 0x" << std::hex << data->unk28 << "\n" // offset
+                    << "// unk40 .... " << std::dec << data->unk40 << " / 0x" << std::hex << data->unk40 << "\n" // offset
+                    << "// unk4c .... " << std::dec << data->unk4c << " / 0x" << std::hex << data->unk4c << "\n"
+                    << "// unk54 .... " << std::dec << data->unk54 << " / 0x" << std::hex << data->unk54 << "\n"
+                    ;
+            }
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
         }
@@ -535,9 +537,9 @@ namespace {
         }
     };
 
-    std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*)>> gscReaders = {
-        { tool::gsc::opcode::VM_T8,[](BYTE* file) { return std::make_shared<T8GSCOBJReader>(file); }},
-        { tool::gsc::opcode::VM_T9,[](BYTE* file) { return std::make_shared<T9GSCOBJReader>(file); }},
+    std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*, const GscInfoOption&)>> gscReaders = {
+        { tool::gsc::opcode::VM_T8,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T8GSCOBJReader>(file, opt); }},
+        { tool::gsc::opcode::VM_T9,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T9GSCOBJReader>(file, opt); }},
     };
 }
 
@@ -609,7 +611,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
         return -1;
     }
 
-    std::shared_ptr<GSCOBJReader> scriptfile = readerBuilder->second(data);
+    std::shared_ptr<GSCOBJReader> scriptfile = readerBuilder->second(data, opt);
 
     if (!scriptfile->IsValidMagic()) {
         std::cerr << "Bad magic 0x" << std::hex << scriptfile->Ref<UINT64>() << " for file " << path << "\n";
@@ -708,14 +710,29 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                 }
 
                 asmout << "encryption: ";
-                if ((type & 0xC0) != 0x80) {
-                    asmout << "0x" << std::hex << (int)type;
-                }
-                else {
-                    asmout << "none";
+                asmout << "0x" << std::hex << (int)type;
+                if ((type & 0xC0) == 0x80) {
+                    asmout << "(none)";
                 }
                 asmout << " len: " << std::dec << len << " -> " << std::flush;
 
+            }
+            else {
+                auto* ess = reinterpret_cast<BYTE*>(encryptedString);
+                type = ess[0];
+                len = (size_t)ess[2] - 1;
+
+                if (str->string + len + 3 > scriptfile->GetFileSize()) {
+                    asmout << "bad string location\n";
+                    break;
+                }
+
+                asmout << "encryption: ";
+                asmout << "0x" << std::hex << (int)type;
+                if ((type & 0xC0) == 0x80) {
+                    asmout << "(none)";
+                }
+                asmout << " len: " << std::dec << len << ", unk1: 0x" << std::hex << (int)ess[1] << " -> " << std::flush;
             }
             LPCH cstr = scriptfile->DecryptString(encryptedString);
 
@@ -1163,7 +1180,7 @@ int DumpInfoFile(const std::filesystem::path& path, std::unordered_map<UINT64, L
     return ret;
 }
 
-int dumpdataset(const Process& proc, int argc, const char* argv[]) {
+int dumpdataset(Process& proc, int argc, const char* argv[]) {
     hashutils::ReadDefaultFile();
     // scriptparsetree] [output=dataset.txt]
     LPCCH inputFile = "scriptparsetree";
@@ -1408,7 +1425,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile,
         uidCodeBase += 2;
 
         if (!uidCodeOpCode) {
-            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOp << ", excepted Getter\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOpCode->m_name << ", excepted Getter\n";
             return -1;
         }
 
@@ -1451,7 +1468,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile,
             ctx.m_bcl += 2;
             break;
         default:
-            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOpCode->m_id << ", excepted Getter\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOpCode->m_name << ", excepted Getter\n";
             return -1;
         }
 
@@ -1691,7 +1708,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
     asmout << ")";
 }
 
-int gscinfo(const Process& proc, int argc, const char* argv[]) {
+int gscinfo(Process& proc, int argc, const char* argv[]) {
     GscInfoOption opt{};
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {

@@ -179,6 +179,10 @@ namespace compatibility::serious {
         SERID_ClassFunctionThreadCall2,
         SERID_EvalLocalVariableCached2,
         SERID_EvalLocalVariableRefCached2,
+        SERID_LazyGetFunction,
+        SERID_T9IteratorKey,
+        SERID_T9IteratorVal,
+        SERID_T9IteratorNext,
         SERID_COUNT,
         SERID_Invalid = 0xFF,
     };

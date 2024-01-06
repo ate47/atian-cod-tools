@@ -2,7 +2,7 @@
 
 using namespace tool::dump;
 
-int poolscripts(const Process& proc, int argc, const char* argv[]) {
+int poolscripts(Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
     INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
@@ -49,7 +49,7 @@ int poolscripts(const Process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-int writepoolscripts(const Process& proc, int argc, const char* argv[]) {
+int writepoolscripts(Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
     INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
@@ -196,7 +196,7 @@ int writepoolscripts(const Process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-int linkedscripts(const Process& proc, int argc, const char* argv[]) {
+int linkedscripts(Process& proc, int argc, const char* argv[]) {
     UINT32 bufferCount[2];
     if (!proc.ReadMemory(bufferCount, proc[offset::gObjFileInfoCount], sizeof *bufferCount * 2)) {
         std::cerr << "Can't read count data\n";
@@ -272,7 +272,7 @@ int linkedscripts(const Process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-int events(const Process& proc, int argc, const char* argv[]) {
+int events(Process& proc, int argc, const char* argv[]) {
     const int size = 512;
     T8EventMapObj* buffer = new T8EventMapObj[2 * size];
 
@@ -386,7 +386,7 @@ static FunctionPoolDef g_functionPool[] = {
 };
 
 
-int dumpfunctions(const Process& proc, int argc, const char* argv[]) {
+int dumpfunctions(Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
@@ -452,7 +452,7 @@ struct cmd_function_t {
     uintptr_t function; // xcommand_t
 };
 
-int dumpcmdfunctions(const Process& proc, int argc, const char* argv[]) {
+int dumpcmdfunctions(Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 

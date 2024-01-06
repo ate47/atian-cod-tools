@@ -10,7 +10,7 @@ namespace {
 	};
 
 
-	int dump_luifuncs(const Process& proc, int argc, const char* argv[]) {
+	int dump_luifuncs(Process& proc, int argc, const char* argv[]) {
 
 		LUIElementFunction func{0, 0, 0};
 		

@@ -36,7 +36,7 @@ bool mods::modfunctiondata::operatorbool() const {
 }
 
 
-int mod(const Process& unused, int argc, const char* argv[]) {
+int mod(Process& unused, int argc, const char* argv[]) {
 	if (argc == 2) {
 		// no arg = list
 		auto& mds = mods::mods();

@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-static int resolver(const Process& unused, int argc, const char* argv[]) {
+static int resolver(Process& unused, int argc, const char* argv[]) {
 	if (argc == 2) {
 		std::cerr << "Missing config file\n";
 		return tool::BAD_USAGE;

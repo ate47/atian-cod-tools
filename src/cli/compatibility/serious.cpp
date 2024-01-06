@@ -55,7 +55,7 @@ namespace {
 			lmaps.Add(SERID_GetNegByte, OPCODE_GetNegByte);
 			lmaps.Add(SERID_GetUnsignedShort, OPCODE_GetUnsignedShort);
 			lmaps.Add(SERID_GetNegUnsignedShort, OPCODE_GetNegUnsignedShort);
-			lmaps.Add(SERID_GetInteger, OPCODE_GetInteger);
+			lmaps.Add(SERID_GetInteger, OPCODE_GetNegUnsignedInteger); // lol
 			lmaps.Add(SERID_GetFloat, OPCODE_GetFloat);
 			lmaps.Add(SERID_GetString, OPCODE_GetString);
 			lmaps.Add(SERID_GetVector, OPCODE_GetVector);
@@ -169,6 +169,10 @@ namespace {
 			lmaps.Add(SERID_ScriptMethodThreadCall2, OPCODE_ScriptMethodThreadCallEndOn);
 			lmaps.Add(SERID_ScriptMethodThreadCallPointer2, OPCODE_ScriptMethodThreadCallPointerEndOn);
 			lmaps.Add(SERID_ClassFunctionThreadCall2, OPCODE_ClassFunctionThreadCallEndOn);
+			lmaps.Add(SERID_LazyGetFunction, OPCODE_T8C_GetLazyFunction);
+			lmaps.Add(SERID_T9IteratorKey, OPCODE_T9_IteratorKey);
+			lmaps.Add(SERID_T9IteratorVal, OPCODE_T9_IteratorVal);
+			lmaps.Add(SERID_T9IteratorNext, OPCODE_T9_IteratorNext);
 		}
 
 		return lmaps;

@@ -58,7 +58,7 @@ namespace {
 	}
 
 
-	int gscmerge(const Process& _, int argc, const char* argv[]) {
+	int gscmerge(Process& _, int argc, const char* argv[]) {
 		MergeGscOpt opt{};
 
 		if (!opt.Compute(argv, 2, argc) || opt.m_help || !opt.m_inputFiles.size()) {

@@ -15,7 +15,7 @@ int PTCallExt4(Process& proc, int argc, const char* argv[]);
 int PTCallExt5(Process& proc, int argc, const char* argv[]);
 int PTCallExt6(Process& proc, int argc, const char* argv[]);
 
-int processtool(const Process& unused, int argc, const char* argv[]) {
+int processtool(Process& unused, int argc, const char* argv[]) {
 	if (argc <= 3) {
 		std::cerr << "Missing process name and tool\n";
 		return tool::BAD_USAGE;

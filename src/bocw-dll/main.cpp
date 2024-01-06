@@ -1,5 +1,7 @@
 #include <dll_includes.hpp>
 
+#define EXPORT extern "C" __declspec(dllexport)
+
 namespace {
 
     struct T9GSCOBJ {
@@ -68,25 +70,55 @@ namespace {
         return decrypted;
     }
 
-    void RunDll() {
+    void DecryptMTBuffer(size_t count) {
+        int done = 0;
+        std::unordered_set<std::string> strs{};
+        auto* mt_buffer = *reinterpret_cast<BYTE**>(startModule + 0xF5EC9C8);
+        for (size_t i = 1; i < count; i++) {
+            auto* loc = mt_buffer + i * 0x10;
+            if (i % 0x100 == 0) {
+                LOG_INFO("decrypting MT: {:x}/{:x}, done={}", i, count, done);
+            }
+            auto loc2 = reinterpret_cast<CHAR*>(loc)[2];
+            if (*reinterpret_cast<INT16*>(loc) == 0 || loc[3] != 7 || (loc2 & 0x40) != 0 || loc2 >= 0) {
+                continue;
+            }
+
+            const byte* v = DecryptSTR(reinterpret_cast<BYTE*>(loc + 0x18));
+            strs.insert(reinterpret_cast<LPCCH>(v));
+            done++;
+        }
+        std::ofstream outStr{ "scriptbundle_str.txt" };
+
+        if (outStr) {
+            for (const auto& st : strs) {
+                outStr << st << "\n";
+            }
+            outStr.close();
+            LOG_INFO("dumped strings to scriptbundle_str.txt");
+        }
+    }
+
+    void InitDll() {
         alogs::setfile("acts-bocw.log");
 
         LOG_INFO("init bocw dll");
 
 
         startModule = reinterpret_cast<uintptr_t>(GetModuleHandle(NULL));
-
-        LOG_INFO("decrypting scripts...");
+    }
+    void DecryptGSCScripts() {
+        LOG_INFO("decrypting gsc scripts...");
         std::filesystem::path spt{ "scriptparsetree_cw" };
         std::filesystem::path sptd{ "scriptparsetree_cw_decrypt" };
 
         std::filesystem::create_directories(sptd);
 
         std::vector<std::filesystem::path> files{};
-        utils::GetFileRecurse(spt, files, [](const std::filesystem::path& path) { 
+        utils::GetFileRecurse(spt, files, [](const std::filesystem::path& path) {
             auto name = path.string();
             return name.ends_with(".gscc");
-        });
+            });
 
         for (const auto& file : files) {
             LOG_INFO("decrypting {}...", file.string());
@@ -130,7 +162,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
                       LPVOID lpReserved) {
     switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
-        RunDll();
+        InitDll();
         return TRUE;
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
@@ -138,4 +170,14 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
     }
     return TRUE;
+}
+
+EXPORT void DLL_DecryptMTBuffer(size_t count) {
+    LOG_INFO("Decrypting MT buffer...");
+    DecryptMTBuffer(count ? count : 0x100000);
+    LOG_INFO("Done");
+}
+
+EXPORT void DLL_DecryptGSCScripts() {
+    DecryptGSCScripts();
 }

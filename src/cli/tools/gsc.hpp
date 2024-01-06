@@ -32,6 +32,7 @@ namespace tool::gsc {
         bool m_show_jump_delta = false;
         bool m_show_pre_dump = false;
         bool m_show_ref_count = false;
+        bool m_test_header = false;
         LPCCH m_rosetta = NULL;
         LPCCH m_dump_hashmap = NULL;
         LPCCH m_outputDir = NULL;
@@ -564,7 +565,7 @@ namespace tool::gsc {
         INT32 include_offset;
         UINT16 string_count;
         UINT16 exports_count;
-        INT32 ukn20;
+        INT32 cseg_offset;
         INT32 string_offset;
         INT16 imports_count;
         UINT16 fixup_count;
@@ -578,10 +579,42 @@ namespace tool::gsc {
         INT32 script_size;
         INT32 requires_implements_offset;
         INT32 ukn50;
-        INT32 ukn54;
+        INT32 cseg_size;
         UINT16 include_count;
         BYTE ukn5a;
         BYTE requires_implements_count;
+
+        // @return the vm
+        inline BYTE GetVm() {
+            return magic[7];
+        }
+    };
+
+    struct T9GSCOBJ {
+        BYTE magic[8];
+        INT32 crc;
+        INT32 pad0c;
+        UINT64 name;
+        UINT16 string_count;
+        UINT16 exports_count;
+        UINT16 imports_count;
+        UINT16 unk1e;
+        UINT16 globalvar_count;
+        UINT16 unk22;
+        UINT16 includes_count;
+        UINT16 unk26;
+        UINT32 unk28;
+        UINT32 cseg_offset;
+        UINT32 string_offset;
+        UINT32 includes_table;
+        UINT32 exports_tables;
+        UINT32 import_tables;
+        UINT32 unk40;
+        UINT32 globalvar_offset;
+        UINT32 file_size;
+        UINT32 unk4c;
+        UINT32 cseg_size;
+        UINT32 unk54;
 
         // @return the vm
         inline BYTE GetVm() {
@@ -633,8 +666,9 @@ namespace tool::gsc {
     class GSCOBJReader {
     public:
         BYTE* file;
+        const GscInfoOption& opt;
 
-        GSCOBJReader(BYTE* file);
+        GSCOBJReader(BYTE* file, const GscInfoOption& opt);
 
         /*
          * Return a pointer at a particular shift

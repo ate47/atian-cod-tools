@@ -2366,7 +2366,7 @@ public:
 				arrayNode = new ASMContextNodeIdentifier(name);
 			}
 
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("iterator", false, TYPE_ARRAY_FIRSTKEY);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("firstarray", false, TYPE_ARRAY_FIRSTKEY);
 
 			node->AddParam(arrayNode);
 
@@ -4841,7 +4841,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	// INIT STEP
 	// T8
 		var_f15d3f7b = doorblockers;
-		key = iterator(var_f15d3f7b);
+		key = firstarray(var_f15d3f7b);
 	// LOOP STEP
 	LOC_000000fc:
 		LOC_00000100:jumpiffalse(isdefined(key)) LOC_000002f0;
@@ -4867,7 +4867,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	// T9
 	
 	var_a970ac8 = var_f04dd3ef;
-	var_b4eeb030 = iterator(var_a970ac8);
+	var_b4eeb030 = firstarray(var_a970ac8);
 	while (isdefined(var_b4eeb030)) {
 	    var_23ea8daa = iteratorkey(var_b4eeb030);
 	    e_clip = iteratorval(var_b4eeb030);
@@ -5129,7 +5129,12 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// remove the number of references for the key because maybe we don't use it
 		auto& keyRef = ctx.m_localvars_ref[keyValName];
-		keyRef = max(keyRef - 5, 0);
+		if (ctx.m_vm == VM_T9) {
+			keyRef = max(keyRef - 1, 0); // key isn't used as an iterator in T9
+		}
+		else {
+			keyRef = max(keyRef - 5, 0);
+		}
 
 		auto* forEachNode = new ASMContextNodeForEach(setOp->m_right->Clone(), block, ctx.m_localvars_ref[keyValName] ? keyValName : 0, itemValName);
 

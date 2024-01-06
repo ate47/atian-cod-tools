@@ -1,6 +1,6 @@
 #include <includes.hpp>
 
-static int ps4reader(const Process& _, int argc, const char* argv[]) {
+static int ps4reader(Process& _, int argc, const char* argv[]) {
 	if (argc < 5) {
 		return tool::BAD_USAGE;
 	}

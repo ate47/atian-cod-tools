@@ -5,33 +5,6 @@ namespace {
 
 	constexpr auto s_assetPools_off = 0x11E50670;
 
-    struct T9GSCOBJ {
-        BYTE magic[8];
-        INT32 crc;
-        INT32 pad;
-        UINT64 name;
-        UINT16 string_count;
-        UINT16 exports_count;
-        UINT16 imports_count;
-        UINT16 unk1E;
-        UINT32 globalvar_count;
-        UINT16 includes_count;
-        UINT16 unk26;
-        UINT32 loc_28;
-        UINT32 start_exports;
-        UINT32 string_offset;
-        UINT32 includes_table;
-        UINT32 exports_tables;
-        UINT32 import_tables;
-        UINT32 unk_40;
-        UINT32 globalvar_offset;
-        UINT32 file_size;
-        UINT32 unk_4C;
-        UINT16 export_size;
-        UINT16 unk_52;
-        UINT32 unk_54;
-    };
-
     struct XAssetPool {
         uintptr_t pool; // void*
         unsigned int itemSize;
@@ -78,6 +51,8 @@ namespace {
         uintptr_t size; // 0x18
         uintptr_t buffer; // 0x20
     };
+
+
 
     struct StringTable  {
         UINT64 name;
@@ -367,8 +342,20 @@ namespace {
         { "CSC-Method-d7d8c80", 0xD7D8C80, 0x3 },
         { "CSC-Method-d7d9940", 0xD7D9940, 0x13 },
     };
+    struct SB_ObjectsArray {
+        uint64_t sbObjectCount;
+        uintptr_t sbObjects; // SB_Object
+        uint64_t sbSubCount;
+        uintptr_t sbSubs;
+    };
 
-	int dumppoolcw(const Process& proc, int argc, const char* argv[]) {
+    struct ScriptBundle {
+        uint64_t hash;
+        uint64_t unk8;
+        SB_ObjectsArray sbObjectsArray;
+    };
+
+	int dumppoolcw(Process& proc, int argc, const char* argv[]) {
 
 		LPCCH outFile;
 		if (argc == 2) {
@@ -396,7 +383,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		T9GSCOBJ headerTmp{};
+		tool::gsc::T9GSCOBJ headerTmp{};
 
 		CHAR namebuff[MAX_PATH + 10];
         std::cout << "dump using linked scripts\n";
@@ -482,7 +469,7 @@ namespace {
 		return tmp_buff;
 	}
 
-	int dpnamescw(const Process& proc, int argc, const char* argv[]) {
+	int dpnamescw(Process& proc, int argc, const char* argv[]) {
 
 		auto loc = proc[0xD7C8D90];
 
@@ -510,7 +497,7 @@ namespace {
 
 		return tool::OK;
 	}
-    int dfuncscw(const Process& proc, int argc, const char* argv[]) {
+    int dfuncscw(Process& proc, int argc, const char* argv[]) {
         hashutils::ReadDefaultFile();
         std::ofstream out{ "funcs_cw.csv" };
 
@@ -548,6 +535,49 @@ namespace {
                     ;
                 proc.WriteLocation(out, pool[i].actionFunc) << ",";
             }
+        }
+
+        out.close();
+
+        std::cout << "done\n";
+
+        return tool::OK;
+    }
+
+
+    int dcfuncscw(Process& proc, int argc, const char* argv[]) {
+        hashutils::ReadDefaultFile();
+        std::ofstream out{ "cfuncs_cw.csv" };
+
+        if (!out) {
+            std::cerr << "Can't open output file\n";
+            return tool::BASIC_ERROR;
+        }
+
+        out << "location,name,func";
+
+        struct cmd_function_t {
+            uintptr_t next; // cmd_function_t*
+            uint64_t name;
+            uint64_t unk10;
+            uint64_t unk18;
+            uintptr_t function; // xcommand_t
+            uint64_t unk28;
+        };
+
+        cmd_function_t buff{};
+
+        buff.next = proc.ReadMemory<uintptr_t>(proc[0x120DC220]);
+
+        while (buff.next) {
+            proc.WriteLocation(out << "\n", buff.next) << "," << std::flush;
+            if (!proc.ReadMemory(&buff, buff.next, sizeof(buff))) {
+                std::cerr << "Error when reading next\n";
+                break;
+            }
+
+            out << hashutils::ExtractTmp("hash", buff.name) << ",";
+            proc.WriteLocation(out << "\n", buff.function);
         }
 
         out.close();
@@ -596,7 +626,226 @@ namespace {
         }
     };
 
-    int pooltool(const Process& proc, int argc, const char* argv[]) {
+
+    const char* ReadMTString(const Process& proc, uint32_t val) {
+        static CHAR str_read[0x2001];
+        auto strptr = proc.ReadMemory<uintptr_t>(proc[0xF5EC9C8]) + (UINT32)(0x10 * val);
+        if (!strptr || !proc.ReadMemory<INT16>(strptr) || proc.ReadMemory<BYTE>(strptr + 3) != 7) {
+            return nullptr;
+        }
+
+        BYTE start = proc.ReadMemory<BYTE>(strptr + 0x18);
+
+        if ((start & 0xC0) != 0x80) {
+            // clear
+            if (proc.ReadString(str_read, strptr + 0x18, sizeof(str_read)) < 0) {
+                return nullptr;
+            }
+            return str_read;
+        }
+
+        // encrypted, assume it was decrypted by the dll
+        if (proc.ReadString(str_read, strptr + 0x18 + 3, sizeof(str_read)) < 0) {
+            return nullptr;
+        }
+
+        return str_read;
+    }
+
+    struct SB_Object {
+        uint32_t unk0;
+        uint64_t hash;
+        uint32_t name;
+        uint32_t fullKey;
+        uint32_t type;
+        union {
+            int32_t intVal;
+            float floatVal;
+        } value;
+    };
+
+
+    void ReadSBName(const Process& proc, const SB_ObjectsArray& arr) {
+        // ugly, but good enought to get the name
+        if (!arr.sbObjectCount || arr.sbObjectCount > 10000 || arr.sbSubCount > 10000) {
+            return; // bad read, wtf?
+        }
+
+        auto objects = std::make_unique<SB_Object[]>(arr.sbObjectCount + 1);
+
+        if (!proc.ReadMemory(&objects[0], arr.sbObjects, sizeof(objects[0]) * arr.sbObjectCount)) {
+            return;
+        }
+
+        static UINT32 nameHash = hash::Hash32("name");
+
+        for (size_t i = 0; i < arr.sbObjectCount; i++) {
+            auto& obj = objects[i];
+
+            if (obj.name != nameHash) {
+                continue;
+            }
+
+            if (obj.fullKey) {
+                // str?
+                auto* strval = ReadMTString(proc, obj.fullKey);
+
+                if (strval) {
+                    hashutils::Add(strval); // add name to pool
+                    continue;
+                }
+            }
+            return;
+        }
+
+    }
+
+    bool ReadSBObject(Process& proc, std::ostream& defout, int depth, const SB_ObjectsArray& arr, std::unordered_set<std::string>& strings) {
+
+        if (!arr.sbObjectCount && !arr.sbSubCount) {
+            defout << "{}";
+            return true;
+        }
+        if (arr.sbObjectCount > 10000 || arr.sbSubCount > 10000) {
+            return false; // bad read, wtf?
+        }
+        auto objects = std::make_unique<SB_Object[]>(arr.sbObjectCount + 1);
+
+        if (!proc.ReadMemory(&objects[0], arr.sbObjects, sizeof(objects[0]) * arr.sbObjectCount)) {
+            std::cerr << "Error when reading object at depth " << std::dec << depth << "\n";
+            return false;
+        }
+
+        defout << "{";
+
+        bool nofirst = false;
+
+        std::unordered_set<UINT32> keys{};
+
+        if (arr.sbSubCount) {
+            struct SB_Sub {
+                uint32_t keyname;
+                uint32_t unk4;
+                uint32_t name;
+                uint32_t size;
+                uintptr_t item;
+                uintptr_t struct_val; // SB_ObjectsArray*
+            };
+            auto subs = std::make_unique<SB_Sub[]>(arr.sbSubCount);
+
+            if (!proc.ReadMemory(&subs[0], arr.sbSubs, sizeof(subs[0]) * arr.sbSubCount)) {
+                std::cerr << "Error when reading object at depth " << std::dec << depth << "\n";
+                return false;
+            }
+
+            for (size_t i = 0; i < arr.sbSubCount; i++) {
+                auto& sub = subs[i];
+
+                if (nofirst) {
+                    defout << ",";
+                }
+                nofirst = true;
+                utils::Padding(defout << "\n", depth + 1);
+
+                keys.insert(sub.name);
+                defout << "\"" << hashutils::ExtractTmp("var", sub.name) << "\": [";
+
+                for (size_t j = 0; j < sub.item; j++) {
+                    if (j) {
+                        defout << ",";
+                    }
+                    utils::Padding(defout << "\n", depth + 2);
+                    SB_ObjectsArray item{};
+
+                    if (!proc.ReadMemory(&item, sub.struct_val + sizeof(item) * j, sizeof(item))
+                        || !ReadSBObject(proc, defout, depth + 2, item, strings)) {
+                        std::cerr << "Can't read array item\n";
+                        return false;
+                    }
+                }
+                if (sub.item) {
+                    utils::Padding(defout << "\n", depth + 1) << "]";
+                }
+                else {
+                    defout << "]";
+                }
+
+            }
+        }
+
+        if (arr.sbObjectCount) {
+            for (size_t i = 0; i < arr.sbObjectCount; i++) {
+                auto& obj = objects[i];
+
+                // no idea why
+                switch (obj.type) {
+                case 2:
+                case 26:
+                    if (!obj.value.intVal) {
+                        continue;
+                    }
+                case 3:
+                    if (!obj.value.floatVal) {
+                        continue;
+                    }
+                }
+
+                if (keys.find(obj.name) != keys.end()) {
+                    continue; // already computed
+                }
+
+                if (nofirst) {
+                    defout << ",";
+                }
+
+                nofirst = true;
+                utils::Padding(defout << "\n", depth + 1);
+
+                defout << "\"" << hashutils::ExtractTmp("var", obj.name) << "\": ";
+
+                switch (obj.type) {
+                case 2:
+                case 22:
+                case 23:
+                case 26: // int?
+                    defout << std::dec << obj.value.intVal;
+                    break;
+                case 3: // float?
+                    defout << obj.value.floatVal;
+                    break;
+                case 20:
+                    // weapon
+                    defout << "\"weapon#" << hashutils::ExtractTmp("hash", obj.hash) << "\"";
+                    break;
+                default:
+                    if (obj.fullKey) {
+                        // str?
+                        auto* strval = ReadMTString(proc, obj.fullKey);
+
+                        if (strval) {
+                            strings.insert(strval);
+                            defout << "\"" << strval << "\"";
+                            continue;
+                        }
+                    }
+                    else if (obj.hash & 0x7FFFFFFFFFFFFFFF) {
+                        // hash?
+                        defout << "\"#" << hashutils::ExtractTmp("hash", obj.hash) << "\"";
+                        continue;
+                    }
+                    defout << "<unk:" << obj.type << "/" << std::hex << obj.value.intVal << ">";
+                    break;
+                }
+            }
+        }
+
+        utils::Padding(defout << "\n", depth) << "}";
+
+        return true;
+    }
+
+
+    int pooltool(Process& proc, int argc, const char* argv[]) {
         using namespace pool;
         if (argc < 3) {
             return tool::BAD_USAGE;
@@ -750,6 +999,106 @@ namespace {
             std::cout << "Dump " << readFile << " new file(s)\n";
             break;
         }
+        case ASSET_TYPE_SCRIPTBUNDLE: {
+            auto pool = std::make_unique<ScriptBundle[]>(entry.itemAllocCount);
+
+            if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+                std::cerr << "Can't read pool data\n";
+                return tool::BASIC_ERROR;
+            }
+
+
+            std::filesystem::path progpath = std::filesystem::absolute(g_progPath).parent_path();
+            std::filesystem::path dllfile = progpath / std::filesystem::path("acts-bocw-dll.dll");
+            auto str = dllfile.string();
+
+            std::cout << "dll location -> " << str << "\n";
+
+            if (!proc.LoadDll(str.c_str())) {
+                std::cerr << "Can't inject dll\n";
+                return tool::BASIC_ERROR;
+            }
+            std::cout << "dll injected, decrypting MT Buffer...\n";
+
+            auto& DLL_DecryptMTBufferFunc = proc["acts-bocw-dll.dll"]["DLL_DecryptMTBuffer"];
+
+            if (!DLL_DecryptMTBufferFunc) {
+                std::cerr << "Can't find DLL_DecryptMTBuffer export\n";
+                return tool::BASIC_ERROR;
+            }
+
+            auto thr = proc.Exec(DLL_DecryptMTBufferFunc.m_location, 0x100000);
+
+            if (!(thr == INVALID_HANDLE_VALUE || !thr)) {
+                WaitForSingleObject(thr, INFINITE);
+                CloseHandle(thr);
+            }
+            else {
+                std::cerr << "Can't create decryption thread\n";
+            }
+            std::cout << "decrypted, dumping SB...\n";
+
+            std::unordered_set<std::string> strings{};
+
+            size_t readFile = 0;
+            for (size_t i = 0; i < entry.itemAllocCount; i++) {
+                const auto& e = pool[i];
+
+
+                if (e.hash < 0x1000000000000 || !e.hash) {
+                    continue; // probably a ptr
+                }
+                ReadSBName(proc, e.sbObjectsArray);
+
+                auto n = hashutils::ExtractPtr(e.hash);
+
+                std::cout << std::dec << i << ": ";
+
+                if (n) {
+                    std::cout << n;
+                    sprintf_s(dumpbuff, "%s/scriptbundle/%s.json", opt.m_output, n);
+                }
+                else {
+                    std::cout << "file_" << std::hex << e.hash << std::dec;
+                    sprintf_s(dumpbuff, "%s/scriptbundle/file_%llx.json", opt.m_output, e.hash);
+
+                }
+
+                std::cout << " into " << dumpbuff;
+
+
+                std::filesystem::path file(dumpbuff);
+                std::filesystem::create_directories(file.parent_path(), ec);
+
+                if (!std::filesystem::exists(file, ec)) {
+                    readFile++;
+                    std::cout << " (new)";
+                }
+                std::cout << "\n";
+
+                std::ofstream out{ file };
+
+                if (!out) {
+                    std::cerr << "Can't open file " << file << "\n";
+                    continue;
+                }
+
+                ReadSBObject(proc, out, 0, e.sbObjectsArray, strings);
+
+                out.close();
+            }
+            std::ofstream outStr{ std::format("{}/scriptbundle_str.txt", opt.m_output) };
+
+            if (outStr) {
+                for (const auto& st : strings) {
+                    outStr << st << "\n";
+                }
+                outStr.close();
+            }
+
+            std::cout << "Dump " << readFile << " new file(s)\n";
+            break;
+        }
         case ASSET_TYPE_RAWFILE:
         case ASSET_TYPE_RAWFILEPREPROC: {
             auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
@@ -854,3 +1203,4 @@ ADD_TOOL("dpcw", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOpsC
 ADD_TOOL("wpscw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
 ADD_TOOL("dpncw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
 ADD_TOOL("dfuncscw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
+ADD_TOOL("dcfuncscw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
