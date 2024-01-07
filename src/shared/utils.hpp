@@ -119,6 +119,32 @@ namespace utils {
 	 * @return high value and low value
 	 */
 	std::pair<UINT32, UINT32> UnCatLocated(UINT64 located);
+	/*
+	 * Cat 2 UINT16 into a UINT32
+	 * @param a high value
+	 * @param b low value
+	 * @return cat value
+	 */
+	UINT32 CatLocated32(UINT16 a, UINT16 b);
+	/*
+	 * Uncat 2 UINT16 into a UINT32
+	 * @param located cat value
+	 * @return high value and low value
+	 */
+	std::pair<UINT16, UINT16> UnCatLocated32(UINT32 located);
+	/*
+	 * Cat 2 BYTE into a UINT16
+	 * @param a high value
+	 * @param b low value
+	 * @return cat value
+	 */
+	UINT16 CatLocated16(BYTE a, BYTE b);
+	/*
+	 * Uncat 2 BYTE into a UINT16
+	 * @param located cat value
+	 * @return high value and low value
+	 */
+	std::pair<BYTE, BYTE> UnCatLocated16(UINT16 located);
 
 	/*
 	 * Get all the files in a directory

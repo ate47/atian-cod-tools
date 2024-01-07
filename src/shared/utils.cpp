@@ -102,6 +102,26 @@ std::pair<UINT32, UINT32> utils::UnCatLocated(UINT64 located) {
     return std::make_pair<>(name_space, local);
 }
 
+UINT32 utils::CatLocated32(UINT16 a, UINT16 b) {
+    return ((UINT32)b << 16) | a;
+}
+
+std::pair<UINT16, UINT16> utils::UnCatLocated32(UINT32 located) {
+    UINT16 a = (located << 16) >> 16;
+    UINT16 b = located >> 16;
+    return std::make_pair<>(a, b);
+}
+
+UINT16 utils::CatLocated16(BYTE a, BYTE b) {
+    return ((UINT16)b << 8) | a;
+}
+
+std::pair<BYTE, BYTE> utils::UnCatLocated16(UINT16 located) {
+    BYTE a = (located << 8) >> 8;
+    BYTE b = located >> 8;
+    return std::make_pair<>(a, b);
+}
+
 static void GetFileRecurse0(const std::filesystem::path& dir, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate) {
     if (std::filesystem::is_directory(dir)) {
         for (const auto& sub : std::filesystem::directory_iterator{ dir }) {

@@ -10,9 +10,10 @@ namespace tool::gsc::opcode {
 
 	enum Platform : BYTE {
 		PLATFORM_UNKNOWN = 0,
-		PLATFORM_PC,
-		PLATFORM_XBOX,
-		PLATFORM_PLAYSTATION,
+		PLATFORM_PC = 1,
+		PLATFORM_PLAYSTATION = 2,
+		PLATFORM_XBOX = 3,
+		PLATFORM_COUNT,
 	};
 
 	Platform PlatformOf(LPCCH name);

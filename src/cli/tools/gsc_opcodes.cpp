@@ -3882,6 +3882,16 @@ static const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefine
 void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name) {
 	g_opcodeMap[vm] = { vm, name, {} };
 }
+void tool::gsc::opcode::RegisterVMPlatform(BYTE vm, Platform plt) {
+	auto ref = g_opcodeMap.find(vm);
+
+	if (ref == g_opcodeMap.end()) {
+		std::cerr << "Registered platform to bad vm: VM_" << std::hex << vm << ", plt: " << PlatformName(plt) << "\n";
+		return;
+	}
+
+	ref->second.AddPlatform(plt);
+}
 void tool::gsc::opcode::RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op) {
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
@@ -4127,6 +4137,11 @@ void tool::gsc::opcode::RegisterOpCodes() {
 
 void tool::gsc::opcode::RegisterOpCodeHandler(const OPCodeInfo* info) {
 	g_opcodeHandlerMap[info->m_id] = info;
+}
+
+const std::unordered_map<BYTE, VmInfo>& tool::gsc::opcode::GetVMMaps() {
+	RegisterOpCodes();
+	return g_opcodeMap;
 }
 
 bool tool::gsc::opcode::IsValidVm(BYTE vm, VmInfo*& info) {

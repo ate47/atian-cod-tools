@@ -5,45 +5,66 @@ namespace {
 
 	struct BuildDbGen {
 		Platform platform;
-		VmInfo* vm;
+		const VmInfo* vm;
 	};
 
 	int builddb(Process& proc, int argc, const char* argv[]) {
-		if (argc < 4 || (argc % 2) != 0) {
+		if ((argc % 2) != 0) {
 			return tool::BAD_USAGE;
 		}
 
+		std::map<UINT16, BuildDbGen> asked{};
 
-		std::map<BYTE, BuildDbGen> asked{};
+		if (argc == 2) {
+			std::cout << "Full db generation\n";
 
-		for (int i = 2; i < argc; i += 2) {
-			auto plt = PlatformOf(argv[i]);
+			const auto& vms = GetVMMaps();
 
-			if (plt == PLATFORM_UNKNOWN) {
-				std::cerr << "Bad platform: " << argv[i] << "\n";
-				return tool::BASIC_ERROR;
+			for (const auto& [_, vm] : vms) {
+				for (size_t i = 1; i < Platform::PLATFORM_COUNT; i++) {
+					if (vm.HasPlatform((Platform)i)) {
+						auto uid = utils::CatLocated16(vm.vm, (BYTE)i);
+
+						asked[uid] = {
+							.platform = (Platform)i,
+							.vm = &vm
+						};
+					}
+				}
+				
 			}
-
-			BYTE vm = (BYTE)std::strtol(argv[i + 1], nullptr, 16);
-
-			VmInfo* nfo;
-
-			if (!IsValidVm(vm, nfo)) {
-				std::cerr << "Bad VM: " << argv[i + 1] << "\n";
-				return tool::BASIC_ERROR;
-			}
-
-			if (asked.find(nfo->vm) != asked.end()) {
-
-				std::cerr << "Can't register twice a VM, VM " << nfo->name << " (0x" << std::hex << (int)nfo->vm << ") asked twitce!\n";
-				return tool::BASIC_ERROR;
-			}
-
-			asked[nfo->vm] = {
-				.platform = plt,
-				.vm = nfo
-			};
 		}
+		else {
+			for (int i = 2; i < argc; i += 2) {
+				auto plt = PlatformOf(argv[i]);
+
+				if (plt == PLATFORM_UNKNOWN) {
+					std::cerr << "Bad platform: " << argv[i] << "\n";
+					return tool::BASIC_ERROR;
+				}
+
+				BYTE vm = (BYTE)std::strtol(argv[i + 1], nullptr, 16);
+
+				VmInfo* nfo;
+
+				if (!IsValidVm(vm, nfo)) {
+					std::cerr << "Bad VM: " << argv[i + 1] << "\n";
+					return tool::BASIC_ERROR;
+				}
+
+				auto uid = utils::CatLocated16(nfo->vm, plt);
+
+				if (asked.find(uid) != asked.end()) {
+					continue; // already asked
+				}
+
+				asked[uid] = {
+					.platform = plt,
+					.vm = nfo
+				};
+			}
+		}
+
 
 		std::cout << "Building db for " << asked.size() << " vm(s)...\n";
 
@@ -57,18 +78,19 @@ namespace {
 
 		BYTE buffer[0x1004] = {};
 
-		for (const auto& [vm, bld] : asked) {
+		for (const auto& [uid, bld] : asked) {
 			// clear buffer
 			memset(buffer, compatibility::serious::SERID_Invalid, sizeof(buffer));
 
 
 			// header
-			buffer[0] = vm;
+			buffer[0] = bld.vm->vm;
+			buffer[1] = bld.platform ? bld.platform - 1 : 0; // platform starts at 0 in compiler
 			*reinterpret_cast<UINT16*>(&buffer[2]) = 0x1000;
 
 			// build mapping
 			for (size_t i = 0; i < 0x1000; i++) {
-				auto* loc = LookupOpCode(vm, bld.platform, (UINT16) i);
+				auto* loc = LookupOpCode(bld.vm->vm, bld.platform, (UINT16) i);
 
 				auto mappedId = compatibility::serious::ConvertTo(loc->m_id);
 
@@ -81,6 +103,7 @@ namespace {
 
 			// write mapping
 			vmfile.write(reinterpret_cast<LPCCH>(buffer), sizeof(buffer));
+			std::cout << "Added vm " << bld.vm->name << " / " << PlatformName(bld.platform) << "\n";
 		}
 
 		vmfile.close();
@@ -114,14 +137,14 @@ namespace {
 				break;
 			}
 			auto vm = *db;
-			auto platform = db[1];
+			UINT32 platform = (int)db[1];
 			auto size = *reinterpret_cast<UINT16*>(db + 2);
 
 			real -= 4;
 			db += 4;
 
 			if (!tool::gsc::opcode::IsValidVm(vm, nfo)) {
-				std::cerr << "Invalid vm: " << std::hex << (int)vm << ", plt: " << (int) platform << ", size: " << size << "\n";
+				std::cerr << "Invalid vm: " << std::hex << (int)vm << ", plt: " << platform << ", size: " << size << "\n";
 
 				if (real < size) {
 					std::cerr << "Bad chunk size: " << std::hex << real << "\n";
@@ -132,9 +155,18 @@ namespace {
 				continue;
 			}
 
+			LPCCH pltName;
+
+			if ((platform + 1) < PLATFORM_COUNT) {
+				pltName = PlatformName((Platform)(platform + 1));
+			}
+			else {
+				pltName = "<unknown>";
+			}
 
 
-			std::cout << "Vm: " << nfo->name << "(" << std::hex << (int)nfo->vm << "), plt: " << (int) platform << ", size: " << size << "\n";
+
+			std::cout << "Vm: " << nfo->name << "(" << std::hex << (int)nfo->vm << "), platform: " << pltName << " (" << std::hex << (int)platform << "), size: " << size << "\n";
 
 			std::map<BYTE, std::vector<UINT16>> opcodes{};
 
