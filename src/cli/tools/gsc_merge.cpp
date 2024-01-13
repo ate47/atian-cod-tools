@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#include "tools/gsc.hpp"
+#include "tools/gsc_opcodes.hpp"
 
 namespace {
 	using namespace tool::gsc;

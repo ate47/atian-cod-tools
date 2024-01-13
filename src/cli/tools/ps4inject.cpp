@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#include "tools/dump.hpp"
+#include "tools/gsc.hpp"
 
 struct XAssetPoolEntry {
 	uintptr_t pool;

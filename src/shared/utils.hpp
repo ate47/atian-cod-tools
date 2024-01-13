@@ -178,4 +178,18 @@ namespace utils {
 		}
 		throw std::invalid_argument(std::format("Invalid character {:x}", c));
 	}
+
+	/*
+	 * Convert wstring to string
+	 * @param wstr wstring
+	 * @return string
+	 */
+	std::string WStrToStr(const std::wstring& wstr);
+
+	/*
+	 * Convert string to wstring
+	 * @param str string
+	 * @return wstring
+	 */
+	std::wstring StrToWStr(const std::string& str);
 }

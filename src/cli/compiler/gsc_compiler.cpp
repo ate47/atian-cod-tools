@@ -2,9 +2,9 @@
 #include "gscLexer.h"
 #include "gscParser.h"
 #include "gscVisitor.h"
-#include "antlr4-runtime.h"
-
 #include <includes.hpp>
+#include "tools/gsc.hpp"
+#include "tools/gsc_opcodes.hpp"
 
 using namespace antlr4;
 using namespace antlr4::tree;

@@ -1,4 +1,7 @@
 #include <includes.hpp>
+#include "tools/dump.hpp"
+#include "tools/pool.hpp"
+#include "tools/gsc.hpp"
 
 
 namespace {
@@ -544,7 +547,6 @@ namespace {
         return tool::OK;
     }
 
-
     int dcfuncscw(Process& proc, int argc, const char* argv[]) {
         hashutils::ReadDefaultFile();
         std::ofstream out{ "cfuncs_cw.csv" };
@@ -1045,7 +1047,7 @@ namespace {
                 const auto& e = pool[i];
 
 
-                if (e.hash < 0x1000000000000 || !e.hash) {
+                if (e.hash < 0x1000000000000) {
                     continue; // probably a ptr
                 }
                 ReadSBName(proc, e.sbObjectsArray);
@@ -1198,9 +1200,62 @@ namespace {
 
         return tool::OK;
     }
+
+    int dbgcw(Process& proc, int argc, const char* argv[]) {
+        if (argc < 4) {
+            return tool::BAD_USAGE;
+        }
+
+        auto inst = std::strtoul(argv[2], nullptr, 10);
+        auto name = hashutils::Hash64Pattern(argv[3]);
+
+        if (inst > 1) {
+            return tool::BAD_USAGE;
+        }
+
+        std::cout << "Searching " << std::hex << name << " in " << scriptinstance::Name(inst) << "\n";
+
+        auto gScrVarGlob = proc[0xF7363A0];
+        auto gScrVarPub = proc[0xF736180];
+
+        auto globalVars = proc.ReadMemory<uintptr_t>(gScrVarPub + inst * 0x110 + 0x28);
+
+        if (!globalVars) {
+            std::cerr << "Can't find globalVars\n";
+            return tool::BASIC_ERROR;
+        }
+
+        auto sharedStructs = proc.ReadMemory<UINT32>(globalVars + 5 * 0xC + 4);
+
+        if (!sharedStructs) {
+            std::cerr << "Can't find sharedStructs\n";
+            return tool::BASIC_ERROR;
+        }
+
+        auto scriptVar = proc.ReadMemory<uintptr_t>(gScrVarGlob + inst * 0x228 + 0x10);
+
+        if (!scriptVar) {
+            std::cerr << "Can't find scriptvar\n";
+            return tool::BASIC_ERROR;
+        }
+
+        auto sharedStructElem = (0x22325 * sharedStructs + 0x1B3 * (((name << 32) >> 32) ^ (name >> 32))) & 0xFFFFF;
+
+        auto res = proc.ReadMemory<UINT32>(scriptVar + 4 * sharedStructElem);
+        
+        if (!res) {
+            std::cerr << "Can't find struct\n";
+            return tool::BASIC_ERROR;
+        }
+
+
+
+        return tool::OK;
+    }
 }
 ADD_TOOL("dpcw", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOpsColdWar.exe", pooltool);
 ADD_TOOL("wpscw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
 ADD_TOOL("dpncw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
 ADD_TOOL("dfuncscw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
 ADD_TOOL("dcfuncscw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
+ADD_TOOL("dbgcw", " [inst]", "dbg (cw)", L"BlackOpsColdWar.exe", dbgcw);

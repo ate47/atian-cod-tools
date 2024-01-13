@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#include "tools/gsc.hpp"
+#include "tools/dump.hpp"
 
 using namespace t8internal;
 

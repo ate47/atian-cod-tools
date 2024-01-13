@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include "tools/gsc.hpp"
 
 using namespace tool::gsc;
 
@@ -322,6 +323,7 @@ void tool::gsc::GSCOBJReader::DumpExperimental(std::ostream& asmout, const GscIn
 }
 
 namespace {
+
     class T8GSCOBJReader : public GSCOBJReader {
         using GSCOBJReader::GSCOBJReader;
 
@@ -366,17 +368,15 @@ namespace {
                 asmout << "\n";
             }
 
-            if (opt.m_exptests) {
-                auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
+            auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
 
-                for (size_t i = 0; i < data->fixup_count; i++) {
-                    const auto& fixup = fixups[i];
-                    asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
-                }
+            for (size_t i = 0; i < data->fixup_count; i++) {
+                const auto& fixup = fixups[i];
+                asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
+            }
 
-                if (data->fixup_count) {
-                    asmout << "\n";
-                }
+            if (data->fixup_count) {
+                asmout << "\n";
             }
         }
 
@@ -424,6 +424,139 @@ namespace {
         }
         bool IsValidMagic() override {
             return *reinterpret_cast<UINT64*>(file) == 0x36000a0d43534780;
+        }
+    };
+    
+    class T937GSCOBJReader : public GSCOBJReader {
+        using GSCOBJReader::GSCOBJReader;
+
+        void DumpHeader(std::ostream& asmout) override {
+            auto* data = Ptr<T937GSCOBJ>();
+            asmout
+                << std::hex
+                << "// crc: 0x" << std::hex << data->crc << "\n"
+                << std::left << std::setfill(' ')
+                << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
+                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
+                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+                << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
+                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
+                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
+                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+                << std::right
+                << std::flush;
+
+            if (opt.m_test_header) {
+                asmout
+                    << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
+                    << "// unk24 .... " << std::dec << data->unk24 << " / 0x" << std::hex << data->unk24 << "\n"
+                    << "// unk3a .... " << std::dec << data->unk3a << " / 0x" << std::hex << data->unk3a << "\n"
+                    << "// unk48 .... " << std::dec << data->unk48 << " / 0x" << std::hex << data->unk48 << "\n"
+                    << "// unk52 .... " << std::dec << data->unk52 << " / 0x" << std::hex << data->unk52 << "\n"
+                    << "// unk54 .... " << std::dec << data->unk54 << " / 0x" << std::hex << data->unk54 << "\n"
+                    ;
+            }
+        }
+        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+            auto* data = Ptr<T937GSCOBJ>();
+
+            auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
+
+            for (size_t i = 0; i < data->fixup_count; i++) {
+                const auto& fixup = fixups[i];
+                asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
+            }
+
+            if (data->fixup_count) {
+                asmout << "\n";
+            }
+        }
+
+        UINT64 GetName() override {
+            return Ptr<T937GSCOBJ>()->name;
+        }
+        UINT16 GetExportsCount() override {
+            return Ptr<T937GSCOBJ>()->export_count;
+        }
+        UINT32 GetExportsOffset() override {
+            return Ptr<T937GSCOBJ>()->exports_tables;
+        }
+        UINT16 GetIncludesCount() override {
+            return Ptr<T937GSCOBJ>()->includes_count;
+        }
+        UINT32 GetIncludesOffset() override {
+            return Ptr<T937GSCOBJ>()->includes_table;
+        }
+        UINT16 GetImportsCount() override {
+            return Ptr<T937GSCOBJ>()->imports_count;
+        }
+        UINT32 GetImportsOffset() override {
+            return Ptr<T937GSCOBJ>()->imports_offset;
+        }
+        UINT16 GetGVarsCount() override {
+            return Ptr<T937GSCOBJ>()->globalvar_count;
+        }
+        UINT32 GetGVarsOffset() override {
+            return Ptr<T937GSCOBJ>()->globalvar_offset;
+        }
+        UINT16 GetStringsCount() override {
+            return Ptr<T937GSCOBJ>()->string_count;
+        }
+        UINT32 GetStringsOffset() override {
+            return Ptr<T937GSCOBJ>()->string_offset;
+        }
+        UINT32 GetFileSize() override {
+            return Ptr<T937GSCOBJ>()->file_size;
+        }
+        size_t GetHeaderSize() override {
+            return sizeof(T937GSCOBJ);
+        }
+        char* DecryptString(char* str) override {
+#ifdef CW_INCLUDES
+            return cw::DecryptString(str);
+#else
+            return str;
+#endif
+        }
+        bool IsValidMagic() override {
+            return *reinterpret_cast<UINT64*>(file) == 0x37000a0d43534780;
+        }
+
+        BYTE RemapFlagsImport(BYTE flags) override {
+            BYTE nflags = 0;
+
+            switch (flags & T9_IF_CALLTYPE_MASK) {
+            case T9_IF_METHOD_CHILDTHREAD: nflags |= METHOD_CHILDTHREAD; break;
+            case T9_IF_METHOD_THREAD: nflags |= METHOD_THREAD; break;
+            case T9_IF_FUNCTION_CHILDTHREAD: nflags |= FUNCTION_CHILDTHREAD; break;
+            case T9_IF_FUNCTION: nflags |= FUNCTION; break;
+            case T9_IF_FUNC_METHOD: nflags |= FUNC_METHOD; break;
+            case T9_IF_FUNCTION_THREAD: nflags |= FUNCTION_THREAD; break;
+            case T9_IF_METHOD: nflags |= METHOD; break;
+            default: nflags |= flags & 0xF; // wtf?
+            }
+
+            nflags |= flags & ~T9_IF_CALLTYPE_MASK;
+
+            return nflags;
+        }
+
+        BYTE RemapFlagsExport(BYTE flags) override {
+            if (flags == T9_EF_CLASS_VTABLE) {
+                return CLASS_VTABLE;
+            }
+            BYTE nflags = 0;
+
+            if (flags & T9_EF_AUTOEXEC) nflags |= AUTOEXEC;
+            if (flags & T9_EF_LINKED) nflags |= LINKED;
+            if (flags & T9_EF_PRIVATE) nflags |= PRIVATE;
+            if (flags & T9_EF_CLASS_MEMBER) nflags |= CLASS_MEMBER;
+            if (flags & T9_EF_EVENT) nflags |= EVENT;
+            if (flags & T9_EF_VE) nflags |= VE;
+            if (flags & T9_EF_CLASS_LINKED) nflags |= CLASS_LINKED;
+            if (flags & T9_EF_CLASS_DESTRUCTOR) nflags |= CLASS_DESTRUCTOR;
+
+            return nflags;
         }
     };
 
@@ -511,19 +644,18 @@ namespace {
         bool IsValidMagic() override {
             return *reinterpret_cast<UINT64*>(file) == 0x38000a0d43534780;
         }
-
         BYTE RemapFlagsImport(BYTE flags) override {
             BYTE nflags = 0;
-            
+
             switch (flags & T9_IF_CALLTYPE_MASK) {
-                case T9_IF_METHOD_CHILDTHREAD: nflags |= METHOD_CHILDTHREAD; break;
-                case T9_IF_METHOD_THREAD: nflags |= METHOD_THREAD; break;
-                case T9_IF_FUNCTION_CHILDTHREAD: nflags |= FUNCTION_CHILDTHREAD; break;
-                case T9_IF_FUNCTION: nflags |= FUNCTION; break;
-                case T9_IF_FUNC_METHOD: nflags |= FUNC_METHOD; break;
-                case T9_IF_FUNCTION_THREAD: nflags |= FUNCTION_THREAD; break;
-                case T9_IF_METHOD: nflags |= METHOD; break;
-                default: nflags |= flags & 0xF; // wtf?
+            case T9_IF_METHOD_CHILDTHREAD: nflags |= METHOD_CHILDTHREAD; break;
+            case T9_IF_METHOD_THREAD: nflags |= METHOD_THREAD; break;
+            case T9_IF_FUNCTION_CHILDTHREAD: nflags |= FUNCTION_CHILDTHREAD; break;
+            case T9_IF_FUNCTION: nflags |= FUNCTION; break;
+            case T9_IF_FUNC_METHOD: nflags |= FUNC_METHOD; break;
+            case T9_IF_FUNCTION_THREAD: nflags |= FUNCTION_THREAD; break;
+            case T9_IF_METHOD: nflags |= METHOD; break;
+            default: nflags |= flags & 0xF; // wtf?
             }
 
             nflags |= flags & ~T9_IF_CALLTYPE_MASK;
@@ -552,6 +684,7 @@ namespace {
 
     std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*, const GscInfoOption&)>> gscReaders = {
         { tool::gsc::opcode::VM_T8,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T8GSCOBJReader>(file, opt); }},
+        { tool::gsc::opcode::VM_T937,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T937GSCOBJReader>(file, opt); }},
         { tool::gsc::opcode::VM_T9,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T9GSCOBJReader>(file, opt); }},
     };
 }
@@ -707,13 +840,13 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             const auto* str = reinterpret_cast<T8GSCString*>(str_location);
 
-            asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << ", type:" << (int)str->type << "\n";
+            asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << ", type:" << (int)str->type << std::endl;
 
             LPCH encryptedString = scriptfile->Ptr<CHAR>(str->string);
 
             size_t len{};
             BYTE type{};
-            if (scriptfile->GetVM() != opcode::VM_T9) {
+            if (scriptfile->GetVM() == opcode::VM_T8) {
                 len = (size_t)reinterpret_cast<BYTE*>(encryptedString)[1] - 1;
                 type = *reinterpret_cast<BYTE*>(encryptedString);
 
@@ -751,7 +884,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             asmout << '"' << cstr << "\"" << std::flush;
 
-            if (scriptfile->GetVM() != opcode::VM_T9) {
+            if (scriptfile->GetVM() == opcode::VM_T8) {
                 size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
 
                 if (lenAfterDecrypt != len) {
@@ -1695,7 +1828,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
                 if (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF) {
                     asmout << "&";
                 }
-                else if (gscFile.GetVM() == tool::gsc::opcode::VM_T9 && (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
+                else if (gscFile.GetVM() != tool::gsc::opcode::VM_T8 && (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
                     asmout << "*";
                 }
 
@@ -1704,7 +1837,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
 
             BYTE mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
-            if (ctx.m_vm == opcode::VM_T9) {
+            if (ctx.m_vm != tool::gsc::opcode::VM_T8) {
                 mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
             }
             

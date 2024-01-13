@@ -1,5 +1,6 @@
 #include <includes.hpp>
-
+#include "tools/gsc.hpp"
+#include "tools/dump.hpp"
 
 namespace {
 	using tool::gsc::RosettaBlockType;

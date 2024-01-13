@@ -4,6 +4,8 @@ This software depends on libraries with a different License.
 - [Microsoft/Detours](https://github.com/microsoft/Detours) - [MIT license](https://github.com/microsoft/Detours/blob/main/LICENSE.md).
 - [Madler/zlib](https://github.com/madler/zlib) - [Custom license](https://github.com/madler/zlib/blob/master/LICENSE).
 - [asmjit](https://github.com/asmjit/asmjit) - [ZLib license](https://github.com/asmjit/asmjit/blob/master/LICENSE.md).
+- [ladislav-zezula/CascLib](https://github.com/ladislav-zezula/CascLib) - [MIT license](https://github.com/ladislav-zezula/CascLib/blob/master/LICENSE).
+
 
 # MIT License
 

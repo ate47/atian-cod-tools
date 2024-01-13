@@ -4,7 +4,7 @@ namespace tool::gsc::opcode {
 
 	enum VM : BYTE {
 		VM_T8 = 0x36,
-		VM_T2020 = 0x37,
+		VM_T937 = 0x37,
 		VM_T9 = 0x38
 	};
 

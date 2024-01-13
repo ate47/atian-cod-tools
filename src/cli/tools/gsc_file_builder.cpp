@@ -1,4 +1,7 @@
 #include "gsc_file_builder.hpp"
+#include "tools/dump.hpp"
+#include "tools/gsc.hpp"
+#include "tools/gsc_opcodes.hpp"
 
 tool::gscfile::GscFile::GscFile(UINT64 name, VM vm) : name(name), vm(vm) {
 }

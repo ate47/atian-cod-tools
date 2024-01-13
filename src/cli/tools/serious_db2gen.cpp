@@ -1,4 +1,7 @@
 #include <includes.hpp>
+#include "compatibility/serious.hpp"
+#include "tools/gsc_opcodes.hpp"
+#include "tools/gsc.hpp"
 
 namespace {
 	using namespace tool::gsc::opcode;
@@ -156,12 +159,15 @@ namespace {
 			}
 
 			LPCCH pltName;
+			Platform plt;
 
 			if ((platform + 1) < PLATFORM_COUNT) {
-				pltName = PlatformName((Platform)(platform + 1));
+				plt = (Platform)(platform + 1);
+				pltName = PlatformName(plt);
 			}
 			else {
 				pltName = "<unknown>";
+				plt = PLATFORM_UNKNOWN;
 			}
 
 
@@ -184,7 +190,7 @@ namespace {
 			}
 
 			for (const auto& [val, mapping] : opcodes) {
-				auto* code = tool::gsc::opcode::LookupOpCode(nfo->vm, PLATFORM_PC, mapping[0]);
+				auto* code = tool::gsc::opcode::LookupOpCode(nfo->vm, plt, mapping[0]);
 				std::cout << "0x" << std::hex << (int)val << "/" << std::dec << (int)val << " (" << code->m_name << ") -> ";
 
 				for (size_t i = 0; i < mapping.size(); i++) {

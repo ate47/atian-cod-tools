@@ -1,5 +1,7 @@
 #include <includes.hpp>
- 
+#include "tools/dump.hpp"
+#include "tools/gsc.hpp"
+
 /*
  * integrated version of the T8CustomEE mod.
  * https://github.com/ate47/t8-custom-ee

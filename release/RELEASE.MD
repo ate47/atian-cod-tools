@@ -1,12 +1,4 @@
-- cw dll
-  - decrypt GSC strings
-- gsc decompiler
-	- add support for CW GSC VM38
 - tools
-  - tools to dump bo4 pools (ScriptBundles, BGCache, Gametype, Maps)
-  - tools to dump cw compiled scripts and pools
-  - HKS LUA header dump
-  - LUI func dump
+  - bo4 script injection (ps4)
 - mods
-  - bocw dll inject
-  - bocw EE unlocker
+  - bo4 ee enabler (ps4)

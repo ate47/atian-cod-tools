@@ -1,5 +1,7 @@
 #pragma once
 #include <includes.hpp>
+#include "tools/gsc.hpp"
+#include "tools/gsc_opcodes.hpp"
 
 namespace tool::gscfile {
 	using namespace tool::gsc;

@@ -1,4 +1,7 @@
 #include <includes.hpp>
+#include "tools/gsc_opcodes.hpp"
+#include "compatibility/serious.hpp"
+
 
 using namespace tool::gsc::opcode;
 using namespace compatibility::serious;

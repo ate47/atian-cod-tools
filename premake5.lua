@@ -219,6 +219,7 @@ project "AtianCodTools"
 		"deps/zlib/",
         "deps/ps4debug/libdebug/cpp/include/",
         "deps/asmjit/src/",
+        "deps/casclib/src/",
     }
 
     vpaths {
@@ -226,7 +227,8 @@ project "AtianCodTools"
     }
 
     defines { 
-        "ANTLR4CPP_STATIC"
+        "ANTLR4CPP_STATIC",
+        "CASCLIB_NO_AUTO_LINK_LIBRARY"
     }
     
     links { "antlr4-runtime" }
@@ -234,11 +236,13 @@ project "AtianCodTools"
     links { "zlib" }
     links { "libps4debug" }
     links { "asmjit" }
+    links { "casclib" }
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
     dependson "zlib"
     dependson "libps4debug"
     dependson "asmjit"
+    dependson "casclib"
 
 project "TestDll"
     kind "SharedLib"
@@ -364,5 +368,37 @@ group "deps"
 
         includedirs {
             "deps/ps4debug/libdebug/cpp/include/"
+        }
+        
+    project "casclib"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++17"
+        warnings "Off"
+
+        targetname "CascLib"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/casclib/src/**.cpp",
+            "deps/casclib/src/**.h",
+            "deps/casclib/src/**.c",
+            "deps/casclib/src/*.def",
+            "deps/casclib/src/*.rc"
+        }
+        removefiles {
+            "deps/casclib/src/overwatch/cmf-key.cpp"
+        }
+
+        defines {
+            "_LIB",
+            "_7ZIP_ST",
+            "BZ_STRICT_ANSI",
+            "CASCLIB_NO_AUTO_LINK_LIBRARY"
+        }
+
+        includedirs {
+            "deps/casclib/src/"
         }
 

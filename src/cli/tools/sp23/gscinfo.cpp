@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include "tools/gsc.hpp"
 
 // tests with mwiii
 namespace {

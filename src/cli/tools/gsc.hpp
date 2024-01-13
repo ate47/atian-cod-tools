@@ -590,6 +590,37 @@ namespace tool::gsc {
             return magic[7];
         }
     };
+    struct T937GSCOBJ {
+        byte magic[8];
+        uint32_t crc;
+        uint32_t pad0c;
+        uint64_t name;
+        uint32_t includes_table;
+        uint16_t string_count;
+        uint16_t export_count;
+        uint32_t cseg_offset;
+        uint32_t string_offset;
+        uint16_t imports_count;
+        uint16_t fixup_count;
+        uint32_t unk24;
+        uint32_t exports_tables;
+        uint32_t imports_offset;
+        uint16_t globalvar_count;
+        uint16_t unk3a;
+        uint32_t fixup_offset;
+        uint32_t globalvar_offset;
+        uint32_t file_size;
+        uint32_t unk48;
+        uint32_t cseg_size;
+        uint16_t includes_count;
+        uint16_t unk52;
+        uint32_t unk54;
+
+        // @return the vm
+        inline BYTE GetVm() {
+            return magic[7];
+        }
+    };
 
     struct T9GSCOBJ {
         BYTE magic[8];

@@ -1,5 +1,6 @@
 #include <includes.hpp>
-#include "gsc_opcodes_load.hpp"
+#include "tools/gsc.hpp"
+#include "tools/gsc_opcodes.hpp"
 using namespace tool::gsc::opcode;
 
 // maps to find the opcodes
@@ -1327,14 +1328,14 @@ public:
 			else if (flags & T8GSCLocalVarFlag::ARRAY_REF) {
 				out << "&";
 			}
-			else if (context.m_vm == tool::gsc::opcode::VM_T9 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
+			else if (context.m_vm != tool::gsc::opcode::VM_T8 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
 				out << "*";
 			}
 
 
 			BYTE mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
-			if (context.m_vm == tool::gsc::opcode::VM_T9) {
+			if (context.m_vm != tool::gsc::opcode::VM_T8) {
 				mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
 			}
 

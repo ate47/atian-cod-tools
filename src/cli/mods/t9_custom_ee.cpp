@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include "tools/gsc.hpp"
 
 constexpr auto s_assetPools_off = 0x11E50670;
 

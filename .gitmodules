@@ -22,3 +22,6 @@
 [submodule "deps/asmjit"]
 	path = deps/asmjit
 	url = https://github.com/asmjit/asmjit
+[submodule "deps/casclib"]
+	path = deps/casclib
+	url = https://github.com/ladislav-zezula/CascLib
