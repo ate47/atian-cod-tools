@@ -177,7 +177,23 @@ const char* EModeName(eModes mode, bool allocInvalid = false) {
         return invalidBuffer;
     }
     }
+}
+const char* LobbyModeName(int mode, bool allocInvalid = false) {
+    switch (mode) {
+    case -1: return "campaign";
+    case 0: return "multiplayer";
+    case 1: return "zombies";
+    case 2: return "warzone";
+    default: {
+        if (!allocInvalid) {
+            return "<invalid>";
+        }
+        static char invalidBuffer[0x50];
 
+        sprintf_s(invalidBuffer, "<invalid:%d>", (int)mode);
+        return invalidBuffer;
+    }
+    }
 }
 
 struct Hash {
@@ -1676,12 +1692,12 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             uint32_t unk4;
             uint64_t unk8;
             Hash name;
-            uintptr_t unk20; // PlaylistMap**
-            uint64_t unk28;
-            uintptr_t unk30;
-            uint64_t unk38;
-            uintptr_t unk40;
-            uint64_t unk40_count;
+            uintptr_t maps; // PlaylistMap**
+            uint64_t maps_count;
+            uintptr_t gametypes; // PlaylistGametype*
+            uint64_t gametypes_count;
+            uintptr_t categories; //PlaylistData*
+            uint64_t categories_count;
         };
 
         struct PlaylistData { // unk40 // 0x50
@@ -1807,136 +1823,149 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
             if (n) {
                 std::cout << n;
-                sprintf_s(dumpbuff, "%s/tables/playlists/%lld_%s.json", opt.m_output, i, n);
+                sprintf_s(dumpbuff, "%s/tables/playlists/%lld_%s", opt.m_output, i, n);
             }
             else {
                 std::cout << "file_" << std::hex << p.name.name << std::dec;
-                sprintf_s(dumpbuff, "%s/tables/playlists/%lld_file_%llx.json", opt.m_output, i, p.name.name);
+                sprintf_s(dumpbuff, "%s/tables/playlists/%lld_%llx", opt.m_output, i, p.name.name);
             }
 
             std::cout << " -> " << dumpbuff << "\n";
 
             std::filesystem::path file(dumpbuff);
-            std::filesystem::create_directories(file.parent_path(), ec);
+            std::filesystem::create_directories(file, ec);
 
-            std::ofstream out{ file };
+            {
+                std::ofstream out{ file / "playlists.json" };
 
-            if (!out) {
-                std::cerr << "Can't open file\n";
-                continue;
-            }
-
-            auto checksum = fastfiles::ComputeChecksum32(reinterpret_cast<char*>(&p.unk0), 4, 0);
-            
-
-            out << "{\n"
-                << "    \"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n"
-                << "    \"unk0\": " << std::dec << p.unk0 << ",\n"
-                << "    \"checksum\": " << std::dec << *reinterpret_cast<UINT32*>(&checksum) << ",\n"
-                << "    \"maps\": ["
-                ;
-
-            if (p.unk28) {
-                auto maps = std::make_unique<uintptr_t[]>(p.unk28);
-
-
-                if (proc.ReadMemory(&maps[0], p.unk20, sizeof(maps[0]) * p.unk28)) {
-
-                    PlaylistMap mapInfo;
-                    for (size_t j = 0; j < p.unk28; j++) {
-                        if (j) out << ",";
-                        if (!proc.ReadMemory(&mapInfo, maps[j], sizeof(PlaylistMap))) {
-                            out << "Can't read data\n";
-                            continue;
-                        }
-                        out 
-                            << "\n"
-                            << "        {\n"
-                            << "            \"index\": " << std::dec << j << ",\n"
-                            << "            \"name\": \"#" << hashutils::ExtractTmp("hash", mapInfo.name.name) << "\",\n"
-                            << "            \"baseMapName\": \"#" << hashutils::ExtractTmp("hash", mapInfo.baseMapName.name) << "\",\n"
-                            << "            \"mapPlatformMask\": " << std::dec << (int)mapInfo.mapPlatformMask << "\n"
-                            << "        }"
-                            ;
-                        //tool::pool::WriteHex(out, 0, reinterpret_cast<BYTE*>(&mapInfo), sizeof(mapInfo), proc);
-                    }
+                if (!out) {
+                    std::cerr << "Can't open playlists.json\n";
+                    continue;
                 }
 
-
-                out << "\n    ],\n";
-            }
-            else {
-                out << "],\n";
-            }
-
-            out
-                << "    \"gametypes\": ["
-                ;
+                auto checksum = fastfiles::ComputeChecksum32(reinterpret_cast<char*>(&p.unk0), 4, 0);
 
 
-            if (p.unk38) {
-                auto gametypes = std::make_unique<uintptr_t[]>(p.unk38);
+                out << "{\n"
+                    << "    \"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n"
+                    << "    \"unk0\": " << std::dec << p.unk0 << ",\n"
+                    << "    \"checksum\": " << std::dec << *reinterpret_cast<UINT32*>(&checksum) << ",\n"
+                    << "    \"maps\": ["
+                    ;
+
+                if (p.maps_count) {
+                    auto maps = std::make_unique<uintptr_t[]>(p.maps_count);
 
 
-                if (proc.ReadMemory(&gametypes[0], p.unk30, sizeof(gametypes[0]) * p.unk38)) {
+                    if (proc.ReadMemory(&maps[0], p.maps, sizeof(maps[0]) * p.maps_count)) {
 
-                    PlaylistGametype gtInfo;
-                    for (size_t j = 0; j < p.unk38; j++) {
-                        if (j) out << ",";
-                        if (!proc.ReadMemory(&gtInfo, gametypes[j], sizeof(gtInfo))) {
-                            out << "Can't read data\n";
-                            continue;
+                        PlaylistMap mapInfo;
+                        for (size_t j = 0; j < p.maps_count; j++) {
+                            if (j) out << ",";
+                            if (!proc.ReadMemory(&mapInfo, maps[j], sizeof(PlaylistMap))) {
+                                out << "Can't read data\n";
+                                continue;
+                            }
+                            out
+                                << "\n"
+                                << "        {\n"
+                                << "            \"index\": " << std::dec << j << ",\n"
+                                << "            \"name\": \"#" << hashutils::ExtractTmp("hash", mapInfo.name.name) << "\",\n"
+                                << "            \"baseMapName\": \"#" << hashutils::ExtractTmp("hash", mapInfo.baseMapName.name) << "\",\n"
+                                << "            \"mapPlatformMask\": " << std::dec << (int)mapInfo.mapPlatformMask << "\n"
+                                << "        }"
+                                ;
+                            //tool::pool::WriteHex(out, 0, reinterpret_cast<BYTE*>(&mapInfo), sizeof(mapInfo), proc);
                         }
-                        out
-                            << "\n"
-                            << "        {\n"
-                            << "            \"index\": " << std::dec << j << ",\n"
-                            << "            \"name\": \"#" << hashutils::ExtractTmp("hash", gtInfo.name.name) << "\",\n"
-                            << "            \"description\": \"#" << hashutils::ExtractTmp("hash", gtInfo.description.name) << "\",\n"
-                            << "            \"mode\": \"#" << hashutils::ExtractTmp("hash", gtInfo.mode.name) << "\"\n"
-                            << "        }"
-                            ;
                     }
+
+
+                    out << "\n    ],\n";
+                }
+                else {
+                    out << "],\n";
                 }
 
-                out << "\n    ],\n";
+                out
+                    << "    \"gametypes\": ["
+                    ;
+
+
+                if (p.gametypes_count) {
+                    auto gametypes = std::make_unique<uintptr_t[]>(p.gametypes_count);
+
+
+                    if (proc.ReadMemory(&gametypes[0], p.gametypes, sizeof(gametypes[0]) * p.gametypes_count)) {
+
+                        PlaylistGametype gtInfo;
+                        for (size_t j = 0; j < p.gametypes_count; j++) {
+                            if (j) out << ",";
+                            if (!proc.ReadMemory(&gtInfo, gametypes[j], sizeof(gtInfo))) {
+                                out << "Can't read data\n";
+                                continue;
+                            }
+                            out
+                                << "\n"
+                                << "        {\n"
+                                << "            \"index\": " << std::dec << j << ",\n"
+                                << "            \"name\": \"#" << hashutils::ExtractTmp("hash", gtInfo.name.name) << "\",\n"
+                                << "            \"description\": \"#" << hashutils::ExtractTmp("hash", gtInfo.description.name) << "\",\n"
+                                << "            \"mode\": \"#" << hashutils::ExtractTmp("hash", gtInfo.mode.name) << "\"\n"
+                                << "        }"
+                                ;
+                        }
+                    }
+
+                    out << "\n    ]\n";
+                }
+                else {
+                    out << "]\n";
+                }
+
+                out
+                    << "}\n"
+                    ;
+
+                out.close();
             }
-            else {
-                out << "],\n";
-            }
 
-            out
-                << "    \"categories\": ["
-                ;
+            if (p.categories_count) {
+                std::filesystem::path categoryDir = file / "categories";
+                std::filesystem::create_directories(categoryDir, ec);
 
-            if (p.unk40_count) {
-                auto data = std::make_unique<PlaylistData[]>(p.unk40_count);
+                auto data = std::make_unique<PlaylistData[]>(p.categories_count);
 
-                if (!proc.ReadMemory(&data[0], p.unk40, sizeof(data[0]) * p.unk40_count)) {
-                    out << "Can't read data\n";
-                    out.close();
+                if (!proc.ReadMemory(&data[0], p.categories, sizeof(data[0]) * p.categories_count)) {
+                    std::cerr << "Can't read categories data\n";
                     continue;
                 }
 
 
-                for (size_t j = 0; j < p.unk40_count; j++)
-                {
+                for (size_t j = 0; j < p.categories_count; j++) {
                     auto& pl = data[j];
-                    if (j) out << ",";
+
+                    std::filesystem::path categoryFile = categoryDir / std::format("{}.json", hashutils::ExtractTmp("file", pl.name.name));
+
+                    std::ofstream out{ categoryFile };
+
+                    if (!out) {
+                        std::cerr << "Can't open " << categoryFile << "\n";
+                        continue;
+                    }
                     out 
                         << "\n"
-                        << "        {\n"
-                        << "            \"index\": " << std::dec << j << ",\n"
-                        << "            \"name\": \"#" << hashutils::ExtractTmp("hash", pl.name.name) << "\",\n"
-                        << "            \"description\": \"#" << hashutils::ExtractTmp("hash", pl.description.name) << "\",\n"
-                        << "            \"lobbyMainMode\": " << pl.lobbyMainMode << ",\n"
-                        << "            \"hidden\": " << (pl.hidden ? "true" : "false") << ",\n"
+                        << "{\n"
+                        << "    \"index\": " << std::dec << j << ",\n"
+                        << "    \"name\": \"#" << hashutils::ExtractTmp("hash", pl.name.name) << "\",\n"
+                        << "    \"description\": \"#" << hashutils::ExtractTmp("hash", pl.description.name) << "\",\n"
+                        << "    \"lobbyMainMode\": " << (int)pl.lobbyMainMode << ",\n"
+                        << "    \"hidden\": " << (pl.hidden ? "true" : "false") << ",\n"
                         ;
                     if (pl.icon) {
-                        out << "            \"icon\": \"#" << hashutils::ExtractTmp("hash", pl.icon) << "\",\n";
+                        out << "    \"icon\": \"#" << hashutils::ExtractTmp("hash", pl.icon) << "\",\n";
                     }
                     out
-                        << "            \"entries\": ["
+                        << "    \"entries\": ["
                         ;
 
                     if (pl.unk40_count) {
@@ -1952,13 +1981,13 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                             if (k) out << ",";
                             out
                                 << "\n"
-                                << "                {\n"
-                                << "                    \"index\": " << std::dec << k << ",\n"
-                                << "                    \"id\": " << std::dec << ple.id << ",\n"
-                                << "                    \"name\": \"#" << hashutils::ExtractTmp("hash", ple.name.name) << "\",\n"
-                                << "                    \"uniqueName\": \"#" << hashutils::ExtractTmp("hash", ple.unique_name.name) << "\",\n"
-                                << "                    \"mainMode\": \"" << EModeName(ple.mainMode, true) << "\",\n"
-                                //<< "                    \"unka8\": \"" << ReadTmpStr(proc, ple.unka8) << "\",\n" // constantly NULL, check in zombies?
+                                << "        {\n"
+                                << "            \"index\": " << std::dec << k << ",\n"
+                                << "            \"id\": " << std::dec << ple.id << ",\n"
+                                << "            \"name\": \"#" << hashutils::ExtractTmp("hash", ple.name.name) << "\",\n"
+                                << "            \"uniqueName\": \"#" << hashutils::ExtractTmp("hash", ple.unique_name.name) << "\",\n"
+                                << "            \"mainMode\": \"" << EModeName(ple.mainMode, true) << "\",\n"
+                                //<< "            \"unka8\": \"" << ReadTmpStr(proc, ple.unka8) << "\",\n" // constantly NULL, check in zombies?
                                 ;
 
                             auto addGFXName = [&proc, &ple, &out](const char* title, uintptr_t ptr) {
@@ -1969,7 +1998,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                                 if (!name) {
                                     return;
                                 }
-                                out << "                    \"" << title << "\": \"#" << hashutils::ExtractTmp("hash", name) << "\",\n";
+                                out << "            \"" << title << "\": \"#" << hashutils::ExtractTmp("hash", name) << "\",\n";
                             };
                             addGFXName("image", ple.image);
                             addGFXName("imageBackground", ple.imageBackground);
@@ -1979,28 +2008,28 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                             addGFXName("imageTileSideInfo", ple.imageTileSideInfo);
                             out
                                 << std::dec
-                                << "                    \"unlockXp\": " << std::dec << ple.unlockXp << ",\n"
-                                << "                    \"unlockPLevel\": " << std::dec << ple.unlockPLevel << ",\n"
-                                << "                    \"maxPartySize\": " << std::dec << ple.maxPartySize << ",\n"
-                                << "                    \"minPartySize\": " << std::dec << ple.minPartySize << ",\n"
-                                << "                    \"maxPlayers\": " << std::dec << ple.maxPlayers << ",\n"
-                                << "                    \"minPlayers\": " << std::dec << ple.minPlayers << ",\n"
-                                << "                    \"minPlayersToCreate\": " << std::dec << ple.minPlayersToCreate << ",\n"
-                                << "                    \"maxLocalPlayers\": " << std::dec << ple.maxLocalPlayers << ",\n"
-                                << "                    \"searchType\": " << std::dec << ple.searchType << ",\n"
-                                << "                    \"minUserTier\": " << std::dec << ple.minUserTier << ",\n"
-                                << "                    \"maxUserTier\": " << std::dec << ple.maxUserTier << ",\n"
-                                << "                    \"arenaSlot\": " << std::dec << ple.arenaSlot << ",\n"
-                                << "                    \"parkingPlaylist\": " << std::dec << ple.parkingPlaylist << ",\n"
-                                << "                    \"disableGuests\": " << std::dec << (ple.disableGuests ? "true" : "false") << ",\n"
-                                << "                    \"excludePublicLobby\": " << std::dec << (ple.excludePublicLobby ? "true" : "false") << ",\n"
-                                << "                    \"customMutation\": " << std::dec << (ple.customMutation ? "true" : "false") << ",\n"
-                                << "                    \"isSpectreRising\": " << std::dec << (ple.isSpectreRising ? "true" : "false") << ",\n"
-                                << "                    \"isQuickplayCard\": " << std::dec << (ple.isQuickplayCard ? "true" : "false") << ",\n"
-                                << "                    \"hideifmissingdlc\": " << std::dec << (ple.hideifmissingdlc ? "true" : "false") << ",\n"
-                                << "                    \"isCustomMatch\": " << std::dec << (ple.isCustomMatch ? "true" : "false") << ",\n"
-                                << "                    \"isNewGameOrResumeGame\": " << std::dec << (ple.isNewGameOrResumeGame ? "true" : "false") << ",\n"
-                                << "                    \"rules\": ["
+                                << "            \"unlockXp\": " << std::dec << ple.unlockXp << ",\n"
+                                << "            \"unlockPLevel\": " << std::dec << ple.unlockPLevel << ",\n"
+                                << "            \"maxPartySize\": " << std::dec << ple.maxPartySize << ",\n"
+                                << "            \"minPartySize\": " << std::dec << ple.minPartySize << ",\n"
+                                << "            \"maxPlayers\": " << std::dec << ple.maxPlayers << ",\n"
+                                << "            \"minPlayers\": " << std::dec << ple.minPlayers << ",\n"
+                                << "            \"minPlayersToCreate\": " << std::dec << ple.minPlayersToCreate << ",\n"
+                                << "            \"maxLocalPlayers\": " << std::dec << ple.maxLocalPlayers << ",\n"
+                                << "            \"searchType\": " << std::dec << ple.searchType << ",\n"
+                                << "            \"minUserTier\": " << std::dec << ple.minUserTier << ",\n"
+                                << "            \"maxUserTier\": " << std::dec << ple.maxUserTier << ",\n"
+                                << "            \"arenaSlot\": " << std::dec << ple.arenaSlot << ",\n"
+                                << "            \"parkingPlaylist\": " << std::dec << ple.parkingPlaylist << ",\n"
+                                << "            \"disableGuests\": " << std::dec << (ple.disableGuests ? "true" : "false") << ",\n"
+                                << "            \"excludePublicLobby\": " << std::dec << (ple.excludePublicLobby ? "true" : "false") << ",\n"
+                                << "            \"customMutation\": " << std::dec << (ple.customMutation ? "true" : "false") << ",\n"
+                                << "            \"isSpectreRising\": " << std::dec << (ple.isSpectreRising ? "true" : "false") << ",\n"
+                                << "            \"isQuickplayCard\": " << std::dec << (ple.isQuickplayCard ? "true" : "false") << ",\n"
+                                << "            \"hideifmissingdlc\": " << std::dec << (ple.hideifmissingdlc ? "true" : "false") << ",\n"
+                                << "            \"isCustomMatch\": " << std::dec << (ple.isCustomMatch ? "true" : "false") << ",\n"
+                                << "            \"isNewGameOrResumeGame\": " << std::dec << (ple.isNewGameOrResumeGame ? "true" : "false") << ",\n"
+                                << "            \"rules\": ["
                                 ;
 
                             if (ple.rules_count) {
@@ -2017,29 +2046,29 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                                     if (l) out << ",";
                                     out
                                         << "\n"
-                                        << "                        {\n"
-                                        << "                            \"type\": " << std::dec << rule.type << ",\n"
-                                        << "                            \"name\": \"#" << hashutils::ExtractTmp("hash", rule.name.name) << "\",\n"
-                                        << "                            \"value\": \"" << ReadTmpStr(proc, rule.value) << "\",\n"
-                                        << "                            \"utcStartTime\": " << std::dec << rule.utcStartTime << ",\n"
-                                        << "                            \"utcEndTime\": " << std::dec << rule.utcEndTime << ",\n"
-                                        << "                            \"platformMask\": " << std::dec << (int)rule.platformMask << ",\n"
-                                        << "                            \"environmentMask\": " << std::dec << (int)rule.environmentMask << "\n"
-                                        << "                        }"
+                                        << "                {\n"
+                                        << "                    \"type\": " << std::dec << rule.type << ",\n"
+                                        << "                    \"name\": \"#" << hashutils::ExtractTmp("hash", rule.name.name) << "\",\n"
+                                        << "                    \"value\": \"" << ReadTmpStr(proc, rule.value) << "\",\n"
+                                        << "                    \"utcStartTime\": " << std::dec << rule.utcStartTime << ",\n"
+                                        << "                    \"utcEndTime\": " << std::dec << rule.utcEndTime << ",\n"
+                                        << "                    \"platformMask\": " << std::dec << (int)rule.platformMask << ",\n"
+                                        << "                    \"environmentMask\": " << std::dec << (int)rule.environmentMask << "\n"
+                                        << "                }"
                                         ;
                                 }
 
                                 // 
                                 out
                                     << "\n"
-                                    << "                    ],\n";
+                                    << "            ],\n";
                             }
                             else {
                                 out << "],\n";
                             }
 
                             out
-                                << "                    \"rotationList\": [";
+                                << "            \"rotationList\": [";
                             if (ple.rotations_count) {
                                 auto rotations = std::make_unique<PlaylistRotation[]>(ple.rotations_count);
                                 if (!proc.ReadMemory(&rotations[0], ple.rotations, sizeof(rotations[0]) * ple.rotations_count)) {
@@ -2058,47 +2087,47 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                                     if (l) out << ",";
                                     out
                                         << "\n"
-                                        << "                        {\n"
+                                        << "                {\n"
                                         ;
 
                                     if (proc.ReadMemory(tmpBuffer, rotation.map, sizeof(tmpBuffer))) {
                                         out
-                                            << "                            \"map\": \"#" << hashutils::ExtractTmp("hash", reinterpret_cast<Hash*>(tmpBuffer)->name) << "\",\n"
-                                            << "                            \"mapPlatformMask\": " << std::dec << (int)tmpBuffer[0x20] << ",\n"
+                                            << "                    \"map\": \"#" << hashutils::ExtractTmp("hash", reinterpret_cast<Hash*>(tmpBuffer)->name) << "\",\n"
+                                            << "                    \"mapPlatformMask\": " << std::dec << (int)tmpBuffer[0x20] << ",\n"
                                             ;
                                     }
 
                                     if (proc.ReadMemory(tmpBuffer, rotation.gametype, sizeof(tmpBuffer))) {
                                         out
-                                            << "                            \"gametype\": \"#" << hashutils::ExtractTmp("hash", reinterpret_cast<Hash*>(tmpBuffer)->name) << "\",\n"
+                                            << "                    \"gametype\": \"#" << hashutils::ExtractTmp("hash", reinterpret_cast<Hash*>(tmpBuffer)->name) << "\",\n"
                                             ;
                                     }
 
                                     out
-                                        << "                            \"weight\": " << std::dec << rotation.weight << ",\n"
-                                        << "                            \"isFree\": " << (rotation.isFree ? "true" : "false") << "\n"
-                                        << "                        }"
+                                        << "                    \"weight\": " << std::dec << rotation.weight << ",\n"
+                                        << "                    \"isFree\": " << (rotation.isFree ? "true" : "false") << "\n"
+                                        << "                }"
                                         ;
                                 }
 
                                 // 
                                 out
                                     << "\n"
-                                    << "                    ]\n";
+                                    << "            ]\n";
                             }
                             else {
                                 out << "]\n";
                             }
 
                             out
-                                << "                }"
+                                << "        }"
                                 ;
 
                         }
 
                         out
                             << "\n"
-                            << "            ]\n";
+                            << "    ]\n";
                     }
                     else {
                         out << "]\n";
@@ -2106,19 +2135,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
 
                     out
-                        << "        }";
+                        << "}";
                 }
-
-                out << "\n    ]";
             }
-            else {
-                out << "]";
-            }
-
-            out << "\n}";
-
-
-            out.close();
         }
 
 
