@@ -32,5 +32,6 @@
 #include "actsinfo.hpp"
 #include "process.hpp"
 #include "memapi.hpp"
+#include "base64.hpp"
 
 #include "t8_internal.hpp"
