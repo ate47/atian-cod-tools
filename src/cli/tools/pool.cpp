@@ -2395,7 +2395,105 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         break;
     }
+    case ASSET_TYPE_SCRIPTPARSETREEFORCED: {
 
+        hashutils::ReadDefaultFile();
+
+        struct ScriptParseTreeForced {
+            Hash name;
+            uint32_t gscCount;
+            uint32_t cscCount;
+            uintptr_t gscScripts; // Hash*
+            uintptr_t cscScripts; // Hash*
+        };
+
+
+        auto pool = std::make_unique<ScriptParseTreeForced[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/scriptparsetreeforced/%s.json", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/scriptparsetreeforced/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "{\n";
+            utils::Padding(defout, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"gscScripts\": [";
+
+            auto scripts = std::make_unique<Hash[]>(max(p.gscCount, p.cscCount));
+
+            if (p.gscCount) {
+                if (!proc.ReadMemory(&scripts[0], p.gscScripts, sizeof(Hash) * p.gscCount)) {
+                    std::cerr << "Can't read GSC scripts\n";
+                    defout.close();
+                    continue;
+                }
+
+                for (size_t j = 0; j < p.gscCount; j++) {
+                    if (j) defout << ",";
+                    utils::Padding(defout << "\n", 2) << "\"#" << hashutils::ExtractTmp("script", scripts[j].name) << "\"";
+                }
+                utils::Padding(defout << "\n", 1) << "],\n";
+            }
+            else {
+                defout << "],\n";
+            }
+
+
+            utils::Padding(defout, 1) << "\"cscScripts\": [";
+
+            if (p.cscCount) {
+                if (p.cscCount && !proc.ReadMemory(&scripts[0], p.cscScripts, sizeof(Hash) * p.cscCount)) {
+                    std::cerr << "Can't read CSC scripts\n";
+                    defout.close();
+                    continue;
+                }
+
+                for (size_t j = 0; j < p.cscCount; j++) {
+                    if (j) defout << ",";
+                    utils::Padding(defout << "\n", 2) << "\"#" << hashutils::ExtractTmp("script", scripts[j].name) << "\"";
+                }
+                utils::Padding(defout << "\n", 1) << "]\n";
+            }
+            else {
+                defout << "]\n";
+            }
+            defout << "}\n";
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+        break;
     case ASSET_TYPE_DDL:
     {
 
