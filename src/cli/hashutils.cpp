@@ -1,7 +1,6 @@
 #include <includes.hpp>
 
 static std::unordered_map<UINT64, std::string> g_hashMap{};
-static CHAR g_buffer[2048];
 static std::set<UINT64> g_extracted{};
 static bool g_saveExtracted = false;
 
@@ -158,9 +157,13 @@ bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {
 }
 
 LPCH hashutils::ExtractTmp(LPCCH type, UINT64 hash) {
+	static CHAR buffer[10][0x600];
+	static size_t bufferIndex = 0;
 	ReadDefaultFile();
-	Extract(type, hash, g_buffer, 2048);
-	return g_buffer;
+	bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
+	auto& buff = buffer[bufferIndex];
+	Extract(type, hash, buff, sizeof(buff));
+	return buff;
 }
 
 LPCCH hashutils::ExtractPtr(UINT64 hash) {

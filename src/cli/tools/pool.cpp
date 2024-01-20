@@ -4,6 +4,11 @@
 
 using namespace tool::pool;
 
+struct Hash {
+    uint64_t name;
+    uint64_t nullpad;
+};
+
 class PoolOption {
 public:
     bool m_help = false;
@@ -81,19 +86,6 @@ struct LuaFile {
     UINT32 size;
     uintptr_t buffer;
 };
-struct DDLEntry {
-    UINT64 name; // 0x8
-    uintptr_t unk8;  // 0x10
-    uintptr_t buffer; // 0x18
-    uintptr_t string_count; // 0x20
-    uintptr_t globalvar_count; // 0x28
-    uintptr_t unk28; // 0x30
-    uintptr_t unk30; // 0x38
-    uintptr_t unk38; // 0x40
-    uintptr_t unk40; // 0x48
-    uintptr_t unk48; // 0x50
-    uintptr_t unk50; // 0x58
-};
 struct BGPoolEntry {
     UINT64 name;
     UINT64 namepad;
@@ -143,11 +135,8 @@ struct SB_ObjectsArray {
 };
 
 struct ScriptBundle {
-    uint64_t hash;
-    uint64_t hashnull;
-    uint32_t count_sub;
-    uint32_t unk14;
-    uint64_t string_count;
+    Hash name;
+    Hash bundleType;
     SB_ObjectsArray sbObjectsArray;
 };
 
@@ -195,11 +184,6 @@ const char* LobbyModeName(int mode, bool allocInvalid = false) {
     }
     }
 }
-
-struct Hash {
-    uint64_t name;
-    uint64_t nullpad;
-};
 
 struct GameTypeTableEntry {
     Hash name;
@@ -428,11 +412,12 @@ void ReadSBName(const Process& proc, const SB_ObjectsArray& arr) {
     }
 
     static UINT32 nameHash = hash::Hash32("name");
+    static UINT32 typeHash = hash::Hash32("type");
 
     for (size_t i = 0; i < arr.sbObjectCount; i++) {
         auto& obj = objects[i];
 
-        if (obj.name != nameHash) {
+        if (obj.name != nameHash && obj.name != typeHash) {
             continue;
         }
 
@@ -604,6 +589,273 @@ const char* ReadTmpStr(const Process& proc, uintptr_t location) {
         sprintf_s(tmp_buff, "<invalid:%llx>", location);
     }
     return tmp_buff;
+}
+
+struct DDLDef {
+    Hash name;
+    uint64_t unk10;
+    uint64_t metatable; // ID64Metatable
+    uintptr_t structList; // DDLStruct*
+    uintptr_t enumList; // DDLEnum*
+    uintptr_t next; // DDLDef*
+    uint32_t unk38;
+    uint32_t unk3c;
+    uint32_t unk40;
+    uint32_t unk44;
+    uint32_t unk48;
+    uint32_t unk4c;
+    uint16_t version;
+    uint16_t unk52;
+    uint32_t unk54;
+};
+enum DDLType : BYTE
+{
+    DDL_INVALID_TYPE = 0xFF,
+    DDL_BYTE_TYPE = 0,
+    DDL_SHORT_TYPE,
+    DDL_UINT_TYPE,
+    DDL_INT_TYPE,
+    DDL_UINT64_TYPE,
+    DDL_FLOAT_TYPE,
+    DDL_FIXEDPOINT_TYPE,
+    DDL_HASH_TYPE,
+    DDL_STRING_TYPE,
+    DDL_STRUCT_TYPE,
+    DDL_ENUM_TYPE,
+    DDL_PAD_TYPE,
+};
+
+const char* DdlTypeName(DDLType type) {
+    switch (type) {
+    case DDL_BYTE_TYPE: return "byte";
+    case DDL_SHORT_TYPE: return "short";
+    case DDL_UINT_TYPE: return "uint";
+    case DDL_INT_TYPE: return "int";
+    case DDL_UINT64_TYPE: return "uint64";
+    case DDL_FLOAT_TYPE: return "float";
+    case DDL_FIXEDPOINT_TYPE: return "fixedpoint";
+    case DDL_HASH_TYPE: return "hash";
+    case DDL_STRING_TYPE: return "string";
+    case DDL_STRUCT_TYPE: return "struct";
+    case DDL_ENUM_TYPE: return "enum";
+    case DDL_PAD_TYPE: return "pad";
+    case DDL_INVALID_TYPE:
+    default: return "<invalid>";
+    }
+}
+
+
+struct DDLHashTable {
+    uintptr_t list; //DDLHash*
+    int count;
+    int max;
+};
+struct DDLStruct {
+    Hash name;
+    uint32_t bitSize;
+    uint32_t memberCount;
+    uintptr_t members; // DDLMember* 
+    DDLHashTable hashTableLower;
+    DDLHashTable hashTableUpper;
+};
+
+struct __declspec(align(8)) DDLMember {
+    Hash name;
+    int32_t bitSize;
+    uint32_t intSize;
+    uint32_t offset;
+    uint32_t maxIntValue;
+    int16_t arraySize;
+    int16_t externalIndex;
+    int16_t unk24;
+    DDLType type;
+    bool isArray;
+};
+struct DDLHash {
+    uint64_t hash;
+    int index;
+};
+
+struct DDLEnum {
+    Hash name;
+    uintptr_t members; // Hash*
+    int memberCount;
+    DDLHashTable hashTable;
+};
+
+
+
+void ReadDDLStruct(Process& proc, std::ostream& defout, DDLDef& def, uintptr_t entry, int depth, std::unordered_set<uint64_t>& nextindexes) {
+    DDLStruct stct{};
+    if (!proc.ReadMemory(&stct, entry, sizeof(stct))) {
+        defout << "<error reading struct entry>\n";
+        return;
+    }
+    defout << "{\n";
+    utils::Padding(defout, depth + 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", stct.name.name) << "\",\n";
+    utils::Padding(defout, depth + 1) << "\"members\": [";
+
+    auto members = std::make_unique<DDLMember[]>(stct.memberCount);
+
+    if (!proc.ReadMemory(&members[0], stct.members, sizeof(members[0]) * stct.memberCount)) {
+        defout << "<error reading members entry>\n";
+        return;
+    }
+
+    for (size_t i = 0; i < stct.memberCount; i++) {
+
+        auto& mbm = members[i];
+        if (i) defout << ",";
+        defout << "\n";
+        utils::Padding(defout, depth + 2) << "{\n";
+        utils::Padding(defout, depth + 3) << "\"name\": \"#" << hashutils::ExtractTmp("hash", mbm.name.name) << "\",\n";
+        utils::Padding(defout, depth + 3) << "\"type\": \"";
+
+
+        if (mbm.type == DDL_STRUCT_TYPE) {
+            DDLStruct substct{};
+            if (!proc.ReadMemory(&substct, def.structList + mbm.externalIndex * sizeof(substct), sizeof(substct))) {
+                defout << "<error reading sub struct entry>\n";
+                return;
+            }
+            defout << "struct#" << hashutils::ExtractTmp("hash", substct.name.name);
+            nextindexes.insert(utils::CatLocated(0, mbm.externalIndex));
+        }
+        else if (mbm.type == DDL_ENUM_TYPE) {
+            DDLEnum subenum{};
+            if (!proc.ReadMemory(&subenum, def.enumList + mbm.externalIndex * sizeof(subenum), sizeof(subenum))) {
+                defout << "<error reading sub enum entry>\n";
+                return;
+            }
+            defout << "enum#" << hashutils::ExtractTmp("hash", subenum.name.name);
+            nextindexes.insert(utils::CatLocated(1, mbm.externalIndex));
+        }
+        else {
+            defout << DdlTypeName(mbm.type);
+        }
+
+        if (mbm.isArray) {
+            defout << "[" << std::dec << mbm.arraySize << "]";
+        }
+
+        defout << "\",\n";
+        utils::Padding(defout, depth + 3) << "\"offset\": " << std::dec << mbm.offset << ",\n";
+        utils::Padding(defout, depth + 3) << "\"bitSize\": " << std::dec << mbm.bitSize;
+
+        if (mbm.intSize) {
+            utils::Padding(defout << ",\n", depth + 3) << "\"intSize\": " << std::dec << mbm.intSize;
+        }
+        if (mbm.maxIntValue) {
+            utils::Padding(defout << ",\n", depth + 3) << "\"maxIntValue\": " << std::dec << mbm.maxIntValue;
+        }
+
+        defout << "\n";
+
+        //utils::Padding(defout, depth + 3) << "\"externalIndex\": " << std::dec << mbm.externalIndex << ",\n"; // struct/enum
+        //utils::Padding(defout, depth + 3) << "\"unk24\": " << std::dec << mbm.unk24 << ",\n";
+
+        utils::Padding(defout, depth + 2) << "}";
+    }
+
+    utils::Padding(defout << "\n", depth + 1) << "]";
+
+    utils::Padding(defout << "\n", depth) << "}";
+}
+
+
+void ReadDDLEnum(Process& proc, std::ostream& defout, uintptr_t entry, int depth) {
+    DDLEnum enumst{};
+    if (!proc.ReadMemory(&enumst, entry, sizeof(enumst))) {
+        defout << "<error reading struct entry>\n";
+        return;
+    }
+    defout << "{\n";
+    utils::Padding(defout, depth + 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", enumst.name.name) << "\",\n";
+    utils::Padding(defout, depth + 1) << "\"values\": [";
+
+    auto members = std::make_unique<Hash[]>(enumst.memberCount);
+
+    if (!proc.ReadMemory(&members[0], enumst.members, sizeof(members[0]) * enumst.memberCount)) {
+        defout << "<error reading members entry>\n";
+        return;
+    }
+
+    for (size_t i = 0; i < enumst.memberCount; i++) {
+        auto& mbm = members[i];
+        if (i) defout << ",";
+        defout << "\n";
+        utils::Padding(defout, depth + 2) << "\"#" << hashutils::ExtractTmp("hash", mbm.name) << "\"";
+    }
+
+    utils::Padding(defout << "\n", depth + 1) << "]";
+
+    utils::Padding(defout << "\n", depth) << "}";
+}
+void ReadDDLDefEntry(Process& proc, std::ostream& defout, uintptr_t entry, int depth) {
+    if (!entry) {
+        return;
+    }
+
+    DDLDef def{};
+    if (!proc.ReadMemory(&def, entry, sizeof(def))) {
+        defout << "<error reading entry>\n";
+        return;
+    }
+
+    // GTS:
+    // 142DD0405EFBF851
+    // CA8192BAB9B812D
+    // 3A8B1F6E71786EFF
+    // 37A455F7364D8C91
+
+    defout << "{\n";
+    utils::Padding(defout, depth + 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", def.name.name) << "\",\n";
+    utils::Padding(defout, depth + 1) << "\"version\": " << std::dec << def.version << ",\n";
+    utils::Padding(defout, depth + 1) << "\"metatable\": \"#" << hashutils::ExtractTmp("hash", def.metatable) << "\"";
+
+    if (def.structList) {
+        defout << ",\n";
+
+        utils::Padding(defout, depth + 1) << "\"structs\": [";
+        std::unordered_set<uint64_t> nextIndexes{ { 0 } };
+        std::unordered_set<uint64_t> doneIndexes{};
+        do {
+            if (doneIndexes.size()) defout << ",";
+            utils::Padding(defout << "\n", depth + 2);
+
+            uint64_t val{};
+
+            for (auto id : nextIndexes) {
+                if (doneIndexes.find(id) == doneIndexes.end()) {
+                    val = id;
+                    break;
+                }
+            }
+
+            auto [type, idx] = utils::UnCatLocated(val);
+
+            if (type == 0) {
+                ReadDDLStruct(proc, defout, def, def.structList + idx * sizeof(DDLStruct), depth + 2, nextIndexes);
+            }
+            else {
+                // READ ENUM
+                ReadDDLEnum(proc, defout, def.enumList + idx * sizeof(DDLEnum), depth + 2);
+            }
+
+            // add this id as parsed
+            doneIndexes.insert(val);
+        } while (doneIndexes.size() != nextIndexes.size());
+        utils::Padding(defout << "\n", depth + 1) << "]";
+    }
+    defout << "\n";
+
+    //WriteHex(defout, 0, (BYTE*)&def, sizeof(def), proc);
+    utils::Padding(defout, depth) << "}";
+
+    if (def.next) {
+        defout << ",\n";
+        ReadDDLDefEntry(proc, defout, def.next, depth);
+    }
 }
 
 int pooltool(Process& proc, int argc, const char* argv[]) {
@@ -2144,11 +2396,17 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         break;
     }
 
-    case ASSET_TYPE_DDL + 200:
+    case ASSET_TYPE_DDL:
     {
 
         hashutils::ReadDefaultFile();
         
+        struct DDLEntry {
+            Hash name;
+            uintptr_t ddlDef; // DDLDef*
+            uint64_t pad[8];
+        };
+
 
         auto pool = std::make_unique<DDLEntry[]>(entry.itemAllocCount);
 
@@ -2160,24 +2418,35 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         const size_t dumpbuffsize = sizeof(dumpbuff);
         std::vector<BYTE> read{};
         size_t readFile = 0;
-        BYTE test[0x100];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             const auto& p = pool[i];
 
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/ddl/%s", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/ddl/hashed/ddl/file_%llx.ddl", opt.m_output, p.name.name);
+            }
 
-            auto n = hashutils::ExtractPtr(p.name);
-            std::cout << "- " << std::dec << i << " : " << hashutils::ExtractTmp("file", p.name) << ": " << std::hex << p.buffer << "\n";
+            std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
 
-            // WriteHex(std::cout, entry.pool + i * sizeof(pool[0]), (BYTE*)& p, sizeof(p), proc); // padding
 
-            if (!proc.ReadMemory(test, p.buffer, sizeof(test))) {
-                std::cerr << "Bad read\n";
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
                 continue;
             }
 
-            WriteHex(std::cout, p.buffer, test, sizeof(test), proc);
+            ReadDDLDefEntry(proc, defout, p.ddlDef, 0);
 
+            defout.close();
         }
 
         std::cout << "Dump " << readFile << " new file(s)\n";
@@ -2285,9 +2554,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         hashutils::ReadDefaultFile();
 
 
-        auto pool = std::make_unique<ScriptBundle[]>(entry.itemAllocCount);
+        auto pool = std::make_unique<ScriptBundle[]>(entry.itemCount);
 
-        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemCount)) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
@@ -2297,34 +2566,24 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         CHAR dumpbuff[MAX_PATH + 10];
         size_t readFile = 0;
 
-        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+        for (size_t i = 0; i < entry.itemCount; i++) {
             const auto& p = pool[i];
 
-            if (!p.hash) {
+            if (p.name.name < 0x1000000000000) {
                 continue;
             }
 
             ReadSBName(proc, p.sbObjectsArray);
 
-
-            auto n = hashutils::ExtractPtr(p.hash);
-
             std::cout << std::dec << i << ": ";
 
-            if (n) {
-                std::cout << n;
-                sprintf_s(dumpbuff, "%s/scriptbundle/%s.json", opt.m_output, n);
-            }
-            else {
-                std::cout << "file_" << std::hex << p.hash << std::dec;
-                sprintf_s(dumpbuff, "%s/scriptbundle/file_%llx.json", opt.m_output, p.hash);
-            }
+            sprintf_s(dumpbuff, "%s/scriptbundle/%s/%s.json", opt.m_output, p.bundleType.name ? hashutils::ExtractTmp("hash", p.bundleType.name) : "default", hashutils::ExtractTmp("hash", p.name.name));
 
 
             std::filesystem::path file(dumpbuff);
             std::filesystem::create_directories(file.parent_path(), ec);
 
-            std::cout << "->" << file;
+            std::cout << file;
 
             if (!std::filesystem::exists(file, ec)) {
                 readFile++;
