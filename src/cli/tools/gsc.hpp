@@ -860,4 +860,7 @@ namespace tool::gsc {
      * @param opcode opcode
      */
     void RosettaAddOpCode(UINT32 loc, UINT16 opcode);
+
+    // gsc tool
+    int gscinfo(Process& proc, int argc, const char* argv[]);
 }

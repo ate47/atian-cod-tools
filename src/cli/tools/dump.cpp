@@ -511,6 +511,62 @@ int dumpcmdfunctions(Process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
+int dumpsvcmdfunctions(Process& proc, int argc, const char* argv[]) {
+    // cache reading to avoid writing empty file
+    hashutils::ReadDefaultFile();
+
+    LPCCH outFile;
+    if (argc == 2) {
+        outFile = "csfuncs.csv";
+    }
+    else {
+        outFile = argv[2];
+    }
+
+    std::ofstream out{ outFile, std::ios::out };
+
+    if (!out) {
+        std::cerr << "Can't open output file '" << outFile << "'\n";
+        return -1;
+    }
+
+    // csv header
+    out << "location,name,func\n";
+
+    cmd_function_t func{};
+
+    uintptr_t next = proc[0xF9F8DA0];
+
+    // the first one is an header, I guess?
+    if (!proc.ReadMemory(&func, next, sizeof(func))) {
+        proc.WriteLocation(std::cerr << "Can't read next function at location ", next) << "\n";
+    }
+
+    next = func.next;
+
+    int count = 0;
+    do {
+        proc.WriteLocation(out, next) << ",";
+
+        if (!proc.ReadMemory(&func, next, sizeof(func))) {
+            proc.WriteLocation(std::cerr << "Can't read next function at location ", next) << "\n";
+            break;
+        }
+        next = func.next;
+
+        out << hashutils::ExtractTmp("hash", func.name) << std::flush << ",";
+
+        proc.WriteLocation(out, func.function) << "\n";
+
+        count++;
+    } while (next);
+
+    out.close();
+
+    std::cout << "Write " << std::dec << count << " functions into " << outFile << "\n";
+
+    return 0;
+}
 
 ADD_TOOL("dps", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
 ADD_TOOL("wps", " [output=scriptparsetree]", "write pooled scripts", L"BlackOps4.exe", writepoolscripts);
@@ -518,3 +574,4 @@ ADD_TOOL("dls", " [output=linked.csv]", "dump linked scripts", L"BlackOps4.exe",
 ADD_TOOL("dfunc", " [output=funcs.csv]", "dump functions", L"BlackOps4.exe", dumpfunctions);
 ADD_TOOL("devents", " [output=events.csv]", "dump registered instance events", L"BlackOps4.exe", events);
 ADD_TOOL("dcfunc", " [output=cfuncs.csv]", "dump cmd functions", L"BlackOps4.exe", dumpcmdfunctions);
+ADD_TOOL("dscfunc", " [output=csfuncs.csv]", "dump sv cmd functions", L"BlackOps4.exe", dumpsvcmdfunctions);

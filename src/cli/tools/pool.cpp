@@ -1,8 +1,13 @@
 #include <includes.hpp>
+#include "tools/dump.hpp"
+#include "tools/gsc.hpp"
 #include "tools/pool.hpp"
 #include "tools/fastfile.hpp"
 
 using namespace tool::pool;
+
+// min hash value, otherwise might be a ptr
+constexpr auto MIN_HASH_VAL = 0x1000000000000;
 
 struct Hash {
     uint64_t name;
@@ -12,11 +17,19 @@ struct Hash {
 class PoolOption {
 public:
     bool m_help = false;
+    bool m_any_type = false;
+    bool m_dump_info = false;
+    bool m_dump_all_available = false;
     LPCCH m_output = "pool";
     LPCCH m_dump_hashmap = NULL;
+    std::vector<bool> m_dump_types{};
 
     bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
-
+        m_dump_types.clear();
+        m_dump_types.reserve(pool::ASSET_TYPE_COUNT);
+        for (size_t i = 0; i < pool::ASSET_TYPE_COUNT; i++) {
+            m_dump_types.push_back(false);
+        }
         // default values
         for (size_t i = startIndex; i < endIndex; i++) {
             LPCCH arg = args[i];
@@ -31,6 +44,12 @@ public:
                 }
                 m_output = args[++i];
             }
+            else if (!_strcmpi("--info", arg) || !strcmp("-i", arg)) {
+                m_dump_info = true;
+            }
+            else if (!_strcmpi("--all", arg) || !strcmp("-a", arg)) {
+                m_dump_all_available = true;
+            }
             else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
                 if (i + 1 == endIndex) {
                     std::cerr << "Missing value for param: " << arg << "!\n";
@@ -38,11 +57,37 @@ public:
                 }
                 m_dump_hashmap = args[++i];
             }
+            else if (*arg == '-') {
+                std::cerr << "Invalid argurment: " << arg << "!\n";
+                return false;
+            }
+            else {
+                auto assetType = pool::XAssetIdFromName(arg);
+
+                if (assetType == pool::ASSET_TYPE_COUNT) {
+                    try {
+                        assetType = (pool::XAssetType)std::strtol(arg, nullptr, 10);
+                    }
+                    catch (const std::invalid_argument& e) {
+                        std::cerr << e.what() << "\n";
+                        assetType = pool::ASSET_TYPE_COUNT;
+                    }
+                    if (assetType < 0 || assetType >= pool::ASSET_TYPE_COUNT) {
+                        std::cerr << "Invalid pool name: " << arg << "!\n";
+                        return false;
+                    }
+                }
+
+                m_dump_types[assetType] = true;
+                m_any_type = true;
+            }
         }
         return true;
     }
     void PrintHelp(std::ostream& out) {
         out << "-h --help            : Print help\n"
+            << "-i --info            : Dump pool info\n"
+            << "-a --all             : Dump all available pools\n"
             << "-o --output [d]      : Output dir\n"
             ;
     }
@@ -126,18 +171,6 @@ struct BGCacheInfo {
     byte unk45;
     byte unk46;
     byte unk47;
-};
-struct SB_ObjectsArray {
-    uint64_t sbObjectCount;
-    uintptr_t sbObjects; // SB_Object
-    uint64_t sbSubCount;
-    uintptr_t sbSubs;
-};
-
-struct ScriptBundle {
-    Hash name;
-    Hash bundleType;
-    SB_ObjectsArray sbObjectsArray;
 };
 
 enum eModes : INT32 {
@@ -384,6 +417,30 @@ const char* ReadMTString(const Process& proc, uint32_t val) {
     return strDec;
 }
 
+const char* ReadTmpStr(const Process& proc, uintptr_t location) {
+    static CHAR tmp_buff[0x1000];
+
+    if (proc.ReadString(tmp_buff, location, sizeof(tmp_buff)) < 0) {
+        sprintf_s(tmp_buff, "<invalid:%llx>", location);
+    }
+    return tmp_buff;
+}
+
+#pragma region scriptbundle_dump
+
+struct SB_ObjectsArray {
+    uint64_t sbObjectCount;
+    uintptr_t sbObjects; // SB_Object
+    uint64_t sbSubCount;
+    uintptr_t sbSubs;
+};
+
+struct ScriptBundle {
+    Hash name;
+    Hash bundleType;
+    SB_ObjectsArray sbObjectsArray;
+};
+
 struct SB_Object {
     uint32_t unk0;
     uint32_t unk8;
@@ -582,14 +639,9 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
     return true;
 }
 
-const char* ReadTmpStr(const Process& proc, uintptr_t location) {
-    static CHAR tmp_buff[0x1000];
+#pragma endregion
 
-    if (proc.ReadString(tmp_buff, location, sizeof(tmp_buff)) < 0) {
-        sprintf_s(tmp_buff, "<invalid:%llx>", location);
-    }
-    return tmp_buff;
-}
+#pragma region ddl_dump
 
 struct DDLDef {
     Hash name;
@@ -858,11 +910,10 @@ void ReadDDLDefEntry(Process& proc, std::ostream& defout, uintptr_t entry, int d
     }
 }
 
+#pragma endregion
+
 int pooltool(Process& proc, int argc, const char* argv[]) {
     using namespace pool;
-    if (argc < 3) {
-        return tool::BAD_USAGE;
-    }
     PoolOption opt;
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -876,7 +927,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
     std::filesystem::create_directories(opt.m_output, ec);
 
     CHAR outputName[256];
-    if (!_strcmpi(argv[2], "all")) {
+    if (opt.m_dump_info) {
         sprintf_s(outputName, "%s/xassetpools.csv", opt.m_output);
         std::ofstream out{ outputName, std::ios::out };
 
@@ -921,36 +972,49 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
         out.close();
 
+        std::filesystem::path pretty{ outputName };
+        std::cout << "Dump info " << pretty.string() << "\n";
+
         return tool::OK;
     }
 
-    auto id = std::atoi(argv[2]);
+    if (!opt.m_any_type && !opt.m_dump_all_available) {
+        opt.PrintHelp(std::cout);
+        return tool::OK;
+    }
+    hashutils::ReadDefaultFile();
 
-    std::cout << std::hex << "pool id: " << id << "\n";
 
     XAssetPoolEntry entry{};
+    auto ShouldHandle = [&proc, &opt, &outputName, &entry](pool::XAssetType id, bool isKnown = true) {
+        if (!opt.m_dump_types[id] && !(isKnown && opt.m_dump_all_available)) {
+            return false;
+        }
+        // set to false for the default loop
+        opt.m_dump_types[id] = false;
 
-    if (!proc.ReadMemory(&entry, proc[offset::assetPool] + sizeof(entry) * id, sizeof(entry))) {
-        std::cerr << "Can't read pool entry\n";
-        return tool::BASIC_ERROR;
-    }
+        std::cout << "pool: " << std::dec << pool::XAssetNameFromId(id) << " (" << (int)id << ")\n";
 
-    sprintf_s(outputName, "%s/pool_%x", opt.m_output, id);
+        if (!proc.ReadMemory(&entry, proc[offset::assetPool] + sizeof(entry) * id, sizeof(entry))) {
+            std::cerr << "Can't read pool entry\n";
+            return false;
+        }
 
-    std::cout << std::hex
-        << "pool ........ " << entry.pool << "\n"
-        << "free head ... " << entry.freeHead << "\n"
-        << "item size ... " << entry.itemSize << "\n"
-        << "count ....... " << entry.itemCount << "\n"
-        << "alloc count . " << entry.itemAllocCount << "\n"
-        << "singleton ... " << (entry.isSingleton ? "true" : "false") << "\n"
-        ;
+        sprintf_s(outputName, "%s/pool_%s", opt.m_output, XAssetNameFromId(id));
 
-    switch (id) {
-    case ASSET_TYPE_LOCALIZE_ENTRY:
-    {
-        hashutils::ReadDefaultFile();
+        std::cout << std::hex
+            << "pool ........ " << entry.pool << "\n"
+            << "free head ... " << entry.freeHead << "\n"
+            << "item size ... " << entry.itemSize << "\n"
+            << "count ....... " << entry.itemCount << "\n"
+            << "alloc count . " << entry.itemAllocCount << "\n"
+            << "singleton ... " << (entry.isSingleton ? "true" : "false") << "\n"
+            ;
 
+        return true;
+    };
+
+    if (ShouldHandle(ASSET_TYPE_LOCALIZE_ENTRY)) { 
         std::ofstream out{ outputName, std::ios::out };
 
         if (!out) {
@@ -979,11 +1043,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         out.close();
         delete[] raw;
     }
-    break;
-    case ASSET_TYPE_STRINGTABLE:
-    {
-        hashutils::ReadDefaultFile();
-
+    if (ShouldHandle(ASSET_TYPE_STRINGTABLE)) {
         auto pool = std::make_unique<StringTableEntry[]>(entry.itemAllocCount);
 
         if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
@@ -1100,11 +1160,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
-    break;
-    case ASSET_TYPE_RAWSTRING:
-    {
-        hashutils::ReadDefaultFile();
-
+    if (ShouldHandle(ASSET_TYPE_RAWSTRING)) {
         sprintf_s(outputName, "%s/strings.csv", opt.m_output);
 
         std::filesystem::path file(outputName);
@@ -1139,11 +1195,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump into " << file << "\n";
     }
-    break;
-    case ASSET_TYPE_LUAFILE:
-    {
-        hashutils::ReadDefaultFile();
-
+    if (ShouldHandle(ASSET_TYPE_LUAFILE, false)) {
         auto pool = std::make_unique<LuaFile[]>(entry.itemAllocCount);
 
         sprintf_s(outputName, "%s/luapool", opt.m_output);
@@ -1183,13 +1235,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             }
         }
     }
-        break;
-    case ASSET_TYPE_RAWFILE:
-    {
-
-        hashutils::ReadDefaultFile();
-
-
+    if (ShouldHandle(ASSET_TYPE_RAWFILE)) {
         auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
 
         if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
@@ -1261,10 +1307,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
-        break;
-    case ASSET_TYPE_GAMETYPETABLE:
-    {
-        hashutils::ReadDefaultFile();
+    if (ShouldHandle(ASSET_TYPE_GAMETYPETABLE)) {
         size_t readFile = 0;
 
 
@@ -1366,13 +1409,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         }
         std::cout << "Dump " << readFile << " new file(s)\n";
-
-
-        break;
     }
-    case ASSET_TYPE_CUSTOMIZATION_TABLE:
-    {
-        hashutils::ReadDefaultFile();
+    if (ShouldHandle(ASSET_TYPE_CUSTOMIZATION_TABLE)) {
         struct CustomizationTable
         {
             Hash name;
@@ -1632,10 +1670,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
 
     }
-        break;
-    case ASSET_TYPE_MAPTABLE:
-    {
-        hashutils::ReadDefaultFile();
+    if (ShouldHandle(ASSET_TYPE_MAPTABLE)) {
         size_t readFile = 0;
 
 
@@ -1760,12 +1795,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         }
         std::cout << "Dump " << readFile << " new file(s)\n";
-
-
-        break;
     }
-    case ASSET_TYPE_WEAPON:
-    {
+    if (ShouldHandle(ASSET_TYPE_WEAPON, false)) {
         struct Weapon
         {
             Hash name;
@@ -1782,7 +1813,6 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
 
         size_t readFile = 0;
-        hashutils::ReadDefaultFile();
 
         if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
             std::cerr << "Can't read pool data\n";
@@ -1840,15 +1870,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         }
         std::cout << "Dump " << readFile << " new file(s)\n";
-
-
-        break;
     }
-    case ASSET_TYPE_MAPTABLE_LIST:
-    {
-        hashutils::ReadDefaultFile();
-
-
+    if (ShouldHandle(ASSET_TYPE_MAPTABLE_LIST)) {
         auto pool = std::make_unique<MapTableList[]>(entry.itemAllocCount);
 
         if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
@@ -1931,14 +1954,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
             out.close();
         }
-
-
-        break;
     }
-    case ASSET_TYPE_PLAYLISTS:
-    {
-        hashutils::ReadDefaultFile();
-
+    if (ShouldHandle(ASSET_TYPE_PLAYLISTS)) {
         struct PlayLists { // 0x50
             uint32_t unk0; // this thing is passed in a checksum32
             uint32_t unk4;
@@ -2391,14 +2408,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 }
             }
         }
-
-
-        break;
     }
-    case ASSET_TYPE_SCRIPTPARSETREEFORCED: {
-
-        hashutils::ReadDefaultFile();
-
+    if (ShouldHandle(ASSET_TYPE_SCRIPTPARSETREEFORCED)) {
         struct ScriptParseTreeForced {
             Hash name;
             uint32_t gscCount;
@@ -2421,6 +2432,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
 
             auto* n = hashutils::ExtractPtr(p.name.name);
             if (n) {
@@ -2493,12 +2508,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
-        break;
-    case ASSET_TYPE_DDL:
-    {
-
-        hashutils::ReadDefaultFile();
-        
+    if (ShouldHandle(ASSET_TYPE_DDL)) {
         struct DDLEntry {
             Hash name;
             uintptr_t ddlDef; // DDLDef*
@@ -2522,10 +2532,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
             auto* n = hashutils::ExtractPtr(p.name.name);
             if (n) {
-                sprintf_s(dumpbuff, "%s/ddl/%s", opt.m_output, n);
+                sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
             }
             else {
-                sprintf_s(dumpbuff, "%s/ddl/hashed/ddl/file_%llx.ddl", opt.m_output, p.name.name);
+                sprintf_s(dumpbuff, "%s/hashed/ddl/file_%llx.ddl", opt.m_output, p.name.name);
             }
 
             std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
@@ -2549,11 +2559,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
-    break;
-    case ASSET_TYPE_BG_CACHE: {
-        hashutils::ReadDefaultFile();
-        
-
+    if (ShouldHandle(ASSET_TYPE_BG_CACHE)) {
         auto pool = std::make_unique<BGCache[]>(entry.itemAllocCount);
 
         if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
@@ -2647,11 +2653,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
-        break;
-    case pool::ASSET_TYPE_SCRIPTBUNDLE: {
-        hashutils::ReadDefaultFile();
-
-
+    if (ShouldHandle(ASSET_TYPE_SCRIPTBUNDLE)) {
         auto pool = std::make_unique<ScriptBundle[]>(entry.itemCount);
 
         if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemCount)) {
@@ -2667,7 +2669,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         for (size_t i = 0; i < entry.itemCount; i++) {
             const auto& p = pool[i];
 
-            if (p.name.name < 0x1000000000000) {
+            if (p.name.name < MIN_HASH_VAL) {
                 continue;
             }
 
@@ -2718,43 +2720,89 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
-        break;
-    default:
-    {
-        std::cout << "Item data\n";
+    if (ShouldHandle(ASSET_TYPE_SCRIPTPARSETREE)) {
+        auto pool = std::make_unique<tool::dump::T8ScriptParseTreeEntry[]>(entry.itemCount);
 
-        auto raw = std::make_unique<BYTE[]>(entry.itemSize * entry.itemAllocCount);
+        size_t readFile = 0;
 
-        if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemCount)) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-
         CHAR dumpbuff[MAX_PATH + 10];
-        for (size_t i = 0; i < entry.itemAllocCount; i++) {
-            sprintf_s(dumpbuff, "%s/rawpool/%d/%lld.json", opt.m_output, (int)id, i);
 
-            std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
+        std::cout << "Dumping compiled GSC scripts into scriptparsetree...\n";
+        std::filesystem::create_directories("scriptparsetree", ec);
 
+        for (size_t i = 0; i < entry.itemCount; i++) {
+            auto& p = pool[i];
 
-
-            std::filesystem::path file(dumpbuff);
-            std::filesystem::create_directories(file.parent_path(), ec);
-
-            std::ofstream defout{ file };
-
-            if (!defout) {
-                std::cerr << "Can't open output file\n";
+            if (p.name < MIN_HASH_VAL) {
                 continue;
             }
 
-            tool::pool::WriteHex(defout, entry.pool + entry.itemSize * i, &raw[0] + (entry.itemSize * i), entry.itemSize, proc);
+            sprintf_s(dumpbuff, "scriptparsetree/script_%llx.gsc", p.name);
 
-            defout.close();
+            std::filesystem::path file(dumpbuff);
+
+            std::cout << "Dumping into " << dumpbuff << "...\n";
+
+            auto buff = std::make_unique<BYTE[]>(p.size);
+
+            if (!proc.ReadMemory(&buff[0], p.buffer, p.size) || !utils::WriteFile(file, &buff[0], p.size)) {
+                std::cerr << "Error when dumping\n";
+                continue;
+            }
         }
 
+        std::cout << "Decompiling dumped GSC scripts...\n";
+
+        const char* argvinfo[] = {
+            argv[0],
+            "gscinfo",
+            "-g", // run decompiler
+            "scriptparsetree", // decompile directory
+            "-o", opt.m_output, // output dir
+        };
+
+        tool::gsc::gscinfo(proc, ARRAYSIZE(argvinfo), argvinfo);
     }
-        break;
+    for (size_t i = 0; i < ASSET_TYPE_COUNT; i++) {
+        auto id = (XAssetType)i;
+        if (ShouldHandle(id, false)) {
+            std::cout << "Item data\n";
+
+            auto raw = std::make_unique<BYTE[]>(entry.itemSize * entry.itemAllocCount);
+
+            if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
+                std::cerr << "Can't read pool data\n";
+                return tool::BASIC_ERROR;
+            }
+
+            CHAR dumpbuff[MAX_PATH + 10];
+            for (size_t i = 0; i < entry.itemAllocCount; i++) {
+                sprintf_s(dumpbuff, "%s/rawpool/%s/%lld.json", opt.m_output, XAssetNameFromId(id), i);
+
+                std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+                std::filesystem::path file(dumpbuff);
+                std::filesystem::create_directories(file.parent_path(), ec);
+
+                std::ofstream defout{ file };
+
+                if (!defout) {
+                    std::cerr << "Can't open output file\n";
+                    continue;
+                }
+
+                tool::pool::WriteHex(defout, entry.pool + entry.itemSize * i, &raw[0] + (entry.itemSize * i), entry.itemSize, proc);
+
+                defout.close();
+            }
+
+        }
     }
 
     hashutils::WriteExtracted(opt.m_dump_hashmap);
@@ -2946,7 +2994,7 @@ int dbgp(Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
-ADD_TOOL("dp", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOps4.exe", pooltool);
+ADD_TOOL("dp", " [pool]+", "dump pool", L"BlackOps4.exe", pooltool);
 ADD_TOOL("dbgcache", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
 ADD_TOOL("dbmtstrs", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
 ADD_TOOL("dbgp", "", "dump bg pool", L"BlackOps4.exe", dbgp);

@@ -1854,7 +1854,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
     asmout << ")";
 }
 
-int gscinfo(Process& proc, int argc, const char* argv[]) {
+int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     GscInfoOption opt{};
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {

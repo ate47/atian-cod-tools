@@ -222,4 +222,28 @@ namespace pool {
         BG_CACHE_TYPE_COUNT
     };
 
+    /*
+     * Get the xasset type id from a name
+     * @param name xasset name
+     * @return xasset type
+     */
+    XAssetType XAssetIdFromName(const char* name);
+    /*
+     * Get the xasset type name from an id
+     * @param name xasset id
+     * @return xasset type name
+     */
+    const char* XAssetNameFromId(XAssetType id);
+    /*
+     * Get the bgcache type id from a name
+     * @param name bgcache name
+     * @return bgcache type
+     */
+    BGCacheTypes BGCacheIdFromName(const char* name);
+    /*
+     * Get the bgcache type name from an id
+     * @param name bgcache id
+     * @return bgcache type name
+     */
+    const char* BGCacheNameFromId(BGCacheTypes id);
 }
