@@ -1,4 +1,8 @@
 param(
+    [switch]
+    $gsc,
+    [switch]
+    $ddl
 )
 
 
@@ -13,11 +17,28 @@ try {
         Invoke-WebRequest "https://www.antlr.org/download/antlr-4.13.0-complete.jar" -o scripts/antlr4.jar
     }
     
-    java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor -Werror
+    Remove-Item -Recurse -Force .antlr4\grammar -ErrorAction Ignore > $null
 
-    Move-Item .antlr4\grammar\*.c src\compiler -Force
-    Move-Item .antlr4\grammar\*.cpp src\compiler -Force
-    Move-Item .antlr4\grammar\*.h src\compiler -Force
+    if ($gsc) {
+        java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor -Werror
+    
+        New-Item -ItemType Directory src\cli\compiler -ErrorAction Ignore > $null
+
+        Move-Item .antlr4\grammar\*.c src\cli\compiler -Force
+        Move-Item .antlr4\grammar\*.cpp src\cli\compiler -Force
+        Move-Item .antlr4\grammar\*.h src\cli\compiler -Force
+    }
+    
+    if ($ddl) {
+        java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\ddl.g4 -no-listener -visitor -Werror
+    
+        New-Item -ItemType Directory src\cli\ddl -ErrorAction Ignore > $null
+
+        Move-Item .antlr4\grammar\*.c src\cli\ddl -Force
+        Move-Item .antlr4\grammar\*.cpp src\cli\ddl -Force
+        Move-Item .antlr4\grammar\*.h src\cli\ddl -Force
+    }
+
 }
 finally {
     $prevPwd | Set-Location

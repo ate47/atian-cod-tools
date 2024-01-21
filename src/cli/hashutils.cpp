@@ -89,6 +89,10 @@ int hashutils::LoadMap(LPCWCH file, bool ignoreCol, bool iw) {
 	Add("<error>", true, iw);
 	Add("self", true, iw);
 
+	// DDL names
+	Add("root", true, iw); // root struct
+	Add("__pad", true, iw); // padding
+
 	std::ifstream s(file);
 
 	if (!s) {

@@ -14,6 +14,10 @@ struct Hash {
     uint64_t nullpad;
 };
 
+enum PoolDumpOptionFlags {
+    DDL_OFFSET = 1
+};
+
 class PoolOption {
 public:
     bool m_help = false;
@@ -23,6 +27,7 @@ public:
     LPCCH m_output = "pool";
     LPCCH m_dump_hashmap = NULL;
     std::vector<bool> m_dump_types{};
+    UINT64 flags{};
 
     bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
         m_dump_types.clear();
@@ -49,6 +54,21 @@ public:
             }
             else if (!_strcmpi("--all", arg) || !strcmp("-a", arg)) {
                 m_dump_all_available = true;
+            }
+            else if (!strcmp("-f", arg) || !_strcmpi("--flag", arg)) {
+                if (i + 1 == endIndex) {
+                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    return false;
+                }
+                auto flagName = args[++i];
+
+                if (!_strcmpi("ddloffset", arg)) {
+                    flags |= DDL_OFFSET;
+                }
+                else {
+                    std::cerr << "Invalid flag for -" << arg << ": " << flagName << "\n";
+                    return false;
+                }
             }
             else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
                 if (i + 1 == endIndex) {
@@ -89,6 +109,7 @@ public:
             << "-i --info            : Dump pool info\n"
             << "-a --all             : Dump all available pools\n"
             << "-o --output [d]      : Output dir\n"
+            << "-f --flag [f]        : Add flag\n"
             ;
     }
 };
@@ -677,7 +698,7 @@ enum DDLType : BYTE
     DDL_PAD_TYPE,
 };
 
-const char* DdlTypeName(DDLType type, size_t intSize) {
+const char* DdlTypeName(DDLType type, size_t intSize, size_t bitsize) {
     static CHAR typeNameBuff[0x10];
     switch (type) {
     case DDL_BYTE_TYPE: return "byte";
@@ -700,7 +721,10 @@ const char* DdlTypeName(DDLType type, size_t intSize) {
         sprintf_s(typeNameBuff, "float%lld", intSize);
         return typeNameBuff;
     }
-    case DDL_FIXEDPOINT_TYPE: return "fixedpoint";
+    case DDL_FIXEDPOINT_TYPE: {
+        sprintf_s(typeNameBuff, "fixedpoint%lld", bitsize);
+        return typeNameBuff;
+    }
     case DDL_HASH_TYPE: return "hash";
     case DDL_STRING_TYPE: return "char";
     case DDL_STRUCT_TYPE: return "struct";
@@ -752,7 +776,7 @@ struct DDLEnum {
 
 
 
-void ReadDDLStruct(Process& proc, std::ostream& defout, DDLDef& def, uintptr_t entry, std::unordered_set<uint64_t>& nextindexes) {
+void ReadDDLStruct(PoolOption& opt, Process& proc, std::ostream& defout, DDLDef& def, uintptr_t entry, std::unordered_set<uint64_t>& nextindexes) {
     DDLStruct stct{};
     if (!proc.ReadMemory(&stct, entry, sizeof(stct))) {
         defout << "<error reading struct entry>\n";
@@ -791,6 +815,10 @@ void ReadDDLStruct(Process& proc, std::ostream& defout, DDLDef& def, uintptr_t e
             }
             currentShift = mbm.offset + mbm.bitSize;
 
+            if (opt.flags & DDL_OFFSET) {
+                utils::Padding(defout << "#offset 0x" << std::hex << currentShift << "\n", 1);
+            }
+
             bool addSize = false;
             if (mbm.type == DDL_STRUCT_TYPE) {
                 DDLStruct substct{};
@@ -811,7 +839,7 @@ void ReadDDLStruct(Process& proc, std::ostream& defout, DDLDef& def, uintptr_t e
                 nextindexes.insert(utils::CatLocated(1, mbm.externalIndex));
             }
             else {
-                defout << DdlTypeName(mbm.type, mbm.intSize);
+                defout << DdlTypeName(mbm.type, mbm.intSize, mbm.bitSize);
             }
 
             defout << " " << hashutils::ExtractTmp("hash", mbm.name.name);
@@ -835,10 +863,14 @@ void ReadDDLStruct(Process& proc, std::ostream& defout, DDLDef& def, uintptr_t e
             }
 
             defout << ";";
-            //defout << " // offset: 0x" << std::hex << mbm.offset << " + 0x" << mbm.bitSize << " = 0x" << currentShift;
+            defout << " // offset: 0x" << std::hex << mbm.offset << " + 0x" << mbm.bitSize << " = 0x" << currentShift;
         }
         defout << "\n";
+        if (opt.flags & DDL_OFFSET) {
+            utils::Padding(defout, 1) << "#offset 0x" << std::hex << currentShift << "\n";
+        }
     }
+
 
     defout << "};\n\n";
 }
@@ -869,7 +901,7 @@ void ReadDDLEnum(Process& proc, std::ostream& defout, uintptr_t entry) {
 
     defout << "};\n\n";
 }
-void ReadDDLDefEntry(Process& proc, std::ostream& defout, uintptr_t entry) {
+void ReadDDLDefEntry(PoolOption& opt, Process& proc, std::ostream& defout, uintptr_t entry) {
     if (!entry) {
         return;
     }
@@ -909,7 +941,7 @@ void ReadDDLDefEntry(Process& proc, std::ostream& defout, uintptr_t entry) {
             auto [type, idx] = utils::UnCatLocated(val);
 
             if (type == 0) {
-                ReadDDLStruct(proc, defout, def, def.structList + idx * sizeof(DDLStruct), nextIndexes);
+                ReadDDLStruct(opt, proc, defout, def, def.structList + idx * sizeof(DDLStruct), nextIndexes);
             }
             else {
                 // READ ENUM
@@ -927,7 +959,7 @@ void ReadDDLDefEntry(Process& proc, std::ostream& defout, uintptr_t entry) {
 
     if (def.next) {
         defout << "/////////////////////////////////////////////////\n";
-        ReadDDLDefEntry(proc, defout, def.next);
+        ReadDDLDefEntry(opt, proc, defout, def.next);
     }
 }
 
@@ -2573,7 +2605,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 continue;
             }
 
-            ReadDDLDefEntry(proc, defout, p.ddlDef);
+            ReadDDLDefEntry(opt, proc, defout, p.ddlDef);
 
             defout.close();
         }
