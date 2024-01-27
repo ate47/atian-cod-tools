@@ -9,18 +9,7 @@ namespace {
 			return str;
 		}
 
-		switch ((char)*str + 0x80) {
-		case 16:
-		case 32:
-		case 48:
-			return str;
-		case 29:
-			return str + 1;
-		case 11:
-			return str + 3;
-		}
-
-		return nullptr;
+		return str + 3;
 	}
 
 

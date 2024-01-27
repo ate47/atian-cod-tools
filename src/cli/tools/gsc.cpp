@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
+#include "tools/cw/cw.hpp"
 
 using namespace tool::gsc;
 
@@ -512,11 +513,7 @@ namespace {
             return sizeof(T937GSCOBJ);
         }
         char* DecryptString(char* str) override {
-#ifdef CW_INCLUDES
             return cw::DecryptString(str);
-#else
-            return str;
-#endif
         }
         bool IsValidMagic() override {
             return *reinterpret_cast<UINT64*>(file) == 0x37000a0d43534780;
@@ -635,11 +632,7 @@ namespace {
             return sizeof(T9GSCOBJ);
         }
         char* DecryptString(char* str) override {
-#ifdef CW_INCLUDES
             return cw::DecryptString(str);
-#else
-            return str;
-#endif
         }
         bool IsValidMagic() override {
             return *reinterpret_cast<UINT64*>(file) == 0x38000a0d43534780;

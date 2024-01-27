@@ -2963,8 +2963,7 @@ public:
 			auto* right = new ASMContextNodeIdentifier(field);
 
 			auto* objectNode = new ASMContextNodeLeftRightOperator(left, right, ".", PRIORITY_ACCESS, TYPE_ACCESS);
-			auto* node = new ASMContextNodeLeftRightOperator(
-				new ASMContextNodeLeftRightOperator(objectNode, new ASMContextNodeIdentifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS),
+			auto* node = new ASMContextNodeLeftRightOperator(objectNode,
 				context.PopASMCNode(), " = ", PRIORITY_SET, TYPE_SET);
 			context.SetFieldIdASMCNode(node->Clone());
 			context.PushASMCNode(node);

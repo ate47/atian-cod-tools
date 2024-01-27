@@ -88,6 +88,32 @@ public:
     }
 };
 
+union DDLData {
+    double doubleValue;
+    uint64_t uintValue;
+    int64_t intValue;
+};
+
+DDLData ReadDDLMember(UINT64 offset, ACTSDDLType type, UINT64 size, BYTE* raw) {
+    DDLData data{};
+
+    assert(size <= 64 && "reading complex objects");
+
+    BYTE buffer[8]{};
+
+    // reading raw
+
+    if ((offset & 7) == 0) {
+        // byte aligned, no need to work
+        memcpy(buffer, raw + (offset >> 3), ((size - 1) >> 3) + 1);
+    }
+    else {
+
+    }
+ 
+
+    return data;
+}
 
 
 class DDLMember {
