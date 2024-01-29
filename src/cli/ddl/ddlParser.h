@@ -13,14 +13,13 @@ class  ddlParser : public antlr4::Parser {
 public:
   enum {
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
-    T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, NEWLINE = 13, 
-    WHITESPACE = 14, INTEGER10 = 15, INTEGER16 = 16, INTEGER8 = 17, INTEGER2 = 18, 
-    IDENTIFIER = 19, PATH = 20, STRING = 21
+    T__7 = 8, T__8 = 9, NEWLINE = 10, WHITESPACE = 11, INTEGER10 = 12, INTEGER16 = 13, 
+    INTEGER8 = 14, INTEGER2 = 15, IDENTIFIER = 16, PATH = 17, STRING = 18
   };
 
   enum {
-    RuleProg = 0, RuleBegin = 1, RuleVersion = 2, RuleMetatable = 3, RuleEnum = 4, 
-    RuleStruct = 5, RuleStruct_def = 6, RuleNumber = 7
+    RuleProg = 0, RuleData = 1, RuleEnum = 2, RuleStruct = 3, RuleStruct_def = 4, 
+    RuleNumber = 5
   };
 
   explicit ddlParser(antlr4::TokenStream *input);
@@ -41,9 +40,7 @@ public:
 
 
   class ProgContext;
-  class BeginContext;
-  class VersionContext;
-  class MetatableContext;
+  class DataContext;
   class EnumContext;
   class StructContext;
   class Struct_defContext;
@@ -54,12 +51,8 @@ public:
     ProgContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *EOF();
-    std::vector<BeginContext *> begin();
-    BeginContext* begin(size_t i);
-    std::vector<VersionContext *> version();
-    VersionContext* version(size_t i);
-    std::vector<MetatableContext *> metatable();
-    MetatableContext* metatable(size_t i);
+    std::vector<DataContext *> data();
+    DataContext* data(size_t i);
     std::vector<StructContext *> struct_();
     StructContext* struct_(size_t i);
     std::vector<EnumContext *> enum_();
@@ -72,23 +65,12 @@ public:
 
   ProgContext* prog();
 
-  class  BeginContext : public antlr4::ParserRuleContext {
+  class  DataContext : public antlr4::ParserRuleContext {
   public:
-    BeginContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    DataContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *STRING();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  BeginContext* begin();
-
-  class  VersionContext : public antlr4::ParserRuleContext {
-  public:
-    VersionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
     NumberContext *number();
 
 
@@ -96,20 +78,7 @@ public:
    
   };
 
-  VersionContext* version();
-
-  class  MetatableContext : public antlr4::ParserRuleContext {
-  public:
-    MetatableContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *STRING();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  MetatableContext* metatable();
+  DataContext* data();
 
   class  EnumContext : public antlr4::ParserRuleContext {
   public:

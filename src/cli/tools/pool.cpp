@@ -3,16 +3,16 @@
 #include "tools/gsc.hpp"
 #include "tools/pool.hpp"
 #include "tools/fastfile.hpp"
+#include "pool_weapon.hpp"
 
 using namespace tool::pool;
 
 // min hash value, otherwise might be a ptr
 constexpr auto MIN_HASH_VAL = 0x1000000000000;
 
-struct Hash {
-    uint64_t name;
-    uint64_t nullpad;
-};
+#pragma region data
+
+
 
 static const char* itemGroupNames[] = {
     "weapon_smg",
@@ -107,6 +107,115 @@ static const char* attachmentsNames[] = {
     "vzoom"
 };
 
+
+const char* tool::pool::WeapInventoryTypeName(weapInventoryType_t t) {
+    static const char* names[] = {
+        "PRIMARY",
+        "OFFHAND",
+        "ITEM",
+        "ALTMODE",
+        "MELEE",
+        "DWLEFTHAND",
+        "ABILITY",
+        "HEAVY",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::WeapTypeName(weapType_t t) {
+    static const char* names[] = {
+        "BULLET",
+        "GRENADE",
+        "PROJECTILE",
+        "BINOCULARS",
+        "GAS",
+        "BOMB",
+        "MINE",
+        "MELEE",
+        "RIOTSHIELD",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::GadgetTypeName(gadgetType_e t) {
+    static const char* names[] = {
+        "NONE",
+        "OTHER",
+        "OPTIC_CAMO",
+        "ARMOR_REGEN",
+        "ARMOR",
+        "DRONE",
+        "VISION_PULSE",
+        "MULTI_ROCKET",
+        "TURRET_DEPLOY",
+        "GRENADE",
+        "JUKE",
+        "HACKER",
+        "INFRARED",
+        "SPEED_BURST",
+        "HERO_WEAPON",
+        "COMBAT_EFFICIENCY",
+        "FLASHBACK",
+        "CLEANSE",
+        "SYSTEM_OVERLOAD",
+        "SERVO_SHORTOUT",
+        "EXO_BREAKDOWN",
+        "SURGE",
+        "RAVAGE_CORE",
+        "REMOTE_HIJACK",
+        "IFF_OVERRIDE",
+        "CACOPHONY",
+        "FORCED_MALFUNCTION",
+        "CONCUSSIVE_WAVE",
+        "OVERDRIVE",
+        "UNSTOPPABLE_FORCE",
+        "RAPID_STRIKE",
+        "ACTIVE_CAMO",
+        "SENSORY_OVERLOAD",
+        "ES_STRIKE",
+        "IMMOLATION",
+        "FIREFLY_SWARM",
+        "SMOKESCREEN",
+        "MISDIRECTION",
+        "MRPUKEY",
+        "SHOCK_FIELD",
+        "RESURRECT",
+        "HEAT_WAVE",
+        "CLONE",
+        "ROULETTE",
+        "THIEF",
+        "DISRUPTOR",
+        "HORNET_SWARM",
+        "GROUP_REVIVE",
+        "XRAY_EYES",
+        "EMERGENCY_MELEE",
+        "SHOULDER_GUN",
+        "GRAPPLE",
+        "INVULNERABLE",
+        "SPRINT_BOOST",
+        "HEALTH_REGEN",
+        "SELF_DESTRUCT",
+        "BARRIER_BUILDER",
+        "SPAWN_BEACON",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::GuidedMissileTypeName(guidedMissileType_t t) {
+    static const char* names[] = {
+        "NONE",
+        "SIDEWINDER",
+        "HELLFIRE",
+        "JAVELIN",
+        "BALLISTIC",
+        "WIREGUIDED",
+        "TVGUIDED",
+        "DRONE",
+        "HEATSEEKING",
+        "ROBOTECH",
+        "DYNAMICIMPACTPOINT",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+
+#pragma endregion
 enum PoolDumpOptionFlags {
     DDL_OFFSET = 1,
     DUMP_ASSETS = 2, // dump assets (not for the source repository because it's not an acceptable content)
@@ -211,6 +320,11 @@ public:
     }
 };
 
+
+#pragma region structs
+
+
+
 struct XAssetTypeInfo {
     uintptr_t name; // const char*
     uint64_t size;
@@ -291,22 +405,14 @@ struct BGCacheInfo {
     byte unk47;
 };
 
-enum eModes : INT32 {
-    MODE_ZOMBIES = 0x0,
-    MODE_MULTIPLAYER = 0x1,
-    MODE_CAMPAIGN = 0x2,
-    MODE_WARZONE = 0x3,
-    MODE_COUNT = 0x4,
-    MODE_INVALID = 0x4,
-    MODE_FIRST = 0x0,
-};
-
-const char* EModeName(eModes mode, bool allocInvalid = false) {
+const char* EModeName(eModes mode, bool allocInvalid = false, const char* countVal = nullptr) {
     switch (mode) {
     case MODE_ZOMBIES: return "zombies";
     case MODE_MULTIPLAYER: return "multiplayer";
     case MODE_CAMPAIGN: return "campaign";
     case MODE_WARZONE: return "warzone";
+    case MODE_COUNT:
+        if (countVal) return countVal;
     default: {
         if (!allocInvalid) {
             return "<invalid>";
@@ -440,6 +546,7 @@ struct StringTableEntry {
     uintptr_t unk48; // 56
     uintptr_t unk56; // 64
 };
+#pragma endregion
 
 inline bool HexValidString(LPCCH str) {
     if (!*str) {
@@ -1949,18 +2056,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
     if (ShouldHandle(ASSET_TYPE_WEAPON, false)) {
-        struct Weapon
-        {
-            Hash name;
-            Hash baseWeapon;
-            Hash description;
-            byte pad[0x1520];
-        };
+        auto pool = std::make_unique<WeaponDef[]>(entry.itemAllocCount);
 
-        auto pool = std::make_unique<Weapon[]>(entry.itemAllocCount);
-
-        if (sizeof(Weapon) != entry.itemSize) {
-            std::cerr << "bad itemsize: " << std::hex << sizeof(Weapon) << "/" << entry.itemSize << "\n";
+        if (sizeof(WeaponDef) != entry.itemSize) {
+            std::cerr << "bad itemsize: " << std::hex << sizeof(WeaponDef) << "/" << entry.itemSize << "\n";
             return tool::BASIC_ERROR;
         }
 
@@ -1971,6 +2070,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             return tool::BASIC_ERROR;
         }
         CHAR dumpbuff[MAX_PATH + 10];
+
+        WeaponDefProperties props{};
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -1988,6 +2089,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/tables/weapon/file_%llx.json", opt.m_output, p.name.name);
             }
 
+            if (p.properties && !proc.ReadMemory(&props, p.properties, sizeof(props))) {
+                std::cerr << "Can't read properties\n";
+                continue;
+            }
 
             std::filesystem::path file(dumpbuff);
             std::filesystem::create_directories(file.parent_path(), ec);
@@ -2006,14 +2111,52 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 break;
             }
 
+            out << "{\n";
+            utils::Padding(out, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(out, 1) << "\"baseWeapon\": \"#" << hashutils::ExtractTmp("hash", p.baseWeapon.name) << "\",\n";
+            utils::Padding(out, 1) << "\"description\": \"#" << hashutils::ExtractTmp("hash", p.description.name) << "\",\n";
+            utils::Padding(out, 1) << "\"sessionMode\": \"" << EModeName(p.sessionMode, false, "all") << "\",\n";
+            utils::Padding(out, 1) << "\"itemIndex\": " << std::dec << p.itemIndex << ",\n";
+            utils::Padding(out, 1) << "\"dualWieldWeaponIndex\": " << std::dec << p.dualWieldWeaponIndex << ",\n";
+            utils::Padding(out, 1) << "\"altWeaponIndex\": " << std::dec << p.altWeaponIndex << ",\n";
+            utils::Padding(out, 1) << "\"reticle\": \"" << ReadTmpStr(proc, p.unk8b0) << "\",\n";
+
+
+            auto addPtrName = [&proc, &out](const char* title, uintptr_t ptr, size_t offset) {
+                if (!ptr) {
+                    return;
+                }
+                auto name = proc.ReadMemory<UINT64>(ptr + offset);
+                if (!name) {
+                    return;
+                }
+                utils::Padding(out, 1) << "\"" << title << "\": \"#" << hashutils::ExtractTmp("hash", name) << "\",\n";
+            };
+
+            addPtrName("gadgetIconAvailable", p.gadgetIconAvailable, 0x20);
+            addPtrName("gadgetIconUnavailable", p.gadgetIconUnavailable, 0x20);
+
+
+            if (p.properties) {
+                utils::Padding(out, 1) << "\"properties\": {\n";
+                utils::Padding(out, 2) << "\"gadgetType\": \"" << GadgetTypeName(props.gadget_type) << "\",\n";
+                utils::Padding(out, 2) << "\"guidedMissileType\": \"" << GuidedMissileTypeName(props.guidedMissileType) << "\",\n";
+                utils::Padding(out, 2) << "\"inventoryType\": \"" << WeapInventoryTypeName(props.inventoryType) << "\",\n";
+                utils::Padding(out, 2) << "\"weapType\": \"" << WeapTypeName(props.weapType) << "\",\n";
+                utils::Padding(out, 2) << "\"aiFuseTime\": " << std::dec << props.aiFuseTime << ",\n";
+                utils::Padding(out, 2) << "\"bAltWeaponDisableSwitching\": " << (props.bAltWeaponDisableSwitching ? "true" : "false") << ",\n";
+                utils::Padding(out, 2) << "\"bDieOnRespawn\": " << (props.bDieOnRespawn ? "true" : "false") << ",\n";
+                utils::Padding(out, 2) << "\"bIsHybridWeapon\": " << (props.bIsHybridWeapon ? "true" : "false") << ",\n";
+                utils::Padding(out, 2) << "\"unlimitedAmmo\": " << (props.unlimitedAmmo ? "true" : "false") << "\n";
+                utils::Padding(out, 1) << "}\n";
+            }
             out
-                << "{\n"
-                << "    \"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << std::flush << "\",\n"
-                << "    \"baseWeapon\": \"#" << hashutils::ExtractTmp("hash", p.baseWeapon.name) << std::flush << "\",\n"
-                << "    \"description\": \"#" << hashutils::ExtractTmp("hash", p.description.name) << std::flush << "\"\n"
                 << "}\n"
                 ;
-            tool::pool::WriteHex(out, entry.pool + sizeof(pool[0]) * i, (BYTE*)&p, sizeof(p), proc);
+
+
+
+            //tool::pool::WriteHex(out, entry.pool + sizeof(pool[0]) * i, (BYTE*)&p, sizeof(p), proc);
             
 
             out.close();
@@ -3645,20 +3788,135 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
+    if (ShouldHandle(ASSET_TYPE_IMAGE, false)) {
+        size_t readFile = 0;
+
+        enum GfxImageFlags : uint32_t {
+            GFXF_UNK_2 = 0x2,
+            GFXF_CUBE = 0x4,
+            GFXF_3D = 0x8,
+
+            GFXF_ARRAY = 0x200,
+        };
+        struct GfxImage
+        {
+            uintptr_t unk0;
+            uintptr_t unk8;
+            uintptr_t unk10;
+            uintptr_t pixels; // byte*
+            Hash name;
+            uintptr_t unk30;
+            uint64_t unk38;
+            uint64_t unk40;
+            uint64_t unk48;
+            uint64_t unk50;
+            uint32_t imageFlags;
+            uint32_t unk5c;
+            uint32_t totalSize;
+            uint32_t imageFormat; // GfxPixelFormat
+            uint16_t width;
+            uint16_t height;
+            uint16_t depth;
+            uint16_t unk6e;
+            byte unk70;
+            byte unk71;
+            uint16_t unk72;
+            uint16_t unk74;
+            byte unk76;
+            byte alignment;
+            byte unk78;
+            byte mapType; // MapType
+            byte unk7a;
+            byte unk7b;
+            uint32_t unk7c;
+            uint64_t unk80;
+        };
+
+
+
+
+        // 12D15670
+        auto pool = std::make_unique<GfxImage[]>(entry.itemAllocCount);
+
+        CHAR dumpbuff[MAX_PATH + 10];
+        sprintf_s(dumpbuff, "%s/tables/ximages.csv", opt.m_output);
+        std::cout << dumpbuff << "\n";
+        std::filesystem::path file(dumpbuff);
+        std::filesystem::create_directories(file.parent_path(), ec);
+
+        std::ofstream out{ file };
+
+        if (!out) {
+            std::cerr << "Can't open output\n";
+            return tool::BASIC_ERROR;
+        }
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        out << "name,width,height,flags,format,align,type";
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            const char* type;
+
+            if (p.imageFlags & (GfxImageFlags::GFXF_ARRAY | GfxImageFlags::GFXF_ARRAY)) {
+                type = "cubearray";
+            }
+            else if (p.imageFlags & GfxImageFlags::GFXF_ARRAY) {
+                type = "array";
+            }
+            else if (p.imageFlags & GfxImageFlags::GFXF_3D) {
+                type = "3d";
+            }
+            else if (p.imageFlags & GfxImageFlags::GFXF_ARRAY) {
+                type = "2darray";
+            }
+            else {
+                type = "2d";
+            }
+
+            out << "\n"
+                << std::dec
+                << hashutils::ExtractTmp("hash", p.name.name) << ","
+                << p.width << ","
+                << p.height << ","
+                << std::hex
+                << (int)p.imageFlags << ","
+                << (int)p.imageFormat << ","
+                << (int)p.alignment << ","
+                << type
+                ;
+
+
+
+        }
+        out.close();
+        std::cout << "Dump " << file << "\n";
+    }
     for (size_t i = 0; i < ASSET_TYPE_COUNT; i++) {
         auto id = (XAssetType)i;
         if (ShouldHandle(id, false)) {
             std::cout << "Item data\n";
 
-            auto raw = std::make_unique<BYTE[]>(entry.itemSize * entry.itemAllocCount);
+            auto readAlloc = min(entry.itemAllocCount, 500); // max to 500
 
-            if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
+            auto raw = std::make_unique<BYTE[]>(entry.itemSize * readAlloc);
+
+            if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * readAlloc)) {
                 std::cerr << "Can't read pool data\n";
                 return tool::BASIC_ERROR;
             }
 
             CHAR dumpbuff[MAX_PATH + 10];
-            for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            for (size_t i = 0; i < readAlloc; i++) {
                 sprintf_s(dumpbuff, "%s/rawpool/%s/%lld.json", opt.m_output, XAssetNameFromId(id), i);
 
                 std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
@@ -3814,7 +4072,7 @@ int dbgp(Process& proc, int argc, const char* argv[]) {
     }
 
     
-    std::filesystem::path out{ "bgpool" };
+    std::filesystem::path out{ "bgpool/bo4" };
 
     std::filesystem::create_directories(out);
     hashutils::ReadDefaultFile();

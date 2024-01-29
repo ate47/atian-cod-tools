@@ -19,15 +19,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitBegin(ddlParser::BeginContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitVersion(ddlParser::VersionContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitMetatable(ddlParser::MetatableContext *ctx) override {
+  virtual std::any visitData(ddlParser::DataContext *ctx) override {
     return visitChildren(ctx);
   }
 

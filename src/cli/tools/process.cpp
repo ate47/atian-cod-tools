@@ -76,8 +76,6 @@ int processtool(Process& unused, int argc, const char* argv[]) {
 	return func(proc, argc, argv);
 }
 
-ADD_TOOL("proc", " (process) (s) [module] [function]", "process explorer", nullptr, processtool);
-
 int PTSearch(Process& proc, int argc, const char* argv[]) {
 	using namespace tool;
 	if (argc <= 4) {
@@ -433,3 +431,14 @@ int PTRead(Process& proc, int argc, const char* argv[]) {
 	return tool::OK;
 }
 
+int procloop(Process& unused, int argc, const char* argv[]) {
+	UINT64 c{};
+	while (true) {
+		std::cout << "c: " << (c * 10) << "s\n";
+		Sleep(10000);
+		c += 10;
+	}
+}
+
+ADD_TOOL("proc", " (process) (s) [module] [function]", "process explorer", nullptr, processtool);
+ADD_TOOL("procloop", "", "proc loop", nullptr, procloop);

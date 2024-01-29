@@ -1,10 +1,8 @@
 grammar ddl;
 
-prog: ((begin | version | metatable | struct | enum) ';')* EOF;
+prog: ((data | struct | enum) ';')* EOF;
 
-begin: 'begin' STRING;
-version: 'version' number;
-metatable: 'metatable' STRING;
+data: IDENTIFIER (STRING | number);
 
 enum: 'enum' IDENTIFIER '{' (STRING ('=' number)? (',' STRING ('=' number)?)*)? '}';
 

@@ -1252,6 +1252,293 @@ namespace {
 
         return tool::OK;
     }
+
+    int injectcw(Process& proc, int argc, const char* argv[]) {
+        if (argc < 5) {
+            return tool::BAD_USAGE;
+        }
+
+        auto script = argv[2];
+        auto target = argv[3];
+        auto replaced = argv[4];
+
+        auto targetHash = hash::Hash64Pattern(target);
+        auto replacedHash = hash::Hash64Pattern(replaced);
+
+        std::cout <<
+            "script: " << script << "\n"
+            "target: " << target << " (script_" << std::hex << targetHash << ")\n"
+            "replaced: " << replaced << " (script_" << std::hex << replacedHash << ")\n"
+            ;
+
+        std::filesystem::path scriptPath = script;
+        LPVOID scriptBuffer = NULL;
+        size_t scriptSize = 0;
+
+        if (!utils::ReadFileNotAlign(scriptPath, scriptBuffer, scriptSize, false)) {
+            std::cerr << "Can't read '" << scriptPath.string() << "'\n";
+            return tool::BASIC_ERROR;
+        }
+
+        XAssetPool sptPool{};
+
+        if (!proc.ReadMemory(&sptPool, proc[s_assetPools_off] + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
+            std::cerr << "Can't read SPT pool\n";
+            return tool::BASIC_ERROR;
+        }
+
+        auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
+
+        if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
+            std::cerr << "Can't read SPT pool entries\n";
+            return tool::BASIC_ERROR;
+        }
+
+        auto* scriptEntry = reinterpret_cast<ScriptParseTree*>(&entries[0]);
+
+        auto* end = scriptEntry + sptPool.itemAllocCount;
+
+        auto* targetEntry = std::find_if(scriptEntry, end, [targetHash](const auto& ent) { return ent.name == targetHash; });
+
+        uintptr_t replacedEntry = 0;
+        ScriptParseTree* replacedEntryH = NULL;
+
+        for (size_t i = 0; i < sptPool.itemAllocCount; i++) {
+            if (scriptEntry[i].name == replacedHash) {
+                replacedEntryH = scriptEntry + i;
+                replacedEntry = sptPool.pool + sizeof(*scriptEntry) * i;
+                break;
+            }
+        }
+
+        if (targetEntry == end) {
+            std::cerr << "Can't find target script " << target << "\n";
+            std::free(scriptBuffer);
+            return tool::BASIC_ERROR;
+        }
+        if (!replacedEntry) {
+            std::cerr << "Can't find replaced script " << replaced << "\n";
+            std::free(scriptBuffer);
+            return tool::BASIC_ERROR;
+        }
+        tool::gsc::T9GSCOBJ replacerScriptHeader{};
+        if (!proc.ReadMemory(&replacerScriptHeader, replacedEntryH->buffer, sizeof(tool::gsc::T9GSCOBJ))) {
+            std::cerr << "Can't read replacer header\n";
+            std::free(scriptBuffer);
+            return tool::BASIC_ERROR;
+        }
+
+        tool::gsc::T9GSCOBJ scriptHeader{};
+        if (!proc.ReadMemory(&scriptHeader, targetEntry->buffer, sizeof(tool::gsc::T9GSCOBJ))) {
+            std::cerr << "Can't read target header\n";
+            std::free(scriptBuffer);
+            return tool::BASIC_ERROR;
+        }
+        auto includesOffset = targetEntry->buffer + scriptHeader.includes_table;
+        auto includes = std::make_unique<UINT64[]>(scriptHeader.includes_count);
+        if (!proc.ReadMemory(&includes[0], includesOffset, sizeof(UINT64) * scriptHeader.includes_count)) {
+            std::cerr << "Can't read includes\n";
+            std::free(scriptBuffer);
+            return tool::BASIC_ERROR;
+        }
+
+        auto includesEnd = &includes[0] + scriptHeader.includes_count;
+
+        std::cout << target << " -> " << std::hex << targetEntry->buffer << "(" << targetEntry->name << ")\n";
+        std::cout << replaced << " -> " << std::hex << replacedEntryH->buffer << "(" << replacedEntryH->name << ")\n";
+
+        auto hookId = std::find(&includes[0], includesEnd, replacedHash);
+        if (hookId == includesEnd) {
+            // need to add the include
+
+            // insert the new include
+            if (!proc.WriteMemory(includesOffset + sizeof(UINT64) * scriptHeader.includes_count, &replacedHash, sizeof(replacedHash))) {
+                std::cerr << "Error when patching includes\n";
+                std::free(scriptBuffer);
+                return tool::BASIC_ERROR;
+            }
+
+            // correct the include count
+            UINT16 newIncludeCount = scriptHeader.includes_count + 1;
+            if (!proc.WriteMemory(targetEntry->buffer + offsetof(tool::gsc::T9GSCOBJ, includes_count), &newIncludeCount, sizeof(newIncludeCount))) {
+                std::cerr << "Error when patching includes count\n";
+                std::free(scriptBuffer);
+                return tool::BASIC_ERROR;
+            }
+
+            std::cout << "Hook inserted into ";
+            if (scriptHeader.name == targetHash) {
+                std::cout << target;
+            }
+            else {
+                std::cout << std::hex << scriptHeader.name;
+            }
+            std::cout << "\n";
+        }
+
+        // fixup crc & name
+        reinterpret_cast<tool::gsc::T9GSCOBJ*>(scriptBuffer)->crc = replacerScriptHeader.crc;
+        reinterpret_cast<tool::gsc::T9GSCOBJ*>(scriptBuffer)->name = replacerScriptHeader.name;
+
+        // patching crc emiter
+
+        // TODO
+
+        auto loc = proc.AllocateMemory(scriptSize + 15, PAGE_READWRITE);
+
+        if (!loc) {
+            std::cerr << "Can't allocate memory\n";
+        }
+        else {
+            auto locAligned = (loc + 15) & ~15;
+            std::cout << "Allocating script at 0x" << std::hex << locAligned << "(0x" << loc << ")\n";
+
+            if (!proc.WriteMemory(locAligned, scriptBuffer, scriptSize)) {
+                auto err = GetLastError();
+                std::cerr << "Error when writing script: 0x" << std::hex << err << "\n";
+                proc.FreeMemory(loc, scriptSize + 15);
+                std::free(scriptBuffer);
+                return tool::BASIC_ERROR;
+            }
+
+            std::cout << "Script allocated at " << std::hex << locAligned << "\n";
+
+            if (!proc.WriteMemory(replacedEntry + offsetof(ScriptParseTree, buffer), &locAligned, sizeof(locAligned))) {
+                std::cerr << "Error when patching SPT entry\n";
+                proc.FreeMemory(loc, scriptSize + 15);
+                std::free(scriptBuffer);
+                return tool::BASIC_ERROR;
+            }
+
+            std::cout << script << " injected\n";
+        }
+
+        std::free(scriptBuffer);
+
+        // TODO: cleanup
+
+        return tool::OK;
+    }
+
+
+    struct BGCache {
+        UINT64 name;
+        UINT64 pad08;
+        uintptr_t def;
+        UINT32 count;
+    };
+
+    struct BGCacheInfoDef {
+        pool::BGCacheTypes type;
+        uint64_t name;
+        uint64_t pad10;
+        uint64_t string_count;
+    };
+
+    struct BGCacheInfo {
+        uintptr_t name;
+        pool::XAssetType assetType;
+        uint32_t allocItems;
+        uintptr_t registerFunc;
+        uintptr_t unregisterFunc;
+        uint64_t hash;
+        byte demoOnly;
+        byte unk31;
+        byte unk32;
+        byte unk33;
+        uint32_t defaultEntryIndex;
+        uint32_t startIndex;
+        uint32_t unk3c;
+        uint32_t checksum;
+        byte unk44;
+        byte unk45;
+        byte unk46;
+        byte unk47;
+    };
+    struct BGPoolEntry {
+        UINT64 name;
+        uintptr_t assetHeader;
+    };
+
+
+    int dbgp(Process& proc, int argc, const char* argv[]) {
+        BGCacheInfo info[40] = {};
+
+        if (!proc.ReadMemory(&info[0], proc[0xDF1B4F0], sizeof(info))) {
+            std::cerr << "Can't read cache\n";
+            return tool::BASIC_ERROR;
+        }
+
+
+        std::filesystem::path out{ "bgpool/cw" };
+
+        std::filesystem::create_directories(out);
+        hashutils::ReadDefaultFile();
+
+        std::ofstream outInfo{ out / "caches.csv" };
+
+        if (!outInfo) {
+            std::cerr << "Can't open caches.csv file\n";
+            return tool::BASIC_ERROR;
+        }
+
+
+        outInfo << "id,name,start,count";
+
+        auto pool = proc[0x11868C50];
+
+        CHAR nameInfo[200] = {};
+        CHAR fileInfo[200] = {};
+        // buffer pool names
+        for (size_t i = 0; i < pool::BG_CACHE_TYPE_COUNT; i++) {
+            if (proc.ReadString(nameInfo, info[i].name, sizeof(nameInfo)) < 0) {
+                std::cerr << "Can't read bgcache info names\n";
+                break;
+            }
+
+            outInfo << "\n" << std::dec << i << "," << nameInfo << "," << info[i].startIndex << "," << info[i].allocItems;
+
+
+            auto entries = std::make_unique<BGPoolEntry[]>(info[i].allocItems);
+
+            if (!proc.ReadMemory(&entries[0], pool + sizeof(entries[0]) * info[i].startIndex, sizeof(entries[0]) * info[i].allocItems)) {
+                std::cerr << "Can't read cache entries\n";
+                break;
+            }
+
+            sprintf_s(fileInfo, "%s.csv", nameInfo);
+
+            std::filesystem::path entriesPath = out / fileInfo;
+
+            std::ofstream entriesFile{ entriesPath };
+
+            if (!entriesFile) {
+                std::cerr << "Can't open entries file\n";
+                break;
+            }
+
+            entriesFile << "id,pool,name,ptr";
+
+            size_t res = 0;
+
+            for (size_t j = 0; j < info[i].allocItems; j++) {
+                if (!entries[j].name) {
+                    continue;
+                }
+                entriesFile << "\n" << std::dec << j << "," << nameInfo << "," << hashutils::ExtractTmp("hash", entries[j].name) << "," << std::hex << entries[j].assetHeader;
+                res++;
+            }
+
+            entriesFile.close();
+            std::cout << "write " << entriesPath.string() << " with " << std::dec << res << " entries\n";
+        }
+        outInfo.close();
+
+        std::cout << "done into " << out.string() << "\n";
+
+        return tool::OK;
+    }
+
 }
 ADD_TOOL("dpcw", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOpsColdWar.exe", pooltool);
 ADD_TOOL("wpscw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
@@ -1259,3 +1546,5 @@ ADD_TOOL("dpncw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw)
 ADD_TOOL("dfuncscw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
 ADD_TOOL("dcfuncscw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
 ADD_TOOL("dbgcw", " [inst]", "dbg (cw)", L"BlackOpsColdWar.exe", dbgcw);
+ADD_TOOL("injectcw", " (script) (target) (replace)", "inject script (cw)", L"BlackOpsColdWar.exe", injectcw);
+ADD_TOOL("dbgpcw", "", "dump bg pool (cw)", L"BlackOpsColdWar.exe", dbgp);

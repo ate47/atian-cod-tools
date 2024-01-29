@@ -153,7 +153,7 @@ uintptr_t Process::AllocateMemory(SIZE_T size) const {
 
 uintptr_t Process::AllocateMemory(SIZE_T size, DWORD protection) const {
 	if (m_handle) {
-		return reinterpret_cast<uintptr_t>(VirtualAllocEx(m_handle, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, protection));
+		return reinterpret_cast<uintptr_t>(VirtualAllocEx(m_handle, 0, size, MEM_COMMIT | MEM_RESERVE, protection));
 	}
 	return NULL;
 }
@@ -239,7 +239,15 @@ INT64 Process::ReadWString(LPWCH dest, uintptr_t src, SIZE_T size) const {
 bool Process::WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const {
 	if (m_handle) {
 		SIZE_T out = 0;
+		DWORD oldProtect{};
+		int data{};
+		if (!SetMemoryProtection(dest, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
+			return false;
+		}
 		if (!WriteProcessMemory(m_handle, reinterpret_cast<LPVOID>(dest), src, size, &out)) {
+			return false;
+		}
+		if (!SetMemoryProtection(dest, size, oldProtect, oldProtect)) {
 			return false;
 		}
 		return out == size;

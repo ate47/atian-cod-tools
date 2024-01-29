@@ -290,8 +290,12 @@ public:
         }
 
         // check loops
-        DDLStruct& root = structs[rootHash];
-        return CompleteStruct(root, types);
+        return CompleteStruct(GetRoot(), types);
+    }
+
+    DDLStruct& GetRoot() {
+        static auto rootHash = hash::Hash64("root");
+        return structs[rootHash];
     }
 };
 
@@ -372,7 +376,7 @@ namespace {
         }
     }
 
-    bool ComputeDDLCheck(DDLCompilerOption& opt, LPCH ddlText, BYTE* binary, FullDDLCompiled& ddl) {
+    bool ComputeDDLCheck(DDLCompilerOption& opt, LPCH ddlText, BYTE* binary, SIZE_T binarySize, FullDDLCompiled& ddl) {
         std::cout << "Compiling DDL file...\n";
         ClearDDLComments(ddlText);
         ANTLRInputStream is{ ddlText };
@@ -410,26 +414,44 @@ namespace {
             auto rule = dynamic_cast<RuleContext&>(*e).getRuleIndex();
 
             switch (rule) {
-            case ddlParser::RuleBegin: {
-                auto name = ReadString(e->children[1]);
-                ddl.compiled.emplace_back(hashutils::Hash64Pattern(name.c_str()));
-            }
-                break;
-            case ddlParser::RuleVersion: {
-                if (!ddl.HasFirst()) {
-                    opt.PrintLineMessage(std::cerr, e) << "Can't set version without begin\n";
-                    return false;
+            case ddlParser::RuleData: {
+                auto idf = e->children[0]->getText();
+
+                if (idf == "begin") {
+                    if (e->children[1]->getTreeType() != TREE_TERMINAL || dynamic_cast<TerminalNode*>(e->children[1])->getSymbol()->getType() != ddlParser::STRING) {
+                        opt.PrintLineMessage(std::cerr, e) << "begin should be set using a string value\n";
+                        return false;
+                    }
+                    auto name = ReadString(e->children[1]);
+                    ddl.compiled.emplace_back(hashutils::Hash64Pattern(name.c_str()));
                 }
-                ddl.Last().version = (UINT32)ReadInt(e->children[1]);
-            }
-                break;
-            case ddlParser::RuleMetatable: {
-                if (!ddl.HasFirst()) {
-                    opt.PrintLineMessage(std::cerr, e) << "Can't set metatable without begin\n";
-                    return false;
+                else if (idf == "version") {
+                    if (!ddl.HasFirst()) {
+                        opt.PrintLineMessage(std::cerr, e) << "Can't set version without begin\n";
+                        return false;
+                    }
+                    if (e->children[1]->getTreeType() == TREE_TERMINAL) {
+                        opt.PrintLineMessage(std::cerr, e) << "version should be set using a number value\n";
+                        return false;
+                    }
+                    ddl.Last().version = (UINT32)ReadInt(e->children[1]);
                 }
-                auto metatable = ReadString(e->children[1]);
-                ddl.Last().metatable = hashutils::Hash64Pattern(metatable.c_str());
+                else if (idf == "metatable") {
+                    if (!ddl.HasFirst()) {
+                        opt.PrintLineMessage(std::cerr, e) << "Can't set metatable without begin\n";
+                        return false;
+                    }
+                    if (e->children[1]->getTreeType() != TREE_TERMINAL || dynamic_cast<TerminalNode*>(e->children[1])->getSymbol()->getType() != ddlParser::STRING) {
+                        opt.PrintLineMessage(std::cerr, e) << "metatable should be set using a string value\n";
+                        return false;
+                    }
+                    auto metatable = ReadString(e->children[1]);
+                    ddl.Last().metatable = hashutils::Hash64Pattern(metatable.c_str());
+                }
+                else {
+                    opt.PrintLineMessage(std::cerr, e) << "Invalid data rule: " << idf << ", ignored\n";
+                }
+
             }
                 break;
             case ddlParser::RuleEnum: {
@@ -574,6 +596,45 @@ namespace {
             return false;
         }
         std::cout << "DDL file compiled.\n";
+        std::cout << "Versions: " << std::dec << ddl.compiled.size() << "\n";
+
+        for (auto& ver : ddl.compiled) {
+            auto& root = ver.GetRoot();
+
+
+            std::cout << "Vers: " << std::dec << ver.version << "\n";
+            std::cout << "Size: 0x" << std::hex << root.size << " bits (" << std::dec << root.size << ")\n";
+            std::cout << "    | 0x" << std::hex << (root.size >> 3) << " bytes (" << std::dec << (root.size >> 3) << ")\n";
+
+            uLong len = (uLong)((root.size >> 3) + 0x100000);
+            auto decompiledBuffer = std::make_unique<BYTE[]>(len);
+
+            std::cout << "len: " << len << "\n";
+
+            if (binarySize >= 2 && binary[0] == 0x78 && binary[1] == 0x9C) {
+                // ZLIB encoded
+                uLong binSizeUL = (uLong)binarySize;
+                auto res = uncompress2(&decompiledBuffer[0], &len, binary, &binSizeUL);
+                if (res != Z_OK) {
+                    std::cerr << "Can't uncompress zlib buffer: ";
+                    switch (res) {
+                        case Z_MEM_ERROR: std::cerr << "Not enough memory"; break;
+                        case Z_BUF_ERROR: std::cerr << "Not enough room in the output buffer"; break;
+                        case Z_DATA_ERROR: std::cerr << "Corrupted data"; break;
+                        default: std::cerr << "unknown"; break;
+                    }
+                    std::cerr << "\n";
+                    return false;
+                }
+                std::cout << "zlib decompressed\n";
+            }
+            else {
+                memcpy(&decompiledBuffer[0], binary, binarySize);
+            }
+            std::cout << "len: " << len << "\n";
+            break; // only use first version
+
+        }
         return true;
     }
 
@@ -603,7 +664,7 @@ namespace {
         }
         FullDDLCompiled ddl{};
 
-        auto res = ComputeDDLCheck(opt, reinterpret_cast<LPCH>(ddlBuffer), reinterpret_cast<BYTE*>(binBuffer), ddl);
+        auto res = ComputeDDLCheck(opt, reinterpret_cast<LPCH>(ddlBuffer), reinterpret_cast<BYTE*>(binBuffer), binSize, ddl);
 
         std::free(binBuffer);
         std::free(ddlBuffer);
