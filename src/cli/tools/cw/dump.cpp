@@ -1280,10 +1280,17 @@ namespace {
             return tool::BASIC_ERROR;
         }
 
+        if (scriptSize < 8 || *reinterpret_cast<UINT64*>(scriptBuffer) != 0x38000a0d43534780) {
+            std::cerr << "Not a valid compiled Black Ops Cold War script (BAD MAGIC)\n";
+            std::free(scriptBuffer);
+            return tool::BASIC_ERROR;
+        }
+
         XAssetPool sptPool{};
 
         if (!proc.ReadMemory(&sptPool, proc[s_assetPools_off] + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
             std::cerr << "Can't read SPT pool\n";
+            std::free(scriptBuffer);
             return tool::BASIC_ERROR;
         }
 
@@ -1291,6 +1298,7 @@ namespace {
 
         if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
             std::cerr << "Can't read SPT pool entries\n";
+            std::free(scriptBuffer);
             return tool::BASIC_ERROR;
         }
 
