@@ -105,6 +105,31 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 		std::cout << "dll injected\n";
+
+		if (argc > 3) {
+			proc.ComputeModules();
+			for (size_t i = 3; i < argc; i++) {
+				auto& mod = proc["acts-bocw-dll.dll"][argv[i]];
+
+				if (!mod) {
+					std::cerr << "Can't find export " << argv[i] << "\n";
+					continue;
+				}
+
+				std::cout << "Calling " << mod << "\n";
+
+				auto thr = proc.Exec(mod.m_location, 0);
+
+				if (thr == INVALID_HANDLE_VALUE || !thr) {
+					return false;
+				}
+				WaitForSingleObject(thr, INFINITE);
+				CloseHandle(thr);
+
+				std::cout << "Done\n";
+			}
+		}
+
 		return tool::OK;
 	}
 

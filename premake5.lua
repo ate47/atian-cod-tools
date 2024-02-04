@@ -261,11 +261,22 @@ project "TestDll"
 
     includedirs {
         "./src/test-dll",
+		"deps/Detours/src/",
+        "src/shared",
+        "deps/asmjit/src/",
     }
 
     vpaths {
         ["*"] = "*"
     }
+    
+    
+    links { "ACTSSharedLibrary" }
+    links { "detours" }
+    links { "asmjit" }
+    dependson "ACTSSharedLibrary"
+    dependson "detours"
+    dependson "asmjit"
 
 group "deps"
     project "antlr4-runtime"

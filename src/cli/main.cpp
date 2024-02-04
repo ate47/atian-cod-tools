@@ -6,14 +6,15 @@ int main(int argc, const char *argv[]) {
 	std::cout << "Atian tools " << actsinfo::VERSION << " \n\n";
 	
 	if (argc == 1) {
-		tool::usage("No input", *argv);
+		tool::usage(nullptr, *argv);
 		return -1;
 	}
 
 	const auto& tool = tool::findtool(argv[1]);
 
 	if (!tool) {
-		tool::usage("Bad tool name", *argv);
+		std::cerr << "Error: Bad tool name.\n" << *argv << " for the tools list\n";
+		//tool::usage("Bad tool name", *argv);
 		return -1;
 	}
 
@@ -36,9 +37,8 @@ int main(int argc, const char *argv[]) {
 	int output = tool.m_func(proc, argc, argv);
 
 	if (output == tool::BAD_USAGE) {
-		char buff[2000];
-		snprintf(buff, 2000, "Bad tool usage: %s %s%s", *argv, argv[1], tool.m_usage);
-		tool::usage(buff, *argv);
+		std::cerr << "Error: Bad tool usage: " << *argv << argv[1] << tool.m_usage << "\n";
+		//tool::usage(buff, *argv); // too many tools
 		return -1;
 	}
 }

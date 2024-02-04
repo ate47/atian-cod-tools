@@ -15,7 +15,166 @@ char* cw::DecryptString(char* str) {
 	return str;
 }
 
+BYTE* cw::DecryptRawBuffer(BYTE* buffer) {
+	BYTE* v14;
+	UINT64 v15;
+	BYTE v16;
+	UINT64 v17;
+	UINT32 v18;
+	UINT32 v19;
+	BYTE* v20 = buffer;
+	if (!*buffer)
+		return buffer + 1;
+	v14 = buffer + 1;
+	v15 = 0i64;
+	v16 = 0;
+	v17 = 0xB4A57B0F6DEDABEDui64;
+	if (!buffer[1]) {
+		buffer = v20;
+		*v20 = 0;
+		return buffer + 1;
+	}
+LABEL_61:
+	v18 = 0x1518682;
+	v19 = 0xE272D3A;
+	while (1) {
+		if (v18 > 0x3112A9D2) {
+			if (v18 > 0x97FA9C76) {
+				switch (v18) {
+				case 0xA2883D38:
+					*v14 = RotateRight8(*v14, v16);
+					v19 = 0xA4E5D073;
+					break;
+				case 0xAA658ADF:
+					v19 = 0xFACB37;
+					v15 = 0x94D049BB133111EBui64 * ((v15 >> 27) ^ v15);
+					break;
+				case 0xAA9F41E8:
+					v19 = 0x8177CD0;
+					v16 = (BYTE)(v15 ^ (v15 >> 31));
+					break;
+				case 0xB2BB2632:
+					v19 = 0x7CDF9DB0;
+					v16 = (BYTE)((v15 ^ (v15 >> 57)) & 0x11);
+					break;
+				}
+			}
+			else {
+				switch (v18) {
+				case 0x97FA9C76:
+					v19 = 0xAEB82341;
+					v16 = (BYTE)(v15 ^ (v15 >> 31));
+					break;
+				case 0x32728273u:
+					v19 = 0x96B5DC3C;
+					v15 = 0x94D049BB133111EBui64 * ((v15 >> 30) ^ v15);
+					break;
+				case 0x33EB2B4Cu:
+					v15 = 0xBF58476D1CE4E5B9ui64 * ((v15 >> 30) ^ v15);
+					v19 = 0x998EA193;
+					break;
+				case 0x5F50D735u:
+					v17 += 0x56FB4ADEBBC33BEi64;
+					v19 = 0x914F0AC;
+					v15 = v17;
+					break;
+				case 0x7C6B3BBAu:
+					v17 -= 0x40A7B892E31B1A47i64;
+					v19 = 0x1BE47F22;
+					v15 = v17;
+					break;
+				}
+			}
+		}
+		else if (v18 == 823306706) {
+			v17 -= 0x1840D2D01DCD60E3i64;
+			v19 = 0xDA4ABCC0;
+			v15 = v17;
+		}
+		else if (v18 > 0x4582CC4) {
+			switch (v18) {
+			case 0x66DED4Bu:
+				++v14;
+			LABEL_107:
+				if (!*v14)
+				{
+					*buffer = 0;
+					return buffer + 1;
+				}
+				goto LABEL_61;
+			case 0xDCD7EDCu:
+				*v14 = RotateLeft8(*v14, v16);
+				v19 = 0xAB8EE291;
+				break;
+			case 0x14BFC364u:
+				v15 = 0x55F68AAB3374F85i64 * ((v15 >> 47) ^ v15);
+				v19 = 0xDA78DE3;
+				break;
+			case 0x1589813Au:
+				v19 = 0x11D181FF;
+				v15 = 0x9E3779B97F4A7C15ui64 * ((v15 >> 27) ^ v15);
+				break;
+			}
+		}
+		else {
+			switch (v18) {
+			case 0x4582CC4u:
+				v19 = 0x59965B17;
+				v15 = 0x7E55A95CD96D727i64 * ((v15 >> 30) ^ v15);
+				break;
+			case 0x7CA212u:
+				v19 = 0xC4F3A9EE;
+				v16 = (BYTE)((v15 ^ (v15 >> 31)) & 0x37);
+				break;
+			case 0x1518682u:
+				v17 -= 0x61C8864680B583EBi64;
+				v19 = 0x32BAADCE;
+				v15 = v17;
+				break;
+			case 0x2134F43u:
+				--v14;
+				v19 = 0x7621218;
+				break;
+			case 0x2136ED6u:
+				v19 = 0x427A3A71;
+				v15 = 0x4FC09639E4BD6AA6i64 * ((v15 >> 27) ^ v15);
+				break;
+			case 0x359A2ECu:
+				v19 = 0x91DDB2A3;
+				v15 = 0x2137F038D1FB387i64 * ((v15 >> 9) ^ v15);
+				break;
+			}
+		}
+		v18 ^= v19;
+		if (v18 == 0xAFB12217)
+			goto LABEL_107;
+	}
+}
+
 namespace {
+	int rawdecryptcw(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+
+		LPVOID buffer{};
+		SIZE_T bufferSize{};
+
+		if (!utils::ReadFileNotAlign(argv[2], buffer, bufferSize, true)) {
+			std::cerr << "Can't read " << argv[2] << "\n";
+			return tool::BASIC_ERROR;
+		}
+
+		BYTE* buff = cw::DecryptRawBuffer((BYTE*)buffer);
+
+		std::cout 
+			<< "Buffer:\n"
+			<< (LPCCH)buff << "\n";
+
+		std::free(buffer);
+
+		return tool::OK;
+	} 
 
 	int cwtestchecksum(Process& proc, int argc, const char* argv[]) {
 		if (argc < 3) {
@@ -342,6 +501,7 @@ namespace {
 #ifndef CI_BUILD
 
 ADD_TOOL("tcrccw", "", "test crc (cw)", nullptr, cwtestchecksum);
+ADD_TOOL("rawdecryptcw", "", " raw decrypt (cw)", nullptr, rawdecryptcw);
 
 ADD_TOOL("ps4_dpcw100", " [ip:port]", "dump ps4 scripts (CW)", nullptr, ps4reader100);
 ADD_TOOL("ps4_vtcw100", " [ip:port]", "dump ps4 vtable (CW)", nullptr, ps4vtable100);

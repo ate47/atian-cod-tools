@@ -3536,7 +3536,7 @@ public:
 
 			auto caseRLoc = context.PushLocation(&baseCaseDelta[caseDelta]).rloc;
 
-			if (c == cases && !caseValue) {
+			if (c == cases && (!caseValue || caseValue == 0xdefdefdefdefdef0)) {
 				out << "default";
 				if (node) {
 					node->m_cases.push_back({ nullptr, caseRLoc });

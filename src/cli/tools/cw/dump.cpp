@@ -2,6 +2,7 @@
 #include "tools/dump.hpp"
 #include "tools/pool.hpp"
 #include "tools/gsc.hpp"
+#include "tools/cw/cw.hpp"
 
 
 namespace {
@@ -1102,6 +1103,7 @@ namespace {
             break;
         }
         case ASSET_TYPE_RAWFILE:
+        case ASSET_TYPE_RAWTEXTFILE:
         case ASSET_TYPE_RAWFILEPREPROC: {
             auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
 
@@ -1143,20 +1145,40 @@ namespace {
                     readFile++;
                     std::cout << " (new)";
                 }
-                std::cout << "\n";
+                std::cout << "... ";
 
+                if (!e.size) {
+                    // empty file
+                    if (!utils::WriteFile(file, "", 0)) {
+                        std::cerr << "Can't write file\n";
+                    }
+                    std::cout << " empty / dumped\n";
+                    continue;
+                }
 
-                auto buff = std::make_unique<BYTE[]>(e.size);
+                auto buff = std::make_unique<BYTE[]>(e.size + 0x10);
 
-                if (!proc.ReadMemory(&buff[0], e.buffer, e.size)) {
+                if (!proc.ReadMemory(&buff[0], e.buffer, e.size + 0x10)) {
                     std::cerr << "Can't read buffer\n";
                     continue;
                 }
 
-                if (!utils::WriteFile(file, &buff[0], e.size)) {
+
+                // decrypt
+                BYTE* buffDecrypt{ &buff[0]};
+                size_t size{ e.size };
+                if (id != ASSET_TYPE_RAWFILE) {
+                    buffDecrypt = cw::DecryptRawBuffer(buffDecrypt);
+                    size--;
+                }
+
+
+
+                if (!utils::WriteFile(file, buffDecrypt, size)) {
                     std::cerr << "Can't write file\n";
                     continue;
                 }
+                std::cout << " dumped\n";
             }
             std::cout << "Dump " << readFile << " new file(s)\n";
             break;

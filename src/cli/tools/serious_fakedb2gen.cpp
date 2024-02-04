@@ -45,6 +45,7 @@ namespace {
 
 		// header
 		buffer[0] = vm;
+		buffer[1] = plt - 1;
 		*reinterpret_cast<UINT16*>(&buffer[2]) = 0x1000;
 
 		std::unordered_set<SeriousId> look{};
