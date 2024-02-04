@@ -194,6 +194,8 @@ namespace {
 
 					utils::Padding(hof, 2);
 
+					size_t loc = current;
+
 					if (delta < 2) {
 						hof << "byte";
 						current += 1;
@@ -210,7 +212,7 @@ namespace {
 						hof << "uint64_t";
 						current += 8;
 					}
-					hof << " unk" << std::hex << current << "; \n";
+					hof << " unk" << std::hex << loc << "; \n";
 				}
 
 				utils::Padding(hof, 2);
@@ -294,7 +296,7 @@ namespace {
 					continue;
 				}
 
-				hof << typeName << " " << hashutils::ExtractTmp("var", f.canonId) << ";\n";
+				hof << typeName << " " << hashutils::ExtractTmp("var", f.canonId) << "; // 0x" << std::hex << current << "\n";
 				current += f.size;
 			}
 

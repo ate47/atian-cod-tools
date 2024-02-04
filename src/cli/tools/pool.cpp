@@ -132,6 +132,7 @@ const char* tool::pool::WeapTypeName(weapType_t t) {
         "MINE",
         "MELEE",
         "RIOTSHIELD",
+        "SCRIPT",
     };
     return t >= ARRAYSIZE(names) ? "invalid" : names[t];
 }
@@ -211,6 +212,78 @@ const char* tool::pool::GuidedMissileTypeName(guidedMissileType_t t) {
         "HEATSEEKING",
         "ROBOTECH",
         "DYNAMICIMPACTPOINT",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::OffhandClassName(OffhandClass t) {
+    static const char* names[] = {
+        "NONE",
+        "FRAG_GRENADE",
+        "SMOKE_GRENADE",
+        "FLASH_GRENADE",
+        "GEAR",
+        "SUPPLYDROP_MARKER",
+        "GADGET",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::OffhandSlotName(OffhandSlot t) {
+    static const char* names[] = {
+        "NONE",
+        "LETHAL_GRENADE",
+        "TACTICAL_GRENADE",
+        "EQUIPMENT",
+        "SPECIFIC_USE",
+        "GADGET",
+        "SPECIAL",
+        "HERO_WEAPON",
+        "TAUNT",
+        "SCRIPTED",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::LockOnTypeName(lockOnType_t t) {
+    static const char* names[] = {
+        "NONE",
+        "LEGACY_SINGLE",
+        "AP_SINGLE",
+        "AP_MULTI",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::WeapClassName(weapClass_t t) {
+    static const char* names[] = {
+        "RIFLE",
+        "MG",
+        "SMG",
+        "SPREAD",
+        "PISTOL",
+        "GRENADE",
+        "ROCKETLAUNCHER",
+        "TURRET",
+        "NON_PLAYER",
+        "GAS",
+        "ITEM",
+        "MELEE",
+        "KILLSTREAK_ALT_STORED_WEAPON",
+        "PISTOL_SPREAD",
+        "BALL",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+const char* tool::pool::ProjExplosionTypeName(projExplosionType_t t) {
+    static const char* names[] = {
+        "NONE",
+        "GRENADE",
+        "ROCKET",
+        "FLASHBANG",
+        "DUD",
+        "SMOKE",
+        "HEAVY_EXPLOSIVE",
+        "FIRE",
+        "NAPALM_BLOB",
+        "BOLD",
+        "SHRAPNEL_SPAN",
     };
     return t >= ARRAYSIZE(names) ? "invalid" : names[t];
 }
@@ -2076,6 +2149,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
 
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
             auto n = hashutils::ExtractPtr(p.name.name);
 
             std::cout << std::dec << i << ": ";
@@ -2114,13 +2191,12 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             out << "{\n";
             utils::Padding(out, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
             utils::Padding(out, 1) << "\"baseWeapon\": \"#" << hashutils::ExtractTmp("hash", p.baseWeapon.name) << "\",\n";
-            utils::Padding(out, 1) << "\"description\": \"#" << hashutils::ExtractTmp("hash", p.description.name) << "\",\n";
+            utils::Padding(out, 1) << "\"displayname\": \"#" << hashutils::ExtractTmp("hash", p.displayname.name) << "\",\n";
             utils::Padding(out, 1) << "\"sessionMode\": \"" << EModeName(p.sessionMode, false, "all") << "\",\n";
             utils::Padding(out, 1) << "\"itemIndex\": " << std::dec << p.itemIndex << ",\n";
             utils::Padding(out, 1) << "\"dualWieldWeaponIndex\": " << std::dec << p.dualWieldWeaponIndex << ",\n";
             utils::Padding(out, 1) << "\"altWeaponIndex\": " << std::dec << p.altWeaponIndex << ",\n";
             utils::Padding(out, 1) << "\"reticle\": \"" << ReadTmpStr(proc, p.unk8b0) << "\",\n";
-
 
             auto addPtrName = [&proc, &out](const char* title, uintptr_t ptr, size_t offset) {
                 if (!ptr) {
@@ -2131,23 +2207,461 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                     return;
                 }
                 utils::Padding(out, 1) << "\"" << title << "\": \"#" << hashutils::ExtractTmp("hash", name) << "\",\n";
-            };
+                };
+            auto addPtrName2 = [&proc, &addPtrName](const char* title, uintptr_t ptr, size_t offset, size_t offset2) {
+                return addPtrName(title, proc.ReadMemory<uintptr_t>(ptr + offset), offset2);
+                };
+            auto addPtrName3 = [&proc, &addPtrName2](const char* title, uintptr_t ptr, size_t offset, size_t offset2, size_t offset3) {
+                return addPtrName2(title, proc.ReadMemory<uintptr_t>(ptr + offset), offset2, offset3);
+                };
 
+            auto addXHashName = [&proc, &out](const char* title, XHash& val) {
+                if (!val.name) {
+                    return;
+                }
+                utils::Padding(out, 1) << "\"" << title << "\": \"#" << hashutils::ExtractTmp("hash", val.name) << "\",\n";
+                };
+            addXHashName("unk30", p.unk30);
+            addXHashName("unk40", p.unk40);
+            addXHashName("unk50", p.unk50);
+            addXHashName("unk60", p.unk60);
+            addXHashName("unk70", p.unk70);
+            addXHashName("unk80", p.unk80);
+
+            // GfxImageHandle
             addPtrName("gadgetIconAvailable", p.gadgetIconAvailable, 0x20);
             addPtrName("gadgetIconUnavailable", p.gadgetIconUnavailable, 0x20);
+            addPtrName("unkc70", p.unkc70, 0x20);
+            addPtrName("unkc78", p.unkc78, 0x20);
+            // Fx
+            addPtrName("unkc80", p.unkc80, 0);
+            addPtrName("unkc88", p.unkc88, 0);
+            addPtrName("unkc90", p.unkc90, 0);
+            addPtrName("unkc98", p.unkc98, 0);
+
+            //addPtrName3("unkcb0", p.unkcb0, 0, 0, 0); // ???
 
 
+            // XModel
+            addPtrName2("frontendmodel", p.frontendmodel, 0, 0);
+            addPtrName2("viewmodel", p.viewmodel, 0, 0);
+            addPtrName2("worldModel", p.worldModel, 0, 0);
+            addPtrName2("unkcd0", p.unkcd0, 0, 0);
+            addPtrName2("stowedmodel", p.stowedmodel, 0, 0);
+            addPtrName2("clipmodel", p.clipmodel, 0, 0);
+
+            //addPtrName("unkd18", p.unkd18, 0);
+            //addPtrName("unkd20", p.unkd20, 0);
+            addPtrName("unkd28", p.unkd28, 0);
+
+            addPtrName("var_22082a57", p.var_22082a57, 0);
+            addPtrName("projectilemodel", p.projectilemodel, 0);
+            addPtrName("var_4bcd08b0", p.var_4bcd08b0, 0);
+            addPtrName("var_96850284", p.var_96850284, 0);
+            addPtrName("var_26f68e75", p.var_26f68e75, 0);
+
+            addXHashName("sound90", p.sound90);
+            addXHashName("sounda0", p.sounda0);
+            addXHashName("soundb0", p.soundb0);
+            addXHashName("soundc0", p.soundc0);
+            addXHashName("firesounddistant", p.firesounddistant);
+            addXHashName("firesound", p.firesound);
+            addXHashName("firesoundplayer", p.firesoundplayer);
+            addXHashName("sound100", p.sound100);
+            addXHashName("sound110", p.sound110);
+            addXHashName("sound120", p.sound120);
+            addXHashName("sound130", p.sound130);
+            addXHashName("sound140", p.sound140);
+            addXHashName("sound150", p.sound150);
+            addXHashName("sound160", p.sound160);
+            addXHashName("sound170", p.sound170);
+            addXHashName("sound180", p.sound180);
+            addXHashName("sound190", p.sound190);
+            addXHashName("sound1a0", p.sound1a0);
+            addXHashName("sound1b0", p.sound1b0);
+            addXHashName("sound1c0", p.sound1c0);
+            addXHashName("sound1d0", p.sound1d0);
+            addXHashName("sound1e0", p.sound1e0);
+            addXHashName("sound1f0", p.sound1f0);
+            addXHashName("sound200", p.sound200);
+            addXHashName("sound210", p.sound210);
+            addXHashName("sound220", p.sound220);
+            addXHashName("sound230", p.sound230);
+            addXHashName("sound240", p.sound240);
+            addXHashName("sound250", p.sound250);
+            addXHashName("sound260", p.sound260);
+            addXHashName("sound270", p.sound270);
+            addXHashName("sound280", p.sound280);
+            addXHashName("sound290", p.sound290);
+            addXHashName("sound2a0", p.sound2a0);
+            addXHashName("sound2b0", p.sound2b0);
+            addXHashName("sound2c0", p.sound2c0);
+            addXHashName("sound2d0", p.sound2d0);
+            addXHashName("sound2e0", p.sound2e0);
+            addXHashName("sound2f0", p.sound2f0);
+            addXHashName("sound300", p.sound300);
+            addXHashName("sound310", p.sound310);
+            addXHashName("sound320", p.sound320);
+            addXHashName("sound330", p.sound330);
+            addXHashName("sound340", p.sound340);
+            addXHashName("sound350", p.sound350);
+            addXHashName("sound360", p.sound360);
+            addXHashName("sound370", p.sound370);
+            addXHashName("sound380", p.sound380);
+            addXHashName("gadgetreadysound", p.gadgetreadysound);
+            addXHashName("var_1f7ccc3b", p.var_1f7ccc3b);
+            addXHashName("sound3b0", p.sound3b0);
+            addXHashName("sound3c0", p.sound3c0);
+            addXHashName("sound3d0", p.sound3d0);
+            addXHashName("sound3e0", p.sound3e0);
+            addXHashName("sound3f0", p.sound3f0);
+            addXHashName("sound400", p.sound400);
+            addXHashName("sound410", p.sound410);
+            addXHashName("gadgetreadysoundplayer", p.gadgetreadysoundplayer);
+            addXHashName("var_fb22040b", p.var_fb22040b);
+            addXHashName("sound440", p.sound440);
+            addXHashName("sound450", p.sound450);
+            addXHashName("sound460", p.sound460);
+            addXHashName("sound470", p.sound470);
+            addXHashName("sound480", p.sound480);
+            addXHashName("sound490", p.sound490);
+            addXHashName("sound4a0", p.sound4a0);
+            addXHashName("sound4b0", p.sound4b0);
+            addXHashName("sound4c0", p.sound4c0);
+            addXHashName("sound4d0", p.sound4d0);
+            addXHashName("sound4e0", p.sound4e0);
+            addXHashName("sound4f0", p.sound4f0);
+            addXHashName("sound500", p.sound500);
+            addXHashName("sound510", p.sound510);
+            addXHashName("sound520", p.sound520);
+            addXHashName("sound530", p.sound530);
+            addXHashName("sound540", p.sound540);
+            addXHashName("sound550", p.sound550);
+            addXHashName("sound560", p.sound560);
+            addXHashName("sound570", p.sound570);
+            addXHashName("sound580", p.sound580);
+            addXHashName("sound590", p.sound590);
+            addXHashName("sound5a0", p.sound5a0);
+            addXHashName("sound5b0", p.sound5b0);
+            addXHashName("sound5c0", p.sound5c0);
+            addXHashName("sound5d0", p.sound5d0);
+            addXHashName("sound5e0", p.sound5e0);
+            addXHashName("sound5f0", p.sound5f0);
+            addXHashName("sound600", p.sound600);
+            addXHashName("sound610", p.sound610);
+            addXHashName("sound620", p.sound620);
+            addXHashName("sound630", p.sound630);
+            addXHashName("sound640", p.sound640);
+            addXHashName("sound650", p.sound650);
+            addXHashName("sound660", p.sound660);
+            addXHashName("sound670", p.sound670);
+            addXHashName("sound680", p.sound680);
+            addXHashName("sound690", p.sound690);
+            addXHashName("sound6a0", p.sound6a0);
+            addXHashName("sound6b0", p.sound6b0);
+            addXHashName("sound6c0", p.sound6c0);
+            addXHashName("lockonseekersearchsound", p.lockonseekersearchsound);
+            addXHashName("lockonseekerlockedsound", p.lockonseekerlockedsound);
+            addXHashName("lockontargetlockedsound", p.lockontargetlockedsound);
+            addXHashName("lockontargetfiredonsound", p.lockontargetfiredonsound);
+            addXHashName("sound710", p.sound710);
+            addXHashName("sound720", p.sound720);
+            addXHashName("sound730", p.sound730);
+            addXHashName("sound740", p.sound740);
+            addXHashName("var_8a03df2b", p.var_8a03df2b);
+            addXHashName("var_2f3ca476", p.var_2f3ca476);
+            addXHashName("var_5c29f743", p.var_5c29f743);
+            addXHashName("projexplosionsound", p.projexplosionsound);
+            addXHashName("projexplosionsoundplayer", p.projexplosionsoundplayer);
+            addXHashName("projsmokestartsound", p.projsmokestartsound);
+            addXHashName("projsmokeloopsound", p.projsmokeloopsound);
+            addXHashName("projsmokeendsound", p.projsmokeendsound);
+            addXHashName("sound7d0", p.sound7d0);
+            addXHashName("sound7e0", p.sound7e0);
+            addXHashName("sound7f0", p.sound7f0);
+            addXHashName("sound800", p.sound800);
+            addXHashName("sound810", p.sound810);
+            addXHashName("sound820", p.sound820);
+            addXHashName("sound830", p.sound830);
+            addXHashName("sound840", p.sound840);
+            addXHashName("sound850", p.sound850);
+            addXHashName("sound860", p.sound860);
+            addXHashName("hitsound", p.hitsound);
+
+            addXHashName("unk880", p.unk880);
+
+
+            addPtrName("customsettings", p.customsettings, 0);
+            addPtrName("shrapnelsettings", p.shrapnelsettings, 0);
+            addPtrName("var_2e4a8800", p.var_2e4a8800, 0);
+            addPtrName("var_8456d4d", p.var_8456d4d, 0);
+            
             if (p.properties) {
                 utils::Padding(out, 1) << "\"properties\": {\n";
+                utils::Padding(out, 2) << "\"var_f56ac2bd\": \"" << ReadTmpStr(proc, props.var_f56ac2bd) << "\",\n";
+                utils::Padding(out, 2) << "\"spawninfluencer\": \"" << ReadTmpStr(proc, props.spawninfluencer) << "\",\n";
+                utils::Padding(out, 2) << "\"var_77b46a8c\": \"#" << hashutils::ExtractTmp("hash", props.var_77b46a8c.name) << "\",\n";
+                if (props.hackertriggerorigintag) {
+                    utils::Padding(out, 2) << "\"hackertriggerorigintag\": \"" << ReadMTString(proc, props.hackertriggerorigintag) << "\",\n";
+                }
+                utils::Padding(out, 2) << "\"weapClass\": \"" << WeapClassName(props.weapClass) << "\",\n";
                 utils::Padding(out, 2) << "\"gadgetType\": \"" << GadgetTypeName(props.gadget_type) << "\",\n";
                 utils::Padding(out, 2) << "\"guidedMissileType\": \"" << GuidedMissileTypeName(props.guidedMissileType) << "\",\n";
                 utils::Padding(out, 2) << "\"inventoryType\": \"" << WeapInventoryTypeName(props.inventoryType) << "\",\n";
                 utils::Padding(out, 2) << "\"weapType\": \"" << WeapTypeName(props.weapType) << "\",\n";
-                utils::Padding(out, 2) << "\"aiFuseTime\": " << std::dec << props.aiFuseTime << ",\n";
+                utils::Padding(out, 2) << "\"offhandClass\": \"" << OffhandClassName(props.offhandClass) << "\",\n";
+                utils::Padding(out, 2) << "\"offhandSlot\": \"" << OffhandSlotName(props.offhandSlot) << "\",\n";
+                utils::Padding(out, 2) << "\"lockontype\": \"" << LockOnTypeName(props.lockontype) << "\",\n";
+                utils::Padding(out, 2) << "\"projExplosionType\": \"" << ProjExplosionTypeName(props.projExplosionType) << "\",\n";
                 utils::Padding(out, 2) << "\"bAltWeaponDisableSwitching\": " << (props.bAltWeaponDisableSwitching ? "true" : "false") << ",\n";
                 utils::Padding(out, 2) << "\"bDieOnRespawn\": " << (props.bDieOnRespawn ? "true" : "false") << ",\n";
-                utils::Padding(out, 2) << "\"bIsHybridWeapon\": " << (props.bIsHybridWeapon ? "true" : "false") << ",\n";
-                utils::Padding(out, 2) << "\"unlimitedAmmo\": " << (props.unlimitedAmmo ? "true" : "false") << "\n";
+                utils::Padding(out, 2) << "\"isdualwield\": " << (props.isdualwield ? "true" : "false") << ",\n";
+                utils::Padding(out, 2) << "\"istimeddetonation\": " << (props.istimeddetonation ? "true" : "false") << ",\n";
+                utils::Padding(out, 2) << "\"unlimitedAmmo\": " << (props.unlimitedAmmo ? "true" : "false") << ",\n";
+                utils::Padding(out, 2) << "\"altoffhand\": " << std::dec << (int)props.altoffhand << ",\n";
+                utils::Padding(out, 2) << "\"ammoCountClipRelative\": " << std::dec << (int)props.ammoCountClipRelative << ",\n";
+                utils::Padding(out, 2) << "\"ammoregen\": " << std::dec << (int)props.ammoregen << ",\n";
+                utils::Padding(out, 2) << "\"anyplayercanretrieve\": " << std::dec << (int)props.anyplayercanretrieve << ",\n";
+                utils::Padding(out, 2) << "\"bIsHybridWeapon\": " << std::dec << (int)props.bIsHybridWeapon << ",\n";
+                utils::Padding(out, 2) << "\"blocksprone\": " << std::dec << (int)props.blocksprone << ",\n";
+                utils::Padding(out, 2) << "\"bulletimpactexplode\": " << std::dec << (int)props.bulletimpactexplode << ",\n";
+                utils::Padding(out, 2) << "\"canuseunderwater\": " << std::dec << (int)props.canuseunderwater << ",\n";
+                utils::Padding(out, 2) << "\"craftitem\": " << std::dec << (int)props.craftitem << ",\n";
+                utils::Padding(out, 2) << "\"damagealwayskillsplayer\": " << std::dec << (int)props.damagealwayskillsplayer << ",\n";
+                utils::Padding(out, 2) << "\"decoy\": " << std::dec << (int)props.decoy << ",\n";
+                utils::Padding(out, 2) << "\"deployable\": " << std::dec << (int)props.deployable << ",\n";
+                utils::Padding(out, 2) << "\"destroyablebytrophysystem\": " << std::dec << (int)props.destroyablebytrophysystem << ",\n";
+                utils::Padding(out, 2) << "\"destroysequipment\": " << std::dec << (int)props.destroysequipment << ",\n";
+                utils::Padding(out, 2) << "\"disabledeploy\": " << std::dec << (int)props.disabledeploy << ",\n";
+                utils::Padding(out, 2) << "\"disallowatmatchstart\": " << std::dec << (int)props.disallowatmatchstart << ",\n";
+                utils::Padding(out, 2) << "\"doannihilate\": " << std::dec << (int)props.doannihilate << ",\n";
+                utils::Padding(out, 2) << "\"doblowback\": " << std::dec << (int)props.doblowback << ",\n";
+                utils::Padding(out, 2) << "\"dodamagefeedback\": " << std::dec << (int)props.dodamagefeedback << ",\n";
+                utils::Padding(out, 2) << "\"doempdestroyfx\": " << std::dec << (int)props.doempdestroyfx << ",\n";
+                utils::Padding(out, 2) << "\"doesfiredamage\": " << std::dec << (int)props.doesfiredamage << ",\n";
+                utils::Padding(out, 2) << "\"dogibbing\": " << std::dec << (int)props.dogibbing << ",\n";
+                utils::Padding(out, 2) << "\"dogibbingonmelee\": " << std::dec << (int)props.dogibbingonmelee << ",\n";
+                utils::Padding(out, 2) << "\"dohackedstats\": " << std::dec << (int)props.dohackedstats << ",\n";
+                utils::Padding(out, 2) << "\"donotdamageowner\": " << std::dec << (int)props.donotdamageowner << ",\n";
+                utils::Padding(out, 2) << "\"dostun\": " << std::dec << (int)props.dostun << ",\n";
+                utils::Padding(out, 2) << "\"forcedamagehitlocation\": " << std::dec << (int)props.forcedamagehitlocation << ",\n";
+                utils::Padding(out, 2) << "\"gadget_heroversion_2_0\": " << std::dec << (int)props.gadget_heroversion_2_0 << ",\n";
+                utils::Padding(out, 2) << "\"gadget_power_consume_on_ammo_use\": " << std::dec << (int)props.gadget_power_consume_on_ammo_use << ",\n";
+                utils::Padding(out, 2) << "\"gadget_power_reset_on_class_change\": " << std::dec << (int)props.gadget_power_reset_on_class_change << ",\n";
+                utils::Padding(out, 2) << "\"gadget_power_reset_on_round_switch\": " << std::dec << (int)props.gadget_power_reset_on_round_switch << ",\n";
+                utils::Padding(out, 2) << "\"gadget_power_reset_on_spawn\": " << std::dec << (int)props.gadget_power_reset_on_spawn << ",\n";
+                utils::Padding(out, 2) << "\"gadget_power_reset_on_team_change\": " << std::dec << (int)props.gadget_power_reset_on_team_change << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powergainscoreignoreself\": " << std::dec << (int)props.gadget_powergainscoreignoreself << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powergainscoreignorewhenactive\": " << std::dec << (int)props.gadget_powergainscoreignorewhenactive << ",\n";
+                utils::Padding(out, 2) << "\"gadget_turnoff_onempjammed\": " << std::dec << (int)props.gadget_turnoff_onempjammed << ",\n";
+                utils::Padding(out, 2) << "\"grappleweapon\": " << std::dec << (int)props.grappleweapon << ",\n";
+                utils::Padding(out, 2) << "\"ignoresflakjacket\": " << std::dec << (int)props.ignoresflakjacket << ",\n";
+                utils::Padding(out, 2) << "\"ignoreslightarmor\": " << std::dec << (int)props.ignoreslightarmor << ",\n";
+                utils::Padding(out, 2) << "\"ignorespowerarmor\": " << std::dec << (int)props.ignorespowerarmor << ",\n";
+                utils::Padding(out, 2) << "\"ignoreteamkills\": " << std::dec << (int)props.ignoreteamkills << ",\n";
+                utils::Padding(out, 2) << "\"isaikillstreakdamage\": " << std::dec << (int)props.isaikillstreakdamage << ",\n";
+                utils::Padding(out, 2) << "\"isballisticknife\": " << std::dec << (int)props.isballisticknife << ",\n";
+                utils::Padding(out, 2) << "\"isboltaction\": " << std::dec << (int)props.isboltaction << ",\n";
+                utils::Padding(out, 2) << "\"iscarriedkillstreak\": " << std::dec << (int)props.iscarriedkillstreak << ",\n";
+                utils::Padding(out, 2) << "\"iscliponly\": " << std::dec << (int)props.iscliponly << ",\n";
+                utils::Padding(out, 2) << "\"isemp\": " << std::dec << (int)props.isemp << ",\n";
+                utils::Padding(out, 2) << "\"isflash\": " << std::dec << (int)props.isflash << ",\n";
+                utils::Padding(out, 2) << "\"isflourishweapon\": " << std::dec << (int)props.isflourishweapon << ",\n";
+                utils::Padding(out, 2) << "\"isgameplayweapon\": " << std::dec << (int)props.isgameplayweapon << ",\n";
+                utils::Padding(out, 2) << "\"ishacktoolweapon\": " << std::dec << (int)props.ishacktoolweapon << ",\n";
+                utils::Padding(out, 2) << "\"isnotdroppable\": " << std::dec << (int)props.isnotdroppable << ",\n";
+                utils::Padding(out, 2) << "\"isperkbottle\": " << std::dec << (int)props.isperkbottle << ",\n";
+                utils::Padding(out, 2) << "\"isscavengable\": " << std::dec << (int)props.isscavengable << ",\n";
+                utils::Padding(out, 2) << "\"issignatureweapon\": " << std::dec << (int)props.issignatureweapon << ",\n";
+                utils::Padding(out, 2) << "\"issniperweapon\": " << std::dec << (int)props.issniperweapon << ",\n";
+                utils::Padding(out, 2) << "\"isstun\": " << std::dec << (int)props.isstun << ",\n";
+                utils::Padding(out, 2) << "\"issupplydropweapon\": " << std::dec << (int)props.issupplydropweapon << ",\n";
+                utils::Padding(out, 2) << "\"istacticalinsertion\": " << std::dec << (int)props.istacticalinsertion << ",\n";
+                utils::Padding(out, 2) << "\"isthrowback\": " << std::dec << (int)props.isthrowback << ",\n";
+                utils::Padding(out, 2) << "\"isvaluable\": " << std::dec << (int)props.isvaluable << ",\n";
+                utils::Padding(out, 2) << "\"meleeignoreslightarmor\": " << std::dec << (int)props.meleeignoreslightarmor << ",\n";
+                utils::Padding(out, 2) << "\"mountable\": " << std::dec << (int)props.mountable << ",\n";
+                utils::Padding(out, 2) << "\"noadslockoncheck\": " << std::dec << (int)props.noadslockoncheck << ",\n";
+                utils::Padding(out, 2) << "\"nohitmarker\": " << std::dec << (int)props.nohitmarker << ",\n";
+                utils::Padding(out, 2) << "\"nonstowedweapon\": " << std::dec << (int)props.nonstowedweapon << ",\n";
+                utils::Padding(out, 2) << "\"notkillstreak\": " << std::dec << (int)props.notkillstreak << ",\n";
+                utils::Padding(out, 2) << "\"requirelockontofire\": " << std::dec << (int)props.requirelockontofire << ",\n";
+                utils::Padding(out, 2) << "\"setusedstat\": " << std::dec << (int)props.setusedstat << ",\n";
+                utils::Padding(out, 2) << "\"shownenemyequip\": " << std::dec << (int)props.shownenemyequip << ",\n";
+                utils::Padding(out, 2) << "\"shownenemyexplo\": " << std::dec << (int)props.shownenemyexplo << ",\n";
+                utils::Padding(out, 2) << "\"shownretrievable\": " << std::dec << (int)props.shownretrievable << ",\n";
+                utils::Padding(out, 2) << "\"skipbattlechatterkill\": " << std::dec << (int)props.skipbattlechatterkill << ",\n";
+                utils::Padding(out, 2) << "\"skipbattlechatterreload\": " << std::dec << (int)props.skipbattlechatterreload << ",\n";
+                utils::Padding(out, 2) << "\"skiplowammovox\": " << std::dec << (int)props.skiplowammovox << ",\n";
+                utils::Padding(out, 2) << "\"specialpain\": " << std::dec << (int)props.specialpain << ",\n";
+                utils::Padding(out, 2) << "\"var_130391b9\": " << std::dec << (int)props.var_130391b9 << ",\n";
+                utils::Padding(out, 2) << "\"var_18608bfe\": " << std::dec << (int)props.var_18608bfe << ",\n";
+                utils::Padding(out, 2) << "\"var_251796e3\": " << std::dec << (int)props.var_251796e3 << ",\n";
+                utils::Padding(out, 2) << "\"var_256488f1\": " << std::dec << (int)props.var_256488f1 << ",\n";
+                utils::Padding(out, 2) << "\"var_28bb357c\": " << std::dec << (int)props.var_28bb357c << ",\n";
+                utils::Padding(out, 2) << "\"var_29d24e37\": " << std::dec << (int)props.var_29d24e37 << ",\n";
+                utils::Padding(out, 2) << "\"var_2cb95b88\": " << std::dec << (int)props.var_2cb95b88 << ",\n";
+                utils::Padding(out, 2) << "\"var_3344c07e\": " << std::dec << (int)props.var_3344c07e << ",\n";
+                utils::Padding(out, 2) << "\"var_337fc1cf\": " << std::dec << (int)props.var_337fc1cf << ",\n";
+                utils::Padding(out, 2) << "\"var_33d50507\": " << std::dec << (int)props.var_33d50507 << ",\n";
+                utils::Padding(out, 2) << "\"var_5801b768\": " << std::dec << (int)props.var_5801b768 << ",\n";
+                utils::Padding(out, 2) << "\"var_58543a1c\": " << std::dec << (int)props.var_58543a1c << ",\n";
+                utils::Padding(out, 2) << "\"var_6262fd11\": " << std::dec << (int)props.var_6262fd11 << ",\n";
+                utils::Padding(out, 2) << "\"var_6f12adba\": " << std::dec << (int)props.var_6f12adba << ",\n";
+                utils::Padding(out, 2) << "\"var_70b09d5b\": " << std::dec << (int)props.var_70b09d5b << ",\n";
+                utils::Padding(out, 2) << "\"var_76ce72e8\": " << std::dec << (int)props.var_76ce72e8 << ",\n";
+                utils::Padding(out, 2) << "\"var_775d2aad\": " << std::dec << (int)props.var_775d2aad << ",\n";
+                utils::Padding(out, 2) << "\"var_7b5016a7\": " << std::dec << (int)props.var_7b5016a7 << ",\n";
+                utils::Padding(out, 2) << "\"var_8025ffca\": " << std::dec << (int)props.var_8025ffca << ",\n";
+                utils::Padding(out, 2) << "\"var_8032088a\": " << std::dec << (int)props.var_8032088a << ",\n";
+                utils::Padding(out, 2) << "\"var_8072cf0b\": " << std::dec << (int)props.var_8072cf0b << ",\n";
+                utils::Padding(out, 2) << "\"var_9111ccc0\": " << std::dec << (int)props.var_9111ccc0 << ",\n";
+                utils::Padding(out, 2) << "\"var_9fffdcee\": " << std::dec << (int)props.var_9fffdcee << ",\n";
+                utils::Padding(out, 2) << "\"var_b8a85edd\": " << std::dec << (int)props.var_b8a85edd << ",\n";
+                utils::Padding(out, 2) << "\"var_ba335ef\": " << std::dec << (int)props.var_ba335ef << ",\n";
+                utils::Padding(out, 2) << "\"var_bec5136b\": " << std::dec << (int)props.var_bec5136b << ",\n";
+                utils::Padding(out, 2) << "\"var_ca947940\": " << std::dec << (int)props.var_ca947940 << ",\n";
+                utils::Padding(out, 2) << "\"var_ce34bb7e\": " << std::dec << (int)props.var_ce34bb7e << ",\n";
+                utils::Padding(out, 2) << "\"var_d69ee9ed\": " << std::dec << (int)props.var_d69ee9ed << ",\n";
+                utils::Padding(out, 2) << "\"var_dbbd4cec\": " << std::dec << (int)props.var_dbbd4cec << ",\n";
+                utils::Padding(out, 2) << "\"var_ddaa57f2\": " << std::dec << (int)props.var_ddaa57f2 << ",\n";
+                utils::Padding(out, 2) << "\"var_e0d42861\": " << std::dec << (int)props.var_e0d42861 << ",\n";
+                utils::Padding(out, 2) << "\"var_f076a292\": " << std::dec << (int)props.var_f076a292 << ",\n";
+                utils::Padding(out, 2) << "\"var_f10d73e1\": " << std::dec << (int)props.var_f10d73e1 << ",\n";
+                utils::Padding(out, 2) << "\"var_f23e9d19\": " << std::dec << (int)props.var_f23e9d19 << ",\n";
+                utils::Padding(out, 2) << "\"var_f6dea63a\": " << std::dec << (int)props.var_f6dea63a << ",\n";
+                utils::Padding(out, 2) << "\"var_fab9617b\": " << std::dec << (int)props.var_fab9617b << ",\n";
+                utils::Padding(out, 2) << "\"var_ff0b00ba\": " << std::dec << (int)props.var_ff0b00ba << ",\n";
+                utils::Padding(out, 2) << "\"adsspread\": " << std::dec << props.adsspread << ",\n";
+                utils::Padding(out, 2) << "\"aimeleerange\": " << std::dec << props.aimeleerange << ",\n";
+                utils::Padding(out, 2) << "\"damagetoownerscalar\": " << std::dec << props.damagetoownerscalar << ",\n";
+                utils::Padding(out, 2) << "\"fightdist\": " << std::dec << props.fightdist << ",\n";
+                utils::Padding(out, 2) << "\"gadget_power_usage_rate\": " << std::dec << props.gadget_power_usage_rate << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powergainscorefactor\": " << std::dec << props.gadget_powergainscorefactor << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powermovespeed\": " << std::dec << props.gadget_powermovespeed << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powerofflossondamage\": " << std::dec << props.gadget_powerofflossondamage << ",\n";
+                utils::Padding(out, 2) << "\"gadget_poweronlossondamage\": " << std::dec << props.gadget_poweronlossondamage << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powerreplenishfactor\": " << std::dec << props.gadget_powerreplenishfactor << ",\n";
+                utils::Padding(out, 2) << "\"gadget_shockfield_damage\": " << std::dec << props.gadget_shockfield_damage << ",\n";
+                utils::Padding(out, 2) << "\"gadget_shockfield_radius\": " << std::dec << props.gadget_shockfield_radius << ",\n";
+                utils::Padding(out, 2) << "\"lifetime\": " << std::dec << props.lifetime << ",\n";
+                utils::Padding(out, 2) << "\"lockonanglehorizontal\": " << std::dec << props.lockonanglehorizontal << ",\n";
+                utils::Padding(out, 2) << "\"lockonanglevertical\": " << std::dec << props.lockonanglevertical << ",\n";
+                utils::Padding(out, 2) << "\"lockonlossanglehorizontal\": " << std::dec << props.lockonlossanglehorizontal << ",\n";
+                utils::Padding(out, 2) << "\"lockonlossanglevertical\": " << std::dec << props.lockonlossanglevertical << ",\n";
+                utils::Padding(out, 2) << "\"maxdist\": " << std::dec << props.maxdist << ",\n";
+                utils::Padding(out, 2) << "\"maxgibdistance\": " << std::dec << props.maxgibdistance << ",\n";
+                utils::Padding(out, 2) << "\"meleelungerange\": " << std::dec << props.meleelungerange << ",\n";
+                utils::Padding(out, 2) << "\"sprintboostduration\": " << std::dec << props.sprintboostduration << ",\n";
+                utils::Padding(out, 2) << "\"sprintboostradius\": " << std::dec << props.sprintboostradius << ",\n";
+                utils::Padding(out, 2) << "\"var_16e90b80\": " << std::dec << props.var_16e90b80 << ",\n";
+                utils::Padding(out, 2) << "\"var_19f920eb\": " << std::dec << props.var_19f920eb << ",\n";
+                utils::Padding(out, 2) << "\"var_1f13c7f1\": " << std::dec << props.var_1f13c7f1 << ",\n";
+                utils::Padding(out, 2) << "\"var_27c94b15\": " << std::dec << props.var_27c94b15 << ",\n";
+                utils::Padding(out, 2) << "\"var_2cf65b96\": " << std::dec << props.var_2cf65b96 << ",\n";
+                utils::Padding(out, 2) << "\"var_367c47fc\": " << std::dec << props.var_367c47fc << ",\n";
+                utils::Padding(out, 2) << "\"var_36c76157\": " << std::dec << props.var_36c76157 << ",\n";
+                utils::Padding(out, 2) << "\"var_3a00e7eb\": " << std::dec << props.var_3a00e7eb << ",\n";
+                utils::Padding(out, 2) << "\"var_40ffe7d2\": " << std::dec << props.var_40ffe7d2 << ",\n";
+                utils::Padding(out, 2) << "\"var_416021d8\": " << std::dec << props.var_416021d8 << ",\n";
+                utils::Padding(out, 2) << "\"var_5be370e9\": " << std::dec << props.var_5be370e9 << ",\n";
+                utils::Padding(out, 2) << "\"var_66103577\": " << std::dec << props.var_66103577 << ",\n";
+                utils::Padding(out, 2) << "\"var_6844746b\": " << std::dec << props.var_6844746b << ",\n";
+                utils::Padding(out, 2) << "\"var_6cb9946f\": " << std::dec << props.var_6cb9946f << ",\n";
+                utils::Padding(out, 2) << "\"var_7872b3a\": " << std::dec << props.var_7872b3a << ",\n";
+                utils::Padding(out, 2) << "\"var_9aa1ef19\": " << std::dec << props.var_9aa1ef19 << ",\n";
+                utils::Padding(out, 2) << "\"var_a2d7b97c\": " << std::dec << props.var_a2d7b97c << ",\n";
+                utils::Padding(out, 2) << "\"var_abb570e0\": " << std::dec << props.var_abb570e0 << ",\n";
+                utils::Padding(out, 2) << "\"var_c15c6b39\": " << std::dec << props.var_c15c6b39 << ",\n";
+                utils::Padding(out, 2) << "\"var_c94f007c\": " << std::dec << props.var_c94f007c << ",\n";
+                utils::Padding(out, 2) << "\"var_cb3d0f65\": " << std::dec << props.var_cb3d0f65 << ",\n";
+                utils::Padding(out, 2) << "\"var_ccebc40\": " << std::dec << props.var_ccebc40 << ",\n";
+                utils::Padding(out, 2) << "\"var_cd539cb2\": " << std::dec << props.var_cd539cb2 << ",\n";
+                utils::Padding(out, 2) << "\"var_deb0b2fe\": " << std::dec << props.var_deb0b2fe << ",\n";
+                utils::Padding(out, 2) << "\"var_e1811962\": " << std::dec << props.var_e1811962 << ",\n";
+                utils::Padding(out, 2) << "\"var_e2b40cd5\": " << std::dec << props.var_e2b40cd5 << ",\n";
+                utils::Padding(out, 2) << "\"var_e4d4fa7e\": " << std::dec << props.var_e4d4fa7e << ",\n";
+                utils::Padding(out, 2) << "\"var_f9eec1ec\": " << std::dec << props.var_f9eec1ec << ",\n";
+                utils::Padding(out, 2) << "\"vehicleprojectiledamagescalar\": " << std::dec << props.vehicleprojectiledamagescalar << ",\n";
+                utils::Padding(out, 2) << "\"vehicleprojectilesplashdamagescalar\": " << std::dec << props.vehicleprojectilesplashdamagescalar << ",\n";
+                utils::Padding(out, 2) << "\"aiFuseTime\": " << std::dec << props.aiFuseTime << ",\n";
+                utils::Padding(out, 2) << "\"ammoindex\": " << std::dec << props.ammoindex << ",\n";
+                utils::Padding(out, 2) << "\"burndamage\": " << std::dec << props.burndamage << ",\n";
+                utils::Padding(out, 2) << "\"burndamageinterval\": " << std::dec << props.burndamageinterval << ",\n";
+                utils::Padding(out, 2) << "\"burnduration\": " << std::dec << props.burnduration << ",\n";
+                utils::Padding(out, 2) << "\"burstcount\": " << std::dec << props.burstcount << ",\n";
+                utils::Padding(out, 2) << "\"explosioninnerdamage\": " << std::dec << props.explosioninnerdamage << ",\n";
+                utils::Padding(out, 2) << "\"explosionouterdamage\": " << std::dec << props.explosionouterdamage << ",\n";
+                utils::Padding(out, 2) << "\"fuellife\": " << std::dec << props.fuellife << ",\n";
+                utils::Padding(out, 2) << "\"gadget_flickerondamage\": " << std::dec << props.gadget_flickerondamage << ",\n";
+                utils::Padding(out, 2) << "\"gadget_flickeronpowerloss\": " << std::dec << props.gadget_flickeronpowerloss << ",\n";
+                utils::Padding(out, 2) << "\"gadget_max_hitpoints\": " << std::dec << props.gadget_max_hitpoints << ",\n";
+                utils::Padding(out, 2) << "\"gadget_power_round_end_active_penalty\": " << std::dec << props.gadget_power_round_end_active_penalty << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powergainonretrieve\": " << std::dec << props.gadget_powergainonretrieve << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powermoveloss\": " << std::dec << props.gadget_powermoveloss << ",\n";
+                utils::Padding(out, 2) << "\"gadget_powersprintloss\": " << std::dec << props.gadget_powersprintloss << ",\n";
+                utils::Padding(out, 2) << "\"gadget_pulse_duration\": " << std::dec << props.gadget_pulse_duration << ",\n";
+                utils::Padding(out, 2) << "\"gadget_pulse_max_range\": " << std::dec << props.gadget_pulse_max_range << ",\n";
+                utils::Padding(out, 2) << "\"heal\": " << std::dec << props.heal << ",\n";
+                utils::Padding(out, 2) << "\"lockonlossradius\": " << std::dec << props.lockonlossradius << ",\n";
+                utils::Padding(out, 2) << "\"lockonminrange\": " << std::dec << props.lockonminrange << ",\n";
+                utils::Padding(out, 2) << "\"lockonradius\": " << std::dec << props.lockonradius << ",\n";
+                utils::Padding(out, 2) << "\"lockonscreenradius\": " << std::dec << props.lockonscreenradius << ",\n";
+                utils::Padding(out, 2) << "\"maxheal\": " << std::dec << props.maxheal << ",\n";
+                utils::Padding(out, 2) << "\"maxinstancesallowed\": " << std::dec << props.maxinstancesallowed << ",\n";
+                utils::Padding(out, 2) << "\"multidetonation\": " << std::dec << props.multidetonation << ",\n";
+                utils::Padding(out, 2) << "\"playerdamage\": " << std::dec << props.playerdamage << ",\n";
+                utils::Padding(out, 2) << "\"var_1123a989\": " << std::dec << props.var_1123a989 << ",\n";
+                utils::Padding(out, 2) << "\"var_1c0e3cb7\": " << std::dec << props.var_1c0e3cb7 << ",\n";
+                utils::Padding(out, 2) << "\"var_1e89f40\": " << std::dec << props.var_1e89f40 << ",\n";
+                utils::Padding(out, 2) << "\"var_227c90e1\": " << std::dec << props.var_227c90e1 << ",\n";
+                utils::Padding(out, 2) << "\"var_42a3cafc\": " << std::dec << props.var_42a3cafc << ",\n";
+                utils::Padding(out, 2) << "\"var_4465ef1e\": " << std::dec << props.var_4465ef1e << ",\n";
+                utils::Padding(out, 2) << "\"var_44c79c09\": " << std::dec << props.var_44c79c09 << ",\n";
+                utils::Padding(out, 2) << "\"var_4941de5\": " << std::dec << props.var_4941de5 << ",\n";
+                utils::Padding(out, 2) << "\"var_4d88a1ff\": " << std::dec << props.var_4d88a1ff << ",\n";
+                utils::Padding(out, 2) << "\"var_5ac2e7a4\": " << std::dec << props.var_5ac2e7a4 << ",\n";
+                utils::Padding(out, 2) << "\"var_5af80bb6\": " << std::dec << props.var_5af80bb6 << ",\n";
+                utils::Padding(out, 2) << "\"var_60563796\": " << std::dec << props.var_60563796 << ",\n";
+                utils::Padding(out, 2) << "\"var_61d29b2f\": " << std::dec << props.var_61d29b2f << ",\n";
+                utils::Padding(out, 2) << "\"var_6821283d\": " << std::dec << props.var_6821283d << ",\n";
+                utils::Padding(out, 2) << "\"var_68a0f062\": " << std::dec << props.var_68a0f062 << ",\n";
+                utils::Padding(out, 2) << "\"var_6a864cad\": " << std::dec << props.var_6a864cad << ",\n";
+                utils::Padding(out, 2) << "\"var_76127e14\": " << std::dec << props.var_76127e14 << ",\n";
+                utils::Padding(out, 2) << "\"var_7a93ed37\": " << std::dec << props.var_7a93ed37 << ",\n";
+                utils::Padding(out, 2) << "\"var_8134b209\": " << std::dec << props.var_8134b209 << ",\n";
+                utils::Padding(out, 2) << "\"var_81683931\": " << std::dec << props.var_81683931 << ",\n";
+                utils::Padding(out, 2) << "\"var_829de2ac\": " << std::dec << props.var_829de2ac << ",\n";
+                utils::Padding(out, 2) << "\"var_849af6b4\": " << std::dec << props.var_849af6b4 << ",\n";
+                utils::Padding(out, 2) << "\"var_8e0b0827\": " << std::dec << props.var_8e0b0827 << ",\n";
+                utils::Padding(out, 2) << "\"var_95d8fabf\": " << std::dec << props.var_95d8fabf << ",\n";
+                utils::Padding(out, 2) << "\"var_98333ae\": " << std::dec << props.var_98333ae << ",\n";
+                utils::Padding(out, 2) << "\"var_9d776ba6\": " << std::dec << props.var_9d776ba6 << ",\n";
+                utils::Padding(out, 2) << "\"var_a8bd8bb2\": " << std::dec << props.var_a8bd8bb2 << ",\n";
+                utils::Padding(out, 2) << "\"var_ab300840\": " << std::dec << props.var_ab300840 << ",\n";
+                utils::Padding(out, 2) << "\"var_ac36c1db\": " << std::dec << props.var_ac36c1db << ",\n";
+                utils::Padding(out, 2) << "\"var_b9951041\": " << std::dec << props.var_b9951041 << ",\n";
+                utils::Padding(out, 2) << "\"var_c264efc6\": " << std::dec << props.var_c264efc6 << ",\n";
+                utils::Padding(out, 2) << "\"var_c4aae0fa\": " << std::dec << props.var_c4aae0fa << ",\n";
+                utils::Padding(out, 2) << "\"var_c4d4d2a9\": " << std::dec << props.var_c4d4d2a9 << ",\n";
+                utils::Padding(out, 2) << "\"var_cddb5cd0\": " << std::dec << props.var_cddb5cd0 << ",\n";
+                utils::Padding(out, 2) << "\"var_d911d477\": " << std::dec << props.var_d911d477 << ",\n";
+                utils::Padding(out, 2) << "\"var_df0f9ce9\": " << std::dec << props.var_df0f9ce9 << ",\n";
+                utils::Padding(out, 2) << "\"var_df381b5d\": " << std::dec << props.var_df381b5d << ",\n";
+                utils::Padding(out, 2) << "\"var_e4109b63\": " << std::dec << props.var_e4109b63 << ",\n";
+                utils::Padding(out, 2) << "\"var_e5db3b95\": " << std::dec << props.var_e5db3b95 << ",\n";
+                utils::Padding(out, 2) << "\"var_ec2cbce2\": " << std::dec << props.var_ec2cbce2 << ",\n";
+                utils::Padding(out, 2) << "\"var_f7e67f28\": " << std::dec << props.var_f7e67f28 << ",\n";
+                utils::Padding(out, 2) << "\"iClipSize\": " << std::dec << props.iClipSize << ",\n";
+                utils::Padding(out, 2) << "\"iMaxAmmo\": " << std::dec << props.iMaxAmmo << ",\n";
+                utils::Padding(out, 2) << "\"iStartAmmo\": " << std::dec << props.iStartAmmo << ",\n";
+                utils::Padding(out, 2) << "\"meleechargetime\": " << std::dec << props.meleechargetime << ",\n";
+                utils::Padding(out, 2) << "\"meleedamage\": " << std::dec << props.meleedamage << ",\n";
+                utils::Padding(out, 2) << "\"meleepowertime\": " << std::dec << props.meleepowertime << ",\n";
+                utils::Padding(out, 2) << "\"meleepowertimeleft\": " << std::dec << props.meleepowertimeleft << ",\n";
+                utils::Padding(out, 2) << "\"meleetime\": " << std::dec << props.meleetime << "\n";
+
+                
                 utils::Padding(out, 1) << "}\n";
             }
             out
