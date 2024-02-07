@@ -1,5 +1,19 @@
 #include <includes_shared.hpp>
 
+LPCCH utils::va(LPCCH fmt, ...) {
+    static CHAR buffer[0x10][0x50];
+    static size_t bufferIndex = 0;
+    bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
+    auto& buff = buffer[bufferIndex];
+
+    va_list va{};
+    va_start(va, fmt);
+    vsprintf_s(buff, fmt, va);
+    va_end(va);
+
+    return buff;
+}
+
 bool utils::ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, size_t& size, bool nullTerminate) {
     std::ifstream in{ path, std::ios::binary };
     if (!in) {

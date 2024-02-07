@@ -5,6 +5,13 @@
  * Utilities
  */
 namespace utils {
+
+	/*
+	 * Return va string
+	 * @param fmt format
+	 * @return string
+	 */
+	LPCCH va(LPCCH fmt, ...);
 	/*
 	 * Read a file inside a buffer
 	 * @param path file path

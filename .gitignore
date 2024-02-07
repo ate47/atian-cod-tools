@@ -34,6 +34,10 @@
 scripts/antlr4.jar
 .antlr4
 src/cli/tools/ps4/*
+src/mw23-dll/main.cpp
+src/mw23-dll/main.hpp
+src/mw23-dll/Main.cpp
+src/mw23-dll/Main.hpp
 
 *.aps
 

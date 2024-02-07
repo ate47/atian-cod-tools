@@ -3317,6 +3317,411 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
+    if (ShouldHandle(ASSET_TYPE_PRESTIGE)) {
+        struct PrestigeInfo {
+            XHash name;
+            XHash displayName;
+            uint32_t unlockLevel;
+            uint32_t winsRequired;
+            uint32_t titleOfOrigin;
+            uint32_t unk2c;
+            uintptr_t iconName;
+            uintptr_t iconNameLarge;
+        };
+
+
+
+
+        auto pool = std::make_unique<PrestigeInfo[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/prestige/%s.json", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/prestige/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "{\n";
+            utils::Padding(defout, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"displayName\": \"#" << hashutils::ExtractTmp("hash", p.displayName.name) << "\",\n";
+            if (p.iconName) {
+                utils::Padding(defout, 1) << "\"iconName\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.iconName + 0x20)) << "\",\n";
+            }
+            if (p.iconNameLarge) {
+                utils::Padding(defout, 1) << "\"iconNameLarge\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.iconNameLarge + 0x20)) << "\",\n";
+            }
+            utils::Padding(defout, 1) << "\"unlockLevel\": " << std::dec << p.unlockLevel << ",\n";
+            utils::Padding(defout, 1) << "\"winsRequired\": " << std::dec << p.winsRequired << ",\n";
+            utils::Padding(defout, 1) << "\"titleOfOrigin\": " << std::dec << p.titleOfOrigin << "\n";
+
+            defout << "}\n";
+
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_PRESTIGETABLE)) {
+        struct PrestigeTable {
+            XHash name;
+            uint64_t prestigeCount;
+            uintptr_t data;
+        };
+
+        struct PrestigeInfo {
+            XHash name;
+            XHash displayName;
+            uint32_t unlockLevel;
+            uint32_t winsRequired;
+            uint32_t titleOfOrigin;
+            uint32_t unk2c;
+            uintptr_t iconName;
+            uintptr_t iconNameLarge;
+        };
+
+
+        auto pool = std::make_unique<PrestigeTable[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/prestige/table/%s.csv", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/prestige/table/file_%llx.csv", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "iconId,name,displayName,unlockLevel,winsRequired,titleOfOrigin,iconName,iconNameLarge";
+
+            if (p.prestigeCount) {
+                auto tableVals = std::make_unique<uintptr_t[]>(p.prestigeCount);
+                PrestigeInfo nfo{};
+
+                if (!proc.ReadMemory(&tableVals[0], p.data, sizeof(tableVals[0]) * p.prestigeCount)) {
+                    defout.close();
+                    std::cerr << "Can't read memory\n";
+                    break;
+                }
+
+                for (size_t i = 0; i < p.prestigeCount; i++) {
+                    if (!proc.ReadMemory(&nfo, tableVals[i], sizeof(nfo))) {
+                        defout.close();
+                        std::cerr << "Can't read memory\n";
+                        continue;
+                    }
+                    defout 
+                        << "\n" 
+                        << std::dec << i << ","
+                        << "#" << hashutils::ExtractTmp("hash", nfo.name.name) << ","
+                        << "#" << hashutils::ExtractTmp("hash", nfo.displayName.name) << ","
+                        << std::dec << nfo.unlockLevel << ","
+                        << std::dec << nfo.winsRequired << ","
+                        << std::dec << nfo.titleOfOrigin << ","
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.iconName + 0x20)) << ","
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.iconNameLarge + 0x20))
+                        ;
+                }
+            }
+
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_RANK)) {
+        struct RankInfo {
+            XHash name;
+            uint32_t level;
+            uint32_t minXp;
+            uint32_t maxXp;
+            XHash shortNameRef;
+            XHash fullNameRef;
+            XHash ingameNameRef;
+            uintptr_t icon; // GfxImagePtr
+            uintptr_t iconLarge; // GfxImagePtr
+            uint64_t rewardsCount;
+            uintptr_t rewards; // RankInfoReward*
+        };
+        struct RankInfoReward {
+            XHash prestigeTarget;
+            XHash rewardName;
+        };
+
+        auto pool = std::make_unique<RankInfo[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/rank/%s.json", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/rank/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "{\n";
+            utils::Padding(defout, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"shortNameRef\": \"#" << hashutils::ExtractTmp("hash", p.shortNameRef.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"fullNameRef\": \"#" << hashutils::ExtractTmp("hash", p.fullNameRef.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"ingameNameRef\": \"#" << hashutils::ExtractTmp("hash", p.ingameNameRef.name) << "\",\n";
+            if (p.icon) {
+                utils::Padding(defout, 1) << "\"iconName\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.icon + 0x20)) << "\",\n";
+            }
+            if (p.iconLarge) {
+                utils::Padding(defout, 1) << "\"iconNameLarge\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.iconLarge + 0x20)) << "\",\n";
+            }
+            utils::Padding(defout, 1) << "\"level\": " << std::dec << p.level << ",\n";
+            utils::Padding(defout, 1) << "\"minXp\": " << std::dec << p.minXp << ",\n";
+            utils::Padding(defout, 1) << "\"maxXp\": " << std::dec << p.maxXp << ",\n";
+            utils::Padding(defout, 1) << "\"rewards\": [";
+
+            if (p.rewardsCount) {
+                auto rewards = std::make_unique<RankInfoReward[]>(p.rewardsCount);
+
+                if (!proc.ReadMemory(&rewards[0], p.rewards, sizeof(rewards[0]) * p.rewardsCount)) {
+                    std::cerr << "Can't read memory\n";
+                    break;
+                }
+
+                for (size_t j = 0; j < p.rewardsCount; j++) {
+                    auto& rew = rewards[j];
+
+                    if (j) defout << ",";
+                    defout << "\n";
+                    utils::Padding(defout, 2) << "{\n";
+                    utils::Padding(defout, 3) << "\"prestigeTarget\": \"#" << hashutils::ExtractTmp("hash", rew.prestigeTarget.name) << "\",\n";
+                    utils::Padding(defout, 3) << "\"rewardName\": \"#" << hashutils::ExtractTmp("hash", rew.rewardName.name) << "\"\n";
+                    utils::Padding(defout, 2) << "}";
+                }
+
+                utils::Padding(defout << "\n", 1) << "]\n";
+            }
+            else {
+                defout << "]\n";
+            }
+
+            defout << "}\n";
+
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_RANKTABLE)) {
+        struct RankTable {
+            XHash name;
+            uint64_t rankCount;
+            uintptr_t data;
+        };
+        struct RankInfo {
+            XHash name;
+            uint32_t level;
+            uint32_t minXp;
+            uint32_t maxXp;
+            XHash shortNameRef;
+            XHash fullNameRef;
+            XHash ingameNameRef;
+            uintptr_t icon; // GfxImagePtr
+            uintptr_t iconLarge; // GfxImagePtr
+            uint64_t rewardsCount;
+            uintptr_t rewards; // RankInfoReward*
+        };
+        struct RankInfoReward {
+            XHash prestigeTarget;
+            XHash rewardName;
+        };
+
+        auto pool = std::make_unique<RankTable[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/rank/table/%s.csv", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/rank/table/file_%llx.csv", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            RankInfo nfo{};
+
+            defout << "iconId,name,level,minXp,maxXp,shortNameRef,fullNameRef,ingameNameRef,iconName,iconNameLarge,rewards";
+
+            if (p.rankCount) {
+                auto tableVals = std::make_unique<uintptr_t[]>(p.rankCount);
+
+                if (!proc.ReadMemory(&tableVals[0], p.data, sizeof(tableVals[0]) * p.rankCount)) {
+                    defout.close();
+                    std::cerr << "Can't read memory\n";
+                    break;
+                }
+
+                for (size_t i = 0; i < p.rankCount; i++) {
+                    if (!proc.ReadMemory(&nfo, tableVals[i], sizeof(nfo))) {
+                        defout.close();
+                        std::cerr << "Can't read memory\n";
+                        continue;
+                    }
+
+
+                    defout
+                        << "\n"
+                        << std::dec << i << ","
+                        << "#" << hashutils::ExtractTmp("hash", nfo.name.name) << ","
+                        << std::dec << nfo.level << ","
+                        << std::dec << nfo.minXp << ","
+                        << std::dec << nfo.maxXp << ","
+                        << "#" << hashutils::ExtractTmp("hash", nfo.shortNameRef.name) << ","
+                        << "#" << hashutils::ExtractTmp("hash", nfo.fullNameRef.name) << ","
+                        << "#" << hashutils::ExtractTmp("hash", nfo.ingameNameRef.name) << ","
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.icon + 0x20)) << ","
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.icon + 0x20)) << ","
+                        ;
+
+                    if (nfo.rewardsCount) {
+                        auto rewards = std::make_unique<RankInfoReward[]>(nfo.rewardsCount);
+
+                        if (!proc.ReadMemory(&rewards[0], nfo.rewards, sizeof(rewards[0]) * nfo.rewardsCount)) {
+                            std::cerr << "Can't read memory\n";
+                            break;
+                        }
+
+                        for (size_t j = 0; j < nfo.rewardsCount; j++) {
+                            auto& rew = rewards[j];
+
+                            if (j) defout << ";";
+
+                            defout << "#" << hashutils::ExtractTmp("hash", rew.rewardName.name);
+                        }
+                    }
+                }
+            }
+
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
     if (ShouldHandle(ASSET_TYPE_TTF)) {
         struct TTFDef {
             Hash name;

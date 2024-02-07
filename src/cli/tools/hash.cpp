@@ -29,7 +29,7 @@ int hash64(Process& proc, int argc, const char* argv[]) {
 	UINT64 sur;
 	int i = 2;
 	if (argc >= 3 && !_strcmpi("--iw", argv[2])) {
-		sur = 0x47f5817a5ef961baLL;
+		sur = 0x47F5817A5EF961BA;
 		i++;
 		std::cout << "iw\n";
 	} else{

@@ -1310,11 +1310,34 @@ namespace {
 
         XAssetPool sptPool{};
 
+        // 3847549440
+        auto patterns = proc[0].Scan("00 F2 54 E5");
+
+        if (!patterns) {
+            std::cerr << "Can't find SPT\n";
+            std::free(scriptBuffer);
+            return tool::BASIC_ERROR;
+        }
+
+        // E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 75 0A B9 00 F2 54 E5
+        
+
+        uintptr_t poolLocationFunc = (uintptr_t)((INT64)patterns - 14 + 4 + (INT64)proc.ReadMemory<INT32>(patterns - 14 + 1));
+
+        // 48 8D 05 80 26 73 08
+
+        uintptr_t poolLocation = (uintptr_t)((INT64)poolLocationFunc + 0x10 + (INT64)proc.ReadMemory<INT32>(poolLocationFunc + 12));
+
+        proc.WriteLocation(std::cout << "pool: ", poolLocation) << "\n";
+        std::cout << "pool: " << s_assetPools_off << "\n";
+        
         if (!proc.ReadMemory(&sptPool, proc[s_assetPools_off] + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
             std::cerr << "Can't read SPT pool\n";
             std::free(scriptBuffer);
             return tool::BASIC_ERROR;
         }
+        std::free(scriptBuffer);
+        return tool::OK;
 
         auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
 

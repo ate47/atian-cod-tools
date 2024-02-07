@@ -28,7 +28,7 @@ namespace hash {
 		for (LPCCH data = str; *data; data++) {
 			if (*data >= 'A' && *data <= 'Z') {
 				// to lower
-				hash = hash ^ (UINT8)(*data - (BYTE)'A');
+				hash = hash ^ (UINT8)('a' + (*data - (BYTE)'A'));
 			}
 			else if (*data == '\\') {
 				// replace path char

@@ -191,8 +191,15 @@ void Process::FreeMemory(uintptr_t ptr, SIZE_T size) const {
 
 bool Process::ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const {
 	if (m_handle) {
+		DWORD oldProtect{};
+		if (!SetMemoryProtection(src, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
+			return false;
+		}
 		SIZE_T out = 0;
 		if (!ReadProcessMemory(m_handle, reinterpret_cast<LPVOID>(src), dest, size, &out)) {
+			return false;
+		}
+		if (!SetMemoryProtection(src, size, oldProtect, oldProtect)) {
 			return false;
 		}
 		return out == size;
@@ -498,7 +505,7 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 			auto len = min(buff_location + sizeof(tmpBuffer), module_end) - buff_location;
 			if (!this->m_parent.ReadMemory(tmpBuffer, buff_location, len)) {
 				// can't read memory
-				std::cerr << "Can't read next memory block of size 0x" << std::hex << len << " at 0x" << buff_location << "\n";
+				std::cerr << "Can't read next memory block of size 0x" << std::hex << len << " at 0x" << buff_location << ": 0x" << GetLastError() << " / 0x" << start << ":0x" << (start + size) << "\n";
 				return 0;
 			}
 		}

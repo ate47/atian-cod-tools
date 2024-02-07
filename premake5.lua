@@ -278,6 +278,40 @@ project "TestDll"
     dependson "detours"
     dependson "asmjit"
 
+project "AtianCodToolsMW23DLL"
+    kind "SharedLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "mw23-dll"
+    
+    files {
+        "./src/mw23-dll/**.hpp",
+        "./src/mw23-dll/**.h",
+        "./src/mw23-dll/**.cpp",
+    }
+
+    includedirs {
+        "./src/mw23-dll",
+		"deps/Detours/src/",
+        "src/shared",
+        "deps/asmjit/src/",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    
+    links { "ACTSSharedLibrary" }
+    links { "detours" }
+    links { "asmjit" }
+    dependson "ACTSSharedLibrary"
+    dependson "detours"
+    dependson "asmjit"
+
 group "deps"
     project "antlr4-runtime"
         language "C++"
