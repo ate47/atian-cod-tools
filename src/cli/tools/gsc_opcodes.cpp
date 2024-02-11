@@ -13,6 +13,22 @@ static std::unordered_map<OPCode, const OPCodeInfo*> g_opcodeHandlerMap{};
 #pragma region opcode_node
 
 
+VM tool::gsc::opcode::VMOf(LPCCH name) {
+	if (!_strcmpi("t8", name) || !_strcmpi("bo4", name) || !_strcmpi("blackops4", name) || !_strcmpi("36", name)) {
+		return VM_T8;
+	}
+	if (!_strcmpi("t937", name) || !_strcmpi("cw37", name) || !_strcmpi("coldwar37", name) || !_strcmpi("37", name)) {
+		return VM_T937;
+	}
+	if (!_strcmpi("t9", name) || !_strcmpi("cw", name) || !_strcmpi("coldwar", name) || !_strcmpi("38", name)) {
+		return VM_T9;
+	}
+	if (!_strcmpi("s4", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
+		return VM_MW23;
+	}
+	return VM_UNKNOWN;
+}
+
 Platform tool::gsc::opcode::PlatformOf(LPCCH name) {
 	if (!_strcmpi("pc", name)) {
 		return PLATFORM_PC;
@@ -3879,8 +3895,8 @@ public:
 
 static const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefined, "Undefined");
 
-void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name) {
-	g_opcodeMap[vm] = { vm, name, {} };
+void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name, VmType type) {
+	g_opcodeMap[vm] = { vm, name, type, {} };
 }
 void tool::gsc::opcode::RegisterVMPlatform(BYTE vm, Platform plt) {
 	auto ref = g_opcodeMap.find(vm);
@@ -4967,7 +4983,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_vm == VM_T9 ? 4 : 3;
+		size_t forincsize = ctx.m_vm == VM_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -4996,7 +5012,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		UINT32 itemValName;
-		if (ctx.m_vm == VM_T9) {
+		if (ctx.m_vm != VM_T8) {
 			/*
 				var_d9f19f82 = iteratorkey(var_e4aec0cf);
 				var_8487602c = iteratorval(var_e4aec0cf);
@@ -5144,7 +5160,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// remove the number of references for the key because maybe we don't use it
 		auto& keyRef = ctx.m_localvars_ref[keyValName];
-		if (ctx.m_vm == VM_T9) {
+		if (ctx.m_vm != VM_T8) {
 			keyRef = max(keyRef - 1, 0); // key isn't used as an iterator in T9
 		}
 		else {

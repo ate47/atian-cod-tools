@@ -1668,11 +1668,13 @@ namespace {
 		}
 		error_coder::ErrorCode code{};
 
-		UINT32 codedec = (UINT32)std::strtoull(argv[2], nullptr, 10);
+		for (size_t i = 2; i < argc; i++) {
+			UINT32 codedec = (UINT32)std::strtoull(argv[i], nullptr, 10);
 
-		error_coder::Encode(code, codedec);
+			error_coder::Encode(code, codedec);
 
-		std::cout << std::dec << codedec << "=" << error_coder::ToStr(code) << "\n";
+			std::cout << std::dec << codedec << "=" << error_coder::ToStr(code) << "\n";
+		}
 
 		return tool::OK;
 	}
@@ -1704,5 +1706,5 @@ namespace {
 	}
 }
 
-ADD_TOOL("errenc", "[w1] [w2] [w3] [w4]", "encode an error", nullptr, errenc);
+ADD_TOOL("errenc", "[error]", "encode an error", nullptr, errenc);
 ADD_TOOL("errdec", "[w1] [w2] [w3] [w4]", "decode an error", nullptr, errdec);

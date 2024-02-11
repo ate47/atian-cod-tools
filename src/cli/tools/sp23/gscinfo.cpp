@@ -280,6 +280,60 @@ namespace {
 			while (true) {
 				auto opcode = *(bytecode++);
 				switch (opcode) {
+				case 0x57: {
+					auto p = *(UINT32*)(bytecode);
+					bytecode += 4;
+
+					WriteOperation(asmout, opcode, "unk") << std::dec << p << "\n";
+
+
+					break;
+				}
+				case 0x70: {
+					auto p = *(UINT32*)(bytecode);
+					bytecode += 4;
+
+					WriteOperation(asmout, opcode, "unk") << std::dec << p << "\n";
+
+
+					break;
+				}
+				case 0:
+				case 0x83:{
+					// one is jump, one devblock?
+
+					auto delta = *(INT16*)(bytecode);
+					bytecode += 2;
+
+					WriteOperation(asmout, opcode, "unk") << std::hex << (delta < 0 ? "-" : "") << (delta < 0 ? -delta : delta) << "\n";
+					break;
+				}
+				case 0x16:
+				case 0x61:
+				case 0x62: {
+					// no bytecode operations
+					WriteOperation(asmout, opcode, "unk") << "\n";
+					break;
+				}
+				case 0x2B:
+				case 0xA4: {
+					auto v = *(UINT64*)(bytecode);
+					bytecode += 8;
+
+					WriteOperation(asmout, opcode, "RegisterVar") << hashutils::ExtractTmp("hash", v) << "\n";
+					params.push_back(v);
+
+					break;
+				}
+				case 0x44: {
+					auto v = *(UINT64*)(bytecode);
+					bytecode += 8;
+
+					WriteOperation(asmout, opcode, "ClearVar") << hashutils::ExtractTmp("hash", v) << "\n";
+					//params.push_back(v); // todo?
+
+					break;
+				}
 				case 0x98: { // create params
 					auto p = *(bytecode++);
 					if (p < exp.param_count) {
@@ -307,7 +361,7 @@ namespace {
 					}
 					break;
 				default:
-					asmout << "Unknown bytecode operation at location 0x" << (int)*bytecode << "\n";
+					asmout << "Unknown bytecode operation at location 0x" << (int)opcode << "\n";
 					for (size_t i = 0; i < 0x30; i++) {
 						asmout << std::hex << std::setw(2) << std::setfill('0') << (int)bytecode[i] << " ";
 					}
@@ -361,7 +415,8 @@ namespace {
 
 		if (ctx.opt.m_header) {
 			asmout
-				<< "// Name:     " << ctx.ExtractScript(file->name) << " magic: 0x" << std::hex << file->GetMagic() << " Size:     0x" << std::hex << size << "\n"
+				<< "// Name:     " << ctx.ExtractScript(file->name) << "(" << path << ")\n"
+				<< "// magic: 0x" << std::hex << file->GetMagic() << " Size:     0x" << std::hex << size << "\n"
 				<< "// Exports:  " << std::dec << file->export_count << " -> 0x" << std::hex << file->export_offset << "\n"
 				<< "// Strings:  " << std::dec << file->string_count << " -> 0x" << std::hex << file->string_table << "\n"
 				<< "// Imports:  " << std::dec << file->imports_count << " -> 0x" << std::hex << file->import_table << "\n"
@@ -521,11 +576,6 @@ namespace {
 					nsp = exp.name_space;
 				}
 
-				// 0x98 SafeCreateLocalVariables
-				// 0x43 CheckClearParams
-				// 0x34 End
-				// 81D1A30?
-
 				ExportCTX ectx{ ctx, exp, *file };
 
 				std::ofstream nullstream;
@@ -650,562 +700,6 @@ namespace {
 		return tool::OK;
 	}
 
-	enum AssetType : int {
-		ASSET_PHYSICSLIBRARY = 0x0,
-		ASSET_PHYSICSSFXEVEN = 0x1,
-		ASSET_PHYSICSVFXEVEN = 0x2,
-		ASSET_PHYSICSASSET = 0x3,
-		ASSET_PHYSICSFXPIPEL = 0x4,
-		ASSET_PHYSICSFXSHAPE = 0x5,
-		ASSET_PHYSICSDEBUGDA = 0x6,
-		ASSET_XANIM = 0x7,
-		ASSET_XMODELSURFS = 0x8,
-		ASSET_XMODEL = 0x9,
-		ASSET_MAYHEM = 0xA,
-		ASSET_MATERIAL = 0xB,
-		ASSET_COMPUTESHADER = 0xC,
-		ASSET_TILESHADER = 0xD,
-		ASSET_LIBSHADER = 0xE,
-		ASSET_VERTEXSHADER = 0xF,
-		ASSET_HULLSHADER = 0x10,
-		ASSET_DOMAINSHADER = 0x11,
-		ASSET_PIXELSHADER = 0x12,
-		ASSET_SERIALIZEDSHAD = 0x13,
-		ASSET_TECHSET = 0x14,
-		ASSET_IMAGE = 0x15,
-		ASSET_SOUNDGLOBALVOL = 0x16,
-		ASSET_SOUNDGLOBALENT = 0x17,
-		ASSET_SOUNDGLOBALCON = 0x18,
-		ASSET_SOUNDGLOBALWHI = 0x19,
-		ASSET_SOUNDGLOBALBUL = 0x1A,
-		ASSET_SOUNDGLOBALPER = 0x1B,
-		ASSET_SOUNDGLOBALOCC = 0x1C,
-		ASSET_SOUNDGLOBALSUR = 0x1D,
-		ASSET_SOUNDGLOBALCUR = 0x1E,
-		ASSET_SOUNDGLOBALDOP = 0x1F,
-		ASSET_SOUNDGLOBALSHA = 0x20,
-		ASSET_SOUNDGLOBALFUT = 0x21,
-		ASSET_SOUNDGLOBALSEN = 0x22,
-		ASSET_SOUNDGLOBALNAM = 0x23,
-		ASSET_SOUNDGLOBALFAC = 0x24,
-		ASSET_SOUNDBANK = 0x25,
-		ASSET_SOUNDBANKMERGE = 0x26,
-		ASSET_SOUNDBANKTRANS = 0x27,
-		ASSET_COLMAP = 0x28,
-		ASSET_COMMAP = 0x29,
-		ASSET_GLASSMAP = 0x2A,
-		ASSET_AIPATHS = 0x2B,
-		ASSET_NAVMESH = 0x2C,
-		ASSET_TACGRAPH = 0x2D,
-		ASSET_AIREGIONGRAPHS = 0x2E,
-		ASSET_MAPENTS = 0x2F,
-		ASSET_MAPENTSTRZONE = 0x30,
-		ASSET_FXMAP = 0x31,
-		ASSET_GFXMAP = 0x32,
-		ASSET_GFXMAPTRZONE = 0x33,
-		ASSET_IESPROFILE = 0x34,
-		ASSET_LIGHTDEF = 0x35,
-		ASSET_GRADINGCLUT = 0x36,
-		ASSET_FOGSPLINE = 0x37,
-		ASSET_ANIMCLASS = 0x38,
-		ASSET_PLAYERANIM = 0x39,
-		ASSET_NK_8A41D00 = 0x3A,
-		ASSET_LOCALIZE = 0x3B,
-		ASSET_ATTACHMENT = 0x3C,
-		ASSET_WEAPON = 0x3D,
-		ASSET_VFX = 0x3E,
-		ASSET_IMPACTFX = 0x3F,
-		ASSET_SURFACEFX = 0x40,
-		ASSET_AITYPE = 0x41,
-		ASSET_CHARACTER = 0x42,
-		ASSET_XMODELALIAS = 0x43,
-		ASSET_RAWFILE = 0x44,
-		ASSET_GSCOBJ = 0x45,
-		ASSET_GSCGDB = 0x46,
-		ASSET_STRINGTABLE_0 = 0x47,
-		ASSET_DDL = 0x48,
-		ASSET_TRACER = 0x49,
-		ASSET_VEHICLE = 0x4A,
-		ASSET_NETCONSTSTRING = 0x4B,
-		ASSET_LUAFILE = 0x4C,
-		ASSET_SCRIPTABLE = 0x4D,
-		ASSET_VECTORFIELD = 0x4E,
-		ASSET_PARTICLESIMANI = 0x4F,
-		ASSET_STREAMINGINFO = 0x50,
-		ASSET_LASER = 0x51,
-		ASSET_GAMEPROPS = 0x52,
-		ASSET_MATERIALSTANDA = 0x53,
-		ASSET_BEAM = 0x54,
-		ASSET_TTF = 0x55,
-		ASSET_SUIT = 0x56,
-		ASSET_SUITANIMPACKAG = 0x57,
-		ASSET_CAMERA = 0x58,
-		ASSET_HUDOUTLINE = 0x59,
-		ASSET_RUMBLE = 0x5A,
-		ASSET_RUMBLEGRAPH = 0x5B,
-		ASSET_ANIMPKG = 0x5C,
-		ASSET_SFXPKG = 0x5D,
-		ASSET_VFXPKG = 0x5E,
-		ASSET_FOOTSTEPVFX = 0x5F,
-		ASSET_BEHAVIORTREE = 0x60,
-		ASSET_BEHAVIORSEQUEN = 0x61,
-		ASSET_SIGHTCONFIG = 0x62,
-		ASSET_SIGHTCONFIGTEM = 0x63,
-		ASSET_AIANIMSET = 0x64,
-		ASSET_AIASM = 0x65,
-		ASSET_PROCEDURALBONE = 0x66,
-		ASSET_DYNAMICBONES = 0x67,
-		ASSET_PROCEDURALBLEN = 0x68,
-		ASSET_RETICLE_0 = 0x69,
-		ASSET_XANIMCURVE = 0x6A,
-		ASSET_COVERSELECTOR = 0x6B,
-		ASSET_ENEMYSELECTOR = 0x6C,
-		ASSET_CLIENTCHARACTE_1 = 0x6D,
-		ASSET_CLOTHASSET = 0x6E,
-		ASSET_CINEMATICMOTIO = 0x6F,
-		ASSET_ACCESSORY = 0x70,
-		ASSET_LOCDMGTABLE = 0x71,
-		ASSET_BULLETPENETRAT = 0x72,
-		ASSET_SCRIPTBUNDLE = 0x73,
-		ASSET_BLENDSPACE2D = 0x74,
-		ASSET_XCAM = 0x75,
-		ASSET_CAMO_0 = 0x76,
-		ASSET_XCOMPOSITEMODE = 0x77,
-		ASSET_XMODELDETAILCO = 0x78,
-		ASSET_STREAMTREEOVER = 0x79,
-		ASSET_KEYVALUEPAIRS = 0x7A,
-		ASSET_STTERRAIN = 0x7B,
-		ASSET_VHMDATA = 0x7C,
-		ASSET_VTMSURFACEMAPS = 0x7D,
-		ASSET_NK_8A41CB0 = 0x7E,
-		ASSET_EXECUTION = 0x7F,
-		ASSET_CARRYOBJECT = 0x80,
-		ASSET_SOUNDBANKLIST = 0x81,
-		ASSET_WEAPONACCURACY = 0x82,
-		ASSET_DECALVOLUMEMAT = 0x83,
-		ASSET_DECALVOLUMEMAS = 0x84,
-		ASSET_DYNENTITYLIST = 0x85,
-		ASSET_FXMAPTRZONE = 0x86,
-		ASSET_VOLUMETRICHEIG = 0x87,
-		ASSET_DLOGSCHEMA = 0x88,
-		ASSET_EDGELIST = 0x89,
-		ASSET_STANDALONEUMBR = 0x8A,
-		ASSET_XBONESET = 0x8B,
-		ASSET_RAGDOLLASSET = 0x8C,
-		ASSET_PHYSICSBONEGRA = 0x8D,
-		ASSET_CURVE = 0x8E,
-		ASSET_SKELETONCONSTR = 0x8F,
-		ASSET_TRIGGEREFFECT = 0x90,
-		ASSET_WEAPONTRIGGER = 0x91,
-		ASSET_VOLUMETRICCLOU = 0x92,
-		ASSET_CODCASTERDATA = 0x93,
-		ASSET_WATERSYSTEM = 0x94,
-		ASSET_WATERBUOYANCY = 0x95,
-		ASSET_KEYBINDS_0 = 0x96,
-		ASSET_CALLOUTMARKERP_1 = 0x97,
-		ASSET_LIGHTSTATE = 0x98,
-		ASSET_RADIANTTELEMET = 0x99,
-		ASSET_AIMARKUP = 0x9A,
-		ASSET_AIMARKUPGENERA = 0x9B,
-		ASSET_SCENARIO = 0x9C,
-		ASSET_AIINTERACTION = 0x9D,
-		ASSET_MAPVOXELIZEDST = 0x9E,
-		ASSET_WATERVIS = 0x9F,
-		ASSET_GAMETYPE_0 = 0xA0,
-		ASSET_GAMETYPETABLE = 0xA1,
-		ASSET_SNDMODIFIER = 0xA2,
-		ASSET_WEAPONBLUEPRIN = 0xA3,
-		ASSET_ATTACHMENTBLUE = 0xA4,
-		ASSET_MOVINGPLATFORM = 0xA5,
-		ASSET_HWCONFIG = 0xA6,
-		ASSET_TIMELAPSESKY = 0xA7,
-		ASSET_HWCONFIGURATOR = 0xA8,
-		ASSET_OBJECTIVEDATA = 0xA9,
-		ASSET_FONT = 0xAA,
-		ASSET_MOTIONMATCHING = 0xAB,
-		ASSET_MOTIONMATCHING_0 = 0xAC,
-		ASSET_GAMETYPESTATDA = 0xAD,
-		ASSET_FONTICON = 0xAE,
-		ASSET_CALLOUTMARKERP_2 = 0xAF,
-		ASSET_HWCONFIGVAR = 0xB0,
-		ASSET_ZIVART = 0xB1,
-		ASSET_MOVIE = 0xB2,
-		ASSET_MAPINFO = 0xB3,
-		ASSET_MAPTABLE = 0xB4,
-		ASSET_ACHIEVEMENT_0 = 0xB5,
-		ASSET_ACHIEVEMENTLIS = 0xB6,
-		ASSET_MATERIALDEBUGD = 0xB7,
-		ASSET_SCRIPTABLEVARI = 0xB8,
-		ASSET_LEAGUEPLAYSEAS = 0xB9,
-		ASSET_SETTINGCONTEXT = 0xBA,
-		ASSET_AIEVENTLIST = 0xBB,
-		ASSET_SOUNDEVENT = 0xBC,
-		ASSET_CALLOUTMARKERP_3 = 0xBD,
-		ASSET_PROJECT = 0xBE,
-		ASSET_PROJECTTABLE = 0xBF,
-		ASSET_GAMEMODE = 0xC0,
-		ASSET_SNDASSET = 0xC1,
-		ASSET_GFXUMBRATOME = 0xC2,
-		ASSET_AUDIOVISUALIZE = 0xC3,
-		ASSET_MATERIALANIMAT_0 = 0xC4,
-		ASSET_NAMEPLATESETTI = 0xC5,
-		ASSET_REACTIVEAUDIOP = 0xC6,
-		ASSET_REACTIVEVFXPAC = 0xC7,
-		ASSET_MATERIALSFXTAB = 0xC8,
-		ASSET_FOOTSTEPSFXTAB = 0xC9,
-		ASSET_REACTIVESTAGES = 0xCA,
-		ASSET_FOLIAGESFXTABL = 0xCB,
-		ASSET_IMPACTSFXTABLE = 0xCC,
-		ASSET_AIIMPACTVFXTAB = 0xCD,
-		ASSET_TYPEINFO = 0xCE,
-		ASSET_HANDPLANTSFXTA = 0xCF,
-		ASSET_SNDTABLE = 0xD0,
-		ASSET_EQUIPMENTSFX = 0xD1,
-		ASSET_SOUNDSUBMIX = 0xD2,
-		ASSET_SHOCK = 0xD3,
-		ASSET_STORAGEFILE = 0xD4,
-		ASSET_ECSASSET = 0xD5,
-		ASSET_TRACKERFOOTSTE = 0xD6,
-		ASSET_PLAYERSPAWNSET = 0xD7,
-		ASSET_PLAYERSPAWNINF = 0xD8,
-		ASSET_SOUNDSPEAKERMA = 0xD9,
-		ASSET_REVERBPRESET = 0xDA,
-		ASSET_AISHOOTSTYLESL = 0xDB,
-		ASSET_OPERATORLIST = 0xDC,
-		ASSET_OPERATOR = 0xDD,
-		ASSET_OPERATORSKIN = 0xDE,
-		ASSET_DISMEMBERMENT = 0xDF,
-		ASSET_CONVERSATION = 0xE0,
-		ASSET_XANIMNODE = 0xE1,
-		ASSET_SNDMODIFIERSET = 0xE2,
-		ASSET_SNDCURVE = 0xE3,
-		ASSET_TTLOS = 0xE4,
-		ASSET_MATERIALTINTAN = 0xE5,
-		ASSET_MATERIALUVANIM = 0xE6,
-		ASSET_MATERIALCAMOAN = 0xE7,
-		ASSET_MATERIALANIMAT = 0xE8,
-		ASSET_IMPACTFXTABLE = 0xE9,
-		ASSET_IMPACTTYPETOIM = 0xEA,
-		ASSET_REACTIVEOPERAT = 0xEB,
-		ASSET_WEATHERVOLUME = 0xEC,
-		ASSET_VEHICLETRICK = 0xED,
-		ASSET_REACTIVEAUDIOP_2 = 0xEE,
-		ASSET_AMBIENTSFXPACK = 0xEF,
-		ASSET_OBJECTSTOREPRO = 0xF0,
-		ASSET_OBJECTSTOREGAM = 0xF1,
-		ASSET_PROCEDURALBONE_2 = 0xF2,
-		ASSET_HWCONFIGVARGRO = 0xF3,
-		ASSET_HWCONFIGTIERED = 0xF4,
-		ASSET_SNDMASTERPRESE = 0xF5,
-		ASSET_GENERICBLUEPRI = 0xF6,
-		ASSET_COUNT = 0xF7,
-	};
-
-
-	enum StringTableCellType : byte {
-		STT_UNK_1_64 = 1, // string
-		STT_UNK_9_64 = 9, // string2??
-		STT_UNK_A_64 = 0xA, // string3??
-
-		STT_UNK_2_64 = 2, // int??
-		STT_UNK_5_64 = 5, // hash (0xCBF29CE484222325/0x100000001B3)
-		STT_UNK_6_64 = 6, // hash (0x47F5817A5EF961BA/0x100000001B3)
-		STT_UNK_7_64 = 7, // ?
-
-		STT_UNK_3_32 = 3, // float??
-		STT_UNK_8_32 = 8, // ?
-
-		STT_BYTE = 4,
-	};
-
-	struct StringTableResult {
-		byte* result; // 0
-		int unk8; // 8
-		StringTableCellType type; // 12
-	};
-
-	struct StringTableColumn {
-		StringTableCellType type;
-		uint16_t* unk8;
-		uint16_t* rowindexes;
-		uint64_t unk18;
-		byte* rowdata;
-	};
-
-	struct StringTable {
-		uint64_t name;
-		int columnCount;
-		int rowCount;
-		uint64_t cellIndices;
-		StringTableColumn* columns;
-		uint64_t strings;
-	};
-
-	void DumpStringTable(void* ptr, UINT64 name) {
-		auto nameFormat = std::format("stringtable_{:x}.csv", name);
-
-		// change here the dump location dir
-		std::filesystem::path outPath = std::filesystem::path{ "csv" } / nameFormat;
-
-		auto* st = reinterpret_cast<StringTable*>(ptr);
-
-		if (!st->rowCount || !st->columnCount || !st->columns) {
-			return; // empty, ignore
-		}
-
-		std::ofstream os{ outPath, std::ios::out };
-
-		if (!os) {
-			return; // wtf?
-		}
-
-		for (size_t i = 0; i < st->rowCount; i++) {
-			for (size_t j = 0; j < st->columnCount; j++) {
-				if (j) {
-					os << ",";
-				}
-				auto& columns = st->columns[j];
-
-				auto rowIndex = columns.rowindexes[i];
-
-				int elemSize;
-				switch (columns.type) {
-				case STT_UNK_1_64:
-				case STT_UNK_9_64:
-				case STT_UNK_A_64:
-				case STT_UNK_2_64:
-				case STT_UNK_5_64:
-				case STT_UNK_6_64:
-				case STT_UNK_7_64:
-					elemSize = 8;
-					break;
-				case STT_UNK_3_32:
-				case STT_UNK_8_32:
-					elemSize = 4;
-					break;
-				case STT_BYTE:
-					elemSize = 1;
-					break;
-				default:
-					elemSize = 0;
-					break;
-				}
-				if (!elemSize) {
-					os << "<badtype:" << std::hex << columns.type << ">";
-					continue; // wtf?
-				}
-
-				auto* value = &columns.rowdata[elemSize * rowIndex];
-
-				switch (columns.type) {
-					/*
-					
-	STT_UNK_1_64 = 1, // string
-	STT_UNK_9_64 = 9, // string2??
-	STT_UNK_A_64 = 0xA, // string3??
-
-	STT_UNK_2_64 = 2, // int??
-	STT_UNK_5_64 = 5, // hash (0xCBF29CE484222325/0x100000001B3)
-	STT_UNK_6_64 = 6, // hash (0x47F5817A5EF961BA/0x100000001B3)
-	STT_UNK_7_64 = 7, // ?
-
-	STT_UNK_3_32 = 3, // float??
-	STT_UNK_8_32 = 8, // ?
-
-	STT_BYTE = 4,
-					
-					*/
-				case STT_UNK_1_64:
-				case STT_UNK_9_64:
-				case STT_UNK_A_64:
-					// strings??
-					os << *reinterpret_cast<const char**>(value);
-					break;
-				case STT_UNK_2_64:
-					// int?
-					os << std::dec << *reinterpret_cast<INT64*>(value);
-					break;
-				case STT_UNK_5_64:
-				case STT_UNK_6_64:
-					os << "hash_" << std::hex << *reinterpret_cast<UINT64*>(value);
-					break;
-				case STT_UNK_7_64:
-					os << "7?" << std::hex << *reinterpret_cast<UINT64*>(value);
-					break;
-				case STT_UNK_3_32:
-					os << *reinterpret_cast<float*>(value);
-					break;
-				case STT_UNK_8_32:
-					os << "8?" << std::hex << *reinterpret_cast<UINT32*>(value);
-					break;
-				case STT_BYTE:
-					os << (*value ? "TRUE" : "FALSE");
-					break;
-				default:
-					os << "<error>";
-					break;
-				}
-			}
-
-			os << "\n";
-		}
-
-		os.close();
-	}
-	struct DBAssetPool {
-		uintptr_t* m_entries;
-		uintptr_t* m_freeHead;
-		int m_poolSize;
-		int m_elementSize;
-		int m_usedCount;
-		int m_maxUsedCount;
-	};
-
-#define DB_GetAssetEntryPool(type) ((DBAssetPool*)0x12345678)
-
-	void DumpPoolValues() {
-
-		std::ofstream os{ "pools.csv", std::ios::out };
-
-		if (!os) return;
-
-		os << "id,count,max,poolSize,size\n";
-
-		for (size_t i = 0; i < 0xEE; i++) {
-			auto* pool = DB_GetAssetEntryPool(i);
-			os
-				<< std::hex << i << ","
-				<< std::dec
-				<< pool->m_usedCount << ","
-				<< pool->m_maxUsedCount << ","
-				<< pool->m_poolSize << ","
-				<< std::hex << pool->m_elementSize << "\n";
-		}
-
-		os.close();
-	}
-
-	struct LocalizeEntry {
-		UINT64 name;
-		LPCCH str;
-	};
-
-	void DumpLocalizeValues() {
-		std::ofstream os{ "localize.csv", std::ios::out };
-		std::ofstream osbin{ "localize.csvbin", std::ios::out | std::ios::binary };
-
-		if (!os || !osbin) {
-			if (os) os.close();
-			if (osbin) osbin.close();
-			return;
-		}
-
-		os << "name,string\n";
-
-		auto* pool = DB_GetAssetEntryPool(AssetType::ASSET_LOCALIZE);
-
-		for (size_t i = 0; i < pool->m_usedCount; i++) {
-			auto& entry = reinterpret_cast<LocalizeEntry*>(pool->m_entries)[i];
-			if (*entry.str && (*entry.str & 0xC0) == 0x80) {
-				// decrypted
-				os
-					<< "hash_" << std::hex << entry.name << ","
-					<< entry.str << "\n";
-			}
-			else {
-				osbin.write(reinterpret_cast<const char*>(&entry.name), sizeof(entry.name));
-				osbin.write(entry.str, 400);
-			}
-		}
-
-		os.close();
-		osbin.close();
-	}
-
-
-
-	int decryptlocalize(Process& _, int argc, const char* argv[]) {
-		if (argc < 3) {
-			return tool::BAD_USAGE;
-		}
-
-		std::filesystem::path file{ argv[2] };
-
-		std::cout << "decrypting " << file.string() << "\n";
-
-		LPVOID bufferPtr = nullptr;
-		size_t size = 0;
-
-		if (!utils::ReadFileNotAlign(file, bufferPtr, size)) {
-			std::cerr << "can't read file.\n";
-			return tool::BASIC_ERROR;
-		}
-
-		BYTE* buffer = reinterpret_cast<BYTE*>(bufferPtr);
-
-		size_t location = 0;
-
-		auto f = file.parent_path() / std::format("decrypt_{}.csv", file.filename().string());
-
-		std::cout << "into " << f.string() << "\n";
-
-		std::ofstream os{ f };
-
-		if (!os) {
-			std::free(bufferPtr);
-			std::cerr << "can't write decrypt file.\n";
-			return tool::BASIC_ERROR;
-		}
-		hashutils::ReadDefaultFile(true, true);
-
-		os << "name,string\n";
-
-		while (location < size) {
-			auto name = *reinterpret_cast<UINT64*>(&buffer[location]);
-			auto* dec = decrypt::DecryptStringIW(reinterpret_cast<char*>(&buffer[location + 8]));
-			if (!dec) {
-				continue;
-			}
-			os << hashutils::ExtractTmp("hash", name) 
-				<< ","
-				<< dec
-				<< "\n";
-			location += 408;
-		}
-
-		std::free(bufferPtr);
-
-		return tool::OK;
-	}
-
-	int hash23(Process& _, int argc, const char* argv[]) {
-		for (size_t i = 2; i < argc; i++) {
-
-			std::cout << "--- " << argv[i] << "\n";
-
-
-			UINT64 methods[20][2] = {
-				{ 0xcbf29ce484222325LL, 0x100000001b3 },
-				{ 0x47F5817A5EF961BALL, 0x100000001b3 },
-				{ 0x79D6530B0BB9B5D1LL, 0x10000000233 }
-			};
-
-			for (size_t j = 0; j < sizeof(methods) / sizeof(methods[0]); j++) {
-
-				std::cout 
-					<< std::hex 
-					<< methods[j][0] << "/" << methods[j][1] << " -> "
-					<< hashutils::Hash64(argv[i], methods[j][0], methods[j][1])
-					<< "\n";
-
-			}
-
-		}
-
-		return tool::OK;
-	}
 }
 
 ADD_TOOL("gscinfo23", " [file]", "gsc info 23", nullptr, gscinfo);
-ADD_TOOL("local23", " [file]", "decrypt local dump 23", nullptr, decryptlocalize);
-ADD_TOOL("hash23", " [str]", "hash using iw values", nullptr, hash23);

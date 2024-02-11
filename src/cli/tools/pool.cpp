@@ -1246,6 +1246,70 @@ void ReadDDLDefEntry(PoolOption& opt, Process& proc, std::ostream& defout, uintp
 
 #pragma endregion
 
+int pooltoolnames(Process& proc, int argc, const char* argv[]) {
+    using namespace pool;
+
+    hashutils::ReadDefaultFile();
+
+    XAssetPoolEntry entry{};
+
+    std::unordered_map<XAssetType, size_t> xoffsets{
+        { ASSET_TYPE_RAGDOLL, 0xBA0 },
+        { ASSET_TYPE_FLAMETABLE, 0x1B0 },
+        { ASSET_TYPE_XANIM, 0x70 },
+        { ASSET_TYPE_IMAGE, 0x20 },
+        { ASSET_TYPE_KLF, 0x18 },
+        { ASSET_TYPE_PLAYLISTS, 0x10 },
+        { ASSET_TYPE_DLOGEVENT, 8 },
+        { ASSET_TYPE_UNLOCKABLE_ITEM, 8 },
+        { ASSET_TYPE_STORECATEGORY, 8 },
+        { ASSET_TYPE_STORAGEFILE, 8 },
+        { ASSET_TYPE_SOUND, 8 },
+        { ASSET_TYPE_SANIM, 8 },
+        { ASSET_TYPE_PLAYLIST_GLOBAL_SETTINGS, 8 },
+        { ASSET_TYPE_PLAYLIST_SCHEDULE, 8 },
+        { ASSET_TYPE_LOCALIZE_ENTRY, 8 },
+    };
+
+    for (size_t i = 0; i < ASSET_TYPE_COUNT; i++) {
+        auto id = (XAssetType)i;
+
+        if (!proc.ReadMemory(&entry, proc[offset::assetPool] + sizeof(entry) * id, sizeof(entry))) {
+            std::cerr << "Can't read pool entry\n";
+            return false;
+        }
+
+        std::error_code ec;
+
+        auto name = XAssetNameFromId(id);
+
+        auto output = utils::va("output_xassets_names/%s.csv", name);
+        std::filesystem::path file{ output };
+        std::filesystem::create_directories(file.parent_path(), ec);
+        std::ofstream defout{ file };
+        std::cout << name << " -> " << output << "\n";
+
+        if (!defout) {
+            std::cerr << "Can't open output file\n";
+            continue;
+        }
+            
+
+        defout << "id,name,type";
+        auto off = xoffsets[id];
+
+        for (size_t asset = 0; asset < entry.itemAllocCount; asset++) {
+            auto xhash = proc.ReadMemory<UINT64>(entry.pool + entry.itemSize * asset + off);
+
+            defout << "\n" << std::dec << asset << "," << hashutils::ExtractTmp("hash", xhash) << "," << name;
+        }
+
+        defout.close();
+    }
+
+    return tool::OK;
+}
+
 int pooltool(Process& proc, int argc, const char* argv[]) {
     using namespace pool;
     PoolOption opt;
@@ -3722,6 +3786,446 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
+    if (ShouldHandle(ASSET_TYPE_STORECATEGORYLIST)) {
+        struct StoreCategoryList {
+            XHash name;
+            uint64_t count;
+            uintptr_t data;
+        };
+
+        auto pool = std::make_unique<StoreCategoryList[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/store/category/list/%s.csv", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/store/category/list/file_%llx.csv", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "id,name,nameHashed,displayName,image,productsCount,visibility";
+
+            if (p.count) {
+                auto tableVals = std::make_unique<uintptr_t[]>(p.count);
+
+                if (!proc.ReadMemory(&tableVals[0], p.data, sizeof(tableVals[0]) * p.count)) {
+                    defout.close();
+                    std::cerr << "Can't read memory\n";
+                    break;
+                }
+                struct StoreCategory
+                {
+                    uintptr_t name2; // const char*
+                    XHash name;
+                    uintptr_t image; // GfxImage*
+                    XHash displayName;
+                    byte productsCount;
+                    uintptr_t products; // StoreProducts**
+                    bool visibility;
+                };
+
+                StoreCategory nfo{};
+                for (size_t i = 0; i < p.count; i++) {
+                    if (!proc.ReadMemory(&nfo, tableVals[i], sizeof(nfo))) {
+                        defout.close();
+                        std::cerr << "Can't read memory\n";
+                        continue;
+                    }
+
+                    auto* nameUn = ReadTmpStr(proc, nfo.name2);
+
+                    hashutils::Add(nameUn);
+
+                    defout << std::dec << "\n" << i
+                        << "," << nameUn
+                        << ",#" << hashutils::ExtractTmp("hash", nfo.name.name)
+                        << ",#" << hashutils::ExtractTmp("hash", nfo.displayName.name)
+                        << ",#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.image + 0x20))
+                        << "," << std::dec << (int)nfo.productsCount
+                        << "," << (nfo.visibility ? "true" : "false")
+                        ;
+
+                    //tool::pool::WriteHex(defout << "\n", 0, (BYTE*)&nfo, sizeof(nfo), proc);
+                }
+            }
+
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_STORECATEGORY)) {
+        struct StoreCategory
+        {
+            uintptr_t name2; // const char*
+            XHash name;
+            uintptr_t image; // GfxImage*
+            XHash displayName;
+            byte productsCount;
+            uintptr_t products; // StoreProducts**
+            bool visibility;
+        };
+
+        auto pool = std::make_unique<StoreCategory[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* nameUn = ReadTmpStr(proc, p.name2);
+
+            hashutils::Add(nameUn);
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/store/category/%s.json", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/store/category/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "{\n";
+            utils::Padding(defout, 1) << "\"name\": \"" << nameUn << "\",\n";
+            utils::Padding(defout, 1) << "\"nameHash\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"displayName\": \"#" << hashutils::ExtractTmp("hash", p.displayName.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"imageName\": \"#" << proc.ReadMemory<UINT64>(p.image + 0x20) << "\",\n";
+            utils::Padding(defout, 1) << "\"visibility\": " << (p.visibility ? "true" : "false") << ",\n";
+            utils::Padding(defout, 1) << "\"products\": [";
+            if (p.productsCount) {
+                auto products = std::make_unique<uintptr_t[]>(p.productsCount);
+
+                if (!proc.ReadMemory(&products[0], p.products, sizeof(products[0]) * p.productsCount)) {
+                    std::cerr << "Can't read memory";
+                    break;
+                }
+
+                for (size_t j = 0; j < p.productsCount; j++) {
+                    if (j) defout << ",";
+                    utils::Padding(defout << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(products[j])) << "\"";
+                }
+                utils::Padding(defout << "\n", 1) << "]\n";
+            }
+            else {
+                defout << "]\n";
+            }
+            defout << "}";
+
+
+            defout.close();
+        }
+    }
+    if (ShouldHandle(ASSET_TYPE_STOREPRODUCT)) {
+        struct StoreProduct
+        {
+            XHash name;
+            uintptr_t previewImage;// GfxImage*
+            uintptr_t productImage; // GfxImage*
+            uintptr_t blackMarketImage;// GfxImage*
+            uintptr_t metadata;// const char*
+            uintptr_t videoHighResRef;// const char*
+            uintptr_t videoLowResRef;// const char*
+            XHash blackMarketName;
+            XHash blackMarketDesc;
+            XHash entitlementNameXHash; // const char*
+            uintptr_t productID; // const char*
+            uintptr_t unk78;
+            uint64_t unk80;
+            uint64_t unk88;
+            uint64_t unk90;
+            uint64_t unk98;
+            bool visibility;
+            bool unka1;
+            bool unka2;
+            bool unka3;
+            uint32_t unka4;
+            uint64_t unka8;
+            uint64_t unkb0;
+            uint64_t unkb8;
+            uint64_t unkc0;
+        };
+
+
+        auto pool = std::make_unique<StoreProduct[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/tables/store/product/%s.json", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/tables/store/product/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            defout << "{\n";
+            utils::Padding(defout, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"blackMarketName\": \"#" << hashutils::ExtractTmp("hash", p.blackMarketName.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"blackMarketDesc\": \"#" << hashutils::ExtractTmp("hash", p.blackMarketDesc.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"entitlementNameXHash\": \"#" << hashutils::ExtractTmp("hash", p.entitlementNameXHash.name) << "\",\n";
+            if (p.productID) {
+                utils::Padding(defout, 1) << "\"productID\": \"" << ReadTmpStr(proc, p.productID) << "\",\n";
+            }
+            if (p.metadata) {
+                utils::Padding(defout, 1) << "\"metadata\": \"" << ReadTmpStr(proc, p.metadata) << "\",\n";
+            }
+            if (p.videoLowResRef) {
+                utils::Padding(defout, 1) << "\"videoLowResRef\": \"" << ReadTmpStr(proc, p.videoLowResRef) << "\",\n";
+            }
+            if (p.videoHighResRef) {
+                utils::Padding(defout, 1) << "\"videoHighResRef\": \"" << ReadTmpStr(proc, p.videoHighResRef) << "\",\n";
+            }
+            if (p.previewImage) {
+                utils::Padding(defout, 1) << "\"previewImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.previewImage + 0x20)) << "\",\n";
+            }
+            if (p.productImage) {
+                utils::Padding(defout, 1) << "\"productImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.productImage + 0x20)) << "\",\n";
+            }
+            if (p.blackMarketImage) {
+                utils::Padding(defout, 1) << "\"blackMarketImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.blackMarketImage + 0x20)) << "\",\n";
+            }
+            utils::Padding(defout, 1) << "\"visibility\": " << (p.visibility ? "true" : "false") << "\n";
+
+            
+            //tool::pool::WriteHex(defout << "\n", 0, (BYTE*)&p, sizeof(p), proc);
+            defout << "}";
+
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_STRUCTURED_TABLE)) {
+        struct StructuredTable
+        {
+            XHash name;
+            int cellCount;
+            int columnCount;
+            int rowCount;
+            uintptr_t cells; // StructuredTableCell*
+            uintptr_t cellIndex; // int*
+            uintptr_t headers; // StructuredTableHeader*
+            uintptr_t headerIndex; // int*
+        };
+        enum StructuredTableCellType {
+            STRUCTURED_TABLE_CELL_TYPE_NONE = 0x0,
+            STRUCTURED_TABLE_CELL_TYPE_STRING = 0x1,
+            STRUCTURED_TABLE_CELL_TYPE_NUMBER = 0x2,
+            STRUCTURED_TABLE_CELL_TYPE_COUNT = 0x3,
+        };
+        struct StructuredTableCell
+        {
+            union {
+                int number;
+                int hash;
+                uintptr_t ptr;
+            };
+            StructuredTableCellType type;
+            int unkc;
+        };
+        struct StructuredTableHeader
+        {
+            uintptr_t string; // const char*
+            int hash;
+            int index;
+        };
+
+
+
+
+        auto pool = std::make_unique<StructuredTable[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<BYTE> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto* n = hashutils::ExtractPtr(p.name.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/hashed/structuredtable/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::cout << "Table #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            if (!p.columnCount) {
+                defout << "[]";
+                defout.close();
+                continue; // empty
+            }
+
+            auto headerInfo = std::make_unique<StructuredTableHeader[]>(p.columnCount);
+            
+            if (!proc.ReadMemory(&headerInfo[0], p.headers, sizeof(headerInfo[0]) * p.columnCount)) {
+                defout.close();
+                std::cerr << "Can't read memory\n";
+                break;
+            }
+
+            //for (size_t col = 0; col < p.columnCount; col++) {
+            //    auto& column = headerInfo[col];
+            //    if (col) defout << ",";
+            //    defout << ReadTmpStr(proc, column.string);
+            //}
+
+            defout << "[";
+            if (p.rowCount) {
+                auto cells = std::make_unique<StructuredTableCell[]>(p.columnCount * p.rowCount);
+                if (!proc.ReadMemory(&cells[0], p.cells, sizeof(cells[0]) * p.columnCount * p.rowCount)) {
+                    defout.close();
+                    std::cerr << "Can't read memory\n";
+                    break;
+                }
+
+                for (size_t row = 0; row < p.rowCount; row++) {
+                    auto* rowcells = &cells[row * p.columnCount];
+
+                    if (row) defout << ",";
+                    utils::Padding(defout << "\n", 1) << "{";
+                    int count = 0;
+                    for (size_t col = 0; col < p.columnCount; col++) {
+                        auto& cell = rowcells[col];
+
+                        if (cell.type == STRUCTURED_TABLE_CELL_TYPE_NONE) {
+                            continue;
+                        }
+
+                        if (count++) defout << ",";
+                        utils::Padding(defout << "\n", 2) << "\"" << ReadTmpStr(proc, headerInfo[col].string) << "\": ";
+                        switch (cell.type) {
+                        case STRUCTURED_TABLE_CELL_TYPE_STRING:
+                            defout << "\"" << ReadTmpStr(proc, cell.ptr) << "\"";
+                            break;
+                        case STRUCTURED_TABLE_CELL_TYPE_NUMBER:
+                            defout << std::dec << cell.number;
+                            break;
+                        default:
+                            defout << std::dec << "\"unk:" << cell.type << "\"";
+                            break; // ignore
+                        }
+                    }
+                    utils::Padding(defout << "\n", 1) << "}";
+
+                }
+                defout << "\n";
+            }
+            defout << "]";
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
     if (ShouldHandle(ASSET_TYPE_TTF)) {
         struct TTFDef {
             Hash name;
@@ -3951,6 +4455,97 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             defout.close();
         }
 
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_SCRIPTBUNDLELIST)) {
+        size_t readFile = 0;
+
+        struct ScriptBundleList
+        {
+            XHash name;
+            ScrString_t assetType;
+            uint32_t assetCount;
+            uintptr_t assets; // ScriptBundlePtr*
+        };
+
+        auto pool = std::make_unique<ScriptBundleList[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/scriptbundle/list/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/scriptbundle/list/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out << "{\n";
+            utils::Padding(out, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(out, 1) << "\"assetType\": \"" << ReadMTString(proc, p.assetType) << "\",\n";
+            utils::Padding(out, 1) << "\"assets\": [";
+
+            if (p.assetCount) {
+                auto assets = std::make_unique<uintptr_t[]>(p.assetCount);
+
+                if (!proc.ReadMemory(&assets[0], p.assets, sizeof(assets[0]) * p.assetCount)) {
+                    std::cerr << "Can't read memory\n";
+                    out.close();
+                    break;
+                }
+
+                for (size_t j = 0; j < p.assetCount; j++) {
+                    if (j) out << ",";
+                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(assets[j])) << "\"";
+                }
+
+                utils::Padding(out << "\n", 1) << "]\n";
+            }
+            else {
+                out << "]\n";
+            }
+
+            out << "}";
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
     if (ShouldHandle(ASSET_TYPE_SCRIPTBUNDLE)) {
@@ -4707,6 +5302,291 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
         std::cout << "Dump " << readFile << " new file(s)\n";
     }
+    if (ShouldHandle(ASSET_TYPE_MAPTABLE_LOADING_IMAGES)) {
+        size_t readFile = 0;
+
+        struct MapTableLoadingImages
+        {
+            XHash name;
+            uint64_t imageCount;
+            uintptr_t images; // GfxImage**
+            uint64_t mapCount;
+        };
+
+        auto pool = std::make_unique<MapTableLoadingImages[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/tables/map/loadingimages/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/tables/map/loadingimages/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out << "{\n";
+            utils::Padding(out, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(out, 1) << "\"mapCount\": " << std::dec << p.mapCount << ",\n";
+
+            utils::Padding(out, 1) << "\"images\": [";
+
+            size_t count = p.imageCount;
+
+            if (count) {
+                auto entries = std::make_unique<uintptr_t[]>(count);
+
+                if (!proc.ReadMemory(&entries[0], p.images, count * sizeof(entries[0]))) {
+                    std::cerr << "Can't read entries\n";
+                    break;
+                }
+
+                for (size_t j = 0; j < count; j++) {
+                    if (j) out << ",";
+
+                    auto* str = ReadTmpStr(proc, proc.ReadMemory<UINT64>(entries[j]));
+
+                    hashutils::Add(str);
+                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(entries[j] + 0x20)) << "\"";
+                }
+
+                utils::Padding(out << "\n", 1) << "]\n";
+            }
+            else {
+                out << "]\n";
+            }
+
+            out << "}";
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_MAPTABLE_PREVIEW_IMAGES)) {
+        size_t readFile = 0;
+
+        struct MapTablePreviewImages
+        {
+            XHash name;
+            uint64_t imageCount;
+            uintptr_t images; // GfxImage**
+            uint64_t mapCount;
+        };
+
+        auto pool = std::make_unique<MapTablePreviewImages[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/tables/map/previewimages/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/tables/map/previewimages/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out << "{\n";
+            utils::Padding(out, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(out, 1) << "\"mapCount\": " << std::dec << p.mapCount << ",\n";
+
+            utils::Padding(out, 1) << "\"images\": [";
+
+            size_t count = p.imageCount;
+
+            if (count) {
+                auto entries = std::make_unique<uintptr_t[]>(count);
+
+                if (!proc.ReadMemory(&entries[0], p.images, count * sizeof(entries[0]))) {
+                    std::cerr << "Can't read entries\n";
+                    break;
+                }
+
+                for (size_t j = 0; j < count; j++) {
+                    if (j) out << ",";
+
+                    auto* str = ReadTmpStr(proc, proc.ReadMemory<UINT64>(entries[j]));
+
+                    hashutils::Add(str);
+                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(entries[j] + 0x20)) << "\"";
+                }
+
+                utils::Padding(out << "\n", 1) << "]\n";
+            }
+            else {
+                out << "]\n";
+            }
+
+            out << "}";
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_STREAMKEY, false)) {
+        size_t readFile = 0;
+
+        // wtf?
+        struct StreamKey {
+            XHash name;
+            uint64_t unk10;
+            uint64_t unk18;
+            uint64_t unk20;
+            uint64_t unk28;
+            uint64_t unk30;
+            uint64_t xanim;
+            uint32_t unk40;
+            uint32_t unk44;
+        };
+
+
+
+        // 12D15670
+        auto pool = std::make_unique<StreamKey[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/tables/streamkey/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/tables/streamkey/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            //if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
+            //    std::cerr << "error when reading buffer at " << p.gameTypes << "\n";
+            //    continue;
+            //}
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            defout << "{\n";
+            utils::Padding(defout, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(defout, 1) << "\"xanim\": \"#" << std::hex << hashutils::ExtractTmp("hash", p.xanim) << "\",\n";
+
+            utils::Padding(defout, 1) << "\"unk10\": \"" << std::hex << p.unk10 << "\",\n";
+            utils::Padding(defout, 1) << "\"unk18\": \"" << std::hex << p.unk18 << "\",\n";
+            utils::Padding(defout, 1) << "\"unk20\": \"" << std::hex << p.unk20 << "\",\n";
+            utils::Padding(defout, 1) << "\"unk28\": \"" << std::hex << p.unk28 << "\",\n";
+            utils::Padding(defout, 1) << "\"unk30\": \"" << std::hex << p.unk30 << "\",\n";
+            utils::Padding(defout, 1) << "\"unk40\": \"" << std::hex << p.unk40 << "\",\n";
+            utils::Padding(defout, 1) << "\"unk44\": \"" << std::hex << p.unk44 << "\"\n";
+            tool::pool::WriteHex(defout, 0, (BYTE*)&p, entry.itemSize, proc);
+            defout << "}";
+
+            defout.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
     if (ShouldHandle(ASSET_TYPE_IMAGE, false)) {
         size_t readFile = 0;
 
@@ -4871,6 +5751,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
     }
 
+
+    //tool::pool::WriteHex(defout, 0, (BYTE*)&p, entry.itemSize, proc);
     hashutils::WriteExtracted(opt.m_dump_hashmap);
 	return tool::OK;
 }
@@ -5061,6 +5943,7 @@ int dbgp(Process& proc, int argc, const char* argv[]) {
 }
 
 ADD_TOOL("dp", " [pool]+", "dump pool", L"BlackOps4.exe", pooltool);
+ADD_TOOL("dpn", "", "dump pool names", L"BlackOps4.exe", pooltoolnames);
 ADD_TOOL("dbgcache", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
 ADD_TOOL("dbmtstrs", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
 ADD_TOOL("dbgp", "", "dump bg pool", L"BlackOps4.exe", dbgp);

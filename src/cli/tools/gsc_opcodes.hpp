@@ -4,10 +4,15 @@
 #include <unordered_map>
 
 namespace tool::gsc::opcode {
+	enum VmType {
+		VMT_SHORT = 0,
+		VMT_BYTE
+	};
 	class OPCodeInfo;
 	struct VmInfo {
 		BYTE vm;
 		LPCCH name;
+		VmType type;
 		BYTE platforms{};
 		std::unordered_map<UINT16, std::unordered_map<Platform, OPCode>> opcodemap{};
 		std::unordered_map<OPCode, std::unordered_map<Platform, UINT16>> opcodemaplookup{};
@@ -35,7 +40,7 @@ namespace tool::gsc::opcode {
 	const OPCodeInfo* LookupOpCode(BYTE vm, Platform platform, UINT16 opcode);
 	std::pair<bool, UINT16> GetOpCodeId(BYTE vm, Platform platform, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
-	void RegisterVM(BYTE vm, LPCCH name);
+	void RegisterVM(BYTE vm, LPCCH name, VmType type);
 	void RegisterVMPlatform(BYTE vm, Platform plt);
 	void RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op);
 	void RegisterOpCodes();

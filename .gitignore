@@ -38,6 +38,8 @@ src/mw23-dll/main.cpp
 src/mw23-dll/main.hpp
 src/mw23-dll/Main.cpp
 src/mw23-dll/Main.hpp
+src/cli/tools/sp23/gsc23_opcodes_load.cpp
+src/cli/tools/sp23/gsc23_opcodes_load.hpp
 
 *.aps
 

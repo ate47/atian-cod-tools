@@ -3,9 +3,12 @@
 namespace tool::gsc::opcode {
 
 	enum VM : BYTE {
+		VM_UNKNOWN = 0,
 		VM_T8 = 0x36,
 		VM_T937 = 0x37,
-		VM_T9 = 0x38
+		VM_T9 = 0x38,
+
+		VM_MW23 = 0xF0,
 	};
 
 	enum Platform : BYTE {
@@ -18,6 +21,7 @@ namespace tool::gsc::opcode {
 
 	Platform PlatformOf(LPCCH name);
 	LPCCH PlatformName(Platform plt);
+	VM VMOf(LPCCH name);
 
 	enum OPCode : UINT16 {
 		OPCODE_Undefined,
@@ -45,6 +49,7 @@ namespace tool::gsc::opcode {
 		OPCODE_CallBuiltinFunction,
 		OPCODE_CallBuiltinMethod,
 		OPCODE_EmptyArray,
+		OPCODE_EmptyStruct,
 		OPCODE_WaitTill,
 		OPCODE_ClearFieldVariableOnStack,
 		OPCODE_ClearArray,
@@ -191,6 +196,21 @@ namespace tool::gsc::opcode {
 		OPCODE_T9_IteratorKey,
 		OPCODE_T9_IteratorVal,
 		OPCODE_T9_IteratorNext,
+
+		// MW
+		OPCODE_IW_RegisterVariable,
+		OPCODE_IW_ClearVariable,
+		OPCODE_IW_GetAnimation,
+		OPCODE_IW_CreateParams,
+		OPCODE_IW_GetBuiltinFunction,
+		OPCODE_IW_GetBuiltinMethod,
+		OPCODE_IW_GetIString,
+		OPCODE_IW_GetByteCodeUnkE,
+		OPCODE_IW_GetEmptyUnkE,
+		OPCODE_IW_GetUnkb,
+		OPCODE_IW_GetUnk9,
+		OPCODE_IW_GetUnka,
+
 
 		OPCODE_COUNT,
 	};

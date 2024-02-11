@@ -75,6 +75,18 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
                 return false;
             }
         }
+        else if (!strcmp("-v", arg) || !_strcmpi("--vm", arg)) {
+            if (i + 1 == endIndex) {
+                std::cerr << "Missing value for param: " << arg << "!\n";
+                return false;
+            }
+            m_vm = opcode::VMOf(args[++i]);
+
+            if (!m_vm) {
+                std::cerr << "Unknown vm: " << args[i] << "!\n";
+                return false;
+            }
+        }
         else if (!_strcmpi("--internalblocks", arg)) {
             m_show_internal_blocks = true;
         }
@@ -196,6 +208,7 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
         << "-V --vars          : Show all func vars\n"
         << "-r --rosetta [f]   : Create Rosetta file\n"
         << "-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'\n"
+        << "-v --vm            : Set vm, useless for Treyarch VM, values: mw23\n"
         << "-X --exptests      : Enable UNK tests\n"
         << "-C --copyright [t] : Set a comment text to put in front of every file\n";
 }
@@ -423,8 +436,8 @@ namespace {
         char* DecryptString(char* str) override {
             return decrypt::DecryptString(str);
         }
-        bool IsValidMagic() override {
-            return *reinterpret_cast<UINT64*>(file) == 0x36000a0d43534780;
+        bool IsValidHeader(size_t size) override {
+            return size >= sizeof(T8GSCOBJ) && *reinterpret_cast<UINT64*>(file) == 0x36000a0d43534780;
         }
     };
     
@@ -450,7 +463,7 @@ namespace {
             if (opt.m_test_header) {
                 asmout
                     << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
-                    << "// unk24 .... " << std::dec << data->unk24 << " / 0x" << std::hex << data->unk24 << "\n"
+                    << "// unk2c .... " << std::dec << data->unk2c << " / 0x" << std::hex << data->unk2c << "\n"
                     << "// unk3a .... " << std::dec << data->unk3a << " / 0x" << std::hex << data->unk3a << "\n"
                     << "// unk48 .... " << std::dec << data->unk48 << " / 0x" << std::hex << data->unk48 << "\n"
                     << "// unk52 .... " << std::dec << data->unk52 << " / 0x" << std::hex << data->unk52 << "\n"
@@ -515,45 +528,16 @@ namespace {
         char* DecryptString(char* str) override {
             return cw::DecryptString(str);
         }
-        bool IsValidMagic() override {
-            return *reinterpret_cast<UINT64*>(file) == 0x37000a0d43534780;
+        bool IsValidHeader(size_t size) override {
+            return size >= sizeof(T937GSCOBJ) && *reinterpret_cast<UINT64*>(file) == 0x37000a0d43534780;
         }
 
         BYTE RemapFlagsImport(BYTE flags) override {
-            BYTE nflags = 0;
-
-            switch (flags & T9_IF_CALLTYPE_MASK) {
-            case T9_IF_METHOD_CHILDTHREAD: nflags |= METHOD_CHILDTHREAD; break;
-            case T9_IF_METHOD_THREAD: nflags |= METHOD_THREAD; break;
-            case T9_IF_FUNCTION_CHILDTHREAD: nflags |= FUNCTION_CHILDTHREAD; break;
-            case T9_IF_FUNCTION: nflags |= FUNCTION; break;
-            case T9_IF_FUNC_METHOD: nflags |= FUNC_METHOD; break;
-            case T9_IF_FUNCTION_THREAD: nflags |= FUNCTION_THREAD; break;
-            case T9_IF_METHOD: nflags |= METHOD; break;
-            default: nflags |= flags & 0xF; // wtf?
-            }
-
-            nflags |= flags & ~T9_IF_CALLTYPE_MASK;
-
-            return nflags;
+            return flags; // same as bo4?
         }
 
         BYTE RemapFlagsExport(BYTE flags) override {
-            if (flags == T9_EF_CLASS_VTABLE) {
-                return CLASS_VTABLE;
-            }
-            BYTE nflags = 0;
-
-            if (flags & T9_EF_AUTOEXEC) nflags |= AUTOEXEC;
-            if (flags & T9_EF_LINKED) nflags |= LINKED;
-            if (flags & T9_EF_PRIVATE) nflags |= PRIVATE;
-            if (flags & T9_EF_CLASS_MEMBER) nflags |= CLASS_MEMBER;
-            if (flags & T9_EF_EVENT) nflags |= EVENT;
-            if (flags & T9_EF_VE) nflags |= VE;
-            if (flags & T9_EF_CLASS_LINKED) nflags |= CLASS_LINKED;
-            if (flags & T9_EF_CLASS_DESTRUCTOR) nflags |= CLASS_DESTRUCTOR;
-
-            return nflags;
+            return flags;
         }
     };
 
@@ -634,8 +618,8 @@ namespace {
         char* DecryptString(char* str) override {
             return cw::DecryptString(str);
         }
-        bool IsValidMagic() override {
-            return *reinterpret_cast<UINT64*>(file) == 0x38000a0d43534780;
+        bool IsValidHeader(size_t size) override {
+            return size >= sizeof(T9GSCOBJ) && *reinterpret_cast<UINT64*>(file) == 0x38000a0d43534780;
         }
         BYTE RemapFlagsImport(BYTE flags) override {
             BYTE nflags = 0;
@@ -675,10 +659,173 @@ namespace {
         }
     };
 
+    class MW23GSCOBJReader : public GSCOBJReader {
+        using GSCOBJReader::GSCOBJReader;
+
+        void DumpHeader(std::ostream& asmout) override {
+            auto* data = Ptr<GscObj23>();
+            asmout
+                << std::left << std::setfill(' ')
+                << "// size ..... " << std::dec << std::setw(3) << data->size << " (0x" << std::hex << data->size << ")" << "\n"
+                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
+                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
+                << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
+                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
+                //<< "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
+                //<< "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+                << std::right
+                << std::flush;
+
+            if (opt.m_test_header) {
+                // fillme
+            }
+        }
+        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+        }
+
+        UINT64 GetName() override {
+            return Ptr<GscObj23>()->name;
+        }
+        UINT16 GetExportsCount() override {
+            return Ptr<GscObj23>()->export_count;
+        }
+        UINT32 GetExportsOffset() override {
+            return Ptr<GscObj23>()->export_offset;
+        }
+        UINT16 GetIncludesCount() override {
+            return Ptr<GscObj23>()->includes_count;
+        }
+        UINT32 GetIncludesOffset() override {
+            return Ptr<GscObj23>()->include_table;
+        }
+        UINT16 GetImportsCount() override {
+            return Ptr<GscObj23>()->imports_count;
+        }
+        UINT32 GetImportsOffset() override {
+            return Ptr<GscObj23>()->import_table;
+        }
+        UINT16 GetGVarsCount() override {
+            return 0; //return Ptr<GscObj23>()->globalvar_count;
+        }
+        UINT32 GetGVarsOffset() override {
+            return 0; //return Ptr<GscObj23>()->globalvar_offset;
+        }
+        UINT16 GetStringsCount() override {
+            return Ptr<GscObj23>()->string_count;
+        }
+        UINT32 GetStringsOffset() override {
+            return Ptr<GscObj23>()->string_table;
+        }
+        UINT32 GetFileSize() override {
+            return Ptr<GscObj23>()->size;
+        }
+        size_t GetHeaderSize() override {
+            return sizeof(GscObj23);
+        }
+        char* DecryptString(char* str) override {
+            return str; // iw
+        }
+        bool IsValidHeader(size_t size) override {
+            return size >= sizeof(T9GSCOBJ) && *reinterpret_cast<UINT64*>(file) == 0xa0d4353478a;
+        }
+        BYTE RemapFlagsImport(BYTE flags) override {
+            return flags;
+        }
+
+        BYTE RemapFlagsExport(BYTE flags) override {
+            return flags;
+        }
+
+        void PatchCode(T8GSCOBJContext& ctx) override {
+            return; // TODO: mw23
+            // patching imports unlink the script refs to write namespace::import_name instead of the address
+            auto imports_count = (int)GetImportsCount();
+            uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + GetImportsOffset();
+            for (size_t i = 0; i < imports_count; i++) {
+
+                const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
+
+                const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
+                for (size_t j = 0; j < imp->num_address; j++) {
+                    UINT32* loc;
+                    auto remapedFlags = RemapFlagsImport(imp->flags);
+
+                    switch (remapedFlags & CALLTYPE_MASK) {
+                    case FUNC_METHOD:
+                        loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
+                        break;
+                    case FUNCTION:
+                    case FUNCTION_THREAD:
+                    case FUNCTION_CHILDTHREAD:
+                    case METHOD:
+                    case METHOD_THREAD:
+                    case METHOD_CHILDTHREAD:
+                        // here the game fix function calls with a bad number of params,
+                        // but for the decomp/dasm we don't care because we only mind about
+                        // what we'll find on the stack.
+                        Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
+                        loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
+                        break;
+                    default:
+                        loc = nullptr;
+                        break;
+                    }
+                    if (loc) {
+                        loc[0] = imp->name;
+
+                        if (remapedFlags & T8GSCImportFlags::GET_CALL) {
+                            // no need for namespace if we are getting the call dynamically (api or inside-code script)
+                            loc[1] = 0; // ""
+                        }
+                        else {
+                            loc[1] = imp->name_space;
+                        }
+
+                    }
+                }
+                import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
+            }
+
+            uintptr_t gvars_location = reinterpret_cast<uintptr_t>(file) + GetGVarsOffset();
+            auto globalvar_count = (int)GetGVarsCount();
+            for (size_t i = 0; i < globalvar_count; i++) {
+                const auto* globalvar = reinterpret_cast<T8GSCGlobalVar*>(gvars_location);
+                UINT16 ref = ctx.AddGlobalVarName(globalvar->name);
+
+                const auto* vars = reinterpret_cast<const UINT32*>(&globalvar[1]);
+                for (size_t j = 0; j < globalvar->num_address; j++) {
+                    // no align, no opcode to pass, directly the fucking location, cool.
+                    Ref<UINT16>(vars[j]) = ref;
+                }
+                gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
+            }
+
+            uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
+            auto string_count = (int)GetStringsCount();
+            for (size_t i = 0; i < string_count; i++) {
+
+                const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+                LPCH cstr = DecryptString(Ptr<CHAR>(str->string));
+                if (gDumpStrings) {
+                    gDumpStringsStore.insert(cstr);
+                }
+                UINT32 ref = ctx.AddStringValue(cstr);
+
+                const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
+                for (size_t j = 0; j < str->num_address; j++) {
+                    // no align too....
+                    Ref<UINT32>(strings[j]) = ref;
+                }
+                str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
+            }
+        }
+    };
+
     std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*, const GscInfoOption&)>> gscReaders = {
         { tool::gsc::opcode::VM_T8,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T8GSCOBJReader>(file, opt); }},
         { tool::gsc::opcode::VM_T937,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T937GSCOBJReader>(file, opt); }},
         { tool::gsc::opcode::VM_T9,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<T9GSCOBJReader>(file, opt); }},
+        { tool::gsc::opcode::VM_MW23,[](BYTE* file, const GscInfoOption& opt) { return std::make_shared<MW23GSCOBJReader>(file, opt); }},
     };
 }
 
@@ -734,14 +881,33 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
         gsicInfo.headerSize = gsicSize;
         data += gsicSize;
     }
+    BYTE vm;
 
-    BYTE vm = data[7];
+    auto magicVal = *reinterpret_cast<UINT64*>(data) & ~0xFF00000000000000;
+    if (magicVal == 0xa0d4353478a) {
+        // IW GSC file, use user input
+        if (opt.m_vm == opcode::VM_UNKNOWN) {
+            std::cerr << "VM type needed with IW GSC file, please use --vm [vm] to set it\n";
+            return tool::BASIC_ERROR;
+        }
+        vm = opt.m_vm;
+    }
+    if (magicVal == 0xa0d43534780) {
+        // Treyarch GSC file, use revision
+        vm = data[7];
+    }
+    else {
+        std::cerr << "Bad magic 0x" << std::hex << *reinterpret_cast<UINT64*>(data) << "\n";
+        return tool::BASIC_ERROR;
+    }
+
 
     opcode::VmInfo* vmInfo;
     if (!opcode::IsValidVm(vm, vmInfo)) {
         std::cerr << "Bad vm 0x" << std::hex << (int)vm << " for file " << path << "\n";
         return -1;
     }
+    ctx.m_vmInfo = vmInfo;
 
     auto readerBuilder = gscReaders.find(vm);
 
@@ -752,8 +918,9 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
     std::shared_ptr<GSCOBJReader> scriptfile = readerBuilder->second(data, opt);
 
-    if (!scriptfile->IsValidMagic()) {
-        std::cerr << "Bad magic 0x" << std::hex << scriptfile->Ref<UINT64>() << " for file " << path << "\n";
+    // we keep it because it should also check the size
+    if (!scriptfile->IsValidHeader(size)) {
+        std::cerr << "Bad header 0x" << std::hex << scriptfile->Ref<UINT64>() << " for file " << path << "\n";
         return -1;
     }
 
@@ -820,13 +987,21 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
         asmout
             << "// magic .... 0x" << scriptfile->Ref<UINT64>()
-            << " vm: 0x" << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")\n";
+            << " vm: ";
+        
+        if (vmInfo->type == opcode::VMT_SHORT) {
+            asmout << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")";
+        }
+        else {
+            asmout << vmInfo->name;
+        }
+        asmout << "\n";
 
         scriptfile->DumpHeader(asmout);
     }
 
     // write the strings before the patch to avoid reading pre-decrypted strings
-    if (opt.m_strings) {
+    if (opt.m_strings && scriptfile->GetStringsOffset()) {
         uintptr_t str_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetStringsOffset()));
 
         for (size_t i = 0; i < scriptfile->GetStringsCount(); i++) {
@@ -908,7 +1083,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
         scriptfile->PatchCode(ctx);
     }
 
-    if (opt.m_includes) {
+    if (opt.m_includes && scriptfile->GetIncludesOffset()) {
         auto* includes = scriptfile->Ptr<UINT64>(scriptfile->GetIncludesOffset());
 
         for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
@@ -921,7 +1096,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
     scriptfile->DumpExperimental(asmout, opt);
 
-    if (opt.m_gvars) {
+    if (opt.m_gvars && scriptfile->GetGVarsOffset()) {
         uintptr_t gvars_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetGVarsOffset()));
 
         for (size_t i = 0; i < scriptfile->GetGVarsCount(); i++) {
@@ -1232,8 +1407,8 @@ int GscInfoFile(const std::filesystem::path& path, const GscInfoOption& opt) {
         return -1;
     }
 
-    if (size < sizeof(tool::gsc::T8GSCOBJ)) {
-        std::cerr << "Bad header, file size: " << std::hex << size << "/" << sizeof(tool::gsc::T8GSCOBJ) << " for " << path << "\n";
+    if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
+        std::cerr << "Bad header, file size: " << std::hex << size << "/" << 0x18 << " for " << path << "\n";
         std::free(bufferNoAlign);
         return -1;
     }
@@ -1501,7 +1676,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile,
     ctx.Aligned<UINT16>() += 2; // GetZero
 
 
-    if (gscFile.GetVM() == VM_T9) {
+    if (gscFile.GetVM() != VM_T8) {
         ctx.Aligned<UINT16>() += 2; // EvalFieldVariableFromGlobalObject
         ctx.Aligned<UINT16>() += 2; // - classes
     }
@@ -1522,7 +1697,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile,
 
     clsName += 4;
 
-    if (gscFile.GetVM() == VM_T9) {
+    if (gscFile.GetVM() != VM_T8) {
         ctx.Aligned<UINT16>() += 2; // SetVariableFieldFromEvalArrayRef
     }
     else {
@@ -1634,7 +1809,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile,
         ctx.Aligned<UINT16>() += 2; // EvalFieldVariableRef
         ctx.Aligned<UINT32>() += 4; // - ref
 
-        if (gscFile.GetVM() == VM_T9) {
+        if (gscFile.GetVM() != VM_T8) {
             ctx.Aligned<UINT16>() += 2; // SetVariableFieldFromEvalArrayRef
         }
         else {

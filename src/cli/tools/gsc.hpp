@@ -42,6 +42,7 @@ namespace tool::gsc {
         bool m_show_func_vars = false;
         UINT32 m_stepskip = 0;
         opcode::Platform m_platform = opcode::Platform::PLATFORM_PC;
+        opcode::VM m_vm = opcode::VM::VM_UNKNOWN;
 
 
         std::vector<LPCCH> m_inputFiles{};
@@ -527,6 +528,7 @@ namespace tool::gsc {
         std::unordered_map<UINT32, LPCCH> m_stringRefs{};
     public:
         GsicInfo m_gsicInfo{};
+        opcode::VmInfo* m_vmInfo{};
         std::unordered_map<UINT32, gscclass> m_classes{};
         T8GSCOBJContext();
 
@@ -602,7 +604,7 @@ namespace tool::gsc {
         uint32_t string_offset;
         uint16_t imports_count;
         uint16_t fixup_count;
-        uint32_t unk24;
+        uint32_t unk2c;
         uint32_t exports_tables;
         uint32_t imports_offset;
         uint16_t globalvar_count;
@@ -654,6 +656,42 @@ namespace tool::gsc {
         }
     };
 
+    struct GscObj23 {
+        byte magic[8];
+        uint64_t name;
+        uint16_t size;
+        uint16_t unk2c_count;
+        uint16_t unk30_count;
+        uint16_t unk16;
+        uint16_t export_count;
+        uint16_t fixup_count;
+        uint16_t unk1C;
+        uint16_t imports_count;
+        uint16_t includes_count;
+        uint16_t unk22;
+        uint16_t string_count;
+        uint16_t unk26;
+        uint16_t unk28;
+        uint16_t unk2A;
+        uint32_t unk2c_offset;
+        uint32_t unk30_offset;
+        uint32_t unk34;
+        uint32_t unk38;
+        uint32_t unk3C;
+        uint32_t export_offset;
+        uint32_t fixup_offset;
+        uint32_t unk48;
+        uint32_t import_table;
+        uint32_t include_table;
+        uint32_t unk54;
+        uint32_t string_table;
+        uint32_t unk5C;
+
+        UINT64 GetMagic() {
+            return *reinterpret_cast<UINT64*>(magic);
+        }
+    };
+
     struct T8GSCFixup {
         uintptr_t offset;
         uintptr_t address;
@@ -693,6 +731,24 @@ namespace tool::gsc {
          * @return size or 0 if a bad opcode was found
          */
         int ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) const;
+    };
+
+    struct IW23GSCImport {
+        UINT64 name;
+        UINT64 name_space;
+        UINT16 num_address;
+        UINT8 param_count;
+        UINT8 flags;
+    };
+
+    struct IW23GSCExport {
+        uint64_t name;
+        uint64_t name_space;
+        uint64_t file_name_space;
+        uint64_t checksum;
+        uint32_t address;
+        uint8_t param_count;
+        uint8_t flags;
     };
 
     class GSCOBJReader {
@@ -753,7 +809,7 @@ namespace tool::gsc {
         }
 
         virtual UINT64 GetName() = 0;
-        virtual bool IsValidMagic() = 0;
+        virtual bool IsValidHeader(size_t size) = 0;
         virtual UINT16 GetExportsCount() = 0;
         virtual UINT32 GetExportsOffset() = 0;
         virtual UINT16 GetIncludesCount() = 0;
@@ -771,7 +827,7 @@ namespace tool::gsc {
         virtual BYTE RemapFlagsExport(BYTE flags);
 
         virtual void DumpHeader(std::ostream& asmout) = 0;
-        void PatchCode(T8GSCOBJContext& ctx);
+        virtual void PatchCode(T8GSCOBJContext& ctx);
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt);
     };
 

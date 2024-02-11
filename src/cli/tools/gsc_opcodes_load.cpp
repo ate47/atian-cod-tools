@@ -8,6 +8,12 @@
 
 #endif
 
+#if __has_include("tools/sp23/gsc23_opcodes_load.hpp")
+
+#include "tools/sp23/gsc23_opcodes_load.hpp"
+
+#endif
+
 
 void tool::gsc::opcode::RegisterOpCodesMap() {
 	static std::once_flag f{};
@@ -18,7 +24,7 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 		// todo: create file containing it
 
 		// BLACK OPS 4 (VM 36)
-		RegisterVM(VM_T8, "Call of Duty: Black ops 4");
+		RegisterVM(VM_T8, "Call of Duty: Black ops 4", VMT_SHORT);
 		RegisterVMPlatform(VM_T8, PLATFORM_PC);
 
 		RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown0, 0x0);
@@ -188,7 +194,7 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 		RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_WaitTillMatch, 0x24, 0x47, 0x58, 0x70, 0xdd, 0x21f, 0x251, 0x296, 0x2d9, 0x391, 0x4b7, 0x503, 0x57d, 0x6a0, 0x7a2, 0x97d, 0x991, 0xa48, 0xb58, 0xb9d, 0xbf5, 0xcec, 0xd72, 0xd7c, 0xe47, 0xe93, 0xef5);
 		RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_WaitTillMatchTimeout, 0x1d, 0x81, 0x1f5, 0x283, 0x2a3, 0x3b8, 0x452, 0x58a, 0x60c, 0x643, 0x65e, 0x694, 0x811, 0x878, 0x8a4, 0x8ef, 0x8f8, 0xaa4, 0xc70, 0xccc, 0xcda, 0xd2d, 0xdb1, 0xeaa);
 		RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_WaittillTimeout, 0xa9, 0xb7, 0x149, 0x189, 0x198, 0x293, 0x360, 0x3f8, 0x57b, 0x5f8, 0x703, 0x723, 0x7d8, 0x81b, 0x859, 0x8b8, 0x989, 0x9f8, 0xa79, 0xb59, 0xbaf, 0xbbd, 0xbe3, 0xd71, 0xdb6, 0xdf4, 0xeb2, 0xf8d);
-
+		
 		// T8-Compiler opcodes
 		RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_T8C_GetLazyFunction, 0x16);
 
@@ -271,8 +277,7 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 
 		RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
-		RegisterVM(VM_T937, "Call of Duty: Black ops Cold War");
-		RegisterVMPlatform(VM_T937, PLATFORM_PLAYSTATION);
+		RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", VMT_SHORT);
 
 		RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
 		RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0xa, 0xb, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
@@ -340,7 +345,7 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 		RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_SafeCreateLocalVariables, 0x11a, 0x192, 0x1e5, 0x281, 0x289, 0x2bd, 0x30b, 0x363, 0x471, 0x494, 0x4a8, 0x538, 0x5e3, 0x653, 0x8e4, 0x921, 0x9bf, 0x9fa, 0xb54, 0xc6d, 0xd28, 0xe8a, 0xf07);
 
 
-		RegisterVM(VM_T9, "Call of Duty: Black ops Cold War");
+		RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", VMT_SHORT);
 		RegisterVMPlatform(VM_T9, PLATFORM_PC);
 
 		RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown0, 0x0);
@@ -522,7 +527,10 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 
 		// stuff some people don't want public (as a bo4 pc/xbox player idc, but whatever)
 #ifdef PS4_INCLUDES
-		ps4::RegisterPS4OpCodes();
+		ps4::opcodes::RegisterPS4OpCodes();
+#endif
+#ifdef SP23_INCLUDES
+		sp23::opcodes::RegisterMW23OpCodes();
 #endif
 	});
 }
