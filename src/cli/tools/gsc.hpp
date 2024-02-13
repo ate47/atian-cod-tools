@@ -63,6 +63,7 @@ namespace tool::gsc {
     struct T8GSCExport;
     class T8GSCOBJContext;
     class GSCOBJReader;
+    struct GSCExportReader;
 
     namespace opcode {
         class ASMContext;
@@ -345,13 +346,14 @@ namespace tool::gsc {
             // local vars ref
             std::unordered_map<UINT32, INT32> m_localvars_ref{};
             // export
-            const T8GSCExport& m_exp;
+            GSCExportReader& m_exp;
+            void* m_readerHandle;
             // file vm
             BYTE m_vm;
             // file platform
             Platform m_platform;
 
-            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm, Platform platform);
+            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, GSCExportReader& exp, void* m_readerHandle, BYTE vm, Platform platform);
             ~ASMContext();
 
             // @return relative location in the function
@@ -659,7 +661,7 @@ namespace tool::gsc {
     struct GscObj23 {
         byte magic[8];
         uint64_t name;
-        uint16_t size;
+        uint16_t unk10;
         uint16_t unk2c_count;
         uint16_t unk30_count;
         uint16_t unk16;
@@ -680,10 +682,10 @@ namespace tool::gsc {
         uint32_t unk3C;
         uint32_t export_offset;
         uint32_t fixup_offset;
-        uint32_t unk48;
+        uint32_t size1;
         uint32_t import_table;
         uint32_t include_table;
-        uint32_t unk54;
+        uint32_t size2;
         uint32_t string_table;
         uint32_t unk5C;
 
@@ -719,19 +721,31 @@ namespace tool::gsc {
         UINT8 param_count;
         UINT8 flags;
         UINT16 padding;
-
-        void DumpFunctionHeader(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0) const;
-        int DumpAsm(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx) const;
-        int DumpVTable(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const;
-        /*
-         * Compute the size of this export's bytecode
-         * @param gscFile origin gsc file
-         * @param plt origin platform
-         * @param vm origin vm
-         * @return size or 0 if a bad opcode was found
-         */
-        int ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) const;
     };
+
+    struct GSCExportReader {
+        virtual void SetHandle(void* handle) = 0;
+        virtual uint64_t GetName() = 0;
+        virtual uint64_t GetNamespace() = 0;
+        virtual uint64_t GetFileNamespace() = 0;
+        virtual uint64_t GetChecksum() = 0;
+        virtual uint32_t GetAddress() = 0;
+        virtual uint8_t GetParamCount() = 0;
+        virtual uint8_t GetFlags() = 0;
+        virtual size_t SizeOf() = 0;
+    };
+
+    void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0);
+    int DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx);
+    int DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt);
+    /*
+     * Compute the size of this export's bytecode
+     * @param gscFile origin gsc file
+     * @param plt origin platform
+     * @param vm origin vm
+     * @return size or 0 if a bad opcode was found
+     */
+    int ComputeSize(GSCExportReader& exp, BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm);
 
     struct IW23GSCImport {
         UINT64 name;

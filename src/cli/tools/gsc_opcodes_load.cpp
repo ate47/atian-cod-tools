@@ -24,7 +24,7 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 		// todo: create file containing it
 
 		// BLACK OPS 4 (VM 36)
-		RegisterVM(VM_T8, "Call of Duty: Black ops 4", VMT_SHORT);
+		RegisterVM(VM_T8, "Call of Duty: Black ops 4", VmFlags::VMF_OPCODE_SHORT);
 		RegisterVMPlatform(VM_T8, PLATFORM_PC);
 
 		RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown0, 0x0);
@@ -277,7 +277,7 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 
 		RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
-		RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", VMT_SHORT);
+		RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", VmFlags::VMF_OPCODE_SHORT);
 
 		RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
 		RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0xa, 0xb, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
@@ -345,7 +345,7 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 		RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_SafeCreateLocalVariables, 0x11a, 0x192, 0x1e5, 0x281, 0x289, 0x2bd, 0x30b, 0x363, 0x471, 0x494, 0x4a8, 0x538, 0x5e3, 0x653, 0x8e4, 0x921, 0x9bf, 0x9fa, 0xb54, 0xc6d, 0xd28, 0xe8a, 0xf07);
 
 
-		RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", VMT_SHORT);
+		RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", VmFlags::VMF_OPCODE_SHORT);
 		RegisterVMPlatform(VM_T9, PLATFORM_PC);
 
 		RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown0, 0x0);

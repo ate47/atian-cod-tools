@@ -666,7 +666,7 @@ namespace {
             auto* data = Ptr<GscObj23>();
             asmout
                 << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->size << " (0x" << std::hex << data->size << ")" << "\n"
+                << "// size ..... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
                 << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
                 << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
                 << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
@@ -678,6 +678,34 @@ namespace {
 
             if (opt.m_test_header) {
                 // fillme
+                asmout
+                    << "unk2c_count :" << std::dec << std::setw(3) << (int)data->unk2c_count << " (0x" << std::hex << data->unk2c_count << ")\n"
+                    << "unk30_count :" << std::dec << std::setw(3) << (int)data->unk30_count << " (0x" << std::hex << data->unk30_count << ")\n"
+                    << "unk16 :" << std::dec << std::setw(3) << (int)data->unk16 << " (0x" << std::hex << data->unk16 << ")\n"
+                    << "export_count :" << std::dec << std::setw(3) << (int)data->export_count << " (0x" << std::hex << data->export_count << ")\n"
+                    << "fixup_count :" << std::dec << std::setw(3) << (int)data->fixup_count << " (0x" << std::hex << data->fixup_count << ")\n"
+                    << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
+                    << "imports_count :" << std::dec << std::setw(3) << (int)data->imports_count << " (0x" << std::hex << data->imports_count << ")\n"
+                    << "includes_count :" << std::dec << std::setw(3) << (int)data->includes_count << " (0x" << std::hex << data->includes_count << ")\n"
+                    << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
+                    << "string_count :" << std::dec << std::setw(3) << (int)data->string_count << " (0x" << std::hex << data->string_count << ")\n"
+                    << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
+                    << "unk28 :" << std::dec << std::setw(3) << (int)data->unk28 << " (0x" << std::hex << data->unk28 << ")\n"
+                    << "unk2A :" << std::dec << std::setw(3) << (int)data->unk2A << " (0x" << std::hex << data->unk2A << ")\n"
+                    << "unk2c_offset :" << std::dec << std::setw(3) << (int)data->unk2c_offset << " (0x" << std::hex << data->unk2c_offset << ")\n"
+                    << "unk30_offset :" << std::dec << std::setw(3) << (int)data->unk30_offset << " (0x" << std::hex << data->unk30_offset << ")\n"
+                    << "unk34 :" << std::dec << std::setw(3) << (int)data->unk34 << " (0x" << std::hex << data->unk34 << ")\n"
+                    << "unk38 :" << std::dec << std::setw(3) << (int)data->unk38 << " (0x" << std::hex << data->unk38 << ")\n"
+                    << "unk3C :" << std::dec << std::setw(3) << (int)data->unk3C << " (0x" << std::hex << data->unk3C << ")\n"
+                    << "export_offset :" << std::dec << std::setw(3) << (int)data->export_offset << " (0x" << std::hex << data->export_offset << ")\n"
+                    << "fixup_offset :" << std::dec << std::setw(3) << (int)data->fixup_offset << " (0x" << std::hex << data->fixup_offset << ")\n"
+                    << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
+                    << "import_table :" << std::dec << std::setw(3) << (int)data->import_table << " (0x" << std::hex << data->import_table << ")\n"
+                    << "include_table :" << std::dec << std::setw(3) << (int)data->include_table << " (0x" << std::hex << data->include_table << ")\n"
+                    << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
+                    << "string_table :" << std::dec << std::setw(3) << (int)data->string_table << " (0x" << std::hex << data->string_table << ")\n"
+                    << "unk5C :" << std::dec << std::setw(3) << (int)data->unk5C << " (0x" << std::hex << data->unk5C << ")\n"
+                    ;
             }
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
@@ -717,7 +745,7 @@ namespace {
             return Ptr<GscObj23>()->string_table;
         }
         UINT32 GetFileSize() override {
-            return Ptr<GscObj23>()->size;
+            return Ptr<GscObj23>()->size1;
         }
         size_t GetHeaderSize() override {
             return sizeof(GscObj23);
@@ -726,10 +754,32 @@ namespace {
             return str; // iw
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T9GSCOBJ) && *reinterpret_cast<UINT64*>(file) == 0xa0d4353478a;
+            return size >= sizeof(GscObj23) && *reinterpret_cast<UINT64*>(file) == 0xa0d4353478a;
         }
         BYTE RemapFlagsImport(BYTE flags) override {
-            return flags;
+            BYTE nflags = 0;
+
+            switch (flags & 0xF) {
+            case 5: nflags |= FUNC_METHOD; break;
+            case 4: nflags |= FUNCTION; break;
+            case 2: nflags |= FUNCTION_THREAD; break;
+            case 1: nflags |= FUNCTION_CHILDTHREAD; break;
+
+            case 3:
+            case 6:
+            case 7: nflags |= FUNCTION; break; // TODO: unk script calls
+            case 8:
+            case 0xA:nflags |= FUNCTION; break; // api call
+            case 9:
+            case 0xB:nflags |= METHOD; break; // api call
+            default: nflags |= flags & 0xF; // wtf?
+            }
+
+            // 0x10: Dev import
+            // 0x20: use file namespace
+            nflags |= flags & ~0xF;
+
+            return nflags;
         }
 
         BYTE RemapFlagsExport(BYTE flags) override {
@@ -737,6 +787,9 @@ namespace {
         }
 
         void PatchCode(T8GSCOBJContext& ctx) override {
+
+            // export flags:
+            // 0x40 : va
             return; // TODO: mw23
             // patching imports unlink the script refs to write namespace::import_name instead of the address
             auto imports_count = (int)GetImportsCount();
@@ -829,8 +882,35 @@ namespace {
     };
 }
 
+
+struct H32GSCExportReader : GSCExportReader {
+    T8GSCExport* exp{};
+
+    void SetHandle(void* handle) override { exp = (T8GSCExport*)handle; };
+    uint64_t GetName() override { return exp->name; };
+    uint64_t GetNamespace() override { return exp->name_space; };
+    uint64_t GetFileNamespace() override { return exp->callback_event; };
+    uint64_t GetChecksum() override { return exp->checksum; };
+    uint32_t GetAddress() override { return exp->address; };
+    uint8_t GetParamCount() override { return exp->param_count; };
+    uint8_t GetFlags() override { return exp->flags; };
+    size_t SizeOf() override { return sizeof(*exp); };
+};
+struct H64GSCExportReader : GSCExportReader {
+    IW23GSCExport* exp{};
+
+    void SetHandle(void* handle) override { exp = (IW23GSCExport*)handle; };
+    uint64_t GetName() override { return exp->name; };
+    uint64_t GetNamespace() override { return exp->name_space; };
+    uint64_t GetFileNamespace() override { return exp->file_name_space; };
+    uint64_t GetChecksum() override { return exp->checksum; };
+    uint32_t GetAddress() override { return exp->address; };
+    uint8_t GetParamCount() override { return exp->param_count; };
+    uint8_t GetFlags() override { return exp->flags; };
+    size_t SizeOf() override { return sizeof(*exp); };
+};
+
 int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOption& opt) {
-    hashutils::ReadDefaultFile();
 
 
     T8GSCOBJContext ctx{};
@@ -882,6 +962,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
         data += gsicSize;
     }
     BYTE vm;
+    bool iw;
 
     auto magicVal = *reinterpret_cast<UINT64*>(data) & ~0xFF00000000000000;
     if (magicVal == 0xa0d4353478a) {
@@ -891,15 +972,18 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             return tool::BASIC_ERROR;
         }
         vm = opt.m_vm;
-    }
-    if (magicVal == 0xa0d43534780) {
+        iw = true;
+    } 
+    else if (magicVal == 0xa0d43534780) {
         // Treyarch GSC file, use revision
         vm = data[7];
+        iw = false;
     }
     else {
         std::cerr << "Bad magic 0x" << std::hex << *reinterpret_cast<UINT64*>(data) << "\n";
         return tool::BASIC_ERROR;
     }
+    hashutils::ReadDefaultFile(true, iw);
 
 
     opcode::VmInfo* vmInfo;
@@ -989,11 +1073,11 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             << "// magic .... 0x" << scriptfile->Ref<UINT64>()
             << " vm: ";
         
-        if (vmInfo->type == opcode::VMT_SHORT) {
-            asmout << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")";
+        if (vmInfo->flags & opcode::VmFlags::VMF_NO_VERSION) {
+            asmout << vmInfo->name;
         }
         else {
-            asmout << vmInfo->name;
+            asmout << (UINT32)vmInfo->vm << " (" << vmInfo->name << ")";
         }
         asmout << "\n";
 
@@ -1119,14 +1203,39 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     }
 
     if (opt.m_imports) {
+
         uintptr_t import_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetImportsOffset()));
 
         for (size_t i = 0; i < scriptfile->GetImportsCount(); i++) {
+            UINT64 name_space;
+            UINT64 name;
+            size_t impSize;
+            BYTE flags;
+            BYTE param_count;
+            UINT16 numAddress;
 
-            const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
+            if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) {
+                const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
+                name_space = imp->name_space;
+                name = imp->name;
+                flags = imp->flags;
+                numAddress = imp->num_address;
+                param_count = imp->param_count;
+                impSize = sizeof(*imp);
+            }
+            else {
+                const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
+                name_space = imp->import_namespace;
+                name = imp->name;
+                flags = imp->flags;
+                param_count = imp->param_count;
+                numAddress = imp->num_address;
+                impSize = sizeof(*imp);
+            }
+
             asmout << std::hex << "import ";
 
-            auto remapedFlags = scriptfile->RemapFlagsImport(imp->flags);
+            auto remapedFlags = scriptfile->RemapFlagsImport(flags);
 
             switch (remapedFlags & T8GSCImportFlags::CALLTYPE_MASK) {
             case FUNC_METHOD: asmout << "funcmethod "; break;
@@ -1155,27 +1264,27 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             if ((remapedFlags & T8GSCImportFlags::GET_CALL) == 0) {
                 // no need for namespace if we are getting the call dynamically (api or inside-code script)
-                asmout << hashutils::ExtractTmp("namespace", imp->import_namespace) << std::flush << "::";
+                asmout << hashutils::ExtractTmp("namespace", name_space) << std::flush << "::";
             }
 
-            asmout << std::hex << hashutils::ExtractTmp("function", imp->name) << "\n";
+            asmout << std::hex << hashutils::ExtractTmp("function", name) << "\n";
 
-            asmout << std::hex << "address: " << imp->num_address <<
-                ", params: " << (int)imp->param_count <<
-                ", iflags: 0x" << std::hex << (UINT16)(imp->flags) << "\n";
+            asmout << std::hex << "address: " << numAddress <<
+                ", params: " << (int)param_count <<
+                ", iflags: 0x" << std::hex << (UINT16)(flags) << "\n";
 
             asmout << "location(s): ";
 
-            const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
+            const auto* imports = reinterpret_cast<const UINT32*>(import_location + impSize);
             asmout << std::hex << imports[0];
-            for (size_t j = 1; j < imp->num_address; j++) {
+            for (size_t j = 1; j < numAddress; j++) {
                 asmout << std::hex << "," << imports[j];
             }
             asmout << "\n";
 
             asmout << "--------------\n";
 
-            import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
+            import_location += impSize + sizeof(*imports) * numAddress;
         }
         if (scriptfile->GetImportsCount()) {
             asmout << "\n";
@@ -1186,11 +1295,19 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
         // current namespace
         UINT32 currentNSP = 0;
 
-        auto* exports = scriptfile->Ptr<T8GSCExport>(scriptfile->GetExportsOffset());
         std::unordered_map<UINT64, opcode::ASMContext> contextes{};
 
+        std::unique_ptr<GSCExportReader> exp;
+        if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) {
+            exp = std::make_unique<H64GSCExportReader>();
+        }
+        else {
+            exp = std::make_unique<H32GSCExportReader>();
+        }
+
         for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
-            const auto& exp = exports[i];
+            void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
+            exp->SetHandle(handle);
 
             std::ofstream nullstream;
             nullstream.setstate(std::ios_base::badbit);
@@ -1198,32 +1315,32 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             // if we aren't dumping the ASM, we compute all the nodes first
             std::ostream& output = opt.m_dasm ? asmout : nullstream;
 
-            if (exp.name_space != currentNSP) {
-                currentNSP = exp.name_space;
+            if (exp->GetNamespace() != currentNSP) {
+                currentNSP = exp->GetNamespace();
 
                 if (opt.m_dasm) {
                     output << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
                 }
             }
 
-            UINT64 rname = utils::CatLocated(exp.name_space, exp.name);
+            UINT64 rname = utils::CatLocated(exp->GetNamespace(), exp->GetName());
 
-            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp.address), opt, currentNSP, exp, vm, opt.m_platform);
+            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), opt, currentNSP, *exp, handle, vm, opt.m_platform);
 
             if (!r.second) {
                 asmout << "Duplicate node "
-                    << hashutils::ExtractTmp("namespace", exp.name_space) << std::flush << "::"
-                    << hashutils::ExtractTmp("function", exp.name) << std::endl;
+                    << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << std::flush << "::"
+                    << hashutils::ExtractTmp("function", exp->GetName()) << std::endl;
                 continue;
             }
 
             auto& asmctx = r.first->second;
 
-            exp.DumpFunctionHeader(output, *scriptfile, ctx, asmctx);
+            DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
 
             output << " gscasm {\n";
 
-            exp.DumpAsm(output, *scriptfile, ctx, asmctx);
+            DumpAsm(*exp, output, *scriptfile, ctx, asmctx);
 
             output << "}\n";
 
@@ -1231,15 +1348,15 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
                 asmctx.ComputeDefaultParamValue();
                 if (opt.m_dasm || opt.m_func_header_post) {
-                    exp.DumpFunctionHeader(output, *scriptfile, ctx, asmctx);
+                    DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
                 }
                 output << std::flush;
                 opcode::DecompContext dctx{ 0, 0, asmctx };
                 if (opt.m_dcomp) {
-                    if (scriptfile->RemapFlagsExport(exp.flags) == T8GSCExportFlags::CLASS_VTABLE) {
-                        asmctx.m_bcl = scriptfile->Ptr(exp.address);
+                    if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
+                        asmctx.m_bcl = scriptfile->Ptr(exp->GetAddress());
                         output << " {\n";
-                        exp.DumpVTable(output, *scriptfile, ctx, asmctx, dctx);
+                        DumpVTable(*exp, output, *scriptfile, ctx, asmctx, dctx);
                         output << "}\n";
                     }
                     else {
@@ -1315,8 +1432,10 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                     }
 
                     auto& e = masmctxit->second;
+                    // set the export handle
+                    e.m_exp.SetHandle(e.m_readerHandle);
 
-                    e.m_exp.DumpFunctionHeader(asmout, *scriptfile, ctx, e, 1);
+                    DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1);
                     asmout << " ";
                     opcode::DecompContext dctx{ 1, 0, e };
                     e.Dump(asmout, dctx);
@@ -1337,13 +1456,14 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             }
 
             for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
-                const auto& exp = exports[i];
+                void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
+                exp->SetHandle(handle);
 
-                if (scriptfile->RemapFlagsExport(exp.flags) == T8GSCExportFlags::CLASS_VTABLE) {
+                if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
                     continue;
                 }
 
-                UINT64 lname = utils::CatLocated(exp.name_space, exp.name);
+                UINT64 lname = utils::CatLocated(exp->GetNamespace(), exp->GetName());
 
                 auto f = contextes.find(lname);
 
@@ -1351,15 +1471,15 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                     continue; // already parsed
                 }
 
-                if (exp.name_space != currentNSP) {
-                    currentNSP = exp.name_space;
+                if (exp->GetNamespace() != currentNSP) {
+                    currentNSP = exp->GetNamespace();
 
                     asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
                 }
 
                 auto& asmctx = f->second;
 
-                exp.DumpFunctionHeader(asmout, *scriptfile, ctx, asmctx);
+                DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx);
                 asmout << " ";
                 opcode::DecompContext dctx{ 0, 0, asmctx };
                 asmctx.Dump(asmout, dctx);
@@ -1559,7 +1679,7 @@ UINT32 tool::gsc::T8GSCOBJContext::AddStringValue(LPCCH value) {
     return id;
 }
 
-int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx) const {
+int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx) {
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
@@ -1619,7 +1739,7 @@ int tool::gsc::T8GSCExport::DumpAsm(std::ostream& out, GSCOBJReader& gscFile, T8
 }
 
 
-int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) const {
+int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) {
     using namespace tool::gsc::opcode;
     UINT16 code = *(UINT16*)ctx.Aligned<UINT16>();
     // main reading loop
@@ -1693,7 +1813,7 @@ int tool::gsc::T8GSCExport::DumpVTable(std::ostream& out, GSCOBJReader& gscFile,
     UINT32 name = *(UINT32*)clsName; // __vtable
 
     auto& cls = objctx.m_classes[name];
-    cls.name_space = name_space;
+    cls.name_space = exp.GetNamespace();
 
     clsName += 4;
 
@@ -1845,9 +1965,9 @@ End
     return 0;
 }
 
-int tool::gsc::T8GSCExport::ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) const {
+int tool::gsc::ComputeSize(GSCExportReader& exp, BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) {
     using namespace opcode;
-    BYTE* loc = gscFile + address;
+    BYTE* loc = gscFile + exp.GetAddress();
 
     ASMSkipContext ctx{ loc, vm, plt };
 
@@ -1887,15 +2007,15 @@ int tool::gsc::T8GSCExport::ComputeSize(BYTE* gscFile, gsc::opcode::Platform plt
 }
 
 
-void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding) const {
-    auto remapedFlags = gscFile.RemapFlagsExport(flags);
+void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding) {
+    auto remapedFlags = gscFile.RemapFlagsExport(exp.GetFlags());
     bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
     if (ctx.m_opt.m_func_header) {
         utils::Padding(asmout, padding) << "// Namespace "
-            << hashutils::ExtractTmp(classMember ? "class" : "namespace", name_space) << std::flush << "/"
-            << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", callback_event) << std::endl;
-        utils::Padding(asmout, padding) << "// Params " << (int)param_count << ", eflags: 0x" << std::hex << (int)flags;
+            << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush << "/"
+            << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.GetFileNamespace()) << std::endl;
+        utils::Padding(asmout, padding) << "// Params " << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
 
         if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
             asmout << " vtable";
@@ -1910,7 +2030,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
         }
 
         asmout << std::endl;
-        utils::Padding(asmout, padding) << std::hex << "// Checksum 0x" << checksum << ", Offset: 0x" << (int)address << std::endl;
+        utils::Padding(asmout, padding) << std::hex << "// Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
 
         auto size = ctx.FinalSize();
         if (size > 2) { // at least one opcode
@@ -1919,12 +2039,12 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
     }
 
     if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
-        utils::Padding(asmout, padding) << "vtable " << hashutils::ExtractTmp("class", name);
+        utils::Padding(asmout, padding) << "vtable " << hashutils::ExtractTmp("class", exp.GetName());
     }
     else {
 
         bool specialClassMember = !ctx.m_opt.m_dasm && classMember &&
-            ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || g_constructorName == name);
+            ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || g_constructorName == exp.GetName());
 
         utils::Padding(asmout, padding);
 
@@ -1938,18 +2058,18 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
             asmout << "autoexec ";
         }
         if (remapedFlags & T8GSCExportFlags::EVENT) {
-            asmout << "event_handler[" << hashutils::ExtractTmp("event", callback_event) << "] " << std::flush;
+            asmout << "event_handler[" << hashutils::ExtractTmp("event", exp.GetFileNamespace()) << "] " << std::flush;
         }
 
         if (ctx.m_opt.m_dasm && (classMember || (remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
-            asmout << hashutils::ExtractTmp("class", name_space)
+            asmout << hashutils::ExtractTmp("class", exp.GetNamespace())
                 << std::flush << "::";
 
-            if (flags & T8GSCExportFlags::CLASS_DESTRUCTOR) {
+            if (exp.GetFlags() & T8GSCExportFlags::CLASS_DESTRUCTOR) {
                 asmout << "~";
             }
         }
-        auto detourVal = objctx.m_gsicInfo.detours.find(address);
+        auto detourVal = objctx.m_gsicInfo.detours.find(exp.GetAddress());
 
         if (detourVal != objctx.m_gsicInfo.detours.end()) {
             auto* detour = detourVal->second;
@@ -1971,7 +2091,7 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
                 << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush;
         }
         else {
-            asmout << hashutils::ExtractTmp("function", name);
+            asmout << hashutils::ExtractTmp("function", exp.GetName());
         }
 
     }
@@ -1980,8 +2100,8 @@ void tool::gsc::T8GSCExport::DumpFunctionHeader(std::ostream& asmout, GSCOBJRead
     asmout << std::flush << "(";
 
     // local var size = <empty>, <params>, <localvars> so we need to check that we have at least param_count + 1
-    if (ctx.m_localvars.size() > param_count) {
-        for (size_t i = 0; i < param_count; i++) {
+    if (ctx.m_localvars.size() > exp.GetParamCount()) {
+        for (size_t i = 0; i < exp.GetParamCount(); i++) {
             if (i) {
                 asmout << ", ";
             }

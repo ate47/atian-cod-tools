@@ -1359,7 +1359,7 @@ public:
 				out << " unk flags: " << std::hex << (int)flags;
 			}
 
-			if (context.m_runDecompiler && context.m_opt.m_show_func_vars && i >= context.m_exp.param_count) {
+			if (context.m_runDecompiler && context.m_opt.m_show_func_vars && i >= context.m_exp.GetParamCount()) {
 				context.m_lastOpCodeBase = 0;
 				context.PushASMCNode(new ASMContextNodeIdentifier(varName, "var"));
 				context.CompleteStatement();
@@ -3895,8 +3895,8 @@ public:
 
 static const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefined, "Undefined");
 
-void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name, VmType type) {
-	g_opcodeMap[vm] = { vm, name, type, {} };
+void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name, UINT64 flags) {
+	g_opcodeMap[vm] = { vm, name, flags, {} };
 }
 void tool::gsc::opcode::RegisterVMPlatform(BYTE vm, Platform plt) {
 	auto ref = g_opcodeMap.find(vm);
@@ -4230,9 +4230,9 @@ std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, Platform platfor
 
 #pragma endregion
 #pragma region asmctx 
-ASMContext::ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, const T8GSCExport& exp, BYTE vm, Platform platform)
+ASMContext::ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, GSCExportReader& exp, void* readerHandle, BYTE vm, Platform platform)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), 
-			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_vm(vm), m_platform(platform) {
+			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
 	// set start as unhandled
 	PushLocation();
 }
@@ -4642,7 +4642,7 @@ void ASMContext::ComputeDefaultParamValue() {
 		int localVar = GetLocalVarIdByName(name);
 
 		// the local variables are reversed and the first is an error check, so - 1 - params
-		if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.param_count || m_localvars[localVar].defaultValueNode) {
+		if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.GetParamCount() || m_localvars[localVar].defaultValueNode) {
 			break; // not a param var or already defined as default
 		}
 
