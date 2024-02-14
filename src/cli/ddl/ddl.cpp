@@ -103,14 +103,47 @@ DDLData ReadDDLMember(UINT64 offset, ACTSDDLType type, UINT64 size, BYTE* raw) {
 
     // reading raw
 
-    if ((offset & 7) == 0) {
+    if ((offset & 7) == 0 && (size & 7) == 0) {
         // byte aligned, no need to work
         memcpy(buffer, raw + (offset >> 3), ((size - 1) >> 3) + 1);
     }
     else {
-
+        // TODO: directly copy by chunk instead of copy by bit
+        // or maybe it's reversed?
+        for (size_t i = 0; i < size; i++) {
+            auto idx = offset + i;
+            buffer[i >> 3] |= ((raw[idx >> 3] >> (idx & 7)) & 1) << (i & 7);
+        }
     }
  
+    switch (type) {
+    case DDL_BYTE_TYPE:
+    case DDL_UINT_TYPE:
+    case DDL_UINT64_TYPE:
+    case DDL_HASH_TYPE:
+        data.uintValue = *(UINT64*)buffer;
+        break;
+    case DDL_SHORT_TYPE:
+    case DDL_INT_TYPE: {
+        // we need to check the higher bit to check the sign
+        auto val = *(UINT64*)buffer;
+        if (data.intValue & (1ull << (size - 1))) {
+            // negative, we need to add 1 bit at the end
+            data.uintValue = val | (~0ull << size);
+        }
+        else {
+            data.intValue = (INT64)val;
+        }
+    }
+        break;
+    case DDL_FLOAT_TYPE:
+    case DDL_FIXEDPOINT_TYPE:
+        data.doubleValue = *(FLOAT*)buffer;
+        break;
+    default:
+        data.intValue = 0;
+        break;
+    }
 
     return data;
 }
