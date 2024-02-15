@@ -529,6 +529,8 @@ void tool::gsc::opcode::RegisterOpCodesMap() {
 #ifdef PS4_INCLUDES
 		ps4::opcodes::RegisterPS4OpCodes();
 #endif
+		RegisterVM(VM_MW23, "Call of Duty Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION);
+		RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 #ifdef SP23_INCLUDES
 		sp23::opcodes::RegisterMW23OpCodes();
 #endif

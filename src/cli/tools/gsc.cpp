@@ -251,6 +251,7 @@ BYTE GSCOBJReader::RemapFlagsExport(BYTE flags) {
 }
 
 void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
+    if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) return; // mwiii
     // patching imports unlink the script refs to write namespace::import_name instead of the address
     auto imports_count = (int)GetImportsCount();
     uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + GetImportsOffset();
@@ -785,93 +786,6 @@ namespace {
         BYTE RemapFlagsExport(BYTE flags) override {
             return flags;
         }
-
-        void PatchCode(T8GSCOBJContext& ctx) override {
-
-            // export flags:
-            // 0x40 : va
-            return; // TODO: mw23
-            // patching imports unlink the script refs to write namespace::import_name instead of the address
-            auto imports_count = (int)GetImportsCount();
-            uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + GetImportsOffset();
-            for (size_t i = 0; i < imports_count; i++) {
-
-                const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
-
-                const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
-                for (size_t j = 0; j < imp->num_address; j++) {
-                    UINT32* loc;
-                    auto remapedFlags = RemapFlagsImport(imp->flags);
-
-                    switch (remapedFlags & CALLTYPE_MASK) {
-                    case FUNC_METHOD:
-                        loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull);
-                        break;
-                    case FUNCTION:
-                    case FUNCTION_THREAD:
-                    case FUNCTION_CHILDTHREAD:
-                    case METHOD:
-                    case METHOD_THREAD:
-                    case METHOD_CHILDTHREAD:
-                        // here the game fix function calls with a bad number of params,
-                        // but for the decomp/dasm we don't care because we only mind about
-                        // what we'll find on the stack.
-                        Ref<BYTE>(imports[j] + 2ull) = imp->param_count;
-                        loc = PtrAlign<UINT64, UINT32>(imports[j] + 2ull + 1);
-                        break;
-                    default:
-                        loc = nullptr;
-                        break;
-                    }
-                    if (loc) {
-                        loc[0] = imp->name;
-
-                        if (remapedFlags & T8GSCImportFlags::GET_CALL) {
-                            // no need for namespace if we are getting the call dynamically (api or inside-code script)
-                            loc[1] = 0; // ""
-                        }
-                        else {
-                            loc[1] = imp->name_space;
-                        }
-
-                    }
-                }
-                import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
-            }
-
-            uintptr_t gvars_location = reinterpret_cast<uintptr_t>(file) + GetGVarsOffset();
-            auto globalvar_count = (int)GetGVarsCount();
-            for (size_t i = 0; i < globalvar_count; i++) {
-                const auto* globalvar = reinterpret_cast<T8GSCGlobalVar*>(gvars_location);
-                UINT16 ref = ctx.AddGlobalVarName(globalvar->name);
-
-                const auto* vars = reinterpret_cast<const UINT32*>(&globalvar[1]);
-                for (size_t j = 0; j < globalvar->num_address; j++) {
-                    // no align, no opcode to pass, directly the fucking location, cool.
-                    Ref<UINT16>(vars[j]) = ref;
-                }
-                gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
-            }
-
-            uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
-            auto string_count = (int)GetStringsCount();
-            for (size_t i = 0; i < string_count; i++) {
-
-                const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-                LPCH cstr = DecryptString(Ptr<CHAR>(str->string));
-                if (gDumpStrings) {
-                    gDumpStringsStore.insert(cstr);
-                }
-                UINT32 ref = ctx.AddStringValue(cstr);
-
-                const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
-                for (size_t j = 0; j < str->num_address; j++) {
-                    // no align too....
-                    Ref<UINT32>(strings[j]) = ref;
-                }
-                str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
-            }
-        }
     };
 
     std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*, const GscInfoOption&)>> gscReaders = {
@@ -1293,9 +1207,24 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
     if (opt.m_func) {
         // current namespace
-        UINT32 currentNSP = 0;
+        UINT64 currentNSP = 0;
 
-        std::unordered_map<UINT64, opcode::ASMContext> contextes{};
+        struct Located {
+            UINT64 name_space;
+            UINT64 name;
+        };
+        struct LocatedHash {
+            size_t operator()(const Located& k) const {
+                return k.name_space ^ RotateLeft64(k.name, 32);
+            }
+        };
+        struct LocatedEquals {
+            bool operator()(const Located& a, const Located& b) const {
+                return a.name == b.name && a.name_space == b.name_space;
+            }
+        };
+
+        std::unordered_map<Located, opcode::ASMContext, LocatedHash, LocatedEquals> contextes{};
 
         std::unique_ptr<GSCExportReader> exp;
         if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) {
@@ -1323,7 +1252,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                 }
             }
 
-            UINT64 rname = utils::CatLocated(exp->GetNamespace(), exp->GetName());
+            Located rname = { exp->GetNamespace(), exp->GetName() };
 
             auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), opt, currentNSP, *exp, handle, vm, opt.m_platform);
 
@@ -1422,8 +1351,8 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
                 
 
-                auto handleMethod = [&contextes, &asmout, &scriptfile, name, &ctx](UINT32 method) -> void {
-                    auto lname = utils::CatLocated(name, method);
+                auto handleMethod = [&contextes, &asmout, &scriptfile, name, &ctx](UINT64 method) -> void {
+                    auto lname = Located{ name, method };
 
                     auto masmctxit = contextes.find(lname);
 
@@ -1463,7 +1392,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                     continue;
                 }
 
-                UINT64 lname = utils::CatLocated(exp->GetNamespace(), exp->GetName());
+                Located lname = Located{ exp->GetNamespace(), exp->GetName() };
 
                 auto f = contextes.find(lname);
 
@@ -1651,7 +1580,7 @@ tool::gsc::T8GSCOBJContext::T8GSCOBJContext() {}
 
 // apply ~ to ref to avoid using 0, 1, 2 which might already be used
 
-UINT32 tool::gsc::T8GSCOBJContext::GetGlobalVarName(UINT16 gvarRef) {
+UINT64 tool::gsc::T8GSCOBJContext::GetGlobalVarName(UINT16 gvarRef) {
     auto f = m_gvars.find(gvarRef);
     if (f == m_gvars.end()) {
         return 0;
@@ -1667,7 +1596,7 @@ LPCCH tool::gsc::T8GSCOBJContext::GetStringValue(UINT32 stringRef) {
     return f->second;
 }
 
-UINT16 tool::gsc::T8GSCOBJContext::AddGlobalVarName(UINT32 value) {
+UINT16 tool::gsc::T8GSCOBJContext::AddGlobalVarName(UINT64 value) {
     UINT16 id = ((UINT16)m_gvars.size());
     m_gvars[id] = value;
     return id;
@@ -1683,7 +1612,10 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
-            auto& base = ctx.Aligned<UINT16>();
+            if (objctx.m_vmInfo->flags & opcode::VmFlags::VMF_OPCODE_SHORT) {
+                ctx.Aligned<UINT16>();
+            }
+            BYTE*& base = ctx.m_bcl;
 
             // mark the current location as handled
             auto& loc = ctx.PushLocation();
@@ -1698,7 +1630,14 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
                 lateop->Run(ctx, objctx);
             }
 
-            UINT16 opCode = *(UINT16*)base;
+            UINT16 opCode;
+
+            if (objctx.m_vmInfo->flags & opcode::VmFlags::VMF_OPCODE_SHORT) {
+                opCode = *(UINT16*)base;
+            }
+            else {
+                opCode = (UINT16)*base;
+            }
 
             const auto* handler = ctx.LookupOpCode(opCode);
 
@@ -1720,7 +1659,13 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
             RosettaAddOpCode((UINT32)(reinterpret_cast<UINT64>(base) - reinterpret_cast<UINT64>(gscFile.Ptr())), handler->m_id);
 
             // pass the opcode
-            base += 2;
+
+            if (objctx.m_vmInfo->flags & opcode::VmFlags::VMF_OPCODE_SHORT) {
+                base += 2;
+            }
+            else {
+                base++;
+            }
 
             // update ASMContext::WritePadding if you change the format
 

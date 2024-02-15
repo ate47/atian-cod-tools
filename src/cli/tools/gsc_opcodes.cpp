@@ -152,9 +152,9 @@ public:
 
 class ASMContextNodeIdentifier : public ASMContextNode {
 public:
-	UINT32 m_value;
+	UINT64 m_value;
 	LPCCH m_type;
-	ASMContextNodeIdentifier(UINT32 value, LPCCH type = "var") : ASMContextNode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(value), m_type(type) {
+	ASMContextNodeIdentifier(UINT64 value, LPCCH type = "var") : ASMContextNode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(value), m_type(type) {
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -988,11 +988,11 @@ public:
 
 class ASMContextNodeForEach : public ASMContextNode {
 public:
-	UINT32 m_key;
-	UINT32 m_item;
+	UINT64 m_key;
+	UINT64 m_item;
 	ASMContextNode* m_arrayNode;
 	ASMContextNodeBlock* m_block;
-	ASMContextNodeForEach(ASMContextNode* arrayNode, ASMContextNodeBlock* block, UINT32 key, UINT32 item) :
+	ASMContextNodeForEach(ASMContextNode* arrayNode, ASMContextNodeBlock* block, UINT64 key, UINT64 item) :
 		ASMContextNode(PRIORITY_INST, TYPE_FOR_EACH), m_arrayNode(arrayNode), m_block(block), m_key(key), m_item(item) {
 		m_renderSemicolon = false;
 	}
@@ -2167,7 +2167,7 @@ public:
 		UINT32 fieldName = *(UINT32*)(base2);
 		base2 += 4;
 
-		UINT32 name = objctx.GetGlobalVarName(objectid);
+		UINT64 name = objctx.GetGlobalVarName(objectid);
 
 		if (name) {
 			out << hashutils::ExtractTmp("var", name) << std::flush;
@@ -2280,7 +2280,7 @@ public:
 			}
 			int lvar = (int)*(context.m_bcl++);
 
-			UINT32 name;
+			UINT64 name;
 			if (lvar >= context.m_localvars.size()) {
 				name = hashutils::Hash32("<error>");
 				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
@@ -2315,7 +2315,7 @@ public:
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT32 name;
+		UINT64 name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -2356,7 +2356,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT32 name;
+		UINT64 name;
 		if (!m_stack) {
 			int lvar = (int)*(context.m_bcl++);
 
@@ -2408,7 +2408,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT32 name;
+		UINT64 name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -2451,7 +2451,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT32 name;
+		UINT64 name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -2484,7 +2484,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT32 name;
+		UINT64 name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -2517,7 +2517,7 @@ public:
 
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT32 name;
+		UINT64 name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -2877,7 +2877,7 @@ public:
 
 		auto& bytecode = context.Aligned<UINT32>();
 
-		UINT32 name;
+		UINT64 name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -2923,7 +2923,7 @@ public:
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT32 name;
+		UINT64 name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -2957,7 +2957,7 @@ public:
 
 		auto& bytecode = context.Aligned<UINT32>();
 
-		UINT32 name;
+		UINT64 name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -2969,7 +2969,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 
-		UINT32 field = *(UINT32*)bytecode;
+		UINT64 field = *(UINT32*)bytecode;
 		bytecode += 4;
 
 		out << "." << hashutils::ExtractTmp("var", field) << std::endl;
@@ -3409,7 +3409,7 @@ public:
 
 		UINT16 ref = *(UINT16*)base;
 
-		UINT32 name = objctx.GetGlobalVarName(ref);
+		UINT64 name = objctx.GetGlobalVarName(ref);
 
 		base += 2;
 
@@ -3448,7 +3448,7 @@ public:
 
 		UINT16 ref = *(UINT16*)base;
 
-		UINT32 name = objctx.GetGlobalVarName(ref);
+		UINT64 name = objctx.GetGlobalVarName(ref);
 
 		base += 2;
 
@@ -3496,7 +3496,7 @@ public:
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
-			UINT32 name = context.m_localvars[lvar].name;
+			UINT64 name = context.m_localvars[lvar].name;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 			context.m_localvars_ref[name]++;
 		}
@@ -3862,7 +3862,7 @@ public:
 	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT32 name;
+		UINT64 name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -4230,7 +4230,7 @@ std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, Platform platfor
 
 #pragma endregion
 #pragma region asmctx 
-ASMContext::ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, GSCExportReader& exp, void* readerHandle, BYTE vm, Platform platform)
+ASMContext::ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT64 nsp, GSCExportReader& exp, void* readerHandle, BYTE vm, Platform platform)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_opt(opt), m_runDecompiler(opt.m_dcomp), 
 			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
 	// set start as unhandled
@@ -4388,7 +4388,7 @@ UINT ASMContext::FinalSize() const {
 #pragma endregion
 #pragma region asm_stack 
 
-int ASMContext::GetLocalVarIdByName(UINT32 name) const {
+int ASMContext::GetLocalVarIdByName(UINT64 name) const {
 	for (size_t i = 0; i < m_localvars.size(); i++) {
 		if (m_localvars[i].name == name) {
 			return (int) i;
@@ -4633,13 +4633,13 @@ void ASMContext::ComputeDefaultParamValue() {
 		if (isDefinedFunc->m_operand->m_type != TYPE_IDENTIFIER || set->m_left->m_type != TYPE_IDENTIFIER || !set->m_right) {
 			break; // not isdefined(param_name) or not param_name = ...
 		}
-		UINT32 name = static_cast<ASMContextNodeIdentifier*>(set->m_left)->m_value;
+		UINT64 name = static_cast<ASMContextNodeIdentifier*>(set->m_left)->m_value;
 
 		if (static_cast<ASMContextNodeIdentifier*>(isDefinedFunc->m_operand)->m_value != name) {
 			break; // not the same name value
 		}
 
-		int localVar = GetLocalVarIdByName(name);
+		UINT64 localVar = GetLocalVarIdByName(name);
 
 		// the local variables are reversed and the first is an error check, so - 1 - params
 		if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.GetParamCount() || m_localvars[localVar].defaultValueNode) {
@@ -4947,7 +4947,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 
 		// array ref name
-		UINT32 arrayRefName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
+		UINT64 arrayRefName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
 
 		auto arrayRefIndex = index;
 
@@ -4971,7 +4971,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		}
 
 		// For T9 it is the iterator name
-		UINT32 keyValName = static_cast<ASMContextNodeIdentifier*>(setFirstArrayOp->m_left)->m_value;
+		UINT64 keyValName = static_cast<ASMContextNodeIdentifier*>(setFirstArrayOp->m_left)->m_value;
 
 		/*
 		LOC_000000fc:
@@ -5011,7 +5011,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		moveDelta--;
 
 		// keyValName
-		UINT32 itemValName;
+		UINT64 itemValName;
 		if (ctx.m_vm != VM_T8) {
 			/*
 				var_d9f19f82 = iteratorkey(var_e4aec0cf);
@@ -5679,7 +5679,7 @@ int ASMContextNodeBlock::ComputeForBlocks(ASMContext& ctx) {
 			continue; // not an I = ...
 		}
 
-		UINT32 incrementName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
+		UINT64 incrementName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
 
 		auto* whileBlock = static_cast<ASMContextNodeWhile*>(whileStmt.node);
 

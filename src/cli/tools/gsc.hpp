@@ -269,7 +269,7 @@ namespace tool::gsc {
         };
 
         struct ASMContextLocalVar {
-            UINT32 name;
+            UINT64 name;
             BYTE flags;
             ASMContextNode* defaultValueNode = nullptr;
         };
@@ -332,7 +332,7 @@ namespace tool::gsc {
             // last op base
             INT32 m_lastOpCodeBase;
             // export namespace
-            UINT32 m_namespace;
+            UINT64 m_namespace;
             // current objectid
             ASMContextNode* m_objectId = nullptr;
             // current fieldid
@@ -344,7 +344,7 @@ namespace tool::gsc {
             // local vars
             std::vector<ASMContextLocalVar> m_localvars{};
             // local vars ref
-            std::unordered_map<UINT32, INT32> m_localvars_ref{};
+            std::unordered_map<UINT64, INT32> m_localvars_ref{};
             // export
             GSCExportReader& m_exp;
             void* m_readerHandle;
@@ -353,7 +353,7 @@ namespace tool::gsc {
             // file platform
             Platform m_platform;
 
-            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT32 nsp, GSCExportReader& exp, void* m_readerHandle, BYTE vm, Platform platform);
+            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT64 nsp, GSCExportReader& exp, void* m_readerHandle, BYTE vm, Platform platform);
             ~ASMContext();
 
             // @return relative location in the function
@@ -400,7 +400,7 @@ namespace tool::gsc {
              * @param name Var name
              * @return local var id or -1 if not defined in this context
              */
-            int GetLocalVarIdByName(UINT32 name) const;
+            int GetLocalVarIdByName(UINT64 name) const;
 
             /*
              * Push an ASMContext (ASMC) node on the stack
@@ -511,27 +511,27 @@ namespace tool::gsc {
     struct GsicInfo {
         bool isGsic = false;
         size_t headerSize = 0;
-        std::unordered_map<UINT32, GsicDetour*> detours{};
+        std::unordered_map<UINT64, GsicDetour*> detours{};
     };
     struct asmcontext_func {
-        UINT32 name;
-        UINT32 nsp;
+        UINT64 name;
+        UINT64 nsp;
     };
     struct gscclass {
-        UINT32 name_space = 0;
-        std::set<UINT32> m_superClass{};
-        std::vector<UINT32> m_methods{};
+        UINT64 name_space = 0;
+        std::set<UINT64> m_superClass{};
+        std::vector<UINT64> m_methods{};
         std::unordered_map<UINT64, asmcontext_func> m_vtable{};
     };
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
-        std::unordered_map<UINT16, UINT32> m_gvars{};
+        std::unordered_map<UINT16, UINT64> m_gvars{};
         std::unordered_map<UINT32, LPCCH> m_stringRefs{};
     public:
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
-        std::unordered_map<UINT32, gscclass> m_classes{};
+        std::unordered_map<UINT64, gscclass> m_classes{};
         T8GSCOBJContext();
 
         /*
@@ -539,7 +539,7 @@ namespace tool::gsc {
          * @param gvarRef ref
          * @return name or 0
          */
-        UINT32 GetGlobalVarName(UINT16 gvarRef);
+        UINT64 GetGlobalVarName(UINT16 gvarRef);
         /*
          * Get a string for a string string ref
          * @param stringRef ref
@@ -551,7 +551,7 @@ namespace tool::gsc {
          * @param value name
          * @return var ref
          */
-        UINT16 AddGlobalVarName(UINT32 value);
+        UINT16 AddGlobalVarName(UINT64 value);
         /*
          * Add a string
          * @param value string
