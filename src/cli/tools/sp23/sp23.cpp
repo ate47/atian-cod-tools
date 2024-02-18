@@ -291,7 +291,9 @@ namespace {
 			};
 
 			for (size_t j = 0; j < sizeof(methods) / sizeof(methods[0]); j++) {
-
+				if (!methods[j][0]) {
+					continue;
+				}
 				std::cout
 					<< std::hex
 					<< methods[j][0] << "/" << methods[j][1] << " -> "

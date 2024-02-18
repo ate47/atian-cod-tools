@@ -44,6 +44,7 @@ int hashutils::LoadMap(LPCWCH file, bool ignoreCol, bool iw) {
 
 	// special value
 	g_hashMap[0] = "";
+	g_hashMap[Hash32("<error>")] = "<error>";
 	
 	// class special things
 	Add("__constructor", true, iw);
@@ -86,7 +87,6 @@ int hashutils::LoadMap(LPCWCH file, bool ignoreCol, bool iw) {
 	}
 
 	// Decompiler special values
-	Add("<error>", true, iw);
 	Add("self", true, iw);
 
 	// DDL names
@@ -148,7 +148,7 @@ bool hashutils::Add(LPCCH str, bool ignoreCol, bool iw) {
 
 bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {
 	ReadDefaultFile();
-	const auto res = g_hashMap.find(hash);
+	const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
 	if (res == g_hashMap.end()) {
 		snprintf(out, outSize, "%s_%llx", type, hash);
 		return false;

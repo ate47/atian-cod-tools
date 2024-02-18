@@ -250,8 +250,105 @@ BYTE GSCOBJReader::RemapFlagsExport(BYTE flags) {
     return flags;
 }
 
+struct GSC_USEANIMTREE_ITEM {
+    UINT32 num_address;
+    UINT32 address;
+};
+struct GSC_ANIMTREE_ITEM {
+    UINT32 num_address;
+    UINT32 address_str1;
+    UINT32 address_str2;
+};
+
 void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
-    if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) return; // mwiii
+    if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) {
+        if (GetAnimTreeSingleOffset()) {
+            // HAS TO BE DONE FIRST BECAUSE THEY ARE STORED USING 1 BYTE
+            uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(file) + GetAnimTreeSingleOffset();
+            auto anims_count = (int)GetAnimTreeSingleCount();
+            for (size_t i = 0; i < anims_count; i++) {
+                const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
+
+                auto* s = Ptr<char>(unk2c->address);
+
+                UINT32 ref = ctx.AddStringValue(s);
+                const auto* vars = reinterpret_cast<const UINT32*>(&unk2c[1]);
+
+                if (ref > 256) {
+                    std::cerr << "too many animtrees single usage\n";
+                }
+                else {
+                    for (size_t j = 0; j < unk2c->num_address; j++) {
+                        Ref(vars[j]) = (BYTE)ref;
+                    }
+                }
+                unk2c_location += sizeof(*unk2c) + sizeof(*vars) * unk2c->num_address;
+            }
+        }
+
+        uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
+        auto string_count = (int)GetStringsCount();
+        for (size_t i = 0; i < string_count; i++) {
+
+            const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+            LPCH cstr = DecryptString(Ptr<CHAR>(str->string));
+            if (gDumpStrings) {
+                gDumpStringsStore.insert(cstr);
+            }
+            hashutils::Add(cstr, false, false);
+            hashutils::Add(cstr, false, true);
+            UINT32 ref = ctx.AddStringValue(cstr);
+
+            const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
+            for (size_t j = 0; j < str->num_address; j++) {
+                Ref<UINT32>(strings[j]) = ref;
+            }
+            str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
+        }
+
+        auto imports_count = (int)GetImportsCount();
+        uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + GetImportsOffset();
+        for (size_t i = 0; i < imports_count; i++) {
+
+            const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
+
+            const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
+            for (size_t j = 0; j < imp->num_address; j++) {
+                UINT16* loc = Ptr<UINT16>(imports[j]);
+                auto idx = ctx.m_linkedImports.size();
+                ctx.m_linkedImports.push_back(*imp);
+                *loc = (UINT16)idx;
+            }
+            import_location += sizeof(*imp) + sizeof(*imports) * imp->num_address;
+        }
+
+        if (GetAnimTreeDoubleOffset()) {
+            uintptr_t animt_location = reinterpret_cast<uintptr_t>(file) + GetAnimTreeDoubleOffset();
+            auto anims_count = (int)GetAnimTreeDoubleCount();
+            for (size_t i = 0; i < anims_count; i++) {
+                const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
+
+                auto* s1 = Ptr<char>(animt->address_str1);
+                auto* s2 = Ptr<char>(animt->address_str2);
+
+                hashutils::Add(s1, true, true);
+                hashutils::Add(s2, true, true);
+                UINT32 ref1 = ctx.AddStringValue(s1);
+                UINT32 ref2 = ctx.AddStringValue(s2);
+
+                const auto* vars = reinterpret_cast<const UINT32*>(&animt[1]);
+                for (size_t j = 0; j < animt->num_address; j++) {
+                    auto* loc = Ptr<UINT32>(vars[j]);
+                    // use strings to link them
+                    loc[0] = ref1;
+                    loc[1] = ref2;
+                }
+                animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
+            }
+        }
+
+        return; // mwiii
+    }
     // patching imports unlink the script refs to write namespace::import_name instead of the address
     auto imports_count = (int)GetImportsCount();
     uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + GetImportsOffset();
@@ -440,6 +537,18 @@ namespace {
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T8GSCOBJ) && *reinterpret_cast<UINT64*>(file) == 0x36000a0d43534780;
         }
+        UINT16 GetAnimTreeSingleCount() override {
+            return 0;
+        };
+        UINT32 GetAnimTreeSingleOffset() override {
+            return 0;
+        };
+        UINT16 GetAnimTreeDoubleCount() override {
+            return 0;
+        };
+        UINT32 GetAnimTreeDoubleOffset() override {
+            return 0;
+        };
     };
     
     class T937GSCOBJReader : public GSCOBJReader {
@@ -540,6 +649,18 @@ namespace {
         BYTE RemapFlagsExport(BYTE flags) override {
             return flags;
         }
+        UINT16 GetAnimTreeSingleCount() override {
+            return 0;
+        };
+        UINT32 GetAnimTreeSingleOffset() override {
+            return 0;
+        };
+        UINT16 GetAnimTreeDoubleCount() override {
+            return 0;
+        };
+        UINT32 GetAnimTreeDoubleOffset() override {
+            return 0;
+        };
     };
 
     class T9GSCOBJReader : public GSCOBJReader {
@@ -658,6 +779,18 @@ namespace {
 
             return nflags;
         }
+        UINT16 GetAnimTreeSingleCount() override {
+            return 0;
+        };
+        UINT32 GetAnimTreeSingleOffset() override {
+            return 0;
+        };
+        UINT16 GetAnimTreeDoubleCount() override {
+            return 0;
+        };
+        UINT32 GetAnimTreeDoubleOffset() override {
+            return 0;
+        };
     };
 
     class MW23GSCOBJReader : public GSCOBJReader {
@@ -667,49 +800,89 @@ namespace {
             auto* data = Ptr<GscObj23>();
             asmout
                 << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
-                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
+                << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
+                << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
+                << "// strings ... " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
+                << "// exports ... " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
+                << "// imports ... " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
+                << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
+                << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
                 //<< "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                //<< "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
                 << std::right
                 << std::flush;
 
             if (opt.m_test_header) {
                 // fillme
                 asmout
-                    << "unk2c_count :" << std::dec << std::setw(3) << (int)data->unk2c_count << " (0x" << std::hex << data->unk2c_count << ")\n"
-                    << "unk30_count :" << std::dec << std::setw(3) << (int)data->unk30_count << " (0x" << std::hex << data->unk30_count << ")\n"
                     << "unk16 :" << std::dec << std::setw(3) << (int)data->unk16 << " (0x" << std::hex << data->unk16 << ")\n"
-                    << "export_count :" << std::dec << std::setw(3) << (int)data->export_count << " (0x" << std::hex << data->export_count << ")\n"
-                    << "fixup_count :" << std::dec << std::setw(3) << (int)data->fixup_count << " (0x" << std::hex << data->fixup_count << ")\n"
                     << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
-                    << "imports_count :" << std::dec << std::setw(3) << (int)data->imports_count << " (0x" << std::hex << data->imports_count << ")\n"
-                    << "includes_count :" << std::dec << std::setw(3) << (int)data->includes_count << " (0x" << std::hex << data->includes_count << ")\n"
                     << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
-                    << "string_count :" << std::dec << std::setw(3) << (int)data->string_count << " (0x" << std::hex << data->string_count << ")\n"
                     << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
                     << "unk28 :" << std::dec << std::setw(3) << (int)data->unk28 << " (0x" << std::hex << data->unk28 << ")\n"
                     << "unk2A :" << std::dec << std::setw(3) << (int)data->unk2A << " (0x" << std::hex << data->unk2A << ")\n"
-                    << "unk2c_offset :" << std::dec << std::setw(3) << (int)data->unk2c_offset << " (0x" << std::hex << data->unk2c_offset << ")\n"
-                    << "unk30_offset :" << std::dec << std::setw(3) << (int)data->unk30_offset << " (0x" << std::hex << data->unk30_offset << ")\n"
-                    << "unk34 :" << std::dec << std::setw(3) << (int)data->unk34 << " (0x" << std::hex << data->unk34 << ")\n"
-                    << "unk38 :" << std::dec << std::setw(3) << (int)data->unk38 << " (0x" << std::hex << data->unk38 << ")\n"
                     << "unk3C :" << std::dec << std::setw(3) << (int)data->unk3C << " (0x" << std::hex << data->unk3C << ")\n"
-                    << "export_offset :" << std::dec << std::setw(3) << (int)data->export_offset << " (0x" << std::hex << data->export_offset << ")\n"
-                    << "fixup_offset :" << std::dec << std::setw(3) << (int)data->fixup_offset << " (0x" << std::hex << data->fixup_offset << ")\n"
                     << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
-                    << "import_table :" << std::dec << std::setw(3) << (int)data->import_table << " (0x" << std::hex << data->import_table << ")\n"
-                    << "include_table :" << std::dec << std::setw(3) << (int)data->include_table << " (0x" << std::hex << data->include_table << ")\n"
                     << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
-                    << "string_table :" << std::dec << std::setw(3) << (int)data->string_table << " (0x" << std::hex << data->string_table << ")\n"
                     << "unk5C :" << std::dec << std::setw(3) << (int)data->unk5C << " (0x" << std::hex << data->unk5C << ")\n"
                     ;
             }
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+
+            auto* data = Ptr<GscObj23>();
+
+            uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_use_offset;
+            for (size_t i = 0; i < data->animtree_use_count; i++) {
+                const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
+
+                auto* s = Ptr<char>(unk2c->address);
+
+                asmout << std::hex << "animtree #" << s << std::endl;
+
+                hashutils::Add(s, true, true);
+
+                const auto* vars = reinterpret_cast<const UINT32*>(&unk2c[1]);
+                asmout << "location(s): ";
+                for (size_t j = 0; j < unk2c->num_address; j++) {
+                    // no align, no opcode to pass, directly the fucking location, cool.
+                    //Ref<UINT16>(vars[j]) = ref;
+                    if (j) asmout << ",";
+                    asmout << std::hex << vars[j];
+                }
+                asmout << "\n";
+                unk2c_location += sizeof(*unk2c) + sizeof(*vars) * unk2c->num_address;
+            }
+            if (data->animtree_use_count) {
+                asmout << "\n";
+            }
+
+            uintptr_t animt_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_offset;
+            for (size_t i = 0; i < data->animtree_count; i++) {
+                const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
+
+                auto* s1 = Ptr<char>(animt->address_str1);
+                auto* s2 = Ptr<char>(animt->address_str2);
+
+                hashutils::Add(s1, true, true);
+                hashutils::Add(s2, true, true);
+
+                asmout << std::hex << "animtree " << s1 << "%" << s2 << std::endl;
+
+                const auto* vars = reinterpret_cast<const UINT32*>(&animt[1]);
+                asmout << "location(s): ";
+                for (size_t j = 0; j < animt->num_address; j++) {
+                    // no align, no opcode to pass, directly the fucking location, cool.
+                    //Ref<UINT16>(vars[j]) = ref;
+                    if (j) asmout << ",";
+                    asmout << std::hex << vars[j];
+                }
+                asmout << "\n";
+                animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
+            }
+            if (data->animtree_count) {
+                asmout << "\n";
+            }
         }
 
         UINT64 GetName() override {
@@ -784,8 +957,20 @@ namespace {
         }
 
         BYTE RemapFlagsExport(BYTE flags) override {
-            return flags;
+            return 0; // TODO: update flags
         }
+        UINT16 GetAnimTreeSingleCount() override {
+            return Ptr<GscObj23>()->animtree_use_count;
+        };
+        UINT32 GetAnimTreeSingleOffset() override {
+            return Ptr<GscObj23>()->animtree_use_offset;
+        };
+        UINT16 GetAnimTreeDoubleCount() override {
+            return Ptr<GscObj23>()->animtree_count;
+        };
+        UINT32 GetAnimTreeDoubleOffset() override {
+            return Ptr<GscObj23>()->animtree_offset;
+        };
     };
 
     std::unordered_map<BYTE, std::function<std::shared_ptr<GSCOBJReader> (BYTE*, const GscInfoOption&)>> gscReaders = {
@@ -1254,7 +1439,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             Located rname = { exp->GetNamespace(), exp->GetName() };
 
-            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), opt, currentNSP, *exp, handle, vm, opt.m_platform);
+            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, vm, opt.m_platform);
 
             if (!r.second) {
                 asmout << "Duplicate node "
@@ -1273,8 +1458,12 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             output << "}\n";
 
+            if (asmctx.m_disableDecompiler) {
+                output << "// decompiler disabled for method\n";
+            }
 
-            if (!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) {
+
+            if ((!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) && !asmctx.m_disableDecompiler) {
                 asmctx.ComputeDefaultParamValue();
                 if (opt.m_dasm || opt.m_func_header_post) {
                     DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
@@ -1361,6 +1550,11 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                     }
 
                     auto& e = masmctxit->second;
+
+                    if (e.m_disableDecompiler) {
+                        return;
+                    }
+
                     // set the export handle
                     e.m_exp.SetHandle(e.m_readerHandle);
 
@@ -1407,6 +1601,10 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                 }
 
                 auto& asmctx = f->second;
+
+                if (asmctx.m_disableDecompiler) {
+                    continue;
+                }
 
                 DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx);
                 asmout << " ";
@@ -1647,6 +1845,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
             if (opCode & ~0xFFF) {
                 out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(" << opCode << ")" << "\n";
                 opCode &= 0xFFF;
+                ctx.m_disableDecompiler = true;
                 break;
             }
 
@@ -1910,11 +2109,11 @@ End
     return 0;
 }
 
-int tool::gsc::ComputeSize(GSCExportReader& exp, BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm) {
+int tool::gsc::ComputeSize(GSCExportReader& exp, BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VmInfo* vminfo) {
     using namespace opcode;
     BYTE* loc = gscFile + exp.GetAddress();
 
-    ASMSkipContext ctx{ loc, vm, plt };
+    ASMSkipContext ctx{ loc, plt, vminfo };
 
     while (ctx.FindNextLocation()) {
         while (true) {

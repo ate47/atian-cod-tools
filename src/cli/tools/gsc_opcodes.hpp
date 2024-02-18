@@ -9,6 +9,7 @@ namespace tool::gsc::opcode {
 		VMF_OPCODE_SHORT = 1,
 		VMF_HASH64 = 2,
 		VMF_NO_VERSION = 4,
+		VMF_NO_PARAM_FLAGS = 8,
 	};
 	class OPCodeInfo;
 	struct VmInfo {

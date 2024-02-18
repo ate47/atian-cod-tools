@@ -61,6 +61,7 @@ namespace tool::gsc {
         void PrintHelp(std::ostream& out);
     };
     struct T8GSCExport;
+    struct IW23GSCImport;
     class T8GSCOBJContext;
     class GSCOBJReader;
     struct GSCExportReader;
@@ -278,10 +279,10 @@ namespace tool::gsc {
         public:
             // fonction start location
             BYTE* m_fonctionStart;
-            // file vm
-            BYTE m_vm;
             // file platform
             Platform m_platform;
+            // object context
+            VmInfo* m_vminfo;
             // locations
             std::map<INT32, asmcontextlocation> m_locs{};
             // current context location
@@ -289,7 +290,7 @@ namespace tool::gsc {
             // error
             std::string m_error{};
 
-            ASMSkipContext(BYTE* fonctionStart, BYTE vm, Platform platform);
+            ASMSkipContext(BYTE* fonctionStart, Platform platform, VmInfo* m_vm);
 
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
@@ -313,7 +314,7 @@ namespace tool::gsc {
             // find next location
             bool FindNextLocation();
             inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(UINT16 opcode) {
-                return tool::gsc::opcode::LookupOpCode(m_vm, m_platform, opcode);
+                return tool::gsc::opcode::LookupOpCode(m_vminfo->vm, m_platform, opcode);
             }
         };
 
@@ -321,10 +322,16 @@ namespace tool::gsc {
         public:
             // cli opt
             const GscInfoOption& m_opt;
+            // object context
+            T8GSCOBJContext& m_objctx;
             // run the decompiler logic
             bool m_runDecompiler;
+            // find error
+            bool m_disableDecompiler{};
             // fonction start location
             BYTE* m_fonctionStart;
+            // script reader
+            GSCOBJReader& m_gscReader;
             // locations
             std::map<INT32, asmcontextlocation> m_locs{};
             // current context location
@@ -353,7 +360,7 @@ namespace tool::gsc {
             // file platform
             Platform m_platform;
 
-            ASMContext(BYTE* fonctionStart, const GscInfoOption& opt, UINT64 nsp, GSCExportReader& exp, void* m_readerHandle, BYTE vm, Platform platform);
+            ASMContext(BYTE* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, UINT64 nsp, GSCExportReader& exp, void* m_readerHandle, BYTE vm, Platform platform);
             ~ASMContext();
 
             // @return relative location in the function
@@ -529,6 +536,7 @@ namespace tool::gsc {
         std::unordered_map<UINT16, UINT64> m_gvars{};
         std::unordered_map<UINT32, LPCCH> m_stringRefs{};
     public:
+        std::vector<IW23GSCImport> m_linkedImports{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<UINT64, gscclass> m_classes{};
@@ -662,8 +670,8 @@ namespace tool::gsc {
         byte magic[8];
         uint64_t name;
         uint16_t unk10;
-        uint16_t unk2c_count;
-        uint16_t unk30_count;
+        uint16_t animtree_use_count;
+        uint16_t animtree_count;
         uint16_t unk16;
         uint16_t export_count;
         uint16_t fixup_count;
@@ -675,10 +683,10 @@ namespace tool::gsc {
         uint16_t unk26;
         uint16_t unk28;
         uint16_t unk2A;
-        uint32_t unk2c_offset;
-        uint32_t unk30_offset;
-        uint32_t unk34;
-        uint32_t unk38;
+        uint32_t animtree_use_offset;
+        uint32_t animtree_offset;
+        uint32_t cseg_offset;
+        uint32_t cseg_size;
         uint32_t unk3C;
         uint32_t export_offset;
         uint32_t fixup_offset;
@@ -745,7 +753,7 @@ namespace tool::gsc {
      * @param vm origin vm
      * @return size or 0 if a bad opcode was found
      */
-    int ComputeSize(GSCExportReader& exp, BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VM vm);
+    int ComputeSize(GSCExportReader& exp, BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VmInfo* vminfo);
 
     struct IW23GSCImport {
         UINT64 name;
@@ -839,6 +847,10 @@ namespace tool::gsc {
         virtual char* DecryptString(char* str) = 0;
         virtual BYTE RemapFlagsImport(BYTE flags);
         virtual BYTE RemapFlagsExport(BYTE flags);
+        virtual UINT16 GetAnimTreeSingleCount() = 0;
+        virtual UINT32 GetAnimTreeSingleOffset() = 0;
+        virtual UINT16 GetAnimTreeDoubleCount() = 0;
+        virtual UINT32 GetAnimTreeDoubleOffset() = 0;
 
         virtual void DumpHeader(std::ostream& asmout) = 0;
         virtual void PatchCode(T8GSCOBJContext& ctx);
