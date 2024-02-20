@@ -4,8 +4,8 @@
 
 using namespace tool::gsc;
 
-static UINT32 g_constructorName = hashutils::Hash32("__constructor");
-static UINT32 g_destructorName = hashutils::Hash32("__destructor");
+constexpr auto g_constructorName = hashutils::Hash32("__constructor");
+constexpr auto g_destructorName = hashutils::Hash32("__destructor");
 
 bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
     // default values
@@ -191,26 +191,35 @@ void GscInfoOption::PrintHelp(std::ostream& out) {
     out << "-h --help          : Print help\n"
         << "-g --gsc           : Produce GSC\n"
         << "-a --asm           : Produce ASM\n"
+        << "-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'\n"
         << "-o --output [d]    : ASM/GSC output dir, default same.gscasm\n"
-        << "-s --silent        : Silent output, only errors\n"
+        << "-v --vm            : Set vm, useless for Treyarch VM, values: mw23\n"
         << "-H --header        : Write file header\n"
-        << "--test-header      : Write test header\n"
         << "-m --hashmap [f]   : Write hashmap in a file f\n"
-        << "-f --nofunc        : No function write\n"
+        << "--dumpstrings [f]  : Dump strings in f\n"
         << "-l --rloc          : Write relative location of the function code\n"
+        << "-f --nofunc        : No function write\n"
+        << "-C --copyright [t] : Set a comment text to put in front of every file\n"
+#ifndef CI_BUILD
+        // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
+        // it's mostly dev tools
+        << "-G --gvars         : Write gvars\n"
+        << "-U --noincludes    : No includes\n"
+        << "-X --exptests      : Enable UNK tests\n"
+        << "-V --vars          : Show all func vars\n"
         << "-F --nofuncheader  : No function header\n"
         << "-p --postfunchead  : Write post function header in ASM mode\n"
         << "-I --imports       : Write imports\n"
         << "-S --strings       : Write strings\n"
-        << "--dumpstrings [f]  : Dump strings in f\n"
-        << "-G --gvars         : Write gvars\n"
-        << "-U --noincludes    : No includes\n"
-        << "-V --vars          : Show all func vars\n"
         << "-r --rosetta [f]   : Create Rosetta file\n"
-        << "-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'\n"
-        << "-v --vm            : Set vm, useless for Treyarch VM, values: mw23\n"
-        << "-X --exptests      : Enable UNK tests\n"
-        << "-C --copyright [t] : Set a comment text to put in front of every file\n";
+        << "--test-header      : Write test header\n"
+        << "--internalblocks   : Show internal blocks \n"
+        << "--jumpdelta        : Show jump delta\n"
+        << "--prestruct        : Show prestruct\n"
+        << "--refcount         : Show ref count\n"
+        << "-i --ignore[t + ]  : ignore step (d: dev, s: switch, e: foreach, w: while, i: if, f: for)\n"
+#endif
+        ;
 }
 
 static LPCCH gDumpStrings = NULL;
@@ -829,59 +838,60 @@ namespace {
             }
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
-
             auto* data = Ptr<GscObj23>();
 
-            uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_use_offset;
-            for (size_t i = 0; i < data->animtree_use_count; i++) {
-                const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
+            if (opt.m_test_header) {
+                uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_use_offset;
+                for (size_t i = 0; i < data->animtree_use_count; i++) {
+                    const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
 
-                auto* s = Ptr<char>(unk2c->address);
+                    auto* s = Ptr<char>(unk2c->address);
 
-                asmout << std::hex << "animtree #" << s << std::endl;
+                    asmout << std::hex << "animtree #" << s << std::endl;
 
-                hashutils::Add(s, true, true);
+                    hashutils::Add(s, true, true);
 
-                const auto* vars = reinterpret_cast<const UINT32*>(&unk2c[1]);
-                asmout << "location(s): ";
-                for (size_t j = 0; j < unk2c->num_address; j++) {
-                    // no align, no opcode to pass, directly the fucking location, cool.
-                    //Ref<UINT16>(vars[j]) = ref;
-                    if (j) asmout << ",";
-                    asmout << std::hex << vars[j];
+                    const auto* vars = reinterpret_cast<const UINT32*>(&unk2c[1]);
+                    asmout << "location(s): ";
+                    for (size_t j = 0; j < unk2c->num_address; j++) {
+                        // no align, no opcode to pass, directly the fucking location, cool.
+                        //Ref<UINT16>(vars[j]) = ref;
+                        if (j) asmout << ",";
+                        asmout << std::hex << vars[j];
+                    }
+                    asmout << "\n";
+                    unk2c_location += sizeof(*unk2c) + sizeof(*vars) * unk2c->num_address;
                 }
-                asmout << "\n";
-                unk2c_location += sizeof(*unk2c) + sizeof(*vars) * unk2c->num_address;
-            }
-            if (data->animtree_use_count) {
-                asmout << "\n";
-            }
-
-            uintptr_t animt_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_offset;
-            for (size_t i = 0; i < data->animtree_count; i++) {
-                const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
-
-                auto* s1 = Ptr<char>(animt->address_str1);
-                auto* s2 = Ptr<char>(animt->address_str2);
-
-                hashutils::Add(s1, true, true);
-                hashutils::Add(s2, true, true);
-
-                asmout << std::hex << "animtree " << s1 << "%" << s2 << std::endl;
-
-                const auto* vars = reinterpret_cast<const UINT32*>(&animt[1]);
-                asmout << "location(s): ";
-                for (size_t j = 0; j < animt->num_address; j++) {
-                    // no align, no opcode to pass, directly the fucking location, cool.
-                    //Ref<UINT16>(vars[j]) = ref;
-                    if (j) asmout << ",";
-                    asmout << std::hex << vars[j];
+                if (data->animtree_use_count) {
+                    asmout << "\n";
                 }
-                asmout << "\n";
-                animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
-            }
-            if (data->animtree_count) {
-                asmout << "\n";
+
+                uintptr_t animt_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_offset;
+                for (size_t i = 0; i < data->animtree_count; i++) {
+                    const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
+
+                    auto* s1 = Ptr<char>(animt->address_str1);
+                    auto* s2 = Ptr<char>(animt->address_str2);
+
+                    hashutils::Add(s1, true, true);
+                    hashutils::Add(s2, true, true);
+
+                    asmout << std::hex << "animtree " << s1 << "%" << s2 << std::endl;
+
+                    const auto* vars = reinterpret_cast<const UINT32*>(&animt[1]);
+                    asmout << "location(s): ";
+                    for (size_t j = 0; j < animt->num_address; j++) {
+                        // no align, no opcode to pass, directly the fucking location, cool.
+                        //Ref<UINT16>(vars[j]) = ref;
+                        if (j) asmout << ",";
+                        asmout << std::hex << vars[j];
+                    }
+                    asmout << "\n";
+                    animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
+                }
+                if (data->animtree_count) {
+                    asmout << "\n";
+                }
             }
         }
 

@@ -85,7 +85,7 @@ namespace hashutils {
 	 * @param hash Hashed value
 	 * @return String to the value or NULL if the hash isn't in the hash map
 	 */
-	LPCCH ExtractPtr(UINT64 hash);
+	const char* ExtractPtr(UINT64 hash);
 	/*
 	 * @return the size of the hash map
 	 */
@@ -96,26 +96,26 @@ namespace hashutils {
 	 * @param str String to compute
 	 * @return hashed value
 	 */
-	inline UINT32 Hash32(LPCCH str) { return hash::Hash32(str); }
+	constexpr uint32_t Hash32(const char* str) { return hash::Hash32(str); }
 	/*
 	 * Compute the hash64 on a string (fnva1), path are unformatted
 	 * @param str String to compute
 	 * @param start Start value, can be a previous hash to concatenate hashes
 	 * @return Hashed value
 	 */
-	inline UINT64 Hash64(LPCCH str, UINT64 start = 0xcbf29ce484222325LL, UINT64 iv = 0x100000001b3) { return hash::Hash64(str, start, iv); }
-	inline UINT64 HashIW(LPCCH str) { return hash::Hash64(str, 0x47F5817A5EF961BA); }
-	inline UINT64 HashIW2(LPCCH str) { return hash::Hash64(str, 0x79D6530B0BB9B5D1, 0x10000000233); }
+	constexpr uint64_t Hash64(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) { return hash::Hash64(str, start, iv); }
+	constexpr uint64_t HashIW(const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); }
+	constexpr uint64_t HashIW2(const char* str) { return hash::Hash64(str, 0x79D6530B0BB9B5D1, 0x10000000233); }
 	/*
 	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT32 Hash32Pattern(LPCCH str) { return hash::Hash32Pattern(str); }
+	inline UINT32 Hash32Pattern(const char* str) { return hash::Hash32Pattern(str); }
 	/*
 	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT64 Hash64Pattern(LPCCH str) { return hash::Hash64Pattern(str); }
+	inline UINT64 Hash64Pattern(const char* str) { return hash::Hash64Pattern(str); }
 }

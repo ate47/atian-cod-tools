@@ -145,6 +145,7 @@ namespace tool::gsc {
             TYPE_STRUCT_BUILD,
 
             TYPE_FUNC_CALL,
+            TYPE_FUNC_REFNAME,
             TYPE_FUNC_IS_DEFINED,
 
             TYPE_PRECODEPOS,

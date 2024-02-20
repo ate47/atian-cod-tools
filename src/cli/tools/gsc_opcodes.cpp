@@ -266,7 +266,7 @@ public:
 	UINT64 m_func;
 	UINT64 m_nsp;
 	UINT64 m_script;
-	ASMContextNodeFuncRef(LPCCH op, UINT64 func, UINT64 nsp = 0, UINT64 script = 0) : ASMContextNode(PRIORITY_VALUE),
+	ASMContextNodeFuncRef(LPCCH op, UINT64 func, UINT64 nsp = 0, UINT64 script = 0) : ASMContextNode(PRIORITY_VALUE, TYPE_FUNC_REFNAME),
 		m_op(op), m_func(func), m_nsp(nsp), m_script(script) {
 	}
 
@@ -462,12 +462,11 @@ enum ASMContextNodeCallFuncFlag : BYTE {
 };
 
 class ASMContextNodeCallFuncPtr : public ASMContextNode {
-private:
-	ASMContextNodeCallFuncPtrType m_type;
-	BYTE m_flags;
 public:
+	ASMContextNodeCallFuncPtrType m_ftype;
+	BYTE m_flags;
 	std::vector<ASMContextNode*> m_operands{};
-	ASMContextNodeCallFuncPtr(ASMContextNodeCallFuncPtrType type, BYTE flags) : ASMContextNode(PRIORITY_ACCESS, TYPE_FUNC_CALL), m_type(type), m_flags(flags) {
+	ASMContextNodeCallFuncPtr(ASMContextNodeCallFuncPtrType type, BYTE flags) : ASMContextNode(PRIORITY_ACCESS, TYPE_FUNC_CALL), m_ftype(type), m_flags(flags) {
 	}
 	~ASMContextNodeCallFuncPtr() {
 		for (auto& ref : m_operands) {
@@ -480,7 +479,7 @@ public:
 	}
 
 	ASMContextNode* Clone() const override {
-		auto* ref = new ASMContextNodeCallFuncPtr(m_type, m_flags);
+		auto* ref = new ASMContextNodeCallFuncPtr(m_ftype, m_flags);
 		ref->m_operands.reserve(m_operands.size());
 		for (const auto& op : m_operands) {
 			ref->m_operands.push_back(op->Clone());
@@ -506,7 +505,7 @@ public:
 			out << "builtin ";
 		}
 
-		switch (m_type) {
+		switch (m_ftype) {
 		case ASMContextNodeCallFuncPtrType::CLASS_CALL:
 			assert(m_operands.size() >= start + 2);
 			out << "[[ ";
@@ -531,7 +530,7 @@ public:
 			// a params call is only printing the params
 			break;
 		default:
-			out << "<error CallFuncPtrType:" << m_type << ">";
+			out << "<error CallFuncPtrType:" << m_ftype << ">";
 			break;
 		}
 
@@ -3823,8 +3822,6 @@ public:
 		out << std::dec << "params: " << (int)params << ", function: " << std::hex << hashutils::ExtractTmp("function", function) << std::endl;
 
 		if (context.m_runDecompiler) {
-			static UINT32 constructorName = hashutils::Hash32("__constructor");
-
 			auto* caller = context.PopASMCNode();
 
 			BYTE flags = 0;
@@ -3836,7 +3833,7 @@ public:
 				flags |= CHILDTHREAD_CALL;
 			}
 
-			if (!flags && caller->m_type == TYPE_NEW && function == constructorName) {
+			if (!flags && caller->m_type == TYPE_NEW && function == hashutils::Hash32("__constructor")) {
 				// calling new constructor
 				auto* newNode = static_cast<ASMContextNodeNew*>(caller);
 
@@ -4910,7 +4907,9 @@ public:
 #pragma endregion
 #pragma region opcode_registry
 
-static const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefined, "Undefined");
+namespace {
+	const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefined, "Undefined");
+}
 
 void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name, UINT64 flags) {
 	g_opcodeMap[vm] = { vm, name, flags, {} };
@@ -5198,8 +5197,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_IW_EvalArrayCachedField, "EvalArrayCachedField", false));
 		RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "ClearFieldVariableRef"));
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "GetDVarHash", "@"));
-		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetUnk9, "GetUnk9", "?9"));
-		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetUnkb, "GetUnkB", "?b", false));
+		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetUnk9, "GetUnk9", "%"));
+		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetUnkb, "GetUnkB", "t", false));
 		RegisterOpCodeHandler(new OPCodeInfoIWSwitch());
 		RegisterOpCodeHandler(new OPCodeInfoIWEndSwitch());
 		RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_IW_GetIString, "GetIString"));
@@ -5971,12 +5970,35 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	key is the key name, it might not be used, idea: counting the ref?
 
 
-	// MWIII is the same as T8, but using functions instead of operator:
-	// getfirstarraykey = function_4ccfee6f73819653
-	// getnextarraykey = function_6db433ae7304a362
+	// MWIII
+	
+	same as T8, but using functions instead of operator and undefineds at the end:
 
-	// except for the last var set:
-	// var_7cbeb6de = getnextarraykey(var_f15d3f7b, var_7cbeb6de);
+	var_26568fed2b866c11 = level.teamdata[victim.team]["players"];
+	var_c00a2b6249962b50 = var_26568fed2b866c11;
+	var_2ef11e61df37c715 = getfirstarraykey(var_c00a2b6249962b50);
+	while (isdefined(var_2ef11e61df37c715)) {
+		player = var_c00a2b6249962b50[var_2ef11e61df37c715];
+		if (player namespace_82dcd1d5ae30ff7::_hasperk("specialty_snapshot_immunity")) {
+			interrogator namespace_e072c8407b2a861c::updatedamagefeedback("hittacresist");
+			return;
+		} else {
+			player function_ab6a75b53de148ab(interrogator, level.var_762fc98bdfe1cb1d);
+			triggerportableradarpingteam(player.origin, interrogator.team, level.var_575cb25b5d41b53, 500);
+		}
+		var_2ef11e61df37c715 = getnextarraykey(var_c00a2b6249962b50, var_2ef11e61df37c715);
+	}
+	var_2ef11e61df37c715 = undefined;
+	var_c00a2b6249962b50 = undefined;
+
+
+	var_26568fed2b866c11 = init array?
+	var_c00a2b6249962b50 = array var
+	var_2ef11e61df37c715 = key
+	var_2ef11e61df37c715 = val
+	getfirstarraykey/getnextarraykey = function calls
+	getfirstarraykey = function_4ccfee6f73819653 (79d6530b0bb9b5d1/10000000233)
+	getnextarraykey = function_6db433ae7304a362 (79d6530b0bb9b5d1/10000000233)
 
 	// T9
 	
@@ -5998,6 +6020,8 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	var_23ea8daa is the key, it might not be used, idea: counting the ref?
 	e_clip is the value
 	*/
+	constexpr auto getfirstarraykeyIWHash = hashutils::HashIW2("getfirstarraykey");
+	constexpr auto getnextarraykeyIWHash = hashutils::HashIW2("getnextarraykey");
 
 	size_t index = 0;
 
@@ -6048,7 +6072,27 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		}
 		auto* setFirstArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(firstArrayLoc.node);
 
-		if (setFirstArrayOp->m_left->m_type != TYPE_IDENTIFIER || setFirstArrayOp->m_right->m_type != TYPE_ARRAY_FIRSTKEY) {
+
+		if (([setFirstArrayOp]() {
+			if (setFirstArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
+				return true; // not a idf = ??
+			}
+			if (setFirstArrayOp->m_right->m_type == TYPE_ARRAY_FIRSTKEY) {
+				return false; // bo4
+			}
+			if (setFirstArrayOp->m_right->m_type != TYPE_FUNC_CALL) {
+				return true; // not mw
+			}
+			auto* callFunc = dynamic_cast<ASMContextNodeCallFuncPtr*>(setFirstArrayOp->m_right);
+
+			if (callFunc->m_flags || !callFunc->m_operands.size() || callFunc->m_operands[0]->m_type != TYPE_FUNC_REFNAME) {
+				return true;
+			}
+
+			auto* funcRef = dynamic_cast<ASMContextNodeFuncRef*>(callFunc->m_operands[0]);
+
+			return funcRef->m_func != getfirstarraykeyIWHash;
+		})()) {
 			index += moveDelta;
 			continue; // not key = firstarray(...)
 		}
@@ -6095,7 +6139,34 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		UINT64 itemValName;
-		if (ctx.m_vm != VM_T8 && ctx.m_vm != VM_MW23) {
+		if (ctx.m_vm == VM_MW23) {
+			/*
+				agent = var_57acddc40b2f741[var_54ed0dc40829774];;
+
+				// ... code
+
+				var_54ed0dc40829774 = getnextarraykey(var_57acddc40b2f741, var_54ed0dc40829774)
+				continue
+			*/
+			auto& nextArrayStmt = m_statements[index];
+
+			if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY) {
+				index += moveDelta;
+				continue;
+			}
+			auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
+
+			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
+				index += moveDelta;
+				continue; // agent = var_57acddc40b2f741[var_54ed0dc40829774];
+			}
+
+			itemValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
+
+			index++;
+			moveDelta--;
+		}
+		else if (ctx.m_vm != VM_T8) {
 			/*
 				var_d9f19f82 = iteratorkey(var_e4aec0cf);
 				var_8487602c = iteratorval(var_e4aec0cf);
