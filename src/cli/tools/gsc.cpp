@@ -967,7 +967,18 @@ namespace {
         }
 
         BYTE RemapFlagsExport(BYTE flags) override {
-            return 0; // TODO: update flags
+            BYTE nflags{};
+            if (flags & 1) {
+                nflags |= T8GSCExportFlags::AUTOEXEC;
+            }
+            if (flags & 2) {
+                nflags |= T8GSCExportFlags::LINKED;
+            }
+            if (flags & 4) {
+                nflags |= T8GSCExportFlags::PRIVATE;
+            }
+
+            return nflags;
         }
         UINT16 GetAnimTreeSingleCount() override {
             return Ptr<GscObj23>()->animtree_use_count;

@@ -1902,7 +1902,16 @@ public:
 					if (last.node->m_type != TYPE_JUMP && IsJumpType(last.node->m_type)) {
 						auto* jumpNode = static_cast<ASMContextNodeJumpOperator*>(last.node);
 						// is this operator pointing just after us?
-						if (jumpNode->m_delta > 0 && jumpNode->m_location == context.FunctionRelativeLocation(utils::Aligned<INT16>(context.m_bcl))) {
+						BYTE* curr;
+						
+						if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+							curr = utils::Aligned<INT16>(context.m_bcl);
+						}
+						else {
+							curr = context.m_bcl;
+						}
+
+						if (jumpNode->m_delta > 0 && jumpNode->m_location == context.FunctionRelativeLocation(curr)) {
 							auto* top = context.PopASMCNode();
 							if (top->m_type != TYPE_PRECODEPOS) {
 								// bad top, no data
@@ -3027,12 +3036,12 @@ public:
 		UINT64 name;
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
 			context.m_localvars_ref[name]++;
-			out << hashutils::ExtractTmp("var", name) << std::endl;
+			out << hashutils::ExtractTmp("var", name);
 		}
 		out << "\n";
 
@@ -6110,7 +6119,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_vm == VM_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_vm == VM_MW23 ? 2 : ctx.m_vm == VM_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -6145,15 +6154,10 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 				// ... code
 
+				// unlike in treyarch, the nextarray is at the end and not at the start of the iteration
 				var_54ed0dc40829774 = getnextarraykey(var_57acddc40b2f741, var_54ed0dc40829774)
 				continue
 			*/
-			auto& nextArrayStmt = m_statements[index];
-
-			if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY) {
-				index += moveDelta;
-				continue;
-			}
 			auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
 
 			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
@@ -6162,9 +6166,6 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			}
 
 			itemValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
-
-			index++;
-			moveDelta--;
 		}
 		else if (ctx.m_vm != VM_T8) {
 			/*
@@ -6314,11 +6315,14 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// remove the number of references for the key because maybe we don't use it
 		auto& keyRef = ctx.m_localvars_ref[keyValName];
-		if (ctx.m_vm != VM_T8) {
-			keyRef = max(keyRef - 1, 0); // key isn't used as an iterator in T9
+		if (ctx.m_vm == VM_MW23) {
+			keyRef = max(keyRef - 6, 0); // key is undefined at the end in mw23
+		}
+		else if (ctx.m_vm == VM_T8) {
+			keyRef = max(keyRef - 5, 0);
 		}
 		else {
-			keyRef = max(keyRef - 5, 0);
+			keyRef = max(keyRef - 1, 0); // key isn't used as an iterator in T9
 		}
 
 		auto* forEachNode = new ASMContextNodeForEach(setOp->m_right->Clone(), block, ctx.m_localvars_ref[keyValName] ? keyValName : 0, itemValName);
@@ -6337,6 +6341,9 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			it = m_statements.erase(it);
 		}
 		block->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_foreachcontinue>", TYPE_PRECODEPOS), it->location });
+		if (ctx.m_vm == VM_MW23) {
+			endNodeIndex += 2; // delete undefines
+		}
 		for (size_t i = incrementIndex; i < endNodeIndex; i++) {
 			// remove component statement
 			delete it->node;
