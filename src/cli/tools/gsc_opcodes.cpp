@@ -707,7 +707,7 @@ public:
 		size_t start = 0;
 		if (m_caller) {
 			if (!m_operands.size()) {
-				std::cerr << "empty MultOp " << m_description << "\n";
+				LOG_ERROR("empty MultOp {}", m_description);
 				return; // wtf?
 			}
 			m_operands[0]->Dump(out, ctx);
@@ -3705,7 +3705,7 @@ public:
 			case OPCODE_CallBuiltinFunction:
 				break; // ignored
 			default:
-				std::cerr << "bad func call: " << m_id << "\n";
+				LOG_ERROR("bad func call {}", (int)m_id);
 				return -1;
 			}
 
@@ -3943,7 +3943,7 @@ public:
 				flags |= SELF_CALL | BUILTIN_CALL;
 				break;
 			default:
-				std::cerr << "bad func ptr call: " << m_id << "\n";
+				LOG_ERROR("bad func ptr call {}", (int)m_id);
 				return -1;
 			}
 
@@ -4927,7 +4927,7 @@ void tool::gsc::opcode::RegisterVMPlatform(BYTE vm, Platform plt) {
 	auto ref = g_opcodeMap.find(vm);
 
 	if (ref == g_opcodeMap.end()) {
-		std::cerr << "Registered platform to bad vm: VM_" << std::hex << vm << ", plt: " << PlatformName(plt) << "\n";
+		LOG_ERROR("Registered platform to bad vm: VM_{:x}, plt: {}", (int)vm, PlatformName(plt));
 		return;
 	}
 
@@ -4937,7 +4937,7 @@ void tool::gsc::opcode::RegisterOpCode(BYTE vm, Platform platform, OPCode enumVa
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
 		assert(0);
-		std::cerr << "Registering unknown OPCODE vm 0x" << std::hex << (int)vm << "\n";
+		LOG_ERROR("Registering unknown OPCODE vm 0x{:x}", (int)vm);
 		return;
 	}
 
@@ -5730,8 +5730,6 @@ void ASMContext::ComputeDefaultParamValue() {
 			break; // not a param var or already defined as default
 		}
 
-		//std::cout << hashutils::ExtractTmp("function", m_exp.name) << std::flush << "-" << hashutils::ExtractTmp("var", name) << ":" << localVar << "/" << m_localvars.size() << "/" << (int)m_exp.param_count << std::endl;
-
 		// add default value node
 		m_localvars[localVar].defaultValueNode = set->m_right->Clone();
 
@@ -5833,14 +5831,14 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 
 		// check that the index is logic
 		if (cases.size() && cases[cases.size() - 1].jumpLocation > end) {
-			std::cerr << "Error when parsing switch, a case is after the end\n";
+			LOG_ERROR("Error when parsing switch, a case is after the end");
 			assert(0);
 			continue;
 		}
 
 
 		if (it == m_statements.end()) {
-			std::cerr << "Error when parsing switch, end before start of the cases\n";
+			LOG_ERROR("Error when parsing switch, end before start of the cases");
 			assert(0);
 			return -1;
 		}
@@ -6250,7 +6248,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		}
 
 		if (endNodeIndex > m_statements.size()) {
-			std::cerr << "Bad foreach node endNodeIndex\n";
+			LOG_ERROR("Bad foreach node endNodeIndex");
 			assert(0);
 			index += moveDelta;
 			continue;
@@ -6414,7 +6412,6 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 	size_t itindex = 0;
 	while (itindex < m_statements.size()) {
 		auto& jumpStmtVal = m_statements[itindex];
-		//std::cout << "parsing " << hashutils::ExtractTmp("function", ctx.m_exp.name) << ": " << std::hex << jumpStmtVal.location->rloc << "\n";
 		jumpStmtVal.node->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) {
 			block->ComputeWhileBlocks(ctx);
 		}, ctx);

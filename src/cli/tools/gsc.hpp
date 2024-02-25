@@ -17,7 +17,6 @@ namespace tool::gsc {
         bool m_dcomp = false;
         bool m_dasm = false;
         bool m_help = false;
-        bool m_verbose = true;
         bool m_header = false;
         bool m_imports = false;
         bool m_strings = false;
@@ -56,9 +55,8 @@ namespace tool::gsc {
         bool Compute(LPCCH* args, INT startIndex, INT endIndex);
         /*
          * Print help in a stream
-         * @param out stream
          */
-        void PrintHelp(std::ostream& out);
+        void PrintHelp();
     };
     struct T8GSCExport;
     struct IW23GSCImport;

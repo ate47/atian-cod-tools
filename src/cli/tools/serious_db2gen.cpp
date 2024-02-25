@@ -19,7 +19,7 @@ namespace {
 		std::map<UINT16, BuildDbGen> asked{};
 
 		if (argc == 2) {
-			std::cout << "Full db generation\n";
+			LOG_INFO("Full db generation");
 
 			const auto& vms = GetVMMaps();
 
@@ -42,7 +42,7 @@ namespace {
 				auto plt = PlatformOf(argv[i]);
 
 				if (plt == PLATFORM_UNKNOWN) {
-					std::cerr << "Bad platform: " << argv[i] << "\n";
+					LOG_ERROR("Bad platform: {}", argv[i]);
 					return tool::BASIC_ERROR;
 				}
 
@@ -51,7 +51,7 @@ namespace {
 				VmInfo* nfo;
 
 				if (!IsValidVm(vm, nfo)) {
-					std::cerr << "Bad VM: " << argv[i + 1] << "\n";
+					LOG_ERROR("Bad VM: {}", argv[i + 1]);
 					return tool::BASIC_ERROR;
 				}
 
@@ -69,13 +69,13 @@ namespace {
 		}
 
 
-		std::cout << "Building db for " << asked.size() << " vm(s)...\n";
+		LOG_INFO("Building db for {} vm(s)...", asked.size());
 
 
 		std::ofstream vmfile{ compatibility::serious::VM_CODES_DB, std::ios::binary };
 
 		if (!vmfile) {
-			std::cerr << "Can't open file " << compatibility::serious::VM_CODES_DB << "\n";
+			LOG_ERROR("Can't open file {}", compatibility::serious::VM_CODES_DB);
 			return tool::BASIC_ERROR;
 		}
 
@@ -106,12 +106,11 @@ namespace {
 
 			// write mapping
 			vmfile.write(reinterpret_cast<LPCCH>(buffer), sizeof(buffer));
-			std::cout << "Added vm " << bld.vm->name << " / " << PlatformName(bld.platform) << "\n";
+			LOG_INFO("Added vm {} / {}", bld.vm->name, PlatformName(bld.platform));
 		}
 
 		vmfile.close();
-		std::cout << "DB created into " << compatibility::serious::VM_CODES_DB << " .\n";
-
+		LOG_INFO("DB created into {}", compatibility::serious::VM_CODES_DB);
 
 		return tool::OK;
 	}
@@ -125,7 +124,7 @@ namespace {
 		size_t size{};
 
 		if (!utils::ReadFileNotAlign(argv[2], buffer, size, false)) {
-			std::cerr << "Can't read file " << argv[2] << "\n";
+			LOG_ERROR("Can't read file {}", argv[2]);
 			return tool::BASIC_ERROR;
 		}
 
@@ -136,7 +135,7 @@ namespace {
 
 		while (real) {
 			if (real < 4) {
-				std::cerr << "Bad chunk size: " << std::hex << real << "\n";
+				LOG_ERROR("Bad chunk size: {:x}", real);
 				break;
 			}
 			auto vm = *db;
@@ -147,10 +146,10 @@ namespace {
 			db += 4;
 
 			if (!tool::gsc::opcode::IsValidVm(vm, nfo)) {
-				std::cerr << "Invalid vm: " << std::hex << (int)vm << ", plt: " << platform << ", size: " << size << "\n";
+				LOG_ERROR("Invalid vm: {:x}, plt: {:x}, size: {:x}", (int)vm, platform, size);
 
 				if (real < size) {
-					std::cerr << "Bad chunk size: " << std::hex << real << "\n";
+					LOG_ERROR("Bad chunk size: {:x}", real);
 					break;
 				}
 				db += size;
@@ -171,13 +170,12 @@ namespace {
 			}
 
 
-
-			std::cout << "Vm: " << nfo->name << "(" << std::hex << (int)nfo->vm << "), platform: " << pltName << " (" << std::hex << (int)platform << "), size: " << size << "\n";
+			LOG_INFO("Vm: {} ({:x}), platform: {} ({:x}), size: {:x}", nfo->name, (int)nfo->vm, pltName, (int)platform, size);
 
 			std::map<BYTE, std::vector<UINT16>> opcodes{};
 
 			if (real < size) {
-				std::cerr << "Bad chunk size: " << std::hex << real << "\n";
+				LOG_ERROR("Bad chunk size: {:x}", real);
 				break;
 			}
 
@@ -190,18 +188,19 @@ namespace {
 			}
 
 			for (const auto& [val, mapping] : opcodes) {
+				std::ostringstream ss{};
 				auto* code = tool::gsc::opcode::LookupOpCode(nfo->vm, plt, mapping[0]);
-				std::cout << "0x" << std::hex << (int)val << "/" << std::dec << (int)val << " (" << code->m_name << ") -> ";
+				ss << "0x" << std::hex << (int)val << "/" << std::dec << (int)val << " (" << code->m_name << ") -> ";
 
 				for (size_t i = 0; i < mapping.size(); i++) {
 					if (i) {
-						std::cout << ", ";
+						ss << ", ";
 					}
-					std::cout << std::hex << "0x" << mapping[i];
+					ss << std::hex << "0x" << mapping[i];
 				}
-				std::cout << "\n";
+
+				LOG_INFO("{}", ss.str());
 			}
-			std::cout << "\n";
 
 			real -= size;
 		}
@@ -227,7 +226,7 @@ namespace {
 		size_t size{};
 
 		if (!utils::ReadFileNotAlign(dbfile, buffer, size, false)) {
-			std::cerr << "Can't read file " << dbfile << "\n";
+			LOG_ERROR("Can't read file {}", dbfile);
 			return tool::BASIC_ERROR;
 		}
 
@@ -237,7 +236,7 @@ namespace {
 		bool patched = false;
 		while (real) {
 			if (real < 4) {
-				std::cerr << "Bad chunk size: " << std::hex << real << "\n";
+				LOG_ERROR("Bad chunk size: {:x}", real);
 				break;
 			}
 			auto vmval = *db;
@@ -248,7 +247,7 @@ namespace {
 			db += 4;
 
 			if (real < size) {
-				std::cerr << "Bad chunk block size: " << std::hex << real << "\n";
+				LOG_ERROR("Bad chunk block size: {:x}", real);
 				break;
 			}
 
@@ -267,14 +266,14 @@ namespace {
 
 		if (patched) {
 			if (!utils::WriteFile(dbfile, buffer, size)) {
-				std::cerr << "Error when writing file\n";
+				LOG_ERROR("Error when writing file");
 			}
 			else {
-				std::cout << "Updated\n";
+				LOG_INFO("Updated");
 			}
 		}
 		else {
-			std::cout << "Done\n";
+			LOG_INFO("Done");
 		}
 
 		std::free(buffer);

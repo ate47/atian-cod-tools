@@ -197,14 +197,19 @@ int main(int argc, const char *_argv[]) {
 
 	hashutils::SaveExtracted(opt.dumpHashmap != nullptr);
 
+	const clock_t beginTime = clock();
+
 	int output = tool.m_func(proc, argc, argv);
+
+	LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output, 
+		(output == tool::OK ? " (OK)" : output == tool::BAD_USAGE ? " (BAD_USAGE)" : output == tool::BASIC_ERROR ? " (BASIC_ERROR)" : "")
+	);
 
 	hashutils::WriteExtracted(opt.dumpHashmap);
 
 	if (output == tool::BAD_USAGE) {
 		LOG_ERROR("Error: Bad tool usage: {} {} {}", *argv, argv[1], tool.m_usage);
-		return -1;
 	}
 
-	return 0;
+	return output;
 }

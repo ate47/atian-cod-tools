@@ -22,9 +22,6 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!strcmp("-a", arg) || !_strcmpi("--asm", arg)) {
             m_dasm = true;
         }
-        else if (!strcmp("-s", arg) || !_strcmpi("--silent", arg)) {
-            m_verbose = false;
-        }
         else if (!strcmp("-H", arg) || !_strcmpi("--header", arg)) {
             m_header = true;
         }
@@ -66,25 +63,25 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         }
         else if (!strcmp("-t", arg) || !_strcmpi("--type", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
             m_platform = opcode::PlatformOf(args[++i]);
 
             if (!m_platform) {
-                std::cerr << "Unknown platform: " << args[i] << "!\n";
+                LOG_ERROR("Unknown platform: {}!", args[i]);
                 return false;
             }
         }
         else if (!strcmp("-v", arg) || !_strcmpi("--vm", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
             m_vm = opcode::VMOf(args[++i]);
 
             if (!m_vm) {
-                std::cerr << "Unknown vm: " << args[i] << "!\n";
+                LOG_ERROR("Unknown vm: {}!", args[i]);
                 return false;
             }
         }
@@ -102,7 +99,7 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         }
         else if (!strcmp("-i", arg) || !_strcmpi("--ignore", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
 
@@ -133,49 +130,49 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
                     m_stepskip |= STEPSKIP_FOR;
                     break;
                 default:
-                    std::cerr << "Bad param for " << arg << ": '" << *param << "'!\n";
+                    LOG_ERROR("Bad param for {}: '{}'!", arg, *param);
                     return false;
                 }
             }
         }
         else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
             m_outputDir = args[++i];
         }
         else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
             m_dump_hashmap = args[++i];
         }
         else if (!_strcmpi("--dumpstrings", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
             m_dump_strings = args[++i];
         }
         else if (!strcmp("-C", arg) || !_strcmpi("--copyright", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
             m_copyright = args[++i];
         }
         else if (!strcmp("-r", arg) || !_strcmpi("--rosetta", arg)) {
             if (i + 1 == endIndex) {
-                std::cerr << "Missing value for param: " << arg << "!\n";
+                LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
             m_rosetta = args[++i];
         }
 
         else if (*arg == '-') {
-            std::cerr << "Unknown option: " << arg << "!\n";
+            LOG_ERROR("Unknown option: {}!", arg);
             return false;
         }
         else {
@@ -188,39 +185,36 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
     return true;
 }
 
-void GscInfoOption::PrintHelp(std::ostream& out) {
-    out << "-h --help          : Print help\n"
-        << "-g --gsc           : Produce GSC\n"
-        << "-a --asm           : Produce ASM\n"
-        << "-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'\n"
-        << "-o --output [d]    : ASM/GSC output dir, default same.gscasm\n"
-        << "-v --vm            : Set vm, useless for Treyarch VM, values: mw23\n"
-        << "-H --header        : Write file header\n"
-        << "-m --hashmap [f]   : Write hashmap in a file f\n"
-        << "--dumpstrings [f]  : Dump strings in f\n"
-        << "-l --rloc          : Write relative location of the function code\n"
-        << "-f --nofunc        : No function write\n"
-        << "-C --copyright [t] : Set a comment text to put in front of every file\n"
-#ifndef CI_BUILD
-        // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
-        // it's mostly dev tools
-        << "-G --gvars         : Write gvars\n"
-        << "-U --noincludes    : No includes\n"
-        << "-X --exptests      : Enable UNK tests\n"
-        << "-V --vars          : Show all func vars\n"
-        << "-F --nofuncheader  : No function header\n"
-        << "-p --postfunchead  : Write post function header in ASM mode\n"
-        << "-I --imports       : Write imports\n"
-        << "-S --strings       : Write strings\n"
-        << "-r --rosetta [f]   : Create Rosetta file\n"
-        << "--test-header      : Write test header\n"
-        << "--internalblocks   : Show internal blocks \n"
-        << "--jumpdelta        : Show jump delta\n"
-        << "--prestruct        : Show prestruct\n"
-        << "--refcount         : Show ref count\n"
-        << "-i --ignore[t + ]  : ignore step (d: dev, s: switch, e: foreach, w: while, i: if, f: for)\n"
-#endif
-        ;
+void GscInfoOption::PrintHelp() {
+    LOG_INFO("-h --help          : Print help");
+    LOG_INFO("-g --gsc           : Produce GSC");
+    LOG_INFO("-a --asm           : Produce ASM");
+    LOG_INFO("-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'");
+    LOG_INFO("-o --output [d]    : ASM/GSC output dir, default same.gscasm");
+    LOG_INFO("-v --vm            : Set vm, useless for Treyarch VM, values: mw23");
+    LOG_INFO("-H --header        : Write file header");
+    LOG_INFO("-m --hashmap [f]   : Write hashmap in a file f");
+    LOG_INFO("--dumpstrings [f]  : Dump strings in f");
+    LOG_INFO("-l --rloc          : Write relative location of the function code");
+    LOG_INFO("-f --nofunc        : No function write");
+    LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
+    // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
+    // it's mostly dev tools
+    LOG_DEBUG("-G --gvars         : Write gvars");
+    LOG_DEBUG("-U --noincludes    : No includes");
+    LOG_DEBUG("-X --exptests      : Enable UNK tests");
+    LOG_DEBUG("-V --vars          : Show all func vars");
+    LOG_DEBUG("-F --nofuncheader  : No function header");
+    LOG_DEBUG("-p --postfunchead  : Write post function header in ASM mode");
+    LOG_DEBUG("-I --imports       : Write imports");
+    LOG_DEBUG("-S --strings       : Write strings");
+    LOG_DEBUG("-r --rosetta [f]   : Create Rosetta file");
+    LOG_DEBUG("--test-header      : Write test header");
+    LOG_DEBUG("--internalblocks   : Show internal blocks ");
+    LOG_DEBUG("--jumpdelta        : Show jump delta");
+    LOG_DEBUG("--prestruct        : Show prestruct");
+    LOG_DEBUG("--refcount         : Show ref count");
+    LOG_DEBUG("-i --ignore[t + ]  : ignore step (d: dev, s: switch, e: foreach, w: while, i: if, f: for)");
 }
 
 static LPCCH gDumpStrings = NULL;
@@ -285,7 +279,7 @@ void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
                 const auto* vars = reinterpret_cast<const UINT32*>(&unk2c[1]);
 
                 if (ref > 256) {
-                    std::cerr << "too many animtrees single usage\n";
+                    LOG_ERROR("Too many animtrees single usage");
                 }
                 else {
                     for (size_t j = 0; j < unk2c->num_address; j++) {
@@ -1039,7 +1033,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
     gsicInfo.isGsic = size > 4 && !memcmp(data, "GSIC", 4);
     if (gsicInfo.isGsic) {
-        std::cout << "Reading GSIC Compiled Script data\n";
+        LOG_DEBUG("Reading GSIC Compiled Script data");
 
         size_t gsicSize = 4; // preamble
 
@@ -1065,7 +1059,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
             }
             break;
             default:
-                std::cerr << "Bad GSIC field type: " << std::dec << fieldType << "\n";
+                LOG_ERROR("Bad GSIC field type: {}", fieldType);
                 gsicError = true;
                 break;
             }
@@ -1089,7 +1083,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     if (magicVal == 0xa0d4353478a) {
         // IW GSC file, use user input
         if (opt.m_vm == opcode::VM_UNKNOWN) {
-            std::cerr << "VM type needed with IW GSC file, please use --vm [vm] to set it\n";
+            LOG_ERROR("VM type needed with IW GSC file, please use --vm [vm] to set it");
             return tool::BASIC_ERROR;
         }
         vm = opt.m_vm;
@@ -1101,7 +1095,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
         iw = false;
     }
     else {
-        std::cerr << "Bad magic 0x" << std::hex << *reinterpret_cast<UINT64*>(data) << "\n";
+        LOG_ERROR("Bad magic 0x{:x}", *reinterpret_cast<UINT64*>(data));
         return tool::BASIC_ERROR;
     }
     hashutils::ReadDefaultFile();
@@ -1109,7 +1103,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
     opcode::VmInfo* vmInfo;
     if (!opcode::IsValidVm(vm, vmInfo)) {
-        std::cerr << "Bad vm 0x" << std::hex << (int)vm << " for file " << path << "\n";
+        LOG_ERROR("Bad vm 0x{:x} for file {}", (int)vm, path);
         return -1;
     }
     ctx.m_vmInfo = vmInfo;
@@ -1117,7 +1111,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     auto readerBuilder = gscReaders.find(vm);
 
     if (readerBuilder == gscReaders.end()) {
-        std::cerr << "No reader available for vm 0x" << std::hex << (int)vm << " for file " << path << "\n";
+        LOG_ERROR("No reader available for vm 0x{:x} for file {}", (int)vm, path);
         return -1;
     }
 
@@ -1125,7 +1119,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
     // we keep it because it should also check the size
     if (!scriptfile->IsValidHeader(size)) {
-        std::cerr << "Bad header 0x" << std::hex << scriptfile->Ref<UINT64>() << " for file " << path << "\n";
+        LOG_ERROR("Bad header 0x{:x} for file {}", scriptfile->Ref<UINT64>(), path);
         return -1;
     }
 
@@ -1153,10 +1147,10 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     std::ofstream asmout{ file };
 
     if (!asmout) {
-        std::cerr << "Can't open output file " << asmfnamebuff << "\n";
+        LOG_ERROR("Can't open output file {}", asmfnamebuff);
         return -1;
     }
-    std::cout << "Decompiling into '" << asmfnamebuff << (gsicInfo.isGsic ? " (GSIC)" : "") << "'...\n";
+    LOG_INFO("Decompiling into '{}' {}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
     if (opt.m_copyright) {
         asmout << "// " << opt.m_copyright << "\n";
     }
@@ -1663,21 +1657,19 @@ int GscInfoFile(const std::filesystem::path& path, const GscInfoOption& opt) {
         )) {
         return 0;
     }
-    if (opt.m_verbose) {
-        std::cout << "Reading " << pathname << "\n";
-    }
+    LOG_DEBUG("Reading {}", pathname);
 
     LPVOID buffer = NULL;
     size_t size;
     LPVOID bufferNoAlign = NULL;
     size_t sizeNoAlign;
     if (!utils::ReadFileAlign(path, bufferNoAlign, buffer, sizeNoAlign, size)) {
-        std::cerr << "Can't read file data for " << path << "\n";
+        LOG_ERROR("Can't read file data for {}", path.string());
         return -1;
     }
 
     if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
-        std::cerr << "Bad header, file size: " << std::hex << size << "/" << 0x18 << " for " << path << "\n";
+        LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, 0x18, path.string());
         std::free(bufferNoAlign);
         return -1;
     }
@@ -1741,19 +1733,19 @@ int DumpInfoFile(const std::filesystem::path& path, std::unordered_map<UINT64, L
         return 0;
     }
 
-    std::cout << "Reading " << pathname << "\n";
+    LOG_DEBUG("Reading {}", pathname);
 
     LPVOID buffer = NULL;
     size_t size;
     LPVOID bufferNoAlign = NULL;
     size_t sizeNoAlign;
     if (!utils::ReadFileAlign(path, bufferNoAlign, buffer, sizeNoAlign, size)) {
-        std::cerr << "Can't read file data for " << path << "\n";
+        LOG_ERROR("Can't read file data for {}", path.string());
         return -1;
     }
 
     if (size < sizeof(tool::gsc::T8GSCOBJ)) {
-        std::cerr << "Bad header, file size: " << std::hex << size << "/" << sizeof(tool::gsc::T8GSCOBJ) << " for " << path << "\n";
+        LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, sizeof(tool::gsc::T8GSCOBJ), path.string());
         std::free(bufferNoAlign);
         return -1;
     }
@@ -1784,7 +1776,7 @@ int dumpdataset(Process& proc, int argc, const char* argv[]) {
 
     std::ofstream out{ outputFile };
     if (!out) {
-        std::cerr << "Can't open output file\n";
+        LOG_ERROR("Can't open output file");
     }
 
     out << "type,name\n";
@@ -2312,7 +2304,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     GscInfoOption opt{};
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
-        opt.PrintHelp(std::cout);
+        opt.PrintHelp();
         return 0;
     }
 
@@ -2333,7 +2325,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     if (gDumpStrings) {
         std::ofstream os{ gDumpStrings };
         if (!os) {
-            std::cerr << "Can't open string output\n";
+            LOG_ERROR("Can't open string output");
         }
         for (const auto& str : gDumpStringsStore) {
             os << str << "\n";
@@ -2344,7 +2336,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
         std::ofstream os{ gRosettaOutput, std::ios::binary };
 
         if (!os) {
-            std::cerr << "Can't open rosetta output\n";
+            LOG_ERROR("Can't open rosetta output");
         }
         else {
             os.write("ROSE", 4);
@@ -2367,11 +2359,11 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
 
 
             os.close();
-            std::cerr << "Rosetta index created into '" << gRosettaOutput << "'\n";
+            LOG_ERROR("Rosetta index created into '{}'", gRosettaOutput);
         }
     }
 
-    std::cout << "done.\n";
+    LOG_INFO("done.");
     return ret;
 }
 
