@@ -6342,13 +6342,38 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			it = m_statements.erase(it);
 		}
 		block->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_foreachcontinue>", TYPE_PRECODEPOS), it->location });
-		if (ctx.m_vm == VM_MW23) {
-			endNodeIndex += 2; // delete undefines
-		}
 		for (size_t i = incrementIndex; i < endNodeIndex; i++) {
 			// remove component statement
 			delete it->node;
 			it = m_statements.erase(it);
+		}
+		if (ctx.m_vm == VM_MW23) {
+			// not present during the beta
+			if (it != m_statements.end()) {
+				// keyValName = undefined
+				// arrayRefName = undefined
+
+				if (it->node->m_type == TYPE_SET) {
+					auto* clearKeyVal = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
+					if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER && static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left)->m_value == keyValName
+						&& clearKeyVal->m_right->m_type == TYPE_UNDEFINED) {
+						delete it->node;
+						it = m_statements.erase(it);
+
+						if (it != m_statements.end()) {
+
+							if (it->node->m_type == TYPE_SET) {
+								auto* clearKeyVal = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
+								if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER && static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left)->m_value == arrayRefName
+									&& clearKeyVal->m_right->m_type == TYPE_UNDEFINED) {
+									delete it->node;
+									it = m_statements.erase(it);
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 
 		forEachNode->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) {
