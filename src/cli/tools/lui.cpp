@@ -19,7 +19,7 @@ namespace {
 		std::ofstream out{"luifuncs.csv"};
 
 		if (!out) {
-			std::cerr << "Can't open output\n";
+			LOG_ERROR("Can't open output");
 			return tool::BASIC_ERROR;
 		}
 
@@ -32,22 +32,22 @@ namespace {
 		while (func.next) {
 			if (!proc.ReadMemory(&func, func.next, sizeof(func))) {
 				out.close();
-				std::cerr << "Error when reading next function\n";
+				LOG_ERROR("Error when reading next function");
 				return tool::BASIC_ERROR;
 			}
 
 			if (proc.ReadString(outBuffer, func.name, sizeof(outBuffer)) < 0) {
 				out.close();
-				std::cerr << "Error when reading function name\n";
+				LOG_ERROR("Error when reading function name");
 				return tool::BASIC_ERROR;
 			}
 
-			out << "\n" << std::dec << (int)count << "," << outBuffer << ",";
+			out << "\n" << std::dec << count << "," << outBuffer << ",";
 
 			proc.WriteLocation(out, func.func);
 			count++;
 		}
-		std::cout << "Dumped " << std::dec << (int)count << " func(s)\n";
+		LOG_INFO("Dumped {}, func(s)", count);
 		out.close();
 
 		return tool::OK;

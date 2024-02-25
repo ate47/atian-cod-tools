@@ -1,4 +1,5 @@
 #include <includes_shared.hpp>
+#include "decrypt.hpp"
 
 #pragma region Encryption table
 // off_59F5930

@@ -14,7 +14,7 @@ namespace {
 		auto plt = PlatformOf(argv[2]);
 
 		if (plt == PLATFORM_UNKNOWN) {
-			std::cerr << "Bad platform: " << argv[2] << "\n";
+			LOG_ERROR("Bad platform: {}", argv[2]);
 			return tool::BAD_USAGE;
 		}
 
@@ -25,16 +25,16 @@ namespace {
 		VmInfo* nfo;
 
 		if (!IsValidVm(vm, nfo)) {
-			std::cerr << "Bad VM: " << argv[3] << "\n";
+			LOG_ERROR("Bad VM: {}", argv[3]);
 			return tool::BAD_USAGE;
 		}
 
-		std::cout << "Building db for " << nfo->name << " (0x" << std::hex << (int)nfo->vm << ") " << PlatformName(plt) << " \n";
+		LOG_INFO("Building db for {} (0x{:x}) {}", nfo->name, (int)nfo->vm, PlatformName(plt));
 
 		std::ofstream vmfile{ VM_CODES_DB, std::ios::binary };
 
 		if (!vmfile) {
-			std::cerr << "Can't open file " << VM_CODES_DB << "\n";
+			LOG_ERROR("Can't open file {}", VM_CODES_DB);
 			return tool::BASIC_ERROR;
 		}
 
@@ -117,7 +117,7 @@ namespace {
 		vmfile.write(reinterpret_cast<LPCCH>(buffer), sizeof(buffer));
 
 		vmfile.close();
-		std::cout << "Fake DB created into " << VM_CODES_DB << " .\n";
+		LOG_INFO("Fake DB created into {}.", VM_CODES_DB);
 
 
 

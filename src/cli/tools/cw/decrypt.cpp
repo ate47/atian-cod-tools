@@ -52,7 +52,7 @@ namespace {
 		std::ofstream of{ outDir / "string_decrypt.txt" };
 
 		if (!of) {
-			std::cerr << "Can't open output\n";
+			LOG_ERROR("Can't open output");
 			return tool::BASIC_ERROR;
 		}
 
@@ -63,7 +63,7 @@ namespace {
 			LPVOID bufferNoAlign = NULL;
 			size_t sizeNoAlign;
 			if (!utils::ReadFileAlign(file, bufferNoAlign, buffer, sizeNoAlign, size)) {
-				std::cerr << "Can't read file data for " << file << "\n";
+				LOG_ERROR("Can't read file data for {}", file.string());
 				continue;
 			}
 
@@ -75,12 +75,12 @@ namespace {
 
 			DecryptStrHandle(file, of, reinterpret_cast<tool::gsc::T9GSCOBJ*>(buffer));
 
-			std::cout << "parsed " << file << "\n";
+			LOG_INFO("Parsed {}", file.string());
 			std::free(bufferNoAlign);
 		}
 
 		of.close();
-		std::cout << "Done\n";
+		LOG_INFO("Done");
 
 		return tool::OK;
 	}

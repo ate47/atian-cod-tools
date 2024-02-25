@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
+#include <pool.hpp>
 
 namespace {
 	struct XAssetPoolEntry {

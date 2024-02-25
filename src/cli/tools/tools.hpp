@@ -1,4 +1,5 @@
 #pragma once
+#include <memapi.hpp>
 
 namespace tool {
 	enum errorcode : INT32 {

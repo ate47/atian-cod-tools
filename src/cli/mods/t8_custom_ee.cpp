@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
+#include <offsets.hpp>
 
 /*
  * integrated version of the T8CustomEE mod.

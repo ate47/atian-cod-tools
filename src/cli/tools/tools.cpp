@@ -36,14 +36,20 @@ const tool::toolfunctiondata& tool::findtool(LPCCH name) {
 
 void tool::usage(LPCCH message, LPCCH argv0) {
 	if (message) {
-		std::cerr
-			<< "Error: " << message << "\n";
+		LOG_ERROR("Error: {}", message);
 	}
-	std::cerr
-		<< argv0 << " [function] (params)\n"
-		<< "Functions:\n";
+	LOG_ERROR("{} [function] (params)", argv0);
+	LOG_ERROR("Functions", argv0);
 
 	for (const auto& [key, value] : tools()) {
-		std::cerr << "- " << key << value->m_usage << " : " << value->m_description << "\n";
+		LOG_ERROR("- {}{} : {}", key, value->m_usage, value->m_description);
 	}
 }
+
+namespace {
+	int list(Process& proc, int argc, const char* argv[]) {
+		tool::usage(nullptr, argv[0]);
+		return tool::OK;
+	}
+}
+ADD_TOOL("list", "", "list all the tools", nullptr, list);

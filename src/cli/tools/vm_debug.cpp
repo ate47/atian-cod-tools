@@ -1,6 +1,10 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
 #include "tools/dump.hpp"
+#include <t8_internal.hpp>
+#include <decrypt.hpp>
+#include <offsets.hpp>
+#include <scriptinstance.hpp>
 
 using namespace t8internal;
 

@@ -2,7 +2,7 @@
 
 static int resolver(Process& unused, int argc, const char* argv[]) {
 	if (argc == 2) {
-		std::cerr << "Missing config file\n";
+		LOG_ERROR("Missing config file");
 		return tool::BAD_USAGE;
 	}
 
@@ -12,7 +12,7 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 	size_t size = 0;
 
 	if (!utils::ReadFileNotAlign(f, buff, size, false)) {
-		std::cerr << "Can't read file '" << f.string() << "'\n";
+		LOG_ERROR("Can't read file '{}'", f.string());
 		return tool::BASIC_ERROR;
 	}
 
@@ -23,7 +23,7 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 
 
 	if (uncompress2(unzippedData, &sizef, reinterpret_cast<const Bytef*>(buff), &sizef2) < 0) {
-		std::cout << "Too big'\n";
+		LOG_ERROR("Too big");
 		std::free(buff);
 		return tool::BASIC_ERROR;
 	}
@@ -32,7 +32,7 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 	auto output = f.parent_path() / (f.filename().string() + "e");
 	utils::WriteFile(output, &unzippedData[0], sizef2);
 
-	std::cout << "Extract into '" << output.string() << "'\n";
+	LOG_INFO("extract info '{}'", output.string());
 
 	std::free(buff);
 

@@ -20,18 +20,5 @@
 #define ASMJIT_NO_FOREIGN
 #include <asmjit/asmjit.h>
 
-#include "utils.hpp"
-#include "logs.hpp"
-#include "decrypt.hpp"
-#include "decryptiw.hpp"
-#include "clisync.hpp"
-#include "offsets.hpp"
-#include "hash.hpp"
-#include "pool.hpp"
-#include "scriptinstance.hpp"
-#include "actsinfo.hpp"
-#include "process.hpp"
-#include "memapi.hpp"
-#include "base64.hpp"
-
-#include "t8_internal.hpp"
+#include <logs.hpp>
+#include <actsinfo.hpp>

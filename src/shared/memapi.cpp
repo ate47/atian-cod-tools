@@ -1,4 +1,6 @@
 #include <includes_shared.hpp>
+#include "memapi.hpp"
+#include "utils.hpp"
 
 ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0, 0) {
 }
@@ -319,6 +321,21 @@ std::ostream& Process::WriteLocation(std::ostream& out, uintptr_t location) cons
 	return out;
 }
 
+std::wostream& Process::WriteLocation(std::wostream& out, uintptr_t location) const {
+	if (!location) {
+		return out << L"NULL";
+	}
+	const auto& mod = GetLocationModule(location);
+	if (mod.handle == INVALID_HANDLE_VALUE) {
+		// not in a module
+		out << std::hex << location;
+	}
+	else {
+		out << utils::StrToWStr(mod.name) << L"+" << std::hex << mod.GetRelativeOffset(location);
+	}
+	return out;
+}
+
 bool Process::LoadDll(LPCCH dll) {
 	ProcessModuleExport& rLoadLibraryA = (*this)["Kernel32.dll"]["LoadLibraryA"];
 
@@ -604,6 +621,7 @@ ProcessModuleExport::ProcessModuleExport(ProcessModule& module, LPCCH name, uint
 	: m_module(module), m_location(location), m_name(std::make_unique<CHAR[]>(strlen(name) + 1)), m_ordinal(ordinal) {
 	strcpy_s(&m_name[0], strlen(name) + 1, name);
 }
+ProcessLocation::ProcessLocation(const Process& proc, uintptr_t loc) : proc(proc), loc(loc) {}
 
 std::ostream& operator<<(std::ostream& os, const Process& obj) {
 	if (!obj) {
@@ -627,6 +645,14 @@ std::ostream& operator<<(std::ostream& os, const ProcessModuleExport& obj) {
 		return os << "[" << obj.m_name << "@" << obj.m_module.name << "+" << std::hex << (obj.m_location - obj.m_module.start) << "]";
 	}
 	return os << "[" << obj.m_name << "@" << std::hex << obj.m_location << "]";
+}
+
+std::ostream& operator<<(std::ostream& os, const ProcessLocation& obj) {
+	return obj.proc.WriteLocation(os, obj.loc);
+}
+
+std::wostream& operator<<(std::wostream& os, const ProcessLocation& obj) {
+	return obj.proc.WriteLocation(os, obj.loc);
 }
 
 

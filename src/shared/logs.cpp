@@ -1,4 +1,5 @@
 #include <includes_shared.hpp>
+#include "logs.hpp"
 
 LPCCH alogs::name(loglevel lvl) {
 	switch (lvl)
@@ -17,14 +18,20 @@ LPCCH alogs::name(loglevel lvl) {
 		return "UKN..";
 	}
 }
-static alogs::loglevel g_loglevel = alogs::LVL_INFO;
-static LPCCH g_logfile = NULL;
+namespace {
+	alogs::loglevel g_loglevel = alogs::LVL_INFO;
+	LPCCH g_logfile = NULL;
+	bool g_basiclog{};
+}
 
 void alogs::setlevel(loglevel lvl) {
 	g_loglevel = lvl;
 }
 alogs::loglevel alogs::getlevel() {
 	return g_loglevel;
+}
+void alogs::setbasiclog(bool basiclog) {
+	g_basiclog = basiclog;
 }
 
 void alogs::setfile(LPCCH filename) {
@@ -55,10 +62,14 @@ void alogs::log(loglevel level, std::string&& str) {
 	}
 
 	auto f = [&](std::ostream& out) {
-		std::tm tm = localtime_xp(std::time(nullptr));
+		if (!g_basiclog) {
+			std::tm tm = localtime_xp(std::time(nullptr));
+			out
+				<< "[" << std::put_time(&tm, "%H:%M:%S") << "]"
+				<< '[' << name(level) << "] "
+				;
+		}
 		out
-			<< "[" << std::put_time(&tm, "%H:%M:%S") << "]"
-			<< '[' << name(level) << "] "
 			<< str
 			<< "\n";
 		};

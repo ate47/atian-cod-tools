@@ -1,4 +1,5 @@
 #include <includes_shared.hpp>
+#include "process.hpp"
 
 asmjit::JitRuntime& process::GetJitRuntime() {
 	static asmjit::JitRuntime jr{};

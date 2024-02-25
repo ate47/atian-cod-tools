@@ -5,6 +5,7 @@
 #include <psapi.h> // For access to GetModuleFileNameEx
 #include <detours.h>
 #include "includes_shared.hpp"
+#include <memapi.hpp>
 
 #define EXPORT extern "C" __declspec(dllexport)
 

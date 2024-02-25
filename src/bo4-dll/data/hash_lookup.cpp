@@ -1,4 +1,5 @@
 #include <dll_includes.hpp>
+#include <hash.hpp>
 
 static std::unordered_map<UINT64, std::string> g_lookupMap{};
 static CHAR g_tempBuffer[3][2000];

@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
 #include "tools/cw/cw.hpp"
+#include <decrypt.hpp>
 
 using namespace tool::gsc;
 
@@ -1103,7 +1104,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
         std::cerr << "Bad magic 0x" << std::hex << *reinterpret_cast<UINT64*>(data) << "\n";
         return tool::BASIC_ERROR;
     }
-    hashutils::ReadDefaultFile(true, iw);
+    hashutils::ReadDefaultFile();
 
 
     opcode::VmInfo* vmInfo;

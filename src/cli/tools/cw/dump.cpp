@@ -3,6 +3,8 @@
 #include "tools/pool.hpp"
 #include "tools/gsc.hpp"
 #include "tools/cw/cw.hpp"
+#include <scriptinstance.hpp>
+#include <pool.hpp>
 
 
 namespace {

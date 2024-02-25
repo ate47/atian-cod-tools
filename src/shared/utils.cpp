@@ -1,4 +1,5 @@
 #include <includes_shared.hpp>
+#include "utils.hpp"
 
 LPCCH utils::va(LPCCH fmt, ...) {
     static CHAR buffer[0x10][0x50];

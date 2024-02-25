@@ -14,6 +14,7 @@ namespace alogs {
 	LPCCH name(loglevel lvl);
 	void setlevel(loglevel lvl);
 	loglevel getlevel();
+	void setbasiclog(bool basiclog);
 
 	void setfile(LPCCH filename);
 	LPCCH logfile();

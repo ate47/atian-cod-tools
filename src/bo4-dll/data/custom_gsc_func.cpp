@@ -1,4 +1,5 @@
 #include <dll_includes.hpp>
+#include <hash.hpp>
 
 using namespace custom_gsc_func;
 using namespace bo4;

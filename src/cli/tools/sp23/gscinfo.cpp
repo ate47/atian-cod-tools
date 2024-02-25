@@ -71,28 +71,28 @@ namespace {
 				}
 				else if (!_strcmpi("--dump-string", arg)) {
 					if (i + 1 == endIndex) {
-						std::cerr << "Missing value for param: " << arg << "!\n";
+						LOG_ERROR("Missing value for param: {}!", arg);
 						return false;
 					}
 					m_dump_str = args[++i];
 				}
 				else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
 					if (i + 1 == endIndex) {
-						std::cerr << "Missing value for param: " << arg << "!\n";
+						LOG_ERROR("Missing value for param: {}!", arg);
 						return false;
 					}
 					m_outputDir = args[++i];
 				}
 				else if (!strcmp("-C", arg) || !_strcmpi("--copyright", arg)) {
 					if (i + 1 == endIndex) {
-						std::cerr << "Missing value for param: " << arg << "!\n";
+						LOG_ERROR("Missing value for param: {}!", arg);
 						return false;
 					}
 					m_copyright = args[++i];
 				}
 
 				else if (*arg == '-') {
-					std::cerr << "Unknown option: " << arg << "!\n";
+					LOG_ERROR("Unknown option: {}!", arg);
 					return false;
 				}
 				else {
@@ -105,19 +105,19 @@ namespace {
 			return true;
 		}
 
-		void PrintHelp(std::ostream& out) {
-			out << "-h --help          : Print help\n"
-				<< "-g --gsc           : Produce GSC\n"
-				<< "-a --asm           : Produce ASM\n"
-				<< "-o --output [d]    : ASM/GSC output dir, default same.gscasm\n"
-				<< "-s --silent        : Silent output, only errors\n"
-				<< "-H --header        : Write file header\n"
-				<< "-l --rloc          : Write relative location of the function code\n"
-				<< "-I --imports       : Write imports\n"
-				<< "-S --strings       : Write strings\n"
-				<< "-G --gvars         : Write gvars\n"
-				<< "-A --addresses     : Element addresses\n"
-				<< "-C --copyright [t] : Set a comment text to put in front of every file\n";
+		void PrintHelp() {
+			LOG_INFO("-h --help          : Print help");
+			LOG_INFO("-g --gsc           : Produce GSC");
+			LOG_INFO("-a --asm           : Produce ASM");
+			LOG_INFO("-o --output [d]    : ASM/GSC output dir, default same.gscasm");
+			LOG_INFO("-s --silent        : Silent output, only errors");
+			LOG_INFO("-H --header        : Write file header");
+			LOG_INFO("-l --rloc          : Write relative location of the function code");
+			LOG_INFO("-I --imports       : Write imports");
+			LOG_INFO("-S --strings       : Write strings");
+			LOG_INFO("-G --gvars         : Write gvars");
+			LOG_INFO("-A --addresses     : Element addresses");
+			LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
 		}
 
 		void AddString(UINT64 script, LPCCH str, BYTE count, BYTE type) {
@@ -378,7 +378,7 @@ namespace {
 		char outFileName[MAX_PATH + 1];
 
 		if (file->GetMagic() != 0xa0d4353478a) {
-			std::cerr << "Bad magic for " << path << "\n";
+			LOG_ERROR("Bad magic for {}", path.string());
 			return tool::OK;
 		}
 		
@@ -402,14 +402,14 @@ namespace {
 		}
 
 
-		std::cout << "Parsing " << path << " to " << outFile << "...\n";
+		LOG_INFO("Parsing {} to {}...", path.string(), outFile.string());
 
 		std::filesystem::create_directories(outFile.parent_path());
 
 		std::ofstream asmout{ outFile };
 
 		if (!asmout) {
-			std::cerr << "Can't create file " << outFile << "\n";
+			LOG_ERROR("Can't create file {}", outFile.string());
 			return tool::BASIC_ERROR;
 		}
 
@@ -591,7 +591,7 @@ namespace {
 				output << "}\n";
 
 				if (exp.param_count > ectx.params.size()) {
-					std::cerr << "Bad param count\n";
+					LOG_ERROR("Bad param count");
 					continue;
 				}
 
@@ -622,7 +622,7 @@ namespace {
 		}
 
 		if (opt.m_help) {
-			opt.PrintHelp(std::cout);
+			opt.PrintHelp();
 			return tool::OK;
 		}
 
@@ -633,11 +633,11 @@ namespace {
 		}
 
 		if (files.empty()) {
-			std::cerr << "No file\n";
+			LOG_ERROR("No file");
 			return tool::BASIC_ERROR;
 		}
 
-		hashutils::ReadDefaultFile(true, true);
+		hashutils::ReadDefaultFile();
 		hashutils::SaveExtracted(true);
 
 
@@ -661,7 +661,7 @@ namespace {
 			size_t bufferSize = 0;
 
 			if (!utils::ReadFileAlign(path, buffer, bufferAligned, bufferSize, bufferSizeAligned)) {
-				std::cerr << "Can't read file " << path << "\n";
+				LOG_ERROR("Can't read file {}", path.string());
 				return tool::BASIC_ERROR;
 			}
 
@@ -695,7 +695,7 @@ namespace {
 			outHashes.close();
 		}
 
-		std::cout << "done.\n";
+		LOG_INFO("Done");
 
 		return tool::OK;
 	}

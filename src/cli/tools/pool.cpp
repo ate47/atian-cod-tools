@@ -4,6 +4,9 @@
 #include "tools/pool.hpp"
 #include "tools/fastfile.hpp"
 #include "pool_weapon.hpp"
+#include <pool.hpp>
+#include <decrypt.hpp>
+#include <offsets.hpp>
 
 using namespace tool::pool;
 

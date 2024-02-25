@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
+#include <decryptiw.hpp>
 
 namespace {
 	enum StringTableCellType : byte {
@@ -256,7 +257,7 @@ namespace {
 			std::cerr << "can't write decrypt file.\n";
 			return tool::BASIC_ERROR;
 		}
-		hashutils::ReadDefaultFile(true, true);
+		hashutils::ReadDefaultFile();
 
 		os << "name,string\n";
 

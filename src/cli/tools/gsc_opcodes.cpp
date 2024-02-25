@@ -4945,6 +4945,7 @@ void tool::gsc::opcode::RegisterOpCode(BYTE vm, Platform platform, OPCode enumVa
 
 	opnfo.opcodemap[op][platform] = enumValue;
 	opnfo.opcodemaplookup[enumValue][platform] = op;
+	opnfo.opcodemappltlookup[platform][enumValue].push_back(op);
 }
 
 void tool::gsc::opcode::RegisterOpCodes() {

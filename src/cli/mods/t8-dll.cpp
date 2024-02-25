@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <clisync.hpp>
 
 namespace {
 	int t8dll(int argc, const char* argv[]) {

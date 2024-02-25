@@ -2,6 +2,8 @@
 
 #include <includes_shared.hpp>
 #include <detours.h>
+#include <clisync.hpp>
+#include <process.hpp>
 
 #include "bo4.hpp"
 

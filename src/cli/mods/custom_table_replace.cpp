@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#include <offsets.hpp>
+#include <pool.hpp>
 
 enum StringTableCellType : INT {
     STC_TYPE_UNDEFINED = 0,

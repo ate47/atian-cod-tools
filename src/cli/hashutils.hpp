@@ -3,15 +3,16 @@
 #include <hash.hpp>
 
 namespace hashutils {
-	constexpr auto DEFAULT_HASH_FILE = L"strings.txt";
-
+	constexpr auto DEFAULT_HASH_FILE = "strings.txt";
 
 	/*
-	 * Read the default hash file
-	 * @param ignoreCol ignore collisions
-	 * @param iw hash
+	 * Get hash map
 	 */
-	void ReadDefaultFile(bool ignoreCol = true, bool iw = false);
+	const std::unordered_map<UINT64, std::string>& GetMap();
+	/*
+	 * Read the default hash file
+	 */
+	void ReadDefaultFile();
 	/*
 	 * Load a hash file
 	 * @param file file to load
@@ -19,7 +20,7 @@ namespace hashutils {
 	 * @param iw hash
 	 * @return collisions found (if ignoreCol = false)
 	 */
-	int LoadMap(LPCWCH file, bool ignoreCol = true, bool iw = false);
+	int LoadMap(LPCCH file, bool ignoreCol = true, bool iw = false);
 	/*
 	 * Save the extract hashes for a future use with WriteExtracted
 	 * @param value save extracted
@@ -38,6 +39,12 @@ namespace hashutils {
 	 * @return if it collided with another string
 	 */
 	bool Add(LPCCH str, bool ignoreCol = true, bool iw = false);
+	/*
+	 * Add a precomputed hash into the map
+	 * @param value hash value
+	 * @param str string
+	 */
+	void AddPrecomputed(UINT64 value, LPCCH str);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type

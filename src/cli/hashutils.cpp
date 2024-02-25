@@ -1,14 +1,35 @@
 #include <includes.hpp>
+#include "actscli.hpp"
+namespace {
+	std::unordered_map<UINT64, std::string> g_hashMap{};
+	std::set<UINT64> g_extracted{};
+	bool g_saveExtracted = false;
+}
 
-static std::unordered_map<UINT64, std::string> g_hashMap{};
-static std::set<UINT64> g_extracted{};
-static bool g_saveExtracted = false;
+const std::unordered_map<UINT64, std::string>& hashutils::GetMap() {
+	return g_hashMap;
+}
 
-void hashutils::ReadDefaultFile(bool ignoreCol, bool iw) {
+void hashutils::ReadDefaultFile() {
 	static std::once_flag f{};
 	
-	std::call_once(f, [ignoreCol, iw] {
-		LoadMap(DEFAULT_HASH_FILE, ignoreCol, iw);
+	std::call_once(f, [] {
+		if (actscli::options().noDefaultHash) {
+			return;
+		}
+		const char* file = actscli::options().defaultHashFile;
+
+		if (!file) {
+			file = DEFAULT_HASH_FILE;
+		}
+		LOG_TRACE("Load default hash file");
+		if (!actscli::options().noTreyarchHash) {
+			LoadMap(file, true, false);
+		}
+		if (!actscli::options().noIWHash) {
+			LoadMap(file, true, true);
+		}
+		LOG_TRACE("End load default hash file");
 	});
 }
 
@@ -21,10 +42,11 @@ void hashutils::WriteExtracted(LPCCH file) {
 	if (!g_saveExtracted || !file) {
 		return; // nothing to do
 	}
+	LOG_TRACE("Start write extracted");
 	std::ofstream out{ file };
 
 	if (!out) {
-		std::cerr << "Can't open extracted file " << file << "\n";
+		LOG_ERROR("Can't open extracted file {}", file);
 		return;
 	}
 
@@ -37,10 +59,12 @@ void hashutils::WriteExtracted(LPCCH file) {
 	out.close();
 	// clear and unset extract
 	SaveExtracted(false);
+	LOG_TRACE("End write extracted");
 }
 
-int hashutils::LoadMap(LPCWCH file, bool ignoreCol, bool iw) {
+int hashutils::LoadMap(LPCCH file, bool ignoreCol, bool iw) {
 	// add common hashes
+	LOG_TRACE("Load hash file {}", file);
 
 	// special value
 	g_hashMap[0] = "";
@@ -96,18 +120,22 @@ int hashutils::LoadMap(LPCWCH file, bool ignoreCol, bool iw) {
 	std::ifstream s(file);
 
 	if (!s) {
+		LOG_TRACE("End load hash file {}", file);
 		return 0; // nothing to read
 	}
 
 	std::string line;
-	int issues = 0;
+	int issues{};
+	size_t count{};
 	while (s.good() && std::getline(s, line)) {
 		if (!Add(line.c_str(), ignoreCol, iw)) {
 			issues++;
 		}
+		count++;
 	}
 
 	s.close();
+	LOG_TRACE("End load hash file {} -> {}", file, count);
 	return issues;
 }
 
@@ -137,13 +165,16 @@ bool hashutils::Add(LPCCH str, bool ignoreCol, bool iw) {
 		if (!ignoreCol) {
 			auto find = g_hashMap.find(h);
 			if (find != g_hashMap.end() && _strcmpi(str, find->second.data())) {
-				std::cerr << "Coll '" << str << "'='" << find->second.data() << "' #" << std::hex << h << "\n";
+				LOG_ERROR("Coll '{}'='{}' #{:x}", str, find->second.data(), h);
 				return false;
 			}
 		}
 		g_hashMap.emplace(h, str);
 	}
 	return true;
+}
+void hashutils::AddPrecomputed(UINT64 value, LPCCH str) {
+	g_hashMap[value] = str;
 }
 
 bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {

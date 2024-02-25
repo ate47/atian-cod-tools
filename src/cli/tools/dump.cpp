@@ -1,6 +1,9 @@
 #include <includes.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
+#include <pool.hpp>
+#include <offsets.hpp>
+#include <scriptinstance.hpp>
 
 using namespace tool::dump;
 

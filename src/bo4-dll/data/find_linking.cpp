@@ -1,4 +1,5 @@
 #include <dll_includes.hpp>
+#include <utils.hpp>
 
 struct LinkingInfo {
     bool method = false;

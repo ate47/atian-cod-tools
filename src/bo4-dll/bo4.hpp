@@ -1,6 +1,9 @@
 #pragma once
 
 #include <dll_includes.hpp>
+#include <process.hpp>
+#include <t8_internal.hpp>
+#include <scriptinstance.hpp>
 
 namespace bo4 {
     inline BYTE* Relativise(uintptr_t location) {

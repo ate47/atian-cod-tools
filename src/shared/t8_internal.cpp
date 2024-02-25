@@ -1,4 +1,5 @@
 #include <includes_shared.hpp>
+#include "t8_internal.hpp"
 
 LPCCH t8internal::ScrVarTypeName(ScrVarType type) {
 	switch (type) {

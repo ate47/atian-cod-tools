@@ -65,4 +65,7 @@ output*
 vm_codes.db2
 bgpool
 
+# pack file
+*.acpf
+
 *.log

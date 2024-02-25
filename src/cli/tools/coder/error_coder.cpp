@@ -1673,7 +1673,7 @@ namespace {
 
 			error_coder::Encode(code, codedec);
 
-			std::cout << std::dec << codedec << "=" << error_coder::ToStr(code) << "\n";
+			LOG_INFO("{}={}", codedec, error_coder::ToStr(code));
 		}
 
 		return tool::OK;
@@ -1696,11 +1696,12 @@ namespace {
 			codedec = error_coder::Decode(code);
 		}
 		catch (std::exception& exp) {
-			std::cerr << "Can't decode code: " << exp.what() << "\n";
+
+			LOG_ERROR("Can't decode code: {}", exp.what());
 			return tool::BASIC_ERROR;
 		}
 
-		std::cout << std::dec << codedec << "=" << error_coder::ToStr(code) << "\n";
+		LOG_INFO("{}={}", codedec, error_coder::ToStr(code));
 
 		return tool::OK;
 	}

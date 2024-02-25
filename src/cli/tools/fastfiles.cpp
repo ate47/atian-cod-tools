@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <base64.hpp>
 
 #pragma warning(push)
 #pragma warning(disable:4996)
@@ -7,8 +8,7 @@
 #pragma warning(pop)
 
 namespace fastfiles {
-	int ComputeChecksum32(const char* buffer, unsigned int len, int start)
-	{
+	int ComputeChecksum32(const char* buffer, unsigned int len, int start) {
 		int* v3; // rbx
 		int* v4; // r9
 		int v5; // r10d
@@ -170,31 +170,29 @@ namespace {
 
 	int HandleFF(XFile* buffer, size_t size) {
 		if (size < sizeof(*buffer)) {
-			std::cerr << "FF too small for header\n";
+			LOG_ERROR("FF too small for header");
 			return tool::BASIC_ERROR;
 		}
 		if (*reinterpret_cast<UINT64*>(buffer->magic) != 0x3030303066664154) {
-			std::cerr << "Invalid FF magic: " << std::hex << *reinterpret_cast<UINT64*>(buffer) << "\n";
+			LOG_ERROR("Invalid FF magic: {:x}", *reinterpret_cast<UINT64*>(buffer));
 			return tool::BASIC_ERROR;
 		}
 
 		if (buffer->version != 0x27F) {
-			std::cerr << "Not a T8 FF\n";
+			LOG_ERROR("Not a T8 FF");
 			return tool::BASIC_ERROR;
 		}
 
-		//std::cout << "version: " << std::dec << buffer->version << "\n";
-
-		std::cout << "server ..... " << (buffer->server ? "true" : "false") << "\n";
-		std::cout << "encrypted .. " << (buffer->encrypted ? "true" : "false") << "\n";
-		std::cout << "platform ... " << std::dec << (int)buffer->platform << "\n";
+		LOG_INFO("server ..... {}", (buffer->server ? "true" : "false"));
+		LOG_INFO("encrypted .. {}", (buffer->encrypted ? "true" : "false"));
+		LOG_INFO("platform ... {}", (int)buffer->platform);
 
 		for (size_t i = 0; i < 4; i++) {
-			std::cout << "archiveChecksum[" << i << "] = " << std::hex << buffer->archiveChecksum[i] << "\n";
+			LOG_INFO("archiveChecksum[{}] = {:x}", i, buffer->archiveChecksum[i]);
 		}
 
-		std::cout << "key: ....... " << buffer->key << "\n";
-		std::cout << "compress: .. " << (int)buffer->compression << "\n";
+		LOG_INFO("key: ....... {}", buffer->key);
+		LOG_INFO("compress: .. {}", (int)buffer->compression);
 
 		// 6 = inflate?
 		// 7 = lzma?
@@ -203,7 +201,7 @@ namespace {
 
 		if (buffer->encrypted) {
 			auto checksum32 = fastfiles::ComputeChecksum32(buffer->key, (unsigned int)strlen(buffer->key), 0);
-			std::cout << "checksum32 . " << checksum32 << "\n";
+			LOG_INFO("checksum32 . {}", checksum32);
 		}
 
 		//WriteHex(std::cout, 0, reinterpret_cast<BYTE*>(buffer), sizeof(*buffer));
@@ -226,7 +224,7 @@ namespace {
 		size_t size{};
 
 		if (!utils::ReadFileNotAlign(argv[2], buffer, size, false)) {
-			std::cerr << "Can't read file " << argv[2] << "\n";
+			LOG_ERROR("Can't read file {}", argv[2]);
 			return tool::BASIC_ERROR;
 		}
 
@@ -241,7 +239,7 @@ namespace {
 		aesKey_t keys[64];
 
 		if (!proc.ReadMemory(keys, proc[0xDDCC3A0], sizeof(keys))) {
-			std::cerr << "Can't read aes keys\n";
+			LOG_ERROR("Can't read aes keys");
 			return tool::BASIC_ERROR;
 		}
 
@@ -280,14 +278,13 @@ namespace {
 		auto firstFileHandle = CascFindFirstFile(storage, "*", &data, NULL);
 
 		if (!firstFileHandle) {
-			auto err = GetLastError();
-			std::cerr << "Can't find first file : 0x" << std::hex << err << "\n";
+			LOG_ERROR("Can't find first file : 0x{:x}", GetLastError());
 			return tool::BASIC_ERROR;
 		}
 
 		do {
 			if (data.bFileAvailable) {
-				std::cout << "file: " << data.szFileName << " / " << (int)data.NameType << "\n";
+				LOG_INFO("file: {} / {}", data.szFileName, (int)data.NameType);
 			}
 		} while (CascFindNextFile(firstFileHandle, &data));
 
@@ -303,12 +300,12 @@ namespace {
 
 		std::wstring path = utils::StrToWStr(argv[2]);
 
-		std::wcout << path << "\n";
+		LOG_INFO("{}", utils::WStrToStr(path));
 
 		HANDLE storage{};
 
 		if (!CascOpenStorage(path.c_str(), 0, &storage)) {
-			std::cerr << "Can't open local path\n";
+			LOG_ERROR("Can't open local path");
 			return tool::BASIC_ERROR;
 		}
 
@@ -327,7 +324,7 @@ namespace {
 		for (size_t i = 2; i < argc; i++) {
 			auto chk = fastfiles::ComputeChecksum32(argv[i], (unsigned int)strlen(argv[i]), 0);
 
-			std::cout << argv[i] << " 0x" << std::hex << chk << "\n";
+			LOG_INFO("{} 0x{:x}", argv[i], chk);
 		}
 
 		return tool::OK;
@@ -342,7 +339,11 @@ namespace {
 				continue;
 			}
 
-			std::cout << k.fileNameHash << "," << std::hex << fastfiles::ComputeChecksum32(k.fileNameHash, (unsigned int)strlen(k.fileNameHash), 0) << "," << (int)k.version << "," << base64_encode(k.key, sizeof(k.key), false) << "\n";
+			LOG_INFO("{}, {:x}, 0x{:x}, {}",
+				k.fileNameHash, 
+				fastfiles::ComputeChecksum32(k.fileNameHash, (unsigned int)strlen(k.fileNameHash), 0), 
+				k.version, 
+				base64_encode(k.key, sizeof(k.key), false));
 		}
 
 		return tool::OK;

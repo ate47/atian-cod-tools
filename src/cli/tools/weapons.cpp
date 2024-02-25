@@ -93,7 +93,7 @@ namespace {
 		std::ofstream of{ "wfield.csv" };
 
 		if (!of) {
-			std::cerr << "Can't open output file\n";
+			LOG_ERROR("Can't open output file");
 			return tool::BASIC_ERROR;
 		}
 
@@ -103,7 +103,7 @@ namespace {
 
 		while (true) {
 			if (!proc.ReadMemory(&field, loc, sizeof(field))) {
-				proc.WriteLocation(std::cerr << "Can't read weapon field at ", loc) << "\n";
+				LOG_ERROR("Can't read weapon field at {}", proc.GetLocation(loc));
 				of.close();
 				return tool::BASIC_ERROR;
 			}
@@ -133,8 +133,7 @@ namespace {
 		}
 
 		of.close();
-		
-		std::cout << "fields dumped in wfield.csv\n";
+		LOG_INFO("fields dumped in wfield.csv");
 
 		// sort fields
 		for (size_t i = 0; i < 2; i++) {
@@ -146,7 +145,7 @@ namespace {
 		std::ofstream hof{ "wfield.hpp" };
 
 		if (!hof) {
-			std::cerr << "Can't open output file\n";
+			LOG_ERROR("Can't open output file");
 			return tool::BASIC_ERROR;
 		}
 
@@ -166,7 +165,7 @@ namespace {
 			size_t current = 0;
 			for (const auto& f : fields[i]) {
 				if (f.ofs < current) {
-					std::cerr << "bad sort " << std::hex << f.ofs << " < " << current << " for " << hashutils::ExtractTmp("var", f.canonId) << "\n";
+					LOG_ERROR("bad sort {:x} < {:x} for {}", f.ofs, current, hashutils::ExtractTmp("var", f.canonId));
 					continue;
 				}
 
@@ -308,7 +307,7 @@ namespace {
 		
 		hof.close();
 
-		std::cout << "fields dumped in wfield.hpp\n";
+		LOG_INFO("fields dumped in wfield.hpp");
 
 
 		return tool::OK;

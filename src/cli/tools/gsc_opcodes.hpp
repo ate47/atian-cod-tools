@@ -19,6 +19,7 @@ namespace tool::gsc::opcode {
 		BYTE platforms{};
 		std::unordered_map<UINT16, std::unordered_map<Platform, OPCode>> opcodemap{};
 		std::unordered_map<OPCode, std::unordered_map<Platform, UINT16>> opcodemaplookup{};
+		std::unordered_map<Platform, std::unordered_map<OPCode, std::vector<UINT16>>> opcodemappltlookup{};
 
 		/*
 		 * Add an available platform to this VM

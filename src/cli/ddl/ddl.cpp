@@ -45,7 +45,7 @@ public:
                 m_help = true;
             }
             else if (*arg == '-') {
-                std::cerr << "Unknown option: " << arg << "!\n";
+                LOG_ERROR("Unknown option: {}!", arg);
                 return false;
             }
             else {
@@ -61,8 +61,8 @@ public:
         return m_bin != NULL;
     }
 
-    void PrintHelp(std::ostream& out) {
-        out << "-h --help          : Print help\n";
+    void PrintHelp() {
+        LOG_INFO("-h --help          : Print help");
     }
 
 
@@ -282,12 +282,12 @@ private:
             auto it = structs.find(sub.typeName);
 
             if (it == structs.end()) {
-                std::cerr << "The type hash_" << std::hex << sub.typeName << " doesn't exist\n";
+                LOG_ERROR("The type hash_{:x} doesn't exist", sub.typeName);
                 return false;
             }
 
             if (std::find(types.begin(), types.end(), sub.typeName) != types.end()) {
-                std::cerr << "Recursion on the type hash_" << std::hex << sub.typeName << "\n";
+                LOG_ERROR("Recursion on the type hash_{:x}", sub.typeName);
                 return false;
             }
 
@@ -318,7 +318,7 @@ public:
         // check that root exists
 
         if (structs.find(rootHash) == structs.end()) {
-            std::cerr << "Can't find root structure\n";
+            LOG_ERROR("Can't find root structure");
             return false;
         }
 
@@ -410,7 +410,7 @@ namespace {
     }
 
     bool ComputeDDLCheck(DDLCompilerOption& opt, LPCH ddlText, BYTE* binary, SIZE_T binarySize, FullDDLCompiled& ddl) {
-        std::cout << "Compiling DDL file...\n";
+        LOG_INFO("Compiling DDL file...");
         ClearDDLComments(ddlText);
         ANTLRInputStream is{ ddlText };
 
@@ -424,7 +424,7 @@ namespace {
 
         auto error = parser.getNumberOfSyntaxErrors();
         if (error) {
-            std::cerr << std::dec << error << " error(s) detected, abort\n";
+            LOG_ERROR("{} error(s) detected, abort", error);
             return false;
         }
 
@@ -616,7 +616,7 @@ namespace {
             }
         }
 
-        std::cout << "Checking DDL structure.\n";
+        LOG_INFO("Checking DDL structure...");
 
         bool errorStruct = false;
         for (auto& ddlVersion : ddl.compiled) {
@@ -628,43 +628,43 @@ namespace {
             opt.PrintLineMessage(std::cerr, prog) << "Error in the structure\n";
             return false;
         }
-        std::cout << "DDL file compiled.\n";
-        std::cout << "Versions: " << std::dec << ddl.compiled.size() << "\n";
+        LOG_INFO("DDL file compiled.");
+        LOG_INFO("Versions: {}.", ddl.compiled.size());
 
         for (auto& ver : ddl.compiled) {
             auto& root = ver.GetRoot();
 
 
-            std::cout << "Vers: " << std::dec << ver.version << "\n";
-            std::cout << "Size: 0x" << std::hex << root.size << " bits (" << std::dec << root.size << ")\n";
-            std::cout << "    | 0x" << std::hex << (root.size >> 3) << " bytes (" << std::dec << (root.size >> 3) << ")\n";
+            LOG_INFO("Vers: {}", ver.version);
+            LOG_INFO("Size: 0x{:x} bits ({})", root.size, root.size);
+            LOG_INFO("    | 0x{:x} bytes ({})", (root.size >> 3), (root.size >> 3));
 
             uLong len = (uLong)((root.size >> 3) + 0x100000);
             auto decompiledBuffer = std::make_unique<BYTE[]>(len);
 
-            std::cout << "len: " << len << "\n";
+            LOG_INFO("len: {}", len);
 
             if (binarySize >= 2 && binary[0] == 0x78 && binary[1] == 0x9C) {
                 // ZLIB encoded
                 uLong binSizeUL = (uLong)binarySize;
                 auto res = uncompress2(&decompiledBuffer[0], &len, binary, &binSizeUL);
                 if (res != Z_OK) {
-                    std::cerr << "Can't uncompress zlib buffer: ";
+                    const char* ermsg;
                     switch (res) {
-                        case Z_MEM_ERROR: std::cerr << "Not enough memory"; break;
-                        case Z_BUF_ERROR: std::cerr << "Not enough room in the output buffer"; break;
-                        case Z_DATA_ERROR: std::cerr << "Corrupted data"; break;
-                        default: std::cerr << "unknown"; break;
+                        case Z_MEM_ERROR: ermsg = "Not enough memory"; break;
+                        case Z_BUF_ERROR: ermsg = "Not enough room in the output buffer"; break;
+                        case Z_DATA_ERROR: ermsg = "Corrupted data"; break;
+                        default: ermsg = "unknown"; break;
                     }
-                    std::cerr << "\n";
+                    LOG_ERROR("Can't uncompress zlib buffer: {}", ermsg);
                     return false;
                 }
-                std::cout << "zlib decompressed\n";
+                LOG_INFO("zlib decompressed");
             }
             else {
                 memcpy(&decompiledBuffer[0], binary, binarySize);
             }
-            std::cout << "len: " << len << "\n";
+            LOG_INFO("len: {}", len);
             break; // only use first version
 
         }
@@ -675,7 +675,7 @@ namespace {
         DDLCompilerOption opt{};
 
         if (!opt.Compute(argv, 2, argc) || opt.m_help) {
-            opt.PrintHelp(std::cout);
+            opt.PrintHelp();
             return 0;
         }
 
@@ -686,12 +686,12 @@ namespace {
         SIZE_T binSize{};
 
         if (!utils::ReadFileNotAlign(opt.m_ddl, ddlBuffer, ddlSize, true)) {
-            std::cerr << "Can't read " << opt.m_ddl << "\n";
+            LOG_ERROR("Can't read {}", opt.m_ddl);
             return tool::BASIC_ERROR;
         }
 
         if (!utils::ReadFileNotAlign(opt.m_bin, binBuffer, binSize)) {
-            std::cerr << "Can't read " << opt.m_bin << "\n";
+            LOG_ERROR("Can't read {}", opt.m_bin);
             std::free(ddlBuffer);
             return tool::BASIC_ERROR;
         }

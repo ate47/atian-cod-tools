@@ -1,9 +1,12 @@
 #pragma once
 #include <Windows.h>
+#include "process.hpp"
+#include "utils.hpp"
 
 class Process;
 class ProcessModule;
 class ProcessModuleExport;
+class ProcessLocation;
 
 // ugly module I quickly wrote to access process memory
 // supports:
@@ -12,6 +15,17 @@ class ProcessModuleExport;
 // - Find modules
 // - Find exports
 // - Call functions
+
+class ProcessLocation {
+private:
+	const Process& proc;
+	uintptr_t loc;
+public:
+	ProcessLocation(const Process& proc, uintptr_t loc);
+
+	friend std::ostream& operator<<(std::ostream& os, const ProcessLocation& obj);
+	friend std::wostream& operator<<(std::wostream& os, const ProcessLocation& obj);
+};
 
 // Process module export
 class ProcessModuleExport {
@@ -218,6 +232,21 @@ public:
 	 * @return out with module+relative_location
 	 */
 	std::ostream& WriteLocation(std::ostream& out, uintptr_t location) const;
+	/*
+	 * Write a location in a stream
+	 * @param out output stream
+	 * @param location location
+	 * @return out with module+relative_location
+	 */
+	std::wostream& WriteLocation(std::wostream& out, uintptr_t location) const;
+	/*
+	 * Get a location for rendering
+	 * @param location location
+	 * @return process location usable with a stream or a format
+	 */
+	inline ProcessLocation GetLocation(uintptr_t location) const {
+		return ProcessLocation{ *this, location };
+	}
 
 	/*
 	 * Inject a dll in the process
@@ -488,6 +517,17 @@ private:
 std::ostream& operator<<(std::ostream& os, const Process& obj);
 std::ostream& operator<<(std::ostream& os, const ProcessModule& obj);
 std::ostream& operator<<(std::ostream& os, const ProcessModuleExport& obj);
+std::ostream& operator<<(std::ostream& os, const ProcessLocation& obj);
 std::wostream& operator<<(std::wostream& os, const Process& obj);
 std::wostream& operator<<(std::wostream& os, const ProcessModule& obj);
 std::wostream& operator<<(std::wostream& os, const ProcessModuleExport& obj);
+std::wostream& operator<<(std::wostream& os, const ProcessLocation& obj);
+
+template<>
+struct std::formatter<Process, char> : utils::BasicFormatter<Process> {};
+template<>
+struct std::formatter<ProcessModule, char> : utils::BasicFormatter<ProcessModule> {};
+template<>
+struct std::formatter<ProcessModuleExport, char> : utils::BasicFormatter<ProcessModuleExport> {};
+template<>
+struct std::formatter<ProcessLocation, char> : utils::BasicFormatter<ProcessLocation> {};

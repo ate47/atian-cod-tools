@@ -1,4 +1,5 @@
 #include <dll_includes.hpp>
+#include <utils.hpp>
 
 #define EXPORT extern "C" __declspec(dllexport)
 
