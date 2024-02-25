@@ -1,4 +1,12 @@
 - tools
-  - bo4 script injection (ps4)
-- mods
-  - bo4 ee enabler (ps4)
+  - ddl compiler
+  - error decoder/encoder
+  - more pool/funcs dump bo4/cw
+  - db2 file generation
+  - mwiii decompiler (without opcodes)
+  - acts pack file generation
+  - cw injector (bnet)
+- common
+  - common arguments
+  - acts pack loading
+  - fix hash for uppercase characters
