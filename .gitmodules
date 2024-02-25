@@ -25,3 +25,6 @@
 [submodule "deps/casclib"]
 	path = deps/casclib
 	url = https://github.com/ladislav-zezula/CascLib
+[submodule "deps/lz4"]
+	path = deps/lz4
+	url = https://github.com/lz4/lz4

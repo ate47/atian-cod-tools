@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "hashutils.hpp"
+#include "compatibility/scobalula_wni.hpp"
 #include "actscli.hpp"
 
 namespace {
@@ -102,6 +103,13 @@ namespace {
 				}
 				opt.packFile = argv[++i];
 			}
+			else if (!strcmp("-w", arg) || !_strcmpi("--wni-files", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				opt.wniFiles = argv[++i];
+			}
 			else {
 				LOG_ERROR("Unknown acts option: {}!", arg);
 				return false;
@@ -133,6 +141,7 @@ namespace {
 		LOG_INFO(" -T --no-treyarch   : No Treyarch hash (ignored with -N)");
 		LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
+		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 	}
 }
 
@@ -171,6 +180,17 @@ int main(int argc, const char *_argv[]) {
 		LOG_ERROR("Error when loading ACTS pack file");
 		return -1;
 	}
+	
+	const char* wniPackageIndex = compatibility::scobalula::wni::packageIndexDir;
+	if (opt.wniFiles) {
+		wniPackageIndex = opt.wniFiles;
+	}
+
+	if (!compatibility::scobalula::wni::ReadWNIFiles(wniPackageIndex, [](uint64_t hash, const char* str) {
+			hashutils::AddPrecomputed(hash, str);
+		})) {
+		LOG_ERROR("Error when reading WNI files");
+	};
 
 	const auto& tool = tool::findtool(argv[1]);
 

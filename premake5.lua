@@ -220,6 +220,7 @@ project "AtianCodTools"
         "deps/ps4debug/libdebug/cpp/include/",
         "deps/asmjit/src/",
         "deps/casclib/src/",
+        "deps/lz4/lib/",
     }
 
     vpaths {
@@ -237,12 +238,14 @@ project "AtianCodTools"
     links { "libps4debug" }
     links { "asmjit" }
     links { "casclib" }
+    links { "lz4" }
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
     dependson "zlib"
     dependson "libps4debug"
     dependson "asmjit"
     dependson "casclib"
+    dependson "lz4"
 
 project "TestDll"
     kind "SharedLib"
@@ -413,6 +416,25 @@ group "deps"
 
         includedirs {
             "deps/ps4debug/libdebug/cpp/include/"
+        }
+        
+    project "lz4"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++17"
+        warnings "Off"
+
+        targetname "lz4"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/lz4/lib/lz4.c",
+            "deps/lz4/lib/lz4.h"
+        }
+
+        includedirs {
+            "deps/lz4/lib/"
         }
         
     project "casclib"

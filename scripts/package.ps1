@@ -38,6 +38,7 @@ try {
     Copy-Item "deps/zlib/LICENSE" "$base/licenses/license_zlib.md" > $null
     Copy-Item "deps/asmjit/LICENSE.md" "$base/licenses/license_asmjit.md" > $null
     Copy-Item "deps/casclib/LICENSE" "$base/licenses/license_casclib.md" > $null
+    Copy-Item "deps/lz4/lib\LICENSE" "$base/licenses/license_lz4.md" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

@@ -10,6 +10,7 @@ namespace actscli {
 		bool noTreyarchHash{};
 		bool noIWHash{};
 		LPCCH dumpHashmap{};
+		LPCCH wniFiles{};
 	};
 
 	ActsOptions& options();

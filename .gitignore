@@ -49,6 +49,7 @@ src/cli/tools/sp23/gsc23_opcodes_load.hpp
 /build/
 
 # tools files
+package_index*
 strings.txt
 hashes.txt
 brute.txt
