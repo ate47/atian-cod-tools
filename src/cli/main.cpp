@@ -180,17 +180,6 @@ int main(int argc, const char *_argv[]) {
 		LOG_ERROR("Error when loading ACTS pack file");
 		return -1;
 	}
-	
-	const char* wniPackageIndex = compatibility::scobalula::wni::packageIndexDir;
-	if (opt.wniFiles) {
-		wniPackageIndex = opt.wniFiles;
-	}
-
-	if (!compatibility::scobalula::wni::ReadWNIFiles(wniPackageIndex, [](uint64_t hash, const char* str) {
-			hashutils::AddPrecomputed(hash, str);
-		})) {
-		LOG_ERROR("Error when reading WNI files");
-	};
 
 	const auto& tool = tool::findtool(argv[1]);
 

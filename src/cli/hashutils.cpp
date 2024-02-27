@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "actscli.hpp"
+#include "compatibility/scobalula_wni.hpp"
 namespace {
 	std::unordered_map<UINT64, std::string> g_hashMap{};
 	std::set<UINT64> g_extracted{};
@@ -14,19 +15,31 @@ void hashutils::ReadDefaultFile() {
 	static std::once_flag f{};
 	
 	std::call_once(f, [] {
-		if (actscli::options().noDefaultHash) {
+		auto& opt = actscli::options();
+		const char* wniPackageIndex = compatibility::scobalula::wni::packageIndexDir;
+		if (opt.wniFiles) {
+			wniPackageIndex = opt.wniFiles;
+		}
+
+		if (!compatibility::scobalula::wni::ReadWNIFiles(wniPackageIndex, [](uint64_t hash, const char* str) {
+				hashutils::AddPrecomputed(hash, str);
+			})) {
+			LOG_ERROR("Error when reading WNI files");
+		};
+
+		if (opt.noDefaultHash) {
 			return;
 		}
-		const char* file = actscli::options().defaultHashFile;
+		const char* file = opt.defaultHashFile;
 
 		if (!file) {
 			file = DEFAULT_HASH_FILE;
 		}
 		LOG_TRACE("Load default hash file");
-		if (!actscli::options().noTreyarchHash) {
+		if (!opt.noTreyarchHash) {
 			LoadMap(file, true, false);
 		}
-		if (!actscli::options().noIWHash) {
+		if (!opt.noIWHash) {
 			LoadMap(file, true, true);
 		}
 		LOG_TRACE("End load default hash file");
