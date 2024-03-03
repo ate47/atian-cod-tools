@@ -1,12 +1,4 @@
 - tools
-  - ddl compiler
-  - error decoder/encoder
-  - more pool/funcs dump bo4/cw
-  - db2 file generation
-  - mwiii decompiler (without opcodes)
-  - acts pack file generation
-  - cw injector (bnet)
-- common
-  - common arguments
-  - acts pack loading
-  - fix hash for uppercase characters
+  - find linking error (bo4)
+  - load WNI files
+  - better logger for some tools
