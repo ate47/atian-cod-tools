@@ -2,7 +2,7 @@
 #include "utils.hpp"
 
 LPCCH utils::va(LPCCH fmt, ...) {
-    static CHAR buffer[0x10][0x50];
+    static CHAR buffer[0x10][0x500];
     static size_t bufferIndex = 0;
     bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
     auto& buff = buffer[bufferIndex];

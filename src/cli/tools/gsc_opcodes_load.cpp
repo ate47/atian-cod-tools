@@ -524,6 +524,45 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown10e, 0x62, 0xbf, 0x1a0, 0x30b, 0x312, 0x48a, 0x4c6, 0x4dc, 0x51e, 0x5f6, 0x62d, 0x73f, 0x753, 0x771, 0x99e, 0xa9d, 0xb52, 0xb63, 0xe90, 0xe9d);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown126, 0xa9, 0x338, 0x3a0, 0x413, 0x4ed, 0x65a, 0x6de, 0x6e0, 0x76f, 0x7a0, 0x858, 0x919, 0xb57, 0xc3d, 0xd2d, 0xe2e, 0xfa2);
 
+			RegisterVMPlatform(VM_T9, PLATFORM_PLAYSTATION);
+
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown1, 0x1);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown2, 0x2);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown3, 0x3);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown4, 0x4);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown5, 0x5);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown6, 0x6);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown7, 0x7);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableCachedDebug, 0x8);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknowna, 0xa);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_ClearParams, 0xc);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_CheckClearParams, 0xd);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_PreScriptCall, 0xe);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_CallBuiltinFunction, 0xf);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_CallBuiltinMethod, 0x10);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_End, 0x11);
+
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetZero, 0xa7e);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Return, 0x00c0);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_SafeCreateLocalVariables, 0x7fa);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetString, 0xc00);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetByte, 0x67c);
+			/*
+			
+			// we use a nop because the global variable ref is shifted by 2 bytes compared to bo4
+			// CheckClearParams 0x000d
+			// Nop 0x0001
+			// GetByte 0x067c 0x01
+			// Align 0x00
+			// Return 0xc00
+			BYTE data[] = { 0x0d, 0x00, 0x01, 0x00, 0x7c, 0x06, 0x01, 0x00, 0xc0, 0x00 };
+			
+			
+			*/
+			
 			// stuff some people don't want public (as a bo4 pc/xbox player idc, but whatever)
 	#ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();

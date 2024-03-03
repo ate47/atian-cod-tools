@@ -284,11 +284,15 @@ namespace {
 
 			std::cout << "--- " << argv[i] << "\n";
 
+			// cg_fovscale 0x682A9BC40F96CA4A
 
 			UINT64 methods[20][2] = {
 				{ 0xcbf29ce484222325LL, 0x100000001b3 },
 				{ 0x47F5817A5EF961BALL, 0x100000001b3 },
-				{ 0x79D6530B0BB9B5D1LL, 0x10000000233 }
+				{ 0x79D6530B0BB9B5D1LL, 0x10000000233 },
+				{ 0x1429C8E20321BBCD, 0x10000000233 },
+				{ 0x7D31DB2080103883, 0x10000000233 },
+				
 			};
 
 			for (size_t j = 0; j < sizeof(methods) / sizeof(methods[0]); j++) {

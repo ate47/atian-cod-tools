@@ -1,10 +1,7 @@
 #pragma once
+#include <pool.hpp>
 
 namespace tool::pool {
-	struct Hash {
-		uint64_t name;
-		uint64_t nullpad;
-	};
 
 	enum eModes : INT32 {
 		MODE_ZOMBIES = 0x0,
@@ -204,7 +201,6 @@ namespace tool::pool {
 
     // void __fastcall sub_6C12E0(scriptInstance_t inst, WeaponDef * weap, scr_weapon_field_t * field)
 
-    typedef Hash XHash;
     typedef uint32_t bitflag;
     typedef uint64_t bitflag64;
     typedef uint32_t ScrString_t;
@@ -362,19 +358,23 @@ namespace tool::pool {
         XHash unk880; // weapon name
         uint64_t unk890;
         uint64_t unk898;
-        uint64_t unk8a0;
-        uint64_t unk8a8;
+        uint32_t unk8a0;
+        uint32_t unk8a4;
+        uint32_t unk8a8;
+        uint32_t unk8ac;
         uintptr_t unk8b0; // const char*
-        uint64_t unk8b8;
-        uint64_t unk8c0;
-        uint64_t unk8c8;
-        uint64_t unk8d0;
-        uint64_t unk8d8;
-        uint64_t unk8e0;
-        uint64_t unk8e8;
-        uint64_t unk8f0;
-        uint64_t unk8f8;
-        uint64_t unk900;
+        uintptr_t unk8b8;
+        uintptr_t unk8c0;
+        uintptr_t unk8c8;
+        uintptr_t unk8d0;
+        uintptr_t unk8d8;
+        uint32_t unk8e0;
+        uint32_t unk8e4;
+        uintptr_t unk8e8;
+        uintptr_t unk8f0;
+        uintptr_t unk8f8;
+        uint32_t unk900;
+        uint32_t unk904;
         uint64_t unk908;
         uint64_t unk910;
         uint64_t unk918;
@@ -383,13 +383,13 @@ namespace tool::pool {
         uint64_t unk930;
         vec2_t* accuracyGraphKnots[2];
         uint64_t unk948;
-        uint64_t unk950;
-        uint64_t unk958;
+        uintptr_t unk950;
+        uintptr_t unk958;
         uint64_t unk960;
-        uint64_t unk968;
+        uintptr_t unk968;
         int32_t var_6566504b; // 0x970
         uint32_t unk974;
-        uint64_t unk978;
+        uintptr_t unk978;
         uint64_t unk980;
         uint64_t unk988;
         uint64_t unk990;
@@ -410,9 +410,9 @@ namespace tool::pool {
         uint64_t unka08;
         uint64_t unka10;
         uint64_t unka18;
-        uint64_t unka20;
-        uint64_t unka28;
-        uint64_t unka30;
+        uintptr_t unka20;
+        uintptr_t unka28;
+        uintptr_t unka30;
         uint64_t unka38;
         uintptr_t attachments; // WeaponAttachmentPtr*
         uintptr_t attachmentUniques; // WeaponAttachmentUniquePtr*

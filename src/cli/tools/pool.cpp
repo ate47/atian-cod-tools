@@ -2264,6 +2264,19 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             utils::Padding(out, 1) << "\"dualWieldWeaponIndex\": " << std::dec << p.dualWieldWeaponIndex << ",\n";
             utils::Padding(out, 1) << "\"altWeaponIndex\": " << std::dec << p.altWeaponIndex << ",\n";
             utils::Padding(out, 1) << "\"reticle\": \"" << ReadTmpStr(proc, p.unk8b0) << "\",\n";
+#ifndef CI_BUILD
+            // 8a0\|0*[^0]+.*\|
+            utils::Padding(out, 1) << "\"unk8a0\": " << std::dec << p.unk8a0 << ",\n";
+            utils::Padding(out, 1) << "\"unk8a4\": " << std::dec << p.unk8a4 << ",\n";
+            utils::Padding(out, 1) << "\"unk8a8\": " << std::dec << p.unk8a8 << ",\n";
+            utils::Padding(out, 1) << "\"unk8ac\": " << std::dec << p.unk8ac << ",\n";
+            utils::Padding(out, 1) << "\"unk8e0\": " << std::dec << p.unk8e0 << ",\n";
+            utils::Padding(out, 1) << "\"unk8e4\": " << std::dec << p.unk8e4 << ",\n";
+            utils::Padding(out, 1) << "\"unk900\": " << std::dec << p.unk900 << ",\n";
+            utils::Padding(out, 1) << "\"unk904\": " << std::dec << p.unk904 << ",\n";
+            utils::Padding(out, 1) << "\"unka38\": " << std::dec << p.unka38 << ",\n";
+            
+#endif
 
             auto addPtrName = [&proc, &out](const char* title, uintptr_t ptr, size_t offset) {
                 if (!ptr) {
@@ -2737,7 +2750,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
 
 
-            //tool::pool::WriteHex(out, entry.pool + sizeof(pool[0]) * i, (BYTE*)&p, sizeof(p), proc);
+            tool::pool::WriteHex(out, entry.pool + sizeof(pool[0]) * i, (BYTE*)&p, sizeof(p), proc);
             
 
             out.close();
