@@ -1506,11 +1506,11 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_WHILE)) {
                             asmctx.ComputeWhileBlocks(asmctx);
                         }
-                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_IF)) {
-                            asmctx.ComputeIfBlocks(asmctx);
-                        }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_FOR)) {
                             asmctx.ComputeForBlocks(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_IF)) {
+                            asmctx.ComputeIfBlocks(asmctx);
                         }
                         if (opt.m_dasm) {
                             output << " ";

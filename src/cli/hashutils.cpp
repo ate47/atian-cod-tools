@@ -35,14 +35,14 @@ void hashutils::ReadDefaultFile() {
 		if (!file) {
 			file = DEFAULT_HASH_FILE;
 		}
-		LOG_TRACE("Load default hash file");
-		if (!opt.noTreyarchHash) {
+		LOG_DEBUG("Load default hash file");
+		if (!actscli::options().noTreyarchHash) {
 			LoadMap(file, true, false);
 		}
 		if (!opt.noIWHash) {
 			LoadMap(file, true, true);
 		}
-		LOG_TRACE("End load default hash file");
+		LOG_DEBUG("End load default hash file");
 	});
 }
 
