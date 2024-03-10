@@ -5716,6 +5716,195 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         out.close();
         std::cout << "Dump " << file << "\n";
     }
+    if (ShouldHandle(ASSET_TYPE_LABELSTORELIST)) {
+        size_t readFile = 0;
+
+        struct LabelStoreList {
+            XHash name;
+            uint64_t count;
+            uintptr_t stores;
+        };
+        struct LabelStore {
+            XHash name;
+            uint64_t count;
+            uintptr_t stores;
+        };
+
+        auto pool = std::make_unique<LabelStoreList[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/labelstore/list/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/labelstore/list/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out << "{\n";
+            utils::Padding(out, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(out, 1) << "\"stores\": [";
+
+            if (p.count) {
+                auto buff = std::make_unique<uintptr_t[]>(p.count);
+
+                if (!proc.ReadMemory(&buff[0], p.stores, sizeof(buff[0]) * p.count)) {
+                    LOG_ERROR("Can't read memory");
+                    break;
+                }
+                LabelStore store{};
+                for (size_t j = 0; j < p.count; j++) {
+                    if (!proc.ReadMemory(&store, buff[j], sizeof(store))) {
+                        LOG_ERROR("Can't read memory");
+                        break;
+                    }
+                    if (j) out << ",";
+                    out << "\n";
+
+                    utils::Padding(out, 2) << "\"#" << hashutils::ExtractTmp("hash", store.name.name) << "\"";
+                }
+
+                utils::Padding(out << "\n", 1) << "]\n";
+            }
+            else {
+                out << "]\n";
+            }
+            out << "}";
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    if (ShouldHandle(ASSET_TYPE_LABELSTORE)) {
+        size_t readFile = 0;
+
+        struct LabelStore {
+            XHash name;
+            uint64_t count;
+            uintptr_t stores;
+        };
+
+        auto pool = std::make_unique<LabelStore[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        CHAR dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            if (p.name.name < MIN_HASH_VAL) {
+                continue;
+            }
+
+            auto n = hashutils::ExtractPtr(p.name.name);
+
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/labelstore/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/labelstore/file_%llx.json", opt.m_output, p.name.name);
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out << "{\n";
+            utils::Padding(out, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
+            utils::Padding(out, 1) << "\"sku\": [";
+
+            if (p.count) {
+                auto buff = std::make_unique<uintptr_t[]>(p.count);
+
+                if (!proc.ReadMemory(&buff[0], p.stores, sizeof(buff[0]) * p.count)) {
+                    LOG_ERROR("Can't read memory");
+                    break;
+                }
+                XHash val{};
+                for (size_t j = 0; j < p.count; j++) {
+                    if (!proc.ReadMemory(&val, buff[j], sizeof(val))) {
+                        LOG_ERROR("Can't read memory");
+                        break;
+                    }
+                    if (j) out << ",";
+                    out << "\n";
+
+                    utils::Padding(out, 2) << "\"#" << hashutils::ExtractTmp("hash", val.name) << "\"";
+                }
+
+                utils::Padding(out << "\n", 1) << "]\n";
+            }
+            else {
+                out << "]\n";
+            }
+            out << "}";
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
     for (size_t i = 0; i < ASSET_TYPE_COUNT; i++) {
         auto id = (XAssetType)i;
         if (ShouldHandle(id, false)) {

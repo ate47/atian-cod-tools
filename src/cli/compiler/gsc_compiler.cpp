@@ -25,6 +25,30 @@ struct InputInfo;
 
 constexpr INT64 MAX_JUMP = (1 << (sizeof(INT16) << 3));
 
+class AscmCompilerContext {
+public:
+    const VmInfo* vmInfo;
+    Platform plt;
+    std::vector<byte>& data;
+
+    AscmCompilerContext(const VmInfo* vmInfo, Platform plt, std::vector<byte>& data) : vmInfo(vmInfo), plt(plt), data(data) {}
+
+    bool HasAlign() {
+        return vmInfo->flags & VmFlags::VMF_OPCODE_SHORT;
+    }
+
+    template<typename Type>
+    void Align() {
+        if (HasAlign()) {
+            utils::Aligned<Type>(data);
+        }
+        // not required
+    }
+    template<typename Type>
+    void Write(Type value) {
+        utils::WriteValue(data, value);
+    }
+};
 
 class AscmNode {
 public:
@@ -32,11 +56,11 @@ public:
 
     virtual ~AscmNode() {};
 
-    virtual UINT32 ShiftSize(UINT32 start) const {
+    virtual UINT32 ShiftSize(UINT32 start, bool aligned) const {
         return start; // empty by default
     }
 
-    virtual bool Write(std::vector<BYTE>& data) {
+    virtual bool Write(AscmCompilerContext& ctx) {
         // nothing by default
         return true;
     }
@@ -49,19 +73,27 @@ public:
     AscmNodeOpCode(OPCode opcode) : opcode(opcode) {
     }
 
-    UINT32 ShiftSize(UINT32 start) const override {
-        return utils::Aligned<UINT16>(start) + sizeof(UINT16);
+    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+        if (aligned) {
+            return utils::Aligned<UINT16>(start) + sizeof(UINT16);
+        }
+        return start + 1;
     }
 
-    bool Write(std::vector<BYTE>& data) override {
+    bool Write(AscmCompilerContext& ctx) override {
         // TODO: config platform
-        auto [err, op] = GetOpCodeId(VM_T8, PLATFORM_PC, opcode);
+        auto [err, op] = GetOpCodeId(ctx.vmInfo->vm, ctx.plt, opcode);
         if (err) {
             return false;
         }
 
-        utils::Aligned<UINT16>(data);
-        utils::WriteValue(data, op);
+        ctx.Align<UINT16>();
+        if (ctx.HasAlign()) {
+            ctx.Write<UINT16>(op);
+        }
+        else {
+            ctx.Write<byte>((byte)op);
+        }
 
         return true;
     }
@@ -75,13 +107,20 @@ public:
     AscmNodeData(Type val, OPCode opcode) : AscmNodeOpCode(opcode), val(val) {
     }
 
-    UINT32 ShiftSize(UINT32 start) const override {
-        return utils::Aligned<Type>(AscmNodeOpCode::ShiftSize(start)) + sizeof(Type);
+    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+        if (aligned) {
+            return utils::Aligned<Type>(AscmNodeOpCode::ShiftSize(start, aligned)) + sizeof(Type);
+        }
+        return AscmNodeOpCode::ShiftSize(start, aligned) + sizeof(Type);
     }
 
-    bool Write(std::vector<BYTE>& data) override {
-        utils::Aligned<Type>(data);
-        utils::WriteValue<Type>(data, val);
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
+            return false;
+        }
+
+        ctx.Align<Type>();
+        ctx.Write<Type>(val);
         return true;
     }
 };
@@ -93,15 +132,22 @@ public:
     AscmNodeLazyLink(UINT64 path, UINT32 nsp, UINT32 func) : AscmNodeOpCode(OPCode::OPCODE_T8C_GetLazyFunction), path(path), func(func), nsp(nsp) {
     }
 
-    UINT32 ShiftSize(UINT32 start) const override {
-        return utils::Aligned<UINT32>(AscmNodeOpCode::ShiftSize(start)) + 16;
+    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+        if (aligned) {
+            return utils::Aligned<UINT32>(AscmNodeOpCode::ShiftSize(start, aligned)) + 16;
+        }
+        return AscmNodeOpCode::ShiftSize(start, aligned) + 16;
     }
 
-    bool Write(std::vector<BYTE>& data) override {
-        utils::Aligned<UINT32>(data);
-        utils::WriteValue<UINT32>(data, nsp);
-        utils::WriteValue<UINT32>(data, func);
-        utils::WriteValue<UINT64>(data, path);
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
+            return false;
+        }
+
+        ctx.Align<UINT32>();
+        ctx.Write<UINT32>(nsp);
+        ctx.Write<UINT32>(func);
+        ctx.Write<UINT64>(path);
         return true;
     }
 };
@@ -132,7 +178,7 @@ AscmNodeOpCode* BuildAscmNodeData(INT64 val) {
             return new AscmNodeData<UINT16>((UINT16)(-val), OPCODE_GetNegUnsignedShort);
         }
         if (val >= -2147483648) {
-            return new AscmNodeData<INT32>((INT32)val, OPCODE_GetInteger);
+            return new AscmNodeData<UINT32>((UINT32)(-val), OPCODE_GetUnsignedInteger);
         }
     }
 
@@ -145,25 +191,28 @@ public:
     AscmNodeJump(AscmNode* location, OPCode opcode) : AscmNodeOpCode(opcode), location(location) {
     }
 
-    UINT32 ShiftSize(UINT32 start) const override {
-        return utils::Aligned<INT16>(AscmNodeOpCode::ShiftSize(start)) + sizeof(INT16);
+    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+        if (aligned) {
+            return utils::Aligned<INT16>(AscmNodeOpCode::ShiftSize(start, aligned)) + sizeof(INT16);
+        }
+        return AscmNodeOpCode::ShiftSize(start, aligned) + sizeof(INT16);
     }
 
-    bool Write(std::vector<BYTE>& data) override {
-        if (!AscmNodeOpCode::Write(data)) {
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
             return false;
         }
 
-        auto delta = location->rloc - ShiftSize(rloc);
+        auto delta = location->rloc - ShiftSize(rloc, ctx.HasAlign());
 
         if (delta >= MAX_JUMP) {
-            std::cerr << "Max delta size\n";
+            LOG_ERROR("Max delta size");
             return false;
         }
         
         // write jump
-        utils::Aligned<INT16>(data);
-        utils::WriteValue<INT16>(data, (INT16) delta);
+        ctx.Align<INT16>();
+        ctx.Write<INT16>((INT16)delta);
 
         return true;
     }
@@ -172,6 +221,8 @@ public:
 class GscCompilerOption {
 public:
     bool m_help = false;
+    VmInfo* m_vmInfo{};
+    Platform m_platform = Platform::PLATFORM_PC;
     std::vector<LPCCH> m_inputFiles{};
 
     bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
@@ -182,8 +233,34 @@ public:
             if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
                 m_help = true;
             }
+            else if (!strcmp("-p", arg) || !_strcmpi("--platform", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                m_platform = PlatformOf(args[++i]);
+
+                if (!m_platform) {
+                    LOG_ERROR("Unknown platform: {}!", args[i]);
+                    return false;
+                }
+            }
+            else if (!strcmp("-g", arg) || !_strcmpi("--game", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                VmInfo* out{};
+
+                if (!IsValidVm(VMOf(args[++i]), out)) {
+                    LOG_ERROR("Unknown game: {}!", args[i]);
+                    return false;
+                }
+
+                m_vmInfo = out;
+            }
             else if (*arg == '-') {
-                std::cerr << "Unknown option: " << arg << "!\n";
+                LOG_ERROR("Unknown option: {}!", arg);
                 return false;
             }
             else {
@@ -193,11 +270,17 @@ public:
         if (!m_inputFiles.size()) {
             m_inputFiles.push_back(".");
         }
+        if (!m_vmInfo) {
+            LOG_WARNING("No game set, please set a game using --game [game]");
+            return false;
+        }
         return true;
     }
 
-    void PrintHelp(std::ostream& out) {
-        out << "-h --help          : Print help\n";
+    void PrintHelp() {
+        LOG_INFO("-h --help          : Print help");
+        LOG_INFO("-g --game [g]      : Set game");
+        LOG_INFO("-p --platform [p]  : Set platform");
     }
 };  
 
@@ -236,20 +319,19 @@ struct InputInfo {
         return files[files.size() - 1];
     }
 
-    std::ostream& PrintLineMessage(std::ostream& out, size_t line, size_t charPositionInLine) {
+    void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, std::string msg) {
         const auto& f = FindFile(line);
         
-        out
-            << f.filename
-            << "#" << (f.startLine < line ? (line - f.startLine) : f.sizeLine); 
-        
+
         if (charPositionInLine) {
-            out << ":" << charPositionInLine;
+            LOG_LVL(lvl, "{}#{}:{} {}", f.filename, (f.startLine < line ? (line - f.startLine) : f.sizeLine), charPositionInLine, msg);
         }
-        return out << " ";
+        else {
+            LOG_LVL(lvl, "{}#{} {}", f.filename, (f.startLine < line ? (line - f.startLine) : f.sizeLine), msg);
+        }
     }
-    inline std::ostream& PrintLineMessage(std::ostream& out, Token* token) {
-        return PrintLineMessage(out, token->getLine(), token->getCharPositionInLine());
+    inline void PrintLineMessage(alogs::loglevel lvl, Token* token, std::string msg) {
+        PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);
     }
 };
 
@@ -273,10 +355,12 @@ public:
     UINT32 location = 0;
     std::vector<std::string> m_vars{};
     std::vector<AscmNode*> m_nodes{};
+    VmInfo* m_vmInfo;
     FunctionObject(
         UINT32 name,
-        UINT32 name_space
-    ) : m_name(name), m_name_space(name_space), m_data_name(name_space) {
+        UINT32 name_space,
+        VmInfo* vmInfo
+    ) : m_name(name), m_name_space(name_space), m_data_name(name_space), m_vmInfo(vmInfo) {
     }
     ~FunctionObject() {
         for (auto* node : m_nodes) {
@@ -294,7 +378,7 @@ public:
 
         for (auto node : m_nodes) {
             node->rloc = current;
-            current = node->ShiftSize(current);
+            current = node->ShiftSize(current, m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT);
             if (node->rloc > current) {
                 return false;
             }
@@ -313,10 +397,12 @@ public:
     std::unordered_map<UINT32, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
     std::unordered_map<UINT64, std::vector<ImportObject>> imports{};
+    VmInfo* vmInfo;
+    Platform plt;
 
     std::unordered_set<std::string> hashes{};
 
-    CompileObject(GscFileType file, InputInfo& nfo) : type(file), info(nfo) {
+    CompileObject(GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt) : type(file), info(nfo), vmInfo(vmInfo), plt(plt) {
     }
 
     UINT64 GetScPath(std::string& data) {
@@ -372,7 +458,54 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             }
             if (rule->children.size() == 2) {
                 // (++|--|~|!) exp
+                if (rule->children[0]->getTreeType() == TREE_TERMINAL) {
+                    // ++/--/~/!
 
+                    auto op = rule->children[0]->getText();
+                    if (op == "!") {
+                        if (!ParseExpressionNode(rule->children[1], parser, obj, fobj)) {
+                            return false;
+                        }
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolNot));
+                    }
+                    else if (op == "~") {
+                        if (!ParseExpressionNode(rule->children[1], parser, obj, fobj)) {
+                            return false;
+                        }
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolComplement));
+                    }
+                    else if (op == "++") {
+                        // ++var
+
+                        // find lvalue, add and push val
+                    }
+                    else if (op == "--") {
+                        // --var
+
+                        // find lvalue, minus and push val
+                    }
+                    else {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled operator: {}", op));
+                        return false;
+                    }
+                }
+                else {
+                    // ++/--
+
+                    auto op = rule->children[1]->getText();
+                    if (op == "++") {
+                        // var++
+
+                    }
+                    else if (op == "--") {
+                        // var--
+
+                    }
+                    else {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled operator: {}", op));
+                        return false;
+                    }
+                }
 
                 return true;
             }
@@ -456,8 +589,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Modulus));
                 }
                 else {
-                    obj.info.PrintLineMessage(std::cerr, 0)
-                        << "unhandled operator: " << op << "\n";
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled operator: {}", op));
                     return false;
                 }
                 return true;
@@ -469,8 +601,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleExpression13:
             return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj);
         case gscParser::RuleSet_expression: {
+            if (!ParseExpressionNode(rule->children[2], parser, obj, fobj)) {
+                return false;
+            }
+
             auto* opVal = rule->children[1];
             // TODO
+
+            // find lvalue for children[0]
 
         }
             return false;
@@ -527,8 +665,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         }
 
-        obj.info.PrintLineMessage(std::cerr, 0)
-            << "unhandled rule: " << rule->getText() << "\n";
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled rule: {}", rule->getText()));
         return false;
     }
 
@@ -620,15 +757,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     }
     }
 
-    obj.info.PrintLineMessage(std::cerr, 0)
-        << "unhandled terminal: " << term->getText() << "\n";
+    obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled terminal: {}", term->getText()));
     return false;
 }
 
 bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileObject& obj) {
     if (func->children.size() < 5) { // 0IDF 1( 2params 3) 4block
-        obj.info.PrintLineMessage(std::cerr, func->getStart())
-            << "Bad function declaration\n";
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), "Bad function declaration");
         return false;
     }
 
@@ -637,8 +772,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
 
     if (!IS_TERMINAL_TYPE(nameTerm, gscParser::IDENTIFIER)) {
-        obj.info.PrintLineMessage(std::cerr, func->getStart())
-            << "Bad function name declaration\n";
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), "Bad function name declaration");
         return false;
     }
 
@@ -649,24 +783,21 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     obj.hashes.insert(name);
     UINT32 nameHashed = hashutils::Hash32Pattern(name.data());
 
-    auto [res, err] = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace);
+    auto [res, err] = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace, obj.vmInfo);
 
     if (!err) {
-        obj.info.PrintLineMessage(std::cerr, func->getStart())
-            << "The export " << name << " was defined twice\n";
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("The export {} was defined twice", name));
         return false;
     }
 
     auto& exp = res->second;
 
     if (!IS_RULE_TYPE(paramsRule, gscParser::RuleParam_list)) {
-        obj.info.PrintLineMessage(std::cerr, func->getStart())
-            << "Bad function " << name << " params declaration " << func << "\n";
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad function {} params declaration {}", name, func->getText()));
         return false;
     }
     if (!IS_RULE_TYPE(blockRule, gscParser::RuleStatement_block)) {
-        obj.info.PrintLineMessage(std::cerr, func->getStart())
-            << "Bad function block declaration " << func << "\n";
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad function {} block declaration {}", name, func->getText()));
         return false;
     }
 
@@ -675,8 +806,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     for (size_t i = 0; i < func->children.size() - 5; i++) {
         auto* mod = func->children[i];
         if (mod->getTreeType() != TREE_TERMINAL) {
-            obj.info.PrintLineMessage(std::cerr, func->getStart())
-                << "bad modifier for " << name << "\n";
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad modifier for {}", name));
             return false;
         }
 
@@ -698,8 +828,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto* ev = func->children[i += 2];
             i++; // ']'
             if (ev->getTreeType() != TREE_TERMINAL) {
-                obj.info.PrintLineMessage(std::cerr, func->getStart())
-                    << "bad event for " << name  << "\n";
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad event for {}", name));
                 return false;
             }
 
@@ -726,8 +855,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
         auto* idfNode = dynamic_cast<TerminalNode*>(param->children[0]);
         auto paramIdf = idfNode->getText();
         if (exp.m_params == 256) {
-            obj.info.PrintLineMessage(std::cerr, idfNode->getSymbol())
-                << "Too many variables\n";
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode->getSymbol(), "Too many variables");
             return false;
         }
 
@@ -735,9 +863,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
 
         if (std::find(exp.m_vars.begin(), exp.m_vars.end(), paramIdf) != exp.m_vars.end()) {
-            obj.info.PrintLineMessage(std::cerr, idfNode->getSymbol())
-                << "The parameter '" << paramIdf << "' was registered twice\n";
-
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode->getSymbol(), std::format("The parameter '{}' was registered twice", paramIdf));
             return false;
         }
 
@@ -791,7 +917,7 @@ bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, Compile
 
 bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& obj) {
     if (prog->getTreeType() == TREE_ERROR) {
-        obj.info.PrintLineMessage(std::cerr, prog->getStart()) << "Bad prog context\n";
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, prog->getStart(), "Bad prog context");
         return false;
     }
 
@@ -802,7 +928,7 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             return true; // done
         }
         if (e->getTreeType() != TREE_RULE) {
-            obj.info.PrintLineMessage(std::cerr, prog->getStart()) << "Bad export rule type\n";
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog->getStart(), "Bad export rule type");
             return false;
         }
 
@@ -825,7 +951,7 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             }
             break;
         default:
-            obj.info.PrintLineMessage(std::cerr, prog->getStart()) << "Bad export rule\n";
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog->getStart(), "Bad export rule");
             return false;
         }
     }
@@ -841,14 +967,14 @@ public:
 
     void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line, size_t charPositionInLine,
         const std::string& msg, std::exception_ptr e) override {
-        m_info.PrintLineMessage(std::cerr, line, charPositionInLine) << msg << "\n";
+        m_info.PrintLineMessage(alogs::LVL_ERROR, line, charPositionInLine, msg);
     }
 };
 
 int compiler(Process& proc, int argc, const char* argv[]) {
     GscCompilerOption opt;
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
-        opt.PrintHelp(std::cout);
+        opt.PrintHelp();
         return 0;
     }
 
@@ -882,7 +1008,7 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         auto& dt = info.files.emplace_back(file, type, start, startLine);
 
         if (!utils::ReadFileNotAlign(file, reinterpret_cast<LPVOID&>(dt.buffer), dt.size, true)) {
-            std::cerr << "Can't read file " << file << "\n";
+            LOG_ERROR("Can't read file {}", file);
             return tool::BASIC_ERROR;
         }
 
@@ -898,8 +1024,7 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         dt.sizeLine = lineCount;
 
 
-        switch (type)
-        {
+        switch (type) {
         case FILE_GSC:
             info.gscData = info.gscData + dt.buffer + "\n";
             lineGsc += lineCount;
@@ -928,25 +1053,25 @@ int compiler(Process& proc, int argc, const char* argv[]) {
     parser.addErrorListener(&*errList);
 
     gscParser::ProgContext* prog = parser.prog();
-    CompileObject obj{ FILE_GSC, info};
+    CompileObject obj{ FILE_GSC, info, opt.m_vmInfo, opt.m_platform };
 
     auto error = parser.getNumberOfSyntaxErrors();
     if (error) {
-        std::cerr << std::dec << error << " error(s) detected, abort\n";
+        LOG_ERROR("{} error(s) detected, abort", error);
         return tool:: BASIC_ERROR;
     }
 
     if (!ParseProg(prog, parser, obj)) {
-        std::cerr << "Error when compiling the object\n";
+        LOG_ERROR("Error when compiling the object");
         return tool::BASIC_ERROR;
     }
 
-    std::cout << "Done\n";
+    LOG_INFO("Done");
 
 
     return 0;
 }
 
-#ifdef DEBUG
+#ifndef CI_BUILD
 ADD_TOOL("compiler", " --help", "gsc compiler", nullptr, compiler);
 #endif

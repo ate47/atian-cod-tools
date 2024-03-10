@@ -82,7 +82,7 @@ expression8: expression8 ('<' | '<=') expression9 | expression9;
 expression9: expression9 ('<<' | '>>') expression10 | expression10;
 expression10: expression10 ('+' | '-') expression11 | expression11;
 expression11: expression11 ('*' | '/' | '%') expression12 | expression12;
-expression12: ('!' | '~') expression13 | ('++' | '--') left_value | expression13;
+expression12: ('!' | '~') expression13 | ('++' | '--') left_value | left_value ('++' | '--') | expression13;
 
 expression13: const_expr | ('(' expression ')') | left_value;
 
