@@ -1,5 +1,6 @@
 #pragma once
 #include "gsc_opcodes.hpp"
+#include "gsc_formatter.hpp"
 #include <includes.hpp>
 
 namespace tool::gsc {
@@ -14,37 +15,41 @@ namespace tool::gsc {
     // cli options
     class GscInfoOption {
     public:
-        bool m_dcomp = false;
-        bool m_dasm = false;
-        bool m_help = false;
-        bool m_header = false;
-        bool m_imports = false;
-        bool m_strings = false;
-        bool m_gvars = false;
-        bool m_includes = true;
-        bool m_exptests = false;
-        bool m_patch = true;
-        bool m_func = true;
-        bool m_func_rloc = false;
-        bool m_func_header = true;
-        bool m_func_header_post = false;
-        bool m_show_jump_delta = false;
-        bool m_show_pre_dump = false;
-        bool m_show_ref_count = false;
-        bool m_test_header = false;
-        LPCCH m_rosetta = NULL;
-        LPCCH m_dump_hashmap = NULL;
-        LPCCH m_dump_strings = NULL;
-        LPCCH m_outputDir = NULL;
-        LPCCH m_copyright = NULL;
-        bool m_show_internal_blocks = false;
-        bool m_show_func_vars = false;
-        UINT32 m_stepskip = 0;
-        opcode::Platform m_platform = opcode::Platform::PLATFORM_PC;
-        opcode::VM m_vm = opcode::VM::VM_UNKNOWN;
+        bool m_dcomp{};
+        bool m_dasm{};
+        bool m_help{};
+        bool m_header{};
+        bool m_imports{};
+        bool m_strings{};
+        bool m_gvars{};
+        bool m_includes{ true };
+        bool m_exptests{};
+        bool m_patch{ true };
+        bool m_func{ true };
+        bool m_func_rloc{};
+        bool m_func_header{ true };
+        bool m_func_header_post{};
+        bool m_show_jump_delta{};
+        bool m_show_pre_dump{};
+        bool m_show_ref_count{};
+        bool m_test_header{};
+        LPCCH m_rosetta{};
+        LPCCH m_dump_hashmap{};
+        LPCCH m_dump_strings{};
+        LPCCH m_outputDir{};
+        LPCCH m_copyright{};
+        bool m_show_internal_blocks{};
+        bool m_show_func_vars{};
+        bool m_mark_jump_type{};
+        UINT32 m_stepskip{};
+        opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
+        opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
+        const formatter::FormatterInfo* m_formatter{};
 
 
         std::vector<LPCCH> m_inputFiles{};
+
+        GscInfoOption();
         /*
          * Compute options
          * @param args Arguments

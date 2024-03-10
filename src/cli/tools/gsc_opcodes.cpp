@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
+#include "tools/gsc_formatter.hpp"
 #include "tools/gsc_opcodes.hpp"
 using namespace tool::gsc::opcode;
 
@@ -23,7 +24,7 @@ VM tool::gsc::opcode::VMOf(LPCCH name) {
 	if (!_strcmpi("t9", name) || !_strcmpi("cw", name) || !_strcmpi("coldwar", name) || !_strcmpi("38", name)) {
 		return VM_T9;
 	}
-	if (!_strcmpi("s4", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
+	if (!_strcmpi("jup", name) || !_strcmpi("s4", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
 		return VM_MW23;
 	}
 	return VM_UNKNOWN;
@@ -216,11 +217,18 @@ public:
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
 		out << "(";
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		m_x->Dump(out, ctx);
 		out << ", ";
 		m_y->Dump(out, ctx);
 		out << ", ";
 		m_z->Dump(out, ctx);
+
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		out << ")";
 	}
 
@@ -320,7 +328,13 @@ public:
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
 		if (m_operandleft->m_priority < m_priority) {
 			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_operandleft->Dump(out, ctx);
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			out << ")";
 		}
 		else {
@@ -328,8 +342,14 @@ public:
 		}
 		out << "[";
 
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		m_operandright->Dump(out, ctx);
 
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		out << "]";
 	}
 
@@ -417,11 +437,8 @@ public:
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
 		out << "{";
 
-		if (m_operands.size()) {
-			m_operands[0]->Dump(out, ctx);
-		}
-		for (size_t i = 1; i < m_operands.size(); i++) {
-			out << ", ";
+		for (size_t i = 0; i < m_operands.size(); i++) {
+			if (i) out << ", ";
 			m_operands[i]->Dump(out, ctx);
 		}
 
@@ -535,12 +552,19 @@ public:
 		}
 
 		out << "(";
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 
 		for (size_t i = start; i < m_operands.size(); i++) {
 			if (i != start) {
 				out << ", ";
 			}
 			m_operands[i]->Dump(out, ctx);
+		}
+
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
 		}
 		out << ")";
 	}
@@ -567,7 +591,14 @@ public:
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
 		if (m_operand1->m_priority < m_priority) {
 			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_operand1->Dump(out, ctx);
+
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			out << ")";
 		}
 		else {
@@ -578,7 +609,13 @@ public:
 
 		if (m_operand2->m_priority < m_priority) {
 			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_operand2->Dump(out, ctx);
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			out << ")";
 		}
 		else {
@@ -589,7 +626,13 @@ public:
 
 		if (m_operand3->m_priority < m_priority) {
 			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_operand3->Dump(out, ctx);
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			out << ")";
 		}
 		else {
@@ -619,7 +662,13 @@ public:
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
 		if (m_operand1->m_priority < m_priority) {
 			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_operand1->Dump(out, ctx);
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			out << ")";
 		}
 		else {
@@ -630,7 +679,13 @@ public:
 
 		if (m_operand2->m_priority < m_priority) {
 			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_operand2->Dump(out, ctx);
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			out << ")";
 		}
 		else {
@@ -662,7 +717,13 @@ public:
 		}
 		if (m_operand->m_priority < m_priority) {
 			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_operand->Dump(out, ctx);
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			out << ")";
 		}
 		else {
@@ -716,12 +777,20 @@ public:
 		}
 		out << m_description << "(";
 
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
+
 		for (size_t i = start; i < m_operands.size(); i++) {
 			const auto& operand = m_operands[i];
 			if (i != start) {
 				out << ", ";
 			}
 			operand->Dump(out, ctx);
+		}
+
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
 		}
 		out << ")";
 	}
@@ -754,7 +823,15 @@ public:
 		}
 		out << m_operatorName;
 		out << "(";
+
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		m_operand->Dump(out, ctx);
+
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		out << ")";
 	}
 };
@@ -807,7 +884,11 @@ public:
 		if (m_operand) {
 			if (m_operand->m_type != TYPE_JUMP_STACK_TOP) {
 				if (fakeIf) {
-					out << "if ";
+					out << "if";
+
+					if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+						out << " ";
+					}
 				}
 				out << "(";
 				m_operand->Dump(out, ctx);
@@ -1031,7 +1112,11 @@ public:
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
-		out << "foreach (";
+		out << "foreach";
+		if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			out << " ";
+		}
+		out << "(";
 		if (m_key) {
 			out << hashutils::ExtractTmp("var", m_key) << std::flush << ", ";
 		}
@@ -1071,7 +1156,11 @@ public:
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
-		out << "for (";
+		out << "for";
+		if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			out << " ";
+		}
+		out << "(";
 		m_init->Dump(out, ctx);
 		out << "; ";
 		if (m_cond) {
@@ -1105,10 +1194,37 @@ public:
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
-		out << "do {";
+		out << "do";
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			ctx.WritePadding(out << "\n", true);
+		}
+		else {
+			out << " ";
+		}
+		out << "{";
 		m_block->Dump(out, ctx);
-		ctx.WritePadding(out, true) << "} while(";
+		ctx.WritePadding(out, true) << "}"; 
+		
+
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			ctx.WritePadding(out << "\n", true);
+		}
+		else {
+			out << " ";
+		}
+
+		out << "while";
+		if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			out << " ";
+		}
+		out << "(";
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		m_condition->Dump(out, ctx);
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		out << ")";
 	}
 	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
@@ -1139,13 +1255,45 @@ public:
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
 		if (m_condition) {
-			out << "while (";
+			out << "while";
+			if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+				out << " ";
+			}
+			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_condition->Dump(out, ctx);
-			out << ") ";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << ")";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
 		}
 		else {
 			// while without condition, equivalent as "for (;;)"
-			out << "for (;;) ";
+			out << "for";
+			if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+				out << " ";
+			}
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << "( ;; )";
+			}
+			else {
+				out << "(;;)";
+			}
+
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
 		}
 		m_block->Dump(out, ctx);
 	}
@@ -1191,14 +1339,31 @@ public:
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
-		out << "if (";
+		out << "if";
+		if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			out << " ";
+		}
+		out << "(";
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
 		if (m_condition) {
 			m_condition->Dump(out, ctx);
 		}
 		else {
 			out << "<error_no_condition>";
 		}
-		out << ") {";
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			out << " ";
+		}
+		out << ")";
+		if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			ctx.WritePadding(out << "\n", true);
+		}
+		else {
+			out << " ";
+		}
+		out << "{";
 		if (m_ifblock) {
 			m_ifblock->Dump(out, ctx);
 		}
@@ -1214,14 +1379,39 @@ public:
 				break;
 			}
 			auto* ifb = static_cast<ASMContextNodeIfElse*>(ref);
-			ctx.WritePadding(out, true) << "} else if (";
+			ctx.WritePadding(out, true) << "}";
+
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
+			out << "else if";
+			if (!(ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+				out << " ";
+			}
+			out << "(";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			if (ifb->m_condition) {
 				ifb->m_condition->Dump(out, ctx);
 			}
 			else {
 				out << "<error_no_condition>";
 			}
-			out << ") {";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << ")";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
+			out << "{";
 			if (ifb->m_ifblock) {
 				ifb->m_ifblock->Dump(out, ctx);
 			}
@@ -1231,7 +1421,22 @@ public:
 			elseBlock = ifb->m_elseblock;
 		}
 		if (elseBlock) {
-			ctx.WritePadding(out, true) << "} else {";
+			ctx.WritePadding(out, true) << "}";
+
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
+			out << "else";
+			if (ctx.asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
+			out << "{";
 			elseBlock->Dump(out, ctx);
 		}
 		ctx.WritePadding(out, true) << "}\n";
@@ -1918,6 +2123,38 @@ public:
 
 		// push the node value during the jump if the operator is asking for it
 		auto& locref = context.PushLocation(newLoc);
+
+		if (m_id == OPCODE_Jump) {
+			UINT16 pointedOpCode{};
+			if (context.m_objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+				pointedOpCode = *reinterpret_cast<UINT16*>(utils::Aligned<UINT16>(newLoc));
+			}
+			else {
+				pointedOpCode = *newLoc;
+			}
+
+			auto pointedOpCodeVal = context.LookupOpCode(pointedOpCode);
+
+			if (pointedOpCodeVal && pointedOpCodeVal->m_id == tool::gsc::opcode::OPCODE_End) {
+				// we point to an end, we can replace this jump with a return.
+
+				auto* ref = new ASMContextNodeValue<LPCCH>("<END_JUMP>");
+				ref->m_type = TYPE_END;
+
+				if (node) {
+					// create fake if
+					auto* ifblock = new ASMContextNodeBlock();
+					ifblock->m_statements.emplace_back(ASMContextStatement{ ref, &locref });
+					context.PushASMCNode(new ASMContextNodeIfElse(node, ifblock, nullptr));
+					context.CompleteStatement();
+				}
+				else {
+					context.PushASMCNode(ref);
+					context.CompleteStatement();
+				}
+				return 0;
+			}
+		}
 
 		if (delta != 0 || m_id == OPCODE_DevblockBegin) {
 			if (context.m_runDecompiler) {
@@ -4992,6 +5229,13 @@ namespace {
 }
 
 void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name, UINT64 flags) {
+	auto it = g_opcodeMap.find(vm);
+	if (it != g_opcodeMap.end()) {
+		if (it->second.flags != flags) {
+			LOG_WARNING("Registering twice the same vm with different flags, {:x} != {:x} for {}", it->second.flags, flags, name);
+		}
+		return; // assuming good name
+	}
 	g_opcodeMap[vm] = { vm, name, flags, {} };
 }
 void tool::gsc::opcode::RegisterVMPlatform(BYTE vm, Platform plt) {
@@ -5701,7 +5945,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 				if (ref.node->m_renderSemicolon) {
 					out << ";\n";
 				}
-				if (ref.node->m_type == TYPE_JUMP) {
+				if (ref.node->m_type == TYPE_JUMP || ref.node->m_type == TYPE_RETURN) {
 					hide = true;
 				}
 			}
@@ -5952,7 +6196,7 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 						auto* jump = static_cast<ASMContextNodeJumpOperator*>(it->node);
 						// convert this to a break statement
 						if (jump->m_location == end) {
-							jump->m_operatorName = "break";
+							jump->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break0" : "break";
 							jump->m_showJump = false;
 							jump->m_special_op = SPECIAL_JUMP_BREAK;
 							if (endLocation) {
@@ -5975,7 +6219,7 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 			auto* jump = static_cast<ASMContextNodeJumpOperator*>(it->node);
 			// convert this to a break statement
 			if (jump->m_location == end) {
-				jump->m_operatorName = "break";
+				jump->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break1" : "break";
 				jump->m_special_op = SPECIAL_JUMP_BREAK;
 				jump->m_showJump = false;
 				if (endLocation) {
@@ -6385,7 +6629,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 				auto* j = static_cast<ASMContextNodeJumpOperator*>(stmt.node);
 				if (j->m_location == endLoc) {
-					j->m_operatorName = "break";
+					j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break2" : "break";
 					j->m_special_op = SPECIAL_JUMP_BREAK;
 					j->m_showJump = false;
 					if (endNodeLocation) {
@@ -6393,7 +6637,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 					}
 				}
 				else if (j->m_location == incrementLoc) {
-					j->m_operatorName = "continue";
+					j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "continue1" : "continue";
 					j->m_showJump = false;
 					j->m_special_op = SPECIAL_JUMP_CONTINUE;
 					setNextKeyStmt.location->RemoveRef(j->m_opLoc);
@@ -6606,27 +6850,27 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 					// replace jumps
 					auto* j = static_cast<ASMContextNodeJumpOperator*>(ref);
 					if (j->m_location == breakLoc) {
-						j->m_operatorName = "break";
+						j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break3" : "break";
 						j->m_special_op = SPECIAL_JUMP_BREAK;
 						j->m_showJump = false;
 						assert(endLocation); // it would mean breakLoc was set
 						endLocation->RemoveRef(j->m_opLoc);
 					}
 					else if (j->m_location == continueLoc) {
-						j->m_operatorName = "continue";
+						j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "continue2" : "continue";
 						j->m_special_op = SPECIAL_JUMP_CONTINUE;
 						j->m_showJump = false;
 						continueLocation->RemoveRef(j->m_opLoc);
 					}
 					else if (j->m_location == jumpOp->m_location) {
-						j->m_operatorName = "continue";
+						j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "continue3" : "continue";
 						j->m_special_op = SPECIAL_JUMP_CONTINUE;
 						j->m_showJump = false;
 						firstNodeLocation->RemoveRef(j->m_opLoc);
 					}
 				}
 				else if (ref->m_type == TYPE_SWITCH_POSTCOMPUTE || ref->m_type == TYPE_BLOCK) {
-					ref->ApplySubBlocks([=](ASMContextNodeBlock* block, ASMContext& context) {
+					ref->ApplySubBlocks([&](ASMContextNodeBlock* block, ASMContext& context) {
 						for (const auto& stmt : block->m_statements) {
 							auto* refjump = stmt.node;
 							if (IsJumpType(refjump->m_type)) {
@@ -6635,37 +6879,37 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 								auto* j = static_cast<ASMContextNodeJumpOperator*>(refjump);
 								if (j->m_location == breakLoc) {
 									if (!j->m_special_op) {
-										j->m_operatorName = "break";
+										j->m_operatorName = context.m_opt.m_mark_jump_type ? "break4" : "break";
 										j->m_special_op = SPECIAL_JUMP_BREAK;
 										j->m_showJump = false;
 									}
-									if (ref->m_type == TYPE_BLOCK) {
+									//if (ref->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										assert(endLocation); // it would mean breakLoc was set
 										endLocation->RemoveRef(j->m_opLoc);
-									}
+									//}
 								}
 								else if (j->m_location == continueLoc) {
 									if (!j->m_special_op) {
-										j->m_operatorName = "continue";
+										j->m_operatorName = context.m_opt.m_mark_jump_type ? "continue4" : "continue";
 										j->m_special_op = SPECIAL_JUMP_CONTINUE;
 										j->m_showJump = false;
 									}
-									if (ref->m_type == TYPE_BLOCK) {
+									//if (ref->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										continueLocation->RemoveRef(j->m_opLoc);
-									}
+									//}
 								}
 								else if (j->m_location == jumpOp->m_location) {
 									if (!j->m_special_op) {
-										j->m_operatorName = "continue";
+										j->m_operatorName = context.m_opt.m_mark_jump_type ? "continue5" : "continue";
 										j->m_special_op = SPECIAL_JUMP_CONTINUE;
 										j->m_showJump = false;
 									}
-									if (ref->m_type == TYPE_BLOCK) {
+									//if (ref->m_type == TYPE_BLOCK) {
 										j->m_showJump = false;
 										firstNodeLocation->RemoveRef(j->m_opLoc);
-									}
+									//}
 								}
 							}
 						}
@@ -6727,12 +6971,12 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 				if (IsJumpType(stmt.node->m_type)) {
 					auto* j = static_cast<ASMContextNodeJumpOperator*>(stmt.node);
 					if (j->m_location == breakLoc) {
-						j->m_operatorName = "break";
+						j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break5" : "break";
 						j->m_showJump = false;
 						j->m_special_op = SPECIAL_JUMP_BREAK;
 						endLocation->RemoveRef(j->m_opLoc);
 					} else if (j->m_location == continueLoc) {
-						j->m_operatorName = "continue";
+						j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "continue6" : "continue";
 						j->m_showJump = false;
 						j->m_special_op = SPECIAL_JUMP_CONTINUE;
 						condLocation->RemoveRef(j->m_opLoc);
@@ -6748,7 +6992,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 								auto* j = static_cast<ASMContextNodeJumpOperator*>(refjump);
 								if (j->m_location == breakLoc) {
 									if (!j->m_special_op) {
-										j->m_operatorName = "break";
+										j->m_operatorName = context.m_opt.m_mark_jump_type ? "break6" : "break";
 										j->m_special_op = SPECIAL_JUMP_BREAK;
 										//j->m_showJump = true;
 										j->m_showJump = false;
@@ -6760,7 +7004,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 								}
 								else if (j->m_location == continueLoc) {
 									if (!j->m_special_op) {
-										j->m_operatorName = "continue";
+										j->m_operatorName = context.m_opt.m_mark_jump_type ? "continue7" : "continue";
 										j->m_special_op = SPECIAL_JUMP_CONTINUE;
 										//j->m_showJump = true;
 										j->m_showJump = false;
@@ -6856,13 +7100,12 @@ int ASMContextNodeBlock::ComputeIfBlocks(ASMContext& ctx) {
 		// remove if ref
 		elsePartNodeLoc->RemoveRef(jumpOp->m_opLoc);
 
-		// check +2 to avoid converting a if (...) { continue; } into an empty if (...) {} else {...}
-		if (endIndex > index + 2 && m_statements[endIndex - 1].node->m_type == TYPE_JUMP) {
+		if (endIndex > index + 1 && m_statements[endIndex - 1].node->m_type == TYPE_JUMP) {
 			auto* jumpOpEndElse = static_cast<ASMContextNodeJumpOperator*>(m_statements[endIndex - 1].node);
 			// after else goto
-			if (jumpOpEndElse->m_delta > 0) {
+			if (jumpOpEndElse->m_delta > 0 && jumpOpEndElse->m_special_op == SPECIAL_JUMP_DEFAULT) {
 				auto endElseLoc = jumpOpEndElse->m_location;
-				// should be positive
+				// should be positive and not a special jump
 
 				auto endElseIndex = endIndex;
 				while (endElseIndex < m_statements.size() && m_statements[endElseIndex].location->rloc < endElseLoc) {
@@ -7021,7 +7264,7 @@ int ASMContextNodeBlock::ComputeForBlocks(ASMContext& ctx) {
 
 				auto* j = static_cast<ASMContextNodeJumpOperator*>(bs.node);
 				if (j->m_location == continueLoc->rloc) {
-					j->m_operatorName = "continue";
+					j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "continue_for" : "continue";
 					j->m_showJump = false;
 					j->m_special_op = SPECIAL_JUMP_CONTINUE;
 					continueLoc->RemoveRef(j->m_opLoc);

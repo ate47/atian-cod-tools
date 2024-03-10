@@ -8,6 +8,11 @@ using namespace tool::gsc;
 constexpr auto g_constructorName = hashutils::Hash32("__constructor");
 constexpr auto g_destructorName = hashutils::Hash32("__destructor");
 
+GscInfoOption::GscInfoOption() {
+    // set default formatter
+    m_formatter = &tool::gsc::formatter::GetFromName();
+}
+
 bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
     // default values
     for (size_t i = startIndex; i < endIndex; i++) {
@@ -40,7 +45,7 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         else if (!strcmp("-X", arg) || !_strcmpi("--exptests", arg)) {
             m_exptests = true;
         }
-        else if (!strcmp("-f", arg) || !_strcmpi("--nofunc", arg)) {
+        else if (!_strcmpi("--nofunc", arg)) {
             m_func = false;
         }
         else if (!strcmp("-F", arg) || !_strcmpi("--nofuncheader", arg)) {
@@ -73,6 +78,18 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
                 return false;
             }
         }
+        else if (!strcmp("-f", arg) || !_strcmpi("--format", arg)) {
+            if (i + 1 == endIndex) {
+                LOG_ERROR("Missing value for param: {}!", arg);
+                return false;
+            }
+            m_formatter = &formatter::GetFromName(args[++i]);
+
+            if (_strcmpi(m_formatter->name, args[i])) {
+                LOG_ERROR("Unknown formatter: {}! Use {}", args[i], m_formatter->name);
+                return false;
+            }
+        }
         else if (!strcmp("-v", arg) || !_strcmpi("--vm", arg)) {
             if (i + 1 == endIndex) {
                 LOG_ERROR("Missing value for param: {}!", arg);
@@ -93,6 +110,9 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
         }
         else if (!_strcmpi("--prestruct", arg)) {
             m_show_pre_dump = true;
+        }
+        else if (!_strcmpi("--markjump", arg)) {
+            m_mark_jump_type = true;
         }
         else if (!_strcmpi("--refcount", arg)) {
             m_show_ref_count = true;
@@ -194,9 +214,18 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("-v --vm            : Set vm, useless for Treyarch VM, values: mw23");
     LOG_INFO("-H --header        : Write file header");
     LOG_INFO("-m --hashmap [f]   : Write hashmap in a file f");
+    {
+        std::ostringstream formats;
+
+        for (const auto* fmt : formatter::GetFormatters()) {
+
+            formats << " '" << fmt->name << "'";
+        }
+
+        LOG_INFO("-f --format [f]    : Use formatter, values: {}", formats.str());
+    }
     LOG_INFO("--dumpstrings [f]  : Dump strings in f");
     LOG_INFO("-l --rloc          : Write relative location of the function code");
-    LOG_INFO("-f --nofunc        : No function write");
     LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
     // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
     // it's mostly dev tools
@@ -205,6 +234,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("-X --exptests      : Enable UNK tests");
     LOG_DEBUG("-V --vars          : Show all func vars");
     LOG_DEBUG("-F --nofuncheader  : No function header");
+    LOG_DEBUG("--nofunc           : No function write");
     LOG_DEBUG("-p --postfunchead  : Write post function header in ASM mode");
     LOG_DEBUG("-I --imports       : Write imports");
     LOG_DEBUG("-S --strings       : Write strings");
@@ -214,6 +244,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--jumpdelta        : Show jump delta");
     LOG_DEBUG("--prestruct        : Show prestruct");
     LOG_DEBUG("--refcount         : Show ref count");
+    LOG_DEBUG("--markjump         : Show jump type");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step (d: dev, s: switch, e: foreach, w: while, i: if, f: for)");
 }
 
@@ -1468,14 +1499,28 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
 
             DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
 
-            output << " gscasm {\n";
+            if (asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                output << "\n";
+            }
+            else {
+                output << " ";
+            }
+            output << "gscasm {\n";
 
             DumpAsm(*exp, output, *scriptfile, ctx, asmctx);
 
             output << "}\n";
 
             if (asmctx.m_disableDecompiler) {
-                output << "// decompiler disabled for method\n";
+                if (opt.m_dasm) {
+                    output << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << "\n";
+                }
+                else if (opt.m_dcomp) {
+                    asmout << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << "\n\n";
+                }
+                else {
+                    LOG_WARNING("Can't decompile export {}::{}", hashutils::ExtractTmp("namespace", exp->GetNamespace()), hashutils::ExtractTmp("function", exp->GetName()));
+                }
             }
 
 
@@ -1489,7 +1534,14 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                 if (opt.m_dcomp) {
                     if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = scriptfile->Ptr(exp->GetAddress());
-                        output << " {\n";
+
+                        if (asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                            output << "\n";
+                        }
+                        else {
+                            output << " ";
+                        }
+                        output << "{\n";
                         DumpVTable(*exp, output, *scriptfile, ctx, asmctx, dctx);
                         output << "}\n";
                     }
@@ -1552,11 +1604,18 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                         it++;
                     }
                 }
-                asmout << " {\n\n";
+
+                if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                    asmout << "\n";
+                }
+                else {
+                    asmout << " ";
+                }
+                asmout << "{\n\n";
 
                 
 
-                auto handleMethod = [&contextes, &asmout, &scriptfile, name, &ctx](UINT64 method) -> void {
+                auto handleMethod = [&opt, &contextes, &asmout, &scriptfile, name, &ctx](UINT64 method) -> void {
                     auto lname = Located{ name, method };
 
                     auto masmctxit = contextes.find(lname);
@@ -1575,8 +1634,13 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                     e.m_exp.SetHandle(e.m_readerHandle);
 
                     DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1);
-                    asmout << " ";
                     opcode::DecompContext dctx{ 1, 0, e };
+                    if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                        dctx.WritePadding(asmout << "\n");
+                    }
+                    else {
+                        asmout << " ";
+                    }
                     e.Dump(asmout, dctx);
                     asmout << "\n";
 
@@ -1623,8 +1687,13 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                 }
 
                 DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx);
-                asmout << " ";
                 opcode::DecompContext dctx{ 0, 0, asmctx };
+                if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                    dctx.WritePadding(asmout << "\n");
+                }
+                else {
+                    asmout << " ";
+                }
                 asmctx.Dump(asmout, dctx);
                 asmout << "\n";
             }
@@ -2170,10 +2239,20 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
     if (ctx.m_opt.m_func_header) {
-        utils::Padding(asmout, padding) << "// Namespace "
+        const char* prefix;
+        if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
+            utils::Padding(asmout, padding) << "/*\n";
+            padding++;
+            prefix = "";
+        }
+        else {
+            prefix = "// ";
+        }
+
+        utils::Padding(asmout, padding) << prefix << "Namespace "
             << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush << "/"
             << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.GetFileNamespace()) << std::endl;
-        utils::Padding(asmout, padding) << "// Params " << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
+        utils::Padding(asmout, padding) << prefix << "Params " << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
 
         if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
             asmout << " vtable";
@@ -2188,11 +2267,15 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         }
 
         asmout << std::endl;
-        utils::Padding(asmout, padding) << std::hex << "// Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
+        utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
 
         auto size = ctx.FinalSize();
         if (size > 2) { // at least one opcode
-            utils::Padding(asmout, padding) << std::hex << "// Size: 0x" << size << "\n";
+            utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
+        }
+        if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
+            padding--;
+            utils::Padding(asmout, padding) << "*/\n";
         }
     }
 
@@ -2312,11 +2395,11 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     gDumpStrings = opt.m_dump_strings;
 
     hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
-    bool computed = false;
-    auto ret = 0;
+    bool computed{};
+    int ret{ tool::OK };
     for (const auto& file : opt.m_inputFiles) {
         auto lret = GscInfoFile(file, opt);
-        if (!ret) {
+        if (ret == tool::OK) {
             ret = lret;
         }
     }
@@ -2327,10 +2410,12 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
         if (!os) {
             LOG_ERROR("Can't open string output");
         }
-        for (const auto& str : gDumpStringsStore) {
-            os << str << "\n";
+        else {
+            for (const auto& str : gDumpStringsStore) {
+                os << str << "\n";
+            }
+            os.close();
         }
-        os.close();
     }
     if (gRosettaOutput) {
         std::ofstream os{ gRosettaOutput, std::ios::binary };
@@ -2359,7 +2444,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
 
 
             os.close();
-            LOG_ERROR("Rosetta index created into '{}'", gRosettaOutput);
+            LOG_INFO("Rosetta index created into '{}'", gRosettaOutput);
         }
     }
 
@@ -2367,5 +2452,5 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     return ret;
 }
 
-ADD_TOOL("gscinfo", " (intput)*", "write info about a script in asm file", nullptr, gscinfo);
+ADD_TOOL("gscinfo", " (intput)*", "GSC decompiler/disassembler", nullptr, gscinfo);
 ADD_TOOL("dds", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", nullptr, dumpdataset);

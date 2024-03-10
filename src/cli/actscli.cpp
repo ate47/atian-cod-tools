@@ -136,9 +136,15 @@ namespace {
 					return false;
 				}
 
+
 				if (vm.platformsCount && vm.platformsOffset + sizeof(ActsPackVMPlatform) * vm.platformsCount > bufferSize) {
 					LOG_ERROR("Invalid vm platforms location in acts pack file");
 					return false;
+				}
+
+				if (vm.platformsCount) {
+					// load default opcodes
+					tool::gsc::opcode::RegisterOpCodes();
 				}
 
 				auto* name = (const char*)(pack->header.magic + vm.nameOffset);
@@ -166,7 +172,7 @@ namespace {
 					// load the opcodes for this vm/platform
 					for (size_t i = 0; i < plt.opCount; i++) {
 						auto& op = ops[i];
-
+						
 						tool::gsc::opcode::RegisterOpCode(vm.vm, plt.platform, op.opcode, op.value);
 					}
 				}
