@@ -11,6 +11,7 @@ namespace tool::gsc {
         STEPSKIP_WHILE = 8,
         STEPSKIP_IF = 0x10,
         STEPSKIP_FOR = 0x20,
+        STEPSKIP_RETURN = 0x40,
     };
     // cli options
     class GscInfoOption {
@@ -267,6 +268,7 @@ namespace tool::gsc {
             int ComputeWhileBlocks(ASMContext& ctx);
             int ComputeIfBlocks(ASMContext& ctx);
             int ComputeSwitchBlocks(ASMContext& ctx);
+            int ComputeReturnJump(ASMContext& ctx);
 
             ASMContextStatement* FetchFirstForLocation(INT64 rloc);
 
@@ -500,6 +502,12 @@ namespace tool::gsc {
              */
             inline void ComputeIfBlocks(ASMContext& ctx) {
                 m_funcBlock.ComputeIfBlocks(ctx);
+            }
+            /*
+             * Compute the return candidates
+             */
+            inline void ComputeReturnJump(ASMContext& ctx) {
+                m_funcBlock.ComputeReturnJump(ctx);
             }
             /*
              * Dump the function block

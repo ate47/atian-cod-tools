@@ -149,6 +149,14 @@ bool GscInfoOption::Compute(LPCCH* args, INT startIndex, INT endIndex) {
                 case 'F':
                     m_stepskip |= STEPSKIP_FOR;
                     break;
+                case 'r':
+                case 'R':
+                    m_stepskip |= STEPSKIP_RETURN;
+                    break;
+                case 'a':
+                case 'A':
+                    m_stepskip = ~0;
+                    break;
                 default:
                     LOG_ERROR("Bad param for {}: '{}'!", arg, *param);
                     return false;
@@ -245,7 +253,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--prestruct        : Show prestruct");
     LOG_DEBUG("--refcount         : Show ref count");
     LOG_DEBUG("--markjump         : Show jump type");
-    LOG_DEBUG("-i --ignore[t + ]  : ignore step (d: dev, s: switch, e: foreach, w: while, i: if, f: for)");
+    LOG_DEBUG("-i --ignore[t + ]  : ignore step (d: dev, s: switch, e: foreach, w: while, i: if, f: for, r: return, a: all)");
 }
 
 static LPCCH gDumpStrings = NULL;
@@ -1563,6 +1571,9 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_IF)) {
                             asmctx.ComputeIfBlocks(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_RETURN)) {
+                            asmctx.ComputeReturnJump(asmctx);
                         }
                         if (opt.m_dasm) {
                             output << " ";
