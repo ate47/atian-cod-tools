@@ -1,4 +1,2 @@
 - tools
-  - find linking error (bo4)
-  - load WNI files
-  - better logger for some tools
+  - fix LOC refs in the decompiler (bo4/cw)
