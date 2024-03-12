@@ -82,6 +82,29 @@ project "ACTSSharedLibrary"
     links { "asmjit" }
     dependson "asmjit"
 
+project "ACTSLibrary"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "actslib"
+    
+    files {
+        "./src/lib/**.hpp",
+        "./src/lib/**.h",
+        "./src/lib/**.cpp",
+    }
+
+    includedirs {
+        "src/actslib",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+
 project "AtianCodToolsBO4DLL"
     kind "SharedLib"
     language "C++"
@@ -214,6 +237,7 @@ project "AtianCodTools"
     includedirs {
         "src/cli",
         "src/shared",
+        "src/lib",
     -- link antlr4
 		"deps/antlr4/runtime/Cpp/runtime/src/",
 		"deps/zlib/",
@@ -234,6 +258,7 @@ project "AtianCodTools"
     
     links { "antlr4-runtime" }
     links { "ACTSSharedLibrary" }
+    links { "ACTSLibrary" }
     links { "zlib" }
     links { "libps4debug" }
     links { "asmjit" }
@@ -241,6 +266,7 @@ project "AtianCodTools"
     links { "lz4" }
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
+    dependson "ACTSLibrary"
     dependson "zlib"
     dependson "libps4debug"
     dependson "asmjit"

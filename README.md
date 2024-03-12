@@ -8,6 +8,10 @@ My set of tools for Call of Duty. The code is more important than the features, 
 - Call of Duty: Black Ops 4 (T8)
 - Call of Duty: Black Ops Cold War (T9)
 
+## ACTS Lib
+
+Prototype libary for random stuff, probably not linked to Call of Duty.
+
 ## Dependencies
 
 This tool is using and providing
@@ -60,6 +64,8 @@ Tools to help with the GSC development.
 ## Lookup
 
 To have a lookup over the extracted hashes, you can use a file named `strings.txt` when using the process, it will be loaded automatically, one string per line.
+
+You can also use .wni compiled files, create a directory with the name `package_index` and put the .wni files in it.
 
 ## Credits
 

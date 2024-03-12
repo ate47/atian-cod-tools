@@ -89,6 +89,15 @@ namespace utils {
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
 	}
 	/*
+	 * Write a string into a vector buffer
+	 * @param data buffer
+	 * @param val value to write
+	 */
+	inline void WriteString(std::vector<BYTE>& data, const char* val) {
+		const BYTE* valLoc = reinterpret_cast<const BYTE*>(val);
+		data.insert(data.end(), valLoc, valLoc + strlen(val) + 1);
+	}
+	/*
 	 * Write a value into a vector buffer
 	 * @param Type value type
 	 * @param data buffer

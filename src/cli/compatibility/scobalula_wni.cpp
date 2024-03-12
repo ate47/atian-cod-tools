@@ -5,7 +5,7 @@
 namespace compatibility::scobalula::wni {
 	namespace {
 		int WniRead(byte* buffer, size_t size, std::function<void(uint64_t hash, const char* str)>& each) {
-			if (size < sizeof(WNI_MAGIC) + sizeof(WNI_VERSION) + sizeof(uint32_t) * 3) {
+			if (size < WNI_HEADER_SIZE) {
 				LOG_ERROR("Bad file size 0x{:x}", size);
 				return false;
 			}
