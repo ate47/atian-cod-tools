@@ -12,6 +12,7 @@ namespace tool::gsc {
         STEPSKIP_IF = 0x10,
         STEPSKIP_FOR = 0x20,
         STEPSKIP_RETURN = 0x40,
+        STEPSKIP_BOOL_RETURN = 0x80,
     };
     // cli options
     class GscInfoOption {
@@ -79,7 +80,7 @@ namespace tool::gsc {
         struct DecompContext {
             int padding = 0;
             int rloc = 0;
-            const ASMContext& asmctx;
+            const GscInfoOption& opt;
 
             std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc);
             inline std::ostream& WritePadding(std::ostream& out) {
@@ -219,8 +220,11 @@ namespace tool::gsc {
             virtual ~ASMContextNode();
             virtual void Dump(std::ostream& out, DecompContext& ctx) const;
             virtual ASMContextNode* Clone() const;
+            virtual ASMContextNode* ConvertToBool();
+            virtual bool IsBoolConvertable(bool strict);
 
             virtual void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx);
+            friend std::ostream& operator<<(std::ostream& os, const ASMContextNode& obj);
         };
 
         class ASMContextLocationOp{
@@ -269,6 +273,7 @@ namespace tool::gsc {
             int ComputeIfBlocks(ASMContext& ctx);
             int ComputeSwitchBlocks(ASMContext& ctx);
             int ComputeReturnJump(ASMContext& ctx);
+            int ComputeBoolReturn(ASMContext& ctx);
 
             ASMContextStatement* FetchFirstForLocation(INT64 rloc);
 
@@ -508,6 +513,12 @@ namespace tool::gsc {
              */
             inline void ComputeReturnJump(ASMContext& ctx) {
                 m_funcBlock.ComputeReturnJump(ctx);
+            }
+            /*
+             * Compute the boolean return candidates
+             */
+            inline void ComputeBoolReturn(ASMContext& ctx) {
+                m_funcBlock.ComputeBoolReturn(ctx);
             }
             /*
              * Dump the function block
@@ -958,3 +969,5 @@ namespace tool::gsc {
     // gsc tool
     int gscinfo(Process& proc, int argc, const char* argv[]);
 }
+template<>
+struct std::formatter<tool::gsc::opcode::ASMContextNode, char> : utils::BasicFormatter<tool::gsc::opcode::ASMContextNode> {};

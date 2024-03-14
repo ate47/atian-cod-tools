@@ -1538,7 +1538,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                     DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
                 }
                 output << std::flush;
-                opcode::DecompContext dctx{ 0, 0, asmctx };
+                opcode::DecompContext dctx{ 0, 0, asmctx.m_opt };
                 if (opt.m_dcomp) {
                     if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = scriptfile->Ptr(exp->GetAddress());
@@ -1574,6 +1574,9 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_RETURN)) {
                             asmctx.ComputeReturnJump(asmctx);
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_RETURN)) {
+                            asmctx.ComputeBoolReturn(asmctx);
                         }
                         if (opt.m_dasm) {
                             output << " ";
@@ -1645,7 +1648,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                     e.m_exp.SetHandle(e.m_readerHandle);
 
                     DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1);
-                    opcode::DecompContext dctx{ 1, 0, e };
+                    opcode::DecompContext dctx{ 1, 0, e.m_opt };
                     if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
                         dctx.WritePadding(asmout << "\n");
                     }
@@ -1698,7 +1701,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
                 }
 
                 DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx);
-                opcode::DecompContext dctx{ 0, 0, asmctx };
+                opcode::DecompContext dctx{ 0, 0, asmctx.m_opt };
                 if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
                     dctx.WritePadding(asmout << "\n");
                 }
@@ -2386,7 +2389,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             }
             if (lvar.defaultValueNode) {
                 asmout << " = ";
-                opcode::DecompContext dctx = { 0, 0, ctx };
+                opcode::DecompContext dctx = { 0, 0, ctx.m_opt };
                 lvar.defaultValueNode->Dump(asmout, dctx);
             }
         }
