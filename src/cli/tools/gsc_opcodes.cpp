@@ -207,7 +207,7 @@ public:
 	}
 
 	bool IsBoolConvertable(bool strict) override {
-		if (strict) {
+		if (!strict) {
 			return m_canBeCastToBool;
 		}
 
