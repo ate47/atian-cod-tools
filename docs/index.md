@@ -14,3 +14,7 @@ You can download the latest release here:
 - [GSC Decompiling](usage/decompiling.md)
 - [PS4](usage/ps4.md)
 - [BO4/CW custom ee](usage/custom_ee.md)
+
+## Developers
+
+- [Compile acts](dev/compile.md)
