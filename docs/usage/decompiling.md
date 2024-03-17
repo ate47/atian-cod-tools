@@ -1,3 +1,5 @@
+[Back...](../index.md)
+
 # GSC Decompiling
 
 **Table of Contents**
