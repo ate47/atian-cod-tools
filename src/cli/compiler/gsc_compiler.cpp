@@ -430,6 +430,13 @@ public:
 #define IS_RULE_TYPE(rule, index) (rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
 #define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
 
+bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
+    if (exp->getTreeType() == TREE_ERROR) {
+        return false;
+    }
+
+    return false;
+}
 bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
     if (exp->getTreeType() == TREE_ERROR) {
         return false;

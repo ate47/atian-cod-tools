@@ -12,6 +12,14 @@ namespace utils {
 	 * @return string
 	 */
 	LPCCH va(LPCCH fmt, ...);
+
+	/*
+	 * Read a file inside a string buffer
+	 * @param path file path
+	 * @param buffer buffer to write the size
+	 * @return if the file was read
+	 */
+	bool ReadFile(const std::filesystem::path& path, std::string& buffer);
 	/*
 	 * Read a file inside a buffer
 	 * @param path file path

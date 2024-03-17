@@ -346,7 +346,13 @@ namespace actscli {
 		return opt;
 	}
 
+	actslib::profiler::Profiler& GetProfiler() {
+		static actslib::profiler::Profiler profiler{ "acts" };
+		return profiler;
+	}
+
 	bool LoadPackFile(LPCCH mapFile) {
+		actslib::profiler::ProfiledSection ps{ actscli::GetProfiler(), "LoadActsPackFile" };
 		LPVOID buffer{};
 		SIZE_T bufferSize{};
 

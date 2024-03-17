@@ -1,4 +1,5 @@
 #pragma once
+#include "actslib/profiler.hpp"
 
 namespace actscli {
 	struct ActsOptions {
@@ -11,9 +12,11 @@ namespace actscli {
 		bool noIWHash{};
 		LPCCH dumpHashmap{};
 		LPCCH wniFiles{};
+		LPCCH saveProfiler{};
 	};
 
 	ActsOptions& options();
+	actslib::profiler::Profiler& GetProfiler();
 
 	bool LoadPackFile(LPCCH packFile);
 }

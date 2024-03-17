@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
 #include "tools/cw/cw.hpp"
+#include "actscli.hpp"
 #include <decrypt.hpp>
 
 using namespace tool::gsc;
@@ -1066,12 +1067,16 @@ struct H64GSCExportReader : GSCExportReader {
 
 int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOption& opt) {
 
+    auto& profiler = actscli::GetProfiler();
+    actslib::profiler::ProfiledSection ps{ profiler, path };
+
 
     T8GSCOBJContext ctx{};
     auto& gsicInfo = ctx.m_gsicInfo;
 
     gsicInfo.isGsic = size > 4 && !memcmp(data, "GSIC", 4);
     if (gsicInfo.isGsic) {
+        actslib::profiler::ProfiledSection ps{ profiler, "gsic reading"};
         LOG_DEBUG("Reading GSIC Compiled Script data");
 
         size_t gsicSize = 4; // preamble
@@ -1178,6 +1183,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     else {
         sprintf_s(asmfnamebuff, "%sasm", path);
     }
+    profiler.GetCurrent().name = asmfnamebuff;
 
     std::filesystem::path file(asmfnamebuff);
 
@@ -1317,6 +1323,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     }
 
     if (opt.m_patch) {
+        actslib::profiler::ProfiledSection ps{ profiler, "patch linking"};
         // unlink the script and write custom gvar/string ids
         scriptfile->PatchCode(ctx);
     }
@@ -1357,7 +1364,6 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     }
 
     if (opt.m_imports) {
-
         uintptr_t import_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetImportsOffset()));
 
         for (size_t i = 0; i < scriptfile->GetImportsCount(); i++) {
@@ -1446,6 +1452,7 @@ int GscInfoHandleData(BYTE* data, size_t size, const char* path, const GscInfoOp
     }
 
     if (opt.m_func) {
+        actslib::profiler::ProfiledSection ps{ profiler, "decompiling" };
         // current namespace
         UINT64 currentNSP = 0;
 

@@ -103,6 +103,13 @@ namespace {
 				}
 				opt.packFile = argv[++i];
 			}
+			else if (!strcmp("-P", arg) || !_strcmpi("--profiler", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				opt.saveProfiler = argv[++i];
+			}
 			else if (!strcmp("-w", arg) || !_strcmpi("--wni-files", arg)) {
 				if (i + 1 == argc) {
 					LOG_ERROR("Missing value for param: {}!", arg);
@@ -137,6 +144,7 @@ namespace {
 		LOG_INFO(" -x --extracted [f] : Write the extracted hashes into a file after the process");
 		LOG_INFO(" -t --no-title      : Hide ACTS title at start");
 		LOG_INFO(" -p --pack [f]      : Load ACTS pack file");
+		LOG_INFO(" -P --profiler [f]  : Save profiler file after tool usage");
 		LOG_INFO(" -N --no-hash       : No default hash");
 		LOG_INFO(" -T --no-treyarch   : No Treyarch hash (ignored with -N)");
 		LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
@@ -146,6 +154,7 @@ namespace {
 }
 
 int main(int argc, const char *_argv[]) {
+	auto& profiler = actscli::GetProfiler();
 	g_progPath = _argv[0];
 	// by default we don't display heavy logs
 	alogs::setbasiclog(true);
@@ -208,7 +217,11 @@ int main(int argc, const char *_argv[]) {
 
 	const clock_t beginTime = clock();
 
-	int output = tool.m_func(proc, argc, argv);
+	int output;
+	{
+		actslib::profiler::ProfiledSection ps{ profiler, tool.m_name ? tool.m_name : "no-tool-name" };
+		output = tool.m_func(proc, argc, argv);
+	}
 
 	LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output, 
 		(output == tool::OK ? " (OK)" : output == tool::BAD_USAGE ? " (BAD_USAGE)" : output == tool::BASIC_ERROR ? " (BASIC_ERROR)" : "")
@@ -218,6 +231,19 @@ int main(int argc, const char *_argv[]) {
 
 	if (output == tool::BAD_USAGE) {
 		LOG_ERROR("Error: Bad tool usage: {} {} {}", *argv, argv[1], tool.m_usage);
+	}
+
+	if (opt.saveProfiler) {
+		std::ofstream pout{ opt.saveProfiler, std::ios::binary };
+		if (!pout) {
+			LOG_ERROR("Can't open profiler output {}", opt.saveProfiler);
+		}
+		else {
+			profiler.Stop();
+			profiler.Write(pout);
+			pout.close();
+			LOG_INFO("Profiling saved into {}", opt.saveProfiler);
+		}
 	}
 
 	return output;
