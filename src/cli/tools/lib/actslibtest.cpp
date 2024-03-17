@@ -7,27 +7,80 @@
 
 namespace {
 	int actslibtest(Process& proc, int argc, const char* argv[]) {
+		const char* type;
+		if (argc < 3) {
+			type = "prof";
+		}
+		else {
+			type = argv[2];
+		}
+
 		using namespace actslib::profiler;
-		Profiler profiler{ "test" };
 
-		{
-			ProfiledSection test1{ profiler , "test 1" };
-			Sleep(500);
-		}
-		{
-			ProfiledSection test2{ profiler , "test 2" };
+		if (!_strcmpi(type, "prof")) {
+			Profiler profiler{ "test" };
+
 			{
-				ProfiledSection test2{ profiler , "test 2-1" };
-				Sleep(300);
+				ProfiledSection test1{ profiler , "test 1" };
+				Sleep(500);
 			}
 			{
-				ProfiledSection test2{ profiler , "test 2-2" };
-				Sleep(400);
+				ProfiledSection test2{ profiler , "test 2" };
+				{
+					ProfiledSection test2{ profiler , "test 2-1" };
+					Sleep(300);
+				}
+				{
+					ProfiledSection test2{ profiler , "test 2-2" };
+					Sleep(400);
+				}
 			}
-		}
 
-		profiler.Stop();
-		profiler.WriteToStr(std::cout);
+			profiler.Stop();
+			profiler.WriteToStr(std::cout);
+		}
+		else if (!_strcmpi(type, "cookie")) {
+
+			actslib::hdt::HDTCookie cookie{ actslib::hdt::HCT_UNKNOWN, "http://atesab.fr/#actsTest" };
+
+			cookie["test"] = "test2";
+			cookie["test1"] = "test3";
+
+			LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
+			LOG_INFO("Format: {}", cookie.GetFormat());
+
+			LOG_INFO("Props:");
+			for (const auto& [key, val] : cookie) {
+				LOG_INFO("'{}' = {}", key, val);
+			}
+
+			LOG_INFO("===============");
+			cookie.Save("testcookie.cookie");
+
+			std::ifstream is{ "testcookie.cookie", std::ios::binary};
+
+			if (!is) {
+				LOG_ERROR("Can't open {}", "testcookie.cookie");
+				return tool::BASIC_ERROR;
+			}
+
+			try {
+				actslib::hdt::HDTCookie cookie{ is };
+				is.close();
+				LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
+				LOG_INFO("Format: {}", cookie.GetFormat());
+
+				LOG_INFO("Props:");
+				for (const auto& [key, val] : cookie) {
+					LOG_INFO("'{}' = {}", key, val);
+				}
+			}
+			catch (std::runtime_error& err) {
+				LOG_ERROR("Can't read cookie {}", err.what());
+			}
+			is.close();
+			std::filesystem::remove("testcookie.cookie");
+		}
 		return tool::OK;
 	}
 

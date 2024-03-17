@@ -71,6 +71,50 @@ namespace actslib::hdt {
 			}
 		}
 
+		void Save(std::ostream& os) const {
+			actslib::crc::CRC16 crc{};
+			os.write(HDT_COOKIE_MAGIC, sizeof(HDT_COOKIE_MAGIC) - 1);
+			crc.Update(HDT_COOKIE_MAGIC, 0, sizeof(HDT_COOKIE_MAGIC) - 1);
+
+			os.put((char)type);
+			crc.Update(type);
+
+			os.write(format.data(), format.size() + 1);
+			crc.Update(format.data(), 0, format.size() + 1);
+
+			for (const auto& [key, val] : props) {
+
+				os.write(key.data(), key.size());
+				crc.Update(key.data(), 0, key.size());
+
+				os.put('=');
+				crc.Update('=');
+
+				os.write(val.data(), val.size());
+				crc.Update(val.data(), 0, val.size());
+
+				os.put(';');
+				crc.Update(';');
+			}
+
+			os.put(0);
+			crc.Update(0);
+
+			crc.WriteCRC(os);
+		}
+
+		void Save(std::filesystem::path path) const {
+			std::ofstream os{ path, std::ios::binary };
+
+			if (!os) {
+				throw std::runtime_error("Can't open file");
+			}
+
+			Save(os);
+
+			os.close();
+		}
+
 		constexpr HDTCookieType GetType() const {
 			return type;
 		}
@@ -81,6 +125,18 @@ namespace actslib::hdt {
 
 		constexpr const std::unordered_map<std::string, std::string>& GetProperties() const {
 			return props;
+		}
+
+		std::string& operator[](std::string key) {
+			return props[key];
+		}
+
+		std::string& operator[](const char* key) {
+			return props[key];
+		}
+
+		const_iterator find(std::string& key) const {
+			return props.find(key);
 		}
 
 		iterator begin() {

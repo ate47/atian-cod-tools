@@ -7,7 +7,7 @@ My set of tools. The code is more important than the features, so feel free to r
 **Supported games**
 - Call of Duty: Black Ops 4 (T8)
 - Call of Duty: Black Ops Cold War (T9)
-- Call of Duty: Black Ops Modern Warfare III (Jup)
+- Call of Duty: Modern Warfare III (JUP)
 
 ## ACTS Lib
 
