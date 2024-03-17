@@ -1,12 +1,13 @@
-# Atian Call of Duty Tools
+# Atian Tools
 
 [![Build](https://github.com/ate47/atian-cod-tools/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ate47/atian-cod-tools/actions/workflows/build.yml)
 
-My set of tools for Call of Duty. The code is more important than the features, so feel free to reuse it. 🙂
+My set of tools. The code is more important than the features, so feel free to reuse it. 🙂
 
 **Supported games**
 - Call of Duty: Black Ops 4 (T8)
 - Call of Duty: Black Ops Cold War (T9)
+- Call of Duty: Black Ops Modern Warfare III (Jup)
 
 ## ACTS Lib
 
