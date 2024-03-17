@@ -1,6 +1,9 @@
 #include <actslib/actslib.hpp>
 #include <actslib/profiler.hpp>
 #include <includes.hpp>
+#include <actslib/crc.hpp>
+#include <actslib/hdt.hpp>
+#include <mio.hpp>
 
 namespace {
 	int actslibtest(Process& proc, int argc, const char* argv[]) {
@@ -56,9 +59,45 @@ namespace {
 		return tool::OK;
 	}
 
+	int actslibhdtcookie(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+
+		std::ifstream is{ argv[2], std::ios::binary };
+
+		if (!is) {
+			LOG_ERROR("Can't open {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+		try {
+			actslib::hdt::HDTCookie cookie{ is };
+			is.close();
+			LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
+			LOG_INFO("Format: {}", cookie.GetFormat());
+
+			LOG_INFO("Props:");
+			for (const auto& [key, val] : cookie) {
+				LOG_INFO("'{}' = {}", key, val);
+			}
+		}
+		catch (std::runtime_error& err) {
+			LOG_ERROR("Can't read profiler {}", err.what());
+			is.close();
+			return tool::BASIC_ERROR;
+		}
+		is.close();
+
+		return tool::OK;
+	}
+
 }
 
 #ifndef CI_BUILD
 ADD_TOOL("actslibtest", "", "Acts lib test", nullptr, actslibtest);
-ADD_TOOL("actslibprofiler", " [profile file]", "Read profiler", nullptr, actslibprofiler);
+
+ADD_TOOL("actslibhdt", " [hdt]", "Read hdt cookie", nullptr, actslibhdtcookie);
 #endif
+
+ADD_TOOL("actslibprofiler", " [profile file]", "Read profiler", nullptr, actslibprofiler);

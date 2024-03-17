@@ -2,6 +2,34 @@
 #include "io.h"
 
 namespace actslib::io {
+	uint8_t ReadUInt8(std::istream& is) {
+		char buffer;
+
+		is.read(&buffer, sizeof(buffer));
+
+		return buffer;
+	}
+
+	int8_t ReadInt8(std::istream& is) {
+		uint8_t u = ReadUInt8(is);
+		return *reinterpret_cast<int8_t*>(&u);
+	}
+
+	uint16_t ReadUInt16(std::istream& is) {
+		char buffer[2];
+
+		is.read(buffer, sizeof(buffer));
+
+		return
+			(buffer[0] & 0xFFUL)
+			| ((buffer[1] & 0xFFUL) << 8);
+	}
+
+	int16_t ReadInt16(std::istream& is) {
+		uint16_t u = ReadUInt16(is);
+		return *reinterpret_cast<int16_t*>(&u);
+	}
+
 	uint32_t ReadUInt32(std::istream& is) {
 		char buffer[4];
 
@@ -40,6 +68,27 @@ namespace actslib::io {
 		return *reinterpret_cast<int64_t*>(&u);
 	}
 
+	void WriteUInt8(std::ostream& os, uint8_t value) {
+		os.write((const char*)&value, sizeof(value));
+	}
+
+	void WriteInt8(std::ostream& os, int8_t value) {
+		WriteUInt8(os, *reinterpret_cast<uint8_t*>(&value));
+	}
+
+	void WriteUInt16(std::ostream& os, uint16_t value) {
+		char buffer[sizeof(value)];
+
+		buffer[0] = value & 0xFF;
+		buffer[1] = ((value >> 8) & 0xFF);
+
+		os.write(buffer, sizeof(buffer));
+	}
+
+	void WriteInt16(std::ostream& os, int16_t value) {
+		WriteUInt16(os, *reinterpret_cast<uint16_t*>(&value));
+	}
+
 	void WriteUInt32(std::ostream& os, uint32_t value) {
 		char buffer[sizeof(value)];
 
@@ -72,5 +121,50 @@ namespace actslib::io {
 
 	void WriteInt64(std::ostream& os, int64_t value) {
 		WriteUInt64(os, *reinterpret_cast<uint64_t*>(&value));
+	}
+
+	void EncodeVByte(std::ostream& os, uint64_t value) {
+		while (value > 0x7F) {
+			os.put((char)(value & 0x7F));
+			value >>= 7;
+		}
+		os.put((char)((value & 0x7F) | 0x80));
+	}
+
+	uint64_t DecodeVByte(std::istream& is) {
+		uint64_t res{};
+		int shift = 0;
+
+		int c = is.get();
+
+		while (!(c & 0x80)) {
+			if (shift > 50) throw std::runtime_error("Too many bits");
+
+			res |= (c & 0x7FULL) << shift;
+
+			c = is.get();
+			shift += 7;
+		}
+
+		res |= (c & 0x7FULL) << shift;
+		return res;
+	}
+
+	void EncodeVByteSigned(std::ostream& os, int64_t value) {
+		if (value < 0) {
+			EncodeVByte(os, ~(value << 1));
+		}
+		else {
+			EncodeVByte(os, value << 1);
+		}
+	}
+
+	int64_t DecodeVByteSigned(std::istream& is) {
+		uint64_t d = DecodeVByte(is);
+
+		if (d & 1) {
+			return ~(d >> 1);
+		}
+		return d >> 1;
 	}
 }
