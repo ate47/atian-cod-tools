@@ -83,6 +83,6 @@ void alogs::log(loglevel level, std::string&& str) {
 		out.close();
 	}
 	else {
-		f(level > LVL_WARNING ? std::cout : std::cerr);
+		f(level < LVL_WARNING ? std::cout : std::cerr);
 	}
 }

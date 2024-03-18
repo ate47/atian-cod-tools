@@ -1924,6 +1924,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
             loc.handled = true;
 
             if (ctx.m_lastOpCodeBase == -1) {
+                LOG_DEBUG("set last loc {:x}", loc.rloc);
                 ctx.m_lastOpCodeBase = loc.rloc;
             }
 
@@ -2259,6 +2260,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     auto remapedFlags = gscFile.RemapFlagsExport(exp.GetFlags());
     bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
+    auto detourVal = objctx.m_gsicInfo.detours.find(exp.GetAddress());
+    bool isDetour = detourVal != objctx.m_gsicInfo.detours.end();
+
     if (ctx.m_opt.m_func_header) {
         const char* prefix;
         if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
@@ -2273,6 +2277,16 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         utils::Padding(asmout, padding) << prefix << "Namespace "
             << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush << "/"
             << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.GetFileNamespace()) << std::endl;
+
+        if (isDetour) {
+            auto det = detourVal->second;
+            utils::Padding(asmout, padding) << prefix 
+                << "Detour " << hashutils::ExtractTmp("function", exp.GetName()) << " "
+                << "Offset 0x" << std::hex << det->fixupOffset << "/0x" << det->fixupSize
+                << "\n"
+                ;
+        }
+
         utils::Padding(asmout, padding) << prefix << "Params " << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
 
         if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
@@ -2331,9 +2345,8 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                 asmout << "~";
             }
         }
-        auto detourVal = objctx.m_gsicInfo.detours.find(exp.GetAddress());
 
-        if (detourVal != objctx.m_gsicInfo.detours.end()) {
+        if (isDetour) {
             auto* detour = detourVal->second;
 
             asmout << "detour ";

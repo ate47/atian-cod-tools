@@ -101,8 +101,8 @@ int hashutils::LoadMap(LPCCH file, bool ignoreCol, bool iw) {
 
 	// structure basic hashes
 	Add("system", true, iw);
-	Add("scripts/core_common/system_shared.csc", true,iw);
-	Add("scripts/core_common/system_shared.gsc", true,iw);
+	Add("scripts/core_common/system_shared.csc", true, iw);
+	Add("scripts/core_common/system_shared.gsc", true, iw);
 	Add("register", true, iw);
 	Add("__init__system__", true, iw);
 	Add("__init__", true, iw);
@@ -178,7 +178,7 @@ bool hashutils::Add(LPCCH str, bool ignoreCol, bool iw) {
 		if (!ignoreCol) {
 			auto find = g_hashMap.find(h);
 			if (find != g_hashMap.end() && _strcmpi(str, find->second.data())) {
-				LOG_ERROR("Coll '{}'='{}' #{:x}", str, find->second.data(), h);
+				LOG_WARNING("Coll '{}'='{}' #{:x}", str, find->second.data(), h);
 				return false;
 			}
 		}

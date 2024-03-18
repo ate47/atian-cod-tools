@@ -2345,6 +2345,7 @@ public:
 									// bad top, no data
 									//node = new ASMContextNodeValue<ASMContextNode*>(top, TYPE_JUMP_STACK_TOP);
 									// we can remove the jump node, we won't need it
+									LOG_TRACE("set jump last loc {:x} top was {}", last.location->rloc, *top);
 									context.m_lastOpCodeBase = last.location->rloc;
 									context.m_funcBlock.m_statements.pop_back();
 									locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(ASMCNodeConvertToBool(jumpNode->m_operand), top));
@@ -4125,7 +4126,7 @@ public:
 			out << hashutils::ExtractTmp("namespace", nsp) << "::" << std::flush;
 		}
 
-		out << hashutils::ExtractTmp("function", data[0]) << std::endl;
+		out << hashutils::ExtractTmp("function", data[0]);
 
 		if (context.m_runDecompiler) {
 			BYTE flags = 0;
@@ -4170,7 +4171,7 @@ public:
 			ptr->AddParam(new ASMContextNodeFuncRef("", data[0], nsp));
 
 			if (params >= 0) {
-				for (size_t p = params; p > 0 && context.m_stack.size(); p--) {
+				for (size_t i = 0; i < params; i++) {
 					ptr->AddParam(context.PopASMCNode());
 				}
 
@@ -4180,10 +4181,13 @@ public:
 				}
 			}
 			else {
+				int guess{};
 				while (context.m_stack.size() && context.PeekASMCNode()->m_type != TYPE_PRECODEPOS) {
 					ptr->AddParam(context.PopASMCNode());
+					guess++;
 				}
 
+				out << ", guessParam: " << guess;
 				if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
 					// clear PreScriptCall
 					delete context.PopASMCNode();
@@ -4201,6 +4205,7 @@ public:
 				context.m_objectId = nullptr;
 			}
 		}
+		out << "\n";
 
 		return 0;
 	}
@@ -4368,10 +4373,9 @@ public:
 		int params;
 		if ((objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) || m_hasParam) {
 			params = *(context.m_bcl++);
-			out << std::dec << "params:" << (int)params << ":" << std::hex << context.FunctionRelativeLocation() << "\n";
+			out << std::dec << "params:" << (int)params << ":" << std::hex << context.FunctionRelativeLocation();
 		}
 		else {
-			out << "\n";
 			params = -1;
 		}
 
@@ -4422,7 +4426,7 @@ public:
 			ptr->AddParam(func);
 
 			if (params >= 0) {
-				for (size_t p = params; p > 0 && context.m_stack.size(); p--) {
+				for (size_t i = 0; i < params; i++) {
 					ptr->AddParam(context.PopASMCNode());
 				}
 
@@ -4433,9 +4437,12 @@ public:
 			}
 			else {
 				// use <= to add the function pointer
+				int guess{};
 				while (context.m_stack.size() && context.PeekASMCNode()->m_type != TYPE_PRECODEPOS) {
 					ptr->AddParam(context.PopASMCNode());
+					guess++;
 				}
+				out << ", guessParam: " << guess;
 
 				if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
 					// clear PreScriptCall
@@ -4454,6 +4461,7 @@ public:
 				context.m_objectId = nullptr;
 			}
 		}
+		out << "\n";
 
 		return 0;
 	}
@@ -6036,7 +6044,12 @@ void ASMContext::CompleteStatement() {
 			delete m_objectId;
 			m_objectId = nullptr;
 		}
-		m_funcBlock.m_statements.push_back({ PopASMCNode(), &m_locs[m_lastOpCodeBase]});
+		auto* node = PopASMCNode();
+		auto* loc = &m_locs[m_lastOpCodeBase];
+
+		LOG_TRACE("{:x}/{:x} : {}", loc->rloc, m_lastOpCodeBase, *node);
+
+		m_funcBlock.m_statements.push_back({ node, loc});
 		m_lastOpCodeBase = -1;
 		//// clear stack
 		//for (auto& n : m_stack) {
