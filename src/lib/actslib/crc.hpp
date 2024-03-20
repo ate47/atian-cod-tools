@@ -30,6 +30,9 @@ namespace actslib::crc {
 
 	class CRC8 : public CRC<uint8_t> {
 	public:
+		using CRC::Update;
+		using CRC::Reset;
+		using CRC::WriteCRC;
 		void Update(const char val) override;
 	};
 	class CRC16 : public CRC<uint16_t> {
