@@ -220,7 +220,13 @@ int main(int argc, const char *_argv[]) {
 	int output;
 	{
 		actslib::profiler::ProfiledSection ps{ profiler, tool.m_name ? tool.m_name : "no-tool-name" };
-		output = tool.m_func(proc, argc, argv);
+		try {
+			output = tool.m_func(proc, argc, argv);
+		}
+		catch (std::exception& e) {
+			LOG_ERROR("Unhandled exception: {}", e.what());
+			output = tool::BASIC_ERROR;
+		}
 	}
 
 	LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output, 

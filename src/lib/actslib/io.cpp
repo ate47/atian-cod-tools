@@ -125,19 +125,19 @@ namespace actslib::io {
 
 	void EncodeVByte(std::ostream& os, uint64_t value) {
 		while (value > 0x7F) {
-			os.put((char)(value & 0x7F));
+			os.put((char)(value & 0x7F) | 0x80);
 			value >>= 7;
 		}
-		os.put((char)((value & 0x7F) | 0x80));
+		os.put((char)((value & 0x7F)));
 	}
 
 	uint64_t DecodeVByte(std::istream& is) {
 		uint64_t res{};
-		int shift = 0;
+		int shift{};
 
 		int c = is.get();
 
-		while (!(c & 0x80)) {
+		while (c & 0x80) {
 			if (shift > 50) throw std::runtime_error("Too many bits");
 
 			res |= (c & 0x7FULL) << shift;

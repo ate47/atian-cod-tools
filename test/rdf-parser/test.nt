@@ -1,0 +1,6 @@
+<http://atesab.fr/#ate> <http://atesab.fr/#name> "Antoine" .
+<http://atesab.fr/#ate>  <http://atesab.fr/#name>  "Antoine"@fr    .
+<http://atesab.fr/#ate>  <http://atesab.fr/#age>  "26"^^<http://www.w3.org/2001/XMLSchema#integer>    .
+
+# zqzdqzdq comment
+<http://atesab.fr/#test3>  <http://atesab.fr/#p3> <http://atesab.fr/#test2>   .

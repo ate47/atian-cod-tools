@@ -1,6 +1,7 @@
 #pragma once
 #include "actslib.hpp"
 #include "crc.hpp"
+#include "rdf/parser.hpp"
 
 namespace actslib::hdt {
 	constexpr const char HDT_COOKIE_MAGIC[] = "$HDT";
@@ -127,7 +128,7 @@ namespace actslib::hdt {
 			return props;
 		}
 
-		std::string& operator[](std::string key) {
+		std::string& operator[](const std::string& key) {
 			return props[key];
 		}
 
@@ -135,7 +136,11 @@ namespace actslib::hdt {
 			return props[key];
 		}
 
-		const_iterator find(std::string& key) const {
+		const_iterator find(const std::string& key) const {
+			return props.find(key);
+		}
+
+		const_iterator find(const char* key) const {
 			return props.find(key);
 		}
 
@@ -154,5 +159,41 @@ namespace actslib::hdt {
 		const_iterator cend() const {
 			return props.cend();
 		}
+
+		int64_t GetInteger(const std::string& key, int64_t defaultVal= 0) {
+			const_iterator it = find(key);
+
+			if (it == cend()) {
+				return defaultVal;
+			}
+
+			try {
+				return std::strtoll(it->second.c_str(), nullptr, 10);
+			}
+			catch ([[maybe_unused]]std::invalid_argument& e) {
+				return defaultVal;
+			}
+		}
+	};
+
+	class PlainHeader {
+		PlainHeader(std::istream& is, HDTCookie& cookie) {
+			if (cookie.GetType() != HCT_HEADER) {
+				throw std::invalid_argument("Cookie not valid for plain header");
+			}
+
+			int64_t length = cookie.GetInteger("length", -1);
+
+			if (length < 0) {
+				throw std::invalid_argument("Cookie doesn't contain a valid length");
+			}
+
+			std::string raw{};
+			raw.resize(length);
+			is.read(raw.data(), length);
+
+
+		}
+
 	};
 }
