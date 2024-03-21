@@ -11,6 +11,7 @@
 #include <cassert>
 #include <functional>
 #include <stdarg.h>
+#include "logging.hpp"
 
 namespace actslib {
 
@@ -47,7 +48,7 @@ namespace actslib {
 
 	public:
 		ToClose(Type& v) : v(v) {}
-		~ToClose() {
+		inline ~ToClose() {
 			v.close();
 		}
 	};
@@ -56,7 +57,7 @@ namespace actslib {
 
 	public:
 		ToCloseFunc(std::function<void()> f) : f(f) {}
-		~ToCloseFunc() {
+		inline ~ToCloseFunc() {
 			f();
 		}
 	};

@@ -16,6 +16,12 @@ namespace actslib::data {
 		virtual void MergeChunks(const std::vector<KMergerChunk>& chunks, const std::filesystem::path& chunkLocation) = 0;
 	};
 
+	struct KMergerTask {
+		std::function<void()> func;
+		const char* type;
+		bool end{};
+	};
+
 	class KMerger {
 		KMergerConfig& cfg;
 		const size_t units;
@@ -28,7 +34,7 @@ namespace actslib::data {
 		size_t maxLayer{};
 		std::mutex chunksMutex;
 
-		std::vector<std::function<void()>> tasks{};
+		std::vector<KMergerTask> tasks{};
 		std::condition_variable taskCondVar;
 		std::mutex taskCondMutex;
 
@@ -36,6 +42,7 @@ namespace actslib::data {
 		std::mutex idMutex{};
 
 		const char* exception{};
+		std::mutex exceptionMutex{};
 	public:
 		KMerger(const std::filesystem::path workdir, size_t units, size_t workersCount, KMergerConfig& cfg)
 			: workdir(workdir), units(units), workersCount(workersCount), cfg(cfg) {
@@ -56,28 +63,37 @@ namespace actslib::data {
 			return workdir / va("c_%lld", GetNewIdSync());
 		}
 
-		void PushTask(std::function<void()> task) {
-			std::lock_guard lg{ taskCondMutex };
+		void PushTask(const char* type, std::function<void()> task, bool sync) {
+			if (sync) {
+				std::lock_guard lg{ taskCondMutex };
 
-			tasks.push_back(task);
+				tasks.emplace_back(task, type);
 
-			taskCondVar.notify_one();
+				taskCondVar.notify_one();
+			}
+			else {
+				tasks.emplace_back(task, type);
+
+				taskCondVar.notify_one();
+			}
 		}
 
 	private:
 
-		std::function<void()> PopTask() {
+		KMergerTask PopTask() {
 			std::unique_lock ul{ taskCondMutex };
 
 			auto& that = *this;
 
 			taskCondVar.wait(ul, [&that] {return !that.tasks.empty() || that.completed;  });
 
-			if (tasks.empty()) {
-				return [] {};
+			if (tasks.empty() || exception) {
+				return { [] {}, "empty", true };
 			}
 
 			auto f = tasks[tasks.size() - 1];
+
+			tasks.pop_back();
 
 			ul.unlock();
 
@@ -86,8 +102,9 @@ namespace actslib::data {
 
 		bool FindChunksToMerge(std::vector<KMergerChunk>& ch) {
 			if (completed) {
+				LOG_TRACE("completed size: {}", chunks.size());
 				if (chunks.size() > 1) {
-					ch.reserve(min(chunks.size(), units));
+					ch.reserve(chunks.size() > units ? units : chunks.size());
 					if (units > chunks.size()) {
 						ch.insert(ch.begin(), chunks.begin(), chunks.end());
 						chunks.clear();
@@ -99,6 +116,7 @@ namespace actslib::data {
 					}
 					return true;
 				}
+				LOG_TRACE("done size: {}", chunks.size());
 				return false; // done
 			}
 
@@ -135,7 +153,7 @@ namespace actslib::data {
 			return false;
 		}
 
-		void PushMergeTaskIfRequired() {
+		void PushMergeTaskIfRequired(bool sync) {
 			std::unique_lock ul{ chunksMutex };
 
 
@@ -147,7 +165,7 @@ namespace actslib::data {
 
 			auto& that = *this;
 
-			PushTask([&that, ch] {
+			PushTask("merge", [&that, ch] {
 				size_t layer{};
 
 				// compute max layer
@@ -165,16 +183,19 @@ namespace actslib::data {
 				{
 					std::lock_guard lg{ that.chunksMutex };
 					that.chunks.emplace_back(layer + 1, chunkLoc);
+					if (layer + 1 > that.maxLayer) {
+						that.maxLayer = layer + 1;
+					}
 				}
 
 				// create a new merge task if this one is required
-				that.PushMergeTaskIfRequired();
-			});
+				that.PushMergeTaskIfRequired(true);
+			}, sync);
 		}
 
-		void PushCreateChunkTask() {
+		void PushCreateChunkTask(bool sync) {
 			auto& that = *this;
-			PushTask([&that] {
+			PushTask("create", [&that] {
 				std::filesystem::path chunkLoc = that.GetNewIdSyncPath();
 
 				if (!that.cfg.CreateChunk(chunkLoc)) {
@@ -182,7 +203,7 @@ namespace actslib::data {
 
 					that.completed = true;
 					// call the merge to force the full completion
-					that.PushMergeTaskIfRequired();
+					that.PushMergeTaskIfRequired(false);
 					// chunk completed, we don't have to handle more than required. We close all the ones not working
 					that.taskCondVar.notify_all();
 					return;
@@ -194,28 +215,34 @@ namespace actslib::data {
 					that.chunks.emplace_back(0, chunkLoc);
 				}
 				// create new chunk after
-				that.PushCreateChunkTask();
+				that.PushCreateChunkTask(true);
 				// maybe we need to merge the new chunk
-				that.PushMergeTaskIfRequired();
-			});
+				that.PushMergeTaskIfRequired(true);
+			}, sync);
 
 
 		}
 
 		void HandleWorker() {
+			KMergerTask task{ [] {}, "none" };
+
 			try {
-				while (!completed) {
-					PopTask()();
+				while (!task.end) {
+					task = PopTask();
+					task.func();
 				}
 			}
 			catch (std::exception& e) {
-				exception = e.what();
-
+				{
+					std::lock_guard lg{ exceptionMutex };
+					exception = actslib::va("KMerger error in %s : %s", task.type, e.what());
+				}
+			
 				std::lock_guard lg{ taskCondMutex };
 				completed = true;
-
+			
 				tasks.clear(); // clear all tasks
-
+			
 				taskCondVar.notify_all();
 			}
 		}
@@ -239,14 +266,14 @@ namespace actslib::data {
 		std::filesystem::path PushAndJoin() {
 			Init(); // Just in case
 
-			PushCreateChunkTask();
+			PushCreateChunkTask(true);
 
 			for (std::thread& th : workers) {
 				th.join();
 			}
 
 			if (exception) {
-				throw std::runtime_error(exception);
+				throw std::runtime_error(actslib::va("%s", exception));
 			}
 
 			if (chunks.size() > 1) {

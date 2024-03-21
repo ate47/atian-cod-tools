@@ -15,17 +15,22 @@ namespace actslib {
 	};
 
 	const char* va(const char* fmt, ...) {
-		static thread_local StrBuff<0x10, 0x200> buf{};
+		static std::mutex lock;
+		static StrBuff<0x20, 0x200> buf{};
 
 		va_list va;
 		
         va_start(va, fmt);
 
-		auto& buff = buf.buffer[buf.NextId()];
-		vsprintf_s(buff, fmt, va);
+		{
+			std::lock_guard lg{ lock };
 
-		va_end(va);
+			auto& buff = buf.buffer[buf.NextId()];
+			vsprintf_s(buff, fmt, va);
 
-		return buff;
+			va_end(va);
+
+			return buff;
+		}
 	}
 }

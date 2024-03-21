@@ -10,230 +10,17 @@
 
 namespace {
 	using namespace actslib;
-	class KMergerTest : public actslib::data::KMergerConfig {
+	
+	void DumpCompressNodeFile(const std::filesystem::path& path) {
+		actslib::rdf::raio::CompressComponentReaderFile reader{ path };
+		actslib::ToClose tc{ reader };
 
-		actslib::rdf::RDFParser& parser;
-		size_t tripleId{ 1 };
-		std::string buffers[rdf::RDF_TRIPLE_COUNT]{ {}, {}, {} };
-		size_t bufferOffsets[rdf::RDF_TRIPLE_COUNT]{ 0, 0, 0 };
-		std::vector<size_t> strings[rdf::RDF_TRIPLE_COUNT]{ {}, {}, {} };
-	public:
-
-		KMergerTest(actslib::rdf::RDFParser& parser, size_t bufferSize) : parser(parser) {
-			for (auto& buff : buffers) {
-				buff.resize(bufferSize);
-			}
+		while (reader) {
+			LOG_INFO("{}", *reader);
+			++reader;
 		}
-
-		inline void WriteEmptyChunk(const std::filesystem::path& chunkLocation, rdf::RDFComponentType type) {
-			std::filesystem::path s = chunkLocation / rdf::GetRDFComponentTypeName(type);
-
-			std::ofstream out{ s, std::ios::binary };
-
-			if (!out) throw std::runtime_error(actslib::va("Can't create default chunk %s", rdf::GetRDFComponentTypeName(type)));
-
-			ToClose<std::ofstream> outClose{ out };
-
-			actslib::rdf::raio::CompressComponentWriter w{ out };
-
-			w.WriteEnd();
-		}
-
-		void CreateDefaultChunk(const std::filesystem::path& chunkLocation) override {
-			std::filesystem::create_directories(chunkLocation);
-
-			WriteEmptyChunk(chunkLocation, rdf::RDF_SUBJECT);
-			WriteEmptyChunk(chunkLocation, rdf::RDF_PREDICATE);
-			WriteEmptyChunk(chunkLocation, rdf::RDF_OBJECT);
-		}
-
-		inline bool WriteChunkData(const rdf::Triple& triple, bool force, size_t index) {
-			auto& stringss = strings[rdf::RDF_SUBJECT];
-			auto& bufferss = buffers[rdf::RDF_SUBJECT];
-
-			auto& stringsp = strings[rdf::RDF_PREDICATE];
-			auto& buffersp = buffers[rdf::RDF_PREDICATE];
-
-			auto& stringso = strings[rdf::RDF_OBJECT];
-			auto& bufferso = buffers[rdf::RDF_OBJECT];
-
-			// check if we can add the components (reallocate if we force them)
-			if (bufferOffsets[rdf::RDF_SUBJECT] + triple.subject->length + sizeof(size_t) + 1 > bufferss.size()) {
-				if (!force) {
-					return false;
-				}
-				bufferss.resize(bufferOffsets[rdf::RDF_SUBJECT] + (size_t)((triple.subject->length + sizeof(size_t) + 1) * 1.5));
-			}
-			if (bufferOffsets[rdf::RDF_PREDICATE] + triple.predicate->length + sizeof(size_t) + 1 > buffersp.size()) {
-				if (!force) {
-					return false;
-				}
-				buffersp.resize(bufferOffsets[rdf::RDF_PREDICATE] + (size_t)((triple.predicate->length + sizeof(size_t) + 1) * 1.5));
-			}
-			if (bufferOffsets[rdf::RDF_OBJECT] + triple.object->length + sizeof(size_t) + 1 > bufferso.size()) {
-				if (!force) {
-					return false;
-				}
-				bufferso.resize(bufferOffsets[rdf::RDF_OBJECT] + (size_t)((triple.object->length + sizeof(size_t) + 1) * 1.5));
-			}
-
-			size_t offs = bufferOffsets[rdf::RDF_SUBJECT];
-			stringss.push_back(offs);
-			bufferOffsets[rdf::RDF_SUBJECT] += triple.subject->length + sizeof(size_t) + 1;
-
-			size_t offp = bufferOffsets[rdf::RDF_PREDICATE];
-			stringsp.push_back(offp);
-			bufferOffsets[rdf::RDF_PREDICATE] += triple.predicate->length + sizeof(size_t) + 1;
-
-			size_t offo = bufferOffsets[rdf::RDF_OBJECT];
-			stringso.push_back(offo);
-			bufferOffsets[rdf::RDF_OBJECT] += triple.object->length + sizeof(size_t) + 1;
-
-			*reinterpret_cast<size_t*>(bufferss.data() + offs) = index;
-			*reinterpret_cast<size_t*>(buffersp.data() + offp) = index;
-			*reinterpret_cast<size_t*>(bufferso.data() + offo) = index;
-
-			assert((bufferss.size() > offs + sizeof(size_t) && bufferss.size() - (offs + sizeof(size_t)) >= triple.subject->length) && "bad buffer s");
-			memcpy(bufferss.data() + offs + sizeof(size_t), triple.subject->buffer + triple.subject->offset, triple.subject->length);
-			assert((buffersp.size() > offs + sizeof(size_t) && buffersp.size() - (offs + sizeof(size_t)) >= triple.predicate->length) && "bad buffer p");
-			memcpy(buffersp.data() + offp + sizeof(size_t), triple.predicate->buffer + triple.predicate->offset, triple.predicate->length);
-			assert((bufferso.size() > offs + sizeof(size_t) && bufferso.size() - (offs + sizeof(size_t)) >= triple.object->length) && "bad buffer o");
-			memcpy(bufferso.data() + offo + sizeof(size_t), triple.object->buffer + triple.object->offset, triple.object->length);
-
-			// end str
-			bufferss.data()[bufferOffsets[rdf::RDF_SUBJECT] - 1] = 0;
-			buffersp.data()[bufferOffsets[rdf::RDF_PREDICATE] - 1] = 0;
-			bufferso.data()[bufferOffsets[rdf::RDF_OBJECT] - 1] = 0;
-
-			return true;
-		}
-
-		inline void SortBuffer(rdf::RDFComponentType comp) {
-			auto& str = strings[comp];
-			const auto& buff = buffers[comp];
-
-			std::sort(str.begin(), str.end(), [&buff](size_t off1, size_t off2) -> bool {
-				const char* s1 = &buff[off1 + sizeof(size_t)];
-				const char* s2 = &buff[off2 + sizeof(size_t)];
-				return strcmp(s1, s2) < 0;
-			});
-		}
-
-		inline void WriteChunkFile(const std::filesystem::path& chunkLocation, rdf::RDFComponentType type) {
-			std::filesystem::path su = chunkLocation / rdf::GetRDFComponentTypeName(type);
-
-			std::ofstream out{ chunkLocation, std::ios::binary };
-
-			if (!out) throw std::runtime_error(actslib::va("Can't create chunk file of %s", rdf::GetRDFComponentTypeName(type)));
-
-			ToClose<std::ofstream> outClose{ out };
-
-			actslib::rdf::raio::CompressComponentWriter w{ out };
-
-			const auto& str = strings[type];
-			const auto& buff = buffers[type];
-
-			rdf::Component cmp{};
-			for (size_t offset : str) {
-				cmp.buffer = &buff[offset + sizeof(size_t)];
-				cmp.length = strlen(cmp.buffer);
-				cmp.offset = 0;
-
-				w.WriteNode(*reinterpret_cast<const size_t*>(buff.data() + offset), cmp);
-			}
-
-			w.WriteEnd();
-		};
-
-		bool CreateChunk(const std::filesystem::path& chunkLocation) override {
-			if (!parser) {
-				return false;
-			}
-			// clear buffers
-			for (size_t i = 0; i < rdf::RDF_TRIPLE_COUNT; i++) {
-				bufferOffsets[i] = 0;
-				strings[i].clear();
-			}
-
-			WriteChunkData(*parser, true, tripleId);
-			
-			++parser;
-			tripleId++;
-
-			while (parser) {
-				if (!WriteChunkData(*parser, false, tripleId)) {
-					break;
-				}
-				++parser;
-				tripleId++;
-			}
-
-			// sort strings
-			SortBuffer(rdf::RDF_SUBJECT);
-			SortBuffer(rdf::RDF_PREDICATE);
-			SortBuffer(rdf::RDF_OBJECT);
-
-			// write strings
-			std::filesystem::create_directories(chunkLocation);
-
-			WriteChunkFile(chunkLocation, rdf::RDF_SUBJECT);
-			WriteChunkFile(chunkLocation, rdf::RDF_PREDICATE);
-			WriteChunkFile(chunkLocation, rdf::RDF_OBJECT);
-
-
-			return true;
-		}
-
-		void MergeChunks(const std::vector<actslib::data::KMergerChunk>& chunks, const std::filesystem::path& chunkLocation) override {
-			std::vector<std::shared_ptr<rdf::raio::CompressComponentReaderFile>> readers{};
-
-			readers.reserve(chunks.size());
-			for (size_t i = 0; i < rdf::RDF_TRIPLE_COUNT; i++) {
-				rdf::RDFComponentType type = (rdf::RDFComponentType)i;
-				ToCloseFunc tcf{ [&readers] {
-					for (auto& r : readers) {
-						r->close();
-					}
-					readers.clear();
-				} };
-				for (const auto& chunk : chunks) {
-					readers.emplace_back(std::make_shared<rdf::raio::CompressComponentReaderFile>(chunk.file / rdf::GetRDFComponentTypeName(type)));
-				}
-
-				class IdCompComparator {
-				public:
-					static inline bool Compare(const rdf::raio::IdComponent& a, const rdf::raio::IdComponent& b) {
-						return a.comp < b.comp;
-					}
-				};
-
-				actslib::data::iterator::AllocatedMergeAIterator<const rdf::raio::IdComponent, std::shared_ptr<rdf::raio::CompressComponentReaderFile>, IdCompComparator> merger{
-					readers, [](auto& e) { return e; }
-				};
-
-
-				std::filesystem::path su = chunkLocation / rdf::GetRDFComponentTypeName(type);
-
-				std::ofstream out{ chunkLocation, std::ios::binary };
-
-
-				if (!out) throw std::runtime_error(actslib::va("Can't create merge chunk file of %s", rdf::GetRDFComponentTypeName(type)));
-
-				ToClose<std::ofstream> outClose{ out };
-
-				actslib::rdf::raio::CompressComponentWriter w{ out };
-
-				while (merger) {
-					auto& c = *merger;
-					w.WriteNode(c.id, c.comp);
-				}
-
-				w.WriteEnd();
-			}
-			
-
-		}
-	};
+		
+	}
 
 	void MergeNumbers() {
 		size_t a1[]{ 1, 4, 7, 9 };
@@ -366,6 +153,44 @@ namespace {
 		else if (!_strcmpi(type, "merge")) {
 			MergeNumbers();
 		}
+		else if (!_strcmpi(type, "cfr")) {
+			if (argc < 4) {
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
+				return tool::BAD_USAGE;
+			}
+			DumpCompressNodeFile(argv[3]);
+		}
+		else if (!_strcmpi(type, "cfrv")) {
+			if (argc < 4) {
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
+				return tool::BAD_USAGE;
+			}
+
+			std::vector<std::filesystem::path> files{};
+
+			utils::GetFileRecurse(argv[3], files);
+
+			for (const auto& file : files) {
+				try {
+					actslib::rdf::raio::CompressComponentReaderFile reader{ file };
+					actslib::ToClose tc{ reader };
+
+					while (reader) {
+						if (!reader->id) {
+							throw std::exception("find comp with 0 id");
+						}
+
+						++reader;
+					}
+
+					//LOG_TRACE("Ok for {}", file.string());
+				}
+				catch (std::exception& e) {
+					LOG_ERROR("Find error in {}: {}", file.string(), e.what());
+				}
+			}
+
+		}
 		else if (!_strcmpi(type, "raio")) {
 			std::ofstream out{ "test.bin", std::ios::binary };
 
@@ -427,7 +252,7 @@ namespace {
 
 			std::unique_ptr<actslib::rdf::RDFParser> parserPtr = actslib::rdf::CreateParser(format, is, "http://atesab.fr/#");
 
-			KMergerTest mergerCfg{ *parserPtr, 1024 * 1024 };
+			rdf::raio::CompressComponentKMerger mergerCfg{ *parserPtr, 1024 }; // * 1024 * 1024
 
 			data::KMerger kmerger{ "wmergertest", 20, 4, mergerCfg };
 

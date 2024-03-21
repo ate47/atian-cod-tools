@@ -132,7 +132,7 @@ namespace actslib::data::iterator {
 				size_t len = its.size();
 
 				do {
-					for (size_t i = 0; i < len; i += 2) {
+					for (size_t i = 0; i + 1 < len; i += 2) {
 						its.emplace_back(std::make_shared<MergeIterator<Type, Comparator>>(*its[start + i], *its[start + i + 1]));
 					}
 

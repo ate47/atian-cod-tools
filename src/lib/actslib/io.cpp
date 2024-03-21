@@ -138,7 +138,12 @@ namespace actslib::io {
 		int c = is.get();
 
 		while (c & 0x80) {
-			if (shift > 50) throw std::runtime_error("Too many bits");
+			if (shift > 50) {
+				if (!is) {
+					throw std::runtime_error(actslib::va("Bad stream when decoding VBytes"));
+				}
+				throw std::runtime_error(actslib::va("Too many bits %x/%d/%x", (int)c, shift, res));
+			}
 
 			res |= (c & 0x7FULL) << shift;
 
@@ -152,10 +157,10 @@ namespace actslib::io {
 
 	void EncodeVByteSigned(std::ostream& os, int64_t value) {
 		if (value < 0) {
-			EncodeVByte(os, ~(value << 1));
+			EncodeVByte(os, ~((uint64_t)value << 1));
 		}
 		else {
-			EncodeVByte(os, value << 1);
+			EncodeVByte(os, (uint64_t)value << 1);
 		}
 	}
 
@@ -163,8 +168,8 @@ namespace actslib::io {
 		uint64_t d = DecodeVByte(is);
 
 		if (d & 1) {
-			return ~(d >> 1);
+			return ~(int64_t)(d >> 1);
 		}
-		return d >> 1;
+		return (int64_t)(d >> 1);
 	}
 }

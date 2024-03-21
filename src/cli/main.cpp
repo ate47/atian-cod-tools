@@ -2,6 +2,7 @@
 #include "hashutils.hpp"
 #include "compatibility/scobalula_wni.hpp"
 #include "actscli.hpp"
+#include "actslib/logging.hpp"
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -58,28 +59,34 @@ namespace {
 				case 't':
 				case 'T':
 					alogs::setlevel(alogs::LVL_TRACE);
+					actslib::logging::SetLevel(actslib::logging::LEVEL_TRACE);
 					break;
 				case 'd':
 				case 'D':
 					alogs::setlevel(alogs::LVL_DEBUG);
+					actslib::logging::SetLevel(actslib::logging::LEVEL_DEBUG);
 					break;
 				case 'i':
 				case 'I':
 					alogs::setlevel(alogs::LVL_INFO);
+					actslib::logging::SetLevel(actslib::logging::LEVEL_INFO);
 					break;
 				case 'w':
 				case 'W':
 					alogs::setlevel(alogs::LVL_WARNING);
+					actslib::logging::SetLevel(actslib::logging::LEVEL_WARNING);
 					break;
 				case 'e':
 				case 'E':
 					alogs::setlevel(alogs::LVL_ERROR);
+					actslib::logging::SetLevel(actslib::logging::LEVEL_ERROR);
 					break;
 				default:
 					LOG_ERROR("Invalid log value for param: {}/{}", arg, val);
 					return false;
 				}
 				alogs::setbasiclog(false);
+				actslib::logging::SetBasicLog(false);
 			}
 			else if (!strcmp("-L", arg) || !_strcmpi("--log-file", arg)) {
 				if (i + 1 == argc) {
@@ -87,7 +94,9 @@ namespace {
 					return false;
 				}
 				alogs::setbasiclog(false);
+				actslib::logging::SetBasicLog(false);
 				alogs::setfile(argv[++i]);
+				actslib::logging::SetLogFile(argv[i]);
 			}
 			else if (!strcmp("-x", arg) || !_strcmpi("--extracted", arg)) {
 				if (i + 1 == argc) {
@@ -158,6 +167,7 @@ int main(int argc, const char *_argv[]) {
 	g_progPath = _argv[0];
 	// by default we don't display heavy logs
 	alogs::setbasiclog(true);
+	actslib::logging::SetBasicLog(true);
 
 	const char** argv;
 	if (ShouldHandleACTSOptions(argc, _argv)) {
@@ -220,13 +230,17 @@ int main(int argc, const char *_argv[]) {
 	int output;
 	{
 		actslib::profiler::ProfiledSection ps{ profiler, tool.m_name ? tool.m_name : "no-tool-name" };
+#ifndef DEBUG
 		try {
+#endif
 			output = tool.m_func(proc, argc, argv);
+#ifndef DEBUG
 		}
 		catch (std::exception& e) {
 			LOG_ERROR("Unhandled exception: {}", e.what());
 			output = tool::BASIC_ERROR;
 		}
+#endif
 	}
 
 	LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output, 
