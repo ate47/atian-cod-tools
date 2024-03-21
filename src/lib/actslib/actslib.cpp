@@ -16,7 +16,7 @@ namespace actslib {
 
 	const char* va(const char* fmt, ...) {
 		static std::mutex lock;
-		static StrBuff<0x20, 0x200> buf{};
+		static StrBuff<MAX_VA_ALLOC, MAX_VA_LEN> buf{};
 
 		va_list va;
 		

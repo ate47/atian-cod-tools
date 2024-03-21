@@ -1,6 +1,9 @@
 #pragma once
 #include "actslib.hpp"
 
+/*
+ * Logging utilities for actslib
+ */
 namespace actslib::logging {
 	enum LoggingLevel {
 		LEVEL_TRACE = 0,
@@ -11,15 +14,47 @@ namespace actslib::logging {
 		LEVEL_COUNT
 	};
 
+	/*
+	 * Get the name of a logging level
+	 * @param lvl level
+	 * @return name
+	 */
 	const char* LoggingLevelName(LoggingLevel lvl);
+
+	/*
+	 * Set the logging level
+	 * @param lvl level
+	 */
 	void SetLevel(LoggingLevel lvl);
+
+	/*
+	 * @return Get the logging level
+	 */
 	LoggingLevel GetLevel();
+
+	/*
+	 * Set the basic logs mode, won't display the date and the logging level, only the message
+	 * @param basiclog mode
+	 */
 	void SetBasicLog(bool basiclog);
 
+	/*
+	 * Set the output log file
+	 * @param filename File to output, null for stdout/stderr
+	 */
 	void SetLogFile(const char* filename);
+
+	/*
+	 * @return Get the output log file, is null for stdout/stderr
+	 */
 	const char* GetLogFile();
 
-	void Log(LoggingLevel level, std::string&& str);
+	/*
+	 * Log a message
+	 * @param level level to log
+	 * @param str string to log
+	 */
+	void Log(LoggingLevel level, const std::string&& str);
 
 }
 #define ALOG_LVL(LEVEL, ...) if (actslib::logging::GetLevel() <= LEVEL) actslib::logging::Log(LEVEL, std::format(__VA_ARGS__))

@@ -57,7 +57,7 @@ namespace actslib::logging{
 		return bt;
 	}
 
-	void Log(LoggingLevel level, std::string&& str) {
+	void Log(LoggingLevel level, const std::string&& str) {
 		if (nfo.lvl > level) {
 			return;
 		}

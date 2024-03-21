@@ -3,8 +3,9 @@
 #include <actslib/profiler.hpp>
 #include <actslib/crc.hpp>
 #include <actslib/hdt.hpp>
-#include <actslib/data/kmerger.hpp>
+#include <actslib/data/compact.hpp>
 #include <actslib/data/iterator.hpp>
+#include <actslib/data/kmerger.hpp>
 #include <actslib/rdf/raio.hpp>
 #include <mio.hpp>
 
@@ -233,7 +234,7 @@ namespace {
 		}
 		else if (!_strcmpi(type, "km")) {
 			if (argc < 4) {
-				LOG_ERROR("{} {} km file", argv[0], argv[1]);
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
 				return tool::BAD_USAGE;
 			}
 
@@ -261,6 +262,20 @@ namespace {
 			auto end = kmerger.PushAndJoin();
 
 			LOG_INFO("End file: {}", end.string());
+		}
+		else if (!_strcmpi(type, "mio")) {
+			if (argc < 4) {
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
+				return tool::BAD_USAGE;
+			}
+
+			std::error_code err{};
+			auto map = mio::make_mmap<mio::basic_mmap<mio::access_mode::read, char>, const char*>(argv[3], 0, mio::map_entire_file, err);
+
+			std::cout.write(map.data(), map.size());
+			std::cout << "\n";
+
+			map.unmap();
 		}
 		return tool::OK;
 	}

@@ -1,6 +1,9 @@
 #pragma once
 #include "actslib.hpp"
 
+/*
+ * IO utilities
+ */
 namespace actslib::io {
 	uint8_t ReadUInt8(std::istream& is);
 	int8_t ReadInt8(std::istream& is);
