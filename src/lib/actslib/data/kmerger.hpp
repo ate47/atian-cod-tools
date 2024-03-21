@@ -53,7 +53,7 @@ namespace actslib::data {
 		}
 
 		inline std::filesystem::path GetNewIdSyncPath() {
-			return workdir / va("c_$lld", GetNewIdSync());
+			return workdir / va("c_%lld", GetNewIdSync());
 		}
 
 		void PushTask(std::function<void()> task) {

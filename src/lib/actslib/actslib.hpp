@@ -40,4 +40,26 @@ namespace actslib {
 			return std::ranges::copy(std::move(out).str(), ctx.out()).out;
 		}
 	};
+
+	template<typename Type>
+	class ToClose {
+		Type& v;
+
+	public:
+		ToClose(Type& v) : v(v) {}
+		~ToClose() {
+			v.close();
+		}
+	};
+	class ToCloseFunc {
+		std::function<void()> f;
+
+	public:
+		ToCloseFunc(std::function<void()> f) : f(f) {}
+		~ToCloseFunc() {
+			f();
+		}
+	};
+
+
 }

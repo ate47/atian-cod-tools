@@ -92,6 +92,22 @@ namespace actslib::rdf::raio {
 		}
 	};
 
+	class CompressComponentReaderFile : public CompressComponentReader {
+		std::ifstream stream;
+
+	public:
+		CompressComponentReaderFile(const std::filesystem::path& path) : stream(path), CompressComponentReader(stream) {
+			if (!stream) {
+				const auto str = path.string();
+				throw std::runtime_error(actslib::va("Can't open compress reader file path '%s'", str.c_str()));
+			}
+		}
+
+		void close() {
+			stream.close();
+		}
+	};
+
 
 
 }

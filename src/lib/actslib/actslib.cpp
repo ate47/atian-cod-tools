@@ -22,7 +22,7 @@ namespace actslib {
         va_start(va, fmt);
 
 		auto& buff = buf.buffer[buf.NextId()];
-		sprintf_s(buff, fmt);
+		vsprintf_s(buff, fmt, va);
 
 		va_end(va);
 

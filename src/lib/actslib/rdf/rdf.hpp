@@ -11,6 +11,8 @@ namespace actslib::rdf {
 		RDF_GRAPH = 3,
 		RDF_QUAD_COUNT = 4,
 	};
+
+	const char* GetRDFComponentTypeName(RDFComponentType type);
 	
 	class StringComponent;
 
@@ -37,6 +39,27 @@ namespace actslib::rdf {
 			}
 
 			return d;
+		}
+
+		bool operator<(const Component& c2) const {
+			if (c2.length == length) {
+				return memcmp(buffer + offset, c2.buffer + c2.offset, length) < 0;
+			}
+			else if (c2.length > length) {
+				int r = memcmp(buffer + offset, c2.buffer + c2.offset, length);
+
+				if (r) {
+					return r < 0;
+				}
+				return true;
+			}
+
+			int r = memcmp(buffer + offset, c2.buffer + c2.offset, c2.length);
+
+			if (r) {
+				return r < 0;
+			}
+			return false;
 		}
 	};
 

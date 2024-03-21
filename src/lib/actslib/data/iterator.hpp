@@ -109,7 +109,7 @@ namespace actslib::data::iterator {
 		}
 	};
 
-	template<typename Type, typename InputType = Type, typename Comparator = MergeIteratorBasicComp<Type>>
+	template<typename Type, typename InputType, typename Comparator = MergeIteratorBasicComp<Type>>
 	class AllocatedMergeAIterator : public AIterator<Type> {
 		std::vector<std::shared_ptr<AIterator<Type>>> its{};
 		AIterator<Type>* main;
