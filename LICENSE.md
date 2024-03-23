@@ -6,6 +6,8 @@ This software depends on libraries with a different License.
 - [asmjit](https://github.com/asmjit/asmjit) - [ZLib license](https://github.com/asmjit/asmjit/blob/master/LICENSE.md).
 - [ladislav-zezula/CascLib](https://github.com/ladislav-zezula/CascLib) - [MIT license](https://github.com/ladislav-zezula/CascLib/blob/master/LICENSE).
 - [lz4/lz4](https://github.com/lz4/lz4) - [Custom license](https://github.com/lz4/lz4/blob/dev/lib/LICENSE).
+- [vimpunk/mio](https://github.com/vimpunk/mio) - [MIT license](https://github.com/vimpunk/mio/blob/master/LICENSE).
+- [JustasMasiulis/xorstr](https://github.com/JustasMasiulis/xorstr) - [Apache License 2.0](https://github.com/JustasMasiulis/xorstr/blob/master/LICENSE)
 
 
 # MIT License

@@ -102,7 +102,7 @@ namespace actslib::data {
 
 		bool FindChunksToMerge(std::vector<KMergerChunk>& ch) {
 			if (completed) {
-				LOG_TRACE("completed size: {}", chunks.size());
+				ALOG_TRACE("completed size: {}", chunks.size());
 				if (chunks.size() > 1) {
 					ch.reserve(chunks.size() > units ? units : chunks.size());
 					if (units > chunks.size()) {
@@ -116,7 +116,7 @@ namespace actslib::data {
 					}
 					return true;
 				}
-				LOG_TRACE("done size: {}", chunks.size());
+				ALOG_TRACE("done size: {}", chunks.size());
 				return false; // done
 			}
 

@@ -1,2 +1,4 @@
 - tools
-  - fix LOC refs in the decompiler (bo4/cw)
+  - add boolean analysis into decompiler
+  - add profiler
+  - hash scanner
