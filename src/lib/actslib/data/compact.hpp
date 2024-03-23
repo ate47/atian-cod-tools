@@ -42,9 +42,52 @@ namespace actslib::data::compact {
 	};
 
 	class Sequence {
-
+		uint64_t* data;
+		size_t datalen;
+		size_t numbits;
+		uint64_t maxValue;
 	public:
-		Sequence() {}
+		static constexpr size_t WORD_LEN = sizeof(*Sequence::data) * 8;
+
+		Sequence(char* data, size_t datalen, size_t numbits) : 
+			data(reinterpret_cast<uint64_t*>(data)), datalen(datalen), numbits(numbits), 
+			maxValue(numbits == 64 ? ~0 : ((1ull << numbits) - 1)) {
+			if (numbits > WORD_LEN) {
+				throw std::runtime_error(actslib::va("numbits can't be above %lld: %lld > %lld", WORD_LEN, numbits, WORD_LEN));
+			}
+		}
+
+		uint64_t operator[](size_t id) const {
+			size_t offset = id * numbits;
+			size_t word = offset / WORD_LEN;
+			size_t wordOff = offset % WORD_LEN;
+
+			if (wordOff + numbits > WORD_LEN) {
+				// 2 words
+				return (data[word] >> wordOff) | ((data[word + 1] << ((WORD_LEN << 1) - wordOff - numbits)) >> (WORD_LEN - numbits));
+			}
+			else {
+				// 1 word
+				return (data[word] << (WORD_LEN - wordOff - numbits)) >> (WORD_LEN - numbits);
+			}
+		}
+
+		void Set(size_t id, uint64_t value) {
+			if (value > maxValue) {
+				throw std::runtime_error(actslib::va("value is above limit for this structure %lld > %lld", value, maxValue));
+			}
+			size_t offset = id * numbits;
+			size_t word = offset / WORD_LEN;
+			size_t wordOff = offset % WORD_LEN;
+
+
+
+		}
+
+
+		void UpdateCRC(actslib::crc::CRC32& crc) const {
+			crc.Update(reinterpret_cast<char*>(data), 0, datalen);
+		}
 	};
 
 

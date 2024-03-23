@@ -66,7 +66,7 @@ namespace actslib::rdf {
 	class StringComponent : public Component {
 	public:
 		std::string strbuf;
-		StringComponent(Component& cmp) : strbuf{ cmp.buffer + cmp.offset, cmp.buffer + cmp.offset + cmp.length }, Component{ nullptr, 0, cmp.length } {
+		StringComponent(const Component& cmp) : strbuf{ cmp.buffer + cmp.offset, cmp.buffer + cmp.offset + cmp.length }, Component{ nullptr, 0, cmp.length } {
 			Component::buffer = strbuf.data();
 		}
 		StringComponent() : strbuf{}, Component{ nullptr, 0, 0 } {
@@ -159,9 +159,24 @@ namespace actslib::rdf {
 		}
 	};
 
+	struct TripleAlloc : public Triple {
+		TripleAlloc(const Triple& other) {
+			subject  = other.subject ? new rdf::StringComponent(*other.subject) : nullptr;
+			predicate = other.predicate ? new rdf::StringComponent(*other.predicate) : nullptr;
+			object = other.object ? new rdf::StringComponent(*other.object) : nullptr;
+		}
+		~TripleAlloc() {
+			if (subject) delete subject;
+			if (predicate) delete predicate;
+			if (object) delete object;
+		}
+	};
+
 }
 
 template<>
 struct std::formatter<actslib::rdf::Triple, char> : actslib::BasicFormatter<actslib::rdf::Triple> {};
+template<>
+struct std::formatter<actslib::rdf::TripleAlloc, char> : actslib::BasicFormatter<actslib::rdf::TripleAlloc> {};
 template<>
 struct std::formatter<actslib::rdf::Component, char> : actslib::BasicFormatter<actslib::rdf::Component> {};

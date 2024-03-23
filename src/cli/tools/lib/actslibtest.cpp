@@ -320,23 +320,51 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		try {
-			actslib::hdt::HDTCookie cookie{ is };
-			is.close();
-			LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
-			LOG_INFO("Format: {}", cookie.GetFormat());
 
-			LOG_INFO("Props:");
-			for (const auto& [key, val] : cookie) {
-				LOG_INFO("'{}' = {}", key, val);
-			}
+		actslib::ToClose tc{ is };
+		actslib::hdt::HDTCookie cookie{ is };
+		LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
+		LOG_INFO("Format: {}", cookie.GetFormat());
+
+		LOG_INFO("Props:");
+		for (const auto& [key, val] : cookie) {
+			LOG_INFO("'{}' = {}", key, val);
 		}
-		catch (std::runtime_error& err) {
-			LOG_ERROR("Can't read profiler {}", err.what());
-			is.close();
+
+		return tool::OK;
+	}
+
+	int actslibhdt(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+
+		std::ifstream is{ argv[2], std::ios::binary };
+
+		if (!is) {
+			LOG_ERROR("Can't open {}", argv[2]);
 			return tool::BASIC_ERROR;
 		}
-		is.close();
+		actslib::ToClose tc{ is };
+
+		actslib::hdt::HDT hdt{};
+
+		hdt.LoadStream(is);
+
+		const auto& cookie = hdt.GetCookie();
+
+		LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
+		LOG_INFO("Format: {}", cookie.GetFormat());
+
+		LOG_INFO("Props:");
+		for (const auto& [key, val] : cookie.GetProperties()) {
+			LOG_INFO("'{}' = {}", key, val);
+		}
+		LOG_INFO("Header:");
+
+		for (const auto* triple : hdt.GetHeader()->data) {
+			LOG_INFO("- {}", *triple);
+		}
 
 		return tool::OK;
 	}
@@ -346,7 +374,8 @@ namespace {
 #ifndef CI_BUILD
 ADD_TOOL("actslibtest", "", "Acts lib test", nullptr, actslibtest);
 
-ADD_TOOL("actslibhdt", " [hdt]", "Read hdt cookie", nullptr, actslibhdtcookie);
+ADD_TOOL("actslibhdtcooke", " [hdt]", "Read hdt cookie", nullptr, actslibhdtcookie);
+ADD_TOOL("actslibhdt", " [hdt]", "Read hdt", nullptr, actslibhdt);
 #endif
 
 ADD_TOOL("actslibprofiler", " [profile file]", "Read profiler", nullptr, actslibprofiler);

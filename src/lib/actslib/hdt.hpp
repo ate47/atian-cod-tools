@@ -28,7 +28,8 @@ namespace actslib::hdt {
 		using const_iterator = decltype(props)::const_iterator;
 
 		HDTCookie(HDTCookieType type, std::string format) : type(type), format(format) {}
-		HDTCookie(std::istream& is) {
+
+		void LoadCookie(std::istream& is) {
 			actslib::crc::CRC16 crc{};
 			char buffer[sizeof(HDT_COOKIE_MAGIC) - 1];
 			is.read(buffer, sizeof(HDT_COOKIE_MAGIC) - 1);
@@ -70,6 +71,10 @@ namespace actslib::hdt {
 			if (!crc.CheckCRC(is)) {
 				throw std::runtime_error("Invalid HDT cookie CRC");
 			}
+		}
+
+		HDTCookie(std::istream& is) {
+			LoadCookie(is);
 		}
 
 		void Save(std::ostream& os) const {
@@ -153,7 +158,7 @@ namespace actslib::hdt {
 		}
 
 		const_iterator cbegin() const {
-			return props.begin();
+			return props.cbegin();
 		}
 
 		const_iterator cend() const {
@@ -176,8 +181,41 @@ namespace actslib::hdt {
 		}
 	};
 
-	class PlainHeader {
-		PlainHeader(std::istream& is, HDTCookie& cookie) {
+	class Header {
+	public:
+		std::vector<rdf::TripleAlloc*> data{};
+		using iterator = decltype(data)::iterator;
+		using const_iterator = decltype(data)::const_iterator;
+		Header() {}
+
+		virtual ~Header() {
+			for (auto* t : data) {
+				delete t;
+			}
+		}
+
+		iterator begin() {
+			return data.begin();
+		}
+
+		iterator end() {
+			return data.end();
+		}
+
+		const_iterator cbegin() const {
+			return data.cbegin();
+		}
+
+		const_iterator cend() const {
+			return data.cend();
+		}
+
+	};
+
+	class PlainHeader : public Header {
+		HDTCookie cookie;
+	public:
+		PlainHeader(std::istream& is, HDTCookie& cookie) : cookie(cookie) {
 			if (cookie.GetType() != HCT_HEADER) {
 				throw std::invalid_argument("Cookie not valid for plain header");
 			}
@@ -192,8 +230,58 @@ namespace actslib::hdt {
 			raw.resize(length);
 			is.read(raw.data(), length);
 
+			std::stringstream ss{ raw, std::ios::in };
+
+			rdf::RDFParserNTriple parser{ ss };
+
+			while (parser) {
+				const auto& triple = *parser;
+
+				data.emplace_back(new rdf::TripleAlloc(triple));
+
+				++parser;
+			}
 
 		}
 
+	};
+
+	Header* LoadHeader(std::istream& is);
+
+	constexpr const char HDTV1[] = "<http://purl.org/HDT/hdt#HDTv1>";
+
+	class HDT {
+		Header* header{};
+		HDTCookie cookie{ HCT_GLOBAL, HDTV1 };
+
+	public:
+		HDT() {}
+		~HDT() {
+			if (header) delete header;
+		}
+
+
+		void LoadStream(std::istream& is) {
+			if (header) {
+				delete header;
+			}
+			header = nullptr;
+
+			cookie.LoadCookie(is);
+
+			if (cookie.GetType() != HCT_GLOBAL || cookie.GetFormat() != HDTV1) {
+				throw std::runtime_error(actslib::va("Global HDT v1 cookie excepted, find %s/%s", FormatName(cookie.GetType()), cookie.GetFormat().c_str()));
+			}
+
+			header = LoadHeader(is);
+		}
+
+		const HDTCookie& GetCookie() const {
+			return cookie;
+		}
+
+		const Header* GetHeader() const {
+			return header;
+		}
 	};
 }
