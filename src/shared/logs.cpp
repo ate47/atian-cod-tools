@@ -56,7 +56,7 @@ inline std::tm localtime_xp(std::time_t timer) {
 	return bt;
 }
 
-void alogs::log(loglevel level, std::string&& str) {
+void alogs::log(loglevel level, const std::string& str) {
 	if (getlevel() > level) {
 		return;
 	}

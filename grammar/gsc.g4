@@ -14,7 +14,8 @@ function
 
 param_list: (param_val (',' param_val)*)?;
 
-param_val: IDENTIFIER ('=' expression)?;
+param_val: ('*' | '&')? IDENTIFIER ('=' expression)?
+         | '...';
 
 expression_list: (expression (',' expression)*)?;
 
@@ -38,7 +39,10 @@ statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
 statement_inst: (function_call | operator_inst)? ';';
 
-function_call: (expression)? ('thread' | 'childthread')? function_component '(' expression_list ')';
+function_call: 
+	('thread' | 'childthread')? function_component '(' expression_list ')'
+	| expression14 ('thread' | 'childthread')? function_component '(' expression_list ')'
+    | function_call ('thread' | 'childthread')? function_component '(' expression_list ')';
 
 function_component: ( IDENTIFIER '::')? IDENTIFIER | '[[' expression ']]' | '[[' expression ']]' '->' IDENTIFIER;
 
@@ -83,26 +87,23 @@ expression9: expression9 ('<<' | '>>') expression10 | expression10;
 expression10: expression10 ('+' | '-') expression11 | expression11;
 expression11: expression11 ('*' | '/' | '%') expression12 | expression12;
 expression12: ('!' | '~') expression13 | ('++' | '--') left_value | left_value ('++' | '--') | expression13;
-
-expression13: const_expr | ('(' expression ')') | left_value;
+expression13: function_call | expression14;
+expression14: const_expr | ('(' expression ')') | left_value;
 
 left_value:
-	vector_value
-	| array_def
-	| struct_def
-	| IDENTIFIER
+	IDENTIFIER
 	| '[[' expression ']]' '->' IDENTIFIER
 	| (const_expr | ('(' expression ')')) '.' (IDENTIFIER | ('(' expression ')'))
 	| (const_expr | ('(' expression ')')) '[' expression ']'
-	| (const_expr | ('(' expression ')')) function_component '(' expression_list ')'
 	| left_value '.' (IDENTIFIER | ('(' expression ')'))
-	| left_value '[' expression ']'
-	| left_value function_component '(' expression_list ')'
-	| function_component '(' expression_list ')';
+	| left_value '[' expression ']';
 
 
 const_expr:
-	number
+	vector_value
+	| array_def
+	| struct_def 
+	| number
     | BOOL_VALUE
     | FLOATVAL
     | STRING

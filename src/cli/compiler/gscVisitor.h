@@ -83,6 +83,8 @@ public:
 
     virtual std::any visitExpression13(gscParser::Expression13Context *context) = 0;
 
+    virtual std::any visitExpression14(gscParser::Expression14Context *context) = 0;
+
     virtual std::any visitLeft_value(gscParser::Left_valueContext *context) = 0;
 
     virtual std::any visitConst_expr(gscParser::Const_exprContext *context) = 0;

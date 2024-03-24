@@ -16,7 +16,7 @@ namespace utils {
         return buff;
     }
 
-    bool ReadFile(const std::filesystem::path& path, std::string& buffer) {
+    bool ReadFile(const std::filesystem::path& path, std::string& buffer, bool append) {
         std::ifstream in{ path, std::ios::binary };
         if (!in) {
             return false;
@@ -25,9 +25,17 @@ namespace utils {
         in.seekg(0, std::ios::end);
         size_t length = in.tellg();
         in.seekg(0, std::ios::beg);
-        buffer.resize(length);
+        size_t offset;
+        if (append) {
+            offset = buffer.size();
+            buffer.resize(length + buffer.size());
+        }
+        else {
+            offset = 0;
+            buffer.resize(length);
+        }
 
-        in.read(buffer.data(), length);
+        in.read(buffer.data() + offset, length);
 
         in.close();
         return true;

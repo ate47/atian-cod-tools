@@ -17,9 +17,10 @@ namespace utils {
 	 * Read a file inside a string buffer
 	 * @param path file path
 	 * @param buffer buffer to write the size
+	 * @param append append to end of the buffer
 	 * @return if the file was read
 	 */
-	bool ReadFile(const std::filesystem::path& path, std::string& buffer);
+	bool ReadFile(const std::filesystem::path& path, std::string& buffer, bool append = false);
 	/*
 	 * Read a file inside a buffer
 	 * @param path file path

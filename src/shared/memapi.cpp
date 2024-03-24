@@ -9,7 +9,7 @@ INT64 ProcessModule::GetRelativeOffset(uintptr_t ptr) const {
 	return ptr - start;
 }
 
-DWORD Process::GetProcId(LPCWCH name) {
+DWORD Process::GetProcId(const wchar_t* name) {
 	DWORD pid = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (hSnap != INVALID_HANDLE_VALUE) {
@@ -28,7 +28,7 @@ DWORD Process::GetProcId(LPCWCH name) {
 	return pid;
 }
 
-bool Process::GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize) {
+bool Process::GetModuleAddress(DWORD pid, const wchar_t* name, uintptr_t* hModule, DWORD* modSize) {
 	*hModule = 0;
 	*modSize = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
@@ -55,7 +55,7 @@ bool Process::GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD
 	return *hModule != 0;
 }
 
-Process::Process(LPCWCH processName, LPCWCH moduleName) : m_invalid(ProcessModule(*this)) {
+Process::Process(const wchar_t* processName, const wchar_t* moduleName) : m_invalid(ProcessModule(*this)) {
 	if (processName && *processName) {
 		m_pid = GetProcId(processName);
 
@@ -70,7 +70,7 @@ Process::Process(LPCWCH processName, LPCWCH moduleName) : m_invalid(ProcessModul
 	m_handle = NULL;
 }
 
-Process::Process(LPCCH processName, LPCCH moduleName) : m_invalid(ProcessModule(*this)) {
+Process::Process(const char* processName, const char* moduleName) : m_invalid(ProcessModule(*this)) {
 	if (processName && *processName) {
 		WCHAR processNameW[MAX_PATH + 1] = { 0 };
 		size_t i;
@@ -141,7 +141,7 @@ bool Process::operatorbool() const {
 	return m_pid != 0;
 }
 
-uintptr_t Process::operator[](UINT64 offset) const {
+uintptr_t Process::operator[](uint64_t offset) const {
 	return m_modAddress + offset;
 }
 
@@ -149,20 +149,20 @@ INT64 Process::GetModuleRelativeOffset(uintptr_t ptr) const {
 	return ptr - m_modAddress;
 }
 
-uintptr_t Process::AllocateMemory(SIZE_T size) const {
+uintptr_t Process::AllocateMemory(size_t size) const {
 	return AllocateMemory(size, PAGE_READWRITE);
 }
 
-uintptr_t Process::AllocateMemory(SIZE_T size, DWORD protection) const {
+uintptr_t Process::AllocateMemory(size_t size, DWORD protection) const {
 	if (m_handle) {
 		return reinterpret_cast<uintptr_t>(VirtualAllocEx(m_handle, 0, size, MEM_COMMIT | MEM_RESERVE, protection));
 	}
 	return NULL;
 }
 
-bool Process::SetMemoryProtection(uintptr_t ptr, SIZE_T size, DWORD flNewProtected, DWORD& lpflOldProtect) const {
+bool Process::SetMemoryProtection(uintptr_t ptr, size_t size, DWORD flNewProtected, DWORD& lpflOldProtect) const {
 	if (m_handle) {
-		return VirtualProtectEx(m_handle, reinterpret_cast<LPVOID>(ptr), size, flNewProtected, &lpflOldProtect);
+		return VirtualProtectEx(m_handle, reinterpret_cast<void*>(ptr), size, flNewProtected, &lpflOldProtect);
 	}
 	return false;
 }
@@ -180,25 +180,25 @@ HANDLE Process::Exec(uintptr_t location, uintptr_t arg) const {
 	 return CreateRemoteThread(
 		m_handle, 0, 0,
 		reinterpret_cast<LPTHREAD_START_ROUTINE>(location), 
-		reinterpret_cast<LPVOID>(arg), 
+		reinterpret_cast<void*>(arg), 
 		0, 0
 	 );
 }
 
-void Process::FreeMemory(uintptr_t ptr, SIZE_T size) const {
+void Process::FreeMemory(uintptr_t ptr, size_t size) const {
 	if (m_handle && ptr) {
-		VirtualFreeEx(m_handle, reinterpret_cast<LPVOID>(ptr), size, MEM_FREE);
+		VirtualFreeEx(m_handle, reinterpret_cast<void*>(ptr), size, MEM_FREE);
 	}
 }
 
-bool Process::ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const {
+bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 	if (m_handle) {
 		DWORD oldProtect{};
 		if (!SetMemoryProtection(src, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
 			return false;
 		}
-		SIZE_T out = 0;
-		if (!ReadProcessMemory(m_handle, reinterpret_cast<LPVOID>(src), dest, size, &out)) {
+		size_t out = 0;
+		if (!ReadProcessMemory(m_handle, reinterpret_cast<void*>(src), dest, size, &out)) {
 			return false;
 		}
 		if (!SetMemoryProtection(src, size, oldProtect, oldProtect)) {
@@ -209,8 +209,8 @@ bool Process::ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const {
 	return false;
 }
 
-INT64 Process::ReadString(LPCH dest, uintptr_t src, SIZE_T size) const {
-	INT64 len = 0;
+int64_t Process::ReadString(char* dest, uintptr_t src, size_t size) const {
+	int64_t len = 0;
 
 	CHAR c = -1;
 	// TODO: use buffer
@@ -227,8 +227,8 @@ INT64 Process::ReadString(LPCH dest, uintptr_t src, SIZE_T size) const {
 	return len;
 }
 
-INT64 Process::ReadWString(LPWCH dest, uintptr_t src, SIZE_T size) const {
-	INT64 len = 0;
+int64_t Process::ReadWString(wchar_t* dest, uintptr_t src, size_t size) const {
+	int64_t len = 0;
 
 	WCHAR c = -1;
 	// TODO: use buffer
@@ -245,15 +245,15 @@ INT64 Process::ReadWString(LPWCH dest, uintptr_t src, SIZE_T size) const {
 	return len;
 }
 
-bool Process::WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const {
+bool Process::WriteMemory(uintptr_t dest, const void* src, size_t size) const {
 	if (m_handle) {
-		SIZE_T out = 0;
+		size_t out = 0;
 		DWORD oldProtect{};
 		int data{};
 		if (!SetMemoryProtection(dest, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
 			return false;
 		}
-		if (!WriteProcessMemory(m_handle, reinterpret_cast<LPVOID>(dest), src, size, &out)) {
+		if (!WriteProcessMemory(m_handle, reinterpret_cast<void*>(dest), src, size, &out)) {
 			return false;
 		}
 		if (!SetMemoryProtection(dest, size, oldProtect, oldProtect)) {
@@ -336,7 +336,7 @@ std::wostream& Process::WriteLocation(std::wostream& out, uintptr_t location) co
 	return out;
 }
 
-bool Process::LoadDll(LPCCH dll) {
+bool Process::LoadDll(const char* dll) {
 	ProcessModuleExport& rLoadLibraryA = (*this)["Kernel32.dll"]["LoadLibraryA"];
 
 	if (!rLoadLibraryA) {
@@ -365,7 +365,7 @@ bool Process::LoadDll(LPCCH dll) {
 	return true;
 }
 
-ProcessModule& Process::operator[](LPCCH module) {
+ProcessModule& Process::operator[](const char* module) {
 	if (!module || !*module) {
 		if (m_modules.size()) {
 			return m_modules[0];
@@ -381,7 +381,7 @@ ProcessModule& Process::operator[](LPCCH module) {
 	return m_invalid;
 }
 
-const ProcessModule& Process::operator[](LPCCH module) const {
+const ProcessModule& Process::operator[](const char* module) const {
 	if (!module) {
 		if (m_modules.size()) {
 			return m_modules[0];
@@ -411,10 +411,10 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 	if (!pattern || !*pattern) {
 		return 0; // bad pattern
 	}
-	std::vector<BYTE*> find{};
+	std::vector<uint8_t*> find{};
 
-	std::vector<BYTE> mask{};
-	std::vector<BYTE> searched{};
+	std::vector<uint8_t> mask{};
+	std::vector<uint8_t> searched{};
 
 	bool mid = true;
 
@@ -605,7 +605,7 @@ void ProcessModule::ComputeExports() {
 	}
 }
 
-ProcessModuleExport& ProcessModule::operator[](LPCCH name) {
+ProcessModuleExport& ProcessModule::operator[](const char* name) {
 	if (!m_export_computed) {
 		ComputeExports();
 	}
@@ -617,7 +617,7 @@ ProcessModuleExport& ProcessModule::operator[](LPCCH name) {
 	return m_invalid;
 }
 
-ProcessModuleExport::ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location, WORD ordinal)
+ProcessModuleExport::ProcessModuleExport(ProcessModule& module, const char* name, uintptr_t location, WORD ordinal)
 	: m_module(module), m_location(location), m_name(std::make_unique<CHAR[]>(strlen(name) + 1)), m_ordinal(ordinal) {
 	strcpy_s(&m_name[0], strlen(name) + 1, name);
 }
@@ -679,3 +679,25 @@ std::wostream& operator<<(std::wostream& os, const ProcessModuleExport& obj) {
 	}
 	return os << "[" << obj.m_name << "@" << std::hex << obj.m_location << "]";
 }
+
+#ifdef DEBUG
+
+static void BuildTemplate() {
+	struct TestStruct {
+		uint64_t unk0;
+		uint64_t unk8;
+		uint64_t unk10;
+		uint64_t unk18;
+	};
+
+	Process t{ L"" };
+	auto [ptrarr, ok] = t.ReadMemoryArray<TestStruct>(t[0x45896412], 22);
+
+	if (!ok) return;
+
+	auto [ptrobj, ok2] = t.ReadMemoryObject<TestStruct>(t[0x45896412]);
+
+	if (!ok2) return;
+}
+
+#endif

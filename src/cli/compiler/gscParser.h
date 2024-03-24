@@ -3,6 +3,7 @@
 
 #pragma once
 
+
 #include "antlr4-runtime.h"
 
 
@@ -22,9 +23,10 @@ public:
     T__50 = 51, T__51 = 52, T__52 = 53, T__53 = 54, T__54 = 55, T__55 = 56, 
     T__56 = 57, T__57 = 58, T__58 = 59, T__59 = 60, T__60 = 61, T__61 = 62, 
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
-    T__68 = 69, NEWLINE = 70, WHITESPACE = 71, INTEGER10 = 72, INTEGER16 = 73, 
-    INTEGER8 = 74, INTEGER2 = 75, FLOATVAL = 76, IDENTIFIER = 77, STRUCT_IDENTIFIER = 78, 
-    PATH = 79, STRING = 80, HASHSTRING = 81, BOOL_VALUE = 82, UNDEFINED_VALUE = 83
+    T__68 = 69, T__69 = 70, NEWLINE = 71, WHITESPACE = 72, INTEGER10 = 73, 
+    INTEGER16 = 74, INTEGER8 = 75, INTEGER2 = 76, FLOATVAL = 77, IDENTIFIER = 78, 
+    STRUCT_IDENTIFIER = 79, PATH = 80, STRING = 81, HASHSTRING = 82, BOOL_VALUE = 83, 
+    UNDEFINED_VALUE = 84
   };
 
   enum {
@@ -37,8 +39,9 @@ public:
     RuleExpression2 = 20, RuleExpression3 = 21, RuleExpression4 = 22, RuleExpression5 = 23, 
     RuleExpression6 = 24, RuleExpression7 = 25, RuleExpression8 = 26, RuleExpression9 = 27, 
     RuleExpression10 = 28, RuleExpression11 = 29, RuleExpression12 = 30, 
-    RuleExpression13 = 31, RuleLeft_value = 32, RuleConst_expr = 33, RuleFunction_ref = 34, 
-    RuleNumber = 35, RuleVector_value = 36, RuleArray_def = 37, RuleStruct_def = 38
+    RuleExpression13 = 31, RuleExpression14 = 32, RuleLeft_value = 33, RuleConst_expr = 34, 
+    RuleFunction_ref = 35, RuleNumber = 36, RuleVector_value = 37, RuleArray_def = 38, 
+    RuleStruct_def = 39
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -90,6 +93,7 @@ public:
   class Expression11Context;
   class Expression12Context;
   class Expression13Context;
+  class Expression14Context;
   class Left_valueContext;
   class Const_exprContext;
   class Function_refContext;
@@ -317,7 +321,8 @@ public:
     virtual size_t getRuleIndex() const override;
     Function_componentContext *function_component();
     Expression_listContext *expression_list();
-    ExpressionContext *expression();
+    Expression14Context *expression14();
+    Function_callContext *function_call();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -325,7 +330,7 @@ public:
   };
 
   Function_callContext* function_call();
-
+  Function_callContext* function_call(int precedence);
   class  Function_componentContext : public antlr4::ParserRuleContext {
   public:
     Function_componentContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -555,6 +560,20 @@ public:
   public:
     Expression13Context(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    Function_callContext *function_call();
+    Expression14Context *expression14();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Expression13Context* expression13();
+
+  class  Expression14Context : public antlr4::ParserRuleContext {
+  public:
+    Expression14Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
     Const_exprContext *const_expr();
     ExpressionContext *expression();
     Left_valueContext *left_value();
@@ -564,21 +583,16 @@ public:
    
   };
 
-  Expression13Context* expression13();
+  Expression14Context* expression14();
 
   class  Left_valueContext : public antlr4::ParserRuleContext {
   public:
     Left_valueContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    Vector_valueContext *vector_value();
-    Array_defContext *array_def();
-    Struct_defContext *struct_def();
     antlr4::tree::TerminalNode *IDENTIFIER();
     std::vector<ExpressionContext *> expression();
     ExpressionContext* expression(size_t i);
     Const_exprContext *const_expr();
-    Function_componentContext *function_component();
-    Expression_listContext *expression_list();
     Left_valueContext *left_value();
 
 
@@ -592,6 +606,9 @@ public:
   public:
     Const_exprContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    Vector_valueContext *vector_value();
+    Array_defContext *array_def();
+    Struct_defContext *struct_def();
     NumberContext *number();
     antlr4::tree::TerminalNode *BOOL_VALUE();
     antlr4::tree::TerminalNode *FLOATVAL();
@@ -689,6 +706,7 @@ public:
 
   bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
 
+  bool function_callSempred(Function_callContext *_localctx, size_t predicateIndex);
   bool expression1Sempred(Expression1Context *_localctx, size_t predicateIndex);
   bool expression2Sempred(Expression2Context *_localctx, size_t predicateIndex);
   bool expression3Sempred(Expression3Context *_localctx, size_t predicateIndex);

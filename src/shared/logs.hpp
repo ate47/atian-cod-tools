@@ -19,7 +19,7 @@ namespace alogs {
 	void setfile(LPCCH filename);
 	LPCCH logfile();
 
-	void log(loglevel level, std::string&& str);
+	void log(loglevel level, const std::string& str);
 
 }
 

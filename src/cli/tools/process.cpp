@@ -414,14 +414,21 @@ int PTRead(Process& proc, int argc, const char* argv[]) {
 
 	bool relative = argv[4][0] == '+';
 	auto idx = std::stoull(argv[4], nullptr, 16);
-	if (relative) idx = proc[idx];
 	auto len = std::stoull(argv[5], nullptr, 16);
 
-	std::cout << std::hex << "reading 0x" << idx << "[0:" << len << "]...\n";
+	std::cout << std::hex << "reading 0x";
 
-	auto buffer = std::make_unique<BYTE[]>(len);
+	if (relative) {
+		std::cout << proc[(uint64_t)0] << "+";
+	}
 
-	if (!proc.ReadMemory(&buffer[0], (uintptr_t)idx, (size_t)len)) {
+	std::cout << idx << "[0:" << len << "]...\n";
+
+	if (relative) idx = proc[idx];
+
+	auto [buffer, ok] = proc.ReadMemoryArray<byte>(idx, len);
+
+	if (!ok) {
 		std::cerr << "Error when reading memory\n";
 		return tool::BASIC_ERROR;
 	}

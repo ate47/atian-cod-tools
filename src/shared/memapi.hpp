@@ -34,7 +34,7 @@ public:
 	uintptr_t m_location;
 	WORD m_ordinal = 0;
 
-	ProcessModuleExport(ProcessModule& module, LPCCH name, uintptr_t location, WORD ordinal);
+	ProcessModuleExport(ProcessModule& module, const char* name, uintptr_t location, WORD ordinal);
 	// @return if the export is invalid
 	inline bool operator!() const {
 		return m_location == 0;
@@ -94,7 +94,7 @@ public:
 	 * @param name name
 	 * @return export location or 0 if it can't be find
 	 */
-	ProcessModuleExport& operator[](LPCCH name);
+	ProcessModuleExport& operator[](const char* name);
 	/*
 	 * @return the proccess modules
 	 */
@@ -112,8 +112,8 @@ private:
 // Process
 class Process {
 public:
-	Process(LPCWCH processName, LPCWCH moduleName = NULL);
-	Process(LPCCH processName, LPCCH moduleName = NULL);
+	Process(const wchar_t* processName, const wchar_t* moduleName = NULL);
+	Process(const char* processName, const char* moduleName = NULL);
 	~Process();
 	/*
 	 * Open the process
@@ -133,19 +133,19 @@ public:
 	 * @param offset Relative offset
 	 * @return absolute offset
 	 */
-	uintptr_t operator[](UINT64 offset) const;
+	uintptr_t operator[](uint64_t offset) const;
 	/*
 	 * Get a module inside the process
 	 * @param module Module name
 	 * @return Module, if the handle is equals to INVALID_HANDLE_VALUE, the module isn't valid
 	 */
-	ProcessModule& operator[](LPCCH module);
+	ProcessModule& operator[](const char* module);
 	/*
 	 * Get a module inside the process
 	 * @param module Module name
 	 * @return Module, if the handle is equals to INVALID_HANDLE_VALUE, the module isn't valid
 	 */
-	const ProcessModule& operator[](LPCCH module) const;
+	const ProcessModule& operator[](const char* module) const;
 	/*
 	 * Get the relative offset of a ptr inside the module
 	 * @param ptr Pointer
@@ -163,14 +163,14 @@ public:
 	 * @param size Size to allocate
 	 * @return pointer or null
 	 */
-	uintptr_t AllocateMemory(SIZE_T size) const;
+	uintptr_t AllocateMemory(size_t size) const;
 	/*
 	 * Allocate memory in the process with protection
 	 * @param size Size to allocate
 	 * @param protection Protection
 	 * @return pointer or null
 	 */
-	uintptr_t AllocateMemory(SIZE_T size, DWORD protection) const;
+	uintptr_t AllocateMemory(size_t size, DWORD protection) const;
 	/*
 	 * Set the protection of a location in memory
 	 * @param ptr Pointer to set
@@ -179,7 +179,7 @@ public:
 	 * @param lpflOldProtect Old protect value to write
 	 * @return pointer or null
 	 */
-	bool SetMemoryProtection(uintptr_t ptr, SIZE_T size, DWORD flNewProtected, DWORD& lpflOldProtect) const;
+	bool SetMemoryProtection(uintptr_t ptr, size_t size, DWORD flNewProtected, DWORD& lpflOldProtect) const;
 	/*
 	 * Create a thread in the process
 	 * @param location Pointer to the function
@@ -192,7 +192,7 @@ public:
 	 * @param ptr Pointer to free
 	 * @param size Pointer size
 	 */
-	void FreeMemory(uintptr_t ptr, SIZE_T size) const;
+	void FreeMemory(uintptr_t ptr, size_t size) const;
 	/*
 	 * Read memory from a source to a destination
 	 * @param dest Local destination
@@ -200,7 +200,38 @@ public:
 	 * @param size Size to read
 	 * @return true if the memory was read, false otherwise
 	 */
-	bool ReadMemory(LPVOID dest, uintptr_t src, SIZE_T size) const;
+	bool ReadMemory(void* dest, uintptr_t src, size_t size) const;
+	/*
+	 * Read memory array
+	 * @param src Process source
+	 * @param count Array count to read
+	 * @return pair containing the allocated resource with the error, if pair.second == false, an error occured
+	 */
+	template<typename Type>
+	std::pair<std::unique_ptr<Type[]>, bool> ReadMemoryArray(uintptr_t src, size_t count) const {
+		std::pair<std::unique_ptr<Type[]>, bool> pair = std::make_pair<std::unique_ptr<Type[]>, bool>(std::make_unique<Type[]>(count), true);
+
+		if (!ReadMemory(&pair.first[0], src, sizeof(Type) * count)) {
+			pair.second = false;
+		}
+
+		return pair;
+	}
+	/*
+	 * Read memory object
+	 * @param src Process source
+	 * @return pair containing the allocated resource with the error, if pair.second == false, an error occured
+	 */
+	template<typename Type>
+	std::pair<std::unique_ptr<Type>, bool> ReadMemoryObject(uintptr_t src) const {
+		std::pair<std::unique_ptr<Type>, bool> pair = std::make_pair<std::unique_ptr<Type>, bool>(std::make_unique<Type>(), true);
+
+		if (!ReadMemory(&*pair.first, src, sizeof(Type))) {
+			pair.second = false;
+		}
+
+		return pair;
+	}
 	/*
 	 * Read c string from a source to a destination
 	 * @param dest Local destination
@@ -208,7 +239,7 @@ public:
 	 * @param size Max buffer size to read
 	 * @return read string size, -2 if the buffer is too small, -1 if can't read
 	 */
-	INT64 ReadString(LPCH dest, uintptr_t src, SIZE_T size) const;
+	int64_t ReadString(char* dest, uintptr_t src, size_t size) const;
 	/*
 	 * Read wc string from a source to a destination
 	 * @param dest Local destination
@@ -216,7 +247,7 @@ public:
 	 * @param size Max buffer size to read
 	 * @return read string size, -2 if the buffer is too small, -1 if can't read
 	 */
-	INT64 ReadWString(LPWCH dest, uintptr_t src, SIZE_T size) const;
+	int64_t ReadWString(wchar_t* dest, uintptr_t src, size_t size) const;
 	/*
 	 * Write memory from a source to a destination
 	 * @param dest Process destination
@@ -224,7 +255,7 @@ public:
 	 * @param size Size to read
 	 * @return true if the memory was written, false otherwise
 	 */
-	bool WriteMemory(uintptr_t dest, LPCVOID src, SIZE_T size) const;
+	bool WriteMemory(uintptr_t dest, const void* src, size_t size) const;
 	/*
 	 * Write a location in a stream
 	 * @param out output stream
@@ -253,7 +284,7 @@ public:
 	 * @param dll Dll file
 	 * @return if the dll was injected
 	 */
-	bool LoadDll(LPCCH dll);
+	bool LoadDll(const char* dll);
 	/*
 	 * Read memory integer type
 	 * @param location Process location to read
@@ -294,10 +325,10 @@ public:
 
 private:
 	// param+ = stack, last first pushed
-	inline void CallExtFuncBuildStack(process::AssemblerExp& asml, BYTE* params, int idx) const {
+	inline void CallExtFuncBuildStack(process::AssemblerExp& asml, uint8_t* params, int idx) const {
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuildStack(process::AssemblerExp& asml, BYTE* params, int idx, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuildStack(process::AssemblerExp& asml, uint8_t* params, int idx, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + idx) = arg;
 		CallExtFuncBuildStack(asml, params, idx + 8, args...);
@@ -306,24 +337,24 @@ private:
 	}
 
 	// param 3 -> R9  | XMM3
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, BYTE* params) const {
+	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, BYTE* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params + 24) = arg;
 		CallExtFuncBuildStack(asml, params, 32, args...);
 		asml.movsd(xmm3, qword_ptr(rcx, 24));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, BYTE* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params + 24) = arg;
 		CallExtFuncBuildStack(asml, params, 32, args...);
 		asml.movss(xmm3, dword_ptr(rcx, 24));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, BYTE* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + 24) = arg;
 		CallExtFuncBuildStack(asml, params, 32, args...);
@@ -331,24 +362,24 @@ private:
 	}
 
 	// param 2 -> R8  | XMM2
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, BYTE* params) const {
+	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, BYTE* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params + 16) = arg;
 		CallExtFuncBuild3(asml, params, args...);
 		asml.movsd(xmm2, qword_ptr(rcx, 16));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, BYTE* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params + 16) = arg;
 		CallExtFuncBuild3(asml, params, args...);
 		asml.movss(xmm2, dword_ptr(rcx, 16));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, BYTE* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + 16) = arg;
 		CallExtFuncBuild3(asml, params, args...);
@@ -356,24 +387,24 @@ private:
 	}
 
 	// param 1 -> RDX | XMM1
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, BYTE* params) const {
+	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, BYTE* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params + 8) = arg;
 		CallExtFuncBuild2(asml, params, args...);
 		asml.movsd(xmm1, qword_ptr(rcx, 8));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, BYTE* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params + 8) = arg;
 		CallExtFuncBuild2(asml, params, args...);
 		asml.movss(xmm1, dword_ptr(rcx, 8));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, BYTE* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + 8) = arg;
 		CallExtFuncBuild2(asml, params, args...);
@@ -381,24 +412,24 @@ private:
 	}
 
 	// param 0 -> RCX | XMM0
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, BYTE* params) const {
+	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, BYTE* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params) = arg;
 		CallExtFuncBuild1(asml, params, args...);
 		asml.movsd(xmm0, qword_ptr(rcx));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, BYTE* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params) = arg;
 		CallExtFuncBuild1(asml, params, args...);
 		asml.movss(xmm0, dword_ptr(rcx));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, BYTE* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params) = arg;
 		CallExtFuncBuild1(asml, params, args...);
@@ -418,7 +449,7 @@ public:
 		using namespace asmjit::x86;
 
 		constexpr auto argcount = sizeof...(args);
-		BYTE params[argcount * 8 + 1]; // add +1 to avoid 0 case
+		uint8_t params[argcount * 8 + 1]; // add +1 to avoid 0 case
 		auto& jr = process::GetJitRuntime();
 		asmjit::CodeHolder holder;
 		holder.init(jr.environment());
@@ -457,7 +488,7 @@ public:
 		auto allocargsize = sizeof(params) - 1;
 		auto func = AllocateMemory(allocsize, PAGE_EXECUTE_READWRITE);
 		auto argptr = allocargsize ? AllocateMemory(allocargsize, PAGE_READWRITE) : 0;
-		auto funcalign = utils::Aligned<UINT64>(func);
+		auto funcalign = utils::Aligned<uint64_t>(func);
 
 		if (!func || (allocargsize && !argptr)) {
 			std::cerr << "bad alloc\n";
@@ -505,13 +536,13 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& os, const Process& obj);
 private:
-	static DWORD GetProcId(LPCWCH name);
-	static bool GetModuleAddress(DWORD pid, LPCWCH name, uintptr_t* hModule, DWORD* modSize);
+	static DWORD GetProcId(const wchar_t* name);
+	static bool GetModuleAddress(DWORD pid, const wchar_t* name, uintptr_t* hModule, DWORD* modSize);
 	std::vector<ProcessModule> m_modules{};
 	ProcessModule m_invalid;
-	uintptr_t m_modAddress;
-	DWORD m_modSize;
-	HANDLE m_handle;
+	uintptr_t m_modAddress{};
+	DWORD m_modSize{};
+	HANDLE m_handle{};
 };
 
 std::ostream& operator<<(std::ostream& os, const Process& obj);

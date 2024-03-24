@@ -23,7 +23,7 @@ class CompileObject;
 class ACTSErrorListener;
 struct InputInfo;
 
-constexpr INT64 MAX_JUMP = (1 << (sizeof(INT16) << 3));
+constexpr uint64_t MAX_JUMP = (1 << (sizeof(uint16_t) << 3));
 
 class AscmCompilerContext {
 public:
@@ -52,11 +52,11 @@ public:
 
 class AscmNode {
 public:
-    INT32 rloc = 0;
+    int32_t rloc = 0;
 
     virtual ~AscmNode() {};
 
-    virtual UINT32 ShiftSize(UINT32 start, bool aligned) const {
+    virtual uint32_t ShiftSize(uint32_t start, bool aligned) const {
         return start; // empty by default
     }
 
@@ -73,9 +73,9 @@ public:
     AscmNodeOpCode(OPCode opcode) : opcode(opcode) {
     }
 
-    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
         if (aligned) {
-            return utils::Aligned<UINT16>(start) + sizeof(UINT16);
+            return utils::Aligned<uint16_t>(start) + sizeof(uint16_t);
         }
         return start + 1;
     }
@@ -87,9 +87,9 @@ public:
             return false;
         }
 
-        ctx.Align<UINT16>();
+        ctx.Align<uint16_t>();
         if (ctx.HasAlign()) {
-            ctx.Write<UINT16>(op);
+            ctx.Write<uint16_t>(op);
         }
         else {
             ctx.Write<byte>((byte)op);
@@ -107,7 +107,7 @@ public:
     AscmNodeData(Type val, OPCode opcode) : AscmNodeOpCode(opcode), val(val) {
     }
 
-    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
         if (aligned) {
             return utils::Aligned<Type>(AscmNodeOpCode::ShiftSize(start, aligned)) + sizeof(Type);
         }
@@ -124,17 +124,39 @@ public:
         return true;
     }
 };
-class AscmNodeLazyLink : public AscmNodeOpCode {
+
+class AscmNodeVariable : public AscmNodeOpCode {
 public:
-    UINT64 path;
-    UINT32 nsp;
-    UINT32 func;
-    AscmNodeLazyLink(UINT64 path, UINT32 nsp, UINT32 func) : AscmNodeOpCode(OPCode::OPCODE_T8C_GetLazyFunction), path(path), func(func), nsp(nsp) {
+    size_t varId;
+
+    AscmNodeVariable(size_t varId, OPCode opcode) : AscmNodeOpCode(opcode), varId(varId) {
     }
 
-    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+        return AscmNodeOpCode::ShiftSize(start, aligned) + 1;
+    }
+
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
+            return false;
+        }
+
+        ctx.Write<byte>((byte)varId);
+        return true;
+    }
+};
+
+class AscmNodeLazyLink : public AscmNodeOpCode {
+public:
+    uint64_t path;
+    uint32_t nsp;
+    uint32_t func;
+    AscmNodeLazyLink(uint64_t path, uint32_t nsp, uint32_t func) : AscmNodeOpCode(OPCode::OPCODE_T8C_GetLazyFunction), path(path), func(func), nsp(nsp) {
+    }
+
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
         if (aligned) {
-            return utils::Aligned<UINT32>(AscmNodeOpCode::ShiftSize(start, aligned)) + 16;
+            return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned)) + 16;
         }
         return AscmNodeOpCode::ShiftSize(start, aligned) + 16;
     }
@@ -144,10 +166,10 @@ public:
             return false;
         }
 
-        ctx.Align<UINT32>();
-        ctx.Write<UINT32>(nsp);
-        ctx.Write<UINT32>(func);
-        ctx.Write<UINT64>(path);
+        ctx.Align<uint32_t>();
+        ctx.Write<uint32_t>(nsp);
+        ctx.Write<uint32_t>(func);
+        ctx.Write<uint64_t>(path);
         return true;
     }
 };
@@ -156,29 +178,29 @@ public:
  * Compute the node using the minimum amount of bits
  * @return node
  */
-AscmNodeOpCode* BuildAscmNodeData(INT64 val) {
+AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
     if (val == 0) {
         return new AscmNodeOpCode(OPCODE_GetZero);
     }
     if (val > 0) {
         if (val < 256) {
-            return new AscmNodeData<BYTE>((BYTE)val, OPCODE_GetByte);
+            return new AscmNodeData<uint8_t>((uint8_t)val, OPCODE_GetByte);
         }
         if (val < 65536) {
-            return new AscmNodeData<UINT16>((UINT16)val, OPCODE_GetUnsignedShort);
+            return new AscmNodeData<uint16_t>((uint16_t)val, OPCODE_GetUnsignedShort);
         }
         if (val < 4294967295) {
-            return new AscmNodeData<UINT32>((UINT32)val, OPCODE_GetUnsignedInteger);
+            return new AscmNodeData<uint32_t>((uint32_t)val, OPCODE_GetUnsignedInteger);
         }
     } else {
         if (val > -256) {
-            return new AscmNodeData<BYTE>((BYTE)(-val), OPCODE_GetNegByte);
+            return new AscmNodeData<uint8_t>((uint8_t)(-val), OPCODE_GetNegByte);
         }
         if (val > -65536) {
-            return new AscmNodeData<UINT16>((UINT16)(-val), OPCODE_GetNegUnsignedShort);
+            return new AscmNodeData<uint16_t>((uint16_t)(-val), OPCODE_GetNegUnsignedShort);
         }
-        if (val >= -2147483648) {
-            return new AscmNodeData<UINT32>((UINT32)(-val), OPCODE_GetUnsignedInteger);
+        if (val >= -4294967295) {
+            return new AscmNodeData<uint32_t>((uint32_t)(-val), OPCODE_GetNegUnsignedInteger);
         }
     }
 
@@ -191,11 +213,11 @@ public:
     AscmNodeJump(AscmNode* location, OPCode opcode) : AscmNodeOpCode(opcode), location(location) {
     }
 
-    UINT32 ShiftSize(UINT32 start, bool aligned) const override {
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
         if (aligned) {
-            return utils::Aligned<INT16>(AscmNodeOpCode::ShiftSize(start, aligned)) + sizeof(INT16);
+            return utils::Aligned<int16_t>(AscmNodeOpCode::ShiftSize(start, aligned)) + sizeof(int16_t);
         }
-        return AscmNodeOpCode::ShiftSize(start, aligned) + sizeof(INT16);
+        return AscmNodeOpCode::ShiftSize(start, aligned) + sizeof(int16_t);
     }
 
     bool Write(AscmCompilerContext& ctx) override {
@@ -211,8 +233,8 @@ public:
         }
         
         // write jump
-        ctx.Align<INT16>();
-        ctx.Write<INT16>((INT16)delta);
+        ctx.Align<int16_t>();
+        ctx.Write<int16_t>((int16_t)delta);
 
         return true;
     }
@@ -291,11 +313,11 @@ enum GscFileType {
 
 class GscFile {
 public:
-    LPCCH filename;
+    const char* filename;
     GscFileType type;
     size_t start;
     size_t startLine;
-    LPCH buffer;
+    char* buffer;
     size_t size;
     size_t sizeLine;
 
@@ -319,7 +341,7 @@ struct InputInfo {
         return files[files.size() - 1];
     }
 
-    void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, std::string msg) {
+    void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) {
         const auto& f = FindFile(line);
         
 
@@ -330,35 +352,51 @@ struct InputInfo {
             LOG_LVL(lvl, "{}#{} {}", f.filename, (f.startLine < line ? (line - f.startLine) : f.sizeLine), msg);
         }
     }
-    inline void PrintLineMessage(alogs::loglevel lvl, Token* token, std::string msg) {
-        PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);
+    void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) {
+        while (tree && tree->getTreeType() != TREE_TERMINAL && tree->children.size()) {
+            tree = tree->children[0];
+        }
+
+        if (tree && tree->getTreeType() == TREE_TERMINAL) {
+            auto* token = dynamic_cast<TerminalNode*>(tree)->getSymbol();
+            PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);
+            return;
+        }
+
+        alogs::log(lvl, msg);
     }
 };
 
 class RefObject {
 public:
-    UINT32 location = 0;
+    uint32_t location = 0;
     std::vector<AscmNode*> nodes{};
 };
 class ImportObject {
 public:
-    BYTE flags;
+    byte flags;
     std::vector<AscmNode*> nodes{};
 };
+struct FunctionVar {
+    std::string name;
+    size_t id;
+    byte flags;
+};
+
 class FunctionObject {
 public:
-    UINT32 m_name;
-    UINT32 m_name_space;
-    UINT32 m_data_name;
-    BYTE m_params = 0;
-    BYTE m_flags = 0;
-    UINT32 location = 0;
-    std::vector<std::string> m_vars{};
+    uint64_t m_name;
+    uint64_t m_name_space;
+    uint64_t m_data_name;
+    byte m_params = 0;
+    byte m_flags = 0;
+    size_t location = 0;
+    std::vector<FunctionVar> m_vars{};
     std::vector<AscmNode*> m_nodes{};
     VmInfo* m_vmInfo;
     FunctionObject(
-        UINT32 name,
-        UINT32 name_space,
+        uint32_t name,
+        uint32_t name_space,
         VmInfo* vmInfo
     ) : m_name(name), m_name_space(name_space), m_data_name(name_space), m_vmInfo(vmInfo) {
     }
@@ -366,6 +404,20 @@ public:
         for (auto* node : m_nodes) {
             delete node;
         }
+    }
+
+    decltype(m_vars)::iterator FindVar(const std::string& name) {
+        return std::find_if(m_vars.begin(), m_vars.end(), [&name](const FunctionVar& var) -> bool { return name == var.name; });
+    }
+
+    std::pair<const char*, FunctionVar*>  RegisterVar(const std::string& name, byte flags = 0) {
+        if (FindVar(name) != m_vars.end()) {
+            return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), nullptr);
+        }
+
+        auto& var = m_vars.emplace_back(name, m_vars.size(), flags);
+
+        return std::make_pair<>(nullptr, &var);
     }
 
     /*
@@ -392,11 +444,11 @@ class CompileObject {
 public:
     InputInfo& info;
     GscFileType type;
-    UINT32 currentNamespace = hashutils::Hash32("");
-    std::set<UINT64> includes{};
-    std::unordered_map<UINT32, FunctionObject> exports{};
+    uint32_t currentNamespace = hashutils::Hash32("");
+    std::set<uint64_t> includes{};
+    std::unordered_map<uint32_t, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
-    std::unordered_map<UINT64, std::vector<ImportObject>> imports{};
+    std::unordered_map<uint64_t, std::vector<ImportObject>> imports{};
     VmInfo* vmInfo;
     Platform plt;
 
@@ -405,12 +457,12 @@ public:
     CompileObject(GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt) : type(file), info(nfo), vmInfo(vmInfo), plt(plt) {
     }
 
-    UINT64 GetScPath(std::string& data) {
+    uint64_t GetScPath(std::string& data) {
         hashes.insert(data);
 
         return 0;
     }
-    UINT64 AddInclude(std::string& data) {
+    uint64_t AddInclude(std::string& data) {
         if (!(data.ends_with(".gsc") || data.ends_with(".csc")) && !(data.starts_with("script_"))) {
             switch (type) {
             case FILE_CSC:
@@ -430,14 +482,14 @@ public:
 #define IS_RULE_TYPE(rule, index) (rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
 #define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
 
-bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
+bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool withVal) {
     if (exp->getTreeType() == TREE_ERROR) {
         return false;
     }
 
     return false;
 }
-bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
+bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal) {
     if (exp->getTreeType() == TREE_ERROR) {
         return false;
     }
@@ -461,7 +513,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleExpression12: {
             if (rule->children.size() == 1) {
                 // simple rules recursion
-                return ParseExpressionNode(rule->children[0], parser, obj, fobj);
+                return ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal);
             }
             if (rule->children.size() == 2) {
                 // (++|--|~|!) exp
@@ -470,29 +522,33 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                     auto op = rule->children[0]->getText();
                     if (op == "!") {
-                        if (!ParseExpressionNode(rule->children[1], parser, obj, fobj)) {
+                        if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
                             return false;
                         }
                         fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolNot));
                     }
                     else if (op == "~") {
-                        if (!ParseExpressionNode(rule->children[1], parser, obj, fobj)) {
+                        if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
                             return false;
                         }
                         fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolComplement));
                     }
                     else if (op == "++") {
                         // ++var
-
-                        // find lvalue, add and push val
+                        if (!ParseFieldNode(rule->children[1], parser, obj, fobj, false)) {
+                            return false; // can't parse field
+                        }
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Inc));
                     }
                     else if (op == "--") {
                         // --var
-
-                        // find lvalue, minus and push val
+                        if (!ParseFieldNode(rule->children[1], parser, obj, fobj, false)) {
+                            return false; // can't parse field
+                        }
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Dec));
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled operator: {}", op));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[0], std::format("unhandled operator: {}", op));
                         return false;
                     }
                 }
@@ -502,16 +558,29 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     auto op = rule->children[1]->getText();
                     if (op == "++") {
                         // var++
-
+                        if (!ParseFieldNode(rule->children[0], parser, obj, fobj, true)) {
+                            return false; // can't parse field
+                        }
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Inc));
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
                     }
                     else if (op == "--") {
                         // var--
+                        if (!ParseFieldNode(rule->children[0], parser, obj, fobj, true)) {
+                            return false; // can't parse field
+                        }
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Dec));
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
 
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled operator: {}", op));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled operator: {}", op));
                         return false;
                     }
+                }
+
+                if (!expressVal) {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
                 }
 
                 return true;
@@ -523,7 +592,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             if (op == "||" || op == "&&") {
                 // boolean operators are defined using jumps, we need to handle them
                 // push op left
-                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj)) {
+                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
                     return false;
                 }
                 auto* after = new AscmNode();
@@ -531,19 +600,24 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 fobj.m_nodes.push_back(new AscmNodeJump(after, op == "&&" ? OPCODE_JumpOnFalseExpr : OPCODE_JumpOnTrueExpr));
 
                 // push op right
-                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj)) {
+                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                     return false;
                 }
 
                 // after the operator
                 fobj.m_nodes.push_back(after);
+
+                if (!expressVal) {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                }
+                return true;
             }
             else {
                 // push operands
-                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj)) {
+                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
                     return false;
                 }
-                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj)) {
+                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                     return false;
                 }
 
@@ -596,8 +670,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Modulus));
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled operator: {}", op));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled operator: {}", op));
                     return false;
+                }
+                if (!expressVal) {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
                 }
                 return true;
             }
@@ -606,19 +683,162 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleConst_expr:
         case gscParser::RuleNumber:
         case gscParser::RuleExpression13:
-            return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj);
-        case gscParser::RuleSet_expression: {
-            if (!ParseExpressionNode(rule->children[2], parser, obj, fobj)) {
+            return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj, expressVal);
+        case gscParser::RuleVector_value:
+            if (!expressVal) { // no need to create vector
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("useless value: {}", rule->getText()));
+                return true;
+            }
+            if (
+                !ParseExpressionNode(rule->children[1], parser, obj, fobj, true),
+                !ParseExpressionNode(rule->children[3], parser, obj, fobj, true),
+                !ParseExpressionNode(rule->children[5], parser, obj, fobj, true)
+                ) {
                 return false;
             }
+            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Vector));
+            return true;
+        case gscParser::RuleArray_def: {
+            if (!expressVal) { // no need to create array
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("useless value: {}", rule->getText()));
+                return true;
+            }
+            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CreateArray));
 
-            auto* opVal = rule->children[1];
-            // TODO
+            // 1 = [ (HASHSTR|'#' number) ':'
+            size_t currentKey{};
+            for (size_t i = 1; i + 2 < rule->children.size(); i++) {
+                if (rule->children[i]->getTreeType() != TREE_RULE || dynamic_cast<RuleContext*>(rule->children[i])->getRuleIndex() != gscParser::RuleExpression) {
+                    // '#'? key ':'
 
-            // find lvalue for children[0]
+                    if (rule->children[i]->getText() == "#") {
+                        i++; // skip '#'
+                    }
 
+                    if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
+                        return false;
+                    }
+
+                    i++; // ':'
+                }
+                else {
+                    // push current key
+                    fobj.m_nodes.push_back(BuildAscmNodeData(currentKey++));
+                }
+
+                if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_AddToArray));
+
+                i++; // ',' or ']'
+            }
+
+            return true;
         }
+        case gscParser::RuleStruct_def:
+            if (!expressVal) { // no need to create struct
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("useless value: {}", rule->getText()));
+                return true;
+            }
+            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CreateStruct));
+
+            // 1 = [ (HASHSTR|'#' number) ':'
+            for (size_t i = 1; i < rule->children.size(); i++) {
+
+                auto* term = rule->children[i];
+
+                auto termStr = term->getText();
+
+                auto sub = termStr.substr(1, termStr.size() - 1);
+                fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(hash::Hash32Pattern(sub.c_str()), OPCODE_GetHash));
+
+                i++; // ':'
+
+
+                if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_AddToStruct));
+
+                i++; // ',' or '}'
+            }
+            return true;
+        case gscParser::RuleSet_expression: {
+            std::string opVal = rule->children[1]->getText();
+
+            if (opVal == "=") {
+                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, expressVal)) {
+                    return false;
+                }
+                if (!ParseFieldNode(rule->children[0], parser, obj, fobj, false)) {
+                    return false;
+                }
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+                return true;
+            }
+            else {
+                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
+                    return false;
+                }
+                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
+                    return false;
+                }
+                if (opVal == "+=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Plus));
+                }
+                else if (opVal == "-=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Minus));
+                }
+                else if (opVal == "/=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Divide));
+                }
+                else if (opVal == "*=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Multiply));
+                }
+                else if (opVal == "%=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Modulus));
+                }
+                else if (opVal == "&=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_And));
+                }
+                else if (opVal == "|=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Or));
+                }
+                else if (opVal == "^=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Xor));
+                }
+                else if (opVal == "<<=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftLeft));
+                }
+                else if (opVal == ">>=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftRight));
+                }
+                else if (opVal == "~=") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolComplement));
+                }
+                else {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled set operator: {}", opVal));
+                    return false;
+                }
+
+                // dogshit way, but it seems to be the same in their compiler...
+                if (!ParseFieldNode(rule->children[0], parser, obj, fobj, true)) {
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+                if (expressVal) {
+                    if (!ParseFieldNode(rule->children[0], parser, obj, fobj, true)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
             return false;
+        }
         case gscParser::RuleFunction_ref: {
             if (rule->children.size() == 7) {
                 // @nsp<path>::func
@@ -650,7 +870,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             // link by the game, but we write it for test
             auto located = utils::CatLocated(nsp, func);
-            auto* asmc = new AscmNodeData<UINT64>(located, OPCODE_GetFunction);
+            auto* asmc = new AscmNodeData<uint64_t>(located, OPCODE_GetFunction);
             fobj.m_nodes.push_back(asmc);
 
             auto& impList = obj.imports[located];
@@ -670,19 +890,87 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             return true;
         }
+        case gscParser::RuleLeft_value: {
+            if (rule->children.size() == 1) {
+                // IDENTIFIER
+                return ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal);
+            }
+            if (rule->children[0]->getTreeType() == TREE_TERMINAL && rule->children[0]->getText() == "[[") {
+                // | '[[' expression ']]' '->' IDENTIFIER
+
+                // todo: implement this
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Class objects not implemented");
+                return false;
+
+            }
+            else if (rule->children[0]->getTreeType() == TREE_RULE) {
+                auto* first = dynamic_cast<RuleContext*>(rule->children[0]);
+
+                if (first->getRuleIndex() == gscParser::RuleConst_expr) {
+                    /*
+                        | (const_expr | ('(' expression ')')) '.' (IDENTIFIER | ('(' expression ')'))
+                        -> 
+                        | (const_expr | ('(' expression ')')) '[' expression ']'
+                    */
+
+
+                }
+                else if (first->getRuleIndex() == gscParser::RuleLeft_value) {
+                    /*
+                        | left_value '.' (IDENTIFIER | ('(' expression ')'))
+                        -> test.test2 test.("test2")
+                        | left_value '[' expression ']'
+                        -> test[...]
+                    */
+
+                }
+                else {
+                    obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown rule type: {}", exp->getText()));
+                    return false;
+                }
+            }
+            else {
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown rule type: {}", exp->getText()));
+                return false;
+            }
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown rule type: {}", exp->getText()));
+            return false;
+        }
         }
 
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled rule: {}", rule->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("unhandled rule: {}", rule->getText()));
         return false;
     }
 
-    assert(exp->getTreeType() == TREE_TERMINAL && "unknown tree type");
+    if (exp->getTreeType() != TREE_TERMINAL) {
+        obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown tree type: {}", exp->getText()));
+        return false;
+    }
 
     auto* term = dynamic_cast<TerminalNode*>(exp);
+
+    if (!expressVal) {
+        obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("useless value: {}", term->getText()));
+        return true;
+    }
 
     auto len = term->getText().size();
 
     switch (term->getSymbol()->getType()) {
+    case gscParser::IDENTIFIER: {
+        std::string varName = term->getText();
+
+        auto varIt = fobj.FindVar(varName);
+
+
+        if (varIt == fobj.m_vars.end()) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("unknown variable: {}", varName));
+            return false;
+        }
+
+        fobj.m_nodes.push_back(new AscmNodeVariable(varIt->id, OPCODE_EvalLocalVariableCached));
+        return true;
+    }
     case gscParser::UNDEFINED_VALUE:
         fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GetUndefined));
         return true;
@@ -715,7 +1003,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     }
     case gscParser::HASHSTRING: {
         auto sub = term->getText().substr(2, len - 3);
-        fobj.m_nodes.push_back(new AscmNodeData<UINT64>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
+        fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
         return true;
     }
     case gscParser::STRING: {
@@ -755,7 +1043,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         *(newStrWriter++) = 0; // end char
 
         // link by the game
-        auto* asmc = new AscmNodeData<UINT32>(0, OPCODE_GetString);
+        auto* asmc = new AscmNodeData<uint32_t>(0, OPCODE_GetString);
         fobj.m_nodes.push_back(asmc);
 
         auto& str = obj.strings[&newStr[0]];
@@ -764,13 +1052,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     }
     }
 
-    obj.info.PrintLineMessage(alogs::LVL_ERROR, nullptr, std::format("unhandled terminal: {}", term->getText()));
+    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unhandled terminal: {}", term->getText()));
     return false;
 }
 
 bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileObject& obj) {
     if (func->children.size() < 5) { // 0IDF 1( 2params 3) 4block
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), "Bad function declaration");
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "Bad function declaration");
         return false;
     }
 
@@ -779,7 +1067,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
 
     if (!IS_TERMINAL_TYPE(nameTerm, gscParser::IDENTIFIER)) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), "Bad function name declaration");
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "Bad function name declaration");
         return false;
     }
 
@@ -793,18 +1081,18 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto [res, err] = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace, obj.vmInfo);
 
     if (!err) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("The export {} was defined twice", name));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("The export {} was defined twice", name));
         return false;
     }
 
     auto& exp = res->second;
 
     if (!IS_RULE_TYPE(paramsRule, gscParser::RuleParam_list)) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad function {} params declaration {}", name, func->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Bad function {} params declaration {}", name, func->getText()));
         return false;
     }
     if (!IS_RULE_TYPE(blockRule, gscParser::RuleStatement_block)) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad function {} block declaration {}", name, func->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Bad function {} block declaration {}", name, func->getText()));
         return false;
     }
 
@@ -813,7 +1101,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     for (size_t i = 0; i < func->children.size() - 5; i++) {
         auto* mod = func->children[i];
         if (mod->getTreeType() != TREE_TERMINAL) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad modifier for {}", name));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, mod, std::format("Bad modifier for {}", name));
             return false;
         }
 
@@ -835,7 +1123,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto* ev = func->children[i += 2];
             i++; // ']'
             if (ev->getTreeType() != TREE_TERMINAL) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, func->getStart(), std::format("Bad event for {}", name));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, ev, std::format("Bad event for {}", name));
                 return false;
             }
 
@@ -852,37 +1140,91 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto* params = dynamic_cast<gscParser::Param_listContext*>(paramsRule);
 
     size_t index = 0;
+    bool varargDetected{};
     for (auto* child : params->children) {
         if (index++ % 2) {
             continue; // coma
         }
+
         assert(IS_RULE_TYPE(child, gscParser::RuleParam_val));
         auto* param = dynamic_cast<gscParser::Param_valContext*>(child);
-        assert(IS_TERMINAL_TYPE(param->children[0], gscParser::IDENTIFIER));
-        auto* idfNode = dynamic_cast<TerminalNode*>(param->children[0]);
+
+        if (varargDetected) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, child, "Can't register param after a vararg");
+            return false;
+        }
+
+        TerminalNode* idfNode;
+        byte idfFlags{};
+        if (!IS_TERMINAL_TYPE(param->children[0], gscParser::IDENTIFIER)) {
+            // todo: add param modifier
+
+            if (param->children.size() == 1) {
+                // '...'
+                exp.m_flags |= tool::gsc::T8GSCExportFlags::VE;
+
+                std::string paramIdf = "vararg";
+
+
+                if (exp.m_params == 256) {
+                    return utils::va("", name.c_str());
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, std::format("Can't register param '{}': too many params", paramIdf));
+                }
+
+                exp.m_params++;
+
+                auto [err, vardef] = exp.RegisterVar(paramIdf, 1);
+                if (err) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
+                    return false;
+                }
+
+                return true;
+            }
+
+            // skip modifier
+            idfNode = dynamic_cast<TerminalNode*>(param->children[1]);
+            auto modifier = param->children[0]->getText();
+            //if (modifier == "*") {
+            //    // ptr (T9)
+            //}
+            //else if (modifier == "&") {
+            //    // ref (T8)
+            //}
+            //else {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not implemented: {}", modifier));
+                return false;
+            //}
+        }
+        else {
+            idfNode = dynamic_cast<TerminalNode*>(param->children[0]);
+        }
         auto paramIdf = idfNode->getText();
+
         if (exp.m_params == 256) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode->getSymbol(), "Too many variables");
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, std::format("Can't register param '{}': too many params", paramIdf));
             return false;
         }
 
         exp.m_params++;
 
+        auto [err, vardef] = exp.RegisterVar(paramIdf, 1);
 
-        if (std::find(exp.m_vars.begin(), exp.m_vars.end(), paramIdf) != exp.m_vars.end()) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode->getSymbol(), std::format("The parameter '{}' was registered twice", paramIdf));
+        if (err) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
             return false;
         }
 
-        exp.m_vars.push_back(paramIdf);
-
-        if (param->children.size() == 3) {
+        if (param->children.size() >= 3) {
             // default value
-            assert(IS_RULE_TYPE(param->children[2], gscParser::RuleExpression));
-            auto defaultValueExp = dynamic_cast<gscParser*>(param->children[2]);
+            assert(IS_RULE_TYPE(param->children[param->children.size() - 1], gscParser::RuleExpression));
+            auto defaultValueExp = dynamic_cast<gscParser*>(param->children[param->children.size() - 1]);
 
-            // todo: add default block
+            // todo: add default block vardef->id
+            
 
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, std::format("default block not implemented yet"));
+            return false;
         }
 
     }
@@ -924,7 +1266,7 @@ bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, Compile
 
 bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& obj) {
     if (prog->getTreeType() == TREE_ERROR) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, prog->getStart(), "Bad prog context");
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad prog context");
         return false;
     }
 
@@ -935,7 +1277,7 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             return true; // done
         }
         if (e->getTreeType() != TREE_RULE) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog->getStart(), "Bad export rule type");
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad export rule type");
             return false;
         }
 
@@ -958,7 +1300,7 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             }
             break;
         default:
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog->getStart(), "Bad export rule");
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad export rule");
             return false;
         }
     }
