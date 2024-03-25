@@ -50,8 +50,11 @@ namespace actslib::data::compact {
 		static constexpr size_t WORD_LEN = sizeof(*Sequence::data) * 8;
 
 		Sequence(char* data, size_t datalen, size_t numbits) : 
-			data(reinterpret_cast<uint64_t*>(data)), datalen(datalen), numbits(numbits), 
-			maxValue(numbits == 64 ? ~0 : ((1ull << numbits) - 1)) {
+			data(reinterpret_cast<uint64_t*>(data)), datalen(datalen), numbits(numbits),
+			maxValue(numbits == (sizeof(maxValue) << 3) ? ~((decltype(maxValue))0) : (((decltype(maxValue))1 << numbits) - 1)) {
+			if (datalen && numbits && !data) {
+				throw std::runtime_error("empty data");
+			}
 			if (numbits > WORD_LEN) {
 				throw std::runtime_error(actslib::va("numbits can't be above %lld: %lld > %lld", WORD_LEN, numbits, WORD_LEN));
 			}
@@ -79,9 +82,15 @@ namespace actslib::data::compact {
 			size_t offset = id * numbits;
 			size_t word = offset / WORD_LEN;
 			size_t wordOff = offset % WORD_LEN;
+			// 1 word 
+			uint64_t mask = ~(~0ull << numbits) << wordOff;
+			data[word] = (data[word] & ~mask) | (value << wordOff);
 
-
-
+			if (wordOff + numbits > WORD_LEN) {
+				// 2 words
+				mask = ~0ull << (numbits + wordOff - WORD_LEN);
+				data[word + 1] = (data[word + 1] & mask) | (value >> (WORD_LEN - wordOff));
+			}
 		}
 
 

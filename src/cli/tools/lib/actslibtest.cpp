@@ -277,6 +277,102 @@ namespace {
 
 			map.unmap();
 		}
+		else if (!_strcmpi(type, "hdt")) {
+			if (argc < 4) {
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
+				return tool::BAD_USAGE;
+			}
+
+			std::ifstream is{ argv[3], std::ios::binary };
+
+			if (!is) {
+				LOG_ERROR("Can't open {}", argv[3]);
+				return tool::BASIC_ERROR;
+			}
+			actslib::ToClose tc{ is };
+
+			actslib::hdt::HDT hdt{};
+
+			hdt.LoadStream(is);
+
+			const auto& cookie = hdt.GetCookie();
+
+			LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
+			LOG_INFO("Format: {}", cookie.GetFormat());
+
+			LOG_INFO("Props:");
+			for (const auto& [key, val] : cookie.GetProperties()) {
+				LOG_INFO("'{}' = {}", key, val);
+			}
+			LOG_INFO("Header:");
+
+			for (const auto* triple : hdt.GetHeader()->data) {
+				LOG_INFO("- {}", *triple);
+			}
+		}
+		else if (!_strcmpi(type, "cookie2")) {
+			if (argc < 4) {
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
+				return tool::BAD_USAGE;
+			}
+
+			std::ifstream is{ argv[3], std::ios::binary };
+
+			if (!is) {
+				LOG_ERROR("Can't open {}", argv[3]);
+				return tool::BASIC_ERROR;
+			}
+
+
+			actslib::ToClose tc{ is };
+			actslib::hdt::HDTCookie cookie{ is };
+			LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
+			LOG_INFO("Format: {}", cookie.GetFormat());
+
+			LOG_INFO("Props:");
+			for (const auto& [key, val] : cookie) {
+				LOG_INFO("'{}' = {}", key, val);
+			}
+			}
+		else if (!_strcmpi(type, "sequence")) {
+			if (argc < 4) {
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
+				return tool::BAD_USAGE;
+			}
+
+			constexpr size_t bit = 42;
+			constexpr size_t len = 789;
+
+			std::error_code err{};
+			{
+				LOG_INFO("Mapping");
+				auto map = mio::make_mmap<mio::basic_mmap<mio::access_mode::write, char>, const char*>(argv[3], 0, (bit * len - 1) / 8 + 1, err);
+
+				LOG_INFO("Set");
+				actslib::data::compact::Sequence seq{ map.data(), len, bit };
+
+				for (size_t i = 0; i < len; i++) {
+					seq.Set(i, 2 * i);
+					LOG_INFO("{} = {}", i, seq[i]);
+				}
+			}
+
+			{
+				LOG_INFO("Mapping");
+				auto map = mio::make_mmap<mio::basic_mmap<mio::access_mode::write, char>, const char*>(argv[3], 0, (bit * len - 1) / 8 + 1, err);
+
+				actslib::data::compact::Sequence seq{ map.data(), len, bit };
+
+				LOG_INFO("Read");
+				for (size_t i = 0; i < len; i++) {
+					LOG_INFO("{} = {}", i, seq[i]);
+				}
+			}
+		}
+		else {
+			LOG_ERROR("Unknown tool");
+			return tool::BASIC_ERROR;
+		}
 		return tool::OK;
 	}
 
@@ -308,74 +404,10 @@ namespace {
 		return tool::OK;
 	}
 
-	int actslibhdtcookie(Process& proc, int argc, const char* argv[]) {
-		if (argc < 3) {
-			return tool::BAD_USAGE;
-		}
-
-		std::ifstream is{ argv[2], std::ios::binary };
-
-		if (!is) {
-			LOG_ERROR("Can't open {}", argv[2]);
-			return tool::BASIC_ERROR;
-		}
-
-
-		actslib::ToClose tc{ is };
-		actslib::hdt::HDTCookie cookie{ is };
-		LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
-		LOG_INFO("Format: {}", cookie.GetFormat());
-
-		LOG_INFO("Props:");
-		for (const auto& [key, val] : cookie) {
-			LOG_INFO("'{}' = {}", key, val);
-		}
-
-		return tool::OK;
-	}
-
-	int actslibhdt(Process& proc, int argc, const char* argv[]) {
-		if (argc < 3) {
-			return tool::BAD_USAGE;
-		}
-
-		std::ifstream is{ argv[2], std::ios::binary };
-
-		if (!is) {
-			LOG_ERROR("Can't open {}", argv[2]);
-			return tool::BASIC_ERROR;
-		}
-		actslib::ToClose tc{ is };
-
-		actslib::hdt::HDT hdt{};
-
-		hdt.LoadStream(is);
-
-		const auto& cookie = hdt.GetCookie();
-
-		LOG_INFO("Type:   {}", actslib::hdt::FormatName(cookie.GetType()));
-		LOG_INFO("Format: {}", cookie.GetFormat());
-
-		LOG_INFO("Props:");
-		for (const auto& [key, val] : cookie.GetProperties()) {
-			LOG_INFO("'{}' = {}", key, val);
-		}
-		LOG_INFO("Header:");
-
-		for (const auto* triple : hdt.GetHeader()->data) {
-			LOG_INFO("- {}", *triple);
-		}
-
-		return tool::OK;
-	}
-
 }
 
 #ifndef CI_BUILD
 ADD_TOOL("actslibtest", "", "Acts lib test", nullptr, actslibtest);
-
-ADD_TOOL("actslibhdtcooke", " [hdt]", "Read hdt cookie", nullptr, actslibhdtcookie);
-ADD_TOOL("actslibhdt", " [hdt]", "Read hdt", nullptr, actslibhdt);
 #endif
 
 ADD_TOOL("actslibprofiler", " [profile file]", "Read profiler", nullptr, actslibprofiler);
