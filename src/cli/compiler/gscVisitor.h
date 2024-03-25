@@ -39,6 +39,10 @@ public:
 
     virtual std::any visitStatement_for(gscParser::Statement_forContext *context) = 0;
 
+    virtual std::any visitStatement_while(gscParser::Statement_whileContext *context) = 0;
+
+    virtual std::any visitStatement_dowhile(gscParser::Statement_dowhileContext *context) = 0;
+
     virtual std::any visitStatement_foreach(gscParser::Statement_foreachContext *context) = 0;
 
     virtual std::any visitStatement_if(gscParser::Statement_ifContext *context) = 0;

@@ -50,9 +50,15 @@ public:
     }
 };
 
+enum AscmNodeType {
+    ASCMNT_UNKNOWN = 0,
+    ASCMNT_OPCODE = 1,
+};
+
 class AscmNode {
 public:
     int32_t rloc = 0;
+    AscmNodeType nodetype{ ASCMNT_UNKNOWN };
 
     virtual ~AscmNode() {};
 
@@ -71,6 +77,7 @@ public:
     OPCode opcode;
 
     AscmNodeOpCode(OPCode opcode) : opcode(opcode) {
+        nodetype = ASCMNT_OPCODE;
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -209,8 +216,8 @@ AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
 
 class AscmNodeJump : public AscmNodeOpCode {
 public:
-    AscmNode* location;
-    AscmNodeJump(AscmNode* location, OPCode opcode) : AscmNodeOpCode(opcode), location(location) {
+    const AscmNode* location;
+    AscmNodeJump(const AscmNode* location, OPCode opcode) : AscmNodeOpCode(opcode), location(location) {
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -383,16 +390,25 @@ struct FunctionVar {
     byte flags;
 };
 
+struct FunctionJumpLoc {
+    AscmNode* node{};
+    bool defined{};
+};
+
 class FunctionObject {
 public:
     uint64_t m_name;
     uint64_t m_name_space;
     uint64_t m_data_name;
-    byte m_params = 0;
-    byte m_flags = 0;
-    size_t location = 0;
+    byte m_params{};
+    byte m_flags{};
+    size_t location{};
+    size_t rndVarStart{};
     std::vector<FunctionVar> m_vars{};
     std::vector<AscmNode*> m_nodes{};
+    std::stack<AscmNode*> m_jumpBreak{};
+    std::stack<AscmNode*> m_jumpContinue{};
+    std::unordered_map<std::string, FunctionJumpLoc> m_jumpLocs{};
     VmInfo* m_vmInfo;
     FunctionObject(
         uint32_t name,
@@ -406,18 +422,76 @@ public:
         }
     }
 
+    const AscmNode* PeekBreakNode() const {
+        if (m_jumpBreak.size()) {
+            return m_jumpBreak.top();
+        }
+        return nullptr;
+    }
+
+    const AscmNode* PeekContinueNode() const {
+        if (m_jumpContinue.size()) {
+            return m_jumpContinue.top();
+        }
+        return nullptr;
+    }
+
+    void PushBreakNode(AscmNode* node) {
+        m_jumpBreak.push(node);
+    }
+
+    void PopBreakNode() {
+        m_jumpBreak.pop();
+    }
+
+    void PushContinueNode(AscmNode* node) {
+        m_jumpContinue.push(node);
+    }
+
+    void PopContinueNode() {
+        m_jumpContinue.pop();
+    }
+
+    /*
+     * Find a variable with its name
+     * @param name name
+     * @return iterator from m_vars
+     */
     decltype(m_vars)::iterator FindVar(const std::string& name) {
         return std::find_if(m_vars.begin(), m_vars.end(), [&name](const FunctionVar& var) -> bool { return name == var.name; });
     }
 
-    std::pair<const char*, FunctionVar*>  RegisterVar(const std::string& name, byte flags = 0) {
-        if (FindVar(name) != m_vars.end()) {
+    /*
+     * Register a variable with a name
+     * @param name name
+     * @param allowExisting return existing variables
+     * @param flags flags
+     * @return pair with an error message (for errors) or the variable
+     */
+    std::pair<const char*, FunctionVar*> RegisterVar(const std::string& name, bool allowExisting, byte flags = 0) {
+        auto it = FindVar(name);
+        if (it != m_vars.end()) {
+            if (allowExisting) {
+                return std::make_pair<>(nullptr, &*it);
+            }
             return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), nullptr);
+        }
+
+        if (m_vars.size()) {
+            return std::make_pair<>(utils::va("Can't create var '%s': too much variable for function", name.c_str()), nullptr);
         }
 
         auto& var = m_vars.emplace_back(name, m_vars.size(), flags);
 
         return std::make_pair<>(nullptr, &var);
+    }
+
+    /*
+     * Register a variable with a random name
+     * @return same as RegisterVar
+     */
+    std::pair<const char*, FunctionVar*> RegisterVarRnd() {
+        return RegisterVar(std::format("$$v{:x}", false, rndVarStart++), 0);
     }
 
     /*
@@ -498,6 +572,239 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         auto* rule = dynamic_cast<RuleContext*>(exp);
 
         switch (rule->getRuleIndex()) {
+        case gscParser::RuleStatement: {
+            if (expressVal) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express a statement");
+                return false;
+            }
+            return ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal);
+        }
+        case gscParser::RuleStatement_if: {
+            auto* elseStart = new AscmNode();
+            if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
+                return false;
+            }
+
+            fobj.m_nodes.push_back(new AscmNodeJump(elseStart, OPCODE_JumpOnFalse));
+
+            if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, false)) {
+                return false;
+            }
+
+            fobj.m_nodes.push_back(elseStart);
+
+            if (rule->children.size() > 5) { // else
+                auto* endElse = new AscmNode();
+                fobj.m_nodes.push_back(new AscmNodeJump(endElse, OPCODE_Jump));
+
+                if (!ParseExpressionNode(rule->children[6], parser, obj, fobj, false)) {
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(endElse);
+            }
+            
+            return true;
+        }
+        case gscParser::RuleStatement_while: {
+            auto* loopBreak = new AscmNode();
+            auto* loopContinue = new AscmNode();
+
+            fobj.PushContinueNode(loopContinue);
+            fobj.PushBreakNode(loopBreak);
+
+            fobj.m_nodes.push_back(loopContinue);
+
+            if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, false)) {
+                return false;
+            }
+
+            fobj.m_nodes.push_back(new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+
+            if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
+                return false;
+            }
+
+            fobj.m_nodes.push_back(loopBreak);
+
+            fobj.PopContinueNode();
+            fobj.PopBreakNode();
+
+            return true;
+        }
+        case gscParser::RuleStatement_dowhile: {
+            auto* loopStart = new AscmNode();
+            auto* loopBreak = new AscmNode();
+            auto* loopContinue = new AscmNode();
+
+            fobj.PushContinueNode(loopContinue);
+            fobj.PushBreakNode(loopBreak);
+
+            fobj.m_nodes.push_back(loopStart);
+
+            if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, false)) {
+                return false;
+            }
+
+            fobj.m_nodes.push_back(loopContinue);
+
+            if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
+                return false;
+            }
+
+            fobj.m_nodes.push_back(new AscmNodeJump(loopStart, OPCODE_JumpOnTrue));
+
+            fobj.m_nodes.push_back(loopBreak);
+
+            fobj.PopContinueNode();
+            fobj.PopBreakNode();
+
+            return true;
+        }
+        case gscParser::RuleStatement_for: {
+            // todo
+            bool err{};
+            size_t i = 2;
+
+            // init expression
+            if (IS_RULE_TYPE(rule->children[i], gscParser::RuleExpression) && !ParseExpressionNode(rule->children[i++], parser, obj, fobj, false)) {
+                err = true;
+            }
+
+            i++; // skip ';'
+            auto* loopStart = new AscmNode();
+            auto* loopBreak = new AscmNode();
+            auto* loopContinue = new AscmNode();
+
+            fobj.m_nodes.push_back(loopStart);
+
+
+            // if expression
+            if (IS_RULE_TYPE(rule->children[i], gscParser::RuleExpression)) {
+                if (!ParseExpressionNode(rule->children[i++], parser, obj, fobj, true)) {
+                    err = true;
+                }
+                else {
+                    fobj.m_nodes.push_back(new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+                }
+            }
+
+            i++; // skip ';'
+
+            fobj.PushContinueNode(loopContinue);
+            fobj.PushBreakNode(loopBreak);
+
+            if (!ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, false)) {
+                err = true;
+            }
+
+            fobj.PopContinueNode();
+            fobj.PopBreakNode();
+
+            // delta expression
+            fobj.m_nodes.push_back(loopContinue);
+
+            if (IS_RULE_TYPE(rule->children[i], gscParser::RuleExpression) && !ParseExpressionNode(rule->children[i++], parser, obj, fobj, false)) {
+                err = true;
+            }
+
+            fobj.m_nodes.push_back(new AscmNodeJump(loopStart, OPCODE_Jump));
+            fobj.m_nodes.push_back(loopBreak);
+
+            return !err;
+        }
+        case gscParser::RuleStatement_switch: {
+            // todo
+            return false;
+        }
+        case gscParser::RuleStatement_foreach: {
+            // todo
+            return false;
+        }
+        case gscParser::RuleStatement_inst: {
+            if (rule->children.size() == 1) {
+                if (expressVal) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express this value");
+                    return false;
+                }
+                return true; // empty instruction
+            }
+            return ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal);
+        }
+        case gscParser::RuleStatement_block: {
+            if (expressVal) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express this value");
+                return false;
+            }
+            bool ok{ true };
+            for (size_t i = 1; i < rule->children.size() - 1; i++) {
+                auto* stmt = rule->children[i];
+
+                if (!ParseExpressionNode(stmt, parser, obj, fobj, false)) {
+                    ok = false; // do not return false so we can have multiple issues
+                }
+            }
+            return ok;
+        }
+        case gscParser::RuleOperator_inst: {
+            if (expressVal) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express this value");
+                return false;
+            }
+            auto idf = rule->children[0]->getText();
+
+            if (idf == "break") {
+                if (rule->children.size() > 1) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't specify jump location with break");
+                    return false;
+                }
+
+                auto* loc = fobj.PeekBreakNode();
+
+                if (!loc) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't use break here");
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeJump(loc, OPCODE_Jump));
+                return true;
+            }
+
+            if (idf == "continue") {
+                if (rule->children.size() > 1) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't specify jump location with continue");
+                    return false;
+                }
+
+                auto* loc = fobj.PeekContinueNode();
+
+                if (!loc) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't use continue here");
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeJump(loc, OPCODE_Jump));
+                return true;
+            }
+
+            if (idf == "goto") {
+                if (rule->children.size() <= 1) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "goto should be used with a jump location");
+                    return false;
+                }
+
+                auto& loc = fobj.m_jumpLocs[rule->children[1]->getText()];
+                if (!loc.node) {
+                    loc.node = new AscmNode();
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeJump(loc.node, OPCODE_Jump));
+                return true;
+            }
+
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown jump type {}", idf));
+            return false;
+        }
         case gscParser::RuleExpression:
         case gscParser::RuleExpression1:
         case gscParser::RuleExpression2:
@@ -1173,7 +1480,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
                 exp.m_params++;
 
-                auto [err, vardef] = exp.RegisterVar(paramIdf, 1);
+                auto [err, vardef] = exp.RegisterVar(paramIdf, false, 1);
                 if (err) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
                     return false;
@@ -1208,7 +1515,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
         exp.m_params++;
 
-        auto [err, vardef] = exp.RegisterVar(paramIdf, 1);
+        auto [err, vardef] = exp.RegisterVar(paramIdf, false, 1);
 
         if (err) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
@@ -1217,21 +1524,44 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
         if (param->children.size() >= 3) {
             // default value
-            assert(IS_RULE_TYPE(param->children[param->children.size() - 1], gscParser::RuleExpression));
-            auto defaultValueExp = dynamic_cast<gscParser*>(param->children[param->children.size() - 1]);
+            auto defaultValueExp = param->children[param->children.size() - 1];
+            assert(IS_RULE_TYPE(defaultValueExp, gscParser::RuleExpression));
 
-            // todo: add default block vardef->id
+            /*
+                if (!isdefined(param)) {
+                    param = defaultValueExp;
+                }
+             */
+            exp.m_nodes.push_back(new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableCached));
+            exp.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IsDefined));
+            auto* afterNode = new AscmNode();
+            exp.m_nodes.push_back(new AscmNodeJump(afterNode, OPCODE_JumpOnFalse));
+            if (!ParseExpressionNode(defaultValueExp, parser, obj, exp, true)) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, defaultValueExp, std::format("can't create expression node for variable {}", paramIdf));
+                return false;
+            }
+            exp.m_nodes.push_back(new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableRefCached));
+            exp.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+            exp.m_nodes.push_back(afterNode);
             
-
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, std::format("default block not implemented yet"));
-            return false;
+            return true;
         }
 
     }
 
     // handle block
 
-    auto* block = dynamic_cast<gscParser::Statement_blockContext*>(blockRule);
+    // weirdly, their gsc compiler is converting top level breaks to jump to the end of the function
+    auto* endNode = new AscmNodeOpCode(OPCODE_End);
+    exp.PushBreakNode(endNode);
+
+    if (!ParseExpressionNode(blockRule, parser, obj, exp, false)) {
+        return false;
+    }
+
+    exp.PopBreakNode();
+
+    exp.m_nodes.push_back(endNode);
 
     return true;
 }

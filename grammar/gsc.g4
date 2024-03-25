@@ -25,19 +25,23 @@ statement:
 	statement_block
 	| statement_for
 	| statement_if
+	| statement_while
 	| statement_foreach
 	| statement_inst
 	| statement_switch;
 
-statement_for:
-	'for' '(' expression? ';' expression? ';' expression? ')' statement;
+statement_for: 'for' '(' expression? ';' expression? ';' expression? ')' statement;
+
+statement_while: 'while' '(' expression ')' statement;
+
+statement_dowhile: 'do' statement 'while' '(' expression ')';
 
 statement_foreach:
 	'foreach' '(' IDENTIFIER (',' IDENTIFIER)? 'in' expression ')' statement;
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (function_call | operator_inst)? ';';
+statement_inst: (function_call | operator_inst | statement_dowhile)? ';';
 
 function_call: 
 	('thread' | 'childthread')? function_component '(' expression_list ')'
@@ -46,7 +50,7 @@ function_call:
 
 function_component: ( IDENTIFIER '::')? IDENTIFIER | '[[' expression ']]' | '[[' expression ']]' '->' IDENTIFIER;
 
-operator_inst: IDENTIFIER (expression)?;
+operator_inst: IDENTIFIER IDENTIFIER?;
 
 
 expression:

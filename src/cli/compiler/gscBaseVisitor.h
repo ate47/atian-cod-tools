@@ -55,6 +55,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitStatement_while(gscParser::Statement_whileContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitStatement_dowhile(gscParser::Statement_dowhileContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitStatement_foreach(gscParser::Statement_foreachContext *ctx) override {
     return visitChildren(ctx);
   }
