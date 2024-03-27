@@ -14,7 +14,7 @@ try {
     Set-Location ($base.Fullname)
 
     if (!(Test-Path scripts/antlr4.jar)) {
-        Invoke-WebRequest "https://www.antlr.org/download/antlr-4.13.0-complete.jar" -o scripts/antlr4.jar
+        Invoke-WebRequest "https://www.antlr.org/download/antlr-4.13.0-complete.jar" -OutFile scripts/antlr4.jar
     }
     
     Remove-Item -Recurse -Force .antlr4\grammar -ErrorAction Ignore > $null

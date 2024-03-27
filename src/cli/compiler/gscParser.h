@@ -23,10 +23,10 @@ public:
     T__50 = 51, T__51 = 52, T__52 = 53, T__53 = 54, T__54 = 55, T__55 = 56, 
     T__56 = 57, T__57 = 58, T__58 = 59, T__59 = 60, T__60 = 61, T__61 = 62, 
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
-    T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, NEWLINE = 73, WHITESPACE = 74, 
-    INTEGER10 = 75, INTEGER16 = 76, INTEGER8 = 77, INTEGER2 = 78, FLOATVAL = 79, 
-    IDENTIFIER = 80, STRUCT_IDENTIFIER = 81, PATH = 82, STRING = 83, HASHSTRING = 84, 
-    BOOL_VALUE = 85, UNDEFINED_VALUE = 86
+    T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, NEWLINE = 74, 
+    WHITESPACE = 75, INTEGER10 = 76, INTEGER16 = 77, INTEGER8 = 78, INTEGER2 = 79, 
+    FLOATVAL = 80, IDENTIFIER = 81, STRUCT_IDENTIFIER = 82, PATH = 83, STRING = 84, 
+    HASHSTRING = 85, BOOL_VALUE = 86, UNDEFINED_VALUE = 87
   };
 
   enum {
@@ -233,6 +233,7 @@ public:
     Statement_foreachContext *statement_foreach();
     Statement_instContext *statement_inst();
     Statement_switchContext *statement_switch();
+    antlr4::tree::TerminalNode *IDENTIFIER();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -398,6 +399,8 @@ public:
     virtual size_t getRuleIndex() const override;
     Set_expressionContext *set_expression();
     Expression1Context *expression1();
+    std::vector<ExpressionContext *> expression();
+    ExpressionContext* expression(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

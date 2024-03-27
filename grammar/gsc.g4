@@ -22,13 +22,13 @@ expression_list: (expression (',' expression)*)?;
 statement_block: '{' (statement)* '}';
 
 statement:
-	statement_block
+	(IDENTIFIER ':')? (statement_block
 	| statement_for
 	| statement_if
 	| statement_while
 	| statement_foreach
 	| statement_inst
-	| statement_switch;
+	| statement_switch);
 
 statement_for: 'for' '(' expression? ';' expression? ';' expression? ')' statement;
 
@@ -55,6 +55,7 @@ operator_inst: IDENTIFIER IDENTIFIER?;
 
 expression:
 	set_expression
+	| expression1 '?' expression ':' expression
 	| expression1
     ;
 
