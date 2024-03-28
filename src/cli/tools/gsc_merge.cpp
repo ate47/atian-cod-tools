@@ -13,12 +13,12 @@ namespace {
 		Platform m_platform = Platform::PLATFORM_PC;
 
 
-		std::vector<LPCCH> m_inputFiles{};
+		std::vector<const char*> m_inputFiles{};
 
-		bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+		bool Compute(const char** args, INT startIndex, INT endIndex) {
 			// default values
 			for (size_t i = startIndex; i < endIndex; i++) {
-				LPCCH arg = args[i];
+				const char* arg = args[i];
 
 				if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
 					m_help = true;

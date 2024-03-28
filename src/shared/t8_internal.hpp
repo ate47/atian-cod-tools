@@ -1,6 +1,6 @@
 #pragma once
 namespace t8internal {
-	enum ScrVarType : UINT32 {
+	enum ScrVarType : uint32_t {
 		TYPE_UNDEFINED = 0x0,
 		TYPE_POINTER = 0x1,
 		TYPE_STRING = 0x2,
@@ -31,53 +31,53 @@ namespace t8internal {
 		TYPE_THREAD_LIST = 0x1b,
 		TYPE_ENT_LIST = 0x1c
 	};
-	LPCCH ScrVarTypeName(ScrVarType type);
+	const char* ScrVarTypeName(ScrVarType type);
 
 
 
 	struct WeaponInfo {
-		UINT64 weaponIdx : 9;
-		UINT64 attachment1 : 6;
-		UINT64 attachment2 : 6;
-		UINT64 attachment3 : 6;
-		UINT64 attachment4 : 6;
-		UINT64 attachment5 : 6;
-		UINT64 attachment6 : 6;
-		UINT64 attachment7 : 6;
-		UINT64 attachment8 : 6;
-		UINT64 padding : 7;
+		uint64_t weaponIdx : 9;
+		uint64_t attachment1 : 6;
+		uint64_t attachment2 : 6;
+		uint64_t attachment3 : 6;
+		uint64_t attachment4 : 6;
+		uint64_t attachment5 : 6;
+		uint64_t attachment6 : 6;
+		uint64_t attachment7 : 6;
+		uint64_t attachment8 : 6;
+		uint64_t padding : 7;
 	};
 
 
 	struct ScrVarRef {
-		UINT64 nameIndex;
-		UINT32 _anon_0;
-		UINT32 nextSibling;
-		UINT32 prevSibling;
-		UINT32 parentId;
-		UINT32 nameSearchHashList;
-		UINT32 pad0;
+		uint64_t nameIndex;
+		uint32_t _anon_0;
+		uint32_t nextSibling;
+		uint32_t prevSibling;
+		uint32_t parentId;
+		uint32_t nameSearchHashList;
+		uint32_t pad0;
 	};
 
 	struct ScrVarEntityInfo {
-		UINT16 classnum;
-		UINT16 clientNum;
+		uint16_t classnum;
+		uint16_t clientNum;
 	};
 
 
 	union UnionAll32 {
-		UINT32 ui;
-		INT64 ll;
-		INT32 i;
+		uint32_t ui;
+		int64_t ll;
+		int32_t i;
 		FLOAT f;
 		ScrVarEntityInfo entVar;
 	};
 
 	union UnionAll {
-		UINT64 ull;
-		UINT32 ui;
-		INT64 ll;
-		INT32 i;
+		uint64_t ull;
+		uint32_t ui;
+		int64_t ll;
+		int32_t i;
 		DOUBLE d;
 		FLOAT f;
 		uintptr_t ptr;
@@ -89,17 +89,17 @@ namespace t8internal {
 	struct ScrVar {
 		UnionAll value;
 		ScrVarType type;
-		UINT32 pad0;
+		uint32_t pad0;
 	};
 
 	struct __declspec(align(8)) FunctionStack {
-		// BYTE*
+		// byte*
 		uintptr_t bytecodeLocation;
 		// ScrVar*
 		uintptr_t top;
 		// ScrVar*
 		uintptr_t startTop;
-		UINT32 threadId;
+		uint32_t threadId;
 		uint16_t localVarCount;
 		uint16_t profileInfoCount;
 	};
@@ -118,7 +118,7 @@ namespace t8internal {
 		uintptr_t notifyByThreadQueue[1024]; // VmExecutionNotifyQueue*
 		uintptr_t endonByObjectList[1024]; // VmExecutionNotifyQueue*
 		uintptr_t endonByThreadList[1024]; // VmExecutionNotifyQueue*
-		uintptr_t localVars; // UINT32*
+		uintptr_t localVars; // uint32_t*
 		uintptr_t maxstack; // ScrVar*
 		uintptr_t function_frame; // function_frame*
 		uintptr_t top; // ScrVar*
@@ -136,11 +136,11 @@ namespace t8internal {
 	};
 
 	union ScrVarObjectInfo1 {
-		UINT64 ull;
-		UINT32 ui;
+		uint64_t ull;
+		uint32_t ui;
 	};
 
-	enum LocalClientNum : UINT32 {
+	enum LocalClientNum : uint32_t {
 		INVALID_LOCAL_CLIENT = 0xFFFFFFFF,
 		LOCAL_CLIENT_0 = 0x0,
 		LOCAL_CLIENT_FIRST = 0x0,
@@ -152,7 +152,7 @@ namespace t8internal {
 	};
 
 
-	enum ClassNum : UINT16 {
+	enum ClassNum : uint16_t {
 		CLASSNUM_ENTITY = 0,
 		CLASSNUM_HUD_ELEM = 1,
 		CLASSNUM_PATHNODE = 2,
@@ -169,7 +169,7 @@ namespace t8internal {
 		LocalClientNum client;
 	};
 
-	enum FieldType : UINT32
+	enum FieldType : uint32_t
 	{
 		F_INT = 0x0,
 		F_SHORT = 0x1,
@@ -199,7 +199,7 @@ namespace t8internal {
 		F_COUNT = 0x18,
 	};
 
-	enum WeaponFieldType : UINT32
+	enum WeaponFieldType : uint32_t
 	{
 		F_WEAPON_INVALID = 0x0,
 		F_WEAPON_DEF = 0x1,
@@ -208,7 +208,7 @@ namespace t8internal {
 
 	struct ScrWeaponField
 	{
-		UINT32 canonId;
+		uint32_t canonId;
 		FieldType type;
 		bool isreadonly;
 		int ofs;
@@ -220,15 +220,15 @@ namespace t8internal {
 
 	struct __declspec(align(8)) ScrVarStackBuffer {
 		byte* pos;
-		UINT16 size;
-		UINT16 bufLen;
-		UINT32 threadId; // ScrVarIndex
+		uint16_t size;
+		uint16_t bufLen;
+		uint32_t threadId; // ScrVarIndex
 		byte buf[1]; // depends on the allocated size
 	};
 
 	struct __declspec(align(4)) ScrVarGlobalVars {
-		UINT32 name;
-		UINT32 id; // ScrVarIndex
+		uint32_t name;
+		uint32_t id; // ScrVarIndex
 		bool persist;
 	};
 
@@ -240,14 +240,14 @@ namespace t8internal {
 		uintptr_t endScriptBuffer; // byte*
 		uintptr_t programHunkUser; // HunkUser*
 		ScrVarGlobalVars globalVars[16];
-		UINT64 entFieldNameIndex; // ScrVarNameIndex_t
-		UINT32 freeEntList; // ScrVarIndex_t
-		UINT32 tempVariable; // ScrVarIndex_t
-		UINT32 checksum;
-		UINT32 entId;
-		UINT32 varHighWatermark;
-		UINT32 numScriptThreads;
-		UINT32 numVarAllocations;
-		INT32 varHighWatermarkId;
+		uint64_t entFieldNameIndex; // ScrVarNameIndex_t
+		uint32_t freeEntList; // ScrVarIndex_t
+		uint32_t tempVariable; // ScrVarIndex_t
+		uint32_t checksum;
+		uint32_t entId;
+		uint32_t varHighWatermark;
+		uint32_t numScriptThreads;
+		uint32_t numVarAllocations;
+		int32_t varHighWatermarkId;
 	};
 }

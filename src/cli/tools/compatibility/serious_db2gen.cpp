@@ -16,7 +16,7 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		std::map<UINT16, BuildDbGen> asked{};
+		std::map<uint16_t, BuildDbGen> asked{};
 
 		if (argc == 2) {
 			LOG_INFO("Full db generation");
@@ -26,7 +26,7 @@ namespace {
 			for (const auto& [_, vm] : vms) {
 				for (size_t i = 1; i < Platform::PLATFORM_COUNT; i++) {
 					if (vm.HasPlatform((Platform)i)) {
-						auto uid = utils::CatLocated16(vm.vm, (BYTE)i);
+						auto uid = utils::CatLocated16(vm.vm, (byte)i);
 
 						asked[uid] = {
 							.platform = (Platform)i,
@@ -46,7 +46,7 @@ namespace {
 					return tool::BASIC_ERROR;
 				}
 
-				BYTE vm = (BYTE)std::strtol(argv[i + 1], nullptr, 16);
+				byte vm = (byte)std::strtol(argv[i + 1], nullptr, 16);
 
 				VmInfo* nfo;
 
@@ -79,7 +79,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		BYTE buffer[0x1004] = {};
+		byte buffer[0x1004] = {};
 
 		for (const auto& [uid, bld] : asked) {
 			// clear buffer
@@ -89,11 +89,11 @@ namespace {
 			// header
 			buffer[0] = bld.vm->vm;
 			buffer[1] = bld.platform ? bld.platform - 1 : 0; // platform starts at 0 in compiler
-			*reinterpret_cast<UINT16*>(&buffer[2]) = 0x1000;
+			*reinterpret_cast<uint16_t*>(&buffer[2]) = 0x1000;
 
 			// build mapping
 			for (size_t i = 0; i < 0x1000; i++) {
-				auto* loc = LookupOpCode(bld.vm->vm, bld.platform, (UINT16) i);
+				auto* loc = LookupOpCode(bld.vm->vm, bld.platform, (uint16_t) i);
 
 				auto mappedId = compatibility::serious::ConvertTo(loc->m_id);
 
@@ -101,11 +101,11 @@ namespace {
 					continue;
 				}
 
-				buffer[4 + i] = (BYTE) mappedId;
+				buffer[4 + i] = (byte) mappedId;
 			}
 
 			// write mapping
-			vmfile.write(reinterpret_cast<LPCCH>(buffer), sizeof(buffer));
+			vmfile.write(reinterpret_cast<const char*>(buffer), sizeof(buffer));
 			LOG_INFO("Added vm {} / {}", bld.vm->name, PlatformName(bld.platform));
 		}
 
@@ -120,7 +120,7 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		LPVOID buffer{};
+		void* buffer{};
 		size_t size{};
 
 		if (!utils::ReadFileNotAlign(argv[2], buffer, size, false)) {
@@ -128,7 +128,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		auto* db = reinterpret_cast<BYTE*>(buffer);
+		auto* db = reinterpret_cast<byte*>(buffer);
 
 		size_t real = size;
 		VmInfo* nfo{};
@@ -139,8 +139,8 @@ namespace {
 				break;
 			}
 			auto vm = *db;
-			UINT32 platform = (int)db[1];
-			auto size = *reinterpret_cast<UINT16*>(db + 2);
+			uint32_t platform = (int)db[1];
+			auto size = *reinterpret_cast<uint16_t*>(db + 2);
 
 			real -= 4;
 			db += 4;
@@ -157,7 +157,7 @@ namespace {
 				continue;
 			}
 
-			LPCCH pltName;
+			const char* pltName;
 			Platform plt;
 
 			if ((platform + 1) < PLATFORM_COUNT) {
@@ -172,7 +172,7 @@ namespace {
 
 			LOG_INFO("Vm: {} ({:x}), platform: {} ({:x}), size: {:x}", nfo->name, (int)nfo->vm, pltName, (int)platform, size);
 
-			std::map<BYTE, std::vector<UINT16>> opcodes{};
+			std::map<byte, std::vector<uint16_t>> opcodes{};
 
 			if (real < size) {
 				LOG_ERROR("Bad chunk size: {:x}", real);
@@ -184,7 +184,7 @@ namespace {
 
 				if (op == 0xFF) continue;
 
-				opcodes[op].emplace_back((UINT16)i);
+				opcodes[op].emplace_back((uint16_t)i);
 			}
 
 			for (const auto& [val, mapping] : opcodes) {
@@ -222,7 +222,7 @@ namespace {
 		auto oldop = std::strtol(argv[5], nullptr, 10);
 		auto newop = std::strtol(argv[6], nullptr, 10);
 
-		LPVOID buffer{};
+		void* buffer{};
 		size_t size{};
 
 		if (!utils::ReadFileNotAlign(dbfile, buffer, size, false)) {
@@ -231,7 +231,7 @@ namespace {
 		}
 
 		size_t real = size;
-		auto* db = reinterpret_cast<BYTE*>(buffer);
+		auto* db = reinterpret_cast<byte*>(buffer);
 
 		bool patched = false;
 		while (real) {
@@ -241,7 +241,7 @@ namespace {
 			}
 			auto vmval = *db;
 			auto platform = db[1];
-			auto size = *reinterpret_cast<UINT16*>(db + 2);
+			auto size = *reinterpret_cast<uint16_t*>(db + 2);
 
 			real -= 4;
 			db += 4;

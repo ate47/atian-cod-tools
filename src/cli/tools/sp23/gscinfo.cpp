@@ -5,10 +5,10 @@
 namespace {
 
 	struct StringInfo {
-		UINT64 script;
+		uint64_t script;
 		std::string str;
-		BYTE ref;
-		BYTE type;
+		byte ref;
+		byte type;
 	};
 
 	struct GscInfo23Option {
@@ -23,18 +23,18 @@ namespace {
 		bool m_includes = true;
 		bool m_addresses = false;
 		bool m_func_rloc = false;
-		LPCCH m_dump_str = NULL;
-		LPCCH m_outputDir = NULL;
-		LPCCH m_copyright = NULL;
+		const char* m_dump_str{};
+		const char* m_outputDir{};
+		const char* m_copyright{};
 
 
-		std::vector<LPCCH> m_inputFiles{};
+		std::vector<const char*> m_inputFiles{};
 		std::vector<StringInfo> m_dumpStrings{};
 
-		bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+		bool Compute(const char** args, INT startIndex, INT endIndex) {
 			// default values
 			for (size_t i = startIndex; i < endIndex; i++) {
-				LPCCH arg = args[i];
+				const char* arg = args[i];
 
 				if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
 					m_help = true;
@@ -120,7 +120,7 @@ namespace {
 			LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
 		}
 
-		void AddString(UINT64 script, LPCCH str, BYTE count, BYTE type) {
+		void AddString(uint64_t script, const char* str, byte count, byte type) {
 			if (m_dump_str) {
 				m_dumpStrings.emplace_back(script, str, count, type);
 			}
@@ -158,8 +158,8 @@ namespace {
 		uint32_t string_table;
 		uint32_t unk5C;
 
-		UINT64 GetMagic() {
-			return *reinterpret_cast<UINT64*>(magic);
+		uint64_t GetMagic() {
+			return *reinterpret_cast<uint64_t*>(magic);
 		}
 	};
 	struct GSC_STRINGTABLE_ITEM
@@ -189,16 +189,16 @@ namespace {
 	};
 
 	struct Ctx23 {
-		LPCCH outputDir;
+		const char* outputDir;
 		GscInfo23Option& opt;
-		std::unordered_set<UINT64> hashes{};
+		std::unordered_set<uint64_t> hashes{};
 
 
-		LPCCH Extract(LPCCH type, UINT64 hash) {
+		const char* Extract(const char* type, uint64_t hash) {
 			hashes.insert(hash);
 			return hashutils::ExtractTmp(type, hash);
 		}
-		LPCCH ExtractScript(UINT64 hash) {
+		const char* ExtractScript(uint64_t hash) {
 			hashes.insert(hash);
 			return hashutils::ExtractTmpScript(hash);
 		}
@@ -208,7 +208,7 @@ namespace {
 		Ctx23& ctx;
 		const GSC_EXPORT_ITEM& exp;
 		GscObj23& file;
-		std::vector<UINT64> params{};
+		std::vector<uint64_t> params{};
 		bool error = false;
 		byte* bytecode = nullptr;
 
@@ -255,22 +255,22 @@ namespace {
 			asmout << ")";
 		}
 
-		UINT32 RLoc() {
-			return (UINT32)(bytecode - file.magic);
+		uint32_t RLoc() {
+			return (uint32_t)(bytecode - file.magic);
 		}
 
 		std::ostream& WriteLocation(std::ostream& out) {
-			return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << RLoc() << ": ";
+			return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << RLoc() << ": ";
 		}
 
-		std::ostream& WriteOperation(std::ostream& out, BYTE code, LPCCH name) {
+		std::ostream& WriteOperation(std::ostream& out, byte code, const char* name) {
 			return WriteLocation(out) << std::hex << std::setfill('0') << std::setw(sizeof(byte) << 1) << (int) code
 				<< " "
 				<< std::setfill(' ') << std::setw(25) << std::left << name << std::right
 				<< " ";
 		}
 		std::ostream& WritePadding(std::ostream& out) {
-			return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << RLoc() << ": "
+			return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << RLoc() << ": "
 				// no opcode write
 				<< std::setfill(' ') << std::setw((sizeof(byte) << 1) + 25 + 2) << " ";
 		}
@@ -281,7 +281,7 @@ namespace {
 				auto opcode = *(bytecode++);
 				switch (opcode) {
 				case 0x57: {
-					auto p = *(UINT32*)(bytecode);
+					auto p = *(uint32_t*)(bytecode);
 					bytecode += 4;
 
 					WriteOperation(asmout, opcode, "unk") << std::dec << p << "\n";
@@ -290,7 +290,7 @@ namespace {
 					break;
 				}
 				case 0x70: {
-					auto p = *(UINT32*)(bytecode);
+					auto p = *(uint32_t*)(bytecode);
 					bytecode += 4;
 
 					WriteOperation(asmout, opcode, "unk") << std::dec << p << "\n";
@@ -302,7 +302,7 @@ namespace {
 				case 0x83:{
 					// one is jump, one devblock?
 
-					auto delta = *(INT16*)(bytecode);
+					auto delta = *(int16_t*)(bytecode);
 					bytecode += 2;
 
 					WriteOperation(asmout, opcode, "unk") << std::hex << (delta < 0 ? "-" : "") << (delta < 0 ? -delta : delta) << "\n";
@@ -317,7 +317,7 @@ namespace {
 				}
 				case 0x2B:
 				case 0xA4: {
-					auto v = *(UINT64*)(bytecode);
+					auto v = *(uint64_t*)(bytecode);
 					bytecode += 8;
 
 					WriteOperation(asmout, opcode, "RegisterVar") << hashutils::ExtractTmp("hash", v) << "\n";
@@ -326,7 +326,7 @@ namespace {
 					break;
 				}
 				case 0x44: {
-					auto v = *(UINT64*)(bytecode);
+					auto v = *(uint64_t*)(bytecode);
 					bytecode += 8;
 
 					WriteOperation(asmout, opcode, "ClearVar") << hashutils::ExtractTmp("hash", v) << "\n";
@@ -345,7 +345,7 @@ namespace {
 					WriteOperation(asmout, opcode, "AllocateParams") << std::dec << (int)p << " names:\n";
 
 					for (size_t i = 0; i < p; i++) {
-						auto varname = *reinterpret_cast<UINT64*>(bytecode);
+						auto varname = *reinterpret_cast<uint64_t*>(bytecode);
 						params.push_back(varname);
 						WritePadding(asmout) << i << " - " << hashutils::ExtractTmp("var", varname) << "\n";
 						bytecode += 8;
@@ -443,7 +443,7 @@ namespace {
 		}
 
 
-		auto* includes = reinterpret_cast<UINT64*>(file->magic + file->include_table);
+		auto* includes = reinterpret_cast<uint64_t*>(file->magic + file->include_table);
 
 		// usings
 		for (size_t i = 0; i < file->includes_count; i++) {
@@ -461,7 +461,7 @@ namespace {
 
 				asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << " ";
 
-				LPCH cstr = reinterpret_cast<LPCH>(&file->magic[str->string]);
+				char* cstr = reinterpret_cast<char*>(&file->magic[str->string]);
 
 				ctx.opt.AddString(file->name, cstr, str->num_address, str->type);
 
@@ -469,7 +469,7 @@ namespace {
 
 				asmout << "location(s): ";
 
-				const auto* strings = reinterpret_cast<const UINT32*>(&str[1]);
+				const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
 				asmout << std::hex << strings[0];
 				for (size_t j = 1; j < str->num_address; j++) {
 					asmout << std::hex << "," << strings[j];
@@ -496,7 +496,7 @@ namespace {
 
 				asmout << "location(s): ";
 
-				const auto* imports = reinterpret_cast<const UINT32*>(&imp[1]);
+				const auto* imports = reinterpret_cast<const uint32_t*>(&imp[1]);
 				asmout << std::hex << imports[0];
 				for (size_t j = 1; j < imp->num_address; j++) {
 					asmout << std::hex << "," << imports[j];
@@ -522,9 +522,9 @@ namespace {
 					// 4 int address -> char*
 					// 8 int[]
 					asmout << std::dec << "count: " << section2c->count << "\n"
-						<< "str: " << reinterpret_cast<LPCCH>(file->magic + section2c->address) << "\n"
+						<< "str: " << reinterpret_cast<const char*>(file->magic + section2c->address) << "\n"
 						<< "add:";
-					auto* addresses = reinterpret_cast<UINT32*>(section2c + 1);
+					auto* addresses = reinterpret_cast<uint32_t*>(section2c + 1);
 
 					for (size_t i = 0; i < section2c->count; i++) {
 						asmout << " " << std::hex << addresses[i];
@@ -548,9 +548,9 @@ namespace {
 					// 0 int ???
 					// 4 int address -> char*
 					// 8 int[]
-					asmout << reinterpret_cast<LPCCH>(file->magic + section30->address1) << "%" << reinterpret_cast<LPCCH>(file->magic + section30->address2) << "\n"
+					asmout << reinterpret_cast<const char*>(file->magic + section30->address1) << "%" << reinterpret_cast<const char*>(file->magic + section30->address2) << "\n"
 						<< "add:";
-					auto* addresses = reinterpret_cast<UINT32*>(section30 + 1);
+					auto* addresses = reinterpret_cast<uint32_t*>(section30 + 1);
 
 					for (size_t i = 0; i < section30->count; i++) {
 						asmout << " " << std::hex << addresses[i];
@@ -561,7 +561,7 @@ namespace {
 			}
 		}
 
-		UINT64 nsp = 0;
+		uint64_t nsp = 0;
 
 		if (file->export_count) {
 			//asmout << "--- Export (" << std::dec << file->export_count << ") -- - \n";
@@ -654,10 +654,10 @@ namespace {
 				continue; // ignore bad files
 			}
 
-			LPVOID bufferAligned = NULL;
+			void* bufferAligned{};
 			size_t bufferSizeAligned = 0;
 
-			LPVOID buffer = NULL;
+			void* buffer{};
 			size_t bufferSize = 0;
 
 			if (!utils::ReadFileAlign(path, buffer, bufferAligned, bufferSize, bufferSizeAligned)) {

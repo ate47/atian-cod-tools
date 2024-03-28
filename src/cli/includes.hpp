@@ -14,4 +14,4 @@
 #include "tools/tools.hpp"
 
 
-extern LPCCH g_progPath;
+extern const char* g_progPath;

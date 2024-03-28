@@ -2,7 +2,7 @@
 
 namespace tool::gsc::opcode {
 
-	enum VM : BYTE {
+	enum VM : byte {
 		VM_UNKNOWN = 0,
 		VM_T8 = 0x36,
 		VM_T937 = 0x37,
@@ -11,7 +11,7 @@ namespace tool::gsc::opcode {
 		VM_MW23 = 0xF0,
 	};
 
-	enum Platform : BYTE {
+	enum Platform : byte {
 		PLATFORM_UNKNOWN = 0,
 		PLATFORM_PC = 1,
 		PLATFORM_PLAYSTATION = 2,
@@ -19,11 +19,11 @@ namespace tool::gsc::opcode {
 		PLATFORM_COUNT,
 	};
 
-	Platform PlatformOf(LPCCH name);
-	LPCCH PlatformName(Platform plt);
-	VM VMOf(LPCCH name);
+	Platform PlatformOf(const char* name);
+	const char* PlatformName(Platform plt);
+	VM VMOf(const char* name);
 
-	enum OPCode : UINT16 {
+	enum OPCode : uint16_t {
 		OPCODE_Undefined,
 		OPCODE_Unknown0,
 		OPCODE_Unknown1,
@@ -246,6 +246,7 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_GetAnimRef,
 		OPCODE_IW_EvalArrayCachedField,
 		OPCODE_IW_GetThread,
+		OPCODE_IW_Notify,
 		OPCODE_IW_WaitTillMatch,
 
 		OPCODE_DevOp,
@@ -255,5 +256,5 @@ namespace tool::gsc::opcode {
 	};
 	void RegisterOpCodesMap();
 
-	LPCCH OpCodeName(OPCode op);
+	const char* OpCodeName(OPCode op);
 }

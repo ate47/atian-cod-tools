@@ -1,7 +1,7 @@
 #include <includes_shared.hpp>
 #include "logs.hpp"
 
-LPCCH alogs::name(loglevel lvl) {
+const char* alogs::name(loglevel lvl) {
 	switch (lvl)
 	{
 	case alogs::LVL_TRACE:
@@ -20,7 +20,7 @@ LPCCH alogs::name(loglevel lvl) {
 }
 namespace {
 	alogs::loglevel g_loglevel = alogs::LVL_INFO;
-	LPCCH g_logfile = NULL;
+	const char* g_logfile = NULL;
 	bool g_basiclog{};
 }
 
@@ -34,10 +34,10 @@ void alogs::setbasiclog(bool basiclog) {
 	g_basiclog = basiclog;
 }
 
-void alogs::setfile(LPCCH filename) {
+void alogs::setfile(const char* filename) {
 	g_logfile = filename;
 }
-LPCCH alogs::logfile() {
+const char* alogs::logfile() {
 	return g_logfile;
 }
 

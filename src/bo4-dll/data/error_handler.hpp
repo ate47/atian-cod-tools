@@ -4,12 +4,12 @@
 
 namespace error_handler {
 
-	extern std::unordered_map<UINT64, LPCCH> errors;
+	extern std::unordered_map<uint64_t, const char*> errors;
 
 	/*
 	 * Find the description of an error code
 	 * @param code code
 	 * @return Description or NULL
 	 */
-	LPCCH FindDesc(UINT64 code);
+	const char* FindDesc(uint64_t code);
 }

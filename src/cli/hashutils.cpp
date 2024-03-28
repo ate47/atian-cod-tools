@@ -2,12 +2,12 @@
 #include "actscli.hpp"
 #include "compatibility/scobalula_wni.hpp"
 namespace {
-	std::unordered_map<UINT64, std::string> g_hashMap{};
-	std::set<UINT64> g_extracted{};
+	std::unordered_map<uint64_t, std::string> g_hashMap{};
+	std::set<uint64_t> g_extracted{};
 	bool g_saveExtracted = false;
 }
 
-const std::unordered_map<UINT64, std::string>& hashutils::GetMap() {
+const std::unordered_map<uint64_t, std::string>& hashutils::GetMap() {
 	return g_hashMap;
 }
 
@@ -51,7 +51,7 @@ void hashutils::SaveExtracted(bool value) {
 	g_extracted.clear();
 }
 
-void hashutils::WriteExtracted(LPCCH file) {
+void hashutils::WriteExtracted(const char* file) {
 	if (!g_saveExtracted || !file) {
 		return; // nothing to do
 	}
@@ -75,7 +75,7 @@ void hashutils::WriteExtracted(LPCCH file) {
 	LOG_TRACE("End write extracted");
 }
 
-int hashutils::LoadMap(LPCCH file, bool ignoreCol, bool iw) {
+int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 	// add common hashes
 	LOG_TRACE("Load hash file {}", file);
 
@@ -113,7 +113,7 @@ int hashutils::LoadMap(LPCCH file, bool ignoreCol, bool iw) {
 	Add("vararg", true, iw);
 
 	// basic letter
-	CHAR buff[2] = { 0, 0 };
+	char buff[2] = { 0, 0 };
 	for (char c = 'a'; c <= 'z'; c++) {
 		*buff = c;
 		Add(buff, true, iw);
@@ -152,7 +152,7 @@ int hashutils::LoadMap(LPCCH file, bool ignoreCol, bool iw) {
 	return issues;
 }
 
-bool hashutils::Add(LPCCH str, bool ignoreCol, bool iw) {
+bool hashutils::Add(const char* str, bool ignoreCol, bool iw) {
 	g_hashMap.emplace(hashutils::Hash64(str), str);
 	if (iw) {
 		g_hashMap.emplace(hashutils::HashIW(str), str);
@@ -161,7 +161,7 @@ bool hashutils::Add(LPCCH str, bool ignoreCol, bool iw) {
 	}
 	bool cand32 = true;
 
-	for (LPCCH s = str; *s; s++) {
+	for (const char* s = str; *s; s++) {
 		auto c = *s;
 		if (!(
 			(c >= 'A' && c <= 'Z')
@@ -186,11 +186,11 @@ bool hashutils::Add(LPCCH str, bool ignoreCol, bool iw) {
 	}
 	return true;
 }
-void hashutils::AddPrecomputed(UINT64 value, LPCCH str) {
-	g_hashMap[value] = str;
+void hashutils::AddPrecomputed(uint64_t value, const char* str) {
+	g_hashMap[value & 0x7FFFFFFFFFFFFFFF] = str;
 }
 
-bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {
+bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
 	ReadDefaultFile();
 	const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
 	if (res == g_hashMap.end()) {
@@ -204,8 +204,8 @@ bool hashutils::Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize) {
 	return true;
 }
 
-LPCH hashutils::ExtractTmp(LPCCH type, UINT64 hash) {
-	static CHAR buffer[10][0x600];
+char* hashutils::ExtractTmp(const char* type, uint64_t hash) {
+	static char buffer[10][0x600];
 	static size_t bufferIndex = 0;
 	ReadDefaultFile();
 	bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
@@ -214,7 +214,7 @@ LPCH hashutils::ExtractTmp(LPCCH type, UINT64 hash) {
 	return buff;
 }
 
-LPCCH hashutils::ExtractPtr(UINT64 hash) {
+const char* hashutils::ExtractPtr(uint64_t hash) {
 	ReadDefaultFile();
 	const auto res = g_hashMap.find(hash);
 	if (res == g_hashMap.end()) {
@@ -223,7 +223,7 @@ LPCCH hashutils::ExtractPtr(UINT64 hash) {
 	return res->second.data();
 }
 
-SIZE_T hashutils::Size() {
+size_t hashutils::Size() {
 	ReadDefaultFile();
 	return g_hashMap.size() >> 1; // 2 hashes/string
 }

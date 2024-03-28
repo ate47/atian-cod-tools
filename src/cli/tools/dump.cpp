@@ -9,7 +9,7 @@ using namespace tool::dump;
 
 int poolscripts(Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
-    INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
+    int32_t poolSize = proc.ReadMemory<int32_t>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
 
     std::cout << std::hex << "pool: " << poolPtr << ", elements: " << std::dec << poolSize << "\n";
@@ -23,7 +23,7 @@ int poolscripts(Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
-    LPCCH outFile;
+    const char* outFile;
     if (argc == 2) {
         outFile = "pool.csv";
     }
@@ -56,7 +56,7 @@ int poolscripts(Process& proc, int argc, const char* argv[]) {
 
 int writepoolscripts(Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
-    INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
+    int32_t poolSize = proc.ReadMemory<int32_t>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
     T8ScriptParseTreeEntry* buffer = new T8ScriptParseTreeEntry[poolSize];
     std::cout << std::hex << "pool: " << poolPtr << ", elements: " << std::dec << poolSize << "\n";
 
@@ -69,7 +69,7 @@ int writepoolscripts(Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
-    LPCCH outFile;
+    const char* outFile;
     if (argc == 2) {
         outFile = "scriptparsetree";
     }
@@ -123,7 +123,7 @@ int writepoolscripts(Process& proc, int argc, const char* argv[]) {
 
 
 
-    UINT32 bufferCount[2];
+    uint32_t bufferCount[2];
     if (!proc.ReadMemory(bufferCount, proc[offset::gObjFileInfoCount], sizeof * bufferCount * 2)) {
         std::cerr << "Can't read pool count data\n";
         return -1;
@@ -139,8 +139,8 @@ int writepoolscripts(Process& proc, int argc, const char* argv[]) {
     }
 
     tool::gsc::T8GSCOBJ gsc;
-    const BYTE magic[8] = { 0x80, 0x47, 0x53, 0x43, 0x0D, 0x0A, 0x00, 0x36 };
-    const UINT64 magicLong = *(UINT64*)(&magic[0]);
+    const byte magic[8] = { 0x80, 0x47, 0x53, 0x43, 0x0D, 0x0A, 0x00, 0x36 };
+    const uint64_t magicLong = *(uint64_t*)(&magic[0]);
 
     for (size_t inst = 0; inst < scriptinstance::SI_COUNT; inst++) {
         std::cout << std::dec << "Reading " << bufferCount[inst] << " " << scriptinstance::Name(inst) << " linked script(s)\n";
@@ -151,8 +151,8 @@ int writepoolscripts(Process& proc, int argc, const char* argv[]) {
                 std::cerr << "Can't read memory from location " << std::hex << ref.activeVersion << ", index: " << i << "\n";
                 continue;
             }
-            if (*(UINT64*)(&gsc.magic[0]) != magicLong) {
-                std::cerr << "Bad magic for location " << std::hex << ref.activeVersion << " " << *(UINT64*)(&gsc.magic[0]) << " != " << magicLong << "\n";
+            if (*(uint64_t*)(&gsc.magic[0]) != magicLong) {
+                std::cerr << "Bad magic for location " << std::hex << ref.activeVersion << " " << *(uint64_t*)(&gsc.magic[0]) << " != " << magicLong << "\n";
                 continue;
             }
 
@@ -202,7 +202,7 @@ int writepoolscripts(Process& proc, int argc, const char* argv[]) {
 }
 
 int linkedscripts(Process& proc, int argc, const char* argv[]) {
-    UINT32 bufferCount[2];
+    uint32_t bufferCount[2];
     if (!proc.ReadMemory(bufferCount, proc[offset::gObjFileInfoCount], sizeof *bufferCount * 2)) {
         std::cerr << "Can't read count data\n";
         return -1;
@@ -218,7 +218,7 @@ int linkedscripts(Process& proc, int argc, const char* argv[]) {
     }
 
 
-    LPCCH outFile;
+    const char* outFile;
     if (argc == 2) {
         outFile = "linked.csv";
     }
@@ -243,8 +243,8 @@ int linkedscripts(Process& proc, int argc, const char* argv[]) {
     out << "pool,name,slot,refcount,groupid,address\n";
 
     T8GSCSimpleHeader gsc;
-    const BYTE magic[8] = { 0x80, 0x47, 0x53, 0x43, 0x0D, 0x0A, 0x00, 0x36};
-    const UINT64 magicLong = *(UINT64*)(&magic[0]);
+    const byte magic[8] = { 0x80, 0x47, 0x53, 0x43, 0x0D, 0x0A, 0x00, 0x36};
+    const uint64_t magicLong = *(uint64_t*)(&magic[0]);
 
     for (size_t inst = 0; inst < scriptinstance::SI_COUNT; inst++) {
         std::cout << std::dec << "Reading " << bufferCount[inst] << " " << scriptinstance::Name(inst) << " script(s)\n";
@@ -287,7 +287,7 @@ int events(Process& proc, int argc, const char* argv[]) {
         return -1;
     }
 
-    LPCCH outFile;
+    const char* outFile;
     if (argc == 2) {
         outFile = "events.csv";
     }
@@ -336,7 +336,7 @@ int dumpfunctions(Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
-    LPCCH outFile;
+    const char* outFile;
     if (argc == 2) {
         outFile = "funcs.csv";
     }
@@ -402,7 +402,7 @@ int dumpcmdfunctions(Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
-    LPCCH outFile;
+    const char* outFile;
     if (argc == 2) {
         outFile = "cfuncs.csv";
     }
@@ -459,7 +459,7 @@ int dumpsvcmdfunctions(Process& proc, int argc, const char* argv[]) {
     // cache reading to avoid writing empty file
     hashutils::ReadDefaultFile();
 
-    LPCCH outFile;
+    const char* outFile;
     if (argc == 2) {
         outFile = "csfuncs.csv";
     }

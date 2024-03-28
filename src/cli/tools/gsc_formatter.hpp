@@ -7,6 +7,7 @@ namespace tool::gsc::formatter {
 		FFL_NEWLINE_AFTER_BLOCK_START = 1 << 1,
 		FFL_SPACE_BEFOREAFTER_PARAMS = 1 << 2,
 		FFL_ONE_LINE_HEADER_COMMENTS = 1 << 3,
+		FFL_NOERROR_STR = 1 << 4,
 	};
 	struct FormatterInfo {
 		const char* name;

@@ -3,30 +3,30 @@
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
 
-tool::gscfile::GscFile::GscFile(UINT64 name, VM vm) : name(name), vm(vm) {
+tool::gscfile::GscFile::GscFile(uint64_t name, VM vm) : name(name), vm(vm) {
 }
 
-void tool::gscfile::GscFile::Compile(std::vector<BYTE>& data) {
+void tool::gscfile::GscFile::Compile(std::vector<byte>& data) {
 	using namespace tool::gsc;
 
 	T8GSCOBJ header{};
 
 
 
-	*reinterpret_cast<UINT64*>(&header.magic[0]) = 0x0A0D43534780;
-	header.magic[7] = (BYTE)vm;
+	*reinterpret_cast<uint64_t*>(&header.magic[0]) = 0x0A0D43534780;
+	header.magic[7] = (byte)vm;
 	header.crc = 0;
 	header.name = name;
 	header.script_size = sizeof(header);
 	
 	data.clear();
 	// allocate a basic header
-	data.insert(data.begin(), reinterpret_cast<BYTE*>(&header), reinterpret_cast<BYTE*>(&(&header)[1]));
+	data.insert(data.begin(), reinterpret_cast<byte*>(&header), reinterpret_cast<byte*>(&(&header)[1]));
 
 
 	if (includes.size()) {
-		header.include_offset = (INT32)data.size();
-		header.include_count = (UINT16)includes.size();
+		header.include_offset = (int32_t)data.size();
+		header.include_count = (uint16_t)includes.size();
 		for (const auto inc : includes) {
 			utils::WriteValue(data, inc);
 		}

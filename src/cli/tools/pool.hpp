@@ -4,7 +4,7 @@
 
 namespace tool::pool {
 
-	void WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc);
+	void WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t size, const Process& proc);
 
 	struct XHash {
 		uint64_t name;

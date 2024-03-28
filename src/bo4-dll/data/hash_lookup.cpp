@@ -1,15 +1,15 @@
 #include <dll_includes.hpp>
 #include <hash.hpp>
 
-static std::unordered_map<UINT64, std::string> g_lookupMap{};
-static CHAR g_tempBuffer[3][2000];
+static std::unordered_map<uint64_t, std::string> g_lookupMap{};
+static char g_tempBuffer[3][2000];
 
 
-bool Add(LPCCH str) {
+bool Add(const char* str) {
 	g_lookupMap.emplace(hash::Hash64(str), str);
 	bool cand32 = true;
 
-	for (LPCCH s = str; *s; s++) {
+	for (const char* s = str; *s; s++) {
 		auto c = *s;
 		if (!(
 			(c >= 'A' && c <= 'Z')
@@ -33,7 +33,7 @@ bool Add(LPCCH str) {
 	return true;
 }
 
-void hash_lookup::LoadFile(LPCCH file) {
+void hash_lookup::LoadFile(const char* file) {
 	std::ifstream s(file);
 
 	if (!s) {
@@ -54,7 +54,7 @@ void hash_lookup::LoadFile(LPCCH file) {
 	}
 }
 
-LPCCH hash_lookup::Extract(UINT64 hash) {
+const char* hash_lookup::Extract(uint64_t hash) {
 	const auto res = g_lookupMap.find(hash);
 	if (res == g_lookupMap.end()) {
 		return NULL; // can't find
@@ -62,7 +62,7 @@ LPCCH hash_lookup::Extract(UINT64 hash) {
 	return res->second.data();
 }
 
-LPCCH hash_lookup::ExtractTmp(scriptinstance::ScriptInstance inst, UINT64 hash, LPCCH prefix) {
+const char* hash_lookup::ExtractTmp(scriptinstance::ScriptInstance inst, uint64_t hash, const char* prefix) {
 	auto& buff = g_tempBuffer[inst];
 
 	auto res = Extract(hash);

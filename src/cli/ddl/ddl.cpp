@@ -33,13 +33,13 @@ enum ACTSDDLType {
 class DDLCompilerOption {
 public:
     bool m_help = false;
-    LPCCH m_ddl = NULL;
-    LPCCH m_bin = NULL;
+    const char* m_ddl = NULL;
+    const char* m_bin = NULL;
 
-    bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+    bool Compute(const char** args, INT startIndex, INT endIndex) {
         // default values
         for (size_t i = startIndex; i < endIndex; i++) {
-            LPCCH arg = args[i];
+            const char* arg = args[i];
 
             if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
                 m_help = true;
@@ -94,12 +94,12 @@ union DDLData {
     int64_t intValue;
 };
 
-DDLData ReadDDLMember(UINT64 offset, ACTSDDLType type, UINT64 size, BYTE* raw) {
+DDLData ReadDDLMember(uint64_t offset, ACTSDDLType type, uint64_t size, byte* raw) {
     DDLData data{};
 
     assert(size <= 64 && "reading complex objects");
 
-    BYTE buffer[8]{};
+    byte buffer[8]{};
 
     // reading raw
 
@@ -121,18 +121,18 @@ DDLData ReadDDLMember(UINT64 offset, ACTSDDLType type, UINT64 size, BYTE* raw) {
     case DDL_UINT_TYPE:
     case DDL_UINT64_TYPE:
     case DDL_HASH_TYPE:
-        data.uintValue = *(UINT64*)buffer;
+        data.uintValue = *(uint64_t*)buffer;
         break;
     case DDL_SHORT_TYPE:
     case DDL_INT_TYPE: {
         // we need to check the higher bit to check the sign
-        auto val = *(UINT64*)buffer;
+        auto val = *(uint64_t*)buffer;
         if (data.intValue & (1ull << (size - 1))) {
             // negative, we need to add 1 bit at the end
             data.uintValue = val | (~0ull << size);
         }
         else {
-            data.intValue = (INT64)val;
+            data.intValue = (int64_t)val;
         }
     }
         break;
@@ -151,19 +151,19 @@ DDLData ReadDDLMember(UINT64 offset, ACTSDDLType type, UINT64 size, BYTE* raw) {
 
 class DDLMember {
 public:
-    UINT64 name;
-    UINT64 typeName;
+    uint64_t name;
+    uint64_t typeName;
     ACTSDDLType type{ DLL_INVALID };
-    UINT64 offset{};
-    UINT64 size{};
+    uint64_t offset{};
+    uint64_t size{};
     bool isArray{};
-    UINT64 arraySize{};
+    uint64_t arraySize{};
 
-    DDLMember(UINT64 name, UINT64 typeName) : name(name), typeName(typeName) {
+    DDLMember(uint64_t name, uint64_t typeName) : name(name), typeName(typeName) {
         struct TmpTypeInfo {
-            UINT64 tname{};
+            uint64_t tname{};
             ACTSDDLType val{};
-            UINT64 size{};
+            uint64_t size{};
         };
 
         static TmpTypeInfo tmp[DDL_CLASS_TYPE + 64 + 64 + 64 + 2]{};
@@ -215,15 +215,15 @@ public:
 
 class DDLStruct {
 public:
-    UINT64 size{};
+    uint64_t size{};
     std::vector<DDLMember> values{};
 };
 
 class DDLEnum {
 public:
-    std::vector<UINT64> values{};
+    std::vector<uint64_t> values{};
 
-    UINT64 GetSize() const {
+    uint64_t GetSize() const {
         // too lazy to write a fast log
         if (values.size() < (1ull << 8)) {
             return 8;
@@ -240,17 +240,17 @@ public:
 
 class DDLCompiled {
 public:
-    UINT64 name;
-    UINT32 version{};
-    UINT64 metatable{};
-    std::unordered_map<UINT64, DDLEnum> enums{};
-    std::unordered_map<UINT64, DDLStruct> structs{};
+    uint64_t name;
+    uint32_t version{};
+    uint64_t metatable{};
+    std::unordered_map<uint64_t, DDLEnum> enums{};
+    std::unordered_map<uint64_t, DDLStruct> structs{};
 
 
-    DDLCompiled(UINT64 name) : name(name) {}
+    DDLCompiled(uint64_t name) : name(name) {}
 
 private:
-    bool CompleteStruct(DDLStruct& current, std::vector<UINT64>& types) {
+    bool CompleteStruct(DDLStruct& current, std::vector<uint64_t>& types) {
         if (current.size) {
             return true; // already computed
         }
@@ -307,12 +307,12 @@ private:
         return true;
     }
 public:
-    bool StructEnumExists(UINT64 name) const {
+    bool StructEnumExists(uint64_t name) const {
         return enums.contains(name) || structs.contains(name);
     }
 
     bool CompleteStruct() {
-        std::vector<UINT64> types{};
+        std::vector<uint64_t> types{};
         static auto rootHash = hash::Hash64("root");
 
         // check that root exists
@@ -352,7 +352,7 @@ namespace {
 
         return str.substr(1, str.length() - 2);
     }
-    INT64 ReadInt(ParseTree* pt) {
+    int64_t ReadInt(ParseTree* pt) {
         auto str = pt->getText();
 
         if (str.starts_with("-0x")) return -std::strtoll(str.c_str() + 3, nullptr, 16);
@@ -364,7 +364,7 @@ namespace {
         return std::strtoll(str.c_str(), nullptr, 10);
     }
 
-    void ClearDDLComments(LPCH ddlText) {
+    void ClearDDLComments(char* ddlText) {
         int comment{}; // 1 = // 2 = /*
 
         for (; *ddlText; ddlText++) {
@@ -409,7 +409,7 @@ namespace {
         }
     }
 
-    bool ComputeDDLCheck(DDLCompilerOption& opt, LPCH ddlText, BYTE* binary, SIZE_T binarySize, FullDDLCompiled& ddl) {
+    bool ComputeDDLCheck(DDLCompilerOption& opt, char* ddlText, byte* binary, size_t binarySize, FullDDLCompiled& ddl) {
         LOG_INFO("Compiling DDL file...");
         ClearDDLComments(ddlText);
         ANTLRInputStream is{ ddlText };
@@ -467,7 +467,7 @@ namespace {
                         opt.PrintLineMessage(std::cerr, e) << "version should be set using a number value\n";
                         return false;
                     }
-                    ddl.Last().version = (UINT32)ReadInt(e->children[1]);
+                    ddl.Last().version = (uint32_t)ReadInt(e->children[1]);
                 }
                 else if (idf == "metatable") {
                     if (!ddl.HasFirst()) {
@@ -640,7 +640,7 @@ namespace {
             LOG_INFO("    | 0x{:x} bytes ({})", (root.size >> 3), (root.size >> 3));
 
             uLong len = (uLong)((root.size >> 3) + 0x100000);
-            auto decompiledBuffer = std::make_unique<BYTE[]>(len);
+            auto decompiledBuffer = std::make_unique<byte[]>(len);
 
             LOG_INFO("len: {}", len);
 
@@ -679,11 +679,11 @@ namespace {
             return 0;
         }
 
-        LPVOID ddlBuffer{};
-        SIZE_T ddlSize{};
+        void* ddlBuffer{};
+        size_t ddlSize{};
 
-        LPVOID binBuffer{};
-        SIZE_T binSize{};
+        void* binBuffer{};
+        size_t binSize{};
 
         if (!utils::ReadFileNotAlign(opt.m_ddl, ddlBuffer, ddlSize, true)) {
             LOG_ERROR("Can't read {}", opt.m_ddl);
@@ -697,7 +697,7 @@ namespace {
         }
         FullDDLCompiled ddl{};
 
-        auto res = ComputeDDLCheck(opt, reinterpret_cast<LPCH>(ddlBuffer), reinterpret_cast<BYTE*>(binBuffer), binSize, ddl);
+        auto res = ComputeDDLCheck(opt, reinterpret_cast<char*>(ddlBuffer), reinterpret_cast<byte*>(binBuffer), binSize, ddl);
 
         std::free(binBuffer);
         std::free(ddlBuffer);

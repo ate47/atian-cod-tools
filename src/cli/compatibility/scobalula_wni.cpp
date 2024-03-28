@@ -74,8 +74,8 @@ namespace compatibility::scobalula::wni {
 		});
 
 		for (const auto& p : paths) {
-			LPVOID buffer{};
-			SIZE_T size{};
+			void* buffer{};
+			size_t size{};
 
 			LOG_DEBUG("Read {}", p.string());
 

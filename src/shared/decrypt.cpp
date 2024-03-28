@@ -3,7 +3,7 @@
 
 #pragma region Encryption table
 // off_59F5930
-static INT32 encryptiontable[] = {
+static int32_t encryptiontable[] = {
 	0x24FCAAE, 0x2E543B3, 0x01C94DD, 0x51D15E4, 0x0FB831A, 0x1E16CA9, 0x285BE0A, 0x5910248, 0x22CDDE4,
 	0x5C224AE, 0x0A9ADC0, 0x0B04EB8, 0x37AC36C, 0x5E6572A, 0x0486B19, 0x1049B4E, 0x4854CEA, 0x428329C,
 	0x1C6D5BB, 0x287696E, 0x2A2FF6A, 0x34C2EC8, 0x1494A9C, 0x5423467, 0x242E23F, 0x0DC7519, 0x1BA84E2,
@@ -471,288 +471,288 @@ static INT32 encryptiontable[] = {
 char* decrypt::DecryptString(char* str) {
 
 #pragma region Vars
-	UINT8* tmp; // rdi
-	BYTE* v2; // rbx
-	UINT32 v3; // r11d
-	INT32 v4; // r9d
-	BYTE* v5; // r10
-	BYTE v6; // dl
-	UINT32 v7; // r8d
-	INT32 v8; // r9d
-	BYTE* v9; // r10
-	UINT32 v10; // r9d
-	INT32 v11; // r10d
-	BYTE* v12; // r11
-	BYTE v13; // r8
-	INT32 v14; // ecx
-	BYTE* v15; // rdx
-	BYTE v16; // r9
-	INT32 v17; // r10d
-	BYTE* v18; // r8
-	BYTE v19; // dl
-	BYTE v20; // r8
-	INT32 v21; // ecx
-	BYTE* v22; // rdx
-	UINT32 v23; // r8d
-	INT32 v24; // r9d
-	BYTE* v25; // r10
-	UINT32 v26; // r10d
-	INT32 v27; // r9d
-	BYTE* v28; // r11
-	UINT32 v29; // r10d
-	INT32 v30; // r9d
-	BYTE* v31; // r11
-	UINT32 v32; // r9d
-	INT32 v33; // r10d
-	BYTE* v34; // r11
-	UINT32 v35; // r11d
-	INT32 v36; // r9d
-	BYTE* v37; // r10
-	BYTE v38; // dl
-	BYTE v39; // r9
-	INT32 v40; // r10d
-	BYTE* v41; // r8
-	BYTE v42; // dl
-	UINT32 v43; // r9d
-	INT32 v44; // r10d
-	BYTE* v45; // r11
-	BYTE v46; // dl
-	UINT32 v47; // r9d
-	INT32 v48; // r10d
-	BYTE* v49; // r11
-	BYTE v50; // dl
-	UINT32 v51; // r10d
-	INT32 v52; // r9d
-	BYTE* v53; // r11
-	BYTE v54; // r9
-	INT32 v55; // edx
-	BYTE* v56; // r8
-	BYTE v57; // r9
-	INT32 v58; // r10d
-	BYTE* v59; // r8
-	BYTE v60; // dl
-	UINT32 v61; // r11d
-	INT32 v62; // r9d
-	BYTE* v63; // r10
-	UINT32 v64; // r11d
-	INT32 v65; // r9d
-	BYTE* v66; // r10
-	UINT32 v67; // r9d
-	INT32 v68; // r10d
-	BYTE* v69; // r11
-	BYTE v70; // dl
-	UINT32 v71; // r8d
-	INT32 v72; // r10d
-	BYTE* v73; // r9
-	BYTE v74; // r9
-	INT32 v75; // r10d
-	BYTE* v76; // r8
-	BYTE v77; // dl
-	UINT32 v78; // r9d
-	INT32 v79; // r10d
-	BYTE* v80; // r11
-	BYTE v81; // dl
-	UINT32 v82; // r8d
-	INT32 v83; // r9d
-	BYTE* v84; // r10
-	UINT32 v85; // r9d
-	INT32 v86; // r10d
-	BYTE* v87; // r11
-	BYTE v88; // dl
-	UINT32 v89; // r9d
-	INT32 v90; // r10d
-	BYTE* v91; // r11
-	BYTE v92; // dl
-	BYTE v93; // r10
-	INT32 v94; // r8d
-	BYTE* v95; // r9
-	UINT32 v96; // r9d
-	INT32 v97; // r10d
-	BYTE* v98; // r11
-	BYTE v99; // dl
-	UINT32 v100; // r9d
-	INT32 v101; // r10d
-	BYTE* v102; // r11
-	BYTE v103; // dl
-	BYTE v104; // r9
-	INT32 v105; // edx
-	BYTE* v106; // r8
-	UINT32 v107; // r8d
-	INT32 v108; // r9d
-	BYTE* v109; // r10
-	BYTE v110; // r9
-	INT32 v111; // r10d
-	BYTE* v112; // r8
-	BYTE v113; // dl
-	UINT32 v114; // r9d
-	INT32 v115; // r10d
-	BYTE* v116; // r11
-	BYTE v117; // dl
-	UINT32 v118; // r10d
-	INT32 v119; // r9d
-	BYTE* v120; // r11
-	BYTE v121; // dl
-	BYTE v122; // r9
-	INT32 v123; // r10d
-	BYTE* v124; // r8
-	BYTE v125; // dl
-	UINT32 v126; // r9d
-	INT32 v127; // r10d
-	BYTE* v128; // r11
-	BYTE v129; // dl
-	UINT32 v130; // r10d
-	INT32 v131; // r9d
-	BYTE* v132; // r11
-	BYTE v133; // r8
-	INT32 v134; // edx
-	INT32 v135; // r10d
-	BYTE* v136; // r9
-	BYTE v137; // r8
-	BYTE v138; // r9
-	INT32 v139; // r10d
-	BYTE* v140; // r8
-	BYTE v141; // dl
-	UINT32 v142; // r10d
-	INT32 v143; // r9d
-	BYTE* v144; // r11
-	UINT32 v145; // r8d
-	INT32 v146; // r9d
-	BYTE* v147; // r10
-	INT32 v148; // r8d
-	INT32 v149; // r9d
-	BYTE* v150; // r10
-	BYTE v151; // dl
-	UINT32 v152; // r9d
-	INT32 v153; // r10d
-	BYTE* v154; // r11
-	BYTE* v155; // r11
-	UINT64 v156; // r9
-	UINT64 v157; // r8
-	BYTE v158; // r10
-	UINT32 v159; // eax
-	INT32 v160; // ecx
-	UINT32 v161; // edx
-	INT32 v162; // eax
-	BYTE* v163; // r11
-	UINT64 v164; // r9
-	UINT64 v165; // r8
-	BYTE v166; // r10
-	UINT32 v167; // eax
-	INT32 v168; // ecx
-	UINT32 v169; // edx
-	INT32 v170; // eax
-	BYTE* v171; // r11
-	UINT64 v172; // r9
-	BYTE v173; // r10
-	UINT32 v174; // eax
-	INT32 v175; // ecx
-	UINT64 v176; // r8
-	UINT32 v177; // edx
-	INT32 v178; // eax
-	BYTE* v179; // r11
-	UINT64 v180; // r9
-	UINT64 v181; // r8
-	BYTE v182; // r10
-	UINT32 v183; // eax
-	INT32 v184; // ecx
-	UINT32 v185; // edx
-	INT32 v186; // eax
-	BYTE* v187; // r11
-	UINT64 v188; // r9
-	UINT64 v189; // r8
-	BYTE v190; // r10
-	UINT32 v191; // eax
-	INT32 v192; // ecx
-	UINT32 v193; // edx
-	INT32 v194; // eax
-	BYTE* v195; // r11
-	UINT64 v196; // r9
-	BYTE v197; // r10
-	UINT32 v198; // eax
-	INT32 v199; // ecx
-	UINT64 v200; // r8
-	UINT32 v201; // edx
-	INT32 v202; // eax
-	BYTE* v203; // r11
-	UINT64 v204; // r9
-	UINT64 v205; // r8
-	BYTE v206; // r10
-	UINT32 v207; // eax
-	INT32 v208; // ecx
-	UINT32 v209; // edx
-	INT32 v210; // eax
-	BYTE* v211; // r11
-	UINT64 v212; // r9
-	UINT64 v213; // r8
-	BYTE v214; // r10
-	UINT32 v215; // eax
-	INT32 v216; // ecx
-	UINT32 v217; // edx
-	INT32 v218; // eax
-	BYTE* v219; // r11
-	UINT64 v220; // r9
-	UINT64 v221; // r8
-	BYTE v222; // r10
-	UINT32 v223; // eax
-	INT32 v224; // ecx
-	UINT32 v225; // edx
-	INT32 v226; // eax
-	BYTE* v227; // r11
-	UINT64 v228; // r9
-	BYTE v229; // r10
-	UINT32 v230; // eax
-	INT32 v231; // ecx
-	UINT64 v232; // r8
-	UINT32 v233; // edx
-	INT32 v234; // eax
-	BYTE* v235; // r11
-	UINT64 v236; // r9
-	BYTE v237; // r10
-	UINT32 v238; // eax
-	INT32 v239; // ecx
-	UINT64 v240; // r8
-	UINT32 v241; // edx
-	INT32 v242; // eax
-	BYTE* v243; // r11
-	UINT64 v244; // r9
-	UINT64 v245; // r8
-	BYTE v246; // r10
-	UINT32 v247; // eax
-	INT32 v248; // ecx
-	UINT32 v249; // edx
-	INT32 v250; // eax
-	BYTE* v251; // r11
-	UINT64 v252; // r9
-	BYTE v253; // r10
-	UINT32 v254; // eax
-	INT32 v255; // ecx
-	UINT64 v256; // r8
-	UINT32 v257; // edx
-	INT32 v258; // eax
-	BYTE* v259; // r11
-	UINT64 v260; // r9
-	UINT64 v261; // r8
-	BYTE v262; // r10
-	UINT32 v263; // eax
-	INT32 v264; // ecx
-	UINT32 v265; // edx
-	INT32 v266; // eax
-	BYTE* v267; // r11
-	UINT64 v268; // r9
-	UINT64 v269; // r8
-	BYTE v270; // r10
-	UINT32 v271; // eax
-	INT32 v272; // ecx
-	UINT32 v273; // edx
-	INT32 v274; // eax
-	BYTE* v275; // r11
-	UINT64 v276; // r9
-	BYTE v277; // r10
-	UINT32 v278; // eax
-	INT32 v279; // ecx
-	UINT64 v280; // r8
-	UINT32 v281; // edx
-	INT32 v282; // eax
+	uint8_t* tmp; // rdi
+	byte* v2; // rbx
+	uint32_t v3; // r11d
+	int32_t v4; // r9d
+	byte* v5; // r10
+	byte v6; // dl
+	uint32_t v7; // r8d
+	int32_t v8; // r9d
+	byte* v9; // r10
+	uint32_t v10; // r9d
+	int32_t v11; // r10d
+	byte* v12; // r11
+	byte v13; // r8
+	int32_t v14; // ecx
+	byte* v15; // rdx
+	byte v16; // r9
+	int32_t v17; // r10d
+	byte* v18; // r8
+	byte v19; // dl
+	byte v20; // r8
+	int32_t v21; // ecx
+	byte* v22; // rdx
+	uint32_t v23; // r8d
+	int32_t v24; // r9d
+	byte* v25; // r10
+	uint32_t v26; // r10d
+	int32_t v27; // r9d
+	byte* v28; // r11
+	uint32_t v29; // r10d
+	int32_t v30; // r9d
+	byte* v31; // r11
+	uint32_t v32; // r9d
+	int32_t v33; // r10d
+	byte* v34; // r11
+	uint32_t v35; // r11d
+	int32_t v36; // r9d
+	byte* v37; // r10
+	byte v38; // dl
+	byte v39; // r9
+	int32_t v40; // r10d
+	byte* v41; // r8
+	byte v42; // dl
+	uint32_t v43; // r9d
+	int32_t v44; // r10d
+	byte* v45; // r11
+	byte v46; // dl
+	uint32_t v47; // r9d
+	int32_t v48; // r10d
+	byte* v49; // r11
+	byte v50; // dl
+	uint32_t v51; // r10d
+	int32_t v52; // r9d
+	byte* v53; // r11
+	byte v54; // r9
+	int32_t v55; // edx
+	byte* v56; // r8
+	byte v57; // r9
+	int32_t v58; // r10d
+	byte* v59; // r8
+	byte v60; // dl
+	uint32_t v61; // r11d
+	int32_t v62; // r9d
+	byte* v63; // r10
+	uint32_t v64; // r11d
+	int32_t v65; // r9d
+	byte* v66; // r10
+	uint32_t v67; // r9d
+	int32_t v68; // r10d
+	byte* v69; // r11
+	byte v70; // dl
+	uint32_t v71; // r8d
+	int32_t v72; // r10d
+	byte* v73; // r9
+	byte v74; // r9
+	int32_t v75; // r10d
+	byte* v76; // r8
+	byte v77; // dl
+	uint32_t v78; // r9d
+	int32_t v79; // r10d
+	byte* v80; // r11
+	byte v81; // dl
+	uint32_t v82; // r8d
+	int32_t v83; // r9d
+	byte* v84; // r10
+	uint32_t v85; // r9d
+	int32_t v86; // r10d
+	byte* v87; // r11
+	byte v88; // dl
+	uint32_t v89; // r9d
+	int32_t v90; // r10d
+	byte* v91; // r11
+	byte v92; // dl
+	byte v93; // r10
+	int32_t v94; // r8d
+	byte* v95; // r9
+	uint32_t v96; // r9d
+	int32_t v97; // r10d
+	byte* v98; // r11
+	byte v99; // dl
+	uint32_t v100; // r9d
+	int32_t v101; // r10d
+	byte* v102; // r11
+	byte v103; // dl
+	byte v104; // r9
+	int32_t v105; // edx
+	byte* v106; // r8
+	uint32_t v107; // r8d
+	int32_t v108; // r9d
+	byte* v109; // r10
+	byte v110; // r9
+	int32_t v111; // r10d
+	byte* v112; // r8
+	byte v113; // dl
+	uint32_t v114; // r9d
+	int32_t v115; // r10d
+	byte* v116; // r11
+	byte v117; // dl
+	uint32_t v118; // r10d
+	int32_t v119; // r9d
+	byte* v120; // r11
+	byte v121; // dl
+	byte v122; // r9
+	int32_t v123; // r10d
+	byte* v124; // r8
+	byte v125; // dl
+	uint32_t v126; // r9d
+	int32_t v127; // r10d
+	byte* v128; // r11
+	byte v129; // dl
+	uint32_t v130; // r10d
+	int32_t v131; // r9d
+	byte* v132; // r11
+	byte v133; // r8
+	int32_t v134; // edx
+	int32_t v135; // r10d
+	byte* v136; // r9
+	byte v137; // r8
+	byte v138; // r9
+	int32_t v139; // r10d
+	byte* v140; // r8
+	byte v141; // dl
+	uint32_t v142; // r10d
+	int32_t v143; // r9d
+	byte* v144; // r11
+	uint32_t v145; // r8d
+	int32_t v146; // r9d
+	byte* v147; // r10
+	int32_t v148; // r8d
+	int32_t v149; // r9d
+	byte* v150; // r10
+	byte v151; // dl
+	uint32_t v152; // r9d
+	int32_t v153; // r10d
+	byte* v154; // r11
+	byte* v155; // r11
+	uint64_t v156; // r9
+	uint64_t v157; // r8
+	byte v158; // r10
+	uint32_t v159; // eax
+	int32_t v160; // ecx
+	uint32_t v161; // edx
+	int32_t v162; // eax
+	byte* v163; // r11
+	uint64_t v164; // r9
+	uint64_t v165; // r8
+	byte v166; // r10
+	uint32_t v167; // eax
+	int32_t v168; // ecx
+	uint32_t v169; // edx
+	int32_t v170; // eax
+	byte* v171; // r11
+	uint64_t v172; // r9
+	byte v173; // r10
+	uint32_t v174; // eax
+	int32_t v175; // ecx
+	uint64_t v176; // r8
+	uint32_t v177; // edx
+	int32_t v178; // eax
+	byte* v179; // r11
+	uint64_t v180; // r9
+	uint64_t v181; // r8
+	byte v182; // r10
+	uint32_t v183; // eax
+	int32_t v184; // ecx
+	uint32_t v185; // edx
+	int32_t v186; // eax
+	byte* v187; // r11
+	uint64_t v188; // r9
+	uint64_t v189; // r8
+	byte v190; // r10
+	uint32_t v191; // eax
+	int32_t v192; // ecx
+	uint32_t v193; // edx
+	int32_t v194; // eax
+	byte* v195; // r11
+	uint64_t v196; // r9
+	byte v197; // r10
+	uint32_t v198; // eax
+	int32_t v199; // ecx
+	uint64_t v200; // r8
+	uint32_t v201; // edx
+	int32_t v202; // eax
+	byte* v203; // r11
+	uint64_t v204; // r9
+	uint64_t v205; // r8
+	byte v206; // r10
+	uint32_t v207; // eax
+	int32_t v208; // ecx
+	uint32_t v209; // edx
+	int32_t v210; // eax
+	byte* v211; // r11
+	uint64_t v212; // r9
+	uint64_t v213; // r8
+	byte v214; // r10
+	uint32_t v215; // eax
+	int32_t v216; // ecx
+	uint32_t v217; // edx
+	int32_t v218; // eax
+	byte* v219; // r11
+	uint64_t v220; // r9
+	uint64_t v221; // r8
+	byte v222; // r10
+	uint32_t v223; // eax
+	int32_t v224; // ecx
+	uint32_t v225; // edx
+	int32_t v226; // eax
+	byte* v227; // r11
+	uint64_t v228; // r9
+	byte v229; // r10
+	uint32_t v230; // eax
+	int32_t v231; // ecx
+	uint64_t v232; // r8
+	uint32_t v233; // edx
+	int32_t v234; // eax
+	byte* v235; // r11
+	uint64_t v236; // r9
+	byte v237; // r10
+	uint32_t v238; // eax
+	int32_t v239; // ecx
+	uint64_t v240; // r8
+	uint32_t v241; // edx
+	int32_t v242; // eax
+	byte* v243; // r11
+	uint64_t v244; // r9
+	uint64_t v245; // r8
+	byte v246; // r10
+	uint32_t v247; // eax
+	int32_t v248; // ecx
+	uint32_t v249; // edx
+	int32_t v250; // eax
+	byte* v251; // r11
+	uint64_t v252; // r9
+	byte v253; // r10
+	uint32_t v254; // eax
+	int32_t v255; // ecx
+	uint64_t v256; // r8
+	uint32_t v257; // edx
+	int32_t v258; // eax
+	byte* v259; // r11
+	uint64_t v260; // r9
+	uint64_t v261; // r8
+	byte v262; // r10
+	uint32_t v263; // eax
+	int32_t v264; // ecx
+	uint32_t v265; // edx
+	int32_t v266; // eax
+	byte* v267; // r11
+	uint64_t v268; // r9
+	uint64_t v269; // r8
+	byte v270; // r10
+	uint32_t v271; // eax
+	int32_t v272; // ecx
+	uint32_t v273; // edx
+	int32_t v274; // eax
+	byte* v275; // r11
+	uint64_t v276; // r9
+	byte v277; // r10
+	uint32_t v278; // eax
+	int32_t v279; // ecx
+	uint64_t v280; // r8
+	uint32_t v281; // edx
+	int32_t v282; // eax
 
 #pragma endregion
 
@@ -760,21 +760,21 @@ char* decrypt::DecryptString(char* str) {
 		return str; // not encrypted
 	}
 
-	tmp = reinterpret_cast<UINT8*>(str);
+	tmp = reinterpret_cast<uint8_t*>(str);
 	switch (*tmp) {
 	case 0x80:
 	{
 		// mark as decrypted
 		*tmp = -97;
-		UINT32 v = 0x98324306;
-		UINT8 l = 0;
+		uint32_t v = 0x98324306;
+		uint8_t l = 0;
 		if ((unsigned __int8)tmp[1] - 1 <= 0)
 			goto LABEL_260;
 		v144 = tmp + 2;
 		do {
 			v *= encryptiontable[314 * (v % 5) + l % 0x11Cu];
-			if (*v144 != (BYTE)v + 6)
-				*v144 ^= (BYTE)v + 6;
+			if (*v144 != (byte)v + 6)
+				*v144 ^= (byte)v + 6;
 			++l;
 			++v144;
 		} while (l < tmp[1] - 1);
@@ -790,8 +790,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v107 *= encryptiontable[314 * (v108 & 1) + v107 % 0x1F];
-			if (*v109 != (BYTE)v107 - 110)
-				*v109 ^= (BYTE)v107 - 110;
+			if (*v109 != (byte)v107 - 110)
+				*v109 ^= (byte)v107 - 110;
 			++v108;
 			++v109;
 		} while (v108 < (unsigned __int8)tmp[1] - 1);
@@ -860,7 +860,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v191 ^= v192;
 		} while (v191 != -1904435583);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v187)
 			goto LABEL_1404;
 		while (1)
@@ -1067,7 +1067,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v215 ^= v216;
 		} while (v215 != -327466111);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v211)
 			goto LABEL_1404;
 		do
@@ -1258,7 +1258,7 @@ char* decrypt::DecryptString(char* str) {
 			v238 ^= v239;
 		} while (v238 != 557008422);
 		v240 = 0i64;
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v235)
 			goto LABEL_1404;
 		while (1)
@@ -1399,8 +1399,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v51 ^= encryptiontable[314 * (v52 % 5u) + v51 % 0xA1];
-			if (*v53 != (BYTE)((BYTE)v51 + 121))
-				*v53 ^= (BYTE)((BYTE)v51 + 121);
+			if (*v53 != (byte)((byte)v51 + 121))
+				*v53 ^= (byte)((byte)v51 + 121);
 			++v52;
 			++v53;
 		} while (v52 < (unsigned __int8)tmp[1] - 1);
@@ -1415,8 +1415,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v93 += v94;
-			if (*v95 != (BYTE) (57 * v93))
-				*v95 ^= (BYTE)(57 * v93);
+			if (*v95 != (byte) (57 * v93))
+				*v95 ^= (byte)(57 * v93);
 			++v94;
 			++v95;
 		} while (v94 < (unsigned __int8)tmp[1] - 1);
@@ -1485,7 +1485,7 @@ char* decrypt::DecryptString(char* str) {
 			v278 ^= v279;
 		} while (v278 != 1475242138);
 		v280 = 0i64;
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v275)
 			goto LABEL_1404;
 		while (1)
@@ -1602,7 +1602,7 @@ char* decrypt::DecryptString(char* str) {
 							v282 = -456204701;
 							break;
 						case 0xEAF2E71u:
-							v277 = (v280 ^ (*((BYTE*)&(v280)+1))) & 0xC;
+							v277 = (v280 ^ (*((byte*)&(v280)+1))) & 0xC;
 							v282 = 166412699;
 							break;
 						}
@@ -1642,8 +1642,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v82 -= encryptiontable[314 * (v83 & 3) + v82 % 0x5D];
-			if (*v84 != (BYTE)(38 - (BYTE)v82))
-				*v84 ^= (BYTE)(38 - (BYTE)v82);
+			if (*v84 != (byte)(38 - (byte)v82))
+				*v84 ^= (byte)(38 - (byte)v82);
 			++v83;
 			++v84;
 		} while (v83 < (unsigned __int8)tmp[1] - 1);
@@ -1712,7 +1712,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v183 ^= v184;
 		} while (v183 != -491391677);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v179)
 			goto LABEL_1404;
 		do
@@ -1901,7 +1901,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v271 ^= v272;
 		} while (v271 != -41059093);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v267)
 			goto LABEL_1404;
 		do
@@ -2033,7 +2033,7 @@ char* decrypt::DecryptString(char* str) {
 			} while (v273 != -1382751539);
 		} while (*v267);
 	LABEL_1403:
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 	LABEL_1404:
 		++tmp;
 	case 0x8E:
@@ -2048,7 +2048,7 @@ char* decrypt::DecryptString(char* str) {
 			v134 += encryptiontable[314 * (v134 & 7) + (v135 & 7)];
 			v137 = RotateRight8(*v136, v134);
 			*v136 = v137;
-			if (v137 != (BYTE)v134 + 97)
+			if (v137 != (byte)v134 + 97)
 				*v136 = v137 ^ (v134 + 97);
 			++v135;
 			++v136;
@@ -2118,7 +2118,7 @@ char* decrypt::DecryptString(char* str) {
 			v254 ^= v255;
 		} while (v254 != -1446495501);
 		v256 = 0i64;
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v251)
 			goto LABEL_1404;
 		do
@@ -2255,8 +2255,8 @@ char* decrypt::DecryptString(char* str) {
 			v114 *= encryptiontable[314 * (v114 % 3) + v115 % 0x9Du];
 			v117 = RotateLeft8(*v116, v114);
 			*v116 = v117;
-			if (v117 != (BYTE)(9 * (BYTE)v114))
-				*v116 = (BYTE)(9 * v114) ^ v117;
+			if (v117 != (byte)(9 * (byte)v114))
+				*v116 = (byte)(9 * v114) ^ v117;
 			++v115;
 			++v116;
 		} while (v115 < (unsigned __int8)tmp[1] - 1);
@@ -2343,7 +2343,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v167 ^= v168;
 		} while (v167 != 880869391);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v163)
 			goto LABEL_1404;
 		do
@@ -2480,7 +2480,7 @@ char* decrypt::DecryptString(char* str) {
 			v43 += encryptiontable[314 * (v43 % 6) + v44 % 0x74u];
 			v46 = RotateLeft8(*v45, v43);
 			*v45 = v46;
-			if (v46 != (BYTE)v43 - 106)
+			if (v46 != (byte)v43 - 106)
 				*v45 = v46 ^ (v43 - 106);
 			++v44;
 			++v45;
@@ -2550,22 +2550,22 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v207 ^= v208;
 		} while (v207 != 1178090601);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v203)
 			goto LABEL_1404;
 		break;
 	case 0x96:
 	{
 		*tmp = -97;
-		UINT32 v = 889284759;
-		UINT8 i = 0;
+		uint32_t v = 889284759;
+		uint8_t i = 0;
 		if (tmp[1] - 1 <= 0)
 			goto LABEL_260;
 		v5 = tmp + 2;
 		do {
 			v *= encryptiontable[i % 0x67 + 314 * (v % 6)];
 			*v5 = RotateLeft8(*v5, v);
-			UINT8 v2 = (UINT8)(-105 * v);
+			uint8_t v2 = (uint8_t)(-105 * v);
 			if (*v5 != v2) {
 				*v5 ^= v2;
 			}
@@ -2583,7 +2583,7 @@ char* decrypt::DecryptString(char* str) {
 		v76 = tmp + 2;
 		do
 		{
-			v74 *= (BYTE)v75;
+			v74 *= (byte)v75;
 			v77 = RotateRight8(*v76, v74);
 			*v76 = v77;
 			if (v77 != v74 + 8)
@@ -2602,8 +2602,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v26 *= encryptiontable[314 * (v26 % 3) + v27 % 0x11Bu];
-			if (*v28 != (BYTE)(70 - (BYTE)v26))
-				*v28 ^= (BYTE)(70 - (BYTE)v26);
+			if (*v28 != (byte)(70 - (byte)v26))
+				*v28 ^= (byte)(70 - (byte)v26);
 			++v27;
 			++v28;
 		} while (v27 < (unsigned __int8)tmp[1] - 1);
@@ -2620,7 +2620,7 @@ char* decrypt::DecryptString(char* str) {
 			v78 -= encryptiontable[314 * (v78 % 0xC) + v79 % 0x74u];
 			v81 = RotateLeft8(*v80, v78);
 			*v80 = v81;
-			if (v81 != (BYTE)v78 + 25)
+			if (v81 != (byte)v78 + 25)
 				*v80 = v81 ^ (v78 + 25);
 			++v79;
 			++v80;
@@ -2638,7 +2638,7 @@ char* decrypt::DecryptString(char* str) {
 			v100 *= encryptiontable[314 * (v100 % 0xA) + v101 % 0x19u];
 			v103 = RotateRight8(*v102, v100);
 			*v102 = v103;
-			if (v103 != 21 - (BYTE)v100)
+			if (v103 != 21 - (byte)v100)
 				*v102 = (21 - v100) ^ v103;
 			++v101;
 			++v102;
@@ -2724,7 +2724,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v263 ^= v264;
 		} while (v263 != 1727025635);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v259)
 			goto LABEL_1404;
 		do
@@ -2859,8 +2859,8 @@ char* decrypt::DecryptString(char* str) {
 			do
 			{
 				v152 *= encryptiontable[314 * (v152 % 5) + v153 % 0x114u];
-				if (*v154 != (BYTE)(20 * (BYTE)v152))
-					*v154 ^= (BYTE)(20 * (BYTE)v152);
+				if (*v154 != (byte)(20 * (byte)v152))
+					*v154 ^= (byte)(20 * (byte)v152);
 				++v153;
 				++v154;
 			} while (v153 < (unsigned __int8)tmp[1] - 1);
@@ -2950,7 +2950,7 @@ char* decrypt::DecryptString(char* str) {
 			v230 ^= v231;
 		} while (v230 != -795483369);
 		v232 = 0i64;
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v227)
 			goto LABEL_1404;
 		do
@@ -3096,8 +3096,8 @@ char* decrypt::DecryptString(char* str) {
 			v122 -= v123;
 			v125 = RotateLeft8(*v124, v122);
 			*v124 = v125;
-			if (v125 != (BYTE)(39 * v122))
-				*v124 = v125 ^ (BYTE)(39 * v122);
+			if (v125 != (byte)(39 * v122))
+				*v124 = v125 ^ (byte)(39 * v122);
 			++v123;
 			++v124;
 		} while (v123 < (unsigned __int8)tmp[1] - 1);
@@ -3114,8 +3114,8 @@ char* decrypt::DecryptString(char* str) {
 			v126 += encryptiontable[314 * (v126 % 0xC) + v127 % 0xC1u];
 			v129 = RotateRight8(*v128, v126);
 			*v128 = v129;
-			if (v129 != (BYTE)(5 - (BYTE)v126))
-				*v128 = v129 ^ (BYTE)(5 - v126);
+			if (v129 != (byte)(5 - (byte)v126))
+				*v128 = v129 ^ (byte)(5 - v126);
 			++v127;
 			++v128;
 		} while (v127 < (unsigned __int8)tmp[1] - 1);
@@ -3132,7 +3132,7 @@ char* decrypt::DecryptString(char* str) {
 			v96 *= encryptiontable[314 * (v96 % 0xC) + v97 % 0x34u];
 			v99 = RotateLeft8(*v98, v96);
 			*v98 = v99;
-			if (v99 != (BYTE)v96 + 19)
+			if (v99 != (byte)v96 + 19)
 				*v98 = (v96 + 19) ^ v99;
 			++v97;
 			++v98;
@@ -3202,7 +3202,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v247 ^= v248;
 		} while (v247 != 1443597251);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v243)
 			goto LABEL_1404;
 		do
@@ -3391,7 +3391,7 @@ char* decrypt::DecryptString(char* str) {
 			v198 ^= v199;
 		} while (v198 != -1441316713);
 		v200 = 0i64;
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v195)
 			goto LABEL_1404;
 		do
@@ -3560,8 +3560,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v145 *= encryptiontable[314 * (v145 % 3) + (v146 & 1)];
-			if (*v147 != -108 * (BYTE)v145)
-				*v147 ^= -108 * (BYTE)v145;
+			if (*v147 != -108 * (byte)v145)
+				*v147 ^= -108 * (byte)v145;
 			++v146;
 			++v147;
 		} while (v146 < (unsigned __int8)tmp[1] - 1);
@@ -3630,7 +3630,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v159 ^= v160;
 		} while (v159 != -1808604783);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v155)
 			goto LABEL_1404;
 		do
@@ -3775,8 +3775,8 @@ char* decrypt::DecryptString(char* str) {
 			v118 ^= encryptiontable[314 * (v118 % 6) + v119 % 0x5Fu];
 			v121 = RotateLeft8(*v120, v118);
 			*v120 = v121;
-			if (v121 != (BYTE)(72 * (BYTE)v118))
-				*v120 = (BYTE)(72 * v118) ^ v121;
+			if (v121 != (byte)(72 * (byte)v118))
+				*v120 = (byte)(72 * v118) ^ v121;
 			++v119;
 			++v120;
 		} while (v119 < (unsigned __int8)tmp[1] - 1);
@@ -3793,8 +3793,8 @@ char* decrypt::DecryptString(char* str) {
 			v130 += encryptiontable[314 * (v131 % 7u) + v130 % 0xB8];
 			v133 = RotateLeft8(*v132, v130);
 			*v132 = v133;
-			if (v133 != (BYTE)(20 * (BYTE)v130))
-				*v132 = v133 ^ (BYTE)(20 * v130);
+			if (v133 != (byte)(20 * (byte)v130))
+				*v132 = v133 ^ (byte)(20 * v130);
 			++v131;
 			++v132;
 		} while (v131 < (unsigned __int8)tmp[1] - 1);
@@ -3863,7 +3863,7 @@ char* decrypt::DecryptString(char* str) {
 			}
 			v223 ^= v224;
 		} while (v223 != 633530842);
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v219)
 			goto LABEL_1404;
 		do
@@ -3998,8 +3998,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v64 *= encryptiontable[314 * (v65 % 7u) + v64 % 0xF0];
-			if (*v66 != 84 - (BYTE)v64)
-				*v66 ^= 84 - (BYTE)v64;
+			if (*v66 != 84 - (byte)v64)
+				*v66 ^= 84 - (byte)v64;
 			++v65;
 			++v66;
 		} while (v65 < (unsigned __int8)tmp[1] - 1);
@@ -4032,8 +4032,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v71 *= encryptiontable[v71 % 0x10C];
-			if (*v73 != (BYTE)v71 + 66)
-				*v73 ^= (BYTE)v71 + 66;
+			if (*v73 != (byte)v71 + 66)
+				*v73 ^= (byte)v71 + 66;
 			++v72;
 			++v73;
 		} while (v72 < (unsigned __int8)tmp[1] - 1);
@@ -4050,7 +4050,7 @@ char* decrypt::DecryptString(char* str) {
 			v47 += encryptiontable[314 * (v47 % 0xB) + v48 % 0x10Bu];
 			v50 = RotateRight8(*v49, v47);
 			*v49 = v50;
-			if (v50 != (BYTE)v47 - 109)
+			if (v50 != (byte)v47 - 109)
 				*v49 = (v47 - 109) ^ v50;
 			++v48;
 			++v49;
@@ -4082,8 +4082,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v23 ^= encryptiontable[314 * (v23 % 6) + (v24 & 0x1F)];
-			if (*v25 != (BYTE)(53 * (BYTE)v23))
-				*v25 ^= (BYTE)(53 * (BYTE)v23);
+			if (*v25 != (byte)(53 * (byte)v23))
+				*v25 ^= (byte)(53 * (byte)v23);
 			++v24;
 			++v25;
 		} while (v24 < (unsigned __int8)tmp[1] - 1);
@@ -4116,8 +4116,8 @@ char* decrypt::DecryptString(char* str) {
 			v85 *= encryptiontable[314 * (v85 % 9) + v86 % 0x41u];
 			v88 = RotateRight8(*v87, v85);
 			*v87 = v88;
-			if (v88 != (BYTE)(v85 + 83))
-				*v87 = (BYTE)(v85 + 83) ^ v88;
+			if (v88 != (byte)(v85 + 83))
+				*v87 = (byte)(v85 + 83) ^ v88;
 			++v86;
 			++v87;
 		} while (v86 < (unsigned __int8)tmp[1] - 1);
@@ -4134,8 +4134,8 @@ char* decrypt::DecryptString(char* str) {
 			v39 += v40;
 			v42 = RotateLeft8(*v41, v39);
 			*v41 = v42;
-			if (v42 != (BYTE)(57 * v39))
-				*v41 = (BYTE)(57 * v39) ^ v42;
+			if (v42 != (byte)(57 * v39))
+				*v41 = (byte)(57 * v39) ^ v42;
 			++v40;
 			++v41;
 		} while (v40 < (unsigned __int8)tmp[1] - 1);
@@ -4165,7 +4165,7 @@ char* decrypt::DecryptString(char* str) {
 		v106 = tmp + 2;
 		do
 		{
-			v104 *= (BYTE)v105;
+			v104 *= (byte)v105;
 			if (*v106 != v104 + 32)
 				*v106 ^= v104 + 32;
 			++v105;
@@ -4202,8 +4202,8 @@ char* decrypt::DecryptString(char* str) {
 			v35 += encryptiontable[314 * (v35 % 0xA) + v36 % 0x32u];
 			v38 = RotateRight8(*v37, v35);
 			*v37 = v38;
-			if (v38 != (BYTE)(33 * (BYTE)v35))
-				*v37 = v38 ^ (BYTE)(33 * v35);
+			if (v38 != (byte)(33 * (byte)v35))
+				*v37 = v38 ^ (byte)(33 * v35);
 			++v36;
 			++v37;
 		} while (v36 < (unsigned __int8)tmp[1] - 1);
@@ -4234,8 +4234,8 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v61 *= encryptiontable[314 * (v61 % 0xB) + v62 % 0xDCu];
-			if (*v63 != (BYTE)(103 * (BYTE)v61))
-				*v63 ^= (BYTE)(103 * (BYTE)v61);
+			if (*v63 != (byte)(103 * (byte)v61))
+				*v63 ^= (byte)(103 * (byte)v61);
 			++v62;
 			++v63;
 		} while (v62 < (unsigned __int8)tmp[1] - 1);
@@ -4304,7 +4304,7 @@ char* decrypt::DecryptString(char* str) {
 			v174 ^= v175;
 		} while (v174 != 1397386418);
 		v176 = 0i64;
-		tmp = reinterpret_cast<UINT8*>(str);
+		tmp = reinterpret_cast<uint8_t*>(str);
 		if (!*v171)
 			goto LABEL_1404;
 		do

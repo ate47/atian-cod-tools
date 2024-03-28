@@ -11,7 +11,7 @@ namespace utils {
 	 * @param fmt format
 	 * @return string
 	 */
-	LPCCH va(LPCCH fmt, ...);
+	const char* va(const char* fmt, ...);
 
 	/*
 	 * Read a file inside a string buffer
@@ -29,7 +29,7 @@ namespace utils {
 	 * @param nullTerminate add a 0 byte at the end of the file
 	 * @return if the file was read
 	 */
-	bool ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, size_t& size, bool nullTerminate = false);
+	bool ReadFileNotAlign(const std::filesystem::path& path, void*& buffer, size_t& size, bool nullTerminate = false);
 	/*
 	 * Read a file inside a buffer and align the result at 128 bits
 	 * @param path file path
@@ -39,7 +39,7 @@ namespace utils {
 	 * @param sizeAligned size of the aligned buffer
 	 * @return if the file was read
 	 */
-	bool ReadFileAlign(const std::filesystem::path& path, LPVOID& buffer, LPVOID& bufferAligned, size_t& size, size_t& sizeAligned);
+	bool ReadFileAlign(const std::filesystem::path& path, void*& buffer, void*& bufferAligned, size_t& size, size_t& sizeAligned);
 	/*
 	 * write a buffer into a file
 	 * @param path file path
@@ -47,7 +47,7 @@ namespace utils {
 	 * @param size buffer size
 	 * @return if the file was written
 	 */
-	bool WriteFile(const std::filesystem::path& path, LPCVOID ptr, size_t size);
+	bool WriteFile(const std::filesystem::path& path, const void* ptr, size_t size);
 
 	/*
 	 * Align a pointer
@@ -56,8 +56,8 @@ namespace utils {
 	 * @return aligned ptr value
 	 */
 	template<typename Type>
-	inline BYTE* Aligned(BYTE* ptr) {
-		return reinterpret_cast<BYTE*>((reinterpret_cast<uintptr_t>(ptr) + (sizeof(Type) - 1)) & ~(sizeof(Type) - 1));
+	inline byte* Aligned(byte* ptr) {
+		return reinterpret_cast<byte*>((reinterpret_cast<uintptr_t>(ptr) + (sizeof(Type) - 1)) & ~(sizeof(Type) - 1));
 	}
 	/*
 	 * Align a pointer
@@ -77,7 +77,7 @@ namespace utils {
 	 * @param data vector buffer to align
 	 */
 	template<typename Type>
-	inline void Aligned(std::vector<BYTE>& data) {
+	inline void Aligned(std::vector<byte>& data) {
 		size_t pre = data.size();
 		size_t post = Aligned<Type, size_t>(pre);
 
@@ -93,8 +93,8 @@ namespace utils {
 	 * @param val value to write
 	 */
 	template<typename Type>
-	inline void WriteValue(std::vector<BYTE>& data, Type val) {
-		BYTE* valLoc = reinterpret_cast<BYTE*>(&val);
+	inline void WriteValue(std::vector<byte>& data, Type val) {
+		byte* valLoc = reinterpret_cast<byte*>(&val);
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
 	}
 	/*
@@ -102,8 +102,8 @@ namespace utils {
 	 * @param data buffer
 	 * @param val value to write
 	 */
-	inline void WriteString(std::vector<BYTE>& data, const char* val) {
-		const BYTE* valLoc = reinterpret_cast<const BYTE*>(val);
+	inline void WriteString(std::vector<byte>& data, const char* val) {
+		const byte* valLoc = reinterpret_cast<const byte*>(val);
 		data.insert(data.end(), valLoc, valLoc + strlen(val) + 1);
 	}
 	/*
@@ -113,15 +113,15 @@ namespace utils {
 	 * @param val value to write
 	 */
 	template<typename SizeType, typename Type>
-	inline void WritePaddedValue(std::vector<BYTE>& data, Type val) {
-		BYTE* valLoc = reinterpret_cast<BYTE*>(&val);
+	inline void WritePaddedValue(std::vector<byte>& data, Type val) {
+		byte* valLoc = reinterpret_cast<byte*>(&val);
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
 		static_assert(sizeof(SizeType) >= sizeof(Type), "Trying to write bigger elements possible");
 		constexpr auto delta = sizeof(SizeType) - sizeof(Type);
 		if (delta) {
 			Type t{};
 			// fill with 0
-			data.insert(data.end(), reinterpret_cast<BYTE*>(&t), reinterpret_cast<BYTE*>(&t) + delta);
+			data.insert(data.end(), reinterpret_cast<byte*>(&t), reinterpret_cast<byte*>(&t) + delta);
 		}
 	}
 	/*
@@ -132,44 +132,44 @@ namespace utils {
 	 */
 	std::ostream& Padding(std::ostream& out, int padding);
 	/*
-	 * Cat 2 UINT32 into a UINT64
+	 * Cat 2 uint32_t into a uint64_t
 	 * @param name_space high value
 	 * @param local low value
 	 * @return cat value
 	 */
-	UINT64 CatLocated(UINT32 name_space, UINT32 local);
+	uint64_t CatLocated(uint32_t name_space, uint32_t local);
 	/*
-	 * Uncat 2 UINT32 into a UINT64
+	 * Uncat 2 uint32_t into a uint64_t
 	 * @param located cat value
 	 * @return high value and low value
 	 */
-	std::pair<UINT32, UINT32> UnCatLocated(UINT64 located);
+	std::pair<uint32_t, uint32_t> UnCatLocated(uint64_t located);
 	/*
-	 * Cat 2 UINT16 into a UINT32
+	 * Cat 2 uint16_t into a uint32_t
 	 * @param a high value
 	 * @param b low value
 	 * @return cat value
 	 */
-	UINT32 CatLocated32(UINT16 a, UINT16 b);
+	uint32_t CatLocated32(uint16_t a, uint16_t b);
 	/*
-	 * Uncat 2 UINT16 into a UINT32
+	 * Uncat 2 uint16_t into a uint32_t
 	 * @param located cat value
 	 * @return high value and low value
 	 */
-	std::pair<UINT16, UINT16> UnCatLocated32(UINT32 located);
+	std::pair<uint16_t, uint16_t> UnCatLocated32(uint32_t located);
 	/*
-	 * Cat 2 BYTE into a UINT16
+	 * Cat 2 byte into a uint16_t
 	 * @param a high value
 	 * @param b low value
 	 * @return cat value
 	 */
-	UINT16 CatLocated16(BYTE a, BYTE b);
+	uint16_t CatLocated16(byte a, byte b);
 	/*
-	 * Uncat 2 BYTE into a UINT16
+	 * Uncat 2 byte into a uint16_t
 	 * @param located cat value
 	 * @return high value and low value
 	 */
-	std::pair<BYTE, BYTE> UnCatLocated16(UINT16 located);
+	std::pair<byte, byte> UnCatLocated16(uint16_t located);
 
 	/*
 	 * Get all the files in a directory
@@ -189,17 +189,17 @@ namespace utils {
 	/*
 	 * Get a char to a byte value, throw invalid_argument for bad character
 	 * @param c char value (a-fA-F0-9)
-	 * @return BYTE value 0x0-0xf
+	 * @return byte value 0x0-0xf
 	 */
-	inline BYTE ctob(char c) {
+	inline byte ctob(char c) {
 		if (c >= 'A' && c <= 'F') {
-			return (BYTE)(c - 'A' + 0xA);
+			return (byte)(c - 'A' + 0xA);
 		}
 		if (c >= 'a' && c <= 'f') {
-			return (BYTE)(c - 'a' + 0xA);
+			return (byte)(c - 'a' + 0xA);
 		}
 		if (c >= '0' && c <= '9') {
-			return (BYTE)(c - '0' + 0);
+			return (byte)(c - '0' + 0);
 		}
 		throw std::invalid_argument(std::format("Invalid character {:x}", c));
 	}

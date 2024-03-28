@@ -5,8 +5,8 @@ namespace {
 	int lookuptool(Process& proc, int argc, const char* argv[]) {
 		hashutils::ReadDefaultFile();
 		for (int i = 2; i < argc; i++) {
-			INT64 v = strtoull(argv[i], nullptr, 0x10);
-			LPCCH extract = hashutils::ExtractPtr(v);
+			int64_t v = strtoull(argv[i], nullptr, 0x10);
+			const char* extract = hashutils::ExtractPtr(v);
 			if (extract) {
 				LOG_INFO("{:x}={}", v, extract);
 			}
@@ -25,7 +25,7 @@ namespace {
 	}
 
 	int hash64(Process& proc, int argc, const char* argv[]) {
-		UINT64 sur;
+		uint64_t sur;
 		int i = 2;
 		if (argc >= 3 && !_strcmpi("--iw", argv[2])) {
 			sur = 0x47F5817A5EF961BA;

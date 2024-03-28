@@ -10,16 +10,16 @@
 
 class TargetReplace {
 public:
-	UINT64 m_name;
-	UINT32 m_replace;
-	BYTE* m_toReplace;
+	uint64_t m_name;
+	uint32_t m_replace;
+	byte* m_toReplace;
 	size_t m_size;
 	bool link = false;
 	uintptr_t patchLocation = 0;
-	std::unique_ptr<BYTE[]> m_replacedData;
+	std::unique_ptr<byte[]> m_replacedData;
 
-	TargetReplace(UINT64 name, UINT32 replace, BYTE* toReplace, size_t size) : 
-		m_name(name), m_replace(replace), m_toReplace(toReplace), m_size(size), m_replacedData(new BYTE[size]) {
+	TargetReplace(uint64_t name, uint32_t replace, byte* toReplace, size_t size) : 
+		m_name(name), m_replace(replace), m_toReplace(toReplace), m_size(size), m_replacedData(new byte[size]) {
 	}
 };
 
@@ -39,7 +39,7 @@ int t8customee(int argc, const char* argv[]) {
 	auto oldpid = proc.m_pid;
 
 	uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
-	INT32 poolSize = proc.ReadMemory<INT32>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
+	int32_t poolSize = proc.ReadMemory<int32_t>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
 
 
 	if (!poolPtr || !poolSize) {
@@ -55,14 +55,14 @@ int t8customee(int argc, const char* argv[]) {
 		return tool::BASIC_ERROR; // can't read buffer
 	}
 
-	UINT64 name = hashutils::Hash64("scripts/zm_common/zm_utility");
-	UINT32 targetFunction = hashutils::Hash32("is_ee_enabled");
+	uint64_t name = hashutils::Hash64("scripts/zm_common/zm_utility");
+	uint32_t targetFunction = hashutils::Hash32("is_ee_enabled");
 
 	// CheckClearParams 0x000d
 	// GetByte 0x018a 0x01
 	// Align 0x00
 	// Return 0x003c
-	BYTE data[] = {0x0d, 0x00, 0x8a, 0x01, 0x01, 0x00, 0x3c, 0x00};
+	byte data[] = {0x0d, 0x00, 0x8a, 0x01, 0x01, 0x00, 0x3c, 0x00};
 
 	TargetReplace targets[2] = {
 		TargetReplace(hashutils::Hash64(".gsc", name), targetFunction, data, sizeof(data)),
@@ -112,7 +112,7 @@ int t8customee(int argc, const char* argv[]) {
 					std::cout << "found " << std::hex << buffer[i].name << "::" << exports[j].name << ", patching...\n";
 
 					// align even if I don't think it is useful
-					auto patchLocation = utils::Aligned<UINT16>((buffer[i].buffer + exports[j].address));
+					auto patchLocation = utils::Aligned<uint16_t>((buffer[i].buffer + exports[j].address));
 
 
 					if (!proc.ReadMemory(&target.m_replacedData[0], patchLocation, target.m_size)) {
@@ -170,9 +170,9 @@ int t8customee(int argc, const char* argv[]) {
 	}
 
 	for (auto& target : targets) {
-		auto raw = proc2.ReadMemory<UINT32>(target.patchLocation);
+		auto raw = proc2.ReadMemory<uint32_t>(target.patchLocation);
 
-		if (raw != *reinterpret_cast<UINT32*>(target.m_toReplace)) {
+		if (raw != *reinterpret_cast<uint32_t*>(target.m_toReplace)) {
 			std::cerr << "Not the same start data for " << std::hex << target.m_name << ", this is not an error if you left the zombies mode\n"
 				<< target.m_toReplace << " != " << raw << "\n";
 			continue; // not the same data ignore

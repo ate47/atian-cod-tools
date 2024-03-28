@@ -4,5 +4,5 @@
 namespace stringtables {
 	void SyncTables();
 
-	LPVOID GetTable(UINT64 name);
+	void* GetTable(uint64_t name);
 }

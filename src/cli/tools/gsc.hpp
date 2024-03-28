@@ -35,21 +35,22 @@ namespace tool::gsc {
         bool m_show_pre_dump{};
         bool m_show_ref_count{};
         bool m_test_header{};
-        LPCCH m_rosetta{};
-        LPCCH m_dump_hashmap{};
-        LPCCH m_dump_strings{};
-        LPCCH m_outputDir{};
-        LPCCH m_copyright{};
+        const char* m_rosetta{};
+        const char* m_dump_hashmap{};
+        const char* m_dump_strings{};
+        const char* m_outputDir{};
+        const char* m_copyright{};
         bool m_show_internal_blocks{};
         bool m_show_func_vars{};
         bool m_mark_jump_type{};
-        UINT32 m_stepskip{};
+        bool m_display_stack{};
+        uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
         const formatter::FormatterInfo* m_formatter{};
 
 
-        std::vector<LPCCH> m_inputFiles{};
+        std::vector<const char*> m_inputFiles{};
 
         GscInfoOption();
         /*
@@ -59,7 +60,7 @@ namespace tool::gsc {
          * @param startIndex End index in args (exclusive)
          * @return if the arguments were correctly computed
          */
-        bool Compute(LPCCH* args, INT startIndex, INT endIndex);
+        bool Compute(const char** args, INT startIndex, INT endIndex);
         /*
          * Print help in a stream
          */
@@ -155,6 +156,7 @@ namespace tool::gsc {
 
             TYPE_PRECODEPOS,
             TYPE_SET,
+            TYPE_WAITTILL_SET,
             TYPE_DELTA,
             TYPE_ACCESS,
             TYPE_END,
@@ -193,7 +195,7 @@ namespace tool::gsc {
                 return false;
             }
         }
-        enum T8GSCLocalVarFlag : UINT8 {
+        enum T8GSCLocalVarFlag : uint8_t {
             ARRAY_REF = 0x01,
             VARIADIC = 0x02,
             T9_VAR_REF = 0x04 // T9
@@ -202,11 +204,11 @@ namespace tool::gsc {
         class OPCodeInfo {
         public:
             OPCode m_id;
-            LPCCH m_name;
+            const char* m_name;
 
-            OPCodeInfo(OPCode id, LPCCH name);
-            virtual int Dump(std::ostream& out, UINT16 value, ASMContext& context, T8GSCOBJContext& objctx) const;
-            virtual int Skip(UINT16 value, ASMSkipContext& ctx) const;
+            OPCodeInfo(OPCode id, const char* name);
+            virtual int Dump(std::ostream& out, uint16_t value, ASMContext& context, T8GSCOBJContext& objctx) const;
+            virtual int Skip(uint16_t value, ASMSkipContext& ctx) const;
         };
         class ASMContextNode {
         public:
@@ -214,7 +216,7 @@ namespace tool::gsc {
             ASMContextNodeType m_type;
             bool m_renderRefIfAny = true;
             bool m_renderSemicolon = true;
-            INT32 m_rlocEstimated = -1;
+            int32_t m_rlocEstimated = -1;
 
             ASMContextNode(ASMContextNodePriority priority, ASMContextNodeType type = TYPE_UNDEFINED);
             virtual ~ASMContextNode();
@@ -234,9 +236,9 @@ namespace tool::gsc {
         };
 
         struct asmcontextlocation {
-            INT32 rloc = 0;
+            int32_t rloc = 0;
             bool handled = false;
-            std::set<INT32> refs{};
+            std::set<int32_t> refs{};
             ASMContextNode* objectId = nullptr;
             ASMContextNode* fieldId = nullptr;
             std::vector<ASMContextNode*> m_stack{};
@@ -244,7 +246,7 @@ namespace tool::gsc {
             asmcontextlocation();
             ~asmcontextlocation();
 
-            void RemoveRef(INT32 origin);
+            void RemoveRef(int32_t origin);
         };
 
         struct ASMContextStatement {
@@ -275,44 +277,44 @@ namespace tool::gsc {
             int ComputeReturnJump(ASMContext& ctx);
             int ComputeBoolReturn(ASMContext& ctx);
 
-            ASMContextStatement* FetchFirstForLocation(INT64 rloc);
+            ASMContextStatement* FetchFirstForLocation(int64_t rloc);
 
             void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx) override;
         };
 
         struct ASMContextLocalVar {
-            UINT64 name;
-            BYTE flags;
+            uint64_t name;
+            byte flags;
             ASMContextNode* defaultValueNode = nullptr;
         };
 
         class ASMSkipContext {
         public:
             // fonction start location
-            BYTE* m_fonctionStart;
+            byte* m_fonctionStart;
             // file platform
             Platform m_platform;
             // object context
             VmInfo* m_vminfo;
             // locations
-            std::map<INT32, asmcontextlocation> m_locs{};
+            std::map<int32_t, asmcontextlocation> m_locs{};
             // current context location
-            BYTE* m_bcl;
+            byte* m_bcl;
             // error
             std::string m_error{};
 
-            ASMSkipContext(BYTE* fonctionStart, Platform platform, VmInfo* m_vm);
+            ASMSkipContext(byte* fonctionStart, Platform platform, VmInfo* m_vm);
 
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
-            inline BYTE*& Aligned() {
+            inline byte*& Aligned() {
                 return m_bcl = utils::Aligned<Type>(m_bcl);
             }
 
-            inline INT32 FunctionRelativeLocation(BYTE* bytecodeLocation) {
-                return (INT32)(reinterpret_cast<uintptr_t>(bytecodeLocation) - reinterpret_cast<uintptr_t>(m_fonctionStart));
+            inline int32_t FunctionRelativeLocation(byte* bytecodeLocation) {
+                return (int32_t)(reinterpret_cast<uintptr_t>(bytecodeLocation) - reinterpret_cast<uintptr_t>(m_fonctionStart));
             }
-            inline INT32 FunctionRelativeLocation() {
+            inline int32_t FunctionRelativeLocation() {
                 return FunctionRelativeLocation(m_bcl);
             }
             // Push the current location to the locations
@@ -320,11 +322,11 @@ namespace tool::gsc {
                 return PushLocation(m_bcl);
             }
             // @return Push a location to the locations and return it
-            asmcontextlocation& PushLocation(BYTE* location);
+            asmcontextlocation& PushLocation(byte* location);
 
             // find next location
             bool FindNextLocation();
-            inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(UINT16 opcode) {
+            inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(uint16_t opcode) {
                 return tool::gsc::opcode::LookupOpCode(m_vminfo->vm, m_platform, opcode);
             }
         };
@@ -340,17 +342,17 @@ namespace tool::gsc {
             // find error
             bool m_disableDecompiler{};
             // fonction start location
-            BYTE* m_fonctionStart;
+            byte* m_fonctionStart;
             // script reader
             GSCOBJReader& m_gscReader;
             // locations
-            std::map<INT32, asmcontextlocation> m_locs{};
+            std::map<int32_t, asmcontextlocation> m_locs{};
             // current context location
-            BYTE* m_bcl;
+            byte* m_bcl;
             // last op base
-            INT32 m_lastOpCodeBase;
+            int32_t m_lastOpCodeBase;
             // export namespace
-            UINT64 m_namespace;
+            uint64_t m_namespace;
             // current objectid
             ASMContextNode* m_objectId = nullptr;
             // current fieldid
@@ -362,20 +364,20 @@ namespace tool::gsc {
             // local vars
             std::vector<ASMContextLocalVar> m_localvars{};
             // local vars ref
-            std::unordered_map<UINT64, INT32> m_localvars_ref{};
+            std::unordered_map<uint64_t, int32_t> m_localvars_ref{};
             // export
             GSCExportReader& m_exp;
             void* m_readerHandle;
             // file vm
-            BYTE m_vm;
+            byte m_vm;
             // file platform
             Platform m_platform;
 
-            ASMContext(BYTE* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, UINT64 nsp, GSCExportReader& exp, void* m_readerHandle, BYTE vm, Platform platform);
+            ASMContext(byte* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* m_readerHandle, byte vm, Platform platform);
             ~ASMContext();
 
             // @return relative location in the function
-            inline INT32 FunctionRelativeLocation() {
+            inline int32_t FunctionRelativeLocation() {
                 return FunctionRelativeLocation(m_bcl);
             }
             // Push the current location to the locations
@@ -383,7 +385,7 @@ namespace tool::gsc {
                 return PushLocation(m_bcl);
             }
             // @return Push a location to the locations and return it
-            asmcontextlocation& PushLocation(BYTE* location);
+            asmcontextlocation& PushLocation(byte* location);
 
             // @return find the next location to handle, false if no new location can be find, false otherwise
             bool FindNextLocation();
@@ -392,10 +394,10 @@ namespace tool::gsc {
              * @param bytecodeLocation Location
              * @return relative from function start
              */
-            INT32 FunctionRelativeLocation(BYTE* bytecodeLocation);
+            int32_t FunctionRelativeLocation(byte* bytecodeLocation);
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
-            inline BYTE*& Aligned() {
+            inline byte*& Aligned() {
                 return m_bcl = utils::Aligned<Type>(m_bcl);
             }
             // @return Write asm padding and return out
@@ -409,7 +411,7 @@ namespace tool::gsc {
              * @param opcode op code
              * @return handler
              */
-            inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(UINT16 opcode) {
+            inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(uint16_t opcode) {
                 return tool::gsc::opcode::LookupOpCode(m_vm, m_platform, opcode);
             }
 
@@ -418,7 +420,7 @@ namespace tool::gsc {
              * @param name Var name
              * @return local var id or -1 if not defined in this context
              */
-            int GetLocalVarIdByName(UINT64 name) const;
+            int GetLocalVarIdByName(uint64_t name) const;
 
             /*
              * Push an ASMContext (ASMC) node on the stack
@@ -530,39 +532,39 @@ namespace tool::gsc {
     }
 
     struct GsicDetour {
-        UINT32 name;
-        UINT32 replaceNamespace;
-        UINT32 replaceFunction;
-        INT32 fixupOffset;
-        INT32 fixupSize;
-        INT32 replaceScriptTop;
-        INT32 replaceScriptBottom;
+        uint32_t name;
+        uint32_t replaceNamespace;
+        uint32_t replaceFunction;
+        int32_t fixupOffset;
+        int32_t fixupSize;
+        int32_t replaceScriptTop;
+        int32_t replaceScriptBottom;
     };
     struct GsicInfo {
         bool isGsic = false;
         size_t headerSize = 0;
-        std::unordered_map<UINT64, GsicDetour*> detours{};
+        std::unordered_map<uint64_t, GsicDetour*> detours{};
     };
     struct asmcontext_func {
-        UINT64 name;
-        UINT64 nsp;
+        uint64_t name;
+        uint64_t nsp;
     };
     struct gscclass {
-        UINT64 name_space = 0;
-        std::set<UINT64> m_superClass{};
-        std::vector<UINT64> m_methods{};
-        std::unordered_map<UINT64, asmcontext_func> m_vtable{};
+        uint64_t name_space = 0;
+        std::set<uint64_t> m_superClass{};
+        std::vector<uint64_t> m_methods{};
+        std::unordered_map<uint64_t, asmcontext_func> m_vtable{};
     };
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
-        std::unordered_map<UINT16, UINT64> m_gvars{};
-        std::unordered_map<UINT32, LPCCH> m_stringRefs{};
+        std::unordered_map<uint16_t, uint64_t> m_gvars{};
+        std::unordered_map<uint32_t, const char*> m_stringRefs{};
     public:
         std::vector<IW23GSCImport> m_linkedImports{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
-        std::unordered_map<UINT64, gscclass> m_classes{};
+        std::unordered_map<uint64_t, gscclass> m_classes{};
         T8GSCOBJContext();
 
         /*
@@ -570,58 +572,58 @@ namespace tool::gsc {
          * @param gvarRef ref
          * @return name or 0
          */
-        UINT64 GetGlobalVarName(UINT16 gvarRef);
+        uint64_t GetGlobalVarName(uint16_t gvarRef);
         /*
          * Get a string for a string string ref
          * @param stringRef ref
          * @return string or null
          */
-        LPCCH GetStringValue(UINT32 stringRef);
+        const char* GetStringValue(uint32_t stringRef);
         /*
          * Add a global var
          * @param value name
          * @return var ref
          */
-        UINT16 AddGlobalVarName(UINT64 value);
+        uint16_t AddGlobalVarName(uint64_t value);
         /*
          * Add a string
          * @param value string
          * @return new string ref
          */
-        UINT32 AddStringValue(LPCCH value);
+        uint32_t AddStringValue(const char* value);
 
 
     };
 
     struct T8GSCOBJ {
-        BYTE magic[8];
-        INT32 crc;
-        INT32 pad;
-        UINT64 name;
-        INT32 include_offset;
-        UINT16 string_count;
-        UINT16 exports_count;
-        INT32 cseg_offset;
-        INT32 string_offset;
-        INT16 imports_count;
-        UINT16 fixup_count;
-        INT32 ukn2c;
-        INT32 export_table_offset;
-        INT32 ukn34;
-        INT32 imports_offset;
-        UINT16 globalvar_count;
-        INT32 fixup_offset;
-        INT32 globalvar_offset;
-        INT32 script_size;
-        INT32 requires_implements_offset;
-        INT32 ukn50;
-        INT32 cseg_size;
-        UINT16 include_count;
-        BYTE ukn5a;
-        BYTE requires_implements_count;
+        byte magic[8];
+        int32_t crc;
+        int32_t pad;
+        uint64_t name;
+        int32_t include_offset;
+        uint16_t string_count;
+        uint16_t exports_count;
+        int32_t cseg_offset;
+        int32_t string_offset;
+        int16_t imports_count;
+        uint16_t fixup_count;
+        int32_t ukn2c;
+        int32_t export_table_offset;
+        int32_t ukn34;
+        int32_t imports_offset;
+        uint16_t globalvar_count;
+        int32_t fixup_offset;
+        int32_t globalvar_offset;
+        int32_t script_size;
+        int32_t requires_implements_offset;
+        int32_t ukn50;
+        int32_t cseg_size;
+        uint16_t include_count;
+        byte ukn5a;
+        byte requires_implements_count;
 
         // @return the vm
-        inline BYTE GetVm() {
+        inline byte GetVm() {
             return magic[7];
         }
     };
@@ -652,39 +654,39 @@ namespace tool::gsc {
         uint32_t unk54;
 
         // @return the vm
-        inline BYTE GetVm() {
+        inline byte GetVm() {
             return magic[7];
         }
     };
 
     struct T9GSCOBJ {
-        BYTE magic[8];
-        INT32 crc;
-        INT32 pad0c;
-        UINT64 name;
-        UINT16 string_count;
-        UINT16 exports_count;
-        UINT16 imports_count;
-        UINT16 unk1e;
-        UINT16 globalvar_count;
-        UINT16 unk22;
-        UINT16 includes_count;
-        UINT16 unk26;
-        UINT32 unk28;
-        UINT32 cseg_offset;
-        UINT32 string_offset;
-        UINT32 includes_table;
-        UINT32 exports_tables;
-        UINT32 import_tables;
-        UINT32 unk40;
-        UINT32 globalvar_offset;
-        UINT32 file_size;
-        UINT32 unk4c;
-        UINT32 cseg_size;
-        UINT32 unk54;
+        byte magic[8];
+        int32_t crc;
+        int32_t pad0c;
+        uint64_t name;
+        uint16_t string_count;
+        uint16_t exports_count;
+        uint16_t imports_count;
+        uint16_t unk1e;
+        uint16_t globalvar_count;
+        uint16_t unk22;
+        uint16_t includes_count;
+        uint16_t unk26;
+        uint32_t unk28;
+        uint32_t cseg_offset;
+        uint32_t string_offset;
+        uint32_t includes_table;
+        uint32_t exports_tables;
+        uint32_t import_tables;
+        uint32_t unk40;
+        uint32_t globalvar_offset;
+        uint32_t file_size;
+        uint32_t unk4c;
+        uint32_t cseg_size;
+        uint32_t unk54;
 
         // @return the vm
-        inline BYTE GetVm() {
+        inline byte GetVm() {
             return magic[7];
         }
     };
@@ -720,8 +722,8 @@ namespace tool::gsc {
         uint32_t string_table;
         uint32_t unk5C;
 
-        UINT64 GetMagic() {
-            return *reinterpret_cast<UINT64*>(magic);
+        uint64_t GetMagic() {
+            return *reinterpret_cast<uint64_t*>(magic);
         }
     };
 
@@ -731,27 +733,27 @@ namespace tool::gsc {
     };
 
     struct T8GSCImport {
-        UINT32 name;
-        UINT32 import_namespace;
-        UINT16 num_address;
-        UINT8 param_count;
-        UINT8 flags;
+        uint32_t name;
+        uint32_t import_namespace;
+        uint16_t num_address;
+        uint8_t param_count;
+        uint8_t flags;
     };
 
     struct T8GSCGlobalVar {
-        UINT32 name;
-        UINT32 num_address;
+        uint32_t name;
+        uint32_t num_address;
     };
     
     struct T8GSCExport {
-        UINT32 checksum;
-        UINT32 address;
-        UINT32 name;
-        UINT32 name_space;
-        UINT32 callback_event;
-        UINT8 param_count;
-        UINT8 flags;
-        UINT16 padding;
+        uint32_t checksum;
+        uint32_t address;
+        uint32_t name;
+        uint32_t name_space;
+        uint32_t callback_event;
+        uint8_t param_count;
+        uint8_t flags;
+        uint16_t padding;
     };
 
     struct GSCExportReader {
@@ -776,14 +778,14 @@ namespace tool::gsc {
      * @param vm origin vm
      * @return size or 0 if a bad opcode was found
      */
-    int ComputeSize(GSCExportReader& exp, BYTE* gscFile, gsc::opcode::Platform plt, gsc::opcode::VmInfo* vminfo);
+    int ComputeSize(GSCExportReader& exp, byte* gscFile, gsc::opcode::Platform plt, gsc::opcode::VmInfo* vminfo);
 
     struct IW23GSCImport {
-        UINT64 name;
-        UINT64 name_space;
-        UINT16 num_address;
-        UINT8 param_count;
-        UINT8 flags;
+        uint64_t name;
+        uint64_t name_space;
+        uint16_t num_address;
+        uint8_t param_count;
+        uint8_t flags;
     };
 
     struct IW23GSCExport {
@@ -798,10 +800,10 @@ namespace tool::gsc {
 
     class GSCOBJReader {
     public:
-        BYTE* file;
+        byte* file;
         const GscInfoOption& opt;
 
-        GSCOBJReader(BYTE* file, const GscInfoOption& opt);
+        GSCOBJReader(byte* file, const GscInfoOption& opt);
 
         /*
          * Return a pointer at a particular shift
@@ -809,7 +811,7 @@ namespace tool::gsc {
          * @param T align type
          * @return Pointer
          */
-        template<typename T = BYTE>
+        template<typename T = byte>
         inline T* Ptr(size_t shift = 0) {
             return reinterpret_cast<T*>(file + shift);
         }
@@ -821,7 +823,7 @@ namespace tool::gsc {
          * @param R return type
          * @return Pointer
          */
-        template<typename T = BYTE, typename R = T>
+        template<typename T = byte, typename R = T>
         inline R* PtrAlign(size_t shift = 0) {
             return reinterpret_cast<R*>(utils::Aligned<T>(file + shift));
         }
@@ -832,7 +834,7 @@ namespace tool::gsc {
          * @param T align type
          * @return Ref
          */
-        template<typename T = BYTE>
+        template<typename T = byte>
         inline T& Ref(size_t shift = 0) {
             return *Ptr<T>(shift);
         }
@@ -844,43 +846,43 @@ namespace tool::gsc {
          * @param R return type
          * @return Ref
          */
-        template<typename T = BYTE, typename R = T>
+        template<typename T = byte, typename R = T>
         inline R& RefAlign(size_t shift = 0) {
             return *PtrAlign<T, R>(shift);
         }
 
-        BYTE GetVM() {
+        byte GetVM() {
             return file[7];
         }
 
-        virtual UINT64 GetName() = 0;
+        virtual uint64_t GetName() = 0;
         virtual bool IsValidHeader(size_t size) = 0;
-        virtual UINT16 GetExportsCount() = 0;
-        virtual UINT32 GetExportsOffset() = 0;
-        virtual UINT16 GetIncludesCount() = 0;
-        virtual UINT32 GetIncludesOffset() = 0;
-        virtual UINT16 GetImportsCount() = 0;
-        virtual UINT32 GetImportsOffset() = 0;
-        virtual UINT16 GetStringsCount() = 0;
-        virtual UINT32 GetStringsOffset() = 0;
-        virtual UINT16 GetGVarsCount() = 0;
-        virtual UINT32 GetGVarsOffset() = 0;
-        virtual UINT32 GetFileSize() = 0;
+        virtual uint16_t GetExportsCount() = 0;
+        virtual uint32_t GetExportsOffset() = 0;
+        virtual uint16_t GetIncludesCount() = 0;
+        virtual uint32_t GetIncludesOffset() = 0;
+        virtual uint16_t GetImportsCount() = 0;
+        virtual uint32_t GetImportsOffset() = 0;
+        virtual uint16_t GetStringsCount() = 0;
+        virtual uint32_t GetStringsOffset() = 0;
+        virtual uint16_t GetGVarsCount() = 0;
+        virtual uint32_t GetGVarsOffset() = 0;
+        virtual uint32_t GetFileSize() = 0;
         virtual size_t GetHeaderSize() = 0;
         virtual char* DecryptString(char* str) = 0;
-        virtual BYTE RemapFlagsImport(BYTE flags);
-        virtual BYTE RemapFlagsExport(BYTE flags);
-        virtual UINT16 GetAnimTreeSingleCount() = 0;
-        virtual UINT32 GetAnimTreeSingleOffset() = 0;
-        virtual UINT16 GetAnimTreeDoubleCount() = 0;
-        virtual UINT32 GetAnimTreeDoubleOffset() = 0;
+        virtual byte RemapFlagsImport(byte flags);
+        virtual byte RemapFlagsExport(byte flags);
+        virtual uint16_t GetAnimTreeSingleCount() = 0;
+        virtual uint32_t GetAnimTreeSingleOffset() = 0;
+        virtual uint16_t GetAnimTreeDoubleCount() = 0;
+        virtual uint32_t GetAnimTreeDoubleOffset() = 0;
 
         virtual void DumpHeader(std::ostream& asmout) = 0;
         virtual void PatchCode(T8GSCOBJContext& ctx);
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt);
     };
 
-    enum T8GSCExportFlags : UINT8 {
+    enum T8GSCExportFlags : uint8_t {
         LINKED = 0x01,
         AUTOEXEC = 0x02,
         PRIVATE = 0x04,
@@ -892,7 +894,7 @@ namespace tool::gsc {
         CLASS_VTABLE = 0x86
     };
 
-    enum T8GSCImportFlags : UINT8 {
+    enum T8GSCImportFlags : uint8_t {
         FUNC_METHOD = 0x1,
         FUNCTION = 0x2,
         FUNCTION_THREAD = 0x3,
@@ -907,7 +909,7 @@ namespace tool::gsc {
         UKN80 = 0x80
     };
 
-    enum T9GSCExportFlags : UINT8 {
+    enum T9GSCExportFlags : uint8_t {
         T9_EF_AUTOEXEC = 0x01,
         T9_EF_LINKED = 0x02,
         T9_EF_PRIVATE = 0x04,
@@ -919,7 +921,7 @@ namespace tool::gsc {
         T9_EF_CLASS_VTABLE = 0x15
     };
 
-    enum T9GSCImportFlags : UINT8 {
+    enum T9GSCImportFlags : uint8_t {
         T9_IF_METHOD_CHILDTHREAD = 0x1,
         T9_IF_METHOD_THREAD = 0x2,
         T9_IF_FUNCTION_CHILDTHREAD = 0x3,
@@ -935,19 +937,19 @@ namespace tool::gsc {
     };
 
     struct T8GSCString {
-        UINT32 string;
-        UINT8 num_address;
-        UINT8 type;
-        UINT16 pad;
+        uint32_t string;
+        uint8_t num_address;
+        uint8_t type;
+        uint16_t pad;
     };
 
-    enum RosettaBlockType : BYTE {
+    enum RosettaBlockType : byte {
         RBT_START = 0x50,
         RBT_OPCODE = 0x51,
     };
     struct RosettaOpCodeBlock {
-        UINT32 location;
-        UINT16 opcode;
+        uint32_t location;
+        uint16_t opcode;
     };
     struct RosettaFileData {
         T8GSCOBJ header;
@@ -964,7 +966,7 @@ namespace tool::gsc {
      * @param loc opcode location
      * @param opcode opcode
      */
-    void RosettaAddOpCode(UINT32 loc, UINT16 opcode);
+    void RosettaAddOpCode(uint32_t loc, uint16_t opcode);
 
     // gsc tool
     int gscinfo(Process& proc, int argc, const char* argv[]);

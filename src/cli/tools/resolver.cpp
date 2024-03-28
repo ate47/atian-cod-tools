@@ -4,7 +4,7 @@ class ResolverPattern;
 
 class ResolverConfig {
 public:
-	std::unordered_set<UINT64> m_hashes{};
+	std::unordered_set<uint64_t> m_hashes{};
 	std::vector<ResolverPattern> m_pattern{};
 	std::string m_dict{};
 	std::string m_output{};
@@ -14,9 +14,9 @@ public:
 class ResolverPattern {
 public:
 	const std::string m_startStr;
-	const UINT64 m_start;
+	const uint64_t m_start;
 	std::string m_suffix;
-	LPCCH m_suffixCStr;
+	const char* m_suffixCStr;
 
 	ResolverPattern(std::string&& startStr, std::string&& suffix)
 		: m_startStr(startStr), m_start(hash::Hash64(startStr.c_str())), m_suffix(suffix) {
@@ -33,8 +33,8 @@ public:
 		m_suffixCStr = m_suffix.data();
 	}
 
-	inline void RunPass(ResolverConfig& cfg, size_t delta, LPCCH dict, size_t dictlen) const {
-		UINT64 p = m_start;
+	inline void RunPass(ResolverConfig& cfg, size_t delta, const char* dict, size_t dictlen) const {
+		uint64_t p = m_start;
 
 		size_t d = delta;
 
@@ -44,7 +44,7 @@ public:
 		}
 		p = (p ^ dict[d]) * 0x100000001b3;
 
-		for (LPCCH e = m_suffixCStr; *e; e++) {
+		for (const char* e = m_suffixCStr; *e; e++) {
 			p = (p ^ *e) * 0x100000001b3;
 		}
 
@@ -143,7 +143,7 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 				break;
 			}
 
-			UINT64 hash;
+			uint64_t hash;
 			auto oldSize = cfg.m_hashes.size();
 
 			while (hashStream >> std::setbase(16) >> hash) {
@@ -215,9 +215,9 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 
 	LOG_INFO("start with {} hash(es) and {} pattern(s)", cfg.m_hashes.size(), cfg.m_pattern.size());
 
-	CHAR namebuff[200] = {0};
+	char namebuff[200] = {0};
 
-	LPCCH dict = cfg.m_dict.data();
+	const char* dict = cfg.m_dict.data();
 	size_t dictlen = cfg.m_dict.length();
 
 	std::vector<std::thread> threads{};

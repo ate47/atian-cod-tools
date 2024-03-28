@@ -303,12 +303,12 @@ public:
     bool m_any_type = false;
     bool m_dump_info = false;
     bool m_dump_all_available = false;
-    LPCCH m_output = "pool";
-    LPCCH m_dump_hashmap = NULL;
+    const char* m_output = "pool";
+    const char* m_dump_hashmap = NULL;
     std::vector<bool> m_dump_types{};
-    UINT64 flags{};
+    uint64_t flags{};
 
-    bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+    bool Compute(const char** args, INT startIndex, INT endIndex) {
         m_dump_types.clear();
         m_dump_types.reserve(pool::ASSET_TYPE_COUNT);
         for (size_t i = 0; i < pool::ASSET_TYPE_COUNT; i++) {
@@ -316,7 +316,7 @@ public:
         }
         // default values
         for (size_t i = startIndex; i < endIndex; i++) {
-            LPCCH arg = args[i];
+            const char* arg = args[i];
 
             if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
                 m_help = true;
@@ -411,16 +411,16 @@ struct XAssetTypeInfo {
 
 struct XAssetPoolEntry {
     uintptr_t pool;
-    UINT32 itemSize;
-    INT32 itemCount;
-    BYTE isSingleton;
-    INT32 itemAllocCount;
+    uint32_t itemSize;
+    int32_t itemCount;
+    byte isSingleton;
+    int32_t itemAllocCount;
     uintptr_t freeHead;
 };
 struct TranslationEntry {
     uintptr_t data;
     uintptr_t name;
-    UINT64 pad0;
+    uint64_t pad0;
 };
 struct RawFileEntry {
     uintptr_t name; // 0x8
@@ -429,27 +429,27 @@ struct RawFileEntry {
     uintptr_t buffer; // 0x20
 };
 struct RawString {
-    UINT64 name; // 0x8
+    uint64_t name; // 0x8
     uintptr_t padding; // 0x10 0
     uintptr_t stringvalue; // 0x18 const char*
 };
 struct LuaFile {
-    UINT64 name;
-    UINT64 pad08;
-    UINT32 size;
+    uint64_t name;
+    uint64_t pad08;
+    uint32_t size;
     uintptr_t buffer;
 };
 struct BGPoolEntry {
-    UINT64 name;
-    UINT64 namepad;
+    uint64_t name;
+    uint64_t namepad;
     uintptr_t assetHeader;
 };
 
 struct BGCache {
-    UINT64 name;
-    UINT64 pad08;
+    uint64_t name;
+    uint64_t pad08;
     uintptr_t def;
-    UINT32 count;
+    uint32_t count;
 };
 
 struct BGCacheInfoDef {
@@ -549,20 +549,20 @@ struct GameTypeTableEntry {
 };
 
 struct GameTypeTable {
-    UINT64 name;
-    UINT64 namepad;
-    UINT32 gameTypeCount;
+    uint64_t name;
+    uint64_t namepad;
+    uint32_t gameTypeCount;
     uintptr_t gameTypes; // GameTypeTableEntry*
     eModes sessionMode;
 };
 struct MapTable {//30
-    UINT64 name;
-    UINT64 namepad;
-    UINT32 mapCount;
+    uint64_t name;
+    uint64_t namepad;
+    uint32_t mapCount;
     uintptr_t maps; // MapTableEntry*
     eModes sessionMode;
-    UINT32 campaignMode;
-    UINT32 dlcIndex;
+    uint32_t campaignMode;
+    uint32_t dlcIndex;
 };
 struct MapTableListElem
 {
@@ -605,12 +605,12 @@ enum StringTableCellType : INT {
 
 
 struct StringTableCell {
-    BYTE value[20];
+    byte value[20];
     StringTableCellType type;
 };
 // item size ... 40
 struct StringTableEntry {
-    UINT64 name; // 8
+    uint64_t name; // 8
     int pad8; // 12
     int pad12; // 16
     int columnCount; // 20
@@ -624,11 +624,11 @@ struct StringTableEntry {
 };
 #pragma endregion
 
-inline bool HexValidString(LPCCH str) {
+inline bool HexValidString(const char* str) {
     if (!*str) {
         return false;
     }
-    for (LPCCH s = str; *s; s++) {
+    for (const char* s = str; *s; s++) {
         if (*s < ' ' || *s > '~') {
             return false;
         }
@@ -636,8 +636,8 @@ inline bool HexValidString(LPCCH str) {
     return true;
 }
 
-void tool::pool::WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T size, const Process& proc) {
-    CHAR strBuffer[101];
+void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t size, const Process& proc) {
+    char strBuffer[101];
     for (size_t j = 0; j < size; j++) {
         if (j % 8 == 0) {
             if (base) {
@@ -645,7 +645,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T 
             }
             out << std::hex << std::setw(3) << std::setfill('0') << j << "|";
             if (j + 7 < size) {
-                out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<UINT64*>(&buff[j]);
+                out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<uint64_t*>(&buff[j]);
             }
         }
         if (j - j % 8 + 7 >= size) {
@@ -665,7 +665,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T 
 
             // check x64 values
             if (j >= 7) {
-                auto val = *reinterpret_cast<UINT64*>(&buff[j - 7]);
+                auto val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
                 if (val) {
                     // not null, hash?
                     auto* h = hashutils::ExtractPtr(val);
@@ -675,8 +675,8 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T 
                     else if (proc.ReadString(strBuffer, val, sizeof(strBuffer) - 1) >= 0 && HexValidString(strBuffer)) {
                         out << " ->" << strBuffer;
                     }
-                    else if (proc.ReadMemory(strBuffer, val, sizeof(UINT64))) {
-                        auto r = *reinterpret_cast<UINT64*>(strBuffer);
+                    else if (proc.ReadMemory(strBuffer, val, sizeof(uint64_t))) {
+                        auto r = *reinterpret_cast<uint64_t*>(strBuffer);
 
                         auto* h = hashutils::ExtractPtr(r);
                         if (h) {
@@ -695,9 +695,9 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T 
 }
 
 const char* ReadMTString(const Process& proc, uint32_t val) {
-    static CHAR str_read[0x2001];
-    auto strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (UINT32)(0x14 * val);
-    if (!proc.ReadMemory<INT16>(strptr) || proc.ReadMemory<BYTE>(strptr + 3) != 7) {
+    static char str_read[0x2001];
+    auto strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (uint32_t)(0x14 * val);
+    if (!proc.ReadMemory<int16_t>(strptr) || proc.ReadMemory<byte>(strptr + 3) != 7) {
         return nullptr;
     }
     
@@ -705,8 +705,8 @@ const char* ReadMTString(const Process& proc, uint32_t val) {
         return nullptr;
     }
 
-    auto flag = proc.ReadMemory<CHAR>(strptr + 2);
-    LPCCH strDec;
+    auto flag = proc.ReadMemory<char>(strptr + 2);
+    const char* strDec;
     if ((flag & 0x40) || flag >= 0) {
         // not encrypted
         strDec = str_read;
@@ -719,7 +719,7 @@ const char* ReadMTString(const Process& proc, uint32_t val) {
 }
 
 const char* ReadTmpStr(const Process& proc, uintptr_t location) {
-    static CHAR tmp_buff[0x1000];
+    static char tmp_buff[0x1000];
 
     if (proc.ReadString(tmp_buff, location, sizeof(tmp_buff)) < 0) {
         sprintf_s(tmp_buff, "<invalid:%llx>", location);
@@ -769,8 +769,8 @@ void ReadSBName(const Process& proc, const SB_ObjectsArray& arr) {
         return;
     }
 
-    static UINT32 nameHash = hash::Hash32("name");
-    static UINT32 typeHash = hash::Hash32("type");
+    static uint32_t nameHash = hash::Hash32("name");
+    static uint32_t typeHash = hash::Hash32("type");
 
     for (size_t i = 0; i < arr.sbObjectCount; i++) {
         auto& obj = objects[i];
@@ -813,7 +813,7 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
 
     bool nofirst = false;
 
-    std::unordered_set<UINT32> keys{};
+    std::unordered_set<uint32_t> keys{};
 
     if (arr.sbSubCount) {
         struct SB_Sub {
@@ -965,7 +965,7 @@ struct DDLDef {
     uint16_t unk52;
     uint32_t unk54;
 };
-enum DDLType : BYTE
+enum DDLType : byte
 {
     DDL_INVALID_TYPE = 0xFF,
     DDL_BYTE_TYPE = 0,
@@ -983,7 +983,7 @@ enum DDLType : BYTE
 };
 
 const char* DdlTypeName(DDLType type, size_t intSize, size_t bitsize) {
-    static CHAR typeNameBuff[0x10];
+    static char typeNameBuff[0x10];
     switch (type) {
     case DDL_BYTE_TYPE: return "byte";
     case DDL_SHORT_TYPE: return "short";
@@ -1079,7 +1079,7 @@ void ReadDDLStruct(PoolOption& opt, Process& proc, std::ostream& defout, DDLDef&
             return e1.offset < e2.offset;
         });
 
-        INT64 currentShift = 0;
+        int64_t currentShift = 0;
         for (size_t i = 0; i < stct.memberCount; i++) {
 
             auto& mbm = members[i];
@@ -1087,7 +1087,7 @@ void ReadDDLStruct(PoolOption& opt, Process& proc, std::ostream& defout, DDLDef&
 
             if (currentShift != mbm.offset) {
                 defout << "// invalid struct offset, missing ";
-                INT64 delta = (currentShift - (INT64)mbm.offset);
+                int64_t delta = (currentShift - (int64_t)mbm.offset);
                 if (delta >= 0) {
                     defout << "0x" << std::hex << delta;
                 }
@@ -1302,7 +1302,7 @@ int pooltoolnames(Process& proc, int argc, const char* argv[]) {
         auto off = xoffsets[id];
 
         for (size_t asset = 0; asset < entry.itemAllocCount; asset++) {
-            auto xhash = proc.ReadMemory<UINT64>(entry.pool + entry.itemSize * asset + off);
+            auto xhash = proc.ReadMemory<uint64_t>(entry.pool + entry.itemSize * asset + off);
 
             defout << "\n" << std::dec << asset << "," << hashutils::ExtractTmp("hash", xhash) << "," << name;
         }
@@ -1327,7 +1327,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
     std::error_code ec;
     std::filesystem::create_directories(opt.m_output, ec);
 
-    CHAR outputName[256];
+    char outputName[256];
     if (opt.m_dump_info) {
         sprintf_s(outputName, "%s/xassetpools.csv", opt.m_output);
         std::ofstream out{ outputName, std::ios::out };
@@ -1352,7 +1352,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             return tool::BASIC_ERROR;
         }
 
-        CHAR str[100];
+        char str[100];
         for (size_t i = 0; i < count; i++) {
             if (proc.ReadString(str, entryinfo[i].name, sizeof(str) - 1) < 0) {
                 std::cerr << "Can't read xasset name from " << std::hex << entryinfo[i].name << "\n";
@@ -1432,7 +1432,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
 
 
-        CHAR str[4096];
+        char str[4096];
         out << "key,translation\n";
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             if (proc.ReadString(str, raw[i].data, 4096) < 0) {
@@ -1452,8 +1452,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             return tool::BASIC_ERROR;
         }
 
-        CHAR dumpbuff[MAX_PATH + 10];
-        CHAR namebuf[2000];
+        char dumpbuff[MAX_PATH + 10];
+        char namebuf[2000];
         StringTableCell cell[200];
         const size_t cellsize = sizeof(cell) / sizeof(cell[0]);
 
@@ -1528,7 +1528,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         }
                         break;
                     case STC_TYPE_INT:
-                        out << *reinterpret_cast<INT64*>(&cell[j].value[0]);
+                        out << *reinterpret_cast<int64_t*>(&cell[j].value[0]);
                         break;
                     case STC_TYPE_FLOAT:
                         out << *reinterpret_cast<FLOAT*>(&cell[j].value[0]);
@@ -1540,14 +1540,14 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                     case STC_TYPE_HASHED8:
                         //out << cell[j].type;
                     case STC_TYPE_HASHED2:
-                        out << "#" << hashutils::ExtractTmp("hash", *reinterpret_cast<UINT64*>(&cell[j].value[0]));
+                        out << "#" << hashutils::ExtractTmp("hash", *reinterpret_cast<uint64_t*>(&cell[j].value[0]));
                         break;
                     default:
                         //out << "unk type: " << cell[j].type;
                         out << "?" << std::hex
-                            << *reinterpret_cast<UINT64*>(&cell[j].value[0])
-                        //    << ':' << *reinterpret_cast<UINT64*>(&cell[j].value[8])
-                        //    << ':' << *reinterpret_cast<UINT32*>(&cell[j].value[16])
+                            << *reinterpret_cast<uint64_t*>(&cell[j].value[0])
+                        //    << ':' << *reinterpret_cast<uint64_t*>(&cell[j].value[8])
+                        //    << ':' << *reinterpret_cast<uint32_t*>(&cell[j].value[16])
                             << std::dec;
                         break;
                     }
@@ -1581,7 +1581,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR str[4096];
+        char str[4096];
         out << "name,string\n";
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             const auto& p = pool[i];
@@ -1624,7 +1624,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 outFile = outDir / std::format("hashed/{:x}.lua", p.name);
             }
             {
-                auto buffer = std::make_unique<BYTE[]>(p.size);
+                auto buffer = std::make_unique<byte[]>(p.size);
 
                 if (!proc.ReadMemory(&buffer[0], p.buffer, p.size)) {
                     std::cerr << "Can't read buffer for " << outFile.string() << "\n";
@@ -1643,8 +1643,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
-        std::vector<BYTE> read{};
+        char dumpbuff[MAX_PATH + 10];
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -1663,7 +1663,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/hashed/rawfile/file_%llx.raw", opt.m_output, p.name);
             }
 
-            if (!p.buffer || !proc.ReadMemory<UINT64>(p.buffer)) {
+            if (!p.buffer || !proc.ReadMemory<uint64_t>(p.buffer)) {
                 std::cerr << "error when reading buffer at " << p.buffer << "\n";
                 continue;
             }
@@ -1679,7 +1679,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             }
             std::cout << "\n";
 
-            LPCVOID output;
+            const void* output;
             size_t outputsize;
 
             // empty file
@@ -1718,7 +1718,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -1736,7 +1736,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/tables/gametype/file_%llx.json", opt.m_output, p.name);
             }
 
-            if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
+            if (!p.gameTypes || !proc.ReadMemory<uint64_t>(p.gameTypes)) {
                 std::cerr << "error when reading buffer at " << p.gameTypes << "\n";
                 continue;
             }
@@ -1815,10 +1815,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         struct CustomizationTable
         {
             Hash name;
-            UINT32 numPlayerRoles;
+            uint32_t numPlayerRoles;
             uintptr_t playerRoles; // PlayerRoleLevelsPtr*
-            UINT32 numHeads;
-            uintptr_t heads; // CharacterHead*
+            uint32_t numHeads;
+            uintptr_t heads; // characterHead*
         };
 
 
@@ -1828,7 +1828,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -1863,7 +1863,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 ;
 
             if (p.numHeads) {
-                struct CharacterHead {
+                struct characterHead {
                     Hash assetName;
                     Hash displayName;
                     uint64_t icon;
@@ -1876,7 +1876,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                     uint64_t unk50;
                     uint64_t unk58;
                 };
-                auto heads = std::make_unique<CharacterHead[]>(p.numHeads);
+                auto heads = std::make_unique<characterHead[]>(p.numHeads);
 
                 if (!proc.ReadMemory(&heads[0], p.heads, sizeof(heads[0]) * p.numHeads)) {
                     std::cerr << "Can't read heads\n";
@@ -1894,7 +1894,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         << "        {\n"
                         << "            \"name\": \"#" << hashutils::ExtractTmp("hash", h.assetName.name) << "\",\n"
                         << "            \"displayName\": \"#" << hashutils::ExtractTmp("hash", h.displayName.name) << "\",\n"
-                        << "            \"xmodel\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(h.xmodel)) << "\",\n"
+                        << "            \"xmodel\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(h.xmodel)) << "\",\n"
                         << "            \"gender\": " << std::dec << h.gender << "\n"
                         << "        }"
                         ;
@@ -1935,7 +1935,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         uint64_t unk10;
                         uint64_t unk18;
                         Hash unk20;
-                        uintptr_t bodyType; //CharacterBodyType*
+                        uintptr_t bodyType; //characterBodyType*
                         uintptr_t category; //PlayerRoleCategory*
                         uint64_t unk40;
                         uint64_t unk48;
@@ -1945,7 +1945,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         uint64_t pad[10];
                     };
 
-                    struct CharacterBodyType {
+                    struct characterBodyType {
                         Hash name;
                         Hash displayName;
                         Hash description;
@@ -1953,7 +1953,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         uintptr_t mpDialog; // ScriptBundle*
                         uintptr_t chrName; // const char*
 
-                        UINT64 pad[13];
+                        uint64_t pad[13];
                         uint32_t gender;
                         uint32_t unkbc;
                         uint64_t unkc0;
@@ -1982,7 +1982,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         break;
                     }
 
-                    CharacterBodyType body;
+                    characterBodyType body;
 
                     if (!proc.ReadMemory(&body, tmpl.bodyType, sizeof(body))) {
                         std::cerr << "Can't read character body\n";
@@ -2034,7 +2034,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         << "                \"gender\": \"" << (body.gender ? "female" : "male") << "\",\n"
                         ;
                     if (body.mpDialog) {
-                        out << "                \"mpDialogBundle\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(body.mpDialog)) << "\",\n";
+                        out << "                \"mpDialogBundle\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(body.mpDialog)) << "\",\n";
                     }
                     if (body.chrName) {
                         out << "                \"chrName\": \"" << ReadTmpStr(proc, body.chrName) << "\",\n";
@@ -2079,7 +2079,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -2097,7 +2097,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/tables/map/file_%llx.json", opt.m_output, p.name);
             }
 
-            if (!p.maps || !proc.ReadMemory<UINT64>(p.maps)) {
+            if (!p.maps || !proc.ReadMemory<uint64_t>(p.maps)) {
                 std::cerr << "error when reading buffer at " << p.maps << "\n";
                 continue;
             }
@@ -2209,7 +2209,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         WeaponDefProperties props{};
 
@@ -2282,7 +2282,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 if (!ptr) {
                     return;
                 }
-                auto name = proc.ReadMemory<UINT64>(ptr + offset);
+                auto name = proc.ReadMemory<uint64_t>(ptr + offset);
                 if (!name) {
                     return;
                 }
@@ -2750,7 +2750,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
 
 
-            tool::pool::WriteHex(out, entry.pool + sizeof(pool[0]) * i, (BYTE*)&p, sizeof(p), proc);
+            tool::pool::WriteHex(out, entry.pool + sizeof(pool[0]) * i, (byte*)&p, sizeof(p), proc);
             
 
             out.close();
@@ -2767,7 +2767,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -2970,7 +2970,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -3007,7 +3007,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 out << "{\n"
                     << "    \"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n"
                     << "    \"unk0\": " << std::dec << p.unk0 << ",\n"
-                    << "    \"checksum\": " << std::dec << *reinterpret_cast<UINT32*>(&checksum) << ",\n"
+                    << "    \"checksum\": " << std::dec << *reinterpret_cast<uint32_t*>(&checksum) << ",\n"
                     << "    \"maps\": ["
                     ;
 
@@ -3033,7 +3033,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                                 << "            \"mapPlatformMask\": " << std::dec << (int)mapInfo.mapPlatformMask << "\n"
                                 << "        }"
                                 ;
-                            //tool::pool::WriteHex(out, 0, reinterpret_cast<BYTE*>(&mapInfo), sizeof(mapInfo), proc);
+                            //tool::pool::WriteHex(out, 0, reinterpret_cast<byte*>(&mapInfo), sizeof(mapInfo), proc);
                         }
                     }
 
@@ -3152,7 +3152,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                                 if (!ptr) {
                                     return;
                                 }
-                                auto name = proc.ReadMemory<UINT64>(ptr + 0x20);
+                                auto name = proc.ReadMemory<uint64_t>(ptr + 0x20);
                                 if (!name) {
                                     return;
                                 }
@@ -3235,7 +3235,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                                     continue;
                                 }
 
-                                BYTE tmpBuffer[0x28];
+                                byte tmpBuffer[0x28];
                                 
                                 for (size_t l = 0; l < ple.rotations_count; l++) {
                                     auto& rotation = rotations[l];
@@ -3314,9 +3314,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -3418,9 +3418,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -3456,10 +3456,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             utils::Padding(defout, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
             utils::Padding(defout, 1) << "\"displayName\": \"#" << hashutils::ExtractTmp("hash", p.displayName.name) << "\",\n";
             if (p.iconName) {
-                utils::Padding(defout, 1) << "\"iconName\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.iconName + 0x20)) << "\",\n";
+                utils::Padding(defout, 1) << "\"iconName\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(p.iconName + 0x20)) << "\",\n";
             }
             if (p.iconNameLarge) {
-                utils::Padding(defout, 1) << "\"iconNameLarge\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.iconNameLarge + 0x20)) << "\",\n";
+                utils::Padding(defout, 1) << "\"iconNameLarge\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(p.iconNameLarge + 0x20)) << "\",\n";
             }
             utils::Padding(defout, 1) << "\"unlockLevel\": " << std::dec << p.unlockLevel << ",\n";
             utils::Padding(defout, 1) << "\"winsRequired\": " << std::dec << p.winsRequired << ",\n";
@@ -3498,9 +3498,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -3558,8 +3558,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         << std::dec << nfo.unlockLevel << ","
                         << std::dec << nfo.winsRequired << ","
                         << std::dec << nfo.titleOfOrigin << ","
-                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.iconName + 0x20)) << ","
-                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.iconNameLarge + 0x20))
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(nfo.iconName + 0x20)) << ","
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(nfo.iconNameLarge + 0x20))
                         ;
                 }
             }
@@ -3595,9 +3595,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -3635,10 +3635,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             utils::Padding(defout, 1) << "\"fullNameRef\": \"#" << hashutils::ExtractTmp("hash", p.fullNameRef.name) << "\",\n";
             utils::Padding(defout, 1) << "\"ingameNameRef\": \"#" << hashutils::ExtractTmp("hash", p.ingameNameRef.name) << "\",\n";
             if (p.icon) {
-                utils::Padding(defout, 1) << "\"iconName\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.icon + 0x20)) << "\",\n";
+                utils::Padding(defout, 1) << "\"iconName\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(p.icon + 0x20)) << "\",\n";
             }
             if (p.iconLarge) {
-                utils::Padding(defout, 1) << "\"iconNameLarge\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.iconLarge + 0x20)) << "\",\n";
+                utils::Padding(defout, 1) << "\"iconNameLarge\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(p.iconLarge + 0x20)) << "\",\n";
             }
             utils::Padding(defout, 1) << "\"level\": " << std::dec << p.level << ",\n";
             utils::Padding(defout, 1) << "\"minXp\": " << std::dec << p.minXp << ",\n";
@@ -3708,9 +3708,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -3773,8 +3773,8 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         << "#" << hashutils::ExtractTmp("hash", nfo.shortNameRef.name) << ","
                         << "#" << hashutils::ExtractTmp("hash", nfo.fullNameRef.name) << ","
                         << "#" << hashutils::ExtractTmp("hash", nfo.ingameNameRef.name) << ","
-                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.icon + 0x20)) << ","
-                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.icon + 0x20)) << ","
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(nfo.icon + 0x20)) << ","
+                        << "#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(nfo.icon + 0x20)) << ","
                         ;
 
                     if (nfo.rewardsCount) {
@@ -3815,9 +3815,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -3886,12 +3886,12 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                         << "," << nameUn
                         << ",#" << hashutils::ExtractTmp("hash", nfo.name.name)
                         << ",#" << hashutils::ExtractTmp("hash", nfo.displayName.name)
-                        << ",#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(nfo.image + 0x20))
+                        << ",#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(nfo.image + 0x20))
                         << "," << std::dec << (int)nfo.productsCount
                         << "," << (nfo.visibility ? "true" : "false")
                         ;
 
-                    //tool::pool::WriteHex(defout << "\n", 0, (BYTE*)&nfo, sizeof(nfo), proc);
+                    //tool::pool::WriteHex(defout << "\n", 0, (byte*)&nfo, sizeof(nfo), proc);
                 }
             }
 
@@ -3919,9 +3919,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -3961,7 +3961,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             utils::Padding(defout, 1) << "\"name\": \"" << nameUn << "\",\n";
             utils::Padding(defout, 1) << "\"nameHash\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
             utils::Padding(defout, 1) << "\"displayName\": \"#" << hashutils::ExtractTmp("hash", p.displayName.name) << "\",\n";
-            utils::Padding(defout, 1) << "\"imageName\": \"#" << proc.ReadMemory<UINT64>(p.image + 0x20) << "\",\n";
+            utils::Padding(defout, 1) << "\"imageName\": \"#" << proc.ReadMemory<uint64_t>(p.image + 0x20) << "\",\n";
             utils::Padding(defout, 1) << "\"visibility\": " << (p.visibility ? "true" : "false") << ",\n";
             utils::Padding(defout, 1) << "\"products\": [";
             if (p.productsCount) {
@@ -3974,7 +3974,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
                 for (size_t j = 0; j < p.productsCount; j++) {
                     if (j) defout << ",";
-                    utils::Padding(defout << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(products[j])) << "\"";
+                    utils::Padding(defout << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(products[j])) << "\"";
                 }
                 utils::Padding(defout << "\n", 1) << "]\n";
             }
@@ -4024,9 +4024,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -4076,18 +4076,18 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 utils::Padding(defout, 1) << "\"videoHighResRef\": \"" << ReadTmpStr(proc, p.videoHighResRef) << "\",\n";
             }
             if (p.previewImage) {
-                utils::Padding(defout, 1) << "\"previewImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.previewImage + 0x20)) << "\",\n";
+                utils::Padding(defout, 1) << "\"previewImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(p.previewImage + 0x20)) << "\",\n";
             }
             if (p.productImage) {
-                utils::Padding(defout, 1) << "\"productImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.productImage + 0x20)) << "\",\n";
+                utils::Padding(defout, 1) << "\"productImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(p.productImage + 0x20)) << "\",\n";
             }
             if (p.blackMarketImage) {
-                utils::Padding(defout, 1) << "\"blackMarketImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(p.blackMarketImage + 0x20)) << "\",\n";
+                utils::Padding(defout, 1) << "\"blackMarketImageName\": \"" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(p.blackMarketImage + 0x20)) << "\",\n";
             }
             utils::Padding(defout, 1) << "\"visibility\": " << (p.visibility ? "true" : "false") << "\n";
 
             
-            //tool::pool::WriteHex(defout << "\n", 0, (BYTE*)&p, sizeof(p), proc);
+            //tool::pool::WriteHex(defout << "\n", 0, (byte*)&p, sizeof(p), proc);
             defout << "}";
 
 
@@ -4140,9 +4140,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -4263,9 +4263,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         if (opt.flags & DUMP_ASSETS) {
@@ -4291,7 +4291,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 std::filesystem::path file(dumpbuff);
                 std::filesystem::create_directories(file.parent_path(), ec);
 
-                auto data = std::make_unique<BYTE[]>(p.size);
+                auto data = std::make_unique<byte[]>(p.size);
 
                 if (!(proc.ReadMemory(&data[0], p.buffer28, p.size) && utils::WriteFile(file, &data[0], p.size))) {
                     std::cerr << "Can't read/write font\n";
@@ -4342,9 +4342,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         const size_t dumpbuffsize = sizeof(dumpbuff);
-        std::vector<BYTE> read{};
+        std::vector<byte> read{};
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -4396,7 +4396,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             return tool::BASIC_ERROR;
         }
 
-        CHAR nameInfo[pool::BG_CACHE_TYPE_COUNT][200] = {};
+        char nameInfo[pool::BG_CACHE_TYPE_COUNT][200] = {};
         // buffer pool names
         for (size_t i = 0; i < pool::BG_CACHE_TYPE_COUNT; i++) {
             if (proc.ReadString(nameInfo[i], entryinfo[i].name, sizeof(nameInfo[i])) < 0) {
@@ -4405,7 +4405,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             }
         }
 
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -4490,7 +4490,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -4546,7 +4546,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
                 for (size_t j = 0; j < p.assetCount; j++) {
                     if (j) out << ",";
-                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(assets[j])) << "\"";
+                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(assets[j])) << "\"";
                 }
 
                 utils::Padding(out << "\n", 1) << "]\n";
@@ -4572,7 +4572,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             return tool::BASIC_ERROR;
         }
 
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         size_t readFile = 0;
 
         for (size_t i = 0; i < entry.itemCount; i++) {
@@ -4629,7 +4629,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         std::cout << "Dumping compiled GSC scripts into scriptparsetree...\n";
         std::filesystem::create_directories("scriptparsetree", ec);
@@ -4647,7 +4647,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
             std::cout << "Dumping into " << dumpbuff << "...\n";
 
-            auto buff = std::make_unique<BYTE[]>(p.size);
+            auto buff = std::make_unique<byte[]>(p.size);
 
             if (!proc.ReadMemory(&buff[0], p.buffer, p.size) || !utils::WriteFile(file, &buff[0], p.size)) {
                 std::cerr << "Error when dumping\n";
@@ -4722,7 +4722,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -4770,7 +4770,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 if (!ptr) {
                     return;
                 }
-                auto name = proc.ReadMemory<UINT64>(ptr + 0x20);
+                auto name = proc.ReadMemory<uint64_t>(ptr + 0x20);
                 if (!name) {
                     return;
                 }
@@ -4867,7 +4867,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -4890,7 +4890,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/tables/unlockableitem/table/file_%llx.json", opt.m_output, p.name.name);
             }
 
-            //if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
+            //if (!p.gameTypes || !proc.ReadMemory<uint64_t>(p.gameTypes)) {
             //    std::cerr << "error when reading buffer at " << p.gameTypes << "\n";
             //    continue;
             //}
@@ -4931,7 +4931,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                     break;
                 }
                 for (size_t i = 0; i < p.elements_count; i++) {
-                    auto name = proc.ReadMemory<UINT64>(entries[i] + 0x8); // skip name
+                    auto name = proc.ReadMemory<uint64_t>(entries[i] + 0x8); // skip name
                     if (i) out << ",";
                     auto* nameclear = ReadTmpStr(proc, proc.ReadMemory<uintptr_t>(entries[i]));
 
@@ -4975,7 +4975,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -4998,7 +4998,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/tables/playerrolecategory/table/file_%llx.json", opt.m_output, p.name.name);
             }
 
-            //if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
+            //if (!p.gameTypes || !proc.ReadMemory<uint64_t>(p.gameTypes)) {
             //    std::cerr << "error when reading buffer at " << p.gameTypes << "\n";
             //    continue;
             //}
@@ -5034,7 +5034,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 }
                 for (size_t i = 0; i < p.numPlayerRoleCategories; i++) {
                     if (i) out << ",";
-                    auto name = proc.ReadMemory<UINT64>(entries[i]); // skip name
+                    auto name = proc.ReadMemory<uint64_t>(entries[i]); // skip name
                     utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", name) << "\"";
                 }
 
@@ -5073,7 +5073,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5096,7 +5096,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/tables/playerrolecategory/file_%llx.json", opt.m_output, p.name.name);
             }
 
-            //if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
+            //if (!p.gameTypes || !proc.ReadMemory<uint64_t>(p.gameTypes)) {
             //    std::cerr << "error when reading buffer at " << p.gameTypes << "\n";
             //    continue;
             //}
@@ -5164,7 +5164,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5242,7 +5242,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5297,10 +5297,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 for (size_t j = 0; j < p.count; j++) {
                     if (j) out << ",";
 
-                    auto* str = ReadTmpStr(proc, proc.ReadMemory<UINT64>(entries[j]));
+                    auto* str = ReadTmpStr(proc, proc.ReadMemory<uint64_t>(entries[j]));
 
                     hashutils::Add(str);
-                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(entries[j] + 0x8)) << "\"";
+                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(entries[j] + 0x8)) << "\"";
                 }
 
                 utils::Padding(out << "\n", 1) << "]\n";
@@ -5335,7 +5335,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5394,10 +5394,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 for (size_t j = 0; j < count; j++) {
                     if (j) out << ",";
 
-                    auto* str = ReadTmpStr(proc, proc.ReadMemory<UINT64>(entries[j]));
+                    auto* str = ReadTmpStr(proc, proc.ReadMemory<uint64_t>(entries[j]));
 
                     hashutils::Add(str);
-                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(entries[j] + 0x20)) << "\"";
+                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(entries[j] + 0x20)) << "\"";
                 }
 
                 utils::Padding(out << "\n", 1) << "]\n";
@@ -5432,7 +5432,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5491,10 +5491,10 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 for (size_t j = 0; j < count; j++) {
                     if (j) out << ",";
 
-                    auto* str = ReadTmpStr(proc, proc.ReadMemory<UINT64>(entries[j]));
+                    auto* str = ReadTmpStr(proc, proc.ReadMemory<uint64_t>(entries[j]));
 
                     hashutils::Add(str);
-                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<UINT64>(entries[j] + 0x20)) << "\"";
+                    utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(entries[j] + 0x20)) << "\"";
                 }
 
                 utils::Padding(out << "\n", 1) << "]\n";
@@ -5537,7 +5537,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5560,7 +5560,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 sprintf_s(dumpbuff, "%s/tables/streamkey/file_%llx.json", opt.m_output, p.name.name);
             }
 
-            //if (!p.gameTypes || !proc.ReadMemory<UINT64>(p.gameTypes)) {
+            //if (!p.gameTypes || !proc.ReadMemory<uint64_t>(p.gameTypes)) {
             //    std::cerr << "error when reading buffer at " << p.gameTypes << "\n";
             //    continue;
             //}
@@ -5593,7 +5593,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             utils::Padding(defout, 1) << "\"unk30\": \"" << std::hex << p.unk30 << "\",\n";
             utils::Padding(defout, 1) << "\"unk40\": \"" << std::hex << p.unk40 << "\",\n";
             utils::Padding(defout, 1) << "\"unk44\": \"" << std::hex << p.unk44 << "\"\n";
-            tool::pool::WriteHex(defout, 0, (BYTE*)&p, entry.itemSize, proc);
+            tool::pool::WriteHex(defout, 0, (byte*)&p, entry.itemSize, proc);
             defout << "}";
 
             defout.close();
@@ -5653,7 +5653,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         // 12D15670
         auto pool = std::make_unique<GfxImage[]>(entry.itemAllocCount);
 
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
         sprintf_s(dumpbuff, "%s/tables/ximages.csv", opt.m_output);
         std::cout << dumpbuff << "\n";
         std::filesystem::path file(dumpbuff);
@@ -5736,7 +5736,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5828,7 +5828,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         for (size_t i = 0; i < entry.itemAllocCount; i++) {
             auto& p = pool[i];
@@ -5912,14 +5912,14 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
             auto readAlloc = min(entry.itemAllocCount, 500); // max to 500
 
-            auto raw = std::make_unique<BYTE[]>(entry.itemSize * readAlloc);
+            auto raw = std::make_unique<byte[]>(entry.itemSize * readAlloc);
 
             if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * readAlloc)) {
                 std::cerr << "Can't read pool data\n";
                 return tool::BASIC_ERROR;
             }
 
-            CHAR dumpbuff[MAX_PATH + 10];
+            char dumpbuff[MAX_PATH + 10];
             for (size_t i = 0; i < readAlloc; i++) {
                 sprintf_s(dumpbuff, "%s/rawpool/%s/%lld.json", opt.m_output, XAssetNameFromId(id), i);
 
@@ -5957,7 +5957,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
     }
 
 
-    //tool::pool::WriteHex(defout, 0, (BYTE*)&p, entry.itemSize, proc);
+    //tool::pool::WriteHex(defout, 0, (byte*)&p, entry.itemSize, proc);
     hashutils::WriteExtracted(opt.m_dump_hashmap);
 	return tool::OK;
 }
@@ -5985,7 +5985,7 @@ int dumpbgcache(Process& proc, int argc, const char* argv[]) {
 
     hashutils::ReadDefaultFile();
 
-    CHAR strBuff[0x100] = { 0 };
+    char strBuff[0x100] = { 0 };
 
     out << "id,name,xasset,count,registerfunc,unregisterFunc,hash,start,checksum";
 
@@ -6095,8 +6095,8 @@ int dbgp(Process& proc, int argc, const char* argv[]) {
 
     auto pool = proc[0x5D9D6D0];
 
-    CHAR nameInfo[200] = {};
-    CHAR fileInfo[200] = {};
+    char nameInfo[200] = {};
+    char fileInfo[200] = {};
     // buffer pool names
     for (size_t i = 0; i < pool::BG_CACHE_TYPE_COUNT; i++) {
         if (proc.ReadString(nameInfo, info[i].name, sizeof(nameInfo)) < 0) {

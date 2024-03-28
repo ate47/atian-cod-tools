@@ -42,9 +42,9 @@ int t9customee(int argc, const char* argv[]) {
 	}
 
 
-	UINT64 nameGsc = hashutils::Hash64("scripts/zm_common/zm_utility.gsc");
-	UINT64 nameCsc = hashutils::Hash64("scripts/zm_common/zm_utility.csc");
-	UINT32 targetFunction = hashutils::Hash32("is_ee_enabled");
+	uint64_t nameGsc = hashutils::Hash64("scripts/zm_common/zm_utility.gsc");
+	uint64_t nameCsc = hashutils::Hash64("scripts/zm_common/zm_utility.csc");
+	uint32_t targetFunction = hashutils::Hash32("is_ee_enabled");
 
 	int patched = 0;
 
@@ -81,7 +81,7 @@ int t9customee(int argc, const char* argv[]) {
 			// GetByte 0x00ca 0x01
 			// Align 0x00
 			// Return 0x1a
-			BYTE data[] = { 0x0d, 0x00, 0x13, 0x00, 0xca, 0x00, 0x01, 0x00, 0x1a, 0x00 };
+			byte data[] = { 0x0d, 0x00, 0x13, 0x00, 0xca, 0x00, 0x01, 0x00, 0x1a, 0x00 };
 
 			if (!proc.WriteMemory(entry.buffer + exp.address, data, sizeof(data))) {
 				std::cerr << "error when patching zm_utility::is_ee_enabled\n";

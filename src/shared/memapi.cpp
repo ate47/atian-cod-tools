@@ -5,7 +5,7 @@
 ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0, 0) {
 }
 
-INT64 ProcessModule::GetRelativeOffset(uintptr_t ptr) const {
+int64_t ProcessModule::GetRelativeOffset(uintptr_t ptr) const {
 	return ptr - start;
 }
 
@@ -72,19 +72,19 @@ Process::Process(const wchar_t* processName, const wchar_t* moduleName) : m_inva
 
 Process::Process(const char* processName, const char* moduleName) : m_invalid(ProcessModule(*this)) {
 	if (processName && *processName) {
-		WCHAR processNameW[MAX_PATH + 1] = { 0 };
+		wchar_t processNameW[MAX_PATH + 1] = { 0 };
 		size_t i;
 		for (i = 0; processName[i]; i++) {
-			processNameW[i] = (WCHAR)processName[i];
+			processNameW[i] = (wchar_t)processName[i];
 		}
 		processNameW[i] = 0;
 
 		m_pid = GetProcId(processNameW);
 
 		if (moduleName) {
-			WCHAR moduleNameW[MAX_PATH + 1] = { 0 };
+			wchar_t moduleNameW[MAX_PATH + 1] = { 0 };
 			for (i = 0; moduleName[i]; i++) {
-				moduleNameW[i] = (WCHAR)moduleName[i];
+				moduleNameW[i] = (wchar_t)moduleName[i];
 			}
 			moduleNameW[i] = 0;
 			if (!m_pid || !GetModuleAddress(m_pid, moduleNameW, &m_modAddress, &m_modSize)) {
@@ -145,7 +145,7 @@ uintptr_t Process::operator[](uint64_t offset) const {
 	return m_modAddress + offset;
 }
 
-INT64 Process::GetModuleRelativeOffset(uintptr_t ptr) const {
+int64_t Process::GetModuleRelativeOffset(uintptr_t ptr) const {
 	return ptr - m_modAddress;
 }
 
@@ -212,7 +212,7 @@ bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 int64_t Process::ReadString(char* dest, uintptr_t src, size_t size) const {
 	int64_t len = 0;
 
-	CHAR c = -1;
+	char c = -1;
 	// TODO: use buffer
 	while (c) {
 		if (!ReadMemory(&c, src++, 1)) {
@@ -230,7 +230,7 @@ int64_t Process::ReadString(char* dest, uintptr_t src, size_t size) const {
 int64_t Process::ReadWString(wchar_t* dest, uintptr_t src, size_t size) const {
 	int64_t len = 0;
 
-	WCHAR c = -1;
+	wchar_t c = -1;
 	// TODO: use buffer
 	while (c) {
 		if (!ReadMemory(&c, src++, 2)) {
@@ -281,11 +281,11 @@ void Process::ComputeModules() {
 				ProcessModule& e = m_modules.emplace_back(ProcessModule(*this));
 
 				// convert to ascii string, assume that the name is correct
-				LPWCH p = entry.szModule;
-				LPCH s = e.name;
+				wchar_t* p = entry.szModule;
+				char* s = e.name;
 
 				while (*p) {
-					*(s++) = (CHAR) * (p++);
+					*(s++) = (char) * (p++);
 				}
 				*s = 0;
 
@@ -293,7 +293,7 @@ void Process::ComputeModules() {
 				s = e.path;
 
 				while (*p) {
-					*(s++) = (CHAR) * (p++);
+					*(s++) = (char) * (p++);
 				}
 				*s = 0;
 				
@@ -504,7 +504,7 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 		throw std::runtime_error("pattern too big!"); // ate lazy
 	}
 
-	CHAR tmpBuffer[0x1000];
+	char tmpBuffer[0x1000];
 	uintptr_t buff_location = ptr;
 
 	if (!this->m_parent.ReadMemory(tmpBuffer, buff_location, min(buff_location + sizeof(tmpBuffer), module_end) - buff_location)) {
@@ -573,7 +573,7 @@ void ProcessModule::ComputeExports() {
 		return;
 	}
 
-	CHAR name[2000];
+	char name[2000];
 
 
 	auto names = std::make_unique<DWORD[]>(exports.NumberOfNames);
@@ -618,7 +618,7 @@ ProcessModuleExport& ProcessModule::operator[](const char* name) {
 }
 
 ProcessModuleExport::ProcessModuleExport(ProcessModule& module, const char* name, uintptr_t location, WORD ordinal)
-	: m_module(module), m_location(location), m_name(std::make_unique<CHAR[]>(strlen(name) + 1)), m_ordinal(ordinal) {
+	: m_module(module), m_location(location), m_name(std::make_unique<char[]>(strlen(name) + 1)), m_ordinal(ordinal) {
 	strcpy_s(&m_name[0], strlen(name) + 1, name);
 }
 ProcessLocation::ProcessLocation(const Process& proc, uintptr_t loc) : proc(proc), loc(loc) {}

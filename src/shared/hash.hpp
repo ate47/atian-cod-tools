@@ -9,7 +9,7 @@ namespace hash {
 	constexpr uint32_t Hash32(const char* str) {
 		uint32_t hash = 0x4B9ACE2F;
 
-		for (LPCCH data = str; *data; data++) {
+		for (const char* data = str; *data; data++) {
 			char c = *data >= 'A' && *data <= 'Z' ? (*data - 'A' + 'a') : *data;
 			hash = ((c + hash) ^ ((c + hash) << 10)) + (((c + hash) ^ ((c + hash) << 10)) >> 6);
 		}
@@ -23,12 +23,12 @@ namespace hash {
 	 * @return Hashed value
 	 */
 	constexpr uint64_t Hash64(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
-		UINT64 hash = start;
+		uint64_t hash = start;
 
-		for (LPCCH data = str; *data; data++) {
+		for (const char* data = str; *data; data++) {
 			if (*data >= 'A' && *data <= 'Z') {
 				// to lower
-				hash = hash ^ (UINT8)('a' + (*data - (BYTE)'A'));
+				hash = hash ^ (uint8_t)('a' + (*data - (byte)'A'));
 			}
 			else if (*data == '\\') {
 				// replace path char
@@ -48,7 +48,7 @@ namespace hash {
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT32 Hash32Pattern(LPCCH str) {
+	inline uint32_t Hash32Pattern(const char* str) {
 		std::string_view v{ str };
 
 		if (!v.rfind("var_", 0)) {
@@ -71,7 +71,7 @@ namespace hash {
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT64 Hash64Pattern(LPCCH str) {
+	inline uint64_t Hash64Pattern(const char* str) {
 		std::string_view v{ str };
 
 		if (!v.rfind("script_", 0)) {
@@ -94,10 +94,10 @@ namespace hash {
 	 * @param str String to compute
 	 * @return hashed value
 	 */
-	constexpr uint32_t Hash32(LPCWCH str) {
+	constexpr uint32_t Hash32(const wchar_t* str) {
 		uint32_t hash = 0x4B9ACE2F;
 
-		for (LPCWCH data = str; *data; data++) {
+		for (const wchar_t* data = str; *data; data++) {
 			char c = tolower(*data) & 0xFF;
 			hash = ((c + hash) ^ ((c + hash) << 10)) + (((c + hash) ^ ((c + hash) << 10)) >> 6);
 		}
@@ -110,13 +110,13 @@ namespace hash {
 	 * @param start Start value, can be a previous hash to concatenate hashes
 	 * @return Hashed value
 	 */
-	constexpr uint64_t Hash64(LPCWCH str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+	constexpr uint64_t Hash64(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
 		uint64_t hash = start;
 
-		for (LPCWCH data = str; *data; data++) {
+		for (const wchar_t* data = str; *data; data++) {
 			if (*data >= 'A' && *data <= 'Z') {
 				// to lower
-				hash = hash ^ (UINT8)(*data - (BYTE)'A');
+				hash = hash ^ (uint8_t)(*data - (byte)'A');
 			}
 			else if (*data == '\\') {
 				// replace path char
@@ -136,7 +136,7 @@ namespace hash {
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT32 Hash32Pattern(LPCWCH str) {
+	inline uint32_t Hash32Pattern(const wchar_t* str) {
 		std::wstring_view v{ str };
 
 		if (!v.rfind(L"var_", 0)) {
@@ -159,7 +159,7 @@ namespace hash {
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT64 Hash64Pattern(LPCWCH str) {
+	inline uint64_t Hash64Pattern(const wchar_t* str) {
 		std::wstring_view v{ str };
 
 		if (!v.rfind(L"script_", 0)) {

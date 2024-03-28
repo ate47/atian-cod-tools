@@ -11,15 +11,22 @@ namespace tool::gsc::opcode {
 		VMF_NO_VERSION = 4,
 		VMF_NO_PARAM_FLAGS = 8,
 	};
+	struct GlobalVariableDef {
+		const char* name;
+		OPCode getOpCode{};
+		OPCode getRefOpCode{};
+	};
+
 	class OPCodeInfo;
 	struct VmInfo {
-		BYTE vm;
-		LPCCH name;
-		UINT64 flags;
-		BYTE platforms{};
-		std::unordered_map<UINT16, std::unordered_map<Platform, OPCode>> opcodemap{};
-		std::unordered_map<OPCode, std::unordered_map<Platform, UINT16>> opcodemaplookup{};
-		std::unordered_map<Platform, std::unordered_map<OPCode, std::vector<UINT16>>> opcodemappltlookup{};
+		byte vm;
+		const char* name;
+		uint64_t flags;
+		byte platforms{};
+		std::unordered_map<uint16_t, std::unordered_map<Platform, OPCode>> opcodemap{};
+		std::unordered_map<OPCode, std::unordered_map<Platform, uint16_t>> opcodemaplookup{};
+		std::unordered_map<Platform, std::unordered_map<OPCode, std::vector<uint16_t>>> opcodemappltlookup{};
+		std::unordered_map<std::string, GlobalVariableDef> globalvars{};
 
 		/*
 		 * Add an available platform to this VM
@@ -39,19 +46,20 @@ namespace tool::gsc::opcode {
 			return plt != PLATFORM_UNKNOWN && (platforms & (1 << (plt - 1)));
 		}
 	};
-	const std::unordered_map<BYTE, VmInfo>& GetVMMaps();
-	bool IsValidVm(BYTE vm, VmInfo*& info);
-	const OPCodeInfo* LookupOpCode(BYTE vm, Platform platform, UINT16 opcode);
-	std::pair<bool, UINT16> GetOpCodeId(BYTE vm, Platform platform, OPCode opcode);
+	const std::unordered_map<byte, VmInfo>& GetVMMaps();
+	bool IsValidVm(byte vm, VmInfo*& info);
+	const OPCodeInfo* LookupOpCode(byte vm, Platform platform, uint16_t opcode);
+	std::pair<bool, uint16_t> GetOpCodeId(byte vm, Platform platform, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
-	void RegisterVM(BYTE vm, LPCCH name, UINT64 flags);
-	void RegisterVMPlatform(BYTE vm, Platform plt);
-	void RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op);
+	void RegisterVM(byte vm, const char* name, uint64_t flags);
+	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode = OPCODE_Undefined, OPCode getRefOpCode = OPCODE_Undefined);
+	void RegisterVMPlatform(byte vm, Platform plt);
+	void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op);
 	void RegisterOpCodes();
 
-	inline void RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue) {}
+	inline void RegisterOpCode(byte vm, Platform platform, OPCode enumValue) {}
 	template<typename... OpTypes>
-	inline void RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op, OpTypes... ops) {
+	inline void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op, OpTypes... ops) {
 		RegisterOpCode(vm, platform, enumValue, op);
 		RegisterOpCode(vm, platform, enumValue, ops...);
 	}

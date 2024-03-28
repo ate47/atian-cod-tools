@@ -11,13 +11,13 @@ namespace alogs {
 		LVL_ERROR = 4,
 	};
 
-	LPCCH name(loglevel lvl);
+	const char* name(loglevel lvl);
 	void setlevel(loglevel lvl);
 	loglevel getlevel();
 	void setbasiclog(bool basiclog);
 
-	void setfile(LPCCH filename);
-	LPCCH logfile();
+	void setfile(const char* filename);
+	const char* logfile();
 
 	void log(loglevel level, const std::string& str);
 

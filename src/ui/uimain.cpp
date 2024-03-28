@@ -14,19 +14,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 namespace {
 
     struct ReadScriptDetour { // t8compiler/t8cinternal/detours.cpp
-        INT32 FixupName;
-        INT32 ReplaceNamespace;
-        INT32 ReplaceFunction;
-        INT32 FixupOffset;
-        INT32 FixupSize;
+        int32_t FixupName;
+        int32_t ReplaceNamespace;
+        int32_t ReplaceFunction;
+        int32_t FixupOffset;
+        int32_t FixupSize;
     };
 
     struct T8ScriptParseTreeEntry {
-        UINT64 name;
-        UINT64 pad0;
+        uint64_t name;
+        uint64_t pad0;
         uintptr_t buffer;
-        UINT32 size;
-        UINT32 pad02;
+        uint32_t size;
+        uint32_t pad02;
     };
 
     struct T8ScriptInjectionEntry {
@@ -40,45 +40,45 @@ namespace {
     };
 
     struct T8GSCOBJ {
-        BYTE magic[8];
-        INT32 crc;
-        INT32 pad;
-        UINT64 name;
-        INT32 include_offset;
-        UINT16 string_count;
-        UINT16 exports_count;
-        INT32 ukn20;
-        INT32 string_offset;
-        INT16 imports_count;
-        UINT16 fixup_count;
-        INT32 ukn2c;
-        INT32 export_table_offset;
-        INT32 ukn34;
-        INT32 imports_offset;
-        UINT16 globalvar_count;
-        INT32 fixup_offset;
-        INT32 globalvar_offset;
-        INT32 script_size;
-        INT32 ukn4c_offset;
-        INT32 ukn50;
-        INT32 ukn54;
-        UINT16 include_count;
-        BYTE ukn5a;
-        BYTE ukn4c_count;
+        byte magic[8];
+        int32_t crc;
+        int32_t pad;
+        uint64_t name;
+        int32_t include_offset;
+        uint16_t string_count;
+        uint16_t exports_count;
+        int32_t ukn20;
+        int32_t string_offset;
+        int16_t imports_count;
+        uint16_t fixup_count;
+        int32_t ukn2c;
+        int32_t export_table_offset;
+        int32_t ukn34;
+        int32_t imports_offset;
+        uint16_t globalvar_count;
+        int32_t fixup_offset;
+        int32_t globalvar_offset;
+        int32_t script_size;
+        int32_t ukn4c_offset;
+        int32_t ukn50;
+        int32_t ukn54;
+        uint16_t include_count;
+        byte ukn5a;
+        byte ukn4c_count;
 
 
         // @return the vm
-        inline BYTE GetVm() {
+        inline byte GetVm() {
             return magic[7];
         }
     };
 
     struct T8GSCImport {
-        UINT32 name;
-        UINT32 import_namespace;
-        UINT16 num_address;
-        UINT8 param_count;
-        UINT8 flags;
+        uint32_t name;
+        uint32_t import_namespace;
+        uint16_t num_address;
+        uint8_t param_count;
+        uint8_t flags;
     };
 
     constexpr int AUI_WIDTH = 800;
@@ -97,19 +97,19 @@ namespace {
 
         static void ReadString(std::istream& is, std::wstring& str) {
             size_t strLen{};
-            is.read((LPCH)&strLen, sizeof(strLen));
+            is.read((char*)&strLen, sizeof(strLen));
 
-            WCHAR path[MAX_PATH + 1];
+            wchar_t path[MAX_PATH + 1];
 
             while (strLen >= sizeof(path) / sizeof(*path)) {
-                is.read((LPCH)path, sizeof(path));
+                is.read((char*)path, sizeof(path));
                 strLen -= sizeof(path) / sizeof(*path);
             }
 
             *path = 0;
 
             if (strLen) {
-                is.read((LPCH)path, strLen * sizeof(*path));
+                is.read((char*)path, strLen * sizeof(*path));
             }
 
             path[strLen] = '\0';
@@ -118,13 +118,13 @@ namespace {
         }
         static void WriteString(std::ostream& of, std::wstring& str) {
             size_t size = str.size();
-            of.write((LPCH)&size, sizeof(size));
-            of.write((LPCH)str.data(), size * sizeof(*str.data()));
+            of.write((char*)&size, sizeof(size));
+            of.write((char*)str.data(), size * sizeof(*str.data()));
         }
 
         const std::filesystem::path& GetCfgPath() {
             static std::filesystem::path path = ([]() {
-                WCHAR szFileName[MAX_PATH];
+                wchar_t szFileName[MAX_PATH];
                 GetModuleFileName(NULL, szFileName, MAX_PATH);
                 std::filesystem::path progpath = std::filesystem::absolute(szFileName).parent_path();
                 return progpath / L"actsui.bincfg";
@@ -200,7 +200,7 @@ namespace {
             cfg.actsDll = Button_GetCheck(injectDLLButton);
             cfg.seriousDll = Button_GetCheck(injectSeriousDLLButton);
 
-            WCHAR injectPath[max(MAX_PATH, 256)];
+            wchar_t injectPath[max(MAX_PATH, 256)];
 
             if (SUCCEEDED(ComboBox_GetText(injectHookCombo, &injectPath[0], sizeof(injectPath) / sizeof(*injectPath)))) {
                 cfg.injectionPoint = injectPath;
@@ -254,8 +254,8 @@ namespace {
 
         std::wstring InjectScript() {
 
-            LPVOID script = nullptr;
-            LPVOID file = nullptr;
+            void* script = nullptr;
+            void* file = nullptr;
             size_t size = 0;
             size_t sizeAlign = 0;
             if (!utils::ReadFileAlign(cfg.name, file, script, size, sizeAlign)) {
@@ -273,7 +273,7 @@ namespace {
             return res;
         }
 
-        std::pair<bool, LPCWCH> NeedBuiltins(T8GSCOBJ* obj, size_t size) {
+        std::pair<bool, const wchar_t*> NeedBuiltins(T8GSCOBJ* obj, size_t size) {
             if (!obj->imports_count) {
                 return std::make_pair(false, nullptr);
             }
@@ -290,7 +290,7 @@ namespace {
                     return std::make_pair(true, nullptr);
                 }
                 // pass import
-                imports = reinterpret_cast<T8GSCImport*>(reinterpret_cast<uintptr_t>(imports + 1) + imports->num_address * sizeof(UINT32));
+                imports = reinterpret_cast<T8GSCImport*>(reinterpret_cast<uintptr_t>(imports + 1) + imports->num_address * sizeof(uint32_t));
             }
 
             return std::make_pair(false, nullptr);
@@ -300,18 +300,18 @@ namespace {
             LOG_INFO("Injecting script...");
             constexpr auto detourinfosize = 256;
             struct GsicDetour {
-                UINT32 name;
-                UINT32 replaceNamespace;
-                UINT32 replaceFunction;
-                INT32 fixupOffset;
-                INT32 fixupSize;
-                INT32 replaceScriptTop;
-                INT32 replaceScriptBottom;
+                uint32_t name;
+                uint32_t replaceNamespace;
+                uint32_t replaceFunction;
+                int32_t fixupOffset;
+                int32_t fixupSize;
+                int32_t replaceScriptTop;
+                int32_t replaceScriptBottom;
             };
             struct {
                 std::vector<GsicDetour*> detours{};
             } gsicInfo{};
-            auto magic = *reinterpret_cast<UINT64*>(obj->magic);
+            auto magic = *reinterpret_cast<uint64_t*>(obj->magic);
 
             if (!memcmp(obj->magic, "GSIC", 4)) {
                 // GSIC file, reading detours
@@ -319,14 +319,14 @@ namespace {
 
                 size_t location = 4; // pass after the magic
 
-                auto fields = *reinterpret_cast<INT32*>(obj->magic + location);
+                auto fields = *reinterpret_cast<int32_t*>(obj->magic + location);
                 location += 4;
 
                 for (size_t i = 0; i < fields; i++) {
                     if (location + 4 > size) {
                         return L"Invalid GSIC file (GSIC field type)";
                     }
-                    auto fieldtype = *reinterpret_cast<INT32*>(obj->magic + location);
+                    auto fieldtype = *reinterpret_cast<int32_t*>(obj->magic + location);
                     location += 4;
 
                     switch (fieldtype) {
@@ -335,7 +335,7 @@ namespace {
                         if (location + 4 > size) {
                             return L"Invalid GSIC file (GSIC detour count)";
                         }
-                        auto detourCount = *reinterpret_cast<INT32*>(obj->magic + location);
+                        auto detourCount = *reinterpret_cast<int32_t*>(obj->magic + location);
                         location += 4;
 
                         for (size_t j = 0; j < detourCount; j++) {
@@ -361,7 +361,7 @@ namespace {
                     return L"Bad GSC header size"; // avoid weird things again
                 }
                 LOG_INFO("parsed {} detours", gsicInfo.detours.size());
-                magic = *reinterpret_cast<UINT64*>(obj->magic);
+                magic = *reinterpret_cast<uint64_t*>(obj->magic);
             }
 
             if (magic != 0x36000A0D43534780) {
@@ -403,7 +403,7 @@ namespace {
             }
 
             uintptr_t poolPtr = game.ReadMemory<uintptr_t>(game[offset::XASSET_SCRIPTPARSETREE]);
-            INT32 poolSize = game.ReadMemory<INT32>(game[offset::XASSET_SCRIPTPARSETREE + 0x14]);
+            int32_t poolSize = game.ReadMemory<int32_t>(game[offset::XASSET_SCRIPTPARSETREE + 0x14]);
 
             if (!poolPtr || poolSize <= 0) {
                 return L"Can't read SPT pool data, this game version is probably not supported.";
@@ -451,7 +451,7 @@ namespace {
             }
 
 
-            auto includes = std::make_unique<UINT64[]>(hookedHeader.include_count);
+            auto includes = std::make_unique<uint64_t[]>(hookedHeader.include_count);
 
             if (!game.ReadMemory(&includes[0], hooked->buffer + hookedHeader.include_offset, sizeof(includes[0]) * hookedHeader.include_count)) {
                 return L"Can't read hook script includes.";
@@ -481,7 +481,7 @@ namespace {
             // inject DLL and activate right parts
             if (cfg.actsDll) {
 
-                WCHAR szFileName[MAX_PATH];
+                wchar_t szFileName[MAX_PATH];
                 GetModuleFileName(NULL, szFileName, MAX_PATH);
 
                 std::filesystem::path progpath = std::filesystem::absolute(szFileName).parent_path();
@@ -532,7 +532,7 @@ namespace {
             }
 
             if (cfg.seriousDll || needBuiltins) { // || gsicInfo.detours.size() // no need because it is useless without the builtins?
-                WCHAR szFileName[MAX_PATH];
+                wchar_t szFileName[MAX_PATH];
                 GetModuleFileName(NULL, szFileName, MAX_PATH);
                 std::filesystem::path progpath = std::filesystem::absolute(szFileName).parent_path();
                 auto dllPath = progpath / "t8cinternal.dll";
@@ -612,7 +612,7 @@ namespace {
                 return L"Can't allocate script";
             }
 
-            if (!game.WriteMemory(scriptAllocation, reinterpret_cast<LPCVOID>(obj), size)) {
+            if (!game.WriteMemory(scriptAllocation, reinterpret_cast<const void*>(obj), size)) {
                 auto err = GetLastError();
                 game.FreeMemory(scriptAllocation, scriptAllocationSize);
                 return std::format(L"Can't write script of size {:x}@{:x} : {:x}", scriptAllocation, size, err);
@@ -621,7 +621,7 @@ namespace {
             injectedScript.prePatchEntry = *replaced;
             injectedScript.prePatchEntryLocation = replacedPtr;
             replaced->buffer = scriptAllocation;
-            replaced->size = (UINT32)scriptAllocationSize;
+            replaced->size = (uint32_t)scriptAllocationSize;
 
             if (!game.WriteMemory(replacedPtr, replaced, sizeof(*replaced))) {
                 game.FreeMemory(scriptAllocation, scriptAllocationSize);
@@ -644,7 +644,7 @@ namespace {
                 injectedScript.detoursInjected = true;
 
                 auto detourDataSize = gsicInfo.detours.size() * detourinfosize;
-                auto detourData = std::make_unique<BYTE[]>(detourDataSize);
+                auto detourData = std::make_unique<byte[]>(detourDataSize);
 
                 for (size_t i = 0; i < gsicInfo.detours.size(); i++) {
                     auto& dtData = *reinterpret_cast<ReadScriptDetour*>(&detourData[i]);
@@ -664,8 +664,8 @@ namespace {
                     return L"Can't allocate and write detour info";
                 }
 
-                // EXPORT bool RegisterDetours(void* DetourData, int NumDetours, INT64 scriptOffset, INT32 inst)
-                auto ret = game.Call<uintptr_t, int, INT64, INT32>(registerDetours, detourInfo, (int) gsicInfo.detours.size(), scriptAllocation, scriptinstance::SI_SERVER);
+                // EXPORT bool RegisterDetours(void* DetourData, int NumDetours, int64_t scriptOffset, int32_t inst)
+                auto ret = game.Call<uintptr_t, int, int64_t, int32_t>(registerDetours, detourInfo, (int) gsicInfo.detours.size(), scriptAllocation, scriptinstance::SI_SERVER);
 
                 game.FreeMemory(detourInfo, detourDataSize);
 
@@ -888,19 +888,19 @@ int WINAPI wWinMain(
         NULL
     );
 
-    WCHAR injections[3][64] = {
+    wchar_t injections[3][64] = {
         L"scripts\\zm_common\\load.gsc",
         L"scripts\\mp_common\\bb.gsc",
         L"scripts\\core_common\\load_shared.gsc"
     };
 
-    WCHAR buff[sizeof(*injections)];
+    wchar_t buff[sizeof(*injections)];
 
     memset(&buff, 0, sizeof(buff));
     auto comboElements = sizeof(injections) / sizeof(*injections);
 
     for (size_t k = 0; k < comboElements; k++) {
-        wcscpy_s(buff, sizeof(buff) / sizeof(*buff), (LPCWCH)injections[k]);
+        wcscpy_s(buff, sizeof(buff) / sizeof(*buff), (const wchar_t*)injections[k]);
 
         SendMessage(actsWindow.injectHookCombo, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)buff);
     }
@@ -941,7 +941,7 @@ int WINAPI wWinMain(
         // Open file
 
         OPENFILENAME ofn;       // common dialog box structure
-        TCHAR szFile[MAX_PATH + 1] = { 0 };       // if using TCHAR macros
+        TCHAR szFile[MAX_PATH + 1] = { 0 };       // if using Tchar macros
 
         // Initialize OPENFILENAME
         ZeroMemory(&ofn, sizeof(ofn));

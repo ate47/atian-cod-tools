@@ -10,7 +10,7 @@ namespace {
 	// maps to find the opcodes
 	
 	// VM->vminfo
-	std::unordered_map<BYTE, VmInfo> g_opcodeMap{};
+	std::unordered_map<byte, VmInfo> g_opcodeMap{};
 	// opcode->opcode handler
 	std::unordered_map<OPCode, const OPCodeInfo*> g_opcodeHandlerMap{};
 
@@ -60,7 +60,7 @@ namespace {
 	}
 }
 
-VM tool::gsc::opcode::VMOf(LPCCH name) {
+VM tool::gsc::opcode::VMOf(const char* name) {
 	if (!_strcmpi("t8", name) || !_strcmpi("bo4", name) || !_strcmpi("blackops4", name) || !_strcmpi("36", name)) {
 		return VM_T8;
 	}
@@ -76,7 +76,7 @@ VM tool::gsc::opcode::VMOf(LPCCH name) {
 	return VM_UNKNOWN;
 }
 
-Platform tool::gsc::opcode::PlatformOf(LPCCH name) {
+Platform tool::gsc::opcode::PlatformOf(const char* name) {
 	if (!_strcmpi("pc", name)) {
 		return PLATFORM_PC;
 	}
@@ -89,7 +89,7 @@ Platform tool::gsc::opcode::PlatformOf(LPCCH name) {
 	return PLATFORM_UNKNOWN;
 }
 
-LPCCH tool::gsc::opcode::PlatformName(Platform plt) {
+const char* tool::gsc::opcode::PlatformName(Platform plt) {
 	switch (plt) {
 	case PLATFORM_PC: return "PC";
 	case PLATFORM_XBOX: return "Xbox";
@@ -98,7 +98,7 @@ LPCCH tool::gsc::opcode::PlatformName(Platform plt) {
 	}
 }
 
-OPCodeInfo::OPCodeInfo(OPCode id, LPCCH name) : m_id(id), m_name(name) {
+OPCodeInfo::OPCodeInfo(OPCode id, const char* name) : m_id(id), m_name(name) {
 }
 
 ASMContextLocationOp::~ASMContextLocationOp() {
@@ -143,7 +143,7 @@ ASMContextNodeBlock::~ASMContextNodeBlock() {
 	}
 }
 
-ASMContextStatement* ASMContextNodeBlock::FetchFirstForLocation(INT64 rloc) {
+ASMContextStatement* ASMContextNodeBlock::FetchFirstForLocation(int64_t rloc) {
 	for (auto& loc : m_statements) {
 		if (loc.location->rloc >= rloc) {
 			return &loc;
@@ -221,9 +221,9 @@ public:
 
 class ASMContextNodeIdentifier : public ASMContextNode {
 public:
-	UINT64 m_value;
-	LPCCH m_type;
-	ASMContextNodeIdentifier(UINT64 value, LPCCH type = "var") : ASMContextNode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(value), m_type(type) {
+	uint64_t m_value;
+	const char* m_type;
+	ASMContextNodeIdentifier(uint64_t value, const char* type = "var") : ASMContextNode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(value), m_type(type) {
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -237,10 +237,10 @@ public:
 
 class ASMContextNodeHash : public ASMContextNode {
 public:
-	UINT64 m_value;
+	uint64_t m_value;
 	bool m_canonid;
-	LPCCH m_type;
-	ASMContextNodeHash(UINT64 value, bool canonid = false, LPCCH type = "#") : m_type(type), ASMContextNode(PRIORITY_VALUE, TYPE_CONST_HASH), m_value(value), m_canonid(canonid) {
+	const char* m_type;
+	ASMContextNodeHash(uint64_t value, bool canonid = false, const char* type = "#") : m_type(type), ASMContextNode(PRIORITY_VALUE, TYPE_CONST_HASH), m_value(value), m_canonid(canonid) {
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -300,8 +300,8 @@ public:
 
 class ASMContextNodeString : public ASMContextNode {
 public:
-	LPCCH m_value;
-	ASMContextNodeString(LPCCH value) : ASMContextNode(PRIORITY_VALUE), m_value(value) {
+	const char* m_value;
+	ASMContextNodeString(const char* value) : ASMContextNode(PRIORITY_VALUE), m_value(value) {
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -315,9 +315,9 @@ public:
 
 class ASMContextNodeAnimation : public ASMContextNode {
 public:
-	LPCCH m_str1;
-	LPCCH m_str2;
-	ASMContextNodeAnimation(LPCCH str1, LPCCH str2) : ASMContextNode(PRIORITY_VALUE), m_str1(str1), m_str2(str2) {
+	const char* m_str1;
+	const char* m_str2;
+	ASMContextNodeAnimation(const char* str1, const char* str2) : ASMContextNode(PRIORITY_VALUE), m_str1(str1), m_str2(str2) {
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -331,11 +331,11 @@ public:
 
 class ASMContextNodeFuncRef : public ASMContextNode {
 public:
-	LPCCH m_op;
-	UINT64 m_func;
-	UINT64 m_nsp;
-	UINT64 m_script;
-	ASMContextNodeFuncRef(LPCCH op, UINT64 func, UINT64 nsp = 0, UINT64 script = 0) : ASMContextNode(PRIORITY_VALUE, TYPE_FUNC_REFNAME),
+	const char* m_op;
+	uint64_t m_func;
+	uint64_t m_nsp;
+	uint64_t m_script;
+	ASMContextNodeFuncRef(const char* op, uint64_t func, uint64_t nsp = 0, uint64_t script = 0) : ASMContextNode(PRIORITY_VALUE, TYPE_FUNC_REFNAME),
 		m_op(op), m_func(func), m_nsp(nsp), m_script(script) {
 	}
 
@@ -358,9 +358,9 @@ public:
 
 class ASMContextNodeRef : public ASMContextNode {
 public:
-	LPCCH m_op;
+	const char* m_op;
 	ASMContextNode* m_var;
-	ASMContextNodeRef(LPCCH op, ASMContextNode* var) : ASMContextNode(PRIORITY_VALUE),
+	ASMContextNodeRef(const char* op, ASMContextNode* var) : ASMContextNode(PRIORITY_VALUE),
 		m_op(op), m_var(var) {
 	}
 
@@ -532,7 +532,7 @@ enum ASMContextNodeCallFuncPtrType {
 	FUNCTION_CALL
 };
 
-enum ASMContextNodeCallFuncFlag : BYTE {
+enum ASMContextNodeCallFuncFlag : byte {
 	THREAD_CALL = 1,
 	CHILDTHREAD_CALL = 2,
 	SELF_CALL = 4,
@@ -542,9 +542,9 @@ enum ASMContextNodeCallFuncFlag : BYTE {
 class ASMContextNodeCallFuncPtr : public ASMContextNode {
 public:
 	ASMContextNodeCallFuncPtrType m_ftype;
-	BYTE m_flags;
+	byte m_flags;
 	std::vector<ASMContextNode*> m_operands{};
-	ASMContextNodeCallFuncPtr(ASMContextNodeCallFuncPtrType type, BYTE flags) : ASMContextNode(PRIORITY_ACCESS, TYPE_FUNC_CALL), m_ftype(type), m_flags(flags) {
+	ASMContextNodeCallFuncPtr(ASMContextNodeCallFuncPtrType type, byte flags) : ASMContextNode(PRIORITY_ACCESS, TYPE_FUNC_CALL), m_ftype(type), m_flags(flags) {
 	}
 	~ASMContextNodeCallFuncPtr() {
 		for (auto& ref : m_operands) {
@@ -705,11 +705,11 @@ public:
 
 class ASMContextNodeOp2 : public ASMContextNode {
 public:
-	LPCCH m_description;
+	const char* m_description;
 	ASMContextNode* m_operand1;
 	ASMContextNode* m_operand2;
 	bool m_isBoolValue;
-	ASMContextNodeOp2(LPCCH description, ASMContextNodePriority priority, ASMContextNode* operand1, ASMContextNode* operand2, bool isBoolValue) :
+	ASMContextNodeOp2(const char* description, ASMContextNodePriority priority, ASMContextNode* operand1, ASMContextNode* operand2, bool isBoolValue) :
 		ASMContextNode(priority), m_description(description), m_operand1(operand1), m_operand2(operand2), m_isBoolValue(isBoolValue) {
 	}
 	~ASMContextNodeOp2() {
@@ -766,11 +766,11 @@ public:
 
 class ASMContextNodeOp1 : public ASMContextNode {
 public:
-	LPCCH m_description;
+	const char* m_description;
 	bool m_prefix;
 	ASMContextNode* m_operand;
 	bool m_isBoolValue;
-	ASMContextNodeOp1(LPCCH description, bool prefix, ASMContextNode* operand, ASMContextNodeType type = TYPE_UNDEFINED, bool isBoolValue = false) :
+	ASMContextNodeOp1(const char* description, bool prefix, ASMContextNode* operand, ASMContextNodeType type = TYPE_UNDEFINED, bool isBoolValue = false) :
 		ASMContextNode(PRIORITY_UNARY, type), m_prefix(prefix), m_description(description), m_operand(operand), m_isBoolValue(isBoolValue) {
 		assert(operand);
 	}
@@ -817,11 +817,11 @@ public:
 
 class ASMContextNodeMultOp : public ASMContextNode {
 public:
-	LPCCH m_description;
+	const char* m_description;
 	bool m_caller;
 	bool m_isBoolVal;
 	std::vector<ASMContextNode*> m_operands{};
-	ASMContextNodeMultOp(LPCCH description, bool caller, ASMContextNodeType type = TYPE_STATEMENT, bool isBoolVal = false) :
+	ASMContextNodeMultOp(const char* description, bool caller, ASMContextNodeType type = TYPE_STATEMENT, bool isBoolVal = false) :
 		ASMContextNode(PRIORITY_VALUE, type), m_description(description), m_caller(caller), m_isBoolVal(isBoolVal) {
 	}
 	~ASMContextNodeMultOp() {
@@ -886,10 +886,10 @@ public:
 
 class ASMContextNodeFunctionOperator : public ASMContextNode {
 public:
-	LPCCH m_operatorName;
+	const char* m_operatorName;
 	ASMContextNode* m_self;
 	ASMContextNode* m_operand;
-	ASMContextNodeFunctionOperator(LPCCH operatorName, ASMContextNode* self, ASMContextNode* operand, ASMContextNodeType type = TYPE_STATEMENT) :
+	ASMContextNodeFunctionOperator(const char* operatorName, ASMContextNode* self, ASMContextNode* operand, ASMContextNodeType type = TYPE_STATEMENT) :
 		ASMContextNode(PRIORITY_VALUE, type), m_operatorName(operatorName), m_self(self), m_operand(operand) {
 		assert(operand);
 	}
@@ -932,20 +932,20 @@ enum ASMContextNodeJumpOperatorSpecialJump {
 
 class ASMContextNodeJumpOperator : public ASMContextNode {
 public:
-	LPCCH m_operatorName;
+	const char* m_operatorName;
 	ASMContextNode* m_operand;
-	INT64 m_location;
-	INT32 m_opLoc;
+	int64_t m_location;
+	int32_t m_opLoc;
 	bool m_showJump;
 	bool m_returnCandidate;
 	ASMContextNodeJumpOperatorSpecialJump m_special_op;
-	INT64 m_delta;
+	int64_t m_delta;
 
 	bool IsFakeIf() const {
 		return m_special_op && m_operand;
 	}
 
-	ASMContextNodeJumpOperator(LPCCH operatorName, ASMContextNode* operand, INT64 location, ASMContextNodeType type, INT32 opLoc, bool showJump = true, INT64 delta = 0, ASMContextNodeJumpOperatorSpecialJump special_op = SPECIAL_JUMP_DEFAULT, bool returnCandidate = false) :
+	ASMContextNodeJumpOperator(const char* operatorName, ASMContextNode* operand, int64_t location, ASMContextNodeType type, int32_t opLoc, bool showJump = true, int64_t delta = 0, ASMContextNodeJumpOperatorSpecialJump special_op = SPECIAL_JUMP_DEFAULT, bool returnCandidate = false) :
 		ASMContextNode(PRIORITY_INST, type), m_operatorName(operatorName), m_operand(operand), m_location(location), m_opLoc(opLoc), m_showJump(showJump), m_delta(delta), m_special_op(special_op), m_returnCandidate(returnCandidate) {
 		assert(IsJumpType(type));
 		m_renderSemicolon = !IsFakeIf();
@@ -963,7 +963,7 @@ public:
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
 		// we don't show the jump if asked, continue/break?
 		if (ctx.opt.m_show_jump_delta) {
-			out << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_opLoc << ":";
+			out << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << m_opLoc << ":";
 			if (!m_showJump) {
 				out << "(hide)";
 			}
@@ -1008,7 +1008,7 @@ public:
 
 		}
 		if (m_showJump || ctx.opt.m_show_jump_delta) {
-			out << " LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_location;
+			out << " LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << m_location;
 			if (!m_showJump) {
 				out << "(hide)";
 			}
@@ -1030,10 +1030,10 @@ public:
 
 class ASMContextNodeLeftRightOperator : public ASMContextNode {
 public:
-	LPCCH m_operatorName;
+	const char* m_operatorName;
 	ASMContextNode* m_left;
 	ASMContextNode* m_right;
-	ASMContextNodeLeftRightOperator(ASMContextNode* left, ASMContextNode* right, LPCCH operatorName = " = ", ASMContextNodePriority priority = PRIORITY_SET, ASMContextNodeType type = TYPE_SET) :
+	ASMContextNodeLeftRightOperator(ASMContextNode* left, ASMContextNode* right, const char* operatorName = " = ", ASMContextNodePriority priority = PRIORITY_SET, ASMContextNodeType type = TYPE_SET) :
 		ASMContextNode(priority, type), m_operatorName(operatorName), m_left(left), m_right(right) {
 	}
 	~ASMContextNodeLeftRightOperator() {
@@ -1056,10 +1056,10 @@ public:
 
 class ASMContextNodeNew : public ASMContextNode {
 public:
-	UINT32 m_classname;
+	uint32_t m_classname;
 	ASMContextNode* m_constructorCall;
 	bool m_constructorCallDec;
-	ASMContextNodeNew(UINT32 clsName, ASMContextNode* constructorCall = nullptr, bool constructorCallDec = false) :
+	ASMContextNodeNew(uint32_t clsName, ASMContextNode* constructorCall = nullptr, bool constructorCallDec = false) :
 		ASMContextNode(PRIORITY_VALUE, TYPE_NEW), m_classname(clsName), m_constructorCall(constructorCall), m_constructorCallDec(constructorCallDec) {
 	}
 	~ASMContextNodeNew() {
@@ -1082,15 +1082,15 @@ public:
 
 struct ASMContextSwitchPreComputeCase {
 	ASMContextNode* casenode = nullptr;
-	INT32 jumpLocation = 0;
+	int32_t jumpLocation = 0;
 };
 
 class ASMContextNodeSwitchPreCompute : public ASMContextNode {
 public:
 	ASMContextNode* m_node;
 	std::vector<ASMContextSwitchPreComputeCase> m_cases{};
-	INT32 m_endLocation;
-	ASMContextNodeSwitchPreCompute(ASMContextNode* node, INT32 endLocation = 0) :
+	int32_t m_endLocation;
+	ASMContextNodeSwitchPreCompute(ASMContextNode* node, int32_t endLocation = 0) :
 		ASMContextNode(PRIORITY_INST, TYPE_SWITCH_PRECOMPUTE), m_node(node), m_endLocation(endLocation) {
 		m_renderSemicolon = false;
 	}
@@ -1126,10 +1126,10 @@ public:
 			else {
 				ctx.WritePadding(out, true) << "default";
 			}
-			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << cs.jumpLocation << ";\n";
+			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << cs.jumpLocation << ";\n";
 		}
 
-		ctx.WritePadding(out, true) << "end: ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << m_endLocation << ";\n";
+		ctx.WritePadding(out, true) << "end: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << m_endLocation << ";\n";
 		ctx.padding--;
 		//
 		ctx.WritePadding(out, true) << "}\n";
@@ -1196,11 +1196,11 @@ public:
 
 class ASMContextNodeForEach : public ASMContextNode {
 public:
-	UINT64 m_key;
-	UINT64 m_item;
+	uint64_t m_key;
+	uint64_t m_item;
 	ASMContextNode* m_arrayNode;
 	ASMContextNodeBlock* m_block;
-	ASMContextNodeForEach(ASMContextNode* arrayNode, ASMContextNodeBlock* block, UINT64 key, UINT64 item) :
+	ASMContextNodeForEach(ASMContextNode* arrayNode, ASMContextNodeBlock* block, uint64_t key, uint64_t item) :
 		ASMContextNode(PRIORITY_INST, TYPE_FOR_EACH), m_arrayNode(arrayNode), m_block(block), m_key(key), m_item(item) {
 		m_renderSemicolon = false;
 	}
@@ -1620,9 +1620,9 @@ class ASMContextLocationOpOp : public ASMContextLocationOp {
 private:
 	ASMContextNode* m_node;
 	ASMContextNodePriority m_priority;
-	LPCCH m_description;
+	const char* m_description;
 public:
-	ASMContextLocationOpOp(ASMContextNode* node, LPCCH description, ASMContextNodePriority priority) :
+	ASMContextLocationOpOp(ASMContextNode* node, const char* description, ASMContextNodePriority priority) :
 		ASMContextLocationOp(), m_node(node), m_description(description), m_priority(priority) {
 	}
 	~ASMContextLocationOpOp() {
@@ -1655,12 +1655,12 @@ public:
 	}
 };
 
-int OPCodeInfo::Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const {
+int OPCodeInfo::Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const {
 	out << "\n";
 	return 0; // by default nop
 }
 
-int OPCodeInfo::Skip(UINT16 value, ASMSkipContext& ctx) const {
+int OPCodeInfo::Skip(uint16_t value, ASMSkipContext& ctx) const {
 	return 0; // by default nop
 }
 
@@ -1668,7 +1668,7 @@ class OPCodeInfounknown : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		context.m_disableDecompiler = true;
 		out << "Unknown operator: " << std::hex << value << "\n";
@@ -1686,9 +1686,9 @@ public:
 
 		if (objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_OPCODE_SHORT) {
 			for (size_t i = 0; i < 0x3; i++) {
-				auto* loc = utils::Aligned<UINT32>(context.m_bcl);
+				auto* loc = utils::Aligned<uint32_t>(context.m_bcl);
 
-				auto hash = *reinterpret_cast<UINT32*>(loc + i * 4);
+				auto hash = *reinterpret_cast<uint32_t*>(loc + i * 4);
 				auto* str = hashutils::ExtractPtr(hash);
 
 				if (str) {
@@ -1698,7 +1698,7 @@ public:
 		}
 		else if (!(objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_HASH64)) {
 			for (size_t i = 0; i < 0x10; i++) {
-				auto hash = *reinterpret_cast<UINT32*>(context.m_bcl + i);
+				auto hash = *reinterpret_cast<uint32_t*>(context.m_bcl + i);
 				auto* str = hash ? hashutils::ExtractPtr(hash) : nullptr;
 
 				if (str) {
@@ -1709,9 +1709,9 @@ public:
 
 		if (objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_OPCODE_SHORT) {
 			for (size_t i = 0; i < 0x3; i++) {
-				auto* loc = utils::Aligned<UINT64>(context.m_bcl);
+				auto* loc = utils::Aligned<uint64_t>(context.m_bcl);
 
-				auto hash = *reinterpret_cast<UINT64*>(loc + i * 8);
+				auto hash = *reinterpret_cast<uint64_t*>(loc + i * 8);
 				auto* str = hashutils::ExtractPtr(hash);
 
 				if (str) {
@@ -1721,7 +1721,7 @@ public:
 		}
 		else {
 			for (size_t i = 0; i < 0x18; i++) {
-				auto hash = *reinterpret_cast<UINT64*>(context.m_bcl + i);
+				auto hash = *reinterpret_cast<uint64_t*>(context.m_bcl + i);
 				auto* str = hash ? hashutils::ExtractPtr(hash) : nullptr;
 
 				if (str) {
@@ -1732,7 +1732,7 @@ public:
 		
 		return -1;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_error = std::format("Unknown operator: {:x}", value);
 		return -1;
 	}
@@ -1742,18 +1742,18 @@ class OPCodeInfoUnknownDev : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& loc = context.Aligned<UINT16>();
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& loc = context.Aligned<uint16_t>();
 
-		UINT16 val = *(UINT16*)loc;
+		uint16_t val = *(uint16_t*)loc;
 
 		loc += 2;
 		out << std::hex << val << "\n";
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT16>() += 2;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint16_t>() += 2;
 		return 0;
 	}
 };
@@ -1762,8 +1762,8 @@ class OPCodeInfoRegisterVariable : public OPCodeInfo {
 public:
 	OPCodeInfoRegisterVariable() : OPCodeInfo(OPCode::OPCODE_IW_RegisterVariable, "RegisterVariable") {}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		UINT64 name = *reinterpret_cast<UINT64*>(context.m_bcl);
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		uint64_t name = *reinterpret_cast<uint64_t*>(context.m_bcl);
 		context.m_bcl += 8;
 
 		if (!context.m_localvars.size()) {
@@ -1778,7 +1778,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl += 8; // skip hash
 		return 0;
 	}
@@ -1789,8 +1789,8 @@ class OPCodeInfoSafeCreateLocalVariables : public OPCodeInfo {
 public:
 	OPCodeInfoSafeCreateLocalVariables() : OPCodeInfo(OPCODE_SafeCreateLocalVariables, "SafeCreateLocalVariables") {}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		BYTE count = *context.m_bcl++;
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		byte count = *context.m_bcl++;
 
 		context.m_localvars.reserve((size_t)count + 1);
 
@@ -1802,25 +1802,25 @@ public:
 
 		for (size_t i = 0; i < count; i++) {
 			context.WritePadding(out);
-			UINT64 varName;
+			uint64_t varName;
 
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
 				if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-					context.Aligned<UINT64>();
+					context.Aligned<uint64_t>();
 				}
-				varName = *(UINT64*)context.m_bcl;
+				varName = *(uint64_t*)context.m_bcl;
 				context.m_bcl += 8;
 			}
 			else {
 				if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-					context.Aligned<UINT32>();
+					context.Aligned<uint32_t>();
 				}
-				varName = *(UINT32*)context.m_bcl;
+				varName = *(uint32_t*)context.m_bcl;
 				context.m_bcl += 4;
 			}
 			auto& bytecode = context.m_bcl;
 			
-			BYTE flags;
+			byte flags;
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_NO_PARAM_FLAGS) {
 				flags = 0;
 			}
@@ -1844,7 +1844,7 @@ public:
 			}
 
 
-			BYTE mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
+			byte mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
 			if (context.m_vm != tool::gsc::opcode::VM_T8) {
 				mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
@@ -1867,8 +1867,8 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		BYTE count = *ctx.m_bcl++;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		byte count = *ctx.m_bcl++;
 
 		size_t varDelta = 0;
 
@@ -1886,10 +1886,10 @@ public:
 		for (size_t i = 0; i < count; i++) {
 			if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 				if (ctx.m_vminfo->flags & VmFlags::VMF_HASH64) {
-					ctx.Aligned<UINT64>();
+					ctx.Aligned<uint64_t>();
 				}
 				else {
-					ctx.Aligned<UINT32>();
+					ctx.Aligned<uint32_t>();
 				}
 			}
 			// skip name
@@ -1902,42 +1902,42 @@ class OPCodeInfoCheckClearParams : public OPCodeInfo {
 public:
 	OPCodeInfoCheckClearParams() : OPCodeInfo(OPCODE_CheckClearParams, "CheckClearParams") {}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 		// don't create statement, we can ignore it
 		context.m_lastOpCodeBase = -1;
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoGetObjectType : public OPCodeInfo {
 public:
-	OPCodeInfoGetObjectType(OPCode id, LPCCH name, LPCCH hashType) : OPCodeInfo(id, name) {
+	OPCodeInfoGetObjectType(OPCode id, const char* name, const char* hashType) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& ref = context.Aligned<UINT32>();
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(UINT32*)ref;
+		auto name = *(uint32_t*)ref;
 
 		ref += 4;
 
 		out << hashutils::ExtractTmp("class", name) << std::endl;
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<LPCCH>("<emptypos_getobjecttype>", TYPE_PRECODEPOS));
+			context.PushASMCNode(new ASMContextNodeValue<const char*>("<emptypos_getobjecttype>", TYPE_PRECODEPOS));
 			context.PushASMCNode(new ASMContextNodeNew(name));
 		}
 
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
@@ -1947,18 +1947,18 @@ class OPCodeInfoGetNeg : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			context.Aligned<Type>();
 		}
 		auto& bytecode = context.m_bcl;
 
-		INT64 negv = -(INT64)*(Type*)bytecode;
+		int64_t negv = -(int64_t)*(Type*)bytecode;
 
 		bytecode += sizeof(Type);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<INT64>(negv, TYPE_UNDEFINED, false, true));
+			context.PushASMCNode(new ASMContextNodeValue<int64_t>(negv, TYPE_UNDEFINED, false, true));
 		}
 
 		out << std::dec << negv << std::endl;
@@ -1966,7 +1966,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			ctx.Aligned<Type>();
 		}
@@ -1980,10 +1980,10 @@ class OPCodeInfoGetConstant : public OPCodeInfo {
 	Type m_value;
 	bool m_canBeCastToBool;
 public:
-	OPCodeInfoGetConstant(OPCode id, LPCCH name, Type value, bool canBeCastToBool = false) : OPCodeInfo(id, name), m_value(value), m_canBeCastToBool(canBeCastToBool) {
+	OPCodeInfoGetConstant(OPCode id, const char* name, Type value, bool canBeCastToBool = false) : OPCodeInfo(id, name), m_value(value), m_canBeCastToBool(canBeCastToBool) {
 	}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeValue<Type>(m_value, TYPE_UNDEFINED, false, m_canBeCastToBool));
 		}
@@ -1993,7 +1993,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2001,7 +2001,7 @@ public:
 class OPCodeInfoCastBool : public OPCodeInfo {
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(ASMCNodeConvertToBool(context.PopASMCNode()));
 		}
@@ -2011,7 +2011,7 @@ class OPCodeInfoCastBool : public OPCodeInfo {
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2020,10 +2020,10 @@ template<typename Type>
 class OPCodeInfoGetConstantRef : public OPCodeInfo {
 	Type m_value;
 public:
-	OPCodeInfoGetConstantRef(OPCode id, LPCCH name, Type value) : OPCodeInfo(id, name), m_value(value) {
+	OPCodeInfoGetConstantRef(OPCode id, const char* name, Type value) : OPCodeInfo(id, name), m_value(value) {
 	}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(new ASMContextNodeValue<Type>(m_value));
 		}
@@ -2033,7 +2033,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2043,10 +2043,10 @@ class OPCodeInfoGetConstantSet : public OPCodeInfo {
 	Type m_value;
 	bool m_inst;
 public:
-	OPCodeInfoGetConstantSet(OPCode id, LPCCH name, Type value, bool inst = false) : OPCodeInfo(id, name), m_value(value), m_inst(inst) {
+	OPCodeInfoGetConstantSet(OPCode id, const char* name, Type value, bool inst = false) : OPCodeInfo(id, name), m_value(value), m_inst(inst) {
 	}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
 			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<Type>(m_value)));
@@ -2060,7 +2060,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2069,10 +2069,10 @@ class OPCodeInfoGetObjectSize : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<LPCCH>("size"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<const char*>("size"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		out << "\n";
@@ -2080,7 +2080,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2089,7 +2089,7 @@ class OPCodeInfoVectorScale : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("vectorscale", false);
 
@@ -2104,17 +2104,17 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
-template<typename Type, typename WriteType = INT64>
+template<typename Type, typename WriteType = int64_t>
 class OPCodeInfoGetNumber : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			context.Aligned<Type>();
 		}
@@ -2133,7 +2133,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			ctx.Aligned<Type>();
 		}
@@ -2146,19 +2146,19 @@ class OPCodeInfoDevBlockCall : public OPCodeInfo {
 public:
 	OPCodeInfoDevBlockCall() : OPCodeInfo(OPCODE_IW_DevBlock, "DevBlockCall") {}
 	
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<INT16>();
+			context.Aligned<int16_t>();
 		}
 		auto& bytecode = context.m_bcl;
 
-		INT16 delta = *(INT16*)bytecode;
+		int16_t delta = *(int16_t*)bytecode;
 
 		bytecode += sizeof(delta);
 
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("DevBlockCall", false);
-			node->AddParam(new ASMContextNodeValue<INT16>(delta));
+			node->AddParam(new ASMContextNodeValue<int16_t>(delta));
 			context.PushASMCNode(node);
 			context.CompleteStatement();
 		}
@@ -2169,41 +2169,41 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			ctx.Aligned<INT16>();
+			ctx.Aligned<int16_t>();
 		}
-		ctx.m_bcl += sizeof(INT16);
+		ctx.m_bcl += sizeof(int16_t);
 		return 0;
 	}
 };
 
 class OPCodeInfoGetHash : public OPCodeInfo {
 private:
-	LPCCH m_type;
+	const char* m_type;
 	bool m_hash64;
 public:
-	OPCodeInfoGetHash(OPCode id, LPCCH name, LPCCH type, bool hash64 = true) : m_type(type), m_hash64(hash64), OPCodeInfo(id, name) {}
+	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true) : m_type(type), m_hash64(hash64), OPCodeInfo(id, name) {}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			if (m_hash64) {
-				context.Aligned<UINT64>();
+				context.Aligned<uint64_t>();
 			}
 			else {
-				context.Aligned<UINT32>();
+				context.Aligned<uint32_t>();
 			}
 		}
 		auto& bytecode = context.m_bcl;
 
-		UINT64 hash;
+		uint64_t hash;
 		
 		if (m_hash64) {
-			hash = *(UINT64*)bytecode;
+			hash = *(uint64_t*)bytecode;
 			bytecode += 8;
 		}
 		else {
-			hash = *(UINT32*)bytecode;
+			hash = *(uint32_t*)bytecode;
 			bytecode += 4;
 		}
 
@@ -2216,9 +2216,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			ctx.Aligned<UINT64>();
+			ctx.Aligned<uint64_t>();
 		}
 		ctx.m_bcl += 8;
 		return 0;
@@ -2229,13 +2229,13 @@ class OPCodeInfoJump : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		// get the jump opcode location
-		INT32 m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
+		int32_t m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) ? 2 : 1));
 
 		ASMContextNode* node = nullptr;
 		ASMContextNodeType type = TYPE_JUMP;
-		LPCCH name = nullptr;
+		const char* name = nullptr;
 		bool pushBack = false;
 		if (context.m_runDecompiler) {
 			switch (m_id) {
@@ -2286,17 +2286,17 @@ public:
 		assert(!context.m_runDecompiler || name != nullptr);
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<INT16>();
+			context.Aligned<int16_t>();
 		}
 
 		auto& bytecode = context.m_bcl;
 
-		INT16 delta = *(INT16*)bytecode;
+		int16_t delta = *(int16_t*)bytecode;
 
 		bytecode += 2;
 
 		// push a location and mark it as referenced
-		BYTE* newLoc = &context.m_bcl[delta];
+		byte* newLoc = &context.m_bcl[delta];
 
 		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.file) {
 			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
@@ -2306,9 +2306,9 @@ public:
 		// push the node value during the jump if the operator is asking for it
 		auto& locref = context.PushLocation(newLoc);
 
-		UINT16 pointedOpCode{};
+		uint16_t pointedOpCode{};
 		if (context.m_objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			pointedOpCode = *reinterpret_cast<UINT16*>(utils::Aligned<UINT16>(newLoc));
+			pointedOpCode = *reinterpret_cast<uint16_t*>(utils::Aligned<uint16_t>(newLoc));
 		}
 		else {
 			pointedOpCode = *newLoc;
@@ -2330,10 +2330,10 @@ public:
 						if (last.node->m_type != TYPE_JUMP && IsJumpType(last.node->m_type)) {
 							auto* jumpNode = static_cast<ASMContextNodeJumpOperator*>(last.node);
 							// is this operator pointing just after us?
-							BYTE* curr;
+							byte* curr;
 
 							if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-								curr = utils::Aligned<INT16>(context.m_bcl);
+								curr = utils::Aligned<int16_t>(context.m_bcl);
 							}
 							else {
 								curr = context.m_bcl;
@@ -2376,7 +2376,7 @@ public:
 			if (context.m_runDecompiler) {
 				if (!node) {
 					// add empty jump to redirect the jump
-					context.PushASMCNode(new ASMContextNodeValue<LPCCH>("<emptypos_jump>", TYPE_PRECODEPOS));
+					context.PushASMCNode(new ASMContextNodeValue<const char*>("<emptypos_jump>", TYPE_PRECODEPOS));
 					context.CompleteStatement();
 				}
 				else {
@@ -2388,20 +2388,20 @@ public:
 			}
 		}
 
-		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
+		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
 
 		return 0;
 		//return m_id == OPCODE_Jump ? -2 : 0; // no code after jump
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		INT32 m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		int32_t m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			ctx.Aligned<INT16>();
+			ctx.Aligned<int16_t>();
 		}
 		auto& bytecode = ctx.m_bcl;
 
-		INT16 delta = *(INT16*)bytecode;
+		int16_t delta = *(int16_t*)bytecode;
 
 		bytecode += 2;
 
@@ -2415,21 +2415,21 @@ class OPCodeInfoJumpExpr : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		INT32 m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int32_t m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		// get the jump opcode location
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<INT16>();
+			context.Aligned<int16_t>();
 		}
 		auto& bytecode = context.m_bcl;
 
-		INT16 delta = *(INT16*)bytecode;
+		int16_t delta = *(int16_t*)bytecode;
 
 		bytecode += 2;
 
 		// push a location and mark it as referenced
-		BYTE* newLoc = &context.m_bcl[delta];
+		byte* newLoc = &context.m_bcl[delta];
 
 		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.file) {
 			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
@@ -2441,7 +2441,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			ASMContextNodePriority priority = PRIORITY_VALUE;
-			LPCCH desc = "<err>";
+			const char* desc = "<err>";
 			if (context.m_runDecompiler) {
 				switch (m_id) {
 				case OPCODE_JumpOnFalseExpr:
@@ -2463,18 +2463,18 @@ public:
 
 		locref.refs.insert(m_jumpLocation);
 
-		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
+		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
 
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		INT32 m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		int32_t m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
 		// get the jump opcode location
 
-		auto& bytecode = ctx.Aligned<INT16>();
+		auto& bytecode = ctx.Aligned<int16_t>();
 
-		INT16 delta = *(INT16*)bytecode;
+		int16_t delta = *(int16_t*)bytecode;
 
 		bytecode += 2;
 		
@@ -2487,8 +2487,8 @@ class OPCodeInfoJumpPush : public OPCodeInfo {
 public:
 	OPCodeInfoJumpPush() : OPCodeInfo(OPCODE_JumpPush, "JumpPush") {}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		INT32 jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int32_t jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		auto& bytecode = context.Aligned<uintptr_t>();
 
 		uintptr_t location = *(uintptr_t*)bytecode;
@@ -2505,7 +2505,7 @@ public:
 		return -2; // no code after that
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.Aligned<uintptr_t>() += 8;
 		return -2;
 	}
@@ -2515,7 +2515,7 @@ class OPCodeInfoVector : public OPCodeInfo {
 public:
 	OPCodeInfoVector() : OPCodeInfo(OPCODE_Vector, "Vector") {}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* x = context.PopASMCNode();
 			auto* y = context.PopASMCNode();
@@ -2527,7 +2527,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2536,7 +2536,7 @@ class OPCodeInfoGetVector : public OPCodeInfo {
 public:
 	OPCodeInfoGetVector() : OPCodeInfo(OPCODE_GetVector, "GetVector") {}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			context.Aligned<FLOAT>();
 		}
@@ -2559,7 +2559,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			ctx.Aligned<FLOAT>();
 		}
@@ -2572,7 +2572,7 @@ class OPCodeInfoVectorConstant : public OPCodeInfo {
 public:
 	OPCodeInfoVectorConstant() : OPCodeInfo(OPCODE_VectorConstant, "VectorConstant") {}
 
-	float OfFlag(BYTE loc) const {
+	float OfFlag(byte loc) const {
 		switch (loc & 0x3) {
 		case 0: return 0;
 		case 1: return -1;
@@ -2581,8 +2581,8 @@ public:
 		}
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		BYTE flag = *(context.m_bcl++);
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		byte flag = *(context.m_bcl++);
 
 		FLOAT x = OfFlag(flag >> 4);
 		FLOAT y = OfFlag(flag >> 2);
@@ -2597,7 +2597,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -2605,15 +2605,15 @@ public:
 
 class OPCodeInfoName : public OPCodeInfo {
 private:
-	LPCCH m_hashType;
+	const char* m_hashType;
 public:
-	OPCodeInfoName(OPCode id, LPCCH name, LPCCH hashType) : OPCodeInfo(id, name), m_hashType(hashType) {
+	OPCodeInfoName(OPCode id, const char* name, const char* hashType) : OPCodeInfo(id, name), m_hashType(hashType) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& ref = context.Aligned<UINT32>();
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(UINT32*)ref;
+		auto name = *(uint32_t*)ref;
 
 		ref += 4;
 
@@ -2622,21 +2622,21 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
 
 class OPCodeInfoSetVariableFieldRef : public OPCodeInfo {
 public:
-	OPCodeInfoSetVariableFieldRef(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoSetVariableFieldRef(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& ref = context.Aligned<UINT32>();
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(UINT32*)ref;
+		auto name = *(uint32_t*)ref;
 
 		ref += 4;
 
@@ -2654,21 +2654,21 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
 
 class OPCodeInfoSetVariableFieldCached : public OPCodeInfo {
 public:
-	OPCodeInfoSetVariableFieldCached(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoSetVariableFieldCached(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = *(context.m_bcl++);
 
-		UINT64 name;
+		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
@@ -2690,17 +2690,63 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		return -1;
+	}
+};
+
+class OPCodeInfoSetWaittillVariableFieldCached : public OPCodeInfo {
+public:
+	OPCodeInfoSetWaittillVariableFieldCached(OPCode id, const char* name) : OPCodeInfo(id, name) {
+	}
+
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int lvar = *(context.m_bcl++);
+
+		uint64_t name;
+		if (lvar >= context.m_localvars.size()) {
+			name = hashutils::Hash32("<error>");
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
+		}
+		else {
+			name = context.m_localvars[lvar].name;
+			context.m_localvars_ref[name]++;
+		}
+
+		out << hashutils::ExtractTmp("var", name) << std::endl;
+
+		if (context.m_runDecompiler) {
+			ASMContextNode* prev = context.PopASMCNode();
+
+			ASMContextNode* node;
+			if (prev->m_type == TYPE_WAITTILL_SET) {
+				auto* lro = reinterpret_cast<ASMContextNodeLeftRightOperator*>(prev);
+				lro->m_left = new ASMContextNodeLeftRightOperator(lro->m_left, new ASMContextNodeIdentifier(name), ", ", PRIORITY_SET, TYPE_WAITTILL_SET);
+				node = lro;
+			}
+			else {
+				node = new ASMContextNodeLeftRightOperator(
+					new ASMContextNodeIdentifier(name), prev, " = ", PRIORITY_SET, TYPE_WAITTILL_SET);
+			}
+
+			context.SetFieldIdASMCNode(node->Clone());
+			context.PushASMCNode(node);
+		}
+
+		return 0;
+	}
+
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return -1;
 	}
 };
 
 class OPCodeInfoSetVariableField : public OPCodeInfo {
 public:
-	OPCodeInfoSetVariableField(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoSetVariableField(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 
 		if (context.m_runDecompiler) {
@@ -2711,7 +2757,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2721,7 +2767,7 @@ public:
 	OPCodeT9SetVariableFieldFromEvalArrayRef() : OPCodeInfo(OPCODE_T9_SetVariableFieldFromEvalArrayRef, "SetVariableFieldFromEvalArrayRef") {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 
 		if (context.m_runDecompiler) {
@@ -2737,19 +2783,19 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeT9Iterator : public OPCodeInfo {
 public:
-	LPCCH m_op;
+	const char* m_op;
 	ASMContextNodeType m_ittype;
-	OPCodeT9Iterator(OPCode id, LPCCH name, LPCCH op, ASMContextNodeType ittype) : OPCodeInfo(id, name), m_op(op), m_ittype(ittype) {
+	OPCodeT9Iterator(OPCode id, const char* name, const char* op, ASMContextNodeType ittype) : OPCodeInfo(id, name), m_op(op), m_ittype(ittype) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 		if (context.m_runDecompiler) {
 			ASMContextNode* iterator = context.PopASMCNode();
@@ -2764,7 +2810,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -2774,7 +2820,7 @@ public:
 	OPCodeT9GetVarRef() : OPCodeInfo(OPCODE_T9_GetVarRef, "GetVarRef") {}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeRef("&", context.GetFieldIdASMCNode()->Clone()));
@@ -2783,20 +2829,20 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoEvalSelfFieldVariable : public OPCodeInfo {
 public:
-	OPCodeInfoEvalSelfFieldVariable(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoEvalSelfFieldVariable(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& ref = context.Aligned<UINT32>();
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(UINT32*)ref;
+		auto name = *(uint32_t*)ref;
 
 		ref += 4;
 
@@ -2810,8 +2856,8 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
@@ -2821,14 +2867,14 @@ private:
 	bool m_stack;
 	bool m_isref;
 public:
-	OPCodeInfoClearFieldVariable(OPCode id, LPCCH name, bool stack, bool isref) : OPCodeInfo(id, name), m_stack(stack), m_isref(isref) {
+	OPCodeInfoClearFieldVariable(OPCode id, const char* name, bool stack, bool isref) : OPCodeInfo(id, name), m_stack(stack), m_isref(isref) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		UINT64 name = 0;
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		uint64_t name = 0;
 		if (!m_stack) {
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-				context.Aligned<UINT32>();
+				context.Aligned<uint32_t>();
 			}
 			auto& ref = context.m_bcl;
 
@@ -2846,11 +2892,11 @@ public:
 			}
 			else {
 				if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-					name = *(UINT64*)ref;
+					name = *(uint64_t*)ref;
 					ref += 8;
 				}
 				else {
-					name = *(UINT32*)ref;
+					name = *(uint32_t*)ref;
 					ref += 4;
 				}
 			}
@@ -2865,16 +2911,16 @@ public:
 		if (context.m_runDecompiler) {
 			ASMContextNode* nameNode = m_stack ? context.PopASMCNode() : new ASMContextNodeIdentifier(name);
 			ASMContextNode* fieldAccessNode = new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(fieldAccessNode, new ASMContextNodeValue<LPCCH>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(fieldAccessNode, new ASMContextNodeValue<const char*>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
 			context.CompleteStatement();
 		}
 
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			ctx.Aligned<UINT32>();
+			ctx.Aligned<uint32_t>();
 		}
 		auto& ref = ctx.m_bcl;
 
@@ -2892,19 +2938,19 @@ public:
 
 class OPCodeInfoSetGlobalObjectFieldVariable : public OPCodeInfo {
 private:
-	LPCCH gvarName;
+	const char* gvarName;
 public:
-	OPCodeInfoSetGlobalObjectFieldVariable(OPCode id, LPCCH name, LPCCH gvarName = nullptr) : OPCodeInfo(id, name), gvarName(gvarName) {}
+	OPCodeInfoSetGlobalObjectFieldVariable(OPCode id, const char* name, const char* gvarName = nullptr) : OPCodeInfo(id, name), gvarName(gvarName) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		UINT64 name;
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		uint64_t name;
 		if (!gvarName) {
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-				context.Aligned<UINT16>();
+				context.Aligned<uint16_t>();
 			}
 			auto& base = context.m_bcl;
 
-			UINT16 objectid = *(UINT16*)base;
+			uint16_t objectid = *(uint16_t*)base;
 			base += 2;
 
 			name = objctx.GetGlobalVarName(objectid);
@@ -2923,17 +2969,17 @@ public:
 		}
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<UINT32>();
+			context.Aligned<uint32_t>();
 		}
 		auto& base2 = context.m_bcl;
-		UINT64 fieldName;
+		uint64_t fieldName;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-			fieldName = *(UINT64*)(base2);
+			fieldName = *(uint64_t*)(base2);
 			base2 += 8;
 		}
 		else {
-			fieldName = *(UINT32*)(base2);
+			fieldName = *(uint32_t*)(base2);
 			base2 += 4;
 		}
 
@@ -2950,28 +2996,28 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT16>() += 2;
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint16_t>() += 2;
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
 class OPCodeInfoEvalGlobalObjectFieldVariable : public OPCodeInfo {
 private:
-	LPCCH gvarName;
+	const char* gvarName;
 	bool push;
 public:
-	OPCodeInfoEvalGlobalObjectFieldVariable(OPCode id, LPCCH name, LPCCH gvarName = nullptr, bool push = true) : OPCodeInfo(id, name), gvarName(gvarName), push(push) {}
+	OPCodeInfoEvalGlobalObjectFieldVariable(OPCode id, const char* name, const char* gvarName = nullptr, bool push = true) : OPCodeInfo(id, name), gvarName(gvarName), push(push) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		UINT64 name;
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		uint64_t name;
 		if (!gvarName) {
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-				context.Aligned<UINT16>();
+				context.Aligned<uint16_t>();
 			}
 			auto& base = context.m_bcl;
 
-			UINT16 objectid = *(UINT16*)base;
+			uint16_t objectid = *(uint16_t*)base;
 			base += 2;
 
 			name = objctx.GetGlobalVarName(objectid);
@@ -2990,17 +3036,17 @@ public:
 		}
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<UINT32>();
+			context.Aligned<uint32_t>();
 		}
 		auto& base2 = context.m_bcl;
-		UINT64 fieldName;
+		uint64_t fieldName;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-			fieldName = *(UINT64*)(base2);
+			fieldName = *(uint64_t*)(base2);
 			base2 += 8;
 		}
 		else {
-			fieldName = *(UINT32*)(base2);
+			fieldName = *(uint32_t*)(base2);
 			base2 += 4;
 		}
 		
@@ -3020,31 +3066,31 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT16>() += 2;
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint16_t>() += 2;
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
 
 class OPCodeInfoCastAndEvalFieldVariable : public OPCodeInfo {
 public:
-	OPCodeInfoCastAndEvalFieldVariable(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoCastAndEvalFieldVariable(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<UINT32>();
+			context.Aligned<uint32_t>();
 		}
 		auto& base2 = context.m_bcl;
-		UINT64 name;
+		uint64_t name;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-			name = *(UINT64*)(base2);
+			name = *(uint64_t*)(base2);
 			base2 += 8;
 		}
 		else {
-			name = *(UINT32*)(base2);
+			name = *(uint32_t*)(base2);
 			base2 += 4;
 		}
 
@@ -3058,8 +3104,8 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
@@ -3069,24 +3115,24 @@ private:
 	bool m_stack;
 	bool m_ref;
 public:
-	OPCodeInfoEvalFieldVariable(OPCode id, LPCCH name, bool stack, bool ref) : OPCodeInfo(id, name), m_stack(stack), m_ref(ref) {
+	OPCodeInfoEvalFieldVariable(OPCode id, const char* name, bool stack, bool ref) : OPCodeInfo(id, name), m_stack(stack), m_ref(ref) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		UINT64 name = 0;
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		uint64_t name = 0;
 
 		if (!m_stack) {
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-				context.Aligned<UINT32>();
+				context.Aligned<uint32_t>();
 			}
 			auto& ref = context.m_bcl;
 
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-				name = *(UINT64*)ref;
+				name = *(uint64_t*)ref;
 				ref += 8;
 			}
 			else {
-				name = *(UINT32*)ref;
+				name = *(uint32_t*)ref;
 				ref += 4;
 			}
 
@@ -3110,9 +3156,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (!m_stack) {
-			ctx.Aligned<UINT32>() += 4;
+			ctx.Aligned<uint32_t>() += 4;
 		}
 		return 0;
 	}
@@ -3122,10 +3168,10 @@ class OPCodeInfoEvalLocalVariableCached : public OPCodeInfo {
 	int count;
 	int forceId;
 public:
-	OPCodeInfoEvalLocalVariableCached(OPCode id, LPCCH name, int count = 1, int forceId = -1) : OPCodeInfo(id, name), count(count), forceId(forceId) {
+	OPCodeInfoEvalLocalVariableCached(OPCode id, const char* name, int count = 1, int forceId = -1) : OPCodeInfo(id, name), count(count), forceId(forceId) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		for (size_t i = 0; i < count; i++) {
 			if (i) {
 				context.WritePadding(out);
@@ -3140,7 +3186,7 @@ public:
 			}
 			out << "(-" << std::dec << lvar << ") ";
 
-			UINT64 name;
+			uint64_t name;
 			if (lvar >= context.m_localvars.size()) {
 				name = hashutils::Hash32("<error>");
 				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
@@ -3159,7 +3205,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl += count;
 		return 0;
 	}
@@ -3169,13 +3215,13 @@ class OPCodeInfoSetLocalVariableCached : public OPCodeInfo {
 private:
 	bool m_stack;
 public:
-	OPCodeInfoSetLocalVariableCached(OPCode id, LPCCH name, bool stack) : OPCodeInfo(id, name), m_stack(stack) {
+	OPCodeInfoSetLocalVariableCached(OPCode id, const char* name, bool stack) : OPCodeInfo(id, name), m_stack(stack) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT64 name;
+		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -3201,20 +3247,20 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
 };
 class OPCodeInfoClearLocalVariableCached : public OPCodeInfo {
 public:
-	OPCodeInfoClearLocalVariableCached(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoClearLocalVariableCached(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT64 name;
+		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -3227,14 +3273,14 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(new ASMContextNodeIdentifier(name), new ASMContextNodeValue<LPCCH>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(new ASMContextNodeIdentifier(name), new ASMContextNodeValue<const char*>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
 			context.CompleteStatement();
 		}
 
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -3244,12 +3290,12 @@ class OPCodeInfoFirstArrayKey : public OPCodeInfo {
 private:
 	bool m_stack;
 public:
-	OPCodeInfoFirstArrayKey(OPCode id, LPCCH name, bool stack) : OPCodeInfo(id, name), m_stack(stack) {
+	OPCodeInfoFirstArrayKey(OPCode id, const char* name, bool stack) : OPCodeInfo(id, name), m_stack(stack) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT64 name;
+		uint64_t name;
 		if (!m_stack) {
 			int lvar = (int)*(context.m_bcl++);
 
@@ -3286,7 +3332,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (!m_stack) {
 			ctx.m_bcl++;
 		}
@@ -3296,12 +3342,12 @@ public:
 
 class OPCodeInfoSetNextArrayKeyCached : public OPCodeInfo {
 public:
-	OPCodeInfoSetNextArrayKeyCached(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoSetNextArrayKeyCached(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT64 name;
+		uint64_t name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -3331,7 +3377,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -3339,12 +3385,12 @@ public:
 
 class OPCodeInfoEvalFieldObjectFromRef : public OPCodeInfo {
 public:
-	OPCodeInfoEvalFieldObjectFromRef(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoEvalFieldObjectFromRef(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT64 name;
+		uint64_t name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -3364,7 +3410,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -3372,12 +3418,12 @@ public:
 
 class OPCodeInfoEvalLocalVariableRefCached : public OPCodeInfo {
 public:
-	OPCodeInfoEvalLocalVariableRefCached(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoEvalLocalVariableRefCached(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT64 name;
+		uint64_t name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -3397,7 +3443,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -3405,12 +3451,12 @@ public:
 
 class OPCodeInfoEvalLocalVariableDefined : public OPCodeInfo {
 public:
-	OPCodeInfoEvalLocalVariableDefined(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoEvalLocalVariableDefined(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT64 name;
+		uint64_t name;
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
@@ -3430,7 +3476,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -3441,10 +3487,10 @@ public:
 	OPCodeInfoEvalLocalArrayCached() : OPCodeInfo(OPCODE_IW_EvalLocalArrayCached, "EvalLocalArrayCached") {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT64 name;
+		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
@@ -3469,7 +3515,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -3479,10 +3525,10 @@ public:
 	OPCodeInfoEvalLocalObjectCached() : OPCodeInfo(OPCODE_IW_EvalLocalVariableObjectCached, "EvalLocalVariableObjectCached") {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT64 name;
+		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
@@ -3501,7 +3547,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -3511,10 +3557,10 @@ class OPCodeInfoEvalArray : public OPCodeInfo {
 private:
 	bool m_stack;
 public:
-	OPCodeInfoEvalArray(OPCode id, LPCCH name, bool stack) : OPCodeInfo(id, name), m_stack(stack) {
+	OPCodeInfoEvalArray(OPCode id, const char* name, bool stack) : OPCodeInfo(id, name), m_stack(stack) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		out << "\n";
 
@@ -3535,17 +3581,17 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoCreateArray : public OPCodeInfo {
 public:
-	OPCodeInfoCreateArray(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoCreateArray(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		out << "\n";
 
@@ -3556,17 +3602,17 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoAddToArray : public OPCodeInfo {
 public:
-	OPCodeInfoAddToArray(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoAddToArray(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		out << "\n";
 
@@ -3594,17 +3640,17 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoCreateStruct : public OPCodeInfo {
 public:
-	OPCodeInfoCreateStruct(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoCreateStruct(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		out << "\n";
 
@@ -3615,7 +3661,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -3624,14 +3670,14 @@ class OPCodeInfoAddToStruct : public OPCodeInfo {
 private:
 	bool m_popKey;
 public:
-	OPCodeInfoAddToStruct(OPCode id, LPCCH name, bool popKey) : m_popKey(popKey), OPCodeInfo(id, name) {
+	OPCodeInfoAddToStruct(OPCode id, const char* name, bool popKey) : m_popKey(popKey), OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		UINT64 key{};
+		uint64_t key{};
 		if (!m_popKey) {
-			key = *(UINT64*)context.m_bcl;
+			key = *(uint64_t*)context.m_bcl;
 			context.m_bcl += 8;
 			out << hashutils::ExtractTmp("hash", key);
 		}
@@ -3661,17 +3707,17 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoCastFieldObject : public OPCodeInfo {
 public:
-	OPCodeInfoCastFieldObject(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoCastFieldObject(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		out << "\n";
 
@@ -3682,28 +3728,28 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoPreScriptCall : public OPCodeInfo {
 public:
-	OPCodeInfoPreScriptCall(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoPreScriptCall(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		out << "\n";
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<LPCCH>("<emptypos_prescriptcall>", TYPE_PRECODEPOS));
+			context.PushASMCNode(new ASMContextNodeValue<const char*>("<emptypos_prescriptcall>", TYPE_PRECODEPOS));
 		}
 
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -3711,11 +3757,11 @@ public:
 class OPCodeInfoEnd : public OPCodeInfo {
 public:
 	bool m_isReturn;
-	OPCodeInfoEnd(OPCode id, LPCCH name, bool isReturn) : OPCodeInfo(id, name), m_isReturn(isReturn) {
+	OPCodeInfoEnd(OPCode id, const char* name, bool isReturn) : OPCodeInfo(id, name), m_isReturn(isReturn) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			if (m_isReturn) {
 				auto* ref = new ASMContextNodeOp1("return ", true, context.PopASMCNode());
@@ -3725,14 +3771,14 @@ public:
 				context.PushASMCNode(ref);
 			} else {
 				// special node to print end ref
-				auto* ref = new ASMContextNodeValue<LPCCH>("<END>");
+				auto* ref = new ASMContextNodeValue<const char*>("<END>");
 				ref->m_type = TYPE_END;
 				context.PushASMCNode(ref);
 			}
 			context.CompleteStatement();
 		}
 		out << "\n";
-		INT64 rloc = context.FunctionRelativeLocation();
+		int64_t rloc = context.FunctionRelativeLocation();
 		for (const auto& loc : context.m_locs) {
 			if (loc.second.rloc > rloc) {
 				// not the end, we can continue
@@ -3743,8 +3789,8 @@ public:
 		return -2;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		INT64 rloc = ctx.FunctionRelativeLocation();
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		int64_t rloc = ctx.FunctionRelativeLocation();
 		for (const auto& loc : ctx.m_locs) {
 			if (loc.second.rloc > rloc) {
 				// not the end, we can continue
@@ -3757,17 +3803,17 @@ public:
 
 class OPCodeInfoClearArray : public OPCodeInfo {
 public:
-	OPCodeInfoClearArray(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfoClearArray(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* fieldId = context.GetFieldIdASMCNode();
 			auto* key = context.PopASMCNode();
 
 			ASMContextNode* accessNode = new ASMContextNodeArrayAccess(fieldId, key);
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(accessNode, new ASMContextNodeValue<LPCCH>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(accessNode, new ASMContextNodeValue<const char*>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
 
 			context.CompleteStatement();
 		}
@@ -3776,22 +3822,22 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoStatement : public OPCodeInfo {
-	LPCCH m_operatorName;
+	const char* m_operatorName;
 public:
-	OPCodeInfoStatement(OPCode id, LPCCH name, LPCCH operatorName) : OPCodeInfo(id, name),
+	OPCodeInfoStatement(OPCode id, const char* name, const char* operatorName) : OPCodeInfo(id, name),
 		m_operatorName(operatorName) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			auto* ref = new ASMContextNodeValue<LPCCH>(m_operatorName);
+			auto* ref = new ASMContextNodeValue<const char*>(m_operatorName);
 			// convert it to statement
 			ref->m_priority = PRIORITY_INST;
 			ref->m_type = TYPE_STATEMENT;
@@ -3801,7 +3847,7 @@ public:
 		out << "\n";
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -3813,12 +3859,12 @@ public:
 	}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("DevOp", false);
 
-			node->AddParam(new ASMContextNodeValue<UINT16>(value, TYPE_UNDEFINED, true));
+			node->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_UNDEFINED, true));
 			// convert it to statement
 			context.PushASMCNode(node);
 			if (!m_push) {
@@ -3827,7 +3873,7 @@ public:
 		}
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -3838,10 +3884,10 @@ public:
 	}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& bytecode = context.Aligned<UINT64>();
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& bytecode = context.Aligned<uint64_t>();
 
-		UINT64 hash = *(UINT64*)bytecode;
+		uint64_t hash = *(uint64_t*)bytecode;
 
 		bytecode += 8;
 
@@ -3859,8 +3905,8 @@ public:
 		out << "#\"" << hashutils::ExtractTmp("hash", hash) << "\" (#" << std::hex << hash << ")" << std::endl;
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT64>() += 8; // name
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint64_t>() += 8; // name
 		return 0;
 	}
 };
@@ -3868,15 +3914,15 @@ public:
 class OPCodeT9EvalFieldVariableFromObject : public OPCodeInfo {
 	bool stack;
 public:
-	OPCodeT9EvalFieldVariableFromObject(OPCode id, LPCCH name, bool stack) : OPCodeInfo(id, name), stack(stack) {
+	OPCodeT9EvalFieldVariableFromObject(OPCode id, const char* name, bool stack) : OPCodeInfo(id, name), stack(stack) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		auto& bytecode = context.Aligned<UINT32>();
+		auto& bytecode = context.Aligned<uint32_t>();
 
-		UINT64 name;
+		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -3888,7 +3934,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 
-		UINT32 field = *(UINT32*)bytecode;
+		uint32_t field = *(uint32_t*)bytecode;
 		bytecode += 4;
 
 		out << "." << hashutils::ExtractTmp("var", field) << std::endl;
@@ -3907,9 +3953,9 @@ public:
 		}
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++; // lvar
-		ctx.Aligned<UINT32>() += 4; // field
+		ctx.Aligned<uint32_t>() += 4; // field
 		return 0;
 	}
 };
@@ -3918,13 +3964,13 @@ class OPCodeT9EvalArrayCached : public OPCodeInfo {
 private:
 	bool m_push;
 public:
-	OPCodeT9EvalArrayCached(OPCode id, LPCCH name, bool push) : m_push(push), OPCodeInfo(id, name) {
+	OPCodeT9EvalArrayCached(OPCode id, const char* name, bool push) : m_push(push), OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT64 name;
+		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -3947,7 +3993,7 @@ public:
 		}
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++; // lvar
 		return 0;
 	}
@@ -3958,12 +4004,12 @@ public:
 	OPCodeT9SetFieldVariableFromObjectFromRef() : OPCodeInfo(OPCODE_T9_SetFieldVariableFromObjectFromRef, "SetFieldVariableFromObjectFromRef") {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		auto& bytecode = context.Aligned<UINT32>();
+		auto& bytecode = context.Aligned<uint32_t>();
 
-		UINT64 name;
+		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -3975,7 +4021,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 
-		UINT64 field = *(UINT32*)bytecode;
+		uint64_t field = *(uint32_t*)bytecode;
 		bytecode += 4;
 
 		out << "." << hashutils::ExtractTmp("var", field) << std::endl;
@@ -3993,25 +4039,25 @@ public:
 		}
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++; // lvar
-		ctx.Aligned<UINT32>() += 4; // field
+		ctx.Aligned<uint32_t>() += 4; // field
 		return 0;
 	}
 };
 
 class OPCodeInfoFunctionOperator : public OPCodeInfo {
-	LPCCH m_operatorName;
+	const char* m_operatorName;
 	bool m_hasSelf;
 	bool m_complete;
 	bool m_canHaveArg2;
 public:
-	OPCodeInfoFunctionOperator(OPCode id, LPCCH name, LPCCH operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false) : OPCodeInfo(id, name),
+	OPCodeInfoFunctionOperator(OPCode id, const char* name, const char* operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false) : OPCodeInfo(id, name),
 		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_operatorName, m_hasSelf);
 			if (m_hasSelf) {
@@ -4027,18 +4073,18 @@ public:
 		out << "\n";
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoNotify : public OPCodeInfo {
 public:
-	OPCodeInfoNotify(OPCode id, LPCCH name) : OPCodeInfo(id, name){
+	OPCodeInfoNotify(OPCode id, const char* name) : OPCodeInfo(id, name){
 	}
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("notify", true);
 			// self
@@ -4068,7 +4114,42 @@ public:
 		out << "\n";
 		return 0;
 	}
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
+};
+
+class OPCodeInfoIWNotify : public OPCodeInfo {
+public:
+	OPCodeInfoIWNotify(OPCode id, const char* name) : OPCodeInfo(id, name) {
+	}
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		if (context.m_runDecompiler) {
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("notify", true);
+			// self
+			node->AddParam(context.PopASMCNode());
+
+			int guess{};
+			while (context.m_stack.size() && context.PeekASMCNode()->m_type != TYPE_PRECODEPOS) {
+				node->AddParam(context.PopASMCNode());
+				guess++;
+			}
+			out << "guessParam: " << guess;
+
+			if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+				// clear PreScriptCall
+				delete context.PopASMCNode();
+			}
+
+			context.PushASMCNode(node);
+			context.CompleteStatement();
+		}
+		out << "\n";
+		return 0;
+	}
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
@@ -4078,19 +4159,19 @@ private:
 	size_t m_delta;
 	bool m_hasParam;
 public:
-	OPCodeInfoFuncCall(OPCode id, LPCCH name, size_t delta, bool hasParam) : m_delta(delta), m_hasParam(hasParam), OPCodeInfo(id, name) {}
+	OPCodeInfoFuncCall(OPCode id, const char* name, size_t delta, bool hasParam) : m_delta(delta), m_hasParam(hasParam), OPCodeInfo(id, name) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int params = *(context.m_bcl++);
 
-		UINT64 tmpBuffData[2];
-		UINT64* data = tmpBuffData;
+		uint64_t tmpBuffData[2];
+		uint64_t* data = tmpBuffData;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			auto& bytecode = context.Aligned<UINT64>();
+			auto& bytecode = context.Aligned<uint64_t>();
 
-			tmpBuffData[0] = ((UINT32*)bytecode)[0];
-			tmpBuffData[1] = ((UINT32*)bytecode)[1];
+			tmpBuffData[0] = ((uint32_t*)bytecode)[0];
+			tmpBuffData[1] = ((uint32_t*)bytecode)[1];
 
 			bytecode += 8;
 		}
@@ -4099,7 +4180,7 @@ public:
 				params = -1;
 				context.m_bcl--;
 			}
-			auto idx = *(UINT16*)context.m_bcl;
+			auto idx = *(uint16_t*)context.m_bcl;
 			context.m_bcl += m_delta;
 
 			if (idx >= objctx.m_linkedImports.size()) {
@@ -4118,7 +4199,7 @@ public:
 			out << std::dec << "params: " << params << " ";
 		}
 
-		UINT64 nsp = 0;
+		uint64_t nsp = 0;
 		if (data[1]
 			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
 			&& data[1] != context.m_namespace) { // same namespace call
@@ -4129,7 +4210,7 @@ public:
 		out << hashutils::ExtractTmp("function", data[0]);
 
 		if (context.m_runDecompiler) {
-			BYTE flags = 0;
+			byte flags = 0;
 
 			switch (m_id) {
 			case OPCODE_ScriptThreadCall:
@@ -4210,9 +4291,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++; // params
-		ctx.Aligned<UINT64>() += 8; // import
+		ctx.Aligned<uint64_t>() += 8; // import
 		return 0;
 	}
 };
@@ -4221,22 +4302,22 @@ class OPCodeInfoFuncGet : public OPCodeInfo {
 private:
 	size_t m_delta;
 public:
-	OPCodeInfoFuncGet(OPCode id, LPCCH name, size_t delta) : m_delta(delta), OPCodeInfo(id, name) {}
+	OPCodeInfoFuncGet(OPCode id, const char* name, size_t delta) : m_delta(delta), OPCodeInfo(id, name) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		UINT64 tmpBuffData[2];
-		UINT64* data = tmpBuffData;
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		uint64_t tmpBuffData[2];
+		uint64_t* data = tmpBuffData;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			auto& bytecode = context.Aligned<UINT64>();
+			auto& bytecode = context.Aligned<uint64_t>();
 
-			tmpBuffData[0] = ((UINT32*)bytecode)[0];
-			tmpBuffData[1] = ((UINT32*)bytecode)[1];
+			tmpBuffData[0] = ((uint32_t*)bytecode)[0];
+			tmpBuffData[1] = ((uint32_t*)bytecode)[1];
 
 			bytecode += 8;
 		}
 		else {
-			size_t idx = *(UINT16*)context.m_bcl;
+			size_t idx = *(uint16_t*)context.m_bcl;
 
 			// (mwiii)
 			// builtins: 16 bits
@@ -4258,7 +4339,7 @@ public:
 
 		out << "&";
 
-		UINT64 nsp = 0;
+		uint64_t nsp = 0;
 
 		if (data[1] 
 			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
@@ -4275,8 +4356,8 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT64>() += 8; // import
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint64_t>() += 8; // import
 		return 0;
 	}
 };
@@ -4285,11 +4366,11 @@ class OPCodeInfoFuncClassCall : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		BYTE params = *(context.m_bcl++);
-		auto& bytecode = context.Aligned<UINT32>();
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		byte params = *(context.m_bcl++);
+		auto& bytecode = context.Aligned<uint32_t>();
 
-		UINT32 function = *(UINT32*)bytecode;
+		uint32_t function = *(uint32_t*)bytecode;
 
 		bytecode += 4;
 
@@ -4298,7 +4379,7 @@ public:
 		if (context.m_runDecompiler) {
 			auto* caller = context.PopASMCNode();
 
-			BYTE flags = 0;
+			byte flags = 0;
 
 			if (m_id == OPCODE_ClassFunctionThreadCall) {
 				flags |= THREAD_CALL;
@@ -4356,9 +4437,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++; // params
-		ctx.Aligned<UINT32>() += 4; // name
+		ctx.Aligned<uint32_t>() += 4; // name
 		return 0;
 	}
 };
@@ -4367,9 +4448,9 @@ class OPCodeInfoFuncCallPtr : public OPCodeInfo {
 private:
 	bool m_hasParam;
 public:
-	OPCodeInfoFuncCallPtr(OPCode id, LPCCH name, bool hasParam) : m_hasParam(hasParam), OPCodeInfo(id, name) {}
+	OPCodeInfoFuncCallPtr(OPCode id, const char* name, bool hasParam) : m_hasParam(hasParam), OPCodeInfo(id, name) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int params;
 		if ((objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) || m_hasParam) {
 			params = *(context.m_bcl++);
@@ -4381,7 +4462,7 @@ public:
 
 
 		if (context.m_runDecompiler) {
-			BYTE flags = 0;
+			byte flags = 0;
 
 			switch (m_id) {
 			case OPCODE_ScriptThreadCallPointer:
@@ -4466,7 +4547,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -4474,17 +4555,17 @@ public:
 
 class OPCodeInfoGetString : public OPCodeInfo {
 public:
-	OPCodeInfoGetString(OPCode id, LPCCH name) : OPCodeInfo(id, name) {}
+	OPCodeInfoGetString(OPCode id, const char* name) : OPCodeInfo(id, name) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<INT32>();
+			context.Aligned<int32_t>();
 		}
 		auto& base = context.m_bcl;
 
-		UINT32 ref = *(UINT32*)base;
+		uint32_t ref = *(uint32_t*)base;
 
-		LPCCH str = objctx.GetStringValue(ref);
+		const char* str = objctx.GetStringValue(ref);
 
 		base += 4;
 
@@ -4498,7 +4579,7 @@ public:
 			// probably only dev blocks
 			out << "bad str stack: 0x" << std::hex << ref << "\n";
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeString("<unknown string>"));
+				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>"));
 			}
 		}
 
@@ -4506,9 +4587,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			ctx.Aligned<INT32>();
+			ctx.Aligned<int32_t>();
 		}
 		ctx.m_bcl += 4;
 		return 0;
@@ -4519,25 +4600,25 @@ class OPCodeInfoGetAnimation : public OPCodeInfo {
 private:
 	bool m_doubleAnim;
 public:
-	OPCodeInfoGetAnimation(OPCode id, LPCCH name, bool doubleAnim) : m_doubleAnim(doubleAnim), OPCodeInfo(id, name) {}
+	OPCodeInfoGetAnimation(OPCode id, const char* name, bool doubleAnim) : m_doubleAnim(doubleAnim), OPCodeInfo(id, name) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<INT32>();
+			context.Aligned<int32_t>();
 		}
 		auto& base = context.m_bcl;
 
-		UINT32 ref1;
-		LPCCH str1;
-		LPCCH str2;
-		UINT32 ref2;
+		uint32_t ref1;
+		const char* str1;
+		const char* str2;
+		uint32_t ref2;
 		if (m_doubleAnim) {
-			ref1 = *(UINT32*)base;
+			ref1 = *(uint32_t*)base;
 			str1 = objctx.GetStringValue(ref1);
 
 			base += 4;
 
-			ref2 = *(UINT32*)base;
+			ref2 = *(uint32_t*)base;
 
 			str2 = objctx.GetStringValue(ref2);
 			base += 4;
@@ -4567,9 +4648,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			ctx.Aligned<INT32>();
+			ctx.Aligned<int32_t>();
 		}
 		ctx.m_bcl += 4;
 		return 0;
@@ -4584,20 +4665,20 @@ enum OPCodeInfoGetGlobalGetType {
 
 class OPCodeInfoGetGlobal : public OPCodeInfo {
 private:
-	LPCCH m_gvarName;
+	const char* m_gvarName;
 	OPCodeInfoGetGlobalGetType m_ref;
 public:
-	OPCodeInfoGetGlobal(OPCode id, LPCCH name, OPCodeInfoGetGlobalGetType ref, LPCCH gvarName) : m_ref(ref), m_gvarName(gvarName), OPCodeInfo(id, name) {}
+	OPCodeInfoGetGlobal(OPCode id, const char* name, OPCodeInfoGetGlobalGetType ref, const char* gvarName) : m_ref(ref), m_gvarName(gvarName), OPCodeInfo(id, name) {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		UINT64 name;
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		uint64_t name;
 		if (!m_gvarName) {
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-				context.Aligned<UINT16>();
+				context.Aligned<uint16_t>();
 			}
 			auto& base = context.m_bcl;
 
-			UINT16 objectid = *(UINT16*)base;
+			uint16_t objectid = *(uint16_t*)base;
 			base += 2;
 
 			name = objctx.GetGlobalVarName(objectid);
@@ -4636,9 +4717,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			ctx.Aligned<UINT16>();
+			ctx.Aligned<uint16_t>();
 		}
 		ctx.m_bcl += 2;
 		return 0;
@@ -4650,18 +4731,18 @@ public:
 	OPCodeT9EvalFieldVariableFromGlobalObject() : OPCodeInfo(OPCODE_T9_EvalFieldVariableFromGlobalObject, "EvalFieldVariableFromGlobalObject") {
 	}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& base = context.Aligned<UINT16>();
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& base = context.Aligned<uint16_t>();
 
-		UINT16 ref = *(UINT16*)base;
+		uint16_t ref = *(uint16_t*)base;
 
-		UINT64 name = objctx.GetGlobalVarName(ref);
+		uint64_t name = objctx.GetGlobalVarName(ref);
 
 		base += 2;
 
-		auto& baseField = context.Aligned<UINT32>();
+		auto& baseField = context.Aligned<uint32_t>();
 
-		UINT32 field = *(UINT32*)baseField;
+		uint32_t field = *(uint32_t*)baseField;
 
 		base += 4;
 
@@ -4685,9 +4766,9 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT16>() += 2;
-		ctx.Aligned<UINT32>() += 4;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint16_t>() += 2;
+		ctx.Aligned<uint32_t>() += 4;
 		return 0;
 	}
 };
@@ -4696,14 +4777,14 @@ class OPCodeInfoGetLocalVar : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int) *(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
-			UINT64 name = context.m_localvars[lvar].name;
+			uint64_t name = context.m_localvars[lvar].name;
 			out << hashutils::ExtractTmp("var", name) << std::endl;
 			context.m_localvars_ref[name]++;
 		}
@@ -4711,7 +4792,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -4721,25 +4802,25 @@ class OPCodeInfoSwitch : public OPCodeInfo {
 public:
 	OPCodeInfoSwitch() : OPCodeInfo(OPCODE_Switch, "Switch") {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		// size:  8+16*cases,
 		// align: 4 + 4 + (8 + 8)*cases,
 		// logic uint32 deltaSwitchTable;uint32 cases;(uint64 value;uint64 delta)[cases]
 		// move to switch table using deltaSwitchTable;pop value;search case using case; if found move using delta
 
-		auto& baseTable = context.Aligned<INT32>();
-		INT32 table = *(INT32*)baseTable;
+		auto& baseTable = context.Aligned<int32_t>();
+		int32_t table = *(int32_t*)baseTable;
 		// we move to the table
 		baseTable += 4 + table;
 
-		auto& baseCases = context.Aligned<INT32>();
+		auto& baseCases = context.Aligned<int32_t>();
 
-		INT32 cases = (*(INT32*)baseCases) & 0x7FFFFFFF;
+		int32_t cases = (*(int32_t*)baseCases) & 0x7FFFFFFF;
 
 		baseCases += 4;
 
-		out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1)
-			<< context.FunctionRelativeLocation(utils::Aligned<INT64>(baseTable)) << " cases: " << cases << "\n";
+		out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
+			<< context.FunctionRelativeLocation(utils::Aligned<int64_t>(baseTable)) << " cases: " << cases << "\n";
 
 		ASMContextNodeSwitchPreCompute* node = nullptr;
 		if (context.m_runDecompiler) {
@@ -4747,14 +4828,14 @@ public:
 		}
 
 		for (size_t c = 1; c <= cases; c++) {
-			auto& baseCaseValue = context.Aligned<INT64>();
+			auto& baseCaseValue = context.Aligned<int64_t>();
 
 			context.WritePadding(out);
 
-			UINT64 caseValue = *(UINT64*)baseCaseValue;
+			uint64_t caseValue = *(uint64_t*)baseCaseValue;
 			baseCaseValue += 8;
-			auto& baseCaseDelta = context.Aligned<INT64>();
-			INT64 caseDelta = *(INT64*)baseCaseDelta;
+			auto& baseCaseDelta = context.Aligned<int64_t>();
+			int64_t caseDelta = *(int64_t*)baseCaseDelta;
 			baseCaseDelta += 8;
 
 			auto caseRLoc = context.PushLocation(&baseCaseDelta[caseDelta]).rloc;
@@ -4768,7 +4849,7 @@ public:
 			else {
 				out << "case ";
 				if (caseValue >= 0x100000000LL) {
-					// assume it's an hash after INT32 max value
+					// assume it's an hash after int32_t max value
 					out << "#\"" << hashutils::ExtractTmp("hash", caseValue) << "\"" << std::flush;
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeHash(caseValue, false, "#"), caseRLoc });
@@ -4777,17 +4858,17 @@ public:
 				else {
 					out << std::dec << caseValue;
 					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeValue<INT64>(caseValue), caseRLoc });
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(caseValue), caseRLoc });
 					}
 				}
 			}
 
-			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1)
+			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
 				<< caseRLoc << "\n";
 
 			if (c == cases) {
 				if (node) {
-					node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<UINT16>(context.m_bcl));
+					node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<uint16_t>(context.m_bcl));
 				}
 
 				if (!caseValue) {
@@ -4796,14 +4877,14 @@ public:
 			}
 			else {
 				// align to the next opcode
-				context.Aligned<UINT16>();
+				context.Aligned<uint16_t>();
 			}
 		}
 
 		if (node) {
 			if (!node->m_endLocation) {
 				// wtf? no cases???
-				node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<UINT16>(context.m_bcl));
+				node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<uint16_t>(context.m_bcl));
 			}
 			context.PushASMCNode(node);
 			context.CompleteStatement();
@@ -4813,24 +4894,24 @@ public:
 		return -2; // use pushed location to get asm from previous value
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		auto& baseTable = ctx.Aligned<INT32>();
-		INT32 table = *(INT32*)baseTable;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		auto& baseTable = ctx.Aligned<int32_t>();
+		int32_t table = *(int32_t*)baseTable;
 		// we move to the table
 		baseTable += 4 + table;
 
-		auto& baseCases = ctx.Aligned<INT32>();
+		auto& baseCases = ctx.Aligned<int32_t>();
 
-		INT32 cases = *(INT32*)baseCases;
+		int32_t cases = *(int32_t*)baseCases;
 
 		baseCases += 4;
 
 		for (size_t c = 1; c <= cases; c++) {
-			auto& baseCaseValue = ctx.Aligned<INT64>();
-			INT64 caseValue = *(INT64*)baseCaseValue;
+			auto& baseCaseValue = ctx.Aligned<int64_t>();
+			int64_t caseValue = *(int64_t*)baseCaseValue;
 			baseCaseValue += 8;
-			auto& baseCaseDelta = ctx.Aligned<INT64>();
-			INT64 caseDelta = *(INT64*)baseCaseDelta;
+			auto& baseCaseDelta = ctx.Aligned<int64_t>();
+			int64_t caseDelta = *(int64_t*)baseCaseDelta;
 			baseCaseDelta += 8;
 
 			auto caseRLoc = ctx.PushLocation(&baseCaseDelta[caseDelta]).rloc;
@@ -4842,7 +4923,7 @@ public:
 			}
 			else {
 				// align to the next opcode
-				ctx.Aligned<UINT16>();
+				ctx.Aligned<uint16_t>();
 			}
 		}
 
@@ -4855,19 +4936,19 @@ class OPCodeInfoIWSwitch : public OPCodeInfo {
 public:
 	OPCodeInfoIWSwitch() : OPCodeInfo(OPCODE_IW_Switch, "Switch") {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& baseTable = context.m_bcl;
-		INT32 table = *(INT32*)baseTable;
+		int32_t table = *(int32_t*)baseTable;
 		// we move to the table
 		baseTable += table + 4;
 
-		UINT16 cases = (*(UINT16*)baseTable) & 0x7FFFFFFF;
+		uint16_t cases = (*(uint16_t*)baseTable) & 0x7FFFFFFF;
 
 		baseTable += 2;
 
-		BYTE* baseLocation = baseTable;
+		byte* baseLocation = baseTable;
 
-		out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1)
+		out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
 			<< context.FunctionRelativeLocation(baseTable) << " cases: " << cases << "\n";
 
 		ASMContextNodeSwitchPreCompute* node = nullptr;
@@ -4886,8 +4967,8 @@ public:
 			};
 			
 			CaseValue val = *(CaseValue*)basecase;
-			INT32 caseDelta = ((*(INT32*)(basecase + 8) << 8) >> 8) + 8; // remove type
-			BYTE type = basecase[11];
+			int32_t caseDelta = ((*(int32_t*)(basecase + 8) << 8) >> 8) + 8; // remove type
+			byte type = basecase[11];
 
 			context.WritePadding(out);
 
@@ -4905,7 +4986,7 @@ public:
 				case 1: // integer
 					out << std::dec << val.integer;
 					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeValue<INT64>(val.integer), caseRLoc });
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(val.integer), caseRLoc });
 					}
 					break;
 				case 0xffff: {// string
@@ -4922,7 +5003,7 @@ public:
 						// probably only dev blocks
 						out << "bad str stack: 0x" << std::hex << val.hash;
 						if (node) {
-							outputStr = new ASMContextNodeString("<unknown string>");
+							outputStr = new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>");
 						}
 					}
 					if (node) {
@@ -4958,13 +5039,13 @@ public:
 				default:
 					out << std::dec << "unk " << type << ":" << val.hash;
 					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeValue<INT64>(val.hash), caseRLoc });
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(val.hash), caseRLoc });
 					}
 					break;
 				}
 			}
 
-			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1)
+			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
 				<< caseRLoc << "\n";
 
 			if (c == cases) {
@@ -4991,24 +5072,24 @@ public:
 		return -2; // use pushed location to get asm from previous value
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		auto& baseTable = ctx.Aligned<INT32>();
-		INT32 table = *(INT32*)baseTable;
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		auto& baseTable = ctx.Aligned<int32_t>();
+		int32_t table = *(int32_t*)baseTable;
 		// we move to the table
 		baseTable += 4 + table;
 
-		auto& baseCases = ctx.Aligned<INT32>();
+		auto& baseCases = ctx.Aligned<int32_t>();
 
-		INT32 cases = *(INT32*)baseCases;
+		int32_t cases = *(int32_t*)baseCases;
 
 		baseCases += 4;
 
 		for (size_t c = 1; c <= cases; c++) {
-			auto& baseCaseValue = ctx.Aligned<INT64>();
-			INT64 caseValue = *(INT64*)baseCaseValue;
+			auto& baseCaseValue = ctx.Aligned<int64_t>();
+			int64_t caseValue = *(int64_t*)baseCaseValue;
 			baseCaseValue += 8;
-			auto& baseCaseDelta = ctx.Aligned<INT64>();
-			INT64 caseDelta = *(INT64*)baseCaseDelta;
+			auto& baseCaseDelta = ctx.Aligned<int64_t>();
+			int64_t caseDelta = *(int64_t*)baseCaseDelta;
 			baseCaseDelta += 8;
 
 			auto caseRLoc = ctx.PushLocation(&baseCaseDelta[caseDelta]).rloc;
@@ -5020,7 +5101,7 @@ public:
 			}
 			else {
 				// align to the next opcode
-				ctx.Aligned<UINT16>();
+				ctx.Aligned<uint16_t>();
 			}
 		}
 
@@ -5033,15 +5114,15 @@ class OPCodeInfoEndSwitch : public OPCodeInfo {
 public:
 	OPCodeInfoEndSwitch() : OPCodeInfo(OPCODE_EndSwitch, "EndSwitch") {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		INT32 jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
-		auto& baseCount = context.Aligned<INT32>();
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int32_t jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
+		auto& baseCount = context.Aligned<int32_t>();
 
-		INT32 count = *(INT32*)baseCount;
+		int32_t count = *(int32_t*)baseCount;
 
 		baseCount += 4;
 
-		auto& ptrBase = context.Aligned<INT64>();
+		auto& ptrBase = context.Aligned<int64_t>();
 
 		ptrBase += 16 * count;
 
@@ -5052,19 +5133,19 @@ public:
 			context.CompleteStatement();
 		}
 
-		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << std::hex << rloc << "\n";
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << std::hex << rloc << "\n";
 
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		auto& baseCount = ctx.Aligned<INT32>();
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		auto& baseCount = ctx.Aligned<int32_t>();
 
-		INT32 count = *(INT32*)baseCount;
+		int32_t count = *(int32_t*)baseCount;
 
 		baseCount += 4;
 
-		auto& ptrBase = ctx.Aligned<INT64>() += 16 * count;
+		auto& ptrBase = ctx.Aligned<int64_t>() += 16 * count;
 		return 0;
 	}
 };
@@ -5072,11 +5153,11 @@ class OPCodeInfoIWEndSwitch : public OPCodeInfo {
 public:
 	OPCodeInfoIWEndSwitch() : OPCodeInfo(OPCODE_IW_EndSwitch, "EndSwitch") {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		INT32 jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int32_t jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		auto& baseCount = context.m_bcl;
 
-		UINT16 count = *(UINT16*)baseCount;
+		uint16_t count = *(uint16_t*)baseCount;
 
 		baseCount += 2 + 12 * count;
 
@@ -5087,12 +5168,12 @@ public:
 			context.CompleteStatement();
 		}
 
-		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << std::hex << rloc << "\n";
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << std::hex << rloc << "\n";
 
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return -1;
 	}
 };
@@ -5100,17 +5181,17 @@ public:
 class OPCodeInfopushopn : public OPCodeInfo {
 public:
 	INT m_n;
-	LPCCH m_op;
+	const char* m_op;
 	ASMContextNodePriority m_priority;
 	bool m_caller;
 	bool m_forceFunc;
 	bool m_convertBool;
 	bool m_isBoolValueRet;
-	OPCodeInfopushopn(OPCode id, LPCCH name, INT n, LPCCH op, ASMContextNodePriority priority, bool caller = false, bool forceFunc = false, bool convertBool = false, bool isBoolValueRet = false) : OPCodeInfo(id, name),
+	OPCodeInfopushopn(OPCode id, const char* name, INT n, const char* op, ASMContextNodePriority priority, bool caller = false, bool forceFunc = false, bool convertBool = false, bool isBoolValueRet = false) : OPCodeInfo(id, name),
 		m_n(n), m_op(op), m_priority(priority), m_caller(caller), m_forceFunc(forceFunc), m_convertBool(convertBool), m_isBoolValueRet(isBoolValueRet) {
 	}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			bool cb = m_convertBool;
 			auto popVal = [&context, cb]() {
@@ -5143,17 +5224,17 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfodec : public OPCodeInfo {
 public:
-	OPCodeInfodec(OPCode id, LPCCH name) : OPCodeInfo(id, name) {
+	OPCodeInfodec(OPCode id, const char* name) : OPCodeInfo(id, name) {
 	}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 
 			if (context.m_stack.size()) {
@@ -5174,22 +5255,22 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		return 0;
 	}
 };
 
 class OPCodeInfoCount : public OPCodeInfo {
-	LPCCH m_op;
+	const char* m_op;
 	bool m_pushReturn;
 	int m_addedToCount;
 public:
 
-	OPCodeInfoCount(OPCode id, LPCCH name, LPCCH op, bool pushReturn, int addedToCount = 0) : OPCodeInfo(id, name), m_addedToCount(addedToCount), m_op(op), m_pushReturn(pushReturn) {
+	OPCodeInfoCount(OPCode id, const char* name, const char* op, bool pushReturn, int addedToCount = 0) : OPCodeInfo(id, name), m_addedToCount(addedToCount), m_op(op), m_pushReturn(pushReturn) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		BYTE count = *(context.m_bcl++) + m_addedToCount;
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		byte count = *(context.m_bcl++) + m_addedToCount;
 
 		out << "count:" << (int)count << "\n";
 
@@ -5213,7 +5294,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -5221,15 +5302,15 @@ public:
 
 class OPCodeInfoSingle : public OPCodeInfo {
 public:
-	LPCCH m_op;
+	const char* m_op;
 	bool m_pushReturn;
 	unsigned int m_count;
 	unsigned int m_delta;
-	OPCodeInfoSingle(OPCode id, LPCCH name, LPCCH op, bool pushReturn, unsigned int count = 1, unsigned int delta = 0) : OPCodeInfo(id, name), 
+	OPCodeInfoSingle(OPCode id, const char* name, const char* op, bool pushReturn, unsigned int count = 1, unsigned int delta = 0) : OPCodeInfo(id, name), 
 		m_op(op), m_pushReturn(pushReturn), m_count(count), m_delta(delta) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (m_delta) {
 			out << "data: ";
 
@@ -5260,7 +5341,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -5268,12 +5349,12 @@ public:
 
 class OPCodeInfoSingleFunc : public OPCodeInfo {
 public:
-	LPCCH m_op;
+	const char* m_op;
 	bool m_pushReturn;
-	OPCodeInfoSingleFunc(OPCode id, LPCCH name, LPCCH op, bool pushReturn) : OPCodeInfo(id, name), m_op(op), m_pushReturn(pushReturn) {
+	OPCodeInfoSingleFunc(OPCode id, const char* name, const char* op, bool pushReturn) : OPCodeInfo(id, name), m_op(op), m_pushReturn(pushReturn) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 
 		if (context.m_runDecompiler) {
@@ -5292,7 +5373,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -5307,7 +5388,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		context.CompleteStatement();
 		out << "\n";
 		return 0;
@@ -5319,12 +5400,12 @@ class OPCodeInfoT8CGetLazyFunction : public OPCodeInfo {
 public:
 	OPCodeInfoT8CGetLazyFunction() : OPCodeInfo(OPCODE_T8C_GetLazyFunction, "T8C_GetLazyFunction") {}
 
-	int Dump(std::ostream& out, UINT16 v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		auto& base = context.Aligned<INT32>();
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		auto& base = context.Aligned<int32_t>();
 
-		UINT32 nsp = *(UINT32*)base;
-		UINT32 function = *(UINT32*)(base + 4);
-		UINT64 script = *(UINT64*)(base + 8);
+		uint32_t nsp = *(uint32_t*)base;
+		uint32_t function = *(uint32_t*)(base + 4);
+		uint64_t script = *(uint64_t*)(base + 8);
 
 		base += 16;
 
@@ -5338,19 +5419,19 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
-		ctx.Aligned<UINT32>() += 16; // nsp32:func32:script64
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.Aligned<uint32_t>() += 16; // nsp32:func32:script64
 		return 0;
 	}
 };
 
 class OPCodeInfoDeltaVal : public OPCodeInfo {
 public:
-	LPCCH m_op;
-	OPCodeInfoDeltaVal(OPCode id, LPCCH name, LPCCH op) : OPCodeInfo(id, name), m_op(op) {
+	const char* m_op;
+	OPCodeInfoDeltaVal(OPCode id, const char* name, const char* op) : OPCodeInfo(id, name), m_op(op) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << m_op << "\n";
 
 		if (context.m_runDecompiler) {
@@ -5369,14 +5450,14 @@ public:
 
 class OPCodeT9DeltaLocalVariableCached : public OPCodeInfo {
 public:
-	LPCCH m_op;
-	OPCodeT9DeltaLocalVariableCached(OPCode id, LPCCH name, LPCCH op) : OPCodeInfo(id, name), m_op(op) {
+	const char* m_op;
+	OPCodeT9DeltaLocalVariableCached(OPCode id, const char* name, const char* op) : OPCodeInfo(id, name), m_op(op) {
 	}
 
-	int Dump(std::ostream& out, UINT16 value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int lvar = (int)*(context.m_bcl++);
 
-		UINT64 name;
+		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hashutils::Hash32("<error>");
@@ -5398,7 +5479,7 @@ public:
 		return 0;
 	}
 
-	int Skip(UINT16 value, ASMSkipContext& ctx) const override {
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_bcl++;
 		return 0;
 	}
@@ -5411,7 +5492,7 @@ namespace {
 	const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefined, "Undefined");
 }
 
-void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name, UINT64 flags) {
+void tool::gsc::opcode::RegisterVM(byte vm, const char* name, uint64_t flags) {
 	auto it = g_opcodeMap.find(vm);
 	if (it != g_opcodeMap.end()) {
 		if (it->second.flags != flags) {
@@ -5421,7 +5502,29 @@ void tool::gsc::opcode::RegisterVM(BYTE vm, LPCCH name, UINT64 flags) {
 	}
 	g_opcodeMap[vm] = { vm, name, flags, {} };
 }
-void tool::gsc::opcode::RegisterVMPlatform(BYTE vm, Platform plt) {
+
+void tool::gsc::opcode::RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode, OPCode getRefOpCode) {
+	auto ref = g_opcodeMap.find(vm);
+
+	if (ref == g_opcodeMap.end()) {
+		LOG_ERROR("Registered global variable to bad vm: VM_{:x}, gvar: {}", (int)vm, name);
+		return;
+	}
+
+	auto& gvars = ref->second.globalvars;
+
+	if (gvars.find(name) != gvars.end()) {
+		LOG_ERROR("Global variable already defined for vm {}, gvar: {}", ref->second.name, name);
+		return;
+	}
+
+	auto& gv = ref->second.globalvars[name];
+	gv.name = name;
+	gv.getOpCode = getOpCode;
+	gv.getRefOpCode = getRefOpCode;
+}
+
+void tool::gsc::opcode::RegisterVMPlatform(byte vm, Platform plt) {
 	auto ref = g_opcodeMap.find(vm);
 
 	if (ref == g_opcodeMap.end()) {
@@ -5431,7 +5534,7 @@ void tool::gsc::opcode::RegisterVMPlatform(BYTE vm, Platform plt) {
 
 	ref->second.AddPlatform(plt);
 }
-void tool::gsc::opcode::RegisterOpCode(BYTE vm, Platform platform, OPCode enumValue, UINT16 op) {
+void tool::gsc::opcode::RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op) {
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
 		assert(0);
@@ -5585,19 +5688,19 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfodec(OPCODE_SafeDecTop, "SafeDecTop"));
 
 		// gets
-		RegisterOpCodeHandler(new OPCodeInfoGetConstant<LPCCH>(OPCODE_GetUndefined, "GetUndefined", "undefined"));
+		RegisterOpCodeHandler(new OPCodeInfoGetConstant<const char*>(OPCODE_GetUndefined, "GetUndefined", "undefined"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetSelf, "GetSelf", "self"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetTime, "GetTime", "gettime()"));
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash, "GetHash", "#"));
-		RegisterOpCodeHandler(new OPCodeInfoGetConstant<INT32>(OPCODE_GetZero, "GetZero", 0, true));
-		RegisterOpCodeHandler(new OPCodeInfoGetNeg<UINT32>(OPCODE_GetNegUnsignedInteger, "GetNegUnsignedInteger"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNeg<UINT16>(OPCODE_GetNegUnsignedShort, "GetNegUnsignedShort"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNeg<UINT8>(OPCODE_GetNegByte, "GetNegByte"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNumber<BYTE>(OPCODE_GetByte, "GetByte"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNumber<INT32>(OPCODE_GetInteger, "GetInteger"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNumber<INT64>(OPCODE_GetLongInteger, "GetLongInteger"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNumber<UINT32>(OPCODE_GetUnsignedInteger, "GetUnsignedInteger"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNumber<UINT16>(OPCODE_GetUnsignedShort, "GetUnsignedShort"));
+		RegisterOpCodeHandler(new OPCodeInfoGetConstant<int32_t>(OPCODE_GetZero, "GetZero", 0, true));
+		RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint32_t>(OPCODE_GetNegUnsignedInteger, "GetNegUnsignedInteger"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint16_t>(OPCODE_GetNegUnsignedShort, "GetNegUnsignedShort"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint8_t>(OPCODE_GetNegByte, "GetNegByte"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<byte>(OPCODE_GetByte, "GetByte"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<int32_t>(OPCODE_GetInteger, "GetInteger"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<int64_t>(OPCODE_GetLongInteger, "GetLongInteger"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uint32_t>(OPCODE_GetUnsignedInteger, "GetUnsignedInteger"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uint16_t>(OPCODE_GetUnsignedShort, "GetUnsignedShort"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<FLOAT, FLOAT>(OPCODE_GetFloat, "GetFloat"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uintptr_t, uintptr_t>(OPCODE_GetUIntPtr, "GetUIntPtr"));
 		RegisterOpCodeHandler(new OPCodeInfoVector());
@@ -5617,7 +5720,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoNopStmt(OPCODE_ClearParams, "ClearParams"));
 		RegisterOpCodeHandler(new OPCodeInfoPreScriptCall(OPCODE_PreScriptCall, "PreScriptCall"));
 
-		RegisterOpCodeHandler(new OPCodeInfoGetConstant<LPCCH>(OPCODE_EmptyArray, "EmptyArray", "[]"));
+		RegisterOpCodeHandler(new OPCodeInfoGetConstant<const char*>(OPCODE_EmptyArray, "EmptyArray", "[]"));
 		RegisterOpCodeHandler(new OPCodeInfoClearArray(OPCODE_ClearArray, "ClearArray"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstantRef(OPCODE_GetSelfObject, "GetSelfObject", "self"));
 
@@ -5697,11 +5800,11 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true));
 		RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "GetLevel", GGGT_PUSH, "level"));
-		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelRef, "GetLevel", GGGT_GLOBAL, "level"));
-		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGameRef, "GetGameRef", GGGT_FIELD, "game"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelRef, "GetLevelRef", GGGT_GLOBAL, "level"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGame, "GetGame", GGGT_PUSH, "game"));
-		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnimRef, "GetAnimRef", GGGT_FIELD, "anim"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGameRef, "GetGameRef", GGGT_FIELD, "game"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnim, "GetAnim", GGGT_PUSH, "anim"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnimRef, "GetAnimRef", GGGT_FIELD, "anim"));
 		RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_IW_EvalArrayCachedField, "EvalArrayCachedField", false));
 		RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "ClearFieldVariableRef"));
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "GetDVarHash", "@"));
@@ -5712,11 +5815,12 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_IW_GetIString, "GetIString"));
 		RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimation, "GetAnimation", true));
 		RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimationTree, "GetAnimationTree", false));
-		RegisterOpCodeHandler(new OPCodeInfoAddToStruct(OPCODE_IW_AddToStruct, "AddToStruct", false)); 
-		RegisterOpCodeHandler(new OPCodeInfoSetVariableFieldCached(OPCODE_IW_SetWaittillVariableFieldCached, "SetWaittillVariableFieldCached"));
+		RegisterOpCodeHandler(new OPCodeInfoAddToStruct(OPCODE_IW_AddToStruct, "AddToStruct", false));
+		RegisterOpCodeHandler(new OPCodeInfoSetWaittillVariableFieldCached(OPCODE_IW_SetWaittillVariableFieldCached, "SetWaittillVariableFieldCached"));
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_IW_WaitFrame, "WaitSingleFrame", "waitframe()"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_IW_GetThread, "GetThread", "getthread()"));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2));
+		RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "Notify"));
 		
 		
 
@@ -5731,12 +5835,12 @@ void tool::gsc::opcode::RegisterOpCodeHandler(const OPCodeInfo* info) {
 	g_opcodeHandlerMap[info->m_id] = info;
 }
 
-const std::unordered_map<BYTE, VmInfo>& tool::gsc::opcode::GetVMMaps() {
+const std::unordered_map<byte, VmInfo>& tool::gsc::opcode::GetVMMaps() {
 	RegisterOpCodes();
 	return g_opcodeMap;
 }
 
-bool tool::gsc::opcode::IsValidVm(BYTE vm, VmInfo*& info) {
+bool tool::gsc::opcode::IsValidVm(byte vm, VmInfo*& info) {
 	// build map
 	RegisterOpCodes();
 	auto ref = g_opcodeMap.find(vm);
@@ -5748,7 +5852,7 @@ bool tool::gsc::opcode::IsValidVm(BYTE vm, VmInfo*& info) {
 	return true;
 }
 
-const OPCodeInfo* tool::gsc::opcode::LookupOpCode(BYTE vm, Platform platform, UINT16 opcode) {
+const OPCodeInfo* tool::gsc::opcode::LookupOpCode(byte vm, Platform platform, uint16_t opcode) {
 	// build map
 	RegisterOpCodes();
 
@@ -5778,7 +5882,7 @@ const OPCodeInfo* tool::gsc::opcode::LookupOpCode(BYTE vm, Platform platform, UI
 
 	return refHandler->second;
 }
-std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, Platform platform, OPCode opcode) {
+std::pair<bool, uint16_t> tool::gsc::opcode::GetOpCodeId(byte vm, Platform platform, OPCode opcode) {
 	RegisterOpCodes();
 
 	VmInfo* info;
@@ -5806,7 +5910,7 @@ std::pair<bool, UINT16> tool::gsc::opcode::GetOpCodeId(BYTE vm, Platform platfor
 
 #pragma endregion
 #pragma region asmctx 
-ASMContext::ASMContext(BYTE* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, UINT64 nsp, GSCExportReader& exp, void* readerHandle, BYTE vm, Platform platform)
+ASMContext::ASMContext(byte* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* readerHandle, byte vm, Platform platform)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_gscReader(gscReader), m_objctx(objctx), m_opt(opt), m_runDecompiler(opt.m_dcomp),
 			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
 	// set start as unhandled
@@ -5814,7 +5918,7 @@ ASMContext::ASMContext(BYTE* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJCon
 }
 
 
-tool::gsc::opcode::ASMSkipContext::ASMSkipContext(BYTE* fonctionStart, Platform platform, VmInfo* vminfo)
+tool::gsc::opcode::ASMSkipContext::ASMSkipContext(byte* fonctionStart, Platform platform, VmInfo* vminfo)
 	: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_platform(platform), m_vminfo(vminfo) {
 	PushLocation();
 }
@@ -5847,14 +5951,14 @@ asmcontextlocation::~asmcontextlocation() {
 	}
 }
 
-void asmcontextlocation::RemoveRef(INT32 origin) {
+void asmcontextlocation::RemoveRef(int32_t origin) {
 	refs.erase(origin);
 }
 
-asmcontextlocation& ASMContext::PushLocation(BYTE* location) {
+asmcontextlocation& ASMContext::PushLocation(byte* location) {
 	// push aligned location to avoid missing a location
 	if (m_objctx.m_vmInfo->flags & VMF_OPCODE_SHORT) {
-		location = utils::Aligned<UINT16>(location);
+		location = utils::Aligned<uint16_t>(location);
 	}
 	auto loc = FunctionRelativeLocation(location);
 	auto& ref = m_locs[loc];
@@ -5881,10 +5985,10 @@ asmcontextlocation& ASMContext::PushLocation(BYTE* location) {
 	return ref;
 }
 
-asmcontextlocation& ASMSkipContext::PushLocation(BYTE* location) {
+asmcontextlocation& ASMSkipContext::PushLocation(byte* location) {
 	// push aligned location to avoid missing a location
 	if (m_vminfo->flags & VMF_OPCODE_SHORT) {
-		location = utils::Aligned<UINT16>(location);
+		location = utils::Aligned<uint16_t>(location);
 	}
 	auto loc = FunctionRelativeLocation(location);
 	auto& ref = m_locs[loc];
@@ -5895,8 +5999,8 @@ asmcontextlocation& ASMSkipContext::PushLocation(BYTE* location) {
 }
 
 bool tool::gsc::opcode::ASMSkipContext::FindNextLocation() {
-	INT64 min = 0xFFFFFFFFFF;
-	INT32 minloc = 0;
+	int64_t min = 0xFFFFFFFFFF;
+	int32_t minloc = 0;
 	for (const auto& [location, loc] : m_locs) {
 		if (!loc.handled) {
 			if (min > loc.rloc) {
@@ -5915,8 +6019,8 @@ bool tool::gsc::opcode::ASMSkipContext::FindNextLocation() {
 }
 
 bool ASMContext::FindNextLocation() {
-	INT64 min = 0xFFFFFFFFFF;
-	INT32 minloc = 0;
+	int64_t min = 0xFFFFFFFFFF;
+	int32_t minloc = 0;
 	for (const auto& [location, loc] : m_locs) {
 		if (!loc.handled) {
 			if (min > loc.rloc) {
@@ -5948,14 +6052,14 @@ bool ASMContext::FindNextLocation() {
 	return false;
 }
 
-INT32 ASMContext::FunctionRelativeLocation(BYTE* bytecodeLocation) {
-	return (INT32) (reinterpret_cast<uintptr_t>(bytecodeLocation) - reinterpret_cast<uintptr_t>(m_fonctionStart));
+int32_t ASMContext::FunctionRelativeLocation(byte* bytecodeLocation) {
+	return (int32_t) (reinterpret_cast<uintptr_t>(bytecodeLocation) - reinterpret_cast<uintptr_t>(m_fonctionStart));
 }
 
 std::ostream& ASMContext::WritePadding(std::ostream& out) {
-	return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << FunctionRelativeLocation() << ": "
+	return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << FunctionRelativeLocation() << ": "
 		// no opcode write
-		<< std::setfill(' ') << std::setw((sizeof(INT16) << 1) + 25 + 2) << " ";
+		<< std::setfill(' ') << std::setw((sizeof(int16_t) << 1) + 25 + 2) << " ";
 }
 UINT ASMContext::FinalSize() const {
 	INT max = 0;
@@ -5970,7 +6074,7 @@ UINT ASMContext::FinalSize() const {
 #pragma endregion
 #pragma region asm_stack 
 
-int ASMContext::GetLocalVarIdByName(UINT64 name) const {
+int ASMContext::GetLocalVarIdByName(uint64_t name) const {
 	for (size_t i = 0; i < m_localvars.size(); i++) {
 		if (m_localvars[i].name == name) {
 			return (int) i;
@@ -6003,7 +6107,7 @@ void ASMContext::SetFieldIdASMCNode(ASMContextNode* node) {
 ASMContextNode* ASMContext::GetObjectIdASMCNode() {
 	if (!m_objectId) {
 		// create fake value for the decompiler
-		m_objectId = new ASMContextNodeValue<LPCCH>("<error objectid>");
+		m_objectId = new ASMContextNodeValue<const char*>("<error objectid>");
 	}
 	return m_objectId->Clone();
 }
@@ -6011,7 +6115,7 @@ ASMContextNode* ASMContext::GetObjectIdASMCNode() {
 ASMContextNode* ASMContext::GetFieldIdASMCNode() {
 	if (!m_fieldId) {
 		// create fake value for the decompiler
-		m_fieldId = new ASMContextNodeValue<LPCCH>("<error fieldid>");
+		m_fieldId = new ASMContextNodeValue<const char*>("<error fieldid>");
 	}
 	return m_fieldId->Clone();
 }
@@ -6019,7 +6123,7 @@ ASMContextNode* ASMContext::GetFieldIdASMCNode() {
 ASMContextNode* ASMContext::PopASMCNode() {
 	if (!m_stack.size()) {
 		// create fake value for the decompiler
-		PushASMCNode(new ASMContextNodeValue<LPCCH>("<error pop>"));
+		PushASMCNode(new ASMContextNodeValue<const char*>("<error pop>"));
 	}
 	ASMContextNode* val = m_stack[m_stack.size() - 1];
 	m_stack.pop_back();
@@ -6029,25 +6133,23 @@ ASMContextNode* ASMContext::PopASMCNode() {
 ASMContextNode* ASMContext::PeekASMCNode() {
 	if (!m_stack.size()) {
 		// create fake value for the decompiler
-		PushASMCNode(new ASMContextNodeValue<LPCCH>("<error pop>"));
+		PushASMCNode(new ASMContextNodeValue<const char*>("<error pop>"));
 	}
 	return m_stack[m_stack.size() - 1];
 }
 
 void ASMContext::CompleteStatement() {
 	if (m_stack.size() && m_lastOpCodeBase != -1) { // empty func tests
-		if (m_fieldId) {
-			delete m_fieldId;
-			m_fieldId = nullptr;
-		}
-		if (m_objectId) {
-			delete m_objectId;
-			m_objectId = nullptr;
-		}
+		//if (m_fieldId) {
+		//	delete m_fieldId;
+		//	m_fieldId = nullptr;
+		//}
+		//if (m_objectId) {
+		//	delete m_objectId;
+		//	m_objectId = nullptr;
+		//}
 		auto* node = PopASMCNode();
 		auto* loc = &m_locs[m_lastOpCodeBase];
-
-		LOG_TRACE("{:x}/{:x} : {}", loc->rloc, m_lastOpCodeBase, *node);
 
 		m_funcBlock.m_statements.push_back({ node, loc});
 		m_lastOpCodeBase = -1;
@@ -6066,12 +6168,12 @@ std::ostream& DecompContext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 	if (opt.m_func_rloc) {
 		out << "/*";
 		if (forceNoRLoc) {
-			for (size_t i = 0; i < sizeof(INT32) << 1; i++) {
+			for (size_t i = 0; i < sizeof(int32_t) << 1; i++) {
 				out << "*";
 			}
 		}
 		else {
-			out << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << rloc;
+			out << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << rloc;
 		}
 		out << "*/";
 	}
@@ -6105,15 +6207,15 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 		if (ref.location->refs.size() && ref.node->m_renderRefIfAny) {
 			// write the label one layer bellow the current block
 			ctx.padding--;
-			ctx.WritePadding(out, true) << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << ref.location->rloc;
+			ctx.WritePadding(out, true) << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << ref.location->rloc;
 			if (ctx.opt.m_show_ref_count) {
 				out << std::dec << " (stack:";
 
 				auto it = ref.location->refs.begin();
-				out << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << *it;
+				out << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << *it;
 				it++;
 				while (it != ref.location->refs.end()) {
-					out << ", " << std::hex << std::setfill('0') << std::setw(sizeof(INT32) << 1) << *(it);
+					out << ", " << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << *(it);
 					it++;
 				}
 
@@ -6220,13 +6322,13 @@ void ASMContext::ComputeDefaultParamValue() {
 		if (isDefinedFunc->m_operand->m_type != TYPE_IDENTIFIER || set->m_left->m_type != TYPE_IDENTIFIER || !set->m_right) {
 			break; // not isdefined(param_name) or not param_name = ...
 		}
-		UINT64 name = static_cast<ASMContextNodeIdentifier*>(set->m_left)->m_value;
+		uint64_t name = static_cast<ASMContextNodeIdentifier*>(set->m_left)->m_value;
 
 		if (static_cast<ASMContextNodeIdentifier*>(isDefinedFunc->m_operand)->m_value != name) {
 			break; // not the same name value
 		}
 
-		UINT64 localVar = GetLocalVarIdByName(name);
+		uint64_t localVar = GetLocalVarIdByName(name);
 
 		// the local variables are reversed and the first is an error check, so - 1 - params
 		if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.GetParamCount() || m_localvars[localVar].defaultValueNode) {
@@ -6273,7 +6375,7 @@ int ASMContextNodeBlock::ComputeDevBlocks(ASMContext& ctx) {
 
 		// we are reading a devblock jump
 		auto* jump = static_cast<ASMContextNodeJumpOperator*>(b.node);
-		INT64 end = jump->m_location;
+		int64_t end = jump->m_location;
 		ASMContextNodeBlock* devBlock = new ASMContextNodeBlock(BLOCK_DEV);
 		// we replace the block by our node
 		b.node = devBlock;
@@ -6288,7 +6390,7 @@ int ASMContextNodeBlock::ComputeDevBlocks(ASMContext& ctx) {
 
 		if (it != m_statements.end() && it->location->rloc == end) {
 			// add end devblock
-			devBlock->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_enddev>", TYPE_PRECODEPOS), it->location });
+			devBlock->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_enddev>", TYPE_PRECODEPOS), it->location });
 			// remove the dev block jump reference
 			it->location->RemoveRef(jump->m_opLoc);
 		}
@@ -6319,7 +6421,7 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 
 		// we are reading a devblock jump
 		auto* switchPreCompute = static_cast<ASMContextNodeSwitchPreCompute*>(b.node);
-		INT64 end = switchPreCompute->m_endLocation;
+		int64_t end = switchPreCompute->m_endLocation;
 		ASMContextNodeSwitchPostCompute* switchBlock = new ASMContextNodeSwitchPostCompute(switchPreCompute->m_node->Clone());
 		// replace with the computed switch
 		auto& cases = switchPreCompute->m_cases;
@@ -6365,7 +6467,7 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 				// we pass this case to fetch the end
 				cid++;
 
-				INT64 endCase;
+				int64_t endCase;
 				ASMContextNode* endNode{};
 
 				if (cid == cases.size()) {
@@ -6400,7 +6502,7 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 				if (it != m_statements.end() && cid != cases.size()) {
 					// add next location at the end of the case, for ending blocks without break; between cases
 					// not for the last one because it has an endswitch at the end
-					block->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_switchnext>", TYPE_PRECODEPOS), it->location });
+					block->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_switchnext>", TYPE_PRECODEPOS), it->location });
 				}
 			} while (cid < cases.size());
 		} else if (it->node->m_type == TYPE_JUMP_ENDSWITCH) {
@@ -6588,7 +6690,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 
 		// array ref name
-		UINT64 arrayRefName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
+		uint64_t arrayRefName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
 
 		auto arrayRefIndex = index;
 
@@ -6632,7 +6734,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		}
 
 		// For T9 it is the iterator name
-		UINT64 keyValName = static_cast<ASMContextNodeIdentifier*>(setFirstArrayOp->m_left)->m_value;
+		uint64_t keyValName = static_cast<ASMContextNodeIdentifier*>(setFirstArrayOp->m_left)->m_value;
 
 		/*
 		LOC_000000fc:
@@ -6672,7 +6774,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		moveDelta--;
 
 		// keyValName
-		UINT64 itemValName;
+		uint64_t itemValName;
 		if (ctx.m_vm == VM_MW23) {
 			/*
 				agent = var_57acddc40b2f741[var_54ed0dc40829774];;
@@ -6763,8 +6865,8 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		*/
 
 		// internal location in the foreach
-		INT64 endLoc = jumpOp->m_location; // jump location for the break
-		INT64 condLoc = condJump.location->rloc; // jump back location for the end of the loop
+		int64_t endLoc = jumpOp->m_location; // jump location for the break
+		int64_t condLoc = condJump.location->rloc; // jump back location for the end of the loop
 		// index of the last node (at least + 2 for the next value set and the jump)
 		auto endNodeIndex = index;
 
@@ -6794,7 +6896,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			index += moveDelta;
 			continue;
 		}
-		INT64 incrementLoc;
+		int64_t incrementLoc;
 		if (setNextKeyStmt.node->m_type != TYPE_SET) {
 			incrementIndex += 2,
 			incrementLoc = jumpBackStmt.location->rloc; // jump location for the continue
@@ -6867,7 +6969,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			block->m_statements.push_back({ it->node, it->location });
 			it = m_statements.erase(it);
 		}
-		block->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_foreachcontinue>", TYPE_PRECODEPOS), it->location });
+		block->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_foreachcontinue>", TYPE_PRECODEPOS), it->location });
 		for (size_t i = incrementIndex; i < endNodeIndex; i++) {
 			// remove component statement
 			delete it->node;
@@ -6968,7 +7070,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 
 		if (jumpOp->m_type == TYPE_JUMP) {
 			// location for the continue
-			INT64 startLoc = jumpOp->m_location;
+			int64_t startLoc = jumpOp->m_location;
 
 			size_t startIndex = 0;
 
@@ -6989,11 +7091,11 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 			// start of the loop location
 			auto* continueLocation = jumpStmt.location;
 			// start of the loop location
-			INT32 continueLoc = continueLocation->rloc;
+			int32_t continueLoc = continueLocation->rloc;
 
 			// end location for the break, can be an infinite loop, so we consider it
 			asmcontextlocation* endLocation = nullptr;
-			INT64 breakLoc = -0xFFFF; // random value
+			int64_t breakLoc = -0xFFFF; // random value
 			if (index + 1 < m_statements.size()) {
 				endLocation = m_statements[index + 1].location;
 				breakLoc = endLocation->rloc;
@@ -7108,7 +7210,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 				delete it->node;
 				it = m_statements.erase(it);
 			}
-			block->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_inf_end>", TYPE_PRECODEPOS), it->location });
+			block->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_inf_end>", TYPE_PRECODEPOS), it->location });
 			// it = jump
 			firstNodeLocation->RemoveRef(jumpOp->m_opLoc);
 			it->location = firstNodeLocation;
@@ -7126,12 +7228,12 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 			auto* condLocation = jumpStmt.location;
 
 			// end location for the break
-			INT32 breakLoc = endLocation->rloc;
+			int32_t breakLoc = endLocation->rloc;
 			// loop location for the continue
-			INT64 continueLoc = jumpOp->m_location;
+			int64_t continueLoc = jumpOp->m_location;
 
 			auto* contLocation = m_statements[index].location;
-			INT64 continueLoc2 = contLocation->rloc;
+			int64_t continueLoc2 = contLocation->rloc;
 
 			size_t startIndex = 0;
 			while (startIndex < index && m_statements[startIndex].location->rloc < continueLoc) {
@@ -7234,7 +7336,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 			}
 			// clear the jump node
 			itindex = startIndex;
-			newBlock->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_whileend>", TYPE_PRECODEPOS), m_statements[itindex].location });
+			newBlock->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_whileend>", TYPE_PRECODEPOS), m_statements[itindex].location });
 			delete m_statements[itindex].node;
 			m_statements[itindex].node = doWhile;
 			m_statements[itindex].location = doWhileLoc;
@@ -7338,7 +7440,7 @@ int ASMContextNodeBlock::ComputeIfBlocks(ASMContext& ctx) {
 						delete it->node;
 						it = m_statements.erase(it);
 					}
-					blockElse->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_elselast>", TYPE_PRECODEPOS), endElseFinalLoc });
+					blockElse->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_elselast>", TYPE_PRECODEPOS), endElseFinalLoc });
 				}
 			}
 		}
@@ -7355,12 +7457,12 @@ int ASMContextNodeBlock::ComputeIfBlocks(ASMContext& ctx) {
 			it = m_statements.erase(it);
 		}
 		if (ignoreLast) {
-			blockIf->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_ifend1>", TYPE_PRECODEPOS), it->location });
+			blockIf->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_ifend1>", TYPE_PRECODEPOS), it->location });
 			delete it->node;
 			it = m_statements.erase(it);
 		}
 		else {
-			blockIf->m_statements.push_back({ new ASMContextNodeValue<LPCCH>("<emptypos_ifend2>", TYPE_PRECODEPOS), elsePartNodeLoc });
+			blockIf->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_ifend2>", TYPE_PRECODEPOS), elsePartNodeLoc });
 		}
 
 		// swap the jump with the new if statement
@@ -7438,7 +7540,7 @@ int ASMContextNodeBlock::ComputeForBlocks(ASMContext& ctx) {
 			continue; // not an I = ...
 		}
 
-		UINT64 incrementName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
+		uint64_t incrementName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
 
 		auto* whileBlock = static_cast<ASMContextNodeWhile*>(whileStmt.node);
 
@@ -7470,10 +7572,10 @@ int ASMContextNodeBlock::ComputeForBlocks(ASMContext& ctx) {
 
 
 		delete initValStmt.node;
-		initValStmt.node = new ASMContextNodeValue<LPCCH>("<for_init>", TYPE_PRECODEPOS);
+		initValStmt.node = new ASMContextNodeValue<const char*>("<for_init>", TYPE_PRECODEPOS);
 
 		delete deltaStmt.node;
-		deltaStmt.node = new ASMContextNodeValue<LPCCH>("<for_continue>", TYPE_PRECODEPOS);
+		deltaStmt.node = new ASMContextNodeValue<const char*>("<for_continue>", TYPE_PRECODEPOS);
 		auto* continueLoc = deltaStmt.location;
 
 		std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)> func;
@@ -7510,7 +7612,7 @@ int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
 			if (jmp->m_returnCandidate && !jmp->m_special_op) {
 				// we replace this node by a return or a if return
 
-				auto* returnNode = new ASMContextNodeValue<LPCCH>("<END_JUMP>");
+				auto* returnNode = new ASMContextNodeValue<const char*>("<END_JUMP>");
 				returnNode->m_type = TYPE_END;
 
 				auto* cond = JumpCondition(jmp, true);

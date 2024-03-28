@@ -6,7 +6,7 @@
 namespace compatibility::serious {
     constexpr auto VM_CODES_DB = "vm_codes.db2";
 
-    enum SeriousId : BYTE {
+    enum SeriousId : byte {
         SERID_End = 0x0,
         SERID_Return = 0x1,
         SERID_GetUndefined = 0x2,

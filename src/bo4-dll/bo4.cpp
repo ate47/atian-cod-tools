@@ -7,8 +7,8 @@ bo4::ObjFileInfoTable* bo4::objFileInfo = reinterpret_cast<bo4::ObjFileInfoTable
 int* bo4::objFileInfoCount = reinterpret_cast<int*>(Relativise(offset::gObjFileInfoCount));
 
 void bo4::ScrVm_Error(scriptinstance::ScriptInstance inst, const char* format, bool terminal, ...) {
-	static CHAR errorMessage[2][0x400];
-	static CHAR emptyStr[1] = { 0 };
+	static char errorMessage[2][0x400];
+	static char emptyStr[1] = { 0 };
 	va_list va;
 	va_start(va, terminal);
 
@@ -24,11 +24,11 @@ void bo4::ScrVm_Error(scriptinstance::ScriptInstance inst, const char* format, b
 	Internal_ScrVm_Error(custom_gsc_func::custom_error_id, inst, emptyStr, terminal);
 }
 
-bool bo4::FindGSCFuncLocation(BYTE* location, scriptinstance::ScriptInstance& inst, GSCOBJ*& obj, GSCExport*& exp, UINT32& rloc) {
+bool bo4::FindGSCFuncLocation(byte* location, scriptinstance::ScriptInstance& inst, GSCOBJ*& obj, GSCExport*& exp, uint32_t& rloc) {
 	if (!location) {
 		return false;
 	}
-	auto pos = reinterpret_cast<UINT64>(location);
+	auto pos = reinterpret_cast<uint64_t>(location);
 	for (size_t i = 0; i < scriptinstance::SI_COUNT; i++) {
 		for (size_t c = 0; c < objFileInfoCount[i]; c++) {
 			const auto& info = objFileInfo[i][c];
@@ -38,7 +38,7 @@ bool bo4::FindGSCFuncLocation(BYTE* location, scriptinstance::ScriptInstance& in
 				continue;
 			}
 
-			auto start = reinterpret_cast<UINT64>(info.activeVersion);
+			auto start = reinterpret_cast<uint64_t>(info.activeVersion);
 			auto end = start + info.activeVersion->script_size;
 
 			if (pos < start || pos >= end) {
@@ -51,7 +51,7 @@ bool bo4::FindGSCFuncLocation(BYTE* location, scriptinstance::ScriptInstance& in
 			auto* exports = reinterpret_cast<GSCExport*>(obj->magic + obj->export_table_offset);
 			auto exports_count = obj->exports_count;
 
-			UINT32 bestRLoc = 0;
+			uint32_t bestRLoc = 0;
 			for (size_t e = 0; e < exports_count; e++) {
 				auto estart = start + exports[e].address;
 
@@ -65,7 +65,7 @@ bool bo4::FindGSCFuncLocation(BYTE* location, scriptinstance::ScriptInstance& in
 
 				// set best
 				bestRLoc = exports[e].address;
-				rloc = (UINT32)(pos - estart);
+				rloc = (uint32_t)(pos - estart);
 				obj = info.activeVersion;
 				exp = &exports[e];
 			}

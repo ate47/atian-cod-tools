@@ -76,7 +76,7 @@ namespace {
 	};
 	StringContainer strcontainer{};
 
-	bool LoadPackFileData(LPVOID buffer, SIZE_T bufferSize) {
+	bool LoadPackFileData(void* buffer, size_t bufferSize) {
 		if (bufferSize < sizeof(ActsPackHeader)) {
 			LOG_ERROR("acts pack file header is too small");
 			return false;
@@ -116,7 +116,7 @@ namespace {
 					LOG_ERROR("Invalid string location in acts pack file");
 					return false;
 				}
-				hashutils::AddPrecomputed(hashes[i].value, (LPCCH)(pack->header.magic + hashes[i].str));
+				hashutils::AddPrecomputed(hashes[i].value, (const char*)(pack->header.magic + hashes[i].str));
 			}
 		}
 
@@ -351,10 +351,10 @@ namespace actscli {
 		return profiler;
 	}
 
-	bool LoadPackFile(LPCCH mapFile) {
+	bool LoadPackFile(const char* mapFile) {
 		actslib::profiler::ProfiledSection ps{ actscli::GetProfiler(), "LoadActsPackFile" };
-		LPVOID buffer{};
-		SIZE_T bufferSize{};
+		void* buffer{};
+		size_t bufferSize{};
 
 		// add null end for the strings
 		if (!utils::ReadFileNotAlign(mapFile, buffer, bufferSize, true)) {

@@ -3,7 +3,7 @@
 
 namespace process {
     asmjit::JitRuntime& GetJitRuntime();
-    BYTE* BasePtr();
+    byte* BasePtr();
     HMODULE BaseHandle();
     PIMAGE_OPTIONAL_HEADER PImageOptHeader(HMODULE mod = 0);
     PIMAGE_NT_HEADERS PImageNtHeader(HMODULE mod = 0);
@@ -16,27 +16,27 @@ namespace process {
         WriteMemSafe(dest, &src, sizeof(src));
     }
 
-    inline BYTE* Relativise(uintptr_t location) {
+    inline byte* Relativise(uintptr_t location) {
         return &BasePtr()[location];
     }
 
-    HMODULE LoadLib(LPCCH lib);
+    HMODULE LoadLib(const char* lib);
     inline HMODULE LoadLib(std::string lib) {
         return LoadLib(lib.data());
     }
 
-    HMODULE LoadSysLib(LPCCH lib);
+    HMODULE LoadSysLib(const char* lib);
     inline HMODULE LoadSysLib(std::string lib) {
         return LoadSysLib(lib.data());
     }
 
-    void** GetImportAddrTableEntry(LPCCH lib, LPCCH entry);
+    void** GetImportAddrTableEntry(const char* lib, const char* entry);
     /*
      * Pattern scan
      * @param pattern Pattern, ? for wildcard, [0-9A-F] for byte
      * @return matches
      */
-    std::vector<BYTE*> Scan(std::string pattern);
+    std::vector<byte*> Scan(std::string pattern);
 
     class AssemblerExp : public asmjit::x86::Assembler {
     public:

@@ -49,7 +49,7 @@ namespace {
 
         Process bo4{ "BlackOps4.exe" };
 
-        of << "bo4: " << bo4 << ":" << std::hex << bo4[(UINT64)0] << "\n";
+        of << "bo4: " << bo4 << ":" << std::hex << bo4[(uint64_t)0] << "\n";
 
 
         of.close();
@@ -59,7 +59,7 @@ namespace {
 
 BOOL APIENTRY DllMain(HMODULE hModule,
                       DWORD ul_reason_for_call,
-                      LPVOID lpReserved) {
+                      void* lpReserved) {
     switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
         DetectInjections();
@@ -76,12 +76,12 @@ EXPORT void ProcessInjectionTest1() {
     std::cout << "Injection test 1" << "\n";
 }
 
-EXPORT void ProcessInjectionTest2(int value1, double value2, float value3, LPCWCH value4, bool value5) {
+EXPORT void ProcessInjectionTest2(int value1, double value2, float value3, const wchar_t* value4, bool value5) {
     std::wcout << L"Injection test 2:" << "\n"
         << value1 << ", " << value2 << ", " << value3 << ", " << value4 << ", " << value5 << "\n";
 }
 
-static BYTE TestFunctionScanData[2][10] = {
+static byte TestFunctionScanData[2][10] = {
     { 0x01, 0x02, 0x03, 0x04, 0xFF, 0xFF, 0xFF, 0xFF, 0x9, 0x10 },
     { 0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00, 0x9, 0x10 }
 };

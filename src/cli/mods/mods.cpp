@@ -6,7 +6,7 @@ std::map<std::string, mods::modfunctiondata*>& mods::mods() {
 	return map;
 }
 
-const mods::modfunctiondata& mods::findmod(LPCCH name) {
+const mods::modfunctiondata& mods::findmod(const char* name) {
 	static mods::modfunctiondata invalid{ NULL, NULL, NULL };
 
 	auto& mod = mods();
@@ -20,7 +20,7 @@ const mods::modfunctiondata& mods::findmod(LPCCH name) {
 	return *tool->second;
 }
 
-mods::modfunctiondata::modfunctiondata(LPCCH name, LPCCH description, modfunction func)
+mods::modfunctiondata::modfunctiondata(const char* name, const char* description, modfunction func)
 	: m_name(name), m_description(description), m_func(func) {
 	if (name) {
 		mods()[name] = this;

@@ -12,12 +12,12 @@ enum StringTableCellType : INT {
 };
 
 struct StringTableCell {
-	BYTE value[20] = { 0 };
+	byte value[20] = { 0 };
 	StringTableCellType type = STC_TYPE_UNDEFINED;
 };
 
 struct StringTableEntry {
-	UINT64 name;
+	uint64_t name;
 	int pad8 = 0;
 	int pad12 = 0;
 	int columnCount = 0;
@@ -193,23 +193,23 @@ void stringtables::SyncTables() {
 				
 				switch (v.type = e.types[col]) {
 				case STC_TYPE_BOOL:
-					*reinterpret_cast<UINT64*>(&v.value[0]) = val == "true";
+					*reinterpret_cast<uint64_t*>(&v.value[0]) = val == "true";
 					break;
 				case STC_TYPE_STRING:
 					e.strings.push_back(std::make_shared<std::string>(val));
-					*reinterpret_cast<LPCCH*>(&v.value[0]) = e.strings[e.strings.size() - 1]->data();
+					*reinterpret_cast<const char**>(&v.value[0]) = e.strings[e.strings.size() - 1]->data();
 					break;
 				case STC_TYPE_HASHED:
-					*reinterpret_cast<UINT64*>(&v.value[0]) = hash::Hash64Pattern(val.data());
+					*reinterpret_cast<uint64_t*>(&v.value[0]) = hash::Hash64Pattern(val.data());
 					break;
 				case STC_TYPE_FLOAT:
 					*reinterpret_cast<FLOAT*>(&v.value[0]) = (FLOAT)std::atof(val.data());
 					break;
 				case STC_TYPE_INT:
-					*reinterpret_cast<INT64*>(&v.value[0]) = (INT64)std::atoll(val.data());
+					*reinterpret_cast<int64_t*>(&v.value[0]) = (int64_t)std::atoll(val.data());
 					break;
 				default:
-					*reinterpret_cast<UINT64*>(&v.value[0]) = 0;
+					*reinterpret_cast<uint64_t*>(&v.value[0]) = 0;
 					break;
 				}
 
@@ -251,9 +251,9 @@ void stringtables::SyncTables() {
 	s.close();
 }
 
-LPVOID stringtables::GetTable(UINT64 name) {
-	static std::unordered_map<UINT64, bool> dones{};
-	LPVOID ret;
+void* stringtables::GetTable(uint64_t name) {
+	static std::unordered_map<uint64_t, bool> dones{};
+	void* ret;
 	{
 		std::lock_guard<std::mutex> lg(customStringTableEntriesMutex);
 		auto end = customStringTableEntries.begin() + customStringTableEntriesCount;

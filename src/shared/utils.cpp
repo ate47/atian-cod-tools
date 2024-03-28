@@ -2,8 +2,8 @@
 #include "utils.hpp"
 
 namespace utils {
-    LPCCH va(LPCCH fmt, ...) {
-        static CHAR buffer[0x10][0x500];
+    const char* va(const char* fmt, ...) {
+        static char buffer[0x10][0x500];
         static size_t bufferIndex = 0;
         bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
         auto& buff = buffer[bufferIndex];
@@ -41,7 +41,7 @@ namespace utils {
         return true;
     }
 
-    bool ReadFileNotAlign(const std::filesystem::path& path, LPVOID& buffer, size_t& size, bool nullTerminate) {
+    bool ReadFileNotAlign(const std::filesystem::path& path, void*& buffer, size_t& size, bool nullTerminate) {
         std::ifstream in{ path, std::ios::binary };
         if (!in) {
             return false;
@@ -53,7 +53,7 @@ namespace utils {
 
 
         if (buffer) {
-            LPVOID all = std::realloc(buffer, length + (nullTerminate ? 1 : 0));
+            void* all = std::realloc(buffer, length + (nullTerminate ? 1 : 0));
             if (!all) {
                 std::free(buffer);
                 buffer = NULL;
@@ -78,7 +78,7 @@ namespace utils {
         return true;
     }
 
-    bool ReadFileAlign(const std::filesystem::path& path, LPVOID& buffer, LPVOID& bufferAligned, size_t& size, size_t& sizeAligned) {
+    bool ReadFileAlign(const std::filesystem::path& path, void*& buffer, void*& bufferAligned, size_t& size, size_t& sizeAligned) {
         std::ifstream in{ path, std::ios::binary };
         if (!in) {
             return false;
@@ -90,7 +90,7 @@ namespace utils {
 
 
         if (buffer) {
-            LPVOID all = std::realloc(buffer, length + 15);
+            void* all = std::realloc(buffer, length + 15);
             if (!all) {
                 std::free(buffer);
                 buffer = NULL;
@@ -105,7 +105,7 @@ namespace utils {
         }
 
         // align address to end by 0
-        bufferAligned = reinterpret_cast<LPVOID>((reinterpret_cast<uintptr_t>(buffer) + 0xF) & ~0xF);
+        bufferAligned = reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(buffer) + 0xF) & ~0xF);
         in.read(reinterpret_cast<char*>(bufferAligned), length);
         sizeAligned = length;
         size = length + 15;
@@ -114,7 +114,7 @@ namespace utils {
         return true;
     }
 
-    bool WriteFile(const std::filesystem::path& path, LPCVOID ptr, size_t size) {
+    bool WriteFile(const std::filesystem::path& path, const void* ptr, size_t size) {
         std::ofstream out{ path, std::ios::binary };
         if (!out) {
             return false;
@@ -133,33 +133,33 @@ namespace utils {
         return out;
     }
 
-    UINT64 CatLocated(UINT32 name_space, UINT32 local) {
-        return ((UINT64)local << 32) | name_space;
+    uint64_t CatLocated(uint32_t name_space, uint32_t local) {
+        return ((uint64_t)local << 32) | name_space;
     }
 
-    std::pair<UINT32, UINT32> UnCatLocated(UINT64 located) {
-        UINT32 name_space = (located << 32) >> 32;
-        UINT32 local = located >> 32;
+    std::pair<uint32_t, uint32_t> UnCatLocated(uint64_t located) {
+        uint32_t name_space = (located << 32) >> 32;
+        uint32_t local = located >> 32;
         return std::make_pair<>(name_space, local);
     }
 
-    UINT32 CatLocated32(UINT16 a, UINT16 b) {
-        return ((UINT32)b << 16) | a;
+    uint32_t CatLocated32(uint16_t a, uint16_t b) {
+        return ((uint32_t)b << 16) | a;
     }
 
-    std::pair<UINT16, UINT16> UnCatLocated32(UINT32 located) {
-        UINT16 a = (located << 16) >> 16;
-        UINT16 b = located >> 16;
+    std::pair<uint16_t, uint16_t> UnCatLocated32(uint32_t located) {
+        uint16_t a = (located << 16) >> 16;
+        uint16_t b = located >> 16;
         return std::make_pair<>(a, b);
     }
 
-    UINT16 CatLocated16(BYTE a, BYTE b) {
-        return ((UINT16)b << 8) | a;
+    uint16_t CatLocated16(byte a, byte b) {
+        return ((uint16_t)b << 8) | a;
     }
 
-    std::pair<BYTE, BYTE> UnCatLocated16(UINT16 located) {
-        BYTE a = (located << 8) >> 8;
-        BYTE b = located >> 8;
+    std::pair<byte, byte> UnCatLocated16(uint16_t located) {
+        byte a = (located << 8) >> 8;
+        byte b = located >> 8;
         return std::make_pair<>(a, b);
     }
 

@@ -118,7 +118,7 @@ int PTSearch(Process& proc, int argc, const char* argv[]) {
 int PTAlloc(Process& proc, int argc, const char* argv[]) {
 	using namespace tool;
 
-	CHAR helloWorld[200] = "hello world";
+	char helloWorld[200] = "hello world";
 
 	auto ptr = proc.AllocateMemory(200);
 
@@ -133,7 +133,7 @@ int PTAlloc(Process& proc, int argc, const char* argv[]) {
 		return BASIC_ERROR;
 	}
 
-	CHAR hello2[200] = { 0 };
+	char hello2[200] = { 0 };
 
 	if (!proc.ReadMemory(&hello2[0], ptr, 200)) {
 		std::cerr << "Can't read memory\n";
@@ -151,15 +151,15 @@ int PTAlloc(Process& proc, int argc, const char* argv[]) {
 }
 
 struct TestStruct {
-	UINT64 a;
-	UINT64 b;
-	UINT64 c;
-	UINT64 d;
-	UINT64 e;
+	uint64_t a;
+	uint64_t b;
+	uint64_t c;
+	uint64_t d;
+	uint64_t e;
 };
 
 void __declspec(noinline) __declspec(cdecl) Test(TestStruct* str) {
-	reinterpret_cast<void(*)(UINT64, UINT64, UINT64, UINT64, UINT64)>(0x7ffcafe67260)(str->a, str->b, str->c, str->d, str->e);
+	reinterpret_cast<void(*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t)>(0x7ffcafe67260)(str->a, str->b, str->c, str->d, str->e);
 }
 
 int PTCallExt(Process& proc, int argc, const char* argv[]) {
@@ -175,12 +175,12 @@ int PTCallExt(Process& proc, int argc, const char* argv[]) {
 	return tool::OK;
 }
 
-void TestFunc1(void* value, LPCWCH value2, int value3, int value4, int value5, int value6, int value7) {
+void TestFunc1(void* value, const wchar_t* value2, int value3, int value4, int value5, int value6, int value7) {
 	std::wcout << value << ":" << value2 << ":" << value3 << ":" << value4 << ":" << value5 << ":" << value6 << ":" << value7 << "\n";
 }
 
 int PTCallExt2(Process& proc, int argc, const char* argv[]) {
-	auto ret = proc.Call<void*, LPCWCH, int, int, int, int, int>(reinterpret_cast<uintptr_t>(&TestFunc1), nullptr, L"test", 32, 42, 65, 72, 85);
+	auto ret = proc.Call<void*, const wchar_t*, int, int, int, int, int>(reinterpret_cast<uintptr_t>(&TestFunc1), nullptr, L"test", 32, 42, 65, 72, 85);
 
 	if (!ret) {
 		std::cerr << "Error when calling func\n";
@@ -192,12 +192,12 @@ int PTCallExt2(Process& proc, int argc, const char* argv[]) {
 	return tool::OK;
 }
 
-void TestFunc2(double value, LPCWCH value2, int value3, int value4, int value5, LPCWCH value6, double value7) {
+void TestFunc2(double value, const wchar_t* value2, int value3, int value4, int value5, const wchar_t* value6, double value7) {
 	std::wcout << value << ":" << value2 << ":" << value3 << ":" << value4 << ":" << value5 << ":" << value6 << ":" << value7 << "\n";
 }
 
 int PTCallExt3(Process& proc, int argc, const char* argv[]) {
-	auto ret = proc.Call<double, LPCWCH, int, int, int, LPCWCH, double>(reinterpret_cast<uintptr_t>(&TestFunc2), 12.3, L"test", 32, 42, 65, L"test 3", 85.65);
+	auto ret = proc.Call<double, const wchar_t*, int, int, int, const wchar_t*, double>(reinterpret_cast<uintptr_t>(&TestFunc2), 12.3, L"test", 32, 42, 65, L"test 3", 85.65);
 
 	if (!ret) {
 		std::cerr << "Error when calling func\n";
@@ -248,7 +248,7 @@ int PTCallExt5(Process& proc, int argc, const char* argv[]) {
 
 	std::cout << "ok 1\n";
 
-	if (!proc.Call<int, double, float, LPCWCH, bool>(ProcessInjectionTest2, 2, 3.5, 4.5, L"Hello", true)) {
+	if (!proc.Call<int, double, float, const wchar_t*, bool>(ProcessInjectionTest2, 2, 3.5, 4.5, L"Hello", true)) {
 		std::cerr << "Error when calling ProcessInjectionTest2\n";
 		return tool::BASIC_ERROR;
 	}
@@ -329,7 +329,7 @@ int PTCall(Process& proc, int argc, const char* argv[]) {
 
 	uintptr_t location = beep.m_location;
 
-	std::vector<BYTE> cll{};
+	std::vector<byte> cll{};
 	cll.reserve(0x100);
 
 	cll.push_back(0x48);
@@ -359,18 +359,18 @@ int PTCall(Process& proc, int argc, const char* argv[]) {
 
 	cll.push_back(0xC3); // retn
 
-	std::vector<BYTE> args{};
+	std::vector<byte> args{};
 
 	//Beep(750, 300);
-	args.resize(sizeof(UINT64) * 2);
-	((UINT64*)&args[0])[0] = 750;
-	((UINT64*)&args[0])[1] = 300;
+	args.resize(sizeof(uint64_t) * 2);
+	((uint64_t*)&args[0])[0] = 750;
+	((uint64_t*)&args[0])[1] = 300;
 
 	auto allocsize = cll.size() + 16;
 	auto funcsize = cll.size();
 	auto func = proc.AllocateMemory(allocsize, PAGE_EXECUTE_READWRITE);
 	auto argptr = proc.AllocateMemory(args.size(), PAGE_READWRITE);
-	auto funcalign = utils::Aligned<UINT64>(func);
+	auto funcalign = utils::Aligned<uint64_t>(func);
 
 	if (!func || !argptr) {
 		std::cerr << "Can't allocate memory\n";
@@ -439,7 +439,7 @@ int PTRead(Process& proc, int argc, const char* argv[]) {
 }
 
 int procloop(Process& unused, int argc, const char* argv[]) {
-	UINT64 c{};
+	uint64_t c{};
 	while (true) {
 		std::cout << "c: " << (c * 10) << "s\n";
 		Sleep(10000);

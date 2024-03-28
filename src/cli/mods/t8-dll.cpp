@@ -5,7 +5,7 @@ namespace {
 	int t8dll(int argc, const char* argv[]) {
 		constexpr auto gameName = "blackops4.exe";
 		constexpr auto dllName = "acts-bo4-dll.dll";
-		UINT64 features{};
+		uint64_t features{};
 		for (size_t i = 3; i < argc; i++) {
 			auto arg = argv[i];
 

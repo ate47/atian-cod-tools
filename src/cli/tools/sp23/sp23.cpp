@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
 #include <decryptiw.hpp>
+#include <actslib/actslib.hpp>
 
 namespace {
 	enum StringTableCellType : byte {
@@ -42,7 +43,7 @@ namespace {
 		uint64_t strings;
 	};
 
-	void DumpStringTable(void* ptr, UINT64 name) {
+	void DumpStringTable(void* ptr, uint64_t name) {
 		auto nameFormat = std::format("stringtable_{:x}.csv", name);
 
 		// change here the dump location dir
@@ -124,20 +125,20 @@ namespace {
 					break;
 				case STT_UNK_2_64:
 					// int?
-					os << std::dec << *reinterpret_cast<INT64*>(value);
+					os << std::dec << *reinterpret_cast<int64_t*>(value);
 					break;
 				case STT_UNK_5_64:
 				case STT_UNK_6_64:
-					os << "hash_" << std::hex << *reinterpret_cast<UINT64*>(value);
+					os << "hash_" << std::hex << *reinterpret_cast<uint64_t*>(value);
 					break;
 				case STT_UNK_7_64:
-					os << "7?" << std::hex << *reinterpret_cast<UINT64*>(value);
+					os << "7?" << std::hex << *reinterpret_cast<uint64_t*>(value);
 					break;
 				case STT_UNK_3_32:
 					os << *reinterpret_cast<float*>(value);
 					break;
 				case STT_UNK_8_32:
-					os << "8?" << std::hex << *reinterpret_cast<UINT32*>(value);
+					os << "8?" << std::hex << *reinterpret_cast<uint32_t*>(value);
 					break;
 				case STT_BYTE:
 					os << (*value ? "TRUE" : "FALSE");
@@ -187,8 +188,8 @@ namespace {
 	}
 
 	struct LocalizeEntry {
-		UINT64 name;
-		LPCCH str;
+		uint64_t name;
+		const char* str;
 	};
 
 	void DumpLocalizeValues() {
@@ -234,15 +235,15 @@ namespace {
 
 		std::cout << "decrypting " << file.string() << "\n";
 
-		LPVOID bufferPtr = nullptr;
-		size_t size = 0;
+		void* bufferPtr{};
+		size_t size{};
 
 		if (!utils::ReadFileNotAlign(file, bufferPtr, size)) {
 			std::cerr << "can't read file.\n";
 			return tool::BASIC_ERROR;
 		}
 
-		BYTE* buffer = reinterpret_cast<BYTE*>(bufferPtr);
+		byte* buffer = reinterpret_cast<byte*>(bufferPtr);
 
 		size_t location = 0;
 
@@ -262,7 +263,7 @@ namespace {
 		os << "name,string\n";
 
 		while (location < size) {
-			auto name = *reinterpret_cast<UINT64*>(&buffer[location]);
+			auto name = *reinterpret_cast<uint64_t*>(&buffer[location]);
 			auto* dec = decrypt::DecryptStringIW(reinterpret_cast<char*>(&buffer[location + 8]));
 			if (!dec) {
 				continue;
@@ -286,7 +287,7 @@ namespace {
 
 			// cg_fovscale 0x682A9BC40F96CA4A
 
-			UINT64 methods[20][2] = {
+			uint64_t methods[20][2] = {
 				{ 0xcbf29ce484222325LL, 0x100000001b3 },
 				{ 0x47F5817A5EF961BALL, 0x100000001b3 },
 				{ 0x79D6530B0BB9B5D1LL, 0x10000000233 },
@@ -311,6 +312,59 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int hash23search(Process& _, int argc, const char* argv[]) {
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+
+		std::filesystem::path file{ argv[2] };
+
+		LOG_INFO("Loading {}", file.string());
+
+		std::ifstream is{ file };
+
+		if (!is) {
+			LOG_ERROR("Can't open {}", file.string());
+			return tool::BASIC_ERROR;
+		}
+
+		actslib::ToClose tc{ is };
+		std::string line{};
+
+		size_t c{};
+
+		while (is && std::getline(is, line)) {
+			if (line.empty()) {
+				continue;
+			}
+
+			uint64_t hash = std::strtoull(line.c_str(), nullptr, 16);
+
+			if (hashutils::Hash64("cg_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+				LOG_INFO("Candidate1: {:x}", hash);
+			}
+			if (hashutils::Hash64("g_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+				LOG_INFO("Candidate2: {:x}", hash);
+			}
+			if (hashutils::Hash64("_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+				LOG_INFO("Candidate3: {:x}", hash);
+			}
+			if (hashutils::Hash64("chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+				LOG_INFO("Candidate4: {:x}", hash);
+			}
+			c++;
+		}
+		
+		LOG_INFO("Can't find candidate in {} hashes", c);
+
+		return tool::OK;
+	}
+	
 }
+#ifndef CI_BUILD
 ADD_TOOL("local23", " [file]", "decrypt local dump 23", nullptr, decryptlocalize);
+ADD_TOOL("hash23search", " [file]", "", nullptr, hash23search);
+
+#endif
 ADD_TOOL("hash23", " [str]", "hash using iw values", nullptr, hash23);

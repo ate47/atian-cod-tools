@@ -28,7 +28,7 @@ namespace {
 		"rumble",
 		"scriptbundle",
 	};
-	enum fieldtype_t : UINT32 {
+	enum fieldtype_t : uint32_t {
 		F_INT = 0x0,
 		F_SHORT = 0x1,
 		F_BYTE = 0x2,
@@ -63,7 +63,7 @@ namespace {
 		"properties",
 	};
 
-	enum WeaponFieldType : UINT32 {
+	enum WeaponFieldType : uint32_t {
 		F_WEAPON_INVALID = 0x0,
 		F_WEAPON_DEF = 0x1,
 		F_WEAPON_PROPERTIES = 0x2,
@@ -72,7 +72,7 @@ namespace {
 
 
 	struct scr_weapon_field_t {
-		UINT32 canonId;
+		uint32_t canonId;
 		fieldtype_t type;
 		bool isreadonly;
 		int ofs;

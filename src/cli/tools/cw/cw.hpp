@@ -38,6 +38,6 @@ namespace cw {
 	};
 
 	char* DecryptString(char* str);
-	BYTE* DecryptRawBuffer(BYTE* buffer);
+	byte* DecryptRawBuffer(byte* buffer);
 }
 

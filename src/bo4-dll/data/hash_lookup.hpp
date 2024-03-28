@@ -3,7 +3,7 @@
 #include <scriptinstance.hpp>
 
 namespace hash_lookup {
-	void LoadFile(LPCCH file);
-	LPCCH Extract(UINT64 hash);
-	LPCCH ExtractTmp(scriptinstance::ScriptInstance inst, UINT64 hash, LPCCH prefix = NULL);
+	void LoadFile(const char* file);
+	const char* Extract(uint64_t hash);
+	const char* ExtractTmp(scriptinstance::ScriptInstance inst, uint64_t hash, const char* prefix = NULL);
 }

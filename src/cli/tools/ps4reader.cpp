@@ -10,8 +10,8 @@ namespace {
 		auto loc = argv[3];
 		auto size = std::strtoull(argv[4], nullptr, 16);
 
-		if (size >= (1ull << ((sizeof(UINT32) << 3) - 1))) {
-			std::cerr << "Size too large: " << std::hex << size << "/" << (1ull << ((sizeof(UINT32) << 3) - 1)) << "\n";
+		if (size >= (1ull << ((sizeof(uint32_t) << 3) - 1))) {
+			std::cerr << "Size too large: " << std::hex << size << "/" << (1ull << ((sizeof(uint32_t) << 3) - 1)) << "\n";
 			return tool::BASIC_ERROR;
 		}
 

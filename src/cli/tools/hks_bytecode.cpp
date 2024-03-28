@@ -20,7 +20,7 @@ namespace {
 		LT_BADTYPE = 0xFFFF
 	};
 
-	LuaType ReadLuaType(LPCCH type) {
+	LuaType ReadLuaType(const char* type) {
 		static std::unordered_map<std::string, LuaType> luaTypeMap{
 			{ "TNIL", LT_NIL },
 			{ "TBOOLEAN", LT_BOOLEAN },
@@ -49,13 +49,13 @@ namespace {
 		bool m_verbose = true;
 		bool m_header = false;
 
-		LPCCH m_outputDir{};
-		std::vector<LPCCH> m_inputFiles{};
+		const char* m_outputDir{};
+		std::vector<const char*> m_inputFiles{};
 
-		bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+		bool Compute(const char** args, INT startIndex, INT endIndex) {
 			// default values
 			for (size_t i = startIndex; i < endIndex; i++) {
-				LPCCH arg = args[i];
+				const char* arg = args[i];
 
 				if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
 					m_help = true;
@@ -94,14 +94,14 @@ namespace {
 		}
 	};
 
-	bool HandleByteCode(BYTE* buffer, size_t size, const std::filesystem::path& origin, CLIOption& opt) {
+	bool HandleByteCode(byte* buffer, size_t size, const std::filesystem::path& origin, CLIOption& opt) {
 		constexpr auto minimumSize = 14 // header
 			+ 4 // numTypeObjects
 			+ 4 // typeId
 			+ 4 // nameSize
 			;
-		if (size < minimumSize || *reinterpret_cast<UINT32*>(buffer) != 0x61754C1B) {
-			std::cerr << "Bad magic : 0x" << std::hex << *reinterpret_cast<UINT32*>(buffer) << "\n";
+		if (size < minimumSize || *reinterpret_cast<uint32_t*>(buffer) != 0x61754C1B) {
+			std::cerr << "Bad magic : 0x" << std::hex << *reinterpret_cast<uint32_t*>(buffer) << "\n";
 			return false;
 		}
 
@@ -133,12 +133,12 @@ namespace {
 
 		out << "-- file: " << origin.string() << "\n";
 
-		UINT32 numTypeObjects = *reinterpret_cast<UINT32*>(buffer + loc);
+		uint32_t numTypeObjects = *reinterpret_cast<uint32_t*>(buffer + loc);
 		loc += 4;
 
 		out << "-- types (" << std::dec << numTypeObjects << "):\n";
 
-		std::unordered_map<UINT32, LuaType> typeIds{};
+		std::unordered_map<uint32_t, LuaType> typeIds{};
 
 		for (size_t i = 0; i < numTypeObjects; i++) {
 			if (loc + 8 >= size) {
@@ -147,10 +147,10 @@ namespace {
 				return false;
 			}
 
-			UINT32 typeId = *reinterpret_cast<UINT32*>(buffer + loc);
+			uint32_t typeId = *reinterpret_cast<uint32_t*>(buffer + loc);
 			loc += 4;
 
-			UINT32 typeSize = *reinterpret_cast<UINT32*>(buffer + loc);
+			uint32_t typeSize = *reinterpret_cast<uint32_t*>(buffer + loc);
 			loc += 4;
 
 			if (typeSize > 32 || loc + typeSize >= size || buffer[loc + typeSize - 1]) {
@@ -159,7 +159,7 @@ namespace {
 				return false;
 			}
 
-			auto* name = reinterpret_cast<LPCCH>(buffer + loc);
+			auto* name = reinterpret_cast<const char*>(buffer + loc);
 			auto luaType = ReadLuaType(name);
 
 			if (luaType == LT_BADTYPE) {
@@ -203,8 +203,8 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		LPVOID buffer{};
-		SIZE_T size{};
+		void* buffer{};
+		size_t size{};
 
 		for (const auto& path : paths) {
 			std::cout << "Reading " << path.string() << "\n";
@@ -214,7 +214,7 @@ namespace {
 				continue;
 			}
 
-			if (!HandleByteCode(reinterpret_cast<BYTE*>(buffer), size, path, opt)) {
+			if (!HandleByteCode(reinterpret_cast<byte*>(buffer), size, path, opt)) {
 				std::cerr << "Error when reading\n";
 			}
 

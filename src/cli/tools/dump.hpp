@@ -4,52 +4,52 @@
 
 namespace tool::dump {
     struct T8ScriptParseTreeEntry {
-        UINT64 name;
-        UINT64 pad0;
+        uint64_t name;
+        uint64_t pad0;
         uintptr_t buffer;
-        UINT32 size;
-        UINT32 pad02;
+        uint32_t size;
+        uint32_t pad02;
     };
 
     struct T8GSCSimpleHeader {
-        UINT64 magic;
-        INT32 crc;
-        INT32 pad;
-        UINT64 name;
+        uint64_t magic;
+        int32_t crc;
+        int32_t pad;
+        uint64_t name;
     };
 
     struct T8ObjFileInfo {
         uintptr_t activeVersion;
-        INT32 slot;
-        INT32 refCount;
-        UINT32 groupId;
-        INT32 Pad0;
+        int32_t slot;
+        int32_t refCount;
+        uint32_t groupId;
+        int32_t Pad0;
     };
 
     struct T8EventMapObj {
         uintptr_t next;
         uintptr_t handler;
-        UINT32 name;
-        INT8 gameSideRegistered;
-        INT8 Pad01;
-        INT16 Pad02;
+        uint32_t name;
+        int8_t gameSideRegistered;
+        int8_t Pad01;
+        int16_t Pad02;
     };
     struct T8BuiltInFunc
     {
-        UINT32 name;
-        UINT32 minArgs;
-        UINT32 maxArgs;
-        UINT32 pad01;
+        uint32_t name;
+        uint32_t minArgs;
+        uint32_t maxArgs;
+        uint32_t pad01;
         uintptr_t function;
-        UINT32 type;
-        UINT32 pad02;
+        uint32_t type;
+        uint32_t pad02;
     };
 
     struct FunctionPoolDef {
         scriptinstance::ScriptInstance instance;
         bool methodPool;
-        UINT64 offset;
-        UINT32 size;
+        uint64_t offset;
+        uint32_t size;
     };
 
     /*

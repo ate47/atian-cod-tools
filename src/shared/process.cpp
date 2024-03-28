@@ -6,8 +6,8 @@ asmjit::JitRuntime& process::GetJitRuntime() {
 	return jr;
 }
 
-BYTE* process::BasePtr() {
-	return reinterpret_cast<BYTE*>(BaseHandle());
+byte* process::BasePtr() {
+	return reinterpret_cast<byte*>(BaseHandle());
 }
 
 HMODULE process::BaseHandle() {
@@ -40,18 +40,18 @@ PIMAGE_OPTIONAL_HEADER process::PImageOptHeader(HMODULE mod) {
 	return &(PImageNtHeader(mod)->OptionalHeader);
 }
 
-HMODULE process::LoadLib(LPCCH lib) {
+HMODULE process::LoadLib(const char* lib) {
 	return LoadLibraryA(lib);
 }
 
-HMODULE process::LoadSysLib(LPCCH lib) {
+HMODULE process::LoadSysLib(const char* lib) {
 	char dir[MAX_PATH]{ 0 };
 	GetSystemDirectoryA(dir, sizeof(dir));
 
 	return LoadLib(std::format("{}/d3d11.dll", dir));
 }
 
-void** process::GetImportAddrTableEntry(LPCCH lib, LPCCH entry) {
+void** process::GetImportAddrTableEntry(const char* lib, const char* entry) {
 	auto mod = GetModuleHandleA(lib);
 	if (!mod || !lib) {
 		return nullptr;
@@ -90,25 +90,25 @@ void** process::GetImportAddrTableEntry(LPCCH lib, LPCCH entry) {
 	return nullptr;
 }
 
-static BYTE ctob(char c) {
+static byte ctob(char c) {
 	if (c >= 'A' && c <= 'F') {
-		return (BYTE)(c - 'A' + 0xA);
+		return (byte)(c - 'A' + 0xA);
 	}
 	if (c >= 'a' && c <= 'f') {
-		return (BYTE)(c - 'a' + 0xA);
+		return (byte)(c - 'a' + 0xA);
 	}
 	if (c >= '0' && c <= '9') {
-		return (BYTE)(c - 'a' + 0);
+		return (byte)(c - 'a' + 0);
 	}
 	throw std::runtime_error(std::format("Invalid character {:x}", c));
 
 }
 
-std::vector<BYTE*> process::Scan(std::string pattern) {
-	std::vector<BYTE*> find{};
+std::vector<byte*> process::Scan(std::string pattern) {
+	std::vector<byte*> find{};
 
-	std::vector<BYTE> mask{};
-	std::vector<BYTE> searched{};
+	std::vector<byte> mask{};
+	std::vector<byte> searched{};
 
 	bool mid = true;
 

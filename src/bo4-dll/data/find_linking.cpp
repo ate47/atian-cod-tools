@@ -6,11 +6,11 @@ struct LinkingInfo {
     bool function = false;
     bool get = false;
     bool resolve = false;
-    std::vector<UINT32> locations{};
+    std::vector<uint32_t> locations{};
 };
 
-LPCCH FindFunc(LinkingInfo& info, scriptinstance::ScriptInstance inst, UINT32 name) {
-    static CHAR messageBuff[0x400] = { 0 };
+const char* FindFunc(LinkingInfo& info, scriptinstance::ScriptInstance inst, uint32_t name) {
+    static char messageBuff[0x400] = { 0 };
 
     int use;
 
@@ -153,17 +153,17 @@ int find_linking::CheckLinkingError(scriptinstance::ScriptInstance inst) {
 
 	auto c = bo4::objFileInfoCount[inst];
 
-    CHAR nspBuff[0x100] = { 0 };
-    CHAR nameBuff[0x100] = { 0 };
+    char nspBuff[0x100] = { 0 };
+    char nameBuff[0x100] = { 0 };
 
     for (size_t scriptId = 0; scriptId < c; scriptId++) {
         auto* script = bo4::objFileInfo[inst][scriptId].activeVersion;
 
-        // LPCCH name = hash_lookup::ExtractTmp(inst, script->name);
+        // const char* name = hash_lookup::ExtractTmp(inst, script->name);
 
         auto imploc = script->magic + script->imports_offset;
 
-        std::unordered_map<UINT64, LinkingInfo> imports{};
+        std::unordered_map<uint64_t, LinkingInfo> imports{};
 
         for (size_t j = 0; j < script->imports_count; j++) {
             const auto* imp = reinterpret_cast<bo4::T8GSCImport*>(imploc);
@@ -173,13 +173,13 @@ int find_linking::CheckLinkingError(scriptinstance::ScriptInstance inst) {
             }
 
             // "sys" or "" -> 0
-            UINT32 nsp = imp->import_namespace == 0x222276a9 || imp->import_namespace == 0xc1243180 ? 0 : imp->import_namespace;
+            uint32_t nsp = imp->import_namespace == 0x222276a9 || imp->import_namespace == 0xc1243180 ? 0 : imp->import_namespace;
 
             auto id = utils::CatLocated(nsp, imp->name);
 
             auto& info = imports[id];
 
-            const auto* importLocations = reinterpret_cast<const UINT32*>(&imp[1]);
+            const auto* importLocations = reinterpret_cast<const uint32_t*>(&imp[1]);
             // insert locations
             info.locations.insert(info.locations.end(), importLocations, importLocations + imp->num_address);
 
@@ -211,7 +211,7 @@ int find_linking::CheckLinkingError(scriptinstance::ScriptInstance inst) {
             }
 
             // shady pass
-            imploc += (size_t) (sizeof(bo4::T8GSCImport) + sizeof(UINT32) * imp->num_address);
+            imploc += (size_t) (sizeof(bo4::T8GSCImport) + sizeof(uint32_t) * imp->num_address);
         }
 
         auto* exports = reinterpret_cast<bo4::GSCExport*>(script->magic + script->export_table_offset);
@@ -227,7 +227,7 @@ int find_linking::CheckLinkingError(scriptinstance::ScriptInstance inst) {
             }
         }
 
-        auto* usings = reinterpret_cast<UINT64*>(script->magic + script->include_offset);
+        auto* usings = reinterpret_cast<uint64_t*>(script->magic + script->include_offset);
 
         for (size_t i = 0; i < script->include_count; i++) {
             auto usingScript = usings[i];

@@ -3,7 +3,7 @@
 
 namespace tool::pool {
 
-	enum eModes : INT32 {
+	enum eModes : int32_t {
 		MODE_ZOMBIES = 0x0,
 		MODE_MULTIPLAYER = 0x1,
 		MODE_CAMPAIGN = 0x2,

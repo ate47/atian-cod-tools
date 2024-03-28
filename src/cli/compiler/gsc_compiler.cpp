@@ -153,6 +153,29 @@ public:
     }
 };
 
+class AscmNodeGlobalVariable : public AscmNodeOpCode {
+public:
+    GlobalVariableDef* def;
+
+    AscmNodeGlobalVariable(GlobalVariableDef* def, bool ref) : 
+        AscmNodeOpCode(ref ? (def->getRefOpCode ? def->getRefOpCode : OPCODE_GetGlobal)
+                        : (def->getOpCode ? def->getOpCode : OPCODE_GetGlobalObject)), def(def) {
+    }
+
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+        return AscmNodeOpCode::ShiftSize(start, aligned) + 2;
+    }
+
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
+            return false;
+        }
+
+        ctx.Write<uint16_t>(0); // added by the linker, remove if def using opcode todo??
+        return true;
+    }
+};
+
 class AscmNodeLazyLink : public AscmNodeOpCode {
 public:
     uint64_t path;
@@ -211,7 +234,7 @@ AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
         }
     }
 
-    return new AscmNodeData<INT64>((INT64)val, OPCODE_GetLongInteger);
+    return new AscmNodeData<int64_t>((int64_t)val, OPCODE_GetLongInteger);
 }
 
 class AscmNodeJump : public AscmNodeOpCode {
@@ -252,12 +275,12 @@ public:
     bool m_help = false;
     VmInfo* m_vmInfo{};
     Platform m_platform = Platform::PLATFORM_PC;
-    std::vector<LPCCH> m_inputFiles{};
+    std::vector<const char*> m_inputFiles{};
 
-    bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+    bool Compute(const char** args, INT startIndex, INT endIndex) {
         // default values
         for (size_t i = startIndex; i < endIndex; i++) {
-            LPCCH arg = args[i];
+            const char* arg = args[i];
 
             if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
                 m_help = true;
@@ -384,6 +407,11 @@ public:
     byte flags;
     std::vector<AscmNode*> nodes{};
 };
+class GlobalVarObject {
+public:
+    tool::gsc::opcode::GlobalVariableDef* def{};
+    std::vector<AscmNode*> nodes{};
+};
 struct FunctionVar {
     std::string name;
     size_t id;
@@ -392,6 +420,7 @@ struct FunctionVar {
 
 struct FunctionJumpLoc {
     AscmNode* node{};
+    ParseTree* def{};
     bool defined{};
 };
 
@@ -506,7 +535,7 @@ public:
      */
     bool ComputeRelativeLocations() {
         // we start at 0 and we assume that the start location is already aligned
-        INT32 current = 0;
+        int32_t current = 0;
 
         for (auto node : m_nodes) {
             node->rloc = current;
@@ -529,6 +558,7 @@ public:
     std::unordered_map<uint32_t, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
     std::unordered_map<uint64_t, std::vector<ImportObject>> imports{};
+    std::unordered_map<std::string, GlobalVarObject> gvars{};
     VmInfo* vmInfo;
     Platform plt;
 
@@ -1066,6 +1096,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 if (!loc.node) {
                     loc.node = new AscmNode();
                 }
+                if (!loc.def) {
+                    loc.def = rule;
+                }
 
                 fobj.m_nodes.push_back(new AscmNodeJump(loc.node, OPCODE_Jump));
                 return true;
@@ -1488,7 +1521,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             auto& impList = obj.imports[located];
 
-            BYTE flags = tool::gsc::T8GSCImportFlags::GET_CALL;
+            byte flags = tool::gsc::T8GSCImportFlags::GET_CALL;
 
             auto it = std::find_if(impList.begin(), impList.end(), [flags](const auto& e) { return e.flags == flags; });
 
@@ -1572,6 +1605,15 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     switch (term->getSymbol()->getType()) {
     case gscParser::IDENTIFIER: {
         std::string varName = term->getText();
+
+        auto gvarIt = fobj.m_vmInfo->globalvars.find(varName);
+
+        if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
+            auto& gv = gvarIt->second;
+            
+
+
+        }
 
         auto varIt = fobj.FindVar(varName);
 
@@ -1688,7 +1730,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto name = termNode->getText();
 
     obj.hashes.insert(name);
-    UINT32 nameHashed = hashutils::Hash32Pattern(name.data());
+    uint32_t nameHashed = hashutils::Hash32Pattern(name.data());
 
     auto [res, err] = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace, obj.vmInfo);
 
@@ -1742,7 +1784,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto evname = static_cast<TerminalNode*>(ev)->getText();
 
             obj.hashes.insert(evname);
-            UINT32 evnameHashed = hashutils::Hash32Pattern(evname.data());
+            uint32_t evnameHashed = hashutils::Hash32Pattern(evname.data());
             exp.m_data_name = evnameHashed;
         }
     }
@@ -1868,6 +1910,19 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
     exp.m_nodes.push_back(endNode);
 
+    for (auto& [name, loc] : exp.m_jumpLocs) {
+        if (loc.defined) {
+            continue;
+        }
+
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, loc.def ? loc.def : blockRule, std::format("the location {} was used, but isn't declared", name));
+
+        if (loc.node) {
+            delete loc.node; // free loc
+            loc.node = nullptr;
+        }
+    }
+
     return true;
 }
 
@@ -1991,14 +2046,14 @@ int compiler(Process& proc, int argc, const char* argv[]) {
 
         auto& dt = info.files.emplace_back(file, type, start, startLine);
 
-        if (!utils::ReadFileNotAlign(file, reinterpret_cast<LPVOID&>(dt.buffer), dt.size, true)) {
+        if (!utils::ReadFileNotAlign(file, reinterpret_cast<void*&>(dt.buffer), dt.size, true)) {
             LOG_ERROR("Can't read file {}", file);
             return tool::BASIC_ERROR;
         }
 
         size_t lineCount = 1; // 1 for the one we'll add at the end
 
-        LPCCH b = dt.buffer;
+        const char* b = dt.buffer;
         while (*b) {
             if (*(b++) == '\n') {
                 lineCount++;

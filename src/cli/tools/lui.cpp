@@ -25,7 +25,7 @@ namespace {
 
 		out << "id,name,func";
 
-		CHAR outBuffer[0x300];
+		char outBuffer[0x300];
 
 		int count{};
 

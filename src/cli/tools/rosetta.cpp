@@ -7,11 +7,11 @@ namespace {
 	using tool::gsc::RosettaOpCodeBlock;
 
 	struct T8ScriptParseTreeEntry {
-		UINT64 name;
-		UINT64 pad0;
+		uint64_t name;
+		uint64_t pad0;
 		uintptr_t buffer;
-		UINT32 size;
-		UINT32 pad02;
+		uint32_t size;
+		uint32_t pad02;
 	};
 
 	void fillmap(const std::filesystem::path& path, std::vector<std::filesystem::path>& paths) {
@@ -37,9 +37,9 @@ namespace {
 			std::cout << "Can't open file '" << argv[2] << "'\n";
 		}
 
-		std::map<UINT64, tool::gsc::RosettaFileData> rosettaBlocks{};
+		std::map<uint64_t, tool::gsc::RosettaFileData> rosettaBlocks{};
 
-		CHAR checkBuff[4] = { 0 };
+		char checkBuff[4] = { 0 };
 
 		rfile.read(checkBuff, 4);
 
@@ -84,8 +84,8 @@ namespace {
 		std::cout << "Read rosetta index with " << std::dec << rosettaBlocks.size() << " script(s)\n";
 		std::filesystem::path locDir = argv[3];
 
-		std::map<UINT16, std::set<UINT16>> map{};
-		std::map<UINT16, std::set<UINT16>> maplookup{};
+		std::map<uint16_t, std::set<uint16_t>> map{};
+		std::map<uint16_t, std::set<uint16_t>> maplookup{};
 
 
 		if (!std::filesystem::exists(locDir)) {
@@ -98,12 +98,12 @@ namespace {
 		fillmap(locDir, files);
 
 		tool::dump::T8GSCSimpleHeader* buffer = NULL;
-		SIZE_T size;
+		size_t size;
 
 		std::cout << "Find " << files.size() << " file(s)\n";
 
 		for (const auto& file : files) {
-			if (!utils::ReadFileNotAlign(file, reinterpret_cast<LPVOID&>(buffer), size, false)) {
+			if (!utils::ReadFileNotAlign(file, reinterpret_cast<void*&>(buffer), size, false)) {
 				std::cerr << "Error when reading " << file.string() << "\n";
 				continue;
 			}
@@ -137,7 +137,7 @@ namespace {
 					std::cerr << "Bad location: " << std::hex << opco.location << " in " << file.string() << " (" << hashutils::ExtractTmpScript(buffer->name) << ")\n";
 				}
 
-				auto val = *reinterpret_cast<UINT16*>(reinterpret_cast<BYTE*>(buffer) + opco.location);
+				auto val = *reinterpret_cast<uint16_t*>(reinterpret_cast<byte*>(buffer) + opco.location);
 				auto old = opco.opcode;
 
 				map[old].insert(val);
@@ -187,7 +187,7 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		BYTE vm = (BYTE)std::stol(argv[2], nullptr, 16);
+		byte vm = (byte)std::stol(argv[2], nullptr, 16);
 
 		VmInfo* info;
 
@@ -210,7 +210,7 @@ namespace {
 			freq[i].opcode = (OPCode)i;
 		}
 
-		for (UINT16 i = 0; i < 0x1000; i++) {
+		for (uint16_t i = 0; i < 0x1000; i++) {
 			auto* ci = LookupOpCode(vm, PLATFORM_PC, i);
 
 			freq[(size_t)ci->m_id].count++;

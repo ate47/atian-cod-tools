@@ -1,3 +1,3 @@
 #include <includes.hpp>
 
-LPCCH g_progPath = NULL;
+const char* g_progPath = NULL;

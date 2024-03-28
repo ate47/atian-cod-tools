@@ -5,18 +5,18 @@ namespace actscli {
 	struct ActsOptions {
 		bool showTitle{ true };
 		bool showHelp{};
-		LPCCH defaultHashFile{};
-		LPCCH packFile{};
+		const char* defaultHashFile{};
+		const char* packFile{};
 		bool noDefaultHash{};
 		bool noTreyarchHash{};
 		bool noIWHash{};
-		LPCCH dumpHashmap{};
-		LPCCH wniFiles{};
-		LPCCH saveProfiler{};
+		const char* dumpHashmap{};
+		const char* wniFiles{};
+		const char* saveProfiler{};
 	};
 
 	ActsOptions& options();
 	actslib::profiler::Profiler& GetProfiler();
 
-	bool LoadPackFile(LPCCH packFile);
+	bool LoadPackFile(const char* packFile);
 }

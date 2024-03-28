@@ -71,7 +71,7 @@ namespace fastfiles {
 }
 namespace {
 
-	void WriteHex(std::ostream& out, uintptr_t base, BYTE* buff, SIZE_T size) {
+	void WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t size) {
 		for (size_t j = 0; j < size; j++) {
 			if (j % 8 == 0) {
 				if (base) {
@@ -79,7 +79,7 @@ namespace {
 				}
 				out << std::hex << std::setw(3) << std::setfill('0') << j << "|";
 				if (j + 7 < size) {
-					out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<UINT64*>(&buff[j]);
+					out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<uint64_t*>(&buff[j]);
 				}
 			}
 			if (j - j % 8 + 7 >= size) {
@@ -99,7 +99,7 @@ namespace {
 
 				// check x64 values
 				if (j >= 7) {
-					auto val = *reinterpret_cast<UINT64*>(&buff[j - 7]);
+					auto val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
 					if (val) {
 						// not null, hash?
 						auto* h = hashutils::ExtractPtr(val);
@@ -139,13 +139,13 @@ namespace {
 		byte pad1[328];
 	};
 	struct aesKey_t {
-		UINT32 fileNameHash;
-		UINT32 version;
+		uint32_t fileNameHash;
+		uint32_t version;
 		byte key[32];
 	};
 	struct aesKeyLocal_t {
 		const char* fileNameHash;
-		UINT32 version;
+		uint32_t version;
 		byte key[32];
 	};
 
@@ -173,8 +173,8 @@ namespace {
 			LOG_ERROR("FF too small for header");
 			return tool::BASIC_ERROR;
 		}
-		if (*reinterpret_cast<UINT64*>(buffer->magic) != 0x3030303066664154) {
-			LOG_ERROR("Invalid FF magic: {:x}", *reinterpret_cast<UINT64*>(buffer));
+		if (*reinterpret_cast<uint64_t*>(buffer->magic) != 0x3030303066664154) {
+			LOG_ERROR("Invalid FF magic: {:x}", *reinterpret_cast<uint64_t*>(buffer));
 			return tool::BASIC_ERROR;
 		}
 
@@ -204,11 +204,11 @@ namespace {
 			LOG_INFO("checksum32 . {}", checksum32);
 		}
 
-		//WriteHex(std::cout, 0, reinterpret_cast<BYTE*>(buffer), sizeof(*buffer));
+		//WriteHex(std::cout, 0, reinterpret_cast<byte*>(buffer), sizeof(*buffer));
 
 		//std::cout << "-----------------------------\n";
 
-		//WriteHex(std::cout, reinterpret_cast<uintptr_t>(buffer + 1) - reinterpret_cast<uintptr_t>(buffer), reinterpret_cast<BYTE*>(buffer + 1), size - sizeof(*buffer));
+		//WriteHex(std::cout, reinterpret_cast<uintptr_t>(buffer + 1) - reinterpret_cast<uintptr_t>(buffer), reinterpret_cast<byte*>(buffer + 1), size - sizeof(*buffer));
 
 
 
@@ -220,7 +220,7 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		LPVOID buffer{};
+		void* buffer{};
 		size_t size{};
 
 		if (!utils::ReadFileNotAlign(argv[2], buffer, size, false)) {

@@ -21,7 +21,7 @@ namespace {
     };
     
     struct ScriptParseTree {
-        UINT64 name;
+        uint64_t name;
         uintptr_t buffer; // GSC_OBJ*
         int len;
     };
@@ -32,10 +32,10 @@ namespace {
         int64_t int_value;
         float float_value;
         byte bool_value;
-        UINT64 hash_value;
+        uint64_t hash_value;
         uintptr_t pointer_value;
     };
-    enum stringtable_cell_type : BYTE {
+    enum stringtable_cell_type : byte {
         STC_TYPE_UNDEFINED = 0x0,
         STC_TYPE_STRING = 0x1,
         STC_TYPE_HASHED2 = 0x2,
@@ -61,7 +61,7 @@ namespace {
 
 
     struct StringTable  {
-        UINT64 name;
+        uint64_t name;
         int columnCount;
         int rowCount;
         int cellcount;
@@ -78,7 +78,7 @@ namespace {
         int size;
     };
 
-    enum XAssetType : BYTE {
+    enum XAssetType : byte {
         ASSET_TYPE_ZONE = 0,
         ASSET_TYPE_ASSETLIST = 1,
         ASSET_TYPE_PHYSPRESET = 2,
@@ -136,7 +136,7 @@ namespace {
         ASSET_TYPE_IMPACTSFXTABLE = 54,
         ASSET_TYPE_IMPACTSOUNDSTABLE = 55,
         ASSET_TYPE_AITYPE = 56,
-        ASSET_TYPE_CHARACTER = 57,
+        ASSET_TYPE_charACTER = 57,
         ASSET_TYPE_XMODELALIAS = 58,
         ASSET_TYPE_RAWFILE = 59,
         ASSET_TYPE_RAWFILEPREPROC = 60,
@@ -212,8 +212,8 @@ namespace {
         ASSET_TYPE_PLAYERROLETEMPLATEFRONTEND = 130,
         ASSET_TYPE_PLAYERROLECATEGORYTABLE = 131,
         ASSET_TYPE_PLAYERROLECATEGORY = 132,
-        ASSET_TYPE_CHARACTERBODYTYPE = 133,
-        ASSET_TYPE_CHARACTERBODYTYPEFRONTEND = 134,
+        ASSET_TYPE_charACTERBODYTYPE = 133,
+        ASSET_TYPE_charACTERBODYTYPEFRONTEND = 134,
         ASSET_TYPE_PLAYEROUTFIT = 135,
         ASSET_TYPE_GAMETYPETABLE = 136,
         ASSET_TYPE_GAMETYPETABLEENTRY = 137,
@@ -233,7 +233,7 @@ namespace {
         ASSET_TYPE_RAGDOLL = 151,
         ASSET_TYPE_STORAGEFILE = 152,
         ASSET_TYPE_STORAGEFILELIST = 153,
-        ASSET_TYPE_CHARMIXER = 154,
+        ASSET_TYPE_charMIXER = 154,
         ASSET_TYPE_STOREPRODUCT = 155,
         ASSET_TYPE_STORECATEGORY = 156,
         ASSET_TYPE_STORECATEGORYLIST = 157,
@@ -363,7 +363,7 @@ namespace {
 
 	int dumppoolcw(Process& proc, int argc, const char* argv[]) {
 
-		LPCCH outFile;
+		const char* outFile;
 		if (argc == 2) {
 			outFile = "scriptparsetree_cw";
 		}
@@ -391,7 +391,7 @@ namespace {
 
 		tool::gsc::T9GSCOBJ headerTmp{};
 
-		CHAR namebuff[MAX_PATH + 10];
+		char namebuff[MAX_PATH + 10];
         std::cout << "dump using linked scripts\n";
 
 		for (size_t i = 0; i < scriptinstance::SI_COUNT; i++) {
@@ -403,7 +403,7 @@ namespace {
 					continue;
 				}
 
-				auto file = std::make_unique<BYTE[]>(headerTmp.file_size);
+				auto file = std::make_unique<byte[]>(headerTmp.file_size);
 
 				if (!proc.ReadMemory(&file[0], elem.activeVersion, headerTmp.file_size)) {
 					std::cerr << "Can't read file elem at " << j << "\n";
@@ -444,7 +444,7 @@ namespace {
                 continue;
             }
 
-            auto file = std::make_unique<BYTE[]>(headerTmp.file_size);
+            auto file = std::make_unique<byte[]>(headerTmp.file_size);
 
             if (!proc.ReadMemory(&file[0], e.buffer, headerTmp.file_size)) {
                 std::cerr << "Can't read file elem at " << i << "\n";
@@ -467,7 +467,7 @@ namespace {
 
 
 	const char* ReadTmpStr(const Process& proc, uintptr_t location) {
-		static CHAR tmp_buff[0x1000];
+		static char tmp_buff[0x1000];
 
 		if (proc.ReadString(tmp_buff, location, sizeof(tmp_buff)) < 0) {
 			sprintf_s(tmp_buff, "<invalid:%llx>", location);
@@ -480,7 +480,7 @@ namespace {
 		auto loc = proc[0xD7C8D90];
 
 		XAssetPool pool{};
-		CHAR tmp_buff[0x50];
+		char tmp_buff[0x50];
 
 		int id = 0;
 
@@ -523,7 +523,7 @@ namespace {
         uint16_t unk52;
         uint32_t unk54;
     };
-    enum DDLType : BYTE
+    enum DDLType : byte
     {
         DDL_INVALID_TYPE = 0xFF,
         DDL_BYTE_TYPE = 0,
@@ -541,7 +541,7 @@ namespace {
     };
 
     const char* DdlTypeName(DDLType type, size_t intSize, size_t bitsize) {
-        static CHAR typeNameBuff[0x10];
+        static char typeNameBuff[0x10];
         switch (type) {
         case DDL_BYTE_TYPE: return "byte";
         case DDL_SHORT_TYPE: return "short";
@@ -637,7 +637,7 @@ namespace {
                 return e1.offset < e2.offset;
                 });
 
-            INT64 currentShift = 0;
+            int64_t currentShift = 0;
             for (size_t i = 0; i < stct.memberCount; i++) {
 
                 auto& mbm = members[i];
@@ -645,7 +645,7 @@ namespace {
 
                 if (currentShift != mbm.offset) {
                     defout << "// invalid struct offset, missing ";
-                    INT64 delta = (currentShift - (INT64)mbm.offset);
+                    int64_t delta = (currentShift - (int64_t)mbm.offset);
                     if (delta >= 0) {
                         defout << "0x" << std::hex << delta;
                     }
@@ -821,7 +821,7 @@ namespace {
         out << "pool,func,minargs,maxargs,type,address,definition";
 
         struct BuiltinFunctionDef {
-            UINT32 canonId;
+            uint32_t canonId;
             int min_args;
             int max_args;
             uintptr_t actionFunc;
@@ -901,14 +901,14 @@ namespace {
     class PoolOption {
     public:
         bool m_help = false;
-        LPCCH m_output = "poolcw";
-        LPCCH m_dump_hashmap = NULL;
+        const char* m_output = "poolcw";
+        const char* m_dump_hashmap = NULL;
 
-        bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, INT startIndex, INT endIndex) {
 
             // default values
             for (size_t i = startIndex; i < endIndex; i++) {
-                LPCCH arg = args[i];
+                const char* arg = args[i];
 
                 if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
                     m_help = true;
@@ -939,13 +939,13 @@ namespace {
 
 
     const char* ReadMTString(const Process& proc, uint32_t val) {
-        static CHAR str_read[0x2001];
-        auto strptr = proc.ReadMemory<uintptr_t>(proc[0xF5EC9C8]) + (UINT32)(0x10 * val);
-        if (!strptr || !proc.ReadMemory<INT16>(strptr) || proc.ReadMemory<BYTE>(strptr + 3) != 7) {
+        static char str_read[0x2001];
+        auto strptr = proc.ReadMemory<uintptr_t>(proc[0xF5EC9C8]) + (uint32_t)(0x10 * val);
+        if (!strptr || !proc.ReadMemory<int16_t>(strptr) || proc.ReadMemory<byte>(strptr + 3) != 7) {
             return nullptr;
         }
 
-        BYTE start = proc.ReadMemory<BYTE>(strptr + 0x18);
+        byte start = proc.ReadMemory<byte>(strptr + 0x18);
 
         if ((start & 0xC0) != 0x80) {
             // clear
@@ -988,7 +988,7 @@ namespace {
             return;
         }
 
-        static UINT32 nameHash = hash::Hash32("name");
+        static uint32_t nameHash = hash::Hash32("name");
 
         for (size_t i = 0; i < arr.sbObjectCount; i++) {
             auto& obj = objects[i];
@@ -1031,7 +1031,7 @@ namespace {
 
         bool nofirst = false;
 
-        std::unordered_set<UINT32> keys{};
+        std::unordered_set<uint32_t> keys{};
 
         if (arr.sbSubCount) {
             struct SB_Sub {
@@ -1185,9 +1185,9 @@ namespace {
             return tool::BASIC_ERROR;
         }
 
-        CHAR outputName[256];
+        char outputName[256];
         sprintf_s(outputName, "%s/pool_%x", opt.m_output, id);
-        CHAR dumpbuff[MAX_PATH + 10];
+        char dumpbuff[MAX_PATH + 10];
 
         std::cout << std::hex
             << "pool ........ " << entry.pool << "\n"
@@ -1294,8 +1294,8 @@ namespace {
                             //out << "unk type: " << cell[j].type;
                             out << "?" << std::hex
                                 << cell[j].value.hash_value
-                                //    << ':' << *reinterpret_cast<UINT64*>(&cell[j].value[8])
-                                //    << ':' << *reinterpret_cast<UINT32*>(&cell[j].value[16])
+                                //    << ':' << *reinterpret_cast<uint64_t*>(&cell[j].value[8])
+                                //    << ':' << *reinterpret_cast<uint32_t*>(&cell[j].value[16])
                                 << std::dec;
                             break;
                         }
@@ -1426,9 +1426,9 @@ namespace {
                 std::cerr << "Can't read pool data\n";
                 return tool::BASIC_ERROR;
             }
-            CHAR dumpbuff[MAX_PATH + 10];
+            char dumpbuff[MAX_PATH + 10];
             const size_t dumpbuffsize = sizeof(dumpbuff);
-            std::vector<BYTE> read{};
+            std::vector<byte> read{};
             size_t readFile = 0;
 
             for (size_t i = 0; i < entry.itemAllocCount; i++) {
@@ -1517,7 +1517,7 @@ namespace {
                     continue;
                 }
 
-                auto buff = std::make_unique<BYTE[]>(e.size + 0x10);
+                auto buff = std::make_unique<byte[]>(e.size + 0x10);
 
                 if (!proc.ReadMemory(&buff[0], e.buffer, e.size + 0x10)) {
                     std::cerr << "Can't read buffer\n";
@@ -1526,7 +1526,7 @@ namespace {
 
 
                 // decrypt
-                BYTE* buffDecrypt{ &buff[0]};
+                byte* buffDecrypt{ &buff[0]};
                 size_t size{ e.size };
                 if (id != ASSET_TYPE_RAWFILE) {
                     buffDecrypt = cw::DecryptRawBuffer(buffDecrypt);
@@ -1547,14 +1547,14 @@ namespace {
         default: {
             std::cout << "Item data\n";
 
-            auto raw = std::make_unique<BYTE[]>(entry.itemSize * entry.itemAllocCount);
+            auto raw = std::make_unique<byte[]>(entry.itemSize * entry.itemAllocCount);
 
             if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
                 std::cerr << "Can't read pool data\n";
                 return tool::BASIC_ERROR;
             }
 
-            CHAR dumpbuff[MAX_PATH + 10];
+            char dumpbuff[MAX_PATH + 10];
             for (size_t i = 0; i < entry.itemAllocCount; i++) {
                 sprintf_s(dumpbuff, "%s/rawpool/%d/%lld.json", opt.m_output, (int)id, i);
 
@@ -1608,7 +1608,7 @@ namespace {
             return tool::BASIC_ERROR;
         }
 
-        auto sharedStructs = proc.ReadMemory<UINT32>(globalVars + 5 * 0xC + 4);
+        auto sharedStructs = proc.ReadMemory<uint32_t>(globalVars + 5 * 0xC + 4);
 
         if (!sharedStructs) {
             std::cerr << "Can't find sharedStructs\n";
@@ -1624,7 +1624,7 @@ namespace {
 
         auto sharedStructElem = (0x22325 * sharedStructs + 0x1B3 * (((name << 32) >> 32) ^ (name >> 32))) & 0xFFFFF;
 
-        auto res = proc.ReadMemory<UINT32>(scriptVar + 4 * sharedStructElem);
+        auto res = proc.ReadMemory<uint32_t>(scriptVar + 4 * sharedStructElem);
         
         if (!res) {
             std::cerr << "Can't find struct\n";
@@ -1655,7 +1655,7 @@ namespace {
             ;
 
         std::filesystem::path scriptPath = script;
-        LPVOID scriptBuffer = NULL;
+        void* scriptBuffer = NULL;
         size_t scriptSize = 0;
 
         if (!utils::ReadFileNotAlign(scriptPath, scriptBuffer, scriptSize, false)) {
@@ -1663,7 +1663,7 @@ namespace {
             return tool::BASIC_ERROR;
         }
 
-        if (scriptSize < 8 || *reinterpret_cast<UINT64*>(scriptBuffer) != 0x38000a0d43534780) {
+        if (scriptSize < 8 || *reinterpret_cast<uint64_t*>(scriptBuffer) != 0x38000a0d43534780) {
             std::cerr << "Not a valid compiled Black Ops Cold War script (BAD MAGIC)\n";
             std::free(scriptBuffer);
             return tool::BASIC_ERROR;
@@ -1683,11 +1683,11 @@ namespace {
         // E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 75 0A B9 00 F2 54 E5
         
 
-        uintptr_t poolLocationFunc = (uintptr_t)((INT64)patterns - 14 + 4 + (INT64)proc.ReadMemory<INT32>(patterns - 14 + 1));
+        uintptr_t poolLocationFunc = (uintptr_t)((int64_t)patterns - 14 + 4 + (int64_t)proc.ReadMemory<int32_t>(patterns - 14 + 1));
 
         // 48 8D 05 80 26 73 08
 
-        uintptr_t poolLocation = (uintptr_t)((INT64)poolLocationFunc + 0x10 + (INT64)proc.ReadMemory<INT32>(poolLocationFunc + 12));
+        uintptr_t poolLocation = (uintptr_t)((int64_t)poolLocationFunc + 0x10 + (int64_t)proc.ReadMemory<int32_t>(poolLocationFunc + 12));
 
         proc.WriteLocation(std::cout << "pool: ", poolLocation) << "\n";
         std::cout << "pool: " << s_assetPools_off << "\n";
@@ -1749,8 +1749,8 @@ namespace {
             return tool::BASIC_ERROR;
         }
         auto includesOffset = targetEntry->buffer + scriptHeader.includes_table;
-        auto includes = std::make_unique<UINT64[]>(scriptHeader.includes_count);
-        if (!proc.ReadMemory(&includes[0], includesOffset, sizeof(UINT64) * scriptHeader.includes_count)) {
+        auto includes = std::make_unique<uint64_t[]>(scriptHeader.includes_count);
+        if (!proc.ReadMemory(&includes[0], includesOffset, sizeof(uint64_t) * scriptHeader.includes_count)) {
             std::cerr << "Can't read includes\n";
             std::free(scriptBuffer);
             return tool::BASIC_ERROR;
@@ -1766,14 +1766,14 @@ namespace {
             // need to add the include
 
             // insert the new include
-            if (!proc.WriteMemory(includesOffset + sizeof(UINT64) * scriptHeader.includes_count, &replacedHash, sizeof(replacedHash))) {
+            if (!proc.WriteMemory(includesOffset + sizeof(uint64_t) * scriptHeader.includes_count, &replacedHash, sizeof(replacedHash))) {
                 std::cerr << "Error when patching includes\n";
                 std::free(scriptBuffer);
                 return tool::BASIC_ERROR;
             }
 
             // correct the include count
-            UINT16 newIncludeCount = scriptHeader.includes_count + 1;
+            uint16_t newIncludeCount = scriptHeader.includes_count + 1;
             if (!proc.WriteMemory(targetEntry->buffer + offsetof(tool::gsc::T9GSCOBJ, includes_count), &newIncludeCount, sizeof(newIncludeCount))) {
                 std::cerr << "Error when patching includes count\n";
                 std::free(scriptBuffer);
@@ -1836,10 +1836,10 @@ namespace {
 
 
     struct BGCache {
-        UINT64 name;
-        UINT64 pad08;
+        uint64_t name;
+        uint64_t pad08;
         uintptr_t def;
-        UINT32 count;
+        uint32_t count;
     };
 
     struct BGCacheInfoDef {
@@ -1870,7 +1870,7 @@ namespace {
         byte unk47;
     };
     struct BGPoolEntry {
-        UINT64 name;
+        uint64_t name;
         uintptr_t assetHeader;
     };
 
@@ -1901,8 +1901,8 @@ namespace {
 
         auto pool = proc[0x11868C50];
 
-        CHAR nameInfo[200] = {};
-        CHAR fileInfo[200] = {};
+        char nameInfo[200] = {};
+        char fileInfo[200] = {};
         // buffer pool names
         for (size_t i = 0; i < pool::BG_CACHE_TYPE_COUNT; i++) {
             if (proc.ReadString(nameInfo, info[i].name, sizeof(nameInfo)) < 0) {

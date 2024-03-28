@@ -10,7 +10,7 @@ namespace error_coder {
 			"Juliett",
 			"Zed",
 			"XRay",
-			"Charlie",
+			"charlie",
 			"Summer",
 			"Edward",
 			"Nora",
@@ -1615,7 +1615,7 @@ namespace error_coder {
 		}
 	};
 
-	void Encode(ErrorCode& code, UINT32 val) {
+	void Encode(ErrorCode& code, uint32_t val) {
 		for (size_t i = 0; i < ARRAYSIZE(word_sizes); i++) {
 			int log2Size = word_sizes[i];
 			int row = (int)(val & ((1 << log2Size) - 1));
@@ -1627,12 +1627,12 @@ namespace error_coder {
 		}
 	}
 
-	UINT32 Decode(const ErrorCode& code) {
+	uint32_t Decode(const ErrorCode& code) {
 		if (!code[0] || !code[1] || !code[2] || !code[3]) {
 			return 0;
 		}
 
-		UINT32 output{};
+		uint32_t output{};
 		for (int i = 3; i >= 0; i--) {
 			auto begin = std::begin(words[i]);
 			auto end = std::begin(words[i]) + (1ull << word_sizes[i]);
@@ -1656,7 +1656,7 @@ namespace error_coder {
 		return output;
 	}
 
-	LPCCH ToStr(const ErrorCode& code) {
+	const char* ToStr(const ErrorCode& code) {
 		return utils::va("%s %s %s %s", code[0], code[1], code[2], code[3]);
 	}
 }
@@ -1669,7 +1669,7 @@ namespace {
 		error_coder::ErrorCode code{};
 
 		for (size_t i = 2; i < argc; i++) {
-			UINT32 codedec = (UINT32)std::strtoull(argv[i], nullptr, 10);
+			uint32_t codedec = (uint32_t)std::strtoull(argv[i], nullptr, 10);
 
 			error_coder::Encode(code, codedec);
 
@@ -1690,7 +1690,7 @@ namespace {
 		code[2] = argv[4];
 		code[3] = argv[5];
 
-		UINT32 codedec;
+		uint32_t codedec;
 
 		try {
 			codedec = error_coder::Decode(code);

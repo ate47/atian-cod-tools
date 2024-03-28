@@ -6,14 +6,14 @@
 namespace {
 	struct XAssetPoolEntry {
 		uintptr_t pool;
-		UINT32 itemSize;
-		INT32 itemCount;
-		BYTE isSingleton;
-		INT32 itemAllocCount;
+		uint32_t itemSize;
+		int32_t itemCount;
+		byte isSingleton;
+		int32_t itemAllocCount;
 		uintptr_t freeHead;
 	};
 	struct T9ScriptParseTree {
-		UINT64 name;
+		uint64_t name;
 		uintptr_t unk8;
 		uintptr_t buffer; // GSC_OBJ*
 		int len;
@@ -40,7 +40,7 @@ namespace {
 			;
 
 		std::filesystem::path scriptPath = script;
-		LPVOID scriptBuffer = NULL;
+		void* scriptBuffer = NULL;
 		size_t scriptSize = 0;
 
 		if (!utils::ReadFileNotAlign(scriptPath, scriptBuffer, scriptSize, false)) {
@@ -48,8 +48,8 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		if (scriptSize >= (1ull << ((sizeof(UINT32) << 3) - 1))) {
-			std::cerr << "Size too large: " << std::hex << scriptSize << "/" << (1ull << ((sizeof(UINT32) << 3) - 1)) << "\n";
+		if (scriptSize >= (1ull << ((sizeof(uint32_t) << 3) - 1))) {
+			std::cerr << "Size too large: " << std::hex << scriptSize << "/" << (1ull << ((sizeof(uint32_t) << 3) - 1)) << "\n";
 			std::free(scriptBuffer);
 			return tool::BASIC_ERROR;
 		}
@@ -143,8 +143,8 @@ namespace {
 			auto targetScriptHeader = ps4.ReadMemory(pid, targetEntry->buffer, sizeof(tool::gsc::T8GSCOBJ));
 			auto scriptHeader = reinterpret_cast<tool::gsc::T8GSCOBJ*>(targetScriptHeader.data());
 			auto includesOffset = targetEntry->buffer + scriptHeader->include_offset;
-			auto targetScriptIncludes = ps4.ReadMemory(pid, includesOffset, sizeof(UINT64) * scriptHeader->include_count);
-			auto includes = reinterpret_cast<UINT64*>(targetScriptIncludes.data());
+			auto targetScriptIncludes = ps4.ReadMemory(pid, includesOffset, sizeof(uint64_t) * scriptHeader->include_count);
+			auto includes = reinterpret_cast<uint64_t*>(targetScriptIncludes.data());
 			auto includesEnd = includes + scriptHeader->include_count;
 
 			std::cout << target << " -> " << std::hex << targetEntry->buffer << "(" << targetEntry->name << ")\n";
@@ -155,14 +155,14 @@ namespace {
 				// need to add the include
 
 				// insert the new include
-				std::vector<BYTE> includeVal{};
+				std::vector<byte> includeVal{};
 				includeVal.insert(includeVal.begin(), (uint8_t*)&replacedHash, (uint8_t*)(&replacedHash + 1));
-				ps4.WriteMemory(pid, includesOffset + sizeof(UINT64) * scriptHeader->include_count, includeVal);
+				ps4.WriteMemory(pid, includesOffset + sizeof(uint64_t) * scriptHeader->include_count, includeVal);
 
 				includeVal.clear();
 
 				// correct the include count
-				UINT16 newIncludeCount = scriptHeader->include_count + 1;
+				uint16_t newIncludeCount = scriptHeader->include_count + 1;
 				includeVal.insert(includeVal.begin(), (uint8_t*)&newIncludeCount, (uint8_t*)(&newIncludeCount + 1));
 				ps4.WriteMemory(pid, targetEntry->buffer + offsetof(tool::gsc::T8GSCOBJ, include_count), includeVal);
 				std::cout << "Hook inserted into ";
@@ -293,7 +293,7 @@ namespace {
 			// GetByte 0x0889 0x01
 			// Align 0x00
 			// Return 0x0757
-			std::vector<BYTE> payload{
+			std::vector<byte> payload{
 				0x0d, 0x00,
 				0x89, 0x08, 0x01,
 				0x00,
@@ -366,7 +366,7 @@ namespace {
 			;
 
 		std::filesystem::path scriptPath = script;
-		LPVOID scriptBuffer = NULL;
+		void* scriptBuffer = NULL;
 		size_t scriptSize = 0;
 
 		if (!utils::ReadFileNotAlign(scriptPath, scriptBuffer, scriptSize, false)) {
@@ -374,8 +374,8 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		if (scriptSize >= (1ull << ((sizeof(UINT32) << 3) - 1))) {
-			std::cerr << "Size too large: " << std::hex << scriptSize << "/" << (1ull << ((sizeof(UINT32) << 3) - 1)) << "\n";
+		if (scriptSize >= (1ull << ((sizeof(uint32_t) << 3) - 1))) {
+			std::cerr << "Size too large: " << std::hex << scriptSize << "/" << (1ull << ((sizeof(uint32_t) << 3) - 1)) << "\n";
 			std::free(scriptBuffer);
 			return tool::BASIC_ERROR;
 		}
@@ -469,8 +469,8 @@ namespace {
 			auto targetScriptHeader = ps4.ReadMemory(pid, targetEntry->buffer, sizeof(tool::gsc::T937GSCOBJ));
 			auto scriptHeader = reinterpret_cast<tool::gsc::T937GSCOBJ*>(targetScriptHeader.data());
 			auto includesOffset = targetEntry->buffer + scriptHeader->includes_table;
-			auto targetScriptIncludes = ps4.ReadMemory(pid, includesOffset, sizeof(UINT64) * scriptHeader->includes_count);
-			auto includes = reinterpret_cast<UINT64*>(targetScriptIncludes.data());
+			auto targetScriptIncludes = ps4.ReadMemory(pid, includesOffset, sizeof(uint64_t) * scriptHeader->includes_count);
+			auto includes = reinterpret_cast<uint64_t*>(targetScriptIncludes.data());
 			auto includesEnd = includes + scriptHeader->includes_count;
 
 			std::cout << target << " -> " << std::hex << targetEntry->buffer << "(" << targetEntry->name << ")\n";
@@ -481,14 +481,14 @@ namespace {
 				// need to add the include
 
 				// insert the new include
-				std::vector<BYTE> includeVal{};
+				std::vector<byte> includeVal{};
 				includeVal.insert(includeVal.begin(), (uint8_t*)&replacedHash, (uint8_t*)(&replacedHash + 1));
-				ps4.WriteMemory(pid, includesOffset + sizeof(UINT64) * scriptHeader->includes_count, includeVal);
+				ps4.WriteMemory(pid, includesOffset + sizeof(uint64_t) * scriptHeader->includes_count, includeVal);
 
 				includeVal.clear();
 
 				// correct the include count
-				UINT16 newIncludeCount = scriptHeader->includes_count + 1;
+				uint16_t newIncludeCount = scriptHeader->includes_count + 1;
 				includeVal.insert(includeVal.begin(), (uint8_t*)&newIncludeCount, (uint8_t*)(&newIncludeCount + 1));
 				ps4.WriteMemory(pid, targetEntry->buffer + offsetof(tool::gsc::T937GSCOBJ, includes_count), includeVal);
 				std::cout << "Hook inserted into ";

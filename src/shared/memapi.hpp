@@ -30,7 +30,7 @@ public:
 // Process module export
 class ProcessModuleExport {
 public:
-	std::unique_ptr<CHAR[]> m_name;
+	std::unique_ptr<char[]> m_name;
 	uintptr_t m_location;
 	WORD m_ordinal = 0;
 
@@ -54,8 +54,8 @@ private:
 class ProcessModule {
 public:
 	Process& m_parent;
-	CHAR name[MAX_MODULE_NAME32 + 1] = { 0 };
-	CHAR path[MAX_PATH + 1] = { 0 };
+	char name[MAX_MODULE_NAME32 + 1] = { 0 };
+	char path[MAX_PATH + 1] = { 0 };
 	uintptr_t start = 0;
 	DWORD size = 0;
 	HANDLE handle = 0;
@@ -67,7 +67,7 @@ public:
 	 * @param ptr Pointer
 	 * @return Location in the module
 	 */
-	INT64 GetRelativeOffset(uintptr_t ptr) const;
+	int64_t GetRelativeOffset(uintptr_t ptr) const;
 	// @return if the module is invalid
 	inline bool operator!() const {
 		return handle == INVALID_HANDLE_VALUE;
@@ -151,7 +151,7 @@ public:
 	 * @param ptr Pointer
 	 * @return relative offset, can be negative if the pointer is before the module
 	 */
-	INT64 GetModuleRelativeOffset(uintptr_t ptr) const;
+	int64_t GetModuleRelativeOffset(uintptr_t ptr) const;
 	/*
 	 * Get the module of an absolute location
 	 * @param ptr Pointer

@@ -25,6 +25,15 @@ namespace tool::gsc::opcode {
 			// BLACK OPS 4 (VM 36)
 			RegisterVM(VM_T8, "Call of Duty: Black ops 4", VmFlags::VMF_OPCODE_SHORT);
 			RegisterVMPlatform(VM_T8, PLATFORM_PC);
+			RegisterVMGlobalVariable(VM_T8, "level");
+			RegisterVMGlobalVariable(VM_T8, "game");
+			RegisterVMGlobalVariable(VM_T8, "classes");
+			RegisterVMGlobalVariable(VM_T8, "mission");
+			RegisterVMGlobalVariable(VM_T8, "anim");
+			RegisterVMGlobalVariable(VM_T8, "world");
+			RegisterVMGlobalVariable(VM_T8, "sharedstructs");
+			RegisterVMGlobalVariable(VM_T8, "memory");
+
 
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown1, 0x1);
@@ -277,6 +286,14 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
 			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", VmFlags::VMF_OPCODE_SHORT);
+			RegisterVMGlobalVariable(VM_T937, "level");
+			RegisterVMGlobalVariable(VM_T937, "game");
+			RegisterVMGlobalVariable(VM_T937, "classes");
+			RegisterVMGlobalVariable(VM_T937, "mission");
+			RegisterVMGlobalVariable(VM_T937, "anim");
+			RegisterVMGlobalVariable(VM_T937, "world");
+			RegisterVMGlobalVariable(VM_T937, "sharedstructs");
+			RegisterVMGlobalVariable(VM_T937, "memory");
 
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0xa, 0xb, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
@@ -346,6 +363,14 @@ namespace tool::gsc::opcode {
 
 			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", VmFlags::VMF_OPCODE_SHORT);
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
+			RegisterVMGlobalVariable(VM_T9, "level");
+			RegisterVMGlobalVariable(VM_T9, "game");
+			RegisterVMGlobalVariable(VM_T9, "classes");
+			RegisterVMGlobalVariable(VM_T9, "mission");
+			RegisterVMGlobalVariable(VM_T9, "anim");
+			RegisterVMGlobalVariable(VM_T9, "world");
+			RegisterVMGlobalVariable(VM_T9, "sharedstructs");
+			RegisterVMGlobalVariable(VM_T9, "memory");
 
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown1, 0x1);
@@ -558,7 +583,7 @@ namespace tool::gsc::opcode {
 			// GetByte 0x067c 0x01
 			// Align 0x00
 			// Return 0xc00
-			BYTE data[] = { 0x0d, 0x00, 0x01, 0x00, 0x7c, 0x06, 0x01, 0x00, 0xc0, 0x00 };
+			byte data[] = { 0x0d, 0x00, 0x01, 0x00, 0x7c, 0x06, 0x01, 0x00, 0xc0, 0x00 };
 			
 			
 			*/
@@ -567,15 +592,18 @@ namespace tool::gsc::opcode {
 	#ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();
 	#endif
-			RegisterVM(VM_MW23, "Call of Duty Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS);
+			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
+			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel, OPCODE_IW_GetLevelRef);
+			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
+			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim, OPCODE_IW_GetAnimRef);
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
 		});
 	}
 
-	LPCCH OpCodeName(OPCode op) {
+	const char* OpCodeName(OPCode op) {
 		switch (op) {
 		case OPCODE_Undefined: return "Undefined";
 		case OPCODE_Unknown0: return "Unknown0";

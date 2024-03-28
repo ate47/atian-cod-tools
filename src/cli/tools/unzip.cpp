@@ -8,7 +8,7 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 
 	std::filesystem::path f(argv[2]);
 
-	LPVOID buff = NULL;
+	void* buff = NULL;
 	size_t size = 0;
 
 	if (!utils::ReadFileNotAlign(f, buff, size, false)) {
@@ -16,7 +16,7 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 		return tool::BASIC_ERROR;
 	}
 
-	BYTE unzippedData[5000];
+	byte unzippedData[5000];
 
 	uLongf sizef = (uLongf)size;
 	uLongf sizef2;

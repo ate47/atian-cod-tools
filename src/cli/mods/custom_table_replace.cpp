@@ -15,12 +15,12 @@ enum StringTableCellType : INT {
 
 
 struct StringTableCell {
-    BYTE value[20];
+    byte value[20];
     StringTableCellType type;
 };
 // item size ... 40
 struct StringTableEntry {
-    UINT64 name; // 8
+    uint64_t name; // 8
     int pad8; // 12
     int pad12; // 16
     int columnCount; // 20
@@ -34,10 +34,10 @@ struct StringTableEntry {
 };
 struct XAssetPoolEntry {
     uintptr_t pool;
-    UINT32 itemSize;
-    INT32 itemCount;
-    BYTE isSingleton;
-    INT32 itemAllocCount;
+    uint32_t itemSize;
+    int32_t itemCount;
+    byte isSingleton;
+    int32_t itemAllocCount;
     uintptr_t freeHead;
 };
 
@@ -74,7 +74,7 @@ static int custom_table_replace(int argc, const char* argv[]) {
     auto target3 = hash::Hash64Pattern("gamedata/loot/loot_bribes.csv");
     auto global_challenges = hash::Hash64Pattern("gamedata/stats/globalchallenges.csv");
 
-    UINT64 targetstats[] = {
+    uint64_t targetstats[] = {
         hash::Hash64Pattern("gamedata/stats/wz/statsmilestones1.csv"),
         hash::Hash64Pattern("gamedata/stats/wz/statsmilestones2.csv"),
         hash::Hash64Pattern("gamedata/stats/wz/statsmilestones3.csv"),
@@ -91,7 +91,7 @@ static int custom_table_replace(int argc, const char* argv[]) {
         hash::Hash64Pattern("gamedata/stats/zm/statsmilestones4.csv"),
         hash::Hash64Pattern("gamedata/stats/zm/statsmilestones5.csv"),
     };
-    UINT64 targetstats2[] = {
+    uint64_t targetstats2[] = {
         hash::Hash64Pattern("gamedata/tables/mp/mp_combat_training_challenges.csv"),
         hash::Hash64Pattern("gamedata/weapons/zm/zm_gunlevels.csv"),
         hash::Hash64Pattern("gamedata/weapons/mp/mp_gunlevels.csv"),
@@ -145,9 +145,9 @@ static int custom_table_replace(int argc, const char* argv[]) {
                 continue;
             }
 
-            std::cout << "old:" << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+            std::cout << "old:" << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
             cell.type = STC_TYPE_INT;
-            *reinterpret_cast<INT64*>(&(cell.value[0])) = 2147364000;
+            *reinterpret_cast<int64_t*>(&(cell.value[0])) = 2147364000;
 
             if (!proc.WriteMemory(e.values + sizeof(cell) * targetCell2, &cell, sizeof(cell))) {
                 std::cerr << "Can't write cell " << i << "\n";
@@ -158,9 +158,9 @@ static int custom_table_replace(int argc, const char* argv[]) {
                 continue;
             }
 
-            std::cout << "old:" << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+            std::cout << "old:" << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
             cell.type = STC_TYPE_INT;
-            *reinterpret_cast<INT64*>(&(cell.value[0])) = 2147364000;
+            *reinterpret_cast<int64_t*>(&(cell.value[0])) = 2147364000;
 
             if (!proc.WriteMemory(e.values + sizeof(cell) * targetCell3, &cell, sizeof(cell))) {
                 std::cerr << "Can't write cell " << i << "\n";
@@ -172,10 +172,10 @@ static int custom_table_replace(int argc, const char* argv[]) {
                 continue;
             }
 
-            std::cout << "old:" << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+            std::cout << "old:" << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
             cell.type = STC_TYPE_INT;
-            *reinterpret_cast<INT64*>(&(cell.value[0])) = 1569862900;
-            //std::cout << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+            *reinterpret_cast<int64_t*>(&(cell.value[0])) = 1569862900;
+            //std::cout << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
 
             if (!proc.WriteMemory(e.values + sizeof(cell) * targetCell1, &cell, sizeof(cell))) {
                 std::cerr << "Can't write cell " << i << "\n";
@@ -191,11 +191,11 @@ static int custom_table_replace(int argc, const char* argv[]) {
                     continue;
                 }
         
-                //std::cout << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+                //std::cout << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
                 cell3[2].type = STC_TYPE_INT;
                 cell3[3].type = STC_TYPE_INT;
-                *reinterpret_cast<INT64*>(&(cell3[1].value[0])) = 1; // cp
-                *reinterpret_cast<INT64*>(&(cell3[3].value[0])) = 1; // crates
+                *reinterpret_cast<int64_t*>(&(cell3[1].value[0])) = 1; // cp
+                *reinterpret_cast<int64_t*>(&(cell3[3].value[0])) = 1; // crates
         
         
                 if (!proc.WriteMemory(e.values + sizeof(cell) * (i * e.columnCount + 2), &cell3[0], sizeof(cell) * 4)) {
@@ -212,9 +212,9 @@ static int custom_table_replace(int argc, const char* argv[]) {
                     continue;
                 }
 
-                //std::cout << "old:" << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+                //std::cout << "old:" << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
                 cell.type = STC_TYPE_INT;
-                *reinterpret_cast<INT64*>(&(cell.value[0])) = 1;
+                *reinterpret_cast<int64_t*>(&(cell.value[0])) = 1;
 
 
                 if (!proc.WriteMemory(e.values + sizeof(cell) * (i * e.columnCount + 8), &cell, sizeof(cell))) {
@@ -231,9 +231,9 @@ static int custom_table_replace(int argc, const char* argv[]) {
                     continue;
                 }
 
-                //std::cout << "old:" << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+                //std::cout << "old:" << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
                 cell.type = STC_TYPE_INT;
-                *reinterpret_cast<INT64*>(&(cell.value[0])) = 0;
+                *reinterpret_cast<int64_t*>(&(cell.value[0])) = 0;
 
 
                 if (!proc.WriteMemory(e.values + sizeof(cell) * (i * e.columnCount + 2), &cell, sizeof(cell))) {
@@ -250,9 +250,9 @@ static int custom_table_replace(int argc, const char* argv[]) {
                     continue;
                 }
 
-                //std::cout << "old:" << cell.type << "  " << *reinterpret_cast<INT64*>(&(cell.value[0])) << "\n";
+                //std::cout << "old:" << cell.type << "  " << *reinterpret_cast<int64_t*>(&(cell.value[0])) << "\n";
                 cell.type = STC_TYPE_INT;
-                *reinterpret_cast<INT64*>(&(cell.value[0])) = 0;
+                *reinterpret_cast<int64_t*>(&(cell.value[0])) = 0;
 
 
                 if (!proc.WriteMemory(e.values + sizeof(cell) * (i * e.columnCount + 1), &cell, sizeof(cell))) {
@@ -271,13 +271,13 @@ static int custom_table_replace(int argc, const char* argv[]) {
 
                 // mp
                 cell3[0].type = STC_TYPE_INT;
-                *reinterpret_cast<INT64*>(&(cell3[0].value[0])) = 0;
+                *reinterpret_cast<int64_t*>(&(cell3[0].value[0])) = 0;
                 // zm
                 cell3[1].type = STC_TYPE_INT;
-                *reinterpret_cast<INT64*>(&(cell3[1].value[0])) = 0;
+                *reinterpret_cast<int64_t*>(&(cell3[1].value[0])) = 0;
                 // wz
                 cell3[2].type = STC_TYPE_INT;
-                *reinterpret_cast<INT64*>(&(cell3[2].value[0])) = 0;
+                *reinterpret_cast<int64_t*>(&(cell3[2].value[0])) = 0;
 
 
                 if (!proc.WriteMemory(e.values + sizeof(cell) * (i * e.columnCount + 1), &cell3[0], sizeof(cell) * 2)) {

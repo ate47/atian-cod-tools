@@ -18,7 +18,7 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		BYTE vm = (BYTE) std::strtol(argv[3], nullptr, 16);
+		byte vm = (byte) std::strtol(argv[3], nullptr, 16);
 
 		
 
@@ -38,7 +38,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		BYTE buffer[0x1004] = {};
+		byte buffer[0x1004] = {};
 		// clear buffer
 		memset(buffer, compatibility::serious::SERID_Invalid, sizeof(buffer));
 
@@ -46,7 +46,7 @@ namespace {
 		// header
 		buffer[0] = vm;
 		buffer[1] = plt - 1;
-		*reinterpret_cast<UINT16*>(&buffer[2]) = 0x1000;
+		*reinterpret_cast<uint16_t*>(&buffer[2]) = 0x1000;
 
 		std::unordered_set<SeriousId> look{};
 
@@ -60,7 +60,7 @@ namespace {
 
 		int nopCodes = 0;
 		for (size_t i = 0; i < 0x1000; i++) {
-			auto* loc = LookupOpCode(nfo->vm, plt, (UINT16)i);
+			auto* loc = LookupOpCode(nfo->vm, plt, (uint16_t)i);
 			if (loc->m_id == OPCODE_Nop) {
 				nopCodes++;
 			}
@@ -74,18 +74,18 @@ namespace {
 		int seriousIdCurr = 0;
 		int nopId = 0;
 		for (size_t i = 0; i < 0x1000; i++) {
-			auto* loc = LookupOpCode(nfo->vm, plt, (UINT16)i);
+			auto* loc = LookupOpCode(nfo->vm, plt, (uint16_t)i);
 
 			auto mappedId = ConvertTo(loc->m_id);
 
 			if (mappedId == SERID_SafeCreateLocalVariables || mappedId == SERID_CheckClearParams) {
 				// keep basic structure
-				buffer[4 + i] = (BYTE)mappedId;
+				buffer[4 + i] = (byte)mappedId;
 				continue;
 			}
 
 			if (mappedId == SERID_End) {
-				buffer[4 + i] = (BYTE)SERID_PreScriptCall;
+				buffer[4 + i] = (byte)SERID_PreScriptCall;
 				continue;
 			}
 
@@ -102,7 +102,7 @@ namespace {
 				if (mappedId == SERID_PreScriptCall) {
 					continue;
 				}
-				buffer[4 + i] = (BYTE) mappedId;
+				buffer[4 + i] = (byte) mappedId;
 				continue;
 			}
 
@@ -110,11 +110,11 @@ namespace {
 				seriousIdCurr++; // ignore this one because it is already set to the end value
 			}
 
-			buffer[4 + i] = (BYTE)seriousIdCurr++;
+			buffer[4 + i] = (byte)seriousIdCurr++;
 		}
 
 		// write mapping
-		vmfile.write(reinterpret_cast<LPCCH>(buffer), sizeof(buffer));
+		vmfile.write(reinterpret_cast<const char*>(buffer), sizeof(buffer));
 
 		vmfile.close();
 		LOG_INFO("Fake DB created into {}.", VM_CODES_DB);

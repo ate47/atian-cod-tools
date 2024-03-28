@@ -30,12 +30,12 @@ namespace inject {
 		static void InjectSystem(InjectedSystem* sys);
 		static std::vector<InjectedSystem*>& GetSystems();
 
-		LPCCH name;
+		const char* name;
 		UINT level;
 		std::function<void()> preinit;
 		std::function<void()> postinit;
 
-		inline InjectedSystem(LPCCH name, UINT level, std::function<void()> preinit = nullptr, std::function<void()> postinit = nullptr)
+		inline InjectedSystem(const char* name, UINT level, std::function<void()> preinit = nullptr, std::function<void()> postinit = nullptr)
 		: name(name), level(level), preinit(preinit), postinit(postinit) {
 			assert(name && "a system name can't be null");
 			InjectSystem(this);
@@ -48,9 +48,9 @@ namespace inject {
 	};
 
 	struct DetourRegistryData {
-		LPCCH title;
-		LPVOID pointer;
-		LPVOID detour;
+		const char* title;
+		void* pointer;
+		void* detour;
 		DetourTime time;
 	};
 
@@ -67,13 +67,13 @@ namespace inject {
 		// registry info
 		DetourRegistryData data;
 	public:
-		DetourInfo(LPCCH title, void* location, Func detour, DetourTime time = POST_INIT)
+		DetourInfo(const char* title, void* location, Func detour, DetourTime time = POST_INIT)
 			: m_pointer(reinterpret_cast<Func>(location)), m_detour(detour),
 			data(title, &m_pointer, m_detour, time) {
 			RegisterDetour(&data);
 		}
 
-		DetourInfo(LPCCH title, uintptr_t location, Func detour, DetourTime time = POST_INIT)
+		DetourInfo(const char* title, uintptr_t location, Func detour, DetourTime time = POST_INIT)
 			: m_pointer(reinterpret_cast<Func>(&(process::BasePtr()[location]))), m_detour(detour),
 			data(title, &m_pointer, m_detour, time) {
 			RegisterDetour(&data);

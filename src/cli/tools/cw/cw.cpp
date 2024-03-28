@@ -4,7 +4,7 @@
 
 char* cw::DecryptString(char* str) {
 	// for now I'm using the DLL to call the decrypt function
-	if (*reinterpret_cast<BYTE*>(str) == 0x8b) {
+	if (*reinterpret_cast<byte*>(str) == 0x8b) {
 		return str + 3; // encryption ptr
 	}
 	if ((*str & 0xC0) == 0x80) {
@@ -15,14 +15,14 @@ char* cw::DecryptString(char* str) {
 	return str;
 }
 
-BYTE* cw::DecryptRawBuffer(BYTE* buffer) {
-	BYTE* v14;
-	UINT64 v15;
-	BYTE v16;
-	UINT64 v17;
-	UINT32 v18;
-	UINT32 v19;
-	BYTE* v20 = buffer;
+byte* cw::DecryptRawBuffer(byte* buffer) {
+	byte* v14;
+	uint64_t v15;
+	byte v16;
+	uint64_t v17;
+	uint32_t v18;
+	uint32_t v19;
+	byte* v20 = buffer;
 	if (!*buffer)
 		return buffer + 1;
 	v14 = buffer + 1;
@@ -51,11 +51,11 @@ LABEL_61:
 					break;
 				case 0xAA9F41E8:
 					v19 = 0x8177CD0;
-					v16 = (BYTE)(v15 ^ (v15 >> 31));
+					v16 = (byte)(v15 ^ (v15 >> 31));
 					break;
 				case 0xB2BB2632:
 					v19 = 0x7CDF9DB0;
-					v16 = (BYTE)((v15 ^ (v15 >> 57)) & 0x11);
+					v16 = (byte)((v15 ^ (v15 >> 57)) & 0x11);
 					break;
 				}
 			}
@@ -63,7 +63,7 @@ LABEL_61:
 				switch (v18) {
 				case 0x97FA9C76:
 					v19 = 0xAEB82341;
-					v16 = (BYTE)(v15 ^ (v15 >> 31));
+					v16 = (byte)(v15 ^ (v15 >> 31));
 					break;
 				case 0x32728273u:
 					v19 = 0x96B5DC3C;
@@ -124,7 +124,7 @@ LABEL_61:
 				break;
 			case 0x7CA212u:
 				v19 = 0xC4F3A9EE;
-				v16 = (BYTE)((v15 ^ (v15 >> 31)) & 0x37);
+				v16 = (byte)((v15 ^ (v15 >> 31)) & 0x37);
 				break;
 			case 0x1518682u:
 				v17 -= 0x61C8864680B583EBi64;
@@ -157,19 +157,19 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		LPVOID buffer{};
-		SIZE_T bufferSize{};
+		void* buffer{};
+		size_t bufferSize{};
 
 		if (!utils::ReadFileNotAlign(argv[2], buffer, bufferSize, true)) {
 			std::cerr << "Can't read " << argv[2] << "\n";
 			return tool::BASIC_ERROR;
 		}
 
-		BYTE* buff = cw::DecryptRawBuffer((BYTE*)buffer);
+		byte* buff = cw::DecryptRawBuffer((byte*)buffer);
 
 		std::cout 
 			<< "Buffer:\n"
-			<< (LPCCH)buff << "\n";
+			<< (const char*)buff << "\n";
 
 		std::free(buffer);
 
@@ -189,11 +189,11 @@ namespace {
 			return s.ends_with(".gscc");
 		});
 
-		std::unordered_map<UINT32, std::vector<UINT64>> data{};
+		std::unordered_map<uint32_t, std::vector<uint64_t>> data{};
 
 		for (const auto& p : paths) {
-			LPVOID buffer{};
-			LPVOID bufferAlign{};
+			void* buffer{};
+			void* bufferAlign{};
 			size_t size{};
 			size_t sizeAlign{};
 			if (!utils::ReadFileAlign(p, buffer, bufferAlign, size, sizeAlign)) {
@@ -285,7 +285,7 @@ namespace {
 		};
 
 		struct ScriptParseTree {
-			UINT64 name;
+			uint64_t name;
 			uintptr_t unk8;
 			uintptr_t buffer; // GSC_OBJ*
 			int len;
@@ -311,7 +311,7 @@ namespace {
 
 		std::filesystem::create_directories(outdirPath);
 
-		CHAR nameBuff[MAX_PATH + 1];
+		char nameBuff[MAX_PATH + 1];
 
 		std::cout 
 			<< std::hex
@@ -350,7 +350,7 @@ namespace {
 	int ps4vtable100(Process& _, int argc, const char* argv[]) {
 		struct FuncEntry {
 			uintptr_t func;
-			std::vector<UINT16> vec{};
+			std::vector<uint16_t> vec{};
 		};
 		if (argc < 3) {
 			return tool::BAD_USAGE;
@@ -393,8 +393,8 @@ namespace {
 
 		auto bytes = ps4.ReadMemory(pid, base + 0x21104B0, sizeof(uintptr_t) * 0x1000);
 
-		std::map<UINT16, FuncEntry> map{};
-		std::map<uintptr_t, UINT16> maplookup{};
+		std::map<uint16_t, FuncEntry> map{};
+		std::map<uintptr_t, uint16_t> maplookup{};
 
 		auto* ptrs = reinterpret_cast<uintptr_t*>(&bytes[0]);
 
@@ -403,11 +403,11 @@ namespace {
 			auto& v = maplookup[ptrs[i]];
 
 			if (v == 0 || !i) {
-				v = (UINT16)i;
+				v = (uint16_t)i;
 			}
 			auto& f = map[v];
 			f.func = func - base;
-			f.vec.push_back((UINT16)i);
+			f.vec.push_back((uint16_t)i);
 		}
 
 		for (const auto& [key, v] : map) {
@@ -428,7 +428,7 @@ namespace {
 	int ps4setmode100(Process& _, int argc, const char* argv[]) {
 		struct FuncEntry {
 			uintptr_t func;
-			std::vector<UINT16> vec{};
+			std::vector<uint16_t> vec{};
 		};
 		if (argc < 4) {
 			return tool::BAD_USAGE;

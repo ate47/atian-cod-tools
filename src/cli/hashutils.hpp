@@ -8,7 +8,7 @@ namespace hashutils {
 	/*
 	 * Get hash map
 	 */
-	const std::unordered_map<UINT64, std::string>& GetMap();
+	const std::unordered_map<uint64_t, std::string>& GetMap();
 	/*
 	 * Read the default hash file
 	 */
@@ -20,7 +20,7 @@ namespace hashutils {
 	 * @param iw hash
 	 * @return collisions found (if ignoreCol = false)
 	 */
-	int LoadMap(LPCCH file, bool ignoreCol = true, bool iw = false);
+	int LoadMap(const char* file, bool ignoreCol = true, bool iw = false);
 	/*
 	 * Save the extract hashes for a future use with WriteExtracted
 	 * @param value save extracted
@@ -30,7 +30,7 @@ namespace hashutils {
 	 * Save the extract hashes
 	 * @param file file to read
 	 */
-	void WriteExtracted(LPCCH file);
+	void WriteExtracted(const char* file);
 	/*
 	 * Add a hash into the map
 	 * @param str string
@@ -38,13 +38,13 @@ namespace hashutils {
 	 * @param iw hash
 	 * @return if it collided with another string
 	 */
-	bool Add(LPCCH str, bool ignoreCol = true, bool iw = false);
+	bool Add(const char* str, bool ignoreCol = true, bool iw = false);
 	/*
 	 * Add a precomputed hash into the map
 	 * @param value hash value
 	 * @param str string
 	 */
-	void AddPrecomputed(UINT64 value, LPCCH str);
+	void AddPrecomputed(uint64_t value, const char* str);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type
@@ -53,25 +53,25 @@ namespace hashutils {
 	 * @param outSize Out size
 	 * @return if the hash was in the hash map
 	 */
-	bool Extract(LPCCH type, UINT64 hash, LPCH out, SIZE_T outSize);
+	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type
 	 * @param hash Hashed value
 	 * @return non thread-safe temporary pointer to a representation of this hash, the result is valid until the next call to ExtractTmp
 	 */
-	LPCH ExtractTmp(LPCCH type, UINT64 hash);
+	char* ExtractTmp(const char* type, uint64_t hash);
 	/*
 	 * Call ExtractTmp for a path name and apply formatting
 	 * @param type Hash type
 	 * @param hash Script hash
 	 * @return script formatted value, same condition as ExtractTmp
 	 */
-	inline LPCH ExtractTmpPath(LPCCH type, UINT64 hash) {
-		LPCH unhash = ExtractTmp(type, hash);
+	inline char* ExtractTmpPath(const char* type, uint64_t hash) {
+		char* unhash = ExtractTmp(type, hash);
 
 		// replace '/' -> '\' in script
-		for (LPCH script = unhash; *script; script++) {
+		for (char* script = unhash; *script; script++) {
 			if (*script == '/') {
 				*script = '\\';
 			}
@@ -84,7 +84,7 @@ namespace hashutils {
 	 * @param hash Script hash
 	 * @return script formatted value, same condition as ExtractTmp
 	 */
-	inline LPCH ExtractTmpScript(UINT64 hash) {
+	inline char* ExtractTmpScript(uint64_t hash) {
 		return ExtractTmpPath("script", hash);
 	}
 	/*
@@ -92,11 +92,11 @@ namespace hashutils {
 	 * @param hash Hashed value
 	 * @return String to the value or NULL if the hash isn't in the hash map
 	 */
-	const char* ExtractPtr(UINT64 hash);
+	const char* ExtractPtr(uint64_t hash);
 	/*
 	 * @return the size of the hash map
 	 */
-	SIZE_T Size();
+	size_t Size();
 
 	/*
 	 * Compute the hash32 on a string (canon id)
@@ -118,11 +118,11 @@ namespace hashutils {
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT32 Hash32Pattern(const char* str) { return hash::Hash32Pattern(str); }
+	inline uint32_t Hash32Pattern(const char* str) { return hash::Hash32Pattern(str); }
 	/*
 	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline UINT64 Hash64Pattern(const char* str) { return hash::Hash64Pattern(str); }
+	inline uint64_t Hash64Pattern(const char* str) { return hash::Hash64Pattern(str); }
 }

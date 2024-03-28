@@ -2,7 +2,7 @@
 #include <includes_shared.hpp>
 
 namespace pool {
-    enum XAssetType : BYTE{
+    enum XAssetType : byte{
         ASSET_TYPE_PHYSPRESET = 0,
         ASSET_TYPE_PHYSCONSTRAINTS = 1,
         ASSET_TYPE_DESTRUCTIBLEDEF = 2,
@@ -42,7 +42,7 @@ namespace pool {
         ASSET_TYPE_IMPACT_FX = 36,
         ASSET_TYPE_IMPACT_SOUND = 37,
         ASSET_TYPE_AITYPE = 38,
-        ASSET_TYPE_CHARACTER = 39,
+        ASSET_TYPE_charACTER = 39,
         ASSET_TYPE_XMODELALIAS = 40,
         ASSET_TYPE_RAWFILE = 41,
         ASSET_TYPE_XANIM_TREE = 42,
@@ -114,7 +114,7 @@ namespace pool {
         ASSET_TYPE_PLAYER_ROLE_TEMPLATE = 108,
         ASSET_TYPE_PLAYER_ROLE_CATEGORY_TABLE = 109,
         ASSET_TYPE_PLAYER_ROLE_CATEGORY = 110,
-        ASSET_TYPE_CHARACTER_BODY_TYPE = 111,
+        ASSET_TYPE_charACTER_BODY_TYPE = 111,
         ASSET_TYPE_PLAYER_OUTFIT = 112,
         ASSET_TYPE_GAMETYPETABLE = 113,
         ASSET_TYPE_FEATURE = 114,
@@ -133,7 +133,7 @@ namespace pool {
         ASSET_TYPE_RAGDOLL = 127,
         ASSET_TYPE_STORAGEFILE = 128,
         ASSET_TYPE_STORAGEFILELIST = 129,
-        ASSET_TYPE_CHARMIXER = 130,
+        ASSET_TYPE_charMIXER = 130,
         ASSET_TYPE_STOREPRODUCT = 131,
         ASSET_TYPE_STORECATEGORY = 132,
         ASSET_TYPE_STORECATEGORYLIST = 133,
@@ -183,7 +183,7 @@ namespace pool {
         BG_CACHE_TYPE_VEHICLE = 0x1,
         BG_CACHE_TYPE_MODEL = 0x2,
         BG_CACHE_TYPE_AITYPE = 0x3,
-        BG_CACHE_TYPE_CHARACTER = 0x4,
+        BG_CACHE_TYPE_charACTER = 0x4,
         BG_CACHE_TYPE_XMODELALIAS = 0x5,
         BG_CACHE_TYPE_WEAPON = 0x6,
         BG_CACHE_TYPE_GESTURE = 0x7,

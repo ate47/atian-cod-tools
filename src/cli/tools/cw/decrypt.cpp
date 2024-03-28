@@ -4,7 +4,7 @@
 
 namespace {
 
-	BYTE* DecryptStringCW(BYTE* str) {
+	byte* DecryptStringCW(byte* str) {
 		if ((*str & 0xC0) != 0x80u) {
 			return str;
 		}
@@ -17,9 +17,9 @@ namespace {
 
 		auto* str = reinterpret_cast<tool::gsc::T8GSCString*>(obj->magic + obj->string_offset);
 		for (size_t i = 0; i < obj->string_count; i++) {
-			BYTE* string = obj->magic + str->string;
+			byte* string = obj->magic + str->string;
 
-			BYTE type = ((*string & 0xC0) != 0x80u) ? 0 : *string;
+			byte type = ((*string & 0xC0) != 0x80u) ? 0 : *string;
 			string = DecryptStringCW(string);
 
 
@@ -34,7 +34,7 @@ namespace {
 			}
 
 			// skip addresses
-			str = reinterpret_cast<tool::gsc::T8GSCString*>(reinterpret_cast<UINT32*>(str + 1) + str->num_address);
+			str = reinterpret_cast<tool::gsc::T8GSCString*>(reinterpret_cast<uint32_t*>(str + 1) + str->num_address);
 		}
 
 
@@ -58,16 +58,16 @@ namespace {
 
 		for (const auto& file : files) {
 
-			LPVOID buffer = NULL;
+			void* buffer = NULL;
 			size_t size;
-			LPVOID bufferNoAlign = NULL;
+			void* bufferNoAlign = NULL;
 			size_t sizeNoAlign;
 			if (!utils::ReadFileAlign(file, bufferNoAlign, buffer, sizeNoAlign, size)) {
 				LOG_ERROR("Can't read file data for {}", file.string());
 				continue;
 			}
 
-			if (size < sizeof(tool::gsc::T9GSCOBJ) || *reinterpret_cast<UINT64*>(buffer) != 0x38000a0d43534780) {
+			if (size < sizeof(tool::gsc::T9GSCOBJ) || *reinterpret_cast<uint64_t*>(buffer) != 0x38000a0d43534780) {
 				std::free(bufferNoAlign);
 				continue;
 			}

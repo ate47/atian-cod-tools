@@ -1,7 +1,7 @@
 #include <dll_includes.hpp>
 
 // map used to translate the error codes
-std::unordered_map<UINT64, LPCCH> error_handler::errors = {
+std::unordered_map<uint64_t, const char*> error_handler::errors = {
 	{ 1252503459, "caller is not an entity" },
 	{ 3122940489, "caller is not an entity" },
 	{ 2116335949, "function called with too many parameters" },
@@ -95,7 +95,7 @@ std::unordered_map<UINT64, LPCCH> error_handler::errors = {
 	{ 2532286589, "error message"},
 }; 
 
-LPCCH error_handler::FindDesc(UINT64 code) {
+const char* error_handler::FindDesc(uint64_t code) {
 	auto nfo = errors.find(code);
 
 	if (nfo == errors.end()) {

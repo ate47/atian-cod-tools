@@ -11,21 +11,21 @@ namespace {
 
 	class VmDebugOption {
 	public:
-		bool m_help = false;
-		bool m_stack = false;
-		bool m_gvars = false;
-		bool m_pretty = false;
-		bool m_dumpstring = false;
-		bool m_vars = false;
-		bool m_archived = false;
-		int m_deep_struct = 0;
-		int m_deep_array = 0;
+		bool m_help{};
+		bool m_stack{};
+		bool m_gvars{};
+		bool m_pretty{};
+		bool m_dumpstring{};
+		bool m_vars{};
+		bool m_archived{};
+		int m_deep_struct{};
+		int m_deep_array{};
 
-		bool Compute(LPCCH* args, INT startIndex, INT endIndex) {
+		bool Compute(const char** args, INT startIndex, INT endIndex) {
 
 			// default values
 			for (size_t i = startIndex; i < endIndex; i++) {
-				LPCCH arg = args[i];
+				const char* arg = args[i];
 
 				if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
 					m_help = true;
@@ -87,7 +87,7 @@ namespace {
 		uintptr_t scriptValues;//ScrVarValue_t*
 
 
-		bool GetEntityRef(ScrEntityRef& ref, const Process& proc, UINT32 entId) {
+		bool GetEntityRef(ScrEntityRef& ref, const Process& proc, uint32_t entId) {
 			UnionAll32 all;
 			if (!proc.ReadMemory(&all, scriptVariablesObjectInfo2 + entId * 4, 4)) {
 				return false;
@@ -104,9 +104,9 @@ namespace {
 		tool::gsc::T8GSCExport exp;
 		tool::gsc::T8GSCOBJ obj;
 		tool::gsc::T8GSCOBJ* script;
-		BYTE* scriptData;
-		UINT32 functionRLoc;
-		UINT32 scriptRLoc;
+		byte* scriptData;
+		uint32_t functionRLoc;
+		uint32_t scriptRLoc;
 	};
 
 
@@ -115,7 +115,7 @@ namespace {
 		using namespace tool::gsc;
 
 		T8ObjFileInfo buffer[650];
-		UINT32 bufferCount = proc.ReadMemory<UINT32>(proc[offset::gObjFileInfoCount] + sizeof(bufferCount) * inst);
+		uint32_t bufferCount = proc.ReadMemory<uint32_t>(proc[offset::gObjFileInfoCount] + sizeof(bufferCount) * inst);
 
 		if (!bufferCount || !proc.ReadMemory(&buffer[0], proc[offset::gObjFileInfo] + (inst * (sizeof(*buffer) * 650)), sizeof(*buffer) * 650)) {
 			std::cerr << "Can't read linked data " << bufferCount << "\n";
@@ -150,8 +150,8 @@ namespace {
 			return false; // not a good location?
 		}
 
-		info.scriptData = (BYTE*) std::malloc((size_t) info.obj.script_size + 0xF);
-		info.script = reinterpret_cast<T8GSCOBJ*>(utils::Aligned<UINT64>(info.scriptData));
+		info.scriptData = (byte*) std::malloc((size_t) info.obj.script_size + 0xF);
+		info.script = reinterpret_cast<T8GSCOBJ*>(utils::Aligned<uint64_t>(info.scriptData));
 
 		if (!info.script || !proc.ReadMemory(info.script, candidate, info.obj.script_size)) {
 			std::cerr << "Can't read GSC file at " << std::hex << candidate << "\n";
@@ -174,7 +174,7 @@ namespace {
 		}
 
 		info.exp = exports[exploc];
-		info.scriptRLoc = (UINT32)(loc - candidate);
+		info.scriptRLoc = (uint32_t)(loc - candidate);
 		info.functionRLoc = info.scriptRLoc - info.exp.address;
 
 		// we keep the script if asked
@@ -189,7 +189,7 @@ namespace {
 
 	std::ostream& GetScrVarInfo(std::ostream& out, int inst, const Process& proc, ScrVar& var, scrVarGlob& glob, const VmDebugOption& opt, int deep = 0);
 
-	std::ostream& GetScrVarInfoPtr(std::ostream& out, int inst, const Process& proc, ScrVar& ptrvar, UINT32 valId, scrVarGlob& glob, const VmDebugOption& opt, int deep = 0) {
+	std::ostream& GetScrVarInfoPtr(std::ostream& out, int inst, const Process& proc, ScrVar& ptrvar, uint32_t valId, scrVarGlob& glob, const VmDebugOption& opt, int deep = 0) {
 		switch (ptrvar.type) {
 		case TYPE_SHARED_STRUCT:
 		case TYPE_ENTITY:
@@ -216,7 +216,7 @@ namespace {
 			}
 			ScrVarObjectInfo1 info;
 			ScrVarRef ref;
-			UINT32 refLoc = ptrvar.value.ui;
+			uint32_t refLoc = ptrvar.value.ui;
 			if (!proc.ReadMemory(&info, glob.scriptVariablesObjectInfo1 + sizeof(ScrVarObjectInfo1) * valId, sizeof(ScrVarObjectInfo1))) {
 				out << "error_struct1:" << valId;
 			}
@@ -296,17 +296,17 @@ namespace {
 			break;
 		case TYPE_STRING:
 		{
-			static CHAR str_read[0x2001];
-			auto strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (UINT32)(0x14 * var.value.i);
-			if (!proc.ReadMemory<INT16>(strptr) || proc.ReadMemory<BYTE>(strptr + 3) != 7) {
-				out << "badstring0:" << (int) proc.ReadMemory<BYTE>(strptr + 3);
+			static char str_read[0x2001];
+			auto strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (uint32_t)(0x14 * var.value.i);
+			if (!proc.ReadMemory<int16_t>(strptr) || proc.ReadMemory<byte>(strptr + 3) != 7) {
+				out << "badstring0:" << (int) proc.ReadMemory<byte>(strptr + 3);
 			}
 			else if (!strptr || proc.ReadString(str_read, strptr + 0x10, 0x2001) < 0) {
 				out << "badstring1:" << (strptr + 0x10);
 			}
 			else {
-				auto flag = proc.ReadMemory<CHAR>(strptr + 2);
-				LPCCH strDec;
+				auto flag = proc.ReadMemory<char>(strptr + 2);
+				const char* strDec;
 				if ((flag & 0x40) || flag >= 0) {
 					// not encrypted
 					strDec = str_read;
@@ -420,10 +420,10 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		BYTE vmError = proc.ReadMemory<BYTE>(offset::scrVmError);
+		byte vmError = proc.ReadMemory<byte>(offset::scrVmError);
 	
 		if (vmError) {
-			UINT32 vmErrorCode = proc.ReadMemory<UINT32>(offset::scrVmErrorCode);
+			uint32_t vmErrorCode = proc.ReadMemory<uint32_t>(offset::scrVmErrorCode);
 
 			std::cout
 				<< "VM error: " << std::dec << vmErrorCode << " (0x" << std::hex << vmErrorCode << "): ";
@@ -537,20 +537,20 @@ namespace {
 						<< " (" << info.exp.address << "+" << info.functionRLoc << ") "
 						<< "\n";
 
-					BYTE* bytecodeStart = utils::Aligned<UINT16>(&info.script->magic[info.exp.address]);
+					byte* bytecodeStart = utils::Aligned<uint16_t>(&info.script->magic[info.exp.address]);
 
-					UINT16 opcodeVal = *reinterpret_cast<UINT16*>(bytecodeStart);
+					uint16_t opcodeVal = *reinterpret_cast<uint16_t*>(bytecodeStart);
 					auto opcode = tool::gsc::opcode::LookupOpCode(info.obj.GetVm(), tool::gsc::opcode::PLATFORM_PC, opcodeVal);
 
 					// dump local variables (if any)
 					if (opt.m_vars && opcode && opcode->m_id == tool::gsc::opcode::OPCODE_SafeCreateLocalVariables) {
-						BYTE lvars = *(bytecodeStart += 2);
+						byte lvars = *(bytecodeStart += 2);
 						std::cout << "+-+-- vars (" << std::dec << (int) lvars << ")\n";
 						bytecodeStart++;
 						ScrVar localvarvalue;
 						for (size_t i = 0; i < lvars; i++) {
-							bytecodeStart = utils::Aligned<UINT32>(bytecodeStart);
-							UINT32 varname = *reinterpret_cast<UINT32*>(bytecodeStart);
+							bytecodeStart = utils::Aligned<uint32_t>(bytecodeStart);
+							uint32_t varname = *reinterpret_cast<uint32_t*>(bytecodeStart);
 							bytecodeStart += 5; // name + flags
 
 							if (opt.m_stack) {
@@ -563,7 +563,7 @@ namespace {
 							std::cout << " +- " << hashutils::ExtractTmp("var", varname) << " = " << std::flush;
 
 							//parentID = scrVmPub[inst].localVars[-*localvar_id],
-							UINT32 id = proc.ReadMemory<UINT32>(vm.localVars - sizeof(UINT32) * (lvars - i - 1 + localvarshift));
+							uint32_t id = proc.ReadMemory<uint32_t>(vm.localVars - sizeof(uint32_t) * (lvars - i - 1 + localvarshift));
 							if (!id) {
 								std::cout << "Error reading field id\n";
 								continue;
@@ -621,7 +621,7 @@ namespace {
 			size_t loaded{};
 			LOG_DEBUG("Reading scripts {}", scriptinstance::Name(inst));
 			auto buffer = std::make_unique<tool::dump::T8ObjFileInfo[]>(650);
-			uint32_t bufferCount = proc.ReadMemory<UINT32>(proc[offset::gObjFileInfoCount] + sizeof(bufferCount) * inst);
+			uint32_t bufferCount = proc.ReadMemory<uint32_t>(proc[offset::gObjFileInfoCount] + sizeof(bufferCount) * inst);
 
 			if (!bufferCount) {
 				continue; // not loaded?

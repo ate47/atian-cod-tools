@@ -4,6 +4,7 @@
 #include <actslib/crc.hpp>
 #include <actslib/hdt.hpp>
 #include <actslib/data/compact.hpp>
+#include <actslib/data/deltafile.hpp>
 #include <actslib/data/iterator.hpp>
 #include <actslib/data/kmerger.hpp>
 #include <actslib/rdf/raio.hpp>
@@ -368,6 +369,71 @@ namespace {
 					LOG_INFO("{} = {}", i, seq[i]);
 				}
 			}
+		}
+		else if (!_strcmpi(type, "df")) {
+			if (argc < 4) {
+				LOG_ERROR("{} {} {} file", argv[0], argv[1], argv[2]);
+				return tool::BAD_USAGE;
+			}
+
+			std::stringstream sh{ std::stringstream::binary | std::stringstream::out };
+			sh.write(data::deltafile::DF_MAGIC, sizeof(data::deltafile::DF_MAGIC) - 1);
+			io::WriteInt64(sh, 3); // count
+			io::WriteInt64(sh, 0); // start
+			io::WriteInt64(sh, 0xFFFFFFFFFFFFFFFull); // end
+			io::WriteUInt8(sh, data::deltafile::FLAVOR_SIMPLE); // flavor
+			io::WriteUInt8(sh, 0);
+			io::WriteUInt8(sh, 0);
+			io::WriteUInt8(sh, 0); // __pad[3]
+
+
+			std::string headerStr = sh.str();
+			crc::CRC8 crc{};
+
+			crc.Update(headerStr.data(), 0, headerStr.length());
+
+			std::ofstream out{ argv[3], std::ios::binary };
+
+			if (!out) {
+				LOG_ERROR("Can't open {}", argv[3]);
+				return tool::BASIC_ERROR;
+			}
+
+			ToClose tc{ out };
+
+			out.write(headerStr.data(), headerStr.length());
+			crc.WriteCRC(out);
+			LOG_INFO("write {}", headerStr.length());
+
+			std::stringstream ss{ std::stringstream::binary | std::stringstream::out };
+
+
+			auto EncodeObj = [&ss](const char* name, const char* data) {
+				size_t nameLen = strlen(name);
+				io::EncodeVByte(ss, nameLen);
+				ss.write(name, nameLen);
+
+				size_t dataLen = strlen(data);
+				io::EncodeVByte(ss, dataLen);
+				ss.write(data, dataLen);
+			};
+
+			EncodeObj("test1.nt", "<http://atesab.fr/#ate> <http://atesab.fr/#name> \"Antoine\" .");
+			EncodeObj("test2.nt", "");
+			EncodeObj("test3.ttl", "PREFIX as: <http://atesab.fr/#>");
+
+			std::string str = ss.str();
+			crc::CRC32 crc32{};
+			crc32.Update(str.data(), 0, str.length());
+
+			LOG_INFO("write {}", str.length());
+			out.write(str.data(), str.length());
+			crc32.WriteCRC(out);
+
+			LOG_INFO("Created {}", argv[3]);
+		}
+		else if (!_strcmpi(type, "dfr")) {
+
 		}
 		else {
 			LOG_ERROR("Unknown tool");
