@@ -233,13 +233,13 @@ namespace {
 
 		std::filesystem::path file{ argv[2] };
 
-		std::cout << "decrypting " << file.string() << "\n";
+		LOG_INFO("decrypting {}", file.string());
 
 		void* bufferPtr{};
 		size_t size{};
 
 		if (!utils::ReadFileNotAlign(file, bufferPtr, size)) {
-			std::cerr << "can't read file.\n";
+			LOG_ERROR("can't read {}", file.string());
 			return tool::BASIC_ERROR;
 		}
 
@@ -249,13 +249,13 @@ namespace {
 
 		auto f = file.parent_path() / std::format("decrypt_{}.csv", file.filename().string());
 
-		std::cout << "into " << f.string() << "\n";
+		LOG_INFO("info {}", f.string());
 
 		std::ofstream os{ f };
 
 		if (!os) {
 			std::free(bufferPtr);
-			std::cerr << "can't write decrypt file.\n";
+			LOG_ERROR("can't write decrypt file.");
 			return tool::BASIC_ERROR;
 		}
 		hashutils::ReadDefaultFile();
@@ -283,29 +283,33 @@ namespace {
 	int hash23(Process& _, int argc, const char* argv[]) {
 		for (size_t i = 2; i < argc; i++) {
 
-			std::cout << "--- " << argv[i] << "\n";
+			LOG_INFO("--- {}", argv[i]);
 
 			// cg_fovscale 0x682A9BC40F96CA4A
 
-			uint64_t methods[20][2] = {
-				{ 0xcbf29ce484222325LL, 0x100000001b3 },
-				{ 0x47F5817A5EF961BALL, 0x100000001b3 },
-				{ 0x79D6530B0BB9B5D1LL, 0x10000000233 },
-				{ 0x1429C8E20321BBCD, 0x10000000233 },
-				{ 0x7D31DB2080103883, 0x10000000233 },
+			struct FNVVal {
+				uint64_t start{};
+				uint64_t iv{};
+				const char* name{};
+			};
+
+			FNVVal methods[20] = {
+				{ 0xcbf29ce484222325LL, 0x100000001b3, "fnv1a"},
+				{ 0x47F5817A5EF961BALL, 0x100000001b3, "assets"},
+				{ 0x79D6530B0BB9B5D1LL, 0x10000000233, "fields"},
+				//{ 0x1429C8E20321BBCD, 0x10000000233 },
+				//{ 0x7D31DB2080103883, 0x10000000233 },
 				
 			};
 
-			for (size_t j = 0; j < sizeof(methods) / sizeof(methods[0]); j++) {
-				if (!methods[j][0]) {
+			for (const auto& method : methods) {
+				if (!method.start) {
 					continue;
 				}
-				std::cout
-					<< std::hex
-					<< methods[j][0] << "/" << methods[j][1] << " -> "
-					<< hashutils::Hash64(argv[i], methods[j][0], methods[j][1])
-					<< "\n";
 
+				LOG_INFO("{:x}/{:x} -> {:x} ({})", 
+					method.start, method.iv, hashutils::Hash64A(argv[i], method.start, method.iv), method.name ? method.name : "???"
+				);
 			}
 
 		}

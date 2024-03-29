@@ -22,7 +22,7 @@ namespace hash {
 	 * @param start Start value, can be a previous hash to concatenate hashes
 	 * @return Hashed value
 	 */
-	constexpr uint64_t Hash64(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+	constexpr uint64_t Hash64A(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
 		uint64_t hash = start;
 
 		for (const char* data = str; *data; data++) {
@@ -41,8 +41,19 @@ namespace hash {
 			hash *= iv;
 		}
 
-		return hash & 0x7FFFFFFFFFFFFFFF;
+		return hash;
 	}
+
+	/*
+	 * Compute the hash64 on a string (fnva1), path are unformatted. Remove high bit
+	 * @param str String to compute
+	 * @param start Start value, can be a previous hash to concatenate hashes
+	 * @return Hashed value
+	 */
+	constexpr uint64_t Hash64(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+		return Hash64A(str, start, iv) & 0x7FFFFFFFFFFFFFFF;
+	}
+
 	/*
 	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
 	 * @param str String to compute
