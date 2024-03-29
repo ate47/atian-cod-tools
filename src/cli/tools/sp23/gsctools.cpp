@@ -1,4 +1,4 @@
-#include "gsctools.hpp"
+#include "../../../mw23-dll/gsctools.hpp"
 #include <includes.hpp>
 
 namespace {

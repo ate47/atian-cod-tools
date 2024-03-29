@@ -159,11 +159,11 @@ namespace mwiii::gsc {
             return gscobj && gscobj->GetMagic() == GSC_MAGIC;
         }
 
-        const GscObj23* operator->() {
+        inline const GscObj23* operator->() {
             return gscobj;
         }
 
-        const GscObj23& operator*() {
+        inline const GscObj23& operator*() {
             return *gscobj;
         }
 
