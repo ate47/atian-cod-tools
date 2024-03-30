@@ -890,8 +890,9 @@ public:
 	const char* m_operatorName;
 	ASMContextNode* m_self;
 	ASMContextNode* m_operand;
-	ASMContextNodeFunctionOperator(const char* operatorName, ASMContextNode* self, ASMContextNode* operand, ASMContextNodeType type = TYPE_STATEMENT) :
-		ASMContextNode(PRIORITY_VALUE, type), m_operatorName(operatorName), m_self(self), m_operand(operand) {
+	bool m_isBoolVal;
+	ASMContextNodeFunctionOperator(const char* operatorName, ASMContextNode* self, ASMContextNode* operand, ASMContextNodeType type = TYPE_STATEMENT, bool isBoolVal = false) :
+		ASMContextNode(PRIORITY_VALUE, type), m_operatorName(operatorName), m_self(self), m_operand(operand), m_isBoolVal(isBoolVal) {
 		assert(operand);
 	}
 	~ASMContextNodeFunctionOperator() {
@@ -902,7 +903,15 @@ public:
 	}
 
 	ASMContextNode* Clone() const override {
-		return new ASMContextNodeFunctionOperator(m_operatorName, m_self ? m_self->Clone() : nullptr, m_operand->Clone(), m_type);
+		return new ASMContextNodeFunctionOperator(m_operatorName, m_self ? m_self->Clone() : nullptr, m_operand->Clone(), m_type, m_isBoolVal);
+	}
+
+	ASMContextNode* ConvertToBool() override {
+		return m_isBoolVal ? this : nullptr;
+	}
+
+	bool IsBoolConvertable(bool strict) override {
+		return m_isBoolVal;
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -3550,7 +3559,7 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeFunctionOperator("isdefined", nullptr, new ASMContextNodeIdentifier(name), TYPE_FUNC_IS_DEFINED));
+			context.PushASMCNode(new ASMContextNodeFunctionOperator("isdefined", nullptr, new ASMContextNodeIdentifier(name), TYPE_FUNC_IS_DEFINED, true));
 		}
 
 		return 0;
@@ -4131,15 +4140,16 @@ class OPCodeInfoFunctionOperator : public OPCodeInfo {
 	bool m_hasSelf;
 	bool m_complete;
 	bool m_canHaveArg2;
+	bool m_isBool;
 public:
-	OPCodeInfoFunctionOperator(OPCode id, const char* name, const char* operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false) : OPCodeInfo(id, name),
-		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2) {
+	OPCodeInfoFunctionOperator(OPCode id, const char* name, const char* operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false, bool isBool = false) : OPCodeInfo(id, name),
+		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2), m_isBool(isBool) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_operatorName, m_hasSelf);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_operatorName, m_hasSelf, TYPE_STATEMENT, m_isBool);
 			if (m_hasSelf) {
 				node->AddParam(context.PopASMCNode());
 			}
@@ -5431,14 +5441,15 @@ class OPCodeInfoSingleFunc : public OPCodeInfo {
 public:
 	const char* m_op;
 	bool m_pushReturn;
-	OPCodeInfoSingleFunc(OPCode id, const char* name, const char* op, bool pushReturn) : OPCodeInfo(id, name), m_op(op), m_pushReturn(pushReturn) {
+	bool m_isBoolVal;
+	OPCodeInfoSingleFunc(OPCode id, const char* name, const char* op, bool pushReturn, bool isBoolVal = false) : OPCodeInfo(id, name), m_op(op), m_pushReturn(pushReturn), m_isBoolVal(isBoolVal) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "\n";
 
 		if (context.m_runDecompiler) {
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, false);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, false, TYPE_STATEMENT, m_isBoolVal);
 
 			// param
 			node->AddParam(context.PopASMCNode());
@@ -5794,7 +5805,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait, "Wait", "wait"));
 		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_WaitFrame, "WaitFrame", "waitframe"));
 		RegisterOpCodeHandler(new OPCodeInfoNotify(OPCODE_Notify, "Notify"));
-		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined", false, false));
+		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined", false, false, false, true));
 
 		// PRECODEPOS/CODEPOS on stack
 		RegisterOpCodeHandler(new OPCodeInfoNopStmt(OPCODE_ClearParams, "ClearParams"));
@@ -5878,7 +5889,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinMethod, "GetBuiltinMethod", 2));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleEndon, "Endon", "endon", false));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true));
-		RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true));
+		RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true, true));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "GetLevel", GGGT_PUSH, "level"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelRef, "GetLevelRef", GGGT_GLOBAL, "level"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGame, "GetGame", GGGT_PUSH, "game"));

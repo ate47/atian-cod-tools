@@ -2471,7 +2471,12 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     gRosettaOutput = opt.m_rosetta;
     gDumpStrings = opt.m_dump_strings;
 
-    hashutils::SaveExtracted(opt.m_dump_hashmap != nullptr);
+
+    const char* globalHM = actscli::options().dumpHashmap;
+    if (!globalHM) {
+        // keep the option for backward compatibility
+        hashutils::SaveExtracted(opt.m_dump_hashmap != nullptr);
+    }
     bool computed{};
     int ret{ tool::OK };
     for (const auto& file : opt.m_inputFiles) {
@@ -2480,7 +2485,9 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
             ret = lret;
         }
     }
-    hashutils::WriteExtracted(opt.m_dump_hashmap);
+    if (!globalHM) {
+        hashutils::WriteExtracted(opt.m_dump_hashmap);
+    }
 
     if (gDumpStrings) {
         std::ofstream os{ gDumpStrings };
