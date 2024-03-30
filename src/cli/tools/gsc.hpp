@@ -233,6 +233,8 @@ namespace tool::gsc {
 
         class ASMContextLocationOp{
         public:
+            const char* type;
+            ASMContextLocationOp(const char* type) : type(type) {}
             virtual ~ASMContextLocationOp();
             virtual void Run(ASMContext& context, T8GSCOBJContext& objctx) const;
         };

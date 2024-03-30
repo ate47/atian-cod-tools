@@ -1029,6 +1029,40 @@ public:
 	}
 };
 
+namespace {
+	bool IsJumpConditionForceReversed(const ASMContextNodeJumpOperator* op) {
+		return op->m_type == TYPE_JUMP_ONFALSE || op->m_type == TYPE_JUMP_ONFALSEEXPR;
+	}
+	ASMContextNode* JumpCondition(ASMContextNodeJumpOperator* op, bool reversed) {
+		switch (op->m_type) {
+		case TYPE_JUMP_GREATERTHAN:
+		case TYPE_JUMP_LOWERTHAN:
+		{
+			auto* clo = static_cast<ASMContextNodeOp2*>(op->m_operand->Clone());
+			if (reversed) {
+				clo->m_description = op->m_type == TYPE_JUMP_GREATERTHAN ? "<" : ">";
+			}
+			return clo;
+		}
+		case TYPE_JUMP_ONTRUE:
+		case TYPE_JUMP_ONTRUEEXPR:
+			if (reversed) {
+				return new ASMContextNodeOp1("!", true, op->m_operand->Clone(), TYPE_UNDEFINED, true);
+			}
+			return op->m_operand->Clone();
+
+		case TYPE_JUMP_ONFALSE:
+		case TYPE_JUMP_ONFALSEEXPR:
+			if (reversed) {
+				return op->m_operand->Clone();
+			}
+			return new ASMContextNodeOp1("!", true, op->m_operand->Clone(), TYPE_UNDEFINED, true);
+		default:
+			return nullptr;
+		}
+	}
+}
+
 class ASMContextNodeLeftRightOperator : public ASMContextNode {
 public:
 	const char* m_operatorName;
@@ -1654,7 +1688,7 @@ private:
 	const char* m_description;
 public:
 	ASMContextLocationOpOp(ASMContextNode* node, const char* description, ASMContextNodePriority priority) :
-		ASMContextLocationOp(), m_node(node), m_description(description), m_priority(priority) {
+		ASMContextLocationOp(description), m_node(node), m_description(description), m_priority(priority) {
 	}
 	~ASMContextLocationOpOp() {
 		if (m_node) {
@@ -1670,9 +1704,10 @@ class ASMContextLocationOpCompleteTernary : public ASMContextLocationOp {
 private:
 	ASMContextNode* m_operand1;
 	ASMContextNode* m_operand2;
+	bool m_reverse;
 public:
-	ASMContextLocationOpCompleteTernary(ASMContextNode* operand1, ASMContextNode* operand2) :
-		ASMContextLocationOp(), m_operand1(operand1), m_operand2(operand2) {
+	ASMContextLocationOpCompleteTernary(ASMContextNode* operand1, ASMContextNode* operand2, bool reverse) :
+		ASMContextLocationOp("?:"), m_operand1(operand1), m_operand2(operand2), m_reverse(reverse) {
 		assert(operand1);
 		assert(operand2);
 	}
@@ -1682,7 +1717,12 @@ public:
 	}
 	void Run(ASMContext& context, tool::gsc::T8GSCOBJContext& objctx)  const override {
 		auto* operand3 = context.PopASMCNode();
-		context.PushASMCNode(new ASMContextNodeTernary(m_operand1->Clone(), m_operand2->Clone(), operand3));
+		if (m_reverse) {
+			context.PushASMCNode(new ASMContextNodeTernary(m_operand1->Clone(), operand3, m_operand2->Clone()));
+		}
+		else {
+			context.PushASMCNode(new ASMContextNodeTernary(m_operand1->Clone(), m_operand2->Clone(), operand3));
+		}
 	}
 };
 
@@ -2383,10 +2423,12 @@ public:
 									// bad top, no data
 									//node = new ASMContextNodeValue<ASMContextNode*>(top, TYPE_JUMP_STACK_TOP);
 									// we can remove the jump node, we won't need it
-									LOG_TRACE("set jump last loc {:x} top was {}", last.location->rloc, *top);
+									//LOG_TRACE("set jump last loc {:x} top was {}", last.location->rloc, *top);
 									context.m_lastOpCodeBase = last.location->rloc;
 									context.m_funcBlock.m_statements.pop_back();
-									locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(ASMCNodeConvertToBool(jumpNode->m_operand), top));
+									// unlike in bo, the ternary operator in mw seems to use both JumpOnFalse and JumpOnTrue, so we have to look at the operator
+									// I decided to avoid using ! so the result is prettier (imo)
+									locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(ASMCNodeConvertToBool(jumpNode->m_operand), top, !IsJumpConditionForceReversed(jumpNode)));
 									jumpNode->m_operand = nullptr;
 									delete jumpNode;
 									inject = false;
@@ -6567,35 +6609,6 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 	}
 
 	return 0;
-}
-
-ASMContextNode* JumpCondition(ASMContextNodeJumpOperator* op, bool reversed) {
-	switch (op->m_type) {
-	case TYPE_JUMP_GREATERTHAN:
-	case TYPE_JUMP_LOWERTHAN:
-	{
-		auto* clo = static_cast<ASMContextNodeOp2*>(op->m_operand->Clone());
-		if (reversed) {
-			clo->m_description = op->m_type == TYPE_JUMP_GREATERTHAN ? "<" : ">";
-		}
-		return clo;
-	}
-	case TYPE_JUMP_ONTRUE:
-	case TYPE_JUMP_ONTRUEEXPR:
-		if (reversed) {
-			return new ASMContextNodeOp1("!", true, op->m_operand->Clone(), TYPE_UNDEFINED, true);
-		}
-		return op->m_operand->Clone();
-
-	case TYPE_JUMP_ONFALSE:
-	case TYPE_JUMP_ONFALSEEXPR:
-		if (reversed) {
-			return op->m_operand->Clone();
-		}
-		return new ASMContextNodeOp1("!", true, op->m_operand->Clone(), TYPE_UNDEFINED, true);
-	default:
-		return nullptr;
-	}
 }
 
 void ApplySubStatement(ASMContextStatement& stmt, ASMContext& ctx, std::function<void(ASMContextStatement& stmt)> func) {

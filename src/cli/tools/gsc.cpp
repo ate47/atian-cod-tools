@@ -1932,10 +1932,47 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
             if (ctx.m_lastOpCodeBase == -1) {
                 ctx.m_lastOpCodeBase = loc.rloc;
             }
+            // print the stack and the fields
+            auto printStack = [&ctx, &out, &loc](const char* type) {
+                if (ctx.m_opt.m_dcomp && ctx.m_opt.m_display_stack) {
+                    out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ":"
+                        << std::setfill(' ') << std::setw(5) << std::left << " " << std::right
+                        << std::setfill(' ') << std::setw(32) << std::left << type << std::right
+                        << "stack(" << std::dec << ctx.m_stack.size() << "): "
+                        << std::flush;
+
+                    for (const auto* node : ctx.m_stack) {
+                        out << "<" << *node << "> ";
+                    }
+                    out << std::endl;
+                    out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ":"
+                        << std::setfill(' ') << std::setw(32) << std::left << " " << std::right
+                        << "fieldid: <";
+                    if (ctx.m_fieldId) {
+                        out << *ctx.m_fieldId;
+                    }
+                    else {
+                        out << "none";
+                    }
+                    out << "> objectid: <";
+                    if (ctx.m_objectId) {
+                        out << *ctx.m_objectId;
+                    }
+                    else {
+                        out << "none";
+                    }
+                    out << ">"
+                        << std::flush;
+
+                    out << std::endl;
+                }
+
+            };
 
             // compute the late operations (OR|AND)
             for (const auto& lateop : loc.m_lateop) {
                 lateop->Run(ctx, objctx);
+                printStack(lateop->type);
             }
 
             uint16_t opCode;
@@ -1983,38 +2020,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
             if (ret) {
                 break;
             }
-
-            if (ctx.m_opt.m_dcomp && ctx.m_opt.m_display_stack) {
-                out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ":"
-                    << std::setfill(' ') << std::setw(32) << std::left << " " << std::right
-                    << "stack(" << std::dec << ctx.m_stack.size() << "): " 
-                    << std::flush;
-
-                for (const auto* node : ctx.m_stack) {
-                    out << "<" << *node << "> ";
-                }
-                out << std::endl;
-                out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ":"
-                    << std::setfill(' ') << std::setw(32) << std::left << " " << std::right
-                    << "fieldid: <";
-                if (ctx.m_fieldId) {
-                    out << *ctx.m_fieldId;
-                }
-                else {
-                    out << "none";
-                }
-                out << "> objectid: <";
-                if (ctx.m_objectId) {
-                    out << *ctx.m_objectId;
-                }
-                else {
-                    out << "none";
-                }
-                out << ">"
-                    << std::flush;
-
-                out << std::endl;
-            }
+            printStack("endop");
         }
     }
     // no more location, we can assume the final size
