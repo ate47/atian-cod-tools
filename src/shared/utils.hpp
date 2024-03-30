@@ -48,7 +48,15 @@ namespace utils {
 	 * @return if the file was written
 	 */
 	bool WriteFile(const std::filesystem::path& path, const void* ptr, size_t size);
-
+	/*
+	 * write a buffer into a file
+	 * @param path file path
+	 * @param str buffer
+	 * @return if the file was written
+	 */
+	inline bool WriteFile(const std::filesystem::path& path, const std::string& str) {
+		return WriteFile(path, str.data(), str.size());
+	}
 	/*
 	 * Align a pointer
 	 * @param Type type to align

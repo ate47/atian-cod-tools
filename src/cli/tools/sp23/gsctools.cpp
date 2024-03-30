@@ -23,7 +23,14 @@ namespace {
 			tool.NullFunction(tool.FindFunction("ob", 0x36474fc103a73cce));
 		}
 
+		std::filesystem::path out{ utils::va("%s.up.gscc", argv[2]) };
 
+		if (!utils::WriteFile(out, buff)) {
+			LOG_ERROR("Can't write gsc file back");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Write into {}", out.string());
 
 		return tool::OK;
 	}
