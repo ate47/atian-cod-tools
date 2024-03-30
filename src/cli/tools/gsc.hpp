@@ -223,6 +223,8 @@ namespace tool::gsc {
             virtual void Dump(std::ostream& out, DecompContext& ctx) const;
             virtual ASMContextNode* Clone() const;
             virtual ASMContextNode* ConvertToBool();
+            virtual int64_t GetIntConst() const;
+            virtual bool IsIntConst() const;
             virtual bool IsBoolConvertable(bool strict);
 
             virtual void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx);

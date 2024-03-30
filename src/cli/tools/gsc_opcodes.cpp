@@ -108,20 +108,6 @@ void ASMContextLocationOp::Run(ASMContext& context, T8GSCOBJContext& objctx) con
 	assert(0);
 }
 
-ASMContextNode::ASMContextNode(ASMContextNodePriority priority, ASMContextNodeType type) : m_priority(priority), m_type(type) {
-}
-
-ASMContextNode::~ASMContextNode() {
-}
-
-ASMContextNode* ASMContextNode::ConvertToBool() {
-	return nullptr;
-}
-
-bool ASMContextNode::IsBoolConvertable(bool strict) {
-	return false;
-}
-
 std::ostream& tool::gsc::opcode::operator<<(std::ostream& os, const ASMContextNode& obj) {
 	// fake decomp context
 	DecompContext ctx{ 0, 0, {} };
@@ -180,8 +166,9 @@ public:
 	Type m_value;
 	bool m_hex;
 	bool m_canBeCastToBool;
-	ASMContextNodeValue(Type value, ASMContextNodeType type = TYPE_UNDEFINED, bool hex = false, bool canBeCastToBool = false) 
-		: ASMContextNode(PRIORITY_VALUE, type), m_value(value), m_hex(hex), m_canBeCastToBool(canBeCastToBool) {
+	bool m_isIntConst;
+	ASMContextNodeValue(Type value, ASMContextNodeType type = TYPE_UNDEFINED, bool hex = false, bool canBeCastToBool = false, bool isIntConst = false)
+		: ASMContextNode(PRIORITY_VALUE, type), m_value(value), m_hex(hex), m_canBeCastToBool(canBeCastToBool), m_isIntConst(isIntConst) {
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -213,9 +200,16 @@ public:
 
 		return m_canBeCastToBool && (!m_value || m_value == (Type)(1));
 	}
+	bool IsIntConst() const override {
+		return m_isIntConst;
+	}
+
+	int64_t GetIntConst() const override {
+		return (int64_t)m_value;
+	}
 
 	ASMContextNode* Clone() const override {
-		return new ASMContextNodeValue<Type>(m_value, m_type, m_hex, m_canBeCastToBool);
+		return new ASMContextNodeValue<Type>(m_value, m_type, m_hex, m_canBeCastToBool, m_isIntConst);
 	}
 };
 
@@ -462,7 +456,14 @@ public:
 		for (size_t i = 0; i < m_operands.size(); i++) {
 			if (i) out << ", ";
 
-			m_operands[i]->Dump(out, ctx);
+			auto& item = m_operands[i];
+			if (item->m_key->IsIntConst() && item->m_key->GetIntConst() == i) {
+				// we can omit this key because it matches the index
+				item->m_value->Dump(out, ctx);
+			}
+			else {
+				m_operands[i]->Dump(out, ctx);
+			}
 		}
 
 		out << "]";
@@ -1613,6 +1614,36 @@ public:
 		}
 	}
 };
+
+
+ASMContextNode::ASMContextNode(ASMContextNodePriority priority, ASMContextNodeType type) : m_priority(priority), m_type(type) {
+}
+
+ASMContextNode::~ASMContextNode() {
+}
+
+ASMContextNode* ASMContextNode::ConvertToBool() {
+	if (IsIntConst() && GetIntConst()) {
+		return new ASMContextNodeValue<const char*>("true");
+	}
+	return new ASMContextNodeValue<const char*>("false");
+}
+
+bool ASMContextNode::IsBoolConvertable(bool strict) {
+	if (!IsIntConst()) {
+		return false;
+	}
+	int64_t v = GetIntConst();
+	return v == 0 || v == 1;
+}
+
+int64_t ASMContextNode::GetIntConst() const {
+	return 0;
+}
+
+bool ASMContextNode::IsIntConst() const {
+	return false;
+}
 #pragma endregion
 #pragma region opcode_info
 
@@ -1958,7 +1989,7 @@ public:
 		bytecode += sizeof(Type);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<int64_t>(negv, TYPE_UNDEFINED, false, true));
+			context.PushASMCNode(new ASMContextNodeValue<int64_t>(negv, TYPE_UNDEFINED, false, true, true));
 		}
 
 		out << std::dec << negv << std::endl;
@@ -1979,13 +2010,15 @@ template<typename Type>
 class OPCodeInfoGetConstant : public OPCodeInfo {
 	Type m_value;
 	bool m_canBeCastToBool;
+	bool m_isIntConst;
 public:
-	OPCodeInfoGetConstant(OPCode id, const char* name, Type value, bool canBeCastToBool = false) : OPCodeInfo(id, name), m_value(value), m_canBeCastToBool(canBeCastToBool) {
+	OPCodeInfoGetConstant(OPCode id, const char* name, Type value, bool canBeCastToBool = false, bool isIntConst = false) 
+		: OPCodeInfo(id, name), m_value(value), m_canBeCastToBool(canBeCastToBool), m_isIntConst(isIntConst) {
 	}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<Type>(m_value, TYPE_UNDEFINED, false, m_canBeCastToBool));
+			context.PushASMCNode(new ASMContextNodeValue<Type>(m_value, TYPE_UNDEFINED, false, m_canBeCastToBool, m_isIntConst));
 		}
 
 		out << "\n";
@@ -2125,7 +2158,7 @@ public:
 		bytecode += sizeof(Type);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, TYPE_UNDEFINED, false, true));
+			context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, TYPE_UNDEFINED, false, true, true));
 		}
 
 		out << std::dec << intValue << std::endl;
@@ -2210,6 +2243,11 @@ public:
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeHash(hash, false, m_type));
 		}
+
+		// dump dvars into stderr
+		//if (OPCodeInfo::m_id == OPCODE_IW_GetDVarHash) {
+		//	LOG_ERROR("dvar_{:x}", hash);
+		//}
 
 		out << m_type << "\"" << hashutils::ExtractTmp("hash", hash) << "\" (" << m_type << std::hex << hash << ")" << std::endl;
 
@@ -5692,7 +5730,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetSelf, "GetSelf", "self"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetTime, "GetTime", "gettime()"));
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash, "GetHash", "#"));
-		RegisterOpCodeHandler(new OPCodeInfoGetConstant<int32_t>(OPCODE_GetZero, "GetZero", 0, true));
+		RegisterOpCodeHandler(new OPCodeInfoGetConstant<int32_t>(OPCODE_GetZero, "GetZero", 0, true, true));
 		RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint32_t>(OPCODE_GetNegUnsignedInteger, "GetNegUnsignedInteger"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint16_t>(OPCODE_GetNegUnsignedShort, "GetNegUnsignedShort"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint8_t>(OPCODE_GetNegByte, "GetNegByte"));
