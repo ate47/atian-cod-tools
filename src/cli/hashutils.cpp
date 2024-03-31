@@ -16,16 +16,21 @@ void hashutils::ReadDefaultFile() {
 	
 	std::call_once(f, [] {
 		auto& opt = actscli::options();
-		const char* wniPackageIndex = compatibility::scobalula::wni::packageIndexDir;
+		std::filesystem::path wniPackageIndex;
 		if (opt.wniFiles) {
 			wniPackageIndex = opt.wniFiles;
 		}
+		else {
+			wniPackageIndex = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
+		}
 
-		if (!compatibility::scobalula::wni::ReadWNIFiles(wniPackageIndex, [](uint64_t hash, const char* str) {
-				hashutils::AddPrecomputed(hash, str);
-			})) {
-			LOG_ERROR("Error when reading WNI files");
-		};
+		if (opt.installDirHashes) {
+			if (!compatibility::scobalula::wni::ReadWNIFiles(wniPackageIndex, [](uint64_t hash, const char* str) {
+					hashutils::AddPrecomputed(hash, str);
+				})) {
+				LOG_ERROR("Error when reading WNI files");
+			};
+		}
 
 		if (opt.noDefaultHash) {
 			return;

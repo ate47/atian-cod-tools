@@ -126,6 +126,9 @@ namespace {
 				}
 				opt.wniFiles = argv[++i];
 			}
+			else if (!strcmp("-H", arg) || !_strcmpi("--no-install", arg)) {
+				opt.installDirHashes = false;
+			}
 			else {
 				LOG_ERROR("Unknown acts option: {}!", arg);
 				return false;
@@ -155,6 +158,7 @@ namespace {
 		LOG_INFO(" -p --pack [f]      : Load ACTS pack file");
 		LOG_INFO(" -P --profiler [f]  : Save profiler file after tool usage");
 		LOG_INFO(" -N --no-hash       : No default hash");
+		LOG_INFO(" -H --no-install    : No install hashes");
 		LOG_INFO(" -T --no-treyarch   : No Treyarch hash (ignored with -N)");
 		LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
@@ -195,9 +199,27 @@ int main(int argc, const char *_argv[]) {
 		return 0;
 	}
 
-	if (opt.packFile && !actscli::LoadPackFile(opt.packFile)) {
-		LOG_ERROR("Error when loading ACTS pack file");
-		return -1;
+	std::filesystem::path packFilePath;
+
+	if (opt.packFile) {
+		packFilePath = opt.packFile;
+	}
+	else {
+		packFilePath = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
+	}
+
+	std::vector<std::filesystem::path> packFiles{};
+
+	utils::GetFileRecurse(packFilePath, packFiles, [](const std::filesystem::path& p) {
+		auto s = p.string();
+		return s.ends_with(".acpf");
+	});
+
+	for (const auto& acpf : packFiles) {
+		if (!actscli::LoadPackFile(acpf)) {
+			LOG_ERROR("Error when loading ACTS pack file {}", acpf.string());
+			return -1;
+		}
 	}
 
 	const auto& tool = tool::findtool(argv[1]);

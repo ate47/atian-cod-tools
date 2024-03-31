@@ -1,4 +1,9 @@
 - tools
-  - add boolean analysis into decompiler
-  - add profiler
-  - hash scanner
+  - fix ternary operator decompilation
+  - switch order for add to object in bo4/cw
+  - better format for arrays
+  - load WNI files from package_index directory
+  - load ACPF files from package_index directory
+  - some fixes
+- release
+  - deploy basic path hashes

@@ -351,18 +351,18 @@ namespace actscli {
 		return profiler;
 	}
 
-	bool LoadPackFile(const char* mapFile) {
+	bool LoadPackFile(const std::filesystem::path& mapFile) {
 		actslib::profiler::ProfiledSection ps{ actscli::GetProfiler(), "LoadActsPackFile" };
 		void* buffer{};
 		size_t bufferSize{};
 
 		// add null end for the strings
 		if (!utils::ReadFileNotAlign(mapFile, buffer, bufferSize, true)) {
-			LOG_ERROR("Can't read ACTS pack file: {}", mapFile);
+			LOG_ERROR("Can't read ACTS pack file: {}", mapFile.string());
 			return false;
 		}
 
-		LOG_DEBUG("Loading pack file {}", mapFile);
+		LOG_DEBUG("Loading pack file {}", mapFile.string());
 
 		bool res = LoadPackFileData(buffer, bufferSize);
 

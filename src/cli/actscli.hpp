@@ -12,11 +12,12 @@ namespace actscli {
 		bool noIWHash{};
 		const char* dumpHashmap{};
 		const char* wniFiles{};
+		bool installDirHashes{ true };
 		const char* saveProfiler{};
 	};
 
 	ActsOptions& options();
 	actslib::profiler::Profiler& GetProfiler();
 
-	bool LoadPackFile(const char* packFile);
+	bool LoadPackFile(const std::filesystem::path& packFile);
 }

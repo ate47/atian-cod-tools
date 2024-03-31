@@ -20,6 +20,24 @@ try {
     New-Item "$base" -ItemType Directory > $null
     New-Item "$base/licenses" -ItemType Directory > $null
     New-Item "$base/bin" -ItemType Directory > $null
+    New-Item "$base/bin/package_index" -ItemType Directory > $null
+
+    # Build hashes
+    Write-Host "Building hash index directory"
+    foreach ($file in (Get-ChildItem config\common_hashes)) {
+        $split = $file.Name.LastIndexOf('.')
+
+        if ($split -ne -1) {
+            $fileOut = "$base/bin/package_index/$($file.Name.SubString(0, $split)).wni"
+        } else {
+            $fileOut = "$base/bin/package_index/$($file.Name).wni"
+        }
+
+        build\bin\acts.exe wni_gen $file.FullName $fileOut
+    }
+
+    # Build default acpf
+    build\bin\acts packfile "$base/bin/package_index/common.acpf"
  
     # Binaries
     Copy-Item "build/bin/*.exe" "$base/bin" > $null

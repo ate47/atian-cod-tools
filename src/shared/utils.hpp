@@ -226,6 +226,10 @@ namespace utils {
 	 */
 	std::wstring StrToWStr(const std::string& str);
 
+	/*
+	 * @return prog exe directory
+	 */
+	std::filesystem::path GetProgDir();
 
 	template<typename Type>
 	struct BasicFormatter {

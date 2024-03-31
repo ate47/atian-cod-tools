@@ -75,14 +75,14 @@ namespace {
 		std::ifstream is{ in };
 
 		if (!is) {
-			LOG_ERROR("Can't open {}", in);
+			LOG_ERROR("Can't open input {}", in);
 			return tool::BASIC_ERROR;
 		}
 
-		std::ofstream os{ out };
+		std::ofstream os{ out, std::ios::binary };
 
 		if (!os) {
-			LOG_ERROR("Can't open {}", out);
+			LOG_ERROR("Can't open output {}", out);
 			is.close();
 			return tool::BASIC_ERROR;
 		}

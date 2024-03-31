@@ -410,7 +410,7 @@ public:
 class GlobalVarObject {
 public:
     tool::gsc::opcode::GlobalVariableDef* def{};
-    std::vector<AscmNode*> nodes{};
+    std::vector<AscmNodeGlobalVariable*> nodes{};
 };
 struct FunctionVar {
     std::string name;
@@ -435,6 +435,7 @@ public:
     size_t rndVarStart{};
     FunctionVar m_vars[256]{};
     size_t m_allocatedVar{};
+    std::unordered_map<std::string, GlobalVarObject> m_globals{};
     std::vector<AscmNode*> m_nodes{};
     std::stack<AscmNode*> m_jumpBreak{};
     std::stack<AscmNode*> m_jumpContinue{};
@@ -1611,8 +1612,18 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
             auto& gv = gvarIt->second;
             
+            if (gv.getOpCode) {
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("opcode gvar not implemented: {}", gv.name));
+                return false;
+            }
 
+            auto& decl = fobj.m_globals[gv.name];
 
+            if (!decl.def) {
+                decl.def = &gv;
+            }
+
+            decl.nodes.emplace_back(new AscmNodeGlobalVariable(decl.def, false));
         }
 
         auto varIt = fobj.FindVar(varName);

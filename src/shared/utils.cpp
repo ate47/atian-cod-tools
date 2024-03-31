@@ -207,4 +207,10 @@ namespace utils {
         MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
         return wstrTo;
     }
+
+    std::filesystem::path GetProgDir() {
+        wchar_t szFileName[MAX_PATH];
+        GetModuleFileName(NULL, szFileName, MAX_PATH);
+        return std::filesystem::absolute(szFileName).parent_path();
+    }
 }
