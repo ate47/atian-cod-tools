@@ -2318,7 +2318,18 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         }
 
         utils::Padding(asmout, padding) << prefix << "Namespace "
-            << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush << " / "
+            << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
+
+        // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
+        // so it's better to use spaces. A flag was added to keep the same format.
+        if (objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_FULL_FILE_NAMESPACE) {
+            asmout << " / ";
+        }
+        else {
+            asmout << "/";
+        }
+
+        asmout
             << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.GetFileNamespace()) << std::endl;
 
         if (isDetour) {

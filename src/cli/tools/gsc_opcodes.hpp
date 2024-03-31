@@ -10,6 +10,8 @@ namespace tool::gsc::opcode {
 		VMF_HASH64 = 2,
 		VMF_NO_VERSION = 4,
 		VMF_NO_PARAM_FLAGS = 8,
+		VMF_FULL_FILE_NAMESPACE = 0x10,
+		VMF_INV_ADD_TO_OBJECT = 0x20,
 	};
 	struct GlobalVariableDef {
 		const char* name;

@@ -462,22 +462,27 @@ public:
 				item->m_value->Dump(out, ctx);
 			}
 			else {
-				m_operands[i]->Dump(out, ctx);
+				item->Dump(out, ctx);
 			}
 		}
 
 		out << "]";
 	}
 
-	void AddValue(ASMContextNode* key, ASMContextNode* value) {
-		m_operands.push_back(new ASMContextNodeArrayBuildNode(key, value));
+	void AddValue(ASMContextNode* key, ASMContextNode* value, bool start) {
+		if (start) {
+			m_operands.insert(m_operands.begin(), new ASMContextNodeArrayBuildNode(key, value));
+		}
+		else {
+			m_operands.push_back(new ASMContextNodeArrayBuildNode(key, value));
+		}
 	}
 
 	ASMContextNode* Clone() const override {
 		auto* n = new ASMContextNodeArrayBuild();
 
 		for (const auto& ref : m_operands) {
-			n->AddValue(ref->m_key->Clone(), ref->m_value->Clone());
+			n->AddValue(ref->m_key->Clone(), ref->m_value->Clone(), false);
 		}
 
 		return n;
@@ -507,19 +512,24 @@ public:
 		out << "}";
 	}
 
-	void AddValue(ASMContextNode* key, ASMContextNode* value) {
+	void AddValue(ASMContextNode* key, ASMContextNode* value, bool start) {
 		if (key->m_type == TYPE_CONST_HASH) {
 			// this hash is a canon id, not a fnva1
 			static_cast<ASMContextNodeHash*>(key)->m_canonid = true;
 		}
-		m_operands.push_back(new ASMContextNodeArrayBuildNode(key, value));
+		if (start) {
+			m_operands.insert(m_operands.begin(), new ASMContextNodeArrayBuildNode(key, value));
+		}
+		else {
+			m_operands.push_back(new ASMContextNodeArrayBuildNode(key, value));
+		}
 	}
 
 	ASMContextNode* Clone() const override {
 		auto* n = new ASMContextNodeStructBuild();
 
 		for (const auto& ref : m_operands) {
-			n->AddValue(ref->m_key->Clone(), ref->m_value->Clone());
+			n->AddValue(ref->m_key->Clone(), ref->m_value->Clone(), false);
 		}
 
 		return n;
@@ -3712,7 +3722,7 @@ public:
 
 			if (arrayVal->m_type == TYPE_ARRAY_BUILD) {
 				// we are building an array, we can add the value
-				static_cast<ASMContextNodeArrayBuild*>(arrayVal)->AddValue(key, value);
+				static_cast<ASMContextNodeArrayBuild*>(arrayVal)->AddValue(key, value, (objctx.m_vmInfo->flags & VmFlags::VMF_INV_ADD_TO_OBJECT));
 			}
 			else {
 				ASMContextNodeMultOp* node = new ASMContextNodeMultOp("$addtoarray", false);
@@ -3780,7 +3790,7 @@ public:
 
 			if (structVal->m_type == TYPE_STRUCT_BUILD) {
 				// we are building an array, we can add the value
-				static_cast<ASMContextNodeStructBuild*>(structVal)->AddValue(keyNode, value);
+				static_cast<ASMContextNodeStructBuild*>(structVal)->AddValue(keyNode, value, (objctx.m_vmInfo->flags & VmFlags::VMF_INV_ADD_TO_OBJECT));
 			}
 			else {
 				ASMContextNodeMultOp* node = new ASMContextNodeMultOp("addtostruct", false);

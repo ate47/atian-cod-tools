@@ -23,7 +23,7 @@ namespace tool::gsc::opcode {
 			// Register mapping
 
 			// BLACK OPS 4 (VM 36)
-			RegisterVM(VM_T8, "Call of Duty: Black ops 4", VmFlags::VMF_OPCODE_SHORT);
+			RegisterVM(VM_T8, "Call of Duty: Black ops 4", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT);
 			RegisterVMPlatform(VM_T8, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T8, "level");
 			RegisterVMGlobalVariable(VM_T8, "game");
@@ -285,7 +285,7 @@ namespace tool::gsc::opcode {
 
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
-			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", VmFlags::VMF_OPCODE_SHORT);
+			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT);
 			RegisterVMGlobalVariable(VM_T937, "level");
 			RegisterVMGlobalVariable(VM_T937, "game");
 			RegisterVMGlobalVariable(VM_T937, "classes");
@@ -361,7 +361,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_SafeCreateLocalVariables, 0x11a, 0x192, 0x1e5, 0x281, 0x289, 0x2bd, 0x30b, 0x363, 0x471, 0x494, 0x4a8, 0x538, 0x5e3, 0x653, 0x8e4, 0x921, 0x9bf, 0x9fa, 0xb54, 0xc6d, 0xd28, 0xe8a, 0xf07);
 
 
-			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", VmFlags::VMF_OPCODE_SHORT);
+			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT);
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T9, "level");
 			RegisterVMGlobalVariable(VM_T9, "game");
@@ -592,7 +592,7 @@ namespace tool::gsc::opcode {
 	#ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();
 	#endif
-			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS);
+			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel, OPCODE_IW_GetLevelRef);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
