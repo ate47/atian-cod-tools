@@ -16,6 +16,10 @@ namespace tool {
 		const char* m_usage;
 		const char* m_description;
 		const wchar_t* m_game;
+		std::string m_nameLower;
+		std::string m_usageLower;
+		std::string m_descriptionLower;
+		std::wstring m_gameLower;
 		tool::toolfunction m_func;
 		toolfunctiondata(const char* name, const char* usage, const char* description, const wchar_t* game, tool::toolfunction func);
 
@@ -26,7 +30,8 @@ namespace tool {
 	std::map<std::string, tool::toolfunctiondata*>& tools();
 
 	const toolfunctiondata& findtool(const char* name);
-	void usage(const char* message, const char* argv0);
+	bool search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each);
+	void usage(const char* message, const char* argv0, alogs::loglevel lvl = alogs::loglevel::LVL_ERROR);
 }
 
 #define ADD_TOOL(name, usage, desc, needGame, function) static tool::toolfunctiondata __toolfunctiondata_##function(name, usage, desc, needGame, function)

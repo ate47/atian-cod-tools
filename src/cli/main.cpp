@@ -126,6 +126,13 @@ namespace {
 				}
 				opt.wniFiles = argv[++i];
 			}
+			else if (!strcmp("-D", arg) || !_strcmpi("--db2-files", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				opt.seriousDBFile = argv[++i];
+			}
 			else if (!strcmp("-H", arg) || !_strcmpi("--no-install", arg)) {
 				opt.installDirHashes = false;
 			}
@@ -147,9 +154,11 @@ namespace {
 
 	void PrintACTSHelp(const char* argv0) {
 		LOG_INFO("Usage: {} (OPTIONS) [TOOL] (TOOL ARGS)", argv0);
-		LOG_INFO("use the tool 'list' for the tools list");
+		LOG_INFO("General tools:");
+		LOG_INFO("- list : the tools list");
+		LOG_INFO("- search (query) : search for a tool");
 		LOG_INFO("");
-		LOG_INFO("options:");
+		LOG_INFO("Options:");
 		LOG_INFO(" -? --help -h       : Help");
 		LOG_INFO(" -l --log [l]       : Set log level t(race)/d(ebug)/i(nfo)/w(arn)/e(rror), default: i");
 		LOG_INFO(" -L --log-file [f]  : Set the log file");
@@ -162,6 +171,7 @@ namespace {
 		LOG_INFO(" -T --no-treyarch   : No Treyarch hash (ignored with -N)");
 		LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
+		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 	}
 }
@@ -225,7 +235,17 @@ int main(int argc, const char *_argv[]) {
 	const auto& tool = tool::findtool(argv[1]);
 
 	if (!tool) {
-		LOG_ERROR("Error: Bad tool name. {} for the tools list", *argv);
+		LOG_ERROR("Error: Bad tool name. {} list for the tools list", *argv);
+		bool find{};
+		const char* query[]{ argv[1] };
+		tool::search(query, 1, [&find](const tool::toolfunctiondata* tool) {
+			if (!find) {
+				LOG_ERROR("Similar tool name(s):");
+				find = true;
+			}
+			LOG_ERROR("- {}", tool->m_name);
+		});
+
 		return -1;
 	}
 
