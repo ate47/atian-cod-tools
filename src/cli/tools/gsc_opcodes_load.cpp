@@ -1,4 +1,7 @@
 #include <includes.hpp>
+#include <actscli.hpp>
+#include "compatibility/scobalula_wni.hpp"
+#include "compatibility/serious.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
 
@@ -600,6 +603,28 @@ namespace tool::gsc::opcode {
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
+
+
+			// loading serious db2 files (if any)
+			const char* seriousDBDir = actscli::options().seriousDBFile;
+			std::filesystem::path seriousDBDirPath;
+			if (!seriousDBDir) {
+				seriousDBDirPath = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
+			}
+			else {
+				seriousDBDirPath = seriousDBDir;
+			}
+
+			std::vector<std::filesystem::path> dbFiles{};
+
+			utils::GetFileRecurse(seriousDBDirPath, dbFiles, [](const std::filesystem::path& p) {
+				auto s = p.string();
+				return s.ends_with(".db2");
+			});
+			
+			for (const auto& db : dbFiles) {
+				compatibility::serious::LoadVMDatabase(db);
+			}
 		});
 	}
 

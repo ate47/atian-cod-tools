@@ -184,10 +184,12 @@ namespace compatibility::serious {
         SERID_T9IteratorKey,
         SERID_T9IteratorVal,
         SERID_T9IteratorNext,
+        GetNegUnsignedInteger = 192,
         SERID_COUNT,
         SERID_Invalid = 0xFF,
     };
 
     tool::gsc::opcode::OPCode ConvertFrom(SeriousId id);
     SeriousId ConvertTo(tool::gsc::opcode::OPCode id);
+    void LoadVMDatabase(const std::filesystem::path& path);
 }

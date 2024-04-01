@@ -176,16 +176,80 @@ namespace {
 			lmaps.Add(SERID_T9IteratorKey, OPCODE_T9_IteratorKey);
 			lmaps.Add(SERID_T9IteratorVal, OPCODE_T9_IteratorVal);
 			lmaps.Add(SERID_T9IteratorNext, OPCODE_T9_IteratorNext);
+			lmaps.Add(SERID_GetNegUnsignedShort, OPCODE_GetNegUnsignedShort);
 		}
 
 		return lmaps;
 	}
 }
 
-OPCode compatibility::serious::ConvertFrom(SeriousId id) {
-	return Maps().ConvertFrom(id);
-}
+namespace compatibility::serious {
+	OPCode ConvertFrom(SeriousId id) {
+		return Maps().ConvertFrom(id);
+	}
 
-compatibility::serious::SeriousId compatibility::serious::ConvertTo(OPCode id) {
-	return Maps().ConvertTo(id);
+	SeriousId ConvertTo(OPCode id) {
+		return Maps().ConvertTo(id);
+	}
+
+	void LoadVMDatabase(const std::filesystem::path& path) {
+		std::string data{};
+
+		if (!utils::ReadFile(path, data)) {
+			LOG_ERROR("Can't read DB2 file: {}", path.string());
+			return;
+		}
+
+		auto* db = reinterpret_cast<byte*>(data.data());
+		size_t len = data.size();
+
+		LOG_DEBUG("Loading db2: {}", path.string());
+
+		VmInfo* nfo{};
+
+		size_t vms{};
+		while (len > 4) {
+			byte vm = *db;
+			size_t platform = (size_t)db[1];
+			size_t size = *reinterpret_cast<uint16_t*>(db + 2);
+			byte* fields = db + 4;
+
+			if (len < size + 4) {
+				LOG_ERROR("Error when reading DB file, invalid file");
+				break;
+			}
+
+			len -= size + 4;
+
+			if (!IsValidVm(vm, nfo, false)) {
+				LOG_DEBUG("Ignore vm {:x}", vm);
+				continue; // we don't know this one
+			}
+
+			if (platform + 1 > Platform::PLATFORM_COUNT) {
+				LOG_WARNING("Trying to load a DB file with an unknown platform: {:x}", platform);
+				continue; // unknown platform
+			}
+
+			Platform plt = (Platform)(platform + 1);
+
+			LOG_TRACE("Loading {} opcodes {}/{}", size, nfo->name, PlatformName(plt));
+			size_t added{};
+			for (size_t i = 0; i < size; i++) {
+				byte op = *(db++);
+
+				OPCode actsId = ConvertFrom((SeriousId)op);
+
+				if (actsId == OPCODE_Undefined) continue; // unknown
+
+				RegisterOpCode(vm, plt, actsId, (uint16_t)i);
+				added++;
+			}
+
+			LOG_DEBUG("Loaded {} opcode(s) for {}/{}", added, nfo->name, PlatformName(plt));
+			vms++;
+		}
+
+		LOG_DEBUG("Loaded {} vm(s) from {}", vms, path.string());
+	}
 }

@@ -14,6 +14,7 @@ namespace actscli {
 		const char* wniFiles{};
 		bool installDirHashes{ true };
 		const char* saveProfiler{};
+		const char* seriousDBFile{};
 	};
 
 	ActsOptions& options();

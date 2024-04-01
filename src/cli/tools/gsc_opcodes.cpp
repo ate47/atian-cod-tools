@@ -5941,9 +5941,9 @@ const std::unordered_map<byte, VmInfo>& tool::gsc::opcode::GetVMMaps() {
 	return g_opcodeMap;
 }
 
-bool tool::gsc::opcode::IsValidVm(byte vm, VmInfo*& info) {
+bool tool::gsc::opcode::IsValidVm(byte vm, VmInfo*& info, bool registerOpCodes) {
 	// build map
-	RegisterOpCodes();
+	if (registerOpCodes) RegisterOpCodes();
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
 		return false;

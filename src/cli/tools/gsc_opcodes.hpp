@@ -49,7 +49,7 @@ namespace tool::gsc::opcode {
 		}
 	};
 	const std::unordered_map<byte, VmInfo>& GetVMMaps();
-	bool IsValidVm(byte vm, VmInfo*& info);
+	bool IsValidVm(byte vm, VmInfo*& info, bool registerOpCodes = true);
 	const OPCodeInfo* LookupOpCode(byte vm, Platform platform, uint16_t opcode);
 	std::pair<bool, uint16_t> GetOpCodeId(byte vm, Platform platform, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
