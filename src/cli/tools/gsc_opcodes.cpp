@@ -256,12 +256,12 @@ public:
 	ASMContextNode* m_x;
 	ASMContextNode* m_y;
 	ASMContextNode* m_z;
-	ASMContextNodeVector(ASMContextNode* x, ASMContextNode* y, ASMContextNode* z) : ASMContextNode(PRIORITY_VALUE), m_x(x), m_y(y), m_z(z) {
+	ASMContextNodeVector(ASMContextNode* x, ASMContextNode* y, ASMContextNode* z) : ASMContextNode(PRIORITY_VALUE, TYPE_VECTOR), m_x(x), m_y(y), m_z(z) {
 	}
 	ASMContextNodeVector(FLOAT x, FLOAT y, FLOAT z) : ASMContextNodeVector(
-		new ASMContextNodeValue<FLOAT>(x),
-		new ASMContextNodeValue<FLOAT>(y),
-		new ASMContextNodeValue<FLOAT>(z)
+		new ASMContextNodeValue<FLOAT>(x, TYPE_FLOAT),
+		new ASMContextNodeValue<FLOAT>(y, TYPE_FLOAT),
+		new ASMContextNodeValue<FLOAT>(z, TYPE_FLOAT)
 		) {
 	}
 	~ASMContextNodeVector() {
@@ -2183,10 +2183,14 @@ public:
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
+
+			auto* vector = context.PopASMCNode();
+			auto* factor = context.PopASMCNode();
+
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("vectorscale", false);
 
-			node->AddParam(context.PopASMCNode());
-			node->AddParam(context.PopASMCNode());
+			node->AddParam(vector);
+			node->AddParam(factor);
 
 			context.PushASMCNode(node);
 		}

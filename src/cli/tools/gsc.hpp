@@ -140,6 +140,8 @@ namespace tool::gsc {
 
             TYPE_CONST_HASH,
             TYPE_STRING,
+            TYPE_VECTOR,
+            TYPE_FLOAT,
 
             TYPE_ARRAY_FIRSTKEY,
             TYPE_ARRAY_NEXTKEY,
