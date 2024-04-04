@@ -6,6 +6,18 @@
 
 using namespace tool::gsc;
 
+namespace {
+    size_t SizeNoEmptyNode(const std::vector<tool::gsc::opcode::ASMContextStatement>& statements) {
+        size_t acc = 0;
+        for (const auto& stmt : statements) {
+            if (stmt.node->m_type != tool::gsc::opcode::TYPE_PRECODEPOS) {
+                acc++;
+            }
+        }
+        return acc;
+    }
+}
+
 constexpr uint32_t g_constructorName = hashutils::Hash32("__constructor");
 constexpr uint32_t g_destructorName = hashutils::Hash32("__destructor");
 
@@ -130,35 +142,39 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
             for (const char* param = args[++i]; *param; param++) {
                 switch (*param) {
                 case 'd':
-                case 'D':
                     m_stepskip |= STEPSKIP_DEV;
                     break;
+                case 'D':
+                    m_stepskip |= STEPSKIP_DEVBLOCK_INLINE;
+                    break;
                 case 's':
-                case 'S':
                     m_stepskip |= STEPSKIP_SWITCH;
                     break;
                 case 'e':
-                case 'E':
                     m_stepskip |= STEPSKIP_FOREACH;
                     break;
                 case 'w':
-                case 'W':
                     m_stepskip |= STEPSKIP_WHILE;
                     break;
                 case 'i':
-                case 'I':
                     m_stepskip |= STEPSKIP_IF;
                     break;
                 case 'f':
-                case 'F':
                     m_stepskip |= STEPSKIP_FOR;
                     break;
                 case 'r':
-                case 'R':
                     m_stepskip |= STEPSKIP_RETURN;
                     break;
+                case 'R':
+                    m_stepskip |= STEPSKIP_BOOL_RETURN;
+                    break;
+                case 'c':
+                    m_stepskip |= STEPSKIP_CLASSMEMBER_INLINE;
+                    break;
+                case 'S':
+                    m_stepskip |= STEPSKIP_SPECIAL_PATTERN;
+                    break;
                 case 'a':
-                case 'A':
                     m_stepskip = ~0;
                     break;
                 default:
@@ -234,11 +250,11 @@ void GscInfoOption::PrintHelp() {
             formats << " '" << fmt->name << "'";
         }
 
-        LOG_INFO("-f --format [f]    : Use formatter, values: {}", formats.str());
+        LOG_INFO("-f --format [f]    : Use formatter, values:{}", formats.str());
     }
-    LOG_INFO("--dumpstrings [f]  : Dump strings in f");
     LOG_INFO("-l --rloc          : Write relative location of the function code");
     LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
+    LOG_INFO("--dumpstrings [f]  : Dump strings in f");
     // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
     // it's mostly dev tools
     LOG_DEBUG("-G --gvars         : Write gvars");
@@ -258,7 +274,9 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--refcount         : Show ref count");
     LOG_DEBUG("--markjump         : Show jump type");
     LOG_DEBUG("--displaystack     : Display stack in disassembly");
-    LOG_DEBUG("-i --ignore[t + ]  : ignore step (d: dev, s: switch, e: foreach, w: while, i: if, f: for, r: return, a: all)");
+    LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
+    LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
+    LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
 }
 
 static const char* gDumpStrings{};
@@ -1588,9 +1606,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_RETURN)) {
                             asmctx.ComputeReturnJump(asmctx);
                         }
-                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_RETURN)) {
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_BOOL_RETURN)) {
                             asmctx.ComputeBoolReturn(asmctx);
                         }
+                        asmctx.ComputeSpecialPattern(asmctx);
                         if (opt.m_dasm) {
                             output << " ";
                             asmctx.Dump(output, dctx);
@@ -1642,7 +1661,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
                 
 
-                auto handleMethod = [&opt, &contextes, &asmout, &scriptfile, name, &ctx](uint64_t method) -> void {
+                auto handleMethod = [&opt, &contextes, &asmout, &scriptfile, name, &ctx](uint64_t method, const char* forceName, bool ignoreEmpty) -> void {
                     auto lname = Located{ name, method };
 
                     auto masmctxit = contextes.find(lname);
@@ -1657,29 +1676,61 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                         return;
                     }
 
-                    // set the export handle
-                    e.m_exp.SetHandle(e.m_readerHandle);
+                    if (!ignoreEmpty || !SizeNoEmptyNode(e.m_funcBlock.m_statements)) {
+                        // ignore empty exports (constructor/destructors)
+                        
+                        // set the export handle
+                        e.m_exp.SetHandle(e.m_readerHandle);
 
-                    DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1);
-                    opcode::DecompContext dctx{ 1, 0, e.m_opt };
-                    if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
-                        dctx.WritePadding(asmout << "\n");
+                        DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
+                        opcode::DecompContext dctx{ 1, 0, e.m_opt };
+                        if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                            dctx.WritePadding(asmout << "\n");
+                        }
+                        else {
+                            asmout << " ";
+                        }
+                        e.Dump(asmout, dctx);
+                        asmout << "\n";
                     }
-                    else {
-                        asmout << " ";
-                    }
-                    e.Dump(asmout, dctx);
-                    asmout << "\n";
 
                     contextes.erase(masmctxit);
                 };
 
-                // handle first the constructor/destructor
-                handleMethod(g_constructorName);
-                handleMethod(g_destructorName);
+                std::unordered_set<uint64_t> selfmembers{};
 
                 for (const auto& method : cls.m_methods) {
-                    handleMethod(method);
+                    auto lname = Located{ name, method };
+
+                    auto masmctxit = contextes.find(lname);
+
+                    if (masmctxit == contextes.end()) {
+                        LOG_WARNING("Can't find {}", hashutils::ExtractTmp("function", method));
+                        continue;
+                    }
+                    masmctxit->second.ConvertToClassMethod(selfmembers);
+                }
+
+                if (selfmembers.size()) {
+                    // sort members using string lookup value for a better rendering
+                    std::set<std::string> selfMembersSorted{};
+                    for (uint64_t field : selfmembers) {
+                        selfMembersSorted.insert(hashutils::ExtractTmp("var", field));
+                    }
+
+                    for (const std::string& field : selfMembersSorted) {
+                        utils::Padding(asmout, 1) << "var " << field << ";\n";
+                    }
+
+                    asmout << "\n";
+                }
+
+                // handle first the constructor/destructor
+                handleMethod(g_constructorName, "constructor", true);
+                handleMethod(g_destructorName, "destructor", true);
+
+                for (const auto& method : cls.m_methods) {
+                    handleMethod(method, nullptr, false);
                 }
 
                 asmout << "}\n\n";
@@ -2299,7 +2350,7 @@ int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, gsc::opcode::Pla
 }
 
 
-void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding) {
+void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding, const char* forceName) {
     auto remapedFlags = gscFile.RemapFlagsExport(exp.GetFlags());
     bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
@@ -2369,7 +2420,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     }
 
     if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
-        utils::Padding(asmout, padding) << "vtable " << hashutils::ExtractTmp("class", exp.GetName());
+        utils::Padding(asmout, padding) << "vtable " << (forceName ? forceName : hashutils::ExtractTmp("class", exp.GetName()));
     }
     else {
 
@@ -2420,7 +2471,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                 << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush;
         }
         else {
-            asmout << hashutils::ExtractTmp("function", exp.GetName());
+            asmout << (forceName ? forceName : hashutils::ExtractTmp("function", exp.GetName()));
         }
 
     }

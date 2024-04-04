@@ -24,11 +24,11 @@ namespace {
 		return acc;
 	}
 
-	ASMContextNode* GetNoEmptyNode(const std::vector<ASMContextStatement>& statements, size_t index) {
-		for (const auto& stmt : statements) {
+	ASMContextStatement* GetNoEmptyNode(std::vector<ASMContextStatement>& statements, size_t index) {
+		for (auto& stmt : statements) {
 			if (stmt.node->m_type != TYPE_PRECODEPOS) {
 				if (index-- == 0) {
-					return stmt.node;
+					return &stmt;
 				}
 			}
 		}
@@ -57,6 +57,43 @@ namespace {
 			delete node;
 		}
 		return bnode;
+	}
+
+	std::ostream& PrintFormattedString(std::ostream& out, const char* str) {
+		if (!str) {
+			return out << "nullptr";
+		}
+		for (; *str; str++) {
+			switch (*str) {
+			case '\n':
+				out << "\\n";
+				break;
+			case '\r':
+				out << "\\r";
+				break;
+			case '\t':
+				out << "\\t";
+				break;
+			case '\a':
+				out << "\\a";
+				break;
+			case '\b':
+				out << "\\b";
+				break;
+			case '\v':
+				out << "\\v";
+				break;
+			default:
+				if (*str < 0x20) {
+					out << "\\" << std::oct << (int)(*str) << std::dec;
+				}
+				else {
+					out << *str;
+				}
+				break;
+			}
+		}
+		return out;
 	}
 }
 
@@ -98,6 +135,10 @@ const char* tool::gsc::opcode::PlatformName(Platform plt) {
 	}
 }
 
+void VmInfo::AddDevCallName(uint64_t name) {
+	devCallsNames.insert(name);
+}
+
 OPCodeInfo::OPCodeInfo(OPCode id, const char* name) : m_id(id), m_name(name) {
 }
 
@@ -118,6 +159,9 @@ std::ostream& tool::gsc::opcode::operator<<(std::ostream& os, const ASMContextNo
 void ASMContextNode::ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx) {
 	// do nothing, no sub blocks
 }
+void ASMContextNode::ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) {
+	// do nothing, done on top
+}
 
 ASMContextNodeBlock::ASMContextNodeBlock(nodeblocktype blockType) : ASMContextNode(PRIORITY_INST, TYPE_BLOCK), m_blockType(blockType) {
 	m_renderSemicolon = false;
@@ -125,7 +169,9 @@ ASMContextNodeBlock::ASMContextNodeBlock(nodeblocktype blockType) : ASMContextNo
 
 ASMContextNodeBlock::~ASMContextNodeBlock() {
 	for (auto& ref : m_statements) {
-		delete ref.node;
+		if (ref.node) {
+			delete ref.node;
+		}
 	}
 }
 
@@ -150,6 +196,14 @@ void ASMContextNodeBlock::ApplySubBlocks(const std::function<void(ASMContextNode
 	// apply to this
 	func(this, ctx);
 }
+void ASMContextNodeBlock::ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) {
+	for (auto& stmt : m_statements) {
+		if (stmt.node) {
+			func(stmt.node, ctx);
+			stmt.node->ApplySubNodes(func, ctx);
+		}
+	}
+}
 
 void ASMContextNode::Dump(std::ostream& out, DecompContext& ctx) const {
 	// nothing by default
@@ -160,15 +214,32 @@ ASMContextNode* ASMContextNode::Clone() const {
 	return nullptr;
 }
 
+namespace {
+	enum ASMContextNodeValueVirDataType {
+		ASCNVD_UNDEFINED = 0,
+		ASCNVD_INT,
+		ASCNVD_FLOAT,
+		ASCNVD_STRING,
+	};
+}
+
+class ASMContextNodeValueVir : public ASMContextNode {
+public:
+	using ASMContextNode::ASMContextNode;
+	virtual void SetNumber(double val) = 0;
+	virtual void SetNumber(int64_t val) = 0;
+	virtual ASMContextNodeValueVirDataType GetDatatype() const = 0;
+};
+
 template<typename Type>
-class ASMContextNodeValue : public ASMContextNode {
+class ASMContextNodeValue : public ASMContextNodeValueVir {
 public:
 	Type m_value;
 	bool m_hex;
 	bool m_canBeCastToBool;
 	bool m_isIntConst;
-	ASMContextNodeValue(Type value, ASMContextNodeType type = TYPE_UNDEFINED, bool hex = false, bool canBeCastToBool = false, bool isIntConst = false)
-		: ASMContextNode(PRIORITY_VALUE, type), m_value(value), m_hex(hex), m_canBeCastToBool(canBeCastToBool), m_isIntConst(isIntConst) {
+	ASMContextNodeValue(Type value, ASMContextNodeType type, bool hex = false, bool canBeCastToBool = false, bool isIntConst = false)
+		: ASMContextNodeValueVir(PRIORITY_VALUE, type), m_value(value), m_hex(hex), m_canBeCastToBool(canBeCastToBool), m_isIntConst(isIntConst) {
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -188,9 +259,9 @@ public:
 		}
 
 		if (m_value) {
-			return new ASMContextNodeValue<const char*>("true");
+			return new ASMContextNodeValue<const char*>("true", TYPE_VALUE);
 		}
-		return new ASMContextNodeValue<const char*>("false");
+		return new ASMContextNodeValue<const char*>("false", TYPE_VALUE);
 	}
 
 	bool IsBoolConvertable(bool strict) override {
@@ -206,6 +277,34 @@ public:
 
 	int64_t GetIntConst() const override {
 		return (int64_t)m_value;
+	}
+
+	void SetNumber(double val) override { 
+		if (IsConstNumber()) {
+			if constexpr (std::is_arithmetic<Type>::value) {
+				m_value = (Type)val;
+			}
+		}
+	}
+
+	void SetNumber(int64_t val) override { 
+		if (IsConstNumber()) {
+			m_value = (Type)val;
+		}
+	}
+
+	ASMContextNodeValueVirDataType GetDatatype() const override {
+		if constexpr (std::is_integral<Type>::value) {
+			return ASCNVD_INT;
+		}
+
+		if constexpr (std::is_floating_point<Type>::value) {
+			return ASCNVD_FLOAT;
+		}
+		if constexpr (std::is_same<Type, const char*>::value) {
+			return ASCNVD_STRING;
+		}
+		return ASCNVD_UNDEFINED;
 	}
 
 	ASMContextNode* Clone() const override {
@@ -290,6 +389,21 @@ public:
 	ASMContextNode* Clone() const override {
 		return new ASMContextNodeVector(m_x->Clone(), m_y->Clone(), m_z->Clone());
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_x) {
+			func(m_x, ctx);
+			m_x->ApplySubNodes(func, ctx);
+		}
+		if (m_y) {
+			func(m_y, ctx);
+			m_y->ApplySubNodes(func, ctx);
+		}
+		if (m_z) {
+			func(m_z, ctx);
+			m_z->ApplySubNodes(func, ctx);
+		}
+	}
 };
 
 class ASMContextNodeString : public ASMContextNode {
@@ -299,7 +413,10 @@ public:
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
-		out << "\"" << m_value << "\"" << std::flush;
+		out << "\"";
+		PrintFormattedString(out, m_value);
+		out << "\""
+			<< std::flush;
 	}
 
 	ASMContextNode* Clone() const override {
@@ -315,7 +432,7 @@ public:
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
-		out << "" << m_str1 << "%" << m_str2 << std::flush;
+		out << m_str1 << "%" << m_str2 << std::flush;
 	}
 
 	ASMContextNode* Clone() const override {
@@ -366,6 +483,13 @@ public:
 	ASMContextNode* Clone() const override {
 		return new ASMContextNodeRef(m_op, m_var->Clone());
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_var) {
+			func(m_var, ctx);
+			m_var->ApplySubNodes(func, ctx);
+		}
+	}
 };
 
 class ASMContextNodeArrayAccess : public ASMContextNode {
@@ -411,6 +535,17 @@ public:
 	ASMContextNode* Clone() const override {
 		return new ASMContextNodeArrayAccess(m_operandleft->Clone(), m_operandright->Clone());
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_operandleft) {
+			func(m_operandleft, ctx);
+			m_operandleft->ApplySubNodes(func, ctx);
+		}
+		if (m_operandright) {
+			func(m_operandright, ctx);
+			m_operandright->ApplySubNodes(func, ctx);
+		}
+	}
 };
 
 class ASMContextNodeArrayBuildNode : public ASMContextNode {
@@ -435,6 +570,17 @@ public:
 
 	ASMContextNode* Clone() const override {
 		return new ASMContextNodeArrayBuildNode(m_key->Clone(), m_value->Clone());
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_key) {
+			func(m_key, ctx);
+			m_key->ApplySubNodes(func, ctx);
+		}
+		if (m_value) {
+			func(m_value, ctx);
+			m_value->ApplySubNodes(func, ctx);
+		}
 	}
 };
 
@@ -487,6 +633,15 @@ public:
 
 		return n;
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		for (ASMContextNodeArrayBuildNode*& ref : m_operands) {
+			if (ref) {
+				func(reinterpret_cast<ASMContextNode*&>(ref), ctx);
+				ref->ApplySubNodes(func, ctx);
+			}
+		}
+	}
 };
 
 class ASMContextNodeStructBuild : public ASMContextNode {
@@ -533,6 +688,15 @@ public:
 		}
 
 		return n;
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		for (ASMContextNodeArrayBuildNode*& ref : m_operands) {
+			if (ref) {
+				func(reinterpret_cast<ASMContextNode*&>(ref), ctx);
+				ref->ApplySubNodes(func, ctx);
+			}
+		}
 	}
 };
 
@@ -640,6 +804,15 @@ public:
 		}
 		out << ")";
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		for (auto& ref : m_operands) {
+			if (ref) {
+				func(ref, ctx);
+				ref->ApplySubNodes(func, ctx);
+			}
+		}
+	}
 };
 
 class ASMContextNodeTernary : public ASMContextNode {
@@ -712,6 +885,21 @@ public:
 		}
 
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_operand1) {
+			func(m_operand1, ctx);
+			m_operand1->ApplySubNodes(func, ctx);
+		}
+		if (m_operand2) {
+			func(m_operand2, ctx);
+			m_operand2->ApplySubNodes(func, ctx);
+		}
+		if (m_operand3) {
+			func(m_operand3, ctx);
+			m_operand3->ApplySubNodes(func, ctx);
+		}
+	}
 };
 
 class ASMContextNodeOp2 : public ASMContextNode {
@@ -773,6 +961,17 @@ public:
 	bool IsBoolConvertable(bool strict) override {
 		return m_isBoolValue;
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_operand1) {
+			func(m_operand1, ctx);
+			m_operand1->ApplySubNodes(func, ctx);
+		}
+		if (m_operand2) {
+			func(m_operand2, ctx);
+			m_operand2->ApplySubNodes(func, ctx);
+		}
+	}
 };
 
 class ASMContextNodeOp1 : public ASMContextNode {
@@ -823,6 +1022,13 @@ public:
 
 	bool IsBoolConvertable(bool strict) override {
 		return m_isBoolValue;
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_operand) {
+			func(m_operand, ctx);
+			m_operand->ApplySubNodes(func, ctx);
+		}
 	}
 };
 
@@ -893,6 +1099,15 @@ public:
 		}
 		out << ")";
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		for (auto& ref : m_operands) {
+			if (ref) {
+				func(ref, ctx);
+				ref->ApplySubNodes(func, ctx);
+			}
+		}
+	}
 };
 
 class ASMContextNodeFunctionOperator : public ASMContextNode {
@@ -941,6 +1156,17 @@ public:
 			out << " ";
 		}
 		out << ")";
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_self) {
+			func(m_self, ctx);
+			m_self->ApplySubNodes(func, ctx);
+		}
+		if (m_operand) {
+			func(m_operand, ctx);
+			m_operand->ApplySubNodes(func, ctx);
+		}
 	}
 };
 
@@ -1046,6 +1272,13 @@ public:
 			out << "\n";
 		}
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_operand) {
+			func(m_operand, ctx);
+			m_operand->ApplySubNodes(func, ctx);
+		}
+	}
 };
 
 namespace {
@@ -1091,8 +1324,8 @@ public:
 		ASMContextNode(priority, type), m_operatorName(operatorName), m_left(left), m_right(right) {
 	}
 	~ASMContextNodeLeftRightOperator() {
-		delete m_left;
-		delete m_right;
+		if (m_left) delete m_left;
+		if (m_right) delete m_right;
 	}
 
 	ASMContextNode* Clone() const override {
@@ -1105,6 +1338,17 @@ public:
 		out << m_operatorName;
 
 		m_right->Dump(out, ctx);
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_left) {
+			func(m_left, ctx);
+			m_left->ApplySubNodes(func, ctx);
+		}
+		if (m_right) {
+			func(m_right, ctx);
+			m_right->ApplySubNodes(func, ctx);
+		}
 	}
 };
 
@@ -1130,6 +1374,13 @@ public:
 		out << "new " << hashutils::ExtractTmp("class", m_classname) << std::flush;
 		if (m_constructorCall) {
 			m_constructorCall->Dump(out, ctx);
+		}
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_constructorCall) {
+			func(m_constructorCall, ctx);
+			m_constructorCall->ApplySubNodes(func, ctx);
 		}
 	}
 };
@@ -1188,6 +1439,19 @@ public:
 		//
 		ctx.WritePadding(out, true) << "}\n";
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_node) {
+			func(m_node, ctx);
+			m_node->ApplySubNodes(func, ctx);
+		}
+		for (auto& cse : m_cases) {
+			if (cse.casenode) {
+				func(cse.casenode, ctx);
+				cse.casenode->ApplySubNodes(func, ctx);
+			}
+		}
+	}
 };
 
 struct ASMContextSwitchPostComputeCase{
@@ -1241,9 +1505,27 @@ public:
 
 		ctx.WritePadding(out, true) << "}\n";
 	}
+
 	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
 		for (const auto& cs : m_cases) {
 			cs.block->ApplySubBlocks(func, ctx);
+		}
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_node) {
+			func(m_node, ctx);
+			m_node->ApplySubNodes(func, ctx);
+		}
+		for (auto& cse : m_cases) {
+			if (cse.value) {
+				func(cse.value, ctx);
+				cse.value->ApplySubNodes(func, ctx);
+			}
+			if (cse.block) {
+				func(reinterpret_cast<ASMContextNode*&>(cse.block), ctx);
+				cse.block->ApplySubNodes(func, ctx);
+			}
 		}
 	}
 };
@@ -1281,8 +1563,20 @@ public:
 		out << ") ";
 		m_block->Dump(out, ctx);
 	}
+
 	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
 		m_block->ApplySubBlocks(func, ctx);
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_arrayNode) {
+			func(m_arrayNode, ctx);
+			m_arrayNode->ApplySubNodes(func, ctx);
+		}
+		if (m_block) {
+			func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
+			m_block->ApplySubNodes(func, ctx);
+		}
 	}
 };
 
@@ -1342,9 +1636,34 @@ public:
 		out << ") ";
 		m_block->Dump(out, ctx);
 	}
+
 	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
 		m_block->ApplySubBlocks(func, ctx);
 	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_init) {
+			func(m_init, ctx);
+			m_init->ApplySubNodes(func, ctx);
+		}
+		if (m_cond) {
+			func(m_cond, ctx);
+			m_cond->ApplySubNodes(func, ctx);
+		}
+		if (m_delta) {
+			func(m_delta, ctx);
+			m_delta->ApplySubNodes(func, ctx);
+		}
+		if (m_originJump) {
+			func(m_originJump, ctx);
+			m_originJump->ApplySubNodes(func, ctx);
+		}
+		if (m_block) {
+			func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
+			m_block->ApplySubNodes(func, ctx);
+		}
+	}
+
 };
 
 class ASMContextNodeDoWhile : public ASMContextNode {
@@ -1416,8 +1735,24 @@ public:
 		}
 		out << ")";
 	}
+
 	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
 		m_block->ApplySubBlocks(func, ctx);
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_condition) {
+			func(m_condition, ctx);
+			m_condition->ApplySubNodes(func, ctx);
+		}
+		if (m_originJump) {
+			func(m_originJump, ctx);
+			m_originJump->ApplySubNodes(func, ctx);
+		}
+		if (m_block) {
+			func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
+			m_block->ApplySubNodes(func, ctx);
+		}
 	}
 };
 
@@ -1514,8 +1849,24 @@ public:
 		}
 		m_block->Dump(out, ctx);
 	}
+
 	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
 		m_block->ApplySubBlocks(func, ctx);
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_condition) {
+			func(m_condition, ctx);
+			m_condition->ApplySubNodes(func, ctx);
+		}
+		if (m_originJump) {
+			func(m_originJump, ctx);
+			m_originJump->ApplySubNodes(func, ctx);
+		}
+		if (m_block) {
+			func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
+			m_block->ApplySubNodes(func, ctx);
+		}
 	}
 };
 
@@ -1591,7 +1942,7 @@ public:
 
 		// loop over all the nested if blocks to create a pretty itie*e output
 		while (elseBlock && SizeNoEmptyNode(elseBlock->m_statements) == 1) {
-			auto* ref = GetNoEmptyNode(elseBlock->m_statements, 0);
+			auto* ref = GetNoEmptyNode(elseBlock->m_statements, 0)->node;
 			if (ref->m_type != TYPE_IF) {
 				break;
 			}
@@ -1658,12 +2009,29 @@ public:
 		}
 		ctx.WritePadding(out, true) << "}\n";
 	}
+
 	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
 		if (m_ifblock) {
 			m_ifblock->ApplySubBlocks(func, ctx);
 		}
 		if (m_elseblock) {
 			m_elseblock->ApplySubBlocks(func, ctx);
+		}
+	}
+
+	void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+		if (m_condition) {
+			func(m_condition, ctx);
+			m_condition->ApplySubNodes(func, ctx);
+		}
+
+		if (m_ifblock) {
+			func(reinterpret_cast<ASMContextNode*&>(m_ifblock), ctx);
+			m_ifblock->ApplySubNodes(func, ctx);
+		}
+		if (m_elseblock) {
+			func(reinterpret_cast<ASMContextNode*&>(m_elseblock), ctx);
+			m_elseblock->ApplySubNodes(func, ctx);
 		}
 	}
 };
@@ -1677,9 +2045,9 @@ ASMContextNode::~ASMContextNode() {
 
 ASMContextNode* ASMContextNode::ConvertToBool() {
 	if (IsIntConst() && GetIntConst()) {
-		return new ASMContextNodeValue<const char*>("true");
+		return new ASMContextNodeValue<const char*>("true", TYPE_VALUE);
 	}
-	return new ASMContextNodeValue<const char*>("false");
+	return new ASMContextNodeValue<const char*>("false", TYPE_VALUE);
 }
 
 bool ASMContextNode::IsBoolConvertable(bool strict) {
@@ -1697,6 +2065,115 @@ int64_t ASMContextNode::GetIntConst() const {
 bool ASMContextNode::IsIntConst() const {
 	return false;
 }
+
+namespace {
+	void PatchNumber(ASMContextNode* node, double value) {
+		if (!node || !node->IsConstNumber()) {
+			LOG_WARNING("Usage of PatchNumber with node not a const number");
+			return;
+		}
+
+		dynamic_cast<ASMContextNodeValueVir*>(node)->SetNumber(value);
+	}
+
+	void PatchNumber(ASMContextNode* node, int64_t value) {
+		if (!node || !node->IsConstNumber()) {
+			LOG_WARNING("Usage of PatchNumber with node not a const number");
+			return;
+		}
+
+		dynamic_cast<ASMContextNodeValueVir*>(node)->SetNumber(value);
+	}
+
+	void PatchNumber(ASMContextNode* node, ASMContextNode* other) {
+		if (!other || !other->IsConstNumber()) {
+			LOG_WARNING("Usage of PatchNumber with other not a const number");
+			return;
+		}
+
+		if (other->m_type == TYPE_FLOAT) {
+			PatchNumber(node, dynamic_cast<ASMContextNodeValue<FLOAT>*>(other)->m_value);
+		}
+		else {
+			PatchNumber(node, other->GetIntConst());
+		}
+	}
+
+	FLOAT GetFloatNumber(ASMContextNode* node) {
+		if (node->m_type == TYPE_FLOAT) {
+			return dynamic_cast<ASMContextNodeValue<FLOAT>*>(node)->m_value;
+		}
+		else {
+			return (FLOAT)node->GetIntConst();
+		}
+	}
+
+
+	bool IsEqualNumber(ASMContextNode* a, ASMContextNode* b) {
+		if (!a || !b || !a->IsConstNumber() || !b->IsConstNumber()) {
+			return false;
+		}
+		auto* aa = dynamic_cast<ASMContextNodeValueVir*>(a);
+		auto* bb = dynamic_cast<ASMContextNodeValueVir*>(b);
+		auto dt = aa->GetDatatype();
+
+		if (dt != bb->GetDatatype()) {
+			return false;
+		}
+
+		switch (dt) {
+		case ASCNVD_FLOAT:
+			return dynamic_cast<ASMContextNodeValue<FLOAT>*>(a)->m_value == dynamic_cast<ASMContextNodeValue<FLOAT>*>(b)->m_value;
+		case ASCNVD_INT:
+			return aa->GetIntConst() == bb->GetIntConst();
+		case ASCNVD_STRING:
+			return !strcmp(dynamic_cast<ASMContextNodeValue<const char*>*>(a)->m_value, dynamic_cast<ASMContextNodeValue<const char*>*>(b)->m_value);
+		default:
+			return false;
+		}
+	}
+	bool IsStructSimilar(ASMContextNode* a, ASMContextNode* b) {
+		if (a == b) {
+			return true;
+		}
+
+		if (!a || !b || a->m_type != b->m_type) {
+			return false;
+		}
+
+		switch (a->m_type) {
+		case TYPE_IDENTIFIER:
+			return dynamic_cast<ASMContextNodeIdentifier*>(a)->m_value == dynamic_cast<ASMContextNodeIdentifier*>(b)->m_value;
+		case TYPE_VECTOR: {
+			auto* veca = dynamic_cast<ASMContextNodeVector*>(a);
+			auto* vecb = dynamic_cast<ASMContextNodeVector*>(b);
+
+			return IsStructSimilar(veca->m_x, vecb->m_x) && IsStructSimilar(veca->m_y, vecb->m_y) && IsStructSimilar(veca->m_z, vecb->m_z);
+		}
+		case TYPE_TERNARY: {
+			auto* tera = dynamic_cast<ASMContextNodeTernary*>(a);
+			auto* terb = dynamic_cast<ASMContextNodeTernary*>(b);
+			return IsStructSimilar(tera->m_operand1, terb->m_operand1) && IsStructSimilar(tera->m_operand2, terb->m_operand2) && IsStructSimilar(tera->m_operand3, terb->m_operand3);
+		}
+		case TYPE_CONST_HASH:
+			return dynamic_cast<ASMContextNodeHash*>(a)->m_value == dynamic_cast<ASMContextNodeHash*>(b)->m_value;
+		case TYPE_STRING:
+			return !strcmp(dynamic_cast<ASMContextNodeString*>(a)->m_value, dynamic_cast<ASMContextNodeString*>(b)->m_value);
+		case TYPE_VALUE:
+			return IsEqualNumber(a, b);
+		case TYPE_ACCESS:
+		case TYPE_SET: {
+			auto* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
+			auto* bb = dynamic_cast<ASMContextNodeLeftRightOperator*>(b);
+
+			return IsStructSimilar(aa->m_left, bb->m_left) && IsStructSimilar(aa->m_right, bb->m_right);
+		}
+		default:
+			return false;
+		}
+	}
+}
+
 #pragma endregion
 #pragma region opcode_info
 
@@ -2048,7 +2525,7 @@ public:
 		bytecode += sizeof(Type);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<int64_t>(negv, TYPE_UNDEFINED, false, true, true));
+			context.PushASMCNode(new ASMContextNodeValue<int64_t>(negv, TYPE_VALUE, false, true, true));
 		}
 
 		out << std::dec << negv << std::endl;
@@ -2070,14 +2547,15 @@ class OPCodeInfoGetConstant : public OPCodeInfo {
 	Type m_value;
 	bool m_canBeCastToBool;
 	bool m_isIntConst;
+	ASMContextNodeType m_nodeType;
 public:
-	OPCodeInfoGetConstant(OPCode id, const char* name, Type value, bool canBeCastToBool = false, bool isIntConst = false) 
-		: OPCodeInfo(id, name), m_value(value), m_canBeCastToBool(canBeCastToBool), m_isIntConst(isIntConst) {
+	OPCodeInfoGetConstant(OPCode id, const char* name, Type value, bool canBeCastToBool = false, bool isIntConst = false, ASMContextNodeType nodeType = TYPE_VALUE)
+		: OPCodeInfo(id, name), m_value(value), m_canBeCastToBool(canBeCastToBool), m_isIntConst(isIntConst), m_nodeType(nodeType) {
 	}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<Type>(m_value, TYPE_UNDEFINED, false, m_canBeCastToBool, m_isIntConst));
+			context.PushASMCNode(new ASMContextNodeValue<Type>(m_value, m_nodeType, false, m_canBeCastToBool, m_isIntConst));
 		}
 
 		out << "\n";
@@ -2111,13 +2589,15 @@ class OPCodeInfoCastBool : public OPCodeInfo {
 template<typename Type>
 class OPCodeInfoGetConstantRef : public OPCodeInfo {
 	Type m_value;
+	ASMContextNodeType m_type;
 public:
-	OPCodeInfoGetConstantRef(OPCode id, const char* name, Type value) : OPCodeInfo(id, name), m_value(value) {
+	OPCodeInfoGetConstantRef(OPCode id, const char* name, Type value, ASMContextNodeType type = TYPE_VALUE)
+		: OPCodeInfo(id, name), m_value(value), m_type(type) {
 	}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			context.SetObjectIdASMCNode(new ASMContextNodeValue<Type>(m_value));
+			context.SetObjectIdASMCNode(new ASMContextNodeValue<Type>(m_value, m_type));
 		}
 
 		out << "\n";
@@ -2134,14 +2614,16 @@ template<typename Type>
 class OPCodeInfoGetConstantSet : public OPCodeInfo {
 	Type m_value;
 	bool m_inst;
+	ASMContextNodeType m_nodeType;
 public:
-	OPCodeInfoGetConstantSet(OPCode id, const char* name, Type value, bool inst = false) : OPCodeInfo(id, name), m_value(value), m_inst(inst) {
+	OPCodeInfoGetConstantSet(OPCode id, const char* name, Type value, bool inst = false, ASMContextNodeType nodeType = TYPE_VALUE)
+		: OPCodeInfo(id, name), m_value(value), m_inst(inst), m_nodeType(nodeType) {
 	}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<Type>(m_value)));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<Type>(m_value, m_nodeType)));
 			if (m_inst) {
 				context.CompleteStatement();
 			}
@@ -2164,7 +2646,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<const char*>("size"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<const char*>("size", TYPE_VALUE), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		out << "\n";
@@ -2187,12 +2669,36 @@ public:
 			auto* vector = context.PopASMCNode();
 			auto* factor = context.PopASMCNode();
 
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("vectorscale", false);
+			bool patched{};
+			// can we simply patch the vector value?
+			// in bo4 vectorscale((0, 0, 1), 24) is actually (0, 0, 24) to reduce the space
+			if (vector->m_type == TYPE_VECTOR && factor->IsConstNumber()) {
+				auto* vec = dynamic_cast<ASMContextNodeVector*>(vector);
 
-			node->AddParam(vector);
-			node->AddParam(factor);
+				if (vec->m_x && vec->m_x->IsConstNumber()
+					&& vec->m_y && vec->m_y->IsConstNumber()
+					&& vec->m_z && vec->m_z->IsConstNumber()) {
 
-			context.PushASMCNode(node);
+					FLOAT factorVal = GetFloatNumber(factor);
+
+					PatchNumber(vec->m_x, GetFloatNumber(vec->m_x) * factorVal);
+					PatchNumber(vec->m_y, GetFloatNumber(vec->m_y) * factorVal);
+					PatchNumber(vec->m_z, GetFloatNumber(vec->m_z) * factorVal);
+					
+					patched = true;
+					context.PushASMCNode(vec);
+					delete factor;
+				}
+			}
+
+			if (!patched) {
+				ASMContextNodeMultOp* node = new ASMContextNodeMultOp("vectorscale", false);
+
+				node->AddParam(vector);
+				node->AddParam(factor);
+
+				context.PushASMCNode(node);
+			}
 		}
 
 		out << "\n";
@@ -2221,7 +2727,7 @@ public:
 		bytecode += sizeof(Type);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, TYPE_UNDEFINED, false, true, true));
+			context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, TYPE_VALUE, false, true, true));
 		}
 
 		out << std::dec << intValue << std::endl;
@@ -2254,7 +2760,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("DevBlockCall", false);
-			node->AddParam(new ASMContextNodeValue<int16_t>(delta));
+			node->AddParam(new ASMContextNodeValue<int16_t>(delta, TYPE_VALUE));
 			context.PushASMCNode(node);
 			context.CompleteStatement();
 		}
@@ -2952,7 +3458,7 @@ public:
 		out << hashutils::ExtractTmp("var", name) << std::endl;
 
 		if (context.m_runDecompiler) {
-			context.SetObjectIdASMCNode(new ASMContextNodeIdentifier(hashutils::Hash32("self")));
+			context.SetObjectIdASMCNode(new ASMContextNodeValue<const char*>("self", TYPE_SELF));
 			context.PushASMCNode(new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), new ASMContextNodeIdentifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
@@ -3014,7 +3520,7 @@ public:
 		if (context.m_runDecompiler) {
 			ASMContextNode* nameNode = m_stack ? context.PopASMCNode() : new ASMContextNodeIdentifier(name);
 			ASMContextNode* fieldAccessNode = new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(fieldAccessNode, new ASMContextNodeValue<const char*>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(fieldAccessNode, new ASMContextNodeValue<const char*>("undefined", TYPE_GET_UNDEFINED), " = ", PRIORITY_SET, TYPE_SET));
 			context.CompleteStatement();
 		}
 
@@ -3376,7 +3882,7 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(new ASMContextNodeIdentifier(name), new ASMContextNodeValue<const char*>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(new ASMContextNodeIdentifier(name), new ASMContextNodeValue<const char*>("undefined", TYPE_GET_UNDEFINED), " = ", PRIORITY_SET, TYPE_SET));
 			context.CompleteStatement();
 		}
 
@@ -3874,8 +4380,7 @@ public:
 				context.PushASMCNode(ref);
 			} else {
 				// special node to print end ref
-				auto* ref = new ASMContextNodeValue<const char*>("<END>");
-				ref->m_type = TYPE_END;
+				auto* ref = new ASMContextNodeValue<const char*>("<END>", TYPE_END);
 				context.PushASMCNode(ref);
 			}
 			context.CompleteStatement();
@@ -3916,7 +4421,7 @@ public:
 			auto* key = context.PopASMCNode();
 
 			ASMContextNode* accessNode = new ASMContextNodeArrayAccess(fieldId, key);
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(accessNode, new ASMContextNodeValue<const char*>("undefined"), " = ", PRIORITY_SET, TYPE_SET));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(accessNode, new ASMContextNodeValue<const char*>("undefined", TYPE_GET_UNDEFINED), " = ", PRIORITY_SET, TYPE_SET));
 
 			context.CompleteStatement();
 		}
@@ -3940,10 +4445,9 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			auto* ref = new ASMContextNodeValue<const char*>(m_operatorName);
+			auto* ref = new ASMContextNodeValue<const char*>(m_operatorName, TYPE_STATEMENT);
 			// convert it to statement
 			ref->m_priority = PRIORITY_INST;
-			ref->m_type = TYPE_STATEMENT;
 			context.PushASMCNode(ref);
 			context.CompleteStatement();
 		}
@@ -3967,7 +4471,7 @@ public:
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("DevOp", false);
 
-			node->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_UNDEFINED, true));
+			node->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_STATEMENT, true));
 			// convert it to statement
 			context.PushASMCNode(node);
 			if (!m_push) {
@@ -4962,7 +5466,7 @@ public:
 				else {
 					out << std::dec << caseValue;
 					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(caseValue), caseRLoc });
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(caseValue, TYPE_VALUE), caseRLoc });
 					}
 				}
 			}
@@ -5090,7 +5594,7 @@ public:
 				case 1: // integer
 					out << std::dec << val.integer;
 					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(val.integer), caseRLoc });
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(val.integer, TYPE_VALUE), caseRLoc });
 					}
 					break;
 				case 0xffff: {// string
@@ -5098,7 +5602,9 @@ public:
 
 					ASMContextNodeString* outputStr;
 					if (str) {
-						out << "\"" << str << "\"";
+						out << "\"";
+						PrintFormattedString(out, str);
+						out << "\"";
 						if (node) {
 							outputStr = new ASMContextNodeString(str);
 						}
@@ -5143,7 +5649,7 @@ public:
 				default:
 					out << std::dec << "unk " << type << ":" << val.hash;
 					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(val.hash), caseRLoc });
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(val.hash, TYPE_VALUE), caseRLoc });
 					}
 					break;
 				}
@@ -5404,6 +5910,40 @@ public:
 	}
 };
 
+class OPCodeInfoCountWaittill : public OPCodeInfo {
+	const char* m_op;
+public:
+
+	OPCodeInfoCountWaittill(OPCode id, const char* name, const char* op) : OPCodeInfo(id, name), m_op(op) {
+	}
+
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		byte count = *(context.m_bcl++);
+
+		out << "count:" << (int)count << "\n";
+
+		if (context.m_runDecompiler) {
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, true, TYPE_WAITTILL);
+
+			// self
+			node->AddParam(context.PopASMCNode());
+
+			for (size_t i = 0; i < count; i++) {
+				node->AddParam(context.PopASMCNode());
+			}
+
+			context.PushASMCNode(node);
+		}
+
+		return 0;
+	}
+
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl++;
+		return 0;
+	}
+};
+
 class OPCodeInfoSingle : public OPCodeInfo {
 public:
 	const char* m_op;
@@ -5653,6 +6193,18 @@ void tool::gsc::opcode::RegisterOpCode(byte vm, Platform platform, OPCode enumVa
 	opnfo.opcodemaplookup[enumValue][platform] = op;
 	opnfo.opcodemappltlookup[platform][enumValue].push_back(op);
 }
+void tool::gsc::opcode::RegisterDevCall(byte vm, uint64_t devCall) {
+	auto ref = g_opcodeMap.find(vm);
+	if (ref == g_opcodeMap.end()) {
+		assert(0);
+		LOG_ERROR("Registering unknown DevCall vm 0x{:x}", (int)vm);
+		return;
+	}
+
+	auto& opnfo = ref->second;
+
+	opnfo.devCallsNames.insert(devCall);
+}
 
 void tool::gsc::opcode::RegisterOpCodes() {
 	static std::once_flag f{};
@@ -5758,10 +6310,10 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_EndOnCallback, "EndOnCallback", "endoncallback", false)); // count = params + self
 		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_EndOn, "EndOn", "endon", false)); // count = params + self
 		// ret control
-		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_WaitTill, "WaitTill", "waittill", true)); // count = params + self
-		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout", "waittillmatchtimeout", true));
-		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_WaitTillMatch, "WaitTillMatch", "waittillmatch", true)); // count = params + self
-		RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_WaittillTimeout, "WaittillTimeout", "waittilltimeout", true)); // count = params + self
+		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTill, "WaitTill", "waittill")); // count = params + self
+		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout", "waittillmatchtimeout"));
+		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatch, "WaitTillMatch", "waittillmatch")); // count = params + self
+		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaittillTimeout, "WaittillTimeout", "waittilltimeout")); // count = params + self
 		
 		// operation
 		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_And, "Bit_And", 2, "&", PRIORITY_BIT_AND));
@@ -5793,8 +6345,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfodec(OPCODE_SafeDecTop, "SafeDecTop"));
 
 		// gets
-		RegisterOpCodeHandler(new OPCodeInfoGetConstant<const char*>(OPCODE_GetUndefined, "GetUndefined", "undefined"));
-		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetSelf, "GetSelf", "self"));
+		RegisterOpCodeHandler(new OPCodeInfoGetConstant<const char*>(OPCODE_GetUndefined, "GetUndefined", "undefined", false, false, TYPE_GET_UNDEFINED));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetTime, "GetTime", "gettime()"));
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash, "GetHash", "#"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant<int32_t>(OPCODE_GetZero, "GetZero", 0, true, true));
@@ -5827,7 +6378,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant<const char*>(OPCODE_EmptyArray, "EmptyArray", "[]"));
 		RegisterOpCodeHandler(new OPCodeInfoClearArray(OPCODE_ClearArray, "ClearArray"));
-		RegisterOpCodeHandler(new OPCodeInfoGetConstantRef(OPCODE_GetSelfObject, "GetSelfObject", "self"));
+		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetSelf, "GetSelf", "self", false, false, TYPE_SELF));
+		RegisterOpCodeHandler(new OPCodeInfoGetConstantRef(OPCODE_GetSelfObject, "GetSelfObject", "self", TYPE_SELF));
 
 		// class stuff
 		RegisterOpCodeHandler(new OPCodeInfoGetObjectType(OPCODE_GetObjectType, "GetObjectType", "class"));
@@ -6212,7 +6764,7 @@ void ASMContext::SetFieldIdASMCNode(ASMContextNode* node) {
 ASMContextNode* ASMContext::GetObjectIdASMCNode() {
 	if (!m_objectId) {
 		// create fake value for the decompiler
-		m_objectId = new ASMContextNodeValue<const char*>("<error objectid>");
+		m_objectId = new ASMContextNodeValue<const char*>("<error objectid>", TYPE_UNDEFINED);
 	}
 	return m_objectId->Clone();
 }
@@ -6220,7 +6772,7 @@ ASMContextNode* ASMContext::GetObjectIdASMCNode() {
 ASMContextNode* ASMContext::GetFieldIdASMCNode() {
 	if (!m_fieldId) {
 		// create fake value for the decompiler
-		m_fieldId = new ASMContextNodeValue<const char*>("<error fieldid>");
+		m_fieldId = new ASMContextNodeValue<const char*>("<error fieldid>", TYPE_UNDEFINED);
 	}
 	return m_fieldId->Clone();
 }
@@ -6228,7 +6780,7 @@ ASMContextNode* ASMContext::GetFieldIdASMCNode() {
 ASMContextNode* ASMContext::PopASMCNode() {
 	if (!m_stack.size()) {
 		// create fake value for the decompiler
-		PushASMCNode(new ASMContextNodeValue<const char*>("<error pop>"));
+		PushASMCNode(new ASMContextNodeValue<const char*>("<error pop>", TYPE_UNDEFINED));
 	}
 	ASMContextNode* val = m_stack[m_stack.size() - 1];
 	m_stack.pop_back();
@@ -6238,7 +6790,7 @@ ASMContextNode* ASMContext::PopASMCNode() {
 ASMContextNode* ASMContext::PeekASMCNode() {
 	if (!m_stack.size()) {
 		// create fake value for the decompiler
-		PushASMCNode(new ASMContextNodeValue<const char*>("<error pop>"));
+		PushASMCNode(new ASMContextNodeValue<const char*>("<error pop>", TYPE_UNDEFINED));
 	}
 	return m_stack[m_stack.size() - 1];
 }
@@ -6636,19 +7188,29 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 	return 0;
 }
 
-void ApplySubStatement(ASMContextStatement& stmt, ASMContext& ctx, std::function<void(ASMContextStatement& stmt)> func) {
+void ApplySubStatement(ASMContextStatement& stmt, ASMContext& ctx, std::function<void(ASMContextStatement& stmt)> func, bool endOnReturn = false) {
 	if (stmt.node->m_type != TYPE_BLOCK) {
-		stmt.node->ApplySubBlocks([&func](ASMContextNodeBlock* block, ASMContext& ctx) {
+		if (endOnReturn && stmt.node && (stmt.node->m_type == TYPE_RETURN || stmt.node->m_type == TYPE_END)) {
+			return;
+		}
+		stmt.node->ApplySubBlocks([endOnReturn, &func](ASMContextNodeBlock* block, ASMContext& ctx) {
 			for (auto& stmt : block->m_statements) {
-				ApplySubStatement(stmt, ctx, func);
+				if (endOnReturn && stmt.node && (stmt.node->m_type == TYPE_RETURN || stmt.node->m_type == TYPE_END)) {
+					break;
+				}
+				ApplySubStatement(stmt, ctx, func, endOnReturn);
 			}
 		}, ctx);
 		func(stmt);
 		return;
 	}
-	dynamic_cast<ASMContextNodeBlock*>(stmt.node)->ApplySubBlocks([&func](ASMContextNodeBlock* block, ASMContext& ctx) {
+
+	dynamic_cast<ASMContextNodeBlock*>(stmt.node)->ApplySubBlocks([&func, endOnReturn](ASMContextNodeBlock* block, ASMContext& ctx) {
 		for (auto& stmt : block->m_statements) {
-			ApplySubStatement(stmt, ctx, func);
+			if (endOnReturn && stmt.node && (stmt.node->m_type == TYPE_RETURN || stmt.node->m_type == TYPE_END)) {
+				break;
+			}
+			ApplySubStatement(stmt, ctx, func, endOnReturn);
 		}
 	}, ctx);
 }
@@ -7688,8 +8250,7 @@ int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
 			if (jmp->m_returnCandidate && !jmp->m_special_op) {
 				// we replace this node by a return or a if return
 
-				auto* returnNode = new ASMContextNodeValue<const char*>("<END_JUMP>");
-				returnNode->m_type = TYPE_END;
+				auto* returnNode = new ASMContextNodeValue<const char*>("<END_JUMP>", TYPE_END);
 
 				auto* cond = JumpCondition(jmp, true);
 
@@ -7744,7 +8305,7 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 				return;
 			}
 			// ok
-		});
+		}, true);
 
 		if (!isCandidate) {
 			return 0;
@@ -7766,10 +8327,168 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 			auto* ret = reinterpret_cast<ASMContextNodeOp1*>(stmt.node);
 
 			ret->m_operand = ASMCNodeConvertToBool(ret->m_operand);
-		});
+		}, false);
 	}
 
 	return 0;
+}
+
+namespace {
+	void ApplySpecialPatternBlock(ASMContext& ctx, std::vector<ASMContextStatement>& stmts) {
+		for (size_t i = 0; i < stmts.size(); i++) {
+			auto& stmt = stmts[i];
+			
+			stmt.node->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) { ApplySpecialPatternBlock(ctx, block->m_statements); }, ctx);
+
+			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_SPECIAL_PATTERN)
+				&& i
+				/*
+				  unk = undefined;
+				  unk = ... waittill(...);
+				*/
+				&& stmt.node->m_type == TYPE_SET && dynamic_cast<ASMContextNodeLeftRightOperator*>(stmt.node)->m_right->m_type == TYPE_WAITTILL
+				&& stmts[i - 1].node->m_type == TYPE_SET && dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node)->m_right->m_type == TYPE_GET_UNDEFINED
+				&& IsStructSimilar(dynamic_cast<ASMContextNodeLeftRightOperator*>(stmt.node)->m_left, dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node)->m_left)
+				) {
+				i--;
+				
+				// remove the = undefined and apply the new location
+				delete stmts[i].node;
+				stmts[i + 1].location = stmts[i].location;
+				stmts.erase(stmts.begin() + i);
+				continue;
+			}
+
+			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_DEVBLOCK_INLINE)
+				&& stmt.node->m_type == TYPE_BLOCK) {
+				// inline dev calls
+				auto* db = dynamic_cast<ASMContextNodeBlock*>(stmt.node);
+
+				//ASMContextNode* (const std::vector<ASMContextStatement>&statements, size_t index) {
+				if (db->m_blockType == BLOCK_DEV && SizeNoEmptyNode(db->m_statements) == 1 && GetNoEmptyNode(db->m_statements, 0)->node->m_type == TYPE_FUNC_CALL) {
+					auto* dbStmt = GetNoEmptyNode(db->m_statements, 0);
+					auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(dbStmt->node);
+					
+					if (fc && fc->m_ftype == FUNCTION_CALL) {
+						auto* name = fc->m_operands[fc->m_flags & ASMContextNodeCallFuncFlag::SELF_CALL ? 1 : 0];
+						if (name->m_type == TYPE_FUNC_REFNAME) {
+							uint64_t refName = dynamic_cast<ASMContextNodeFuncRef*>(name)->m_func & 0x7FFFFFFFFFFFFFFF;
+							if (ctx.m_objctx.m_vmInfo->devCallsNames.find(refName) != ctx.m_objctx.m_vmInfo->devCallsNames.end()) {
+								// inline the dev call
+								stmt.node = fc;
+								dbStmt->node = nullptr;
+								delete db;
+							}
+						}
+
+					}
+				}
+			}
+
+			// remove 
+			constexpr uint64_t constr = hashutils::Hash32("__constructor");
+			constexpr uint64_t desstr = hashutils::Hash32("__destructor");
+
+			if (ctx.m_exp.GetName() == constr) {
+				for (size_t i = 0; i < stmts.size();) {
+					auto& stmt = stmts[i++];
+
+					if (stmt.node->m_type == TYPE_FUNC_CALL) {
+						auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(stmt.node);
+
+						if (fc->m_ftype == FUNCTION_CALL && !(fc->m_flags & SELF_CALL) && fc->m_operands[0]->m_type == TYPE_FUNC_REFNAME
+							&& dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == constr) {
+							i--;
+							stmts.erase(stmts.begin() + i);
+							continue;
+						}
+					}
+				}
+			}
+			else if (ctx.m_exp.GetName() == desstr) {
+				for (size_t i = 0; i < stmts.size();) {
+					auto& stmt = stmts[i++];
+
+					if (stmt.node->m_type == TYPE_FUNC_CALL) {
+						auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(stmt.node);
+
+						if (fc->m_ftype == FUNCTION_CALL && !(fc->m_flags & SELF_CALL) && fc->m_operands[0]->m_type == TYPE_FUNC_REFNAME
+							&& dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == desstr) {
+							i--;
+							stmts.erase(stmts.begin() + i);
+							continue;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	uint64_t GetLeftIdentifier(ASMContextNode* node) {
+		if (!node) {
+			return 0; // bad node?
+		}
+
+		if (node->m_type == TYPE_SET || node->m_type == TYPE_ACCESS) {
+			return GetLeftIdentifier(dynamic_cast<ASMContextNodeLeftRightOperator*>(node)->m_left);
+		}
+
+		if (node->m_type == TYPE_IDENTIFIER) {
+			return dynamic_cast<ASMContextNodeIdentifier*>(node)->m_value;
+		}
+
+		return 0;
+	}
+
+}
+
+int ASMContextNodeBlock::ComputeSpecialPattern(ASMContext& ctx) {
+	// apply special structural changes
+	ApplySpecialPatternBlock(ctx, m_statements);
+
+	return 0;
+}
+
+void ASMContext::ConvertToClassMethod(std::unordered_set<uint64_t>& selfmembers) {
+	if (m_opt.m_stepskip & tool::gsc::STEPSKIP_CLASSMEMBER_INLINE) {
+		return; // ignore
+	}
+	m_funcBlock.ApplySubNodes([&selfmembers](ASMContextNode*& node, ASMContext& ctx) {
+		if (node->m_type == TYPE_ACCESS) {
+			auto* set = dynamic_cast<ASMContextNodeLeftRightOperator*>(node);
+
+			if (set->m_left->m_type == TYPE_SELF) {
+				uint64_t name = GetLeftIdentifier(set->m_right);
+				
+				if (name) {
+					// remove the self call and add this member to the self members
+					selfmembers.insert(name);
+					node = set->m_right;
+					set->m_right = nullptr;
+					delete set;
+				}
+			}
+		}
+
+		if (node->m_type == TYPE_FUNC_CALL) {
+			auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(node);
+			if (fc->m_ftype == CLASS_CALL) {
+				auto* ptr = fc->m_operands[0];
+				auto* funcName = fc->m_operands[1];
+
+				if (ptr->m_type == TYPE_SELF && funcName->m_type == TYPE_IDENTIFIER) {
+					// (thread|childthread)? [[ self ]]->idf(...)
+					// convert to :  (thread|childthread)? idf(...)
+
+					delete ptr;
+					fc->m_operands.erase(fc->m_operands.begin());
+					fc->m_ftype = FUNCTION_CALL;
+				}
+			}
+		}
+
+
+	}, *this);
 }
 
 #pragma endregion

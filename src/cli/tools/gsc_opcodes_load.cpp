@@ -36,6 +36,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T8, "world");
 			RegisterVMGlobalVariable(VM_T8, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T8, "memory");
+			RegisterDevCall(VM_T8, hash::Hash32("assert"), hash::Hash32("assertmsg"), hash::Hash32("errormsg"), hash::Hash32("throw"), hash::Hash32("println"));
 
 
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown0, 0x0);
@@ -297,6 +298,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T937, "world");
 			RegisterVMGlobalVariable(VM_T937, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T937, "memory");
+			RegisterDevCall(VM_T937, hash::Hash32("assert"), hash::Hash32("assertmsg"), hash::Hash32("errormsg"), hash::Hash32("throw"), hash::Hash32("println"));
 
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0xa, 0xb, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
@@ -374,6 +376,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T9, "world");
 			RegisterVMGlobalVariable(VM_T9, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T9, "memory");
+			RegisterDevCall(VM_T9, hash::Hash32("assert"), hash::Hash32("assertmsg"), hash::Hash32("errormsg"), hash::Hash32("throw"), hash::Hash32("println"));
 
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown1, 0x1);
@@ -600,6 +603,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel, OPCODE_IW_GetLevelRef);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
 			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim, OPCODE_IW_GetAnimRef);
+			RegisterDevCall(VM_MW23, hashutils::HashIW2("assert"), hashutils::HashIW2("assertmsg"), hashutils::HashIW2("assertex"), hashutils::HashIW2("println"));
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif

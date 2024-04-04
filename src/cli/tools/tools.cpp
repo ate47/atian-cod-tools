@@ -57,6 +57,7 @@ bool tool::search(const char** query, int paramCount, std::function<void(const t
 	std::vector<std::pair<std::string, std::wstring>> args{};
 
 	for (size_t i = 0; i < paramCount; i++) {
+		if (!query[i] || !query[i][0]) continue;
 		args.emplace_back(query[i], utils::StrToWStr(query[i]));
 		auto& [s, w] = args[args.size() - 1];
 		std::transform(s.begin(), s.end(), s.begin(), [](char c) { return std::tolower(c); });
@@ -65,14 +66,16 @@ bool tool::search(const char** query, int paramCount, std::function<void(const t
 
 	bool findAny{};
 	for (const auto& [name, tool] : tool::tools()) {
-
+		if (!tool) {
+			continue;
+		}
 		bool find{ true };
 		for (const auto& [s, w] : args) {
 			if (
 				tool->m_nameLower.rfind(s) != std::string::npos
 				|| tool->m_usageLower.rfind(s) != std::string::npos
 				|| tool->m_descriptionLower.rfind(s) != std::string::npos
-				|| tool->m_gameLower.rfind(w) != std::wstring::npos
+				|| (!tool->m_gameLower.empty() && tool->m_gameLower.rfind(w) != std::wstring::npos)
 				) {
 				continue;
 			}

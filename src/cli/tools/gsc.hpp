@@ -13,6 +13,9 @@ namespace tool::gsc {
         STEPSKIP_FOR = 0x20,
         STEPSKIP_RETURN = 0x40,
         STEPSKIP_BOOL_RETURN = 0x80,
+        STEPSKIP_DEVBLOCK_INLINE = 0x100,
+        STEPSKIP_CLASSMEMBER_INLINE = 0x200,
+        STEPSKIP_SPECIAL_PATTERN = 0x400,
     };
     // cli options
     class GscInfoOption {
@@ -158,6 +161,7 @@ namespace tool::gsc {
 
             TYPE_PRECODEPOS,
             TYPE_SET,
+            TYPE_WAITTILL,
             TYPE_WAITTILL_SET,
             TYPE_DELTA,
             TYPE_ACCESS,
@@ -166,6 +170,9 @@ namespace tool::gsc {
             TYPE_NEW,
 
             TYPE_UNDEFINED,
+            TYPE_VALUE,
+            TYPE_SELF,
+            TYPE_GET_UNDEFINED,
 
             TYPE_JUMP_STACK_TOP
         };
@@ -228,8 +235,10 @@ namespace tool::gsc {
             virtual int64_t GetIntConst() const;
             virtual bool IsIntConst() const;
             virtual bool IsBoolConvertable(bool strict);
+            virtual bool IsConstNumber() const { return IsIntConst() || m_type == TYPE_FLOAT; };
 
             virtual void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx);
+            virtual void ApplySubNodes(const std::function<void(ASMContextNode*& node, ASMContext& ctx)>&, ASMContext& ctx);
             friend std::ostream& operator<<(std::ostream& os, const ASMContextNode& obj);
         };
 
@@ -282,10 +291,12 @@ namespace tool::gsc {
             int ComputeSwitchBlocks(ASMContext& ctx);
             int ComputeReturnJump(ASMContext& ctx);
             int ComputeBoolReturn(ASMContext& ctx);
+            int ComputeSpecialPattern(ASMContext& ctx);
 
             ASMContextStatement* FetchFirstForLocation(int64_t rloc);
 
             void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx) override;
+            void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>&, ASMContext& ctx) override;
         };
 
         struct ASMContextLocalVar {
@@ -528,6 +539,19 @@ namespace tool::gsc {
             inline void ComputeBoolReturn(ASMContext& ctx) {
                 m_funcBlock.ComputeBoolReturn(ctx);
             }
+            /*
+             * Compute the special pattern candidates
+             */
+            inline void ComputeSpecialPattern(ASMContext& ctx) {
+                m_funcBlock.ComputeSpecialPattern(ctx);
+            }
+
+            /*
+             * Convert this context to a class method
+             * @param selfmembers The members located inside this context
+             */
+            void ConvertToClassMethod(std::unordered_set<uint64_t>& selfmembers);
+
             /*
              * Dump the function block
              */
@@ -774,7 +798,7 @@ namespace tool::gsc {
         virtual size_t SizeOf() = 0;
     };
 
-    void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0);
+    void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0, const char* forceName = nullptr);
     int DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx);
     int DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt);
     /*

@@ -25,6 +25,7 @@ namespace tool::gsc::opcode {
 		const char* name;
 		uint64_t flags;
 		byte platforms{};
+		std::unordered_set<uint64_t> devCallsNames{};
 		std::unordered_map<uint16_t, std::unordered_map<Platform, OPCode>> opcodemap{};
 		std::unordered_map<OPCode, std::unordered_map<Platform, uint16_t>> opcodemaplookup{};
 		std::unordered_map<Platform, std::unordered_map<OPCode, std::vector<uint16_t>>> opcodemappltlookup{};
@@ -39,6 +40,12 @@ namespace tool::gsc::opcode {
 				platforms |= 1 << (plt - 1);
 			}
 		}
+
+		/*
+		 * Add a dev call name for this platform
+		 */
+		void AddDevCallName(uint64_t name);
+
 		/*
 		 * Is this VM available for this platform
 		 * @param plt platform
@@ -57,6 +64,7 @@ namespace tool::gsc::opcode {
 	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode = OPCODE_Undefined, OPCode getRefOpCode = OPCODE_Undefined);
 	void RegisterVMPlatform(byte vm, Platform plt);
 	void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op);
+	void RegisterDevCall(byte vm, uint64_t devCall);
 	void RegisterOpCodes();
 
 	inline void RegisterOpCode(byte vm, Platform platform, OPCode enumValue) {}
@@ -64,6 +72,14 @@ namespace tool::gsc::opcode {
 	inline void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op, OpTypes... ops) {
 		RegisterOpCode(vm, platform, enumValue, op);
 		RegisterOpCode(vm, platform, enumValue, ops...);
+	}
+
+
+	inline void RegisterDevCall(byte vm) {}
+	template<typename... DevCalls>
+	inline void RegisterDevCall(byte vm, uint64_t devCall, DevCalls... calls) {
+		RegisterDevCall(vm, devCall);
+		RegisterDevCall(vm, calls...);
 	}
 
 }
