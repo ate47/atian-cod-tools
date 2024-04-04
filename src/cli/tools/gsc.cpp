@@ -11,7 +11,9 @@ namespace {
         size_t acc = 0;
         for (const auto& stmt : statements) {
             if (stmt.node->m_type != tool::gsc::opcode::TYPE_PRECODEPOS) {
-                acc++;
+                if (acc || stmt.node->m_type != tool::gsc::opcode::TYPE_END) {
+                    acc++;
+                }
             }
         }
         return acc;
@@ -1676,7 +1678,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                         return;
                     }
 
-                    if (!ignoreEmpty || !SizeNoEmptyNode(e.m_funcBlock.m_statements)) {
+                    if (!ignoreEmpty || SizeNoEmptyNode(e.m_funcBlock.m_statements) != 0) {
                         // ignore empty exports (constructor/destructors)
                         
                         // set the export handle

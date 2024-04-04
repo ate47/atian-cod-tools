@@ -2067,7 +2067,23 @@ bool ASMContextNode::IsIntConst() const {
 }
 
 namespace {
-	void PatchNumber(ASMContextNode* node, double value) {
+	void PatchNumber(ASMContextNode*& node, double value) {
+		if (!node || !node->IsConstNumber()) {
+			LOG_WARNING("Usage of PatchNumber with node not a const number");
+			return;
+		}
+
+		if (value - ((double)((int64_t)value)) > 0.00000000000001 && node->m_type != TYPE_FLOAT) {
+			// we need to convert this node to a float
+			delete node;
+			node = new ASMContextNodeValue<FLOAT>((FLOAT)value, TYPE_FLOAT);
+			return;
+		}
+
+		dynamic_cast<ASMContextNodeValueVir*>(node)->SetNumber(value);
+	}
+
+	void PatchNumber(ASMContextNode*& node, int64_t value) {
 		if (!node || !node->IsConstNumber()) {
 			LOG_WARNING("Usage of PatchNumber with node not a const number");
 			return;
@@ -2076,16 +2092,7 @@ namespace {
 		dynamic_cast<ASMContextNodeValueVir*>(node)->SetNumber(value);
 	}
 
-	void PatchNumber(ASMContextNode* node, int64_t value) {
-		if (!node || !node->IsConstNumber()) {
-			LOG_WARNING("Usage of PatchNumber with node not a const number");
-			return;
-		}
-
-		dynamic_cast<ASMContextNodeValueVir*>(node)->SetNumber(value);
-	}
-
-	void PatchNumber(ASMContextNode* node, ASMContextNode* other) {
+	void PatchNumber(ASMContextNode*& node, ASMContextNode* other) {
 		if (!other || !other->IsConstNumber()) {
 			LOG_WARNING("Usage of PatchNumber with other not a const number");
 			return;
@@ -2160,6 +2167,7 @@ namespace {
 		case TYPE_STRING:
 			return !strcmp(dynamic_cast<ASMContextNodeString*>(a)->m_value, dynamic_cast<ASMContextNodeString*>(b)->m_value);
 		case TYPE_VALUE:
+		case TYPE_FLOAT:
 			return IsEqualNumber(a, b);
 		case TYPE_ACCESS:
 		case TYPE_SET: {
@@ -2713,8 +2721,9 @@ public:
 
 template<typename Type, typename WriteType = int64_t>
 class OPCodeInfoGetNumber : public OPCodeInfo {
+	ASMContextNodeType m_valtype;
 public:
-	using OPCodeInfo::OPCodeInfo;
+	OPCodeInfoGetNumber(OPCode id, const char* name, ASMContextNodeType type = TYPE_VALUE) : OPCodeInfo(id, name), m_valtype(type) {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
@@ -2727,7 +2736,7 @@ public:
 		bytecode += sizeof(Type);
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, TYPE_VALUE, false, true, true));
+			context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, m_valtype, false, true, true));
 		}
 
 		out << std::dec << intValue << std::endl;
@@ -6357,7 +6366,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<int64_t>(OPCODE_GetLongInteger, "GetLongInteger"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uint32_t>(OPCODE_GetUnsignedInteger, "GetUnsignedInteger"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uint16_t>(OPCODE_GetUnsignedShort, "GetUnsignedShort"));
-		RegisterOpCodeHandler(new OPCodeInfoGetNumber<FLOAT, FLOAT>(OPCODE_GetFloat, "GetFloat"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<FLOAT, FLOAT>(OPCODE_GetFloat, "GetFloat", TYPE_FLOAT));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uintptr_t, uintptr_t>(OPCODE_GetUIntPtr, "GetUIntPtr"));
 		RegisterOpCodeHandler(new OPCodeInfoVector());
 		RegisterOpCodeHandler(new OPCodeInfoVectorConstant());
@@ -8305,7 +8314,7 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 				return;
 			}
 			// ok
-		}, true);
+		}, false);
 
 		if (!isCandidate) {
 			return 0;
