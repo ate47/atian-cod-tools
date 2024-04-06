@@ -48,7 +48,7 @@ HMODULE process::LoadSysLib(const char* lib) {
 	char dir[MAX_PATH]{ 0 };
 	GetSystemDirectoryA(dir, sizeof(dir));
 
-	return LoadLib(std::format("{}/d3d11.dll", dir));
+	return LoadLib(std::format("{}/{}", dir, lib));
 }
 
 void** process::GetImportAddrTableEntry(const char* lib, const char* entry) {

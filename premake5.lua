@@ -74,12 +74,15 @@ project "ACTSSharedLibrary"
     includedirs {
         "src/shared",
         "deps/asmjit/src/",
+		"deps/Detours/src/",
     }
 
     vpaths {
         ["*"] = "*"
     }
     links { "asmjit" }
+    links { "detours" }
+    dependson "detours"
     dependson "asmjit"
 
 project "ACTSLibrary"
@@ -160,6 +163,7 @@ project "AtianCodToolsBOCWDLL"
     -- link detours
 		"deps/Detours/src/",
         "deps/asmjit/src/",
+        "deps/imgui/",
     }
 
     vpaths {
@@ -169,9 +173,11 @@ project "AtianCodToolsBOCWDLL"
     links { "ACTSSharedLibrary" }
     links { "detours" }
     links { "asmjit" }
+    links { "imgui" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
+    dependson "imgui"
 
 project "AtianCodToolsUI"
     kind "WindowedApp"
@@ -192,6 +198,7 @@ project "AtianCodToolsUI"
         "src/shared",
         "deps/ps4debug/libdebug/cpp/include/",
         "deps/asmjit/src/",
+		"deps/Detours/src/",
     }
 
     vpaths {
@@ -201,6 +208,8 @@ project "AtianCodToolsUI"
     links { "ACTSSharedLibrary" }
     links { "libps4debug" }
     links { "asmjit" }
+    links { "detours" }
+    dependson "detours"
     dependson "ACTSSharedLibrary"
     dependson "libps4debug"
     dependson "asmjit"
@@ -245,6 +254,7 @@ project "AtianCodTools"
         "deps/asmjit/src/",
         "deps/casclib/src/",
         "deps/lz4/lib/",
+		"deps/Detours/src/",
     }
 
     vpaths {
@@ -264,6 +274,8 @@ project "AtianCodTools"
     links { "asmjit" }
     links { "casclib" }
     links { "lz4" }
+    links { "detours" }
+    dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
     dependson "ACTSLibrary"
@@ -293,6 +305,8 @@ project "TestDll"
 		"deps/Detours/src/",
         "src/shared",
         "deps/asmjit/src/",
+        "deps/imgui/",
+		"deps/Detours/src/",
     }
 
     vpaths {
@@ -303,9 +317,11 @@ project "TestDll"
     links { "ACTSSharedLibrary" }
     links { "detours" }
     links { "asmjit" }
+    links { "imgui" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
+    dependson "imgui"
 
 project "AtianCodToolsMW23DLL"
     kind "SharedLib"
@@ -493,5 +509,32 @@ group "deps"
 
         includedirs {
             "deps/casclib/src/"
+        }
+        
+    project "imgui"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++17"
+        warnings "Off"
+
+        targetname "imgui"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/imgui/*.cpp",
+            "deps/imgui/*.h",
+            "deps/imgui/backends/imgui_impl_dx*.cpp",
+            "deps/imgui/backends/imgui_impl_dx*.h",
+            "deps/imgui/backends/imgui_impl_win32*.cpp",
+            "deps/imgui/backends/imgui_impl_win32*.h",
+            "deps/imgui/misc/cpp/imgui_stdlib.*"
+        }
+
+        defines {
+        }
+
+        includedirs {
+            "deps/imgui/"
         }
 

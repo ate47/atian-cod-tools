@@ -28,3 +28,6 @@
 [submodule "deps/lz4"]
 	path = deps/lz4
 	url = https://github.com/lz4/lz4
+[submodule "deps/imgui"]
+	path = deps/imgui
+	url = https://github.com/ocornut/imgui

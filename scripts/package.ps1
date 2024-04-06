@@ -56,9 +56,10 @@ try {
     Copy-Item "deps/zlib/LICENSE" "$base/licenses/license_zlib.md" > $null
     Copy-Item "deps/asmjit/LICENSE.md" "$base/licenses/license_asmjit.md" > $null
     Copy-Item "deps/casclib/LICENSE" "$base/licenses/license_casclib.md" > $null
-    Copy-Item "deps/lz4/lib\LICENSE" "$base/licenses/license_lz4.md" > $null
+    Copy-Item "deps/lz4/lib/LICENSE" "$base/licenses/license_lz4.md" > $null
     Copy-Item "licenses/mio.md" "$base/licenses/license_mio.md" > $null
     Copy-Item "licenses/xorstr.md" "$base/licenses/license_xorstr.md" > $null
+    Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/license_imgui.md" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

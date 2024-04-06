@@ -1,5 +1,8 @@
 #include <dll_includes.hpp>
 #include <utils.hpp>
+#include <hook/error.hpp>
+#include <hook/memory.hpp>
+#include <hook/library.hpp>
 
 #define EXPORT extern "C" __declspec(dllexport)
 
@@ -40,10 +43,8 @@ namespace {
         uint16_t pad;
     };
 
-    uintptr_t startModule;
-
     byte* DecryptSTR(byte* str) {
-        return reinterpret_cast<byte*(*)(byte * str)>(startModule + 0xC990AE0)(str);
+        return reinterpret_cast<byte * (*)(byte * str)>(process::Relativise(0xC990AE0))(str);
     }
 
 
@@ -74,7 +75,7 @@ namespace {
     void DecryptMTBuffer(size_t count) {
         int done = 0;
         std::unordered_set<std::string> strs{};
-        auto* mt_buffer = *reinterpret_cast<byte**>(startModule + 0xF5EC9C8);
+        auto* mt_buffer = *reinterpret_cast<byte**>(process::Relativise(0xF5EC9C8));
         for (size_t i = 1; i < count; i++) {
             auto* loc = mt_buffer + i * 0x10;
             if (i % 0x100 == 0) {
@@ -102,12 +103,12 @@ namespace {
 
     void InitDll() {
         alogs::setfile("acts-bocw.log");
-
+        alogs::setlevel(alogs::LVL_DEBUG);
         LOG_INFO("init bocw dll");
-
-
-        startModule = reinterpret_cast<uintptr_t>(GetModuleHandle(NULL));
+        hook::error::EnableHeavyDump();
+        hook::error::InstallErrorHooks(true);
     }
+
     void DecryptGSCScripts() {
         LOG_INFO("decrypting gsc scripts...");
         std::filesystem::path spt{ "scriptparsetree_cw" };
@@ -181,4 +182,17 @@ EXPORT void DLL_DecryptMTBuffer(size_t count) {
 
 EXPORT void DLL_DecryptGSCScripts() {
     DecryptGSCScripts();
+}
+
+// hook powrprof.dll for auto injection
+EXPORT NTSTATUS CallNtPowerInformation(POWER_INFORMATION_LEVEL InformationLevel, PVOID InputBuffer, ULONG InputBufferLength, PVOID OutputBuffer, ULONG OutputBufferLength) {
+    static auto func = [] {
+        HMODULE hmod = process::LoadSysLib("powrprof.dll");
+
+        if (!hmod) throw std::runtime_error(utils::va("can't find real powrprof.dll"));
+            
+        return reinterpret_cast<decltype(&CallNtPowerInformation)>(GetProcAddress(hmod, "CallNtPowerInformation"));
+    }();
+
+    return func(InformationLevel, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
 }

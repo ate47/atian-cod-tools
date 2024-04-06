@@ -2,6 +2,7 @@
 #include "hashutils.hpp"
 #include "compatibility/scobalula_wni.hpp"
 #include "actscli.hpp"
+#include "hook/error.hpp"
 #include "actslib/logging.hpp"
 
 namespace {
@@ -35,6 +36,9 @@ namespace {
 			}
 			else if (!strcmp("-N", arg) || !_strcmpi("--no-hash", arg)) {
 				opt.noDefaultHash = true;
+			}
+			else if (!strcmp("-d", arg) || !_strcmpi("--debug", arg)) {
+				hook::error::EnableHeavyDump();
 			}
 			else if (!strcmp("-s", arg) || !_strcmpi("--strings", arg)) {
 				if (i + 1 == argc) {
@@ -162,6 +166,7 @@ namespace {
 		LOG_INFO(" -? --help -h       : Help");
 		LOG_INFO(" -l --log [l]       : Set log level t(race)/d(ebug)/i(nfo)/w(arn)/e(rror), default: i");
 		LOG_INFO(" -L --log-file [f]  : Set the log file");
+		LOG_INFO(" -d --debug         : Enable debug mode");
 		LOG_INFO(" -x --extracted [f] : Write the extracted hashes into a file after the process");
 		LOG_INFO(" -t --no-title      : Hide ACTS title at start");
 		LOG_INFO(" -p --pack [f]      : Load ACTS pack file");
@@ -197,6 +202,7 @@ int main(int argc, const char *_argv[]) {
 	else {
 		argv = _argv;
 	}
+	hook::error::InstallErrorHooks();
 
 	auto& opt = actscli::options();
 

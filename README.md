@@ -25,6 +25,7 @@ This tool is using and providing
 - [lz4/lz4](https://github.com/lz4/lz4) - [Custom license](https://github.com/lz4/lz4/blob/dev/lib/LICENSE).
 - [vimpunk/mio](https://github.com/vimpunk/mio) - [MIT license](https://github.com/vimpunk/mio/blob/master/LICENSE).
 - [JustasMasiulis/xorstr](https://github.com/JustasMasiulis/xorstr) - [Apache License 2.0](https://github.com/JustasMasiulis/xorstr/blob/master/LICENSE)
+- [ocornut/imgui](https://github.com/ocornut/imgui) - [MIT license](https://github.com/ocornut/imgui/blob/master/LICENSE.txt)
 
 ## Downloads
 
