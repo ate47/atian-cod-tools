@@ -3,6 +3,14 @@
 
 namespace hook::error {
 	/*
+	 * Get location info
+	 * @param location
+	 * @param relativeLocation out relative location
+	 * @param moduleName out module name
+	 * @return if the location is inside a module
+	 */
+	bool GetLocInfo(const void* location, uintptr_t& relativeLocation, const char*& moduleName);
+	/*
 	 * Install an error hook
 	 * @param clearSetFunction remove the set function so nothing else can set it
 	 */
@@ -11,4 +19,10 @@ namespace hook::error {
 	 * Print more error information inside the error hook
 	 */
 	void EnableHeavyDump();
+	/*
+	 * Dump a vtable in the logs
+	 * @param object object to dump
+	 * @param size size
+	 */
+	void DumpVTable(void* object, size_t size);
 }

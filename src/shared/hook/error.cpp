@@ -7,6 +7,26 @@
 
 
 namespace hook::error {
+	bool GetLocInfo(const void* location, uintptr_t& relativeLocation, const char*& moduleName) {
+		HMODULE hmod = library::GetLibraryInfo(location);
+
+		if (!hmod) {
+			relativeLocation = reinterpret_cast<uintptr_t>(location);
+			if (hook::memory::IsInsideNearContainer(location)) {
+				moduleName = "NearContainer";
+				return true;
+			}
+
+			moduleName = "";
+			return false;
+		}
+
+		relativeLocation = (reinterpret_cast<uintptr_t>(location) - reinterpret_cast<uintptr_t>(hmod));
+		moduleName = library::GetLibraryName(hmod);
+
+
+		return true;
+	}
 	namespace {
 		struct ErrorConfig {
 			DWORD mainThread{};
@@ -41,26 +61,6 @@ namespace hook::error {
 			}
 		}
 
-		bool GetLocInfo(const void* location, uintptr_t& relativeLocation, const char*& moduleName) {
-			HMODULE hmod = library::GetLibraryInfo(location);
-
-			if (!hmod) {
-				relativeLocation = reinterpret_cast<uintptr_t>(location);
-				if (hook::memory::IsInsideNearContainer(location)) {
-					moduleName = "NearContainer";
-					return true;
-				}
-
-				moduleName = "";
-				return false;
-			}
-
-			relativeLocation = (reinterpret_cast<uintptr_t>(location) - reinterpret_cast<uintptr_t>(hmod));
-			moduleName = library::GetLibraryName(hmod);
-
-
-			return true;
-		}
 
 		void DumpStackTraceFrom(const void* location) {
 			void* locs[50];
@@ -225,4 +225,39 @@ namespace hook::error {
 		cfg.heavyDump = true;
 	}
 
+	void DumpVTable(void* object, size_t size) {
+		uintptr_t vtable{};
+		if (!object || !memory::ReadMemorySafe(object, &vtable, sizeof(vtable))) {
+			LOG_ERROR("Can't read vtable location");
+			return;
+		}
+		
+
+		void* buff[0x100]{};
+
+		size_t offset{};
+		while (size) {
+			size_t r = min(ARRAYSIZE(buff), size);
+
+			if (!memory::ReadMemorySafe(reinterpret_cast<void*>(vtable), &buff, sizeof(buff[0]) * r)) {
+				LOG_ERROR("Can't read vtable offset {}", offset);
+				return;
+			}
+
+			uintptr_t relativeLocation;
+			const char* moduleName;
+			for (size_t i = 0; i < r; i++) {
+				if (GetLocInfo(buff[i], relativeLocation, moduleName)) {
+					LOG_DEBUG("VTABLE {} {} {:x} ({})", offset, moduleName, relativeLocation, buff[i]);
+				}
+				else {
+					LOG_DEBUG("VTABLE {} {}", offset, buff[i]);
+				}
+				offset++;
+			}
+
+			size -= r;
+			vtable += r * sizeof(buff[0]);
+		}
+	}
 }

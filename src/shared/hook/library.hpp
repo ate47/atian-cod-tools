@@ -55,6 +55,10 @@ namespace hook::library {
 			}
 		}
 
+		constexpr operator bool() const {
+			return base;
+		}
+
 		/*
 		 * @return origin pointer
 		 */
