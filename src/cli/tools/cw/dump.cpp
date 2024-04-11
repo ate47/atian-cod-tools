@@ -1671,25 +1671,6 @@ namespace {
 
         XAssetPool sptPool{};
 
-        // 3847549440
-        auto patterns = proc[0].Scan("00 F2 54 E5");
-
-        if (!patterns) {
-            std::cerr << "Can't find SPT\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-
-        // E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 75 0A B9 00 F2 54 E5
-        
-
-        uintptr_t poolLocationFunc = (uintptr_t)((int64_t)patterns - 14 + 4 + (int64_t)proc.ReadMemory<int32_t>(patterns - 14 + 1));
-
-        // 48 8D 05 80 26 73 08
-
-        uintptr_t poolLocation = (uintptr_t)((int64_t)poolLocationFunc + 0x10 + (int64_t)proc.ReadMemory<int32_t>(poolLocationFunc + 12));
-
-        proc.WriteLocation(std::cout << "pool: ", poolLocation) << "\n";
         std::cout << "pool: " << s_assetPools_off << "\n";
         
         if (!proc.ReadMemory(&sptPool, proc[s_assetPools_off] + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
