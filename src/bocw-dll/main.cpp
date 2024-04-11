@@ -12,6 +12,7 @@
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
 #include <core/system.hpp>
+#include "core.hpp"
 #include "cw.hpp"
 
 #define EXPORT extern "C" __declspec(dllexport)
@@ -44,12 +45,19 @@ namespace cw {
 
         int GetSystemMetricsStub(int nIndex) {
             // unpack?
-            core::system::PostInit();
+            try {
+                core::system::PostInit();
+                hook::library::SaveScanContainer();
+            }
+            catch (std::exception& e) {
+                MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
+                *reinterpret_cast<byte*>(0x123456789) = 2;
+            }
             return GetSystemMetricsDetour.Call<int>(nIndex);
         }
 
         const char* EnableEE() {
-            auto& spt = reinterpret_cast<XAssetPool*>(process::Relativise(assetPools_off))[ASSET_TYPE_SCRIPTPARSETREE];
+            auto& spt = core::xassetpools[ASSET_TYPE_SCRIPTPARSETREE];
             
             auto* pool = (ScriptParseTree*)spt.pool;
 
@@ -611,6 +619,8 @@ namespace cw {
 
                 GetSystemMetricsDetour.Create(user32["GetSystemMetrics"], GetSystemMetricsStub);
                 ExitProcessDetour.Create(kernel32["ExitProcess"], ExitProcessStub);
+
+                hook::library::InitScanContainer("acts");
 
                 core::system::Init();
             }

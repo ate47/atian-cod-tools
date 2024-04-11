@@ -126,6 +126,14 @@ namespace utils {
         return true;
     }
 
+    size_t Allocate(std::vector<byte>& data, size_t len) {
+        size_t begin = data.size();
+        for (size_t i = 0; i < len; i++) {
+            data.push_back(0);
+        }
+        return begin;
+    }
+
     std::ostream& Padding(std::ostream& out, int padding) {
         for (size_t i = 0; i < padding; i++) {
             out << "    ";

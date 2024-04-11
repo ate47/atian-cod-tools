@@ -29,6 +29,35 @@ namespace hook::library {
 	 */
 	const char* LocatePDB(HMODULE hmod);
 
+
+	struct ScanResult {
+		byte* location;
+
+		template<typename Type>
+		constexpr Type Get(size_t offset = 0) const {
+			return *reinterpret_cast<Type*>(location + offset);
+		}
+
+		template<typename Type, typename TypeOut = byte*>
+		constexpr TypeOut GetRelativeFrom(size_t offset, size_t from) const {
+			return reinterpret_cast<TypeOut>(location + from + Get<Type>(offset));
+		}
+
+		template<typename Type, typename TypeOut = byte*>
+		constexpr TypeOut GetRelative(size_t offset) const {
+			return GetRelativeFrom<Type, TypeOut>(offset, offset + sizeof(Type));
+		}
+	};
+
+	/*
+	 * Scan the memory to find a pattern
+	 * @param hmod module
+	 * @param pattern
+	 * @return matches
+	 */
+	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern);
+
+
 	class Library {
 		HMODULE hmod{};
 	public:
@@ -90,6 +119,23 @@ namespace hook::library {
 		inline PIMAGE_DOS_HEADER GetDosHeader() const {
 			return process::PImageDosHeader(hmod);
 		}
+
+		inline std::vector<ScanResult> Scan(const char* pattern) const {
+			return ScanLibrary(hmod, pattern);
+		}
+
+		ScanResult ScanSingle(const char* pattern, const char* name = nullptr) const {
+			auto res = Scan(pattern);
+
+			if (res.empty()) {
+				throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : pattern));
+			}
+			if (res.size() != 1) {
+				throw std::runtime_error(utils::va("Too many finds for pattern %s", name ? name : pattern));
+			}
+
+			return res[0];
+		}
 	};
 
 	/*
@@ -149,4 +195,9 @@ namespace hook::library {
 		}
 
 	};
+
+	void InitScanContainer(const char* name);
+	void SaveScanContainer();
+	ScanResult QueryScanContainerSingle(const char* name, const char* pattern);
+	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern);
 }

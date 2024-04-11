@@ -1,8 +1,6 @@
 #pragma once
 
 namespace cw {
-    constexpr size_t assetPools_off = 0x11E50670;
-
     struct T9GSCOBJ {
         byte magic[8];
         int32_t crc;

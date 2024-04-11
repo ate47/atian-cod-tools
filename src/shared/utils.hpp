@@ -133,6 +133,12 @@ namespace utils {
 		}
 	}
 	/*
+	 * Allocate a pointer inside a vector
+	 * @param data buffer
+	 * @param len pointer size
+	 */
+	size_t Allocate(std::vector<byte>& data, size_t len);
+	/*
 	 * Write a padding into a stream
 	 * @param out stream
 	 * @param padding padding size
