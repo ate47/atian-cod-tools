@@ -19,6 +19,13 @@ namespace hook::error {
 	 * Print more error information inside the error hook
 	 */
 	void EnableHeavyDump();
+
+	/*
+	 * Dump stack trace with a level
+	 * @param level log level
+	 * @param location start location
+	 */
+	void DumpStackTraceFrom(alogs::loglevel level = alogs::LVL_ERROR, const void* location = nullptr);
 	/*
 	 * Dump a vtable in the logs
 	 * @param object object to dump

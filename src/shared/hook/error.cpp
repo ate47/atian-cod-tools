@@ -61,30 +61,6 @@ namespace hook::error {
 			}
 		}
 
-
-		void DumpStackTraceFrom(const void* location) {
-			void* locs[50];
-			WORD capture = RtlCaptureStackBackTrace(0, ARRAYSIZE(locs), locs, NULL);
-
-			uintptr_t relativeLocation;
-			const char* moduleName;
-			size_t i{};
-			for (; i < capture; i++) {
-				if (locs[i] == location) break; // skip until we reach our location
-			}
-			if (i == capture) {
-				i = 0;
-			}
-			for (; i < capture; i++) {
-				if (GetLocInfo(locs[i], relativeLocation, moduleName)) {
-					LOG_ERROR("- {} 0x{:x} ({})", moduleName, relativeLocation, locs[i]);
-				}
-				else {
-					LOG_ERROR("- {}", locs[i]);
-				}
-			}
-		}
-
 		LONG ACTSUnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo) {
 			LOG_ERROR("--- EXCEPTION DETECTED ---");
 			uintptr_t relativeLocation;
@@ -182,7 +158,7 @@ namespace hook::error {
 				PrintRegister("rip", ExceptionInfo->ContextRecord->Rip);
 
 				LOG_ERROR("Stack trace:");
-				DumpStackTraceFrom(ExceptionInfo->ExceptionRecord->ExceptionAddress);
+				DumpStackTraceFrom(alogs::LVL_ERROR, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 			}
 
 
@@ -205,6 +181,31 @@ namespace hook::error {
 			}
 		}
 
+	}
+
+	void DumpStackTraceFrom(alogs::loglevel level, const void* location) {
+		void* locs[50];
+		WORD capture = RtlCaptureStackBackTrace(0, ARRAYSIZE(locs), locs, NULL);
+
+		uintptr_t relativeLocation;
+		const char* moduleName;
+		size_t i{};
+		if (location) {
+			for (; i < capture; i++) {
+				if (locs[i] == location) break; // skip until we reach our location
+			}
+		}
+		if (i == capture) {
+			i = 0;
+		}
+		for (; i < capture; i++) {
+			if (GetLocInfo(locs[i], relativeLocation, moduleName)) {
+				LOG_LVL(level, "- {} 0x{:x} ({})", moduleName, relativeLocation, locs[i]);
+			}
+			else {
+				LOG_LVL(level, "- {}", locs[i]);
+			}
+		}
 	}
 
 	void InstallErrorHooks(bool clearSetFunction) {
