@@ -2,15 +2,13 @@
 #include "eventhandler.hpp"
 
 namespace core::eventhandler {
-	std::unordered_map<uint64_t, std::vector<EventCallback>>& GetHandlers() {
-		static std::unordered_map<uint64_t, std::vector<EventCallback>> handlers;
+	static std::unordered_map<uint64_t, std::vector<EventCallback>>& GetHandlers() {
+		static std::unordered_map<uint64_t, std::vector<EventCallback>> handlers{};
 		return handlers;
 	}
 	
 	void RegisterEventCallback(uint64_t name, EventCallback callback) {
-		if (callback) {
-			GetHandlers()[name].push_back(callback);
-		}
+		GetHandlers()[name].push_back(callback);
 	}
 
 	void RunEvent(uint64_t name, void* data) {
@@ -20,7 +18,7 @@ namespace core::eventhandler {
 			return; // nothing to run
 		}
 
-		for (auto* handler : it->second) {
+		for (auto& handler : it->second) {
 			handler(data);
 		}
 	}

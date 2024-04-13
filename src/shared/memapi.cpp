@@ -408,18 +408,15 @@ const ProcessModule& Process::GetLocationModule(uintptr_t ptr) const {
 }
 
 uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
-	if (!pattern || !*pattern) {
-		return 0; // bad pattern
-	}
 	std::vector<uint8_t*> find{};
 
 	std::vector<uint8_t> mask{};
 	std::vector<uint8_t> searched{};
 
-	bool mid = true;
+	bool mid{ true };
 
 	// parse pattern
-	const char* str = pattern;
+	const char* str{ pattern };
 	while (*str) {
 		char c = *(str++);
 		if (isspace(c)) {
@@ -429,10 +426,13 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 		mid = !mid;
 
 		if (c == '?') {
-			if (!mid) {
-				mask.push_back(0);
-				searched.push_back(0);
+			if (mid) {
+				throw std::runtime_error(utils::va("Wildcard pattern in half byte! %s", pattern));
 			}
+			// consume both
+			mid = !mid;
+			mask.push_back(0);
+			searched.push_back(0);
 			continue;
 		}
 
@@ -450,9 +450,8 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 
 	// reversed because we set it by default to 0
 	if (!mid) {
-		throw std::runtime_error("Scan pattern has half byte!");
+		throw std::runtime_error(utils::va("Scan pattern has half byte! %s", pattern));
 	}
-
 
 	auto it1 = mask.begin();
 	auto it2 = searched.begin();
@@ -467,7 +466,7 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 	}
 
 	if (!mask.size()) {
-		throw std::runtime_error("Empty pattern!");
+		throw std::runtime_error(utils::va("Empty pattern! %s", pattern));
 	}
 
 	// clear end
@@ -482,64 +481,41 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 	}
 
 	if (!mask.size()) {
-		throw std::runtime_error("Empty pattern!");
+		throw std::runtime_error(utils::va("Empty pattern! %s", pattern));
 	}
 
-	if (size <= start_ptr) {
-		// empty
-		return 0;
+	constexpr size_t lazySize = 0x10000000;
+
+	uintptr_t start{ this->start };
+	uintptr_t end{ this->start + lazySize - mask.size() };
+
+	byte buffer[0x1000];
+
+	if (sizeof(buffer) < mask.size()) {
+		throw std::runtime_error(utils::va("Pattern too big! %s", pattern)); // wtf?
 	}
 
-	uintptr_t ptr = start + start_ptr;
-	uintptr_t il = size;
+	size_t delta = sizeof(buffer) - mask.size();
+	uintptr_t current = start;
 
-	if (il - start_ptr < mask.size()) {
-		// empty
-		return 0;
-	}
-	uintptr_t end = ptr + (il - mask.size() - start_ptr);
-	uintptr_t module_end = start + il;
-
-	if (mask.size() > 0x1000) {
-		throw std::runtime_error("pattern too big!"); // ate lazy
-	}
-
-	char tmpBuffer[0x1000];
-	uintptr_t buff_location = ptr;
-
-	if (!this->m_parent.ReadMemory(tmpBuffer, buff_location, min(buff_location + sizeof(tmpBuffer), module_end) - buff_location)) {
-		// can't read memory
-		std::cerr << "Can't read start memory\n";
-		return 0;
-	}
-
-	while (ptr != end) {
-		if (ptr + mask.size() > buff_location + sizeof(tmpBuffer)) {
-			buff_location = ptr;
-			// 0x00007ffac91de000 > 
-			// 0x00007ffac91defa6
-			assert(module_end > buff_location);
-			auto len = min(buff_location + sizeof(tmpBuffer), module_end) - buff_location;
-			if (!this->m_parent.ReadMemory(tmpBuffer, buff_location, len)) {
-				// can't read memory
-				std::cerr << "Can't read next memory block of size 0x" << std::hex << len << " at 0x" << buff_location << ": 0x" << GetLastError() << " / 0x" << start << ":0x" << (start + size) << "\n";
-				return 0;
+	while (current < end) {
+		if (!m_parent.ReadMemory(buffer, current, sizeof(buffer))) {
+			current += delta;
+			continue;
+		}
+		for (size_t off = 0; off < delta; off++) {
+			size_t i;
+			for (i = 0; i < mask.size(); i++) {
+				if ((buffer[off + i] & mask[i]) != searched[i]) {
+					break;
+				}
+			}
+			if (i == mask.size()) {
+				return current + off;
 			}
 		}
-		size_t loc = 0;
 
-		do {
-			if ((tmpBuffer[ptr - buff_location + loc] & mask[loc]) != searched[loc]) {
-				break;
-			}
-		} while (++loc < mask.size());
-
-		// it's a match
-		if (loc == mask.size()) {
-			return ptr;
-		}
-
-		ptr++;
+		current += delta;
 	}
 
 	return 0;

@@ -47,6 +47,11 @@ namespace hook::library {
 		constexpr TypeOut GetRelative(size_t offset) const {
 			return GetRelativeFrom<Type, TypeOut>(offset, offset + sizeof(Type));
 		}
+
+		template<typename Type = void*>
+		constexpr Type GetPtr(size_t offset = 0) const {
+			return reinterpret_cast<Type>(location + offset);
+		}
 	};
 
 	/*
@@ -144,6 +149,7 @@ namespace hook::library {
 	class Detour {
 		void* origin{};
 		void* base{};
+		void* to{};
 	public:
 		inline Detour() {}
 
@@ -157,6 +163,7 @@ namespace hook::library {
 			DetourUpdateThread(GetCurrentThread());
 
 			this->base = origin = base;
+			this->to = to;
 
 			DetourAttach(&(PVOID&)this->base, to);
 
@@ -164,6 +171,19 @@ namespace hook::library {
 
 			if (error != NO_ERROR) {
 				throw std::runtime_error(utils::va("Can't commit detour %p -> %p", base, to));
+			}
+		}
+
+		void Clear() {
+			DetourTransactionBegin();
+			DetourUpdateThread(GetCurrentThread());
+
+			DetourDetach(&(PVOID&)this->base, this->to);
+
+			LONG error = DetourTransactionCommit();
+
+			if (error != NO_ERROR) {
+				throw std::runtime_error(utils::va("Can't commit clear detour %p -> %p", base));
 			}
 		}
 
@@ -200,4 +220,8 @@ namespace hook::library {
 	void SaveScanContainer();
 	ScanResult QueryScanContainerSingle(const char* name, const char* pattern);
 	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern);
+	template<typename Type>
+	inline Type QueryScanContainerSinglePtr(const char* name, const char* pattern) {
+		return QueryScanContainerSingle(name, pattern).GetPtr<Type>();
+	}
 }

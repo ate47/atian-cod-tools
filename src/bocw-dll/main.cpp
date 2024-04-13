@@ -12,6 +12,7 @@
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
 #include <core/system.hpp>
+#include <core/eventhandler.hpp>
 #include "core.hpp"
 #include "cw.hpp"
 
@@ -22,6 +23,8 @@ namespace cw {
     namespace {
 
         hook::library::Detour ExitProcessDetour;
+        hook::library::Detour GetThreadContextDetour;
+        hook::library::Detour SetThreadContextDetour;
         hook::library::Detour GetSystemMetricsDetour;
         hook::library::Detour CreateSwapChainDetour;
         hook::library::Detour D3D12ExecuteCommandListsDetour;
@@ -29,7 +32,6 @@ namespace cw {
         hook::library::Detour CreateDXGIFactoryDetour;
         hook::library::Detour CreateDXGIFactory1Detour;
         hook::library::Detour CreateDXGIFactory2Detour;
-        
 
         DECLSPEC_NORETURN void ExitProcessStub(UINT uExitCode) {
             if (uExitCode) {
@@ -43,6 +45,32 @@ namespace cw {
             ExitProcessDetour.Call(uExitCode);
         }
 
+        BOOL WINAPI GetThreadContextStub(HANDLE hThread, LPCONTEXT lpContext) {
+            // clear debug flags if inside the game
+            if (hook::library::GetLibraryInfo(_ReturnAddress()) == process::BaseHandle()) {
+                if (lpContext && lpContext->ContextFlags & (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64)) {
+                        lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
+                }
+                if (hThread && hThread != INVALID_HANDLE_VALUE) {
+                    core::eventhandler::RunEvent(hash::Hash64("RegisterThread"), (void*)hThread);
+                }
+            }
+
+            return GetThreadContextDetour.Call<BOOL>(hThread, lpContext);
+        }
+        BOOL WINAPI SetThreadContextStub(HANDLE hThread, CONTEXT* lpContext) {
+            // clear debug flags if inside the game
+            if (hook::library::GetLibraryInfo(_ReturnAddress()) == process::BaseHandle()) {
+                if (lpContext && lpContext->ContextFlags & (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64)) {
+                    lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
+                }
+                if (hThread && hThread != INVALID_HANDLE_VALUE) {
+                    core::eventhandler::RunEvent(hash::Hash64("RegisterThread"), (void*)hThread);
+                }
+            }
+
+            return SetThreadContextDetour.Call<BOOL>(hThread, lpContext);
+        }
         int GetSystemMetricsStub(int nIndex) {
             // unpack?
             try {
@@ -619,6 +647,8 @@ namespace cw {
 
                 GetSystemMetricsDetour.Create(user32["GetSystemMetrics"], GetSystemMetricsStub);
                 ExitProcessDetour.Create(kernel32["ExitProcess"], ExitProcessStub);
+                GetThreadContextDetour.Create(kernel32["GetThreadContext"], GetThreadContextStub);
+                SetThreadContextDetour.Create(kernel32["SetThreadContext"], SetThreadContextStub);
 
                 hook::library::InitScanContainer("acts");
 

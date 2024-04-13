@@ -8,8 +8,19 @@
 
 
 namespace {
+    uintptr_t ScanPool(Process& proc) {
+        uintptr_t curr = proc[nullptr].Scan("48 8D 05 ? ? ? ? 48 C1 E2 ? 48 03 D0");
+        if (!curr) {
+            throw std::runtime_error("Can't find xasset pool");
+        }
+        int32_t delta = proc.ReadMemory<int32_t>(curr + 3);
+        if (!delta) {
+            throw std::runtime_error("Can't find xasset pool delta");
+        }
+        return curr + 7 + delta;
+    }
 
-	constexpr auto s_assetPools_off = 0x11E50670;
+	//constexpr auto s_assetPools_off = 0x11E50670;
 
     struct XAssetPool {
         uintptr_t pool; // void*
@@ -423,7 +434,11 @@ namespace {
 		
         XAssetPool sptPool{};
 
-        if (!proc.ReadMemory(&sptPool, proc[s_assetPools_off] + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
+        uintptr_t poolLoc = ScanPool(proc);
+
+        proc.WriteLocation(std::cout << "proc loc: ", poolLoc) << "\n";
+
+        if (!proc.ReadMemory(&sptPool, poolLoc + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
             std::cerr << "Can't read SPT pool\n";
             return tool::BASIC_ERROR;
         }
@@ -484,6 +499,8 @@ namespace {
 
 		int id = 0;
 
+        uintptr_t poolLoc = ScanPool(proc);
+
 		std::cout << "id,name,itemSize,itemCount,itemAllocCount\n";
 
 		while (true) {
@@ -491,7 +508,7 @@ namespace {
 			if (!addr || proc.ReadString(tmp_buff, addr, sizeof(tmp_buff)) < 0) {
 				break;
 			}
-			if (!proc.ReadMemory(&pool, proc[s_assetPools_off] + sizeof(pool) * id, sizeof(pool))) {
+			if (!proc.ReadMemory(&pool, poolLoc + sizeof(pool) * id, sizeof(pool))) {
 				break;
 			}
 
@@ -1180,7 +1197,8 @@ namespace {
 
         XAssetPool entry{};
 
-        if (!proc.ReadMemory(&entry, proc[s_assetPools_off] + sizeof(entry) * id, sizeof(entry))) {
+        uintptr_t poolLoc = ScanPool(proc);
+        if (!proc.ReadMemory(&entry, poolLoc + sizeof(entry) * id, sizeof(entry))) {
             std::cerr << "Can't read pool entry\n";
             return tool::BASIC_ERROR;
         }
@@ -1671,15 +1689,15 @@ namespace {
 
         XAssetPool sptPool{};
 
-        std::cout << "pool: " << s_assetPools_off << "\n";
+        uintptr_t poolLoc = ScanPool(proc);
+
+        proc.WriteLocation(std::cout << "pool: ", poolLoc) << "\n";
         
-        if (!proc.ReadMemory(&sptPool, proc[s_assetPools_off] + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
+        if (!proc.ReadMemory(&sptPool, poolLoc + sizeof(sptPool) * ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
             std::cerr << "Can't read SPT pool\n";
             std::free(scriptBuffer);
             return tool::BASIC_ERROR;
         }
-        std::free(scriptBuffer);
-        return tool::OK;
 
         auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
 

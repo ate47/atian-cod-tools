@@ -60,6 +60,7 @@ try {
     Copy-Item "licenses/mio.md" "$base/licenses/license_mio.md" > $null
     Copy-Item "licenses/xorstr.md" "$base/licenses/license_xorstr.md" > $null
     Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/license_imgui.md" > $null
+    Copy-Item "deps/hw_break/LICENSE" "$base/licenses/license_hw_break.md" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

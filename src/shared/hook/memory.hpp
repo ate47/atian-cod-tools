@@ -1,4 +1,5 @@
 #pragma once
+#include <process.hpp>
 
 namespace hook::memory {
 	/*
@@ -40,6 +41,13 @@ namespace hook::memory {
 	void Nop(void* location, size_t size = 1);
 
 	/*
+	 * Int3 codes
+	 * @param location location to int
+	 * @param size count to int
+	 */
+	void Int3(void* location, size_t size = 1);
+
+	/*
 	 * Write memory in log
 	 * @param location start
 	 * @param size size
@@ -61,4 +69,6 @@ namespace hook::memory {
 	 * @return if the read was done
 	 */
 	bool ReadMemorySafe(void* location, void* buffer, size_t size);
+
+	void* Assembler(std::function<void(process::AssemblerExp& a)> build);
 }

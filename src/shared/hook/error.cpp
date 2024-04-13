@@ -88,6 +88,18 @@ namespace hook::error {
 					ExceptionInfo->ExceptionRecord->ExceptionInformation[0] ? "read" : "write", ExceptionInfo->ExceptionRecord->ExceptionInformation[1], ExceptionInfo->ExceptionRecord->ExceptionInformation[2]);
 				break;
 			}
+			default: {
+				if (ExceptionInfo->ExceptionRecord->NumberParameters) {
+					std::stringstream info{};
+
+					for (size_t i = 0; i < ExceptionInfo->ExceptionRecord->NumberParameters; i++) {
+						info << " " << ExceptionInfo->ExceptionRecord->ExceptionInformation[i];
+					}
+
+					LOG_ERROR("Error info: {}", info.str());
+				}
+			}
+				break;
 			}
 
 			if (cfg.heavyDump) {

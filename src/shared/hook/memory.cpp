@@ -188,6 +188,19 @@ namespace hook::memory {
 		}
 	}
 
+	void Int3(void* location, size_t size) {
+		byte tmp[0x20];
+		byte* loc = (byte*)location;
+
+		while (size) {
+			size_t w = min(sizeof(tmp), size);
+			memset(tmp, 0xCC, w);
+			process::WriteMemSafe(loc, tmp, w);
+			size -= w;
+			loc += w;
+		}
+	}
+
 	void DumpMemory(void* location, size_t size) {
 		byte* b = (byte*)location;
 
@@ -206,4 +219,21 @@ namespace hook::memory {
 		VirtualProtect(location, size, old, &old);
 	}
 
+	void* Assembler(std::function<void(process::AssemblerExp& a)> build) {
+		auto& jr = process::GetJitRuntime();
+
+		asmjit::CodeHolder holder;
+		holder.init(jr.environment());
+
+		process::AssemblerExp asml{ &holder };
+		build(asml);
+
+		void* out{};
+		auto err = jr.add(&out, &holder);
+
+		if (err || !out) {
+			throw std::runtime_error(utils::va("Error when assembling %lld", err));
+		}
+		return out;
+	}
 }

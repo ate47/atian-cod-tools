@@ -164,6 +164,7 @@ project "AtianCodToolsBOCWDLL"
 		"deps/Detours/src/",
         "deps/asmjit/src/",
         "deps/imgui/",
+        "deps/hw_break/HwBpLib/inc/",
     }
 
     vpaths {

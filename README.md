@@ -26,6 +26,7 @@ This tool is using and providing
 - [vimpunk/mio](https://github.com/vimpunk/mio) - [MIT license](https://github.com/vimpunk/mio/blob/master/LICENSE).
 - [JustasMasiulis/xorstr](https://github.com/JustasMasiulis/xorstr) - [Apache License 2.0](https://github.com/JustasMasiulis/xorstr/blob/master/LICENSE)
 - [ocornut/imgui](https://github.com/ocornut/imgui) - [MIT license](https://github.com/ocornut/imgui/blob/master/LICENSE.txt)
+- [biocomp/hw_break](https://github.com/biocomp/hw_break) - [MIT license](https://github.com/biocomp/hw_break/blob/master/LICENSE)
 
 ## Downloads
 

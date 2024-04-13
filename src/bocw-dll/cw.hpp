@@ -319,6 +319,11 @@ namespace cw {
         T9GSCOBJ* buffer;
         int32_t len;
     };
+    union XAssetHeader {
+        void* ptr;
+        ScriptParseTree* spt;
+    };
+
     typedef uint32_t ScrVarIndex;
     typedef uint32_t ScrString;
 
