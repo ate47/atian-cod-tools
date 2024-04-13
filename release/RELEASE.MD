@@ -1,9 +1,7 @@
 - tools
-  - fix ternary operator decompilation
-  - switch order for add to object in bo4/cw
-  - better format for arrays
-  - load WNI files from package_index directory
-  - load ACPF files from package_index directory
-  - some fixes
-- release
-  - deploy basic path hashes
+  - use scan for cw injection
+  - search tool
+  - some decompiler formats
+  - gscgdb tests
+- cw dll
+  - lazylink for cw gsc
