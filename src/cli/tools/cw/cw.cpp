@@ -150,6 +150,17 @@ LABEL_61:
 			goto LABEL_107;
 	}
 }
+uintptr_t cw::ScanPool(Process& proc) {
+	uintptr_t curr = proc.Scan("48 8D 05 ? ? ? ? 48 C1 E2 ? 48 03 D0");
+	if (!curr) {
+		throw std::runtime_error("Can't find xasset pool");
+	}
+	int32_t delta = proc.ReadMemory<int32_t>(curr + 3);
+	if (!delta) {
+		throw std::runtime_error("Can't find xasset pool delta");
+	}
+	return curr + 7 + delta;
+}
 
 namespace {
 	int rawdecryptcw(Process& proc, int argc, const char* argv[]) {

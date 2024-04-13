@@ -39,5 +39,6 @@ namespace cw {
 
 	char* DecryptString(char* str);
 	byte* DecryptRawBuffer(byte* buffer);
+	uintptr_t ScanPool(Process& proc);
 }
 

@@ -534,6 +534,16 @@ public:
 		return Call(exp.m_location, args...);
 	}
 
+	/*
+	 * Scan for a pattern inside the main module
+	 * @param pattern pattern to search
+	 * @param start start location in the module
+	 * @return scan result or 0 for no search
+	 */
+	inline uintptr_t Scan(const char* pattern, DWORD start = 0) {
+		return (*this)[nullptr].Scan(pattern, start);
+	}
+
 	friend std::ostream& operator<<(std::ostream& os, const Process& obj);
 private:
 	static DWORD GetProcId(const wchar_t* name);

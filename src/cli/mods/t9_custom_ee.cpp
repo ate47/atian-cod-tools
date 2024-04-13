@@ -1,7 +1,6 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
-
-constexpr auto s_assetPools_off = 0x11E50670;
+#include "tools/cw/cw.hpp"
 
 struct XAssetPool {
 	uintptr_t pool; // void*
@@ -23,28 +22,24 @@ int t9customee(int argc, const char* argv[]) {
 	Process proc{ "BlackOpsColdWar.exe" };
 
 	if (!proc || !proc.Open()) {
-		std::cerr << "Can't find process\n";
+		LOG_ERROR("Can't find process");
 		return tool::BASIC_ERROR;
 	}
 
 	XAssetPool sptPool{};
 
-	if (!proc.ReadMemory(&sptPool, proc[s_assetPools_off] + sizeof(sptPool) * 68, sizeof(sptPool))) {
-		std::cerr << "Can't read spt\n";
+	if (!proc.ReadMemory(&sptPool, cw::ScanPool(proc) + sizeof(sptPool) * 68, sizeof(sptPool))) {
+		LOG_ERROR("Can't read spt");
 		return tool::BASIC_ERROR;
 	}
 
 	auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
 
 	if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
-		std::cerr << "Can't read SPT pool entries\n";
+		LOG_ERROR("Can't read SPT pool entries");
 		return tool::BASIC_ERROR;
 	}
 
-
-	uint64_t nameGsc = hashutils::Hash64("scripts/zm_common/zm_utility.gsc");
-	uint64_t nameCsc = hashutils::Hash64("scripts/zm_common/zm_utility.csc");
-	uint32_t targetFunction = hashutils::Hash32("is_ee_enabled");
 
 	int patched = 0;
 
@@ -52,26 +47,27 @@ int t9customee(int argc, const char* argv[]) {
 	for (size_t i = 0; i < sptPool.itemAllocCount; i++) {
 		auto& entry = entries[i];
 
-		if (entry.name != nameGsc && entry.name != nameCsc) {
+		if (entry.name != hashutils::Hash64("scripts/zm_common/zm_utility.gsc") 
+			&& entry.name != hashutils::Hash64("scripts/zm_common/zm_utility.csc")) {
 			continue;
 		}
 
 		if (!proc.ReadMemory(&header, entry.buffer, sizeof(header))) {
-			std::cerr << "Can't read header\n";
+			LOG_ERROR("Can't read header");
 			return tool::BASIC_ERROR;
 		}
 
 		auto exports = std::make_unique<tool::gsc::T8GSCExport[]>(header.exports_count);
 
 		if (!proc.ReadMemory(&exports[0], entry.buffer + header.exports_tables, sizeof(tool::gsc::T8GSCExport) * header.exports_count)) {
-			std::cerr << "Can't read header\n";
+			LOG_ERROR("Can't read header");
 			return tool::BASIC_ERROR;
 		}
 
 		for (size_t j = 0; j < header.exports_count; j++) {
 			auto& exp = exports[j];
 
-			if (exp.name != targetFunction) {
+			if (exp.name != hashutils::Hash32("is_ee_enabled")) {
 				continue;
 			}
 
@@ -84,7 +80,7 @@ int t9customee(int argc, const char* argv[]) {
 			byte data[] = { 0x0d, 0x00, 0x13, 0x00, 0xca, 0x00, 0x01, 0x00, 0x1a, 0x00 };
 
 			if (!proc.WriteMemory(entry.buffer + exp.address, data, sizeof(data))) {
-				std::cerr << "error when patching zm_utility::is_ee_enabled\n";
+				LOG_ERROR("error when patching zm_utility::is_ee_enabled");
 				return tool::BASIC_ERROR;
 			}
 
@@ -97,11 +93,11 @@ int t9customee(int argc, const char* argv[]) {
 	}
 
 	if (patched) {
-		std::cerr << "zm_utility::is_ee_enabled patched, leave the zombies mode to erase\n";
+		LOG_INFO("zm_utility::is_ee_enabled patched, leave the zombies mode to erase");
 		return tool::OK;
 	}
 	else {
-		std::cerr << "Can't find zm_utility::is_ee_enabled, are you in the zombies mode?\n";
+		LOG_ERROR("Can't find zm_utility::is_ee_enabled, are you in the zombies mode?");
 		return tool::BASIC_ERROR;
 	}
 }
