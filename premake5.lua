@@ -158,7 +158,7 @@ project "AtianCodToolsBOCWDLL"
     }
 
     includedirs {
-        "src/bo4-dll",
+        "src/bocw-dll",
         "src/shared",
     -- link detours
 		"deps/Detours/src/",

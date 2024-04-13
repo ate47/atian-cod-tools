@@ -4,6 +4,7 @@
 #include "../utils.hpp"
 
 namespace hook::library {
+	struct ScanResult;
 	/*
 	 * @return module from an address
 	 */
@@ -29,30 +30,96 @@ namespace hook::library {
 	 */
 	const char* LocatePDB(HMODULE hmod);
 
+	/*
+	 * Init a scan container
+	 * @param name container name
+	 */
+	void InitScanContainer(const char* name);
 
+	/*
+	 * Save the scan container
+	 */
+	void SaveScanContainer();
+
+	// Scan result
 	struct ScanResult {
 		byte* location;
 
+		/*
+		 * Get an element from this location
+		 * @param Type element type
+		 * @param offset location offset
+		 * @return element
+		 */
 		template<typename Type>
 		constexpr Type Get(size_t offset = 0) const {
 			return *reinterpret_cast<Type*>(location + offset);
 		}
 
+		/*
+		 * Get an element relative using offset to this location
+		 * @param Type offset read type
+		 * @param TypeOut return type
+		 * @param offset location offset
+		 * @param from relative start offset
+		 * @return pointer
+		 */
 		template<typename Type, typename TypeOut = byte*>
 		constexpr TypeOut GetRelativeFrom(size_t offset, size_t from) const {
 			return reinterpret_cast<TypeOut>(location + from + Get<Type>(offset));
 		}
 
+		/*
+		 * Get an element relative using offset to this location
+		 * @param Type offset read type
+		 * @param TypeOut return type
+		 * @param offset location offset
+		 * @return pointer
+		 */
 		template<typename Type, typename TypeOut = byte*>
 		constexpr TypeOut GetRelative(size_t offset) const {
 			return GetRelativeFrom<Type, TypeOut>(offset, offset + sizeof(Type));
 		}
 
+		/*
+		 * Get a pointer from this this location
+		 * @param Type return type
+		 * @param offset location offset
+		 * @return pointer
+		 */
 		template<typename Type = void*>
 		constexpr Type GetPtr(size_t offset = 0) const {
 			return reinterpret_cast<Type>(location + offset);
 		}
 	};
+
+	/*
+	 * Query the scan container for an unique result, otherwise throw an exception
+	 * @param name pattern name (for logs)
+	 * @param pattern pattern
+	 * @return result
+	 */
+	ScanResult QueryScanContainerSingle(const char* name, const char* pattern);
+
+	/*
+	 * Query the scan container for multiple results
+	 * @param name pattern name (for logs)
+	 * @param pattern pattern
+	 * @return results
+	 */
+	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern);
+
+	/*
+	 * Query the scan container for an unique result and convert it to a pointer
+	 * @param Type pointer type
+	 * @param name pattern name (for logs)
+	 * @param pattern pattern
+	 * @return pointer
+	 */
+	template<typename Type>
+	inline Type QueryScanContainerSinglePtr(const char* name, const char* pattern) {
+		return QueryScanContainerSingle(name, pattern).GetPtr<Type>();
+	}
 
 	/*
 	 * Scan the memory to find a pattern
@@ -62,7 +129,7 @@ namespace hook::library {
 	 */
 	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern);
 
-
+	// Library information
 	class Library {
 		HMODULE hmod{};
 	public:
@@ -141,11 +208,11 @@ namespace hook::library {
 
 			return res[0];
 		}
+
+		friend std::ostream& operator<<(std::ostream& out, const Library& ptr);
 	};
 
-	/*
-	 * Detour structure
-	 */
+	// Detour structure
 	class Detour {
 		void* origin{};
 		void* base{};
@@ -216,12 +283,21 @@ namespace hook::library {
 
 	};
 
-	void InitScanContainer(const char* name);
-	void SaveScanContainer();
-	ScanResult QueryScanContainerSingle(const char* name, const char* pattern);
-	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern);
-	template<typename Type>
-	inline Type QueryScanContainerSinglePtr(const char* name, const char* pattern) {
-		return QueryScanContainerSingle(name, pattern).GetPtr<Type>();
-	}
+	// Code pointer for logs
+	class CodePointer {
+		void* location;
+	public:
+		CodePointer(void* location);
+
+		constexpr void* operator*() const {
+			return location;
+		}
+
+		friend std::ostream& operator<<(std::ostream& out, const CodePointer& ptr);
+	};
 }
+
+template<>
+struct std::formatter<hook::library::CodePointer, char> : utils::BasicFormatter<hook::library::CodePointer> {};
+template<>
+struct std::formatter<hook::library::Library, char> : utils::BasicFormatter<hook::library::Library> {};

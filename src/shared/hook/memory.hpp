@@ -70,5 +70,10 @@ namespace hook::memory {
 	 */
 	bool ReadMemorySafe(void* location, void* buffer, size_t size);
 
-	void* Assembler(std::function<void(process::AssemblerExp& a)> build);
+	/*
+	 * Assemble a function and return it
+	 * @param builder builder function
+	 * @return assembled function
+	 */
+	void* Assembler(std::function<void(process::AssemblerExp& a)> builder);
 }

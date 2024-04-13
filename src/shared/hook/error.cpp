@@ -151,6 +151,12 @@ namespace hook::error {
 					LOG_ERROR("{}", ss.str());
 				};
 
+
+				LOG_ERROR("DebugRegisters: 0:0x{:x} 1:0x{:x} 2:0x{:x} 3:0x{:x} 6:0x{:x} 7:0x{:x}",
+					ExceptionInfo->ContextRecord->Dr0, ExceptionInfo->ContextRecord->Dr1,
+					ExceptionInfo->ContextRecord->Dr2, ExceptionInfo->ContextRecord->Dr3,
+					ExceptionInfo->ContextRecord->Dr6, ExceptionInfo->ContextRecord->Dr7
+				);
 				PrintRegister("rax", ExceptionInfo->ContextRecord->Rax);
 				PrintRegister("rbx", ExceptionInfo->ContextRecord->Rbx);
 				PrintRegister("rcx", ExceptionInfo->ContextRecord->Rcx);
@@ -173,7 +179,9 @@ namespace hook::error {
 				DumpStackTraceFrom(alogs::LVL_ERROR, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 			}
 
-
+			if (ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP) {
+				return EXCEPTION_CONTINUE_EXECUTION;
+			}
 			return EXCEPTION_EXECUTE_HANDLER;
 		}
 

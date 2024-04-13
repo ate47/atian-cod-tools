@@ -236,11 +236,11 @@ namespace hook::library {
 	}
 
 	constexpr uint64_t SCAN_CONTAINER_FILE_MAGIC = 0x000a4e41435380;
-	constexpr uint64_t SCAN_CONTAINER_FILE_VERSION = 0x200000000000000;
+	constexpr uint64_t SCAN_CONTAINER_FILE_VERSION = 0x210000000000000;
 
 	struct ScanContainer {
 		const char* name{};
-		std::unordered_map<std::string, std::vector<uint32_t>> deltas{};
+		std::unordered_map<std::string, std::unordered_set<uint32_t>> deltas{};
 
 		std::filesystem::path GetPath() {
 			return utils::va("%s.scan", name);
@@ -269,6 +269,7 @@ namespace hook::library {
 			LOG_WARNING("Detected scan container with bad magic, it'll be erased at save '{}'", path.string());
 			return;
 		}
+
 		file += sizeof(SCAN_CONTAINER_FILE_MAGIC);
 
 		uint32_t count = *reinterpret_cast<uint32_t*>(file);
@@ -292,7 +293,7 @@ namespace hook::library {
 			for (size_t j = 0; j < num; j++) {
 				file += sizeof(num);
 
-				delta.push_back(locs[j]);
+				delta.insert(locs[j]);
 			}
 		}
 	}
@@ -303,15 +304,18 @@ namespace hook::library {
 		utils::WriteValue<uint64_t>(file, SCAN_CONTAINER_FILE_MAGIC | SCAN_CONTAINER_FILE_VERSION);
 
 		utils::WriteValue<uint32_t>(file, (uint32_t)container.deltas.size());
+		LOG_TRACE("Save scan:");
 		for (const auto& [name, delta] : container.deltas) {
 			utils::WriteString(file, name.data());
 			utils::WriteValue<uint32_t>(file, (uint32_t)delta.size());
 			for (const auto loc : delta) {
 				utils::WriteValue<uint32_t>(file, loc);
+				LOG_TRACE("{} -> 0x{:x}", name, loc);
 			}
 		}
 
 		utils::WriteFile(container.GetPath(), file.data(), file.size());
+
 	}
 
 	static Library main{};
@@ -328,11 +332,11 @@ namespace hook::library {
 		}
 
 		auto res = main.Scan(pattern);
-		auto& locs = container.deltas[name];
+		auto& locs = container.deltas[pattern];
 
 		// save scan
 		for (auto& loc : res) {
-			locs.emplace_back((uint32_t)(loc.location - (byte*)*main));
+			locs.insert((uint32_t)(loc.location - (byte*)*main));
 		}
 
 		return res;
@@ -349,5 +353,19 @@ namespace hook::library {
 		}
 
 		return res[0];
+	}
+
+	hook::library::CodePointer::CodePointer(void* location) : location(location) {}
+
+	std::ostream& operator<<(std::ostream& out, const hook::library::Library& ptr) {
+		if (!ptr) {
+			return out << "<INVALID_LIB>";
+		}
+		return out << ptr.GetName() << "[0x" << std::hex << reinterpret_cast<uintptr_t>(ptr.hmod) << "]";
+	}
+
+	std::ostream& operator<<(std::ostream& out, const hook::library::CodePointer& ptr) {
+		hook::library::Library library{ GetLibraryInfo(ptr.location) };
+		return out << library << "+0x" << std::hex << ((byte*)ptr.location - (byte*)*library);
 	}
 }

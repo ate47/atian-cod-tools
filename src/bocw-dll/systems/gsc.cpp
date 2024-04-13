@@ -4,19 +4,20 @@
 #include <utils.hpp>
 #include <scriptinstance.hpp>
 #include <core/system.hpp>
-#include <core/eventhandler.hpp>
-#include "cw.hpp"
-#include "HwBpLib.h"
+#include "data/cw.hpp"
+#include "systems/gsc.hpp"
+#include "callbacks.hpp"
 
 
-namespace {
-
+namespace gsc {
 	cw::ObjFileInfoStruct* gObjFileInfo;
 	uint32_t* gObjFileInfoCount;
 	void** gVmOpJumpTable;
 	void (*Scr_GscObjLink)(scriptinstance::ScriptInstance inst, uint64_t scriptname) {};
 	cw::XAssetHeader(*DB_FindXAssetHeader)(cw::XAssetType type, uint64_t name, bool inv, int timeout) {};
-
+}
+namespace {
+	using namespace gsc;
 	byte* FindExport(scriptinstance::ScriptInstance inst, uint64_t target_script, uint32_t name_space, uint32_t name) {
 
 		cw::ObjFileInfo* end = gObjFileInfo[inst] + gObjFileInfoCount[inst];
@@ -75,7 +76,6 @@ namespace {
 		// add lazylink operator
 
 		// gVmOpJumpTable[]
-		hook::library::Library main{};
 
 		auto table = hook::library::QueryScanContainerSingle("gVmOpJumpTable", "41 FF 94 FC ? ? ? ? 80 7C 24");
 		auto objFile = hook::library::QueryScanContainerSingle("gObjFileInfo", "4C 8D 2D ? ? ? ? 48 8D 15 ? ? ? ? 43 39 4C B5 00"); // count / table
@@ -84,19 +84,7 @@ namespace {
 		DB_FindXAssetHeader = hook::library::QueryScanContainerSinglePtr<decltype(DB_FindXAssetHeader)>("DB_FindXAssetHeader", "48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D AC 24 80 D0");
 		Scr_GscObjLink = hook::library::QueryScanContainerSinglePtr<decltype(Scr_GscObjLink)>("Scr_GscObjLink", "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B DA 4C");
 
-		//Scr_GscObjLinkDetour.Create(Scr_GscObjLink, Scr_GscObjLinkStub);
-		auto RegisterThreadHandle = [](void* data) {
-			static std::unordered_set<DWORD> logThreads{};
-			DWORD tid = GetThreadId((HANDLE)data);
-			if (!logThreads.contains(tid)) {
-				logThreads.insert(tid);
-				HwBp::Set(DB_FindXAssetHeader, 8, HwBp::When::Executed, (HANDLE)data);
-				//HwBp::Set(DB_FindXAssetHeader, 8, HwBp::When::ReadOrWritten, (HANDLE)data);
-			}
-		};
 
-		RegisterThreadHandle((void*)GetCurrentThread());
-		core::eventhandler::RegisterEventCallback(hash::Hash64("RegisterThread"), RegisterThreadHandle);
 #endif
 
 		gObjFileInfoCount = objFile.GetRelative<int32_t, uint32_t*>(3);

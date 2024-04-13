@@ -1,6 +1,6 @@
 #include <dll_includes.hpp>
+#include <HwBpLib.h>
 #include <utils.hpp>
-#include <hash.hpp>
 #include <imgui.h>
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_dx12.h>
@@ -12,16 +12,16 @@
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
 #include <core/system.hpp>
-#include <core/eventhandler.hpp>
-#include "core.hpp"
-#include "cw.hpp"
+#include "systems/core.hpp"
+#include "data/cw.hpp"
+#include "callbacks.hpp"
 
 #define EXPORT extern "C" __declspec(dllexport)
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 namespace cw {
     namespace {
-
+        HANDLE mainThread{};
         hook::library::Detour ExitProcessDetour;
         hook::library::Detour GetThreadContextDetour;
         hook::library::Detour SetThreadContextDetour;
@@ -32,6 +32,7 @@ namespace cw {
         hook::library::Detour CreateDXGIFactoryDetour;
         hook::library::Detour CreateDXGIFactory1Detour;
         hook::library::Detour CreateDXGIFactory2Detour;
+        hook::library::Detour BaseThreadInitDetour;
 
         DECLSPEC_NORETURN void ExitProcessStub(UINT uExitCode) {
             if (uExitCode) {
@@ -49,10 +50,10 @@ namespace cw {
             // clear debug flags if inside the game
             if (hook::library::GetLibraryInfo(_ReturnAddress()) == process::BaseHandle()) {
                 if (lpContext && lpContext->ContextFlags & (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64)) {
-                        lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
+                    lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
                 }
                 if (hThread && hThread != INVALID_HANDLE_VALUE) {
-                    core::eventhandler::RunEvent(hash::Hash64("RegisterThread"), (void*)hThread);
+                    callbacks::ThreadRegister((void*)hThread);
                 }
             }
 
@@ -65,7 +66,7 @@ namespace cw {
                     lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
                 }
                 if (hThread && hThread != INVALID_HANDLE_VALUE) {
-                    core::eventhandler::RunEvent(hash::Hash64("RegisterThread"), (void*)hThread);
+                    callbacks::ThreadRegister((void*)hThread);
                 }
             }
 
@@ -73,62 +74,20 @@ namespace cw {
         }
         int GetSystemMetricsStub(int nIndex) {
             // unpack?
-            try {
-                core::system::PostInit();
-                hook::library::SaveScanContainer();
-            }
-            catch (std::exception& e) {
-                MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
-                *reinterpret_cast<byte*>(0x123456789) = 2;
-            }
+
+            static std::once_flag of{};
+
+            std::call_once(of, [] {
+                try {
+                    core::system::PostInit();
+                    hook::library::SaveScanContainer();
+                }
+                catch (std::exception& e) {
+                    MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
+                    *reinterpret_cast<byte*>(0x123456789) = 2;
+                }
+            });
             return GetSystemMetricsDetour.Call<int>(nIndex);
-        }
-
-        const char* EnableEE() {
-            auto& spt = core::xassetpools[ASSET_TYPE_SCRIPTPARSETREE];
-            
-            auto* pool = (ScriptParseTree*)spt.pool;
-
-            size_t count{};
-            for (size_t i = 0; i < spt.itemAllocCount; i++) {
-                auto& entry = pool[i];
-
-                if ((entry.name != hash::Hash64("scripts/zm_common/zm_utility.gsc")
-                    && entry.name != hash::Hash64("scripts/zm_common/zm_utility.csc"))
-                    || !entry.len || !entry.buffer) {
-                    continue;
-                }
-
-                T9GSCOBJ* obj = entry.buffer;
-
-                T8GSCExport* exports = reinterpret_cast<T8GSCExport*>(obj->magic + obj->exports_tables);
-
-                for (size_t j = 0; j < obj->exports_count; j++) {
-                    auto& exp = exports[j];
-
-                    if (exp.name != hash::Hash32("is_ee_enabled")) {
-                        continue;
-                    }
-
-
-                    static byte data[] = { 0x0d, 0x00, 0x13, 0x00, 0xca, 0x00, 0x01, 0x00, 0x1a, 0x00 };
-
-                    byte* bytecode = obj->magic + exp.address;
-
-                    memcpy(bytecode, data, sizeof(data));
-                    count++;
-                    break;
-                }
-                if (count == 2) {
-                    break;
-                }
-            }
-
-            if (!count) {
-                return "can't find gsc";
-            }
-
-            return "ok";
         }
 
         byte* DecryptSTR(byte* str) {
@@ -288,9 +247,6 @@ namespace cw {
             ImGui::Begin("Atian Tools", nullptr, 0);
 
             ImGui::Text("Version %s", actsinfo::VERSION);
-            if (ImGui::Button("Enable EE")) {
-                menuData.lastNotif = EnableEE();
-            }
 
 #ifndef CI_BUILD
 
@@ -298,8 +254,10 @@ namespace cw {
                 DecryptGSCScripts();
                 menuData.lastNotif = "decrypted";
             }
-
 #endif
+
+            callbacks::RenderImGui((void*)&menuData.lastNotif);
+
             if (menuData.lastNotif) {
                 ImGui::Text("%s", menuData.lastNotif ? menuData.lastNotif : "");
             }
@@ -604,6 +562,7 @@ namespace cw {
                 }
                 LOG_INFO("init acts dll pid={} name={}", GetCurrentProcessId(), libname);
 
+                mainThread = GetCurrentThread();
                 hook::error::EnableHeavyDump();
                 hook::error::InstallErrorHooks(true);
 

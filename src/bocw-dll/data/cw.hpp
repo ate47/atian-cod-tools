@@ -80,15 +80,6 @@ namespace cw {
         TYPE_ENT_LIST = 0x1D,
     };
 
-    struct XAssetPool {
-        void* pool;
-        unsigned int itemSize;
-        int itemCount;
-        bool isSingleton;
-        int itemAllocCount;
-        void* freeHead;
-    };
-
     enum XAssetType : byte {
         ASSET_TYPE_ZONE = 0,
         ASSET_TYPE_ASSETLIST = 1,
@@ -362,4 +353,13 @@ namespace cw {
 
     typedef ObjFileInfo ObjFileInfoStruct[800];
 
+
+    struct XAssetPool {
+        XAssetHeader pool;
+        unsigned int itemSize;
+        int itemCount;
+        bool isSingleton;
+        int itemAllocCount;
+        void* freeHead;
+    };
 }
