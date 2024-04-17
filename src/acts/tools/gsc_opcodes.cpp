@@ -908,8 +908,8 @@ public:
 	ASMContextNode* m_operand1;
 	ASMContextNode* m_operand2;
 	bool m_isBoolValue;
-	ASMContextNodeOp2(const char* description, ASMContextNodePriority priority, ASMContextNode* operand1, ASMContextNode* operand2, bool isBoolValue) :
-		ASMContextNode(priority), m_description(description), m_operand1(operand1), m_operand2(operand2), m_isBoolValue(isBoolValue) {
+	ASMContextNodeOp2(const char* description, ASMContextNodePriority priority, ASMContextNode* operand1, ASMContextNode* operand2, bool isBoolValue, ASMContextNodeType type = TYPE_UNDEFINED) :
+		ASMContextNode(priority, type), m_description(description), m_operand1(operand1), m_operand2(operand2), m_isBoolValue(isBoolValue) {
 	}
 	~ASMContextNodeOp2() {
 		delete m_operand1;
@@ -917,7 +917,7 @@ public:
 	}
 
 	ASMContextNode* Clone() const override {
-		return new ASMContextNodeOp2(m_description, m_priority, m_operand1->Clone(), m_operand2->Clone(), m_isBoolValue);
+		return new ASMContextNodeOp2(m_description, m_priority, m_operand1->Clone(), m_operand2->Clone(), m_isBoolValue, m_type);
 	}
 
 	void Dump(std::ostream& out, DecompContext& ctx) const override {
@@ -1317,10 +1317,10 @@ namespace {
 
 class ASMContextNodeLeftRightOperator : public ASMContextNode {
 public:
-	const char* m_operatorName;
+	std::string m_operatorName;
 	ASMContextNode* m_left;
 	ASMContextNode* m_right;
-	ASMContextNodeLeftRightOperator(ASMContextNode* left, ASMContextNode* right, const char* operatorName = " = ", ASMContextNodePriority priority = PRIORITY_SET, ASMContextNodeType type = TYPE_SET) :
+	ASMContextNodeLeftRightOperator(ASMContextNode* left, ASMContextNode* right, const std::string& operatorName = " = ", ASMContextNodePriority priority = PRIORITY_SET, ASMContextNodeType type = TYPE_SET) :
 		ASMContextNode(priority, type), m_operatorName(operatorName), m_left(left), m_right(right) {
 	}
 	~ASMContextNodeLeftRightOperator() {
@@ -2149,6 +2149,8 @@ namespace {
 		}
 
 		switch (a->m_type) {
+		case TYPE_SELF:
+			return true;
 		case TYPE_IDENTIFIER:
 			return dynamic_cast<ASMContextNodeIdentifier*>(a)->m_value == dynamic_cast<ASMContextNodeIdentifier*>(b)->m_value;
 		case TYPE_VECTOR: {
@@ -2169,12 +2171,64 @@ namespace {
 		case TYPE_VALUE:
 		case TYPE_FLOAT:
 			return IsEqualNumber(a, b);
+		case TYPE_OPERATION1:
+		case TYPE_DELTA: {
+			auto* aa = dynamic_cast<ASMContextNodeOp1*>(a);
+			auto* bb = dynamic_cast<ASMContextNodeOp1*>(b);
+
+			if (_strcmpi(aa->m_description, bb->m_description)) {
+				return false;
+			}
+			return IsStructSimilar(aa->m_operand, bb->m_operand);
+		}
+		case TYPE_OPERATION2:
+		case TYPE_OPERATION_MERGE:
+		{
+			auto* aa = dynamic_cast<ASMContextNodeOp2*>(a);
+			auto* bb = dynamic_cast<ASMContextNodeOp2*>(b);
+
+			if (_strcmpi(aa->m_description, bb->m_description)) {
+				return false;
+			}
+			return IsStructSimilar(aa->m_operand1, bb->m_operand1)
+				&& IsStructSimilar(aa->m_operand2, bb->m_operand2);
+		}
 		case TYPE_ACCESS:
 		case TYPE_SET: {
 			auto* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
 			auto* bb = dynamic_cast<ASMContextNodeLeftRightOperator*>(b);
 
 			return IsStructSimilar(aa->m_left, bb->m_left) && IsStructSimilar(aa->m_right, bb->m_right);
+		}
+		case TYPE_SET_OP: {
+			auto* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
+			auto* bb = dynamic_cast<ASMContextNodeLeftRightOperator*>(b);
+
+			return aa->m_operatorName == bb->m_operatorName 
+				&& IsStructSimilar(aa->m_left, bb->m_left) && IsStructSimilar(aa->m_right, bb->m_right);
+		}
+		case TYPE_FUNC_REFNAME: {
+			auto* aa = dynamic_cast<ASMContextNodeFuncRef*>(a);
+			auto* bb = dynamic_cast<ASMContextNodeFuncRef*>(b);
+
+			return aa->m_func == bb->m_func
+				&& aa->m_script == bb->m_script
+				&& aa->m_nsp == bb->m_nsp
+				&& !_strcmpi(aa->m_op, bb->m_op);
+		}
+		case TYPE_FUNC_CALL: {
+			auto* aa = dynamic_cast<ASMContextNodeCallFuncPtr*>(a);
+			auto* bb = dynamic_cast<ASMContextNodeCallFuncPtr*>(b);
+			if (aa->m_flags != bb->m_flags || aa->m_operands.size() != bb->m_operands.size()) {
+				return false;
+			}
+
+			for (size_t i = 0; i < aa->m_operands.size(); i++) {
+				if (!IsStructSimilar(aa->m_operands[i], bb->m_operands[i])) {
+					return false;
+				}
+			}
+			return true;
 		}
 		default:
 			return false;
@@ -2654,7 +2708,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeValue<const char*>("size", TYPE_VALUE), ".", PRIORITY_ACCESS, TYPE_ACCESS));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeIdentifier(hash::Hash32("size"), "var"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		out << "\n";
@@ -5802,12 +5856,13 @@ public:
 	INT m_n;
 	const char* m_op;
 	ASMContextNodePriority m_priority;
+	ASMContextNodeType m_type;
 	bool m_caller;
 	bool m_forceFunc;
 	bool m_convertBool;
 	bool m_isBoolValueRet;
-	OPCodeInfopushopn(OPCode id, const char* name, INT n, const char* op, ASMContextNodePriority priority, bool caller = false, bool forceFunc = false, bool convertBool = false, bool isBoolValueRet = false) : OPCodeInfo(id, name),
-		m_n(n), m_op(op), m_priority(priority), m_caller(caller), m_forceFunc(forceFunc), m_convertBool(convertBool), m_isBoolValueRet(isBoolValueRet) {
+	OPCodeInfopushopn(OPCode id, const char* name, INT n, const char* op, ASMContextNodeType type, ASMContextNodePriority priority, bool caller = false, bool forceFunc = false, bool convertBool = false, bool isBoolValueRet = false) : OPCodeInfo(id, name),
+		m_n(n), m_op(op), m_type(type), m_priority(priority), m_caller(caller), m_forceFunc(forceFunc), m_convertBool(convertBool), m_isBoolValueRet(isBoolValueRet) {
 	}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -5820,17 +5875,17 @@ public:
 				return context.PopASMCNode();
 			};
 			if (m_n == 1 && !m_forceFunc) {
-				context.PushASMCNode(new ASMContextNodeOp1(m_op, m_caller, popVal(), TYPE_UNDEFINED, m_isBoolValueRet));
+				context.PushASMCNode(new ASMContextNodeOp1(m_op, m_caller, popVal(), m_type, m_isBoolValueRet));
 			}
 			else if (m_n == 2 && !m_caller && !m_forceFunc) {
 				// reverse order
 				ASMContextNode* op2 = popVal();
 				ASMContextNode* op1 = popVal();
 
-				context.PushASMCNode(new ASMContextNodeOp2(m_op, m_priority, op1, op2, m_isBoolValueRet));
+				context.PushASMCNode(new ASMContextNodeOp2(m_op, m_priority, op1, op2, m_isBoolValueRet, m_type));
 			}
 			else {
-				ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, m_caller, TYPE_STATEMENT, m_isBoolValueRet);
+				ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, m_caller, m_type, m_isBoolValueRet);
 
 				for (size_t i = 0; i < m_n; i++) {
 					node->AddParam(popVal());
@@ -6325,29 +6380,29 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaittillTimeout, "WaittillTimeout", "waittilltimeout")); // count = params + self
 		
 		// operation
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_And, "Bit_And", 2, "&", PRIORITY_BIT_AND));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_Or, "Bit_Or", 2, "|", PRIORITY_BIT_OR));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_Xor, "Bit_Xor", 2, "^", PRIORITY_BIT_XOR));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_GreaterThan, "GreaterThan", 2, ">", PRIORITY_COMPARE, false, false, false, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_LessThan, "LessThan", 2, "<", PRIORITY_COMPARE, false, false, false, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_GreaterThanOrEqualTo, "GreaterThanOrEqualTo", 2, ">=", PRIORITY_COMPARE, false, false, false, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_LessThanOrEqualTo, "LessThanOrEqualTo", 2, "<=", PRIORITY_COMPARE, false, false, false, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_ShiftRight, "ShiftRight", 2, ">>", PRIORITY_BIT_SHIFTS));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_ShiftLeft, "ShiftLeft", 2, "<<", PRIORITY_BIT_SHIFTS));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Plus, "Plus", 2, "+", PRIORITY_PLUS));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Minus, "Minus", 2, "-", PRIORITY_PLUS));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Divide, "Divide", 2, "/", PRIORITY_MULT));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Modulus, "Modulus", 2, "%", PRIORITY_MULT));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Multiply, "Multiply", 2, "*", PRIORITY_MULT));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Equal, "Equal", 2, "==", PRIORITY_EQUALS, false, false, false, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_SuperEqual, "SuperEqual", 2, "===", PRIORITY_EQUALS, false, false, false, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_NotEqual, "NotEqual", 2, "!=", PRIORITY_EQUALS, false, false, false, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_SuperNotEqual, "SuperNotEqual", 2, "!==", PRIORITY_EQUALS, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_And, "Bit_And", 2, "&", TYPE_OPERATION_MERGE, PRIORITY_BIT_AND));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_Or, "Bit_Or", 2, "|", TYPE_OPERATION_MERGE, PRIORITY_BIT_OR));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_Xor, "Bit_Xor", 2, "^", TYPE_OPERATION_MERGE, PRIORITY_BIT_XOR));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_GreaterThan, "GreaterThan", 2, ">", TYPE_OPERATION2, PRIORITY_COMPARE, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_LessThan, "LessThan", 2, "<", TYPE_OPERATION2, PRIORITY_COMPARE, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_GreaterThanOrEqualTo, "GreaterThanOrEqualTo", 2, ">=", TYPE_OPERATION2, PRIORITY_COMPARE, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_LessThanOrEqualTo, "LessThanOrEqualTo", 2, "<=", TYPE_OPERATION2, PRIORITY_COMPARE, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_ShiftRight, "ShiftRight", 2, ">>", TYPE_OPERATION_MERGE, PRIORITY_BIT_SHIFTS));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_ShiftLeft, "ShiftLeft", 2, "<<", TYPE_OPERATION_MERGE, PRIORITY_BIT_SHIFTS));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Plus, "Plus", 2, "+", TYPE_OPERATION_MERGE, PRIORITY_PLUS));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Minus, "Minus", 2, "-", TYPE_OPERATION_MERGE, PRIORITY_PLUS));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Divide, "Divide", 2, "/", TYPE_OPERATION_MERGE, PRIORITY_MULT));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Modulus, "Modulus", 2, "%", TYPE_OPERATION_MERGE, PRIORITY_MULT));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Multiply, "Multiply", 2, "*", TYPE_OPERATION_MERGE, PRIORITY_MULT));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Equal, "Equal", 2, "==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_SuperEqual, "SuperEqual", 2, "===", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_NotEqual, "NotEqual", 2, "!=", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_SuperNotEqual, "SuperNotEqual", 2, "!==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
 
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_BoolComplement, "BoolComplement", 1, "~", PRIORITY_UNARY, true));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_BoolNot, "BoolNot", 1, "!", PRIORITY_UNARY, true, false, true, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_BoolComplement, "BoolComplement", 1, "~", TYPE_OPERATION1, PRIORITY_UNARY, true));
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_BoolNot, "BoolNot", 1, "!", TYPE_OPERATION1, PRIORITY_UNARY, true, false, true, true));
 		RegisterOpCodeHandler(new OPCodeInfoCastBool(OPCODE_CastBool, "CastBool"));
-		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_CastCanon, "CastCanon", 1, "", PRIORITY_UNARY, false, true)); // context dependent, the "" can be replaced to tag them
+		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_CastCanon, "CastCanon", 1, "", TYPE_OPERATION1, PRIORITY_UNARY, false, true)); // context dependent, the "" can be replaced to tag them
 
 		// Remove return value from operator
 		RegisterOpCodeHandler(new OPCodeInfodec(OPCODE_DecTop, "DecTop"));
@@ -8349,23 +8404,24 @@ namespace {
 			
 			stmt.node->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) { ApplySpecialPatternBlock(ctx, block->m_statements); }, ctx);
 
-			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_SPECIAL_PATTERN)
-				&& i
-				/*
-				  unk = undefined;
-				  unk = ... waittill(...);
-				*/
-				&& stmt.node->m_type == TYPE_SET && dynamic_cast<ASMContextNodeLeftRightOperator*>(stmt.node)->m_right->m_type == TYPE_WAITTILL
-				&& stmts[i - 1].node->m_type == TYPE_SET && dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node)->m_right->m_type == TYPE_GET_UNDEFINED
-				&& IsStructSimilar(dynamic_cast<ASMContextNodeLeftRightOperator*>(stmt.node)->m_left, dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node)->m_left)
-				) {
-				i--;
+			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_SPECIAL_PATTERN)) {
+				if (i
+					/*
+					  unk = undefined;
+					  unk = ... waittill(...);
+					*/
+					&& stmt.node->m_type == TYPE_SET && dynamic_cast<ASMContextNodeLeftRightOperator*>(stmt.node)->m_right->m_type == TYPE_WAITTILL
+					&& stmts[i - 1].node->m_type == TYPE_SET && dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node)->m_right->m_type == TYPE_GET_UNDEFINED
+					&& IsStructSimilar(dynamic_cast<ASMContextNodeLeftRightOperator*>(stmt.node)->m_left, dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node)->m_left)
+					) {
+					i--;
 				
-				// remove the = undefined and apply the new location
-				delete stmts[i].node;
-				stmts[i + 1].location = stmts[i].location;
-				stmts.erase(stmts.begin() + i);
-				continue;
+					// remove the = undefined and apply the new location
+					delete stmts[i].node;
+					stmts[i + 1].location = stmts[i].location;
+					stmts.erase(stmts.begin() + i);
+					continue;
+				}
 			}
 
 			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_DEVBLOCK_INLINE)
@@ -8431,6 +8487,23 @@ namespace {
 				}
 			}
 		}
+		// x = x op y -> x op= y
+		ctx.m_funcBlock.ApplySubNodes([](ASMContextNode*& node, ASMContext& ctx) {
+			if (node->m_type == TYPE_SET) {
+				auto* set = dynamic_cast<ASMContextNodeLeftRightOperator*>(node);
+				if (set->m_right && set->m_right->m_type == TYPE_OPERATION_MERGE) {
+					auto* op2 = dynamic_cast<ASMContextNodeOp2*>(set->m_right);
+					if (IsStructSimilar(set->m_left, op2->m_operand1)) {
+						set->m_right = op2->m_operand2;
+						op2->m_operand2 = nullptr;
+
+						set->m_operatorName = std::format(" {}= ", op2->m_description);
+						set->m_type = TYPE_SET_OP;
+						delete op2;
+					}
+				}
+			}
+		}, ctx);
 	}
 
 	uint64_t GetLeftIdentifier(ASMContextNode* node) {

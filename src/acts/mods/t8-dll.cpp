@@ -30,7 +30,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		std::filesystem::path progpath = std::filesystem::absolute(g_progPath).parent_path();
+		std::filesystem::path progpath = utils::GetProgDir();
 		std::filesystem::path dllfile = progpath / std::filesystem::path(dllName);
 		auto str = dllfile.string();
 	
@@ -95,7 +95,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		std::filesystem::path progpath = std::filesystem::absolute(g_progPath).parent_path();
+		std::filesystem::path progpath = utils::GetProgDir();
 		std::filesystem::path dllfile = progpath / std::filesystem::path("acts-bocw-dll.dll");
 		auto str = dllfile.string();
 

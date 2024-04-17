@@ -161,6 +161,7 @@ namespace tool::gsc {
 
             TYPE_PRECODEPOS,
             TYPE_SET,
+            TYPE_SET_OP,
             TYPE_WAITTILL,
             TYPE_WAITTILL_SET,
             TYPE_DELTA,
@@ -171,6 +172,9 @@ namespace tool::gsc {
 
             TYPE_UNDEFINED,
             TYPE_VALUE,
+            TYPE_OPERATION_MERGE,
+            TYPE_OPERATION1,
+            TYPE_OPERATION2,
             TYPE_SELF,
             TYPE_GET_UNDEFINED,
 

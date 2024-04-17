@@ -13,5 +13,3 @@
 #include "mods/mods.hpp"
 #include "tools/tools.hpp"
 
-
-extern const char* g_progPath;

@@ -87,6 +87,8 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 	// special value
 	g_hashMap[0] = "";
 	g_hashMap[Hash32("<error>")] = "<error>";
+	g_hashMap[Hash32("self")] = "self";
+	g_hashMap[Hash32("size")] = "size";
 	
 	// class special things
 	Add("__constructor", true, iw);
@@ -130,6 +132,7 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 
 	// Decompiler special values
 	Add("self", true, iw);
+	Add("size", true, iw);
 
 	// DDL names
 	Add("root", true, iw); // root struct

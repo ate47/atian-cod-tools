@@ -4,6 +4,7 @@
 #include <offsets.hpp>
 #include <hash.hpp>
 #include <clisync.hpp>
+#include <acts.hpp>
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -693,11 +694,13 @@ int WINAPI wWinMain(
     _In_ LPWSTR lpCmdLine,
     _In_ int nShowCmd
 ) {
+    return MainActs(0, nullptr, hInstance, nShowCmd);
+    /*
 #ifndef CI
     WCHAR szFileName[MAX_PATH];
     GetModuleFileName(NULL, szFileName, MAX_PATH);
 
-    std::filesystem::path progpath = std::filesystem::absolute(szFileName).parent_path();
+    std::filesystem::path progpath = utils::GetProgDir();
     auto ppstr = (progpath / "atian-ui.log").string();
     alogs::setfile(ppstr.c_str());
 #endif
@@ -985,6 +988,7 @@ int WINAPI wWinMain(
     CoUninitialize();
 
     return 0;
+    */
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

@@ -31,7 +31,7 @@ function buildinfo()
 end
 
 workspace "AtianCodTools"
-    startproject "AtianCodTools"
+    startproject "AtianCodToolsCLI"
     location "./build"
     configurations { 
         "Debug",
@@ -115,7 +115,7 @@ project "AtianCodToolsBO4DLL"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
-    targetname "acts-bo4-dll"
+    targetname "acts-bo4"
     
     files {
         "./src/bo4-dll/**.hpp",
@@ -149,7 +149,7 @@ project "AtianCodToolsBOCWDLL"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
-    targetname "acts-bocw-dll"
+    targetname "acts-bocw"
     
     files {
         "./src/bocw-dll/**.hpp",
@@ -180,55 +180,20 @@ project "AtianCodToolsBOCWDLL"
     dependson "asmjit"
     dependson "imgui"
 
-project "AtianCodToolsUI"
-    kind "WindowedApp"
-    language "C++"
-    cppdialect "C++20"
-    targetdir "%{wks.location}/bin/"
-    objdir "%{wks.location}/obj/"
-    targetname "acts-ui"
-    
-    files {
-        "./src/ui/**.hpp",
-        "./src/ui/**.cpp",
-        "./resources/**",
-    }
-
-    includedirs {
-        "src/ui",
-        "src/shared",
-        "deps/ps4debug/libdebug/cpp/include/",
-        "deps/asmjit/src/",
-		"deps/Detours/src/",
-    }
-
-    vpaths {
-        ["*"] = "*"
-    }
-    
-    links { "ACTSSharedLibrary" }
-    links { "libps4debug" }
-    links { "asmjit" }
-    links { "detours" }
-    dependson "detours"
-    dependson "ACTSSharedLibrary"
-    dependson "libps4debug"
-    dependson "asmjit"
-
 project "AtianCodTools"
-    kind "ConsoleApp"
+    kind "SharedLib"
     language "C++"
     cppdialect "C++20"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
-    targetname "acts"
+    targetname "acts-common"
     
     files {
         "./.github/workflows/**",
-        "./src/cli/**.hpp",
-        "./src/cli/**.h",
-        "./src/cli/**.cpp",
+        "./src/acts/**.hpp",
+        "./src/acts/**.h",
+        "./src/acts/**.cpp",
         "./gsc/**.gsc",
         "./gsc/**.csc",
         "./grammar/**.g4",
@@ -245,7 +210,7 @@ project "AtianCodTools"
     }
 
     includedirs {
-        "src/cli",
+        "src/acts",
         "src/shared",
         "src/lib",
     -- link antlr4
@@ -264,7 +229,8 @@ project "AtianCodTools"
 
     defines { 
         "ANTLR4CPP_STATIC",
-        "CASCLIB_NO_AUTO_LINK_LIBRARY"
+        "CASCLIB_NO_AUTO_LINK_LIBRARY",
+        "ACTS_COMMON_DLL"
     }
     
     links { "antlr4-runtime" }
@@ -285,6 +251,76 @@ project "AtianCodTools"
     dependson "asmjit"
     dependson "casclib"
     dependson "lz4"
+
+project "AtianCodToolsCLI"
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts"
+    
+    files {
+        "./resources/**",
+        "./src/cli/**.hpp",
+        "./src/cli/**.h",
+        "./src/cli/**.cpp"
+    }
+
+    includedirs {
+        "src/cli",
+        "src/acts",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    links { "AtianCodTools" }
+    dependson "AtianCodTools"
+    
+project "AtianCodToolsUI"
+    kind "WindowedApp"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+    targetname "acts-ui"
+    
+    files {
+        "./src/ui/**.hpp",
+        "./src/ui/**.cpp",
+        "./resources/**",
+    }
+
+    includedirs {
+        "src/acts",
+        "src/ui",
+        "src/shared",
+        "deps/ps4debug/libdebug/cpp/include/",
+        "deps/asmjit/src/",
+		"deps/Detours/src/",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "AtianCodTools" }
+    links { "ACTSSharedLibrary" }
+    links { "libps4debug" }
+    links { "asmjit" }
+    links { "detours" }
+    dependson "AtianCodTools"
+    dependson "detours"
+    dependson "ACTSSharedLibrary"
+    dependson "libps4debug"
+    dependson "asmjit"
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
 
 project "TestDll"
     kind "SharedLib"
@@ -331,7 +367,7 @@ project "AtianCodToolsMW23DLL"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
-    targetname "mw23-dll"
+    targetname "acts-mw23"
     
     files {
         "./src/mw23-dll/**.hpp",
