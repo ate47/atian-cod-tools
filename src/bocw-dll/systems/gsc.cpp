@@ -7,6 +7,7 @@
 #include "data/cw.hpp"
 #include "systems/gsc.hpp"
 #include "callbacks.hpp"
+#include <HwBpLib.h>
 
 
 namespace gsc {
@@ -84,7 +85,7 @@ namespace {
 		DB_FindXAssetHeader = hook::library::QueryScanContainerSinglePtr<decltype(DB_FindXAssetHeader)>("DB_FindXAssetHeader", "48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D AC 24 80 D0");
 		Scr_GscObjLink = hook::library::QueryScanContainerSinglePtr<decltype(Scr_GscObjLink)>("Scr_GscObjLink", "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B DA 4C");
 
-
+		//HwBp::Set(DB_FindXAssetHeader, 8, HwBp::When::ReadOrWritten);
 #endif
 
 		gObjFileInfoCount = objFile.GetRelative<int32_t, uint32_t*>(3);

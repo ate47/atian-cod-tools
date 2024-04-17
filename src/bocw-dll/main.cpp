@@ -1,5 +1,4 @@
 #include <dll_includes.hpp>
-#include <HwBpLib.h>
 #include <utils.hpp>
 #include <imgui.h>
 #include <backends/imgui_impl_dx11.h>
@@ -22,6 +21,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 namespace cw {
     namespace {
         HANDLE mainThread{};
+        DWORD mainThreadId{};
         hook::library::Detour ExitProcessDetour;
         hook::library::Detour GetThreadContextDetour;
         hook::library::Detour SetThreadContextDetour;
@@ -77,16 +77,18 @@ namespace cw {
 
             static std::once_flag of{};
 
-            std::call_once(of, [] {
-                try {
-                    core::system::PostInit();
-                    hook::library::SaveScanContainer();
-                }
-                catch (std::exception& e) {
-                    MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
-                    *reinterpret_cast<byte*>(0x123456789) = 2;
-                }
-            });
+            if (mainThreadId == GetCurrentThreadId()) {
+                std::call_once(of, [] {
+                    try {
+                        core::system::PostInit();
+                        hook::library::SaveScanContainer();
+                    }
+                    catch (std::exception& e) {
+                        MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
+                        *reinterpret_cast<byte*>(0x123456789) = 2;
+                    }
+                });
+            }
             return GetSystemMetricsDetour.Call<int>(nIndex);
         }
 
@@ -563,6 +565,7 @@ namespace cw {
                 LOG_INFO("init acts dll pid={} name={}", GetCurrentProcessId(), libname);
 
                 mainThread = GetCurrentThread();
+                mainThreadId = GetCurrentThreadId();
                 hook::error::EnableHeavyDump();
                 hook::error::InstallErrorHooks(true);
 
