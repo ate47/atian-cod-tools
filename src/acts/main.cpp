@@ -5,6 +5,7 @@
 #include "hook/error.hpp"
 #include "actslib/logging.hpp"
 #include "acts.hpp"
+#include "main_ui.hpp"
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -180,112 +181,6 @@ namespace {
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 	}
-
-	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-
-	struct ActsWindow {
-		HWND hwnd;
-	};
-	ActsWindow actsWindow{};
-	constexpr const wchar_t* CLASS_NAME = L"Atian Tools Class";
-	constexpr int AUI_WIDTH = 800;
-	constexpr int AUI_HEIGHT = 600;
-
-
-	int MainActsUI(HINSTANCE hInstance, int nShowCmd) {
-		// build UI
-		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
-		if (FAILED(hr)) {
-			MessageBox(NULL, L"Can't init con.", L"ACTS", MB_OK | MB_ICONERROR);
-			return -1;
-		}
-
-		WNDCLASS wc = { };
-
-		wc.lpfnWndProc = WindowProc;
-		wc.hInstance = hInstance;
-		wc.lpszClassName = CLASS_NAME;
-		wc.hIcon = LoadIcon(hInstance, L"acts_logo");
-
-		RegisterClass(&wc);
-
-		static std::wstring winName{ std::format(L"Atian tools {}", actsinfo::VERSIONW) };
-
-		// Create the window.
-		actsWindow.hwnd = CreateWindowEx(
-			0,
-			CLASS_NAME,
-			winName.c_str(),
-			WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-
-			// Size and position
-			CW_USEDEFAULT, CW_USEDEFAULT, AUI_WIDTH, AUI_HEIGHT,
-
-			NULL,
-			NULL,
-			hInstance,
-			NULL
-		);
-
-		if (actsWindow.hwnd == NULL) {
-			return -1;
-		}
-
-		SendMessage(actsWindow.hwnd, WM_SETFONT, (WPARAM)GetStockObject(DEFAULT_GUI_FONT), (LPARAM)FALSE);
-
-		ShowWindow(actsWindow.hwnd, nShowCmd);
-
-		MSG msg{};
-		while (GetMessage(&msg, NULL, 0, 0) > 0) {
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-
-		CoUninitialize();
-
-		return 0;
-	}
-
-	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-		switch (uMsg) {
-		case WM_COMMAND:
-			if (wParam == BN_CLICKED) {
-				//auto it = actsWindow.buttonEvent.find((HWND)lParam);
-				//if (it != actsWindow.buttonEvent.end()) {
-				//	it->second();
-				//	return 0;
-				//}
-			}
-			break;
-
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			return 0;
-
-		case WM_CTLCOLORSTATIC: {
-			//if (lParam == (LPARAM)actsWindow.statusMessageText
-			//	|| lParam == (LPARAM)actsWindow.filePathEditLabel
-			//	|| lParam == (LPARAM)actsWindow.injectHookComboLabel) {
-			//	return 0;
-			//}
-			break;
-		}
-		case WM_PAINT: {
-			PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(hwnd, &ps);
-
-			// All painting occurs here, between BeginPaint and EndPaint.
-			FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-
-			EndPaint(hwnd, &ps);
-		}
-					 return 0;
-		}
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
-	}
-
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
@@ -361,7 +256,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	}
 
 	if (hInstance) {
-		return MainActsUI(hInstance, nShowCmd); // no tool to run, life's easier if I put that here
+		return tool::ui::MainActsUI(hInstance, nShowCmd); // no tool to run, life's easier if I put that here
 	}
 
 	const auto& tool = tool::findtool(argv[1]);

@@ -1,14 +1,25 @@
 #pragma once
+#include <windowsx.h>
 
 namespace tool::ui {
-	typedef int(*toolfunctionui)(HWND window);
+	constexpr const wchar_t* CLASS_NAME = L"Atian Tools Class";
+	constexpr const wchar_t* PAGE_CLASS_NAME = L"Atian Tools Page Class";
+	constexpr int AUI_WIDTH = 800;
+	constexpr int AUI_HEIGHT = 600;
+
+	typedef int(*toolfunctionui)(HWND window, HINSTANCE hInstance);
+	typedef void(*toolfunctionuiresize)(int width, int height);
 
 	class tooluifunctiondata {
 	public:
 		const char* m_id;
-		const char* m_description;
+		const wchar_t* m_description;
 		toolfunctionui m_func;
-		tooluifunctiondata(const char* id, const char* description, toolfunctionui registerFunc);
+		toolfunctionuiresize m_resize;
+		WNDPROC m_msg;
+		int tabId{};
+
+		tooluifunctiondata(const char* id, const wchar_t* description, toolfunctionui registerFunc, WNDPROC msg, toolfunctionuiresize resize);
 
 		bool operator!() const;
 		bool operatorbool() const;
@@ -16,6 +27,20 @@ namespace tool::ui {
 
 	std::map<std::string, tool::ui::tooluifunctiondata*>& tools();
 
+	struct ActsWindow {
+		HINSTANCE hinst;
+		HWND hwnd;
+		HWND hwndTab;
+		HWND hwndDisplay{};
+		int width{ AUI_WIDTH }, height{ AUI_HEIGHT };
 
+		std::vector<tooluifunctiondata*> pages{};
+
+		void UpdateWindowName();
+		void RelocateDisplay(int x, int y);
+		void LoadPage();
+	};
+
+	ActsWindow& window();
 }
-#define ADD_TOOL_UI(id, desc, function) static tool::tooluifunctiondata __tooluifunctiondata_##function(id, desc, function)
+#define ADD_TOOL_UI(id, desc, function, msg, resize) static tool::ui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, function, msg, resize)
