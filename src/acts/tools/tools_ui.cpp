@@ -27,26 +27,44 @@ namespace tool::ui {
 namespace {
 	struct {
 		HWND mainLabel;
-		HWND versionLabel;
 	} toolInfo;
 	int RenderActs(HWND window, HINSTANCE hInstance) {
+		std::filesystem::path dir = utils::GetProgDir();
+		std::wstring text{ std::format(
+			L"-- Atian Tools UI \n\r"
+			"Version: {} (0x{:x})"
+#ifdef DEBUG
+			" (DEBUG)"
+#endif
+#ifdef CI_BUILD
+			" (CI)"
+#else
+			" (DEV)"
+#endif
+			"\n\r"
+			"UI Tools: {} \n\r"
+			"CLI Tools: {} \n\r"
+			"Hash(es) loaded: {} \n\r"
+			"Path: {} \n\r"
+			"\n\r"
+			"-- Games \n\r"
+			"Black Ops 4 loaded: {} \n\r"
+			"Black Ops Cold War loaded: {} \n\r"
+			,
+			actsinfo::VERSIONW,
+			actsinfo::VERSION_ID,
+			tool::ui::tools().size(),
+			tool::tools().size(),
+			hashutils::GetMap().size(),
+			utils::StrToWStr(dir.string()),
+			!!Process{ L"BlackOps4.exe" },
+			!!Process{ L"BlackOpsColdWar.exe" }
+		) };
 		toolInfo.mainLabel = CreateWindowEx(
 			0,
 			L"STATIC",
-			L"Atian Tools",
-			SS_CENTER | WS_CHILD | WS_VISIBLE,
-			0, 0, 0, 0,
-			window,
-			NULL,
-			hInstance,
-			NULL
-		);
-		std::wstring version{ std::format(L"Version: {}", actsinfo::VERSIONW) };
-		toolInfo.versionLabel = CreateWindowEx(
-			0,
-			L"STATIC",
-			version.data(),
-			SS_CENTER | WS_CHILD | WS_VISIBLE,
+			text.data(),
+			SS_LEFT | WS_CHILD | WS_VISIBLE,
 			0, 0, 0, 0,
 			window,
 			NULL,
@@ -57,34 +75,13 @@ namespace {
 		return 0;
 	}
 	LRESULT UpdateActs(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-		if (uMsg == WM_CTLCOLORSTATIC && (lParam == (LPARAM)toolInfo.mainLabel || lParam == (LPARAM)toolInfo.versionLabel)) {
+		if (uMsg == WM_CTLCOLORSTATIC && (lParam == (LPARAM)toolInfo.mainLabel)) {
 			return 0;
 		}
 		return 1;
 	}
 	void ResizeActs(int width, int height) {
-		SetWindowPos(toolInfo.mainLabel, NULL, 0, height / 2 - 48, width, 24, SWP_SHOWWINDOW);
-		SetWindowPos(toolInfo.versionLabel, NULL, 0, height / 2 - 24, width, 24, SWP_SHOWWINDOW);
+		SetWindowPos(toolInfo.mainLabel, NULL, 8, 8, width - 8, height - 8, SWP_SHOWWINDOW);
 	}
 }
 ADD_TOOL_UI("acts", L"Atian Tools", RenderActs, UpdateActs, ResizeActs);
-#ifndef CI_BUILD
-namespace {
-	struct {
-		HWND mainLabel;
-	} toolInfoDev;
-	int RenderActsDev(HWND window, HINSTANCE hInstance) {
-
-
-		return 0;
-	}
-	LRESULT UpdateActsDev(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-
-		return 1;
-	}
-	void ResizeActsDev(int width, int height) {
-
-	}
-}
-ADD_TOOL_UI("acts_dev", L"Atian Tools Dev", RenderActsDev, UpdateActsDev, ResizeActsDev);
-#endif

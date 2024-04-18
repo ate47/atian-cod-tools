@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include "custom_ees.hpp"
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
 #include <offsets.hpp>
@@ -23,46 +24,32 @@ public:
 	}
 };
 
-int t8customee(int argc, const char* argv[]) {
-	Process proc{ L"blackops4.exe" };
-
-	if (!proc) {
-		std::wcerr << L"Can't find game process\n";
-		return -1;
-	}
-
-	if (!proc.Open()) {
-		std::cerr << "Can't open game process: x" << std::hex << GetLastError() << "\n";
-		return -1;
-	}
-
-	auto oldpid = proc.m_pid;
-
+int mods::ee::CustomEET8(Process& proc, std::string& notif) {
 	uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);
 	int32_t poolSize = proc.ReadMemory<int32_t>(proc[offset::XASSET_SCRIPTPARSETREE + 0x14]);
 
 
 	if (!poolPtr || !poolSize) {
-		std::cerr << "Can't read scriptparsetree pool\n";
+		notif = "Can't read scriptparsetree pool";
 		return tool::BASIC_ERROR;
 	}
 
 	auto buffer = std::make_unique<tool::dump::T8ScriptParseTreeEntry[]>(poolSize);
 
-	
+
 	if (!proc.ReadMemory(&buffer[0], poolPtr, poolSize * sizeof(buffer[0]))) {
 		std::cerr << "Can't read scriptparsetree buffer" << poolPtr << "\n";
 		return tool::BASIC_ERROR; // can't read buffer
 	}
 
-	uint64_t name = hashutils::Hash64("scripts/zm_common/zm_utility");
-	uint32_t targetFunction = hashutils::Hash32("is_ee_enabled");
+	constexpr uint64_t name = hashutils::Hash64("scripts/zm_common/zm_utility");
+	constexpr uint32_t targetFunction = hashutils::Hash32("is_ee_enabled");
 
 	// CheckClearParams 0x000d
 	// GetByte 0x018a 0x01
 	// Align 0x00
 	// Return 0x003c
-	byte data[] = {0x0d, 0x00, 0x8a, 0x01, 0x01, 0x00, 0x3c, 0x00};
+	byte data[] = { 0x0d, 0x00, 0x8a, 0x01, 0x01, 0x00, 0x3c, 0x00 };
 
 	TargetReplace targets[2] = {
 		TargetReplace(hashutils::Hash64(".gsc", name), targetFunction, data, sizeof(data)),
@@ -146,46 +133,41 @@ int t8customee(int argc, const char* argv[]) {
 		}
 	}
 
-	if (find) {
-		std::cerr << "Can't find scripts\n";
-		for (auto& target : targets) {
-			std::cerr << "script_" << std::hex << target.m_name << " : " << (target.link ? "found" : "not found") << "\n";
-		}
-		
-		return tool::BASIC_ERROR;
-	}
 
-	proc.Close();
-
-	std::cout << "\nPress any key to reset\n";
-	char k = _getch();
-
-	std::cout << k << " Reseting...\n";
-
-	Process proc2{ L"blackops4.exe" };
-
-	if (!proc2 || !proc2.Open() || proc2.m_pid != oldpid) {
-		std::cerr << "Can't find game process\n";
+	if (!find) {
+		notif = ("zm_utility::is_ee_enabled patched, leave the zombies mode to erase");
 		return tool::OK;
 	}
+	else {
+		notif = ("Can't find zm_utility::is_ee_enabled, are you in the zombies mode?");
+		return tool::BASIC_ERROR;
+	}
+}
 
-	for (auto& target : targets) {
-		auto raw = proc2.ReadMemory<uint32_t>(target.patchLocation);
+int t8customee(int argc, const char* argv[]) {
+	Process proc{ L"BlackOps4.exe" };
 
-		if (raw != *reinterpret_cast<uint32_t*>(target.m_toReplace)) {
-			std::cerr << "Not the same start data for " << std::hex << target.m_name << ", this is not an error if you left the zombies mode\n"
-				<< target.m_toReplace << " != " << raw << "\n";
-			continue; // not the same data ignore
-		}
-
-		if (!proc2.WriteMemory(target.patchLocation, &target.m_replacedData[0], target.m_size)) {
-			std::cerr << "Can't unpatch script_" << std::hex << target.m_name << "\n";
-			continue;
-		}
-		std::cout << "script_" <<std::hex << target.m_name << " unpatch\n";
+	if (!proc) {
+		std::wcerr << L"Can't find game process\n";
+		return -1;
 	}
 
-	return tool::OK;
+	if (!proc.Open()) {
+		std::cerr << "Can't open game process: x" << std::hex << GetLastError() << "\n";
+		return -1;
+	}
+
+	std::string notif;
+	int ret = mods::ee::CustomEET8(proc, notif);
+
+	if (ret) {
+		LOG_ERROR("{}", notif);
+	}
+	else {
+		LOG_INFO("{}", notif);
+	}
+
+	return ret;
 }
 
 ADD_MOD("t8cee", "Enable EEs in custom mutation/offline/casual", t8customee);

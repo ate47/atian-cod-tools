@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include "custom_ees.hpp"
 #include "tools/gsc.hpp"
 #include "tools/cw/cw.hpp"
 
@@ -16,27 +17,18 @@ struct ScriptParseTree {
 	uintptr_t buffer; // GSC_OBJ*
 	int len;
 };
-
-int t9customee(int argc, const char* argv[]) {
-
-	Process proc{ "BlackOpsColdWar.exe" };
-
-	if (!proc || !proc.Open()) {
-		LOG_ERROR("Can't find process");
-		return tool::BASIC_ERROR;
-	}
-
+int mods::ee::CustomEET9(Process& proc, std::string& notif) {
 	XAssetPool sptPool{};
 
 	if (!proc.ReadMemory(&sptPool, cw::ScanPool(proc) + sizeof(sptPool) * 68, sizeof(sptPool))) {
-		LOG_ERROR("Can't read spt");
+		notif = ("Can't read spt");
 		return tool::BASIC_ERROR;
 	}
 
 	auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
 
 	if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
-		LOG_ERROR("Can't read SPT pool entries");
+		notif = ("Can't read SPT pool entries");
 		return tool::BASIC_ERROR;
 	}
 
@@ -47,20 +39,20 @@ int t9customee(int argc, const char* argv[]) {
 	for (size_t i = 0; i < sptPool.itemAllocCount; i++) {
 		auto& entry = entries[i];
 
-		if (entry.name != hashutils::Hash64("scripts/zm_common/zm_utility.gsc") 
+		if (entry.name != hashutils::Hash64("scripts/zm_common/zm_utility.gsc")
 			&& entry.name != hashutils::Hash64("scripts/zm_common/zm_utility.csc")) {
 			continue;
 		}
 
 		if (!proc.ReadMemory(&header, entry.buffer, sizeof(header))) {
-			LOG_ERROR("Can't read header");
+			notif = ("Can't read header");
 			return tool::BASIC_ERROR;
 		}
 
 		auto exports = std::make_unique<tool::gsc::T8GSCExport[]>(header.exports_count);
 
 		if (!proc.ReadMemory(&exports[0], entry.buffer + header.exports_tables, sizeof(tool::gsc::T8GSCExport) * header.exports_count)) {
-			LOG_ERROR("Can't read header");
+			notif = ("Can't read header");
 			return tool::BASIC_ERROR;
 		}
 
@@ -80,7 +72,7 @@ int t9customee(int argc, const char* argv[]) {
 			byte data[] = { 0x0d, 0x00, 0x13, 0x00, 0xca, 0x00, 0x01, 0x00, 0x1a, 0x00 };
 
 			if (!proc.WriteMemory(entry.buffer + exp.address, data, sizeof(data))) {
-				LOG_ERROR("error when patching zm_utility::is_ee_enabled");
+				notif = ("error when patching zm_utility::is_ee_enabled");
 				return tool::BASIC_ERROR;
 			}
 
@@ -93,12 +85,32 @@ int t9customee(int argc, const char* argv[]) {
 	}
 
 	if (patched) {
-		LOG_INFO("zm_utility::is_ee_enabled patched, leave the zombies mode to erase");
+		notif = ("zm_utility::is_ee_enabled patched, leave the zombies mode to erase");
 		return tool::OK;
 	}
 	else {
-		LOG_ERROR("Can't find zm_utility::is_ee_enabled, are you in the zombies mode?");
+		notif = ("Can't find zm_utility::is_ee_enabled, are you in the zombies mode?");
 		return tool::BASIC_ERROR;
 	}
+}
+
+int t9customee(int argc, const char* argv[]) {
+	Process proc{ "BlackOpsColdWar.exe" };
+
+	if (!proc || !proc.Open()) {
+		LOG_ERROR("Can't find process");
+		return tool::BASIC_ERROR;
+	}
+	std::string notif;
+	int ret = mods::ee::CustomEET8(proc, notif);
+
+	if (ret) {
+		LOG_ERROR("{}", notif);
+	}
+	else {
+		LOG_INFO("{}", notif);
+	}
+
+	return ret;
 }
 ADD_MOD("t9cee", "Enable EEs in offline (cw)", t9customee);

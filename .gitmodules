@@ -34,3 +34,6 @@
 [submodule "deps/hw_break"]
 	path = deps/hw_break
 	url = https://github.com/ate47/hw_break
+[submodule "deps/rapidjson"]
+	path = deps/rapidjson
+	url = https://github.com/Tencent/rapidjson

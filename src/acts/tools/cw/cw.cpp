@@ -161,6 +161,152 @@ uintptr_t cw::ScanPool(Process& proc) {
 	}
 	return curr + 7 + delta;
 }
+int cw::InjectScriptCW(Process& proc, const char* script, const char* target, const char* replaced, std::string& notify) {
+
+	uint64_t targetHash = hash::Hash64Pattern(target);
+	uint64_t replacedHash = hash::Hash64Pattern(replaced);
+
+	LOG_DEBUG("script: {}", script);
+	LOG_DEBUG("target: {} (script_{:x})", target, targetHash);
+	LOG_DEBUG("replaced: {} (script_{:x})", replaced, replacedHash);
+
+	std::filesystem::path scriptPath = script;
+	std::string scriptBuffStr{};
+
+	if (!utils::ReadFile(scriptPath, scriptBuffStr)) {
+		notify = std::format("Can't read '{}'", scriptPath.string());
+		return tool::BASIC_ERROR;
+	}
+
+	void* scriptBuffer = scriptBuffStr.data();
+	size_t scriptSize = scriptBuffStr.size();
+
+	if (scriptSize < 8 || *reinterpret_cast<uint64_t*>(scriptBuffer) != cw::GSC_MAGIC) {
+		notify = "Not a valid compiled Black Ops Cold War script (BAD MAGIC)";
+		return tool::BASIC_ERROR;
+	}
+
+	XAssetPool sptPool{};
+
+	uintptr_t poolLoc = cw::ScanPool(proc);
+
+	proc.WriteLocation(std::cout << "pool: ", poolLoc) << "\n";
+
+	if (!proc.ReadMemory(&sptPool, poolLoc + sizeof(sptPool) * cw::ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
+		notify = "Can't read SPT pool";
+		return tool::BASIC_ERROR;
+	}
+
+	auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
+
+	if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
+		notify = "Can't read SPT pool entries";
+		return tool::BASIC_ERROR;
+	}
+
+	auto* scriptEntry = reinterpret_cast<ScriptParseTree*>(&entries[0]);
+
+	auto* end = scriptEntry + sptPool.itemAllocCount;
+
+	auto* targetEntry = std::find_if(scriptEntry, end, [targetHash](const auto& ent) { return ent.name == targetHash; });
+
+	uintptr_t replacedEntry = 0;
+	ScriptParseTree* replacedEntryH = NULL;
+
+	for (size_t i = 0; i < sptPool.itemAllocCount; i++) {
+		if (scriptEntry[i].name == replacedHash) {
+			replacedEntryH = scriptEntry + i;
+			replacedEntry = sptPool.pool + sizeof(*scriptEntry) * i;
+			break;
+		}
+	}
+
+	if (targetEntry == end) {
+		notify = std::format("Can't find target script '{}'", target);
+		return tool::BASIC_ERROR;
+	}
+	if (!replacedEntry) {
+		notify = std::format("Can't find replaced script '{}'", replaced);
+		return tool::BASIC_ERROR;
+	}
+	tool::gsc::T9GSCOBJ replacerScriptHeader{};
+	if (!proc.ReadMemory(&replacerScriptHeader, replacedEntryH->buffer, sizeof(tool::gsc::T9GSCOBJ))) {
+		notify = "Can't read replacer header";
+		return tool::BASIC_ERROR;
+	}
+
+	tool::gsc::T9GSCOBJ scriptHeader{};
+	if (!proc.ReadMemory(&scriptHeader, targetEntry->buffer, sizeof(tool::gsc::T9GSCOBJ))) {
+		notify = "Can't read target header";
+		return tool::BASIC_ERROR;
+	}
+	auto includesOffset = targetEntry->buffer + scriptHeader.includes_table;
+	auto includes = std::make_unique<uint64_t[]>(scriptHeader.includes_count);
+	if (!proc.ReadMemory(&includes[0], includesOffset, sizeof(uint64_t) * scriptHeader.includes_count)) {
+		notify = "Can't read includes";
+		return tool::BASIC_ERROR;
+	}
+
+	auto includesEnd = &includes[0] + scriptHeader.includes_count;
+
+	LOG_DEBUG("{} -> {:x} ({})", target, targetEntry->buffer, targetEntry->name);
+	LOG_DEBUG("{} -> {:x} ({})", replaced, replacedEntryH->buffer, replacedEntryH->name);
+
+	auto hookId = std::find(&includes[0], includesEnd, replacedHash);
+	if (hookId == includesEnd) {
+		// need to add the include
+
+		// insert the new include
+		if (!proc.WriteMemory(includesOffset + sizeof(uint64_t) * scriptHeader.includes_count, &replacedHash, sizeof(replacedHash))) {
+			notify = "Error when patching includes";
+			return tool::BASIC_ERROR;
+		}
+
+		// correct the include count
+		uint16_t newIncludeCount = scriptHeader.includes_count + 1;
+		if (!proc.WriteMemory(targetEntry->buffer + offsetof(tool::gsc::T9GSCOBJ, includes_count), &newIncludeCount, sizeof(newIncludeCount))) {
+			notify = "Error when patching includes count";
+			return tool::BASIC_ERROR;
+		}
+
+		if (scriptHeader.name == targetHash) {
+			LOG_DEBUG("Hook inserted into {}", target);
+		}
+		else {
+			LOG_DEBUG("Hook inserted into script_{:x}", scriptHeader.name);
+		}
+	}
+
+	// fixup crc & name
+	reinterpret_cast<tool::gsc::T9GSCOBJ*>(scriptBuffer)->crc = replacerScriptHeader.crc;
+	reinterpret_cast<tool::gsc::T9GSCOBJ*>(scriptBuffer)->name = replacerScriptHeader.name;
+
+	auto loc = proc.AllocateMemory(scriptSize + 0xF, PAGE_READWRITE);
+
+	if (!loc) {
+		notify = "Can't allocate memory";
+		return tool::BASIC_ERROR;
+	}
+
+	auto locAligned = (loc + 0xF) & ~0xF;
+	LOG_DEBUG("Allocating script at 0x{:x} (0x{:x})", locAligned, loc);
+
+	if (!proc.WriteMemory(locAligned, scriptBuffer, scriptSize)) {
+		auto err = GetLastError();
+		notify = std::format("Error when writing script: 0x{:x}", err);
+		proc.FreeMemory(loc, scriptSize + 0xF);
+		return tool::BASIC_ERROR;
+	}
+
+	if (!proc.WriteMemory(replacedEntry + offsetof(ScriptParseTree, buffer), &locAligned, sizeof(locAligned))) {
+		notify = std::format("Error when patching SPT entry to 0x{:x}", locAligned);
+		proc.FreeMemory(loc, scriptSize + 0xF);
+		return tool::BASIC_ERROR;
+	}
+
+	notify = std::format("{} injected at {:x}", script, locAligned);
+	return tool::OK;
+}
 
 namespace {
 	int rawdecryptcw(Process& proc, int argc, const char* argv[]) {

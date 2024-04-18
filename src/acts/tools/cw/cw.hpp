@@ -4,6 +4,8 @@
 #define CW_INCLUDES
 
 namespace cw {
+    constexpr uint64_t GSC_MAGIC = 0x38000a0d43534780;
+
 	enum T9ScrVarType : unsigned __int32 {
 		TYPE_UNDEFINED = 0x0,
 		TYPE_POINTER = 0x1,
@@ -271,8 +273,16 @@ namespace cw {
         ASSET_TYPE_COUNT
     };
 
+    struct ScriptParseTree {
+        uint64_t name;
+        uintptr_t buffer; // GSC_OBJ*
+        int len;
+    };
+
 	char* DecryptString(char* str);
 	byte* DecryptRawBuffer(byte* buffer);
 	uintptr_t ScanPool(Process& proc);
+
+    int InjectScriptCW(Process& proc, const char* script, const char* target, const char* replace, std::string& notify);
 }
 

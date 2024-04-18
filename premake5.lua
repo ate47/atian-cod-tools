@@ -199,7 +199,7 @@ project "AtianCodTools"
         "./grammar/**.g4",
         "./scripts/**.ps1",
         "./release/**",
-        "./resources/**",
+        "./resources/common/**",
         "./config/**",
         ".gitignore",
         "premake5.lua",
@@ -221,6 +221,7 @@ project "AtianCodTools"
         "deps/casclib/src/",
         "deps/lz4/lib/",
 		"deps/Detours/src/",
+        "deps/rapidjson/include/",
     }
 
     vpaths {
@@ -262,7 +263,7 @@ project "AtianCodToolsCLI"
     targetname "acts"
     
     files {
-        "./resources/**",
+        "./resources/cli/**",
         "./src/cli/**.hpp",
         "./src/cli/**.h",
         "./src/cli/**.cpp"
@@ -290,7 +291,7 @@ project "AtianCodToolsUI"
     files {
         "./src/ui/**.hpp",
         "./src/ui/**.cpp",
-        "./resources/**",
+        "./resources/ui/**",
     }
 
     includedirs {

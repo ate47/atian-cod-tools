@@ -10,6 +10,7 @@ This software depends on libraries with a different License.
 - [JustasMasiulis/xorstr](https://github.com/JustasMasiulis/xorstr) - [Apache License 2.0](https://github.com/JustasMasiulis/xorstr/blob/master/LICENSE)
 - [ocornut/imgui](https://github.com/ocornut/imgui) - [MIT license](https://github.com/ocornut/imgui/blob/master/LICENSE.txt)
 - [biocomp/hw_break](https://github.com/biocomp/hw_break) - [MIT license](https://github.com/biocomp/hw_break/blob/master/LICENSE)
+- [Tencent/rapidjson](https://github.com/Tencent/rapidjson) - [MIT and JSON license](https://github.com/Tencent/rapidjson/blob/master/license.txt)
 
 
 # MIT License

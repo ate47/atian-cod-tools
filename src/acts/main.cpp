@@ -6,6 +6,7 @@
 #include "actslib/logging.hpp"
 #include "acts.hpp"
 #include "main_ui.hpp"
+#include "config.hpp"
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -220,10 +221,12 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		argv = _argv;
 	}
 	hook::error::InstallErrorHooks();
+	
+	acts::config::SyncConfig();
 
 	auto& opt = actscli::options();
 
-	if (opt.showTitle) {
+	if (opt.showTitle && !hInstance) {
 		LOG_INFO("Atian tools {} {}", actsinfo::VERSION, (cli ? "CLI" : "UI"));
 	}
 
@@ -256,6 +259,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	}
 
 	if (hInstance) {
+		hashutils::ReadDefaultFile();
 		return tool::ui::MainActsUI(hInstance, nShowCmd); // no tool to run, life's easier if I put that here
 	}
 

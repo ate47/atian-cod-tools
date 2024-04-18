@@ -1,5 +1,6 @@
 #pragma once
 #include <windowsx.h>
+#include <CommCtrl.h>
 
 namespace tool::ui {
 	constexpr const wchar_t* CLASS_NAME = L"Atian Tools Class";
@@ -42,5 +43,6 @@ namespace tool::ui {
 	};
 
 	ActsWindow& window();
+	std::wstring GetWindowTextVal(HWND hwnd);
 }
 #define ADD_TOOL_UI(id, desc, function, msg, resize) static tool::ui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, function, msg, resize)

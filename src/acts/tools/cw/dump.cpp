@@ -17,12 +17,6 @@ namespace {
         int itemAllocCount;
         void* freeHead;
     };
-    
-    struct ScriptParseTree {
-        uint64_t name;
-        uintptr_t buffer; // GSC_OBJ*
-        int len;
-    };
     union __declspec(align(8)) stringtable_cell_value
     {
         byte bytes[8];
@@ -205,7 +199,7 @@ namespace {
             return tool::BASIC_ERROR;
         }
 		
-        auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
+        auto entries = std::make_unique<cw::ScriptParseTree[]>(sptPool.itemAllocCount);
 
         if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
             std::cerr << "Can't read SPT pool entries\n";
@@ -1421,178 +1415,23 @@ namespace {
             return tool::BAD_USAGE;
         }
 
-        auto script = argv[2];
-        auto target = argv[3];
-        auto replaced = argv[4];
+        const char* script = argv[2];
+        const char* target = argv[3];
+        const char* replaced = argv[4];
 
-        auto targetHash = hash::Hash64Pattern(target);
-        auto replacedHash = hash::Hash64Pattern(replaced);
+        std::string notify{};
+        int ret = cw::InjectScriptCW(proc, script, target, replaced, notify);
 
-        std::cout <<
-            "script: " << script << "\n"
-            "target: " << target << " (script_" << std::hex << targetHash << ")\n"
-            "replaced: " << replaced << " (script_" << std::hex << replacedHash << ")\n"
-            ;
-
-        std::filesystem::path scriptPath = script;
-        void* scriptBuffer = NULL;
-        size_t scriptSize = 0;
-
-        if (!utils::ReadFileNotAlign(scriptPath, scriptBuffer, scriptSize, false)) {
-            std::cerr << "Can't read '" << scriptPath.string() << "'\n";
-            return tool::BASIC_ERROR;
-        }
-
-        if (scriptSize < 8 || *reinterpret_cast<uint64_t*>(scriptBuffer) != 0x38000a0d43534780) {
-            std::cerr << "Not a valid compiled Black Ops Cold War script (BAD MAGIC)\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-
-        XAssetPool sptPool{};
-
-        uintptr_t poolLoc = cw::ScanPool(proc);
-
-        proc.WriteLocation(std::cout << "pool: ", poolLoc) << "\n";
-        
-        if (!proc.ReadMemory(&sptPool, poolLoc + sizeof(sptPool) * cw::ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
-            std::cerr << "Can't read SPT pool\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-
-        auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
-
-        if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
-            std::cerr << "Can't read SPT pool entries\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-
-        auto* scriptEntry = reinterpret_cast<ScriptParseTree*>(&entries[0]);
-
-        auto* end = scriptEntry + sptPool.itemAllocCount;
-
-        auto* targetEntry = std::find_if(scriptEntry, end, [targetHash](const auto& ent) { return ent.name == targetHash; });
-
-        uintptr_t replacedEntry = 0;
-        ScriptParseTree* replacedEntryH = NULL;
-
-        for (size_t i = 0; i < sptPool.itemAllocCount; i++) {
-            if (scriptEntry[i].name == replacedHash) {
-                replacedEntryH = scriptEntry + i;
-                replacedEntry = sptPool.pool + sizeof(*scriptEntry) * i;
-                break;
-            }
-        }
-
-        if (targetEntry == end) {
-            std::cerr << "Can't find target script " << target << "\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-        if (!replacedEntry) {
-            std::cerr << "Can't find replaced script " << replaced << "\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-        tool::gsc::T9GSCOBJ replacerScriptHeader{};
-        if (!proc.ReadMemory(&replacerScriptHeader, replacedEntryH->buffer, sizeof(tool::gsc::T9GSCOBJ))) {
-            std::cerr << "Can't read replacer header\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-
-        tool::gsc::T9GSCOBJ scriptHeader{};
-        if (!proc.ReadMemory(&scriptHeader, targetEntry->buffer, sizeof(tool::gsc::T9GSCOBJ))) {
-            std::cerr << "Can't read target header\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-        auto includesOffset = targetEntry->buffer + scriptHeader.includes_table;
-        auto includes = std::make_unique<uint64_t[]>(scriptHeader.includes_count);
-        if (!proc.ReadMemory(&includes[0], includesOffset, sizeof(uint64_t) * scriptHeader.includes_count)) {
-            std::cerr << "Can't read includes\n";
-            std::free(scriptBuffer);
-            return tool::BASIC_ERROR;
-        }
-
-        auto includesEnd = &includes[0] + scriptHeader.includes_count;
-
-        std::cout << target << " -> " << std::hex << targetEntry->buffer << "(" << targetEntry->name << ")\n";
-        std::cout << replaced << " -> " << std::hex << replacedEntryH->buffer << "(" << replacedEntryH->name << ")\n";
-
-        auto hookId = std::find(&includes[0], includesEnd, replacedHash);
-        if (hookId == includesEnd) {
-            // need to add the include
-
-            // insert the new include
-            if (!proc.WriteMemory(includesOffset + sizeof(uint64_t) * scriptHeader.includes_count, &replacedHash, sizeof(replacedHash))) {
-                std::cerr << "Error when patching includes\n";
-                std::free(scriptBuffer);
-                return tool::BASIC_ERROR;
-            }
-
-            // correct the include count
-            uint16_t newIncludeCount = scriptHeader.includes_count + 1;
-            if (!proc.WriteMemory(targetEntry->buffer + offsetof(tool::gsc::T9GSCOBJ, includes_count), &newIncludeCount, sizeof(newIncludeCount))) {
-                std::cerr << "Error when patching includes count\n";
-                std::free(scriptBuffer);
-                return tool::BASIC_ERROR;
-            }
-
-            std::cout << "Hook inserted into ";
-            if (scriptHeader.name == targetHash) {
-                std::cout << target;
+        if (!notify.empty()) {
+            if (ret) {
+                LOG_ERROR("{}", notify);
             }
             else {
-                std::cout << std::hex << scriptHeader.name;
+                LOG_INFO("{}", notify);
             }
-            std::cout << "\n";
         }
 
-        // fixup crc & name
-        reinterpret_cast<tool::gsc::T9GSCOBJ*>(scriptBuffer)->crc = replacerScriptHeader.crc;
-        reinterpret_cast<tool::gsc::T9GSCOBJ*>(scriptBuffer)->name = replacerScriptHeader.name;
-
-        // patching crc emiter
-
-        // TODO
-
-        auto loc = proc.AllocateMemory(scriptSize + 15, PAGE_READWRITE);
-
-        if (!loc) {
-            std::cerr << "Can't allocate memory\n";
-        }
-        else {
-            auto locAligned = (loc + 15) & ~15;
-            std::cout << "Allocating script at 0x" << std::hex << locAligned << "(0x" << loc << ")\n";
-
-            if (!proc.WriteMemory(locAligned, scriptBuffer, scriptSize)) {
-                auto err = GetLastError();
-                std::cerr << "Error when writing script: 0x" << std::hex << err << "\n";
-                proc.FreeMemory(loc, scriptSize + 15);
-                std::free(scriptBuffer);
-                return tool::BASIC_ERROR;
-            }
-
-            std::cout << "Script allocated at " << std::hex << locAligned << "\n";
-
-            if (!proc.WriteMemory(replacedEntry + offsetof(ScriptParseTree, buffer), &locAligned, sizeof(locAligned))) {
-                std::cerr << "Error when patching SPT entry\n";
-                proc.FreeMemory(loc, scriptSize + 15);
-                std::free(scriptBuffer);
-                return tool::BASIC_ERROR;
-            }
-
-            std::cout << script << " injected\n";
-        }
-
-        std::free(scriptBuffer);
-
-        // TODO: cleanup
-
-        return tool::OK;
+        return ret;
     }
 
 

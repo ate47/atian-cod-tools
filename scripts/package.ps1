@@ -45,22 +45,21 @@ try {
     
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
-    # remove UI (not ready for deployment)
-    Remove-Item -Force -ErrorAction Ignore "$base/bin/acts-ui.exe" > $null
 
     # License
     Copy-Item "README.md" "$base/README.md" > $null
-    Copy-Item "LICENSE.md" "$base/licenses/license_acts.md" > $null
-    Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/license_antlr4.md" > $null
-    Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/license_detours.md" > $null
-    Copy-Item "deps/zlib/LICENSE" "$base/licenses/license_zlib.md" > $null
-    Copy-Item "deps/asmjit/LICENSE.md" "$base/licenses/license_asmjit.md" > $null
-    Copy-Item "deps/casclib/LICENSE" "$base/licenses/license_casclib.md" > $null
-    Copy-Item "deps/lz4/lib/LICENSE" "$base/licenses/license_lz4.md" > $null
-    Copy-Item "licenses/mio.md" "$base/licenses/license_mio.md" > $null
-    Copy-Item "licenses/xorstr.md" "$base/licenses/license_xorstr.md" > $null
-    Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/license_imgui.md" > $null
-    Copy-Item "deps/hw_break/LICENSE" "$base/licenses/license_hw_break.md" > $null
+    Copy-Item "LICENSE.md" "$base/licenses/acts.md" > $null
+    Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/antlr4.txt" > $null
+    Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/detours.md" > $null
+    Copy-Item "deps/zlib/LICENSE" "$base/licenses/zlib.txt" > $null
+    Copy-Item "deps/asmjit/LICENSE.md" "$base/licenses/asmjit.md" > $null
+    Copy-Item "deps/casclib/LICENSE" "$base/licenses/casclib.txt" > $null
+    Copy-Item "deps/lz4/lib/LICENSE" "$base/licenses/lz4.txt" > $null
+    Copy-Item "licenses/mio.md" "$base/licenses/mio.md" > $null
+    Copy-Item "licenses/xorstr.md" "$base/licenses/xorstr.md" > $null
+    Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/imgui.txt" > $null
+    Copy-Item "deps/hw_break/LICENSE" "$base/licenses/hw_break.txt" > $null
+    Copy-Item "deps/rapidjson/license.txt" "$base/licenses/rapidjson.txt" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

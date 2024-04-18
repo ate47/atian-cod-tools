@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <CommCtrl.h>
 #include "tools/tools_ui.hpp"
+#include "config.hpp"
 
 namespace tool::ui {
 	LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -68,6 +69,8 @@ namespace tool::ui {
 		UpdateWindowName();
 		// render page
 		item->m_func(hwndDisplay, hinst);
+		acts::config::SetString("ui.last", item->m_id);
+		acts::config::SaveConfig(); // save last page
 		static HFONT deffont = []() -> HFONT {
 			return CreateFontA(20, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
 				ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Tahoma");
@@ -78,6 +81,16 @@ namespace tool::ui {
 
 	ActsWindow& window() {
 		return actsWindow;
+	}
+
+	std::wstring GetWindowTextVal(HWND hwnd) {
+		static thread_local wchar_t tmp[0x512];
+
+		if (SUCCEEDED(GetWindowText(hwnd, &tmp[0], ARRAYSIZE(tmp)))) {
+			tmp[ARRAYSIZE(tmp) - 1] = 0;
+			return tmp;
+		}
+		return L"";
 	}
 
 	int MainActsUI(HINSTANCE hInstance, int nShowCmd) {
@@ -130,8 +143,7 @@ namespace tool::ui {
 			return -1;
 		}
 
-
-		actsWindow.hwndTab = CreateWindowEx(
+		actsWindow.hwndTab = CreateWindowExW(
 			0,
 			WC_TABCONTROLW,
 			L"",
@@ -145,6 +157,8 @@ namespace tool::ui {
 			DestroyWindow(actsWindow.hwnd);
 			return -1;
 		}
+		
+		std::string lastPage = acts::config::GetString("ui.last");
 
 		TCITEM tie;
 		tie.mask = TCIF_TEXT;
@@ -152,6 +166,7 @@ namespace tool::ui {
 		TCHAR achTemp[256];
 		tie.pszText = achTemp;
 		int i{};
+		int lastPageIdx{};
 		for (auto& [id, tool] : tool::ui::tools()) {
 			wcscpy_s(achTemp, tool->m_description);
 
@@ -161,6 +176,14 @@ namespace tool::ui {
 				return -1;
 			}
 			actsWindow.pages.emplace_back(tool);
+
+			if (id == lastPage) {
+				lastPageIdx = tool->tabId;
+			}
+		}
+
+		if (lastPageIdx) {
+			TabCtrl_SetCurSel(actsWindow.hwndTab, lastPageIdx);
 		}
 
 		actsWindow.LoadPage();
