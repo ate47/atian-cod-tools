@@ -1,7 +1,8 @@
 - tools
-  - use scan for cw injection
-  - search tool
-  - some decompiler formats
-  - gscgdb tests
+  - collapse delta = operators
+- ui
+  - add ui to deploy
+  - hashes
+  - gsc inject
 - cw dll
-  - lazylink for cw gsc
+  - tests and stability fixes
