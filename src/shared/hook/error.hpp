@@ -16,6 +16,12 @@ namespace hook::error {
 	 */
 	void InstallErrorHooks(bool clearSetFunction = false);
 	/*
+	 * Display UI error when an error is generated, HMODULE
+	 * @param hmod module
+	 * @param showCmd show cmd param
+	 */
+	void InstallErrorUI(HMODULE hmod, int showCmd);
+	/*
 	 * Print more error information inside the error hook
 	 */
 	void EnableHeavyDump();

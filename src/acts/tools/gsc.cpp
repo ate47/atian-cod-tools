@@ -1,24 +1,12 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
+#include "tools/gsc_opcode_nodes.hpp"
 #include "tools/cw/cw.hpp"
 #include "actscli.hpp"
 #include <decrypt.hpp>
 
 using namespace tool::gsc;
-
-namespace {
-    size_t SizeNoEmptyNode(const std::vector<tool::gsc::opcode::ASMContextStatement>& statements) {
-        size_t acc = 0;
-        for (const auto& stmt : statements) {
-            if (stmt.node->m_type != tool::gsc::opcode::TYPE_PRECODEPOS) {
-                if (acc || stmt.node->m_type != tool::gsc::opcode::TYPE_END) {
-                    acc++;
-                }
-            }
-        }
-        return acc;
-    }
-}
+using namespace tool::gsc::opcode;
 
 constexpr uint32_t g_constructorName = hashutils::Hash32("__constructor");
 constexpr uint32_t g_destructorName = hashutils::Hash32("__destructor");
@@ -86,7 +74,7 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
                 LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
-            m_platform = opcode::PlatformOf(args[++i]);
+            m_platform = PlatformOf(args[++i]);
 
             if (!m_platform) {
                 LOG_ERROR("Unknown platform: {}!", args[i]);
@@ -110,7 +98,7 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
                 LOG_ERROR("Missing value for param: {}!", arg);
                 return false;
             }
-            m_vm = opcode::VMOf(args[++i]);
+            m_vm = VMOf(args[++i]);
 
             if (!m_vm) {
                 LOG_ERROR("Unknown vm: {}!", args[i]);
@@ -329,7 +317,7 @@ struct GSC_ANIMTREE_ITEM {
 };
 
 void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
-    if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) {
+    if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
         if (GetAnimTreeSingleOffset()) {
             // HAS TO BE DONE FIRST BECAUSE THEY ARE STORED USING 1 byte
             uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(file) + GetAnimTreeSingleOffset();
@@ -1054,10 +1042,10 @@ namespace {
     };
 
     std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJReader> (byte*, const GscInfoOption&)>> gscReaders = {
-        { tool::gsc::opcode::VM_T8,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T8GSCOBJReader>(file, opt); }},
-        { tool::gsc::opcode::VM_T937,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T937GSCOBJReader>(file, opt); }},
-        { tool::gsc::opcode::VM_T9,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T9GSCOBJReader>(file, opt); }},
-        { tool::gsc::opcode::VM_MW23,[](byte* file, const GscInfoOption& opt) { return std::make_shared<MW23GSCOBJReader>(file, opt); }},
+        { VM_T8,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T8GSCOBJReader>(file, opt); }},
+        { VM_T937,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T937GSCOBJReader>(file, opt); }},
+        { VM_T9,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T9GSCOBJReader>(file, opt); }},
+        { VM_MW23,[](byte* file, const GscInfoOption& opt) { return std::make_shared<MW23GSCOBJReader>(file, opt); }},
     };
 }
 
@@ -1150,7 +1138,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     auto magicVal = *reinterpret_cast<uint64_t*>(data) & ~0xFF00000000000000;
     if (magicVal == 0xa0d4353478a) {
         // IW GSC file, use user input
-        if (opt.m_vm == opcode::VM_UNKNOWN) {
+        if (opt.m_vm == VM_UNKNOWN) {
             LOG_ERROR("VM type needed with IW GSC file, please use --vm [vm] to set it");
             return tool::BASIC_ERROR;
         }
@@ -1169,8 +1157,8 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     hashutils::ReadDefaultFile();
 
 
-    opcode::VmInfo* vmInfo;
-    if (!opcode::IsValidVm(vm, vmInfo)) {
+    VmInfo* vmInfo;
+    if (!IsValidVm(vm, vmInfo)) {
         LOG_ERROR("Bad vm 0x{:x} for file {}", (int)vm, path);
         return -1;
     }
@@ -1257,7 +1245,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             << "// magic .... 0x" << scriptfile->Ref<uint64_t>()
             << " vm: ";
         
-        if (vmInfo->flags & opcode::VmFlags::VMF_NO_VERSION) {
+        if (vmInfo->flags & VmFlags::VMF_NO_VERSION) {
             asmout << vmInfo->name;
         }
         else {
@@ -1282,7 +1270,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
             size_t len{};
             byte type{};
-            if (scriptfile->GetVM() == opcode::VM_T8) {
+            if (scriptfile->GetVM() == VM_T8) {
                 len = (size_t)reinterpret_cast<byte*>(encryptedString)[1] - 1;
                 type = *reinterpret_cast<byte*>(encryptedString);
 
@@ -1320,7 +1308,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
             asmout << '"' << cstr << "\"" << std::flush;
 
-            if (scriptfile->GetVM() == opcode::VM_T8) {
+            if (scriptfile->GetVM() == VM_T8) {
                 size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
 
                 if (lenAfterDecrypt != len) {
@@ -1398,7 +1386,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             byte param_count;
             uint16_t numAddress;
 
-            if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) {
+            if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
                 const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
                 name_space = imp->name_space;
                 name = imp->name;
@@ -1497,10 +1485,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             }
         };
 
-        std::unordered_map<Located, opcode::ASMContext, LocatedHash, LocatedEquals> contextes{};
+        std::unordered_map<Located, ASMContext, LocatedHash, LocatedEquals> contextes{};
 
         std::unique_ptr<GSCExportReader> exp;
-        if (ctx.m_vmInfo->flags & opcode::VmFlags::VMF_HASH64) {
+        if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
             exp = std::make_unique<H64GSCExportReader>();
         }
         else {
@@ -1571,7 +1559,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                     DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
                 }
                 output << std::flush;
-                opcode::DecompContext dctx{ 0, 0, asmctx.m_opt };
+                DecompContext dctx{ 0, 0, asmctx.m_opt };
                 if (opt.m_dcomp) {
                     if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
                         asmctx.m_bcl = scriptfile->Ptr(exp->GetAddress());
@@ -1588,30 +1576,41 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                     }
                     else {
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_DEV)) {
-                            asmctx.ComputeDevBlocks(asmctx);
+                            asmctx.ComputeDevBlocks();
+
+                            if (//(scriptfile->RemapFlagsExport(exp->GetFlags()) & T8GSCExportFlags::PRIVATE) != 0 &&
+                                SizeNoEmptyNode(asmctx.m_funcBlock.m_statements) == 2) {
+                                auto* node = GetNoEmptyNode(asmctx.m_funcBlock.m_statements, 0);
+                                auto* ret = GetNoEmptyNode(asmctx.m_funcBlock.m_statements, 1);
+                                if (ret->node && ret->node->m_type == TYPE_END
+                                    && node->node && node->node->m_type == TYPE_BLOCK
+                                        && static_cast<ASMContextNodeBlock*>(node->node)->m_blockType == BLOCK_DEV) {
+                                    asmctx.m_devFuncCandidate = true;
+                                }
+                            }
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_SWITCH)) {
-                            asmctx.ComputeSwitchBlocks(asmctx);
+                            asmctx.ComputeSwitchBlocks();
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_FOREACH)) {
-                            asmctx.ComputeForEachBlocks(asmctx);
+                            asmctx.ComputeForEachBlocks();
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_WHILE)) {
-                            asmctx.ComputeWhileBlocks(asmctx);
+                            asmctx.ComputeWhileBlocks();
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_FOR)) {
-                            asmctx.ComputeForBlocks(asmctx);
+                            asmctx.ComputeForBlocks();
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_IF)) {
-                            asmctx.ComputeIfBlocks(asmctx);
+                            asmctx.ComputeIfBlocks();
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_RETURN)) {
-                            asmctx.ComputeReturnJump(asmctx);
+                            asmctx.ComputeReturnJump();
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_BOOL_RETURN)) {
-                            asmctx.ComputeBoolReturn(asmctx);
+                            asmctx.ComputeBoolReturn();
                         }
-                        asmctx.ComputeSpecialPattern(asmctx);
+                        asmctx.ComputeSpecialPattern();
                         if (opt.m_dasm) {
                             output << " ";
                             asmctx.Dump(output, dctx);
@@ -1628,6 +1627,8 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         if (!opt.m_dasm && opt.m_dcomp) {
             // current namespace
             currentNSP = 0;
+            int currentPadding{};
+            bool inDevBlock{};
 
             for (const auto& [name, cls] : ctx.m_classes) {
                 if (cls.name_space != currentNSP) {
@@ -1663,7 +1664,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
                 
 
-                auto handleMethod = [&opt, &contextes, &asmout, &scriptfile, name, &ctx](uint64_t method, const char* forceName, bool ignoreEmpty) -> void {
+                auto handleMethod = [&currentPadding, &opt, & contextes, & asmout, & scriptfile, name, & ctx](uint64_t method, const char* forceName, bool ignoreEmpty) -> void {
                     auto lname = Located{ name, method };
 
                     auto masmctxit = contextes.find(lname);
@@ -1685,7 +1686,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                         e.m_exp.SetHandle(e.m_readerHandle);
 
                         DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
-                        opcode::DecompContext dctx{ 1, 0, e.m_opt };
+                        DecompContext dctx{ 0, 0, e.m_opt, currentPadding + 1 };
                         if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
                             dctx.WritePadding(asmout << "\n");
                         }
@@ -1738,6 +1739,59 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 asmout << "}\n\n";
             }
 
+            // compute dev function
+            for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
+                void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
+                exp->SetHandle(handle);
+
+                if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
+                    continue;
+                }
+
+                Located lname = Located{ exp->GetNamespace(), exp->GetName() };
+
+                auto f = contextes.find(lname);
+
+                if (f == contextes.end()) {
+                    continue; // already parsed
+                }
+
+                auto& asmctx = f->second;
+
+                if (asmctx.m_disableDecompiler) {
+                    continue;
+                }
+
+                asmctx.ForSubNodes([&contextes](ASMContextNode*& node, SubNodeContext& ctx) {
+                    if (node && node->m_type == TYPE_FUNC_CALL) {
+                        auto* callFunc = dynamic_cast<ASMContextNodeCallFuncPtr*>(node);
+
+                        if (!callFunc->m_operands.size() || callFunc->m_operands[0]->m_type != TYPE_FUNC_REFNAME) {
+                            return; // pointer call
+                        }
+
+                        auto* funcRef = dynamic_cast<ASMContextNodeFuncRef*>(callFunc->m_operands[0]);
+
+                        if (funcRef->m_script) {
+                            return; // script call
+                        }
+
+                        Located lname = Located{ funcRef->m_nsp, funcRef->m_func };
+
+                        auto f = contextes.find(lname);
+
+                        if (f == contextes.end()) {
+                            return; // already parsed?
+                        }
+
+                        if (!ctx.devBlockDepth) {
+                            f->second.m_devFuncCandidate = false; // called outside a dev block, can't be a canditate
+                        }
+                    }
+                });
+            }
+
+
             for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
                 void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
                 exp->SetHandle(handle);
@@ -1760,14 +1814,37 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                     asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
                 }
 
+
                 auto& asmctx = f->second;
+
+                if (asmctx.m_devFuncCandidate) {
+                    auto* dvb = GetNoEmptyNode(asmctx.m_funcBlock.m_statements, 0);
+
+                    if (dvb->node && dvb->node->m_type == TYPE_BLOCK) {
+                        auto* dvbn = dynamic_cast<ASMContextNodeBlock*>(dvb->node);
+                        dvbn->m_disabled = true; // disable the dev block 
+                    }
+
+                    if (!inDevBlock) {
+                        inDevBlock = true;
+                        utils::Padding(asmout, currentPadding) << "/#\n" << std::endl;
+                        currentPadding++;
+                    }
+                }
+                else {
+                    if (inDevBlock) {
+                        currentPadding--;
+                        utils::Padding(asmout, currentPadding) << "#/\n" << std::endl;
+                        inDevBlock = false;
+                    }
+                }
 
                 if (asmctx.m_disableDecompiler) {
                     continue;
                 }
 
-                DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx);
-                opcode::DecompContext dctx{ 0, 0, asmctx.m_opt };
+                DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding);
+                DecompContext dctx{ 0, 0, asmctx.m_opt, currentPadding };
                 if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
                     dctx.WritePadding(asmout << "\n");
                 }
@@ -1776,6 +1853,11 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 }
                 asmctx.Dump(asmout, dctx);
                 asmout << "\n";
+            }
+            if (inDevBlock) {
+                currentPadding--;
+                utils::Padding(asmout, currentPadding) << "#/" << std::endl;
+                inDevBlock = false;
             }
         }
     }
@@ -1969,11 +2051,11 @@ uint32_t tool::gsc::T8GSCOBJContext::AddStringValue(const char* value) {
     return id;
 }
 
-int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx) {
+int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx) {
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
-            if (objctx.m_vmInfo->flags & opcode::VmFlags::VMF_OPCODE_SHORT) {
+            if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
                 ctx.Aligned<uint16_t>();
             }
             byte*& base = ctx.m_bcl;
@@ -2030,7 +2112,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
 
             uint16_t opCode;
 
-            if (objctx.m_vmInfo->flags & opcode::VmFlags::VMF_OPCODE_SHORT) {
+            if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
                 opCode = *(uint16_t*)base;
             }
             else {
@@ -2059,7 +2141,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
 
             // pass the opcode
 
-            if (objctx.m_vmInfo->flags & opcode::VmFlags::VMF_OPCODE_SHORT) {
+            if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
                 base += 2;
             }
             else {
@@ -2084,7 +2166,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
 }
 
 
-int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt) {
+int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, DecompContext& dctxt) {
     using namespace tool::gsc::opcode;
     uint16_t code = *(uint16_t*)ctx.Aligned<uint16_t>();
     // main reading loop
@@ -2310,7 +2392,7 @@ End
     return 0;
 }
 
-int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, gsc::opcode::Platform plt, gsc::opcode::VmInfo* vminfo) {
+int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, Platform plt, VmInfo* vminfo) {
     using namespace opcode;
     byte* loc = gscFile + exp.GetAddress();
 
@@ -2352,7 +2434,7 @@ int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, gsc::opcode::Pla
 }
 
 
-void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, int padding, const char* forceName) {
+void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, int padding, const char* forceName) {
     auto remapedFlags = gscFile.RemapFlagsExport(exp.GetFlags());
     bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
@@ -2375,7 +2457,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
         // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
         // so it's better to use spaces. A flag was added to keep the same format.
-        if (objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_FULL_FILE_NAMESPACE) {
+        if (objctx.m_vmInfo->flags & VmFlags::VMF_FULL_FILE_NAMESPACE) {
             asmout << " / ";
         }
         else {
@@ -2491,24 +2573,24 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             // -1 to avoid the <empty> object, -1 because we are in reverse order
             const auto& lvar = ctx.m_localvars[ctx.m_localvars.size() - i - 2];
 
-            if (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC) {
+            if (lvar.flags & T8GSCLocalVarFlag::VARIADIC) {
                 asmout << "...";
             }
             else {
-                if (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF) {
+                if (lvar.flags & T8GSCLocalVarFlag::ARRAY_REF) {
                     asmout << "&";
                 }
-                else if (gscFile.GetVM() != tool::gsc::opcode::VM_T8 && (lvar.flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
+                else if (gscFile.GetVM() != VM_T8 && (lvar.flags & T8GSCLocalVarFlag::T9_VAR_REF)) {
                     asmout << "*";
                 }
 
                 asmout << hashutils::ExtractTmp("var", lvar.name) << std::flush;
             }
 
-            byte mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
+            byte mask = ~(T8GSCLocalVarFlag::VARIADIC | T8GSCLocalVarFlag::ARRAY_REF);
 
-            if (ctx.m_vm != tool::gsc::opcode::VM_T8) {
-                mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
+            if (ctx.m_vm != VM_T8) {
+                mask &= ~T8GSCLocalVarFlag::T9_VAR_REF;
             }
             
             if (lvar.flags & mask) {
@@ -2516,7 +2598,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             }
             if (lvar.defaultValueNode) {
                 asmout << " = ";
-                opcode::DecompContext dctx = { 0, 0, ctx.m_opt };
+                DecompContext dctx = { 0, 0, ctx.m_opt };
                 lvar.defaultValueNode->Dump(asmout, dctx);
             }
         }

@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "error_coder.hpp"
+#include "tools/tools_ui.hpp"
 
 namespace error_coder {
 
@@ -1641,7 +1642,7 @@ namespace error_coder {
 			auto it = std::find_if(begin, end, [c](const char* w) { return !_strcmpi(c, w); });
 
 			if (it == end) {
-				throw std::exception(utils::va("unknown word", code[i]));
+				throw std::exception(utils::va("Unknown word '%s'", code[i]));
 			}
 
 			auto idx = it - begin;
@@ -1705,7 +1706,258 @@ namespace {
 
 		return tool::OK;
 	}
+
+
+	struct {
+		std::string encodeStr{};
+		std::string decodeStr{};
+		HWND titleLabel{};
+
+		HWND encodeEdit{};
+		HWND encodeResEdit{};
+		HWND encodeEditLabel{};
+
+		HWND decodeEdit{};
+		HWND decodeResEdit{};
+		HWND decodeEditLabel{};
+	} info{};
+
+	void ComputeDecode() {
+		info.decodeStr = utils::WStrToStr(tool::ui::GetWindowTextVal(info.decodeEdit));
+
+		if (info.decodeStr.empty()) {
+			Edit_SetText(info.decodeResEdit, L"");
+			return;
+		}
+
+		std::string words[4]{};
+
+		try {
+			size_t idx{};
+			for (int i = 0; i < 4; i++) {
+				size_t f = info.decodeStr.find(' ', idx);
+				if (f == std::string::npos) {
+					if (i != 3) {
+						Edit_SetText(info.decodeResEdit, L"Not enough components");
+						return;
+					}
+					f = info.decodeStr.length();
+				}
+				if (f - idx == 0) {
+					// empty word
+					i--;
+					idx = f + 1;
+					continue;
+				}
+
+				words[i] = info.decodeStr.substr(idx, f - idx);
+				idx = f + 1;
+			}
+			while (idx < info.decodeStr.length() && info.decodeStr[idx] == ' ') {
+				idx++; // ignore end spaces
+			}
+			if (idx < info.decodeStr.length()) {
+				Edit_SetText(info.decodeResEdit, L"Too many components");
+				return;
+			}
+
+			error_coder::ErrorCode code{ words[0].c_str(), words[1].c_str(), words[2].c_str(), words[3].c_str() };
+
+			uint32_t err = error_coder::Decode(code);
+
+			std::wstring res = utils::StrToWStr(std::format("{}", err));
+			Edit_SetText(info.decodeResEdit, res.c_str());
+		}
+		catch (std::exception& e) {
+			std::wstring res = utils::StrToWStr(std::format("{}", e.what()));
+			Edit_SetText(info.decodeResEdit, res.c_str());
+		}
+	}
+	void ComputeEncode() {
+		info.encodeStr = utils::WStrToStr(tool::ui::GetWindowTextVal(info.encodeEdit));
+
+		if (info.encodeStr.empty()) {
+			Edit_SetText(info.encodeResEdit, L"");
+			return;
+		}
+
+		try {
+			const char* cstr = info.encodeStr.c_str();
+			char* end;
+			uint32_t err = std::strtoul(cstr, &end, 10);
+			if (end != cstr + info.encodeStr.length()) {
+				throw std::runtime_error("Invalid code");
+			}
+
+			error_coder::ErrorCode code{};
+			error_coder::Encode(code, err);
+
+			std::wstring res = utils::StrToWStr(error_coder::ToStr(code));
+			Edit_SetText(info.encodeResEdit, res.c_str());
+		}
+		catch (std::exception& e) {
+			std::wstring res = utils::StrToWStr(std::format("{}", e.what()));
+			Edit_SetText(info.encodeResEdit, res.c_str());
+		}
+	}
+
+	int Render(HWND window, HINSTANCE hInstance) {
+		std::wstring encw = utils::StrToWStr(info.encodeStr);
+		std::wstring decw = utils::StrToWStr(info.decodeStr);
+
+		info.titleLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"Error coder",
+			SS_CENTER | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.encodeEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			encw.c_str(),
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.encodeResEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.encodeEditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"Encode : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.decodeEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			decw.c_str(),
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.decodeResEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.decodeEditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"Decode : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		if (
+			info.encodeEdit == NULL
+			|| info.encodeResEdit == NULL
+			|| info.decodeEdit == NULL
+			|| info.decodeResEdit == NULL
+			|| info.encodeEditLabel == NULL
+			|| info.decodeEditLabel == NULL
+			|| info.titleLabel == NULL
+			) {
+			return -1;
+		}
+
+		SendMessage(info.encodeEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.decodeEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.encodeResEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.decodeResEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+
+		Edit_SetReadOnly(info.encodeResEdit, true);
+		Edit_SetReadOnly(info.decodeResEdit, true);
+
+		ComputeEncode();
+		ComputeDecode();
+
+		return 0;
+	}
+
+	LRESULT Update(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+		if (uMsg == WM_COMMAND) {
+			if (HIWORD(wParam) == EN_CHANGE) {
+				if (info.encodeEdit == (HWND)lParam) {
+					ComputeEncode();
+				}
+				else if (info.decodeEdit == (HWND)lParam) {
+					ComputeDecode();
+				}
+			}
+		}
+		else if (uMsg == WM_CTLCOLORSTATIC) {
+			if (lParam == (LPARAM)info.encodeEdit
+				|| lParam == (LPARAM)info.encodeResEdit
+				|| lParam == (LPARAM)info.decodeEdit
+				|| lParam == (LPARAM)info.decodeResEdit
+				|| lParam == (LPARAM)info.encodeEditLabel
+				|| lParam == (LPARAM)info.decodeEditLabel
+				|| lParam == (LPARAM)info.titleLabel
+				) {
+				return 0;
+			}
+		}
+		return 1;
+	}
+	void Resize(int width, int height) {
+
+		int y{ height / 2 - 28 * 3 };
+		SetWindowPos(info.titleLabel, NULL, 0, y - 68, width, 60, SWP_SHOWWINDOW);
+
+		SetWindowPos(info.encodeEdit, NULL, width / 2 - 250, y, 250, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.encodeResEdit, NULL, width / 2 + 4, y, 250, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.encodeEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
+		SetWindowPos(info.decodeEdit, NULL, width / 2 - 250, y, 250, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.decodeResEdit, NULL, width / 2 + 4, y, 250, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.decodeEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
+
+		tool::ui::window().SetTitleFont(info.titleLabel);
+	}
 }
+ADD_TOOL_UI("errenc", L"Error encoder", Render, Update, Resize);
 
 ADD_TOOL("errenc", "[error]", "encode an error", nullptr, errenc);
 ADD_TOOL("errdec", "[w1] [w2] [w3] [w4]", "decode an error", nullptr, errdec);

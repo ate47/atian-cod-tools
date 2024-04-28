@@ -38,6 +38,7 @@ namespace tool::ui {
 		std::vector<tooluifunctiondata*> pages{};
 
 		void UpdateWindowName();
+		void SetTitleFont(HWND hwnd);
 		void RelocateDisplay(int x, int y);
 		void LoadPage();
 	};

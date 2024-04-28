@@ -76,20 +76,19 @@ namespace tool::gsc {
     struct GSCExportReader;
 
     namespace opcode {
+        struct asmcontextlocation;
         class ASMContext;
         class ASMSkipContext;
         class OPCodeInfo;
         class ASMContextNodeBlock;
 
         struct DecompContext {
-            int padding = 0;
-            int rloc = 0;
+            int padding{};
+            int rloc{};
             const GscInfoOption& opt;
+            int paddingPre{};
 
-            std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc);
-            inline std::ostream& WritePadding(std::ostream& out) {
-                return WritePadding(out, false);
-            }
+            std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc = false);
         };
         enum ASMContextNodePriority : UINT {
             PRIORITY_INST,
@@ -223,6 +222,13 @@ namespace tool::gsc {
             virtual int Dump(std::ostream& out, uint16_t value, ASMContext& context, T8GSCOBJContext& objctx) const;
             virtual int Skip(uint16_t value, ASMSkipContext& ctx) const;
         };
+
+        struct SubNodeContext {
+            ASMContext& ctx;
+            asmcontextlocation* stmtRloc{};
+            size_t devBlockDepth{};
+        };
+
         class ASMContextNode {
         public:
             ASMContextNodePriority m_priority;
@@ -242,7 +248,7 @@ namespace tool::gsc {
             virtual bool IsConstNumber() const { return IsIntConst() || m_type == TYPE_FLOAT; };
 
             virtual void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx);
-            virtual void ApplySubNodes(const std::function<void(ASMContextNode*& node, ASMContext& ctx)>&, ASMContext& ctx);
+            virtual void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx);
             friend std::ostream& operator<<(std::ostream& os, const ASMContextNode& obj);
         };
 
@@ -283,7 +289,8 @@ namespace tool::gsc {
         public:
             std::vector<ASMContextStatement> m_statements{};
             nodeblocktype m_blockType;
-            ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT);
+            bool m_disabled;
+            ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT, bool disabled = false);
             ~ASMContextNodeBlock();
             void Dump(std::ostream& out, DecompContext& ctx) const override;
             ASMContextNode* Clone() const override;
@@ -300,7 +307,12 @@ namespace tool::gsc {
             ASMContextStatement* FetchFirstForLocation(int64_t rloc);
 
             void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx) override;
-            void ApplySubNodes(const std::function<void(ASMContextNode*& block, ASMContext& ctx)>&, ASMContext& ctx) override;
+            void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override;
+        };
+
+        struct ASMContextDevBlock {
+            uint32_t rlocStart;
+            uint16_t delta;
         };
 
         struct ASMContextLocalVar {
@@ -386,6 +398,10 @@ namespace tool::gsc {
             std::vector<ASMContextLocalVar> m_localvars{};
             // local vars ref
             std::unordered_map<uint64_t, int32_t> m_localvars_ref{};
+            // dev blocks locations
+            std::vector<ASMContextDevBlock> m_devBlocks{};
+            // if this function is a dev function candidate
+            bool m_devFuncCandidate{};
             // export
             GSCExportReader& m_exp;
             void* m_readerHandle;
@@ -498,58 +514,65 @@ namespace tool::gsc {
             /*
              * Compute the dev blocks
              */
-            inline void ComputeDevBlocks(ASMContext& ctx) {
-                m_funcBlock.ComputeDevBlocks(ctx);
+            inline void ComputeDevBlocks() {
+                m_funcBlock.ComputeDevBlocks(*this);
             }
             /*
              * Compute the switch blocks
              */
-            inline void ComputeSwitchBlocks(ASMContext& ctx) {
-                m_funcBlock.ComputeSwitchBlocks(ctx);
+            inline void ComputeSwitchBlocks() {
+                m_funcBlock.ComputeSwitchBlocks(*this);
             }
             /*
              * Compute the for blocks
              */
-            inline void ComputeForBlocks(ASMContext& ctx) {
-                m_funcBlock.ComputeForBlocks(ctx);
+            inline void ComputeForBlocks() {
+                m_funcBlock.ComputeForBlocks(*this);
             }
             /*
              * Compute the for each blocks
              */
-            inline void ComputeForEachBlocks(ASMContext& ctx) {
-                m_funcBlock.ComputeForEachBlocks(ctx);
+            inline void ComputeForEachBlocks() {
+                m_funcBlock.ComputeForEachBlocks(*this);
             }
             /*
              * Compute the while blocks
              */
-            inline void ComputeWhileBlocks(ASMContext& ctx) {
-                m_funcBlock.ComputeWhileBlocks(ctx);
+            inline void ComputeWhileBlocks() {
+                m_funcBlock.ComputeWhileBlocks(*this);
             }
             /*
              * Compute the if blocks
              */
-            inline void ComputeIfBlocks(ASMContext& ctx) {
-                m_funcBlock.ComputeIfBlocks(ctx);
+            inline void ComputeIfBlocks() {
+                m_funcBlock.ComputeIfBlocks(*this);
             }
             /*
              * Compute the return candidates
              */
-            inline void ComputeReturnJump(ASMContext& ctx) {
-                m_funcBlock.ComputeReturnJump(ctx);
+            inline void ComputeReturnJump() {
+                m_funcBlock.ComputeReturnJump(*this);
             }
             /*
              * Compute the boolean return candidates
              */
-            inline void ComputeBoolReturn(ASMContext& ctx) {
-                m_funcBlock.ComputeBoolReturn(ctx);
+            inline void ComputeBoolReturn() {
+                m_funcBlock.ComputeBoolReturn(*this);
             }
             /*
              * Compute the special pattern candidates
              */
-            inline void ComputeSpecialPattern(ASMContext& ctx) {
-                m_funcBlock.ComputeSpecialPattern(ctx);
+            inline void ComputeSpecialPattern() {
+                m_funcBlock.ComputeSpecialPattern(*this);
             }
 
+            /*
+             * Compute the for sub nodes
+             */
+            inline void ForSubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func) {
+                SubNodeContext sctx{ *this };
+                m_funcBlock.ApplySubNodes(func, sctx);
+            }
             /*
              * Convert this context to a class method
              * @param selfmembers The members located inside this context

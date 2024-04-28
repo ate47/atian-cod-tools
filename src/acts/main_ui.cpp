@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <CommCtrl.h>
+#include <hook/error.hpp>
 #include "tools/tools_ui.hpp"
 #include "config.hpp"
 
@@ -25,7 +26,6 @@ namespace tool::ui {
 		SendMessage(hwnd, WM_SETTEXT, 0, (LPARAM)winName.c_str());
 	}
 
-
 	void ActsWindow::RelocateDisplay(int x, int y) {
 		width = x;
 		height = y;
@@ -39,10 +39,24 @@ namespace tool::ui {
 			page->m_resize(x, y);
 		}
 	}
+
+	static HFONT titlefont = []() -> HFONT {
+		return CreateFontA(40, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+			ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Tahoma");
+	}();
+
+	static HFONT deffont = []() -> HFONT {
+		return CreateFontA(20, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+			ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Tahoma");
+	}();
 	
 	bool CALLBACK SetFont(HWND child, LPARAM font) {
-		SendMessage(child, WM_SETFONT, font, TRUE);
+		SendMessage(child, WM_SETFONT, font, FALSE);
 		return true;
+	}
+
+	void ActsWindow::SetTitleFont(HWND elem) {
+		SendMessage(elem, WM_SETFONT, (LPARAM)titlefont, FALSE);
 	}
 
 	void ActsWindow::LoadPage() {
@@ -71,10 +85,6 @@ namespace tool::ui {
 		item->m_func(hwndDisplay, hinst);
 		acts::config::SetString("ui.last", item->m_id);
 		acts::config::SaveConfig(); // save last page
-		static HFONT deffont = []() -> HFONT {
-			return CreateFontA(20, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
-				ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Tahoma");
-			}();
 		EnumChildWindows(hwnd, (WNDENUMPROC)SetFont, (LPARAM)deffont);
 		RelocateDisplay(width, height);
 	}
@@ -102,6 +112,7 @@ namespace tool::ui {
 			return -1;
 		}
 
+		hook::error::InstallErrorUI(hInstance, nShowCmd);
 
 		actsWindow.hinst = hInstance;
 		WNDCLASS wc{};

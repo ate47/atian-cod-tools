@@ -7,6 +7,7 @@
 
 namespace {
     struct {
+        HWND titleLabel{};
         HWND filePathEdit{};
         HWND filePathEditLabel{};
         HWND hookPathEdit{};
@@ -41,6 +42,18 @@ namespace {
     }
 
     int Render(HWND window, HINSTANCE hInstance) {
+        info.titleLabel = CreateWindowEx(
+            0,
+            L"STATIC",
+            L"GSC Injector",
+            SS_CENTER | WS_CHILD | WS_VISIBLE,
+            0, 0, 0, 0,
+            window,
+            NULL,
+            hInstance,
+            NULL
+        );
+
         info.notificationLabel = CreateWindowEx(
             0,
             L"STATIC",
@@ -144,6 +157,7 @@ namespace {
             || info.injectEEButton == NULL
             || info.hookPathEdit == NULL
             || info.hookPathEditLabel == NULL
+            || info.titleLabel == NULL
             ) {
             return -1;
         }
@@ -332,6 +346,7 @@ namespace {
                 || lParam == (LPARAM)info.injectButton
                 || lParam == (LPARAM)info.injectEEButton
                 || lParam == (LPARAM)info.notificationLabel
+                || lParam == (LPARAM)info.titleLabel
                 ) {
                 return 0; 
             }
@@ -340,7 +355,7 @@ namespace {
 	}
 
 	void Resize(int width, int height) {
-        SetWindowPos(info.notificationLabel, NULL, 0, height / 2 - 144, width, 48, SWP_SHOWWINDOW);
+        SetWindowPos(info.titleLabel, NULL, 0, height / 2 - 160, width, 60, SWP_SHOWWINDOW);
         SetWindowPos(info.filePathEdit, NULL, width / 2 - 300, height / 2 - 92, 520, 24, SWP_SHOWWINDOW);
         SetWindowPos(info.filePathEditLabel, NULL, 0, height / 2 - 92, width / 2 - 300, 24, SWP_SHOWWINDOW);
         SetWindowPos(info.filePathButton, NULL, width / 2 + 221, height / 2 - 92, 80, 24, SWP_SHOWWINDOW);
@@ -348,7 +363,9 @@ namespace {
         SetWindowPos(info.hookPathEditLabel, NULL, 0, height / 2 - 64, width / 2 - 300, 24, SWP_SHOWWINDOW);
         SetWindowPos(info.injectButton, NULL, width / 2 + 2, height / 2 - 32, 298, 24, SWP_SHOWWINDOW);
         SetWindowPos(info.injectEEButton, NULL, width / 2 - 300, height / 2 - 32, 298, 24, SWP_SHOWWINDOW);
-            
+        SetWindowPos(info.notificationLabel, NULL, 0, height / 2 - 4, width, 48, SWP_SHOWWINDOW);
+
+        tool::ui::window().SetTitleFont(info.titleLabel);
 	}
 	ADD_TOOL_UI("gsc_inject", L"GSC Inject", Render, Update, Resize);
 }

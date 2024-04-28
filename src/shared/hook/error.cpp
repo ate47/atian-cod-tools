@@ -31,6 +31,9 @@ namespace hook::error {
 		struct ErrorConfig {
 			DWORD mainThread{};
 			bool heavyDump{};
+
+			HMODULE hmod{};
+			int showCmd{};
 		};
 
 		ErrorConfig cfg{};
@@ -240,6 +243,11 @@ namespace hook::error {
 		catch (std::exception& e) {
 			LOG_ERROR("Can't install error hooks: {}", e.what());
 		}
+	}
+
+	void InstallErrorUI(HMODULE hmod, int showCmd) {
+		cfg.hmod = hmod;
+		cfg.showCmd = showCmd;
 	}
 
 	void EnableHeavyDump() {
