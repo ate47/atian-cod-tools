@@ -11,6 +11,13 @@ namespace {
 	}; static_assert(sizeof(RawFileEntry) == 0x20);
 
 
+	struct ScriptParseTreeEntry {
+		tool::pool::XHash name;
+		void* buffer;
+		uint32_t size;
+		uint32_t pad02;
+	}; static_assert(sizeof(ScriptParseTreeEntry) == 0x20);
+
 	// xasset
 	struct DBFFileAssetEntry {
 		pool::XAssetType type;
@@ -50,7 +57,7 @@ namespace {
 		return hash::Hash64(name.c_str());
 	}
 
-	pool::XAssetType GetAssetTypeFromPath(const std::filesystem::path& root, const std::filesystem::path& path, uint64_t& nameout) {
+	pool::XAssetType GetAssetTypeFromPath(const std::filesystem::path& root, const std::filesystem::path& path, uint64_t& nameout, bool& precompiled) {
 		std::filesystem::path rel{ std::filesystem::relative(path, root) };
 
 		auto it = rel.begin();
@@ -155,6 +162,12 @@ namespace {
 			return pool::ASSET_TYPE_SCRIPTPARSETREE;
 		}
 
+		if (ext == ".gscc" || ext == ".cscc") {
+			nameout = NamePattern(path);
+			precompiled = true;
+			return pool::ASSET_TYPE_SCRIPTPARSETREE;
+		}
+
 		nameout = NamePattern(path);
 		return pool::ASSET_TYPE_RAWFILE; // maybe it might not be the best lol
 	}
@@ -186,7 +199,8 @@ namespace {
 		for (const std::filesystem::path& path : paths) {
 
 			uint64_t name;
-			pool::XAssetType type = GetAssetTypeFromPath(root, path, name);
+			bool precompiled{};
+			pool::XAssetType type = GetAssetTypeFromPath(root, path, name, precompiled);
 
 			if (type == pool::ASSET_TYPE_COUNT) {
 				// bad type, ignore
@@ -222,7 +236,38 @@ namespace {
 				builder.CreateLink(rawId, offsetof(RawFileEntry, buffer), rawDataId);
 			}
 				break;
+			case pool::ASSET_TYPE_SCRIPTPARSETREE:
+			{
+				if (!precompiled) {
+					LOG_WARNING("No GSC compiler available for file {}", path.string());
+					continue;
+				}
 
+				auto& e = entries.emplace_back();
+
+				e.name = name;
+				e.type = type;
+
+				std::string buffer{};
+
+				if (!utils::ReadFile(path, buffer)) {
+					LOG_WARNING("Can't read {}", path.string());
+					continue;
+				}
+
+				// allocate data
+				dbflib::BlockId rawDataId = builder.CreateBlock(buffer.data(), buffer.length());
+
+				// allocate header
+				auto [rawId, rawptr] = builder.CreateBlock<ScriptParseTreeEntry>();
+				entriesLoc.emplace_back(rawId);
+				rawptr->name.name = name;
+				rawptr->size = (uint32_t)buffer.length();
+
+				// link header -> data
+				builder.CreateLink(rawId, offsetof(ScriptParseTreeEntry, buffer), rawDataId);
+			}
+				break;
 			default:
 				LOG_WARNING("Type {} isn't implemented!", pool::XAssetNameFromId(type));
 				continue;
