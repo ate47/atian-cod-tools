@@ -233,6 +233,16 @@ public:
 		return pair;
 	}
 	/*
+	 * Read c string into a temp buffer
+	 * @return string or an error message
+	 */
+	const char* ReadStringTmp(uintptr_t src) const;
+	/*
+	 * Read c w string into a temp buffer
+	 * @return string or an error message
+	 */
+	const wchar_t* ReadStringTmpW(uintptr_t src) const;
+	/*
 	 * Read c string from a source to a destination
 	 * @param dest Local destination
 	 * @param src Process source

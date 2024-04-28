@@ -192,18 +192,41 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	auto& profiler = actscli::GetProfiler();
 
+	acts::config::SyncConfig();
+
 	// by default we don't display heavy logs in cli
+
 	if (cli) {
 		alogs::setbasiclog(true);
 		actslib::logging::SetBasicLog(true);
-	}
-	else {
+	} else {
 		static std::string uiLogs = [] {
 			std::filesystem::path path{ utils::GetProgDir() / "acts-ui.log" };
 			return path.string();
 		}();
 		alogs::setfile(uiLogs.data());
 		actslib::logging::SetLogFile(uiLogs.data());
+
+		std::string logLevel = acts::config::GetString("ui.logLevel", "INFO");
+
+		if (logLevel != "INFO") {
+			if (logLevel == "DEBUG") {
+				alogs::setlevel(alogs::LVL_DEBUG);
+				actslib::logging::SetLevel(actslib::logging::LEVEL_DEBUG);
+			}
+			else if (logLevel == "TRACE") {
+				alogs::setlevel(alogs::LVL_TRACE);
+				actslib::logging::SetLevel(actslib::logging::LEVEL_TRACE);
+			}
+			else if (logLevel == "ERROR") {
+				alogs::setlevel(alogs::LVL_ERROR);
+				actslib::logging::SetLevel(actslib::logging::LEVEL_ERROR);
+			}
+			else if (logLevel == "WARNING") {
+				alogs::setlevel(alogs::LVL_WARNING);
+				actslib::logging::SetLevel(actslib::logging::LEVEL_WARNING);
+			}
+		}
 	}
 
 	const char** argv;
@@ -221,8 +244,6 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		argv = _argv;
 	}
 	hook::error::InstallErrorHooks();
-	
-	acts::config::SyncConfig();
 
 	auto& opt = actscli::options();
 

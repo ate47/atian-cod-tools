@@ -15,7 +15,7 @@ function buildinfo()
     file:write("#pragma once\n")
     file:write("namespace actsinfo {\n")
     file:write("    // Do not write in this file, it is updated by premake\n")
-    file:write("#ifdef DEBUG\n\n")
+    file:write("#ifndef CI_BUILD\n\n")
     file:write("    constexpr const char* VERSION = \"Dev\";\n")
     file:write("    constexpr const wchar_t* VERSIONW = L\"Dev\";\n")
     file:write("    constexpr unsigned int VERSION_ID = 0xFFFFFFFF;\n")
@@ -222,6 +222,7 @@ project "AtianCodTools"
         "deps/lz4/lib/",
 		"deps/Detours/src/",
         "deps/rapidjson/include/",
+        "deps/dbflib/src/lib/",
     }
 
     vpaths {

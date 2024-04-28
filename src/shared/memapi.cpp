@@ -209,6 +209,32 @@ bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 	return false;
 }
 
+const char* Process::ReadStringTmp(uintptr_t src) const {
+	static char buffer[10][0x200];
+	static size_t bufferId{};
+
+	auto& buff = buffer[bufferId = (bufferId + 1) % ARRAYSIZE(buffer)];
+
+	if (ReadString(buff, src, ARRAYSIZE(buff)) < 0) {
+		return "<invalid>";
+	}
+
+	return buff;
+}
+
+const wchar_t* Process::ReadStringTmpW(uintptr_t src) const {
+	static wchar_t buffer[10][0x200];
+	static size_t bufferId{};
+
+	auto& buff = buffer[bufferId = (bufferId + 1) % (ARRAYSIZE(buffer) / ARRAYSIZE(buffer[0]))];
+
+	if (ReadWString(buff, src, ARRAYSIZE(buff)) < 0) {
+		return L"<invalid>";
+	}
+
+	return buff;
+}
+
 int64_t Process::ReadString(char* dest, uintptr_t src, size_t size) const {
 	int64_t len = 0;
 

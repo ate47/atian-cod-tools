@@ -37,3 +37,6 @@
 [submodule "deps/rapidjson"]
 	path = deps/rapidjson
 	url = https://github.com/Tencent/rapidjson
+[submodule "deps/dbflib"]
+	path = deps/dbflib
+	url = https://github.com/ate47/dbflib

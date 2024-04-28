@@ -15,7 +15,7 @@ This software depends on libraries with a different License.
 
 # MIT License
 
-Copyright (c) 2023 Antoine Willerval
+Copyright (c) 2024 Antoine Willerval
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

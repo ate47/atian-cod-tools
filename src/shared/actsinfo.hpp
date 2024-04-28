@@ -1,7 +1,7 @@
 #pragma once
 namespace actsinfo {
     // Do not write in this file, it is updated by premake
-#ifdef DEBUG
+#ifndef CI_BUILD
 
     constexpr const char* VERSION = "Dev";
     constexpr const wchar_t* VERSIONW = L"Dev";
