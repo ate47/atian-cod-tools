@@ -22,21 +22,21 @@ try {
     if ($gsc) {
         java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor -Werror
     
-        New-Item -ItemType Directory src\cli\compiler -ErrorAction Ignore > $null
+        New-Item -ItemType Directory src\acts\compiler -ErrorAction Ignore > $null
 
-        Move-Item .antlr4\grammar\*.c src\cli\compiler -Force
-        Move-Item .antlr4\grammar\*.cpp src\cli\compiler -Force
-        Move-Item .antlr4\grammar\*.h src\cli\compiler -Force
+        Move-Item .antlr4\grammar\*.c src\acts\compiler -Force
+        Move-Item .antlr4\grammar\*.cpp src\acts\compiler -Force
+        Move-Item .antlr4\grammar\*.h src\acts\compiler -Force
     }
     
     if ($ddl) {
         java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\ddl.g4 -no-listener -visitor -Werror
     
-        New-Item -ItemType Directory src\cli\ddl -ErrorAction Ignore > $null
+        New-Item -ItemType Directory src\acts\ddl -ErrorAction Ignore > $null
 
-        Move-Item .antlr4\grammar\*.c src\cli\ddl -Force
-        Move-Item .antlr4\grammar\*.cpp src\cli\ddl -Force
-        Move-Item .antlr4\grammar\*.h src\cli\ddl -Force
+        Move-Item .antlr4\grammar\*.c src\acts\ddl -Force
+        Move-Item .antlr4\grammar\*.cpp src\acts\ddl -Force
+        Move-Item .antlr4\grammar\*.h src\acts\ddl -Force
     }
 
 }

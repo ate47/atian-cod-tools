@@ -23,17 +23,24 @@ class CompileObject;
 class ACTSErrorListener;
 struct InputInfo;
 
-constexpr uint64_t MAX_JUMP = (1 << (sizeof(uint16_t) << 3));
+struct FunctionVar {
+    std::string name;
+    size_t id;
+    byte flags;
+};
+
+constexpr int64_t MAX_JUMP = (1 << (sizeof(uint16_t) << 3));
 
 class AscmCompilerContext {
 public:
     const VmInfo* vmInfo;
     Platform plt;
     std::vector<byte>& data;
+    size_t lvars;
 
-    AscmCompilerContext(const VmInfo* vmInfo, Platform plt, std::vector<byte>& data) : vmInfo(vmInfo), plt(plt), data(data) {}
+    AscmCompilerContext(const VmInfo* vmInfo, Platform plt, size_t lvars, std::vector<byte>& data) : vmInfo(vmInfo), plt(plt), data(data), lvars(lvars) {}
 
-    bool HasAlign() {
+    bool HasAlign() const {
         return vmInfo->flags & VmFlags::VMF_OPCODE_SHORT;
     }
 
@@ -46,7 +53,7 @@ public:
     }
     template<typename Type>
     void Write(Type value) {
-        utils::WriteValue(data, value);
+        utils::WriteValue<Type>(data, value);
     }
 };
 
@@ -57,7 +64,8 @@ enum AscmNodeType {
 
 class AscmNode {
 public:
-    int32_t rloc = 0;
+    int32_t rloc{};
+    int32_t floc{};
     AscmNodeType nodetype{ ASCMNT_UNKNOWN };
 
     virtual ~AscmNode() {};
@@ -88,9 +96,10 @@ public:
     }
 
     bool Write(AscmCompilerContext& ctx) override {
-        // TODO: config platform
-        auto [err, op] = GetOpCodeId(ctx.vmInfo->vm, ctx.plt, opcode);
-        if (err) {
+        auto [ok, op] = GetOpCodeId(ctx.vmInfo->vm, ctx.plt, opcode);
+        if (!ok) {
+            LOG_ERROR("Can't find opcode {} for vm {}/{}", (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
+            
             return false;
         }
 
@@ -130,6 +139,10 @@ public:
         ctx.Write<Type>(val);
         return true;
     }
+
+    uint32_t GetDataFLoc(bool aligned) const {
+        return ShiftSize(floc, aligned) - sizeof(Type);
+    }
 };
 
 class AscmNodeVariable : public AscmNodeOpCode {
@@ -148,7 +161,41 @@ public:
             return false;
         }
 
-        ctx.Write<byte>((byte)varId);
+        ctx.Write<byte>((byte)(ctx.lvars - varId - 1));
+        return true;
+    }
+};
+
+class AscmNodeCreateLocalVariables : public AscmNodeOpCode {
+    std::vector<FunctionVar> vars{};
+public:
+    AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count) : AscmNodeOpCode(OPCODE_SafeCreateLocalVariables) {
+        vars.reserve(count);
+        for (size_t i = 0; i < count; i++) {
+            vars.push_back(lvars[i]);
+        }
+    }
+
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+        uint32_t e = AscmNodeOpCode::ShiftSize(start, aligned) + 1;
+        for (size_t i = 0; i < vars.size(); i++) {
+            e = utils::Aligned<uint32_t>(e) + 4 + 1;
+        }
+        return e;
+    }
+
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
+            return false;
+        }
+
+        ctx.Write<byte>((byte)vars.size());
+        for (FunctionVar& var : vars) {
+            ctx.Align<uint32_t>();
+            ctx.Write<uint32_t>(hashutils::Hash32(var.name.c_str()));
+            ctx.Write<byte>(var.flags);
+        }
+
         return true;
     }
 };
@@ -255,9 +302,9 @@ public:
             return false;
         }
 
-        auto delta = location->rloc - ShiftSize(rloc, ctx.HasAlign());
+        int32_t delta = location->rloc - (int32_t)ShiftSize(rloc, ctx.HasAlign());
 
-        if (delta >= MAX_JUMP) {
+        if (delta >= MAX_JUMP || delta <= -MAX_JUMP) {
             LOG_ERROR("Max delta size");
             return false;
         }
@@ -399,8 +446,8 @@ struct InputInfo {
 
 class RefObject {
 public:
-    uint32_t location = 0;
-    std::vector<AscmNode*> nodes{};
+    uint32_t location{};
+    std::vector<AscmNodeData<uint32_t>*> nodes{};
 };
 class ImportObject {
 public:
@@ -411,11 +458,6 @@ class GlobalVarObject {
 public:
     tool::gsc::opcode::GlobalVariableDef* def{};
     std::vector<AscmNodeGlobalVariable*> nodes{};
-};
-struct FunctionVar {
-    std::string name;
-    size_t id;
-    byte flags;
 };
 
 struct FunctionJumpLoc {
@@ -451,6 +493,14 @@ public:
         for (auto* node : m_nodes) {
             delete node;
         }
+    }
+
+    AscmNode* CreateParamNode() const {
+        if (!m_allocatedVar) {
+            return new AscmNodeOpCode(OPCODE_CheckClearParams);
+        }
+
+        return new AscmNodeCreateLocalVariables(m_vars, m_allocatedVar);
     }
 
     const AscmNode* PeekBreakNode() const {
@@ -512,7 +562,7 @@ public:
             return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), nullptr);
         }
 
-        if (m_allocatedVar) {
+        if (m_allocatedVar >= ARRAYSIZE(m_vars)) {
             return std::make_pair<>(utils::va("Can't create var '%s': too much variable for function", name.c_str()), nullptr);
         }
 
@@ -527,25 +577,26 @@ public:
      * @return same as RegisterVar
      */
     std::pair<const char*, FunctionVar*> RegisterVarRnd() {
-        return RegisterVar(std::format("$$v{:x}", false, rndVarStart++), 0);
+        return RegisterVar(std::format("$$v{:x}", rndVarStart++), false);
     }
 
     /*
      * Compute the nodes relative locations
-     * @return no error
+     * @return -1 in case of error, the size otherwise
      */
-    bool ComputeRelativeLocations() {
+    int32_t ComputeRelativeLocations(int32_t floc) {
         // we start at 0 and we assume that the start location is already aligned
-        int32_t current = 0;
+        int32_t current{};
 
         for (auto node : m_nodes) {
             node->rloc = current;
+            node->floc = floc + current;
             current = node->ShiftSize(current, m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT);
             if (node->rloc > current) {
-                return false;
+                return -1;
             }
         }
-        return true;
+        return current;
     }
 };
 
@@ -568,11 +619,6 @@ public:
     CompileObject(GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt) : type(file), info(nfo), vmInfo(vmInfo), plt(plt) {
     }
 
-    uint64_t GetScPath(std::string& data) {
-        hashes.insert(data);
-
-        return 0;
-    }
     uint64_t AddInclude(std::string& data) {
         if (!(data.ends_with(".gsc") || data.ends_with(".csc")) && !(data.starts_with("script_"))) {
             switch (type) {
@@ -587,6 +633,118 @@ public:
         hashes.insert(data);
         includes.insert(hashutils::Hash64Pattern(data.data()));
         return 0;
+    }
+
+    bool Compile(std::vector<byte>& data) {
+        utils::Allocate(data, sizeof(tool::gsc::T8GSCOBJ));
+
+        LOG_TRACE("Compile {} include(s)...", includes.size());
+        size_t incTable = utils::Allocate(data, sizeof(uint64_t) * includes.size());
+
+        uint64_t* tab = reinterpret_cast<uint64_t*>(&data[incTable]);
+
+        for (uint64_t i : includes) {
+            *tab = i;
+            tab++;
+        }
+
+        size_t expTable = utils::Allocate(data, sizeof(tool::gsc::T8GSCExport) * exports.size());
+
+        size_t csegOffset = data.size();
+
+        LOG_TRACE("Compile {} export(s)...", exports.size());
+
+        size_t exportIndex{};
+        for (auto& [name, exp] : exports) {
+            if (exp.m_nodes.empty()) {
+                LOG_ERROR("No nodes for {:x}", exp.m_name);
+                return false;
+            }
+
+            struct PreExp { uint64_t top; uint64_t bottom; };
+
+            utils::Aligned<PreExp>(data);
+            utils::Allocate(data, sizeof(PreExp));
+
+            int32_t len = exp.ComputeRelativeLocations((int32_t)data.size());
+            if (len < 0) {
+                LOG_ERROR("Error when allocating relative locations");
+                return false;
+            }
+
+            tool::gsc::T8GSCExport& e = reinterpret_cast<tool::gsc::T8GSCExport*>(&data[expTable])[exportIndex++];
+
+            exp.location = data.size();
+
+            e.name = (uint32_t)exp.m_name;
+            e.name_space = (uint32_t)exp.m_name_space;
+            e.callback_event = (uint32_t)exp.m_data_name;
+            e.flags = exp.m_flags;
+            e.address = (int32_t)exp.location;
+            e.param_count = exp.m_params;
+            e.checksum = 0x12345678;
+
+
+            AscmCompilerContext cctx{ vmInfo, plt, exp.m_allocatedVar, data };
+
+            for (auto* node : exp.m_nodes) {
+                if (!node->Write(cctx)) {
+                    return false;
+                }
+            }
+        }
+        size_t csegSize = data.size() - csegOffset;
+
+        LOG_TRACE("Compile {} strings(s)...", strings.size());
+
+        // compile strings
+
+        for (auto& [key, strobj] : strings) {
+            // TODO: check vm, in mwiii it's not the same
+            strobj.location = (uint32_t)data.size();
+            data.push_back(0x9f);
+            data.push_back((byte)(key.length() + 1));
+            //data.push_back(0x92);
+            utils::WriteString(data, key.c_str());
+        }
+
+        size_t stringRefs = data.size();
+        size_t stringCount{};
+
+        for (auto& [key, strobj] : strings) {
+            size_t w{};
+            while (w < strobj.nodes.size()) {
+                if (w % 0xFF == 0) {
+                    size_t buff = utils::Allocate(data, sizeof(tool::gsc::T8GSCString));
+                    tool::gsc::T8GSCString* str = reinterpret_cast<tool::gsc::T8GSCString*>(&data[buff]);
+                    str->string = strobj.location;
+                    str->type = 0;
+                    str->num_address = (byte)((strobj.nodes.size() - w) > 0xFF ? 0xFF : (strobj.nodes.size() - w));
+                    stringCount++;
+                }
+                utils::WriteValue<uint32_t>(data, strobj.nodes[w++]->GetDataFLoc(vmInfo->flags & VmFlags::VMF_OPCODE_SHORT));
+            }
+        }
+
+        // compile header
+
+        auto* prime_obj = reinterpret_cast<tool::gsc::T8GSCOBJ*>(data.data());
+        *reinterpret_cast<uint64_t*>(prime_obj->magic) = 0x36000a0d43534780;
+
+        prime_obj->include_offset = (int32_t)incTable;
+        prime_obj->include_count = (int16_t)includes.size();
+
+        prime_obj->string_offset = (int32_t)stringRefs;
+        prime_obj->string_count = (int16_t)stringCount;
+
+        prime_obj->export_table_offset = (int32_t)expTable;
+        prime_obj->exports_count = (int16_t)exports.size();
+        prime_obj->cseg_offset = (int32_t)csegOffset;
+        prime_obj->cseg_size = (int32_t)csegSize;
+
+        prime_obj->script_size = (int32_t)data.size();
+
+        return true;
     }
 };
 
@@ -659,17 +817,20 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(elseStart);
 
             if (rule->children.size() > 5) { // else
                 auto* endElse = new AscmNode();
                 fobj.m_nodes.push_back(new AscmNodeJump(endElse, OPCODE_Jump));
+                fobj.m_nodes.push_back(elseStart);
 
                 if (!ParseExpressionNode(rule->children[6], parser, obj, fobj, false)) {
                     ok = false;
                 }
 
                 fobj.m_nodes.push_back(endElse);
+            }
+            else {
+                fobj.m_nodes.push_back(elseStart);
             }
 
             return ok;
@@ -684,13 +845,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             fobj.m_nodes.push_back(loopContinue);
 
-            if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, false)) {
+            if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                 ok = false;
             }
 
             fobj.m_nodes.push_back(new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
 
-            if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
+            if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, false)) {
                 ok = false;
             }
 
@@ -833,11 +994,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             JumpData defaultCase{ 0, 0, nullptr };
 
             bool findDefault{};
-            for (size_t i = 5; i < rule->children.size() - 1; i++) {
+            for (size_t i = 5; i < rule->children.size() - 1;) {
                 auto caseType = rule->children[i]->getText();
 
                 if (caseType == "case") {
-                    i++;
+                    i++; // 'case'
                     auto* jmpNode = new AscmNode();
 
                     if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
@@ -849,7 +1010,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                     fobj.m_nodes.push_back(new AscmNodeJump(jmpNode, OPCODE_JumpOnTrue));
 
-                    i++; // ':'
+                    i += 2; // const_expr ':'
 
                     size_t start = i;
                     while (IS_RULE_TYPE(rule->children[i], gscParser::RuleStatement)) {
@@ -868,7 +1029,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     else {
                         defaultCase.jmpNode = new AscmNode();
                     }
-                    i += 2;
+                    i += 2; // 'default' ':'
                     defaultCase.startStmt = i;
                     while (IS_RULE_TYPE(rule->children[i], gscParser::RuleStatement)) {
                         i++;
@@ -878,8 +1039,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     continue;
                 }
 
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[i], std::format("Unknown case type: {}", caseType));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[i], std::format("Unknown case type: {}/{}", caseType, i));
                 ok = false;
+                i++;
             }
 
             // push content
@@ -1088,7 +1250,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             }
 
             if (idf == "goto") {
-                if (rule->children.size() <= 1) {
+                if (rule->children.size() <= 1 && !IS_TERMINAL_TYPE(rule->children[1], gscParser::IDENTIFIER)) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "goto should be used with a jump location");
                     return false;
                 }
@@ -1105,7 +1267,48 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return true;
             }
 
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown jump type {}", idf));
+            if (idf == "return") {
+                if (rule->children.size() <= 1) {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
+                    return true;
+                }
+
+                if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Return));
+                return true;
+            }
+            
+            if (idf == "wait") {
+                if (rule->children.size() <= 1) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "wait should be used with a value");
+                    return false;
+                }
+
+                if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Wait));
+                return true;
+            }
+            if (idf == "waitframe") {
+                if (rule->children.size() <= 1) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "wait should be used with a value");
+                    return false;
+                }
+
+                if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
+                    return false;
+                }
+
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_WaitFrame));
+                return true;
+            }
+
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown operator type {}", idf));
             return false;
         }
         case gscParser::RuleExpression:
@@ -1215,11 +1418,16 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     ok = false;
                 }
 
+                auto* caseEnd = new AscmNode();
+                fobj.m_nodes.push_back(new AscmNodeJump(caseEnd, OPCODE_Jump));
+
                 fobj.m_nodes.push_back(caseNo);
 
                 if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
                     ok = false;
                 }
+
+                fobj.m_nodes.push_back(caseEnd);
 
                 return ok;
             }
@@ -1312,6 +1520,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 else if (op == "%") {
                     fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Modulus));
                 }
+                else if (op == "<<") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftLeft));
+                }
+                else if (op == ">>") {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftRight));
+                }
                 else {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled operator: {}", op));
                     ok = false;
@@ -1326,6 +1540,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleConst_expr:
         case gscParser::RuleNumber:
         case gscParser::RuleExpression13:
+        case gscParser::RuleExpression14:
             return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj, expressVal);
         case gscParser::RuleVector_value:
             if (!expressVal) { // no need to create vector
@@ -1585,7 +1800,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         }
 
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("unhandled rule: {}", rule->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("unhandled rule: {} ({})", rule->getText(), rule->getRuleIndex()));
         return false;
     }
 
@@ -1673,11 +1888,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     }
     case gscParser::STRING: {
         auto node = term->getText();
-        auto newStr = std::make_unique<char[]>(node.length() + 1);
+        auto newStr = std::make_unique<char[]>(node.length() - 1);
         auto* newStrWriter = &newStr[0];
 
         // format string
-        for (size_t i = 0; i < node.length(); i++) {
+        for (size_t i = 1; i < node.length() - 1; i++) {
             if (node[i] != '\\') {
                 *(newStrWriter++) = node[i];
                 continue; // default case
@@ -1708,11 +1923,21 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         *(newStrWriter++) = 0; // end char
 
         // link by the game
-        auto* asmc = new AscmNodeData<uint32_t>(0, OPCODE_GetString);
+        auto* asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_GetString);
         fobj.m_nodes.push_back(asmc);
 
-        auto& str = obj.strings[&newStr[0]];
+        std::string key{ &newStr[0]};
+
+        LOG_TRACE("Allocate str {}", key);
+
+        if (key.length() >= 256) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("string too long: {}", term->getText()));
+            return false;
+        }
+
+        auto& str = obj.strings[key];
         str.nodes.push_back(asmc);
+        LOG_TRACE("Done str {}", key);
         return true;
     }
     }
@@ -1838,28 +2063,38 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
                 exp.m_params++;
 
-                auto [err, vardef] = exp.RegisterVar(paramIdf, false, 1);
+                auto [err, vardef] = exp.RegisterVar(paramIdf, false, tool::gsc::opcode::VARIADIC);
                 if (err) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
                     return false;
                 }
 
-                return true;
+                continue;
             }
 
             // skip modifier
             idfNode = dynamic_cast<TerminalNode*>(param->children[1]);
             auto modifier = param->children[0]->getText();
-            //if (modifier == "*") {
-            //    // ptr (T9)
-            //}
-            //else if (modifier == "&") {
-            //    // ref (T8)
-            //}
-            //else {
+            if (modifier == "*") {
+                // ptr (T9)
+                if (obj.vmInfo->vm < 0x37) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not implemented: {}", modifier));
+                    return false;
+                }
+                idfFlags = tool::gsc::opcode::T9_VAR_REF;
+            }
+            else if (modifier == "&") {
+                // ref (T8)
+                if (obj.vmInfo->vm < 0x36) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not implemented: {}", modifier));
+                    return false;
+                }
+                idfFlags = tool::gsc::opcode::ARRAY_REF;
+            }
+            else {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not implemented: {}", modifier));
                 return false;
-            //}
+            }
         }
         else {
             idfNode = dynamic_cast<TerminalNode*>(param->children[0]);
@@ -1873,7 +2108,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
         exp.m_params++;
 
-        auto [err, vardef] = exp.RegisterVar(paramIdf, false, 1);
+        auto [err, vardef] = exp.RegisterVar(paramIdf, false, idfFlags);
 
         if (err) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
@@ -1893,7 +2128,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             exp.m_nodes.push_back(new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableCached));
             exp.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IsDefined));
             auto* afterNode = new AscmNode();
-            exp.m_nodes.push_back(new AscmNodeJump(afterNode, OPCODE_JumpOnFalse));
+            exp.m_nodes.push_back(new AscmNodeJump(afterNode, OPCODE_JumpOnTrue));
             if (!ParseExpressionNode(defaultValueExp, parser, obj, exp, true)) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, defaultValueExp, std::format("can't create expression node for variable {}", paramIdf));
                 return false;
@@ -1901,8 +2136,6 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             exp.m_nodes.push_back(new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableRefCached));
             exp.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
             exp.m_nodes.push_back(afterNode);
-            
-            return true;
         }
 
     }
@@ -1933,6 +2166,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             loc.node = nullptr;
         }
     }
+    exp.m_nodes.insert(exp.m_nodes.begin(), exp.CreateParamNode());
 
     return true;
 }
@@ -2111,17 +2345,31 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         return tool:: BASIC_ERROR;
     }
 
+    LOG_TRACE("Parse tree");
+
     if (!ParseProg(prog, parser, obj)) {
+        LOG_ERROR("Error when parsing the object");
+        return tool::BASIC_ERROR;
+    }
+
+
+    RegisterOpCodesMap();
+    std::vector<byte> data{};
+
+    LOG_TRACE("Compile tree");
+    if (!obj.Compile(data)) {
         LOG_ERROR("Error when compiling the object");
         return tool::BASIC_ERROR;
     }
 
-    LOG_INFO("Done");
+    utils::WriteFile("compiled.gscc", (const void*)data.data(), data.size());
+
+    LOG_INFO("Done into compiled.gscc");
 
 
     return 0;
 }
 
 #ifndef CI_BUILD
-ADD_TOOL("compiler", " --help", "gsc compiler", nullptr, compiler);
+ADD_TOOL("gscc", " --help", "gsc compiler", nullptr, compiler);
 #endif

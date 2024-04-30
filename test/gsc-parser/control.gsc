@@ -10,7 +10,7 @@ function control() {
         return 3333333333;
     }
     for (;;) {
-
+        a = [];
         foreach (e in a) {
             
         }

@@ -41,7 +41,7 @@ statement_foreach:
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (function_call | operator_inst | statement_dowhile)? ';';
+statement_inst: (operator_inst | statement_dowhile | function_call) ';';
 
 function_call: 
 	('thread' | 'childthread')? function_component '(' expression_list ')'
@@ -50,7 +50,7 @@ function_call:
 
 function_component: ( IDENTIFIER '::')? IDENTIFIER | '[[' expression ']]' | '[[' expression ']]' '->' IDENTIFIER;
 
-operator_inst: IDENTIFIER IDENTIFIER?;
+operator_inst: BUILTIN (IDENTIFIER | expression)?;
 
 
 expression:
@@ -140,11 +140,12 @@ INTEGER10: '-'?[1-9]([0-9])*;
 INTEGER16: '-'? '0x' ([0-9a-f])+;
 INTEGER8: '-'? '0' ([0-7])*;
 INTEGER2: '-'? '0b' ([01])*;
-FLOATVAL: '-'?((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
+FLOATVAL: '-'? ((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
+BUILTIN: 'break' | 'continue' | 'goto' | 'return' | 'wait' | 'waitframe';
+BOOL_VALUE: 'true' | 'false';
+UNDEFINED_VALUE: 'undefined';
 IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;
 STRUCT_IDENTIFIER: '#' [a-z_A-Z] ([a-z_A-Z0-9])*;
 PATH: [a-z_A-Z0-9\\/]+ ('.gsc' | '.csc')?;
 STRING: '"' (~["\\] | ('\\'.))* '"';
 HASHSTRING: [#] STRING;
-BOOL_VALUE: 'true' | 'false';
-UNDEFINED_VALUE: 'undefined';

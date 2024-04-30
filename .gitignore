@@ -70,3 +70,9 @@ bgpool
 *.acpf
 
 *.log
+
+# compiler gsc files
+*.gscc
+*.gsccasm
+*.cscc
+*.csccasm
