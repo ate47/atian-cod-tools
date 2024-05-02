@@ -981,6 +981,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 ok = false;
             }
 
+            fobj.m_nodes.push_back(new AscmNodeJump(loopContinue, OPCODE_Jump));
+
             fobj.m_nodes.push_back(loopBreak);
 
             fobj.PopContinueNode();
@@ -1185,7 +1187,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 fobj.m_nodes.push_back(caseElem.jmpNode);
 
                 for (size_t stmt = caseElem.startStmt; stmt < caseElem.endStmt; stmt++) {
-                    if (!ParseExpressionNode(rule->children[stmt], parser, obj, fobj, true)) {
+                    if (!ParseExpressionNode(rule->children[stmt], parser, obj, fobj, false)) {
                         ok = false;
                     }
                 }
@@ -1274,7 +1276,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.m_nodes.push_back(loopIt);
             // jumpiffalse(isdefined(key)) loopBreak
             // todo: check if we can use EvalLocalVariableDefined
-            fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
+            fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
             fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IsDefined));
             fobj.m_nodes.push_back(new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
 
@@ -1282,7 +1284,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
             fobj.m_nodes.push_back(new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
             fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalArray));
-            fobj.m_nodes.push_back(new AscmNodeVariable(valueVar->id, OPCODE_SetNextArrayKeyCached));
+            fobj.m_nodes.push_back(new AscmNodeVariable(valueVar->id, OPCODE_EvalLocalVariableRefCached));
+            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
 
             // nextarray(array, key, iterator)
             fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
