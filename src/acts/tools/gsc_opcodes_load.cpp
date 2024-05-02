@@ -36,9 +36,19 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T8, "world");
 			RegisterVMGlobalVariable(VM_T8, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T8, "memory");
-			RegisterDevCall(VM_T8, hash::Hash32("assert"), hash::Hash32("assertmsg"), hash::Hash32("errormsg"), hash::Hash32("throw"), hash::Hash32("println"));
+			RegisterVMOperatorFunction(VM_T8, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
+			RegisterVMOperatorFunction(VM_T8, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
+			RegisterVMOperatorFunction(VM_T8, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_RETURN_VALUE, 2, 2);
+			RegisterVMOperatorFunction(VM_T8, "waittill", "<caller> waittill(event) -> struct", OPCODE_WaitTill, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 1);
+			RegisterVMOperatorFunction(VM_T8, "waittillmatch", "<caller> waittillmatch(event, match) -> struct", OPCODE_WaitTillMatch, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
+			RegisterVMOperatorFunction(VM_T8, "waittillmatchtimeout", "<caller> waittillmatchtimeout(event, match, timeout) -> struct", OPCODE_WaitTillMatchTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 3);
+			RegisterVMOperatorFunction(VM_T8, "waittilltimeout", "<caller> waittilltimeout(event, timeout) -> struct", OPCODE_WaittillTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
+			RegisterVMOperatorFunction(VM_T8, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T8, "waitframe", "wait(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T8, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
+			RegisterDevCall(VM_T8, "assert", "assertmsg", "errormsg", "throw", "println");
 
-
+			
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown1, 0x1);
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown2, 0x2);
@@ -298,7 +308,18 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T937, "world");
 			RegisterVMGlobalVariable(VM_T937, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T937, "memory");
-			RegisterDevCall(VM_T937, hash::Hash32("assert"), hash::Hash32("assertmsg"), hash::Hash32("errormsg"), hash::Hash32("throw"), hash::Hash32("println"));
+			RegisterVMOperatorFunction(VM_T937, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
+			RegisterVMOperatorFunction(VM_T937, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
+			RegisterVMOperatorFunction(VM_T937, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
+			RegisterVMOperatorFunction(VM_T937, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_NONE, 2, 2);
+			RegisterVMOperatorFunction(VM_T937, "waittill", "<caller> waittill(event) -> struct", OPCODE_WaitTill, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 1);
+			RegisterVMOperatorFunction(VM_T937, "waittillmatch", "<caller> waittillmatch(event, match) -> struct", OPCODE_WaitTillMatch, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
+			RegisterVMOperatorFunction(VM_T937, "waittillmatchtimeout", "<caller> waittillmatchtimeout(event, match, timeout) -> struct", OPCODE_WaitTillMatchTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 3);
+			RegisterVMOperatorFunction(VM_T937, "waittilltimeout", "<caller> waittilltimeout(event, timeout) -> struct", OPCODE_WaittillTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
+			RegisterVMOperatorFunction(VM_T937, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T937, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T937, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
+			RegisterDevCall(VM_T937, "assert", "assertmsg", "errormsg", "throw", "println");
 
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0xa, 0xb, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
@@ -376,7 +397,18 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T9, "world");
 			RegisterVMGlobalVariable(VM_T9, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T9, "memory");
-			RegisterDevCall(VM_T9, hash::Hash32("assert"), hash::Hash32("assertmsg"), hash::Hash32("errormsg"), hash::Hash32("throw"), hash::Hash32("println"));
+			RegisterVMOperatorFunction(VM_T9, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
+			RegisterVMOperatorFunction(VM_T9, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
+			RegisterVMOperatorFunction(VM_T9, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
+			RegisterVMOperatorFunction(VM_T9, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_NONE, 2, 2);
+			RegisterVMOperatorFunction(VM_T9, "waittill", "<caller> waittill(event) -> struct", OPCODE_WaitTill, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 1);
+			RegisterVMOperatorFunction(VM_T9, "waittillmatch", "<caller> waittillmatch(event, match) -> struct", OPCODE_WaitTillMatch, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
+			RegisterVMOperatorFunction(VM_T9, "waittillmatchtimeout", "<caller> waittillmatchtimeout(event, match, timeout) -> struct", OPCODE_WaitTillMatchTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 3);
+			RegisterVMOperatorFunction(VM_T9, "waittilltimeout", "<caller> waittilltimeout(event, timeout) -> struct", OPCODE_WaittillTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
+			RegisterVMOperatorFunction(VM_T9, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T9, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T9, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
+			RegisterDevCall(VM_T9, "assert", "assertmsg", "errormsg", "throw", "println");
 
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown0, 0x0);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown1, 0x1);
@@ -600,12 +632,12 @@ namespace tool::gsc::opcode {
 	#ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();
 	#endif
-			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE);
+			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel, OPCODE_IW_GetLevelRef);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
 			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim, OPCODE_IW_GetAnimRef);
-			RegisterDevCall(VM_MW23, hashutils::HashIW2("assert"), hashutils::HashIW2("assertmsg"), hashutils::HashIW2("assertex"), hashutils::HashIW2("println"));
+			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif

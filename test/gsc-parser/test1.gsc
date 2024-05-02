@@ -7,7 +7,7 @@
 #namespace test1;
 
 function autoexec __init__system__() {
-
+    system::register(#"test1", &__init__, undefined);
 }
 
 function event_handler[level_init] level_init() {
@@ -29,6 +29,8 @@ function math_test(test = 45, &test2, ...) {
     }
     else {
         wait 5;
+        return level || &system::register
+         + @system<scripts\core_common\system_shared.gsc>::register + 3;
     }
     return 85 || 0 ? undefined : #"65" + "test string" + "zzz";
 }

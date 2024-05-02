@@ -462,7 +462,12 @@ void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
         const auto* vars = reinterpret_cast<const uint32_t*>(&globalvar[1]);
         for (size_t j = 0; j < globalvar->num_address; j++) {
             // no align, no opcode to pass, directly the fucking location, cool.
-            Ref<uint16_t>(vars[j]) = ref;
+            if (vars[j] >= GetFileSize() - sizeof(uint16_t)) {
+                LOG_WARNING("Invalid global variable: 0x{:x}", vars[j]);
+            }
+            else {
+                Ref<uint16_t>(vars[j]) = ref;
+            }
         }
         gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
     }

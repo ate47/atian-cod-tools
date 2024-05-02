@@ -54,12 +54,7 @@ namespace hash {
 		return Hash64A(str, start, iv) & 0x7FFFFFFFFFFFFFFF;
 	}
 
-	/*
-	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
-	 * @param str String to compute
-	 * @return Hashed value
-	 */
-	inline uint32_t Hash32Pattern(const char* str) {
+	inline uint64_t HashPattern(const char* str) {
 		std::string_view v{ str };
 
 		if (!v.rfind("var_", 0)) {
@@ -74,30 +69,63 @@ namespace hash {
 		if (!v.rfind("namespace_", 0)) {
 			return std::strtoul(&str[10], nullptr, 16);
 		}
+		if (!v.rfind("script_", 0)) {
+			return std::strtoull(&str[7], nullptr, 16);
+		}
+		if (!v.rfind("hash_", 0)) {
+			return std::strtoull(&str[5], nullptr, 16);
+		}
+		if (!v.rfind("file_", 0)) {
+			return std::strtoull(&str[5], nullptr, 16);
+		}
+		return 0;
+	}
 
-		return Hash32(str);
+
+	inline uint64_t HashPattern(const wchar_t* str) {
+		std::wstring_view v{ str };
+
+		if (!v.rfind(L"var_", 0)) {
+			return std::wcstoull(&str[4], nullptr, 16);
+		}
+		if (!v.rfind(L"event_", 0)) {
+			return std::wcstoull(&str[6], nullptr, 16);
+		}
+		if (!v.rfind(L"function_", 0)) {
+			return std::wcstoull(&str[9], nullptr, 16);
+		}
+		if (!v.rfind(L"namespace_", 0)) {
+			return std::wcstoull(&str[10], nullptr, 16);
+		}
+		if (!v.rfind(L"script_", 0)) {
+			return std::wcstoull(&str[7], nullptr, 16);
+		}
+		if (!v.rfind(L"hash_", 0)) {
+			return std::wcstoull(&str[5], nullptr, 16);
+		}
+		if (!v.rfind(L"file_", 0)) {
+			return std::wcstoull(&str[5], nullptr, 16);
+		}
+		return 0;
+	}
+
+	/*
+	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
+	 * @param str String to compute
+	 * @return Hashed value
+	 */
+	inline uint32_t Hash32Pattern(const char* str) {
+		uint32_t p = (uint32_t) HashPattern(str);
+		return p ? p : Hash32(str);
 	}
 	/*
 	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline uint64_t Hash64Pattern(const char* str) {
-		std::string_view v{ str };
-
-		if (!v.rfind("script_", 0)) {
-			return std::strtoull(&str[7], nullptr, 16);
-		}
-
-		if (!v.rfind("hash_", 0)) {
-			return std::strtoull(&str[5], nullptr, 16);
-		}
-
-		if (!v.rfind("file_", 0)) {
-			return std::strtoull(&str[5], nullptr, 16);
-		}
-
-		return Hash64(str);
+	inline uint64_t Hash64Pattern(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+		uint64_t p = HashPattern(str);
+		return p ? p : Hash64(str, start, iv);
 	}
 
 	/*
@@ -148,43 +176,16 @@ namespace hash {
 	 * @return Hashed value
 	 */
 	inline uint32_t Hash32Pattern(const wchar_t* str) {
-		std::wstring_view v{ str };
-
-		if (!v.rfind(L"var_", 0)) {
-			return std::wcstoul(&str[4], nullptr, 16);
-		}
-		if (!v.rfind(L"event_", 0)) {
-			return std::wcstoul(&str[6], nullptr, 16);
-		}
-		if (!v.rfind(L"function_", 0)) {
-			return std::wcstoul(&str[9], nullptr, 16);
-		}
-		if (!v.rfind(L"namespace_", 0)) {
-			return std::wcstoul(&str[10], nullptr, 16);
-		}
-
-		return Hash32(str);
+		uint32_t p = (uint32_t)HashPattern(str);
+		return p ? p : Hash32(str);
 	}
 	/*
 	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline uint64_t Hash64Pattern(const wchar_t* str) {
-		std::wstring_view v{ str };
-
-		if (!v.rfind(L"script_", 0)) {
-			return std::wcstoull(&str[7], nullptr, 16);
-		}
-
-		if (!v.rfind(L"hash_", 0)) {
-			return std::wcstoull(&str[5], nullptr, 16);
-		}
-
-		if (!v.rfind(L"file_", 0)) {
-			return std::wcstoull(&str[5], nullptr, 16);
-		}
-
-		return Hash64(str);
+	inline uint64_t Hash64Pattern(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+		uint64_t p = HashPattern(str);
+		return p ? p : Hash64(str, start, iv);
 	}
 }

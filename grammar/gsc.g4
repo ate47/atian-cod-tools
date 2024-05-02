@@ -46,9 +46,14 @@ statement_inst: (operator_inst | statement_dowhile | function_call) ';';
 function_call: 
 	('thread' | 'childthread')? function_component '(' expression_list ')'
 	| expression14 ('thread' | 'childthread')? function_component '(' expression_list ')'
-    | function_call ('thread' | 'childthread')? function_component '(' expression_list ')';
+    | function_call ('thread' | 'childthread')? function_component '(' expression_list ')'
+	;
 
-function_component: ( IDENTIFIER '::')? IDENTIFIER | '[[' expression ']]' | '[[' expression ']]' '->' IDENTIFIER;
+function_component: 
+	( IDENTIFIER '::')? IDENTIFIER 
+	| '[[' expression ']]' 
+	| '[[' expression ']]' '->' IDENTIFIER
+	;
 
 operator_inst: BUILTIN (IDENTIFIER | expression)?;
 

@@ -181,6 +181,27 @@ void VmInfo::AddDevCallName(uint64_t name) {
 	devCallsNames.insert(name);
 }
 
+uint64_t VmInfo::HashField(const char* value) const {
+	if (HasFlag(VmFlags::VMF_HASH_IW)) {
+		return hash::Hash64Pattern(value, 0x79D6530B0BB9B5D1, 0x10000000233);
+	}
+	return hash::Hash32Pattern(value);
+}
+
+uint64_t VmInfo::HashPath(const char* value) const {
+	if (HasFlag(VmFlags::VMF_HASH_IW)) {
+		return hash::Hash64Pattern(value);
+	}
+	return hash::Hash64Pattern(value);
+}
+
+uint64_t VmInfo::HashFilePath(const char* value) const {
+	if (HasFlag(VmFlags::VMF_HASH_IW)) {
+		return hash::Hash64Pattern(value, 0x47F5817A5EF961BA);
+	}
+	return hash::Hash32Pattern(value);
+}
+
 OPCodeInfo::OPCodeInfo(OPCode id, const char* name) : m_id(id), m_name(name) {
 }
 
@@ -4435,6 +4456,31 @@ void tool::gsc::opcode::RegisterVM(byte vm, const char* name, uint64_t flags) {
 	g_opcodeMap[vm] = { vm, name, flags, {} };
 }
 
+void tool::gsc::opcode::RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {
+	auto ref = g_opcodeMap.find(vm);
+
+	if (ref == g_opcodeMap.end()) {
+		LOG_ERROR("Registered operator function to bad vm: VM_{:x}, gvar: {}", (int)vm, name);
+		return;
+	}
+
+	auto& func = ref->second.opFuncs;
+
+	uint64_t funcHash = ref->second.HashField(name);
+
+	if (func.find(funcHash) != func.end()) {
+		LOG_ERROR("Operator function already defined for vm {}, func: {}", ref->second.name, name);
+		return;
+	}
+
+	auto& gv = func[funcHash];
+	gv.name = name;
+	gv.usage = usage;
+	gv.opCode = opcode;
+	gv.flags = flags;
+	gv.minParam = minArgs;
+	gv.maxParam = maxArgs;
+}
 void tool::gsc::opcode::RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode, OPCode getRefOpCode) {
 	auto ref = g_opcodeMap.find(vm);
 
@@ -4442,15 +4488,16 @@ void tool::gsc::opcode::RegisterVMGlobalVariable(byte vm, const char* name, OPCo
 		LOG_ERROR("Registered global variable to bad vm: VM_{:x}, gvar: {}", (int)vm, name);
 		return;
 	}
+	uint64_t hash = ref->second.HashField(name);
 
 	auto& gvars = ref->second.globalvars;
 
-	if (gvars.find(name) != gvars.end()) {
+	if (gvars.find(hash) != gvars.end()) {
 		LOG_ERROR("Global variable already defined for vm {}, gvar: {}", ref->second.name, name);
 		return;
 	}
 
-	auto& gv = ref->second.globalvars[name];
+	auto& gv = ref->second.globalvars[hash];
 	gv.name = name;
 	gv.getOpCode = getOpCode;
 	gv.getRefOpCode = getRefOpCode;
@@ -4480,7 +4527,7 @@ void tool::gsc::opcode::RegisterOpCode(byte vm, Platform platform, OPCode enumVa
 	opnfo.opcodemaplookup[enumValue][platform] = op;
 	opnfo.opcodemappltlookup[platform][enumValue].push_back(op);
 }
-void tool::gsc::opcode::RegisterDevCall(byte vm, uint64_t devCall) {
+void tool::gsc::opcode::RegisterDevCall(byte vm, const char* devCall) {
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
 		assert(0);
@@ -4490,7 +4537,7 @@ void tool::gsc::opcode::RegisterDevCall(byte vm, uint64_t devCall) {
 
 	auto& opnfo = ref->second;
 
-	opnfo.devCallsNames.insert(devCall);
+	opnfo.devCallsNames.insert(opnfo.HashField(devCall));
 }
 
 void tool::gsc::opcode::RegisterOpCodes() {

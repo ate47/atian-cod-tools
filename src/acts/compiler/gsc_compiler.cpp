@@ -29,7 +29,12 @@ struct FunctionVar {
     byte flags;
 };
 
-constexpr int64_t MAX_JUMP = (1 << (sizeof(uint16_t) << 3));
+template<typename Type>
+constexpr size_t maxNumberSize() {
+    return (1ull << (sizeof(Type) << 3));
+}
+
+constexpr int64_t MAX_JUMP = maxNumberSize<uint16_t>();
 
 class AscmCompilerContext {
 public:
@@ -145,6 +150,57 @@ public:
     }
 };
 
+enum FuncCallFlags {
+    FCF_THREAD = 0x1,
+    FCF_CHILDTHREAD = 0x2,
+    FCF_METHOD = 0x4,
+    FCF_POINTER = 0x8,
+    FCF_POINTER_CLASS = 0x10,
+};
+
+class AscmNodeFunctionCall : public AscmNodeOpCode {
+public:
+    uint64_t clsName;
+    int flags;
+    byte params;
+
+    AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName) : AscmNodeOpCode(opcode), flags(flags), params(params), clsName(clsName) {
+    }
+
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+        if (aligned) {
+            if (flags & FCF_POINTER_CLASS) {
+                return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + sizeof(uint32_t);
+            }
+            if (flags & FCF_POINTER) {
+                return AscmNodeOpCode::ShiftSize(start, aligned) + 1;
+            }
+            return utils::Aligned<uint64_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + sizeof(uint64_t);
+        }
+        throw std::runtime_error("later");
+    }
+
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
+            return false;
+        }
+
+        ctx.Write<byte>(params);
+
+        if (flags & FCF_POINTER_CLASS) {
+            ctx.Align<uint32_t>();
+            ctx.Write<uint32_t>((uint32_t)clsName);
+        }
+        else if (!(flags & FCF_POINTER)) {
+            // replaced by the linker
+            ctx.Align<uint64_t>();
+            ctx.Write<uint64_t>(0x1234567887654321ull);
+        }
+
+        return true;
+    }
+};
+
 class AscmNodeVariable : public AscmNodeOpCode {
 public:
     size_t varId;
@@ -192,7 +248,7 @@ public:
         ctx.Write<byte>((byte)vars.size());
         for (FunctionVar& var : vars) {
             ctx.Align<uint32_t>();
-            ctx.Write<uint32_t>(hashutils::Hash32(var.name.c_str()));
+            ctx.Write<uint32_t>(hashutils::Hash32Pattern(var.name.c_str()));
             ctx.Write<byte>(var.flags);
         }
 
@@ -205,8 +261,8 @@ public:
     GlobalVariableDef* def;
 
     AscmNodeGlobalVariable(GlobalVariableDef* def, bool ref) : 
-        AscmNodeOpCode(ref ? (def->getRefOpCode ? def->getRefOpCode : OPCODE_GetGlobal)
-                        : (def->getOpCode ? def->getOpCode : OPCODE_GetGlobalObject)), def(def) {
+        AscmNodeOpCode(ref ? (def->getRefOpCode ? def->getRefOpCode : OPCODE_GetGlobalObject)
+                        : (def->getOpCode ? def->getOpCode : OPCODE_GetGlobal)), def(def) {
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -220,6 +276,10 @@ public:
 
         ctx.Write<uint16_t>(0); // added by the linker, remove if def using opcode todo??
         return true;
+    }
+
+    uint32_t GetDataFLoc(bool aligned) const {
+        return ShiftSize(floc, aligned) - sizeof(uint16_t);
     }
 };
 
@@ -317,12 +377,17 @@ public:
     }
 };
 
+struct PreProcessorOption {
+    std::set<std::string> defines{};
+};
+
 class GscCompilerOption {
 public:
     bool m_help = false;
     VmInfo* m_vmInfo{};
     Platform m_platform = Platform::PLATFORM_PC;
     std::vector<const char*> m_inputFiles{};
+    PreProcessorOption processorOpt{};
 
     bool Compute(const char** args, INT startIndex, INT endIndex) {
         // default values
@@ -359,6 +424,11 @@ public:
                 m_vmInfo = out;
             }
             else if (*arg == '-') {
+                if (arg[1] == 'D' && arg[2]) {
+                    processorOpt.defines.insert(arg + 2);
+                    continue;
+                }
+
                 LOG_ERROR("Unknown option: {}!", arg);
                 return false;
             }
@@ -452,6 +522,7 @@ public:
 class ImportObject {
 public:
     byte flags;
+    byte params;
     std::vector<AscmNode*> nodes{};
 };
 class GlobalVarObject {
@@ -477,7 +548,6 @@ public:
     size_t rndVarStart{};
     FunctionVar m_vars[256]{};
     size_t m_allocatedVar{};
-    std::unordered_map<std::string, GlobalVarObject> m_globals{};
     std::vector<AscmNode*> m_nodes{};
     std::stack<AscmNode*> m_jumpBreak{};
     std::stack<AscmNode*> m_jumpContinue{};
@@ -587,11 +657,12 @@ public:
     int32_t ComputeRelativeLocations(int32_t floc) {
         // we start at 0 and we assume that the start location is already aligned
         int32_t current{};
+        bool align = m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT;
 
         for (auto node : m_nodes) {
             node->rloc = current;
-            node->floc = floc + current;
-            current = node->ShiftSize(current, m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT);
+            node->floc = align ? utils::Aligned<uint16_t>(floc + current) : (floc + current);
+            current = node->ShiftSize(current, align);
             if (node->rloc > current) {
                 return -1;
             }
@@ -610,7 +681,7 @@ public:
     std::unordered_map<uint32_t, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
     std::unordered_map<uint64_t, std::vector<ImportObject>> imports{};
-    std::unordered_map<std::string, GlobalVarObject> gvars{};
+    std::unordered_map<std::string, GlobalVarObject> globals{};
     VmInfo* vmInfo;
     Platform plt;
 
@@ -726,6 +797,46 @@ public:
             }
         }
 
+        size_t gvarRefs = data.size();
+        size_t gvarCount{};
+
+        for (auto& [key, gvobj] : globals) {
+            size_t w{};
+            while (w < gvobj.nodes.size()) {
+                if (w % 0xFF == 0) {
+                    size_t buff = utils::Allocate(data, sizeof(tool::gsc::T8GSCGlobalVar));
+                    tool::gsc::T8GSCGlobalVar* gv = reinterpret_cast<tool::gsc::T8GSCGlobalVar*>(&data[buff]);
+                    gv->name = (uint32_t)vmInfo->HashField(key.c_str());
+                    gv->num_address = (byte)((gvobj.nodes.size() - w) > 0xFF ? 0xFF : (gvobj.nodes.size() - w));
+                    gvarCount++;
+                }
+                utils::WriteValue<uint32_t>(data, gvobj.nodes[w++]->GetDataFLoc(vmInfo->flags & VmFlags::VMF_OPCODE_SHORT));
+            }
+        }
+
+        size_t implRefs = data.size();
+        size_t implCount{};
+
+        for (auto& [key, imobj] : imports) {
+            auto [nsp, func] = utils::UnCatLocated(key);
+            for (ImportObject& implData : imobj) {
+                size_t w{};
+                while (w < implData.nodes.size()) {
+                    if (w % 0xFFFF == 0) {
+                        size_t buff = utils::Allocate(data, sizeof(tool::gsc::T8GSCImport));
+                        tool::gsc::T8GSCImport* gv = reinterpret_cast<tool::gsc::T8GSCImport*>(&data[buff]);
+                        gv->import_namespace = nsp;
+                        gv->name = func;
+                        gv->param_count = implData.params;
+                        gv->flags = implData.flags;
+                        gv->num_address = (byte)((implData.nodes.size() - w) > 0xFFFF ? 0xFFFF : (implData.nodes.size() - w));
+                        implCount++;
+                    }
+                    utils::WriteValue<uint32_t>(data, implData.nodes[w++]->floc);
+                }
+            }
+        }
+
         // compile header
 
         auto* prime_obj = reinterpret_cast<tool::gsc::T8GSCOBJ*>(data.data());
@@ -737,10 +848,16 @@ public:
         prime_obj->string_offset = (int32_t)stringRefs;
         prime_obj->string_count = (int16_t)stringCount;
 
+        prime_obj->globalvar_offset = (int32_t)gvarRefs;
+        prime_obj->globalvar_count = (int16_t)gvarCount;
+
         prime_obj->export_table_offset = (int32_t)expTable;
         prime_obj->exports_count = (int16_t)exports.size();
         prime_obj->cseg_offset = (int32_t)csegOffset;
         prime_obj->cseg_size = (int32_t)csegSize;
+
+        prime_obj->imports_offset = (int32_t)implRefs;
+        prime_obj->imports_count = (int16_t)implCount;
 
         prime_obj->script_size = (int32_t)data.size();
 
@@ -752,13 +869,22 @@ public:
 #define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
 
 bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool withVal) {
+    if (!exp) {
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "empty tree error");
+        return false;
+    }
     if (exp->getTreeType() == TREE_ERROR) {
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree error, bad syntax?");
         return false;
     }
 
     return false;
 }
 bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal) {
+    if (!exp) {
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "empty tree error");
+        return false;
+    }
     if (exp->getTreeType() == TREE_ERROR) {
         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree error, bad syntax?");
         return false;
@@ -1311,6 +1437,287 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown operator type {}", idf));
             return false;
         }
+        case gscParser::RuleFunction_call: {
+            uint64_t funcNspHash{};
+            uint64_t funcHash{};
+            ParseTree* ptrTree{};
+            ParseTree* selfTree{};
+
+            int flags{};
+            byte importFlags{};
+            size_t idx{};
+            if (rule->children[idx]->getTreeType() == TREE_RULE && !IS_RULE_TYPE(rule->children[idx], gscParser::RuleFunction_component)) {
+                selfTree = rule->children[idx];
+                flags |= FCF_METHOD;
+                idx++;
+            }
+            if (rule->children[idx]->getTreeType() == TREE_TERMINAL) {
+                std::string callModifier = rule->children[idx]->getText();
+                if (callModifier == "thread") {
+                    flags |= FCF_THREAD;
+                }
+                else if (callModifier == "childthread") {
+                    flags |= FCF_CHILDTHREAD;
+                }
+                else {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[idx], std::format("Unknown call modifier {}", callModifier));
+                    return false;
+                }
+                idx++;
+            }
+            ParseTree* functionComp = rule->children[idx];
+
+            if (!IS_RULE_TYPE(functionComp, gscParser::RuleFunction_component)) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Not a function component {}", functionComp->getText()));
+                return false;
+            }
+
+            auto paramsList = rule->children[rule->children.size() - 2];
+            if (!IS_RULE_TYPE(paramsList, gscParser::RuleExpression_list)) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Not a params list {}", paramsList->getText()));
+                return false;
+            }
+
+            if (functionComp->children.size() == 1) {
+                // func
+                importFlags |= tool::gsc::T8GSCImportFlags::GET_CALL;
+                std::string funcName = functionComp->children[0]->getText();
+
+                funcHash = obj.vmInfo->HashField(funcName.c_str());
+
+                auto funcIt = obj.vmInfo->opFuncs.find(funcHash);
+
+                if (funcIt != obj.vmInfo->opFuncs.end()) {
+                    // internal function call
+                    auto& f = funcIt->second;
+                    if (f.HasFlag(tool::gsc::opcode::VPFD_SELF_PARAM) && !(flags & FCF_METHOD)) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator should have a caller {}, Usage: {}", funcName, f.usage));
+                        return false;
+                    }
+                    if (expressVal && !f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator doesn't return a value {}, Usage: {}", funcName, f.usage));
+                        return false;
+                    }
+
+                    if (f.HasFlag(tool::gsc::opcode::VPFD_USE_PRE_SCRIPT_CALL)) {
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
+                    }
+
+                    bool paramError{};
+                    int paramCount{};
+                    for (int i = (int)paramsList->children.size() - 1; i >= 0; i -= 2) {
+                        if (!ParseExpressionNode(paramsList->children[i], parser, obj, fobj, true)) {
+                            paramError = true;
+                        }
+                        paramCount++;
+                    }
+
+                    // add self
+                    if (flags & FCF_METHOD) {
+                        if (!ParseExpressionNode(selfTree, parser, obj, fobj, true)) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "Error when parsing caller");
+                            return false;
+                        }
+                    }
+
+                    if (paramError) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Error when parsing param list");
+                        return false;
+                    }
+
+                    if (paramCount < f.minParam) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Not enought params for operator {}, Usage: {}", funcName, f.usage));
+                        return false;
+                    }
+
+                    if (paramCount > f.maxParam) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Too many params for operator {}, Usage: {}", funcName, f.usage));
+                        return false;
+                    }
+
+                    if (f.HasFlag(tool::gsc::opcode::VPFD_USE_COUNT)) {
+                        fobj.m_nodes.push_back(new AscmNodeData<byte>((byte)paramCount, f.opCode));
+                    }
+                    else {
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(f.opCode));
+                    }
+
+                    if (!expressVal && f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
+                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                    }
+
+                    return true;
+                }
+            }
+            else if (functionComp->children.size() == 3) {
+                if (IS_TERMINAL_TYPE(functionComp->children[0], gscParser::IDENTIFIER)) {
+                    // namespace::func
+
+                    std::string funcNspName = functionComp->children[0]->getText();
+                    std::string funcName = functionComp->children[2]->getText();
+
+                    funcNspHash = obj.vmInfo->HashField(funcNspName.c_str());
+                    funcHash = obj.vmInfo->HashField(funcName.c_str());
+                }
+                else {
+                    // [[ espression ]]
+                    ptrTree = functionComp->children[1];
+                    flags |= FCF_POINTER;
+                }
+            }
+            else if (functionComp->children.size() == 5) {
+                if (flags & FCF_METHOD) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "A class call can't have a self caller");
+                    return false;
+                }
+                // [[ espression ]] -> func
+                std::string funcName = functionComp->children[4]->getText();
+                funcHash = obj.vmInfo->HashField(funcName.c_str());
+
+                ptrTree = functionComp->children[1];
+                flags |= FCF_POINTER_CLASS | FCF_POINTER;
+            }
+            else {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Function call not implemented {}", functionComp->getText()));
+                return false;
+            }
+
+            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
+            
+            // push params
+            bool paramError{};
+            int paramCount{};
+            for (int i = (int)paramsList->children.size() - 1; i >= 0; i -= 2) {
+                if (!ParseExpressionNode(paramsList->children[i], parser, obj, fobj, true)) {
+                    paramError = true;
+                }
+                paramCount++;
+            }
+
+            // add self
+            if (flags & FCF_METHOD) {
+                if (!ParseExpressionNode(selfTree, parser, obj, fobj, true)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "Error when parsing caller");
+                    return false;
+                }
+            }
+
+            // add ptr
+            if (flags & FCF_POINTER) {
+                if (!ParseExpressionNode(ptrTree, parser, obj, fobj, true)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "Error when parsing pointer");
+                    return false;
+                }
+            }
+
+            if (paramError) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Error when parsing param list");
+                return false;
+            }
+
+            if (paramCount >= 256) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Too many parameters for call");
+                return false;
+            }
+
+            // TODO: add opcode/ref
+            OPCode opcode;
+            if (flags & FCF_POINTER) {
+                if (flags & FCF_POINTER_CLASS) {
+
+                    if (flags & FCF_THREAD) {
+                        opcode = OPCODE_ClassFunctionThreadCall;
+                    }
+                    else if (flags & FCF_CHILDTHREAD) {
+                        opcode = OPCODE_ClassFunctionThreadCallEndOn;
+                    }
+                    else {
+                        opcode = OPCODE_ClassFunctionCall;
+                    }
+                }
+                else {
+                    if (flags & FCF_METHOD) {
+                        if (flags & FCF_THREAD) {
+                            opcode = OPCODE_ScriptMethodThreadCallPointer;
+                        }
+                        else if (flags & FCF_CHILDTHREAD) {
+                            opcode = OPCODE_ScriptMethodThreadCallPointerEndOn;
+                        }
+                        else {
+                            opcode = OPCODE_ScriptMethodCallPointer;
+                        }
+                    }
+                    else {
+                        if (flags & FCF_THREAD) {
+                            opcode = OPCODE_ScriptThreadCallPointer;
+                        }
+                        else if (flags & FCF_CHILDTHREAD) {
+                            opcode = OPCODE_ScriptThreadCallPointerEndOn;
+                        }
+                        else {
+                            opcode = OPCODE_ScriptFunctionCallPointer;
+                        }
+                    }
+                }
+                fobj.m_nodes.push_back(new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash));
+            }
+            else {
+                if (flags & FCF_METHOD) {
+                    if (flags & FCF_THREAD) {
+                        opcode = OPCODE_ScriptMethodThreadCall;
+                        importFlags |= tool::gsc::T8GSCImportFlags::METHOD_THREAD;
+                    }
+                    else if (flags & FCF_CHILDTHREAD) {
+                        opcode = OPCODE_ScriptMethodThreadCallEndOn;
+                        importFlags |= tool::gsc::T8GSCImportFlags::METHOD_CHILDTHREAD;
+                    }
+                    else {
+                        opcode = OPCODE_ScriptMethodCall;
+                        importFlags |= tool::gsc::T8GSCImportFlags::METHOD;
+                    }
+                }
+                else {
+                    if (flags & FCF_THREAD) {
+                        opcode = OPCODE_ScriptThreadCall;
+                        importFlags |= tool::gsc::T8GSCImportFlags::FUNCTION_THREAD;
+                    }
+                    else if (flags & FCF_CHILDTHREAD) {
+                        opcode = OPCODE_ScriptThreadCallEndOn;
+                        importFlags |= tool::gsc::T8GSCImportFlags::FUNCTION_CHILDTHREAD;
+                    }
+                    else {
+                        opcode = OPCODE_ScriptFunctionCall;
+                        importFlags |= tool::gsc::T8GSCImportFlags::FUNCTION;
+                    }
+                }
+
+                auto* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash);
+
+                // link by the game, but we write it for test
+                auto located = utils::CatLocated((uint32_t)funcNspHash, (uint32_t)funcHash);
+
+                auto& impList = obj.imports[located];
+
+                auto it = std::find_if(impList.begin(), impList.end(), [flags](const auto& e) { return e.flags == flags; });
+
+                if (it == impList.end()) {
+                    // no equivalent, we need to create our own node
+                    impList.emplace_back(importFlags, (byte)paramCount).nodes.push_back(funcCall);
+                }
+                else {
+                    // same local/flags, we can add our node
+                    it->nodes.push_back(funcCall);
+                }
+
+                fobj.m_nodes.push_back(funcCall);
+            }
+
+
+            if (!expressVal) {
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+            }
+            return true;
+        }
         case gscParser::RuleExpression:
         case gscParser::RuleExpression1:
         case gscParser::RuleExpression2:
@@ -1548,9 +1955,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return true;
             }
             if (
-                !ParseExpressionNode(rule->children[1], parser, obj, fobj, true),
+                !ParseExpressionNode(rule->children[5], parser, obj, fobj, true),
                 !ParseExpressionNode(rule->children[3], parser, obj, fobj, true),
-                !ParseExpressionNode(rule->children[5], parser, obj, fobj, true)
+                !ParseExpressionNode(rule->children[1], parser, obj, fobj, true)
                 ) {
                 return false;
             }
@@ -1612,7 +2019,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 auto termStr = term->getText();
 
                 auto sub = termStr.substr(1, termStr.size() - 1);
-                fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(hash::Hash32Pattern(sub.c_str()), OPCODE_GetHash));
+                fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
 
                 i++; // ':'
 
@@ -1719,10 +2126,15 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             // &nsp::func || &func
             auto nsp = obj.currentNamespace;
 
+            byte flags = tool::gsc::T8GSCImportFlags::FUNC_METHOD;
+
             if (rule->children.size() == 4) {
                 // with nsp
                 auto nspStr = rule->children[1]->getText();
                 nsp = hashutils::Hash32Pattern(nspStr.c_str());
+            }
+            else {
+                flags |= tool::gsc::T8GSCImportFlags::GET_CALL;
             }
 
             assert(rule->children.size());
@@ -1737,13 +2149,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             auto& impList = obj.imports[located];
 
-            byte flags = tool::gsc::T8GSCImportFlags::GET_CALL;
-
             auto it = std::find_if(impList.begin(), impList.end(), [flags](const auto& e) { return e.flags == flags; });
 
             if (it == impList.end()) {
                 // no equivalent, we need to create our own node
-                impList.emplace_back(flags).nodes.push_back(asmc);
+                impList.emplace_back(flags, 0).nodes.push_back(asmc);
             }
             else {
                 // same local/flags, we can add our node
@@ -1822,7 +2232,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     case gscParser::IDENTIFIER: {
         std::string varName = term->getText();
 
-        auto gvarIt = fobj.m_vmInfo->globalvars.find(varName);
+        if (varName == "self") {
+            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GetSelf));
+            return true;
+        }
+
+        auto gvarIt = fobj.m_vmInfo->globalvars.find(obj.vmInfo->HashField(varName));
 
         if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
             auto& gv = gvarIt->second;
@@ -1832,13 +2247,16 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return false;
             }
 
-            auto& decl = fobj.m_globals[gv.name];
+            auto& decl = obj.globals[gv.name];
 
             if (!decl.def) {
                 decl.def = &gv;
             }
 
-            decl.nodes.emplace_back(new AscmNodeGlobalVariable(decl.def, false));
+            auto* gvar = new AscmNodeGlobalVariable(decl.def, false);
+            decl.nodes.emplace_back(gvar);
+            fobj.m_nodes.push_back(gvar);
+            return true;
         }
 
         auto varIt = fobj.FindVar(varName);
@@ -2255,6 +2673,22 @@ public:
     }
 };
 
+size_t FindEndLineDelta(const char* d) {
+    const char* s = d;
+    while (*d && *d != '\n') {
+        d++;
+    }
+    return d - s;
+}
+
+bool ApplyPreProcessor(std::string& str, PreProcessorOption& opt) {
+    const char* start = str.data();
+    char* d = str.data();
+
+    // todo
+    return true;
+}
+
 int compiler(Process& proc, int argc, const char* argv[]) {
     GscCompilerOption opt;
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -2320,6 +2754,15 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         default:
             break;
         }
+    }
+
+    if (!ApplyPreProcessor(info.gscData, opt.processorOpt)) {
+        LOG_ERROR("Error when applying preprocessor on GSC data");
+        return tool::BASIC_ERROR;
+    }
+    if (!ApplyPreProcessor(info.cscData, opt.processorOpt)) {
+        LOG_ERROR("Error when applying preprocessor on CSC data");
+        return tool::BASIC_ERROR;
     }
 
     ANTLRInputStream is{ info.gscData };
