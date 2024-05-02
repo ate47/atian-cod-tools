@@ -877,7 +877,133 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree error, bad syntax?");
         return false;
     }
+    if (exp->getTreeType() == TREE_RULE) {
+        RuleContext* rule = dynamic_cast<RuleContext*>(exp);
 
+
+
+        // search that we don't have a children in error, after that we'll assume the tree is right for a depth of 2
+        if (std::find_if(rule->children.begin(), rule->children.end(), [](const ParseTree* tree) -> bool { return tree->getTreeType() == TREE_ERROR; })
+            != rule->children.end()) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree children error, bad syntax?");
+            return false;
+        }
+
+        switch (rule->getRuleIndex()) {
+        case gscParser::RuleExpression:
+        case gscParser::RuleExpression1:
+        case gscParser::RuleExpression2:
+        case gscParser::RuleExpression3:
+        case gscParser::RuleExpression4:
+        case gscParser::RuleExpression5:
+        case gscParser::RuleExpression6:
+        case gscParser::RuleExpression7:
+        case gscParser::RuleExpression8:
+        case gscParser::RuleExpression9:
+        case gscParser::RuleExpression10:
+        case gscParser::RuleExpression11:
+        case gscParser::RuleExpression12:
+        case gscParser::RuleExpression13: {
+            if (rule->children.size() == 1) {
+                return ParseFieldNode(rule->children[0], parser, obj, fobj, withVal);
+            }
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
+            return false;
+        }
+        case gscParser::RuleExpression14: {
+            if (rule->children.size() == 1) { // exp
+                return ParseFieldNode(rule->children[0], parser, obj, fobj, withVal);
+            }
+            if (rule->children.size() == 3) { // ( exp )
+                return ParseFieldNode(rule->children[1], parser, obj, fobj, withVal);
+            }
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown expr14 rule type: {}", exp->getText()));
+            return false;
+        }
+        case gscParser::RuleLeft_value: {
+            if (rule->children.size() == 1 && IS_TERMINAL_TYPE(rule->children[0], gscParser::IDENTIFIER)) { // idf
+                return ParseFieldNode(rule->children[0], parser, obj, fobj, withVal);
+            }
+
+            return true;
+        }
+        case gscParser::RuleConst_expr:
+        case gscParser::RuleNumber:
+        case gscParser::RuleVector_value:
+        case gscParser::RuleSet_expression:
+        case gscParser::RuleArray_def:
+        case gscParser::RuleStruct_def:
+        case gscParser::RuleFunction_ref:
+        case gscParser::RuleStatement:
+        case gscParser::RuleStatement_if:
+        case gscParser::RuleStatement_while:
+        case gscParser::RuleStatement_dowhile:
+        case gscParser::RuleStatement_for:
+        case gscParser::RuleStatement_switch:
+        case gscParser::RuleStatement_foreach:
+        case gscParser::RuleStatement_inst:
+        case gscParser::RuleStatement_block:
+        case gscParser::RuleOperator_inst:
+        case gscParser::RuleFunction_call:
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
+            return false;
+        }
+
+
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("unhandled lvalue rule: {} ({})", rule->getText(), rule->getRuleIndex()));
+        return false;
+    }
+
+    if (exp->getTreeType() != TREE_TERMINAL) {
+        obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown tree type: {}", exp->getText()));
+        return false;
+    }
+    TerminalNode* term = dynamic_cast<TerminalNode*>(exp);
+
+
+    auto len = term->getText().size();
+
+    switch (term->getSymbol()->getType()) {
+    case gscParser::IDENTIFIER: {
+        std::string varName = term->getText();
+
+        if (varName == "self") {
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, term, "self can't be used as a lvalue");
+            return false;
+        }
+
+        auto gvarIt = fobj.m_vmInfo->globalvars.find(obj.vmInfo->HashField(varName));
+
+        if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
+            auto& gv = gvarIt->second;
+
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, term, std::format("the {} global variable can't be used as a lvalue", gv.name));
+            return false;
+        }
+        auto [varerr, keyVarL] = fobj.RegisterVar(varName, true, 0);
+
+        if (varerr) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, term, varerr);
+            return false;
+        }
+
+        fobj.m_nodes.push_back(new AscmNodeVariable(keyVarL->id, OPCODE_EvalLocalVariableRefCached));
+        return true;
+    }
+    case gscParser::UNDEFINED_VALUE:
+    case gscParser::BOOL_VALUE:
+    case gscParser::FLOATVAL:
+    case gscParser::INTEGER10:
+    case gscParser::INTEGER16:
+    case gscParser::INTEGER8:
+    case gscParser::INTEGER2:
+    case gscParser::HASHSTRING:
+    case gscParser::STRING:
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("not a valid lvalue: {}", term->getText()));
+        return false;
+    }
+
+    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unhandled lvalue terminal: {}", term->getText()));
     return false;
 }
 bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal) {
@@ -963,8 +1089,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         case gscParser::RuleStatement_while: {
             bool ok{ true };
-            auto* loopBreak = new AscmNode();
-            auto* loopContinue = new AscmNode();
+            AscmNode* loopBreak = new AscmNode();
+            AscmNode* loopContinue = new AscmNode();
 
             fobj.PushContinueNode(loopContinue);
             fobj.PushBreakNode(loopBreak);
@@ -992,9 +1118,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         case gscParser::RuleStatement_dowhile: {
             bool ok{ true };
-            auto* loopStart = new AscmNode();
-            auto* loopBreak = new AscmNode();
-            auto* loopContinue = new AscmNode();
+            AscmNode* loopStart = new AscmNode();
+            AscmNode* loopBreak = new AscmNode();
+            AscmNode* loopContinue = new AscmNode();
 
             fobj.PushContinueNode(loopContinue);
             fobj.PushBreakNode(loopBreak);
@@ -1031,9 +1157,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             }
 
             i++; // skip ';'
-            auto* loopStart = new AscmNode();
-            auto* loopBreak = new AscmNode();
-            auto* loopContinue = new AscmNode();
+            AscmNode* loopStart = new AscmNode();
+            AscmNode* loopBreak = new AscmNode();
+            AscmNode* loopContinue = new AscmNode();
 
             fobj.m_nodes.push_back(loopStart);
 
@@ -1127,7 +1253,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                 if (caseType == "case") {
                     i++; // 'case'
-                    auto* jmpNode = new AscmNode();
+                    AscmNode* jmpNode = new AscmNode();
 
                     if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
                         ok = false;
@@ -1173,7 +1299,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             }
 
             // push content
-            auto* endSwitchNode = new AscmNode();
+            AscmNode* endSwitchNode = new AscmNode();
             fobj.PushBreakNode(endSwitchNode);
 
             if (defaultCase.jmpNode) {
@@ -1266,9 +1392,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
             fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
 
-            auto* loopIt = new AscmNode();
-            auto* loopBreak = new AscmNode();
-            auto* loopContinue = new AscmNode();
+            AscmNode* loopIt = new AscmNode();
+            AscmNode* loopBreak = new AscmNode();
+            AscmNode* loopContinue = new AscmNode();
 
             fobj.PushBreakNode(loopBreak);
             fobj.PushContinueNode(loopContinue);
@@ -1350,7 +1476,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                auto* loc = fobj.PeekBreakNode();
+                const AscmNode* loc = fobj.PeekBreakNode();
 
                 if (!loc) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "not in a break context");
@@ -1367,7 +1493,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                auto* loc = fobj.PeekContinueNode();
+                const AscmNode* loc = fobj.PeekContinueNode();
 
                 if (!loc) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "not in a continue context");
@@ -1821,14 +1947,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     ok = false;
                 }
 
-                auto* caseNo = new AscmNode();
+                AscmNode* caseNo = new AscmNode();
                 fobj.m_nodes.push_back(new AscmNodeJump(caseNo, OPCODE_JumpOnFalse));
 
                 if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                     ok = false;
                 }
 
-                auto* caseEnd = new AscmNode();
+                AscmNode* caseEnd = new AscmNode();
                 fobj.m_nodes.push_back(new AscmNodeJump(caseEnd, OPCODE_Jump));
 
                 fobj.m_nodes.push_back(caseNo);
@@ -1855,7 +1981,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
                     ok = false;
                 }
-                auto* after = new AscmNode();
+                AscmNode* after = new AscmNode();
 
                 fobj.m_nodes.push_back(new AscmNodeJump(after, op == "&&" ? OPCODE_JumpOnFalseExpr : OPCODE_JumpOnTrueExpr));
 
@@ -2017,11 +2143,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             bool ok{ true };
             for (size_t i = 1; i < rule->children.size() - 1;) {
 
-                auto* term = rule->children[i++];
+                ParseTree* term = rule->children[i++];
 
-                auto termStr = term->getText();
+                std::string termStr = term->getText();
 
-                auto sub = termStr.substr(1, termStr.size() - 1);
+                std::string sub = termStr.substr(1, termStr.size() - 1);
 
                 i++; // ':'
 
@@ -2043,13 +2169,18 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             bool ok{ true };
             if (opVal == "=") {
-                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, expressVal)) {
+                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                     ok = false;
                 }
                 if (!ParseFieldNode(rule->children[0], parser, obj, fobj, false)) {
                     ok = false;
                 }
                 fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+                if (expressVal) {
+                    if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
+                        ok = false;
+                    }
+                }
                 return ok;
             }
             else {
@@ -2115,9 +2246,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleFunction_ref: {
             if (rule->children.size() == 7) {
                 // @nsp<path>::func
-                auto nsp = rule->children[1]->getText();
-                auto path = rule->children[3]->getText();
-                auto funcName = rule->children[6]->getText();
+                std::string nsp = rule->children[1]->getText();
+                std::string path = rule->children[3]->getText();
+                std::string funcName = rule->children[6]->getText();
 
                 
                 fobj.m_nodes.push_back(new AscmNodeLazyLink(
@@ -2128,7 +2259,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return true;
             }
             // &nsp::func || &func
-            auto nsp = obj.currentNamespace;
+            uint32_t nsp = obj.currentNamespace;
 
             byte flags = tool::gsc::T8GSCImportFlags::FUNC_METHOD;
 
@@ -2143,12 +2274,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             assert(rule->children.size());
 
-            auto funcStr = rule->children[rule->children.size() - 1]->getText();
+            std::string funcStr = rule->children[rule->children.size() - 1]->getText();
             auto func = hashutils::Hash32Pattern(funcStr.c_str());
 
             // link by the game, but we write it for test
             auto located = utils::CatLocated(nsp, func);
-            auto* asmc = new AscmNodeData<uint64_t>(located, OPCODE_GetFunction);
+            AscmNode* asmc = new AscmNodeData<uint64_t>(located, OPCODE_GetFunction);
             fobj.m_nodes.push_back(asmc);
 
             auto& impList = obj.imports[located];
@@ -2223,7 +2354,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         return false;
     }
 
-    auto* term = dynamic_cast<TerminalNode*>(exp);
+    TerminalNode* term = dynamic_cast<TerminalNode*>(exp);
 
     if (!expressVal) {
         obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("useless value: {}", term->getText()));

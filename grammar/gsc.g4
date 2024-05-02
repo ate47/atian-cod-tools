@@ -41,7 +41,7 @@ statement_foreach:
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (operator_inst | statement_dowhile | function_call) ';';
+statement_inst: (set_expression | operator_inst | statement_dowhile | function_call) ';';
 
 function_call: 
 	('thread' | 'childthread')? function_component '(' expression_list ')'

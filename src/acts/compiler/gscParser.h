@@ -337,6 +337,7 @@ public:
   public:
     Statement_instContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    Set_expressionContext *set_expression();
     Operator_instContext *operator_inst();
     Statement_dowhileContext *statement_dowhile();
     Function_callContext *function_call();
