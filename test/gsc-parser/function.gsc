@@ -1,8 +1,8 @@
 #namespace functiontest;
 
 function functiontest() {
-    self endon(#"dead");
-    self endoncallback(#"dead", &functiontestcallback);
+    self endon("dead");
+    self endoncallback(&functiontestcallback, "dead_callback");
     waittillframeend();
     waitframe(1);
     self waittill(#"dead");
@@ -14,7 +14,7 @@ function functiontest() {
     test0(self waittillmatch(#"dead", spawnstruct()));
     test0(self waittillmatchtimeout(#"dead", spawnstruct(), 64));
     wait(65.2);
-    test0(vectorscale((42, undefined, 0), 2));
+    test0(vectorscale((42, "test", 0), 2));
     self thread test1(2, 3, 4, 5);
     self test2();
     self childthread test3(2, 3, 4, 5);

@@ -135,8 +135,8 @@ number: INTEGER10
 
 vector_value: '(' expression ',' expression ',' expression ')';
 array_def:
-	'[' (((HASHSTRING | ('#' number)) ':')? expression (',')?)* ']';
-struct_def: '{' (STRUCT_IDENTIFIER ':' expression (',')?)* '}';
+	'[' ((expression ':')? expression ( ',' (expression ':')? expression)* (',')?)? ']';
+struct_def: '{' (STRUCT_IDENTIFIER ':' expression (',' STRUCT_IDENTIFIER ':' expression)* (',')?)? '}';
 
 NEWLINE: ('\r'? '\n' | '\r') -> skip;
 WHITESPACE: ('\t' | ' ') -> skip;

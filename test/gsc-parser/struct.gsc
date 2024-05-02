@@ -1,15 +1,22 @@
+#namespace struct;
+
 t() {
     return {
         #a: 42,
-        #c: 65,
+        #c: {
+            #d: [],
+            #e: [0,1,2,3,4]
+        },
     };
 }
-t() {
+t2() {
     return [
         12,
-        13,
+        {
+            #a: {}
+        },
         14,
         #"ate": 15,
-        #7: false
+        7: false
     ];
 }

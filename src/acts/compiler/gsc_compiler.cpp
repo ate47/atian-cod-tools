@@ -1943,7 +1943,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return ok;
             }
         }
-                                        break;
+            break;
         case gscParser::RuleConst_expr:
         case gscParser::RuleNumber:
         case gscParser::RuleExpression13:
@@ -1973,27 +1973,28 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             // 1 = [ (HASHSTR|'#' number) ':'
             bool ok{ true };
             size_t currentKey{};
-            for (size_t i = 1; i + 2 < rule->children.size(); i++) {
-                if (rule->children[i]->getTreeType() != TREE_RULE || dynamic_cast<RuleContext*>(rule->children[i])->getRuleIndex() != gscParser::RuleExpression) {
-                    // '#'? key ':'
+            for (size_t i = 1; i + 2 < rule->children.size();) {
+                if (rule->children[i + 1]->getText() == ":") {
+                    // key ':'
 
-                    if (rule->children[i]->getText() == "#") {
-                        i++; // skip '#'
-                    }
+                    auto* expTree = rule->children[i++];
 
-                    if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
+                    i++; // ':'
+
+                    if (!ParseExpressionNode(rule->children[i++], parser, obj, fobj, true)) {
                         ok = false;
                     }
 
-                    i++; // ':'
+                    if (!ParseExpressionNode(expTree, parser, obj, fobj, true)) {
+                        ok = false;
+                    }
                 }
                 else {
+                    if (!ParseExpressionNode(rule->children[i++], parser, obj, fobj, true)) {
+                        ok = false;
+                    }
                     // push current key
                     fobj.m_nodes.push_back(BuildAscmNodeData(currentKey++));
-                }
-
-                if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
-                    ok = false;
                 }
 
                 fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_AddToArray));
@@ -2011,22 +2012,22 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CreateStruct));
 
             bool ok{ true };
-            // 1 = [ (HASHSTR|'#' number) ':'
-            for (size_t i = 1; i < rule->children.size(); i++) {
+            for (size_t i = 1; i < rule->children.size() - 1;) {
 
-                auto* term = rule->children[i];
+                auto* term = rule->children[i++];
 
                 auto termStr = term->getText();
 
                 auto sub = termStr.substr(1, termStr.size() - 1);
-                fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
 
                 i++; // ':'
 
 
-                if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
+                if (!ParseExpressionNode(rule->children[i++], parser, obj, fobj, true)) {
                     ok = false;
                 }
+
+                fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
 
                 fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_AddToStruct));
 
