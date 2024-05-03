@@ -5,6 +5,7 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
+#include "tools/gsc_acts_debug.hpp"
 
 using namespace antlr4;
 using namespace antlr4::tree;
@@ -248,7 +249,7 @@ public:
         ctx.Write<byte>((byte)vars.size());
         for (FunctionVar& var : vars) {
             ctx.Align<uint32_t>();
-            ctx.Write<uint32_t>(hashutils::Hash32Pattern(var.name.c_str()));
+            ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
             ctx.Write<byte>(var.flags);
         }
 
@@ -383,9 +384,10 @@ struct PreProcessorOption {
 
 class GscCompilerOption {
 public:
-    bool m_help = false;
+    bool m_help{};
+    bool m_computeDevOption{};
     VmInfo* m_vmInfo{};
-    Platform m_platform = Platform::PLATFORM_PC;
+    Platform m_platform{ Platform::PLATFORM_PC };
     const char* m_outFileName{ "compiled"};
     std::vector<const char*> m_inputFiles{};
     PreProcessorOption processorOpt{};
@@ -431,6 +433,9 @@ public:
                 }
                 m_outFileName = args[++i];
             }
+            else if (!strcmp("-d", arg) || !_strcmpi("--dbg", arg)) {
+                m_computeDevOption = true;
+            }
             else if (*arg == '-') {
                 if (arg[1] == 'D' && arg[2]) {
                     processorOpt.defines.insert(arg + 2);
@@ -458,7 +463,9 @@ public:
         LOG_INFO("-h --help          : Print help");
         LOG_INFO("-g --game [g]      : Set game");
         LOG_INFO("-p --platform [p]  : Set platform");
+        LOG_INFO("-d --dbg           : Add dev options");
         LOG_INFO("-o --output [f]    : Set output file (without extension), default: 'compiled'");
+        LOG_INFO("-D[name]           : Define variable");
     }
 };  
 
@@ -548,6 +555,7 @@ struct FunctionJumpLoc {
 
 class FunctionObject {
 public:
+    CompileObject& obj;
     uint64_t m_name;
     uint64_t m_name_space;
     uint64_t m_data_name;
@@ -563,10 +571,11 @@ public:
     std::unordered_map<std::string, FunctionJumpLoc> m_jumpLocs{};
     VmInfo* m_vmInfo;
     FunctionObject(
+        CompileObject& obj,
         uint32_t name,
         uint32_t name_space,
         VmInfo* vmInfo
-    ) : m_name(name), m_name_space(name_space), m_data_name(name_space), m_vmInfo(vmInfo) {
+    ) : obj(obj), m_name(name), m_name_space(name_space), m_data_name(name_space), m_vmInfo(vmInfo) {
     }
     ~FunctionObject() {
         for (auto* node : m_nodes) {
@@ -632,24 +641,7 @@ public:
      * @param flags flags
      * @return pair with an error message (for errors) or the variable
      */
-    std::pair<const char*, FunctionVar*> RegisterVar(const std::string& name, bool allowExisting, byte flags = 0) {
-        auto it = FindVar(name);
-        if (it != VarEnd()) {
-            if (allowExisting) {
-                return std::make_pair<>(nullptr, &*it);
-            }
-            return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), nullptr);
-        }
-
-        if (m_allocatedVar >= ARRAYSIZE(m_vars)) {
-            return std::make_pair<>(utils::va("Can't create var '%s': too much variable for function", name.c_str()), nullptr);
-        }
-
-        auto& var = m_vars[m_allocatedVar] = { name, m_allocatedVar, flags };
-        m_allocatedVar++;
-
-        return std::make_pair<>(nullptr, &var);
-    }
+    std::pair<const char*, FunctionVar*> RegisterVar(const std::string& name, bool allowExisting, byte flags = 0);
 
     /*
      * Register a variable with a random name
@@ -683,9 +675,10 @@ public:
 
 class CompileObject {
 public:
+    GscCompilerOption& opt;
     InputInfo& info;
     GscFileType type;
-    uint32_t currentNamespace = hashutils::Hash32("");
+    uint32_t currentNamespace;
     std::set<uint64_t> includes{};
     std::unordered_map<uint32_t, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
@@ -693,10 +686,10 @@ public:
     std::unordered_map<std::string, GlobalVarObject> globals{};
     VmInfo* vmInfo;
     Platform plt;
-
     std::unordered_set<std::string> hashes{};
 
-    CompileObject(GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt) : type(file), info(nfo), vmInfo(vmInfo), plt(plt) {
+    CompileObject(GscCompilerOption& opt, GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt) : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt) {
+        currentNamespace = (uint32_t)vmInfo->HashField("");
     }
 
     uint64_t AddInclude(std::string& data) {
@@ -711,7 +704,7 @@ public:
             }
         }
         hashes.insert(data);
-        includes.insert(hashutils::Hash64Pattern(data.data()));
+        includes.insert(vmInfo->HashPath(data.data()));
         return 0;
     }
 
@@ -722,6 +715,10 @@ public:
 
     bool Compile(std::vector<byte>& data) {
         utils::Allocate(data, sizeof(tool::gsc::T8GSCOBJ));
+        size_t afterHeaderStart{ data.size() };
+        if (opt.m_computeDevOption) {
+            utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DEBUG));
+        }
 
         LOG_TRACE("Compile {} include(s)...", includes.size());
         size_t incTable = utils::Allocate(data, sizeof(uint64_t) * includes.size());
@@ -810,6 +807,8 @@ public:
             }
         }
 
+        LOG_TRACE("Compile {} global(s)...", globals.size());
+
         size_t gvarRefs = data.size();
         size_t gvarCount{};
 
@@ -827,6 +826,7 @@ public:
             }
         }
 
+        LOG_TRACE("Compile {} import(s)...", imports.size());
         size_t implRefs = data.size();
         size_t implCount{};
 
@@ -848,6 +848,27 @@ public:
                     utils::WriteValue<uint32_t>(data, implData.nodes[w++]->floc);
                 }
             }
+        }
+
+
+        if (opt.m_computeDevOption) {
+            LOG_TRACE("Add {} hashe(s)...", hashes.size());
+            size_t hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
+
+            size_t hashesIdx{};
+
+            for (const auto& h : hashes) {
+                reinterpret_cast<uint32_t*>(&data[hashesLoc])[hashesIdx++] = (uint32_t)data.size();
+                utils::WriteString(data, h.c_str());
+            }
+
+            auto* debug_obj = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DEBUG*>(data.data() + afterHeaderStart);
+
+            *reinterpret_cast<uint64_t*>(debug_obj->magic) = tool::gsc::acts_debug::MAGIC;
+            debug_obj->version = tool::gsc::acts_debug::CURRENT_VERSION;
+            debug_obj->actsVersion = (uint64_t) actsinfo::VERSION_ID;
+            debug_obj->strings_count = (uint32_t)hashes.size();
+            debug_obj->strings_offset = (uint32_t)hashesLoc;
         }
 
         // compile header
@@ -877,6 +898,27 @@ public:
         return true;
     }
 };
+
+
+std::pair<const char*, FunctionVar*> FunctionObject::RegisterVar(const std::string& name, bool allowExisting, byte flags) {
+    auto it = FindVar(name);
+    if (it != VarEnd()) {
+        if (allowExisting) {
+            return std::make_pair<>(nullptr, &*it);
+        }
+        return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), nullptr);
+    }
+
+    if (m_allocatedVar >= ARRAYSIZE(m_vars)) {
+        return std::make_pair<>(utils::va("Can't create var '%s': too much variable for function", name.c_str()), nullptr);
+    }
+
+    auto& var = m_vars[m_allocatedVar] = { name, m_allocatedVar, flags };
+    m_allocatedVar++;
+    obj.hashes.insert(var.name);
+
+    return std::make_pair<>(nullptr, &var);
+}
 
 #define IS_RULE_TYPE(rule, index) (rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
 #define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
@@ -2429,9 +2471,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                 
                 fobj.m_nodes.push_back(new AscmNodeLazyLink(
-                    hashutils::Hash64Pattern(path.c_str()),
-                    hashutils::Hash32Pattern(nsp.c_str()),
-                    hashutils::Hash32Pattern(funcName.c_str())
+                    obj.vmInfo->HashPath(path.c_str()),
+                    (uint32_t)obj.vmInfo->HashField(nsp.c_str()),
+                    (uint32_t)obj.vmInfo->HashField(funcName.c_str())
                 ));
                 return true;
             }
@@ -2443,7 +2485,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             if (rule->children.size() == 4) {
                 // with nsp
                 auto nspStr = rule->children[1]->getText();
-                nsp = hashutils::Hash32Pattern(nspStr.c_str());
+                nsp = (uint32_t)obj.vmInfo->HashField(nspStr.c_str());
             }
             else {
                 flags |= tool::gsc::T8GSCImportFlags::GET_CALL;
@@ -2452,7 +2494,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             assert(rule->children.size());
 
             std::string funcStr = rule->children[rule->children.size() - 1]->getText();
-            auto func = hashutils::Hash32Pattern(funcStr.c_str());
+            uint32_t func = (uint32_t)obj.vmInfo->HashField(funcStr.c_str());
 
             // link by the game, but we write it for test
             auto located = utils::CatLocated(nsp, func);
@@ -2721,6 +2763,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     }
     case gscParser::HASHSTRING: {
         auto sub = term->getText().substr(2, len - 3);
+        obj.hashes.insert(sub);
         fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
         return true;
     }
@@ -2804,9 +2847,9 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto name = termNode->getText();
 
     obj.hashes.insert(name);
-    uint32_t nameHashed = hashutils::Hash32Pattern(name.data());
+    uint32_t nameHashed = (uint32_t)obj.vmInfo->HashField(name.data());
 
-    auto [res, err] = obj.exports.try_emplace(nameHashed, nameHashed, obj.currentNamespace, obj.vmInfo);
+    auto [res, err] = obj.exports.try_emplace(nameHashed, obj, nameHashed, obj.currentNamespace, obj.vmInfo);
 
     if (!err) {
         obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("The export {} was defined twice", name));
@@ -2858,7 +2901,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto evname = static_cast<TerminalNode*>(ev)->getText();
 
             obj.hashes.insert(evname);
-            uint32_t evnameHashed = hashutils::Hash32Pattern(evname.data());
+            uint32_t evnameHashed = (uint32_t)obj.vmInfo->HashField(evname.data());
             exp.m_data_name = evnameHashed;
         }
     }
@@ -2995,12 +3038,15 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
     exp.m_nodes.push_back(endNode);
 
+    bool badRef{};
     for (auto& [name, loc] : exp.m_jumpLocs) {
         if (loc.defined) {
             continue;
         }
 
         obj.info.PrintLineMessage(alogs::LVL_ERROR, loc.def ? loc.def : blockRule, std::format("the location {} was used, but isn't declared", name));
+
+        badRef = true;
 
         if (loc.node) {
             delete loc.node; // free loc
@@ -3009,7 +3055,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     }
     exp.m_nodes.insert(exp.m_nodes.begin(), exp.CreateParamNode());
 
-    return true;
+    return !badRef;
 }
 
 bool ParseInclude(gscParser::IncludeContext* nsp, gscParser& parser, CompileObject& obj) {
@@ -3017,7 +3063,7 @@ bool ParseInclude(gscParser::IncludeContext* nsp, gscParser& parser, CompileObje
         return false; // bad
     }
 
-    auto txt = dynamic_cast<TerminalNode*>(nsp->children[1])->getText();
+    std::string txt = nsp->children[1]->getText();
 
     // add the include/using into the includes
     obj.AddInclude(txt);
@@ -3030,12 +3076,12 @@ bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, Compile
         return false; // bad
     }
 
-    auto txt = dynamic_cast<TerminalNode*>(nsp->children[1])->getText();
+    std::string txt = nsp->children[1]->getText();
 
     // set the current namespace to the one specified
 
     obj.hashes.insert(txt);
-    obj.currentNamespace = hashutils::Hash32Pattern(txt.data());
+    obj.currentNamespace = (uint32_t)obj.vmInfo->HashField(txt.data());
 
     return true;
 }
@@ -3048,13 +3094,27 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
 
     auto* eof = prog->EOF();
 
+    // find the first namespace (used for multifile inputs)
     for (auto& e : prog->children) {
         if (e == eof) {
-            return true; // done
+            break;
         }
         if (e->getTreeType() != TREE_RULE) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad export rule type");
             return false;
+        }
+
+        if (dynamic_cast<RuleContext&>(*e).getRuleIndex() == gscParser::RuleNamespace) {
+            if (!ParseNamespace(dynamic_cast<gscParser::NamespaceContext*>(e), parser, obj)) {
+                return false;
+            }
+            break;
+        }
+    }
+
+    for (auto& e : prog->children) {
+        if (e == eof) {
+            return true; // done
         }
 
         auto rule = dynamic_cast<RuleContext&>(*e).getRuleIndex();
@@ -3203,7 +3263,7 @@ int compiler(Process& proc, int argc, const char* argv[]) {
     parser.addErrorListener(&*errList);
 
     gscParser::ProgContext* prog = parser.prog();
-    CompileObject obj{ FILE_GSC, info, opt.m_vmInfo, opt.m_platform };
+    CompileObject obj{ opt, FILE_GSC, info, opt.m_vmInfo, opt.m_platform };
 
     auto error = parser.getNumberOfSyntaxErrors();
     if (error) {
@@ -3228,9 +3288,10 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         return tool::BASIC_ERROR;
     }
 
-    utils::WriteFile(utils::va("%s.gscc", opt.m_outFileName), (const void*)data.data(), data.size());
+    const char* outFile{ utils::va("%s.gscc", opt.m_outFileName) };
+    utils::WriteFile(outFile, (const void*)data.data(), data.size());
 
-    LOG_INFO("Done into compiled.gscc");
+    LOG_INFO("Done into {}", outFile);
 
 
     return 0;

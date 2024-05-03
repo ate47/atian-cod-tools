@@ -2,6 +2,7 @@
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcode_nodes.hpp"
 #include "tools/cw/cw.hpp"
+#include "tools/gsc_acts_debug.hpp"
 #include "actscli.hpp"
 #include <decrypt.hpp>
 
@@ -1186,6 +1187,49 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
     tool::gsc::RosettaStartFile(*scriptfile);
 
+    std::stringstream actsHeader{};
+
+    if (size > scriptfile->GetHeaderSize() + 0x10 && scriptfile->Ref<uint64_t>(scriptfile->GetHeaderSize()) == tool::gsc::acts_debug::MAGIC) {
+        // acts compiled file, read data
+        auto* dbg = scriptfile->Ptr<tool::gsc::acts_debug::GSC_ACTS_DEBUG>(scriptfile->GetHeaderSize());
+        LOG_TRACE("Reading ACTS debug data v{:x}", (int)dbg->version);
+        actsHeader << "// ACTS compiled file, file version 0x" << std::hex << (int)dbg->version << ", acts version ";
+
+        if (dbg->actsVersion == 0xFFFFFFFF) {
+            actsHeader << "DEV";
+        }
+        else {
+            actsHeader << "0x" << std::hex << actsinfo::VERSION_ID;
+            if (dbg->actsVersion == actsinfo::VERSION_ID) {
+                actsHeader << " (current)";
+            }
+        }
+        actsHeader << "\n";
+
+        if (dbg->version >= tool::gsc::acts_debug::ADF_STRING) {
+            uint32_t* strOffsets = scriptfile->Ptr<uint32_t>(dbg->strings_offset);
+            if (dbg->strings_count * sizeof(*strOffsets) > size) {
+                LOG_ERROR("Bad ACTS debug strings, too far");
+            }
+            else {
+                actsHeader << "// hashes ... " << std::dec << dbg->strings_count << " (offset: 0x" << std::hex << dbg->strings_offset << ")\n";
+                for (size_t i = 0; i < dbg->strings_count; i++) {
+                    uint32_t off = strOffsets[i];
+                    if (off >= size) {
+                        LOG_ERROR("Bad ACTS debug string, too far");
+                        break;
+                    }
+                    const char* str = scriptfile->Ptr<const char>(off);
+                    hashutils::AddPrecomputed(vmInfo->HashField(str), str);
+                    hashutils::AddPrecomputed(vmInfo->HashFilePath(str), str);
+                    hashutils::AddPrecomputed(vmInfo->HashPath(str), str);
+                }
+                LOG_TRACE("{} hashe(s) added", dbg->strings_count);
+            }
+
+        }
+    }
+
     char asmfnamebuff[1000];
 
     if (opt.m_outputDir) {
@@ -1259,6 +1303,8 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         asmout << "\n";
 
         scriptfile->DumpHeader(asmout);
+
+        asmout << actsHeader.str();
     }
 
     // write the strings before the patch to avoid reading pre-decrypted strings
