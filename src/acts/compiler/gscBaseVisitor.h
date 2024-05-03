@@ -159,6 +159,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitArray_left_value(gscParser::Array_left_valueContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitObject_left_value(gscParser::Object_left_valueContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitConst_expr(gscParser::Const_exprContext *ctx) override {
     return visitChildren(ctx);
   }

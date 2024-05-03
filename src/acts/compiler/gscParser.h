@@ -23,10 +23,10 @@ public:
     T__50 = 51, T__51 = 52, T__52 = 53, T__53 = 54, T__54 = 55, T__55 = 56, 
     T__56 = 57, T__57 = 58, T__58 = 59, T__59 = 60, T__60 = 61, T__61 = 62, 
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
-    T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, NEWLINE = 73, WHITESPACE = 74, 
-    INTEGER10 = 75, INTEGER16 = 76, INTEGER8 = 77, INTEGER2 = 78, FLOATVAL = 79, 
-    BUILTIN = 80, BOOL_VALUE = 81, UNDEFINED_VALUE = 82, IDENTIFIER = 83, 
-    STRUCT_IDENTIFIER = 84, PATH = 85, STRING = 86, HASHSTRING = 87
+    T__68 = 69, T__69 = 70, NEWLINE = 71, WHITESPACE = 72, INTEGER10 = 73, 
+    INTEGER16 = 74, INTEGER8 = 75, INTEGER2 = 76, FLOATVAL = 77, BUILTIN = 78, 
+    BOOL_VALUE = 79, UNDEFINED_VALUE = 80, IDENTIFIER = 81, STRUCT_IDENTIFIER = 82, 
+    PATH = 83, STRING = 84, HASHSTRING = 85
   };
 
   enum {
@@ -40,8 +40,9 @@ public:
     RuleExpression3 = 23, RuleExpression4 = 24, RuleExpression5 = 25, RuleExpression6 = 26, 
     RuleExpression7 = 27, RuleExpression8 = 28, RuleExpression9 = 29, RuleExpression10 = 30, 
     RuleExpression11 = 31, RuleExpression12 = 32, RuleExpression13 = 33, 
-    RuleExpression14 = 34, RuleLeft_value = 35, RuleConst_expr = 36, RuleFunction_ref = 37, 
-    RuleNumber = 38, RuleVector_value = 39, RuleArray_def = 40, RuleStruct_def = 41
+    RuleExpression14 = 34, RuleLeft_value = 35, RuleArray_left_value = 36, 
+    RuleObject_left_value = 37, RuleConst_expr = 38, RuleFunction_ref = 39, 
+    RuleNumber = 40, RuleVector_value = 41, RuleArray_def = 42, RuleStruct_def = 43
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -97,6 +98,8 @@ public:
   class Expression13Context;
   class Expression14Context;
   class Left_valueContext;
+  class Array_left_valueContext;
+  class Object_left_valueContext;
   class Const_exprContext;
   class Function_refContext;
   class NumberContext;
@@ -337,7 +340,7 @@ public:
   public:
     Statement_instContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    Set_expressionContext *set_expression();
+    ExpressionContext *expression();
     Operator_instContext *operator_inst();
     Statement_dowhileContext *statement_dowhile();
     Function_callContext *function_call();
@@ -627,10 +630,10 @@ public:
     Left_valueContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
-    std::vector<ExpressionContext *> expression();
-    ExpressionContext* expression(size_t i);
-    Const_exprContext *const_expr();
+    Object_left_valueContext *object_left_value();
+    Array_left_valueContext *array_left_value();
     Left_valueContext *left_value();
+    ExpressionContext *expression();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -639,6 +642,37 @@ public:
 
   Left_valueContext* left_value();
   Left_valueContext* left_value(int precedence);
+  class  Array_left_valueContext : public antlr4::ParserRuleContext {
+  public:
+    Array_left_valueContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<ExpressionContext *> expression();
+    ExpressionContext* expression(size_t i);
+    Const_exprContext *const_expr();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Array_left_valueContext* array_left_value();
+
+  class  Object_left_valueContext : public antlr4::ParserRuleContext {
+  public:
+    Object_left_valueContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Const_exprContext *const_expr();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    std::vector<ExpressionContext *> expression();
+    ExpressionContext* expression(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Object_left_valueContext* object_left_value();
+
   class  Const_exprContext : public antlr4::ParserRuleContext {
   public:
     Const_exprContext(antlr4::ParserRuleContext *parent, size_t invokingState);

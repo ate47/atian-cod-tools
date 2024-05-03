@@ -91,6 +91,10 @@ public:
 
     virtual std::any visitLeft_value(gscParser::Left_valueContext *context) = 0;
 
+    virtual std::any visitArray_left_value(gscParser::Array_left_valueContext *context) = 0;
+
+    virtual std::any visitObject_left_value(gscParser::Object_left_valueContext *context) = 0;
+
     virtual std::any visitConst_expr(gscParser::Const_exprContext *context) = 0;
 
     virtual std::any visitFunction_ref(gscParser::Function_refContext *context) = 0;

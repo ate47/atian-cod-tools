@@ -8,7 +8,7 @@ f() {
         false, true,
         [],
         {},
-        &test::ccc
+        &test::ccc,
         &ddd,
         @lazy<scripts\core_common\array.gsc>::qzd,
     ];

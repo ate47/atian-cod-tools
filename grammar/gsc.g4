@@ -41,7 +41,7 @@ statement_foreach:
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (set_expression | operator_inst | statement_dowhile | function_call) ';';
+statement_inst: (expression | operator_inst | statement_dowhile | function_call) ';';
 
 function_call: 
 	('thread' | 'childthread')? function_component '(' expression_list ')'
@@ -51,8 +51,8 @@ function_call:
 
 function_component: 
 	( IDENTIFIER '::')? IDENTIFIER 
-	| '[[' expression ']]' 
-	| '[[' expression ']]' '->' IDENTIFIER
+	| '[' '[' expression ']' ']' 
+	| '[' '[' expression ']' ']' '->' IDENTIFIER
 	;
 
 operator_inst: BUILTIN (IDENTIFIER | expression)?;
@@ -102,12 +102,13 @@ expression14: const_expr | ('(' expression ')') | left_value;
 
 left_value:
 	IDENTIFIER
-	| '[[' expression ']]' '->' IDENTIFIER
-	| (const_expr | ('(' expression ')')) '.' (IDENTIFIER | ('(' expression ')'))
-	| (const_expr | ('(' expression ')')) '[' expression ']'
+	| object_left_value
+	| array_left_value
 	| left_value '.' (IDENTIFIER | ('(' expression ')'))
 	| left_value '[' expression ']';
 
+array_left_value: (const_expr | ('(' expression ')')) '[' expression ']';
+object_left_value: (const_expr | ('(' expression ')')) '.' (IDENTIFIER | ('(' expression ')'));
 
 const_expr:
 	vector_value

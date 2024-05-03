@@ -1441,8 +1441,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
             if ((remapedFlags & T8GSCImportFlags::GET_CALL) == 0) {
                 // no need for namespace if we are getting the call dynamically (api or inside-code script)
-                asmout << hashutils::ExtractTmp("namespace", name_space) << std::flush << "::";
+                asmout << "get ";
             }
+            asmout << hashutils::ExtractTmp("namespace", name_space) << std::flush << "::";
 
             asmout << std::hex << hashutils::ExtractTmp("function", name) << "\n";
 

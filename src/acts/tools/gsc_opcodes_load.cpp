@@ -36,6 +36,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T8, "world");
 			RegisterVMGlobalVariable(VM_T8, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T8, "memory");
+			RegisterVMOperatorFunction(VM_T8, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T8, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
 			RegisterVMOperatorFunction(VM_T8, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
 			RegisterVMOperatorFunction(VM_T8, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_RETURN_VALUE, 2, 2);
@@ -308,6 +309,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T937, "world");
 			RegisterVMGlobalVariable(VM_T937, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T937, "memory");
+			RegisterVMOperatorFunction(VM_T937, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T937, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
 			RegisterVMOperatorFunction(VM_T937, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
 			RegisterVMOperatorFunction(VM_T937, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
@@ -397,6 +399,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T9, "world");
 			RegisterVMGlobalVariable(VM_T9, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T9, "memory");
+			RegisterVMOperatorFunction(VM_T9, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T9, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
 			RegisterVMOperatorFunction(VM_T9, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
 			RegisterVMOperatorFunction(VM_T9, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
