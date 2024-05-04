@@ -5,9 +5,12 @@
 My set of tools. The code is more important than the features, so feel free to reuse it. 🙂
 
 **Supported games**
-- Call of Duty: Black Ops 4 (T8)
-- Call of Duty: Black Ops Cold War (T9)
-- Call of Duty: Modern Warfare III (JUP)
+
+| Name                                   | Decompiler     | Compiler |
+| -------------------------------------- | -------------- | -------- |
+| Call of Duty: Black Ops 4 (T8)         | ✅              | ✅        |
+| Call of Duty: Black Ops Cold War (T9)  | With predecode | ❌        |
+| Call of Duty: Modern Warfare III (JUP) | With extension | ❌        |
 
 ## ACTS Lib
 
@@ -58,6 +61,10 @@ Tools to decompile or disassemble the GSC scripts, a bo4 script decompilation is
 
 - gsc disassembler, made in 3 days with a lot of alcohol so don't use it. `acts gscinfo -a -o "output" [input=scriptparsetree]`
 - gsc decompiler, same as the disassembler, but 10 days after, not any better. `acts gscinfo -g -o "output" [input=scriptparsetree]`
+
+### Compiler
+
+GSC compiler, not for all the game, scripts can be compiled using the command `acts gscc -g [game] [directory]`.
 
 ### GSC Development (Black Ops 4)
 
