@@ -1,8 +1,5 @@
 - tools
-  - collapse delta = operators
+  - black ops 4 gsc compiler alpha
+  - test packer
 - ui
-  - add ui to deploy
-  - hashes
-  - gsc inject
-- cw dll
-  - tests and stability fixes
+  - error encoder
