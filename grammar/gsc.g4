@@ -41,13 +41,15 @@ statement_foreach:
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (expression | operator_inst | statement_dowhile | function_call) ';';
+statement_inst: (expression | operator_inst | statement_dowhile | function_call | nop_def) ';';
 
 function_call: 
 	('thread' | 'childthread')? function_component '(' expression_list ')'
 	| expression14 ('thread' | 'childthread')? function_component '(' expression_list ')'
     | function_call ('thread' | 'childthread')? function_component '(' expression_list ')'
 	;
+
+nop_def: 'nop' ('(' number ')')?;
 
 function_component: 
 	( IDENTIFIER '::')? IDENTIFIER 

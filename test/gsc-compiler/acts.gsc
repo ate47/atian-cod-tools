@@ -13,6 +13,11 @@ function autoexec __init__system__() {
 
 function __pre_init__() {
     callback::on_connect(&on_player_connect);
+
+    level.acts = {
+        #counter: 0
+
+    };
 }
 
 function on_player_connect() {
@@ -26,15 +31,26 @@ function on_player_connect() {
 
     wait 20;
 
-    self.score = 500;
-
     i = 0;
-    for (;;) {
-        i++;
-        self.score += 200;
-        self iprintlnbold("test: #" + i + " score: " + self.score);
-        wait 1;
+test:
+    i++;
+    level.acts.counter++;
+    if (self usebuttonpressed()) {
+        
+
+
+    } else if (self adsbuttonpressed()) {
+        self iprintlnbold(
+            "vector: " + vectorscale((i, 0, 2), 24)
+            + "/" + i
+        );
+    } else {
+        self iprintlnbold(
+            "test: #" + level.acts.counter  + "/" + i
+        );
     }
+    wait 1;
+    goto test;
 }
 
 

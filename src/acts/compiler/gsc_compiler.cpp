@@ -345,6 +345,41 @@ AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
     return new AscmNodeData<int64_t>((int64_t)val, OPCODE_GetLongInteger);
 }
 
+#define IS_RULE_TYPE(rule, index) (rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
+#define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
+
+int64_t NumberNodeValue(ParseTree* number) {
+    if (IS_RULE_TYPE(number, gscParser::RuleNumber)) {
+        return NumberNodeValue(number->children[0]);
+    }
+    if (number->getTreeType() != TREE_TERMINAL) {
+        return 0; // wtf?
+    }
+
+    TerminalNode* term = dynamic_cast<TerminalNode*>(number);
+    switch (term->getSymbol()->getType()) {
+    case gscParser::INTEGER10:
+        return std::strtoll(term->getText().c_str(), NULL, 10);
+    case gscParser::INTEGER16: {
+        bool neg = term->getText()[0] == '-';
+        int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 16);
+        return neg ? -val : val;
+    }
+    case gscParser::INTEGER8: {
+        bool neg = term->getText()[0] == '-';
+        int64_t val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), NULL, 8);
+        return neg ? -val : val;
+    }
+    case gscParser::INTEGER2: {
+        bool neg = term->getText()[0] == '-';
+        int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 2);
+        return neg ? -val : val;
+    }
+    default:
+        return 0;
+    }
+}
+
 class AscmNodeJump : public AscmNodeOpCode {
 public:
     const AscmNode* location;
@@ -818,6 +853,7 @@ public:
                 if (w % 0xFF == 0) {
                     size_t buff = utils::Allocate(data, sizeof(tool::gsc::T8GSCGlobalVar));
                     tool::gsc::T8GSCGlobalVar* gv = reinterpret_cast<tool::gsc::T8GSCGlobalVar*>(&data[buff]);
+                    hashes.insert(key);
                     gv->name = (uint32_t)vmInfo->HashField(key.c_str());
                     gv->num_address = (byte)((gvobj.nodes.size() - w) > 0xFF ? 0xFF : (gvobj.nodes.size() - w));
                     gvarCount++;
@@ -919,9 +955,6 @@ std::pair<const char*, FunctionVar*> FunctionObject::RegisterVar(const std::stri
 
     return std::make_pair<>(nullptr, &var);
 }
-
-#define IS_RULE_TYPE(rule, index) (rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
-#define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
 
 bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal);
 
@@ -1145,6 +1178,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
         case gscParser::RuleStatement_switch:
         case gscParser::RuleStatement_foreach:
         case gscParser::RuleStatement_inst:
+        case gscParser::RuleNop_def:
         case gscParser::RuleStatement_block:
         case gscParser::RuleOperator_inst:
         case gscParser::RuleFunction_call:
@@ -1639,6 +1673,27 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             return ok;
         }
+        case gscParser::RuleNop_def: {
+            if (expressVal) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express a nop value");
+                return false;
+            }
+            size_t count{ 1 };
+            if (rule->children.size() > 1) {
+                int64_t val{ NumberNodeValue(rule->children[2]) };
+                if (val < 0) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't define a negative amount of nop");
+                    return false;
+                }
+                count = (size_t)val;
+            }
+
+            for (size_t i = 0; i < count; i++) {
+                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Nop));
+            }
+            
+            return true;
+        }
         case gscParser::RuleStatement_inst: {
             if (rule->children.size() == 1) {
                 if (expressVal) {
@@ -1822,15 +1877,15 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     // internal function call
                     auto& f = funcIt->second;
                     if (f.HasFlag(tool::gsc::opcode::VPFD_SELF_PARAM) && !(flags & FCF_METHOD)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator should have a caller {}, Usage: {}", funcName, f.usage));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' should have a caller, Usage: {}", funcName, f.usage));
                         return false;
                     }
                     if (expressVal && !f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator doesn't return a value {}, Usage: {}", funcName, f.usage));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' doesn't return a value, Usage: {}", funcName, f.usage));
                         return false;
                     }
                     if (flags & (FCF_THREAD | FCF_CHILDTHREAD)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator {} can't have a thread modifier, Usage: {}", funcName, f.usage));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' can't have a thread modifier, Usage: {}", funcName, f.usage));
                         return false;
                     }
 
@@ -1861,12 +1916,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     }
 
                     if (paramCount < f.minParam) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Not enought params for operator {}, Usage: {}", funcName, f.usage));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Not enought params for operator '{}', Usage: {}", funcName, f.usage));
                         return false;
                     }
 
                     if (paramCount > f.maxParam) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Too many params for operator {}, Usage: {}", funcName, f.usage));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Too many params for operator '{}', Usage: {}", funcName, f.usage));
                         return false;
                     }
 
@@ -1883,6 +1938,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                     return true;
                 }
+                obj.hashes.insert(funcName);
             }
             else if (functionComp->children.size() == 3) {
                     // namespace::func
@@ -1890,6 +1946,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     std::string funcNspName = functionComp->children[0]->getText();
                     std::string funcName = functionComp->children[2]->getText();
 
+                    obj.hashes.insert(funcNspName);
+                    obj.hashes.insert(funcName);
                     funcNspHash = obj.vmInfo->HashField(funcNspName.c_str());
                     funcHash = obj.vmInfo->HashField(funcName.c_str());
             }
@@ -1905,6 +1963,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
                 // [ [ espression ] ] -> func
                 std::string funcName = functionComp->children[6]->getText();
+                obj.hashes.insert(funcName);
                 funcHash = obj.vmInfo->HashField(funcName.c_str());
 
                 ptrTree = functionComp->children[2];
@@ -2321,7 +2380,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             // 1 = [ (HASHSTR|'#' number) ':'
             bool ok{ true };
             size_t currentKey{};
-            for (size_t i = 1; i + 2 < rule->children.size();) {
+            for (size_t i = 1; i + 1 < rule->children.size();) {
                 if (rule->children[i + 1]->getText() == ":") {
                     // key ':'
 
@@ -2469,6 +2528,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 std::string path = rule->children[3]->getText();
                 std::string funcName = rule->children[6]->getText();
 
+                obj.hashes.insert(nsp);
+                obj.hashes.insert(path);
+                obj.hashes.insert(funcName);
                 
                 fobj.m_nodes.push_back(new AscmNodeLazyLink(
                     obj.vmInfo->HashPath(path.c_str()),
@@ -2484,7 +2546,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             if (rule->children.size() == 4) {
                 // with nsp
-                auto nspStr = rule->children[1]->getText();
+                std::string nspStr = rule->children[1]->getText();
+                obj.hashes.insert(nspStr);
                 nsp = (uint32_t)obj.vmInfo->HashField(nspStr.c_str());
             }
             else {
@@ -2494,6 +2557,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             assert(rule->children.size());
 
             std::string funcStr = rule->children[rule->children.size() - 1]->getText();
+            obj.hashes.insert(funcStr);
             uint32_t func = (uint32_t)obj.vmInfo->HashField(funcStr.c_str());
 
             // link by the game, but we write it for test
@@ -2809,8 +2873,6 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
         std::string key{ &newStr[0]};
 
-        LOG_TRACE("Allocate str {}", key);
-
         if (key.length() >= 256) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("string too long: {}", term->getText()));
             return false;
@@ -2818,7 +2880,6 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
         auto& str = obj.strings[key];
         str.nodes.push_back(asmc);
-        LOG_TRACE("Done str {}", key);
         return true;
     }
     }

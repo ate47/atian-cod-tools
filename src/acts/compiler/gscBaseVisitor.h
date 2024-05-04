@@ -83,6 +83,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitNop_def(gscParser::Nop_defContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFunction_component(gscParser::Function_componentContext *ctx) override {
     return visitChildren(ctx);
   }
