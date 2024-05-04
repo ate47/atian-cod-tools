@@ -1,9 +1,18 @@
 #namespace unittest;
 
+#define UNIT_TEST
+
+/*
+ * Print log message
+ */
 function test_print(msg) {
+    // print message
     shieldlog("UNITTEST: " + msg);
 }
 
+/*
+ * Run debug test
+ */
 function autoexec run_tests() {
     test_print("Begin");
 
@@ -15,9 +24,12 @@ function autoexec run_tests() {
 
     test_print("End");
 
-    level notify(#"acts_end_test");
+    level notify(#"acts_end_test"); // notify end message to stop the thread in case of error
 }
 
+/*
+ * Run local var tests
+ */
 function local() {
     test_print("-- local");
     a = 0;
@@ -60,8 +72,11 @@ function local() {
     a0 = [1, 2, 3];
 }
 
+/*
+ * Run local structs tests
+ */
 function local_structs() {
-    test_print("-- local array");
+    test_print("-- local structs");
 
     s = {
         #a: {
@@ -97,6 +112,9 @@ function local_structs() {
 
 }
 
+/*
+ * Run level object tests
+ */
 function level_object() {
     test_print("level object");
     level.acts = {};
@@ -144,6 +162,9 @@ function level_object() {
     test_print("level object array clear: isdefined: " + isdefined(level.acts.a));
 }
 
+/*
+ * Run func calls tests
+ */
 function func_calls() {
     test_print("func calls");
 
@@ -269,6 +290,9 @@ function ev_notif_waiter() {
     }
 }
 
+/*
+ * Run notif tests
+ */
 function notif_tests() {
     test_print("-- notif");
     s = {};

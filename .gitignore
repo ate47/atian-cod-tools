@@ -76,3 +76,7 @@ bgpool
 *.gsccasm
 *.cscc
 *.csccasm
+*.gscp
+*.gscasmp
+*.cscp
+*.cscasmp

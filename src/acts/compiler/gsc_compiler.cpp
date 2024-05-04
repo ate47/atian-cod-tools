@@ -414,13 +414,14 @@ public:
 };
 
 struct PreProcessorOption {
-    std::set<std::string> defines{};
+    std::unordered_set<std::string> defines{};
 };
 
 class GscCompilerOption {
 public:
     bool m_help{};
     bool m_computeDevOption{};
+    const char* m_preproc{};
     VmInfo* m_vmInfo{};
     Platform m_platform{ Platform::PLATFORM_PC };
     const char* m_outFileName{ "compiled"};
@@ -471,6 +472,13 @@ public:
             else if (!strcmp("-d", arg) || !_strcmpi("--dbg", arg)) {
                 m_computeDevOption = true;
             }
+            else if (!_strcmpi("--preproc", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                m_preproc = args[++i];
+            }
             else if (*arg == '-') {
                 if (arg[1] == 'D' && arg[2]) {
                     processorOpt.defines.insert(arg + 2);
@@ -501,6 +509,7 @@ public:
         LOG_INFO("-d --dbg           : Add dev options");
         LOG_INFO("-o --output [f]    : Set output file (without extension), default: 'compiled'");
         LOG_INFO("-D[name]           : Define variable");
+        LOG_DEBUG("--preproc [f]      : Export preproc result into f");
     }
 };  
 
@@ -3225,12 +3234,232 @@ size_t FindEndLineDelta(const char* d) {
     return d - s;
 }
 
-bool ApplyPreProcessor(std::string& str, PreProcessorOption& opt) {
-    const char* start = str.data();
-    char* d = str.data();
+bool TrimDefineVal(std::string& val) {
+    if (val.empty()) {
+        return false;
+    }
+    size_t start{};
+    size_t end{ val.length() };
 
-    // todo
+    while (start < val.length() && isspace(val[start])) {
+        start++;
+    }
+
+    while (end > start && isspace(val[end - 1])) {
+        end--;
+    }
+
+    if (end > start) {
+        val = val.substr(start, end - start);
+        for (size_t i = 0; i < val.length(); i++) {
+            if (isspace(val[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    return false;
+}
+
+bool HasOnlySpaceAfter(const std::string_view& val, size_t idx) {
+    for (size_t i = idx; i < val.length(); i++) {
+        if (!isspace(val[i])) {
+            return false;
+        }
+    }
     return true;
+}
+
+inline void SetBlankChar(char& c) {
+    if (!isspace(c)) {
+        c = ' '; // keep same struct
+    }
+}
+
+bool ApplyPreProcessorComments(InputInfo& info, std::string& str, PreProcessorOption& opt) {
+    size_t idx{};
+    char* data = str.data();
+    char* dataEnd = data + str.length();
+
+    while (*data) {
+        char c = data[0];
+
+        if (c == '"') {
+            // skip string
+            data++;
+            while (data != dataEnd) {
+                if (data[0] == '\\') {
+                    data++;
+                    if (data == dataEnd) {
+                        break; // invalid \?
+                    }
+                }
+                else if (data[0] == '"') {
+                    data++;
+                    break;
+                }
+                data++;
+            }
+        }
+        else if (c == '/' && data[1] == '/') {
+            // skip line comment
+
+            SetBlankChar(*(data++)); // /
+            do {
+                SetBlankChar(*(data++));
+            } while (data != dataEnd && *data != '\n');
+        }
+        else if (c == '/' && data[1] == '*') {
+            // skip comment
+            SetBlankChar(*(data++)); // /
+
+            do {
+                SetBlankChar(*(data++));
+            } while (data != dataEnd && !(data[0] == '*' && data[1] == '/'));
+
+            if (data == dataEnd) {
+                info.PrintLineMessage(alogs::LVL_ERROR, nullptr, "No end for multiline comments");
+                return false;
+            }
+            SetBlankChar(*(data++));
+            SetBlankChar(*(data++)); // */
+        }
+        else {
+            data++;
+        }
+    }
+
+    return true;
+}
+
+bool ApplyPreProcessor(InputInfo& info, std::string& str, PreProcessorOption& opt) {
+    if (!ApplyPreProcessorComments(info, str, opt)) {
+        return false;
+    }
+    size_t lineStart{};
+    size_t lineIdx{};
+    bool err{};
+
+    std::stack<bool> eraseCtx{};
+
+    while (lineStart < str.length()) {
+        lineIdx++;
+        size_t next = str.find("\n", lineStart);
+
+        if (next == std::string::npos) {
+            next = str.length(); // last line
+        }
+
+        std::string_view line{ str.data() + lineStart, str.data() + next };
+        if (line.starts_with("#ifdef")) {
+            std::string define{ line.substr(6) };
+            if (define.length() < 1 || !isspace(define[0])) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#ifdef should be used with a parameter");
+                err = true;
+            }
+            else if (!TrimDefineVal(define)) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#ifdef should be used with one valid parameter");
+                err = true;
+            }
+            else {
+                bool forceDel = eraseCtx.size() && eraseCtx.top();
+
+                if (!forceDel) {
+                    forceDel = !opt.defines.contains(define);
+                }
+                eraseCtx.push(forceDel);
+            }
+        }
+        else if (line.starts_with("#ifndef")) {
+            std::string define{ line.substr(7) };
+            if (define.length() < 1 || !isspace(define[0])) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#ifndef should be used with a parameter");
+                err = true;
+            }
+            else if (!TrimDefineVal(define)) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#ifndef should be used with one valid parameter");
+                err = true;
+            }
+            else {
+                bool del = eraseCtx.size() && eraseCtx.top();
+
+                if (!del) {
+                    del = opt.defines.contains(define);
+                }
+                eraseCtx.push(del);
+            }
+        }
+        else if (line.starts_with("#else")) {
+            if (!HasOnlySpaceAfter(line, 5)) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#else can't have parameters");
+                err = true;
+            }
+            else if (eraseCtx.empty()) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "usage of #else without start if");
+                err = true;
+            }
+            else {
+                bool curr = eraseCtx.top();
+                eraseCtx.pop();
+
+                if (!eraseCtx.empty()) {
+                    // at least 2, we need to check the parent ctx
+                    if (!eraseCtx.top()) {
+                        eraseCtx.push(false);
+                    }
+                    else {
+                        eraseCtx.push(!curr);
+                    }
+                }
+                else {
+                    eraseCtx.push(!curr);
+                }
+            }
+        }
+        else if (line.starts_with("#endif")) {
+            if (!HasOnlySpaceAfter(line, 6)) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#endif can't have parameters");
+                err = true;
+            }
+            else if (eraseCtx.empty()) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "usage of #endif without start if");
+                err = true;
+            }
+            else {
+                eraseCtx.pop();
+            }
+        }
+        else if (line.starts_with("#define")) {
+            std::string define{ line.substr(7) };
+            if (define.length() < 1 || !isspace(define[0])) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#define should be used with a parameter");
+                err = true;
+            }
+            else if (!TrimDefineVal(define)) {
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "#define should be used with one valid parameter");
+                err = true;
+            }
+            else {
+                opt.defines.insert(define);
+            }
+        }
+        else {
+            if (eraseCtx.empty() || !eraseCtx.top()) {
+                lineStart = next + 1;
+                continue;
+            }
+        }
+
+
+        for (size_t i = lineStart; i < next; i++) {
+            SetBlankChar(str[i]);
+        }
+
+        lineStart = next + 1;
+    }
+
+    return !err;
 }
 
 int compiler(Process& proc, int argc, const char* argv[]) {
@@ -3300,13 +3529,17 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         }
     }
 
-    if (!ApplyPreProcessor(info.gscData, opt.processorOpt)) {
+    if (!ApplyPreProcessor(info, info.gscData, opt.processorOpt)) {
         LOG_ERROR("Error when applying preprocessor on GSC data");
         return tool::BASIC_ERROR;
     }
-    if (!ApplyPreProcessor(info.cscData, opt.processorOpt)) {
+    if (!ApplyPreProcessor(info, info.cscData, opt.processorOpt)) {
         LOG_ERROR("Error when applying preprocessor on CSC data");
         return tool::BASIC_ERROR;
+    }
+
+    if (opt.m_preproc) {
+        utils::WriteFile(opt.m_preproc, info.gscData);
     }
 
     ANTLRInputStream is{ info.gscData };

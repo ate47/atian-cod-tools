@@ -115,6 +115,9 @@ namespace tool::gsc::opcode {
 			case '\v':
 				out << "\\v";
 				break;
+			case '"':
+				out << "\\\"";
+				break;
 			default:
 				if (*str < 0x20) {
 					out << "\\" << std::oct << (int)(*str) << std::dec;
@@ -3485,7 +3488,7 @@ public:
 		base += 4;
 
 		if (str) {
-			out << "\"" << str << "\"\n";
+			PrintFormattedString(out << "\"", str) << "\"\n";
 			if (context.m_runDecompiler) {
 				context.PushASMCNode(new ASMContextNodeString(str));
 			}
