@@ -426,6 +426,7 @@ public:
     Platform m_platform{ Platform::PLATFORM_PC };
     const char* m_outFileName{ "compiled"};
     std::vector<const char*> m_inputFiles{};
+    bool m_client{};
     PreProcessorOption processorOpt{};
 
     bool Compute(const char** args, INT startIndex, INT endIndex) {
@@ -479,6 +480,9 @@ public:
                 }
                 m_preproc = args[++i];
             }
+            else if (!strcmp("-c", arg) || !_strcmpi("--csc", arg)) {
+                m_client = true;
+            }
             else if (*arg == '-') {
                 if (arg[1] == 'D' && arg[2]) {
                     processorOpt.defines.insert(arg + 2);
@@ -509,6 +513,7 @@ public:
         LOG_INFO("-d --dbg           : Add dev options");
         LOG_INFO("-o --output [f]    : Set output file (without extension), default: 'compiled'");
         LOG_INFO("-D[name]           : Define variable");
+        LOG_INFO("-c --csc           : Build client script with csc files");
         LOG_DEBUG("--preproc [f]      : Export preproc result into f");
     }
 };  
@@ -520,23 +525,16 @@ enum GscFileType {
 
 class GscFile {
 public:
-    const char* filename;
-    GscFileType type;
+    const std::filesystem::path& filename;
     size_t start;
     size_t startLine;
-    char* buffer;
-    size_t size;
     size_t sizeLine;
-
-    ~GscFile() {
-        std::free(buffer);
-    }
+    std::string buffer{};
 };
 
 struct InputInfo {
     std::vector<GscFile> files{};
     std::string gscData{};
-    std::string cscData{};
 
 
     const GscFile& FindFile(size_t line) {
@@ -553,10 +551,10 @@ struct InputInfo {
         
 
         if (charPositionInLine) {
-            LOG_LVL(lvl, "{}#{}:{} {}", f.filename, (f.startLine < line ? (line - f.startLine) : f.sizeLine), charPositionInLine, msg);
+            LOG_LVL(lvl, "{}#{}:{} {}", f.filename.string(), (f.startLine < line ? (line - f.startLine) : f.sizeLine), charPositionInLine, msg);
         }
         else {
-            LOG_LVL(lvl, "{}#{} {}", f.filename, (f.startLine < line ? (line - f.startLine) : f.sizeLine), msg);
+            LOG_LVL(lvl, "{}#{} {}", f.filename.string(), (f.startLine < line ? (line - f.startLine) : f.sizeLine), msg);
         }
     }
     void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) {
@@ -3469,126 +3467,132 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         return 0;
     }
 
-    InputInfo info{};
-    size_t lineGsc = 0;
-    size_t lineCsc = 0;
+    std::vector<std::filesystem::path> inputs{};
 
-    for (const auto& file : opt.m_inputFiles) {
-        auto s = strlen(file);
+    for (const char* file : opt.m_inputFiles) {
+        utils::GetFileRecurse(file, inputs);
+    }
 
-        GscFileType type;
-        size_t start;
-        size_t startLine;
-        if (s < 4) {
-            continue;
-        }
-        if (!strncmp(&file[s - 4], ".gsc", 4)) {
-            type = FILE_GSC;
+    auto produceFile = [&opt, &inputs](bool client) -> int {
+        InputInfo info{};
+        size_t lineGsc{};
+
+        for (const std::filesystem::path& file : inputs) {
+            auto ext = file.extension();
+            if (client) {
+                if (ext != ".csc" && ext != ".gcsc") {
+                    continue;
+                }
+            }
+            else {
+                if (ext != ".gsc" && ext != ".gcsc") {
+                    continue;
+                }
+            }
+
+            size_t start;
+            size_t startLine;
+
             start = info.gscData.size();
             startLine = lineGsc;
+
+            auto& dt = info.files.emplace_back(file, start, startLine, 0);
+
+            if (!utils::ReadFile(file, dt.buffer)) {
+                LOG_ERROR("Can't read file {}", file.string());
+                return tool::BASIC_ERROR;
+            }
+
+            size_t lineCount{ 1 }; // 1 for the one we'll add at the end
+
+            const char* b = dt.buffer.data();
+            while (*b) {
+                if (*(b++) == '\n') {
+                    lineCount++;
+                }
+            }
+
+            dt.sizeLine = lineCount;
+            info.gscData = info.gscData + dt.buffer + "\n";
         }
-        else if (!strncmp(&file[s - 4], ".csc", 4)) {
-            type = FILE_GSC;
-            start = info.cscData.size();
-            startLine = lineCsc;
+
+        PreProcessorOption popt = opt.processorOpt;
+        popt.defines.insert("_SUPPORTS_GCSC");
+
+        if (client) {
+            popt.defines.insert("_CSC");
         }
         else {
-            continue; // not a known file type, ignore
+            popt.defines.insert("_GSC");
         }
 
-        auto& dt = info.files.emplace_back(file, type, start, startLine);
-
-        if (!utils::ReadFileNotAlign(file, reinterpret_cast<void*&>(dt.buffer), dt.size, true)) {
-            LOG_ERROR("Can't read file {}", file);
+        if (!ApplyPreProcessor(info, info.gscData, popt)) {
+            LOG_ERROR("Error when applying preprocessor on data");
             return tool::BASIC_ERROR;
         }
 
-        size_t lineCount = 1; // 1 for the one we'll add at the end
-
-        const char* b = dt.buffer;
-        while (*b) {
-            if (*(b++) == '\n') {
-                lineCount++;
-            }
+        if (opt.m_preproc) {
+            utils::WriteFile(opt.m_preproc, info.gscData);
         }
 
-        dt.sizeLine = lineCount;
+        ANTLRInputStream is{ info.gscData };
 
+        gscLexer lexer{ &is };
+        CommonTokenStream tokens{ &lexer };
 
-        switch (type) {
-        case FILE_GSC:
-            info.gscData = info.gscData + dt.buffer + "\n";
-            lineGsc += lineCount;
-            break;
-        case FILE_CSC:
-            info.cscData = info.cscData + dt.buffer + "\n";
-            lineCsc += lineCount;
-            break;
-        default:
-            break;
+        tokens.fill();
+        gscParser parser{ &tokens };
+
+        auto errList = std::make_unique<ACTSErrorListener>(info);
+
+        parser.removeErrorListeners();
+
+        parser.addErrorListener(&*errList);
+
+        gscParser::ProgContext* prog = parser.prog();
+        CompileObject obj{ opt, client ? FILE_CSC : FILE_GSC, info, opt.m_vmInfo, opt.m_platform };
+
+        auto error = parser.getNumberOfSyntaxErrors();
+        if (error) {
+            LOG_ERROR("{} error(s) detected, abort", error);
+            return tool::BASIC_ERROR;
         }
+
+        LOG_TRACE("Parse tree");
+
+        if (!ParseProg(prog, parser, obj)) {
+            LOG_ERROR("Error when parsing the object");
+            return tool::BASIC_ERROR;
+        }
+
+
+        RegisterOpCodesMap();
+        std::vector<byte> data{};
+
+        LOG_TRACE("Compile tree");
+        if (!obj.Compile(data)) {
+            LOG_ERROR("Error when compiling the object");
+            return tool::BASIC_ERROR;
+        }
+
+        const char* outFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscc" : "gscc")};
+        utils::WriteFile(outFile, (const void*)data.data(), data.size());
+
+        LOG_INFO("Done into {}", outFile);
+        return tool::OK;
+    };
+
+    int ret = produceFile(false);
+
+    if (ret) {
+        return ret;
     }
 
-    if (!ApplyPreProcessor(info, info.gscData, opt.processorOpt)) {
-        LOG_ERROR("Error when applying preprocessor on GSC data");
-        return tool::BASIC_ERROR;
-    }
-    if (!ApplyPreProcessor(info, info.cscData, opt.processorOpt)) {
-        LOG_ERROR("Error when applying preprocessor on CSC data");
-        return tool::BASIC_ERROR;
+    if (opt.m_client) {
+        return produceFile(true);
     }
 
-    if (opt.m_preproc) {
-        utils::WriteFile(opt.m_preproc, info.gscData);
-    }
-
-    ANTLRInputStream is{ info.gscData };
-
-    gscLexer lexer{ &is };
-    CommonTokenStream tokens{ &lexer };
-
-    tokens.fill();
-    gscParser parser{ &tokens };
-
-    auto errList = std::make_unique<ACTSErrorListener>(info);
-
-    parser.removeErrorListeners();
-
-    parser.addErrorListener(&*errList);
-
-    gscParser::ProgContext* prog = parser.prog();
-    CompileObject obj{ opt, FILE_GSC, info, opt.m_vmInfo, opt.m_platform };
-
-    auto error = parser.getNumberOfSyntaxErrors();
-    if (error) {
-        LOG_ERROR("{} error(s) detected, abort", error);
-        return tool:: BASIC_ERROR;
-    }
-
-    LOG_TRACE("Parse tree");
-
-    if (!ParseProg(prog, parser, obj)) {
-        LOG_ERROR("Error when parsing the object");
-        return tool::BASIC_ERROR;
-    }
-
-
-    RegisterOpCodesMap();
-    std::vector<byte> data{};
-
-    LOG_TRACE("Compile tree");
-    if (!obj.Compile(data)) {
-        LOG_ERROR("Error when compiling the object");
-        return tool::BASIC_ERROR;
-    }
-
-    const char* outFile{ utils::va("%s.gscc", opt.m_outFileName) };
-    utils::WriteFile(outFile, (const void*)data.data(), data.size());
-
-    LOG_INFO("Done into {}", outFile);
-
-
-    return 0;
+    return tool::OK;
 }
 
 ADD_TOOL("gscc", " --help", "gsc compiler (Alpha)", nullptr, compiler);

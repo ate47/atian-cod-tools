@@ -1220,9 +1220,17 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                         break;
                     }
                     const char* str = scriptfile->Ptr<const char>(off);
-                    hashutils::AddPrecomputed(vmInfo->HashField(str), str);
-                    hashutils::AddPrecomputed(vmInfo->HashFilePath(str), str);
-                    hashutils::AddPrecomputed(vmInfo->HashPath(str), str);
+
+                    uint64_t hashField{ vmInfo->HashField(str) };
+                    uint64_t hashFilePath{ vmInfo->HashFilePath(str) };
+                    uint64_t hashPath{ vmInfo->HashPath(str) };
+
+                    hashutils::AddPrecomputed(hashField, str);
+                    hashutils::AddPrecomputed(hashFilePath, str);
+                    hashutils::AddPrecomputed(hashPath, str);
+                    if (opt.m_header) {
+                        actsHeader << "// " << str << " (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath << ")\n";
+                    }
                 }
                 LOG_TRACE("{} hashe(s) added", dbg->strings_count);
             }
