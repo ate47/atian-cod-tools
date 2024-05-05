@@ -9,7 +9,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | Name                                   | Decompiler     | Compiler |
 | -------------------------------------- | -------------- | -------- |
 | Call of Duty: Black Ops 4 (T8)         | ✅              | ✅        |
-| Call of Duty: Black Ops Cold War (T9)  | With predecode | ❌        |
+| Call of Duty: Black Ops Cold War (T9)  | With predecode | ✅        |
 | Call of Duty: Modern Warfare III (JUP) | With extension | ❌        |
 
 ## ACTS Lib

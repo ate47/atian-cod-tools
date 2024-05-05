@@ -1,5 +1,3 @@
 - tools
-  - black ops 4 gsc compiler alpha
-  - test packer
-- ui
-  - error encoder
+  - black ops cw gsc compiler
+  - fix issue with bo4 compiler
