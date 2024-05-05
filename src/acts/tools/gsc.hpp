@@ -28,7 +28,15 @@ namespace tool::gsc {
         GOHF_SUPPORT_VAR_PTR = 0x40,
         GOHF_SUPPORT_EV_HANDLER = 0x80,
         GOHF_INLINE_FUNC_PTR = 0x100,
+        GOHF_FOREACH_TYPE_T8 = 0x200,
+        GOHF_FOREACH_TYPE_T9 = 0x400,
+        GOHF_FOREACH_TYPE_JUP = 0x600,
+        GOHF_FOREACH_TYPE_MASK = 0x600,
     };
+    static_assert(
+        ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP) & ~GOHF_FOREACH_TYPE_MASK) == 0
+        && "Foreach mask isn't matching all the types"
+    );
 
     // cli options
     class GscInfoOption {
@@ -966,6 +974,8 @@ namespace tool::gsc {
         virtual uint16_t GetGVarsCount() = 0;
         virtual uint32_t GetGVarsOffset() = 0;
         virtual uint32_t GetFileSize() = 0;
+        virtual uint64_t GetDefaultChecksum(bool client) = 0;
+        virtual const char* GetDefaultName(bool client) = 0;
 
         virtual size_t GetHeaderSize() = 0;
         virtual size_t GetImportSize() = 0;
@@ -992,6 +1002,7 @@ namespace tool::gsc {
         // Write functions
         virtual void SetName(uint64_t name) = 0;
         virtual void SetHeader() = 0;
+        virtual void SetChecksum(uint64_t val) = 0;
         virtual void SetExportsCount(uint16_t val) = 0;
         virtual void SetExportsOffset(uint32_t val) = 0;
         virtual void SetIncludesCount(uint16_t val) = 0;

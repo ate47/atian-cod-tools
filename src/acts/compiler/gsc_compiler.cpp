@@ -87,6 +87,7 @@ class AscmNode {
 public:
     int32_t rloc{};
     int32_t floc{};
+    size_t line{};
     AscmNodeType nodetype{ ASCMNT_UNKNOWN };
 
     virtual ~AscmNode() {};
@@ -442,6 +443,10 @@ public:
     const char* m_outFileName{ "compiled"};
     std::vector<const char*> m_inputFiles{};
     bool m_client{};
+    uint64_t crcServer{};
+    uint64_t crcClient{};
+    const char* nameServer{ "" };
+    const char* nameClient{ "" };
     PreProcessorOption processorOpt{};
 
     bool Compute(const char** args, INT startIndex, INT endIndex) {
@@ -498,6 +503,46 @@ public:
             else if (!strcmp("-c", arg) || !_strcmpi("--csc", arg)) {
                 m_client = true;
             }
+            else if (!_strcmpi("--crc", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                try {
+                    crcServer = std::strtoull(args[++i], nullptr, 16);
+                }
+                catch (std::exception& e) {
+                    LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
+                    return false;
+                }
+            }
+            else if (!_strcmpi("--crc-client", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                try {
+                    crcClient = std::strtoull(args[++i], nullptr, 16);
+                }
+                catch (std::exception& e) {
+                    LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
+                    return false;
+                }
+            }
+            else if (!_strcmpi("--name", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                nameServer = args[++i];
+            }
+            else if (!_strcmpi("--name-client", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                nameClient = args[++i];
+            }
             else if (*arg == '-') {
                 if (arg[1] == 'D' && arg[2]) {
                     processorOpt.defines.insert(arg + 2);
@@ -529,6 +574,10 @@ public:
         LOG_INFO("-o --output [f]    : Set output file (without extension), default: 'compiled'");
         LOG_INFO("-D[name]           : Define variable");
         LOG_INFO("-c --csc           : Build client script with csc files");
+        LOG_INFO("--crc [c]          : Set the crc for the server script");
+        LOG_INFO("--crc-client [c]   : Set the crc for the client script");
+        LOG_INFO("--name [n]         : Set the name for the server script");
+        LOG_INFO("--name-client [n]  : Set the name for the client script");
         LOG_DEBUG("--preproc [f]      : Export preproc result into f");
     }
 };  
@@ -572,13 +621,19 @@ struct InputInfo {
             LOG_LVL(lvl, "{}#{} {}", f.filename.string(), (f.startLine < line ? (line - f.startLine) : f.sizeLine), msg);
         }
     }
-    void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) {
+    Token* GetToken(ParseTree* tree) {
         while (tree && tree->getTreeType() != TREE_TERMINAL && tree->children.size()) {
             tree = tree->children[0];
         }
 
         if (tree && tree->getTreeType() == TREE_TERMINAL) {
-            auto* token = dynamic_cast<TerminalNode*>(tree)->getSymbol();
+            return dynamic_cast<TerminalNode*>(tree)->getSymbol();
+        }
+        return nullptr;
+    }
+    void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) {
+        Token* token = GetToken(tree);
+        if (token) {
             PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);
             return;
         }
@@ -681,6 +736,11 @@ public:
     inline FunctionVar* VarEnd() {
         return &m_vars[m_allocatedVar];
     }
+
+    void AddNode(ParseTree* tree, AscmNode* node);
+    void AddNode(decltype(m_nodes)::iterator it, ParseTree* tree, AscmNode* node);
+
+
     /*
      * Find a variable with its name
      * @param name name
@@ -735,7 +795,9 @@ public:
     GscCompilerOption& opt;
     InputInfo& info;
     GscFileType type;
+    uint64_t fileName;
     uint64_t currentNamespace;
+    int64_t crc;
     std::set<uint64_t> includes{};
     std::unordered_map<uint64_t, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
@@ -773,6 +835,46 @@ public:
     }
 
     bool Compile(std::vector<byte>& data) {
+        if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
+            constexpr const char* name = "$notif_checkum";
+            uint64_t nameHashed = vmInfo->HashField(name);
+            auto [res, err] = exports.try_emplace(nameHashed, *this, nameHashed, currentNamespace, vmInfo);
+
+            if (!err) {
+                LOG_ERROR("Can't register notif checksum export: {}", name);
+                return false;
+            }
+
+            FunctionObject& f = res->second;
+            f.m_flags = tool::gsc::CLASS_VTABLE;
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
+            f.m_nodes.push_back(BuildAscmNodeData(crc));
+
+
+            auto gvarIt = vmInfo->globalvars.find(vmInfo->HashField("level"));
+
+            if (gvarIt == vmInfo->globalvars.end()) {
+                LOG_ERROR("Can't find level def for checksum export: {}", name);
+                return false;
+            }
+
+            auto& gv = gvarIt->second;
+
+            auto& decl = globals[gv.name];
+
+            if (!decl.def) {
+                decl.def = &gv;
+            }
+
+            auto* gvar = new AscmNodeGlobalVariable(decl.def, false);
+            decl.nodes.emplace_back(gvar);
+            f.m_nodes.push_back(gvar);
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Notify));
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
+        }
+
+
         utils::Allocate(data, gscHandler->GetHeaderSize());
         size_t afterHeaderStart{ data.size() };
         if (opt.m_computeDevOption) {
@@ -938,6 +1040,8 @@ public:
 
         // compile header
         gscHandler->file = data.data();
+        gscHandler->SetName(fileName);
+        gscHandler->SetChecksum(crc);
         gscHandler->SetHeader();
 
         gscHandler->SetIncludesCount((int16_t)includes.size());
@@ -967,16 +1071,17 @@ public:
 
 
 std::pair<const char*, FunctionVar*> FunctionObject::RegisterVar(const std::string& name, bool allowExisting, byte flags) {
+    static FunctionVar badVar{ "$BAD_VAR", 0, 0 };
     auto it = FindVar(name);
     if (it != VarEnd()) {
         if (allowExisting) {
             return std::make_pair<>(nullptr, &*it);
         }
-        return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), nullptr);
+        return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), &badVar);
     }
 
     if (m_allocatedVar >= ARRAYSIZE(m_vars)) {
-        return std::make_pair<>(utils::va("Can't create var '%s': too much variable for function", name.c_str()), nullptr);
+        return std::make_pair<>(utils::va("Can't create var '%s': too much variable for function", name.c_str()), &badVar);
     }
 
     auto& var = m_vars[m_allocatedVar] = { name, m_allocatedVar, flags };
@@ -984,6 +1089,22 @@ std::pair<const char*, FunctionVar*> FunctionObject::RegisterVar(const std::stri
     obj.hashes.insert(var.name);
 
     return std::make_pair<>(nullptr, &var);
+}
+
+void FunctionObject::AddNode(ParseTree* tree, AscmNode* node) {
+    Token* token = obj.info.GetToken(tree);
+    if (token) {
+        node->line = token->getLine();
+    }
+    m_nodes.push_back(node);
+}
+
+void FunctionObject::AddNode(decltype(m_nodes)::iterator it, ParseTree* tree, AscmNode* node) {
+    Token* token = obj.info.GetToken(tree);
+    if (token) {
+        node->line = token->getLine();
+    }
+    m_nodes.insert(it, node);
 }
 
 bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal);
@@ -1072,10 +1193,10 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                         return false;
                     }
                     else {
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
+                        fobj.AddNode(rule->children[startOp + 1], new AscmNodeOpCode(OPCODE_CastFieldObject));
                         // use identifier
                         uint64_t hash = obj.vmInfo->HashField(fieldText);
-                        fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariableRef));
+                        fobj.AddNode(rule->children[startOp + 1], new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariableRef));
                     }
                 }
                 else {
@@ -1083,14 +1204,14 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object canon id: {}", exp->getText()));
                         return false;
                     }
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastCanon));
+                    fobj.AddNode(rule->children[startOp + 2], new AscmNodeOpCode(OPCODE_CastCanon));
 
                     if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object id (from canon): {}", exp->getText()));
                         return false;
                     }
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStackRef));
+                    fobj.AddNode(value, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                    fobj.AddNode(value, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStackRef));
                 }
                 return true;
 
@@ -1107,7 +1228,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                     return false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalArrayRef));
+                fobj.AddNode(value, new AscmNodeOpCode(OPCODE_EvalArrayRef));
                 return true;
             }
 
@@ -1146,21 +1267,21 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                             else {
                                 // use identifier
                                 uint64_t hash = obj.vmInfo->HashField(fieldText);
-                                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
-                                fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariableRef));
+                                fobj.AddNode(rule->children[2], new AscmNodeOpCode(OPCODE_CastFieldObject));
+                                fobj.AddNode(rule->children[2], new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariableRef));
                             }
                         }
                         else {
                             if (!ParseExpressionNode(rule->children[3], parser, obj, fobj, true)) {
                                 return false;
                             }
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastCanon));
+                            fobj.AddNode(rule->children[3], new AscmNodeOpCode(OPCODE_CastCanon));
 
                             if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
                                 return false;
                             }
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStackRef));
+                            fobj.AddNode(first, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                            fobj.AddNode(first, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStackRef));
                         }
                         return true;
                     }
@@ -1175,7 +1296,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                             return false;
                         }
 
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalArrayRef));
+                        fobj.AddNode(first, new AscmNodeOpCode(OPCODE_EvalArrayRef));
                         return true;
                     }
                     else {
@@ -1256,7 +1377,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
             return false;
         }
 
-        fobj.m_nodes.push_back(new AscmNodeVariable(keyVarL->id, OPCODE_EvalLocalVariableRefCached));
+        fobj.AddNode(term, new AscmNodeVariable(keyVarL->id, OPCODE_EvalLocalVariableRefCached));
         return true;
     }
     case gscParser::UNDEFINED_VALUE:
@@ -1320,7 +1441,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     loc.node = new AscmNode();
                 }
 
-                fobj.m_nodes.push_back(loc.node);
+                fobj.AddNode(rule, loc.node);
             }
 
             return ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, expressVal);
@@ -1332,7 +1453,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(new AscmNodeJump(elseStart, OPCODE_JumpOnFalse));
+            fobj.AddNode(rule->children[2], new AscmNodeJump(elseStart, OPCODE_JumpOnFalse));
 
             if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, false)) {
                 ok = false;
@@ -1341,17 +1462,17 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             if (rule->children.size() > 5) { // else
                 auto* endElse = new AscmNode();
-                fobj.m_nodes.push_back(new AscmNodeJump(endElse, OPCODE_Jump));
-                fobj.m_nodes.push_back(elseStart);
+                fobj.AddNode(rule->children[5], new AscmNodeJump(endElse, OPCODE_Jump));
+                fobj.AddNode(rule->children[6], elseStart);
 
                 if (!ParseExpressionNode(rule->children[6], parser, obj, fobj, false)) {
                     ok = false;
                 }
 
-                fobj.m_nodes.push_back(endElse);
+                fobj.AddNode(rule->children[rule->children.size() - 1], endElse);
             }
             else {
-                fobj.m_nodes.push_back(elseStart);
+                fobj.AddNode(rule->children[rule->children.size() - 1], elseStart);
             }
 
             return ok;
@@ -1364,21 +1485,22 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.PushContinueNode(loopContinue);
             fobj.PushBreakNode(loopBreak);
 
-            fobj.m_nodes.push_back(loopContinue);
+            fobj.AddNode(rule, loopContinue);
 
             if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+            fobj.AddNode(rule->children[2], new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
 
             if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, false)) {
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(new AscmNodeJump(loopContinue, OPCODE_Jump));
+            // TODO: add next node
+            fobj.AddNode(rule->children[4], new AscmNodeJump(loopContinue, OPCODE_Jump));
 
-            fobj.m_nodes.push_back(loopBreak);
+            fobj.AddNode(rule->children[4], loopBreak);
 
             fobj.PopContinueNode();
             fobj.PopBreakNode();
@@ -1394,21 +1516,22 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.PushContinueNode(loopContinue);
             fobj.PushBreakNode(loopBreak);
 
-            fobj.m_nodes.push_back(loopStart);
+            fobj.AddNode(rule, loopStart);
 
             if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, false)) {
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(loopContinue);
+            fobj.AddNode(rule, loopContinue);
 
             if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(new AscmNodeJump(loopStart, OPCODE_JumpOnTrue));
+            fobj.AddNode(rule->children[4], new AscmNodeJump(loopStart, OPCODE_JumpOnTrue));
 
-            fobj.m_nodes.push_back(loopBreak);
+            // TODO: add next node
+            fobj.AddNode(rule->children[4], loopBreak);
 
             fobj.PopContinueNode();
             fobj.PopBreakNode();
@@ -1429,7 +1552,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             AscmNode* loopBreak = new AscmNode();
             AscmNode* loopContinue = new AscmNode();
 
-            fobj.m_nodes.push_back(loopStart);
+            fobj.AddNode(rule, loopStart);
 
 
             // if expression
@@ -1438,7 +1561,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     err = true;
                 }
                 else {
-                    fobj.m_nodes.push_back(new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+                    fobj.AddNode(rule->children[i - 1], new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
                 }
             }
 
@@ -1455,14 +1578,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.PopBreakNode();
 
             // delta expression
-            fobj.m_nodes.push_back(loopContinue);
+            fobj.AddNode(rule->children[rule->children.size() - 1], loopContinue);
 
             if (IS_RULE_TYPE(rule->children[i], gscParser::RuleExpression) && !ParseExpressionNode(rule->children[i++], parser, obj, fobj, false)) {
                 err = true;
             }
 
-            fobj.m_nodes.push_back(new AscmNodeJump(loopStart, OPCODE_Jump));
-            fobj.m_nodes.push_back(loopBreak);
+            fobj.AddNode(rule->children[i - 1], new AscmNodeJump(loopStart, OPCODE_Jump));
+            fobj.AddNode(rule->children[i - 1], loopBreak);
 
             return !err;
         }
@@ -1499,8 +1622,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableRefCached));
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+            fobj.AddNode(rule->children[2], new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableRefCached));
+            fobj.AddNode(rule->children[2], new AscmNodeOpCode(OPCODE_SetVariableField));
 
 
             // statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
@@ -1526,11 +1649,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     if (!ParseExpressionNode(rule->children[i], parser, obj, fobj, true)) {
                         ok = false;
                     }
-                    fobj.m_nodes.push_back(new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableCached));
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Equal));
+                    fobj.AddNode(rule->children[i], new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableCached));
+                    fobj.AddNode(rule->children[i], new AscmNodeOpCode(OPCODE_Equal));
 
 
-                    fobj.m_nodes.push_back(new AscmNodeJump(jmpNode, OPCODE_JumpOnTrue));
+                    fobj.AddNode(rule->children[i], new AscmNodeJump(jmpNode, OPCODE_JumpOnTrue));
 
                     i += 2; // const_expr ':'
 
@@ -1571,14 +1694,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             fobj.PushBreakNode(endSwitchNode);
 
             if (defaultCase.jmpNode) {
-                fobj.m_nodes.push_back(new AscmNodeJump(defaultCase.jmpNode, OPCODE_Jump));
+                fobj.AddNode(rule, new AscmNodeJump(defaultCase.jmpNode, OPCODE_Jump));
             }
             else {
-                fobj.m_nodes.push_back(new AscmNodeJump(endSwitchNode, OPCODE_Jump));
+                fobj.AddNode(rule, new AscmNodeJump(endSwitchNode, OPCODE_Jump));
             }
 
             for (auto& caseElem : jmpTable) {
-                fobj.m_nodes.push_back(caseElem.jmpNode);
+                fobj.AddNode(rule->children[caseElem.startStmt], caseElem.jmpNode);
 
                 for (size_t stmt = caseElem.startStmt; stmt < caseElem.endStmt; stmt++) {
                     if (!ParseExpressionNode(rule->children[stmt], parser, obj, fobj, false)) {
@@ -1587,7 +1710,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
             }
 
-            fobj.m_nodes.push_back(endSwitchNode);
+            fobj.AddNode(rule, endSwitchNode);
 
             fobj.PopBreakNode();
 
@@ -1649,59 +1772,140 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             bool ok{ true };
 
-            if (!ParseExpressionNode(rule->children[rule->children.size() - 3], parser, obj, fobj, true)) {
-                ok = false;
-            }
-            // array = ...;
-            fobj.m_nodes.push_back(new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
-            // key = firstarray(array);
-            fobj.m_nodes.push_back(new AscmNodeVariable(arrayVal->id, OPCODE_FirstArrayKeyCached));
-            fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+            ParseTree* arrVal = rule->children[rule->children.size() - 3];
 
-            AscmNode* loopIt = new AscmNode();
-            AscmNode* loopBreak = new AscmNode();
-            AscmNode* loopContinue = new AscmNode();
-
-            fobj.PushBreakNode(loopBreak);
-            fobj.PushContinueNode(loopContinue);
-
-            fobj.m_nodes.push_back(loopIt);
-            // jumpiffalse(isdefined(key)) loopBreak
-            fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IsDefined));
-            fobj.m_nodes.push_back(new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
-
-            // value = array[key];
-            fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
-            fobj.m_nodes.push_back(new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalArray));
-            fobj.m_nodes.push_back(new AscmNodeVariable(valueVar->id, OPCODE_EvalLocalVariableRefCached));
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
-
-            // nextarray(array, key, iterator)
-            fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
-            fobj.m_nodes.push_back(new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
-            fobj.m_nodes.push_back(new AscmNodeVariable(iteratorVal->id, OPCODE_SetNextArrayKeyCached));
-
-            if (!ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, false)) {
+            if (!ParseExpressionNode(arrVal, parser, obj, fobj, true)) {
                 ok = false;
             }
 
-            fobj.m_nodes.push_back(loopContinue);
-            // key = iterator;
-            fobj.m_nodes.push_back(new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
-            fobj.m_nodes.push_back(new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+            uint64_t forEachType = obj.gscHandler->buildFlags & tool::gsc::GOHF_FOREACH_TYPE_MASK;
 
-            // loop back
-            fobj.m_nodes.push_back(new AscmNodeJump(loopIt, OPCODE_Jump));
+            switch (forEachType) {
+            case tool::gsc::GOHF_FOREACH_TYPE_T8: {
+                // array = ...;
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+                // key = firstarray(array);
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_FirstArrayKeyCached));
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
 
-            fobj.PopBreakNode();
-            fobj.PopContinueNode();
-            // end
-            fobj.m_nodes.push_back(loopBreak);
+                AscmNode* loopBreak = new AscmNode();
+                AscmNode* loopContinue = new AscmNode();
+                AscmNode* loopIt = new AscmNode();
+
+                fobj.PushBreakNode(loopBreak);
+                fobj.PushContinueNode(loopContinue);
+
+                fobj.AddNode(arrVal, loopIt);
+                // jumpiffalse(isdefined(key)) loopBreak
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_IsDefined));
+                fobj.AddNode(arrVal, new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+
+                // value = array[key];
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_EvalArray));
+                fobj.AddNode(arrVal, new AscmNodeVariable(valueVar->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                // nextarray(array, key, iterator)
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_SetNextArrayKeyCached));
+
+                if (!ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, false)) {
+                    ok = false;
+                }
+
+                fobj.AddNode(rule->children[rule->children.size() - 1], loopContinue);
+                // key = iterator;
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                // loop back
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeJump(loopIt, OPCODE_Jump));
+
+                fobj.PopBreakNode();
+                fobj.PopContinueNode();
+                // end
+                fobj.AddNode(rule->children[rule->children.size() - 1], loopBreak);
+            }
+                break;
+            case tool::gsc::GOHF_FOREACH_TYPE_T9: {
+                auto [varnexterr, nextVar] = fobj.RegisterVarRnd();
+
+                if (varnexterr) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach next variable: {}", varnexterr));
+                    ok = false;
+                }
+
+                // array = ...;
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+                // iterator = firstarray(array);
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_FirstArrayKey));
+                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                AscmNode* loopBreak = new AscmNode();
+                AscmNode* loopContinue = new AscmNode();
+                AscmNode* loopIt = new AscmNode();
+
+                fobj.PushBreakNode(loopBreak);
+                fobj.PushContinueNode(loopContinue);
+
+                fobj.AddNode(arrVal, loopIt);
+                // jumpiffalse(isdefined(iterator)) loopBreak
+                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_IsDefined));
+                fobj.AddNode(arrVal, new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+                
+                // key = iteratorkey(iterator);
+                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_T9_IteratorKey));
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                // val = iteratorval(iterator);
+                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_T9_IteratorVal));
+                fobj.AddNode(arrVal, new AscmNodeVariable(valueVar->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                // next = iteratornext(iterator);
+                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_T9_IteratorNext));
+                fobj.AddNode(arrVal, new AscmNodeVariable(nextVar->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                if (!ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, false)) {
+                    ok = false;
+                }
+
+                fobj.AddNode(rule->children[rule->children.size() - 1], loopContinue);
+                // key = iterator;
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(nextVar->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                // loop back
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeJump(loopIt, OPCODE_Jump));
+
+                fobj.PopBreakNode();
+                fobj.PopContinueNode();
+                // end
+                fobj.AddNode(rule->children[rule->children.size() - 1], loopBreak);
+            }
+                break;
+            default:
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("foreach not implemented for vm {} (0x{:x})", obj.vmInfo->name, forEachType));
+                ok = false;
+                break;
+            }
 
             return ok;
         }
@@ -1721,7 +1925,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             }
 
             for (size_t i = 0; i < count; i++) {
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Nop));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Nop));
             }
             
             return true;
@@ -1771,7 +1975,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeJump(loc, OPCODE_Jump));
+                fobj.AddNode(rule, new AscmNodeJump(loc, OPCODE_Jump));
                 return true;
             }
 
@@ -1788,7 +1992,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeJump(loc, OPCODE_Jump));
+                fobj.AddNode(rule, new AscmNodeJump(loc, OPCODE_Jump));
                 return true;
             }
 
@@ -1806,13 +2010,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     loc.def = rule;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeJump(loc.node, OPCODE_Jump));
+                fobj.AddNode(rule, new AscmNodeJump(loc.node, OPCODE_Jump));
                 return true;
             }
 
             if (idf == "return") {
                 if (rule->children.size() <= 1) {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_End));
                     return true;
                 }
 
@@ -1820,7 +2024,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Return));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Return));
                 return true;
             }
             
@@ -1834,7 +2038,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Wait));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Wait));
                 return true;
             }
             if (idf == "waitframe") {
@@ -1847,7 +2051,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_WaitFrame));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_WaitFrame));
                 return true;
             }
 
@@ -1922,7 +2126,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     }
 
                     if (f.HasFlag(tool::gsc::opcode::VPFD_USE_PRE_SCRIPT_CALL)) {
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_PreScriptCall));
                     }
 
                     bool paramError{};
@@ -1958,14 +2162,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     }
 
                     if (f.HasFlag(tool::gsc::opcode::VPFD_USE_COUNT)) {
-                        fobj.m_nodes.push_back(new AscmNodeData<byte>((byte)paramCount, f.opCode));
+                        fobj.AddNode(rule, new AscmNodeData<byte>((byte)paramCount, f.opCode));
                     }
                     else {
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(f.opCode));
+                        fobj.AddNode(rule, new AscmNodeOpCode(f.opCode));
                     }
 
                     if (!expressVal && f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
                     }
 
                     return true;
@@ -2006,7 +2210,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return false;
             }
 
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
+            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_PreScriptCall));
             
             // push params
             bool paramError{};
@@ -2082,7 +2286,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         }
                     }
                 }
-                fobj.m_nodes.push_back(new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash));
+                fobj.AddNode(rule, new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash));
             }
             else {
                 if (flags & FCF_METHOD) {
@@ -2132,12 +2336,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     it->nodes.push_back(funcCall);
                 }
 
-                fobj.m_nodes.push_back(funcCall);
+                fobj.AddNode(rule, funcCall);
             }
 
 
             if (!expressVal) {
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
             }
             return true;
         }
@@ -2168,20 +2372,20 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
                             return false;
                         }
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolNot));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolNot));
 
                         if (!expressVal) {
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
                         }
                     }
                     else if (op == "~") {
                         if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
                             return false;
                         }
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolComplement));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolComplement));
 
                         if (!expressVal) {
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
                         }
                     }
                     else if (op == "++") {
@@ -2189,7 +2393,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         if (!ParseFieldNode(rule->children[1], parser, obj, fobj)) {
                             return false; // can't parse field
                         }
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Inc));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Inc));
                         if (expressVal) {
                             if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
                                 return false;
@@ -2201,7 +2405,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         if (!ParseFieldNode(rule->children[1], parser, obj, fobj)) {
                             return false; // can't parse field
                         }
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Dec));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Dec));
                         if (expressVal) {
                             if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
                                 return false;
@@ -2227,7 +2431,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         if (!ParseFieldNode(rule->children[0], parser, obj, fobj)) {
                             return false; // can't parse field
                         }
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Inc));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Inc));
                     }
                     else if (op == "--") {
                         // var--
@@ -2239,7 +2443,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         if (!ParseFieldNode(rule->children[0], parser, obj, fobj)) {
                             return false; // can't parse field
                         }
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Dec));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Dec));
                     }
                     else {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled operator: {}", op));
@@ -2258,22 +2462,22 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
 
                 AscmNode* caseNo = new AscmNode();
-                fobj.m_nodes.push_back(new AscmNodeJump(caseNo, OPCODE_JumpOnFalse));
+                fobj.AddNode(rule, new AscmNodeJump(caseNo, OPCODE_JumpOnFalse));
 
                 if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                     ok = false;
                 }
 
                 AscmNode* caseEnd = new AscmNode();
-                fobj.m_nodes.push_back(new AscmNodeJump(caseEnd, OPCODE_Jump));
+                fobj.AddNode(rule, new AscmNodeJump(caseEnd, OPCODE_Jump));
 
-                fobj.m_nodes.push_back(caseNo);
+                fobj.AddNode(rule->children[3], caseNo);
 
                 if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
                     ok = false;
                 }
 
-                fobj.m_nodes.push_back(caseEnd);
+                fobj.AddNode(rule->children[4], caseEnd);
 
                 return ok;
             }
@@ -2293,7 +2497,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
                 AscmNode* after = new AscmNode();
 
-                fobj.m_nodes.push_back(new AscmNodeJump(after, op == "&&" ? OPCODE_JumpOnFalseExpr : OPCODE_JumpOnTrueExpr));
+                fobj.AddNode(rule, new AscmNodeJump(after, op == "&&" ? OPCODE_JumpOnFalseExpr : OPCODE_JumpOnTrueExpr));
 
                 // push op right
                 if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
@@ -2301,10 +2505,10 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
 
                 // after the operator
-                fobj.m_nodes.push_back(after);
+                fobj.AddNode(rule->children[2], after);
 
                 if (!expressVal) {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                    fobj.AddNode(rule->children[2], new AscmNodeOpCode(OPCODE_DecTop));
                 }
                 return ok;
             }
@@ -2319,65 +2523,65 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
 
                 if (op == "|") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Or));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Bit_Or));
                 }
                 else if (op == "^") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Xor));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Bit_Xor));
                 }
                 else if (op == "&") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_And));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Bit_And));
                 }
                 else if (op == "!=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_NotEqual));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_NotEqual));
                 }
                 else if (op == "!==") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SuperNotEqual));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SuperNotEqual));
                 }
                 else if (op == "==") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Equal));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Equal));
                 }
                 else if (op == "===") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SuperEqual));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SuperEqual));
                 }
                 else if (op == "<") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_LessThan));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_LessThan));
                 }
                 else if (op == "<=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_LessThanOrEqualTo));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_LessThanOrEqualTo));
                 }
                 else if (op == ">") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GreaterThan));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_GreaterThan));
                 }
                 else if (op == ">=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GreaterThanOrEqualTo));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_GreaterThanOrEqualTo));
                 }
                 else if (op == "+") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Plus));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Plus));
                 }
                 else if (op == "-") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Minus));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Minus));
                 }
                 else if (op == "*") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Multiply));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Multiply));
                 }
                 else if (op == "/") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Divide));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Divide));
                 }
                 else if (op == "%") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Modulus));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Modulus));
                 }
                 else if (op == "<<") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftLeft));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ShiftLeft));
                 }
                 else if (op == ">>") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftRight));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ShiftRight));
                 }
                 else {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled operator: {}", op));
                     ok = false;
                 }
                 if (!expressVal) {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_DecTop));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
                 }
                 return ok;
             }
@@ -2400,14 +2604,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 ) {
                 return false;
             }
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Vector));
+            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Vector));
             return true;
         case gscParser::RuleArray_def: {
             if (!expressVal) { // no need to create array
                 obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("ignored useless value: {}", rule->getText()));
                 return true;
             }
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CreateArray));
+            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CreateArray));
 
             // 1 = [ (HASHSTR|'#' number) ':'
             bool ok{ true };
@@ -2433,10 +2637,10 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         ok = false;
                     }
                     // push current key
-                    fobj.m_nodes.push_back(BuildAscmNodeData(currentKey++));
+                    fobj.AddNode(rule->children[i - 1], BuildAscmNodeData(currentKey++));
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_AddToArray));
+                fobj.AddNode(rule->children[i - 1], new AscmNodeOpCode(OPCODE_AddToArray));
 
                 i++; // ',' or ']'
             }
@@ -2448,7 +2652,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("ignored useless value: {}", rule->getText()));
                 return true;
             }
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CreateStruct));
+            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CreateStruct));
 
             bool ok{ true };
             for (size_t i = 1; i < rule->children.size() - 1;) {
@@ -2466,9 +2670,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     ok = false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
+                fobj.AddNode(rule->children[i - 1], new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_AddToStruct));
+                fobj.AddNode(rule->children[i - 1], new AscmNodeOpCode(OPCODE_AddToStruct));
 
                 i++; // ',' or '}'
             }
@@ -2485,7 +2689,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 if (!ParseFieldNode(rule->children[0], parser, obj, fobj)) {
                     ok = false;
                 }
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
                 if (expressVal) {
                     if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
                         ok = false;
@@ -2501,37 +2705,37 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     ok = false;
                 }
                 if (opVal == "+=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Plus));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Plus));
                 }
                 else if (opVal == "-=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Minus));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Minus));
                 }
                 else if (opVal == "/=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Divide));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Divide));
                 }
                 else if (opVal == "*=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Multiply));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Multiply));
                 }
                 else if (opVal == "%=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Modulus));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Modulus));
                 }
                 else if (opVal == "&=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_And));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Bit_And));
                 }
                 else if (opVal == "|=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Or));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Bit_Or));
                 }
                 else if (opVal == "^=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Bit_Xor));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Bit_Xor));
                 }
                 else if (opVal == "<<=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftLeft));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ShiftLeft));
                 }
                 else if (opVal == ">>=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_ShiftRight));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ShiftRight));
                 }
                 else if (opVal == "~=") {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_BoolComplement));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolComplement));
                 }
                 else {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled set operator: {}", opVal));
@@ -2543,7 +2747,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     ok = false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
                 if (expressVal) {
                     if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
                         ok = false;
@@ -2566,8 +2770,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         FunctionVar* var = fobj.FindVar(varName);
 
                         if (var) {
-                            fobj.m_nodes.push_back(new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableRefCached));
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_T9_GetVarRef));
+                            fobj.AddNode(rule, new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableRefCached));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_T9_GetVarRef));
                             return true;
                         }
                     }
@@ -2577,7 +2781,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], "Can't express field ref");
                         return false;
                     }
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_T9_GetVarRef));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_T9_GetVarRef));
                     return true;
                 }
             }
@@ -2591,7 +2795,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 obj.hashes.insert(path);
                 obj.hashes.insert(funcName);
                 
-                fobj.m_nodes.push_back(new AscmNodeLazyLink(
+                fobj.AddNode(rule, new AscmNodeLazyLink(
                     obj.vmInfo->HashPath(path.c_str()),
                     (uint32_t)obj.vmInfo->HashField(nsp.c_str()),
                     (uint32_t)obj.vmInfo->HashField(funcName.c_str())
@@ -2623,17 +2827,17 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             AscmNode* asmc;
             if (obj.gscHandler->HasFlag(tool::gsc::GOHF_INLINE_FUNC_PTR)) {
                 asmc = new AscmNodeData<uint64_t>(0, OPCODE_GetResolveFunction);
-                fobj.m_nodes.push_back(asmc);
+                fobj.AddNode(rule, asmc);
             }
             else {
                 // in mwiii, unlike in t8 where the pointers are inlined into the bytecode, 
                 // the game links resolved functions using 4 bytes for script functions or 
                 // 2 bytes for builtin functions so we use nops so the game does whatever it want
                 asmc = new AscmNodeOpCode(OPCODE_GetResolveFunction);
-                fobj.m_nodes.push_back(asmc);
+                fobj.AddNode(rule, asmc);
 
                 for (size_t i = 0; i < 4; i++) {
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Nop));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Nop));
                 }
             }
 
@@ -2679,18 +2883,18 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     }
                     std::string fieldText = rule->children[startOp + 1]->getText();
                     if (fieldText == "size") {
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SizeOf));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
                     }
                     else {
                         obj.hashes.insert(fieldText);
                         // use identifier
                         uint64_t hash = obj.vmInfo->HashField(fieldText);
                         if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
-                            fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
+                            fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
                         }
                         else {
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
-                            fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                            fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
                         }
                     }
                 }
@@ -2699,14 +2903,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object canon id: {}", exp->getText()));
                         return false;
                     }
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastCanon));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastCanon));
 
                     if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object id (from canon): {}", exp->getText()));
                         return false;
                     }
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
-                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
                 }
                 return true;
 
@@ -2723,7 +2927,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalArray));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalArray));
                 return true;
             }
 
@@ -2758,18 +2962,18 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                             std::string fieldText = rule->children[2]->getText();
 
                             if (fieldText == "size") {
-                                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SizeOf));
+                                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
                             }
                             else {
                                 obj.hashes.insert(fieldText);
                                 // use identifier
                                 uint64_t hash = obj.vmInfo->HashField(fieldText);
                                 if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
-                                    fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
+                                    fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
                                 }
                                 else {
-                                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
-                                    fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                                    fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
                                 }
                             }
                         }
@@ -2777,13 +2981,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                             if (!ParseExpressionNode(rule->children[3], parser, obj, fobj, true)) {
                                 return false;
                             }
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastCanon));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastCanon));
 
                             if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
                                 return false;
                             }
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
-                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
                         }
                         return true;
                     }
@@ -2798,7 +3002,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                             return false;
                         }
 
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_EvalArray));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalArray));
                         return true;
                     }
                     else {
@@ -2843,7 +3047,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         std::string varName = term->getText();
 
         if (varName == "self") {
-            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GetSelf));
+            fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetSelf));
             return true;
         }
 
@@ -2865,7 +3069,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             auto* gvar = new AscmNodeGlobalVariable(decl.def, false);
             decl.nodes.emplace_back(gvar);
-            fobj.m_nodes.push_back(gvar);
+            fobj.AddNode(term, gvar);
             return true;
         }
 
@@ -2876,43 +3080,43 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             return false;
         }
 
-        fobj.m_nodes.push_back(new AscmNodeVariable(varIt->id, OPCODE_EvalLocalVariableCached));
+        fobj.AddNode(term, new AscmNodeVariable(varIt->id, OPCODE_EvalLocalVariableCached));
         return true;
     }
     case gscParser::UNDEFINED_VALUE:
-        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_GetUndefined));
+        fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetUndefined));
         return true;
     case gscParser::BOOL_VALUE:
-        fobj.m_nodes.push_back(BuildAscmNodeData(term->getText() == "true"));
+        fobj.AddNode(term, BuildAscmNodeData(term->getText() == "true"));
         return true;
     case gscParser::FLOATVAL:
-        fobj.m_nodes.push_back(new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), NULL), OPCODE_GetFloat));
+        fobj.AddNode(term, new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), NULL), OPCODE_GetFloat));
         return true;
     case gscParser::INTEGER10:
-        fobj.m_nodes.push_back(BuildAscmNodeData(std::strtoll(term->getText().c_str(), NULL, 10)));
+        fobj.AddNode(term, BuildAscmNodeData(std::strtoll(term->getText().c_str(), NULL, 10)));
         return true;
     case gscParser::INTEGER16: {
         bool neg = term->getText()[0] == '-';
         auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 16);
-        fobj.m_nodes.push_back(BuildAscmNodeData(neg ? -val : val));
+        fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
         return true;
     }
     case gscParser::INTEGER8: {
         bool neg = term->getText()[0] == '-';
         auto val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), NULL, 8);
-        fobj.m_nodes.push_back(BuildAscmNodeData(neg ? -val : val));
+        fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
         return true;
     }
     case gscParser::INTEGER2: {
         bool neg = term->getText()[0] == '-';
         auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 2);
-        fobj.m_nodes.push_back(BuildAscmNodeData(neg ? -val : val));
+        fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
         return true;
     }
     case gscParser::HASHSTRING: {
         auto sub = term->getText().substr(2, len - 3);
         obj.hashes.insert(sub);
-        fobj.m_nodes.push_back(new AscmNodeData<uint64_t>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
+        fobj.AddNode(term, new AscmNodeData<uint64_t>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
         return true;
     }
     case gscParser::STRING: {
@@ -2953,7 +3157,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
         // link by the game
         auto* asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_GetString);
-        fobj.m_nodes.push_back(asmc);
+        fobj.AddNode(term, asmc);
 
         std::string key{ &newStr[0]};
 
@@ -3149,7 +3353,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
         if (param->children.size() >= 3) {
             // default value
-            auto defaultValueExp = param->children[param->children.size() - 1];
+            ParseTree* defaultValueExp = param->children[param->children.size() - 1];
             assert(IS_RULE_TYPE(defaultValueExp, gscParser::RuleExpression));
 
             /*
@@ -3158,21 +3362,21 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
                 }
              */
             if (obj.HasOpCode(OPCODE_EvalLocalVariableDefined)) {
-                exp.m_nodes.push_back(new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableDefined));
+                exp.AddNode(defaultValueExp, new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableDefined));
             }
             else {
-                exp.m_nodes.push_back(new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableCached));
-                exp.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IsDefined));
+                exp.AddNode(defaultValueExp, new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableCached));
+                exp.AddNode(defaultValueExp, new AscmNodeOpCode(OPCODE_IsDefined));
             }
             auto* afterNode = new AscmNode();
-            exp.m_nodes.push_back(new AscmNodeJump(afterNode, OPCODE_JumpOnTrue));
+            exp.AddNode(defaultValueExp, new AscmNodeJump(afterNode, OPCODE_JumpOnTrue));
             if (!ParseExpressionNode(defaultValueExp, parser, obj, exp, true)) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, defaultValueExp, std::format("can't create expression node for variable {}", paramIdf));
                 return false;
             }
-            exp.m_nodes.push_back(new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableRefCached));
-            exp.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SetVariableField));
-            exp.m_nodes.push_back(afterNode);
+            exp.AddNode(defaultValueExp, new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableRefCached));
+            exp.AddNode(defaultValueExp, new AscmNodeOpCode(OPCODE_SetVariableField));
+            exp.AddNode(defaultValueExp, afterNode);
         }
 
     }
@@ -3180,7 +3384,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     // handle block
 
     // weirdly, their gsc compiler is converting top level breaks to jump to the end of the function
-    auto* endNode = new AscmNodeOpCode(OPCODE_End);
+    AscmNode* endNode = new AscmNodeOpCode(OPCODE_End);
     exp.PushBreakNode(endNode);
 
     if (!ParseExpressionNode(blockRule, parser, obj, exp, false)) {
@@ -3189,7 +3393,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
     exp.PopBreakNode();
 
-    exp.m_nodes.push_back(endNode);
+    exp.AddNode(func, endNode);
 
     bool badRef{};
     for (auto& [name, loc] : exp.m_jumpLocs) {
@@ -3206,7 +3410,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             loc.node = nullptr;
         }
     }
-    exp.m_nodes.insert(exp.m_nodes.begin(), exp.CreateParamNode());
+    exp.AddNode(exp.m_nodes.begin(), func, exp.CreateParamNode());
 
     return !badRef;
 }
@@ -3647,6 +3851,19 @@ int compiler(Process& proc, int argc, const char* argv[]) {
 
         gscParser::ProgContext* prog = parser.prog();
         CompileObject obj{ opt, client ? FILE_CSC : FILE_GSC, info, opt.m_vmInfo, opt.m_platform, handler };
+
+        obj.crc = client ? opt.crcClient : opt.crcServer;
+
+        if (!obj.crc) {
+            obj.crc = handler->GetDefaultChecksum(client);
+        }
+
+        const char* fn = client ? opt.nameClient : opt.nameServer;
+        obj.fileName = fn && *fn ? obj.vmInfo->HashPath(fn) : 0;
+
+        if (!obj.fileName) {
+            obj.fileName = obj.vmInfo->HashPath(handler->GetDefaultName(client));
+        }
 
         auto error = parser.getNumberOfSyntaxErrors();
         if (error) {

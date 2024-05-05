@@ -5,7 +5,7 @@
 
 class T8GSCOBJHandler : public GSCOBJHandler {
 public:
-    T8GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF) {}
+    T8GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<T8GSCOBJ>();
@@ -211,6 +211,19 @@ public:
     }
     void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
+    uint64_t GetDefaultChecksum(bool client) override {
+        // todo: check client
+        return 0x636e9d38;
+    }
+    void SetChecksum(uint64_t val) override {
+        Ptr<T8GSCOBJ>()->crc = (uint32_t)val;
+    }
+    const char* GetDefaultName(bool client) override {
+        if (client) {
+            return "";
+        }
+        return "scripts/core_common/clientids_shared.gsc";
+    }
 };
 
 
@@ -218,7 +231,7 @@ public:
 
 class T937GSCOBJHandler : public GSCOBJHandler {
 public:
-    T937GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR) {}
+    T937GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<T937GSCOBJ>();
@@ -421,6 +434,19 @@ public:
     }
     void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
+    uint64_t GetDefaultChecksum(bool client) override {
+        // todo: check client
+        return 0xefc1b08d;
+    }
+    void SetChecksum(uint64_t val) override {
+        Ptr<T937GSCOBJ>()->crc = (uint32_t)val;
+    }
+    const char* GetDefaultName(bool client) override {
+        if (client) {
+            return "";
+        }
+        return "scripts/core_common/clientids_shared.gsc";
+    }
 };
 
 
@@ -428,7 +454,7 @@ public:
 
 class T9GSCOBJHandler : public GSCOBJHandler {
 public:
-    T9GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR) {}
+    T9GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<T9GSCOBJ>();
@@ -687,6 +713,19 @@ public:
     }
     void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
+    uint64_t GetDefaultChecksum(bool client) override {
+        // todo: check client
+        return 0xc97916a2;
+    }
+    void SetChecksum(uint64_t val) override {
+        Ptr<T9GSCOBJ>()->crc = (uint32_t)val;
+    }
+    const char* GetDefaultName(bool client) override {
+        if (client) {
+            return "";
+        }
+        return "scripts/core_common/clientids_shared.gsc";
+    }
 };
 
 
@@ -694,7 +733,7 @@ public:
 
 class MW23GSCOBJHandler : public GSCOBJHandler {
 public:
-    MW23GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE) {}
+    MW23GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<GscObj23>();
@@ -976,5 +1015,12 @@ public:
     }
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override {
         *reinterpret_cast<tool::gsc::GSC_ANIMTREE_ITEM*>(data) = item;
+    }
+    uint64_t GetDefaultChecksum(bool client) override {
+        return 0; // no checksum
+    }
+    void SetChecksum(uint64_t val) override { }
+    const char* GetDefaultName(bool client) override {
+        return ""; // idc
     }
 };
