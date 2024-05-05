@@ -11,7 +11,7 @@ namespace utils {
 	 * @param fmt format
 	 * @return string
 	 */
-	const char* va(const char* fmt, ...);
+	char* va(const char* fmt, ...);
 
 	/*
 	 * Read a file inside a string buffer
@@ -231,6 +231,20 @@ namespace utils {
 	 * @return wstring
 	 */
 	std::wstring StrToWStr(const std::string& str);
+
+	/*
+	 * Upper case a string and return it
+	 * @param buffer string
+	 * @return string
+	 */
+	char* UpperCase(char* buffer);
+
+	/*
+	 * Lower case a string and return it
+	 * @param buffer string
+	 * @return string
+	 */
+	char* LowerCase(char* buffer);
 
 	/*
 	 * @return prog exe directory

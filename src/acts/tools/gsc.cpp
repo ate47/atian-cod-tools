@@ -276,7 +276,7 @@ static const char* gRosettaOutput{};
 static uint64_t gRosettaCurrent{};
 static std::map<uint64_t, RosettaFileData> gRosettaBlocks{};
 
-void tool::gsc::RosettaStartFile(GSCOBJReader& reader) {
+void tool::gsc::RosettaStartFile(GSCOBJHandler& reader) {
     if (!gRosettaOutput) {
         return;
     }
@@ -297,27 +297,24 @@ void tool::gsc::RosettaAddOpCode(uint32_t loc, uint16_t opcode) {
     block.push_back(tool::gsc::RosettaOpCodeBlock{ .location = loc, .opcode = opcode });
 }
 
-GSCOBJReader::GSCOBJReader(byte* file, const GscInfoOption& opt) : file(file), opt(opt) {}
+GSCOBJHandler::GSCOBJHandler(byte* file, uint64_t buildFlags) : file(file), buildFlags(buildFlags) {}
 
 // by default no remapping
-byte GSCOBJReader::RemapFlagsImport(byte flags) {
+byte GSCOBJHandler::RemapFlagsImport(byte flags) {
     return flags;
 }
-byte GSCOBJReader::RemapFlagsExport(byte flags) {
+byte GSCOBJHandler::RemapFlagsExport(byte flags) {
     return flags;
 }
 
-struct GSC_USEANIMTREE_ITEM {
-    uint32_t num_address;
-    uint32_t address;
-};
-struct GSC_ANIMTREE_ITEM {
-    uint32_t num_address;
-    uint32_t address_str1;
-    uint32_t address_str2;
-};
+byte GSCOBJHandler::MapFlagsImportToInt(byte flags) {
+    return flags;
+}
+byte GSCOBJHandler::MapFlagsExportToInt(byte flags) {
+    return flags;
+}
 
-void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
+void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
         if (GetAnimTreeSingleOffset()) {
             // HAS TO BE DONE FIRST BECAUSE THEY ARE STORED USING 1 byte
@@ -493,567 +490,29 @@ void GSCOBJReader::PatchCode(T8GSCOBJContext& ctx) {
     }
 }
 
-void tool::gsc::GSCOBJReader::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) {
+void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) {
 }
 
 namespace {
-
-    class T8GSCOBJReader : public GSCOBJReader {
-        using GSCOBJReader::GSCOBJReader;
-
-        void DumpHeader(std::ostream& asmout) override {
-            auto* data = Ptr<T8GSCOBJ>();
-            asmout
-                << std::hex
-                << "// crc: 0x" << std::hex << data->crc << "\n"
-                << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
-                << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
-                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
-                << std::right
-                << std::flush;
-
-            if (opt.m_test_header) {
-                asmout
-                    << "// ukn0c .... " << std::dec << data->pad << " / 0x" << std::hex << data->pad << "\n"
-                    << "// ukn2c .... " << std::dec << data->ukn2c << " / 0x" << std::hex << data->ukn2c << "\n"
-                    << "// ukn34 .... " << std::dec << data->ukn34 << " / 0x" << std::hex << data->ukn34 << "\n"
-                    << "// ukn50 .... " << std::dec << data->ukn50 << " / 0x" << std::hex << data->ukn50 << "\n"
-                    << "// ukn5a .... " << std::dec << (int)data->ukn5a << " / 0x" << std::hex << (int)data->ukn5a << "\n"
-                    ;
-            }
-        }
-        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
-            auto* data = Ptr<T8GSCOBJ>();
-
-            // no clue what this thing is doing
-            uint64_t* requires_implements_table = reinterpret_cast<uint64_t*>(&data->magic[data->requires_implements_offset]);
-
-            for (size_t i = 0; i < data->requires_implements_count; i++) {
-                asmout << "#precache(\"requires_implements\" #\"" << hashutils::ExtractTmp("hash", requires_implements_table[i]) << "\");\n";
-            }
-
-            if (data->requires_implements_count) {
-                asmout << "\n";
-            }
-
-            auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
-
-            for (size_t i = 0; i < data->fixup_count; i++) {
-                const auto& fixup = fixups[i];
-                asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
-            }
-
-            if (data->fixup_count) {
-                asmout << "\n";
-            }
-        }
-
-        uint64_t GetName() override {
-            return Ptr<T8GSCOBJ>()->name;
-        }
-        uint16_t GetExportsCount() override {
-            return Ptr<T8GSCOBJ>()->exports_count;
-        }
-        uint32_t GetExportsOffset() override {
-            return Ptr<T8GSCOBJ>()->export_table_offset;
-        }
-        uint16_t GetIncludesCount() override {
-            return Ptr<T8GSCOBJ>()->include_count;
-        }
-        uint32_t GetIncludesOffset() override {
-            return Ptr<T8GSCOBJ>()->include_offset;
-        }
-        uint16_t GetImportsCount() override {
-            return Ptr<T8GSCOBJ>()->imports_count;
-        }
-        uint32_t GetImportsOffset() override {
-            return Ptr<T8GSCOBJ>()->imports_offset;
-        }
-        uint16_t GetGVarsCount() override {
-            return Ptr<T8GSCOBJ>()->globalvar_count;
-        }
-        uint32_t GetGVarsOffset() override {
-            return Ptr<T8GSCOBJ>()->globalvar_offset;
-        }
-        uint16_t GetStringsCount() override {
-            return Ptr<T8GSCOBJ>()->string_count;
-        }
-        uint32_t GetStringsOffset() override {
-            return Ptr<T8GSCOBJ>()->string_offset;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<T8GSCOBJ>()->script_size;
-        }
-        size_t GetHeaderSize() override {
-            return sizeof(T8GSCOBJ);
-        }
-        char* DecryptString(char* str) override {
-            return decrypt::DecryptString(str);
-        }
-        bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T8GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x36000a0d43534780;
-        }
-        uint16_t GetAnimTreeSingleCount() override {
-            return 0;
-        };
-        uint32_t GetAnimTreeSingleOffset() override {
-            return 0;
-        };
-        uint16_t GetAnimTreeDoubleCount() override {
-            return 0;
-        };
-        uint32_t GetAnimTreeDoubleOffset() override {
-            return 0;
-        };
-    };
-    
-    class T937GSCOBJReader : public GSCOBJReader {
-        using GSCOBJReader::GSCOBJReader;
-
-        void DumpHeader(std::ostream& asmout) override {
-            auto* data = Ptr<T937GSCOBJ>();
-            asmout
-                << std::hex
-                << "// crc: 0x" << std::hex << data->crc << "\n"
-                << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
-                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
-                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
-                << std::right
-                << std::flush;
-
-            if (opt.m_test_header) {
-                asmout
-                    << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
-                    << "// unk2c .... " << std::dec << data->unk2c << " / 0x" << std::hex << data->unk2c << "\n"
-                    << "// unk3a .... " << std::dec << data->unk3a << " / 0x" << std::hex << data->unk3a << "\n"
-                    << "// unk48 .... " << std::dec << data->unk48 << " / 0x" << std::hex << data->unk48 << "\n"
-                    << "// unk52 .... " << std::dec << data->unk52 << " / 0x" << std::hex << data->unk52 << "\n"
-                    << "// unk54 .... " << std::dec << data->unk54 << " / 0x" << std::hex << data->unk54 << "\n"
-                    ;
-            }
-        }
-        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
-            auto* data = Ptr<T937GSCOBJ>();
-
-            auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
-
-            for (size_t i = 0; i < data->fixup_count; i++) {
-                const auto& fixup = fixups[i];
-                asmout << std::hex << "#fixup 0x" << fixup.offset << " = 0x" << fixup.address << ";\n";
-            }
-
-            if (data->fixup_count) {
-                asmout << "\n";
-            }
-        }
-
-        uint64_t GetName() override {
-            return Ptr<T937GSCOBJ>()->name;
-        }
-        uint16_t GetExportsCount() override {
-            return Ptr<T937GSCOBJ>()->export_count;
-        }
-        uint32_t GetExportsOffset() override {
-            return Ptr<T937GSCOBJ>()->exports_tables;
-        }
-        uint16_t GetIncludesCount() override {
-            return Ptr<T937GSCOBJ>()->includes_count;
-        }
-        uint32_t GetIncludesOffset() override {
-            return Ptr<T937GSCOBJ>()->includes_table;
-        }
-        uint16_t GetImportsCount() override {
-            return Ptr<T937GSCOBJ>()->imports_count;
-        }
-        uint32_t GetImportsOffset() override {
-            return Ptr<T937GSCOBJ>()->imports_offset;
-        }
-        uint16_t GetGVarsCount() override {
-            return Ptr<T937GSCOBJ>()->globalvar_count;
-        }
-        uint32_t GetGVarsOffset() override {
-            return Ptr<T937GSCOBJ>()->globalvar_offset;
-        }
-        uint16_t GetStringsCount() override {
-            return Ptr<T937GSCOBJ>()->string_count;
-        }
-        uint32_t GetStringsOffset() override {
-            return Ptr<T937GSCOBJ>()->string_offset;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<T937GSCOBJ>()->file_size;
-        }
-        size_t GetHeaderSize() override {
-            return sizeof(T937GSCOBJ);
-        }
-        char* DecryptString(char* str) override {
-            return cw::DecryptString(str);
-        }
-        bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T937GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x37000a0d43534780;
-        }
-
-        byte RemapFlagsImport(byte flags) override {
-            return flags; // same as bo4?
-        }
-
-        byte RemapFlagsExport(byte flags) override {
-            return flags;
-        }
-        uint16_t GetAnimTreeSingleCount() override {
-            return 0;
-        };
-        uint32_t GetAnimTreeSingleOffset() override {
-            return 0;
-        };
-        uint16_t GetAnimTreeDoubleCount() override {
-            return 0;
-        };
-        uint32_t GetAnimTreeDoubleOffset() override {
-            return 0;
-        };
-    };
-
-    class T9GSCOBJReader : public GSCOBJReader {
-        using GSCOBJReader::GSCOBJReader;
-
-        void DumpHeader(std::ostream& asmout) override {
-            auto* data = Ptr<T9GSCOBJ>();
-            asmout
-                << std::hex
-                << "// crc: 0x" << std::hex << data->crc << "\n"
-                << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
-                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_tables << ")\n"
-                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
-                << std::right
-                << std::flush;
-
-            if (opt.m_test_header) {
-                asmout
-                    << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
-                    << "// unk1e .... " << std::dec << data->unk1e << " / 0x" << std::hex << data->unk1e << "\n"
-                    << "// unk22 .... " << std::dec << data->unk22 << " / 0x" << std::hex << data->unk22 << "\n"
-                    << "// unk26 .... " << std::dec << data->unk26 << " / 0x" << std::hex << data->unk26 << "\n"
-                    << "// unk28 .... " << std::dec << data->unk28 << " / 0x" << std::hex << data->unk28 << "\n" // offset
-                    << "// unk40 .... " << std::dec << data->unk40 << " / 0x" << std::hex << data->unk40 << "\n" // offset
-                    << "// unk4c .... " << std::dec << data->unk4c << " / 0x" << std::hex << data->unk4c << "\n"
-                    << "// unk54 .... " << std::dec << data->unk54 << " / 0x" << std::hex << data->unk54 << "\n"
-                    ;
-            }
-        }
-        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
-        }
-
-        uint64_t GetName() override {
-            return Ptr<T9GSCOBJ>()->name;
-        }
-        uint16_t GetExportsCount() override {
-            return Ptr<T9GSCOBJ>()->exports_count;
-        }
-        uint32_t GetExportsOffset() override {
-            return Ptr<T9GSCOBJ>()->exports_tables;
-        }
-        uint16_t GetIncludesCount() override {
-            return Ptr<T9GSCOBJ>()->includes_count;
-        }
-        uint32_t GetIncludesOffset() override {
-            return Ptr<T9GSCOBJ>()->includes_table;
-        }
-        uint16_t GetImportsCount() override {
-            return Ptr<T9GSCOBJ>()->imports_count;
-        }
-        uint32_t GetImportsOffset() override {
-            return Ptr<T9GSCOBJ>()->import_tables;
-        }
-        uint16_t GetGVarsCount() override {
-            return Ptr<T9GSCOBJ>()->globalvar_count;
-        }
-        uint32_t GetGVarsOffset() override {
-            return Ptr<T9GSCOBJ>()->globalvar_offset;
-        }
-        uint16_t GetStringsCount() override {
-            return Ptr<T9GSCOBJ>()->string_count;
-        }
-        uint32_t GetStringsOffset() override {
-            return Ptr<T9GSCOBJ>()->string_offset;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<T9GSCOBJ>()->file_size;
-        }
-        size_t GetHeaderSize() override {
-            return sizeof(T9GSCOBJ);
-        }
-        char* DecryptString(char* str) override {
-            return cw::DecryptString(str);
-        }
-        bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T9GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x38000a0d43534780;
-        }
-        byte RemapFlagsImport(byte flags) override {
-            byte nflags = 0;
-
-            switch (flags & T9_IF_CALLTYPE_MASK) {
-            case T9_IF_METHOD_CHILDTHREAD: nflags |= METHOD_CHILDTHREAD; break;
-            case T9_IF_METHOD_THREAD: nflags |= METHOD_THREAD; break;
-            case T9_IF_FUNCTION_CHILDTHREAD: nflags |= FUNCTION_CHILDTHREAD; break;
-            case T9_IF_FUNCTION: nflags |= FUNCTION; break;
-            case T9_IF_FUNC_METHOD: nflags |= FUNC_METHOD; break;
-            case T9_IF_FUNCTION_THREAD: nflags |= FUNCTION_THREAD; break;
-            case T9_IF_METHOD: nflags |= METHOD; break;
-            default: nflags |= flags & 0xF; // wtf?
-            }
-
-            nflags |= flags & ~T9_IF_CALLTYPE_MASK;
-
-            return nflags;
-        }
-
-        byte RemapFlagsExport(byte flags) override {
-            if (flags == T9_EF_CLASS_VTABLE) {
-                return CLASS_VTABLE;
-            }
-            byte nflags = 0;
-
-            if (flags & T9_EF_AUTOEXEC) nflags |= AUTOEXEC;
-            if (flags & T9_EF_LINKED) nflags |= LINKED;
-            if (flags & T9_EF_PRIVATE) nflags |= PRIVATE;
-            if (flags & T9_EF_CLASS_MEMBER) nflags |= CLASS_MEMBER;
-            if (flags & T9_EF_EVENT) nflags |= EVENT;
-            if (flags & T9_EF_VE) nflags |= VE;
-            if (flags & T9_EF_CLASS_LINKED) nflags |= CLASS_LINKED;
-            if (flags & T9_EF_CLASS_DESTRUCTOR) nflags |= CLASS_DESTRUCTOR;
-
-            return nflags;
-        }
-        uint16_t GetAnimTreeSingleCount() override {
-            return 0;
-        };
-        uint32_t GetAnimTreeSingleOffset() override {
-            return 0;
-        };
-        uint16_t GetAnimTreeDoubleCount() override {
-            return 0;
-        };
-        uint32_t GetAnimTreeDoubleOffset() override {
-            return 0;
-        };
-    };
-
-    class MW23GSCOBJReader : public GSCOBJReader {
-        using GSCOBJReader::GSCOBJReader;
-
-        void DumpHeader(std::ostream& asmout) override {
-            auto* data = Ptr<GscObj23>();
-            asmout
-                << std::left << std::setfill(' ')
-                << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
-                << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
-                << "// strings ... " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
-                << "// exports ... " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
-                << "// imports ... " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
-                << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
-                << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
-                //<< "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
-                << std::right
-                << std::flush;
-
-            if (opt.m_test_header) {
-                // fillme
-                asmout
-                    << "unk16 :" << std::dec << std::setw(3) << (int)data->unk16 << " (0x" << std::hex << data->unk16 << ")\n"
-                    << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
-                    << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
-                    << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
-                    << "unk28 :" << std::dec << std::setw(3) << (int)data->unk28 << " (0x" << std::hex << data->unk28 << ")\n"
-                    << "unk2A :" << std::dec << std::setw(3) << (int)data->unk2A << " (0x" << std::hex << data->unk2A << ")\n"
-                    << "unk3C :" << std::dec << std::setw(3) << (int)data->unk3C << " (0x" << std::hex << data->unk3C << ")\n"
-                    << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
-                    << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
-                    << "unk5C :" << std::dec << std::setw(3) << (int)data->unk5C << " (0x" << std::hex << data->unk5C << ")\n"
-                    ;
-            }
-        }
-        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
-            auto* data = Ptr<GscObj23>();
-
-            if (opt.m_test_header) {
-                uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_use_offset;
-                for (size_t i = 0; i < data->animtree_use_count; i++) {
-                    const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
-
-                    auto* s = Ptr<char>(unk2c->address);
-
-                    asmout << std::hex << "animtree #" << s << std::endl;
-
-                    hashutils::Add(s, true, true);
-
-                    const auto* vars = reinterpret_cast<const uint32_t*>(&unk2c[1]);
-                    asmout << "location(s): ";
-                    for (size_t j = 0; j < unk2c->num_address; j++) {
-                        // no align, no opcode to pass, directly the fucking location, cool.
-                        //Ref<uint16_t>(vars[j]) = ref;
-                        if (j) asmout << ",";
-                        asmout << std::hex << vars[j];
-                    }
-                    asmout << "\n";
-                    unk2c_location += sizeof(*unk2c) + sizeof(*vars) * unk2c->num_address;
-                }
-                if (data->animtree_use_count) {
-                    asmout << "\n";
-                }
-
-                uintptr_t animt_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_offset;
-                for (size_t i = 0; i < data->animtree_count; i++) {
-                    const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
-
-                    auto* s1 = Ptr<char>(animt->address_str1);
-                    auto* s2 = Ptr<char>(animt->address_str2);
-
-                    hashutils::Add(s1, true, true);
-                    hashutils::Add(s2, true, true);
-
-                    asmout << std::hex << "animtree " << s1 << "%" << s2 << std::endl;
-
-                    const auto* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
-                    asmout << "location(s): ";
-                    for (size_t j = 0; j < animt->num_address; j++) {
-                        // no align, no opcode to pass, directly the fucking location, cool.
-                        //Ref<uint16_t>(vars[j]) = ref;
-                        if (j) asmout << ",";
-                        asmout << std::hex << vars[j];
-                    }
-                    asmout << "\n";
-                    animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
-                }
-                if (data->animtree_count) {
-                    asmout << "\n";
-                }
-            }
-        }
-
-        uint64_t GetName() override {
-            return Ptr<GscObj23>()->name;
-        }
-        uint16_t GetExportsCount() override {
-            return Ptr<GscObj23>()->export_count;
-        }
-        uint32_t GetExportsOffset() override {
-            return Ptr<GscObj23>()->export_offset;
-        }
-        uint16_t GetIncludesCount() override {
-            return Ptr<GscObj23>()->includes_count;
-        }
-        uint32_t GetIncludesOffset() override {
-            return Ptr<GscObj23>()->include_table;
-        }
-        uint16_t GetImportsCount() override {
-            return Ptr<GscObj23>()->imports_count;
-        }
-        uint32_t GetImportsOffset() override {
-            return Ptr<GscObj23>()->import_table;
-        }
-        uint16_t GetGVarsCount() override {
-            return 0; //return Ptr<GscObj23>()->globalvar_count;
-        }
-        uint32_t GetGVarsOffset() override {
-            return 0; //return Ptr<GscObj23>()->globalvar_offset;
-        }
-        uint16_t GetStringsCount() override {
-            return Ptr<GscObj23>()->string_count;
-        }
-        uint32_t GetStringsOffset() override {
-            return Ptr<GscObj23>()->string_table;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<GscObj23>()->size1;
-        }
-        size_t GetHeaderSize() override {
-            return sizeof(GscObj23);
-        }
-        char* DecryptString(char* str) override {
-            return str; // iw
-        }
-        bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj23) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353478a;
-        }
-        byte RemapFlagsImport(byte flags) override {
-            byte nflags = 0;
-
-            switch (flags & 0xF) {
-            case 5: nflags |= FUNC_METHOD; break;
-            case 4: nflags |= FUNCTION; break;
-            case 2: nflags |= FUNCTION_THREAD; break;
-            case 1: nflags |= FUNCTION_CHILDTHREAD; break;
-
-            case 3:
-            case 6:
-            case 7: nflags |= FUNCTION; break; // TODO: unk script calls
-            case 8:
-            case 0xA:nflags |= FUNCTION; break; // api call
-            case 9:
-            case 0xB:nflags |= METHOD; break; // api call
-            default: nflags |= flags & 0xF; // wtf?
-            }
-
-            // 0x10: Dev import
-            // 0x20: use file namespace
-            nflags |= flags & ~0xF;
-
-            return nflags;
-        }
-
-        byte RemapFlagsExport(byte flags) override {
-            byte nflags{};
-            if (flags & 1) {
-                nflags |= T8GSCExportFlags::AUTOEXEC;
-            }
-            if (flags & 2) {
-                nflags |= T8GSCExportFlags::LINKED;
-            }
-            if (flags & 4) {
-                nflags |= T8GSCExportFlags::PRIVATE;
-            }
-
-            return nflags;
-        }
-        uint16_t GetAnimTreeSingleCount() override {
-            return Ptr<GscObj23>()->animtree_use_count;
-        };
-        uint32_t GetAnimTreeSingleOffset() override {
-            return Ptr<GscObj23>()->animtree_use_offset;
-        };
-        uint16_t GetAnimTreeDoubleCount() override {
-            return Ptr<GscObj23>()->animtree_count;
-        };
-        uint32_t GetAnimTreeDoubleOffset() override {
-            return Ptr<GscObj23>()->animtree_offset;
-        };
-    };
-
-    std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJReader> (byte*, const GscInfoOption&)>> gscReaders = {
-        { VM_T8,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T8GSCOBJReader>(file, opt); }},
-        { VM_T937,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T937GSCOBJReader>(file, opt); }},
-        { VM_T9,[](byte* file, const GscInfoOption& opt) { return std::make_shared<T9GSCOBJReader>(file, opt); }},
-        { VM_MW23,[](byte* file, const GscInfoOption& opt) { return std::make_shared<MW23GSCOBJReader>(file, opt); }},
+#include "gsc_vm.hpp"
+    std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJHandler>(byte*)>> gscReaders = {
+        { VM_T8,[](byte* file) { return std::make_shared<T8GSCOBJHandler>(file); }},
+        { VM_T937,[](byte* file) { return std::make_shared<T937GSCOBJHandler>(file); }},
+        { VM_T9,[](byte* file) { return std::make_shared<T9GSCOBJHandler>(file); }},
+        { VM_MW23,[](byte* file) { return std::make_shared<MW23GSCOBJHandler>(file); }},
     };
 }
+
+std::function<std::shared_ptr<GSCOBJHandler>(byte*)>* tool::gsc::GetGscReader(byte vm) {
+    auto it = gscReaders.find(vm);
+
+    if (it == gscReaders.end()) {
+        return nullptr;
+    }
+
+    return &it->second;
+}
+
 
 
 struct H32GSCExportReader : GSCExportReader {
@@ -1170,14 +629,14 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     }
     ctx.m_vmInfo = vmInfo;
 
-    auto readerBuilder = gscReaders.find(vm);
+    auto readerBuilder = GetGscReader(vm);
 
-    if (readerBuilder == gscReaders.end()) {
-        LOG_ERROR("No reader available for vm 0x{:x} for file {}", (int)vm, path);
+    if (!readerBuilder) {
+        LOG_ERROR("No handler available for vm 0x{:x} for file {}", (int)vm, path);
         return -1;
     }
 
-    std::shared_ptr<GSCOBJReader> scriptfile = readerBuilder->second(data, opt);
+    std::shared_ptr<GSCOBJHandler> scriptfile = (*readerBuilder)(data);
 
     // we keep it because it should also check the size
     if (!scriptfile->IsValidHeader(size)) {
@@ -1310,7 +769,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         }
         asmout << "\n";
 
-        scriptfile->DumpHeader(asmout);
+        scriptfile->DumpHeader(asmout, opt);
 
         asmout << actsHeader.str();
     }
@@ -2111,7 +1570,7 @@ uint32_t tool::gsc::T8GSCOBJContext::AddStringValue(const char* value) {
     return id;
 }
 
-int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx) {
+int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx) {
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
@@ -2226,7 +1685,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gs
 }
 
 
-int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, DecompContext& dctxt) {
+int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, DecompContext& dctxt) {
     using namespace tool::gsc::opcode;
     uint16_t code = *(uint16_t*)ctx.Aligned<uint16_t>();
     // main reading loop
@@ -2494,7 +1953,7 @@ int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, Platform plt, Vm
 }
 
 
-void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, int padding, const char* forceName) {
+void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, int padding, const char* forceName) {
     auto remapedFlags = gscFile.RemapFlagsExport(exp.GetFlags());
     bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 

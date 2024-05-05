@@ -6,6 +6,8 @@
 #using scripts\core_common\system_shared;
 #using scripts\core_common\values_shared;
 
+#namespace acts;
+
 /*
  * Test menu for the compiler, based on the atian-menu
  */

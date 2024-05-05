@@ -226,7 +226,7 @@ const wchar_t* Process::ReadStringTmpW(uintptr_t src) const {
 	static wchar_t buffer[10][0x200];
 	static size_t bufferId{};
 
-	auto& buff = buffer[bufferId = (bufferId + 1) % (ARRAYSIZE(buffer) / ARRAYSIZE(buffer[0]))];
+	auto& buff = buffer[bufferId = (bufferId + 1) % ARRAYSIZE(buffer)];
 
 	if (ReadWString(buff, src, ARRAYSIZE(buff)) < 0) {
 		return L"<invalid>";

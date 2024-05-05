@@ -30,6 +30,21 @@ struct FunctionVar {
     byte flags;
 };
 
+struct Located {
+    uint64_t name_space;
+    uint64_t name;
+};
+struct LocatedHash {
+    size_t operator()(const Located& k) const {
+        return k.name_space ^ RotateLeft64(k.name, 32);
+    }
+};
+struct LocatedEquals {
+    bool operator()(const Located& a, const Located& b) const {
+        return a.name == b.name && a.name_space == b.name_space;
+    }
+};
+
 template<typename Type>
 constexpr size_t maxNumberSize() {
     return (1ull << (sizeof(Type) << 3));
@@ -104,7 +119,7 @@ public:
     bool Write(AscmCompilerContext& ctx) override {
         auto [ok, op] = GetOpCodeId(ctx.vmInfo->vm, ctx.plt, opcode);
         if (!ok) {
-            LOG_ERROR("Can't find opcode {} for vm {}/{}", (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
+            LOG_ERROR("Can't find opcode {} ({}) for vm {}/{}", OpCodeName(opcode), (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
             
             return false;
         }
@@ -614,8 +629,8 @@ public:
     VmInfo* m_vmInfo;
     FunctionObject(
         CompileObject& obj,
-        uint32_t name,
-        uint32_t name_space,
+        uint64_t name,
+        uint64_t name_space,
         VmInfo* vmInfo
     ) : obj(obj), m_name(name), m_name_space(name_space), m_data_name(name_space), m_vmInfo(vmInfo) {
     }
@@ -720,18 +735,20 @@ public:
     GscCompilerOption& opt;
     InputInfo& info;
     GscFileType type;
-    uint32_t currentNamespace;
+    uint64_t currentNamespace;
     std::set<uint64_t> includes{};
-    std::unordered_map<uint32_t, FunctionObject> exports{};
+    std::unordered_map<uint64_t, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
-    std::unordered_map<uint64_t, std::vector<ImportObject>> imports{};
+    std::unordered_map<Located, std::vector<ImportObject>, LocatedHash, LocatedEquals> imports{};
     std::unordered_map<std::string, GlobalVarObject> globals{};
     VmInfo* vmInfo;
     Platform plt;
+    std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler;
     std::unordered_set<std::string> hashes{};
 
-    CompileObject(GscCompilerOption& opt, GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt) : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt) {
-        currentNamespace = (uint32_t)vmInfo->HashField("");
+    CompileObject(GscCompilerOption& opt, GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt, std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler) 
+        : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt), gscHandler(gscHandler) {
+        currentNamespace = vmInfo->HashField("");
     }
 
     uint64_t AddInclude(std::string& data) {
@@ -756,7 +773,7 @@ public:
     }
 
     bool Compile(std::vector<byte>& data) {
-        utils::Allocate(data, sizeof(tool::gsc::T8GSCOBJ));
+        utils::Allocate(data, gscHandler->GetHeaderSize());
         size_t afterHeaderStart{ data.size() };
         if (opt.m_computeDevOption) {
             utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DEBUG));
@@ -772,7 +789,7 @@ public:
             tab++;
         }
 
-        size_t expTable = utils::Allocate(data, sizeof(tool::gsc::T8GSCExport) * exports.size());
+        size_t expTable = utils::Allocate(data, gscHandler->GetExportSize() * exports.size());
 
         size_t csegOffset = data.size();
 
@@ -796,18 +813,16 @@ public:
                 return false;
             }
 
-            tool::gsc::T8GSCExport& e = reinterpret_cast<tool::gsc::T8GSCExport*>(&data[expTable])[exportIndex++];
-
             exp.location = data.size();
-
-            e.name = (uint32_t)exp.m_name;
-            e.name_space = (uint32_t)exp.m_name_space;
-            e.callback_event = (uint32_t)exp.m_data_name;
-            e.flags = exp.m_flags;
+            tool::gsc::IW23GSCExport e{};
+            e.name = exp.m_name;
+            e.name_space = exp.m_name_space;
+            e.file_name_space = exp.m_data_name;
+            e.flags = gscHandler->MapFlagsExportToInt(exp.m_flags);
             e.address = (int32_t)exp.location;
             e.param_count = exp.m_params;
             e.checksum = 0x12345678;
-
+            gscHandler->WriteExport(&data[expTable + gscHandler->GetExportSize() * exportIndex++], e);
 
             AscmCompilerContext cctx{ vmInfo, plt, exp.m_allocatedVar, data };
 
@@ -826,8 +841,10 @@ public:
         for (auto& [key, strobj] : strings) {
             // TODO: check vm, in mwiii it's not the same
             strobj.location = (uint32_t)data.size();
-            data.push_back(0x9f);
-            data.push_back((byte)(key.length() + 1));
+            if (vmInfo->vm == VM_T8) {
+                data.push_back(0x9f);
+                data.push_back((byte)(key.length() + 1));
+            }
             utils::WriteString(data, key.c_str());
         }
 
@@ -838,34 +855,37 @@ public:
             size_t w{};
             while (w < strobj.nodes.size()) {
                 if (w % 0xFF == 0) {
-                    size_t buff = utils::Allocate(data, sizeof(tool::gsc::T8GSCString));
-                    tool::gsc::T8GSCString* str = reinterpret_cast<tool::gsc::T8GSCString*>(&data[buff]);
-                    str->string = strobj.location;
-                    str->type = 0;
-                    str->num_address = (byte)((strobj.nodes.size() - w) > 0xFF ? 0xFF : (strobj.nodes.size() - w));
+                    size_t buff = utils::Allocate(data, gscHandler->GetStringSize());
+                    tool::gsc::T8GSCString str{};
+                    str.string = strobj.location;
+                    str.type = 0;
+                    str.num_address = (byte)((strobj.nodes.size() - w) > 0xFF ? 0xFF : (strobj.nodes.size() - w));
+                    gscHandler->WriteString(&data[buff], str);
                     stringCount++;
                 }
                 utils::WriteValue<uint32_t>(data, strobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)));
             }
         }
 
-        LOG_TRACE("Compile {} global(s)...", globals.size());
-
         size_t gvarRefs = data.size();
         size_t gvarCount{};
+        if (gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
+            LOG_TRACE("Compile {} global(s)...", globals.size());
 
-        for (auto& [key, gvobj] : globals) {
-            size_t w{};
-            while (w < gvobj.nodes.size()) {
-                if (w % 0xFF == 0) {
-                    size_t buff = utils::Allocate(data, sizeof(tool::gsc::T8GSCGlobalVar));
-                    tool::gsc::T8GSCGlobalVar* gv = reinterpret_cast<tool::gsc::T8GSCGlobalVar*>(&data[buff]);
-                    hashes.insert(key);
-                    gv->name = (uint32_t)vmInfo->HashField(key.c_str());
-                    gv->num_address = (byte)((gvobj.nodes.size() - w) > 0xFF ? 0xFF : (gvobj.nodes.size() - w));
-                    gvarCount++;
+            for (auto& [key, gvobj] : globals) {
+                size_t w{};
+                while (w < gvobj.nodes.size()) {
+                    if (w % 0xFF == 0) {
+                        size_t buff = utils::Allocate(data, gscHandler->GetGVarSize());
+                        tool::gsc::T8GSCGlobalVar gv{};
+                        hashes.insert(key);
+                        gv.name = (uint32_t)vmInfo->HashField(key.c_str());
+                        gv.num_address = (byte)((gvobj.nodes.size() - w) > 0xFF ? 0xFF : (gvobj.nodes.size() - w));
+                        gscHandler->WriteGVar(&data[buff], gv);
+                        gvarCount++;
+                    }
+                    utils::WriteValue<uint32_t>(data, gvobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)));
                 }
-                utils::WriteValue<uint32_t>(data, gvobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)));
             }
         }
 
@@ -874,18 +894,20 @@ public:
         size_t implCount{};
 
         for (auto& [key, imobj] : imports) {
-            auto [nsp, func] = utils::UnCatLocated(key);
+            uint64_t nsp = key.name_space;
+            uint64_t func = key.name;
             for (ImportObject& implData : imobj) {
                 size_t w{};
                 while (w < implData.nodes.size()) {
                     if (w % 0xFFFF == 0) {
-                        size_t buff = utils::Allocate(data, sizeof(tool::gsc::T8GSCImport));
-                        tool::gsc::T8GSCImport* gv = reinterpret_cast<tool::gsc::T8GSCImport*>(&data[buff]);
-                        gv->import_namespace = nsp;
-                        gv->name = func;
-                        gv->param_count = implData.params;
-                        gv->flags = implData.flags;
-                        gv->num_address = (byte)((implData.nodes.size() - w) > 0xFFFF ? 0xFFFF : (implData.nodes.size() - w));
+                        size_t buff = utils::Allocate(data, gscHandler->GetImportSize());
+                        tool::gsc::IW23GSCImport gv{};
+                        gv.name_space = nsp;
+                        gv.name = func;
+                        gv.param_count = implData.params;
+                        gv.flags = gscHandler->MapFlagsImportToInt(implData.flags);
+                        gv.num_address = (byte)((implData.nodes.size() - w) > 0xFFFF ? 0xFFFF : (implData.nodes.size() - w));
+                        gscHandler->WriteImport(&data[buff], gv);
                         implCount++;
                     }
                     utils::WriteValue<uint32_t>(data, implData.nodes[w++]->floc);
@@ -915,28 +937,29 @@ public:
         }
 
         // compile header
+        gscHandler->file = data.data();
+        gscHandler->SetHeader();
 
-        auto* prime_obj = reinterpret_cast<tool::gsc::T8GSCOBJ*>(data.data());
-        *reinterpret_cast<uint64_t*>(prime_obj->magic) = 0x36000a0d43534780;
+        gscHandler->SetIncludesCount((int16_t)includes.size());
+        gscHandler->SetIncludesOffset((int32_t)incTable);
 
-        prime_obj->include_offset = (int32_t)incTable;
-        prime_obj->include_count = (int16_t)includes.size();
+        gscHandler->SetStringsCount((int16_t)stringCount);
+        gscHandler->SetStringsOffset((int32_t)stringRefs);
 
-        prime_obj->string_offset = (int32_t)stringRefs;
-        prime_obj->string_count = (int16_t)stringCount;
+        if (gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
+            gscHandler->SetGVarsCount((int16_t)gvarCount);
+            gscHandler->SetGVarsOffset((int32_t)gvarRefs);
+        }
 
-        prime_obj->globalvar_offset = (int32_t)gvarRefs;
-        prime_obj->globalvar_count = (int16_t)gvarCount;
+        gscHandler->SetExportsCount((int16_t)exports.size());
+        gscHandler->SetExportsOffset((int32_t)expTable);
+        gscHandler->SetCSEGOffset((int32_t)csegOffset);
+        gscHandler->SetCSEGSize((int32_t)csegSize);
 
-        prime_obj->export_table_offset = (int32_t)expTable;
-        prime_obj->exports_count = (int16_t)exports.size();
-        prime_obj->cseg_offset = (int32_t)csegOffset;
-        prime_obj->cseg_size = (int32_t)csegSize;
+        gscHandler->SetImportsCount((int16_t)implCount);
+        gscHandler->SetImportsOffset((int32_t)implRefs);
 
-        prime_obj->imports_offset = (int32_t)implRefs;
-        prime_obj->imports_count = (int16_t)implCount;
-
-        prime_obj->script_size = (int32_t)data.size();
+        gscHandler->SetFileSize((int32_t)data.size());
 
         return true;
     }
@@ -1042,6 +1065,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                         return false;
                     }
                     std::string fieldText = rule->children[startOp + 1]->getText();
+                    obj.hashes.insert(fieldText);
 
                     if (fieldText == "size") {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
@@ -1113,15 +1137,16 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                                 return false;
                             }
                             std::string fieldText = rule->children[2]->getText();
+                            obj.hashes.insert(fieldText);
 
                             if (fieldText == "size") {
                                 obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
                                 return false;
                             }
                             else {
-                                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
                                 // use identifier
-                                uint64_t hash = obj.vmInfo->HashField(rule->children[2]->getText());
+                                uint64_t hash = obj.vmInfo->HashField(fieldText);
+                                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
                                 fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariableRef));
                             }
                         }
@@ -2092,7 +2117,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 auto* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash);
 
                 // link by the game, but we write it for test
-                auto located = utils::CatLocated((uint32_t)funcNspHash, (uint32_t)funcHash);
+                Located located{ funcNspHash, funcHash };
 
                 auto& impList = obj.imports[located];
 
@@ -2529,6 +2554,33 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             return false;
         }
         case gscParser::RuleFunction_ref: {
+            if (rule->children.size() == 2) {
+                if (IS_TERMINAL_TYPE(rule->children[1], gscParser::IDENTIFIER) ||
+                    (IS_RULE_TYPE(rule->children[1], gscParser::RuleLeft_value) && IS_TERMINAL_TYPE(rule->children[1]->children[0], gscParser::IDENTIFIER))
+                    ) {
+                    if (obj.HasOpCode(OPCODE_T9_GetVarRef)) {
+                        // single idf ref
+                        // &var ?
+                        std::string varName = rule->children[1]->getText();
+
+                        FunctionVar* var = fobj.FindVar(varName);
+
+                        if (var) {
+                            fobj.m_nodes.push_back(new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableRefCached));
+                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_T9_GetVarRef));
+                            return true;
+                        }
+                    }
+                }
+                else if (IS_RULE_TYPE(rule->children[1], gscParser::RuleLeft_value)) {
+                    if (!ParseFieldNode(rule->children[1], parser, obj, fobj)) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], "Can't express field ref");
+                        return false;
+                    }
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_T9_GetVarRef));
+                    return true;
+                }
+            }
             if (rule->children.size() == 7) {
                 // @nsp<path>::func
                 std::string nsp = rule->children[1]->getText();
@@ -2547,7 +2599,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return true;
             }
             // &nsp::func || &func
-            uint32_t nsp = obj.currentNamespace;
+            uint64_t nsp = obj.currentNamespace;
 
             byte flags = tool::gsc::T8GSCImportFlags::FUNC_METHOD;
 
@@ -2555,7 +2607,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 // with nsp
                 std::string nspStr = rule->children[1]->getText();
                 obj.hashes.insert(nspStr);
-                nsp = (uint32_t)obj.vmInfo->HashField(nspStr.c_str());
+                nsp = obj.vmInfo->HashField(nspStr.c_str());
             }
             else {
                 flags |= tool::gsc::T8GSCImportFlags::GET_CALL;
@@ -2565,13 +2617,27 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             std::string funcStr = rule->children[rule->children.size() - 1]->getText();
             obj.hashes.insert(funcStr);
-            uint32_t func = (uint32_t)obj.vmInfo->HashField(funcStr.c_str());
+            uint64_t func = obj.vmInfo->HashField(funcStr.c_str());
 
             // link by the game, but we write it for test
-            auto located = utils::CatLocated(nsp, func);
-            AscmNode* asmc = new AscmNodeData<uint64_t>(located, OPCODE_GetResolveFunction);
-            fobj.m_nodes.push_back(asmc);
+            AscmNode* asmc;
+            if (obj.gscHandler->HasFlag(tool::gsc::GOHF_INLINE_FUNC_PTR)) {
+                asmc = new AscmNodeData<uint64_t>(0, OPCODE_GetResolveFunction);
+                fobj.m_nodes.push_back(asmc);
+            }
+            else {
+                // in mwiii, unlike in t8 where the pointers are inlined into the bytecode, 
+                // the game links resolved functions using 4 bytes for script functions or 
+                // 2 bytes for builtin functions so we use nops so the game does whatever it want
+                asmc = new AscmNodeOpCode(OPCODE_GetResolveFunction);
+                fobj.m_nodes.push_back(asmc);
 
+                for (size_t i = 0; i < 4; i++) {
+                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Nop));
+                }
+            }
+
+            Located located{ nsp, func };
             auto& impList = obj.imports[located];
 
             auto it = std::find_if(impList.begin(), impList.end(), [flags](const auto& e) { return e.flags == flags; });
@@ -2612,15 +2678,20 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         return false;
                     }
                     std::string fieldText = rule->children[startOp + 1]->getText();
-
                     if (fieldText == "size") {
                         fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SizeOf));
                     }
                     else {
-                        fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
+                        obj.hashes.insert(fieldText);
                         // use identifier
                         uint64_t hash = obj.vmInfo->HashField(fieldText);
-                        fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                        if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
+                            fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
+                        }
+                        else {
+                            fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
+                            fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                        }
                     }
                 }
                 else {
@@ -2690,10 +2761,16 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                                 fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_SizeOf));
                             }
                             else {
-                                fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
+                                obj.hashes.insert(fieldText);
                                 // use identifier
-                                uint64_t hash = obj.vmInfo->HashField(rule->children[2]->getText());
-                                fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                                uint64_t hash = obj.vmInfo->HashField(fieldText);
+                                if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
+                                    fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
+                                }
+                                else {
+                                    fobj.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CastFieldObject));
+                                    fobj.m_nodes.push_back(new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                                }
                             }
                         }
                         else {
@@ -2915,7 +2992,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     auto name = termNode->getText();
 
     obj.hashes.insert(name);
-    uint32_t nameHashed = (uint32_t)obj.vmInfo->HashField(name.data());
+    uint64_t nameHashed = obj.vmInfo->HashField(name.data());
 
     auto [res, err] = obj.exports.try_emplace(nameHashed, obj, nameHashed, obj.currentNamespace, obj.vmInfo);
 
@@ -2958,6 +3035,10 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             exp.m_flags |= tool::gsc::T8GSCExportFlags::AUTOEXEC;
         }
         else if (txt == "event_handler") {
+            if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_EV_HANDLER)) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "event_handler functions not available for this vm");
+                return false;
+            }
             exp.m_flags |= tool::gsc::T8GSCExportFlags::EVENT;
             auto* ev = func->children[i += 2];
             i++; // ']'
@@ -2969,8 +3050,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto evname = static_cast<TerminalNode*>(ev)->getText();
 
             obj.hashes.insert(evname);
-            uint32_t evnameHashed = (uint32_t)obj.vmInfo->HashField(evname.data());
-            exp.m_data_name = evnameHashed;
+            exp.m_data_name = obj.vmInfo->HashField(evname.data());
         }
     }
 
@@ -2998,6 +3078,11 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
         if (!IS_TERMINAL_TYPE(param->children[0], gscParser::IDENTIFIER)) {
             if (param->children.size() == 1) {
                 // '...'
+
+                if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_VA)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, "modifier not available for this vm: vararg...");
+                    return false;
+                }
                 exp.m_flags |= tool::gsc::T8GSCExportFlags::VE;
 
                 std::string paramIdf = "vararg";
@@ -3024,16 +3109,16 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto modifier = param->children[0]->getText();
             if (modifier == "*") {
                 // ptr (T9)
-                if (obj.vmInfo->vm < 0x37) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not implemented: {}", modifier));
+                if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_PTR)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not available for this vm: {}", modifier));
                     return false;
                 }
                 idfFlags = tool::gsc::opcode::T9_VAR_REF;
             }
             else if (modifier == "&") {
                 // ref (T8)
-                if (obj.vmInfo->vm < 0x36) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not implemented: {}", modifier));
+                if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_REF)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not available for this vm: {}", modifier));
                     return false;
                 }
                 idfFlags = tool::gsc::opcode::ARRAY_REF;
@@ -3149,7 +3234,7 @@ bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, Compile
     // set the current namespace to the one specified
 
     obj.hashes.insert(txt);
-    obj.currentNamespace = (uint32_t)obj.vmInfo->HashField(txt.data());
+    obj.currentNamespace = obj.vmInfo->HashField(txt.data());
 
     return true;
 }
@@ -3467,13 +3552,22 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         return 0;
     }
 
+    auto* readerBuilder = tool::gsc::GetGscReader(opt.m_vmInfo->vm);
+
+    if (!readerBuilder) {
+        LOG_ERROR("No GSC handler available for {}", opt.m_vmInfo->name);
+        return tool::BASIC_ERROR;
+    }
+
+    std::shared_ptr<tool::gsc::GSCOBJHandler> handler {(*readerBuilder)(nullptr)};
+
     std::vector<std::filesystem::path> inputs{};
 
     for (const char* file : opt.m_inputFiles) {
         utils::GetFileRecurse(file, inputs);
     }
 
-    auto produceFile = [&opt, &inputs](bool client) -> int {
+    auto produceFile = [&opt, &inputs, &handler](bool client) -> int {
         InputInfo info{};
         size_t lineGsc{};
 
@@ -3518,6 +3612,8 @@ int compiler(Process& proc, int argc, const char* argv[]) {
 
         PreProcessorOption popt = opt.processorOpt;
         popt.defines.insert("_SUPPORTS_GCSC");
+        popt.defines.insert(utils::UpperCase(utils::va("_%s", opt.m_vmInfo->codeName)));
+        popt.defines.insert(utils::UpperCase(utils::va("_%s", PlatformName(opt.m_platform))));
 
         if (client) {
             popt.defines.insert("_CSC");
@@ -3550,7 +3646,7 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         parser.addErrorListener(&*errList);
 
         gscParser::ProgContext* prog = parser.prog();
-        CompileObject obj{ opt, client ? FILE_CSC : FILE_GSC, info, opt.m_vmInfo, opt.m_platform };
+        CompileObject obj{ opt, client ? FILE_CSC : FILE_GSC, info, opt.m_vmInfo, opt.m_platform, handler };
 
         auto error = parser.getNumberOfSyntaxErrors();
         if (error) {
@@ -3589,6 +3685,10 @@ int compiler(Process& proc, int argc, const char* argv[]) {
     }
 
     if (opt.m_client) {
+        if (!opt.m_vmInfo->HasFlag(VmFlags::VMF_CLIENT_VM)) {
+            LOG_ERROR("The vm {} doesn't support client scripts", opt.m_vmInfo->name);
+            return tool::BASIC_ERROR;
+        }
         return produceFile(true);
     }
 

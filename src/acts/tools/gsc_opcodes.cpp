@@ -4448,7 +4448,7 @@ namespace {
 	const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefined, "Undefined");
 }
 
-void tool::gsc::opcode::RegisterVM(byte vm, const char* name, uint64_t flags) {
+void tool::gsc::opcode::RegisterVM(byte vm, const char* name, const char* codeName, uint64_t flags) {
 	auto it = g_opcodeMap.find(vm);
 	if (it != g_opcodeMap.end()) {
 		if (it->second.flags != flags) {
@@ -4456,7 +4456,7 @@ void tool::gsc::opcode::RegisterVM(byte vm, const char* name, uint64_t flags) {
 		}
 		return; // assuming good name
 	}
-	g_opcodeMap[vm] = { vm, name, flags, {} };
+	g_opcodeMap[vm] = { vm, name, codeName, flags, {} };
 }
 
 void tool::gsc::opcode::RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {
@@ -4904,7 +4904,7 @@ std::pair<bool, uint16_t> tool::gsc::opcode::GetOpCodeId(byte vm, Platform platf
 
 #pragma endregion
 #pragma region asmctx 
-ASMContext::ASMContext(byte* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* readerHandle, byte vm, Platform platform)
+ASMContext::ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* readerHandle, byte vm, Platform platform)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_gscReader(gscReader), m_objctx(objctx), m_opt(opt), m_runDecompiler(opt.m_dcomp),
 			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
 	// set start as unhandled

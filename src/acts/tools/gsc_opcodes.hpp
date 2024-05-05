@@ -13,6 +13,7 @@ namespace tool::gsc::opcode {
 		VMF_FULL_FILE_NAMESPACE = 0x10,
 		VMF_INV_ADD_TO_OBJECT = 0x20,
 		VMF_HASH_IW = 0x40,
+		VMF_CLIENT_VM = 0x80,
 	};
 	enum VmOperatorFunctionData {
 		VPFD_NONE = 0,
@@ -20,6 +21,7 @@ namespace tool::gsc::opcode {
 		VPFD_USE_PRE_SCRIPT_CALL = 0x2,
 		VPFD_RETURN_VALUE = 0x4,
 		VPFD_SELF_PARAM = 0x8,
+		VPFD_HASH_PARAM = 0x10,
 	};
 	struct GlobalVariableDef {
 		const char* name;
@@ -43,6 +45,7 @@ namespace tool::gsc::opcode {
 	struct VmInfo {
 		byte vm;
 		const char* name;
+		const char* codeName;
 		uint64_t flags;
 		byte platforms{};
 		std::unordered_set<uint64_t> devCallsNames{};
@@ -104,7 +107,7 @@ namespace tool::gsc::opcode {
 	const OPCodeInfo* LookupOpCode(byte vm, Platform platform, uint16_t opcode);
 	std::pair<bool, uint16_t> GetOpCodeId(byte vm, Platform platform, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
-	void RegisterVM(byte vm, const char* name, uint64_t flags);
+	void RegisterVM(byte vm, const char* name, const char* codeName, uint64_t flags);
 	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode = OPCODE_Undefined, OPCode getRefOpCode = OPCODE_Undefined);
 	void RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255);
 	void RegisterVMPlatform(byte vm, Platform plt);

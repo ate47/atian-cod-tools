@@ -17,6 +17,19 @@ namespace tool::gsc {
         STEPSKIP_CLASSMEMBER_INLINE = 0x200,
         STEPSKIP_SPECIAL_PATTERN = 0x400,
     };
+
+    enum GscObjHandlerBuildFlags : uint64_t {
+        GOHF_GLOBAL = 0x1,
+        GOHF_ANIMTREE = 0x2,
+        GOHF_ANIMTREE_DOUBLE = 0x4,
+        GOHF_NOTIFY_CRC = 0x8,
+        GOHF_SUPPORT_VAR_VA = 0x10,
+        GOHF_SUPPORT_VAR_REF = 0x20,
+        GOHF_SUPPORT_VAR_PTR = 0x40,
+        GOHF_SUPPORT_EV_HANDLER = 0x80,
+        GOHF_INLINE_FUNC_PTR = 0x100,
+    };
+
     // cli options
     class GscInfoOption {
     public:
@@ -72,7 +85,7 @@ namespace tool::gsc {
     struct T8GSCExport;
     struct IW23GSCImport;
     class T8GSCOBJContext;
-    class GSCOBJReader;
+    class GSCOBJHandler;
     struct GSCExportReader;
 
     namespace opcode {
@@ -377,7 +390,7 @@ namespace tool::gsc {
             // fonction start location
             byte* m_fonctionStart;
             // script reader
-            GSCOBJReader& m_gscReader;
+            GSCOBJHandler& m_gscReader;
             // locations
             std::map<int32_t, asmcontextlocation> m_locs{};
             // current context location
@@ -410,7 +423,7 @@ namespace tool::gsc {
             // file platform
             Platform m_platform;
 
-            ASMContext(byte* fonctionStart, GSCOBJReader& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* m_readerHandle, byte vm, Platform platform);
+            ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* m_readerHandle, byte vm, Platform platform);
             ~ASMContext();
 
             // @return relative location in the function
@@ -825,9 +838,9 @@ namespace tool::gsc {
         virtual size_t SizeOf() = 0;
     };
 
-    void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0, const char* forceName = nullptr);
-    int DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx);
-    int DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJReader& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt);
+    void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0, const char* forceName = nullptr);
+    int DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx);
+    int DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt);
     /*
      * Compute the size of this export's bytecode
      * @param gscFile origin gsc file
@@ -855,12 +868,39 @@ namespace tool::gsc {
         uint8_t flags;
     };
 
-    class GSCOBJReader {
+    struct GSC_USEANIMTREE_ITEM {
+        uint32_t num_address;
+        uint32_t address;
+    };
+
+    struct GSC_ANIMTREE_ITEM {
+        uint32_t num_address;
+        uint32_t address_str1;
+        uint32_t address_str2;
+    };
+
+    struct T8GSCString {
+        uint32_t string;
+        uint8_t num_address;
+        uint8_t type;
+        uint16_t pad;
+    };
+
+    class GSCOBJHandler {
     public:
         byte* file;
-        const GscInfoOption& opt;
+        uint64_t buildFlags;
 
-        GSCOBJReader(byte* file, const GscInfoOption& opt);
+        GSCOBJHandler(byte* file, uint64_t buildFlags);
+
+        /*
+         * Test if the handler has a flag
+         * @param flag flag
+         * @return if the flag is present
+         */
+        inline bool HasFlag(GscObjHandlerBuildFlags flag) const {
+            return (buildFlags & flag) != 0;
+        }
 
         /*
          * Return a pointer at a particular shift
@@ -912,6 +952,7 @@ namespace tool::gsc {
             return file[7];
         }
 
+        // Read functions
         virtual uint64_t GetName() = 0;
         virtual bool IsValidHeader(size_t size) = 0;
         virtual uint16_t GetExportsCount() = 0;
@@ -925,7 +966,21 @@ namespace tool::gsc {
         virtual uint16_t GetGVarsCount() = 0;
         virtual uint32_t GetGVarsOffset() = 0;
         virtual uint32_t GetFileSize() = 0;
+
         virtual size_t GetHeaderSize() = 0;
+        virtual size_t GetImportSize() = 0;
+        virtual size_t GetExportSize() = 0;
+        virtual size_t GetStringSize() = 0;
+        virtual size_t GetGVarSize() = 0;
+        virtual size_t GetAnimTreeSingleSize() = 0;
+        virtual size_t GetAnimTreeDoubleSize() = 0;
+        virtual void WriteExport(byte* data, const tool::gsc::IW23GSCExport& item) = 0;
+        virtual void WriteImport(byte* data, const tool::gsc::IW23GSCImport& item) = 0;
+        virtual void WriteGVar(byte* data, const tool::gsc::T8GSCGlobalVar& item) = 0;
+        virtual void WriteString(byte* data, const tool::gsc::T8GSCString& item) = 0;
+        virtual void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) = 0;
+        virtual void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) = 0;
+
         virtual char* DecryptString(char* str) = 0;
         virtual byte RemapFlagsImport(byte flags);
         virtual byte RemapFlagsExport(byte flags);
@@ -934,10 +989,40 @@ namespace tool::gsc {
         virtual uint16_t GetAnimTreeDoubleCount() = 0;
         virtual uint32_t GetAnimTreeDoubleOffset() = 0;
 
-        virtual void DumpHeader(std::ostream& asmout) = 0;
-        virtual void PatchCode(T8GSCOBJContext& ctx);
+        // Write functions
+        virtual void SetName(uint64_t name) = 0;
+        virtual void SetHeader() = 0;
+        virtual void SetExportsCount(uint16_t val) = 0;
+        virtual void SetExportsOffset(uint32_t val) = 0;
+        virtual void SetIncludesCount(uint16_t val) = 0;
+        virtual void SetIncludesOffset(uint32_t val) = 0;
+        virtual void SetImportsCount(uint16_t val) = 0;
+        virtual void SetImportsOffset(uint32_t val) = 0;
+        virtual void SetStringsCount(uint16_t val) = 0;
+        virtual void SetStringsOffset(uint32_t val) = 0;
+        virtual void SetGVarsCount(uint16_t val) = 0;
+        virtual void SetGVarsOffset(uint32_t val) = 0;
+        virtual void SetFileSize(uint32_t val) = 0;
+
+        virtual void SetAnimTreeSingleCount(uint16_t val) = 0;
+        virtual void SetAnimTreeSingleOffset(uint32_t val) = 0;
+        virtual void SetAnimTreeDoubleCount(uint16_t val) = 0;
+        virtual void SetAnimTreeDoubleOffset(uint32_t val) = 0;
+
+        virtual void SetCSEGOffset(uint16_t val) = 0;
+        virtual void SetCSEGSize(uint32_t val) = 0;
+
+        virtual byte MapFlagsImportToInt(byte flags);
+        virtual byte MapFlagsExportToInt(byte flags);
+
+        // Dump header
+        virtual void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) = 0;
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt);
+        // Patch script to prepare disasm
+        virtual void PatchCode(T8GSCOBJContext& ctx);
     };
+
+    std::function<std::shared_ptr<GSCOBJHandler>(byte*)>* GetGscReader(byte vm);
 
     enum T8GSCExportFlags : uint8_t {
         LINKED = 0x01,
@@ -993,13 +1078,6 @@ namespace tool::gsc {
         T9_IF_UKN80 = 0x80
     };
 
-    struct T8GSCString {
-        uint32_t string;
-        uint8_t num_address;
-        uint8_t type;
-        uint16_t pad;
-    };
-
     enum RosettaBlockType : byte {
         RBT_START = 0x50,
         RBT_OPCODE = 0x51,
@@ -1017,7 +1095,7 @@ namespace tool::gsc {
      * Begin rosetta file data
      * @param reader reader
      */
-    void RosettaStartFile(GSCOBJReader& reader);
+    void RosettaStartFile(GSCOBJHandler& reader);
     /*
      * Add rosetta opcode data
      * @param loc opcode location

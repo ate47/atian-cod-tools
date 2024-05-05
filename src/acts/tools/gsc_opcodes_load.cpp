@@ -26,7 +26,7 @@ namespace tool::gsc::opcode {
 			// Register mapping
 
 			// BLACK OPS 4 (VM 36)
-			RegisterVM(VM_T8, "Call of Duty: Black ops 4", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT);
+			RegisterVM(VM_T8, "Call of Duty: Black ops 4", "t8", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T8, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T8, "level");
 			RegisterVMGlobalVariable(VM_T8, "game");
@@ -36,6 +36,8 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T8, "world");
 			RegisterVMGlobalVariable(VM_T8, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T8, "memory");
+			RegisterVMOperatorFunction(VM_T8, "profilestart", "profilestart()", OPCODE_ProfileStart, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_T8, "profilestop", "profilestop()", OPCODE_ProfileStop, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_T8, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T8, "notify", "<caller> notify(event, param*)", OPCODE_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
 			RegisterVMOperatorFunction(VM_T8, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
@@ -301,7 +303,7 @@ namespace tool::gsc::opcode {
 
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
-			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT);
+			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", "t9", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMGlobalVariable(VM_T937, "level");
 			RegisterVMGlobalVariable(VM_T937, "game");
 			RegisterVMGlobalVariable(VM_T937, "classes");
@@ -310,12 +312,14 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T937, "world");
 			RegisterVMGlobalVariable(VM_T937, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T937, "memory");
+			RegisterVMOperatorFunction(VM_T937, "profilestart", "profilestart()", OPCODE_ProfileStart, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_T937, "profilestop", "profilestop()", OPCODE_ProfileStop, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_T937, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T937, "notify", "<caller> notify(event, param*)", OPCODE_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
 			RegisterVMOperatorFunction(VM_T937, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
 			RegisterVMOperatorFunction(VM_T937, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
-			RegisterVMOperatorFunction(VM_T937, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
-			RegisterVMOperatorFunction(VM_T937, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_NONE, 2, 2);
+			RegisterVMOperatorFunction(VM_T937, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_T9_EndOnCallbackParam, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
+			RegisterVMOperatorFunction(VM_T937, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_RETURN_VALUE, 2, 2);
 			RegisterVMOperatorFunction(VM_T937, "waittill", "<caller> waittill(event) -> struct", OPCODE_WaitTill, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 1);
 			RegisterVMOperatorFunction(VM_T937, "waittillmatch", "<caller> waittillmatch(event, match) -> struct", OPCODE_WaitTillMatch, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
 			RegisterVMOperatorFunction(VM_T937, "waittillmatchtimeout", "<caller> waittillmatchtimeout(event, match, timeout) -> struct", OPCODE_WaitTillMatchTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 3);
@@ -391,7 +395,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_SafeCreateLocalVariables, 0x11a, 0x192, 0x1e5, 0x281, 0x289, 0x2bd, 0x30b, 0x363, 0x471, 0x494, 0x4a8, 0x538, 0x5e3, 0x653, 0x8e4, 0x921, 0x9bf, 0x9fa, 0xb54, 0xc6d, 0xd28, 0xe8a, 0xf07);
 
 
-			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT);
+			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T9, "level");
 			RegisterVMGlobalVariable(VM_T9, "game");
@@ -401,12 +405,14 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T9, "world");
 			RegisterVMGlobalVariable(VM_T9, "sharedstructs");
 			RegisterVMGlobalVariable(VM_T9, "memory");
+			RegisterVMOperatorFunction(VM_T9, "profilestart", "profilestart()", OPCODE_ProfileStart, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_T9, "profilestop", "profilestop()", OPCODE_ProfileStop, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_T9, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T9, "notify", "<caller> notify(event, param*)", OPCODE_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
 			RegisterVMOperatorFunction(VM_T9, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
 			RegisterVMOperatorFunction(VM_T9, "endoncallback", "<caller> endoncallback(func, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 2);
-			RegisterVMOperatorFunction(VM_T9, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_EndOnCallback, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
-			RegisterVMOperatorFunction(VM_T9, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_NONE, 2, 2);
+			RegisterVMOperatorFunction(VM_T9, "endoncallbackparam", "<caller> endoncallback(func, param, event+)", OPCODE_T9_EndOnCallbackParam, VPFD_SELF_PARAM | VPFD_USE_COUNT, 3);
+			RegisterVMOperatorFunction(VM_T9, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_RETURN_VALUE, 2, 2);
 			RegisterVMOperatorFunction(VM_T9, "waittill", "<caller> waittill(event) -> struct", OPCODE_WaitTill, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 1);
 			RegisterVMOperatorFunction(VM_T9, "waittillmatch", "<caller> waittillmatch(event, match) -> struct", OPCODE_WaitTillMatch, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
 			RegisterVMOperatorFunction(VM_T9, "waittillmatchtimeout", "<caller> waittillmatchtimeout(event, match, timeout) -> struct", OPCODE_WaitTillMatchTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 3);
@@ -638,7 +644,7 @@ namespace tool::gsc::opcode {
 	#ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();
 	#endif
-			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW);
+			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel, OPCODE_IW_GetLevelRef);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
@@ -674,6 +680,7 @@ namespace tool::gsc::opcode {
 
 	const char* OpCodeName(OPCode op) {
 		switch (op) {
+
 		case OPCODE_Undefined: return "Undefined";
 		case OPCODE_Unknown0: return "Unknown0";
 		case OPCODE_Unknown1: return "Unknown1";

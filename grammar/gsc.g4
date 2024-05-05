@@ -128,6 +128,7 @@ const_expr:
 function_ref:
 	'&' (IDENTIFIER '::')? IDENTIFIER
 	| '@' IDENTIFIER '<' PATH '>' '::' IDENTIFIER
+	| '&' left_value
     ;
 
 number: INTEGER10

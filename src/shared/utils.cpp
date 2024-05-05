@@ -2,7 +2,7 @@
 #include "utils.hpp"
 
 namespace utils {
-    const char* va(const char* fmt, ...) {
+    char* va(const char* fmt, ...) {
         static char buffer[0x10][0x500];
         static size_t bufferIndex = 0;
         bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
@@ -220,5 +220,15 @@ namespace utils {
         wchar_t szFileName[MAX_PATH];
         GetModuleFileName(NULL, szFileName, MAX_PATH);
         return std::filesystem::absolute(szFileName).parent_path();
+    }
+
+    char* UpperCase(char* buffer) {
+        std::transform(buffer, buffer + strlen(buffer), buffer, [](char c) { return std::toupper(c); });
+        return buffer;
+    }
+
+    char* LowerCase(char* buffer) {
+        std::transform(buffer, buffer + strlen(buffer), buffer, [](char c) { return std::tolower(c); });
+        return buffer;
     }
 }

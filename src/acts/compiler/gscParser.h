@@ -717,6 +717,7 @@ public:
     std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
     antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
     antlr4::tree::TerminalNode *PATH();
+    Left_valueContext *left_value();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

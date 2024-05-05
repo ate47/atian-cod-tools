@@ -150,7 +150,8 @@ namespace {
 				auto* name = (const char*)(pack->header.magic + vm.nameOffset);
 
 				// register the vm itself
-				tool::gsc::opcode::RegisterVM(vm.vm, strcontainer.AddString(name), vm.vmflags);
+				const char* str = strcontainer.AddString(name);
+				tool::gsc::opcode::RegisterVM(vm.vm, str, str, vm.vmflags);
 
 				auto* platforms = reinterpret_cast<ActsPackVMPlatform*>(pack->header.magic + vm.platformsOffset);
 
