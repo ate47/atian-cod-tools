@@ -8,7 +8,7 @@ namespace: '#namespace' IDENTIFIER ';';
 function
     : ('function')? 
       ('private')? 
-      ('autoexec')? 
+	  ('autoexec' ('(' number ')')?)? 
       ('event_handler' '[' IDENTIFIER ']')? 
 	IDENTIFIER '(' param_list ')' statement_block;
 

@@ -974,7 +974,7 @@ namespace tool::gsc {
         virtual uint16_t GetGVarsCount() = 0;
         virtual uint32_t GetGVarsOffset() = 0;
         virtual uint32_t GetFileSize() = 0;
-        virtual uint64_t GetDefaultChecksum(bool client) = 0;
+        virtual int64_t GetDefaultChecksum(bool client) = 0;
         virtual const char* GetDefaultName(bool client) = 0;
 
         virtual size_t GetHeaderSize() = 0;
@@ -1083,8 +1083,8 @@ namespace tool::gsc {
         T9_IF_FUNCTION_THREAD = 0x6,
         T9_IF_METHOD = 0x7,
         T9_IF_CALLTYPE_MASK = 0xF,
-        T9_IF_DEV_CALL = 0x10,
-        T9_IF_GET_CALL = 0x20,
+        T9_IF_GET_CALL = 0x10,
+        T9_IF_DEV_CALL = 0x20,
         T9_IF_UKN40 = 0x40,
         T9_IF_UKN80 = 0x80
     };

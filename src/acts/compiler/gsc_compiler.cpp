@@ -177,11 +177,13 @@ enum FuncCallFlags {
 
 class AscmNodeFunctionCall : public AscmNodeOpCode {
 public:
+    uint64_t nameSpace;
     uint64_t clsName;
     int flags;
     byte params;
 
-    AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName) : AscmNodeOpCode(opcode), flags(flags), params(params), clsName(clsName) {
+    AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName, uint64_t nameSpace) 
+        : AscmNodeOpCode(opcode), flags(flags), params(params), clsName(clsName), nameSpace(nameSpace) {
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -211,7 +213,7 @@ public:
         else if (!(flags & FCF_POINTER)) {
             // replaced by the linker
             ctx.Align<uint64_t>();
-            ctx.Write<uint64_t>(0x1234567887654321ull);
+            ctx.Write<uint64_t>(utils::CatLocated((uint32_t)nameSpace, (uint32_t)clsName));
         }
 
         return true;
@@ -443,8 +445,8 @@ public:
     const char* m_outFileName{ "compiled"};
     std::vector<const char*> m_inputFiles{};
     bool m_client{};
-    uint64_t crcServer{};
-    uint64_t crcClient{};
+    int64_t crcServer{};
+    int64_t crcClient{};
     const char* nameServer{ "" };
     const char* nameClient{ "" };
     PreProcessorOption processorOpt{};
@@ -509,7 +511,7 @@ public:
                     return false;
                 }
                 try {
-                    crcServer = std::strtoull(args[++i], nullptr, 16);
+                    crcServer = std::strtoll(args[++i], nullptr, 16);
                 }
                 catch (std::exception& e) {
                     LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
@@ -522,7 +524,7 @@ public:
                     return false;
                 }
                 try {
-                    crcClient = std::strtoull(args[++i], nullptr, 16);
+                    crcClient = std::strtoll(args[++i], nullptr, 16);
                 }
                 catch (std::exception& e) {
                     LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
@@ -668,6 +670,7 @@ struct FunctionJumpLoc {
 class FunctionObject {
 public:
     CompileObject& obj;
+    int64_t autoexecOrder{};
     uint64_t m_name;
     uint64_t m_name_space;
     uint64_t m_data_name;
@@ -805,6 +808,7 @@ public:
     std::unordered_map<std::string, GlobalVarObject> globals{};
     VmInfo* vmInfo;
     Platform plt;
+    int64_t autoexecOrder{};
     std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler;
     std::unordered_set<std::string> hashes{};
 
@@ -838,6 +842,7 @@ public:
         if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
             constexpr const char* name = "$notif_checkum";
             uint64_t nameHashed = vmInfo->HashField(name);
+            hashes.insert(name);
             auto [res, err] = exports.try_emplace(nameHashed, *this, nameHashed, currentNamespace, vmInfo);
 
             if (!err) {
@@ -846,11 +851,11 @@ public:
             }
 
             FunctionObject& f = res->second;
+            f.autoexecOrder = INT64_MIN; // first
             f.m_flags = tool::gsc::CLASS_VTABLE;
             f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
             f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
             f.m_nodes.push_back(BuildAscmNodeData(crc));
-
 
             auto gvarIt = vmInfo->globalvars.find(vmInfo->HashField("level"));
 
@@ -898,7 +903,9 @@ public:
         LOG_TRACE("Compile {} export(s)...", exports.size());
 
         size_t exportIndex{};
-        for (auto& [name, exp] : exports) {
+
+        auto& that = *this;
+        auto writeExport = [&data, &that, &expTable, &exportIndex](FunctionObject& exp) -> bool {
             if (exp.m_nodes.empty()) {
                 LOG_ERROR("No nodes for {:x}", exp.m_name);
                 return false;
@@ -920,20 +927,55 @@ public:
             e.name = exp.m_name;
             e.name_space = exp.m_name_space;
             e.file_name_space = exp.m_data_name;
-            e.flags = gscHandler->MapFlagsExportToInt(exp.m_flags);
+            e.flags = that.gscHandler->MapFlagsExportToInt(exp.m_flags);
             e.address = (int32_t)exp.location;
             e.param_count = exp.m_params;
             e.checksum = 0x12345678;
-            gscHandler->WriteExport(&data[expTable + gscHandler->GetExportSize() * exportIndex++], e);
+            that.gscHandler->WriteExport(&data[expTable + that.gscHandler->GetExportSize() * exportIndex++], e);
 
-            AscmCompilerContext cctx{ vmInfo, plt, exp.m_allocatedVar, data };
+            AscmCompilerContext cctx{ that.vmInfo, that.plt, exp.m_allocatedVar, data };
 
             for (auto* node : exp.m_nodes) {
                 if (!node->Write(cctx)) {
                     return false;
                 }
             }
+            return true;
+        };
+
+        std::vector<FunctionObject*> autoexecs{};
+
+        for (auto& [name, exp] : exports) {
+            if (exp.m_flags & tool::gsc::T8GSCExportFlags::AUTOEXEC) {
+                autoexecs.push_back(&exp);
+            }
         }
+
+        // sort the autoexecs by ids and write them first
+
+        std::sort(autoexecs.begin(), autoexecs.end(), [](auto& f1, auto& f2) -> bool { return f1->autoexecOrder < f2->autoexecOrder; });
+
+        bool exportsOk{ true };
+        for (auto* exp : autoexecs) {
+            if (!writeExport(*exp)) {
+                exportsOk = false;
+            }
+        }
+
+        for (auto& [name, exp] : exports) {
+            if (exp.m_flags & tool::gsc::T8GSCExportFlags::AUTOEXEC) {
+                continue; // skip autoexecs
+            }
+
+            if (!writeExport(exp)) {
+                exportsOk = false;
+            }
+        }
+
+        if (!exportsOk) {
+            return false;
+        }
+
         size_t csegSize = data.size() - csegOffset;
 
         LOG_TRACE("Compile {} strings(s)...", strings.size());
@@ -1846,10 +1888,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
                 fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
                 // iterator = firstarray(array);
-                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
                 fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_FirstArrayKey));
-                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableRefCached));
-                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+                fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_SetLocalVariableCached));
 
                 AscmNode* loopBreak = new AscmNode();
                 AscmNode* loopContinue = new AscmNode();
@@ -1867,20 +1908,17 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 // key = iteratorkey(iterator);
                 fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
                 fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_T9_IteratorKey));
-                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableRefCached));
-                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_SetLocalVariableCached));
 
                 // val = iteratorval(iterator);
                 fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
                 fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_T9_IteratorVal));
-                fobj.AddNode(arrVal, new AscmNodeVariable(valueVar->id, OPCODE_EvalLocalVariableRefCached));
-                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+                fobj.AddNode(arrVal, new AscmNodeVariable(valueVar->id, OPCODE_SetLocalVariableCached));
 
                 // next = iteratornext(iterator);
                 fobj.AddNode(arrVal, new AscmNodeVariable(iteratorVal->id, OPCODE_EvalLocalVariableCached));
                 fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_T9_IteratorNext));
-                fobj.AddNode(arrVal, new AscmNodeVariable(nextVar->id, OPCODE_EvalLocalVariableRefCached));
-                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
+                fobj.AddNode(arrVal, new AscmNodeVariable(nextVar->id, OPCODE_SetLocalVariableCached));
 
                 if (!ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, false)) {
                     ok = false;
@@ -2286,7 +2324,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         }
                     }
                 }
-                fobj.AddNode(rule, new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash));
+                fobj.AddNode(rule, new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash));
             }
             else {
                 if (flags & FCF_METHOD) {
@@ -2318,7 +2356,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     }
                 }
 
-                auto* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash);
+                auto* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash);
 
                 // link by the game, but we write it for test
                 Located located{ funcNspHash, funcHash };
@@ -2769,7 +2807,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                         FunctionVar* var = fobj.FindVar(varName);
 
-                        if (var) {
+                        if (var != fobj.VarEnd()) {
                             fobj.AddNode(rule, new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableRefCached));
                             fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_T9_GetVarRef));
                             return true;
@@ -3237,6 +3275,16 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
         }
         else if (txt == "autoexec") {
             exp.m_flags |= tool::gsc::T8GSCExportFlags::AUTOEXEC;
+            
+            if (IS_RULE_TYPE(func->children[i + 2], gscParser::RuleNumber)) {
+                // use user order
+                exp.autoexecOrder = NumberNodeValue(func->children[i + 2]);
+                i += 3;
+            }
+            else {
+                // use natural order
+                exp.autoexecOrder = obj.autoexecOrder++;
+            }
         }
         else if (txt == "event_handler") {
             if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_EV_HANDLER)) {

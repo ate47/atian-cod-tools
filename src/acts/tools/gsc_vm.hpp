@@ -211,9 +211,10 @@ public:
     }
     void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
-    uint64_t GetDefaultChecksum(bool client) override {
+    int64_t GetDefaultChecksum(bool client) override {
         // todo: check client
-        return 0x636e9d38;
+        constexpr int32_t t = 0x636e9d38;
+        return t;
     }
     void SetChecksum(uint64_t val) override {
         Ptr<T8GSCOBJ>()->crc = (uint32_t)val;
@@ -434,9 +435,10 @@ public:
     }
     void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
-    uint64_t GetDefaultChecksum(bool client) override {
+    int64_t GetDefaultChecksum(bool client) override {
         // todo: check client
-        return 0xefc1b08d;
+        constexpr int32_t t = 0xefc1b08d;
+        return t;
     }
     void SetChecksum(uint64_t val) override {
         Ptr<T937GSCOBJ>()->crc = (uint32_t)val;
@@ -547,7 +549,8 @@ public:
         default: nflags |= flags & 0xF; // wtf?
         }
 
-        nflags |= flags & ~T9_IF_CALLTYPE_MASK;
+        if (flags & T9_IF_DEV_CALL) nflags |= DEV_CALL;
+        if (flags & T9_IF_GET_CALL) nflags |= GET_CALL;
 
         return nflags;
     }
@@ -584,7 +587,8 @@ public:
         default: nflags |= flags & 0xF; // wtf?
         }
 
-        nflags |= flags & ~T9_IF_CALLTYPE_MASK;
+        if (flags & DEV_CALL) nflags |= T9_IF_DEV_CALL;
+        if (flags & GET_CALL) nflags |= T9_IF_GET_CALL;
 
         return nflags;
     }
@@ -713,9 +717,10 @@ public:
     }
     void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
-    uint64_t GetDefaultChecksum(bool client) override {
+    int64_t GetDefaultChecksum(bool client) override {
         // todo: check client
-        return 0xc97916a2;
+        constexpr int32_t t = 0xc97916a2;
+        return t;
     }
     void SetChecksum(uint64_t val) override {
         Ptr<T9GSCOBJ>()->crc = (uint32_t)val;
@@ -1016,7 +1021,7 @@ public:
     void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override {
         *reinterpret_cast<tool::gsc::GSC_ANIMTREE_ITEM*>(data) = item;
     }
-    uint64_t GetDefaultChecksum(bool client) override {
+    int64_t GetDefaultChecksum(bool client) override {
         return 0; // no checksum
     }
     void SetChecksum(uint64_t val) override { }

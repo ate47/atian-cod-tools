@@ -1,10 +1,41 @@
-#using scripts\core_common\struct;
-#using scripts\core_common\array_shared;
-#using scripts\core_common\callbacks_shared;
-#using scripts\core_common\clientfield_shared;
-#using scripts\core_common\flag_shared;
-#using scripts\core_common\system_shared;
-#using scripts\core_common\values_shared;
+#ifdef _T8
+#include scripts\core_common\struct;
+#include scripts\core_common\callbacks_shared;
+#include scripts\core_common\clientfield_shared;
+#include scripts\core_common\math_shared;
+#include scripts\core_common\system_shared;
+#include scripts\core_common\util_shared;
+#include scripts\core_common\hud_util_shared;
+#include scripts\core_common\hud_message_shared;
+#include scripts\core_common\hud_shared;
+#include scripts\core_common\array_shared;
+#include scripts\core_common\flag_shared;
+#include scripts\core_common\bots\bot;
+#include scripts\core_common\player\player_role;
+#include scripts\core_common\player\player_stats;
+#include scripts\core_common\values_shared;
+#include scripts\core_common\spawner_shared;
+#include scripts\core_common\flagsys_shared;
+#include scripts\core_common\exploder_shared;
+#include scripts\core_common\vehicle_shared.gsc;
+
+#else
+
+#ifdef _T9
+#include scripts\core_common\struct;
+#include scripts\core_common\array_shared;
+#include scripts\core_common\callbacks_shared;
+#include scripts\core_common\clientfield_shared;
+#include scripts\core_common\system_shared;
+#include scripts\core_common\flag_shared;
+#include scripts\core_common\values_shared;
+#include scripts\core_common\util_shared;
+#include scripts\core_common\player\player_stats;
+#include scripts\core_common\spawner_shared;
+#endif
+
+#endif
+
 
 #namespace acts;
 
@@ -75,6 +106,7 @@ function god_mode() {
         if (self is_mod_activated("maxpoints")) {
             self.score = 99999;
 
+#ifdef _T9
             oldcommon = self.var_595a11bc;
             oldrare = self.var_72d64cfd;
             self.var_595a11bc = 9999; // common savages
@@ -87,6 +119,7 @@ function god_mode() {
             if (oldrare != self.var_72d64cfd) {
                 self clientfield::set_player_uimodel("hudItems.rareScrap", self.var_72d64cfd);
             }
+#endif
         }
 
         if (isdefined(self.tool_invulnerability) && self.tool_invulnerability) {

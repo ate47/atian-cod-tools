@@ -34,6 +34,7 @@ function on_player_connect() {
     i = 0;
 test:
     i++;
+    self.score = 20000;
     level.acts.counter++;
     if (self usebuttonpressed()) {
         

@@ -162,6 +162,7 @@ public:
     antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
     Param_listContext *param_list();
     Statement_blockContext *statement_block();
+    NumberContext *number();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
