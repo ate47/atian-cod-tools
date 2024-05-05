@@ -189,12 +189,12 @@ public:
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
         if (aligned) {
             if (flags & FCF_POINTER_CLASS) {
-                return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + sizeof(uint32_t);
+                return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + (uint32_t)sizeof(uint32_t);
             }
             if (flags & FCF_POINTER) {
                 return AscmNodeOpCode::ShiftSize(start, aligned) + 1;
             }
-            return utils::Aligned<uint64_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + sizeof(uint64_t);
+            return utils::Aligned<uint64_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + (uint32_t)sizeof(uint64_t);
         }
         throw std::runtime_error("later");
     }
@@ -798,9 +798,9 @@ public:
     GscCompilerOption& opt;
     InputInfo& info;
     GscFileType type;
-    uint64_t fileName;
     uint64_t currentNamespace;
-    int64_t crc;
+    uint64_t fileName{};
+    int64_t crc{};
     std::set<uint64_t> includes{};
     std::unordered_map<uint64_t, FunctionObject> exports{};
     std::unordered_map<std::string, RefObject> strings{};
@@ -1190,7 +1190,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
             if (rule->children.size() == 1) {
                 return ParseFieldNode(rule->children[0], parser, obj, fobj);
             }
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
             return false;
         }
         case gscParser::RuleExpression14: {
@@ -1200,7 +1200,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
             if (rule->children.size() == 3) { // ( exp )
                 return ParseFieldNode(rule->children[1], parser, obj, fobj);
             }
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown expr14 rule type: {}", exp->getText()));
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Unknown expr14 rule type: {}", exp->getText()));
             return false;
         }
         case gscParser::RuleObject_left_value:
@@ -1216,7 +1216,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                 startOp = 3;
             }
             else {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown object/array type: {}", exp->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array type: {}", exp->getText()));
                 return false;
             }
 
@@ -1224,7 +1224,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                 // object
                 if (IS_TERMINAL_TYPE(rule->children[startOp + 1], gscParser::IDENTIFIER)) {
                     if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object id: {}", exp->getText()));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id: {}", exp->getText()));
                         return false;
                     }
                     std::string fieldText = rule->children[startOp + 1]->getText();
@@ -1243,13 +1243,13 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                 }
                 else {
                     if (!ParseExpressionNode(rule->children[startOp + 2], parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object canon id: {}", exp->getText()));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object canon id: {}", exp->getText()));
                         return false;
                     }
                     fobj.AddNode(rule->children[startOp + 2], new AscmNodeOpCode(OPCODE_CastCanon));
 
                     if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object id (from canon): {}", exp->getText()));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id (from canon): {}", exp->getText()));
                         return false;
                     }
                     fobj.AddNode(value, new AscmNodeOpCode(OPCODE_CastFieldObject));
@@ -1261,12 +1261,12 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
             if (rule->getRuleIndex() == gscParser::RuleArray_left_value) {
                 // array 
                 if (!ParseExpressionNode(rule->children[startOp + 1], parser, obj, fobj, true)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse array key: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array key: {}", exp->getText()));
                     return false;
                 }
 
                 if (!ParseFieldNode(value, parser, obj, fobj)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse array node: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array node: {}", exp->getText()));
                     return false;
                 }
 
@@ -1274,7 +1274,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                 return true;
             }
 
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown object/array rule: {} ({})", exp->getText(), rule->getRuleIndex()));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array rule: {} ({})", exp->getText(), rule->getRuleIndex()));
             return false;
         }
         case gscParser::RuleLeft_value: {
@@ -1342,20 +1342,20 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                         return true;
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown left value type: {}", second));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
                         return false;
                     }
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown lvalue type: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue type: {}", exp->getText()));
                     return false;
                 }
             }
             else {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown lvalue tree type: {}", exp->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue tree type: {}", exp->getText()));
                 return false;
             }
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unhandled lvalue type: {}", exp->getText()));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled lvalue type: {}", exp->getText()));
             return false;
         }
         case gscParser::RuleConst_expr:
@@ -1377,17 +1377,17 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
         case gscParser::RuleStatement_block:
         case gscParser::RuleOperator_inst:
         case gscParser::RuleFunction_call:
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
             return false;
         }
 
 
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("unhandled lvalue rule: {} ({})", rule->getText(), rule->getRuleIndex()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unhandled lvalue rule: {} ({})", rule->getText(), rule->getRuleIndex()));
         return false;
     }
 
     if (exp->getTreeType() != TREE_TERMINAL) {
-        obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("unknown tree type: {}", exp->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Unknown tree type: {}", exp->getText()));
         return false;
     }
     TerminalNode* term = dynamic_cast<TerminalNode*>(exp);
@@ -1409,7 +1409,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
         if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
             auto& gv = gvarIt->second;
 
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, term, std::format("the {} global variable can't be used as a lvalue", gv.name));
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, term, std::format("The {} global variable can't be used as a lvalue", gv.name));
             return false;
         }
         auto [varerr, keyVarL] = fobj.RegisterVar(varName, true, 0);
@@ -1431,20 +1431,20 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
     case gscParser::INTEGER2:
     case gscParser::HASHSTRING:
     case gscParser::STRING:
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("not a valid lvalue: {}", term->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {}", term->getText()));
         return false;
     }
 
-    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unhandled lvalue terminal: {}", term->getText()));
+    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled lvalue terminal: {}", term->getText()));
     return false;
 }
 bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal) {
     if (!exp) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "empty tree error");
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "Empty tree error");
         return false;
     }
     if (exp->getTreeType() == TREE_ERROR) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree error, bad syntax?");
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "Detected tree error, bad syntax?");
         return false;
     }
 
@@ -1454,14 +1454,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         // search that we don't have a children in error, after that we'll assume the tree is right for a depth of 2
         if (std::find_if(rule->children.begin(), rule->children.end(), [](const ParseTree* tree) -> bool { return tree->getTreeType() == TREE_ERROR; })
             != rule->children.end()) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree children error, bad syntax?");
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "Detected tree children error, bad syntax?");
             return false;
         }
 
         switch (rule->getRuleIndex()) {
         case gscParser::RuleStatement: {
             if (expressVal) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express a statement");
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express a statement");
                 return false;
             }
 
@@ -1473,7 +1473,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 auto& loc = fobj.m_jumpLocs[locName];
 
                 if (loc.defined) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("the location {} was defined twice!", locName));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("The location {} was defined twice!", locName));
                     return false;
                 }
 
@@ -1635,7 +1635,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             auto [err, var] = fobj.RegisterVarRnd();
 
             if (err) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering switch variable: {}", err));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering switch variable: {}", err));
                 return false;
             }
 
@@ -1763,12 +1763,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             auto [var2err, iteratorVal] = fobj.RegisterVarRnd();
 
             if (var1err) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach variable: {}", var1err));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach variable: {}", var1err));
                 return false;
             }
 
             if (var2err) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach iterator variable: {}", var2err));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
                 return false;
             }
 
@@ -1783,11 +1783,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 auto [var4err, valueVarL] = fobj.RegisterVar(rule->children[4]->getText(), true);
 
                 if (var3err) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach key variable: {}", var3err));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach key variable: {}", var3err));
                     return false;
                 }
                 if (var4err) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach value variable: {}", var4err));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach value variable: {}", var4err));
                     return false;
                 }
 
@@ -1800,11 +1800,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 auto [var4err, valueVarL] = fobj.RegisterVar(rule->children[2]->getText(), true);
 
                 if (var3err) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach key variable: {}", var3err));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach key variable: {}", var3err));
                     return false;
                 }
                 if (var4err) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach value variable: {}", var4err));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach value variable: {}", var4err));
                     return false;
                 }
 
@@ -1880,7 +1880,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 auto [varnexterr, nextVar] = fobj.RegisterVarRnd();
 
                 if (varnexterr) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("error when registering foreach next variable: {}", varnexterr));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach next variable: {}", varnexterr));
                     ok = false;
                 }
 
@@ -1949,14 +1949,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         case gscParser::RuleNop_def: {
             if (expressVal) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express a nop value");
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express a nop value");
                 return false;
             }
             size_t count{ 1 };
             if (rule->children.size() > 1) {
                 int64_t val{ NumberNodeValue(rule->children[2]) };
                 if (val < 0) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't define a negative amount of nop");
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't define a negative amount of nop");
                     return false;
                 }
                 count = (size_t)val;
@@ -1971,7 +1971,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleStatement_inst: {
             if (rule->children.size() == 1) {
                 if (expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express this value");
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
                     return false;
                 }
                 return true; // empty instruction
@@ -1980,7 +1980,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         case gscParser::RuleStatement_block: {
             if (expressVal) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express this value");
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
                 return false;
             }
             bool ok{ true };
@@ -1995,21 +1995,21 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         case gscParser::RuleOperator_inst: {
             if (expressVal) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't express this value");
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
                 return false;
             }
             auto idf = rule->children[0]->getText();
 
             if (idf == "break") {
                 if (rule->children.size() > 1) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't specify jump location with break");
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't specify jump location with break");
                     return false;
                 }
 
                 const AscmNode* loc = fobj.PeekBreakNode();
 
                 if (!loc) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "not in a break context");
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Not in a break context");
                     return false;
                 }
 
@@ -2019,14 +2019,14 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             if (idf == "continue") {
                 if (rule->children.size() > 1) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "can't specify jump location with continue");
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't specify jump location with continue");
                     return false;
                 }
 
                 const AscmNode* loc = fobj.PeekContinueNode();
 
                 if (!loc) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "not in a continue context");
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Not in a continue context");
                     return false;
                 }
 
@@ -2451,7 +2451,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         }
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[0], std::format("unhandled operator: {}", op));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[0], std::format("Unhandled operator: {}", op));
                         return false;
                     }
                 }
@@ -2484,7 +2484,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Dec));
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled operator: {}", op));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Unhandled operator: {}", op));
                         return false;
                     }
                 }
@@ -2520,7 +2520,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return ok;
             }
             if (rule->children.size() != 3) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("unknown expression, excepted 3 children: {}", rule->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown expression, excepted 3 children: {}", rule->getText()));
                 return false;
             }
 
@@ -2615,7 +2615,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ShiftRight));
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled operator: {}", op));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Unhandled operator: {}", op));
                     ok = false;
                 }
                 if (!expressVal) {
@@ -2632,7 +2632,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj, expressVal);
         case gscParser::RuleVector_value:
             if (!expressVal) { // no need to create vector
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("ignored useless value: {}", rule->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                 return true;
             }
             if (
@@ -2646,7 +2646,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             return true;
         case gscParser::RuleArray_def: {
             if (!expressVal) { // no need to create array
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("ignored useless value: {}", rule->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                 return true;
             }
             fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CreateArray));
@@ -2687,7 +2687,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         case gscParser::RuleStruct_def: {
             if (!expressVal) { // no need to create struct
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("ignored useless value: {}", rule->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                 return true;
             }
             fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CreateStruct));
@@ -2776,7 +2776,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolComplement));
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("unhandled set operator: {}", opVal));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Unhandled set operator: {}", opVal));
                     ok = false;
                 }
 
@@ -2796,6 +2796,10 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             return false;
         }
         case gscParser::RuleFunction_ref: {
+            if (!expressVal) {
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
+                return true;
+            }
             if (rule->children.size() == 2) {
                 if (IS_TERMINAL_TYPE(rule->children[1], gscParser::IDENTIFIER) ||
                     (IS_RULE_TYPE(rule->children[1], gscParser::RuleLeft_value) && IS_TERMINAL_TYPE(rule->children[1]->children[0], gscParser::IDENTIFIER))
@@ -2908,7 +2912,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 startOp = 3;
             }
             else {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown object/array type: {}", exp->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array type: {}", exp->getText()));
                 return false;
             }
 
@@ -2916,7 +2920,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 // object
                 if (IS_TERMINAL_TYPE(rule->children[startOp + 1], gscParser::IDENTIFIER)) {
                     if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object id: {}", exp->getText()));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id: {}", exp->getText()));
                         return false;
                     }
                     std::string fieldText = rule->children[startOp + 1]->getText();
@@ -2938,13 +2942,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
                 else {
                     if (!ParseExpressionNode(rule->children[startOp + 2], parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object canon id: {}", exp->getText()));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object canon id: {}", exp->getText()));
                         return false;
                     }
                     fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastCanon));
 
                     if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse object id (from canon): {}", exp->getText()));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id (from canon): {}", exp->getText()));
                         return false;
                     }
                     fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
@@ -2956,12 +2960,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             if (rule->getRuleIndex() == gscParser::RuleArray_left_value) {
                 // array 
                 if (!ParseExpressionNode(rule->children[startOp + 1], parser, obj, fobj, true)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse array key: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array key: {}", exp->getText()));
                     return false;
                 }
 
                 if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("can't parse array node: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array node: {}", exp->getText()));
                     return false;
                 }
 
@@ -2969,12 +2973,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return true;
             }
 
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown object/array rule: {} ({})", exp->getText(), rule->getRuleIndex()));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array rule: {} ({})", exp->getText(), rule->getRuleIndex()));
             return false;
         }
         case gscParser::RuleLeft_value: {
             if (!expressVal) {
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("ignored useless value: {}", rule->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", rule->getText()));
                 return true;
             }
             if (rule->children.size() == 1) {
@@ -3044,37 +3048,37 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         return true;
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown left value type: {}", second));
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
                         return false;
                     }
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown lvalue type: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue type: {}", exp->getText()));
                     return false;
                 }
             }
             else {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown lvalue tree type: {}", exp->getText()));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue tree type: {}", exp->getText()));
                 return false;
             }
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unhandled lvalue type: {}", exp->getText()));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled lvalue type: {}", exp->getText()));
             return false;
         }
         }
 
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("unhandled rule: {} ({})", rule->getText(), rule->getRuleIndex()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unhandled rule: {} ({})", rule->getText(), rule->getRuleIndex()));
         return false;
     }
 
     if (exp->getTreeType() != TREE_TERMINAL) {
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unknown tree type: {}", exp->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown tree type: {}", exp->getText()));
         return false;
     }
 
     TerminalNode* term = dynamic_cast<TerminalNode*>(exp);
 
     if (!expressVal) {
-        obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("ignored useless value: {}", term->getText()));
+        obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
         return true;
     }
 
@@ -3095,7 +3099,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             auto& gv = gvarIt->second;
             
             if (gv.getOpCode) {
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("opcode gvar not implemented: {}", gv.name));
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Opcode gvar not implemented: {}", gv.name));
                 return false;
             }
 
@@ -3114,7 +3118,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         auto varIt = fobj.FindVar(varName);
 
         if (varIt == fobj.VarEnd()) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("unknown variable: {}", varName));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("Unknown variable: {}", varName));
             return false;
         }
 
@@ -3200,7 +3204,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         std::string key{ &newStr[0]};
 
         if (key.length() >= 256) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("string too long: {}", term->getText()));
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("String too long: {}", term->getText()));
             return false;
         }
 
@@ -3210,7 +3214,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     }
     }
 
-    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("unhandled terminal: {}", term->getText()));
+    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled terminal: {}", term->getText()));
     return false;
 }
 
@@ -3325,14 +3329,14 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             return false;
         }
 
-        TerminalNode* idfNode;
+        TerminalNode* idfNode{};
         byte idfFlags{};
         if (!IS_TERMINAL_TYPE(param->children[0], gscParser::IDENTIFIER)) {
             if (param->children.size() == 1) {
                 // '...'
 
                 if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_VA)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, "modifier not available for this vm: vararg...");
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, "Modifier not available for this vm: vararg...");
                     return false;
                 }
                 exp.m_flags |= tool::gsc::T8GSCExportFlags::VE;
@@ -3342,14 +3346,14 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
                 if (exp.m_params == 256) {
                     return utils::va("", name.c_str());
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, std::format("Can't register param '{}': too many params", paramIdf));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Can't register param '{}': too many params", paramIdf));
                 }
 
                 exp.m_params++;
 
                 auto [err, vardef] = exp.RegisterVar(paramIdf, false, tool::gsc::opcode::VARIADIC);
                 if (err) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, err);
                     return false;
                 }
 
@@ -3362,7 +3366,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             if (modifier == "*") {
                 // ptr (T9)
                 if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_PTR)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not available for this vm: {}", modifier));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
                     return false;
                 }
                 idfFlags = tool::gsc::opcode::T9_VAR_REF;
@@ -3370,13 +3374,13 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             else if (modifier == "&") {
                 // ref (T8)
                 if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_REF)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not available for this vm: {}", modifier));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
                     return false;
                 }
                 idfFlags = tool::gsc::opcode::ARRAY_REF;
             }
             else {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("modifier not implemented: {}", modifier));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not implemented: {}", modifier));
                 return false;
             }
         }
@@ -3419,7 +3423,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             auto* afterNode = new AscmNode();
             exp.AddNode(defaultValueExp, new AscmNodeJump(afterNode, OPCODE_JumpOnTrue));
             if (!ParseExpressionNode(defaultValueExp, parser, obj, exp, true)) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, defaultValueExp, std::format("can't create expression node for variable {}", paramIdf));
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, defaultValueExp, std::format("Can't create expression node for variable {}", paramIdf));
                 return false;
             }
             exp.AddNode(defaultValueExp, new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableRefCached));
@@ -3449,7 +3453,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
             continue;
         }
 
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, loc.def ? loc.def : blockRule, std::format("the location {} was used, but isn't declared", name));
+        obj.info.PrintLineMessage(alogs::LVL_ERROR, loc.def ? loc.def : blockRule, std::format("The location {} was used, but isn't declared", name));
 
         badRef = true;
 
@@ -3731,7 +3735,7 @@ bool ApplyPreProcessor(InputInfo& info, std::string& str, PreProcessorOption& op
                 err = true;
             }
             else if (eraseCtx.empty()) {
-                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "usage of #else without start if");
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "Usage of #else without start if");
                 err = true;
             }
             else {
@@ -3758,7 +3762,7 @@ bool ApplyPreProcessor(InputInfo& info, std::string& str, PreProcessorOption& op
                 err = true;
             }
             else if (eraseCtx.empty()) {
-                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "usage of #endif without start if");
+                info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, "Usage of #endif without start if");
                 err = true;
             }
             else {
