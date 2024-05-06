@@ -646,9 +646,9 @@ namespace tool::gsc::opcode {
 	#endif
 			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
-			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel, OPCODE_IW_GetLevelRef);
-			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
-			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim, OPCODE_IW_GetAnimRef);
+			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel);
+			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame);
+			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim);
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
@@ -889,7 +889,7 @@ namespace tool::gsc::opcode {
 		case OPCODE_IW_BuiltinFunctionCallPointer: return "BuiltinFunctionCallPointer";
 		case OPCODE_IW_BuiltinMethodCallPointer: return "BuiltinMethodCallPointer";
 		case OPCODE_IW_GetLevel: return "GetLevel";
-		case OPCODE_IW_GetLevelRef: return "GetLevelRef";
+		case OPCODE_IW_GetLevelGRef: return "GetLevelGRef";
 		case OPCODE_IW_GetGame: return "GetGame";
 		case OPCODE_IW_GetGameRef: return "GetGameRef";
 		case OPCODE_IW_GetAnim: return "GetAnim";

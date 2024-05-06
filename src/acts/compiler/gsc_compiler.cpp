@@ -65,12 +65,21 @@ public:
         return vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT);
     }
 
-    template<typename Type>
-    void Align() {
+    void Align(size_t len) {
         if (HasAlign()) {
-            utils::Aligned<Type>(data);
+            size_t pre = data.size();
+            size_t post = (data.size() + (len - 1)) & ~(len - 1);
+
+            for (size_t i = pre; i < post; i++) {
+                data.push_back(0);
+            }
         }
         // not required
+    }
+
+    template<typename Type>
+    void Align() {
+        Align(sizeof(Type));
     }
     template<typename Type>
     void Write(Type value) {
@@ -167,6 +176,45 @@ public:
     }
 };
 
+class AscmNodeHash : public AscmNodeOpCode {
+public:
+    uint64_t val;
+    uint32_t hashSize;
+
+    AscmNodeHash(uint64_t val, OPCode opcode, uint32_t hashSize) : AscmNodeOpCode(opcode), val(val), hashSize(hashSize) {
+    }
+
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+        if (aligned) {
+            return ((AscmNodeOpCode::ShiftSize(start, aligned) + (hashSize - 1)) & ~(hashSize - 1)) + hashSize;
+        }
+        return AscmNodeOpCode::ShiftSize(start, aligned) + hashSize;
+    }
+
+    bool Write(AscmCompilerContext& ctx) override {
+        if (!AscmNodeOpCode::Write(ctx)) {
+            return false;
+        }
+
+        if (hashSize == 8) {
+            ctx.Align<uint64_t>();
+            ctx.Write<uint64_t>(val);
+        }
+        else if (hashSize == 4) {
+            ctx.Align<uint32_t>();
+            ctx.Write<uint32_t>((uint32_t)val);
+        }
+        else {
+            throw std::runtime_error(utils::va("hash%d not implemented in AscmNodeHash", hashSize * 8));
+        }
+        return true;
+    }
+
+    uint32_t GetDataFLoc(bool aligned) const {
+        return ShiftSize(floc, aligned) - hashSize;
+    }
+};
+
 enum FuncCallFlags {
     FCF_THREAD = 0x1,
     FCF_CHILDTHREAD = 0x2,
@@ -241,37 +289,158 @@ public:
     }
 };
 
-class AscmNodeCreateLocalVariables : public AscmNodeOpCode {
+class AscmNodeCreateLocalVariables : public AscmNode {
     std::vector<FunctionVar> vars{};
+    size_t params{};
+    bool hasRegister;
+    bool hasFlag;
+    uint32_t hashSize;
 public:
-    AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count) : AscmNodeOpCode(OPCODE_SafeCreateLocalVariables) {
-        vars.reserve(count);
-        for (size_t i = 0; i < count; i++) {
-            vars.push_back(lvars[i]);
-        }
-    }
+    AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj);
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
-        uint32_t e = AscmNodeOpCode::ShiftSize(start, aligned) + 1;
-        for (size_t i = 0; i < vars.size(); i++) {
-            e = utils::Aligned<uint32_t>(e) + 4 + 1;
+        static AscmNodeOpCode opCodeUndef{ OPCODE_Undefined };
+        // opcode
+        uint32_t e = opCodeUndef.ShiftSize(start, aligned);
+
+        if (hasRegister) {
+            if (params) {
+                e++; // add params count
+
+                for (size_t i = 0; i < params; i++) {
+                    if (aligned) {
+                        e = (e + (hashSize - 1)) & ~(hashSize - 1);
+                    }
+
+                    e += hashSize;
+
+                    if (hasFlag) {
+                        e++;
+                    }
+                }
+            }
+            for (size_t i = params; i < vars.size(); i++) {
+                // register opcode
+                e = opCodeUndef.ShiftSize(e, aligned);
+                if (aligned) {
+                    e = (e + (hashSize - 1)) & ~(hashSize - 1);
+                }
+
+                e += hashSize;
+
+                if (hasFlag) {
+                    e++;
+                }
+            }
+
         }
+        else if (vars.size()) {
+            // count
+            e += 1;
+            for (size_t i = 0; i < vars.size(); i++) {
+                if (aligned) {
+                    e = (e + (hashSize - 1)) & ~(hashSize - 1);
+                }
+
+                e += hashSize;
+
+                if (hasFlag) {
+                    e++;
+                }
+            }
+        }
+        // else we only have the CheckClearParams
         return e;
     }
 
     bool Write(AscmCompilerContext& ctx) override {
-        if (!AscmNodeOpCode::Write(ctx)) {
-            return false;
+        if (hasRegister) {
+            if (params) {
+                // add params
+                AscmNodeOpCode opCode{ OPCODE_SafeCreateLocalVariables };
+                if (!opCode.Write(ctx)) {
+                    return false;
+                }
+
+                ctx.Write<byte>((byte)params);
+
+                for (size_t i = 0; i < params; i++) {
+                    FunctionVar& var = vars[i];
+
+                    if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+                        ctx.Align<uint64_t>();
+                        ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                    }
+                    else {
+                        ctx.Align<uint32_t>();
+                        ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                    }
+                    if (hasFlag) {
+                        ctx.Write<byte>(var.flags);
+                    }
+                }
+            }
+            else {
+                // check no params
+                AscmNodeOpCode opCode{ OPCODE_CheckClearParams };
+                if (!opCode.Write(ctx)) {
+                    return false;
+                }
+            }
+
+            // register the variables
+            AscmNodeOpCode opCode{ OPCODE_IW_RegisterVariable };
+            for (size_t i = params; i < vars.size(); i++) {
+                FunctionVar& var = vars[i];
+
+                if (!opCode.Write(ctx)) {
+                    return false;
+                }
+
+                if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+                    ctx.Align<uint64_t>();
+                    ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                }
+                else {
+                    ctx.Align<uint32_t>();
+                    ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                }
+                if (hasFlag) {
+                    ctx.Write<byte>(var.flags);
+                }
+            }
+
+            return true;
+        }
+        
+        if (vars.size()) {
+            AscmNodeOpCode opCode{ OPCODE_SafeCreateLocalVariables };
+            if (!opCode.Write(ctx)) {
+                return false;
+            }
+
+            ctx.Write<byte>((byte)vars.size());
+
+            for (FunctionVar& var : vars) {
+                if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+                    ctx.Align<uint64_t>();
+                    ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                }
+                else {
+                    ctx.Align<uint32_t>();
+                    ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                }
+                if (hasFlag) {
+                    ctx.Write<byte>(var.flags);
+                }
+            }
+
+            return true;
         }
 
-        ctx.Write<byte>((byte)vars.size());
-        for (FunctionVar& var : vars) {
-            ctx.Align<uint32_t>();
-            ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
-            ctx.Write<byte>(var.flags);
-        }
 
-        return true;
+        AscmNodeOpCode opCode{ OPCODE_CheckClearParams };
+        return opCode.Write(ctx);
     }
 };
 
@@ -280,11 +449,13 @@ public:
     GlobalVariableDef* def;
 
     AscmNodeGlobalVariable(GlobalVariableDef* def, bool ref) : 
-        AscmNodeOpCode(ref ? (def->getRefOpCode ? def->getRefOpCode : OPCODE_GetGlobalObject)
-                        : (def->getOpCode ? def->getOpCode : OPCODE_GetGlobal)), def(def) {
+        AscmNodeOpCode(ref ? OPCODE_GetGlobalObject : OPCODE_GetGlobal), def(def) {
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+        if (aligned) {
+            return utils::Aligned<uint16_t>(AscmNodeOpCode::ShiftSize(start, aligned)) + sizeof(uint16_t);
+        }
         return AscmNodeOpCode::ShiftSize(start, aligned) + 2;
     }
 
@@ -293,6 +464,7 @@ public:
             return false;
         }
 
+        ctx.Align<uint16_t>(); // not really required, but still good
         ctx.Write<uint16_t>(0); // added by the linker, remove if def using opcode todo??
         return true;
     }
@@ -699,12 +871,16 @@ public:
     }
 
     AscmNode* CreateParamNode() const {
-        if (!m_allocatedVar) {
-            return new AscmNodeOpCode(OPCODE_CheckClearParams);
-        }
-
-        return new AscmNodeCreateLocalVariables(m_vars, m_allocatedVar);
+        return new AscmNodeCreateLocalVariables(m_vars, m_allocatedVar, (size_t)m_params, *this);
     }
+
+    AscmNode* CreateFieldHash(uint64_t v, OPCode op) const {
+        return new AscmNodeHash(v, op, m_vmInfo->HasFlag(VmFlags::VMF_HASH64) ? 8 : 4);
+    }
+
+    AscmNode* CreateFieldHash(const char* v, OPCode op) const;
+
+    AscmNode* CreateFieldHash(const std::string& v, OPCode op) const;
 
     const AscmNode* PeekBreakNode() const {
         if (m_jumpBreak.size()) {
@@ -1149,6 +1325,27 @@ void FunctionObject::AddNode(decltype(m_nodes)::iterator it, ParseTree* tree, As
     m_nodes.insert(it, node);
 }
 
+AscmNode* FunctionObject::CreateFieldHash(const char* v, OPCode op) const {
+    obj.hashes.insert(v);
+    return CreateFieldHash(m_vmInfo->HashField(v), op);
+}
+
+AscmNode* FunctionObject::CreateFieldHash(const std::string& v, OPCode op) const {
+    obj.hashes.insert(v);
+    return CreateFieldHash(m_vmInfo->HashField(v), op);
+}
+
+AscmNodeCreateLocalVariables::AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj) : params(params) {
+    hasRegister = fobj.obj.HasOpCode(OPCODE_IW_RegisterVariable);
+    hashSize = fobj.obj.vmInfo->HasFlag(VMF_HASH64) ? 8 : 4;
+    hasFlag = !fobj.obj.vmInfo->HasFlag(VMF_NO_PARAM_FLAGS);
+
+    vars.reserve(count);
+    for (size_t i = 0; i < count; i++) {
+        vars.push_back(lvars[i]);
+    }
+}
+
 bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal);
 
 bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
@@ -1228,7 +1425,6 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                         return false;
                     }
                     std::string fieldText = rule->children[startOp + 1]->getText();
-                    obj.hashes.insert(fieldText);
 
                     if (fieldText == "size") {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
@@ -1237,8 +1433,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                     else {
                         fobj.AddNode(rule->children[startOp + 1], new AscmNodeOpCode(OPCODE_CastFieldObject));
                         // use identifier
-                        uint64_t hash = obj.vmInfo->HashField(fieldText);
-                        fobj.AddNode(rule->children[startOp + 1], new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariableRef));
+                        fobj.AddNode(rule->children[startOp + 1], fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariableRef));
                     }
                 }
                 else {
@@ -1300,7 +1495,6 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                                 return false;
                             }
                             std::string fieldText = rule->children[2]->getText();
-                            obj.hashes.insert(fieldText);
 
                             if (fieldText == "size") {
                                 obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
@@ -1308,9 +1502,8 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
                             }
                             else {
                                 // use identifier
-                                uint64_t hash = obj.vmInfo->HashField(fieldText);
                                 fobj.AddNode(rule->children[2], new AscmNodeOpCode(OPCODE_CastFieldObject));
-                                fobj.AddNode(rule->children[2], new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariableRef));
+                                fobj.AddNode(rule->children[2], fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariableRef));
                             }
                         }
                         else {
@@ -2708,9 +2901,15 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     ok = false;
                 }
 
-                fobj.AddNode(rule->children[i - 1], new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
+                if (obj.HasOpCode(OPCODE_IW_AddToStruct)) {
+                    fobj.AddNode(rule->children[i - 1], fobj.CreateFieldHash(sub, OPCODE_IW_AddToStruct));
+                }
+                else {
+                    obj.hashes.insert(sub);
+                    fobj.AddNode(rule->children[i - 1], new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
 
-                fobj.AddNode(rule->children[i - 1], new AscmNodeOpCode(OPCODE_AddToStruct));
+                    fobj.AddNode(rule->children[i - 1], new AscmNodeOpCode(OPCODE_AddToStruct));
+                }
 
                 i++; // ',' or '}'
             }
@@ -2928,15 +3127,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
                     }
                     else {
-                        obj.hashes.insert(fieldText);
                         // use identifier
-                        uint64_t hash = obj.vmInfo->HashField(fieldText);
                         if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
-                            fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
+                            fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_CastAndEvalFieldVariable));
                         }
                         else {
                             fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                            fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                            fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariable));
                         }
                     }
                 }
@@ -3007,15 +3204,13 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                                 fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
                             }
                             else {
-                                obj.hashes.insert(fieldText);
                                 // use identifier
-                                uint64_t hash = obj.vmInfo->HashField(fieldText);
                                 if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
-                                    fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_CastAndEvalFieldVariable));
+                                    fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_CastAndEvalFieldVariable));
                                 }
                                 else {
                                     fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                                    fobj.AddNode(rule, new AscmNodeData<uint32_t>((uint32_t)hash, OPCODE_EvalFieldVariable));
+                                    fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariable));
                                 }
                             }
                         }
@@ -3099,7 +3294,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             auto& gv = gvarIt->second;
             
             if (gv.getOpCode) {
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Opcode gvar not implemented: {}", gv.name));
+                fobj.AddNode(term, new AscmNodeOpCode(gv.getOpCode));
+                return true;
+            }
+
+            if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("{} is defined as a global, but the vm doesn't support globals", varName));
                 return false;
             }
 
@@ -3109,7 +3309,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 decl.def = &gv;
             }
 
-            auto* gvar = new AscmNodeGlobalVariable(decl.def, false);
+            auto* gvar = new AscmNodeGlobalVariable(&gv, false);
             decl.nodes.emplace_back(gvar);
             fobj.AddNode(term, gvar);
             return true;

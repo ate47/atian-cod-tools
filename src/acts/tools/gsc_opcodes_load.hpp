@@ -239,7 +239,7 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_BuiltinMethodCallPointer,
 
 		OPCODE_IW_GetLevel,
-		OPCODE_IW_GetLevelRef,
+		OPCODE_IW_GetLevelGRef,
 		OPCODE_IW_GetGame,
 		OPCODE_IW_GetGameRef,
 		OPCODE_IW_GetAnim,

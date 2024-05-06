@@ -918,6 +918,21 @@ public:
 
         return nflags;
     }
+
+    byte MapFlagsImportToInt(byte flags) {
+        return flags; // TODO
+    }
+
+    byte MapFlagsExportToInt(byte flags) {
+        byte nflags = 0;
+
+        if (flags & AUTOEXEC) nflags |= 1;
+        if (flags & LINKED) nflags |= 2;
+        if (flags & PRIVATE) nflags |= 4;
+        if (flags & VE) nflags |= 0x40;
+
+        return nflags;
+    }
     uint16_t GetAnimTreeSingleCount() override {
         return Ptr<GscObj23>()->animtree_use_count;
     };

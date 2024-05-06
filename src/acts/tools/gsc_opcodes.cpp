@@ -2604,7 +2604,7 @@ public:
 		out << "\n";
 
 		if (context.m_runDecompiler) {
-			ASMContextNode* keyNode = m_popKey ? context.PopASMCNode() : new ASMContextNodeIdentifier(key);
+			ASMContextNode* keyNode = m_popKey ? context.PopASMCNode() : new ASMContextNodeHash(key);
 			ASMContextNode* value = context.PopASMCNode();
 			ASMContextNode* structVal = context.PeekASMCNode();
 
@@ -4484,7 +4484,7 @@ void tool::gsc::opcode::RegisterVMOperatorFunction(byte vm, const char* name, co
 	gv.minParam = minArgs;
 	gv.maxParam = maxArgs;
 }
-void tool::gsc::opcode::RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode, OPCode getRefOpCode) {
+void tool::gsc::opcode::RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode) {
 	auto ref = g_opcodeMap.find(vm);
 
 	if (ref == g_opcodeMap.end()) {
@@ -4503,7 +4503,6 @@ void tool::gsc::opcode::RegisterVMGlobalVariable(byte vm, const char* name, OPCo
 	auto& gv = ref->second.globalvars[hash];
 	gv.name = name;
 	gv.getOpCode = getOpCode;
-	gv.getRefOpCode = getRefOpCode;
 }
 
 void tool::gsc::opcode::RegisterVMPlatform(byte vm, Platform plt) {
@@ -4794,7 +4793,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true));
 		RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true, true));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "GetLevel", GGGT_PUSH, "level"));
-		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelRef, "GetLevelRef", GGGT_GLOBAL, "level"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelGRef, "GetLevelGRef", GGGT_GLOBAL, "level"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGame, "GetGame", GGGT_PUSH, "game"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGameRef, "GetGameRef", GGGT_FIELD, "game"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnim, "GetAnim", GGGT_PUSH, "anim"));

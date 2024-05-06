@@ -26,7 +26,6 @@ namespace tool::gsc::opcode {
 	struct GlobalVariableDef {
 		const char* name;
 		OPCode getOpCode{};
-		OPCode getRefOpCode{};
 	};
 	struct FunctionOperator {
 		const char* name;
@@ -108,7 +107,7 @@ namespace tool::gsc::opcode {
 	std::pair<bool, uint16_t> GetOpCodeId(byte vm, Platform platform, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
 	void RegisterVM(byte vm, const char* name, const char* codeName, uint64_t flags);
-	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode = OPCODE_Undefined, OPCode getRefOpCode = OPCODE_Undefined);
+	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode = OPCODE_Undefined);
 	void RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255);
 	void RegisterVMPlatform(byte vm, Platform plt);
 	void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op);
