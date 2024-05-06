@@ -41,15 +41,16 @@ statement_foreach:
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (expression | operator_inst | statement_dowhile | function_call | nop_def) ';';
+statement_inst: (expression | operator_inst | statement_dowhile | function_call | nop_def | devop_def) ';';
 
 function_call: 
 	('thread' | 'childthread')? function_component '(' expression_list ')'
 	| expression14 ('thread' | 'childthread')? function_component '(' expression_list ')'
     | function_call ('thread' | 'childthread')? function_component '(' expression_list ')'
-	;
+;
 
-nop_def: 'nop' ('(' number ')')?;
+nop_def: ('nop' | 'Nop') ('(' number ')')?;
+devop_def: ('DevOp' | 'devop' | 'Devop') '(' number ')';
 
 function_component: 
 	( IDENTIFIER '::')? IDENTIFIER 
@@ -150,7 +151,7 @@ INTEGER16: '-'? '0x' ([0-9a-f])+;
 INTEGER8: '-'? '0' ([0-7])*;
 INTEGER2: '-'? '0b' ([01])*;
 FLOATVAL: '-'? ((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
-BUILTIN: 'break' | 'continue' | 'goto' | 'return' | 'wait' | 'waitframe';
+BUILTIN: 'break' | 'continue' | 'goto' | 'return' | 'wait';
 BOOL_VALUE: 'true' | 'false';
 UNDEFINED_VALUE: 'undefined';
 IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;

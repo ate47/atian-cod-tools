@@ -130,7 +130,7 @@ public:
         auto [ok, op] = GetOpCodeId(ctx.vmInfo->vm, ctx.plt, opcode);
         if (!ok) {
             LOG_ERROR("Can't find opcode {} ({}) for vm {}/{}", OpCodeName(opcode), (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
-            
+
             return false;
         }
 
@@ -140,6 +140,34 @@ public:
         }
         else {
             ctx.Write<byte>((byte)op);
+        }
+
+        return true;
+    }
+};
+
+class AscmNodeRawOpCode : public AscmNode {
+public:
+    int16_t opcode;
+
+    AscmNodeRawOpCode(int16_t opcode) : opcode(opcode) {
+        nodetype = ASCMNT_OPCODE;
+    }
+
+    uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+        if (aligned) {
+            return utils::Aligned<uint16_t>(start) + sizeof(uint16_t);
+        }
+        return start + 1;
+    }
+
+    bool Write(AscmCompilerContext& ctx) override {
+        ctx.Align<uint16_t>();
+        if (ctx.HasAlign()) {
+            ctx.Write<uint16_t>(opcode);
+        }
+        else {
+            ctx.Write<byte>((byte)opcode);
         }
 
         return true;
@@ -1567,6 +1595,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
         case gscParser::RuleStatement_foreach:
         case gscParser::RuleStatement_inst:
         case gscParser::RuleNop_def:
+        case gscParser::RuleDevop_def:
         case gscParser::RuleStatement_block:
         case gscParser::RuleOperator_inst:
         case gscParser::RuleFunction_call:
@@ -2159,6 +2188,33 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Nop));
             }
             
+            return true;
+        }
+        case gscParser::RuleDevop_def: {
+            if (expressVal) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express a devop value");
+                return false;
+            }
+            int64_t val{ NumberNodeValue(rule->children[2]) };
+            if (val < 0) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Negative)");
+                return false;
+            }
+            if (obj.vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)) {
+                if (val > 0xFFFF) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Too large)");
+                    return false;
+                }
+            }
+            else {
+                if (val > 0xFF) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Too large)");
+                    return false;
+                }
+            }
+
+            fobj.AddNode(rule, new AscmNodeRawOpCode((uint16_t)val));
+
             return true;
         }
         case gscParser::RuleStatement_inst: {

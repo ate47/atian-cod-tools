@@ -48,7 +48,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T8, "waittillmatchtimeout", "<caller> waittillmatchtimeout(event, match, timeout) -> struct", OPCODE_WaitTillMatchTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 3);
 			RegisterVMOperatorFunction(VM_T8, "waittilltimeout", "<caller> waittilltimeout(event, timeout) -> struct", OPCODE_WaittillTimeout, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2);
 			RegisterVMOperatorFunction(VM_T8, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
-			RegisterVMOperatorFunction(VM_T8, "waitframe", "wait(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T8, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T8, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterDevCall(VM_T8, "assert", "assertmsg", "errormsg", "throw", "println");
 
@@ -649,7 +649,13 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame);
 			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim);
-			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
+			RegisterVMOperatorFunction(VM_MW23, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_MW23, "notify", "<caller> notify(event, param*)", OPCODE_IW_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
+			RegisterVMOperatorFunction(VM_MW23, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_MW23, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_MW23, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
+			RegisterVMOperatorFunction(VM_MW23, "istrue", "istrue() -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
+			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println"); 
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif

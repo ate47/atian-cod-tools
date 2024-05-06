@@ -55,6 +55,8 @@ public:
 
     virtual std::any visitNop_def(gscParser::Nop_defContext *context) = 0;
 
+    virtual std::any visitDevop_def(gscParser::Devop_defContext *context) = 0;
+
     virtual std::any visitFunction_component(gscParser::Function_componentContext *context) = 0;
 
     virtual std::any visitOperator_inst(gscParser::Operator_instContext *context) = 0;

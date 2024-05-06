@@ -23,10 +23,11 @@ public:
     T__50 = 51, T__51 = 52, T__52 = 53, T__53 = 54, T__54 = 55, T__55 = 56, 
     T__56 = 57, T__57 = 58, T__58 = 59, T__59 = 60, T__60 = 61, T__61 = 62, 
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
-    T__68 = 69, T__69 = 70, T__70 = 71, NEWLINE = 72, WHITESPACE = 73, INTEGER10 = 74, 
-    INTEGER16 = 75, INTEGER8 = 76, INTEGER2 = 77, FLOATVAL = 78, BUILTIN = 79, 
-    BOOL_VALUE = 80, UNDEFINED_VALUE = 81, IDENTIFIER = 82, STRUCT_IDENTIFIER = 83, 
-    PATH = 84, STRING = 85, HASHSTRING = 86
+    T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, T__73 = 74, 
+    T__74 = 75, NEWLINE = 76, WHITESPACE = 77, INTEGER10 = 78, INTEGER16 = 79, 
+    INTEGER8 = 80, INTEGER2 = 81, FLOATVAL = 82, BUILTIN = 83, BOOL_VALUE = 84, 
+    UNDEFINED_VALUE = 85, IDENTIFIER = 86, STRUCT_IDENTIFIER = 87, PATH = 88, 
+    STRING = 89, HASHSTRING = 90
   };
 
   enum {
@@ -35,14 +36,14 @@ public:
     RuleStatement = 8, RuleStatement_for = 9, RuleStatement_while = 10, 
     RuleStatement_dowhile = 11, RuleStatement_foreach = 12, RuleStatement_if = 13, 
     RuleStatement_switch = 14, RuleStatement_inst = 15, RuleFunction_call = 16, 
-    RuleNop_def = 17, RuleFunction_component = 18, RuleOperator_inst = 19, 
-    RuleExpression = 20, RuleSet_expression = 21, RuleExpression1 = 22, 
-    RuleExpression2 = 23, RuleExpression3 = 24, RuleExpression4 = 25, RuleExpression5 = 26, 
-    RuleExpression6 = 27, RuleExpression7 = 28, RuleExpression8 = 29, RuleExpression9 = 30, 
-    RuleExpression10 = 31, RuleExpression11 = 32, RuleExpression12 = 33, 
-    RuleExpression13 = 34, RuleExpression14 = 35, RuleLeft_value = 36, RuleArray_left_value = 37, 
-    RuleObject_left_value = 38, RuleConst_expr = 39, RuleFunction_ref = 40, 
-    RuleNumber = 41, RuleVector_value = 42, RuleArray_def = 43, RuleStruct_def = 44
+    RuleNop_def = 17, RuleDevop_def = 18, RuleFunction_component = 19, RuleOperator_inst = 20, 
+    RuleExpression = 21, RuleSet_expression = 22, RuleExpression1 = 23, 
+    RuleExpression2 = 24, RuleExpression3 = 25, RuleExpression4 = 26, RuleExpression5 = 27, 
+    RuleExpression6 = 28, RuleExpression7 = 29, RuleExpression8 = 30, RuleExpression9 = 31, 
+    RuleExpression10 = 32, RuleExpression11 = 33, RuleExpression12 = 34, 
+    RuleExpression13 = 35, RuleExpression14 = 36, RuleLeft_value = 37, RuleArray_left_value = 38, 
+    RuleObject_left_value = 39, RuleConst_expr = 40, RuleFunction_ref = 41, 
+    RuleNumber = 42, RuleVector_value = 43, RuleArray_def = 44, RuleStruct_def = 45
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -80,6 +81,7 @@ public:
   class Statement_instContext;
   class Function_callContext;
   class Nop_defContext;
+  class Devop_defContext;
   class Function_componentContext;
   class Operator_instContext;
   class ExpressionContext;
@@ -347,6 +349,7 @@ public:
     Statement_dowhileContext *statement_dowhile();
     Function_callContext *function_call();
     Nop_defContext *nop_def();
+    Devop_defContext *devop_def();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -383,6 +386,19 @@ public:
   };
 
   Nop_defContext* nop_def();
+
+  class  Devop_defContext : public antlr4::ParserRuleContext {
+  public:
+    Devop_defContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    NumberContext *number();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Devop_defContext* devop_def();
 
   class  Function_componentContext : public antlr4::ParserRuleContext {
   public:
