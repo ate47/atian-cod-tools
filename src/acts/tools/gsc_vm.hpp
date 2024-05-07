@@ -879,18 +879,17 @@ public:
         byte nflags = 0;
 
         switch (flags & 0xF) {
-        case 5: nflags |= FUNC_METHOD; break;
-        case 4: nflags |= FUNCTION; break;
-        case 2: nflags |= FUNCTION_THREAD; break;
-        case 1: nflags |= FUNCTION_CHILDTHREAD; break;
-
-        case 3:
-        case 6:
-        case 7: nflags |= FUNCTION; break; // TODO: unk script calls
-        case 8:
-        case 0xA:nflags |= FUNCTION; break; // api call
-        case 9:
-        case 0xB:nflags |= METHOD; break; // api call
+        case 1: nflags |= FUNCTION_CHILDTHREAD; break; // ScriptMethodThreadCallEndOn / ScriptThreadCallEndOn (same script?)
+        case 2: nflags |= METHOD_THREAD; break; // ScriptMethodThreadCall
+        case 3: nflags |= FUNCTION_CHILDTHREAD; break; // ScriptThreadCallEndOn (file namespace)
+        case 4: nflags |= FUNCTION; break; // ScriptFunctionCall (same script? / file namespace)
+        case 5: nflags |= FUNC_METHOD; break; // GetFunction (same namespace?)
+        case 6: nflags |= FUNCTION_THREAD; break; // ScriptThreadCall (namspace?)
+        case 7: nflags |= FUNCTION; break; // ScriptFunctionCall (namespace?)
+        case 8: // params(1) + CallBuiltinFunction
+        case 0xA:nflags |= FUNCTION; break; // api call / GetBuiltinFunction
+        case 9: // params(1) + CallBuiltinMethod
+        case 0xB:nflags |= METHOD; break; // api call / GetBuiltinMethod
         default: nflags |= flags & 0xF; // wtf?
         }
 

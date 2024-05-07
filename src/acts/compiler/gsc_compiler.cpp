@@ -2328,19 +2328,6 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Wait));
                 return true;
             }
-            if (idf == "waitframe") {
-                if (rule->children.size() <= 1) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "wait should be used with a value");
-                    return false;
-                }
-
-                if (!ParseExpressionNode(rule->children[1], parser, obj, fobj, true)) {
-                    return false;
-                }
-
-                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_WaitFrame));
-                return true;
-            }
 
             obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown operator type {}", idf));
             return false;
@@ -3130,12 +3117,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 // in mwiii, unlike in t8 where the pointers are inlined into the bytecode, 
                 // the game links resolved functions using 4 bytes for script functions or 
                 // 2 bytes for builtin functions so we use nops so the game does whatever it want
-                asmc = new AscmNodeOpCode(OPCODE_GetResolveFunction);
+                asmc = new AscmNodeOpCode(OPCODE_Undefined);
                 fobj.AddNode(rule, asmc);
-
-                for (size_t i = 0; i < 4; i++) {
-                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Nop));
-                }
             }
 
             Located located{ nsp, func };

@@ -542,6 +542,39 @@ struct H64GSCExportReader : GSCExportReader {
     size_t SizeOf() override { return sizeof(*exp); };
 };
 
+const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_t floc) {
+    // check the exports to find the right floc name
+    uint32_t off = handler.GetExportsOffset();
+
+    byte* exportTable = handler.Ptr(off);
+
+    uint32_t max{};
+    void* maxPtr{};
+    for (size_t i = 0; i < handler.GetExportsCount(); i++) {
+        void* ptr = exportTable + reader.SizeOf() * i;
+        reader.SetHandle(ptr);
+
+        uint32_t addr = reader.GetAddress();
+
+        if (addr <= floc && addr > max) {
+            maxPtr = ptr;
+            max = addr;
+        }
+    }
+    
+    if (maxPtr) {
+        reader.SetHandle(maxPtr);
+        return utils::va(
+            "%s::%s@%x",
+            hashutils::ExtractTmp("namespace", reader.GetNamespace()),
+            hashutils::ExtractTmp("function", reader.GetName()),
+            floc - reader.GetAddress()
+        );
+    }
+
+    return utils::va("unk:%lx", floc);
+}
+
 int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOption& opt) {
 
     auto& profiler = actscli::GetProfiler();
@@ -643,6 +676,18 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         LOG_ERROR("Bad header 0x{:x} for file {}", scriptfile->Ref<uint64_t>(), path);
         return -1;
     }
+
+    std::unique_ptr<GSCExportReader> exp;
+    if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+        exp = std::make_unique<H64GSCExportReader>();
+    }
+    else {
+        exp = std::make_unique<H32GSCExportReader>();
+    }
+
+    auto flocName = [&exp, &scriptfile](uint32_t floc) {
+        return GetFLocName(*exp, *scriptfile, floc);
+    };
 
     tool::gsc::RosettaStartFile(*scriptfile);
 
@@ -963,15 +1008,16 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             asmout << std::hex << "address: " << numAddress
                 << ", params: " << (int)param_count
                 << ", iflags: 0x" << std::hex << (uint16_t)(flags)
+                << ", iftype: 0x" << std::hex << (int)(flags & T8GSCImportFlags::CALLTYPE_MASK)
                 << ", loc: 0x" << std::hex << (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr()))
                 << "\n";
 
             asmout << "location(s): ";
 
             const auto* imports = reinterpret_cast<const uint32_t*>(import_location + impSize);
-            asmout << std::hex << imports[0];
+            asmout << std::hex << flocName(imports[0]);
             for (size_t j = 1; j < numAddress; j++) {
-                asmout << std::hex << "," << imports[j];
+                asmout << std::hex << "," << flocName(imports[j]);
             }
             asmout << "\n";
 
@@ -1006,13 +1052,6 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
         std::unordered_map<Located, ASMContext, LocatedHash, LocatedEquals> contextes{};
 
-        std::unique_ptr<GSCExportReader> exp;
-        if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-            exp = std::make_unique<H64GSCExportReader>();
-        }
-        else {
-            exp = std::make_unique<H32GSCExportReader>();
-        }
 
         for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
             void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
