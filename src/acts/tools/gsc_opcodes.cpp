@@ -3084,6 +3084,7 @@ public:
 
 		uint64_t tmpBuffData[2];
 		uint64_t* data = tmpBuffData;
+		size_t flags{};
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			auto& bytecode = context.Aligned<uint64_t>();
@@ -3110,6 +3111,7 @@ public:
 
 				tmpBuffData[0] = imp.name;
 				tmpBuffData[1] = imp.name_space;
+				flags = imp.flags;
 			}
 		}
 
@@ -3204,6 +3206,9 @@ public:
 				context.m_objectId = nullptr;
 			}
 		}
+		if (flags) {
+			out << " iflags: 0x" << std::hex << flags << " (ift:0x" << (flags & 0xF) << ")";
+		}
 		out << "\n";
 
 		return 0;
@@ -3225,6 +3230,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		uint64_t tmpBuffData[2];
 		uint64_t* data = tmpBuffData;
+		size_t flags{};
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			auto& bytecode = context.Aligned<uint64_t>();
@@ -3252,6 +3258,7 @@ public:
 				
 				tmpBuffData[0] = imp.name;
 				tmpBuffData[1] = imp.name_space;
+				flags = imp.flags;
 			}
 		}
 
@@ -3265,7 +3272,13 @@ public:
 			out << hashutils::ExtractTmp("namespace", data[1]) << std::flush << "::";
 			nsp = data[1];
 		}
-		out << hashutils::ExtractTmp("function", data[0]) << std::endl;
+		out << hashutils::ExtractTmp("function", data[0]);
+
+		if (flags) {
+			out << " iflags: 0x" << std::hex << flags << " (ift:0x" << (flags & 0xF) << ")";
+		}
+
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeFuncRef("&", data[0], nsp));

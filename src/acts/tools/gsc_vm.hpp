@@ -876,26 +876,61 @@ public:
         return size >= sizeof(GscObj23) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353478a;
     }
     byte RemapFlagsImport(byte flags) override {
-        byte nflags = 0;
+        byte nflags{};
 
         switch (flags & 0xF) {
         case 1: nflags |= FUNCTION_CHILDTHREAD; break; // ScriptMethodThreadCallEndOn / ScriptThreadCallEndOn (same script?)
         case 2: nflags |= METHOD_THREAD; break; // ScriptMethodThreadCall
         case 3: nflags |= FUNCTION_CHILDTHREAD; break; // ScriptThreadCallEndOn (file namespace)
-        case 4: nflags |= FUNCTION; break; // ScriptFunctionCall (same script? / file namespace)
-        case 5: nflags |= FUNC_METHOD; break; // GetFunction (same namespace?)
         case 6: nflags |= FUNCTION_THREAD; break; // ScriptThreadCall (namspace?)
+        case 4: nflags |= FUNCTION; break; // ScriptFunctionCall (same script? / file namespace)
         case 7: nflags |= FUNCTION; break; // ScriptFunctionCall (namespace?)
+        case 5: nflags |= FUNC_METHOD; break; // GetFunction (same namespace?)
         case 8: // params(1) + CallBuiltinFunction
         case 0xA:nflags |= FUNCTION; break; // api call / GetBuiltinFunction
         case 9: // params(1) + CallBuiltinMethod
         case 0xB:nflags |= METHOD; break; // api call / GetBuiltinMethod
-        default: nflags |= flags & 0xF; // wtf?
+        default: nflags |= flags & 0xF; break; // wtf?
         }
 
-        // 0x10: Dev import
-        // 0x20: use file namespace
-        nflags |= flags & ~0xF;
+        if (flags & 0x10) nflags |= DEV_CALL;
+        if (flags & 0x20) nflags |= ACTS_USE_FULL_NAMESPACE;
+
+        /*
+        0x10: Dev import
+        0x20: use file namespace
+        GetFunction = 0x5
+        ScriptFunctionCall = 0x4, 0x7
+        ScriptThreadCall = 0x2, 0x6
+        ScriptThreadCallEndOn = 0x3, 0x1
+        ScriptMethodCall = 0x7
+        ScriptMethodThreadCall = 0x2
+        ScriptMethodThreadCallEndOn = 0x1
+        CallBuiltinFunction = 0x8
+        CallBuiltinMethod = 0x9
+        GetBuiltinFunction = 0xa
+        GetBuiltinMethod = 0xb
+        */
+
+        return nflags;
+    }
+
+    byte MapFlagsImportToInt(byte flags) {
+        byte nflags{};
+        switch (flags & 0xF) {
+        case FUNC_METHOD: nflags |= 0x5; break;
+        case METHOD_CHILDTHREAD:
+        case FUNCTION_CHILDTHREAD: nflags |= 0x1; break;
+        case FUNCTION_THREAD:
+        case METHOD_THREAD: nflags |= 0x2; break;
+        case ACTS_CALL_BUILTIN_FUNCTION: nflags |= 0x8; break;
+        case ACTS_CALL_BUILTIN_METHOD: nflags |= 0x9; break;
+        case ACTS_GET_BUILTIN_FUNCTION: nflags |= 0xa; break;
+        case ACTS_GET_BUILTIN_METHOD: nflags |= 0xb; break;
+        default: nflags |= flags & 0xF; break; // wtf?
+        }
+        if (flags & DEV_CALL) nflags |= 0x10;
+        if (flags & ACTS_USE_FULL_NAMESPACE) nflags |= 0x20;
 
         return nflags;
     }
@@ -916,10 +951,6 @@ public:
         }
 
         return nflags;
-    }
-
-    byte MapFlagsImportToInt(byte flags) {
-        return flags; // TODO
     }
 
     byte MapFlagsExportToInt(byte flags) {

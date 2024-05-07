@@ -1057,9 +1057,14 @@ namespace tool::gsc {
         METHOD_CHILDTHREAD = 0x7,
         CALLTYPE_MASK = 0xF,
         DEV_CALL = 0x10,
-        GET_CALL = 0x20,
-        UKN40 = 0x40,
-        UKN80 = 0x80
+        GET_CALL = 0x20
+    };
+    enum ACTSGSCImportFlags : uint8_t {
+        ACTS_GET_BUILTIN_FUNCTION = 0x8,
+        ACTS_CALL_BUILTIN_FUNCTION = 0x9,
+        ACTS_GET_BUILTIN_METHOD = 0xa,
+        ACTS_CALL_BUILTIN_METHOD = 0xb,
+        ACTS_USE_FULL_NAMESPACE = 0x40
     };
 
     enum T9GSCExportFlags : uint8_t {
@@ -1085,8 +1090,6 @@ namespace tool::gsc {
         T9_IF_CALLTYPE_MASK = 0xF,
         T9_IF_GET_CALL = 0x10,
         T9_IF_DEV_CALL = 0x20,
-        T9_IF_UKN40 = 0x40,
-        T9_IF_UKN80 = 0x80
     };
 
     enum RosettaBlockType : byte {

@@ -124,8 +124,6 @@ namespace bo4 {
         CALLTYPE_MASK = 0xF,
         DEV_CALL = 0x10,
         GET_CALL = 0x20,
-        UKN40 = 0x40,
-        UKN80 = 0x80
     };
 
     struct GSCString {

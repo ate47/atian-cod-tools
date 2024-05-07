@@ -973,13 +973,17 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             auto remapedFlags = scriptfile->RemapFlagsImport(flags);
 
             switch (remapedFlags & T8GSCImportFlags::CALLTYPE_MASK) {
-            case FUNC_METHOD: asmout << "funcmethod "; break;
+            case FUNC_METHOD: asmout << "get "; break;
             case FUNCTION: asmout << "function "; break;
             case FUNCTION_THREAD: asmout << "function thread "; break;
             case FUNCTION_CHILDTHREAD: asmout << "function childthread "; break;
             case METHOD: asmout << "method "; break;
             case METHOD_THREAD: asmout << "method thread "; break;
             case METHOD_CHILDTHREAD: asmout << "method childthread "; break;
+            case ACTS_CALL_BUILTIN_FUNCTION: asmout << "builtin function"; break;
+            case ACTS_CALL_BUILTIN_METHOD: asmout << "builtin method"; break;
+            case ACTS_GET_BUILTIN_FUNCTION: asmout << "get builtin function"; break;
+            case ACTS_GET_BUILTIN_METHOD: asmout << "get builtin method"; break;
             default:
                 asmout << "<errorflag:" << std::hex << (remapedFlags & 0xF) << "> ";
                 break;
@@ -987,14 +991,6 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
             if (remapedFlags & T8GSCImportFlags::DEV_CALL) {
                 asmout << "devcall ";
-            }
-
-            // they both seem unused
-            if (remapedFlags & T8GSCImportFlags::UKN40) {
-                asmout << "ukn40 ";
-            }
-            if (remapedFlags & T8GSCImportFlags::UKN80) {
-                asmout << "ukn80 ";
             }
 
             if ((remapedFlags & T8GSCImportFlags::GET_CALL) == 0) {
