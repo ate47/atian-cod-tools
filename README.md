@@ -6,11 +6,11 @@ My set of tools. The code is more important than the features, so feel free to r
 
 **Supported games**
 
-| Name                                   | Decompiler     | Compiler |
-| -------------------------------------- | -------------- | -------- |
-| Call of Duty: Black Ops 4 (T8)         | ✅              | ✅        |
-| Call of Duty: Black Ops Cold War (T9)  | With predecode | ✅        |
-| Call of Duty: Modern Warfare III (JUP) | With extension | ❌        |
+| Name                                   | Decompiler      | Compiler |
+| -------------------------------------- | --------------- | -------- |
+| Call of Duty: Black Ops 4 (T8)         | ✅               | ✅        |
+| Call of Duty: Black Ops Cold War (T9)  | With pre-decode | ✅        |
+| Call of Duty: Modern Warfare III (JUP) | With extension  | wip      |
 
 ## ACTS Lib
 
