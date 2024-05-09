@@ -44,9 +44,9 @@ statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default
 statement_inst: (expression | operator_inst | statement_dowhile | function_call | nop_def | devop_def) ';';
 
 function_call: 
-	('thread' | 'childthread')? function_component '(' expression_list ')'
-	| expression14 ('thread' | 'childthread')? function_component '(' expression_list ')'
-    | function_call ('thread' | 'childthread')? function_component '(' expression_list ')'
+	('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
+	| expression14 ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
+    | function_call ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
 ;
 
 nop_def: ('nop' | 'Nop') ('(' number ')')?;

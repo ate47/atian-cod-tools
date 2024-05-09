@@ -28,13 +28,19 @@ namespace tool::gsc {
         GOHF_SUPPORT_VAR_PTR = 0x40,
         GOHF_SUPPORT_EV_HANDLER = 0x80,
         GOHF_INLINE_FUNC_PTR = 0x100,
-        GOHF_FOREACH_TYPE_T8 = 0x200,
-        GOHF_FOREACH_TYPE_T9 = 0x400,
-        GOHF_FOREACH_TYPE_JUP = 0x600,
-        GOHF_FOREACH_TYPE_MASK = 0x600,
+        GOHF_FOREACH_TYPE_T8 = 0x200, // 100
+        GOHF_FOREACH_TYPE_T9 = 0x400, // 010
+        GOHF_FOREACH_TYPE_JUP = 0x600, // 110
+        // for later
+        GOHF_FOREACH_TYPE_4 = 0x800, // 001
+        GOHF_FOREACH_TYPE_5 = 0xa00, // 101
+        GOHF_FOREACH_TYPE_6 = 0xf00, // 111
+        GOHF_FOREACH_TYPE_MASK = 0xf00,
+        GOHF_SUPPORT_GET_API_SCRIPT = 0x1000,
     };
     static_assert(
-        ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP) & ~GOHF_FOREACH_TYPE_MASK) == 0
+        ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP 
+            | GOHF_FOREACH_TYPE_4 | GOHF_FOREACH_TYPE_5 | GOHF_FOREACH_TYPE_6) & ~GOHF_FOREACH_TYPE_MASK) == 0
         && "Foreach mask isn't matching all the types"
     );
 

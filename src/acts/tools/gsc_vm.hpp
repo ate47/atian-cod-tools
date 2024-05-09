@@ -5,7 +5,7 @@
 
 class T8GSCOBJHandler : public GSCOBJHandler {
 public:
-    T8GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8) {}
+    T8GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<T8GSCOBJ>();
@@ -232,7 +232,7 @@ public:
 
 class T937GSCOBJHandler : public GSCOBJHandler {
 public:
-    T937GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9) {}
+    T937GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<T937GSCOBJ>();
@@ -456,7 +456,7 @@ public:
 
 class T9GSCOBJHandler : public GSCOBJHandler {
 public:
-    T9GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9) {}
+    T9GSCOBJHandler(byte* file) : GSCOBJHandler(file, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<T9GSCOBJ>();

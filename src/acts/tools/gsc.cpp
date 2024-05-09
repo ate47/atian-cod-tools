@@ -366,9 +366,30 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
 
             const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
 
+            uint8_t mappedImportFlags = RemapFlagsImport(imp->flags);
+
+            size_t delta;
+
+            switch (mappedImportFlags & 0xF) {
+            case FUNCTION_THREAD:
+            case FUNCTION_CHILDTHREAD:
+            case ACTS_CALL_BUILTIN_FUNCTION:
+            case METHOD_THREAD:
+            case METHOD_CHILDTHREAD:
+            case ACTS_CALL_BUILTIN_METHOD:
+                delta = 1;
+                break;
+            default:
+                delta = 0;
+                break;
+            }
+
             const auto* imports = reinterpret_cast<const uint32_t*>(&imp[1]);
             for (size_t j = 0; j < imp->num_address; j++) {
-                uint16_t* loc = Ptr<uint16_t>(imports[j]);
+                if (delta) {
+                    Ref<byte>(imports[j]) = imp->param_count;
+                }
+                uint16_t* loc = Ptr<uint16_t>(imports[j] + delta);
                 auto idx = ctx.m_linkedImports.size();
                 ctx.m_linkedImports.push_back(*imp);
                 *loc = (uint16_t)idx;
@@ -885,9 +906,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             asmout << "location(s): ";
 
             const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
-            asmout << std::hex << strings[0];
+            asmout << std::hex << flocName(strings[0]);
             for (size_t j = 1; j < str->num_address; j++) {
-                asmout << std::hex << "," << strings[j];
+                asmout << std::hex << "," << flocName(strings[j]);
             }
             asmout << "\n";
             str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
@@ -926,9 +947,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             asmout << "location(s): ";
 
             const auto* vars = reinterpret_cast<const uint32_t*>(&globalvar[1]);
-            asmout << std::hex << vars[0];
+            asmout << std::hex << flocName(vars[0]);
             for (size_t j = 1; j < globalvar->num_address; j++) {
-                asmout << std::hex << "," << vars[j];
+                asmout << std::hex << "," << flocName(vars[j]);
             }
             asmout << "\n";
             gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;

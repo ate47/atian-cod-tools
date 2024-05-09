@@ -249,17 +249,68 @@ enum FuncCallFlags {
     FCF_METHOD = 0x4,
     FCF_POINTER = 0x8,
     FCF_POINTER_CLASS = 0x10,
+    FCF_BUILTIN = 0x20,
+    FCF_GETTER = 0x40,
 };
 
 class AscmNodeFunctionCall : public AscmNodeOpCode {
 public:
     uint64_t nameSpace;
     uint64_t clsName;
+    // linked by the compiler after the parsing
+    bool isScriptCall{};
     int flags;
     byte params;
+    bool inlineCall;
 
-    AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName, uint64_t nameSpace) 
+    AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName, uint64_t nameSpace, VmInfo* vm)
         : AscmNodeOpCode(opcode), flags(flags), params(params), clsName(clsName), nameSpace(nameSpace) {
+        inlineCall = vm->HasFlag(VmFlags::VMF_OPCODE_SHORT);
+    }
+
+    void SetScriptCall(CompileObject& obj, bool scriptCall);
+
+    void LoadData(bool& useParams, uint32_t& dataSize) const {
+        if (inlineCall) {
+            useParams = true;
+            dataSize = (flags & FCF_POINTER) ? 0 : 8;
+        }
+        else {
+            switch (opcode) {
+            case OPCODE_ScriptThreadCallPointerEndOn:
+            case OPCODE_ScriptThreadCallPointer:
+            case OPCODE_ScriptMethodThreadCallPointer:
+            case OPCODE_ScriptMethodThreadCallPointerEndOn:
+            case OPCODE_IW_BuiltinFunctionCallPointer:
+            case OPCODE_IW_BuiltinMethodCallPointer:
+                dataSize = 0;
+                useParams = true;
+                break;
+            case OPCODE_ScriptFunctionCallPointer:
+            case OPCODE_ScriptMethodCallPointer:
+                dataSize = 0;
+                useParams = false;
+                break;
+            case OPCODE_ScriptThreadCallEndOn:
+            case OPCODE_ScriptThreadCall:
+            case OPCODE_ScriptMethodThreadCallEndOn:
+            case OPCODE_ScriptMethodThreadCall:
+                dataSize = 4;
+                useParams = true;
+                break;
+            case OPCODE_ScriptFunctionCall:
+            case OPCODE_ScriptMethodCall:
+                dataSize = 4;
+                useParams = false;
+                break;
+            case OPCODE_CallBuiltinFunction:
+            case OPCODE_CallBuiltinMethod:
+                dataSize = 2;
+                useParams = true;
+                break;
+            default: throw std::runtime_error(utils::va("invalid opcode for func call %d", opcode));
+            }
+        }
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -272,7 +323,18 @@ public:
             }
             return utils::Aligned<uint64_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + (uint32_t)sizeof(uint64_t);
         }
-        throw std::runtime_error("later");
+
+        start = AscmNodeOpCode::ShiftSize(start, aligned);
+
+        bool useParams;
+        uint32_t dataSize;
+        LoadData(useParams, dataSize);
+        if (useParams) {
+            start++;
+        }
+        start += dataSize;
+
+        return start;
     }
 
     bool Write(AscmCompilerContext& ctx) override {
@@ -280,7 +342,13 @@ public:
             return false;
         }
 
-        ctx.Write<byte>(params);
+        bool useParams;
+        uint32_t dataSize{};
+        LoadData(useParams, dataSize);
+
+        if (useParams) {
+            ctx.Write<byte>(params);
+        }
 
         if (flags & FCF_POINTER_CLASS) {
             ctx.Align<uint32_t>();
@@ -288,11 +356,29 @@ public:
         }
         else if (!(flags & FCF_POINTER)) {
             // replaced by the linker
-            ctx.Align<uint64_t>();
-            ctx.Write<uint64_t>(utils::CatLocated((uint32_t)nameSpace, (uint32_t)clsName));
+            ctx.Align(dataSize);
+            if (dataSize == 8) {
+                ctx.Write<uint64_t>(utils::CatLocated((uint32_t)nameSpace, (uint32_t)clsName));
+            }
+            else {
+                for (size_t i = 0; i < dataSize; i++) {
+                    ctx.Write<byte>((byte)i);
+                }
+            }
         }
 
         return true;
+    }
+
+    uint32_t GetFLoc() {
+        if (inlineCall) {
+            return floc;
+        }
+
+        if (opcode == OPCODE_CallBuiltinFunction || opcode == OPCODE_CallBuiltinMethod) {
+            return floc + 2;
+        }
+        return floc + 1;
     }
 };
 
@@ -563,8 +649,8 @@ AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
     return new AscmNodeData<int64_t>((int64_t)val, OPCODE_GetLongInteger);
 }
 
-#define IS_RULE_TYPE(rule, index) (rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
-#define IS_TERMINAL_TYPE(term, index) (term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
+#define IS_RULE_TYPE(rule, index) (rule && rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
+#define IS_TERMINAL_TYPE(term, index) (term && term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
 
 int64_t NumberNodeValue(ParseTree* number) {
     if (IS_RULE_TYPE(number, gscParser::RuleNumber)) {
@@ -853,7 +939,7 @@ class ImportObject {
 public:
     byte flags;
     byte params;
-    std::vector<AscmNode*> nodes{};
+    std::vector<AscmNodeFunctionCall*> nodes{};
 };
 class GlobalVarObject {
 public:
@@ -1021,6 +1107,21 @@ public:
         currentNamespace = vmInfo->HashField("");
     }
 
+    void AddHash(const std::string& str) {
+        hashes.insert(str);
+        const char* strc{ str.c_str() };
+        if (!hash::HashPattern(strc)) {
+            hashutils::Add(strc);
+        }
+    }
+
+    void AddHash(const char* str) {
+        hashes.insert(str);
+        if (!hash::HashPattern(str)) {
+            hashutils::Add(str);
+        }
+    }
+
     uint64_t AddInclude(std::string& data) {
         if (!(data.ends_with(".gsc") || data.ends_with(".csc")) && !(data.starts_with("script_"))) {
             switch (type) {
@@ -1032,7 +1133,7 @@ public:
                 break;
             }
         }
-        hashes.insert(data);
+        AddHash(data);
         includes.insert(vmInfo->HashPath(data.data()));
         return 0;
     }
@@ -1043,10 +1144,11 @@ public:
     }
 
     bool Compile(std::vector<byte>& data) {
+        // add the notify crc function for T9 vm
         if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
             constexpr const char* name = "$notif_checkum";
             uint64_t nameHashed = vmInfo->HashField(name);
-            hashes.insert(name);
+            AddHash(name);
             auto [res, err] = exports.try_emplace(nameHashed, *this, nameHashed, currentNamespace, vmInfo);
 
             if (!err) {
@@ -1083,6 +1185,62 @@ public:
             f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
         }
 
+        // set builtin call types for jup VM
+        if (!gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_GET_API_SCRIPT)) {
+            // we need to compute if an import is from a builtin or a script
+            for (auto& [idx, imps] : imports) {
+                
+                uint64_t name = idx.name;
+                uint64_t nsp = idx.name_space;
+
+                auto it = exports.find(name);
+
+                bool scriptCall{ it != exports.end() && it->second.m_name_space == nsp };
+
+                for (auto& imp : imps) {
+                    if (imp.flags & tool::gsc::GET_CALL) {
+                        int funcType{ imp.flags & 0xF };
+                        if (funcType == tool::gsc::FUNC_METHOD) {
+                            // ref
+                            if (!scriptCall) {
+                                LOG_ERROR("Getter for builtin methods not implemented in this vm yet");
+                                return false;
+                            }
+                        }
+
+                        if (!scriptCall) {
+                            if (funcType == tool::gsc::FUNCTION_CHILDTHREAD
+                                || funcType == tool::gsc::FUNCTION_THREAD
+                                || funcType == tool::gsc::METHOD_CHILDTHREAD
+                                || funcType == tool::gsc::METHOD_THREAD) {
+                                LOG_ERROR("Usage of thread modifier on a builtin call {}", hashutils::ExtractTmp("function", idx.name));
+                                return false;
+                            }
+                            if (funcType == tool::gsc::METHOD) {
+                                imp.flags = (imp.flags & ~0xF) | tool::gsc::ACTS_CALL_BUILTIN_METHOD;
+                            }
+                            else if (funcType == tool::gsc::FUNCTION) {
+                                imp.flags = (imp.flags & ~0xF) | tool::gsc::ACTS_CALL_BUILTIN_FUNCTION;
+                            }
+                            else {
+                                LOG_ERROR("Unknown builtin call {} {}", funcType, hashutils::ExtractTmp("function", idx.name));
+                                return false;
+                            }
+                        }
+
+                        for (AscmNodeFunctionCall* node : imp.nodes) {
+                            node->SetScriptCall(*this, scriptCall);
+                        }
+                    }
+                    else {
+                        for (AscmNodeFunctionCall* node : imp.nodes) {
+                            node->SetScriptCall(*this, true);
+                        }
+                    }
+                }
+            }
+
+        }
 
         utils::Allocate(data, gscHandler->GetHeaderSize());
         size_t afterHeaderStart{ data.size() };
@@ -1226,7 +1384,7 @@ public:
                     if (w % 0xFF == 0) {
                         size_t buff = utils::Allocate(data, gscHandler->GetGVarSize());
                         tool::gsc::T8GSCGlobalVar gv{};
-                        hashes.insert(key);
+                        AddHash(key);
                         gv.name = (uint32_t)vmInfo->HashField(key.c_str());
                         gv.num_address = (byte)((gvobj.nodes.size() - w) > 0xFF ? 0xFF : (gvobj.nodes.size() - w));
                         gscHandler->WriteGVar(&data[buff], gv);
@@ -1258,7 +1416,7 @@ public:
                         gscHandler->WriteImport(&data[buff], gv);
                         implCount++;
                     }
-                    utils::WriteValue<uint32_t>(data, implData.nodes[w++]->floc);
+                    utils::WriteValue<uint32_t>(data, implData.nodes[w++]->GetFLoc());
                 }
             }
         }
@@ -1332,7 +1490,7 @@ std::pair<const char*, FunctionVar*> FunctionObject::RegisterVar(const std::stri
 
     auto& var = m_vars[m_allocatedVar] = { name, m_allocatedVar, flags };
     m_allocatedVar++;
-    obj.hashes.insert(var.name);
+    obj.AddHash(var.name);
 
     return std::make_pair<>(nullptr, &var);
 }
@@ -1354,13 +1512,63 @@ void FunctionObject::AddNode(decltype(m_nodes)::iterator it, ParseTree* tree, As
 }
 
 AscmNode* FunctionObject::CreateFieldHash(const char* v, OPCode op) const {
-    obj.hashes.insert(v);
+    obj.AddHash(v);
     return CreateFieldHash(m_vmInfo->HashField(v), op);
 }
 
 AscmNode* FunctionObject::CreateFieldHash(const std::string& v, OPCode op) const {
-    obj.hashes.insert(v);
+    obj.AddHash(v);
     return CreateFieldHash(m_vmInfo->HashField(v), op);
+}
+
+void AscmNodeFunctionCall::SetScriptCall(CompileObject& obj, bool scriptCall) {
+    isScriptCall = scriptCall;
+
+    if (flags & FCF_GETTER) {
+        if (scriptCall || !obj.HasOpCode(OPCODE_IW_GetBuiltinFunction)) {
+            opcode = OPCODE_GetResolveFunction;
+        }
+        else {
+            throw std::runtime_error("builtin getters not implemented for this vm");
+        }
+        return;
+    }
+
+    if (scriptCall) {
+        if (flags & FCF_METHOD) {
+            if (flags & FCF_CHILDTHREAD) {
+                opcode = OPCODE_ScriptMethodThreadCallEndOn;
+            }
+            else if (flags & FCF_THREAD) {
+                opcode = OPCODE_ScriptMethodThreadCall;
+            }
+            else {
+                opcode = OPCODE_ScriptMethodCall;
+            }
+        }
+        else {
+            // func
+            if (flags & FCF_CHILDTHREAD) {
+                opcode = OPCODE_ScriptThreadCallEndOn;
+            }
+            else if (flags & FCF_THREAD) {
+                opcode = OPCODE_ScriptThreadCall;
+            }
+            else {
+                opcode = OPCODE_ScriptFunctionCall;
+            }
+        }
+    }
+    else {
+        // builtin
+        if (flags & FCF_METHOD) {
+            opcode = OPCODE_CallBuiltinMethod;
+        }
+        else {
+            // func
+            opcode = OPCODE_CallBuiltinFunction;
+        }
+    }
 }
 
 AscmNodeCreateLocalVariables::AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj) : params(params) {
@@ -2354,6 +2562,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 else if (callModifier == "childthread") {
                     flags |= FCF_CHILDTHREAD;
                 }
+                else if (callModifier == "builtin") {
+                    flags |= FCF_BUILTIN;
+                }
                 else {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[idx], std::format("Unknown call modifier {}", callModifier));
                     return false;
@@ -2375,7 +2586,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             if (functionComp->children.size() == 1) {
                 // func
-                importFlags |= tool::gsc::T8GSCImportFlags::GET_CALL;
+                importFlags |= tool::gsc::GET_CALL;
                 funcNspHash = obj.currentNamespace;
                 std::string funcName = functionComp->children[0]->getText();
 
@@ -2394,8 +2605,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' doesn't return a value, Usage: {}", funcName, f.usage));
                         return false;
                     }
-                    if (flags & (FCF_THREAD | FCF_CHILDTHREAD)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' can't have a thread modifier, Usage: {}", funcName, f.usage));
+                    if (flags & (FCF_THREAD | FCF_CHILDTHREAD | FCF_BUILTIN)) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' can't have a call modifier, Usage: {}", funcName, f.usage));
                         return false;
                     }
 
@@ -2405,11 +2616,43 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                     bool paramError{};
                     int paramCount{};
-                    for (int i = (int)paramsList->children.size() - 1; i >= 0; i -= 2) {
-                        if (!ParseExpressionNode(paramsList->children[i], parser, obj, fobj, true)) {
+
+                    if (f.HasFlag(tool::gsc::opcode::VPFD_UNPACK)) {
+                        if (expressVal) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' can't express a value, Usage: {}", funcName, f.usage));
                             paramError = true;
                         }
-                        paramCount++;
+                        else if (!paramsList->children.size()) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs at least one param, Usage: {}", funcName, f.usage));
+                            paramError = true;
+                        }
+                        else {
+                            if (!ParseExpressionNode(paramsList->children[0], parser, obj, fobj, true)) {
+                                paramError = true;
+                            }
+
+                            paramCount++;
+
+                            for (int i = (int)paramsList->children.size() - 1; i > 1; i -= 2) {
+                                ParseTree* pt = paramsList->children[i];
+                                while (pt && pt->getTreeType() == TREE_RULE && pt->children.size() == 1) {
+                                    pt = pt->children[0];
+                                }
+                                if (!IS_TERMINAL_TYPE(pt, gscParser::IDENTIFIER)) {
+                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to be unpacked with variables, Usage: {}", funcName, f.usage));
+                                    return false;
+                                }
+                                paramCount++;
+                            }
+                        }
+                    }
+                    else {
+                        for (int i = (int)paramsList->children.size() - 1; i >= 0; i -= 2) {
+                            if (!ParseExpressionNode(paramsList->children[i], parser, obj, fobj, true)) {
+                                paramError = true;
+                            }
+                            paramCount++;
+                        }
                     }
 
                     // add self
@@ -2446,9 +2689,25 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
                     }
 
+                    if (f.HasFlag(tool::gsc::opcode::VPFD_UNPACK)) {
+                        for (size_t i = 1; i < paramCount; i++) {
+                            ParseTree* pnode = paramsList->children[i * 2];
+                            auto [errVar, var] = fobj.RegisterVar(pnode->getText(), true);
+                            if (errVar) {
+                                obj.info.PrintLineMessage(alogs::LVL_ERROR, pnode, std::format("Can't register variable: {}", errVar));
+                                return false;
+                            }
+
+                            // register var
+                            fobj.AddNode(pnode, new AscmNodeVariable(var->id, OPCODE_IW_SetWaittillVariableFieldCached));
+                        }
+
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ClearParams));
+                    }
+
                     return true;
                 }
-                obj.hashes.insert(funcName);
+                obj.AddHash(funcName);
             }
             else if (functionComp->children.size() == 3) {
                     // namespace::func
@@ -2456,8 +2715,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     std::string funcNspName = functionComp->children[0]->getText();
                     std::string funcName = functionComp->children[2]->getText();
 
-                    obj.hashes.insert(funcNspName);
-                    obj.hashes.insert(funcName);
+                    obj.AddHash(funcNspName);
+                    obj.AddHash(funcName);
                     funcNspHash = obj.vmInfo->HashField(funcNspName.c_str());
                     funcHash = obj.vmInfo->HashField(funcName.c_str());
             }
@@ -2473,7 +2732,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 }
                 // [ [ espression ] ] -> func
                 std::string funcName = functionComp->children[6]->getText();
-                obj.hashes.insert(funcName);
+                obj.AddHash(funcName);
                 funcHash = obj.vmInfo->HashField(funcName.c_str());
 
                 ptrTree = functionComp->children[2];
@@ -2532,6 +2791,10 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     else if (flags & FCF_CHILDTHREAD) {
                         opcode = OPCODE_ClassFunctionThreadCallEndOn;
                     }
+                    else if (flags & FCF_BUILTIN) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Class pointer can't be used with builtin calls");
+                        return false;
+                    }
                     else {
                         opcode = OPCODE_ClassFunctionCall;
                     }
@@ -2544,6 +2807,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         else if (flags & FCF_CHILDTHREAD) {
                             opcode = OPCODE_ScriptMethodThreadCallPointerEndOn;
                         }
+                        else if (flags & FCF_BUILTIN) {
+                            opcode = OPCODE_IW_BuiltinMethodCallPointer;
+                        }
                         else {
                             opcode = OPCODE_ScriptMethodCallPointer;
                         }
@@ -2555,12 +2821,15 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         else if (flags & FCF_CHILDTHREAD) {
                             opcode = OPCODE_ScriptThreadCallPointerEndOn;
                         }
+                        else if (flags & FCF_BUILTIN) {
+                            opcode = OPCODE_IW_BuiltinFunctionCallPointer;
+                        }
                         else {
                             opcode = OPCODE_ScriptFunctionCallPointer;
                         }
                     }
                 }
-                fobj.AddNode(rule, new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash));
+                fobj.AddNode(rule, new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash, obj.vmInfo));
             }
             else {
                 if (flags & FCF_METHOD) {
@@ -2571,6 +2840,10 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     else if (flags & FCF_CHILDTHREAD) {
                         opcode = OPCODE_ScriptMethodThreadCallEndOn;
                         importFlags |= tool::gsc::T8GSCImportFlags::METHOD_CHILDTHREAD;
+                    }
+                    else if (flags & FCF_BUILTIN) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "builtin modifier can only be used with pointer calls");
+                        return false;
                     }
                     else {
                         opcode = OPCODE_ScriptMethodCall;
@@ -2586,13 +2859,17 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                         opcode = OPCODE_ScriptThreadCallEndOn;
                         importFlags |= tool::gsc::T8GSCImportFlags::FUNCTION_CHILDTHREAD;
                     }
+                    else if (flags & FCF_BUILTIN) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "builtin modifier can only be used with pointer calls");
+                        return false;
+                    }
                     else {
                         opcode = OPCODE_ScriptFunctionCall;
                         importFlags |= tool::gsc::T8GSCImportFlags::FUNCTION;
                     }
                 }
 
-                auto* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash);
+                auto* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash, obj.vmInfo);
 
                 // link by the game, but we write it for test
                 Located located{ funcNspHash, funcHash };
@@ -2948,7 +3225,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     fobj.AddNode(rule->children[i - 1], fobj.CreateFieldHash(sub, OPCODE_IW_AddToStruct));
                 }
                 else {
-                    obj.hashes.insert(sub);
+                    obj.AddHash(sub);
                     fobj.AddNode(rule->children[i - 1], new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
 
                     fobj.AddNode(rule->children[i - 1], new AscmNodeOpCode(OPCODE_AddToStruct));
@@ -3075,9 +3352,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 std::string path = rule->children[3]->getText();
                 std::string funcName = rule->children[6]->getText();
 
-                obj.hashes.insert(nsp);
-                obj.hashes.insert(path);
-                obj.hashes.insert(funcName);
+                obj.AddHash(nsp);
+                obj.AddHash(path);
+                obj.AddHash(funcName);
                 
                 fobj.AddNode(rule, new AscmNodeLazyLink(
                     obj.vmInfo->HashPath(path.c_str()),
@@ -3094,7 +3371,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             if (rule->children.size() == 4) {
                 // with nsp
                 std::string nspStr = rule->children[1]->getText();
-                obj.hashes.insert(nspStr);
+                obj.AddHash(nspStr);
                 nsp = obj.vmInfo->HashField(nspStr.c_str());
             }
             else {
@@ -3104,22 +3381,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             assert(rule->children.size());
 
             std::string funcStr = rule->children[rule->children.size() - 1]->getText();
-            obj.hashes.insert(funcStr);
+            obj.AddHash(funcStr);
             uint64_t func = obj.vmInfo->HashField(funcStr.c_str());
 
             // link by the game, but we write it for test
-            AscmNode* asmc;
-            if (obj.gscHandler->HasFlag(tool::gsc::GOHF_INLINE_FUNC_PTR)) {
-                asmc = new AscmNodeData<uint64_t>(0, OPCODE_GetResolveFunction);
-                fobj.AddNode(rule, asmc);
-            }
-            else {
-                // in mwiii, unlike in t8 where the pointers are inlined into the bytecode, 
-                // the game links resolved functions using 4 bytes for script functions or 
-                // 2 bytes for builtin functions so we use nops so the game does whatever it want
-                asmc = new AscmNodeOpCode(OPCODE_Undefined);
-                fobj.AddNode(rule, asmc);
-            }
+            AscmNodeFunctionCall* asmc = new AscmNodeFunctionCall(OPCODE_GetResolveFunction, FCF_GETTER, 0, 0, 0, obj.vmInfo);
+            fobj.AddNode(rule, asmc);
 
             Located located{ nsp, func };
             auto& impList = obj.imports[located];
@@ -3396,7 +3663,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     }
     case gscParser::HASHSTRING: {
         auto sub = term->getText().substr(2, len - 3);
-        obj.hashes.insert(sub);
+        obj.AddHash(sub);
         fobj.AddNode(term, new AscmNodeData<uint64_t>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
         return true;
     }
@@ -3476,7 +3743,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     
     auto name = termNode->getText();
 
-    obj.hashes.insert(name);
+    obj.AddHash(name);
     uint64_t nameHashed = obj.vmInfo->HashField(name.data());
 
     auto [res, err] = obj.exports.try_emplace(nameHashed, obj, nameHashed, obj.currentNamespace, obj.vmInfo);
@@ -3544,7 +3811,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
 
             auto evname = static_cast<TerminalNode*>(ev)->getText();
 
-            obj.hashes.insert(evname);
+            obj.AddHash(evname);
             exp.m_data_name = obj.vmInfo->HashField(evname.data());
         }
     }
@@ -3728,7 +3995,7 @@ bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, Compile
 
     // set the current namespace to the one specified
 
-    obj.hashes.insert(txt);
+    obj.AddHash(txt);
     obj.currentNamespace = obj.vmInfo->HashField(txt.data());
 
     return true;

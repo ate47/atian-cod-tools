@@ -17,7 +17,14 @@ function autoexec __init__system__() {
     test3 = istrue(true);
     waitframe();
 
-    level notify("hello world", 42, 52);
+    level notify("notify calls", 42, 52);
+
+    self iprintln("builtin method call");
+    self iprintln("builtin method call");
+    iprintln("builtin function call");
+    iprintln("builtin function call");
+
+    level waittill("test waittill", v1, v2, v3);
 
 }
 

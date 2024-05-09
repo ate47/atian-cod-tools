@@ -22,6 +22,7 @@ namespace tool::gsc::opcode {
 		VPFD_RETURN_VALUE = 0x4,
 		VPFD_SELF_PARAM = 0x8,
 		VPFD_HASH_PARAM = 0x10,
+		VPFD_UNPACK = 0x20,
 	};
 	struct GlobalVariableDef {
 		const char* name;

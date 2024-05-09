@@ -649,6 +649,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame);
 			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim);
+			RegisterVMOperatorFunction(VM_MW23, "waittill", "<caller> waittill(event, var*)", OPCODE_IW_SingleWaitTill, VPFD_SELF_PARAM | VPFD_UNPACK, 1);
 			RegisterVMOperatorFunction(VM_MW23, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_MW23, "notify", "<caller> notify(event, param*)", OPCODE_IW_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
 			RegisterVMOperatorFunction(VM_MW23, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
