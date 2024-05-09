@@ -4528,6 +4528,26 @@ void tool::gsc::opcode::RegisterVMPlatform(byte vm, Platform plt) {
 
 	ref->second.AddPlatform(plt);
 }
+void tool::gsc::opcode::RegisterVMHashOPCode(byte vm, char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
+	auto ref = g_opcodeMap.find(vm);
+
+	if (ref == g_opcodeMap.end()) {
+		LOG_ERROR("Registered hash to bad vm: VM_{:x}", (int)vm);
+		return;
+	}
+
+	if (!(size == 8 || size == 4)) {
+		LOG_ERROR("Invalid size for hash vm: VM_{:x}: '{}' / {} bytes", (int)vm, type, size);
+		return;
+	}
+
+	auto [h, ok] = ref->second.hashesFunc.try_emplace(type, type, opCode, size, hashFunc);
+
+	if (!ok) {
+		LOG_ERROR("Registered existing hash into vm: VM_{:x}: '{}'", (int)vm, type);
+		return;
+	}
+}
 void tool::gsc::opcode::RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op) {
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
@@ -5656,8 +5676,8 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	var_23ea8daa is the key, it might not be used, idea: counting the ref?
 	e_clip is the value
 	*/
-	constexpr auto getfirstarraykeyIWHash = hashutils::HashIW2("getfirstarraykey");
-	constexpr auto getnextarraykeyIWHash = hashutils::HashIW2("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyIWHash = hashutils::HashIW2("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyIWHash = hashutils::HashIW2("getnextarraykey");
 
 	size_t index = 0;
 

@@ -1471,6 +1471,24 @@ public:
 
         return true;
     }
+
+    void AddImport(AscmNodeFunctionCall* funcCall, uint64_t funcNspHash, uint64_t funcHash, size_t paramCount, uint8_t importFlags) {
+        // link by the game, but we write it for test
+        Located located{ funcNspHash, funcHash };
+
+        auto& impList = imports[located];
+
+        auto it = std::find_if(impList.begin(), impList.end(), [importFlags](const auto& e) { return e.flags == importFlags; });
+
+        if (it == impList.end()) {
+            // no equivalent, we need to create our own node
+            impList.emplace_back(importFlags, (byte)paramCount).nodes.push_back(funcCall);
+        }
+        else {
+            // same local/flags, we can add our node
+            it->nodes.push_back(funcCall);
+        }
+    }
 };
 
 
@@ -2190,15 +2208,9 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         }
         case gscParser::RuleStatement_foreach: {
             auto [var1err, arrayVal] = fobj.RegisterVarRnd();
-            auto [var2err, iteratorVal] = fobj.RegisterVarRnd();
 
             if (var1err) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach variable: {}", var1err));
-                return false;
-            }
-
-            if (var2err) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
                 return false;
             }
 
@@ -2254,6 +2266,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             switch (forEachType) {
             case tool::gsc::GOHF_FOREACH_TYPE_T8: {
+                auto [var2err, iteratorVal] = fobj.RegisterVarRnd();
+                if (var2err) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
+                    return false;
+                }
+
                 // array = ...;
                 fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
                 fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
@@ -2314,6 +2332,12 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     ok = false;
                 }
 
+                auto [var2err, iteratorVal] = fobj.RegisterVarRnd();
+                if (var2err) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
+                    return false;
+                }
+
                 // array = ...;
                 fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableRefCached));
                 fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_SetVariableField));
@@ -2367,6 +2391,66 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 fobj.PopContinueNode();
                 // end
                 fobj.AddNode(rule->children[rule->children.size() - 1], loopBreak);
+            }
+                break;
+            case tool::gsc::GOHF_FOREACH_TYPE_JUP: {
+                // array = ...;
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_SetLocalVariableCached));
+                // key = getfirstarraykey(array);
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_PreScriptCall));
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
+                uint64_t fakHash = obj.vmInfo->HashField("getfirstarraykey");
+                AscmNodeFunctionCall* fakNode = new AscmNodeFunctionCall(OPCODE_CallBuiltinFunction, 0, 1, fakHash, obj.currentNamespace, obj.vmInfo);
+                obj.AddImport(fakNode, obj.currentNamespace, fakHash, obj.currentNamespace, tool::gsc::FUNCTION | tool::gsc::GET_CALL);
+                fobj.AddNode(arrVal, fakNode);
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_SetLocalVariableCached));
+
+                AscmNode* loopBreak = new AscmNode();
+                AscmNode* loopContinue = new AscmNode();
+                AscmNode* loopIt = new AscmNode();
+
+                fobj.PushBreakNode(loopBreak);
+                fobj.PushContinueNode(loopContinue);
+
+                fobj.AddNode(arrVal, loopIt);
+                // jumpiffalse(isdefined(key)) loopBreak
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_IsDefined));
+                fobj.AddNode(arrVal, new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+
+                // val = array[key];
+                fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_EvalArray));
+                fobj.AddNode(arrVal, new AscmNodeVariable(valueVar->id, OPCODE_SetLocalVariableCached));
+
+
+                if (!ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, false)) {
+                    ok = false;
+                }
+
+                fobj.AddNode(rule->children[rule->children.size() - 1], loopContinue);
+                // key = getnextarraykey(array, key);
+                fobj.AddNode(arrVal, new AscmNodeOpCode(OPCODE_PreScriptCall));
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(keyVar->id, OPCODE_EvalLocalVariableCached));
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
+
+                uint64_t gakHash = obj.vmInfo->HashField("getnextarraykey");
+                AscmNodeFunctionCall* gakNode = new AscmNodeFunctionCall(OPCODE_CallBuiltinFunction, 0, 2, gakHash, obj.currentNamespace, obj.vmInfo);
+                obj.AddImport(gakNode, obj.currentNamespace, gakHash, obj.currentNamespace, tool::gsc::FUNCTION | tool::gsc::GET_CALL);
+                fobj.AddNode(arrVal, gakNode);
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(keyVar->id, OPCODE_SetLocalVariableCached));
+
+                // loop back
+                fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeJump(loopIt, OPCODE_Jump));
+
+                fobj.PopBreakNode();
+                fobj.PopContinueNode();
+                // end
+                fobj.AddNode(rule->children[rule->children.size() - 1], loopBreak);
+
+                //fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(keyVar->id, OPCODE_IW_ClearFieldVariableRef));
+                //fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(arrayVal->id, OPCODE_IW_ClearFieldVariableRef));
             }
                 break;
             default:
@@ -2871,21 +2955,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
                 auto* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash, obj.vmInfo);
 
-                // link by the game, but we write it for test
-                Located located{ funcNspHash, funcHash };
-
-                auto& impList = obj.imports[located];
-
-                auto it = std::find_if(impList.begin(), impList.end(), [flags](const auto& e) { return e.flags == flags; });
-
-                if (it == impList.end()) {
-                    // no equivalent, we need to create our own node
-                    impList.emplace_back(importFlags, (byte)paramCount).nodes.push_back(funcCall);
-                }
-                else {
-                    // same local/flags, we can add our node
-                    it->nodes.push_back(funcCall);
-                }
+                obj.AddImport(funcCall, funcNspHash, funcHash, paramCount, importFlags);
 
                 fobj.AddNode(rule, funcCall);
             }
@@ -3386,21 +3456,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             // link by the game, but we write it for test
             AscmNodeFunctionCall* asmc = new AscmNodeFunctionCall(OPCODE_GetResolveFunction, FCF_GETTER, 0, 0, 0, obj.vmInfo);
+            obj.AddImport(asmc, nsp, func, 0, flags);
             fobj.AddNode(rule, asmc);
-
-            Located located{ nsp, func };
-            auto& impList = obj.imports[located];
-
-            auto it = std::find_if(impList.begin(), impList.end(), [flags](const auto& e) { return e.flags == flags; });
-
-            if (it == impList.end()) {
-                // no equivalent, we need to create our own node
-                impList.emplace_back(flags, 0).nodes.push_back(asmc);
-            }
-            else {
-                // same local/flags, we can add our node
-                it->nodes.push_back(asmc);
-            }
 
             return true;
         }
@@ -3662,9 +3719,35 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         return true;
     }
     case gscParser::HASHSTRING: {
-        auto sub = term->getText().substr(2, len - 3);
+        std::string hash = term->getText();
+        char type = hash[0];
+        std::string sub = hash.substr(2, len - 3);
         obj.AddHash(sub);
-        fobj.AddNode(term, new AscmNodeData<uint64_t>(hash::Hash64Pattern(sub.c_str()), OPCODE_GetHash));
+        auto ith = obj.vmInfo->hashesFunc.find(type);
+
+        if (ith == obj.vmInfo->hashesFunc.end()) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Hash type not available for this vm: {}", type));
+            return false;
+        }
+
+        uint64_t val = ith->second.hashFunc(sub.c_str());
+
+        if (!val) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't hash the string '{}' with the type {}", sub, type));
+            return false;
+        }
+
+        switch (ith->second.size) {
+        case 8: fobj.AddNode(term, new AscmNodeData<uint64_t>((uint64_t)val, ith->second.opCode)); break;
+        case 4: fobj.AddNode(term, new AscmNodeData<uint32_t>((uint32_t)val, ith->second.opCode)); break;
+        case 2: fobj.AddNode(term, new AscmNodeData<uint16_t>((uint16_t)val, ith->second.opCode)); break;
+        case 1: fobj.AddNode(term, new AscmNodeData<uint8_t>((uint8_t)val, ith->second.opCode)); break;
+        default: {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Invalid hash size definition: {} / {} bytes", type, ith->second.size));
+            return false;
+        }
+        }
+
         return true;
     }
     case gscParser::STRING: {

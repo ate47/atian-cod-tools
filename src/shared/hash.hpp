@@ -58,16 +58,16 @@ namespace hash {
 		std::string_view v{ str };
 
 		if (!v.rfind("var_", 0)) {
-			return std::strtoul(&str[4], nullptr, 16);
+			return std::strtoull(&str[4], nullptr, 16);
 		}
 		if (!v.rfind("event_", 0)) {
-			return std::strtoul(&str[6], nullptr, 16);
+			return std::strtoull(&str[6], nullptr, 16);
 		}
 		if (!v.rfind("function_", 0)) {
-			return std::strtoul(&str[9], nullptr, 16);
+			return std::strtoull(&str[9], nullptr, 16);
 		}
 		if (!v.rfind("namespace_", 0)) {
-			return std::strtoul(&str[10], nullptr, 16);
+			return std::strtoull(&str[10], nullptr, 16);
 		}
 		if (!v.rfind("script_", 0)) {
 			return std::strtoull(&str[7], nullptr, 16);

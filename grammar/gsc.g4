@@ -158,4 +158,4 @@ IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;
 STRUCT_IDENTIFIER: '#' [a-z_A-Z] ([a-z_A-Z0-9])*;
 PATH: [a-z_A-Z0-9\\/]+ ('.gsc' | '.csc')?;
 STRING: '"' (~["\\] | ('\\'.))* '"';
-HASHSTRING: [#] STRING;
+HASHSTRING: ('#' | '@' | 't' | '%') STRING;
