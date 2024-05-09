@@ -919,6 +919,8 @@ public:
         byte nflags{};
         switch (flags & 0xF) {
         case FUNC_METHOD: nflags |= 0x5; break;
+        case FUNCTION: nflags |= 0x4; break;
+        case METHOD: nflags |= 0x7; break;
         case METHOD_CHILDTHREAD:
         case FUNCTION_CHILDTHREAD: nflags |= 0x1; break;
         case FUNCTION_THREAD:
