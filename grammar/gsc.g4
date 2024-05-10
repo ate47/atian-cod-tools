@@ -1,9 +1,10 @@
 grammar gsc;		
 
-prog: (function | include | namespace)* EOF;
+prog: (function | include | namespace | filenamespace)* EOF;
 
 include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
 namespace: '#namespace' IDENTIFIER ';';
+filenamespace: '#file' (IDENTIFIER | PATH) ';';
 
 function
     : ('function')? 

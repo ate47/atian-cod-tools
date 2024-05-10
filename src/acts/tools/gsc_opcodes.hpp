@@ -114,6 +114,7 @@ namespace tool::gsc::opcode {
 	bool IsValidVm(byte vm, VmInfo*& info, bool registerOpCodes = true);
 	const OPCodeInfo* LookupOpCode(byte vm, Platform platform, uint16_t opcode);
 	std::pair<bool, uint16_t> GetOpCodeId(byte vm, Platform platform, OPCode opcode);
+	bool HasOpCode(byte vm, Platform plt, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
 	void RegisterVM(byte vm, const char* name, const char* codeName, uint64_t flags);
 	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode = OPCODE_Undefined);

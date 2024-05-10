@@ -24,26 +24,27 @@ public:
     T__56 = 57, T__57 = 58, T__58 = 59, T__59 = 60, T__60 = 61, T__61 = 62, 
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
     T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, T__73 = 74, 
-    T__74 = 75, T__75 = 76, NEWLINE = 77, WHITESPACE = 78, INTEGER10 = 79, 
-    INTEGER16 = 80, INTEGER8 = 81, INTEGER2 = 82, FLOATVAL = 83, BUILTIN = 84, 
-    BOOL_VALUE = 85, UNDEFINED_VALUE = 86, IDENTIFIER = 87, STRUCT_IDENTIFIER = 88, 
-    PATH = 89, STRING = 90, HASHSTRING = 91
+    T__74 = 75, T__75 = 76, T__76 = 77, NEWLINE = 78, WHITESPACE = 79, INTEGER10 = 80, 
+    INTEGER16 = 81, INTEGER8 = 82, INTEGER2 = 83, FLOATVAL = 84, BUILTIN = 85, 
+    BOOL_VALUE = 86, UNDEFINED_VALUE = 87, IDENTIFIER = 88, STRUCT_IDENTIFIER = 89, 
+    PATH = 90, STRING = 91, HASHSTRING = 92
   };
 
   enum {
-    RuleProg = 0, RuleInclude = 1, RuleNamespace = 2, RuleFunction = 3, 
-    RuleParam_list = 4, RuleParam_val = 5, RuleExpression_list = 6, RuleStatement_block = 7, 
-    RuleStatement = 8, RuleStatement_for = 9, RuleStatement_while = 10, 
-    RuleStatement_dowhile = 11, RuleStatement_foreach = 12, RuleStatement_if = 13, 
-    RuleStatement_switch = 14, RuleStatement_inst = 15, RuleFunction_call = 16, 
-    RuleNop_def = 17, RuleDevop_def = 18, RuleFunction_component = 19, RuleOperator_inst = 20, 
-    RuleExpression = 21, RuleSet_expression = 22, RuleExpression1 = 23, 
-    RuleExpression2 = 24, RuleExpression3 = 25, RuleExpression4 = 26, RuleExpression5 = 27, 
-    RuleExpression6 = 28, RuleExpression7 = 29, RuleExpression8 = 30, RuleExpression9 = 31, 
-    RuleExpression10 = 32, RuleExpression11 = 33, RuleExpression12 = 34, 
-    RuleExpression13 = 35, RuleExpression14 = 36, RuleLeft_value = 37, RuleArray_left_value = 38, 
-    RuleObject_left_value = 39, RuleConst_expr = 40, RuleFunction_ref = 41, 
-    RuleNumber = 42, RuleVector_value = 43, RuleArray_def = 44, RuleStruct_def = 45
+    RuleProg = 0, RuleInclude = 1, RuleNamespace = 2, RuleFilenamespace = 3, 
+    RuleFunction = 4, RuleParam_list = 5, RuleParam_val = 6, RuleExpression_list = 7, 
+    RuleStatement_block = 8, RuleStatement = 9, RuleStatement_for = 10, 
+    RuleStatement_while = 11, RuleStatement_dowhile = 12, RuleStatement_foreach = 13, 
+    RuleStatement_if = 14, RuleStatement_switch = 15, RuleStatement_inst = 16, 
+    RuleFunction_call = 17, RuleNop_def = 18, RuleDevop_def = 19, RuleFunction_component = 20, 
+    RuleOperator_inst = 21, RuleExpression = 22, RuleSet_expression = 23, 
+    RuleExpression1 = 24, RuleExpression2 = 25, RuleExpression3 = 26, RuleExpression4 = 27, 
+    RuleExpression5 = 28, RuleExpression6 = 29, RuleExpression7 = 30, RuleExpression8 = 31, 
+    RuleExpression9 = 32, RuleExpression10 = 33, RuleExpression11 = 34, 
+    RuleExpression12 = 35, RuleExpression13 = 36, RuleExpression14 = 37, 
+    RuleLeft_value = 38, RuleArray_left_value = 39, RuleObject_left_value = 40, 
+    RuleConst_expr = 41, RuleFunction_ref = 42, RuleNumber = 43, RuleVector_value = 44, 
+    RuleArray_def = 45, RuleStruct_def = 46
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -66,6 +67,7 @@ public:
   class ProgContext;
   class IncludeContext;
   class NamespaceContext;
+  class FilenamespaceContext;
   class FunctionContext;
   class Param_listContext;
   class Param_valContext;
@@ -121,6 +123,8 @@ public:
     IncludeContext* include(size_t i);
     std::vector<NamespaceContext *> namespace_();
     NamespaceContext* namespace_(size_t i);
+    std::vector<FilenamespaceContext *> filenamespace();
+    FilenamespaceContext* filenamespace(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -155,6 +159,20 @@ public:
   };
 
   NamespaceContext* namespace_();
+
+  class  FilenamespaceContext : public antlr4::ParserRuleContext {
+  public:
+    FilenamespaceContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *PATH();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  FilenamespaceContext* filenamespace();
 
   class  FunctionContext : public antlr4::ParserRuleContext {
   public:

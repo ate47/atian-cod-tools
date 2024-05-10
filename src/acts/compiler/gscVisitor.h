@@ -25,6 +25,8 @@ public:
 
     virtual std::any visitNamespace(gscParser::NamespaceContext *context) = 0;
 
+    virtual std::any visitFilenamespace(gscParser::FilenamespaceContext *context) = 0;
+
     virtual std::any visitFunction(gscParser::FunctionContext *context) = 0;
 
     virtual std::any visitParam_list(gscParser::Param_listContext *context) = 0;

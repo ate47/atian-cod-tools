@@ -90,13 +90,18 @@ public:
 enum AscmNodeType {
     ASCMNT_UNKNOWN = 0,
     ASCMNT_OPCODE = 1,
+    ASCMNT_OPCODE_RAW = 1,
 };
+
+class AscmNodeJump;
+class AscmNodeOpCode;
 
 class AscmNode {
 public:
     int32_t rloc{};
     int32_t floc{};
     size_t line{};
+    std::vector<AscmNodeJump*> refs{};
     AscmNodeType nodetype{ ASCMNT_UNKNOWN };
 
     virtual ~AscmNode() {};
@@ -109,6 +114,16 @@ public:
         // nothing by default
         return true;
     }
+
+    bool HasRef() {
+        return refs.size();
+    }
+
+    bool IsOpCode() {
+        return nodetype == ASCMNT_OPCODE;
+    }
+
+    AscmNodeOpCode* AsOpCode();
 };
 
 class AscmNodeOpCode : public AscmNode {
@@ -146,12 +161,19 @@ public:
     }
 };
 
+AscmNodeOpCode* AscmNode::AsOpCode() {
+    if (nodetype == ASCMNT_OPCODE) {
+        return dynamic_cast<AscmNodeOpCode*>(this);
+    }
+    return nullptr;
+}
+
 class AscmNodeRawOpCode : public AscmNode {
 public:
     int16_t opcode;
 
     AscmNodeRawOpCode(int16_t opcode) : opcode(opcode) {
-        nodetype = ASCMNT_OPCODE;
+        nodetype = ASCMNT_OPCODE_RAW;
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -308,7 +330,17 @@ public:
                 dataSize = 2;
                 useParams = true;
                 break;
-            default: throw std::runtime_error(utils::va("invalid opcode for func call %d", opcode));
+            case OPCODE_GetFunction:
+            case OPCODE_IW_GetBuiltinFunction:
+            case OPCODE_IW_GetBuiltinMethod:
+                dataSize = 2;
+                useParams = false;
+                break;
+            case OPCODE_GetResolveFunction:
+                dataSize = 4;
+                useParams = false;
+                break;
+            default: throw std::runtime_error(utils::va("invalid opcode for func call %s", tool::gsc::opcode::OpCodeName(opcode)));
             }
         }
     }
@@ -686,8 +718,9 @@ int64_t NumberNodeValue(ParseTree* number) {
 
 class AscmNodeJump : public AscmNodeOpCode {
 public:
-    const AscmNode* location;
-    AscmNodeJump(const AscmNode* location, OPCode opcode) : AscmNodeOpCode(opcode), location(location) {
+    AscmNode* const location;
+    AscmNodeJump(AscmNode* location, OPCode opcode) : AscmNodeOpCode(opcode), location(location) {
+        location->refs.push_back(this);
     }
 
     uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -728,13 +761,15 @@ public:
     const char* m_preproc{};
     VmInfo* m_vmInfo{};
     Platform m_platform{ Platform::PLATFORM_PC };
-    const char* m_outFileName{ "compiled"};
+    const char* m_outFileName{ "compiled" };
     std::vector<const char*> m_inputFiles{};
     bool m_client{};
     int64_t crcServer{};
     int64_t crcClient{};
     const char* nameServer{ "" };
     const char* nameClient{ "" };
+    const char* fileNameSpaceServer{ "" };
+    const char* fileNameSpaceClient{ "" };
     PreProcessorOption processorOpt{};
 
     bool Compute(const char** args, INT startIndex, INT endIndex) {
@@ -831,6 +866,20 @@ public:
                 }
                 nameClient = args[++i];
             }
+            else if (!_strcmpi("--namespace", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                fileNameSpaceServer = args[++i];
+            }
+            else if (!_strcmpi("--namespace-client", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                fileNameSpaceClient = args[++i];
+            }
             else if (*arg == '-') {
                 if (arg[1] == 'D' && arg[2]) {
                     processorOpt.defines.insert(arg + 2);
@@ -855,18 +904,20 @@ public:
     }
 
     void PrintHelp() {
-        LOG_INFO("-h --help          : Print help");
-        LOG_INFO("-g --game [g]      : Set game");
-        LOG_INFO("-p --platform [p]  : Set platform");
-        LOG_INFO("-d --dbg           : Add dev options");
-        LOG_INFO("-o --output [f]    : Set output file (without extension), default: 'compiled'");
-        LOG_INFO("-D[name]           : Define variable");
-        LOG_INFO("-c --csc           : Build client script with csc files");
-        LOG_INFO("--crc [c]          : Set the crc for the server script");
-        LOG_INFO("--crc-client [c]   : Set the crc for the client script");
-        LOG_INFO("--name [n]         : Set the name for the server script");
-        LOG_INFO("--name-client [n]  : Set the name for the client script");
-        LOG_DEBUG("--preproc [f]      : Export preproc result into f");
+        LOG_INFO("-h --help              : Print help");
+        LOG_INFO("-g --game [g]          : Set game");
+        LOG_INFO("-p --platform [p]      : Set platform");
+        LOG_INFO("-d --dbg               : Add dev options");
+        LOG_INFO("-o --output [f]        : Set output file (without extension), default: 'compiled'");
+        LOG_INFO("-D[name]               : Define variable");
+        LOG_INFO("-c --csc               : Build client script with csc files");
+        LOG_INFO("--crc [c]              : Set the crc for the server script");
+        LOG_INFO("--crc-client [c]       : Set the crc for the client script");
+        LOG_INFO("--name [n]             : Set the name for the server script");
+        LOG_INFO("--name-client [n]      : Set the name for the client script");
+        LOG_INFO("--namespace [n]        : Set the file namespace for the server script");
+        LOG_INFO("--namespace-client [n] : Set the file namespace for the client script");
+        LOG_DEBUG("--preproc [f]         : Export preproc result into f");
     }
 };  
 
@@ -975,8 +1026,9 @@ public:
         CompileObject& obj,
         uint64_t name,
         uint64_t name_space,
+        uint64_t file_name_space,
         VmInfo* vmInfo
-    ) : obj(obj), m_name(name), m_name_space(name_space), m_data_name(name_space), m_vmInfo(vmInfo) {
+    ) : obj(obj), m_name(name), m_name_space(name_space), m_data_name(file_name_space), m_vmInfo(vmInfo) {
     }
     ~FunctionObject() {
         for (auto* node : m_nodes) {
@@ -996,14 +1048,14 @@ public:
 
     AscmNode* CreateFieldHash(const std::string& v, OPCode op) const;
 
-    const AscmNode* PeekBreakNode() const {
+    AscmNode* PeekBreakNode() const {
         if (m_jumpBreak.size()) {
             return m_jumpBreak.top();
         }
         return nullptr;
     }
 
-    const AscmNode* PeekContinueNode() const {
+    AscmNode* PeekContinueNode() const {
         if (m_jumpContinue.size()) {
             return m_jumpContinue.top();
         }
@@ -1080,6 +1132,10 @@ public:
         }
         return current;
     }
+
+    void OptimizeNodes() {
+        // todo: find something to do?
+    }
 };
 
 
@@ -1090,6 +1146,7 @@ public:
     GscFileType type;
     uint64_t currentNamespace;
     uint64_t fileName{};
+    uint64_t fileNameSpace{};
     int64_t crc{};
     std::set<uint64_t> includes{};
     std::unordered_map<uint64_t, FunctionObject> exports{};
@@ -1104,7 +1161,24 @@ public:
 
     CompileObject(GscCompilerOption& opt, GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt, std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler) 
         : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt), gscHandler(gscHandler) {
-        currentNamespace = vmInfo->HashField("");
+        bool client = type == FILE_CSC;
+        crc = client ? opt.crcClient : opt.crcServer;
+
+        if (!crc) {
+            crc = gscHandler->GetDefaultChecksum(client);
+        }
+
+        const char* fn = client ? opt.nameClient : opt.nameServer;
+        fileName = fn && *fn ? vmInfo->HashPath(fn) : 0;
+
+        if (!fileName) {
+            fileName = vmInfo->HashPath(gscHandler->GetDefaultName(client));
+        }
+
+        const char* fns = client ? opt.fileNameSpaceClient : opt.fileNameSpaceServer;
+        fileNameSpace = fns && *fns ? vmInfo->HashFilePath(opt.fileNameSpaceClient) : 0;
+
+        currentNamespace = fileNameSpace;
     }
 
     void AddHash(const std::string& str) {
@@ -1149,7 +1223,7 @@ public:
             constexpr const char* name = "$notif_checkum";
             uint64_t nameHashed = vmInfo->HashField(name);
             AddHash(name);
-            auto [res, err] = exports.try_emplace(nameHashed, *this, nameHashed, currentNamespace, vmInfo);
+            auto [res, err] = exports.try_emplace(nameHashed, *this, nameHashed, currentNamespace, fileNameSpace, vmInfo);
 
             if (!err) {
                 LOG_ERROR("Can't register notif checksum export: {}", name);
@@ -1268,6 +1342,7 @@ public:
 
         auto& that = *this;
         auto writeExport = [&data, &that, &expTable, &exportIndex](FunctionObject& exp) -> bool {
+            exp.OptimizeNodes();
             if (exp.m_nodes.empty()) {
                 LOG_ERROR("No nodes for {:x}", exp.m_name);
                 return false;
@@ -2547,7 +2622,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                const AscmNode* loc = fobj.PeekBreakNode();
+                AscmNode* loc = fobj.PeekBreakNode();
 
                 if (!loc) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Not in a break context");
@@ -2564,7 +2639,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                     return false;
                 }
 
-                const AscmNode* loc = fobj.PeekContinueNode();
+                AscmNode* loc = fobj.PeekContinueNode();
 
                 if (!loc) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Not in a continue context");
@@ -3807,7 +3882,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
     return false;
 }
 
-bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileObject& obj) {
+bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj) {
     if (func->children.size() < 5) { // 0IDF 1( 2params 3) 4block
         obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "Bad function declaration");
         return false;
@@ -3829,7 +3904,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     obj.AddHash(name);
     uint64_t nameHashed = obj.vmInfo->HashField(name.data());
 
-    auto [res, err] = obj.exports.try_emplace(nameHashed, obj, nameHashed, obj.currentNamespace, obj.vmInfo);
+    auto [res, err] = obj.exports.try_emplace(nameHashed, obj, nameHashed, obj.currentNamespace, obj.fileNameSpace, obj.vmInfo);
 
     if (!err) {
         obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("The export {} was defined twice", name));
@@ -4056,7 +4131,7 @@ bool ParseFunction(gscParser::FunctionContext* func, gscParser& parser, CompileO
     return !badRef;
 }
 
-bool ParseInclude(gscParser::IncludeContext* nsp, gscParser& parser, CompileObject& obj) {
+bool ParseInclude(RuleContext* nsp, gscParser& parser, CompileObject& obj) {
     if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
         return false; // bad
     }
@@ -4069,7 +4144,7 @@ bool ParseInclude(gscParser::IncludeContext* nsp, gscParser& parser, CompileObje
     return true;
 }
 
-bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, CompileObject& obj) {
+bool ParseNamespace(RuleContext* nsp, gscParser& parser, CompileObject& obj) {
     if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
         return false; // bad
     }
@@ -4080,6 +4155,27 @@ bool ParseNamespace(gscParser::NamespaceContext* nsp, gscParser& parser, Compile
 
     obj.AddHash(txt);
     obj.currentNamespace = obj.vmInfo->HashField(txt.data());
+    if (!obj.fileNameSpace) {
+        obj.fileNameSpace = obj.vmInfo->HashFilePath(txt.data());
+    }
+
+    return true;
+}
+
+bool ParseFileNamespace(RuleContext* nsp, gscParser& parser, CompileObject& obj) {
+    if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
+        return false; // bad
+    }
+
+    std::string txt = nsp->children[1]->getText();
+
+    // set the current file namespace to the one specified
+
+    obj.AddHash(txt);
+    obj.fileNameSpace = obj.vmInfo->HashFilePath(txt.data());
+    if (!obj.currentNamespace) {
+        obj.currentNamespace = obj.vmInfo->HashField(txt.data());
+    }
 
     return true;
 }
@@ -4102,11 +4198,18 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             return false;
         }
 
-        if (dynamic_cast<RuleContext&>(*e).getRuleIndex() == gscParser::RuleNamespace) {
-            if (!ParseNamespace(dynamic_cast<gscParser::NamespaceContext*>(e), parser, obj)) {
+        RuleContext* rule = dynamic_cast<RuleContext*>(e);
+        size_t idx = rule->getRuleIndex();
+
+        if (idx == gscParser::RuleNamespace) {
+            if (!ParseNamespace(rule, parser, obj)) {
                 return false;
             }
-            break;
+        }
+        else if (idx == gscParser::RuleFilenamespace) {
+            if (!ParseFileNamespace(rule, parser, obj)) {
+                return false;
+            }
         }
     }
 
@@ -4115,21 +4218,26 @@ bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& o
             return true; // done
         }
 
-        auto rule = dynamic_cast<RuleContext&>(*e).getRuleIndex();
+        RuleContext* rule = dynamic_cast<RuleContext*>(e);
 
-        switch (rule) {
+        switch (rule->getRuleIndex()) {
         case gscParser::RuleInclude:
-            if (!ParseInclude(dynamic_cast<gscParser::IncludeContext*>(e), parser, obj)) {
+            if (!ParseInclude(rule, parser, obj)) {
                 return false;
             }
             break;
         case gscParser::RuleNamespace:
-            if (!ParseNamespace(dynamic_cast<gscParser::NamespaceContext*>(e), parser, obj)) {
+            if (!ParseNamespace(rule, parser, obj)) {
                 return false;
             }
             break; 
+        case gscParser::RuleFilenamespace:
+            if (!ParseFileNamespace(rule, parser, obj)) {
+                return false;
+            }
+            break;
         case gscParser::RuleFunction:
-            if (!ParseFunction(dynamic_cast<gscParser::FunctionContext*>(e), parser, obj)) {
+            if (!ParseFunction(rule, parser, obj)) {
                 return false;
             }
             break;
@@ -4372,6 +4480,13 @@ bool ApplyPreProcessor(InputInfo& info, std::string& str, PreProcessorOption& op
                 opt.defines.insert(define);
             }
         }
+        else if (line.starts_with("#error")) {
+            info.PrintLineMessage(alogs::LVL_ERROR, lineIdx, 0, std::string{ line.substr(line.length() > 6 ? 7 : 6) });
+            err = true;
+        }
+        else if (line.starts_with("#warning")) {
+            info.PrintLineMessage(alogs::LVL_WARNING, lineIdx, 0, std::string{ line.substr(line.length() > 8 ? 9 : 8) });
+        }
         else {
             if (eraseCtx.empty() || !eraseCtx.top()) {
                 lineStart = next + 1;
@@ -4460,6 +4575,10 @@ int compiler(Process& proc, int argc, const char* argv[]) {
         popt.defines.insert(utils::UpperCase(utils::va("_%s", opt.m_vmInfo->codeName)));
         popt.defines.insert(utils::UpperCase(utils::va("_%s", PlatformName(opt.m_platform))));
 
+        if (tool::gsc::opcode::HasOpCode(opt.m_vmInfo->vm, opt.m_platform, OPCODE_T8C_GetLazyFunction)) {
+            popt.defines.insert("_SUPPORTS_LAZYLINK");
+        }
+
         if (client) {
             popt.defines.insert("_CSC");
         }
@@ -4492,19 +4611,6 @@ int compiler(Process& proc, int argc, const char* argv[]) {
 
         gscParser::ProgContext* prog = parser.prog();
         CompileObject obj{ opt, client ? FILE_CSC : FILE_GSC, info, opt.m_vmInfo, opt.m_platform, handler };
-
-        obj.crc = client ? opt.crcClient : opt.crcServer;
-
-        if (!obj.crc) {
-            obj.crc = handler->GetDefaultChecksum(client);
-        }
-
-        const char* fn = client ? opt.nameClient : opt.nameServer;
-        obj.fileName = fn && *fn ? obj.vmInfo->HashPath(fn) : 0;
-
-        if (!obj.fileName) {
-            obj.fileName = obj.vmInfo->HashPath(handler->GetDefaultName(client));
-        }
 
         auto error = parser.getNumberOfSyntaxErrors();
         if (error) {

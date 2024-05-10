@@ -27,6 +27,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitFilenamespace(gscParser::FilenamespaceContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFunction(gscParser::FunctionContext *ctx) override {
     return visitChildren(ctx);
   }

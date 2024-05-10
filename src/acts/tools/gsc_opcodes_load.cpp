@@ -655,13 +655,14 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_MW23, "waittill", "<caller> waittill(event, var*)", OPCODE_IW_SingleWaitTill, VPFD_SELF_PARAM | VPFD_UNPACK, 1);
 			RegisterVMOperatorFunction(VM_MW23, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_MW23, "notify", "<caller> notify(event, param*)", OPCODE_IW_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
+			RegisterVMOperatorFunction(VM_MW23, "endon", "<caller> endon(event)", OPCODE_IW_SingleEndon, VPFD_SELF_PARAM, 1, 1);
 			RegisterVMOperatorFunction(VM_MW23, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_MW23, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_MW23, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
-			RegisterVMOperatorFunction(VM_MW23, "istrue", "istrue() -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_MW23, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMHashOPCode(VM_MW23, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64Pattern(str); });
 			RegisterVMHashOPCode(VM_MW23, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hash::HashPattern(str); });
-			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::HashPattern(str); });
+			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64Pattern(str, 0x47F5817A5EF961BA); });
 			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::HashPattern(str); });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println"); 
 	#ifdef SP23_INCLUDES

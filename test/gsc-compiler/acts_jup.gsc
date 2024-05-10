@@ -3,6 +3,7 @@
 #using scripts\core_common\callbacks_shared;
 
 #namespace acts;
+#file scripts\test\acts;
 
 function autoexec __init__system__() {
     level.acts = {
@@ -24,8 +25,23 @@ function autoexec __init__system__() {
     iprintln("builtin function call");
     iprintln("builtin function call");
 
-    level waittill("test waittill", v1, v2, v3);
+    while (!isdefined(level.players) && !isdefined(level.players[0])) {
+        waitframe();
+    }
 
+    f = &test;
+
+    level.players[0] thread [[ f ]]();
+}
+
+function test() {
+    self endon("test plr");
+
+    while (true) {
+        self waittill("test waittill", v1, v2, v3);
+
+        self iprintln("hello: " + v1 + v2 + v3);
+    }
 }
 
 function sum(array, count = array.size) {

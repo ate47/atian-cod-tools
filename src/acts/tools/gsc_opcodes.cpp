@@ -2423,7 +2423,6 @@ public:
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeIdentifier(name));
 		}
-		out << "\n";
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* arrayNode = context.PopASMCNode();
@@ -4933,6 +4932,11 @@ std::pair<bool, uint16_t> tool::gsc::opcode::GetOpCodeId(byte vm, Platform platf
 	}
 
 	return std::make_pair(true, ref2->second);
+}
+
+bool tool::gsc::opcode::HasOpCode(byte vm, Platform plt, OPCode opcode) {
+	auto [ok, id] = GetOpCodeId(vm, plt, opcode);
+	return ok;
 }
 
 #pragma endregion
