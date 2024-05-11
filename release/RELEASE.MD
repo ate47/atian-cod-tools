@@ -1,3 +1,6 @@
 - tools
-  - black ops cw gsc compiler
-  - fix issue with bo4 compiler
+  - jup compiler extension
+  - fix some issue with decompiler
+  - new rosetta format (ros2)
+  - add file namespace and preprocessor options to compiler
+  - better compiler errors
