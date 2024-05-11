@@ -284,7 +284,8 @@ void tool::gsc::RosettaStartFile(GSCOBJHandler& reader) {
     
     auto& block = gRosettaBlocks[gRosettaCurrent = reader.GetName()];
     // clone the header for the finder
-    memcpy(&block.header, reader.Ptr(), reader.GetHeaderSize());
+    block.header.resize(reader.GetHeaderSize());
+    memcpy(block.header.data(), reader.Ptr(), reader.GetHeaderSize());
 }
 
 void tool::gsc::RosettaAddOpCode(uint32_t loc, uint16_t opcode) {
@@ -2229,15 +2230,17 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
             LOG_ERROR("Can't open rosetta output");
         }
         else {
-            os.write("ROSE", 4);
+            os.write("ROS2", 4);
 
-            auto len = gRosettaBlocks.size();
+            uint64_t len = (uint64_t)gRosettaBlocks.size();
             os.write(reinterpret_cast<const char*>(&len), sizeof(len));
 
             for (const auto& [key, data] : gRosettaBlocks) {
                 // gsc header
-                os.write(reinterpret_cast<const char*>(&data.header), sizeof(data.header));
-                len = data.blocks.size();
+                len = (uint64_t)data.header.length();
+                os.write(reinterpret_cast<const char*>(&len), sizeof(len));
+                os.write(data.header.data(), data.header.length());
+                len = (uint64_t)data.blocks.size();
                 os.write(reinterpret_cast<const char*>(&len), sizeof(len));
                 for (const auto& block : data.blocks) {
                     os.write(reinterpret_cast<const char*>(&block), sizeof(block));
@@ -2249,7 +2252,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
 
 
             os.close();
-            LOG_INFO("Rosetta index created into '{}'", gRosettaOutput);
+            LOG_INFO("Rosetta index 2 created into '{}'", gRosettaOutput);
         }
     }
 

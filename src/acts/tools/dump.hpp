@@ -12,7 +12,7 @@ namespace tool::dump {
     };
 
     struct T8GSCSimpleHeader {
-        uint64_t magic;
+        byte magic[8];
         int32_t crc;
         int32_t pad;
         uint64_t name;

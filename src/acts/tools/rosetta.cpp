@@ -43,24 +43,28 @@ namespace {
 
 		rfile.read(checkBuff, 4);
 
-		if (memcmp(checkBuff, "ROSE", 4)) {
+		if (memcmp(checkBuff, "ROS2", 4)) {
 			std::cout << "Bad magic for '" << argv[2] << "'\n";
 			rfile.close();
 			return tool::BASIC_ERROR;
 		}
 
-		size_t len = 0;
-		size_t lenblk = 0;
+		uint64_t len{};
+		uint64_t lenblk{};
 
 		rfile.read(reinterpret_cast<char*>(&len), sizeof(len));
 
-		tool::gsc::T8GSCOBJ header{};
+		std::string headerStr{};
 
 		for (size_t i = 0; i < len; i++) {
+			rfile.read(reinterpret_cast<char*>(&lenblk), sizeof(lenblk));
+			headerStr.resize(lenblk);
+			rfile.read(reinterpret_cast<char*>(headerStr.data()), lenblk);
+			tool::dump::T8GSCSimpleHeader* header = reinterpret_cast<tool::dump::T8GSCSimpleHeader*>(headerStr.data());
 
-			rfile.read(reinterpret_cast<char*>(&header), sizeof(header));
-			auto& block = rosettaBlocks[header.name];
-			memcpy(&block.header, &header, sizeof(header));
+			auto& block = rosettaBlocks[header->name];
+			block.header.resize(lenblk);
+			memcpy(block.header.data(), header, lenblk);
 
 			rfile.read(reinterpret_cast<char*>(&lenblk), sizeof(lenblk));
 			for (size_t i = 0; i < lenblk; i++) {
@@ -97,10 +101,12 @@ namespace {
 
 		fillmap(locDir, files);
 
-		tool::dump::T8GSCSimpleHeader* buffer = NULL;
-		size_t size;
+		tool::dump::T8GSCSimpleHeader* buffer{};
+		size_t size{};
 
 		std::cout << "Find " << files.size() << " file(s)\n";
+
+		std::unordered_map<byte, std::shared_ptr<tool::gsc::GSCOBJHandler>> handlers{};
 
 		for (const auto& file : files) {
 			if (!utils::ReadFileNotAlign(file, reinterpret_cast<void*&>(buffer), size, false)) {
@@ -110,10 +116,48 @@ namespace {
 
 			//std::cout << "Reading data from " << file.string() << " (" << hashutils::ExtractTmpScript(buffer->name) << ")\n";
 
-			auto blk = rosettaBlocks.find(buffer->name);
+			byte vm;
+
+			auto magicVal = *reinterpret_cast<uint64_t*>(buffer) & ~0xFF00000000000000;
+			if (magicVal == 0xa0d43534780) {
+				// Treyarch GSC file, use revision
+				vm = buffer->magic[7];
+			}
+			else {
+				LOG_ERROR("Bad magic 0x{:x}", *reinterpret_cast<uint64_t*>(buffer->magic));
+				continue;
+			}
+
+			tool::gsc::GSCOBJHandler* reader = [&handlers, vm, buffer]() -> tool::gsc::GSCOBJHandler* {
+
+				auto hit = handlers.find(vm);
+
+				if (hit == handlers.end()) {
+					auto bld = tool::gsc::GetGscReader(vm);
+
+					if (!bld) {
+						LOG_ERROR("Can't create reader for vm {:x}", (int)vm);
+						return nullptr;
+					}
+
+					return &*(handlers[vm] = (*bld)(buffer->magic));
+				}
+				else {
+					return &*(hit->second);
+				}
+			}();
+
+			if (!reader) {
+				continue;
+			}
+
+			reader->file = buffer->magic;
+
+
+			auto blk = rosettaBlocks.find(reader->GetName());
 
 			if (blk == rosettaBlocks.end()) {
-				std::cerr << "Script " << file.string() << " (" << hashutils::ExtractTmpScript(buffer->name) << ") isn't in the rosetta index\n";
+				std::cerr << "Script " << file.string() << " (" << hashutils::ExtractTmpScript(reader->GetName()) << ") isn't in the rosetta index\n";
 				std::free(buffer);
 				buffer = NULL;
 				continue;
@@ -122,11 +166,25 @@ namespace {
 			auto& bl = blk->second;
 
 			// clear CRC
-			bl.header.crc = 0;
-			reinterpret_cast<tool::gsc::T8GSCOBJ*>(buffer)->crc = 0;
+			reader->SetChecksum(0);
+			reader->file = (byte*)bl.header.data();
+			reader->SetChecksum(0);
+			reader->file = buffer->magic;
 
-			if (memcmp(&bl.header, buffer, sizeof(bl.header))) {
-				std::cerr << "Script " << file.string() << " (" << hashutils::ExtractTmpScript(buffer->name) << ") has a different header\n";
+			byte* b1 = (byte*)bl.header.data();
+			byte* b2 = (byte*)reader->Ptr();
+			if (memcmp(b1, b2, reader->GetHeaderSize())) {
+				std::cerr << "Script " << file.string() << " (" << hashutils::ExtractTmpScript(reader->GetName()) << ") has a different header\n";
+				std::cerr << "b1:";
+				for (size_t i = 0; i < reader->GetHeaderSize(); i++) {
+					std::cerr << " " << std::hex << std::setw(2) << std::setfill('0') << (int)b1[i];
+				}
+				std::cerr << "\n";
+				std::cerr << "b2:";
+				for (size_t i = 0; i < reader->GetHeaderSize(); i++) {
+					std::cerr << " " << std::hex << std::setw(2) << std::setfill('0') << (int)b2[i];
+				}
+				std::cerr << "\n";
 				std::free(buffer);
 				buffer = NULL;
 				continue;
@@ -134,7 +192,7 @@ namespace {
 
 			for (auto opco : bl.blocks) {
 				if (opco.location >= size) {
-					std::cerr << "Bad location: " << std::hex << opco.location << " in " << file.string() << " (" << hashutils::ExtractTmpScript(buffer->name) << ")\n";
+					std::cerr << "Bad location: " << std::hex << opco.location << " in " << file.string() << " (" << hashutils::ExtractTmpScript(reader->GetName()) << ")\n";
 				}
 
 				auto val = *reinterpret_cast<uint16_t*>(reinterpret_cast<byte*>(buffer) + opco.location);

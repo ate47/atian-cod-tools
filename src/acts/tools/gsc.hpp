@@ -1107,7 +1107,7 @@ namespace tool::gsc {
         uint16_t opcode;
     };
     struct RosettaFileData {
-        T8GSCOBJ header;
+        std::string header{};
         std::vector<RosettaOpCodeBlock> blocks{};
     };
 

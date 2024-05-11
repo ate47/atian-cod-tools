@@ -256,8 +256,8 @@ int linkedscripts(Process& proc, int argc, const char* argv[]) {
                 std::cerr << "Can't read memory from location " << std::hex << ref.activeVersion << ", index: " << i << "\n";
                 continue;
             }
-            if (gsc.magic != magicLong) {
-                std::cerr << "Bad magic for location " << std::hex << ref.activeVersion << " " << gsc.magic << " != " << magicLong << "\n";
+            if (*reinterpret_cast<uint64_t*>(gsc.magic) != magicLong) {
+                std::cerr << "Bad magic for location " << std::hex << ref.activeVersion << " " << *reinterpret_cast<uint64_t*>(gsc.magic) << " != " << magicLong << "\n";
                 continue;
             }
 
