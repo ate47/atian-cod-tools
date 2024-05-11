@@ -183,6 +183,50 @@ namespace {
 		return true;
 	}
 	int packfile(Process& proc, int argc, const char* argv[]) {
+		// params
+		const char* output = "acts.acpf";
+
+		std::unordered_set<uint16_t> vms{};
+
+		if (argc > 2) {
+			output = argv[2];
+
+			for (size_t params = 3; params < argc; params++) {
+				std::string_view arg{ argv[params] };
+
+				size_t idx = arg.find(':');
+
+				tool::gsc::opcode::Platform plt{};
+
+				if (idx != std::string::npos) {
+					std::string pltStr{ arg.substr(idx + 1, arg.length() - idx - 1) };
+					plt = tool::gsc::opcode::PlatformOf(pltStr.c_str());
+					if (!plt) {
+						LOG_ERROR("Invalid platform: {}", pltStr);
+						return tool::BASIC_ERROR;
+					}
+				}
+				else {
+					idx = arg.length();
+				}
+
+				std::string vmStr{ arg.substr(0, idx) };
+
+				tool::gsc::opcode::VM vm = tool::gsc::opcode::VMOf(vmStr.c_str());
+
+				if (!vm) {
+					LOG_ERROR("Invalid vm: {}", vmStr);
+					return tool::BASIC_ERROR;
+				}
+
+				vms.insert(utils::CatLocated16(plt, vm));
+			}
+		}
+
+		auto doPackVm = [&vms](byte vm, tool::gsc::opcode::Platform plt) {
+			return vms.empty() || vms.contains(utils::CatLocated16(plt, vm)) || vms.contains(utils::CatLocated16(0, vm));
+		};
+
 		// read maps
 		hashutils::ReadDefaultFile();
 		tool::gsc::opcode::RegisterOpCodesMap();
@@ -227,8 +271,9 @@ namespace {
 		}
 
 		// dump hashes
-		{
+		if (!actscli::options().noDefaultHash) {
 			LOG_INFO("Dumping hashmap...");
+			
 			const auto& hashmap = hashutils::GetMap();
 
 			auto hashmapoffset = CreateBlock(hashmap.size() * sizeof(ActsPackHash));
@@ -274,8 +319,8 @@ namespace {
 				size_t pltIdx{};
 				for (size_t i = 1; i < tool::gsc::opcode::Platform::PLATFORM_COUNT; i++) {
 					auto p = (tool::gsc::opcode::Platform)i;
-					if (vminfo.HasPlatform(p)) {
-
+					if (vminfo.HasPlatform(p) && doPackVm(vm, p)) {
+						LOG_INFO("Dump vm {} / {}", vminfo.name, tool::gsc::opcode::PlatformName(p));
 						uint32_t opIdx{};
 						uint32_t opcodeoff{};
 						auto pit = vminfo.opcodemappltlookup.find(p);
@@ -319,12 +364,6 @@ namespace {
 			reinterpret_cast<ActsPack*>(packFileData.data())->vmOffset = vmoffset;
 
 			LOG_INFO("Done.");
-		}
-
-		const char* output = "acts.acpf";
-
-		if (argc > 2) {
-			output = argv[2];
 		}
 
 		LOG_INFO("Writing into {}...", output);
