@@ -2260,5 +2260,10 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     return ret;
 }
 
+static int gscd(Process& proc, int argc, const char* argv[]) {
+    return gscinfo(proc, argc, argv);
+}
+
 ADD_TOOL("gscinfo", " (intput)*", "GSC decompiler/disassembler", nullptr, gscinfo);
+ADD_TOOL("gscd", " (intput)*", "GSC decompiler/disassembler", nullptr, gscd);
 ADD_TOOL("dds", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", nullptr, dumpdataset);

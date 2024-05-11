@@ -111,6 +111,8 @@ namespace {
 				utils::WriteString(rawdata, line.c_str());
 				utils::WriteValue(rawdata, hashutils::HashIW2(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
+				utils::WriteValue(rawdata, hashutils::Hash64(line.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
+				utils::WriteString(rawdata, line.c_str());
 			}
 			count++;
 		}

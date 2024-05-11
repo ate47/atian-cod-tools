@@ -1,6 +1,6 @@
 - tools
   - jup compiler extension
-  - fix some issue with decompiler
+  - fix some issues with decompiler
   - new rosetta format (ros2)
   - add file namespace and preprocessor options to compiler
   - better compiler errors

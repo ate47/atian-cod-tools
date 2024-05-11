@@ -165,6 +165,7 @@ bool hashutils::Add(const char* str, bool ignoreCol, bool iw) {
 	if (iw) {
 		g_hashMap.emplace(hashutils::HashIW(str), str);
 		g_hashMap.emplace(hashutils::HashIW2(str), str);
+		g_hashMap.emplace(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str);
 		return true;
 	}
 	bool cand32 = true;

@@ -667,7 +667,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64Pattern(str); });
 			RegisterVMHashOPCode(VM_MW23, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hash::HashPattern(str); });
 			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64Pattern(str, 0x47F5817A5EF961BA); });
-			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::HashPattern(str); });
+			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64Pattern(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println"); 
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();

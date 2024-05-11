@@ -73,6 +73,8 @@ namespace {
 		HWND hash64IW2EditLabel{};
 		HWND hash64IW3Edit{};
 		HWND hash64IW3EditLabel{};
+		HWND hash32IW4Edit{};
+		HWND hash32IW4EditLabel{};
 
 		HWND titleLabel{};
     } info{};
@@ -85,11 +87,13 @@ namespace {
 		std::wstring hash32Val = std::format(L"{:x}", hash::Hash32(info.hash.c_str()));
 		std::wstring hash64IW2Val = std::format(L"{:x}", hashutils::HashAIW(info.hash.c_str()));
 		std::wstring hash64IW3Val = std::format(L"{:x}", hashutils::HashAIW2(info.hash.c_str()));
+		std::wstring hash32IW4Val = std::format(L"{:x}", hashutils::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
 
 		Edit_SetText(info.hash64Edit, hash64Val.c_str());
 		Edit_SetText(info.hash32Edit, hash32Val.c_str());
 		Edit_SetText(info.hash64IW2Edit, hash64IW2Val.c_str());
 		Edit_SetText(info.hash64IW3Edit, hash64IW3Val.c_str());
+		Edit_SetText(info.hash32IW4Edit, hash32IW4Val.c_str());
 	}
 
     int Render(HWND window, HINSTANCE hInstance) {
@@ -227,6 +231,30 @@ namespace {
 			NULL
 		);
 
+		info.hash32IW4Edit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.hash32IW4EditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"IW Tag : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
         if (
             info.hashEdit == NULL
 			|| info.hashEditLabel == NULL
@@ -238,6 +266,8 @@ namespace {
 			|| info.hash64IW2EditLabel == NULL
 			|| info.hash64IW3Edit == NULL
 			|| info.hash64IW3EditLabel == NULL
+			|| info.hash32IW4Edit == NULL
+			|| info.hash32IW4EditLabel == NULL
 			|| info.titleLabel == NULL
             ) {
             return -1;
@@ -248,11 +278,13 @@ namespace {
 		SendMessage(info.hash32Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hash64IW2Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hash64IW3Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hash32IW4Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 
 		Edit_SetReadOnly(info.hash64Edit, true);
 		Edit_SetReadOnly(info.hash32Edit, true);
 		Edit_SetReadOnly(info.hash64IW2Edit, true);
 		Edit_SetReadOnly(info.hash64IW3Edit, true);
+		Edit_SetReadOnly(info.hash32IW4Edit, true);
 
 		ComputeHashes();
 
@@ -278,6 +310,8 @@ namespace {
 				|| lParam == (LPARAM)info.hash64IW2EditLabel
 				|| lParam == (LPARAM)info.hash64IW3Edit
 				|| lParam == (LPARAM)info.hash64IW3EditLabel
+				|| lParam == (LPARAM)info.hash32IW4Edit
+				|| lParam == (LPARAM)info.hash32IW4EditLabel
 				|| lParam == (LPARAM)info.titleLabel
                 ) {
                 return 0;
@@ -303,6 +337,9 @@ namespace {
 		y += 28;
 		SetWindowPos(info.hash64IW3Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash64IW3EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
+		SetWindowPos(info.hash32IW4Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash32IW4EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
 
 		tool::ui::window().SetTitleFont(info.titleLabel);

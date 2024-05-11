@@ -67,7 +67,7 @@ Tools to decompile or disassemble the GSC scripts, a bo4 script decompilation is
 
 ### Compiler
 
-GSC compiler, not for all the game, scripts can be compiled using the command `acts gscc -g [game] [directory]`.
+GSC compiler, not for all the games, the scripts can be compiled using the command `acts gscc -g [game] [directory]`.
 
 ### GSC Development (Black Ops 4)
 
