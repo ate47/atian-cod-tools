@@ -11,6 +11,7 @@ function
       ('private')? 
 	  ('autoexec' ('(' number ')')?)? 
       ('event_handler' '[' IDENTIFIER ']')? 
+	  ('detour' IDENTIFIER '<' PATH '>' '::' IDENTIFIER)?
 	IDENTIFIER '(' param_list ')' statement_block;
 
 param_list: (param_val (',' param_val)*)?;
@@ -42,13 +43,7 @@ statement_foreach:
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (expression | operator_inst | statement_dowhile | function_call | nop_def | devop_def) ';';
-
-function_call: 
-	('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
-	| expression14 ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
-    | function_call ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
-;
+statement_inst: (expression | operator_inst | statement_dowhile | function_call_exp | nop_def | devop_def) ';';
 
 nop_def: ('nop' | 'Nop') ('(' number ')')?;
 devop_def: ('DevOp' | 'devop' | 'Devop') '(' number ')';
@@ -101,18 +96,26 @@ expression9: expression9 ('<<' | '>>') expression10 | expression10;
 expression10: expression10 ('+' | '-') expression11 | expression11;
 expression11: expression11 ('*' | '/' | '%') expression12 | expression12;
 expression12: ('!' | '~') expression13 | ('++' | '--') left_value | left_value ('++' | '--') | expression13;
-expression13: function_call | expression14;
-expression14: const_expr | ('(' expression ')') | left_value;
+expression13: function_call_exp | expression14;
+expression14: const_expr | expression15 | left_value;
+expression15: ('(' expression ')');
+
+function_call_exp:
+	function_call 
+	| expression14 ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')';
+
+
+function_call: 
+	('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
+	| (const_expr | expression15 ) ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
+    | function_call ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')';
 
 left_value:
-	IDENTIFIER
-	| object_left_value
-	| array_left_value
-	| left_value '.' (IDENTIFIER | ('(' expression ')'))
-	| left_value '[' expression ']';
-
-array_left_value: (const_expr | ('(' expression ')')) '[' expression ']';
-object_left_value: (const_expr | ('(' expression ')')) '.' (IDENTIFIER | ('(' expression ')'));
+	idf
+	| left_value '.' (idf | ('(' expression ')'))
+	| left_value '[' expression ']'
+	| (function_call | const_expr | expression15) '.' (idf | ('(' expression ')'))
+	| (function_call | const_expr | expression15) '[' expression ']';
 
 const_expr:
 	vector_value
@@ -143,6 +146,8 @@ vector_value: '(' expression ',' expression ',' expression ')';
 array_def:
 	'[' ((expression ':')? expression ( ',' (expression ':')? expression)* (',')?)? ']';
 struct_def: '{' (STRUCT_IDENTIFIER ':' expression (',' STRUCT_IDENTIFIER ':' expression)* (',')?)? '}';
+
+idf: IDENTIFIER;
 
 NEWLINE: ('\r'? '\n' | '\r') -> skip;
 WHITESPACE: ('\t' | ' ') -> skip;

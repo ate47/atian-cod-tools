@@ -53,8 +53,6 @@ public:
 
     virtual std::any visitStatement_inst(gscParser::Statement_instContext *context) = 0;
 
-    virtual std::any visitFunction_call(gscParser::Function_callContext *context) = 0;
-
     virtual std::any visitNop_def(gscParser::Nop_defContext *context) = 0;
 
     virtual std::any visitDevop_def(gscParser::Devop_defContext *context) = 0;
@@ -95,11 +93,13 @@ public:
 
     virtual std::any visitExpression14(gscParser::Expression14Context *context) = 0;
 
+    virtual std::any visitExpression15(gscParser::Expression15Context *context) = 0;
+
+    virtual std::any visitFunction_call_exp(gscParser::Function_call_expContext *context) = 0;
+
+    virtual std::any visitFunction_call(gscParser::Function_callContext *context) = 0;
+
     virtual std::any visitLeft_value(gscParser::Left_valueContext *context) = 0;
-
-    virtual std::any visitArray_left_value(gscParser::Array_left_valueContext *context) = 0;
-
-    virtual std::any visitObject_left_value(gscParser::Object_left_valueContext *context) = 0;
 
     virtual std::any visitConst_expr(gscParser::Const_exprContext *context) = 0;
 
@@ -112,6 +112,8 @@ public:
     virtual std::any visitArray_def(gscParser::Array_defContext *context) = 0;
 
     virtual std::any visitStruct_def(gscParser::Struct_defContext *context) = 0;
+
+    virtual std::any visitIdf(gscParser::IdfContext *context) = 0;
 
 
 };

@@ -83,10 +83,6 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitFunction_call(gscParser::Function_callContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitNop_def(gscParser::Nop_defContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -167,15 +163,19 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitExpression15(gscParser::Expression15Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitFunction_call_exp(gscParser::Function_call_expContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitFunction_call(gscParser::Function_callContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitLeft_value(gscParser::Left_valueContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitArray_left_value(gscParser::Array_left_valueContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitObject_left_value(gscParser::Object_left_valueContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -200,6 +200,10 @@ public:
   }
 
   virtual std::any visitStruct_def(gscParser::Struct_defContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitIdf(gscParser::IdfContext *ctx) override {
     return visitChildren(ctx);
   }
 

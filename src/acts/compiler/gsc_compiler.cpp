@@ -683,12 +683,13 @@ AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
 
 #define IS_RULE_TYPE(rule, index) (rule && rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
 #define IS_TERMINAL_TYPE(term, index) (term && term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
+#define IS_IDF(rule) (IS_RULE_TYPE((rule), gscParser::RuleIdf) || IS_TERMINAL_TYPE((rule), gscParser::IDENTIFIER))
 
 int64_t NumberNodeValue(ParseTree* number) {
     if (IS_RULE_TYPE(number, gscParser::RuleNumber)) {
         return NumberNodeValue(number->children[0]);
     }
-    if (number->getTreeType() != TREE_TERMINAL) {
+    if (!number || number->getTreeType() != TREE_TERMINAL) {
         return 0; // wtf?
     }
 
@@ -754,6 +755,12 @@ struct PreProcessorOption {
     std::unordered_set<std::string> defines{};
 };
 
+enum DetourType {
+    DETOUR_UNKNOWN = 0,
+    DETOUR_GSIC,
+    DETOUR_ACTS
+};
+
 class GscCompilerOption {
 public:
     bool m_help{};
@@ -770,6 +777,7 @@ public:
     const char* nameClient{ "" };
     const char* fileNameSpaceServer{ "" };
     const char* fileNameSpaceClient{ "" };
+    DetourType detourType{ DETOUR_UNKNOWN };
     PreProcessorOption processorOpt{};
 
     bool Compute(const char** args, INT startIndex, INT endIndex) {
@@ -880,6 +888,23 @@ public:
                 }
                 fileNameSpaceClient = args[++i];
             }
+            else if (!_strcmpi("--detour", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                const char* dt = args[++i];
+                if (!_strcmpi(dt, "acts")) {
+                    detourType = DETOUR_ACTS;
+                }
+                else if (!_strcmpi(dt, "gsic")) {
+                    detourType = DETOUR_GSIC;
+                }
+                else if (_strcmpi(dt, "none")) {
+                    LOG_ERROR("Invalid value value for param '{}': {}!", arg, dt);
+                    return false;
+                }
+            }
             else if (*arg == '-') {
                 if (arg[1] == 'D' && arg[2]) {
                     processorOpt.defines.insert(arg + 2);
@@ -911,6 +936,7 @@ public:
         LOG_INFO("-o --output [f]        : Set output file (without extension), default: 'compiled'");
         LOG_INFO("-D[name]               : Define variable");
         LOG_INFO("-c --csc               : Build client script with csc files");
+        LOG_INFO("--detour [t]           : Set the detour compilation type ('none' / 'acts' / 'gsic') default: 'none'");
         LOG_INFO("--crc [c]              : Set the crc for the server script");
         LOG_INFO("--crc-client [c]       : Set the crc for the client script");
         LOG_INFO("--name [n]             : Set the name for the server script");
@@ -1004,6 +1030,12 @@ struct FunctionJumpLoc {
     bool defined{};
 };
 
+struct DetourData {
+    uint64_t nsp{};
+    uint64_t script{};
+    uint64_t func{};
+};
+
 class FunctionObject {
 public:
     CompileObject& obj;
@@ -1014,6 +1046,7 @@ public:
     byte m_params{};
     byte m_flags{};
     size_t location{};
+    size_t size{};
     size_t rndVarStart{};
     FunctionVar m_vars[256]{};
     size_t m_allocatedVar{};
@@ -1022,6 +1055,7 @@ public:
     std::stack<AscmNode*> m_jumpContinue{};
     std::unordered_map<std::string, FunctionJumpLoc> m_jumpLocs{};
     VmInfo* m_vmInfo;
+    DetourData detour{};
     FunctionObject(
         CompileObject& obj,
         uint64_t name,
@@ -1034,6 +1068,10 @@ public:
         for (auto* node : m_nodes) {
             delete node;
         }
+    }
+
+    bool IsDetour() const {
+        return detour.func || detour.nsp || detour.script;
     }
 
     AscmNode* CreateParamNode() const {
@@ -1340,8 +1378,10 @@ public:
 
         size_t exportIndex{};
 
+        std::vector<FunctionObject*> detourObjs{};
+
         auto& that = *this;
-        auto writeExport = [&data, &that, &expTable, &exportIndex](FunctionObject& exp) -> bool {
+        auto writeExport = [&data, &that, &expTable, &exportIndex, &detourObjs](FunctionObject& exp) -> bool {
             exp.OptimizeNodes();
             if (exp.m_nodes.empty()) {
                 LOG_ERROR("No nodes for {:x}", exp.m_name);
@@ -1377,6 +1417,13 @@ public:
                     return false;
                 }
             }
+            // add size for detours
+            exp.size = data.size() - exp.location;
+
+            if (exp.IsDetour()) {
+                detourObjs.push_back(&exp);
+            }
+
             return true;
         };
 
@@ -1411,6 +1458,9 @@ public:
 
         if (!exportsOk) {
             return false;
+        }
+        if (!detourObjs.empty() && !opt.detourType) {
+            LOG_ERROR("Detour parsed, but no --detour has been specified, they will be ignored.");
         }
 
         size_t csegSize = data.size() - csegOffset;
@@ -1508,6 +1558,25 @@ public:
                 utils::WriteString(data, h.c_str());
             }
 
+
+            uint32_t detoursLoc{};
+            uint32_t detoursCount{};
+            if (!detourObjs.empty() && opt.detourType == DETOUR_ACTS) {
+                detoursCount = (uint32_t)detourObjs.size();
+                detoursLoc = (uint32_t)utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DETOUR) * detourObjs.size());
+                tool::gsc::acts_debug::GSC_ACTS_DETOUR* detours = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DETOUR*>(&data[hashesLoc]);
+
+                for (FunctionObject* objexp : detourObjs) {
+                    detours->location = (uint32_t)objexp->location;
+                    detours->size = (uint32_t)objexp->size;
+
+                    detours->name = objexp->detour.func;
+                    detours->name_space = objexp->detour.nsp;
+                    detours->script = objexp->detour.script;
+                    detours++;
+                }
+            }
+
             auto* debug_obj = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DEBUG*>(data.data() + afterHeaderStart);
 
             *reinterpret_cast<uint64_t*>(debug_obj->magic) = tool::gsc::acts_debug::MAGIC;
@@ -1515,6 +1584,8 @@ public:
             debug_obj->actsVersion = (uint64_t) actsinfo::VERSION_ID;
             debug_obj->strings_count = (uint32_t)hashes.size();
             debug_obj->strings_offset = (uint32_t)hashesLoc;
+            debug_obj->detour_count = detoursCount;
+            debug_obj->detour_offset = detoursLoc;
         }
 
         // compile header
@@ -1543,6 +1614,7 @@ public:
         gscHandler->SetImportsOffset((int32_t)implRefs);
 
         gscHandler->SetFileSize((int32_t)data.size());
+
 
         return true;
     }
@@ -1712,95 +1784,17 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
         case gscParser::RuleExpression10:
         case gscParser::RuleExpression11:
         case gscParser::RuleExpression12:
-        case gscParser::RuleExpression13: {
+        case gscParser::RuleExpression13:
+        case gscParser::RuleExpression14:
+        case gscParser::RuleIdf: {
             if (rule->children.size() == 1) {
                 return ParseFieldNode(rule->children[0], parser, obj, fobj);
             }
             obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
             return false;
         }
-        case gscParser::RuleExpression14: {
-            if (rule->children.size() == 1) { // exp
-                return ParseFieldNode(rule->children[0], parser, obj, fobj);
-            }
-            if (rule->children.size() == 3) { // ( exp )
-                return ParseFieldNode(rule->children[1], parser, obj, fobj);
-            }
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Unknown expr14 rule type: {}", exp->getText()));
-            return false;
-        }
-        case gscParser::RuleObject_left_value:
-        case gscParser::RuleArray_left_value: {
-            ParseTree* value;
-            size_t startOp;
-            if (IS_RULE_TYPE(rule->children[0], gscParser::RuleConst_expr)) {
-                value = rule->children[0];
-                startOp = 1;
-            }
-            else if (IS_RULE_TYPE(rule->children[1], gscParser::RuleExpression)) {
-                value = rule->children[1];
-                startOp = 3;
-            }
-            else {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array type: {}", exp->getText()));
-                return false;
-            }
-
-            if (rule->getRuleIndex() == gscParser::RuleObject_left_value) {
-                // object
-                if (IS_TERMINAL_TYPE(rule->children[startOp + 1], gscParser::IDENTIFIER)) {
-                    if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id: {}", exp->getText()));
-                        return false;
-                    }
-                    std::string fieldText = rule->children[startOp + 1]->getText();
-
-                    if (fieldText == "size") {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
-                        return false;
-                    }
-                    else {
-                        fobj.AddNode(rule->children[startOp + 1], new AscmNodeOpCode(OPCODE_CastFieldObject));
-                        // use identifier
-                        fobj.AddNode(rule->children[startOp + 1], fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariableRef));
-                    }
-                }
-                else {
-                    if (!ParseExpressionNode(rule->children[startOp + 2], parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object canon id: {}", exp->getText()));
-                        return false;
-                    }
-                    fobj.AddNode(rule->children[startOp + 2], new AscmNodeOpCode(OPCODE_CastCanon));
-
-                    if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id (from canon): {}", exp->getText()));
-                        return false;
-                    }
-                    fobj.AddNode(value, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                    fobj.AddNode(value, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStackRef));
-                }
-                return true;
-
-            }
-            if (rule->getRuleIndex() == gscParser::RuleArray_left_value) {
-                // array 
-                if (!ParseExpressionNode(rule->children[startOp + 1], parser, obj, fobj, true)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array key: {}", exp->getText()));
-                    return false;
-                }
-
-                if (!ParseFieldNode(value, parser, obj, fobj)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array node: {}", exp->getText()));
-                    return false;
-                }
-
-                fobj.AddNode(value, new AscmNodeOpCode(OPCODE_EvalArrayRef));
-                return true;
-            }
-
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array rule: {} ({})", exp->getText(), rule->getRuleIndex()));
-            return false;
-        }
+        case gscParser::RuleExpression15:
+            return ParseFieldNode(rule->children[1], parser, obj, fobj);
         case gscParser::RuleLeft_value: {
             if (rule->children.size() == 1) {
                 return ParseFieldNode(rule->children[0], parser, obj, fobj);
@@ -1809,67 +1803,56 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
             if (rule->children[0]->getTreeType() == TREE_RULE) {
                 RuleContext* first = dynamic_cast<RuleContext*>(rule->children[0]);
 
-                if (first->getRuleIndex() == gscParser::RuleLeft_value) {
-                    /*
-                        | left_value '.' (IDENTIFIER | ('(' expression ')')) -> test.test2 test.("test2")
-                        | left_value '[' expression ']'
-                        -> test[...]
-                    */
-                    std::string second = rule->children[1]->getText();
+                std::string second = rule->children[1]->getText();
 
-                    if (second == ".") {
-                        // object access
-                        if (IS_TERMINAL_TYPE(rule->children[2], gscParser::IDENTIFIER)) {
-                            if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
-                                return false;
-                            }
-                            std::string fieldText = rule->children[2]->getText();
+                if (second == ".") {
+                    // object access
+                    if (IS_IDF(rule->children[2])) {
+                        if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
+                            return false;
+                        }
+                        std::string fieldText = rule->children[2]->getText();
 
-                            if (fieldText == "size") {
-                                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
-                                return false;
-                            }
-                            else {
-                                // use identifier
-                                fobj.AddNode(rule->children[2], new AscmNodeOpCode(OPCODE_CastFieldObject));
-                                fobj.AddNode(rule->children[2], fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariableRef));
-                            }
+                        if (fieldText == "size") {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
+                            return false;
                         }
                         else {
-                            if (!ParseExpressionNode(rule->children[3], parser, obj, fobj, true)) {
-                                return false;
-                            }
-                            fobj.AddNode(rule->children[3], new AscmNodeOpCode(OPCODE_CastCanon));
-
-                            if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
-                                return false;
-                            }
-                            fobj.AddNode(first, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                            fobj.AddNode(first, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStackRef));
+                            // use identifier
+                            fobj.AddNode(rule->children[2], new AscmNodeOpCode(OPCODE_CastFieldObject));
+                            fobj.AddNode(rule->children[2], fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariableRef));
                         }
-                        return true;
-                    }
-                    else if (second == "[") {
-                        // array access
-
-                        if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
-                            return false;
-                        }
-
-                        if (!ParseFieldNode(first, parser, obj, fobj)) {
-                            return false;
-                        }
-
-                        fobj.AddNode(first, new AscmNodeOpCode(OPCODE_EvalArrayRef));
-                        return true;
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
+                        if (!ParseExpressionNode(rule->children[3], parser, obj, fobj, true)) {
+                            return false;
+                        }
+                        fobj.AddNode(rule->children[3], new AscmNodeOpCode(OPCODE_CastCanon));
+
+                        if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
+                            return false;
+                        }
+                        fobj.AddNode(first, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                        fobj.AddNode(first, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStackRef));
+                    }
+                    return true;
+                }
+                else if (second == "[") {
+                    // array access
+
+                    if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                         return false;
                     }
+
+                    if (!ParseFieldNode(first, parser, obj, fobj)) {
+                        return false;
+                    }
+
+                    fobj.AddNode(first, new AscmNodeOpCode(OPCODE_EvalArrayRef));
+                    return true;
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue type: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
                     return false;
                 }
             }
@@ -1900,6 +1883,7 @@ bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, Funct
         case gscParser::RuleStatement_block:
         case gscParser::RuleOperator_inst:
         case gscParser::RuleFunction_call:
+        case gscParser::RuleFunction_call_exp:
             obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
             return false;
         }
@@ -2294,7 +2278,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             FunctionVar* keyVar;
             FunctionVar* valueVar;
 
-            if (IS_TERMINAL_TYPE(rule->children[4], gscParser::IDENTIFIER)) {
+            if (IS_IDF(rule->children[4])) {
                 // key,value in
                 auto [var3err, keyVarL] = fobj.RegisterVar(rule->children[2]->getText(), true);
                 auto [var4err, valueVarL] = fobj.RegisterVar(rule->children[4]->getText(), true);
@@ -2651,7 +2635,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             }
 
             if (idf == "goto") {
-                if (rule->children.size() <= 1 && !IS_TERMINAL_TYPE(rule->children[1], gscParser::IDENTIFIER)) {
+                if (rule->children.size() <= 1 && !IS_IDF(rule->children[1])) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "goto should be used with a jump location");
                     return false;
                 }
@@ -2699,7 +2683,11 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown operator type {}", idf));
             return false;
         }
-        case gscParser::RuleFunction_call: {
+        case gscParser::RuleFunction_call:
+        case gscParser::RuleFunction_call_exp: {
+            if (rule->children.size() == 1) {
+                return ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal);
+            }
             uint64_t funcNspHash{};
             uint64_t funcHash{};
             ParseTree* ptrTree{};
@@ -2797,7 +2785,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                                 while (pt && pt->getTreeType() == TREE_RULE && pt->children.size() == 1) {
                                     pt = pt->children[0];
                                 }
-                                if (!IS_TERMINAL_TYPE(pt, gscParser::IDENTIFIER)) {
+                                if (!IS_IDF(pt)) {
                                     obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to be unpacked with variables, Usage: {}", funcName, f.usage));
                                     return false;
                                 }
@@ -3053,7 +3041,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleExpression9:
         case gscParser::RuleExpression10:
         case gscParser::RuleExpression11:
-        case gscParser::RuleExpression12: {
+        case gscParser::RuleExpression12:
+        case gscParser::RuleIdf: {
             if (rule->children.size() == 1) {
                 // simple rules recursion
                 return ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal);
@@ -3287,6 +3276,7 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
         case gscParser::RuleNumber:
         case gscParser::RuleExpression13:
         case gscParser::RuleExpression14:
+        case gscParser::RuleExpression15:
             return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj, expressVal);
         case gscParser::RuleVector_value:
             if (!expressVal) { // no need to create vector
@@ -3465,8 +3455,8 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
                 return true;
             }
             if (rule->children.size() == 2) {
-                if (IS_TERMINAL_TYPE(rule->children[1], gscParser::IDENTIFIER) ||
-                    (IS_RULE_TYPE(rule->children[1], gscParser::RuleLeft_value) && IS_TERMINAL_TYPE(rule->children[1]->children[0], gscParser::IDENTIFIER))
+                if (IS_IDF(rule->children[1]) ||
+                    (IS_RULE_TYPE(rule->children[1], gscParser::RuleLeft_value) && IS_IDF(rule->children[1]->children[0]))
                     ) {
                     if (obj.HasOpCode(OPCODE_T9_GetVarRef)) {
                         // single idf ref
@@ -3536,81 +3526,6 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
 
             return true;
         }
-        case gscParser::RuleObject_left_value:
-        case gscParser::RuleArray_left_value: {
-            ParseTree* value;
-            size_t startOp;
-            if (IS_RULE_TYPE(rule->children[0], gscParser::RuleConst_expr)) {
-                value = rule->children[0];
-                startOp = 1;
-            }
-            else if (IS_RULE_TYPE(rule->children[1], gscParser::RuleExpression)) {
-                value = rule->children[1];
-                startOp = 3;
-            }
-            else {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array type: {}", exp->getText()));
-                return false;
-            }
-
-            if (rule->getRuleIndex() == gscParser::RuleObject_left_value) {
-                // object
-                if (IS_TERMINAL_TYPE(rule->children[startOp + 1], gscParser::IDENTIFIER)) {
-                    if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id: {}", exp->getText()));
-                        return false;
-                    }
-                    std::string fieldText = rule->children[startOp + 1]->getText();
-                    if (fieldText == "size") {
-                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
-                    }
-                    else {
-                        // use identifier
-                        if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
-                            fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_CastAndEvalFieldVariable));
-                        }
-                        else {
-                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                            fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariable));
-                        }
-                    }
-                }
-                else {
-                    if (!ParseExpressionNode(rule->children[startOp + 2], parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object canon id: {}", exp->getText()));
-                        return false;
-                    }
-                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastCanon));
-
-                    if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse object id (from canon): {}", exp->getText()));
-                        return false;
-                    }
-                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
-                }
-                return true;
-
-            }
-            if (rule->getRuleIndex() == gscParser::RuleArray_left_value) {
-                // array 
-                if (!ParseExpressionNode(rule->children[startOp + 1], parser, obj, fobj, true)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array key: {}", exp->getText()));
-                    return false;
-                }
-
-                if (!ParseExpressionNode(value, parser, obj, fobj, true)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't parse array node: {}", exp->getText()));
-                    return false;
-                }
-
-                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalArray));
-                return true;
-            }
-
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown object/array rule: {} ({})", exp->getText(), rule->getRuleIndex()));
-            return false;
-        }
         case gscParser::RuleLeft_value: {
             if (!expressVal) {
                 obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", rule->getText()));
@@ -3622,71 +3537,60 @@ bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, 
             else if (rule->children[0]->getTreeType() == TREE_RULE) {
                 RuleContext* first = dynamic_cast<RuleContext*>(rule->children[0]);
 
-                if (first->getRuleIndex() == gscParser::RuleLeft_value) {
-                    /*
-                        | left_value '.' (IDENTIFIER | ('(' expression ')')) -> test.test2 test.("test2")
-                        | left_value '[' expression ']'
-                        -> test[...]
-                    */
-                    std::string second = rule->children[1]->getText();
+                std::string second = rule->children[1]->getText();
 
-                    if (second == ".") {
-                        // object access
-                        if (IS_TERMINAL_TYPE(rule->children[2], gscParser::IDENTIFIER)) {
-                            if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
-                                return false;
-                            }
-                            std::string fieldText = rule->children[2]->getText();
-
-                            if (fieldText == "size") {
-                                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
-                            }
-                            else {
-                                // use identifier
-                                if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
-                                    fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_CastAndEvalFieldVariable));
-                                }
-                                else {
-                                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                                    fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariable));
-                                }
-                            }
-                        }
-                        else {
-                            if (!ParseExpressionNode(rule->children[3], parser, obj, fobj, true)) {
-                                return false;
-                            }
-                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastCanon));
-
-                            if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
-                                return false;
-                            }
-                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
-                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
-                        }
-                        return true;
-                    }
-                    else if (second == "[") {
-                        // array access
-
-                        if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
+                if (second == ".") {
+                    // object access
+                    if (IS_IDF(rule->children[2])) {
+                        if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
                             return false;
                         }
+                        std::string fieldText = rule->children[2]->getText();
+
+                        if (fieldText == "size") {
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
+                        }
+                        else {
+                            // use identifier
+                            if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
+                                fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_CastAndEvalFieldVariable));
+                            }
+                            else {
+                                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                                fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariable));
+                            }
+                        }
+                    }
+                    else {
+                        if (!ParseExpressionNode(rule->children[3], parser, obj, fobj, true)) {
+                            return false;
+                        }
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastCanon));
 
                         if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
                             return false;
                         }
-
-                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalArray));
-                        return true;
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
                     }
-                    else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
+                    return true;
+                }
+                else if (second == "[") {
+                    // array access
+
+                    if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                         return false;
                     }
+
+                    if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
+                        return false;
+                    }
+
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalArray));
+                    return true;
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue type: {}", exp->getText()));
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
                     return false;
                 }
             }
@@ -3892,7 +3796,7 @@ bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj) {
     auto* paramsRule = func->children[(size_t)(func->children.size() - 3)];
     auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
 
-    if (!IS_TERMINAL_TYPE(nameTerm, gscParser::IDENTIFIER)) {
+    if (!IS_IDF(nameTerm)) {
         obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "Bad function name declaration");
         return false;
     }
@@ -3967,10 +3871,23 @@ bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj) {
                 return false;
             }
 
-            auto evname = static_cast<TerminalNode*>(ev)->getText();
+            std::string evname = static_cast<TerminalNode*>(ev)->getText();
 
             obj.AddHash(evname);
             exp.m_data_name = obj.vmInfo->HashField(evname.data());
+        }
+        else if (txt == "detour") {
+            std::string dnsp = func->children[i += 1]->getText();
+            std::string dscript = func->children[i += 2]->getText();
+            std::string dfunc = func->children[i += 3]->getText();
+
+            obj.AddHash(dnsp);
+            obj.AddHash(dscript);
+            obj.AddHash(dfunc);
+
+            exp.detour.nsp = obj.vmInfo->HashField(dnsp);
+            exp.detour.func = obj.vmInfo->HashField(dfunc);
+            exp.detour.script = obj.vmInfo->HashPath(dnsp);
         }
     }
 
@@ -3995,7 +3912,7 @@ bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj) {
 
         TerminalNode* idfNode{};
         byte idfFlags{};
-        if (!IS_TERMINAL_TYPE(param->children[0], gscParser::IDENTIFIER)) {
+        if (!IS_IDF(param->children[0])) {
             if (param->children.size() == 1) {
                 // '...'
 
