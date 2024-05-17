@@ -262,7 +262,7 @@ namespace tool::gsc::opcode {
 	public:
 		const char* m_op;
 		ASMContextNode* m_var;
-		ASMContextNodeRef(const char* op, ASMContextNode* var) : ASMContextNode(PRIORITY_VALUE),
+		ASMContextNodeRef(const char* op, ASMContextNode* var) : ASMContextNode(PRIORITY_VALUE, TYPE_GET_REF),
 			m_op(op), m_var(var) {
 		}
 

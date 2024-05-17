@@ -189,6 +189,7 @@ namespace tool::gsc {
             TYPE_FUNC_CALL,
             TYPE_FUNC_REFNAME,
             TYPE_FUNC_IS_DEFINED,
+            TYPE_GET_REF,
 
             TYPE_PRECODEPOS,
             TYPE_SET,

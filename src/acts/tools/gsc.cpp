@@ -1255,7 +1255,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                         return;
                     }
 
-                    if (!ignoreEmpty || SizeNoEmptyNode(e.m_funcBlock.m_statements) != 0) {
+                    if (!ignoreEmpty || SizeNoEmptyNode(e.m_funcBlock.m_statements) > 1) {
                         // ignore empty exports (constructor/destructors)
                         
                         // set the export handle
@@ -1338,31 +1338,41 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                     continue;
                 }
 
-                asmctx.ForSubNodes([&contextes](ASMContextNode*& node, SubNodeContext& ctx) {
-                    if (node && node->m_type == TYPE_FUNC_CALL) {
+                asmctx.ForSubNodes([&contextes, &lname](ASMContextNode*& node, SubNodeContext& ctx) {
+                    if (!node) {
+                        return;
+                    }
+                    ASMContextNodeFuncRef* funcRef;
+                    if (node->m_type == TYPE_FUNC_CALL) {
                         auto* callFunc = dynamic_cast<ASMContextNodeCallFuncPtr*>(node);
 
                         if (!callFunc->m_operands.size() || callFunc->m_operands[0]->m_type != TYPE_FUNC_REFNAME) {
                             return; // pointer call
                         }
 
-                        auto* funcRef = dynamic_cast<ASMContextNodeFuncRef*>(callFunc->m_operands[0]);
+                        funcRef = dynamic_cast<ASMContextNodeFuncRef*>(callFunc->m_operands[0]);
+                    }
+                    else if (node->m_type == TYPE_FUNC_REFNAME) {
+                        funcRef = dynamic_cast<ASMContextNodeFuncRef*>(node);
+                    }
+                    else {
+                        return;
+                    }
+                    
+                    if (funcRef->m_script) {
+                        return; // script call
+                    }
 
-                        if (funcRef->m_script) {
-                            return; // script call
-                        }
+                    Located lnames{ funcRef->m_nsp ? funcRef->m_nsp : lname.name_space, funcRef->m_func };
 
-                        Located lname = Located{ funcRef->m_nsp, funcRef->m_func };
+                    auto f = contextes.find(lnames);
 
-                        auto f = contextes.find(lname);
+                    if (f == contextes.end()) {
+                        return; // already parsed or builtin?
+                    }
 
-                        if (f == contextes.end()) {
-                            return; // already parsed?
-                        }
-
-                        if (!ctx.devBlockDepth) {
-                            f->second.m_devFuncCandidate = false; // called outside a dev block, can't be a canditate
-                        }
+                    if (!ctx.devBlockDepth) {
+                        f->second.m_devFuncCandidate = false; // called outside a dev block, can't be a canditate
                     }
                 });
             }

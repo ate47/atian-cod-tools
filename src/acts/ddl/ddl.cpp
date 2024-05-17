@@ -3,15 +3,16 @@
 #include "ddlParser.h"
 #include "ddlVisitor.h"
 #include <includes.hpp>
+#include "compiler/preprocessor.hpp"
 
 using namespace antlr4;
 using namespace antlr4::tree;
 
 #pragma push_macro("ERROR")
 #undef ERROR
-constexpr auto TREE_ERROR = ParseTreeType::ERROR;
-constexpr auto TREE_RULE = ParseTreeType::RULE;
-constexpr auto TREE_TERMINAL = ParseTreeType::TERMINAL;
+constexpr ParseTreeType TREE_ERROR = ParseTreeType::ERROR;
+constexpr ParseTreeType TREE_RULE = ParseTreeType::RULE;
+constexpr ParseTreeType TREE_TERMINAL = ParseTreeType::TERMINAL;
 #pragma pop_macro("ERROR")
 
 // not the same as in game, for them see pool.cpp
@@ -32,9 +33,10 @@ enum ACTSDDLType {
 
 class DDLCompilerOption {
 public:
-    bool m_help = false;
-    const char* m_ddl = NULL;
-    const char* m_bin = NULL;
+    bool m_help{};
+    const char* m_ddl{};
+    const char* m_bin{};
+    acts::compiler::preprocessor::PreProcessorOption m_processorOpt{};
 
     bool Compute(const char** args, INT startIndex, INT endIndex) {
         // default values
@@ -45,6 +47,11 @@ public:
                 m_help = true;
             }
             else if (*arg == '-') {
+                if (arg[1] == 'D' && arg[2]) {
+                    m_processorOpt.defines.insert(arg + 2);
+                    continue;
+                }
+
                 LOG_ERROR("Unknown option: {}!", arg);
                 return false;
             }
@@ -62,7 +69,8 @@ public:
     }
 
     void PrintHelp() {
-        LOG_INFO("-h --help          : Print help");
+        LOG_INFO("-h --help              : Print help");
+        LOG_INFO("-D[name]               : Define variable");
     }
 
 
@@ -409,10 +417,14 @@ namespace {
         }
     }
 
-    bool ComputeDDLCheck(DDLCompilerOption& opt, char* ddlText, byte* binary, size_t binarySize, FullDDLCompiled& ddl) {
+    bool ComputeDDLCheck(DDLCompilerOption& opt, std::string& ddlText, byte* binary, size_t binarySize, FullDDLCompiled& ddl) {
         LOG_INFO("Compiling DDL file...");
-        ClearDDLComments(ddlText);
-        ANTLRInputStream is{ ddlText };
+
+        opt.m_processorOpt.ApplyPreProcessor(ddlText, 
+            [&opt](alogs::loglevel lvl, size_t line, const std::string& message) { LOG_LVL(lvl, "{}:{} : {}", opt.m_ddl, line, message); }
+        );
+
+        ANTLRInputStream is{ ddlText.data() };
 
         ddlLexer lexer{ &is };
         CommonTokenStream tokens{ &lexer };
@@ -679,28 +691,21 @@ namespace {
             return 0;
         }
 
-        void* ddlBuffer{};
-        size_t ddlSize{};
+        std::string ddl{};
+        std::string bin{};
 
-        void* binBuffer{};
-        size_t binSize{};
-
-        if (!utils::ReadFileNotAlign(opt.m_ddl, ddlBuffer, ddlSize, true)) {
+        if (!utils::ReadFile(opt.m_ddl, ddl)) {
             LOG_ERROR("Can't read {}", opt.m_ddl);
             return tool::BASIC_ERROR;
         }
 
-        if (!utils::ReadFileNotAlign(opt.m_bin, binBuffer, binSize)) {
+        if (!utils::ReadFile(opt.m_bin, bin)) {
             LOG_ERROR("Can't read {}", opt.m_bin);
-            std::free(ddlBuffer);
             return tool::BASIC_ERROR;
         }
-        FullDDLCompiled ddl{};
+        FullDDLCompiled ddlCompiled{};
 
-        auto res = ComputeDDLCheck(opt, reinterpret_cast<char*>(ddlBuffer), reinterpret_cast<byte*>(binBuffer), binSize, ddl);
-
-        std::free(binBuffer);
-        std::free(ddlBuffer);
+        auto res = ComputeDDLCheck(opt, ddl, reinterpret_cast<byte*>(bin.data()), bin.size(), ddlCompiled);
 
 		return res ? tool::OK : tool::BASIC_ERROR;
 	}
