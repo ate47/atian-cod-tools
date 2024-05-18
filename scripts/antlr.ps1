@@ -2,7 +2,9 @@ param(
     [switch]
     $gsc,
     [switch]
-    $ddl
+    $ddl,
+    [switch]
+    $adl
 )
 
 
@@ -37,6 +39,16 @@ try {
         Move-Item .antlr4\grammar\*.c src\acts\ddl -Force
         Move-Item .antlr4\grammar\*.cpp src\acts\ddl -Force
         Move-Item .antlr4\grammar\*.h src\acts\ddl -Force
+    }
+    
+    if ($adl) {
+        java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\adl.g4 -no-listener -visitor -Werror
+    
+        New-Item -ItemType Directory src\acts\adl -ErrorAction Ignore > $null
+
+        Move-Item .antlr4\grammar\*.c src\acts\adl -Force
+        Move-Item .antlr4\grammar\*.cpp src\acts\adl -Force
+        Move-Item .antlr4\grammar\*.h src\acts\adl -Force
     }
 
 }

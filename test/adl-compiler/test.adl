@@ -1,0 +1,42 @@
+#root root;
+#align 8; // force align to 8
+
+/*
+  ADL files are definitions describing a binary data structure, it accepts pointer.
+  It is dev to quickly create assets for BO4 without having to handle all the XAssets (because it's a pita)
+ */
+#warning work in progress
+
+struct size(0x38) root {
+    int* test; // 8
+    $offset 0x10; // 10
+    float test2; // 14
+    $padding 0x10; // 28
+
+    foo val; // 30
+    bar val; // 38
+};
+
+struct align(4) size(0x8) foo {
+    int a;
+    int b;
+};
+
+struct size(8) bar {
+    int a;
+    int b;
+};
+
+flag test_flag : byte {
+    VALUE1 = 1,
+    VALUE2 = 2,
+    VALUE3 = 4,
+    VALUE4 = 8
+};
+
+enum test_enum : byte {
+    VALUE1 = 1,
+    VALUE2,
+    VALUE3,
+    VALUE4
+};

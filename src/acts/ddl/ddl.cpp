@@ -417,6 +417,26 @@ namespace {
         }
     }
 
+    class ACTSErrorListener : public ConsoleErrorListener {
+        DDLCompilerOption& m_info;
+    public:
+        ACTSErrorListener(DDLCompilerOption& info) : m_info(info) {
+        }
+
+        void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line, size_t charPositionInLine,
+            const std::string& msg, std::exception_ptr e) override {
+            if (charPositionInLine) {
+                LOG_ERROR("{}:{}#{} : {}", m_info.m_ddl, line, charPositionInLine, msg);
+            }
+            else if (line) {
+                LOG_ERROR("{}:{} : {}", m_info.m_ddl, line, msg);
+            }
+            else {
+                LOG_ERROR("{} : {}", m_info.m_ddl, msg);
+            }
+        }
+    };
+
     bool ComputeDDLCheck(DDLCompilerOption& opt, std::string& ddlText, byte* binary, size_t binarySize, FullDDLCompiled& ddl) {
         LOG_INFO("Compiling DDL file...");
 
@@ -431,6 +451,12 @@ namespace {
 
         tokens.fill();
         ddlParser parser{ &tokens };
+
+        auto errList = std::make_unique<ACTSErrorListener>(opt);
+
+        parser.removeErrorListeners();
+
+        parser.addErrorListener(&*errList);
 
         ddlParser::ProgContext* prog = parser.prog();
 
