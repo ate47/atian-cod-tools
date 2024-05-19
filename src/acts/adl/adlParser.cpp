@@ -59,7 +59,7 @@ void adlParserInitialize() {
     std::vector<std::string>{
       "", "';'", "'#root'", "'#align'", "'typedef'", "'struct'", "'align'", 
       "'('", "')'", "'size'", "'{'", "'}'", "'flag'", "':'", "'enum'", "','", 
-      "'*'", "'['", "']'", "'$offset'", "'$padding'", "'='"
+      "'*'", "'['", "']'", "'$padding'", "'$assert_offset'", "'='"
     },
     std::vector<std::string>{
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 

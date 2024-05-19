@@ -5,31 +5,61 @@ namespace acts::compiler::adl {
 
 	enum ADLDataTypeFlags : ADLDataTypeId {
 		ADF_UNKNOWN = 0,
+		ADF_PRIMITIVE_UNKNOWN = 0u << 26,
+		ADF_PRIMITIVE_INT = 1u << 26,
+		ADF_PRIMITIVE_FLOAT = 2u << 26,
+		ADF_PRIMITIVE_MASK = 3u << 26,
+		ADF_UNSIGNED = 1u << 28,
 		ADF_DEFAULT = 1u << 29,
 		ADF_STRUCT = 2u << 29,
 		ADF_ENUM = 3u << 29,
 		ADF_TYPEDEF = 4u << 29,
 		ADF_FLAG = 5u << 29,
 		ADF_MASK = 7u << 29,
-		ADF_ID = ~ADF_MASK,
+		ADF_ID = ~(ADF_MASK | ADF_UNSIGNED | ADF_PRIMITIVE_MASK),
 	};
+	static_assert((ADF_MASK & ADF_UNSIGNED) == 0);
+	static_assert((ADF_MASK & ADF_PRIMITIVE_MASK) == 0);
+	static_assert((ADF_UNSIGNED & ADF_PRIMITIVE_MASK) == 0);
 
 	enum ADLDataTypeDefault : ADLDataTypeId {
 		ADD_UNKNOWN = 0,
 		ADD_PADDING = ADF_DEFAULT | 1,
-		ADD_FLOAT = ADF_DEFAULT | 2,
-		ADD_DOUBLE = ADF_DEFAULT | 3,
+		ADD_FLOAT = ADF_PRIMITIVE_FLOAT | ADF_DEFAULT | 2,
+		ADD_DOUBLE = ADF_PRIMITIVE_FLOAT | ADF_DEFAULT | 3,
 		ADD_STRING = ADF_DEFAULT | 4,
 		ADD_HASH = ADF_DEFAULT | 5,
-		ADD_INT8 = ADF_DEFAULT | 7,
-		ADD_INT16 = ADF_DEFAULT | 8,
-		ADD_INT32 = ADF_DEFAULT | 9,
-		ADD_INT64 = ADF_DEFAULT | 10,
-		ADD_UINT8 = ADF_DEFAULT | 11,
-		ADD_UINT16 = ADF_DEFAULT | 12,
-		ADD_UINT32 = ADF_DEFAULT | 13,
-		ADD_UINT64 = ADF_DEFAULT | 14,
+		ADD_INT8 = ADF_PRIMITIVE_INT | ADF_DEFAULT | 7,
+		ADD_INT16 = ADF_PRIMITIVE_INT | ADF_DEFAULT | 8,
+		ADD_INT32 = ADF_PRIMITIVE_INT | ADF_DEFAULT | 9,
+		ADD_INT64 = ADF_PRIMITIVE_INT | ADF_DEFAULT | 10,
+		ADD_UINT8 = ADF_PRIMITIVE_INT | ADF_DEFAULT | ADF_UNSIGNED | 11,
+		ADD_UINT16 = ADF_PRIMITIVE_INT | ADF_DEFAULT | ADF_UNSIGNED | 12,
+		ADD_UINT32 = ADF_PRIMITIVE_INT | ADF_DEFAULT | ADF_UNSIGNED | 13,
+		ADD_UINT64 = ADF_PRIMITIVE_INT | ADF_DEFAULT | ADF_UNSIGNED | 14,
 	};
+
+	constexpr bool IsUnsignedType(ADLDataTypeId id) {
+		return id & ADF_UNSIGNED;
+	}
+
+	constexpr bool IsIntType(ADLDataTypeId id) {
+		return (id & ADF_PRIMITIVE_MASK) == ADF_PRIMITIVE_INT;
+	}
+
+	constexpr bool IsFloatType(ADLDataTypeId id) {
+		return (id & ADF_PRIMITIVE_MASK) == ADF_PRIMITIVE_FLOAT;
+	}
+
+	constexpr bool IsNumberType(ADLDataTypeId id) {
+		return IsIntType(id) || IsFloatType(id);
+	}
+
+	constexpr bool IsDefaultType(ADLDataTypeId id) {
+		return (id & ADF_MASK) == ADF_DEFAULT;
+	}
+
+	constexpr uint64_t PADDING_FIELD_HASH = hash::Hash64("$$padding");
 
 	struct ADLStructField {
 		uint64_t name;

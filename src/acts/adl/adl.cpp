@@ -236,7 +236,85 @@ namespace acts::compiler::adl {
                     continue;
                 }
 
-                // TODO: fill
+                ParseTree* members{ rule->children[rule->children.size() - 2] };
+
+                for (size_t i = 0; i < members->children.size(); i += 2) {
+                    RuleContext* structMember{ dynamic_cast<RuleContext*>(members->children[i]->children[0])};
+
+                    if (structMember->getRuleIndex() == adlParser::RuleData_member) {
+                        ADLStructField& nfield{ str->fields.emplace_back() };
+
+                        std::string typeName{ structMember->children[0]->getText() };
+                        nfield.type = output.IdOfName(typeName);
+
+                        size_t idx{ 1 };
+                        if (structMember->children[idx]->getTreeType() == TREE_TERMINAL && structMember->children[idx]->getText() == "*") {
+                            nfield.pointer = true;
+                            idx++;
+                        }
+                        else {
+                            nfield.pointer = false;
+                        }
+
+                        std::string fieldName{ structMember->children[idx]->getText() };
+                        uint64_t fieldHash{ hash::Hash64(fieldName.c_str()) };
+
+                        for (size_t j = 0; j < str->fields.size(); j++) {
+                            if (str->fields[j].name == fieldHash) {
+                                errList->PrintLineMessage(alogs::LVL_ERROR, structMember->children[idx], std::format("Field already defined for this structure {}", fieldName));
+                                err = true;
+                                break;
+                            }
+                        }
+                        nfield.name = fieldHash;
+
+                        if (structMember->children.size() > ++idx) {
+                            int64_t arraySize{ NumberNodeValue(structMember->children[++idx]) };
+
+                            if (arraySize < 0) {
+                                errList->PrintLineMessage(alogs::LVL_ERROR, structMember->children[idx], std::format("Can't have negative array size {}", arraySize));
+                                err = true;
+                                arraySize = 0;
+                            }
+                            nfield.arraySize = (size_t)arraySize;
+                        }
+                        else {
+                            nfield.arraySize = 1;
+                        }
+                    }
+                    else if (structMember->getRuleIndex() == adlParser::RuleData_operator) {
+                        std::string oper{ structMember->children[0]->getText() };
+                        int64_t arraySize{ NumberNodeValue(structMember->children[1]) };
+
+                        if (oper == "$padding") {
+                            if (arraySize < 0) {
+                                errList->PrintLineMessage(alogs::LVL_ERROR, structMember->children[1], std::format("Padding to a negative size {}", arraySize));
+                                err = true;
+                                arraySize = 0;
+                            }
+                            ADLStructField& nfield{ str->fields.emplace_back() };
+                            nfield.name = PADDING_FIELD_HASH;
+                            nfield.type = ADD_PADDING;
+                            nfield.arraySize = 1;
+                            nfield.pointer = false;
+                            nfield.offset = (size_t)arraySize;
+                        }
+                        //else if (oper == "$assert_offset") {
+                        // TODO: fill
+                        //}
+                        else {
+                            errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Operator not handler : {}", oper));
+                            err = true;
+                            continue;
+                        }
+
+                    }
+                    else {
+                        errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Struct member not handler ({}): {}", structMember->getRuleIndex(), structMember->getText()));
+                        err = true;
+                        continue;
+                    }
+                }
 
                 break;
             }
@@ -247,12 +325,33 @@ namespace acts::compiler::adl {
 
                 ADLDataTypeId typeId{ output.IdOfName(type) };
 
-                if (!typeId) {
-                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Type '{}' doesn't exist", type));
+                if (!IsDefaultType(typeId) || !IsIntType(typeId)) {
+                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Type '{}' doesn't exist or isn't an int type", type));
                     err = true;
                     continue;
                 }
 
+                size_t sizeOf{ output.SizeOf(typeId) };
+                int64_t maxValue, minValue;
+                if (IsUnsignedType(typeId)) {
+                    if (sizeOf == 8) {
+                        maxValue = INT64_MAX;
+                    }
+                    else {
+                        maxValue = (1ull << (sizeOf << 3));
+                    }
+                    minValue = 0;
+                }
+                else {
+                    if (sizeOf == 8) {
+                        maxValue = INT64_MAX;
+                        minValue = INT64_MIN;
+                    }
+                    else {
+                        maxValue = (1ull << (sizeOf << 3)) - 1;
+                        minValue = -(int64_t)(1ull << (sizeOf << 3));
+                    }
+                }
                 ADLFlag* str{ output.CreateFlag(name, typeId) };
 
                 if (!str) {
@@ -261,7 +360,87 @@ namespace acts::compiler::adl {
                     continue;
                 }
 
-                // TODO: fill
+                ParseTree* members{ rule->children[rule->children.size() - 2] };
+
+                for (size_t i = 0; i < members->children.size(); i += 2) {
+                    RuleContext* enumMember{ dynamic_cast<RuleContext*>(members->children[i]) };
+
+                    ParseTree* enumVal{ enumMember->children[0] };
+                    int64_t value{};
+                    if (enumMember->children.size() < 2) {
+                        value = (int64_t)i / 2;
+                    }
+                    else {
+                        value = NumberNodeValue(enumMember->children[2]);
+                    }
+
+                    if (value >= maxValue || value < minValue) {
+                        errList->PrintLineMessage(alogs::LVL_ERROR, enumMember, std::format("Out of bounds value for '{}', {} not in [{},{}[", name, value, minValue, maxValue));
+                        err = true;
+                    }
+
+                    std::string fieldName;
+                    if (IS_TERMINAL_TYPE(enumVal, adlParser::STRING)) {
+
+                        auto node = enumVal->getText();
+                        auto newStr = std::make_unique<char[]>(node.length() - 1);
+                        auto* newStrWriter = &newStr[0];
+
+                        // format string
+                        for (size_t i = 1; i < node.length() - 1; i++) {
+                            if (node[i] != '\\') {
+                                *(newStrWriter++) = node[i];
+                                continue; // default case
+                            }
+
+                            i++;
+
+                            assert(i < node.length() && "bad format, \\ before end");
+
+                            switch (node[i]) {
+                            case 'n':
+                                *(newStrWriter++) = '\n';
+                                break;
+                            case 't':
+                                *(newStrWriter++) = '\t';
+                                break;
+                            case 'r':
+                                *(newStrWriter++) = '\r';
+                                break;
+                            case 'b':
+                                *(newStrWriter++) = '\b';
+                                break;
+                            default:
+                                *(newStrWriter++) = node[i];
+                                break;
+                            }
+                        }
+                        *(newStrWriter++) = 0; // end char
+
+                        fieldName = &newStr[0];
+                    }
+                    else if (IS_RULE_TYPE(enumVal, adlParser::RuleIdf)) {
+                        fieldName = enumVal->getText();
+                    }
+                    else {
+                        fieldName = "";
+                        errList->PrintLineMessage(alogs::LVL_ERROR, enumVal, std::format("Unhandled flag val {}", enumVal->getText()));
+                        err = true;
+                    }
+
+                    uint64_t fieldHash{ hash::Hash64(fieldName.c_str()) };
+
+                    for (size_t j = 0; j < str->fields.size(); j++) {
+                        if (str->fields[j].name == fieldHash) {
+                            errList->PrintLineMessage(alogs::LVL_ERROR, enumVal, std::format("Field already defined for this structure {}", fieldName));
+                            err = true;
+                            break;
+                        }
+                    }
+                    ADLEnumField& field{ str->fields.emplace_back() };
+                    field.name = fieldHash;
+                    field.value = value;
+                }
 
                 break;
             }
@@ -272,10 +451,33 @@ namespace acts::compiler::adl {
 
                 ADLDataTypeId typeId{ output.IdOfName(type) };
 
-                if (!typeId) {
-                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Type '{}' doesn't exist", type));
+                if (!IsDefaultType(typeId) || !IsIntType(typeId)) {
+                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Type '{}' doesn't exist or isn't an int type", type));
                     err = true;
                     continue;
+                }
+
+                size_t sizeOf{ output.SizeOf(typeId) };
+                int64_t maxValue, minValue;
+                if (IsUnsignedType(typeId)) {
+                    if (sizeOf == 8) {
+                        // we do not support uint64
+                        maxValue = INT64_MAX;
+                    }
+                    else {
+                        maxValue = (1ull << (sizeOf << 3)) - 1;
+                    }
+                    minValue = 0;
+                }
+                else {
+                    if (sizeOf == 8) {
+                        maxValue = INT64_MAX;
+                        minValue = INT64_MIN;
+                    }
+                    else {
+                        maxValue = (1ull << ((sizeOf << 3) - 1)) - 1;
+                        minValue = -(maxValue + 1);
+                    }
                 }
 
                 ADLEnum* str{ output.CreateEnum(name, typeId) };
@@ -286,7 +488,87 @@ namespace acts::compiler::adl {
                     continue;
                 }
 
-                // TODO: fill
+                ParseTree* members{ rule->children[rule->children.size() - 2] };
+
+                for (size_t i = 0; i < members->children.size(); i += 2) {
+                    RuleContext* enumMember{ dynamic_cast<RuleContext*>(members->children[i]) };
+
+                    ParseTree* enumVal{ enumMember->children[0] };
+                    int64_t value{};
+                    if (enumMember->children.size() < 2) {
+                        value = (int64_t)i / 2;
+                    }
+                    else {
+                        value = NumberNodeValue(enumMember->children[2]);
+                    }
+
+                    if (value > maxValue || value < minValue) {
+                        errList->PrintLineMessage(alogs::LVL_ERROR, enumMember, std::format("Out of bounds value for '{}', {} not in [{},{}]", name, value, minValue, maxValue));
+                        err = true;
+                    }
+
+                    std::string fieldName;
+                    if (IS_TERMINAL_TYPE(enumVal, adlParser::STRING)) {
+
+                        auto node = enumVal->getText();
+                        auto newStr = std::make_unique<char[]>(node.length() - 1);
+                        auto* newStrWriter = &newStr[0];
+
+                        // format string
+                        for (size_t i = 1; i < node.length() - 1; i++) {
+                            if (node[i] != '\\') {
+                                *(newStrWriter++) = node[i];
+                                continue; // default case
+                            }
+
+                            i++;
+
+                            assert(i < node.length() && "bad format, \\ before end");
+
+                            switch (node[i]) {
+                            case 'n':
+                                *(newStrWriter++) = '\n';
+                                break;
+                            case 't':
+                                *(newStrWriter++) = '\t';
+                                break;
+                            case 'r':
+                                *(newStrWriter++) = '\r';
+                                break;
+                            case 'b':
+                                *(newStrWriter++) = '\b';
+                                break;
+                            default:
+                                *(newStrWriter++) = node[i];
+                                break;
+                            }
+                        }
+                        *(newStrWriter++) = 0; // end char
+
+                        fieldName = &newStr[0];
+                    }
+                    else if (IS_RULE_TYPE(enumVal, adlParser::RuleIdf)) {
+                        fieldName = enumVal->getText();
+                    }
+                    else {
+                        fieldName = "";
+                        errList->PrintLineMessage(alogs::LVL_ERROR, enumVal, std::format("Unhandled flag val {}", enumVal->getText()));
+                        err = true;
+                    }
+
+                    uint64_t fieldHash{ hash::Hash64(fieldName.c_str()) };
+
+                    for (size_t j = 0; j < str->fields.size(); j++) {
+                        if (str->fields[j].name == fieldHash) {
+                            errList->PrintLineMessage(alogs::LVL_ERROR, enumVal, std::format("Field already defined for this structure {}", fieldName));
+                            err = true;
+                            break;
+                        }
+                    }
+                    ADLEnumField& field{ str->fields.emplace_back() };
+                    field.name = fieldHash;
+                    field.value = value;
+                }
 
                 break;
             }
@@ -337,6 +619,14 @@ namespace acts::compiler::adl {
                 continue;
             }
         }
+        if (err) {
+            return false;
+        }
+
+        // parsing done, we can sync the offsets
+
+
+
         return !err;
     }
 

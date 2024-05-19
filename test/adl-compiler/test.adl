@@ -9,12 +9,13 @@
 
 struct size(0x38) root {
     int* test; // 8
-    $offset 0x10; // 10
+    $padding 0x10; // 10
     float test2; // 14
-    $padding 0x10; // 28
+    $padding 0x28; // 28
 
     foo val; // 30
-    bar val; // 38
+    bar val2; // 38
+    //$assert_offset 0x38;
 };
 
 struct align(4) size(0x8) foo {
@@ -34,9 +35,9 @@ flag test_flag : byte {
     VALUE4 = 8
 };
 
-enum test_enum : byte {
+enum test_enum : int64_t {
     VALUE1 = 1,
     VALUE2,
     VALUE3,
-    VALUE4
+    VALUE4 = 0xFFFFFFFF
 };
