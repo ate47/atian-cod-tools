@@ -4191,7 +4191,7 @@ namespace acts::compiler {
             return tool::BASIC_ERROR;
         }
 
-        std::shared_ptr<tool::gsc::GSCOBJHandler> handler {(*readerBuilder)(nullptr)};
+        std::shared_ptr<tool::gsc::GSCOBJHandler> handler {(*readerBuilder)(nullptr, 0)};
 
         std::vector<std::filesystem::path> inputs{};
 

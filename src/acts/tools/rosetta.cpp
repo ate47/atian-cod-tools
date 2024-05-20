@@ -128,7 +128,7 @@ namespace {
 				continue;
 			}
 
-			tool::gsc::GSCOBJHandler* reader = [&handlers, vm, buffer]() -> tool::gsc::GSCOBJHandler* {
+			tool::gsc::GSCOBJHandler* reader = [&handlers, vm, buffer, size]() -> tool::gsc::GSCOBJHandler* {
 
 				auto hit = handlers.find(vm);
 
@@ -140,7 +140,7 @@ namespace {
 						return nullptr;
 					}
 
-					return &*(handlers[vm] = (*bld)(buffer->magic));
+					return &*(handlers[vm] = (*bld)(buffer->magic, size));
 				}
 				else {
 					return &*(hit->second);

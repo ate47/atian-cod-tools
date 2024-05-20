@@ -298,7 +298,7 @@ void tool::gsc::RosettaAddOpCode(uint32_t loc, uint16_t opcode) {
     block.push_back(tool::gsc::RosettaOpCodeBlock{ .location = loc, .opcode = opcode });
 }
 
-GSCOBJHandler::GSCOBJHandler(byte* file, uint64_t buildFlags) : file(file), buildFlags(buildFlags) {}
+GSCOBJHandler::GSCOBJHandler(byte* file, uint64_t fileSize, size_t buildFlags) : file(file), buildFlags(buildFlags), fileSize(fileSize) {}
 
 // by default no remapping
 byte GSCOBJHandler::RemapFlagsImport(byte flags) {
@@ -517,15 +517,16 @@ void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscI
 
 namespace {
 #include "gsc_vm.hpp"
-    std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJHandler>(byte*)>> gscReaders = {
-        { VM_T8,[](byte* file) { return std::make_shared<T8GSCOBJHandler>(file); }},
-        { VM_T937,[](byte* file) { return std::make_shared<T937GSCOBJHandler>(file); }},
-        { VM_T9,[](byte* file) { return std::make_shared<T9GSCOBJHandler>(file); }},
-        { VM_MW23,[](byte* file) { return std::make_shared<MW23GSCOBJHandler>(file); }},
+    std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>> gscReaders = {
+        { VM_T8,[](byte* file, size_t fileSize) { return std::make_shared<T8GSCOBJHandler>(file, fileSize); }},
+        { VM_T937,[](byte* file, size_t fileSize) { return std::make_shared<T937GSCOBJHandler>(file, fileSize); }},
+        { VM_T9,[](byte* file, size_t fileSize) { return std::make_shared<T9GSCOBJHandler>(file, fileSize); }},
+        { VM_MW23,[](byte* file, size_t fileSize) { return std::make_shared<MW23GSCOBJHandler>(file, fileSize); }},
+        { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
     };
 }
 
-std::function<std::shared_ptr<GSCOBJHandler>(byte*)>* tool::gsc::GetGscReader(byte vm) {
+std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(byte vm) {
     auto it = gscReaders.find(vm);
 
     if (it == gscReaders.end()) {
@@ -535,7 +536,19 @@ std::function<std::shared_ptr<GSCOBJHandler>(byte*)>* tool::gsc::GetGscReader(by
     return &it->second;
 }
 
+struct H32T7GSCExportReader : GSCExportReader {
+    T7GSCExport* exp{};
 
+    void SetHandle(void* handle) override { exp = (T7GSCExport*)handle; };
+    uint64_t GetName() override { return exp->name; };
+    uint64_t GetNamespace() override { return exp->name_space; };
+    uint64_t GetFileNamespace() override { return 0; };
+    uint64_t GetChecksum() override { return exp->checksum; };
+    uint32_t GetAddress() override { return exp->address; };
+    uint8_t GetParamCount() override { return exp->param_count; };
+    uint8_t GetFlags() override { return exp->flags; };
+    size_t SizeOf() override { return sizeof(*exp); };
+};
 
 struct H32GSCExportReader : GSCExportReader {
     T8GSCExport* exp{};
@@ -691,7 +704,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         return -1;
     }
 
-    std::shared_ptr<GSCOBJHandler> scriptfile = (*readerBuilder)(data);
+    std::shared_ptr<GSCOBJHandler> scriptfile = (*readerBuilder)(data, size);
 
     // we keep it because it should also check the size
     if (!scriptfile->IsValidHeader(size)) {
@@ -702,6 +715,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     std::unique_ptr<GSCExportReader> exp;
     if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
         exp = std::make_unique<H64GSCExportReader>();
+    }
+    else if (ctx.m_vmInfo->flags & VmFlags::VMF_NO_FILE_NAMESPACE) {
+        exp = std::make_unique<H32T7GSCExportReader>();
     }
     else {
         exp = std::make_unique<H32GSCExportReader>();
@@ -860,7 +876,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 type = *reinterpret_cast<byte*>(encryptedString);
 
                 if (str->string + len + 1 > scriptfile->GetFileSize()) {
-                    asmout << "bad string location\n";
+                    asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
                     break;
                 }
 
@@ -878,7 +894,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 len = (size_t)ess[2] - 1;
 
                 if (str->string + len + 3 > scriptfile->GetFileSize()) {
-                    asmout << "bad string location\n";
+                    asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
                     break;
                 }
 
@@ -926,15 +942,30 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     }
 
     if (opt.m_includes && scriptfile->GetIncludesOffset()) {
-        auto* includes = scriptfile->Ptr<uint64_t>(scriptfile->GetIncludesOffset());
+        if (scriptfile->HasFlag(GOHF_STRING_NAMES)) {
+            uint32_t* includes = scriptfile->Ptr<uint32_t>(scriptfile->GetIncludesOffset());
 
-        for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
-            asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
+            for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
+                asmout << "#using " << scriptfile->Ptr<char>(includes[i]) << ";\n";
+            }
+            if (scriptfile->GetIncludesCount()) {
+                asmout << "\n";
+            }
         }
-        if (scriptfile->GetIncludesCount()) {
-            asmout << "\n";
+        else {
+            uint64_t* includes = scriptfile->Ptr<uint64_t>(scriptfile->GetIncludesOffset());
+
+            for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
+                asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
+            }
+            if (scriptfile->GetIncludesCount()) {
+                asmout << "\n";
+            }
         }
     }
+
+    asmout
+        << std::flush;
 
     scriptfile->DumpExperimental(asmout, opt);
 
@@ -1070,9 +1101,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
         std::unordered_map<Located, ASMContext, LocatedHash, LocatedEquals> contextes{};
 
+        if (scriptfile->GetExportsOffset() + scriptfile->GetExportsCount() * exp->SizeOf() > scriptfile->GetFileSize()) {
+            asmout << "// INVALID EXPORT TABLE: 0x" << std::hex << scriptfile->GetExportsOffset() << "\n";
+            return -1;
+        }
 
         for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
-            void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
+            void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset() + i * exp->SizeOf());
             exp->SetHandle(handle);
 
             std::ofstream nullstream;
@@ -1090,6 +1125,11 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             }
 
             Located rname = { exp->GetNamespace(), exp->GetName() };
+
+            if (exp->GetAddress() > scriptfile->GetFileSize()) {
+                asmout << "// INVALID EXPORT ADDRESS: 0x" << std::hex << exp->GetAddress() << "\n";
+                continue;
+            }
 
             auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, vm, opt.m_platform);
 
@@ -2041,17 +2081,20 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         utils::Padding(asmout, padding) << prefix << "Namespace "
             << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
 
-        // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
-        // so it's better to use spaces. A flag was added to keep the same format.
-        if (objctx.m_vmInfo->flags & VmFlags::VMF_FULL_FILE_NAMESPACE) {
-            asmout << " / ";
-        }
-        else {
-            asmout << "/";
-        }
+        if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
+            // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
+            // so it's better to use spaces. A flag was added to keep the same format.
+            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                asmout << " / ";
+            }
+            else {
+                asmout << "/";
+            }
 
-        asmout
-            << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.GetFileNamespace()) << std::endl;
+            asmout
+                << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.GetFileNamespace());
+        }
+        asmout << std::endl;
 
         if (isDetour) {
             auto det = detourVal->second;

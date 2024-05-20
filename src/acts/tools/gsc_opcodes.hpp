@@ -14,6 +14,7 @@ namespace tool::gsc::opcode {
 		VMF_INV_ADD_TO_OBJECT = 0x20,
 		VMF_HASH_IW = 0x40,
 		VMF_CLIENT_VM = 0x80,
+		VMF_NO_FILE_NAMESPACE = 0x100,
 	};
 	enum VmOperatorFunctionData {
 		VPFD_NONE = 0,

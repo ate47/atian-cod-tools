@@ -35,17 +35,18 @@ namespace tool::gsc {
         GOHF_FOREACH_TYPE_T8 = GOHF_FOREACH_TYPE_V1, // 100
         GOHF_FOREACH_TYPE_T9 = GOHF_FOREACH_TYPE_V2, // 010
         GOHF_FOREACH_TYPE_JUP = GOHF_FOREACH_TYPE_V1 | GOHF_FOREACH_TYPE_V2, // 110
+        GOHF_FOREACH_TYPE_T7 = GOHF_FOREACH_TYPE_V3, // 001
         // for later
-        GOHF_FOREACH_TYPE_4 = GOHF_FOREACH_TYPE_V3, // 001
         GOHF_FOREACH_TYPE_5 = GOHF_FOREACH_TYPE_V1 | GOHF_FOREACH_TYPE_V3, // 101
         GOHF_FOREACH_TYPE_6 = GOHF_FOREACH_TYPE_V2 | GOHF_FOREACH_TYPE_V3, // 110
         GOHF_FOREACH_TYPE_7 = GOHF_FOREACH_TYPE_V1 | GOHF_FOREACH_TYPE_V2 | GOHF_FOREACH_TYPE_V3, // 111
         GOHF_FOREACH_TYPE_MASK = GOHF_FOREACH_TYPE_V1 | GOHF_FOREACH_TYPE_V2 | GOHF_FOREACH_TYPE_V3,
         GOHF_SUPPORT_GET_API_SCRIPT = 0x1000,
+        GOHF_STRING_NAMES = 0x2000,
     };
     static_assert(
-        ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP 
-            | GOHF_FOREACH_TYPE_4 | GOHF_FOREACH_TYPE_5 | GOHF_FOREACH_TYPE_6) & ~GOHF_FOREACH_TYPE_MASK) == 0
+        ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP | GOHF_FOREACH_TYPE_T7 
+            | GOHF_FOREACH_TYPE_5 | GOHF_FOREACH_TYPE_6) & ~GOHF_FOREACH_TYPE_MASK) == 0
         && "Foreach mask isn't matching all the types"
     );
 
@@ -780,6 +781,38 @@ namespace tool::gsc {
             return magic[7];
         }
     };
+    struct T7GSCOBJ {
+        byte magic[8];
+        uint32_t source_crc;
+        uint32_t include_offset;
+        uint32_t animtree_offset;
+        uint32_t cseg_offset;
+        uint32_t string_offset;
+        uint32_t unk1c;
+        uint32_t export_offset;
+        uint32_t import_offset;
+        uint32_t fixup_offsets;
+        uint32_t unk2c;
+        uint32_t cseg_size;
+        uint32_t name_offset;
+        uint16_t string_count;
+        uint16_t export_count;
+        uint16_t import_count;
+        uint16_t fixup_count;
+        uint32_t unk40;
+        uint8_t include_count;
+        uint8_t animtree_count;
+        uint8_t flags;
+
+        // @return the vm
+        inline byte GetVm() {
+            return magic[7];
+        }
+
+        inline const char* GetName() const {
+            return reinterpret_cast<const char*>(&magic[name_offset]);
+        }
+    };
 
     struct GscObj23 {
         byte magic[8];
@@ -834,13 +867,23 @@ namespace tool::gsc {
         uint32_t name;
         uint32_t num_address;
     };
-    
+
     struct T8GSCExport {
         uint32_t checksum;
         uint32_t address;
         uint32_t name;
         uint32_t name_space;
         uint32_t callback_event;
+        uint8_t param_count;
+        uint8_t flags;
+        uint16_t padding;
+    };
+
+    struct T7GSCExport {
+        uint32_t checksum;
+        uint32_t address;
+        uint32_t name;
+        uint32_t name_space;
         uint8_t param_count;
         uint8_t flags;
         uint16_t padding;
@@ -909,9 +952,10 @@ namespace tool::gsc {
     class GSCOBJHandler {
     public:
         byte* file;
+        size_t fileSize;
         uint64_t buildFlags;
 
-        GSCOBJHandler(byte* file, uint64_t buildFlags);
+        GSCOBJHandler(byte* file, uint64_t fileSize, size_t buildFlags);
 
         /*
          * Test if the handler has a flag
@@ -985,7 +1029,9 @@ namespace tool::gsc {
         virtual uint32_t GetStringsOffset() = 0;
         virtual uint16_t GetGVarsCount() = 0;
         virtual uint32_t GetGVarsOffset() = 0;
-        virtual uint32_t GetFileSize() = 0;
+        virtual uint32_t GetFileSize() {
+            return (uint32_t)fileSize;
+        };
         virtual int64_t GetDefaultChecksum(bool client) = 0;
         virtual const char* GetDefaultName(bool client) = 0;
 
@@ -1045,7 +1091,7 @@ namespace tool::gsc {
         virtual void PatchCode(T8GSCOBJContext& ctx);
     };
 
-    std::function<std::shared_ptr<GSCOBJHandler>(byte*)>* GetGscReader(byte vm);
+    std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(byte vm);
 
     enum T8GSCExportFlags : uint8_t {
         LINKED = 0x01,

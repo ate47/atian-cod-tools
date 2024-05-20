@@ -14,6 +14,7 @@ std::map<std::string, tool::toolcategory>& tool::toolsCategories() {
 		map["bo4"] = { "bo4", "Black Ops 4 tools", true, {} };
 		map["cw"] = { "cw", "Black Ops Cold War tools", true, {} };
 		map["mwiii"] = { "mwiii", "Modern Warfare III tools", true, {} };
+		map["bo3"] = { "bo3", "Black Ops 3 tools", true, {} };
 		map["ps4"] = { "ps4", "PS4 tools", true, {} };
 		map["common"] = { "common", "common tools", true, {} };
 		map["dev"] = { "dev", "dev tools", true, {} };

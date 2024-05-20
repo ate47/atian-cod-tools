@@ -5099,7 +5099,7 @@ UINT ASMContext::FinalSize() const {
 			max = ref.rloc;
 		}
 	}
-	return (UINT)max + 2; // +1 for the Return/End operator
+	return (UINT)max + (this->m_objctx.m_vmInfo->HasFlag(VMF_OPCODE_SHORT) ? 2 : 1); // +1 for the Return/End operator
 }
 
 #pragma endregion

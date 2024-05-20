@@ -673,6 +673,10 @@ namespace tool::gsc::opcode {
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
 
+			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE);
+			RegisterVMPlatform(VM_T7, PLATFORM_PC);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
+
 
 			// loading serious db2 files (if any)
 			const char* seriousDBDir = actscli::options().seriousDBFile;
