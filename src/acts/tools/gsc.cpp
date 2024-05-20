@@ -1738,7 +1738,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             uint16_t opCode;
 
-            if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)) {
                 opCode = *(uint16_t*)base;
             }
             else {
@@ -1750,9 +1750,9 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ": " << std::flush;
 
-            if (opCode & ~0xFFF) {
-                out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(" << opCode << ")" << "\n";
-                opCode &= 0xFFF;
+            if (opCode > objctx.m_vmInfo->maxOpCode) {
+                out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(0x" << opCode << " > 0x" << objctx.m_vmInfo->maxOpCode << ")" << "\n";
+                opCode &= objctx.m_vmInfo->maxOpCode;
                 ctx.m_disableDecompiler = true;
                 break;
             }

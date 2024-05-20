@@ -4517,6 +4517,16 @@ void tool::gsc::opcode::RegisterVMGlobalVariable(byte vm, const char* name, OPCo
 	gv.getOpCode = getOpCode;
 }
 
+void tool::gsc::opcode::SetMaxOpCode(byte vm, uint16_t maxOpCode) {
+	auto ref = g_opcodeMap.find(vm);
+
+	if (ref == g_opcodeMap.end()) {
+		LOG_ERROR("Set max opcode to bad vm: VM_{:x}", (int)vm);
+		return;
+	}
+
+	ref->second.maxOpCode = maxOpCode;
+}
 void tool::gsc::opcode::RegisterVMPlatform(byte vm, Platform plt) {
 	auto ref = g_opcodeMap.find(vm);
 
@@ -4727,6 +4737,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uint16_t>(OPCODE_GetUnsignedShort, "GetUnsignedShort"));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<FLOAT, FLOAT>(OPCODE_GetFloat, "GetFloat", TYPE_FLOAT));
 		RegisterOpCodeHandler(new OPCodeInfoGetNumber<uintptr_t, uintptr_t>(OPCODE_GetUIntPtr, "GetUIntPtr"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<int8_t>(OPCODE_GetSignedByte, "GetSignedByte"));
+		RegisterOpCodeHandler(new OPCodeInfoGetNumber<int16_t>(OPCODE_GetShort, "GetShort"));
 		RegisterOpCodeHandler(new OPCodeInfoVector());
 		RegisterOpCodeHandler(new OPCodeInfoVectorConstant());
 		RegisterOpCodeHandler(new OPCodeInfoGetVector());
@@ -4848,7 +4860,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2));
 		RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "Notify"));
 		
-		
+		// T7
+		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash32, "GetHash", "#", false));
 
 		// T8compiler custom opcode
 		RegisterOpCodeHandler(new OPCodeInfoT8CGetLazyFunction());
@@ -4888,7 +4901,7 @@ const OPCodeInfo* tool::gsc::opcode::LookupOpCode(byte vm, Platform platform, ui
 		return g_unknownOpcode;
 	}
 
-	auto ref = info->opcodemap.find(opcode & 0xFFF);
+	auto ref = info->opcodemap.find(opcode);
 
 	if (ref == info->opcodemap.end()) {
 		return g_unknownOpcode;

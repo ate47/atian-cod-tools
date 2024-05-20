@@ -183,6 +183,8 @@ bool hashutils::Add(const char* str, bool ignoreCol, bool iw) {
 	}
 
 	if (cand32) {
+		g_hashMap.emplace(hashutils::HashT7(str), str);
+
 		auto h = hashutils::Hash32(str);
 		if (!ignoreCol) {
 			auto find = g_hashMap.find(h);

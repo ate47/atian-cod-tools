@@ -1288,15 +1288,30 @@ public:
 
     byte RemapFlagsExport(byte flags) override {
         byte nflags{};
-        return nflags; // TODO
-    }
-
-    byte MapFlagsExportToInt(byte flags) override {
-        byte nflags = 0;
         if (flags & 1) nflags |= T8GSCExportFlags::LINKED;
         return nflags;
     }
     byte RemapFlagsImport(byte flags) override {
+        byte nflags{};
+
+        byte funcType = flags & 0xF;
+
+        switch (funcType) {
+        case 1: nflags |= T8GSCImportFlags::FUNC_METHOD; break;
+        case 2: nflags |= T8GSCImportFlags::FUNCTION; break;
+        case 3: nflags |= T8GSCImportFlags::FUNCTION_THREAD; break;
+        case 4: nflags |= T8GSCImportFlags::METHOD; break;
+        case 5: nflags |= T8GSCImportFlags::METHOD_THREAD; break;
+        }
+
+        if (flags & 0x10) nflags |= T8GSCImportFlags::DEV_CALL;
+        if (flags & 0x20) nflags |= T8GSCImportFlags::GET_CALL;
+
+
+        return nflags;
+    }
+
+    byte MapFlagsExportToInt(byte flags) override {
         byte nflags{};
         return nflags; // TODO
     }

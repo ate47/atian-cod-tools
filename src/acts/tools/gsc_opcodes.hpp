@@ -56,6 +56,7 @@ namespace tool::gsc::opcode {
 		const char* codeName;
 		uint64_t flags;
 		byte platforms{};
+		uint16_t maxOpCode{ 0xFFF };
 		std::unordered_map<char, VmHashFunc> hashesFunc{};
 		std::unordered_set<uint64_t> devCallsNames{};
 		std::unordered_map<uint16_t, std::unordered_map<Platform, OPCode>> opcodemap{};
@@ -123,6 +124,7 @@ namespace tool::gsc::opcode {
 	void RegisterVMPlatform(byte vm, Platform plt);
 	void RegisterVMHashOPCode(byte vm, char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc);
 	void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op);
+	void SetMaxOpCode(byte vm, uint16_t maxOpCode);
 	void RegisterDevCall(byte vm, const char* devCall);
 	void RegisterOpCodes();
 

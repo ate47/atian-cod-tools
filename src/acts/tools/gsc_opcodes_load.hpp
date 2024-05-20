@@ -252,6 +252,10 @@ namespace tool::gsc::opcode {
 
 		OPCODE_DevOp,
 
+		OPCODE_GetSignedByte,
+		OPCODE_GetShort,
+		OPCODE_GetHash32,
+
 
 		OPCODE_COUNT,
 	};

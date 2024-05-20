@@ -293,6 +293,12 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
+		size_t maxOpCode{ 0x1000 };
+		if (argc >= 4) {
+			maxOpCode = std::strtoull(argv[3], nullptr, 16);
+			LOG_TRACE("set maxopcode to {}/0x{:x}", argv[3], maxOpCode);
+		}
+
 		PVOID buffer = NULL;
 		size_t bufferSize = 0;
 
@@ -304,7 +310,7 @@ namespace {
 		std::map<uintptr_t, std::vector<size_t>> map{};
 		auto* codes = reinterpret_cast<uintptr_t*>(buffer);
 
-		for (size_t i = 0; i < 0x1000; i++) {
+		for (size_t i = 0; i < maxOpCode; i++) {
 			map[codes[i]].push_back(i);
 		}
 

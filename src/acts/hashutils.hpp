@@ -116,6 +116,8 @@ namespace hashutils {
 	constexpr uint64_t Hash64A(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) { return hash::Hash64A(str, start, iv); }
 	constexpr uint64_t HashAIW(const char* str) { return hash::Hash64A(str, 0x47F5817A5EF961BA); }
 	constexpr uint64_t HashAIW2(const char* str) { return hash::Hash64A(str, 0x79D6530B0BB9B5D1, 0x10000000233); }
+	constexpr uint32_t HashT7(const char* str) { return (uint32_t)(hash::Hash64A(str, 0x4B9ACE2F, 0x1000193) & 0xFFFFFFFF) * 0x1000193; }
+
 	/*
 	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
 	 * @param str String to compute
