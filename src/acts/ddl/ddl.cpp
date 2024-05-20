@@ -738,4 +738,4 @@ namespace {
 
 
 }
-ADD_TOOL("ddlcheck", "", "ddl check", nullptr, ddlcheck);
+ADD_TOOL("ddlcheck", "common", "", "ddl check", nullptr, ddlcheck);

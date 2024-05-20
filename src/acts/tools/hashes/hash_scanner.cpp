@@ -64,6 +64,6 @@ namespace {
 		return tool::OK;
 	}
 	
-	ADD_TOOL("hashscan", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
+	ADD_TOOL("hashscan", "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
 
 }

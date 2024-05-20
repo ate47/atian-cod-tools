@@ -347,7 +347,7 @@ namespace {
 }
 ADD_TOOL_UI("hash", L"Hash", Render, Update, Resize);
 
-ADD_TOOL("lookup", " (string)*", "lookup strings", nullptr, lookuptool);
-ADD_TOOL("h32", " (string)*", "hash strings", nullptr, hash32);
-ADD_TOOL("h64", " (string)*", "hash strings", nullptr, hash64);
-ADD_TOOL("str", "", "check collisions in the string file", nullptr, collisiontool);
+ADD_TOOL("lookup", "hash", " (string)*", "lookup strings", nullptr, lookuptool);
+ADD_TOOL("h32", "hash", " (string)*", "hash strings", nullptr, hash32);
+ADD_TOOL("h64", "hash", " (string)*", "hash strings", nullptr, hash64);
+ADD_TOOL("str", "hash", "", "check collisions in the string file", nullptr, collisiontool);

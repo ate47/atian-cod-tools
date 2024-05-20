@@ -189,6 +189,6 @@ namespace acts::config {
 
 		return tool::OK;
 	}
-	ADD_TOOL("cfgtest", "", "", nullptr, cfgtest);
+	ADD_TOOL("cfgtest", "dev", "", "", nullptr, cfgtest);
 #endif
 }

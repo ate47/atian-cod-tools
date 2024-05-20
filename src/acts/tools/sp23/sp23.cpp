@@ -397,9 +397,9 @@ namespace {
 	
 }
 #ifndef CI_BUILD
-ADD_TOOL("local23", " [file]", "decrypt local dump 23", nullptr, decryptlocalize);
-ADD_TOOL("hash23search", " [file]", "", nullptr, hash23search);
-ADD_TOOL("vmtest", "", "test vm opcodes", nullptr, vmtest);
+ADD_TOOL("local23", "mwiii", " [file]", "decrypt local dump 23", nullptr, decryptlocalize);
+ADD_TOOL("hash23search", "mwiii", " [file]", "", nullptr, hash23search);
+ADD_TOOL("vmtest", "mwiii", "", "test vm opcodes", nullptr, vmtest);
 
 #endif
-ADD_TOOL("hash23", " [str]", "hash using iw values", nullptr, hash23);
+ADD_TOOL("hash23", "mwiii", " [str]", "hash using iw values", nullptr, hash23);

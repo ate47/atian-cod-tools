@@ -1959,5 +1959,5 @@ namespace {
 }
 ADD_TOOL_UI("errenc", L"Error encoder", Render, Update, Resize);
 
-ADD_TOOL("errenc", "[error]", "encode an error", nullptr, errenc);
-ADD_TOOL("errdec", "[w1] [w2] [w3] [w4]", "decode an error", nullptr, errdec);
+ADD_TOOL("errenc", "hash", "[error]", "encode an error", nullptr, errenc);
+ADD_TOOL("errdec", "hash", "[w1] [w2] [w3] [w4]", "decode an error", nullptr, errdec);

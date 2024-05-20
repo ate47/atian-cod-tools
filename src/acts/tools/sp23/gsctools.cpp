@@ -36,6 +36,6 @@ namespace {
 	}
 
 #ifndef CI_BUILD
-	ADD_TOOL("gsctooltest", " [gsc file]", " tool test", nullptr, gsctooltest);
+	ADD_TOOL("gsctooltest", "mwiii", " [gsc file]", " tool test", nullptr, gsctooltest);
 #endif
 }

@@ -171,6 +171,6 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL("wni_r", " [input] [output] [type=csv,txt]", "Read WNI file/dir", nullptr, wni_r);
-	ADD_TOOL("wni_gen", " [input] [output] [canon=false]", "Gen WNI file", nullptr, wni_gen);
+	ADD_TOOL("wni_r", "compatibility", " [input] [output] [type=csv,txt]", "Read WNI file/dir", nullptr, wni_r);
+	ADD_TOOL("wni_gen", "compatibility", " [input] [output] [canon=false]", "Gen WNI file", nullptr, wni_gen);
 }

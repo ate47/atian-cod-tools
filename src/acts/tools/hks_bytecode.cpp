@@ -227,4 +227,4 @@ namespace {
 	}
 }
 
-ADD_TOOL("hks", " [file]", "Lua Havok Script tests", nullptr, hks_bytecode);
+ADD_TOOL("hks", "lua", " [file]", "Lua Havok Script tests", nullptr, hks_bytecode);

@@ -1554,11 +1554,11 @@ namespace {
     }
 
 }
-ADD_TOOL("dpcw", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOpsColdWar.exe", pooltool);
-ADD_TOOL("wpscw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
-ADD_TOOL("dpncw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
-ADD_TOOL("dfuncscw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
-ADD_TOOL("dcfuncscw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
-ADD_TOOL("dbgcw", " [inst]", "dbg (cw)", L"BlackOpsColdWar.exe", dbgcw);
-ADD_TOOL("injectcw", " (script) (target) (replace)", "inject script (cw)", L"BlackOpsColdWar.exe", injectcw);
-ADD_TOOL("dbgpcw", "", "dump bg pool (cw)", L"BlackOpsColdWar.exe", dbgp);
+ADD_TOOL("dpcw", "cw", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOpsColdWar.exe", pooltool);
+ADD_TOOL("wpscw", "cw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
+ADD_TOOL("dpncw", "cw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
+ADD_TOOL("dfuncscw", "cw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
+ADD_TOOL("dcfuncscw", "cw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
+ADD_TOOL("dbgcw", "cw", " [inst]", "dbg (cw)", L"BlackOpsColdWar.exe", dbgcw);
+ADD_TOOL("injectcw", "cw", " (script) (target) (replace)", "inject script (cw)", L"BlackOpsColdWar.exe", injectcw);
+ADD_TOOL("dbgpcw", "cw", "", "dump bg pool (cw)", L"BlackOpsColdWar.exe", dbgp);

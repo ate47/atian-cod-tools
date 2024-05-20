@@ -352,10 +352,10 @@ namespace {
 
 #ifndef CI_BUILD
 
-ADD_TOOL("fftest", " [ff]", "test fastfile", nullptr, fftest);
-ADD_TOOL("casctest", " [path]", "test casc", nullptr, casctest);
-ADD_TOOL("h32ck", " [path]", "hash checksum", nullptr, h32ck);
-ADD_TOOL("daes", "", "dump AES keys", L"BlackOps4.exe", ffdaes);
-ADD_TOOL("daes_local", "", "dump AES acts keys", nullptr, daes_local);
+ADD_TOOL("fftest", "fastfile", " [ff]", "test fastfile", nullptr, fftest);
+ADD_TOOL("casctest", "fastfile", " [path]", "test casc", nullptr, casctest);
+ADD_TOOL("h32ck", "fastfile", " [path]", "hash checksum", nullptr, h32ck);
+ADD_TOOL("daes", "bo4", "", "dump AES keys", L"BlackOps4.exe", ffdaes);
+ADD_TOOL("daes_local", "bo4", "", "dump AES acts keys", nullptr, daes_local);
 
 #endif

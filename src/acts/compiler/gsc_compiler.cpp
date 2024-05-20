@@ -4332,5 +4332,5 @@ namespace acts::compiler {
         return tool::OK;
     }
 
-    ADD_TOOL("gscc", " --help", "gsc compiler (Alpha)", nullptr, compiler);
+    ADD_TOOL("gscc", "gsc", " --help", "gsc compiler (Alpha)", nullptr, compiler);
 }

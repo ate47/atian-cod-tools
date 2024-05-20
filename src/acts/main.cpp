@@ -162,8 +162,8 @@ namespace {
 	void PrintACTSHelp(const char* argv0) {
 		LOG_INFO("Usage: {} (OPTIONS) [TOOL] (TOOL ARGS)", argv0);
 		LOG_INFO("General tools:");
-		LOG_INFO("- list : the tools list");
-		LOG_INFO("- search (query) : search for a tool");
+		LOG_INFO("- list (category) : list the tools");
+		LOG_INFO("- search (query)  : search for a tool");
 		LOG_INFO("");
 		LOG_INFO("Options:");
 		LOG_INFO(" -? --help -h       : Help");

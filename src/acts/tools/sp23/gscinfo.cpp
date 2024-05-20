@@ -703,4 +703,4 @@ namespace {
 }
 
 // use gscinfo for jup
-//ADD_TOOL("gscinfo23", " [file]", "gsc info 23", nullptr, gscinfo);
+//ADD_TOOL("gscinfo23", "mwiii", " [file]", "gsc info 23", nullptr, gscinfo);

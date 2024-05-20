@@ -2069,6 +2069,233 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         }
 
     }
+    if (ShouldHandle(ASSET_TYPE_HIERARCHICAL_TASK_NETWORK)) {
+        size_t readFile = 0;
+        struct __declspec(align(8)) HierarchicalTaskNetwork {
+            XHash name;
+            uintptr_t htnNodes; // HierarchicalTaskNetworkNode*
+            uint32_t numNodes;
+        };
+        enum HierarchicalTaskNetworkValueType_t : uint32_t {
+            HTN_BOOL_TYPE = 0x0,
+            HTN_FLOAT_TYPE = 0x1,
+            HTN_INT_TYPE = 0x2,
+            HTN_HASH_TYPE = 0x3,
+            HTN_DATA_TYPE_COUNT = 0x4,
+            HTN_INVALID_DATA_TYPE = 0x4,
+        };
+        enum HierarchicalTaskNetworkNodeType_t : uint32_t {
+            HTN_ACTION_TYPE = 0x0,
+            HTN_GOTO_TYPE = 0x1,
+            HTN_PLANNER_TYPE = 0x2,
+            HTN_POSTCONDITION_TYPE = 0x3,
+            HTN_PRECONDITION_TYPE = 0x4,
+            HTN_SELECTOR_TYPE = 0x5,
+            HTN_SEQUENCE_TYPE = 0x6,
+            HTN_TYPE_COUNT = 0x7,
+            HTN_INVALID_TYPE = 0x7,
+        };
+
+        static const char* hierarchicalTaskNetworkValueTypeNames[]{
+            "bool",
+            "float",
+            "int",
+            "hash"
+        };
+
+        static const char* hierarchicalTaskNetworkNodeTypeNames[]{
+            "action",
+            "goto",
+            "planner",
+            "postcondition",
+            "precondition",
+            "selector",
+            "sequence"
+        };
+
+        struct __declspec(align(8)) HierarchicalTaskNetworkNode {
+            XHash name;
+            HierarchicalTaskNetworkNodeType_t type;
+            uint32_t index;
+            uintptr_t childNodeIndexes; // uint32_t*
+            uint32_t numChildrenNodes;
+            uintptr_t constants; // HierarchicalTaskNetworkNodeConstant*
+            uint32_t numConstants;
+        };
+        union HierarchicalTaskNetworkNodeConstantUnion {
+            bool boolValue;
+            float floatValue;
+            int32_t intValue;
+            ScrString_t stringValue;
+            XHash hash;
+        };
+
+        struct HierarchicalTaskNetworkNodeConstant {
+            XHash key;
+            HierarchicalTaskNetworkValueType_t type;
+            HierarchicalTaskNetworkNodeConstantUnion value;
+        };
+
+        auto [pool, ok] = proc.ReadMemoryArray<HierarchicalTaskNetwork>(entry.pool, entry.itemAllocCount);
+
+        if (!ok) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        char dumpbuff[MAX_PATH + 10];
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            auto& p = pool[i];
+
+            const char* n = hashutils::ExtractPtr(p.name.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/tables/hierarchicaltasknetwork/%s", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << p.name.name << std::dec;
+                sprintf_s(dumpbuff, "%s/tables/hierarchicaltasknetwork/file_%llx.ai_htn", opt.m_output, p.name.name);
+            }
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::cout << "->" << file;
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open output file\n";
+                break;
+            }
+
+            out
+                << "{\n"
+                << "    \"name\": \"" << hashutils::ExtractTmp("hash", p.name.name) << std::flush << "\",\n"
+                << "    \"nodes\": ["
+                ;
+
+            if (p.numNodes) {
+                auto [htnNodes, ok2] = proc.ReadMemoryArray<HierarchicalTaskNetworkNode>(p.htnNodes, p.numNodes);
+
+                if (!ok2) {
+                    std::cerr << "Can't read htn nodes\n";
+                    continue;
+                }
+
+                for (size_t j = 0; j < p.numNodes; j++) {
+                    HierarchicalTaskNetworkNode& htnNode{ htnNodes[j] };
+
+                    if (j) {
+                        out << ",";
+                    }
+                    out
+                        << "\n"
+                        << "        {\n"
+                        << "            \"id\": " << std::dec << j << ",\n"
+                        << "            \"name\": \"#" << hashutils::ExtractTmp("hash", htnNode.name.name) << std::flush << "\",\n"
+                        << "            \"index\": " << std::dec << htnNode.index << ",\n"
+                        << "            \"type\": \"" << (htnNode.type >= HTN_TYPE_COUNT ? "<invalid>" : hierarchicalTaskNetworkNodeTypeNames[htnNode.type]) << "\",\n"
+                        << "            \"childindexes\": ["
+                        ;
+
+                    if (htnNode.numChildrenNodes) {
+                        auto [childNodeIndexes, ok3] = proc.ReadMemoryArray<uint32_t>(htnNode.childNodeIndexes, htnNode.numChildrenNodes);
+
+                        if (!ok3) {
+                            std::cerr << "Can't read childNodeIndexes\n";
+                            continue;
+                        }
+                        for (size_t k = 0; k < htnNode.numChildrenNodes; k++) {
+                            if (k) out << ", ";
+                            out << std::dec << childNodeIndexes[k];
+                        }
+                    }
+                    out << "],\n"
+                        << "            \"constants\": {"
+                        ;
+
+                    if (htnNode.numConstants) {
+                        auto [constants, ok3] = proc.ReadMemoryArray<HierarchicalTaskNetworkNodeConstant>(htnNode.constants, htnNode.numConstants);
+
+                        if (!ok3) {
+                            std::cerr << "Can't read childNodeIndexes\n";
+                            continue;
+                        }
+                        for (size_t k = 0; k < htnNode.numConstants; k++) {
+                            HierarchicalTaskNetworkNodeConstant& constant{ constants[k] };
+
+                            if (k) out << ", ";
+
+                            out
+                                << "\n"
+                                << "                \"#" << hashutils::ExtractTmp("hash", constant.key.name) << "\": {\n"
+                                << "                    \"type\": \"" << (constant.type < HTN_DATA_TYPE_COUNT ? hierarchicalTaskNetworkValueTypeNames[constant.type] : "undefined") << "\",\n"
+                                << "                    \"value\": "
+                                ;
+
+                            switch (constant.type) {
+                            case HTN_BOOL_TYPE:
+                                out << std::dec << (constant.value.boolValue ? "true" : "false");
+                                break;
+                            case HTN_FLOAT_TYPE:
+                                out << constant.value.floatValue;
+                                break;
+                            case HTN_INT_TYPE:
+                                out << std::dec << constant.value.intValue;
+                                break;
+                            case HTN_HASH_TYPE:
+                                out << "\"#" << hashutils::ExtractTmp("hash", constant.value.hash.name) << "\"";
+                                break;
+                            default:
+                                out << "null";
+                            }
+
+                            out
+                                << "\n"
+                                << "                }"
+                                ;
+                        }
+
+                        out
+                            << "\n"
+                            << "            }\n"
+                            ;
+                    }
+                    else {
+                        out << "}\n";
+                    }
+                    out
+                        << "        }"
+                        ;
+                }
+
+                out
+                    << "\n"
+                    << "    ]\n"
+                    ;
+            }
+            else {
+                out << "]\n";
+            }
+            out << "}";
+
+            out.close();
+
+            std::cout << "\n";
+
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
     if (ShouldHandle(ASSET_TYPE_MAPTABLE)) {
         size_t readFile = 0;
 
@@ -6147,8 +6374,8 @@ int dbgp(Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
-ADD_TOOL("dp", " [pool]+", "dump pool", L"BlackOps4.exe", pooltool);
-ADD_TOOL("dpn", "", "dump pool names", L"BlackOps4.exe", pooltoolnames);
-ADD_TOOL("dbgcache", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
-ADD_TOOL("dbmtstrs", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
-ADD_TOOL("dbgp", "", "dump bg pool", L"BlackOps4.exe", dbgp);
+ADD_TOOL("dp", "bo4", " [pool]+", "dump pool", L"BlackOps4.exe", pooltool);
+ADD_TOOL("dpn", "bo4", "", "dump pool names", L"BlackOps4.exe", pooltoolnames);
+ADD_TOOL("dbgcache", "bo4", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
+ADD_TOOL("dbmtstrs", "bo4", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
+ADD_TOOL("dbgp", "bo4", "", "dump bg pool", L"BlackOps4.exe", dbgp);

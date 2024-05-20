@@ -540,6 +540,6 @@ namespace {
 	}
 }
 
-ADD_TOOL("ps4_t8cee", " [ip:port]", "Enable EEs in custom mutation/offline/casual (BO4 / PS4 126)", nullptr, ps4t8cee);
-ADD_TOOL("ps4_inject", " [ip:port] [script] [target] [replaced]", "Inject script (BO4 / PS4 126)", nullptr, ps4inject);
-ADD_TOOL("ps4_injectcw100", " [ip:port] [script] [target] [replaced]", "Inject script (CW / PS4 100)", nullptr, ps4injectcw100);
+ADD_TOOL("ps4_t8cee", "bo4", " [ip:port]", "Enable EEs in custom mutation/offline/casual (BO4 / PS4 126)", nullptr, ps4t8cee);
+ADD_TOOL("ps4_inject", "bo4", " [ip:port] [script] [target] [replaced]", "Inject script (BO4 / PS4 126)", nullptr, ps4inject);
+ADD_TOOL("ps4_injectcw100", "cw", " [ip:port] [script] [target] [replaced]", "Inject script (CW / PS4 100)", nullptr, ps4injectcw100);

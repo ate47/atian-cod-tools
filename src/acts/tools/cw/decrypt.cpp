@@ -88,6 +88,6 @@ namespace {
 }
 #ifndef CI_BUILD
 
-ADD_TOOL("cwdecrypt", "", "decrypt tests", nullptr, cwdecrypt);
+ADD_TOOL("cwdecrypt", "cw", "", "decrypt tests", nullptr, cwdecrypt);
 
 #endif

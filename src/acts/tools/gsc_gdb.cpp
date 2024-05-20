@@ -76,5 +76,5 @@ namespace tool::gsc::gdb {
 	}
 
 
-	ADD_TOOL("gscgdbinfo", "", "reading GSC GDB file", nullptr, gscgdbinfo);
+	ADD_TOOL("gscgdbinfo", "gsc", "", "reading GSC GDB file", nullptr, gscgdbinfo);
 }

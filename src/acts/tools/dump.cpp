@@ -887,12 +887,12 @@ namespace {
     }
 }
 
-ADD_TOOL("dps", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
-ADD_TOOL("ddv", " [output=dvars.csv]", "dump dvars", L"BlackOps4.exe", dumpdvars);
-ADD_TOOL("wps", " [output=scriptparsetree]", "write pooled scripts", L"BlackOps4.exe", writepoolscripts);
-ADD_TOOL("dls", " [output=linked.csv]", "dump linked scripts", L"BlackOps4.exe", linkedscripts);
-ADD_TOOL("dfunc", " [output=funcs.csv]", "dump functions", L"BlackOps4.exe", dumpfunctions);
-ADD_TOOL("devents", " [output=events.csv]", "dump registered instance events", L"BlackOps4.exe", events);
-ADD_TOOL("dcfunc", " [output=cfuncs.csv]", "dump cmd functions", L"BlackOps4.exe", dumpcmdfunctions);
-ADD_TOOL("dscfunc", " [output=csfuncs.csv]", "dump sv cmd functions", L"BlackOps4.exe", dumpsvcmdfunctions);
-ADD_TOOL("dfields", " [output=dfields.csv]", "dump class fields", L"BlackOps4.exe", dfields);
+ADD_TOOL("dps", "bo4", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
+ADD_TOOL("ddv", "bo4", " [output=dvars.csv]", "dump dvars", L"BlackOps4.exe", dumpdvars);
+ADD_TOOL("wps", "bo4", " [output=scriptparsetree]", "write pooled scripts", L"BlackOps4.exe", writepoolscripts);
+ADD_TOOL("dls", "bo4", " [output=linked.csv]", "dump linked scripts", L"BlackOps4.exe", linkedscripts);
+ADD_TOOL("dfunc", "bo4", " [output=funcs.csv]", "dump functions", L"BlackOps4.exe", dumpfunctions);
+ADD_TOOL("devents", "bo4", " [output=events.csv]", "dump registered instance events", L"BlackOps4.exe", events);
+ADD_TOOL("dcfunc", "bo4", " [output=cfuncs.csv]", "dump cmd functions", L"BlackOps4.exe", dumpcmdfunctions);
+ADD_TOOL("dscfunc", "bo4", " [output=csfuncs.csv]", "dump sv cmd functions", L"BlackOps4.exe", dumpsvcmdfunctions);
+ADD_TOOL("dfields", "bo4", " [output=dfields.csv]", "dump class fields", L"BlackOps4.exe", dfields);
