@@ -71,6 +71,7 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD Reason, LPVOID lpVoid) {
 
 
 #else
+#include <includes_shared.hpp>
 
 BOOL WINAPI DllMain(HMODULE hModule, DWORD Reason, LPVOID lpVoid) {
 	return TRUE; // nothing
