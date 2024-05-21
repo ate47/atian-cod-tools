@@ -236,12 +236,12 @@ public:
 	 * Read c string into a temp buffer
 	 * @return string or an error message
 	 */
-	const char* ReadStringTmp(uintptr_t src) const;
+	const char* ReadStringTmp(uintptr_t src, const char* defaultVal = "<invalid>") const;
 	/*
 	 * Read c w string into a temp buffer
 	 * @return string or an error message
 	 */
-	const wchar_t* ReadStringTmpW(uintptr_t src) const;
+	const wchar_t* ReadStringTmpW(uintptr_t src, const wchar_t* defaultVal = L"<invalid>") const;
 	/*
 	 * Read c string from a source to a destination
 	 * @param dest Local destination

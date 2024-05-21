@@ -255,6 +255,8 @@ namespace tool::gsc::opcode {
 		OPCODE_GetSignedByte,
 		OPCODE_GetShort,
 		OPCODE_GetHash32,
+		OPCODE_NextArrayKey,
+		OPCODE_GetAnimGRef,
 
 
 		OPCODE_COUNT,

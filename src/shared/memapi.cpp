@@ -209,27 +209,27 @@ bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 	return false;
 }
 
-const char* Process::ReadStringTmp(uintptr_t src) const {
+const char* Process::ReadStringTmp(uintptr_t src, const char* defaultVal) const {
 	static char buffer[10][0x200];
 	static size_t bufferId{};
 
 	auto& buff = buffer[bufferId = (bufferId + 1) % ARRAYSIZE(buffer)];
 
 	if (ReadString(buff, src, ARRAYSIZE(buff)) < 0) {
-		return "<invalid>";
+		return defaultVal;
 	}
 
 	return buff;
 }
 
-const wchar_t* Process::ReadStringTmpW(uintptr_t src) const {
+const wchar_t* Process::ReadStringTmpW(uintptr_t src, const wchar_t* defaultVal) const {
 	static wchar_t buffer[10][0x200];
 	static size_t bufferId{};
 
 	auto& buff = buffer[bufferId = (bufferId + 1) % ARRAYSIZE(buffer)];
 
 	if (ReadWString(buff, src, ARRAYSIZE(buff)) < 0) {
-		return L"<invalid>";
+		return defaultVal;
 	}
 
 	return buff;

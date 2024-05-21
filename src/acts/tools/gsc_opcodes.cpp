@@ -26,6 +26,9 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("t9", name) || !_strcmpi("cw", name) || !_strcmpi("coldwar", name) || !_strcmpi("38", name)) {
 			return VM_T9;
 		}
+		if (!_strcmpi("t7", name) || !_strcmpi("bo4", name) || !_strcmpi("blackops3", name) || !_strcmpi("1c", name)) {
+			return VM_T7;
+		}
 		if (!_strcmpi("jup", name) || !_strcmpi("s4", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
 			return VM_MW23;
 		}
@@ -2260,37 +2263,53 @@ public:
 };
 
 class OPCodeInfoSetNextArrayKeyCached : public OPCodeInfo {
+	bool m_set;
 public:
-	OPCodeInfoSetNextArrayKeyCached(OPCode id, const char* name) : OPCodeInfo(id, name) {
+	OPCodeInfoSetNextArrayKeyCached(OPCode id, const char* name, bool set = true) : OPCodeInfo(id, name), m_set(set) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		uint64_t name;
-		int lvar = (int)*(context.m_bcl++);
+		uint64_t name{};
+		if (m_set) {
+			int lvar = (int)*(context.m_bcl++);
 
-		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			if (lvar >= context.m_localvars.size()) {
+				name = hashutils::Hash32("<error>");
+				out << "bad lvar stack: 0x" << std::hex << (int)lvar;
+			}
+			else {
+				name = context.m_localvars[lvar].name;
+				context.m_localvars_ref[name]++;
+				out << hashutils::ExtractTmp("var", name);
+			}
 		}
-		else {
-			name = context.m_localvars[lvar].name;
-			context.m_localvars_ref[name]++;
-			out << hashutils::ExtractTmp("var", name) << std::endl;
-		}
+
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* arrayNode = context.PopASMCNode();
 			ASMContextNode* thingNode = context.PopASMCNode();
+			if (m_set) {
+				ASMContextNodeMultOp* node = new ASMContextNodeMultOp("nextarray", false, TYPE_ARRAY_NEXTKEY);
 
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("nextarray", false, TYPE_ARRAY_NEXTKEY);
+				node->AddParam(arrayNode);
+				node->AddParam(thingNode);
+				node->AddParam(new ASMContextNodeIdentifier(name));
 
-			node->AddParam(arrayNode);
-			node->AddParam(thingNode);
-			node->AddParam(new ASMContextNodeIdentifier(name));
+				context.PushASMCNode(node);
+				context.CompleteStatement();
+			}
+			else {
+				auto* node = new ASMContextNodeCallFuncPtr(FUNCTION_CALL, 0, TYPE_ARRAY_NEXTKEYPUSH);
 
-			context.PushASMCNode(node);
-			context.CompleteStatement();
+				node->AddParam(new ASMContextNodeFuncRef("", hash::Hash32("nextarray"), 0));
+				node->AddParam(arrayNode);
+				node->AddParam(thingNode);
+
+				context.PushASMCNode(node);
+			}
+
 		}
 
 		return 0;
@@ -4670,6 +4689,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoSetLocalVariableCached(OPCODE_SetLocalVariableCached, "SetLocalVariableCached", false));
 		RegisterOpCodeHandler(new OPCodeInfoFirstArrayKey(OPCODE_FirstArrayKey, "FirstArrayKey", true));
 		RegisterOpCodeHandler(new OPCodeInfoFirstArrayKey(OPCODE_FirstArrayKeyCached, "FirstArrayKeyCached", false));
+		RegisterOpCodeHandler(new OPCodeInfoSetNextArrayKeyCached(OPCODE_NextArrayKey, "NextArrayKey", false));
 		RegisterOpCodeHandler(new OPCodeInfoSetNextArrayKeyCached(OPCODE_SetNextArrayKeyCached, "SetNextArrayKeyCached"));
 		RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableRefCached(OPCODE_EvalLocalVariableRefCached, "EvalLocalVariableRefCached"));
 		RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableDefined(OPCODE_EvalLocalVariableDefined, "EvalLocalVariableDefined"));
@@ -4843,6 +4863,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGameRef, "GetGameRef", GGGT_FIELD, "game"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnim, "GetAnim", GGGT_PUSH, "anim"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnimRef, "GetAnimRef", GGGT_FIELD, "anim"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetAnimGRef, "GetAnimGRef", GGGT_GLOBAL, "anim"));
 		RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_IW_EvalArrayCachedField, "EvalArrayCachedField", false));
 		RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "ClearFieldVariableRef"));
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "GetDVarHash", "@"));
@@ -5783,7 +5804,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_vm == VM_MW23 ? 2 : ctx.m_vm == VM_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_vm == VM_MW23 ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -5831,7 +5852,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 			itemValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
 		}
-		else if (ctx.m_vm != VM_T8) {
+		else if (ctx.m_vm > VM_T8) {
 			/*
 				var_d9f19f82 = iteratorkey(var_e4aec0cf);
 				var_8487602c = iteratorval(var_e4aec0cf);
@@ -5876,8 +5897,11 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 				nextarray(var_f15d3f7b, var_7cbeb6de)
 			*/
 			auto& nextArrayStmt = m_statements[index];
-
-			if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY) {
+			
+			if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY 
+				&& !(nextArrayStmt.node->m_type == TYPE_SET 
+					&& static_cast<ASMContextNodeLeftRightOperator*>(nextArrayStmt.node)->m_right->m_type == TYPE_ARRAY_NEXTKEYPUSH)
+				) {
 				index += moveDelta;
 				continue;
 			}
@@ -5984,7 +6008,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		if (ctx.m_vm == VM_MW23) {
 			keyRef = max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
-		else if (ctx.m_vm == VM_T8) {
+		else if (ctx.m_vm <= VM_T8) {
 			keyRef = max(keyRef - 5, 0);
 		}
 		else {

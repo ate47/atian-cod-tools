@@ -35,16 +35,20 @@ namespace {
 		for (size_t i = 0; i < pool->itemAllocCount; i++) {
 			bo3::pool::T7ScriptParseTree& entry{ entries[i] };
 
-			if (!proc.ReadMemory<char>(entry.name)) {
+			const char* name{ proc.ReadStringTmp(entry.name, nullptr) };
+
+			if (!name) {
 				continue;
 			}
 
-			const char* name{ proc.ReadStringTmp(entry.name) };
-			
 			auto [buffer, okb] = proc.ReadMemoryArray<byte>(entry.script, entry.scriptSize);
 
 			if (!okb) {
 				LOG_ERROR("Can't read script {}", name);
+				continue;
+			}
+			if (*reinterpret_cast<uint64_t*>(&buffer[0]) != 0x1c000a0d43534780) {
+				LOG_ERROR("Can't read script {}: invalid magic", name);
 				continue;
 			}
 

@@ -510,7 +510,7 @@ namespace tool::gsc::opcode {
 		ASMContextNodeCallFuncPtrType m_ftype;
 		byte m_flags;
 		std::vector<ASMContextNode*> m_operands{};
-		ASMContextNodeCallFuncPtr(ASMContextNodeCallFuncPtrType type, byte flags) : ASMContextNode(PRIORITY_ACCESS, TYPE_FUNC_CALL), m_ftype(type), m_flags(flags) {
+		ASMContextNodeCallFuncPtr(ASMContextNodeCallFuncPtrType type, byte flags, ASMContextNodeType nodeType = TYPE_FUNC_CALL) : ASMContextNode(PRIORITY_ACCESS, nodeType), m_ftype(type), m_flags(flags) {
 		}
 		~ASMContextNodeCallFuncPtr() {
 			for (auto& ref : m_operands) {
@@ -523,7 +523,7 @@ namespace tool::gsc::opcode {
 		}
 
 		ASMContextNode* Clone() const override {
-			auto* ref = new ASMContextNodeCallFuncPtr(m_ftype, m_flags);
+			auto* ref = new ASMContextNodeCallFuncPtr(m_ftype, m_flags, m_type);
 			ref->m_operands.reserve(m_operands.size());
 			for (const auto& op : m_operands) {
 				ref->m_operands.push_back(op->Clone());

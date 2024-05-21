@@ -180,6 +180,7 @@ namespace tool::gsc {
 
             TYPE_ARRAY_FIRSTKEY,
             TYPE_ARRAY_NEXTKEY,
+            TYPE_ARRAY_NEXTKEYPUSH,
             TYPE_ARRAY_NEXTKEY_IT,
             TYPE_ARRAY_NEXTVAL_IT,
             TYPE_ARRAY_NEXT_IT,

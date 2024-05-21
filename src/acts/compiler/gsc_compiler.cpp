@@ -976,12 +976,20 @@ namespace acts::compiler {
         void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) {
             const GscFile& f = FindFile(line);
         
+            size_t localLine;
 
-            if (charPositionInLine) {
-                LOG_LVL(lvl, "{}#{}:{} {}", f.filename.string(), (f.startLine < line ? (line - f.startLine) : f.sizeLine), charPositionInLine, msg);
+            if (line > f.startLine) {
+                localLine = line - f.startLine;
             }
             else {
-                LOG_LVL(lvl, "{}#{} {}", f.filename.string(), (f.startLine < line ? (line - f.startLine) : f.sizeLine), msg);
+                localLine = f.sizeLine;
+            }
+
+            if (charPositionInLine) {
+                LOG_LVL(lvl, "{}#{}:{} {}", f.filename.string(), localLine, charPositionInLine, msg);
+            }
+            else {
+                LOG_LVL(lvl, "{}#{} {}", f.filename.string(), localLine, msg);
             }
         }
         Token* GetToken(ParseTree* tree) {
@@ -4221,7 +4229,7 @@ namespace acts::compiler {
 
                 start = info.gscData.size();
                 startLine = lineGsc;
-
+                // GscFile
                 auto& dt = info.files.emplace_back(file, start, startLine, 0);
 
                 if (!utils::ReadFile(file, dt.buffer)) {
@@ -4239,6 +4247,7 @@ namespace acts::compiler {
                 }
 
                 dt.sizeLine = lineCount;
+                lineGsc = startLine + lineCount;
                 info.gscData = info.gscData + dt.buffer + "\n";
             }
 
