@@ -1,6 +1,6 @@
 - tools
-  - jup compiler extension
-  - fix some issues with decompiler
-  - new rosetta format (ros2)
-  - add file namespace and preprocessor options to compiler
-  - better compiler errors
+  - t7 decompiler
+  - fix compiler issue with hex integers
+  - category for better search/list
+  - wip adl compiler
+  - iw tag hash
