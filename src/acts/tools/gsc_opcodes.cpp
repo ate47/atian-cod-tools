@@ -1029,17 +1029,29 @@ public:
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
 			context.Aligned<Type>();
 		}
+		auto animTree{ objctx.m_animTreeLocations.find((uint32_t)(context.m_bcl - context.m_gscReader.file)) };
+
 		auto& bytecode = context.m_bcl;
+		if (animTree != objctx.m_animTreeLocations.end()) {
+			const char* str = objctx.GetStringValue(animTree->second);
 
-		WriteType intValue = *(Type*)bytecode;
+			if (context.m_runDecompiler) {
+				context.PushASMCNode(new ASMContextNodeString(str, "#", true));
+			}
 
-		bytecode += sizeof(Type);
+			out << "anim tree #" << str << std::endl;
+		}
+		else {
+			WriteType intValue = *(Type*)bytecode;
 
-		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, m_valtype, false, true, true));
+
+			if (context.m_runDecompiler) {
+				context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, m_valtype, false, true, true));
+			}
+			out << std::dec << intValue << std::endl;
 		}
 
-		out << std::dec << intValue << std::endl;
+		bytecode += sizeof(Type);
 
 		return 0;
 	}
@@ -1618,24 +1630,31 @@ public:
 };
 
 class OPCodeInfoSetWaittillVariableFieldCached : public OPCodeInfo {
+	const char* m_valueName;
 public:
-	OPCodeInfoSetWaittillVariableFieldCached(OPCode id, const char* name) : OPCodeInfo(id, name) {
+	OPCodeInfoSetWaittillVariableFieldCached(OPCode id, const char* name, const char* valueName = nullptr) : OPCodeInfo(id, name), m_valueName(valueName) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = *(context.m_bcl++);
-
 		uint64_t name;
-		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
+		if (!m_valueName) {
+			int lvar = *(context.m_bcl++);
+
+			if (lvar >= context.m_localvars.size()) {
+				name = hashutils::Hash32("<error>");
+				out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
+			}
+			else {
+				name = context.m_localvars[lvar].name;
+				context.m_localvars_ref[name]++;
+			}
+
+			out << hashutils::ExtractTmp("var", name);
 		}
 		else {
-			name = context.m_localvars[lvar].name;
-			context.m_localvars_ref[name]++;
+			name = hashutils::Hash32("_");
 		}
-
-		out << hashutils::ExtractTmp("var", name) << std::endl;
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* prev = context.PopASMCNode();
@@ -2814,8 +2833,9 @@ public:
 };
 
 class OPCodeInfoProfileNamed : public OPCodeInfo {
+	bool m_push;
 public:
-	OPCodeInfoProfileNamed(OPCode id) : OPCodeInfo(id, "ProfileNamedStart") {
+	OPCodeInfoProfileNamed(OPCode id, bool push) : OPCodeInfo(id, "ProfileNamedStart"), m_push(push) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
@@ -2834,7 +2854,9 @@ public:
 			node->m_priority = PRIORITY_INST;
 			node->m_type = TYPE_STATEMENT;
 			context.PushASMCNode(node);
-			context.CompleteStatement();
+			if (!m_push) {
+				context.CompleteStatement();
+			}
 		}
 
 		out << "#\"" << hashutils::ExtractTmp("hash", hash) << "\" (#" << std::hex << hash << ")" << std::endl;
@@ -3337,7 +3359,7 @@ public:
 				flags |= CHILDTHREAD_CALL;
 			}
 
-			if (!flags && caller->m_type == TYPE_NEW && function == hashutils::Hash32("__constructor")) {
+			if (!flags && caller->m_type == TYPE_NEW && (function == hashutils::Hash32("__constructor") || function == hashutils::HashT7("__constructor"))) {
 				// calling new constructor
 				auto* newNode = static_cast<ASMContextNodeNew*>(caller);
 
@@ -3503,8 +3525,9 @@ public:
 };
 
 class OPCodeInfoGetString : public OPCodeInfo {
+	bool m_istr;
 public:
-	OPCodeInfoGetString(OPCode id, const char* name) : OPCodeInfo(id, name) {}
+	OPCodeInfoGetString(OPCode id, const char* name, bool istr) : OPCodeInfo(id, name), m_istr(istr) {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
@@ -3521,14 +3544,19 @@ public:
 		if (str) {
 			PrintFormattedString(out << "\"", str) << "\"\n";
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeString(str));
+				if (m_istr) {
+					context.PushASMCNode(new ASMContextNodeString(str, "%", true));
+				}
+				else {
+					context.PushASMCNode(new ASMContextNodeString(str));
+				}
 			}
 		}
 		else {
 			// probably only dev blocks
 			out << "bad str stack: 0x" << std::hex << ref << "\n";
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>"));
+				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>", m_istr ? "%" : nullptr));
 			}
 		}
 
@@ -3553,7 +3581,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
-			context.Aligned<int32_t>();
+			context.Aligned<int64_t>();
 		}
 		auto& base = context.m_bcl;
 
@@ -3777,17 +3805,35 @@ public:
 		}
 
 		for (size_t c = 1; c <= cases; c++) {
-			auto& baseCaseValue = context.Aligned<int64_t>();
+			uint64_t caseValue;
+			int64_t caseDelta;
+			byte* endBase;
+			if (context.m_vm >= VM_T8) {
+				auto& baseCaseValue = context.Aligned<int64_t>();
 
-			context.WritePadding(out);
+				context.WritePadding(out);
 
-			uint64_t caseValue = *(uint64_t*)baseCaseValue;
-			baseCaseValue += 8;
-			auto& baseCaseDelta = context.Aligned<int64_t>();
-			int64_t caseDelta = *(int64_t*)baseCaseDelta;
-			baseCaseDelta += 8;
+				caseValue = *(uint64_t*)baseCaseValue;
+				baseCaseValue += 8;
+				auto& baseCaseDelta = context.Aligned<int64_t>();
+				caseDelta = *(int64_t*)baseCaseDelta;
+				baseCaseDelta += 8;
+				endBase = baseCaseDelta;
+			}
+			else {
+				auto& baseCaseValue = context.Aligned<int32_t>();
 
-			auto caseRLoc = context.PushLocation(&baseCaseDelta[caseDelta]).rloc;
+				context.WritePadding(out);
+
+				caseValue = *(uint32_t*)baseCaseValue;
+				baseCaseValue += 4;
+				auto& baseCaseDelta = context.Aligned<int32_t>();
+				caseDelta = *(int32_t*)baseCaseDelta;
+				baseCaseDelta += 4;
+				endBase = baseCaseDelta;
+			}
+
+			auto caseRLoc = context.PushLocation(&endBase[caseDelta]).rloc;
 
 			if (c == cases && (!caseValue || caseValue == 0xdefdefdefdefdef0)) {
 				out << "default";
@@ -3821,7 +3867,7 @@ public:
 				}
 
 				if (!caseValue) {
-					baseCaseDelta += caseDelta;
+					context.m_bcl += caseDelta;
 				}
 			}
 			else {
@@ -4073,9 +4119,16 @@ public:
 
 		baseCount += 4;
 
-		auto& ptrBase = context.Aligned<int64_t>();
+		if (context.m_vm >= VM_T8) {
+			auto& ptrBase = context.Aligned<int64_t>();
 
-		ptrBase += 16 * count;
+			ptrBase += 16 * count;
+		}
+		else {
+			auto& ptrBase = context.Aligned<int32_t>();
+
+			ptrBase += 8 * count;
+		}
 
 		auto rloc = context.FunctionRelativeLocation();
 
@@ -4630,7 +4683,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		// all op without params
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStart, "ProfileStart", "profilestart()"));
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStop, "ProfileStop", "profilestop()"));
-		RegisterOpCodeHandler(new OPCodeInfoProfileNamed(OPCODE_ProfileNamedStart));
+		RegisterOpCodeHandler(new OPCodeInfoProfileNamed(OPCODE_ProfileNamedStart, false));
+		RegisterOpCodeHandler(new OPCodeInfoProfileNamed(OPCODE_T7_ProfileStart, true));
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileNamedEnd, "ProfileNamedEnd", "profileNamedStop()"));
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown10e, "Unknown10e", "operator_Unknown10e()"));
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown126, "Unknown126", "operator_Unknown126()"));
@@ -4768,6 +4822,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_WaitTillFrameEnd, "WaitTillFrameEnd", "waittillframeend()"));
 		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait, "Wait", "wait"));
+		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait2, "Wait2", "wait"));
 		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_WaitFrame, "WaitFrame", "waitframe"));
 		RegisterOpCodeHandler(new OPCodeInfoNotify(OPCODE_Notify, "Notify"));
 		RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined", false, false, false, true));
@@ -4810,7 +4865,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		// linked ref
 		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetResolveFunction, "GetResolveFunction", 2));
 		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetFunction, "GetFunction", 4));
-		RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_GetString, "GetString"));
+		RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_GetString, "GetString", false));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetGlobal, "GetGlobal", GGGT_PUSH, nullptr));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetGlobalObject, "GetGlobalObject", GGGT_GLOBAL, nullptr));
 
@@ -4856,6 +4911,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinMethod, "GetBuiltinMethod", 2));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleEndon, "Endon", "endon", false));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true));
+		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill2, "WaitTill2", "waittill", true));
 		RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true, true));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "GetLevel", GGGT_PUSH, "level"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelGRef, "GetLevelGRef", GGGT_GLOBAL, "level"));
@@ -4863,6 +4919,10 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGameRef, "GetGameRef", GGGT_FIELD, "game"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnim, "GetAnim", GGGT_PUSH, "anim"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnimRef, "GetAnimRef", GGGT_FIELD, "anim"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetWorld, "GetWorld", GGGT_PUSH, "world"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetWorldObject, "GetWorldObject", GGGT_GLOBAL, "world"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetClasses, "OPCODE_GetClasses", GGGT_PUSH, "classes"));
+		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetClassesObject, "GetClassesObject", GGGT_GLOBAL, "classes"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetAnimGRef, "GetAnimGRef", GGGT_GLOBAL, "anim"));
 		RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_IW_EvalArrayCachedField, "EvalArrayCachedField", false));
 		RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "ClearFieldVariableRef"));
@@ -4871,11 +4931,13 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetUnkb, "GetUnkB", "t", false));
 		RegisterOpCodeHandler(new OPCodeInfoIWSwitch());
 		RegisterOpCodeHandler(new OPCodeInfoIWEndSwitch());
-		RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_IW_GetIString, "GetIString"));
+		RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_IW_GetIString, "GetIString", true));
 		RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimation, "GetAnimation", true));
 		RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimationTree, "GetAnimationTree", false));
 		RegisterOpCodeHandler(new OPCodeInfoAddToStruct(OPCODE_IW_AddToStruct, "AddToStruct", false));
 		RegisterOpCodeHandler(new OPCodeInfoSetWaittillVariableFieldCached(OPCODE_IW_SetWaittillVariableFieldCached, "SetWaittillVariableFieldCached"));
+		RegisterOpCodeHandler(new OPCodeInfoSetWaittillVariableFieldCached(OPCODE_IgnoreWaittillVariableFieldCached, "SafeDecTop", "_"));
+		
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_IW_WaitFrame, "WaitSingleFrame", "waitframe()"));
 		RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_IW_GetThread, "GetThread", "getthread()"));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2));
@@ -4883,6 +4945,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		
 		// T7
 		RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash32, "GetHash", "#", false));
+		
 
 		// T8compiler custom opcode
 		RegisterOpCodeHandler(new OPCodeInfoT8CGetLazyFunction());
@@ -6812,8 +6875,10 @@ namespace {
 			// remove 
 			constexpr uint64_t constr = hashutils::Hash32("__constructor");
 			constexpr uint64_t desstr = hashutils::Hash32("__destructor");
+			constexpr uint64_t constrt7 = hashutils::HashT7("__constructor");
+			constexpr uint64_t desstrt7 = hashutils::HashT7("__destructor");
 
-			if (ctx.m_exp.GetName() == constr) {
+			if (ctx.m_exp.GetName() == constr || ctx.m_exp.GetName() == constrt7) {
 				for (size_t i = 0; i < stmts.size();) {
 					auto& stmt = stmts[i++];
 
@@ -6821,7 +6886,8 @@ namespace {
 						auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(stmt.node);
 
 						if (fc->m_ftype == FUNCTION_CALL && !(fc->m_flags & SELF_CALL) && fc->m_operands[0]->m_type == TYPE_FUNC_REFNAME
-							&& dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == constr) {
+							&& (dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == constr
+								|| dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == constrt7)) {
 							i--;
 							stmts.erase(stmts.begin() + i);
 							continue;
@@ -6829,7 +6895,7 @@ namespace {
 					}
 				}
 			}
-			else if (ctx.m_exp.GetName() == desstr) {
+			else if (ctx.m_exp.GetName() == desstr || ctx.m_exp.GetName() == desstrt7) {
 				for (size_t i = 0; i < stmts.size();) {
 					auto& stmt = stmts[i++];
 
@@ -6837,7 +6903,8 @@ namespace {
 						auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(stmt.node);
 
 						if (fc->m_ftype == FUNCTION_CALL && !(fc->m_flags & SELF_CALL) && fc->m_operands[0]->m_type == TYPE_FUNC_REFNAME
-							&& dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == desstr) {
+							&& (dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == desstr
+								|| dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == desstrt7)) {
 							i--;
 							stmts.erase(stmts.begin() + i);
 							continue;

@@ -90,6 +90,7 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 	g_hashMap[Hash32("self")] = "self";
 	g_hashMap[Hash32("size")] = "size";
 	g_hashMap[Hash32("nextarray")] = "nextarray";
+	g_hashMap[Hash32("_")] = "_";
 	
 	// class special things
 	Add("__constructor", true, iw);

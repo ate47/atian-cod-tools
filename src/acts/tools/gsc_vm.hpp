@@ -1175,10 +1175,10 @@ public:
         return 0;
     };
     uint16_t GetAnimTreeDoubleCount() override {
-        return 0;
+        return (uint16_t)Ptr<T7GSCOBJ>()->animtree_count;
     };
     uint32_t GetAnimTreeDoubleOffset() override {
-        return 0;
+        return Ptr<T7GSCOBJ>()->animtree_offset;
     };
 
     void SetName(uint64_t name) override {
@@ -1229,8 +1229,12 @@ public:
     }
     void SetAnimTreeSingleCount(uint16_t val) override {}
     void SetAnimTreeSingleOffset(uint32_t val) override {}
-    void SetAnimTreeDoubleCount(uint16_t val) override {}
-    void SetAnimTreeDoubleOffset(uint32_t val) override {}
+    void SetAnimTreeDoubleCount(uint16_t val) override {
+        Ptr<T7GSCOBJ>()->animtree_count = (uint8_t) val;
+    }
+    void SetAnimTreeDoubleOffset(uint32_t val) override {
+        Ptr<T7GSCOBJ>()->animtree_offset = val;
+    }
     size_t GetImportSize() override {
         return sizeof(tool::gsc::T8GSCImport);
     }
@@ -1288,6 +1292,7 @@ public:
 
     byte RemapFlagsExport(byte flags) override {
         byte nflags{};
+        if (flags == 0x6) return T8GSCExportFlags::CLASS_VTABLE;
         if (flags & 1) nflags |= T8GSCExportFlags::LINKED;
         return nflags;
     }

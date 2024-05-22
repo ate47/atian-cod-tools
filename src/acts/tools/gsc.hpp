@@ -654,6 +654,8 @@ namespace tool::gsc {
         std::unordered_map<uint32_t, const char*> m_stringRefs{};
     public:
         std::vector<IW23GSCImport> m_linkedImports{};
+        // getnumber hack
+        std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};
@@ -941,6 +943,12 @@ namespace tool::gsc {
         uint32_t num_address;
         uint32_t address_str1;
         uint32_t address_str2;
+    };
+
+    struct T7GscAnimTree {
+        uint32_t name;
+        uint16_t num_tree_address;
+        uint16_t num_node_address;
     };
 
     struct T8GSCString {

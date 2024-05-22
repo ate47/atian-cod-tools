@@ -11,6 +11,8 @@ using namespace tool::gsc::opcode;
 
 constexpr uint32_t g_constructorName = hashutils::Hash32("__constructor");
 constexpr uint32_t g_destructorName = hashutils::Hash32("__destructor");
+constexpr uint32_t g_constructorNameT7 = hashutils::HashT7("__constructor");
+constexpr uint32_t g_destructorNameT7 = hashutils::HashT7("__destructor");
 
 GscInfoOption::GscInfoOption() {
     // set default formatter
@@ -510,6 +512,43 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         }
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
     }
+
+    if (GetAnimTreeDoubleOffset()) {
+        uintptr_t animt_location = reinterpret_cast<uintptr_t>(file) + GetAnimTreeDoubleOffset();
+        auto anims_count = (int)GetAnimTreeDoubleCount();
+        for (size_t i = 0; i < anims_count; i++) {
+            const auto* animt = reinterpret_cast<T7GscAnimTree*>(animt_location);
+
+            auto* s1 = Ptr<char>(animt->name);
+
+            hashutils::Add(s1, true, true);
+            uint32_t ref1 = ctx.AddStringValue(s1);
+
+            const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
+            for (size_t j = 0; j < animt->num_tree_address; j++) {
+                uint32_t rloc = *(vars++);
+                uint32_t* loc = Ptr<uint32_t>(rloc);
+                // use strings to link them
+                ctx.m_animTreeLocations[rloc] = ref1;
+                *loc = 666;
+            }
+            const uint64_t* vars2 = reinterpret_cast<const uint64_t*>(vars);
+            for (size_t j = 0; j < animt->num_node_address; j++) {
+                if (vars2[0] < fileSize) {
+                    const char* v = Ptr<const char>(vars2[0]);
+                    uint32_t ref2 = ctx.AddStringValue(v);
+
+                    uint32_t rloc = (uint32_t)vars2[1];
+                    uint32_t* loc = Ptr<uint32_t>(rloc);
+                    loc[0] = ref1;
+                    loc[1] = ref2;
+
+                }
+                vars2 += 2;
+            }
+            animt_location += sizeof(*animt) + sizeof(*vars) * (animt->num_tree_address + (size_t)animt->num_node_address * 2);
+        }
+    }
 }
 
 void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) {
@@ -991,6 +1030,8 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         }
     }
 
+    std::vector<const char*> animtreeUsings{};
+
     if (opt.m_imports) {
         uintptr_t import_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetImportsOffset()));
 
@@ -1077,7 +1118,59 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         if (scriptfile->GetImportsCount()) {
             asmout << "\n";
         }
+
+        if (vm == VM_T7 && scriptfile->GetAnimTreeDoubleOffset()) {
+            uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->file) + scriptfile->GetAnimTreeDoubleOffset();
+            auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
+            for (size_t i = 0; i < anims_count; i++) {
+                const auto* animt = reinterpret_cast<T7GscAnimTree*>(animt_location);
+
+                if (animt->name >= scriptfile->fileSize) {
+                    asmout << std::hex << "invalid animtree name 0x" << animt->name << "\n";
+                }
+                else {
+                    char* s = scriptfile->Ptr<char>(animt->name);
+
+                    animtreeUsings.emplace_back(s);
+
+                    asmout << std::hex << "animtree " << (s ? s : "<err>") << "\n";
+
+                    asmout << "tree address:";
+                    const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
+                    for (size_t j = 0; j < animt->num_tree_address; j++) {
+                        asmout << " " << flocName(*(vars++));
+                    }
+                    asmout << std::endl;
+                    asmout << "node address:";
+                    const uint64_t* vars2 = reinterpret_cast<const uint64_t*>(vars);
+                    for (size_t j = 0; j < animt->num_node_address; j++) {
+
+                        if (vars2[0] >= scriptfile->fileSize) {
+                            asmout << std::hex << "invalid animtree 2nd name 0x" << animt->name << "\n";
+                        }
+                        else {
+                            char* v = scriptfile->Ptr<char>(vars2[0]);
+                            // why u64?
+                            asmout << " " << flocName((uint32_t)vars2[1]) << ":" << v;
+                        }
+
+                        vars2 += 2;
+                    }
+                    asmout << std::endl;
+                }
+
+                animt_location += sizeof(*animt) + sizeof(uint32_t) * (animt->num_tree_address + (size_t)animt->num_node_address * 2);
+            }
+        }
     }
+
+    if (opt.m_includes && animtreeUsings.size()) {
+        for (const char* animTree : animtreeUsings) {
+            asmout << "#using_animtree(\"" << animTree << "\");\n";
+        }
+        asmout << "\n";
+    }
+
 
     if (opt.m_func) {
         actslib::profiler::ProfiledSection ps{ profiler, "decompiling" };
@@ -1345,8 +1438,8 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 }
 
                 // handle first the constructor/destructor
-                handleMethod(g_constructorName, "constructor", true);
-                handleMethod(g_destructorName, "destructor", true);
+                handleMethod(vm < VM_T8 ? g_constructorNameT7 : g_constructorName, "constructor", true);
+                handleMethod(vm < VM_T8 ? g_destructorNameT7 : g_destructorName, "destructor", true);
 
                 for (const auto& method : cls.m_methods) {
                     handleMethod(method, nullptr, false);
@@ -1843,15 +1936,20 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         return -1;
     }
 
-    ctx.m_bcl += 2 + 1;
+    ctx.m_bcl += 2 + 1; // call
     ctx.Aligned<uint64_t>() += 8; // assume that we have a spawnstruct
 
     ctx.Aligned<uint16_t>() += 2; // GetZero
 
 
-    if (gscFile.GetVM() != VM_T8) {
+    if (gscFile.GetVM() > VM_T8) {
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableFromGlobalObject
         ctx.Aligned<uint16_t>() += 2; // - classes
+    }
+    if (gscFile.GetVM() < VM_T8) {
+        ctx.Aligned<uint16_t>() += 2; // GetClassesObject
+
+        ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef className
     }
     else {
 
@@ -1870,7 +1968,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     clsName += 4;
 
-    if (gscFile.GetVM() != VM_T8) {
+    if (gscFile.GetVM() > VM_T8) {
         ctx.Aligned<uint16_t>() += 2; // SetVariableFieldFromEvalArrayRef
     }
     else {
@@ -1974,15 +2072,21 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
         ctx.Aligned<uint16_t>() += 2; // GetZero
 
-        ctx.Aligned<uint16_t>() += 2; // EvalGlobalObjectFieldVariable
-        ctx.Aligned<uint16_t>() += 2; // - gvar
+        if (gscFile.GetVM() >= VM_T8) {
+            ctx.Aligned<uint16_t>() += 2; // EvalGlobalObjectFieldVariable
+            ctx.Aligned<uint16_t>() += 2; // - gvar
+        }
+        else {
+            ctx.Aligned<uint16_t>() += 2; // GetClassesObject
+            ctx.Aligned<uint16_t>() += 2; // EvalFieldVariable
+        }
         ctx.Aligned<uint32_t>() += 4; // - ref
         ctx.Aligned<uint16_t>() += 2; // EvalArray
         ctx.Aligned<uint16_t>() += 2; // CastFieldObject
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef
         ctx.Aligned<uint32_t>() += 4; // - ref
 
-        if (gscFile.GetVM() != VM_T8) {
+        if (gscFile.GetVM() > VM_T8) {
             ctx.Aligned<uint16_t>() += 2; // SetVariableFieldFromEvalArrayRef
         }
         else {
@@ -2138,7 +2242,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     else {
 
         bool specialClassMember = !ctx.m_opt.m_dasm && classMember &&
-            ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || g_constructorName == exp.GetName());
+            ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || (g_constructorName == exp.GetName() || g_constructorNameT7 == exp.GetName()));
 
         utils::Padding(asmout, padding);
 

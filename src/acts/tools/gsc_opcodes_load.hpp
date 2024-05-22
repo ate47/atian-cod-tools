@@ -257,6 +257,14 @@ namespace tool::gsc::opcode {
 		OPCODE_GetHash32,
 		OPCODE_NextArrayKey,
 		OPCODE_GetAnimGRef,
+		OPCODE_T7_ProfileStart,
+		OPCODE_GetClasses,
+		OPCODE_GetClassesObject,
+		OPCODE_GetWorld,
+		OPCODE_GetWorldObject,
+		OPCODE_Wait2,
+		OPCODE_IW_SingleWaitTill2,
+		OPCODE_IgnoreWaittillVariableFieldCached,
 
 
 		OPCODE_COUNT,

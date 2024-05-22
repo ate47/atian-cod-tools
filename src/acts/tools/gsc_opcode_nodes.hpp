@@ -197,21 +197,38 @@ namespace tool::gsc::opcode {
 		}
 	};
 
+	inline bool ASMContextNodeStringHasSpace(const char* str) {
+		while (*str) {
+			if (isspace(*(str++))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	class ASMContextNodeString : public ASMContextNode {
 	public:
 		const char* m_value;
-		ASMContextNodeString(const char* value) : ASMContextNode(PRIORITY_VALUE), m_value(value) {
+		const char* m_prefix;
+		bool m_allowNoQuote;
+		ASMContextNodeString(const char* value, const char* prefix = nullptr, bool allowNoQuote = false)
+			: ASMContextNode(PRIORITY_VALUE), m_value(value), m_prefix(prefix), m_allowNoQuote(allowNoQuote) {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			out << "\"";
+			bool quotes{ !m_allowNoQuote || ASMContextNodeStringHasSpace(m_value) };
+			if (m_prefix) {
+				out << m_prefix;
+			}
+
+			if (quotes) out << "\"";
 			PrintFormattedString(out, m_value);
-			out << "\""
-				<< std::flush;
+			if (quotes) out << "\"";
+			out << std::flush;
 		}
 
 		ASMContextNode* Clone() const override {
-			return new ASMContextNodeString(m_value);
+			return new ASMContextNodeString(m_value, m_prefix, m_allowNoQuote);
 		}
 	};
 
