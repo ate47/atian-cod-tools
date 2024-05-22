@@ -263,7 +263,7 @@ namespace tool::gsc::opcode {
 		OPCODE_GetWorld,
 		OPCODE_GetWorldObject,
 		OPCODE_Wait2,
-		OPCODE_IW_SingleWaitTill2,
+		OPCODE_WaitTillMatch2,
 		OPCODE_IgnoreWaittillVariableFieldCached,
 
 

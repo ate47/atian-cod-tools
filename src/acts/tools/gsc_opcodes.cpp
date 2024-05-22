@@ -4307,13 +4307,14 @@ public:
 
 class OPCodeInfoCountWaittill : public OPCodeInfo {
 	const char* m_op;
+	byte m_added;
 public:
 
-	OPCodeInfoCountWaittill(OPCode id, const char* name, const char* op) : OPCodeInfo(id, name), m_op(op) {
+	OPCodeInfoCountWaittill(OPCode id, const char* name, const char* op, byte added = 0) : OPCodeInfo(id, name), m_op(op), m_added(added) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		byte count = *(context.m_bcl++);
+		byte count = *(context.m_bcl++) + m_added;
 
 		out << "count:" << (int)count << "\n";
 
@@ -4766,7 +4767,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout", "waittillmatchtimeout"));
 		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatch, "WaitTillMatch", "waittillmatch")); // count = params + self
 		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaittillTimeout, "WaittillTimeout", "waittilltimeout")); // count = params + self
-		
+		RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatch2, "WaitTillMatch", "waittillmatch", 1)); // count = params + self - 1 (no hash?)
 		// operation
 		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_And, "Bit_And", 2, "&", TYPE_OPERATION_MERGE, PRIORITY_BIT_AND));
 		RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_Or, "Bit_Or", 2, "|", TYPE_OPERATION_MERGE, PRIORITY_BIT_OR));
@@ -4911,7 +4912,6 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinMethod, "GetBuiltinMethod", 2));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleEndon, "Endon", "endon", false));
 		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true));
-		RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill2, "WaitTill2", "waittill", true));
 		RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true, true));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "GetLevel", GGGT_PUSH, "level"));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelGRef, "GetLevelGRef", GGGT_GLOBAL, "level"));

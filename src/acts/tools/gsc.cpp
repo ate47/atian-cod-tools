@@ -1030,8 +1030,6 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         }
     }
 
-    std::vector<const char*> animtreeUsings{};
-
     if (opt.m_imports) {
         uintptr_t import_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetImportsOffset()));
 
@@ -1118,20 +1116,21 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         if (scriptfile->GetImportsCount()) {
             asmout << "\n";
         }
+    }
+    if (vm == VM_T7 && scriptfile->GetAnimTreeDoubleOffset()) {
+        uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->file) + scriptfile->GetAnimTreeDoubleOffset();
+        auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
+        for (size_t i = 0; i < anims_count; i++) {
+            const auto* animt = reinterpret_cast<T7GscAnimTree*>(animt_location);
 
-        if (vm == VM_T7 && scriptfile->GetAnimTreeDoubleOffset()) {
-            uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->file) + scriptfile->GetAnimTreeDoubleOffset();
-            auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
-            for (size_t i = 0; i < anims_count; i++) {
-                const auto* animt = reinterpret_cast<T7GscAnimTree*>(animt_location);
+            if (animt->name >= scriptfile->fileSize) {
+                asmout << std::hex << "invalid animtree name 0x" << animt->name << "\n";
+            }
+            else {
+                char* s = scriptfile->Ptr<char>(animt->name);
 
-                if (animt->name >= scriptfile->fileSize) {
-                    asmout << std::hex << "invalid animtree name 0x" << animt->name << "\n";
-                }
-                else {
-                    char* s = scriptfile->Ptr<char>(animt->name);
-
-                    animtreeUsings.emplace_back(s);
+                asmout << "#using_animtree(\"" << s << "\");\n";
+                if (opt.m_imports) {
 
                     asmout << std::hex << "animtree " << (s ? s : "<err>") << "\n";
 
@@ -1158,17 +1157,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                     }
                     asmout << std::endl;
                 }
-
-                animt_location += sizeof(*animt) + sizeof(uint32_t) * (animt->num_tree_address + (size_t)animt->num_node_address * 2);
             }
-        }
-    }
 
-    if (opt.m_includes && animtreeUsings.size()) {
-        for (const char* animTree : animtreeUsings) {
-            asmout << "#using_animtree(\"" << animTree << "\");\n";
+            animt_location += sizeof(*animt) + sizeof(uint32_t) * (animt->num_tree_address + (size_t)animt->num_node_address * 2);
         }
-        asmout << "\n";
+        if (scriptfile->GetAnimTreeDoubleCount()) {
+            asmout << "\n";
+        }
     }
 
 
