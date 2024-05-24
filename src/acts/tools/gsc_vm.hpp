@@ -1101,7 +1101,7 @@ public:
             << std::hex
             << "// crc: 0x" << std::hex << data->source_crc << "\n"
             << std::left << std::setfill(' ')
-            //<< "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
+            << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << (int)data->include_count << " (offset: 0x" << std::hex << (int)data->include_offset << ")\n"
             << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
             << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
@@ -1113,7 +1113,6 @@ public:
         if (opt.m_test_header) {
             asmout
                 << "// unk1c .... " << std::dec << (int)data->unk1c << " / 0x" << std::hex << (int)data->unk1c << "\n"
-                << "// unk2c .... " << std::dec << (int)data->unk2c << " / 0x" << std::hex << (int)data->unk2c << "\n"
                 << "// unk40 .... " << std::dec << (int)data->unk40 << " / 0x" << std::hex << (int)data->unk40 << "\n"
                 ;
         }
@@ -1136,6 +1135,9 @@ public:
         }
     }
 
+    uint32_t GetFileSize() override {
+        return Ptr<T7GSCOBJ>()->script_size;
+    }
     uint64_t GetName() override {
         const char* name{ Ptr<T7GSCOBJ>()->GetName() };
         hashutils::Add(name);

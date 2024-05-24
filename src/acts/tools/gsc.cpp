@@ -896,6 +896,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         asmout << "\n";
 
         scriptfile->DumpHeader(asmout, opt);
+        if (opt.m_test_header && scriptfile->fileSize != scriptfile->GetFileSize()) {
+            asmout << "// Invalid defined script filesize 0x" << std::hex << scriptfile->fileSize << " != 0x" << scriptfile->GetFileSize() << "\n";
+        }
 
         asmout << actsHeader.str();
     }
