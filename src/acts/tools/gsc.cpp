@@ -1634,6 +1634,7 @@ int GscInfoFile(const std::filesystem::path& path, const GscInfoOption& opt) {
     if (!(
         pathname.ends_with(".gscc") || pathname.ends_with(".cscc")
         || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin")
+        || pathname.ends_with(".gshc") || pathname.ends_with(".cshc")
         || pathname.ends_with(".gsic") || pathname.ends_with(".csic") // Serious GSIC format
         )) {
         return 0;
