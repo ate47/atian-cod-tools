@@ -80,6 +80,7 @@ namespace tool::gsc {
         bool m_show_func_vars{};
         bool m_mark_jump_type{};
         bool m_display_stack{};
+        bool m_generateGdbData{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
@@ -401,6 +402,7 @@ namespace tool::gsc {
 
         class ASMContext {
         public:
+            uint32_t funcRloc;
             // cli opt
             const GscInfoOption& m_opt;
             // object context
@@ -452,6 +454,10 @@ namespace tool::gsc {
             inline int32_t FunctionRelativeLocation() {
                 return FunctionRelativeLocation(m_bcl);
             }
+            // @return absolute location in the script
+            inline uint32_t ScriptAbsoluteLocation() {
+                return ScriptAbsoluteLocation(m_bcl);
+            }
             // Push the current location to the locations
             inline asmcontextlocation& PushLocation() {
                 return PushLocation(m_bcl);
@@ -467,6 +473,12 @@ namespace tool::gsc {
              * @return relative from function start
              */
             int32_t FunctionRelativeLocation(byte* bytecodeLocation);
+            /*
+             * Get the absolute location from the script start
+             * @param location location
+             * @return absolute location from script start
+             */
+            uint32_t ScriptAbsoluteLocation(byte* location);
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
             inline byte*& Aligned() {
@@ -656,6 +668,7 @@ namespace tool::gsc {
         std::vector<IW23GSCImport> m_linkedImports{};
         // getnumber hack
         std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
+        std::set<uint32_t> m_badstrings{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};
@@ -668,11 +681,18 @@ namespace tool::gsc {
          */
         uint64_t GetGlobalVarName(uint16_t gvarRef);
         /*
-         * Get a string for a string string ref
+         * Get a string for a string ref
          * @param stringRef ref
          * @return string or null
          */
         const char* GetStringValue(uint32_t stringRef);
+        /*
+         * Get a string for a string ref, return errorValue in case of error
+         * @param stringRef string ref
+         * @param errorValue returned value in case of bad ref
+         * @return string or error value
+         */
+        const char* GetStringValueOrError(uint32_t stringRef, uint32_t floc, const char* errorValue);
         /*
          * Add a global var
          * @param value name
@@ -1070,6 +1090,7 @@ namespace tool::gsc {
         virtual void SetName(uint64_t name) = 0;
         virtual void SetHeader() = 0;
         virtual void SetChecksum(uint64_t val) = 0;
+        virtual uint32_t GetChecksum() = 0;
         virtual void SetExportsCount(uint16_t val) = 0;
         virtual void SetExportsOffset(uint32_t val) = 0;
         virtual void SetIncludesCount(uint16_t val) = 0;

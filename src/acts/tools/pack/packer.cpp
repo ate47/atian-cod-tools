@@ -103,6 +103,6 @@ namespace tools::packer {
 		return tool::OK;
 	}
 #ifndef CI_BUILD
-	ADD_TOOL("packer", " [dir]", "", nullptr, packer);
+	ADD_TOOL("packer", "dev", " [dir]", "", nullptr, packer);
 #endif
 }

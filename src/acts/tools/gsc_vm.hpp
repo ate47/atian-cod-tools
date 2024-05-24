@@ -219,6 +219,9 @@ public:
     void SetChecksum(uint64_t val) override {
         Ptr<T8GSCOBJ>()->crc = (uint32_t)val;
     }
+    uint32_t GetChecksum() override {
+        return Ptr<T8GSCOBJ>()->crc;
+    }
     const char* GetDefaultName(bool client) override {
         if (client) {
             return "";
@@ -442,6 +445,9 @@ public:
     }
     void SetChecksum(uint64_t val) override {
         Ptr<T937GSCOBJ>()->crc = (uint32_t)val;
+    }
+    uint32_t GetChecksum() override {
+        return (uint32_t)Ptr<T937GSCOBJ>()->crc;
     }
     const char* GetDefaultName(bool client) override {
         if (client) {
@@ -724,6 +730,9 @@ public:
     }
     void SetChecksum(uint64_t val) override {
         Ptr<T9GSCOBJ>()->crc = (uint32_t)val;
+    }
+    uint32_t GetChecksum() override {
+        return (uint32_t)Ptr<T9GSCOBJ>()->crc;
     }
     const char* GetDefaultName(bool client) override {
         if (client) {
@@ -1072,6 +1081,9 @@ public:
         return 0; // no checksum
     }
     void SetChecksum(uint64_t val) override { }
+    uint32_t GetChecksum() override {
+        return 0;
+    }
     const char* GetDefaultName(bool client) override {
         return ""; // idc
     }
@@ -1286,6 +1298,9 @@ public:
     void SetChecksum(uint64_t val) override {
         Ptr<T7GSCOBJ>()->source_crc = (uint32_t)val;
     }
+    uint32_t GetChecksum() override {
+        return Ptr<T7GSCOBJ>()->source_crc;
+    }
     const char* GetDefaultName(bool client) override {
         return "";
     }
@@ -1294,19 +1309,22 @@ public:
         byte nflags{};
         if (flags == 0x6) return T8GSCExportFlags::CLASS_VTABLE;
         if (flags & 1) nflags |= T8GSCExportFlags::LINKED;
+        if (flags & 2) nflags |= T8GSCExportFlags::AUTOEXEC;
+        if (flags & 4) nflags |= T8GSCExportFlags::PRIVATE;
+        if (flags & 0x20) nflags |= T8GSCExportFlags::VE;
+
         return nflags;
     }
     byte RemapFlagsImport(byte flags) override {
         byte nflags{};
 
-        byte funcType = flags & 0xF;
-
-        switch (funcType) {
+        switch (flags & 0xF) {
         case 1: nflags |= T8GSCImportFlags::FUNC_METHOD; break;
         case 2: nflags |= T8GSCImportFlags::FUNCTION; break;
         case 3: nflags |= T8GSCImportFlags::FUNCTION_THREAD; break;
         case 4: nflags |= T8GSCImportFlags::METHOD; break;
         case 5: nflags |= T8GSCImportFlags::METHOD_THREAD; break;
+        default: nflags |= flags & 0xF; break; // wtf?
         }
 
         if (flags & 0x10) nflags |= T8GSCImportFlags::DEV_CALL;

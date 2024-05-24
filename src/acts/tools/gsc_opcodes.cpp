@@ -1036,10 +1036,10 @@ public:
 			const char* str = objctx.GetStringValue(animTree->second);
 
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeString(str, "#", true));
+				context.PushASMCNode(new ASMContextNodeString((str ? str : "<error>"), "#", true));
 			}
 
-			out << "anim tree #" << str << std::endl;
+			out << "anim tree #" << (str ? str : "<error>") << std::endl;
 		}
 		else {
 			WriteType intValue = *(Type*)bytecode;
@@ -3537,7 +3537,7 @@ public:
 
 		uint32_t ref = *(uint32_t*)base;
 
-		const char* str = objctx.GetStringValue(ref);
+		const char* str = objctx.GetStringValueOrError(ref, context.ScriptAbsoluteLocation(base), nullptr);
 
 		base += 4;
 
@@ -3591,20 +3591,21 @@ public:
 		uint32_t ref2;
 		if (m_doubleAnim) {
 			ref1 = *(uint32_t*)base;
-			str1 = objctx.GetStringValue(ref1);
+			str1 = objctx.GetStringValueOrError(ref1, context.ScriptAbsoluteLocation(base), nullptr);
 
 			base += 4;
 
 			ref2 = *(uint32_t*)base;
+			str2 = objctx.GetStringValueOrError(ref2, context.ScriptAbsoluteLocation(base), nullptr);
 
-			str2 = objctx.GetStringValue(ref2);
 			base += 4;
 		}
 		else {
 			str1 = "";
 			ref1 = 0;
-			ref2 = *(base++);
-			str2 = objctx.GetStringValue(ref1);
+			ref2 = *base;
+			str2 = objctx.GetStringValueOrError(ref2, context.ScriptAbsoluteLocation(base), nullptr);
+			base++;
 		}
 
 		if (!str1) {
@@ -3985,7 +3986,7 @@ public:
 					}
 					break;
 				case 0xffff: {// string
-					auto str = objctx.GetStringValue(val.str);
+					const char* str = objctx.GetStringValueOrError(val.str, context.ScriptAbsoluteLocation(basecase), nullptr);
 
 					ASMContextNodeString* outputStr;
 					if (str) {
@@ -5043,6 +5044,8 @@ ASMContext::ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJCo
 			m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
 	// set start as unhandled
 	PushLocation();
+	exp.SetHandle(m_readerHandle);
+	funcRloc = exp.GetAddress();
 }
 
 
@@ -5181,7 +5184,11 @@ bool ASMContext::FindNextLocation() {
 }
 
 int32_t ASMContext::FunctionRelativeLocation(byte* bytecodeLocation) {
-	return (int32_t) (reinterpret_cast<uintptr_t>(bytecodeLocation) - reinterpret_cast<uintptr_t>(m_fonctionStart));
+	return (int32_t)(reinterpret_cast<uintptr_t>(bytecodeLocation) - reinterpret_cast<uintptr_t>(m_fonctionStart));
+}
+
+uint32_t ASMContext::ScriptAbsoluteLocation(byte* bytecodeLocation) {
+	return funcRloc + (uint32_t)FunctionRelativeLocation(bytecodeLocation);
 }
 
 std::ostream& ASMContext::WritePadding(std::ostream& out) {

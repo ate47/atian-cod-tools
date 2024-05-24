@@ -198,11 +198,14 @@ namespace tool::gsc::opcode {
 	};
 
 	inline bool ASMContextNodeStringHasSpace(const char* str) {
-		while (*str) {
+		if (!*str) {
+			return false;
+		}
+		do {
 			if (isspace(*(str++))) {
 				return true;
 			}
-		}
+		} while (*str);
 		return false;
 	}
 

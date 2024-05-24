@@ -69,6 +69,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!strcmp("-V", arg) || !_strcmpi("--vars", arg)) {
             m_show_func_vars = true;
         }
+        else if (!strcmp("-d", arg) || !_strcmpi("--gdb", arg)) {
+            m_generateGdbData = true;
+        }
         else if (!_strcmpi("--test-header", arg)) {
             m_test_header = true;
         }
@@ -247,6 +250,7 @@ void GscInfoOption::PrintHelp() {
     }
     LOG_INFO("-l --rloc          : Write relative location of the function code");
     LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
+    LOG_INFO("-d --gdb           : Dump gdb data");
     LOG_INFO("--dumpstrings [f]  : Dump strings in f");
     // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
     // it's mostly dev tools
@@ -845,7 +849,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         LOG_ERROR("Can't open output file {}", asmfnamebuff);
         return -1;
     }
-    LOG_INFO("Decompiling into '{}' {}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
+    LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
     if (opt.m_copyright) {
         asmout << "// " << opt.m_copyright << "\n";
     }
@@ -1578,6 +1582,35 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
     asmout.close();
 
+    if (opt.m_generateGdbData) {
+        const char* gdbFile{ utils::va("%sgdbasm", asmfnamebuff) };
+        std::ofstream gdbpos{ gdbFile };
+        LOG_INFO("Writing GDB into '{}'...", gdbFile);
+
+        if (!gdbpos) {
+            LOG_ERROR("Can't open {}", gdbFile);
+            return -1;
+        }
+
+        // header
+        gdbpos 
+            << "NAME " << hashutils::ExtractTmpScript(scriptfile->GetName()) << "\n"
+            << "VERSION 0\n"
+            << "CHECKSUM 0x" << std::hex << scriptfile->GetChecksum() << "\n"
+            << "\n";
+
+        // strings
+        for (uint32_t floc : ctx.m_badstrings) {
+            gdbpos 
+                << "# " << flocName(floc) << "\n"
+                << "STRING 0x" << std::hex << floc << " \"\"\n"
+                ;
+        }
+
+
+        gdbpos.close();
+    }
+
     return 0;
 }
 
@@ -1751,6 +1784,17 @@ const char* tool::gsc::T8GSCOBJContext::GetStringValue(uint32_t stringRef) {
         return nullptr;
     }
     return f->second;
+}
+const char* tool::gsc::T8GSCOBJContext::GetStringValueOrError(uint32_t stringRef, uint32_t floc, const char* errorValue) {
+    const char* v = GetStringValue(stringRef);
+
+    if (v) {
+        return v;
+    }
+
+    m_badstrings.insert(floc);
+
+    return errorValue;
 }
 
 uint16_t tool::gsc::T8GSCOBJContext::AddGlobalVarName(uint64_t value) {

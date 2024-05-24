@@ -18,7 +18,7 @@ namespace {
 				linking = true;
 				LOG_TRACE("Link custom script...");
 				int errd{};
-				GscLinkDetour.Call<int>(ctx, gscBuffer.data(), errd);
+				GscLinkDetour.Call<int>(ctx, gscBuffer.data(), &errd);
 				LOG_TRACE("End link custom script.");
 				linking = false;
 			}
