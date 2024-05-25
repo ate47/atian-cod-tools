@@ -26,8 +26,11 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("t9", name) || !_strcmpi("cw", name) || !_strcmpi("coldwar", name) || !_strcmpi("38", name)) {
 			return VM_T9;
 		}
-		if (!_strcmpi("t7", name) || !_strcmpi("bo4", name) || !_strcmpi("blackops3", name) || !_strcmpi("1c", name)) {
+		if (!_strcmpi("t7", name) || !_strcmpi("bo3", name) || !_strcmpi("blackops3", name) || !_strcmpi("1c", name)) {
 			return VM_T7;
+		}
+		if (!_strcmpi("t7_1b", name) || !_strcmpi("bo4_1b", name) || !_strcmpi("blackops3_1b", name) || !_strcmpi("1b", name)) {
+			return VM_T71B;
 		}
 		if (!_strcmpi("jup", name) || !_strcmpi("s4", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
 			return VM_MW23;

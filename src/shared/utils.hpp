@@ -251,6 +251,26 @@ namespace utils {
 	 */
 	std::filesystem::path GetProgDir();
 
+	/*
+	 * Clone a string
+	 * @param str String to clone
+	 * @return cloned string
+	 */
+	inline char* CloneString(const char* str) {
+		return va("%s", str);
+	}
+
+	/*
+	 * @param ptr Pointer
+	 * @param defaultVal default value
+	 * @param Type type
+	 * @return get a pointer or another value
+	 */
+	template<typename Type>
+	inline Type* PtrOrElse(Type* ptr, Type* defaultVal = nullptr) {
+		return ptr ? ptr : defaultVal;
+	}
+
 	template<typename Type>
 	struct BasicFormatter {
 		template<class ParseContext>

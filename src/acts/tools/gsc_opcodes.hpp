@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 namespace tool::gsc::opcode {
-	enum VmFlags {
+	enum VmFlags : uint64_t {
 		VMF_NONE = 0,
 		VMF_ALIGN = 1,
 		VMF_HASH64 = 2,
@@ -19,7 +19,7 @@ namespace tool::gsc::opcode {
 		VMF_CALL_NO_PARAMS = 0x400,
 		VMF_IW_CALLS = 0x800,
 	};
-	enum VmOperatorFunctionData {
+	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,
 		VPFD_USE_COUNT = 0x1,
 		VPFD_USE_PRE_SCRIPT_CALL = 0x2,
@@ -40,8 +40,8 @@ namespace tool::gsc::opcode {
 		int minParam;
 		int maxParam;
 
-		constexpr bool HasFlag(VmOperatorFunctionData flag) {
-			return flags & flag;
+		constexpr bool HasFlag(uint64_t flag) {
+			return (flags & flag) == flag;
 		}
 	};
 

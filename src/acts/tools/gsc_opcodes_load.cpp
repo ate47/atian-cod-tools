@@ -993,239 +993,336 @@ namespace tool::gsc::opcode {
 		});
 	}
 
-	const char* OpCodeName(OPCode op) {
-		switch (op) {
-
-		case OPCODE_Undefined: return "Undefined";
-		case OPCODE_Unknown0: return "Unknown0";
-		case OPCODE_Unknown1: return "Unknown1";
-		case OPCODE_Unknown2: return "Unknown2";
-		case OPCODE_Unknown3: return "Unknown3";
-		case OPCODE_Unknown4: return "Unknown4";
-		case OPCODE_Unknown5: return "Unknown5";
-		case OPCODE_Unknown6: return "Unknown6";
-		case OPCODE_Unknown7: return "Unknown7";
-		case OPCODE_Unknowna: return "Unknowna";
-		case OPCODE_Unknownb: return "Unknownb";
-		case OPCODE_Unknown38: return "Unknown38";
-		case OPCODE_Nop: return "Nop";
-		case OPCODE_GetUndefined: return "GetUndefined";
-		case OPCODE_Unknown10e: return "Unknown10e";
-		case OPCODE_Unknown126: return "Unknown126";
-		case OPCODE_End: return "End";
-		case OPCODE_EvalLocalVariableCachedDebug: return "EvalLocalVariableCachedDebug";
-		case OPCODE_EvalLocalVariableRefCachedDebug: return "EvalLocalVariableRefCachedDebug";
-		case OPCODE_ClearParams: return "ClearParams";
-		case OPCODE_CheckClearParams: return "CheckClearParams";
-		case OPCODE_PreScriptCall: return "PreScriptCall";
-		case OPCODE_CallBuiltinFunction: return "CallBuiltinFunction";
-		case OPCODE_CallBuiltinMethod: return "CallBuiltinMethod";
-		case OPCODE_EmptyArray: return "EmptyArray";
-		case OPCODE_EmptyStruct: return "EmptyStruct";
-		case OPCODE_WaitTill: return "WaitTill";
-		case OPCODE_ClearFieldVariableOnStack: return "ClearFieldVariableOnStack";
-		case OPCODE_ClearArray: return "ClearArray";
-		case OPCODE_ScriptMethodThreadCallPointer: return "ScriptMethodThreadCallPointer";
-		case OPCODE_WaitTillMatchTimeout: return "WaitTillMatchTimeout";
-		case OPCODE_GetHash: return "GetHash";
-		case OPCODE_WaitFrame: return "WaitFrame";
-		case OPCODE_ScriptMethodThreadCallPointerEndOn: return "ScriptMethodThreadCallPointerEndOn";
-		case OPCODE_WaitTillMatch: return "WaitTillMatch";
-		case OPCODE_ScriptThreadCallEndOn: return "ScriptThreadCallEndOn";
-		case OPCODE_Switch: return "Switch";
-		case OPCODE_ScriptFunctionCallPointer: return "ScriptFunctionCallPointer";
-		case OPCODE_DevblockBegin: return "DevblockBegin";
-		case OPCODE_NotEqual: return "NotEqual";
-		case OPCODE_ScriptMethodCallPointer: return "ScriptMethodCallPointer";
-		case OPCODE_JumpOnTrue: return "JumpOnTrue";
-		case OPCODE_ScriptMethodThreadCallEndOn: return "ScriptMethodThreadCallEndOn";
-		case OPCODE_SafeCreateLocalVariables: return "SafeCreateLocalVariables";
-		case OPCODE_GetNegUnsignedShort: return "GetNegUnsignedShort";
-		case OPCODE_ClassFunctionCall: return "ClassFunctionCall";
-		case OPCODE_Return: return "Return";
-		case OPCODE_EvalFieldVariableRef: return "EvalFieldVariableRef";
-		case OPCODE_SafeDecTop: return "SafeDecTop";
-		case OPCODE_Bit_Or: return "Bit_Or";
-		case OPCODE_ScriptThreadCall: return "ScriptThreadCall";
-		case OPCODE_Bit_Xor: return "Bit_Xor";
-		case OPCODE_GetSelfObject: return "GetSelfObject";
-		case OPCODE_GetNegByte: return "GetNegByte";
-		case OPCODE_ScriptThreadCallPointerEndOn: return "ScriptThreadCallPointerEndOn";
-		case OPCODE_BoolComplement: return "BoolComplement";
-		case OPCODE_IsDefined: return "IsDefined";
-		case OPCODE_AddToArray: return "AddToArray";
-		case OPCODE_Wait: return "Wait";
-		case OPCODE_SuperEqual: return "SuperEqual";
-		case OPCODE_ScriptFunctionCall: return "ScriptFunctionCall";
-		case OPCODE_JumpOnTrueExpr: return "JumpOnTrueExpr";
-		case OPCODE_CreateArray: return "CreateArray";
-		case OPCODE_Inc: return "Inc";
-		case OPCODE_ShiftLeft: return "ShiftLeft";
-		case OPCODE_JumpOnGreaterThan: return "JumpOnGreaterThan";
-		case OPCODE_Plus: return "Plus";
-		case OPCODE_CastAndEvalFieldVariable: return "CastAndEvalFieldVariable";
-		case OPCODE_ShiftRight: return "ShiftRight";
-		case OPCODE_CreateStruct: return "CreateStruct";
-		case OPCODE_CastCanon: return "CastCanon";
-		case OPCODE_GreaterThanOrEqualTo: return "GreaterThanOrEqualTo";
-		case OPCODE_GetUIntPtr: return "GetUIntPtr";
-		case OPCODE_GetLongInteger: return "GetLongInteger";
-		case OPCODE_EvalArray: return "EvalArray";
-		case OPCODE_WaitTillFrameEnd: return "WaitTillFrameEnd";
-		case OPCODE_EndOnCallback: return "EndOnCallback";
-		case OPCODE_EndOn: return "EndOn";
-		case OPCODE_SuperNotEqual: return "SuperNotEqual";
-		case OPCODE_GetFloat: return "GetFloat";
-		case OPCODE_ProfileStart: return "ProfileStart";
-		case OPCODE_GetString: return "GetString";
-		case OPCODE_BoolNot: return "BoolNot";
-		case OPCODE_CastBool: return "CastBool";
-		case OPCODE_Equal: return "Equal";
-		case OPCODE_GetUnsignedInteger: return "GetUnsignedInteger";
-		case OPCODE_WaittillTimeout: return "WaittillTimeout";
-		case OPCODE_GreaterThan: return "GreaterThan";
-		case OPCODE_Jump: return "Jump";
-		case OPCODE_Divide: return "Divide";
-		case OPCODE_EndSwitch: return "EndSwitch";
-		case OPCODE_JumpOnFalse: return "JumpOnFalse";
-		case OPCODE_JumpOnFalseExpr: return "JumpOnFalseExpr";
-		case OPCODE_Minus: return "Minus";
-		case OPCODE_ProfileStop: return "ProfileStop";
-		case OPCODE_GetInteger: return "GetInteger";
-		case OPCODE_ClassFunctionThreadCall: return "ClassFunctionThreadCall";
-		case OPCODE_VectorScale: return "VectorScale";
-		case OPCODE_Modulus: return "Modulus";
-		case OPCODE_VectorConstant: return "VectorConstant";
-		case OPCODE_SizeOf: return "SizeOf";
-		case OPCODE_Notify: return "Notify";
-		case OPCODE_Vector: return "Vector";
-		case OPCODE_Dec: return "Dec";
-		case OPCODE_JumpOnLessThan: return "JumpOnLessThan";
-		case OPCODE_Bit_And: return "Bit_And";
-		case OPCODE_GetObjectType: return "GetObjectType";
-		case OPCODE_Multiply: return "Multiply";
-		case OPCODE_EvalFieldVariableOnStack: return "EvalFieldVariableOnStack";
-		case OPCODE_GetTime: return "GetTime";
-		case OPCODE_AddToStruct: return "AddToStruct";
-		case OPCODE_ClassFunctionThreadCallEndOn: return "ClassFunctionThreadCallEndOn";
-		case OPCODE_LessThanOrEqualTo: return "LessThanOrEqualTo";
-		case OPCODE_GetGlobal: return "GetGlobal";
-		case OPCODE_GetZero: return "GetZero";
-		case OPCODE_ClearFieldVariable: return "ClearFieldVariable";
-		case OPCODE_EvalFieldObjectFromRef: return "EvalFieldObjectFromRef";
-		case OPCODE_GetSelf: return "GetSelf";
-		case OPCODE_GetResolveFunction: return "GetResolveFunction";
-		case OPCODE_GetGlobalObject: return "GetGlobalObject";
-		case OPCODE_GetByte: return "GetByte";
-		case OPCODE_CastFieldObject: return "CastFieldObject";
-		case OPCODE_ScriptThreadCallPointer: return "ScriptThreadCallPointer";
-		case OPCODE_LessThan: return "LessThan";
-		case OPCODE_ScriptMethodCall: return "ScriptMethodCall";
-		case OPCODE_DecTop: return "DecTop";
-		case OPCODE_GetVector: return "GetVector";
-		case OPCODE_ScriptMethodThreadCall: return "ScriptMethodThreadCall";
-		case OPCODE_JumpPush: return "JumpPush";
-		case OPCODE_GetUnsignedShort: return "GetUnsignedShort";
-		case OPCODE_EvalLocalVariableCached: return "EvalLocalVariableCached";
-		case OPCODE_EvalFieldVariable: return "EvalFieldVariable";
-		case OPCODE_GetFunction: return "GetFunction";
-		case OPCODE_EvalArrayRef: return "EvalArrayRef";
-		case OPCODE_SetNextArrayKeyCached: return "SetNextArrayKeyCached";
-		case OPCODE_Unknown9e: return "Unknown9e";
-		case OPCODE_EvalLocalVariableCachedSafe: return "EvalLocalVariableCachedSafe";
-		case OPCODE_SetLocalVariableCachedOnStack: return "SetLocalVariableCachedOnStack";
-		case OPCODE_Unknownc7: return "Unknownc7";
-		case OPCODE_Unknown35: return "Unknown35";
-		case OPCODE_FirstArrayKey: return "FirstArrayKey";
-		case OPCODE_EvalFieldVariableOnStackRef: return "EvalFieldVariableOnStackRef";
-		case OPCODE_SetVariableFieldRef: return "SetVariableFieldRef";
-		case OPCODE_SetVariableField: return "SetVariableField";
-		case OPCODE_EvalSelfFieldVariable: return "EvalSelfFieldVariable";
-		case OPCODE_SetLocalVariableCached: return "SetLocalVariableCached";
-		case OPCODE_FirstArrayKeyCached: return "FirstArrayKeyCached";
-		case OPCODE_EvalLocalVariableRefCached: return "EvalLocalVariableRefCached";
-		case OPCODE_EvalGlobalObjectFieldVariable: return "EvalGlobalObjectFieldVariable";
-		case OPCODE_EvalLocalVariableDefined: return "EvalLocalVariableDefined";
-		case OPCODE_T8C_GetLazyFunction: return "T8C_GetLazyFunction";
-		case OPCODE_ProfileNamedStart: return "ProfileNamedStart";
-		case OPCODE_ProfileNamedEnd: return "ProfileNamedEnd";
-		case OPCODE_GetNegUnsignedInteger: return "GetNegUnsignedInteger";
-		case OPCODE_T9_EvalFieldVariableFromObjectCached: return "EvalFieldVariableFromObjectCached";
-		case OPCODE_T9_EvalFieldVariableFromObjectFromRef: return "EvalFieldVariableFromObjectFromRef";
-		case OPCODE_T9_SetFieldVariableFromObjectFromRef: return "SetFieldVariableFromObjectFromRef";
-		case OPCODE_T9_EvalLocalVariableCachedDouble: return "EvalLocalVariableCachedDouble";
-		case OPCODE_T9_EvalFieldVariableFromGlobalObject: return "EvalFieldVariableFromGlobalObject";
-		case OPCODE_T9_SetVariableFieldFromEvalArrayRef: return "SetVariableFieldFromEvalArrayRef";
-		case OPCODE_T9_IncLocalVariableCached: return "IncLocalVariableCached";
-		case OPCODE_T9_DecLocalVariableCached: return "DecLocalVariableCached";
-		case OPCODE_T9_EvalArrayCached: return "EvalArrayCached";
-		case OPCODE_T9_EndOnCallbackParam: return "EndOnCallbackParam";
-		case OPCODE_T9_GetVarRef: return "GetVarRef";
-		case OPCODE_T9_IteratorKey: return "IteratorKey";
-		case OPCODE_T9_IteratorVal: return "IteratorVal";
-		case OPCODE_T9_IteratorNext: return "IteratorNext";
-		case OPCODE_IW_RegisterVariable: return "RegisterVariable";
-		case OPCODE_IW_GetAnimation: return "GetAnimation";
-		case OPCODE_IW_GetAnimationTree: return "GetAnimationTree";
-		case OPCODE_IW_GetBuiltinFunction: return "GetBuiltinFunction";
-		case OPCODE_IW_GetBuiltinMethod: return "GetBuiltinMethod";
-		case OPCODE_IW_GetIString: return "GetIString";
-		case OPCODE_IW_GetEmptyUnkE: return "GetEmptyUnkE";
-		case OPCODE_IW_GetUnkb: return "GetUnkb";
-		case OPCODE_IW_GetUnk9: return "GetUnk9";
-		case OPCODE_IW_GetDVarHash: return "GetDVarHash";
-		case OPCODE_IW_EvalLocalVariableCached0: return "EvalLocalVariableCached0";
-		case OPCODE_IW_EvalLocalVariableCached1: return "EvalLocalVariableCached1";
-		case OPCODE_IW_EvalLocalVariableCached2: return "EvalLocalVariableCached2";
-		case OPCODE_IW_EvalLocalVariableCached3: return "EvalLocalVariableCached3";
-		case OPCODE_IW_EvalLocalVariableCached4: return "EvalLocalVariableCached4";
-		case OPCODE_IW_EvalLocalVariableCached5: return "EvalLocalVariableCached5";
-		case OPCODE_IW_EvalLocalArrayCached: return "EvalLocalArrayCached";
-		case OPCODE_IW_EvalLocalVariableObjectCached: return "EvalLocalVariableObjectCached";
-		case OPCODE_IW_ClearFieldVariableRef: return "ClearFieldVariableRef";
-		case OPCODE_IW_EvalLevelFieldVariableRef: return "EvalLevelFieldVariableRef";
-		case OPCODE_IW_EvalLevelFieldVariable: return "EvalLevelFieldVariable";
-		case OPCODE_IW_EvalSelfFieldVar: return "EvalSelfFieldVar";
-		case OPCODE_IW_EvalSelfFieldVarRef: return "EvalSelfFieldVarRef";
-		case OPCODE_IW_EvalAnimFieldVar: return "EvalAnimFieldVar";
-		case OPCODE_IW_EvalAnimFieldVarRef: return "EvalAnimFieldVarRef";
-		case OPCODE_IW_SetAnimFieldVar: return "SetAnimFieldVar";
-		case OPCODE_IW_SetLevelFieldVariable: return "SetLevelFieldVariable";
-		case OPCODE_IW_SetSelfFieldVar: return "SetSelfFieldVar";
-		case OPCODE_IW_DevBlock: return "DevBlock";
-		case OPCODE_IW_SingleEndon: return "SingleEndon";
-		case OPCODE_IW_SingleWaitTill: return "SingleWaitTill";
-		case OPCODE_IW_IsTrue: return "IsTrue";
-		case OPCODE_IW_Switch: return "Switch";
-		case OPCODE_IW_EndSwitch: return "EndSwitch";
-		case OPCODE_IW_SetWaittillVariableFieldCached: return "SetWaittillVariableFieldCached";
-		case OPCODE_IW_WaitFrame: return "WaitFrame";
-		case OPCODE_IW_AddToStruct: return "AddToStruct";
-		case OPCODE_IW_BuiltinFunctionCallPointer: return "BuiltinFunctionCallPointer";
-		case OPCODE_IW_BuiltinMethodCallPointer: return "BuiltinMethodCallPointer";
-		case OPCODE_IW_GetLevel: return "GetLevel";
-		case OPCODE_IW_GetLevelGRef: return "GetLevelGRef";
-		case OPCODE_IW_GetGame: return "GetGame";
-		case OPCODE_IW_GetGameRef: return "GetGameRef";
-		case OPCODE_IW_GetAnim: return "GetAnim";
-		case OPCODE_IW_GetAnimRef: return "GetAnimRef";
-		case OPCODE_IW_EvalArrayCachedField: return "EvalArrayCachedField";
-		case OPCODE_IW_GetThread: return "GetThread";
-		case OPCODE_IW_Notify: return "Notify";
-		case OPCODE_IW_WaitTillMatch: return "WaitTillMatch";
-		case OPCODE_DevOp: return "DevOp";
-		case OPCODE_GetSignedByte: return "GetSignedByte";
-		case OPCODE_GetShort: return "GetShort";
-		case OPCODE_GetHash32: return "GetHash32";
-		case OPCODE_NextArrayKey: return "NextArrayKey";
-		case OPCODE_GetAnimGRef: return "GetAnimGRef";
-		case OPCODE_T7_ProfileStart: return "ProfileStart";
-		case OPCODE_GetClasses: return "GetClasses";
-		case OPCODE_GetClassesObject: return "GetClassesObject";
-		case OPCODE_GetWorld: return "GetWorld";
-		case OPCODE_GetWorldObject: return "GetWorldObject";
-		case OPCODE_Wait2: return "Wait2";
-		default: return "UNKNOWN";
+	class OpCodeLookupTable {
+	public:
+		std::unordered_map<OPCode, const char*> opToName{};
+		std::unordered_map<std::string, OPCode> nameToOp{};
+	private:
+		void RegisterOpCode(OPCode op, const char* name) {
+			opToName[op] = name;
+			auto& opl = nameToOp[utils::LowerCase(utils::CloneString(name))];
+			if (opl && opl != op) {
+				LOG_WARNING("Registered opcode with the same name : '{}' 0x{:x} != 0x{:x}", name, (int)opl, (int)op);
+			}
+			else {
+				opl = op;
+			}
 		}
+	public:
+		OpCodeLookupTable() {
+			RegisterOpCode(OPCODE_Undefined, "Undefined");
+			RegisterOpCode(OPCODE_Unknown0, "Unknown0");
+			RegisterOpCode(OPCODE_Unknown1, "Unknown1");
+			RegisterOpCode(OPCODE_Unknown2, "Unknown2");
+			RegisterOpCode(OPCODE_Unknown3, "Unknown3");
+			RegisterOpCode(OPCODE_Unknown4, "Unknown4");
+			RegisterOpCode(OPCODE_Unknown5, "Unknown5");
+			RegisterOpCode(OPCODE_Unknown6, "Unknown6");
+			RegisterOpCode(OPCODE_Unknown7, "Unknown7");
+			RegisterOpCode(OPCODE_Unknowna, "Unknowna");
+			RegisterOpCode(OPCODE_Unknownb, "Unknownb");
+			RegisterOpCode(OPCODE_Unknown38, "Unknown38");
+			RegisterOpCode(OPCODE_Nop, "Nop");
+			RegisterOpCode(OPCODE_GetUndefined, "GetUndefined");
+			RegisterOpCode(OPCODE_Unknown10e, "Unknown10e");
+			RegisterOpCode(OPCODE_Unknown126, "Unknown126");
+			RegisterOpCode(OPCODE_End, "End");
+			RegisterOpCode(OPCODE_EvalLocalVariableCachedDebug, "EvalLocalVariableCachedDebug");
+			RegisterOpCode(OPCODE_EvalLocalVariableRefCachedDebug, "EvalLocalVariableRefCachedDebug");
+			RegisterOpCode(OPCODE_ClearParams, "ClearParams");
+			RegisterOpCode(OPCODE_CheckClearParams, "CheckClearParams");
+			RegisterOpCode(OPCODE_PreScriptCall, "PreScriptCall");
+			RegisterOpCode(OPCODE_CallBuiltinFunction, "CallBuiltinFunction");
+			RegisterOpCode(OPCODE_CallBuiltinMethod, "CallBuiltinMethod");
+			RegisterOpCode(OPCODE_EmptyArray, "EmptyArray");
+			RegisterOpCode(OPCODE_EmptyStruct, "EmptyStruct");
+			RegisterOpCode(OPCODE_WaitTill, "WaitTill");
+			RegisterOpCode(OPCODE_ClearFieldVariableOnStack, "ClearFieldVariableOnStack");
+			RegisterOpCode(OPCODE_ClearArray, "ClearArray");
+			RegisterOpCode(OPCODE_ScriptMethodThreadCallPointer, "ScriptMethodThreadCallPointer");
+			RegisterOpCode(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout");
+			RegisterOpCode(OPCODE_GetHash, "GetHash");
+			RegisterOpCode(OPCODE_WaitFrame, "WaitFrame");
+			RegisterOpCode(OPCODE_ScriptMethodThreadCallPointerEndOn, "ScriptMethodThreadCallPointerEndOn");
+			RegisterOpCode(OPCODE_WaitTillMatch, "WaitTillMatch");
+			RegisterOpCode(OPCODE_ScriptThreadCallEndOn, "ScriptThreadCallEndOn");
+			RegisterOpCode(OPCODE_Switch, "Switch");
+			RegisterOpCode(OPCODE_ScriptFunctionCallPointer, "ScriptFunctionCallPointer");
+			RegisterOpCode(OPCODE_DevblockBegin, "DevblockBegin");
+			RegisterOpCode(OPCODE_NotEqual, "NotEqual");
+			RegisterOpCode(OPCODE_ScriptMethodCallPointer, "ScriptMethodCallPointer");
+			RegisterOpCode(OPCODE_JumpOnTrue, "JumpOnTrue");
+			RegisterOpCode(OPCODE_ScriptMethodThreadCallEndOn, "ScriptMethodThreadCallEndOn");
+			RegisterOpCode(OPCODE_SafeCreateLocalVariables, "SafeCreateLocalVariables");
+			RegisterOpCode(OPCODE_GetNegUnsignedShort, "GetNegUnsignedShort");
+			RegisterOpCode(OPCODE_ClassFunctionCall, "ClassFunctionCall");
+			RegisterOpCode(OPCODE_Return, "Return");
+			RegisterOpCode(OPCODE_EvalFieldVariableRef, "EvalFieldVariableRef");
+			RegisterOpCode(OPCODE_SafeDecTop, "SafeDecTop");
+			RegisterOpCode(OPCODE_Bit_Or, "Bit_Or");
+			RegisterOpCode(OPCODE_ScriptThreadCall, "ScriptThreadCall");
+			RegisterOpCode(OPCODE_Bit_Xor, "Bit_Xor");
+			RegisterOpCode(OPCODE_GetSelfObject, "GetSelfObject");
+			RegisterOpCode(OPCODE_GetNegByte, "GetNegByte");
+			RegisterOpCode(OPCODE_ScriptThreadCallPointerEndOn, "ScriptThreadCallPointerEndOn");
+			RegisterOpCode(OPCODE_BoolComplement, "BoolComplement");
+			RegisterOpCode(OPCODE_IsDefined, "IsDefined");
+			RegisterOpCode(OPCODE_AddToArray, "AddToArray");
+			RegisterOpCode(OPCODE_Wait, "Wait");
+			RegisterOpCode(OPCODE_SuperEqual, "SuperEqual");
+			RegisterOpCode(OPCODE_ScriptFunctionCall, "ScriptFunctionCall");
+			RegisterOpCode(OPCODE_JumpOnTrueExpr, "JumpOnTrueExpr");
+			RegisterOpCode(OPCODE_CreateArray, "CreateArray");
+			RegisterOpCode(OPCODE_Inc, "Inc");
+			RegisterOpCode(OPCODE_ShiftLeft, "ShiftLeft");
+			RegisterOpCode(OPCODE_JumpOnGreaterThan, "JumpOnGreaterThan");
+			RegisterOpCode(OPCODE_Plus, "Plus");
+			RegisterOpCode(OPCODE_CastAndEvalFieldVariable, "CastAndEvalFieldVariable");
+			RegisterOpCode(OPCODE_ShiftRight, "ShiftRight");
+			RegisterOpCode(OPCODE_CreateStruct, "CreateStruct");
+			RegisterOpCode(OPCODE_CastCanon, "CastCanon");
+			RegisterOpCode(OPCODE_GreaterThanOrEqualTo, "GreaterThanOrEqualTo");
+			RegisterOpCode(OPCODE_GetUIntPtr, "GetUIntPtr");
+			RegisterOpCode(OPCODE_GetLongInteger, "GetLongInteger");
+			RegisterOpCode(OPCODE_EvalArray, "EvalArray");
+			RegisterOpCode(OPCODE_WaitTillFrameEnd, "WaitTillFrameEnd");
+			RegisterOpCode(OPCODE_EndOnCallback, "EndOnCallback");
+			RegisterOpCode(OPCODE_EndOn, "EndOn");
+			RegisterOpCode(OPCODE_SuperNotEqual, "SuperNotEqual");
+			RegisterOpCode(OPCODE_GetFloat, "GetFloat");
+			RegisterOpCode(OPCODE_ProfileStart, "ProfileStart");
+			RegisterOpCode(OPCODE_GetString, "GetString");
+			RegisterOpCode(OPCODE_BoolNot, "BoolNot");
+			RegisterOpCode(OPCODE_CastBool, "CastBool");
+			RegisterOpCode(OPCODE_Equal, "Equal");
+			RegisterOpCode(OPCODE_GetUnsignedInteger, "GetUnsignedInteger");
+			RegisterOpCode(OPCODE_WaittillTimeout, "WaittillTimeout");
+			RegisterOpCode(OPCODE_GreaterThan, "GreaterThan");
+			RegisterOpCode(OPCODE_Jump, "Jump");
+			RegisterOpCode(OPCODE_Divide, "Divide");
+			RegisterOpCode(OPCODE_EndSwitch, "EndSwitch");
+			RegisterOpCode(OPCODE_JumpOnFalse, "JumpOnFalse");
+			RegisterOpCode(OPCODE_JumpOnFalseExpr, "JumpOnFalseExpr");
+			RegisterOpCode(OPCODE_Minus, "Minus");
+			RegisterOpCode(OPCODE_ProfileStop, "ProfileStop");
+			RegisterOpCode(OPCODE_GetInteger, "GetInteger");
+			RegisterOpCode(OPCODE_ClassFunctionThreadCall, "ClassFunctionThreadCall");
+			RegisterOpCode(OPCODE_VectorScale, "VectorScale");
+			RegisterOpCode(OPCODE_Modulus, "Modulus");
+			RegisterOpCode(OPCODE_VectorConstant, "VectorConstant");
+			RegisterOpCode(OPCODE_SizeOf, "SizeOf");
+			RegisterOpCode(OPCODE_Notify, "Notify");
+			RegisterOpCode(OPCODE_Vector, "Vector");
+			RegisterOpCode(OPCODE_Dec, "Dec");
+			RegisterOpCode(OPCODE_JumpOnLessThan, "JumpOnLessThan");
+			RegisterOpCode(OPCODE_Bit_And, "Bit_And");
+			RegisterOpCode(OPCODE_GetObjectType, "GetObjectType");
+			RegisterOpCode(OPCODE_Multiply, "Multiply");
+			RegisterOpCode(OPCODE_EvalFieldVariableOnStack, "EvalFieldVariableOnStack");
+			RegisterOpCode(OPCODE_GetTime, "GetTime");
+			RegisterOpCode(OPCODE_AddToStruct, "AddToStruct");
+			RegisterOpCode(OPCODE_ClassFunctionThreadCallEndOn, "ClassFunctionThreadCallEndOn");
+			RegisterOpCode(OPCODE_LessThanOrEqualTo, "LessThanOrEqualTo");
+			RegisterOpCode(OPCODE_GetGlobal, "GetGlobal");
+			RegisterOpCode(OPCODE_GetZero, "GetZero");
+			RegisterOpCode(OPCODE_ClearFieldVariable, "ClearFieldVariable");
+			RegisterOpCode(OPCODE_EvalFieldObjectFromRef, "EvalFieldObjectFromRef");
+			RegisterOpCode(OPCODE_GetSelf, "GetSelf");
+			RegisterOpCode(OPCODE_GetResolveFunction, "GetResolveFunction");
+			RegisterOpCode(OPCODE_GetGlobalObject, "GetGlobalObject");
+			RegisterOpCode(OPCODE_GetByte, "GetByte");
+			RegisterOpCode(OPCODE_CastFieldObject, "CastFieldObject");
+			RegisterOpCode(OPCODE_ScriptThreadCallPointer, "ScriptThreadCallPointer");
+			RegisterOpCode(OPCODE_LessThan, "LessThan");
+			RegisterOpCode(OPCODE_ScriptMethodCall, "ScriptMethodCall");
+			RegisterOpCode(OPCODE_DecTop, "DecTop");
+			RegisterOpCode(OPCODE_GetVector, "GetVector");
+			RegisterOpCode(OPCODE_ScriptMethodThreadCall, "ScriptMethodThreadCall");
+			RegisterOpCode(OPCODE_JumpPush, "JumpPush");
+			RegisterOpCode(OPCODE_GetUnsignedShort, "GetUnsignedShort");
+			RegisterOpCode(OPCODE_EvalLocalVariableCached, "EvalLocalVariableCached");
+			RegisterOpCode(OPCODE_EvalFieldVariable, "EvalFieldVariable");
+			RegisterOpCode(OPCODE_GetFunction, "GetFunction");
+			RegisterOpCode(OPCODE_EvalArrayRef, "EvalArrayRef");
+			RegisterOpCode(OPCODE_SetNextArrayKeyCached, "SetNextArrayKeyCached");
+			RegisterOpCode(OPCODE_Unknown9e, "Unknown9e");
+			RegisterOpCode(OPCODE_EvalLocalVariableCachedSafe, "EvalLocalVariableCachedSafe");
+			RegisterOpCode(OPCODE_SetLocalVariableCachedOnStack, "SetLocalVariableCachedOnStack");
+			RegisterOpCode(OPCODE_Unknownc7, "Unknownc7");
+			RegisterOpCode(OPCODE_Unknown35, "Unknown35");
+			RegisterOpCode(OPCODE_FirstArrayKey, "FirstArrayKey");
+			RegisterOpCode(OPCODE_EvalFieldVariableOnStackRef, "EvalFieldVariableOnStackRef");
+			RegisterOpCode(OPCODE_SetVariableFieldRef, "SetVariableFieldRef");
+			RegisterOpCode(OPCODE_SetVariableField, "SetVariableField");
+			RegisterOpCode(OPCODE_EvalSelfFieldVariable, "EvalSelfFieldVariable");
+			RegisterOpCode(OPCODE_SetLocalVariableCached, "SetLocalVariableCached");
+			RegisterOpCode(OPCODE_FirstArrayKeyCached, "FirstArrayKeyCached");
+			RegisterOpCode(OPCODE_EvalLocalVariableRefCached, "EvalLocalVariableRefCached");
+			RegisterOpCode(OPCODE_EvalGlobalObjectFieldVariable, "EvalGlobalObjectFieldVariable");
+			RegisterOpCode(OPCODE_EvalLocalVariableDefined, "EvalLocalVariableDefined");
+			RegisterOpCode(OPCODE_T8C_GetLazyFunction, "T8C_GetLazyFunction");
+			RegisterOpCode(OPCODE_ProfileNamedStart, "ProfileNamedStart");
+			RegisterOpCode(OPCODE_ProfileNamedEnd, "ProfileNamedEnd");
+			RegisterOpCode(OPCODE_GetNegUnsignedInteger, "GetNegUnsignedInteger");
+			RegisterOpCode(OPCODE_T9_EvalFieldVariableFromObjectCached, "EvalFieldVariableFromObjectCached");
+			RegisterOpCode(OPCODE_T9_EvalFieldVariableFromObjectFromRef, "EvalFieldVariableFromObjectFromRef");
+			RegisterOpCode(OPCODE_T9_SetFieldVariableFromObjectFromRef, "SetFieldVariableFromObjectFromRef");
+			RegisterOpCode(OPCODE_T9_EvalLocalVariableCachedDouble, "EvalLocalVariableCachedDouble");
+			RegisterOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject, "EvalFieldVariableFromGlobalObject");
+			RegisterOpCode(OPCODE_T9_SetVariableFieldFromEvalArrayRef, "SetVariableFieldFromEvalArrayRef");
+			RegisterOpCode(OPCODE_T9_IncLocalVariableCached, "IncLocalVariableCached");
+			RegisterOpCode(OPCODE_T9_DecLocalVariableCached, "DecLocalVariableCached");
+			RegisterOpCode(OPCODE_T9_EvalArrayCached, "EvalArrayCached");
+			RegisterOpCode(OPCODE_T9_EndOnCallbackParam, "EndOnCallbackParam");
+			RegisterOpCode(OPCODE_T9_GetVarRef, "GetVarRef");
+			RegisterOpCode(OPCODE_T9_IteratorKey, "IteratorKey");
+			RegisterOpCode(OPCODE_T9_IteratorVal, "IteratorVal");
+			RegisterOpCode(OPCODE_T9_IteratorNext, "IteratorNext");
+			RegisterOpCode(OPCODE_IW_RegisterVariable, "RegisterVariable");
+			RegisterOpCode(OPCODE_IW_GetAnimation, "GetAnimation");
+			RegisterOpCode(OPCODE_IW_GetAnimationTree, "GetAnimationTree");
+			RegisterOpCode(OPCODE_IW_GetBuiltinFunction, "GetBuiltinFunction");
+			RegisterOpCode(OPCODE_IW_GetBuiltinMethod, "GetBuiltinMethod");
+			RegisterOpCode(OPCODE_IW_GetIString, "GetIString");
+			RegisterOpCode(OPCODE_IW_GetEmptyUnkE, "GetEmptyUnkE");
+			RegisterOpCode(OPCODE_IW_GetUnkb, "GetUnkb");
+			RegisterOpCode(OPCODE_IW_GetUnk9, "GetUnk9");
+			RegisterOpCode(OPCODE_IW_GetDVarHash, "GetDVarHash");
+			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached0, "EvalLocalVariableCached0");
+			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached1, "EvalLocalVariableCached1");
+			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached2, "EvalLocalVariableCached2");
+			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached3, "EvalLocalVariableCached3");
+			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached4, "EvalLocalVariableCached4");
+			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached5, "EvalLocalVariableCached5");
+			RegisterOpCode(OPCODE_IW_EvalLocalArrayCached, "EvalLocalArrayCached");
+			RegisterOpCode(OPCODE_IW_EvalLocalVariableObjectCached, "EvalLocalVariableObjectCached");
+			RegisterOpCode(OPCODE_IW_ClearFieldVariableRef, "ClearFieldVariableRef");
+			RegisterOpCode(OPCODE_IW_EvalLevelFieldVariableRef, "EvalLevelFieldVariableRef");
+			RegisterOpCode(OPCODE_IW_EvalLevelFieldVariable, "EvalLevelFieldVariable");
+			RegisterOpCode(OPCODE_IW_EvalSelfFieldVar, "EvalSelfFieldVar");
+			RegisterOpCode(OPCODE_IW_EvalSelfFieldVarRef, "EvalSelfFieldVarRef");
+			RegisterOpCode(OPCODE_IW_EvalAnimFieldVar, "EvalAnimFieldVar");
+			RegisterOpCode(OPCODE_IW_EvalAnimFieldVarRef, "EvalAnimFieldVarRef");
+			RegisterOpCode(OPCODE_IW_SetAnimFieldVar, "SetAnimFieldVar");
+			RegisterOpCode(OPCODE_IW_SetLevelFieldVariable, "SetLevelFieldVariable");
+			RegisterOpCode(OPCODE_IW_SetSelfFieldVar, "SetSelfFieldVar");
+			RegisterOpCode(OPCODE_IW_DevBlock, "DevBlock");
+			RegisterOpCode(OPCODE_IW_SingleEndon, "SingleEndon");
+			RegisterOpCode(OPCODE_IW_SingleWaitTill, "SingleWaitTill");
+			RegisterOpCode(OPCODE_IW_IsTrue, "IsTrue");
+			RegisterOpCode(OPCODE_IW_Switch, "IWSwitch");
+			RegisterOpCode(OPCODE_IW_EndSwitch, "IWEndSwitch");
+			RegisterOpCode(OPCODE_IW_SetWaittillVariableFieldCached, "SetWaittillVariableFieldCached");
+			RegisterOpCode(OPCODE_IW_WaitFrame, "IWWaitFrame");
+			RegisterOpCode(OPCODE_IW_AddToStruct, "IWAddToStruct");
+			RegisterOpCode(OPCODE_IW_BuiltinFunctionCallPointer, "BuiltinFunctionCallPointer");
+			RegisterOpCode(OPCODE_IW_BuiltinMethodCallPointer, "BuiltinMethodCallPointer");
+			RegisterOpCode(OPCODE_IW_GetLevel, "GetLevel");
+			RegisterOpCode(OPCODE_IW_GetLevelGRef, "GetLevelGRef");
+			RegisterOpCode(OPCODE_IW_GetGame, "GetGame");
+			RegisterOpCode(OPCODE_IW_GetGameRef, "GetGameRef");
+			RegisterOpCode(OPCODE_IW_GetAnim, "GetAnim");
+			RegisterOpCode(OPCODE_IW_GetAnimRef, "GetAnimRef");
+			RegisterOpCode(OPCODE_IW_EvalArrayCachedField, "EvalArrayCachedField");
+			RegisterOpCode(OPCODE_IW_GetThread, "GetThread");
+			RegisterOpCode(OPCODE_IW_Notify, "IWNotify");
+			RegisterOpCode(OPCODE_IW_WaitTillMatch, "IWWaitTillMatch");
+			RegisterOpCode(OPCODE_DevOp, "DevOp");
+			RegisterOpCode(OPCODE_GetSignedByte, "GetSignedByte");
+			RegisterOpCode(OPCODE_GetShort, "GetShort");
+			RegisterOpCode(OPCODE_GetHash32, "GetHash32");
+			RegisterOpCode(OPCODE_NextArrayKey, "NextArrayKey");
+			RegisterOpCode(OPCODE_GetAnimGRef, "GetAnimGRef");
+			RegisterOpCode(OPCODE_T7_ProfileStart, "T7ProfileStart");
+			RegisterOpCode(OPCODE_GetClasses, "GetClasses");
+			RegisterOpCode(OPCODE_GetClassesObject, "GetClassesObject");
+			RegisterOpCode(OPCODE_GetWorld, "GetWorld");
+			RegisterOpCode(OPCODE_GetWorldObject, "GetWorldObject");
+			RegisterOpCode(OPCODE_Wait2, "Wait2");
+			RegisterOpCode(OPCODE_WaitTillMatch2, "WaitTillMatch2");
+			RegisterOpCode(OPCODE_IgnoreWaittillVariableFieldCached, "IgnoreWaittillVariableFieldCached");
+		}
+	};
+	namespace {
+		static OpCodeLookupTable table{};
 	}
+
+	const char* OpCodeName(OPCode op) {
+		auto it = table.opToName.find(op);
+		return it != table.opToName.end() ? it->second : nullptr;
+	}
+	OPCode OpCodeFromName(const char* op) {
+		auto it = table.nameToOp.find(op);
+		return it != table.nameToOp.end() ? it->second : OPCODE_Undefined;
+	}
+	int dop(Process& proc, int argc, const char* argv[]) {
+		std::filesystem::path outFile;
+		if (argc == 2) {
+			outFile = "opcodes.actsop";
+		}
+		else {
+			outFile = argv[2];
+		}
+		tool::gsc::opcode::RegisterOpCodesMap();
+		const std::unordered_map<byte, VmInfo>& maps{ opcode::GetVMMaps() };
+
+		std::ofstream os{ outFile };
+
+		os << "VM,PLATFORM,OPCODE,VALUES";
+		for (auto& [vm, vmInfo] : maps) {
+			const char* vmname{ utils::UpperCase(utils::CloneString(vmInfo.codeName)) };
+			for (auto& [plt, lookupmap] : vmInfo.opcodemappltlookup) {
+				const char* pltname{ utils::UpperCase(utils::CloneString(PlatformName(plt))) };
+				LOG_INFO("Dump {}/{}", vmname, pltname);
+				std::unordered_set<uint16_t> defined{};
+				for (auto& [opco, opcodes] : lookupmap) {
+
+					const char* opcodename{ OpCodeName(opco) };
+					if (!opcodename) {
+						LOG_ERROR("Invalid opcode : {}", (int)opco);
+						opcodename = "<error>";
+					}
+					os << "\n" << vmname << "," << pltname << "," << opcodename << ",";
+
+					for (size_t i = 0; i < opcodes.size(); i++) {
+						if (i) os << ";";
+						os << "0x" << std::hex << opcodes[i];
+						defined.insert(opcodes[i]);
+					}
+				}
+				if (defined.size() < vmInfo.maxOpCode) {
+					os << "\n" << vmname << "," << pltname << ",Undefined,";
+					bool def{};
+					for (size_t i = 0; i <= vmInfo.maxOpCode; i++) {
+						if (!defined.contains((uint16_t)i)) {
+							if (def) {
+								os << ";";
+							}
+							else {
+								def = true;
+							}
+							os << "0x" << std::hex << i;
+						}
+					}
+				}
+			}
+		}
+
+		os.close();
+		LOG_INFO("Dump into {}", outFile.string());
+
+		return tool::OK;
+	}
+
+#ifndef CI_BUILD
+
+	int opcodetest(Process& proc, int argc, const char* argv[]) {
+		LOG_INFO("{}", utils::PtrOrElse(OpCodeName(OPCODE_End), "null"));
+		return tool::OK;
+	}
+
+	ADD_TOOL("opcodetest", "dev", "", "test opcodes names lookup", nullptr, opcodetest);
+#endif
+	ADD_TOOL("dop", "dev", " [file=opcodes.actsop]", "dump opcodes", nullptr, dop);
+
 }

@@ -210,7 +210,7 @@ namespace {
 		std::cout << "Mapping: \n";
 		int count = 0;
 		for (auto [key, vec] : map) {
-			std::cout << std::hex << tool::gsc::opcode::OpCodeName((tool::gsc::opcode::OPCode)(key)) << " = ";
+			std::cout << std::hex << utils::PtrOrElse(tool::gsc::opcode::OpCodeName((tool::gsc::opcode::OPCode)(key)), "null") << " = ";
 			for (const auto val : vec) {
 				std::cout << std::hex << val << " ";
 				count++;
@@ -228,7 +228,7 @@ namespace {
 			}
 			std::cout << std::hex << key << " = ";
 			for (const auto val : vec) {
-				std::cout << std::hex << tool::gsc::opcode::OpCodeName((tool::gsc::opcode::OPCode)(val)) << " ";
+				std::cout << std::hex << utils::PtrOrElse(tool::gsc::opcode::OpCodeName((tool::gsc::opcode::OPCode)(val)), "null") << " ";
 			}
 			std::cout << "\n";
 		}
@@ -280,7 +280,7 @@ namespace {
 			if (!freq[i].count) {
 				continue;
 			}
-			std::cout << "Opcode " << OpCodeName(freq[i].opcode) << " -> " << std::dec << freq[i].count << "\n";
+			std::cout << "Opcode " << utils::PtrOrElse(OpCodeName(freq[i].opcode), "null") << " -> " << std::dec << freq[i].count << "\n";
 		}
 
 

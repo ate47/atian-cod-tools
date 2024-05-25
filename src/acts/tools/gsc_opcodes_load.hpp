@@ -273,4 +273,5 @@ namespace tool::gsc::opcode {
 	void RegisterOpCodesMap();
 
 	const char* OpCodeName(OPCode op);
+	OPCode OpCodeFromName(const char* op);
 }

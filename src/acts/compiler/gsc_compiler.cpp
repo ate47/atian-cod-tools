@@ -146,7 +146,7 @@ namespace acts::compiler {
         bool Write(AscmCompilerContext& ctx) override {
             auto [ok, op] = GetOpCodeId(ctx.vmInfo->vm, ctx.plt, opcode);
             if (!ok) {
-                LOG_ERROR("Can't find opcode {} ({}) for vm {}/{}", OpCodeName(opcode), (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
+                LOG_ERROR("Can't find opcode {} ({}) for vm {}/{}", utils::PtrOrElse(OpCodeName(opcode), "null"), (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
 
                 return false;
             }
@@ -342,7 +342,10 @@ namespace acts::compiler {
                     dataSize = 4;
                     useParams = false;
                     break;
-                default: throw std::runtime_error(utils::va("invalid opcode for func call %s", tool::gsc::opcode::OpCodeName(opcode)));
+                default: {
+                    const char* opcodeName{ tool::gsc::opcode::OpCodeName(opcode) };
+                    throw std::runtime_error(utils::va("invalid opcode for func call %s", opcodeName ? opcodeName : "null"));
+                }
                 }
             }
         }
