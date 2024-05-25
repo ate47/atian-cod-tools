@@ -42,6 +42,13 @@ namespace {
 		return 0;
 	}
 
+	int hasht7(Process& proc, int argc, const char* argv[]) {
+		for (int i = 2; i < argc; i++) {
+			LOG_INFO("{}={:x}", argv[i], hashutils::HashT7(argv[i]));
+		}
+		return 0;
+	}
+
 	int collisiontool(Process& proc, int argc, const char* argv[]) {
 		LOG_INFO("Searching...");
 		const char* file = actscli::options().defaultHashFile;
@@ -75,6 +82,8 @@ namespace {
 		HWND hash64IW3EditLabel{};
 		HWND hash32IW4Edit{};
 		HWND hash32IW4EditLabel{};
+		HWND hashT7Edit{};
+		HWND hashT7EditLabel{};
 
 		HWND titleLabel{};
     } info{};
@@ -88,12 +97,14 @@ namespace {
 		std::wstring hash64IW2Val = std::format(L"{:x}", hashutils::HashAIW(info.hash.c_str()));
 		std::wstring hash64IW3Val = std::format(L"{:x}", hashutils::HashAIW2(info.hash.c_str()));
 		std::wstring hash32IW4Val = std::format(L"{:x}", hashutils::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
+		std::wstring hashT7Val = std::format(L"{:x}", hashutils::HashT7(info.hash.c_str()));
 
 		Edit_SetText(info.hash64Edit, hash64Val.c_str());
 		Edit_SetText(info.hash32Edit, hash32Val.c_str());
 		Edit_SetText(info.hash64IW2Edit, hash64IW2Val.c_str());
 		Edit_SetText(info.hash64IW3Edit, hash64IW3Val.c_str());
 		Edit_SetText(info.hash32IW4Edit, hash32IW4Val.c_str());
+		Edit_SetText(info.hashT7Edit, hashT7Val.c_str());
 	}
 
     int Render(HWND window, HINSTANCE hInstance) {
@@ -255,6 +266,30 @@ namespace {
 			NULL
 		);
 
+		info.hashT7Edit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.hashT7EditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"BO3 Hash : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
         if (
             info.hashEdit == NULL
 			|| info.hashEditLabel == NULL
@@ -268,6 +303,8 @@ namespace {
 			|| info.hash64IW3EditLabel == NULL
 			|| info.hash32IW4Edit == NULL
 			|| info.hash32IW4EditLabel == NULL
+			|| info.hashT7Edit == NULL
+			|| info.hashT7EditLabel == NULL
 			|| info.titleLabel == NULL
             ) {
             return -1;
@@ -279,12 +316,14 @@ namespace {
 		SendMessage(info.hash64IW2Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hash64IW3Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hash32IW4Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hashT7Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 
 		Edit_SetReadOnly(info.hash64Edit, true);
 		Edit_SetReadOnly(info.hash32Edit, true);
 		Edit_SetReadOnly(info.hash64IW2Edit, true);
 		Edit_SetReadOnly(info.hash64IW3Edit, true);
 		Edit_SetReadOnly(info.hash32IW4Edit, true);
+		Edit_SetReadOnly(info.hashT7Edit, true);
 
 		ComputeHashes();
 
@@ -312,6 +351,8 @@ namespace {
 				|| lParam == (LPARAM)info.hash64IW3EditLabel
 				|| lParam == (LPARAM)info.hash32IW4Edit
 				|| lParam == (LPARAM)info.hash32IW4EditLabel
+				|| lParam == (LPARAM)info.hashT7Edit
+				|| lParam == (LPARAM)info.hashT7EditLabel
 				|| lParam == (LPARAM)info.titleLabel
                 ) {
                 return 0;
@@ -320,7 +361,7 @@ namespace {
         return 1;
     }
 	void Resize(int width, int height) {
-		int y{ height / 2 - 28 * 4 };
+		int y{ height / 2 - 28 * 5 };
 		SetWindowPos(info.titleLabel, NULL, 0, y - 68, width, 60, SWP_SHOWWINDOW);
 
 		SetWindowPos(info.hashEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
@@ -341,6 +382,9 @@ namespace {
 		SetWindowPos(info.hash32IW4Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash32IW4EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
+		SetWindowPos(info.hashT7Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashT7EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
 
 		tool::ui::window().SetTitleFont(info.titleLabel);
 	}
@@ -350,4 +394,5 @@ ADD_TOOL_UI("hash", L"Hash", Render, Update, Resize);
 ADD_TOOL("lookup", "hash", " (string)*", "lookup strings", nullptr, lookuptool);
 ADD_TOOL("h32", "hash", " (string)*", "hash strings", nullptr, hash32);
 ADD_TOOL("h64", "hash", " (string)*", "hash strings", nullptr, hash64);
+ADD_TOOL("ht7", "hash", " (string)*", "hash strings", nullptr, hasht7);
 ADD_TOOL("str", "hash", "", "check collisions in the string file", nullptr, collisiontool);
