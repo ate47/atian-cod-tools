@@ -6,7 +6,7 @@
 namespace tool::gsc::opcode {
 	enum VmFlags {
 		VMF_NONE = 0,
-		VMF_OPCODE_SHORT = 1,
+		VMF_ALIGN = 1,
 		VMF_HASH64 = 2,
 		VMF_NO_VERSION = 4,
 		VMF_NO_PARAM_FLAGS = 8,
@@ -15,6 +15,9 @@ namespace tool::gsc::opcode {
 		VMF_HASH_IW = 0x40,
 		VMF_CLIENT_VM = 0x80,
 		VMF_NO_FILE_NAMESPACE = 0x100,
+		VMF_OPCODE_U16 = 0x200,
+		VMF_CALL_NO_PARAMS = 0x400,
+		VMF_IW_CALLS = 0x800,
 	};
 	enum VmOperatorFunctionData {
 		VPFD_NONE = 0,
@@ -94,8 +97,8 @@ namespace tool::gsc::opcode {
 		 * @param flag flag
 		 * @return if the vm has the flag
 		 */
-		constexpr bool HasFlag(VmFlags flag) const {
-			return flags & flag;
+		constexpr bool HasFlag(uint64_t flag) const {
+			return (flags & flag) == flag;
 		}
 
 		uint64_t HashField(const char* value) const;

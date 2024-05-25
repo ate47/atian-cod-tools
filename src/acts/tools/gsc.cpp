@@ -14,6 +14,12 @@ constexpr uint32_t g_destructorName = hashutils::Hash32("__destructor");
 constexpr uint32_t g_constructorNameT7 = hashutils::HashT7("__constructor");
 constexpr uint32_t g_destructorNameT7 = hashutils::HashT7("__destructor");
 
+enum DumpVTableAnswer : int {
+    DVA_OK = 0,
+    DVA_NOT,
+    DVA_BAD,
+};
+
 GscInfoOption::GscInfoOption() {
     // set default formatter
     m_formatter = &tool::gsc::formatter::GetFromName();
@@ -322,7 +328,7 @@ byte GSCOBJHandler::MapFlagsExportToInt(byte flags) {
 }
 
 void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
-    if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
         if (GetAnimTreeSingleOffset()) {
             // HAS TO BE DONE FIRST BECAUSE THEY ARE STORED USING 1 byte
             uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(file) + GetAnimTreeSingleOffset();
@@ -566,6 +572,7 @@ namespace {
         { VM_T9,[](byte* file, size_t fileSize) { return std::make_shared<T9GSCOBJHandler>(file, fileSize); }},
         { VM_MW23,[](byte* file, size_t fileSize) { return std::make_shared<MW23GSCOBJHandler>(file, fileSize); }},
         { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
+        { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
     };
 }
 
@@ -1252,13 +1259,15 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             output << "}\n";
 
             if (asmctx.m_disableDecompiler) {
+                if (opt.m_dasm || opt.m_func_header_post) {
+                    DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
+                    output << ";\n";
+                }
+
                 if (opt.m_dasm) {
-                    output << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << "\n";
+                    output << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << asmctx.m_disableDecompilerError << "\n";
                 }
-                else if (opt.m_dcomp) {
-                    asmout << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << "\n\n";
-                }
-                else {
+                else if (!opt.m_dcomp) {
                     LOG_WARNING("Can't decompile export {}::{}", hashutils::ExtractTmp("namespace", exp->GetNamespace()), hashutils::ExtractTmp("function", exp->GetName()));
                 }
             }
@@ -1272,20 +1281,16 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 output << std::flush;
                 DecompContext dctx{ 0, 0, asmctx.m_opt };
                 if (opt.m_dcomp) {
-                    if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
+                    if (scriptfile->IsVTableImportFlags(exp->GetFlags())) {
                         asmctx.m_bcl = scriptfile->Ptr(exp->GetAddress());
-
-                        if (asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
-                            output << "\n";
+                        int ret{ DumpVTable(*exp, output, *scriptfile, ctx, asmctx, dctx) };
+                        asmctx.m_vtable = ret != DVA_NOT;
+                        if (ret == DVA_BAD) {
+                            output << "// Can't decompile vtable " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << ret << "\n";
                         }
-                        else {
-                            output << " ";
-                        }
-                        output << "{\n";
-                        DumpVTable(*exp, output, *scriptfile, ctx, asmctx, dctx);
-                        output << "}\n";
                     }
-                    else {
+
+                    if (!asmctx.m_vtable) {
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_DEV)) {
                             asmctx.ComputeDevBlocks();
 
@@ -1385,16 +1390,18 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                     }
 
                     auto& e = masmctxit->second;
+                    // set the export handle
+                    e.m_exp.SetHandle(e.m_readerHandle);
 
                     if (e.m_disableDecompiler) {
+                        DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
+                        asmout << ";\n";
                         return;
                     }
 
                     if (!ignoreEmpty || SizeNoEmptyNode(e.m_funcBlock.m_statements) > 1) {
                         // ignore empty exports (constructor/destructors)
                         
-                        // set the export handle
-                        e.m_exp.SetHandle(e.m_readerHandle);
 
                         DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
                         DecompContext dctx{ 0, 0, e.m_opt, currentPadding + 1 };
@@ -1455,10 +1462,6 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
                 exp->SetHandle(handle);
 
-                if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
-                    continue;
-                }
-
                 Located lname = Located{ exp->GetNamespace(), exp->GetName() };
 
                 auto f = contextes.find(lname);
@@ -1469,7 +1472,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
                 auto& asmctx = f->second;
 
-                if (asmctx.m_disableDecompiler) {
+                if (asmctx.m_disableDecompiler || asmctx.m_vtable) {
                     continue;
                 }
 
@@ -1517,16 +1520,17 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
                 exp->SetHandle(handle);
 
-                if (scriptfile->RemapFlagsExport(exp->GetFlags()) == T8GSCExportFlags::CLASS_VTABLE) {
-                    continue;
-                }
-
                 Located lname = Located{ exp->GetNamespace(), exp->GetName() };
 
                 auto f = contextes.find(lname);
 
                 if (f == contextes.end()) {
                     continue; // already parsed
+                }
+                auto& asmctx = f->second;
+
+                if (asmctx.m_vtable) {
+                    continue;
                 }
 
                 if (exp->GetNamespace() != currentNSP) {
@@ -1536,7 +1540,6 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                 }
 
 
-                auto& asmctx = f->second;
 
                 if (asmctx.m_devFuncCandidate) {
                     auto* dvb = GetNoEmptyNode(asmctx.m_funcBlock.m_statements, 0);
@@ -1559,13 +1562,25 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
                         inDevBlock = false;
                     }
                 }
+                DecompContext dctx{ 0, 0, asmctx.m_opt, currentPadding };
 
                 if (asmctx.m_disableDecompiler) {
+                    DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding);
+                    if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                        dctx.WritePadding(asmout << "\n");
+                    }
+                    else {
+                        asmout << " ";
+                    }
+                    asmout << "{\n";
+                    dctx.padding++;
+                    dctx.WritePadding(asmout) << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << asmctx.m_disableDecompilerError << "\n";
+                    dctx.padding--;
+                    asmout << "}\n\n";
                     continue;
                 }
 
                 DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding);
-                DecompContext dctx{ 0, 0, asmctx.m_opt, currentPadding };
                 if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
                     dctx.WritePadding(asmout << "\n");
                 }
@@ -1817,8 +1832,14 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
-            if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN) && objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
                 ctx.Aligned<uint16_t>();
+            }
+            uint32_t floc = ctx.ScriptAbsoluteLocation();
+            if (ctx.m_bcl < gscFile.file || floc >= gscFile.fileSize) {
+                out << std::hex << "FAILURE, FIND location after file 0x" << std::hex << floc << "\n";
+                ctx.DisableDecompiler(std::format("FIND bad floc 0x{:x}", floc));
+                break;
             }
             byte*& base = ctx.m_bcl;
 
@@ -1874,7 +1895,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             uint16_t opCode;
 
-            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)) {
+            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
                 opCode = *(uint16_t*)base;
             }
             else {
@@ -1888,8 +1909,8 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             if (opCode > objctx.m_vmInfo->maxOpCode) {
                 out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(0x" << opCode << " > 0x" << objctx.m_vmInfo->maxOpCode << ")" << "\n";
+                ctx.DisableDecompiler(std::format("FIND errec 0x{:x}", opCode));
                 opCode &= objctx.m_vmInfo->maxOpCode;
-                ctx.m_disableDecompiler = true;
                 break;
             }
 
@@ -1903,7 +1924,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             // pass the opcode
 
-            if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
                 base += 2;
             }
             else {
@@ -1927,7 +1948,6 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
     return 0;
 }
 
-
 int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, DecompContext& dctxt) {
     using namespace tool::gsc::opcode;
     uint16_t code = *(uint16_t*)ctx.Aligned<uint16_t>();
@@ -1947,8 +1967,8 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 */
     
     if (!ccp || ccp->m_id != OPCODE_CheckClearParams) {
-        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected CheckClearParams\n";
-        return -1;
+        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected CheckClearParams\n";
+        return DVA_NOT;
     }
 
     ctx.m_bcl += 2;
@@ -1957,8 +1977,8 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
 
     if (!preScriptCall || preScriptCall->m_id != OPCODE_PreScriptCall) {
-        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected PreScriptCall\n";
-        return -1;
+        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected PreScriptCall\n";
+        return DVA_NOT;
     }
 
     ctx.m_bcl += 2;
@@ -1967,16 +1987,16 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     
     if (!spawnStruct) {
-        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << "\n";
-        return -1;
+        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << "\n";
+        return DVA_NOT;
     }
 
     if (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction) {
         if (gscFile.GetVM() == VM_T9) {
-            return 0; // crc dump
+            return DVA_OK; // crc dump
         }
-        dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected ScriptFunctionCall\n";
-        return -1;
+        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected ScriptFunctionCall\n";
+        return DVA_NOT;
     }
 
     ctx.m_bcl += 2 + 1; // call
@@ -2019,6 +2039,14 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         ctx.Aligned<uint16_t>() += 2; // SetVariableField
     }
 
+
+    if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+        out << "\n";
+    }
+    else {
+        out << " ";
+    }
+    out << "{\n";
     while (true) {
         auto& func = ctx.Aligned<uint16_t>();
 
@@ -2029,14 +2057,16 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
         if (!funcOpCode) {
             dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << opcode << "\n";
-            return -1;
+            out << "}\n";
+            return DVA_BAD;
         }
         if (funcOpCode->m_id == OPCODE_End) {
             break; // end
         }
         if (funcOpCode->m_id != OPCODE_GetResolveFunction) {
             dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << opcode << ", excepted GetResolveFunction or End\n";
-            return -1;
+            out << "}\n";
+            return DVA_BAD;
         }
 
         auto& getFuncBase = ctx.Aligned<uint64_t>();
@@ -2054,7 +2084,8 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
         if (!uidCodeOpCode) {
             dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOpCode->m_name << ", excepted Getter\n";
-            return -1;
+            out << "}\n";
+            return DVA_BAD;
         }
 
         uint64_t uid;
@@ -2097,7 +2128,8 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
             break;
         default:
             dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOpCode->m_name << ", excepted Getter\n";
-            return -1;
+            out << "}\n";
+            return DVA_BAD;
         }
 
         if (methodClsName == name) {
@@ -2162,7 +2194,8 @@ End
         }
     }
     out << "\n";
-    return 0;
+    out << "}\n";
+    return DVA_OK;
 }
 
 int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, Platform plt, VmInfo* vminfo) {
@@ -2252,25 +2285,23 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                 ;
         }
 
-        utils::Padding(asmout, padding) << prefix << "Params " << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
+        utils::Padding(asmout, padding) << prefix << "Params " << std::dec << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
 
-        if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
-            asmout << " vtable";
+        if (remapedFlags & T8GSCExportFlags::LINKED) {
+            asmout << " linked";
         }
-        else {
-            if (remapedFlags & T8GSCExportFlags::LINKED) {
-                asmout << " linked";
-            }
-            if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
-                asmout << " class_linked";
-            }
+        if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
+            asmout << " class_linked";
+        }
+        if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
+            asmout << " vtable";
         }
 
         asmout << std::endl;
         utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
 
         auto size = ctx.FinalSize();
-        if (size > 2) { // at least one opcode
+        if (size > 1) { // at least one opcode
             utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
         }
         if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
@@ -2279,61 +2310,54 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         }
     }
 
-    if (remapedFlags == T8GSCExportFlags::CLASS_VTABLE) {
-        utils::Padding(asmout, padding) << "vtable " << (forceName ? forceName : hashutils::ExtractTmp("class", exp.GetName()));
+    bool specialClassMember = !ctx.m_opt.m_dasm && classMember &&
+        ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || (g_constructorName == exp.GetName() || g_constructorNameT7 == exp.GetName()));
+
+    utils::Padding(asmout, padding);
+
+    if (!specialClassMember) {
+        asmout << "function ";
+    }
+    if (remapedFlags & T8GSCExportFlags::PRIVATE) {
+        asmout << "private ";
+    }
+    if (remapedFlags & T8GSCExportFlags::AUTOEXEC) {
+        asmout << "autoexec ";
+    }
+    if (remapedFlags & T8GSCExportFlags::EVENT) {
+        asmout << "event_handler[" << hashutils::ExtractTmp("event", exp.GetFileNamespace()) << "] " << std::flush;
+    }
+
+    if (ctx.m_opt.m_dasm && (classMember || (remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
+        asmout << hashutils::ExtractTmp("class", exp.GetNamespace())
+            << std::flush << "::";
+
+        if (exp.GetFlags() & T8GSCExportFlags::CLASS_DESTRUCTOR) {
+            asmout << "~";
+        }
+    }
+
+    if (isDetour) {
+        auto* detour = detourVal->second;
+
+        asmout << "detour ";
+        if (detour->replaceNamespace) {
+            asmout << hashutils::ExtractTmp("namespace", detour->replaceNamespace) << std::flush;
+        }
+        auto replaceScript = *reinterpret_cast<uint64_t*>(&detour->replaceScriptTop);
+        if (replaceScript) {
+            asmout << "<" << hashutils::ExtractTmpScript(replaceScript) << ">" << std::flush;
+        }
+
+        if (detour->replaceNamespace) {
+            asmout << "::";
+        }
+
+        asmout
+            << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush;
     }
     else {
-
-        bool specialClassMember = !ctx.m_opt.m_dasm && classMember &&
-            ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || (g_constructorName == exp.GetName() || g_constructorNameT7 == exp.GetName()));
-
-        utils::Padding(asmout, padding);
-
-        if (!specialClassMember) {
-            asmout << "function ";
-        }
-        if (remapedFlags & T8GSCExportFlags::PRIVATE) {
-            asmout << "private ";
-        }
-        if (remapedFlags & T8GSCExportFlags::AUTOEXEC) {
-            asmout << "autoexec ";
-        }
-        if (remapedFlags & T8GSCExportFlags::EVENT) {
-            asmout << "event_handler[" << hashutils::ExtractTmp("event", exp.GetFileNamespace()) << "] " << std::flush;
-        }
-
-        if (ctx.m_opt.m_dasm && (classMember || (remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR))) {
-            asmout << hashutils::ExtractTmp("class", exp.GetNamespace())
-                << std::flush << "::";
-
-            if (exp.GetFlags() & T8GSCExportFlags::CLASS_DESTRUCTOR) {
-                asmout << "~";
-            }
-        }
-
-        if (isDetour) {
-            auto* detour = detourVal->second;
-
-            asmout << "detour ";
-            if (detour->replaceNamespace) {
-                asmout << hashutils::ExtractTmp("namespace", detour->replaceNamespace) << std::flush;
-            }
-            auto replaceScript = *reinterpret_cast<uint64_t*>(&detour->replaceScriptTop);
-            if (replaceScript) {
-                asmout << "<" << hashutils::ExtractTmpScript(replaceScript) << ">" << std::flush;
-            }
-
-            if (detour->replaceNamespace) {
-                asmout << "::";
-            }
-
-            asmout
-                << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush;
-        }
-        else {
-            asmout << (forceName ? forceName : hashutils::ExtractTmp("function", exp.GetName()));
-        }
-
+        asmout << (forceName ? forceName : hashutils::ExtractTmp("function", exp.GetName()));
     }
 
 

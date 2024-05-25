@@ -410,6 +410,7 @@ namespace tool::gsc {
             // run the decompiler logic
             bool m_runDecompiler;
             // find error
+            std::string m_disableDecompilerError{};
             bool m_disableDecompiler{};
             // fonction start location
             byte* m_fonctionStart;
@@ -439,6 +440,7 @@ namespace tool::gsc {
             std::vector<ASMContextDevBlock> m_devBlocks{};
             // if this function is a dev function candidate
             bool m_devFuncCandidate{};
+            bool m_vtable{};
             // export
             GSCExportReader& m_exp;
             void* m_readerHandle;
@@ -458,7 +460,11 @@ namespace tool::gsc {
             inline uint32_t ScriptAbsoluteLocation() {
                 return ScriptAbsoluteLocation(m_bcl);
             }
-            // Push the current location to the locations
+            // @return if we are in the script
+            inline bool IsInsideScript() {
+                return IsInsideScript(m_bcl);
+            }
+            // @return Push the current location to the locations
             inline asmcontextlocation& PushLocation() {
                 return PushLocation(m_bcl);
             }
@@ -467,6 +473,13 @@ namespace tool::gsc {
 
             // @return find the next location to handle, false if no new location can be find, false otherwise
             bool FindNextLocation();
+
+            /*
+             * test a loc is inside the script
+             * @param bytecodeLocation Location
+             * @return If the location is inside the script
+             */
+            bool IsInsideScript(byte* bytecodeLocation);
             /*
              * Get a relative location from the function start
              * @param bytecodeLocation Location
@@ -632,6 +645,10 @@ namespace tool::gsc {
             inline void Dump(std::ostream& out, DecompContext& ctx) const {
                 m_funcBlock.Dump(out, ctx);
             }
+            /*
+             * Disable the decompiler
+             */
+            void DisableDecompiler(const std::string& reason);
         };
     }
 
@@ -1113,6 +1130,7 @@ namespace tool::gsc {
 
         virtual byte MapFlagsImportToInt(byte flags);
         virtual byte MapFlagsExportToInt(byte flags);
+        virtual bool IsVTableImportFlags(byte flags) = 0;
 
         // Dump header
         virtual void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) = 0;

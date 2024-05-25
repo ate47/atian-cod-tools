@@ -26,7 +26,7 @@ namespace tool::gsc::opcode {
 			// Register mapping
 
 			// BLACK OPS 4 (VM 36)
-			RegisterVM(VM_T8, "Call of Duty: Black ops 4", "t8", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T8, "Call of Duty: Black ops 4", "t8", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T8, PLATFORM_PC);
 			SetMaxOpCode(VM_T8, 0xFFF);
 			RegisterVMGlobalVariable(VM_T8, "level");
@@ -305,7 +305,7 @@ namespace tool::gsc::opcode {
 
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
-			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", "t9", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", "t9", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			SetMaxOpCode(VM_T937, 0xFFF);
 			RegisterVMGlobalVariable(VM_T937, "level");
 			RegisterVMGlobalVariable(VM_T937, "game");
@@ -399,7 +399,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_SafeCreateLocalVariables, 0x11a, 0x192, 0x1e5, 0x281, 0x289, 0x2bd, 0x30b, 0x363, 0x471, 0x494, 0x4a8, 0x538, 0x5e3, 0x653, 0x8e4, 0x921, 0x9bf, 0x9fa, 0xb54, 0xc6d, 0xd28, 0xe8a, 0xf07);
 
 
-			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", VmFlags::VMF_OPCODE_SHORT | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
 			SetMaxOpCode(VM_T9, 0xFFF);
 			RegisterVMGlobalVariable(VM_T9, "level");
@@ -654,7 +654,7 @@ namespace tool::gsc::opcode {
 	#ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();
 	#endif
-			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW);
+			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_VERSION | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame);
@@ -676,7 +676,7 @@ namespace tool::gsc::opcode {
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
 
-			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_SHORT);
+			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN);
 			RegisterVMPlatform(VM_T7, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T7, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_T7, "game", OPCODE_IW_GetGame);
@@ -684,6 +684,7 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T7, "world", OPCODE_GetWorld);
 			RegisterVMGlobalVariable(VM_T7, "classes", OPCODE_GetClasses);
 			RegisterVMHashOPCode(VM_T7, '#', OPCODE_GetHash32, 4, [](const char* str) { return hashutils::HashT7(str); });
+			RegisterDevCall(VM_T7, "assert", "assertmsg", "errormsg", "throw", "println");
 			SetMaxOpCode(VM_T7, 0x1FFF);
 
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Nop, 0x12, 0x14, 0x16, 0x17, 0x1a, 0x1d, 0x1f, 0x21, 0x29, 0x2f, 0x32, 0x34, 0x37, 0x38, 0x3b, 0x3d, 0x40, 0x48, 0x51, 0x52, 0x55, 0x56, 0x58, 0x5c, 0x5e, 0x65, 0x6d, 0x6e, 0x6f, 0x71, 0x73, 0x74, 0x7b, 0x7c, 0x7f, 0x80, 0x81, 0x85, 0x87, 0x88, 0x8d, 0x8e, 0x91, 0x92, 0x93, 0x94, 0x97, 0x99, 0x9a, 0xa4, 0xa5, 0xac, 0xb5, 0xb8, 0xb9, 0xba, 0xbd, 0xc3, 0xc5, 0xcb, 0xcd, 0xcf, 0xd1, 0xd3, 0xd6, 0xde, 0xe1, 0xe2, 0xe6, 0xe7, 0xe8, 0xee, 0xf3, 0xf8, 0xf9, 0xfa, 0xfd, 0x101, 0x10a, 0x10f, 0x113, 0x114, 0x119, 0x11e, 0x11f, 0x120, 0x121, 0x127, 0x129, 0x12a, 0x12d, 0x130, 0x134, 0x135, 0x138, 0x139, 0x13c, 0x142, 0x148, 0x14d, 0x151, 0x154);
@@ -849,6 +850,60 @@ namespace tool::gsc::opcode {
 			// 243:12d0000 -> {0x243, 0x249, 0x25a, 0x2dc, 0x32a, 0x33b, 0x372, 0x38e, 0x54b, 0x552, 0x555, 0x5a0, 0x5b2, 0x5c0, 0x65a, 0x685, 0x79a, 0x7ee, 0x813, 0x95a, 0x969, 0x9b1, 0xa21, 0xb3c, 0xb51, 0xc0e, 0xc6a, 0xd0e, 0xdb6, 0xdc5, 0xf3f, 0xf5a, 0xfda, 0xfe5, 0x101d, 0x1277, 0x133f, 0x13b0, 0x1481, 0x14ab, 0x15cd, 0x1610, 0x1689, 0x17f6, 0x1896, 0x1953, 0x19fa, 0x1aa5, 0x1ab6, 0x1ad4, 0x1b06, 0x1b74, 0x1c58, 0x1cfb, 0x1d34, 0x1de5, 0x1e2e, 0x1f13, 0x1f46, 0x1fba, 0x1ff4}
 
 
+			RegisterVM(VM_T71B, "Call of Duty: Black ops 3 (1B)", "t7_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN | VmFlags::VMF_CALL_NO_PARAMS);
+			RegisterVMPlatform(VM_T71B, PLATFORM_PC);
+			RegisterVMGlobalVariable(VM_T71B, "level", OPCODE_IW_GetLevel);
+			RegisterVMGlobalVariable(VM_T71B, "game", OPCODE_IW_GetGame);
+			RegisterVMGlobalVariable(VM_T71B, "anim", OPCODE_IW_GetAnim);
+			RegisterVMGlobalVariable(VM_T71B, "world", OPCODE_GetWorld);
+			RegisterVMGlobalVariable(VM_T71B, "classes", OPCODE_GetClasses);
+			RegisterVMHashOPCode(VM_T71B, '#', OPCODE_GetHash32, 4, [](const char* str) { return hashutils::HashT7(str); });
+			RegisterDevCall(VM_T71B, "assert", "assertmsg", "errormsg", "throw", "println");
+			SetMaxOpCode(VM_T71B, 0xFF);
+
+
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown0, 0x0);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown1, 0x1);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown2, 0x2);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown3, 0x3);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown4, 0x4);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown5, 0x5);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown6, 0x6);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown7, 0x7);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalLocalVariableCachedDebug, 0x8);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknowna, 0xa);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ClearParams, 0xc);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_PreScriptCall, 0xe);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_CallBuiltinFunction, 0xf);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_End, 0x10);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetUndefined, 0x82);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetResolveFunction, 0xd9);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetString, 0x2a);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ScriptFunctionCall, 0xac);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_DecTop, 0xb4);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0xae);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_EvalLevelFieldVariableRef, 0x11);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalArrayRef, 0x33);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SetVariableField, 0x29);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_CallBuiltinMethod, 0xde);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalSelfFieldVariable, 0xe3);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_BoolNot, 0x7f);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Plus, 0x5b);
+
+			// no sure
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetSelf, 0x91);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetHash32, 0xed);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SetLocalVariableCached, 0xe5);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_SingleEndon, 0x44);
+
+			// check logic later?
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnTrue, 0x4d);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnFalse, 0x5a);
+			
+			
 
 
 			// loading serious db2 files (if any)

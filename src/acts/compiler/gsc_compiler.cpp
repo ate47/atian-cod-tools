@@ -64,7 +64,7 @@ namespace acts::compiler {
         AscmCompilerContext(const VmInfo* vmInfo, Platform plt, size_t lvars, std::vector<byte>& data) : vmInfo(vmInfo), plt(plt), data(data), lvars(lvars) {}
 
         bool HasAlign() const {
-            return vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT);
+            return vmInfo->HasFlag(VmFlags::VMF_ALIGN);
         }
 
         void Align(size_t len) {
@@ -289,7 +289,7 @@ namespace acts::compiler {
 
         AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName, uint64_t nameSpace, VmInfo* vm)
             : AscmNodeOpCode(opcode), flags(flags), params(params), clsName(clsName), nameSpace(nameSpace) {
-            inlineCall = vm->HasFlag(VmFlags::VMF_OPCODE_SHORT);
+            inlineCall = vm->HasFlag(VmFlags::VMF_ALIGN);
         }
 
         void SetScriptCall(CompileObject& obj, bool scriptCall);
@@ -1164,7 +1164,7 @@ namespace acts::compiler {
         int32_t ComputeRelativeLocations(int32_t floc) {
             // we start at 0 and we assume that the start location is already aligned
             int32_t current{};
-            bool align = m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT);
+            bool align = m_vmInfo->HasFlag(VmFlags::VMF_ALIGN) && m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16);
 
             for (AscmNode* node : m_nodes) {
                 node->rloc = current;
@@ -1500,7 +1500,7 @@ namespace acts::compiler {
                         gscHandler->WriteString(&data[buff], str);
                         stringCount++;
                     }
-                    utils::WriteValue<uint32_t>(data, strobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)));
+                    utils::WriteValue<uint32_t>(data, strobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN)));
                 }
             }
 
@@ -1521,7 +1521,7 @@ namespace acts::compiler {
                             gscHandler->WriteGVar(&data[buff], gv);
                             gvarCount++;
                         }
-                        utils::WriteValue<uint32_t>(data, gvobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)));
+                        utils::WriteValue<uint32_t>(data, gvobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN)));
                     }
                 }
             }
@@ -2557,7 +2557,7 @@ namespace acts::compiler {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Negative)");
                     return false;
                 }
-                if (obj.vmInfo->HasFlag(VmFlags::VMF_OPCODE_SHORT)) {
+                if (obj.vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
                     if (val > 0xFFFF) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Too large)");
                         return false;

@@ -191,6 +191,9 @@ uint64_t VmInfo::HashField(const char* value) const {
 	if (HasFlag(VmFlags::VMF_HASH_IW)) {
 		return hash::Hash64Pattern(value, 0x79D6530B0BB9B5D1, 0x10000000233);
 	}
+	if (vm <= VM_T7) {
+		return hashutils::HashT7(value);
+	}
 	return hash::Hash32Pattern(value);
 }
 
@@ -545,7 +548,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		context.m_disableDecompiler = true;
+		context.DisableDecompiler(std::format("Unknown operator 0x{:x} ({}/{})", value, context.m_objctx.m_vmInfo->codeName, PlatformName(context.m_platform)));
 		out << "Unknown operator: " << std::hex << value << "\n";
 
 		for (size_t j = 0; j < 0x4; j++) {
@@ -559,7 +562,7 @@ public:
 			out << "\n";
 		}
 
-		if (objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			for (size_t i = 0; i < 0x3; i++) {
 				auto* loc = utils::Aligned<uint32_t>(context.m_bcl);
 
@@ -582,7 +585,7 @@ public:
 			}
 		}
 
-		if (objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			for (size_t i = 0; i < 0x3; i++) {
 				auto* loc = utils::Aligned<uint64_t>(context.m_bcl);
 
@@ -680,14 +683,14 @@ public:
 			uint64_t varName;
 
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-				if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+				if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 					context.Aligned<uint64_t>();
 				}
 				varName = *(uint64_t*)context.m_bcl;
 				context.m_bcl += 8;
 			}
 			else {
-				if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+				if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 					context.Aligned<uint32_t>();
 				}
 				varName = *(uint32_t*)context.m_bcl;
@@ -759,7 +762,7 @@ public:
 
 
 		for (size_t i = 0; i < count; i++) {
-			if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+			if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				if (ctx.m_vminfo->flags & VmFlags::VMF_HASH64) {
 					ctx.Aligned<uint64_t>();
 				}
@@ -823,7 +826,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<Type>();
 		}
 		auto& bytecode = context.m_bcl;
@@ -842,7 +845,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<Type>();
 		}
 		ctx.m_bcl += sizeof(Type);
@@ -1026,7 +1029,7 @@ public:
 	OPCodeInfoGetNumber(OPCode id, const char* name, ASMContextNodeType type = TYPE_VALUE) : OPCodeInfo(id, name), m_valtype(type) {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<Type>();
 		}
 		auto animTree{ objctx.m_animTreeLocations.find((uint32_t)(context.m_bcl - context.m_gscReader.file)) };
@@ -1057,7 +1060,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<Type>();
 		}
 		ctx.m_bcl += sizeof(Type);
@@ -1070,7 +1073,7 @@ public:
 	OPCodeInfoDevBlockCall() : OPCodeInfo(OPCODE_IW_DevBlock, "DevBlockCall") {}
 	
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<int16_t>();
 		}
 		auto& bytecode = context.m_bcl;
@@ -1093,7 +1096,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<int16_t>();
 		}
 		ctx.m_bcl += sizeof(int16_t);
@@ -1109,7 +1112,7 @@ public:
 	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true) : m_type(type), m_hash64(hash64), OPCodeInfo(id, name) {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			if (m_hash64) {
 				context.Aligned<uint64_t>();
 			}
@@ -1145,7 +1148,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<uint64_t>();
 		}
 		ctx.m_bcl += 8;
@@ -1159,7 +1162,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		// get the jump opcode location
-		int32_t m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) ? 2 : 1));
+		int32_t m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) ? 2 : 1));
 
 		ASMContextNode* node = nullptr;
 		ASMContextNodeType type = TYPE_JUMP;
@@ -1213,7 +1216,7 @@ public:
 
 		assert(!context.m_runDecompiler || name != nullptr);
 
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
 			context.Aligned<int16_t>();
 		}
 
@@ -1228,6 +1231,7 @@ public:
 
 		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.file) {
 			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
+			context.DisableDecompiler(std::format("jump with invalid delta: {}0x{:x}", (delta < 0 ? "-" : ""), (delta < 0 ? -delta : delta)));
 			return -1;
 		}
 
@@ -1235,7 +1239,7 @@ public:
 		auto& locref = context.PushLocation(newLoc);
 
 		uint16_t pointedOpCode{};
-		if (context.m_objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (context.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
 			pointedOpCode = *reinterpret_cast<uint16_t*>(utils::Aligned<uint16_t>(newLoc));
 		}
 		else {
@@ -1260,7 +1264,7 @@ public:
 							// is this operator pointing just after us?
 							byte* curr;
 
-							if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+							if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
 								curr = utils::Aligned<int16_t>(context.m_bcl);
 							}
 							else {
@@ -1330,7 +1334,7 @@ public:
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		int32_t m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
 			ctx.Aligned<int16_t>();
 		}
 		auto& bytecode = ctx.m_bcl;
@@ -1353,7 +1357,7 @@ public:
 		int32_t m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		// get the jump opcode location
 
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<int16_t>();
 		}
 		auto& bytecode = context.m_bcl;
@@ -1471,7 +1475,7 @@ public:
 	OPCodeInfoGetVector() : OPCodeInfo(OPCODE_GetVector, "GetVector") {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<FLOAT>();
 		}
 		auto& bytecode = context.m_bcl;
@@ -1494,7 +1498,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<FLOAT>();
 		}
 		ctx.m_bcl += 12;
@@ -1814,7 +1818,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		uint64_t name = 0;
 		if (!m_stack) {
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				context.Aligned<uint32_t>();
 			}
 			auto& ref = context.m_bcl;
@@ -1860,7 +1864,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<uint32_t>();
 		}
 		auto& ref = ctx.m_bcl;
@@ -1886,7 +1890,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		uint64_t name;
 		if (!gvarName) {
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				context.Aligned<uint16_t>();
 			}
 			auto& base = context.m_bcl;
@@ -1909,7 +1913,7 @@ public:
 			out << gvarName;
 		}
 
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<uint32_t>();
 		}
 		auto& base2 = context.m_bcl;
@@ -1953,7 +1957,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		uint64_t name;
 		if (!gvarName) {
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				context.Aligned<uint16_t>();
 			}
 			auto& base = context.m_bcl;
@@ -1976,7 +1980,7 @@ public:
 			out << gvarName;
 		}
 
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<uint32_t>();
 		}
 		auto& base2 = context.m_bcl;
@@ -2020,7 +2024,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<uint32_t>();
 		}
 		auto& base2 = context.m_bcl;
@@ -2063,7 +2067,7 @@ public:
 		uint64_t name = 0;
 
 		if (!m_stack) {
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				context.Aligned<uint32_t>();
 			}
 			auto& ref = context.m_bcl;
@@ -3120,13 +3124,19 @@ public:
 	OPCodeInfoFuncCall(OPCode id, const char* name, size_t delta, bool hasParam) : m_delta(delta), m_hasParam(hasParam), OPCodeInfo(id, name) {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int params = *(context.m_bcl++);
+		int params;
+		if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_CALL_NO_PARAMS) || (objctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_CALLS) && m_hasParam)) {
+			params = *(context.m_bcl++);
+		}
+		else {
+			params = -1;
+		}
 
 		uint64_t tmpBuffData[2];
 		uint64_t* data = tmpBuffData;
 		size_t flags{};
 
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			auto& bytecode = context.Aligned<uint64_t>();
 
 			tmpBuffData[0] = ((uint32_t*)bytecode)[0];
@@ -3135,10 +3145,6 @@ public:
 			bytecode += 8;
 		}
 		else {
-			if (!m_hasParam) {
-				params = -1;
-				context.m_bcl--;
-			}
 			auto idx = *(uint16_t*)context.m_bcl;
 			context.m_bcl += m_delta;
 
@@ -3272,7 +3278,7 @@ public:
 		uint64_t* data = tmpBuffData;
 		size_t flags{};
 
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			auto& bytecode = context.Aligned<uint64_t>();
 
 			tmpBuffData[0] = ((uint32_t*)bytecode)[0];
@@ -3423,7 +3429,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int params;
-		if ((objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) || m_hasParam) {
+		if ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) || m_hasParam) {
 			params = *(context.m_bcl++);
 			out << std::dec << "params:" << (int)params << ":" << std::hex << context.FunctionRelativeLocation();
 		}
@@ -3530,7 +3536,7 @@ public:
 	OPCodeInfoGetString(OPCode id, const char* name, bool istr) : OPCodeInfo(id, name), m_istr(istr) {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<int32_t>();
 		}
 		auto& base = context.m_bcl;
@@ -3565,7 +3571,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<int32_t>();
 		}
 		ctx.m_bcl += 4;
@@ -3580,7 +3586,7 @@ public:
 	OPCodeInfoGetAnimation(OPCode id, const char* name, bool doubleAnim) : m_doubleAnim(doubleAnim), OPCodeInfo(id, name) {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<int64_t>();
 		}
 		auto& base = context.m_bcl;
@@ -3627,7 +3633,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<int32_t>();
 		}
 		ctx.m_bcl += 4;
@@ -3651,7 +3657,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		uint64_t name;
 		if (!m_gvarName) {
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				context.Aligned<uint16_t>();
 			}
 			auto& base = context.m_bcl;
@@ -3696,7 +3702,7 @@ public:
 	}
 
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
-		if (ctx.m_vminfo->flags & VmFlags::VMF_OPCODE_SHORT) {
+		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			ctx.Aligned<uint16_t>();
 		}
 		ctx.m_bcl += 2;
@@ -3937,6 +3943,12 @@ public:
 		int32_t table = *(int32_t*)baseTable;
 		// we move to the table
 		baseTable += table + 4;
+
+		if (!context.IsInsideScript()) {
+			out << "INVALID switch table: " << std::hex << table << "\n";
+			context.DisableDecompiler(std::format("Invalid switch table: {:x}", table));
+			return -1;
+		}
 
 		uint16_t cases = (*(uint16_t*)baseTable) & 0x7FFFFFFF;
 
@@ -4865,8 +4877,8 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_IW_BuiltinMethodCallPointer, "BuiltinMethodCallPointer", true));
 
 		// linked ref
-		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetResolveFunction, "GetResolveFunction", 2));
-		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetFunction, "GetFunction", 4));
+		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetResolveFunction, "GetResolveFunction", 4));
+		RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetFunction, "GetFunction", 2));
 		RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_GetString, "GetString", false));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetGlobal, "GetGlobal", GGGT_PUSH, nullptr));
 		RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetGlobalObject, "GetGlobalObject", GGGT_GLOBAL, nullptr));
@@ -5088,7 +5100,7 @@ void asmcontextlocation::RemoveRef(int32_t origin) {
 
 asmcontextlocation& ASMContext::PushLocation(byte* location) {
 	// push aligned location to avoid missing a location
-	if (m_objctx.m_vmInfo->flags & VMF_OPCODE_SHORT) {
+	if (m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
 		location = utils::Aligned<uint16_t>(location);
 	}
 	auto loc = FunctionRelativeLocation(location);
@@ -5118,7 +5130,7 @@ asmcontextlocation& ASMContext::PushLocation(byte* location) {
 
 asmcontextlocation& ASMSkipContext::PushLocation(byte* location) {
 	// push aligned location to avoid missing a location
-	if (m_vminfo->flags & VMF_OPCODE_SHORT) {
+	if (m_vminfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
 		location = utils::Aligned<uint16_t>(location);
 	}
 	auto loc = FunctionRelativeLocation(location);
@@ -5190,6 +5202,9 @@ int32_t ASMContext::FunctionRelativeLocation(byte* bytecodeLocation) {
 uint32_t ASMContext::ScriptAbsoluteLocation(byte* bytecodeLocation) {
 	return funcRloc + (uint32_t)FunctionRelativeLocation(bytecodeLocation);
 }
+bool ASMContext::IsInsideScript(byte* bytecodeLocation) {
+	return m_gscReader.file <= bytecodeLocation && m_gscReader.file + m_gscReader.fileSize > bytecodeLocation;
+}
 
 std::ostream& ASMContext::WritePadding(std::ostream& out) {
 	return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << FunctionRelativeLocation() << ": "
@@ -5203,7 +5218,7 @@ UINT ASMContext::FinalSize() const {
 			max = ref.rloc;
 		}
 	}
-	return (UINT)max + (this->m_objctx.m_vmInfo->HasFlag(VMF_OPCODE_SHORT) ? 2 : 1); // +1 for the Return/End operator
+	return (UINT)max + (this->m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1); // +1 for the Return/End operator
 }
 
 #pragma endregion
@@ -7004,6 +7019,10 @@ void ASMContext::ConvertToClassMethod(std::unordered_set<uint64_t>& selfmembers)
 
 
 	});
+}
+void ASMContext::DisableDecompiler(const std::string& reason) {
+	m_disableDecompiler = true;
+	m_disableDecompilerError = reason;
 }
 
 #pragma endregion
