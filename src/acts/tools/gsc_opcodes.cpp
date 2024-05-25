@@ -1216,7 +1216,7 @@ public:
 
 		assert(!context.m_runDecompiler || name != nullptr);
 
-		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<int16_t>();
 		}
 

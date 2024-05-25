@@ -850,7 +850,7 @@ namespace tool::gsc::opcode {
 			// 243:12d0000 -> {0x243, 0x249, 0x25a, 0x2dc, 0x32a, 0x33b, 0x372, 0x38e, 0x54b, 0x552, 0x555, 0x5a0, 0x5b2, 0x5c0, 0x65a, 0x685, 0x79a, 0x7ee, 0x813, 0x95a, 0x969, 0x9b1, 0xa21, 0xb3c, 0xb51, 0xc0e, 0xc6a, 0xd0e, 0xdb6, 0xdc5, 0xf3f, 0xf5a, 0xfda, 0xfe5, 0x101d, 0x1277, 0x133f, 0x13b0, 0x1481, 0x14ab, 0x15cd, 0x1610, 0x1689, 0x17f6, 0x1896, 0x1953, 0x19fa, 0x1aa5, 0x1ab6, 0x1ad4, 0x1b06, 0x1b74, 0x1c58, 0x1cfb, 0x1d34, 0x1de5, 0x1e2e, 0x1f13, 0x1f46, 0x1fba, 0x1ff4}
 
 
-			RegisterVM(VM_T71B, "Call of Duty: Black ops 3 (1B)", "t7_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN | VmFlags::VMF_CALL_NO_PARAMS);
+			RegisterVM(VM_T71B, "Call of Duty: Black ops 3 (1B)", "t7_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN); // | VmFlags::VMF_CALL_NO_PARAMS
 			RegisterVMPlatform(VM_T71B, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T71B, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_T71B, "game", OPCODE_IW_GetGame);
@@ -882,7 +882,6 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetUndefined, 0x82);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetResolveFunction, 0xd9);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetString, 0x2a);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ScriptFunctionCall, 0xac);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_DecTop, 0xb4);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0xae);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_EvalLevelFieldVariableRef, 0x11);
@@ -890,21 +889,86 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SetVariableField, 0x29);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_CallBuiltinMethod, 0xde);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalSelfFieldVariable, 0xe3);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_BoolNot, 0x7f);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Plus, 0x5b);
-
-			// no sure
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetSignedByte, 0xe2);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetZero, 0x76);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalLocalVariableCached, 0x5d);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IsDefined, 0x18);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnFalseExpr, 0x9d);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_GetLevel, 0xd4);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_BoolNot, 0x16);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnFalse, 0x7f);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_CallBuiltinFunction, 0xac);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalLocalVariableRefCached, 0xe5);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_CastFieldObject, 0xd1);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalFieldVariable, 0xef);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetSelf, 0x91);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ScriptMethodThreadCallPointer, 0x7b);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ScriptMethodThreadCall, 0x26);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_EvalSelfFieldVarRef, 0x37);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetSelfObject, 0x24);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ClearFieldVariable, 0xf4);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnTrue, 0xdd);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetHash32, 0xed);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SetLocalVariableCached, 0xe5);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_SingleEndon, 0x44);
-
-			// check logic later?
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnTrue, 0x4d);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnFalse, 0x5a);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_DevblockBegin, 0x67);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetFloat, 0x98);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetShort, 0xa7);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Wait, 0xc6);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetInteger, 0x23);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_EvalLevelFieldVariable, 0xfa);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_FirstArrayKey, 0xb3);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalArray, 0x51);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_NextArrayKey, 0x17);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GreaterThan, 0xdb);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_LessThanOrEqualTo, 0x42);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_JumpOnTrueExpr, 0x43);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Minus, 0x4f);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_LessThan, 0x3d);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetNegByte, 0x3b);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Multiply, 0xd6);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Switch, 0x71);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EndSwitch, 0x21);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalFieldVariableRef, 0x49);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Vector, 0x1f);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_SingleWaitTill, 0xc0);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_GetIString, 0x4d);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SizeOf, 0x9b);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SuperNotEqual, 0x66);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_Notify, 0x5a);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Inc, 0xc3);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_SetWaittillVariableFieldCached, 0x56);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Equal, 0x57);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GreaterThanOrEqualTo, 0xf3);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_SuperEqual, 0x28);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_VectorConstant, 0x95);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Return, 0x89);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_BoolNot, 0x72);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_VectorScale, 0x48);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EmptyArray, 0x1c);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_NotEqual, 0x40);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ScriptFunctionCallPointer, 0xe6);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetNegUnsignedShort, 0xcc);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetTime, 0xa3);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_GetLevelGRef, 0x35);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Modulus, 0xad);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Divide, 0xb0);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Dec, 0x9c);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ScriptThreadCall, 0xe8);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ClassFunctionCall, 0x27);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ScriptMethodCallPointer, 0x3f);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_WaitTillFrameEnd, 0x3a);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IW_GetAnimation, 0x83);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_WaitTillMatch2, 0x1b);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Wait2, 0xb7);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ClearArray, 0x30);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_GetObjectType, 0x34);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_IgnoreWaittillVariableFieldCached, 0xa1);
+			
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Jump, 0x45);
 			
 			
-
+			
 
 			// loading serious db2 files (if any)
 			const char* seriousDBDir = actscli::options().seriousDBFile;

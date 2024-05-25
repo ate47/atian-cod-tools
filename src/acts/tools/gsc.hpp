@@ -81,6 +81,7 @@ namespace tool::gsc {
         bool m_mark_jump_type{};
         bool m_display_stack{};
         bool m_generateGdbData{};
+        bool m_splitByVm{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };

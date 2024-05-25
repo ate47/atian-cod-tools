@@ -78,6 +78,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!strcmp("-d", arg) || !_strcmpi("--gdb", arg)) {
             m_generateGdbData = true;
         }
+        else if (!_strcmpi("--vm-split", arg)) {
+            m_splitByVm = true;
+        }
         else if (!_strcmpi("--test-header", arg)) {
             m_test_header = true;
         }
@@ -277,6 +280,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--refcount         : Show ref count");
     LOG_DEBUG("--markjump         : Show jump type");
     LOG_DEBUG("--displaystack     : Display stack in disassembly");
+    LOG_DEBUG("--vm-split         : Split by VM in the output");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -328,6 +332,7 @@ byte GSCOBJHandler::MapFlagsExportToInt(byte flags) {
 }
 
 void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
+    size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
     if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
         if (GetAnimTreeSingleOffset()) {
             // HAS TO BE DONE FIRST BECAUSE THEY ARE STORED USING 1 byte
@@ -451,19 +456,26 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
 
             switch (remapedFlags & CALLTYPE_MASK) {
             case FUNC_METHOD:
-                loc = PtrAlign<uint64_t, uint32_t>(imports[j] + 2ull);
+                loc = PtrAlign<uint64_t, uint32_t>(imports[j] + opcodeSize);
                 break;
             case FUNCTION:
             case FUNCTION_THREAD:
             case FUNCTION_CHILDTHREAD:
             case METHOD:
             case METHOD_THREAD:
-            case METHOD_CHILDTHREAD:
+            case METHOD_CHILDTHREAD: {
                 // here the game fix function calls with a bad number of params,
                 // but for the decomp/dasm we don't care because we only mind about
                 // what we'll find on the stack.
-                Ref<byte>(imports[j] + 2ull) = imp->param_count;
-                loc = PtrAlign<uint64_t, uint32_t>(imports[j] + 2ull + 1);
+                if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_CALL_NO_PARAMS)) {
+                    loc = PtrAlign<uint64_t, uint32_t>(imports[j] + opcodeSize);
+                }
+                else {
+                    Ref<byte>(imports[j] + opcodeSize) = imp->param_count;
+                    loc = PtrAlign<uint64_t, uint32_t>(imports[j] + opcodeSize + 1);
+                }
+
+            }
                 break;
             default:
                 loc = nullptr;
@@ -834,11 +846,20 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
 
     if (opt.m_outputDir) {
         const char* name = hashutils::ExtractPtr(scriptfile->GetName());
-        if (!name) {
-            sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", opt.m_outputDir, scriptfile->GetName());
+        
+        const char* outDir;
+        if (opt.m_splitByVm) {
+            outDir = utils::va("%s/vm-%x", opt.m_outputDir, vmInfo->vm);
         }
         else {
-            sprintf_s(asmfnamebuff, "%s/%s", opt.m_outputDir, name);
+            outDir = opt.m_outputDir;
+        }
+
+        if (!name) {
+            sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+        }
+        else {
+            sprintf_s(asmfnamebuff, "%s/%s", outDir, name);
         }
     }
     else {

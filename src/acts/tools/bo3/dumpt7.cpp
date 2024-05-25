@@ -79,12 +79,13 @@ namespace {
 					continue;
 				}
 				uint64_t magic = *reinterpret_cast<uint64_t*>(&buffer[0]);
-				if (magic != 0x1c000a0d43534780 && magic != 0x1b000a0d43534780) {
+				if ((magic & 0xFFFFFFFFFFFFFF) != 0xa0d43534780) {
 					LOG_ERROR("Can't read script {}: invalid magic", name);
 					continue;
 				}
+				byte revision{ buffer[7] };
 
-				std::filesystem::path outFile{ outDir / utils::va("%sc", name) }; // add c to do gscc/cscc
+				std::filesystem::path outFile{ outDir / utils::va("vm_%x", revision) / utils::va("%s.gscc", name)};
 				bool isNew{ !std::filesystem::exists(outFile) };
 				if (isNew) {
 					std::filesystem::create_directories(outFile.parent_path());
@@ -131,12 +132,14 @@ namespace {
 				LOG_ERROR("Can't read script {}", name);
 				continue;
 			}
-			if (*reinterpret_cast<uint64_t*>(&buffer[0]) != 0x1c000a0d43534780) {
+			uint64_t magic = *reinterpret_cast<uint64_t*>(&buffer[0]);
+			if ((magic & 0xFFFFFFFFFFFFFF) != 0xa0d43534780) {
 				LOG_ERROR("Can't read script {}: invalid magic", name);
 				continue;
 			}
+			byte revision{ buffer[7] };
 
-			std::filesystem::path outFile{ outDir / utils::va("%sc", name)}; // add c to do gscc/cscc
+			std::filesystem::path outFile{ outDir / utils::va("vm_%x", revision) / utils::va("%s.gscc", name) };
 			bool isNew{ !std::filesystem::exists(outFile) };
 			if (isNew) {
 				std::filesystem::create_directories(outFile.parent_path());
