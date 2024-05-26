@@ -2,9 +2,10 @@ grammar adl;
 
 prog: def* EOF;
 
-def: (struct_def | flag_def |enum_def | root_def | align_def | type_def) ';';
+def: (struct_def | flag_def | enum_def | root_def | align_def | type_def | include_def) ';';
 
 root_def: '#root' idf;
+include_def: '#include' STRING;
 align_def: '#align' number;
 
 type_def: 'typedef' idf idf;

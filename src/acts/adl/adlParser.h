@@ -15,15 +15,17 @@ public:
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
     T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, T__13 = 14, 
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
-    T__20 = 21, NEWLINE = 22, WHITESPACE = 23, INTEGER10 = 24, INTEGER16 = 25, 
-    INTEGER8 = 26, INTEGER2 = 27, BOOL_VALUE = 28, IDENTIFIER = 29, STRING = 30
+    T__20 = 21, T__21 = 22, NEWLINE = 23, WHITESPACE = 24, INTEGER10 = 25, 
+    INTEGER16 = 26, INTEGER8 = 27, INTEGER2 = 28, BOOL_VALUE = 29, IDENTIFIER = 30, 
+    STRING = 31
   };
 
   enum {
-    RuleProg = 0, RuleDef = 1, RuleRoot_def = 2, RuleAlign_def = 3, RuleType_def = 4, 
-    RuleStruct_def = 5, RuleFlag_def = 6, RuleEnum_def = 7, RuleStruct_members = 8, 
-    RuleEnum_members = 9, RuleStruct_member = 10, RuleData_member = 11, 
-    RuleData_operator = 12, RuleEnum_member = 13, RuleIdf = 14, RuleNumber = 15
+    RuleProg = 0, RuleDef = 1, RuleRoot_def = 2, RuleInclude_def = 3, RuleAlign_def = 4, 
+    RuleType_def = 5, RuleStruct_def = 6, RuleFlag_def = 7, RuleEnum_def = 8, 
+    RuleStruct_members = 9, RuleEnum_members = 10, RuleStruct_member = 11, 
+    RuleData_member = 12, RuleData_operator = 13, RuleEnum_member = 14, 
+    RuleIdf = 15, RuleNumber = 16
   };
 
   explicit adlParser(antlr4::TokenStream *input);
@@ -46,6 +48,7 @@ public:
   class ProgContext;
   class DefContext;
   class Root_defContext;
+  class Include_defContext;
   class Align_defContext;
   class Type_defContext;
   class Struct_defContext;
@@ -85,6 +88,7 @@ public:
     Root_defContext *root_def();
     Align_defContext *align_def();
     Type_defContext *type_def();
+    Include_defContext *include_def();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -105,6 +109,19 @@ public:
   };
 
   Root_defContext* root_def();
+
+  class  Include_defContext : public antlr4::ParserRuleContext {
+  public:
+    Include_defContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *STRING();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Include_defContext* include_def();
 
   class  Align_defContext : public antlr4::ParserRuleContext {
   public:

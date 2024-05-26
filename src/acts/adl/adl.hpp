@@ -2,25 +2,30 @@
 
 namespace acts::compiler::adl {
 	typedef uint32_t ADLDataTypeId;
+	enum ADLDataTypeIdBase : ADLDataTypeId {};
+
+	std::ostream& PrintId(std::ostream& out, ADLDataTypeId id);
 
 	enum ADLDataTypeFlags : ADLDataTypeId {
 		ADF_UNKNOWN = 0,
-		ADF_PRIMITIVE_UNKNOWN = 0u << 26,
-		ADF_PRIMITIVE_INT = 1u << 26,
-		ADF_PRIMITIVE_FLOAT = 2u << 26,
-		ADF_PRIMITIVE_MASK = 3u << 26,
+		ADF_PRIMITIVE_SHIFT = 26,
+		ADF_PRIMITIVE_UNKNOWN = 0u << ADF_PRIMITIVE_SHIFT,
+		ADF_PRIMITIVE_INT = 1u << ADF_PRIMITIVE_SHIFT,
+		ADF_PRIMITIVE_FLOAT = 2u << ADF_PRIMITIVE_SHIFT,
+		ADF_PRIMITIVE_MASK = 3u << ADF_PRIMITIVE_SHIFT,
 		ADF_UNSIGNED = 1u << 28,
-		ADF_DEFAULT = 1u << 29,
-		ADF_STRUCT = 2u << 29,
-		ADF_ENUM = 3u << 29,
-		ADF_TYPEDEF = 4u << 29,
-		ADF_FLAG = 5u << 29,
-		ADF_MASK = 7u << 29,
+		ADF_MASK_SHIFT = 29,
+		ADF_DEFAULT = 1u << ADF_MASK_SHIFT,
+		ADF_STRUCT = 2u << ADF_MASK_SHIFT,
+		ADF_ENUM = 3u << ADF_MASK_SHIFT,
+		ADF_TYPEDEF = 4u << ADF_MASK_SHIFT,
+		ADF_FLAG = 5u << ADF_MASK_SHIFT,
+		ADF_MASK = 7u << ADF_MASK_SHIFT,
 		ADF_ID = ~(ADF_MASK | ADF_UNSIGNED | ADF_PRIMITIVE_MASK),
 	};
-	static_assert((ADF_MASK & ADF_UNSIGNED) == 0);
-	static_assert((ADF_MASK & ADF_PRIMITIVE_MASK) == 0);
-	static_assert((ADF_UNSIGNED & ADF_PRIMITIVE_MASK) == 0);
+	static_assert((ADF_MASK& ADF_UNSIGNED) == 0);
+	static_assert((ADF_MASK& ADF_PRIMITIVE_MASK) == 0);
+	static_assert((ADF_UNSIGNED& ADF_PRIMITIVE_MASK) == 0);
 
 	enum ADLDataTypeDefault : ADLDataTypeId {
 		ADD_UNKNOWN = 0,
@@ -58,7 +63,34 @@ namespace acts::compiler::adl {
 	constexpr bool IsDefaultType(ADLDataTypeId id) {
 		return (id & ADF_MASK) == ADF_DEFAULT;
 	}
+}
 
+template<>
+struct std::formatter<acts::compiler::adl::ADLDataTypeIdBase, char> {
+	template<class ParseContext>
+	constexpr ParseContext::iterator parse(ParseContext& ctx) {
+		auto it = ctx.begin();
+		if (it == ctx.end()) {
+			return it;
+		}
+		if (*it != '}') {
+			throw std::format_error("Invalid format args.");
+		}
+
+		return it;
+	}
+
+	template<class FmtContext>
+	FmtContext::iterator format(const acts::compiler::adl::ADLDataTypeIdBase& p, FmtContext& ctx) const {
+		std::ostringstream out;
+
+		acts::compiler::adl::PrintId(out, p);
+
+		return std::ranges::copy(std::move(out).str(), ctx.out()).out;
+	}
+};
+
+namespace acts::compiler::adl {
 	constexpr uint64_t PADDING_FIELD_HASH = hash::Hash64("$$padding");
 
 	struct ADLStructField {
@@ -96,6 +128,7 @@ namespace acts::compiler::adl {
 	};
 
 	struct ADLData {
+		std::unordered_set<std::filesystem::path> loadedPath{};
 		uint64_t rootName{};
 		uint8_t align{};
 		std::unordered_map<uint64_t, ADLDataTypeId> names{};
@@ -130,6 +163,11 @@ namespace acts::compiler::adl {
 			names[hash::Hash64("string")] = ADD_STRING;
 			names[hash::Hash64("hash")] = ADD_HASH;
 
+			names[hash::Hash64("int")] = ADD_INT32;
+			names[hash::Hash64("uint")] = ADD_UINT32;
+			names[hash::Hash64("long")] = ADD_INT64;
+			names[hash::Hash64("ulong")] = ADD_UINT64;
+
 			defaults[ADD_UINT8] = 1;
 			defaults[ADD_UINT16] = 2;
 			defaults[ADD_UINT32] = 4;
@@ -142,6 +180,47 @@ namespace acts::compiler::adl {
 			defaults[ADD_DOUBLE] = 8;
 			defaults[ADD_STRING] = 8;
 			defaults[ADD_HASH] = 8;
+		}
+
+		void Dump() {
+			hashutils::ReadDefaultFile();
+			LOG_INFO("files");
+			for (auto& path : loadedPath) {
+				LOG_INFO("- {}", path.string());
+			}
+			LOG_INFO("names");
+			for (auto& [name, id] : names) {
+				LOG_INFO("  {} -> {}", hashutils::ExtractTmp("hash", name), (ADLDataTypeIdBase)id);
+			}
+			LOG_INFO("typedefs");
+			for (auto& [id1, id2] : typedefs) {
+				LOG_INFO("  {} -> {}", (ADLDataTypeIdBase)id1, (ADLDataTypeIdBase)id2);
+			}
+			LOG_INFO("structs");
+			for (auto& [id, strct] : structs) {
+				LOG_INFO("  {} -> {} (alig:0x{:x},size:0x{:x})", (ADLDataTypeIdBase)id, hashutils::ExtractTmp("hash", strct.name), strct.align, strct.size);
+
+				for (auto& field : strct.fields) {
+
+					LOG_INFO("      {} -> {} (off:0x{:x},len:{},ptr:{})", hashutils::ExtractTmp("hash", field.name), (ADLDataTypeIdBase)field.type, field.offset, field.arraySize, field.pointer);
+				}
+			}
+			LOG_INFO("enums");
+			for (auto& [id, enm] : enums) {
+				LOG_INFO("  {} -> {} (type:{})", (ADLDataTypeIdBase)id, hashutils::ExtractTmp("hash", enm.name), (ADLDataTypeIdBase)enm.typeSize);
+				for (auto& field : enm.fields) {
+					LOG_INFO("      {} -> {}0x{:x}", hashutils::ExtractTmp("hash", field.name), (field.value < 0 ? "-" : ""), (field.value < 0 ? -field.value : field.value));
+				}
+			}
+			LOG_INFO("flags");
+			for (auto& [id, flg] : flags) {
+				LOG_INFO("  {} -> {} (type:{})", (ADLDataTypeIdBase)id, hashutils::ExtractTmp("hash", flg.name), (ADLDataTypeIdBase)flg.typeSize);
+				for (auto& field : flg.fields) {
+					LOG_INFO("      {} -> {}0x{:x}", hashutils::ExtractTmp("hash", field.name), (field.value < 0 ? "-" : ""), (field.value < 0 ? -field.value : field.value));
+				}
+			}
+			
+
 		}
 
 		ADLDataTypeId GetBaseType(ADLDataTypeId id) const {
@@ -267,5 +346,4 @@ namespace acts::compiler::adl {
 			return &s;
 		}
 	};
-
 }

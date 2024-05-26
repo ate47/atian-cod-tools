@@ -52,67 +52,71 @@ void adlParserInitialize() {
 #endif
   auto staticData = std::make_unique<AdlParserStaticData>(
     std::vector<std::string>{
-      "prog", "def", "root_def", "align_def", "type_def", "struct_def", 
-      "flag_def", "enum_def", "struct_members", "enum_members", "struct_member", 
-      "data_member", "data_operator", "enum_member", "idf", "number"
+      "prog", "def", "root_def", "include_def", "align_def", "type_def", 
+      "struct_def", "flag_def", "enum_def", "struct_members", "enum_members", 
+      "struct_member", "data_member", "data_operator", "enum_member", "idf", 
+      "number"
     },
     std::vector<std::string>{
-      "", "';'", "'#root'", "'#align'", "'typedef'", "'struct'", "'align'", 
-      "'('", "')'", "'size'", "'{'", "'}'", "'flag'", "':'", "'enum'", "','", 
-      "'*'", "'['", "']'", "'$padding'", "'$assert_offset'", "'='"
+      "", "';'", "'#root'", "'#include'", "'#align'", "'typedef'", "'struct'", 
+      "'align'", "'('", "')'", "'size'", "'{'", "'}'", "'flag'", "':'", 
+      "'enum'", "','", "'*'", "'['", "']'", "'$padding'", "'$assert_offset'", 
+      "'='"
     },
     std::vector<std::string>{
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
-      "", "", "", "", "", "NEWLINE", "WHITESPACE", "INTEGER10", "INTEGER16", 
+      "", "", "", "", "", "", "NEWLINE", "WHITESPACE", "INTEGER10", "INTEGER16", 
       "INTEGER8", "INTEGER2", "BOOL_VALUE", "IDENTIFIER", "STRING"
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,30,148,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,31,154,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
-  	14,2,15,7,15,1,0,5,0,34,8,0,10,0,12,0,37,9,0,1,0,1,0,1,1,1,1,1,1,1,1,
-  	1,1,1,1,3,1,47,8,1,1,1,1,1,1,2,1,2,1,2,1,3,1,3,1,3,1,4,1,4,1,4,1,4,1,
-  	5,1,5,1,5,1,5,1,5,1,5,3,5,67,8,5,1,5,1,5,1,5,1,5,1,5,3,5,74,8,5,1,5,1,
-  	5,1,5,1,5,1,5,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,6,1,7,1,7,1,7,1,7,1,7,1,7,
-  	1,7,1,7,1,8,1,8,1,8,5,8,100,8,8,10,8,12,8,103,9,8,1,9,1,9,1,9,5,9,108,
-  	8,9,10,9,12,9,111,9,9,1,9,3,9,114,8,9,3,9,116,8,9,1,10,1,10,3,10,120,
-  	8,10,1,11,1,11,3,11,124,8,11,1,11,1,11,1,11,1,11,1,11,3,11,131,8,11,1,
-  	12,1,12,1,12,1,13,1,13,3,13,138,8,13,1,13,1,13,3,13,142,8,13,1,14,1,14,
-  	1,15,1,15,1,15,0,0,16,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,0,2,
-  	1,0,19,20,1,0,24,27,148,0,35,1,0,0,0,2,46,1,0,0,0,4,50,1,0,0,0,6,53,1,
-  	0,0,0,8,56,1,0,0,0,10,60,1,0,0,0,12,80,1,0,0,0,14,88,1,0,0,0,16,101,1,
-  	0,0,0,18,115,1,0,0,0,20,119,1,0,0,0,22,121,1,0,0,0,24,132,1,0,0,0,26,
-  	137,1,0,0,0,28,143,1,0,0,0,30,145,1,0,0,0,32,34,3,2,1,0,33,32,1,0,0,0,
-  	34,37,1,0,0,0,35,33,1,0,0,0,35,36,1,0,0,0,36,38,1,0,0,0,37,35,1,0,0,0,
-  	38,39,5,0,0,1,39,1,1,0,0,0,40,47,3,10,5,0,41,47,3,12,6,0,42,47,3,14,7,
-  	0,43,47,3,4,2,0,44,47,3,6,3,0,45,47,3,8,4,0,46,40,1,0,0,0,46,41,1,0,0,
-  	0,46,42,1,0,0,0,46,43,1,0,0,0,46,44,1,0,0,0,46,45,1,0,0,0,47,48,1,0,0,
-  	0,48,49,5,1,0,0,49,3,1,0,0,0,50,51,5,2,0,0,51,52,3,28,14,0,52,5,1,0,0,
-  	0,53,54,5,3,0,0,54,55,3,30,15,0,55,7,1,0,0,0,56,57,5,4,0,0,57,58,3,28,
-  	14,0,58,59,3,28,14,0,59,9,1,0,0,0,60,66,5,5,0,0,61,62,5,6,0,0,62,63,5,
-  	7,0,0,63,64,3,30,15,0,64,65,5,8,0,0,65,67,1,0,0,0,66,61,1,0,0,0,66,67,
-  	1,0,0,0,67,73,1,0,0,0,68,69,5,9,0,0,69,70,5,7,0,0,70,71,3,30,15,0,71,
-  	72,5,8,0,0,72,74,1,0,0,0,73,68,1,0,0,0,73,74,1,0,0,0,74,75,1,0,0,0,75,
-  	76,3,28,14,0,76,77,5,10,0,0,77,78,3,16,8,0,78,79,5,11,0,0,79,11,1,0,0,
-  	0,80,81,5,12,0,0,81,82,3,28,14,0,82,83,5,13,0,0,83,84,3,28,14,0,84,85,
-  	5,10,0,0,85,86,3,18,9,0,86,87,5,11,0,0,87,13,1,0,0,0,88,89,5,14,0,0,89,
-  	90,3,28,14,0,90,91,5,13,0,0,91,92,3,28,14,0,92,93,5,10,0,0,93,94,3,18,
-  	9,0,94,95,5,11,0,0,95,15,1,0,0,0,96,97,3,20,10,0,97,98,5,1,0,0,98,100,
-  	1,0,0,0,99,96,1,0,0,0,100,103,1,0,0,0,101,99,1,0,0,0,101,102,1,0,0,0,
-  	102,17,1,0,0,0,103,101,1,0,0,0,104,109,3,26,13,0,105,106,5,15,0,0,106,
-  	108,3,26,13,0,107,105,1,0,0,0,108,111,1,0,0,0,109,107,1,0,0,0,109,110,
-  	1,0,0,0,110,113,1,0,0,0,111,109,1,0,0,0,112,114,5,15,0,0,113,112,1,0,
-  	0,0,113,114,1,0,0,0,114,116,1,0,0,0,115,104,1,0,0,0,115,116,1,0,0,0,116,
-  	19,1,0,0,0,117,120,3,22,11,0,118,120,3,24,12,0,119,117,1,0,0,0,119,118,
-  	1,0,0,0,120,21,1,0,0,0,121,123,3,28,14,0,122,124,5,16,0,0,123,122,1,0,
-  	0,0,123,124,1,0,0,0,124,125,1,0,0,0,125,130,3,28,14,0,126,127,5,17,0,
-  	0,127,128,3,30,15,0,128,129,5,18,0,0,129,131,1,0,0,0,130,126,1,0,0,0,
-  	130,131,1,0,0,0,131,23,1,0,0,0,132,133,7,0,0,0,133,134,3,30,15,0,134,
-  	25,1,0,0,0,135,138,5,30,0,0,136,138,3,28,14,0,137,135,1,0,0,0,137,136,
-  	1,0,0,0,138,141,1,0,0,0,139,140,5,21,0,0,140,142,3,30,15,0,141,139,1,
-  	0,0,0,141,142,1,0,0,0,142,27,1,0,0,0,143,144,5,29,0,0,144,29,1,0,0,0,
-  	145,146,7,1,0,0,146,31,1,0,0,0,13,35,46,66,73,101,109,113,115,119,123,
-  	130,137,141
+  	14,2,15,7,15,2,16,7,16,1,0,5,0,36,8,0,10,0,12,0,39,9,0,1,0,1,0,1,1,1,
+  	1,1,1,1,1,1,1,1,1,1,1,3,1,50,8,1,1,1,1,1,1,2,1,2,1,2,1,3,1,3,1,3,1,4,
+  	1,4,1,4,1,5,1,5,1,5,1,5,1,6,1,6,1,6,1,6,1,6,1,6,3,6,73,8,6,1,6,1,6,1,
+  	6,1,6,1,6,3,6,80,8,6,1,6,1,6,1,6,1,6,1,6,1,7,1,7,1,7,1,7,1,7,1,7,1,7,
+  	1,7,1,8,1,8,1,8,1,8,1,8,1,8,1,8,1,8,1,9,1,9,1,9,5,9,106,8,9,10,9,12,9,
+  	109,9,9,1,10,1,10,1,10,5,10,114,8,10,10,10,12,10,117,9,10,1,10,3,10,120,
+  	8,10,3,10,122,8,10,1,11,1,11,3,11,126,8,11,1,12,1,12,3,12,130,8,12,1,
+  	12,1,12,1,12,1,12,1,12,3,12,137,8,12,1,13,1,13,1,13,1,14,1,14,3,14,144,
+  	8,14,1,14,1,14,3,14,148,8,14,1,15,1,15,1,16,1,16,1,16,0,0,17,0,2,4,6,
+  	8,10,12,14,16,18,20,22,24,26,28,30,32,0,2,1,0,20,21,1,0,25,28,154,0,37,
+  	1,0,0,0,2,49,1,0,0,0,4,53,1,0,0,0,6,56,1,0,0,0,8,59,1,0,0,0,10,62,1,0,
+  	0,0,12,66,1,0,0,0,14,86,1,0,0,0,16,94,1,0,0,0,18,107,1,0,0,0,20,121,1,
+  	0,0,0,22,125,1,0,0,0,24,127,1,0,0,0,26,138,1,0,0,0,28,143,1,0,0,0,30,
+  	149,1,0,0,0,32,151,1,0,0,0,34,36,3,2,1,0,35,34,1,0,0,0,36,39,1,0,0,0,
+  	37,35,1,0,0,0,37,38,1,0,0,0,38,40,1,0,0,0,39,37,1,0,0,0,40,41,5,0,0,1,
+  	41,1,1,0,0,0,42,50,3,12,6,0,43,50,3,14,7,0,44,50,3,16,8,0,45,50,3,4,2,
+  	0,46,50,3,8,4,0,47,50,3,10,5,0,48,50,3,6,3,0,49,42,1,0,0,0,49,43,1,0,
+  	0,0,49,44,1,0,0,0,49,45,1,0,0,0,49,46,1,0,0,0,49,47,1,0,0,0,49,48,1,0,
+  	0,0,50,51,1,0,0,0,51,52,5,1,0,0,52,3,1,0,0,0,53,54,5,2,0,0,54,55,3,30,
+  	15,0,55,5,1,0,0,0,56,57,5,3,0,0,57,58,5,31,0,0,58,7,1,0,0,0,59,60,5,4,
+  	0,0,60,61,3,32,16,0,61,9,1,0,0,0,62,63,5,5,0,0,63,64,3,30,15,0,64,65,
+  	3,30,15,0,65,11,1,0,0,0,66,72,5,6,0,0,67,68,5,7,0,0,68,69,5,8,0,0,69,
+  	70,3,32,16,0,70,71,5,9,0,0,71,73,1,0,0,0,72,67,1,0,0,0,72,73,1,0,0,0,
+  	73,79,1,0,0,0,74,75,5,10,0,0,75,76,5,8,0,0,76,77,3,32,16,0,77,78,5,9,
+  	0,0,78,80,1,0,0,0,79,74,1,0,0,0,79,80,1,0,0,0,80,81,1,0,0,0,81,82,3,30,
+  	15,0,82,83,5,11,0,0,83,84,3,18,9,0,84,85,5,12,0,0,85,13,1,0,0,0,86,87,
+  	5,13,0,0,87,88,3,30,15,0,88,89,5,14,0,0,89,90,3,30,15,0,90,91,5,11,0,
+  	0,91,92,3,20,10,0,92,93,5,12,0,0,93,15,1,0,0,0,94,95,5,15,0,0,95,96,3,
+  	30,15,0,96,97,5,14,0,0,97,98,3,30,15,0,98,99,5,11,0,0,99,100,3,20,10,
+  	0,100,101,5,12,0,0,101,17,1,0,0,0,102,103,3,22,11,0,103,104,5,1,0,0,104,
+  	106,1,0,0,0,105,102,1,0,0,0,106,109,1,0,0,0,107,105,1,0,0,0,107,108,1,
+  	0,0,0,108,19,1,0,0,0,109,107,1,0,0,0,110,115,3,28,14,0,111,112,5,16,0,
+  	0,112,114,3,28,14,0,113,111,1,0,0,0,114,117,1,0,0,0,115,113,1,0,0,0,115,
+  	116,1,0,0,0,116,119,1,0,0,0,117,115,1,0,0,0,118,120,5,16,0,0,119,118,
+  	1,0,0,0,119,120,1,0,0,0,120,122,1,0,0,0,121,110,1,0,0,0,121,122,1,0,0,
+  	0,122,21,1,0,0,0,123,126,3,24,12,0,124,126,3,26,13,0,125,123,1,0,0,0,
+  	125,124,1,0,0,0,126,23,1,0,0,0,127,129,3,30,15,0,128,130,5,17,0,0,129,
+  	128,1,0,0,0,129,130,1,0,0,0,130,131,1,0,0,0,131,136,3,30,15,0,132,133,
+  	5,18,0,0,133,134,3,32,16,0,134,135,5,19,0,0,135,137,1,0,0,0,136,132,1,
+  	0,0,0,136,137,1,0,0,0,137,25,1,0,0,0,138,139,7,0,0,0,139,140,3,32,16,
+  	0,140,27,1,0,0,0,141,144,5,31,0,0,142,144,3,30,15,0,143,141,1,0,0,0,143,
+  	142,1,0,0,0,144,147,1,0,0,0,145,146,5,22,0,0,146,148,3,32,16,0,147,145,
+  	1,0,0,0,147,148,1,0,0,0,148,29,1,0,0,0,149,150,5,30,0,0,150,31,1,0,0,
+  	0,151,152,7,1,0,0,152,33,1,0,0,0,13,37,49,72,79,107,115,119,121,125,129,
+  	136,143,147
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -206,18 +210,18 @@ adlParser::ProgContext* adlParser::prog() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(35);
+    setState(37);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 20540) != 0)) {
-      setState(32);
+      ((1ULL << _la) & 41084) != 0)) {
+      setState(34);
       def();
-      setState(37);
+      setState(39);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(38);
+    setState(40);
     match(adlParser::EOF);
    
   }
@@ -260,6 +264,10 @@ adlParser::Type_defContext* adlParser::DefContext::type_def() {
   return getRuleContext<adlParser::Type_defContext>(0);
 }
 
+adlParser::Include_defContext* adlParser::DefContext::include_def() {
+  return getRuleContext<adlParser::Include_defContext>(0);
+}
+
 
 size_t adlParser::DefContext::getRuleIndex() const {
   return adlParser::RuleDef;
@@ -286,49 +294,55 @@ adlParser::DefContext* adlParser::def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(46);
+    setState(49);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
-      case adlParser::T__4: {
-        setState(40);
+      case adlParser::T__5: {
+        setState(42);
         struct_def();
         break;
       }
 
-      case adlParser::T__11: {
-        setState(41);
+      case adlParser::T__12: {
+        setState(43);
         flag_def();
         break;
       }
 
-      case adlParser::T__13: {
-        setState(42);
+      case adlParser::T__14: {
+        setState(44);
         enum_def();
         break;
       }
 
       case adlParser::T__1: {
-        setState(43);
+        setState(45);
         root_def();
         break;
       }
 
-      case adlParser::T__2: {
-        setState(44);
+      case adlParser::T__3: {
+        setState(46);
         align_def();
         break;
       }
 
-      case adlParser::T__3: {
-        setState(45);
+      case adlParser::T__4: {
+        setState(47);
         type_def();
+        break;
+      }
+
+      case adlParser::T__2: {
+        setState(48);
+        include_def();
         break;
       }
 
     default:
       throw NoViableAltException(this);
     }
-    setState(48);
+    setState(51);
     match(adlParser::T__0);
    
   }
@@ -377,10 +391,61 @@ adlParser::Root_defContext* adlParser::root_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(50);
+    setState(53);
     match(adlParser::T__1);
-    setState(51);
+    setState(54);
     idf();
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- Include_defContext ------------------------------------------------------------------
+
+adlParser::Include_defContext::Include_defContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+tree::TerminalNode* adlParser::Include_defContext::STRING() {
+  return getToken(adlParser::STRING, 0);
+}
+
+
+size_t adlParser::Include_defContext::getRuleIndex() const {
+  return adlParser::RuleInclude_def;
+}
+
+
+std::any adlParser::Include_defContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitInclude_def(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+adlParser::Include_defContext* adlParser::include_def() {
+  Include_defContext *_localctx = _tracker.createInstance<Include_defContext>(_ctx, getState());
+  enterRule(_localctx, 6, adlParser::RuleInclude_def);
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(56);
+    match(adlParser::T__2);
+    setState(57);
+    match(adlParser::STRING);
    
   }
   catch (RecognitionException &e) {
@@ -417,7 +482,7 @@ std::any adlParser::Align_defContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::Align_defContext* adlParser::align_def() {
   Align_defContext *_localctx = _tracker.createInstance<Align_defContext>(_ctx, getState());
-  enterRule(_localctx, 6, adlParser::RuleAlign_def);
+  enterRule(_localctx, 8, adlParser::RuleAlign_def);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -428,9 +493,9 @@ adlParser::Align_defContext* adlParser::align_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(53);
-    match(adlParser::T__2);
-    setState(54);
+    setState(59);
+    match(adlParser::T__3);
+    setState(60);
     number();
    
   }
@@ -472,7 +537,7 @@ std::any adlParser::Type_defContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::Type_defContext* adlParser::type_def() {
   Type_defContext *_localctx = _tracker.createInstance<Type_defContext>(_ctx, getState());
-  enterRule(_localctx, 8, adlParser::RuleType_def);
+  enterRule(_localctx, 10, adlParser::RuleType_def);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -483,11 +548,11 @@ adlParser::Type_defContext* adlParser::type_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(56);
-    match(adlParser::T__3);
-    setState(57);
+    setState(62);
+    match(adlParser::T__4);
+    setState(63);
     idf();
-    setState(58);
+    setState(64);
     idf();
    
   }
@@ -537,7 +602,7 @@ std::any adlParser::Struct_defContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::Struct_defContext* adlParser::struct_def() {
   Struct_defContext *_localctx = _tracker.createInstance<Struct_defContext>(_ctx, getState());
-  enterRule(_localctx, 10, adlParser::RuleStruct_def);
+  enterRule(_localctx, 12, adlParser::RuleStruct_def);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -549,44 +614,44 @@ adlParser::Struct_defContext* adlParser::struct_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(60);
-    match(adlParser::T__4);
     setState(66);
+    match(adlParser::T__5);
+    setState(72);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
-    if (_la == adlParser::T__5) {
-      setState(61);
-      match(adlParser::T__5);
-      setState(62);
+    if (_la == adlParser::T__6) {
+      setState(67);
       match(adlParser::T__6);
-      setState(63);
-      number();
-      setState(64);
-      match(adlParser::T__7);
-    }
-    setState(73);
-    _errHandler->sync(this);
-
-    _la = _input->LA(1);
-    if (_la == adlParser::T__8) {
       setState(68);
-      match(adlParser::T__8);
-      setState(69);
-      match(adlParser::T__6);
-      setState(70);
-      number();
-      setState(71);
       match(adlParser::T__7);
+      setState(69);
+      number();
+      setState(70);
+      match(adlParser::T__8);
     }
-    setState(75);
+    setState(79);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == adlParser::T__9) {
+      setState(74);
+      match(adlParser::T__9);
+      setState(75);
+      match(adlParser::T__7);
+      setState(76);
+      number();
+      setState(77);
+      match(adlParser::T__8);
+    }
+    setState(81);
     idf();
-    setState(76);
-    match(adlParser::T__9);
-    setState(77);
-    struct_members();
-    setState(78);
+    setState(82);
     match(adlParser::T__10);
+    setState(83);
+    struct_members();
+    setState(84);
+    match(adlParser::T__11);
    
   }
   catch (RecognitionException &e) {
@@ -631,7 +696,7 @@ std::any adlParser::Flag_defContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::Flag_defContext* adlParser::flag_def() {
   Flag_defContext *_localctx = _tracker.createInstance<Flag_defContext>(_ctx, getState());
-  enterRule(_localctx, 12, adlParser::RuleFlag_def);
+  enterRule(_localctx, 14, adlParser::RuleFlag_def);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -642,20 +707,20 @@ adlParser::Flag_defContext* adlParser::flag_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(80);
-    match(adlParser::T__11);
-    setState(81);
-    idf();
-    setState(82);
-    match(adlParser::T__12);
-    setState(83);
-    idf();
-    setState(84);
-    match(adlParser::T__9);
-    setState(85);
-    enum_members();
     setState(86);
+    match(adlParser::T__12);
+    setState(87);
+    idf();
+    setState(88);
+    match(adlParser::T__13);
+    setState(89);
+    idf();
+    setState(90);
     match(adlParser::T__10);
+    setState(91);
+    enum_members();
+    setState(92);
+    match(adlParser::T__11);
    
   }
   catch (RecognitionException &e) {
@@ -700,7 +765,7 @@ std::any adlParser::Enum_defContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::Enum_defContext* adlParser::enum_def() {
   Enum_defContext *_localctx = _tracker.createInstance<Enum_defContext>(_ctx, getState());
-  enterRule(_localctx, 14, adlParser::RuleEnum_def);
+  enterRule(_localctx, 16, adlParser::RuleEnum_def);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -711,20 +776,20 @@ adlParser::Enum_defContext* adlParser::enum_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(88);
-    match(adlParser::T__13);
-    setState(89);
-    idf();
-    setState(90);
-    match(adlParser::T__12);
-    setState(91);
-    idf();
-    setState(92);
-    match(adlParser::T__9);
-    setState(93);
-    enum_members();
     setState(94);
+    match(adlParser::T__14);
+    setState(95);
+    idf();
+    setState(96);
+    match(adlParser::T__13);
+    setState(97);
+    idf();
+    setState(98);
     match(adlParser::T__10);
+    setState(99);
+    enum_members();
+    setState(100);
+    match(adlParser::T__11);
    
   }
   catch (RecognitionException &e) {
@@ -765,7 +830,7 @@ std::any adlParser::Struct_membersContext::accept(tree::ParseTreeVisitor *visito
 
 adlParser::Struct_membersContext* adlParser::struct_members() {
   Struct_membersContext *_localctx = _tracker.createInstance<Struct_membersContext>(_ctx, getState());
-  enterRule(_localctx, 16, adlParser::RuleStruct_members);
+  enterRule(_localctx, 18, adlParser::RuleStruct_members);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -777,16 +842,16 @@ adlParser::Struct_membersContext* adlParser::struct_members() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(101);
+    setState(107);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 538443776) != 0)) {
-      setState(96);
+      ((1ULL << _la) & 1076887552) != 0)) {
+      setState(102);
       struct_member();
-      setState(97);
-      match(adlParser::T__0);
       setState(103);
+      match(adlParser::T__0);
+      setState(109);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -830,7 +895,7 @@ std::any adlParser::Enum_membersContext::accept(tree::ParseTreeVisitor *visitor)
 
 adlParser::Enum_membersContext* adlParser::enum_members() {
   Enum_membersContext *_localctx = _tracker.createInstance<Enum_membersContext>(_ctx, getState());
-  enterRule(_localctx, 18, adlParser::RuleEnum_members);
+  enterRule(_localctx, 20, adlParser::RuleEnum_members);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -843,36 +908,36 @@ adlParser::Enum_membersContext* adlParser::enum_members() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(115);
+    setState(121);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::IDENTIFIER
 
     || _la == adlParser::STRING) {
-      setState(104);
+      setState(110);
       enum_member();
-      setState(109);
+      setState(115);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(105);
-          match(adlParser::T__14);
-          setState(106);
+          setState(111);
+          match(adlParser::T__15);
+          setState(112);
           enum_member(); 
         }
-        setState(111);
+        setState(117);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx);
       }
-      setState(113);
+      setState(119);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
-      if (_la == adlParser::T__14) {
-        setState(112);
-        match(adlParser::T__14);
+      if (_la == adlParser::T__15) {
+        setState(118);
+        match(adlParser::T__15);
       }
     }
    
@@ -915,7 +980,7 @@ std::any adlParser::Struct_memberContext::accept(tree::ParseTreeVisitor *visitor
 
 adlParser::Struct_memberContext* adlParser::struct_member() {
   Struct_memberContext *_localctx = _tracker.createInstance<Struct_memberContext>(_ctx, getState());
-  enterRule(_localctx, 20, adlParser::RuleStruct_member);
+  enterRule(_localctx, 22, adlParser::RuleStruct_member);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -925,20 +990,20 @@ adlParser::Struct_memberContext* adlParser::struct_member() {
     exitRule();
   });
   try {
-    setState(119);
+    setState(125);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case adlParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 1);
-        setState(117);
+        setState(123);
         data_member();
         break;
       }
 
-      case adlParser::T__18:
-      case adlParser::T__19: {
+      case adlParser::T__19:
+      case adlParser::T__20: {
         enterOuterAlt(_localctx, 2);
-        setState(118);
+        setState(124);
         data_operator();
         break;
       }
@@ -990,7 +1055,7 @@ std::any adlParser::Data_memberContext::accept(tree::ParseTreeVisitor *visitor) 
 
 adlParser::Data_memberContext* adlParser::data_member() {
   Data_memberContext *_localctx = _tracker.createInstance<Data_memberContext>(_ctx, getState());
-  enterRule(_localctx, 22, adlParser::RuleData_member);
+  enterRule(_localctx, 24, adlParser::RuleData_member);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1002,29 +1067,29 @@ adlParser::Data_memberContext* adlParser::data_member() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(121);
+    setState(127);
     idf();
-    setState(123);
-    _errHandler->sync(this);
-
-    _la = _input->LA(1);
-    if (_la == adlParser::T__15) {
-      setState(122);
-      match(adlParser::T__15);
-    }
-    setState(125);
-    idf();
-    setState(130);
+    setState(129);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::T__16) {
-      setState(126);
-      match(adlParser::T__16);
-      setState(127);
-      number();
       setState(128);
+      match(adlParser::T__16);
+    }
+    setState(131);
+    idf();
+    setState(136);
+    _errHandler->sync(this);
+
+    _la = _input->LA(1);
+    if (_la == adlParser::T__17) {
+      setState(132);
       match(adlParser::T__17);
+      setState(133);
+      number();
+      setState(134);
+      match(adlParser::T__18);
     }
    
   }
@@ -1062,7 +1127,7 @@ std::any adlParser::Data_operatorContext::accept(tree::ParseTreeVisitor *visitor
 
 adlParser::Data_operatorContext* adlParser::data_operator() {
   Data_operatorContext *_localctx = _tracker.createInstance<Data_operatorContext>(_ctx, getState());
-  enterRule(_localctx, 24, adlParser::RuleData_operator);
+  enterRule(_localctx, 26, adlParser::RuleData_operator);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1074,18 +1139,18 @@ adlParser::Data_operatorContext* adlParser::data_operator() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(132);
+    setState(138);
     _la = _input->LA(1);
-    if (!(_la == adlParser::T__18
+    if (!(_la == adlParser::T__19
 
-    || _la == adlParser::T__19)) {
+    || _la == adlParser::T__20)) {
     _errHandler->recoverInline(this);
     }
     else {
       _errHandler->reportMatch(this);
       consume();
     }
-    setState(133);
+    setState(139);
     number();
    
   }
@@ -1131,7 +1196,7 @@ std::any adlParser::Enum_memberContext::accept(tree::ParseTreeVisitor *visitor) 
 
 adlParser::Enum_memberContext* adlParser::enum_member() {
   Enum_memberContext *_localctx = _tracker.createInstance<Enum_memberContext>(_ctx, getState());
-  enterRule(_localctx, 26, adlParser::RuleEnum_member);
+  enterRule(_localctx, 28, adlParser::RuleEnum_member);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1143,17 +1208,17 @@ adlParser::Enum_memberContext* adlParser::enum_member() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(137);
+    setState(143);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case adlParser::STRING: {
-        setState(135);
+        setState(141);
         match(adlParser::STRING);
         break;
       }
 
       case adlParser::IDENTIFIER: {
-        setState(136);
+        setState(142);
         idf();
         break;
       }
@@ -1161,14 +1226,14 @@ adlParser::Enum_memberContext* adlParser::enum_member() {
     default:
       throw NoViableAltException(this);
     }
-    setState(141);
+    setState(147);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
-    if (_la == adlParser::T__20) {
-      setState(139);
-      match(adlParser::T__20);
-      setState(140);
+    if (_la == adlParser::T__21) {
+      setState(145);
+      match(adlParser::T__21);
+      setState(146);
       number();
     }
    
@@ -1207,7 +1272,7 @@ std::any adlParser::IdfContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::IdfContext* adlParser::idf() {
   IdfContext *_localctx = _tracker.createInstance<IdfContext>(_ctx, getState());
-  enterRule(_localctx, 28, adlParser::RuleIdf);
+  enterRule(_localctx, 30, adlParser::RuleIdf);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1218,7 +1283,7 @@ adlParser::IdfContext* adlParser::idf() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(143);
+    setState(149);
     match(adlParser::IDENTIFIER);
    
   }
@@ -1268,7 +1333,7 @@ std::any adlParser::NumberContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::NumberContext* adlParser::number() {
   NumberContext *_localctx = _tracker.createInstance<NumberContext>(_ctx, getState());
-  enterRule(_localctx, 30, adlParser::RuleNumber);
+  enterRule(_localctx, 32, adlParser::RuleNumber);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1280,10 +1345,10 @@ adlParser::NumberContext* adlParser::number() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(145);
+    setState(151);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 251658240) != 0))) {
+      ((1ULL << _la) & 503316480) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {

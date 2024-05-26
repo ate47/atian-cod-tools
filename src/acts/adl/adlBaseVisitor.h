@@ -27,6 +27,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitInclude_def(adlParser::Include_defContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitAlign_def(adlParser::Align_defContext *ctx) override {
     return visitChildren(ctx);
   }

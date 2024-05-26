@@ -7,16 +7,12 @@
  */
 #warning work in progress
 
-struct size(0x38) root {
-    int* test; // 8
-    $padding 0x10; // 10
-    float test2; // 14
-    $padding 0x28; // 28
+typedef uint32_t test_typedef;
 
-    foo val; // 30
-    bar val2; // 38
-    //$assert_offset 0x38;
-};
+#include "test2.adl";
+
+typedef test_include test_typedef2;
+
 
 struct align(4) size(0x8) foo {
     int a;
@@ -40,4 +36,15 @@ enum test_enum : int64_t {
     VALUE2,
     VALUE3,
     VALUE4 = 0xFFFFFFFF
+};
+
+struct size(0x38) root {
+    int* test; // 8
+    $padding 0x10; // 10
+    float test2; // 14
+    $padding 0x28; // 28
+
+    foo val; // 30
+    bar val2; // 38
+    //$assert_offset 0x38;
 };

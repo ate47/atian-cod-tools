@@ -1,0 +1,6 @@
+// test for #include
+typedef uint32_t test_include;
+
+
+// uncomment to test circular include
+//#include "test.adl";

@@ -25,6 +25,8 @@ public:
 
     virtual std::any visitRoot_def(adlParser::Root_defContext *context) = 0;
 
+    virtual std::any visitInclude_def(adlParser::Include_defContext *context) = 0;
+
     virtual std::any visitAlign_def(adlParser::Align_defContext *context) = 0;
 
     virtual std::any visitType_def(adlParser::Type_defContext *context) = 0;

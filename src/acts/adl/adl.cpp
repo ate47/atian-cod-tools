@@ -21,6 +21,7 @@ namespace acts::compiler::adl {
     class AdlCompilerOption {
     public:
         bool m_help{};
+        bool print{};
         const char* def{};
         const char* data{};
         const char* output{};
@@ -33,6 +34,9 @@ namespace acts::compiler::adl {
 
                 if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
                     m_help = true;
+                }
+                else if (!_strcmpi("--print", arg) || !strcmp("-p", arg)) {
+                    print = true;
                 }
                 else if (*arg == '-') {
                     if (arg[1] == 'D' && arg[2]) {
@@ -65,6 +69,7 @@ namespace acts::compiler::adl {
 
         void PrintHelp() {
             LOG_INFO("-h --help              : Print help");
+            LOG_INFO("-p --print             : Print compiled ADL");
             LOG_INFO("-D[name]               : Define variable");
         }
     };
@@ -153,8 +158,59 @@ namespace acts::compiler::adl {
         }
     };
 
+    std::string GetTreeString(ParseTree* tree) {
+        if (IS_TERMINAL_TYPE(tree, adlParser::STRING)) {
+            auto node = tree->getText();
+            auto newStr = std::make_unique<char[]>(node.length() - 1);
+            auto* newStrWriter = &newStr[0];
+
+            // format string
+            for (size_t i = 1; i < node.length() - 1; i++) {
+                if (node[i] != '\\') {
+                    *(newStrWriter++) = node[i];
+                    continue; // default case
+                }
+
+                i++;
+
+                assert(i < node.length() && "bad format, \\ before end");
+
+                switch (node[i]) {
+                case 'n':
+                    *(newStrWriter++) = '\n';
+                    break;
+                case 't':
+                    *(newStrWriter++) = '\t';
+                    break;
+                case 'r':
+                    *(newStrWriter++) = '\r';
+                    break;
+                case 'b':
+                    *(newStrWriter++) = '\b';
+                    break;
+                default:
+                    *(newStrWriter++) = node[i];
+                    break;
+                }
+            }
+            *(newStrWriter++) = 0; // end char
+
+            return &newStr[0];
+        }
+        return {};
+    }
+
 
     bool CompileAdl(preprocessor::PreProcessorOption& preproc, const std::string& filename, std::string& data, ADLData& output) {
+        std::filesystem::path filePath{ filename };
+
+        LOG_DEBUG("Load ADL file {}", filename);
+
+        if (output.loadedPath.contains(filePath)) {
+            LOG_ERROR("Circular including detected for file {}, abort", filename);
+            return false;
+        }
+        output.loadedPath.insert(filePath);
 
         auto errList = std::make_unique<ACTSErrorListener>(filename);
         preproc.ApplyPreProcessor(data,
@@ -192,6 +248,28 @@ namespace acts::compiler::adl {
             RuleContext* rule = dynamic_cast<RuleContext*>(e->children[0]);
 
             switch (rule->getRuleIndex()) {
+            case adlParser::RuleInclude_def: {
+                std::string includeName = GetTreeString(rule->children[1]);
+
+                std::filesystem::path inc{ includeName };
+                if (!inc.is_absolute()) {
+                    std::filesystem::path loc{ filename };
+                    inc = loc.parent_path() / inc;
+                }
+
+                std::string includeBuffer{};
+                if (!utils::ReadFile(inc, includeBuffer)) {
+                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Can't read file {}", inc.string()));
+                    return false;
+                }
+
+                if (!CompileAdl(preproc, inc.string(), includeBuffer, output)) {
+                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Can't load file {}", inc.string()));
+                    return false;
+                }
+
+                break;
+            }
             case adlParser::RuleStruct_def: {
 
                 uint8_t align{ output.align };
@@ -246,6 +324,11 @@ namespace acts::compiler::adl {
 
                         std::string typeName{ structMember->children[0]->getText() };
                         nfield.type = output.IdOfName(typeName);
+                        if (!nfield.type) {
+                            errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Invalid struct type: {}", typeName));
+                            err = true;
+                            continue;
+                        }
 
                         size_t idx{ 1 };
                         if (structMember->children[idx]->getTreeType() == TREE_TERMINAL && structMember->children[idx]->getText() == "*") {
@@ -362,16 +445,17 @@ namespace acts::compiler::adl {
 
                 ParseTree* members{ rule->children[rule->children.size() - 2] };
 
+                int64_t currId{ -1 };
                 for (size_t i = 0; i < members->children.size(); i += 2) {
                     RuleContext* enumMember{ dynamic_cast<RuleContext*>(members->children[i]) };
 
                     ParseTree* enumVal{ enumMember->children[0] };
                     int64_t value{};
                     if (enumMember->children.size() < 2) {
-                        value = (int64_t)i / 2;
+                        value = ++currId;
                     }
                     else {
-                        value = NumberNodeValue(enumMember->children[2]);
+                        value = currId = NumberNodeValue(enumMember->children[2]);
                     }
 
                     if (value >= maxValue || value < minValue) {
@@ -381,43 +465,7 @@ namespace acts::compiler::adl {
 
                     std::string fieldName;
                     if (IS_TERMINAL_TYPE(enumVal, adlParser::STRING)) {
-
-                        auto node = enumVal->getText();
-                        auto newStr = std::make_unique<char[]>(node.length() - 1);
-                        auto* newStrWriter = &newStr[0];
-
-                        // format string
-                        for (size_t i = 1; i < node.length() - 1; i++) {
-                            if (node[i] != '\\') {
-                                *(newStrWriter++) = node[i];
-                                continue; // default case
-                            }
-
-                            i++;
-
-                            assert(i < node.length() && "bad format, \\ before end");
-
-                            switch (node[i]) {
-                            case 'n':
-                                *(newStrWriter++) = '\n';
-                                break;
-                            case 't':
-                                *(newStrWriter++) = '\t';
-                                break;
-                            case 'r':
-                                *(newStrWriter++) = '\r';
-                                break;
-                            case 'b':
-                                *(newStrWriter++) = '\b';
-                                break;
-                            default:
-                                *(newStrWriter++) = node[i];
-                                break;
-                            }
-                        }
-                        *(newStrWriter++) = 0; // end char
-
-                        fieldName = &newStr[0];
+                        fieldName = GetTreeString(enumVal);
                     }
                     else if (IS_RULE_TYPE(enumVal, adlParser::RuleIdf)) {
                         fieldName = enumVal->getText();
@@ -490,16 +538,17 @@ namespace acts::compiler::adl {
 
                 ParseTree* members{ rule->children[rule->children.size() - 2] };
 
+                int64_t currId{ - 1};
                 for (size_t i = 0; i < members->children.size(); i += 2) {
                     RuleContext* enumMember{ dynamic_cast<RuleContext*>(members->children[i]) };
 
                     ParseTree* enumVal{ enumMember->children[0] };
                     int64_t value{};
                     if (enumMember->children.size() < 2) {
-                        value = (int64_t)i / 2;
+                        value = ++currId;
                     }
                     else {
-                        value = NumberNodeValue(enumMember->children[2]);
+                        value = currId = NumberNodeValue(enumMember->children[2]);
                     }
 
                     if (value > maxValue || value < minValue) {
@@ -509,43 +558,7 @@ namespace acts::compiler::adl {
 
                     std::string fieldName;
                     if (IS_TERMINAL_TYPE(enumVal, adlParser::STRING)) {
-
-                        auto node = enumVal->getText();
-                        auto newStr = std::make_unique<char[]>(node.length() - 1);
-                        auto* newStrWriter = &newStr[0];
-
-                        // format string
-                        for (size_t i = 1; i < node.length() - 1; i++) {
-                            if (node[i] != '\\') {
-                                *(newStrWriter++) = node[i];
-                                continue; // default case
-                            }
-
-                            i++;
-
-                            assert(i < node.length() && "bad format, \\ before end");
-
-                            switch (node[i]) {
-                            case 'n':
-                                *(newStrWriter++) = '\n';
-                                break;
-                            case 't':
-                                *(newStrWriter++) = '\t';
-                                break;
-                            case 'r':
-                                *(newStrWriter++) = '\r';
-                                break;
-                            case 'b':
-                                *(newStrWriter++) = '\b';
-                                break;
-                            default:
-                                *(newStrWriter++) = node[i];
-                                break;
-                            }
-                        }
-                        *(newStrWriter++) = 0; // end char
-
-                        fieldName = &newStr[0];
+                        fieldName = GetTreeString(enumVal);
                     }
                     else if (IS_RULE_TYPE(enumVal, adlParser::RuleIdf)) {
                         fieldName = enumVal->getText();
@@ -556,7 +569,7 @@ namespace acts::compiler::adl {
                         err = true;
                     }
 
-                    uint64_t fieldHash{ hash::Hash64(fieldName.c_str()) };
+                    uint64_t fieldHash{ hashutils::Hash64(fieldName.c_str()) };
 
                     for (size_t j = 0; j < str->fields.size(); j++) {
                         if (str->fields[j].name == fieldHash) {
@@ -629,6 +642,41 @@ namespace acts::compiler::adl {
 
         return !err;
     }
+    std::ostream& PrintId(std::ostream& out, ADLDataTypeId id) {
+        out << "[";
+        if (IsDefaultType(id)) {
+            if (IsFloatType(id)) {
+                out << "float";
+            }
+            else if (IsIntType(id)) {
+                if (IsUnsignedType(id)) {
+                    out << "uint";
+                }
+                else {
+                    out << "int";
+                }
+            }
+            else {
+                out << "default";
+            }
+        }
+        else {
+            uint32_t type{ id & ADF_MASK };
+
+            switch (type) {
+            case ADF_STRUCT: out << "struct"; break;
+            case ADF_ENUM: out << "enum"; break;
+            case ADF_TYPEDEF: out << "typedef"; break;
+            case ADF_FLAG: out << "flag"; break;
+            default: out << "unknown"; break;
+            }
+        }
+
+        return out 
+            << std::dec
+            << ":" << (id & ADF_ID)
+            << "]";
+    }
 
     int adlcompiler(Process& proc, int argc, const char* argv[]) {
         AdlCompilerOption opt;
@@ -649,6 +697,10 @@ namespace acts::compiler::adl {
         if (!CompileAdl(opt.processorOpt, opt.def, buff, output)) {
             LOG_ERROR("Error when compiling {}", opt.def);
             return tool::BASIC_ERROR;
+        }
+
+        if (opt.print) {
+            output.Dump();
         }
 
         return tool::OK;
