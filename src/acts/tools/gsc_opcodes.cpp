@@ -32,8 +32,11 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("t7_1b", name) || !_strcmpi("bo4_1b", name) || !_strcmpi("blackops3_1b", name) || !_strcmpi("1b", name)) {
 			return VM_T71B;
 		}
-		if (!_strcmpi("jup", name) || !_strcmpi("s4", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
+		if (!_strcmpi("jup", name) || !_strcmpi("s5", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
 			return VM_MW23;
+		}
+		if (!_strcmpi("jupb", name) || !_strcmpi("s5b", name) || !_strcmpi("mwiiib", name) || !_strcmpi("modernwarfareiiib", name) || !_strcmpi("mw23b", name)) {
+			return VM_MW23B;
 		}
 		return VM_UNKNOWN;
 	}
@@ -665,6 +668,37 @@ public:
 	}
 };
 
+class OPCodeInfoRegisterMultipleVariables : public OPCodeInfo {
+public:
+	OPCodeInfoRegisterMultipleVariables() : OPCodeInfo(OPCode::OPCODE_IW_RegisterMultipleVariables, "RegisterMultipleVariables") {}
+
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		byte count = *(context.m_bcl++);
+
+		out << "count: " << std::dec << (int)count << "\n";
+
+		for (size_t i = 0; i < count; i++) {
+			uint64_t name = *reinterpret_cast<uint64_t*>(context.m_bcl);
+			context.m_bcl += 8;
+
+			if (!context.m_localvars.size()) {
+				// the local variables starts at 1
+				context.m_localvars.insert(context.m_localvars.begin(), { hashutils::Hash32("<error>"), 0 });
+			}
+
+			context.m_localvars.insert(context.m_localvars.begin(), { name, 0 });
+			context.WritePadding(out) << hashutils::ExtractTmp("var", name) << " (-" << std::dec << context.m_localvars.size() << ")" << std::endl;
+		}
+		// don't create statement, we can ignore it
+		context.m_lastOpCodeBase = -1;
+		return 0;
+	}
+
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		ctx.m_bcl += 8; // skip hash
+		return 0;
+	}
+};
 
 class OPCodeInfoSafeCreateLocalVariables : public OPCodeInfo {
 public:
@@ -4906,6 +4940,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		
 		// IW
 		RegisterOpCodeHandler(new OPCodeInfoRegisterVariable());
+		RegisterOpCodeHandler(new OPCodeInfoRegisterMultipleVariables());
 		RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached0, "EvalLocalVariableCached0", 1, 0));
 		RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached1, "EvalLocalVariableCached1", 1, 1));
 		RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached2, "EvalLocalVariableCached2", 1, 2));

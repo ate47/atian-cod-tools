@@ -583,6 +583,7 @@ namespace {
         { VM_T937,[](byte* file, size_t fileSize) { return std::make_shared<T937GSCOBJHandler>(file, fileSize); }},
         { VM_T9,[](byte* file, size_t fileSize) { return std::make_shared<T9GSCOBJHandler>(file, fileSize); }},
         { VM_MW23,[](byte* file, size_t fileSize) { return std::make_shared<MW23GSCOBJHandler>(file, fileSize); }},
+        { VM_MW23B,[](byte* file, size_t fileSize) { return std::make_shared<MW23BGSCOBJHandler>(file, fileSize); }},
         { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
     };
@@ -730,18 +731,14 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     byte vm;
     bool iw;
 
-    auto magicVal = *reinterpret_cast<uint64_t*>(data) & ~0xFF00000000000000;
-    if (magicVal == 0xa0d4353478a) {
-        // IW GSC file, use user input
-        if (opt.m_vm == VM_UNKNOWN) {
-            LOG_ERROR("VM type needed with IW GSC file, please use --vm [vm] to set it");
-            return tool::BASIC_ERROR;
-        }
-        vm = opt.m_vm;
+    uint64_t magicVal = *reinterpret_cast<uint64_t*>(data);
+    if ((magicVal & ~0x000000000000000F) == 0xA0D43534780) {
+        // IW GSC file, use 0 revision
+        vm = data[0];
         iw = true;
-    } 
-    else if (magicVal == 0xa0d43534780) {
-        // Treyarch GSC file, use revision
+    }
+    else if ((magicVal & ~0xFF0000000000000F) == 0xa0d43534780) {
+        // Treyarch GSC file, use 7 revision
         vm = data[7];
         iw = false;
     }

@@ -10,7 +10,8 @@ namespace tool::gsc::opcode {
 		VM_T937 = 0x37,
 		VM_T9 = 0x38,
 
-		VM_MW23 = 0xF0,
+		VM_MW23 = 0x8a,
+		VM_MW23B = 0x8b,
 	};
 
 	enum Platform : byte {
@@ -267,6 +268,7 @@ namespace tool::gsc::opcode {
 		OPCODE_WaitTillMatch2,
 		OPCODE_IgnoreWaittillVariableFieldCached,
 
+		OPCODE_IW_RegisterMultipleVariables,
 
 		OPCODE_COUNT,
 	};
