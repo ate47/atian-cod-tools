@@ -1642,7 +1642,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         for (uint32_t floc : ctx.m_badstrings) {
             gdbpos 
                 << "# " << flocName(floc) << "\n"
-                << "STRING 0x" << std::hex << floc << " \"\"\n"
+                << "STRING 0x" << std::hex << floc << " \n"
                 ;
         }
 

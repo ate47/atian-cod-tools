@@ -17,6 +17,8 @@ namespace {
         int itemAllocCount;
         void* freeHead;
     };
+    static_assert(sizeof(XAssetPool) == 0x20);
+
     union __declspec(align(8)) stringtable_cell_value
     {
         byte bytes[8];
