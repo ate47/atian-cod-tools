@@ -761,6 +761,7 @@ public:
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<GscObj23>();
         asmout
+            << "// crc: 0x" << std::hex << data->checksum << " (" << std::dec << data->checksum << ")\n"
             << std::left << std::setfill(' ')
             << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
             << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
@@ -781,8 +782,6 @@ public:
                 << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
                 << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
                 << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
-                << "unk28 :" << std::dec << std::setw(3) << (int)data->unk28 << " (0x" << std::hex << data->unk28 << ")\n"
-                << "unk2A :" << std::dec << std::setw(3) << (int)data->unk2A << " (0x" << std::hex << data->unk2A << ")\n"
                 << "unk3C :" << std::dec << std::setw(3) << (int)data->unk3C << " (0x" << std::hex << data->unk3C << ")\n"
                 << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
                 << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
@@ -1089,9 +1088,11 @@ public:
     int64_t GetDefaultChecksum(bool client) override {
         return 0; // no checksum
     }
-    void SetChecksum(uint64_t val) override { }
+    void SetChecksum(uint64_t val) override {
+        Ptr<GscObj23>()->checksum = (uint32_t)val;
+    }
     uint32_t GetChecksum() override {
-        return 0;
+        return Ptr<GscObj23>()->checksum;
     }
     const char* GetDefaultName(bool client) override {
         return ""; // idc
@@ -1111,6 +1112,7 @@ public:
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<GscObj23>();
         asmout
+            << "// crc: 0x" << std::hex << data->checksum << " (" << std::dec << data->checksum << ")\n"
             << std::left << std::setfill(' ')
             << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
             << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
@@ -1131,8 +1133,6 @@ public:
                 << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
                 << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
                 << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
-                << "unk28 :" << std::dec << std::setw(3) << (int)data->unk28 << " (0x" << std::hex << data->unk28 << ")\n"
-                << "unk2A :" << std::dec << std::setw(3) << (int)data->unk2A << " (0x" << std::hex << data->unk2A << ")\n"
                 << "unk3C :" << std::dec << std::setw(3) << (int)data->unk3C << " (0x" << std::hex << data->unk3C << ")\n"
                 << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
                 << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
@@ -1439,9 +1439,11 @@ public:
     int64_t GetDefaultChecksum(bool client) override {
         return 0; // no checksum
     }
-    void SetChecksum(uint64_t val) override { }
+    void SetChecksum(uint64_t val) override {
+        Ptr<GscObj23>()->checksum = (uint32_t)val;
+    }
     uint32_t GetChecksum() override {
-        return 0;
+        return Ptr<GscObj23>()->checksum;
     }
     const char* GetDefaultName(bool client) override {
         return ""; // idc

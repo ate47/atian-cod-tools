@@ -394,12 +394,44 @@ namespace {
 
 		return tool::OK;
 	}
-	
+	int strbytestest(Process& _, int argc, const char* argv[]) {
+		for (size_t i = 2; i < argc; i++) {
+			const char* arg{ argv[i] };
+
+			size_t al{ strlen(arg) };
+			std::cout << arg << " (" << std::dec << al << "):";
+
+
+			for (size_t j = 0; j <= al; j++) {
+				std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << (uint32_t)arg[j];
+			}
+			std::cout << "\n";
+			if (al >= 7) {
+				std::cout << "int64:  0x" << std::hex << *reinterpret_cast<const int64_t*>(arg) << "\n";
+				std::cout << "uint64: 0x" << std::hex << *reinterpret_cast<const uint64_t*>(arg) << "\n";
+			}
+			if (al >= 3) {
+				std::cout << "int32:  0x" << std::hex << *reinterpret_cast<const int32_t*>(arg) << "\n";
+				std::cout << "uint32: 0x" << std::hex << *reinterpret_cast<const uint32_t*>(arg) << "\n";
+			}
+
+			try {
+				uint64_t v{ std::strtoull(arg, nullptr, 10) };
+				std::cout << "v: " << std::dec << v << std::hex << "(0x" << v << ")\n";
+			}
+			catch (std::exception& e) {
+				std::cerr << e.what() << "\n";
+			}
+		}
+
+		return tool::OK;
+	}
 }
 #ifndef CI_BUILD
 ADD_TOOL("local23", "mwiii", " [file]", "decrypt local dump 23", nullptr, decryptlocalize);
 ADD_TOOL("hash23search", "mwiii", " [file]", "", nullptr, hash23search);
-ADD_TOOL("vmtest", "mwiii", "", "test vm opcodes", nullptr, vmtest);
+ADD_TOOL("vmtest", "mwiii", "", "test vm opcodes", nullptr, vmtest);;
+ADD_TOOL("strbytestest", "mwiii", "", "test strings", nullptr, strbytestest);
 
 #endif
 ADD_TOOL("hash23", "mwiii", " [str]", "hash using iw values", nullptr, hash23);

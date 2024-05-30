@@ -341,7 +341,7 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             for (size_t i = 0; i < anims_count; i++) {
                 const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
 
-                auto* s = Ptr<char>(unk2c->address);
+                char* s = DecryptString(Ptr<char>(unk2c->address));
 
                 uint32_t ref = ctx.AddStringValue(s);
                 const auto* vars = reinterpret_cast<const uint32_t*>(&unk2c[1]);
@@ -421,8 +421,8 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             for (size_t i = 0; i < anims_count; i++) {
                 const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
 
-                auto* s1 = Ptr<char>(animt->address_str1);
-                auto* s2 = Ptr<char>(animt->address_str2);
+                auto* s1 = DecryptString(Ptr<char>(animt->address_str1));
+                auto* s2 = DecryptString(Ptr<char>(animt->address_str2));
 
                 hashutils::Add(s1, true, true);
                 hashutils::Add(s2, true, true);

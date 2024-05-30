@@ -870,8 +870,7 @@ namespace tool::gsc {
         uint16_t unk22;
         uint16_t string_count;
         uint16_t unk26;
-        uint16_t unk28;
-        uint16_t unk2A;
+        uint32_t checksum;
         uint32_t animtree_use_offset;
         uint32_t animtree_offset;
         uint32_t cseg_offset;
