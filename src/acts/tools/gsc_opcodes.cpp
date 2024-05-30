@@ -128,8 +128,8 @@ namespace tool::gsc::opcode {
 				out << "\\\"";
 				break;
 			default:
-				if (*str < 0x20) {
-					out << "\\" << std::oct << (int)(*str) << std::dec;
+				if (*str < 0x20 || *str >= 0x7F) {
+					out << "\\" << std::oct << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
 				}
 				else {
 					out << *str;
@@ -876,7 +876,7 @@ public:
 			context.PushASMCNode(new ASMContextNodeValue<int64_t>(negv, TYPE_VALUE, false, true, true));
 		}
 
-		out << std::dec << negv << std::endl;
+		out << std::dec << negv << " (0x" << std::hex << -negv << ")" << std::endl;
 
 		return 0;
 	}
@@ -1088,7 +1088,7 @@ public:
 			if (context.m_runDecompiler) {
 				context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, m_valtype, false, true, true));
 			}
-			out << std::dec << intValue << std::endl;
+			out << std::dec << intValue << " (0x" << std::hex << intValue << ")" << std::endl;
 		}
 
 		bytecode += sizeof(Type);
@@ -4954,7 +4954,7 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetLevelFieldVariable, "SetLevelFieldVar", "level"));
 		RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalAnimFieldVar, "EvalAnimFieldVar", "anim", true));
 		RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalAnimFieldVarRef, "EvalAnimFieldVarRef", "anim", false));
-		RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetAnimFieldVar, "SetLevelFieldVar", "anim"));
+		RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetAnimFieldVar, "SetAnimFieldVar", "anim"));
 		// let's say it's a "global"
 		RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalSelfFieldVar, "EvalSelfFieldVar", "self", true));
 		RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalSelfFieldVarRef, "EvalSelfFieldVarRef", "self", false));

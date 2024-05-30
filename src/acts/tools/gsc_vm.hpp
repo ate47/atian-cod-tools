@@ -1238,7 +1238,7 @@ public:
         return sizeof(GscObj23);
     }
     char* DecryptString(char* str) override {
-        return str; // iw
+        return str + 3; // iw
     }
     bool IsValidHeader(size_t size) override {
         return size >= sizeof(GscObj23) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353478b;

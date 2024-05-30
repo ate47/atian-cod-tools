@@ -244,7 +244,7 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("-a --asm           : Produce ASM");
     LOG_INFO("-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'");
     LOG_INFO("-o --output [d]    : ASM/GSC output dir, default same.gscasm");
-    LOG_INFO("-v --vm            : Set vm, useless for Treyarch VM, values: mw23");
+    LOG_INFO("-v --vm            : Only decompile a particular vm");
     LOG_INFO("-H --header        : Write file header");
     LOG_INFO("-m --hashmap [f]   : Write hashmap in a file f");
     {
@@ -732,12 +732,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     bool iw;
 
     uint64_t magicVal = *reinterpret_cast<uint64_t*>(data);
-    if ((magicVal & ~0x000000000000000F) == 0xA0D43534780) {
+    if ((magicVal & ~0xFF) == 0xa0d43534700) {
         // IW GSC file, use 0 revision
         vm = data[0];
         iw = true;
     }
-    else if ((magicVal & ~0xFF0000000000000F) == 0xa0d43534780) {
+    else if ((magicVal & ~0xFF00000000000000) == 0xa0d43534780) {
         // Treyarch GSC file, use 7 revision
         vm = data[7];
         iw = false;
@@ -748,6 +748,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
     }
     hashutils::ReadDefaultFile();
 
+    if (opt.m_vm && vm != opt.m_vm) {
+        LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", (int)vm, (int)opt.m_vm);
+        return tool::OK;
+    }
 
     VmInfo* vmInfo;
     if (!IsValidVm(vm, vmInfo)) {
