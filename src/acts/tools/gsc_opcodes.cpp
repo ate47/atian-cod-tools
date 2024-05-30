@@ -6168,7 +6168,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 				if (it->node->m_type == TYPE_SET) {
 					auto* clearKeyVal = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
 					if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER && static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left)->m_value == keyValName
-						&& clearKeyVal->m_right->m_type == TYPE_UNDEFINED) {
+						&& clearKeyVal->m_right->m_type == TYPE_GET_UNDEFINED) {
 						delete it->node;
 						it = m_statements.erase(it);
 
@@ -6177,7 +6177,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 							if (it->node->m_type == TYPE_SET) {
 								auto* clearKeyVal = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
 								if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER && static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left)->m_value == arrayRefName
-									&& clearKeyVal->m_right->m_type == TYPE_UNDEFINED) {
+									&& clearKeyVal->m_right->m_type == TYPE_GET_UNDEFINED) {
 									delete it->node;
 									it = m_statements.erase(it);
 								}
