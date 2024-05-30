@@ -5927,7 +5927,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_vm == VM_MW23 ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -5956,7 +5956,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		uint64_t itemValName;
-		if (ctx.m_vm == VM_MW23) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B) {
 			/*
 				agent = var_57acddc40b2f741[var_54ed0dc40829774];;
 
@@ -6128,7 +6128,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// remove the number of references for the key because maybe we don't use it
 		auto& keyRef = ctx.m_localvars_ref[keyValName];
-		if (ctx.m_vm == VM_MW23) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B) {
 			keyRef = max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
 		else if (ctx.m_vm <= VM_T8) {
@@ -6159,7 +6159,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			delete it->node;
 			it = m_statements.erase(it);
 		}
-		if (ctx.m_vm == VM_MW23) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B) {
 			// not present during the beta
 			if (it != m_statements.end()) {
 				// keyValName = undefined
