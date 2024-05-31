@@ -1265,8 +1265,8 @@ namespace acts::compiler {
         }
 
         bool Compile(std::vector<byte>& data) {
-            // add the notify crc function for T9 vm
             if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
+                // add the notify crc function for T9 38 vm
                 constexpr const char* name = "$notif_checkum";
                 uint64_t nameHashed = vmInfo->HashField(name);
                 AddHash(name);
@@ -1303,6 +1303,35 @@ namespace acts::compiler {
                 decl.nodes.emplace_back(gvar);
                 f.m_nodes.push_back(gvar);
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Notify));
+                f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
+            }
+            else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
+                // add the notify crc function for JUP B vm
+
+                constexpr const char* name = "$notif_checkum";
+                uint64_t nameHashed = vmInfo->HashField(name);
+                AddHash(name);
+                auto [res, err] = exports.try_emplace(nameHashed, *this, nameHashed, currentNamespace, fileNameSpace, vmInfo);
+
+                if (!err) {
+                    LOG_ERROR("Can't register notif checksum export: {}", name);
+                    return false;
+                }
+
+                FunctionObject& f = res->second;
+                f.autoexecOrder = INT64_MIN; // first
+                f.m_flags = tool::gsc::CLASS_VTABLE;
+                f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
+                f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
+
+                const char* crcStr = utils::va("%d", crc);
+
+                RefObject& strdef = strings[crcStr];
+                auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
+                strdef.nodes.push_back(getstr);
+                f.m_nodes.push_back(getstr);
+                f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_GetLevel));
+                f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_Notify));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
             }
 
@@ -4323,7 +4352,7 @@ namespace acts::compiler {
             const char* outFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscc" : "gscc")};
             utils::WriteFile(outFile, (const void*)data.data(), data.size());
 
-            LOG_INFO("Done into {}", outFile);
+            LOG_INFO("Done into {} ({}/{})", outFile, obj.vmInfo->codeName, PlatformName(obj.plt));
             return tool::OK;
         };
 

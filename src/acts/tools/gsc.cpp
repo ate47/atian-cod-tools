@@ -1990,9 +1990,29 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
 int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, DecompContext& dctxt) {
     using namespace tool::gsc::opcode;
-    uint16_t code = *(uint16_t*)ctx.Aligned<uint16_t>();
+    auto FetchCode = [&ctx, &dctxt, &out]() -> const opcode::OPCodeInfo* {
+        uint16_t code;
+        if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
+            if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+                ctx.Aligned<uint16_t>();
+            }
+            code = *(uint16_t*)ctx.m_bcl;
+            ctx.m_bcl += 2;
+        } else {
+            code = (uint16_t)*ctx.m_bcl;
+            ctx.m_bcl += 1;
+        }
+        const opcode::OPCodeInfo* ret{ ctx.LookupOpCode(code) };
+
+        if (!ret || ret->m_id == OPCODE_Undefined) {
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << "\n";
+        }
+
+        return ret;
+    };
+
     // main reading loop
-    const auto* ccp = ctx.LookupOpCode(code);
+    const auto* ccp = FetchCode();
 
 /*
  * Start
@@ -2007,39 +2027,35 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 */
     
     if (!ccp || ccp->m_id != OPCODE_CheckClearParams) {
-        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected CheckClearParams\n";
+        // dctxt.WritePadding(out) << "Bad vtable opcode: expected CheckClearParams\n";
         return DVA_NOT;
     }
 
-    ctx.m_bcl += 2;
-
-    const auto* preScriptCall = ctx.LookupOpCode(code = *(uint16_t*)ctx.Aligned<uint16_t>());
+    const auto* preScriptCall = FetchCode();
 
 
     if (!preScriptCall || preScriptCall->m_id != OPCODE_PreScriptCall) {
-        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected PreScriptCall\n";
+        // dctxt.WritePadding(out) << "Bad vtable opcode: expected PreScriptCall\n";
         return DVA_NOT;
     }
 
-    ctx.m_bcl += 2;
-
-    const auto* spawnStruct = ctx.LookupOpCode(code = *(uint16_t*)ctx.Aligned<uint16_t>());
+    const auto* spawnStruct = FetchCode();
 
     
     if (!spawnStruct) {
-        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << "\n";
+        // dctxt.WritePadding(out) << "Bad vtable opcode\n";
         return DVA_NOT;
     }
-
+    
     if (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction) {
-        if (gscFile.GetVM() == VM_T9) {
+        if (ctx.m_vm == VM_T9 || ctx.m_vm == VM_MW23B) {
             return DVA_OK; // crc dump
         }
-        //dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << ", expected ScriptFunctionCall\n";
+        // dctxt.WritePadding(out) << "Bad vtable opcode, expected ScriptFunctionCall vm" << std::hex << (int)ctx.m_vm << "\n";
         return DVA_NOT;
     }
 
-    ctx.m_bcl += 2 + 1; // call
+    ctx.m_bcl += 1; // call
     ctx.Aligned<uint64_t>() += 8; // assume that we have a spawnstruct
 
     ctx.Aligned<uint16_t>() += 2; // GetZero

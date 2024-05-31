@@ -1107,7 +1107,7 @@ public:
 
 class MW23BGSCOBJHandler : public GSCOBJHandler {
 public:
-    MW23BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP) {}
+    MW23BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<GscObj23>();
@@ -1238,7 +1238,10 @@ public:
         return sizeof(GscObj23);
     }
     char* DecryptString(char* str) override {
-        return str + 3; // iw
+        if ((*str & 0xC0) != 0x80) {
+            return str; // not encrypted
+        }
+        return str + 3; // should be decrypted before
     }
     bool IsValidHeader(size_t size) override {
         return size >= sizeof(GscObj23) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353478b;
@@ -1307,6 +1310,7 @@ public:
 
     byte RemapFlagsExport(byte flags) override {
         byte nflags{};
+        if (flags == 0x15) return tool::gsc::CLASS_VTABLE;
         if (flags & 1) {
             nflags |= T8GSCExportFlags::AUTOEXEC;
         }
@@ -1325,6 +1329,7 @@ public:
 
     byte MapFlagsExportToInt(byte flags) override {
         byte nflags = 0;
+        if (flags == tool::gsc::CLASS_VTABLE) return 0x15;
 
         if (flags & AUTOEXEC) nflags |= 1;
         if (flags & LINKED) nflags |= 2;
@@ -1350,7 +1355,7 @@ public:
         Ptr<GscObj23>()->name = name;
     }
     void SetHeader() override {
-        Ref<uint64_t>() = 0xa0d4353478a;
+        Ref<uint64_t>() = 0xa0d4353478b;
     }
     void SetExportsCount(uint16_t val) override {
         Ptr<GscObj23>()->export_count = val;
@@ -1449,7 +1454,7 @@ public:
         return ""; // idc
     }
     bool IsVTableImportFlags(byte flags) override {
-        return false;
+        return flags == 0x15;
     }
 };
 
