@@ -512,6 +512,10 @@ namespace {
 
 				auto n = proc.ReadStringTmp(p.name, nullptr);
 				auto type = GetMTString(proc, p.type);
+
+				if (!p.kvp.kvpCount || !n || *n < 0x20 || *n > 0x7F) {
+					continue;
+				}
 				if (!*type) {
 					type = "default";
 				}
@@ -534,8 +538,9 @@ namespace {
 
 				std::cout << "->" << file;
 
+				bool readed{};
 				if (!std::filesystem::exists(file, ec)) {
-					readFile++;
+					readed = true;
 					std::cout << " (new)";
 				}
 				std::cout << "\n";
@@ -547,20 +552,21 @@ namespace {
 					continue;
 				}
 
-				out << "{\n";
-				utils::Padding(out, 1) << "\"name\": \"" << n << "\",\n";
-				utils::Padding(out, 1) << "\"type\": \"" << GetMTString(proc, p.type) << "\"";
+				out << "{";
 				if (p.kvp.kvpCount) {
-					out << ",\n";
-					utils::Padding(out, 1) << "\"objects\": {";
-					if (!DumpSBObject(proc, out, opt, p.kvp, 2)) {
+					if (!DumpSBObject(proc, out, opt, p.kvp, 1)) {
 						out << "Error when dumping\n";
 					}
-					utils::Padding(out << "\n", 1) << "}";
+				}
+				else {
+					// default value
+					out << "\n";
+					utils::Padding(out, 1) << "\"name\": \"" << n << "\",\n";
+					utils::Padding(out, 1) << "\"type\": \"" << type << "\"";
 				}
 				if (p.sbObjectsArray.sbObjectCount) {
 					out << ",\n";
-					utils::Padding(out, 1) << "\"array\": [";
+					utils::Padding(out, 1) << "\"objects\": [";
 
 					auto [objs, oksb] = proc.ReadMemoryArray<SB_Object>(p.sbObjectsArray.sbObjects, p.sbObjectsArray.sbObjectCount);
 
@@ -583,6 +589,7 @@ namespace {
 				}
 				out << "\n}";
 
+				if (readed) readFile++;
 				out.close();
 			}
 
