@@ -11,10 +11,10 @@ My set of tools. The code is more important than the features, so feel free to r
 | Call of Duty: Black Ops 3 (T7)         | 1B       | Partial                     | ❌              | ❌              |
 | Call of Duty: Black Ops 3 (T7)         | 1C       | ✅                           | ❌              | ❌              |
 | Call of Duty: Black Ops 4 (T8)         | 36       | ✅                           | ✅              | With extension |
-| Call of Duty: Black Ops Cold War (T9)  | 37       | With pre-decode & extension | With extension | With extension |
-| Call of Duty: Black Ops Cold War (T9)  | 38       | With pre-decode             | ✅              | With extension |
+| Call of Duty: Black Ops Cold War (T9)  | 37       | With pre-decode             | ✅             | With extension |
+| Call of Duty: Black Ops Cold War (T9)  | 38       | With pre-decode             | ✅             | With extension |
 | Call of Duty: Modern Warfare III (JUP) | 8A       | With extension              | With extension | ❌              |
-| Call of Duty: Modern Warfare III (JUP) | 8B       | With pre-decode & extension | ❌             | ❌              |
+| Call of Duty: Modern Warfare III (JUP) | 8B       | With pre-decode & extension | With extension | ❌              |
 
 **\*The extensions aren't provided publicly, at least not by me.**
 
