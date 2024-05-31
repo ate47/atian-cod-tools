@@ -123,6 +123,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--internalblocks", arg)) {
             m_show_internal_blocks = true;
         }
+        else if (!_strcmpi("--internalnames", arg)) {
+            m_use_internal_names = true;
+        }
         else if (!_strcmpi("--jumpdelta", arg)) {
             m_show_jump_delta = true;
         }
@@ -281,6 +284,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--markjump         : Show jump type");
     LOG_DEBUG("--displaystack     : Display stack in disassembly");
     LOG_DEBUG("--vm-split         : Split by VM in the output");
+    LOG_DEBUG("--internalnames    : Print asm nodes internal names");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -673,7 +677,7 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
     return utils::va("unk:%lx", floc);
 }
 
-int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOption& opt) {
+int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& opt) {
 
     auto& profiler = actscli::GetProfiler();
     actslib::profiler::ProfiledSection ps{ profiler, path };
@@ -1153,7 +1157,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
             asmout << "\n";
         }
     }
-    if (vm == VM_T7 && scriptfile->GetAnimTreeDoubleOffset()) {
+    if (vm <= VM_T7 && scriptfile->GetAnimTreeDoubleOffset()) {
         uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->file) + scriptfile->GetAnimTreeDoubleOffset();
         auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
         for (size_t i = 0; i < anims_count; i++) {
@@ -1651,10 +1655,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, const GscInfoOp
         gdbpos.close();
     }
 
+    opt.decompiledFiles++;
+
     return 0;
 }
 
-int GscInfoFile(const std::filesystem::path& path, const GscInfoOption& opt) {
+int GscInfoFile(const std::filesystem::path& path, GscInfoOption& opt) {
     if (std::filesystem::is_directory(path)) {
         // directory
         auto ret = 0;
@@ -1929,8 +1935,19 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ": " << std::flush;
 
+            const char* opcodeName{};
+            if (ctx.m_opt.m_use_internal_names) {
+                opcodeName = opcode::OpCodeName(handler->m_id);
+            }
+            else {
+                opcodeName = handler->m_name;
+            }
+            if (!opcodeName) {
+                opcodeName = utils::va("NO_NAME_%d", handler->m_id);
+            }
+
             if (opCode > objctx.m_vmInfo->maxOpCode) {
-                out << std::hex << "FAILURE, FIND errec: " << handler->m_name << "(0x" << opCode << " > 0x" << objctx.m_vmInfo->maxOpCode << ")" << "\n";
+                out << std::hex << "FAILURE, FIND errec: " << opcodeName << "(0x" << opCode << " > 0x" << objctx.m_vmInfo->maxOpCode << ")" << "\n";
                 ctx.DisableDecompiler(std::format("FIND errec 0x{:x}", opCode));
                 opCode &= objctx.m_vmInfo->maxOpCode;
                 break;
@@ -1938,8 +1955,9 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             out << std::hex << std::setfill('0') << std::setw(sizeof(int16_t) << 1) << opCode
                 << " "
-                << std::setfill(' ') << std::setw(25) << std::left << handler->m_name << std::right
-                << " " << std::flush;
+                << std::setfill(' ') << std::setw(25) << std::left
+                << opcodeName 
+                << std::right << " " << std::flush;
 
             // dump rosetta data
             RosettaAddOpCode((uint32_t)(reinterpret_cast<uint64_t>(base) - reinterpret_cast<uint64_t>(gscFile.Ptr())), handler->m_id);
@@ -2453,6 +2471,9 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
             ret = lret;
         }
     }
+    
+    LOG_INFO("{} (0x{:x}) file(s) decompiled.", opt.decompiledFiles, opt.decompiledFiles);
+
     if (!globalHM) {
         hashutils::WriteExtracted(opt.m_dump_hashmap);
     }
