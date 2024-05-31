@@ -19,7 +19,7 @@ namespace bo3::pool {
 	};
 	static_assert(sizeof(T7ScriptParseTree) == 0x18);
 
-	enum T7XAssetType {
+	enum T7XAssetType : byte {
 		T7_ASSET_TYPE_PHYSPRESET = 0,
 		T7_ASSET_TYPE_PHYSCONSTRAINTS = 1,
 		T7_ASSET_TYPE_DESTRUCTIBLEDEF = 2,
@@ -124,10 +124,14 @@ namespace bo3::pool {
 		T7_ASSET_TYPE_BEAM = 101,
 		T7_ASSET_TYPE_STREAMERHINT = 102,
 		T7_ASSET_TYPE_STRING = 103,
+		T7_ASSET_TYPE_COUNT = 104,
 		T7_ASSET_TYPE_ASSETLIST = 104,
 		T7_ASSET_TYPE_REPORT = 105,
 		T7_ASSET_TYPE_DEPEND = 106,
 	};
+
+	T7XAssetType T7XAssetIdFromName(const char* name);
+	const char* T7XAssetName(T7XAssetType type);
 
 	enum T7ScrVarType : uint32_t {
 		T7_TYPE_UNDEFINED = 0,

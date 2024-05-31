@@ -138,6 +138,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--refcount", arg)) {
             m_show_ref_count = true;
         }
+        else if (!_strcmpi("--rawhash", arg)) {
+            m_rawhash = true;
+        }
         else if (!_strcmpi("--displaystack", arg)) {
             m_display_stack = true;
         }
@@ -285,6 +288,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--displaystack     : Display stack in disassembly");
     LOG_DEBUG("--vm-split         : Split by VM in the output");
     LOG_DEBUG("--internalnames    : Print asm nodes internal names");
+    LOG_DEBUG("--rawhash          : Add raw hashes to export dump");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -2354,6 +2358,11 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         }
 
         asmout << std::endl;
+        if (ctx.m_opt.m_rawhash) {
+            utils::Padding(asmout, padding) << prefix
+                << std::hex
+                << "namespace_" << exp.GetNamespace() << "<file_" << exp.GetFileNamespace() <<  ">::function_" << exp.GetName() << std::endl;
+        }
         utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
 
         auto size = ctx.FinalSize();

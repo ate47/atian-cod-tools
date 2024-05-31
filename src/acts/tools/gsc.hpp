@@ -84,6 +84,7 @@ namespace tool::gsc {
         bool m_use_internal_names{};
         bool m_generateGdbData{};
         bool m_splitByVm{};
+        bool m_rawhash{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
