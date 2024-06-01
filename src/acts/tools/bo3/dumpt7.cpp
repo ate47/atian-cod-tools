@@ -147,7 +147,8 @@ namespace {
 
 
 	enum PoolDumpOptionFlags {
-		PDOF_DUMP_ALL_RAW = 4,
+		PDOF_DUMP_ALL_RAW = 0x4,
+		PDOF_IGNORE_EXIST = 0x8,
 	};
 	class PoolOption {
 	public:
@@ -195,9 +196,12 @@ namespace {
 						return false;
 					}
 					auto flagName = args[++i];
-
-					if (!_strcmpi("allraw", arg)) {
+					
+					if (!_strcmpi("allraw", flagName)) {
 						flags |= PDOF_DUMP_ALL_RAW;
+					}
+					else if (!_strcmpi("ignoreexist", flagName)) {
+						flags |= PDOF_IGNORE_EXIST;
 					}
 					else {
 						std::cerr << "Invalid flag for -" << arg << ": " << flagName << "\n";
@@ -251,6 +255,46 @@ namespace {
 		uintptr_t mt_buffer{ proc.ReadMemory<uintptr_t>(proc[0x50DC2D0]) };
 		return proc.ReadStringTmp(mt_buffer + (0x1C * strref + 4)); // skip lock
 	}
+	std::ostream& PrintFormattedString(std::ostream& out, const char* str) {
+		if (!str) {
+			return out << "nullptr";
+		}
+		for (; *str; str++) {
+			switch (*str) {
+			case '\n':
+				out << "\\n";
+				break;
+			case '\r':
+				out << "\\r";
+				break;
+			case '\t':
+				out << "\\t";
+				break;
+			case '\a':
+				out << "\\a";
+				break;
+			case '\b':
+				out << "\\b";
+				break;
+			case '\v':
+				out << "\\v";
+				break;
+			case '"':
+				out << "\\\"";
+				break;
+			default:
+				if (*str < 0x20 || *str >= 0x7F) {
+					out << "\\" << std::oct << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
+				}
+				else {
+					out << *str;
+				}
+				break;
+			}
+		}
+		return out;
+	}
+
 	enum scriptBundleKVPType_t : uint32_t {
 		KVP_STRING = 0x0,
 		KVP_INT = 0x1,
@@ -342,6 +386,19 @@ namespace {
 		return true;
 	}
 
+	bool IsNameValid(const char* name) {
+		const char* _name{ name };
+		if (!_name) return false;
+		while (*_name) {
+			if (*_name < 0x28 || *_name >= 0x7B) {
+				LOG_TRACE("Invalid name: {}", name);
+				return false;
+			}
+			_name++;
+		}
+		return true;
+	}
+
 	int t7dp(Process& proc, int argc, const char* argv[]) {
 		PoolOption opt;
 
@@ -408,28 +465,26 @@ namespace {
 			return true;
 		};
 
+		size_t readFile{};
 		if (ShouldHandle(T7_ASSET_TYPE_RAWFILE)) {
 			struct RawFileEntry {
 				uintptr_t name;
 				uint64_t size;
 				uintptr_t buffer;
 			};
-			auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
+			auto pool = std::make_unique<RawFileEntry[]>(entry.itemCount);
 
-			if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+			if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemCount)) {
 				std::cerr << "Can't read pool data\n";
 				return tool::BASIC_ERROR;
 			}
 			char dumpbuff[MAX_PATH + 10];
 			std::vector<byte> read{};
-			size_t readFile = 0;
 
-			for (size_t i = 0; i < entry.itemAllocCount; i++) {
+			for (size_t i = 0; i < entry.itemCount; i++) {
 				const auto& p = pool[i];
 
 				auto n = proc.ReadStringTmp(p.name, nullptr);
-
-				std::cout << std::dec << i << ": ";
 
 				if (n) {
 					sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
@@ -438,29 +493,35 @@ namespace {
 					sprintf_s(dumpbuff, "%s/rf_%llx.raw", opt.m_output, i);
 				}
 
-				if (!p.buffer || !proc.ReadMemory<uint64_t>(p.buffer)) {
-					std::cerr << "error when reading buffer at " << p.buffer << "\n";
+				if (!IsNameValid(n) || !p.buffer || !proc.ReadMemory<uint64_t>(p.buffer)) {
+					//std::cerr << "error when reading buffer at " << p.buffer << "\n";
 					continue;
 				}
 
 				std::filesystem::path file{ dumpbuff };
+				bool exist{ std::filesystem::exists(file, ec) };
+				if (exist && opt.HasFlag(PDOF_IGNORE_EXIST)) {
+					continue;
+				}
 
 				if (file.has_extension() && !opt.HasFlag(PDOF_DUMP_ALL_RAW)) {
 					std::filesystem::path filext{ file.extension() };
 					std::string filexts{ filext.string() };
 
-					if (filexts == ".lua" || filexts == ".atr" || filexts.starts_with(".ddldata")) {
-						std::cerr << "ignored " << file.string() << ", use - f allraw to dump all the files\n";
+					if (filexts == ".lua" || filexts == ".hkt" || filexts == ".atr" || filexts.starts_with(".ddldata")) {
+						//std::cerr << "ignored " << file.string() << ", use - f allraw to dump all the files\n";
 						continue; // TODO: decompile atr/ddldata files?
 					}
 				}
+
+				std::cout << std::dec << i << ": ";
 				std::cout << dumpbuff;
 
 				std::filesystem::create_directories(file.parent_path(), ec);
 
 				std::cout << "->" << file;
 
-				if (!std::filesystem::exists(file, ec)) {
+				if (!exist) {
 					readFile++;
 					std::cout << " (new)";
 				}
@@ -492,45 +553,40 @@ namespace {
 				}
 
 			}
-
-			std::cout << "Dump " << readFile << " new file(s)\n";
 		}
 		if (ShouldHandle(T7_ASSET_TYPE_SCRIPTBUNDLE)) {
 
-			auto pool = std::make_unique<ScriptBundle[]>(entry.itemAllocCount);
+			auto pool = std::make_unique<ScriptBundle[]>(entry.itemCount);
 
-			if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+			if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemCount)) {
 				std::cerr << "Can't read pool data\n";
 				return tool::BASIC_ERROR;
 			}
 			char dumpbuff[MAX_PATH + 10];
 			std::vector<byte> read{};
-			size_t readFile = 0;
 
-			for (size_t i = 0; i < entry.itemAllocCount; i++) {
+			for (size_t i = 0; i < entry.itemCount; i++) {
 				const auto& p = pool[i];
 
 				auto n = proc.ReadStringTmp(p.name, nullptr);
 				auto type = GetMTString(proc, p.type);
 
-				if (!p.kvp.kvpCount || !n || *n < 0x20 || *n > 0x7F) {
+				if (!p.kvp.kvpCount || !IsNameValid(n) || *n < 0x20 || *n > 0x7F) {
 					continue;
 				}
 				if (!*type) {
 					type = "default";
 				}
-
-				std::cout << std::dec << i << ": ";
-
-				if (n) {
-					sprintf_s(dumpbuff, "%s/scriptbundle/%s/%s.json", opt.m_output, type, n);
-				}
-				else {
-					n = "invalid";
-					sprintf_s(dumpbuff, "%s/scriptbundle/%s/rf_%llx.json", opt.m_output, type, i);
-				}
+		
+				sprintf_s(dumpbuff, "%s/scriptbundle/%s/%s.json", opt.m_output, type, n);
 
 				std::filesystem::path file{ dumpbuff };
+				bool exist{ std::filesystem::exists(file, ec) };
+				if (exist && opt.HasFlag(PDOF_IGNORE_EXIST)) {
+					continue;
+				}
+
+				std::cout << std::dec << i << ": ";
 
 				std::cout << dumpbuff;
 
@@ -539,7 +595,7 @@ namespace {
 				std::cout << "->" << file;
 
 				bool readed{};
-				if (!std::filesystem::exists(file, ec)) {
+				if (!exist) {
 					readed = true;
 					std::cout << " (new)";
 				}
@@ -593,9 +649,216 @@ namespace {
 				out.close();
 			}
 
-			std::cout << "Dump " << readFile << " new file(s)\n";
 		}
+		if (ShouldHandle(T7_ASSET_TYPE_STRINGTABLE)) {
+			struct StringTable {
+				uintptr_t name; // const char*
+				int32_t columnCount;
+				int32_t rowCount;
+				uintptr_t values; // StringTableCell*
+				uintptr_t cellIndex; // __int16*
+			};
+			struct StringTableCell {
+				uintptr_t string; // const char*
+				int32_t hash;
+			};
 
+			auto pool = std::make_unique<StringTable[]>(entry.itemCount);
+
+			if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemCount)) {
+				std::cerr << "Can't read pool data\n";
+				return tool::BASIC_ERROR;
+			}
+			char dumpbuff[MAX_PATH + 10];
+			std::vector<byte> read{};
+
+			for (size_t i = 0; i < entry.itemCount; i++) {
+				const auto& p = pool[i];
+
+				auto n = proc.ReadStringTmp(p.name, nullptr);
+
+				if (IsNameValid(n) && (p.columnCount * p.rowCount)) {
+					sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+				}
+				else {
+					continue;
+				}
+
+				std::filesystem::path file{ dumpbuff };
+
+				bool exist{ std::filesystem::exists(file, ec) };
+				if (exist && opt.HasFlag(PDOF_IGNORE_EXIST)) {
+					continue;
+				}
+
+				std::cout << std::dec << i << ": ";
+
+				auto [cells, okp] = proc.ReadMemoryArray<StringTableCell>(p.values, p.columnCount * p.rowCount);
+
+				if (!okp) {
+					std::cerr << "Can't read " << n << "\n";
+					continue;
+				}
+
+				std::cout << dumpbuff;
+
+				std::filesystem::create_directories(file.parent_path(), ec);
+
+				std::cout << "->" << file;
+
+				if (!exist) {
+					readFile++;
+					std::cout << " (new)";
+				}
+				std::cout << "\n";
+
+
+				std::ofstream out{ file };
+
+				if (!out) {
+					std::cerr << "Can't create " << file.string() << "\n";
+					continue;
+				}
+
+				for (size_t i = 0; i < p.rowCount; i++) {
+					if (i) out << "\n";
+
+					for (size_t j = 0; j < p.columnCount; j++) {
+						StringTableCell& cell{ cells[i * p.columnCount + j] };
+						if (j) out << ",";
+						out << proc.ReadStringTmp(cell.string);
+					}
+				}
+
+				out.close();
+
+			}
+		}
+		if (ShouldHandle(T7_ASSET_TYPE_STRUCTUREDTABLE)) {
+			struct StructuredTable {
+				uintptr_t name; // const char*
+				int32_t cellCount;
+				int32_t columnCount;
+				int32_t rowCount;
+				uintptr_t cells; // StructuredTableCell*
+				uintptr_t cellIndex; // int*
+				uintptr_t headers; // StructuredTableHeader*
+				uintptr_t headerIndex; // int* 
+			};
+			struct StructuredTableHeader {
+				uintptr_t string; // const char*
+				int32_t hash;
+				int32_t index;
+			};
+			enum StructuredTableCellType : int32_t {
+				STRUCTURED_TABLE_CELL_TYPE_NONE = 0x0,
+				STRUCTURED_TABLE_CELL_TYPE_STRING = 0x1,
+				STRUCTURED_TABLE_CELL_TYPE_NUMBER = 0x2,
+				STRUCTURED_TABLE_CELL_TYPE_COUNT = 0x3,
+			};
+
+			struct StructuredTableCell {
+				StructuredTableCellType type;
+				uintptr_t string; // const char*
+				int32_t number;
+				int32_t hash;
+			};
+
+			// &a1->cells[column + columnCount * row]
+
+			auto pool = std::make_unique<StructuredTable[]>(entry.itemCount);
+
+			if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemCount)) {
+				std::cerr << "Can't read pool data\n";
+				return tool::BASIC_ERROR;
+			}
+			char dumpbuff[MAX_PATH + 10];
+			std::vector<byte> read{};
+
+			for (size_t i = 0; i < entry.itemCount; i++) {
+				const auto& p = pool[i];
+
+				auto n = proc.ReadStringTmp(p.name, nullptr);
+
+				if (IsNameValid(n) && (p.columnCount * p.rowCount)) {
+					sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+				}
+				else {
+					continue;
+				}
+
+				std::filesystem::path file{ dumpbuff };
+
+				bool exist{ std::filesystem::exists(file, ec) };
+				if (exist && opt.HasFlag(PDOF_IGNORE_EXIST)) {
+					continue;
+				}
+
+				std::cout << std::dec << i << ": ";
+
+				auto [cells, okp] = proc.ReadMemoryArray<StructuredTableCell>(p.cells, p.columnCount * p.rowCount);
+				auto [headers, okh] = proc.ReadMemoryArray<StructuredTableHeader>(p.headers, p.columnCount);
+
+				if (!okp || !okh) {
+					std::cerr << "Can't read " << n << "\n";
+					continue;
+				}
+
+				std::cout << dumpbuff;
+
+				std::filesystem::create_directories(file.parent_path(), ec);
+
+				std::cout << "->" << file;
+
+				if (!exist) {
+					readFile++;
+					std::cout << " (new)";
+				}
+				std::cout << "\n";
+
+
+				std::ofstream out{ file };
+
+				if (!out) {
+					std::cerr << "Can't create " << file.string() << "\n";
+					continue;
+				}
+
+				out << "[";
+				for (size_t i = 0; i < p.rowCount; i++) {
+					if (i) out << ",";
+					out << "\n";
+					utils::Padding(out, 1) << "{";
+
+					int cIdx{};
+					for (size_t j = 0; j < p.columnCount; j++) {
+						StructuredTableCell& cell{ cells[i * p.columnCount + j] };
+						StructuredTableHeader& header{ headers[j] };
+						if (cell.type == STRUCTURED_TABLE_CELL_TYPE_NONE) continue;
+						if (cIdx++) out << ",";
+						utils::Padding(out << "\n", 2) << "\"" << proc.ReadStringTmp(header.string) << "\": ";
+
+						switch (cell.type) {
+						case STRUCTURED_TABLE_CELL_TYPE_NUMBER:
+							out << std::dec << cell.number;
+							break;
+						case STRUCTURED_TABLE_CELL_TYPE_STRING:
+							PrintFormattedString(out << "\"", proc.ReadStringTmp(cell.string)) << "\"";
+							break;
+						default:
+							out << "\"<invald type:" << std::dec << cell.type << ">\"";
+							break;
+						}
+					}
+					utils::Padding(out << "\n", 1) << "}";
+				}
+				out << "\n]";
+
+				out.close();
+
+			}
+		}
+		std::cout << "Dump " << std::dec << readFile << " new file(s)\n";
 		return tool::OK;
 	}
 	
