@@ -1,6 +1,13 @@
 - tools
-  - t7 decompiler
-  - fix compiler issue with hex integers
-  - category for better search/list
-  - wip adl compiler
-  - iw tag hash
+  - the decompiler can read gshc/cshc files
+  - gdb data dumper in decompiler
+  - dump opcode database
+  - t7 dump pools (raw,csv,json)
+  - t9 alpha decompiler/compiler
+  - t9 alpha injector
+  - add jup scripts revision find
+  - 8b decompiler/compiler
+  - 8a/b decompiler: fix get_undefined type for foreach cleanup
+  - 8b decryption
+- ui
+  - t7 hash tool
