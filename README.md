@@ -6,17 +6,19 @@ My set of tools. The code is more important than the features, so feel free to r
 
 **Supported games**
 
-| Name                                   | Revision | Decompiler                  | Compiler       | PS4 support    |
-| -------------------------------------- | -------- | --------------------------- | -------------- | -------------- |
-| Call of Duty: Black Ops 3 (T7)         | 1B       | Partial                     | ❌              | ❌              |
-| Call of Duty: Black Ops 3 (T7)         | 1C       | ✅                           | ❌              | ❌              |
-| Call of Duty: Black Ops 4 (T8)         | 36       | ✅                           | ✅              | With extension |
-| Call of Duty: Black Ops Cold War (T9)  | 37       | With pre-decode             | ✅             | With extension |
-| Call of Duty: Black Ops Cold War (T9)  | 38       | With pre-decode             | ✅             | With extension |
-| Call of Duty: Modern Warfare III (JUP) | 8A       | With extension              | With extension | ❌              |
-| Call of Duty: Modern Warfare III (JUP) | 8B       | With pre-decode & extension | With extension | ❌              |
+| Name                     | Revision | Decompiler | Compiler | PS4 support |
+| ------------------------ | -------- | ---------- | -------- | ----------- |
+| Black Ops 3 (T7)         | 1B       | Partial    | ❌        | ❌           |
+| Black Ops 3 (T7)         | 1C       | ✅          | ❌        | ❌           |
+| Black Ops 4 (T8)         | 36       | ✅          | ✅        | EXT         |
+| Black Ops Cold War (T9)  | 37       | DEC        | ✅        | EXT         |
+| Black Ops Cold War (T9)  | 38       | DEC        | ✅        | EXT         |
+| Modern Warfare III (JUP) | 8A       | EXT        | EXT      | ❌           |
+| Modern Warfare III (JUP) | 8B       | DEC & EXT  | EXT      | ❌           |
 
-**\*The extensions aren't provided publicly, at least not by me.**
+
+- **DEC**: with pre-decode
+- **EXT**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
 
 ## ACTS Lib
 
