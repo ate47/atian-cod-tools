@@ -5,6 +5,7 @@
 
 namespace cw {
     constexpr uint64_t GSC_MAGIC = 0x38000a0d43534780;
+    constexpr uint64_t GSC_MAGIC_37 = 0x37000a0d43534780;
 
 	enum T9ScrVarType : unsigned __int32 {
 		TYPE_UNDEFINED = 0x0,
@@ -284,5 +285,6 @@ namespace cw {
 	uintptr_t ScanPool(Process& proc);
 
     int InjectScriptCW(Process& proc, const char* script, const char* target, const char* replace, std::string& notify);
+    int InjectScriptCWAlpha(Process& proc, const char* script, const char* target, const char* replaced, std::string& notify);
 }
 

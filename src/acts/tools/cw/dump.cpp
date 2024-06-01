@@ -1436,6 +1436,30 @@ namespace {
         return ret;
     }
 
+    int injectcwalpha(Process& proc, int argc, const char* argv[]) {
+        if (argc < 5) {
+            return tool::BAD_USAGE;
+        }
+
+        const char* script = argv[2];
+        const char* target = argv[3];
+        const char* replaced = argv[4];
+
+        std::string notify{};
+        int ret = cw::InjectScriptCWAlpha(proc, script, target, replaced, notify);
+
+        if (!notify.empty()) {
+            if (ret) {
+                LOG_ERROR("{}", notify);
+            }
+            else {
+                LOG_INFO("{}", notify);
+            }
+        }
+
+        return ret;
+    }
+
 
     struct BGCache {
         uint64_t name;
@@ -1563,4 +1587,5 @@ ADD_TOOL("dfuncscw", "cw", "", "dump function names (cw)", L"BlackOpsColdWar.exe
 ADD_TOOL("dcfuncscw", "cw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
 ADD_TOOL("dbgcw", "cw", " [inst]", "dbg (cw)", L"BlackOpsColdWar.exe", dbgcw);
 ADD_TOOL("injectcw", "cw", " (script) (target) (replace)", "inject script (cw)", L"BlackOpsColdWar.exe", injectcw);
+ADD_TOOL("injectcwalpha", "cw", " (script) (target) (replace)", "inject script (cw alpha)", L"COD2020.exe", injectcwalpha);
 ADD_TOOL("dbgpcw", "cw", "", "dump bg pool (cw)", L"BlackOpsColdWar.exe", dbgp);
