@@ -45,6 +45,9 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("pc", name)) {
 			return PLATFORM_PC;
 		}
+		if (!_strcmpi("pc_alpha", name) || !_strcmpi("pca", name)) {
+			return PLATFORM_PC_ALPHA;
+		}
 		if (!_strcmpi("xbox", name) || !_strcmpi("xb", name)) {
 			return PLATFORM_XBOX;
 		}
@@ -145,6 +148,7 @@ namespace tool::gsc::opcode {
 		case PLATFORM_PC: return "PC";
 		case PLATFORM_XBOX: return "Xbox";
 		case PLATFORM_PLAYSTATION: return "PlayStation";
+		case PLATFORM_PC_ALPHA: return "PC Alpha";
 		default: return "Unknown";
 		}
 	}

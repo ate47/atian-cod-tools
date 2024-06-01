@@ -19,6 +19,7 @@ namespace tool::gsc::opcode {
 		PLATFORM_PC = 1,
 		PLATFORM_PLAYSTATION = 2,
 		PLATFORM_XBOX = 3,
+		PLATFORM_PC_ALPHA = 4,
 		PLATFORM_COUNT,
 	};
 

@@ -248,7 +248,7 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("-h --help          : Print help");
     LOG_INFO("-g --gsc           : Produce GSC");
     LOG_INFO("-a --asm           : Produce ASM");
-    LOG_INFO("-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc'");
+    LOG_INFO("-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc', 'pc_alpha'");
     LOG_INFO("-o --output [d]    : ASM/GSC output dir, default same.gscasm");
     LOG_INFO("-v --vm            : Only decompile a particular vm");
     LOG_INFO("-H --header        : Write file header");
