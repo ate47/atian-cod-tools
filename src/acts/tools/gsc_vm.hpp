@@ -11,7 +11,7 @@ public:
         auto* data = Ptr<T8GSCOBJ>();
         asmout
             << std::hex
-            << "// crc: 0x" << std::hex << data->crc << "\n"
+            << "// crc: 0x" << std::hex << data->crc << " (" << std::dec << data->crc << ")\n"
             << std::left << std::setfill(' ')
             << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
@@ -238,13 +238,13 @@ public:
 
 class T937GSCOBJHandler : public GSCOBJHandler {
 public:
-    T937GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
+    T937GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<T937GSCOBJ>();
         asmout
             << std::hex
-            << "// crc: 0x" << std::hex << data->crc << "\n"
+            << "// crc: 0x" << std::hex << data->crc << " (" << std::dec << data->crc << ")\n"
             << std::left << std::setfill(' ')
             << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
             << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
@@ -474,7 +474,7 @@ public:
         auto* data = Ptr<T9GSCOBJ>();
         asmout
             << std::hex
-            << "// crc: 0x" << std::hex << data->crc << "\n"
+            << "// crc: 0x" << std::hex << data->crc << " (" << std::dec << data->crc << ")\n"
             << std::left << std::setfill(' ')
             << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
             << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
@@ -1468,7 +1468,7 @@ public:
         auto* data = Ptr<T7GSCOBJ>();
         asmout
             << std::hex
-            << "// crc: 0x" << std::hex << data->source_crc << "\n"
+            << "// crc: 0x" << std::hex << data->source_crc << " (" << std::dec << data->source_crc << ")\n"
             << std::left << std::setfill(' ')
             << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << (int)data->include_count << " (offset: 0x" << std::hex << (int)data->include_offset << ")\n"
@@ -1728,7 +1728,7 @@ public:
         auto* data = Ptr<T7GSCOBJ>();
         asmout
             << std::hex
-            << "// crc: 0x" << std::hex << data->source_crc << "\n"
+            << "// crc: 0x" << std::hex << data->source_crc << " (" << std::dec << data->source_crc << ")\n"
             << std::left << std::setfill(' ')
             << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << (int)data->include_count << " (offset: 0x" << std::hex << (int)data->include_offset << ")\n"

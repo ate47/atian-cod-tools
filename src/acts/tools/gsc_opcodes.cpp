@@ -5396,7 +5396,8 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 
 	// decompiler proto block loop
 	bool hide = false;
-	for (size_t i = 0; i < m_statements.size(); i++) {
+	size_t i{};
+	while (i < m_statements.size()) {
 		const auto& ref = m_statements[i];
 		ctx.rloc = ref.location->rloc;
 		if (ref.location->refs.size() && ref.node->m_renderRefIfAny) {
@@ -5453,9 +5454,17 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 			}
 		}
 		out << std::flush;
-		if (hide && !ctx.opt.m_show_internal_blocks) {
-			// don't write hidden stuff
-			break;
+		i++;
+		if (i < m_statements.size() && hide && !ctx.opt.m_show_internal_blocks) {
+			// search the next referenced element in the block (if it exists)
+			do {
+				if (m_statements[i].location->refs.size()) {
+					// this element is referenced, it might be from the front, a later add would be to check
+					// if by looking back.
+					hide = false;
+					break;
+				}
+			} while (i < m_statements.size());
 		}
 	}
 	// pop back rloc

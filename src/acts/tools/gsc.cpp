@@ -928,7 +928,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             asmout << vmInfo->name;
         }
         else {
-            asmout << (uint32_t)vmInfo->vm << " (" << vmInfo->name << ")";
+            asmout << (uint32_t)vmInfo->vm << " (" << vmInfo->name << "/" << PlatformName(opt.m_platform) << ")";
         }
         asmout << "\n";
 
