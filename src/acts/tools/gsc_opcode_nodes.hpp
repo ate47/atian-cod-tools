@@ -264,7 +264,7 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << m_op;
 			if (m_nsp) {
-				out << hashutils::ExtractTmp("namespace", m_nsp) << std::flush;
+				out << hashutils::ExtractTmpPath("namespace", m_nsp) << std::flush;
 				if (m_script) {
 					out << "<" << hashutils::ExtractTmpScript(m_script) << ">" << std::flush;
 				}

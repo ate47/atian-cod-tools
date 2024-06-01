@@ -672,7 +672,7 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
         reader.SetHandle(maxPtr);
         return utils::va(
             "%s::%s@%x",
-            hashutils::ExtractTmp("namespace", reader.GetNamespace()),
+            hashutils::ExtractTmpPath("namespace", reader.GetNamespace()),
             hashutils::ExtractTmp("function", reader.GetName()),
             floc - reader.GetAddress()
         );
@@ -903,7 +903,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 asmout << "// - ";
 
                 if (detour->replaceNamespace) {
-                    asmout << hashutils::ExtractTmp("namespace", detour->replaceNamespace) << std::flush;
+                    asmout << hashutils::ExtractTmpPath("namespace", detour->replaceNamespace) << std::flush;
                 }
                 auto replaceScript = *reinterpret_cast<uint64_t*>(&detour->replaceScriptTop);
                 if (replaceScript) {
@@ -1133,7 +1133,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 // no need for namespace if we are getting the call dynamically (api or inside-code script)
                 asmout << "get ";
             }
-            asmout << hashutils::ExtractTmp("namespace", name_space) << std::flush << "::";
+            asmout << hashutils::ExtractTmpPath("namespace", name_space) << std::flush << "::";
 
             asmout << std::hex << hashutils::ExtractTmp("function", name) << "\n";
 
@@ -1252,7 +1252,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 currentNSP = exp->GetNamespace();
 
                 if (opt.m_dasm) {
-                    output << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
+                    output << "#namespace " << hashutils::ExtractTmpPath("namespace", currentNSP) << ";\n" << std::endl;
                 }
             }
 
@@ -1267,7 +1267,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
 
             if (!r.second) {
                 asmout << "Duplicate node "
-                    << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << std::flush << "::"
+                    << hashutils::ExtractTmpPath("namespace", exp->GetNamespace()) << std::flush << "::"
                     << hashutils::ExtractTmp("function", exp->GetName()) << std::endl;
                 continue;
             }
@@ -1295,10 +1295,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 }
 
                 if (opt.m_dasm) {
-                    output << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << asmctx.m_disableDecompilerError << "\n";
+                    output << "// Can't decompile export " << hashutils::ExtractTmpPath("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << asmctx.m_disableDecompilerError << "\n";
                 }
                 else if (!opt.m_dcomp) {
-                    LOG_WARNING("Can't decompile export {}::{}", hashutils::ExtractTmp("namespace", exp->GetNamespace()), hashutils::ExtractTmp("function", exp->GetName()));
+                    LOG_WARNING("Can't decompile export {}::{}", hashutils::ExtractTmpPath("namespace", exp->GetNamespace()), hashutils::ExtractTmp("function", exp->GetName()));
                 }
             }
 
@@ -1316,7 +1316,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                         int ret{ DumpVTable(*exp, output, *scriptfile, ctx, asmctx, dctx) };
                         asmctx.m_vtable = ret != DVA_NOT;
                         if (ret == DVA_BAD) {
-                            output << "// Can't decompile vtable " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << ret << "\n";
+                            output << "// Can't decompile vtable " << hashutils::ExtractTmpPath("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << ret << "\n";
                         }
                     }
 
@@ -1380,10 +1380,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 if (cls.name_space != currentNSP) {
                     currentNSP = cls.name_space;
 
-                    asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
+                    asmout << "#namespace " << hashutils::ExtractTmpPath("namespace", currentNSP) << ";\n" << std::endl;
                 }
 
-                asmout << "// Namespace " << hashutils::ExtractTmp("namespace", cls.name_space) << std::endl;
+                asmout << "// Namespace " << hashutils::ExtractTmpPath("namespace", cls.name_space) << std::endl;
                 asmout << "// Method(s) " << std::dec << cls.m_methods.size() << " Total "  << cls.m_vtable.size() << "\n";
                 asmout << "class " << hashutils::ExtractTmp("class", name) << std::flush;
 
@@ -1566,7 +1566,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 if (exp->GetNamespace() != currentNSP) {
                     currentNSP = exp->GetNamespace();
 
-                    asmout << "#namespace " << hashutils::ExtractTmp("namespace", currentNSP) << ";\n" << std::endl;
+                    asmout << "#namespace " << hashutils::ExtractTmpPath("namespace", currentNSP) << ";\n" << std::endl;
                 }
 
 
@@ -1604,7 +1604,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                     }
                     asmout << "{\n";
                     dctx.padding++;
-                    dctx.WritePadding(asmout) << "// Can't decompile export " << hashutils::ExtractTmp("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << asmctx.m_disableDecompilerError << "\n";
+                    dctx.WritePadding(asmout) << "// Can't decompile export " << hashutils::ExtractTmpPath("namespace", exp->GetNamespace()) << "::" << hashutils::ExtractTmp("function", exp->GetName()) << " " << asmctx.m_disableDecompilerError << "\n";
                     dctx.padding--;
                     asmout << "}\n\n";
                     continue;
@@ -2332,7 +2332,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             }
 
             asmout
-                << hashutils::ExtractTmp((remapedFlags & T8GSCExportFlags::EVENT) ? "event" : "namespace", exp.GetFileNamespace());
+                << ((remapedFlags & T8GSCExportFlags::EVENT)
+                    ? hashutils::ExtractTmp("event", exp.GetFileNamespace())
+                    : hashutils::ExtractTmpPath("namespace", exp.GetFileNamespace()));
         }
         asmout << std::endl;
 
@@ -2407,7 +2409,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
         asmout << "detour ";
         if (detour->replaceNamespace) {
-            asmout << hashutils::ExtractTmp("namespace", detour->replaceNamespace) << std::flush;
+            asmout << hashutils::ExtractTmpPath("namespace", detour->replaceNamespace) << std::flush;
         }
         auto replaceScript = *reinterpret_cast<uint64_t*>(&detour->replaceScriptTop);
         if (replaceScript) {

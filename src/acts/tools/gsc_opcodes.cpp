@@ -3211,7 +3211,7 @@ public:
 			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
 			&& data[1] != context.m_namespace) { // same namespace call
 			nsp = data[1];
-			out << hashutils::ExtractTmp("namespace", nsp) << "::" << std::flush;
+			out << hashutils::ExtractTmpPath("namespace", nsp) << "::" << std::flush;
 		}
 
 		out << hashutils::ExtractTmp("function", data[0]);
@@ -3356,7 +3356,7 @@ public:
 		if (data[1] 
 			&& data[1] != 0x222276a9 && data[1] != 0xc1243180 // "sys" or ""
 			&& data[1] != context.m_namespace) { // current namespace
-			out << hashutils::ExtractTmp("namespace", data[1]) << std::flush << "::";
+			out << hashutils::ExtractTmpPath("namespace", data[1]) << std::flush << "::";
 			nsp = data[1];
 		}
 		out << hashutils::ExtractTmp("function", data[0]);
@@ -4504,7 +4504,7 @@ public:
 
 		base += 16;
 
-		out << "@" << hashutils::ExtractTmp("namespace", nsp)
+		out << "@" << hashutils::ExtractTmpPath("namespace", nsp)
 			<< "<" << std::flush << hashutils::ExtractTmpScript(script)
 			<< ">::" << std::flush << hashutils::ExtractTmp("function", function) << std::endl;
 

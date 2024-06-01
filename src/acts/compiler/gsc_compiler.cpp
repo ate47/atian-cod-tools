@@ -296,7 +296,17 @@ namespace acts::compiler {
 
         void LoadData(bool& useParams, uint32_t& dataSize) const {
             if (inlineCall) {
-                useParams = true;
+                switch (opcode) {
+                case OPCODE_GetFunction:
+                case OPCODE_IW_GetBuiltinFunction:
+                case OPCODE_IW_GetBuiltinMethod:
+                case OPCODE_GetResolveFunction:
+                    useParams = false;
+                    break;
+                default:
+                    useParams = true;
+                    break;
+                }
                 dataSize = (flags & FCF_POINTER) ? 0 : 8;
             }
             else {
@@ -351,6 +361,9 @@ namespace acts::compiler {
         }
 
         uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+            bool useParams;
+            uint32_t dataSize;
+            LoadData(useParams, dataSize);
             if (aligned) {
                 if (flags & FCF_POINTER_CLASS) {
                     return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + (uint32_t)sizeof(uint32_t);
@@ -358,14 +371,10 @@ namespace acts::compiler {
                 if (flags & FCF_POINTER) {
                     return AscmNodeOpCode::ShiftSize(start, aligned) + 1;
                 }
-                return utils::Aligned<uint64_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + (uint32_t)sizeof(uint64_t);
+                return utils::Aligned<uint64_t>(AscmNodeOpCode::ShiftSize(start, aligned) + (useParams ? 1 : 0)) + dataSize;
             }
 
             start = AscmNodeOpCode::ShiftSize(start, aligned);
-
-            bool useParams;
-            uint32_t dataSize;
-            LoadData(useParams, dataSize);
             if (useParams) {
                 start++;
             }
