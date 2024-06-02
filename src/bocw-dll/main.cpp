@@ -84,6 +84,7 @@ namespace cw {
                         hook::library::SaveScanContainer();
                     }
                     catch (std::exception& e) {
+                        LOG_ERROR("Error at ACTS DLL post init {}", e.what());
                         MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
                         *reinterpret_cast<byte*>(0x123456789) = 2;
                     }
@@ -608,15 +609,16 @@ namespace cw {
                 }
 
                 GetSystemMetricsDetour.Create(user32["GetSystemMetrics"], GetSystemMetricsStub);
-                ExitProcessDetour.Create(kernel32["ExitProcess"], ExitProcessStub);
-                GetThreadContextDetour.Create(kernel32["GetThreadContext"], GetThreadContextStub);
-                SetThreadContextDetour.Create(kernel32["SetThreadContext"], SetThreadContextStub);
+                //ExitProcessDetour.Create(kernel32["ExitProcess"], ExitProcessStub);
+                //GetThreadContextDetour.Create(kernel32["GetThreadContext"], GetThreadContextStub);
+                //SetThreadContextDetour.Create(kernel32["SetThreadContext"], SetThreadContextStub);
 
                 hook::library::InitScanContainer("acts");
 
                 core::system::Init();
             }
             catch (std::exception& e) {
+                LOG_ERROR("Error at ACTS DLL startup {}", e.what());
                 MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL startup", MB_ICONERROR);
                 *reinterpret_cast<byte*>(0x123456789) = 2;
             }

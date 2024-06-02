@@ -106,7 +106,7 @@ namespace hook::library {
 		return nullptr;
 	}
 
-	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern) {
+	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single) {
 		std::vector<ScanResult> res{};
 
 
@@ -195,7 +195,7 @@ namespace hook::library {
 		}
 
 
-
+		LOG_TRACE("Start searching of pattern {}", pattern);
 		byte* start{ (byte*)*lib };
 		byte* end{ (byte*)lib[lazySize - mask.size()] };
 
@@ -226,11 +226,16 @@ namespace hook::library {
 				}
 				if (i == mask.size()) {
 					res.emplace_back(current + off);
+					if (single) {
+						LOG_TRACE("Pattern find -> {}", (void*)res[0].location);
+						return res;
+					}
 				}
 			}
 
 			current += page.RegionSize;
 		}
+		LOG_TRACE("Pattern find -> {}", res.size());
 
 		return res;
 	}
@@ -319,7 +324,7 @@ namespace hook::library {
 	}
 
 	static Library main{};
-	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern) {
+	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern, bool single) {
 		auto it = container.deltas.find(name);
 		if (it != container.deltas.end()) {
 			std::vector<ScanResult> res{};
@@ -331,7 +336,7 @@ namespace hook::library {
 			return res;
 		}
 
-		auto res = main.Scan(pattern);
+		auto res = main.Scan(pattern, single);
 		auto& locs = container.deltas[pattern];
 
 		// save scan
@@ -343,7 +348,7 @@ namespace hook::library {
 	}
 
 	ScanResult QueryScanContainerSingle(const char* name, const char* pattern) {
-		auto res = QueryScanContainer(name, pattern);
+		auto res = QueryScanContainer(name, pattern, true);
 
 		if (res.empty()) {
 			throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : pattern));

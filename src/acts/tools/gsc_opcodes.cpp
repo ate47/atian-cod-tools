@@ -5421,7 +5421,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 			ctx.padding++;
 		}
 		if (ref.node->m_type != TYPE_END) {
-			if (ref.node->m_type != TYPE_PRECODEPOS || ctx.opt.m_show_internal_blocks) {
+			if ((!hide && ref.node->m_type != TYPE_PRECODEPOS) || ctx.opt.m_show_internal_blocks) {
 				if (!m_disabled || i) {
 					ctx.WritePadding(out);
 				}
@@ -5455,6 +5455,11 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 		}
 		out << std::flush;
 		i++;
+		if (hide && !ctx.opt.m_show_internal_blocks) {
+			// don't write hidden stuff
+			break;
+		}
+		/*
 		if (i < m_statements.size() && hide && !ctx.opt.m_show_internal_blocks) {
 			// search the next referenced element in the block (if it exists)
 			do {
@@ -5466,6 +5471,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 				}
 			} while (i < m_statements.size());
 		}
+		*/
 	}
 	// pop back rloc
 	ctx.rloc = oldRLoc;

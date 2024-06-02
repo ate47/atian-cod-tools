@@ -105,9 +105,10 @@ namespace hook::library {
 	 * Query the scan container for multiple results
 	 * @param name pattern name (for logs)
 	 * @param pattern pattern
+	 * @param single stop after one pattern
 	 * @return results
 	 */
-	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern);
+	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern, bool single = false);
 
 	/*
 	 * Query the scan container for an unique result and convert it to a pointer
@@ -124,10 +125,11 @@ namespace hook::library {
 	/*
 	 * Scan the memory to find a pattern
 	 * @param hmod module
-	 * @param pattern
+	 * @param pattern pattern
+	 * @param single single search
 	 * @return matches
 	 */
-	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern);
+	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single = false);
 
 	// Library information
 	class Library {
@@ -192,8 +194,8 @@ namespace hook::library {
 			return process::PImageDosHeader(hmod);
 		}
 
-		inline std::vector<ScanResult> Scan(const char* pattern) const {
-			return ScanLibrary(hmod, pattern);
+		inline std::vector<ScanResult> Scan(const char* pattern, bool single = false) const {
+			return ScanLibrary(hmod, pattern, single);
 		}
 
 		ScanResult ScanSingle(const char* pattern, const char* name = nullptr) const {

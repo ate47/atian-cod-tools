@@ -1994,7 +1994,8 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
 int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, DecompContext& dctxt) {
     using namespace tool::gsc::opcode;
-    auto FetchCode = [&ctx, &dctxt, &out]() -> const opcode::OPCodeInfo* {
+    auto FetchCode = [&ctx, &dctxt, &out]() -> const OPCodeInfo* {
+        dctxt.rloc = ctx.FunctionRelativeLocation();
         uint16_t code;
         if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
             if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
@@ -2006,7 +2007,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
             code = (uint16_t)*ctx.m_bcl;
             ctx.m_bcl += 1;
         }
-        const opcode::OPCodeInfo* ret{ ctx.LookupOpCode(code) };
+        const OPCodeInfo* ret{ ctx.LookupOpCode(code) };
 
         if (!ret || ret->m_id == OPCODE_Undefined) {
             dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << code << "\n";
@@ -2016,7 +2017,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
     };
 
     // main reading loop
-    const auto* ccp = FetchCode();
+    const OPCodeInfo* ccp = FetchCode();
 
 /*
  * Start
@@ -2030,26 +2031,20 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
  .0000001e: 0c18 SetVariableField
 */
     
-    if (!ccp || ccp->m_id != OPCODE_CheckClearParams) {
+    if (ccp->m_id != OPCODE_CheckClearParams) {
         // dctxt.WritePadding(out) << "Bad vtable opcode: expected CheckClearParams\n";
         return DVA_NOT;
     }
 
-    const auto* preScriptCall = FetchCode();
+    const OPCodeInfo* preScriptCall = FetchCode();
 
 
-    if (!preScriptCall || preScriptCall->m_id != OPCODE_PreScriptCall) {
+    if (preScriptCall->m_id != OPCODE_PreScriptCall) {
         // dctxt.WritePadding(out) << "Bad vtable opcode: expected PreScriptCall\n";
         return DVA_NOT;
     }
 
-    const auto* spawnStruct = FetchCode();
-
-    
-    if (!spawnStruct) {
-        // dctxt.WritePadding(out) << "Bad vtable opcode\n";
-        return DVA_NOT;
-    }
+    const OPCodeInfo* spawnStruct = FetchCode();
     
     if (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction) {
         if (ctx.m_vm == VM_T9 || ctx.m_vm == VM_MW23B) {
@@ -2059,23 +2054,31 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         return DVA_NOT;
     }
 
-    ctx.m_bcl += 1; // call
+    ctx.m_bcl += 1; // call params
     ctx.Aligned<uint64_t>() += 8; // assume that we have a spawnstruct
 
-    ctx.Aligned<uint16_t>() += 2; // GetZero
+    auto AssertOpCode = [&FetchCode, &dctxt, &out](OPCode opc) -> bool {
+        const OPCodeInfo* nfo{ FetchCode() };
+        if (nfo->m_id != opc) {
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << nfo->m_name << ", expected " << OpCodeName(opc) << "\n";
+            out << "}\n";
+            return false;
+        }
+        return true;
+    };
 
+    if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
     if (gscFile.GetVM() > VM_T8) {
-        ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableFromGlobalObject
+        if (!AssertOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject)) return DVA_BAD;
         ctx.Aligned<uint16_t>() += 2; // - classes
     }
-    if (gscFile.GetVM() < VM_T8) {
+    else if (gscFile.GetVM() < VM_T8) {
         ctx.Aligned<uint16_t>() += 2; // GetClassesObject
 
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef className
     }
     else {
-
         ctx.Aligned<uint16_t>() += 2; // GetGlobalObject
         ctx.Aligned<uint16_t>() += 2; // - classes
 
@@ -2090,16 +2093,6 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
     cls.name_space = exp.GetNamespace();
 
     clsName += 4;
-
-    if (gscFile.GetVM() > VM_T8) {
-        ctx.Aligned<uint16_t>() += 2; // SetVariableFieldFromEvalArrayRef
-    }
-    else {
-        ctx.Aligned<uint16_t>() += 2; // EvalArrayRef
-        ctx.Aligned<uint16_t>() += 2; // SetVariableField
-    }
-
-
     if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
         out << "\n";
     }
@@ -2107,16 +2100,23 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         out << " ";
     }
     out << "{\n";
+
+    dctxt.WritePadding(out) << "// " << hashutils::ExtractTmp("class", name) << "\n";
+
+    if (gscFile.GetVM() > VM_T8) {
+        if (!AssertOpCode(OPCODE_T9_SetVariableFieldFromEvalArrayRef)) return DVA_BAD;
+    }
+    else {
+        ctx.Aligned<uint16_t>() += 2; // EvalArrayRef
+        if (!AssertOpCode(OPCODE_SetVariableField)) return DVA_BAD;
+    }
+
+
     while (true) {
-        auto& func = ctx.Aligned<uint16_t>();
-
-        uint16_t opcode = *(uint16_t*)func;
-        func += 2;
-
-        const auto* funcOpCode = ctx.LookupOpCode(opcode);
+        const OPCodeInfo* funcOpCode = FetchCode();
 
         if (!funcOpCode) {
-            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << opcode << "\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << funcOpCode->m_name << "\n";
             out << "}\n";
             return DVA_BAD;
         }
@@ -2124,7 +2124,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
             break; // end
         }
         if (funcOpCode->m_id != OPCODE_GetResolveFunction) {
-            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << opcode << ", excepted GetResolveFunction or End\n";
+            dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << funcOpCode->m_name << ", excepted GetResolveFunction or End\n";
             out << "}\n";
             return DVA_BAD;
         }
@@ -2134,13 +2134,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         uint32_t methodClsName = ((uint32_t*)getFuncBase)[1];
         getFuncBase += 8;
 
-        auto& uidCodeBase = ctx.Aligned<uint16_t>();
-
-        uint16_t uidCodeOp = *(uint16_t*)uidCodeBase;
-
-        const auto* uidCodeOpCode = ctx.LookupOpCode(uidCodeOp);
-
-        uidCodeBase += 2;
+        const OPCodeInfo* uidCodeOpCode = FetchCode();
 
         if (!uidCodeOpCode) {
             dctxt.WritePadding(out) << "Bad vtable opcode: " << std::hex << uidCodeOpCode->m_name << ", excepted Getter\n";
@@ -2205,7 +2199,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
             << " -> &" << hashutils::ExtractTmp("class", methodClsName) << std::flush 
             << "::" << hashutils::ExtractTmp("function", methodName) << ";" << std::endl;
 
-        ctx.Aligned<uint16_t>() += 2; // GetZero
+        if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
         if (gscFile.GetVM() >= VM_T8) {
             ctx.Aligned<uint16_t>() += 2; // EvalGlobalObjectFieldVariable

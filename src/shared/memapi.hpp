@@ -172,6 +172,12 @@ public:
 	 */
 	uintptr_t AllocateMemory(size_t size, DWORD protection) const;
 	/*
+	 * Allocate string in the process
+	 * @param string String to allocate
+	 * @return pointer or null
+	 */
+	uintptr_t AllocateString(const char* string, size_t* sizeOut) const;
+	/*
 	 * Set the protection of a location in memory
 	 * @param ptr Pointer to set
 	 * @param size Size of the pointer

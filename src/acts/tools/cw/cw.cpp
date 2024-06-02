@@ -800,7 +800,134 @@ namespace {
 
 		return tool::OK;
 	}
+	int cwdllgt(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+		const char* gametype{ argv[2] };
+		const char* map{ argc < 4 ? nullptr : argv[3] };
+
+		ProcessModule& powrprof{ proc["powrprof.dll"] };
+
+		if (!powrprof) {
+			LOG_ERROR("Can't find DLL");
+			return tool::BASIC_ERROR;
+		}
+		LOG_INFO("Set gametype {}...", gametype);
+		{
+			ProcessModuleExport& ACTS_EXPORT_SetLobbyGameType{ powrprof["ACTS_EXPORT_SetLobbyGameType"] };
+
+			if (!ACTS_EXPORT_SetLobbyGameType) {
+				LOG_ERROR("Can't find ACTS_EXPORT_SetLobbyGameType");
+				return tool::BASIC_ERROR;
+			}
+
+			size_t gtlen;
+			uintptr_t gtptr{ proc.AllocateString(gametype, &gtlen) };
+			if (!gtptr) {
+				LOG_ERROR("Can't allocate string");
+				return tool::BASIC_ERROR;
+			}
+
+			HANDLE thr{ proc.Exec(ACTS_EXPORT_SetLobbyGameType.m_location, gtptr) };
+
+			if (thr == INVALID_HANDLE_VALUE || !thr) {
+				std::cerr << "Can't call ACTS_EXPORT_SetLobbyGameType\n";
+				proc.FreeMemory(gtptr, gtlen);
+				return tool::BASIC_ERROR;
+			}
+
+			WaitForSingleObject(thr, INFINITE);
+			CloseHandle(thr);
+			proc.FreeMemory(gtptr, gtlen);
+
+		}
+
+		if (map) {
+			LOG_INFO("Set map {}...", map);
+			ProcessModuleExport& ACTS_EXPORT_SetLobbyMap{ powrprof["ACTS_EXPORT_SetLobbyMap"] };
+			
+			if (!ACTS_EXPORT_SetLobbyMap) {
+				LOG_ERROR("Can't find ACTS_EXPORT_SetLobbyMap");
+				return tool::BASIC_ERROR;
+			}
+
+			size_t mplen;
+			uintptr_t mpptr{ proc.AllocateString(map, &mplen) };
+			if (!mpptr) {
+				LOG_ERROR("Can't allocate string");
+				return tool::BASIC_ERROR;
+			}
+
+			HANDLE thr{ proc.Exec(ACTS_EXPORT_SetLobbyMap.m_location, mpptr) };
+
+			if (thr == INVALID_HANDLE_VALUE || !thr) {
+				std::cerr << "Can't call ACTS_EXPORT_SetLobbyMap\n";
+				proc.FreeMemory(mpptr, mplen);
+				return tool::BASIC_ERROR;
+			}
+
+			WaitForSingleObject(thr, INFINITE);
+			CloseHandle(thr);
+			proc.FreeMemory(mpptr, mplen);
+		}
+		LOG_INFO("Done");
+
+		return tool::OK;
+	}
+	
+	int cwdllac(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+		const char* action{ argv[2] };
+		const char* value{ argc > 3 ? argv[3] : nullptr };
+
+		ProcessModule& powrprof{ proc["powrprof.dll"] };
+
+		if (!powrprof) {
+			LOG_ERROR("Can't find DLL");
+			return tool::BASIC_ERROR;
+		}
+
+		ProcessModuleExport& exp{ powrprof[action] };
+
+		if (!exp) {
+			LOG_ERROR("Can't find {}", action);
+			return tool::BASIC_ERROR;
+		}
+
+		size_t vllen{};
+		uintptr_t vlptr{};
+		if (value) {
+			vlptr = proc.AllocateString(value, &vllen);
+			if (!vlptr) {
+				LOG_ERROR("Can't allocate string");
+				return tool::BASIC_ERROR;
+			}
+		}
+
+		HANDLE thr{ proc.Exec(exp.m_location, vlptr) };
+
+		if (thr == INVALID_HANDLE_VALUE || !thr) {
+			LOG_ERROR("Can't call {}", action);
+			proc.FreeMemory(vlptr, vllen);
+			return tool::BASIC_ERROR;
+		}
+
+		WaitForSingleObject(thr, INFINITE);
+		CloseHandle(thr);
+		proc.FreeMemory(vlptr, vllen);
+
+		LOG_INFO("Done");
+
+		return tool::OK;
+	}
 }
+
+ADD_TOOL("cwdllgt", "cw", " [gametype] (map)", "set gametype", L"BlackOpsColdWar.exe", cwdllgt);
+ADD_TOOL("cwdllac", "cw", " [action] (param str)", "run dll action", L"BlackOpsColdWar.exe", cwdllac);
+
 #ifndef CI_BUILD
 
 ADD_TOOL("tcrccw", "cw", "", "test crc (cw)", nullptr, cwtestchecksum);

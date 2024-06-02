@@ -159,6 +159,24 @@ uintptr_t Process::AllocateMemory(size_t size, DWORD protection) const {
 	}
 	return NULL;
 }
+uintptr_t Process::AllocateString(const char* string, size_t* sizeOut) const {
+	if (m_handle) {
+		size_t len{ strlen(string) + 1 };
+		if (sizeOut) {
+			*sizeOut = len;
+		}
+		uintptr_t strptr{ AllocateMemory(len) };
+		if (!strptr) {
+			return NULL;
+		}
+		if (!WriteMemory(strptr, string, len)) {
+			FreeMemory(strptr, len);
+			return NULL;
+		}
+		return strptr;
+	}
+	return NULL;
+}
 
 bool Process::SetMemoryProtection(uintptr_t ptr, size_t size, DWORD flNewProtected, DWORD& lpflOldProtect) const {
 	if (m_handle) {
@@ -509,7 +527,7 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 	if (!mask.size()) {
 		throw std::runtime_error(utils::va("Empty pattern! %s", pattern));
 	}
-
+	
 	constexpr size_t lazySize = 0x10000000;
 
 	uintptr_t start{ this->start };
