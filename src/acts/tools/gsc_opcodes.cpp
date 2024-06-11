@@ -1551,21 +1551,30 @@ class OPCodeInfoVectorConstant : public OPCodeInfo {
 public:
 	OPCodeInfoVectorConstant() : OPCodeInfo(OPCODE_VectorConstant, "VectorConstant") {}
 
-	float OfFlag(byte loc) const {
+	bool OfFlag(byte loc, float& out) const {
 		switch (loc & 0x3) {
-		case 0: return 0;
-		case 1: return -1;
-		case 2: return 1;
-		default: return 999;
+		case 0: 
+			out = 0;
+			return true;
+		case 1: 
+			out = -1;
+			return true;
+		case 2: 
+			out = 1;
+			return true;
 		}
+		out = 999;
+		return false;
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		byte flag = *(context.m_bcl++);
 
-		FLOAT x = OfFlag(flag >> 4);
-		FLOAT y = OfFlag(flag >> 2);
-		FLOAT z = OfFlag(flag);
+		float x, y, z;
+
+		if (!OfFlag(flag >> 4, x)) out << "(invalid x)";
+		if (!OfFlag(flag >> 2, y)) out << "(invalid y)";
+		if (!OfFlag(flag, z)) out << "(invalid z)";
 
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeVector(x, y, z));
@@ -4064,25 +4073,25 @@ public:
 					break;
 				case 2:
 				case 4: // hash
-					out << "#\"" << hashutils::ExtractTmp("hash", val.hash) << "\"" << std::flush;
+					out << "#\"" << hashutils::ExtractTmp("hash", val.hash) << "\"" << "(0x" << std::hex << val.hash << "/casetype:" << (int)type << ")" << std::flush;
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeHash(val.hash, false, "#"), caseRLoc });
 					}
 					break;
 				case 5: // unkb
-					out << "?\"" << hashutils::ExtractTmp("hash", val.unkb) << "\"" << std::flush;
+					out << "t\"" << hashutils::ExtractTmp("hash", val.unkb) << "\"" << "(0x" << std::hex << val.unkb << ")" << std::flush;
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeHash(val.unkb, false, "?"), caseRLoc });
 					}
 					break;
 				case 6: // unk9
-					out << "%\"" << hashutils::ExtractTmp("hash", val.hash) << "\"" << std::flush;
+					out << "%\"" << hashutils::ExtractTmp("hash", val.hash) << "\"" << "(0x" << std::hex << val.hash << ")" << std::flush;
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeHash(val.hash, false, "%"), caseRLoc });
 					}
 					break;
 				case 7: // dvarhash
-					out << "@\"" << hashutils::ExtractTmp("hash", val.hash) << "\"" << std::flush;
+					out << "@\"" << hashutils::ExtractTmp("hash", val.hash) << "\"" << "(0x" << std::hex << val.hash << ")" << std::flush;
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeHash(val.hash, false, "@"), caseRLoc });
 					}

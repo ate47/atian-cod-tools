@@ -54,29 +54,12 @@ namespace hash {
 		return Hash64A(str, start, iv) & 0x7FFFFFFFFFFFFFFF;
 	}
 
-	inline uint64_t HashPattern(const char* str) {
-		std::string_view v{ str };
+	bool TryHashPattern(const char* str, uint64_t& outVal);
 
-		if (!v.rfind("var_", 0)) {
-			return std::strtoull(&str[4], nullptr, 16);
-		}
-		if (!v.rfind("event_", 0)) {
-			return std::strtoull(&str[6], nullptr, 16);
-		}
-		if (!v.rfind("function_", 0)) {
-			return std::strtoull(&str[9], nullptr, 16);
-		}
-		if (!v.rfind("namespace_", 0)) {
-			return std::strtoull(&str[10], nullptr, 16);
-		}
-		if (!v.rfind("script_", 0)) {
-			return std::strtoull(&str[7], nullptr, 16);
-		}
-		if (!v.rfind("hash_", 0)) {
-			return std::strtoull(&str[5], nullptr, 16);
-		}
-		if (!v.rfind("file_", 0)) {
-			return std::strtoull(&str[5], nullptr, 16);
+	inline uint64_t HashPattern(const char* str) {
+		uint64_t out;
+		if (TryHashPattern(str, out)) {
+			return out;
 		}
 		return 0;
 	}

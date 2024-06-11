@@ -13,6 +13,7 @@ namespace actscli {
 		const char* dumpHashmap{};
 		const char* wniFiles{};
 		bool installDirHashes{ true };
+		bool show0Hash{ false };
 		const char* saveProfiler{};
 		const char* seriousDBFile{};
 	};

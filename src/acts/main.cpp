@@ -40,6 +40,9 @@ namespace {
 			else if (!strcmp("-N", arg) || !_strcmpi("--no-hash", arg)) {
 				opt.noDefaultHash = true;
 			}
+			else if (!_strcmpi("--hash0", arg)) {
+				opt.show0Hash = true;
+			}
 			else if (!strcmp("-d", arg) || !_strcmpi("--debug", arg)) {
 				hook::error::EnableHeavyDump();
 			}
@@ -181,6 +184,7 @@ namespace {
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
+		LOG_INFO(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
 	}
 }
 

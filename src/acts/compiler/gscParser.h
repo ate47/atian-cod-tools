@@ -24,10 +24,10 @@ public:
     T__56 = 57, T__57 = 58, T__58 = 59, T__59 = 60, T__60 = 61, T__61 = 62, 
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
     T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, T__73 = 74, 
-    T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, NEWLINE = 79, WHITESPACE = 80, 
-    INTEGER10 = 81, INTEGER16 = 82, INTEGER8 = 83, INTEGER2 = 84, FLOATVAL = 85, 
-    BUILTIN = 86, BOOL_VALUE = 87, UNDEFINED_VALUE = 88, IDENTIFIER = 89, 
-    STRUCT_IDENTIFIER = 90, PATH = 91, STRING = 92, HASHSTRING = 93
+    T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, T__78 = 79, NEWLINE = 80, 
+    WHITESPACE = 81, INTEGER10 = 82, INTEGER16 = 83, INTEGER8 = 84, INTEGER2 = 85, 
+    FLOATVAL = 86, BUILTIN = 87, BOOL_VALUE = 88, UNDEFINED_VALUE = 89, 
+    IDENTIFIER = 90, STRUCT_IDENTIFIER = 91, PATH = 92, STRING = 93, HASHSTRING = 94
   };
 
   enum {
@@ -811,10 +811,10 @@ public:
   public:
     Struct_defContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<antlr4::tree::TerminalNode *> STRUCT_IDENTIFIER();
-    antlr4::tree::TerminalNode* STRUCT_IDENTIFIER(size_t i);
     std::vector<ExpressionContext *> expression();
     ExpressionContext* expression(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> STRUCT_IDENTIFIER();
+    antlr4::tree::TerminalNode* STRUCT_IDENTIFIER(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

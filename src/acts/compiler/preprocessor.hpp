@@ -129,6 +129,11 @@ namespace acts::compiler::preprocessor {
                     next = str.length(); // last line
                 }
 
+                // skip until the start
+                while (lineStart < next && isspace(str[lineStart])) {
+                    lineStart++;
+                }
+
                 std::string_view line{ str.data() + lineStart, str.data() + next };
                 if (line.starts_with("#ifdef")) {
                     std::string define{ line.substr(6) };
@@ -242,6 +247,11 @@ namespace acts::compiler::preprocessor {
                 }
 
                 lineStart = next + 1;
+            }
+
+            if (!eraseCtx.empty()) {
+                errorHandler(alogs::LVL_ERROR, lineIdx, "end of file before the end of all the if");
+                return false;
             }
 
             return !err;

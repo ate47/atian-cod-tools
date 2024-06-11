@@ -102,13 +102,13 @@ expression15: ('(' expression ')');
 
 function_call_exp:
 	function_call 
-	| expression14 ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')';
+	| expression14 ('thread' | 'childthread' | 'threadendon' | 'builtin')? function_component '(' expression_list ')';
 
 
 function_call: 
-	('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
-	| (const_expr | expression15 ) ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')'
-    | function_call ('thread' | 'childthread' | 'builtin')? function_component '(' expression_list ')';
+	('thread' | 'childthread' | 'threadendon'  | 'builtin')? function_component '(' expression_list ')'
+	| (const_expr | expression15 ) ('thread' | 'childthread' | 'threadendon'  | 'builtin')? function_component '(' expression_list ')'
+    | function_call ('thread' | 'childthread' | 'threadendon'  | 'builtin')? function_component '(' expression_list ')';
 
 left_value:
 	idf
@@ -145,7 +145,7 @@ number: INTEGER10
 vector_value: '(' expression ',' expression ',' expression ')';
 array_def:
 	'[' ((expression ':')? expression ( ',' (expression ':')? expression)* (',')?)? ']';
-struct_def: '{' (STRUCT_IDENTIFIER ':' expression (',' STRUCT_IDENTIFIER ':' expression)* (',')?)? '}';
+struct_def: '{' ((STRUCT_IDENTIFIER | expression) ':' expression (',' (STRUCT_IDENTIFIER | expression) ':' expression)* (',')?)? '}';
 
 idf: IDENTIFIER;
 

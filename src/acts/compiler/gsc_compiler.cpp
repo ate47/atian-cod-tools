@@ -710,20 +710,20 @@ namespace acts::compiler {
         TerminalNode* term = dynamic_cast<TerminalNode*>(number);
         switch (term->getSymbol()->getType()) {
         case gscParser::INTEGER10:
-            return std::strtoll(term->getText().c_str(), NULL, 10);
+            return std::strtoll(term->getText().c_str(), nullptr, 10);
         case gscParser::INTEGER16: {
             bool neg = term->getText()[0] == '-';
-            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 16);
+            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 16);
             return neg ? -val : val;
         }
         case gscParser::INTEGER8: {
             bool neg = term->getText()[0] == '-';
-            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), NULL, 8);
+            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), nullptr, 8);
             return neg ? -val : val;
         }
         case gscParser::INTEGER2: {
             bool neg = term->getText()[0] == '-';
-            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 2);
+            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 2);
             return neg ? -val : val;
         }
         default:
@@ -2753,7 +2753,7 @@ namespace acts::compiler {
                     if (callModifier == "thread") {
                         flags |= FCF_THREAD;
                     }
-                    else if (callModifier == "childthread") {
+                    else if (callModifier == "childthread" || callModifier == "threadendon") { // old compatibility
                         flags |= FCF_CHILDTHREAD;
                     }
                     else if (callModifier == "builtin") {
@@ -3392,10 +3392,6 @@ namespace acts::compiler {
 
                     ParseTree* term = rule->children[i++];
 
-                    std::string termStr = term->getText();
-
-                    std::string sub = termStr.substr(1, termStr.size() - 1);
-
                     i++; // ':'
 
 
@@ -3404,11 +3400,33 @@ namespace acts::compiler {
                     }
 
                     if (obj.HasOpCode(OPCODE_IW_AddToStruct)) {
-                        fobj.AddNode(rule->children[i - 1], fobj.CreateFieldHash(sub, OPCODE_IW_AddToStruct));
+                        if (!IS_TERMINAL_TYPE(term, gscParser::STRUCT_IDENTIFIER)) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("Can't use expression to define structure names in this vm: {}", term->getText()));
+                            ok = false;
+                        }
+                        else {
+                            std::string termStr = term->getText();
+
+                            std::string sub = termStr.substr(1, termStr.size() - 1);
+                            fobj.AddNode(rule->children[i - 1], fobj.CreateFieldHash(sub, OPCODE_IW_AddToStruct));
+                        }
                     }
                     else {
-                        obj.AddHash(sub);
-                        fobj.AddNode(rule->children[i - 1], new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
+                        if (!IS_TERMINAL_TYPE(term, gscParser::STRUCT_IDENTIFIER)) {
+                            if (!ParseExpressionNode(term, parser, obj, fobj, true)) {
+                                ok = false;
+                            }
+                            fobj.AddNode(term, new AscmNodeOpCode(OPCODE_CastCanon));
+                        }
+                        else {
+                            std::string termStr = term->getText();
+                            
+                            std::string sub = termStr.substr(1, termStr.size() - 1);
+
+                            // we can't use CreateField hash because the hash is on 64 bits, but 32 in reality
+                            obj.AddHash(sub);
+                            fobj.AddNode(rule->children[i - 1], new AscmNodeData<uint64_t>(obj.vmInfo->HashField(sub.c_str()), OPCODE_GetHash));
+                        }
 
                         fobj.AddNode(rule->children[i - 1], new AscmNodeOpCode(OPCODE_AddToStruct));
                     }
@@ -3721,26 +3739,26 @@ namespace acts::compiler {
             fobj.AddNode(term, BuildAscmNodeData(term->getText() == "true"));
             return true;
         case gscParser::FLOATVAL:
-            fobj.AddNode(term, new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), NULL), OPCODE_GetFloat));
+            fobj.AddNode(term, new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), nullptr), OPCODE_GetFloat));
             return true;
         case gscParser::INTEGER10:
-            fobj.AddNode(term, BuildAscmNodeData(std::strtoll(term->getText().c_str(), NULL, 10)));
+            fobj.AddNode(term, BuildAscmNodeData(std::strtoll(term->getText().c_str(), nullptr, 10)));
             return true;
         case gscParser::INTEGER16: {
             bool neg = term->getText()[0] == '-';
-            auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 16);
+            auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 16);
             fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
             return true;
         }
         case gscParser::INTEGER8: {
             bool neg = term->getText()[0] == '-';
-            auto val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), NULL, 8);
+            auto val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), nullptr, 8);
             fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
             return true;
         }
         case gscParser::INTEGER2: {
             bool neg = term->getText()[0] == '-';
-            auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 2);
+            auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 2);
             fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
             return true;
         }
@@ -3756,11 +3774,16 @@ namespace acts::compiler {
                 return false;
             }
 
-            uint64_t val = ith->second.hashFunc(sub.c_str());
+            const char* ss = sub.c_str();
 
-            if (!val) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't hash the string '{}' with the type {}", sub, type));
-                return false;
+            uint64_t val;
+
+            if (!hash::TryHashPattern(ss, val)) {
+                val = ith->second.hashFunc(ss);
+                if (!val) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't hash the string '{}' with the type {}", sub, type));
+                    return false;
+                }
             }
 
             switch (ith->second.size) {
@@ -3946,7 +3969,7 @@ namespace acts::compiler {
         bool varargDetected{};
         for (auto* child : params->children) {
             if (index++ % 2) {
-                continue; // coma
+                continue; // ','
             }
 
             assert(IS_RULE_TYPE(child, gscParser::RuleParam_val));
@@ -4320,13 +4343,14 @@ namespace acts::compiler {
 
             ANTLRInputStream is{ info.gscData };
 
+            auto errList = std::make_unique<ACTSErrorListener>(info);
+
             gscLexer lexer{ &is };
+            lexer.addErrorListener(&*errList);
             CommonTokenStream tokens{ &lexer };
 
             tokens.fill();
             gscParser parser{ &tokens };
-
-            auto errList = std::make_unique<ACTSErrorListener>(info);
 
             parser.removeErrorListeners();
 

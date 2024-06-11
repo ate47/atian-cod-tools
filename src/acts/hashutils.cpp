@@ -5,6 +5,7 @@ namespace {
 	std::unordered_map<uint64_t, std::string> g_hashMap{};
 	std::set<uint64_t> g_extracted{};
 	bool g_saveExtracted = false;
+	bool show0 = false;
 }
 
 const std::unordered_map<uint64_t, std::string>& hashutils::GetMap() {
@@ -31,6 +32,8 @@ void hashutils::ReadDefaultFile() {
 				LOG_ERROR("Error when reading WNI files");
 			};
 		}
+
+		show0 = opt.show0Hash;
 
 		if (opt.noDefaultHash) {
 			return;
@@ -205,6 +208,15 @@ void hashutils::AddPrecomputed(uint64_t value, const char* str) {
 
 bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
 	ReadDefaultFile();
+	if (!hash) {
+		if (show0) {
+			snprintf(out, outSize, "%s_0", type);
+		}
+		else if (outSize) {
+			*out = 0;
+		}
+		return true;
+	}
 	const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
 	if (res == g_hashMap.end()) {
 		snprintf(out, outSize, "%s_%llx", type, hash);

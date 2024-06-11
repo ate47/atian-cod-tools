@@ -50,7 +50,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T8, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T8, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T8, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
-			RegisterVMHashOPCode(VM_T8, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64Pattern(str); });
+			RegisterVMHashOPCode(VM_T8, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T8, "assert", "assertmsg", "errormsg", "throw", "println");
 
 			
@@ -329,7 +329,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T937, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T937, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T937, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
-			RegisterVMHashOPCode(VM_T937, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64Pattern(str); });
+			RegisterVMHashOPCode(VM_T937, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T937, "assert", "assertmsg", "errormsg", "throw", "println");
 
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
@@ -603,7 +603,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T9, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T9, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T9, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
-			RegisterVMHashOPCode(VM_T9, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64Pattern(str); });
+			RegisterVMHashOPCode(VM_T9, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T9, "assert", "assertmsg", "errormsg", "throw", "println");
 
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown0, 0x0);
@@ -845,10 +845,10 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_MW23, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_MW23, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
 			RegisterVMOperatorFunction(VM_MW23, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
-			RegisterVMHashOPCode(VM_MW23, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64Pattern(str); });
-			RegisterVMHashOPCode(VM_MW23, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hash::HashPattern(str); });
-			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64Pattern(str, 0x47F5817A5EF961BA); });
-			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64Pattern(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
+			RegisterVMHashOPCode(VM_MW23, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
+			RegisterVMHashOPCode(VM_MW23, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return 0; });
+			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
+			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 
 			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
@@ -864,10 +864,10 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_MW23B, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_MW23B, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
 			RegisterVMOperatorFunction(VM_MW23B, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
-			RegisterVMHashOPCode(VM_MW23B, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64Pattern(str); });
-			RegisterVMHashOPCode(VM_MW23B, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hash::HashPattern(str); });
-			RegisterVMHashOPCode(VM_MW23B, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64Pattern(str, 0x47F5817A5EF961BA); });
-			RegisterVMHashOPCode(VM_MW23B, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64Pattern(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
+			RegisterVMHashOPCode(VM_MW23B, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
+			RegisterVMHashOPCode(VM_MW23B, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return 0; });
+			RegisterVMHashOPCode(VM_MW23B, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
+			RegisterVMHashOPCode(VM_MW23B, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
