@@ -661,10 +661,6 @@ namespace acts::compiler {
             ctx.Write<uint64_t>(path);
             return true;
         }
-
-        uint32_t GetDataFLoc(bool aligned) const {
-            return ShiftSize(floc, aligned) - sizeof(uint32_t) * 2 - sizeof(uint64_t);
-        }
     };
 
     /*
@@ -1648,7 +1644,7 @@ namespace acts::compiler {
 
                         uint32_t* locs = reinterpret_cast<uint32_t*>(&lzd[1]);
                         for (AscmNodeLazyLink* node : lz) {
-                            *(locs++) = node->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN));
+                            *(locs++) = node->floc;
                         }
                     }
                 }
