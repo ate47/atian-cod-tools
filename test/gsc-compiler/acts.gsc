@@ -97,6 +97,6 @@ detour test<scripts\acts\test.gsc>::hello detoured() {
     zqdqd = @test<script\acts\test.gsc>::hello2;
 }
 
-// ok I explain: to avoid having to add to much to the grammar, I consider a normal detour as a function without a name
+// ok I explain: to avoid having to add too much to the grammar, I consider a normal detour as a function without a name
 // but with a detour modifier, so it gives automatically a fake name. It adds 2 useless features, nameless function and
 // detour calls.
