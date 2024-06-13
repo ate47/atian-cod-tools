@@ -247,6 +247,14 @@ namespace utils {
 	char* LowerCase(char* buffer);
 
 	/*
+	 * Replace all the spaces with a character
+	 * @param buffer string
+	 * @param map mapping function
+	 * @return string
+	 */
+	char* MapString(char* buffer, std::function<char(char)> map);
+
+	/*
 	 * @return prog exe directory
 	 */
 	std::filesystem::path GetProgDir();

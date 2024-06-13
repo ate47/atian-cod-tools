@@ -666,10 +666,20 @@ namespace tool::gsc {
         int32_t replaceScriptTop;
         int32_t replaceScriptBottom;
     };
+
+    struct GscDetourInfo {
+        uint64_t name;
+        uint64_t replaceNamespace;
+        uint64_t replaceFunction;
+        int32_t fixupOffset;
+        int32_t fixupSize;
+        int64_t replaceScript;
+    };
+
     struct GsicInfo {
         bool isGsic = false;
         size_t headerSize = 0;
-        std::unordered_map<uint64_t, GsicDetour*> detours{};
+        std::unordered_map<uint64_t, GscDetourInfo> detours{};
     };
     struct asmcontext_func {
         uint64_t name;

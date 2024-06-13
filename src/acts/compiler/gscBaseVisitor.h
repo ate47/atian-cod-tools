@@ -35,6 +35,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitDetour_info(gscParser::Detour_infoContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitParam_list(gscParser::Param_listContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -52,6 +56,10 @@ public:
   }
 
   virtual std::any visitStatement(gscParser::StatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitStatement_dev_block(gscParser::Statement_dev_blockContext *ctx) override {
     return visitChildren(ctx);
   }
 

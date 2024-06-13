@@ -222,13 +222,16 @@ namespace utils {
         return std::filesystem::absolute(szFileName).parent_path();
     }
 
-    char* UpperCase(char* buffer) {
-        std::transform(buffer, buffer + strlen(buffer), buffer, [](char c) { return std::toupper(c); });
+    char* MapString(char* buffer, std::function<char(char)> map) {
+        std::transform(buffer, buffer + strlen(buffer), buffer, map);
         return buffer;
     }
 
+    char* UpperCase(char* buffer) {
+        return MapString(buffer, [](char c) { return std::toupper(c); });
+    }
+
     char* LowerCase(char* buffer) {
-        std::transform(buffer, buffer + strlen(buffer), buffer, [](char c) { return std::tolower(c); });
-        return buffer;
+        return MapString(buffer, [](char c) { return std::tolower(c); });
     }
 }

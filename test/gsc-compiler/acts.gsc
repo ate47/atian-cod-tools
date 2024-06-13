@@ -66,3 +66,37 @@ function is_zm() {
 function is_mp() {
     return sessionmodeismultiplayergame();
 }
+
+/#
+function devblocktest() {
+    a = 42 * 3;
+    /#
+        return "test" + a;    
+    #/
+}
+
+function devblocktest2() {
+
+    
+}
+#/
+
+detour test<scripts\acts\test.gsc>::hello detoured() {
+    return false;
+}
+
+// useless, but funny
+() {
+    detoured();
+    // test nameless function
+    test = "aaa";
+
+    zqdzqd = @test<script\acts\test.gsc>::hello;
+    zqd = @test<script\acts\test.gsc>::hello2;
+    zdz = @test<script\acts\test.gsc>::hello;
+    zqdqd = @test<script\acts\test.gsc>::hello2;
+}
+
+// ok I explain: to avoid having to add to much to the grammar, I consider a normal detour as a function without a name
+// but with a detour modifier, so it gives automatically a fake name. It adds 2 useless features, nameless function and
+// detour calls.

@@ -714,7 +714,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                     gsicSize += (size_t)(28 + 256 - 1 - (5 * 4) + 1 - 8);
 
                     // register detour
-                    gsicInfo.detours[detour->fixupOffset] = detour;
+                    GscDetourInfo& det = gsicInfo.detours[detour->fixupOffset];
+                    det.name = detour->name;
+                    det.fixupOffset = detour->fixupOffset;
+                    det.fixupSize = detour->fixupSize;
+                    det.replaceFunction = detour->replaceFunction;
+                    det.replaceNamespace = detour->replaceNamespace;
+                    det.replaceScript = *reinterpret_cast<uint64_t*>(&detour->replaceScriptTop);
                 }
             }
             break;
@@ -803,8 +809,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
     std::stringstream actsHeader{};
 
     if (size > scriptfile->GetHeaderSize() + 0x10 && scriptfile->Ref<uint64_t>(scriptfile->GetHeaderSize()) == tool::gsc::acts_debug::MAGIC) {
+        using namespace tool::gsc::acts_debug;
         // acts compiled file, read data
-        auto* dbg = scriptfile->Ptr<tool::gsc::acts_debug::GSC_ACTS_DEBUG>(scriptfile->GetHeaderSize());
+        auto* dbg = scriptfile->Ptr<GSC_ACTS_DEBUG>(scriptfile->GetHeaderSize());
         LOG_TRACE("Reading ACTS debug data v{:x}", (int)dbg->version);
         actsHeader << "// ACTS compiled file, file version 0x" << std::hex << (int)dbg->version << ", acts version ";
 
@@ -819,7 +826,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
         }
         actsHeader << "\n";
 
-        if (dbg->version >= tool::gsc::acts_debug::ADF_STRING) {
+        if (dbg->version >= ADF_STRING) {
             uint32_t* strOffsets = scriptfile->Ptr<uint32_t>(dbg->strings_offset);
             if (dbg->strings_count * sizeof(*strOffsets) > size) {
                 LOG_ERROR("Bad ACTS debug strings, too far");
@@ -842,12 +849,83 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                     hashutils::AddPrecomputed(hashFilePath, str);
                     hashutils::AddPrecomputed(hashPath, str);
                     if (opt.m_header) {
-                        actsHeader << "// " << str << " (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath << ")\n";
+                        PrintFormattedString(actsHeader << "// - #\"", str)
+                            << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath << ")\n";
                     }
                 }
-                LOG_TRACE("{} hashe(s) added", dbg->strings_count);
+                LOG_TRACE("{} hash(es) added", dbg->strings_count);
             }
+        }
 
+        if (dbg->version >= ADF_DETOUR) {
+            const GSC_ACTS_DETOUR* detours = scriptfile->Ptr<GSC_ACTS_DETOUR>(dbg->detour_offset);
+
+            if (dbg->detour_count * sizeof(*detours) > size) {
+                LOG_ERROR("Bad ACTS debug detour, too far");
+            }
+            else {
+                for (size_t i = 0; i < dbg->detour_count; i++) {
+                    const GSC_ACTS_DETOUR& detour = detours[i];
+
+                    GscDetourInfo& det = gsicInfo.detours[detour.location];
+                    det.name = detour.name;
+                    det.fixupOffset = detour.location;
+                    det.fixupSize = detour.size;
+                    det.replaceFunction = detour.name;
+                    det.replaceNamespace = detour.name_space;
+                    det.replaceScript = detour.script;
+                }
+            }
+        }
+        if (dbg->version >= ADF_DEVBLOCK_BEGIN) {
+            // not used by acts decompiler, but can be useful for a vm
+            if (opt.m_header) {
+                uint32_t* dvOffsets = scriptfile->Ptr<uint32_t>(dbg->devblock_offset);
+
+                if (dbg->devblock_count * sizeof(*dvOffsets) > size) {
+                    LOG_ERROR("Bad ACTS debug dev blocks, too far");
+                }
+                else {
+                    actsHeader << "// devblock . " << std::dec << dbg->devblock_count << " (offset: 0x" << std::hex << dbg->devblock_offset << ")\n";
+                    for (size_t i = 0; i < dbg->devblock_count; i++) {
+                        uint32_t off = dvOffsets[i];
+                        actsHeader << "// - " << flocName(off) << "\n";
+                    }
+                }
+            }
+        }
+        if (dbg->version >= ADF_LAZYLINK) {
+            // not used by acts decompiler, but can be useful for a vm
+            if (opt.m_header) {
+                actsHeader << "// lazylink . " << std::dec << dbg->lazylink_count << " (offset: 0x" << std::hex << dbg->lazylink_offset << ")\n";
+
+                size_t off = dbg->lazylink_offset;
+                for (size_t i = 0; i < dbg->lazylink_count; i++) {
+                    if (off + sizeof(GSC_ACTS_LAZYLINK) > size) {
+                        LOG_ERROR("Bad ACTS debug lazylink, too far");
+                        break;
+                    }
+                    GSC_ACTS_LAZYLINK* lzOff = scriptfile->Ptr<GSC_ACTS_LAZYLINK>(off);
+
+                    if (off + sizeof(GSC_ACTS_LAZYLINK) + sizeof(uint32_t) * lzOff->num_address > size) {
+                        LOG_ERROR("Bad ACTS debug lazylink, too far with {} addresses", lzOff->num_address);
+                        break;
+                    }
+                    actsHeader << "// "
+                        << hashutils::ExtractTmp("namespace", lzOff->name_space)
+                        << "<" << hashutils::ExtractTmpScript(lzOff->script) << ">::"
+                        << hashutils::ExtractTmp("function", lzOff->name) << "\n"
+                        << "// locs: ";
+                    off += sizeof(*lzOff);
+                    uint32_t* locs = scriptfile->Ptr<uint32_t>(off);
+                    for (size_t i = 0; i < lzOff->num_address; i++) {
+                        if (i) actsHeader << ", ";
+                        actsHeader << flocName(locs[i]);
+                    }
+                    actsHeader << "\n";
+                    off += sizeof(uint32_t) * lzOff->num_address;
+                }
+            }
         }
     }
 
@@ -896,27 +974,27 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             << "// " << hashutils::ExtractTmpScript(scriptfile->GetName()) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n";
 
         if (gsicInfo.isGsic) {
-            asmout
-                << "// GSIC Compiled script" << ", header: 0x" << std::hex << gsicInfo.headerSize << "\n"
-                << "// detours: " << std::dec << gsicInfo.detours.size() << "\n";
+            asmout << "// GSIC Compiled script" << ", header: 0x" << std::hex << gsicInfo.headerSize << "\n";
+        }
+        if (gsicInfo.detours.size()) {
+            asmout << "// detours: " << std::dec << gsicInfo.detours.size() << "\n";
             for (const auto& [key, detour] : gsicInfo.detours) {
                 asmout << "// - ";
 
-                if (detour->replaceNamespace) {
-                    asmout << hashutils::ExtractTmpPath("namespace", detour->replaceNamespace) << std::flush;
+                if (detour.replaceNamespace) {
+                    asmout << hashutils::ExtractTmpPath("namespace", detour.replaceNamespace) << std::flush;
                 }
-                auto replaceScript = *reinterpret_cast<uint64_t*>(&detour->replaceScriptTop);
-                if (replaceScript) {
-                    asmout << "<" << hashutils::ExtractTmpScript(replaceScript) << ">" << std::flush;
+                if (detour.replaceScript) {
+                    asmout << "<" << hashutils::ExtractTmpScript(detour.replaceScript) << ">" << std::flush;
                 }
 
-                if (detour->replaceNamespace) {
+                if (detour.replaceNamespace) {
                     asmout << "::";
                 }
 
                 asmout
-                    << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush
-                    << " offset: 0x" << std::hex << detour->fixupOffset << ", size: 0x" << detour->fixupSize << "\n";
+                    << hashutils::ExtractTmp("function", detour.replaceFunction) << std::flush
+                    << " offset: 0x" << std::hex << detour.fixupOffset << ", size: 0x" << detour.fixupSize << "\n";
             }
         }
 
@@ -2336,7 +2414,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             auto det = detourVal->second;
             utils::Padding(asmout, padding) << prefix 
                 << "Detour " << hashutils::ExtractTmp("function", exp.GetName()) << " "
-                << "Offset 0x" << std::hex << det->fixupOffset << "/0x" << det->fixupSize
+                << "Offset 0x" << std::hex << det.fixupOffset << "/0x" << det.fixupSize
                 << "\n"
                 ;
         }
@@ -2399,23 +2477,23 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     }
 
     if (isDetour) {
-        auto* detour = detourVal->second;
+        auto& detour = detourVal->second;
 
         asmout << "detour ";
-        if (detour->replaceNamespace) {
-            asmout << hashutils::ExtractTmpPath("namespace", detour->replaceNamespace) << std::flush;
-        }
-        auto replaceScript = *reinterpret_cast<uint64_t*>(&detour->replaceScriptTop);
-        if (replaceScript) {
-            asmout << "<" << hashutils::ExtractTmpScript(replaceScript) << ">" << std::flush;
+        if (detour.replaceNamespace) {
+            asmout << hashutils::ExtractTmpPath("namespace", detour.replaceNamespace) << std::flush;
         }
 
-        if (detour->replaceNamespace) {
+        if (detour.replaceScript) {
+            asmout << "<" << hashutils::ExtractTmpScript(detour.replaceScript) << ">" << std::flush;
+        }
+
+        if (detour.replaceNamespace) {
             asmout << "::";
         }
 
         asmout
-            << hashutils::ExtractTmp("function", detour->replaceFunction) << std::flush;
+            << hashutils::ExtractTmp("function", detour.replaceFunction) << std::flush;
     }
     else {
         asmout << (forceName ? forceName : hashutils::ExtractTmp("function", exp.GetName()));

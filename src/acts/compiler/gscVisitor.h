@@ -29,6 +29,8 @@ public:
 
     virtual std::any visitFunction(gscParser::FunctionContext *context) = 0;
 
+    virtual std::any visitDetour_info(gscParser::Detour_infoContext *context) = 0;
+
     virtual std::any visitParam_list(gscParser::Param_listContext *context) = 0;
 
     virtual std::any visitParam_val(gscParser::Param_valContext *context) = 0;
@@ -38,6 +40,8 @@ public:
     virtual std::any visitStatement_block(gscParser::Statement_blockContext *context) = 0;
 
     virtual std::any visitStatement(gscParser::StatementContext *context) = 0;
+
+    virtual std::any visitStatement_dev_block(gscParser::Statement_dev_blockContext *context) = 0;
 
     virtual std::any visitStatement_for(gscParser::Statement_forContext *context) = 0;
 

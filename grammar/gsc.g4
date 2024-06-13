@@ -1,6 +1,6 @@
 grammar gsc;		
 
-prog: (function | include | namespace | filenamespace)* EOF;
+prog: ('/#' | '#/' | function | include | namespace | filenamespace)* EOF;
 
 include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
 namespace: '#namespace' IDENTIFIER ';';
@@ -11,8 +11,10 @@ function
       ('private')? 
 	  ('autoexec' ('(' number ')')?)? 
       ('event_handler' '[' IDENTIFIER ']')? 
-	  ('detour' IDENTIFIER '<' PATH '>' '::' IDENTIFIER)?
-	IDENTIFIER '(' param_list ')' statement_block;
+	  detour_info?
+	  IDENTIFIER? '(' param_list ')' statement_block;
+
+detour_info: 'detour' IDENTIFIER ('<' PATH '>' '::' IDENTIFIER)?;
 
 param_list: (param_val (',' param_val)*)?;
 
@@ -25,12 +27,15 @@ statement_block: '{' (statement)* '}';
 
 statement:
 	(IDENTIFIER ':')? (statement_block
+	| statement_dev_block
 	| statement_for
 	| statement_if
 	| statement_while
 	| statement_foreach
 	| statement_inst
 	| statement_switch);
+
+statement_dev_block: ('/#' statement* '#/');
 
 statement_for: 'for' '(' expression? ';' expression? ';' expression? ')' statement;
 
@@ -157,7 +162,7 @@ INTEGER16: '-'? '0' [xX] ([0-9a-fA-F])+;
 INTEGER8: '-'? '0' ([0-7])*;
 INTEGER2: '-'? '0' [bB] ([01])*;
 FLOATVAL: '-'? ((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
-BUILTIN: 'break' | 'continue' | 'goto' | 'return' | 'wait';
+BUILTIN: 'break' | 'continue' | 'goto' | 'return' | 'wait' | 'jumpdev';
 BOOL_VALUE: 'true' | 'false';
 UNDEFINED_VALUE: 'undefined';
 IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;

@@ -3,6 +3,7 @@
 namespace acts::compiler::preprocessor {
     struct PreProcessorOption {
         std::unordered_set<std::string> defines{};
+        bool devBlockAsComment{};
 
         static size_t FindEndLineDelta(const char* d) {
             const char* s = d;
@@ -102,6 +103,21 @@ namespace acts::compiler::preprocessor {
                     }
                     SetBlankChar(*(data++));
                     SetBlankChar(*(data++)); // */
+                }
+                else if (devBlockAsComment && c == '/' && data[1] == '#') {
+                    // skip dev blocks for retarded people
+                    SetBlankChar(*(data++)); // /
+
+                    do {
+                        SetBlankChar(*(data++));
+                    } while (data != dataEnd && !(data[0] == '#' && data[1] == '/'));
+
+                    if (data == dataEnd) {
+                        errorHandler(alogs::LVL_ERROR, 0, "No end for dev block");
+                        return false;
+                    }
+                    SetBlankChar(*(data++));
+                    SetBlankChar(*(data++)); // #/
                 }
                 else {
                     data++;

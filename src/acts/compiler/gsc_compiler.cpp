@@ -35,15 +35,16 @@ namespace acts::compiler {
     struct Located {
         uint64_t name_space;
         uint64_t name;
+        uint64_t script{};
     };
     struct LocatedHash {
         size_t operator()(const Located& k) const {
-            return k.name_space ^ RotateLeft64(k.name, 32);
+            return k.name_space ^ RotateLeft64(k.name, 21) ^ RotateLeft64(k.script, 42);
         }
     };
     struct LocatedEquals {
         bool operator()(const Located& a, const Located& b) const {
-            return a.name == b.name && a.name_space == b.name_space;
+            return a.name == b.name && a.name_space == b.name_space && a.script == b.script;
         }
     };
 
@@ -660,6 +661,10 @@ namespace acts::compiler {
             ctx.Write<uint64_t>(path);
             return true;
         }
+
+        uint32_t GetDataFLoc(bool aligned) const {
+            return ShiftSize(floc, aligned) - sizeof(uint32_t) * 2 - sizeof(uint64_t);
+        }
     };
 
     /*
@@ -834,6 +839,10 @@ namespace acts::compiler {
                 else if (!strcmp("-d", arg) || !_strcmpi("--dbg", arg)) {
                     m_computeDevOption = true;
                 }
+                else if (!_strcmpi("--dev-block-as-comment", arg)) {
+                    processorOpt.devBlockAsComment = true;
+                    LOG_WARNING("{} used, this message is just here to remind you that you're stupid.", arg);
+                }
                 else if (!_strcmpi("--preproc", arg)) {
                     if (i + 1 == endIndex) {
                         LOG_ERROR("Missing value for param: {}!", arg);
@@ -953,6 +962,7 @@ namespace acts::compiler {
             LOG_INFO("--name-client [n]      : Set the name for the client script");
             LOG_INFO("--namespace [n]        : Set the file namespace for the server script");
             LOG_INFO("--namespace-client [n] : Set the file namespace for the client script");
+            LOG_INFO("--dev-block-as-comment : Consider /# #/ as comment markers");
             LOG_DEBUG("--preproc [f]         : Export preproc result into f");
         }
     };  
@@ -1205,8 +1215,11 @@ namespace acts::compiler {
         uint64_t fileNameSpace{};
         int64_t crc{};
         std::set<uint64_t> includes{};
+        std::vector<AscmNode*> m_devBlocks{};
         std::unordered_map<uint64_t, FunctionObject> exports{};
         std::unordered_map<std::string, RefObject> strings{};
+        
+        std::unordered_map<Located, std::vector<AscmNodeLazyLink*>, LocatedHash, LocatedEquals> lazyimports{};
         std::unordered_map<Located, std::vector<ImportObject>, LocatedHash, LocatedEquals> imports{};
         std::unordered_map<std::string, GlobalVarObject> globals{};
         VmInfo* vmInfo;
@@ -1214,6 +1227,7 @@ namespace acts::compiler {
         int64_t autoexecOrder{};
         std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler;
         std::unordered_set<std::string> hashes{};
+        size_t emptyNameInc{};
 
         CompileObject(GscCompilerOption& opt, GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt, std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler) 
             : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt), gscHandler(gscHandler) {
@@ -1402,9 +1416,9 @@ namespace acts::compiler {
             }
 
             utils::Allocate(data, gscHandler->GetHeaderSize());
-            size_t afterHeaderStart{ data.size() };
-            if (opt.m_computeDevOption) {
-                utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DEBUG));
+            size_t actsDebugHeader{};
+            if (opt.m_computeDevOption || opt.detourType == DETOUR_ACTS) {
+                actsDebugHeader = utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DEBUG));
             }
 
             LOG_TRACE("Compile {} include(s)...", includes.size());
@@ -1593,25 +1607,59 @@ namespace acts::compiler {
                 }
             }
 
-
-            if (opt.m_computeDevOption) {
-                LOG_TRACE("Add {} hashe(s)...", hashes.size());
-                size_t hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
-
+            if (actsDebugHeader) {
+                size_t hashesLoc{};
                 size_t hashesIdx{};
+                size_t devBlocksLoc{};
+                size_t devBlocksIdx{};
+                size_t lazyLinksLoc{};
+                size_t lazyLinksIdx{};
+                if (opt.m_computeDevOption) {
+                    LOG_TRACE("Compile {} hash(es)...", hashes.size());
+                    hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
 
-                for (const std::string& h : hashes) {
-                    reinterpret_cast<uint32_t*>(&data[hashesLoc])[hashesIdx++] = (uint32_t)data.size();
-                    utils::WriteString(data, h.c_str());
+                    for (const std::string& h : hashes) {
+                        reinterpret_cast<uint32_t*>(&data[hashesLoc])[hashesIdx++] = (uint32_t)data.size();
+                        utils::WriteString(data, h.c_str());
+                    }
+
+                    LOG_TRACE("Compile {} dev block(s)...", m_devBlocks.size());
+                    devBlocksLoc = utils::Allocate(data, sizeof(uint32_t) * m_devBlocks.size());
+                    for (const AscmNode* node : m_devBlocks) {
+                        reinterpret_cast<uint32_t*>(&data[devBlocksLoc])[devBlocksIdx++] = node->floc;
+                    }
+
+                    LOG_TRACE("Compile {} lazy link(s)...", lazyimports.size());
+                    for (auto& [loc, lz] : lazyimports) {
+                        size_t lzi = utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_LAZYLINK) + sizeof(uint32_t) * lz.size());
+                        lazyLinksIdx++;
+
+                        if (!lazyLinksLoc) {
+                            lazyLinksLoc = lzi;
+                        }
+
+
+                        tool::gsc::acts_debug::GSC_ACTS_LAZYLINK* lzd = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_LAZYLINK*>(&data[lzi]);
+
+                        lzd->name = loc.name;
+                        lzd->name_space = loc.name_space;
+                        lzd->script = loc.script;
+                        lzd->num_address = (uint32_t)lz.size();
+
+                        uint32_t* locs = reinterpret_cast<uint32_t*>(&lzd[1]);
+                        for (AscmNodeLazyLink* node : lz) {
+                            *(locs++) = node->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN));
+                        }
+                    }
                 }
-
 
                 uint32_t detoursLoc{};
                 uint32_t detoursCount{};
                 if (!detourObjs.empty() && opt.detourType == DETOUR_ACTS) {
+                    LOG_TRACE("Compile {} detour(s)...", detourObjs.size());
                     detoursCount = (uint32_t)detourObjs.size();
                     detoursLoc = (uint32_t)utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DETOUR) * detourObjs.size());
-                    tool::gsc::acts_debug::GSC_ACTS_DETOUR* detours = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DETOUR*>(&data[hashesLoc]);
+                    tool::gsc::acts_debug::GSC_ACTS_DETOUR* detours = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DETOUR*>(&data[detoursLoc]);
 
                     for (FunctionObject* objexp : detourObjs) {
                         detours->location = (uint32_t)objexp->location;
@@ -1624,15 +1672,19 @@ namespace acts::compiler {
                     }
                 }
 
-                tool::gsc::acts_debug::GSC_ACTS_DEBUG* debug_obj = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DEBUG*>(data.data() + afterHeaderStart);
+                tool::gsc::acts_debug::GSC_ACTS_DEBUG* debug_obj = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DEBUG*>(data.data() + actsDebugHeader);
 
                 *reinterpret_cast<uint64_t*>(debug_obj->magic) = tool::gsc::acts_debug::MAGIC;
                 debug_obj->version = tool::gsc::acts_debug::CURRENT_VERSION;
                 debug_obj->actsVersion = (uint64_t) actsinfo::VERSION_ID;
-                debug_obj->strings_count = (uint32_t)hashes.size();
+                debug_obj->strings_count = (uint32_t)hashesIdx;
                 debug_obj->strings_offset = (uint32_t)hashesLoc;
-                debug_obj->detour_count = detoursCount;
-                debug_obj->detour_offset = detoursLoc;
+                debug_obj->detour_count = (uint32_t)detoursCount;
+                debug_obj->detour_offset = (uint32_t)detoursLoc;
+                debug_obj->devblock_offset = (uint32_t)devBlocksLoc;
+                debug_obj->devblock_count = (uint32_t)devBlocksIdx;
+                debug_obj->lazylink_offset = (uint32_t)lazyLinksLoc;
+                debug_obj->lazylink_count = (uint32_t)lazyLinksIdx;
             }
 
             // compile header
@@ -1682,6 +1734,12 @@ namespace acts::compiler {
                 // same local/flags, we can add our node
                 it->nodes.push_back(funcCall);
             }
+        }
+
+        void AddLazy(AscmNodeLazyLink* lazyLink) {
+            Located located{ lazyLink->nsp, lazyLink->func, lazyLink->path };
+
+            lazyimports[located].push_back(lazyLink);
         }
     };
 
@@ -1928,6 +1986,7 @@ namespace acts::compiler {
             case gscParser::RuleNop_def:
             case gscParser::RuleDevop_def:
             case gscParser::RuleStatement_block:
+            case gscParser::RuleStatement_dev_block:
             case gscParser::RuleOperator_inst:
             case gscParser::RuleFunction_call:
             case gscParser::RuleFunction_call_exp:
@@ -2640,6 +2699,26 @@ namespace acts::compiler {
                 }
                 return ok;
             }
+            case gscParser::RuleStatement_dev_block: {
+                if (expressVal) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
+                    return false;
+                }
+                bool ok{ true };
+                AscmNode* endBlock = new AscmNode();
+                AscmNode* djmp = new AscmNodeJump(endBlock, OPCODE_DevblockBegin);
+                obj.m_devBlocks.push_back(djmp);
+                fobj.AddNode(rule->children[0], djmp);
+                for (size_t i = 1; i < rule->children.size() - 1; i++) {
+                    ParseTree* stmt = rule->children[i];
+
+                    if (!ParseExpressionNode(stmt, parser, obj, fobj, false)) {
+                        ok = false;
+                    }
+                }
+                fobj.AddNode(rule->children[rule->children.size() - 1], endBlock);
+                return ok;
+            }
             case gscParser::RuleOperator_inst: {
                 if (expressVal) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
@@ -2696,6 +2775,26 @@ namespace acts::compiler {
                     }
 
                     fobj.AddNode(rule, new AscmNodeJump(loc.node, OPCODE_Jump));
+                    return true;
+                }
+
+                if (idf == "jumpdev") {
+                    if (rule->children.size() <= 1 && !IS_IDF(rule->children[1])) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "jumpdev should be used with a jump location");
+                        return false;
+                    }
+
+                    FunctionJumpLoc& loc = fobj.m_jumpLocs[rule->children[1]->getText()];
+                    if (!loc.node) {
+                        loc.node = new AscmNode();
+                    }
+                    if (!loc.def) {
+                        loc.def = rule;
+                    }
+
+                    AscmNode* djmp = new AscmNodeJump(loc.node, OPCODE_DevblockBegin);
+                    obj.m_devBlocks.push_back(djmp);
+                    fobj.AddNode(rule, djmp);
                     return true;
                 }
 
@@ -3555,12 +3654,16 @@ namespace acts::compiler {
                     obj.AddHash(nsp);
                     obj.AddHash(path);
                     obj.AddHash(funcName);
-                
-                    fobj.AddNode(rule, new AscmNodeLazyLink(
+
+                    AscmNodeLazyLink* lazy = new AscmNodeLazyLink(
                         obj.vmInfo->HashPath(path.c_str()),
                         (uint32_t)obj.vmInfo->HashField(nsp.c_str()),
                         (uint32_t)obj.vmInfo->HashField(funcName.c_str())
-                    ));
+                    );
+
+                    obj.AddLazy(lazy);
+                
+                    fobj.AddNode(rule, lazy);
                     return true;
                 }
                 // &nsp::func || &func
@@ -3856,24 +3959,13 @@ namespace acts::compiler {
         return false;
     }
 
-    bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj) {
-        if (func->children.size() < 5) { // 0IDF 1( 2params 3) 4block
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "Bad function declaration");
-            return false;
-        }
+    bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj, bool devFunction) {
+        bool hasName = func->children.size() > 4 && IS_IDF(func->children[(size_t)(func->children.size() - 5)]);
 
-        auto* nameTerm = func->children[(size_t)(func->children.size() - 5)];
         auto* paramsRule = func->children[(size_t)(func->children.size() - 3)];
         auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
-
-        if (!IS_IDF(nameTerm)) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "Bad function name declaration");
-            return false;
-        }
-
-        auto* termNode = static_cast<TerminalNode*>(nameTerm);
     
-        auto name = termNode->getText();
+        std::string name = hasName ? func->children[(size_t)(func->children.size() - 5)]->getText() : utils::va("$nameless_%llx", obj.emptyNameInc++);
 
         obj.AddHash(name);
         uint64_t nameHashed = obj.vmInfo->HashField(name.data());
@@ -3898,16 +3990,47 @@ namespace acts::compiler {
 
         // handle modifiers
 
-        for (size_t i = 0; i < func->children.size() - 5; i++) {
-            auto* mod = func->children[i];
+        size_t end = hasName ? 5 : 4;
+
+        for (size_t i = 0; i < func->children.size() - end; i++) {
+            ParseTree* mod = func->children[i];
+
+            if (IS_RULE_TYPE(mod, gscParser::RuleDetour_info)) {
+
+                if (mod->children.size() != 2) {
+                    // function detour
+                    std::string dnsp = mod->children[1]->getText();
+                    std::string dscript = mod->children[3]->getText();
+                    std::string dfunc = mod->children[6]->getText();
+
+                    obj.AddHash(dnsp);
+                    obj.AddHash(dscript);
+                    obj.AddHash(dfunc);
+                    exp.detour.nsp = obj.vmInfo->HashField(dnsp);
+                    exp.detour.func = obj.vmInfo->HashField(dfunc);
+                    exp.detour.script = obj.vmInfo->HashPath(dnsp);
+                }
+                else {
+                    // builtin detour
+                    std::string target = mod->children[1]->getText();
+
+                    obj.AddHash(target);
+                    exp.detour.nsp = 0;
+                    exp.detour.func = obj.vmInfo->HashField(target);
+                    exp.detour.script = 0;
+                }
+
+                continue;
+            }
+
             if (mod->getTreeType() != TREE_TERMINAL) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, mod, std::format("Bad modifier for {}", name));
                 return false;
             }
 
-            auto* term = dynamic_cast<TerminalNode*>(mod);
+            TerminalNode* term = dynamic_cast<TerminalNode*>(mod);
 
-            auto txt = term->getText();
+            std::string txt = term->getText();
 
             if (txt == "function") {
                 continue; // don't care
@@ -3946,19 +4069,6 @@ namespace acts::compiler {
                 obj.AddHash(evname);
                 exp.m_data_name = obj.vmInfo->HashField(evname.data());
             }
-            else if (txt == "detour") {
-                std::string dnsp = func->children[i += 1]->getText();
-                std::string dscript = func->children[i += 2]->getText();
-                std::string dfunc = func->children[i += 3]->getText();
-
-                obj.AddHash(dnsp);
-                obj.AddHash(dscript);
-                obj.AddHash(dfunc);
-
-                exp.detour.nsp = obj.vmInfo->HashField(dnsp);
-                exp.detour.func = obj.vmInfo->HashField(dfunc);
-                exp.detour.script = obj.vmInfo->HashPath(dnsp);
-            }
         }
 
         // handle params
@@ -3967,6 +4077,7 @@ namespace acts::compiler {
 
         size_t index = 0;
         bool varargDetected{};
+
         for (auto* child : params->children) {
             if (index++ % 2) {
                 continue; // ','
@@ -4089,16 +4200,23 @@ namespace acts::compiler {
         // weirdly, their gsc compiler is converting top level breaks to jump to the end of the function
         AscmNode* endNode = new AscmNodeOpCode(OPCODE_End);
         exp.PushBreakNode(endNode);
+        bool badRef{};
 
         if (!ParseExpressionNode(blockRule, parser, obj, exp, false)) {
-            return false;
+            badRef = false;
         }
 
         exp.PopBreakNode();
 
+        if (devFunction) {
+            // add a dev block from start to begin
+            AscmNode* djmp = new AscmNodeJump(endNode, OPCODE_DevblockBegin);
+            obj.m_devBlocks.push_back(djmp);
+            exp.AddNode(exp.m_nodes.begin(), func, djmp);
+        }
+
         exp.AddNode(func, endNode);
 
-        bool badRef{};
         for (auto& [name, loc] : exp.m_jumpLocs) {
             if (loc.defined) {
                 continue;
@@ -4113,6 +4231,7 @@ namespace acts::compiler {
                 loc.node = nullptr;
             }
         }
+
         exp.AddNode(exp.m_nodes.begin(), func, exp.CreateParamNode());
 
         return !badRef;
@@ -4176,16 +4295,19 @@ namespace acts::compiler {
         auto* eof = prog->EOF();
 
         // find the first namespace (used for multifile inputs)
-        for (auto& e : prog->children) {
-            if (e == eof) {
+        for (auto* es : prog->children) {
+            if (es == eof) {
                 break;
             }
-            if (e->getTreeType() != TREE_RULE) {
+            if (es->getTreeType() == TREE_ERROR) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad export rule type");
                 return false;
             }
+            if (es->getTreeType() == TREE_TERMINAL) {
+                continue; // dev block part
+            }
 
-            RuleContext* rule = dynamic_cast<RuleContext*>(e);
+            RuleContext* rule = dynamic_cast<RuleContext*>(es);
             size_t idx = rule->getRuleIndex();
 
             if (idx == gscParser::RuleNamespace) {
@@ -4200,12 +4322,36 @@ namespace acts::compiler {
             }
         }
 
-        for (auto& e : prog->children) {
-            if (e == eof) {
-                return true; // done
+        size_t devBlockDepth{};
+        for (auto& es : prog->children) {
+            if (es == eof) {
+                break; // done
             }
 
-            RuleContext* rule = dynamic_cast<RuleContext*>(e);
+            if (es->getTreeType() == TREE_TERMINAL) {
+                std::string txt{ es->getText() };
+
+                if (txt == "/#") {
+                    devBlockDepth++;
+                }
+                else if (txt == "#/") {
+                    if (!devBlockDepth) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, es, "Usage of #/ with no starting /#");
+                        return false;
+                    }
+                    else {
+                        devBlockDepth--;
+                    }
+                }
+                else {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, es, std::format("Bad export terminal {}", txt));
+                    return false;
+                }
+
+                continue;
+            }
+
+            RuleContext* rule = dynamic_cast<RuleContext*>(es);
 
             switch (rule->getRuleIndex()) {
             case gscParser::RuleInclude:
@@ -4224,14 +4370,19 @@ namespace acts::compiler {
                 }
                 break;
             case gscParser::RuleFunction:
-                if (!ParseFunction(rule, parser, obj)) {
+                if (!ParseFunction(rule, parser, obj, devBlockDepth > 0)) {
                     return false;
                 }
                 break;
             default:
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad export rule");
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, es, "Bad export rule");
                 return false;
             }
+        }
+
+        if (devBlockDepth > 0) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, std::format("Missing {} #/", devBlockDepth));
+            return false;
         }
 
         return true;
@@ -4317,8 +4468,9 @@ namespace acts::compiler {
 
             preprocessor::PreProcessorOption popt = opt.processorOpt;
             popt.defines.insert("_SUPPORTS_GCSC");
+            popt.defines.insert("_SUPPORTS_DETOURS");
             popt.defines.insert(utils::UpperCase(utils::va("_%s", opt.m_vmInfo->codeName)));
-            popt.defines.insert(utils::UpperCase(utils::va("_%s", PlatformName(opt.m_platform))));
+            popt.defines.insert(utils::MapString(utils::va("_%s", PlatformName(opt.m_platform)), [](char c) -> char { return isspace(c) ? '_' : std::toupper(c); }));
 
             if (tool::gsc::opcode::HasOpCode(opt.m_vmInfo->vm, opt.m_platform, OPCODE_T8C_GetLazyFunction)) {
                 popt.defines.insert("_SUPPORTS_LAZYLINK");
