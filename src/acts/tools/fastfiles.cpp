@@ -168,8 +168,21 @@ namespace {
 		{ "1080_wz_common", 0x1, { 0x88, 0x85, 0x7a, 0xe5, 0x22, 0x0a, 0x36, 0xf9, 0x76, 0xe2, 0x18, 0xe8, 0x7b, 0x7b, 0xbc, 0x81, 0xeb, 0x8f, 0x5d, 0xa2, 0x7c, 0xad, 0x1d, 0x7c, 0x77, 0x2e, 0xc6, 0xbb, 0x12, 0xbd, 0xd7, 0xa0 } },
 	};
 
-	int HandleFF(XFile* buffer, size_t size) {
-		if (size < sizeof(*buffer)) {
+	int fftest(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) {
+			return tool::BAD_USAGE;
+		}
+
+		std::string fileBuff{};
+
+		if (!utils::ReadFile(argv[2], fileBuff)) {
+			LOG_ERROR("Can't read file {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+		XFile* buffer = reinterpret_cast<XFile*>(fileBuff.data());
+
+		if (fileBuff.size() < sizeof(*buffer)) {
 			LOG_ERROR("FF too small for header");
 			return tool::BASIC_ERROR;
 		}
@@ -186,6 +199,9 @@ namespace {
 		LOG_INFO("server ..... {}", (buffer->server ? "true" : "false"));
 		LOG_INFO("encrypted .. {}", (buffer->encrypted ? "true" : "false"));
 		LOG_INFO("platform ... {}", (int)buffer->platform);
+		LOG_INFO("builder .... {}", buffer->builder);
+		LOG_INFO("timestamp .. {}", buffer->timestamp);
+		
 
 		for (size_t i = 0; i < 4; i++) {
 			LOG_INFO("archiveChecksum[{}] = {:x}", i, buffer->archiveChecksum[i]);
@@ -196,7 +212,7 @@ namespace {
 
 		// 6 = inflate?
 		// 7 = lzma?
-		// 8 = ?
+		// 8 = none?
 
 
 		if (buffer->encrypted) {
@@ -213,26 +229,6 @@ namespace {
 
 
 		return tool::OK;
-	}
-
-	int fftest(Process& proc, int argc, const char* argv[]) {
-		if (argc < 3) {
-			return tool::BAD_USAGE;
-		}
-
-		void* buffer{};
-		size_t size{};
-
-		if (!utils::ReadFileNotAlign(argv[2], buffer, size, false)) {
-			LOG_ERROR("Can't read file {}", argv[2]);
-			return tool::BASIC_ERROR;
-		}
-
-		auto res = HandleFF(reinterpret_cast<XFile*>(buffer), size);
-
-		std::free(buffer);
-
-		return res;
 	}
 	int ffdaes(Process& proc, int argc, const char* argv[]) {
 

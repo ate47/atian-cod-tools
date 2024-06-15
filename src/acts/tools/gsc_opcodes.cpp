@@ -8,6 +8,12 @@ using namespace tool::gsc::opcode;
 #pragma region opcode_node
 
 namespace {
+#undef assert
+#ifdef CI_BUILD
+# define assert(x) (void)(x)
+#else
+# define assert(x) if (!(x)) LOG_WARNING("assert error ({}:{}) : {}", __FILE__, __LINE__, #x)
+#endif
 	// maps to find the opcodes
 	
 	// VM->vminfo
@@ -4707,6 +4713,57 @@ void tool::gsc::opcode::RegisterOpCode(byte vm, Platform platform, OPCode enumVa
 	opnfo.opcodemaplookup[enumValue][platform] = op;
 	opnfo.opcodemappltlookup[platform][enumValue].push_back(op);
 }
+
+void tool::gsc::opcode::RegisterSameCodePlatform(byte vm, Platform main, Platform sub) {
+	auto ref = g_opcodeMap.find(vm);
+	if (ref == g_opcodeMap.end()) {
+		LOG_ERROR("Registering unknown same code platform vm 0x{:x}", (int)vm);
+		return;
+	}
+
+	auto& opnfo = ref->second;
+
+	opnfo.AddPlatform(sub);
+
+	Platform to = main;
+
+	while (true) {
+		auto svmIt = opnfo.sameVmMap.find(to);
+
+		if (svmIt == opnfo.sameVmMap.end()) {
+			break;
+		}
+
+		to = svmIt->second;
+	}
+
+	if (to == sub) {
+		LOG_ERROR("Trying to register cycling same code platform for vm 0x{:x} {} -> {}", (int)vm, PlatformName(main), PlatformName(sub));
+		return;
+	}
+
+	opnfo.sameVmMap[sub] = to;
+}
+tool::gsc::opcode::Platform tool::gsc::opcode::VmInfo::RemapSamePlatform(tool::gsc::opcode::Platform origin) const {
+	auto svmIt = sameVmMap.find(origin);
+
+	if (svmIt == sameVmMap.end()) {
+		return origin;
+	}
+
+	return svmIt->second;
+}
+
+Platform tool::gsc::opcode::RemapSamePlatform(byte vm, Platform origin) {
+	auto ref = g_opcodeMap.find(vm);
+	if (ref == g_opcodeMap.end()) {
+		LOG_WARNING("Remapping unknown same code platform vm 0x{:x}", (int)vm);
+		return origin;
+	}
+
+	return ref->second.RemapSamePlatform(origin);
+}
+
 void tool::gsc::opcode::RegisterDevCall(byte vm, const char* devCall) {
 	auto ref = g_opcodeMap.find(vm);
 	if (ref == g_opcodeMap.end()) {
@@ -5055,7 +5112,7 @@ const OPCodeInfo* tool::gsc::opcode::LookupOpCode(byte vm, Platform platform, ui
 		return g_unknownOpcode;
 	}
 
-	auto ref2 = ref->second.find(platform);
+	auto ref2 = ref->second.find(info->RemapSamePlatform(platform));
 
 	if (ref2 == ref->second.end()) {
 		return g_unknownOpcode;
@@ -5085,7 +5142,7 @@ std::pair<bool, uint16_t> tool::gsc::opcode::GetOpCodeId(byte vm, Platform platf
 		return std::make_pair(false, 0);
 	}
 
-	auto ref2 = ref->second.find(platform);
+	auto ref2 = ref->second.find(info->RemapSamePlatform(platform));
 
 
 	if (ref2 == ref->second.end()) {

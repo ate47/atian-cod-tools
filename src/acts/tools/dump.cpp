@@ -885,11 +885,125 @@ namespace {
 
         return tool::OK;
     }
+    const char* fieldTypeNames[]{
+        "int",
+        "short",
+        "byte",
+        "float",
+        "lstring",
+        "string",
+        "hash",
+        "vector",
+        "entity",
+        "enthandle",
+        "actor",
+        "sentient",
+        "sentienthandle",
+        "client",
+        "pathnode",
+        "actorgroup",
+        "object",
+        "xmodel_index",
+        "xmodel",
+        "bitflag",
+        "bitflag64",
+        "fx",
+        "weapon",
+        "rumble",
+        "scriptbundle",
+    };
+    enum fieldtype_t : uint32_t {
+        F_INT = 0x0,
+        F_SHORT = 0x1,
+        F_BYTE = 0x2,
+        F_FLOAT = 0x3,
+        F_LSTRING = 0x4,
+        F_STRING = 0x5,
+        F_HASH = 0x6,
+        F_VECTOR = 0x7,
+        F_ENTITY = 0x8,
+        F_ENTHANDLE = 0x9,
+        F_ACTOR = 0xA,
+        F_SENTIENT = 0xB,
+        F_SENTIENTHANDLE = 0xC,
+        F_CLIENT = 0xD,
+        F_PATHNODE = 0xE,
+        F_ACTORGROUP = 0xF,
+        F_OBJECT = 0x10,
+        F_XMODEL_INDEX = 0x11,
+        F_XMODEL = 0x12,
+        F_BITFLAG = 0x13,
+        F_BITFLAG64 = 0x14,
+        F_FX = 0x15,
+        F_WEAPON = 0x16,
+        F_RUMBLE = 0x17,
+        F_SCRIPTBUNDLE = 0x18,
+        F_COUNT = 0x19
+    };
+    // ent_field_t fields[36]
+    struct ent_field_t {
+        uint32_t canonId;
+        fieldtype_t type;
+        bool isReadOnly;
+        int32_t ofs;
+        int32_t size;
+        uintptr_t setter;
+        uintptr_t getter;
+    }; static_assert(0x28 == sizeof(ent_field_t));
+
+    
+    int wef(Process& proc, int argc, const char* argv[]) {
+        hashutils::ReadDefaultFile();
+
+        const char* outFile;
+        if (argc == 2) {
+            outFile = "efields.csv";
+        }
+        else {
+            outFile = argv[2];
+        }
+        constexpr size_t count{ 36 };
+
+        auto [fields, ok] = proc.ReadMemoryArray<ent_field_t>(proc[0x4991E80], count);
+
+        if (!ok) {
+            LOG_ERROR("Can't read fields");
+            return tool::BASIC_ERROR;
+        }
+
+        std::ofstream out{ outFile };
+        if (!out) {
+            LOG_ERROR("Can't open {}", outFile);
+            return tool::BASIC_ERROR;
+        }
+
+        out << "name,type,readonly,offset,size,setter,getter";
+
+        for (size_t i = 0; i < count; i++) {
+            const ent_field_t& field{ fields[i] };
+            out
+                << "\n"
+                << hashutils::ExtractTmp("var", field.canonId) << ","
+                << (field.type < F_COUNT ? fieldTypeNames[field.type] : "<error>") << ","
+                << (field.isReadOnly ? "true" : "false") << ","
+                << std::hex << "0x" << field.ofs << ","
+                << std::hex << "0x" << field.size << ","
+                ;
+            proc.WriteLocation(out, field.setter) << ",";
+            proc.WriteLocation(out, field.getter);
+        }
+
+        out.close();
+        LOG_INFO("Write into {}", outFile);
+
+        return tool::OK;
+    }
 }
 
 ADD_TOOL("dps", "bo4", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
 ADD_TOOL("ddv", "bo4", " [output=dvars.csv]", "dump dvars", L"BlackOps4.exe", dumpdvars);
 ADD_TOOL("wps", "bo4", " [output=scriptparsetree]", "write pooled scripts", L"BlackOps4.exe", writepoolscripts);
+ADD_TOOL("wef", "bo4", " [output=efields.csv]", "write ent fields", L"BlackOps4.exe", wef);
 ADD_TOOL("dls", "bo4", " [output=linked.csv]", "dump linked scripts", L"BlackOps4.exe", linkedscripts);
 ADD_TOOL("dfunc", "bo4", " [output=funcs.csv]", "dump functions", L"BlackOps4.exe", dumpfunctions);
 ADD_TOOL("devents", "bo4", " [output=events.csv]", "dump registered instance events", L"BlackOps4.exe", events);

@@ -67,6 +67,7 @@ namespace tool::gsc::opcode {
 		std::unordered_map<Platform, std::unordered_map<OPCode, std::vector<uint16_t>>> opcodemappltlookup{};
 		std::unordered_map<uint64_t, GlobalVariableDef> globalvars{};
 		std::unordered_map<uint64_t, FunctionOperator> opFuncs{};
+		std::unordered_map<Platform, Platform> sameVmMap{};
 
 		/*
 		 * Add an available platform to this VM
@@ -114,6 +115,7 @@ namespace tool::gsc::opcode {
 		inline uint64_t HashFilePath(const std::string& value) const {
 			return HashFilePath(value.c_str());
 		}
+		Platform RemapSamePlatform(Platform origin) const;
 	};
 	const std::unordered_map<byte, VmInfo>& GetVMMaps();
 	bool IsValidVm(byte vm, VmInfo*& info, bool registerOpCodes = true);
@@ -127,6 +129,8 @@ namespace tool::gsc::opcode {
 	void RegisterVMPlatform(byte vm, Platform plt);
 	void RegisterVMHashOPCode(byte vm, char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc);
 	void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op);
+	void RegisterSameCodePlatform(byte vm, Platform main, Platform sub);
+	Platform RemapSamePlatform(byte vm, Platform origin);
 	void SetMaxOpCode(byte vm, uint16_t maxOpCode);
 	void RegisterDevCall(byte vm, const char* devCall);
 	void RegisterOpCodes();

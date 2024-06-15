@@ -834,6 +834,7 @@ namespace tool::gsc::opcode {
 	#endif
 			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
+			RegisterSameCodePlatform(VM_MW23, PLATFORM_PC, PLATFORM_PLAYSTATION);
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_MW23, "game", OPCODE_IW_GetGame);
 			RegisterVMGlobalVariable(VM_MW23, "anim", OPCODE_IW_GetAnim);
