@@ -48,6 +48,14 @@ namespace {
 
 		if (!lmaps) {
 			// init lookup
+			
+
+			lmaps.Add(SERID_Abort, OPCODE_Abort);
+			lmaps.Add(SERID_Breakpoint, OPCODE_Breakpoint);
+			lmaps.Add(SERID_AutoBreakpoint, OPCODE_AutoBreakpoint);
+			lmaps.Add(SERID_ErrorBreakpoint, OPCODE_ErrorBreakpoint);
+			lmaps.Add(SERID_WatchBreakpoint, OPCODE_WatchBreakpoint);
+			lmaps.Add(SERID_NotifyBreakpoint, OPCODE_NotifyBreakpoint);
 			lmaps.Add(SERID_Invalid, OPCODE_Undefined);
 			lmaps.Add(SERID_Nop, OPCODE_Nop);
 			lmaps.Add(SERID_End, OPCODE_End);

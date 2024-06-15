@@ -4787,16 +4787,25 @@ void tool::gsc::opcode::RegisterOpCodes() {
 		// nop operator
 		// we don't care about the delete, it'll will stay until the end of the process,
 		// todo: convert to object with destructor
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown0, "Unknown0", "operator_Unknown0()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown1, "Unknown1", "operator_Unknown1()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown2, "Unknown2", "operator_Unknown2()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown3, "Unknown3", "operator_Unknown3()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown4, "Unknown4", "operator_Unknown4()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown5, "Unknown5", "operator_Unknown5()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown6, "Unknown6", "operator_Unknown6()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown7, "Unknown7", "operator_Unknown7()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknowna, "Unknowna", "operator_Unknowna()"));
-		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknownb, "Unknownb", "operator_Unknownb()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Abort, "Abort", "Abort()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Breakpoint, "Breakpoint", "Breakpoint()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_AutoBreakpoint, "AutoBreakpoint", "AutoBreakpoint()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ErrorBreakpoint, "ErrorBreakpoint", "ErrorBreakpoint()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_WatchBreakpoint, "WatchBreakpoint", "WatchBreakpoint()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_NotifyBreakpoint, "NotifyBreakpoint", "NotifyBreakpoint()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ThreadEndBreakpoint, "ThreadEndBreakpoint", "ThreadEndBreakpoint()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_PushVar, "PushVar", "PushVar()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_PushEntityVar, "PushEntityVar", "PushEntityVar()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown0, "Unknown0", "Unknown0()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown1, "Unknown1", "Unknown1()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown2, "Unknown2", "Unknown2()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown3, "Unknown3", "Unknown3()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown4, "Unknown4", "Unknown4()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown5, "Unknown5", "Unknown5()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown6, "Unknown6", "Unknown6()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown7, "Unknown7", "Unknown7()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknowna, "Unknowna", "Unknowna()"));
+		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknownb, "Unknownb", "Unknownb()"));
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Nop, "Nop", "Nop()"));
 		RegisterOpCodeHandler(new OPCodeInfoDevOp(false));
 		RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown38, "Unknown38", "operator_Unknown38()"));

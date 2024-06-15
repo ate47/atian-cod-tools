@@ -271,6 +271,16 @@ namespace tool::gsc::opcode {
 
 		OPCODE_IW_RegisterMultipleVariables,
 
+		OPCODE_Abort,
+		OPCODE_Breakpoint,
+		OPCODE_AutoBreakpoint,
+		OPCODE_ErrorBreakpoint,
+		OPCODE_WatchBreakpoint,
+		OPCODE_NotifyBreakpoint,
+		OPCODE_ThreadEndBreakpoint,
+		OPCODE_PushVar,
+		OPCODE_PushEntityVar,
+
 		OPCODE_COUNT,
 	};
 	void RegisterOpCodesMap();

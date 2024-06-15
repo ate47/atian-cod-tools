@@ -54,16 +54,16 @@ namespace tool::gsc::opcode {
 			RegisterDevCall(VM_T8, "assert", "assertmsg", "errormsg", "throw", "println");
 
 			
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown0, 0x0);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown1, 0x1);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown2, 0x2);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown3, 0x3);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown4, 0x4);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown5, 0x5);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown6, 0x6);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknown7, 0x7);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknowna, 0xa);
-			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_ThreadEndBreakpoint, 0x7);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_PushEntityVar, 0xb);
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Nop, 0x12, 0x13, 0x14, 0x16, 0x18, 0x1a, 0x1e, 0x21, 0x23, 0x25, 0x27, 0x28, 0x2b, 0x2c, 0x2d, 0x2f, 0x30, 0x3d, 0x3e, 0x3f, 0x41, 0x43, 0x48, 0x4f, 0x50, 0x52, 0x53, 0x5b, 0x5e, 0x66, 0x67, 0x69, 0x6d, 0x73, 0x74, 0x75, 0x79, 0x7f, 0x80, 0x83, 0x84, 0x86, 0x87, 0x88, 0x90, 0x97, 0x99, 0x9c, 0xa3, 0xa5, 0xa8, 0xaa, 0xab, 0xac, 0xaf, 0xb2, 0xb3, 0xb6, 0xbd, 0xbf, 0xc3, 0xc6, 0xcb, 0xcd, 0xd1, 0xd2, 0xd5, 0xd6, 0xd8, 0xdb, 0xde, 0xdf, 0xe0, 0xe2, 0xe5, 0xe8, 0xec, 0xee);
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Nop, 0xef, 0xf1, 0xf4, 0xf6, 0xf8, 0xfa, 0xfc, 0xff, 0x103, 0x108, 0x109, 0x10b, 0x111, 0x115, 0x11a, 0x121, 0x124, 0x127, 0x128, 0x12b, 0x12e, 0x12f, 0x131, 0x132, 0x135, 0x139, 0x13f, 0x140, 0x143, 0x148, 0x14a, 0x14d, 0x14f, 0x153, 0x156, 0x158, 0x159, 0x15b, 0x15c, 0x15d, 0x15e, 0x160, 0x161, 0x163, 0x166, 0x16b, 0x16c, 0x173, 0x174, 0x176, 0x17a, 0x17b, 0x185, 0x188, 0x18b, 0x18c, 0x18d, 0x18f, 0x191, 0x195, 0x19b, 0x19c, 0x19e, 0x19f, 0x1a0, 0x1a2, 0x1a4, 0x1a7, 0x1ad, 0x1ae, 0x1af, 0x1b3, 0x1b5, 0x1b7, 0x1b8, 0x1b9, 0x1bc, 0x1c3);
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Nop, 0x1c7, 0x1ca, 0x1cb, 0x1cc, 0x1d1, 0x1d5, 0x1dd, 0x1e0, 0x1e1, 0x1e5, 0x1e7, 0x1ea, 0x1ef, 0x1fa, 0x1fc, 0x1fd, 0x203, 0x20b, 0x20c, 0x20e, 0x214, 0x215, 0x216, 0x218, 0x221, 0x225, 0x226, 0x227, 0x229, 0x22c, 0x22e, 0x233, 0x234, 0x239, 0x23b, 0x23d, 0x240, 0x244, 0x245, 0x247, 0x24b, 0x24d, 0x254, 0x256, 0x258, 0x259, 0x25b, 0x25e, 0x25f, 0x263, 0x266, 0x267, 0x268, 0x26a, 0x26d, 0x271, 0x273, 0x277, 0x27a, 0x27b, 0x27f, 0x281, 0x282, 0x286, 0x289, 0x28a, 0x292, 0x297, 0x298, 0x299, 0x29b, 0x29e, 0x2a0, 0x2a1, 0x2a4, 0x2ac, 0x2ae, 0x2b0);
@@ -225,6 +225,19 @@ namespace tool::gsc::opcode {
 			// T8-Compiler opcodes
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_T8C_GetLazyFunction, 0x16);
 
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_ThreadEndBreakpoint, 0x7);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableCachedDebug, 0x8);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_PushEntityVar, 0xb);
+
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_ClearParams, 0xc);
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_CheckClearParams, 0xd);
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_PreScriptCall, 0xe);
@@ -332,8 +345,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_T937, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T937, "assert", "assertmsg", "errormsg", "throw", "println");
 
-			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
-			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0xa, 0xb, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x4b, 0x4c, 0x4d, 0x57, 0x59, 0x5b, 0x5c, 0x5d, 0x5e, 0x62, 0x63, 0x65, 0x66, 0x68, 0x6d, 0x6e, 0x73, 0x74, 0x75, 0x76, 0x77, 0x7b, 0x83, 0x86, 0x87, 0x8d);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x92, 0x93, 0x94, 0x9e, 0xa0, 0xb0, 0xb6, 0xba, 0xbf, 0xc1, 0xc3, 0xc8, 0xcd, 0xcf, 0xd0, 0xd1, 0xd4, 0xd8, 0xdb, 0xdc, 0xe1, 0xe3, 0xe4, 0xe6, 0xe7, 0xe8);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0xe9, 0xea, 0xec, 0xf0, 0xfb, 0xfc, 0x107, 0x10c, 0x115, 0x116, 0x11b, 0x123, 0x126, 0x127, 0x12d, 0x131, 0x132, 0x138, 0x13c, 0x13e, 0x140, 0x141, 0x144);
@@ -386,8 +398,18 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0xf52, 0xf57, 0xf58, 0xf5a, 0xf5e, 0xf5f, 0xf63, 0xf67, 0xf69, 0xf6c, 0xf6f, 0xf70, 0xf72, 0xf7f, 0xf87, 0xf89, 0xf8a, 0xf99, 0xf9a, 0xf9c, 0xf9f, 0xfa0);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0xfa1, 0xfa6, 0xfa8, 0xfaa, 0xfb0, 0xfb1, 0xfb2, 0xfb3, 0xfb6, 0xfb7, 0xfc0, 0xfc1, 0xfc3, 0xfc9, 0xfca, 0xfcd, 0xfcf, 0xfd0, 0xfd1, 0xfd2, 0xfd5, 0xfd9);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0xfde, 0xfe1, 0xfec, 0xff5, 0xff8, 0xffb, 0xffd);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_ThreadEndBreakpoint, 0x7);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableCachedDebug, 0x8);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_PushEntityVar, 0xb);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_ClearParams, 0xc);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_CheckClearParams, 0xd);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_PreScriptCall, 0xe);
@@ -399,18 +421,18 @@ namespace tool::gsc::opcode {
 
 			RegisterVMPlatform(VM_T937, PLATFORM_PC_ALPHA);
 
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown0, 0x0);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown1, 0x1);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown2, 0x2);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown3, 0x3);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown4, 0x4);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown5, 0x5);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown6, 0x6);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknown7, 0x7);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_ThreadEndBreakpoint, 0x7);
 			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_EvalLocalVariableCachedDebug, 0x8);
 			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknowna, 0xa);
-			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_PushEntityVar, 0xb);
 			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_ClearParams, 0xc);
 			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_CheckClearParams, 0xd);
 			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_PreScriptCall, 0xe);
@@ -606,18 +628,18 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_T9, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T9, "assert", "assertmsg", "errormsg", "throw", "println");
 
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown0, 0x0);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown1, 0x1);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown2, 0x2);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown3, 0x3);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown4, 0x4);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown5, 0x5);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown6, 0x6);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknown7, 0x7);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_ThreadEndBreakpoint, 0x7);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_EvalLocalVariableCachedDebug, 0x8);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknowna, 0xa);
-			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_PushEntityVar, 0xb);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_ClearParams, 0xc);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_PreScriptCall, 0xe);
@@ -787,18 +809,18 @@ namespace tool::gsc::opcode {
 
 			RegisterVMPlatform(VM_T9, PLATFORM_PLAYSTATION);
 
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown0, 0x0);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown1, 0x1);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown2, 0x2);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown3, 0x3);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown4, 0x4);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown5, 0x5);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown6, 0x6);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknown7, 0x7);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_ThreadEndBreakpoint, 0x7);
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableCachedDebug, 0x8);
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknowna, 0xa);
-			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_PushEntityVar, 0xb);
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_ClearParams, 0xc);
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_CheckClearParams, 0xd);
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_PreScriptCall, 0xe);
@@ -916,18 +938,18 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Nop, 0x1eab, 0x1eae, 0x1eaf, 0x1eb0, 0x1eb5, 0x1eb6, 0x1eb9, 0x1ebb, 0x1ebd, 0x1ec0, 0x1ec6, 0x1ec7, 0x1eca, 0x1ecd, 0x1ed0, 0x1ed1, 0x1ed4, 0x1ed8, 0x1edb, 0x1ee4, 0x1ee8, 0x1eec, 0x1ef3, 0x1ef5, 0x1ef6, 0x1efa, 0x1f02, 0x1f03, 0x1f06, 0x1f08, 0x1f0b, 0x1f15, 0x1f1b, 0x1f1c, 0x1f1d, 0x1f1f, 0x1f20, 0x1f2c, 0x1f31, 0x1f34, 0x1f39, 0x1f41, 0x1f42, 0x1f43, 0x1f44, 0x1f47, 0x1f4f, 0x1f54, 0x1f58, 0x1f5d, 0x1f60, 0x1f62, 0x1f71, 0x1f72, 0x1f74, 0x1f76, 0x1f77, 0x1f78, 0x1f7b, 0x1f7c, 0x1f7e, 0x1f87, 0x1f88, 0x1f89, 0x1f8a, 0x1f8b, 0x1f8d, 0x1f91, 0x1f93, 0x1f96, 0x1f97, 0x1f9c, 0x1f9d, 0x1f9f, 0x1fa1, 0x1fa5, 0x1fa6, 0x1faa, 0x1fae, 0x1fb9);
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Nop, 0x1fbb, 0x1fc0, 0x1fc2, 0x1fc3, 0x1fc5, 0x1fcd, 0x1fd0, 0x1fd3, 0x1fd6, 0x1fe1, 0x1fe8, 0x1fe9, 0x1fed, 0x1ff1, 0x1ff2, 0x1ff5);
 
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown0, 0x0);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown1, 0x1);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown2, 0x2);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown3, 0x3);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown4, 0x4);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown5, 0x5);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown6, 0x6);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknown7, 0x7);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_ThreadEndBreakpoint, 0x7);
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_EvalLocalVariableCachedDebug, 0x8);
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknowna, 0xa);
-			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_PushEntityVar, 0xb);
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_ClearParams, 0xc);
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_PreScriptCall, 0xe);
@@ -1060,18 +1082,18 @@ namespace tool::gsc::opcode {
 			SetMaxOpCode(VM_T71B, 0xFF);
 
 
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown0, 0x0);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown1, 0x1);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown2, 0x2);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown3, 0x3);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown4, 0x4);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown5, 0x5);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown6, 0x6);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknown7, 0x7);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ThreadEndBreakpoint, 0x7);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalLocalVariableCachedDebug, 0x8);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknowna, 0xa);
-			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Unknownb, 0xb);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_PushEntityVar, 0xb);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_ClearParams, 0xc);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_PreScriptCall, 0xe);
@@ -1454,6 +1476,15 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_WaitTillMatch2, "WaitTillMatch2");
 			RegisterOpCode(OPCODE_IgnoreWaittillVariableFieldCached, "IgnoreWaittillVariableFieldCached");
 			RegisterOpCode(OPCODE_IW_RegisterMultipleVariables, "RegisterMultipleVariables");
+			RegisterOpCode(OPCODE_Abort, "Abort");
+			RegisterOpCode(OPCODE_Breakpoint, "Breakpoint");
+			RegisterOpCode(OPCODE_AutoBreakpoint, "AutoBreakpoint");
+			RegisterOpCode(OPCODE_ErrorBreakpoint, "ErrorBreakpoint");
+			RegisterOpCode(OPCODE_WatchBreakpoint, "WatchBreakpoint");
+			RegisterOpCode(OPCODE_NotifyBreakpoint, "NotifyBreakpoint");
+			RegisterOpCode(OPCODE_ThreadEndBreakpoint, "ThreadEndBreakpoint");
+			RegisterOpCode(OPCODE_PushVar, "PushVar");
+			RegisterOpCode(OPCODE_PushEntityVar, "PushEntityVar");
 		}
 	};
 	namespace {
