@@ -329,6 +329,8 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T937, "memory");
 			RegisterVMOperatorFunction(VM_T937, "profilestart", "profilestart()", OPCODE_ProfileStart, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_T937, "profilestop", "profilestop()", OPCODE_ProfileStop, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_T937, "profilenamedstart", "profilenamedstart(#\"name\")", OPCODE_ProfileNamedStart, VPFD_HASH_PARAM, 0, 0);
+			RegisterVMOperatorFunction(VM_T937, "profilenamedstop", "profilenamedstop()", OPCODE_ProfileNamedEnd, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_T937, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T937, "notify", "<caller> notify(event, param*)", OPCODE_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
 			RegisterVMOperatorFunction(VM_T937, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
@@ -612,6 +614,8 @@ namespace tool::gsc::opcode {
 			RegisterVMGlobalVariable(VM_T9, "memory");
 			RegisterVMOperatorFunction(VM_T9, "profilestart", "profilestart()", OPCODE_ProfileStart, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_T9, "profilestop", "profilestop()", OPCODE_ProfileStop, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_T9, "profilenamedstart", "profilenamedstart(#\"name\")", OPCODE_ProfileNamedStart, VPFD_HASH_PARAM, 0, 0);
+			RegisterVMOperatorFunction(VM_T9, "profilenamedstop", "profilenamedstop()", OPCODE_ProfileNamedEnd, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_T9, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_T9, "notify", "<caller> notify(event, param*)", OPCODE_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
 			RegisterVMOperatorFunction(VM_T9, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);

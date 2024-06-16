@@ -1283,6 +1283,112 @@ namespace acts::compiler {
             return ok;
         }
 
+        bool TryHashNodeValue(ParseTree* hashNode, uint64_t& output) {
+            if (!hashNode) {
+                return false; // wtf?
+            }
+            while (hashNode->getTreeType() != TREE_TERMINAL) {
+                if (hashNode->getTreeType() == TREE_ERROR) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Tree error");
+                    return false;
+                }
+                if (hashNode->children.size() != 1) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression");
+                    return false;
+                }
+
+                hashNode = hashNode->children[0];
+            }
+
+            TerminalNode* term = dynamic_cast<TerminalNode*>(hashNode);
+            switch (term->getSymbol()->getType()) {
+            case gscParser::HASHSTRING: {
+                std::string hash = term->getText();
+                char type = hash[0];
+                std::string sub = hash.substr(2, hash.length() - 3);
+                auto ith = vmInfo->hashesFunc.find(type);
+
+                if (ith == vmInfo->hashesFunc.end()) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Hash type not available for this vm: {}", type));
+                    return false;
+                }
+
+                const char* ss = sub.c_str();
+
+                if (!hash::TryHashPattern(ss, output)) {
+                    output = ith->second.hashFunc(ss);
+                    if (!output) {
+                        info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Can't hash the string '{}' with the type {}", sub, type));
+                        return false;
+                    }
+                    AddHash(sub);
+                }
+                return true;
+            }
+            case gscParser::STRING: {
+                std::string node = term->getText();
+                auto newStr = std::make_unique<char[]>(node.length() - 1);
+                char* newStrWriter = &newStr[0];
+
+                // format string
+                for (size_t i = 1; i < node.length() - 1; i++) {
+                    if (node[i] != '\\') {
+                        *(newStrWriter++) = node[i];
+                        continue; // default case
+                    }
+
+                    i++;
+
+                    assert(i < node.length() && "bad format, \\ before end");
+
+                    switch (node[i]) {
+                    case 'n':
+                        *(newStrWriter++) = '\n';
+                        break;
+                    case 't':
+                        *(newStrWriter++) = '\t';
+                        break;
+                    case 'r':
+                        *(newStrWriter++) = '\r';
+                        break;
+                    case 'b':
+                        *(newStrWriter++) = '\b';
+                        break;
+                    default:
+                        *(newStrWriter++) = node[i];
+                        break;
+                    }
+                }
+                *(newStrWriter++) = 0; // end char
+
+                constexpr char type = '#'; // default type
+
+                std::string key{ &newStr[0] };
+                auto ith = vmInfo->hashesFunc.find(type);
+
+                if (ith == vmInfo->hashesFunc.end()) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Hash type not available for this vm: {}", type));
+                    return false;
+                }
+
+                const char* ss = key.c_str();
+
+                if (!hash::TryHashPattern(ss, output)) {
+                    output = ith->second.hashFunc(ss);
+                    if (!output) {
+                        info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Can't hash the string '{}' with the type {}", node, type));
+                        return false;
+                    }
+                    AddHash(key);
+                }
+                return true;
+            }
+            default:
+                info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression, only strings or hash node available");
+                return false;
+            }
+        }
+
         bool Compile(std::vector<byte>& data) {
             if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
                 // add the notify crc function for T9 38 vm
@@ -2905,6 +3011,7 @@ namespace acts::compiler {
 
                         bool paramError{};
                         int paramCount{};
+                        uint64_t hashVal{};
 
                         if (f.HasFlag(tool::gsc::opcode::VPFD_UNPACK)) {
                             if (expressVal) {
@@ -2936,7 +3043,23 @@ namespace acts::compiler {
                             }
                         }
                         else {
-                            for (int i = (int)paramsList->children.size() - 1; i >= 0; i -= 2) {
+                            int removedStart{};
+                            if (f.HasFlag(VPFD_HASH_PARAM)) {
+                                if (paramsList->children.empty()) {
+                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to have at least one param, Usage: {}", funcName, f.usage));
+                                    return false;
+                                }
+
+                                ParseTree* hashParam{ paramsList->children[0] };
+
+                                if (!obj.TryHashNodeValue(hashParam, hashVal)) {
+                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' should start with a valid hash param, Usage: {}", funcName, f.usage));
+                                    return false;
+                                }
+
+                                removedStart += 2; // use the first param as hash
+                            }
+                            for (int i = (int)paramsList->children.size() - 1; i >= removedStart; i -= 2) {
                                 if (!ParseExpressionNode(paramsList->children[i], parser, obj, fobj, true)) {
                                     paramError = true;
                                 }
@@ -2969,6 +3092,9 @@ namespace acts::compiler {
 
                         if (f.HasFlag(tool::gsc::opcode::VPFD_USE_COUNT)) {
                             fobj.AddNode(rule, new AscmNodeData<byte>((byte)paramCount, f.opCode));
+                        }
+                        else if (f.HasFlag(VPFD_HASH_PARAM)) {
+                            fobj.AddNode(rule, new AscmNodeData<uint64_t>(hashVal, f.opCode));
                         }
                         else {
                             fobj.AddNode(rule, new AscmNodeOpCode(f.opCode));
@@ -4199,7 +4325,7 @@ namespace acts::compiler {
         bool badRef{};
 
         if (!ParseExpressionNode(blockRule, parser, obj, exp, false)) {
-            badRef = false;
+            badRef = true;
         }
 
         exp.PopBreakNode();
@@ -4230,7 +4356,12 @@ namespace acts::compiler {
 
         exp.AddNode(exp.m_nodes.begin(), func, exp.CreateParamNode());
 
-        return !badRef;
+        if (badRef) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Can't compile function '{}'", hasName ? name : "<no name>"));
+            return false;
+        }
+
+        return true;
     }
 
     bool ParseInclude(RuleContext* nsp, gscParser& parser, CompileObject& obj) {
