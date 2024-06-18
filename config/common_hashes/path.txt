@@ -6552,3 +6552,6 @@ scripts/core_common/stealth/threat_sight.gsc
 scripts/core_common/stealth/utility.gsc
 leaderboards/mp_leaderboards_reset.csv
 gamedata/tables/common/countrytable.csv
+scripts/core_common/encounters/wave_manager.gsc
+scripts/core_common/ai/systems/ai_interactables.gsc
+scripts/core_common/ai/systems/ai_interactables.csc

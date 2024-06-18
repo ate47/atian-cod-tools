@@ -1203,6 +1203,7 @@ namespace acts::compiler {
 
     class CompileObject {
     public:
+        size_t devBlockDepth;
         GscCompilerOption& opt;
         InputInfo& info;
         GscFileType type;
@@ -1248,16 +1249,16 @@ namespace acts::compiler {
         }
 
         void AddHash(const std::string& str) {
-            hashes.insert(str);
             const char* strc{ str.c_str() };
             if (!hash::HashPattern(strc)) {
+                hashes.insert(str);
                 hashutils::Add(strc);
             }
         }
 
         void AddHash(const char* str) {
-            hashes.insert(str);
             if (!hash::HashPattern(str)) {
+                hashes.insert(str);
                 hashutils::Add(str);
             }
         }
@@ -1384,7 +1385,7 @@ namespace acts::compiler {
                 return true;
             }
             default:
-                info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression, only strings or hash node available");
+                info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression, only string or hash node available");
                 return false;
             }
         }
@@ -1823,6 +1824,11 @@ namespace acts::compiler {
         void AddImport(AscmNodeFunctionCall* funcCall, uint64_t funcNspHash, uint64_t funcHash, size_t paramCount, uint8_t importFlags) {
             // link by the game, but we write it for test
             Located located{ funcNspHash, funcHash };
+
+            if (devBlockDepth) {
+                // dev call
+                importFlags |= tool::gsc::T8GSCImportFlags::DEV_CALL;
+            }
 
             auto& impList = imports[located];
 
@@ -2811,6 +2817,7 @@ namespace acts::compiler {
                 AscmNode* djmp = new AscmNodeJump(endBlock, OPCODE_DevblockBegin);
                 obj.m_devBlocks.push_back(djmp);
                 fobj.AddNode(rule->children[0], djmp);
+                obj.devBlockDepth++;
                 for (size_t i = 1; i < rule->children.size() - 1; i++) {
                     ParseTree* stmt = rule->children[i];
 
@@ -2818,6 +2825,7 @@ namespace acts::compiler {
                         ok = false;
                     }
                 }
+                obj.devBlockDepth--;
                 fobj.AddNode(rule->children[rule->children.size() - 1], endBlock);
                 return ok;
             }
@@ -4081,7 +4089,7 @@ namespace acts::compiler {
         return false;
     }
 
-    bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj, bool devFunction) {
+    bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj) {
         bool hasName = func->children.size() > 4 && IS_IDF(func->children[(size_t)(func->children.size() - 5)]);
 
         auto* paramsRule = func->children[(size_t)(func->children.size() - 3)];
@@ -4330,7 +4338,7 @@ namespace acts::compiler {
 
         exp.PopBreakNode();
 
-        if (devFunction) {
+        if (obj.devBlockDepth) {
             // add a dev block from start to begin
             AscmNode* djmp = new AscmNodeJump(endNode, OPCODE_DevblockBegin);
             obj.m_devBlocks.push_back(djmp);
@@ -4449,7 +4457,7 @@ namespace acts::compiler {
             }
         }
 
-        size_t devBlockDepth{};
+        obj.devBlockDepth = 0;
         for (auto& es : prog->children) {
             if (es == eof) {
                 break; // done
@@ -4459,15 +4467,15 @@ namespace acts::compiler {
                 std::string txt{ es->getText() };
 
                 if (txt == "/#") {
-                    devBlockDepth++;
+                    obj.devBlockDepth++;
                 }
                 else if (txt == "#/") {
-                    if (!devBlockDepth) {
+                    if (!obj.devBlockDepth) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, es, "Usage of #/ with no starting /#");
                         return false;
                     }
                     else {
-                        devBlockDepth--;
+                        obj.devBlockDepth--;
                     }
                 }
                 else {
@@ -4497,7 +4505,7 @@ namespace acts::compiler {
                 }
                 break;
             case gscParser::RuleFunction:
-                if (!ParseFunction(rule, parser, obj, devBlockDepth > 0)) {
+                if (!ParseFunction(rule, parser, obj)) {
                     return false;
                 }
                 break;
@@ -4507,8 +4515,8 @@ namespace acts::compiler {
             }
         }
 
-        if (devBlockDepth > 0) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, std::format("Missing {} #/", devBlockDepth));
+        if (obj.devBlockDepth > 0) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, std::format("Missing {} #/", obj.devBlockDepth));
             return false;
         }
 
