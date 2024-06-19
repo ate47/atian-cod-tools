@@ -1450,7 +1450,7 @@ namespace acts::compiler {
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
 
-                const char* crcStr = utils::va("%d", crc);
+                const char* crcStr = utils::va("%lld", crc);
 
                 RefObject& strdef = strings[crcStr];
                 auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
