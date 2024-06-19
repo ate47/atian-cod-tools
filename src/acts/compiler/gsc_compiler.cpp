@@ -454,6 +454,7 @@ namespace acts::compiler {
         std::vector<FunctionVar> vars{};
         size_t params{};
         bool hasRegister;
+        bool hasRegisters;
         bool hasFlag;
         uint32_t hashSize;
     public:
@@ -464,7 +465,7 @@ namespace acts::compiler {
             // opcode
             uint32_t e = opCodeUndef.ShiftSize(start, aligned);
 
-            if (hasRegister) {
+            if (hasRegister || hasRegisters) {
                 if (params) {
                     e++; // add params count
 
@@ -480,20 +481,37 @@ namespace acts::compiler {
                         }
                     }
                 }
-                for (size_t i = params; i < vars.size(); i++) {
-                    // register opcode
-                    e = opCodeUndef.ShiftSize(e, aligned);
-                    if (aligned) {
-                        e = (e + (hashSize - 1)) & ~(hashSize - 1);
-                    }
+                if (hasRegister) {
+                    for (size_t i = params; i < vars.size(); i++) {
+                        // register opcode
+                        e = opCodeUndef.ShiftSize(e, aligned);
+                        if (aligned) {
+                            e = (e + (hashSize - 1)) & ~(hashSize - 1);
+                        }
 
-                    e += hashSize;
+                        e += hashSize;
 
-                    if (hasFlag) {
-                        e++;
+                        if (hasFlag) {
+                            e++;
+                        }
                     }
                 }
+                else if (hasRegisters) {
+                    if (vars.size() - params) {
+                        e = opCodeUndef.ShiftSize(e, aligned);
+                        e++; // add var count
 
+                        if (aligned) {
+                            e = (e + (hashSize - 1)) & ~(hashSize - 1);
+                        }
+
+                        e += hashSize;
+
+                        if (hasFlag) {
+                            e++;
+                        }
+                    }
+                }
             }
             else if (vars.size()) {
                 // count
@@ -515,7 +533,7 @@ namespace acts::compiler {
         }
 
         bool Write(AscmCompilerContext& ctx) override {
-            if (hasRegister) {
+            if (hasRegister || hasRegisters) {
                 if (params) {
                     // add params
                     AscmNodeOpCode opCode{ OPCODE_SafeCreateLocalVariables };
@@ -550,24 +568,50 @@ namespace acts::compiler {
                 }
 
                 // register the variables
-                AscmNodeOpCode opCode{ OPCODE_IW_RegisterVariable };
-                for (size_t i = params; i < vars.size(); i++) {
-                    FunctionVar& var = vars[i];
+                if (hasRegister) {
+                    AscmNodeOpCode opCode{ OPCODE_IW_RegisterVariable };
+                    for (size_t i = params; i < vars.size(); i++) {
+                        FunctionVar& var = vars[i];
 
-                    if (!opCode.Write(ctx)) {
-                        return false;
-                    }
+                        if (!opCode.Write(ctx)) {
+                            return false;
+                        }
 
-                    if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
-                        ctx.Align<uint64_t>();
-                        ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                        if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+                            ctx.Align<uint64_t>();
+                            ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                        }
+                        else {
+                            ctx.Align<uint32_t>();
+                            ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                        }
+                        if (hasFlag) {
+                            ctx.Write<byte>(var.flags);
+                        }
                     }
-                    else {
-                        ctx.Align<uint32_t>();
-                        ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
-                    }
-                    if (hasFlag) {
-                        ctx.Write<byte>(var.flags);
+                }
+                else if (hasRegisters) {
+                    if (vars.size() - params) {
+                        AscmNodeOpCode opCode{ OPCODE_IW_RegisterMultipleVariables };
+                        if (!opCode.Write(ctx)) {
+                            return false;
+                        }
+                        ctx.Write<byte>((byte)(vars.size() - params));
+                        for (size_t i = params; i < vars.size(); i++) {
+                            FunctionVar& var = vars[i];
+
+                            if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+                                ctx.Align<uint64_t>();
+                                ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                            }
+                            else {
+                                ctx.Align<uint32_t>();
+                                ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                            }
+                            if (hasFlag) {
+                                ctx.Write<byte>(var.flags);
+                            }
+                        }
                     }
                 }
 
@@ -1951,6 +1995,7 @@ namespace acts::compiler {
 
     AscmNodeCreateLocalVariables::AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj) : params(params) {
         hasRegister = fobj.obj.HasOpCode(OPCODE_IW_RegisterVariable);
+        hasRegisters = fobj.obj.HasOpCode(OPCODE_IW_RegisterMultipleVariables);
         hashSize = fobj.obj.vmInfo->HasFlag(VMF_HASH64) ? 8 : 4;
         hasFlag = !fobj.obj.vmInfo->HasFlag(VMF_NO_PARAM_FLAGS);
 
