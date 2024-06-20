@@ -205,7 +205,11 @@ void VmInfo::AddDevCallName(uint64_t name) {
 
 uint64_t VmInfo::HashField(const char* value) const {
 	if (HasFlag(VmFlags::VMF_HASH_IW)) {
-		return hash::Hash64Pattern(value, 0x79D6530B0BB9B5D1, 0x10000000233);
+		uint64_t t;
+		if (hash::TryHashPattern(value, t)) {
+			return t;
+		}
+		return hash::Hash64A(value, 0x79D6530B0BB9B5D1, 0x10000000233);
 	}
 	if (vm <= VM_T7) {
 		return hashutils::HashT7(value);
@@ -221,10 +225,9 @@ uint64_t VmInfo::HashPath(const char* value) const {
 }
 
 uint64_t VmInfo::HashFilePath(const char* value) const {
-	if (HasFlag(VmFlags::VMF_HASH_IW)) {
-		return hash::Hash64Pattern(value, 0x47F5817A5EF961BA);
-	}
-	return hash::Hash32Pattern(value);
+	return HashField(value);
+	// iw wtf?
+	//return hash::Hash64A(value, 0x47F5817A5EF961BA);
 }
 
 OPCodeInfo::OPCodeInfo(OPCode id, const char* name) : m_id(id), m_name(name) {

@@ -1213,7 +1213,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             }
             asmout << hashutils::ExtractTmpPath("namespace", name_space) << std::flush << "::";
 
-            asmout << std::hex << hashutils::ExtractTmp("function", name) << "\n";
+            asmout << std::hex << hashutils::ExtractTmp("function", name);
+
+            if (opt.m_rawhash) {
+                asmout << " (" << std::hex << name_space << "::" << name << ")";
+            }
+
+            asmout << "\n";
 
             asmout << std::hex << "address: " << numAddress
                 << ", params: " << (int)param_count
