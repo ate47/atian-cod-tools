@@ -2,13 +2,14 @@
 
 namespace tool::gsc::acts_debug {
 	constexpr uint64_t MAGIC = 0x0d0a42444124;
-	constexpr byte CURRENT_VERSION = 0x12;
+	constexpr byte CURRENT_VERSION = 0x13;
 
 	enum DebugFeatures : byte {
 		ADF_STRING = 0x10,
 		ADF_DETOUR = 0x11,
 		ADF_DEVBLOCK_BEGIN = 0x12,
 		ADF_LAZYLINK = 0x12,
+		ADF_CRC_LOC = 0x13,
 	};
 
 	struct GSC_ACTS_DEBUG {
@@ -23,6 +24,7 @@ namespace tool::gsc::acts_debug {
 		uint32_t devblock_count{};
 		uint32_t lazylink_offset{};
 		uint32_t lazylink_count{};
+		uint32_t crc_offset{};
 	};
 
 	struct GSC_ACTS_DETOUR {

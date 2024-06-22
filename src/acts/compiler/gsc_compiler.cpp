@@ -1075,9 +1075,11 @@ namespace acts::compiler {
         }
     };
 
-    class RefObject {
+    class StringObject {
     public:
         uint32_t location{};
+        size_t forceLen{};
+        std::vector<uint32_t*> listeners{};
         std::vector<AscmNodeData<uint32_t>*> nodes{};
     };
     class ImportObject {
@@ -1258,7 +1260,7 @@ namespace acts::compiler {
         std::set<uint64_t> includes{};
         std::vector<AscmNode*> m_devBlocks{};
         std::unordered_map<uint64_t, FunctionObject> exports{};
-        std::unordered_map<std::string, RefObject> strings{};
+        std::unordered_map<std::string, StringObject> strings{};
         
         std::unordered_map<Located, std::vector<AscmNodeLazyLink*>, LocatedHash, LocatedEquals> lazyimports{};
         std::unordered_map<Located, std::vector<ImportObject>, LocatedHash, LocatedEquals> imports{};
@@ -1435,6 +1437,12 @@ namespace acts::compiler {
         }
 
         bool Compile(std::vector<byte>& data) {
+            union {
+                AscmNode* opcode;
+                uint32_t strlistener;
+                
+            } crcData{};
+            bool forceDebugHeader{};
             if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
                 // add the notify crc function for T9 38 vm
                 constexpr const char* name = "$notif_checkum";
@@ -1452,7 +1460,13 @@ namespace acts::compiler {
                 f.m_flags = tool::gsc::CLASS_VTABLE;
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
-                f.m_nodes.push_back(BuildAscmNodeData(crc));
+                if (crc < 0) {
+                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(-crc), OPCODE_GetNegUnsignedInteger));
+                }
+                else {
+                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(crc), OPCODE_GetUnsignedInteger));
+                }
+                forceDebugHeader = true;
 
                 auto gvarIt = vmInfo->globalvars.find(vmInfo->HashField("level"));
 
@@ -1496,9 +1510,13 @@ namespace acts::compiler {
 
                 const char* crcStr = utils::va("%lld", crc);
 
-                RefObject& strdef = strings[crcStr];
+                StringObject& strdef = strings[crcStr];
                 auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
                 strdef.nodes.push_back(getstr);
+                // add some padding so we can patch the crc at runtime
+                strdef.forceLen = 0x20;
+                strdef.listeners.push_back(&crcData.strlistener);
+                forceDebugHeader = true;
                 f.m_nodes.push_back(getstr);
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_GetLevel));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_Notify));
@@ -1564,7 +1582,7 @@ namespace acts::compiler {
 
             utils::Allocate(data, gscHandler->GetHeaderSize());
             size_t actsDebugHeader{};
-            if (opt.m_computeDevOption || opt.detourType == DETOUR_ACTS) {
+            if (forceDebugHeader || opt.m_computeDevOption || opt.detourType == DETOUR_ACTS) {
                 actsDebugHeader = utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DEBUG));
             }
 
@@ -1680,11 +1698,20 @@ namespace acts::compiler {
             for (auto& [key, strobj] : strings) {
                 // TODO: check vm, in mwiii it's not the same
                 strobj.location = (uint32_t)data.size();
+                for (uint32_t* lis : strobj.listeners) {
+                    *lis = strobj.location;
+                }
                 if (vmInfo->vm == VM_T8) {
                     data.push_back(0x9f);
                     data.push_back((byte)(key.length() + 1));
                 }
                 utils::WriteString(data, key.c_str());
+                // add bytes to the string
+                if (key.length() < strobj.forceLen) {
+                    for (size_t i = key.length(); i < strobj.forceLen; i++) {
+                        data.push_back(0);
+                    }
+                }
             }
 
             size_t stringRefs = data.size();
@@ -1832,6 +1859,16 @@ namespace acts::compiler {
                 debug_obj->devblock_count = (uint32_t)devBlocksIdx;
                 debug_obj->lazylink_offset = (uint32_t)lazyLinksLoc;
                 debug_obj->lazylink_count = (uint32_t)lazyLinksIdx;
+                // add crc location
+                if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
+                    debug_obj->crc_offset = (uint32_t)crcData.opcode->floc;
+                }
+                else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
+                    debug_obj->crc_offset = (uint32_t)crcData.strlistener;
+                }
+                else {
+                    debug_obj->crc_offset = 0;
+                }
             }
 
             // compile header

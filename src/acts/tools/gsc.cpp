@@ -826,6 +826,11 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
         }
         actsHeader << "\n";
 
+        if (dbg->version >= ADF_CRC_LOC) {
+            if (dbg->crc_offset) {
+                actsHeader << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << "\n";
+            }
+        }
         if (dbg->version >= ADF_STRING) {
             uint32_t* strOffsets = scriptfile->Ptr<uint32_t>(dbg->strings_offset);
             if (dbg->strings_count * sizeof(*strOffsets) > size) {
