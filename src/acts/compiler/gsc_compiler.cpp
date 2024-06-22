@@ -4183,7 +4183,7 @@ namespace acts::compiler {
                     obj.AddHash(dfunc);
                     exp.detour.nsp = obj.vmInfo->HashField(dnsp);
                     exp.detour.func = obj.vmInfo->HashField(dfunc);
-                    exp.detour.script = obj.vmInfo->HashPath(dnsp);
+                    exp.detour.script = obj.vmInfo->HashPath(dscript);
                 }
                 else {
                     // builtin detour
