@@ -314,6 +314,8 @@ namespace acts::compiler::adl {
                     continue;
                 }
 
+                str->size = 0;
+
                 ParseTree* members{ rule->children[rule->children.size() - 2] };
 
                 for (size_t i = 0; i < members->children.size(); i += 2) {
@@ -321,6 +323,7 @@ namespace acts::compiler::adl {
 
                     if (structMember->getRuleIndex() == adlParser::RuleData_member) {
                         ADLStructField& nfield{ str->fields.emplace_back() };
+                        nfield.offset = str->size;
 
                         std::string typeName{ structMember->children[0]->getText() };
                         nfield.type = output.IdOfName(typeName);
@@ -330,12 +333,18 @@ namespace acts::compiler::adl {
                             continue;
                         }
 
+
                         size_t idx{ 1 };
                         if (structMember->children[idx]->getTreeType() == TREE_TERMINAL && structMember->children[idx]->getText() == "*") {
                             nfield.pointer = true;
                             idx++;
                         }
                         else {
+                            if (nfield.type == str->id) {
+                                errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Recursive type definition isn't available: {}", typeName));
+                                err = true;
+                                continue;
+                            }
                             nfield.pointer = false;
                         }
 
@@ -364,6 +373,10 @@ namespace acts::compiler::adl {
                         else {
                             nfield.arraySize = 1;
                         }
+
+                        size_t fsize{ (nfield.pointer ? sizeof(void*) : output.SizeOf(nfield.type)) * nfield.arraySize };
+                        nfield.elemSize = fsize;
+                        str->size += fsize;
                     }
                     else if (structMember->getRuleIndex() == adlParser::RuleData_operator) {
                         std::string oper{ structMember->children[0]->getText() };
@@ -373,18 +386,29 @@ namespace acts::compiler::adl {
                             if (arraySize < 0) {
                                 errList->PrintLineMessage(alogs::LVL_ERROR, structMember->children[1], std::format("Padding to a negative size {}", arraySize));
                                 err = true;
-                                arraySize = 0;
+                                break;
                             }
+                            else if ((size_t)arraySize < str->size) {
+                                errList->PrintLineMessage(alogs::LVL_ERROR, structMember->children[1], std::format("Padding to a size after the current size 0x{:x} < 0x{:x}", arraySize, str->size));
+                                err = true;
+                                break;
+                            }
+                            
                             ADLStructField& nfield{ str->fields.emplace_back() };
                             nfield.name = PADDING_FIELD_HASH;
                             nfield.type = ADD_PADDING;
                             nfield.arraySize = 1;
                             nfield.pointer = false;
                             nfield.offset = (size_t)arraySize;
+                            str->size = (size_t)arraySize;
                         }
-                        //else if (oper == "$assert_offset") {
-                        // TODO: fill
-                        //}
+                        else if (oper == "$assert_offset") {
+                            if (arraySize != str->size) {
+                                errList->PrintLineMessage(alogs::LVL_ERROR, structMember->children[1], std::format("$assert_offset invalid: 0x{:x} != 0x{:x}", arraySize, str->size));
+                                err = true;
+                                break;
+                            }
+                        }
                         else {
                             errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Operator not handler : {}", oper));
                             err = true;
@@ -397,6 +421,15 @@ namespace acts::compiler::adl {
                         err = true;
                         continue;
                     }
+                }
+
+                if (str->forcedSize) {
+                    if (str->size > str->forcedSize) {
+                        errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Can't force the size for the type '{}' too large 0x{:x} >= 0x{:x}", name, str->size, str->forcedSize));
+                        err = true;
+                        continue;
+                    }
+                    str->size = str->forcedSize;
                 }
 
                 break;
@@ -637,7 +670,7 @@ namespace acts::compiler::adl {
         }
 
         // parsing done, we can sync the offsets
-
+        
 
 
         return !err;

@@ -22,6 +22,7 @@ struct align(4) size(0x8) foo {
 struct size(8) bar {
     int a;
     int b;
+
 };
 
 flag test_flag : byte {
@@ -46,5 +47,5 @@ struct size(0x38) root {
 
     foo val; // 30
     bar val2; // 38
-    //$assert_offset 0x38;
+    $assert_offset 0x38;
 };

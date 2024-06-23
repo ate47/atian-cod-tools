@@ -108,6 +108,7 @@ namespace acts::compiler::adl {
 	};
 
 	struct ADLStruct {
+		ADLDataTypeId id{};
 		uint64_t name{};
 		uint8_t align{};
 		size_t size{};
@@ -137,6 +138,7 @@ namespace acts::compiler::adl {
 		std::unordered_map<ADLDataTypeId, ADLStruct> structs{};
 		std::unordered_map<ADLDataTypeId, ADLEnum> enums{};
 		std::unordered_map<ADLDataTypeId, ADLFlag> flags{};
+		std::vector<ADLDataTypeId> generated{};
 
 		ADLData() {
 			names[hash::Hash64("bool")] = ADD_UINT8;
@@ -311,7 +313,9 @@ namespace acts::compiler::adl {
 
 			ADLDataTypeId id{ (ADLDataTypeId)((structs.size() + 1) | ADF_STRUCT) };
 			names[hash] = id;
-			auto& s = structs[id];
+			generated.push_back(id);
+			ADLStruct& s = structs[id];
+			s.id = id;
 			s.name = hash;
 			s.align = align;
 			s.forcedSize = size;
@@ -326,6 +330,7 @@ namespace acts::compiler::adl {
 
 			ADLDataTypeId id{ (ADLDataTypeId)((enums.size() + 1) | ADF_ENUM) };
 			names[hash] = id;
+			generated.push_back(id);
 			ADLEnum& s = enums[id];
 			s.name = hash;
 			s.typeSize = type;
@@ -339,6 +344,7 @@ namespace acts::compiler::adl {
 			}
 
 			ADLDataTypeId id{ (ADLDataTypeId)((flags.size() + 1) | ADF_FLAG) };
+			generated.push_back(id);
 			names[hash] = id;
 			ADLFlag& s = flags[id];
 			s.name = hash;
