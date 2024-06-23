@@ -358,6 +358,7 @@ namespace acts::compiler::adl {
                                 break;
                             }
                         }
+                        output.AddHash(fieldName);
                         nfield.name = fieldHash;
 
                         if (structMember->children.size() > ++idx) {
@@ -508,6 +509,7 @@ namespace acts::compiler::adl {
                         errList->PrintLineMessage(alogs::LVL_ERROR, enumVal, std::format("Unhandled flag val {}", enumVal->getText()));
                         err = true;
                     }
+                    output.AddHash(fieldName);
 
                     uint64_t fieldHash{ hash::Hash64(fieldName.c_str()) };
 
@@ -602,6 +604,8 @@ namespace acts::compiler::adl {
                         err = true;
                     }
 
+                    output.AddHash(fieldName);
+
                     uint64_t fieldHash{ hashutils::Hash64(fieldName.c_str()) };
 
                     for (size_t j = 0; j < str->fields.size(); j++) {
@@ -625,6 +629,7 @@ namespace acts::compiler::adl {
                     continue;
                 }
                 std::string root = rule->children[1]->getText();
+                output.AddHash(root);
                 output.rootName = hashutils::Hash64(root.c_str());
                 break;
             }

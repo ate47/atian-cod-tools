@@ -143,6 +143,36 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 	Add("root", true, iw); // root struct
 	Add("__pad", true, iw); // padding
 
+	// ADL names
+	AddPrecomputed(Hash64("bool"), "bool");
+	AddPrecomputed(Hash64("byte"), "byte");
+	AddPrecomputed(Hash64("uint8"), "uint8");
+	AddPrecomputed(Hash64("uint8_t"), "uint8_t");
+	AddPrecomputed(Hash64("uint16"), "uint16");
+	AddPrecomputed(Hash64("uint16_t"), "uint16_t");
+	AddPrecomputed(Hash64("uint32"), "uint32");
+	AddPrecomputed(Hash64("uint32_t"), "uint32_t");
+	AddPrecomputed(Hash64("uint64"), "uint64");
+	AddPrecomputed(Hash64("uint64_t"), "uint64_t");
+	AddPrecomputed(Hash64("char"), "char");
+	AddPrecomputed(Hash64("int8"), "int8");
+	AddPrecomputed(Hash64("int8_t"), "int8_t");
+	AddPrecomputed(Hash64("int16"), "int16");
+	AddPrecomputed(Hash64("int16_t"), "int16_t");
+	AddPrecomputed(Hash64("int32"), "int32");
+	AddPrecomputed(Hash64("int32_t"), "int32_t");
+	AddPrecomputed(Hash64("int64"), "int64");
+	AddPrecomputed(Hash64("int64_t"), "int64_t");
+	AddPrecomputed(Hash64("float"), "float");
+	AddPrecomputed(Hash64("double"), "double");
+	AddPrecomputed(Hash64("string"), "string");
+	AddPrecomputed(Hash64("hash"), "hash");
+	AddPrecomputed(Hash64("int"), "int");
+	AddPrecomputed(Hash64("uint"), "uint");
+	AddPrecomputed(Hash64("long"), "long");
+	AddPrecomputed(Hash64("ulong"), "ulong");
+	AddPrecomputed(Hash64("$$padding"), "$$padding");
+
 	std::ifstream s(file);
 
 	if (!s) {

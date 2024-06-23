@@ -139,6 +139,7 @@ namespace acts::compiler::adl {
 		std::unordered_map<ADLDataTypeId, ADLEnum> enums{};
 		std::unordered_map<ADLDataTypeId, ADLFlag> flags{};
 		std::vector<ADLDataTypeId> generated{};
+		std::unordered_set<std::string> hashes{};
 
 		ADLData() {
 			names[hash::Hash64("bool")] = ADD_UINT8;
@@ -225,6 +226,16 @@ namespace acts::compiler::adl {
 
 		}
 
+		void AddHash(const char* str) {
+			hashes.insert(str);
+			hashutils::Add(str);
+		}
+
+		void AddHash(const std::string& str) {
+			hashes.insert(str);
+			hashutils::Add(str.c_str());
+		}
+
 		ADLDataTypeId GetBaseType(ADLDataTypeId id) const {
 			// loop until we find the base type
 			while ((id & ADF_MASK) == ADF_TYPEDEF) {
@@ -299,6 +310,7 @@ namespace acts::compiler::adl {
 			if (IdOfName(hash)) {
 				return 0; // already defined
 			}
+			AddHash(name);
 			ADLDataTypeId id{ (ADLDataTypeId)((typedefs.size() + 1) | ADF_TYPEDEF) };
 			names[hash] = id;
 			typedefs[id] = to;
@@ -310,7 +322,7 @@ namespace acts::compiler::adl {
 			if (IdOfName(hash)) {
 				return nullptr; // already defined
 			}
-
+			AddHash(name);
 			ADLDataTypeId id{ (ADLDataTypeId)((structs.size() + 1) | ADF_STRUCT) };
 			names[hash] = id;
 			generated.push_back(id);
@@ -327,7 +339,7 @@ namespace acts::compiler::adl {
 			if (IdOfName(hash)) {
 				return nullptr; // already defined
 			}
-
+			AddHash(name);
 			ADLDataTypeId id{ (ADLDataTypeId)((enums.size() + 1) | ADF_ENUM) };
 			names[hash] = id;
 			generated.push_back(id);
@@ -342,7 +354,7 @@ namespace acts::compiler::adl {
 			if (IdOfName(hash)) {
 				return nullptr; // already defined
 			}
-
+			AddHash(name);
 			ADLDataTypeId id{ (ADLDataTypeId)((flags.size() + 1) | ADF_FLAG) };
 			generated.push_back(id);
 			names[hash] = id;
