@@ -13,6 +13,8 @@ typedef uint32_t test_typedef;
 
 typedef test_include test_typedef2;
 
+customtype 0x8 xassetref;
+
 
 struct align(4) size(0x8) foo {
     int a;
@@ -23,6 +25,17 @@ struct size(8) bar {
     int a;
     int b;
 
+};
+
+struct test_align {
+    int a;
+    int64 b;
+    int c;
+}
+
+struct align(8) xasset_header {
+    byte type;
+    xassetref ref;
 };
 
 flag test_flag : byte {

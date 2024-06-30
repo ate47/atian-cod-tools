@@ -2,7 +2,7 @@ grammar adl;
 
 prog: def* EOF;
 
-def: (struct_def | flag_def | enum_def | root_def | align_def | type_def | include_def) ';';
+def: (struct_def | flag_def | enum_def | root_def | align_def | type_def | include_def | customtype_def) (';')?;
 
 root_def: '#root' idf;
 include_def: '#include' STRING;
@@ -12,6 +12,7 @@ type_def: 'typedef' idf idf;
 struct_def: 'struct' ('align' '(' number ')')? ('size' '(' number ')')? idf '{' struct_members '}';
 flag_def: 'flag' idf ':' idf '{' enum_members '}';
 enum_def: 'enum' idf ':' idf '{' enum_members '}';
+customtype_def: 'customtype' number idf;
 
 struct_members: (struct_member ';')*;
 enum_members: (enum_member (',' enum_member)* ','?)?;

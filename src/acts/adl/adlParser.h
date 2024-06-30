@@ -15,17 +15,17 @@ public:
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
     T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, T__13 = 14, 
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
-    T__20 = 21, T__21 = 22, NEWLINE = 23, WHITESPACE = 24, INTEGER10 = 25, 
-    INTEGER16 = 26, INTEGER8 = 27, INTEGER2 = 28, BOOL_VALUE = 29, IDENTIFIER = 30, 
-    STRING = 31
+    T__20 = 21, T__21 = 22, T__22 = 23, NEWLINE = 24, WHITESPACE = 25, INTEGER10 = 26, 
+    INTEGER16 = 27, INTEGER8 = 28, INTEGER2 = 29, BOOL_VALUE = 30, IDENTIFIER = 31, 
+    STRING = 32
   };
 
   enum {
     RuleProg = 0, RuleDef = 1, RuleRoot_def = 2, RuleInclude_def = 3, RuleAlign_def = 4, 
     RuleType_def = 5, RuleStruct_def = 6, RuleFlag_def = 7, RuleEnum_def = 8, 
-    RuleStruct_members = 9, RuleEnum_members = 10, RuleStruct_member = 11, 
-    RuleData_member = 12, RuleData_operator = 13, RuleEnum_member = 14, 
-    RuleIdf = 15, RuleNumber = 16
+    RuleCustomtype_def = 9, RuleStruct_members = 10, RuleEnum_members = 11, 
+    RuleStruct_member = 12, RuleData_member = 13, RuleData_operator = 14, 
+    RuleEnum_member = 15, RuleIdf = 16, RuleNumber = 17
   };
 
   explicit adlParser(antlr4::TokenStream *input);
@@ -54,6 +54,7 @@ public:
   class Struct_defContext;
   class Flag_defContext;
   class Enum_defContext;
+  class Customtype_defContext;
   class Struct_membersContext;
   class Enum_membersContext;
   class Struct_memberContext;
@@ -89,6 +90,7 @@ public:
     Align_defContext *align_def();
     Type_defContext *type_def();
     Include_defContext *include_def();
+    Customtype_defContext *customtype_def();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -195,6 +197,20 @@ public:
   };
 
   Enum_defContext* enum_def();
+
+  class  Customtype_defContext : public antlr4::ParserRuleContext {
+  public:
+    Customtype_defContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    NumberContext *number();
+    IdfContext *idf();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Customtype_defContext* customtype_def();
 
   class  Struct_membersContext : public antlr4::ParserRuleContext {
   public:

@@ -118,11 +118,11 @@ namespace acts::compiler {
             return true;
         }
 
-        bool HasRef() {
+        bool HasRef() const {
             return refs.size();
         }
 
-        bool IsOpCode() {
+        bool IsOpCode() const {
             return nodetype == ASCMNT_OPCODE;
         }
 
@@ -417,7 +417,7 @@ namespace acts::compiler {
             return true;
         }
 
-        uint32_t GetFLoc() {
+        uint32_t GetFLoc() const {
             if (inlineCall) {
                 return floc;
             }
@@ -1035,7 +1035,7 @@ namespace acts::compiler {
             return files[files.size() - 1];
         }
 
-        void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) {
+        void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) const {
             const GscFile& f = FindFile(line);
         
             size_t localLine;
@@ -1054,7 +1054,7 @@ namespace acts::compiler {
                 LOG_LVL(lvl, "{}#{} {}", f.filename.string(), localLine, msg);
             }
         }
-        Token* GetToken(ParseTree* tree) {
+        Token* GetToken(ParseTree* tree) const {
             while (tree && tree->getTreeType() != TREE_TERMINAL && tree->children.size()) {
                 tree = tree->children[0];
             }
@@ -1064,7 +1064,7 @@ namespace acts::compiler {
             }
             return nullptr;
         }
-        void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) {
+        void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) const {
             Token* token = GetToken(tree);
             if (token) {
                 PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);

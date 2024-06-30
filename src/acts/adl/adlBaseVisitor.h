@@ -51,6 +51,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitCustomtype_def(adlParser::Customtype_defContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitStruct_members(adlParser::Struct_membersContext *ctx) override {
     return visitChildren(ctx);
   }

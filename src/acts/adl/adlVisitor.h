@@ -37,6 +37,8 @@ public:
 
     virtual std::any visitEnum_def(adlParser::Enum_defContext *context) = 0;
 
+    virtual std::any visitCustomtype_def(adlParser::Customtype_defContext *context) = 0;
+
     virtual std::any visitStruct_members(adlParser::Struct_membersContext *context) = 0;
 
     virtual std::any visitEnum_members(adlParser::Enum_membersContext *context) = 0;

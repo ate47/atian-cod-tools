@@ -22,6 +22,7 @@ namespace acts::compiler::adl {
     public:
         bool m_help{};
         bool print{};
+        const char* outFileName{};
         const char* def{};
         const char* data{};
         const char* output{};
@@ -37,6 +38,13 @@ namespace acts::compiler::adl {
                 }
                 else if (!_strcmpi("--print", arg) || !strcmp("-p", arg)) {
                     print = true;
+                }
+                else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
+                    if (i + 1 == endIndex) {
+                        LOG_ERROR("Missing value for param: {}!", arg);
+                        return false;
+                    }
+                    outFileName = args[++i];
                 }
                 else if (*arg == '-') {
                     if (arg[1] == 'D' && arg[2]) {
@@ -55,14 +63,16 @@ namespace acts::compiler::adl {
                         data = arg;
                     }
                     else if (!output) {
-                        data = arg;
+                        output = arg;
                     }
                 }
             }
             if (!def) {
-
                 LOG_ERROR("Missing definition file");
                 return false;
+            }
+            if (data && !output) {
+                LOG_ERROR("Missing output file");
             }
             return true;
         }
@@ -70,6 +80,7 @@ namespace acts::compiler::adl {
         void PrintHelp() {
             LOG_INFO("-h --help              : Print help");
             LOG_INFO("-p --print             : Print compiled ADL");
+            LOG_INFO("-o --output [f]        : Serialize the ADL structure in f");
             LOG_INFO("-D[name]               : Define variable");
         }
     };
@@ -270,6 +281,24 @@ namespace acts::compiler::adl {
 
                 break;
             }
+            case adlParser::RuleCustomtype_def: {
+                int64_t lenDef{ NumberNodeValue(rule->children[1]) };
+
+                if (lenDef < 0) {
+                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Invalid custom type len: 0x{:x}", lenDef));
+                    err = true;
+                    continue;
+                }
+                std::string name{ rule->children[2]->getText() };
+
+                if (!output.CreateCustomType(name, lenDef)) {
+                    errList->PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Can't register custom type: {} already defined", name));
+                    err = true;
+                    continue;
+                }
+
+                break;
+            }
             case adlParser::RuleStruct_def: {
 
                 uint8_t align{ output.align };
@@ -323,7 +352,6 @@ namespace acts::compiler::adl {
 
                     if (structMember->getRuleIndex() == adlParser::RuleData_member) {
                         ADLStructField& nfield{ str->fields.emplace_back() };
-                        nfield.offset = str->size;
 
                         std::string typeName{ structMember->children[0]->getText() };
                         nfield.type = output.IdOfName(typeName);
@@ -375,7 +403,20 @@ namespace acts::compiler::adl {
                             nfield.arraySize = 1;
                         }
 
-                        size_t fsize{ (nfield.pointer ? sizeof(void*) : output.SizeOf(nfield.type)) * nfield.arraySize };
+                        size_t frsize{ (nfield.pointer ? sizeof(void*) : output.SizeOf(nfield.type)) };
+                        if (str->align > 1) {
+                            // align the size to match the align
+                            size_t alignLen;
+                            if (str->align < frsize) {
+                                alignLen = str->align;
+                            }
+                            else {
+                                alignLen = frsize;
+                            }
+                            str->size = (str->size + (alignLen - 1)) & ~(alignLen - 1);
+                        }
+                        nfield.offset = str->size;
+                        size_t fsize{ frsize * nfield.arraySize };
                         nfield.elemSize = fsize;
                         str->size += fsize;
                     }
@@ -670,13 +711,6 @@ namespace acts::compiler::adl {
                 continue;
             }
         }
-        if (err) {
-            return false;
-        }
-
-        // parsing done, we can sync the offsets
-        
-
 
         return !err;
     }
@@ -706,6 +740,7 @@ namespace acts::compiler::adl {
             case ADF_ENUM: out << "enum"; break;
             case ADF_TYPEDEF: out << "typedef"; break;
             case ADF_FLAG: out << "flag"; break;
+            case ADF_CUSTOM_DEF: out << "custom"; break;
             default: out << "unknown"; break;
             }
         }
@@ -732,17 +767,65 @@ namespace acts::compiler::adl {
 
         ADLData output{};
 
-        if (!CompileAdl(opt.processorOpt, opt.def, buff, output)) {
-            LOG_ERROR("Error when compiling {}", opt.def);
-            return tool::BASIC_ERROR;
+        // compile or load the file
+        if (IsADLCompiledFile(buff.data(), buff.size())) {
+            LOG_DEBUG("Loading {}", opt.def);
+            output.Deserialize(buff.data(), buff.size());
+        }
+        else {
+            if (!CompileAdl(opt.processorOpt, opt.def, buff, output)) {
+                LOG_ERROR("Error when compiling {}", opt.def);
+                return tool::BASIC_ERROR;
+            }
         }
 
         if (opt.print) {
             output.Dump();
         }
 
+        if (opt.outFileName) {
+            std::vector<byte> data{};
+            if (!output.Serialize(data)) {
+                LOG_ERROR("Error when Serializing {}", opt.def);
+                return tool::BASIC_ERROR;
+            }
+            if (!utils::WriteFile(opt.outFileName, data.data(), data.size())) {
+                LOG_ERROR("Error when writing {}", opt.outFileName);
+                return tool::BASIC_ERROR;
+            }
+            LOG_INFO("Serialized into {}", opt.outFileName);
+        }
+
+        if (!opt.data) {
+            return tool::OK;
+        }
+
+        // compile opt.data to opt.output
+
+        LOG_DEBUG("Compiling {} into {}", opt.data, opt.output);
+
+        std::string json{};
+
+        if (!utils::ReadFile(opt.data, json)) {
+            LOG_ERROR("Can't read {}", opt.data);
+            return tool::BASIC_ERROR;
+        }
+
+        dbflib::DBFileBuilder builder{ dbflib::DBFBO_ALIGN };
+
+        output.Convert(json, builder);
+
+        dbflib::DB_FILE* file = builder.Build();
+
+        if (!utils::WriteFile(opt.output, file, file->file_size)) {
+            LOG_ERROR("Error when writing {}", opt.output);
+            return tool::BASIC_ERROR;
+        }
+
+        LOG_INFO("Compiled into {}", opt.output);
+
         return tool::OK;
     }
 
-    ADD_TOOL("adlcompiler", "common", " [def] [data] [output]", "ADL compiler", nullptr, adlcompiler);
+    ADD_TOOL("adlc", "common", " [def] ([data] [output])", "ADL compiler", nullptr, adlcompiler);
 }

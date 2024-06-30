@@ -1,4 +1,5 @@
 #pragma once
+#include <dbflib.hpp>
 
 namespace acts::compiler::adl {
 	typedef uint32_t ADLDataTypeId;
@@ -20,6 +21,7 @@ namespace acts::compiler::adl {
 		ADF_ENUM = 3u << ADF_MASK_SHIFT,
 		ADF_TYPEDEF = 4u << ADF_MASK_SHIFT,
 		ADF_FLAG = 5u << ADF_MASK_SHIFT,
+		ADF_CUSTOM_DEF = 6u << ADF_MASK_SHIFT,
 		ADF_MASK = 7u << ADF_MASK_SHIFT,
 		ADF_ID = ~(ADF_MASK | ADF_UNSIGNED | ADF_PRIMITIVE_MASK),
 	};
@@ -92,6 +94,31 @@ struct std::formatter<acts::compiler::adl::ADLDataTypeIdBase, char> {
 
 namespace acts::compiler::adl {
 	constexpr uint64_t PADDING_FIELD_HASH = hash::Hash64("$$padding");
+	constexpr uint64_t SERIAL_MAGIC = 0x2441444c0a0d00;
+	constexpr byte SERIAL_VERSION = 0x20;
+	constexpr uint64_t SERIAL_MAGIC_VER = SERIAL_MAGIC | SERIAL_VERSION;
+
+	// Serialization
+
+	enum SerialDataType : byte {
+		ADL_SERIAL_DONE = 0xFF,
+		ADL_SERIAL_HASHES = 0x40,
+		ADL_SERIAL_STRUCT = 0x41,
+		ADL_SERIAL_TYPEDEF = 0x42,
+		ADL_SERIAL_ENUM = 0x43,
+		ADL_SERIAL_FLAG = 0x44,
+		ADL_SERIAL_NAME = 0x45,
+	};
+
+	// Compiled structure
+
+	struct ADLCompiledHeader {
+		byte version;
+		void* data;
+	};
+
+
+	// ADL data
 
 	struct ADLStructField {
 		uint64_t name;
@@ -128,12 +155,22 @@ namespace acts::compiler::adl {
 		std::vector<ADLEnumField> fields{};
 	};
 
+	struct ADLCustomType {
+		uint64_t name;
+		size_t size;
+	};
+
+	constexpr bool IsADLCompiledFile(void* file, size_t len) {
+		return len >= sizeof(SERIAL_MAGIC_VER) && *(decltype(SERIAL_MAGIC_VER)*)file == SERIAL_MAGIC_VER;
+	}
+
 	struct ADLData {
 		std::unordered_set<std::filesystem::path> loadedPath{};
 		uint64_t rootName{};
 		uint8_t align{};
 		std::unordered_map<uint64_t, ADLDataTypeId> names{};
 		std::unordered_map<uint64_t, size_t> defaults{};
+		std::unordered_map<ADLDataTypeId, ADLCustomType> customtypes{};
 		std::unordered_map<ADLDataTypeId, ADLDataTypeId> typedefs{};
 		std::unordered_map<ADLDataTypeId, ADLStruct> structs{};
 		std::unordered_map<ADLDataTypeId, ADLEnum> enums{};
@@ -201,11 +238,11 @@ namespace acts::compiler::adl {
 			}
 			LOG_INFO("structs");
 			for (auto& [id, strct] : structs) {
-				LOG_INFO("  {} -> {} (alig:0x{:x},size:0x{:x})", (ADLDataTypeIdBase)id, hashutils::ExtractTmp("hash", strct.name), strct.align, strct.size);
+				LOG_INFO("  {} -> {} (alig:0x{:x},size:0x{:x},forcesize:0x{:x})", (ADLDataTypeIdBase)id, hashutils::ExtractTmp("hash", strct.name), strct.align, strct.size, strct.forcedSize);
 
 				for (auto& field : strct.fields) {
 
-					LOG_INFO("      {} -> {} (off:0x{:x},len:{},ptr:{})", hashutils::ExtractTmp("hash", field.name), (ADLDataTypeIdBase)field.type, field.offset, field.arraySize, field.pointer);
+					LOG_INFO("      {} -> {} (off:0x{:x},len:{},ptr:{},size:0x{:x})", hashutils::ExtractTmp("hash", field.name), (ADLDataTypeIdBase)field.type, field.offset, field.arraySize, field.pointer, SizeOf(field.type));
 				}
 			}
 			LOG_INFO("enums");
@@ -222,8 +259,11 @@ namespace acts::compiler::adl {
 					LOG_INFO("      {} -> {}0x{:x}", hashutils::ExtractTmp("hash", field.name), (field.value < 0 ? "-" : ""), (field.value < 0 ? -field.value : field.value));
 				}
 			}
-			
 
+			LOG_INFO("custom type");
+			for (auto& [id, s] : customtypes) {
+				LOG_INFO("  {} -> {} (size:0x{:x})", (ADLDataTypeIdBase)id, hashutils::ExtractTmp("hash", s.name), s.size);
+			}
 		}
 
 		void AddHash(const char* str) {
@@ -297,6 +337,13 @@ namespace acts::compiler::adl {
 				}
 				return it->second;
 			}
+			case ADF_CUSTOM_DEF: {
+				auto it = customtypes.find(type);
+				if (it == customtypes.end()) {
+					return 0;
+				}
+				return it->second.size;
+			}
 			case ADF_UNKNOWN:
 			default:
 				return 0; // wtf?
@@ -334,6 +381,22 @@ namespace acts::compiler::adl {
 			return &s;
 		}
 
+		ADLCustomType* CreateCustomType(const std::string& name, size_t size) {
+			uint64_t hash = hash::Hash64(name.c_str());
+			if (size < 0 || IdOfName(hash)) {
+				return nullptr;
+			}
+			AddHash(name);
+			ADLDataTypeId id{ (ADLDataTypeId)((customtypes.size() + 1) | ADF_CUSTOM_DEF) };
+			names[hash] = id;
+			generated.push_back(id);
+			auto& ct{ customtypes[id] };
+			ct.name = hash;
+			ct.size = size;
+
+			return &ct;
+		}
+
 		ADLEnum* CreateEnum(const std::string& name, ADLDataTypeId type) {
 			uint64_t hash = hash::Hash64(name.c_str());
 			if (IdOfName(hash)) {
@@ -362,6 +425,71 @@ namespace acts::compiler::adl {
 			s.name = hash;
 			s.typeSize = type;
 			return &s;
+		}
+
+		bool Serialize(std::vector<byte> data) const {
+			utils::WriteValue<decltype(SERIAL_MAGIC_VER)>(data, SERIAL_MAGIC_VER);
+			size_t mapLocation{ utils::Allocate(data, sizeof(uint64_t)) };
+
+			// hashes
+			size_t hashLocation{ data.size() };
+			utils::WriteValue<uint64_t>(data, hashes.size());
+			for (const std::string& h : hashes) {
+				utils::WriteString(data, h.c_str());
+			}
+
+			// names
+			size_t nameLocation{ data.size() };
+			utils::WriteValue<uint64_t>(data, names.size());
+			for (const auto& [o, t] : names) {
+				utils::WriteValue<uint64_t>(data, o);
+				utils::WriteValue<uint32_t>(data, t);
+			}
+
+
+			// TODO: Compile the rest
+
+			
+			// write sections map
+			*reinterpret_cast<uint64_t*>(&data[mapLocation]) = data.size();
+
+			utils::WriteValue<SerialDataType>(data, SerialDataType::ADL_SERIAL_HASHES);
+			utils::WriteValue<uint64_t>(data, hashLocation);
+
+			utils::WriteValue<SerialDataType>(data, SerialDataType::ADL_SERIAL_NAME);
+			utils::WriteValue<uint64_t>(data, nameLocation);
+
+			// complete last section
+			utils::WriteValue<SerialDataType>(data, SerialDataType::ADL_SERIAL_DONE);
+			utils::WriteValue<uint64_t>(data, SERIAL_MAGIC_VER);
+
+			return true;
+		}
+
+		void Deserialize(void* data, size_t len) {
+			if (len < sizeof(SERIAL_MAGIC_VER)) {
+				throw std::runtime_error("too small");
+			}
+			if (*(uint64_t*)data != SERIAL_MAGIC_VER) {
+				if ((*(uint64_t*)data & ~0xFFull) != SERIAL_MAGIC) {
+					throw std::runtime_error("invalid magic");
+				}
+				throw std::runtime_error("invalid version");
+			}
+
+			// TODO: deserialize
+
+
+		}
+
+		dbflib::BlockId Convert(const std::string& json, dbflib::DBFileBuilder& builder) {
+			auto [headerLoc, header] = builder.CreateBlock<ADLCompiledHeader>();
+
+			header->version = SERIAL_VERSION;
+
+			// Compile json to chunks
+
+			return headerLoc;
 		}
 	};
 }

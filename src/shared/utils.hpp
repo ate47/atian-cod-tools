@@ -102,7 +102,7 @@ namespace utils {
 	 */
 	template<typename Type>
 	inline void WriteValue(std::vector<byte>& data, Type val) {
-		byte* valLoc = reinterpret_cast<byte*>(&val);
+		const byte* valLoc = reinterpret_cast<const byte*>(&val);
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
 	}
 	/*
@@ -122,7 +122,7 @@ namespace utils {
 	 */
 	template<typename SizeType, typename Type>
 	inline void WritePaddedValue(std::vector<byte>& data, Type val) {
-		byte* valLoc = reinterpret_cast<byte*>(&val);
+		const byte* valLoc = reinterpret_cast<const byte*>(&val);
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
 		static_assert(sizeof(SizeType) >= sizeof(Type), "Trying to write bigger elements possible");
 		constexpr auto delta = sizeof(SizeType) - sizeof(Type);

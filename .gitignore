@@ -69,6 +69,7 @@ bgpool
 # pack file
 *.acpf
 *.actsop
+*.adlc
 
 *.log
 
