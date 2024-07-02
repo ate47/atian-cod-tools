@@ -4,7 +4,7 @@
 
 #namespace acts;
 
-function autoexec __init__system__() {
+function autoexec(0) __init__system__() {
     if (is_mp()) {
         setgametypesetting(#"drafttime", 2);
     }
@@ -13,6 +13,18 @@ function autoexec __init__system__() {
 
 function __pre_init__() {
     callback::on_connect(&on_player_connect);
+
+/#
+    test = () {
+        self iprintln("test lambda");
+    };
+    callback::on_connect(test);
+#/
+
+    [[ () {
+        level.testacts = 2;
+    } ]]();
+
 
     level.acts = {
         #counter: 0

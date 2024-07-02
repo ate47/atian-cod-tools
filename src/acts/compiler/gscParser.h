@@ -767,6 +767,7 @@ public:
     Array_defContext *array_def();
     Struct_defContext *struct_def();
     NumberContext *number();
+    FunctionContext *function();
     antlr4::tree::TerminalNode *BOOL_VALUE();
     antlr4::tree::TerminalNode *FLOATVAL();
     antlr4::tree::TerminalNode *STRING();

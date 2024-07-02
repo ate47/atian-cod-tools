@@ -127,6 +127,7 @@ const_expr:
 	| array_def
 	| struct_def 
 	| number
+	| function
     | BOOL_VALUE
     | FLOATVAL
     | STRING

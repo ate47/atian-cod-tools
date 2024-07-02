@@ -2042,6 +2042,7 @@ namespace acts::compiler {
         }
     }
 
+    FunctionObject* ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj, byte forceFlags = 0);
     bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal);
 
     bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
@@ -2164,6 +2165,7 @@ namespace acts::compiler {
             case gscParser::RuleSet_expression:
             case gscParser::RuleArray_def:
             case gscParser::RuleStruct_def:
+            case gscParser::RuleFunction:
             case gscParser::RuleFunction_ref:
             case gscParser::RuleStatement:
             case gscParser::RuleStatement_if:
@@ -3746,6 +3748,23 @@ namespace acts::compiler {
                 }
                 return ok;
             }
+            case gscParser::RuleFunction: {
+                FunctionObject* sfobj = ParseFunction(rule, parser, obj, tool::gsc::T8GSCExportFlags::PRIVATE);
+
+                if (!sfobj) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't parse sub function");
+                    return false;
+                }
+
+                if (expressVal) {
+                    AscmNodeFunctionCall* asmc = new AscmNodeFunctionCall(OPCODE_GetResolveFunction, FCF_GETTER, 0, 0, 0, obj.vmInfo);
+
+                    obj.AddImport(asmc, sfobj->m_name_space, sfobj->m_name, 0, tool::gsc::T8GSCImportFlags::FUNC_METHOD | tool::gsc::T8GSCImportFlags::GET_CALL);
+                    fobj.AddNode(rule, asmc);
+                }
+
+                return true;
+            }
             case gscParser::RuleSet_expression: {
                 std::string opVal = rule->children[1]->getText();
 
@@ -4171,7 +4190,7 @@ namespace acts::compiler {
         return false;
     }
 
-    bool ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj) {
+    FunctionObject* ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj, byte forceFlags) {
         bool hasName = func->children.size() > 4 && IS_IDF(func->children[(size_t)(func->children.size() - 5)]);
 
         auto* paramsRule = func->children[(size_t)(func->children.size() - 3)];
@@ -4186,18 +4205,20 @@ namespace acts::compiler {
 
         if (!err) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("The export {} was defined twice", name));
-            return false;
+            return nullptr;
         }
 
-        auto& exp = res->second;
+        FunctionObject& exp = res->second;
+
+        exp.m_flags |= forceFlags;
 
         if (!IS_RULE_TYPE(paramsRule, gscParser::RuleParam_list)) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Bad function {} params declaration {}", name, func->getText()));
-            return false;
+            return nullptr;
         }
         if (!IS_RULE_TYPE(blockRule, gscParser::RuleStatement_block)) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Bad function {} block declaration {}", name, func->getText()));
-            return false;
+            return nullptr;
         }
 
         // handle modifiers
@@ -4237,7 +4258,7 @@ namespace acts::compiler {
 
             if (mod->getTreeType() != TREE_TERMINAL) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, mod, std::format("Bad modifier for {}", name));
-                return false;
+                return nullptr;
             }
 
             TerminalNode* term = dynamic_cast<TerminalNode*>(mod);
@@ -4266,14 +4287,14 @@ namespace acts::compiler {
             else if (txt == "event_handler") {
                 if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_EV_HANDLER)) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "event_handler functions not available for this vm");
-                    return false;
+                    return nullptr;
                 }
                 exp.m_flags |= tool::gsc::T8GSCExportFlags::EVENT;
                 auto* ev = func->children[i += 2];
                 i++; // ']'
                 if (ev->getTreeType() != TREE_TERMINAL) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, ev, std::format("Bad event for {}", name));
-                    return false;
+                    return nullptr;
                 }
 
                 std::string evname = static_cast<TerminalNode*>(ev)->getText();
@@ -4300,7 +4321,7 @@ namespace acts::compiler {
 
             if (varargDetected) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, child, "Can't register param after a vararg");
-                return false;
+                return nullptr;
             }
 
             TerminalNode* idfNode{};
@@ -4311,7 +4332,7 @@ namespace acts::compiler {
 
                     if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_VA)) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, param, "Modifier not available for this vm: vararg...");
-                        return false;
+                        return nullptr;
                     }
                     exp.m_flags |= tool::gsc::T8GSCExportFlags::VE;
 
@@ -4319,8 +4340,8 @@ namespace acts::compiler {
 
 
                     if (exp.m_params == 256) {
-                        return utils::va("", name.c_str());
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Can't register param '{}': too many params", paramIdf));
+                        return nullptr;
                     }
 
                     exp.m_params++;
@@ -4328,7 +4349,7 @@ namespace acts::compiler {
                     auto [err, vardef] = exp.RegisterVar(paramIdf, false, tool::gsc::opcode::VARIADIC);
                     if (err) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, param, err);
-                        return false;
+                        return nullptr;
                     }
 
                     continue;
@@ -4341,7 +4362,7 @@ namespace acts::compiler {
                     // ptr (T9)
                     if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_PTR)) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
-                        return false;
+                        return nullptr;
                     }
                     idfFlags = tool::gsc::opcode::T9_VAR_REF;
                 }
@@ -4349,13 +4370,13 @@ namespace acts::compiler {
                     // ref (T8)
                     if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_REF)) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
-                        return false;
+                        return nullptr;
                     }
                     idfFlags = tool::gsc::opcode::ARRAY_REF;
                 }
                 else {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not implemented: {}", modifier));
-                    return false;
+                    return nullptr;
                 }
             }
             else {
@@ -4365,7 +4386,7 @@ namespace acts::compiler {
 
             if (exp.m_params == 256) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, std::format("Can't register param '{}': too many params", paramIdf));
-                return false;
+                return nullptr;
             }
 
             exp.m_params++;
@@ -4374,7 +4395,7 @@ namespace acts::compiler {
 
             if (err) {
                 obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
-                return false;
+                return nullptr;
             }
 
             if (param->children.size() >= 3) {
@@ -4398,7 +4419,7 @@ namespace acts::compiler {
                 exp.AddNode(defaultValueExp, new AscmNodeJump(afterNode, OPCODE_JumpOnTrue));
                 if (!ParseExpressionNode(defaultValueExp, parser, obj, exp, true)) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, defaultValueExp, std::format("Can't create expression node for variable {}", paramIdf));
-                    return false;
+                    return nullptr;
                 }
                 exp.AddNode(defaultValueExp, new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableRefCached));
                 exp.AddNode(defaultValueExp, new AscmNodeOpCode(OPCODE_SetVariableField));
@@ -4448,10 +4469,10 @@ namespace acts::compiler {
 
         if (badRef) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Can't compile function '{}'", hasName ? name : "<no name>"));
-            return false;
+            return nullptr;
         }
 
-        return true;
+        return &exp;
     }
 
     bool ParseInclude(RuleContext* nsp, gscParser& parser, CompileObject& obj) {

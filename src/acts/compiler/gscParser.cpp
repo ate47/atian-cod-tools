@@ -90,7 +90,7 @@ void gscParserInitialize() {
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,96,696,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,96,697,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
   	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
   	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,
@@ -137,19 +137,19 @@ void gscParserInitialize() {
   	571,8,42,1,42,1,42,1,42,3,42,576,8,42,1,42,1,42,1,42,1,42,3,42,582,8,
   	42,1,42,1,42,1,42,1,42,1,42,1,42,1,42,3,42,591,8,42,1,42,1,42,1,42,1,
   	42,1,42,5,42,598,8,42,10,42,12,42,601,9,42,1,43,1,43,1,43,1,43,1,43,1,
-  	43,1,43,1,43,1,43,1,43,3,43,613,8,43,1,44,1,44,1,44,3,44,618,8,44,1,44,
-  	1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,3,44,630,8,44,1,45,1,45,
-  	1,46,1,46,1,46,1,46,1,46,1,46,1,46,1,46,1,47,1,47,1,47,1,47,3,47,646,
-  	8,47,1,47,1,47,1,47,1,47,1,47,3,47,653,8,47,1,47,5,47,656,8,47,10,47,
-  	12,47,659,9,47,1,47,3,47,662,8,47,3,47,664,8,47,1,47,1,47,1,48,1,48,1,
-  	48,3,48,671,8,48,1,48,1,48,1,48,1,48,1,48,3,48,678,8,48,1,48,1,48,5,48,
-  	682,8,48,10,48,12,48,685,9,48,1,48,3,48,688,8,48,3,48,690,8,48,1,48,1,
-  	48,1,49,1,49,1,49,0,13,50,52,54,56,58,60,62,64,66,68,70,82,84,50,0,2,
-  	4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,
+  	43,1,43,1,43,1,43,1,43,1,43,3,43,614,8,43,1,44,1,44,1,44,3,44,619,8,44,
+  	1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,3,44,631,8,44,1,45,
+  	1,45,1,46,1,46,1,46,1,46,1,46,1,46,1,46,1,46,1,47,1,47,1,47,1,47,3,47,
+  	647,8,47,1,47,1,47,1,47,1,47,1,47,3,47,654,8,47,1,47,5,47,657,8,47,10,
+  	47,12,47,660,9,47,1,47,3,47,663,8,47,3,47,665,8,47,1,47,1,47,1,48,1,48,
+  	1,48,3,48,672,8,48,1,48,1,48,1,48,1,48,1,48,3,48,679,8,48,1,48,1,48,5,
+  	48,683,8,48,10,48,12,48,686,9,48,1,48,3,48,689,8,48,3,48,691,8,48,1,48,
+  	1,48,1,49,1,49,1,49,0,13,50,52,54,56,58,60,62,64,66,68,70,82,84,50,0,
+  	2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,
   	52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,96,
   	98,0,16,1,0,3,4,2,0,92,92,94,94,1,0,21,22,1,0,38,39,1,0,40,42,2,0,23,
   	23,45,55,1,0,60,63,2,0,17,18,64,65,2,0,17,17,64,64,1,0,66,67,1,0,68,69,
-  	2,0,21,21,70,71,1,0,72,73,1,0,74,75,1,0,76,79,1,0,84,87,754,0,108,1,0,
+  	2,0,21,21,70,71,1,0,72,73,1,0,74,75,1,0,76,79,1,0,84,87,756,0,108,1,0,
   	0,0,2,113,1,0,0,0,4,117,1,0,0,0,6,121,1,0,0,0,8,126,1,0,0,0,10,157,1,
   	0,0,0,12,174,1,0,0,0,14,185,1,0,0,0,16,195,1,0,0,0,18,197,1,0,0,0,20,
   	208,1,0,0,0,22,220,1,0,0,0,24,229,1,0,0,0,26,245,1,0,0,0,28,251,1,0,0,
@@ -159,8 +159,8 @@ void gscParserInitialize() {
   	0,58,408,1,0,0,0,60,419,1,0,0,0,62,430,1,0,0,0,64,441,1,0,0,0,66,452,
   	1,0,0,0,68,463,1,0,0,0,70,474,1,0,0,0,72,493,1,0,0,0,74,497,1,0,0,0,76,
   	502,1,0,0,0,78,504,1,0,0,0,80,518,1,0,0,0,82,541,1,0,0,0,84,581,1,0,0,
-  	0,86,612,1,0,0,0,88,629,1,0,0,0,90,631,1,0,0,0,92,633,1,0,0,0,94,641,
-  	1,0,0,0,96,667,1,0,0,0,98,693,1,0,0,0,100,107,5,1,0,0,101,107,5,2,0,0,
+  	0,86,613,1,0,0,0,88,630,1,0,0,0,90,632,1,0,0,0,92,634,1,0,0,0,94,642,
+  	1,0,0,0,96,668,1,0,0,0,98,694,1,0,0,0,100,107,5,1,0,0,101,107,5,2,0,0,
   	102,107,3,8,4,0,103,107,3,2,1,0,104,107,3,4,2,0,105,107,3,6,3,0,106,100,
   	1,0,0,0,106,101,1,0,0,0,106,102,1,0,0,0,106,103,1,0,0,0,106,104,1,0,0,
   	0,106,105,1,0,0,0,107,110,1,0,0,0,108,106,1,0,0,0,108,109,1,0,0,0,109,
@@ -299,38 +299,39 @@ void gscParserInitialize() {
   	590,585,1,0,0,0,590,586,1,0,0,0,591,598,1,0,0,0,592,593,10,3,0,0,593,
   	594,5,14,0,0,594,595,3,46,23,0,595,596,5,15,0,0,596,598,1,0,0,0,597,583,
   	1,0,0,0,597,592,1,0,0,0,598,601,1,0,0,0,599,597,1,0,0,0,599,600,1,0,0,
-  	0,600,85,1,0,0,0,601,599,1,0,0,0,602,613,3,92,46,0,603,613,3,94,47,0,
-  	604,613,3,96,48,0,605,613,3,90,45,0,606,613,5,90,0,0,607,613,5,88,0,0,
-  	608,613,5,95,0,0,609,613,5,96,0,0,610,613,5,91,0,0,611,613,3,88,44,0,
-  	612,602,1,0,0,0,612,603,1,0,0,0,612,604,1,0,0,0,612,605,1,0,0,0,612,606,
-  	1,0,0,0,612,607,1,0,0,0,612,608,1,0,0,0,612,609,1,0,0,0,612,610,1,0,0,
-  	0,612,611,1,0,0,0,613,87,1,0,0,0,614,617,5,22,0,0,615,616,5,92,0,0,616,
-  	618,5,19,0,0,617,615,1,0,0,0,617,618,1,0,0,0,618,619,1,0,0,0,619,630,
-  	5,92,0,0,620,621,5,81,0,0,621,622,5,92,0,0,622,623,5,17,0,0,623,624,5,
-  	94,0,0,624,625,5,18,0,0,625,626,5,19,0,0,626,630,5,92,0,0,627,628,5,22,
-  	0,0,628,630,3,84,42,0,629,614,1,0,0,0,629,620,1,0,0,0,629,627,1,0,0,0,
-  	630,89,1,0,0,0,631,632,7,15,0,0,632,91,1,0,0,0,633,634,5,11,0,0,634,635,
-  	3,46,23,0,635,636,5,20,0,0,636,637,3,46,23,0,637,638,5,20,0,0,638,639,
-  	3,46,23,0,639,640,5,12,0,0,640,93,1,0,0,0,641,663,5,14,0,0,642,643,3,
-  	46,23,0,643,644,5,27,0,0,644,646,1,0,0,0,645,642,1,0,0,0,645,646,1,0,
-  	0,0,646,647,1,0,0,0,647,657,3,46,23,0,648,652,5,20,0,0,649,650,3,46,23,
-  	0,650,651,5,27,0,0,651,653,1,0,0,0,652,649,1,0,0,0,652,653,1,0,0,0,653,
-  	654,1,0,0,0,654,656,3,46,23,0,655,648,1,0,0,0,656,659,1,0,0,0,657,655,
-  	1,0,0,0,657,658,1,0,0,0,658,661,1,0,0,0,659,657,1,0,0,0,660,662,5,20,
-  	0,0,661,660,1,0,0,0,661,662,1,0,0,0,662,664,1,0,0,0,663,645,1,0,0,0,663,
-  	664,1,0,0,0,664,665,1,0,0,0,665,666,5,15,0,0,666,95,1,0,0,0,667,689,5,
-  	25,0,0,668,671,5,93,0,0,669,671,3,46,23,0,670,668,1,0,0,0,670,669,1,0,
-  	0,0,671,672,1,0,0,0,672,673,5,27,0,0,673,683,3,46,23,0,674,677,5,20,0,
-  	0,675,678,5,93,0,0,676,678,3,46,23,0,677,675,1,0,0,0,677,676,1,0,0,0,
-  	678,679,1,0,0,0,679,680,5,27,0,0,680,682,3,46,23,0,681,674,1,0,0,0,682,
-  	685,1,0,0,0,683,681,1,0,0,0,683,684,1,0,0,0,684,687,1,0,0,0,685,683,1,
-  	0,0,0,686,688,5,20,0,0,687,686,1,0,0,0,687,688,1,0,0,0,688,690,1,0,0,
-  	0,689,670,1,0,0,0,689,690,1,0,0,0,690,691,1,0,0,0,691,692,5,26,0,0,692,
-  	97,1,0,0,0,693,694,5,92,0,0,694,99,1,0,0,0,77,106,108,126,129,136,138,
-  	144,147,150,164,171,174,177,182,185,192,195,201,208,218,224,232,236,240,
-  	263,277,287,293,298,308,317,326,343,348,358,372,383,394,405,416,427,438,
-  	449,460,471,482,493,497,502,511,518,522,531,534,541,545,554,562,570,575,
-  	581,590,597,599,612,617,629,645,652,657,661,663,670,677,683,687,689
+  	0,600,85,1,0,0,0,601,599,1,0,0,0,602,614,3,92,46,0,603,614,3,94,47,0,
+  	604,614,3,96,48,0,605,614,3,90,45,0,606,614,3,8,4,0,607,614,5,90,0,0,
+  	608,614,5,88,0,0,609,614,5,95,0,0,610,614,5,96,0,0,611,614,5,91,0,0,612,
+  	614,3,88,44,0,613,602,1,0,0,0,613,603,1,0,0,0,613,604,1,0,0,0,613,605,
+  	1,0,0,0,613,606,1,0,0,0,613,607,1,0,0,0,613,608,1,0,0,0,613,609,1,0,0,
+  	0,613,610,1,0,0,0,613,611,1,0,0,0,613,612,1,0,0,0,614,87,1,0,0,0,615,
+  	618,5,22,0,0,616,617,5,92,0,0,617,619,5,19,0,0,618,616,1,0,0,0,618,619,
+  	1,0,0,0,619,620,1,0,0,0,620,631,5,92,0,0,621,622,5,81,0,0,622,623,5,92,
+  	0,0,623,624,5,17,0,0,624,625,5,94,0,0,625,626,5,18,0,0,626,627,5,19,0,
+  	0,627,631,5,92,0,0,628,629,5,22,0,0,629,631,3,84,42,0,630,615,1,0,0,0,
+  	630,621,1,0,0,0,630,628,1,0,0,0,631,89,1,0,0,0,632,633,7,15,0,0,633,91,
+  	1,0,0,0,634,635,5,11,0,0,635,636,3,46,23,0,636,637,5,20,0,0,637,638,3,
+  	46,23,0,638,639,5,20,0,0,639,640,3,46,23,0,640,641,5,12,0,0,641,93,1,
+  	0,0,0,642,664,5,14,0,0,643,644,3,46,23,0,644,645,5,27,0,0,645,647,1,0,
+  	0,0,646,643,1,0,0,0,646,647,1,0,0,0,647,648,1,0,0,0,648,658,3,46,23,0,
+  	649,653,5,20,0,0,650,651,3,46,23,0,651,652,5,27,0,0,652,654,1,0,0,0,653,
+  	650,1,0,0,0,653,654,1,0,0,0,654,655,1,0,0,0,655,657,3,46,23,0,656,649,
+  	1,0,0,0,657,660,1,0,0,0,658,656,1,0,0,0,658,659,1,0,0,0,659,662,1,0,0,
+  	0,660,658,1,0,0,0,661,663,5,20,0,0,662,661,1,0,0,0,662,663,1,0,0,0,663,
+  	665,1,0,0,0,664,646,1,0,0,0,664,665,1,0,0,0,665,666,1,0,0,0,666,667,5,
+  	15,0,0,667,95,1,0,0,0,668,690,5,25,0,0,669,672,5,93,0,0,670,672,3,46,
+  	23,0,671,669,1,0,0,0,671,670,1,0,0,0,672,673,1,0,0,0,673,674,5,27,0,0,
+  	674,684,3,46,23,0,675,678,5,20,0,0,676,679,5,93,0,0,677,679,3,46,23,0,
+  	678,676,1,0,0,0,678,677,1,0,0,0,679,680,1,0,0,0,680,681,5,27,0,0,681,
+  	683,3,46,23,0,682,675,1,0,0,0,683,686,1,0,0,0,684,682,1,0,0,0,684,685,
+  	1,0,0,0,685,688,1,0,0,0,686,684,1,0,0,0,687,689,5,20,0,0,688,687,1,0,
+  	0,0,688,689,1,0,0,0,689,691,1,0,0,0,690,671,1,0,0,0,690,691,1,0,0,0,691,
+  	692,1,0,0,0,692,693,5,26,0,0,693,97,1,0,0,0,694,695,5,92,0,0,695,99,1,
+  	0,0,0,77,106,108,126,129,136,138,144,147,150,164,171,174,177,182,185,
+  	192,195,201,208,218,224,232,236,240,263,277,287,293,298,308,317,326,343,
+  	348,358,372,383,394,405,416,427,438,449,460,471,482,493,497,502,511,518,
+  	522,531,534,541,545,554,562,570,575,581,590,597,599,613,618,630,646,653,
+  	658,662,664,671,678,684,688,690
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -1159,7 +1160,7 @@ gscParser::Expression_listContext* gscParser::expression_list() {
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 37767168) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 37842688) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 27128575) != 0)) {
       setState(187);
       expression();
@@ -1234,7 +1235,7 @@ gscParser::Statement_blockContext* gscParser::statement_block() {
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 8568229087234) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 8568229162754) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 27259647) != 0)) {
       setState(198);
       statement();
@@ -1450,7 +1451,7 @@ gscParser::Statement_dev_blockContext* gscParser::statement_dev_block() {
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 8568229087234) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 8568229162754) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 27259647) != 0)) {
       setState(221);
       statement();
@@ -1525,7 +1526,7 @@ gscParser::Statement_forContext* gscParser::statement_for() {
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 37767168) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 37842688) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 27128575) != 0)) {
       setState(231);
       expression();
@@ -1537,7 +1538,7 @@ gscParser::Statement_forContext* gscParser::statement_for() {
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 37767168) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 37842688) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 27128575) != 0)) {
       setState(235);
       expression();
@@ -1549,7 +1550,7 @@ gscParser::Statement_forContext* gscParser::statement_for() {
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 37767168) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 37842688) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 27128575) != 0)) {
       setState(239);
       expression();
@@ -1950,7 +1951,7 @@ gscParser::Statement_switchContext* gscParser::statement_switch() {
       _errHandler->sync(this);
       _la = _input->LA(1);
       while ((((_la & ~ 0x3fULL) == 0) &&
-        ((1ULL << _la) & 8568229087234) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+        ((1ULL << _la) & 8568229162754) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
         ((1ULL << (_la - 72)) & 27259647) != 0)) {
         setState(290);
         statement();
@@ -4474,6 +4475,10 @@ gscParser::NumberContext* gscParser::Const_exprContext::number() {
   return getRuleContext<gscParser::NumberContext>(0);
 }
 
+gscParser::FunctionContext* gscParser::Const_exprContext::function() {
+  return getRuleContext<gscParser::FunctionContext>(0);
+}
+
 tree::TerminalNode* gscParser::Const_exprContext::BOOL_VALUE() {
   return getToken(gscParser::BOOL_VALUE, 0);
 }
@@ -4523,85 +4528,88 @@ gscParser::Const_exprContext* gscParser::const_expr() {
     exitRule();
   });
   try {
-    setState(612);
+    setState(613);
     _errHandler->sync(this);
-    switch (_input->LA(1)) {
-      case gscParser::T__10: {
-        enterOuterAlt(_localctx, 1);
-        setState(602);
-        vector_value();
-        break;
-      }
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 64, _ctx)) {
+    case 1: {
+      enterOuterAlt(_localctx, 1);
+      setState(602);
+      vector_value();
+      break;
+    }
 
-      case gscParser::T__13: {
-        enterOuterAlt(_localctx, 2);
-        setState(603);
-        array_def();
-        break;
-      }
+    case 2: {
+      enterOuterAlt(_localctx, 2);
+      setState(603);
+      array_def();
+      break;
+    }
 
-      case gscParser::T__24: {
-        enterOuterAlt(_localctx, 3);
-        setState(604);
-        struct_def();
-        break;
-      }
+    case 3: {
+      enterOuterAlt(_localctx, 3);
+      setState(604);
+      struct_def();
+      break;
+    }
 
-      case gscParser::INTEGER10:
-      case gscParser::INTEGER16:
-      case gscParser::INTEGER8:
-      case gscParser::INTEGER2: {
-        enterOuterAlt(_localctx, 4);
-        setState(605);
-        number();
-        break;
-      }
+    case 4: {
+      enterOuterAlt(_localctx, 4);
+      setState(605);
+      number();
+      break;
+    }
 
-      case gscParser::BOOL_VALUE: {
-        enterOuterAlt(_localctx, 5);
-        setState(606);
-        match(gscParser::BOOL_VALUE);
-        break;
-      }
+    case 5: {
+      enterOuterAlt(_localctx, 5);
+      setState(606);
+      function();
+      break;
+    }
 
-      case gscParser::FLOATVAL: {
-        enterOuterAlt(_localctx, 6);
-        setState(607);
-        match(gscParser::FLOATVAL);
-        break;
-      }
+    case 6: {
+      enterOuterAlt(_localctx, 6);
+      setState(607);
+      match(gscParser::BOOL_VALUE);
+      break;
+    }
 
-      case gscParser::STRING: {
-        enterOuterAlt(_localctx, 7);
-        setState(608);
-        match(gscParser::STRING);
-        break;
-      }
+    case 7: {
+      enterOuterAlt(_localctx, 7);
+      setState(608);
+      match(gscParser::FLOATVAL);
+      break;
+    }
 
-      case gscParser::HASHSTRING: {
-        enterOuterAlt(_localctx, 8);
-        setState(609);
-        match(gscParser::HASHSTRING);
-        break;
-      }
+    case 8: {
+      enterOuterAlt(_localctx, 8);
+      setState(609);
+      match(gscParser::STRING);
+      break;
+    }
 
-      case gscParser::UNDEFINED_VALUE: {
-        enterOuterAlt(_localctx, 9);
-        setState(610);
-        match(gscParser::UNDEFINED_VALUE);
-        break;
-      }
+    case 9: {
+      enterOuterAlt(_localctx, 9);
+      setState(610);
+      match(gscParser::HASHSTRING);
+      break;
+    }
 
-      case gscParser::T__21:
-      case gscParser::T__80: {
-        enterOuterAlt(_localctx, 10);
-        setState(611);
-        function_ref();
-        break;
-      }
+    case 10: {
+      enterOuterAlt(_localctx, 10);
+      setState(611);
+      match(gscParser::UNDEFINED_VALUE);
+      break;
+    }
+
+    case 11: {
+      enterOuterAlt(_localctx, 11);
+      setState(612);
+      function_ref();
+      break;
+    }
 
     default:
-      throw NoViableAltException(this);
+      break;
     }
    
   }
@@ -4661,21 +4669,21 @@ gscParser::Function_refContext* gscParser::function_ref() {
     exitRule();
   });
   try {
-    setState(629);
+    setState(630);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 66, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(614);
+      setState(615);
       match(gscParser::T__21);
-      setState(617);
+      setState(618);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 65, _ctx)) {
       case 1: {
-        setState(615);
-        match(gscParser::IDENTIFIER);
         setState(616);
+        match(gscParser::IDENTIFIER);
+        setState(617);
         match(gscParser::T__18);
         break;
       }
@@ -4683,35 +4691,35 @@ gscParser::Function_refContext* gscParser::function_ref() {
       default:
         break;
       }
-      setState(619);
+      setState(620);
       match(gscParser::IDENTIFIER);
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(620);
-      match(gscParser::T__80);
       setState(621);
-      match(gscParser::IDENTIFIER);
+      match(gscParser::T__80);
       setState(622);
-      match(gscParser::T__16);
+      match(gscParser::IDENTIFIER);
       setState(623);
-      match(gscParser::PATH);
+      match(gscParser::T__16);
       setState(624);
-      match(gscParser::T__17);
+      match(gscParser::PATH);
       setState(625);
-      match(gscParser::T__18);
+      match(gscParser::T__17);
       setState(626);
+      match(gscParser::T__18);
+      setState(627);
       match(gscParser::IDENTIFIER);
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(627);
-      match(gscParser::T__21);
       setState(628);
+      match(gscParser::T__21);
+      setState(629);
       left_value(0);
       break;
     }
@@ -4779,7 +4787,7 @@ gscParser::NumberContext* gscParser::number() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(631);
+    setState(632);
     _la = _input->LA(1);
     if (!(((((_la - 84) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 84)) & 15) != 0))) {
@@ -4840,19 +4848,19 @@ gscParser::Vector_valueContext* gscParser::vector_value() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(633);
-    match(gscParser::T__10);
     setState(634);
-    expression();
+    match(gscParser::T__10);
     setState(635);
-    match(gscParser::T__19);
+    expression();
     setState(636);
-    expression();
-    setState(637);
     match(gscParser::T__19);
-    setState(638);
+    setState(637);
     expression();
+    setState(638);
+    match(gscParser::T__19);
     setState(639);
+    expression();
+    setState(640);
     match(gscParser::T__11);
    
   }
@@ -4907,23 +4915,23 @@ gscParser::Array_defContext* gscParser::array_def() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(641);
+    setState(642);
     match(gscParser::T__13);
-    setState(663);
+    setState(664);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 37767168) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 37842688) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 27128575) != 0)) {
-      setState(645);
+      setState(646);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 67, _ctx)) {
       case 1: {
-        setState(642);
-        expression();
         setState(643);
+        expression();
+        setState(644);
         match(gscParser::T__26);
         break;
       }
@@ -4931,23 +4939,23 @@ gscParser::Array_defContext* gscParser::array_def() {
       default:
         break;
       }
-      setState(647);
+      setState(648);
       expression();
-      setState(657);
+      setState(658);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 69, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(648);
+          setState(649);
           match(gscParser::T__19);
-          setState(652);
+          setState(653);
           _errHandler->sync(this);
 
           switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 68, _ctx)) {
           case 1: {
-            setState(649);
-            expression();
             setState(650);
+            expression();
+            setState(651);
             match(gscParser::T__26);
             break;
           }
@@ -4955,23 +4963,23 @@ gscParser::Array_defContext* gscParser::array_def() {
           default:
             break;
           }
-          setState(654);
+          setState(655);
           expression(); 
         }
-        setState(659);
+        setState(660);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 69, _ctx);
       }
-      setState(661);
+      setState(662);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == gscParser::T__19) {
-        setState(660);
+        setState(661);
         match(gscParser::T__19);
       }
     }
-    setState(665);
+    setState(666);
     match(gscParser::T__14);
    
   }
@@ -5034,26 +5042,31 @@ gscParser::Struct_defContext* gscParser::struct_def() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(667);
+    setState(668);
     match(gscParser::T__24);
-    setState(689);
+    setState(690);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 37767168) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 37842688) != 0) || ((((_la - 72) & ~ 0x3fULL) == 0) &&
       ((1ULL << (_la - 72)) & 29225727) != 0)) {
-      setState(670);
+      setState(671);
       _errHandler->sync(this);
       switch (_input->LA(1)) {
         case gscParser::STRUCT_IDENTIFIER: {
-          setState(668);
+          setState(669);
           match(gscParser::STRUCT_IDENTIFIER);
           break;
         }
 
+        case gscParser::T__7:
+        case gscParser::T__8:
+        case gscParser::T__9:
         case gscParser::T__10:
+        case gscParser::T__12:
         case gscParser::T__13:
+        case gscParser::T__15:
         case gscParser::T__21:
         case gscParser::T__24:
         case gscParser::T__71:
@@ -5075,7 +5088,7 @@ gscParser::Struct_defContext* gscParser::struct_def() {
         case gscParser::IDENTIFIER:
         case gscParser::STRING:
         case gscParser::HASHSTRING: {
-          setState(669);
+          setState(670);
           expression();
           break;
         }
@@ -5083,28 +5096,33 @@ gscParser::Struct_defContext* gscParser::struct_def() {
       default:
         throw NoViableAltException(this);
       }
-      setState(672);
-      match(gscParser::T__26);
       setState(673);
+      match(gscParser::T__26);
+      setState(674);
       expression();
-      setState(683);
+      setState(684);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 74, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(674);
+          setState(675);
           match(gscParser::T__19);
-          setState(677);
+          setState(678);
           _errHandler->sync(this);
           switch (_input->LA(1)) {
             case gscParser::STRUCT_IDENTIFIER: {
-              setState(675);
+              setState(676);
               match(gscParser::STRUCT_IDENTIFIER);
               break;
             }
 
+            case gscParser::T__7:
+            case gscParser::T__8:
+            case gscParser::T__9:
             case gscParser::T__10:
+            case gscParser::T__12:
             case gscParser::T__13:
+            case gscParser::T__15:
             case gscParser::T__21:
             case gscParser::T__24:
             case gscParser::T__71:
@@ -5126,7 +5144,7 @@ gscParser::Struct_defContext* gscParser::struct_def() {
             case gscParser::IDENTIFIER:
             case gscParser::STRING:
             case gscParser::HASHSTRING: {
-              setState(676);
+              setState(677);
               expression();
               break;
             }
@@ -5134,25 +5152,25 @@ gscParser::Struct_defContext* gscParser::struct_def() {
           default:
             throw NoViableAltException(this);
           }
-          setState(679);
-          match(gscParser::T__26);
           setState(680);
+          match(gscParser::T__26);
+          setState(681);
           expression(); 
         }
-        setState(685);
+        setState(686);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 74, _ctx);
       }
-      setState(687);
+      setState(688);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == gscParser::T__19) {
-        setState(686);
+        setState(687);
         match(gscParser::T__19);
       }
     }
-    setState(691);
+    setState(692);
     match(gscParser::T__25);
    
   }
@@ -5201,7 +5219,7 @@ gscParser::IdfContext* gscParser::idf() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(693);
+    setState(694);
     match(gscParser::IDENTIFIER);
    
   }
