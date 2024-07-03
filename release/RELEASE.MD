@@ -1,13 +1,12 @@
 - tools
-  - the decompiler can read gshc/cshc files
-  - gdb data dumper in decompiler
-  - dump opcode database
-  - t7 dump pools (raw,csv,json)
-  - t9 alpha decompiler/compiler
-  - t9 alpha injector
-  - add jup scripts revision find
-  - 8b decompiler/compiler
-  - 8a/b decompiler: fix get_undefined type for foreach cleanup
-  - 8b decryption
-- ui
-  - t7 hash tool
+  - fix bugs with T9 decompiler
+  - switch mode T9 dll
+  - gsc compiler 
+	- dev block
+	- acts detours
+	- acts debug header lazylink/detour/devblocks/crc
+	- expression for names in struct creation for Treyarch VMs
+	- profilenamedstart/stop operator (T9)
+	- fix jupb crc emit, variable opcode and field hashes
+	- gsc lambdas
+  - wip ADL compiler
