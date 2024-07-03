@@ -79,11 +79,39 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitNumber(adlParser::NumberContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNumber_op1(adlParser::Number_op1Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNumber_op2(adlParser::Number_op2Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNumber_op3(adlParser::Number_op3Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNumber_op4(adlParser::Number_op4Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNumber_op5(adlParser::Number_op5Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNumber_op6(adlParser::Number_op6Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitIdf(adlParser::IdfContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitNumber(adlParser::NumberContext *ctx) override {
+  virtual std::any visitNumber_raw(adlParser::Number_rawContext *ctx) override {
     return visitChildren(ctx);
   }
 

@@ -1,5 +1,5 @@
-#root root;
-#align 8; // force align to 8
+#root root
+#align 8 // force align to 8
 
 /*
   ADL files are definitions describing a binary data structure, it accepts pointer.
@@ -7,27 +7,27 @@
  */
 #warning work in progress
 
-typedef uint32_t test_typedef;
+typedef uint32_t test_typedef
 
-#include "test2.adl";
+#include "test2.adl"
 
-typedef test_include test_typedef2;
+typedef test_include test_typedef2
 
-customtype 0x8 xassetref;
+customtype 0x8 xassetref
 
 
 struct align(4) size(0x8) foo {
     int a;
     int b;
-};
+}
 
 struct size(8) bar {
     int a;
     int b;
 
-};
+}
 
-struct test_align {
+struct size(4 * 2 + 8 + (4)) test_align {
     int a;
     int64 b;
     int c;
@@ -36,21 +36,28 @@ struct test_align {
 struct align(8) xasset_header {
     byte type;
     xassetref ref;
-};
+}
 
 flag test_flag : byte {
     VALUE1 = 1,
     VALUE2 = 2,
     VALUE3 = 4,
     VALUE4 = 8
-};
+}
+
+flag test_flag_op : byte {
+    VALUE1 = 1 << 0,
+    VALUE2 = 1 << 1,
+    VALUE3 = 1 << 2,
+    VALUE4 = 1 << 3,
+}
 
 enum test_enum : int64_t {
     VALUE1 = 1,
     VALUE2,
     VALUE3,
     VALUE4 = 0xFFFFFFFF
-};
+}
 
 struct size(0x38) root {
     int* test; // 8
@@ -61,4 +68,4 @@ struct size(0x38) root {
     foo val; // 30
     bar val2; // 38
     $assert_offset 0x38;
-};
+}

@@ -55,71 +55,104 @@ void adlParserInitialize() {
       "prog", "def", "root_def", "include_def", "align_def", "type_def", 
       "struct_def", "flag_def", "enum_def", "customtype_def", "struct_members", 
       "enum_members", "struct_member", "data_member", "data_operator", "enum_member", 
-      "idf", "number"
+      "number", "number_op1", "number_op2", "number_op3", "number_op4", 
+      "number_op5", "number_op6", "idf", "number_raw"
     },
     std::vector<std::string>{
       "", "';'", "'#root'", "'#include'", "'#align'", "'typedef'", "'struct'", 
       "'align'", "'('", "')'", "'size'", "'{'", "'}'", "'flag'", "':'", 
       "'enum'", "'customtype'", "','", "'*'", "'['", "']'", "'$padding'", 
-      "'$assert_offset'", "'='"
+      "'$assert_offset'", "'='", "'|'", "'^'", "'&'", "'<<'", "'>>'", "'+'", 
+      "'-'", "'/'", "'%'", "'~'"
     },
     std::vector<std::string>{
       "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
-      "", "", "", "", "", "", "", "NEWLINE", "WHITESPACE", "INTEGER10", 
-      "INTEGER16", "INTEGER8", "INTEGER2", "BOOL_VALUE", "IDENTIFIER", "STRING"
+      "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
+      "NEWLINE", "WHITESPACE", "INTEGER10", "INTEGER16", "INTEGER8", "INTEGER2", 
+      "BOOL_VALUE", "IDENTIFIER", "STRING"
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,32,162,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,42,251,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
-  	14,2,15,7,15,2,16,7,16,2,17,7,17,1,0,5,0,38,8,0,10,0,12,0,41,9,0,1,0,
-  	1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,53,8,1,1,1,3,1,56,8,1,1,2,1,2,
+  	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
+  	21,2,22,7,22,2,23,7,23,2,24,7,24,1,0,5,0,52,8,0,10,0,12,0,55,9,0,1,0,
+  	1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,67,8,1,1,1,3,1,70,8,1,1,2,1,2,
   	1,2,1,3,1,3,1,3,1,4,1,4,1,4,1,5,1,5,1,5,1,5,1,6,1,6,1,6,1,6,1,6,1,6,3,
-  	6,77,8,6,1,6,1,6,1,6,1,6,1,6,3,6,84,8,6,1,6,1,6,1,6,1,6,1,6,1,7,1,7,1,
+  	6,91,8,6,1,6,1,6,1,6,1,6,1,6,3,6,98,8,6,1,6,1,6,1,6,1,6,1,6,1,7,1,7,1,
   	7,1,7,1,7,1,7,1,7,1,7,1,8,1,8,1,8,1,8,1,8,1,8,1,8,1,8,1,9,1,9,1,9,1,9,
-  	1,10,1,10,1,10,5,10,114,8,10,10,10,12,10,117,9,10,1,11,1,11,1,11,5,11,
-  	122,8,11,10,11,12,11,125,9,11,1,11,3,11,128,8,11,3,11,130,8,11,1,12,1,
-  	12,3,12,134,8,12,1,13,1,13,3,13,138,8,13,1,13,1,13,1,13,1,13,1,13,3,13,
-  	145,8,13,1,14,1,14,1,14,1,15,1,15,3,15,152,8,15,1,15,1,15,3,15,156,8,
-  	15,1,16,1,16,1,17,1,17,1,17,0,0,18,0,2,4,6,8,10,12,14,16,18,20,22,24,
-  	26,28,30,32,34,0,2,1,0,21,22,1,0,26,29,163,0,39,1,0,0,0,2,52,1,0,0,0,
-  	4,57,1,0,0,0,6,60,1,0,0,0,8,63,1,0,0,0,10,66,1,0,0,0,12,70,1,0,0,0,14,
-  	90,1,0,0,0,16,98,1,0,0,0,18,106,1,0,0,0,20,115,1,0,0,0,22,129,1,0,0,0,
-  	24,133,1,0,0,0,26,135,1,0,0,0,28,146,1,0,0,0,30,151,1,0,0,0,32,157,1,
-  	0,0,0,34,159,1,0,0,0,36,38,3,2,1,0,37,36,1,0,0,0,38,41,1,0,0,0,39,37,
-  	1,0,0,0,39,40,1,0,0,0,40,42,1,0,0,0,41,39,1,0,0,0,42,43,5,0,0,1,43,1,
-  	1,0,0,0,44,53,3,12,6,0,45,53,3,14,7,0,46,53,3,16,8,0,47,53,3,4,2,0,48,
-  	53,3,8,4,0,49,53,3,10,5,0,50,53,3,6,3,0,51,53,3,18,9,0,52,44,1,0,0,0,
-  	52,45,1,0,0,0,52,46,1,0,0,0,52,47,1,0,0,0,52,48,1,0,0,0,52,49,1,0,0,0,
-  	52,50,1,0,0,0,52,51,1,0,0,0,53,55,1,0,0,0,54,56,5,1,0,0,55,54,1,0,0,0,
-  	55,56,1,0,0,0,56,3,1,0,0,0,57,58,5,2,0,0,58,59,3,32,16,0,59,5,1,0,0,0,
-  	60,61,5,3,0,0,61,62,5,32,0,0,62,7,1,0,0,0,63,64,5,4,0,0,64,65,3,34,17,
-  	0,65,9,1,0,0,0,66,67,5,5,0,0,67,68,3,32,16,0,68,69,3,32,16,0,69,11,1,
-  	0,0,0,70,76,5,6,0,0,71,72,5,7,0,0,72,73,5,8,0,0,73,74,3,34,17,0,74,75,
-  	5,9,0,0,75,77,1,0,0,0,76,71,1,0,0,0,76,77,1,0,0,0,77,83,1,0,0,0,78,79,
-  	5,10,0,0,79,80,5,8,0,0,80,81,3,34,17,0,81,82,5,9,0,0,82,84,1,0,0,0,83,
-  	78,1,0,0,0,83,84,1,0,0,0,84,85,1,0,0,0,85,86,3,32,16,0,86,87,5,11,0,0,
-  	87,88,3,20,10,0,88,89,5,12,0,0,89,13,1,0,0,0,90,91,5,13,0,0,91,92,3,32,
-  	16,0,92,93,5,14,0,0,93,94,3,32,16,0,94,95,5,11,0,0,95,96,3,22,11,0,96,
-  	97,5,12,0,0,97,15,1,0,0,0,98,99,5,15,0,0,99,100,3,32,16,0,100,101,5,14,
-  	0,0,101,102,3,32,16,0,102,103,5,11,0,0,103,104,3,22,11,0,104,105,5,12,
-  	0,0,105,17,1,0,0,0,106,107,5,16,0,0,107,108,3,34,17,0,108,109,3,32,16,
-  	0,109,19,1,0,0,0,110,111,3,24,12,0,111,112,5,1,0,0,112,114,1,0,0,0,113,
-  	110,1,0,0,0,114,117,1,0,0,0,115,113,1,0,0,0,115,116,1,0,0,0,116,21,1,
-  	0,0,0,117,115,1,0,0,0,118,123,3,30,15,0,119,120,5,17,0,0,120,122,3,30,
-  	15,0,121,119,1,0,0,0,122,125,1,0,0,0,123,121,1,0,0,0,123,124,1,0,0,0,
-  	124,127,1,0,0,0,125,123,1,0,0,0,126,128,5,17,0,0,127,126,1,0,0,0,127,
-  	128,1,0,0,0,128,130,1,0,0,0,129,118,1,0,0,0,129,130,1,0,0,0,130,23,1,
-  	0,0,0,131,134,3,26,13,0,132,134,3,28,14,0,133,131,1,0,0,0,133,132,1,0,
-  	0,0,134,25,1,0,0,0,135,137,3,32,16,0,136,138,5,18,0,0,137,136,1,0,0,0,
-  	137,138,1,0,0,0,138,139,1,0,0,0,139,144,3,32,16,0,140,141,5,19,0,0,141,
-  	142,3,34,17,0,142,143,5,20,0,0,143,145,1,0,0,0,144,140,1,0,0,0,144,145,
-  	1,0,0,0,145,27,1,0,0,0,146,147,7,0,0,0,147,148,3,34,17,0,148,29,1,0,0,
-  	0,149,152,5,32,0,0,150,152,3,32,16,0,151,149,1,0,0,0,151,150,1,0,0,0,
-  	152,155,1,0,0,0,153,154,5,23,0,0,154,156,3,34,17,0,155,153,1,0,0,0,155,
-  	156,1,0,0,0,156,31,1,0,0,0,157,158,5,31,0,0,158,33,1,0,0,0,159,160,7,
-  	1,0,0,160,35,1,0,0,0,14,39,52,55,76,83,115,123,127,129,133,137,144,151,
-  	155
+  	1,10,1,10,1,10,5,10,128,8,10,10,10,12,10,131,9,10,1,11,1,11,1,11,5,11,
+  	136,8,11,10,11,12,11,139,9,11,1,11,3,11,142,8,11,3,11,144,8,11,1,12,1,
+  	12,3,12,148,8,12,1,13,1,13,3,13,152,8,13,1,13,1,13,1,13,1,13,1,13,3,13,
+  	159,8,13,1,14,1,14,1,14,1,15,1,15,3,15,166,8,15,1,15,1,15,3,15,170,8,
+  	15,1,16,1,16,1,16,1,16,1,16,1,16,5,16,178,8,16,10,16,12,16,181,9,16,1,
+  	17,1,17,1,17,1,17,1,17,1,17,5,17,189,8,17,10,17,12,17,192,9,17,1,18,1,
+  	18,1,18,1,18,1,18,1,18,5,18,200,8,18,10,18,12,18,203,9,18,1,19,1,19,1,
+  	19,1,19,1,19,1,19,5,19,211,8,19,10,19,12,19,214,9,19,1,20,1,20,1,20,1,
+  	20,1,20,1,20,5,20,222,8,20,10,20,12,20,225,9,20,1,21,1,21,1,21,1,21,1,
+  	21,1,21,5,21,233,8,21,10,21,12,21,236,9,21,1,22,1,22,1,22,1,22,1,22,1,
+  	22,1,22,3,22,245,8,22,1,23,1,23,1,24,1,24,1,24,0,6,32,34,36,38,40,42,
+  	25,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,
+  	48,0,5,1,0,21,22,1,0,27,28,1,0,29,30,2,0,18,18,31,32,1,0,36,39,253,0,
+  	53,1,0,0,0,2,66,1,0,0,0,4,71,1,0,0,0,6,74,1,0,0,0,8,77,1,0,0,0,10,80,
+  	1,0,0,0,12,84,1,0,0,0,14,104,1,0,0,0,16,112,1,0,0,0,18,120,1,0,0,0,20,
+  	129,1,0,0,0,22,143,1,0,0,0,24,147,1,0,0,0,26,149,1,0,0,0,28,160,1,0,0,
+  	0,30,165,1,0,0,0,32,171,1,0,0,0,34,182,1,0,0,0,36,193,1,0,0,0,38,204,
+  	1,0,0,0,40,215,1,0,0,0,42,226,1,0,0,0,44,244,1,0,0,0,46,246,1,0,0,0,48,
+  	248,1,0,0,0,50,52,3,2,1,0,51,50,1,0,0,0,52,55,1,0,0,0,53,51,1,0,0,0,53,
+  	54,1,0,0,0,54,56,1,0,0,0,55,53,1,0,0,0,56,57,5,0,0,1,57,1,1,0,0,0,58,
+  	67,3,12,6,0,59,67,3,14,7,0,60,67,3,16,8,0,61,67,3,4,2,0,62,67,3,8,4,0,
+  	63,67,3,10,5,0,64,67,3,6,3,0,65,67,3,18,9,0,66,58,1,0,0,0,66,59,1,0,0,
+  	0,66,60,1,0,0,0,66,61,1,0,0,0,66,62,1,0,0,0,66,63,1,0,0,0,66,64,1,0,0,
+  	0,66,65,1,0,0,0,67,69,1,0,0,0,68,70,5,1,0,0,69,68,1,0,0,0,69,70,1,0,0,
+  	0,70,3,1,0,0,0,71,72,5,2,0,0,72,73,3,46,23,0,73,5,1,0,0,0,74,75,5,3,0,
+  	0,75,76,5,42,0,0,76,7,1,0,0,0,77,78,5,4,0,0,78,79,3,32,16,0,79,9,1,0,
+  	0,0,80,81,5,5,0,0,81,82,3,46,23,0,82,83,3,46,23,0,83,11,1,0,0,0,84,90,
+  	5,6,0,0,85,86,5,7,0,0,86,87,5,8,0,0,87,88,3,32,16,0,88,89,5,9,0,0,89,
+  	91,1,0,0,0,90,85,1,0,0,0,90,91,1,0,0,0,91,97,1,0,0,0,92,93,5,10,0,0,93,
+  	94,5,8,0,0,94,95,3,32,16,0,95,96,5,9,0,0,96,98,1,0,0,0,97,92,1,0,0,0,
+  	97,98,1,0,0,0,98,99,1,0,0,0,99,100,3,46,23,0,100,101,5,11,0,0,101,102,
+  	3,20,10,0,102,103,5,12,0,0,103,13,1,0,0,0,104,105,5,13,0,0,105,106,3,
+  	46,23,0,106,107,5,14,0,0,107,108,3,46,23,0,108,109,5,11,0,0,109,110,3,
+  	22,11,0,110,111,5,12,0,0,111,15,1,0,0,0,112,113,5,15,0,0,113,114,3,46,
+  	23,0,114,115,5,14,0,0,115,116,3,46,23,0,116,117,5,11,0,0,117,118,3,22,
+  	11,0,118,119,5,12,0,0,119,17,1,0,0,0,120,121,5,16,0,0,121,122,3,32,16,
+  	0,122,123,3,46,23,0,123,19,1,0,0,0,124,125,3,24,12,0,125,126,5,1,0,0,
+  	126,128,1,0,0,0,127,124,1,0,0,0,128,131,1,0,0,0,129,127,1,0,0,0,129,130,
+  	1,0,0,0,130,21,1,0,0,0,131,129,1,0,0,0,132,137,3,30,15,0,133,134,5,17,
+  	0,0,134,136,3,30,15,0,135,133,1,0,0,0,136,139,1,0,0,0,137,135,1,0,0,0,
+  	137,138,1,0,0,0,138,141,1,0,0,0,139,137,1,0,0,0,140,142,5,17,0,0,141,
+  	140,1,0,0,0,141,142,1,0,0,0,142,144,1,0,0,0,143,132,1,0,0,0,143,144,1,
+  	0,0,0,144,23,1,0,0,0,145,148,3,26,13,0,146,148,3,28,14,0,147,145,1,0,
+  	0,0,147,146,1,0,0,0,148,25,1,0,0,0,149,151,3,46,23,0,150,152,5,18,0,0,
+  	151,150,1,0,0,0,151,152,1,0,0,0,152,153,1,0,0,0,153,158,3,46,23,0,154,
+  	155,5,19,0,0,155,156,3,32,16,0,156,157,5,20,0,0,157,159,1,0,0,0,158,154,
+  	1,0,0,0,158,159,1,0,0,0,159,27,1,0,0,0,160,161,7,0,0,0,161,162,3,32,16,
+  	0,162,29,1,0,0,0,163,166,5,42,0,0,164,166,3,46,23,0,165,163,1,0,0,0,165,
+  	164,1,0,0,0,166,169,1,0,0,0,167,168,5,23,0,0,168,170,3,32,16,0,169,167,
+  	1,0,0,0,169,170,1,0,0,0,170,31,1,0,0,0,171,172,6,16,-1,0,172,173,3,34,
+  	17,0,173,179,1,0,0,0,174,175,10,2,0,0,175,176,5,24,0,0,176,178,3,34,17,
+  	0,177,174,1,0,0,0,178,181,1,0,0,0,179,177,1,0,0,0,179,180,1,0,0,0,180,
+  	33,1,0,0,0,181,179,1,0,0,0,182,183,6,17,-1,0,183,184,3,36,18,0,184,190,
+  	1,0,0,0,185,186,10,2,0,0,186,187,5,25,0,0,187,189,3,36,18,0,188,185,1,
+  	0,0,0,189,192,1,0,0,0,190,188,1,0,0,0,190,191,1,0,0,0,191,35,1,0,0,0,
+  	192,190,1,0,0,0,193,194,6,18,-1,0,194,195,3,38,19,0,195,201,1,0,0,0,196,
+  	197,10,2,0,0,197,198,5,26,0,0,198,200,3,38,19,0,199,196,1,0,0,0,200,203,
+  	1,0,0,0,201,199,1,0,0,0,201,202,1,0,0,0,202,37,1,0,0,0,203,201,1,0,0,
+  	0,204,205,6,19,-1,0,205,206,3,40,20,0,206,212,1,0,0,0,207,208,10,2,0,
+  	0,208,209,7,1,0,0,209,211,3,40,20,0,210,207,1,0,0,0,211,214,1,0,0,0,212,
+  	210,1,0,0,0,212,213,1,0,0,0,213,39,1,0,0,0,214,212,1,0,0,0,215,216,6,
+  	20,-1,0,216,217,3,42,21,0,217,223,1,0,0,0,218,219,10,2,0,0,219,220,7,
+  	2,0,0,220,222,3,42,21,0,221,218,1,0,0,0,222,225,1,0,0,0,223,221,1,0,0,
+  	0,223,224,1,0,0,0,224,41,1,0,0,0,225,223,1,0,0,0,226,227,6,21,-1,0,227,
+  	228,3,44,22,0,228,234,1,0,0,0,229,230,10,2,0,0,230,231,7,3,0,0,231,233,
+  	3,44,22,0,232,229,1,0,0,0,233,236,1,0,0,0,234,232,1,0,0,0,234,235,1,0,
+  	0,0,235,43,1,0,0,0,236,234,1,0,0,0,237,238,5,33,0,0,238,245,3,48,24,0,
+  	239,245,3,48,24,0,240,241,5,8,0,0,241,242,3,32,16,0,242,243,5,9,0,0,243,
+  	245,1,0,0,0,244,237,1,0,0,0,244,239,1,0,0,0,244,240,1,0,0,0,245,45,1,
+  	0,0,0,246,247,5,41,0,0,247,47,1,0,0,0,248,249,7,4,0,0,249,49,1,0,0,0,
+  	21,53,66,69,90,97,129,137,141,143,147,151,158,165,169,179,190,201,212,
+  	223,234,244
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -213,18 +246,18 @@ adlParser::ProgContext* adlParser::prog() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(39);
+    setState(53);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 106620) != 0)) {
-      setState(36);
+      setState(50);
       def();
-      setState(41);
+      setState(55);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(42);
+    setState(56);
     match(adlParser::EOF);
    
   }
@@ -302,53 +335,53 @@ adlParser::DefContext* adlParser::def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(52);
+    setState(66);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case adlParser::T__5: {
-        setState(44);
+        setState(58);
         struct_def();
         break;
       }
 
       case adlParser::T__12: {
-        setState(45);
+        setState(59);
         flag_def();
         break;
       }
 
       case adlParser::T__14: {
-        setState(46);
+        setState(60);
         enum_def();
         break;
       }
 
       case adlParser::T__1: {
-        setState(47);
+        setState(61);
         root_def();
         break;
       }
 
       case adlParser::T__3: {
-        setState(48);
+        setState(62);
         align_def();
         break;
       }
 
       case adlParser::T__4: {
-        setState(49);
+        setState(63);
         type_def();
         break;
       }
 
       case adlParser::T__2: {
-        setState(50);
+        setState(64);
         include_def();
         break;
       }
 
       case adlParser::T__15: {
-        setState(51);
+        setState(65);
         customtype_def();
         break;
       }
@@ -356,12 +389,12 @@ adlParser::DefContext* adlParser::def() {
     default:
       throw NoViableAltException(this);
     }
-    setState(55);
+    setState(69);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::T__0) {
-      setState(54);
+      setState(68);
       match(adlParser::T__0);
     }
    
@@ -411,9 +444,9 @@ adlParser::Root_defContext* adlParser::root_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(57);
+    setState(71);
     match(adlParser::T__1);
-    setState(58);
+    setState(72);
     idf();
    
   }
@@ -462,9 +495,9 @@ adlParser::Include_defContext* adlParser::include_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(60);
+    setState(74);
     match(adlParser::T__2);
-    setState(61);
+    setState(75);
     match(adlParser::STRING);
    
   }
@@ -513,10 +546,10 @@ adlParser::Align_defContext* adlParser::align_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(63);
+    setState(77);
     match(adlParser::T__3);
-    setState(64);
-    number();
+    setState(78);
+    number(0);
    
   }
   catch (RecognitionException &e) {
@@ -568,11 +601,11 @@ adlParser::Type_defContext* adlParser::type_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(66);
+    setState(80);
     match(adlParser::T__4);
-    setState(67);
+    setState(81);
     idf();
-    setState(68);
+    setState(82);
     idf();
    
   }
@@ -634,43 +667,43 @@ adlParser::Struct_defContext* adlParser::struct_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(70);
+    setState(84);
     match(adlParser::T__5);
-    setState(76);
+    setState(90);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::T__6) {
-      setState(71);
+      setState(85);
       match(adlParser::T__6);
-      setState(72);
+      setState(86);
       match(adlParser::T__7);
-      setState(73);
-      number();
-      setState(74);
+      setState(87);
+      number(0);
+      setState(88);
       match(adlParser::T__8);
     }
-    setState(83);
+    setState(97);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::T__9) {
-      setState(78);
+      setState(92);
       match(adlParser::T__9);
-      setState(79);
+      setState(93);
       match(adlParser::T__7);
-      setState(80);
-      number();
-      setState(81);
+      setState(94);
+      number(0);
+      setState(95);
       match(adlParser::T__8);
     }
-    setState(85);
+    setState(99);
     idf();
-    setState(86);
+    setState(100);
     match(adlParser::T__10);
-    setState(87);
+    setState(101);
     struct_members();
-    setState(88);
+    setState(102);
     match(adlParser::T__11);
    
   }
@@ -727,19 +760,19 @@ adlParser::Flag_defContext* adlParser::flag_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(90);
+    setState(104);
     match(adlParser::T__12);
-    setState(91);
+    setState(105);
     idf();
-    setState(92);
+    setState(106);
     match(adlParser::T__13);
-    setState(93);
+    setState(107);
     idf();
-    setState(94);
+    setState(108);
     match(adlParser::T__10);
-    setState(95);
+    setState(109);
     enum_members();
-    setState(96);
+    setState(110);
     match(adlParser::T__11);
    
   }
@@ -796,19 +829,19 @@ adlParser::Enum_defContext* adlParser::enum_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(98);
+    setState(112);
     match(adlParser::T__14);
-    setState(99);
+    setState(113);
     idf();
-    setState(100);
+    setState(114);
     match(adlParser::T__13);
-    setState(101);
+    setState(115);
     idf();
-    setState(102);
+    setState(116);
     match(adlParser::T__10);
-    setState(103);
+    setState(117);
     enum_members();
-    setState(104);
+    setState(118);
     match(adlParser::T__11);
    
   }
@@ -861,11 +894,11 @@ adlParser::Customtype_defContext* adlParser::customtype_def() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(106);
+    setState(120);
     match(adlParser::T__15);
-    setState(107);
-    number();
-    setState(108);
+    setState(121);
+    number(0);
+    setState(122);
     idf();
    
   }
@@ -919,16 +952,17 @@ adlParser::Struct_membersContext* adlParser::struct_members() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(115);
+    setState(129);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 2153775104) != 0)) {
-      setState(110);
+      ((1ULL << _la) & 2199029547008) != 0)) {
+      setState(124);
       struct_member();
-      setState(111);
+
+      setState(125);
       match(adlParser::T__0);
-      setState(117);
+      setState(131);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -985,35 +1019,35 @@ adlParser::Enum_membersContext* adlParser::enum_members() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(129);
+    setState(143);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::IDENTIFIER
 
     || _la == adlParser::STRING) {
-      setState(118);
+      setState(132);
       enum_member();
-      setState(123);
+      setState(137);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(119);
+          setState(133);
           match(adlParser::T__16);
-          setState(120);
+          setState(134);
           enum_member(); 
         }
-        setState(125);
+        setState(139);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx);
       }
-      setState(127);
+      setState(141);
       _errHandler->sync(this);
 
       _la = _input->LA(1);
       if (_la == adlParser::T__16) {
-        setState(126);
+        setState(140);
         match(adlParser::T__16);
       }
     }
@@ -1067,12 +1101,12 @@ adlParser::Struct_memberContext* adlParser::struct_member() {
     exitRule();
   });
   try {
-    setState(133);
+    setState(147);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case adlParser::IDENTIFIER: {
         enterOuterAlt(_localctx, 1);
-        setState(131);
+        setState(145);
         data_member();
         break;
       }
@@ -1080,7 +1114,7 @@ adlParser::Struct_memberContext* adlParser::struct_member() {
       case adlParser::T__20:
       case adlParser::T__21: {
         enterOuterAlt(_localctx, 2);
-        setState(132);
+        setState(146);
         data_operator();
         break;
       }
@@ -1144,28 +1178,28 @@ adlParser::Data_memberContext* adlParser::data_member() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(135);
+    setState(149);
     idf();
-    setState(137);
+    setState(151);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::T__17) {
-      setState(136);
+      setState(150);
       match(adlParser::T__17);
     }
-    setState(139);
+    setState(153);
     idf();
-    setState(144);
+    setState(158);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::T__18) {
-      setState(140);
+      setState(154);
       match(adlParser::T__18);
-      setState(141);
-      number();
-      setState(142);
+      setState(155);
+      number(0);
+      setState(156);
       match(adlParser::T__19);
     }
    
@@ -1216,7 +1250,7 @@ adlParser::Data_operatorContext* adlParser::data_operator() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(146);
+    setState(160);
     _la = _input->LA(1);
     if (!(_la == adlParser::T__20
 
@@ -1227,8 +1261,8 @@ adlParser::Data_operatorContext* adlParser::data_operator() {
       _errHandler->reportMatch(this);
       consume();
     }
-    setState(147);
-    number();
+    setState(161);
+    number(0);
    
   }
   catch (RecognitionException &e) {
@@ -1285,17 +1319,17 @@ adlParser::Enum_memberContext* adlParser::enum_member() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(151);
+    setState(165);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case adlParser::STRING: {
-        setState(149);
+        setState(163);
         match(adlParser::STRING);
         break;
       }
 
       case adlParser::IDENTIFIER: {
-        setState(150);
+        setState(164);
         idf();
         break;
       }
@@ -1303,15 +1337,649 @@ adlParser::Enum_memberContext* adlParser::enum_member() {
     default:
       throw NoViableAltException(this);
     }
-    setState(155);
+    setState(169);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == adlParser::T__22) {
-      setState(153);
+      setState(167);
       match(adlParser::T__22);
-      setState(154);
-      number();
+      setState(168);
+      number(0);
+    }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- NumberContext ------------------------------------------------------------------
+
+adlParser::NumberContext::NumberContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+adlParser::Number_op1Context* adlParser::NumberContext::number_op1() {
+  return getRuleContext<adlParser::Number_op1Context>(0);
+}
+
+adlParser::NumberContext* adlParser::NumberContext::number() {
+  return getRuleContext<adlParser::NumberContext>(0);
+}
+
+
+size_t adlParser::NumberContext::getRuleIndex() const {
+  return adlParser::RuleNumber;
+}
+
+
+std::any adlParser::NumberContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitNumber(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+
+adlParser::NumberContext* adlParser::number() {
+   return number(0);
+}
+
+adlParser::NumberContext* adlParser::number(int precedence) {
+  ParserRuleContext *parentContext = _ctx;
+  size_t parentState = getState();
+  adlParser::NumberContext *_localctx = _tracker.createInstance<NumberContext>(_ctx, parentState);
+  adlParser::NumberContext *previousContext = _localctx;
+  (void)previousContext; // Silence compiler, in case the context is not used by generated code.
+  size_t startState = 32;
+  enterRecursionRule(_localctx, 32, adlParser::RuleNumber, precedence);
+
+    
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    unrollRecursionContexts(parentContext);
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(172);
+    number_op1(0);
+    _ctx->stop = _input->LT(-1);
+    setState(179);
+    _errHandler->sync(this);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 14, _ctx);
+    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+      if (alt == 1) {
+        if (!_parseListeners.empty())
+          triggerExitRuleEvent();
+        previousContext = _localctx;
+        _localctx = _tracker.createInstance<NumberContext>(parentContext, parentState);
+        pushNewRecursionContext(_localctx, startState, RuleNumber);
+        setState(174);
+
+        if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
+        setState(175);
+        match(adlParser::T__23);
+        setState(176);
+        number_op1(0); 
+      }
+      setState(181);
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 14, _ctx);
+    }
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+  return _localctx;
+}
+
+//----------------- Number_op1Context ------------------------------------------------------------------
+
+adlParser::Number_op1Context::Number_op1Context(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+adlParser::Number_op2Context* adlParser::Number_op1Context::number_op2() {
+  return getRuleContext<adlParser::Number_op2Context>(0);
+}
+
+adlParser::Number_op1Context* adlParser::Number_op1Context::number_op1() {
+  return getRuleContext<adlParser::Number_op1Context>(0);
+}
+
+
+size_t adlParser::Number_op1Context::getRuleIndex() const {
+  return adlParser::RuleNumber_op1;
+}
+
+
+std::any adlParser::Number_op1Context::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitNumber_op1(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+
+adlParser::Number_op1Context* adlParser::number_op1() {
+   return number_op1(0);
+}
+
+adlParser::Number_op1Context* adlParser::number_op1(int precedence) {
+  ParserRuleContext *parentContext = _ctx;
+  size_t parentState = getState();
+  adlParser::Number_op1Context *_localctx = _tracker.createInstance<Number_op1Context>(_ctx, parentState);
+  adlParser::Number_op1Context *previousContext = _localctx;
+  (void)previousContext; // Silence compiler, in case the context is not used by generated code.
+  size_t startState = 34;
+  enterRecursionRule(_localctx, 34, adlParser::RuleNumber_op1, precedence);
+
+    
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    unrollRecursionContexts(parentContext);
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(183);
+    number_op2(0);
+    _ctx->stop = _input->LT(-1);
+    setState(190);
+    _errHandler->sync(this);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 15, _ctx);
+    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+      if (alt == 1) {
+        if (!_parseListeners.empty())
+          triggerExitRuleEvent();
+        previousContext = _localctx;
+        _localctx = _tracker.createInstance<Number_op1Context>(parentContext, parentState);
+        pushNewRecursionContext(_localctx, startState, RuleNumber_op1);
+        setState(185);
+
+        if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
+        setState(186);
+        match(adlParser::T__24);
+        setState(187);
+        number_op2(0); 
+      }
+      setState(192);
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 15, _ctx);
+    }
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+  return _localctx;
+}
+
+//----------------- Number_op2Context ------------------------------------------------------------------
+
+adlParser::Number_op2Context::Number_op2Context(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+adlParser::Number_op3Context* adlParser::Number_op2Context::number_op3() {
+  return getRuleContext<adlParser::Number_op3Context>(0);
+}
+
+adlParser::Number_op2Context* adlParser::Number_op2Context::number_op2() {
+  return getRuleContext<adlParser::Number_op2Context>(0);
+}
+
+
+size_t adlParser::Number_op2Context::getRuleIndex() const {
+  return adlParser::RuleNumber_op2;
+}
+
+
+std::any adlParser::Number_op2Context::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitNumber_op2(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+
+adlParser::Number_op2Context* adlParser::number_op2() {
+   return number_op2(0);
+}
+
+adlParser::Number_op2Context* adlParser::number_op2(int precedence) {
+  ParserRuleContext *parentContext = _ctx;
+  size_t parentState = getState();
+  adlParser::Number_op2Context *_localctx = _tracker.createInstance<Number_op2Context>(_ctx, parentState);
+  adlParser::Number_op2Context *previousContext = _localctx;
+  (void)previousContext; // Silence compiler, in case the context is not used by generated code.
+  size_t startState = 36;
+  enterRecursionRule(_localctx, 36, adlParser::RuleNumber_op2, precedence);
+
+    
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    unrollRecursionContexts(parentContext);
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(194);
+    number_op3(0);
+    _ctx->stop = _input->LT(-1);
+    setState(201);
+    _errHandler->sync(this);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 16, _ctx);
+    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+      if (alt == 1) {
+        if (!_parseListeners.empty())
+          triggerExitRuleEvent();
+        previousContext = _localctx;
+        _localctx = _tracker.createInstance<Number_op2Context>(parentContext, parentState);
+        pushNewRecursionContext(_localctx, startState, RuleNumber_op2);
+        setState(196);
+
+        if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
+        setState(197);
+        match(adlParser::T__25);
+        setState(198);
+        number_op3(0); 
+      }
+      setState(203);
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 16, _ctx);
+    }
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+  return _localctx;
+}
+
+//----------------- Number_op3Context ------------------------------------------------------------------
+
+adlParser::Number_op3Context::Number_op3Context(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+adlParser::Number_op4Context* adlParser::Number_op3Context::number_op4() {
+  return getRuleContext<adlParser::Number_op4Context>(0);
+}
+
+adlParser::Number_op3Context* adlParser::Number_op3Context::number_op3() {
+  return getRuleContext<adlParser::Number_op3Context>(0);
+}
+
+
+size_t adlParser::Number_op3Context::getRuleIndex() const {
+  return adlParser::RuleNumber_op3;
+}
+
+
+std::any adlParser::Number_op3Context::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitNumber_op3(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+
+adlParser::Number_op3Context* adlParser::number_op3() {
+   return number_op3(0);
+}
+
+adlParser::Number_op3Context* adlParser::number_op3(int precedence) {
+  ParserRuleContext *parentContext = _ctx;
+  size_t parentState = getState();
+  adlParser::Number_op3Context *_localctx = _tracker.createInstance<Number_op3Context>(_ctx, parentState);
+  adlParser::Number_op3Context *previousContext = _localctx;
+  (void)previousContext; // Silence compiler, in case the context is not used by generated code.
+  size_t startState = 38;
+  enterRecursionRule(_localctx, 38, adlParser::RuleNumber_op3, precedence);
+
+    size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    unrollRecursionContexts(parentContext);
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(205);
+    number_op4(0);
+    _ctx->stop = _input->LT(-1);
+    setState(212);
+    _errHandler->sync(this);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 17, _ctx);
+    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+      if (alt == 1) {
+        if (!_parseListeners.empty())
+          triggerExitRuleEvent();
+        previousContext = _localctx;
+        _localctx = _tracker.createInstance<Number_op3Context>(parentContext, parentState);
+        pushNewRecursionContext(_localctx, startState, RuleNumber_op3);
+        setState(207);
+
+        if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
+        setState(208);
+        _la = _input->LA(1);
+        if (!(_la == adlParser::T__26
+
+        || _la == adlParser::T__27)) {
+        _errHandler->recoverInline(this);
+        }
+        else {
+          _errHandler->reportMatch(this);
+          consume();
+        }
+        setState(209);
+        number_op4(0); 
+      }
+      setState(214);
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 17, _ctx);
+    }
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+  return _localctx;
+}
+
+//----------------- Number_op4Context ------------------------------------------------------------------
+
+adlParser::Number_op4Context::Number_op4Context(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+adlParser::Number_op5Context* adlParser::Number_op4Context::number_op5() {
+  return getRuleContext<adlParser::Number_op5Context>(0);
+}
+
+adlParser::Number_op4Context* adlParser::Number_op4Context::number_op4() {
+  return getRuleContext<adlParser::Number_op4Context>(0);
+}
+
+
+size_t adlParser::Number_op4Context::getRuleIndex() const {
+  return adlParser::RuleNumber_op4;
+}
+
+
+std::any adlParser::Number_op4Context::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitNumber_op4(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+
+adlParser::Number_op4Context* adlParser::number_op4() {
+   return number_op4(0);
+}
+
+adlParser::Number_op4Context* adlParser::number_op4(int precedence) {
+  ParserRuleContext *parentContext = _ctx;
+  size_t parentState = getState();
+  adlParser::Number_op4Context *_localctx = _tracker.createInstance<Number_op4Context>(_ctx, parentState);
+  adlParser::Number_op4Context *previousContext = _localctx;
+  (void)previousContext; // Silence compiler, in case the context is not used by generated code.
+  size_t startState = 40;
+  enterRecursionRule(_localctx, 40, adlParser::RuleNumber_op4, precedence);
+
+    size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    unrollRecursionContexts(parentContext);
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(216);
+    number_op5(0);
+    _ctx->stop = _input->LT(-1);
+    setState(223);
+    _errHandler->sync(this);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 18, _ctx);
+    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+      if (alt == 1) {
+        if (!_parseListeners.empty())
+          triggerExitRuleEvent();
+        previousContext = _localctx;
+        _localctx = _tracker.createInstance<Number_op4Context>(parentContext, parentState);
+        pushNewRecursionContext(_localctx, startState, RuleNumber_op4);
+        setState(218);
+
+        if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
+        setState(219);
+        _la = _input->LA(1);
+        if (!(_la == adlParser::T__28
+
+        || _la == adlParser::T__29)) {
+        _errHandler->recoverInline(this);
+        }
+        else {
+          _errHandler->reportMatch(this);
+          consume();
+        }
+        setState(220);
+        number_op5(0); 
+      }
+      setState(225);
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 18, _ctx);
+    }
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+  return _localctx;
+}
+
+//----------------- Number_op5Context ------------------------------------------------------------------
+
+adlParser::Number_op5Context::Number_op5Context(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+adlParser::Number_op6Context* adlParser::Number_op5Context::number_op6() {
+  return getRuleContext<adlParser::Number_op6Context>(0);
+}
+
+adlParser::Number_op5Context* adlParser::Number_op5Context::number_op5() {
+  return getRuleContext<adlParser::Number_op5Context>(0);
+}
+
+
+size_t adlParser::Number_op5Context::getRuleIndex() const {
+  return adlParser::RuleNumber_op5;
+}
+
+
+std::any adlParser::Number_op5Context::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitNumber_op5(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+
+adlParser::Number_op5Context* adlParser::number_op5() {
+   return number_op5(0);
+}
+
+adlParser::Number_op5Context* adlParser::number_op5(int precedence) {
+  ParserRuleContext *parentContext = _ctx;
+  size_t parentState = getState();
+  adlParser::Number_op5Context *_localctx = _tracker.createInstance<Number_op5Context>(_ctx, parentState);
+  adlParser::Number_op5Context *previousContext = _localctx;
+  (void)previousContext; // Silence compiler, in case the context is not used by generated code.
+  size_t startState = 42;
+  enterRecursionRule(_localctx, 42, adlParser::RuleNumber_op5, precedence);
+
+    size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    unrollRecursionContexts(parentContext);
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(227);
+    number_op6();
+    _ctx->stop = _input->LT(-1);
+    setState(234);
+    _errHandler->sync(this);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 19, _ctx);
+    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+      if (alt == 1) {
+        if (!_parseListeners.empty())
+          triggerExitRuleEvent();
+        previousContext = _localctx;
+        _localctx = _tracker.createInstance<Number_op5Context>(parentContext, parentState);
+        pushNewRecursionContext(_localctx, startState, RuleNumber_op5);
+        setState(229);
+
+        if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
+        setState(230);
+        _la = _input->LA(1);
+        if (!((((_la & ~ 0x3fULL) == 0) &&
+          ((1ULL << _la) & 6442713088) != 0))) {
+        _errHandler->recoverInline(this);
+        }
+        else {
+          _errHandler->reportMatch(this);
+          consume();
+        }
+        setState(231);
+        number_op6(); 
+      }
+      setState(236);
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 19, _ctx);
+    }
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+  return _localctx;
+}
+
+//----------------- Number_op6Context ------------------------------------------------------------------
+
+adlParser::Number_op6Context::Number_op6Context(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+adlParser::Number_rawContext* adlParser::Number_op6Context::number_raw() {
+  return getRuleContext<adlParser::Number_rawContext>(0);
+}
+
+adlParser::NumberContext* adlParser::Number_op6Context::number() {
+  return getRuleContext<adlParser::NumberContext>(0);
+}
+
+
+size_t adlParser::Number_op6Context::getRuleIndex() const {
+  return adlParser::RuleNumber_op6;
+}
+
+
+std::any adlParser::Number_op6Context::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
+    return parserVisitor->visitNumber_op6(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+adlParser::Number_op6Context* adlParser::number_op6() {
+  Number_op6Context *_localctx = _tracker.createInstance<Number_op6Context>(_ctx, getState());
+  enterRule(_localctx, 44, adlParser::RuleNumber_op6);
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    setState(244);
+    _errHandler->sync(this);
+    switch (_input->LA(1)) {
+      case adlParser::T__32: {
+        enterOuterAlt(_localctx, 1);
+        setState(237);
+        match(adlParser::T__32);
+        setState(238);
+        number_raw();
+        break;
+      }
+
+      case adlParser::INTEGER10:
+      case adlParser::INTEGER16:
+      case adlParser::INTEGER8:
+      case adlParser::INTEGER2: {
+        enterOuterAlt(_localctx, 2);
+        setState(239);
+        number_raw();
+        break;
+      }
+
+      case adlParser::T__7: {
+        enterOuterAlt(_localctx, 3);
+        setState(240);
+        match(adlParser::T__7);
+        setState(241);
+        number(0);
+        setState(242);
+        match(adlParser::T__8);
+        break;
+      }
+
+    default:
+      throw NoViableAltException(this);
     }
    
   }
@@ -1349,7 +2017,7 @@ std::any adlParser::IdfContext::accept(tree::ParseTreeVisitor *visitor) {
 
 adlParser::IdfContext* adlParser::idf() {
   IdfContext *_localctx = _tracker.createInstance<IdfContext>(_ctx, getState());
-  enterRule(_localctx, 32, adlParser::RuleIdf);
+  enterRule(_localctx, 46, adlParser::RuleIdf);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1360,7 +2028,7 @@ adlParser::IdfContext* adlParser::idf() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(157);
+    setState(246);
     match(adlParser::IDENTIFIER);
    
   }
@@ -1373,44 +2041,44 @@ adlParser::IdfContext* adlParser::idf() {
   return _localctx;
 }
 
-//----------------- NumberContext ------------------------------------------------------------------
+//----------------- Number_rawContext ------------------------------------------------------------------
 
-adlParser::NumberContext::NumberContext(ParserRuleContext *parent, size_t invokingState)
+adlParser::Number_rawContext::Number_rawContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* adlParser::NumberContext::INTEGER10() {
+tree::TerminalNode* adlParser::Number_rawContext::INTEGER10() {
   return getToken(adlParser::INTEGER10, 0);
 }
 
-tree::TerminalNode* adlParser::NumberContext::INTEGER16() {
+tree::TerminalNode* adlParser::Number_rawContext::INTEGER16() {
   return getToken(adlParser::INTEGER16, 0);
 }
 
-tree::TerminalNode* adlParser::NumberContext::INTEGER8() {
+tree::TerminalNode* adlParser::Number_rawContext::INTEGER8() {
   return getToken(adlParser::INTEGER8, 0);
 }
 
-tree::TerminalNode* adlParser::NumberContext::INTEGER2() {
+tree::TerminalNode* adlParser::Number_rawContext::INTEGER2() {
   return getToken(adlParser::INTEGER2, 0);
 }
 
 
-size_t adlParser::NumberContext::getRuleIndex() const {
-  return adlParser::RuleNumber;
+size_t adlParser::Number_rawContext::getRuleIndex() const {
+  return adlParser::RuleNumber_raw;
 }
 
 
-std::any adlParser::NumberContext::accept(tree::ParseTreeVisitor *visitor) {
+std::any adlParser::Number_rawContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<adlVisitor*>(visitor))
-    return parserVisitor->visitNumber(this);
+    return parserVisitor->visitNumber_raw(this);
   else
     return visitor->visitChildren(this);
 }
 
-adlParser::NumberContext* adlParser::number() {
-  NumberContext *_localctx = _tracker.createInstance<NumberContext>(_ctx, getState());
-  enterRule(_localctx, 34, adlParser::RuleNumber);
+adlParser::Number_rawContext* adlParser::number_raw() {
+  Number_rawContext *_localctx = _tracker.createInstance<Number_rawContext>(_ctx, getState());
+  enterRule(_localctx, 48, adlParser::RuleNumber_raw);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1422,10 +2090,10 @@ adlParser::NumberContext* adlParser::number() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(159);
+    setState(248);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 1006632960) != 0))) {
+      ((1ULL << _la) & 1030792151040) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -1441,6 +2109,81 @@ adlParser::NumberContext* adlParser::number() {
   }
 
   return _localctx;
+}
+
+bool adlParser::sempred(RuleContext *context, size_t ruleIndex, size_t predicateIndex) {
+  switch (ruleIndex) {
+    case 16: return numberSempred(antlrcpp::downCast<NumberContext *>(context), predicateIndex);
+    case 17: return number_op1Sempred(antlrcpp::downCast<Number_op1Context *>(context), predicateIndex);
+    case 18: return number_op2Sempred(antlrcpp::downCast<Number_op2Context *>(context), predicateIndex);
+    case 19: return number_op3Sempred(antlrcpp::downCast<Number_op3Context *>(context), predicateIndex);
+    case 20: return number_op4Sempred(antlrcpp::downCast<Number_op4Context *>(context), predicateIndex);
+    case 21: return number_op5Sempred(antlrcpp::downCast<Number_op5Context *>(context), predicateIndex);
+
+  default:
+    break;
+  }
+  return true;
+}
+
+bool adlParser::numberSempred(NumberContext *_localctx, size_t predicateIndex) {
+  switch (predicateIndex) {
+    case 0: return precpred(_ctx, 2);
+
+  default:
+    break;
+  }
+  return true;
+}
+
+bool adlParser::number_op1Sempred(Number_op1Context *_localctx, size_t predicateIndex) {
+  switch (predicateIndex) {
+    case 1: return precpred(_ctx, 2);
+
+  default:
+    break;
+  }
+  return true;
+}
+
+bool adlParser::number_op2Sempred(Number_op2Context *_localctx, size_t predicateIndex) {
+  switch (predicateIndex) {
+    case 2: return precpred(_ctx, 2);
+
+  default:
+    break;
+  }
+  return true;
+}
+
+bool adlParser::number_op3Sempred(Number_op3Context *_localctx, size_t predicateIndex) {
+  switch (predicateIndex) {
+    case 3: return precpred(_ctx, 2);
+
+  default:
+    break;
+  }
+  return true;
+}
+
+bool adlParser::number_op4Sempred(Number_op4Context *_localctx, size_t predicateIndex) {
+  switch (predicateIndex) {
+    case 4: return precpred(_ctx, 2);
+
+  default:
+    break;
+  }
+  return true;
+}
+
+bool adlParser::number_op5Sempred(Number_op5Context *_localctx, size_t predicateIndex) {
+  switch (predicateIndex) {
+    case 5: return precpred(_ctx, 2);
+
+  default:
+    break;
+  }
+  return true;
 }
 
 void adlParser::initialize() {

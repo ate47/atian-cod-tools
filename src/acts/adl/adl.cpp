@@ -90,13 +90,77 @@ namespace acts::compiler::adl {
 #define IS_IDF(rule) (IS_RULE_TYPE((rule), gscParser::RuleIdf) || IS_TERMINAL_TYPE((rule), gscParser::IDENTIFIER))
 
     int64_t NumberNodeValue(ParseTree* number) {
-        if (IS_RULE_TYPE(number, adlParser::RuleNumber)) {
+        if (IS_RULE_TYPE(number, adlParser::RuleNumber_raw)) {
             return NumberNodeValue(number->children[0]);
         }
-        if (!number || number->getTreeType() != TREE_TERMINAL) {
-            return 0; // wtf?
+        if (!number) {
+            throw std::runtime_error("Null node");
         }
+        if (number->getTreeType() != TREE_TERMINAL) {
+            // op
+            if (number->children.size() == 1) {
+                return NumberNodeValue(number->children[0]);
+            }
 
+            if (number->children.size() == 2) {
+                // op number
+                if (number->children[0]->getText() == "~") {
+                    return ~NumberNodeValue(number->children[1]);
+                }
+                else {
+                    std::string txt{ number->getText() };
+                    throw std::runtime_error(utils::va("INVALID OP FOR %s", txt.c_str()));
+                }
+            }
+
+            if (number->children.size() != 3) {
+                std::string txt{ number->getText() };
+                throw std::runtime_error(utils::va("INVALID CHILDREN COUNT %d FOR %s", number->children.size(), txt.c_str()));
+            }
+
+            if (IS_RULE_TYPE(number->children[1], adlParser::RuleNumber)) {
+                // ( number )
+                return NumberNodeValue(number->children[1]);
+            }
+
+            std::string op{ number->children[1]->getText() };
+            int64_t left{ NumberNodeValue(number->children[0]) };
+            int64_t right{ NumberNodeValue(number->children[2]) };
+
+            if (op == "|") {
+                return left | right;
+            }
+            if (op == "^") {
+                return left ^ right;
+            }
+            if (op == "&") {
+                return left & right;
+            }
+            if (op == "<<") {
+                return left << right;
+            }
+            if (op == ">>") {
+                return left >> right;
+            }
+            if (op == "+") {
+                return left + right;
+            }
+            if (op == "-") {
+                return left - right;
+            }
+            if (op == "/") {
+                return left / right;
+            }
+            if (op == "*") {
+                return left * right;
+            }
+            if (op == "%") {
+                return left % right;
+            }
+
+            std::string txt{ number->getText() };
+            throw std::runtime_error(utils::va("INVALID OP %s FOR %s", op.c_str(), txt.c_str()));
+        }
         TerminalNode* term = dynamic_cast<TerminalNode*>(number);
         switch (term->getSymbol()->getType()) {
         case adlParser::INTEGER10:
@@ -116,8 +180,10 @@ namespace acts::compiler::adl {
             int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), NULL, 2);
             return neg ? -val : val;
         }
-        default:
-            return 0;
+        default: {
+            std::string txt{ number->getText() };
+            throw std::runtime_error(utils::va("INVALID TERM NODE TYPE %d FOR %s", (int)term->getSymbol()->getType(), txt.c_str()));
+        }
         }
     }
 
@@ -817,7 +883,11 @@ namespace acts::compiler::adl {
 
         dbflib::DB_FILE* file = builder.Build();
 
-        if (!utils::WriteFile(opt.output, file, file->file_size)) {
+        std::filesystem::path outFile{ opt.output };
+
+        std::filesystem::create_directories(outFile.parent_path());
+
+        if (!utils::WriteFile(outFile, file, file->file_size)) {
             LOG_ERROR("Error when writing {}", opt.output);
             return tool::BASIC_ERROR;
         }

@@ -1,0 +1,38 @@
+#root root
+#align 8
+
+struct aaa {
+    int val1;
+    int val2;
+    int array[10];
+}
+
+struct bbb {
+    float a;
+    float b;
+    float c;
+}
+
+enum etest : byte {
+    VALUE1 = 0,
+    VALUE2,
+    VALUE3
+}
+
+struct root {
+    aaa* ptr;
+    $assert_offset 8;
+    float d;
+    $assert_offset 0xc;
+    bbb b;
+    $assert_offset 0x1c;
+    int e;
+    $assert_offset 0x20;
+    etest f;
+}
+
+/*
+
+
+
+*/

@@ -1,5 +1,7 @@
 #pragma once
 #include <dbflib.hpp>
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
 
 namespace acts::compiler::adl {
 	typedef uint32_t ADLDataTypeId;
@@ -141,18 +143,39 @@ namespace acts::compiler::adl {
 		size_t size{};
 		size_t forcedSize{};
 		std::vector<ADLStructField> fields{};
+
+		const ADLStructField* GetField(uint64_t name) const {
+			for (const ADLStructField& f : fields) {
+				if (f.name == name) return &f;
+			}
+			return nullptr;
+		}
 	};
 
 	struct ADLEnum {
 		uint64_t name;
 		ADLDataTypeId typeSize{};
 		std::vector<ADLEnumField> fields{};
+
+		const ADLEnumField* GetField(uint64_t name) const {
+			for (const ADLEnumField& f : fields) {
+				if (f.name == name) return &f;
+			}
+			return nullptr;
+		}
 	};
 
 	struct ADLFlag {
 		uint64_t name;
 		ADLDataTypeId typeSize{};
 		std::vector<ADLEnumField> fields{};
+
+		const ADLEnumField* GetField(uint64_t name) const {
+			for (const ADLEnumField& f : fields) {
+				if (f.name == name) return &f;
+			}
+			return nullptr;
+		}
 	};
 
 	struct ADLCustomType {
@@ -260,7 +283,7 @@ namespace acts::compiler::adl {
 				}
 			}
 
-			LOG_INFO("custom type");
+			LOG_INFO("custom types");
 			for (auto& [id, s] : customtypes) {
 				LOG_INFO("  {} -> {} (size:0x{:x})", (ADLDataTypeIdBase)id, hashutils::ExtractTmp("hash", s.name), s.size);
 			}
@@ -482,12 +505,149 @@ namespace acts::compiler::adl {
 
 		}
 
+		void WriteIntVal(byte* ptr, size_t offset, size_t size, int64_t v, bool isSigned) {
+			void* r = (void*)(ptr + offset);
+
+			switch (size) {
+			case 1:
+				if (isSigned) {
+					*(int8_t*)r = (int8_t)v;
+				}
+				else {
+					*(uint8_t*)r = (uint8_t)v;
+				}
+				break;
+			case 2:
+				if (isSigned) {
+					*(int16_t*)r = (int16_t)v;
+				}
+				else {
+					*(uint16_t*)r = (uint16_t)v;
+				}
+				break;
+			case 4:
+				if (isSigned) {
+					*(int32_t*)r = (int32_t)v;
+				}
+				else {
+					*(uint32_t*)r = (uint32_t)v;
+				}
+				break;
+			case 8:
+				if (isSigned) {
+					*(int64_t*)r = v;
+				}
+				else {
+					*(uint64_t*)r = (uint64_t)v;
+				}
+				break;
+			default: throw std::runtime_error(utils::va("invalid write raw size %d", size));
+			}
+
+
+		}
+
+		dbflib::BlockId ConvertStruct(rapidjson::Value& member, const ADLStruct& str, dbflib::DBFileBuilder& builder) {
+			auto [structLoc, structData] = builder.CreateBlock<byte*>(str.size);
+
+			if (!member.IsObject()) {
+				return structLoc; // invalid? just alloc
+			}
+
+			for (auto& [k, v] : member.GetObj()) {
+				const char* key = k.GetString();
+				uint64_t keyHash = hashutils::Hash64(key);
+
+				bool done{};
+				for (const ADLStructField& field : str.fields) {
+					if (field.name != keyHash) {
+						continue;
+					}
+					done = true;
+
+					ADLDataTypeId type = field.type;
+
+					if (field.pointer) {
+						// TODO: qzd ptr
+					}
+
+					switch (type & ADF_MASK) {
+					case ADF_STRUCT:
+
+						break;
+					case ADF_ENUM: {
+						auto eit = enums.find(field.type);
+
+						if (eit == enums.end()) throw std::runtime_error("it exception enums");
+
+						ADLEnum& en = eit->second;
+						
+						if (!v.IsString()) {
+							throw std::runtime_error(utils::va("enum value for key %s should be a string", key));
+						}
+
+						const char* keyVal = v.GetString();
+						const ADLEnumField* efield = en.GetField(hash::Hash64(keyVal));
+
+						if (efield) {
+							WriteIntVal(builder.GetBlock<byte>(structLoc), field.offset, SizeOf(field.type), efield->value, !IsUnsignedType(field.type));
+						}
+						else {
+							LOG_WARNING("undefined enum value '{}' for enum {}", key, hashutils::ExtractTmp("hash", en.name));
+						}
+						
+					}
+						break;
+					case ADF_FLAG:
+
+						break;
+					case ADF_CUSTOM_DEF:
+
+						break;
+					case ADF_DEFAULT:
+
+						break;
+					}
+
+					break;
+				}
+				if (!done) {
+					LOG_WARNING("undefined field {} for struct {}", key, hashutils::ExtractTmp("hash", str.name));
+				}
+			}
+
+			// Compile json to chunks
+
+			return structLoc;
+		}
+
 		dbflib::BlockId Convert(const std::string& json, dbflib::DBFileBuilder& builder) {
 			auto [headerLoc, header] = builder.CreateBlock<ADLCompiledHeader>();
 
 			header->version = SERIAL_VERSION;
 
-			// Compile json to chunks
+			rapidjson::Document doc{};
+			doc.Parse(json.data(), json.length());
+
+			if (!rootName) {
+				throw std::runtime_error("missing root name, please use #root to define it");
+			}
+
+			ADLDataTypeId rootId{ IdOfName(rootName) };
+
+			if (!rootId || (rootId & ADF_MASK) != ADF_STRUCT) {
+				throw std::runtime_error(utils::va("the defined root '%s' doesn't exist or isn't a structure", hashutils::ExtractTmp("hash", rootId)));
+			}
+
+			auto it = structs.find(rootId);
+			if (it == structs.end()) {
+				throw std::runtime_error("invalid struct root");
+			}
+
+			dbflib::BlockId root = ConvertStruct(doc, it->second, builder);
+
+			// link the root to the header
+			builder.CreateLink(headerLoc, offsetof(ADLCompiledHeader, data), root);
 
 			return headerLoc;
 		}

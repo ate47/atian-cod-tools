@@ -14,7 +14,7 @@ flag_def: 'flag' idf ':' idf '{' enum_members '}';
 enum_def: 'enum' idf ':' idf '{' enum_members '}';
 customtype_def: 'customtype' number idf;
 
-struct_members: (struct_member ';')*;
+struct_members: (struct_member (';'))*;
 enum_members: (enum_member (',' enum_member)* ','?)?;
 
 struct_member: data_member | data_operator;
@@ -23,12 +23,20 @@ data_member: idf ('*')? idf ('[' number ']')?;
 data_operator: ('$padding' | '$assert_offset') number;
 enum_member: (STRING | idf) ('=' number)?;
 
+number: number '|' number_op1 | number_op1;
+number_op1: number_op1 '^' number_op2 | number_op2;
+number_op2: number_op2 '&' number_op3 | number_op3;
+number_op3: number_op3 ('<<' | '>>') number_op4 | number_op4;
+number_op4: number_op4 ('+' | '-') number_op5 | number_op5;
+number_op5: number_op5 ('*' | '/' | '%') number_op6 | number_op6;
+number_op6: '~' number_raw | number_raw | '(' number ')';
+
 idf: IDENTIFIER;
 
 NEWLINE: ('\r'? '\n' | '\r') -> skip;
 WHITESPACE: ('\t' | ' ') -> skip;
 
-number: INTEGER10 | INTEGER16 | INTEGER8 | INTEGER2;
+number_raw: INTEGER10 | INTEGER16 | INTEGER8 | INTEGER2;
 
 INTEGER10: '-'? [1-9]([0-9])*;
 INTEGER16: '-'? '0' [xX] ([0-9a-fA-F])+;

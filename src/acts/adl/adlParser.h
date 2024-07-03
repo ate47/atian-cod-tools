@@ -15,9 +15,10 @@ public:
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
     T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, T__13 = 14, 
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
-    T__20 = 21, T__21 = 22, T__22 = 23, NEWLINE = 24, WHITESPACE = 25, INTEGER10 = 26, 
-    INTEGER16 = 27, INTEGER8 = 28, INTEGER2 = 29, BOOL_VALUE = 30, IDENTIFIER = 31, 
-    STRING = 32
+    T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, T__25 = 26, 
+    T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
+    T__32 = 33, NEWLINE = 34, WHITESPACE = 35, INTEGER10 = 36, INTEGER16 = 37, 
+    INTEGER8 = 38, INTEGER2 = 39, BOOL_VALUE = 40, IDENTIFIER = 41, STRING = 42
   };
 
   enum {
@@ -25,7 +26,9 @@ public:
     RuleType_def = 5, RuleStruct_def = 6, RuleFlag_def = 7, RuleEnum_def = 8, 
     RuleCustomtype_def = 9, RuleStruct_members = 10, RuleEnum_members = 11, 
     RuleStruct_member = 12, RuleData_member = 13, RuleData_operator = 14, 
-    RuleEnum_member = 15, RuleIdf = 16, RuleNumber = 17
+    RuleEnum_member = 15, RuleNumber = 16, RuleNumber_op1 = 17, RuleNumber_op2 = 18, 
+    RuleNumber_op3 = 19, RuleNumber_op4 = 20, RuleNumber_op5 = 21, RuleNumber_op6 = 22, 
+    RuleIdf = 23, RuleNumber_raw = 24
   };
 
   explicit adlParser(antlr4::TokenStream *input);
@@ -61,8 +64,15 @@ public:
   class Data_memberContext;
   class Data_operatorContext;
   class Enum_memberContext;
+  class NumberContext;
+  class Number_op1Context;
+  class Number_op2Context;
+  class Number_op3Context;
+  class Number_op4Context;
+  class Number_op5Context;
+  class Number_op6Context;
   class IdfContext;
-  class NumberContext; 
+  class Number_rawContext; 
 
   class  ProgContext : public antlr4::ParserRuleContext {
   public:
@@ -297,6 +307,104 @@ public:
 
   Enum_memberContext* enum_member();
 
+  class  NumberContext : public antlr4::ParserRuleContext {
+  public:
+    NumberContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Number_op1Context *number_op1();
+    NumberContext *number();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  NumberContext* number();
+  NumberContext* number(int precedence);
+  class  Number_op1Context : public antlr4::ParserRuleContext {
+  public:
+    Number_op1Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Number_op2Context *number_op2();
+    Number_op1Context *number_op1();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Number_op1Context* number_op1();
+  Number_op1Context* number_op1(int precedence);
+  class  Number_op2Context : public antlr4::ParserRuleContext {
+  public:
+    Number_op2Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Number_op3Context *number_op3();
+    Number_op2Context *number_op2();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Number_op2Context* number_op2();
+  Number_op2Context* number_op2(int precedence);
+  class  Number_op3Context : public antlr4::ParserRuleContext {
+  public:
+    Number_op3Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Number_op4Context *number_op4();
+    Number_op3Context *number_op3();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Number_op3Context* number_op3();
+  Number_op3Context* number_op3(int precedence);
+  class  Number_op4Context : public antlr4::ParserRuleContext {
+  public:
+    Number_op4Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Number_op5Context *number_op5();
+    Number_op4Context *number_op4();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Number_op4Context* number_op4();
+  Number_op4Context* number_op4(int precedence);
+  class  Number_op5Context : public antlr4::ParserRuleContext {
+  public:
+    Number_op5Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Number_op6Context *number_op6();
+    Number_op5Context *number_op5();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Number_op5Context* number_op5();
+  Number_op5Context* number_op5(int precedence);
+  class  Number_op6Context : public antlr4::ParserRuleContext {
+  public:
+    Number_op6Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Number_rawContext *number_raw();
+    NumberContext *number();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Number_op6Context* number_op6();
+
   class  IdfContext : public antlr4::ParserRuleContext {
   public:
     IdfContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -310,9 +418,9 @@ public:
 
   IdfContext* idf();
 
-  class  NumberContext : public antlr4::ParserRuleContext {
+  class  Number_rawContext : public antlr4::ParserRuleContext {
   public:
-    NumberContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    Number_rawContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *INTEGER10();
     antlr4::tree::TerminalNode *INTEGER16();
@@ -324,8 +432,17 @@ public:
    
   };
 
-  NumberContext* number();
+  Number_rawContext* number_raw();
 
+
+  bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
+
+  bool numberSempred(NumberContext *_localctx, size_t predicateIndex);
+  bool number_op1Sempred(Number_op1Context *_localctx, size_t predicateIndex);
+  bool number_op2Sempred(Number_op2Context *_localctx, size_t predicateIndex);
+  bool number_op3Sempred(Number_op3Context *_localctx, size_t predicateIndex);
+  bool number_op4Sempred(Number_op4Context *_localctx, size_t predicateIndex);
+  bool number_op5Sempred(Number_op5Context *_localctx, size_t predicateIndex);
 
   // By default the static state used to implement the parser is lazily initialized during the first
   // call to the constructor. You can call this function if you wish to initialize the static state
