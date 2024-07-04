@@ -279,6 +279,13 @@ namespace utils {
 		return ptr ? ptr : defaultVal;
 	}
 
+	class CloseEnd {
+		std::function<void()> func;
+	public:
+		CloseEnd(std::function<void()> func) : func(func) {}
+		~CloseEnd() { func(); };
+	};
+
 	template<typename Type>
 	struct BasicFormatter {
 		template<class ParseContext>

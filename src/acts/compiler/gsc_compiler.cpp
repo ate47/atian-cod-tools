@@ -1772,7 +1772,7 @@ namespace acts::compiler {
                             gv.name = func;
                             gv.param_count = implData.params;
                             gv.flags = gscHandler->MapFlagsImportToInt(implData.flags);
-                            gv.num_address = (byte)((implData.nodes.size() - w) > 0xFFFF ? 0xFFFF : (implData.nodes.size() - w));
+                            gv.num_address = (uint16_t)((implData.nodes.size() - w) > 0xFFFF ? 0xFFFF : (implData.nodes.size() - w));
                             gscHandler->WriteImport(&data[buff], gv);
                             implCount++;
                         }
@@ -1911,9 +1911,16 @@ namespace acts::compiler {
                 importFlags |= tool::gsc::T8GSCImportFlags::DEV_CALL;
             }
 
-            auto& impList = imports[located];
+            std::vector<ImportObject>& impList = imports[located];
 
-            auto it = std::find_if(impList.begin(), impList.end(), [importFlags](const auto& e) { return e.flags == importFlags; });
+            bool useParams = funcCall && (funcCall->flags & FCF_GETTER) == 0;
+
+            auto it = std::find_if(impList.begin(), impList.end(), [importFlags, paramCount, useParams](const ImportObject& e) { 
+                if (useParams && paramCount != e.params) {
+                    return false;
+                }
+                return e.flags == importFlags;
+            });
 
             if (it == impList.end()) {
                 // no equivalent, we need to create our own node
@@ -3261,6 +3268,8 @@ namespace acts::compiler {
                     }
                     paramCount++;
                 }
+
+                LOG_TRACE("add param {} {}", hashutils::ExtractTmp("function", funcHash), paramCount);
 
                 // add self
                 if (flags & FCF_METHOD) {

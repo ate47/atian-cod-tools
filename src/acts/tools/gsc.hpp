@@ -1150,7 +1150,7 @@ namespace tool::gsc {
         virtual void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) = 0;
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt);
         // Patch script to prepare disasm
-        virtual void PatchCode(T8GSCOBJContext& ctx);
+        virtual int PatchCode(T8GSCOBJContext& ctx);
     };
 
     std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(byte vm);

@@ -339,7 +339,7 @@ byte GSCOBJHandler::MapFlagsExportToInt(byte flags) {
     return flags;
 }
 
-void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
+int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
     if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
         if (GetAnimTreeSingleOffset()) {
@@ -356,6 +356,7 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
 
                 if (ref > 256) {
                     LOG_ERROR("Too many animtrees single usage");
+                    return tool::BASIC_ERROR;
                 }
                 else {
                     for (size_t j = 0; j < unk2c->num_address; j++) {
@@ -448,19 +449,34 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             }
         }
 
-        return; // mwiii
+        return tool::OK;// mwiii
     }
     // patching imports unlink the script refs to write namespace::import_name instead of the address
     auto imports_count = (int)GetImportsCount();
-    uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + GetImportsOffset();
+    uint32_t import_offset = GetImportsOffset();
+    if (import_offset > fileSize) {
+        LOG_ERROR("Invalid import table 0x{:x} ", import_offset);
+        return tool::BASIC_ERROR;
+    }
+    uintptr_t import_location = reinterpret_cast<uintptr_t>(file) + import_offset;
     for (size_t i = 0; i < imports_count; i++) {
-
         const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
+        if (import_location - reinterpret_cast<uintptr_t>(file) + sizeof(uint32_t) * imp->num_address > fileSize) {
+            LOG_ERROR("Invalid import 0x{:x} with {} addresses", import_location - reinterpret_cast<uintptr_t>(file), imp->num_address);
+            return tool::BASIC_ERROR;
+        }
 
         const auto* imports = reinterpret_cast<const uint32_t*>(&imp[1]);
         for (size_t j = 0; j < imp->num_address; j++) {
             uint32_t* loc;
             auto remapedFlags = RemapFlagsImport(imp->flags);
+
+            if (imports[j] > fileSize) {
+                LOG_ERROR("Invalid import {}::{} address 0x{:x} > 0x{:x} for i{}#{}", 
+                    hashutils::ExtractTmp("namespace", imp->import_namespace), hashutils::ExtractTmp("function", imp->name),
+                    imports[j], fileSize, i, j);
+                break;
+            }
 
             switch (remapedFlags & CALLTYPE_MASK) {
             case FUNC_METHOD:
@@ -515,7 +531,8 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         for (size_t j = 0; j < globalvar->num_address; j++) {
             // no align, no opcode to pass, directly the fucking location, cool.
             if (vars[j] >= GetFileSize() - sizeof(uint16_t)) {
-                LOG_WARNING("Invalid global variable: 0x{:x}", vars[j]);
+                LOG_ERROR("Invalid global variable: 0x{:x}", vars[j]);
+                return tool::BASIC_ERROR;
             }
             else {
                 Ref<uint16_t>(vars[j]) = ref;
@@ -579,6 +596,7 @@ void GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             animt_location += sizeof(*animt) + sizeof(*vars) * (animt->num_tree_address + (size_t)animt->num_node_address * 2);
         }
     }
+    return tool::OK;
 }
 
 void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) {
@@ -969,6 +987,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
         LOG_ERROR("Can't open output file {}", asmfnamebuff);
         return -1;
     }
+
+    utils::CloseEnd asmoutclose{ [&asmout] { asmout.close(); } };
+
     LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
     if (opt.m_copyright) {
         asmout << "// " << opt.m_copyright << "\n";
@@ -1101,17 +1122,28 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
         }
     }
 
+    int patchCodeResult{};
+
     if (opt.m_patch) {
         actslib::profiler::ProfiledSection ps{ profiler, "patch linking"};
         // unlink the script and write custom gvar/string ids
-        scriptfile->PatchCode(ctx);
+        patchCodeResult = scriptfile->PatchCode(ctx);
     }
 
     if (opt.m_includes && scriptfile->GetIncludesOffset()) {
+        uint32_t includeOffset = scriptfile->GetIncludesOffset();
         if (scriptfile->HasFlag(GOHF_STRING_NAMES)) {
-            uint32_t* includes = scriptfile->Ptr<uint32_t>(scriptfile->GetIncludesOffset());
+            if (includeOffset + scriptfile->GetIncludesCount() * sizeof(uint32_t) > scriptfile->GetFileSize()) {
+                LOG_ERROR("Invalid include offset 0x{:x} > 0x{:x}", includeOffset, scriptfile->GetFileSize());
+                return tool::BASIC_ERROR;
+            }
+            uint32_t* includes = scriptfile->Ptr<uint32_t>(includeOffset);
 
             for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
+                if (includes[i] >= scriptfile->GetFileSize()) {
+                    LOG_ERROR("Invalid include string offset 0x{:x} > 0x{:x}", includes[i], scriptfile->GetFileSize());
+                    return tool::BASIC_ERROR;
+                }
                 asmout << "#using " << scriptfile->Ptr<char>(includes[i]) << ";\n";
             }
             if (scriptfile->GetIncludesCount()) {
@@ -1119,7 +1151,11 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             }
         }
         else {
-            uint64_t* includes = scriptfile->Ptr<uint64_t>(scriptfile->GetIncludesOffset());
+            uint64_t* includes = scriptfile->Ptr<uint64_t>(includeOffset);
+            if (includeOffset + scriptfile->GetIncludesCount() * sizeof(uint64_t) > scriptfile->GetFileSize()) {
+                LOG_ERROR("Invalid include offset 0x{:x} > 0x{:x}", includeOffset, scriptfile->GetFileSize());
+                return tool::BASIC_ERROR;
+            }
 
             for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
                 asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
@@ -1169,6 +1205,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             uint16_t numAddress;
 
             if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+                if (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr<>()) + sizeof(IW23GSCImport) > scriptfile->GetFileSize()) {
+                    LOG_ERROR("Invalid import {} location", i);
+                    return tool::BASIC_ERROR;
+                }
                 const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
                 name_space = imp->name_space;
                 name = imp->name;
@@ -1178,6 +1218,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 impSize = sizeof(*imp);
             }
             else {
+                if (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr<>()) + sizeof(T8GSCImport) > scriptfile->GetFileSize()) {
+                    LOG_ERROR("Invalid import {} location", i);
+                    return tool::BASIC_ERROR;
+                }
                 const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
                 name_space = imp->import_namespace;
                 name = imp->name;
@@ -1185,6 +1229,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                 param_count = imp->param_count;
                 numAddress = imp->num_address;
                 impSize = sizeof(*imp);
+            }
+            if (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr<>()) + impSize + sizeof(uint32_t) * numAddress > scriptfile->GetFileSize()) {
+                LOG_ERROR("Invalid import {} num address {}", i, numAddress);
+                return tool::BASIC_ERROR;
             }
 
             asmout << std::hex << "import ";
@@ -1227,7 +1275,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             asmout << "\n";
 
             asmout << std::hex << "address: " << numAddress
-                << ", params: " << (int)param_count
+                << ", params: " << std::dec << (int)param_count
                 << ", iflags: 0x" << std::hex << (uint16_t)(flags)
                 << ", iftype: 0x" << std::hex << (int)(flags & T8GSCImportFlags::CALLTYPE_MASK)
                 << ", loc: 0x" << std::hex << (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr()))
@@ -1299,6 +1347,9 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
         }
     }
 
+    if (patchCodeResult) {
+        return patchCodeResult;
+    }
 
     if (opt.m_func) {
         actslib::profiler::ProfiledSection ps{ profiler, "decompiling" };
@@ -1716,8 +1767,6 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             }
         }
     }
-
-    asmout.close();
 
     if (opt.m_generateGdbData) {
         const char* gdbFile{ utils::va("%sgdbasm", asmfnamebuff) };
