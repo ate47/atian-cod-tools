@@ -1,12 +1,3 @@
 - tools
-  - fix bugs with T9 decompiler
-  - switch mode T9 dll
   - gsc compiler 
-	- dev block
-	- acts detours
-	- acts debug header lazylink/detour/devblocks/crc
-	- expression for names in struct creation for Treyarch VMs
-	- profilenamedstart/stop operator (T9)
-	- fix jupb crc emit, variable opcode and field hashes
-	- gsc lambdas
-  - wip ADL compiler
+	- fix import compilation
