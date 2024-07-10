@@ -1191,6 +1191,29 @@ namespace tool::gsc::opcode {
 			
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Jump, 0x45);
 			
+
+			RegisterVM(VM_T835, "Call of Duty: Black ops 4 (35)", "t8", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVMPlatform(VM_T835, PLATFORM_PLAYSTATION);
+			SetMaxOpCode(VM_T835, 0xFFF);
+			RegisterDevCall(VM_T835, "assert", "assertmsg", "errormsg", "throw", "println");
+
+
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_ThreadEndBreakpoint, 0x7);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_PushEntityVar, 0xb);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_ClearParams, 0xc);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_CheckClearParams, 0xd);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_PreScriptCall, 0xe);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_CallBuiltinFunction, 0xf);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_CallBuiltinMethod, 0x10);
+			RegisterOpCode(VM_T835, PLATFORM_PLAYSTATION, OPCODE_End, 0x11);
 			
 			
 

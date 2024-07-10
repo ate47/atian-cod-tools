@@ -6,6 +6,7 @@ namespace tool::gsc::opcode {
 		VM_UNKNOWN = 0,
 		VM_T71B = 0x1B,
 		VM_T7 = 0x1C,
+		VM_T835 = 0x35,
 		VM_T8 = 0x36,
 		VM_T937 = 0x37,
 		VM_T9 = 0x38,

@@ -774,6 +774,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
         vm = data[7];
         iw = false;
     }
+    else if (!memcmp("GSC", data, 4)) {
+        LOG_ERROR("gscbin format not supported");
+        return tool::BASIC_ERROR;
+    }
     else {
         LOG_ERROR("Bad magic 0x{:x}", *reinterpret_cast<uint64_t*>(data));
         return tool::BASIC_ERROR;

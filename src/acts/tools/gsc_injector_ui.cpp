@@ -267,6 +267,11 @@ namespace {
                             return TRUE;
                         }
 
+                        if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
+                            SetNotif("GSCBIN format not supported");
+                            return TRUE;
+                        }
+
                         if (file.size() < 0x20) {
                             SetNotif(std::format("Invalid gsc file '{}'", filePath));
                             return TRUE;
@@ -284,14 +289,20 @@ namespace {
                                 SetNotif("Can't find Black Ops Cold War");
                                 return TRUE;
                             }
+                            utils::CloseEnd ce{ [&proc] { proc.Close(); } };
 
                             cw::InjectScriptCW(proc, filePath.c_str(), hookPath.c_str(), "scripts/core_common/clientids_shared.gsc", notif);
                             SetNotif(notif);
 
-                            proc.Close();
                         }
                         else {
-                            SetNotif(std::format("Invalid magic: 0x{:x}", magic));
+                            tool::gsc::opcode::VmInfo* nfo{};
+                            if (tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
+                                SetNotif(std::format("Injector not implemented for VM: {}", nfo->name));
+                            }
+                            else {
+                                SetNotif(std::format("Invalid magic: 0x{:x}", magic));
+                            }
                         }
                     }
                     catch (std::exception& e) {
