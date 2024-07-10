@@ -16,25 +16,25 @@ public:
             << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
             << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+            << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
             << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
             << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
             << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
-            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             << std::right
             << std::flush;
 
         if (opt.m_test_header) {
             asmout
                 << "// ukn0c .... " << std::dec << data->pad << " / 0x" << std::hex << data->pad << "\n"
-                << "// ukn2c .... " << std::dec << data->ukn2c << " / 0x" << std::hex << data->ukn2c << "\n"
                 << "// ukn34 .... " << std::dec << data->ukn34 << " / 0x" << std::hex << data->ukn34 << "\n"
                 << "// ukn50 .... " << std::dec << data->ukn50 << " / 0x" << std::hex << data->ukn50 << "\n"
                 << "// ukn5a .... " << std::dec << (int)data->ukn5a << " / 0x" << std::hex << (int)data->ukn5a << "\n"
                 ;
         }
     }
-    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
         auto* data = Ptr<T8GSCOBJ>();
 
         // no clue what this thing is doing
@@ -58,6 +58,34 @@ public:
         if (data->fixup_count) {
             asmout << "\n";
         }
+
+        T8GSCString* val = Ptr<T8GSCString>(data->devblock_string_offset);
+        for (size_t i = 0; i < data->devblock_string_count; i++) {
+
+            const char* str = ctx.CloneString(utils::va("<dev string:x%x>", val->string)); // Ptr<char>(val->string); // no gdb
+
+            if (opt.m_strings) {
+                asmout << "Dev String: "
+                    << "addr:" << std::hex << val->string << ", "
+                    << "count:" << std::dec << (int)val->num_address << ", stype:"
+                    << (int)val->type << " -> \"" << str << "\"\n";
+                asmout << "loc: ";
+            }
+
+            uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
+            for (size_t j = 0; j < val->num_address; j++) {
+                if (opt.m_strings) {
+                    asmout << " 0x" << std::hex << loc[j];
+                }
+                Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
+            }
+            val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
+
+            if (opt.m_strings) {
+                asmout << "\n";
+            }
+        }
+
     }
 
     uint64_t GetName() override {
@@ -252,7 +280,7 @@ public:
             << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
             << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             << std::right
             << std::flush;
 
@@ -267,7 +295,7 @@ public:
                 ;
         }
     }
-    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
         auto* data = Ptr<T937GSCOBJ>();
 
         auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offset]);
@@ -482,7 +510,7 @@ public:
             << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_tables << ")\n"
             << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             << std::right
             << std::flush;
 
@@ -499,7 +527,7 @@ public:
                 ;
         }
     }
-    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
     }
 
     uint64_t GetName() override {
@@ -771,7 +799,7 @@ public:
             << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
             << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
             //<< "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             << std::right
             << std::flush;
 
@@ -789,7 +817,7 @@ public:
                 ;
         }
     }
-    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
         auto* data = Ptr<GscObj23>();
 
         if (opt.m_test_header) {
@@ -1122,7 +1150,7 @@ public:
             << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
             << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
             //<< "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             << std::right
             << std::flush;
 
@@ -1140,7 +1168,7 @@ public:
                 ;
         }
     }
-    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
         auto* data = Ptr<GscObj23>();
 
         if (opt.m_test_header) {
@@ -1476,7 +1504,7 @@ public:
             << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->import_count << " (offset: 0x" << std::hex << data->import_offset << ")\n"
             << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n"
-            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             ;
 
         if (opt.m_test_header) {
@@ -1489,7 +1517,7 @@ public:
             << std::right
             << std::flush;
     }
-    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
         auto* data = Ptr<T7GSCOBJ>();
 
         auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offsets]);
@@ -1736,7 +1764,7 @@ public:
             << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->import_count << " (offset: 0x" << std::hex << data->import_offset << ")\n"
             << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n"
-            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << "\n"
+            << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             ;
 
         if (opt.m_test_header) {
@@ -1749,7 +1777,7 @@ public:
             << std::right
             << std::flush;
     }
-    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) override {
+    void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
         auto* data = Ptr<T7GSCOBJ>();
 
         auto* fixups = reinterpret_cast<T8GSCFixup*>(&data->magic[data->fixup_offsets]);

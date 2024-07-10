@@ -69,6 +69,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!strcmp("-l", arg) || !_strcmpi("--rloc", arg)) {
             m_func_rloc = true;
         }
+        else if (!strcmp("-L", arg) || !_strcmpi("--floc", arg)) {
+            m_func_floc = true;
+        }
         else if (!strcmp("-P", arg) || !_strcmpi("--nopatch", arg)) {
             m_patch = false;
         }
@@ -264,6 +267,7 @@ void GscInfoOption::PrintHelp() {
         LOG_INFO("-f --format [f]    : Use formatter, values:{}", formats.str());
     }
     LOG_INFO("-l --rloc          : Write relative location of the function code");
+    LOG_INFO("-L --floc          : Write file location of the function code");
     LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
     LOG_INFO("-d --gdb           : Dump gdb data");
     LOG_INFO("--dumpstrings [f]  : Dump strings in f");
@@ -599,7 +603,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     return tool::OK;
 }
 
-void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt) {
+void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) {
 }
 
 namespace {
@@ -1056,7 +1060,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
 
             const auto* str = reinterpret_cast<T8GSCString*>(str_location);
 
-            asmout << std::hex << "String addr:" << str->string << ", count:" << (int)str->num_address << ", type:" << (int)str->type << std::endl;
+            asmout << std::hex << "String addr:" << str->string << ", count:" << std::dec << (int)str->num_address << ", type:" << (int)str->type << ", loc:0x" << std::hex << (str_location - reinterpret_cast<uintptr_t>(scriptfile->file)) << std::endl;
 
             char* encryptedString = scriptfile->Ptr<char>(str->string);
 
@@ -1173,7 +1177,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
     asmout
         << std::flush;
 
-    scriptfile->DumpExperimental(asmout, opt);
+    scriptfile->DumpExperimental(asmout, opt, ctx);
 
     if (opt.m_gvars && scriptfile->GetGVarsOffset()) {
         uintptr_t gvars_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetGVarsOffset()));
@@ -1453,7 +1457,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                     DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
                 }
                 output << std::flush;
-                DecompContext dctx{ 0, 0, asmctx.m_opt };
+                DecompContext dctx{ 0, 0, asmctx.m_opt, 0, exp->GetAddress() };
                 if (opt.m_dcomp) {
                     if (scriptfile->IsVTableImportFlags(exp->GetFlags())) {
                         asmctx.m_bcl = scriptfile->Ptr(exp->GetAddress());
@@ -1566,6 +1570,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                     auto& e = masmctxit->second;
                     // set the export handle
                     e.m_exp.SetHandle(e.m_readerHandle);
+                    uint32_t floc = e.m_exp.GetAddress();
 
                     if (e.m_disableDecompiler) {
                         DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
@@ -1578,7 +1583,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                         
 
                         DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
-                        DecompContext dctx{ 0, 0, e.m_opt, currentPadding + 1 };
+                        DecompContext dctx{ 0, 0, e.m_opt, currentPadding + 1, floc };
                         if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
                             dctx.WritePadding(asmout << "\n");
                         }
@@ -1736,7 +1741,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
                         inDevBlock = false;
                     }
                 }
-                DecompContext dctx{ 0, 0, asmctx.m_opt, currentPadding };
+                DecompContext dctx{ 0, 0, asmctx.m_opt, currentPadding, exp->GetAddress() };
 
                 if (asmctx.m_disableDecompiler) {
                     DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding);
@@ -1961,6 +1966,12 @@ int dumpdataset(Process& proc, int argc, const char* argv[]) {
 
 tool::gsc::T8GSCOBJContext::T8GSCOBJContext() {}
 
+tool::gsc::T8GSCOBJContext::~T8GSCOBJContext() {
+    for (char* string : m_allocatedStrings) {
+        delete[] string;
+    }
+}
+
 // apply ~ to ref to avoid using 0, 1, 2 which might already be used
 
 uint64_t tool::gsc::T8GSCOBJContext::GetGlobalVarName(uint16_t gvarRef) {
@@ -2001,8 +2012,19 @@ uint32_t tool::gsc::T8GSCOBJContext::AddStringValue(const char* value) {
     m_stringRefs[id] = value;
     return id;
 }
+char* tool::gsc::T8GSCOBJContext::CloneString(const char* str) {
+    size_t len = std::strlen(str);
+    char* ptr = new char[len + 1];
+
+    memcpy(ptr, str, len + 1);
+
+    m_allocatedStrings.push_back(ptr);
+
+    return ptr;
+}
 
 int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx) {
+    uint32_t baseloc = exp.GetAddress();
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
@@ -2078,6 +2100,9 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             const auto* handler = ctx.LookupOpCode(opCode);
 
+            if (ctx.m_opt.m_func_floc) {
+                out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (baseloc + loc.rloc);
+            }
 
             out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ": " << std::flush;
 
@@ -2601,7 +2626,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             }
             if (lvar.defaultValueNode) {
                 asmout << " = ";
-                DecompContext dctx = { 0, 0, ctx.m_opt };
+                DecompContext dctx = { 0, 0, ctx.m_opt, 0 };
                 lvar.defaultValueNode->Dump(asmout, dctx);
             }
         }

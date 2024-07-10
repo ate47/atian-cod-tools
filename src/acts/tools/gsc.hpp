@@ -66,6 +66,7 @@ namespace tool::gsc {
         bool m_patch{ true };
         bool m_func{ true };
         bool m_func_rloc{};
+        bool m_func_floc{};
         bool m_func_header{ true };
         bool m_func_header_post{};
         bool m_show_jump_delta{};
@@ -126,6 +127,7 @@ namespace tool::gsc {
             int rloc{};
             const GscInfoOption& opt;
             int paddingPre{};
+            uint32_t baseloc{};
 
             std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc = false);
         };
@@ -696,6 +698,7 @@ namespace tool::gsc {
     private:
         std::unordered_map<uint16_t, uint64_t> m_gvars{};
         std::unordered_map<uint32_t, const char*> m_stringRefs{};
+        std::vector<char*> m_allocatedStrings{};
     public:
         std::vector<IW23GSCImport> m_linkedImports{};
         // getnumber hack
@@ -705,6 +708,7 @@ namespace tool::gsc {
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};
         T8GSCOBJContext();
+        ~T8GSCOBJContext();
 
         /*
          * Get a name for a global var ref
@@ -737,8 +741,12 @@ namespace tool::gsc {
          * @return new string ref
          */
         uint32_t AddStringValue(const char* value);
-
-
+        /*
+         * Clone a string inside this context
+         * @param str the string
+         * @return allocated string
+         */
+        char* CloneString(const char* str);
     };
 
     struct T8GSCOBJ {
@@ -753,7 +761,7 @@ namespace tool::gsc {
         int32_t string_offset;
         int16_t imports_count;
         uint16_t fixup_count;
-        int32_t ukn2c;
+        int32_t devblock_string_offset;
         int32_t export_table_offset;
         int32_t ukn34;
         int32_t imports_offset;
@@ -762,7 +770,8 @@ namespace tool::gsc {
         int32_t globalvar_offset;
         int32_t script_size;
         int32_t requires_implements_offset;
-        int32_t ukn50;
+        int16_t ukn50;
+        int16_t devblock_string_count;
         int32_t cseg_size;
         uint16_t include_count;
         byte ukn5a;
@@ -1148,7 +1157,7 @@ namespace tool::gsc {
 
         // Dump header
         virtual void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) = 0;
-        virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt);
+        virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx);
         // Patch script to prepare disasm
         virtual int PatchCode(T8GSCOBJContext& ctx);
     };

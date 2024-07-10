@@ -161,7 +161,7 @@ namespace tool::gsc::opcode {
 
 	std::ostream& operator<<(std::ostream& os, const ASMContextNode& obj) {
 		// fake decomp context
-		DecompContext ctx{ 0, 0, {} };
+		DecompContext ctx{ 0, 0, {}, 0 };
 		obj.Dump(os, ctx);
 		return os;
 	}
@@ -5348,6 +5348,9 @@ bool ASMContext::IsInsideScript(byte* bytecodeLocation) {
 }
 
 std::ostream& ASMContext::WritePadding(std::ostream& out) {
+	if (m_opt.m_func_floc) {
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (m_bcl - m_gscReader.file);
+	}
 	return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << FunctionRelativeLocation() << ": "
 		// no opcode write
 		<< std::setfill(' ') << std::setw((sizeof(int16_t) << 1) + 25 + 2) << " ";
@@ -5457,15 +5460,33 @@ void ASMContext::CompleteStatement() {
 
 std::ostream& DecompContext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 	utils::Padding(out, paddingPre);
-	if (opt.m_func_rloc) {
+	if (opt.m_func_rloc || opt.m_func_floc) {
 		out << "/*";
 		if (forceNoRLoc) {
-			for (size_t i = 0; i < sizeof(int32_t) << 1; i++) {
-				out << "*";
+			if (opt.m_func_rloc) {
+				for (size_t i = 0; i < sizeof(int32_t) << 1; i++) {
+					out << "*";
+				}
+				if (opt.m_func_floc) {
+					out << "*";
+				}
+			}
+			if (opt.m_func_floc) {
+				for (size_t i = 0; i < sizeof(int32_t) << 1; i++) {
+					out << "*";
+				}
 			}
 		}
 		else {
-			out << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << rloc;
+			if (opt.m_func_floc) {
+				out << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << baseloc;
+				if (opt.m_func_floc) {
+					out << ".";
+				}
+			}
+			if (opt.m_func_rloc) {
+				out << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << rloc;
+			}
 		}
 		out << "*/";
 	}
