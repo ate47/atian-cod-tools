@@ -71,12 +71,13 @@ public:
                     << (int)val->type << " -> \"" << str << "\"\n";
                 asmout << "loc: ";
             }
-
+            
             uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
             for (size_t j = 0; j < val->num_address; j++) {
                 if (opt.m_strings) {
                     asmout << " 0x" << std::hex << loc[j];
                 }
+                ctx.m_unkstrings[str].insert(loc[j]);
                 Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
             }
             val = reinterpret_cast<T8GSCString*>(loc + val->num_address);

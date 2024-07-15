@@ -77,6 +77,7 @@ namespace tool::gsc {
         const char* m_dump_hashmap{};
         const char* m_dump_strings{};
         const char* m_outputDir{};
+        const char* m_dbgOutputDir{};
         const char* m_copyright{};
         bool m_show_internal_blocks{};
         bool m_show_func_vars{};
@@ -703,7 +704,7 @@ namespace tool::gsc {
         std::vector<IW23GSCImport> m_linkedImports{};
         // getnumber hack
         std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
-        std::set<uint32_t> m_badstrings{};
+        std::map<std::string, std::set<uint32_t>> m_unkstrings{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};

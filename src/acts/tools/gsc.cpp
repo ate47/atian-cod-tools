@@ -204,6 +204,13 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
             }
             m_outputDir = args[++i];
         }
+        else if (!strcmp("-O", arg) || !_strcmpi("--output-dbg", arg)) {
+            if (i + 1 == endIndex) {
+                LOG_ERROR("Missing value for param: {}!", arg);
+                return false;
+            }
+            m_dbgOutputDir = args[++i];
+        }
         else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
             if (i + 1 == endIndex) {
                 LOG_ERROR("Missing value for param: {}!", arg);
@@ -244,6 +251,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
     if (!m_inputFiles.size()) {
         m_inputFiles.push_back("scriptparsetree");
     }
+    if (!m_dbgOutputDir) {
+        m_dbgOutputDir = m_outputDir;
+    }
     return true;
 }
 
@@ -253,6 +263,7 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("-a --asm           : Produce ASM");
     LOG_INFO("-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc', 'pc_alpha'");
     LOG_INFO("-o --output [d]    : ASM/GSC output dir, default same.gscasm");
+    LOG_INFO("-O --output-dbg [d]: DBG output dir, default same as --output");
     LOG_INFO("-v --vm            : Only decompile a particular vm");
     LOG_INFO("-H --header        : Write file header");
     LOG_INFO("-m --hashmap [f]   : Write hashmap in a file f");
@@ -1778,7 +1789,35 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
     }
 
     if (opt.m_generateGdbData) {
-        const char* gdbFile{ utils::va("%sgdbasm", asmfnamebuff) };
+
+        char asmfnamebuffgdb[1000];
+        if (opt.m_dbgOutputDir) {
+            const char* name = hashutils::ExtractPtr(scriptfile->GetName());
+
+            const char* outDir;
+            if (opt.m_splitByVm) {
+                outDir = utils::va("%s/vm-%x", opt.m_dbgOutputDir, vmInfo->vm);
+            }
+            else {
+                outDir = opt.m_dbgOutputDir;
+            }
+
+            if (!name) {
+                sprintf_s(asmfnamebuffgdb, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+            }
+            else {
+                sprintf_s(asmfnamebuffgdb, "%s/%s", outDir, name);
+            }
+        }
+        else {
+            sprintf_s(asmfnamebuffgdb, "%sasm", path);
+        }
+
+        std::filesystem::path filedbg(asmfnamebuffgdb);
+
+        std::filesystem::create_directories(filedbg.parent_path());
+
+        const char* gdbFile{ utils::va("%s.gdb", asmfnamebuffgdb) };
         std::ofstream gdbpos{ gdbFile };
         LOG_INFO("Writing GDB into '{}'...", gdbFile);
 
@@ -1788,6 +1827,14 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
         }
 
         // header
+        if (opt.m_copyright) {
+            gdbpos << "# " << opt.m_copyright << "\n";
+        }
+
+        if (opt.m_header) {
+            gdbpos << "# file " << asmfnamebuff << "\n";
+        }
+
         gdbpos 
             << "NAME " << hashutils::ExtractTmpScript(scriptfile->GetName()) << "\n"
             << "VERSION 0\n"
@@ -1795,11 +1842,26 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
             << "\n";
 
         // strings
-        for (uint32_t floc : ctx.m_badstrings) {
-            gdbpos 
-                << "# " << flocName(floc) << "\n"
-                << "STRING 0x" << std::hex << floc << " \n"
+        for (auto& [val, flocs] : ctx.m_unkstrings) {
+            gdbpos << "#";
+
+            for (const uint32_t floc : flocs) {
+                gdbpos << " " << flocName(floc);
+            }
+
+            gdbpos
+                << "\n"
+                << "STRING \"";
+
+            PrintFormattedString(gdbpos, val.c_str()) 
+                << "\""
+                << std::hex
                 ;
+
+            for (const uint32_t floc : flocs) {
+                gdbpos << " 0x" << floc;
+            }
+            gdbpos << "\n";
         }
 
 
@@ -1996,7 +2058,7 @@ const char* tool::gsc::T8GSCOBJContext::GetStringValueOrError(uint32_t stringRef
         return v;
     }
 
-    m_badstrings.insert(floc);
+    m_unkstrings[errorValue].insert(floc);
 
     return errorValue;
 }

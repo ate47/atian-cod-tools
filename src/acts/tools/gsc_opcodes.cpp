@@ -5517,6 +5517,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 	// decompiler proto block loop
 	bool hide = false;
 	size_t i{};
+	size_t visibleId{};
 	while (i < m_statements.size()) {
 		const auto& ref = m_statements[i];
 		ctx.rloc = ref.location->rloc;
@@ -5542,7 +5543,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 		}
 		if (ref.node->m_type != TYPE_END) {
 			if ((!hide && ref.node->m_type != TYPE_PRECODEPOS) || ctx.opt.m_show_internal_blocks) {
-				if (!m_disabled || i) {
+				if (!m_disabled || visibleId) {
 					ctx.WritePadding(out);
 				}
 				if (hide && ref.node->m_type != TYPE_PRECODEPOS) {
@@ -5575,6 +5576,9 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 		}
 		out << std::flush;
 		i++;
+		if (ref.node->m_type != TYPE_PRECODEPOS) {
+			visibleId++;
+		}
 		if (hide && !ctx.opt.m_show_internal_blocks) {
 			// don't write hidden stuff
 			break;
