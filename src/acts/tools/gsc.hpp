@@ -86,6 +86,7 @@ namespace tool::gsc {
         bool m_display_stack{};
         bool m_use_internal_names{};
         bool m_generateGdbData{};
+        bool m_generateGdbBaseData{ true };
         bool m_splitByVm{};
         bool m_rawhash{};
         uint32_t m_stepskip{};
@@ -695,6 +696,22 @@ namespace tool::gsc {
         std::vector<uint64_t> m_methods{};
         std::unordered_map<uint64_t, asmcontext_func> m_vtable{};
     };
+
+    struct NameLocated {
+        uint64_t name_space;
+        uint64_t name;
+        uint64_t script{};
+    };
+    struct NameLocatedHash {
+        size_t operator()(const NameLocated& k) const {
+            return k.name_space ^ RotateLeft64(k.name, 21) ^ RotateLeft64(k.script, 42);
+        }
+    };
+    struct NameLocatedEquals {
+        bool operator()(const NameLocated& a, const NameLocated& b) const {
+            return a.name == b.name && a.name_space == b.name_space && a.script == b.script;
+        }
+    };
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
@@ -706,6 +723,8 @@ namespace tool::gsc {
         // getnumber hack
         std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
         std::map<std::string, std::set<uint32_t>> m_unkstrings{};
+        std::unordered_map<NameLocated, std::vector<uint32_t>, NameLocatedHash, NameLocatedEquals> m_lazyLinks{};
+        std::set<uint32_t> m_devblocks{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};

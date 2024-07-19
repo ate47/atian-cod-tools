@@ -82,6 +82,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!strcmp("-d", arg) || !_strcmpi("--gdb", arg)) {
             m_generateGdbData = true;
         }
+        else if (!_strcmpi("--gdb-small", arg)) {
+            m_generateGdbBaseData = false;
+        }
         else if (!_strcmpi("--vm-split", arg)) {
             m_splitByVm = true;
         }
@@ -290,6 +293,7 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("-L --floc          : Write file location of the function code");
     LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
     LOG_INFO("-d --gdb           : Dump gdb data");
+    LOG_INFO("--gdb-small        : Dump only important gdb data");
     LOG_INFO("--dumpstrings [f]  : Dump strings in f");
     // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
     // it's mostly dev tools
@@ -1809,7 +1813,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         }
     }
 
-    if (opt.m_generateGdbData) {
+    if (opt.m_generateGdbData && (opt.m_generateGdbBaseData || (ctx.m_unkstrings.size() || ctx.m_devblocks.size() || ctx.m_lazyLinks.size()))) {
 
         char asmfnamebuffgdb[1000];
         if (opt.m_dbgOutputDir) {
@@ -1860,29 +1864,76 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             << "NAME " << hashutils::ExtractTmpScript(scriptfile->GetName()) << "\n"
             << "VERSION 0\n"
             << "CHECKSUM 0x" << std::hex << scriptfile->GetChecksum() << "\n"
-            << "\n";
+            ;
 
         // strings
-        for (auto& [val, flocs] : ctx.m_unkstrings) {
-            gdbpos << "#";
-
-            for (const uint32_t floc : flocs) {
-                gdbpos << " " << flocName(floc);
-            }
-
-            gdbpos
-                << "\n"
-                << "STRING \"";
-
-            PrintFormattedString(gdbpos, val.c_str()) 
-                << "\""
-                << std::hex
+        if (ctx.m_unkstrings.size()) {
+            gdbpos 
+                << "######################################################\n"
+                << "####################  DEV STRINGS  ###################\n"
+                << "######################################################\n"
                 ;
+            for (auto& [val, flocs] : ctx.m_unkstrings) {
+                gdbpos << "#";
 
-            for (const uint32_t floc : flocs) {
-                gdbpos << " 0x" << floc;
+                for (const uint32_t floc : flocs) {
+                    gdbpos << " " << flocName(floc);
+                }
+
+                gdbpos
+                    << "\n"
+                    << "STRING \"";
+
+                PrintFormattedString(gdbpos, val.c_str()) 
+                    << "\""
+                    << std::hex
+                    ;
+
+                for (const uint32_t floc : flocs) {
+                    gdbpos << " 0x" << floc;
+                }
+                gdbpos << "\n";
             }
-            gdbpos << "\n";
+        }
+        if (ctx.m_devblocks.size()) {
+            gdbpos
+                << "######################################################\n"
+                << "####################  DEV BLOCKS  ####################\n"
+                << "######################################################\n"
+                ;
+            for (auto& floc : ctx.m_devblocks) {
+                gdbpos
+                    << "# " << flocName(floc) << "\n"
+                    << "DEVBLOCK 0x" << std::hex << floc << "\n";
+            }
+        }
+        if (ctx.m_lazyLinks.size()) {
+            gdbpos
+                << "######################################################\n"
+                << "####################  LAZY LINKS  ####################\n"
+                << "######################################################\n"
+                ;
+            for (auto& [val, flocs] : ctx.m_lazyLinks) {
+                gdbpos << "#";
+
+                for (const uint32_t floc : flocs) {
+                    gdbpos << " " << flocName(floc);
+                }
+
+                gdbpos
+                    << "\n"
+                    << "LAZYLINK"
+                    " \"" << hashutils::ExtractTmp("namespace", val.name_space) << "\""
+                    " \"" << hashutils::ExtractTmp("script", val.script) << "\""
+                    " \"" << hashutils::ExtractTmp("function", val.name) << "\""
+                    << std::hex
+                    ;
+
+                for (const uint32_t floc : flocs) {
+                    gdbpos << " 0x" << floc;
+                }
+                gdbpos << "\n";
+            }
         }
 
 

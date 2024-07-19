@@ -694,7 +694,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
     out << "\n";
 }
 
-const char* ReadMTString(const Process& proc, uint32_t val) {
+const char* tool::pool::ReadMTString(const Process& proc, uint32_t val) {
     static char str_read[0x2001];
     auto strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (uint32_t)(0x14 * val);
     if (!proc.ReadMemory<int16_t>(strptr) || proc.ReadMemory<byte>(strptr + 3) != 7) {

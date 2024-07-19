@@ -9,6 +9,13 @@ namespace tool::pool {
 		WriteHex(out, base, reinterpret_cast<byte*>(buff), size, proc);
 	}
 
+	const char* ReadMTString(const Process& proc, uint32_t val);
+	inline const char* ReadMTString(const Process& proc, uint32_t val, const char* defaultValue) {
+		const char* v = ReadMTString(proc, val);
+		if (v) return v;
+		return defaultValue;
+	}
+
 	struct XHash {
 		uint64_t name;
 		uintptr_t pad0;

@@ -1374,6 +1374,7 @@ public:
 
 		if (m_id == OPCODE_DevblockBegin) {
 			context.m_devBlocks.emplace_back(m_jumpLocation, delta);
+			context.m_objctx.m_devblocks.insert(context.ScriptAbsoluteLocation(context.m_fonctionStart + m_jumpLocation));
 		}
 
 		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
@@ -4514,6 +4515,7 @@ public:
 	OPCodeInfoT8CGetLazyFunction() : OPCodeInfo(OPCODE_T8C_GetLazyFunction, "T8C_GetLazyFunction") {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int32_t lazylocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) ? 2 : 1));
 		auto& base = context.Aligned<int32_t>();
 
 		uint32_t nsp = *(uint32_t*)base;
@@ -4521,6 +4523,14 @@ public:
 		uint64_t script = *(uint64_t*)(base + 8);
 
 		base += 16;
+
+		tool::gsc::NameLocated located{};
+
+		located.name_space = nsp;
+		located.name = function;
+		located.script = script;
+
+		context.m_objctx.m_lazyLinks[located].push_back(context.ScriptAbsoluteLocation(context.m_fonctionStart + lazylocation));
 
 		out << "@" << hashutils::ExtractTmpPath("namespace", nsp)
 			<< "<" << std::flush << hashutils::ExtractTmpScript(script)
