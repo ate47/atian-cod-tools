@@ -19,4 +19,20 @@ namespace tool::gsc::gdb {
 		uint32_t offset;
 		uint32_t nulled4;
 	};
+
+	class ACTS_GSC_GDB {
+	public:
+		uint64_t name;
+		uint32_t crc;
+		uint32_t version;
+
+		bool nameHashed{};
+		std::string nameStr{};
+
+		std::unordered_map<uint32_t, std::string> strings{};
+
+		bool ReadFrom(const std::filesystem::path& file);
+	};
+
+
 }

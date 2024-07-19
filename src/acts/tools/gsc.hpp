@@ -79,6 +79,7 @@ namespace tool::gsc {
         const char* m_outputDir{};
         const char* m_dbgOutputDir{};
         const char* m_copyright{};
+        const char* m_dbgInputDir{};
         bool m_show_internal_blocks{};
         bool m_show_func_vars{};
         bool m_mark_jump_type{};

@@ -3,6 +3,7 @@
 #include "tools/gsc_opcode_nodes.hpp"
 #include "tools/cw/cw.hpp"
 #include "tools/gsc_acts_debug.hpp"
+#include "tools/gsc_gdb.hpp"
 #include "actscli.hpp"
 #include <decrypt.hpp>
 
@@ -210,6 +211,13 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
                 return false;
             }
             m_dbgOutputDir = args[++i];
+            }
+        else if (!_strcmpi("--input-dbg", arg)) {
+            if (i + 1 == endIndex) {
+                LOG_ERROR("Missing value for param: {}!", arg);
+                return false;
+            }
+            m_dbgInputDir = args[++i];
         }
         else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
             if (i + 1 == endIndex) {
@@ -264,6 +272,7 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("-t --type [t]      : Set type, default PC, values: 'ps', 'xbox', 'pc', 'pc_alpha'");
     LOG_INFO("-o --output [d]    : ASM/GSC output dir, default same.gscasm");
     LOG_INFO("-O --output-dbg [d]: DBG output dir, default same as --output");
+    LOG_INFO("--input-dbg [d]    : DBG input directory, default to none");
     LOG_INFO("-v --vm            : Only decompile a particular vm");
     LOG_INFO("-H --header        : Write file header");
     LOG_INFO("-m --hashmap [f]   : Write hashmap in a file f");
@@ -628,6 +637,18 @@ namespace {
         { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
     };
+
+
+    struct GscDecompilerGlobalContext {
+        GscInfoOption opt{};
+        std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
+
+        ~GscDecompilerGlobalContext() {
+            for (auto& [n, d] : debugObjects) {
+                delete d;
+            }
+        }
+    };
 }
 
 std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(byte vm) {
@@ -714,11 +735,11 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
     return utils::va("unk:%lx", floc);
 }
 
-int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& opt) {
-
+int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGlobalContext& gdctx) {
     auto& profiler = actscli::GetProfiler();
     actslib::profiler::ProfiledSection ps{ profiler, path };
 
+    GscInfoOption& opt = gdctx.opt;
 
     T8GSCOBJContext ctx{};
     auto& gsicInfo = ctx.m_gsicInfo;
@@ -1873,12 +1894,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscInfoOption& 
     return 0;
 }
 
-int GscInfoFile(const std::filesystem::path& path, GscInfoOption& opt) {
+int GscInfoFile(const std::filesystem::path& path, GscDecompilerGlobalContext& gdctx) {
     if (std::filesystem::is_directory(path)) {
         // directory
         auto ret = 0;
         for (const auto& sub : std::filesystem::directory_iterator{path}) {
-            auto lret = GscInfoFile(sub.path(), opt);
+            auto lret = GscInfoFile(sub.path(), gdctx);
             if (!ret) {
                 ret = lret;
             }
@@ -1912,7 +1933,7 @@ int GscInfoFile(const std::filesystem::path& path, GscInfoOption& opt) {
         return -1;
     }
 
-    auto ret = GscInfoHandleData(reinterpret_cast<byte*>(buffer), size, pathname.c_str(), opt);
+    auto ret = GscInfoHandleData(reinterpret_cast<byte*>(buffer), size, pathname.c_str(), gdctx);
     std::free(bufferNoAlign);
     return ret;
 }
@@ -2697,35 +2718,65 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 }
 
 int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
-    GscInfoOption opt{};
+    GscDecompilerGlobalContext gdctx{};
 
-    if (!opt.Compute(argv, 2, argc) || opt.m_help) {
-        opt.PrintHelp();
+    if (!gdctx.opt.Compute(argv, 2, argc) || gdctx.opt.m_help) {
+        gdctx.opt.PrintHelp();
         return 0;
     }
 
-    gRosettaOutput = opt.m_rosetta;
-    gDumpStrings = opt.m_dump_strings;
+    if (gdctx.opt.m_dbgInputDir) {
+        std::vector<std::filesystem::path> dbgs{};
+
+        utils::GetFileRecurse(gdctx.opt.m_dbgInputDir, dbgs, [](const std::filesystem::path& path) -> bool {
+            auto str = path.string();
+            return str.ends_with(".gdb");
+        });
+
+        for (const std::filesystem::path& dbg : dbgs) {
+            tool::gsc::gdb::ACTS_GSC_GDB* gdb = new tool::gsc::gdb::ACTS_GSC_GDB();
+
+            LOG_TRACE("Loading GDB file {}", dbg.string());
+
+            if (!gdb->ReadFrom(dbg)) {
+                delete gdb;
+                continue;
+            }
+
+            tool::gsc::gdb::ACTS_GSC_GDB*& ref = gdctx.debugObjects[gdb->nameHashed];
+            if (ref) {
+                delete gdb;
+                continue;
+            }
+
+            ref = gdb;
+        }
+
+        LOG_INFO("{} gdb file(s) loaded", gdctx.debugObjects.size());
+    }
+
+    gRosettaOutput = gdctx.opt.m_rosetta;
+    gDumpStrings = gdctx.opt.m_dump_strings;
 
 
     const char* globalHM = actscli::options().dumpHashmap;
     if (!globalHM) {
         // keep the option for backward compatibility
-        hashutils::SaveExtracted(opt.m_dump_hashmap != nullptr);
+        hashutils::SaveExtracted(gdctx.opt.m_dump_hashmap != nullptr);
     }
     bool computed{};
     int ret{ tool::OK };
-    for (const auto& file : opt.m_inputFiles) {
-        auto lret = GscInfoFile(file, opt);
+    for (const auto& file : gdctx.opt.m_inputFiles) {
+        auto lret = GscInfoFile(file, gdctx);
         if (ret == tool::OK) {
             ret = lret;
         }
     }
     
-    LOG_INFO("{} (0x{:x}) file(s) decompiled.", opt.decompiledFiles, opt.decompiledFiles);
+    LOG_INFO("{} (0x{:x}) file(s) decompiled.", gdctx.opt.decompiledFiles, gdctx.opt.decompiledFiles);
 
     if (!globalHM) {
-        hashutils::WriteExtracted(opt.m_dump_hashmap);
+        hashutils::WriteExtracted(gdctx.opt.m_dump_hashmap);
     }
 
     if (gDumpStrings) {

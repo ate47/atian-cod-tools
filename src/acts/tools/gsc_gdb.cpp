@@ -117,12 +117,27 @@ namespace tool::gsc::gdb {
 			}
 		};
 
-		std::string ReadLineString(const std::string& line, size_t start) {
+		std::string ReadEscapedString(const std::string& line, size_t start, size_t* out) {
+			while (start < line.length() && isspace(line[start])) {
+				start++;
+			}
+			if (start == line.length()) {
+				LOG_WARNING("invalid string, find EOF, excepted \"");
+				if (out) *out = std::string::npos;
+				return {};
+			}
+			if (line[start] != '"') {
+				LOG_WARNING("invalid string, find {}, excepted \"", line[start]);
+				if (out) *out = std::string::npos;
+				return {};
+			}
+			start++; // str start
 			auto newStr = std::make_unique<char[]>(line.length() - start);
 			auto* newStrWriter = &newStr[0];
 
 			// format string
-			for (size_t i = start; i < line.length(); i++) {
+			size_t i = start;
+			for (; i < line.length() && line[i] != '"'; i++) {
 				if (line[i] != '\\') {
 					*(newStrWriter++) = line[i];
 					continue; // default case
@@ -130,7 +145,7 @@ namespace tool::gsc::gdb {
 
 				i++;
 
-				if (i < line.length()) {
+				if (i == line.length()) {
 					LOG_WARNING("bad format, \\ before end");
 					*(newStrWriter++) = '\\';
 					continue;
@@ -155,6 +170,14 @@ namespace tool::gsc::gdb {
 				}
 			}
 			*(newStrWriter++) = 0; // end char
+
+			if (i == line.length()) {
+				LOG_WARNING("invalid string, find {}, excepted \"", line[start]);
+				if (out) *out = std::string::npos;
+				return {};
+			}
+
+			if (out) *out = i + 1;
 
 			return &newStr[0];
 		}
@@ -203,156 +226,164 @@ namespace tool::gsc::gdb {
 			return 0;
 		}
 
-		int gscgdbc(Process& proc, int argc, const char* argv[]) {
-			GSCGDBCompilerOption opt{};
-			if (!opt.Compute(argv, 2, argc) || opt.m_help) {
-				opt.PrintHelp();
-				return tool::OK;
+	}
+
+	bool tool::gsc::gdb::ACTS_GSC_GDB::ReadFrom(const std::filesystem::path& input) {
+		std::ifstream is{ input };
+
+
+		if (!is) {
+			LOG_ERROR("Can't read file '{}'", input.string());
+			return false;
+		}
+
+		utils::CloseEnd ce{ [&is] { is.close(); } };
+
+		std::string line{};
+
+		size_t lineidx{};
+
+		while (is.good() && std::getline(is, line)) {
+			lineidx++;
+			if (line.empty() || line[0] == '#') {
+				continue;
 			}
 
-			std::vector<std::filesystem::path> inputs{};
+			size_t split{ line.find(' ') };
 
-			for (const char* in : opt.inputs) {
-				utils::GetFileRecurse(in, inputs, [](const std::filesystem::path& p) {
-					auto s = p.string();
-					return s.ends_with(".gscgdbasm") || s.ends_with(".cscgdbasm");
-				});
+			if (split == std::string::npos) {
+				LOG_WARNING("Invalid line {}: '{}'", lineidx, line);
+				continue;
 			}
 
-			if (inputs.empty()) {
-				LOG_ERROR("No file to compile");
-				return tool::BASIC_ERROR;
-			}
+			std::string_view sw{ line.begin(), line.begin() + split };
 
-			std::filesystem::path outDir{ opt.outputDir ? opt.outputDir : "." };
-
-			for (const std::filesystem::path& input : inputs) {
-				LOG_INFO("Compiling {}", input.string());
-				std::ifstream is{ input };
-
-
-				if (!is) {
-					LOG_ERROR("Can't read file '{}'", input.string());
-					return tool::BASIC_ERROR;
+			if (sw == "NAME") {
+				if (name) {
+					LOG_WARNING("A name was specified twice, line {}", lineidx);
 				}
-
-				std::string line{};
-
-				uint64_t filename{};
-				bool filenameHashed{};
-				std::string filenamestr{};
-				uint32_t version{};
-				uint32_t checksum{};
-				std::unordered_map<uint32_t, std::string> strings{};
-				size_t lineidx{};
-
-				while (is.good() && std::getline(is, line)) {
-					lineidx++;
-					if (line.empty() || line[0] == '#') {
-						continue;
-					}
-
-					size_t split{ line.find(' ') };
-
-					if (split == std::string::npos) {
-						LOG_WARNING("Invalid line {}: '{}'", lineidx, line);
-						continue;
-					}
-
-					std::string_view sw{ line.begin(), line.begin() + split };
-
-					if (sw == "NAME") {
-						if (filename) {
-							LOG_WARNING("A name was specified twice, line {}", lineidx);
-						}
-						else {
-							filenamestr = line.c_str() + split + 1;
-							filename = hash::HashPattern(filenamestr.c_str());
-							if (filename) {
-								filenameHashed = true;
-							}
-							else {
-								filename = hash::Hash64(filenamestr.c_str());
-							}
-						}
-					}
-					else if (sw == "VERSION") {
-						if (version) {
-							LOG_WARNING("A version was specified twice, line {}", lineidx);
-						}
-						else {
-							version = ReadLineNumber(line, split + 1);
-						}
-					}
-					else if (sw == "CHECKSUM") {
-						if (checksum) {
-							LOG_WARNING("A checksum was specified twice, line {}", lineidx);
-						}
-						else {
-							checksum = ReadLineNumber(line, split + 1);
-						}
-					}
-					else if (sw == "STRING") {
-						// read string
-						size_t str{};
-						uint32_t offset = ReadLineNumber(line, split + 1, &str);
-
-						if (str == line.length()) {
-							strings[offset] = ""; // empty string
-						}
-						else {
-							strings[offset] = ReadLineString(line, str + 1);
-						}
+				else {
+					nameStr = line.c_str() + split + 1;
+					name = hash::HashPattern(nameStr.c_str());
+					if (name) {
+						nameHashed = true;
 					}
 					else {
-						LOG_WARNING("Invalid option at line {}: '{}'", lineidx, sw);
-						continue;
+						name = hash::Hash64(nameStr.c_str());
 					}
-
 				}
-				is.close();
+			}
+			else if (sw == "VERSION") {
+				if (version) {
+					LOG_WARNING("A version was specified twice, line {}", lineidx);
+				}
+				else {
+					version = ReadLineNumber(line, split + 1);
+				}
+			}
+			else if (sw == "CHECKSUM") {
+				if (crc) {
+					LOG_WARNING("A checksum was specified twice, line {}", lineidx);
+				}
+				else {
+					crc = ReadLineNumber(line, split + 1);
+				}
+			}
+			else if (sw == "STRING") {
+				// read string
+				size_t numbers{};
+				std::string str{ ReadEscapedString(line, split + 1, &numbers) };
 
-				if (!filename) {
-					LOG_ERROR("Can't compile {}: missing filename", input.string());
+				if (numbers == std::string::npos) {
 					continue;
 				}
 
-				std::filesystem::path outFir{ outDir / utils::va("%s%sgdb", filenameHashed ? ".gsc" : "", filenamestr.c_str()) };
-
-				if (filenameHashed) {
-					outFir = outDir / utils::va("hashed/%s.gscgdb", filenamestr.c_str());
+				uint32_t offset;
+				while (numbers + 1 < line.length() && (offset = ReadLineNumber(line, numbers + 1, &numbers))) {
+					strings[offset] = str;
 				}
-				else {
-					outFir = outDir / utils::va("%sgdb", filenamestr.c_str());
-				}
-
-				LOG_INFO("name ..... {}", hashutils::ExtractTmpScript(filename));
-				LOG_INFO("version .. 0x{:x}", version);
-				LOG_INFO("Checksum . 0x{:x}", checksum);
-				LOG_INFO("strings");
-				for (auto& [rloc, str] : strings) {
-					LOG_INFO("0x{:x} -> {}", rloc, str);
-				}
-
-				LOG_INFO("Compiling to {}", outFir.string());
-
-				std::vector<byte> data{};
-
-				utils::Allocate(data, sizeof(tool::gsc::gdb::GSC_GDB));
-
-				// todo: write fixup strings
-
-
-				tool::gsc::gdb::GSC_GDB* gdb{ reinterpret_cast<tool::gsc::gdb::GSC_GDB*>(data.data()) };
-				*reinterpret_cast<uint64_t*>(gdb->magic) = tool::gsc::gdb::MAGIC;
-				gdb->source_crc = checksum;
-				gdb->version = version;
-
-				utils::WriteFile(outFir, data.data(), data.size());
+			}
+			else {
+				LOG_WARNING("Invalid option at line {}: '{}'", lineidx, sw);
+				continue;
 			}
 
+		}
+
+		if (!name) {
+			LOG_ERROR("Can't compile {}: missing filename", input.string());
+			return false;
+		}
+
+
+		return true;
+	}
+
+	int gscgdbc(Process& proc, int argc, const char* argv[]) {
+		GSCGDBCompilerOption opt{};
+		if (!opt.Compute(argv, 2, argc) || opt.m_help) {
+			opt.PrintHelp();
 			return tool::OK;
 		}
+
+		std::vector<std::filesystem::path> inputs{};
+
+		for (const char* in : opt.inputs) {
+			utils::GetFileRecurse(in, inputs, [](const std::filesystem::path& p) {
+				auto s = p.string();
+				return s.ends_with(".gdb");
+			});
+		}
+
+		if (inputs.empty()) {
+			LOG_ERROR("No file to compile");
+			return tool::BASIC_ERROR;
+		}
+
+		std::filesystem::path outDir{ opt.outputDir ? opt.outputDir : "." };
+
+		for (const std::filesystem::path& input : inputs) {
+			ACTS_GSC_GDB  gdb{};
+
+			if (!gdb.ReadFrom(input)) {
+				continue;
+			}
+
+			std::filesystem::path outFir{ outDir / utils::va("%s%sgdb", gdb.nameHashed ? ".gsc" : "", gdb.nameStr.c_str()) };
+
+			if (gdb.nameHashed) {
+				outFir = outDir / utils::va("hashed/%s.gscgdb", gdb.nameStr.c_str());
+			}
+			else {
+				outFir = outDir / utils::va("%sgdb", gdb.nameStr.c_str());
+			}
+
+			LOG_INFO("name ..... {}", hashutils::ExtractTmpScript(gdb.name));
+			LOG_INFO("version .. 0x{:x}", gdb.version);
+			LOG_INFO("Checksum . 0x{:x}", gdb.crc);
+			LOG_INFO("strings");
+			for (auto& [floc, str] : gdb.strings) {
+				LOG_INFO("0x{:x} -> {}", floc, str);
+			}
+
+			LOG_INFO("Compiling to {}", outFir.string());
+
+			std::vector<byte> data{};
+
+			utils::Allocate(data, sizeof(tool::gsc::gdb::GSC_GDB));
+
+			// todo: write fixup strings
+
+
+			tool::gsc::gdb::GSC_GDB* ggdb{ reinterpret_cast<tool::gsc::gdb::GSC_GDB*>(data.data()) };
+			*reinterpret_cast<uint64_t*>(ggdb->magic) = tool::gsc::gdb::MAGIC;
+			ggdb->source_crc = gdb.crc;
+			ggdb->version = gdb.version;
+
+			utils::WriteFile(outFir, data.data(), data.size());
+		}
+
+		return tool::OK;
 	}
 
 
