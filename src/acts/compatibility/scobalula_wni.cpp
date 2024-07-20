@@ -27,9 +27,9 @@ namespace compatibility::scobalula::wni {
 			uint32_t compressedSize = headerData[1];
 			uint32_t decompressedSize = headerData[2];
 
-			LOG_DEBUG("entries: {}", entries);
-			LOG_DEBUG("compressedSize: {}", compressedSize);
-			LOG_DEBUG("decompressedSize: {}", decompressedSize);
+			LOG_TRACE("entries: {}", entries);
+			LOG_TRACE("compressedSize: {}", compressedSize);
+			LOG_TRACE("decompressedSize: {}", decompressedSize);
 
 			off += sizeof(*headerData) * 3;
 

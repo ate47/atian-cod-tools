@@ -1,6 +1,7 @@
 #pragma once
 #include "gsc_opcodes.hpp"
 #include "gsc_formatter.hpp"
+#include "gsc_gdb.hpp"
 #include <includes.hpp>
 
 namespace tool::gsc {
@@ -712,6 +713,16 @@ namespace tool::gsc {
             return a.name == b.name && a.name_space == b.name_space && a.script == b.script;
         }
     };
+    struct GscDecompilerGlobalContext {
+        GscInfoOption opt{};
+        std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
+
+        ~GscDecompilerGlobalContext() {
+            for (auto& [n, d] : debugObjects) {
+                delete d;
+            }
+        }
+    };
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
@@ -728,6 +739,7 @@ namespace tool::gsc {
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};
+        tool::gsc::gdb::ACTS_GSC_GDB* gdbctx{};
         T8GSCOBJContext();
         ~T8GSCOBJContext();
 

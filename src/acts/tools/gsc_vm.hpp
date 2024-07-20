@@ -77,6 +77,17 @@ public:
                 if (opt.m_strings) {
                     asmout << " 0x" << std::hex << loc[j];
                 }
+
+                if (ctx.gdbctx) {
+                    // use gdb string
+                    auto it = ctx.gdbctx->strings.find(loc[j]);
+                    if (it != ctx.gdbctx->strings.end()) {
+                        std::string& str = it->second;
+
+                        Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str.c_str());
+                        continue;
+                    }
+                }
                 ctx.m_unkstrings[str].insert(loc[j]);
                 Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
             }

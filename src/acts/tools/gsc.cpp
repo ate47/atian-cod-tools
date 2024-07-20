@@ -641,18 +641,6 @@ namespace {
         { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
     };
-
-
-    struct GscDecompilerGlobalContext {
-        GscInfoOption opt{};
-        std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
-
-        ~GscDecompilerGlobalContext() {
-            for (auto& [n, d] : debugObjects) {
-                delete d;
-            }
-        }
-    };
 }
 
 std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(byte vm) {
@@ -744,7 +732,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     actslib::profiler::ProfiledSection ps{ profiler, path };
 
     GscInfoOption& opt = gdctx.opt;
-
+    
     T8GSCOBJContext ctx{};
     auto& gsicInfo = ctx.m_gsicInfo;
 
@@ -1037,6 +1025,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
     if (opt.m_copyright) {
         asmout << "// " << opt.m_copyright << "\n";
+    }
+
+    auto itdbg = gdctx.debugObjects.find(scriptfile->GetName());
+
+    if (itdbg != gdctx.debugObjects.end()) {
+        ctx.gdbctx = itdbg->second; // load dbg object
+        LOG_DEBUG("Using dbg file {}", ctx.gdbctx->path.string());
     }
 
     if (opt.m_header) {
@@ -2785,19 +2780,20 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
         });
 
         for (const std::filesystem::path& dbg : dbgs) {
-            tool::gsc::gdb::ACTS_GSC_GDB* gdb = new tool::gsc::gdb::ACTS_GSC_GDB();
+            tool::gsc::gdb::ACTS_GSC_GDB* gdb = new tool::gsc::gdb::ACTS_GSC_GDB(dbg);
 
-            LOG_TRACE("Loading GDB file {}", dbg.string());
+            LOG_DEBUG("Loading GDB file {}", dbg.string());
 
             if (!gdb->ReadFrom(dbg)) {
                 delete gdb;
                 continue;
             }
 
-            tool::gsc::gdb::ACTS_GSC_GDB*& ref = gdctx.debugObjects[gdb->nameHashed];
+            tool::gsc::gdb::ACTS_GSC_GDB*& ref = gdctx.debugObjects[gdb->name];
             if (ref) {
+                LOG_WARNING("Debug object '{}' already defined", gdb->nameStr);
                 delete gdb;
-                continue;
+                continue; // already defined
             }
 
             ref = gdb;

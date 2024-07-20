@@ -303,7 +303,7 @@ namespace tool::gsc::gdb {
 					strings[offset] = str;
 				}
 			}
-			else {
+			else if (sw != "DEVBLOCK" && sw != "LAZYLINK") {
 				LOG_WARNING("Invalid option at line {}: '{}'", lineidx, sw);
 				continue;
 			}
@@ -343,7 +343,7 @@ namespace tool::gsc::gdb {
 		std::filesystem::path outDir{ opt.outputDir ? opt.outputDir : "." };
 
 		for (const std::filesystem::path& input : inputs) {
-			ACTS_GSC_GDB  gdb{};
+			ACTS_GSC_GDB gdb{ input };
 
 			if (!gdb.ReadFrom(input)) {
 				continue;

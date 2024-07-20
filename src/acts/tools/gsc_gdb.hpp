@@ -22,15 +22,17 @@ namespace tool::gsc::gdb {
 
 	class ACTS_GSC_GDB {
 	public:
-		uint64_t name;
-		uint32_t crc;
-		uint32_t version;
+		const std::filesystem::path path;
+		uint64_t name{};
+		uint32_t crc{};
+		uint32_t version{};
 
 		bool nameHashed{};
 		std::string nameStr{};
 
 		std::unordered_map<uint32_t, std::string> strings{};
 
+		ACTS_GSC_GDB(const std::filesystem::path& path) : path(path) {}
 		bool ReadFrom(const std::filesystem::path& file);
 	};
 
