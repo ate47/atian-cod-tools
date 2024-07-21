@@ -108,6 +108,9 @@ namespace {
 				alogs::setfile(argv[++i]);
 				actslib::logging::SetLogFile(argv[i]);
 			}
+			else if (!_strcmpi("--mark-hash", arg)) {
+				opt.markHash = true;
+			}
 			else if (!strcmp("-x", arg) || !_strcmpi("--extracted", arg)) {
 				if (i + 1 == argc) {
 					LOG_ERROR("Missing value for param: {}!", arg);
@@ -185,6 +188,7 @@ namespace {
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
+		LOG_INFO("--mark-hash         : Mark the hash default value");
 	}
 }
 

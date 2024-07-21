@@ -6,6 +6,7 @@ namespace {
 	std::set<uint64_t> g_extracted{};
 	bool g_saveExtracted = false;
 	bool show0 = false;
+	bool markHash = false;
 }
 
 const std::unordered_map<uint64_t, std::string>& hashutils::GetMap() {
@@ -34,6 +35,7 @@ void hashutils::ReadDefaultFile() {
 		}
 
 		show0 = opt.show0Hash;
+		markHash = opt.markHash;
 
 		if (opt.noDefaultHash) {
 			return;
@@ -239,7 +241,7 @@ void hashutils::AddPrecomputed(uint64_t value, const char* str) {
 bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
 	ReadDefaultFile();
 	if (!hash) {
-		if (show0) {
+		if (show0 || markHash) {
 			snprintf(out, outSize, "%s_0", type);
 		}
 		else if (outSize) {
@@ -252,7 +254,12 @@ bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSi
 		snprintf(out, outSize, "%s_%llx", type, hash);
 		return false;
 	}
-	snprintf(out, outSize, "%s", res->second.c_str());
+	if (markHash) {
+		snprintf(out, outSize, "<%llx>%s", hash, res->second.c_str());
+	}
+	else {
+		snprintf(out, outSize, "%s", res->second.c_str());
+	}
 	if (g_saveExtracted) {
 		g_extracted.emplace(hash);
 	}

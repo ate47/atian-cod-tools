@@ -200,7 +200,7 @@ namespace tool::gsc::opcode {
 }
 
 void VmInfo::AddDevCallName(uint64_t name) {
-	devCallsNames.insert(name);
+	devCallsNames.insert(name & 0x7FFFFFFFFFFFFFFF);
 }
 
 uint64_t VmInfo::HashField(const char* value) const {
@@ -4789,7 +4789,7 @@ namespace tool::gsc::opcode {
 
 		auto& opnfo = ref->second;
 
-		opnfo.devCallsNames.insert(opnfo.HashField(devCall));
+		opnfo.AddDevCallName(opnfo.HashField(devCall));
 	}
 
 	void RegisterOpCodes() {
