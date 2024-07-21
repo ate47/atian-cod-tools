@@ -300,10 +300,10 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		const char* query[]{ argv[1] };
 		tool::search(query, 1, [&find](const tool::toolfunctiondata* tool) {
 			if (!find) {
-				LOG_ERROR("Similar tool name(s):");
+				LOG_INFO("Similar tool name(s):");
 				find = true;
 			}
-			LOG_ERROR("- {}", tool->m_name);
+			LOG_INFO("- {}", tool->m_name);
 		});
 
 		return -1;

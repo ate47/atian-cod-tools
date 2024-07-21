@@ -1,5 +1,6 @@
 #include <includes_shared.hpp>
 #include "logs.hpp"
+#include "clicolor.hpp"
 
 const char* alogs::name(loglevel lvl) {
 	switch (lvl)
@@ -61,28 +62,51 @@ void alogs::log(loglevel level, const std::string& str) {
 		return;
 	}
 
-	auto f = [&](std::ostream& out) {
+	auto f = [&](std::ostream& out, bool color) {
 		if (!g_basiclog) {
+			if (color) {
+				out << clicolor::Color(5, 5, 5);
+			}
 			std::tm tm = localtime_xp(std::time(nullptr));
 			out
 				<< "[" << std::put_time(&tm, "%H:%M:%S") << "]"
+				;
+		}
+		if (color) {
+			switch (level) {
+			case alogs::LVL_ERROR: out << clicolor::Color(5, 1, 1); break;
+			case alogs::LVL_WARNING: out << clicolor::Color(5, 4, 1); break;
+			case alogs::LVL_INFO: out << clicolor::Color(5, 5, 5); break;
+			case alogs::LVL_DEBUG: out << clicolor::Color(4, 5, 1); break;
+			case alogs::LVL_TRACE: out << clicolor::Color(1, 5, 5); break;
+			default: out << clicolor::Reset(); break;
+			}
+		}
+
+		if (!g_basiclog) {
+			out
 				<< '[' << name(level) << "] "
 				;
 		}
-		out
-			<< str
-			<< "\n";
-		};
+		out << str;
+
+		if (color) {
+			out << clicolor::Reset();
+		}
+		out << "\n";
+	};
 
 	auto* lf = logfile();
 	if (lf) {
 		std::ofstream out{ lf, std::ios::app };
 
-		f(out);
+		f(out, false);
 
 		out.close();
 	}
 	else {
-		f(level < LVL_WARNING ? std::cout : std::cerr);
+		static bool allowColor = clicolor::ConsoleAllowColor();
+
+		f(level < LVL_WARNING ? std::cout : std::cerr, allowColor);
 	}
 }

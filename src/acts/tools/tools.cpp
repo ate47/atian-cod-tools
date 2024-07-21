@@ -1,4 +1,7 @@
 #include <includes.hpp>
+#include <clicolor.hpp>
+#include <tools/tools_ui.hpp>
+#include <tools/gsc_opcodes.hpp>
 
 std::map<std::string, tool::toolfunctiondata*>& tool::tools() {
 	static std::map<std::string, tool::toolfunctiondata*> map{};
@@ -194,7 +197,79 @@ namespace {
 		}
 		return tool::OK;
 	}
+#ifndef CI_BUILD
+	int color(Process& proc, int argc, const char* argv[]) {
+		for (int b = 0; b < 6; b++) {
+			for (int i = 0; i < 6; i++) {
+				for (int j = 0; j < 6; j++) {
+					std::cout << " " << clicolor::ColorBackground(i, j, b) << i << j << b << clicolor::Reset();
+				}
+				std::cout << " ";
+				for (int j = 0; j < 6; j++) {
+					std::cout << " " << clicolor::Color(i, j, b) << i << j << b << clicolor::Reset();
+				}
+				std::cout << "\n";
+			}
+		}
 
+		std::cout << "\n";
+
+		LOG_TRACE("Trace log");
+		LOG_DEBUG("Debug log");
+		LOG_INFO("Info log");
+		LOG_WARNING("Warning log");
+		LOG_ERROR("Error log");
+
+		return tool::OK;
+	}
+	ADD_TOOL("color", "dev", "", "color tool", nullptr, color);
+#endif
+	int info(Process& proc, int argc, const char* argv[]) {
+		LOG_INFO("Loading acts data...");
+		hashutils::ReadDefaultFile();
+		tool::gsc::opcode::RegisterOpCodes();
+		LOG_INFO("----- acts");
+		LOG_INFO("version .. {} (0x{:x})", actsinfo::VERSION, actsinfo::VERSION_ID);
+		LOG_INFO("tools .... {} ({} categories)", tool::tools().size(), tool::toolsCategories().size());
+		LOG_INFO("tools ui . {}", tool::ui::tools().size());
+		LOG_INFO("hash(es) . {}", hashutils::GetMap().size());
+		LOG_INFO("path ..... {}", utils::GetProgDir().string());
+		LOG_INFO("----- games");
+
+		auto& gameMap = tool::gsc::opcode::GetVMMaps();
+
+		if (gameMap.empty()) {
+			LOG_WARNING("No game available");
+		}
+
+		for (auto& [vm, info] : gameMap) {
+			const char* out = utils::va("- %s (%s/%x) ->", info.name, info.codeName, (int)info.vm);
+
+			for (size_t i = 0; i < tool::gsc::opcode::PLATFORM_COUNT; i++) {
+				tool::gsc::opcode::Platform plt = (tool::gsc::opcode::Platform)i;
+
+				if (!info.HasPlatform(plt)) continue;
+
+				size_t count{};
+
+				auto it = info.opcodemappltlookup.find(plt);
+
+				if (it != info.opcodemappltlookup.end()) {
+					for (auto& [op, reg] : it->second) {
+						count += reg.size();
+					}
+				}
+				out = utils::va("%s %s:0x%llx", out, 
+					utils::MapString(utils::va("%s", tool::gsc::opcode::PlatformName(plt)), [](char c) { return c == ' ' ? '_' : c; }), 
+					count);
+			}
+
+			LOG_INFO("{}", out);
+		}
+
+		return tool::OK;
+	}
 }
 ADD_TOOL("list", "acts", "", "list all the tools", nullptr, list);
+ADD_TOOL("info", "acts", "", "acts info", nullptr, info);
 ADD_TOOL("search", "acts", " (args)*", "search a tool", nullptr, search);
