@@ -827,7 +827,7 @@ namespace tool::gsc {
         uint32_t string_offset;
         uint16_t imports_count;
         uint16_t fixup_count;
-        uint32_t unk2c;
+        uint32_t devblock_string_offset;
         uint32_t exports_tables;
         uint32_t imports_offset;
         uint16_t globalvar_count;
@@ -835,7 +835,8 @@ namespace tool::gsc {
         uint32_t fixup_offset;
         uint32_t globalvar_offset;
         uint32_t file_size;
-        uint32_t unk48;
+        uint16_t unk48;
+        uint16_t devblock_string_count;
         uint32_t cseg_size;
         uint16_t includes_count;
         uint16_t unk52;
@@ -859,8 +860,8 @@ namespace tool::gsc {
         uint16_t globalvar_count;
         uint16_t unk22;
         uint16_t includes_count;
-        uint16_t unk26;
-        uint32_t unk28;
+        uint16_t devblock_string_count;
+        uint32_t devblock_string_offset;
         uint32_t cseg_offset;
         uint32_t string_offset;
         uint32_t includes_table;
@@ -885,7 +886,7 @@ namespace tool::gsc {
         uint32_t animtree_offset;
         uint32_t cseg_offset;
         uint32_t string_offset;
-        uint32_t unk1c;
+        uint32_t devblock_string_offset;
         uint32_t export_offset;
         uint32_t import_offset;
         uint32_t fixup_offsets;
@@ -896,7 +897,8 @@ namespace tool::gsc {
         uint16_t export_count;
         uint16_t import_count;
         uint16_t fixup_count;
-        uint32_t unk40;
+        uint16_t unk40;
+        uint16_t devblock_string_count;
         uint8_t include_count;
         uint8_t animtree_count;
         uint8_t flags;
@@ -917,7 +919,7 @@ namespace tool::gsc {
         uint16_t unk10;
         uint16_t animtree_use_count;
         uint16_t animtree_count;
-        uint16_t unk16;
+        uint16_t devblock_string_count;
         uint16_t export_count;
         uint16_t fixup_count;
         uint16_t unk1C;
@@ -931,7 +933,7 @@ namespace tool::gsc {
         uint32_t animtree_offset;
         uint32_t cseg_offset;
         uint32_t cseg_size;
-        uint32_t unk3C;
+        uint32_t devblock_string_offset;
         uint32_t export_offset;
         uint32_t fixup_offset;
         uint32_t size1;
@@ -1129,6 +1131,8 @@ namespace tool::gsc {
         virtual uint32_t GetImportsOffset() = 0;
         virtual uint16_t GetStringsCount() = 0;
         virtual uint32_t GetStringsOffset() = 0;
+        virtual uint16_t GetDevStringsCount() = 0;
+        virtual uint32_t GetDevStringsOffset() = 0;
         virtual uint16_t GetGVarsCount() = 0;
         virtual uint32_t GetGVarsOffset() = 0;
         virtual uint32_t GetFileSize() {
@@ -1172,6 +1176,8 @@ namespace tool::gsc {
         virtual void SetImportsOffset(uint32_t val) = 0;
         virtual void SetStringsCount(uint16_t val) = 0;
         virtual void SetStringsOffset(uint32_t val) = 0;
+        virtual void SetDevStringsCount(uint16_t val) = 0;
+        virtual void SetDevStringsOffset(uint32_t val) = 0;
         virtual void SetGVarsCount(uint16_t val) = 0;
         virtual void SetGVarsOffset(uint32_t val) = 0;
         virtual void SetFileSize(uint32_t val) = 0;

@@ -601,6 +601,25 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Undefined, 0x54, 0xc7, 0x1bc, 0x255, 0x357, 0x44d, 0x47e, 0x4b4, 0x509, 0x706, 0x787, 0x8c3, 0x8d9, 0x952, 0xb6c, 0xc33, 0xdc4, 0xdee, 0xe21, 0xe8e, 0xec6, 0xed8, 0xf99); // a355b0
 			RegisterOpCode(VM_T937, PLATFORM_PC_ALPHA, OPCODE_Undefined, 0xdf, 0x166, 0x28b, 0x2ab, 0x2da, 0x333, 0x37c, 0x3be, 0x443, 0x4ab, 0x4b7, 0x4c0, 0x4da, 0x51c, 0x81e, 0x9a7, 0x9b4, 0x9ba, 0xa31, 0xcb2, 0xe2f, 0xed1, 0xfa2); // a35630
 
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_Abort, 0x0);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_Nop, 0x1);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_Breakpoint, 0x2);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_AutoBreakpoint, 0x3);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_ErrorBreakpoint, 0x4);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_WatchBreakpoint, 0x5);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_NotifyBreakpoint, 0x6);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_ThreadEndBreakpoint, 0x7);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_EvalLocalVariableCachedDebug, 0x8);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_PushVar, 0xa);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_PushEntityVar, 0xb);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_ClearParams, 0xc);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_PreScriptCall, 0xe);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_CallBuiltinFunction, 0xf);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_CallBuiltinMethod, 0x10);
+			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_End, 0x11);
+
 			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
 			SetMaxOpCode(VM_T9, 0xFFF);

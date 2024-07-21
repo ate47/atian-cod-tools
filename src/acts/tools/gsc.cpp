@@ -396,7 +396,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         }
 
         uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
-        auto string_count = (int)GetStringsCount();
+        int string_count = (int)GetStringsCount();
         for (size_t i = 0; i < string_count; i++) {
 
             const auto* str = reinterpret_cast<T8GSCString*>(str_location);
@@ -413,6 +413,32 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 Ref<uint32_t>(strings[j]) = ref;
             }
             str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
+        }
+
+        if (GetDevStringsOffset()) {
+            T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
+            for (size_t i = 0; i < GetDevStringsCount(); i++) {
+
+                const char* str = ctx.CloneString(utils::va("<dev string:x%x>", val->string)); // Ptr<char>(val->string); // no gdb
+
+                uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
+                for (size_t j = 0; j < val->num_address; j++) {
+
+                    if (ctx.gdbctx) {
+                        // use gdb string
+                        auto it = ctx.gdbctx->strings.find(loc[j]);
+                        if (it != ctx.gdbctx->strings.end()) {
+                            std::string& str = it->second;
+
+                            Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str.c_str());
+                            continue;
+                        }
+                    }
+                    ctx.m_unkstrings[str].insert(loc[j]);
+                    Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
+                }
+                val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
+            }
         }
 
         auto imports_count = (int)GetImportsCount();
@@ -570,7 +596,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     }
 
     uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
-    auto string_count = (int)GetStringsCount();
+    int string_count = (int)GetStringsCount();
     for (size_t i = 0; i < string_count; i++) {
 
         const auto* str = reinterpret_cast<T8GSCString*>(str_location);
@@ -586,6 +612,32 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             Ref<uint32_t>(strings[j]) = ref;
         }
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
+    }
+
+    if (GetDevStringsOffset()) {
+        T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
+        for (size_t i = 0; i < GetDevStringsCount(); i++) {
+
+            const char* str = ctx.CloneString(utils::va("<dev string:x%x>", val->string)); // Ptr<char>(val->string); // no gdb
+
+            uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
+            for (size_t j = 0; j < val->num_address; j++) {
+
+                if (ctx.gdbctx) {
+                    // use gdb string
+                    auto it = ctx.gdbctx->strings.find(loc[j]);
+                    if (it != ctx.gdbctx->strings.end()) {
+                        std::string& str = it->second;
+
+                        Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str.c_str());
+                        continue;
+                    }
+                }
+                ctx.m_unkstrings[str].insert(loc[j]);
+                Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
+            }
+            val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
+        }
     }
 
     if (GetAnimTreeDoubleOffset()) {
@@ -1084,79 +1136,103 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     }
 
     // write the strings before the patch to avoid reading pre-decrypted strings
-    if (opt.m_strings && scriptfile->GetStringsOffset()) {
-        uintptr_t str_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetStringsOffset()));
+    if (opt.m_strings) {
+        if (scriptfile->GetStringsOffset()) {
+            uintptr_t str_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetStringsOffset()));
 
-        for (size_t i = 0; i < scriptfile->GetStringsCount(); i++) {
+            for (size_t i = 0; i < scriptfile->GetStringsCount(); i++) {
 
-            const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+                const auto* str = reinterpret_cast<T8GSCString*>(str_location);
 
-            asmout << std::hex << "String addr:" << str->string << ", count:" << std::dec << (int)str->num_address << ", type:" << (int)str->type << ", loc:0x" << std::hex << (str_location - reinterpret_cast<uintptr_t>(scriptfile->file)) << std::endl;
+                asmout << std::hex << "String addr:" << str->string << ", count:" << std::dec << (int)str->num_address << ", type:" << (int)str->type << ", loc:0x" << std::hex << (str_location - reinterpret_cast<uintptr_t>(scriptfile->file)) << std::endl;
 
-            char* encryptedString = scriptfile->Ptr<char>(str->string);
+                char* encryptedString = scriptfile->Ptr<char>(str->string);
 
-            size_t len{};
-            byte type{};
-            if (scriptfile->GetVM() == VM_T8) {
-                len = (size_t)reinterpret_cast<byte*>(encryptedString)[1] - 1;
-                type = *reinterpret_cast<byte*>(encryptedString);
+                size_t len{};
+                byte type{};
+                if (scriptfile->GetVM() == VM_T8) {
+                    len = (size_t)reinterpret_cast<byte*>(encryptedString)[1] - 1;
+                    type = *reinterpret_cast<byte*>(encryptedString);
 
-                if (str->string + len + 1 > scriptfile->GetFileSize()) {
-                    asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
-                    break;
+                    if (str->string + len + 1 > scriptfile->GetFileSize()) {
+                        asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
+                        break;
+                    }
+
+                    asmout << "encryption: ";
+                    asmout << "0x" << std::hex << (int)type;
+                    if ((type & 0xC0) == 0x80) {
+                        asmout << "(none)";
+                    }
+                    asmout << " len: " << std::dec << len << " -> " << std::flush;
+
+                }
+                else {
+                    auto* ess = reinterpret_cast<byte*>(encryptedString);
+                    type = ess[0];
+                    len = (size_t)ess[2] - 1;
+
+                    if (str->string + len + 3 > scriptfile->GetFileSize()) {
+                        asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
+                        break;
+                    }
+
+                    asmout << "encryption: ";
+                    asmout << "0x" << std::hex << (int)type;
+                    if ((type & 0xC0) == 0x80) {
+                        asmout << "(none)";
+                    }
+                    asmout << " len: " << std::dec << len << ", unk1: 0x" << std::hex << (int)ess[1] << " -> " << std::flush;
+                }
+                char* cstr = scriptfile->DecryptString(encryptedString);
+
+                asmout << '"' << cstr << "\"" << std::flush;
+
+                if (scriptfile->GetVM() == VM_T8) {
+                    size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
+
+                    if (lenAfterDecrypt != len) {
+                        asmout << " ERROR LEN (" << std::dec << lenAfterDecrypt << " != " << len << " for type 0x" << std::hex << (int)type << ")";
+                        assert(false);
+                    }
                 }
 
-                asmout << "encryption: ";
-                asmout << "0x" << std::hex << (int)type;
-                if ((type & 0xC0) == 0x80) {
-                    asmout << "(none)";
-                }
-                asmout << " len: " << std::dec << len << " -> " << std::flush;
+                asmout << "\n";
 
+                asmout << "location(s): ";
+
+                const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
+                asmout << std::hex << flocName(strings[0]);
+                for (size_t j = 1; j < str->num_address; j++) {
+                    asmout << std::hex << "," << flocName(strings[j]);
+                }
+                asmout << "\n";
+                str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
             }
-            else {
-                auto* ess = reinterpret_cast<byte*>(encryptedString);
-                type = ess[0];
-                len = (size_t)ess[2] - 1;
-
-                if (str->string + len + 3 > scriptfile->GetFileSize()) {
-                    asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
-                    break;
-                }
-
-                asmout << "encryption: ";
-                asmout << "0x" << std::hex << (int)type;
-                if ((type & 0xC0) == 0x80) {
-                    asmout << "(none)";
-                }
-                asmout << " len: " << std::dec << len << ", unk1: 0x" << std::hex << (int)ess[1] << " -> " << std::flush;
-            }
-            char* cstr = scriptfile->DecryptString(encryptedString);
-
-            asmout << '"' << cstr << "\"" << std::flush;
-
-            if (scriptfile->GetVM() == VM_T8) {
-                size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
-
-                if (lenAfterDecrypt != len) {
-                    asmout << " ERROR LEN (" << std::dec << lenAfterDecrypt << " != " << len << " for type 0x" << std::hex << (int)type << ")";
-                    assert(false);
-                }
-            }
-
-            asmout << "\n";
-
-            asmout << "location(s): ";
-
-            const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
-            asmout << std::hex << flocName(strings[0]);
-            for (size_t j = 1; j < str->num_address; j++) {
-                asmout << std::hex << "," << flocName(strings[j]);
-            }
-            asmout << "\n";
-            str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
         }
-        if (scriptfile->GetStringsCount()) {
+        if (scriptfile->GetDevStringsOffset()) {
+            T8GSCString* val = scriptfile->Ptr<T8GSCString>(scriptfile->GetDevStringsOffset());
+            for (size_t i = 0; i < scriptfile->GetDevStringsCount(); i++) {
+
+                const char* str = utils::va("<dev string:x%x>", val->string); // Ptr<char>(val->string); // no gdb
+
+                asmout << "Dev String: "
+                    << "addr:" << std::hex << val->string << ", "
+                    << "count:" << std::dec << (int)val->num_address << ", stype:"
+                    << (int)val->type << " -> \"" << str << "\"\n";
+                asmout << "loc: ";
+
+                uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
+                for (size_t j = 0; j < val->num_address; j++) {
+                    asmout << " 0x" << std::hex << loc[j];
+                }
+                
+                asmout << "\n";
+                val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
+            }
+        }
+
+        if (scriptfile->GetStringsCount() || scriptfile->GetDevStringsCount()) {
             asmout << "\n";
         }
     }
@@ -2125,7 +2201,9 @@ const char* tool::gsc::T8GSCOBJContext::GetStringValueOrError(uint32_t stringRef
         return v;
     }
 
-    m_unkstrings[errorValue].insert(floc);
+    if (errorValue) {
+        m_unkstrings[errorValue].insert(floc);
+    }
 
     return errorValue;
 }

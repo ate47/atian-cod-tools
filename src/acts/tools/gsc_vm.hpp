@@ -58,46 +58,6 @@ public:
         if (data->fixup_count) {
             asmout << "\n";
         }
-
-        T8GSCString* val = Ptr<T8GSCString>(data->devblock_string_offset);
-        for (size_t i = 0; i < data->devblock_string_count; i++) {
-
-            const char* str = ctx.CloneString(utils::va("<dev string:x%x>", val->string)); // Ptr<char>(val->string); // no gdb
-
-            if (opt.m_strings) {
-                asmout << "Dev String: "
-                    << "addr:" << std::hex << val->string << ", "
-                    << "count:" << std::dec << (int)val->num_address << ", stype:"
-                    << (int)val->type << " -> \"" << str << "\"\n";
-                asmout << "loc: ";
-            }
-            
-            uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
-            for (size_t j = 0; j < val->num_address; j++) {
-                if (opt.m_strings) {
-                    asmout << " 0x" << std::hex << loc[j];
-                }
-
-                if (ctx.gdbctx) {
-                    // use gdb string
-                    auto it = ctx.gdbctx->strings.find(loc[j]);
-                    if (it != ctx.gdbctx->strings.end()) {
-                        std::string& str = it->second;
-
-                        Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str.c_str());
-                        continue;
-                    }
-                }
-                ctx.m_unkstrings[str].insert(loc[j]);
-                Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
-            }
-            val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
-
-            if (opt.m_strings) {
-                asmout << "\n";
-            }
-        }
-
     }
 
     uint64_t GetName() override {
@@ -132,6 +92,12 @@ public:
     }
     uint32_t GetStringsOffset() override {
         return Ptr<T8GSCOBJ>()->string_offset;
+    }
+    uint16_t GetDevStringsCount() override {
+        return Ptr<T8GSCOBJ>()->devblock_string_count;
+    }
+    uint32_t GetDevStringsOffset() override {
+        return Ptr<T8GSCOBJ>()->devblock_string_offset;
     }
     uint32_t GetFileSize() override {
         return Ptr<T8GSCOBJ>()->script_size;
@@ -187,6 +153,12 @@ public:
     }
     void SetStringsOffset(uint32_t val) override {
         Ptr<T8GSCOBJ>()->string_offset = val;
+    }
+    void SetDevStringsCount(uint16_t val) override {
+        Ptr<T8GSCOBJ>()->devblock_string_count = val;
+    }
+    void SetDevStringsOffset(uint32_t val) override {
+        Ptr<T8GSCOBJ>()->devblock_string_offset = val;
     }
     void SetGVarsCount(uint16_t val) override {
         Ptr<T8GSCOBJ>()->globalvar_count = val;
@@ -289,6 +261,7 @@ public:
             << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
             << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
             << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+            << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
             << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
             << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
@@ -299,7 +272,6 @@ public:
         if (opt.m_test_header) {
             asmout
                 << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
-                << "// unk2c .... " << std::dec << data->unk2c << " / 0x" << std::hex << data->unk2c << "\n"
                 << "// unk3a .... " << std::dec << data->unk3a << " / 0x" << std::hex << data->unk3a << "\n"
                 << "// unk48 .... " << std::dec << data->unk48 << " / 0x" << std::hex << data->unk48 << "\n"
                 << "// unk52 .... " << std::dec << data->unk52 << " / 0x" << std::hex << data->unk52 << "\n"
@@ -354,6 +326,12 @@ public:
     }
     uint32_t GetStringsOffset() override {
         return Ptr<T937GSCOBJ>()->string_offset;
+    }
+    uint16_t GetDevStringsCount() override {
+        return Ptr<T937GSCOBJ>()->devblock_string_count;
+    }
+    uint32_t GetDevStringsOffset() override {
+        return Ptr<T937GSCOBJ>()->devblock_string_offset;
     }
     uint32_t GetFileSize() override {
         return Ptr<T937GSCOBJ>()->file_size;
@@ -417,6 +395,12 @@ public:
     }
     void SetStringsOffset(uint32_t val) override {
         Ptr<T937GSCOBJ>()->string_offset = val;
+    }
+    void SetDevStringsCount(uint16_t val) override {
+        Ptr<T937GSCOBJ>()->devblock_string_count = val;
+    }
+    void SetDevStringsOffset(uint32_t val) override {
+        Ptr<T937GSCOBJ>()->devblock_string_offset = val;
     }
     void SetGVarsCount(uint16_t val) override {
         Ptr<T937GSCOBJ>()->globalvar_count = val;
@@ -519,6 +503,7 @@ public:
             << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
             << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
             << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+            << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
             << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_tables << ")\n"
             << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
@@ -531,8 +516,6 @@ public:
                 << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
                 << "// unk1e .... " << std::dec << data->unk1e << " / 0x" << std::hex << data->unk1e << "\n"
                 << "// unk22 .... " << std::dec << data->unk22 << " / 0x" << std::hex << data->unk22 << "\n"
-                << "// unk26 .... " << std::dec << data->unk26 << " / 0x" << std::hex << data->unk26 << "\n"
-                << "// unk28 .... " << std::dec << data->unk28 << " / 0x" << std::hex << data->unk28 << "\n" // offset
                 << "// unk40 .... " << std::dec << data->unk40 << " / 0x" << std::hex << data->unk40 << "\n" // offset
                 << "// unk4c .... " << std::dec << data->unk4c << " / 0x" << std::hex << data->unk4c << "\n"
                 << "// unk54 .... " << std::dec << data->unk54 << " / 0x" << std::hex << data->unk54 << "\n"
@@ -574,6 +557,12 @@ public:
     }
     uint32_t GetStringsOffset() override {
         return Ptr<T9GSCOBJ>()->string_offset;
+    }
+    uint16_t GetDevStringsCount() override {
+        return Ptr<T9GSCOBJ>()->devblock_string_count;
+    }
+    uint32_t GetDevStringsOffset() override {
+        return Ptr<T9GSCOBJ>()->devblock_string_offset;
     }
     uint32_t GetFileSize() override {
         return Ptr<T9GSCOBJ>()->file_size;
@@ -708,6 +697,12 @@ public:
     void SetStringsOffset(uint32_t val) override {
         Ptr<T9GSCOBJ>()->string_offset = val;
     }
+    void SetDevStringsCount(uint16_t val) override {
+        Ptr<T9GSCOBJ>()->devblock_string_count = val;
+    }
+    void SetDevStringsOffset(uint32_t val) override {
+        Ptr<T9GSCOBJ>()->devblock_string_offset = val;
+    }
     void SetGVarsCount(uint16_t val) override {
         Ptr<T9GSCOBJ>()->globalvar_count = val;
     }
@@ -806,11 +801,11 @@ public:
             << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
             << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
             << "// strings ... " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
+            << "// dev strs .. " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
             << "// exports ... " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
             << "// imports ... " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
             << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
             << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
-            //<< "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
             << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             << std::right
             << std::flush;
@@ -818,11 +813,9 @@ public:
         if (opt.m_test_header) {
             // fillme
             asmout
-                << "unk16 :" << std::dec << std::setw(3) << (int)data->unk16 << " (0x" << std::hex << data->unk16 << ")\n"
                 << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
                 << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
                 << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
-                << "unk3C :" << std::dec << std::setw(3) << (int)data->unk3C << " (0x" << std::hex << data->unk3C << ")\n"
                 << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
                 << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
                 << "unk5C :" << std::dec << std::setw(3) << (int)data->unk5C << " (0x" << std::hex << data->unk5C << ")\n"
@@ -919,6 +912,12 @@ public:
     }
     uint32_t GetStringsOffset() override {
         return Ptr<GscObj23>()->string_table;
+    }
+    uint16_t GetDevStringsCount() override {
+        return Ptr<GscObj23>()->devblock_string_count;
+    }
+    uint32_t GetDevStringsOffset() override {
+        return Ptr<GscObj23>()->devblock_string_offset;
     }
     uint32_t GetFileSize() override {
         return Ptr<GscObj23>()->size1;
@@ -1065,6 +1064,12 @@ public:
     void SetStringsOffset(uint32_t val) override {
         Ptr<GscObj23>()->string_table = val;
     }
+    void SetDevStringsCount(uint16_t val) override {
+        Ptr<GscObj23>()->devblock_string_count = val;
+    }
+    void SetDevStringsOffset(uint32_t val) override {
+        Ptr<GscObj23>()->devblock_string_offset = val;
+    }
     void SetFileSize(uint32_t val) override {
         // idk
         Ptr<GscObj23>()->size1 = val;
@@ -1157,11 +1162,11 @@ public:
             << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
             << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
             << "// strings ... " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
+            << "// dev strs .. " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
             << "// exports ... " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
             << "// imports ... " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
             << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
             << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
-            //<< "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
             << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
             << std::right
             << std::flush;
@@ -1169,11 +1174,9 @@ public:
         if (opt.m_test_header) {
             // fillme
             asmout
-                << "unk16 :" << std::dec << std::setw(3) << (int)data->unk16 << " (0x" << std::hex << data->unk16 << ")\n"
                 << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
                 << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
                 << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
-                << "unk3C :" << std::dec << std::setw(3) << (int)data->unk3C << " (0x" << std::hex << data->unk3C << ")\n"
                 << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
                 << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
                 << "unk5C :" << std::dec << std::setw(3) << (int)data->unk5C << " (0x" << std::hex << data->unk5C << ")\n"
@@ -1188,7 +1191,7 @@ public:
             for (size_t i = 0; i < data->animtree_use_count; i++) {
                 const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
 
-                auto* s = Ptr<char>(unk2c->address);
+                auto* s = DecryptString(Ptr<char>(unk2c->address));
 
                 asmout << std::hex << "animtree #" << s << std::endl;
 
@@ -1213,8 +1216,8 @@ public:
             for (size_t i = 0; i < data->animtree_count; i++) {
                 const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
 
-                auto* s1 = Ptr<char>(animt->address_str1);
-                auto* s2 = Ptr<char>(animt->address_str2);
+                auto* s1 = DecryptString(Ptr<char>(animt->address_str1));
+                auto* s2 = DecryptString(Ptr<char>(animt->address_str2));
 
                 hashutils::Add(s1, true, true);
                 hashutils::Add(s2, true, true);
@@ -1270,6 +1273,12 @@ public:
     }
     uint32_t GetStringsOffset() override {
         return Ptr<GscObj23>()->string_table;
+    }
+    uint16_t GetDevStringsCount() override {
+        return Ptr<GscObj23>()->devblock_string_count;
+    }
+    uint32_t GetDevStringsOffset() override {
+        return Ptr<GscObj23>()->devblock_string_offset;
     }
     uint32_t GetFileSize() override {
         return Ptr<GscObj23>()->size1;
@@ -1421,6 +1430,12 @@ public:
     void SetStringsOffset(uint32_t val) override {
         Ptr<GscObj23>()->string_table = val;
     }
+    void SetDevStringsCount(uint16_t val) override {
+        Ptr<GscObj23>()->devblock_string_count = val;
+    }
+    void SetDevStringsOffset(uint32_t val) override {
+        Ptr<GscObj23>()->devblock_string_offset = val;
+    }
     void SetFileSize(uint32_t val) override {
         // idk
         Ptr<GscObj23>()->size1 = val;
@@ -1513,6 +1528,7 @@ public:
             << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << (int)data->include_count << " (offset: 0x" << std::hex << (int)data->include_offset << ")\n"
             << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+            << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
             << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->import_count << " (offset: 0x" << std::hex << data->import_offset << ")\n"
             << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n"
@@ -1521,7 +1537,6 @@ public:
 
         if (opt.m_test_header) {
             asmout
-                << "// unk1c .... " << std::dec << (int)data->unk1c << " / 0x" << std::hex << (int)data->unk1c << "\n"
                 << "// unk40 .... " << std::dec << (int)data->unk40 << " / 0x" << std::hex << (int)data->unk40 << "\n"
                 ;
         }
@@ -1582,6 +1597,12 @@ public:
     uint32_t GetStringsOffset() override {
         return Ptr<T7GSCOBJ>()->string_offset;
     }
+    uint16_t GetDevStringsCount() override {
+        return Ptr<T7GSCOBJ>()->devblock_string_count;
+    }
+    uint32_t GetDevStringsOffset() override {
+        return Ptr<T7GSCOBJ>()->devblock_string_offset;
+    }
     size_t GetHeaderSize() override {
         return sizeof(T7GSCOBJ);
     }
@@ -1636,6 +1657,12 @@ public:
     }
     void SetStringsOffset(uint32_t val) override {
         Ptr<T7GSCOBJ>()->string_offset = val;
+    }
+    void SetDevStringsCount(uint16_t val) override {
+        Ptr<T7GSCOBJ>()->devblock_string_count = val;
+    }
+    void SetDevStringsOffset(uint32_t val) override {
+        Ptr<T7GSCOBJ>()->devblock_string_offset = val;
     }
     void SetGVarsCount(uint16_t val) override {
     }
@@ -1773,6 +1800,7 @@ public:
             << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
             << "// includes . " << std::dec << std::setw(3) << (int)data->include_count << " (offset: 0x" << std::hex << (int)data->include_offset << ")\n"
             << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
+            << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
             << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
             << "// imports .. " << std::dec << std::setw(3) << data->import_count << " (offset: 0x" << std::hex << data->import_offset << ")\n"
             << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n"
@@ -1781,7 +1809,6 @@ public:
 
         if (opt.m_test_header) {
             asmout
-                << "// unk1c .... " << std::dec << (int)data->unk1c << " / 0x" << std::hex << (int)data->unk1c << "\n"
                 << "// unk40 .... " << std::dec << (int)data->unk40 << " / 0x" << std::hex << (int)data->unk40 << "\n"
                 ;
         }
@@ -1842,6 +1869,12 @@ public:
     uint32_t GetStringsOffset() override {
         return Ptr<T7GSCOBJ>()->string_offset;
     }
+    uint16_t GetDevStringsCount() override {
+        return Ptr<T7GSCOBJ>()->devblock_string_count;
+    }
+    uint32_t GetDevStringsOffset() override {
+        return Ptr<T7GSCOBJ>()->devblock_string_offset;
+    }
     size_t GetHeaderSize() override {
         return sizeof(T7GSCOBJ);
     }
@@ -1896,6 +1929,12 @@ public:
     }
     void SetStringsOffset(uint32_t val) override {
         Ptr<T7GSCOBJ>()->string_offset = val;
+    }
+    void SetDevStringsCount(uint16_t val) override {
+        Ptr<T7GSCOBJ>()->devblock_string_count = val;
+    }
+    void SetDevStringsOffset(uint32_t val) override {
+        Ptr<T7GSCOBJ>()->devblock_string_offset = val;
     }
     void SetGVarsCount(uint16_t val) override {
     }
