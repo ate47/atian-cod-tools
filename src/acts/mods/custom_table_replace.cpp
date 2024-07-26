@@ -97,7 +97,7 @@ static int custom_table_replace(int argc, const char* argv[]) {
         hash::Hash64Pattern("gamedata/weapons/mp/mp_gunlevels.csv"),
     };
 
-    for (size_t i = 0; i < min(entry.itemAllocCount, entry.itemCount); i++) {
+    for (size_t i = 0; i < std::min(entry.itemAllocCount, entry.itemCount); i++) {
         const auto& e = pool[i];
 
         bool isstats = std::find(&targetstats[0], std::end(targetstats), e.name) != std::end(targetstats);

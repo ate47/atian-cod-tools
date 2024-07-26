@@ -8,8 +8,8 @@ My set of tools. The code is more important than the features, so feel free to r
 
 | Name                     | Revision | Decompiler | Compiler | PS4 support |
 | ------------------------ | -------- | ---------- | -------- | ----------- |
-| Black Ops 3 (T7)         | 1B       | Partial    | ❌        | ❌           |
-| Black Ops 3 (T7)         | 1C       | ✅          | ❌        | ❌           |
+| Black Ops 3 (T7)         | 1B       | Partial    | ✅        | ❌           |
+| Black Ops 3 (T7)         | 1C       | ✅          | ✅        | ❌           |
 | Black Ops 4 (T8)         | 36       | ✅          | ✅        | EXT         |
 | Black Ops Cold War (T9)  | 37       | DEC        | ✅        | EXT         |
 | Black Ops Cold War (T9)  | 38       | DEC        | ✅        | EXT         |

@@ -17,6 +17,8 @@ namespace actscli {
 		bool show0Hash{ false };
 		const char* saveProfiler{};
 		const char* seriousDBFile{};
+		const char* hashPrefixByPass{};
+		bool heavyHashes{};
 	};
 
 	ActsOptions& options();

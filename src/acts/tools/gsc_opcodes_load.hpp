@@ -6,7 +6,7 @@ namespace tool::gsc::opcode {
 		VM_UNKNOWN = 0,
 		VM_T71B = 0x1B,
 		VM_T7 = 0x1C,
-		VM_T835 = 0x35,
+		VM_T831 = 0x31,
 		VM_T8 = 0x36,
 		VM_T937 = 0x37,
 		VM_T9 = 0x38,
@@ -26,6 +26,7 @@ namespace tool::gsc::opcode {
 
 	Platform PlatformOf(const char* name);
 	const char* PlatformName(Platform plt);
+	const char* PlatformIdName(Platform plt);
 	VM VMOf(const char* name);
 
 	enum OPCode : uint16_t {
@@ -281,6 +282,7 @@ namespace tool::gsc::opcode {
 		OPCODE_ThreadEndBreakpoint,
 		OPCODE_PushVar,
 		OPCODE_PushEntityVar,
+		OPCODE_InvalidOpCode,
 
 		OPCODE_COUNT,
 	};

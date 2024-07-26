@@ -4,9 +4,11 @@
 namespace {
 	std::unordered_map<uint64_t, std::string> g_hashMap{};
 	std::set<uint64_t> g_extracted{};
+	const char* hashPrefix{};
 	bool g_saveExtracted = false;
 	bool show0 = false;
 	bool markHash = false;
+	bool heavyHashes = false;
 }
 
 const std::unordered_map<uint64_t, std::string>& hashutils::GetMap() {
@@ -36,6 +38,8 @@ void hashutils::ReadDefaultFile() {
 
 		show0 = opt.show0Hash;
 		markHash = opt.markHash;
+		hashPrefix = opt.hashPrefixByPass;
+		heavyHashes = opt.heavyHashes;
 
 		if (opt.noDefaultHash) {
 			return;
@@ -240,6 +244,7 @@ void hashutils::AddPrecomputed(uint64_t value, const char* str) {
 
 bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
 	ReadDefaultFile();
+	if (hashPrefix) type = hashPrefix;
 	if (!hash) {
 		if (show0 || markHash) {
 			snprintf(out, outSize, "%s_0", type);
@@ -251,11 +256,11 @@ bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSi
 	}
 	const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
 	if (res == g_hashMap.end()) {
-		snprintf(out, outSize, "%s_%llx", type, hash);
+		snprintf(out, outSize, heavyHashes ? "%s_%016llX" : "%s_%llx", type, hash);
 		return false;
 	}
 	if (markHash) {
-		snprintf(out, outSize, "<%llx>%s", hash, res->second.c_str());
+		snprintf(out, outSize, heavyHashes ? "<%016llX>%s" : "<%llx>%s", hash, res->second.c_str());
 	}
 	else {
 		snprintf(out, outSize, "%s", res->second.c_str());

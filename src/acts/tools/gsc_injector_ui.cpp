@@ -3,7 +3,7 @@
 #include "tools/cw/cw.hpp"
 #include "tools/gsc.hpp"
 #include "mods/custom_ees.hpp"
-#include "config.hpp"
+#include <core/config.hpp>
 
 namespace {
     struct {
@@ -180,7 +180,7 @@ namespace {
             SendMessage(info.hookPathEdit, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)buff);
         }
 
-        std::wstring hook = utils::StrToWStr(acts::config::GetString("ui.injector.hook", "scripts\\zm_common\\load.gsc"));
+        std::wstring hook = utils::StrToWStr(core::config::GetString("ui.injector.hook", "scripts\\zm_common\\load.gsc"));
 
         if (hook.size()) {
             SendMessage(info.hookPathEdit, WM_SETTEXT, (WPARAM)0, (LPARAM)hook.data());
@@ -190,7 +190,7 @@ namespace {
             SendMessage(info.hookPathEdit, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
         }
 
-        std::wstring gscPath = utils::StrToWStr(acts::config::GetString("ui.injector.path", ""));
+        std::wstring gscPath = utils::StrToWStr(core::config::GetString("ui.injector.path", ""));
         SendMessage(info.filePathEdit, WM_SETTEXT, (WPARAM)0, (LPARAM)gscPath.c_str());
         return 0;
     }
@@ -204,8 +204,8 @@ namespace {
 
                     if (SUCCEEDED(ComboBox_GetLBText(info.hookPathEdit, sel, path))) {
                         path[ARRAYSIZE(path) - 1] = 0;
-                        acts::config::SetString("ui.injector.hook", utils::WStrToStr(path));
-                        acts::config::SaveConfig();
+                        core::config::SetString("ui.injector.hook", utils::WStrToStr(path));
+                        core::config::SaveConfig();
                     }
                 }
             } else if (HIWORD(wParam) == CBN_EDITUPDATE) {
@@ -213,8 +213,8 @@ namespace {
                     wchar_t path[MAX_PATH + 1];
 
                     if (SUCCEEDED(ComboBox_GetText(info.hookPathEdit, &path[0], ARRAYSIZE(path)))) {
-                        acts::config::SetString("ui.injector.hook", utils::WStrToStr(path));
-                        acts::config::SaveConfig();
+                        core::config::SetString("ui.injector.hook", utils::WStrToStr(path));
+                        core::config::SaveConfig();
                     }
                 }
             } else if (HIWORD(wParam) == EN_CHANGE) {
@@ -223,8 +223,8 @@ namespace {
                     wchar_t path[MAX_PATH + 1];
 
                     if (SUCCEEDED(GetWindowText(info.filePathEdit, &path[0], ARRAYSIZE(path)))) {
-                        acts::config::SetString("ui.injector.path", utils::WStrToStr(path));
-                        acts::config::SaveConfig();
+                        core::config::SetString("ui.injector.path", utils::WStrToStr(path));
+                        core::config::SaveConfig();
                     }
                 } 
             } else if (wParam == BN_CLICKED) {
@@ -249,8 +249,8 @@ namespace {
                     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
                     if (GetOpenFileName(&ofn) == TRUE) {
-                        acts::config::SetString("ui.injector.path", utils::WStrToStr(ofn.lpstrFile));
-                        acts::config::SaveConfig();
+                        core::config::SetString("ui.injector.path", utils::WStrToStr(ofn.lpstrFile));
+                        core::config::SaveConfig();
                         SendMessage(info.filePathEdit, WM_SETTEXT, (WPARAM)0, (LPARAM)ofn.lpstrFile);
                     }
                     return 1;

@@ -1459,7 +1459,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
         size_t readFile = 0;
 
-        for (size_t i = 0; i < min(entry.itemAllocCount, entry.itemCount); i++) {
+        for (size_t i = 0; i < std::min(entry.itemAllocCount, entry.itemCount); i++) {
             const auto& e = pool[i];
 
             const auto size = e.columnCount * e.rowCount;
@@ -1508,7 +1508,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             }
 
             for (size_t i = 0; i < e.rowCount; i++) {
-                if (!proc.ReadMemory(&cell[0], e.values + sizeof(cell[0]) * e.columnCount * i, sizeof(cell[0]) * min(cellsize, e.columnCount))) {
+                if (!proc.ReadMemory(&cell[0], e.values + sizeof(cell[0]) * e.columnCount * i, sizeof(cell[0]) * std::min(cellsize, (size_t)e.columnCount))) {
                     std::cerr << "can't read cells for " << dumpbuff << "\n";
                     out.close();
                     continue;
@@ -3019,9 +3019,9 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
 
             auto names = std::make_unique<Hash[]>(
-                max(
-                    max(p.list_campaign.count, p.list_multiplayer.count),
-                    max(p.list_warzone.count, p.list_zombies.count)
+                std::max(
+                    std::max(p.list_campaign.count, p.list_multiplayer.count),
+                    std::max(p.list_warzone.count, p.list_zombies.count)
                 )
             );
 
@@ -3579,7 +3579,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
             utils::Padding(defout, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", p.name.name) << "\",\n";
             utils::Padding(defout, 1) << "\"gscScripts\": [";
 
-            auto scripts = std::make_unique<Hash[]>(max(p.gscCount, p.cscCount));
+            auto scripts = std::make_unique<Hash[]>(std::max(p.gscCount, p.cscCount));
 
             if (p.gscCount) {
                 if (!proc.ReadMemory(&scripts[0], p.gscScripts, sizeof(Hash) * p.gscCount)) {
@@ -6137,7 +6137,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
         if (ShouldHandle(id, false)) {
             std::cout << "Item data\n";
 
-            auto readAlloc = min(entry.itemAllocCount, 500); // max to 500
+            auto readAlloc = std::min(entry.itemAllocCount, 500); // max to 500
 
             auto raw = std::make_unique<byte[]>(entry.itemSize * readAlloc);
 

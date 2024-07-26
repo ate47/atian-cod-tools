@@ -148,6 +148,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--rawhash", arg)) {
             m_rawhash = true;
         }
+        else if (!_strcmpi("--no-path", arg)) {
+            m_noPath = true;
+        }
         else if (!_strcmpi("--displaystack", arg)) {
             m_display_stack = true;
         }
@@ -317,6 +320,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--vm-split         : Split by VM in the output");
     LOG_DEBUG("--internalnames    : Print asm nodes internal names");
     LOG_DEBUG("--rawhash          : Add raw hashes to export dump");
+    LOG_DEBUG("--no-path          : No path extraction");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -367,6 +371,9 @@ byte GSCOBJHandler::MapFlagsExportToInt(byte flags) {
     return flags;
 }
 
+void GSCOBJHandler::SetNameString(uint32_t name) {
+    throw std::runtime_error("can't set string name for this vm");
+}
 int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
     if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
@@ -415,7 +422,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
         }
 
-        if (GetDevStringsOffset()) {
+        if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
             T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
             for (size_t i = 0; i < GetDevStringsCount(); i++) {
 
@@ -614,7 +621,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
     }
 
-    if (GetDevStringsOffset()) {
+    if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
         T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
         for (size_t i = 0; i < GetDevStringsCount(); i++) {
 
@@ -685,6 +692,7 @@ void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscI
 namespace {
 #include "gsc_vm.hpp"
     std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>> gscReaders = {
+        { VM_T831,[](byte* file, size_t fileSize) { return std::make_shared<T831GSCOBJHandler>(file, fileSize); }},
         { VM_T8,[](byte* file, size_t fileSize) { return std::make_shared<T8GSCOBJHandler>(file, fileSize); }},
         { VM_T937,[](byte* file, size_t fileSize) { return std::make_shared<T937GSCOBJHandler>(file, fileSize); }},
         { VM_T9,[](byte* file, size_t fileSize) { return std::make_shared<T9GSCOBJHandler>(file, fileSize); }},
@@ -786,6 +794,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     GscInfoOption& opt = gdctx.opt;
     
     T8GSCOBJContext ctx{};
+    ctx.m_formatter = opt.m_formatter;
     auto& gsicInfo = ctx.m_gsicInfo;
 
     gsicInfo.isGsic = size > 4 && !memcmp(data, "GSIC", 4);
@@ -1039,7 +1048,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     char asmfnamebuff[1000];
 
     if (opt.m_outputDir) {
-        const char* name = hashutils::ExtractPtr(scriptfile->GetName());
+        const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(scriptfile->GetName());
         
         const char* outDir;
         if (opt.m_splitByVm) {
@@ -1050,7 +1059,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         }
 
         if (!name) {
-            sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+            if (actscli::options().heavyHashes) {
+                sprintf_s(asmfnamebuff, "%s/%016llX.gsc", outDir, scriptfile->GetName());
+            }
+            else {
+                sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+            }
         }
         else {
             sprintf_s(asmfnamebuff, "%s/%s", outDir, name);
@@ -1075,8 +1089,25 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     utils::CloseEnd asmoutclose{ [&asmout] { asmout.close(); } };
 
     LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
-    if (opt.m_copyright) {
-        asmout << "// " << opt.m_copyright << "\n";
+    if (opt.m_copyright && *opt.m_copyright) {
+        std::string_view cv{ opt.m_copyright };
+        
+        size_t idx{};
+        do {
+            size_t nl = cv.find('\n', idx);
+
+            if (nl == std::string::npos) {
+                nl = cv.size();
+            }
+
+            asmout << "// " << cv.substr(idx, nl - idx) << "\n";
+
+            idx = nl + 1;
+        } while (idx < cv.size());
+
+        if (opt.m_formatter->flags & tool::gsc::formatter::FFL_LINE_AFTER_COPYRIGHT) {
+            asmout << "\n";
+        }
     }
 
     auto itdbg = gdctx.debugObjects.find(scriptfile->GetName());
@@ -1210,7 +1241,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
             }
         }
-        if (scriptfile->GetDevStringsOffset()) {
+        if (scriptfile->GetDevStringsOffset() && !(opt.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
             T8GSCString* val = scriptfile->Ptr<T8GSCString>(scriptfile->GetDevStringsOffset());
             for (size_t i = 0; i < scriptfile->GetDevStringsCount(); i++) {
 
@@ -1888,7 +1919,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
         char asmfnamebuffgdb[1000];
         if (opt.m_dbgOutputDir) {
-            const char* name = hashutils::ExtractPtr(scriptfile->GetName());
+            const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(scriptfile->GetName());
 
             const char* outDir;
             if (opt.m_splitByVm) {
@@ -2675,7 +2706,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     auto detourVal = objctx.m_gsicInfo.detours.find(exp.GetAddress());
     bool isDetour = detourVal != objctx.m_gsicInfo.detours.end();
 
-    if (ctx.m_opt.m_func_header) {
+    tool::gsc::formatter::FormatterFlags headerFormat = tool::gsc::formatter::GetHeaderFormat(ctx.m_opt.m_formatter->flags);
+
+    if (ctx.m_opt.m_func_header && headerFormat != tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_NONE) {
         const char* prefix;
         if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
             utils::Padding(asmout, padding) << "/*\n";
@@ -2686,58 +2719,119 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             prefix = "// ";
         }
 
-        utils::Padding(asmout, padding) << prefix << "Namespace "
-            << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
+        switch (headerFormat) {
+        case tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_SERIOUS: {
+            utils::Padding(asmout, padding) << prefix << "Name: " << hashutils::ExtractTmp("function", exp.GetName()) << std::endl;
+            utils::Padding(asmout, padding) << prefix << "Namespace: " << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::endl;
+            // no file namespace in this format, maybe later?
+            utils::Padding(asmout, padding) << prefix << "Checksum: 0x" << std::hex << std::uppercase << exp.GetChecksum() << std::endl;
+            utils::Padding(asmout, padding) << prefix << "Offset: 0x" << std::hex << std::uppercase << exp.GetAddress() << std::endl;
 
-        if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
-            // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
-            // so it's better to use spaces. A flag was added to keep the same format.
-            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
-                asmout << " / ";
+            UINT size = ctx.FinalSize();
+            if (size > 1) { // at least one opcode
+                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << size << std::endl;
+            }
+
+            utils::Padding(asmout, padding) << prefix << "Parameters: " << std::dec << (int)exp.GetParamCount() << std::endl;
+
+            utils::Padding(asmout, padding) << prefix << "Flags: ";
+
+            if (!remapedFlags) {
+                asmout << "None";
+            }
+            else if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
+                asmout << "VTable";
             }
             else {
-                asmout << "/";
+                const struct {
+                    T8GSCExportFlags flag;
+                    const char* name;
+                } knownFlags[]{
+                    { T8GSCExportFlags::LINKED, "Linked" },
+                    { T8GSCExportFlags::AUTOEXEC, "AutoExec" },
+                    { T8GSCExportFlags::PRIVATE, "Private" },
+                    { T8GSCExportFlags::EVENT, "Event" },
+                    { T8GSCExportFlags::CLASS_LINKED, "Class Linked" },
+                    { T8GSCExportFlags::VE, "Variadic" },
+                };
+                bool def{};
+                for (const auto& kf : knownFlags) {
+                    if ((remapedFlags & kf.flag) != kf.flag) {
+                        continue;
+                    }
+                    if (def) {
+                        asmout << ", ";
+                    }
+                    else {
+                        def = true;
+                    }
+                    asmout << kf.name;
+                }
+            }
+            asmout << std::nouppercase << std::endl;
+            break;
+        }
+        case tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_NONE:
+            break;
+        case tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_TYPE_4:
+            utils::Padding(asmout, padding) << prefix << "Header format type 4 not implemented!";
+            break;
+        default: { // ACTS DEFAULT FORMAT
+            utils::Padding(asmout, padding) << prefix << "Namespace "
+                << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
+
+            if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
+                // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
+                // so it's better to use spaces. A flag was added to keep the same format.
+                if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                    asmout << " / ";
+                }
+                else {
+                    asmout << "/";
+                }
+
+                asmout
+                    << ((remapedFlags & T8GSCExportFlags::EVENT)
+                        ? hashutils::ExtractTmp("event", exp.GetFileNamespace())
+                        : hashutils::ExtractTmpPath("namespace", exp.GetFileNamespace()));
+            }
+            asmout << std::endl;
+
+            if (isDetour) {
+                auto det = detourVal->second;
+                utils::Padding(asmout, padding) << prefix
+                    << "Detour " << hashutils::ExtractTmp("function", exp.GetName()) << " "
+                    << "Offset 0x" << std::hex << det.fixupOffset << "/0x" << det.fixupSize
+                    << "\n"
+                    ;
             }
 
-            asmout
-                << ((remapedFlags & T8GSCExportFlags::EVENT)
-                    ? hashutils::ExtractTmp("event", exp.GetFileNamespace())
-                    : hashutils::ExtractTmpPath("namespace", exp.GetFileNamespace()));
-        }
-        asmout << std::endl;
+            utils::Padding(asmout, padding) << prefix << "Params " << std::dec << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
 
-        if (isDetour) {
-            auto det = detourVal->second;
-            utils::Padding(asmout, padding) << prefix 
-                << "Detour " << hashutils::ExtractTmp("function", exp.GetName()) << " "
-                << "Offset 0x" << std::hex << det.fixupOffset << "/0x" << det.fixupSize
-                << "\n"
-                ;
-        }
+            if (remapedFlags & T8GSCExportFlags::LINKED) {
+                asmout << " linked";
+            }
+            if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
+                asmout << " class_linked";
+            }
+            if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
+                asmout << " vtable";
+            }
 
-        utils::Padding(asmout, padding) << prefix << "Params " << std::dec << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
+            asmout << std::endl;
+            if (ctx.m_opt.m_rawhash) {
+                utils::Padding(asmout, padding) << prefix
+                    << std::hex
+                    << "namespace_" << exp.GetNamespace() << "<file_" << exp.GetFileNamespace() << ">::function_" << exp.GetName() << std::endl;
+            }
+            utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
 
-        if (remapedFlags & T8GSCExportFlags::LINKED) {
-            asmout << " linked";
+            auto size = ctx.FinalSize();
+            if (size > 1) { // at least one opcode
+                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
+            }
+            break;
         }
-        if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
-            asmout << " class_linked";
-        }
-        if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
-            asmout << " vtable";
-        }
-
-        asmout << std::endl;
-        if (ctx.m_opt.m_rawhash) {
-            utils::Padding(asmout, padding) << prefix
-                << std::hex
-                << "namespace_" << exp.GetNamespace() << "<file_" << exp.GetFileNamespace() <<  ">::function_" << exp.GetName() << std::endl;
-        }
-        utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
-
-        auto size = ctx.FinalSize();
-        if (size > 1) { // at least one opcode
-            utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
         }
         if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
             padding--;
@@ -2749,8 +2843,8 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || (g_constructorName == exp.GetName() || g_constructorNameT7 == exp.GetName()));
 
     utils::Padding(asmout, padding);
-
-    if (!specialClassMember) {
+    
+    if (!specialClassMember && !(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_FUNCTION_TITLE)) {
         asmout << "function ";
     }
     if (remapedFlags & T8GSCExportFlags::PRIVATE) {
@@ -2800,6 +2894,10 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
     // local var size = <empty>, <params>, <localvars> so we need to check that we have at least param_count + 1
     if (ctx.m_localvars.size() > exp.GetParamCount()) {
+        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+            asmout << " ";
+        }
+
         for (size_t i = 0; i < exp.GetParamCount(); i++) {
             if (i) {
                 asmout << ", ";
@@ -2836,6 +2934,10 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                 DecompContext dctx = { 0, 0, ctx.m_opt, 0 };
                 lvar.defaultValueNode->Dump(asmout, dctx);
             }
+        }
+
+        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+            asmout << " ";
         }
     }
     asmout << ")";

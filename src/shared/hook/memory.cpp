@@ -61,8 +61,8 @@ namespace hook::memory {
 		SYSTEM_INFO& sysInfo = GetSysInfo();
 		uint64_t pageSize = sysInfo.dwPageSize;
 		uint64_t startAddr = (uint64_t(location) & ~(pageSize - 1));
-		uint64_t minAddr = min(startAddr - 0x7FFFFF00, (uint64_t)sysInfo.lpMinimumApplicationAddress);
-		uint64_t maxAddr = max(startAddr + 0x7FFFFF00, (uint64_t)sysInfo.lpMaximumApplicationAddress);
+		uint64_t minAddr = std::min(startAddr - 0x7FFFFF00, (uint64_t)sysInfo.lpMinimumApplicationAddress);
+		uint64_t maxAddr = std::max(startAddr + 0x7FFFFF00, (uint64_t)sysInfo.lpMaximumApplicationAddress);
 
 		uint64_t startPage = (startAddr - (startAddr % pageSize));
 
@@ -136,6 +136,19 @@ namespace hook::memory {
 		return ReadProcessMemory(GetCurrentProcess(), location, buffer, size, NULL);
 	}
 
+	void* GetRelativeMemorySafe(void* location) {
+		DWORD rloc{};
+		if (!ReadProcessMemory(GetCurrentProcess(), location, &rloc, sizeof(rloc), NULL)) {
+			return nullptr;
+		}
+		return (byte*)location + rloc + sizeof(rloc);
+	}
+
+	bool ReadRelativeMemorySafe(void* location, void* buffer, size_t size) {
+		location = GetRelativeMemorySafe(location);
+		return location && ReadMemorySafe(location, buffer, size);
+	}
+
 	void RedirectJmp(void* location, void* to, bool r64) {
 		// https://www.felixcloutier.com/x86/jmp
 		bool r32 = Int32Distance(location, to);
@@ -180,7 +193,7 @@ namespace hook::memory {
 		byte* loc = (byte*)location;
 
 		while (size) {
-			size_t w = min(sizeof(tmp), size);
+			size_t w = std::min(sizeof(tmp), size);
 			memset(tmp, 0x90, w);
 			process::WriteMemSafe(loc, tmp, w);
 			size -= w;
@@ -193,7 +206,7 @@ namespace hook::memory {
 		byte* loc = (byte*)location;
 
 		while (size) {
-			size_t w = min(sizeof(tmp), size);
+			size_t w = std::min(sizeof(tmp), size);
 			memset(tmp, 0xCC, w);
 			process::WriteMemSafe(loc, tmp, w);
 			size -= w;

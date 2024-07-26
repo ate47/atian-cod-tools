@@ -151,7 +151,7 @@ namespace {
 
 				// register the vm itself
 				const char* str = strcontainer.AddString(name);
-				tool::gsc::opcode::RegisterVM(vm.vm, str, str, vm.vmflags);
+				tool::gsc::opcode::RegisterVM(vm.vm, str, str, str, vm.vmflags);
 
 				auto* platforms = reinterpret_cast<ActsPackVMPlatform*>(pack->header.magic + vm.platformsOffset);
 
@@ -250,7 +250,7 @@ namespace {
 		auto CreateBlock = [&packFileData](size_t size) -> uint32_t {
 			size_t offset = packFileData.size();
 			if (offset + size < packFileData.capacity()) {
-				packFileData.reserve(max(offset + size * 2, offset * 2));
+				packFileData.reserve(std::max(offset + size * 2, offset * 2));
 			}
 
 			for (size_t i = 0; i < size; i++) {

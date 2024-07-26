@@ -40,3 +40,12 @@
 [submodule "deps/dbflib"]
 	path = deps/dbflib
 	url = https://github.com/ate47/dbflib
+[submodule "deps/json-rpc-cxx"]
+	path = deps/json-rpc-cxx
+	url = https://github.com/jsonrpcx/json-rpc-cxx
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/nlohmann/json
+[submodule "deps/rapidcsv"]
+	path = deps/rapidcsv
+	url = https://github.com/d99kris/rapidcsv

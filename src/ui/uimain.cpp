@@ -201,7 +201,7 @@ namespace {
             cfg.actsDll = Button_GetCheck(injectDLLButton);
             cfg.seriousDll = Button_GetCheck(injectSeriousDLLButton);
 
-            wchar_t injectPath[max(MAX_PATH, 256)];
+            wchar_t injectPath[std::max(MAX_PATH, 256)];
 
             if (SUCCEEDED(ComboBox_GetText(injectHookCombo, &injectPath[0], sizeof(injectPath) / sizeof(*injectPath)))) {
                 cfg.injectionPoint = injectPath;

@@ -90,6 +90,7 @@ namespace tool::gsc {
         bool m_generateGdbBaseData{ true };
         bool m_splitByVm{};
         bool m_rawhash{};
+        bool m_noPath{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
@@ -337,7 +338,8 @@ namespace tool::gsc {
             std::vector<ASMContextStatement> m_statements{};
             nodeblocktype m_blockType;
             bool m_disabled;
-            ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT, bool disabled = false);
+            bool m_allowInline;
+            ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT, bool disabled = false, bool allowInline = true);
             ~ASMContextNodeBlock();
             void Dump(std::ostream& out, DecompContext& ctx) const override;
             ASMContextNode* Clone() const override;
@@ -740,6 +742,7 @@ namespace tool::gsc {
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};
         tool::gsc::gdb::ACTS_GSC_GDB* gdbctx{};
+        const tool::gsc::formatter::FormatterInfo* m_formatter{};
         T8GSCOBJContext();
         ~T8GSCOBJContext();
 
@@ -780,6 +783,38 @@ namespace tool::gsc {
          * @return allocated string
          */
         char* CloneString(const char* str);
+    };
+
+    struct T831GSCOBJ {
+        byte magic[8];
+        uint32_t source_crc;
+        uint32_t include_offset;
+        uint32_t animtree_offset;
+        uint32_t cseg_offset;
+        uint32_t stringtablefixup_offset;
+        uint32_t devblock_stringtablefixup_offset;
+        uint32_t exports_offset;
+        uint32_t imports_offset;
+        uint32_t fixup_offset;
+        uint32_t globalvar_offset;
+        uint32_t profile_offset;
+        uint32_t cseg_size;
+        uint32_t name;
+        uint16_t stringtablefixup_count;
+        uint16_t exports_count;
+        uint16_t imports_count;
+        uint16_t fixup_count;
+        uint16_t globalvar_count;
+        uint16_t profile_count;
+        uint16_t devblock_stringtablefixup_count;
+        uint8_t include_count;
+        uint8_t animtree_count;
+        uint8_t flags;
+
+        // @return the vm
+        inline byte GetVm() {
+            return magic[7];
+        }
     };
 
     struct T8GSCOBJ {
@@ -1165,6 +1200,7 @@ namespace tool::gsc {
 
         // Write functions
         virtual void SetName(uint64_t name) = 0;
+        virtual void SetNameString(uint32_t name);
         virtual void SetHeader() = 0;
         virtual void SetChecksum(uint64_t val) = 0;
         virtual uint32_t GetChecksum() = 0;

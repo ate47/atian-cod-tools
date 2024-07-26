@@ -6,7 +6,7 @@
 #include "actslib/logging.hpp"
 #include "acts.hpp"
 #include "main_ui.hpp"
-#include "config.hpp"
+#include <core/config.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -42,6 +42,16 @@ namespace {
 			}
 			else if (!_strcmpi("--hash0", arg)) {
 				opt.show0Hash = true;
+			}
+			else if (!_strcmpi("--heavy-hashes", arg)) {
+				opt.heavyHashes = true;
+			}
+			else if (!_strcmpi("--hashprefix", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				opt.hashPrefixByPass = argv[++i];
 			}
 			else if (!strcmp("-d", arg) || !_strcmpi("--debug", arg)) {
 				hook::error::EnableHeavyDump();
@@ -187,8 +197,10 @@ namespace {
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
-		LOG_INFO(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
-		LOG_INFO("--mark-hash         : Mark the hash default value");
+		LOG_DEBUG(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
+		LOG_DEBUG("--mark-hash         : Mark the hash default value");
+		LOG_DEBUG("--hashprefix [p]    : Ignore the default prefix");
+		LOG_DEBUG("--heavy-hashes      : Heavy hashes format");
 	}
 }
 
@@ -200,7 +212,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	auto& profiler = actscli::GetProfiler();
 
-	acts::config::SyncConfig();
+	core::config::SyncConfig(true);
 
 	// by default we don't display heavy logs in cli
 
@@ -215,7 +227,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		alogs::setfile(uiLogs.data());
 		actslib::logging::SetLogFile(uiLogs.data());
 
-		std::string logLevel = acts::config::GetString("ui.logLevel", "INFO");
+		std::string logLevel = core::config::GetString("ui.logLevel", "INFO");
 
 		if (logLevel != "INFO") {
 			if (logLevel == "DEBUG") {

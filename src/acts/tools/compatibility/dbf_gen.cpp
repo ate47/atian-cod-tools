@@ -1,7 +1,13 @@
 #include <includes.hpp>
 #include <pool.hpp>
 #include <dbflib.hpp>
+#include <rapidcsv.h>
 #include "tools/pool.hpp"
+#include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/stringbuffer.h>
+
+
 namespace {
 
 	struct RawFileEntry {
@@ -18,16 +24,69 @@ namespace {
 		uint32_t pad02;
 	}; static_assert(sizeof(ScriptParseTreeEntry) == 0x20);
 
+	union StringTableCellValue {
+		byte bytes[0x10];
+		const char* string_value;
+		int64_t int_value;
+		float float_value;
+		byte bool_value;
+		uint64_t hash_value;
+	};
+
+	enum StringTableCellType : byte {
+		STC_TYPE_UNDEFINED = 0,
+		STC_TYPE_STRING = 1,
+		STC_TYPE_HASHED2 = 2,
+		STC_TYPE_INT = 4,
+		STC_TYPE_FLOAT = 5,
+		STC_TYPE_BOOL = 6,
+		STC_TYPE_HASHED7 = 7,
+		STC_TYPE_HASHED8 = 8,
+	};
+
+	struct StringTableCell {
+		StringTableCellValue value{};
+		uint32_t pad10{};
+		StringTableCellType type{};
+	};
+
+	struct StringTable {
+		tool::pool::XHash name;
+		int32_t columns_count{};
+		int32_t rows_count{};
+		int32_t cells_count{};
+		int32_t unk24{};
+		uintptr_t cells{};
+		StringTableCell* values{};
+		uintptr_t unk48{};
+		uintptr_t unk56{};
+	}; static_assert(sizeof(StringTable) == 0x40);
+
+	struct LuaFileEntry {
+		tool::pool::XHash name;
+		uint64_t size{};
+		byte* buffer{};
+	}; static_assert(sizeof(LuaFileEntry) == 0x20);
+
+	struct LocalizeEntry {
+		const char* string{ "" };
+		tool::pool::XHash name;
+	}; static_assert(sizeof(LocalizeEntry) == 0x18);
+
+	union AssetHeader {
+		ScriptParseTreeEntry* spt;
+		RawFileEntry* rawfile;
+		StringTable* stringtable;
+		LuaFileEntry* luafile;
+		LocalizeEntry* localize;
+		void* ptr;
+	};
+
 	// xasset
 	struct DBFFileAssetEntry {
 		pool::XAssetType type;
 		uint64_t name;
-		void* header;
-
-		template<typename Type>
-		Type* Header() {
-			return reinterpret_cast<Type*>(header);
-		}
+		AssetHeader header;
 	};
 
 	// ref to an xasset inside the struct
@@ -135,6 +194,15 @@ namespace {
 			return pool::ASSET_TYPE_SCRIPTBUNDLE;
 		}
 
+		if (first == L"localize.json") {
+			if (it != rel.end() || !std::filesystem::is_regular_file(path)) {
+				LOG_WARNING("localize.json should be a file");
+				return pool::ASSET_TYPE_COUNT; // no name?
+			}
+
+			return pool::ASSET_TYPE_LOCALIZE_ENTRY;
+		}
+
 		auto ext = path.extension();
 
 		if (ext == ".csv") {
@@ -149,6 +217,12 @@ namespace {
 
 		if (ext == ".lua") {
 			nameout = NamePattern(path);
+			return pool::ASSET_TYPE_LUAFILE;
+		}
+
+		if (ext == ".luac") {
+			nameout = NamePattern(path);
+			precompiled = true;
 			return pool::ASSET_TYPE_LUAFILE;
 		}
 
@@ -195,9 +269,9 @@ namespace {
 		const std::filesystem::path root{ input };
 		std::vector<std::filesystem::path> paths{};
 		utils::GetFileRecurse(root, paths);
+		bool err{};
 
 		for (const std::filesystem::path& path : paths) {
-
 			uint64_t name;
 			bool precompiled{};
 			pool::XAssetType type = GetAssetTypeFromPath(root, path, name, precompiled);
@@ -210,19 +284,17 @@ namespace {
 			LOG_INFO("Reading {} with type {} -> hash_{:x}", path.string(), pool::XAssetNameFromId(type), name);
 
 			switch (type) {
-			case pool::ASSET_TYPE_RAWFILE:
-			{
-				auto& e = entries.emplace_back();
-
-				e.name = name;
-				e.type = type;
-
+			case pool::ASSET_TYPE_RAWFILE: {
 				std::string buffer{};
 
 				if (!utils::ReadFile(path, buffer)) {
 					LOG_WARNING("Can't read {}", path.string());
 					continue;
 				}
+				auto& e = entries.emplace_back();
+
+				e.name = name;
+				e.type = type;
 				// allocate data
 				dbflib::BlockId rawDataId = builder.CreateBlock(buffer.data(), buffer.length() + 1);
 
@@ -236,17 +308,11 @@ namespace {
 				builder.CreateLink(rawId, offsetof(RawFileEntry, buffer), rawDataId);
 			}
 				break;
-			case pool::ASSET_TYPE_SCRIPTPARSETREE:
-			{
+			case pool::ASSET_TYPE_SCRIPTPARSETREE: {
 				if (!precompiled) {
 					LOG_WARNING("No GSC compiler available for file {}", path.string());
 					continue;
 				}
-
-				auto& e = entries.emplace_back();
-
-				e.name = name;
-				e.type = type;
 
 				std::string buffer{};
 
@@ -254,6 +320,11 @@ namespace {
 					LOG_WARNING("Can't read {}", path.string());
 					continue;
 				}
+
+				auto& e = entries.emplace_back();
+
+				e.name = name;
+				e.type = type;
 
 				// allocate data
 				dbflib::BlockId rawDataId = builder.CreateBlock(buffer.data(), buffer.length());
@@ -268,13 +339,221 @@ namespace {
 				builder.CreateLink(rawId, offsetof(ScriptParseTreeEntry, buffer), rawDataId);
 			}
 				break;
+			case pool::ASSET_TYPE_LUAFILE: {
+				if (!precompiled) {
+					LOG_WARNING("No LUA compiler available for file {}", path.string());
+					continue;
+				}
+
+				std::string buffer{};
+
+				if (!utils::ReadFile(path, buffer)) {
+					LOG_WARNING("Can't read {}", path.string());
+					continue;
+				}
+
+				auto& e = entries.emplace_back();
+
+				e.name = name;
+				e.type = type;
+
+				// allocate data
+				dbflib::BlockId rawDataId = builder.CreateBlock(buffer.data(), buffer.length());
+
+				// allocate header
+				auto [rawId, rawptr] = builder.CreateBlock<LuaFileEntry>();
+				entriesLoc.emplace_back(rawId);
+				rawptr->name.name = name;
+				rawptr->size = (uint32_t)buffer.length();
+
+				// link header -> data
+				builder.CreateLink(rawId, offsetof(LuaFileEntry, buffer), rawDataId);
+			}
+				break;
+			case pool::ASSET_TYPE_STRINGTABLE: {
+				std::string buffer{};
+
+				if (!utils::ReadFile(path, buffer)) {
+					LOG_WARNING("Can't read {}", path.string());
+					continue;
+				}
+
+				rapidcsv::Document doc{};
+
+				std::stringstream stream{ buffer };
+
+				doc.Load(stream, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
+
+				std::vector<StringTableCellType> cellTypes{};
+				for (size_t i = 0; i < doc.GetColumnCount(); i++) {
+					// read cell types
+					const std::string cell = doc.GetCell<std::string>(i, 0);
+
+					StringTableCellType ctype = STC_TYPE_STRING;
+					if (cell == "undefined") {
+						ctype = STC_TYPE_UNDEFINED;
+					}
+					else if (cell == "string") {
+						ctype = STC_TYPE_STRING;
+					}
+					else if (cell == "int") {
+						ctype = STC_TYPE_INT;
+					}
+					else if (cell == "float") {
+						ctype = STC_TYPE_FLOAT;
+					}
+					else if (cell == "hash" || cell == "hash2") {
+						ctype = STC_TYPE_HASHED2;
+					}
+					else if (cell == "hash7") {
+						ctype = STC_TYPE_HASHED7;
+					}
+					else if (cell == "hash8") {
+						ctype = STC_TYPE_HASHED8;
+					}
+					else if (cell == "bool") {
+						ctype = STC_TYPE_BOOL;
+					}
+					else {
+						LOG_ERROR("Can't read {} StringTable type of column {} : '{}'", path.string(), i, cell);
+						err = true;
+						break;
+					}
+
+					cellTypes.emplace_back(ctype);
+				}
+				if (err) {
+					continue;
+				}
+
+				auto& e = entries.emplace_back();
+
+				e.name = name;
+				e.type = type;
+				auto [stId, stptr] = builder.CreateBlock<StringTable>();
+
+				entriesLoc.emplace_back(stId);
+				stptr->name.name = name;
+				size_t rc = doc.GetRowCount();
+				int32_t rows = (stptr->rows_count = (int32_t)(rc ? (rc - 1) : 0));
+				int32_t columns = (stptr->columns_count = (int32_t)doc.GetColumnCount());
+
+				if (rows && columns) {
+					// at least one cell
+					auto [cellsId, cellsptr] = builder.CreateBlock<StringTableCell>(sizeof(StringTableCell) * rows * columns);
+					// link cells
+					builder.CreateLink(stId, offsetof(StringTable, values), cellsId);
+
+					size_t idx{};
+					// read cells
+					for (size_t row = 1; row <= rows; row++) {
+						for (size_t column = 0; column < columns; column++) {
+							StringTableCellType cellType = cellTypes[column];
+
+							const std::string cellVal = doc.GetCell<std::string>(column, row);
+
+							StringTableCell& cell = builder.GetBlock<StringTableCell>(cellsId)[idx];
+							cell.type = cellType;
+
+							try {
+								switch (cellType) {
+								case STC_TYPE_UNDEFINED:
+									cell.value.int_value = 0;
+									break;
+								case STC_TYPE_BOOL:
+									cell.value.bool_value = cellVal == "true" || cellVal == "TRUE";
+									break;
+								case STC_TYPE_HASHED2:
+								case STC_TYPE_HASHED7:
+								case STC_TYPE_HASHED8:
+									cell.value.hash_value = hashutils::Hash64Pattern(cellVal.c_str());
+									break;
+								case STC_TYPE_INT:
+									if (cellVal.starts_with("0x")) {
+										cell.value.int_value = std::stoull(cellVal.substr(2), nullptr, 16);
+									}
+									else {
+										cell.value.int_value = std::stoll(cellVal);
+									}
+									break;
+								case STC_TYPE_FLOAT:
+									cell.value.float_value = std::stof(cellVal);
+									break;
+								case STC_TYPE_STRING: {
+									dbflib::BlockId allocatedString = builder.CreateBlock((void*)cellVal.data(), cellVal.size() + 1);
+									builder.CreateLink(cellsId, (dbflib::BlockOffset)(sizeof(StringTableCell) * idx + offsetof(StringTableCell, value)), allocatedString);
+									break;
+								}
+								}
+							}
+							catch (const std::invalid_argument& e) {
+								LOG_WARNING("Can't read StringTable {} : {} [line {} col {}] '{}'", path.string(), e.what(), row, column, cellVal);
+								err = true;
+								break;
+							}
+							idx++;
+						}
+					}
+
+				}
+
+				break;
+			}
+			case pool::ASSET_TYPE_LOCALIZE_ENTRY: {
+				// unlike the other files, the localize file is a json file with multiple assets
+				std::string buffer{};
+
+				if (!utils::ReadFile(path, buffer)) {
+					LOG_WARNING("Can't read {}", path.string());
+					continue;
+				}
+
+				rapidjson::Document doc{};
+				doc.Parse(buffer.c_str());
+				if (doc.HasParseError()) {
+					LOG_ERROR("Invalid json for file {}", path.string());
+					err = true;
+					continue;
+				}
+
+				for (const auto& [k, v] : doc.GetObj()) {
+					const char* ks = k.GetString();
+
+					if (!v.IsString()) {
+						LOG_ERROR("Invalid json for file {}, the key {} isn't a string", path.string(), ks);
+						err = true;
+					}
+
+					const char* vs = v.GetString();
+
+					auto& e = entries.emplace_back();
+
+					e.name = hashutils::Hash64Pattern(ks);
+					e.type = type;
+
+					// allocate data
+					dbflib::BlockId strVal = builder.CreateBlock((void*)vs, strlen(vs) + 1);
+
+					// allocate header
+					auto [rawId, rawptr] = builder.CreateBlock<LocalizeEntry>();
+					entriesLoc.emplace_back(rawId);
+					rawptr->name.name = name;
+
+					// link header -> data
+					builder.CreateLink(rawId, offsetof(LocalizeEntry, string), strVal);
+				}
+
+				break;
+			}
 			default:
 				LOG_WARNING("Type {} isn't implemented!", pool::XAssetNameFromId(type));
 				continue;
 			}
 
 		}
-
+		if (err) {
+			return tool::BASIC_ERROR;
+		}
 
 		// write entries
 		if (entries.size()) {
@@ -318,7 +597,14 @@ namespace {
 		LOG_INFO("Entries: {}", table->entriesCount);
 		for (size_t i = 0; i < table->entriesCount; i++) {
 			auto& e = table->entries[i];
-			LOG_INFO("- {:x} ({}) -> {}", e.name, pool::XAssetNameFromId(e.type), (void*)e.header);
+			switch (e.type) {
+			case pool::ASSET_TYPE_LOCALIZE_ENTRY:
+				LOG_INFO("- {:x} ({}) -> '{}'", e.name, pool::XAssetNameFromId(e.type), e.header.localize->string);
+				break;
+			default:
+				LOG_INFO("- {:x} ({}) -> {}", e.name, pool::XAssetNameFromId(e.type), e.header.ptr);
+				break;
+			}
 		}
 
 		LOG_INFO("RefEntries: {}", table->refEntriesCount);

@@ -707,39 +707,6 @@ namespace acts::compiler {
         }
     };
 
-    /*
-     * Compute the node using the minimum amount of bits
-     * @return node
-     */
-    AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
-        if (val == 0) {
-            return new AscmNodeOpCode(OPCODE_GetZero);
-        }
-        if (val > 0) {
-            if (val < 256) {
-                return new AscmNodeData<uint8_t>((uint8_t)val, OPCODE_GetByte);
-            }
-            if (val < 65536) {
-                return new AscmNodeData<uint16_t>((uint16_t)val, OPCODE_GetUnsignedShort);
-            }
-            if (val < 4294967295) {
-                return new AscmNodeData<uint32_t>((uint32_t)val, OPCODE_GetUnsignedInteger);
-            }
-        } else {
-            if (val > -256) {
-                return new AscmNodeData<uint8_t>((uint8_t)(-val), OPCODE_GetNegByte);
-            }
-            if (val > -65536) {
-                return new AscmNodeData<uint16_t>((uint16_t)(-val), OPCODE_GetNegUnsignedShort);
-            }
-            if (val >= -4294967295) {
-                return new AscmNodeData<uint32_t>((uint32_t)(-val), OPCODE_GetNegUnsignedInteger);
-            }
-        }
-
-        return new AscmNodeData<int64_t>((int64_t)val, OPCODE_GetLongInteger);
-    }
-
     #define IS_RULE_TYPE(rule, index) (rule && rule->getTreeType() == TREE_RULE && dynamic_cast<RuleContext*>(rule)->getRuleIndex() == index)
     #define IS_TERMINAL_TYPE(term, index) (term && term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
     #define IS_IDF(rule) (IS_RULE_TYPE((rule), gscParser::RuleIdf) || IS_TERMINAL_TYPE((rule), gscParser::IDENTIFIER))
@@ -989,8 +956,30 @@ namespace acts::compiler {
 
         void PrintHelp() {
             LOG_INFO("-h --help              : Print help");
-            LOG_INFO("-g --game [g]          : Set game");
-            LOG_INFO("-p --platform [p]      : Set platform");
+            {
+                std::ostringstream games;
+
+                size_t idx{};
+                for (const auto& [vm, vmInfo] : tool::gsc::opcode::GetVMMaps()) {
+                    if (idx++) games << ",";
+                    games << " '" << vmInfo.internalName << "'";
+                }
+
+                LOG_INFO("-g --game [g]          : Set game, values:{}.", games.str());
+            }
+            {
+                std::ostringstream platforms;
+
+                size_t idx{};
+
+                for (size_t i = 1; i < tool::gsc::opcode::PLATFORM_COUNT; i++) {
+                    const char* plt = tool::gsc::opcode::PlatformIdName((tool::gsc::opcode::Platform)i);
+                    if (i) platforms << ",";
+                    platforms << " '" << plt << "'";
+                }
+
+                LOG_INFO("-p --platform [p]      : Set platform, values:{}.", platforms.str());
+            }
             LOG_INFO("-d --dbg               : Add dev options");
             LOG_INFO("-o --output [f]        : Set output file (without extension), default: 'compiled'");
             LOG_INFO("-D[name]               : Define variable");
@@ -1255,9 +1244,10 @@ namespace acts::compiler {
         GscFileType type;
         uint64_t currentNamespace;
         uint64_t fileName{};
+        const char* fileNameStr{};
         uint64_t fileNameSpace{};
         int64_t crc{};
-        std::set<uint64_t> includes{};
+        std::set<std::string> includes{};
         std::vector<AscmNode*> m_devBlocks{};
         std::unordered_map<uint64_t, FunctionObject> exports{};
         std::unordered_map<std::string, StringObject> strings{};
@@ -1282,12 +1272,13 @@ namespace acts::compiler {
             }
 
             const char* fn = client ? opt.nameClient : opt.nameServer;
-            fileName = fn && *fn ? vmInfo->HashPath(fn) : 0;
+            fileNameStr = fn && *fn ? fn : nullptr;
 
-            if (!fileName) {
-                fileName = vmInfo->HashPath(gscHandler->GetDefaultName(client));
+            if (!fileNameStr) {
+                fileNameStr = gscHandler->GetDefaultName(client);
             }
 
+            fileName = vmInfo->HashPath(fileNameStr);
             const char* fns = client ? opt.fileNameSpaceClient : opt.fileNameSpaceServer;
             fileNameSpace = fns && *fns ? vmInfo->HashFilePath(opt.fileNameSpaceClient) : 0;
 
@@ -1309,25 +1300,66 @@ namespace acts::compiler {
             }
         }
 
-        uint64_t AddInclude(std::string& data) {
-            if (!(data.ends_with(".gsc") || data.ends_with(".csc")) && !(data.starts_with("script_"))) {
-                switch (type) {
-                case FILE_CSC:
-                    data += ".csc";
-                    break;
-                case FILE_GSC:
-                    data += ".gsc";
-                    break;
-                }
-            }
-            AddHash(data);
-            includes.insert(vmInfo->HashPath(data.data()));
-            return 0;
+        void AddInclude(std::string& data) {
+            includes.insert(data);
         }
 
         bool HasOpCode(OPCode opcode) {
             auto [ok, op] = GetOpCodeId(vmInfo->vm, plt, opcode);
             return ok;
+        }
+
+        /*
+         * Compute the node using the minimum amount of bits
+         * @param val value to encode
+         * @return node
+         */
+        AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
+            if (val == 0) {
+                return new AscmNodeOpCode(OPCODE_GetZero);
+            }
+            if (val > 0) {
+                if (val <= 0x7F && HasOpCode(OPCODE_GetSignedByte)) {
+                    return new AscmNodeData<int8_t>((int8_t)val, OPCODE_GetSignedByte);
+                }
+                if (val <= 0xFF && HasOpCode(OPCODE_GetByte)) {
+                    return new AscmNodeData<uint8_t>((uint8_t)val, OPCODE_GetByte);
+                }
+                if (val <= 0x7FFF && HasOpCode(OPCODE_GetShort)) {
+                    return new AscmNodeData<int16_t>((int16_t)val, OPCODE_GetShort);
+                }
+                if (val <= 0xFFFF && HasOpCode(OPCODE_GetUnsignedShort)) {
+                    return new AscmNodeData<uint16_t>((uint16_t)val, OPCODE_GetUnsignedShort);
+                }
+                if (val <= 0x7FFFFFFF && HasOpCode(OPCODE_GetInteger)) {
+                    return new AscmNodeData<int32_t>((int32_t)val, OPCODE_GetInteger);
+                }
+                if (val <= 0xFFFFFFFF && HasOpCode(OPCODE_GetUnsignedInteger)) {
+                    return new AscmNodeData<uint32_t>((uint32_t)val, OPCODE_GetUnsignedInteger);
+                }
+            }
+            else {
+                if (val >= -0x7F && HasOpCode(OPCODE_GetSignedByte)) {
+                    return new AscmNodeData<int8_t>((int8_t)(val), OPCODE_GetSignedByte);
+                }
+                if (val >= -0xFF && HasOpCode(OPCODE_GetNegByte)) {
+                    return new AscmNodeData<uint8_t>((uint8_t)(-val), OPCODE_GetNegByte);
+                }
+                if (val >= -0x7FFF && HasOpCode(OPCODE_GetShort)) {
+                    return new AscmNodeData<int16_t>((int16_t)(val), OPCODE_GetShort);
+                }
+                if (val >= -0xFFFF && HasOpCode(OPCODE_GetNegUnsignedShort)) {
+                    return new AscmNodeData<uint16_t>((uint16_t)(-val), OPCODE_GetNegUnsignedShort);
+                }
+                if (val >= -0x7FFFFFFF && HasOpCode(OPCODE_GetInteger)) {
+                    return new AscmNodeData<int32_t>((int32_t)val, OPCODE_GetInteger);
+                }
+                if (val >= -0xFFFFFFFFLL && HasOpCode(OPCODE_GetNegUnsignedInteger)) {
+                    return new AscmNodeData<uint32_t>((uint32_t)(-val), OPCODE_GetNegUnsignedInteger);
+                }
+            }
+
+            return new AscmNodeData<int64_t>(val, OPCODE_GetLongInteger);
         }
 
         bool TryHashNodeValue(ParseTree* hashNode, uint64_t& output) {
@@ -1587,13 +1619,42 @@ namespace acts::compiler {
             }
 
             LOG_TRACE("Compile {} include(s)...", includes.size());
-            size_t incTable = utils::Allocate(data, sizeof(uint64_t) * includes.size());
+            size_t incTable{};
+            if (includes.size()) {
+                if (gscHandler->HasFlag(tool::gsc::GOHF_STRING_NAMES)) {
+                    // store the offsets
+                    incTable = utils::Allocate(data, sizeof(uint32_t) * includes.size());
 
-            uint64_t* tab = reinterpret_cast<uint64_t*>(&data[incTable]);
+                    size_t idx{};
 
-            for (uint64_t i : includes) {
-                *tab = i;
-                tab++;
+                    for (const std::string& i : includes) {
+                        reinterpret_cast<uint32_t*>(&data[incTable])[idx++] = (uint32_t)data.size();
+                        utils::WriteString(data, i.data());
+                    }
+                }
+                else {
+                    // store the hashes
+                    incTable = utils::Allocate(data, sizeof(uint64_t) * includes.size());
+                    uint64_t* tab = reinterpret_cast<uint64_t*>(&data[incTable]);
+
+                    for (const std::string& i : includes) {
+                        std::string data{ i };
+                        if (!(data.ends_with(".gsc") || data.ends_with(".csc")) && !(data.starts_with("script_"))) {
+                            switch (type) {
+                            case FILE_CSC:
+                                data += ".csc";
+                                break;
+                            case FILE_GSC:
+                                data += ".gsc";
+                                break;
+                            }
+                        }
+                        AddHash(data);
+
+                        *tab = vmInfo->HashPath(data.data());
+                        tab++;
+                    }
+                }
             }
 
             size_t expTable = utils::Allocate(data, gscHandler->GetExportSize() * exports.size());
@@ -1871,9 +1932,21 @@ namespace acts::compiler {
                 }
             }
 
+            uint32_t nameOffSet{};
+            if (gscHandler->HasFlag(tool::gsc::GOHF_STRING_NAMES)) {
+                nameOffSet = (uint32_t)data.size();
+                utils::WriteString(data, fileNameStr);
+            }
+
             // compile header
             gscHandler->file = data.data();
-            gscHandler->SetName(fileName);
+
+            if (nameOffSet) {
+                gscHandler->SetNameString(nameOffSet);
+            }
+            else {
+                gscHandler->SetName(fileName);
+            }
             gscHandler->SetChecksum(crc);
             gscHandler->SetHeader();
 
@@ -3692,7 +3765,7 @@ namespace acts::compiler {
                             ok = false;
                         }
                         // push current key
-                        fobj.AddNode(rule->children[i - 1], BuildAscmNodeData(currentKey++));
+                        fobj.AddNode(rule->children[i - 1], obj.BuildAscmNodeData(currentKey++));
                     }
 
                     fobj.AddNode(rule->children[i - 1], new AscmNodeOpCode(OPCODE_AddToArray));
@@ -4079,30 +4152,30 @@ namespace acts::compiler {
             fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetUndefined));
             return true;
         case gscParser::BOOL_VALUE:
-            fobj.AddNode(term, BuildAscmNodeData(term->getText() == "true"));
+            fobj.AddNode(term, obj.BuildAscmNodeData(term->getText() == "true"));
             return true;
         case gscParser::FLOATVAL:
             fobj.AddNode(term, new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), nullptr), OPCODE_GetFloat));
             return true;
         case gscParser::INTEGER10:
-            fobj.AddNode(term, BuildAscmNodeData(std::strtoll(term->getText().c_str(), nullptr, 10)));
+            fobj.AddNode(term, obj.BuildAscmNodeData(std::strtoll(term->getText().c_str(), nullptr, 10)));
             return true;
         case gscParser::INTEGER16: {
             bool neg = term->getText()[0] == '-';
             auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 16);
-            fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
+            fobj.AddNode(term, obj.BuildAscmNodeData(neg ? -val : val));
             return true;
         }
         case gscParser::INTEGER8: {
             bool neg = term->getText()[0] == '-';
             auto val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), nullptr, 8);
-            fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
+            fobj.AddNode(term, obj.BuildAscmNodeData(neg ? -val : val));
             return true;
         }
         case gscParser::INTEGER2: {
             bool neg = term->getText()[0] == '-';
             auto val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 2);
-            fobj.AddNode(term, BuildAscmNodeData(neg ? -val : val));
+            fobj.AddNode(term, obj.BuildAscmNodeData(neg ? -val : val));
             return true;
         }
         case gscParser::HASHSTRING: {

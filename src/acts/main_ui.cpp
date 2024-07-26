@@ -1,8 +1,8 @@
 #include <includes.hpp>
 #include <CommCtrl.h>
+#include <core/config.hpp>
 #include <hook/error.hpp>
 #include "tools/tools_ui.hpp"
-#include "config.hpp"
 
 namespace tool::ui {
 	LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -83,8 +83,8 @@ namespace tool::ui {
 		UpdateWindowName();
 		// render page
 		item->m_func(hwndDisplay, hinst);
-		acts::config::SetString("ui.last", item->m_id);
-		acts::config::SaveConfig(); // save last page
+		core::config::SetString("ui.last", item->m_id);
+		core::config::SaveConfig(); // save last page
 		EnumChildWindows(hwnd, (WNDENUMPROC)SetFont, (LPARAM)deffont);
 		RelocateDisplay(width, height);
 	}
@@ -169,7 +169,7 @@ namespace tool::ui {
 			return -1;
 		}
 		
-		std::string lastPage = acts::config::GetString("ui.last");
+		std::string lastPage = core::config::GetString("ui.last");
 
 		TCITEM tie;
 		tie.mask = TCIF_TEXT;
