@@ -1589,11 +1589,13 @@ namespace acts::compiler {
             LOG_TRACE("Compile {} include(s)...", includes.size());
             size_t incTable = utils::Allocate(data, sizeof(uint64_t) * includes.size());
 
-            uint64_t* tab = reinterpret_cast<uint64_t*>(&data[incTable]);
+            if (includes.size()) {
+                uint64_t* tab = reinterpret_cast<uint64_t*>(&data[incTable]);
 
-            for (uint64_t i : includes) {
-                *tab = i;
-                tab++;
+                for (uint64_t i : includes) {
+                    *tab = i;
+                    tab++;
+                }
             }
 
             size_t expTable = utils::Allocate(data, gscHandler->GetExportSize() * exports.size());
