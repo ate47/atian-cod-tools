@@ -8,6 +8,13 @@ namespace tool::gsc::formatter {
 		FFL_SPACE_BEFOREAFTER_PARAMS = 1 << 2,
 		FFL_ONE_LINE_HEADER_COMMENTS = 1 << 3,
 		FFL_NOERROR_STR = 1 << 4,
+		FFL_NO_FUNCTION_TITLE = 1 << 5,
+		FFL_BLOCK_INLINE = 1 << 6,
+		FFL_NEWLINES_BETWEEN_BLOCKS = 1 << 7,
+		FFL_LINE_AFTER_COPYRIGHT = 1 << 8,
+		FFL_NO_BOOL_ANALYSIS = 1 << 9,
+		FFL_SWITCH_PAD_CASES = 1 << 10,
+		FFL_SWITCH_FORCE_BLOCKS = 1 << 11,
 	};
 	struct FormatterInfo {
 		const char* name;

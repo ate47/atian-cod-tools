@@ -90,6 +90,7 @@ namespace tool::gsc {
         bool m_generateGdbBaseData{ true };
         bool m_splitByVm{};
         bool m_rawhash{};
+        bool m_noPath{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
@@ -337,7 +338,8 @@ namespace tool::gsc {
             std::vector<ASMContextStatement> m_statements{};
             nodeblocktype m_blockType;
             bool m_disabled;
-            ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT, bool disabled = false);
+            bool m_allowInline;
+            ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT, bool disabled = false, bool allowInline = true);
             ~ASMContextNodeBlock();
             void Dump(std::ostream& out, DecompContext& ctx) const override;
             ASMContextNode* Clone() const override;
@@ -740,6 +742,7 @@ namespace tool::gsc {
         opcode::VmInfo* m_vmInfo{};
         std::unordered_map<uint64_t, gscclass> m_classes{};
         tool::gsc::gdb::ACTS_GSC_GDB* gdbctx{};
+        const tool::gsc::formatter::FormatterInfo* m_formatter{};
         T8GSCOBJContext();
         ~T8GSCOBJContext();
 

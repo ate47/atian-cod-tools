@@ -7,6 +7,20 @@ namespace tool::gsc::opcode {
 	ASMContextNode* ASMCNodeConvertToBool(ASMContextNode* node);
 	std::ostream& PrintFormattedString(std::ostream& out, const char* str);
 
+	inline bool IsBlockInlineable(const ASMContextNodeBlock* blk, const tool::gsc::GscInfoOption& opt) {
+		if (!blk) return false;
+		if ((opt.m_formatter->flags & tool::gsc::formatter::FFL_BLOCK_INLINE) && blk->m_allowInline) {
+			size_t count{};
+			for (size_t i = 0; i < blk->m_statements.size(); i++) {
+				if (blk->m_statements[i].node->m_type != TYPE_PRECODEPOS && count++) {
+					break;
+				}
+			}
+			return count == 1;
+		}
+		return false;
+	}
+
 	enum ASMContextNodeValueVirDataType {
 		ASCNVD_UNDEFINED = 0,
 		ASCNVD_INT,
@@ -599,19 +613,21 @@ namespace tool::gsc::opcode {
 			}
 
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
-				out << " ";
-			}
-
-			for (size_t i = start; i < m_operands.size(); i++) {
-				if (i != start) {
-					out << ", ";
+			if (start < m_operands.size()) {
+				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+					out << " ";
 				}
-				m_operands[i]->Dump(out, ctx);
-			}
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
-				out << " ";
+				for (size_t i = start; i < m_operands.size(); i++) {
+					if (i != start) {
+						out << ", ";
+					}
+					m_operands[i]->Dump(out, ctx);
+				}
+
+				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+					out << " ";
+				}
 			}
 			out << ")";
 		}
@@ -848,9 +864,10 @@ namespace tool::gsc::opcode {
 		const char* m_description;
 		bool m_caller;
 		bool m_isBoolVal;
+		bool m_noParenthesis;
 		std::vector<ASMContextNode*> m_operands{};
-		ASMContextNodeMultOp(const char* description, bool caller, ASMContextNodeType type = TYPE_STATEMENT, bool isBoolVal = false) :
-			ASMContextNode(PRIORITY_VALUE, type), m_description(description), m_caller(caller), m_isBoolVal(isBoolVal) {
+		ASMContextNodeMultOp(const char* description, bool caller, ASMContextNodeType type = TYPE_STATEMENT, bool isBoolVal = false, bool noParenthesis = false) :
+			ASMContextNode(PRIORITY_VALUE, type), m_description(description), m_caller(caller), m_isBoolVal(isBoolVal), m_noParenthesis(noParenthesis) {
 		}
 		~ASMContextNodeMultOp() {
 			for (auto& ref : m_operands) {
@@ -859,7 +876,7 @@ namespace tool::gsc::opcode {
 		}
 
 		ASMContextNode* Clone() const override {
-			auto* ref = new ASMContextNodeMultOp(m_description, m_caller, m_type, m_isBoolVal);
+			auto* ref = new ASMContextNodeMultOp(m_description, m_caller, m_type, m_isBoolVal, m_noParenthesis);
 			ref->m_operands.reserve(m_operands.size());
 			for (const auto& op : m_operands) {
 				ref->m_operands.push_back(op->Clone());
@@ -891,12 +908,18 @@ namespace tool::gsc::opcode {
 				out << " ";
 				start = 1;
 			}
-			out << m_description << "(";
+			out << m_description;
+			if (!m_noParenthesis) {
+				out << "(";
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
-				out << " ";
+				if (start < m_operands.size() && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+					out << " ";
+				}
 			}
-
+			else if (start < m_operands.size()) {
+				out << " "; // at least one param
+			}
+			
 			for (size_t i = start; i < m_operands.size(); i++) {
 				const auto& operand = m_operands[i];
 				if (i != start) {
@@ -905,10 +928,12 @@ namespace tool::gsc::opcode {
 				operand->Dump(out, ctx);
 			}
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
-				out << " ";
+			if (!m_noParenthesis) {
+				if (start < m_operands.size() && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+					out << " ";
+				}
+				out << ")";
 			}
-			out << ")";
 		}
 
 		void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override {
@@ -1199,9 +1224,26 @@ namespace tool::gsc::opcode {
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "switchpre(";
+
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_node->Dump(out, ctx);
-			out << ") {\n";
-			ctx.padding++;
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << ")";
+
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
+			out << "{\n";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+				ctx.padding++;
+			}
 
 			for (const auto& cs : m_cases) {
 				if (cs.casenode) {
@@ -1215,7 +1257,9 @@ namespace tool::gsc::opcode {
 			}
 
 			ctx.WritePadding(out, true) << "end: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << m_endLocation << ";\n";
-			ctx.padding--;
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+				ctx.padding--;
+			}
 			//
 			ctx.WritePadding(out, true) << "}\n";
 		}
@@ -1267,9 +1311,30 @@ namespace tool::gsc::opcode {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			out << "switch (";
+			out << "switch";
+			if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+				out << " ";
+			}
+			out << "(";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			m_node->Dump(out, ctx);
-			out << ") {\n";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << ")";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
+			out << "{\n";
+
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+				ctx.padding++;
+			}
 
 			for (const auto& cs : m_cases) {
 				if (cs.value) {
@@ -1280,7 +1345,28 @@ namespace tool::gsc::opcode {
 				else {
 					ctx.WritePadding(out, true) << "default:";
 				}
-				cs.block->Dump(out, ctx);
+				bool emptyBlock{ true };
+				for (const auto& stmt : cs.block->m_statements) {
+					if (stmt.node->m_type != TYPE_PRECODEPOS) {
+						emptyBlock = false;
+						break;
+					}
+				}
+				if (emptyBlock) {
+					out << "\n";
+				}
+				else {
+					if ((ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS)) {
+						ctx.WritePadding(out << "\n", true);
+					}
+					else {
+						out << " ";
+					}
+					cs.block->Dump(out, ctx);
+				}
+			}
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+				ctx.padding--;
 			}
 
 			ctx.WritePadding(out, true) << "}\n";
@@ -1707,13 +1793,17 @@ namespace tool::gsc::opcode {
 				out << " ";
 			}
 			out << ")";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
-				ctx.WritePadding(out << "\n", true);
+
+			bool lastInlineable = IsBlockInlineable(m_ifblock, ctx.opt);
+			if (!lastInlineable) {
+				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+					ctx.WritePadding(out << "\n", true);
+				}
+				else {
+					out << " ";
+				}
+				out << "{";
 			}
-			else {
-				out << " ";
-			}
-			out << "{";
 			if (m_ifblock) {
 				m_ifblock->Dump(out, ctx);
 			}
@@ -1729,14 +1819,19 @@ namespace tool::gsc::opcode {
 					break;
 				}
 				auto* ifb = static_cast<ASMContextNodeIfElse*>(ref);
-				ctx.WritePadding(out, true) << "}";
-
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
-					ctx.WritePadding(out << "\n", true);
+				if (!lastInlineable) {
+					ctx.WritePadding(out, true) << "}";
+					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+						ctx.WritePadding(out << "\n", true);
+					}
+					else {
+						out << " ";
+					}
 				}
 				else {
-					out << " ";
+					ctx.WritePadding(out, true);
 				}
+
 				out << "else if";
 				if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
 					out << " ";
@@ -1755,13 +1850,16 @@ namespace tool::gsc::opcode {
 					out << " ";
 				}
 				out << ")";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
-					ctx.WritePadding(out << "\n", true);
+				lastInlineable = IsBlockInlineable(ifb->m_ifblock, ctx.opt);
+				if (!lastInlineable) {
+					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+						ctx.WritePadding(out << "\n", true);
+					}
+					else {
+						out << " ";
+					}
+					out << "{";
 				}
-				else {
-					out << " ";
-				}
-				out << "{";
 				if (ifb->m_ifblock) {
 					ifb->m_ifblock->Dump(out, ctx);
 				}
@@ -1771,25 +1869,36 @@ namespace tool::gsc::opcode {
 				elseBlock = ifb->m_elseblock;
 			}
 			if (elseBlock) {
-				ctx.WritePadding(out, true) << "}";
+				if (!lastInlineable) {
+					ctx.WritePadding(out, true) << "}";
 
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
-					ctx.WritePadding(out << "\n", true);
+					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+						ctx.WritePadding(out << "\n", true);
+					}
+					else {
+						out << " ";
+					}
 				}
 				else {
-					out << " ";
+					ctx.WritePadding(out, true);
 				}
+
 				out << "else";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
-					ctx.WritePadding(out << "\n", true);
+				lastInlineable = IsBlockInlineable(elseBlock, ctx.opt);
+				if (!lastInlineable) {
+					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+						ctx.WritePadding(out << "\n", true);
+					}
+					else {
+						out << " ";
+					}
+					out << "{";
 				}
-				else {
-					out << " ";
-				}
-				out << "{";
 				elseBlock->Dump(out, ctx);
 			}
-			ctx.WritePadding(out, true) << "}\n";
+			if (!lastInlineable) {
+				ctx.WritePadding(out, true) << "}\n";
+			}
 		}
 
 		void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {

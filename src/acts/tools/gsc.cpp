@@ -148,6 +148,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--rawhash", arg)) {
             m_rawhash = true;
         }
+        else if (!_strcmpi("--no-path", arg)) {
+            m_noPath = true;
+        }
         else if (!_strcmpi("--displaystack", arg)) {
             m_display_stack = true;
         }
@@ -317,6 +320,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--vm-split         : Split by VM in the output");
     LOG_DEBUG("--internalnames    : Print asm nodes internal names");
     LOG_DEBUG("--rawhash          : Add raw hashes to export dump");
+    LOG_DEBUG("--no-path          : No path extraction");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -415,7 +419,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
         }
 
-        if (GetDevStringsOffset()) {
+        if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
             T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
             for (size_t i = 0; i < GetDevStringsCount(); i++) {
 
@@ -614,7 +618,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
     }
 
-    if (GetDevStringsOffset()) {
+    if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
         T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
         for (size_t i = 0; i < GetDevStringsCount(); i++) {
 
@@ -786,6 +790,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     GscInfoOption& opt = gdctx.opt;
     
     T8GSCOBJContext ctx{};
+    ctx.m_formatter = opt.m_formatter;
     auto& gsicInfo = ctx.m_gsicInfo;
 
     gsicInfo.isGsic = size > 4 && !memcmp(data, "GSIC", 4);
@@ -1039,7 +1044,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     char asmfnamebuff[1000];
 
     if (opt.m_outputDir) {
-        const char* name = hashutils::ExtractPtr(scriptfile->GetName());
+        const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(scriptfile->GetName());
         
         const char* outDir;
         if (opt.m_splitByVm) {
@@ -1050,7 +1055,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         }
 
         if (!name) {
-            sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+            if (actscli::options().heavyHashes) {
+                sprintf_s(asmfnamebuff, "%s/%016llX.gsc", outDir, scriptfile->GetName());
+            }
+            else {
+                sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+            }
         }
         else {
             sprintf_s(asmfnamebuff, "%s/%s", outDir, name);
@@ -1075,8 +1085,25 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     utils::CloseEnd asmoutclose{ [&asmout] { asmout.close(); } };
 
     LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
-    if (opt.m_copyright) {
-        asmout << "// " << opt.m_copyright << "\n";
+    if (opt.m_copyright && *opt.m_copyright) {
+        std::string_view cv{ opt.m_copyright };
+        
+        size_t idx{};
+        do {
+            size_t nl = cv.find('\n', idx);
+
+            if (nl == std::string::npos) {
+                nl = cv.size();
+            }
+
+            asmout << "// " << cv.substr(idx, nl - idx) << "\n";
+
+            idx = nl + 1;
+        } while (idx < cv.size());
+
+        if (opt.m_formatter->flags & tool::gsc::formatter::FFL_LINE_AFTER_COPYRIGHT) {
+            asmout << "\n";
+        }
     }
 
     auto itdbg = gdctx.debugObjects.find(scriptfile->GetName());
@@ -1210,7 +1237,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
             }
         }
-        if (scriptfile->GetDevStringsOffset()) {
+        if (scriptfile->GetDevStringsOffset() && !(opt.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
             T8GSCString* val = scriptfile->Ptr<T8GSCString>(scriptfile->GetDevStringsOffset());
             for (size_t i = 0; i < scriptfile->GetDevStringsCount(); i++) {
 
@@ -1888,7 +1915,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
         char asmfnamebuffgdb[1000];
         if (opt.m_dbgOutputDir) {
-            const char* name = hashutils::ExtractPtr(scriptfile->GetName());
+            const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(scriptfile->GetName());
 
             const char* outDir;
             if (opt.m_splitByVm) {
@@ -2749,8 +2776,8 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || (g_constructorName == exp.GetName() || g_constructorNameT7 == exp.GetName()));
 
     utils::Padding(asmout, padding);
-
-    if (!specialClassMember) {
+    
+    if (!specialClassMember && !(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_FUNCTION_TITLE)) {
         asmout << "function ";
     }
     if (remapedFlags & T8GSCExportFlags::PRIVATE) {
@@ -2800,6 +2827,10 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
     // local var size = <empty>, <params>, <localvars> so we need to check that we have at least param_count + 1
     if (ctx.m_localvars.size() > exp.GetParamCount()) {
+        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+            asmout << " ";
+        }
+
         for (size_t i = 0; i < exp.GetParamCount(); i++) {
             if (i) {
                 asmout << ", ";
@@ -2836,6 +2867,10 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                 DecompContext dctx = { 0, 0, ctx.m_opt, 0 };
                 lvar.defaultValueNode->Dump(asmout, dctx);
             }
+        }
+
+        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+            asmout << " ";
         }
     }
     asmout << ")";

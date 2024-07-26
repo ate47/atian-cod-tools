@@ -247,7 +247,7 @@ void ASMContextNode::ApplySubNodes(const std::function<void(ASMContextNode*& nod
 	// do nothing, done on top
 }
 
-ASMContextNodeBlock::ASMContextNodeBlock(nodeblocktype blockType, bool disabled) : ASMContextNode(PRIORITY_INST, TYPE_BLOCK), m_blockType(blockType), m_disabled(disabled) {
+ASMContextNodeBlock::ASMContextNodeBlock(nodeblocktype blockType, bool disabled, bool allowInline) : ASMContextNode(PRIORITY_INST, TYPE_BLOCK), m_blockType(blockType), m_disabled(disabled), m_allowInline(allowInline) {
 	m_renderSemicolon = false;
 }
 
@@ -269,7 +269,7 @@ ASMContextStatement* ASMContextNodeBlock::FetchFirstForLocation(int64_t rloc) {
 }
 
 ASMContextNode* ASMContextNodeBlock::Clone() const {
-	ASMContextNodeBlock* n = new ASMContextNodeBlock(m_blockType, m_disabled);
+	ASMContextNodeBlock* n = new ASMContextNodeBlock(m_blockType, m_disabled, m_allowInline);
 	for (auto& node : m_statements) {
 		n->m_statements.push_back({ node.node->Clone(), node.location });
 	}
@@ -934,7 +934,12 @@ class OPCodeInfoCastBool : public OPCodeInfo {
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(ASMCNodeConvertToBool(context.PopASMCNode()));
+			if (context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS) {
+				context.PushASMCNode(context.PopASMCNode());
+			}
+			else {
+				context.PushASMCNode(ASMCNodeConvertToBool(context.PopASMCNode()));
+			}
 		}
 
 		out << "\n";
@@ -1332,7 +1337,12 @@ public:
 									context.m_funcBlock.m_statements.pop_back();
 									// unlike in bo, the ternary operator in mw seems to use both JumpOnFalse and JumpOnTrue, so we have to look at the operator
 									// I decided to avoid using ! so the result is prettier (imo)
-									locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(ASMCNodeConvertToBool(jumpNode->m_operand), top, !IsJumpConditionForceReversed(jumpNode)));
+
+									ASMContextNode* ifpart = jumpNode->m_operand;
+									if (!(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+										ifpart = ASMCNodeConvertToBool(ifpart);
+									}
+									locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(ifpart, top, !IsJumpConditionForceReversed(jumpNode)));
 									jumpNode->m_operand = nullptr;
 									delete jumpNode;
 									inject = false;
@@ -1366,7 +1376,10 @@ public:
 				else {
 					// empty if
 					// context.PushASMCNode(new ASMContextNodeJumpOperator(name, node, locref.rloc, type, m_jumpLocation, true, delta));
-					context.PushASMCNode(new ASMContextNodeIfElse(ASMCNodeConvertToBool(node), new ASMContextNodeBlock(), nullptr));
+					if (!(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+						node = ASMCNodeConvertToBool(node);
+					}
+					context.PushASMCNode(new ASMContextNodeIfElse(node, new ASMContextNodeBlock(), nullptr));
 					context.CompleteStatement();
 				}
 			}
@@ -3073,15 +3086,17 @@ class OPCodeInfoFunctionOperator : public OPCodeInfo {
 	bool m_complete;
 	bool m_canHaveArg2;
 	bool m_isBool;
+	bool m_noParenthesis;
+	
 public:
-	OPCodeInfoFunctionOperator(OPCode id, const char* name, const char* operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false, bool isBool = false) : OPCodeInfo(id, name),
-		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2), m_isBool(isBool) {
+	OPCodeInfoFunctionOperator(OPCode id, const char* name, const char* operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false, bool isBool = false, bool noParenthesis = false) : OPCodeInfo(id, name),
+		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2), m_isBool(isBool), m_noParenthesis(noParenthesis) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_operatorName, m_hasSelf, TYPE_STATEMENT, m_isBool);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_operatorName, m_hasSelf, TYPE_STATEMENT, m_isBool, m_noParenthesis);
 			if (m_hasSelf) {
 				node->AddParam(context.PopASMCNode());
 			}
@@ -4273,7 +4288,7 @@ public:
 		if (context.m_runDecompiler) {
 			bool cb = m_convertBool;
 			auto popVal = [&context, cb]() {
-				if (cb) {
+				if (cb && !(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
 					return ASMCNodeConvertToBool(context.PopASMCNode());
 				}
 				return context.PopASMCNode();
@@ -4966,8 +4981,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoGetObjectSize(OPCODE_SizeOf, "SizeOf"));
 
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_WaitTillFrameEnd, "WaitTillFrameEnd", "waittillframeend()"));
-			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait, "Wait", "wait"));
-			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait2, "Wait2", "wait"));
+			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait, "Wait", "wait", false, true, false, false, true));
+			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait2, "Wait2", "wait", false, true, false, false, true));
 			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_WaitFrame, "WaitFrame", "waitframe"));
 			RegisterOpCodeHandler(new OPCodeInfoNotify(OPCODE_Notify, "Notify"));
 			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined", false, false, false, true));
@@ -5203,7 +5218,7 @@ namespace tool::gsc::opcode {
 #pragma region asmctx 
 	ASMContext::ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* readerHandle, byte vm, Platform platform)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_gscReader(gscReader), m_objctx(objctx), m_opt(opt), m_runDecompiler(opt.m_dcomp),
-		m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
+		m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT, false, false), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
 		// set start as unhandled
 		PushLocation();
 		exp.SetHandle(m_readerHandle);
@@ -5504,12 +5519,26 @@ std::ostream& DecompContext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 	return out;
 }
 
+bool IsBlockType(tool::gsc::opcode::ASMContextNodeType type) {
+	using namespace tool::gsc::opcode;
+	return type == TYPE_BLOCK || type == TYPE_DO_WHILE || type == TYPE_WHILE || type == TYPE_FOR 
+		|| type == TYPE_FOR_EACH || type == TYPE_IF || type == TYPE_SWITCH_POSTCOMPUTE || type == TYPE_SWITCH_PRECOMPUTE;
+}
+
 void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
+	bool inlined{};
 	if (!m_disabled) {
 		switch (m_blockType) {
-		case BLOCK_DEFAULT:
-			out << "{\n";
+		case BLOCK_DEFAULT: {
+			inlined = IsBlockInlineable(this, ctx.opt);
+			if (inlined) {
+				out << "\n";
+			}
+			else {
+				out << "{\n";
+			}
 			break;
+		}
 		case BLOCK_DEV:
 			out << "/#\n";
 			break;
@@ -5520,7 +5549,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 
 		ctx.padding++;
 	}
-	
+
 	// push rloc
 	auto oldRLoc = ctx.rloc;
 
@@ -5528,9 +5557,38 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 	bool hide = false;
 	size_t i{};
 	size_t visibleId{};
+	enum {
+		LT_NONE = 0,
+		LT_BLOCK,
+		LT_STMT
+	} lastType{};
 	while (i < m_statements.size()) {
 		const auto& ref = m_statements[i];
 		ctx.rloc = ref.location->rloc;
+		if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINES_BETWEEN_BLOCKS) {
+			if (lastType && (((!hide && ref.node->m_type != TYPE_PRECODEPOS) || ctx.opt.m_show_internal_blocks))) {
+				if (ref.node->m_type != TYPE_END || i != m_statements.size() - 1) {
+					if (IsBlockType(ref.node->m_type)) {
+						out << "\n";
+						lastType = LT_BLOCK;
+					}
+					else if (lastType != LT_STMT) {
+						out << "\n";
+						lastType = LT_STMT;
+					}
+				}
+			}
+			else {
+				if (ref.node->m_type == TYPE_PRECODEPOS) {
+					if (ctx.opt.m_show_internal_blocks) {
+						lastType = LT_STMT;
+					}
+				}
+				else {
+					lastType = IsBlockType(ref.node->m_type) ? LT_BLOCK : LT_STMT;
+				}
+			}
+		}
 		if (ref.location->refs.size() && ref.node->m_renderRefIfAny) {
 			// write the label one layer bellow the current block
 			ctx.padding--;
@@ -5615,7 +5673,9 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 
 		switch (m_blockType) {
 		case BLOCK_DEFAULT:
-			ctx.WritePadding(out, true) << "}\n";
+			if (!inlined) {
+				ctx.WritePadding(out, true) << "}\n";
+			}
 			break;
 		case BLOCK_DEV:
 			ctx.WritePadding(out, true) << "#/\n";
@@ -5815,7 +5875,8 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 			size_t cid{};
 
 			do {
-				ASMContextNodeBlock* block = new ASMContextNodeBlock(BLOCK_PADDING);
+				nodeblocktype blockType = (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS) ? BLOCK_DEFAULT : BLOCK_PADDING;
+				ASMContextNodeBlock* block = new ASMContextNodeBlock(blockType);
 				switchBlock->m_cases.push_back({ cases[cid].casenode ? cases[cid].casenode->Clone() : nullptr, block});
 				// we pass this case to fetch the end
 				cid++;
@@ -6467,7 +6528,10 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 			}
 
 			auto* block = new ASMContextNodeBlock();
-			auto* node = new ASMContextNodeWhile(ASMCNodeConvertToBool(cond), block, jumpOp->Clone());
+			if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+				cond = ASMCNodeConvertToBool(cond);
+			}
+			auto* node = new ASMContextNodeWhile(cond, block, jumpOp->Clone());
 			for (size_t i = startIndex; i < index; i++) {
 				auto* ref = it->node;
 
@@ -6589,7 +6653,11 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 			doWhileLoc->RemoveRef(jumpOp->m_opLoc);
 
 			auto* newBlock = new ASMContextNodeBlock();
-			auto* doWhile = new ASMContextNodeDoWhile(ASMCNodeConvertToBool(cond), newBlock, jumpOp->Clone());
+
+			if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+				cond = ASMCNodeConvertToBool(cond);
+			}
+			auto* doWhile = new ASMContextNodeDoWhile(cond, newBlock, jumpOp->Clone());
 
 			auto it = m_statements.begin() + startIndex;
 			for (size_t i = startIndex; i < index; i++) {
@@ -6804,7 +6872,12 @@ int ASMContextNodeBlock::ComputeIfBlocks(ASMContext& ctx) {
 
 		// swap the jump with the new if statement
 		assert(IsJumpType(m_statements[index].node->m_type) && m_statements[index].node->m_type != TYPE_JUMP);
-		auto* ifElse = new ASMContextNodeIfElse(ASMCNodeConvertToBool(JumpCondition(static_cast<ASMContextNodeJumpOperator*>(m_statements[index].node), true)), blockIf, blockElse);
+
+		ASMContextNode* ifCond = JumpCondition(static_cast<ASMContextNodeJumpOperator*>(m_statements[index].node), true);
+		if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+			ifCond = ASMCNodeConvertToBool(ifCond);
+		}
+		auto* ifElse = new ASMContextNodeIfElse(ifCond, blockIf, blockElse);
 		delete m_statements[index].node;
 		m_statements[index].node = ifElse;
 		ifElse->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) {
@@ -6942,7 +7015,7 @@ int ASMContextNodeBlock::ComputeForBlocks(ASMContext& ctx) {
 }
 
 int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
-	auto remapJump = [](ASMContextStatement& stmt) {
+	auto remapJump = [&ctx](ASMContextStatement& stmt) {
 		if (IsJumpType(stmt.node->m_type)) {
 			auto* jmp = dynamic_cast<ASMContextNodeJumpOperator*>(stmt.node);
 
@@ -6957,7 +7030,11 @@ int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
 					ASMContextNodeBlock* blockIf = new ASMContextNodeBlock();
 					blockIf->m_statements.emplace_back(returnNode, stmt.location);
 					delete stmt.node;
-					stmt.node = new ASMContextNodeIfElse(ASMCNodeConvertToBool(cond), blockIf, nullptr);
+
+					if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+						cond = ASMCNodeConvertToBool(cond);
+					}
+					stmt.node = new ASMContextNodeIfElse(cond, blockIf, nullptr);
 				}
 				else {
 					delete stmt.node;
@@ -6979,6 +7056,9 @@ int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
 }
 
 int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
+	if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS) {
+		return 0;
+	}
 	bool isCandidate{ true };
 
 	// check all the return values, if all of them are bools, we can replace to bool
