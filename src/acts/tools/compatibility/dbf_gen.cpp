@@ -220,6 +220,12 @@ namespace {
 			return pool::ASSET_TYPE_LUAFILE;
 		}
 
+		if (ext == ".luac") {
+			nameout = NamePattern(path);
+			precompiled = true;
+			return pool::ASSET_TYPE_LUAFILE;
+		}
+
 		if (ext == ".ttf") {
 			nameout = NamePattern(path);
 			return pool::ASSET_TYPE_TTF;
