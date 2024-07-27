@@ -16,8 +16,9 @@ namespace process {
         WriteMemSafe(dest, &src, sizeof(src));
     }
 
-    inline byte* Relativise(uintptr_t location) {
-        return &BasePtr()[location];
+    template<typename Out = byte>
+    inline Out* Relativise(uintptr_t location) {
+        return reinterpret_cast<Out*>(&BasePtr()[location]);
     }
 
     HMODULE LoadLib(const char* lib);

@@ -75,6 +75,7 @@ project "ACTSSharedLibrary"
         "src/shared",
         "deps/asmjit/src/",
 		"deps/Detours/src/",
+        "deps/rapidjson/include/",
     }
 
     vpaths {
@@ -142,6 +143,43 @@ project "AtianCodToolsBO4DLL"
     dependson "detours"
     dependson "asmjit"
     
+
+project "AtianCodToolsBO4DLL2"
+    kind "SharedLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts-bo4-ext"
+    
+    files {
+        "./src/bo4-ext-dll/**.hpp",
+        "./src/bo4-ext-dll/**.h",
+        "./src/bo4-ext-dll/**.cpp",
+    }
+
+    includedirs {
+        "src/bo4-ext-dll",
+        "src/shared",
+    -- link detours
+		"deps/Detours/src/",
+        "deps/asmjit/src/",
+        "deps/rapidjson/include/",
+        "deps/dbflib/src/lib/",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    links { "detours" }
+    links { "asmjit" }
+    dependson "ACTSSharedLibrary"
+    dependson "detours"
+    dependson "asmjit"
+
 project "AtianCodToolsBOCWDLL"
     kind "SharedLib"
     language "C++"
@@ -225,6 +263,7 @@ project "AtianCodTools"
         "deps/dbflib/src/lib/",
         "deps/json-rpc-cxx/include/",
         "deps/json/include/",
+        "deps/rapidcsv/src/"
     }
 
     vpaths {

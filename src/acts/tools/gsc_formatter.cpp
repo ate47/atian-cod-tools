@@ -1,9 +1,6 @@
 #include <includes.hpp>
 #include "tools/gsc_formatter.hpp"
 
-
-#pragma once
-
 namespace tool::gsc::formatter {
 	namespace {
 		FormatterInfo defaultFormatter{ "default", FFL_DEFAULT };

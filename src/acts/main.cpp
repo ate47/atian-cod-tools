@@ -6,7 +6,7 @@
 #include "actslib/logging.hpp"
 #include "acts.hpp"
 #include "main_ui.hpp"
-#include "config.hpp"
+#include <core/config.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -212,7 +212,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	auto& profiler = actscli::GetProfiler();
 
-	acts::config::SyncConfig();
+	core::config::SyncConfig();
 
 	// by default we don't display heavy logs in cli
 
@@ -227,7 +227,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		alogs::setfile(uiLogs.data());
 		actslib::logging::SetLogFile(uiLogs.data());
 
-		std::string logLevel = acts::config::GetString("ui.logLevel", "INFO");
+		std::string logLevel = core::config::GetString("ui.logLevel", "INFO");
 
 		if (logLevel != "INFO") {
 			if (logLevel == "DEBUG") {

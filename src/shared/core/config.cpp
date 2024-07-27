@@ -1,10 +1,11 @@
-#include <includes.hpp>
+#include <includes_shared.hpp>
+#include "config.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
-#include "config.hpp"
+#include <utils.hpp>
 
-namespace acts::config {
+namespace core::config {
 	namespace {
 		rapidjson::Document main{};
 
@@ -142,6 +143,40 @@ namespace acts::config {
 		rapidjson::Value v{ defaultValue };
 		SetVal(path, v);
 	}
+	int64_t GetEnum(const char* path, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue) {
+		const char* defaultValueStr{ "" };
+		for (size_t i = 0; i < dataCount; i++) {
+			if (data[i].enumValue == defaultEnumValue) {
+				defaultValueStr = data[i].name;
+				break;
+			}
+		}
+		std::string val{ GetString(path, defaultValueStr) };
+
+		if (val.empty()) {
+			return defaultEnumValue;
+		}
+
+		for (size_t i = 0; i < dataCount; i++) {
+			if (!_strcmpi(val.c_str(), data[i].name)) {
+				return data[i].enumValue;
+			}
+		}
+
+		LOG_WARNING("Invalid enum config for path '{}': '{}'", path, val);
+
+		return defaultEnumValue;
+	}
+
+	void SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) {
+		for (size_t i = 0; i < dataCount; i++) {
+			if (data[i].enumValue == enumValue) {
+				SetString(path, data[i].name);
+				return;
+			}
+		}
+		LOG_WARNING("No enum value for path '{}': {}", path, enumValue);
+	}
 
 	void SyncConfig() {
 		std::string json{};
@@ -162,33 +197,4 @@ namespace acts::config {
 		std::string json{ buff.GetString() };
 		utils::WriteFile(utils::GetProgDir() / CONFIG_FILE, json);
 	}
-
-#ifndef CI_BUILD
-	int cfgtest(Process& proc, int argc, const char* argv[]) {
-
-		SyncConfig();
-
-		LOG_INFO("{}", GetInteger("test", 64));
-		LOG_INFO("{}", GetBool("test2.bool.val", true));
-		LOG_INFO("{}", GetInteger("test2.int", 64));
-		LOG_INFO("{}", GetDouble("zqdzqd.dzqdzq.zdqzdh.hqzdz", 42.69));
-		LOG_INFO("{}", GetString("str", "dzqzqdzdqzdq"));
-
-		LOG_INFO("{}", GetString("ui.injector.path"));
-
-		main["test3"] = 42;
-
-		LOG_INFO("Key:");
-		for (auto& [key, val] : main.GetObj()) {
-			LOG_INFO("- {}", key.GetString());
-		}
-
-		SetString("zdzdq", "qzddqzqzdqzd");
-
-		SaveConfig();
-
-		return tool::OK;
-	}
-	ADD_TOOL("cfgtest", "dev", "", "", nullptr, cfgtest);
-#endif
 }
