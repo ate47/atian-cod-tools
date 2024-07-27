@@ -266,7 +266,7 @@ namespace hook::error {
 
 		size_t offset{};
 		while (size) {
-			size_t r = min(ARRAYSIZE(buff), size);
+			size_t r = std::min(ARRAYSIZE(buff), size);
 
 			if (!memory::ReadMemorySafe(reinterpret_cast<void*>(vtable), &buff, sizeof(buff[0]) * r)) {
 				LOG_ERROR("Can't read vtable offset {}", offset);

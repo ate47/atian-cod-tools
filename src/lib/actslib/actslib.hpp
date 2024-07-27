@@ -1,4 +1,5 @@
 #pragma once
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -13,11 +14,24 @@
 #include <stdarg.h>
 #include "../mio.hpp"
 #include "logging.hpp"
-
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 /*
  * General imports and utilities for actslib
  */
 namespace actslib {
+	template<typename T>
+	constexpr const T min(const T a, const T b) {
+		return a < b ? a : b;
+	}
+	template<typename T>
+	constexpr const T max(const T a, const T b) {
+		return a > b ? a : b;
+	}
 	constexpr size_t MAX_VA_ALLOC = 0x20;
 	constexpr size_t MAX_VA_LEN = 0x200;
 	/*

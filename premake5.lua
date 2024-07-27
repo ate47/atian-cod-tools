@@ -223,6 +223,8 @@ project "AtianCodTools"
 		"deps/Detours/src/",
         "deps/rapidjson/include/",
         "deps/dbflib/src/lib/",
+        "deps/json-rpc-cxx/include/",
+        "deps/json/include/",
     }
 
     vpaths {

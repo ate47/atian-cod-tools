@@ -22,3 +22,10 @@
 
 #include <logs.hpp>
 #include <actsinfo.hpp>
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif

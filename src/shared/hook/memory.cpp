@@ -61,8 +61,8 @@ namespace hook::memory {
 		SYSTEM_INFO& sysInfo = GetSysInfo();
 		uint64_t pageSize = sysInfo.dwPageSize;
 		uint64_t startAddr = (uint64_t(location) & ~(pageSize - 1));
-		uint64_t minAddr = min(startAddr - 0x7FFFFF00, (uint64_t)sysInfo.lpMinimumApplicationAddress);
-		uint64_t maxAddr = max(startAddr + 0x7FFFFF00, (uint64_t)sysInfo.lpMaximumApplicationAddress);
+		uint64_t minAddr = std::min(startAddr - 0x7FFFFF00, (uint64_t)sysInfo.lpMinimumApplicationAddress);
+		uint64_t maxAddr = std::max(startAddr + 0x7FFFFF00, (uint64_t)sysInfo.lpMaximumApplicationAddress);
 
 		uint64_t startPage = (startAddr - (startAddr % pageSize));
 
@@ -180,7 +180,7 @@ namespace hook::memory {
 		byte* loc = (byte*)location;
 
 		while (size) {
-			size_t w = min(sizeof(tmp), size);
+			size_t w = std::min(sizeof(tmp), size);
 			memset(tmp, 0x90, w);
 			process::WriteMemSafe(loc, tmp, w);
 			size -= w;
@@ -193,7 +193,7 @@ namespace hook::memory {
 		byte* loc = (byte*)location;
 
 		while (size) {
-			size_t w = min(sizeof(tmp), size);
+			size_t w = std::min(sizeof(tmp), size);
 			memset(tmp, 0xCC, w);
 			process::WriteMemSafe(loc, tmp, w);
 			size -= w;

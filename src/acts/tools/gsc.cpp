@@ -2702,7 +2702,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     auto detourVal = objctx.m_gsicInfo.detours.find(exp.GetAddress());
     bool isDetour = detourVal != objctx.m_gsicInfo.detours.end();
 
-    if (ctx.m_opt.m_func_header) {
+    tool::gsc::formatter::FormatterFlags headerFormat = tool::gsc::formatter::GetHeaderFormat(ctx.m_opt.m_formatter->flags);
+
+    if (ctx.m_opt.m_func_header && headerFormat != tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_NONE) {
         const char* prefix;
         if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
             utils::Padding(asmout, padding) << "/*\n";
@@ -2713,58 +2715,119 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             prefix = "// ";
         }
 
-        utils::Padding(asmout, padding) << prefix << "Namespace "
-            << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
+        switch (headerFormat) {
+        case tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_SERIOUS: {
+            utils::Padding(asmout, padding) << prefix << "Name: " << hashutils::ExtractTmp("function", exp.GetName()) << std::endl;
+            utils::Padding(asmout, padding) << prefix << "Namespace: " << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::endl;
+            // no file namespace in this format, maybe later?
+            utils::Padding(asmout, padding) << prefix << "Checksum: 0x" << std::hex << std::uppercase << exp.GetChecksum() << std::endl;
+            utils::Padding(asmout, padding) << prefix << "Offset: 0x" << std::hex << std::uppercase << exp.GetAddress() << std::endl;
 
-        if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
-            // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
-            // so it's better to use spaces. A flag was added to keep the same format.
-            if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
-                asmout << " / ";
+            UINT size = ctx.FinalSize();
+            if (size > 1) { // at least one opcode
+                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << size << std::endl;
+            }
+
+            utils::Padding(asmout, padding) << prefix << "Parameters: " << std::dec << (int)exp.GetParamCount() << std::endl;
+
+            utils::Padding(asmout, padding) << prefix << "Flags: ";
+
+            if (!remapedFlags) {
+                asmout << "None";
+            }
+            else if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
+                asmout << "VTable";
             }
             else {
-                asmout << "/";
+                const struct {
+                    T8GSCExportFlags flag;
+                    const char* name;
+                } knownFlags[]{
+                    { T8GSCExportFlags::LINKED, "Linked" },
+                    { T8GSCExportFlags::AUTOEXEC, "AutoExec" },
+                    { T8GSCExportFlags::PRIVATE, "Private" },
+                    { T8GSCExportFlags::EVENT, "Event" },
+                    { T8GSCExportFlags::CLASS_LINKED, "Class Linked" },
+                    { T8GSCExportFlags::VE, "Variadic" },
+                };
+                bool def{};
+                for (const auto& kf : knownFlags) {
+                    if ((remapedFlags & kf.flag) != kf.flag) {
+                        continue;
+                    }
+                    if (def) {
+                        asmout << ", ";
+                    }
+                    else {
+                        def = true;
+                    }
+                    asmout << kf.name;
+                }
+            }
+            asmout << std::nouppercase << std::endl;
+            break;
+        }
+        case tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_NONE:
+            break;
+        case tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_TYPE_4:
+            utils::Padding(asmout, padding) << prefix << "Header format type 4 not implemented!";
+            break;
+        default: { // ACTS DEFAULT FORMAT
+            utils::Padding(asmout, padding) << prefix << "Namespace "
+                << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
+
+            if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
+                // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
+                // so it's better to use spaces. A flag was added to keep the same format.
+                if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                    asmout << " / ";
+                }
+                else {
+                    asmout << "/";
+                }
+
+                asmout
+                    << ((remapedFlags & T8GSCExportFlags::EVENT)
+                        ? hashutils::ExtractTmp("event", exp.GetFileNamespace())
+                        : hashutils::ExtractTmpPath("namespace", exp.GetFileNamespace()));
+            }
+            asmout << std::endl;
+
+            if (isDetour) {
+                auto det = detourVal->second;
+                utils::Padding(asmout, padding) << prefix
+                    << "Detour " << hashutils::ExtractTmp("function", exp.GetName()) << " "
+                    << "Offset 0x" << std::hex << det.fixupOffset << "/0x" << det.fixupSize
+                    << "\n"
+                    ;
             }
 
-            asmout
-                << ((remapedFlags & T8GSCExportFlags::EVENT)
-                    ? hashutils::ExtractTmp("event", exp.GetFileNamespace())
-                    : hashutils::ExtractTmpPath("namespace", exp.GetFileNamespace()));
-        }
-        asmout << std::endl;
+            utils::Padding(asmout, padding) << prefix << "Params " << std::dec << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
 
-        if (isDetour) {
-            auto det = detourVal->second;
-            utils::Padding(asmout, padding) << prefix 
-                << "Detour " << hashutils::ExtractTmp("function", exp.GetName()) << " "
-                << "Offset 0x" << std::hex << det.fixupOffset << "/0x" << det.fixupSize
-                << "\n"
-                ;
-        }
+            if (remapedFlags & T8GSCExportFlags::LINKED) {
+                asmout << " linked";
+            }
+            if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
+                asmout << " class_linked";
+            }
+            if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
+                asmout << " vtable";
+            }
 
-        utils::Padding(asmout, padding) << prefix << "Params " << std::dec << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
+            asmout << std::endl;
+            if (ctx.m_opt.m_rawhash) {
+                utils::Padding(asmout, padding) << prefix
+                    << std::hex
+                    << "namespace_" << exp.GetNamespace() << "<file_" << exp.GetFileNamespace() << ">::function_" << exp.GetName() << std::endl;
+            }
+            utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
 
-        if (remapedFlags & T8GSCExportFlags::LINKED) {
-            asmout << " linked";
+            auto size = ctx.FinalSize();
+            if (size > 1) { // at least one opcode
+                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
+            }
+            break;
         }
-        if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
-            asmout << " class_linked";
-        }
-        if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
-            asmout << " vtable";
-        }
-
-        asmout << std::endl;
-        if (ctx.m_opt.m_rawhash) {
-            utils::Padding(asmout, padding) << prefix
-                << std::hex
-                << "namespace_" << exp.GetNamespace() << "<file_" << exp.GetFileNamespace() <<  ">::function_" << exp.GetName() << std::endl;
-        }
-        utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
-
-        auto size = ctx.FinalSize();
-        if (size > 1) { // at least one opcode
-            utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
         }
         if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
             padding--;

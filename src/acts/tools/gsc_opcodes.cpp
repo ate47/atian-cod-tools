@@ -5569,11 +5569,11 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 			if (lastType && (((!hide && ref.node->m_type != TYPE_PRECODEPOS) || ctx.opt.m_show_internal_blocks))) {
 				if (ref.node->m_type != TYPE_END || i != m_statements.size() - 1) {
 					if (IsBlockType(ref.node->m_type)) {
-						out << "\n";
+						ctx.WritePadding(out) << "\n";
 						lastType = LT_BLOCK;
 					}
 					else if (lastType != LT_STMT) {
-						out << "\n";
+						ctx.WritePadding(out) << "\n";
 						lastType = LT_STMT;
 					}
 				}
@@ -6338,21 +6338,21 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		}
 
 		// replace this whole mess by a cool foreach block keyValName
-		auto* block = new ASMContextNodeBlock();
+		ASMContextNodeBlock* block = new ASMContextNodeBlock();
 
 		// remove the number of references for the key because maybe we don't use it
-		auto& keyRef = ctx.m_localvars_ref[keyValName];
+		int32_t& keyRef = ctx.m_localvars_ref[keyValName];
 		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B) {
-			keyRef = max(keyRef - 6, 0); // key is undefined at the end in mw23
+			keyRef = std::max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
 		else if (ctx.m_vm <= VM_T8) {
-			keyRef = max(keyRef - 5, 0);
+			keyRef = std::max(keyRef - 5, 0);
 		}
 		else {
-			keyRef = max(keyRef - 1, 0); // key isn't used as an iterator in T9
+			keyRef = std::max(keyRef - 1, 0); // key isn't used as an iterator in T9
 		}
 
-		auto* forEachNode = new ASMContextNodeForEach(setOp->m_right->Clone(), block, ctx.m_localvars_ref[keyValName] ? keyValName : 0, itemValName);
+		ASMContextNodeForEach* forEachNode = new ASMContextNodeForEach(setOp->m_right->Clone(), block, ctx.m_localvars_ref[keyValName] ? keyValName : 0, itemValName);
 
 		auto it = m_statements.begin() + startIndex;
 		delete it->node;

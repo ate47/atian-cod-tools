@@ -116,7 +116,10 @@ namespace actslib::data::iterator {
 
 	public:
 		AllocatedMergeAIterator(std::vector<InputType>& input, std::function<std::shared_ptr<AIterator<Type>>(InputType&)> map) {
-			its.reserve(max(1, input.size() * 2));
+#ifdef max
+#undef max
+#endif
+			its.reserve(actslib::max<size_t>(1, input.size() * 2));
 
 			for (InputType& in : input) {
 				its.emplace_back(map(in));
