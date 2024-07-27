@@ -3,6 +3,7 @@
 #include <hook/library.hpp>
 #include <pool.hpp>
 #include <data/bo4.hpp>
+#include <data/refs.hpp>
 
 namespace {
 	hook::library::Detour GetAssetHeaderDetour;

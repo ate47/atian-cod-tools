@@ -301,6 +301,10 @@ namespace bo4 {
         byte requires_implements_count;
 	};
 
+	typedef float vec_t;
+	typedef vec_t vec2_t[2];
+	typedef vec_t vec3_t[3];
+	typedef vec_t vec4_t[4];
 
 	enum scriptInstance_t : int32_t {
 		SCRIPTINSTANCE_SERVER = 0x0,
@@ -489,18 +493,20 @@ namespace bo4 {
 	};
 
 	struct HksGlobal {};
-	struct HksCallstack
-	{
-		void* m_records; // hks::CallStack::ActivationRecord*
-		void* m_lastrecord; // hks::CallStack::ActivationRecord*
-		void* m_current; // hks::CallStack::ActivationRecord*
-		const void* m_current_lua_pc; // const hksInstruction*
-		const void* m_hook_return_addr; // const hksInstruction*
-		int32_t m_hook_level;
-	};
+	struct HksCallStackActivationRecord {};
+	struct hksInstruction {};
 	struct HksUpvalue {};
 	typedef void* HksErrorhandler;
 	struct lua_State;
+
+	struct HksCallstack {
+		HksCallStackActivationRecord* m_records;
+		HksCallStackActivationRecord* m_lastrecord;
+		HksCallStackActivationRecord* m_current;
+		const hksInstruction* m_current_lua_pc;
+		const hksInstruction* m_hook_return_addr;
+		int32_t m_hook_level;
+	};
 	struct HksObject {
 		uint32_t t;
 		union {

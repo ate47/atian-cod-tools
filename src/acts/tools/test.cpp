@@ -13,7 +13,9 @@ namespace {
 
 	int cfgtest(Process& proc, int argc, const char* argv[]) {
 		using namespace core::config;
-		SyncConfig();
+		SyncConfig(true);
+
+		LOG_INFO("file: {}", GetMainConfig().configFile.string());
 
 		LOG_INFO("{}", GetInteger("test", 64));
 		LOG_INFO("{}", GetBool("test2.bool.val", true));

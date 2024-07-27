@@ -212,7 +212,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	auto& profiler = actscli::GetProfiler();
 
-	core::config::SyncConfig();
+	core::config::SyncConfig(true);
 
 	// by default we don't display heavy logs in cli
 

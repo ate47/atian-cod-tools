@@ -35,7 +35,7 @@ namespace bo4 {
 
         void InitDll() {
             try {
-                core::config::SyncConfig();
+                core::config::SyncConfig(true);
                 static std::string logFile{ "acts-bo4.log" };
                 logFile = core::config::GetString("logger.output", logFile.c_str());
 
