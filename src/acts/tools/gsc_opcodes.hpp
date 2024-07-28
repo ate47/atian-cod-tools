@@ -57,6 +57,7 @@ namespace tool::gsc::opcode {
 		byte vm;
 		const char* name;
 		const char* codeName;
+		const char* internalName;
 		uint64_t flags;
 		byte platforms{};
 		uint16_t maxOpCode{ 0xFFF };
@@ -124,7 +125,7 @@ namespace tool::gsc::opcode {
 	std::pair<bool, uint16_t> GetOpCodeId(byte vm, Platform platform, OPCode opcode);
 	bool HasOpCode(byte vm, Platform plt, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
-	void RegisterVM(byte vm, const char* name, const char* codeName, uint64_t flags);
+	void RegisterVM(byte vm, const char* name, const char* codeName, const char* internalName, uint64_t flags);
 	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode = OPCODE_Undefined);
 	void RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255);
 	void RegisterVMPlatform(byte vm, Platform plt);

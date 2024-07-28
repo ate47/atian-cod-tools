@@ -1,5 +1,4 @@
 #pragma once
-#include <hook/refs.hpp>
 #include "bo4.hpp"
 
 namespace bo4 {

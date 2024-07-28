@@ -1626,7 +1626,10 @@ public:
     };
 
     void SetName(uint64_t name) override {
-        throw std::runtime_error("not available");
+        throw std::runtime_error("can't get string name for this vm");
+    }
+    void SetNameString(uint32_t name) override {
+        Ptr<T7GSCOBJ>()->name_offset = name;
     }
     void SetHeader() override {
         Ref<uint64_t>() = 0x1c000a0d43534780;
@@ -1769,16 +1772,27 @@ public:
 
     byte MapFlagsExportToInt(byte flags) override {
         byte nflags{};
-        if (flags & 1) nflags |= T8GSCExportFlags::LINKED;
-        if (flags & 2) nflags |= T8GSCExportFlags::AUTOEXEC;
-        if (flags & 4) nflags |= T8GSCExportFlags::PRIVATE;
-        if (flags & 0x20) nflags |= T8GSCExportFlags::VE;
-        return nflags; // TODO
+        if (flags & T8GSCExportFlags::LINKED) nflags |= 1;
+        if (flags & T8GSCExportFlags::AUTOEXEC) nflags |= 2;
+        if (flags & T8GSCExportFlags::PRIVATE) nflags |= 4;
+        if (flags & T8GSCExportFlags::VE) nflags |= 0x20;
+        return nflags;
     }
 
     byte MapFlagsImportToInt(byte flags) override {
         byte nflags{};
-        return nflags; // TODO
+        switch (flags & 0xF) {
+        case FUNC_METHOD: nflags |= 1; break;
+        case FUNCTION: nflags |= 2; break;
+        case FUNCTION_THREAD:nflags |= 3; break;
+        case METHOD: nflags |= 4; break;
+        case METHOD_THREAD:  nflags |= 5;
+        default: nflags |= flags & 0xF; break; // wtf?
+        }
+        if (flags & DEV_CALL) nflags |= 0x10;
+        if (flags & ACTS_USE_FULL_NAMESPACE) nflags |= 0x20;
+
+        return nflags;
     }
 
     bool IsVTableImportFlags(byte flags) override {
@@ -1898,7 +1912,10 @@ public:
     };
 
     void SetName(uint64_t name) override {
-        throw std::runtime_error("not available");
+        throw std::runtime_error("can't get string name for this vm");
+    }
+    void SetNameString(uint32_t name) override {
+        Ptr<T7GSCOBJ>()->name_offset = name;
     }
     void SetHeader() override {
         Ref<uint64_t>() = 0x1b000a0d43534780;
@@ -2041,16 +2058,27 @@ public:
 
     byte MapFlagsExportToInt(byte flags) override {
         byte nflags{};
-        if (flags & 1) nflags |= T8GSCExportFlags::LINKED;
-        if (flags & 2) nflags |= T8GSCExportFlags::AUTOEXEC;
-        if (flags & 4) nflags |= T8GSCExportFlags::PRIVATE;
-        if (flags & 0x20) nflags |= T8GSCExportFlags::VE;
-        return nflags; // TODO
+        if (flags & T8GSCExportFlags::LINKED) nflags |= 1;
+        if (flags & T8GSCExportFlags::AUTOEXEC) nflags |= 2;
+        if (flags & T8GSCExportFlags::PRIVATE) nflags |= 4;
+        if (flags & T8GSCExportFlags::VE) nflags |= 0x20;
+        return nflags;
     }
 
     byte MapFlagsImportToInt(byte flags) override {
         byte nflags{};
-        return nflags; // TODO
+        switch (flags & 0xF) {
+        case FUNC_METHOD: nflags |= 1; break;
+        case FUNCTION: nflags |= 2; break;
+        case FUNCTION_THREAD:nflags |= 3; break;
+        case METHOD: nflags |= 4; break;
+        case METHOD_THREAD:  nflags |= 5;
+        default: nflags |= flags & 0xF; break; // wtf?
+        }
+        if (flags & DEV_CALL) nflags |= 0x10;
+        if (flags & ACTS_USE_FULL_NAMESPACE) nflags |= 0x20;
+
+        return nflags;
     }
 
     bool IsVTableImportFlags(byte flags) override {

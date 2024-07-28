@@ -26,6 +26,7 @@ namespace tool::gsc::opcode {
 
 	Platform PlatformOf(const char* name);
 	const char* PlatformName(Platform plt);
+	const char* PlatformIdName(Platform plt);
 	VM VMOf(const char* name);
 
 	enum OPCode : uint16_t {

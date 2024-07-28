@@ -71,6 +71,22 @@ namespace hook::memory {
 	bool ReadMemorySafe(void* location, void* buffer, size_t size);
 
 	/*
+	 * Try to read a relative memory into a buffer at a location
+	 * @param location location
+	 * @param buffer buffer
+	 * @param size size to read
+	 * @return if the read was done
+	 */
+	bool ReadRelativeMemorySafe(void* location, void* buffer, size_t size);
+
+	/*
+	 * Try to get a relative location
+	 * @param location location
+	 * @return relative offset or null in case of error
+	 */
+	void* GetRelativeMemorySafe(void* location);
+
+	/*
 	 * Assemble a function and return it
 	 * @param builder builder function
 	 * @return assembled function

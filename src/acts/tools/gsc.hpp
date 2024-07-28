@@ -1168,6 +1168,7 @@ namespace tool::gsc {
 
         // Write functions
         virtual void SetName(uint64_t name) = 0;
+        virtual void SetNameString(uint32_t name);
         virtual void SetHeader() = 0;
         virtual void SetChecksum(uint64_t val) = 0;
         virtual uint32_t GetChecksum() = 0;

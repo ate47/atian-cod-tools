@@ -23,6 +23,9 @@ namespace {
 }
 namespace tool::gsc::opcode {
 	VM VMOf(const char* name) {
+		if (!_strcmpi("t8_35", name) || !_strcmpi("bo4_35", name) || !_strcmpi("blackops4_35", name) || !_strcmpi("35", name)) {
+			return VM_T835;
+		}
 		if (!_strcmpi("t8", name) || !_strcmpi("bo4", name) || !_strcmpi("blackops4", name) || !_strcmpi("36", name)) {
 			return VM_T8;
 		}
@@ -35,13 +38,13 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("t7", name) || !_strcmpi("bo3", name) || !_strcmpi("blackops3", name) || !_strcmpi("1c", name)) {
 			return VM_T7;
 		}
-		if (!_strcmpi("t7_1b", name) || !_strcmpi("bo4_1b", name) || !_strcmpi("blackops3_1b", name) || !_strcmpi("1b", name)) {
+		if (!_strcmpi("t7_1b", name) || !_strcmpi("bo3_1b", name) || !_strcmpi("blackops3_1b", name) || !_strcmpi("1b", name)) {
 			return VM_T71B;
 		}
-		if (!_strcmpi("jup", name) || !_strcmpi("s5", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name)) {
+		if (!_strcmpi("jupa", name) || !_strcmpi("s5a", name) || !_strcmpi("mwiiia", name) || !_strcmpi("modernwarfareiiia", name) || !_strcmpi("mw23a", name) || !_strcmpi("8a", name)) {
 			return VM_MW23;
 		}
-		if (!_strcmpi("jupb", name) || !_strcmpi("s5b", name) || !_strcmpi("mwiiib", name) || !_strcmpi("modernwarfareiiib", name) || !_strcmpi("mw23b", name)) {
+		if (!_strcmpi("jupb", name) || !_strcmpi("s5b", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name) || !_strcmpi("8b", name)) {
 			return VM_MW23B;
 		}
 		return VM_UNKNOWN;
@@ -156,6 +159,17 @@ namespace tool::gsc::opcode {
 		case PLATFORM_PLAYSTATION: return "PlayStation";
 		case PLATFORM_PC_ALPHA: return "PC Alpha";
 		default: return "Unknown";
+		}
+	}
+
+
+	const char* PlatformIdName(Platform plt) {
+		switch (plt) {
+		case PLATFORM_PC: return "pc";
+		case PLATFORM_XBOX: return "xbox";
+		case PLATFORM_PLAYSTATION: return "ps";
+		case PLATFORM_PC_ALPHA: return "pc_alpha";
+		default: return "unk";
 		}
 	}
 
@@ -4631,7 +4645,7 @@ namespace {
 }
 
 namespace tool::gsc::opcode {
-	void RegisterVM(byte vm, const char* name, const char* codeName, uint64_t flags) {
+	void RegisterVM(byte vm, const char* name, const char* codeName, const char* internalName, uint64_t flags) {
 		auto it = g_opcodeMap.find(vm);
 		if (it != g_opcodeMap.end()) {
 			if (it->second.flags != flags) {
@@ -4639,7 +4653,7 @@ namespace tool::gsc::opcode {
 			}
 			return; // assuming good name
 		}
-		g_opcodeMap[vm] = { vm, name, codeName, flags, {} };
+		g_opcodeMap[vm] = { vm, name, codeName, internalName, flags, {} };
 	}
 
 	void RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {

@@ -4,6 +4,7 @@
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
 #include <core/system.hpp>
+#include <core/eventhandler.hpp>
 #include <core/config.hpp>
 
 namespace bo4 {
@@ -11,6 +12,7 @@ namespace bo4 {
         HANDLE mainThread{};
         DWORD mainThreadId{};
         hook::library::Detour GetSystemMetricsDetour;
+        hook::library::Detour GetThreadContextDetour;
 
         int GetSystemMetricsStub(int nIndex) {
             // unpack?
@@ -33,11 +35,24 @@ namespace bo4 {
             return GetSystemMetricsDetour.Call<int>(nIndex);
         }
 
+        BOOL WINAPI GetThreadContextStub(HANDLE hThread, LPCONTEXT lpContext) {
+            // clear debug flags if inside the game
+            if (hook::library::GetLibraryInfo(_ReturnAddress()) == process::BaseHandle()) {
+                if (lpContext && lpContext->ContextFlags & (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64)) {
+                    lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
+                }
+                if (hThread && hThread != INVALID_HANDLE_VALUE) {
+                    core::eventhandler::RunEvent(hash::Hash64("RegisterThread"), (void*)hThread);
+                }
+            }
+
+            return GetThreadContextDetour.Call<BOOL>(hThread, lpContext);
+        }
+
         void InitDll() {
             try {
+                alogs::setfile("acts-bo4.log");
                 core::config::SyncConfig(true);
-                static std::string logFile{ "acts-bo4.log" };
-                logFile = core::config::GetString("logger.output", logFile.c_str());
 
                 core::config::ConfigEnumData logNames[]{
                     { "trace", alogs::LVL_TRACE},
@@ -47,7 +62,6 @@ namespace bo4 {
                     { "error", alogs::LVL_ERROR}
                 };
 
-                alogs::setfile(logFile.data());
                 alogs::setlevel(core::config::GetEnumVal<alogs::loglevel>("logger.level", logNames, ARRAYSIZE(logNames), alogs::LVL_INFO));
 
                 hook::library::Library main{};
@@ -65,11 +79,16 @@ namespace bo4 {
                 std::filesystem::remove(exepath.replace_extension(".start"));
 
                 hook::library::Library user32 = "user32.dll";
+                hook::library::Library kernel32 = "kernel32.dll";
 
                 if (!user32) {
                     throw std::runtime_error("Can't find user32.dll");
                 }
+                if (!kernel32) {
+                    throw std::runtime_error("Can't find kernel32.dll");
+                }
                 GetSystemMetricsDetour.Create(user32["GetSystemMetrics"], GetSystemMetricsStub);
+                GetThreadContextDetour.Create(kernel32["GetThreadContext"], GetThreadContextStub);
 
                 LOG_DEBUG("Init systems");
                 core::system::Init();
@@ -89,4 +108,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         bo4::InitDll();
     }
     return TRUE;
+}
+
+// hook powrprof.dll for auto injection
+EXPORT NTSTATUS CallNtPowerInformation(POWER_INFORMATION_LEVEL InformationLevel, PVOID InputBuffer, ULONG InputBufferLength, PVOID OutputBuffer, ULONG OutputBufferLength) {
+    static auto func = [] {
+        hook::library::Library powrprof{ "powrprof.dll", true };
+
+        if (!powrprof) throw std::runtime_error(utils::va("can't find system powrprof.dll"));
+
+        return reinterpret_cast<decltype(&CallNtPowerInformation)>(powrprof["CallNtPowerInformation"]);
+        }();
+
+        return func(InformationLevel, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
 }

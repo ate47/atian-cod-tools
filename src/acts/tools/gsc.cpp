@@ -371,6 +371,9 @@ byte GSCOBJHandler::MapFlagsExportToInt(byte flags) {
     return flags;
 }
 
+void GSCOBJHandler::SetNameString(uint32_t name) {
+    throw std::runtime_error("can't set string name for this vm");
+}
 int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
     if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {

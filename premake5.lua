@@ -167,6 +167,7 @@ project "AtianCodToolsBO4DLL2"
         "deps/asmjit/src/",
         "deps/rapidjson/include/",
         "deps/dbflib/src/lib/",
+        "deps/hw_break/HwBpLib/inc/",
     }
 
     vpaths {
@@ -263,7 +264,8 @@ project "AtianCodTools"
         "deps/dbflib/src/lib/",
         "deps/json-rpc-cxx/include/",
         "deps/json/include/",
-        "deps/rapidcsv/src/"
+        "deps/rapidcsv/src/",
+        "deps/hw_break/HwBpLib/inc/",
     }
 
     vpaths {

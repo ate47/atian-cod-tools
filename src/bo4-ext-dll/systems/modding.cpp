@@ -3,7 +3,6 @@
 #include <hook/library.hpp>
 #include <pool.hpp>
 #include <data/bo4.hpp>
-#include <data/refs.hpp>
 
 namespace {
 	hook::library::Detour GetAssetHeaderDetour;
@@ -15,7 +14,7 @@ namespace {
 	}
 
 	void PostInit(uint64_t id) {
-		GetAssetHeaderDetour.Create(process::Relativise(0x2EB75B0), GetAssetHeaderStub);
+		//GetAssetHeaderDetour.Create(0x2EB75B0_a, GetAssetHeaderStub);
 	}
 
 	REGISTER_SYSTEM(modding, nullptr, PostInit);

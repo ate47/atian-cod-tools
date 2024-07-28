@@ -136,6 +136,19 @@ namespace hook::memory {
 		return ReadProcessMemory(GetCurrentProcess(), location, buffer, size, NULL);
 	}
 
+	void* GetRelativeMemorySafe(void* location) {
+		DWORD rloc{};
+		if (!ReadProcessMemory(GetCurrentProcess(), location, &rloc, sizeof(rloc), NULL)) {
+			return nullptr;
+		}
+		return (byte*)location + rloc + sizeof(rloc);
+	}
+
+	bool ReadRelativeMemorySafe(void* location, void* buffer, size_t size) {
+		location = GetRelativeMemorySafe(location);
+		return location && ReadMemorySafe(location, buffer, size);
+	}
+
 	void RedirectJmp(void* location, void* to, bool r64) {
 		// https://www.felixcloutier.com/x86/jmp
 		bool r32 = Int32Distance(location, to);

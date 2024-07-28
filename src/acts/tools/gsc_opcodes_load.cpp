@@ -25,7 +25,7 @@ namespace tool::gsc::opcode {
 
 			// Register mapping
 
-			RegisterVM(VM_T8, "Call of Duty: Black ops 4", "t8", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T8, "Call of Duty: Black ops 4", "t8", "bo4", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T8, PLATFORM_PC);
 			SetMaxOpCode(VM_T8, 0xFFF);
 			RegisterVMGlobalVariable(VM_T8, "level");
@@ -317,7 +317,7 @@ namespace tool::gsc::opcode {
 
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
-			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", "t9", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", "t9", "cw37", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			SetMaxOpCode(VM_T937, 0xFFF);
 			RegisterVMGlobalVariable(VM_T937, "level");
 			RegisterVMGlobalVariable(VM_T937, "game");
@@ -620,7 +620,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_CallBuiltinMethod, 0x10);
 			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_End, 0x11);
 
-			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", "cw", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
 			SetMaxOpCode(VM_T9, 0xFFF);
 			RegisterVMGlobalVariable(VM_T9, "level");
@@ -877,7 +877,7 @@ namespace tool::gsc::opcode {
 	#ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();
 	#endif
-			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
+			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", "mwiiia", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterSameCodePlatform(VM_MW23, PLATFORM_PC, PLATFORM_PLAYSTATION);
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel);
@@ -897,7 +897,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 
-			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
+			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVMPlatform(VM_MW23B, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_MW23B, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_MW23B, "game", OPCODE_IW_GetGame);
@@ -919,13 +919,21 @@ namespace tool::gsc::opcode {
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
 
-			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN);
+			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", "bo3", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN);
 			RegisterVMPlatform(VM_T7, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T7, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_T7, "game", OPCODE_IW_GetGame);
 			RegisterVMGlobalVariable(VM_T7, "anim", OPCODE_IW_GetAnim);
 			RegisterVMGlobalVariable(VM_T7, "world", OPCODE_GetWorld);
 			RegisterVMGlobalVariable(VM_T7, "classes", OPCODE_GetClasses);
+			RegisterVMOperatorFunction(VM_T7, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_T7, "notify", "<caller> notify(event, param*)", OPCODE_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
+			RegisterVMOperatorFunction(VM_T7, "endon", "<caller> endon(event)", OPCODE_IW_SingleEndon, VPFD_SELF_PARAM, 1, 1);
+			RegisterVMOperatorFunction(VM_T7, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_RETURN_VALUE, 2, 2);
+			RegisterVMOperatorFunction(VM_T7, "waittill", "<caller> waittill(event, var*)", OPCODE_IW_SingleWaitTill, VPFD_SELF_PARAM | VPFD_UNPACK, 1);
+			// RegisterVMOperatorFunction(VM_T7, "waittillmatch", "<caller> waittillmatch(event, match) -> struct", OPCODE_WaitTillMatch2, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2); // todo
+			RegisterVMOperatorFunction(VM_T7, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T7, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T7, '#', OPCODE_GetHash32, 4, [](const char* str) { return hashutils::HashT7(str); });
 			RegisterDevCall(VM_T7, "assert", "assertmsg", "errormsg", "throw", "println");
 			SetMaxOpCode(VM_T7, 0x1FFF);
@@ -1093,13 +1101,21 @@ namespace tool::gsc::opcode {
 			// 243:12d0000 -> {0x243, 0x249, 0x25a, 0x2dc, 0x32a, 0x33b, 0x372, 0x38e, 0x54b, 0x552, 0x555, 0x5a0, 0x5b2, 0x5c0, 0x65a, 0x685, 0x79a, 0x7ee, 0x813, 0x95a, 0x969, 0x9b1, 0xa21, 0xb3c, 0xb51, 0xc0e, 0xc6a, 0xd0e, 0xdb6, 0xdc5, 0xf3f, 0xf5a, 0xfda, 0xfe5, 0x101d, 0x1277, 0x133f, 0x13b0, 0x1481, 0x14ab, 0x15cd, 0x1610, 0x1689, 0x17f6, 0x1896, 0x1953, 0x19fa, 0x1aa5, 0x1ab6, 0x1ad4, 0x1b06, 0x1b74, 0x1c58, 0x1cfb, 0x1d34, 0x1de5, 0x1e2e, 0x1f13, 0x1f46, 0x1fba, 0x1ff4}
 
 
-			RegisterVM(VM_T71B, "Call of Duty: Black ops 3 (1B)", "t7_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN); // | VmFlags::VMF_CALL_NO_PARAMS
+			RegisterVM(VM_T71B, "Call of Duty: Black ops 3 (1B)", "t7_1b", "bo3_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN); // | VmFlags::VMF_CALL_NO_PARAMS
 			RegisterVMPlatform(VM_T71B, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T71B, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_T71B, "game", OPCODE_IW_GetGame);
 			RegisterVMGlobalVariable(VM_T71B, "anim", OPCODE_IW_GetAnim);
 			RegisterVMGlobalVariable(VM_T71B, "world", OPCODE_GetWorld);
 			RegisterVMGlobalVariable(VM_T71B, "classes", OPCODE_GetClasses);
+			RegisterVMOperatorFunction(VM_T71B, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_T71B, "notify", "<caller> notify(event, param*)", OPCODE_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
+			RegisterVMOperatorFunction(VM_T71B, "endon", "<caller> endon(event)", OPCODE_IW_SingleEndon, VPFD_SELF_PARAM, 1, 1);
+			RegisterVMOperatorFunction(VM_T71B, "vectorscale", "vectorscale(vector, factor) -> vector", OPCODE_VectorScale, VPFD_RETURN_VALUE, 2, 2);
+			RegisterVMOperatorFunction(VM_T71B, "waittill", "<caller> waittill(event, var*)", OPCODE_IW_SingleWaitTill, VPFD_SELF_PARAM | VPFD_UNPACK, 1);
+			// RegisterVMOperatorFunction(VM_T71B, "waittillmatch", "<caller> waittillmatch(event, match) -> struct", OPCODE_WaitTillMatch2, VPFD_SELF_PARAM | VPFD_USE_COUNT | VPFD_RETURN_VALUE, 2); // todo
+			RegisterVMOperatorFunction(VM_T71B, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_T71B, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T71B, '#', OPCODE_GetHash32, 4, [](const char* str) { return hashutils::HashT7(str); });
 			RegisterDevCall(VM_T71B, "assert", "assertmsg", "errormsg", "throw", "println");
 			SetMaxOpCode(VM_T71B, 0xFF);
@@ -1211,7 +1227,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Jump, 0x45);
 			
 
-			RegisterVM(VM_T835, "Call of Duty: Black ops 4 (35)", "t8", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T835, "Call of Duty: Black ops 4 (35)", "t8", "bo4_35", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T835, PLATFORM_PLAYSTATION);
 			SetMaxOpCode(VM_T835, 0xFFF);
 			RegisterDevCall(VM_T835, "assert", "assertmsg", "errormsg", "throw", "println");
