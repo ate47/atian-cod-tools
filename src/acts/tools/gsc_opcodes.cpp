@@ -23,8 +23,8 @@ namespace {
 }
 namespace tool::gsc::opcode {
 	VM VMOf(const char* name) {
-		if (!_strcmpi("t8_35", name) || !_strcmpi("bo4_35", name) || !_strcmpi("blackops4_35", name) || !_strcmpi("35", name)) {
-			return VM_T835;
+		if (!_strcmpi("t8_31", name) || !_strcmpi("bo4_31", name) || !_strcmpi("blackops4_31", name) || !_strcmpi("31", name)) {
+			return VM_T831;
 		}
 		if (!_strcmpi("t8", name) || !_strcmpi("bo4", name) || !_strcmpi("blackops4", name) || !_strcmpi("36", name)) {
 			return VM_T8;
@@ -2923,6 +2923,29 @@ public:
 	}
 };
 
+class OPCodeInfoInvalidOpCode : public OPCodeInfo {
+public:
+	OPCodeInfoInvalidOpCode() : OPCodeInfo(OPCODE_InvalidOpCode, "InvalidOpCode") {
+	}
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		out << "\n";
+		if (context.m_runDecompiler) {
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("InvalidOpCode", false);
+
+			node->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_VALUE, true));
+			// convert it to statement
+			context.PushASMCNode(node);
+			context.CompleteStatement();
+		}
+		return 0;
+	}
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
+};
+
 class OPCodeInfoProfileNamed : public OPCodeInfo {
 	bool m_push;
 public:
@@ -4851,6 +4874,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknowna, "Unknowna", "Unknowna()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknownb, "Unknownb", "Unknownb()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Nop, "Nop", "Nop()"));
+			RegisterOpCodeHandler(new OPCodeInfoInvalidOpCode());
 			RegisterOpCodeHandler(new OPCodeInfoDevOp(false));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown38, "Unknown38", "operator_Unknown38()"));
 

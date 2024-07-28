@@ -692,6 +692,7 @@ void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscI
 namespace {
 #include "gsc_vm.hpp"
     std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>> gscReaders = {
+        { VM_T831,[](byte* file, size_t fileSize) { return std::make_shared<T831GSCOBJHandler>(file, fileSize); }},
         { VM_T8,[](byte* file, size_t fileSize) { return std::make_shared<T8GSCOBJHandler>(file, fileSize); }},
         { VM_T937,[](byte* file, size_t fileSize) { return std::make_shared<T937GSCOBJHandler>(file, fileSize); }},
         { VM_T9,[](byte* file, size_t fileSize) { return std::make_shared<T9GSCOBJHandler>(file, fileSize); }},
