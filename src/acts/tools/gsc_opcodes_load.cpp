@@ -902,7 +902,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
 			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
-			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "class", "struct");
+			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
 			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVMPlatform(VM_MW23B, PLATFORM_PC);
@@ -922,7 +922,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23B, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
 			RegisterVMHashOPCode(VM_MW23B, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
-			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "class", "struct");
+			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
@@ -1690,6 +1690,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_ThreadEndBreakpoint, "ThreadEndBreakpoint");
 			RegisterOpCode(OPCODE_PushVar, "PushVar");
 			RegisterOpCode(OPCODE_PushEntityVar, "PushEntityVar");
+			RegisterOpCode(OPCODE_InvalidOpCode, "InvalidOpCode");
 		}
 	};
 	namespace {
