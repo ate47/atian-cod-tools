@@ -25,10 +25,11 @@ public:
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
     T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, T__73 = 74, 
     T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, T__78 = 79, T__79 = 80, 
-    T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, NEWLINE = 85, WHITESPACE = 86, 
-    INTEGER10 = 87, INTEGER16 = 88, INTEGER8 = 89, INTEGER2 = 90, FLOATVAL = 91, 
-    BUILTIN = 92, BOOL_VALUE = 93, UNDEFINED_VALUE = 94, IDENTIFIER = 95, 
-    STRUCT_IDENTIFIER = 96, PATH = 97, STRING = 98, HASHSTRING = 99
+    T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, T__84 = 85, T__85 = 86, 
+    T__86 = 87, T__87 = 88, NEWLINE = 89, WHITESPACE = 90, INTEGER10 = 91, 
+    INTEGER16 = 92, INTEGER8 = 93, INTEGER2 = 94, FLOATVAL = 95, BUILTIN = 96, 
+    BOOL_VALUE = 97, UNDEFINED_VALUE = 98, IDENTIFIER = 99, STRUCT_IDENTIFIER = 100, 
+    PATH = 101, STRING = 102, HASHSTRING = 103
   };
 
   explicit gscLexer(antlr4::CharStream *input);

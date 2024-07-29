@@ -4831,6 +4831,32 @@ namespace tool::gsc::opcode {
 		return ref->second.RemapSamePlatform(origin);
 	}
 
+	void RegisterDatatypeRenamed(byte vm, const char* datatype, const char* trueName) {
+		auto ref = g_opcodeMap.find(vm);
+		if (ref == g_opcodeMap.end()) {
+			assert(0);
+			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", (int)vm);
+			return;
+		}
+
+		auto& opnfo = ref->second;
+
+		opnfo.dataType[hash::Hash64(datatype)] = trueName;
+	}
+
+	void RegisterDatatype(byte vm, const char* datatype) {
+		auto ref = g_opcodeMap.find(vm);
+		if (ref == g_opcodeMap.end()) {
+			assert(0);
+			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", (int)vm);
+			return;
+		}
+
+		auto& opnfo = ref->second;
+
+		opnfo.dataType[hash::Hash64(datatype)] = datatype;
+	}
+
 	void RegisterDevCall(byte vm, const char* devCall) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {

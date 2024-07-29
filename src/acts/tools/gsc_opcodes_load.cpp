@@ -52,6 +52,8 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T8, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T8, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T8, "assert", "assertmsg", "errormsg", "throw", "println");
+			RegisterDatatype(VM_T8, "functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
+			RegisterDatatypeRenamed(VM_T8, "function", "functionptr");
 
 			
 			RegisterOpCode(VM_T8, PLATFORM_PC, OPCODE_Abort, 0x0);
@@ -346,6 +348,8 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T937, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T937, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T937, "assert", "assertmsg", "errormsg", "throw", "println");
+			RegisterDatatype(VM_T937, "functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
+			RegisterDatatypeRenamed(VM_T937, "function", "functionptr");
 
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
 			RegisterOpCode(VM_T937, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x4b, 0x4c, 0x4d, 0x57, 0x59, 0x5b, 0x5c, 0x5d, 0x5e, 0x62, 0x63, 0x65, 0x66, 0x68, 0x6d, 0x6e, 0x73, 0x74, 0x75, 0x76, 0x77, 0x7b, 0x83, 0x86, 0x87, 0x8d);
@@ -650,6 +654,8 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T9, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T9, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterDevCall(VM_T9, "assert", "assertmsg", "errormsg", "throw", "println");
+			RegisterDatatype(VM_T9, "functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
+			RegisterDatatypeRenamed(VM_T9, "function", "functionptr");
 
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Abort, 0x0);
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_Nop, 0x1);
@@ -896,6 +902,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
 			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
+			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "class", "struct");
 
 			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVMPlatform(VM_MW23B, PLATFORM_PC);
@@ -915,6 +922,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23B, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
 			RegisterVMHashOPCode(VM_MW23B, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
+			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "class", "struct");
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
@@ -936,6 +944,8 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T7, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T7, '#', OPCODE_GetHash32, 4, [](const char* str) { return hashutils::HashT7(str); });
 			RegisterDevCall(VM_T7, "assert", "assertmsg", "errormsg", "throw", "println");
+			RegisterDatatype(VM_T7, "functionptr", "string", "array", "weapon", "int", "float", "vec");
+			RegisterDatatypeRenamed(VM_T7, "function", "functionptr");
 			SetMaxOpCode(VM_T7, 0x1FFF);
 
 			RegisterOpCode(VM_T7, PLATFORM_PC, OPCODE_Nop, 0x12, 0x14, 0x16, 0x17, 0x1a, 0x1d, 0x1f, 0x21, 0x29, 0x2f, 0x32, 0x34, 0x37, 0x38, 0x3b, 0x3d, 0x40, 0x48, 0x51, 0x52, 0x55, 0x56, 0x58, 0x5c, 0x5e, 0x65, 0x6d, 0x6e, 0x6f, 0x71, 0x73, 0x74, 0x7b, 0x7c, 0x7f, 0x80, 0x81, 0x85, 0x87, 0x88, 0x8d, 0x8e, 0x91, 0x92, 0x93, 0x94, 0x97, 0x99, 0x9a, 0xa4, 0xa5, 0xac, 0xb5, 0xb8, 0xb9, 0xba, 0xbd, 0xc3, 0xc5, 0xcb, 0xcd, 0xcf, 0xd1, 0xd3, 0xd6, 0xde, 0xe1, 0xe2, 0xe6, 0xe7, 0xe8, 0xee, 0xf3, 0xf8, 0xf9, 0xfa, 0xfd, 0x101, 0x10a, 0x10f, 0x113, 0x114, 0x119, 0x11e, 0x11f, 0x120, 0x121, 0x127, 0x129, 0x12a, 0x12d, 0x130, 0x134, 0x135, 0x138, 0x139, 0x13c, 0x142, 0x148, 0x14d, 0x151, 0x154);
@@ -1118,6 +1128,8 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T71B, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T71B, '#', OPCODE_GetHash32, 4, [](const char* str) { return hashutils::HashT7(str); });
 			RegisterDevCall(VM_T71B, "assert", "assertmsg", "errormsg", "throw", "println");
+			RegisterDatatype(VM_T71B, "functionptr", "string", "array", "weapon", "int", "float", "vec");
+			RegisterDatatypeRenamed(VM_T71B, "function", "functionptr");
 			SetMaxOpCode(VM_T71B, 0xFF);
 
 
@@ -1231,6 +1243,8 @@ namespace tool::gsc::opcode {
 			RegisterVMPlatform(VM_T831, PLATFORM_PLAYSTATION);
 			SetMaxOpCode(VM_T831, 0xFFF);
 			RegisterDevCall(VM_T831, "assert", "assertmsg", "errormsg", "throw", "println");
+			RegisterDatatype(VM_T831, "functionptr", "string", "array", "weapon", "int", "float", "vec");
+			RegisterDatatypeRenamed(VM_T831, "function", "functionptr");
 
 			RegisterOpCode(VM_T831, PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
 			RegisterOpCode(VM_T831, PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);

@@ -3773,6 +3773,81 @@ namespace acts::compiler {
                 }
             }
                 break;
+            case gscParser::RuleIs_expression: {
+                if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal)) {
+                    return false;
+                }
+                bool hasNot = rule->children.size() >= 3 && rule->children[2]->getText() == "not";
+                // defs:
+                // a is hash|int|etc. -> use ishash(a) functions
+                // a is true -> use is_true operator (mw) or super equal (others)
+                // a is false -> super equal (others) / mw???
+                // a is undefined -> !isdefined(a)
+
+                std::string typeName = rule->children[rule->children.size() - 1]->getText();
+                uint64_t typeNameHash = hash::Hash64(typeName.data());
+
+                if (typeNameHash == hash::Hash64("undefined")) {
+                    if (hasNot) {
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
+                    }
+                    else {
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolNot));
+                    }
+                    return true;
+                }
+
+                if (typeNameHash == hash::Hash64("defined")) {
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
+                    if (hasNot) {
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolNot));
+                    }
+                    return true;
+                }
+
+                if (typeNameHash == hash::Hash64("true")) {
+                    if (obj.HasOpCode(OPCODE_IW_IsTrue)) {
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IW_IsTrue));
+                        if (hasNot) {
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolNot));
+                        }
+                        return true;
+                    }
+
+                    fobj.AddNode(rule, obj.BuildAscmNodeData(1));
+                    fobj.AddNode(rule, new AscmNodeOpCode(hasNot ? OPCODE_SuperNotEqual : OPCODE_SuperEqual));
+                    return true;
+                }
+
+                if (typeNameHash == hash::Hash64("false")) {
+                    // todo: find implementation for mwiii
+
+                    fobj.AddNode(rule, obj.BuildAscmNodeData(0));
+                    fobj.AddNode(rule, new AscmNodeOpCode(hasNot ? OPCODE_SuperNotEqual : OPCODE_SuperEqual));
+                    return true;
+                }
+
+                auto dtit = obj.vmInfo->dataType.find(typeNameHash);
+
+                if (dtit == obj.vmInfo->dataType.end()) {
+                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Can't find datatype '{}' for this VM", typeName));
+                    return false;
+                }
+
+                const char* name = utils::va("is%s", dtit->second);
+                obj.AddHash(name);
+                uint64_t funcName = obj.vmInfo->HashField(name);
+                AscmNodeFunctionCall* asmc = new AscmNodeFunctionCall(OPCODE_CallBuiltinFunction, 0, 1, funcName, obj.currentNamespace, obj.vmInfo);
+                obj.AddImport(asmc, obj.currentNamespace, funcName, 1, tool::gsc::T8GSCImportFlags::FUNCTION | tool::gsc::T8GSCImportFlags::GET_CALL);
+                fobj.AddNode(rule, asmc);
+
+                // reverse the op if possible
+                if (hasNot) {
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolNot));
+                }
+                return true;
+            }
             case gscParser::RuleConst_expr:
             case gscParser::RuleNumber:
             case gscParser::RuleExpression13:

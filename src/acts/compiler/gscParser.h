@@ -25,10 +25,11 @@ public:
     T__62 = 63, T__63 = 64, T__64 = 65, T__65 = 66, T__66 = 67, T__67 = 68, 
     T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, T__73 = 74, 
     T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, T__78 = 79, T__79 = 80, 
-    T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, NEWLINE = 85, WHITESPACE = 86, 
-    INTEGER10 = 87, INTEGER16 = 88, INTEGER8 = 89, INTEGER2 = 90, FLOATVAL = 91, 
-    BUILTIN = 92, BOOL_VALUE = 93, UNDEFINED_VALUE = 94, IDENTIFIER = 95, 
-    STRUCT_IDENTIFIER = 96, PATH = 97, STRING = 98, HASHSTRING = 99
+    T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, T__84 = 85, T__85 = 86, 
+    T__86 = 87, T__87 = 88, NEWLINE = 89, WHITESPACE = 90, INTEGER10 = 91, 
+    INTEGER16 = 92, INTEGER8 = 93, INTEGER2 = 94, FLOATVAL = 95, BUILTIN = 96, 
+    BOOL_VALUE = 97, UNDEFINED_VALUE = 98, IDENTIFIER = 99, STRUCT_IDENTIFIER = 100, 
+    PATH = 101, STRING = 102, HASHSTRING = 103
   };
 
   enum {
@@ -44,9 +45,9 @@ public:
     RuleExpression6 = 31, RuleExpression7 = 32, RuleExpression8 = 33, RuleExpression9 = 34, 
     RuleExpression10 = 35, RuleExpression11 = 36, RuleExpression12 = 37, 
     RuleExpression13 = 38, RuleExpression14 = 39, RuleExpression15 = 40, 
-    RuleFunction_call_exp = 41, RuleFunction_call = 42, RuleLeft_value = 43, 
-    RuleConst_expr = 44, RuleFunction_ref = 45, RuleNumber = 46, RuleVector_value = 47, 
-    RuleArray_def = 48, RuleStruct_def = 49, RuleIdf = 50
+    RuleIs_expression = 41, RuleFunction_call_exp = 42, RuleFunction_call = 43, 
+    RuleLeft_value = 44, RuleConst_expr = 45, RuleFunction_ref = 46, RuleNumber = 47, 
+    RuleVector_value = 48, RuleArray_def = 49, RuleStruct_def = 50, RuleIdf = 51
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -107,6 +108,7 @@ public:
   class Expression13Context;
   class Expression14Context;
   class Expression15Context;
+  class Is_expressionContext;
   class Function_call_expContext;
   class Function_callContext;
   class Left_valueContext;
@@ -675,6 +677,7 @@ public:
     virtual size_t getRuleIndex() const override;
     Expression13Context *expression13();
     Left_valueContext *left_value();
+    Is_expressionContext *is_expression();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -724,6 +727,21 @@ public:
   };
 
   Expression15Context* expression15();
+
+  class  Is_expressionContext : public antlr4::ParserRuleContext {
+  public:
+    Is_expressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Expression13Context *expression13();
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *UNDEFINED_VALUE();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Is_expressionContext* is_expression();
 
   class  Function_call_expContext : public antlr4::ParserRuleContext {
   public:

@@ -179,6 +179,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitIs_expression(gscParser::Is_expressionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFunction_call_exp(gscParser::Function_call_expContext *ctx) override {
     return visitChildren(ctx);
   }

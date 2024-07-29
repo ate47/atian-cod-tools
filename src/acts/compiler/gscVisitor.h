@@ -101,6 +101,8 @@ public:
 
     virtual std::any visitExpression15(gscParser::Expression15Context *context) = 0;
 
+    virtual std::any visitIs_expression(gscParser::Is_expressionContext *context) = 0;
+
     virtual std::any visitFunction_call_exp(gscParser::Function_call_expContext *context) = 0;
 
     virtual std::any visitFunction_call(gscParser::Function_callContext *context) = 0;

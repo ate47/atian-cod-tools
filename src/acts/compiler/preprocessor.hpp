@@ -251,7 +251,7 @@ namespace acts::compiler::preprocessor {
                 else if (line.starts_with("#warning")) {
                     errorHandler(alogs::LVL_WARNING, lineIdx, std::string{ line.substr(line.length() > 8 ? 9 : 8) });
                 }
-                else {
+                else if (!line.starts_with("#region") && line.starts_with("#endregion")) {
                     if (eraseCtx.empty() || !eraseCtx.top()) {
                         lineStart = next + 1;
                         continue;

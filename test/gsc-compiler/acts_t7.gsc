@@ -25,7 +25,30 @@ function __pre_init__() {
 
     };
     test2 = function(a, b, c) {
-
+        if (a is true) {
+            self iprintln("true");
+        }
+        if (a is functionptr) {
+            self iprintln("function");
+        }
+        if (a is defined) {
+            self iprintln("defined");
+        }
+        if (a is not defined) {
+            self iprintln("undefined");
+        }
+        if (a is undefined) {
+            self iprintln("undefined");
+        }
+        if (a is not undefined) {
+            self iprintln("defined");
+        }
+        if (a is false) {
+            self iprintln("false");
+        }
+        if (a is int) {
+            self iprintln("int");
+        }
     };
 }
 

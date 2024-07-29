@@ -103,10 +103,12 @@ expression8: expression8 ('<' | '<=') expression9 | expression9;
 expression9: expression9 ('<<' | '>>') expression10 | expression10;
 expression10: expression10 ('+' | '-') expression11 | expression11;
 expression11: expression11 ('*' | '/' | '%') expression12 | expression12;
-expression12: ('!' | '~') expression13 | ('++' | '--') left_value | left_value ('++' | '--') | expression13;
+expression12: ('!' | '~') expression13 | ('++' | '--') left_value | left_value ('++' | '--') | is_expression | expression13;
 expression13: function_call_exp | expression14;
 expression14: const_expr | expression15 | left_value;
 expression15: ('(' expression ')');
+
+is_expression: expression13 'is' ('not')? (IDENTIFIER | 'true' | 'false' | 'function' | 'undefined');
 
 function_call_exp:
 	function_call 

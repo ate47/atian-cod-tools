@@ -68,6 +68,7 @@ namespace tool::gsc::opcode {
 		std::unordered_map<Platform, std::unordered_map<OPCode, std::vector<uint16_t>>> opcodemappltlookup{};
 		std::unordered_map<uint64_t, GlobalVariableDef> globalvars{};
 		std::unordered_map<uint64_t, FunctionOperator> opFuncs{};
+		std::unordered_map<uint64_t, const char*> dataType{};
 		std::unordered_map<Platform, Platform> sameVmMap{};
 
 		/*
@@ -135,6 +136,8 @@ namespace tool::gsc::opcode {
 	Platform RemapSamePlatform(byte vm, Platform origin);
 	void SetMaxOpCode(byte vm, uint16_t maxOpCode);
 	void RegisterDevCall(byte vm, const char* devCall);
+	void RegisterDatatypeRenamed(byte vm, const char* datatype, const char* trueName);
+	void RegisterDatatype(byte vm, const char* datatype);
 	void RegisterOpCodes();
 
 	inline void RegisterOpCode(byte vm, Platform platform, OPCode enumValue) {}
@@ -150,6 +153,14 @@ namespace tool::gsc::opcode {
 	inline void RegisterDevCall(byte vm, const char* devCall, DevCalls... calls) {
 		RegisterDevCall(vm, devCall);
 		RegisterDevCall(vm, calls...);
+	}
+
+
+	inline void RegisterDatatype(byte vm) {}
+	template<typename... Datatypes>
+	inline void RegisterDatatype(byte vm, const char* datatype, Datatypes... datatypes) {
+		RegisterDatatype(vm, datatype);
+		RegisterDatatype(vm, datatypes...);
 	}
 
 }
