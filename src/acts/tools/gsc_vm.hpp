@@ -1976,7 +1976,7 @@ public:
         return Ptr<T7GSCOBJ>()->source_crc;
     }
     const char* GetDefaultName(bool client) override {
-        return "";
+        return client ? "" : "scripts/shared/duplicaterender_mgr.gsc";
     }
 
     byte RemapFlagsExport(byte flags) override {
@@ -2262,7 +2262,7 @@ public:
         return Ptr<T7GSCOBJ>()->source_crc;
     }
     const char* GetDefaultName(bool client) override {
-        return "";
+        return client ? "" : "scripts/shared/duplicaterender_mgr.gsc";
     }
 
     byte RemapFlagsExport(byte flags) override {

@@ -1,6 +1,9 @@
 #pragma once
 
 namespace bo3::pool {
+	constexpr size_t xassetpools = 0x94073F0;
+	constexpr size_t gscobjinfo = 0x50DC2E0;
+	constexpr size_t gscobjinfocount = 0x50EFB60;
 
 	struct T7XAssetPool {
 		uintptr_t pool; // void*

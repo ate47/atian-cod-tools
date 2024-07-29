@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "tools/tools_ui.hpp"
 #include "tools/cw/cw.hpp"
+#include "tools/bo3/bo3.hpp"
 #include "tools/gsc.hpp"
 #include "mods/custom_ees.hpp"
 #include <core/config.hpp>
@@ -294,6 +295,20 @@ namespace {
                             cw::InjectScriptCW(proc, filePath.c_str(), hookPath.c_str(), "scripts/core_common/clientids_shared.gsc", notif);
                             SetNotif(notif);
 
+                        }
+                        else if (magic == bo3::GSC_MAGIC) {
+                            // bo3 gsc
+
+                            Process proc{ L"BlackOps3.exe" };
+
+                            if (!proc || !proc.Open()) {
+                                SetNotif("Can't find Black Ops 3");
+                                return TRUE;
+                            }
+                            utils::CloseEnd ce{ [&proc] { proc.Close(); } };
+
+                            bo3::InjectScriptBO3(proc, filePath.c_str(), "scripts/shared/duplicaterender_mgr.gsc", notif);
+                            SetNotif(notif);
                         }
                         else {
                             tool::gsc::opcode::VmInfo* nfo{};

@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "pools.hpp"
+#include "bo3.hpp"
 #include "tools/gsc.hpp"
 
 static const char* t7names[]{
@@ -125,9 +126,6 @@ const char* bo3::pool::T7XAssetName(T7XAssetType type) {
 	return type >= T7_ASSET_TYPE_COUNT || type < 0 ? "unknown" : t7names[type];
 }
 namespace {
-	constexpr size_t xassetpools = 0x94073F0;
-	constexpr size_t gscobjinfo = 0x50DC2E0;
-	constexpr size_t gscobjinfocount = 0x50EFB60;
 
 	struct objFileInfo_t {
 		uintptr_t activeVersion; // GSC_OBJ* 

@@ -1793,8 +1793,8 @@ namespace {
             uint64_t unk17e0;
             uint64_t unk17e8;
             uint64_t unk17f0;
-            uint64_t unk17f8;
-            uint64_t unk1800;
+            uintptr_t lighting; // GfxLighting*
+            uintptr_t streamerworld; // StreamerWorld*
             uint64_t unk1808;
             uint64_t unk1810;
             uint64_t unk1818;
@@ -1892,14 +1892,15 @@ namespace {
 
         struct static_model_info
         {
-            uint64_t unk0;
+            uintptr_t model; // XModel*
             uint64_t unk8;
             uint64_t unk10;
-            uint64_t unk18;
+            uintptr_t unk18;
             uint32_t unk20;
             uint32_t name;
             uint64_t unk28;
-            uint64_t unk30;
+            uint32_t unk30;
+            uint32_t unk34;
         };
 
         auto [info, ok] = proc.ReadMemoryObject<GfxWorld>(data); // s_world
@@ -1924,6 +1925,13 @@ namespace {
         utils::Padding(out << "\n", 1) << "\"checksum\": " << std::dec << info->checksum << ",";
         //utils::Padding(out << "\n", 1) << "\"surfaceCount\": " << std::dec << info->surfaceCount << ",";
 
+        if (info->lighting) {
+            utils::Padding(out << "\n", 1) << "\"lighting\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(info->lighting)) << "\",";
+        }
+
+        if (info->streamerworld) {
+            utils::Padding(out << "\n", 1) << "\"streamerworld\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(info->streamerworld)) << "\",";
+        }
         
         for (size_t i = 0; i < ARRAYSIZE(info->unk550); i++) {
             if (info->unk550[i]) {
@@ -2011,7 +2019,7 @@ namespace {
         }
         utils::Padding(out << ",\n", 1) << "\"static_models\": ";
 
-        if (info->static_model_count && 0) {
+        if (info->static_model_count) {
             out << "[";
 
 
@@ -2025,13 +2033,15 @@ namespace {
             for (size_t i = 0; i < info->static_model_count; i++) {
                 static_model_info& model = static_models[i];
 
+                if (!model.model) continue;
+
                 if (i) {
                     out << ",";
                 }
-                utils::Padding(out << "\n", 2) << "{";
-                utils::Padding(out << "\n", 3) << "\"name\": \"" << tool::pool::ReadMTString(proc, model.name, utils::va("<invalid:%d>", model.name)) << "\"";
-                tool::pool::WriteHex(out << "\n", info->static_model + sizeof(model) * i, &model, sizeof(model), proc);
-                utils::Padding(out << "\n", 2) << "}";
+                //utils::Padding(out << "\n", 2) << "{";
+                utils::Padding(out << "\n", 2) << "\"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(model.model)) << "\"";
+                //tool::pool::WriteHex(out << "\n", info->static_model + sizeof(model) * i, &model, sizeof(model), proc);
+                //utils::Padding(out << "\n", 2) << "}";
             }
 
             utils::Padding(out << "\n", 1) << "]";

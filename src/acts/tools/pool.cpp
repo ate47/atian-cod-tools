@@ -1298,13 +1298,14 @@ int pooltoolnames(Process& proc, int argc, const char* argv[]) {
         }
             
 
-        defout << "id,name,type";
+        defout << "id,name,type,offset";
         auto off = xoffsets[id];
 
         for (size_t asset = 0; asset < entry.itemAllocCount; asset++) {
-            auto xhash = proc.ReadMemory<uint64_t>(entry.pool + entry.itemSize * asset + off);
+            uintptr_t offset = entry.pool + entry.itemSize * asset;
+            uint64_t xhash = proc.ReadMemory<uint64_t>(offset + off);
 
-            defout << "\n" << std::dec << asset << "," << hashutils::ExtractTmp("hash", xhash) << "," << name;
+            defout << "\n" << std::dec << asset << "," << hashutils::ExtractTmp("hash", xhash) << "," << name << "," << std::hex << offset;
         }
 
         defout.close();

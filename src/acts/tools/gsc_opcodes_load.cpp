@@ -1227,7 +1227,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T71B, PLATFORM_PC, OPCODE_Jump, 0x45);
 			
 
-			RegisterVM(VM_T831, "Call of Duty: Black ops 4 (35)", "t8", "bo4_35", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T831, "Call of Duty: Black ops 4 (31)", "t8", "bo4_31", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVMPlatform(VM_T831, PLATFORM_PLAYSTATION);
 			SetMaxOpCode(VM_T831, 0xFFF);
 			RegisterDevCall(VM_T831, "assert", "assertmsg", "errormsg", "throw", "println");
