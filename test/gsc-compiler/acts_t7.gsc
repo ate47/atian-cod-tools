@@ -2,14 +2,31 @@
 #using scripts\core_common\system_shared;
 #using scripts\core_common\callbacks_shared;
 
+#define __AUTOEXEC_NUMBER = 2;
+#define __VALUE = 42 + "test";
+
 #namespace acts;
 
+function autoexec(1) autoexec_1() {
+}
+function autoexec(3) autoexec_2() {
+}
+function autoexec(__AUTOEXEC_NUMBER) autoexec_3() {
+}
 function autoexec(0) __init__system__() {
     system::register("acts", &__pre_init__, undefined, undefined);
 }
 
 function __pre_init__() {
     callback::on_connect(&on_player_connect);
+    
+    test = function() => {
+        self iprintln("test lambda" + __VALUE);
+
+    };
+    test2 = function(a, b, c) {
+
+    };
 }
 
 function on_player_connect() {

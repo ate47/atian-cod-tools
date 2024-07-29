@@ -31,6 +31,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitConstexpr(gscParser::ConstexprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFunction(gscParser::FunctionContext *ctx) override {
     return visitChildren(ctx);
   }

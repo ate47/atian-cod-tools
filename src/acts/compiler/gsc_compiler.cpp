@@ -711,38 +711,6 @@ namespace acts::compiler {
     #define IS_TERMINAL_TYPE(term, index) (term && term->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode*>(term)->getSymbol()->getType() == index)
     #define IS_IDF(rule) (IS_RULE_TYPE((rule), gscParser::RuleIdf) || IS_TERMINAL_TYPE((rule), gscParser::IDENTIFIER))
 
-    int64_t NumberNodeValue(ParseTree* number) {
-        if (IS_RULE_TYPE(number, gscParser::RuleNumber)) {
-            return NumberNodeValue(number->children[0]);
-        }
-        if (!number || number->getTreeType() != TREE_TERMINAL) {
-            return 0; // wtf?
-        }
-
-        TerminalNode* term = dynamic_cast<TerminalNode*>(number);
-        switch (term->getSymbol()->getType()) {
-        case gscParser::INTEGER10:
-            return std::strtoll(term->getText().c_str(), nullptr, 10);
-        case gscParser::INTEGER16: {
-            bool neg = term->getText()[0] == '-';
-            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 16);
-            return neg ? -val : val;
-        }
-        case gscParser::INTEGER8: {
-            bool neg = term->getText()[0] == '-';
-            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), nullptr, 8);
-            return neg ? -val : val;
-        }
-        case gscParser::INTEGER2: {
-            bool neg = term->getText()[0] == '-';
-            int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 2);
-            return neg ? -val : val;
-        }
-        default:
-            return 0;
-        }
-    }
-
     class AscmNodeJump : public AscmNodeOpCode {
     public:
         AscmNode* const location;
@@ -799,6 +767,7 @@ namespace acts::compiler {
         const char* nameClient{ "" };
         const char* fileNameSpaceServer{ "" };
         const char* fileNameSpaceClient{ "" };
+        bool defineAsConstExpr{};
         DetourType detourType{ DETOUR_UNKNOWN };
         preprocessor::PreProcessorOption processorOpt{};
 
@@ -914,6 +883,9 @@ namespace acts::compiler {
                     }
                     fileNameSpaceClient = args[++i];
                 }
+                else if (!_strcmpi("--define-as-constxpr", arg)) {
+                    processorOpt.noDefineExpr = true;
+                }
                 else if (!_strcmpi("--detour", arg)) {
                     if (i + 1 == endIndex) {
                         LOG_ERROR("Missing value for param: {}!", arg);
@@ -992,6 +964,7 @@ namespace acts::compiler {
             LOG_INFO("--namespace [n]        : Set the file namespace for the server script");
             LOG_INFO("--namespace-client [n] : Set the file namespace for the client script");
             LOG_INFO("--dev-block-as-comment : Consider /# #/ as comment markers");
+            LOG_INFO("--define-as-constxpr   : Consider #define as constexpr");
             LOG_DEBUG("--preproc [f]         : Export preproc result into f");
         }
     };  
@@ -1255,6 +1228,7 @@ namespace acts::compiler {
         std::unordered_map<Located, std::vector<AscmNodeLazyLink*>, LocatedHash, LocatedEquals> lazyimports{};
         std::unordered_map<Located, std::vector<ImportObject>, LocatedHash, LocatedEquals> imports{};
         std::unordered_map<std::string, GlobalVarObject> globals{};
+        std::unordered_map<uint64_t, ParseTree*> constexprs{};
         VmInfo* vmInfo;
         Platform plt;
         int64_t autoexecOrder{};
@@ -1308,6 +1282,79 @@ namespace acts::compiler {
             auto [ok, op] = GetOpCodeId(vmInfo->vm, plt, opcode);
             return ok;
         }
+
+        int64_t NumberNodeValue(ParseTree* number) {
+            if (IS_IDF(number)) {
+                std::string varName = number->getText();
+                auto ceit = constexprs.find(hash::Hash64(varName.c_str()));
+
+                if (ceit != constexprs.end()) {
+                    return NumberNodeValue(ceit->second);
+                }
+            }
+
+            if (number && number->getTreeType() == TREE_RULE) {
+                RuleContext* rule = dynamic_cast<RuleContext*>(number);
+                switch (rule->getRuleIndex()) {
+                case gscParser::RuleExpression15:
+                    return NumberNodeValue(rule->children[1]);
+                case gscParser::RuleExpression:
+                case gscParser::RuleExpression1:
+                case gscParser::RuleExpression2:
+                case gscParser::RuleExpression3:
+                case gscParser::RuleExpression4:
+                case gscParser::RuleExpression5:
+                case gscParser::RuleExpression6:
+                case gscParser::RuleExpression7:
+                case gscParser::RuleExpression8:
+                case gscParser::RuleExpression9:
+                case gscParser::RuleExpression10:
+                case gscParser::RuleExpression11:
+                case gscParser::RuleExpression12:
+                case gscParser::RuleExpression13:
+                case gscParser::RuleExpression14:
+                case gscParser::RuleNumber:
+                case gscParser::RuleConst_expr:
+                case gscParser::RuleIdf: {
+                    if (number->children.size() == 1) {
+                        return NumberNodeValue(number->children[0]);
+                    }
+                }
+                default:
+                    info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
+                    return 0;
+                }
+            }
+
+            if (!number || number->getTreeType() != TREE_TERMINAL) {
+                info.PrintLineMessage(alogs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
+                return 0; // wtf?
+            }
+
+            TerminalNode* term = dynamic_cast<TerminalNode*>(number);
+            switch (term->getSymbol()->getType()) {
+            case gscParser::INTEGER10:
+                return std::strtoll(term->getText().c_str(), nullptr, 10);
+            case gscParser::INTEGER16: {
+                bool neg = term->getText()[0] == '-';
+                int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 16);
+                return neg ? -val : val;
+            }
+            case gscParser::INTEGER8: {
+                bool neg = term->getText()[0] == '-';
+                int64_t val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), nullptr, 8);
+                return neg ? -val : val;
+            }
+            case gscParser::INTEGER2: {
+                bool neg = term->getText()[0] == '-';
+                int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 2);
+                return neg ? -val : val;
+            }
+            default:
+                return 0;
+            }
+        }
+
 
         /*
          * Compute the node using the minimum amount of bits
@@ -2284,8 +2331,20 @@ namespace acts::compiler {
         case gscParser::IDENTIFIER: {
             std::string varName = term->getText();
 
+            auto ceit = obj.constexprs.find(hash::Hash64(varName.c_str()));
+
+            if (ceit != obj.constexprs.end()) {
+                ParseTree* pt = ceit->second;
+
+                if (!ParseFieldNode(pt, parser, obj, fobj)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("error when using constexpr {}", varName));
+                    return false;
+                }
+                return true;
+            }
+
             if (varName == "self") {
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, term, "self can't be used as a lvalue");
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, term, "self can't be used as a lvalue");
                 return false;
             }
 
@@ -2905,7 +2964,7 @@ namespace acts::compiler {
                 }
                 size_t count{ 1 };
                 if (rule->children.size() > 1) {
-                    int64_t val{ NumberNodeValue(rule->children[2]) };
+                    int64_t val{ obj.NumberNodeValue(rule->children[2]) };
                     if (val < 0) {
                         obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't define a negative amount of nop");
                         return false;
@@ -2924,7 +2983,7 @@ namespace acts::compiler {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express a devop value");
                     return false;
                 }
-                int64_t val{ NumberNodeValue(rule->children[2]) };
+                int64_t val{ obj.NumberNodeValue(rule->children[2]) };
                 if (val < 0) {
                     obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Negative)");
                     return false;
@@ -4095,16 +4154,27 @@ namespace acts::compiler {
 
         TerminalNode* term = dynamic_cast<TerminalNode*>(exp);
 
-        if (!expressVal) {
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
-            return true;
-        }
-
         size_t len = term->getText().size();
 
-        switch (term->getSymbol()->getType()) {
-        case gscParser::IDENTIFIER: {
+        if (term->getSymbol()->getType() == gscParser::IDENTIFIER) {
             std::string varName = term->getText();
+
+            auto ceit = obj.constexprs.find(hash::Hash64(varName.c_str()));
+
+            if (ceit != obj.constexprs.end()) {
+                ParseTree* pt = ceit->second;
+
+                if (!ParseExpressionNode(pt, parser, obj, fobj, expressVal)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("error when using constexpr {}", varName));
+                    return false;
+                }
+                return true;
+            }
+
+            if (!expressVal) {
+                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
+                return true;
+            }
 
             if (varName == "self") {
                 fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetSelf));
@@ -4115,7 +4185,7 @@ namespace acts::compiler {
 
             if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
                 GlobalVariableDef& gv = gvarIt->second;
-            
+
                 if (gv.getOpCode) {
                     fobj.AddNode(term, new AscmNodeOpCode(gv.getOpCode));
                     return true;
@@ -4148,6 +4218,13 @@ namespace acts::compiler {
             fobj.AddNode(term, new AscmNodeVariable(varIt->id, OPCODE_EvalLocalVariableCached));
             return true;
         }
+
+        if (!expressVal) {
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
+            return true;
+        }
+
+        switch (term->getSymbol()->getType()) {
         case gscParser::UNDEFINED_VALUE:
             fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetUndefined));
             return true;
@@ -4273,12 +4350,13 @@ namespace acts::compiler {
     }
 
     FunctionObject* ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj, byte forceFlags) {
-        bool hasName = func->children.size() > 4 && IS_IDF(func->children[(size_t)(func->children.size() - 5)]);
+        int deltaArrow = (func->children.size() > 2 && func->children[func->children.size() - 2]->getText() == "=>") ? 1 : 0;
+        bool hasName = func->children.size() > (4 + deltaArrow) && IS_IDF(func->children[(size_t)(func->children.size() - 5 - deltaArrow)]);
 
-        auto* paramsRule = func->children[(size_t)(func->children.size() - 3)];
+        auto* paramsRule = func->children[(size_t)(func->children.size() - 3 - deltaArrow)];
         auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
     
-        std::string name = hasName ? func->children[(size_t)(func->children.size() - 5)]->getText() : utils::va("$nameless_%llx", obj.emptyNameInc++);
+        std::string name = hasName ? func->children[(size_t)(func->children.size() - (5 + deltaArrow))]->getText() : utils::va("$nameless_%llx", obj.emptyNameInc++);
 
         obj.AddHash(name);
         uint64_t nameHashed = obj.vmInfo->HashField(name.data());
@@ -4305,7 +4383,7 @@ namespace acts::compiler {
 
         // handle modifiers
 
-        size_t end = hasName ? 5 : 4;
+        size_t end = (hasName ? 5 : 4) + deltaArrow;
 
         for (size_t i = 0; i < func->children.size() - end; i++) {
             ParseTree* mod = func->children[i];
@@ -4358,7 +4436,7 @@ namespace acts::compiler {
             
                 if (IS_RULE_TYPE(func->children[i + 2], gscParser::RuleNumber)) {
                     // use user order
-                    exp.autoexecOrder = NumberNodeValue(func->children[i + 2]);
+                    exp.autoexecOrder = obj.NumberNodeValue(func->children[i + 2]);
                     i += 3;
                 }
                 else {
@@ -4606,6 +4684,24 @@ namespace acts::compiler {
         return true;
     }
 
+    bool ParseConstExpr(RuleContext* exp, gscParser& parser, CompileObject& obj) {
+        if (exp->children.size() < 4 || exp->children[3]->getTreeType() != TREE_RULE) {
+            return false; // bad
+        }
+
+        std::string constexprName = exp->children[1]->getText();
+        uint64_t hash = hash::Hash64(constexprName.c_str());
+
+        ParseTree*& expr = obj.constexprs[hash];
+
+        if (expr) {
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Redefinition of constexpr {}", constexprName));
+        }
+
+        obj.constexprs[hash] = exp->children[3];
+        return true;
+    }
+
     bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& obj) {
         if (prog->getTreeType() == TREE_ERROR) {
             obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad prog context");
@@ -4686,6 +4782,11 @@ namespace acts::compiler {
                 break; 
             case gscParser::RuleFilenamespace:
                 if (!ParseFileNamespace(rule, parser, obj)) {
+                    return false;
+                }
+                break;
+            case gscParser::RuleConstexpr:
+                if (!ParseConstExpr(rule, parser, obj)) {
                     return false;
                 }
                 break;

@@ -27,6 +27,8 @@ public:
 
     virtual std::any visitFilenamespace(gscParser::FilenamespaceContext *context) = 0;
 
+    virtual std::any visitConstexpr(gscParser::ConstexprContext *context) = 0;
+
     virtual std::any visitFunction(gscParser::FunctionContext *context) = 0;
 
     virtual std::any visitDetour_info(gscParser::Detour_infoContext *context) = 0;

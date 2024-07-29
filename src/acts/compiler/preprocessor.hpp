@@ -4,6 +4,7 @@ namespace acts::compiler::preprocessor {
     struct PreProcessorOption {
         std::unordered_set<std::string> defines{};
         bool devBlockAsComment{};
+        bool noDefineExpr{};
 
         static size_t FindEndLineDelta(const char* d) {
             const char* s = d;
@@ -229,7 +230,7 @@ namespace acts::compiler::preprocessor {
                         eraseCtx.pop();
                     }
                 }
-                else if (line.starts_with("#define")) {
+                else if (!noDefineExpr && line.starts_with("#define")) {
                     std::string define{ line.substr(7) };
                     if (define.length() < 1 || !isspace(define[0])) {
                         errorHandler(alogs::LVL_ERROR, lineIdx, "#define should be used with a parameter");

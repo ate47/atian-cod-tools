@@ -1,10 +1,11 @@
 grammar gsc;		
 
-prog: ('/#' | '#/' | function | include | namespace | filenamespace)* EOF;
+prog: ('/#' | '#/' | function | include | namespace | filenamespace | constexpr)* EOF;
 
 include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
 namespace: '#namespace' IDENTIFIER ';';
 filenamespace: '#file' (IDENTIFIER | PATH) ';';
+constexpr: ('#constexpr' | '#define') IDENTIFIER '=' expression ';';
 
 function
     : ('function')? 
@@ -12,7 +13,9 @@ function
 	  ('autoexec' ('(' number ')')?)? 
       ('event_handler' '[' IDENTIFIER ']')? 
 	  detour_info?
-	  IDENTIFIER? '(' param_list ')' statement_block;
+	  IDENTIFIER? '(' param_list ')' 
+	  ('=>')? // serious lambda definition
+	  statement_block;
 
 detour_info: 'detour' IDENTIFIER ('<' PATH '>' '::' IDENTIFIER)?;
 
@@ -146,7 +149,8 @@ number: INTEGER10
 	| INTEGER16
 	| INTEGER8
 	| INTEGER2
-    ;
+	| IDENTIFIER
+	;
 
 vector_value: '(' expression ',' expression ',' expression ')';
 array_def:
