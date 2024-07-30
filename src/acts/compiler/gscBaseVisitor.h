@@ -119,6 +119,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitExpression0(gscParser::Expression0Context *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitExpression1(gscParser::Expression1Context *ctx) override {
     return visitChildren(ctx);
   }

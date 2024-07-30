@@ -71,6 +71,8 @@ public:
 
     virtual std::any visitSet_expression(gscParser::Set_expressionContext *context) = 0;
 
+    virtual std::any visitExpression0(gscParser::Expression0Context *context) = 0;
+
     virtual std::any visitExpression1(gscParser::Expression1Context *context) = 0;
 
     virtual std::any visitExpression2(gscParser::Expression2Context *context) = 0;

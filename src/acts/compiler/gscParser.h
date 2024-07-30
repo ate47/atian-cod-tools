@@ -26,10 +26,10 @@ public:
     T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, T__73 = 74, 
     T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, T__78 = 79, T__79 = 80, 
     T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, T__84 = 85, T__85 = 86, 
-    T__86 = 87, T__87 = 88, NEWLINE = 89, WHITESPACE = 90, INTEGER10 = 91, 
-    INTEGER16 = 92, INTEGER8 = 93, INTEGER2 = 94, FLOATVAL = 95, BUILTIN = 96, 
-    BOOL_VALUE = 97, UNDEFINED_VALUE = 98, IDENTIFIER = 99, STRUCT_IDENTIFIER = 100, 
-    PATH = 101, STRING = 102, HASHSTRING = 103
+    T__86 = 87, T__87 = 88, T__88 = 89, T__89 = 90, NEWLINE = 91, WHITESPACE = 92, 
+    INTEGER10 = 93, INTEGER16 = 94, INTEGER8 = 95, INTEGER2 = 96, FLOATVAL = 97, 
+    BUILTIN = 98, BOOL_VALUE = 99, UNDEFINED_VALUE = 100, IDENTIFIER = 101, 
+    STRUCT_IDENTIFIER = 102, PATH = 103, STRING = 104, HASHSTRING = 105
   };
 
   enum {
@@ -40,14 +40,15 @@ public:
     RuleStatement_while = 14, RuleStatement_dowhile = 15, RuleStatement_foreach = 16, 
     RuleStatement_if = 17, RuleStatement_switch = 18, RuleStatement_inst = 19, 
     RuleNop_def = 20, RuleDevop_def = 21, RuleFunction_component = 22, RuleOperator_inst = 23, 
-    RuleExpression = 24, RuleSet_expression = 25, RuleExpression1 = 26, 
-    RuleExpression2 = 27, RuleExpression3 = 28, RuleExpression4 = 29, RuleExpression5 = 30, 
-    RuleExpression6 = 31, RuleExpression7 = 32, RuleExpression8 = 33, RuleExpression9 = 34, 
-    RuleExpression10 = 35, RuleExpression11 = 36, RuleExpression12 = 37, 
-    RuleExpression13 = 38, RuleExpression14 = 39, RuleExpression15 = 40, 
-    RuleIs_expression = 41, RuleFunction_call_exp = 42, RuleFunction_call = 43, 
-    RuleLeft_value = 44, RuleConst_expr = 45, RuleFunction_ref = 46, RuleNumber = 47, 
-    RuleVector_value = 48, RuleArray_def = 49, RuleStruct_def = 50, RuleIdf = 51
+    RuleExpression = 24, RuleSet_expression = 25, RuleExpression0 = 26, 
+    RuleExpression1 = 27, RuleExpression2 = 28, RuleExpression3 = 29, RuleExpression4 = 30, 
+    RuleExpression5 = 31, RuleExpression6 = 32, RuleExpression7 = 33, RuleExpression8 = 34, 
+    RuleExpression9 = 35, RuleExpression10 = 36, RuleExpression11 = 37, 
+    RuleExpression12 = 38, RuleExpression13 = 39, RuleExpression14 = 40, 
+    RuleExpression15 = 41, RuleIs_expression = 42, RuleFunction_call_exp = 43, 
+    RuleFunction_call = 44, RuleLeft_value = 45, RuleConst_expr = 46, RuleFunction_ref = 47, 
+    RuleNumber = 48, RuleVector_value = 49, RuleArray_def = 50, RuleStruct_def = 51, 
+    RuleIdf = 52
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -93,6 +94,7 @@ public:
   class Operator_instContext;
   class ExpressionContext;
   class Set_expressionContext;
+  class Expression0Context;
   class Expression1Context;
   class Expression2Context;
   class Expression3Context;
@@ -492,7 +494,7 @@ public:
     ExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     Set_expressionContext *set_expression();
-    Expression1Context *expression1();
+    Expression0Context *expression0();
     std::vector<ExpressionContext *> expression();
     ExpressionContext* expression(size_t i);
 
@@ -517,6 +519,20 @@ public:
 
   Set_expressionContext* set_expression();
 
+  class  Expression0Context : public antlr4::ParserRuleContext {
+  public:
+    Expression0Context(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Expression1Context *expression1();
+    Expression0Context *expression0();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Expression0Context* expression0();
+  Expression0Context* expression0(int precedence);
   class  Expression1Context : public antlr4::ParserRuleContext {
   public:
     Expression1Context(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -910,6 +926,7 @@ public:
 
   bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
 
+  bool expression0Sempred(Expression0Context *_localctx, size_t predicateIndex);
   bool expression1Sempred(Expression1Context *_localctx, size_t predicateIndex);
   bool expression2Sempred(Expression2Context *_localctx, size_t predicateIndex);
   bool expression3Sempred(Expression3Context *_localctx, size_t predicateIndex);

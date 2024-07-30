@@ -50,6 +50,14 @@ function __pre_init__() {
             self iprintln("int");
         }
     };
+    b = 42;
+    c = 52;
+
+    a = b ?? c;
+
+    if (a?.b?.c is defined) {
+        self iprintln("a.b.c " + a.b.c);
+    }
 }
 
 function on_player_connect() {

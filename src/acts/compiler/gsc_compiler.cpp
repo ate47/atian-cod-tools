@@ -1081,6 +1081,7 @@ namespace acts::compiler {
         size_t size{};
         size_t rndVarStart{};
         FunctionVar m_vars[256]{};
+        FunctionVar* specialTempVar{};
         size_t m_allocatedVar{};
         std::vector<AscmNode*> m_nodes{};
         std::stack<AscmNode*> m_jumpBreak{};
@@ -1181,6 +1182,23 @@ namespace acts::compiler {
          */
         std::pair<const char*, FunctionVar*> RegisterVarRnd() {
             return RegisterVar(std::format("$$v{:x}", rndVarStart++), false);
+        }
+
+        /*
+         * Get or create the tmp variable for this function
+         */
+        std::pair<const char*, FunctionVar*> GetSpecialTmpVar() {
+            if (!specialTempVar) {
+                auto [err, var] = RegisterVar("$$tmp", false);
+
+                if (err) {
+                    return std::make_pair<>(err, var);
+                }
+
+                specialTempVar = var;
+            }
+
+            return std::make_pair<>(nullptr, specialTempVar);
         }
 
         /*
@@ -1299,6 +1317,7 @@ namespace acts::compiler {
                 case gscParser::RuleExpression15:
                     return NumberNodeValue(rule->children[1]);
                 case gscParser::RuleExpression:
+                case gscParser::RuleExpression0:
                 case gscParser::RuleExpression1:
                 case gscParser::RuleExpression2:
                 case gscParser::RuleExpression3:
@@ -2195,6 +2214,7 @@ namespace acts::compiler {
 
             switch (rule->getRuleIndex()) {
             case gscParser::RuleExpression:
+            case gscParser::RuleExpression0:
             case gscParser::RuleExpression1:
             case gscParser::RuleExpression2:
             case gscParser::RuleExpression3:
@@ -2228,7 +2248,11 @@ namespace acts::compiler {
 
                     std::string second = rule->children[1]->getText();
 
-                    if (second == ".") {
+                    if (second == "." || second == "?.") {
+                        if (second == "?.") {
+                            // assume that it'll fail by itself if it is undefined so we don't need to do anything
+                            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Usage of ?. in a left value: {}", rule->getText()));
+                        }
                         // object access
                         if (IS_IDF(rule->children[2])) {
                             if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
@@ -3531,6 +3555,7 @@ namespace acts::compiler {
                 return true;
             }
             case gscParser::RuleExpression:
+            case gscParser::RuleExpression0:
             case gscParser::RuleExpression1:
             case gscParser::RuleExpression2:
             case gscParser::RuleExpression3:
@@ -3698,6 +3723,40 @@ namespace acts::compiler {
                     }
                     return ok;
                 }
+                else if (op == "??") {
+                    bool ok{ true };
+                    auto [verr, tmp] = fobj.GetSpecialTmpVar();
+
+                    if (verr) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for ?? operation: {}", verr));
+                        return false;
+                    }
+
+                    if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
+                        ok = false;
+                    }
+
+                    fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableRefCached));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                    AscmNode* onDefined = new AscmNode();
+                    fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
+                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
+                    fobj.AddNode(rule, new AscmNodeJump(onDefined, OPCODE_JumpOnTrue));
+
+
+                    if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
+                        ok = false;
+                    }
+                    AscmNode* end = new AscmNode();
+                    fobj.AddNode(rule, new AscmNodeJump(end, OPCODE_Jump));
+
+                    fobj.AddNode(rule, onDefined);
+                    fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
+                    fobj.AddNode(rule, end);
+
+                    return ok;
+                }
                 else {
                     // push operands
                     bool ok{ true };
@@ -3821,7 +3880,32 @@ namespace acts::compiler {
                 }
 
                 if (typeNameHash == hash::Hash64("false")) {
-                    // todo: find implementation for mwiii
+                    if (!obj.HasOpCode(OPCODE_SuperEqual)) {
+                        auto [err, tmp] = fobj.GetSpecialTmpVar();
+
+                        if (err) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for is operation: {}", err));
+                            return false;
+                        }
+                        // tmp = ...
+                        // isdefined(tmp) && tmp == false
+                        fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableRefCached));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                        fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
+
+                        AscmNode* after = new AscmNode();
+                        fobj.AddNode(rule, new AscmNodeJump(after, OPCODE_JumpOnFalseExpr));
+
+                        // tmp == false
+                        fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
+                        fobj.AddNode(rule, obj.BuildAscmNodeData(0));
+                        fobj.AddNode(rule, new AscmNodeOpCode(hasNot ? OPCODE_NotEqual : OPCODE_Equal));
+
+                        fobj.AddNode(rule, after);
+                        return true;
+                    }
 
                     fobj.AddNode(rule, obj.BuildAscmNodeData(0));
                     fobj.AddNode(rule, new AscmNodeOpCode(hasNot ? OPCODE_SuperNotEqual : OPCODE_SuperEqual));
@@ -4189,6 +4273,66 @@ namespace acts::compiler {
                             fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
                         }
                         return true;
+                    }
+                    else if (second == "?.") {
+                        auto [verr, var] = fobj.GetSpecialTmpVar();
+                        if (verr) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't allocate temp variable for ?. operator: {}", verr));
+                            return false;
+                        }
+
+                        // tmp = left
+                        if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
+                            return false;
+                        }
+                        fobj.AddNode(rule, new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableRefCached));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                        AscmNode* valUndefined = new AscmNode();
+                        fobj.AddNode(rule, new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableCached));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
+                        fobj.AddNode(rule, new AscmNodeJump(valUndefined, OPCODE_JumpOnFalse));
+                        
+                        // object access
+                        bool ok{ true };
+                        AscmNode* end = new AscmNode();
+                        fobj.AddNode(rule, new AscmNodeVariable(var->id, OPCODE_EvalLocalVariableCached));
+                        if (IS_IDF(rule->children[2])) {
+                            std::string fieldText = rule->children[2]->getText();
+
+                            if (fieldText == "size") {
+                                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SizeOf));
+                            }
+                            else {
+                                // use identifier
+                                if (obj.HasOpCode(OPCODE_CastAndEvalFieldVariable)) {
+                                    fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_CastAndEvalFieldVariable));
+                                }
+                                else {
+                                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                                    fobj.AddNode(rule, fobj.CreateFieldHash(fieldText, OPCODE_EvalFieldVariable));
+                                }
+                            }
+                        }
+                        else {
+                            if (!ParseExpressionNode(rule->children[3], parser, obj, fobj, true)) {
+                                ok = false;
+                            }
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastCanon));
+
+                            if (!ParseExpressionNode(first, parser, obj, fobj, true)) {
+                                ok = false;
+                            }
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CastFieldObject));
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_EvalFieldVariableOnStack));
+                        }
+                        fobj.AddNode(rule, new AscmNodeJump(end, OPCODE_Jump));
+
+                        fobj.AddNode(rule, valUndefined);
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_GetUndefined));
+                        fobj.AddNode(rule, end);
+
+                        return ok;
                     }
                     else if (second == "[") {
                         // array access

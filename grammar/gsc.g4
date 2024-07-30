@@ -67,9 +67,9 @@ operator_inst: BUILTIN (IDENTIFIER | expression)?;
 
 expression:
 	set_expression
-	| expression1 '?' expression ':' expression
-	| expression1
-    ;
+	| expression0 '?' expression ':' expression
+	| expression0
+	;
 
 set_expression:
 	left_value (
@@ -88,6 +88,7 @@ set_expression:
 	) expression
 ;
 
+expression0: expression0 '??' expression1 | expression1;
 expression1: expression1 '||' expression2 | expression2;
 expression2: expression2 '&&' expression3 | expression3;
 expression3: expression3 '|' expression4 | expression4;
@@ -122,9 +123,9 @@ function_call:
 
 left_value:
 	idf
-	| left_value '.' (idf | ('(' expression ')'))
+	| left_value ('.' | '?.') (idf | ('(' expression ')'))
 	| left_value '[' expression ']'
-	| (function_call | const_expr | expression15) '.' (idf | ('(' expression ')'))
+	| (function_call | const_expr | expression15) ('.' | '?.') (idf | ('(' expression ')'))
 	| (function_call | const_expr | expression15) '[' expression ']';
 
 const_expr:
