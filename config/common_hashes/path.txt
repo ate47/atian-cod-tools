@@ -6555,3 +6555,10 @@ gamedata/tables/common/countrytable.csv
 scripts/core_common/encounters/wave_manager.gsc
 scripts/core_common/ai/systems/ai_interactables.gsc
 scripts/core_common/ai/systems/ai_interactables.csc
+scripts/mp/gametypes/ob_season1.gsc
+scripts/mp/gametypes/ob_season2.gsc
+scripts/mp/gametypes/ob_season3.gsc
+scripts/mp/gametypes/ob_season4.gsc
+scripts/mp/gametypes/ob_season5.gsc
+scripts/unittest/private.gsc
+scripts/unittest/callback.gsc

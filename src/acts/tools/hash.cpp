@@ -6,7 +6,7 @@ namespace {
 	int lookuptool(Process& proc, int argc, const char* argv[]) {
 		hashutils::ReadDefaultFile();
 		for (int i = 2; i < argc; i++) {
-			int64_t v = strtoull(argv[i], nullptr, 0x10);
+			uint64_t v = strtoull(argv[i], nullptr, 0x10);
 			const char* extract = hashutils::ExtractPtr(v);
 			if (extract) {
 				LOG_INFO("{:x}={}", v, extract);

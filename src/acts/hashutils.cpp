@@ -283,7 +283,7 @@ char* hashutils::ExtractTmp(const char* type, uint64_t hash) {
 
 const char* hashutils::ExtractPtr(uint64_t hash) {
 	ReadDefaultFile();
-	const auto res = g_hashMap.find(hash);
+	const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
 	if (res == g_hashMap.end()) {
 		return NULL;
 	}

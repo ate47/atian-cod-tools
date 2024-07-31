@@ -73,7 +73,7 @@ namespace sp23 {
 		ASSET_RAWFILE = 0x44,
 		ASSET_GSCOBJ = 0x45,
 		ASSET_GSCGDB = 0x46,
-		ASSET_STRINGTABLE_0 = 0x47,
+		ASSET_STRINGTABLE = 0x47,
 		ASSET_DDL = 0x48,
 		ASSET_TRACER = 0x49,
 		ASSET_VEHICLE = 0x4A,
@@ -251,4 +251,7 @@ namespace sp23 {
 		ASSET_GENERICBLUEPRI = 0xF6,
 		ASSET_COUNT = 0xF7,
 	};
+
+	const char* AssetTypeName(AssetType type);
+	AssetType AssetTypeFromName(const char* name);
 }
