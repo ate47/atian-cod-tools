@@ -3,6 +3,7 @@
 #include "tools/pool.hpp"
 #include "tools/gsc.hpp"
 #include "tools/cw/cw.hpp"
+#include "tools/cw/poolt9.hpp"
 #include <scriptinstance.hpp>
 #include <pool.hpp>
 
@@ -54,7 +55,7 @@ namespace {
 
 
 
-    struct StringTable  {
+    struct StringTable {
         uint64_t name;
         int columnCount;
         int rowCount;
@@ -71,7 +72,7 @@ namespace {
         uintptr_t offset;
         int size;
     };
-    
+
     FuncInfo func_info_cw[] = {
         { "GSC-Function-d7b8d60", 0xD7B8D60, 0x8 },
         { "GSC-Function-deb19b0", 0xDEB19B0, 0x1C1 },
@@ -130,66 +131,66 @@ namespace {
         SB_ObjectsArray sbObjectsArray;
     };
 
-	int dumppoolcw(Process& proc, int argc, const char* argv[]) {
+    int dumppoolcw(Process& proc, int argc, const char* argv[]) {
 
-		const char* outFile;
-		if (argc == 2) {
-			outFile = "scriptparsetree_cw";
-		}
-		else {
-			outFile = argv[2];
-		}
+        const char* outFile;
+        if (argc == 2) {
+            outFile = "scriptparsetree_cw";
+        }
+        else {
+            outFile = argv[2];
+        }
 
-		std::filesystem::create_directories(outFile);
+        std::filesystem::create_directories(outFile);
 
-		int gObjFileInfoCount[2];
+        int gObjFileInfoCount[2];
 
-		if (!proc.ReadMemory(gObjFileInfoCount, proc[0xF6F5FD0], sizeof(gObjFileInfoCount))) {
-			std::cerr << "Can't read gObjFileInfoCount\n";
-			return tool::BASIC_ERROR;
-		}
+        if (!proc.ReadMemory(gObjFileInfoCount, proc[0xF6F5FD0], sizeof(gObjFileInfoCount))) {
+            std::cerr << "Can't read gObjFileInfoCount\n";
+            return tool::BASIC_ERROR;
+        }
 
-		hashutils::ReadDefaultFile();
+        hashutils::ReadDefaultFile();
 
-		auto elements = std::make_unique<tool::dump::T8ObjFileInfo[]>(800ull * 2 * sizeof(tool::dump::T8ObjFileInfo));
+        auto elements = std::make_unique<tool::dump::T8ObjFileInfo[]>(800ull * 2 * sizeof(tool::dump::T8ObjFileInfo));
 
-		if (!proc.ReadMemory(&elements[0], proc[0xF6EC9D0], sizeof(elements[0]) * 800 * 2)) {
-			std::cerr << "Can't read gObjFileInfo\n";
-			return tool::BASIC_ERROR;
-		}
+        if (!proc.ReadMemory(&elements[0], proc[0xF6EC9D0], sizeof(elements[0]) * 800 * 2)) {
+            std::cerr << "Can't read gObjFileInfo\n";
+            return tool::BASIC_ERROR;
+        }
 
-		tool::gsc::T9GSCOBJ headerTmp{};
+        tool::gsc::T9GSCOBJ headerTmp{};
 
-		char namebuff[MAX_PATH + 10];
+        char namebuff[MAX_PATH + 10];
         std::cout << "dump using linked scripts\n";
 
-		for (size_t i = 0; i < scriptinstance::SI_COUNT; i++) {
-			for (size_t j = 0; j < gObjFileInfoCount[i]; j++) {
-				auto& elem = elements[i * 800 + j];
+        for (size_t i = 0; i < scriptinstance::SI_COUNT; i++) {
+            for (size_t j = 0; j < gObjFileInfoCount[i]; j++) {
+                auto& elem = elements[i * 800 + j];
 
-				if (!proc.ReadMemory(&headerTmp, elem.activeVersion, sizeof(headerTmp))) {
-					std::cerr << "Can't read elem at " << j << "\n";
-					continue;
-				}
+                if (!proc.ReadMemory(&headerTmp, elem.activeVersion, sizeof(headerTmp))) {
+                    std::cerr << "Can't read elem at " << j << "\n";
+                    continue;
+                }
 
-				auto file = std::make_unique<byte[]>(headerTmp.file_size);
+                auto file = std::make_unique<byte[]>(headerTmp.file_size);
 
-				if (!proc.ReadMemory(&file[0], elem.activeVersion, headerTmp.file_size)) {
-					std::cerr << "Can't read file elem at " << j << "\n";
-					continue;
-				}
+                if (!proc.ReadMemory(&file[0], elem.activeVersion, headerTmp.file_size)) {
+                    std::cerr << "Can't read file elem at " << j << "\n";
+                    continue;
+                }
 
-				sprintf_s(namebuff, "%s/script_%llx.gscc", outFile, headerTmp.name);
+                sprintf_s(namebuff, "%s/script_%llx.gscc", outFile, headerTmp.name);
 
-				if (utils::WriteFile(namebuff, &file[0], headerTmp.file_size)) {
-					std::cout << "- " << hashutils::ExtractTmpScript(headerTmp.name) << " -> " << namebuff << "\n";
-				}
-				else {
-					std::cerr << "Error when writting " << namebuff << "\n";
-				}
-			}
-		}
-		
+                if (utils::WriteFile(namebuff, &file[0], headerTmp.file_size)) {
+                    std::cout << "- " << hashutils::ExtractTmpScript(headerTmp.name) << " -> " << namebuff << "\n";
+                }
+                else {
+                    std::cerr << "Error when writting " << namebuff << "\n";
+                }
+            }
+        }
+
         XAssetPool sptPool{};
 
         uintptr_t poolLoc = cw::ScanPool(proc);
@@ -200,7 +201,7 @@ namespace {
             std::cerr << "Can't read SPT pool\n";
             return tool::BASIC_ERROR;
         }
-		
+
         auto entries = std::make_unique<cw::ScriptParseTree[]>(sptPool.itemAllocCount);
 
         if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
@@ -235,49 +236,49 @@ namespace {
         }
 
 
-		return tool::OK;
-	}
+        return tool::OK;
+    }
 
 
-	const char* ReadTmpStr(const Process& proc, uintptr_t location) {
-		static char tmp_buff[0x1000];
+    const char* ReadTmpStr(const Process& proc, uintptr_t location) {
+        static char tmp_buff[0x1000];
 
-		if (proc.ReadString(tmp_buff, location, sizeof(tmp_buff)) < 0) {
-			sprintf_s(tmp_buff, "<invalid:%llx>", location);
-		}
-		return tmp_buff;
-	}
+        if (proc.ReadString(tmp_buff, location, sizeof(tmp_buff)) < 0) {
+            sprintf_s(tmp_buff, "<invalid:%llx>", location);
+        }
+        return tmp_buff;
+    }
 
-	int dpnamescw(Process& proc, int argc, const char* argv[]) {
+    int dpnamescw(Process& proc, int argc, const char* argv[]) {
 
-		auto loc = proc[0xD7C8D90];
+        auto loc = proc[0xD7C8D90];
 
-		XAssetPool pool{};
-		char tmp_buff[0x50];
+        XAssetPool pool{};
+        char tmp_buff[0x50];
 
-		int id = 0;
+        int id = 0;
 
         uintptr_t poolLoc = cw::ScanPool(proc);
 
-		std::cout << "id,name,itemSize,itemCount,itemAllocCount\n";
+        std::cout << "id,name,itemSize,itemCount,itemAllocCount\n";
 
-		while (true) {
-			auto addr = proc.ReadMemory<uintptr_t>(loc + id * 8);
-			if (!addr || proc.ReadString(tmp_buff, addr, sizeof(tmp_buff)) < 0) {
-				break;
-			}
-			if (!proc.ReadMemory(&pool, poolLoc + sizeof(pool) * id, sizeof(pool))) {
-				break;
-			}
+        while (true) {
+            auto addr = proc.ReadMemory<uintptr_t>(loc + id * 8);
+            if (!addr || proc.ReadString(tmp_buff, addr, sizeof(tmp_buff)) < 0) {
+                break;
+            }
+            if (!proc.ReadMemory(&pool, poolLoc + sizeof(pool) * id, sizeof(pool))) {
+                break;
+            }
 
-			std::cout << std::dec << id << "," << tmp_buff << "," << std::hex << pool.itemSize << "," << pool.itemCount << "," << pool.itemAllocCount << "\n";
+            std::cout << std::dec << id << "," << tmp_buff << "," << std::hex << pool.itemSize << "," << pool.itemCount << "," << pool.itemAllocCount << "\n";
 
-			id++;
-		}
+            id++;
+        }
 
 
-		return tool::OK;
-	}
+        return tool::OK;
+    }
 
 
 #pragma region ddl_dump
@@ -433,7 +434,7 @@ namespace {
                 currentShift = mbm.offset + mbm.bitSize;
 
                 //if (opt.flags & DDL_OFFSET) {
-                    utils::Padding(defout << "#offset 0x" << std::hex << currentShift << "\n", 1);
+                utils::Padding(defout << "#offset 0x" << std::hex << currentShift << "\n", 1);
                 //}
 
                 bool addSize = false;
@@ -485,7 +486,7 @@ namespace {
             }
             defout << "\n";
             //if (opt.flags & DDL_OFFSET) {
-                utils::Padding(defout, 1) << "#offset 0x" << std::hex << currentShift << "\n";
+            utils::Padding(defout, 1) << "#offset 0x" << std::hex << currentShift << "\n";
             //}
         }
 
@@ -605,7 +606,7 @@ namespace {
 
         for (const auto& func : func_info_cw) {
             auto pool = std::make_unique<BuiltinFunctionDef[]>(func.size);
-            
+
             if (!proc.ReadMemory(&pool[0], proc[func.offset], sizeof(pool[0]) * func.size)) {
                 std::cerr << "Can't read pool " << std::hex << func.offset << "\n";
                 continue;
@@ -613,8 +614,8 @@ namespace {
 
             for (size_t i = 0; i < func.size; i++) {
                 out
-                    << "\n" 
-                    << func.pool << "," 
+                    << "\n"
+                    << func.pool << ","
                     << hashutils::ExtractTmp("function", pool[i].canonId) << ","
                     << pool[i].min_args << ","
                     << pool[i].max_args << ","
@@ -929,437 +930,438 @@ namespace {
 
         return true;
     }
-
-
-    int pooltool(Process& proc, int argc, const char* argv[]) {
-        using namespace pool;
-        if (argc < 3) {
-            return tool::BAD_USAGE;
-        }
-        PoolOption opt;
-
-        if (!opt.Compute(argv, 2, argc) || opt.m_help) {
-            opt.PrintHelp(std::cout);
-            return tool::OK;
-        }
-
-        hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
-        hashutils::ReadDefaultFile();
-
-        std::error_code ec;
-        std::filesystem::create_directories(opt.m_output, ec);
-
-        auto id = std::atoi(argv[2]);
-
-        std::cout << std::hex << "pool id: " << id << "\n";
-
-        XAssetPool entry{};
-
-        uintptr_t poolLoc = cw::ScanPool(proc);
-        if (!proc.ReadMemory(&entry, poolLoc + sizeof(entry) * id, sizeof(entry))) {
-            std::cerr << "Can't read pool entry\n";
-            return tool::BASIC_ERROR;
-        }
-
-        char outputName[256];
-        sprintf_s(outputName, "%s/pool_%x", opt.m_output, id);
-        char dumpbuff[MAX_PATH + 10];
-
-        std::cout << std::hex
-            << "pool ........ " << entry.pool << "\n"
-            << "free head ... " << entry.freeHead << "\n"
-            << "item size ... " << entry.itemSize << "\n"
-            << "count ....... " << entry.itemCount << "\n"
-            << "alloc count . " << entry.itemAllocCount << "\n"
-            << "singleton ... " << (entry.isSingleton ? "true" : "false") << "\n"
-            ;
-
-        switch (id) {
-        case cw::ASSET_TYPE_STRINGTABLE: {
-
-            auto stPool = std::make_unique<StringTable[]>(entry.itemAllocCount);
-
-            if (!proc.ReadMemory(&stPool[0], entry.pool, sizeof(stPool[0]) * entry.itemAllocCount)) {
-                std::cerr << "Can't read pool data\n";
-                return tool::BASIC_ERROR;
-            }
-
-            size_t readFile = 0;
-            for (size_t i = 0; i < entry.itemAllocCount; i++) {
-                const auto& e = stPool[i];
-
-                const auto size = e.columnCount * e.rowCount;
-
-                int test;
-                if (!e.values || (size && !proc.ReadMemory(&test, e.values, sizeof(test)))) {
-                    continue; // check that we can read at least the cell
-                }
-
-                auto n = hashutils::ExtractPtr(e.name);
-
-                std::cout << std::dec << i << ": ";
-
-                if (n) {
-                    std::cout << n;
-                    sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
-                }
-                else {
-                    std::cout << "file_" << std::hex << e.name << std::dec;
-                    sprintf_s(dumpbuff, "%s/hashed/stringtables/file_%llx.csv", opt.m_output, e.name);
-
-                }
-
-                std::cout << " (columns: " << e.columnCount << ", rows:" << e.rowCount << "/" << std::hex << (entry.pool + i * sizeof(entry)) << std::dec << ") into " << dumpbuff;
-
-
-                std::filesystem::path file(dumpbuff);
-                std::filesystem::create_directories(file.parent_path(), ec);
-
-                if (!std::filesystem::exists(file, ec)) {
-                    readFile++;
-                    std::cout << " (new)";
-                }
-                std::cout << "\n";
-
-                std::ofstream out{ file };
-
-                if (!out) {
-                    std::cerr << "Can't open file " << file << "\n";
-                    continue;
-                }
-
-                auto cell = std::make_unique<stringtable_cell[]>(e.columnCount);
-
-                //e.cells
-                if (!(size)) {
-                    out.close();
-                    continue;
-                }
-
-                for (size_t i = 0; i < e.rowCount; i++) {
-                    if (!proc.ReadMemory(&cell[0], e.values + sizeof(cell[0]) * e.columnCount * i, sizeof(cell[0]) * e.columnCount)) {
-                        std::cerr << "can't read cells for " << dumpbuff << "\n";
-                        out.close();
-                        continue;
-                    }
-                    for (size_t j = 0; j < e.columnCount; j++) {
-                        switch (cell[j].type)
-                        {
-                        case STC_TYPE_UNDEFINED:
-                            out << "undefined";
-                            break;
-                        case STC_TYPE_STRING:
-                            out << ReadTmpStr(proc, cell[j].value.pointer_value);
-                            break;
-                        case STC_TYPE_INT:
-                            out << cell[j].value.int_value;
-                            break;
-                        case STC_TYPE_FLOAT:
-                            out << cell[j].value.float_value;
-                            break;
-                        case STC_TYPE_BOOL:
-                            out << (cell[j].value.bool_value ? "true" : "false");
-                            break;
-                        case STC_TYPE_HASHED7:
-                        case STC_TYPE_HASHED8:
-                            //out << cell[j].type;
-                        case STC_TYPE_HASHED2:
-                            out << "#" << hashutils::ExtractTmp("hash", cell[j].value.hash_value);
-                            break;
-                        default:
-                            //out << "unk type: " << cell[j].type;
-                            out << "?" << std::hex
-                                << cell[j].value.hash_value
-                                //    << ':' << *reinterpret_cast<uint64_t*>(&cell[j].value[8])
-                                //    << ':' << *reinterpret_cast<uint32_t*>(&cell[j].value[16])
-                                << std::dec;
-                            break;
-                        }
-                        if (j + 1 != e.columnCount) {
-                            out << ",";
-                        }
-                    }
-                    out << "\n";
-                }
-                out.close();
-            }
-            std::cout << "Dump " << readFile << " new file(s)\n";
-            break;
-        }
-        case cw::ASSET_TYPE_SCRIPTBUNDLE: {
-            auto pool = std::make_unique<ScriptBundle[]>(entry.itemAllocCount);
-
-            if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
-                std::cerr << "Can't read pool data\n";
-                return tool::BASIC_ERROR;
-            }
-
-
-            std::filesystem::path progpath = utils::GetProgDir();
-            std::filesystem::path dllfile = progpath / std::filesystem::path("acts-bocw-dll.dll");
-            auto str = dllfile.string();
-
-            std::cout << "dll location -> " << str << "\n";
-
-            if (!proc.LoadDll(str.c_str())) {
-                std::cerr << "Can't inject dll\n";
-                return tool::BASIC_ERROR;
-            }
-            std::cout << "dll injected, decrypting MT Buffer...\n";
-
-            auto& DLL_DecryptMTBufferFunc = proc["acts-bocw-dll.dll"]["DLL_DecryptMTBuffer"];
-
-            if (!DLL_DecryptMTBufferFunc) {
-                std::cerr << "Can't find DLL_DecryptMTBuffer export\n";
-                return tool::BASIC_ERROR;
-            }
-
-            auto thr = proc.Exec(DLL_DecryptMTBufferFunc.m_location, 0x100000);
-
-            if (!(thr == INVALID_HANDLE_VALUE || !thr)) {
-                WaitForSingleObject(thr, INFINITE);
-                CloseHandle(thr);
-            }
-            else {
-                std::cerr << "Can't create decryption thread\n";
-            }
-            std::cout << "decrypted, dumping SB...\n";
-
-            std::unordered_set<std::string> strings{};
-
-            size_t readFile = 0;
-            for (size_t i = 0; i < entry.itemAllocCount; i++) {
-                const auto& e = pool[i];
-
-
-                if (e.hash < 0x1000000000000) {
-                    continue; // probably a ptr
-                }
-                ReadSBName(proc, e.sbObjectsArray);
-
-                auto n = hashutils::ExtractPtr(e.hash);
-
-                std::cout << std::dec << i << ": ";
-
-                if (n) {
-                    std::cout << n;
-                    sprintf_s(dumpbuff, "%s/scriptbundle/%s.json", opt.m_output, n);
-                }
-                else {
-                    std::cout << "file_" << std::hex << e.hash << std::dec;
-                    sprintf_s(dumpbuff, "%s/scriptbundle/file_%llx.json", opt.m_output, e.hash);
-
-                }
-
-                std::cout << " into " << dumpbuff;
-
-
-                std::filesystem::path file(dumpbuff);
-                std::filesystem::create_directories(file.parent_path(), ec);
-
-                if (!std::filesystem::exists(file, ec)) {
-                    readFile++;
-                    std::cout << " (new)";
-                }
-                std::cout << "\n";
-
-                std::ofstream out{ file };
-
-                if (!out) {
-                    std::cerr << "Can't open file " << file << "\n";
-                    continue;
-                }
-
-                ReadSBObject(proc, out, 0, e.sbObjectsArray, strings);
-
-                out.close();
-            }
-            std::ofstream outStr{ std::format("{}/scriptbundle_str.txt", opt.m_output) };
-
-            if (outStr) {
-                for (const auto& st : strings) {
-                    outStr << st << "\n";
-                }
-                outStr.close();
-            }
-
-            std::cout << "Dump " << readFile << " new file(s)\n";
-            break;
-        }
-        case cw::ASSET_TYPE_DDL: {
-            struct DDLEntry {
-                uint64_t name;
-                uint64_t name2;
-                uintptr_t ddlDef; // DDLDef*
-                uint64_t pad[8];
-            }; static_assert(sizeof(DDLEntry) == 0x58 && "bad DDLEntry size");
-
-
-
-            auto pool = std::make_unique<DDLEntry[]>(entry.itemAllocCount);
-
-            if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
-                std::cerr << "Can't read pool data\n";
-                return tool::BASIC_ERROR;
-            }
-            char dumpbuff[MAX_PATH + 10];
-            const size_t dumpbuffsize = sizeof(dumpbuff);
-            std::vector<byte> read{};
-            size_t readFile = 0;
-
-            for (size_t i = 0; i < entry.itemAllocCount; i++) {
-                const auto& p = pool[i];
-
-                auto* n = hashutils::ExtractPtr(p.name);
-                if (n) {
-                    sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
-                }
-                else {
-                    sprintf_s(dumpbuff, "%s/hashed/ddl/file_%llx.ddl", opt.m_output, p.name);
-                }
-
-                std::cout << "Writing DDL #" << std::dec << i << " -> " << dumpbuff << "\n";
-
-
-
-                std::filesystem::path file(dumpbuff);
-                std::filesystem::create_directories(file.parent_path(), ec);
-
-                std::ofstream defout{ file };
-
-                if (!defout) {
-                    std::cerr << "Can't open output file\n";
-                    continue;
-                }
-
-                ReadDDLDefEntry(proc, defout, p.ddlDef);
-
-                defout.close();
-            }
-
-            std::cout << "Dump " << readFile << " new file(s)\n";
-        }
-        case cw::ASSET_TYPE_RAWFILE:
-        case cw::ASSET_TYPE_RAWTEXTFILE:
-        case cw::ASSET_TYPE_RAWFILEPREPROC: {
-            auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
-
-            if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
-                std::cerr << "Can't read pool data\n";
-                return tool::BASIC_ERROR;
-            }
-
-            size_t readFile = 0;
-            for (size_t i = 0; i < entry.itemAllocCount; i++) {
-                const auto& e = pool[i];
-
-                int test;
-                if (!e.buffer || (e.size && !proc.ReadMemory(&test, e.buffer, sizeof(test)))) {
-                    continue; // check that we can read at least the data
-                }
-
-                auto n = hashutils::ExtractPtr(e.name);
-
-                std::cout << std::dec << i << ": ";
-
-                if (n) {
-                    std::cout << n;
-                    sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
-                }
-                else {
-                    std::cout << "file_" << std::hex << e.name << std::dec;
-                    sprintf_s(dumpbuff, "%s/hashed/rawfile/file_%llx.raw", opt.m_output, e.name);
-
-                }
-
-                std::cout << " into " << dumpbuff;
-
-
-                std::filesystem::path file(dumpbuff);
-                std::filesystem::create_directories(file.parent_path(), ec);
-
-                if (!std::filesystem::exists(file, ec)) {
-                    readFile++;
-                    std::cout << " (new)";
-                }
-                std::cout << "... ";
-
-                if (!e.size) {
-                    // empty file
-                    if (!utils::WriteFile(file, "", 0)) {
-                        std::cerr << "Can't write file\n";
-                    }
-                    std::cout << " empty / dumped\n";
-                    continue;
-                }
-
-                auto buff = std::make_unique<byte[]>(e.size + 0x10);
-
-                if (!proc.ReadMemory(&buff[0], e.buffer, e.size + 0x10)) {
-                    std::cerr << "Can't read buffer\n";
-                    continue;
-                }
-
-
-                // decrypt
-                byte* buffDecrypt{ &buff[0]};
-                size_t size{ e.size };
-                if (id != cw::ASSET_TYPE_RAWFILE) {
-                    buffDecrypt = cw::DecryptRawBuffer(buffDecrypt);
-                    size--;
-                }
-
-
-
-                if (!utils::WriteFile(file, buffDecrypt, size)) {
-                    std::cerr << "Can't write file\n";
-                    continue;
-                }
-                std::cout << " dumped\n";
-            }
-            std::cout << "Dump " << readFile << " new file(s)\n";
-            break;
-        }
-        default: {
-            std::cout << "Item data\n";
-
-            auto raw = std::make_unique<byte[]>(entry.itemSize * entry.itemAllocCount);
-
-            if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
-                std::cerr << "Can't read pool data\n";
-                return tool::BASIC_ERROR;
-            }
-
-            char dumpbuff[MAX_PATH + 10];
-            for (size_t i = 0; i < entry.itemAllocCount; i++) {
-                sprintf_s(dumpbuff, "%s/rawpool/%d/%lld.json", opt.m_output, (int)id, i);
-
-                std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
-
-
-
-                std::filesystem::path file(dumpbuff);
-                std::filesystem::create_directories(file.parent_path(), ec);
-
-                std::ofstream defout{ file };
-
-                if (!defout) {
-                    std::cerr << "Can't open output file\n";
-                    continue;
-                }
-
-                tool::pool::WriteHex(defout, entry.pool + entry.itemSize * i, &raw[0] + (entry.itemSize * i), entry.itemSize, proc);
-
-                defout.close();
-            }
-
-        }
-        break;
-        }
-
+}
+
+int cw::pool::pooltool(Process& proc, int argc, const char* argv[]) {
+    using namespace pool;
+    if (argc < 3) {
+        return tool::BAD_USAGE;
+    }
+    PoolOption opt;
+
+    if (!opt.Compute(argv, 2, argc) || opt.m_help) {
+        opt.PrintHelp(std::cout);
         return tool::OK;
     }
 
+    hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
+    hashutils::ReadDefaultFile();
+
+    std::error_code ec;
+    std::filesystem::create_directories(opt.m_output, ec);
+
+    auto id = std::atoi(argv[2]);
+
+    std::cout << std::hex << "pool id: " << id << "\n";
+
+    XAssetPool entry{};
+
+    uintptr_t poolLoc = cw::ScanPool(proc);
+    if (!proc.ReadMemory(&entry, poolLoc + sizeof(entry) * id, sizeof(entry))) {
+        std::cerr << "Can't read pool entry\n";
+        return tool::BASIC_ERROR;
+    }
+
+    char outputName[256];
+    sprintf_s(outputName, "%s/pool_%x", opt.m_output, id);
+    char dumpbuff[MAX_PATH + 10];
+
+    std::cout << std::hex
+        << "pool ........ " << entry.pool << "\n"
+        << "free head ... " << entry.freeHead << "\n"
+        << "item size ... " << entry.itemSize << "\n"
+        << "count ....... " << entry.itemCount << "\n"
+        << "alloc count . " << entry.itemAllocCount << "\n"
+        << "singleton ... " << (entry.isSingleton ? "true" : "false") << "\n"
+        ;
+
+    switch (id) {
+    case cw::ASSET_TYPE_STRINGTABLE: {
+
+        auto stPool = std::make_unique<StringTable[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&stPool[0], entry.pool, sizeof(stPool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        size_t readFile = 0;
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& e = stPool[i];
+
+            const auto size = e.columnCount * e.rowCount;
+
+            int test;
+            if (!e.values || (size && !proc.ReadMemory(&test, e.values, sizeof(test)))) {
+                continue; // check that we can read at least the cell
+            }
+
+            auto n = hashutils::ExtractPtr(e.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << e.name << std::dec;
+                sprintf_s(dumpbuff, "%s/hashed/stringtables/file_%llx.csv", opt.m_output, e.name);
+
+            }
+
+            std::cout << " (columns: " << e.columnCount << ", rows:" << e.rowCount << "/" << std::hex << (entry.pool + i * sizeof(entry)) << std::dec << ") into " << dumpbuff;
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+            std::cout << "\n";
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open file " << file << "\n";
+                continue;
+            }
+
+            auto cell = std::make_unique<stringtable_cell[]>(e.columnCount);
+
+            //e.cells
+            if (!(size)) {
+                out.close();
+                continue;
+            }
+
+            for (size_t i = 0; i < e.rowCount; i++) {
+                if (!proc.ReadMemory(&cell[0], e.values + sizeof(cell[0]) * e.columnCount * i, sizeof(cell[0]) * e.columnCount)) {
+                    std::cerr << "can't read cells for " << dumpbuff << "\n";
+                    out.close();
+                    continue;
+                }
+                for (size_t j = 0; j < e.columnCount; j++) {
+                    switch (cell[j].type)
+                    {
+                    case STC_TYPE_UNDEFINED:
+                        out << "undefined";
+                        break;
+                    case STC_TYPE_STRING:
+                        out << ReadTmpStr(proc, cell[j].value.pointer_value);
+                        break;
+                    case STC_TYPE_INT:
+                        out << cell[j].value.int_value;
+                        break;
+                    case STC_TYPE_FLOAT:
+                        out << cell[j].value.float_value;
+                        break;
+                    case STC_TYPE_BOOL:
+                        out << (cell[j].value.bool_value ? "true" : "false");
+                        break;
+                    case STC_TYPE_HASHED7:
+                    case STC_TYPE_HASHED8:
+                        //out << cell[j].type;
+                    case STC_TYPE_HASHED2:
+                        out << "#" << hashutils::ExtractTmp("hash", cell[j].value.hash_value);
+                        break;
+                    default:
+                        //out << "unk type: " << cell[j].type;
+                        out << "?" << std::hex
+                            << cell[j].value.hash_value
+                            //    << ':' << *reinterpret_cast<uint64_t*>(&cell[j].value[8])
+                            //    << ':' << *reinterpret_cast<uint32_t*>(&cell[j].value[16])
+                            << std::dec;
+                        break;
+                    }
+                    if (j + 1 != e.columnCount) {
+                        out << ",";
+                    }
+                }
+                out << "\n";
+            }
+            out.close();
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+        break;
+    }
+    case cw::ASSET_TYPE_SCRIPTBUNDLE: {
+        auto pool = std::make_unique<ScriptBundle[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+
+        std::filesystem::path progpath = utils::GetProgDir();
+        std::filesystem::path dllfile = progpath / std::filesystem::path("acts-bocw-dll.dll");
+        auto str = dllfile.string();
+
+        std::cout << "dll location -> " << str << "\n";
+
+        if (!proc.LoadDll(str.c_str())) {
+            std::cerr << "Can't inject dll\n";
+            return tool::BASIC_ERROR;
+        }
+        std::cout << "dll injected, decrypting MT Buffer...\n";
+
+        auto& DLL_DecryptMTBufferFunc = proc["acts-bocw-dll.dll"]["DLL_DecryptMTBuffer"];
+
+        if (!DLL_DecryptMTBufferFunc) {
+            std::cerr << "Can't find DLL_DecryptMTBuffer export\n";
+            return tool::BASIC_ERROR;
+        }
+
+        auto thr = proc.Exec(DLL_DecryptMTBufferFunc.m_location, 0x100000);
+
+        if (!(thr == INVALID_HANDLE_VALUE || !thr)) {
+            WaitForSingleObject(thr, INFINITE);
+            CloseHandle(thr);
+        }
+        else {
+            std::cerr << "Can't create decryption thread\n";
+        }
+        std::cout << "decrypted, dumping SB...\n";
+
+        std::unordered_set<std::string> strings{};
+
+        size_t readFile = 0;
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& e = pool[i];
+
+
+            if (e.hash < 0x1000000000000) {
+                continue; // probably a ptr
+            }
+            ReadSBName(proc, e.sbObjectsArray);
+
+            auto n = hashutils::ExtractPtr(e.hash);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/scriptbundle/%s.json", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << e.hash << std::dec;
+                sprintf_s(dumpbuff, "%s/scriptbundle/file_%llx.json", opt.m_output, e.hash);
+
+            }
+
+            std::cout << " into " << dumpbuff;
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+            std::cout << "\n";
+
+            std::ofstream out{ file };
+
+            if (!out) {
+                std::cerr << "Can't open file " << file << "\n";
+                continue;
+            }
+
+            ReadSBObject(proc, out, 0, e.sbObjectsArray, strings);
+
+            out.close();
+        }
+        std::ofstream outStr{ std::format("{}/scriptbundle_str.txt", opt.m_output) };
+
+        if (outStr) {
+            for (const auto& st : strings) {
+                outStr << st << "\n";
+            }
+            outStr.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+        break;
+    }
+    case cw::ASSET_TYPE_DDL: {
+        struct DDLEntry {
+            uint64_t name;
+            uint64_t name2;
+            uintptr_t ddlDef; // DDLDef*
+            uint64_t pad[8];
+        }; static_assert(sizeof(DDLEntry) == 0x58 && "bad DDLEntry size");
+
+
+
+        auto pool = std::make_unique<DDLEntry[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+        char dumpbuff[MAX_PATH + 10];
+        const size_t dumpbuffsize = sizeof(dumpbuff);
+        std::vector<byte> read{};
+        size_t readFile = 0;
+
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& p = pool[i];
+
+            auto* n = hashutils::ExtractPtr(p.name);
+            if (n) {
+                sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+            }
+            else {
+                sprintf_s(dumpbuff, "%s/hashed/ddl/file_%llx.ddl", opt.m_output, p.name);
+            }
+
+            std::cout << "Writing DDL #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            ReadDDLDefEntry(proc, defout, p.ddlDef);
+
+            defout.close();
+        }
+
+        std::cout << "Dump " << readFile << " new file(s)\n";
+    }
+    case cw::ASSET_TYPE_RAWFILE:
+    case cw::ASSET_TYPE_RAWTEXTFILE:
+    case cw::ASSET_TYPE_RAWFILEPREPROC: {
+        auto pool = std::make_unique<RawFileEntry[]>(entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&pool[0], entry.pool, sizeof(pool[0]) * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        size_t readFile = 0;
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            const auto& e = pool[i];
+
+            int test;
+            if (!e.buffer || (e.size && !proc.ReadMemory(&test, e.buffer, sizeof(test)))) {
+                continue; // check that we can read at least the data
+            }
+
+            auto n = hashutils::ExtractPtr(e.name);
+
+            std::cout << std::dec << i << ": ";
+
+            if (n) {
+                std::cout << n;
+                sprintf_s(dumpbuff, "%s/%s", opt.m_output, n);
+            }
+            else {
+                std::cout << "file_" << std::hex << e.name << std::dec;
+                sprintf_s(dumpbuff, "%s/hashed/rawfile/file_%llx.raw", opt.m_output, e.name);
+
+            }
+
+            std::cout << " into " << dumpbuff;
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            if (!std::filesystem::exists(file, ec)) {
+                readFile++;
+                std::cout << " (new)";
+            }
+            std::cout << "... ";
+
+            if (!e.size) {
+                // empty file
+                if (!utils::WriteFile(file, "", 0)) {
+                    std::cerr << "Can't write file\n";
+                }
+                std::cout << " empty / dumped\n";
+                continue;
+            }
+
+            auto buff = std::make_unique<byte[]>(e.size + 0x10);
+
+            if (!proc.ReadMemory(&buff[0], e.buffer, e.size + 0x10)) {
+                std::cerr << "Can't read buffer\n";
+                continue;
+            }
+
+
+            // decrypt
+            byte* buffDecrypt{ &buff[0]};
+            size_t size{ e.size };
+            if (id != cw::ASSET_TYPE_RAWFILE) {
+                buffDecrypt = cw::DecryptRawBuffer(buffDecrypt);
+                size--;
+            }
+
+
+
+            if (!utils::WriteFile(file, buffDecrypt, size)) {
+                std::cerr << "Can't write file\n";
+                continue;
+            }
+            std::cout << " dumped\n";
+        }
+        std::cout << "Dump " << readFile << " new file(s)\n";
+        break;
+    }
+    default: {
+        std::cout << "Item data\n";
+
+        auto raw = std::make_unique<byte[]>(entry.itemSize * entry.itemAllocCount);
+
+        if (!proc.ReadMemory(&raw[0], entry.pool, entry.itemSize * entry.itemAllocCount)) {
+            std::cerr << "Can't read pool data\n";
+            return tool::BASIC_ERROR;
+        }
+
+        char dumpbuff[MAX_PATH + 10];
+        for (size_t i = 0; i < entry.itemAllocCount; i++) {
+            sprintf_s(dumpbuff, "%s/rawpool/%d/%lld.json", opt.m_output, (int)id, i);
+
+            std::cout << "Element #" << std::dec << i << " -> " << dumpbuff << "\n";
+
+
+
+            std::filesystem::path file(dumpbuff);
+            std::filesystem::create_directories(file.parent_path(), ec);
+
+            std::ofstream defout{ file };
+
+            if (!defout) {
+                std::cerr << "Can't open output file\n";
+                continue;
+            }
+
+            tool::pool::WriteHex(defout, entry.pool + entry.itemSize * i, &raw[0] + (entry.itemSize * i), entry.itemSize, proc);
+
+            defout.close();
+        }
+
+    }
+    break;
+    }
+
+    return tool::OK;
+}
+
+namespace {
     int dbgcw(Process& proc, int argc, const char* argv[]) {
         if (argc < 4) {
             return tool::BAD_USAGE;
@@ -1579,13 +1581,14 @@ namespace {
         return tool::OK;
     }
 
+    using namespace cw::pool;
+    ADD_TOOL("dpcw", "cw", " [input=pool_name] (output=pool_id)", "Black Ops Cold War dump pool", L"BlackOpsColdWar.exe", pooltool);
+    ADD_TOOL("wpscw", "cw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
+    ADD_TOOL("dpncw", "cw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
+    ADD_TOOL("dfuncscw", "cw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
+    ADD_TOOL("dcfuncscw", "cw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
+    ADD_TOOL("dbgcw", "cw", " [inst]", "dbg (cw)", L"BlackOpsColdWar.exe", dbgcw);
+    ADD_TOOL("injectcw", "cw", " (script) (target) (replace)", "inject script (cw)", L"BlackOpsColdWar.exe", injectcw);
+    ADD_TOOL("injectcwalpha", "cw", " (script) (target) (replace)", "inject script (cw alpha)", L"COD2020.exe", injectcwalpha);
+    ADD_TOOL("dbgpcw", "cw", "", "dump bg pool (cw)", L"BlackOpsColdWar.exe", dbgp);
 }
-ADD_TOOL("dpcw", "cw", " [input=pool_name] (output=pool_id)", "dump pool", L"BlackOpsColdWar.exe", pooltool);
-ADD_TOOL("wpscw", "cw", "", "write pooled scripts (cw)", L"BlackOpsColdWar.exe", dumppoolcw);
-ADD_TOOL("dpncw", "cw", "", "dump pool names (cw)", L"BlackOpsColdWar.exe", dpnamescw);
-ADD_TOOL("dfuncscw", "cw", "", "dump function names (cw)", L"BlackOpsColdWar.exe", dfuncscw);
-ADD_TOOL("dcfuncscw", "cw", "", "dump cmd names (cw)", L"BlackOpsColdWar.exe", dcfuncscw);
-ADD_TOOL("dbgcw", "cw", " [inst]", "dbg (cw)", L"BlackOpsColdWar.exe", dbgcw);
-ADD_TOOL("injectcw", "cw", " (script) (target) (replace)", "inject script (cw)", L"BlackOpsColdWar.exe", injectcw);
-ADD_TOOL("injectcwalpha", "cw", " (script) (target) (replace)", "inject script (cw alpha)", L"COD2020.exe", injectcwalpha);
-ADD_TOOL("dbgpcw", "cw", "", "dump bg pool (cw)", L"BlackOpsColdWar.exe", dbgp);

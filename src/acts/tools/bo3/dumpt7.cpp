@@ -194,7 +194,7 @@ namespace {
 						return false;
 					}
 					auto flagName = args[++i];
-					
+
 					if (!_strcmpi("allraw", flagName)) {
 						flags |= PDOF_DUMP_ALL_RAW;
 					}
@@ -360,7 +360,7 @@ namespace {
 			ScriptBundleKVP& kvp{ kvps[i] };
 
 			utils::Padding(out, depth) << "\"" << GetMTString(proc, kvp.key) << "\"" << ": ";
-			
+
 			switch (kvp.type) {
 			case KVP_INT:
 			case KVP_VEHICLE:
@@ -397,7 +397,8 @@ namespace {
 		return true;
 	}
 
-	int t7dp(Process& proc, int argc, const char* argv[]) {
+}
+int bo3::pool::t7dp(Process& proc, int argc, const char* argv[]) {
 		PoolOption opt;
 
 		if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -860,7 +861,7 @@ namespace {
 		return tool::OK;
 	}
 	
-
+namespace {
 	int t7poolscripts(Process& proc, int argc, const char* argv[]) {
 		std::filesystem::path outDir;
 		if (argc == 2) {
@@ -997,6 +998,6 @@ namespace {
 
 
 	
-	ADD_TOOL("dpt7", "bo3", " [pool]", "dump pool (bo3)", L"BlackOps3.exe", t7dp);
+	ADD_TOOL("dpt7", "bo3", " [pool]", "Black Ops 3 dump pool", L"BlackOps3.exe", t7dp);
 	ADD_TOOL("wpst7", "bo3", " [output=scriptparsetree_t7]", "dump pooled scripts (bo3)", L"BlackOps3.exe", t7poolscripts);
 }

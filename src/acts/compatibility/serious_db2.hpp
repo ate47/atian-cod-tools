@@ -1,9 +1,8 @@
 #pragma once
 
-#include <includes_shared.hpp>
 #include "tools/gsc_opcodes.hpp"
 
-namespace compatibility::serious {
+namespace compatibility::serious::db2 {
     constexpr auto VM_CODES_DB = "vm_codes.db2";
 
     enum SeriousId : byte {

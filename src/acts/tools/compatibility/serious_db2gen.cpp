@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include "compatibility/serious.hpp"
+#include "compatibility/serious_db2.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc.hpp"
 
@@ -72,10 +72,10 @@ namespace {
 		LOG_INFO("Building db for {} vm(s)...", asked.size());
 
 
-		std::ofstream vmfile{ compatibility::serious::VM_CODES_DB, std::ios::binary };
+		std::ofstream vmfile{ compatibility::serious::db2::VM_CODES_DB, std::ios::binary };
 
 		if (!vmfile) {
-			LOG_ERROR("Can't open file {}", compatibility::serious::VM_CODES_DB);
+			LOG_ERROR("Can't open file {}", compatibility::serious::db2::VM_CODES_DB);
 			return tool::BASIC_ERROR;
 		}
 
@@ -83,7 +83,7 @@ namespace {
 
 		for (const auto& [uid, bld] : asked) {
 			// clear buffer
-			memset(buffer, compatibility::serious::SERID_Invalid, sizeof(buffer));
+			memset(buffer, compatibility::serious::db2::SERID_Invalid, sizeof(buffer));
 
 
 			// header
@@ -95,9 +95,9 @@ namespace {
 			for (size_t i = 0; i < 0x1000; i++) {
 				auto* loc = LookupOpCode(bld.vm->vm, bld.platform, (uint16_t) i);
 
-				auto mappedId = compatibility::serious::ConvertTo(loc->m_id);
+				auto mappedId = compatibility::serious::db2::ConvertTo(loc->m_id);
 
-				if (mappedId == compatibility::serious::SERID_Invalid) {
+				if (mappedId == compatibility::serious::db2::SERID_Invalid) {
 					continue;
 				}
 
@@ -110,7 +110,7 @@ namespace {
 		}
 
 		vmfile.close();
-		LOG_INFO("DB created into {}", compatibility::serious::VM_CODES_DB);
+		LOG_INFO("DB created into {}", compatibility::serious::db2::VM_CODES_DB);
 
 		return tool::OK;
 	}

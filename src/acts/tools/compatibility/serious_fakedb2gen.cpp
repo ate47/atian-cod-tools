@@ -1,10 +1,10 @@
 #include <includes.hpp>
-#include "compatibility/serious.hpp"
+#include "compatibility/serious_db2.hpp"
 #include "tools/gsc.hpp"
 
 namespace {
 	using namespace tool::gsc::opcode;
-	using namespace compatibility::serious;
+	using namespace compatibility::serious::db2;
 
 	int fakedb(Process& proc, int argc, const char* argv[]) {
 		if (argc < 4) {
@@ -40,7 +40,7 @@ namespace {
 
 		byte buffer[0x1004] = {};
 		// clear buffer
-		memset(buffer, compatibility::serious::SERID_Invalid, sizeof(buffer));
+		memset(buffer, SERID_Invalid, sizeof(buffer));
 
 
 		// header

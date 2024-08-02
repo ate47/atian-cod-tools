@@ -178,6 +178,8 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 	AddPrecomputed(Hash64("long"), "long");
 	AddPrecomputed(Hash64("ulong"), "ulong");
 	AddPrecomputed(Hash64("$$padding"), "$$padding");
+	// Dump CF
+	AddPrecomputed(Hash64("localize.json"), "localize.json");
 
 	std::ifstream s(file);
 

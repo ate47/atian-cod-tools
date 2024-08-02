@@ -1,10 +1,10 @@
 #include <includes.hpp>
 #include "tools/gsc_opcodes.hpp"
-#include "compatibility/serious.hpp"
+#include "compatibility/serious_db2.hpp"
 
 
 using namespace tool::gsc::opcode;
-using namespace compatibility::serious;
+using namespace compatibility::serious::db2;
 
 namespace {
 
@@ -191,7 +191,7 @@ namespace {
 	}
 }
 
-namespace compatibility::serious {
+namespace compatibility::serious::db2 {
 	OPCode ConvertFrom(SeriousId id) {
 		return Maps().ConvertFrom(id);
 	}

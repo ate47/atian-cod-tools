@@ -15,6 +15,7 @@ namespace tool::pool {
 		if (v) return v;
 		return defaultValue;
 	}
+	int pooltool(Process& proc, int argc, const char* argv[]);
 
 	struct XHash {
 		uint64_t name;

@@ -168,5 +168,5 @@ namespace bo3::pool {
 		T7_TYPE_THREAD_LIST = 28,
 		T7_TYPE_ENT_LIST = 29,
 	};
-
+	int t7dp(Process& proc, int argc, const char* argv[]);
 }

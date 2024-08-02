@@ -360,7 +360,7 @@ public:
                 m_dump_hashmap = args[++i];
             }
             else if (*arg == '-') {
-                std::cerr << "Invalid argurment: " << arg << "!\n";
+                std::cerr << "Invalid argument: " << arg << "!\n";
                 return false;
             }
             else {
@@ -1314,8 +1314,8 @@ int pooltoolnames(Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 
-int pooltool(Process& proc, int argc, const char* argv[]) {
-    using namespace pool;
+int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
+    using namespace ::pool;
     PoolOption opt;
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -1388,14 +1388,14 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
     std::unordered_set<std::string> strings{};
     XAssetPoolEntry entry{};
-    auto ShouldHandle = [&proc, &opt, &outputName, &entry](pool::XAssetType id, bool isKnown = true) {
+    auto ShouldHandle = [&proc, &opt, &outputName, &entry](XAssetType id, bool isKnown = true) {
         if (!opt.m_dump_types[id] && !(isKnown && opt.m_dump_all_available)) {
             return false;
         }
         // set to false for the default loop
         opt.m_dump_types[id] = false;
 
-        std::cout << "pool: " << std::dec << pool::XAssetNameFromId(id) << " (" << (int)id << ")\n";
+        std::cout << "pool: " << std::dec << XAssetNameFromId(id) << " (" << (int)id << ")\n";
 
         if (!proc.ReadMemory(&entry, proc[offset::assetPool] + sizeof(entry) * id, sizeof(entry))) {
             std::cerr << "Can't read pool entry\n";
@@ -4617,16 +4617,16 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
 
 
 
-        BGCacheInfo entryinfo[pool::BG_CACHE_TYPE_COUNT]{};
+        BGCacheInfo entryinfo[BG_CACHE_TYPE_COUNT]{};
 
         if (!proc.ReadMemory(&entryinfo[0], proc[0x4EC9A90], sizeof(entryinfo))) {
             std::cerr << "Can't read cache\n";
             return tool::BASIC_ERROR;
         }
 
-        char nameInfo[pool::BG_CACHE_TYPE_COUNT][200] = {};
+        char nameInfo[BG_CACHE_TYPE_COUNT][200] = {};
         // buffer pool names
-        for (size_t i = 0; i < pool::BG_CACHE_TYPE_COUNT; i++) {
+        for (size_t i = 0; i < BG_CACHE_TYPE_COUNT; i++) {
             if (proc.ReadString(nameInfo[i], entryinfo[i].name, sizeof(nameInfo[i])) < 0) {
                 std::cerr << "Can't read bgcache info names\n";
                 return tool::BASIC_ERROR;
@@ -4690,7 +4690,7 @@ int pooltool(Process& proc, int argc, const char* argv[]) {
                 auto& p2 = defs[i];
 
                 defout << "\n" 
-                    << (p2.type >= 0 && p2.type < pool::BG_CACHE_TYPE_COUNT ? nameInfo[p2.type] : "<error>") << ","
+                    << (p2.type >= 0 && p2.type < BG_CACHE_TYPE_COUNT ? nameInfo[p2.type] : "<error>") << ","
                     << hashutils::ExtractTmp("hash", p2.name) << "," 
                     << std::hex << p2.string_count
                     << std::flush;
@@ -6374,8 +6374,7 @@ int dbgp(Process& proc, int argc, const char* argv[]) {
 
     return tool::OK;
 }
-
-ADD_TOOL("dp", "bo4", " [pool]+", "dump pool", L"BlackOps4.exe", pooltool);
+ADD_TOOL("dpbo4", "bo4", " [pool]+", "Black Ops 4 dump pool", L"BlackOps4.exe", pooltool);
 ADD_TOOL("dpn", "bo4", "", "dump pool names", L"BlackOps4.exe", pooltoolnames);
 ADD_TOOL("dbgcache", "bo4", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
 ADD_TOOL("dbmtstrs", "bo4", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);

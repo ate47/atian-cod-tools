@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <actscli.hpp>
 #include "compatibility/scobalula_wni.hpp"
-#include "compatibility/serious.hpp"
+#include "compatibility/serious_db2.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
 
@@ -1413,7 +1413,7 @@ namespace tool::gsc::opcode {
 			});
 			
 			for (const auto& db : dbFiles) {
-				compatibility::serious::LoadVMDatabase(db);
+				compatibility::serious::db2::LoadVMDatabase(db);
 			}
 
 			std::filesystem::path actsopDirPath = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;

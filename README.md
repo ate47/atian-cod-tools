@@ -4,7 +4,22 @@
 
 My set of tools. The code is more important than the features, so feel free to reuse it. 🙂
 
-**Supported games**
+**Table of contents**
+
+- [Atian Tools](#atian-tools)
+	- [GSC Compiler/Decompiler](#gsc-compilerdecompiler)
+	- [Dumper](#dumper)
+	- [ACTS Lib](#acts-lib)
+	- [Dependencies](#dependencies)
+	- [Downloads](#downloads)
+	- [Related repositories](#related-repositories)
+	- [Lookup](#lookup)
+	- [Credits](#credits)
+
+
+## GSC Compiler/Decompiler
+
+**Supported features**
 
 | Name                     | Revision | Decompiler | Compiler | PS4 support |
 | ------------------------ | -------- | ---------- | -------- | ----------- |
@@ -16,9 +31,48 @@ My set of tools. The code is more important than the features, so feel free to r
 | Modern Warfare III (JUP) | 8A       | EXT        | EXT      | ❌           |
 | Modern Warfare III (JUP) | 8B       | DEC & EXT  | EXT      | ❌           |
 
-
-- **DEC**: with pre-decode
+- **DEC**: With pre-decode
 - **EXT**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
+
+**Commands**
+```pwsh
+# Compile gsc file
+
+acts gscc <input.gsc> -g <game>
+
+# Example
+acts gscc my_script.gsc -g cw # Compile my_script.gsc into a cold war script
+```
+
+```
+# Decompile gsc file
+
+acts gscd file.gscc -g
+
+# Example
+acts gscd compiled.gscc -g # Decompile the script compiled.gscc
+```
+
+## Dumper
+
+**Supported pools**
+
+- Black Ops 3: `scriptbundle`, `stringtable`, `structuredtable`, `rawfile`, `scriptparsetree`.
+- Black Ops 4: `weapon`, `customizationtable`, `rawfile`, `stringtable`, `structuredtable`, `ddl`, `scriptparsetree`, `scriptparsetreeforced`, `scriptbundle`, `scriptbundlelist`, `ttf`, `bgcache`, `maptable`, `maptablelist`, `maptableloadingimages`, `maptablepreviewimages`, `playerrolecategory`, `playerrolecategorytable`, `gametypetable`, `unlockableitem`, `unlockableitemtable`, `playlists`, `hierarchicaltasknetwork`, `storagefile`, `storagefilelist`, `storeproduct`, `storecategory`, `storecategorylist`, `rank`, `ranktable`, `prestige`, `prestigetable`, `labelstore`, `labelstorelist`, `rawstring`.
+- Black Ops Cold War (Dec): `rawfile`, `rawfilepreproc`, `rawtextfile`, `stringtable`, `scriptparsetree`, `scriptbundle`.
+- Modern Warfare III (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `luafile`.
+
+- **DEC**: Requires pre-decode
+- **COR**: Using [Cordycep](https://github.com/Scobalula/Cordycep).
+
+**Commands**
+```pwsh
+# Command
+acts dp <pool>
+
+# Example
+acts dp stringtable
+```
 
 ## ACTS Lib
 
@@ -53,35 +107,8 @@ You can download the latest release here:
 - [ate47/bo3-source](https://github.com/ate47/bo3-source) : Black Ops 3 Dump
 - [ate47/bo4-source](https://github.com/ate47/bo4-source) : Black Ops 4 Dump
 - [ate47/bocw-source](https://github.com/ate47/bocw-source) : Black Ops Cold War Dump
+- [ate47/mwiii-source](https://github.com/ate47/mwiii-source) : Modern Warfare III Dump
 - [ate47/BOHashTool](https://github.com/ate47/BOHashTool) : Tool to test hashes with error (en/de)coder for Black Ops games
-
-## Tools
-
-### Mods
-
-Mods implemented in my tool, run `acts mod` for the list.
-
-- `acts mod t8cee` - enable EEs in Custom mutations, offline or casual (Black Ops 4).
-- `acts mod t9cee` - enable EEs in offline (Black Ops Cold War).
-
-### Decompiler/Disassembler
-
-Tools to decompile or disassemble the GSC scripts, a bo4 script decompilation is available in the [bo4-source](https://github.com/ate47/bo4-source) and [bocw-source](https://github.com/ate47/bocw-source) repositories.
-
-- gsc disassembler, made in 3 days with a lot of alcohol so don't use it. `acts gscinfo -a -o "output" [input=scriptparsetree]`
-- gsc decompiler, same as the disassembler, but 10 days after, not any better. `acts gscinfo -g -o "output" [input=scriptparsetree]`
-
-### Compiler
-
-GSC compiler, not for all the games, the scripts can be compiled using the command `acts gscc -g [game] [directory]`.
-
-### GSC Development (Black Ops 4)
-
-Tools to help with the GSC development.
-
-- gsc vm debugger, dump the function stack when the vm has a crash, `acts dbg`
-	- can dump the var stack `-s` local var `-v`
-	- can look inside structures with the depth for array `-A [depth]` and structs `-S [depth]`  (need the game started)
 
 ## Lookup
 

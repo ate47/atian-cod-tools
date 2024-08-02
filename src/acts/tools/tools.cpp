@@ -10,19 +10,19 @@ std::map<std::string, tool::toolfunctiondata*>& tool::tools() {
 std::map<std::string, tool::toolcategory>& tool::toolsCategories() {
 	static std::map<std::string, tool::toolcategory> map{};
 	if (map.empty()) {
-		map["acts"] = { "acts", "acts tools", true, {} };
-		map["lib"] = { "lib", "acts lib tools and tests", true, {} };
+		map["acts"] = { "acts", "ACTS tools", true, {} };
+		map["lib"] = { "lib", "ACTS lib tools and tests", true, {} };
 		map["gsc"] = { "gsc", "GSC utilities", true, {} };
-		map["hash"] = { "hash", "hash utilities", true, {} };
+		map["hash"] = { "hash", "Hash utilities", true, {} };
 		map["bo4"] = { "bo4", "Black Ops 4 tools", true, {} };
 		map["cw"] = { "cw", "Black Ops Cold War tools", true, {} };
 		map["mwiii"] = { "mwiii", "Modern Warfare III tools", true, {} };
 		map["bo3"] = { "bo3", "Black Ops 3 tools", true, {} };
 		map["ps4"] = { "ps4", "PS4 tools", true, {} };
-		map["common"] = { "common", "common tools", true, {} };
-		map["dev"] = { "dev", "dev tools", true, {} };
-		map["compatibility"] = { "compatibility", "compatibility tools", true, {} };
-		map["fastfile"] = { "fastfile", "fastfile tools", true, {} };
+		map["common"] = { "common", "Common tools", true, {} };
+		map["dev"] = { "dev", "Dev tools", true, {} };
+		map["compatibility"] = { "compatibility", "Compatibility tools", true, {} };
+		map["fastfile"] = { "fastfile", "Fastfile tools", true, {} };
 		map["lua"] = { "lua", "LUA tools", true, {} };
 	}
 
@@ -55,15 +55,15 @@ tool::toolfunctiondata::toolfunctiondata(const char* name, const char* category,
 }
 
 bool tool::toolfunctiondata::operator!() const {
-	return m_name == NULL;
+	return !m_name;
 }
 
 bool tool::toolfunctiondata::operatorbool() const {
-	return m_name != NULL;
+	return !m_name;
 }
 
 const tool::toolfunctiondata& tool::findtool(const char* name) {
-	static tool::toolfunctiondata invalid{ NULL, NULL, NULL, NULL, NULL, NULL };
+	static tool::toolfunctiondata invalid{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 	auto& tls = tools();
 
@@ -255,7 +255,7 @@ namespace {
 				auto it = info.opcodemappltlookup.find(plt);
 
 				if (it != info.opcodemappltlookup.end()) {
-					for (auto& [op, reg] : it->second) {
+					for (const auto& [op, reg] : it->second) {
 						count += reg.size();
 					}
 				}

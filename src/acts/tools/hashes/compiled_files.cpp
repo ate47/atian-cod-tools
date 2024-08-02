@@ -44,7 +44,12 @@ namespace {
 				// script bundle thing
 				n = utils::MapString(utils::CloneString(n), [](char c) -> char { return c == ':' ? '/' : c; });
 				if (header.isSpecial) {
-					out = outputDir / header.type / n;
+					if (*header.preferedExtension) {
+						out = outputDir / header.type / utils::va("%s.%s", n, header.preferedExtension);
+					}
+					else {
+						out = outputDir / header.type / n;
+					}
 				} else{
 					out = outputDir / n;
 				}
