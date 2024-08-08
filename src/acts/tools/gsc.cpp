@@ -457,19 +457,23 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             uint8_t mappedImportFlags = RemapFlagsImport(imp->flags);
 
             size_t delta;
-
-            switch (mappedImportFlags & 0xF) {
-            case FUNCTION_THREAD:
-            case FUNCTION_CHILDTHREAD:
-            case ACTS_CALL_BUILTIN_FUNCTION:
-            case METHOD_THREAD:
-            case METHOD_CHILDTHREAD:
-            case ACTS_CALL_BUILTIN_METHOD:
-                delta = 1;
-                break;
-            default:
+            if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_CALLS)) {
+                switch (mappedImportFlags & 0xF) {
+                case FUNCTION_THREAD:
+                case FUNCTION_CHILDTHREAD:
+                case ACTS_CALL_BUILTIN_FUNCTION:
+                case METHOD_THREAD:
+                case METHOD_CHILDTHREAD:
+                case ACTS_CALL_BUILTIN_METHOD:
+                    delta = 1;
+                    break;
+                default:
+                    delta = 0;
+                    break;
+                }
+            }
+            else {
                 delta = 0;
-                break;
             }
 
             const auto* imports = reinterpret_cast<const uint32_t*>(&imp[1]);
@@ -700,6 +704,7 @@ namespace {
         { VM_MW23B,[](byte* file, size_t fileSize) { return std::make_shared<MW23BGSCOBJHandler>(file, fileSize); }},
         { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
+        { VM_BO6,[](byte* file, size_t fileSize) { return std::make_shared<T10GSCOBJHandler>(file, fileSize); }},
     };
 }
 
@@ -748,6 +753,20 @@ struct H64GSCExportReader : GSCExportReader {
     uint64_t GetNamespace() override { return exp->name_space; };
     uint64_t GetFileNamespace() override { return exp->file_name_space; };
     uint64_t GetChecksum() override { return exp->checksum; };
+    uint32_t GetAddress() override { return exp->address; };
+    uint8_t GetParamCount() override { return exp->param_count; };
+    uint8_t GetFlags() override { return exp->flags; };
+    size_t SizeOf() override { return sizeof(*exp); };
+};
+
+struct H64CERGSCExportReader : GSCExportReader {
+    IW24GSCExport* exp{};
+
+    void SetHandle(void* handle) override { exp = (IW24GSCExport*)handle; };
+    uint64_t GetName() override { return exp->name; };
+    uint64_t GetNamespace() override { return exp->name_space; };
+    uint64_t GetFileNamespace() override { return exp->file_name_space; };
+    uint64_t GetChecksum() override { return 0; };
     uint32_t GetAddress() override { return exp->address; };
     uint8_t GetParamCount() override { return exp->param_count; };
     uint8_t GetFlags() override { return exp->flags; };
@@ -901,7 +920,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     }
 
     std::unique_ptr<GSCExportReader> exp;
-    if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64 | VmFlags::VMF_EXPORT_NOCHECKSUM)) {
+        exp = std::make_unique<H64CERGSCExportReader>();
+    }
+    else if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
         exp = std::make_unique<H64GSCExportReader>();
     }
     else if (ctx.m_vmInfo->flags & VmFlags::VMF_NO_FILE_NAMESPACE) {
@@ -2452,7 +2474,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
     const OPCodeInfo* spawnStruct = FetchCode();
     
     if (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction) {
-        if (ctx.m_vm == VM_T9 || ctx.m_vm == VM_MW23B) {
+        if (ctx.m_vm == VM_T9 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6) {
             return DVA_OK; // crc dump
         }
         // dctxt.WritePadding(out) << "Bad vtable opcode, expected ScriptFunctionCall vm" << std::hex << (int)ctx.m_vm << "\n";
@@ -2724,7 +2746,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             utils::Padding(asmout, padding) << prefix << "Name: " << hashutils::ExtractTmp("function", exp.GetName()) << std::endl;
             utils::Padding(asmout, padding) << prefix << "Namespace: " << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::endl;
             // no file namespace in this format, maybe later?
-            utils::Padding(asmout, padding) << prefix << "Checksum: 0x" << std::hex << std::uppercase << exp.GetChecksum() << std::endl;
+            if (!ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_EXPORT_NOCHECKSUM)) {
+                utils::Padding(asmout, padding) << prefix << "Checksum: 0x" << std::hex << std::uppercase << exp.GetChecksum() << std::endl;
+            }
             utils::Padding(asmout, padding) << prefix << "Offset: 0x" << std::hex << std::uppercase << exp.GetAddress() << std::endl;
 
             UINT size = ctx.FinalSize();
@@ -2780,7 +2804,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             utils::Padding(asmout, padding) << prefix << "Namespace "
                 << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
 
-            if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
+            uint64_t fileNamespace = exp.GetFileNamespace();
+
+            if (fileNamespace && !objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
                 // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
                 // so it's better to use spaces. A flag was added to keep the same format.
                 if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
@@ -2792,8 +2818,8 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
                 asmout
                     << ((remapedFlags & T8GSCExportFlags::EVENT)
-                        ? hashutils::ExtractTmp("event", exp.GetFileNamespace())
-                        : hashutils::ExtractTmpPath("namespace", exp.GetFileNamespace()));
+                        ? hashutils::ExtractTmp("event", fileNamespace)
+                        : hashutils::ExtractTmpPath("namespace", fileNamespace));
             }
             asmout << std::endl;
 
@@ -2814,6 +2840,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
                 asmout << " class_linked";
             }
+            if (remapedFlags & T8GSCExportFlags::VE) {
+                asmout << " variadic";
+            }
             if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
                 asmout << " vtable";
             }
@@ -2824,7 +2853,11 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                     << std::hex
                     << "namespace_" << exp.GetNamespace() << "<file_" << exp.GetFileNamespace() << ">::function_" << exp.GetName() << std::endl;
             }
-            utils::Padding(asmout, padding) << prefix << std::hex << "Checksum 0x" << exp.GetChecksum() << ", Offset: 0x" << exp.GetAddress() << std::endl;
+            utils::Padding(asmout, padding) << prefix;
+            if (!ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_EXPORT_NOCHECKSUM)) {
+                asmout << "Checksum 0x" << exp.GetChecksum() << ", ";
+            }
+            asmout << "Offset: 0x" << exp.GetAddress() << std::endl;
 
             auto size = ctx.FinalSize();
             if (size > 1) { // at least one opcode

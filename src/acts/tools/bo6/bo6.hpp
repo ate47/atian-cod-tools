@@ -1,0 +1,17 @@
+#pragma once
+
+namespace bo6 {
+
+	enum T10ScrVarType : uint32_t {
+		T10VT_INTEGER = 6,
+		T10VT_HASH = 9,
+		T10VT_RESOURCE_HASH = 10,
+		T10VT_DVAR_HASH = 11,
+		T10VT_TAG_HASH = 12,
+		T10VT_TARGET_HASH = 13,
+		T10VT_BUILTIN_FUNCTION = 17,
+		T10VT_BUILTIN_METHOD = 18,
+		T10VT_ANIMATION = 20,
+
+	};
+}

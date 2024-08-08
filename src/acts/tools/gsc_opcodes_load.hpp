@@ -13,6 +13,7 @@ namespace tool::gsc::opcode {
 
 		VM_MW23 = 0x8a,
 		VM_MW23B = 0x8b,
+		VM_BO6 = 0x06,
 	};
 
 	enum Platform : byte {
@@ -211,8 +212,8 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_GetBuiltinMethod,
 		OPCODE_IW_GetIString,
 		OPCODE_IW_GetEmptyUnkE,
-		OPCODE_IW_GetUnkb,
-		OPCODE_IW_GetUnk9,
+		OPCODE_IW_GetTagHash,
+		OPCODE_IW_GetResourceHash,
 		OPCODE_IW_GetDVarHash,
 		OPCODE_IW_EvalLocalVariableCached0,
 		OPCODE_IW_EvalLocalVariableCached1,
@@ -249,7 +250,7 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_GetGame,
 		OPCODE_IW_GetGameRef,
 		OPCODE_IW_GetAnim,
-		OPCODE_IW_GetAnimRef,
+		OPCODE_GetAnimGRef,
 		OPCODE_IW_EvalArrayCachedField,
 		OPCODE_IW_GetThread,
 		OPCODE_IW_Notify,
@@ -261,7 +262,6 @@ namespace tool::gsc::opcode {
 		OPCODE_GetShort,
 		OPCODE_GetHash32,
 		OPCODE_NextArrayKey,
-		OPCODE_GetAnimGRef,
 		OPCODE_T7_ProfileStart,
 		OPCODE_GetClasses,
 		OPCODE_GetClassesObject,
@@ -283,6 +283,27 @@ namespace tool::gsc::opcode {
 		OPCODE_PushVar,
 		OPCODE_PushEntityVar,
 		OPCODE_InvalidOpCode,
+
+		OPCODE_DEV_Consume0,
+		OPCODE_DEV_Consume1,
+		OPCODE_DEV_Consume2,
+		OPCODE_DEV_Consume4,
+		OPCODE_DEV_Consume8,
+		OPCODE_DEV_Consume9,
+
+		OPCODE_DEV_Consume0Push,
+		OPCODE_DEV_Consume1Push,
+		OPCODE_DEV_Consume2Push,
+		OPCODE_DEV_Consume4Push,
+		OPCODE_DEV_Consume8Push,
+		OPCODE_DEV_Consume9Push,
+
+		OPCODE_JumpOnDefined,
+		OPCODE_JumpOnNotDefined,
+		OPCODE_T10_GetTargetHash,
+		OPCODE_T10_FlatArgs,
+		OPCODE_T10_GreaterThanOrSuperEqualTo,
+		OPCODE_T10_LowerThanOrSuperEqualTo,
 
 		OPCODE_COUNT,
 	};

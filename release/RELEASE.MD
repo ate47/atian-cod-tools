@@ -1,21 +1,21 @@
 - tools
   - mwiii cordycep dump tool 
   	- luafile, gscobj, localize, ddl, scriptbundle, stringtable dump
-	- gsc compiler
+  - gsc compiler
   	- ?. and ?? operators
   	- is syntax
   	- ignore #region in preprocessor
   	- bo3 compilers
   	- fix includes
-	- gsc decompiler
+  - gsc decompiler
   	- better serious/xensik syntax
   	- read dev strings
   	- write debug data
   	- use debug data in decompilation
-	- gfx world dump
-	- bo3 injector
-	- colors in logs
-	- more dbf assets
+  - gfx world dump
+  - bo3 injector
+  - colors in logs
+  - more dbf assets
 - tools ui
   - use vm name in bad injection
 - bo4 dll

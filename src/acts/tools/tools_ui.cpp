@@ -50,6 +50,7 @@ namespace {
 			"-- Games \n\r"
 			"Black Ops 4 loaded: {} \n\r"
 			"Black Ops Cold War loaded: {} \n\r"
+			"Cordycep loaded: {} \n\r"
 			,
 			actsinfo::VERSIONW,
 			actsinfo::VERSION_ID,
@@ -58,7 +59,8 @@ namespace {
 			hashutils::GetMap().size(),
 			utils::StrToWStr(dir.string()),
 			!!Process{ L"BlackOps4.exe" },
-			!!Process{ L"BlackOpsColdWar.exe" }
+			!!Process{ L"BlackOpsColdWar.exe" },
+			!!Process{ L"Cordycep.CLI.exe" }
 		) };
 		toolInfo.mainLabel = CreateWindowEx(
 			0,

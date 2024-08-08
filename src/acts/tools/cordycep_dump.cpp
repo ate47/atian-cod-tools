@@ -2,6 +2,7 @@
 #include "compatibility/scobalula_csi.hpp"
 #include "tools/sp23/sp23.hpp"
 #include "tools/hashes/compiled_files.hpp"
+#include "tools/pool.hpp"
 
 namespace tool::cordycep::dump {
 	using namespace sp23;
@@ -53,6 +54,7 @@ namespace tool::cordycep::dump {
 			bool m_any_type = false;
 			bool m_dump_info = false;
 			bool m_dump_all_available = false;
+			bool m_pools{};
 			const char* m_output = "output_jup";
 			const char* m_dump_strings{};
 			std::vector<bool> m_dump_types{};
@@ -82,6 +84,9 @@ namespace tool::cordycep::dump {
 					else if (!_strcmpi("--all", arg) || !strcmp("-a", arg)) {
 						m_dump_all_available = true;
 						m_any_type = true;
+					}
+					else if (!_strcmpi("--pools", arg) || !strcmp("-p", arg)) {
+						m_pools = true;
 					}
 					else if (!strcmp("-S", arg) || !_strcmpi("--strings", arg)) {
 						if (i + 1 == endIndex) {
@@ -120,6 +125,8 @@ namespace tool::cordycep::dump {
 			void PrintHelp() {
 				LOG_INFO("-h --help            : Print help");
 				LOG_INFO("-o --output [d]      : Output dir");
+				LOG_INFO("-p --pools           : Dump pools");
+				LOG_INFO("-a --all             : Dump all available pools");
 			}
 
 			const char* AddString(const char* str) {
@@ -134,6 +141,9 @@ namespace tool::cordycep::dump {
 			uint64_t Temp;
 			uintptr_t Next;
 			uintptr_t Previous;
+			uint64_t ID;
+			uint64_t Type;
+			int64_t HeaderSize;
 		};
 
 		struct XAssetPool64 {
@@ -422,7 +432,7 @@ namespace tool::cordycep::dump {
 			return true;
 		}
 
-		int ForEachEntry(Process& proc, XAssetPool64& pool, std::function<bool(uintptr_t asset, size_t count)> func) {
+		int ForEachEntry(Process& proc, XAssetPool64& pool, std::function<bool(const XAsset64& asset, size_t count)> func) {
 			uintptr_t curr = pool.Root;
 
 			XAsset64 asset{};
@@ -436,7 +446,7 @@ namespace tool::cordycep::dump {
 				}
 
 				if (asset.Header) {
-					if (!func(asset.Header, count++)) {
+					if (!func(asset, count++)) {
 						ok = false;
 					}
 					res++;
@@ -451,7 +461,7 @@ namespace tool::cordycep::dump {
 		int dpcordjup(Process& proc, compatibility::scobalula::csi::CordycepProc& cordycep, int argc, const char* argv[]) {
 			PoolOptionJup opt{};
 
-			if (!opt.Compute(argv, 2, argc) || opt.m_help || !opt.m_any_type) {
+			if (!opt.Compute(argv, 2, argc) || opt.m_help) {
 				opt.PrintHelp();
 				return tool::OK;
 			}
@@ -464,13 +474,74 @@ namespace tool::cordycep::dump {
 				return tool::BASIC_ERROR;
 			}
 
-			hashutils::ReadDefaultFile();
-
 			std::filesystem::path outDir = opt.m_output;
+
+			if (opt.m_pools) {
+				std::filesystem::path loc{ outDir / "pools_jup.csv" };
+				std::ofstream os{ loc };
+				if (!os) {
+					LOG_ERROR("Can't open {}", loc.string());
+					return tool::BASIC_ERROR;
+				}
+				utils::CloseEnd ce{ [&os] {os.close(); } };
+
+				os << "id,size,elements";
+
+				XAsset64 asset{};
+				for (size_t i = 0; i < ASSET_COUNT; i++) {
+					const char* name = AssetTypeName((AssetType)i);
+
+					os << "\n" << name << ",";
+
+					XAssetPool64& pool = pools[i];
+
+					if (!pool.Root) {
+						os << "0,0";
+						continue;
+					}
+
+
+					if (!proc.ReadMemory(&asset, pool.Root, sizeof(asset))) {
+						os << "<error>,<error>";
+						LOG_ERROR("Can't dump pool {}", name);
+						continue;
+					}
+
+					size_t count{ 1 };
+
+					while (asset.Next) {
+						if (!proc.ReadMemory(&asset, asset.Next, sizeof(asset))) {
+							count = std::string::npos;
+							LOG_ERROR("Can't dump pool {}", name);
+							break;
+						}
+
+						count++;
+					}
+
+					if (count == std::string::npos) {
+						os << "<error>";
+					}
+					else {
+						os << std::hex << asset.HeaderSize << "," << count;
+					}
+				}
+
+				LOG_INFO("Dump into {}", loc.string());
+
+				return tool::OK;
+			}
+
+			if (!opt.m_any_type) {
+				opt.PrintHelp();
+				return tool::OK;
+			}
+
+			hashutils::ReadDefaultFile();
 
 			size_t total{};
 
-			auto HandlePool = [&opt, &pools, &proc, &total](sp23::AssetType type, const std::filesystem::path& outDir, std::function<bool(uintptr_t asset, size_t count)> func) {
+			auto HandlePool = [&opt, &pools, &proc, &total](sp23::AssetType type, const std::filesystem::path& outDir, std::function<bool(const XAsset64& asset, size_t count)> func) {
 				if (!opt.m_dump_types[type] && !opt.m_dump_all_available) {
 					return;
 				}
@@ -490,10 +561,10 @@ namespace tool::cordycep::dump {
 			};
 
 			const std::filesystem::path gscDir = outDir / "gsc";
-			HandlePool(ASSET_GSCOBJ, gscDir, [&proc, gscDir](uintptr_t asset, size_t count) -> bool {
+			HandlePool(ASSET_GSCOBJ, gscDir, [&proc, gscDir](const XAsset64& asset, size_t count) -> bool {
 				GscObjEntry entry{};
-				if (!proc.ReadMemory(&entry, asset, sizeof(entry))) {
-					LOG_ERROR("Can't read gscobj {:x}", asset);
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read gscobj {:x}", asset.Header);
 					return false;
 				}
 
@@ -518,10 +589,10 @@ namespace tool::cordycep::dump {
 			});
 
 			const std::filesystem::path gdbDir = outDir / "gscgdb";
-			HandlePool(ASSET_GSCGDB, gdbDir, [&proc, gdbDir](uintptr_t asset, size_t count) -> bool {
+			HandlePool(ASSET_GSCGDB, gdbDir, [&proc, gdbDir](const XAsset64& asset, size_t count) -> bool {
 				GscObjEntry entry{};
-				if (!proc.ReadMemory(&entry, asset, sizeof(entry))) {
-					LOG_ERROR("Can't read gscgdb {:x}", asset);
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read gscgdb {:x}", asset.Header);
 					return false;
 				}
 
@@ -546,10 +617,10 @@ namespace tool::cordycep::dump {
 			});
 
 			const std::filesystem::path luaDir = outDir / "lua";
-			HandlePool(ASSET_LUAFILE, luaDir, [&proc, luaDir](uintptr_t asset, size_t count) -> bool {
+			HandlePool(ASSET_LUAFILE, luaDir, [&proc, luaDir](const XAsset64& asset, size_t count) -> bool {
 				LuaFileEntry entry{};
-				if (!proc.ReadMemory(&entry, asset, sizeof(entry))) {
-					LOG_ERROR("Can't read luafile {:x}", asset);
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read luafile {:x}", asset.Header);
 					return false;
 				}
 
@@ -574,10 +645,10 @@ namespace tool::cordycep::dump {
 			});
 
 			std::filesystem::path dumpDir = outDir / "dump";
-			HandlePool(ASSET_STRINGTABLE, dumpDir, [&opt, &proc, dumpDir](uintptr_t asset, size_t count) -> bool {
+			HandlePool(ASSET_STRINGTABLE, dumpDir, [&opt, &proc, dumpDir](const XAsset64& asset, size_t count) -> bool {
 				StringTable entry{};
-				if (!proc.ReadMemory(&entry, asset, sizeof(entry))) {
-					LOG_ERROR("Can't read StringTable {:x}", asset);
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read StringTable {:x}", asset.Header);
 					return false;
 				}
 
@@ -691,10 +762,10 @@ namespace tool::cordycep::dump {
 				return true;
 				});
 
-			HandlePool(ASSET_SCRIPTBUNDLE, dumpDir, [&opt, &proc, dumpDir](uintptr_t asset, size_t count) -> bool {
+			HandlePool(ASSET_SCRIPTBUNDLE, dumpDir, [&opt, &proc, dumpDir](const XAsset64& asset, size_t count) -> bool {
 				ScriptBundle entry{};
-				if (!proc.ReadMemory(&entry, asset, sizeof(entry))) {
-					LOG_ERROR("Can't read ScriptBundle {:x}", asset);
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read ScriptBundle {:x}", asset.Header);
 					return false;
 				}
 
@@ -743,7 +814,7 @@ namespace tool::cordycep::dump {
 
 				return true;
 			});
-			HandlePool(ASSET_DDL, dumpDir, [&opt, &proc, dumpDir](uintptr_t asset, size_t count) -> bool {
+			HandlePool(ASSET_DDL, dumpDir, [&opt, &proc, dumpDir](const XAsset64& asset, size_t count) -> bool {
 				struct DDL {
 					uint64_t name;
 					uintptr_t def; // DDLDef*
@@ -825,8 +896,8 @@ namespace tool::cordycep::dump {
 
 				DDL entry{};
 				DDLDef def{};
-				if (!proc.ReadMemory(&entry, asset, sizeof(entry)) || !proc.ReadMemory(&def, entry.def, sizeof(def))) {
-					LOG_ERROR("Can't read DDL {:x}", asset);
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry)) || !proc.ReadMemory(&def, entry.def, sizeof(def))) {
+					LOG_ERROR("Can't read DDL {:x}", asset.Header);
 					return false;
 				}
 
@@ -1036,10 +1107,10 @@ namespace tool::cordycep::dump {
 
 				os << "{";
 
-				int du = ForEachEntry(proc, pools[ASSET_LOCALIZE], [&proc, &os](uintptr_t asset, size_t count) {
+				int du = ForEachEntry(proc, pools[ASSET_LOCALIZE], [&proc, &os](const XAsset64& asset, size_t count) {
 					LocalizeEntry entry{};
-					if (!proc.ReadMemory(&entry, asset, sizeof(entry))) {
-						LOG_ERROR("Can't read LocalizeEntry {:x}", asset);
+					if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+						LOG_ERROR("Can't read LocalizeEntry {:x}", asset.Header);
 						return false;
 					}
 
@@ -1086,12 +1157,56 @@ namespace tool::cordycep::dump {
 				if (!opt.m_dump_types[i]) {
 					continue;
 				}
-				const char* pn = sp23::AssetTypeName((sp23::AssetType)i);
+				AssetType at = (sp23::AssetType)i;
+				const char* pn = sp23::AssetTypeName(at);
 
 				std::filesystem::path rawDir = outDir / "raw" / pn;
 
-				// TODO: hex dump
-				LOG_ERROR("Can't parse type {}", pn);
+
+				HandlePool(at, rawDir, [&proc, rawDir](const XAsset64& asset, size_t count) -> bool {
+					GscObjEntry entry{};
+					if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+						LOG_ERROR("Can't read gscobj {:x}", asset.Header);
+						return false;
+					}
+
+					if (asset.HeaderSize <= 0) {
+						return false;
+					}
+
+					auto buffer = std::make_unique<byte[]>(asset.HeaderSize);
+
+					if (!proc.ReadMemory(&buffer[0], asset.Header, asset.HeaderSize)) {
+						LOG_ERROR("Can't read header {:x}", asset.Header);
+						return false;
+					}
+
+					std::filesystem::path loc;
+					if (asset.ID) {
+						loc = rawDir / utils::va("file_%llx.txt", asset.ID);
+					}
+					else {
+						loc = rawDir / utils::va("raw_%lld.txt", count);
+					}
+
+					std::ofstream os{ loc };
+
+					if (!os) {
+						LOG_ERROR("Can't open {}", loc.string());
+						return false;
+					}
+					utils::CloseEnd ce{ [&os] {os.close(); } };
+
+					const char* name{ hashutils::ExtractTmp("hash", asset.ID) };
+
+					LOG_INFO("Dump {} -> {}", name, loc.string());
+
+					os << "// file " << name << "\n";
+					os << "// len 0x" << std::hex << asset.HeaderSize << "\n\n";
+
+					tool::pool::WriteHex(os, asset.Header, (void*)&buffer[0], asset.HeaderSize, proc);
+					return true;
+				});
 			}
 
 			LOG_INFO("Dumped {} file(s)", total);

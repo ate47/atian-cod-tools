@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <rapidcsv.h>
 #include "tools/tools_ui.hpp"
 #include "actscli.hpp"
 
@@ -69,6 +70,8 @@ namespace {
 
     struct {
 		std::string hash{};
+		std::string val{};
+		std::string iv{ "100000001b3" };
         HWND hashEdit{};
 		HWND hashEditLabel{};
 
@@ -84,20 +87,36 @@ namespace {
 		HWND hash32IW4EditLabel{};
 		HWND hashT7Edit{};
 		HWND hashT7EditLabel{};
+		HWND hash64IWDVEdit{};
+		HWND hash64IWDVEditLabel{};
+		HWND hash64IWCerFieldEdit{};
+		HWND hash64IWCerFieldEditLabel{};
+
+		HWND hashFNV1AReverseValEdit{};
+		HWND hashFNV1AReverseIVEdit{};
+		HWND hashFNV1AReverseValLabel{};
+		HWND hashFNV1AReverseStartEdit{};
+		HWND hashFNV1AReverseStartEditLabel{};
 
 		HWND titleLabel{};
     } info{};
+
+	const std::wstring DefaultVal(uint64_t h) {
+		return h ? std::format(L"{:x}", h) : L"N/A";
+	}
 
 	void ComputeHashes() {
 		info.hash = utils::WStrToStr(tool::ui::GetWindowTextVal(info.hashEdit));
 
 
-		std::wstring hash64Val = std::format(L"{:x}", hash::Hash64(info.hash.c_str()));
-		std::wstring hash32Val = std::format(L"{:x}", hash::Hash32(info.hash.c_str()));
-		std::wstring hash64IW2Val = std::format(L"{:x}", hashutils::HashAIW(info.hash.c_str()));
-		std::wstring hash64IW3Val = std::format(L"{:x}", hashutils::HashAIW2(info.hash.c_str()));
-		std::wstring hash32IW4Val = std::format(L"{:x}", hashutils::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
-		std::wstring hashT7Val = std::format(L"{:x}", hashutils::HashT7(info.hash.c_str()));
+		std::wstring hash64Val = DefaultVal(hash::Hash64(info.hash.c_str()));
+		std::wstring hash32Val = DefaultVal(hash::Hash32(info.hash.c_str()));
+		std::wstring hash64IW2Val = DefaultVal(hashutils::HashAIW(info.hash.c_str()));
+		std::wstring hash64IW3Val = DefaultVal(hashutils::HashAIW2(info.hash.c_str()));
+		std::wstring hash32IW4Val = DefaultVal(hashutils::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
+		std::wstring hashT7Val = DefaultVal(hashutils::HashT7(info.hash.c_str()));
+		std::wstring hash64IWDvar = DefaultVal(hashutils::HashIWDVar(info.hash.c_str()));
+		std::wstring hash64IWCerField = DefaultVal(hashutils::HashT10Scr(info.hash.c_str()));
 
 		Edit_SetText(info.hash64Edit, hash64Val.c_str());
 		Edit_SetText(info.hash32Edit, hash32Val.c_str());
@@ -105,10 +124,56 @@ namespace {
 		Edit_SetText(info.hash64IW3Edit, hash64IW3Val.c_str());
 		Edit_SetText(info.hash32IW4Edit, hash32IW4Val.c_str());
 		Edit_SetText(info.hashT7Edit, hashT7Val.c_str());
+		Edit_SetText(info.hash64IWDVEdit, hash64IWDvar.c_str());
+		Edit_SetText(info.hash64IWCerFieldEdit, hash64IWCerField.c_str());
+
+		info.val = utils::WStrToStr(tool::ui::GetWindowTextVal(info.hashFNV1AReverseValEdit));
+		info.iv = utils::WStrToStr(tool::ui::GetWindowTextVal(info.hashFNV1AReverseIVEdit));
+
+		try {
+			uint64_t val = std::strtoull(info.val.data(), nullptr, 16);
+			uint64_t iv = std::strtoull(info.iv.data(), nullptr, 16);
+
+			if (val && iv) {
+				uint64_t mask = 0xFFFF;
+				uint64_t found = 0;
+				uint64_t disc{};
+
+				while (found < 64) {
+					uint64_t k;
+					for (k = 0; k < 0x10000; k++) {
+						uint64_t v = (k << found) | disc;
+						if ((hash::Hash64A(info.hash.data(), v, iv) & mask) == (val & mask)) {
+							break;
+						}
+					}
+					if (k == 0x10000) {
+						throw std::runtime_error("Invalid value");
+					}
+
+					disc |= (k & 0xF) << found;
+
+					found += 4;
+					mask = (mask << 4) | 0xF;
+				}
+
+				std::wstring discstr = std::format(L"{:x}", disc);
+				Edit_SetText(info.hashFNV1AReverseStartEdit, discstr.c_str());
+			}
+			else {
+				Edit_SetText(info.hashFNV1AReverseStartEdit, L"N/A");
+			}
+		}
+		catch (std::runtime_error& e) {
+			std::wstring discstr = utils::StrToWStr(e.what());
+			Edit_SetText(info.hashFNV1AReverseStartEdit, discstr.c_str());
+		}
 	}
 
     int Render(HWND window, HINSTANCE hInstance) {
 		std::wstring hashw = utils::StrToWStr(info.hash);
+		std::wstring valw = utils::StrToWStr(info.val);
+		std::wstring ivw = utils::StrToWStr(info.iv);
 
 		info.titleLabel = CreateWindowEx(
 			0,
@@ -185,7 +250,7 @@ namespace {
 		info.hash32EditLabel = CreateWindowEx(
 			0,
 			L"STATIC",
-			L"ARC Canon : ",
+			L"T7/8/9 Canon : ",
 			SS_RIGHT | WS_CHILD | WS_VISIBLE,
 			0, 0, 0, 0,
 			window,
@@ -233,7 +298,7 @@ namespace {
 		info.hash64IW3EditLabel = CreateWindowEx(
 			0,
 			L"STATIC",
-			L"IW Canon : ",
+			L"MWII/III Canon : ",
 			SS_RIGHT | WS_CHILD | WS_VISIBLE,
 			0, 0, 0, 0,
 			window,
@@ -281,7 +346,7 @@ namespace {
 		info.hashT7EditLabel = CreateWindowEx(
 			0,
 			L"STATIC",
-			L"BO3 Hash : ",
+			L"T7 FNV1A : ",
 			SS_RIGHT | WS_CHILD | WS_VISIBLE,
 			0, 0, 0, 0,
 			window,
@@ -290,6 +355,113 @@ namespace {
 			NULL
 		);
 
+		info.hash64IWDVEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.hash64IWDVEditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"IW DVar : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.hash64IWCerFieldEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.hash64IWCerFieldEditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"BO6 Canon : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+
+		info.hashFNV1AReverseValEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		info.hashFNV1AReverseIVEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			ivw.c_str(),
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+		info.hashFNV1AReverseStartEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			valw.c_str(),
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+		info.hashFNV1AReverseValLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"Reverse (Val/IV) : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+		info.hashFNV1AReverseStartEditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"Reverse (Start) : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		
         if (
             info.hashEdit == NULL
 			|| info.hashEditLabel == NULL
@@ -305,6 +477,15 @@ namespace {
 			|| info.hash32IW4EditLabel == NULL
 			|| info.hashT7Edit == NULL
 			|| info.hashT7EditLabel == NULL
+			|| info.hash64IWDVEdit == NULL
+			|| info.hash64IWDVEditLabel == NULL
+			|| info.hash64IWCerFieldEdit == NULL
+			|| info.hash64IWCerFieldEditLabel == NULL
+			|| info.hashFNV1AReverseValEdit == NULL
+			|| info.hashFNV1AReverseIVEdit == NULL
+			|| info.hashFNV1AReverseValLabel == NULL
+			|| info.hashFNV1AReverseStartEdit == NULL
+			|| info.hashFNV1AReverseStartEditLabel == NULL
 			|| info.titleLabel == NULL
             ) {
             return -1;
@@ -317,13 +498,21 @@ namespace {
 		SendMessage(info.hash64IW3Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hash32IW4Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hashT7Edit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hash64IWDVEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hash64IWCerFieldEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hashFNV1AReverseValEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hashFNV1AReverseIVEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hashFNV1AReverseStartEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 
+		
 		Edit_SetReadOnly(info.hash64Edit, true);
 		Edit_SetReadOnly(info.hash32Edit, true);
 		Edit_SetReadOnly(info.hash64IW2Edit, true);
 		Edit_SetReadOnly(info.hash64IW3Edit, true);
 		Edit_SetReadOnly(info.hash32IW4Edit, true);
 		Edit_SetReadOnly(info.hashT7Edit, true);
+		Edit_SetReadOnly(info.hash64IWDVEdit, true);
+		Edit_SetReadOnly(info.hashFNV1AReverseStartEdit, true);
 
 		ComputeHashes();
 
@@ -333,7 +522,7 @@ namespace {
     LRESULT Update(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (uMsg == WM_COMMAND) {
             if (HIWORD(wParam) == EN_CHANGE) {
-                if (info.hashEdit == (HWND)lParam) {
+                if (info.hashEdit == (HWND)lParam || info.hashFNV1AReverseValEdit == (HWND)lParam || info.hashFNV1AReverseIVEdit == (HWND)lParam) {
 					ComputeHashes();
                 }
             }
@@ -353,20 +542,32 @@ namespace {
 				|| lParam == (LPARAM)info.hash32IW4EditLabel
 				|| lParam == (LPARAM)info.hashT7Edit
 				|| lParam == (LPARAM)info.hashT7EditLabel
+				|| lParam == (LPARAM)info.hash64IWDVEdit
+				|| lParam == (LPARAM)info.hash64IWDVEditLabel
+				|| lParam == (LPARAM)info.hash64IWCerFieldEdit
+				|| lParam == (LPARAM)info.hash64IWCerFieldEditLabel
+				|| lParam == (LPARAM)info.hashFNV1AReverseValEdit
+				|| lParam == (LPARAM)info.hashFNV1AReverseIVEdit
+				|| lParam == (LPARAM)info.hashFNV1AReverseValLabel
+				|| lParam == (LPARAM)info.hashFNV1AReverseStartEdit
+				|| lParam == (LPARAM)info.hashFNV1AReverseStartEditLabel
 				|| lParam == (LPARAM)info.titleLabel
                 ) {
+				
                 return 0;
             }
         }
         return 1;
     }
 	void Resize(int width, int height) {
-		int y{ height / 2 - 28 * 5 };
+		int y{ height / 2 - 28 * 6 };
 		SetWindowPos(info.titleLabel, NULL, 0, y - 68, width, 60, SWP_SHOWWINDOW);
 
 		SetWindowPos(info.hashEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hashEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
+
+		y += 14;
 		SetWindowPos(info.hash64Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash64EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
@@ -385,14 +586,307 @@ namespace {
 		SetWindowPos(info.hashT7Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hashT7EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
+		SetWindowPos(info.hash64IWDVEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash64IWDVEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
+		SetWindowPos(info.hash64IWCerFieldEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash64IWCerFieldEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 14;
 
+		y += 28;
+		SetWindowPos(info.hashFNV1AReverseValEdit, NULL, width / 2 - 250, y, 248, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashFNV1AReverseIVEdit, NULL, width / 2 +   2, y, 248, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashFNV1AReverseValLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
+
+		SetWindowPos(info.hashFNV1AReverseStartEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashFNV1AReverseStartEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
+		
 		tool::ui::window().SetTitleFont(info.titleLabel);
 	}
+
+	int httest(Process& proc, int argc, const char* argv[]) {
+
+		const char* str = "abilities_active"; // c0eb9bd84c300f2b
+		const char* str2 = "assert"; // c0eb9bd84c300f2b
+
+		std::cout << std::hex << "" << "\n";
+		std::cout << std::hex << hash::Hash64("system", hash::Hash64("zt@f3yp(d[kkd=_@", 0x1C2F2E3C8A257D07, 0x10000000233LL), 0x10000000233LL) << "\n";
+		std::cout << std::hex << hash::Hash64("abilities_active", hash::Hash64("zt@f3yp(d[kkd=_@", 0x1C2F2E3C8A257D07, 0x10000000233LL), 0x10000000233LL) << "\n";
+
+		std::cout << std::hex << ((0x70f9c84fce473ef9ull / 0x10000000233LL) ^ 'i') << "\n";
+		
+		// 105 = 0x69
+		// (0x70f9a1 ^ 'i') * 0x10000000233LL = 70f9c84fce473ef9
+
+		//0x10000000233LL
+		//70f9c84fce473ef9, i
+
+		constexpr auto hashi = 0x70f9c84fce473ef9ull;
+
+		//100000001b3 10000000233
+		constexpr auto iv = 0x10000000233LL; // 0x10000000233LL
+		constexpr auto ivr = iv & 0xFFFFF;
+		constexpr auto bits = 35;
+		constexpr auto bitsMask = (1ull << bits) - 1;
+
+		constexpr auto lower = ((hashi / ivr) ^ 'i') & (bitsMask);
+
+		constexpr auto upper = (1ull << (64 - bits));
+
+		constexpr auto mask = 0x7FFFFFFFFFFFFFFF;
+
+		std::cout << std::hex << hash::Hash64("abilities_active", 0x64a68ff7d4912fd2, 0x10000000233LL) << "\n";
+
+		//for (size_t i = 0; i < upper; i++) {
+		//	uint64_t key = (i << 48) | 0x8ff7d4912fd2;
+		//	if ((hash::Hash64("abilities_active", key, iv) & mask) == (0xc0eb9bd84c300f2b & mask)) {
+		//		std::cout << std::hex << key << "\n";
+		//		
+		//	}
+		//
+		//}
+		//
+
+		
+		return tool::OK;
+
+	}
+
+	int fnv1acrack(Process& proc, int argc, const char* argv[]) {
+		if (argc < 5) {
+			return tool::BAD_USAGE;
+		}
+		// 0xc0eb9bd84c300f2b
+		const char* str = argv[2];
+		uint64_t key = std::strtoull(argv[3], nullptr, 16);
+		uint64_t iv = std::strtoull(argv[4], nullptr, 16);
+
+		LOG_DEBUG("Searching {} 0x{:x}/0x{:x}", str, key, iv);
+
+		uint64_t mask = 0xFFFF;
+		uint64_t found = 0;
+		uint64_t disc{};
+
+		while (found < 64) {
+			uint64_t k;
+			for (k = 0; k < 0x10000; k++) {
+				uint64_t v = (k << found) | disc;
+				if ((hash::Hash64A(str, v, iv) & mask) == (key & mask)) {
+					LOG_TRACE("bit {}: {:x}", found, v);
+					break;
+				}
+			}
+			if (k == 0x10000) {
+				LOG_ERROR("Invalid key");
+				return tool::BASIC_ERROR;
+			}
+
+			disc |= (k & 0xF) << found;
+
+			found += 4;
+			mask = (mask << 4) | 0xF;
+		}
+
+		LOG_INFO("end .. 0x{:x}, 0x{:x}", disc, iv);
+		LOG_INFO("test . hash(\"{}\", 0x{:x}, 0x{:x}) = 0x{:x}", str, disc, iv, hash::Hash64A(str, disc, iv));
+
+		return tool::OK;
+	}
+	struct HashEntry {
+		std::string str;
+		uint64_t val;
+	};
+
+
+	inline bool FindAll(const std::vector<HashEntry>& entries, uint64_t testKey, uint64_t iv, uint64_t mask) {
+		for (const HashEntry& e : entries) {
+			if ((hash::Hash64A(e.str.data(), testKey, iv) & mask) != (e.val & mask)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	uint64_t CrackFnv1a(const std::vector<HashEntry>& entries, uint64_t iv, uint64_t find, size_t depth, uint64_t mask) {
+		uint64_t k;
+		for (k = 0; k < 0x10000; k++) {
+			uint64_t v = (k << depth) | find;
+			if (FindAll(entries, v, iv, mask)) {
+				uint64_t nf = find |= (k & 0xF) << depth;
+				if (depth >= 60) {
+					return nf;
+				}
+				uint64_t v2 = CrackFnv1a(entries, iv, nf, depth + 4, (mask << 4 | 0xF));
+				if (v2) {
+					return v2;
+				}
+			}
+		}
+		return 0;
+	}
+
+	int fnv1acrack2(Process& proc, int argc, const char* argv[]) {
+		if (argc < 4) {
+			return tool::BAD_USAGE;
+		}
+
+		std::filesystem::path csv = argv[2];
+		uint64_t iv = std::strtoull(argv[3], nullptr, 16);
+
+		LOG_DEBUG("Searching {} 0x{:x}", csv.string(), iv);
+		std::string buffer{};
+
+		if (!utils::ReadFile(csv, buffer)) {
+			LOG_WARNING("Can't read hash csv {}", csv.string());
+			return tool::BASIC_ERROR;
+		}
+
+		rapidcsv::Document doc{};
+
+		std::stringstream stream{ buffer };
+
+		doc.Load(stream, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
+
+		if (doc.GetColumnCount() < 2) {
+			LOG_WARNING("Can't read hash csv {}: invalid file", csv.string());
+			return tool::BASIC_ERROR;
+		}
+
+		std::vector<HashEntry> entries{};
+
+		for (size_t i = 0; i < doc.GetRowCount(); i++) {
+			const std::string hash = doc.GetCell<std::string>(0, i);
+			const std::string value = doc.GetCell<std::string>(1, i);
+
+			try {
+				entries.emplace_back(value, std::strtoull(hash.c_str(), nullptr, 16));
+			}
+			catch (std::runtime_error& e) {
+				LOG_WARNING("Error when reading {}: invalid line {}: {}", csv.string(), i, e.what());
+			}
+		}
+
+		uint64_t v = CrackFnv1a(entries, iv, 0, 0, 0xFFFF);
+
+		LOG_INFO("result -> {:x}", v);
+
+		return tool::OK;
+	}
+
+	int fnv1acrack3(Process& proc, int argc, const char* argv[]) {
+		if (argc < 4) {
+			return tool::BAD_USAGE;
+		}
+
+		std::filesystem::path csv = argv[2];
+		uint64_t iv = std::strtoull(argv[3], nullptr, 16);
+
+		LOG_DEBUG("Searching {} 0x{:x}", csv.string(), iv);
+		std::string buffer{};
+
+		if (!utils::ReadFile(csv, buffer)) {
+			LOG_WARNING("Can't read hash csv {}", csv.string());
+			return tool::BASIC_ERROR;
+		}
+
+		rapidcsv::Document doc{};
+
+		std::stringstream stream{ buffer };
+
+		doc.Load(stream, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
+
+		if (doc.GetColumnCount() < 2) {
+			LOG_WARNING("Can't read hash csv {}: invalid file", csv.string());
+			return tool::BASIC_ERROR;
+		}
+
+		
+		std::vector<std::vector<HashEntry>> entries{};
+		entries.resize(0x80);
+
+		for (size_t i = 0; i < doc.GetRowCount(); i++) {
+			const std::string hash = doc.GetCell<std::string>(0, i);
+			std::string value = doc.GetCell<std::string>(1, i);
+
+			utils::LowerCase(value.data());
+
+			if (value.empty()) continue;
+			try {
+				entries[value[0]].emplace_back(value, std::strtoull(hash.c_str(), nullptr, 16));
+			}
+			catch (std::runtime_error& e) {
+				LOG_WARNING("Error when reading {}: invalid line {}: {}", csv.string(), i, e.what());
+			}
+		}
+
+		for (size_t i = 0; i <= 0x7F; i++) {
+			if (entries[i].empty()) continue;
+			uint64_t v = CrackFnv1a(entries[i], iv, 0, 0, 0xFFFF);
+
+			if (v) {
+				LOG_INFO("result {} -> {:x}", (char)i, v);
+			}
+
+		}
+
+
+		return tool::OK;
+	}
+
+	int fakefnvds(Process& proc, int argc, const char* argv[]) {
+		if (argc < 5) {
+			return tool::BAD_USAGE;
+		}
+
+		const char* csv = argv[2];
+		uint64_t key = std::strtoull(argv[3], nullptr, 16);
+		uint64_t iv = std::strtoull(argv[4], nullptr, 16);
+
+
+		std::ofstream os{ csv };
+
+		if (!os) {
+			LOG_ERROR("Can't open {}", csv);
+			return tool::BASIC_ERROR;
+		}
+
+		utils::CloseEnd ce{ [&os]() {os.close(); } };
+
+		srand(0);
+
+		char buff[36]{};
+
+		for (size_t i = 0; i < 0x100; i++) {
+			int len = 5 + rand() % 30;
+
+			for (int i = 0; i < len; i++) {
+				buff[i] = rand() % ('Z' - 'A') + 'a';
+			}
+			buff[len] = 0;
+
+			if (i) os << "\n";
+
+			os << std::hex << hash::Hash64A(buff, key, iv) << "," << buff;
+		}
+
+		return tool::OK;
+	}
+	
 }
+
 ADD_TOOL_UI("hash", L"Hash", Render, Update, Resize);
 
 ADD_TOOL("lookup", "hash", " (string)*", "lookup strings", nullptr, lookuptool);
 ADD_TOOL("h32", "hash", " (string)*", "hash strings", nullptr, hash32);
 ADD_TOOL("h64", "hash", " (string)*", "hash strings", nullptr, hash64);
 ADD_TOOL("ht7", "hash", " (string)*", "hash strings", nullptr, hasht7);
+ADD_TOOL("httest", "hash", " (string)*", "hash strings", nullptr, httest);
+ADD_TOOL("fnv1acrack", "hash", " [string] [hash] [iv]", "crack fnv1a key, base iv: 100000001b3, 10000000233", nullptr, fnv1acrack);
+ADD_TOOL("fnv1acrack2", "hash", " [csv] [iv]", "crack fnv1a key (one key based)", nullptr, fnv1acrack2);
+ADD_TOOL("fnv1acrack3", "hash", " [csv] [iv]", "crack fnv1a keys (first char based)", nullptr, fnv1acrack3);
 ADD_TOOL("str", "hash", "", "check collisions in the string file", nullptr, collisiontool);
+#ifndef CI_BUILD
+ADD_TOOL("fakefnvds", "hash", " [csv] [key] [iv]", "gen fake fnv1a dataset", nullptr, fakefnvds);
+#endif

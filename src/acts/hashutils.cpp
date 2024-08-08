@@ -1,6 +1,8 @@
 #include <includes.hpp>
 #include "actscli.hpp"
 #include "compatibility/scobalula_wni.hpp"
+#include <rapidcsv.h>
+
 namespace {
 	std::unordered_map<uint64_t, std::string> g_hashMap{};
 	std::set<uint64_t> g_extracted{};
@@ -34,6 +36,48 @@ void hashutils::ReadDefaultFile() {
 				})) {
 				LOG_ERROR("Error when reading WNI files");
 			};
+
+			std::vector<std::filesystem::path> csvs{};
+
+			utils::GetFileRecurse(wniPackageIndex, csvs, [](const std::filesystem::path& p) {
+				auto s = p.string();
+				return s.ends_with(".hash.csv");
+			});
+
+			for (const std::filesystem::path& csv : csvs) {
+				LOG_DEBUG("Reading HASH CSV {}", csv.string());
+				std::string buffer{};
+
+				if (!utils::ReadFile(csv, buffer)) {
+					LOG_WARNING("Can't read hash csv {}", csv.string());
+					continue;
+				}
+
+				rapidcsv::Document doc{};
+
+				std::stringstream stream{ buffer };
+
+				doc.Load(stream, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
+
+				if (doc.GetColumnCount() < 2) {
+					LOG_WARNING("Can't read hash csv {}: invalid file", csv.string());
+					continue;
+				}
+
+				for (size_t i = 0; i < doc.GetRowCount(); i++) {
+					const std::string hash = doc.GetCell<std::string>(0, i);
+					const std::string value = doc.GetCell<std::string>(1, i);
+
+					try {
+						AddPrecomputed(std::strtoull(hash.c_str(), nullptr, 16), value.c_str());
+					}
+					catch (std::runtime_error& e) {
+						LOG_WARNING("Error when reading {}: invalid line {}: {}", csv.string(), i, e.what());
+					}
+				}
+
+			}
+
 		}
 
 		show0 = opt.show0Hash;
@@ -202,13 +246,16 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 	LOG_TRACE("End load hash file {} -> {}", file, count);
 	return issues;
 }
-
 bool hashutils::Add(const char* str, bool ignoreCol, bool iw) {
 	g_hashMap.emplace(hashutils::Hash64(str), str);
 	if (iw) {
 		g_hashMap.emplace(hashutils::HashIW(str), str);
 		g_hashMap.emplace(hashutils::HashIW2(str), str);
 		g_hashMap.emplace(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str);
+		uint64_t sv = hashutils::HashIWDVar(str) & 0x7FFFFFFFFFFFFFFF;
+		uint64_t sf = hashutils::HashT10Scr(str) & 0x7FFFFFFFFFFFFFFF;
+		if (sv) g_hashMap.emplace(sv, str);
+		if (sf) g_hashMap.emplace(sf, str);
 		return true;
 	}
 	bool cand32 = true;

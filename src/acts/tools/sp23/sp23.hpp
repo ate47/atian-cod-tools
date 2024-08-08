@@ -252,6 +252,40 @@ namespace sp23 {
 		ASSET_COUNT = 0xF7,
 	};
 
+	enum JupScrVarType : byte {
+		TYPE_UNDEFINED = 0x0,
+		TYPE_POINTER = 0x1,
+		TYPE_STRING = 0x2,
+		TYPE_ISTRING = 0x3,
+		TYPE_VECTOR = 0x4,
+		TYPE_FLOAT = 0x5,
+		TYPE_INTEGER = 0x6,
+		TYPE_UNK7 = 0x7,
+		TYPE_HASH = 0x8,
+		TYPE_UNK9 = 0x9,
+		TYPE_DVarHash = 0xA,
+		TYPE_UNKb = 0xB,
+		TYPE_UNKc = 0xC,
+		TYPE_UNKd = 0xD,
+		TYPE_UNKe = 0xE,
+		TYPE_FUNCTION = 0xF,
+		TYPE_BUILTIN_FUNCTION = 0x10,
+		TYPE_BUILTIN_METHOD = 0x11,
+		TYPE_UNK12 = 0x12,
+		TYPE_ANIMATION = 0x13,
+		TYPE_UNK14 = 0x14,
+		TYPE_UNK15 = 0x15,
+		TYPE_UNK16 = 0x16,
+		TYPE_UNK17 = 0x17,
+		TYPE_UNK18 = 0x18,
+		TYPE_UNK19 = 0x19,
+		TYPE_UNK1a = 0x1A,
+		TYPE_STRUCT = 0x1B,
+		TYPE_ENTITY = 0x1D,
+		TYPE_ARRAY = 0x1E,
+	};
+
+
 	const char* AssetTypeName(AssetType type);
 	AssetType AssetTypeFromName(const char* name);
 }

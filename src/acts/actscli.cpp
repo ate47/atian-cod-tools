@@ -187,6 +187,7 @@ namespace {
 		const char* output = "acts.acpf";
 
 		std::unordered_set<uint16_t> vms{};
+		std::unordered_set<byte> vmsAny{};
 
 		if (argc > 2) {
 			output = argv[2];
@@ -220,11 +221,15 @@ namespace {
 				}
 
 				vms.insert(utils::CatLocated16(plt, vm));
+				vmsAny.insert((byte)vm);
 			}
 		}
 
 		auto doPackVm = [&vms](byte vm, tool::gsc::opcode::Platform plt) {
 			return vms.empty() || vms.contains(utils::CatLocated16(plt, vm)) || vms.contains(utils::CatLocated16(0, vm));
+		};
+		auto doPackAnyVm = [&vmsAny](byte vm) {
+			return vmsAny.empty() || vmsAny.contains((byte)vm);
 		};
 
 		// read maps
@@ -304,6 +309,7 @@ namespace {
 
 			size_t vmIdx{};
 			for (const auto& [vm, vminfo] : vmmap) {
+				if (!doPackAnyVm(vm)) continue;
 				auto stroff = AppendString(vminfo.name);
 
 				uint32_t platformCount{};
@@ -360,7 +366,7 @@ namespace {
 				vmv.platformsOffset = plts;
 			}
 
-			reinterpret_cast<ActsPack*>(packFileData.data())->vmCount = (uint32_t)vmmap.size();
+			reinterpret_cast<ActsPack*>(packFileData.data())->vmCount = (uint32_t)vmIdx;
 			reinterpret_cast<ActsPack*>(packFileData.data())->vmOffset = vmoffset;
 
 			LOG_INFO("Done.");

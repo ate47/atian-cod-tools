@@ -18,6 +18,8 @@ namespace tool::gsc::opcode {
 		VMF_OPCODE_U16 = 0x200,
 		VMF_CALL_NO_PARAMS = 0x400,
 		VMF_IW_CALLS = 0x800,
+		VMF_EXPORT_NOCHECKSUM = 0x1000,
+		VMF_HASH_CER = 0x2000,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

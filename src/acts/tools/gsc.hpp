@@ -142,6 +142,7 @@ namespace tool::gsc {
             PRIORITY_SET,
             PRIORITY_TERNARY,
 
+            PRIORITY_COALESCE,
             PRIORITY_BOOL_OR,
             PRIORITY_BOOL_AND,
 
@@ -182,6 +183,8 @@ namespace tool::gsc {
             TYPE_JUMP_ONTRUEEXPR,
             TYPE_JUMP_DEVBLOCK,
             TYPE_JUMP_ENDSWITCH,
+            TYPE_JUMP_ISDEFINED,
+            TYPE_JUMP_ISNOTDEFINED,
 
             TYPE_SWITCH_PRECOMPUTE,
             TYPE_SWITCH_POSTCOMPUTE,
@@ -234,6 +237,8 @@ namespace tool::gsc {
             case TYPE_JUMP_ONFALSE:
             case TYPE_JUMP_ONTRUE:
             case TYPE_JUMP_LOWERTHAN:
+            case TYPE_JUMP_ISDEFINED:
+            case TYPE_JUMP_ISNOTDEFINED:
             case TYPE_JUMP_GREATERTHAN:
             case TYPE_JUMP_ONFALSEEXPR:
             case TYPE_JUMP_ONTRUEEXPR:
@@ -1059,6 +1064,15 @@ namespace tool::gsc {
         uint64_t name_space;
         uint64_t file_name_space;
         uint64_t checksum;
+        uint32_t address;
+        uint8_t param_count;
+        uint8_t flags;
+    };
+
+    struct IW24GSCExport {
+        uint64_t name;
+        uint64_t name_space;
+        uint64_t file_name_space;
         uint32_t address;
         uint8_t param_count;
         uint8_t flags;

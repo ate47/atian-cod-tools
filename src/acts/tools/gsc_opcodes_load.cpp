@@ -898,9 +898,9 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_MW23, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
 			RegisterVMOperatorFunction(VM_MW23, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMHashOPCode(VM_MW23, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
-			RegisterVMHashOPCode(VM_MW23, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return 0; });
-			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
-			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
+			RegisterVMHashOPCode(VM_MW23, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
+			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIW(str); });
+			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
@@ -918,11 +918,31 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_MW23B, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
 			RegisterVMOperatorFunction(VM_MW23B, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMHashOPCode(VM_MW23B, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
-			RegisterVMHashOPCode(VM_MW23B, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return 0; });
-			RegisterVMHashOPCode(VM_MW23B, '%', OPCODE_IW_GetUnk9, 8, [](const char* str) { return hash::Hash64(str, 0x47F5817A5EF961BA); });
-			RegisterVMHashOPCode(VM_MW23B, 't', OPCODE_IW_GetUnkb, 4, [](const char* str) { return hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF; });
+			RegisterVMHashOPCode(VM_MW23B, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
+			RegisterVMHashOPCode(VM_MW23B, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIW(str); });
+			RegisterVMHashOPCode(VM_MW23B, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
+
+			RegisterVM(VM_BO6, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVMPlatform(VM_BO6, PLATFORM_PC_ALPHA);
+			RegisterVMGlobalVariable(VM_BO6, "level", OPCODE_IW_GetLevel);
+			RegisterVMGlobalVariable(VM_BO6, "game", OPCODE_IW_GetGame);
+			RegisterVMGlobalVariable(VM_BO6, "anim", OPCODE_IW_GetAnim);
+			RegisterVMOperatorFunction(VM_BO6, "waittill", "<caller> waittill(event, var*)", OPCODE_IW_SingleWaitTill, VPFD_SELF_PARAM | VPFD_UNPACK, 1);
+			RegisterVMOperatorFunction(VM_BO6, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6, "notify", "<caller> notify(event, param*)", OPCODE_IW_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
+			RegisterVMOperatorFunction(VM_BO6, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
+			RegisterVMOperatorFunction(VM_BO6, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_BO6, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
+			RegisterVMOperatorFunction(VM_BO6, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMHashOPCode(VM_BO6, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
+			RegisterVMHashOPCode(VM_BO6, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
+			RegisterVMHashOPCode(VM_BO6, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIW(str); });
+			RegisterVMHashOPCode(VM_BO6, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
+			RegisterDevCall(VM_BO6, "assert", "assertmsg", "assertex", "println");
+			RegisterDatatype(VM_BO6, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 	#ifdef SP23_INCLUDES
 			sp23::opcodes::RegisterMW23OpCodes();
 	#endif
@@ -1624,8 +1644,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_IW_GetBuiltinMethod, "GetBuiltinMethod");
 			RegisterOpCode(OPCODE_IW_GetIString, "GetIString");
 			RegisterOpCode(OPCODE_IW_GetEmptyUnkE, "GetEmptyUnkE");
-			RegisterOpCode(OPCODE_IW_GetUnkb, "GetUnkb");
-			RegisterOpCode(OPCODE_IW_GetUnk9, "GetUnk9");
+			RegisterOpCode(OPCODE_IW_GetTagHash, "GetTagHash");
+			RegisterOpCode(OPCODE_IW_GetResourceHash, "GetResourceHash");
 			RegisterOpCode(OPCODE_IW_GetDVarHash, "GetDVarHash");
 			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached0, "EvalLocalVariableCached0");
 			RegisterOpCode(OPCODE_IW_EvalLocalVariableCached1, "EvalLocalVariableCached1");
@@ -1661,7 +1681,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_IW_GetGame, "GetGame");
 			RegisterOpCode(OPCODE_IW_GetGameRef, "GetGameRef");
 			RegisterOpCode(OPCODE_IW_GetAnim, "GetAnim");
-			RegisterOpCode(OPCODE_IW_GetAnimRef, "GetAnimRef");
+			RegisterOpCode(OPCODE_GetAnimGRef, "GetAnimGRef");
 			RegisterOpCode(OPCODE_IW_EvalArrayCachedField, "EvalArrayCachedField");
 			RegisterOpCode(OPCODE_IW_GetThread, "GetThread");
 			RegisterOpCode(OPCODE_IW_Notify, "IWNotify");
@@ -1671,7 +1691,6 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_GetShort, "GetShort");
 			RegisterOpCode(OPCODE_GetHash32, "GetHash32");
 			RegisterOpCode(OPCODE_NextArrayKey, "NextArrayKey");
-			RegisterOpCode(OPCODE_GetAnimGRef, "GetAnimGRef");
 			RegisterOpCode(OPCODE_T7_ProfileStart, "T7ProfileStart");
 			RegisterOpCode(OPCODE_GetClasses, "GetClasses");
 			RegisterOpCode(OPCODE_GetClassesObject, "GetClassesObject");
