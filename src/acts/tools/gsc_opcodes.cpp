@@ -4936,14 +4936,16 @@ namespace tool::gsc::opcode {
 	void RegisterDevCall(byte vm, const char* devCall) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {
-			assert(0);
 			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", (int)vm);
 			return;
 		}
 
 		auto& opnfo = ref->second;
 
-		opnfo.AddDevCallName(opnfo.HashField(devCall));
+		uint64_t hash = opnfo.HashField(devCall);
+
+		//LOG_TRACE("add dev call for {} {:x} -> {}", opnfo.internalName, hash, devCall);
+		opnfo.AddDevCallName(hash);
 	}
 
 	void RegisterOpCodes() {

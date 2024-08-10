@@ -924,7 +924,7 @@ namespace tool::gsc::opcode {
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
-			RegisterVM(VM_BO6, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVM(VM_BO6, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 			RegisterVMPlatform(VM_BO6, PLATFORM_PC_ALPHA);
 			RegisterVMGlobalVariable(VM_BO6, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_BO6, "game", OPCODE_IW_GetGame);
