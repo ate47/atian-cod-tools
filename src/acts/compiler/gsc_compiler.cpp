@@ -803,7 +803,6 @@ namespace acts::compiler {
         Platform m_platform{ Platform::PLATFORM_PC };
         const char* m_outFileName{ "compiled" };
         std::vector<const char*> m_inputFiles{};
-        bool m_client{};
         int64_t crcServer{};
         int64_t crcClient{};
         const char* nameServer{ "" };
@@ -871,7 +870,7 @@ namespace acts::compiler {
                     m_preproc = args[++i];
                 }
                 else if (!strcmp("-c", arg) || !_strcmpi("--csc", arg)) {
-                    m_client = true;
+                    LOG_WARNING("{} option not required anymore", arg);
                 }
                 else if (!_strcmpi("--crc", arg)) {
                     if (i + 1 == endIndex) {
@@ -5238,6 +5237,14 @@ namespace acts::compiler {
                     if (ext != ".csc" && ext != ".gcsc") {
                         continue;
                     }
+
+                    if (!opt.m_vmInfo->HasFlag(VmFlags::VMF_CLIENT_VM)) {
+                        if (ext == ".csc") {
+                            LOG_ERROR("{} : This VM doesn't support CSC files", file.string());
+                            return tool::BASIC_ERROR;
+                        }
+                        return tool::OK; // not a bug
+                    }
                 }
                 else {
                     if (ext != ".gsc" && ext != ".gcsc") {
@@ -5270,6 +5277,10 @@ namespace acts::compiler {
                 dt.sizeLine = lineCount;
                 lineGsc = startLine + lineCount;
                 info.gscData = info.gscData + dt.buffer + "\n";
+            }
+
+            if (!lineGsc) {
+                return tool::OK; // no file
             }
 
             preprocessor::PreProcessorOption popt = opt.processorOpt;
@@ -5352,16 +5363,7 @@ namespace acts::compiler {
         if (ret) {
             return ret;
         }
-
-        if (opt.m_client) {
-            if (!opt.m_vmInfo->HasFlag(VmFlags::VMF_CLIENT_VM)) {
-                LOG_ERROR("The vm {} doesn't support client scripts", opt.m_vmInfo->name);
-                return tool::BASIC_ERROR;
-            }
-            return produceFile(true);
-        }
-
-        return tool::OK;
+        return produceFile(true);
     }
 
     ADD_TOOL("gscc", "gsc", " --help", "gsc compiler (Alpha)", nullptr, compiler);
