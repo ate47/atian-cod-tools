@@ -2328,10 +2328,10 @@ public:
 
 class T10GSCOBJHandler : public GSCOBJHandler {
 public:
-    T10GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING) {}
+    T10GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_VAR_VA) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
-        auto* data = Ptr<GscObj23>();
+        GscObj24* data = Ptr<GscObj24>();
         asmout
             << "// crc: 0x" << std::hex << data->checksum << " (" << std::dec << data->checksum << ")\n"
             << std::left << std::setfill(' ')
@@ -2351,7 +2351,7 @@ public:
             // fillme
             asmout
                 << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
-                << "unk22 :" << std::dec << std::setw(3) << (int)data->unk22 << " (0x" << std::hex << data->unk22 << ")\n"
+                << "unk24 :" << std::dec << std::setw(3) << (int)data->unk24 << " (0x" << std::hex << data->unk24 << ")\n"
                 << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
                 << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
                 << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
@@ -2360,7 +2360,7 @@ public:
         }
     }
     void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
-        auto* data = Ptr<GscObj23>();
+        auto* data = Ptr<GscObj24>();
 
         if (opt.m_test_header) {
             uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_use_offset;
@@ -2418,70 +2418,71 @@ public:
     }
 
     uint64_t GetName() override {
-        return Ptr<GscObj23>()->name;
+        return Ptr<GscObj24>()->name;
     }
     uint16_t GetExportsCount() override {
-        return Ptr<GscObj23>()->export_count;
+        return Ptr<GscObj24>()->export_count;
     }
     uint32_t GetExportsOffset() override {
-        return Ptr<GscObj23>()->export_offset;
+        return Ptr<GscObj24>()->export_offset;
     }
     uint16_t GetIncludesCount() override {
-        return Ptr<GscObj23>()->includes_count;
+        return Ptr<GscObj24>()->includes_count;
     }
     uint32_t GetIncludesOffset() override {
-        return Ptr<GscObj23>()->include_table;
+        return Ptr<GscObj24>()->include_table;
     }
     uint16_t GetImportsCount() override {
-        return Ptr<GscObj23>()->imports_count;
+        return Ptr<GscObj24>()->imports_count;
     }
     uint32_t GetImportsOffset() override {
-        return Ptr<GscObj23>()->import_table;
+        return Ptr<GscObj24>()->import_table;
     }
     uint16_t GetGVarsCount() override {
-        return 0; //return Ptr<GscObj23>()->globalvar_count;
+        return 0; //return Ptr<GscObj24>()->globalvar_count;
     }
     uint32_t GetGVarsOffset() override {
-        return 0; //return Ptr<GscObj23>()->globalvar_offset;
+        return 0; //return Ptr<GscObj24>()->globalvar_offset;
     }
     uint16_t GetStringsCount() override {
-        return 0; //Ptr<GscObj23>()->string_count;
+        return Ptr<GscObj24>()->string_count;
     }
     uint32_t GetStringsOffset() override {
-        return 0; //Ptr<GscObj23>()->string_table;
+        return Ptr<GscObj24>()->string_table;
     }
     uint16_t GetAnimTreeSingleCount() override {
-        return 0; //Ptr<GscObj23>()->animtree_use_count;
+        return Ptr<GscObj24>()->animtree_use_count;
     };
     uint32_t GetAnimTreeSingleOffset() override {
-        return 0; //Ptr<GscObj23>()->animtree_use_offset;
+        return 0;// Ptr<GscObj24>()->animtree_use_offset;
     };
     uint16_t GetAnimTreeDoubleCount() override {
-        return 0; //Ptr<GscObj23>()->animtree_count;
+        return Ptr<GscObj24>()->animtree_count;
     };
     uint32_t GetAnimTreeDoubleOffset() override {
-        return 0; //Ptr<GscObj23>()->animtree_offset;
+        return 0;// Ptr<GscObj24>()->animtree_offset;
     };
     uint16_t GetDevStringsCount() override {
-        return Ptr<GscObj23>()->devblock_string_count;
+        return Ptr<GscObj24>()->devblock_string_count;
     }
     uint32_t GetDevStringsOffset() override {
-        return Ptr<GscObj23>()->devblock_string_offset;
+        return Ptr<GscObj24>()->devblock_string_offset;
     }
     uint32_t GetFileSize() override {
-        return Ptr<GscObj23>()->size1;
+        return Ptr<GscObj24>()->size1;
     }
     size_t GetHeaderSize() override {
-        return sizeof(GscObj23);
+        return sizeof(GscObj24);
     }
     char* DecryptString(char* str) override {
         if ((*str & 0xC0) != 0x80) {
             return str; // not encrypted
         }
-        return str + 3; // should be decrypted before
+        static char tmp[0x10] {0};
+        return tmp; // should be decrypted before
     }
     bool IsValidHeader(size_t size) override {
-        return size >= sizeof(GscObj23) && *reinterpret_cast<uint64_t*>(file) == 0xa0d43534706;
+        return size >= sizeof(GscObj24) && *reinterpret_cast<uint64_t*>(file) == 0xa0d43534706;
     }
     byte RemapFlagsImport(byte flags) override {
         byte nflags{};
@@ -2577,63 +2578,63 @@ public:
     }
 
     void SetName(uint64_t name) override {
-        Ptr<GscObj23>()->name = name;
+        Ptr<GscObj24>()->name = name;
     }
     void SetHeader() override {
         Ref<uint64_t>() = 0xa0d43534706;
     }
     void SetExportsCount(uint16_t val) override {
-        Ptr<GscObj23>()->export_count = val;
+        Ptr<GscObj24>()->export_count = val;
     }
     void SetExportsOffset(uint32_t val) override {
-        Ptr<GscObj23>()->export_offset = val;
+        Ptr<GscObj24>()->export_offset = val;
     }
     void SetIncludesCount(uint16_t val) override {
-        Ptr<GscObj23>()->includes_count = val;
+        Ptr<GscObj24>()->includes_count = val;
     }
     void SetIncludesOffset(uint32_t val) override {
-        Ptr<GscObj23>()->include_table = val;
+        Ptr<GscObj24>()->include_table = val;
     }
     void SetImportsCount(uint16_t val) override {
-        Ptr<GscObj23>()->imports_count = val;
+        Ptr<GscObj24>()->imports_count = val;
     }
     void SetImportsOffset(uint32_t val) override {
-        Ptr<GscObj23>()->import_table = val;
+        Ptr<GscObj24>()->import_table = val;
     }
     void SetStringsCount(uint16_t val) override {
-        Ptr<GscObj23>()->string_count = val;
+        Ptr<GscObj24>()->string_count = val;
     }
     void SetStringsOffset(uint32_t val) override {
-        Ptr<GscObj23>()->string_table = val;
+        Ptr<GscObj24>()->string_table = val;
     }
     void SetDevStringsCount(uint16_t val) override {
-        Ptr<GscObj23>()->devblock_string_count = val;
+        Ptr<GscObj24>()->devblock_string_count = val;
     }
     void SetDevStringsOffset(uint32_t val) override {
-        Ptr<GscObj23>()->devblock_string_offset = val;
+        Ptr<GscObj24>()->devblock_string_offset = val;
     }
     void SetFileSize(uint32_t val) override {
         // idk
-        Ptr<GscObj23>()->size1 = val;
-        Ptr<GscObj23>()->size2 = val;
+        Ptr<GscObj24>()->size1 = val;
+        Ptr<GscObj24>()->size2 = val;
     }
     void SetCSEGOffset(uint16_t val) override {
-        Ptr<GscObj23>()->cseg_offset = val;
+        Ptr<GscObj24>()->cseg_offset = val;
     }
     void SetCSEGSize(uint32_t val) override {
-        Ptr<GscObj23>()->cseg_size = val;
+        Ptr<GscObj24>()->cseg_size = val;
     }
     void SetAnimTreeSingleCount(uint16_t val) override {
-        Ptr<GscObj23>()->animtree_use_count = val;
+        Ptr<GscObj24>()->animtree_use_count = val;
     }
     void SetAnimTreeSingleOffset(uint32_t val) override {
-        Ptr<GscObj23>()->animtree_use_offset = val;
+        Ptr<GscObj24>()->animtree_use_offset = val;
     }
     void SetAnimTreeDoubleCount(uint16_t val) override {
-        Ptr<GscObj23>()->animtree_count = val;
+        Ptr<GscObj24>()->animtree_count = val;
     }
     void SetAnimTreeDoubleOffset(uint32_t val) override {
-        Ptr<GscObj23>()->animtree_offset = val;
+        Ptr<GscObj24>()->animtree_offset = val;
     }
     void SetGVarsCount(uint16_t val) override {}
     void SetGVarsOffset(uint32_t val) override {}
@@ -2682,10 +2683,10 @@ public:
         return 0; // no checksum
     }
     void SetChecksum(uint64_t val) override {
-        Ptr<GscObj23>()->checksum = (uint32_t)val;
+        Ptr<GscObj24>()->checksum = (uint32_t)val;
     }
     uint32_t GetChecksum() override {
-        return Ptr<GscObj23>()->checksum;
+        return Ptr<GscObj24>()->checksum;
     }
     const char* GetDefaultName(bool client) override {
         return ""; // idc

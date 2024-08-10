@@ -828,7 +828,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_T9_SetVariableFieldFromEvalArrayRef, 0x28c, 0x3df, 0x439, 0x503, 0x595, 0x7dd, 0x8b3, 0x8b4, 0x938, 0x9b2, 0x9b5, 0xb04, 0xb67, 0xbb8, 0xc47, 0xde6, 0xef4, 0xf0b, 0xf1f, 0xf2c, 0xfee);
 
 			RegisterOpCode(VM_T9, PLATFORM_PC, OPCODE_T8C_GetLazyFunction, 0x13);
-
+			
 			// unused?
 			// 084 : 1bbd040 -> {0x84, 0x257, 0x2ac, 0x2e0, 0x328, 0x36d, 0x44c, 0x45a, 0x48b, 0x4c8, 0x551, 0x684, 0x73e, 0x7be, 0x80e, 0x872, 0x941, 0x9ac, 0x9e0, 0xa8a, 0xaec, 0xaed, 0xb5e, 0xc9d, 0xcc1, 0xe47, 0xe79, 0xeb3, 0xf78}
 			// 1e1 : 1bb67b0 -> {0x1e1, 0x296, 0x2dd, 0x3b3, 0x3c7, 0x42a, 0x678, 0x6ad, 0x74f, 0x850, 0x8ab, 0x937, 0x979, 0x982, 0x9b3, 0xa2b, 0xa71, 0xb23, 0xb90, 0xbc1, 0xd49, 0xd87, 0xe0f, 0xeb9, 0xf23, 0xf88}
@@ -937,10 +937,11 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_BO6, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
 			RegisterVMOperatorFunction(VM_BO6, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
 			RegisterVMOperatorFunction(VM_BO6, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6, "flat_args", "flat_args(array, count) -> bool", OPCODE_T10_FlatArgs, VPFD_RETURN_VALUE, 2, 2);
 			RegisterVMHashOPCode(VM_BO6, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterVMHashOPCode(VM_BO6, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
 			RegisterVMHashOPCode(VM_BO6, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIW(str); });
-			RegisterVMHashOPCode(VM_BO6, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
+			RegisterVMHashOPCode(VM_BO6, 't', OPCODE_T10_GetTargetHash, 8, [](const char* str) { return hashutils::Hash64(str); });
 			RegisterDevCall(VM_BO6, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_BO6, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 	#ifdef SP23_INCLUDES
@@ -1709,6 +1710,24 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_ThreadEndBreakpoint, "ThreadEndBreakpoint");
 			RegisterOpCode(OPCODE_PushVar, "PushVar");
 			RegisterOpCode(OPCODE_PushEntityVar, "PushEntityVar");
+			RegisterOpCode(OPCODE_DEV_Consume0, "DevConsume0");
+			RegisterOpCode(OPCODE_DEV_Consume1, "DevConsume1");
+			RegisterOpCode(OPCODE_DEV_Consume2, "DevConsume2");
+			RegisterOpCode(OPCODE_DEV_Consume4, "DevConsume4");
+			RegisterOpCode(OPCODE_DEV_Consume8, "DevConsume8");
+			RegisterOpCode(OPCODE_DEV_Consume9, "DevConsume9");
+			RegisterOpCode(OPCODE_DEV_Consume0Push, "DevConsume0Push");
+			RegisterOpCode(OPCODE_DEV_Consume1Push, "DevConsume1Push");
+			RegisterOpCode(OPCODE_DEV_Consume2Push, "DevConsume2Push");
+			RegisterOpCode(OPCODE_DEV_Consume4Push, "DevConsume4Push");
+			RegisterOpCode(OPCODE_DEV_Consume8Push, "DevConsume8Push");
+			RegisterOpCode(OPCODE_DEV_Consume9Push, "DevConsume9Push");
+			RegisterOpCode(OPCODE_JumpOnDefined, "JumpOnDefined");
+			RegisterOpCode(OPCODE_JumpOnDefinedExpr, "JumpOnDefinedExpr");
+			RegisterOpCode(OPCODE_T10_GetTargetHash, "GetTargetHash");
+			RegisterOpCode(OPCODE_T10_FlatArgs, "FlatArgs");
+			RegisterOpCode(OPCODE_T10_GreaterThanOrSuperEqualTo, "GreaterThanOrSuperEqualTo");
+			RegisterOpCode(OPCODE_T10_LowerThanOrSuperEqualTo, "LowerThanOrSuperEqualTo");
 			RegisterOpCode(OPCODE_InvalidOpCode, "InvalidOpCode");
 		}
 	};

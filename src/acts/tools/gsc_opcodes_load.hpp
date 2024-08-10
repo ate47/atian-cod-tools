@@ -299,7 +299,7 @@ namespace tool::gsc::opcode {
 		OPCODE_DEV_Consume9Push,
 
 		OPCODE_JumpOnDefined,
-		OPCODE_JumpOnNotDefined,
+		OPCODE_JumpOnDefinedExpr,
 		OPCODE_T10_GetTargetHash,
 		OPCODE_T10_FlatArgs,
 		OPCODE_T10_GreaterThanOrSuperEqualTo,

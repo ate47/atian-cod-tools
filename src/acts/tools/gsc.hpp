@@ -183,8 +183,7 @@ namespace tool::gsc {
             TYPE_JUMP_ONTRUEEXPR,
             TYPE_JUMP_DEVBLOCK,
             TYPE_JUMP_ENDSWITCH,
-            TYPE_JUMP_ISDEFINED,
-            TYPE_JUMP_ISNOTDEFINED,
+            TYPE_JUMP_ONDEFINED,
 
             TYPE_SWITCH_PRECOMPUTE,
             TYPE_SWITCH_POSTCOMPUTE,
@@ -237,8 +236,7 @@ namespace tool::gsc {
             case TYPE_JUMP_ONFALSE:
             case TYPE_JUMP_ONTRUE:
             case TYPE_JUMP_LOWERTHAN:
-            case TYPE_JUMP_ISDEFINED:
-            case TYPE_JUMP_ISNOTDEFINED:
+            case TYPE_JUMP_ONDEFINED:
             case TYPE_JUMP_GREATERTHAN:
             case TYPE_JUMP_ONFALSEEXPR:
             case TYPE_JUMP_ONTRUEEXPR:
@@ -357,6 +355,7 @@ namespace tool::gsc {
             int ComputeReturnJump(ASMContext& ctx);
             int ComputeBoolReturn(ASMContext& ctx);
             int ComputeSpecialPattern(ASMContext& ctx);
+            int ComputePreSpecialPattern(ASMContext& ctx);
 
             ASMContextStatement* FetchFirstForLocation(int64_t rloc);
 
@@ -642,6 +641,12 @@ namespace tool::gsc {
              */
             inline void ComputeSpecialPattern() {
                 m_funcBlock.ComputeSpecialPattern(*this);
+            }
+            /*
+             * Compute the special pattern candidates
+             */
+            inline void ComputePreSpecialPattern() {
+                m_funcBlock.ComputePreSpecialPattern(*this);
             }
 
             /*
@@ -981,6 +986,41 @@ namespace tool::gsc {
         uint32_t include_table;
         uint32_t size2;
         uint32_t string_table;
+        uint32_t unk5C;
+
+        uint64_t GetMagic() {
+            return *reinterpret_cast<uint64_t*>(magic);
+        }
+    };
+
+    struct GscObj24 {
+        byte magic[8];
+        uint64_t name;
+        uint16_t unk10;
+        uint16_t animtree_use_count;
+        uint16_t animtree_count;
+        uint16_t devblock_string_count;
+        uint16_t export_count;
+        uint16_t fixup_count;
+        uint16_t unk1C;
+        uint16_t imports_count;
+        uint16_t includes_count;
+        uint16_t string_count;
+        uint16_t unk24;
+        uint16_t unk26;
+        uint32_t checksum;
+        uint32_t animtree_use_offset;
+        uint32_t animtree_offset;
+        uint32_t cseg_offset;
+        uint32_t cseg_size;
+        uint32_t devblock_string_offset;
+        uint32_t export_offset;
+        uint32_t fixup_offset;
+        uint32_t size1;
+        uint32_t import_table;
+        uint32_t include_table;
+        uint32_t string_table;
+        uint32_t size2;
         uint32_t unk5C;
 
         uint64_t GetMagic() {

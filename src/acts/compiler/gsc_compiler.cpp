@@ -94,6 +94,7 @@ namespace acts::compiler {
         ASCMNT_UNKNOWN = 0,
         ASCMNT_OPCODE = 1,
         ASCMNT_OPCODE_RAW = 1,
+        ASCMNT_RAW = 2,
     };
 
     class AscmNodeJump;
@@ -127,6 +128,33 @@ namespace acts::compiler {
         }
 
         AscmNodeOpCode* AsOpCode();
+    };
+
+    class AscmNodeRaw : public AscmNode {
+    public:
+        std::vector<byte> data{};
+        size_t aligned;
+
+        AscmNodeRaw(size_t aligned = 1) : aligned(aligned) {
+            nodetype = ASCMNT_RAW;
+        }
+
+        uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+            return start + (uint32_t)data.size();
+        }
+
+        bool Write(AscmCompilerContext& ctx) override {
+            ctx.data.insert(ctx.data.end(), data.begin(), data.end());
+            return true;
+        }
+    };
+
+    template<typename Type>
+    class AscmNodeRawData : public AscmNodeRaw {
+    public:
+        AscmNodeRawData(Type t) : AscmNodeRaw(sizeof(Type)) {
+            utils::WriteValue<Type>(data, t);
+        }
     };
 
     class AscmNodeOpCode : public AscmNode {
@@ -268,6 +296,30 @@ namespace acts::compiler {
         }
     };
 
+    class AscmNodeStringData : public AscmNodeOpCode{
+    public:
+        std::string string;
+
+        AscmNodeStringData(std::string string, OPCode opcode) : AscmNodeOpCode(opcode), string(string) {
+        }
+
+        uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+            return AscmNodeOpCode::ShiftSize(start, aligned) + (uint32_t)string.size() + 1;
+        }
+
+        bool Write(AscmCompilerContext& ctx) override {
+            if (!AscmNodeOpCode::Write(ctx)) {
+                return false;
+            }
+            
+            for (size_t i = 0; i < string.length(); i++) {
+                ctx.Write<char>(string[i]);
+            }
+            ctx.Write<char>(0);
+            return true;
+        }
+    };
+
     enum FuncCallFlags {
         FCF_THREAD = 0x1,
         FCF_CHILDTHREAD = 0x2,
@@ -287,10 +339,12 @@ namespace acts::compiler {
         int flags;
         byte params;
         bool inlineCall;
+        bool useIWCalls;
 
         AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName, uint64_t nameSpace, VmInfo* vm)
             : AscmNodeOpCode(opcode), flags(flags), params(params), clsName(clsName), nameSpace(nameSpace) {
             inlineCall = vm->HasFlag(VmFlags::VMF_ALIGN);
+            useIWCalls = vm->HasFlag(VmFlags::VMF_IW_CALLS);
         }
 
         void SetScriptCall(CompileObject& obj, bool scriptCall);
@@ -376,7 +430,7 @@ namespace acts::compiler {
             }
 
             start = AscmNodeOpCode::ShiftSize(start, aligned);
-            if (useParams) {
+            if (useParams && useIWCalls) {
                 start++;
             }
             start += dataSize;
@@ -393,7 +447,7 @@ namespace acts::compiler {
             uint32_t dataSize{};
             LoadData(useParams, dataSize);
 
-            if (useParams) {
+            if (useParams && useIWCalls) {
                 ctx.Write<byte>(params);
             }
 
@@ -422,7 +476,7 @@ namespace acts::compiler {
                 return floc;
             }
 
-            if (opcode == OPCODE_CallBuiltinFunction || opcode == OPCODE_CallBuiltinMethod) {
+            if ((opcode == OPCODE_CallBuiltinFunction || opcode == OPCODE_CallBuiltinMethod) && useIWCalls) {
                 return floc + 2;
             }
             return floc + 1;
@@ -490,10 +544,6 @@ namespace acts::compiler {
                         }
 
                         e += hashSize;
-
-                        if (hasFlag) {
-                            e++;
-                        }
                     }
                 }
                 else if (hasRegisters) {
@@ -505,11 +555,7 @@ namespace acts::compiler {
                             e = (e + (hashSize - 1)) & ~(hashSize - 1);
                         }
 
-                        e += hashSize;
-
-                        if (hasFlag) {
-                            e++;
-                        }
+                        e += hashSize * (uint32_t)(vars.size() - params);
                     }
                 }
             }
@@ -607,9 +653,6 @@ namespace acts::compiler {
                             else {
                                 ctx.Align<uint32_t>();
                                 ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
-                            }
-                            if (hasFlag) {
-                                ctx.Write<byte>(var.flags);
                             }
                         }
                     }
@@ -1426,6 +1469,68 @@ namespace acts::compiler {
             }
 
             return new AscmNodeData<int64_t>(val, OPCODE_GetLongInteger);
+        }
+
+        bool TryStringNodeValue(ParseTree* hashNode, std::string& output) {
+            if (!hashNode) {
+                return false; // wtf?
+            }
+            while (hashNode->getTreeType() != TREE_TERMINAL) {
+                if (hashNode->getTreeType() == TREE_ERROR) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Tree error");
+                    return false;
+                }
+                if (hashNode->children.size() != 1) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression");
+                    return false;
+                }
+
+                hashNode = hashNode->children[0];
+            }
+
+            TerminalNode* term = dynamic_cast<TerminalNode*>(hashNode);
+            if (term->getSymbol()->getType() == gscParser::STRING) {
+                std::string node = term->getText();
+                auto newStr = std::make_unique<char[]>(node.length() - 1);
+                char* newStrWriter = &newStr[0];
+
+                // format string
+                for (size_t i = 1; i < node.length() - 1; i++) {
+                    if (node[i] != '\\') {
+                        *(newStrWriter++) = node[i];
+                        continue; // default case
+                    }
+
+                    i++;
+
+                    assert(i < node.length() && "bad format, \\ before end");
+
+                    switch (node[i]) {
+                    case 'n':
+                        *(newStrWriter++) = '\n';
+                        break;
+                    case 't':
+                        *(newStrWriter++) = '\t';
+                        break;
+                    case 'r':
+                        *(newStrWriter++) = '\r';
+                        break;
+                    case 'b':
+                        *(newStrWriter++) = '\b';
+                        break;
+                    default:
+                        *(newStrWriter++) = node[i];
+                        break;
+                    }
+                }
+                *(newStrWriter++) = 0; // end char
+                output = &newStr[0];
+                return true;
+            }
+            else {
+                info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a string expression, only string node available");
+                return false;
+            }
         }
 
         bool TryHashNodeValue(ParseTree* hashNode, uint64_t& output) {
@@ -3267,6 +3372,7 @@ namespace acts::compiler {
                         bool paramError{};
                         int paramCount{};
                         uint64_t hashVal{};
+                        std::string strVal{};
 
                         if (f.HasFlag(tool::gsc::opcode::VPFD_UNPACK)) {
                             if (expressVal) {
@@ -3305,10 +3411,25 @@ namespace acts::compiler {
                                     return false;
                                 }
 
-                                ParseTree* hashParam{ paramsList->children[0] };
+                                ParseTree* hashParam{ paramsList->children[removedStart] };
 
                                 if (!obj.TryHashNodeValue(hashParam, hashVal)) {
                                     obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' should start with a valid hash param, Usage: {}", funcName, f.usage));
+                                    return false;
+                                }
+
+                                removedStart += 2; // use the first param as hash
+                            }
+                            if (f.HasFlag(VPFD_STRING_PARAM)) {
+                                if (paramsList->children.empty()) {
+                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to have at least one param, Usage: {}", funcName, f.usage));
+                                    return false;
+                                }
+
+                                ParseTree* strParam{ paramsList->children[removedStart] };
+
+                                if (!obj.TryStringNodeValue(strParam, strVal)) {
+                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' should have a valid string param, Usage: {}", funcName, f.usage));
                                     return false;
                                 }
 
@@ -3344,15 +3465,18 @@ namespace acts::compiler {
                             obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Too many params for operator '{}', Usage: {}", funcName, f.usage));
                             return false;
                         }
+                        fobj.AddNode(rule, new AscmNodeOpCode(f.opCode));
 
                         if (f.HasFlag(tool::gsc::opcode::VPFD_USE_COUNT)) {
-                            fobj.AddNode(rule, new AscmNodeData<byte>((byte)paramCount, f.opCode));
+                            fobj.AddNode(rule, new AscmNodeRawData<byte>((byte)paramCount));
                         }
-                        else if (f.HasFlag(VPFD_HASH_PARAM)) {
-                            fobj.AddNode(rule, new AscmNodeData<uint64_t>(hashVal, f.opCode));
+                        if (f.HasFlag(VPFD_HASH_PARAM)) {
+                            fobj.AddNode(rule, new AscmNodeRawData<uint64_t>(hashVal));
                         }
-                        else {
-                            fobj.AddNode(rule, new AscmNodeOpCode(f.opCode));
+                        if (f.HasFlag(VPFD_STRING_PARAM)) {
+                            AscmNodeRaw* node = new AscmNodeRaw();
+                            node->data.insert(node->data.end(), (byte*)strVal.data(), (byte*)strVal.data() + strVal.size() + 1);
+                            fobj.AddNode(rule, node);
                         }
 
                         if (!expressVal && f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
@@ -3725,35 +3849,52 @@ namespace acts::compiler {
                 }
                 else if (op == "??") {
                     bool ok{ true };
-                    auto [verr, tmp] = fobj.GetSpecialTmpVar();
 
-                    if (verr) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for ?? operation: {}", verr));
-                        return false;
+                    if (obj.HasOpCode(OPCODE_JumpOnDefinedExpr)) {
+                        if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
+                            ok = false;
+                        }
+                        AscmNode* end = new AscmNode();
+                        fobj.AddNode(rule, new AscmNodeJump(end, OPCODE_JumpOnDefinedExpr));
+
+                        if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
+                            ok = false;
+                        }
+
+                        fobj.AddNode(rule, end);
+                    }
+                    else {
+                        auto [verr, tmp] = fobj.GetSpecialTmpVar();
+
+                        if (verr) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for ?? operation: {}", verr));
+                            return false;
+                        }
+
+                        if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
+                            ok = false;
+                        }
+
+                        fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableRefCached));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                        AscmNode* onDefined = new AscmNode();
+                        fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
+                        fobj.AddNode(rule, new AscmNodeJump(onDefined, OPCODE_JumpOnTrue));
+
+
+                        if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
+                            ok = false;
+                        }
+                        AscmNode* end = new AscmNode();
+                        fobj.AddNode(rule, new AscmNodeJump(end, OPCODE_Jump));
+
+                        fobj.AddNode(rule, onDefined);
+                        fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
+                        fobj.AddNode(rule, end);
                     }
 
-                    if (!ParseExpressionNode(rule->children[0], parser, obj, fobj, true)) {
-                        ok = false;
-                    }
-
-                    fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableRefCached));
-                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
-
-                    AscmNode* onDefined = new AscmNode();
-                    fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
-                    fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_IsDefined));
-                    fobj.AddNode(rule, new AscmNodeJump(onDefined, OPCODE_JumpOnTrue));
-
-
-                    if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
-                        ok = false;
-                    }
-                    AscmNode* end = new AscmNode();
-                    fobj.AddNode(rule, new AscmNodeJump(end, OPCODE_Jump));
-
-                    fobj.AddNode(rule, onDefined);
-                    fobj.AddNode(rule, new AscmNodeVariable(tmp->id, OPCODE_EvalLocalVariableCached));
-                    fobj.AddNode(rule, end);
 
                     return ok;
                 }
@@ -3794,11 +3935,17 @@ namespace acts::compiler {
                     else if (op == "<=") {
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_LessThanOrEqualTo));
                     }
+                    else if (op == "<==") {
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_T10_LowerThanOrSuperEqualTo));
+                    }
                     else if (op == ">") {
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_GreaterThan));
                     }
                     else if (op == ">=") {
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_GreaterThanOrEqualTo));
+                    }
+                    else if (op == ">==") {
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_T10_GreaterThanOrSuperEqualTo));
                     }
                     else if (op == "+") {
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Plus));

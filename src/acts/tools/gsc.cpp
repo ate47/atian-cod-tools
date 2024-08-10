@@ -1454,7 +1454,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             const auto* imports = reinterpret_cast<const uint32_t*>(import_location + impSize);
             asmout << std::hex << flocName(imports[0]);
             for (size_t j = 1; j < numAddress; j++) {
-                asmout << std::hex << "," << flocName(imports[j]);
+                asmout << std::hex << "," << flocName(imports[j]) << "(0x" << imports[j] << ")";
             }
             asmout << "\n";
 
@@ -1629,6 +1629,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                     }
 
                     if (!asmctx.m_vtable) {
+                        asmctx.ComputePreSpecialPattern();
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_DEV)) {
                             asmctx.ComputeDevBlocks();
 

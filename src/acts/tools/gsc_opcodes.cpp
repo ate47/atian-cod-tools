@@ -197,16 +197,11 @@ namespace tool::gsc::opcode {
 			}
 			return clo;
 		}
-		case TYPE_JUMP_ISDEFINED:
+		case TYPE_JUMP_ONDEFINED:
 			if (reversed) {
 				return new ASMContextNodeOp1("!", true, new ASMContextNodeFunctionOperator("isdefined", nullptr, op->m_operand->Clone(), TYPE_FUNC_IS_DEFINED, true), TYPE_UNDEFINED, true);
 			}
 			return new ASMContextNodeFunctionOperator("isdefined", nullptr, op->m_operand->Clone(), TYPE_FUNC_IS_DEFINED, true);
-		case TYPE_JUMP_ISNOTDEFINED:
-			if (reversed) {
-				return new ASMContextNodeFunctionOperator("isdefined", nullptr, op->m_operand->Clone(), TYPE_FUNC_IS_DEFINED, true);
-			}
-			return new ASMContextNodeOp1("!", true, new ASMContextNodeFunctionOperator("isdefined", nullptr, op->m_operand->Clone(), TYPE_FUNC_IS_DEFINED, true), TYPE_UNDEFINED, true);
 		case TYPE_JUMP_ONTRUE:
 		case TYPE_JUMP_ONTRUEEXPR:
 			if (reversed) {
@@ -1290,13 +1285,8 @@ public:
 			break;
 			case OPCODE_JumpOnDefined:
 				node = context.PopASMCNode();
-				type = TYPE_JUMP_ISDEFINED;
+				type = TYPE_JUMP_ONDEFINED;
 				name = "jumpifdefined";
-				break;
-			case OPCODE_JumpOnNotDefined:
-				node = context.PopASMCNode();
-				type = TYPE_JUMP_ISNOTDEFINED;
-				name = "jumpifnotdefined";
 				break;
 			case OPCODE_JumpOnFalse:
 				node = context.PopASMCNode();
@@ -1507,7 +1497,7 @@ public:
 					priority = PRIORITY_BOOL_OR;
 					desc = "||";
 					break;
-				case OPCODE_JumpOnNotDefined:
+				case OPCODE_JumpOnDefinedExpr:
 					priority = PRIORITY_COALESCE;
 					desc = "??";
 					break;
@@ -5026,7 +5016,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_JumpOnFalse, "JumpOnFalse"));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_JumpOnLessThan, "JumpOnLessThan"));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_JumpOnDefined, "JumpOnDefined"));
-			RegisterOpCodeHandler(new OPCodeInfoJumpExpr(OPCODE_JumpOnNotDefined, "JumpOnNotDefined"));
+			RegisterOpCodeHandler(new OPCodeInfoJumpExpr(OPCODE_JumpOnDefinedExpr, "JumpOnDefinedExpr"));
 			RegisterOpCodeHandler(new OPCodeInfoJumpExpr(OPCODE_JumpOnFalseExpr, "JumpOnFalseExpr"));
 			RegisterOpCodeHandler(new OPCodeInfoJumpExpr(OPCODE_JumpOnTrueExpr, "JumpOnTrueExpr"));
 			
@@ -5506,6 +5496,13 @@ bool ASMContext::FindNextLocation() {
 				minloc = location;
 			}
 		}
+		else {
+			if (loc.rloc > min) {
+				LOG_WARNING("Unhandled rloc: 0x{:x} after handled 0x{:x}, the decompiled code won't be 100% correct", min, loc.rloc);
+				min = 0xFFFFFFFFFF;
+				minloc = 0;
+			}
+		}
 	}
 	if (min != 0xFFFFFFFFFF) {
 		m_bcl = &m_fonctionStart[minloc];
@@ -5873,59 +5870,108 @@ void ASMContext::ComputeDefaultParamValue() {
 
 
 		auto& param1 = it->node;
-		if (param1->m_type != TYPE_JUMP_ONTRUE) {
+		if (param1->m_type != TYPE_JUMP_ONTRUE && param1->m_type != TYPE_JUMP_ONDEFINED) {
 			break;
 		}
 		it++;
+
 		if (it == m_funcBlock.m_statements.end() || it->node->m_type != TYPE_SET) {
 			break;
 		}
 
-		auto* jump = static_cast<ASMContextNodeJumpOperator*>(param1);
-		auto* set = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
-		auto end = jump->m_location;
+		if (param1->m_type == TYPE_JUMP_ONTRUE) {
+
+			auto* jump = static_cast<ASMContextNodeJumpOperator*>(param1);
+			auto* set = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
+			auto end = jump->m_location;
 
 
-		it++;
-		asmcontextlocation* jumpEndLocation = nullptr;
-		if (it != m_funcBlock.m_statements.end()) {
-			jumpEndLocation = it->location;
-			if (jumpEndLocation->rloc < end) {
-				break; // jump too far
+			it++;
+			asmcontextlocation* jumpEndLocation = nullptr;
+			if (it != m_funcBlock.m_statements.end()) {
+				jumpEndLocation = it->location;
+				if (jumpEndLocation->rloc < end) {
+					break; // jump too far
+				}
 			}
+
+			if (!jump->m_operand || jump->m_operand->m_type != TYPE_FUNC_IS_DEFINED) {
+				break; // not jumpif(isdefined(??))
+			}
+
+			auto* isDefinedFunc = static_cast<ASMContextNodeFunctionOperator*>(jump->m_operand);
+
+			if (isDefinedFunc->m_operand->m_type != TYPE_IDENTIFIER || set->m_left->m_type != TYPE_IDENTIFIER || !set->m_right) {
+				break; // not isdefined(param_name) or not param_name = ...
+			}
+			uint64_t name = static_cast<ASMContextNodeIdentifier*>(set->m_left)->m_value;
+
+			if (static_cast<ASMContextNodeIdentifier*>(isDefinedFunc->m_operand)->m_value != name) {
+				break; // not the same name value
+			}
+
+			uint64_t localVar = GetLocalVarIdByName(name);
+
+			// the local variables are reversed and the first is an error check, so - 1 - params
+			if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.GetParamCount() || m_localvars[localVar].defaultValueNode) {
+				break; // not a param var or already defined as default
+			}
+
+			// add default value node
+			m_localvars[localVar].defaultValueNode = set->m_right->Clone();
+
+			if (jumpEndLocation) {
+				// remove one ref
+				jumpEndLocation->RemoveRef(jump->m_opLoc);
+			}
+
+			headerSize += 2;
 		}
+		else if (param1->m_type == TYPE_JUMP_ONDEFINED) {
 
-		if (!jump->m_operand || jump->m_operand->m_type != TYPE_FUNC_IS_DEFINED) {
-			break; // not jumpif(isdefined(??))
+			auto* jump = static_cast<ASMContextNodeJumpOperator*>(param1);
+			auto* set = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
+			auto end = jump->m_location;
+
+
+			it++;
+			asmcontextlocation* jumpEndLocation = nullptr;
+			if (it != m_funcBlock.m_statements.end()) {
+				jumpEndLocation = it->location;
+				if (jumpEndLocation->rloc < end) {
+					break; // jump too far
+				}
+			}
+
+			if (jump->m_operand->m_type != TYPE_IDENTIFIER || set->m_left->m_type != TYPE_IDENTIFIER || !set->m_right) {
+				break; // not isdefined(param_name) or not param_name = ...
+			}
+			uint64_t name = static_cast<ASMContextNodeIdentifier*>(set->m_left)->m_value;
+
+			if (static_cast<ASMContextNodeIdentifier*>(jump->m_operand)->m_value != name) {
+				break; // not the same name value
+			}
+
+			uint64_t localVar = GetLocalVarIdByName(name);
+
+			// the local variables are reversed and the first is an error check, so - 1 - params
+			if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.GetParamCount() || m_localvars[localVar].defaultValueNode) {
+				break; // not a param var or already defined as default
+			}
+
+			// add default value node
+			m_localvars[localVar].defaultValueNode = set->m_right->Clone();
+
+			if (jumpEndLocation) {
+				// remove one ref
+				jumpEndLocation->RemoveRef(jump->m_opLoc);
+			}
+
+			headerSize += 2;
 		}
-
-		auto* isDefinedFunc = static_cast<ASMContextNodeFunctionOperator*>(jump->m_operand);
-
-		if (isDefinedFunc->m_operand->m_type != TYPE_IDENTIFIER || set->m_left->m_type != TYPE_IDENTIFIER || !set->m_right) {
-			break; // not isdefined(param_name) or not param_name = ...
+		else {
+			throw std::runtime_error("INVALID TYPE_JUMP DEFAULT PARAM");
 		}
-		uint64_t name = static_cast<ASMContextNodeIdentifier*>(set->m_left)->m_value;
-
-		if (static_cast<ASMContextNodeIdentifier*>(isDefinedFunc->m_operand)->m_value != name) {
-			break; // not the same name value
-		}
-
-		uint64_t localVar = GetLocalVarIdByName(name);
-
-		// the local variables are reversed and the first is an error check, so - 1 - params
-		if (localVar == -1 || localVar < m_localvars.size() - 1 - m_exp.GetParamCount() || m_localvars[localVar].defaultValueNode) {
-			break; // not a param var or already defined as default
-		}
-
-		// add default value node
-		m_localvars[localVar].defaultValueNode = set->m_right->Clone();
-
-		if (jumpEndLocation) {
-			// remove one ref
-			jumpEndLocation->RemoveRef(jump->m_opLoc);
-		}
-
-		headerSize += 2;
 	}
 
 	if (!headerSize) {
@@ -7284,6 +7330,46 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 }
 
 namespace {
+	void ApplyPreSpecialPatternBlock(ASMContext& ctx, std::vector<ASMContextStatement>& stmts) {
+		/* // Replace ondefined jump to default_to, but it's not really important and probably annoying to add in the compiler
+		for (size_t i = 0; i < stmts.size(); i++) {
+			auto& stmt = stmts[i];
+
+			stmt.node->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) { ApplyPreSpecialPatternBlock(ctx, block->m_statements); }, ctx);
+
+			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_SPECIAL_PATTERN)) {
+				if (i < 2 || stmts[i - 1].node->m_type != TYPE_SET || stmts[i - 2].node->m_type != TYPE_JUMP_ONDEFINED) {
+					continue;
+				}
+
+				ASMContextNodeLeftRightOperator* set = dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node);
+				ASMContextNodeJumpOperator* jump = dynamic_cast<ASMContextNodeJumpOperator*>(stmts[i - 2].node);
+
+				if (!IsStructSimilar(set->m_left, jump->m_operand) || jump->m_location != stmt.location->rloc) {
+					continue;
+				}
+
+				i -= 2;
+				// replace ifdefined to default_to
+				ASMContextNodeMultOp* defaultToNode = new ASMContextNodeMultOp("default_to", false);
+
+				defaultToNode->AddParam(set->m_left);
+				defaultToNode->AddParam(set->m_right);
+
+				set->m_left	= nullptr;
+				set->m_right = nullptr;
+				delete set;
+
+				// delete jump and refs
+				stmts[i + 2].location->RemoveRef(jump->m_opLoc);
+				delete stmts[i].node;
+				stmts.erase(stmts.begin() + i + 1);
+				stmts[i].node = defaultToNode;
+				continue;
+			}
+		}
+		*/
+	}
 	void ApplySpecialPatternBlock(ASMContext& ctx, std::vector<ASMContextStatement>& stmts) {
 		for (size_t i = 0; i < stmts.size(); i++) {
 			auto& stmt = stmts[i];
@@ -7417,6 +7503,12 @@ namespace {
 int ASMContextNodeBlock::ComputeSpecialPattern(ASMContext& ctx) {
 	// apply special structural changes
 	ApplySpecialPatternBlock(ctx, m_statements);
+
+	return 0;
+}
+int ASMContextNodeBlock::ComputePreSpecialPattern(ASMContext& ctx) {
+	// apply pre special structural changes
+	ApplyPreSpecialPatternBlock(ctx, m_statements);
 
 	return 0;
 }

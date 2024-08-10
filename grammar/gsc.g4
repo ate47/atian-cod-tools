@@ -98,7 +98,7 @@ expression6:
 	expression6 ('!=' | '==' | '!==' | '===') expression7
 	| expression7;
 expression7:
-	expression7 ('<' | '<=' | '>' | '>=') expression8
+	expression7 ('<' | '<=' | '>' | '>=' | '<==' | '>==') expression8
 	| expression8;
 expression8: expression8 ('<' | '<=') expression9 | expression9;
 expression9: expression9 ('<<' | '>>') expression10 | expression10;
