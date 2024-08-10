@@ -247,16 +247,14 @@ uint64_t VmInfo::HashField(const char* value) const {
 }
 
 uint64_t VmInfo::HashPath(const char* value) const {
-	if (HasFlag(VmFlags::VMF_HASH_IW) || HasFlag(VmFlags::VMF_HASH_CER)) {
-		return hash::Hash64Pattern(value);
+	if (HasFlag(VmFlags::VMF_HASH_CER) || HasFlag(VmFlags::VMF_HASH_IW)) {
+		return hashutils::HashIW(value);
 	}
 	return hash::Hash64Pattern(value);
 }
 
 uint64_t VmInfo::HashFilePath(const char* value) const {
 	return HashField(value);
-	// iw wtf?
-	//return hash::Hash64A(value, 0x47F5817A5EF961BA);
 }
 
 OPCodeInfo::OPCodeInfo(OPCode id, const char* name) : m_id(id), m_name(name) {
