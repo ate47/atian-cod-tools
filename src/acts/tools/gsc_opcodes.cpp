@@ -6033,6 +6033,31 @@ int ASMContextNodeBlock::ComputeDevBlocks(ASMContext& ctx) {
 	return 0;
 }
 
+static void ReplaceSwitchBlockBreak(ASMContextNodeBlock& current, ASMContext& ctx, asmcontextlocation* endLocation, uint64_t endCase, int64_t end) {
+	for (ASMContextStatement& stmt : current.m_statements) {
+		if (stmt.location->rloc >= endCase) {
+			break; // end of the case
+		}
+
+		if (stmt.node->m_type == TYPE_BLOCK) {
+			ReplaceSwitchBlockBreak(*static_cast<ASMContextNodeBlock*>(stmt.node), ctx, endLocation, endCase, end);
+		}
+		else if (stmt.node->m_type == TYPE_JUMP || stmt.node->m_type == TYPE_JUMP_ENDSWITCH) {
+			auto* jump = static_cast<ASMContextNodeJumpOperator*>(stmt.node);
+			// convert this to a break statement
+			if (jump->m_location == end) {
+				jump->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break<switch_inblock>" : "break";
+				jump->m_showJump = false;
+				jump->m_special_op = SPECIAL_JUMP_BREAK;
+				if (endLocation) {
+					endLocation->RemoveRef(jump->m_opLoc);
+				}
+			}
+		}
+	}
+
+}
+
 int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 
 	auto it = this->m_statements.begin();
@@ -6111,7 +6136,10 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 						break; // end of the case
 					}
 
-					if (it->node->m_type == TYPE_JUMP || it->node->m_type == TYPE_JUMP_ENDSWITCH) {
+					if (it->node->m_type == TYPE_BLOCK) {
+						ReplaceSwitchBlockBreak(*static_cast<ASMContextNodeBlock*>(it->node), ctx, endLocation, endCase, end);
+					}
+					else if (it->node->m_type == TYPE_JUMP || it->node->m_type == TYPE_JUMP_ENDSWITCH) {
 						auto* jump = static_cast<ASMContextNodeJumpOperator*>(it->node);
 						// convert this to a break statement
 						if (jump->m_location == end) {
