@@ -7,6 +7,7 @@
 
 
 function autoexec test_ev() {
+    assert(dev::func_dev(2) === 2);
     level.acts = {
         #a: 42,
         #b: [1,2,3,4],

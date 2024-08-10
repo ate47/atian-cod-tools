@@ -811,6 +811,7 @@ namespace acts::compiler {
         const char* fileNameSpaceServer{ "" };
         const char* fileNameSpaceClient{ "" };
         bool defineAsConstExpr{};
+        bool noDevCallInline{};
         DetourType detourType{ DETOUR_UNKNOWN };
         preprocessor::PreProcessorOption processorOpt{};
 
@@ -929,6 +930,9 @@ namespace acts::compiler {
                 else if (!_strcmpi("--define-as-constxpr", arg)) {
                     processorOpt.noDefineExpr = true;
                 }
+                else if (!_strcmpi("--no-devcall-inline", arg)) {
+                    noDevCallInline = true;
+                }
                 else if (!_strcmpi("--detour", arg)) {
                     if (i + 1 == endIndex) {
                         LOG_ERROR("Missing value for param: {}!", arg);
@@ -1008,6 +1012,7 @@ namespace acts::compiler {
             LOG_INFO("--namespace-client [n] : Set the file namespace for the client script");
             LOG_INFO("--dev-block-as-comment : Consider /# #/ as comment markers");
             LOG_INFO("--define-as-constxpr   : Consider #define as constexpr");
+            LOG_INFO("--no-devcall-inline    : Do not automatically inline dev calls in /# #/ blocks");
             LOG_DEBUG("--preproc [f]         : Export preproc result into f");
         }
     };  
@@ -3300,6 +3305,7 @@ namespace acts::compiler {
                 uint64_t funcHash{};
                 ParseTree* ptrTree{};
                 ParseTree* selfTree{};
+                AscmNode* devCallInlineEnd{};
 
                 int flags{};
                 byte importFlags{};
@@ -3501,6 +3507,15 @@ namespace acts::compiler {
 
                         return true;
                     }
+                    // test dev call
+                    if (!obj.opt.noDevCallInline && !obj.devBlockDepth && fobj.m_vmInfo->devCallsNames.find(funcHash & 0x7FFFFFFFFFFFFFFF) != fobj.m_vmInfo->devCallsNames.end()) {
+                        if (!expressVal) { // can't inline a returned value
+                            devCallInlineEnd = new AscmNode();
+                            fobj.AddNode(rule, new AscmNodeJump(devCallInlineEnd, OPCODE_DevblockBegin));
+
+                            obj.devBlockDepth++;
+                        }
+                    }
                     obj.AddHash(funcName);
                 }
                 else if (functionComp->children.size() == 3) {
@@ -3675,6 +3690,10 @@ namespace acts::compiler {
 
                 if (!expressVal) {
                     fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
+                }
+                if (devCallInlineEnd) {
+                    obj.devBlockDepth--;
+                    fobj.AddNode(rule, devCallInlineEnd);
                 }
                 return true;
             }
