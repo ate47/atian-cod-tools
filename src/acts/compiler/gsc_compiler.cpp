@@ -5237,14 +5237,6 @@ namespace acts::compiler {
                     if (ext != ".csc" && ext != ".gcsc") {
                         continue;
                     }
-
-                    if (!opt.m_vmInfo->HasFlag(VmFlags::VMF_CLIENT_VM)) {
-                        if (ext == ".csc") {
-                            LOG_ERROR("{} : This VM doesn't support CSC files", file.string());
-                            return tool::BASIC_ERROR;
-                        }
-                        return tool::OK; // not a bug
-                    }
                 }
                 else {
                     if (ext != ".gsc" && ext != ".gcsc") {
