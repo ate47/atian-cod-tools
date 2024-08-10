@@ -2478,8 +2478,7 @@ public:
         if ((*str & 0xC0) != 0x80) {
             return str; // not encrypted
         }
-        static char tmp[0x10] {0};
-        return tmp; // should be decrypted before
+        return str + 3; // should be decrypted before
     }
     bool IsValidHeader(size_t size) override {
         return size >= sizeof(GscObj24) && *reinterpret_cast<uint64_t*>(file) == 0xa0d43534706;

@@ -805,6 +805,8 @@ namespace acts::compiler {
         std::vector<const char*> m_inputFiles{};
         int64_t crcServer{};
         int64_t crcClient{};
+        int64_t crcEmitServer{};
+        int64_t crcEmitClient{};
         const char* nameServer{ "" };
         const char* nameClient{ "" };
         const char* fileNameSpaceServer{ "" };
@@ -898,6 +900,32 @@ namespace acts::compiler {
                         return false;
                     }
                 }
+                else if (!_strcmpi("--crc-emit", arg)) {
+                    if (i + 1 == endIndex) {
+                        LOG_ERROR("Missing value for param: {}!", arg);
+                        return false;
+                    }
+                    try {
+                        crcEmitServer = std::strtoll(args[++i], nullptr, 16);
+                    }
+                    catch (std::exception& e) {
+                        LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
+                        return false;
+                    }
+                }
+                else if (!_strcmpi("--crc-emit-client", arg)) {
+                    if (i + 1 == endIndex) {
+                        LOG_ERROR("Missing value for param: {}!", arg);
+                        return false;
+                    }
+                    try {
+                        crcEmitClient = std::strtoll(args[++i], nullptr, 16);
+                    }
+                    catch (std::exception& e) {
+                        LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
+                        return false;
+                    }
+                }
                 else if (!_strcmpi("--name", arg)) {
                     if (i + 1 == endIndex) {
                         LOG_ERROR("Missing value for param: {}!", arg);
@@ -969,6 +997,8 @@ namespace acts::compiler {
                 LOG_WARNING("No game set, please set a game using --game [game]");
                 return false;
             }
+            if (!crcEmitClient) crcEmitClient = crcClient;
+            if (!crcEmitServer) crcEmitServer = crcServer;
             return true;
         }
 
@@ -1285,6 +1315,7 @@ namespace acts::compiler {
         const char* fileNameStr{};
         uint64_t fileNameSpace{};
         int64_t crc{};
+        int64_t crcEmit{};
         std::set<std::string> includes{};
         std::vector<AscmNode*> m_devBlocks{};
         std::unordered_map<uint64_t, FunctionObject> exports{};
@@ -1305,9 +1336,13 @@ namespace acts::compiler {
             : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt), gscHandler(gscHandler) {
             bool client = type == FILE_CSC;
             crc = client ? opt.crcClient : opt.crcServer;
+            crcEmit = client ? opt.crcEmitClient : opt.crcEmitServer;
 
             if (!crc) {
                 crc = gscHandler->GetDefaultChecksum(client);
+            }
+            if (!crcEmit) {
+                crcEmit = crc;
             }
 
             const char* fn = client ? opt.nameClient : opt.nameServer;
@@ -1667,11 +1702,11 @@ namespace acts::compiler {
                 f.m_flags = tool::gsc::CLASS_VTABLE;
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
-                if (crc < 0) {
-                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(-crc), OPCODE_GetNegUnsignedInteger));
+                if (crcEmit < 0) {
+                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(-crcEmit), OPCODE_GetNegUnsignedInteger));
                 }
                 else {
-                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(crc), OPCODE_GetUnsignedInteger));
+                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(crcEmit), OPCODE_GetUnsignedInteger));
                 }
                 forceDebugHeader = true;
 
@@ -1715,7 +1750,7 @@ namespace acts::compiler {
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
 
-                const char* crcStr = utils::va("%lld", crc);
+                const char* crcStr = utils::va("%lld", crcEmit);
 
                 StringObject& strdef = strings[crcStr];
                 auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
