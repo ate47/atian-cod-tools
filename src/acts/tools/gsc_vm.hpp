@@ -2351,8 +2351,7 @@ public:
             // fillme
             asmout
                 << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
-                << "unk24 :" << std::dec << std::setw(3) << (int)data->unk24 << " (0x" << std::hex << data->unk24 << ")\n"
-                << "unk26 :" << std::dec << std::setw(3) << (int)data->unk26 << " (0x" << std::hex << data->unk26 << ")\n"
+                << "unk28 :" << std::dec << std::setw(3) << (int)data->unk28 << " (0x" << std::hex << data->unk28 << ")\n"
                 << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
                 << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
                 << "unk5C :" << std::dec << std::setw(3) << (int)data->unk5C << " (0x" << std::hex << data->unk5C << ")\n"
@@ -2679,7 +2678,8 @@ public:
         *reinterpret_cast<tool::gsc::GSC_ANIMTREE_ITEM*>(data) = item;
     }
     int64_t GetDefaultChecksum(bool client) override {
-        return 0; // no checksum
+        constexpr int32_t t = 0x2F6BD24A;
+        return t;
     }
     void SetChecksum(uint64_t val) override {
         Ptr<GscObj24>()->checksum = (uint32_t)val;
@@ -2688,7 +2688,10 @@ public:
         return Ptr<GscObj24>()->checksum;
     }
     const char* GetDefaultName(bool client) override {
-        return ""; // idc
+        if (client) {
+            return "";
+        }
+        return "scripts/mp/art.gsc";
     }
     bool IsVTableImportFlags(byte flags) override {
         return flags == 0x15;

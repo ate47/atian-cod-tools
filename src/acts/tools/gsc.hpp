@@ -1006,9 +1006,8 @@ namespace tool::gsc {
         uint16_t imports_count;
         uint16_t includes_count;
         uint16_t string_count;
-        uint16_t unk24;
-        uint16_t unk26;
         uint32_t checksum;
+        uint32_t unk28;
         uint32_t animtree_use_offset;
         uint32_t animtree_offset;
         uint32_t cseg_offset;
