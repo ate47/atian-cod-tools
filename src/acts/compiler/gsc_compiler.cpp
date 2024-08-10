@@ -133,17 +133,21 @@ namespace acts::compiler {
     class AscmNodeRaw : public AscmNode {
     public:
         std::vector<byte> data{};
-        size_t aligned;
+        size_t align;
 
-        AscmNodeRaw(size_t aligned = 1) : aligned(aligned) {
+        AscmNodeRaw(size_t align = 1) : align(align) {
             nodetype = ASCMNT_RAW;
         }
 
         uint32_t ShiftSize(uint32_t start, bool aligned) const override {
+            if (aligned) {
+                start = (start + (align - 1)) & ~(align - 1);
+            }
             return start + (uint32_t)data.size();
         }
 
         bool Write(AscmCompilerContext& ctx) override {
+            ctx.Align(align);
             ctx.data.insert(ctx.data.end(), data.begin(), data.end());
             return true;
         }

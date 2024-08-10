@@ -118,6 +118,7 @@ You can download the latest release here:
 - [ate47/bo4-source](https://github.com/ate47/bo4-source) : Black Ops 4 Dump
 - [ate47/bocw-source](https://github.com/ate47/bocw-source) : Black Ops Cold War Dump
 - [ate47/mwiii-source](https://github.com/ate47/mwiii-source) : Modern Warfare III Dump
+- [ate47/bo6-source](https://github.com/ate47/bo6-source) : Black Ops 6 Dump
 - [ate47/BOHashTool](https://github.com/ate47/BOHashTool) : Tool to test hashes with error (en/de)coder for Black Ops games
 
 ## Lookup
