@@ -109,7 +109,7 @@ expression13: function_call_exp | expression14;
 expression14: const_expr | expression15 | left_value;
 expression15: ('(' expression ')');
 
-is_expression: expression13 'is' ('not')? (IDENTIFIER | 'true' | 'false' | 'function' | 'undefined');
+is_expression: expression13 'is' ('not')? (IDENTIFIER | BOOL_VALUE | 'function' | UNDEFINED_VALUE);
 
 function_call_exp:
 	function_call 

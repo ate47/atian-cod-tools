@@ -26,10 +26,10 @@ public:
     T__68 = 69, T__69 = 70, T__70 = 71, T__71 = 72, T__72 = 73, T__73 = 74, 
     T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, T__78 = 79, T__79 = 80, 
     T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, T__84 = 85, T__85 = 86, 
-    T__86 = 87, T__87 = 88, T__88 = 89, T__89 = 90, NEWLINE = 91, WHITESPACE = 92, 
-    INTEGER10 = 93, INTEGER16 = 94, INTEGER8 = 95, INTEGER2 = 96, FLOATVAL = 97, 
-    BUILTIN = 98, BOOL_VALUE = 99, UNDEFINED_VALUE = 100, IDENTIFIER = 101, 
-    STRUCT_IDENTIFIER = 102, PATH = 103, STRING = 104, HASHSTRING = 105
+    T__86 = 87, T__87 = 88, NEWLINE = 89, WHITESPACE = 90, INTEGER10 = 91, 
+    INTEGER16 = 92, INTEGER8 = 93, INTEGER2 = 94, FLOATVAL = 95, BUILTIN = 96, 
+    BOOL_VALUE = 97, UNDEFINED_VALUE = 98, IDENTIFIER = 99, STRUCT_IDENTIFIER = 100, 
+    PATH = 101, STRING = 102, HASHSTRING = 103
   };
 
   enum {
@@ -750,6 +750,7 @@ public:
     virtual size_t getRuleIndex() const override;
     Expression13Context *expression13();
     antlr4::tree::TerminalNode *IDENTIFIER();
+    antlr4::tree::TerminalNode *BOOL_VALUE();
     antlr4::tree::TerminalNode *UNDEFINED_VALUE();
 
 
