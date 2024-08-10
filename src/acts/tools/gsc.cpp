@@ -986,9 +986,29 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                     hashutils::AddPrecomputed(hashField, str);
                     hashutils::AddPrecomputed(hashFilePath, str);
                     hashutils::AddPrecomputed(hashPath, str);
+
                     if (opt.m_header) {
                         PrintFormattedString(actsHeader << "// - #\"", str)
-                            << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath << ")\n";
+                            << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
+                    }
+                    // use all the known hashes for this VM
+                    for (auto& [k, func] : vmInfo->hashesFunc) {
+                        try {
+                            int64_t hash = func.hashFunc(str);
+
+                            if (hash) {
+                                if (opt.m_header) {
+                                    actsHeader << "/" << k << '=' << std::hex << hash;
+                                }
+                                hashutils::AddPrecomputed(hash, str);
+                            }
+                        }
+                        catch (std::exception&) {
+                            // ignore
+                        }
+                    }
+                    if (opt.m_header) {
+                        actsHeader << ")\n";
                     }
                 }
                 LOG_TRACE("{} hash(es) added", dbg->strings_count);

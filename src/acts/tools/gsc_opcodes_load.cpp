@@ -941,7 +941,8 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_BO6, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
 			RegisterVMHashOPCode(VM_BO6, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
 			RegisterVMHashOPCode(VM_BO6, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIW(str); });
-			RegisterVMHashOPCode(VM_BO6, 't', OPCODE_T10_GetTargetHash, 8, [](const char* str) { return hashutils::Hash64(str); });
+			RegisterVMHashOPCode(VM_BO6, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
+			RegisterVMHashOPCode(VM_BO6, '&', OPCODE_T10_GetTargetHash, 8, [](const char* str) { return hashutils::Hash64(str); });
 			RegisterDevCall(VM_BO6, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_BO6, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 	#ifdef SP23_INCLUDES

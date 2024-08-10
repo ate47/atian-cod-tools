@@ -3,8 +3,12 @@
 #using scripts\core_common\callbacks_shared;
 
 #namespace acts;
-#file scripts\test\acts;
+// #file scripts\test\acts; // not a feature anymore (good)
 
+function event_handler[sprint_begin] on_sprint_begin(params) {
+
+    println("test " + &"ok" + t"ok2" + #"ok3" + @"ok4");
+}
 
 function autoexec test_ev() {
     assert(dev::func_dev(2) === 2);

@@ -133,9 +133,9 @@ namespace acts::compiler {
     class AscmNodeRaw : public AscmNode {
     public:
         std::vector<byte> data{};
-        size_t align;
+        uint32_t align;
 
-        AscmNodeRaw(size_t align = 1) : align(align) {
+        AscmNodeRaw(size_t align = 1) : align((uint32_t)align) {
             nodetype = ASCMNT_RAW;
         }
 
@@ -5082,7 +5082,7 @@ namespace acts::compiler {
 
         obj.AddHash(txt);
         obj.currentNamespace = obj.vmInfo->HashField(txt.data());
-        if (!obj.fileNameSpace) {
+        if (!obj.fileNameSpace && obj.gscHandler->HasFlag(tool::gsc::GscObjHandlerBuildFlags::GOHF_FILENAMESPACE)) {
             obj.fileNameSpace = obj.vmInfo->HashFilePath(txt.data());
         }
 
@@ -5092,6 +5092,11 @@ namespace acts::compiler {
     bool ParseFileNamespace(RuleContext* nsp, gscParser& parser, CompileObject& obj) {
         if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
             return false; // bad
+        }
+
+        if (!obj.gscHandler->HasFlag(tool::gsc::GscObjHandlerBuildFlags::GOHF_FILENAMESPACE)) {
+            obj.info.PrintLineMessage(alogs::LVL_WARNING, nsp, "this vm doesn't support file namespace");
+            return true;
         }
 
         std::string txt = nsp->children[1]->getText();

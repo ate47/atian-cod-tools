@@ -1028,7 +1028,7 @@ public:
 
 class MW23GSCOBJHandler : public GSCOBJHandler {
 public:
-    MW23GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP) {}
+    MW23GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_FILENAMESPACE) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<GscObj23>();
@@ -1389,7 +1389,7 @@ public:
 
 class MW23BGSCOBJHandler : public GSCOBJHandler {
 public:
-    MW23BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING) {}
+    MW23BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_FILENAMESPACE) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         auto* data = Ptr<GscObj23>();
@@ -2328,7 +2328,7 @@ public:
 
 class T10GSCOBJHandler : public GSCOBJHandler {
 public:
-    T10GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_VAR_VA) {}
+    T10GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA) {}
 
     void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
         GscObj24* data = Ptr<GscObj24>();
@@ -2556,6 +2556,9 @@ public:
         if (flags & 4) {
             nflags |= T8GSCExportFlags::PRIVATE;
         }
+        if (flags & 0x20) {
+            nflags |= T8GSCExportFlags::EVENT;
+        }
         if (flags & 0x40) {
             nflags |= T8GSCExportFlags::VE;
         }
@@ -2570,6 +2573,7 @@ public:
         if (flags & AUTOEXEC) nflags |= 1;
         if (flags & LINKED) nflags |= 2;
         if (flags & PRIVATE) nflags |= 4;
+        if (flags & EVENT) nflags |= 0x20;
         if (flags & VE) nflags |= 0x40;
 
         return nflags;
@@ -2659,7 +2663,7 @@ public:
         auto& imp = *reinterpret_cast<tool::gsc::IW24GSCExport*>(data);
         imp.name = item.name;
         imp.name_space = item.name_space;
-        //imp.checksum = (uint32_t)item.checksum; // no checksum
+        imp.file_name_space = item.file_name_space;
         imp.flags = item.flags;
         imp.address = item.address;
         imp.param_count = item.param_count;
