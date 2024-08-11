@@ -1094,7 +1094,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         
         const char* outDir;
         if (opt.m_splitByVm) {
-            outDir = utils::va("%s/vm-%x", opt.m_outputDir, vmInfo->vm);
+            outDir = utils::va("%s/vm-%02x", opt.m_outputDir, vmInfo->vm);
         }
         else {
             outDir = opt.m_outputDir;
@@ -1486,7 +1486,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             asmout << "\n";
         }
     }
-    if (vm <= VM_T7 && scriptfile->GetAnimTreeDoubleOffset()) {
+    if (vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7) && scriptfile->GetAnimTreeDoubleOffset()) {
         uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->file) + scriptfile->GetAnimTreeDoubleOffset();
         auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
         for (size_t i = 0; i < anims_count; i++) {
@@ -1966,7 +1966,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
             const char* outDir;
             if (opt.m_splitByVm) {
-                outDir = utils::va("%s/vm-%x", opt.m_dbgOutputDir, vmInfo->vm);
+                outDir = utils::va("%s/vm-%02x", opt.m_dbgOutputDir, vmInfo->vm);
             }
             else {
                 outDir = opt.m_dbgOutputDir;

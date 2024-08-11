@@ -20,6 +20,7 @@ namespace tool::gsc::opcode {
 		VMF_IW_CALLS = 0x800,
 		VMF_EXPORT_NOCHECKSUM = 0x1000,
 		VMF_HASH_CER = 0x2000,
+		VMF_ANIMTREE_T7= 0x4000,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

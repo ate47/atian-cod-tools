@@ -248,7 +248,7 @@ uint64_t VmInfo::HashField(const char* value) const {
 
 uint64_t VmInfo::HashPath(const char* value) const {
 	if (HasFlag(VmFlags::VMF_HASH_CER) || HasFlag(VmFlags::VMF_HASH_IW)) {
-		return hashutils::HashIW(value);
+		return hashutils::HashIWRes(value);
 	}
 	return hash::Hash64Pattern(value);
 }
@@ -4154,7 +4154,7 @@ public:
 				int64_t integer;
 				uint32_t str;
 				uint64_t hash;
-				int32_t unkb; // i32
+				uint32_t unkb; // i32
 			};
 			
 			CaseValue val = *(CaseValue*)basecase;
@@ -4214,7 +4214,7 @@ public:
 				case 5: // unkb
 					out << "t\"" << hashutils::ExtractTmp("hash", val.unkb) << "\"" << "(0x" << std::hex << val.unkb << ")" << std::flush;
 					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeHash(val.unkb, false, "?"), caseRLoc });
+						node->m_cases.push_back({ new ASMContextNodeHash(val.unkb, false, "t"), caseRLoc });
 					}
 					break;
 				case 6: // unk9
@@ -5244,7 +5244,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "GetDVarHash", "@"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash, "GetResourceHash", "%"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "GetTagHash", "t", false));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetTargetHash, "GetTargetHash", "&"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "GetScrHash", "&"));
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWSwitch());
 			RegisterOpCodeHandler(new OPCodeInfoIWEndSwitch());
@@ -6294,8 +6294,8 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	var_23ea8daa is the key, it might not be used, idea: counting the ref?
 	e_clip is the value
 	*/
-	constexpr uint64_t getfirstarraykeyIWHash = hashutils::HashIW2("getfirstarraykey");
-	constexpr uint64_t getnextarraykeyIWHash = hashutils::HashIW2("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyIWHash = hashutils::HashJupScr("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyIWHash = hashutils::HashJupScr("getnextarraykey");
 	constexpr uint64_t getfirstarraykeyCerHash = 0x7e4a95b654d9324;
 	constexpr uint64_t getnextarraykeyCerHash = 0xbedcb09342b6223;
 

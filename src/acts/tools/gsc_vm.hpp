@@ -2453,13 +2453,13 @@ public:
         return Ptr<GscObj24>()->animtree_use_count;
     };
     uint32_t GetAnimTreeSingleOffset() override {
-        return 0;// Ptr<GscObj24>()->animtree_use_offset;
+        return Ptr<GscObj24>()->animtree_use_offset;
     };
     uint16_t GetAnimTreeDoubleCount() override {
         return Ptr<GscObj24>()->animtree_count;
     };
     uint32_t GetAnimTreeDoubleOffset() override {
-        return 0;// Ptr<GscObj24>()->animtree_offset;
+        return Ptr<GscObj24>()->animtree_offset;
     };
     uint16_t GetDevStringsCount() override {
         return Ptr<GscObj24>()->devblock_string_count;

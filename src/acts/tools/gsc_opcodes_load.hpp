@@ -300,7 +300,7 @@ namespace tool::gsc::opcode {
 
 		OPCODE_JumpOnDefined,
 		OPCODE_JumpOnDefinedExpr,
-		OPCODE_T10_GetTargetHash,
+		OPCODE_T10_GetScrHash,
 		OPCODE_T10_FlatArgs,
 		OPCODE_T10_GreaterThanOrSuperEqualTo,
 		OPCODE_T10_LowerThanOrSuperEqualTo,

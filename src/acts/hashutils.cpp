@@ -123,14 +123,18 @@ void hashutils::WriteExtracted(const char* file) {
 
 	for (const auto& v : g_extracted) {
 		auto e = g_hashMap.find(v);
-		assert(e != g_hashMap.end());
-		out << std::hex << v << "," << e->second << "\n";
+		if (e != g_hashMap.end()) {
+			out << std::hex << v << "," << e->second << "\n";
+		}
+		else {
+			out << std::hex << v << ",hash_" << v << "\n";
+		}
 	}
 
 	out.close();
 	// clear and unset extract
 	SaveExtracted(false);
-	LOG_TRACE("End write extracted");
+	LOG_TRACE("End write extracted into {}", file);
 }
 
 int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
@@ -249,8 +253,8 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 bool hashutils::Add(const char* str, bool ignoreCol, bool iw) {
 	g_hashMap.emplace(hashutils::Hash64(str), str);
 	if (iw) {
-		g_hashMap.emplace(hashutils::HashIW(str), str);
-		g_hashMap.emplace(hashutils::HashIW2(str), str);
+		g_hashMap.emplace(hashutils::HashIWRes(str), str);
+		g_hashMap.emplace(hashutils::HashJupScr(str), str);
 		g_hashMap.emplace(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str);
 		uint64_t sv = hashutils::HashIWDVar(str) & 0x7FFFFFFFFFFFFFFF;
 		uint64_t sf = hashutils::HashT10Scr(str) & 0x7FFFFFFFFFFFFFFF;
@@ -303,6 +307,9 @@ bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSi
 		}
 		return true;
 	}
+	if (g_saveExtracted) {
+		g_extracted.emplace(hash);
+	}
 	const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
 	if (res == g_hashMap.end()) {
 		snprintf(out, outSize, heavyHashes ? "%s_%016llX" : "%s_%llx", type, hash);
@@ -313,9 +320,6 @@ bool hashutils::Extract(const char* type, uint64_t hash, char* out, size_t outSi
 	}
 	else {
 		snprintf(out, outSize, "%s", res->second.c_str());
-	}
-	if (g_saveExtracted) {
-		g_extracted.emplace(hash);
 	}
 	return true;
 }

@@ -111,8 +111,8 @@ namespace {
 
 		std::wstring hash64Val = DefaultVal(hash::Hash64(info.hash.c_str()));
 		std::wstring hash32Val = DefaultVal(hash::Hash32(info.hash.c_str()));
-		std::wstring hash64IW2Val = DefaultVal(hashutils::HashAIW(info.hash.c_str()));
-		std::wstring hash64IW3Val = DefaultVal(hashutils::HashAIW2(info.hash.c_str()));
+		std::wstring hash64IW2Val = DefaultVal(hashutils::HashIWRes(info.hash.c_str()));
+		std::wstring hash64IW3Val = DefaultVal(hashutils::HashJupScr(info.hash.c_str()));
 		std::wstring hash32IW4Val = DefaultVal(hashutils::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
 		std::wstring hashT7Val = DefaultVal(hashutils::HashT7(info.hash.c_str()));
 		std::wstring hash64IWDvar = DefaultVal(hashutils::HashIWDVar(info.hash.c_str()));
