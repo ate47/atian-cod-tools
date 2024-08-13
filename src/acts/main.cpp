@@ -300,7 +300,6 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	}
 
 	if (hInstance) {
-		hashutils::ReadDefaultFile();
 		return tool::ui::MainActsUI(hInstance, nShowCmd); // no tool to run, life's easier if I put that here
 	}
 

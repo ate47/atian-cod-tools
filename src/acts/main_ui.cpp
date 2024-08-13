@@ -29,14 +29,26 @@ namespace tool::ui {
 	void ActsWindow::RelocateDisplay(int x, int y) {
 		width = x;
 		height = y;
-		RECT rec{};
-		SetWindowPos(hwndTab, NULL, 0, 0, x, y, SWP_SHOWWINDOW);
-		GetClientRect(hwndTab, &rec);
-		TabCtrl_AdjustRect(hwndTab, FALSE, &rec);
-		SetWindowPos(hwndDisplay, NULL, rec.left, rec.top, rec.right - rec.left, rec.bottom - rec.top, SWP_SHOWWINDOW);
-		auto& page = pages[TabCtrl_GetCurSel(hwndTab)];
-		if (page->m_resize) {
-			page->m_resize(x, y);
+		if (actsWindow.hwndTab) {
+			RECT rec{};
+			SetWindowPos(hwndTab, NULL, 0, 0, x, y, SWP_SHOWWINDOW);
+			GetClientRect(hwndTab, &rec);
+			TabCtrl_AdjustRect(hwndTab, FALSE, &rec);
+			SetWindowPos(hwndDisplay, NULL, rec.left, rec.top, rec.right - rec.left, rec.bottom - rec.top, SWP_SHOWWINDOW);
+			auto& page = pages[TabCtrl_GetCurSel(hwndTab)];
+			if (page->m_resize) {
+				page->m_resize(x, y);
+			}
+		}
+		else if (actsWindow.hwndLogTab) {
+			SetWindowPos(hwndLogTab, NULL, 0, 0, x, y, SWP_SHOWWINDOW);
+		}
+	}
+	void ActsWindow::SetLogMessage(const std::wstring& str) {
+		if (actsWindow.hwndLogTab) {
+			static std::wstring logs{};
+			logs = std::format(L"{}\n{}", logs, str);
+			Static_SetText(hwndLogTab, logs.c_str());
 		}
 	}
 
@@ -153,6 +165,32 @@ namespace tool::ui {
 		if (actsWindow.hwnd == NULL) {
 			return -1;
 		}
+		actsWindow.hwndLogTab = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"",
+			SS_CENTER | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			actsWindow.hwnd,
+			NULL,
+			hInstance,
+			NULL
+		);
+
+		if (actsWindow.hwndLogTab == NULL) {
+			return -1;
+		}
+
+		EnumChildWindows(actsWindow.hwndLogTab, (WNDENUMPROC)SetFont, (LPARAM)deffont);
+
+		ShowWindow(actsWindow.hwnd, nShowCmd);
+		actsWindow.SetLogMessage(L"Loading...");
+
+		actsWindow.SetLogMessage(L"Loading hashes...");
+		hashutils::ReadDefaultFile();
+
+		DestroyWindow(actsWindow.hwndLogTab);
+		actsWindow.hwndLogTab = NULL;
 
 		actsWindow.hwndTab = CreateWindowExW(
 			0,
@@ -198,8 +236,6 @@ namespace tool::ui {
 		}
 
 		actsWindow.LoadPage();
-
-		ShowWindow(actsWindow.hwnd, nShowCmd);
 
 		MSG msg{};
 		while (GetMessage(&msg, NULL, 0, 0) > 0) {

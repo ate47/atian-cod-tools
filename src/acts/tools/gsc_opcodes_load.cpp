@@ -938,7 +938,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_BO6, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
 			RegisterVMOperatorFunction(VM_BO6, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
 			RegisterVMOperatorFunction(VM_BO6, "flat_args", "flat_args(array, count) -> bool", OPCODE_T10_FlatArgs, VPFD_RETURN_VALUE, 2, 2);
-			RegisterVMHashOPCode(VM_BO6, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
+			RegisterVMHashOPCode(VM_BO6, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64A(str); });
 			RegisterVMHashOPCode(VM_BO6, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
 			RegisterVMHashOPCode(VM_BO6, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIWRes(str); });
 			RegisterVMHashOPCode(VM_BO6, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });

@@ -1676,7 +1676,6 @@ public:
     void SetFileSize(uint32_t val) override {
         // idk
         Ptr<GscObj23>()->size1 = val;
-        Ptr<GscObj23>()->size2 = val;
     }
     void SetCSEGOffset(uint16_t val) override {
         Ptr<GscObj23>()->cseg_offset = val;
@@ -2353,8 +2352,6 @@ public:
                 << "unk1C :" << std::dec << std::setw(3) << (int)data->unk1C << " (0x" << std::hex << data->unk1C << ")\n"
                 << "unk28 :" << std::dec << std::setw(3) << (int)data->unk28 << " (0x" << std::hex << data->unk28 << ")\n"
                 << "unk48 :" << std::dec << std::setw(3) << (int)data->size1 << " (0x" << std::hex << data->size1 << ")\n"
-                << "unk54 :" << std::dec << std::setw(3) << (int)data->size2 << " (0x" << std::hex << data->size2 << ")\n"
-                << "unk5C :" << std::dec << std::setw(3) << (int)data->unk5C << " (0x" << std::hex << data->unk5C << ")\n"
                 ;
         }
     }
@@ -2362,57 +2359,7 @@ public:
         auto* data = Ptr<GscObj24>();
 
         if (opt.m_test_header) {
-            uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_use_offset;
-            for (size_t i = 0; i < data->animtree_use_count; i++) {
-                const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
-
-                auto* s = DecryptString(Ptr<char>(unk2c->address));
-
-                asmout << std::hex << "animtree #" << s << std::endl;
-
-                hashutils::Add(s, true, true);
-
-                const auto* vars = reinterpret_cast<const uint32_t*>(&unk2c[1]);
-                asmout << "location(s): ";
-                for (size_t j = 0; j < unk2c->num_address; j++) {
-                    // no align, no opcode to pass, directly the fucking location, cool.
-                    //Ref<uint16_t>(vars[j]) = ref;
-                    if (j) asmout << ",";
-                    asmout << std::hex << vars[j];
-                }
-                asmout << "\n";
-                unk2c_location += sizeof(*unk2c) + sizeof(*vars) * unk2c->num_address;
-            }
-            if (data->animtree_use_count) {
-                asmout << "\n";
-            }
-
-            uintptr_t animt_location = reinterpret_cast<uintptr_t>(data->magic) + data->animtree_offset;
-            for (size_t i = 0; i < data->animtree_count; i++) {
-                const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
-
-                auto* s1 = DecryptString(Ptr<char>(animt->address_str1));
-                auto* s2 = DecryptString(Ptr<char>(animt->address_str2));
-
-                hashutils::Add(s1, true, true);
-                hashutils::Add(s2, true, true);
-
-                asmout << std::hex << "animtree " << s1 << "%" << s2 << std::endl;
-
-                const auto* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
-                asmout << "location(s): ";
-                for (size_t j = 0; j < animt->num_address; j++) {
-                    // no align, no opcode to pass, directly the fucking location, cool.
-                    //Ref<uint16_t>(vars[j]) = ref;
-                    if (j) asmout << ",";
-                    asmout << std::hex << vars[j];
-                }
-                asmout << "\n";
-                animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
-            }
-            if (data->animtree_count) {
-                asmout << "\n";
-            }
+            // nothing
         }
     }
 
@@ -2618,7 +2565,6 @@ public:
     void SetFileSize(uint32_t val) override {
         // idk
         Ptr<GscObj24>()->size1 = val;
-        Ptr<GscObj24>()->size2 = val;
     }
     void SetCSEGOffset(uint16_t val) override {
         Ptr<GscObj24>()->cseg_offset = val;

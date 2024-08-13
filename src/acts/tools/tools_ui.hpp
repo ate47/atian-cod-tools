@@ -31,6 +31,7 @@ namespace tool::ui {
 	struct ActsWindow {
 		HINSTANCE hinst;
 		HWND hwnd;
+		HWND hwndLogTab;
 		HWND hwndTab;
 		HWND hwndDisplay{};
 		int width{ AUI_WIDTH }, height{ AUI_HEIGHT };
@@ -40,6 +41,7 @@ namespace tool::ui {
 		void UpdateWindowName();
 		void SetTitleFont(HWND hwnd);
 		void RelocateDisplay(int x, int y);
+		void SetLogMessage(const std::wstring& str);
 		void LoadPage();
 	};
 

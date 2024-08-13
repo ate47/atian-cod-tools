@@ -1,56 +1,171 @@
-#using scripts\core_common\array_shared;
-#using scripts\core_common\system_shared;
-#using scripts\core_common\callbacks_shared;
+#using scripts\engine\utility;
+#using scripts\common\system;
+#using scripts\common\callbacks;
+#using scripts\mp\killstreaks\killstreaks;
 
-#namespace acts;
-// #file scripts\test\acts; // not a feature anymore (good)
+#namespace art;
 
-function event_handler[sprint_begin] on_sprint_begin(params) {
+function main() {} // mandatory, otherwise linking error
 
-    println("test " + &"ok" + t"ok2" + #"ok3" + @"ok4");
+function private autoexec __init__system__() {
+    system::register(#"acts_test", undefined, &__init__, undefined);
 }
 
-function autoexec test_ev() {
-    assert(dev::func_dev(2) === 2);
-    level.acts = {
-        #a: 42,
-        #b: [1,2,3,4],
-        #c: { #d: "bye", #e: "bye" }
-    };
-    test3 = "hello";
-    test = 42 >== 23 <== 64 === 22 !== false;
-    test2 = test ?? 23;
-    test3 = getthread();
-    test3 = istrue(true);
-    waitframe();
+function __init__() {
+    level callback::add(#"player_spawned", &on_player_spawned);
+}
 
-    level notify("notify calls", 42, 52);
+function on_player_spawned(params) {
+    level endon("game_ended");
+    self endon("death_or_disconnect");
 
-    self iprintln("builtin method call");
-    self iprintln("builtin method call");
-    iprintln("builtin function call");
-    iprintln("builtin function call");
+    self thread menu();
+    while (true) {
+        weap = self getcurrentweapon();
 
-    while (!isdefined(level.players) && !isdefined(level.players[0])) {
+        self.oobimmunity = 99;
+        self setweaponammoclip(weap, weaponclipsize(weap));
+        self givemaxammo(weap);
+        self enableinvulnerability();
+
         waitframe();
     }
-
-    f = &test;
-
-    level.players[0] thread [[ f ]]();
 }
 
-function test2(..., params) {
-    // todo: find name of params
-    return self iprintln(flat_args(vararg, params));
-}
+/*
+adsbuttonpressed
+attackbuttonpressed
+copyloadoutbuttonpressed
+crouchbuttonpressed
+elevatorbuttonpressed
+fragbuttonpressed
+getbuttonpressed
+jumpbuttonpressed
+meleebuttonpressed
+onSuperButtonPressed
+reloadbuttonpressed
+secondaryoffhandbuttonpressed
+selfrevivebuttonpressed
+selfrevivemonitorrevivebuttonpressed
+sprintbuttonpressed
+stancebuttonpressed
+superbuttonpressed
+usebuttonpressed
+vehswitchseatbuttonpressed
+watchbuttonpressed
+watchButtonPressed
+weaponswitchbuttonpressed
+*/
 
-function test() {
-    self endon("test plr");
+function menu() {
+    level endon("game_ended");
+    self endon("death_or_disconnect");
+
+    menu = [
+        // at least 2 elements or it'll crash (lol)
+        { 
+            #title: "uav", 
+            #action: function () {
+                self thread killstreaks::givekillstreak("uav", 0, 0);
+            }
+        },
+        {
+            #title: "fly", 
+            #action: function () {
+			    if (isdefined(self.originObj)) self.originObj delete();
+                self.originObj = spawn("script_origin", self.origin);
+                self.originObj.angles = self.angles;
+                self playerlinkto(self.originObj, undefined);
+                while(!self meleebuttonpressed()) {
+
+                    player_angles = self getplayerangles();
+
+                    left_vector = anglestoforward(player_angles - (0, 90, 0));
+
+                    v_movement = self getnormalizedmovement();
+
+                    if (self jumpbuttonpressed()) {
+                        z_movement = 1;
+                    } else if (self crouchbuttonpressed()) {
+                        z_movement = -1;
+                    } else {
+                        z_movement = 0;
+                    }
+
+                    move_vector = 
+                        // add z angle
+                            z_movement * anglestoforward(player_angles - (90, 0, 0)) 
+                        // add front movement
+                        + anglestoforward(player_angles) * v_movement[0] 
+                        // remove left/right z vector part because it was weird
+                        + (left_vector[0], left_vector[1], 0) * v_movement[1];
+                    self.originObj.origin = self.origin + move_vector * (self usebuttonpressed() ? 60 : 20); // speed;
+                    waitframe();
+                }
+			    if (isdefined(self.originObj)) self.originObj delete();
+            }
+        },
+        //{ 
+        //    #title: "flat_args", 
+        //    #action: function (id) {
+        //        self iprintlnbold("test " + (id ?? "inv"));
+        //    },
+        //    #args: [ 4 ]
+        //},
+    ];
+    item = 0;
+    lasttime = 0;
 
     while (true) {
-        self waittill("test waittill", v1, v2, v3);
+        waitframe();
+        if (self usebuttonpressed()) {
+            //args = menu[item].args ?? [];
+            //self [[ menu[item].action ]](flat_args(args, args.size)); // i love this operator
+            self [[ menu[item].action ]]();
+            while (self usebuttonpressed()) {
+                waitframe();
+            }
+        }
+        else if (self attackbuttonpressed()) {
+            if (item + 1 == menu.size) {
+                item = 0;
+            } else {
+                item++;
+            }
+            while (self attackbuttonpressed()) {
+                waitframe();
+            }
+        }
+        else if (self adsbuttonpressed()) {
+            if (item) {
+                item--;
+            } else {
+                item = menu.size - 1;
+            }
+            while (self adsbuttonpressed()) {
+                waitframe();
+            }
+        }
+        start = item;
+        if (start + 1 == menu.size) {
+            end = start;
+            start--;
+        } else {
+            end = start + 1;
+        }
 
-        self iprintln("hello: " + v1 + v2 + v3);
+        c = gettime();
+
+        if (lasttime + 1000 > c) {
+            continue;
+        }
+        lasttime = c;
+
+        for (i = start; i <= end; i++) {
+            self iprintln((i == item ? "^2-> ^1" : "^3- ^1") + menu[i].title);
+            waitframe();
+        }
     }
+
+
 }

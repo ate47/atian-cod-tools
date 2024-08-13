@@ -5258,6 +5258,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_IW_WaitFrame, "WaitSingleFrame", "waitframe()"));
 			RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_IW_GetThread, "GetThread", "getthread()"));
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2));
+			// scripts\asm\asm::asm_getanim()'s assertmsg lol
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_FlatArgs, "FlatArgs", "flat_args", true, 2, 0, false));
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "Notify"));

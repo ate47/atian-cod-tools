@@ -72,6 +72,7 @@ namespace {
 		std::string hash{};
 		std::string val{};
 		std::string iv{ "100000001b3" };
+		std::string lookup{};
         HWND hashEdit{};
 		HWND hashEditLabel{};
 
@@ -97,6 +98,11 @@ namespace {
 		HWND hashFNV1AReverseValLabel{};
 		HWND hashFNV1AReverseStartEdit{};
 		HWND hashFNV1AReverseStartEditLabel{};
+		HWND hashFNV1ACustomEdit{};
+		HWND hashFNV1ACustomEditLabel{};
+		HWND hashLookupEdit{};
+		HWND hashLookupEditRet{};
+		HWND hashLookupEditLabel{};
 
 		HWND titleLabel{};
     } info{};
@@ -126,15 +132,22 @@ namespace {
 		Edit_SetText(info.hashT7Edit, hashT7Val.c_str());
 		Edit_SetText(info.hash64IWDVEdit, hash64IWDvar.c_str());
 		Edit_SetText(info.hash64IWCerFieldEdit, hash64IWCerField.c_str());
+		HWND hashFNV1ACustomEdit{};
+		HWND hashFNV1ACustomEditLabel{};
 
 		info.val = utils::WStrToStr(tool::ui::GetWindowTextVal(info.hashFNV1AReverseValEdit));
 		info.iv = utils::WStrToStr(tool::ui::GetWindowTextVal(info.hashFNV1AReverseIVEdit));
 
+		uint64_t val{};
+		uint64_t iv{};
 		try {
-			uint64_t val = std::strtoull(info.val.data(), nullptr, 16);
-			uint64_t iv = std::strtoull(info.iv.data(), nullptr, 16);
+			val = std::strtoull(info.val.data(), nullptr, 16);
+			iv = std::strtoull(info.iv.data(), nullptr, 16);
 
 			if (val && iv) {
+				std::wstring customstr = std::format(L"{:x}", hashutils::Hash64A(info.hash.c_str(), val, iv));
+				Edit_SetText(info.hashFNV1ACustomEdit, customstr.c_str());
+
 				uint64_t mask = 0xFFFF;
 				uint64_t found = 0;
 				uint64_t disc{};
@@ -162,11 +175,32 @@ namespace {
 			}
 			else {
 				Edit_SetText(info.hashFNV1AReverseStartEdit, L"N/A");
+				Edit_SetText(info.hashFNV1ACustomEdit, L"N/A");
 			}
 		}
 		catch (std::runtime_error& e) {
 			std::wstring discstr = utils::StrToWStr(e.what());
 			Edit_SetText(info.hashFNV1AReverseStartEdit, discstr.c_str());
+			if (!val || !iv) {
+				Edit_SetText(info.hashFNV1ACustomEdit, L"N/A");
+			}
+		}
+	}
+
+	void ComputeLookup() {
+		info.lookup = utils::WStrToStr(tool::ui::GetWindowTextVal(info.hashLookupEdit));
+
+		try {
+			uint64_t val = std::strtoull(info.lookup.data(), nullptr, 16);
+
+			const char* lookupVal = hashutils::ExtractPtr(val);
+
+			std::wstring discstr = lookupVal ? utils::StrToWStr(lookupVal) : L"can't find";
+			Edit_SetText(info.hashLookupEditRet, discstr.c_str());
+		}
+		catch (std::runtime_error& e) {
+			std::wstring discstr = utils::StrToWStr(e.what());
+			Edit_SetText(info.hashLookupEditRet, discstr.c_str());
 		}
 	}
 
@@ -174,7 +208,8 @@ namespace {
 		std::wstring hashw = utils::StrToWStr(info.hash);
 		std::wstring valw = utils::StrToWStr(info.val);
 		std::wstring ivw = utils::StrToWStr(info.iv);
-
+		std::wstring lookupw = utils::StrToWStr(info.lookup);
+		
 		info.titleLabel = CreateWindowEx(
 			0,
 			L"STATIC",
@@ -427,22 +462,22 @@ namespace {
 			hInstance,
 			NULL
 		);
-		info.hashFNV1AReverseStartEdit = CreateWindowExW(
+		info.hashFNV1AReverseValLabel = CreateWindowEx(
 			0,
-			L"EDIT",
-			valw.c_str(),
-			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			L"STATIC",
+			L"Reverse (Val/IV) : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
 			0, 0, 0, 0,
 			window,
 			NULL,
 			hInstance,
 			NULL
 		);
-		info.hashFNV1AReverseValLabel = CreateWindowEx(
+		info.hashFNV1AReverseStartEdit = CreateWindowExW(
 			0,
-			L"STATIC",
-			L"Reverse (Val/IV) : ",
-			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			L"EDIT",
+			valw.c_str(),
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
 			0, 0, 0, 0,
 			window,
 			NULL,
@@ -460,7 +495,63 @@ namespace {
 			hInstance,
 			NULL
 		);
+		info.hashFNV1ACustomEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+		info.hashFNV1ACustomEditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"Custom : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
 
+
+		info.hashLookupEdit = CreateWindowExW(
+			0,
+			L"EDIT",
+			lookupw.c_str(),
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+		info.hashLookupEditRet = CreateWindowExW(
+			0,
+			L"EDIT",
+			L"",
+			WS_BORDER | WS_CHILD | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
+		info.hashLookupEditLabel = CreateWindowEx(
+			0,
+			L"STATIC",
+			L"Lookup : ",
+			SS_RIGHT | WS_CHILD | WS_VISIBLE,
+			0, 0, 0, 0,
+			window,
+			NULL,
+			hInstance,
+			NULL
+		);
 		
         if (
             info.hashEdit == NULL
@@ -486,6 +577,11 @@ namespace {
 			|| info.hashFNV1AReverseValLabel == NULL
 			|| info.hashFNV1AReverseStartEdit == NULL
 			|| info.hashFNV1AReverseStartEditLabel == NULL
+			|| info.hashFNV1ACustomEdit == NULL
+			|| info.hashFNV1ACustomEditLabel == NULL
+			|| info.hashLookupEdit == NULL
+			|| info.hashLookupEditLabel == NULL
+			|| info.hashLookupEditRet == NULL
 			|| info.titleLabel == NULL
             ) {
             return -1;
@@ -503,7 +599,10 @@ namespace {
 		SendMessage(info.hashFNV1AReverseValEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hashFNV1AReverseIVEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		SendMessage(info.hashFNV1AReverseStartEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
-
+		SendMessage(info.hashFNV1ACustomEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hashLookupEdit, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hashLookupEditLabel, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
+		SendMessage(info.hashLookupEditRet, EM_SETLIMITTEXT, (WPARAM)MAX_PATH, (LPARAM)0);
 		
 		Edit_SetReadOnly(info.hash64Edit, true);
 		Edit_SetReadOnly(info.hash32Edit, true);
@@ -513,8 +612,11 @@ namespace {
 		Edit_SetReadOnly(info.hashT7Edit, true);
 		Edit_SetReadOnly(info.hash64IWDVEdit, true);
 		Edit_SetReadOnly(info.hashFNV1AReverseStartEdit, true);
+		Edit_SetReadOnly(info.hashFNV1ACustomEdit, true);
+		Edit_SetReadOnly(info.hashLookupEditRet, true);
 
 		ComputeHashes();
+		ComputeLookup();
 
         return 0;
     }
@@ -522,9 +624,12 @@ namespace {
     LRESULT Update(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (uMsg == WM_COMMAND) {
             if (HIWORD(wParam) == EN_CHANGE) {
-                if (info.hashEdit == (HWND)lParam || info.hashFNV1AReverseValEdit == (HWND)lParam || info.hashFNV1AReverseIVEdit == (HWND)lParam) {
+				if (info.hashEdit == (HWND)lParam || info.hashFNV1AReverseValEdit == (HWND)lParam || info.hashFNV1AReverseIVEdit == (HWND)lParam) {
 					ComputeHashes();
-                }
+				}
+				if (info.hashLookupEdit == (HWND)lParam) {
+					ComputeLookup();
+				}
             }
         }
         else if (uMsg == WM_CTLCOLORSTATIC) {
@@ -551,6 +656,11 @@ namespace {
 				|| lParam == (LPARAM)info.hashFNV1AReverseValLabel
 				|| lParam == (LPARAM)info.hashFNV1AReverseStartEdit
 				|| lParam == (LPARAM)info.hashFNV1AReverseStartEditLabel
+				|| lParam == (LPARAM)info.hashFNV1ACustomEdit
+				|| lParam == (LPARAM)info.hashFNV1ACustomEditLabel
+				|| lParam == (LPARAM)info.hashLookupEdit
+				|| lParam == (LPARAM)info.hashLookupEditLabel
+				|| lParam == (LPARAM)info.hashLookupEditRet
 				|| lParam == (LPARAM)info.titleLabel
                 ) {
 				
@@ -560,49 +670,59 @@ namespace {
         return 1;
     }
 	void Resize(int width, int height) {
-		int y{ height / 2 - 28 * 6 };
+		int y{ height / 2 - 28 * 7 };
 		SetWindowPos(info.titleLabel, NULL, 0, y - 68, width, 60, SWP_SHOWWINDOW);
 
-		SetWindowPos(info.hashEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashEdit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hashEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
 
 		y += 14;
-		SetWindowPos(info.hash64Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash64Edit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash64EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		SetWindowPos(info.hash32Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash32Edit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash32EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		SetWindowPos(info.hash64IW2Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash64IW2Edit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash64IW2EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		SetWindowPos(info.hash64IW3Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash64IW3Edit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash64IW3EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		SetWindowPos(info.hash32IW4Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash32IW4Edit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash32IW4EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		SetWindowPos(info.hashT7Edit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashT7Edit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hashT7EditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		SetWindowPos(info.hash64IWDVEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash64IWDVEdit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash64IWDVEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		SetWindowPos(info.hash64IWCerFieldEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hash64IWCerFieldEdit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hash64IWCerFieldEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 14;
 
 		y += 28;
-		SetWindowPos(info.hashFNV1AReverseValEdit, NULL, width / 2 - 250, y, 248, 24, SWP_SHOWWINDOW);
-		SetWindowPos(info.hashFNV1AReverseIVEdit, NULL, width / 2 +   2, y, 248, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashFNV1AReverseValEdit, NULL, width / 2 - 250, y, 298, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashFNV1AReverseIVEdit, NULL, width / 2 +  52, y, 248, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hashFNV1AReverseValLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
 
-		SetWindowPos(info.hashFNV1AReverseStartEdit, NULL, width / 2 - 250, y, 500, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashFNV1AReverseStartEdit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
 		SetWindowPos(info.hashFNV1AReverseStartEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
 		y += 28;
-		
+
+		SetWindowPos(info.hashFNV1ACustomEdit, NULL, width / 2 - 250, y, 550, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashFNV1ACustomEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 14;
+
+		y += 28;
+		SetWindowPos(info.hashLookupEdit, NULL, width / 2 - 250, y, 198, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashLookupEditRet, NULL, width / 2 - 48, y, 348, 24, SWP_SHOWWINDOW);
+		SetWindowPos(info.hashLookupEditLabel, NULL, 0, y, width / 2 - 250, 24, SWP_SHOWWINDOW);
+		y += 28;
+
 		tool::ui::window().SetTitleFont(info.titleLabel);
 	}
 

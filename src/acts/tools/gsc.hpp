@@ -1020,8 +1020,6 @@ namespace tool::gsc {
         uint32_t import_table;
         uint32_t include_table;
         uint32_t string_table;
-        uint32_t size2;
-        uint32_t unk5C;
 
         uint64_t GetMagic() {
             return *reinterpret_cast<uint64_t*>(magic);
