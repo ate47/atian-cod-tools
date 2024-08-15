@@ -33,6 +33,18 @@ function on_player_spawned(params) {
 }
 
 /*
+
+mp_t10_island
+mp_t10_penthouse
+mp_t10_radar
+mp_t10_traingraveyard
+mp_t10_stripmall
+mp_t10_sm_babylon
+mp_t10_sm_capital
+mp_t10_sm_flat
+mp_t10_sm_vorkuta_mine
+
+
 adsbuttonpressed
 attackbuttonpressed
 copyloadoutbuttonpressed

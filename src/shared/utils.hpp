@@ -283,6 +283,8 @@ namespace utils {
 		std::function<void()> func;
 	public:
 		CloseEnd(std::function<void()> func) : func(func) {}
+		template<typename T>
+		CloseEnd(T& obj) : func([&obj]() { obj.close(); }) {};
 		~CloseEnd() { func(); };
 	};
 

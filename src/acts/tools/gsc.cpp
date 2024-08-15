@@ -919,19 +919,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         return -1;
     }
 
-    std::unique_ptr<GSCExportReader> exp;
-    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64 | VmFlags::VMF_EXPORT_NOCHECKSUM)) {
-        exp = std::make_unique<H64CERGSCExportReader>();
-    }
-    else if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
-        exp = std::make_unique<H64GSCExportReader>();
-    }
-    else if (ctx.m_vmInfo->flags & VmFlags::VMF_NO_FILE_NAMESPACE) {
-        exp = std::make_unique<H32T7GSCExportReader>();
-    }
-    else {
-        exp = std::make_unique<H32GSCExportReader>();
-    }
+    std::unique_ptr<GSCExportReader> exp = CreateExportReader(ctx.m_vmInfo);
 
     auto flocName = [&exp, &scriptfile](uint32_t floc) {
         return GetFLocName(*exp, *scriptfile, floc);
@@ -2741,6 +2729,20 @@ int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, Platform plt, Vm
     return max + 2; // +1 for the Return/End operator
 }
 
+std::unique_ptr<GSCExportReader> tool::gsc::CreateExportReader(VmInfo* vmInfo) {
+    if (vmInfo->HasFlag(VmFlags::VMF_HASH64 | VmFlags::VMF_EXPORT_NOCHECKSUM)) {
+        return std::make_unique<H64CERGSCExportReader>();
+    }
+    else if (vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+        return std::make_unique<H64GSCExportReader>();
+    }
+    else if (vmInfo->flags & VmFlags::VMF_NO_FILE_NAMESPACE) {
+        return std::make_unique<H32T7GSCExportReader>();
+    }
+    else {
+        return std::make_unique<H32GSCExportReader>();
+    }
+}
 
 void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, int padding, const char* forceName) {
     auto remapedFlags = gscFile.RemapFlagsExport(exp.GetFlags());
