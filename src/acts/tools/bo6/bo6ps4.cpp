@@ -803,7 +803,7 @@ namespace {
         
 
         std::wstring gscPath = utils::StrToWStr(core::config::GetString("ui.bo6.path", ""));
-        std::wstring ps4Path = utils::StrToWStr(core::config::GetString("ui.bo6.ps4", ""));
+        std::wstring ps4Path = utils::StrToWStr(core::config::GetString("ui.ps4.ipd", ""));
         std::wstring cbufcfg = utils::StrToWStr(core::config::GetString("ui.bo6.cbuf", ""));
         SendMessage(info.filePathEdit, WM_SETTEXT, (WPARAM)0, (LPARAM)gscPath.c_str());
         SendMessage(info.ps4Edit, WM_SETTEXT, (WPARAM)0, (LPARAM)ps4Path.c_str());
@@ -827,7 +827,7 @@ namespace {
                     wchar_t path[MAX_PATH + 1];
 
                     if (SUCCEEDED(GetWindowText(info.ps4Edit, &path[0], ARRAYSIZE(path)))) {
-                        core::config::SetString("ui.bo6.ps4", utils::WStrToStr(path));
+                        core::config::SetString("ui.ps4.ipd", utils::WStrToStr(path));
                         core::config::SaveConfig();
                     }
                 }
@@ -873,7 +873,7 @@ namespace {
                     std::string ps4Path = utils::WStrToStr(tool::ui::GetWindowTextVal(info.ps4Edit));
 
                     core::config::SetString("ui.bo6.path", filePath);
-                    core::config::SetString("ui.bo6.ps4", ps4Path);
+                    core::config::SetString("ui.ps4.ipd", ps4Path);
                     core::config::SaveConfig();
                     try {
                         SetNotif("");
