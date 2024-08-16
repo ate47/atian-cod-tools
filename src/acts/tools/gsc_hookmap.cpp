@@ -46,6 +46,11 @@ namespace {
         uint64_t name = handler->GetName();
 
         // read index
+        uint64_t checksum{};
+
+        if (handler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC) || handler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
+            checksum = handler->GetChecksum();
+        }
 
         std::unordered_map<uint64_t, std::unordered_set<uint64_t>> dataset{};
         std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<uint64_t>>> used{};
@@ -54,8 +59,11 @@ namespace {
             byte* exp = handler->Ptr(handler->GetExportsOffset() + i * handler->GetExportSize());
             exportReader->SetHandle(exp);
 
-            
+
             dataset[exportReader->GetNamespace()].insert(exportReader->GetName());
+            if (!vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
+                dataset[exportReader->GetFileNamespace()].insert(exportReader->GetName());
+            }
         }
 
         std::vector<std::filesystem::path> files{};
@@ -77,9 +85,13 @@ namespace {
             handler->file = (byte*)fileBuff.data();
             handler->fileSize = fileBuff.size();
 
+
             if (!handler->IsValidHeader(fileBuff.size())) {
-                LOG_WARNING("Invalid magic {}, ignore", p.string());
+                LOG_TRACE("Invalid magic {}, ignore {:x} != {:x}", p.string(), magic, *(uint64_t*)fileBuff.data());
                 continue;
+            }
+            if (handler->GetName() == name) {
+                continue; // same file
             }
 
             uint64_t* usings = handler->Ptr<uint64_t>(handler->GetIncludesOffset());
@@ -88,7 +100,7 @@ namespace {
             if (std::find(usings, usingsEnd, name) == usingsEnd) {
                 continue; // not included
             }
-            LOG_INFO("Loading {}...", p.string());
+            LOG_INFO("Loading {} ({})...", p.string(), hashutils::ExtractTmpScript(handler->GetName()));
 
 
             uintptr_t import_location = reinterpret_cast<uintptr_t>(handler->Ptr(handler->GetImportsOffset()));
@@ -134,11 +146,21 @@ namespace {
             }
         }
 
+        LOG_INFO("**** Required data ****");
 
-        for (const auto& [script, usedd] : used) {
-            for (const auto& [ns, names] : usedd) {
-                for (uint64_t name : names) {
-                    LOG_INFO("{} {}::{}", hashutils::ExtractTmpScript(script), hashutils::ExtractTmp("namespace", ns), hashutils::ExtractTmp("function", name));
+        if (checksum) {
+            LOG_INFO("crc .. 0x{:x} / {}", checksum, checksum);
+        }
+        LOG_INFO("name . {} ({:x})", hashutils::ExtractTmpScript(name), name);
+
+        if (!used.empty()) {
+            LOG_INFO("links:");
+
+            for (const auto& [script, usedd] : used) {
+                for (const auto& [ns, names] : usedd) {
+                    for (uint64_t name : names) {
+                        LOG_INFO("{}::{} (from {})", hashutils::ExtractTmp("namespace", ns), hashutils::ExtractTmp("function", name), hashutils::ExtractTmpScript(script));
+                    }
                 }
             }
         }

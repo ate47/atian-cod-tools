@@ -348,6 +348,20 @@ namespace {
         int padc;
         uintptr_t buffer;
     };
+    struct LuaFileEntry {
+        uint64_t name;
+        uint64_t unk8;
+        uint64_t unk10;
+        uint64_t unk18;
+        uint64_t unk20;
+        uint64_t unk28;
+        uint32_t unk30;
+        uint32_t len;
+        uint64_t unk38;
+        uint64_t buffer;
+        uint64_t unk48;
+        uint64_t unk50;
+    }; static_assert(sizeof(LuaFileEntry) == 0x58);
 
 
     int ps4dumpbo6(Process& _, int argc, const char* argv[]) {
@@ -386,9 +400,9 @@ namespace {
                 LOG_INFO("Pools dumped into bo6pools.csv");
                 continue;
             }
-            
+
             if (!_strcmpi(poolName, "gscobj")) {
-                auto pool = ps4.ReadObject<DB_AssetPool>(ps4[0x98FEFA0] + sizeof(DB_AssetPool) * bo6::T10_ASSET_GSCOBJ); // 69 = gscobj
+                auto pool = ps4.ReadObject<DB_AssetPool>(ps4[0x98FEFA0] + sizeof(DB_AssetPool) * bo6::T10_ASSET_GSCOBJ);
 
 
                 LOG_INFO("Pool: {:x}, count: {}/{}, len 0x{:x}", pool->m_entries, pool->m_loadedPoolSize, pool->m_poolSize, pool->m_elementSize);
@@ -413,6 +427,38 @@ namespace {
                     }
                     else {
                         LOG_INFO("Dump script_{:x}.gscc", obj.name);
+                    }
+
+                }
+                continue;
+            }
+
+            if (!_strcmpi(poolName, "luafile")) {
+                auto pool = ps4.ReadObject<DB_AssetPool>(ps4[0x98FEFA0] + sizeof(DB_AssetPool) * bo6::T10_ASSET_LUAFILE);
+
+
+                LOG_INFO("Pool: {:x}, count: {}/{}, len 0x{:x}", pool->m_entries, pool->m_loadedPoolSize, pool->m_poolSize, pool->m_elementSize);
+                auto objs = ps4.ReadArray<LuaFileEntry>(pool->m_entries, pool->m_loadedPoolSize);
+
+                std::filesystem::path gsc{ "lua" };
+
+                std::filesystem::create_directories(gsc);
+
+                for (size_t i = 0; i < pool->m_loadedPoolSize; i++) {
+                    auto& obj = objs[i];
+
+                    if (!obj.len || !obj.buffer) {
+                        LOG_WARNING("Ignore {:x}", obj.name);
+                        continue;
+                    }
+                    
+                    auto bytes3 = ps4.ReadBuffer(obj.buffer, obj.len);
+                    
+                    if (!utils::WriteFile(gsc / utils::va("%llx.lua", obj.name), bytes3.data(), bytes3.size())) {
+                        LOG_ERROR("Error when writting {:x}", obj.name);
+                    }
+                    else {
+                        LOG_INFO("Dump {:x}.lua", obj.name);
                     }
 
                 }

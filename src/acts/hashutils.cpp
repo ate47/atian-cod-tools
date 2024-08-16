@@ -93,7 +93,8 @@ void hashutils::ReadDefaultFile() {
 		if (!file) {
 			file = DEFAULT_HASH_FILE;
 		}
-		LOG_DEBUG("Load default hash file");
+		std::filesystem::path filePath{ file };
+		LOG_DEBUG("Load default hash file {}", filePath.string());
 		if (!actscli::options().noTreyarchHash) {
 			LoadMap(file, true, false);
 		}
@@ -253,13 +254,11 @@ int hashutils::LoadMap(const char* file, bool ignoreCol, bool iw) {
 bool hashutils::Add(const char* str, bool ignoreCol, bool iw) {
 	g_hashMap.emplace(hashutils::Hash64(str), str);
 	if (iw) {
-		g_hashMap.emplace(hashutils::HashIWRes(str), str);
-		g_hashMap.emplace(hashutils::HashJupScr(str), str);
+		g_hashMap.emplace(hashutils::HashIWRes(str) & 0x7FFFFFFFFFFFFFFF, str);
+		g_hashMap.emplace(hashutils::HashJupScr(str) & 0x7FFFFFFFFFFFFFFF, str);
 		g_hashMap.emplace(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str);
-		uint64_t sv = hashutils::HashIWDVar(str) & 0x7FFFFFFFFFFFFFFF;
-		uint64_t sf = hashutils::HashT10Scr(str) & 0x7FFFFFFFFFFFFFFF;
-		if (sv) g_hashMap.emplace(sv, str);
-		if (sf) g_hashMap.emplace(sf, str);
+		g_hashMap.emplace(hashutils::HashIWDVar(str) & 0x7FFFFFFFFFFFFFFF, str);
+		g_hashMap.emplace(hashutils::HashT10Scr(str) & 0x7FFFFFFFFFFFFFFF, str);
 		return true;
 	}
 	bool cand32 = true;
