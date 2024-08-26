@@ -1105,7 +1105,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     }
     profiler.GetCurrent().name = asmfnamebuff;
 
-    std::filesystem::path file(asmfnamebuff);
+    std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
 
     std::filesystem::create_directories(file.parent_path());
 
