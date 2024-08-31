@@ -704,7 +704,7 @@ namespace {
         { VM_MW23B,[](byte* file, size_t fileSize) { return std::make_shared<MW23BGSCOBJHandler>(file, fileSize); }},
         { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
-        { VM_BO6,[](byte* file, size_t fileSize) { return std::make_shared<T10GSCOBJHandler>(file, fileSize); }},
+        { VM_BO6_06,[](byte* file, size_t fileSize) { return std::make_shared<T10GSCOBJHandler>(file, fileSize); }},
     };
 }
 
@@ -2483,7 +2483,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
     const OPCodeInfo* spawnStruct = FetchCode();
     
     if (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction) {
-        if (ctx.m_vm == VM_T9 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6) {
+        if (ctx.m_vm == VM_T9 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
             return DVA_OK; // crc dump
         }
         // dctxt.WritePadding(out) << "Bad vtable opcode, expected ScriptFunctionCall vm" << std::hex << (int)ctx.m_vm << "\n";
@@ -3115,6 +3115,6 @@ static int gscd(Process& proc, int argc, const char* argv[]) {
     return gscinfo(proc, argc, argv);
 }
 
-ADD_TOOL("gscinfo", "gsc", " (intput)*", "GSC decompiler/disassembler", nullptr, gscinfo);
-ADD_TOOL("gscd", "gsc", " (intput)*", "GSC decompiler/disassembler", nullptr, gscd);
+ADD_TOOL("gscinfo", "gsc", " --help", "GSC decompiler/disassembler", nullptr, gscinfo);
+ADD_TOOL("gscd", "gsc", " --help", "GSC decompiler/disassembler", nullptr, gscd);
 ADD_TOOL("dds", "gsc", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", nullptr, dumpdataset);

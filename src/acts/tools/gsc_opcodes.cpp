@@ -47,8 +47,11 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("jupb", name) || !_strcmpi("s5b", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name) || !_strcmpi("8b", name)) {
 			return VM_MW23B;
 		}
-		if (!_strcmpi("cer", name) || !_strcmpi("t10", name) || !_strcmpi("bo6", name) || !_strcmpi("blackops6", name) || !_strcmpi("6", name)) {
-			return VM_BO6;
+		if (!_strcmpi("cer6", name) || !_strcmpi("t10_6", name) || !_strcmpi("bo6_6", name) || !_strcmpi("blackops6_6", name) || !_strcmpi("6", name)) {
+			return VM_BO6_06;
+		}
+		if (!_strcmpi("cer", name) || !_strcmpi("t10", name) || !_strcmpi("bo6", name) || !_strcmpi("blackops6", name) || !_strcmpi("7", name)) {
+			return VM_BO6_07;
 		}
 		return VM_UNKNOWN;
 	}
@@ -226,31 +229,31 @@ void VmInfo::AddDevCallName(uint64_t name) {
 }
 
 uint64_t VmInfo::HashField(const char* value) const {
+	uint64_t t;
+	if (hash::TryHashPattern(value, t)) {
+		return t;
+	}
 	if (HasFlag(VmFlags::VMF_HASH_CER)) {
-		uint64_t t;
-		if (hash::TryHashPattern(value, t)) {
-			return t;
-		}
 		return hashutils::HashT10Scr(value);
 	}
 	if (HasFlag(VmFlags::VMF_HASH_IW)) {
-		uint64_t t;
-		if (hash::TryHashPattern(value, t)) {
-			return t;
-		}
-		return hash::Hash64A(value, 0x79D6530B0BB9B5D1, 0x10000000233);
+		return hashutils::HashJupScr(value);
 	}
-	if (vm <= VM_T7) {
+	if (HasFlag(VmFlags::VMF_HASH_T7)) {
 		return hashutils::HashT7(value);
 	}
-	return hash::Hash32Pattern(value);
+	return hashutils::Hash32(value);
 }
 
 uint64_t VmInfo::HashPath(const char* value) const {
+	uint64_t t;
+	if (hash::TryHashPattern(value, t)) {
+		return t;
+	}
 	if (HasFlag(VmFlags::VMF_HASH_CER) || HasFlag(VmFlags::VMF_HASH_IW)) {
 		return hashutils::HashIWRes(value);
 	}
-	return hash::Hash64Pattern(value);
+	return hash::Hash64(value);
 }
 
 uint64_t VmInfo::HashFilePath(const char* value) const {
@@ -2982,7 +2985,6 @@ class OPCodeInfoDevConsume : public OPCodeInfo {
 public:
 	OPCodeInfoDevConsume(OPCode id, const char* name, size_t len, bool push) : len(len), push(push), OPCodeInfo(id, name) {
 	}
-	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		out << "data(" << std::dec << len << "):";
@@ -3017,12 +3019,12 @@ public:
 	}
 };
 
-class OPCodeInfoProfileNamed : public OPCodeInfo {
+class OPCodeInfoFuncHash : public OPCodeInfo {
 	bool m_push;
+	const char* m_desc;
 public:
-	OPCodeInfoProfileNamed(OPCode id, bool push) : OPCodeInfo(id, "ProfileNamedStart"), m_push(push) {
+	OPCodeInfoFuncHash(OPCode id, const char* name, bool push, const char* desc) : OPCodeInfo(id, name), m_push(push), m_desc(desc) {
 	}
-	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& bytecode = context.Aligned<uint64_t>();
@@ -3032,7 +3034,7 @@ public:
 		bytecode += 8;
 
 		if (context.m_runDecompiler) {
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("profileNamedStart", false);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_desc, false);
 
 			node->AddParam(new ASMContextNodeHash(hash, false, "#"));
 			// convert it to statement
@@ -4995,9 +4997,9 @@ namespace tool::gsc::opcode {
 			// all op without params
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStart, "ProfileStart", "profilestart()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStop, "ProfileStop", "profilestop()"));
-			RegisterOpCodeHandler(new OPCodeInfoProfileNamed(OPCODE_ProfileNamedStart, false));
-			RegisterOpCodeHandler(new OPCodeInfoProfileNamed(OPCODE_T7_ProfileStart, true));
-			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileNamedEnd, "ProfileNamedEnd", "profileNamedStop()"));
+			RegisterOpCodeHandler(new OPCodeInfoFuncHash(OPCODE_PixBeginEvent, "PixBeginEvent", false, "pixbeginevent"));
+			RegisterOpCodeHandler(new OPCodeInfoFuncHash(OPCODE_T7_ProfileStart, "ProfileStart", true, "profilestart"));
+			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_PixEndEvent, "PixEndEvent", "pixendevent()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown10e, "Unknown10e", "operator_Unknown10e()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown126, "Unknown126", "operator_Unknown126()"));
 
@@ -6387,7 +6389,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6 ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -6416,7 +6418,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		uint64_t itemValName;
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06) {
 			/*
 				agent = var_57acddc40b2f741[var_54ed0dc40829774];;
 
@@ -6588,7 +6590,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// remove the number of references for the key because maybe we don't use it
 		int32_t& keyRef = ctx.m_localvars_ref[keyValName];
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06) {
 			keyRef = std::max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
 		else if (ctx.m_vm <= VM_T8) {
@@ -6619,7 +6621,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			delete it->node;
 			it = m_statements.erase(it);
 		}
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06) {
 			// not present during the beta
 			if (it != m_statements.end()) {
 				// keyValName = undefined

@@ -2,6 +2,7 @@
 #include "hashutils.hpp"
 #include "compatibility/scobalula_wni.hpp"
 #include "actscli.hpp"
+#include <clicolor.hpp>
 #include "hook/error.hpp"
 #include "actslib/logging.hpp"
 #include "acts.hpp"
@@ -135,6 +136,26 @@ namespace {
 				}
 				opt.packFile = argv[++i];
 			}
+			else if (!strcmp("-W", arg) || !_strcmpi("--work", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				const char* val = argv[++i];
+				if (!_strcmpi("repl", val)) {
+					opt.type = actscli::ACTS_REPL;
+				}
+				else if (!_strcmpi("cli", val)) {
+					opt.type = actscli::ACTS_CLI;
+				}
+				else if (!_strcmpi("ui", val)) {
+					opt.type = actscli::ACTS_UI;
+				}
+				else {
+					LOG_ERROR("Invalid param value for param: {}!", arg);
+					return false;
+				}
+			}
 			else if (!strcmp("-P", arg) || !_strcmpi("--profiler", arg)) {
 				if (i + 1 == argc) {
 					LOG_ERROR("Missing value for param: {}!", arg);
@@ -197,6 +218,7 @@ namespace {
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
+		LOG_INFO(" -W --work          : Tell which work to use: repl, cli");
 		LOG_DEBUG(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
 		LOG_DEBUG("--mark-hash         : Mark the hash default value");
 		LOG_DEBUG("--hashprefix [p]    : Ignore the default prefix");
@@ -208,11 +230,89 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	return TRUE; // ignore
 }
 
+bool ReadParams(std::string& str, std::vector<const char*>& params) {
+
+	// TODO: read params
+
+	LOG_ERROR("ReadParams not implemented");
+	params.push_back("acts");
+	params.push_back("exit");
+	return true;
+}
+
+int HandleCommand(actslib::profiler::Profiler& profiler, actscli::ActsOptions& opt, int argc, const char* argv[]) {
+	const auto& tool = tool::findtool(argv[1]);
+
+	if (!tool) {
+		LOG_ERROR("Error: Bad tool name. {} list for the tools list", *argv);
+		bool find{};
+		const char* query[]{ argv[1] };
+		tool::search(query, 1, [&find](const tool::toolfunctiondata* tool) {
+			if (!find) {
+				LOG_INFO("Similar tool name(s):");
+				find = true;
+			}
+			LOG_INFO("- {}", tool->m_name);
+		});
+
+		return tool::BASIC_ERROR;
+	}
+
+	Process proc(tool.m_game);
+
+	if (tool.m_game) {
+
+		if (!proc) {
+			LOG_ERROR("Can't find game process: {}", utils::WStrToStr(tool.m_game));
+			return -1;
+		}
+		LOG_INFO("Find process {} {}", utils::WStrToStr(tool.m_game), proc);
+
+		if (!proc.Open()) {
+			LOG_ERROR("Can't open game process: 0x{:x}", GetLastError());
+			return -1;
+		}
+	}
+
+	hashutils::SaveExtracted(opt.dumpHashmap != nullptr);
+
+	const clock_t beginTime = clock();
+
+	int output;
+	{
+		actslib::profiler::ProfiledSection ps{ profiler, tool.m_name ? tool.m_name : "no-tool-name" };
+#ifndef DEBUG
+		try {
+#endif
+			output = tool.m_func(proc, argc, argv);
+#ifndef DEBUG
+		}
+		catch (std::exception& e) {
+			LOG_ERROR("Unhandled exception: {}", e.what());
+			output = tool::BASIC_ERROR;
+		}
+#endif
+	}
+
+	LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output,
+		(output == tool::OK ? " (OK)" : output == tool::BAD_USAGE ? " (BAD_USAGE)" : output == tool::BASIC_ERROR ? " (BASIC_ERROR)" : "")
+	);
+
+	hashutils::WriteExtracted(opt.dumpHashmap);
+
+	if (output == tool::BAD_USAGE) {
+		LOG_ERROR("Error: Bad tool usage: {} {} {}", *argv, argv[1], tool.m_usage);
+	}
+
+	return output;
+}
+
 int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	auto& profiler = actscli::GetProfiler();
 
 	core::config::SyncConfig(true);
+	srand((unsigned int)time(nullptr));
 
 	// by default we don't display heavy logs in cli
 
@@ -268,10 +368,23 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	auto& opt = actscli::options();
 
 	if (opt.showTitle && !hInstance) {
-		LOG_INFO("Atian tools {} {}", actsinfo::VERSION, (cli ? "CLI" : "UI"));
+		LOG_INFO("Atian tools {} {}", actsinfo::VERSION, ([&opt]() -> const char* {
+			switch (opt.type) {
+				case actscli::ACTS_CLI: return "CLI";
+				case actscli::ACTS_UI: return "UI";
+				case actscli::ACTS_REPL: return "REPL";
+				default: return "";
+			}
+		})());
 	}
 
-	if (opt.showHelp || argc == 1) {
+	bool useCli = !hInstance && opt.type == actscli::ACTS_CLI && ([]() {
+		DWORD pid;
+		GetWindowThreadProcessId(GetConsoleWindow(), &pid);
+		return GetCurrentProcessId() != pid;
+	})();
+
+	if (useCli && (opt.showHelp || argc == 1)) {
 		PrintACTSHelp(argv[0]);
 		return 0;
 	}
@@ -303,68 +416,40 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		return tool::ui::MainActsUI(hInstance, nShowCmd); // no tool to run, life's easier if I put that here
 	}
 
-	const auto& tool = tool::findtool(argv[1]);
-
-	if (!tool) {
-		LOG_ERROR("Error: Bad tool name. {} list for the tools list", *argv);
-		bool find{};
-		const char* query[]{ argv[1] };
-		tool::search(query, 1, [&find](const tool::toolfunctiondata* tool) {
-			if (!find) {
-				LOG_INFO("Similar tool name(s):");
-				find = true;
-			}
-			LOG_INFO("- {}", tool->m_name);
-		});
-
-		return -1;
-	}
-
-	Process proc(tool.m_game);
-
-	if (tool.m_game) {
-
-		if (!proc) {
-			LOG_ERROR("Can't find game process: {}", utils::WStrToStr(tool.m_game));
-			return -1;
-		}
-		LOG_INFO("Find process {} {}", utils::WStrToStr(tool.m_game), proc);
-
-		if (!proc.Open()) {
-			LOG_ERROR("Can't open game process: 0x{:x}", GetLastError());
-			return -1;
-		}
-	}
-
-	hashutils::SaveExtracted(opt.dumpHashmap != nullptr);
-
-	const clock_t beginTime = clock();
-
 	int output;
-	{
-		actslib::profiler::ProfiledSection ps{ profiler, tool.m_name ? tool.m_name : "no-tool-name" };
-#ifndef DEBUG
-		try {
-#endif
-			output = tool.m_func(proc, argc, argv);
-#ifndef DEBUG
-		}
-		catch (std::exception& e) {
-			LOG_ERROR("Unhandled exception: {}", e.what());
-			output = tool::BASIC_ERROR;
-		}
-#endif
+
+	if (useCli) {
+		opt.type = actscli::ACTS_CLI;
+	}
+	else {
+		opt.type = actscli::ACTS_REPL;
 	}
 
-	LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output, 
-		(output == tool::OK ? " (OK)" : output == tool::BAD_USAGE ? " (BAD_USAGE)" : output == tool::BASIC_ERROR ? " (BASIC_ERROR)" : "")
-	);
-
-	hashutils::WriteExtracted(opt.dumpHashmap);
-
-	if (output == tool::BAD_USAGE) {
-		LOG_ERROR("Error: Bad tool usage: {} {} {}", *argv, argv[1], tool.m_usage);
+	if (opt.type == actscli::ACTS_REPL) {
+		LOG_INFO("'exit' to stop, 'help' for more information");
 	}
+
+	std::vector<const char*> params{};
+	do {
+		if (opt.type == actscli::ACTS_REPL) {
+			std::string line{};
+			
+			std::cout << clicolor::Color(5, 1, 3) << "acts:" << actsinfo::VERSION  << "> " << clicolor::Color(5, 5, 5);
+			std::getline(std::cin, line);
+			std::cout << clicolor::Reset();
+
+			LOG_TRACE("Run line: {}", line);
+
+			if (!ReadParams(line, params)) {
+				continue;
+			}
+
+			argc = (int)params.size();
+			argv = params.data();
+		}
+
+		output = HandleCommand(profiler, opt, argc, argv);
+	} while (opt.type == actscli::ACTS_REPL && !opt.exitAfterEnd);
 
 	if (opt.saveProfiler) {
 		std::ofstream pout{ opt.saveProfiler, std::ios::binary };
@@ -377,6 +462,11 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 			pout.close();
 			LOG_INFO("Profiling saved into {}", opt.saveProfiler);
 		}
+	}
+
+	if (opt.type == actscli::ACTS_REPL) {
+		LOG_INFO("Goodbye, press return key to exit...");
+		std::cin.get();
 	}
 
 	return output;

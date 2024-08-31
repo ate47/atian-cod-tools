@@ -10,9 +10,9 @@ namespace actsinfo {
 #else
 
     // Version used for the release
-    constexpr const char* VERSION = "1.12.1";
-    constexpr const wchar_t* VERSIONW = L"1.12.1";
-    constexpr unsigned int VERSION_ID = 0x11201000;
+    constexpr const char* VERSION = "1.13.1";
+    constexpr const wchar_t* VERSIONW = L"1.13.1";
+    constexpr unsigned int VERSION_ID = 0x1130100;
 
 #endif
 }

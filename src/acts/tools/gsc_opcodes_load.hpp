@@ -13,7 +13,8 @@ namespace tool::gsc::opcode {
 
 		VM_MW23 = 0x8a,
 		VM_MW23B = 0x8b,
-		VM_BO6 = 0x06,
+		VM_BO6_06 = 0x06,
+		VM_BO6_07 = 0x07,
 	};
 
 	enum Platform : byte {
@@ -186,8 +187,8 @@ namespace tool::gsc::opcode {
 		OPCODE_T8C_GetLazyFunction,
 
 		// T9
-		OPCODE_ProfileNamedStart,
-		OPCODE_ProfileNamedEnd,
+		OPCODE_PixBeginEvent,
+		OPCODE_PixEndEvent,
 		OPCODE_GetNegUnsignedInteger,
 		OPCODE_T9_EvalFieldVariableFromObjectCached,
 		OPCODE_T9_EvalFieldVariableFromObjectFromRef,

@@ -2,6 +2,11 @@
 #include "actslib/profiler.hpp"
 
 namespace actscli {
+	enum ActsType {
+		ACTS_UI,
+		ACTS_CLI,
+		ACTS_REPL,
+	};
 	struct ActsOptions {
 		bool showTitle{ true };
 		bool showHelp{};
@@ -19,6 +24,8 @@ namespace actscli {
 		const char* seriousDBFile{};
 		const char* hashPrefixByPass{};
 		bool heavyHashes{};
+		ActsType type{ ACTS_CLI };
+		bool exitAfterEnd{};
 	};
 
 	ActsOptions& options();

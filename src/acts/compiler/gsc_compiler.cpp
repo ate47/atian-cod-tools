@@ -3,6 +3,7 @@
 #include "gscParser.h"
 #include "gscVisitor.h"
 #include <includes.hpp>
+#include <random>
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_acts_debug.hpp"
@@ -514,9 +515,10 @@ namespace acts::compiler {
         bool hasRegister;
         bool hasRegisters;
         bool hasFlag;
+        bool obfuscate;
         uint32_t hashSize;
     public:
-        AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj);
+        AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj, bool obfuscate);
 
         uint32_t ShiftSize(uint32_t start, bool aligned) const override {
             static AscmNodeOpCode opCodeUndef{ OPCODE_Undefined };
@@ -598,11 +600,11 @@ namespace acts::compiler {
 
                         if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
                             ctx.Align<uint64_t>();
-                            ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                            ctx.Write<uint64_t>(obfuscate ? (uint64_t)(i + 1) : ctx.vmInfo->HashField(var.name.c_str()));
                         }
                         else {
                             ctx.Align<uint32_t>();
-                            ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                            ctx.Write<uint32_t>(obfuscate ? (uint32_t)(i + 1) : (uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
                         }
                         if (hasFlag) {
                             ctx.Write<byte>(var.flags);
@@ -629,11 +631,11 @@ namespace acts::compiler {
 
                         if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
                             ctx.Align<uint64_t>();
-                            ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                            ctx.Write<uint64_t>(obfuscate ? (uint64_t)(i + 1) : ctx.vmInfo->HashField(var.name.c_str()));
                         }
                         else {
                             ctx.Align<uint32_t>();
-                            ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                            ctx.Write<uint32_t>(obfuscate ? (uint32_t)(i + 1) : (uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
                         }
                         if (hasFlag) {
                             ctx.Write<byte>(var.flags);
@@ -652,11 +654,11 @@ namespace acts::compiler {
 
                             if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
                                 ctx.Align<uint64_t>();
-                                ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                                ctx.Write<uint64_t>(obfuscate ? (uint64_t)(i + 1) : ctx.vmInfo->HashField(var.name.c_str()));
                             }
                             else {
                                 ctx.Align<uint32_t>();
-                                ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                                ctx.Write<uint32_t>(obfuscate ? (uint32_t)(i + 1) : (uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
                             }
                         }
                     }
@@ -676,11 +678,11 @@ namespace acts::compiler {
                 for (FunctionVar& var : vars) {
                     if (ctx.vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
                         ctx.Align<uint64_t>();
-                        ctx.Write<uint64_t>(ctx.vmInfo->HashField(var.name.c_str()));
+                        ctx.Write<uint64_t>(obfuscate ? (uint64_t)(var.id + 1) : ctx.vmInfo->HashField(var.name.c_str()));
                     }
                     else {
                         ctx.Align<uint32_t>();
-                        ctx.Write<uint32_t>((uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
+                        ctx.Write<uint32_t>(obfuscate ? (uint32_t)(var.id + 1) : (uint32_t)ctx.vmInfo->HashField(var.name.c_str()));
                     }
                     if (hasFlag) {
                         ctx.Write<byte>(var.flags);
@@ -817,6 +819,7 @@ namespace acts::compiler {
         const char* fileNameSpaceClient{ "" };
         bool defineAsConstExpr{};
         bool noDevCallInline{};
+        bool obfuscate{};
         DetourType detourType{ DETOUR_UNKNOWN };
         preprocessor::PreProcessorOption processorOpt{};
 
@@ -863,6 +866,9 @@ namespace acts::compiler {
                 }
                 else if (!strcmp("-d", arg) || !_strcmpi("--dbg", arg)) {
                     m_computeDevOption = true;
+                }
+                else if (!strcmp("-O", arg) || !_strcmpi("--obfuscate", arg)) {
+                    obfuscate = true;
                 }
                 else if (!_strcmpi("--dev-block-as-comment", arg)) {
                     processorOpt.devBlockAsComment = true;
@@ -1046,6 +1052,7 @@ namespace acts::compiler {
             LOG_INFO("--dev-block-as-comment : Consider /# #/ as comment markers");
             LOG_INFO("--define-as-constxpr   : Consider #define as constexpr");
             LOG_INFO("--no-devcall-inline    : Do not automatically inline dev calls in /# #/ blocks");
+            LOG_INFO("-O --obfuscate         : Obfuscate some parts of the code");
             LOG_DEBUG("--preproc [f]         : Export preproc result into f");
         }
     };  
@@ -1054,49 +1061,10 @@ namespace acts::compiler {
         FILE_GSC,
         FILE_CSC
     };
-
-    class GscFile {
-    public:
-        const std::filesystem::path& filename;
-        size_t start;
-        size_t startLine;
-        size_t sizeLine;
-        std::string buffer{};
-    };
-
     struct InputInfo {
-        std::vector<GscFile> files{};
-        std::string gscData{};
+        preprocessor::StringContainer container{};
 
 
-        const GscFile& FindFile(size_t line) const {
-            for (const GscFile& f : files) {
-                if (line >= f.startLine && line < f.startLine + f.sizeLine) {
-                    return f;
-                }
-            }
-            return files[files.size() - 1];
-        }
-
-        void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) const {
-            const GscFile& f = FindFile(line);
-        
-            size_t localLine;
-
-            if (line > f.startLine) {
-                localLine = line - f.startLine;
-            }
-            else {
-                localLine = f.sizeLine;
-            }
-
-            if (charPositionInLine) {
-                LOG_LVL(lvl, "{}#{}:{} {}", f.filename.string(), localLine, charPositionInLine, msg);
-            }
-            else {
-                LOG_LVL(lvl, "{}#{} {}", f.filename.string(), localLine, msg);
-            }
-        }
         Token* GetToken(ParseTree* tree) const {
             while (tree && tree->getTreeType() != TREE_TERMINAL && tree->children.size()) {
                 tree = tree->children[0];
@@ -1110,7 +1078,7 @@ namespace acts::compiler {
         void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) const {
             Token* token = GetToken(tree);
             if (token) {
-                PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);
+                container.PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);
                 return;
             }
 
@@ -1188,9 +1156,7 @@ namespace acts::compiler {
             return detour.func || detour.nsp || detour.script;
         }
 
-        AscmNode* CreateParamNode() const {
-            return new AscmNodeCreateLocalVariables(m_vars, m_allocatedVar, (size_t)m_params, *this);
-        }
+        AscmNode* CreateParamNode() const;
 
         AscmNode* CreateFieldHash(uint64_t v, OPCode op) const {
             return new AscmNodeHash(v, op, m_vmInfo->HasFlag(VmFlags::VMF_HASH64) ? 8 : 4);
@@ -1929,16 +1895,24 @@ namespace acts::compiler {
             };
 
             std::vector<FunctionObject*> autoexecs{};
+            std::vector<FunctionObject*> othersfuncs{};
 
             for (auto& [name, exp] : exports) {
                 if (exp.m_flags & tool::gsc::T8GSCExportFlags::AUTOEXEC) {
                     autoexecs.push_back(&exp);
+                }
+                else {
+                    othersfuncs.push_back(&exp);
                 }
             }
 
             // sort the autoexecs by ids and write them first
 
             std::sort(autoexecs.begin(), autoexecs.end(), [](auto& f1, auto& f2) -> bool { return f1->autoexecOrder < f2->autoexecOrder; });
+
+            if (opt.obfuscate) {
+                std::shuffle(othersfuncs.begin(), othersfuncs.end(), std::mt19937{ std::random_device{}() });
+            }
 
             bool exportsOk{ true };
             for (FunctionObject* exp : autoexecs) {
@@ -1947,10 +1921,8 @@ namespace acts::compiler {
                 }
             }
 
-            for (auto& [name, exp] : exports) {
-                if (exp.m_flags & tool::gsc::T8GSCExportFlags::AUTOEXEC) {
-                    continue; // skip autoexecs
-                }
+            for (auto* expptr : othersfuncs) {
+                auto& exp = *expptr;
 
                 if (!writeExport(exp)) {
                     exportsOk = false;
@@ -2065,11 +2037,13 @@ namespace acts::compiler {
                 size_t lazyLinksIdx{};
                 if (opt.m_computeDevOption) {
                     LOG_TRACE("Compile {} hash(es)...", hashes.size());
-                    hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
 
-                    for (const std::string& h : hashes) {
-                        reinterpret_cast<uint32_t*>(&data[hashesLoc])[hashesIdx++] = (uint32_t)data.size();
-                        utils::WriteString(data, h.c_str());
+                    if (!opt.obfuscate) {
+                        hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
+                        for (const std::string& h : hashes) {
+                            reinterpret_cast<uint32_t*>(&data[hashesLoc])[hashesIdx++] = (uint32_t)data.size();
+                            utils::WriteString(data, h.c_str());
+                        }
                     }
 
                     LOG_TRACE("Compile {} dev block(s)...", m_devBlocks.size());
@@ -2248,6 +2222,10 @@ namespace acts::compiler {
         return std::make_pair<>(nullptr, &var);
     }
 
+    AscmNode* FunctionObject::CreateParamNode() const {
+        return new AscmNodeCreateLocalVariables(m_vars, m_allocatedVar, (size_t)m_params, *this, obj.opt.obfuscate);
+    }
+
     void FunctionObject::AddNode(ParseTree* tree, AscmNode* node) {
         Token* token = obj.info.GetToken(tree);
         if (token) {
@@ -2324,7 +2302,8 @@ namespace acts::compiler {
         }
     }
 
-    AscmNodeCreateLocalVariables::AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj) : params(params) {
+    AscmNodeCreateLocalVariables::AscmNodeCreateLocalVariables(const FunctionVar* lvars, size_t count, size_t params, const FunctionObject& fobj, bool obfuscate)
+        : params(params), obfuscate(obfuscate) {
         hasRegister = fobj.obj.HasOpCode(OPCODE_IW_RegisterVariable);
         hasRegisters = fobj.obj.HasOpCode(OPCODE_IW_RegisterMultipleVariables);
         hashSize = fobj.obj.vmInfo->HasFlag(VMF_HASH64) ? 8 : 4;
@@ -4652,7 +4631,7 @@ namespace acts::compiler {
             fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetUndefined));
             return true;
         case gscParser::BOOL_VALUE:
-            fobj.AddNode(term, obj.BuildAscmNodeData(term->getText() == "true"));
+            fobj.AddNode(term, obj.BuildAscmNodeData(term->getText() == "true" ? (rand() + 1) : 0));
             return true;
         case gscParser::FLOATVAL:
             fobj.AddNode(term, new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), nullptr), OPCODE_GetFloat));
@@ -4779,7 +4758,9 @@ namespace acts::compiler {
         auto* paramsRule = func->children[(size_t)(func->children.size() - 3 - deltaArrow)];
         auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
     
-        std::string name = hasName ? func->children[(size_t)(func->children.size() - (5 + deltaArrow))]->getText() : utils::va("$nameless_%llx", obj.emptyNameInc++);
+        std::string name = hasName ? 
+            func->children[(size_t)(func->children.size() - (5 + deltaArrow))]->getText() 
+            : utils::va("$nameless_%llx", (obj.opt.obfuscate ? (obj.emptyNameInc += 1 + rand()) : obj.emptyNameInc++));
 
         obj.AddHash(name);
         uint64_t nameHashed = obj.vmInfo->HashField(name.data());
@@ -5245,7 +5226,7 @@ namespace acts::compiler {
 
         void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line, size_t charPositionInLine,
             const std::string& msg, std::exception_ptr e) override {
-            m_info.PrintLineMessage(alogs::LVL_ERROR, line, charPositionInLine, msg);
+            m_info.container.PrintLineMessage(alogs::LVL_ERROR, line, charPositionInLine, msg);
         }
     };
 
@@ -5273,7 +5254,6 @@ namespace acts::compiler {
 
         auto produceFile = [&opt, &inputs, &handler](bool client) -> int {
             InputInfo info{};
-            size_t lineGsc{};
 
             for (const std::filesystem::path& file : inputs) {
                 auto ext = file.extension();
@@ -5288,34 +5268,13 @@ namespace acts::compiler {
                     }
                 }
 
-                size_t start;
-                size_t startLine;
-
-                start = info.gscData.size();
-                startLine = lineGsc;
-                // GscFile
-                auto& dt = info.files.emplace_back(file, start, startLine, 0);
-
-                if (!utils::ReadFile(file, dt.buffer)) {
+                if (!info.container.AppendFile(file)) {
                     LOG_ERROR("Can't read file {}", file.string());
                     return tool::BASIC_ERROR;
                 }
-
-                size_t lineCount{ 1 }; // 1 for the one we'll add at the end
-
-                const char* b = dt.buffer.data();
-                while (*b) {
-                    if (*(b++) == '\n') {
-                        lineCount++;
-                    }
-                }
-
-                dt.sizeLine = lineCount;
-                lineGsc = startLine + lineCount;
-                info.gscData = info.gscData + dt.buffer + "\n";
             }
 
-            if (!lineGsc) {
+            if (!info.container.currentLines) {
                 return tool::OK; // no file
             }
 
@@ -5336,17 +5295,17 @@ namespace acts::compiler {
                 popt.defines.insert("_GSC");
             }
 
-            if (!popt.ApplyPreProcessor(info.gscData, 
-                [&info](alogs::loglevel lvl, size_t line, const std::string& message) { info.PrintLineMessage(lvl, line, 0, message); })) {
+            if (!popt.ApplyPreProcessor(info.container.data, 
+                [&info](alogs::loglevel lvl, size_t line, const std::string& message) { info.container.PrintLineMessage(lvl, line, 0, message); })) {
                 LOG_ERROR("Error when applying preprocessor on data");
                 return tool::BASIC_ERROR;
             }
 
             if (opt.m_preproc) {
-                utils::WriteFile(opt.m_preproc, info.gscData);
+                utils::WriteFile(opt.m_preproc, info.container.data);
             }
 
-            ANTLRInputStream is{ info.gscData };
+            ANTLRInputStream is{ info.container.data };
 
             auto errList = std::make_unique<ACTSErrorListener>(info);
 
@@ -5402,5 +5361,5 @@ namespace acts::compiler {
         return produceFile(true);
     }
 
-    ADD_TOOL("gscc", "gsc", " --help", "gsc compiler (Alpha)", nullptr, compiler);
+    ADD_TOOL("gscc", "gsc", " --help", "gsc compiler", nullptr, compiler);
 }

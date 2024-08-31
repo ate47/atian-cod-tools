@@ -1,6 +1,91 @@
 #pragma once
 
 namespace acts::compiler::preprocessor {
+    struct StringData {
+        const std::filesystem::path& filename;
+        size_t start;
+        size_t startLine;
+        size_t sizeLine;
+        size_t fileoffset{};
+    };
+
+    struct StringContainer {
+        std::vector<StringData> blocks{};
+        std::vector<std::string> buffers{};
+        std::string data{};
+        size_t currentLines{};
+
+        void AddLineAt(const std::string& str, size_t start, size_t line) {
+            auto it = blocks.begin();
+            while (it != blocks.end()) {
+                if (line >= it->startLine && line < it->startLine + it->sizeLine) {
+                    if (it->startLine == line) {
+                        // TODO
+                    }
+
+
+                    return;
+                }
+            }
+            throw std::runtime_error(utils::va("Can't find line %lld", line));
+        }
+
+        const StringData& FindFile(size_t line) const {
+            for (const StringData& f : blocks) {
+                if (line >= f.startLine && line < f.startLine + f.sizeLine) {
+                    return f;
+                }
+            }
+            return blocks[blocks.size() - 1];
+        }
+
+        void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) const {
+            const StringData& f = FindFile(line);
+
+            size_t localLine;
+
+            if (line > f.startLine) {
+                localLine = line - f.startLine;
+            }
+            else {
+                localLine = f.sizeLine;
+            }
+
+            if (charPositionInLine) {
+                LOG_LVL(lvl, "{}#{}:{} {}", f.filename.string(), localLine, charPositionInLine, msg);
+            }
+            else {
+                LOG_LVL(lvl, "{}#{} {}", f.filename.string(), localLine, msg);
+            }
+        }
+
+        bool AppendFile(const std::filesystem::path& filename) {
+            size_t start = data.size();
+            size_t startLine = currentLines;
+            // GscFile
+            preprocessor::StringData& dt = blocks.emplace_back(filename, start, startLine, 0);
+            std::string& buff = buffers.emplace_back();
+
+            if (!utils::ReadFile(filename, buff)) {
+                return false;
+            }
+
+            size_t lineCount{ 1 }; // 1 for the one we'll add at the end
+
+            const char* b = buff.data();
+            while (*b) {
+                if (*(b++) == '\n') {
+                    lineCount++;
+                }
+            }
+
+            dt.sizeLine = lineCount;
+            currentLines = startLine + lineCount;
+            data = data + buff + "\n";
+            return true;
+        }
+    };
+
     struct PreProcessorOption {
         std::unordered_set<std::string> defines{};
         bool devBlockAsComment{};
