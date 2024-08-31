@@ -941,6 +941,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_BO6_06, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64A(str); });
 			RegisterVMHashOPCode(VM_BO6_06, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
 			RegisterVMHashOPCode(VM_BO6_06, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIWRes(str); });
+			RegisterVMHashOPCode(VM_BO6_06, 'r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hashutils::HashIWRes(str); });
 			RegisterVMHashOPCode(VM_BO6_06, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
 			RegisterVMHashOPCode(VM_BO6_06, '&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hashutils::HashT10Scr(str); });
 			RegisterDevCall(VM_BO6_06, "assert", "assertmsg", "assertex", "println");
@@ -964,6 +965,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_BO6_07, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64A(str); });
 			RegisterVMHashOPCode(VM_BO6_07, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
 			RegisterVMHashOPCode(VM_BO6_07, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIWRes(str); });
+			RegisterVMHashOPCode(VM_BO6_07, 'r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hashutils::HashIWRes(str); });
 			RegisterVMHashOPCode(VM_BO6_07, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
 			RegisterVMHashOPCode(VM_BO6_07, '&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hashutils::HashT10Scr(str); });
 			RegisterDevCall(VM_BO6_07, "assert", "assertmsg", "assertex", "println");

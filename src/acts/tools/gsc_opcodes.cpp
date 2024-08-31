@@ -5245,6 +5245,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "ClearFieldVariableRef"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "GetDVarHash", "@"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash, "GetResourceHash", "%"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash2, "GetResourceHash2", "r"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "GetTagHash", "t", false));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "GetScrHash", "&"));
 			
@@ -5501,7 +5502,9 @@ bool ASMContext::FindNextLocation() {
 		}
 		else {
 			if (loc.rloc > min) {
-				LOG_WARNING("Unhandled rloc: 0x{:x} after handled 0x{:x}, the decompiled code won't be 100% correct", min, loc.rloc);
+				LOG_WARNING("{}::{} : Unhandled rloc: 0x{:x} after handled 0x{:x}, the decompiled code won't be 100% correct", 
+					hashutils::ExtractTmp("namespace", m_exp.GetNamespace()), 
+					hashutils::ExtractTmp("function", m_exp.GetName()), min, loc.rloc);
 				min = 0xFFFFFFFFFF;
 				minloc = 0;
 			}
@@ -6389,7 +6392,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07 ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -6418,7 +6421,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		uint64_t itemValName;
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
 			/*
 				agent = var_57acddc40b2f741[var_54ed0dc40829774];;
 
@@ -6590,7 +6593,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// remove the number of references for the key because maybe we don't use it
 		int32_t& keyRef = ctx.m_localvars_ref[keyValName];
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
 			keyRef = std::max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
 		else if (ctx.m_vm <= VM_T8) {
@@ -6621,7 +6624,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			delete it->node;
 			it = m_statements.erase(it);
 		}
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06) {
+		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
 			// not present during the beta
 			if (it != m_statements.end()) {
 				// keyValName = undefined

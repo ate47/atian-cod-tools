@@ -705,6 +705,7 @@ namespace {
         { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
         { VM_BO6_06,[](byte* file, size_t fileSize) { return std::make_shared<T10GSCOBJHandler>(file, fileSize); }},
+        { VM_BO6_07,[](byte* file, size_t fileSize) { return std::make_shared<T1007GSCOBJHandler>(file, fileSize); }},
     };
 }
 
