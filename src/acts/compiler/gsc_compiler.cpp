@@ -27,6 +27,133 @@ namespace acts::compiler {
     class ACTSErrorListener;
     struct InputInfo;
 
+
+
+    constexpr OPCode requiredOpCodes[]
+    {
+        OPCODE_AddToArray,
+        OPCODE_AddToStruct,
+        OPCODE_Bit_And,
+        OPCODE_Bit_Or,
+        OPCODE_Bit_Xor,
+        OPCODE_BoolComplement,
+        OPCODE_BoolNot,
+        OPCODE_CallBuiltinFunction,
+        OPCODE_CallBuiltinMethod,
+        OPCODE_CastAndEvalFieldVariable,
+        OPCODE_CastCanon,
+        OPCODE_CastFieldObject,
+        OPCODE_CheckClearParams,
+        OPCODE_ClassFunctionCall,
+        OPCODE_ClassFunctionThreadCall,
+        OPCODE_ClassFunctionThreadCallEndOn,
+        OPCODE_ClearParams,
+        OPCODE_CreateArray,
+        OPCODE_CreateStruct,
+        OPCODE_Dec,
+        OPCODE_DecTop,
+        OPCODE_DevblockBegin,
+        OPCODE_Divide,
+        OPCODE_End,
+        OPCODE_Equal,
+        OPCODE_EvalArray,
+        OPCODE_EvalArrayRef,
+        OPCODE_EvalFieldVariable,
+        OPCODE_EvalFieldVariableOnStack,
+        OPCODE_EvalFieldVariableOnStackRef,
+        OPCODE_EvalFieldVariableRef,
+        OPCODE_EvalLocalVariableCached,
+        OPCODE_EvalLocalVariableDefined,
+        OPCODE_EvalLocalVariableRefCached,
+        OPCODE_FirstArrayKey,
+        OPCODE_FirstArrayKeyCached,
+        OPCODE_GetByte,
+        OPCODE_GetFloat,
+        OPCODE_GetFunction,
+        OPCODE_GetGlobal,
+        OPCODE_GetGlobalObject,
+        OPCODE_GetHash,
+        OPCODE_GetInteger,
+        OPCODE_GetLongInteger,
+        OPCODE_GetNegByte,
+        OPCODE_GetNegUnsignedInteger,
+        OPCODE_GetNegUnsignedShort,
+        OPCODE_GetResolveFunction,
+        OPCODE_GetSelf,
+        OPCODE_GetShort,
+        OPCODE_GetSignedByte,
+        OPCODE_GetString,
+        OPCODE_GetUndefined,
+        OPCODE_GetUnsignedInteger,
+        OPCODE_GetUnsignedShort,
+        OPCODE_GetZero,
+        OPCODE_GreaterThan,
+        OPCODE_GreaterThanOrEqualTo,
+        OPCODE_Inc,
+        OPCODE_IsDefined,
+        OPCODE_IW_AddToStruct,
+        OPCODE_IW_BuiltinFunctionCallPointer,
+        OPCODE_IW_BuiltinMethodCallPointer,
+        OPCODE_IW_ClearFieldVariableRef,
+        OPCODE_IW_GetBuiltinFunction,
+        OPCODE_IW_GetBuiltinMethod,
+        OPCODE_IW_GetLevel,
+        OPCODE_IW_GetPositionRef,
+        OPCODE_IW_IsTrue,
+        OPCODE_IW_Notify,
+        OPCODE_IW_RegisterMultipleVariables,
+        OPCODE_IW_RegisterVariable,
+        OPCODE_IW_SetWaittillVariableFieldCached,
+        OPCODE_Jump,
+        OPCODE_JumpOnDefinedExpr,
+        OPCODE_JumpOnFalse,
+        OPCODE_JumpOnFalseExpr,
+        OPCODE_JumpOnTrue,
+        OPCODE_JumpOnTrueExpr,
+        OPCODE_LessThan,
+        OPCODE_LessThanOrEqualTo,
+        OPCODE_Minus,
+        OPCODE_Modulus,
+        OPCODE_Multiply,
+        OPCODE_Nop,
+        OPCODE_NotEqual,
+        OPCODE_Notify,
+        OPCODE_Plus,
+        OPCODE_PreScriptCall,
+        OPCODE_Return,
+        OPCODE_SafeCreateLocalVariables,
+        OPCODE_ScriptFunctionCall,
+        OPCODE_ScriptFunctionCallPointer,
+        OPCODE_ScriptMethodCall,
+        OPCODE_ScriptMethodCallPointer,
+        OPCODE_ScriptMethodThreadCall,
+        OPCODE_ScriptMethodThreadCallEndOn,
+        OPCODE_ScriptMethodThreadCallPointer,
+        OPCODE_ScriptMethodThreadCallPointerEndOn,
+        OPCODE_ScriptThreadCall,
+        OPCODE_ScriptThreadCallEndOn,
+        OPCODE_ScriptThreadCallPointer,
+        OPCODE_ScriptThreadCallPointerEndOn,
+        OPCODE_SetLocalVariableCached,
+        OPCODE_SetNextArrayKeyCached,
+        OPCODE_SetVariableField,
+        OPCODE_ShiftLeft,
+        OPCODE_ShiftRight,
+        OPCODE_SizeOf,
+        OPCODE_SuperEqual,
+        OPCODE_SuperNotEqual,
+        OPCODE_T10_GreaterThanOrSuperEqualTo,
+        OPCODE_T10_LowerThanOrSuperEqualTo,
+        OPCODE_T8C_GetLazyFunction,
+        OPCODE_T9_GetVarRef,
+        OPCODE_T9_IteratorKey,
+        OPCODE_T9_IteratorNext,
+        OPCODE_T9_IteratorVal,
+        OPCODE_Undefined,
+        OPCODE_Vector,
+        OPCODE_Wait,
+    };
+
     struct FunctionVar {
         std::string name;
         size_t id;
@@ -5374,6 +5501,61 @@ namespace acts::compiler {
         }
         return produceFile(true);
     }
+    int gscc_pack(Process& proc, int argc, const char* argv[]) {
+        if (argc < 4) return tool::BAD_USAGE;
+
+        tool::gsc::opcode::VM vm{ tool::gsc::opcode::VMOf(argv[2]) };
+        tool::gsc::opcode::Platform plt{ tool::gsc::opcode::PlatformOf(argv[3]) };
+
+        if (!vm) {
+            LOG_ERROR("Invalid vm");
+            return tool::BAD_USAGE;
+        }
+        if (!plt) {
+            LOG_ERROR("Invalid platform");
+            return tool::BAD_USAGE;
+        }
+
+        tool::gsc::opcode::VmInfo* info{};
+
+        if (!tool::gsc::opcode::IsValidVm(vm, info)) {
+            LOG_ERROR("Invalid vm loaded");
+            return tool::BAD_USAGE;
+        }
+
+        LOG_INFO("Opcode for {}/{}", info->codeName, tool::gsc::opcode::PlatformName(plt));
+
+        auto PrintOpCode = [vm, plt](OPCode op) {
+            auto [ok, id] = GetOpCodeId(vm, plt, op);
+
+            if (!id) {
+                LOG_ERROR("Missing opcode {}", utils::PtrOrElse(OpCodeName(op), "null"));
+                return;
+            }
+            LOG_INFO("{}, 0x{:x}", utils::PtrOrElse(OpCodeName(op), "null"), id);
+        };
+
+        for (auto& [k, f] : info->hashesFunc) {
+            PrintOpCode(f.opCode);
+        }
+        for (auto& [k, f] : info->opFuncs) {
+            PrintOpCode(f.opCode);
+        }
+        for (auto& [k, f] : info->globalvars) {
+            if (f.getOpCode) {
+                PrintOpCode(f.getOpCode);
+            }
+        }
+
+        for (OPCode op : requiredOpCodes) {
+            if (HasOpCode(vm, plt, op)) {
+                PrintOpCode(op);
+            }
+        }
+
+        return tool::OK;
+    }
 
     ADD_TOOL("gscc", "gsc", " --help", "gsc compiler", nullptr, compiler);
+    ADD_TOOL("gscc_pack", "gsc", " [vm] [plt]", "pack required opcode for a vm", nullptr, gscc_pack);
 }

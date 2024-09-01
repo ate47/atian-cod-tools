@@ -32,7 +32,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | Black Ops Cold War (T9)  | 38       | DEC        | ✅        | EXT         |
 | Modern Warfare III (JUP) | 8A       | EXT        | EXT      | ❌           |
 | Modern Warfare III (JUP) | 8B       | DEC & EXT  | EXT      | ❌           |
-| Black Ops 6 (CER)        | 06       | DEC & EXT  | EXT      | ❌           |
+| Black Ops 6 (CER)        | 06       | DEC & EXT  | ✅       | ❌           |
 | Black Ops 6 (CER)        | 07       | DEC & EXT  | EXT      | ❌           |
 
 - **DEC**: With pre-decode
