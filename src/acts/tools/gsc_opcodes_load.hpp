@@ -307,6 +307,8 @@ namespace tool::gsc::opcode {
 		OPCODE_T10_LowerThanOrSuperEqualTo,
 		OPCODE_IW_GetResourceHash2,
 
+		OPCODE_IW_GetPositionRef,
+
 		OPCODE_COUNT,
 	};
 	void RegisterOpCodesMap();

@@ -228,7 +228,8 @@ namespace tool::gsc {
             TYPE_SELF,
             TYPE_GET_UNDEFINED,
 
-            TYPE_JUMP_STACK_TOP
+            TYPE_JUMP_STACK_TOP,
+            TYPE_GET_CODE_REF,
         };
 
         inline bool IsJumpType(ASMContextNodeType type) {

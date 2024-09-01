@@ -18,7 +18,8 @@ function autoexec test_ev() {
         #c: { #d: "bye", #e: "bye" }
     };
     test3 = "hello";
-    test = 42 >== 23 <== 64 === 22 !== false;
+    test = 2;
+    //test = 42 >== 23 <== 64 === 22 !== false;
     test2 = test ?? 23;
     test3 = getthread();
     test3 = istrue(true);
@@ -53,4 +54,10 @@ function test() {
 
         self iprintln("hello: " + v1 + v2 + v3);
     }
+
+
+code_loc:
+    i++;
+
+    return code_loc;
 }

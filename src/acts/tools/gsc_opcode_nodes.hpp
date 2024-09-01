@@ -1117,6 +1117,23 @@ namespace tool::gsc::opcode {
 		}
 	};
 
+	class ASMContextNodeCodeRef : public ASMContextNode {
+	public:
+		int64_t m_location;
+
+		ASMContextNodeCodeRef(int64_t location) :
+			ASMContextNode(PRIORITY_VALUE, TYPE_VALUE), m_location(location) {
+		}
+
+		ASMContextNode* Clone() const override {
+			return new ASMContextNodeCodeRef(m_location);
+		}
+
+		void Dump(std::ostream& out, DecompContext& ctx) const override {
+			out << "LOC_" << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << m_location;
+		}
+	};
+
 	bool IsJumpConditionForceReversed(const ASMContextNodeJumpOperator* op);
 	ASMContextNode* JumpCondition(ASMContextNodeJumpOperator* op, bool reversed);
 

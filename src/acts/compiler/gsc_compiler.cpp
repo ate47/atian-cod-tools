@@ -4583,6 +4583,20 @@ namespace acts::compiler {
                 return true;
             }
 
+            if (obj.HasOpCode(OPCODE_IW_GetPositionRef)) {
+                auto itl = fobj.m_jumpLocs.find(varName);
+
+                if (itl != fobj.m_jumpLocs.end()) {
+                    if (!itl->second.node) {
+                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("The jump location {} can't be referenced", varName));
+                        return false;
+                    }
+
+                    fobj.AddNode(term, new AscmNodeJump(itl->second.node, OPCODE_IW_GetPositionRef));
+                    return true;
+                }
+            }
+
             auto gvarIt = fobj.m_vmInfo->globalvars.find(obj.vmInfo->HashField(varName));
 
             if (gvarIt != fobj.m_vmInfo->globalvars.end()) {

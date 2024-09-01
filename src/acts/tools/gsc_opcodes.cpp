@@ -1462,7 +1462,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int32_t m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
+		int32_t m_jumpLocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) ? 2 : 1));
 		// get the jump opcode location
 
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
@@ -4119,6 +4119,46 @@ public:
 	}
 };
 
+class OPCodeInfoGetPositionRef : public OPCodeInfo {
+public:
+	OPCodeInfoGetPositionRef() : OPCodeInfo(OPCODE_IW_GetPositionRef, "GetPositionRef") {}
+
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int32_t opcodeLocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) ? 2 : 1));
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+			context.Aligned<int16_t>();
+		}
+		auto& bytecode = context.m_bcl;
+
+		int16_t delta = *(int16_t*)bytecode;
+
+		bytecode += 2;
+
+		// push a location and mark it as referenced
+		byte* refLocation = &context.m_bcl[delta];
+
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
+			<< context.FunctionRelativeLocation(refLocation) << "\n";
+
+		tool::gsc::opcode::asmcontextlocation& loc = context.PushLocation(refLocation);
+
+		// add ref so this code can be handled
+		loc.refs.insert(opcodeLocation);
+
+		if (context.m_runDecompiler) {
+			// push location
+			context.PushASMCNode(new ASMContextNodeCodeRef(loc.rloc));
+		}
+
+
+		return 0;
+	}
+
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		throw std::runtime_error("not impl");
+	}
+};
+
 class OPCodeInfoIWSwitch : public OPCodeInfo {
 public:
 	OPCodeInfoIWSwitch() : OPCodeInfo(OPCODE_IW_Switch, "Switch") {}
@@ -5263,6 +5303,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2));
 			// scripts\asm\asm::asm_getanim()'s assertmsg lol
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_FlatArgs, "FlatArgs", "flat_args", true, 2, 0, false));
+			RegisterOpCodeHandler(new OPCodeInfoGetPositionRef());
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "Notify"));
 
