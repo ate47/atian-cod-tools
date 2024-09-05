@@ -1122,7 +1122,7 @@ namespace tool::gsc::opcode {
 		int64_t m_location;
 
 		ASMContextNodeCodeRef(int64_t location) :
-			ASMContextNode(PRIORITY_VALUE, TYPE_VALUE), m_location(location) {
+			ASMContextNode(PRIORITY_VALUE, TYPE_GET_CODE_REF), m_location(location) {
 		}
 
 		ASMContextNode* Clone() const override {

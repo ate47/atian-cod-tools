@@ -230,15 +230,124 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	return TRUE; // ignore
 }
 
-bool ReadParams(std::string& str, std::vector<const char*>& params) {
+namespace {
+	class ParamsContainer {
+		std::vector<std::string> values{};
+		std::vector<const char*> parsed{};
+	public:
+		ParamsContainer() {}
 
-	// TODO: read params
+		int SyncValues() {
+			parsed.clear();
+			parsed.reserve(values.size() + 1);
 
-	LOG_ERROR("ReadParams not implemented");
-	params.push_back("acts");
-	params.push_back("exit");
-	return true;
+			for (const std::string& str : values) {
+				parsed.push_back(str.data());
+				LOG_TRACE("param {}", str);
+			}
+
+			parsed.push_back(nullptr);
+
+			return (int)values.size();
+		}
+
+		const char** ReadParams(std::string& str, int& argc) {
+			size_t idx{};
+
+			// base value
+			values.clear();
+			values.push_back(">");
+			std::vector<char> formatted{};
+
+			do {
+				// trim spaces
+				while (idx < str.length() && isspace(str[idx])) {
+					idx++;
+				}
+
+				if (idx == str.length()) {
+					break;
+				}
+
+				char c = str[idx];
+
+				if (c == '"' || c == '\'') {
+					// quote
+					size_t start = ++idx;
+
+					bool isFormatted{};
+					while (idx < str.length() && str[idx] != c) {
+						if (str[idx] == '\\') {
+							idx++; // ignore next char
+							if (idx == str.length()) {
+								LOG_ERROR("Missing end quote {} for param {}", c, str.substr(start - 1));
+								return nullptr;
+							}
+						}
+						idx++;
+						isFormatted = true;
+					}
+
+					if (idx == str.length()) {
+						LOG_ERROR("Missing end quote {} for param {}", c, str.substr(start - 1));
+						return nullptr;
+					}
+
+					size_t end = idx;
+
+					if (isFormatted) {
+						std::string_view sw{ str.begin() + start, str.begin() + end };
+						formatted.clear();
+
+
+						for (size_t i = 0; i < sw.length(); i++) {
+							if (sw[i] != '\\') {
+								formatted.push_back(sw[i]);
+								continue;
+							}
+
+							switch (sw[++i]) {
+							case 'n': formatted.push_back('\n'); break;
+							case 't': formatted.push_back('\t'); break;
+							case 'b': formatted.push_back('\b'); break;
+							case 'r': formatted.push_back('\r'); break;
+							case 'a': formatted.push_back('\a'); break;
+							default: formatted.push_back(sw[i]); break;
+							}
+						}
+						formatted.push_back(0);
+						values.push_back(formatted.data());
+					}
+					else {
+						values.push_back(str.substr(start, end - start));
+					}
+
+					idx++;
+				}
+				else {
+					// unquoted, to next space
+
+					size_t start = idx++;
+
+					while (idx < str.length() && !isspace(str[idx])) {
+						idx++;
+					}
+
+					values.push_back(str.substr(start, idx - start));
+				}
+
+
+			} while (idx < str.length());
+
+
+			argc = SyncValues();
+			return parsed.data();
+		}
+	};
+
+	static ParamsContainer container{};
 }
+
 
 int HandleCommand(actslib::profiler::Profiler& profiler, actscli::ActsOptions& opt, int argc, const char* argv[]) {
 	const auto& tool = tool::findtool(argv[1]);
@@ -434,18 +543,23 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		if (opt.type == actscli::ACTS_REPL) {
 			std::string line{};
 			
-			std::cout << clicolor::Color(5, 1, 3) << "acts:" << actsinfo::VERSION  << "> " << clicolor::Color(5, 5, 5);
-			std::getline(std::cin, line);
-			std::cout << clicolor::Reset();
+			if (clicolor::ConsoleAllowColor()) {
+				std::cout << clicolor::Color(5, 1, 3) << "acts:" << actsinfo::VERSION << "> " << clicolor::Color(5, 5, 5);
+				std::getline(std::cin, line);
+				std::cout << clicolor::Reset();
+			}
+			else {
+				std::cout << "acts:" << actsinfo::VERSION << "> ";
+				std::getline(std::cin, line);
+			}
 
 			LOG_TRACE("Run line: {}", line);
 
-			if (!ReadParams(line, params)) {
+			argv = container.ReadParams(line, argc);
+
+			if (!argv || argc < 2) {
 				continue;
 			}
-
-			argc = (int)params.size();
-			argv = params.data();
 		}
 
 		output = HandleCommand(profiler, opt, argc, argv);

@@ -448,13 +448,16 @@ namespace {
 
 		switch (a->m_type) {
 		case TYPE_SELF:
+		case TYPE_GET_UNDEFINED:
 			return true;
+		case TYPE_GET_CODE_REF:
+			return dynamic_cast<ASMContextNodeCodeRef*>(a)->m_location == dynamic_cast<ASMContextNodeCodeRef*>(b)->m_location;
 		case TYPE_IDENTIFIER:
 			return dynamic_cast<ASMContextNodeIdentifier*>(a)->m_value == dynamic_cast<ASMContextNodeIdentifier*>(b)->m_value;
 		case TYPE_VECTOR: {
 			auto* veca = dynamic_cast<ASMContextNodeVector*>(a);
 			auto* vecb = dynamic_cast<ASMContextNodeVector*>(b);
-
+			
 			return IsStructSimilar(veca->m_x, vecb->m_x) && IsStructSimilar(veca->m_y, vecb->m_y) && IsStructSimilar(veca->m_z, vecb->m_z);
 		}
 		case TYPE_TERNARY: {

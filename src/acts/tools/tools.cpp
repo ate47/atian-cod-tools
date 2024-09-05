@@ -135,8 +135,8 @@ namespace {
 		if (argc < 3) {
 			// show categories
 
-			LOG_INFO("{} list [category]", argv[0]);
-			LOG_INFO("Categories", argv[0]);
+			LOG_INFO("{} {} [category]", argv[0], argv[1]);
+			LOG_INFO("Categories");
 
 			LOG_INFO("- all : all the categories");
 			for (const auto& [key, value] : tool::toolsCategories()) {
@@ -187,6 +187,9 @@ namespace {
 		return tool::OK;
 	}
 
+	int help(Process& proc, int argc, const char* argv[]) {
+		return list(proc, argc, argv);
+	}
 
 	int search(Process& proc, int argc, const char* argv[]) {
 		if (!tool::search(argv + 2, argc - 2, [](const tool::toolfunctiondata* tool) {
@@ -234,6 +237,8 @@ namespace {
 		LOG_INFO("tools ui . {}", tool::ui::tools().size());
 		LOG_INFO("hash(es) . {}", hashutils::GetMap().size());
 		LOG_INFO("path ..... {}", utils::GetProgDir().string());
+		std::filesystem::path cwd{ std::filesystem::absolute(".") };
+		LOG_INFO("cwd ...... {}", cwd.string());
 		LOG_INFO("----- games");
 
 		auto& gameMap = tool::gsc::opcode::GetVMMaps();
@@ -271,5 +276,6 @@ namespace {
 	}
 }
 ADD_TOOL("list", "acts", "", "list all the tools", nullptr, list);
+ADD_TOOL("help", "acts", "", "list all the tools", nullptr, help);
 ADD_TOOL("info", "acts", "", "acts info", nullptr, info);
 ADD_TOOL("search", "acts", " (args)*", "search a tool", nullptr, search);
