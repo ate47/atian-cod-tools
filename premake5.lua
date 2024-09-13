@@ -2,6 +2,10 @@ newoption {
    trigger = "ci-build",
    description = "CI build define"
 }
+newoption {
+   trigger = "prerelease-build",
+   description = "CI prerelease build define"
+}
 
 function buildinfo()
 
@@ -15,16 +19,24 @@ function buildinfo()
     file:write("#pragma once\n")
     file:write("namespace actsinfo {\n")
     file:write("    // Do not write in this file, it is updated by premake\n")
-    file:write("#ifndef CI_BUILD\n\n")
-    file:write("    constexpr const char* VERSION = \"Dev\";\n")
-    file:write("    constexpr const wchar_t* VERSIONW = L\"Dev\";\n")
-    file:write("    constexpr unsigned int VERSION_ID = 0xFFFFFFFF;\n")
-    file:write("\n#else\n\n")
+    file:write("    constexpr unsigned int DEV_VERSION_ID = 0xFFFFFFFF;\n")
+    file:write("#ifdef CI_BUILD\n\n")
     file:write("    // Version used for the release\n")
     file:write("    constexpr const char* VERSION = \"" .. version .. "\";\n")
     file:write("    constexpr const wchar_t* VERSIONW = L\"" .. version .. "\";\n")
     file:write("    constexpr unsigned int VERSION_ID = 0x" .. versionid .. ";\n")
-    file:write("\n#endif\n")
+    file:write("\n#else\n\n")
+    file:write("\n#ifdef PRERELEASE_BUILD\n\n")
+    file:write("    // prerelease\n")
+    file:write("    constexpr const char* VERSION = \"" .. version .. "-pre\";\n")
+    file:write("    constexpr const wchar_t* VERSIONW = L\"" .. version .. "-pre\";\n")
+    file:write("\n#else\n\n")
+    file:write("    constexpr const char* VERSION = \"Dev\";\n")
+    file:write("    constexpr const wchar_t* VERSIONW = L\"Dev\";\n")
+    file:write("\n#endif // PRERELEASE_BUILD\n")
+    file:write("    // Disable updater\n")
+    file:write("    constexpr unsigned int VERSION_ID = DEV_VERSION_ID;\n")
+    file:write("\n#endif // CI_BUILD\n")
     file:write("}\n")
     file:close()
 
@@ -45,6 +57,9 @@ workspace "AtianCodTools"
 
     filter { "options:ci-build" }
         defines { "CI_BUILD" }
+
+    filter { "options:prerelease-build" }
+        defines { "PRERELEASE_BUILD" }
     
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -75,7 +90,9 @@ project "ACTSSharedLibrary"
         "src/shared",
         "deps/asmjit/src/",
 		"deps/Detours/src/",
+        "deps/curl/include/",
         "deps/rapidjson/include/",
+        "deps/libzip/lib/",
     }
 
     vpaths {
@@ -83,8 +100,11 @@ project "ACTSSharedLibrary"
     }
     links { "asmjit" }
     links { "detours" }
+    links { "libcurl" }
+    --links { "libzip" }
     dependson "detours"
     dependson "asmjit"
+    --dependson "libzip"
 
 project "ACTSLibrary"
     kind "StaticLib"
@@ -130,6 +150,7 @@ project "AtianCodToolsBO4DLL"
     -- link detours
 		"deps/Detours/src/",
         "deps/asmjit/src/",
+        "deps/curl/include/",
     }
 
     vpaths {
@@ -139,6 +160,7 @@ project "AtianCodToolsBO4DLL"
     links { "ACTSSharedLibrary" }
     links { "detours" }
     links { "asmjit" }
+    links { "libcurl" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
@@ -168,6 +190,7 @@ project "AtianCodToolsBO4DLL2"
         "deps/rapidjson/include/",
         "deps/dbflib/src/lib/",
         "deps/hw_break/HwBpLib/inc/",
+        "deps/curl/include/",
     }
 
     vpaths {
@@ -177,6 +200,7 @@ project "AtianCodToolsBO4DLL2"
     links { "ACTSSharedLibrary" }
     links { "detours" }
     links { "asmjit" }
+    links { "libcurl" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
@@ -204,6 +228,7 @@ project "AtianCodToolsBOCWDLL"
         "deps/asmjit/src/",
         "deps/imgui/",
         "deps/hw_break/HwBpLib/inc/",
+        "deps/curl/include/",
     }
 
     vpaths {
@@ -214,6 +239,7 @@ project "AtianCodToolsBOCWDLL"
     links { "detours" }
     links { "asmjit" }
     links { "imgui" }
+    links { "libcurl" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
@@ -257,6 +283,7 @@ project "AtianCodTools"
 		"deps/zlib/",
         "deps/ps4debug/libdebug/cpp/include/",
         "deps/asmjit/src/",
+        "deps/curl/include/",
         "deps/casclib/src/",
         "deps/lz4/lib/",
 		"deps/Detours/src/",
@@ -287,6 +314,7 @@ project "AtianCodTools"
     links { "casclib" }
     links { "lz4" }
     links { "detours" }
+    links { "libcurl" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
@@ -344,6 +372,7 @@ project "AtianCodToolsUI"
         "src/shared",
         "deps/ps4debug/libdebug/cpp/include/",
         "deps/asmjit/src/",
+        "deps/curl/include/",
 		"deps/Detours/src/",
     }
 
@@ -356,11 +385,42 @@ project "AtianCodToolsUI"
     links { "libps4debug" }
     links { "asmjit" }
     links { "detours" }
+    links { "libcurl" }
     dependson "AtianCodTools"
     dependson "detours"
     dependson "ACTSSharedLibrary"
     dependson "libps4debug"
     dependson "asmjit"
+
+    vpaths {
+        ["*"] = "*"
+    }
+
+project "AtianCodToolsUpdater"
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+    targetname "acts-updater"
+    
+    files {
+        "./src/updater/**.hpp",
+        "./src/updater/**.cpp",
+        "./resources/updater/**",
+    }
+
+    includedirs {
+        "src/updater",
+        "src/shared",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    dependson "ACTSSharedLibrary"
 
     vpaths {
         ["*"] = "*"
@@ -387,6 +447,7 @@ project "TestDll"
 		"deps/Detours/src/",
         "src/shared",
         "deps/asmjit/src/",
+        "deps/curl/include/",
         "deps/imgui/",
 		"deps/Detours/src/",
     }
@@ -400,6 +461,7 @@ project "TestDll"
     links { "detours" }
     links { "asmjit" }
     links { "imgui" }
+    links { "libcurl" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
@@ -425,6 +487,7 @@ project "AtianCodToolsMW23DLL"
 		"deps/Detours/src/",
         "src/shared",
         "deps/asmjit/src/",
+        "deps/curl/include/",
     }
 
     vpaths {
@@ -435,10 +498,11 @@ project "AtianCodToolsMW23DLL"
     links { "ACTSSharedLibrary" }
     links { "detours" }
     links { "asmjit" }
+    links { "libcurl" }
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
-
+    
 group "deps"
     project "antlr4-runtime"
         language "C++"
@@ -592,7 +656,7 @@ group "deps"
         includedirs {
             "deps/casclib/src/"
         }
-        
+
     project "imgui"
         language "C++"
         kind "StaticLib"
@@ -619,4 +683,27 @@ group "deps"
         includedirs {
             "deps/imgui/"
         }
+
+--    project "libzip"
+--        writelibzip()
+--        
+--        language "C++"
+--        kind "StaticLib"
+--        cppdialect "C++17"
+--
+--        targetname "libzip"
+--        targetdir "%{wks.location}/bin/"
+--        objdir "%{wks.location}/obj/"
+--
+--        files {
+--            "deps/libzip/lib/*.c",
+--            "deps/libzip/lib/*.h",
+--        }
+--
+--        defines {
+--        }
+--
+--        includedirs {
+--            "deps/libzip/lib/"
+--        }
 

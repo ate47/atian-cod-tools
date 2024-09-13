@@ -8,6 +8,7 @@
 #include "acts.hpp"
 #include "main_ui.hpp"
 #include <core/config.hpp>
+#include <core/updater.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -417,11 +418,13 @@ int HandleCommand(actslib::profiler::Profiler& profiler, actscli::ActsOptions& o
 }
 
 int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
-	bool cli{ hInstance == nullptr };
-	auto& profiler = actscli::GetProfiler();
-
 	core::config::SyncConfig(true);
 	srand((unsigned int)time(nullptr));
+	if (core::updater::CheckUpdate()) {
+		return 0;
+	}
+	bool cli{ hInstance == nullptr };
+	auto& profiler = actscli::GetProfiler();
 
 	// by default we don't display heavy logs in cli
 

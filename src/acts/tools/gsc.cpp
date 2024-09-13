@@ -937,7 +937,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         LOG_TRACE("Reading ACTS debug data v{:x}", (int)dbg->version);
         actsHeader << "// ACTS compiled file, file version 0x" << std::hex << (int)dbg->version << ", acts version ";
 
-        if (dbg->actsVersion == 0xFFFFFFFF) {
+        if (dbg->actsVersion == actsinfo::DEV_VERSION_ID) {
             actsHeader << "DEV";
         }
         else {

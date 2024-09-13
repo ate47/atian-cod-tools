@@ -1,10 +1,12 @@
 #include <includes_shared.hpp>
 #include "process.hpp"
 
+#ifdef ASMJIT_STATIC
 asmjit::JitRuntime& process::GetJitRuntime() {
 	static asmjit::JitRuntime jr{};
 	return jr;
 }
+#endif
 
 byte* process::BasePtr() {
 	return reinterpret_cast<byte*>(BaseHandle());
@@ -208,6 +210,7 @@ std::vector<byte*> process::Scan(std::string pattern) {
 }
 
 
+#ifdef ASMJIT_STATIC
 void process::AssemblerExp::pushregisters() {
 	using namespace asmjit::x86;
 
@@ -279,3 +282,4 @@ asmjit::Error process::AssemblerExp::call(void* target) {
 asmjit::Error process::AssemblerExp::jmp(void* target) {
 	return Assembler::jmp(size_t(target));
 }
+#endif

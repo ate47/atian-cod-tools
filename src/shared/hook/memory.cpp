@@ -232,6 +232,7 @@ namespace hook::memory {
 		VirtualProtect(location, size, old, &old);
 	}
 
+#ifdef ASMJIT_STATIC
 	void* Assembler(std::function<void(process::AssemblerExp& a)> build) {
 		auto& jr = process::GetJitRuntime();
 
@@ -249,4 +250,5 @@ namespace hook::memory {
 		}
 		return out;
 	}
+#endif
 }

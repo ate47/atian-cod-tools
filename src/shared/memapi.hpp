@@ -224,6 +224,22 @@ public:
 		return pair;
 	}
 	/*
+	 * Read memory array
+	 * @param src Process source
+	 * @param count Array count to read
+	 * @return pair containing the allocated resource with the error, if pair.second == false, an error occured
+	 */
+	template<typename Type>
+	std::unique_ptr<Type[]> ReadMemoryArrayEx(uintptr_t src, size_t count) const {
+		std::unique_ptr<Type[]> v{ std::make_unique<Type[]>(count) };
+
+		if (!ReadMemory(&v[0], src, sizeof(Type) * count)) {
+			throw std::runtime_error(utils::va("can't read at 0x%llx 0x%llx bytes", src, sizeof(Type) * count));
+		}
+
+		return v;
+	}
+	/*
 	 * Read memory object
 	 * @param src Process source
 	 * @return pair containing the allocated resource with the error, if pair.second == false, an error occured
@@ -237,6 +253,21 @@ public:
 		}
 
 		return pair;
+	}
+	/*
+	 * Read memory object
+	 * @param src Process source
+	 * @return pair containing the allocated resource with the error, if pair.second == false, an error occured
+	 */
+	template<typename Type>
+	std::unique_ptr<Type> ReadMemoryObjectEx(uintptr_t src) const {
+		std::unique_ptr<Type> v{ std::make_unique<Type>() };
+
+		if (!ReadMemory(&*v, src, sizeof(Type))) {
+			throw std::runtime_error(utils::va("can't read at 0x%llx 0x%llx bytes", src, sizeof(Type)));
+		}
+
+		return v;
 	}
 	/*
 	 * Read c string into a temp buffer
@@ -340,6 +371,7 @@ public:
 	}
 
 private:
+#ifdef ASMJIT_STATIC
 	// param+ = stack, last first pushed
 	inline void CallExtFuncBuildStack(process::AssemblerExp& asml, uint8_t* params, int idx) const {
 	}
@@ -451,9 +483,11 @@ private:
 		CallExtFuncBuild1(asml, params, args...);
 		asml.mov(rcx, qword_ptr(rcx));
 	}
+#endif
 
 
 public:
+#ifdef ASMJIT_STATIC
 	/*
 	 * Call a function in the target process
 	 * @param location function location
@@ -549,6 +583,7 @@ public:
 		if (!exp) return false;
 		return Call(exp.m_location, args...);
 	}
+#endif
 
 	/*
 	 * Scan for a pattern inside the main module

@@ -48,6 +48,7 @@ try {
 
     # License
     Copy-Item "README.md" "$base/README.md" > $null
+    Copy-Item "release/version" "$base/bin/version" > $null
     Copy-Item "LICENSE.md" "$base/licenses/acts.md" > $null
     Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/antlr4.txt" > $null
     Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/detours.md" > $null
@@ -60,6 +61,9 @@ try {
     Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/imgui.txt" > $null
     Copy-Item "deps/hw_break/LICENSE" "$base/licenses/hw_break.txt" > $null
     Copy-Item "deps/rapidjson/license.txt" "$base/licenses/rapidjson.txt" > $null
+    Copy-Item "deps/rapidcsv/LICENSE" "$base/licenses/LICENSE.txt" > $null
+    Copy-Item "deps/curl/COPYING" "$base/licenses/curl.txt" > $null
+    Copy-Item "deps/libzip/LICENSE" "$base/licenses/libzip.txt" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

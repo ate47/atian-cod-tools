@@ -6,11 +6,13 @@ This software depends on libraries with a different License.
 - [asmjit](https://github.com/asmjit/asmjit) - [ZLib license](https://github.com/asmjit/asmjit/blob/master/LICENSE.md).
 - [ladislav-zezula/CascLib](https://github.com/ladislav-zezula/CascLib) - [MIT license](https://github.com/ladislav-zezula/CascLib/blob/master/LICENSE).
 - [lz4/lz4](https://github.com/lz4/lz4) - [Custom license](https://github.com/lz4/lz4/blob/dev/lib/LICENSE).
+- [curl/curl](https://github.com/curl/curl) - [Custom license](https://github.com/curl/curl/blob/master/COPYING).
 - [vimpunk/mio](https://github.com/vimpunk/mio) - [MIT license](https://github.com/vimpunk/mio/blob/master/LICENSE).
 - [JustasMasiulis/xorstr](https://github.com/JustasMasiulis/xorstr) - [Apache License 2.0](https://github.com/JustasMasiulis/xorstr/blob/master/LICENSE)
 - [ocornut/imgui](https://github.com/ocornut/imgui) - [MIT license](https://github.com/ocornut/imgui/blob/master/LICENSE.txt)
 - [biocomp/hw_break](https://github.com/biocomp/hw_break) - [MIT license](https://github.com/biocomp/hw_break/blob/master/LICENSE)
 - [Tencent/rapidjson](https://github.com/Tencent/rapidjson) - [MIT and JSON license](https://github.com/Tencent/rapidjson/blob/master/license.txt)
+- [nih-at/libzip](https://github.com/nih-at/libzip) - [Custom license](https://github.com/nih-at/libzip/blob/main/LICENSE)
 
 
 # MIT License

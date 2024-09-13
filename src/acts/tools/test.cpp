@@ -2,12 +2,25 @@
 
 
 #ifndef CI_BUILD
+#include <io_utils.hpp>
 #include <jsonrpccxx/server.hpp>
 #include <core/config.hpp>
 
 namespace {
 	int test(Process& proc, int argc, const char* argv[]) {
 
+		return tool::OK;
+	}
+
+	int testurl(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) return tool::BAD_USAGE;
+		// https://raw.githubusercontent.com/ate47/atian-cod-tools/main/release/version
+		std::string out{};
+		if (!utils::io::DownloadFile(argv[2], out)) {
+			LOG_ERROR("Can't download {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+		LOG_INFO("{}", out);
 		return tool::OK;
 	}
 
@@ -41,5 +54,6 @@ namespace {
 }
 
 ADD_TOOL("test", "dev", "", "Tests", nullptr, test);
+ADD_TOOL("wget", "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL("cfgtest", "dev", "", "", nullptr, cfgtest);
 #endif

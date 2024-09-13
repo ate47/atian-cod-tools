@@ -49,3 +49,9 @@
 [submodule "deps/rapidcsv"]
 	path = deps/rapidcsv
 	url = https://github.com/d99kris/rapidcsv
+[submodule "deps/curl"]
+	path = deps/curl
+	url = https://github.com/curl/curl
+[submodule "deps/libzip"]
+	path = deps/libzip
+	url = https://github.com/nih-at/libzip

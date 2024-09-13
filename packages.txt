@@ -1,1 +1,2 @@
 antlr4:x64-windows
+curl:x64-windows

@@ -2,7 +2,9 @@
 #include <includes_shared.hpp>
 
 namespace process {
+#ifdef ASMJIT_STATIC
     asmjit::JitRuntime& GetJitRuntime();
+#endif
     byte* BasePtr();
     HMODULE BaseHandle();
     PIMAGE_OPTIONAL_HEADER PImageOptHeader(HMODULE mod = 0);
@@ -39,6 +41,7 @@ namespace process {
      */
     std::vector<byte*> Scan(std::string pattern);
 
+#ifdef ASMJIT_STATIC
     class AssemblerExp : public asmjit::x86::Assembler {
     public:
         using Assembler::Assembler;
@@ -62,4 +65,5 @@ namespace process {
         asmjit::Error jmp(void* target);
     };
 
+#endif
 }
