@@ -51,6 +51,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T8, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T8, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T8, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
+			RegisterVMHashOPCode(VM_T8, '&', OPCODE_GetHash, 8, [](const char* str) { return hashutils::Hash32(str); });
 			RegisterDevCall(VM_T8, "assert", "assertmsg", "errormsg", "throw", "println");
 			RegisterDatatype(VM_T8, "functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 			RegisterDatatypeRenamed(VM_T8, "function", "functionptr");
@@ -347,6 +348,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T937, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T937, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T937, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
+			RegisterVMHashOPCode(VM_T937, '&', OPCODE_GetHash, 8, [](const char* str) { return hashutils::Hash32(str); });
 			RegisterDevCall(VM_T937, "assert", "assertmsg", "errormsg", "throw", "println");
 			RegisterDatatype(VM_T937, "functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 			RegisterDatatypeRenamed(VM_T937, "function", "functionptr");
@@ -653,6 +655,7 @@ namespace tool::gsc::opcode {
 			RegisterVMOperatorFunction(VM_T9, "waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 			RegisterVMOperatorFunction(VM_T9, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 			RegisterVMHashOPCode(VM_T9, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
+			RegisterVMHashOPCode(VM_T9, '&', OPCODE_GetHash, 8, [](const char* str) { return hashutils::Hash32(str); });
 			RegisterDevCall(VM_T9, "assert", "assertmsg", "errormsg", "throw", "println");
 			RegisterDatatype(VM_T9, "functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 			RegisterDatatypeRenamed(VM_T9, "function", "functionptr");
@@ -879,10 +882,6 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetString, 0x32, 0x9a, 0x22b, 0x27d, 0x436, 0x676, 0x729, 0x9ac, 0xaf0, 0xb57, 0xb87, 0xe19, 0xe2a, 0xf42);
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetByte, 0xe9, 0x18b, 0x2e2, 0x30a, 0x5e8, 0x654, 0x67c, 0x6bd, 0x876, 0x884, 0x90e, 0xab0, 0xacc, 0xb75, 0xe65, 0xe6c, 0xe98, 0xee1, 0xef3, 0xf53);
 			
-			// stuff some people don't want public (as a bo4 pc/xbox player idc, but whatever)
-	#ifdef PS4_INCLUDES
-			ps4::opcodes::RegisterPS4OpCodes();
-	#endif
 			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", "mwiiia", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterSameCodePlatform(VM_MW23, PLATFORM_PC, PLATFORM_PLAYSTATION);
@@ -902,6 +901,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
 			RegisterVMHashOPCode(VM_MW23, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIWRes(str); });
 			RegisterVMHashOPCode(VM_MW23, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
+			RegisterVMHashOPCode(VM_MW23, '&', OPCODE_GetHash, 8, [](const char* str) { return hashutils::HashJupScr(str); });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
@@ -923,6 +923,7 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23B, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
 			RegisterVMHashOPCode(VM_MW23B, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIWRes(str); });
 			RegisterVMHashOPCode(VM_MW23B, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
+			RegisterVMHashOPCode(VM_MW23B, '&', OPCODE_GetHash, 8, [](const char* str) { return hashutils::HashJupScr(str); });
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
@@ -1015,6 +1016,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_BoolComplement, 0x53);
 			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_Bit_Xor, 0x26);
 			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_ScriptMethodThreadCallPointerEndOn, 0x12);
+			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_ScriptMethodCallPointer, 0x1b);
 			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_ScriptThreadCallPointerEndOn, 0x23);
 			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_IW_BuiltinMethodCallPointer, 0x8c);
 			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_IW_BuiltinFunctionCallPointer, 0x98);
@@ -1092,10 +1094,6 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff);
-
-	#ifdef SP23_INCLUDES
-			sp23::opcodes::RegisterMW23OpCodes();
-	#endif
 
 			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", "bo3", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7);
 			RegisterVMPlatform(VM_T7, PLATFORM_PC);
@@ -1564,6 +1562,14 @@ namespace tool::gsc::opcode {
 			/*30c070*/RegisterOpCode(VM_T831, PLATFORM_PLAYSTATION, OPCODE_Undefined, 0x11c, 0x21a, 0x321, 0x325, 0x3b2, 0x451, 0x509, 0x664, 0x6e7, 0x79a, 0x79d, 0x7b4, 0x807, 0xa64, 0xc48, 0xf4c);
 			/*30c570*/RegisterOpCode(VM_T831, PLATFORM_PLAYSTATION, OPCODE_Undefined, 0xe6, 0xf5, 0x170, 0x193, 0x520, 0x5c7, 0x660, 0x6c4, 0x775, 0xaed, 0xaef, 0xb40, 0xb60, 0xd81, 0xd83, 0xd8b);
 			/*30cad0*/RegisterOpCode(VM_T831, PLATFORM_PLAYSTATION, OPCODE_Undefined, 0x2ab, 0x44e, 0x4e6, 0x522, 0x6ca, 0x71f, 0x7b1, 0x7ba, 0x8c6, 0x8d5, 0x909, 0x975, 0x981, 0x982, 0xac9, 0xcdf, 0xd43, 0xdc1, 0xe16, 0xe1e, 0xe3a, 0xead);
+
+			// stuff some people don't want public (as a bo4 pc/xbox player idc, but whatever)
+#ifdef SP23_INCLUDES
+			sp23::opcodes::RegisterMW23OpCodes();
+#endif
+#ifdef PS4_INCLUDES
+			ps4::opcodes::RegisterPS4OpCodes();
+#endif
 
 			// loading serious db2 files (if any)
 			const char* seriousDBDir = actscli::options().seriousDBFile;

@@ -92,6 +92,7 @@ namespace tool::gsc {
         bool m_splitByVm{};
         bool m_rawhash{};
         bool m_noPath{};
+        bool m_ignoreDebugPlatform{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };

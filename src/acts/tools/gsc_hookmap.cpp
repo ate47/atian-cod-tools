@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <core/memory_allocator.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
 #include <pool.hpp>
@@ -142,7 +143,7 @@ namespace {
                         LOG_DEBUG("devcall {} {}::{}", hashutils::ExtractTmpScript(handler->GetName()), hashutils::ExtractTmp("namespace", name_space), hashutils::ExtractTmp("function", name));
                     }
                 }
-                 import_location += impSize + sizeof(uint32_t) * numAddress;
+                import_location += impSize + sizeof(uint32_t) * numAddress;
             }
         }
 
@@ -169,6 +170,210 @@ namespace {
         return tool::OK;
     }
 
+    int gsclerr(Process& _, int argc, const char* argv[]) {
+        using namespace tool::gsc::opcode;
+
+        if (argc < 3) {
+            return tool::BAD_USAGE;
+        }
+
+        std::vector<std::filesystem::path> files{};
+
+        for (size_t i = 2; i < argc; i++) {
+            utils::GetFileRecurse(argv[2], files, [](const std::filesystem::path& p) {
+                auto s = p.string();
+                return s.ends_with(".gscc") || s.ends_with(".cscc");
+            });
+        }
+
+        if (files.empty()) {
+            LOG_ERROR("No files");
+            return tool::BASIC_ERROR;
+        }
+
+        // vm -> script
+        struct ScriptData {
+            uint64_t name{};
+            byte vm{};
+            void* bufferData{};
+            size_t bufferDataLen{};
+            std::unordered_map<uint64_t, uint64_t> exports{};
+            std::unordered_map<uint64_t, uint64_t> exportsFNS{};
+            bool dsResolved{};
+            std::filesystem::path fileSys{};
+        };
+        std::unordered_map<VmInfo*, std::unordered_map<uint64_t, ScriptData>> dataset{};
+
+        core::memory_allocator::MemoryAllocator alloc{};
+
+        std::string mainBuff{};
+
+        hashutils::ReadDefaultFile();
+        LOG_INFO("Reading dump...");
+
+
+        for (const std::filesystem::path& file : files) {
+            if (!utils::ReadFile(file, mainBuff) || mainBuff.size() < sizeof(uint64_t)) {
+                LOG_ERROR("{} : Can't read", file.string());
+                continue;
+            }
+
+            uint64_t magic = *(uint64_t*)mainBuff.data();
+
+            VmInfo* vmInfo{};
+
+            if (!IsValidVmMagic(magic, vmInfo)) {
+                LOG_ERROR("{} : Unknown magic: {:x}!", file.string(), magic);
+                continue;
+            }
+
+            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vm);
+
+            if (!readerBuilder) {
+                LOG_ERROR("{} : No GSC handler available for {}", file.string(), vmInfo->name);
+                continue;
+            }
+
+            std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)((byte*)mainBuff.data(), mainBuff.size()) };
+
+            if (!handler->IsValidHeader(mainBuff.size())) {
+                LOG_ERROR("{} : Invalid header for vm {}", file.string(), vmInfo->name);
+                continue;
+            }
+
+            uint64_t name = handler->GetName();
+            void* ptr = alloc.Alloc(mainBuff);
+
+            auto& sc = dataset[vmInfo][name];
+
+            sc.name = name;
+            sc.bufferData = ptr;
+            sc.bufferDataLen = mainBuff.length();
+            sc.vm = vmInfo->vm;
+            sc.fileSys = file;
+            LOG_TRACE("Loaded {} ({})", file.string(), hashutils::ExtractTmpScript(name));
+        }
+
+        if (dataset.empty()) {
+            LOG_ERROR("No script");
+            return tool::BASIC_ERROR;
+        }
+
+        for (auto& [vmInfo, scs] : dataset) {
+            LOG_INFO("Searching linking issues for {}...", vmInfo->name);
+
+            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vm);
+
+            if (!readerBuilder) {
+                LOG_ERROR("No GSC handler available for {}", vmInfo->name);
+                continue;
+            }
+
+            std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)(nullptr, 0) };
+            std::unique_ptr<tool::gsc::GSCExportReader> exportReader = tool::gsc::CreateExportReader(vmInfo);
+
+            for (auto& [name, sc] : scs) {
+                handler->file = (byte*)sc.bufferData;
+                handler->fileSize = sc.bufferDataLen;
+
+                uint64_t* usings = handler->Ptr<uint64_t>(handler->GetIncludesOffset());
+                uint64_t* usingsEnd = usings + handler->GetIncludesCount();
+
+                auto ResolveDataSet = [&handler, &exportReader](ScriptData& d) {
+                    if (d.dsResolved) {
+                        return; // already resolved
+                    }
+
+                    handler->file = (byte*)d.bufferData;
+                    handler->fileSize = d.bufferDataLen;
+
+                    byte* exports = handler->Ptr(handler->GetExportsOffset());
+
+                    // resolve the exports dataset
+                    for (size_t i = 0; i < handler->GetExportsCount(); i++) {
+                        exportReader->SetHandle(exports + handler->GetExportSize() * i);
+
+                        //d.exportsFNS[exportReader->GetFileNamespace()] = exportReader->GetName();
+                        d.exports[exportReader->GetNamespace()] = exportReader->GetName();
+                    }
+
+                    d.dsResolved = true;
+                };
+
+                // resolve current scripts, can be done during reading??
+                ResolveDataSet(sc);
+
+                for (; usings != usingsEnd; usings++) {
+                    auto iti = scs.find(*usings);
+
+                    if (iti == scs.end()) {
+                        LOG_ERROR("{} : The include '{}' is missing", sc.fileSys.string(), hashutils::ExtractTmpScript(*usings));
+                        continue; // can't explore
+                    }
+
+                    ScriptData& d = iti->second;
+
+                    ResolveDataSet(d);
+                }
+
+                handler->file = (byte*)sc.bufferData;
+                handler->fileSize = sc.bufferDataLen;
+                
+                // read imports
+
+                uintptr_t import_location = reinterpret_cast<uintptr_t>(handler->Ptr(handler->GetImportsOffset()));
+                for (size_t i = 0; i < handler->GetImportsCount(); i++) {
+                    uint64_t name_space;
+                    uint64_t name;
+                    size_t impSize;
+                    byte flags;
+                    uint16_t numAddress;
+
+                    if (vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+                        const auto* imp = reinterpret_cast<tool::gsc::IW23GSCImport*>(import_location);
+                        name_space = imp->name_space;
+                        name = imp->name;
+                        flags = imp->flags;
+                        numAddress = imp->num_address;
+                        impSize = sizeof(*imp);
+                    }
+                    else {
+                        const auto* imp = reinterpret_cast<tool::gsc::T8GSCImport*>(import_location);
+                        name_space = imp->import_namespace;
+                        name = imp->name;
+                        flags = imp->flags;
+                        numAddress = imp->num_address;
+                        impSize = sizeof(*imp);
+                    }
+
+                    byte remapedFlags = handler->RemapFlagsImport(flags);
+
+                    if (!(remapedFlags & tool::gsc::T8GSCImportFlags::DEV_CALL)) {
+                        // ignore dev call
+
+                        // fixme: the mwiii vm is using file namespace, it is not considered
+
+                        int calltype = remapedFlags & tool::gsc::T8GSCImportFlags::CALLTYPE_MASK;
+
+                       
+                        // todo: split script/engine function in remapedFlags or allow to use a dump
+                        //       of the engine functions.
+
+
+                    }
+
+                    import_location += impSize + sizeof(uint32_t) * numAddress;
+                }
+            }
+
+        }
+
+
+        return tool::OK;
+    }
 
     ADD_TOOL("gschook", "gsc", " [base] [dump]", "find all the linked functions of a script from a dump", nullptr, gschook);
+#ifndef CI_BUILD
+    ADD_TOOL("gsclerr", "gsc", " [dump]", "find all the link errors in a gsc dump", nullptr, gsclerr);
+#endif
 }

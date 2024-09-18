@@ -553,10 +553,10 @@ namespace acts::compiler {
             LoadData(useParams, dataSize);
             if (aligned) {
                 if (flags & FCF_POINTER_CLASS) {
-                    return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + 1) + (uint32_t)sizeof(uint32_t);
+                    return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + (useParams ? 1 : 0)) + (uint32_t)sizeof(uint32_t);
                 }
                 if (flags & FCF_POINTER) {
-                    return AscmNodeOpCode::ShiftSize(start, aligned) + 1;
+                    return AscmNodeOpCode::ShiftSize(start, aligned) + (useParams ? 1 : 0);
                 }
                 return utils::Aligned<uint64_t>(AscmNodeOpCode::ShiftSize(start, aligned) + (useParams ? 1 : 0)) + dataSize;
             }
@@ -579,7 +579,7 @@ namespace acts::compiler {
             uint32_t dataSize{};
             LoadData(useParams, dataSize);
 
-            if (useParams && useIWCalls) {
+            if ((inlineCall && useParams) || (useParams && useIWCalls)) {
                 ctx.Write<byte>(params);
             }
 
@@ -1805,7 +1805,7 @@ namespace acts::compiler {
                 else {
                     f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(crcEmit), OPCODE_GetUnsignedInteger));
                 }
-                forceDebugHeader = true;
+                //forceDebugHeader = true;
 
                 auto gvarIt = vmInfo->globalvars.find(vmInfo->HashField("level"));
 
@@ -1852,10 +1852,10 @@ namespace acts::compiler {
                 StringObject& strdef = strings[crcStr];
                 auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
                 strdef.nodes.push_back(getstr);
-                // add some padding so we can patch the crc at runtime
-                strdef.forceLen = 0x20;
+                // add some padding so we can patch the crc at runtime (maybe one day it'll be 64 bits?)
+                strdef.forceLen = 21;
                 strdef.listeners.push_back(&crcData.strlistener);
-                forceDebugHeader = true;
+                //forceDebugHeader = true;
                 f.m_nodes.push_back(getstr);
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_GetLevel));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_Notify));
@@ -2162,10 +2162,15 @@ namespace acts::compiler {
                 size_t devBlocksIdx{};
                 size_t lazyLinksLoc{};
                 size_t lazyLinksIdx{};
+                size_t linesLoc{};
+                size_t linesIdx{};
+                size_t filesLoc{};
+                size_t filesIdx{};
                 if (opt.m_computeDevOption) {
-                    LOG_TRACE("Compile {} hash(es)...", hashes.size());
 
                     if (!opt.obfuscate) {
+                        LOG_TRACE("Compile {} hash(es)...", hashes.size());
+
                         hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
                         for (const std::string& h : hashes) {
                             reinterpret_cast<uint32_t*>(&data[hashesLoc])[hashesIdx++] = (uint32_t)data.size();
@@ -2201,6 +2206,61 @@ namespace acts::compiler {
                             *(locs++) = node->floc;
                         }
                     }
+
+                    if (!opt.obfuscate) {
+                        LOG_TRACE("Compile dev lines...");
+                        // GSC_ACTS_LINES
+                        std::vector<tool::gsc::acts_debug::GSC_ACTS_LINES> lines{};
+
+                        tool::gsc::acts_debug::GSC_ACTS_LINES curr{};
+                        for (auto& [name, exp] : exports) {
+                            for (AscmNode* node : exp.m_nodes) {
+                                curr.end = node->floc;
+                                if (!node->line) {
+                                    // bad line, we flush a previous info and clear the current
+                                    if (curr.lineNum) {
+                                        lines.emplace_back(curr);
+                                    }
+                                    curr.lineNum = 0;
+
+                                    continue; 
+                                }
+
+                                if (curr.lineNum == node->line) {
+                                    continue; // same line, we can continue
+                                }
+
+                                if (curr.lineNum) {
+                                    lines.emplace_back(curr);
+                                }
+                                curr.lineNum = node->line;
+                                curr.start = node->floc;
+                            }
+                            // to keep track of the last op end
+                            curr.end = (uint32_t)(exp.location + exp.size);
+                        }
+                        if (curr.lineNum) {
+                            lines.emplace_back(curr);
+                        }
+
+                        linesIdx = lines.size();
+                        linesLoc = data.size();
+                        data.insert(data.end(), (byte*)lines.data(), (byte*)(lines.data() + linesIdx));
+
+
+                        LOG_TRACE("Compile filenames...");
+                        filesLoc = data.size();
+                        utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_FILES) * info.container.blocks.size());
+                        for (preprocessor::StringData& block : info.container.blocks) {
+                            size_t strLoc = data.size();
+                            std::string filename = block.filename.string();
+                            utils::WriteString(data, filename.c_str());
+                            tool::gsc::acts_debug::GSC_ACTS_FILES& f = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_FILES*>(data.data() + filesLoc)[filesIdx++];
+                            f.filename = (uint32_t)strLoc;
+                            f.lineStart = block.startLine;
+                            f.lineEnd = block.startLine + block.sizeLine;
+                        }
+                    }
                 }
 
                 uint32_t detoursLoc{};
@@ -2226,6 +2286,17 @@ namespace acts::compiler {
 
                 *reinterpret_cast<uint64_t*>(debug_obj->magic) = tool::gsc::acts_debug::MAGIC;
                 debug_obj->version = tool::gsc::acts_debug::CURRENT_VERSION;
+                debug_obj->flags = 0;
+                if (opt.obfuscate) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_OBFUSCATED;
+                if (opt.m_computeDevOption) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_DEBUG;
+                if (type == FILE_CSC) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_CLIENT;
+                if (((plt << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT) & ~tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_MASK)) {
+                    LOG_WARNING("Can't encode platform ID in debug header: Too big {}", (int)plt);
+                }
+                else {
+                    debug_obj->flags |= plt << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT;
+                }
+
                 debug_obj->actsVersion = (uint64_t) actsinfo::VERSION_ID;
                 debug_obj->strings_count = (uint32_t)hashesIdx;
                 debug_obj->strings_offset = (uint32_t)hashesLoc;
@@ -2235,6 +2306,12 @@ namespace acts::compiler {
                 debug_obj->devblock_count = (uint32_t)devBlocksIdx;
                 debug_obj->lazylink_offset = (uint32_t)lazyLinksLoc;
                 debug_obj->lazylink_count = (uint32_t)lazyLinksIdx;
+                debug_obj->devstrings_offset = 0;
+                debug_obj->lines_count = (uint32_t)linesIdx;
+                debug_obj->lines_offset = (uint32_t)linesLoc;
+                debug_obj->files_count = (uint32_t)filesIdx;
+                debug_obj->files_offset = (uint32_t)filesLoc;
+
                 // add crc location
                 if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
                     debug_obj->crc_offset = (uint32_t)crcData.opcode->floc;
@@ -3707,8 +3784,6 @@ namespace acts::compiler {
                     }
                     paramCount++;
                 }
-
-                LOG_TRACE("add param {} {}", hashutils::ExtractTmp("function", funcHash), paramCount);
 
                 // add self
                 if (flags & FCF_METHOD) {

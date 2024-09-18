@@ -85,6 +85,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--gdb-small", arg)) {
             m_generateGdbBaseData = false;
         }
+        else if (!_strcmpi("--ignore-dbg-plt", arg)) {
+            m_ignoreDebugPlatform = true;
+        }
         else if (!_strcmpi("--vm-split", arg)) {
             m_splitByVm = true;
         }
@@ -321,6 +324,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--internalnames    : Print asm nodes internal names");
     LOG_DEBUG("--rawhash          : Add raw hashes to export dump");
     LOG_DEBUG("--no-path          : No path extraction");
+    LOG_DEBUG("--ignore-dbg-plt   : ignore debug platform info");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -929,6 +933,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     tool::gsc::RosettaStartFile(*scriptfile);
 
     std::stringstream actsHeader{};
+    Platform currentPlatform{ opt.m_platform };
 
     if (size > scriptfile->GetHeaderSize() + 0x10 && scriptfile->Ref<uint64_t>(scriptfile->GetHeaderSize()) == tool::gsc::acts_debug::MAGIC) {
         using namespace tool::gsc::acts_debug;
@@ -947,13 +952,55 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             }
         }
         actsHeader << "\n";
+        if (dbg->HasFeature(ADF_FLAGS)) {
+            actsHeader << "// flags ....";
+            if (!dbg->flags) actsHeader << " NONE";
+            else {
+                // read known flags
 
-        if (dbg->version >= ADF_CRC_LOC) {
+                if (dbg->HasFlag(ADFG_OBFUSCATED)) actsHeader << " OBFUSCATED";
+                if (dbg->HasFlag(ADFG_DEBUG)) actsHeader << " DEBUG";
+                if (dbg->HasFlag(ADFG_CLIENT)) actsHeader << " CLIENT";
+
+                uint32_t pltFlag = (dbg->flags & ADFG_PLATFORM_MASK) >> ADFG_PLATFORM_SHIFT;
+                if (pltFlag) {
+                    Platform nplt{ (Platform)pltFlag };
+                    actsHeader << " PLT(" << utils::MapString(utils::CloneString(PlatformName(nplt)), [](char c) { return std::isspace(c) ? '_' : std::toupper(c); }) << ")";
+
+                    // the script is saying which platform is was compiled, so we follow it
+                    if (!opt.m_ignoreDebugPlatform && pltFlag < Platform::PLATFORM_COUNT) {
+                        LOG_TRACE("Using debug platform {}", PlatformName(nplt));
+                        currentPlatform = nplt;
+                    }
+                }
+            }
+            
+            actsHeader << "\n";
+        }
+
+        if (dbg->HasFeature(ADF_CRC_LOC)) {
             if (dbg->crc_offset) {
-                actsHeader << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << "\n";
+                actsHeader << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << " ";
+
+                if (scriptfile->HasFlag(GOHF_NOTIFY_CRC_STRING)) {
+                    if (dbg->crc_offset > scriptfile->fileSize) {
+                        actsHeader << "INVALID LOC";
+                    }
+                    else {
+                        PrintFormattedString(actsHeader << "\"", scriptfile->Ptr<const char>(dbg->crc_offset)) << "\"";
+                    }
+                }
+                else if (scriptfile->HasFlag(GOHF_NOTIFY_CRC)) {
+                    actsHeader << flocName(dbg->crc_offset);
+                }
+                else {
+                    actsHeader << "USELESS"; // why?
+                }
+
+                actsHeader << "\n";
             }
         }
-        if (dbg->version >= ADF_STRING) {
+        if (dbg->HasFeature(ADF_STRING)) {
             uint32_t* strOffsets = scriptfile->Ptr<uint32_t>(dbg->strings_offset);
             if (dbg->strings_count * sizeof(*strOffsets) > size) {
                 LOG_ERROR("Bad ACTS debug strings, too far");
@@ -1004,7 +1051,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             }
         }
 
-        if (dbg->version >= ADF_DETOUR) {
+        if (dbg->HasFeature(ADF_DETOUR)) {
             const GSC_ACTS_DETOUR* detours = scriptfile->Ptr<GSC_ACTS_DETOUR>(dbg->detour_offset);
 
             if (dbg->detour_count * sizeof(*detours) > size) {
@@ -1024,7 +1071,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 }
             }
         }
-        if (dbg->version >= ADF_DEVBLOCK_BEGIN) {
+        if (dbg->HasFeature(ADF_DEVBLOCK_BEGIN)) {
             // not used by acts decompiler, but can be useful for a vm
             if (opt.m_header) {
                 uint32_t* dvOffsets = scriptfile->Ptr<uint32_t>(dbg->devblock_offset);
@@ -1041,7 +1088,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 }
             }
         }
-        if (dbg->version >= ADF_LAZYLINK) {
+        if (dbg->HasFeature(ADF_LAZYLINK)) {
             // not used by acts decompiler, but can be useful for a vm
             if (opt.m_header) {
                 actsHeader << "// lazylink . " << std::dec << dbg->lazylink_count << " (offset: 0x" << std::hex << dbg->lazylink_offset << ")\n";
@@ -1072,6 +1119,42 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                     actsHeader << "\n";
                     off += sizeof(uint32_t) * lzOff->num_address;
                 }
+            }
+        }
+        if (dbg->HasFeature(ADF_FILES)) {
+            if (opt.m_header) {
+                actsHeader << "// files .... " << std::dec << dbg->files_count << " (offset: 0x" << std::hex << dbg->files_offset << ")\n";
+                GSC_ACTS_FILES* linesOff = scriptfile->Ptr<GSC_ACTS_FILES>(dbg->files_offset);
+                if (dbg->files_offset + sizeof(GSC_ACTS_FILES) * dbg->files_count > size) {
+                    LOG_ERROR("Bad ACTS debug files, too far with {} lines", dbg->files_count);
+                }
+                else {
+                    for (size_t i = 0; i < dbg->files_count; i++) {
+                        GSC_ACTS_FILES& l = linesOff[i];
+                        if (l.filename >= size) {
+                            LOG_ERROR("Bad ACTS debug files name, too far with {}", l.filename);
+                        }
+                        actsHeader << "// - " << std::dec << scriptfile->Ptr<const char>(l.filename) << " " << l.lineStart << "->" << l.lineEnd << "\n";
+                    }
+                }
+
+            }
+        }
+        if (dbg->HasFeature(ADF_LINES)) {
+            // not used by acts decompiler, but can be useful for a vm
+            if (opt.m_header) {
+                actsHeader << "// lines .... " << std::dec << dbg->lines_count << " (offset: 0x" << std::hex << dbg->lines_offset << ")\n";
+                GSC_ACTS_LINES* linesOff = scriptfile->Ptr<GSC_ACTS_LINES>(dbg->lines_offset);
+                if (dbg->lines_offset + sizeof(GSC_ACTS_LINES) * dbg->lines_count > size) {
+                    LOG_ERROR("Bad ACTS debug lines, too far with {} lines", dbg->lines_count);
+                }
+                else {
+                    for (size_t i = 0; i < dbg->lines_count; i++) {
+                        GSC_ACTS_LINES& l = linesOff[i];
+                        actsHeader << "// - " << std::dec << l.lineNum << " " << flocName(l.start) << "->" << flocName(l.end) << "\n";
+                    }
+                }
+
             }
         }
     }
@@ -1185,7 +1268,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             asmout << vmInfo->name;
         }
         else {
-            asmout << (uint32_t)vmInfo->vm << " (" << vmInfo->name << "/" << PlatformName(opt.m_platform) << ")";
+            asmout << (uint32_t)vmInfo->vm << " (" << vmInfo->name << "/" << PlatformName(currentPlatform) << ")";
         }
         asmout << "\n";
 
@@ -1580,7 +1663,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 continue;
             }
 
-            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, vm, opt.m_platform);
+            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, vm, currentPlatform);
 
             if (!r.second) {
                 asmout << "Duplicate node "
