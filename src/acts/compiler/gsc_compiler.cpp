@@ -1,9 +1,8 @@
+#include <includes.hpp>
 #include "gscBaseVisitor.h"
 #include "gscLexer.h"
 #include "gscParser.h"
 #include "gscVisitor.h"
-#include <includes.hpp>
-#include <random>
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_acts_debug.hpp"
@@ -14,12 +13,9 @@ namespace acts::compiler {
     using namespace antlr4::tree;
     using namespace tool::gsc::opcode;
 
-    #pragma push_macro("ERROR")
-    #undef ERROR
     constexpr ParseTreeType TREE_ERROR = ParseTreeType::ERROR;
     constexpr ParseTreeType TREE_RULE = ParseTreeType::RULE;
     constexpr ParseTreeType TREE_TERMINAL = ParseTreeType::TERMINAL;
-    #pragma pop_macro("ERROR")
 
     class GscCompilerOption;
     class FunctionObject;

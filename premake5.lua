@@ -78,6 +78,9 @@ project "ACTSSharedLibrary"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
+    pchheader "includes_shared.hpp"
+    pchsource "./src/shared/includes_shared.cpp"
+
     targetname "actsshared"
     
     files {
@@ -104,6 +107,7 @@ project "ACTSSharedLibrary"
     --links { "libzip" }
     dependson "detours"
     dependson "asmjit"
+    dependson "libcurl"
     --dependson "libzip"
 
 project "ACTSLibrary"
@@ -251,6 +255,9 @@ project "AtianCodTools"
     cppdialect "C++20"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
+
+    pchheader "includes.hpp"
+    pchsource "./src/acts/includes.cpp"
 
     targetname "acts-common"
     
@@ -682,6 +689,52 @@ group "deps"
 
         includedirs {
             "deps/imgui/"
+        }
+
+    project "libcurl"
+        language "C"
+        kind "StaticLib"
+        warnings "Off"
+
+        targetname "libcurl"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/curl/lib/**.c",
+            "deps/curl/lib/**.h",
+        }
+
+        defines {
+            "CURL_STRICTER",
+            "CURL_STATICLIB",
+            "CURL_DISABLE_DICT",
+            "CURL_DISABLE_FILE",
+            "CURL_DISABLE_LDAP",
+            "CURL_DISABLE_LDAPS",
+            "CURL_DISABLE_FTP",
+            "CURL_DISABLE_GOPHER",
+            "CURL_DISABLE_IMAP",
+            "CURL_DISABLE_MQTT",
+            "CURL_DISABLE_POP3",
+            "CURL_DISABLE_RTSP",
+            "CURL_DISABLE_SMTP",
+            "CURL_DISABLE_SMB",
+            "CURL_DISABLE_TELNET",
+            "CURL_DISABLE_TFTP",
+            
+			"BUILDING_LIBCURL",
+
+			"USE_SCHANNEL",
+			"USE_WINDOWS_SSPI",
+			"USE_THREADS_WIN32",
+        }
+
+	    links { "Crypt32.lib" }
+
+        includedirs {
+            "deps/curl/lib",
+            "deps/curl/include"
         }
 
 --    project "libzip"

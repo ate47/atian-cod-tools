@@ -1,8 +1,8 @@
+#include <includes.hpp>
 #include "adl/adlBaseVisitor.h"
 #include "adl/adlLexer.h"
 #include "adl/adlParser.h"
 #include "adl/adlVisitor.h"
-#include <includes.hpp>
 #include "adl/adl.hpp"
 #include "compiler/preprocessor.hpp"
 
@@ -10,12 +10,9 @@ namespace acts::compiler::adl {
     using namespace antlr4;
     using namespace antlr4::tree;
 
-#pragma push_macro("ERROR")
-#undef ERROR
     constexpr ParseTreeType TREE_ERROR = ParseTreeType::ERROR;
     constexpr ParseTreeType TREE_RULE = ParseTreeType::RULE;
     constexpr ParseTreeType TREE_TERMINAL = ParseTreeType::TERMINAL;
-#pragma pop_macro("ERROR")
 
 
     class AdlCompilerOption {

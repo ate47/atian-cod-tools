@@ -1,19 +1,16 @@
+#include <includes.hpp>
 #include "ddlBaseVisitor.h"
 #include "ddlLexer.h"
 #include "ddlParser.h"
 #include "ddlVisitor.h"
-#include <includes.hpp>
 #include "compiler/preprocessor.hpp"
 
 using namespace antlr4;
 using namespace antlr4::tree;
 
-#pragma push_macro("ERROR")
-#undef ERROR
 constexpr ParseTreeType TREE_ERROR = ParseTreeType::ERROR;
 constexpr ParseTreeType TREE_RULE = ParseTreeType::RULE;
 constexpr ParseTreeType TREE_TERMINAL = ParseTreeType::TERMINAL;
-#pragma pop_macro("ERROR")
 
 // not the same as in game, for them see pool.cpp
 enum ACTSDDLType {

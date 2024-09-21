@@ -9,10 +9,12 @@
 #include <unordered_map>
 #include <set>
 #include <unordered_set>
+#include <stack>
 #include <mutex>
 #include <filesystem>
 #include <cassert>
 #include <functional>
+#include <random>
 
 #if __has_include("asmjit/asmjit.h")
 #define ASMJIT_STATIC
@@ -30,4 +32,8 @@
 #endif
 #ifdef max
 #undef max
+#endif
+
+#ifdef ERROR
+#undef ERROR
 #endif

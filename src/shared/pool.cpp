@@ -1,3 +1,4 @@
+#include <includes_shared.hpp>
 #include "pool.hpp"
 
 namespace pool {

@@ -12,4 +12,3 @@
 #include "hashutils.hpp"
 #include "mods/mods.hpp"
 #include "tools/tools.hpp"
-

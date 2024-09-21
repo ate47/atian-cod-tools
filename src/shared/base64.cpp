@@ -1,3 +1,4 @@
+#include <includes_shared.hpp>
 /*
    base64.cpp and base64.h
 
