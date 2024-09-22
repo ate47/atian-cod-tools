@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "error_coder.hpp"
 #include "tools/tools_ui.hpp"
+#include "tools/tools_nui.hpp"
 
 namespace error_coder {
 
@@ -1956,8 +1957,99 @@ namespace {
 
 		tool::ui::window().SetTitleFont(info.titleLabel);
 	}
+
+	bool errenc_nui() {
+		static char encodeInput[0x100]{ 0 };
+		static char encodeOutput[0x100]{ 0 };
+		static char decodeInput[0x100]{ 0 };
+		static char decodeOutput[0x100]{ 0 };
+
+		ImGui::SeparatorText("Error encoder");
+
+		if (ImGui::InputText("Error code", encodeInput, sizeof(encodeInput))) {
+
+			std::string encodeStr = encodeInput;
+
+			if (encodeStr.empty()) {
+				encodeOutput[0] = 0;
+			}
+			else {
+				try {
+					const char* cstr = encodeStr.c_str();
+					char* end;
+					uint32_t err = std::strtoul(cstr, &end, 10);
+					if (end != cstr + encodeStr.length()) {
+						throw std::runtime_error("Invalid code");
+					}
+
+					error_coder::ErrorCode code{};
+					error_coder::Encode(code, err);
+
+					sprintf_s(encodeOutput, "%s", error_coder::ToStr(code));
+				}
+				catch (std::exception& e) {
+					sprintf_s(encodeOutput, "%s", e.what());
+				}
+			}
+		}
+		ImGui::InputText("Encoded", encodeOutput, sizeof(encodeOutput), ImGuiInputTextFlags_ReadOnly);
+
+		ImGui::SeparatorText("Error decoder");
+
+		if (ImGui::InputText("Error message", decodeInput, sizeof(decodeInput))) {
+			std::string decodeStr = decodeInput;
+
+			if (decodeStr.empty()) {
+				decodeOutput[0] = 0;
+			}
+			else {
+
+				std::string words[4]{};
+
+				try {
+					size_t idx{};
+					for (int i = 0; i < 4; i++) {
+						size_t f = decodeStr.find(' ', idx);
+						if (f == std::string::npos) {
+							if (i != 3) {
+								throw std::runtime_error("Not enough components");
+							}
+							f = decodeStr.length();
+						}
+						if (f - idx == 0) {
+							// empty word
+							i--;
+							idx = f + 1;
+							continue;
+						}
+
+						words[i] = decodeStr.substr(idx, f - idx);
+						idx = f + 1;
+					}
+					while (idx < decodeStr.length() && decodeStr[idx] == ' ') {
+						idx++; // ignore end spaces
+					}
+					if (idx < decodeStr.length()) {
+						throw std::runtime_error("Too many components");
+					}
+
+					error_coder::ErrorCode code{ words[0].c_str(), words[1].c_str(), words[2].c_str(), words[3].c_str() };
+
+					uint32_t err = error_coder::Decode(code);
+					sprintf_s(decodeOutput, "%lu", err);
+				}
+				catch (std::exception& e) {
+					sprintf_s(decodeOutput, "%s", e.what());
+				}
+			}
+		}
+		ImGui::InputText("Decoded", decodeOutput, sizeof(decodeOutput), ImGuiInputTextFlags_ReadOnly);
+
+		return false;
+	}
 }
 ADD_TOOL_UI("errenc", L"T8/9 Error encoder", Render, Update, Resize);
+ADD_TOOL_NUI("errenc", "T8/9 Error encoder", errenc_nui);
 
 ADD_TOOL("errenc", "hash", "[error]", "encode an error", nullptr, errenc);
 ADD_TOOL("errdec", "hash", "[w1] [w2] [w3] [w4]", "decode an error", nullptr, errdec);

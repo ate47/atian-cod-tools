@@ -95,7 +95,6 @@ project "ACTSSharedLibrary"
 		"deps/Detours/src/",
         "deps/curl/include/",
         "deps/rapidjson/include/",
-        "deps/libzip/lib/",
     }
 
     vpaths {
@@ -104,11 +103,9 @@ project "ACTSSharedLibrary"
     links { "asmjit" }
     links { "detours" }
     links { "libcurl" }
-    --links { "libzip" }
     dependson "detours"
     dependson "asmjit"
     dependson "libcurl"
-    --dependson "libzip"
 
 project "ACTSLibrary"
     kind "StaticLib"
@@ -300,6 +297,8 @@ project "AtianCodTools"
         "deps/json/include/",
         "deps/rapidcsv/src/",
         "deps/hw_break/HwBpLib/inc/",
+        "deps/glfw/include/",
+        "deps/imgui/"
     }
 
     vpaths {
@@ -322,6 +321,10 @@ project "AtianCodTools"
     links { "lz4" }
     links { "detours" }
     links { "libcurl" }
+    links { "glfw" }
+	links { "OpenGL32" }
+	links { "GLU32" }
+    links { "imgui" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
@@ -331,6 +334,8 @@ project "AtianCodTools"
     dependson "asmjit"
     dependson "casclib"
     dependson "lz4"
+    dependson "glfw"
+    dependson "imgui"
 
 project "AtianCodToolsCLI"
     kind "ConsoleApp"
@@ -679,6 +684,10 @@ group "deps"
             "deps/imgui/*.h",
             "deps/imgui/backends/imgui_impl_dx*.cpp",
             "deps/imgui/backends/imgui_impl_dx*.h",
+            "deps/imgui/backends/imgui_impl_glfw.cpp",
+            "deps/imgui/backends/imgui_impl_glfw.h",
+            "deps/imgui/backends/imgui_impl_opengl2.cpp",
+            "deps/imgui/backends/imgui_impl_opengl2.h",
             "deps/imgui/backends/imgui_impl_win32*.cpp",
             "deps/imgui/backends/imgui_impl_win32*.h",
             "deps/imgui/misc/cpp/imgui_stdlib.*"
@@ -687,7 +696,10 @@ group "deps"
         defines {
         }
 
+        links { "glfw" }
+        dependson "glfw"
         includedirs {
+            "deps/glfw/include/",
             "deps/imgui/"
         }
 
@@ -737,26 +749,58 @@ group "deps"
             "deps/curl/include"
         }
 
---    project "libzip"
---        writelibzip()
---        
---        language "C++"
---        kind "StaticLib"
---        cppdialect "C++17"
---
---        targetname "libzip"
---        targetdir "%{wks.location}/bin/"
---        objdir "%{wks.location}/obj/"
---
---        files {
---            "deps/libzip/lib/*.c",
---            "deps/libzip/lib/*.h",
---        }
---
---        defines {
---        }
---
---        includedirs {
---            "deps/libzip/lib/"
---        }
+    project "glfw"
+        language "C"
+        kind "StaticLib"
+        warnings "Off"
 
+        targetname "glfw"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        defines {
+            "_GLFW_WIN32",
+            "_CRT_SECURE_NO_WARNINGS"
+        }
+
+        files {
+            "deps/glfw/include/GLFW/glfw3.h",
+            "deps/glfw/include/GLFW/glfw3native.h",
+            "deps/glfw/src/internal.h",
+            "deps/glfw/src/platform.h",
+            "deps/glfw/src/mappings.h",
+            "deps/glfw/src/context.c",
+            "deps/glfw/src/init.c",
+            "deps/glfw/src/input.c",
+            "deps/glfw/src/monitor.c",
+            "deps/glfw/src/platform.c",
+            "deps/glfw/src/vulkan.c",
+            "deps/glfw/src/window.c",
+            "deps/glfw/src/egl_context.c",
+            "deps/glfw/src/osmesa_context.c",
+            "deps/glfw/src/null_platform.h",
+            "deps/glfw/src/null_joystick.h",
+            "deps/glfw/src/null_init.c",
+
+            "deps/glfw/src/null_monitor.c",
+            "deps/glfw/src/null_window.c",
+            "deps/glfw/src/null_joystick.c",
+
+            "deps/glfw/src/win32_init.c",
+            "deps/glfw/src/win32_module.c",
+            "deps/glfw/src/win32_joystick.c",
+            "deps/glfw/src/win32_monitor.c",
+            "deps/glfw/src/win32_time.h",
+            "deps/glfw/src/win32_time.c",
+            "deps/glfw/src/win32_thread.h",
+            "deps/glfw/src/win32_thread.c",
+            "deps/glfw/src/win32_window.c",
+            "deps/glfw/src/wgl_context.c",
+            "deps/glfw/src/egl_context.c",
+            "deps/glfw/src/osmesa_context.c"
+        }
+
+        includedirs {
+            "deps/glfw/src",
+            "deps/glfw/include"
+        }

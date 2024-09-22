@@ -63,7 +63,7 @@ try {
     Copy-Item "deps/rapidjson/license.txt" "$base/licenses/rapidjson.txt" > $null
     Copy-Item "deps/rapidcsv/LICENSE" "$base/licenses/LICENSE.txt" > $null
     Copy-Item "deps/curl/COPYING" "$base/licenses/curl.txt" > $null
-    Copy-Item "deps/libzip/LICENSE" "$base/licenses/libzip.txt" > $null
+    Copy-Item "deps/glfw/LICENSE.md" "$base/licenses/glfw.md" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

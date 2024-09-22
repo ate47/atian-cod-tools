@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "tools_ui.hpp"
+#include "tools_nui.hpp"
 
 namespace tool::ui {
 
@@ -23,15 +24,10 @@ namespace tool::ui {
 		return m_id != NULL;
 	}
 
-}
-namespace {
-	struct {
-		HWND mainLabel;
-	} toolInfo;
-	int RenderActs(HWND window, HINSTANCE hInstance) {
+	std::wstring GetActsDesc(bool nui) {
 		std::filesystem::path dir = utils::GetProgDir();
-		std::wstring text{ std::format(
-			L"-- Atian Tools UI \n\r"
+		return std::format(
+			L"-- Atian Tools {} \n\r"
 			"Version: {} (0x{:x})"
 #ifdef DEBUG
 			" (DEBUG)"
@@ -52,16 +48,25 @@ namespace {
 			"Black Ops Cold War loaded: {} \n\r"
 			"Cordycep loaded: {} \n\r"
 			,
+			nui ? L"NUI" : L"UI",
 			actsinfo::VERSIONW,
 			actsinfo::VERSION_ID,
-			tool::ui::tools().size(),
+			nui ? tool::nui::tools().size() : tools().size(),
 			tool::tools().size(),
 			hashutils::GetMap().size(),
 			utils::StrToWStr(dir.string()),
 			!!Process{ L"BlackOps4.exe" },
 			!!Process{ L"BlackOpsColdWar.exe" },
 			!!Process{ L"Cordycep.CLI.exe" }
-		) };
+		);
+	}
+}
+namespace {
+	struct {
+		HWND mainLabel;
+	} toolInfo;
+	int RenderActs(HWND window, HINSTANCE hInstance) {
+		std::wstring text = tool::ui::GetActsDesc();
 		toolInfo.mainLabel = CreateWindowEx(
 			0,
 			L"STATIC",

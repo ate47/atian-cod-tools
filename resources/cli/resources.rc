@@ -1,1 +1,2 @@
 acts_logo ICON "../cli/icon.ico"
+GLFW_ICON ICON "../cli/icon.ico"

@@ -9,9 +9,10 @@ namespace core::config {
 	namespace {
 		rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
 			static rapidjson::Value nullAnswer{ rapidjson::kNullType };
-			if (!path || !*path) {
-				return nullAnswer; // not a valid path
+			if (!path || !*path || loc.IsNull()) {
+				return nullAnswer; // not a valid path/object
 			}
+
 			std::string_view sv{ path + off };
 			size_t idx = sv.find('.', 0);
 

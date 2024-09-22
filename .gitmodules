@@ -52,6 +52,6 @@
 [submodule "deps/curl"]
 	path = deps/curl
 	url = https://github.com/curl/curl
-[submodule "deps/libzip"]
-	path = deps/libzip
-	url = https://github.com/nih-at/libzip
+[submodule "deps/glfw"]
+	path = deps/glfw
+	url = https://github.com/glfw/glfw

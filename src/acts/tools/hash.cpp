@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <rapidcsv.h>
 #include "tools/tools_ui.hpp"
+#include "tools/tools_nui.hpp"
 #include "actscli.hpp"
 
 namespace {
@@ -202,6 +203,104 @@ namespace {
 			std::wstring discstr = utils::StrToWStr(e.what());
 			Edit_SetText(info.hashLookupEditRet, discstr.c_str());
 		}
+	}
+
+	bool hash_nui() {
+		static char hashBuff[0x100];
+
+		struct HashAlg {
+			const char* desc;
+			std::function<uint64_t(const char* text)> hashFunc;
+			char buffer[0x20]{ 0 };
+		};
+
+		static HashAlg algs[]
+		{
+			{ "fnv1a", [](const char* text) -> uint64_t { return hashutils::Hash64A(text); } },
+			{ "iw res", [](const char* text) -> uint64_t { return hashutils::HashIWRes(text); } },
+			{ "t89 canon", [](const char* text) -> uint64_t { return hashutils::Hash32(text); } },
+			{ "mwii/iii canon", [](const char* text) -> uint64_t { return hashutils::HashJupScr(text); } },
+			{ "bo6 canon", [](const char* text) -> uint64_t { return hashutils::HashT10Scr(text); } },
+			{ "t7 fnv1a", [](const char* text) -> uint64_t { return hashutils::HashT7(text); } },
+			{ "IW tag", [](const char* text) -> uint64_t { return hashutils::HashIWTag(text); } },
+			{ "IW Dvar", [](const char* text) -> uint64_t { return hashutils::HashIWDVar(text); } },
+		};
+
+		ImGui::SeparatorText("Hashes");
+
+		if (ImGui::InputText("String", hashBuff, sizeof(hashBuff))) {
+			for (HashAlg& alg : algs) {
+				sprintf_s(alg.buffer, "%llx", alg.hashFunc(hashBuff));
+			}
+		}
+
+		for (HashAlg& alg : algs) {
+			ImGui::InputText(alg.desc, alg.buffer, sizeof(alg.buffer), ImGuiInputTextFlags_ReadOnly);
+		}
+
+		ImGui::SeparatorText("Reverse / Custom");
+
+		static char reversePrimeBuffer[0x20]{ "" };
+		static char reverseIvBuffer[0x20]{ "100000001b3" };
+		static char reverseOutputBuffer[0x80]{ "" };
+		static char reverseCustomBuffer[0x80]{ "" };
+
+		bool cr = false;
+
+		cr |= ImGui::InputText("Reverse (Prime)", reversePrimeBuffer, sizeof(reversePrimeBuffer));
+		cr |= ImGui::InputText("Reverse (IV)", reverseIvBuffer, sizeof(reverseIvBuffer));
+
+		if (cr) {
+			uint64_t val{};
+			uint64_t iv{};
+			try {
+				val = std::strtoull(reversePrimeBuffer, nullptr, 16);
+				iv = std::strtoull(reverseIvBuffer, nullptr, 16);
+
+				if (val && iv) {
+					sprintf_s(reverseCustomBuffer, "%llx", hashutils::Hash64A(hashBuff, val, iv));
+
+					uint64_t mask = 0xFFFF;
+					uint64_t found = 0;
+					uint64_t disc{};
+
+					while (found < 64) {
+						uint64_t k;
+						for (k = 0; k < 0x10000; k++) {
+							uint64_t v = (k << found) | disc;
+							if ((hash::Hash64A(hashBuff, v, iv) & mask) == (val & mask)) {
+								break;
+							}
+						}
+						if (k == 0x10000) {
+							throw std::runtime_error("Invalid value");
+						}
+
+						disc |= (k & 0xF) << found;
+
+						found += 4;
+						mask = (mask << 4) | 0xF;
+					}
+
+					sprintf_s(reverseOutputBuffer, "%llx", disc);
+				}
+				else {
+					sprintf_s(reverseOutputBuffer, "N/A");
+					sprintf_s(reverseCustomBuffer, "N/A");
+				}
+			}
+			catch (std::runtime_error& e) {
+				sprintf_s(reverseOutputBuffer, e.what());
+				if (!val || !iv) {
+					sprintf_s(reverseCustomBuffer, "N/A");
+				}
+			}
+		}
+
+		ImGui::InputText("Reverse (Start)", reverseOutputBuffer, sizeof(reverseOutputBuffer), ImGuiInputTextFlags_ReadOnly);
+		ImGui::InputText("Custom", reverseCustomBuffer, sizeof(reverseCustomBuffer), ImGuiInputTextFlags_ReadOnly);
+
+		return false;
 	}
 
     int Render(HWND window, HINSTANCE hInstance) {
@@ -997,6 +1096,7 @@ namespace {
 }
 
 ADD_TOOL_UI("hash", L"Hash", Render, Update, Resize);
+ADD_TOOL_NUI("hash", "Hash", hash_nui);
 
 ADD_TOOL("lookup", "hash", " (string)*", "lookup strings", nullptr, lookuptool);
 ADD_TOOL("h32", "hash", " (string)*", "hash strings", nullptr, hash32);
