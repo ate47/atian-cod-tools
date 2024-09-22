@@ -18,6 +18,8 @@ namespace tool::nui {
 	};
 
 	std::map<std::string, tool::nui::tooluifunctiondata*>& tools();
+
+	void OpenNuiWindow();
 }
 
 #define ADD_TOOL_NUI(id, desc, function) static tool::nui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, function)

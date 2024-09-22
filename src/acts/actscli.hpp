@@ -4,6 +4,7 @@
 namespace actscli {
 	enum ActsType {
 		ACTS_UI,
+		ACTS_NUI,
 		ACTS_CLI,
 		ACTS_REPL,
 	};

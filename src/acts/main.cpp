@@ -7,6 +7,7 @@
 #include "actslib/logging.hpp"
 #include "acts.hpp"
 #include "main_ui.hpp"
+#include "tools/tools_nui.hpp"
 #include <core/config.hpp>
 #include <core/updater.hpp>
 
@@ -151,6 +152,9 @@ namespace {
 				}
 				else if (!_strcmpi("ui", val)) {
 					opt.type = actscli::ACTS_UI;
+				}
+				else if (!_strcmpi("nui", val)) {
+					opt.type = actscli::ACTS_NUI;
 				}
 				else {
 					LOG_ERROR("Invalid param value for param: {}!", arg);
@@ -484,6 +488,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 			switch (opt.type) {
 				case actscli::ACTS_CLI: return "CLI";
 				case actscli::ACTS_UI: return "UI";
+				case actscli::ACTS_NUI: return "NUI";
 				case actscli::ACTS_REPL: return "REPL";
 				default: return "";
 			}
@@ -524,7 +529,15 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		}
 	}
 
-	if (hInstance) {
+	if (
+		opt.type == actscli::ACTS_NUI
+		// || (hInstance && core::config::GetBool("nui.force", true)) // uncomment when switching to nui
+		) {
+		tool::nui::OpenNuiWindow();
+		return 0;
+	}
+
+	if (hInstance || opt.type == actscli::ACTS_NUI) {
 		return tool::ui::MainActsUI(hInstance, nShowCmd); // no tool to run, life's easier if I put that here
 	}
 

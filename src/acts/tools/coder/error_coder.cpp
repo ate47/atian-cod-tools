@@ -2049,7 +2049,7 @@ namespace {
 	}
 }
 ADD_TOOL_UI("errenc", L"T8/9 Error encoder", Render, Update, Resize);
-ADD_TOOL_NUI("errenc", "T8/9 Error encoder", errenc_nui);
+ADD_TOOL_NUI("errenc", "T8/9 Error", errenc_nui);
 
 ADD_TOOL("errenc", "hash", "[error]", "encode an error", nullptr, errenc);
 ADD_TOOL("errdec", "hash", "[w1] [w2] [w3] [w4]", "decode an error", nullptr, errdec);

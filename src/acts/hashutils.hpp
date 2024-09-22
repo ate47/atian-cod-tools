@@ -12,7 +12,7 @@ namespace hashutils {
 	/*
 	 * Read the default hash file
 	 */
-	void ReadDefaultFile();
+	void ReadDefaultFile(bool cleanup = false);
 	/*
 	 * Load a hash file
 	 * @param file file to load

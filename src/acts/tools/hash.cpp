@@ -234,6 +234,8 @@ namespace {
 			}
 		}
 
+		ImGui::SeparatorText("Values");
+
 		for (HashAlg& alg : algs) {
 			ImGui::InputText(alg.desc, alg.buffer, sizeof(alg.buffer), ImGuiInputTextFlags_ReadOnly);
 		}
@@ -299,6 +301,35 @@ namespace {
 
 		ImGui::InputText("Reverse (Start)", reverseOutputBuffer, sizeof(reverseOutputBuffer), ImGuiInputTextFlags_ReadOnly);
 		ImGui::InputText("Custom", reverseCustomBuffer, sizeof(reverseCustomBuffer), ImGuiInputTextFlags_ReadOnly);
+
+		ImGui::SeparatorText("Lookup");
+
+		if (ImGui::Button("Load hashes")) {
+			hashutils::ReadDefaultFile(true);
+		}
+
+		if (!hashutils::GetMap().empty()) {
+			static char lookupInputBuffer[0x20]{ "" };
+			static char lookupOutputBuffer[0x100]{ "" };
+
+			if (ImGui::InputText("Hashed", lookupInputBuffer, sizeof(lookupInputBuffer))) {
+				try {
+					uint64_t val = std::strtoull(lookupInputBuffer, nullptr, 16);
+
+					const char* lookupVal = hashutils::ExtractPtr(val);
+
+					const char* discstr = lookupVal ? lookupVal : "can't find";
+					snprintf(lookupOutputBuffer, sizeof(lookupOutputBuffer), "%s", discstr);
+				}
+				catch (std::runtime_error& e) {
+					snprintf(lookupOutputBuffer, sizeof(lookupOutputBuffer), "%s", e.what());
+				}
+			}
+			ImGui::InputText("Unhashed", lookupOutputBuffer, sizeof(lookupOutputBuffer), ImGuiInputTextFlags_ReadOnly);
+		}
+		else {
+			ImGui::Text("No hashes available");
+		}
 
 		return false;
 	}

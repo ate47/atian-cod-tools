@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "tools/tools_ui.hpp"
+#include "tools/tools_nui.hpp"
 #include "tools/cw/cw.hpp"
 #include "tools/bo3/bo3.hpp"
 #include "tools/gsc.hpp"
@@ -393,5 +394,236 @@ namespace {
 
         tool::ui::window().SetTitleFont(info.titleLabel);
 	}
-	ADD_TOOL_UI("gsc_inject", L"GSC Inject", Render, Update, Resize);
+
+    bool gsc_inject() {
+        static char gscFileIn[MAX_PATH + 1]{ 0 };
+        static char hookIn[MAX_PATH + 1]{ 0 };
+        static std::string notif{};
+
+        static std::once_flag of{};
+
+        bool c = false;
+        std::call_once(of, [&c] {
+            std::string injGsc = core::config::GetString("ui.injector.path");
+            std::string injHook = core::config::GetString("ui.injector.hook", "scripts\\zm_common\\load.gsc");
+
+            snprintf(gscFileIn, sizeof(gscFileIn), "%s", injGsc.data());
+            snprintf(hookIn, sizeof(hookIn), "%s", injHook.data());
+            c = true;
+        });
+
+        ImGui::SeparatorText("GSC Inject");
+
+        if (ImGui::InputText("GSC File", gscFileIn, sizeof(gscFileIn))) {
+            core::config::SetString("ui.injector.path", gscFileIn);
+            c = true;
+        }
+        if (ImGui::Button("Open file...")) {
+            // Open file
+
+            OPENFILENAME ofn;
+            TCHAR szFile[MAX_PATH + 1] = { 0 };
+
+            // Initialize OPENFILENAME
+            ZeroMemory(&ofn, sizeof(ofn));
+            ofn.lStructSize = sizeof(ofn);
+            ofn.hwndOwner = NULL;
+            ofn.lpstrFile = szFile;
+            ofn.nMaxFile = sizeof(szFile);
+            ofn.lpstrFilter = L"Compiled GSC file (.gscc, .gsic, .gscobj)\0*.gscc;*.gsic;*.gscobj\0All\0*.*\0";
+            ofn.lpstrTitle = L"Open GSC file";
+            ofn.nFilterIndex = 1;
+            ofn.lpstrFileTitle = NULL;
+            ofn.nMaxFileTitle = 0;
+            ofn.lpstrInitialDir = NULL;
+            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+            if (GetOpenFileName(&ofn) == TRUE) {
+                std::string injGsc = utils::WStrToStr(ofn.lpstrFile);
+                core::config::SetString("ui.injector.path", injGsc);
+                snprintf(gscFileIn, sizeof(gscFileIn), "%s", injGsc.data());
+                c = true;
+            }
+        }
+        ImGui::SeparatorText("GSC Injector (PC)");
+
+        if (ImGui::InputText("Hook", hookIn, sizeof(hookIn))) {
+            core::config::SetString("ui.injector.hook", hookIn);
+            c = true;
+        }
+
+        if (ImGui::Button("Inject PC Script")) {
+            std::string file{};
+
+            std::string filePath = gscFileIn;
+            std::string hookPath = hookIn;
+
+            try {
+                if (!utils::ReadFile(filePath, file)) {
+                    throw std::runtime_error(std::format("Can't read '{}'", filePath));
+                }
+
+                if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
+                    throw std::runtime_error("GSCBIN format not supported");
+                }
+
+                if (file.size() < 0x20) {
+                    throw std::runtime_error(std::format("Invalid gsc file '{}'", filePath));
+                }
+
+                uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
+
+                if (magic == cw::GSC_MAGIC) {
+                    // cw gsc
+
+                    Process proc{ L"BlackOpsColdWar.exe" };
+
+                    if (!proc || !proc.Open()) {
+                        throw std::runtime_error("Can't find Black Ops Cold War");
+                    }
+                    utils::CloseEnd ce{ [&proc] { proc.Close(); } };
+
+                    cw::InjectScriptCW(proc, filePath.c_str(), hookPath.c_str(), "scripts/core_common/clientids_shared.gsc", notif);
+
+                }
+                else if (magic == bo3::GSC_MAGIC) {
+                    // bo3 gsc
+
+                    Process proc{ L"BlackOps3.exe" };
+
+                    if (!proc || !proc.Open()) {
+                        throw std::runtime_error("Can't find Black Ops 3");
+                    }
+                    utils::CloseEnd ce{ [&proc] { proc.Close(); } };
+
+                    bo3::InjectScriptBO3(proc, filePath.c_str(), "scripts/shared/duplicaterender_mgr.gsc", notif);
+                }
+                else {
+                    tool::gsc::opcode::VmInfo* nfo{};
+                    if (tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
+                        notif = (std::format("PC injector not implemented for VM: {}", nfo->name));
+                    }
+                    else {
+                        notif = (std::format("Invalid magic: 0x{:x}", magic));
+                    }
+                }
+            }
+            catch (std::exception& e) {
+                notif = std::format("Exception: {}", e.what());
+            }
+        }
+        ImGui::SeparatorText("GSC Injector (PS4)");
+
+        if (ImGui::Button("Inject PS4 Script")) {
+            notif = "PS4 Injector not implemented";
+        }
+
+        ImGui::SeparatorText("Utilities");
+
+        if (ImGui::Button("Patch Easter Eggs (Zombies/PC)")) {
+            try {
+                bool done{};
+
+                if (!done) {
+                    Process proc{ L"BlackOpsColdWar.exe" };
+
+                    if (proc.Open()) {
+
+                        mods::ee::CustomEET9(proc, notif);
+                        proc.Close();
+                        done = true;
+                    }
+                }
+                if (!done) {
+                    Process proc{ L"BlackOps4.exe" };
+
+                    if (proc.Open()) {
+
+                        std::string notif{};
+                        mods::ee::CustomEET8(proc, notif);
+
+                        proc.Close();
+                        done = true;
+                    }
+                }
+                if (!done) {
+                    notif = "Can't find game";
+                }
+            }
+            catch (std::exception& e) {
+                notif = std::format("Exception: {}", e.what());
+            }
+        }
+
+        if (ImGui::Button("Print script info")) {
+            std::string file{};
+            if (!utils::ReadFile(gscFileIn, file)) {
+                notif = std::format("Can't read '{}'", gscFileIn);
+            }
+            else if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
+                notif = "GSCBIN file";
+            }
+            else if (file.size() >= 4 && !memcmp("GSIC", file.data(), 4)) {
+                notif = "GSIC file";
+            }
+            else if (file.size() < 8) {
+                notif = "Invalid GSC compiled file";
+            }
+            else {
+                uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
+                tool::gsc::opcode::VmInfo* nfo{};
+
+                if (!tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
+                    notif = (std::format("Invalid magic: 0x{:x}", magic));
+                }
+                else {
+                    notif = std::format("Vm: {} (0x{:x})", nfo->name, (int)nfo->vm);
+
+                    auto* readerBuilder = tool::gsc::GetGscReader(nfo->vm);
+
+                    if (!readerBuilder) {
+                        notif += "\nNo GSC handler available";
+                    }
+                    else {
+                        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)((byte*)file.data(), file.length()) };
+
+                        if (!handler->IsValidHeader(file.length())) {
+                            notif += "\nInvalid header";
+                        }
+                        else {
+                            notif +=
+                                std::format(
+                                    "\nName: {}"
+                                    "\nCrc: {} (0x{:x})"
+                                    "\nExports: {} (0x{:x})"
+                                    "\nImports: {} (0x{:x})"
+                                    "\nStrings: {} (0x{:x})"
+                                    ,
+
+                                    hashutils::ExtractTmpScript(handler->GetName()),
+                                    handler->GetChecksum(), handler->GetChecksum(),
+                                    handler->GetExportsCount(), handler->GetExportsOffset(),
+                                    handler->GetImportsCount(), handler->GetImportsOffset(),
+                                    handler->GetStringsCount(), handler->GetStringsOffset()
+                                );
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        if (!notif.empty()) {
+            ImGui::Separator();
+
+            ImGui::Text("%s", notif.data());
+        }
+
+
+        return c;
+    }
+
+    ADD_TOOL_UI("gsc_inject", L"GSC Inject", Render, Update, Resize);
+    ADD_TOOL_NUI("gsc_inject", "GSC Inject", gsc_inject);
 }
