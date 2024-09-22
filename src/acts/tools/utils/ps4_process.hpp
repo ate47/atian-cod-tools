@@ -19,7 +19,7 @@ namespace utils::ps4 {
 
             if (!proc) {
                 ps4.Disconnect();
-                throw std::runtime_error("Can't connect to process");
+                throw std::runtime_error("Can't connect to PS4 process");
             }
             pid = proc->pid;
 

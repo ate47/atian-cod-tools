@@ -1,6 +1,20 @@
 #pragma once
 
 namespace bo6 {
+	struct DB_AssetPool {
+		uintptr_t m_entries; // void*
+		uintptr_t m_freeHead; // void*
+		unsigned int m_poolSize;
+		unsigned int m_elementSize;
+		unsigned int m_loadedPoolSize;
+		char __padding[158];
+	};
+	struct GscObjEntry {
+		uint64_t name;
+		int len;
+		int padc;
+		uintptr_t buffer;
+	};
 
 	enum T10ScrVarType : uint32_t {
 		T10VT_UNDEFINED = 0x0,

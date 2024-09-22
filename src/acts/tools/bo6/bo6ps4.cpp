@@ -5,6 +5,7 @@
 #include "tools/bo6/bo6.hpp"
 #include "tools/utils/ps4_process.hpp"
 #include "tools/tools_ui.hpp"
+#include "tools/tools_nui.hpp"
 #include "tools/gsc.hpp"
 #include <core/config.hpp>
 
@@ -1072,9 +1073,195 @@ namespace {
 
         tool::ui::window().SetTitleFont(info.titleLabel);
     }
+
+    bool bo6_tools() {
+        static char gscFileIn[MAX_PATH + 1]{ 0 };
+        static char cbuffIn[0x100]{ 0 };
+        static char ps4In[0x50]{ 0 };
+        static std::string notif{};
+
+        static std::once_flag of{};
+
+        bool c = false;
+        std::call_once(of, [&c] {
+            std::string injGsc = core::config::GetString("ui.bo6.path");
+            std::string injCbuff = core::config::GetString("ui.bo6.cbuf");
+            std::string injPs4 = core::config::GetString("ui.ps4.ipd");
+
+            snprintf(gscFileIn, sizeof(gscFileIn), "%s", injGsc.data());
+            snprintf(cbuffIn, sizeof(cbuffIn), "%s", injCbuff.data());
+            snprintf(ps4In, sizeof(ps4In), "%s", injPs4.data());
+            c = true;
+           });
+
+        ImGui::SeparatorText("BO6 PS4 utilitites");
+
+        if (ImGui::InputText("PS4 IP", ps4In, sizeof(ps4In))) {
+            core::config::SetString("ui.ps4.ipd", ps4In);
+            c = true;
+        }
+
+        ImGui::Spacing();
+        ImGui::SeparatorText("cbuff");
+
+        if (ImGui::InputText("Command", cbuffIn, sizeof(cbuffIn))) {
+            core::config::SetString("ui.bo6.cbuf", cbuffIn);
+            c = true;
+        }
+        if (ImGui::Button("Send command")) {
+            try {
+                std::string cmd = cbuffIn;
+
+                utils::ps4::PS4Process ps4{ ps4In };
+
+                uint64_t cbuf1 = ps4[0x4D6C350];
+                uint64_t cbuf2 = cbuf1 + 0x10004;
+
+                ps4.Write(cbuf1, cmd.data(), cmd.size() + 1);
+                ps4.Write<uint32_t>(cbuf2, (uint32_t)cmd.size());
+
+
+                ps4.Notify(std::format("cbuf {}", cmd));
+                notif = "";
+            }
+            catch (std::exception& e) {
+                notif = std::format("Exception: {}", e.what());
+            }
+        }
+
+        ImGui::Spacing();
+        ImGui::SeparatorText("GSC injection");
+
+        if (ImGui::InputText("GSC File", gscFileIn, sizeof(gscFileIn))) {
+            core::config::SetString("ui.bo6.path", gscFileIn);
+            c = true;
+        }
+        if (ImGui::Button("Open file...")) {
+            // Open file
+
+            OPENFILENAME ofn;
+            TCHAR szFile[MAX_PATH + 1] = { 0 };
+
+            // Initialize OPENFILENAME
+            ZeroMemory(&ofn, sizeof(ofn));
+            ofn.lStructSize = sizeof(ofn);
+            ofn.hwndOwner = NULL;
+            ofn.lpstrFile = szFile;
+            ofn.nMaxFile = sizeof(szFile);
+            ofn.lpstrFilter = L"Compiled GSC file (.gscc, .gsic, .gscobj)\0*.gscc;*.gsic;*.gscobj\0All\0*.*\0";
+            ofn.lpstrTitle = L"Open GSC file";
+            ofn.nFilterIndex = 1;
+            ofn.lpstrFileTitle = NULL;
+            ofn.nMaxFileTitle = 0;
+            ofn.lpstrInitialDir = NULL;
+            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+            if (GetOpenFileName(&ofn) == TRUE) {
+                std::string injGsc = utils::WStrToStr(ofn.lpstrFile);
+                core::config::SetString("ui.bo6.path", injGsc);
+                snprintf(gscFileIn, sizeof(gscFileIn), "%s", injGsc.data());
+                c = true;
+            }
+        }
+
+
+        if (ImGui::Button("Inject PS4 Script")) {
+            std::string file{};
+
+            std::string filePath = gscFileIn;
+
+            try {
+                if (!utils::ReadFile(filePath, file)) {
+                    throw std::runtime_error(std::format("Can't read '{}'", filePath));
+                }
+
+                if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
+                    throw std::runtime_error("GSCBIN format not supported");
+                }
+
+                if (file.size() < 0x20) {
+                    throw std::runtime_error(std::format("Invalid gsc file '{}'", filePath));
+                }
+
+                uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
+
+                tool::gsc::opcode::VmInfo* nfo{};
+                if (!tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
+                    notif = (std::format("Invalid magic: 0x{:x}", magic));
+                }
+                else if (nfo->vm == tool::gsc::opcode::VM::VM_BO6_06) {
+                    // bo6 injector
+
+                    try {
+                        tool::gsc::GscObj24* script{ (tool::gsc::GscObj24*)file.data() };
+
+                        uint64_t name = script->name;
+
+                        utils::ps4::PS4Process ps4{ ps4In };
+
+                        auto pool = ps4.ReadObject<bo6::DB_AssetPool>(ps4[0x98FEFA0] + sizeof(bo6::DB_AssetPool) * bo6::T10_ASSET_GSCOBJ);
+
+
+                        LOG_INFO("Pool: {:x}, count: {}/{}, len 0x{:x}", pool->m_entries, pool->m_loadedPoolSize, pool->m_poolSize, pool->m_elementSize);
+                        auto objs = ps4.ReadArray<bo6::GscObjEntry>(pool->m_entries, pool->m_loadedPoolSize);
+
+                        size_t i;
+                        for (i = 0; i < pool->m_loadedPoolSize; i++) {
+                            auto& obj = objs[i];
+
+                            if (obj.name != name) {
+                                continue;
+                            }
+
+                            if (!obj.buffer) {
+                                throw std::runtime_error("Empty buffer");
+                            }
+
+                            if (obj.len < file.size()) {
+                                throw std::runtime_error(utils::va("Buffer too small, can't remplace %llu < %llu", (size_t)obj.len, file.size()));
+                            }
+
+                            auto scriptTarget = ps4.ReadObject<tool::gsc::GscObj24>(obj.buffer);
+
+                            if (scriptTarget->checksum != script->checksum) {
+                                notif = ("Find target script, but the checksum doesn't match");
+                                return TRUE;
+                            }
+
+                            ps4.Write(obj.buffer, file.data(), file.size());
+
+                            notif = ("Script injected");
+                            ps4.Notify("Script injected");
+                        }
+                        if (i == pool->m_loadedPoolSize) {
+                            notif = ("Can't find hook script");
+                        }
+                    }
+                    catch (std::exception& e) {
+                        notif = (std::format("Exception: {}", e.what()));
+                    }
+                }
+                else {
+                    notif = (std::format("PS4 injector not implemented for VM: {}", nfo->name));
+                }
+            }
+            catch (std::exception& e) {
+                notif = std::format("Exception: {}", e.what());
+            }
+        }
+
+        if (!notif.empty()) {
+            ImGui::Separator();
+
+            ImGui::Text("%s", notif.data());
+        }
+
+        return c;
+    }
     
     ADD_TOOL("ps4cbufbo6", "dev", " [ip:port] [cmd]", "", nullptr, ps4cbufbo6);
     ADD_TOOL("ps4dumpbo6", "dev", " [ip:port]", "", nullptr, ps4dumpbo6);
     ADD_TOOL("ps4repbo6", "dev", " [ip:port] [file]", "", nullptr, ps4repbo6);
     ADD_TOOL_UI("bo6_tools", L"BO6 PS4", Render, Update, Resize);
+    ADD_TOOL_NUI("bo6_tools", "BO6 PS4", bo6_tools);
 }

@@ -531,7 +531,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 
 	if (
 		opt.type == actscli::ACTS_NUI
-		// || (hInstance && core::config::GetBool("nui.force", true)) // uncomment when switching to nui
+		 || (hInstance && core::config::GetBool("nui.force", true))
 		) {
 		tool::nui::OpenNuiWindow();
 		return 0;

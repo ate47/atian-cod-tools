@@ -3,8 +3,10 @@
 #include "tools/tools_nui.hpp"
 #include "tools/cw/cw.hpp"
 #include "tools/bo3/bo3.hpp"
+#include "tools/bo6/bo6.hpp"
 #include "tools/gsc.hpp"
 #include "mods/custom_ees.hpp"
+#include "tools/utils/ps4_process.hpp"
 #include <core/config.hpp>
 
 namespace {
@@ -398,6 +400,7 @@ namespace {
     bool gsc_inject() {
         static char gscFileIn[MAX_PATH + 1]{ 0 };
         static char hookIn[MAX_PATH + 1]{ 0 };
+        static char ps4In[0x50]{ 0 };
         static std::string notif{};
 
         static std::once_flag of{};
@@ -406,9 +409,11 @@ namespace {
         std::call_once(of, [&c] {
             std::string injGsc = core::config::GetString("ui.injector.path");
             std::string injHook = core::config::GetString("ui.injector.hook", "scripts\\zm_common\\load.gsc");
+            std::string injPs4 = core::config::GetString("ui.ps4.ipd");
 
             snprintf(gscFileIn, sizeof(gscFileIn), "%s", injGsc.data());
             snprintf(hookIn, sizeof(hookIn), "%s", injHook.data());
+            snprintf(ps4In, sizeof(ps4In), "%s", injPs4.data());
             c = true;
         });
 
@@ -445,13 +450,14 @@ namespace {
                 c = true;
             }
         }
+        ImGui::Spacing();
         ImGui::SeparatorText("GSC Injector (PC)");
 
         if (ImGui::InputText("Hook", hookIn, sizeof(hookIn))) {
             core::config::SetString("ui.injector.hook", hookIn);
             c = true;
         }
-
+        
         if (ImGui::Button("Inject PC Script")) {
             std::string file{};
 
@@ -512,12 +518,104 @@ namespace {
                 notif = std::format("Exception: {}", e.what());
             }
         }
+#ifdef DEV_PS4_INJECTOR
+        ImGui::Spacing();
         ImGui::SeparatorText("GSC Injector (PS4)");
 
-        if (ImGui::Button("Inject PS4 Script")) {
-            notif = "PS4 Injector not implemented";
+        if (ImGui::InputText("PS4 IP", ps4In, sizeof(ps4In))) {
+            core::config::SetString("ui.ps4.ipd", ps4In);
+            c = true;
         }
 
+
+        if (ImGui::Button("Inject PS4 Script")) {
+            std::string file{};
+
+            std::string filePath = gscFileIn;
+            std::string hookPath = hookIn;
+
+            try {
+                if (!utils::ReadFile(filePath, file)) {
+                    throw std::runtime_error(std::format("Can't read '{}'", filePath));
+                }
+
+                if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
+                    throw std::runtime_error("GSCBIN format not supported");
+                }
+
+                if (file.size() < 0x20) {
+                    throw std::runtime_error(std::format("Invalid gsc file '{}'", filePath));
+                }
+
+                uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
+
+                tool::gsc::opcode::VmInfo* nfo{};
+                if (!tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
+                    notif = (std::format("Invalid magic: 0x{:x}", magic));
+                }
+                else if (nfo->vm == tool::gsc::opcode::VM::VM_BO6_06) {
+                    // bo6 injector
+
+                    try {
+                        tool::gsc::GscObj24* script{ (tool::gsc::GscObj24*)file.data() };
+
+                        uint64_t name = script->name;
+
+                        utils::ps4::PS4Process ps4{ ps4In };
+
+                        auto pool = ps4.ReadObject<bo6::DB_AssetPool>(ps4[0x98FEFA0] + sizeof(bo6::DB_AssetPool) * bo6::T10_ASSET_GSCOBJ);
+
+
+                        LOG_INFO("Pool: {:x}, count: {}/{}, len 0x{:x}", pool->m_entries, pool->m_loadedPoolSize, pool->m_poolSize, pool->m_elementSize);
+                        auto objs = ps4.ReadArray<bo6::GscObjEntry>(pool->m_entries, pool->m_loadedPoolSize);
+
+                        size_t i;
+                        for (i = 0; i < pool->m_loadedPoolSize; i++) {
+                            auto& obj = objs[i];
+
+                            if (obj.name != name) {
+                                continue;
+                            }
+
+                            if (!obj.buffer) {
+                                throw std::runtime_error("Empty buffer");
+                            }
+
+                            if (obj.len < file.size()) {
+                                throw std::runtime_error(utils::va("Buffer too small, can't remplace %llu < %llu", (size_t)obj.len, file.size()));
+                            }
+
+                            auto scriptTarget = ps4.ReadObject<tool::gsc::GscObj24>(obj.buffer);
+
+                            if (scriptTarget->checksum != script->checksum) {
+                                notif = ("Find target script, but the checksum doesn't match");
+                                return TRUE;
+                            }
+
+                            ps4.Write(obj.buffer, file.data(), file.size());
+
+                            notif = ("Script injected");
+                            ps4.Notify("Script injected");
+                        }
+                        if (i == pool->m_loadedPoolSize) {
+                            notif = ("Can't find hook script");
+                        }
+                    }
+                    catch (std::exception& e) {
+                        notif = (std::format("Exception: {}", e.what()));
+                    }
+                }
+                else {
+                    notif = (std::format("PS4 injector not implemented for VM: {}", nfo->name));
+                }
+            }
+            catch (std::exception& e) {
+                notif = std::format("Exception: {}", e.what());
+            }
+        }
+#endif
+
+        ImGui::Spacing();
         ImGui::SeparatorText("Utilities");
 
         if (ImGui::Button("Patch Easter Eggs (Zombies/PC)")) {
@@ -591,21 +689,15 @@ namespace {
                             notif += "\nInvalid header";
                         }
                         else {
-                            notif +=
-                                std::format(
-                                    "\nName: {}"
-                                    "\nCrc: {} (0x{:x})"
-                                    "\nExports: {} (0x{:x})"
-                                    "\nImports: {} (0x{:x})"
-                                    "\nStrings: {} (0x{:x})"
-                                    ,
+                            std::ostringstream oss{};
+                            oss
+                                << "\n"
+                                << "// " << hashutils::ExtractTmpScript(handler->GetName()) << " (" << gscFileIn << ")" << " (size: " << file.length() << " Bytes / " << std::hex << "0x" << file.length() << ")\n"
+                                << "// magic: 0x" << std::hex << handler->Ref<uint64_t>()
+                                ;
 
-                                    hashutils::ExtractTmpScript(handler->GetName()),
-                                    handler->GetChecksum(), handler->GetChecksum(),
-                                    handler->GetExportsCount(), handler->GetExportsOffset(),
-                                    handler->GetImportsCount(), handler->GetImportsOffset(),
-                                    handler->GetStringsCount(), handler->GetStringsOffset()
-                                );
+                            handler->DumpHeader(oss << "\n", {});
+                            notif += oss.str();
                         }
                     }
 
