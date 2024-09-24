@@ -41,6 +41,8 @@ namespace tool::nui {
 		class ActsConfig {
 			std::vector<float> floor{};
 			size_t len{};
+			long long lastTime{};
+			int fps{ 120 };
 			int nextLen{ 100 };
 			float farLen{ 20 };
 			float color[3]{ 1, 1, 1 };
@@ -56,6 +58,7 @@ namespace tool::nui {
 
 			void LoadCfg() {
 				enabled = core::config::GetBool("nui.bg.enabled", enabled);
+				fps = (int)core::config::GetInteger("nui.bg.fps", fps);
 				loadHashStartup = core::config::GetBool("nui.loadHashesStartup", loadHashStartup);
 				triangles = core::config::GetBool("nui.bg.triangles", triangles);
 				nextLen = (int)core::config::GetInteger("nui.bg.spikes", nextLen);
@@ -100,6 +103,7 @@ namespace tool::nui {
 				bool c = false;
 				ImGui::SeparatorText("Background Config");
 				c |= ImGui::Checkbox("Enabled", &enabled);
+				c |= ImGui::SliderInt("Max fps", &fps, 1, 240);
 
 				if (enabled) {
 					c |= ImGui::SliderInt("Spikes", &nextLen, 2, 200);
@@ -121,6 +125,7 @@ namespace tool::nui {
 
 				if (c) {
 					core::config::SetBool("nui.bg.enabled", enabled);
+					core::config::SetInteger("nui.bg.fps", fps);
 					core::config::SetBool("nui.loadHashesStartup", loadHashStartup);
 					core::config::SetInteger("nui.bg.spikes", nextLen);
 					core::config::SetDouble("nui.bg.far", (double)farLen);
@@ -151,6 +156,20 @@ namespace tool::nui {
 				glColor3f(cr, cg, cb);
 				glVertex3f(x, y, z);
 			};
+
+			void PreLoop() {
+				lastTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+			}
+
+			void WaitFPS() const {
+				long long time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+				long long towait = lastTime - time + (1000 / fps);
+
+				if (towait > 0) {
+					Sleep((DWORD)towait);
+				}
+			}
 
 			void Render() {
 				if (!enabled) {
@@ -376,6 +395,7 @@ namespace tool::nui {
 		bg.LoadCfg();
 
 		while (!nui.ShouldClose()) {
+			bg.PreLoop();
 			nui.Loop();
 
 			ImVec2 vec{};
@@ -405,6 +425,7 @@ namespace tool::nui {
 			bg.Render();
 
 			nui.Render();
+			bg.WaitFPS();
 		}
 	}
 	namespace {

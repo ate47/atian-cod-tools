@@ -1,7 +1,9 @@
 #include <includes.hpp>
+#include <core/config.hpp>
 #include <rapidcsv.h>
 #include "tools/tools_ui.hpp"
 #include "tools/tools_nui.hpp"
+#include "tools/hashes/hash_scanner.hpp"
 #include "actscli.hpp"
 
 namespace {
@@ -204,27 +206,39 @@ namespace {
 			Edit_SetText(info.hashLookupEditRet, discstr.c_str());
 		}
 	}
+	struct HashAlg {
+		const char* id;
+		const char* desc;
+		std::function<uint64_t(const char* text)> hashFunc;
+		char buffer[0x20]{ 0 };
+		bool selected{};
+	};
+
+	static HashAlg algs[]
+	{
+		{ "h64", "fnv1a", [](const char* text) -> uint64_t { return hashutils::Hash64A(text); } },
+		{ "res", "iw res", [](const char* text) -> uint64_t { return hashutils::HashIWRes(text); } },
+		{ "h32", "t89 canon", [](const char* text) -> uint64_t { return hashutils::Hash32(text); } },
+		{ "iw9", "mwii/iii canon", [](const char* text) -> uint64_t { return hashutils::HashJupScr(text); } },
+		{ "bo6", "bo6 canon", [](const char* text) -> uint64_t { return hashutils::HashT10Scr(text); } },
+		{ "t7", "t7 fnv1a", [](const char* text) -> uint64_t { return hashutils::HashT7(text); } },
+		{ "tag", "IW tag", [](const char* text) -> uint64_t { return hashutils::HashIWTag(text); } },
+		{ "dvar", "IW Dvar", [](const char* text) -> uint64_t { return hashutils::HashIWDVar(text); } },
+	};
+
+	static void SyncAlgCfg() {
+		static std::once_flag of;
+
+		std::call_once(of, [] {
+			for (HashAlg& alg : algs) {
+				alg.selected = core::config::GetBool(std::format("hash.alg.{}", alg.id), true);
+			}
+		});
+	}
 
 	bool hash_nui() {
 		static char hashBuff[0x100];
-
-		struct HashAlg {
-			const char* desc;
-			std::function<uint64_t(const char* text)> hashFunc;
-			char buffer[0x20]{ 0 };
-		};
-
-		static HashAlg algs[]
-		{
-			{ "fnv1a", [](const char* text) -> uint64_t { return hashutils::Hash64A(text); } },
-			{ "iw res", [](const char* text) -> uint64_t { return hashutils::HashIWRes(text); } },
-			{ "t89 canon", [](const char* text) -> uint64_t { return hashutils::Hash32(text); } },
-			{ "mwii/iii canon", [](const char* text) -> uint64_t { return hashutils::HashJupScr(text); } },
-			{ "bo6 canon", [](const char* text) -> uint64_t { return hashutils::HashT10Scr(text); } },
-			{ "t7 fnv1a", [](const char* text) -> uint64_t { return hashutils::HashT7(text); } },
-			{ "IW tag", [](const char* text) -> uint64_t { return hashutils::HashIWTag(text); } },
-			{ "IW Dvar", [](const char* text) -> uint64_t { return hashutils::HashIWDVar(text); } },
-		};
+		SyncAlgCfg();
 
 		ImGui::SeparatorText("Hashes");
 
@@ -332,6 +346,117 @@ namespace {
 		}
 
 		return false;
+	}
+
+	constexpr uint64_t HASH_MASK = 0xFFFFFFFFFFFFFFF; // remove 2 last bits to match fnv1a63 and greyhound hashes
+
+	bool hashsearch_nui() {
+		static char guessIn[0x100]{ 0 };
+		static char guessInCpy[sizeof(guessIn)]{0};
+		static char loadPath[0x100]{ 0 };
+		static std::string guessOut{};
+		static std::unordered_set<uint64_t> hashes{};
+		auto LoadHashes = [] {
+			hashes.clear();
+			std::vector<std::filesystem::path> files{};
+
+			utils::GetFileRecurse(loadPath, files, [](const std::filesystem::path& p) {
+				std::string name = p.string();
+				return
+					name.ends_with(".gsc") || name.ends_with(".csc")
+					|| name.ends_with(".csv") || name.ends_with(".tsv")
+					|| name.ends_with(".dec.lua")
+					|| name.ends_with(".json");
+				});
+
+			std::unordered_set<uint64_t> tmp{};
+			// TODO: add loading bar
+			tool::hash::scanner::ScanHashes(files, tmp);
+
+			for (uint64_t t : tmp) {
+				hashes.insert(t & HASH_MASK);
+			}
+		};
+		{
+			static std::once_flag of;
+
+			std::call_once(of, [&LoadHashes] {
+				std::string loadPathCfg = core::config::GetString("hash.path", "");
+
+				snprintf(loadPath, sizeof(loadPath), "%s", loadPathCfg.c_str());
+				if (!loadPathCfg.empty() && core::config::GetBool("hash.loadPathAtStart", false)) {
+					LoadHashes();
+				}
+			});
+		}
+		SyncAlgCfg();
+		bool c = false;
+
+		ImGui::SeparatorText("Hash searcher");
+
+		if (hashes.empty()) {
+			ImGui::Text("No hash loaded");
+		}
+		else {
+			ImGui::Text("%llu hash(es) loaded", hashes.size());
+		}
+
+		if (ImGui::InputText("Path", loadPath, sizeof(loadPath))) {
+			core::config::SetString("hash.path", loadPath);
+			c = true;
+		}
+
+		if (ImGui::Button("Load hashes")) {
+			LoadHashes();
+		}
+
+
+		bool edit{};
+		if (ImGui::InputText("Guess", guessIn, sizeof(guessIn))) {
+			edit = true;
+		}
+
+		if (ImGui::BeginCombo("Selected hashes", nullptr, ImGuiComboFlags_NoPreview)) {
+			for (HashAlg& alg : algs) {
+				if (ImGui::Checkbox(alg.desc, &alg.selected)) {
+					core::config::SetBool(std::format("hash.alg.{}", alg.id), alg.selected);
+					c = true;
+					edit = true;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		if (edit) {
+			guessOut = {};
+			if (*guessIn) {
+				size_t guessInLen = std::strlen(guessIn);
+				memcpy(guessInCpy, guessIn, guessInLen);
+
+				// expand by reducing the len
+				for (size_t i = guessInLen; i > 0; i--) {
+					guessInCpy[i] = 0;
+
+					for (HashAlg& alg : algs) {
+						if (!alg.selected) {
+							continue;
+						}
+
+						uint64_t v = alg.hashFunc(guessInCpy);
+
+						auto it = hashes.find(v & HASH_MASK);
+
+						if (it != hashes.end()) {
+							guessOut += std::format("{:x},{}\n", v, guessInCpy);
+						}
+					}
+				}
+			}
+		}
+
+		ImGui::InputTextMultiline("Output", guessOut.data(), guessOut.length(), ImVec2(0, 200), ImGuiInputTextFlags_ReadOnly);
+
+		return c;
 	}
 
     int Render(HWND window, HINSTANCE hInstance) {
@@ -1123,11 +1248,12 @@ namespace {
 
 		return tool::OK;
 	}
-	
+
 }
 
 ADD_TOOL_UI("hash", L"Hash", Render, Update, Resize);
 ADD_TOOL_NUI("hash", "Hash", hash_nui);
+ADD_TOOL_NUI("hashsearch", "Searcher", hashsearch_nui);
 
 ADD_TOOL("lookup", "hash", " (string)*", "lookup strings", nullptr, lookuptool);
 ADD_TOOL("h32", "hash", " (string)*", "hash strings", nullptr, hash32);
