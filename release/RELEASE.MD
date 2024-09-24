@@ -1,10 +1,3 @@
 - ui
-  - replace win32 ui with ImGui+GLFW ui, same features
-- compiler
-  - fix bo4/cw import compilers
-  - allow to use &"" in bo3/bo4/cw compilers to use canon ids
-  - fix scriptbundle dump with mwiii
-  - more gsc dbg options
-  - preprocessor options
-- repl console
-  - add console when the user starts the cli without a console
+  - fps limiter
+  - hash search tests
