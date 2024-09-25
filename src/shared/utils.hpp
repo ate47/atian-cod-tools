@@ -41,6 +41,15 @@ namespace utils {
 	 */
 	bool ReadFileAlign(const std::filesystem::path& path, void*& buffer, void*& bufferAligned, size_t& size, size_t& sizeAligned);
 	/*
+	 * Read a file inside a buffer and align the result at 128 bits
+	 * @param path file path
+	 * @param buffer buffer to write the size
+	 * @param size size of the buffer
+	 * @param sizeAligned size of the aligned buffer
+	 * @return if the file was read
+	 */
+	bool ReadFileAlign(const std::filesystem::path& path, std::string& buffer, void*& bufferAligned, size_t& sizeAligned);
+	/*
 	 * write a buffer into a file
 	 * @param path file path
 	 * @param ptr buffer location

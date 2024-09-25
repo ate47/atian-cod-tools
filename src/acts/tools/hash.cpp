@@ -410,7 +410,6 @@ namespace {
 			LoadHashes();
 		}
 
-
 		bool edit{};
 		if (ImGui::InputText("Guess", guessIn, sizeof(guessIn))) {
 			edit = true;

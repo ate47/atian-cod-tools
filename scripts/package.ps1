@@ -61,9 +61,10 @@ try {
     Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/imgui.txt" > $null
     Copy-Item "deps/hw_break/LICENSE" "$base/licenses/hw_break.txt" > $null
     Copy-Item "deps/rapidjson/license.txt" "$base/licenses/rapidjson.txt" > $null
-    Copy-Item "deps/rapidcsv/LICENSE" "$base/licenses/LICENSE.txt" > $null
+    Copy-Item "deps/rapidcsv/LICENSE" "$base/licenses/rapidcsv.txt" > $null
     Copy-Item "deps/curl/COPYING" "$base/licenses/curl.txt" > $null
     Copy-Item "deps/glfw/LICENSE.md" "$base/licenses/glfw.md" > $null
+    Copy-Item "deps/thread-pool/LICENSE.txt" "$base/licenses/thread-pool.txt" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

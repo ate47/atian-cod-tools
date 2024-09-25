@@ -20,7 +20,6 @@ namespace alogs {
 	const char* logfile();
 
 	void log(loglevel level, const std::string& str);
-
 }
 
 #define LOG_LVL(LEVEL, ...) if (alogs::getlevel() <= LEVEL) alogs::log(LEVEL, std::format(__VA_ARGS__))

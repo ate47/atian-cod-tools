@@ -55,3 +55,6 @@
 [submodule "deps/glfw"]
 	path = deps/glfw
 	url = https://github.com/glfw/glfw
+[submodule "deps/thread-pool"]
+	path = deps/thread-pool
+	url = https://github.com/bshoshany/thread-pool

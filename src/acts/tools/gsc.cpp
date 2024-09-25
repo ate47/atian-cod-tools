@@ -1,11 +1,13 @@
 #include <includes.hpp>
+#include <core/async.hpp>
+#include <decrypt.hpp>
+#include <BS_thread_pool.hpp>
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcode_nodes.hpp"
 #include "tools/cw/cw.hpp"
 #include "tools/gsc_acts_debug.hpp"
 #include "tools/gsc_gdb.hpp"
 #include "actscli.hpp"
-#include <decrypt.hpp>
 
 using namespace tool::gsc;
 using namespace tool::gsc::opcode;
@@ -87,6 +89,22 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         }
         else if (!_strcmpi("--ignore-dbg-plt", arg)) {
             m_ignoreDebugPlatform = true;
+        }
+        else if (!strcmp("-A", arg) || !_strcmpi("--sync", arg)) {
+            if (i + 1 == endIndex) {
+                LOG_ERROR("Missing value for param: {}!", arg);
+                return false;
+            }
+            const char* mode{ args[++i] };
+            if (!_strcmpi("sync", mode)) {
+                m_sync = true;
+            } else if (!_strcmpi("async", mode)) {
+                m_sync = false;
+            }
+            else {
+                LOG_ERROR("Bad value for param: {}!", arg);
+                return false;
+            }
         }
         else if (!_strcmpi("--vm-split", arg)) {
             m_splitByVm = true;
@@ -325,6 +343,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--rawhash          : Add raw hashes to export dump");
     LOG_DEBUG("--no-path          : No path extraction");
     LOG_DEBUG("--ignore-dbg-plt   : ignore debug platform info");
+    LOG_DEBUG("-A --sync [mode]   : Sync mode: async or sync");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -812,10 +831,10 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
 }
 
 int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGlobalContext& gdctx) {
-    auto& profiler = actscli::GetProfiler();
+    actslib::profiler::Profiler profiler{ "f" };
     actslib::profiler::ProfiledSection ps{ profiler, path };
 
-    GscInfoOption& opt = gdctx.opt;
+    const GscInfoOption& opt = gdctx.opt;
     
     T8GSCOBJContext ctx{};
     ctx.m_formatter = opt.m_formatter;
@@ -1191,7 +1210,10 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
     std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
 
-    std::filesystem::create_directories(file.parent_path());
+    {
+        core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+        std::filesystem::create_directories(file.parent_path());
+    }
 
     std::ofstream asmout{ file };
 
@@ -2077,7 +2099,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             gdbpos << "# file " << asmfnamebuff << "\n";
         }
 
-        gdbpos 
+        gdbpos
             << "NAME " << hashutils::ExtractTmpScript(scriptfile->GetName()) << "\n"
             << "VERSION 0\n"
             << "CHECKSUM 0x" << std::hex << scriptfile->GetChecksum() << "\n"
@@ -2085,7 +2107,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
         // strings
         if (ctx.m_unkstrings.size()) {
-            gdbpos 
+            gdbpos
                 << "######################################################\n"
                 << "####################  DEV STRINGS  ###################\n"
                 << "######################################################\n"
@@ -2101,7 +2123,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                     << "\n"
                     << "STRING \"";
 
-                PrintFormattedString(gdbpos, val.c_str()) 
+                PrintFormattedString(gdbpos, val.c_str())
                     << "\""
                     << std::hex
                     ;
@@ -2157,53 +2179,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         gdbpos.close();
     }
 
-    opt.decompiledFiles++;
+    {
+        core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+        gdctx.decompiledFiles++;
+    }
 
     return 0;
-}
-
-int GscInfoFile(const std::filesystem::path& path, GscDecompilerGlobalContext& gdctx) {
-    if (std::filesystem::is_directory(path)) {
-        // directory
-        auto ret = 0;
-        for (const auto& sub : std::filesystem::directory_iterator{path}) {
-            auto lret = GscInfoFile(sub.path(), gdctx);
-            if (!ret) {
-                ret = lret;
-            }
-        }
-        return ret;
-    }
-    auto pathname = path.generic_string();
-
-    if (!(
-        pathname.ends_with(".gscc") || pathname.ends_with(".cscc")
-        || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin")
-        || pathname.ends_with(".gshc") || pathname.ends_with(".cshc")
-        || pathname.ends_with(".gsic") || pathname.ends_with(".csic") // Serious GSIC format
-        )) {
-        return 0;
-    }
-    LOG_DEBUG("Reading {}", pathname);
-
-    void* buffer{};
-    size_t size;
-    void* bufferNoAlign{};
-    size_t sizeNoAlign;
-    if (!utils::ReadFileAlign(path, bufferNoAlign, buffer, sizeNoAlign, size)) {
-        LOG_ERROR("Can't read file data for {}", path.string());
-        return -1;
-    }
-
-    if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
-        LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, 0x18, path.string());
-        std::free(bufferNoAlign);
-        return -1;
-    }
-
-    auto ret = GscInfoHandleData(reinterpret_cast<byte*>(buffer), size, pathname.c_str(), gdctx);
-    std::free(bufferNoAlign);
-    return ret;
 }
 
 int DumpInfoFileData(tool::gsc::T8GSCOBJ* data, size_t size, const char* path, std::unordered_map<uint64_t, const char*>& dataset) {
@@ -3133,14 +3114,85 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     }
     bool computed{};
     int ret{ tool::OK };
+    std::vector<std::filesystem::path> scriptFiles{};
     for (const auto& file : gdctx.opt.m_inputFiles) {
-        auto lret = GscInfoFile(file, gdctx);
-        if (ret == tool::OK) {
-            ret = lret;
+        utils::GetFileRecurse(file, scriptFiles, [](const std::filesystem::path& path) -> bool {
+            std::string pathname = path.string();
+
+            return pathname.ends_with(".gscc") || pathname.ends_with(".cscc")
+                || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin")
+                || pathname.ends_with(".gshc") || pathname.ends_with(".cshc")
+                || pathname.ends_with(".gsic") || pathname.ends_with(".csic") // Serious GSIC format
+                ;
+        });
+    }
+
+    if (gdctx.opt.m_sync) {
+        std::string buffer{};
+        void* bufferAlign{};
+        size_t size{};
+        for (const std::filesystem::path& path : scriptFiles) {
+            std::string pathname = path.string();
+            LOG_DEBUG("Reading {}", pathname);
+
+            if (!utils::ReadFileAlign(path, buffer, bufferAlign, size)) {
+                LOG_ERROR("Can't read file data for {}", path.string());
+                return -1;
+            }
+
+            if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
+                LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, 0x18, path.string());
+                return -1;
+            }
+
+            auto lret = GscInfoHandleData((byte*)bufferAlign, size, pathname.c_str(), gdctx);
+            if (lret != tool::OK) {
+                ret = lret;
+            }
         }
     }
-    
-    LOG_INFO("{} (0x{:x}) file(s) decompiled.", gdctx.opt.decompiledFiles, gdctx.opt.decompiledFiles);
+    else {
+        LOG_WARNING("Using experimental async mode");
+        bool wasAsync = core::async::IsAsync();
+        core::async::SetAsync(true);
+
+        std::mutex mtx{};
+        gdctx.asyncMtx = &mtx;
+
+        BS::thread_pool pool{};
+
+        for (const std::filesystem::path& path : scriptFiles) {
+            pool.detach_task([path, &mtx, &ret, &gdctx] {
+                std::string buffer{};
+                void* bufferAlign{};
+                size_t size{};
+
+                std::string pathname = path.string();
+                LOG_DEBUG("Reading {}", pathname);
+                int lret;
+                if (!utils::ReadFileAlign(path, buffer, bufferAlign, size)) {
+                    lret = tool::BASIC_ERROR;
+                } else if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
+                    LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, 0x18, path.string());
+                    lret = tool::BASIC_ERROR;
+                }
+                else {
+                    lret = GscInfoHandleData((byte*)bufferAlign, size, pathname.c_str(), gdctx);
+                }
+
+                if (lret != tool::OK) {
+                    std::lock_guard lg{ mtx };
+                    ret = lret;
+                }
+            });
+        }
+
+        pool.wait();
+
+        core::async::SetAsync(wasAsync);
+    }
+
+    LOG_INFO("{} (0x{:x}) file(s) decompiled.", gdctx.decompiledFiles, gdctx.decompiledFiles);
 
     if (!globalHM) {
         hashutils::WriteExtracted(gdctx.opt.m_dump_hashmap);

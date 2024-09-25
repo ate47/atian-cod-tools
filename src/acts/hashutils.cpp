@@ -1,7 +1,8 @@
 #include <includes.hpp>
+#include <core/async.hpp>
+#include <rapidcsv.h>
 #include "actscli.hpp"
 #include "compatibility/scobalula_wni.hpp"
-#include <rapidcsv.h>
 
 namespace {
 	std::unordered_map<uint64_t, std::string> g_hashMap{};
@@ -11,15 +12,22 @@ namespace {
 	bool show0 = false;
 	bool markHash = false;
 	bool heavyHashes = false;
+	std::mutex asyncMutex{};
 }
 
 namespace hashutils {
+	static std::mutex* GetMutex(bool forceAsync) {
+		if (forceAsync || !core::async::IsAsync()) {
+			return nullptr;
+		}
+		return &asyncMutex;
+	}
 
 	const std::unordered_map<uint64_t, std::string>& GetMap() {
 		return g_hashMap;
 	}
 
-	void ReadDefaultFile0() {
+	static void ReadDefaultFile0() {
 		auto& opt = actscli::options();
 		std::filesystem::path wniPackageIndex;
 		if (opt.wniFiles) {
@@ -31,7 +39,7 @@ namespace hashutils {
 
 		if (opt.installDirHashes) {
 			if (!compatibility::scobalula::wni::ReadWNIFiles(wniPackageIndex, [](uint64_t hash, const char* str) {
-				hashutils::AddPrecomputed(hash, str);
+				AddPrecomputed(hash, str, true);
 				})) {
 				LOG_ERROR("Error when reading WNI files");
 			};
@@ -68,7 +76,7 @@ namespace hashutils {
 					const std::string value = doc.GetCell<std::string>(1, i);
 
 					try {
-						AddPrecomputed(std::strtoull(hash.c_str(), nullptr, 16), value.c_str());
+						AddPrecomputed(std::strtoull(hash.c_str(), nullptr, 16), value.c_str(), true);
 					}
 					catch (std::runtime_error& e) {
 						LOG_WARNING("Error when reading {}: invalid line {}: {}", csv.string(), i, e.what());
@@ -95,18 +103,17 @@ namespace hashutils {
 		std::filesystem::path filePath{ file };
 		LOG_DEBUG("Load default hash file {}", filePath.string());
 		if (!actscli::options().noTreyarchHash) {
-			LoadMap(file, true, false);
+			LoadMap(file, true, false, true);
 		}
 		if (!opt.noIWHash) {
-			LoadMap(file, true, true);
+			LoadMap(file, true, true, true);
 		}
 		LOG_DEBUG("End load default hash file");
 	}
 
 	void ReadDefaultFile(bool cleanup) {
-		static std::mutex r{};
 		static bool loaded{};
-		std::lock_guard lg{ r };
+		std::lock_guard lg{ asyncMutex };
 
 		if (cleanup) {
 			g_hashMap.clear();
@@ -151,97 +158,98 @@ namespace hashutils {
 		LOG_TRACE("End write extracted into {}", file);
 	}
 
-	int LoadMap(const char* file, bool ignoreCol, bool iw) {
+	int LoadMap(const char* file, bool ignoreCol, bool iw, bool async) {
+		core::async::opt_lock_guard lg{ GetMutex(async) };
 		// add common hashes
 		LOG_TRACE("Load hash file {}", file);
 
 		// special value
-		g_hashMap[0] = "";
-		g_hashMap[Hash32("<error>")] = "<error>";
-		g_hashMap[Hash32("self")] = "self";
-		g_hashMap[Hash32("size")] = "size";
-		g_hashMap[Hash32("nextarray")] = "nextarray";
-		g_hashMap[Hash32("_")] = "_";
+		AddPrecomputed(0, "", true);
+		AddPrecomputed(Hash32("<error>"), "<error>", true);
+		AddPrecomputed(Hash32("self"), "self", true);
+		AddPrecomputed(Hash32("size"), "size", true);
+		AddPrecomputed(Hash32("nextarray"), "nextarray", true);
+		AddPrecomputed(Hash32("_"), "_", true);
 
 		// class special things
-		Add("__constructor", true, iw);
-		Add("__destructor", true, iw);
-		Add("__vtable", true, iw);
-		Add("_deleted", true, iw);
+		Add("__constructor", true, iw, true);
+		Add("__destructor", true, iw, true);
+		Add("__vtable", true, iw, true);
+		Add("_deleted", true, iw, true);
 
 		// global vars
-		Add("level", true, iw);
-		Add("game", true, iw);
-		Add("classes", true, iw);
-		Add("mission", true, iw);
-		Add("anim", true, iw);
-		Add("world", true, iw);
-		Add("sharedstructs", true, iw);
-		Add("memory", true, iw);
+		Add("level", true, iw, true);
+		Add("game", true, iw, true);
+		Add("classes", true, iw, true);
+		Add("mission", true, iw, true);
+		Add("anim", true, iw, true);
+		Add("world", true, iw, true);
+		Add("sharedstructs", true, iw, true);
+		Add("memory", true, iw, true);
 
 		// structure basic hashes
-		Add("system", true, iw);
-		Add("scripts/core_common/system_shared.csc", true, iw);
-		Add("scripts/core_common/system_shared.gsc", true, iw);
-		Add("register", true, iw);
-		Add("__init__system__", true, iw);
-		Add("__init__", true, iw);
-		Add("__main__", true, iw);
-		Add("main", true, iw);
-		Add("init", true, iw);
+		Add("system", true, iw, true);
+		Add("scripts/core_common/system_shared.csc", true, iw, true);
+		Add("scripts/core_common/system_shared.gsc", true, iw, true);
+		Add("register", true, iw, true);
+		Add("__init__system__", true, iw, true);
+		Add("__init__", true, iw, true);
+		Add("__main__", true, iw, true);
+		Add("main", true, iw, true);
+		Add("init", true, iw, true);
 		// it seems all the varargs are called "vararg", but a flag is also describing, so idk
-		Add("vararg", true, iw);
+		Add("vararg", true, iw, true);
 
 		// basic letter
 		char buff[2] = { 0, 0 };
 		for (char c = 'a'; c <= 'z'; c++) {
 			*buff = c;
-			Add(buff, true, iw);
+			Add(buff, true, iw, true);
 		}
 		for (char c = '0'; c <= '9'; c++) {
 			*buff = c;
-			Add(buff, true, iw);
+			Add(buff, true, iw, true);
 		}
 
 		// Decompiler special values
-		Add("self", true, iw);
-		Add("size", true, iw);
+		Add("self", true, iw, true);
+		Add("size", true, iw, true);
 
 		// DDL names
-		Add("root", true, iw); // root struct
-		Add("__pad", true, iw); // padding
+		Add("root", true, iw, true); // root struct
+		Add("__pad", true, iw, true); // padding
 
 		// ADL names
-		AddPrecomputed(Hash64("bool"), "bool");
-		AddPrecomputed(Hash64("byte"), "byte");
-		AddPrecomputed(Hash64("uint8"), "uint8");
-		AddPrecomputed(Hash64("uint8_t"), "uint8_t");
-		AddPrecomputed(Hash64("uint16"), "uint16");
-		AddPrecomputed(Hash64("uint16_t"), "uint16_t");
-		AddPrecomputed(Hash64("uint32"), "uint32");
-		AddPrecomputed(Hash64("uint32_t"), "uint32_t");
-		AddPrecomputed(Hash64("uint64"), "uint64");
-		AddPrecomputed(Hash64("uint64_t"), "uint64_t");
-		AddPrecomputed(Hash64("char"), "char");
-		AddPrecomputed(Hash64("int8"), "int8");
-		AddPrecomputed(Hash64("int8_t"), "int8_t");
-		AddPrecomputed(Hash64("int16"), "int16");
-		AddPrecomputed(Hash64("int16_t"), "int16_t");
-		AddPrecomputed(Hash64("int32"), "int32");
-		AddPrecomputed(Hash64("int32_t"), "int32_t");
-		AddPrecomputed(Hash64("int64"), "int64");
-		AddPrecomputed(Hash64("int64_t"), "int64_t");
-		AddPrecomputed(Hash64("float"), "float");
-		AddPrecomputed(Hash64("double"), "double");
-		AddPrecomputed(Hash64("string"), "string");
-		AddPrecomputed(Hash64("hash"), "hash");
-		AddPrecomputed(Hash64("int"), "int");
-		AddPrecomputed(Hash64("uint"), "uint");
-		AddPrecomputed(Hash64("long"), "long");
-		AddPrecomputed(Hash64("ulong"), "ulong");
-		AddPrecomputed(Hash64("$$padding"), "$$padding");
+		AddPrecomputed(Hash64("bool"), "bool", true);
+		AddPrecomputed(Hash64("byte"), "byte", true);
+		AddPrecomputed(Hash64("uint8"), "uint8", true);
+		AddPrecomputed(Hash64("uint8_t"), "uint8_t", true);
+		AddPrecomputed(Hash64("uint16"), "uint16", true);
+		AddPrecomputed(Hash64("uint16_t"), "uint16_t", true);
+		AddPrecomputed(Hash64("uint32"), "uint32", true);
+		AddPrecomputed(Hash64("uint32_t"), "uint32_t", true);
+		AddPrecomputed(Hash64("uint64"), "uint64", true);
+		AddPrecomputed(Hash64("uint64_t"), "uint64_t", true);
+		AddPrecomputed(Hash64("char"), "char", true);
+		AddPrecomputed(Hash64("int8"), "int8", true);
+		AddPrecomputed(Hash64("int8_t"), "int8_t", true);
+		AddPrecomputed(Hash64("int16"), "int16", true);
+		AddPrecomputed(Hash64("int16_t"), "int16_t", true);
+		AddPrecomputed(Hash64("int32"), "int32", true);
+		AddPrecomputed(Hash64("int32_t"), "int32_t", true);
+		AddPrecomputed(Hash64("int64"), "int64", true);
+		AddPrecomputed(Hash64("int64_t"), "int64_t", true);
+		AddPrecomputed(Hash64("float"), "float", true);
+		AddPrecomputed(Hash64("double"), "double", true);
+		AddPrecomputed(Hash64("string"), "string", true);
+		AddPrecomputed(Hash64("hash"), "hash", true);
+		AddPrecomputed(Hash64("int"), "int", true);
+		AddPrecomputed(Hash64("uint"), "uint", true);
+		AddPrecomputed(Hash64("long"), "long", true);
+		AddPrecomputed(Hash64("ulong"), "ulong", true);
+		AddPrecomputed(Hash64("$$padding"), "$$padding", true);
 		// Dump CF
-		AddPrecomputed(Hash64("localize.json"), "localize.json");
+		AddPrecomputed(Hash64("localize.json"), "localize.json", true);
 
 		std::ifstream s(file);
 
@@ -254,7 +262,7 @@ namespace hashutils {
 		int issues{};
 		size_t count{};
 		while (s.good() && std::getline(s, line)) {
-			if (!Add(line.c_str(), ignoreCol, iw)) {
+			if (!Add(line.c_str(), ignoreCol, iw, true)) {
 				issues++;
 			}
 			count++;
@@ -265,14 +273,15 @@ namespace hashutils {
 		return issues;
 	}
 
-	bool Add(const char* str, bool ignoreCol, bool iw) {
-		g_hashMap.emplace(hashutils::Hash64(str), str);
+	bool Add(const char* str, bool ignoreCol, bool iw, bool async) {
+		core::async::opt_lock_guard lg{ GetMutex(async) };
+		AddPrecomputed(hashutils::Hash64(str), str, true);
 		if (iw) {
-			g_hashMap.emplace(hashutils::HashIWRes(str) & 0x7FFFFFFFFFFFFFFF, str);
-			g_hashMap.emplace(hashutils::HashJupScr(str) & 0x7FFFFFFFFFFFFFFF, str);
-			g_hashMap.emplace(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str);
-			g_hashMap.emplace(hashutils::HashIWDVar(str) & 0x7FFFFFFFFFFFFFFF, str);
-			g_hashMap.emplace(hashutils::HashT10Scr(str) & 0x7FFFFFFFFFFFFFFF, str);
+			AddPrecomputed(hashutils::HashIWRes(str), str, true);
+			AddPrecomputed(hashutils::HashJupScr(str), str, true);
+			AddPrecomputed(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true);
+			AddPrecomputed(hashutils::HashIWDVar(str), str, true);
+			AddPrecomputed(hashutils::HashT10Scr(str), str, true);
 			return true;
 		}
 		bool cand32 = true;
@@ -290,7 +299,7 @@ namespace hashutils {
 		}
 
 		if (cand32) {
-			g_hashMap.emplace(hashutils::HashT7(str), str);
+			AddPrecomputed(hashutils::HashT7(str), str, true);
 
 			auto h = hashutils::Hash32(str);
 			if (!ignoreCol) {
@@ -300,16 +309,18 @@ namespace hashutils {
 					return false;
 				}
 			}
-			g_hashMap.emplace(h, str);
+			AddPrecomputed(h, str, true);
 		}
 		return true;
 	}
-	void AddPrecomputed(uint64_t value, const char* str) {
-		g_hashMap[value & 0x7FFFFFFFFFFFFFFF] = str;
+	void AddPrecomputed(uint64_t value, const char* str, bool async) {
+		core::async::opt_lock_guard lg{ GetMutex(async) };
+		g_hashMap.emplace(value & 0x7FFFFFFFFFFFFFFF, str);
 	}
 
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
 		ReadDefaultFile();
+		core::async::opt_lock_guard lg{ GetMutex(false) };
 		if (hashPrefix) type = hashPrefix;
 		if (!hash) {
 			if (show0 || markHash) {
@@ -338,8 +349,8 @@ namespace hashutils {
 	}
 
 	char* ExtractTmp(const char* type, uint64_t hash) {
-		static char buffer[10][0x600];
-		static size_t bufferIndex = 0;
+		static thread_local char buffer[10][0x600];
+		static thread_local size_t bufferIndex = 0;
 		ReadDefaultFile();
 		bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
 		auto& buff = buffer[bufferIndex];

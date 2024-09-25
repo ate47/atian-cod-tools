@@ -2,27 +2,48 @@
 #include "hash_scanner.hpp"
 #include <regex>
 #include <future>
+#include <BS_thread_pool.hpp>
+#include <actslib/profiler.hpp>
 
 namespace tool::hash::scanner {
 
 	void ScanHashes(const std::vector<std::filesystem::path>& files, std::unordered_set<uint64_t>& hashes) {
 		static std::regex pattern{ "(hash|file|var|function|namespace|event|script)_([0-9a-fA-F]{1,16})" };
 
-		std::string buffer{};
+		BS::thread_pool pool{};
+		std::mutex mtx{};
+
+		actslib::profiler::Profiler profiler{ "scan hashes" };
+
+		profiler.PushSection("Scan");
 		for (const std::filesystem::path& p : files) {
-			if (!utils::ReadFile(p, buffer)) {
-				LOG_ERROR("Can't read file {}.", p.string());
-				continue;
-			}
-			auto rbegin = std::sregex_iterator(buffer.begin(), buffer.end(), pattern);
-			auto rend = std::sregex_iterator();
+			pool.detach_task([p, &mtx, &hashes] {
+				std::string buffer{};
+				if (!utils::ReadFile(p, buffer)) {
+					LOG_ERROR("Can't read file {}.", p.string());
+					return;
+				}
+				auto rbegin = std::sregex_iterator(buffer.begin(), buffer.end(), pattern);
+				auto rend = std::sregex_iterator();
+				std::unordered_set<uint64_t> read{};
+				for (std::sregex_iterator it = rbegin; it != rend; ++it) {
+					std::smatch match = *it;
 
-			for (std::sregex_iterator it = rbegin; it != rend; ++it) {
-				std::smatch match = *it;
+					read.insert(std::stoull(match[2].str(), nullptr, 16));
+				}
 
-				hashes.insert(std::stoull(match[2].str(), nullptr, 16));
-			}
-			// TODO: async
+				{
+					std::lock_guard lg{ mtx };
+					hashes.insert(read.begin(), read.end());
+				}
+			});
+		}
+		profiler.PopSection();
+		profiler.PushSection("Wait");
+		pool.wait();
+		profiler.PopSection();
+		if (alogs::getlevel() == alogs::LVL_TRACE) {
+			profiler.WriteToStr(std::cout);
 		}
 	}
 	namespace {

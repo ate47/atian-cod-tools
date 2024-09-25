@@ -93,11 +93,11 @@ namespace tool::gsc {
         bool m_rawhash{};
         bool m_noPath{};
         bool m_ignoreDebugPlatform{};
+        bool m_sync{ true };
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
         const formatter::FormatterInfo* m_formatter{};
-        size_t decompiledFiles{};
 
 
         std::vector<const char*> m_inputFiles{};
@@ -729,8 +729,10 @@ namespace tool::gsc {
         }
     };
     struct GscDecompilerGlobalContext {
+        std::mutex* asyncMtx{};
         GscInfoOption opt{};
         std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
+        size_t decompiledFiles{};
 
         ~GscDecompilerGlobalContext() {
             for (auto& [n, d] : debugObjects) {

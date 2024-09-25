@@ -41,6 +41,25 @@ namespace utils {
         return true;
     }
 
+    bool ReadFileAlign(const std::filesystem::path& path, std::string& buffer, void*& bufferAligned, size_t& sizeAligned) {
+        std::ifstream in{ path, std::ios::binary };
+        if (!in) {
+            return false;
+        }
+
+        in.seekg(0, std::ios::end);
+        sizeAligned = in.tellg();
+        in.seekg(0, std::ios::beg);
+        buffer.resize(sizeAligned + 0xF);
+
+        bufferAligned = reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(buffer.data()) + 0xF) & ~0xF);
+
+        in.read((char*)bufferAligned, sizeAligned);
+
+        in.close();
+        return true;
+    }
+
     bool ReadFileNotAlign(const std::filesystem::path& path, void*& buffer, size_t& size, bool nullTerminate) {
         std::ifstream in{ path, std::ios::binary };
         if (!in) {

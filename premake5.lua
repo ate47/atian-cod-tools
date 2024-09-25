@@ -298,7 +298,8 @@ project "AtianCodTools"
         "deps/rapidcsv/src/",
         "deps/hw_break/HwBpLib/inc/",
         "deps/glfw/include/",
-        "deps/imgui/"
+        "deps/imgui/",
+        "deps/thread-pool/include/"
     }
 
     vpaths {

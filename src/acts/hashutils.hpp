@@ -18,9 +18,10 @@ namespace hashutils {
 	 * @param file file to load
 	 * @param ignoreCol ignore collisions
 	 * @param iw hash
+	 * @param async run async
 	 * @return collisions found (if ignoreCol = false)
 	 */
-	int LoadMap(const char* file, bool ignoreCol = true, bool iw = false);
+	int LoadMap(const char* file, bool ignoreCol = true, bool iw = false, bool async = false);
 	/*
 	 * Save the extract hashes for a future use with WriteExtracted
 	 * @param value save extracted
@@ -36,15 +37,17 @@ namespace hashutils {
 	 * @param str string
 	 * @param ignoreCol ignore collisions
 	 * @param iw hash
+	 * @param async run async
 	 * @return if it collided with another string
 	 */
-	bool Add(const char* str, bool ignoreCol = true, bool iw = false);
+	bool Add(const char* str, bool ignoreCol = true, bool iw = false, bool async = false);
 	/*
 	 * Add a precomputed hash into the map
 	 * @param value hash value
 	 * @param str string
+	 * @param async run async
 	 */
-	void AddPrecomputed(uint64_t value, const char* str);
+	void AddPrecomputed(uint64_t value, const char* str, bool async = false);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type
