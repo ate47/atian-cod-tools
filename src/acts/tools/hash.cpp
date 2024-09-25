@@ -237,6 +237,7 @@ namespace {
 	}
 
 	bool hash_nui() {
+		tool::nui::NuiUseDefaultWindow dw{};
 		static char hashBuff[0x100];
 		SyncAlgCfg();
 
@@ -351,6 +352,7 @@ namespace {
 	constexpr uint64_t HASH_MASK = 0xFFFFFFFFFFFFFFF; // remove 2 last bits to match fnv1a63 and greyhound hashes
 
 	bool hashsearch_nui() {
+		tool::nui::NuiUseDefaultWindow dw{};
 		static char guessIn[0x100]{ 0 };
 		static char guessInCpy[sizeof(guessIn)]{0};
 		static char loadPath[0x100]{ 0 };

@@ -398,6 +398,7 @@ namespace {
 	}
 
     bool gsc_inject() {
+        tool::nui::NuiUseDefaultWindow dw{};
         static char gscFileIn[MAX_PATH + 1]{ 0 };
         static char hookIn[MAX_PATH + 1]{ 0 };
         static char ps4In[0x50]{ 0 };

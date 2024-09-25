@@ -1959,6 +1959,7 @@ namespace {
 	}
 
 	bool errenc_nui() {
+		tool::nui::NuiUseDefaultWindow dw{};
 		static char encodeInput[0x100]{ 0 };
 		static char encodeOutput[0x100]{ 0 };
 		static char decodeInput[0x100]{ 0 };

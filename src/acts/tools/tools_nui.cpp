@@ -52,6 +52,7 @@ namespace tool::nui {
 			bool loadHashStartup{};
 
 		public:
+			bool nextDisabled{};
 			int bgAlpha{ 85 };
 			ActsConfig() {
 			}
@@ -172,6 +173,10 @@ namespace tool::nui {
 			}
 
 			void Render() {
+				if (nextDisabled) {
+					nextDisabled = false;
+					return;
+				}
 				if (!enabled) {
 					return;
 				}
@@ -389,38 +394,102 @@ namespace tool::nui {
 			nui->Resize(width, height);
 		}
 	}
+	int GetNUIScreenWidth() {
+		return nui->width;
+	}
+
+	int GetNUIScreenHeight() {
+		return nui->height;
+	}
+	ImVec2 GetDefaultWindowStart() {
+		return ImVec2(200, 0);
+	}
+
+	void BeginDefaultWindow() {
+		ImVec2 vec{ GetDefaultWindowStart() };
+		ImGui::SetNextWindowPos(vec);
+		vec.x = (float)GetNUIScreenWidth() - 200.0f;
+		vec.y = (float)GetNUIScreenHeight();
+		ImGui::SetNextWindowSize(vec);
+		ImGui::SetNextWindowBgAlpha(bg.bgAlpha / 100.0f);
+		ImGui::Begin("acts-nui-menu", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+	}
+
+	void EndDefaultWindow() {
+		ImGui::End();
+	}
+	void DisableNextBackground() {
+		bg.nextDisabled = true;
+	}
 
 	void OpenNuiWindow() {
 		ActsNUI nui{};
 		bg.LoadCfg();
 
+		std::string lastMenu = core::config::GetString("nui.last");
+
+		if (!lastMenu.empty()) {
+			for (auto& [id, tool] : tool::nui::tools()) {
+				if (lastMenu == tool->m_id) {
+					tool->m_open = true;
+					break;
+				}
+			}
+		}
+
+		tool::nui::tooluifunctiondata* prev{};
 		while (!nui.ShouldClose()) {
 			bg.PreLoop();
 			nui.Loop();
 
 			ImVec2 vec{};
 			ImGui::SetNextWindowPos(vec);
-			vec.x = (float)nui.width;
+			vec.x = 200.0f;
 			vec.y = (float)nui.height;
 			ImGui::SetNextWindowSize(vec);
-			ImGui::SetNextWindowBgAlpha(bg.bgAlpha / 100.0f);
-			ImGui::Begin("Acts NUI", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
-			bool c = false;
-			if (ImGui::BeginTabBar("ACTS NUI")) {
+			ImGui::SetNextWindowBgAlpha(std::clamp<float>(bg.bgAlpha / 100.0f + 0.10f, 0, 1));
+			if (ImGui::Begin("acts-nui-items", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings)) {
+				static std::string titleIn = std::format("Atian tools {} UI", actsinfo::VERSION);
+				ImGui::SeparatorText(titleIn.c_str());
+				bool c = false;
+				tool::nui::tooluifunctiondata* data{};
 				for (auto& [id, tool] : tool::nui::tools()) {
-					if (ImGui::BeginTabItem(tool->m_description)) {
-						static std::string title{};
-						title = std::format("Atian tools {} UI{}{}", actsinfo::VERSION, (tool->m_description ? " - " : ""), (tool->m_description ? tool->m_description : ""));
-						nui.SetWindowName(title.c_str());
-						c |= tool->m_func();
-						ImGui::EndTabItem();
+					if (ImGui::Selectable(tool->m_description, &tool->m_open)) {
+						data = tool;
+						for (auto& [id, tool] : tool::nui::tools()) {
+							if (tool != data) {
+								tool->m_open = false;
+							}
+						}
+					}
+					if (tool->m_open) {
+						data = tool;
 					}
 				}
+				if (data != prev) {
+					if (data && !data->m_open) {
+						data = nullptr;
+					}
+					if (data) {
+						core::config::SetString("nui.last", data->m_id);
+					}
+					else {
+						core::config::SetString("nui.last", "");
+					}
+					c = true;
 
-				ImGui::EndTabBar();
+					static std::string title{};
+					title = std::format("Atian tools {} UI{}{}", actsinfo::VERSION, ((data && data->m_description) ? " - " : ""), ((data && data->m_description) ? data->m_description : ""));
+					nui.SetWindowName(title.c_str());
+				}
+
+				ImGui::End();
+
+				if (data && data->m_open) {
+					c |= data->m_func();
+				}
+				if (c) core::config::SaveConfig();
 			}
-			if (c) core::config::SaveConfig();
-			ImGui::End();
 
 			bg.Render();
 
@@ -436,17 +505,39 @@ namespace tool::nui {
 		}
 
 		bool newui_bg() {
+			tool::nui::NuiUseDefaultWindow dw{};
 			return bg.CreateImGuiMenu();
 		}
 
 		bool acts() {
+			tool::nui::NuiUseDefaultWindow dw{};
 			std::string txt = utils::WStrToStr(tool::ui::GetActsDesc(true));
 			ImGui::Text(txt.c_str());
+			return false;
+		}
+		bool render_test() {
+			// disable the default background
+			tool::nui::DisableNextBackground();
+
+			ImGui::SetNextWindowPos(GetDefaultWindowStart(), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowBgAlpha(bg.bgAlpha / 100.0f);
+			if (ImGui::Begin("Renderer tests", nullptr)) {
+				if (ImGui::Button("test")) {
+
+				}
+
+				ImGui::End();
+			}
+
+
 			return false;
 		}
 
 		ADD_TOOL("newui", "dev", "", "Launch new UI", nullptr, newui);
 		ADD_TOOL_NUI("aaaa_acts", "Atian Tools", acts);
 		ADD_TOOL_NUI("zzzz_newui_cfg", "Config", newui_bg);
+#ifndef CI_BUILD
+		ADD_TOOL_NUI("render_test", "Renderer test", render_test);
+#endif
 	}
 }
