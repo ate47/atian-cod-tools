@@ -3,12 +3,15 @@
 
 namespace core::async {
 	namespace {
-		bool asyncMode{};
+		uint64_t asyncMode{};
 	}
-	bool IsAsync() {
+	bool IsSync(AsyncTypes type) {
+		return (asyncMode & type) != 0;
+	}
+	uint64_t GetAsyncTypes() {
 		return asyncMode;
 	}
-	void SetAsync(bool async) {
-		asyncMode = async;
+	void SetAsync(uint64_t types) {
+		asyncMode = types;
 	}
 }

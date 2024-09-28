@@ -434,8 +434,6 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             if (gDumpStrings) {
                 gDumpStringsStore.insert(cstr);
             }
-            hashutils::Add(cstr, false, false);
-            hashutils::Add(cstr, false, true);
             uint32_t ref = ctx.AddStringValue(cstr);
 
             const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
@@ -521,8 +519,6 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 auto* s1 = DecryptString(Ptr<char>(animt->address_str1));
                 auto* s2 = DecryptString(Ptr<char>(animt->address_str2));
 
-                hashutils::Add(s1, true, true);
-                hashutils::Add(s2, true, true);
                 uint32_t ref1 = ctx.AddStringValue(s1);
                 uint32_t ref2 = ctx.AddStringValue(s2);
 
@@ -682,7 +678,6 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
 
             auto* s1 = Ptr<char>(animt->name);
 
-            hashutils::Add(s1, true, true);
             uint32_t ref1 = ctx.AddStringValue(s1);
 
             const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
@@ -1037,29 +1032,31 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                     uint64_t hashField{ vmInfo->HashField(str) };
                     uint64_t hashFilePath{ vmInfo->HashFilePath(str) };
                     uint64_t hashPath{ vmInfo->HashPath(str) };
+                    {
+                        core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
+                        hashutils::AddPrecomputed(hashField, str, true);
+                        hashutils::AddPrecomputed(hashFilePath, str, true);
+                        hashutils::AddPrecomputed(hashPath, str, true);
 
-                    hashutils::AddPrecomputed(hashField, str);
-                    hashutils::AddPrecomputed(hashFilePath, str);
-                    hashutils::AddPrecomputed(hashPath, str);
-
-                    if (opt.m_header) {
-                        PrintFormattedString(actsHeader << "// - #\"", str)
-                            << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
-                    }
-                    // use all the known hashes for this VM
-                    for (auto& [k, func] : vmInfo->hashesFunc) {
-                        try {
-                            int64_t hash = func.hashFunc(str);
-
-                            if (hash) {
-                                if (opt.m_header) {
-                                    actsHeader << "/" << k << '=' << std::hex << hash;
-                                }
-                                hashutils::AddPrecomputed(hash, str);
-                            }
+                        if (opt.m_header) {
+                            PrintFormattedString(actsHeader << "// - #\"", str)
+                                << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
                         }
-                        catch (std::exception&) {
-                            // ignore
+                        // use all the known hashes for this VM
+                        for (auto& [k, func] : vmInfo->hashesFunc) {
+                            try {
+                                int64_t hash = func.hashFunc(str);
+
+                                if (hash) {
+                                    if (opt.m_header) {
+                                        actsHeader << "/" << k << '=' << std::hex << hash;
+                                    }
+                                    hashutils::AddPrecomputed(hash, str, true);
+                                }
+                            }
+                            catch (std::exception&) {
+                                // ignore
+                            }
                         }
                     }
                     if (opt.m_header) {
@@ -1410,6 +1407,29 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         actslib::profiler::ProfiledSection ps{ profiler, "patch linking"};
         // unlink the script and write custom gvar/string ids
         patchCodeResult = scriptfile->PatchCode(ctx);
+
+        {
+            core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
+            for (const auto& [id, str] : ctx.m_stringRefs) {
+                hashutils::AddPrecomputed(vmInfo->HashField(str), str, true);
+                hashutils::AddPrecomputed(vmInfo->HashFilePath(str), str, true);
+                hashutils::AddPrecomputed(vmInfo->HashPath(str), str, true);
+
+                // use all the known hashes for this VM
+                for (auto& [k, func] : vmInfo->hashesFunc) {
+                    try {
+                        int64_t hash = func.hashFunc(str);
+
+                        if (hash) {
+                            hashutils::AddPrecomputed(hash, str, true);
+                        }
+                    }
+                    catch (std::exception&) {
+                        // ignore
+                    }
+                }
+            }
+        }
     }
 
     if (opt.m_includes && scriptfile->GetIncludesOffset()) {
@@ -3153,8 +3173,8 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     }
     else {
         LOG_WARNING("Using experimental async mode");
-        bool wasAsync = core::async::IsAsync();
-        core::async::SetAsync(true);
+        uint64_t prevAsyncTypes = core::async::GetAsyncTypes();
+        core::async::SetAsync(core::async::AT_ALL);
 
         std::mutex mtx{};
         gdctx.asyncMtx = &mtx;
@@ -3189,7 +3209,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
 
         pool.wait();
 
-        core::async::SetAsync(wasAsync);
+        core::async::SetAsync(prevAsyncTypes);
     }
 
     LOG_INFO("{} (0x{:x}) file(s) decompiled.", gdctx.decompiledFiles, gdctx.decompiledFiles);

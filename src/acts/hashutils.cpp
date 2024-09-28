@@ -16,8 +16,8 @@ namespace {
 }
 
 namespace hashutils {
-	static std::mutex* GetMutex(bool forceAsync) {
-		if (forceAsync || !core::async::IsAsync()) {
+	std::mutex* GetMutex(bool forceAsync) {
+		if (forceAsync || !core::async::IsSync(core::async::AT_HASHES)) {
 			return nullptr;
 		}
 		return &asyncMutex;

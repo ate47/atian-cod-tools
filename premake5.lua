@@ -299,7 +299,8 @@ project "AtianCodTools"
         "deps/hw_break/HwBpLib/inc/",
         "deps/glfw/include/",
         "deps/imgui/",
-        "deps/thread-pool/include/"
+        "deps/thread-pool/include/",
+        "deps/stb/"
     }
 
     vpaths {

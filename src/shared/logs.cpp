@@ -11,9 +11,12 @@ namespace alogs {
 		bool g_basiclog{};
 	}
 
-	std::mutex& getasyncmutex() {
-		static std::mutex mtx{};
-		return mtx;
+	std::mutex* getasyncmutex() {
+		if (core::async::IsSync(core::async::AT_LOGS)) {
+			static std::mutex mtx{};
+			return &mtx;
+		}
+		return nullptr;
 	}
 
 	const char* name(loglevel lvl) {
@@ -72,11 +75,7 @@ namespace alogs {
 
 		auto f = [&](std::ostream& out, bool color) {
 			bool locked{};
-			if (core::async::IsAsync()) {
-				getasyncmutex().lock();
-				locked = true;
-			}
-			utils::CloseEnd ce{ [locked] { if (locked) getasyncmutex().unlock(); } };
+			core::async::opt_lock_guard lg{ getasyncmutex() };
 			if (!g_basiclog) {
 				if (color) {
 					out << clicolor::Color(5, 5, 5);

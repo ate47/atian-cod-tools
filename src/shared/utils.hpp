@@ -14,6 +14,14 @@ namespace utils {
 	char* va(const char* fmt, ...);
 
 	/*
+	 * Return va string
+	 * @param fmt format
+	 * @param ap va list
+	 * @return string
+	 */
+	char* vap(const char* fmt, va_list ap);
+
+	/*
 	 * Read a file inside a string buffer
 	 * @param path file path
 	 * @param buffer buffer to write the size

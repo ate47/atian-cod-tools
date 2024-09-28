@@ -3,15 +3,21 @@
 
 namespace utils {
     char* va(const char* fmt, ...) {
+        va_list va{};
+        va_start(va, fmt);
+        char* buff = vap(fmt, va);
+        va_end(va);
+
+        return buff;
+    }
+
+    char* vap(const char* fmt, va_list ap) {
         static char buffer[0x10][0x500];
         static size_t bufferIndex = 0;
         bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
         auto& buff = buffer[bufferIndex];
 
-        va_list va{};
-        va_start(va, fmt);
-        vsprintf_s(buff, fmt, va);
-        va_end(va);
+        vsprintf_s(buff, fmt, ap);
 
         return buff;
     }

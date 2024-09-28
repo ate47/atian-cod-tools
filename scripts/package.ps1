@@ -65,6 +65,7 @@ try {
     Copy-Item "deps/curl/COPYING" "$base/licenses/curl.txt" > $null
     Copy-Item "deps/glfw/LICENSE.md" "$base/licenses/glfw.md" > $null
     Copy-Item "deps/thread-pool/LICENSE.txt" "$base/licenses/thread-pool.txt" > $null
+    Copy-Item "deps/stb/LICENSE" "$base/licenses/stb.txt" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

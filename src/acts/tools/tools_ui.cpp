@@ -39,6 +39,7 @@ namespace tool::ui {
 #endif
 			"\n\r"
 			"UI Tools: {} \n\r"
+			"NUI Tools: {} \n\r"
 			"CLI Tools: {} \n\r"
 			"Hash(es) loaded: {} \n\r"
 			"Path: {} \n\r"
@@ -51,7 +52,8 @@ namespace tool::ui {
 			nui ? L"NUI" : L"UI",
 			actsinfo::VERSIONW,
 			actsinfo::VERSION_ID,
-			nui ? tool::nui::tools().size() : tools().size(),
+			tools().size(),
+			tool::nui::tools().size(),
 			tool::tools().size(),
 			hashutils::GetMap().size(),
 			utils::StrToWStr(dir.string()),

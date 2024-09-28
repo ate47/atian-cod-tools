@@ -6,6 +6,13 @@ namespace hashutils {
 	constexpr auto DEFAULT_HASH_FILE = "strings.txt";
 
 	/*
+	 * Get hash mutex
+	 * @param async run async
+	 * @return mutex or nullptr
+	 */
+	std::mutex* GetMutex(bool async);
+
+	/*
 	 * Get hash map
 	 */
 	const std::unordered_map<uint64_t, std::string>& GetMap();

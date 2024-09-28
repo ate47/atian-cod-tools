@@ -110,6 +110,7 @@ This tool is using and providing
 - [Tencent/rapidjson](https://github.com/Tencent/rapidjson) - [MIT and JSON license](https://github.com/Tencent/rapidjson/blob/master/license.txt)
 - [glfw/glfw](https://github.com/glfw/glfw) - [zlib/libpng license](https://github.com/glfw/glfw/blob/master/LICENSE.md)
 - [bshoshany/thread-pool](https://github.com/bshoshany/thread-pool) - [MIT license](https://github.com/bshoshany/thread-pool/blob/master/LICENSE.txt)
+- [nothings/stb](https://github.com/nothings/stb) - [MIT license](https://github.com/nothings/stb/blob/master/LICENSE)
 
 ## Downloads
 

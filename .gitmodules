@@ -58,3 +58,6 @@
 [submodule "deps/thread-pool"]
 	path = deps/thread-pool
 	url = https://github.com/bshoshany/thread-pool
+[submodule "deps/stb"]
+	path = deps/stb
+	url = https://github.com/nothings/stb

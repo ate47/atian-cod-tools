@@ -743,10 +743,10 @@ namespace tool::gsc {
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
-        std::unordered_map<uint16_t, uint64_t> m_gvars{};
-        std::unordered_map<uint32_t, const char*> m_stringRefs{};
         std::vector<char*> m_allocatedStrings{};
     public:
+        std::unordered_map<uint16_t, uint64_t> m_gvars{};
+        std::unordered_map<uint32_t, const char*> m_stringRefs{};
         std::vector<IW23GSCImport> m_linkedImports{};
         // getnumber hack
         std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
