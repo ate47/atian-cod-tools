@@ -69,6 +69,7 @@ namespace {
 		}
 
 		void Render() {
+			ActsNUI* nui = ActsNUI::nui;
 			float cp = std::cos(pitch);
 			float sp = std::sin(pitch);
 			float cy = std::cos(yaw);
@@ -78,7 +79,7 @@ namespace {
 			float normalLookY = sp;
 			float normalLookZ = sy * cp;
 
-			float partial = ActsNUI::nui->bg.partialTick;
+			float partial = nui->bg.partialTick;
 			float speed = moveSpeed / partial;
 
 			if (ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
@@ -125,7 +126,7 @@ namespace {
 			};
 			static MouseDragOpt dragInfo{};
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-				glfwGetCursorPos(ActsNUI::nui->wnd, &dragInfo.lastX, &dragInfo.lastY);
+				glfwGetCursorPos(nui->wnd, &dragInfo.lastX, &dragInfo.lastY);
 
 				ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 				if (!dragInfo.drag) {
@@ -137,7 +138,7 @@ namespace {
 					float deltaX = (float)(dragInfo.lastX - dragInfo.startX);
 					float deltaY = (float)(dragInfo.lastY - dragInfo.startY);
 
-					glfwSetCursorPos(ActsNUI::nui->wnd, dragInfo.startX, dragInfo.startY);
+					glfwSetCursorPos(nui->wnd, dragInfo.startX, dragInfo.startY);
 
 					yaw += deltaX * rotateSpeed / partial;
 					if (yaw > PI2) {
@@ -155,10 +156,10 @@ namespace {
 				dragInfo.drag = false;
 			}
 
-			glEnable(GL_DEPTH_TEST);
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+			// render 3D
+			glEnable(GL_DEPTH_TEST);
 
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
@@ -166,7 +167,7 @@ namespace {
 			glPushMatrix();
 
 			glLoadIdentity();
-			gluPerspective(ActsNUI::nui->bg.fov / 2, (GLdouble)ActsNUI::nui->width / ActsNUI::nui->height, 0.1, viewDistance);
+			gluPerspective(nui->bg.fov / 2, (GLdouble)nui->width / nui->height, 0.1, viewDistance);
 
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
@@ -196,11 +197,25 @@ namespace {
 
 
 			glEnd();
+			glDisable(GL_DEPTH_TEST);
+
+			// render overlay
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			glOrtho(0, nui->width, nui->height, 0, 0, 1);
+
+			//nui->cascadiaFont.fontSize = 50;
+			//nui->cascadiaFont.RenderString2D(0xFF0000, 50, 50, "test string");
+
 
 			glMatrixMode(GL_MODELVIEW);
 			glPopMatrix();
 			glMatrixMode(GL_PROJECTION);
 			glPopMatrix();
+
+			glDisable(GL_BLEND);
 		}
 	};
 

@@ -285,14 +285,14 @@ namespace tool::nui {
 			GLuint cascadiaTexture{};
 			glGenTextures(1, &cascadiaTexture);
 			glBindTexture(GL_TEXTURE_2D, cascadiaTexture);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fontX, fontY, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fontX, fontY, 0, GL_RGBA, GL_UNSIGNED_INT, img);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			LOG_TRACE("loaded cascadia with {}x{} {} -> {}", fontX, fontY, comp, (int)cascadiaTexture);
 
-			nui->cascadiaFont.LoadFont(cascadiaTexture, (const char*)tool::nui::cascadia::GetCascadiaMap(), tool::nui::cascadia::GetCascadiaMapLen());
+			nui->cascadiaFont.LoadFont(cascadiaTexture, (const char*)tool::nui::cascadia::GetCascadiaMap(), tool::nui::cascadia::GetCascadiaMapLen(), fontX, fontY);
 		}
 
 
