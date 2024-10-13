@@ -246,6 +246,32 @@ project "AtianCodToolsBOCWDLL"
     dependson "asmjit"
     dependson "imgui"
 
+project "ACTSVM"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts-vm"
+    
+    files {
+        "./src/vm/**.hpp",
+        "./src/vm/**.h",
+        "./src/vm/**.cpp",
+    }
+
+    includedirs {
+        "src/shared"
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    dependson "ACTSSharedLibrary"
+
 project "AtianCodTools"
     kind "SharedLib"
     language "C++"
@@ -282,6 +308,7 @@ project "AtianCodTools"
         "src/acts",
         "src/shared",
         "src/lib",
+        "src/vm",
     -- link antlr4
 		"deps/antlr4/runtime/Cpp/runtime/src/",
 		"deps/zlib/",
@@ -316,6 +343,7 @@ project "AtianCodTools"
     links { "antlr4-runtime" }
     links { "ACTSSharedLibrary" }
     links { "ACTSLibrary" }
+    links { "ACTSVM" }
     links { "zlib" }
     links { "libps4debug" }
     links { "asmjit" }
@@ -331,6 +359,7 @@ project "AtianCodTools"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
     dependson "ACTSLibrary"
+    dependson "ACTSVM"
     dependson "zlib"
     dependson "libps4debug"
     dependson "asmjit"

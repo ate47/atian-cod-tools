@@ -747,6 +747,7 @@ namespace tool::gsc {
     public:
         std::unordered_map<uint16_t, uint64_t> m_gvars{};
         std::unordered_map<uint32_t, const char*> m_stringRefs{};
+        std::unordered_map<uint32_t, uint32_t> m_stringRefsLoc{};
         std::vector<IW23GSCImport> m_linkedImports{};
         // getnumber hack
         std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
@@ -774,6 +775,12 @@ namespace tool::gsc {
          */
         const char* GetStringValue(uint32_t stringRef);
         /*
+         * Get a string for a string floc
+         * @param floc loc
+         * @return string or null
+         */
+        const char* GetStringValueByLoc(uint32_t floc);
+        /*
          * Get a string for a string ref, return errorValue in case of error
          * @param stringRef string ref
          * @param errorValue returned value in case of bad ref
@@ -792,6 +799,12 @@ namespace tool::gsc {
          * @return new string ref
          */
         uint32_t AddStringValue(const char* value);
+        /*
+         * Add a string
+         * @param floc location
+         * @param str string ref
+         */
+        void AddStringRef(uint32_t floc, uint32_t str);
         /*
          * Clone a string inside this context
          * @param str the string

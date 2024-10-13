@@ -5,6 +5,12 @@
  * Utilities
  */
 namespace utils {
+	typedef long long Timestamp;
+	/*
+	 * Get current timestamp
+	 * @return timestamp
+	 */
+	Timestamp GetTimestamp();
 
 	/*
 	 * Return va string

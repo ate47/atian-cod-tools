@@ -18,40 +18,17 @@ namespace {
 	
 	// VM->vminfo
 	std::unordered_map<byte, VmInfo> g_opcodeMap{};
+	std::unordered_map<uint64_t, byte> g_vmMap{};
 	// opcode->opcode handler
 	std::unordered_map<OPCode, const OPCodeInfo*> g_opcodeHandlerMap{};
 }
 namespace tool::gsc::opcode {
 	VM VMOf(const char* name) {
-		if (!_strcmpi("t8_31", name) || !_strcmpi("bo4_31", name) || !_strcmpi("blackops4_31", name) || !_strcmpi("31", name)) {
-			return VM_T831;
-		}
-		if (!_strcmpi("t8", name) || !_strcmpi("bo4", name) || !_strcmpi("blackops4", name) || !_strcmpi("36", name)) {
-			return VM_T8;
-		}
-		if (!_strcmpi("t937", name) || !_strcmpi("cw37", name) || !_strcmpi("coldwar37", name) || !_strcmpi("37", name)) {
-			return VM_T937;
-		}
-		if (!_strcmpi("t9", name) || !_strcmpi("cw", name) || !_strcmpi("coldwar", name) || !_strcmpi("38", name)) {
-			return VM_T9;
-		}
-		if (!_strcmpi("t7", name) || !_strcmpi("bo3", name) || !_strcmpi("blackops3", name) || !_strcmpi("1c", name)) {
-			return VM_T7;
-		}
-		if (!_strcmpi("t7_1b", name) || !_strcmpi("bo3_1b", name) || !_strcmpi("blackops3_1b", name) || !_strcmpi("1b", name)) {
-			return VM_T71B;
-		}
-		if (!_strcmpi("jupa", name) || !_strcmpi("s5a", name) || !_strcmpi("mwiiia", name) || !_strcmpi("modernwarfareiiia", name) || !_strcmpi("mw23a", name) || !_strcmpi("8a", name)) {
-			return VM_MW23;
-		}
-		if (!_strcmpi("jupb", name) || !_strcmpi("s5b", name) || !_strcmpi("mwiii", name) || !_strcmpi("modernwarfareiii", name) || !_strcmpi("mw23", name) || !_strcmpi("8b", name)) {
-			return VM_MW23B;
-		}
-		if (!_strcmpi("cer6", name) || !_strcmpi("t10_6", name) || !_strcmpi("bo6_6", name) || !_strcmpi("blackops6_6", name) || !_strcmpi("6", name)) {
-			return VM_BO6_06;
-		}
-		if (!_strcmpi("cer", name) || !_strcmpi("t10", name) || !_strcmpi("bo6", name) || !_strcmpi("blackops6", name) || !_strcmpi("7", name)) {
-			return VM_BO6_07;
+		RegisterOpCodes();
+		auto it = g_vmMap.find(hash::Hash64(name));
+
+		if (it != g_vmMap.end()) {
+			return (VM)it->second;
 		}
 		return VM_UNKNOWN;
 	}
@@ -1654,7 +1631,7 @@ public:
 			context.PushASMCNode(new ASMContextNodeVector(x, y, z));
 		}
 
-		out << "(" << x << ", " << y<< ", " << z << ")\n";
+		out << "(" << x << ", " << y << ", " << z << ")\n";
 
 		return 0;
 	}
@@ -4001,6 +3978,7 @@ public:
 
 		for (size_t c = 1; c <= cases; c++) {
 			uint64_t caseValue;
+			byte* caseLoc;
 			int64_t caseDelta;
 			byte* endBase;
 			if (context.m_vm >= VM_T8) {
@@ -4009,6 +3987,7 @@ public:
 				context.WritePadding(out);
 
 				caseValue = *(uint64_t*)baseCaseValue;
+				caseLoc = baseCaseValue;
 				baseCaseValue += 8;
 				auto& baseCaseDelta = context.Aligned<int64_t>();
 				caseDelta = *(int64_t*)baseCaseDelta;
@@ -4021,6 +4000,7 @@ public:
 				context.WritePadding(out);
 
 				caseValue = *(uint32_t*)baseCaseValue;
+				caseLoc = baseCaseValue;
 				baseCaseValue += 4;
 				auto& baseCaseDelta = context.Aligned<int32_t>();
 				caseDelta = *(int32_t*)baseCaseDelta;
@@ -4046,9 +4026,19 @@ public:
 					}
 				}
 				else {
-					out << std::dec << caseValue;
-					if (node) {
-						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(caseValue, TYPE_VALUE), caseRLoc });
+					// bo3 string decomp
+					const char* cv = objctx.GetStringValueByLoc((uint32_t)(caseLoc - context.m_gscReader.file));
+					if (cv) {
+						PrintFormattedString(out << "\"", cv) << "\"";
+						if (node) {
+							node->m_cases.push_back({ new ASMContextNodeValue<const char*>(cv, TYPE_VALUE), caseRLoc });
+						}
+					}
+					else {
+						out << std::dec << caseValue;
+						if (node) {
+							node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(caseValue, TYPE_VALUE), caseRLoc });
+						}
 					}
 				}
 			}
@@ -4796,6 +4786,12 @@ namespace tool::gsc::opcode {
 			return; // assuming good name
 		}
 		g_opcodeMap[vm] = { vm, name, codeName, internalName, flags, {} };
+		g_vmMap[hash::Hash64(utils::va("%x", (int)vm))] = vm;
+		g_vmMap[hash::Hash64(internalName)] = vm;
+	}
+
+	void RegisterVmName(byte vm, uint64_t hash) {
+		g_vmMap[hash] = vm;
 	}
 
 	void RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {

@@ -2,6 +2,10 @@
 #include "utils.hpp"
 
 namespace utils {
+    Timestamp GetTimestamp() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+
     char* va(const char* fmt, ...) {
         va_list va{};
         va_start(va, fmt);

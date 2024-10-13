@@ -4,6 +4,7 @@
 #include "compatibility/serious_db2.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
+#include <acts_vm_registry.hpp>
 
 #if __has_include("tools/ps4/ps4_includes.hpp")
 
@@ -26,6 +27,7 @@ namespace tool::gsc::opcode {
 			// Register mapping
 
 			RegisterVM(VM_T8, "Call of Duty: Black ops 4", "t8", "bo4", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVmName(VM_T8, "t8", "blackops4");
 			RegisterVMPlatform(VM_T8, PLATFORM_PC);
 			SetMaxOpCode(VM_T8, 0xFFF);
 			RegisterVMGlobalVariable(VM_T8, "level");
@@ -321,6 +323,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T8, PLATFORM_PLAYSTATION, OPCODE_T8C_GetLazyFunction, 0x16);
 
 			RegisterVM(VM_T937, "Call of Duty: Black ops Cold War (37)", "t9", "cw37", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVmName(VM_T937, "t937", "cw37", "coldwar37");
 			SetMaxOpCode(VM_T937, 0xFFF);
 			RegisterVMGlobalVariable(VM_T937, "level");
 			RegisterVMGlobalVariable(VM_T937, "game");
@@ -627,6 +630,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_End, 0x11);
 
 			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", "cw", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVmName(VM_T9, "t9", "cw", "coldwar");
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
 			SetMaxOpCode(VM_T9, 0xFFF);
 			RegisterVMGlobalVariable(VM_T9, "level");
@@ -883,6 +887,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetByte, 0xe9, 0x18b, 0x2e2, 0x30a, 0x5e8, 0x654, 0x67c, 0x6bd, 0x876, 0x884, 0x90e, 0xab0, 0xacc, 0xb75, 0xe65, 0xe6c, 0xe98, 0xee1, 0xef3, 0xf53);
 			
 			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", "mwiiia", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
+			RegisterVmName(VM_MW23, "jupa", "s5a", "mwiiia", "modernwarfareiiia", "mw23a");
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterSameCodePlatform(VM_MW23, PLATFORM_PC, PLATFORM_PLAYSTATION);
 			RegisterVMGlobalVariable(VM_MW23, "level", OPCODE_IW_GetLevel);
@@ -906,6 +911,7 @@ namespace tool::gsc::opcode {
 			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
 			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
+			RegisterVmName(VM_MW23B, "jup", "s5", "mwiii", "modernwarfareiii", "mw23");
 			RegisterVMPlatform(VM_MW23B, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_MW23B, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_MW23B, "game", OPCODE_IW_GetGame);
@@ -928,6 +934,7 @@ namespace tool::gsc::opcode {
 			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
 			RegisterVM(VM_BO6_06, "Call of Duty: Black Ops 6 (06)", "t10_6", "bo6_6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVmName(VM_BO6_06, "cer6", "t10_6", "blackops6_6");
 			RegisterVMPlatform(VM_BO6_06, PLATFORM_PC_ALPHA);
 			RegisterVMGlobalVariable(VM_BO6_06, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_BO6_06, "game", OPCODE_IW_GetGame);
@@ -1066,6 +1073,7 @@ namespace tool::gsc::opcode {
 
 
 			RegisterVM(VM_BO6_07, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVmName(VM_BO6_07, "cer", "t10", "blackops6");
 			RegisterVMPlatform(VM_BO6_07, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_BO6_07, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_BO6_07, "game", OPCODE_IW_GetGame);
@@ -1096,6 +1104,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff);
 
 			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", "bo3", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7);
+			RegisterVmName(VM_T7, "t7", "blackops3");
 			RegisterVMPlatform(VM_T7, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T7, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_T7, "game", OPCODE_IW_GetGame);
@@ -1280,6 +1289,7 @@ namespace tool::gsc::opcode {
 
 
 			RegisterVM(VM_T71B, "Call of Duty: Black ops 3 (1B)", "t7_1b", "bo3_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7); // | VmFlags::VMF_CALL_NO_PARAMS
+			RegisterVmName(VM_T71B, "t7_1b", "blackops3_1b");
 			RegisterVMPlatform(VM_T71B, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_T71B, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_T71B, "game", OPCODE_IW_GetGame);
@@ -1408,7 +1418,9 @@ namespace tool::gsc::opcode {
 			
 
 			RegisterVM(VM_T831, "Call of Duty: Black ops 4 (31)", "t8", "bo4_31", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVmName(VM_T831, "t8_31", "blackops4_31");
 			RegisterVMPlatform(VM_T831, PLATFORM_PLAYSTATION);
+			
 			SetMaxOpCode(VM_T831, 0xFFF);
 			RegisterDevCall(VM_T831, "assert", "assertmsg", "errormsg", "throw", "println");
 			RegisterDatatype(VM_T831, "functionptr", "string", "array", "weapon", "int", "float", "vec");
@@ -1570,6 +1582,19 @@ namespace tool::gsc::opcode {
 #ifdef PS4_INCLUDES
 			ps4::opcodes::RegisterPS4OpCodes();
 #endif
+
+			RegisterVM(VM_ACTS_F1, "ACTS VM", "f1", "acts", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_ALIGN | VmFlags::VMF_CALL_NO_PARAMS);
+			RegisterVmName(VM_ACTS_F1, "f1");
+			RegisterVMPlatform(VM_ACTS_F1, PLATFORM_PC);
+			SetMaxOpCode(VM_ACTS_F1, 0xFF);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_CheckClearParams, acts::vm::opcodes::OPCODE_EXPORT_NO_PARAMS);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_End, acts::vm::opcodes::OPCODE_END);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, acts::vm::opcodes::OPCODE_EXPORT_PARAMS);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetFloat, acts::vm::opcodes::OPCODE_GET_FLOAT);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetInteger, acts::vm::opcodes::OPCODE_GET_INT);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetHash, acts::vm::opcodes::OPCODE_GET_HASH);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetUndefined, acts::vm::opcodes::OPCODE_GET_UNDEFINED);
+			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_IsDefined, acts::vm::opcodes::OPCODE_IS_DEFINED);
 
 			// loading serious db2 files (if any)
 			const char* seriousDBDir = actscli::options().seriousDBFile;

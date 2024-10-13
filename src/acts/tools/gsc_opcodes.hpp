@@ -143,6 +143,7 @@ namespace tool::gsc::opcode {
 	void RegisterDevCall(byte vm, const char* devCall);
 	void RegisterDatatypeRenamed(byte vm, const char* datatype, const char* trueName);
 	void RegisterDatatype(byte vm, const char* datatype);
+	void RegisterVmName(byte vm, uint64_t hash);
 	void RegisterOpCodes();
 
 	inline void RegisterOpCode(byte vm, Platform platform, OPCode enumValue) {}
@@ -158,6 +159,16 @@ namespace tool::gsc::opcode {
 	inline void RegisterDevCall(byte vm, const char* devCall, DevCalls... calls) {
 		RegisterDevCall(vm, devCall);
 		RegisterDevCall(vm, calls...);
+	}
+
+	inline void RegisterVmName(byte vm, const char* name) {
+		RegisterVmName(vm, hash::Hash64(name));
+	}
+	inline void RegisterVmName(byte vm) {}
+	template<typename... Names>
+	inline void RegisterVmName(byte vm, const char* name, Names... names) {
+		RegisterVmName(vm, name);
+		RegisterVmName(vm, names...);
 	}
 
 

@@ -419,6 +419,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 else {
                     for (size_t j = 0; j < unk2c->num_address; j++) {
                         Ref(vars[j]) = (byte)ref;
+                        ctx.AddStringRef(vars[j], ref);
                     }
                 }
                 unk2c_location += sizeof(*unk2c) + sizeof(*vars) * unk2c->num_address;
@@ -439,6 +440,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
             for (size_t j = 0; j < str->num_address; j++) {
                 Ref<uint32_t>(strings[j]) = ref;
+                ctx.AddStringRef(strings[j], ref);
             }
             str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
         }
@@ -458,12 +460,16 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                         if (it != ctx.gdbctx->strings.end()) {
                             std::string& str = it->second;
 
-                            Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str.c_str());
+                            uint32_t strref = ctx.AddStringValue(str.c_str());
+                            Ref<uint32_t>(loc[j]) = strref;
+                            ctx.AddStringRef(loc[j], strref);
                             continue;
                         }
                     }
                     ctx.m_unkstrings[str].insert(loc[j]);
-                    Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
+                    uint32_t strref = ctx.AddStringValue(str);
+                    Ref<uint32_t>(loc[j]) = strref;
+                    ctx.AddStringRef(loc[j], strref);
                 }
                 val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
             }
@@ -528,6 +534,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                     // use strings to link them
                     loc[0] = ref1;
                     loc[1] = ref2;
+
+                    ctx.AddStringRef(vars[j], ref1);
+                    ctx.AddStringRef(vars[j] + sizeof(*loc), ref2);
                 }
                 animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
             }
@@ -640,6 +649,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         for (size_t j = 0; j < str->num_address; j++) {
             // no align too....
             Ref<uint32_t>(strings[j]) = ref;
+            ctx.AddStringRef(strings[j], ref);
         }
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
     }
@@ -659,12 +669,16 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                     if (it != ctx.gdbctx->strings.end()) {
                         std::string& str = it->second;
 
-                        Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str.c_str());
+                        uint32_t strref = ctx.AddStringValue(str.c_str());
+                        Ref<uint32_t>(loc[j]) = strref;
+                        ctx.AddStringRef(loc[j], strref);
                         continue;
                     }
                 }
                 ctx.m_unkstrings[str].insert(loc[j]);
-                Ref<uint32_t>(loc[j]) = ctx.AddStringValue(str);
+                uint32_t strref = ctx.AddStringValue(str);
+                Ref<uint32_t>(loc[j]) = strref;
+                ctx.AddStringRef(loc[j], strref);
             }
             val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
         }
@@ -698,6 +712,8 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                     uint32_t* loc = Ptr<uint32_t>(rloc);
                     loc[0] = ref1;
                     loc[1] = ref2;
+                    ctx.AddStringRef(rloc, ref1);
+                    ctx.AddStringRef(rloc + sizeof(*loc), ref2);
 
                 }
                 vars2 += 2;
@@ -2341,6 +2357,18 @@ const char* tool::gsc::T8GSCOBJContext::GetStringValue(uint32_t stringRef) {
     }
     return f->second;
 }
+void tool::gsc::T8GSCOBJContext::AddStringRef(uint32_t floc, uint32_t str) {
+    m_stringRefsLoc[floc] = str;
+}
+
+const char* tool::gsc::T8GSCOBJContext::GetStringValueByLoc(uint32_t floc) {
+    auto f = m_stringRefsLoc.find(floc);
+    if (f == m_stringRefsLoc.end()) {
+        return nullptr;
+    }
+    return GetStringValue(f->second);
+}
+
 const char* tool::gsc::T8GSCOBJContext::GetStringValueOrError(uint32_t stringRef, uint32_t floc, const char* errorValue) {
     const char* v = GetStringValue(stringRef);
 

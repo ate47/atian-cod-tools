@@ -3,8 +3,9 @@
 
 #ifndef CI_BUILD
 #include <io_utils.hpp>
-#include <jsonrpccxx/server.hpp>
 #include <core/config.hpp>
+#include <core/memory_allocator_static.hpp>
+//#include <jsonrpccxx/server.hpp>
 
 namespace {
 	int test(Process& proc, int argc, const char* argv[]) {
@@ -51,9 +52,31 @@ namespace {
 
 		return tool::OK;
 	}
+	int memalloctest(Process& proc, int argc, const char* argv[]) {
+		core::memory_allocator::MemoryAllocatorStatic<0x2000> alloc{};
+
+		void* ptr1 = alloc.Alloc(0x20);
+		LOG_INFO("{}", ptr1);
+		void* ptr2 = alloc.Alloc(0x10);
+		LOG_INFO("{}", ptr2);
+		void* ptr3 = alloc.Alloc(0x18);
+		LOG_INFO("{}", ptr3);
+
+		alloc.Free(ptr1);
+		alloc.Free(ptr3);
+		void* ptr4 = alloc.Alloc(0x30);
+		LOG_INFO("{}", ptr4);
+		void* ptr5 = alloc.Alloc(0x10);
+		LOG_INFO("{}", ptr5);
+
+
+		return tool::OK;
+	}
+	
 }
 
 ADD_TOOL("test", "dev", "", "Tests", nullptr, test);
+ADD_TOOL("memalloctest", "dev", "", "Tests", nullptr, memalloctest);
 ADD_TOOL("wget", "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL("cfgtest", "dev", "", "", nullptr, cfgtest);
 #endif

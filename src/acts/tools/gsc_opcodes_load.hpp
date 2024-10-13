@@ -4,6 +4,8 @@ namespace tool::gsc::opcode {
 
 	enum VM : byte {
 		VM_UNKNOWN = 0,
+
+		// Treyarch style VM
 		VM_T71B = 0x1B,
 		VM_T7 = 0x1C,
 		VM_T831 = 0x31,
@@ -11,10 +13,14 @@ namespace tool::gsc::opcode {
 		VM_T937 = 0x37,
 		VM_T9 = 0x38,
 
+		// IW style VM
 		VM_MW23 = 0x8a,
 		VM_MW23B = 0x8b,
 		VM_BO6_06 = 0x06,
 		VM_BO6_07 = 0x07,
+
+		// ACTS VM
+		VM_ACTS_F1 = 0xF1,
 	};
 
 	enum Platform : byte {
