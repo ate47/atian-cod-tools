@@ -917,6 +917,58 @@ namespace acts::compiler {
         }
     };
 
+    constexpr byte INVALID_VECTOR_FLAGS = 0xFF;
+    bool FindConstVectorCommon(float& x, float& y, float& z, float& common) {
+        common = x;
+        if (y != 0) {
+            if (!common) {
+                common = y;
+            }
+            else if (y != common && y != -common) {
+                return false;
+            }
+        }
+        if (z != 0) {
+            if (!common) {
+                common = z;
+            }
+            else if (z != common && z != -common) {
+                return false;
+            }
+        }
+
+        if (common != 0 && common != 1 && common != -1) {
+            if (common < 0) {
+                common *= -1;
+            }
+            x /= common;
+            y /= common;
+            z /= common;
+            return true;
+        }
+        // no scale required
+        return false;
+    }
+
+    byte ToConstVectorFlags(float x, float y, float z) {
+        // 0 = 0, 1 = -1, 2 = 1
+        byte flag{};
+
+        if (x == -1) flag |= 1 << 4;
+        else if (x == 1) flag |= 2 << 4;
+        else if (x != 0) return INVALID_VECTOR_FLAGS;
+
+        if (y == -1) flag |= 1 << 2;
+        else if (y == 1) flag |= 2 << 2;
+        else if (y != 0) return INVALID_VECTOR_FLAGS;
+
+        if (z == -1) flag |= 1;
+        else if (z == 1) flag |= 2;
+        else if (z != 0) return INVALID_VECTOR_FLAGS;
+
+        return flag;
+    }
+
     enum DetourType {
         DETOUR_UNKNOWN = 0,
         DETOUR_GSIC,
@@ -1476,13 +1528,13 @@ namespace acts::compiler {
             return ok;
         }
 
-        int64_t NumberNodeValue(ParseTree* number) {
+        float FloatNumberNodeValue(ParseTree* number, bool error = true) {
             if (IS_IDF(number)) {
                 std::string varName = number->getText();
                 auto ceit = constexprs.find(hash::Hash64(varName.c_str()));
 
                 if (ceit != constexprs.end()) {
-                    return NumberNodeValue(ceit->second);
+                    return FloatNumberNodeValue(ceit->second, error);
                 }
             }
 
@@ -1490,7 +1542,7 @@ namespace acts::compiler {
                 RuleContext* rule = dynamic_cast<RuleContext*>(number);
                 switch (rule->getRuleIndex()) {
                 case gscParser::RuleExpression15:
-                    return NumberNodeValue(rule->children[1]);
+                    return FloatNumberNodeValue(rule->children[1], error);
                 case gscParser::RuleExpression:
                 case gscParser::RuleExpression0:
                 case gscParser::RuleExpression1:
@@ -1511,19 +1563,148 @@ namespace acts::compiler {
                 case gscParser::RuleConst_expr:
                 case gscParser::RuleIdf: {
                     if (number->children.size() == 1) {
-                        return NumberNodeValue(number->children[0]);
+                        return FloatNumberNodeValue(number->children[0], error);
                     }
                 }
                 default:
-                    info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
+                    if (error) {
+                        info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
+                    }
+                    return NAN;
+                }
+            }
+
+            if (!number || number->getTreeType() != TREE_TERMINAL) {
+                if (error) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
+                }
+                return NAN; // wtf?
+            }
+
+            TerminalNode* term = dynamic_cast<TerminalNode*>(number);
+            switch (term->getSymbol()->getType()) {
+            case gscParser::INTEGER10:
+                return (float)std::strtoll(term->getText().c_str(), nullptr, 10);
+            case gscParser::INTEGER16: {
+                bool neg = term->getText()[0] == '-';
+                int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 16);
+                return (float)(neg ? -val : val);
+            }
+            case gscParser::INTEGER8: {
+                bool neg = term->getText()[0] == '-';
+                int64_t val = std::strtoll(term->getText().c_str() + (neg ? 2 : 1), nullptr, 8);
+                return (float)(neg ? -val : val);
+            }
+            case gscParser::INTEGER2: {
+                bool neg = term->getText()[0] == '-';
+                int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 2);
+                return (float)(neg ? -val : val);
+            }
+            case gscParser::FLOATVAL: {
+                return (float)std::strtof(term->getText().c_str(), nullptr);
+            }
+            default:
+                return NAN;
+            }
+        }
+
+        int64_t NumberNodeValue(ParseTree* number, bool error = true, bool* extracted = nullptr) {
+            if (IS_IDF(number)) {
+                std::string varName = number->getText();
+                auto ceit = constexprs.find(hash::Hash64(varName.c_str()));
+
+                if (ceit != constexprs.end()) {
+                    return NumberNodeValue(ceit->second, error, extracted);
+                }
+            }
+
+            if (number && number->getTreeType() == TREE_RULE) {
+                RuleContext* rule = dynamic_cast<RuleContext*>(number);
+                switch (rule->getRuleIndex()) {
+                case gscParser::RuleExpression15:
+                    return NumberNodeValue(rule->children[1], error, extracted);
+                case gscParser::RuleExpression:
+                case gscParser::RuleExpression0:
+                case gscParser::RuleExpression1:
+                case gscParser::RuleExpression2:
+                case gscParser::RuleExpression3:
+                case gscParser::RuleExpression4:
+                case gscParser::RuleExpression5:
+                case gscParser::RuleExpression6:
+                case gscParser::RuleExpression7:
+                case gscParser::RuleExpression8:
+                case gscParser::RuleExpression9:
+                case gscParser::RuleExpression10:
+                case gscParser::RuleExpression11:
+                case gscParser::RuleExpression12:
+                case gscParser::RuleExpression13:
+                case gscParser::RuleExpression14:
+                case gscParser::RuleNumber:
+                case gscParser::RuleConst_expr:
+                case gscParser::RuleIdf: {
+                    if (number->children.size() == 1) {
+                        return NumberNodeValue(number->children[0], error, extracted);
+                    }
+                    else if (number->children.size() == 3) {
+                        bool textracted{};
+                        int64_t v1 = NumberNodeValue(number->children[0], error, &textracted);
+                        if (textracted) {
+                            int64_t v2 = NumberNodeValue(number->children[2], error, &textracted);
+                            if (textracted) {
+                                if (extracted) *extracted = true;
+                                std::string op = number->children[1]->getText();
+                                if (op == "??") return v1 ? v1 : v2;
+                                if (op == "&&") return v1 && v2 ? 1 : 0;
+                                if (op == "||") return v1 || v2 ? 1 : 0;
+                                if (op == "<") return v1 < v2 ? 1 : 0;
+                                if (op == ">") return v1 > v2 ? 1 : 0;
+                                if (op == "==" || op == "===") return v1 == v2 ? 1 : 0;
+                                if (op == "<=" || op == "<==") return v1 <= v2 ? 1 : 0;
+                                if (op == ">=" || op == ">==") return v1 >= v2 ? 1 : 0;
+                                if (op == "+") return v1 + v2;
+                                if (op == "-") return v1 - v2;
+                                if (op == "/") return v1 / v2;
+                                if (op == "*") return v1 * v2;
+                                if (op == "%") return v1 % v2;
+                                if (op == "|") return v1 | v2;
+                                if (op == "^") return v1 ^ v2;
+                                if (op == "<<") return v1 << v2;
+                                if (op == ">>") return v1 >> v2;
+                                if (op == "&") return v1 & v2;
+                                if (extracted) *extracted = false;
+                            }
+                        }
+                    }
+                    else if (number->children.size() == 2 && rule->children[0] && rule->children[0]->getTreeType() == TREE_TERMINAL) {
+                        bool textracted{};
+                        int64_t v = NumberNodeValue(number->children[0], error, &textracted);
+                        if (textracted) {
+                            std::string op = number->children[0]->getText();
+                            if (extracted) *extracted = true;
+                            if (op == "!") return !v ? 1 : 0;
+                            if (op == "~") return ~v;
+                            if (extracted) *extracted = false;
+                        }
+
+                    }
+                }
+                default:
+                    if (error) {
+                        info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
+                    }
+                    if (extracted) *extracted = false;
                     return 0;
                 }
             }
 
             if (!number || number->getTreeType() != TREE_TERMINAL) {
-                info.PrintLineMessage(alogs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
+                if (error) {
+                    info.PrintLineMessage(alogs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
+                }
+                if (extracted) *extracted = false;
                 return 0; // wtf?
             }
+            if (extracted) *extracted = true;
 
             TerminalNode* term = dynamic_cast<TerminalNode*>(number);
             switch (term->getSymbol()->getType()) {
@@ -1544,7 +1725,11 @@ namespace acts::compiler {
                 int64_t val = std::strtoll(term->getText().c_str() + (neg ? 3 : 2), nullptr, 2);
                 return neg ? -val : val;
             }
+            case gscParser::BOOL_VALUE: {
+                return term->getText() == "true" ? 1 : 0;
+            }
             default:
+                if (extracted) *extracted = false;
                 return 0;
             }
         }
@@ -2785,6 +2970,27 @@ namespace acts::compiler {
             }
             case gscParser::RuleStatement_if: {
                 bool ok{ true };
+
+                bool extracted;
+                int64_t v = obj.NumberNodeValue(rule->children[2], false, &extracted);
+
+                if (extracted) {
+                    if (v) {
+                        // no else
+                        return ParseExpressionNode(rule->children[4], parser, obj, fobj, false);
+                    }
+                    else {
+                        if (rule->children.size() <= 5) {
+                            // no else
+                            return true;
+                        }
+                        else {
+                            // only else
+                            return ParseExpressionNode(rule->children[6], parser, obj, fobj, false);
+                        }
+                    }
+                }
+
                 AscmNode* elseStart = new AscmNode();
                 if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
                     ok = false;
@@ -2816,31 +3022,40 @@ namespace acts::compiler {
             }
             case gscParser::RuleStatement_while: {
                 bool ok{ true };
-                AscmNode* loopBreak = new AscmNode();
-                AscmNode* loopContinue = new AscmNode();
 
-                fobj.PushContinueNode(loopContinue);
-                fobj.PushBreakNode(loopBreak);
+                bool extracted;
+                int64_t v = obj.NumberNodeValue(rule->children[2], false, &extracted);
 
-                fobj.AddNode(rule, loopContinue);
+                if (!extracted || v) {
+                    AscmNode* loopBreak = new AscmNode();
+                    AscmNode* loopContinue = new AscmNode();
 
-                if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
-                    ok = false;
+                    fobj.PushContinueNode(loopContinue);
+                    fobj.PushBreakNode(loopBreak);
+
+                    fobj.AddNode(rule, loopContinue);
+
+                    if (!extracted) {
+                        // the value is constantly true, we don't need to write the condition
+                        if (!ParseExpressionNode(rule->children[2], parser, obj, fobj, true)) {
+                            ok = false;
+                        }
+
+                        fobj.AddNode(rule->children[2], new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
+                    }
+
+                    if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, false)) {
+                        ok = false;
+                    }
+
+                    // TODO: add next node
+                    fobj.AddNode(rule->children[4], new AscmNodeJump(loopContinue, OPCODE_Jump));
+
+                    fobj.AddNode(rule->children[4], loopBreak);
+
+                    fobj.PopContinueNode();
+                    fobj.PopBreakNode();
                 }
-
-                fobj.AddNode(rule->children[2], new AscmNodeJump(loopBreak, OPCODE_JumpOnFalse));
-
-                if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, false)) {
-                    ok = false;
-                }
-
-                // TODO: add next node
-                fobj.AddNode(rule->children[4], new AscmNodeJump(loopContinue, OPCODE_Jump));
-
-                fobj.AddNode(rule->children[4], loopBreak);
-
-                fobj.PopContinueNode();
-                fobj.PopBreakNode();
 
                 return ok;
             }
@@ -2861,11 +3076,21 @@ namespace acts::compiler {
 
                 fobj.AddNode(rule, loopContinue);
 
-                if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
-                    ok = false;
+                bool extracted;
+                int64_t v = obj.NumberNodeValue(rule->children[4], false, &extracted);
+
+                if (extracted) {
+                    if (v) {
+                        fobj.AddNode(rule->children[4], new AscmNodeJump(loopStart, OPCODE_Jump));
+                    }
+                }
+                else {
+                    if (!ParseExpressionNode(rule->children[4], parser, obj, fobj, true)) {
+                        ok = false;
+                    }
+                    fobj.AddNode(rule->children[4], new AscmNodeJump(loopStart, OPCODE_JumpOnTrue));
                 }
 
-                fobj.AddNode(rule->children[4], new AscmNodeJump(loopStart, OPCODE_JumpOnTrue));
 
                 // TODO: add next node
                 fobj.AddNode(rule->children[4], loopBreak);
@@ -4319,11 +4544,53 @@ namespace acts::compiler {
             case gscParser::RuleExpression14:
             case gscParser::RuleExpression15:
                 return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj, expressVal);
-            case gscParser::RuleVector_value:
+            case gscParser::RuleVector_value: {
                 if (!expressVal) { // no need to create vector
                     obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                     return true;
                 }
+                float x = obj.FloatNumberNodeValue(rule->children[1], false);
+                float y = obj.FloatNumberNodeValue(rule->children[3], false);
+                float z = obj.FloatNumberNodeValue(rule->children[5], false);
+
+                if (!(std::isnan(x) || std::isnan(y) || std::isnan(z))) {
+                    // can be const
+
+                    if (obj.HasOpCode(OPCODE_VectorConstant)) {
+                        float common{};
+                        // 0 = 0, 1 = -1, 2 = 1
+                        if (obj.HasOpCode(OPCODE_VectorScale)) {
+                            if (!FindConstVectorCommon(x, y, z, common)) {
+                                common = 0;
+                            }
+                        }
+                        byte flag = ToConstVectorFlags(x, y, z);
+                        if (flag != INVALID_VECTOR_FLAGS) {
+                            // can be expressed using constant
+
+                            if (common != 0) {
+                                fobj.AddNode(rule, new AscmNodeData<float>(common, OPCODE_GetFloat));
+                            }
+
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_VectorConstant));
+                            fobj.AddNode(rule, new AscmNodeRawData<byte>(flag));
+
+                            if (common != 0) {
+                                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_VectorScale));
+                            }
+                            return true;
+                        }
+                    }
+
+                    if (obj.HasOpCode(OPCODE_GetVector)) {
+                        fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_GetVector));
+                        fobj.AddNode(rule, new AscmNodeRawData<float>(x));
+                        fobj.AddNode(rule, new AscmNodeRawData<float>(y));
+                        fobj.AddNode(rule, new AscmNodeRawData<float>(z));
+                        return true;
+                    }
+                }
+
                 if (
                     !ParseExpressionNode(rule->children[5], parser, obj, fobj, true),
                     !ParseExpressionNode(rule->children[3], parser, obj, fobj, true),
@@ -4333,6 +4600,7 @@ namespace acts::compiler {
                 }
                 fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Vector));
                 return true;
+            }
             case gscParser::RuleArray_def: {
                 if (!expressVal) { // no need to create array
                     obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
@@ -4843,7 +5111,7 @@ namespace acts::compiler {
             fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetUndefined));
             return true;
         case gscParser::BOOL_VALUE:
-            fobj.AddNode(term, obj.BuildAscmNodeData(term->getText() == "true" ? (rand() + 1) : 0));
+            fobj.AddNode(term, obj.BuildAscmNodeData(term->getText() == "true" ? (fobj.obj.opt.obfuscate ? rand() + 1 : 1) : 0));
             return true;
         case gscParser::FLOATVAL:
             fobj.AddNode(term, new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), nullptr), OPCODE_GetFloat));

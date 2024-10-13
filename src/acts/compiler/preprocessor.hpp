@@ -24,9 +24,9 @@ namespace acts::compiler::preprocessor {
                         // TODO
                     }
 
-
                     return;
                 }
+                it++;
             }
             throw std::runtime_error(utils::va("Can't find line %lld", line));
         }
