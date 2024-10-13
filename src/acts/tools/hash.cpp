@@ -4,6 +4,7 @@
 #include "tools/tools_ui.hpp"
 #include "tools/tools_nui.hpp"
 #include "tools/hashes/hash_scanner.hpp"
+#include "tools/hashes/text_expand.hpp"
 #include "actscli.hpp"
 
 namespace {
@@ -20,6 +21,17 @@ namespace {
 			}
 		}
 		return 0;
+	}
+
+	int expand_gen(Process& proc, int argc, const char* argv[]) {
+		if (argc < 3) return tool::BAD_USAGE;
+
+		size_t c = std::stoull(argv[2]);
+
+		tool::hash::text_expand::GetDynamicPtr(c, [](const char* str, void* d) { 
+			LOG_INFO("{:x},{}", hashutils::Hash64(str), str);
+		});
+		return tool::OK;
 	}
 
 	int hash32(Process& proc, int argc, const char* argv[]) {
@@ -1257,6 +1269,7 @@ ADD_TOOL_NUI("hash", "Hash", hash_nui);
 ADD_TOOL_NUI("hashsearch", "Searcher", hashsearch_nui);
 
 ADD_TOOL("lookup", "hash", " (string)*", "lookup strings", nullptr, lookuptool);
+ADD_TOOL("expand_gen", "hash", " [count]", "expand test", nullptr, expand_gen);
 ADD_TOOL("h32", "hash", " (string)*", "hash strings", nullptr, hash32);
 ADD_TOOL("h64", "hash", " (string)*", "hash strings", nullptr, hash64);
 ADD_TOOL("ht7", "hash", " (string)*", "hash strings", nullptr, hasht7);

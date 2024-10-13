@@ -1,5 +1,7 @@
 #include <includes.hpp>
+#include <core/memory_allocator.hpp>
 #include "hash_scanner.hpp"
+#include "text_expand.hpp"
 #include <regex>
 #include <future>
 #include <BS_thread_pool.hpp>
@@ -58,12 +60,12 @@ namespace tool::hash::scanner {
 			LOG_TRACE("Load file(s)...");
 			utils::GetFileRecurse(argv[2], files, [](const std::filesystem::path& p) {
 				std::string name = p.string();
-				return 
-					name.ends_with(".gsc") || name.ends_with(".csc") 
+				return
+					name.ends_with(".gsc") || name.ends_with(".csc")
 					|| name.ends_with(".csv") || name.ends_with(".tsv")
-					|| name.ends_with(".dec.lua") 
+					|| name.ends_with(".dec.lua")
 					|| name.ends_with(".json");
-			});
+				});
 			LOG_TRACE("{} file(s) loaded...", files.size());
 
 			std::unordered_set<uint64_t> hashes{};
@@ -88,8 +90,336 @@ namespace tool::hash::scanner {
 
 			return tool::OK;
 		}
-	
+		enum VmHashes : uint64_t {
+			HASH_FNVA = 1,
+			HASH_RES = 1ull << 1,
+			HASH_DVAR = 1ull << 2,
+			HASH_SCR_JUP = 1ull << 3,
+			HASH_SCR_T10 = 1ull << 4,
+
+			HASH_BLACKOPS4 = HASH_FNVA,
+			HASH_BLACKOPS6 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10,
+			HASH_IW = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_JUP,
+			HASH_ALL = ~0ull,
+		};
+
+
+		class HashData {
+		public:
+			std::ofstream output;
+			std::unordered_set<uint64_t> hashes{};
+			std::mutex mtx{};
+			uint64_t funcs{};
+			const char* prefix{};
+			const char* suffix{};
+
+			HashData(const char* file) : output(file, std::ios::app) {}
+			~HashData() {
+				output.close();
+			}
+
+			inline void TestHash(uint64_t v, const char* str) {
+				auto it = hashes.find(v & hashutils::MASK62);
+				if (it != hashes.end()) {
+					std::lock_guard lg{ mtx };
+					output << std::hex << v << "," << (prefix ? prefix : "") << str << (suffix ? suffix : "") << std::endl;
+					LOG_INFO("{:x},{}{}{}", v, (prefix ? prefix : ""), str, (suffix ? suffix : ""));
+				}
+			}
+			constexpr bool UseFunc(VmHashes hash) {
+				return (funcs & hash) != 0;
+			}
+		};
+
+		int hashbrute(Process& proc, int argc, const char* argv[]) {
+			if (argc < 5) {
+				return tool::BAD_USAGE;
+			}
+
+			std::vector<std::filesystem::path> files{};
+			HashData data{ argv[3] };
+			const char* n{ argv[4] };
+			if (argc >= 6 && argv[5][0]) data.prefix = argv[5];
+			if (argc >= 7 && argv[6][0]) data.suffix = argv[6];
+
+			if (_strcmpi(n, "bo4")) {
+				data.funcs = HASH_BLACKOPS4;
+			}
+			else if (_strcmpi(n, "bo6")) {
+				data.funcs = HASH_BLACKOPS6;
+			}
+			else if (_strcmpi(n, "iw")) {
+				data.funcs = HASH_IW;
+			}
+			else if (_strcmpi(n, "all")) {
+				data.funcs = HASH_ALL;
+			}
+			else {
+				LOG_WARNING("Invalid name {}, use all hashes", n);
+				data.funcs = HASH_ALL;
+			}
+
+			LOG_TRACE("Load file(s)...");
+			utils::GetFileRecurse(argv[2], files, [](const std::filesystem::path& p) {
+				std::string name = p.string();
+				return
+					name.ends_with(".gsc") || name.ends_with(".csc")
+					|| name.ends_with(".csv") || name.ends_with(".tsv")
+					|| name.ends_with(".dec.lua")
+					|| name.ends_with(".json");
+				});
+			LOG_TRACE("{} file(s) loaded...", files.size());
+
+			std::unordered_set<uint64_t> hashesTmp{};
+			ScanHashes(files, hashesTmp);
+
+
+			for (uint64_t h : hashesTmp) {
+				data.hashes.insert(h & hashutils::MASK62);
+			}
+
+			LOG_INFO("Find {} hash(es)", data.hashes.size());
+			if (!data.prefix && !data.suffix) {
+				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
+					if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(str), str);
+					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(str), str);
+					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(str), str);
+					if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(str), str);
+					if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(str), str);
+				}, &data);
+			}
+			else if (data.prefix) {
+				if (data.suffix) {
+					// prefix + suffix
+					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
+						if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(data->suffix, hashutils::Hash64A(str, hashutils::Hash64A(data->prefix))), str);
+						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(data->suffix, hashutils::HashT10Scr(str, hashutils::HashT10Scr(data->prefix))), str);
+						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(data->suffix, hashutils::HashJupScr(str, hashutils::HashJupScr(data->prefix))), str);
+						if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(data->suffix, hashutils::HashIWRes(str, hashutils::HashIWRes(data->prefix))), str);
+						if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(data->suffix, hashutils::HashIWDVar(str, hashutils::HashIWDVar(data->prefix))), str);
+					}, &data);
+				}
+				else {
+					// prefix only
+					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
+						if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(str, hashutils::Hash64A(data->prefix)), str);
+						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(str, hashutils::HashT10Scr(data->prefix)), str);
+						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(str, hashutils::HashJupScr(data->prefix)), str);
+						if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(str, hashutils::HashIWRes(data->prefix)), str);
+						if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(str, hashutils::HashIWDVar(data->prefix)), str);
+					}, &data);
+				}
+			}
+			else {
+				// suffix only
+				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
+					if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(data->suffix, hashutils::Hash64A(str)), str);
+					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(data->suffix, hashutils::HashT10Scr(str)), str);
+					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(data->suffix, hashutils::HashJupScr(str)), str);
+					if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(data->suffix, hashutils::HashIWRes(str)), str);
+					if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(data->suffix, hashutils::HashIWDVar(str)), str);
+				}, &data);
+			}
+
+			return tool::OK;
+		}
+
+		class HashDataDict {
+		public:
+			std::ofstream output;
+			std::unordered_set<uint64_t> hashes{};
+			std::mutex mtx{};
+			uint64_t funcs{};
+			const char* prefix{};
+			const char* suffix{};
+
+			HashDataDict(const char* file) : output(file, std::ios::app) {}
+			~HashDataDict() {
+				output.close();
+			}
+
+			constexpr bool UseFunc(VmHashes hash) {
+				return (funcs & hash) != 0;
+			}
+
+			template<typename Func, bool prefix, bool suffix>
+			inline uint64_t HashMultiple(const char** str, char between) {
+				if (!*str) {
+					uint64_t base = 0;
+					if constexpr (prefix) {
+						base = Func::Hash(this->prefix);
+
+					}
+					if constexpr (suffix) {
+						base = Func::Hash(this->suffix, base);
+					}
+					return base;
+				}
+				char b[]{ between , 0 };
+				uint64_t base;
+				if constexpr (prefix) {
+					base = Func::Hash(*(str++), Func::Hash(this->prefix));
+				}
+				else {
+					base = Func::Hash(*(str++));
+				}
+
+
+				while (*(str)) {
+					base = Func::Hash(b, base);
+					base = Func::Hash(*(str++), base);
+				}
+
+				if constexpr (suffix) {
+					base = Func::Hash(this->suffix, base);
+				}
+
+				return base;
+			}
+
+			template<typename Func, bool prefix, bool suffix>
+			inline void TestHash(VmHashes func, const char** str, char b) {
+				if (!UseFunc(func)) {
+					return;
+				}
+				uint64_t v = HashMultiple<Func, prefix, suffix>(str, b);
+				auto it = hashes.find(v & hashutils::MASK62);
+				if (it != hashes.end()) {
+					std::ostringstream oss{};
+					if constexpr (prefix) {
+						oss << this->prefix;
+					}
+					if (*str) {
+						oss << *str;
+						while (*(++str)) {
+							oss << b << *str;
+						}
+					}
+					if constexpr (suffix) {
+						oss << this->suffix;
+					}
+					std::string strs{ oss.str() };
+
+					{
+						std::lock_guard lg{ mtx };
+
+						output << std::hex << v << "," << strs << std::endl;
+						LOG_INFO("{:x},{}", v, strs);
+					}
+				}
+			}
+
+			template<bool prefix, bool suffix>
+			inline void TestHashes(const char** str, char b) {
+				class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return hashutils::Hash64A(str, base); } };
+				class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashT10Scr(str, base); } };
+				class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x79D6530B0BB9B5D1) { return hashutils::HashJupScr(str, base); } };
+				class HashIWRes { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return hashutils::HashIWRes(str, base); } };
+				class HashIWDVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashIWDVar(str, base); } };
+				TestHash<HashFnv1a, prefix, suffix>(HASH_FNVA, str, '_');
+				TestHash<HashT10Scr, prefix, suffix>(HASH_SCR_T10, str, '_');
+				TestHash<HashJupScr, prefix, suffix>(HASH_SCR_JUP, str, '_');
+				TestHash<HashIWRes, prefix, suffix>(HASH_RES, str, '_');
+				TestHash<HashIWDVar, prefix, suffix>(HASH_DVAR, str, '_');
+			}
+		};
+
+		int hashbrutedict(Process& proc, int argc, const char* argv[]) {
+			if (argc < 6) {
+				return tool::BAD_USAGE;
+			}
+
+			std::vector<std::filesystem::path> files{};
+
+			HashDataDict data{ argv[3] };
+			const char* n{ argv[4] };
+			std::ifstream dictIs{ argv[5] };
+
+			if (!dictIs) {
+				LOG_ERROR("Can't open {}", argv[5]);
+				return tool::BASIC_ERROR;
+			}
+
+			std::string line{};
+			core::memory_allocator::MemoryAllocator alloc{};
+
+			std::vector<const char*> dictVec{};
+
+			while (dictIs.good() && std::getline(dictIs, line)) {
+				dictVec.push_back((const char*)alloc.Alloc(line));
+			}
+			dictVec.push_back(nullptr);
+			dictIs.close();
+			if (argc >= 7 && argv[5][0]) data.prefix = argv[6];
+			if (argc >= 8 && argv[6][0]) data.suffix = argv[7];
+
+			if (_strcmpi(n, "bo4")) {
+				data.funcs = HASH_BLACKOPS4;
+			}
+			else if (_strcmpi(n, "bo6")) {
+				data.funcs = HASH_BLACKOPS6;
+			}
+			else if (_strcmpi(n, "iw")) {
+				data.funcs = HASH_IW;
+			}
+			else if (_strcmpi(n, "all")) {
+				data.funcs = HASH_ALL;
+			}
+			else {
+				LOG_WARNING("Invalid name {}, use all hashes", n);
+				data.funcs = HASH_ALL;
+			}
+
+			LOG_TRACE("Load file(s)...");
+			utils::GetFileRecurse(argv[2], files, [](const std::filesystem::path& p) {
+				std::string name = p.string();
+				return
+					name.ends_with(".gsc") || name.ends_with(".csc")
+					|| name.ends_with(".csv") || name.ends_with(".tsv")
+					|| name.ends_with(".dec.lua")
+					|| name.ends_with(".json");
+				});
+			LOG_TRACE("{} file(s) loaded...", files.size());
+
+			std::unordered_set<uint64_t> hashesTmp{};
+			ScanHashes(files, hashesTmp);
+
+
+			for (uint64_t h : hashesTmp) {
+				data.hashes.insert(h & hashutils::MASK62);
+			}
+
+			LOG_INFO("Find {} hash(es)", data.hashes.size());
+
+			if (data.prefix || data.suffix) {
+				if (data.prefix && data.suffix) {
+					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						data->TestHashes<true, true>(str, '_');
+					}, dictVec.data(), &data);
+				}
+				else if (data.suffix) {
+					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						data->TestHashes<false, true>(str, '_');
+					}, dictVec.data(), &data);
+				}
+				else {
+					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						data->TestHashes<true, false>(str, '_');
+					}, dictVec.data(), &data);
+				}
+			}
+			else {
+				tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+					data->TestHashes<false, false>(str, '_');
+				}, dictVec.data(), &data);
+			}
+
+			return tool::OK;
+		}
+		
 		ADD_TOOL("hashscan", "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
+		ADD_TOOL("hashbrute", "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
+		ADD_TOOL("hashbrutedict", "hash", " [dir] [output] [dict] (prefix) (suffix)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
 
 	}
 

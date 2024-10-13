@@ -315,7 +315,7 @@ namespace hashutils {
 	}
 	void AddPrecomputed(uint64_t value, const char* str, bool async) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		g_hashMap.emplace(value & 0x7FFFFFFFFFFFFFFF, str);
+		g_hashMap.emplace(value & hashutils::MASK63, str);
 	}
 
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
@@ -334,7 +334,7 @@ namespace hashutils {
 		if (g_saveExtracted) {
 			g_extracted.emplace(hash);
 		}
-		const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
+		const auto res = g_hashMap.find(hash & hashutils::MASK63);
 		if (res == g_hashMap.end()) {
 			snprintf(out, outSize, heavyHashes ? "%s_%016llX" : "%s_%llx", type, hash);
 			return false;
@@ -360,7 +360,7 @@ namespace hashutils {
 
 	const char* ExtractPtr(uint64_t hash) {
 		ReadDefaultFile();
-		const auto res = g_hashMap.find(hash & 0x7FFFFFFFFFFFFFFF);
+		const auto res = g_hashMap.find(hash & hashutils::MASK63);
 		if (res == g_hashMap.end()) {
 			return NULL;
 		}
