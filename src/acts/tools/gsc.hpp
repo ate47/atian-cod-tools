@@ -788,6 +788,12 @@ namespace tool::gsc {
          */
         const char* GetStringValueOrError(uint32_t stringRef, uint32_t floc, const char* errorValue);
         /*
+         * Get a string for a string ref, return errorValue in case of error
+         * @param errorValue returned value in case of bad ref
+         * @return string or error value
+         */
+        const char* GetStringError(uint32_t floc, const char* errorValue);
+        /*
          * Add a global var
          * @param value name
          * @return var ref

@@ -1376,9 +1376,6 @@ namespace tool::gsc::opcode {
 					if ((ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS)) {
 						ctx.WritePadding(out << "\n", true);
 					}
-					else {
-						out << " ";
-					}
 					cs.block->Dump(out, ctx);
 				}
 			}

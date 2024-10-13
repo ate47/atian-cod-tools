@@ -426,25 +426,6 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             }
         }
 
-        uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
-        int string_count = (int)GetStringsCount();
-        for (size_t i = 0; i < string_count; i++) {
-
-            const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-            char* cstr = DecryptString(Ptr<char>(str->string));
-            if (gDumpStrings) {
-                gDumpStringsStore.insert(cstr);
-            }
-            uint32_t ref = ctx.AddStringValue(cstr);
-
-            const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
-            for (size_t j = 0; j < str->num_address; j++) {
-                Ref<uint32_t>(strings[j]) = ref;
-                ctx.AddStringRef(strings[j], ref);
-            }
-            str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
-        }
-
         if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
             T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
             for (size_t i = 0; i < GetDevStringsCount(); i++) {
@@ -473,6 +454,25 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 }
                 val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
             }
+        }
+
+        uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
+        int string_count = (int)GetStringsCount();
+        for (size_t i = 0; i < string_count; i++) {
+
+            const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+            char* cstr = DecryptString(Ptr<char>(str->string));
+            if (gDumpStrings) {
+                gDumpStringsStore.insert(cstr);
+            }
+            uint32_t ref = ctx.AddStringValue(cstr);
+
+            const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
+            for (size_t j = 0; j < str->num_address; j++) {
+                Ref<uint32_t>(strings[j]) = ref;
+                ctx.AddStringRef(strings[j], ref);
+            }
+            str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
         }
 
         auto imports_count = (int)GetImportsCount();
@@ -634,26 +634,6 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
     }
 
-    uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
-    int string_count = (int)GetStringsCount();
-    for (size_t i = 0; i < string_count; i++) {
-
-        const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-        char* cstr = DecryptString(Ptr<char>(str->string));
-        if (gDumpStrings) {
-            gDumpStringsStore.insert(cstr);
-        }
-        uint32_t ref = ctx.AddStringValue(cstr);
-
-        const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
-        for (size_t j = 0; j < str->num_address; j++) {
-            // no align too....
-            Ref<uint32_t>(strings[j]) = ref;
-            ctx.AddStringRef(strings[j], ref);
-        }
-        str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
-    }
-
     if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
         T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
         for (size_t i = 0; i < GetDevStringsCount(); i++) {
@@ -682,6 +662,26 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             }
             val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
         }
+    }
+
+    uintptr_t str_location = reinterpret_cast<uintptr_t>(file) + GetStringsOffset();
+    int string_count = (int)GetStringsCount();
+    for (size_t i = 0; i < string_count; i++) {
+
+        const auto* str = reinterpret_cast<T8GSCString*>(str_location);
+        char* cstr = DecryptString(Ptr<char>(str->string));
+        if (gDumpStrings) {
+            gDumpStringsStore.insert(cstr);
+        }
+        uint32_t ref = ctx.AddStringValue(cstr);
+
+        const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
+        for (size_t j = 0; j < str->num_address; j++) {
+            // no align too....
+            Ref<uint32_t>(strings[j]) = ref;
+            ctx.AddStringRef(strings[j], ref);
+        }
+        str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
     }
 
     if (GetAnimTreeDoubleOffset()) {
@@ -1317,6 +1317,27 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
     // write the strings before the patch to avoid reading pre-decrypted strings
     if (opt.m_strings) {
+        if (scriptfile->GetDevStringsOffset() && !(opt.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
+            T8GSCString* val = scriptfile->Ptr<T8GSCString>(scriptfile->GetDevStringsOffset());
+            for (size_t i = 0; i < scriptfile->GetDevStringsCount(); i++) {
+
+                const char* str = utils::va("<dev string:x%x>", val->string); // Ptr<char>(val->string); // no gdb
+
+                asmout << "Dev String: "
+                    << "addr:" << std::hex << val->string << ", "
+                    << "count:" << std::dec << (int)val->num_address << ", stype:"
+                    << (int)val->type << " -> \"" << str << "\"\n";
+                asmout << "loc: ";
+
+                uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
+                for (size_t j = 0; j < val->num_address; j++) {
+                    asmout << " 0x" << std::hex << loc[j];
+                }
+
+                asmout << "\n";
+                val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
+            }
+        }
         if (scriptfile->GetStringsOffset()) {
             uintptr_t str_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetStringsOffset()));
 
@@ -1388,27 +1409,6 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 }
                 asmout << "\n";
                 str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
-            }
-        }
-        if (scriptfile->GetDevStringsOffset() && !(opt.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
-            T8GSCString* val = scriptfile->Ptr<T8GSCString>(scriptfile->GetDevStringsOffset());
-            for (size_t i = 0; i < scriptfile->GetDevStringsCount(); i++) {
-
-                const char* str = utils::va("<dev string:x%x>", val->string); // Ptr<char>(val->string); // no gdb
-
-                asmout << "Dev String: "
-                    << "addr:" << std::hex << val->string << ", "
-                    << "count:" << std::dec << (int)val->num_address << ", stype:"
-                    << (int)val->type << " -> \"" << str << "\"\n";
-                asmout << "loc: ";
-
-                uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
-                for (size_t j = 0; j < val->num_address; j++) {
-                    asmout << " 0x" << std::hex << loc[j];
-                }
-                
-                asmout << "\n";
-                val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
             }
         }
 
@@ -2375,7 +2375,10 @@ const char* tool::gsc::T8GSCOBJContext::GetStringValueOrError(uint32_t stringRef
     if (v) {
         return v;
     }
+    return GetStringError(floc, errorValue);
+}
 
+const char* tool::gsc::T8GSCOBJContext::GetStringError(uint32_t floc, const char* errorValue) {
     if (errorValue) {
         m_unkstrings[errorValue].insert(floc);
     }

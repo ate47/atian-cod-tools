@@ -3708,7 +3708,13 @@ public:
 
 		uint32_t ref = *(uint32_t*)base;
 
-		const char* str = objctx.GetStringValueOrError(ref, context.ScriptAbsoluteLocation(base), nullptr);
+		uint32_t floc = context.ScriptAbsoluteLocation(base);
+
+		const char* str = objctx.GetStringValueByLoc(floc);
+		if (!str) {
+			// build string
+			str = objctx.GetStringError(floc, nullptr);
+		}
 
 		base += 4;
 
@@ -4018,7 +4024,16 @@ public:
 			}
 			else {
 				out << "case ";
-				if (caseValue >= 0x100000000LL) {
+				// bo3 string decomp
+				uint32_t floc = (uint32_t)(caseLoc - context.m_gscReader.file);
+				const char* cv = objctx.GetStringValueByLoc(floc);
+				if (cv) {
+					PrintFormattedString(out << "\"", cv) << "\"";
+					if (node) {
+						node->m_cases.push_back({ new ASMContextNodeString(cv), caseRLoc });
+					}
+				}
+				else if (caseValue >= 0x100000000LL) {
 					// assume it's an hash after int32_t max value
 					out << "#\"" << hashutils::ExtractTmp("hash", caseValue) << "\"" << std::flush;
 					if (node) {
@@ -4026,21 +4041,12 @@ public:
 					}
 				}
 				else {
-					// bo3 string decomp
-					const char* cv = objctx.GetStringValueByLoc((uint32_t)(caseLoc - context.m_gscReader.file));
-					if (cv) {
-						PrintFormattedString(out << "\"", cv) << "\"";
-						if (node) {
-							node->m_cases.push_back({ new ASMContextNodeValue<const char*>(cv, TYPE_VALUE), caseRLoc });
-						}
-					}
-					else {
-						out << std::dec << caseValue;
-						if (node) {
-							node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(caseValue, TYPE_VALUE), caseRLoc });
-						}
+					out << std::dec << caseValue;
+					if (node) {
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(caseValue, TYPE_VALUE), caseRLoc });
 					}
 				}
+				out << "(0x" << std::hex << floc << ")";
 			}
 
 			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
