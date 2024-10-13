@@ -12,6 +12,7 @@
 #include "tools_nui.hpp"
 #include "tools_ui.hpp"
 #include "tools/nui/cascadia.hpp"
+#include "console_ui.hpp"
 
 namespace tool::nui {
 
@@ -388,7 +389,13 @@ namespace tool::nui {
 		ActsNUI::nui->bg.nextDisabled = true;
 	}
 
+	void SaveNextConfig() {
+		ActsNUI::nui->saveNext = true;
+	}
+
 	void OpenNuiWindow() {
+		tool::console_ui::AttachConsoleUI();
+
 		ActsNUI nui{};
 
 		std::string lastMenu = core::config::GetString("nui.last");
@@ -414,13 +421,12 @@ namespace tool::nui {
 			vec.y = (float)nui.height;
 			ImGui::SetNextWindowSize(vec);
 			ImGui::SetNextWindowBgAlpha(std::clamp<float>(nui.bg.bgAlpha / 100.0f + 0.10f, 0, 1));
-			bool c = false;
 			if (ImGui::Begin("acts-nui-items", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings)) {
 				if (nui.bg.open) {
 					if (ImGui::ArrowButton("Open", ImGuiDir_Left)) {
-						core::config::SetBool("nui.open", false);
 						nui.bg.open = false;
-						c = true;
+						core::config::SetBool("nui.open", false);
+						SaveNextConfig();
 					}
 					static std::string titleIn = std::format("Atian tools {} UI", actsinfo::VERSION);
 					ImGui::SeparatorText(titleIn.c_str());
@@ -429,7 +435,7 @@ namespace tool::nui {
 					if (ImGui::ArrowButton("Close", ImGuiDir_Right)) {
 						nui.bg.open = true;
 						core::config::SetBool("nui.open", true);
-						c = true;
+						SaveNextConfig();
 					}
 					ImGui::SeparatorText("A");
 				}
@@ -458,7 +464,7 @@ namespace tool::nui {
 					else {
 						core::config::SetString("nui.last", "");
 					}
-					c = true;
+					SaveNextConfig();
 
 					static std::string title{};
 					title = std::format("Atian tools {} UI{}{}", actsinfo::VERSION, ((data && data->m_description) ? " - " : ""), ((data && data->m_description) ? data->m_description : ""));
@@ -470,14 +476,17 @@ namespace tool::nui {
 				if (data && data->m_open) {
 					if (!data->m_issetup) {
 						if (data->m_setup) {
-							c |= data->m_setup();
+							data->m_setup();
 						}
 						data->m_issetup = true;
 					}
-					c |= data->m_func();
+					data->m_func();
 				}
 			}
-			if (c) core::config::SaveConfig();
+			if (nui.saveNext) {
+				core::config::SaveConfig();
+				nui.saveNext = false;
+			}
 
 			nui.bg.Render();
 
@@ -492,7 +501,7 @@ namespace tool::nui {
 			return tool::OK;
 		}
 
-		bool newui_bg() {
+		void newui_bg() {
 			bool c = false;
 			ActsConfig& bg = ActsNUI::nui->bg;
 			ImGui::SetNextWindowPos(GetDefaultWindowStart(), ImGuiCond_Appearing);
@@ -546,21 +555,20 @@ namespace tool::nui {
 					core::config::SetDouble("nui.bg.colorBackgroundGreen", bg.colorBackground[1]);
 					core::config::SetDouble("nui.bg.colorBackgroundBlue", bg.colorBackground[2]);
 					core::config::SetInteger("nui.bg.alpha", bg.bgAlpha);
+					SaveNextConfig();
 				}
 
 			}
-			return c;
 		}
 
-		bool acts() {
+		void acts() {
 			tool::nui::NuiUseDefaultWindow dw{};
 			std::string txt = utils::WStrToStr(tool::ui::GetActsDesc(true));
 			ImGui::Text(txt.c_str());
-			return false;
 		}
 
 		ADD_TOOL("newui", "dev", "", "Launch new UI", nullptr, newui);
 		ADD_TOOL_NUI("aaaa_acts", "Atian Tools", acts);
-		ADD_TOOL_NUI("zzzz_newui_cfg", "Config", newui_bg);
+		ADD_TOOL_NUI("zzzz9_newui_cfg", "Config", newui_bg);
 	}
 }

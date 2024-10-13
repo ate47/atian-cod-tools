@@ -19,6 +19,8 @@ namespace alogs {
 	void setfile(const char* filename);
 	const char* logfile();
 
+	void addoutstream(std::ostream* outStream);
+
 	void log(loglevel level, const std::string& str);
 }
 

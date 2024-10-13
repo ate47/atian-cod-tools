@@ -39,6 +39,9 @@ namespace tool {
 	std::map<std::string, tool::toolfunctiondata*>& tools();
 	std::map<std::string, toolcategory>& toolsCategories();
 
+	const char** ReadParams(std::string& str, int& argc);
+	int HandleCommand(int argc, const char* argv[]);
+
 	const toolfunctiondata& findtool(const char* name);
 	bool search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each);
 	void usage(const char* message, const char* argv0, alogs::loglevel lvl = alogs::loglevel::LVL_ERROR);

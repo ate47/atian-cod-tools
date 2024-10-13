@@ -397,7 +397,7 @@ namespace {
         tool::ui::window().SetTitleFont(info.titleLabel);
 	}
 
-    bool gsc_inject() {
+    void gsc_inject() {
         tool::nui::NuiUseDefaultWindow dw{};
         static char gscFileIn[MAX_PATH + 1]{ 0 };
         static char hookIn[MAX_PATH + 1]{ 0 };
@@ -714,7 +714,7 @@ namespace {
         }
 
 
-        return c;
+        if (c) tool::nui::SaveNextConfig();
     }
 
     ADD_TOOL_UI("gsc_inject", L"GSC Inject", Render, Update, Resize);

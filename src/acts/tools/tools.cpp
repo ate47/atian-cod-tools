@@ -1,133 +1,328 @@
 #include <includes.hpp>
 #include <clicolor.hpp>
+#include <actscli.hpp>
 #include <tools/tools_ui.hpp>
 #include <tools/gsc_opcodes.hpp>
 
-std::map<std::string, tool::toolfunctiondata*>& tool::tools() {
-	static std::map<std::string, tool::toolfunctiondata*> map{};
-	return map;
-}
-std::map<std::string, tool::toolcategory>& tool::toolsCategories() {
-	static std::map<std::string, tool::toolcategory> map{};
-	if (map.empty()) {
-		map["acts"] = { "acts", "ACTS tools", true, {} };
-		map["lib"] = { "lib", "ACTS lib tools and tests", true, {} };
-		map["gsc"] = { "gsc", "GSC utilities", true, {} };
-		map["hash"] = { "hash", "Hash utilities", true, {} };
-		map["bo4"] = { "bo4", "Black Ops 4 tools", true, {} };
-		map["cw"] = { "cw", "Black Ops Cold War tools", true, {} };
-		map["mwiii"] = { "mwiii", "Modern Warfare III tools", true, {} };
-		map["bo3"] = { "bo3", "Black Ops 3 tools", true, {} };
-		map["ps4"] = { "ps4", "PS4 tools", true, {} };
-		map["common"] = { "common", "Common tools", true, {} };
-		map["dev"] = { "dev", "Dev tools", true, {} };
-		map["compatibility"] = { "compatibility", "Compatibility tools", true, {} };
-		map["fastfile"] = { "fastfile", "Fastfile tools", true, {} };
-		map["lua"] = { "lua", "LUA tools", true, {} };
+namespace tool {
+	std::map<std::string, tool::toolfunctiondata*>& tools() {
+		static std::map<std::string, tool::toolfunctiondata*> map{};
+		return map;
+	}
+	std::map<std::string, tool::toolcategory>& toolsCategories() {
+		static std::map<std::string, tool::toolcategory> map{};
+		if (map.empty()) {
+			map["acts"] = { "acts", "ACTS tools", true, {} };
+			map["lib"] = { "lib", "ACTS lib tools and tests", true, {} };
+			map["gsc"] = { "gsc", "GSC utilities", true, {} };
+			map["hash"] = { "hash", "Hash utilities", true, {} };
+			map["bo4"] = { "bo4", "Black Ops 4 tools", true, {} };
+			map["cw"] = { "cw", "Black Ops Cold War tools", true, {} };
+			map["mwiii"] = { "mwiii", "Modern Warfare III tools", true, {} };
+			map["bo3"] = { "bo3", "Black Ops 3 tools", true, {} };
+			map["ps4"] = { "ps4", "PS4 tools", true, {} };
+			map["common"] = { "common", "Common tools", true, {} };
+			map["dev"] = { "dev", "Dev tools", true, {} };
+			map["compatibility"] = { "compatibility", "Compatibility tools", true, {} };
+			map["fastfile"] = { "fastfile", "Fastfile tools", true, {} };
+			map["lua"] = { "lua", "LUA tools", true, {} };
+		}
+
+		return map;
 	}
 
-	return map;
-}
+	toolfunctiondata::toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, const wchar_t* game, toolfunction func)
+		: m_name(name), m_category(category), m_usage(usage), m_description(description), m_game(game), m_func(func),
+			m_nameLower(name ? name : ""), m_usageLower(usage ? usage : ""), m_descriptionLower(description ? description : ""), m_gameLower(game ? game : L""), 
+		m_categoryLower(category ? category : "") {
 
-tool::toolfunctiondata::toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, const wchar_t* game, tool::toolfunction func)
-	: m_name(name), m_category(category), m_usage(usage), m_description(description), m_game(game), m_func(func),
-		m_nameLower(name ? name : ""), m_usageLower(usage ? usage : ""), m_descriptionLower(description ? description : ""), m_gameLower(game ? game : L""), 
-	m_categoryLower(category ? category : "") {
-
-	std::transform(m_nameLower.begin(), m_nameLower.end(), m_nameLower.begin(), [](char c) { return std::tolower(c); });
-	std::transform(m_usageLower.begin(), m_usageLower.end(), m_usageLower.begin(), [](char c) { return std::tolower(c); });
-	std::transform(m_descriptionLower.begin(), m_descriptionLower.end(), m_descriptionLower.begin(), [](char c) { return std::tolower(c); });
-	std::transform(m_gameLower.begin(), m_gameLower.end(), m_gameLower.begin(), [](wchar_t c) { return std::tolower(c); });
-	std::transform(m_categoryLower.begin(), m_categoryLower.end(), m_categoryLower.begin(), [](wchar_t c) { return std::tolower(c); });
+		std::transform(m_nameLower.begin(), m_nameLower.end(), m_nameLower.begin(), [](char c) { return std::tolower(c); });
+		std::transform(m_usageLower.begin(), m_usageLower.end(), m_usageLower.begin(), [](char c) { return std::tolower(c); });
+		std::transform(m_descriptionLower.begin(), m_descriptionLower.end(), m_descriptionLower.begin(), [](char c) { return std::tolower(c); });
+		std::transform(m_gameLower.begin(), m_gameLower.end(), m_gameLower.begin(), [](wchar_t c) { return std::tolower(c); });
+		std::transform(m_categoryLower.begin(), m_categoryLower.end(), m_categoryLower.begin(), [](wchar_t c) { return std::tolower(c); });
 	
-	if (name) {
-		tools()[name] = this;
-		if (!category) {
-			category = "unknown";
+		if (name) {
+			tools()[name] = this;
+			if (!category) {
+				category = "unknown";
+			}
+			toolcategory& cat = toolsCategories()[category];
+			if (!cat.m_name) {
+				LOG_WARNING("The category '{}' isn't registered, but used by the tool '{}'", category, name);
+				cat.m_name = category;
+			}
+			cat.m_tools[name] = this;
 		}
-		tool::toolcategory& cat = toolsCategories()[category];
-		if (!cat.m_name) {
-			LOG_WARNING("The category '{}' isn't registered, but used by the tool '{}'", category, name);
-			cat.m_name = category;
+	}
+
+	bool toolfunctiondata::operator!() const {
+		return !m_name;
+	}
+
+	bool toolfunctiondata::operatorbool() const {
+		return !m_name;
+	}
+
+	const toolfunctiondata& findtool(const char* name) {
+		static toolfunctiondata invalid{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+
+		auto& tls = tools();
+
+		auto tool = tls.find(name);
+
+		if (tool == tls.end()) {
+			return invalid;
 		}
-		cat.m_tools[name] = this;
-	}
-}
 
-bool tool::toolfunctiondata::operator!() const {
-	return !m_name;
-}
-
-bool tool::toolfunctiondata::operatorbool() const {
-	return !m_name;
-}
-
-const tool::toolfunctiondata& tool::findtool(const char* name) {
-	static tool::toolfunctiondata invalid{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
-
-	auto& tls = tools();
-
-	auto tool = tls.find(name);
-
-	if (tool == tls.end()) {
-		return invalid;
+		return *tool->second;
 	}
 
-	return *tool->second;
-}
-
-void tool::usage(const char* message, const char* argv0, alogs::loglevel lvl) {
-	if (message) {
-		LOG_LVL(lvl, "Error: {}", message);
-	}
-	LOG_LVL(lvl, "{} [function] (params)", argv0);
-	LOG_LVL(lvl, "Functions", argv0);
-
-	for (const auto& [key, value] : tools()) {
-		LOG_LVL(lvl, "- {}{} : {}", key, value->m_usage, value->m_description);
-	}
-}
-
-bool tool::search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each) {
-	std::vector<std::pair<std::string, std::wstring>> args{};
-
-	for (size_t i = 0; i < paramCount; i++) {
-		if (!query[i] || !query[i][0]) continue;
-		args.emplace_back(query[i], utils::StrToWStr(query[i]));
-		auto& [s, w] = args[args.size() - 1];
-		std::transform(s.begin(), s.end(), s.begin(), [](char c) { return std::tolower(c); });
-		std::transform(w.begin(), w.end(), w.begin(), [](wchar_t c) { return std::tolower(c); });
-	}
-
-	bool findAny{};
-	for (const auto& [name, tool] : tool::tools()) {
-		if (!tool) {
-			continue;
+	void usage(const char* message, const char* argv0, alogs::loglevel lvl) {
+		if (message) {
+			LOG_LVL(lvl, "Error: {}", message);
 		}
-		bool find{ true };
-		for (const auto& [s, w] : args) {
-			if (
-				tool->m_nameLower.rfind(s) != std::string::npos
-				|| tool->m_usageLower.rfind(s) != std::string::npos
-				|| tool->m_descriptionLower.rfind(s) != std::string::npos
-				|| tool->m_categoryLower.rfind(s) != std::string::npos
-				|| (!tool->m_gameLower.empty() && tool->m_gameLower.rfind(w) != std::wstring::npos)
-				) {
+		LOG_LVL(lvl, "{} [function] (params)", argv0);
+		LOG_LVL(lvl, "Functions", argv0);
+
+		for (const auto& [key, value] : tools()) {
+			LOG_LVL(lvl, "- {}{} : {}", key, value->m_usage, value->m_description);
+		}
+	}
+
+	bool search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each) {
+		std::vector<std::pair<std::string, std::wstring>> args{};
+
+		for (size_t i = 0; i < paramCount; i++) {
+			if (!query[i] || !query[i][0]) continue;
+			args.emplace_back(query[i], utils::StrToWStr(query[i]));
+			auto& [s, w] = args[args.size() - 1];
+			std::transform(s.begin(), s.end(), s.begin(), [](char c) { return std::tolower(c); });
+			std::transform(w.begin(), w.end(), w.begin(), [](wchar_t c) { return std::tolower(c); });
+		}
+
+		bool findAny{};
+		for (const auto& [name, tool] : tools()) {
+			if (!tool) {
 				continue;
 			}
-			find = false;
-			break;
+			bool find{ true };
+			for (const auto& [s, w] : args) {
+				if (
+					tool->m_nameLower.rfind(s) != std::string::npos
+					|| tool->m_usageLower.rfind(s) != std::string::npos
+					|| tool->m_descriptionLower.rfind(s) != std::string::npos
+					|| tool->m_categoryLower.rfind(s) != std::string::npos
+					|| (!tool->m_gameLower.empty() && tool->m_gameLower.rfind(w) != std::wstring::npos)
+					) {
+					continue;
+				}
+				find = false;
+				break;
+			}
+
+			if (!find) {
+				continue;
+			}
+
+			each(tool);
+			findAny = true;
 		}
 
-		if (!find) {
-			continue;
-		}
-
-		each(tool);
-		findAny = true;
+		return findAny;
 	}
 
-	return findAny;
+	namespace {
+		class ParamsContainer {
+			std::vector<std::string> values{};
+			std::vector<const char*> parsed{};
+		public:
+			ParamsContainer() {}
+
+			int SyncValues() {
+				parsed.clear();
+				parsed.reserve(values.size() + 1);
+
+				for (const std::string& str : values) {
+					parsed.push_back(str.data());
+					LOG_TRACE("param {}", str);
+				}
+
+				parsed.push_back(nullptr);
+
+				return (int)values.size();
+			}
+
+			const char** ReadParams(std::string& str, int& argc) {
+				size_t idx{};
+
+				// base value
+				values.clear();
+				values.push_back(">");
+				std::vector<char> formatted{};
+
+				do {
+					// trim spaces
+					while (idx < str.length() && isspace(str[idx])) {
+						idx++;
+					}
+
+					if (idx == str.length()) {
+						break;
+					}
+
+					char c = str[idx];
+
+					if (c == '"' || c == '\'') {
+						// quote
+						size_t start = ++idx;
+
+						bool isFormatted{};
+						while (idx < str.length() && str[idx] != c) {
+							if (str[idx] == '\\') {
+								idx++; // ignore next char
+								if (idx == str.length()) {
+									LOG_ERROR("Missing end quote {} for param {}", c, str.substr(start - 1));
+									return nullptr;
+								}
+							}
+							idx++;
+							isFormatted = true;
+						}
+
+						if (idx == str.length()) {
+							LOG_ERROR("Missing end quote {} for param {}", c, str.substr(start - 1));
+							return nullptr;
+						}
+
+						size_t end = idx;
+
+						if (isFormatted) {
+							std::string_view sw{ str.begin() + start, str.begin() + end };
+							formatted.clear();
+
+
+							for (size_t i = 0; i < sw.length(); i++) {
+								if (sw[i] != '\\') {
+									formatted.push_back(sw[i]);
+									continue;
+								}
+
+								switch (sw[++i]) {
+								case 'n': formatted.push_back('\n'); break;
+								case 't': formatted.push_back('\t'); break;
+								case 'b': formatted.push_back('\b'); break;
+								case 'r': formatted.push_back('\r'); break;
+								case 'a': formatted.push_back('\a'); break;
+								default: formatted.push_back(sw[i]); break;
+								}
+							}
+							formatted.push_back(0);
+							values.push_back(formatted.data());
+						}
+						else {
+							values.push_back(str.substr(start, end - start));
+						}
+
+						idx++;
+					}
+					else {
+						// unquoted, to next space
+
+						size_t start = idx++;
+
+						while (idx < str.length() && !isspace(str[idx])) {
+							idx++;
+						}
+
+						values.push_back(str.substr(start, idx - start));
+					}
+
+
+				} while (idx < str.length());
+
+
+				argc = SyncValues();
+				return parsed.data();
+			}
+		};
+
+		static ParamsContainer container{};
+	}
+
+	const char** ReadParams(std::string& str, int& argc) {
+		return container.ReadParams(str, argc);
+	}
+
+	int HandleCommand(int argc, const char* argv[]) {
+		const auto& tool = findtool(argv[1]);
+
+		if (!tool) {
+			LOG_ERROR("Error: Bad tool name. {} list for the tools list", *argv);
+			bool find{};
+			const char* query[]{ argv[1] };
+			tool::search(query, 1, [&find](const tool::toolfunctiondata* tool) {
+				if (!find) {
+					LOG_INFO("Similar tool name(s):");
+					find = true;
+				}
+				LOG_INFO("- {}", tool->m_name);
+				});
+
+			return tool::BASIC_ERROR;
+		}
+
+		Process proc(tool.m_game);
+		actscli::ActsOptions& opt = actscli::options();
+
+		if (tool.m_game) {
+
+			if (!proc) {
+				LOG_ERROR("Can't find game process: {}", utils::WStrToStr(tool.m_game));
+				return -1;
+			}
+			LOG_INFO("Find process {} {}", utils::WStrToStr(tool.m_game), proc);
+
+			if (!proc.Open()) {
+				LOG_ERROR("Can't open game process: 0x{:x}", GetLastError());
+				return -1;
+			}
+		}
+
+		hashutils::SaveExtracted(opt.dumpHashmap != nullptr);
+
+		const clock_t beginTime = clock();
+
+		actslib::profiler::Profiler& profiler = actscli::GetProfiler();
+
+		int output;
+		{
+			actslib::profiler::ProfiledSection ps{ profiler, tool.m_name ? tool.m_name : "no-tool-name" };
+#ifndef DEBUG
+			try {
+#endif
+				output = tool.m_func(proc, argc, argv);
+#ifndef DEBUG
+			}
+			catch (std::exception& e) {
+				LOG_ERROR("Unhandled exception: {}", e.what());
+				output = tool::BASIC_ERROR;
+			}
+#endif
+		}
+
+		LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output,
+			(output == tool::OK ? " (OK)" : output == tool::BAD_USAGE ? " (BAD_USAGE)" : output == tool::BASIC_ERROR ? " (BASIC_ERROR)" : "")
+		);
+
+		hashutils::WriteExtracted(opt.dumpHashmap);
+
+		if (output == tool::BAD_USAGE) {
+			LOG_ERROR("Error: Bad tool usage: {} {} {}", *argv, argv[1], tool.m_usage);
+		}
+
+		return output;
+	}
 }
 
 namespace {

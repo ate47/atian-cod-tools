@@ -7,8 +7,9 @@
 namespace alogs {
 	namespace {
 		alogs::loglevel g_loglevel = alogs::LVL_INFO;
-		const char* g_logfile = NULL;
+		const char* g_logfile{};
 		bool g_basiclog{};
+		std::ostream* g_outStream{};
 	}
 
 	std::mutex* getasyncmutex() {
@@ -48,6 +49,9 @@ namespace alogs {
 
 	void setfile(const char* filename) {
 		g_logfile = filename;
+	}
+	void addoutstream(std::ostream* outStream) {
+		g_outStream = outStream;
 	}
 	const char* logfile() {
 		return g_logfile;
@@ -121,6 +125,9 @@ namespace alogs {
 			static bool allowColor = clicolor::ConsoleAllowColor();
 
 			f(level < LVL_WARNING ? std::cout : std::cerr, allowColor);
+		}
+		if (g_outStream) {
+			f(*g_outStream, false);
 		}
 	}
 }

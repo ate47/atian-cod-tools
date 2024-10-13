@@ -7,7 +7,7 @@
 namespace tool::nui {
 	constexpr float PI = 3.14159265358f;
 	constexpr float PI2 = PI * 2;
-	typedef bool(*toolfunctionui)();
+	typedef void(*toolfunctionui)();
 
 	class tooluifunctiondata {
 	public:
@@ -36,6 +36,7 @@ namespace tool::nui {
 	void BeginDefaultWindow();
 	void EndDefaultWindow();
 	void DisableNextBackground();
+	void SaveNextConfig();
 
 	class ActsConfig {
 		std::vector<float> floor{};
@@ -77,6 +78,7 @@ namespace tool::nui {
 		int width;
 		int height;
 		tool::nui::renderer::NuiFont cascadiaFont{};
+		bool saveNext{};
 		ActsNUI();
 		~ActsNUI();
 

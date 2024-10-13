@@ -248,7 +248,7 @@ namespace {
 		});
 	}
 
-	bool hash_nui() {
+	void hash_nui() {
 		tool::nui::NuiUseDefaultWindow dw{};
 		static char hashBuff[0x100];
 		SyncAlgCfg();
@@ -357,13 +357,11 @@ namespace {
 		else {
 			ImGui::Text("No hashes available");
 		}
-
-		return false;
 	}
 
 	constexpr uint64_t HASH_MASK = 0xFFFFFFFFFFFFFFF; // remove 2 last bits to match fnv1a63 and greyhound hashes
 
-	bool hashsearch_nui() {
+	void hashsearch_nui() {
 		tool::nui::NuiUseDefaultWindow dw{};
 		static char guessIn[0x100]{ 0 };
 		static char guessInCpy[sizeof(guessIn)]{0};
@@ -469,7 +467,7 @@ namespace {
 
 		ImGui::InputTextMultiline("Output", guessOut.data(), guessOut.length(), ImVec2(0, 200), ImGuiInputTextFlags_ReadOnly);
 
-		return c;
+		if (c) tool::nui::SaveNextConfig();
 	}
 
     int Render(HWND window, HINSTANCE hInstance) {

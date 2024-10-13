@@ -1958,7 +1958,7 @@ namespace {
 		tool::ui::window().SetTitleFont(info.titleLabel);
 	}
 
-	bool errenc_nui() {
+	void errenc_nui() {
 		tool::nui::NuiUseDefaultWindow dw{};
 		static char encodeInput[0x100]{ 0 };
 		static char encodeOutput[0x100]{ 0 };
@@ -2045,8 +2045,6 @@ namespace {
 			}
 		}
 		ImGui::InputText("Decoded", decodeOutput, sizeof(decodeOutput), ImGuiInputTextFlags_ReadOnly);
-
-		return false;
 	}
 }
 ADD_TOOL_UI("errenc", L"T8/9 Error encoder", Render, Update, Resize);

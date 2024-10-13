@@ -221,15 +221,15 @@ namespace {
 
 	TestRenderer test{};
 
-	bool render_test_setup() {
+	void render_test_setup() {
 		test.viewDistance = (float)core::config::GetDouble("nui.testRenderer.viewDistance", test.viewDistance);
 		test.rotateSpeed = (float)core::config::GetDouble("nui.testRenderer.rotateSpeed", test.rotateSpeed);
 		test.moveSpeed = (float)core::config::GetDouble("nui.testRenderer.moveSpeed", test.moveSpeed);
 
-		return true;
+		tool::nui::SaveNextConfig();
 	}
 
-	bool render_test() {
+	void render_test() {
 		// disable the default background
 		DisableNextBackground();
 
@@ -262,7 +262,7 @@ namespace {
 
 		test.Render();
 
-		return c;
+		if (c) tool::nui::SaveNextConfig();
 	}
 
 

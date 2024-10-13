@@ -1074,7 +1074,7 @@ namespace {
         tool::ui::window().SetTitleFont(info.titleLabel);
     }
 
-    bool bo6_tools() {
+    void bo6_tools() {
         tool::nui::NuiUseDefaultWindow dw{};
         static char gscFileIn[MAX_PATH + 1]{ 0 };
         static char cbuffIn[0x100]{ 0 };
@@ -1225,8 +1225,7 @@ namespace {
                             auto scriptTarget = ps4.ReadObject<tool::gsc::GscObj24>(obj.buffer);
 
                             if (scriptTarget->checksum != script->checksum) {
-                                notif = ("Find target script, but the checksum doesn't match");
-                                return TRUE;
+                                throw std::runtime_error("Find target script, but the checksum doesn't match");
                             }
 
                             ps4.Write(obj.buffer, file.data(), file.size());
@@ -1257,7 +1256,7 @@ namespace {
             ImGui::Text("%s", notif.data());
         }
 
-        return c;
+        if (c) tool::nui::SaveNextConfig();
     }
     
     ADD_TOOL("ps4cbufbo6", "dev", " [ip:port] [cmd]", "", nullptr, ps4cbufbo6);
