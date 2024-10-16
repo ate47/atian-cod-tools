@@ -25,6 +25,7 @@ namespace actscli {
 		const char* seriousDBFile{};
 		const char* hashPrefixByPass{};
 		bool heavyHashes{};
+		bool forceError{};
 		ActsType type{ ACTS_CLI };
 		bool exitAfterEnd{};
 	};

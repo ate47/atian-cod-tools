@@ -13,6 +13,12 @@ namespace utils {
 	Timestamp GetTimestamp();
 
 	/*
+	 * Get null stream
+	 * @return stream
+	 */
+	std::ostream& NullStream();
+
+	/*
 	 * Return va string
 	 * @param fmt format
 	 * @return string

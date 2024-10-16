@@ -6,6 +6,15 @@ namespace utils {
         return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     }
 
+    std::ostream& NullStream() {
+        static thread_local std::ofstream nullstream{ ([] {
+            std::ofstream s;
+            s.setstate(std::ios_base::badbit);
+            return s;
+        })() };
+        return nullstream;
+    }
+
     char* va(const char* fmt, ...) {
         va_list va{};
         va_start(va, fmt);

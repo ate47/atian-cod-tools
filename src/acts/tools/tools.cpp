@@ -298,17 +298,22 @@ namespace tool {
 		int output;
 		{
 			actslib::profiler::ProfiledSection ps{ profiler, tool.m_name ? tool.m_name : "no-tool-name" };
-#ifndef DEBUG
-			try {
-#endif
+			if (opt.forceError) {
 				output = tool.m_func(proc, argc, argv);
+			}
+			else {
 #ifndef DEBUG
-			}
-			catch (std::exception& e) {
-				LOG_ERROR("Unhandled exception: {}", e.what());
-				output = tool::BASIC_ERROR;
-			}
+				try {
 #endif
+					output = tool.m_func(proc, argc, argv);
+#ifndef DEBUG
+				}
+				catch (std::exception& e) {
+					LOG_ERROR("Unhandled exception: {}", e.what());
+					output = tool::BASIC_ERROR;
+				}
+#endif
+			}
 		}
 
 		LOG_TRACE("Tool took {}s to run with output {}{}", (double)(clock() - beginTime) / CLOCKS_PER_SEC, output,

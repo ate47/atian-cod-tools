@@ -31,6 +31,9 @@ namespace {
 			if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
 				opt.showHelp = true;
 			}
+			else if (!strcmp("-F", arg) || !_strcmpi("--force-error", arg)) {
+				opt.forceError = true;
+			}
 			else if (!strcmp("-t", arg) || !_strcmpi("--no-title", arg)) {
 				opt.showTitle = false;
 			}
@@ -224,10 +227,12 @@ namespace {
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -W --work          : Tell which work to use: repl, cli");
+		
 		LOG_DEBUG(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
 		LOG_DEBUG("--mark-hash         : Mark the hash default value");
 		LOG_DEBUG("--hashprefix [p]    : Ignore the default prefix");
 		LOG_DEBUG("--heavy-hashes      : Heavy hashes format");
+		LOG_DEBUG("-F --force-error    : Force error");
 	}
 }
 
