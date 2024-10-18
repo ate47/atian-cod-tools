@@ -70,7 +70,7 @@ namespace tool::gsc::opcode {
 		std::unordered_set<uint64_t> devCallsNames{};
 		std::unordered_map<uint16_t, std::unordered_map<Platform, OPCode>> opcodemap{};
 		std::unordered_map<OPCode, std::unordered_map<Platform, uint16_t>> opcodemaplookup{};
-		std::unordered_map<Platform, std::unordered_map<OPCode, std::vector<uint16_t>>> opcodemappltlookup{};
+		std::unordered_map<Platform, std::unordered_map<OPCode, std::unordered_set<uint16_t>>> opcodemappltlookup{};
 		std::unordered_map<uint64_t, GlobalVariableDef> globalvars{};
 		std::unordered_map<uint64_t, FunctionOperator> opFuncs{};
 		std::unordered_map<uint64_t, const char*> dataType{};

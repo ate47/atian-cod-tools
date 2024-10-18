@@ -105,6 +105,8 @@ namespace {
 			if (useTreyarch) {
 				utils::WriteValue(rawdata, hash::Hash64(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
+				utils::WriteValue(rawdata, hashutils::HashT7(line.c_str()));
+				utils::WriteString(rawdata, line.c_str());
 			}
 			if (useIW) {
 				utils::WriteValue(rawdata, hashutils::HashIWRes(line.c_str()));
@@ -112,6 +114,10 @@ namespace {
 				utils::WriteValue(rawdata, hashutils::HashJupScr(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
 				utils::WriteValue(rawdata, hashutils::Hash64(line.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
+				utils::WriteString(rawdata, line.c_str());
+				utils::WriteValue(rawdata, hashutils::HashIWDVar(line.c_str()));
+				utils::WriteString(rawdata, line.c_str());
+				utils::WriteValue(rawdata, hashutils::HashT10Scr(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
 			}
 			count++;

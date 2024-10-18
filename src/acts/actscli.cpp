@@ -343,7 +343,6 @@ namespace {
 				for (size_t i = 1; i < tool::gsc::opcode::Platform::PLATFORM_COUNT; i++) {
 					auto p = (tool::gsc::opcode::Platform)i;
 					if (vminfo.HasPlatform(p) && doPackVm(vm, p)) {
-						LOG_INFO("Dump vm {} / {}", vminfo.name, tool::gsc::opcode::PlatformName(p));
 						uint32_t opIdx{};
 						uint32_t opcodeoff{};
 						auto pit = vminfo.opcodemappltlookup.find(p);
@@ -355,6 +354,7 @@ namespace {
 								opcodelen += opv.size();
 							}
 
+							LOG_INFO("Dump vm {} / {} / {}", vminfo.name, tool::gsc::opcode::PlatformName(p), opcodelen);
 							opcodeoff = CreateBlock(opcodelen * sizeof(ActsPackOpCode));
 							for (const auto& [ope, opvl] : pit->second) {
 								for (auto opv : opvl) {

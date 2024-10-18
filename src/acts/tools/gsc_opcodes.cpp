@@ -4899,7 +4899,7 @@ namespace tool::gsc::opcode {
 
 		opnfo.opcodemap[op][platform] = enumValue;
 		opnfo.opcodemaplookup[enumValue][platform] = op;
-		opnfo.opcodemappltlookup[platform][enumValue].push_back(op);
+		opnfo.opcodemappltlookup[platform][enumValue].insert(op);
 	}
 
 	void RegisterSameCodePlatform(byte vm, Platform main, Platform sub) {
