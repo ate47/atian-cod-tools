@@ -2105,7 +2105,7 @@ namespace {
 
 ADD_TOOL("dps", "bo4", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
 ADD_TOOL("ddv", "bo4", " [output=dvars.csv]", "dump dvars", L"BlackOps4.exe", dumpdvars);
-ADD_TOOL("wps", "bo4", " [output=scriptparsetree]", "write pooled scripts", L"BlackOps4.exe", writepoolscripts);
+ADD_TOOL("wpsbo4", "bo4", " [output=scriptparsetree]", "write pooled scripts", L"BlackOps4.exe", writepoolscripts);
 ADD_TOOL("wef", "bo4", " [output=efields.csv]", "write ent fields", L"BlackOps4.exe", wef);
 ADD_TOOL("dls", "bo4", " [output=linked.csv]", "dump linked scripts", L"BlackOps4.exe", linkedscripts);
 ADD_TOOL("dfunc", "bo4", " [output=funcs.csv]", "dump functions", L"BlackOps4.exe", dumpfunctions);

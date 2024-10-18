@@ -323,7 +323,7 @@ public:
             }
             else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param: {}!", arg);
                     return false;
                 }
                 m_output = args[++i];
@@ -336,10 +336,10 @@ public:
             }
             else if (!strcmp("-f", arg) || !_strcmpi("--flag", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param: {}!", arg);
                     return false;
                 }
-                auto flagName = args[++i];
+                const char* flagName = args[++i];
 
                 if (!_strcmpi("ddloffset", arg)) {
                     flags |= DDL_OFFSET;
@@ -348,34 +348,36 @@ public:
                     flags |= DUMP_ASSETS;
                 }
                 else {
-                    std::cerr << "Invalid flag for -" << arg << ": " << flagName << "\n";
+                    LOG_ERROR("Invalid flag for {}: {}", arg, flagName);
                     return false;
                 }
             }
             else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param: {}!", arg);
                     return false;
                 }
                 m_dump_hashmap = args[++i];
             }
             else if (*arg == '-') {
-                std::cerr << "Invalid argument: " << arg << "!\n";
+                LOG_ERROR("Invalid argument {}!", arg);
                 return false;
             }
             else {
-                auto assetType = pool::XAssetIdFromName(arg);
+                pool::XAssetType assetType = pool::XAssetIdFromName(arg);
 
                 if (assetType == pool::ASSET_TYPE_COUNT) {
-                    try {
-                        assetType = (pool::XAssetType)std::strtol(arg, nullptr, 10);
-                    }
-                    catch (const std::invalid_argument& e) {
-                        std::cerr << e.what() << "\n";
-                        assetType = pool::ASSET_TYPE_COUNT;
+                    if (*arg >= '0' && *arg <= '9') {
+                        try {
+                            assetType = (pool::XAssetType)std::strtol(arg, nullptr, 10);
+                        }
+                        catch (const std::invalid_argument& e) {
+                            LOG_ERROR("Can't parse pool id '{}'", e.what());
+                            assetType = pool::ASSET_TYPE_COUNT;
+                        }
                     }
                     if (assetType < 0 || assetType >= pool::ASSET_TYPE_COUNT) {
-                        std::cerr << "Invalid pool name: " << arg << "!\n";
+                        LOG_ERROR("Invalid pool name: {}!", arg);
                         return false;
                     }
                 }
@@ -386,13 +388,12 @@ public:
         }
         return true;
     }
-    void PrintHelp(std::ostream& out) {
-        out << "-h --help            : Print help\n"
-            << "-i --info            : Dump pool info\n"
-            << "-a --all             : Dump all available pools\n"
-            << "-o --output [d]      : Output dir\n"
-            << "-f --flag [f]        : Add flag\n"
-            ;
+    void PrintHelp() {
+        LOG_INFO("-h --help       : Print help");
+        LOG_INFO("-i --info       : Dump pool info");
+        LOG_INFO("-a --all        : Dump all available pools");
+        LOG_INFO("-o --output [d] : Output dir");
+        LOG_INFO("-f --flag [f]   : Add flag");
     }
 };
 
@@ -665,10 +666,10 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
 
             // check x64 values
             if (j >= 7) {
-                auto val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
+                uint64_t val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
                 if (val) {
                     // not null, hash?
-                    auto* h = hashutils::ExtractPtr(val);
+                    const char* h = hashutils::ExtractPtr(val);
                     if (h) {
                         out << " #" << h;
                     }
@@ -676,9 +677,9 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
                         out << " ->" << strBuffer;
                     }
                     else if (proc.ReadMemory(strBuffer, val, sizeof(uint64_t))) {
-                        auto r = *reinterpret_cast<uint64_t*>(strBuffer);
+                        uint64_t r = *reinterpret_cast<uint64_t*>(strBuffer);
 
-                        auto* h = hashutils::ExtractPtr(r);
+                        const char* h = hashutils::ExtractPtr(r);
                         if (h) {
                             out << " ->#" << h;
                         }
@@ -721,10 +722,10 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
 
             // check x64 values
             if (j >= 7) {
-                auto val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
+                uint64_t val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
                 if (val) {
                     // not null, hash?
-                    auto* h = hashutils::ExtractPtr(val);
+                    const char* h = hashutils::ExtractPtr(val);
                     if (h) {
                         out << " #" << h;
                     }
@@ -738,7 +739,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
 
 const char* tool::pool::ReadMTString(const Process& proc, uint32_t val) {
     static char str_read[0x2001];
-    auto strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (uint32_t)(0x14 * val);
+    uintptr_t strptr = proc.ReadMemory<uintptr_t>(proc[offset::mt_buffer]) + (uint32_t)(0x14 * val);
     if (!proc.ReadMemory<int16_t>(strptr) || proc.ReadMemory<byte>(strptr + 3) != 7) {
         return nullptr;
     }
@@ -747,7 +748,7 @@ const char* tool::pool::ReadMTString(const Process& proc, uint32_t val) {
         return nullptr;
     }
 
-    auto flag = proc.ReadMemory<char>(strptr + 2);
+    byte flag = proc.ReadMemory<byte>(strptr + 2);
     const char* strDec;
     if ((flag & 0x40) || flag >= 0) {
         // not encrypted
@@ -847,7 +848,7 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
     auto objects = std::make_unique<SB_Object[]>(arr.sbObjectCount + 1);
 
     if (!proc.ReadMemory(&objects[0], arr.sbObjects, sizeof(objects[0]) * arr.sbObjectCount)) {
-        std::cerr << "Error when reading object at depth " << std::dec << depth << "\n";
+        LOG_ERROR("Error when reading object at depth {}", depth);
         return false;
     }
 
@@ -867,7 +868,7 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
         auto subs = std::make_unique<SB_Sub[]>(arr.sbSubCount);
 
         if (!proc.ReadMemory(&subs[0], arr.sbSubs, sizeof(subs[0]) * arr.sbSubCount)) {
-            std::cerr << "Error when reading object at depth " << std::dec << depth << "\n";
+            LOG_ERROR("Error when reading object at depth {}", depth);
             return false;
         }
 
@@ -883,7 +884,7 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
             auto* strval = ReadMTString(proc, sub.keyname);
 
             if (!strval) {
-                std::cerr << "Can't read array key\n";
+                LOG_ERROR("Can't read array key");
                 return false;
             }
             keys.insert(hash::Hash32(strval));
@@ -898,7 +899,7 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
 
                 if (!proc.ReadMemory(&item, sub.item + sizeof(item) * j, sizeof(item))
                     || !ReadSBObject(proc, defout, depth + 2, item, strings)) {
-                    std::cerr << "Can't read array item\n";
+                    LOG_ERROR("Can't read array item");
                     return false;
                 }
             }
@@ -1320,7 +1321,7 @@ int pooltoolnames(Process& proc, int argc, const char* argv[]) {
         auto id = (XAssetType)i;
 
         if (!proc.ReadMemory(&entry, proc[offset::assetPool] + sizeof(entry) * id, sizeof(entry))) {
-            std::cerr << "Can't read pool entry\n";
+            LOG_ERROR("Can't read pool entry");
             return false;
         }
 
@@ -1332,10 +1333,10 @@ int pooltoolnames(Process& proc, int argc, const char* argv[]) {
         std::filesystem::path file{ output };
         std::filesystem::create_directories(file.parent_path(), ec);
         std::ofstream defout{ file };
-        std::cout << name << " -> " << output << "\n";
+        LOG_INFO("{} -> {}", name, output);
 
         if (!defout) {
-            std::cerr << "Can't open output file\n";
+            LOG_ERROR("Can't open output file");
             continue;
         }
             
@@ -1361,7 +1362,7 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
     PoolOption opt;
 
     if (!opt.Compute(argv, 2, argc) || opt.m_help) {
-        opt.PrintHelp(std::cout);
+        opt.PrintHelp();
         return tool::OK;
     }
 
@@ -1423,7 +1424,7 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
     }
 
     if (!opt.m_any_type && !opt.m_dump_all_available) {
-        opt.PrintHelp(std::cout);
+        opt.PrintHelp();
         return tool::OK;
     }
     hashutils::ReadDefaultFile();
@@ -1466,10 +1467,9 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
             return -1;
         }
 
-        TranslationEntry* raw = new TranslationEntry[entry.itemAllocCount];
+        auto raw = std::make_unique<TranslationEntry[]>(entry.itemAllocCount);
 
-        if (!proc.ReadMemory(raw, entry.pool, sizeof(*raw) * entry.itemAllocCount)) {
-            delete[] raw;
+        if (!proc.ReadMemory(raw.get(), entry.pool, sizeof(raw[0]) * entry.itemAllocCount)) {
             std::cerr << "Can't read pool data\n";
             return tool::BASIC_ERROR;
         }
@@ -1485,7 +1485,6 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
             out << hashutils::ExtractTmp("hash", raw[i].name) << "," << decrypt::DecryptString(str) << "\n";
         }
         out.close();
-        delete[] raw;
     }
     if (ShouldHandle(ASSET_TYPE_STRINGTABLE)) {
         auto pool = std::make_unique<StringTableEntry[]>(entry.itemAllocCount);
@@ -6420,4 +6419,4 @@ ADD_TOOL("dpbo4", "bo4", " [pool]+", "Black Ops 4 dump pool", L"BlackOps4.exe", 
 ADD_TOOL("dpn", "bo4", "", "dump pool names", L"BlackOps4.exe", pooltoolnames);
 ADD_TOOL("dbgcache", "bo4", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
 ADD_TOOL("dbmtstrs", "bo4", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
-ADD_TOOL("dbgp", "bo4", "", "dump bg pool", L"BlackOps4.exe", dbgp);
+ADD_TOOL("dbgpbo4", "bo4", "", "dump bg pool", L"BlackOps4.exe", dbgp);
