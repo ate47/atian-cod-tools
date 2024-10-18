@@ -717,6 +717,6 @@ namespace {
         if (c) tool::nui::SaveNextConfig();
     }
 
-    ADD_TOOL_UI("gsc_inject", L"GSC Inject", Render, Update, Resize);
-    ADD_TOOL_NUI("gsc_inject", "GSC Inject", gsc_inject);
+    ADD_TOOL_UI(gsc_inject, L"GSC Inject", Render, Update, Resize);
+    ADD_TOOL_NUI(gsc_inject, "GSC Inject", gsc_inject);
 }

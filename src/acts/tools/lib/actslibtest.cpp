@@ -473,7 +473,7 @@ namespace {
 }
 
 #ifndef CI_BUILD
-ADD_TOOL("actslibtest", "lib", "", "Acts lib test", nullptr, actslibtest);
+ADD_TOOL(actslibtest, "lib", "", "Acts lib test", nullptr, actslibtest);
 #endif
 
-ADD_TOOL("actslibprofiler", "lib", " [profile file]", "Read profiler", nullptr, actslibprofiler);
+ADD_TOOL(actslibprofiler, "lib", " [profile file]", "Read profiler", nullptr, actslibprofiler);

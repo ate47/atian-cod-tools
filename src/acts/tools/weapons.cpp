@@ -316,4 +316,4 @@ namespace {
 
 }
 
-ADD_TOOL("wfd", "bo4", "", "Weapon field dump", L"BlackOps4.exe", wfdump);
+ADD_TOOL(wfd, "bo4", "", "Weapon field dump", L"BlackOps4.exe", wfdump);

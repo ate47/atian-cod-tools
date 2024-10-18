@@ -425,7 +425,7 @@ namespace {
 
 		return tool::OK;
 	}
-	ADD_TOOL("color", "dev", "", "color tool", nullptr, color);
+	ADD_TOOL(color, "dev", "", "color tool", nullptr, color);
 #endif
 	int info(Process& proc, int argc, const char* argv[]) {
 		LOG_INFO("Loading acts data...");
@@ -475,7 +475,7 @@ namespace {
 		return tool::OK;
 	}
 }
-ADD_TOOL("list", "acts", "", "list all the tools", nullptr, list);
-ADD_TOOL("help", "acts", "", "list all the tools", nullptr, help);
-ADD_TOOL("info", "acts", "", "acts info", nullptr, info);
-ADD_TOOL("search", "acts", " (args)*", "search a tool", nullptr, search);
+ADD_TOOL(list, "acts", "", "list all the tools", nullptr, list);
+ADD_TOOL(help, "acts", "", "list all the tools", nullptr, help);
+ADD_TOOL(info, "acts", "", "acts info", nullptr, info);
+ADD_TOOL(search, "acts", " (args)*", "search a tool", nullptr, search);

@@ -107,6 +107,6 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL("serious_opcodes_read", "compatibility", " [file] [out]", "Dump opcodes file", nullptr, serious_opcodes_read);
-	ADD_TOOL("serious_opcodes_write", "compatibility", " [out] [vm] [plt]", "Create opcodes file", nullptr, serious_opcodes_write);
+	ADD_TOOL(serious_opcodes_read, "compatibility", " [file] [out]", "Dump opcodes file", nullptr, serious_opcodes_read);
+	ADD_TOOL(serious_opcodes_write, "compatibility", " [out] [vm] [plt]", "Create opcodes file", nullptr, serious_opcodes_write);
 }

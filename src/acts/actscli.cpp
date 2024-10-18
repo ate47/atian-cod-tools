@@ -436,7 +436,7 @@ namespace actscli {
 		return res;
 	}
 }
-ADD_TOOL("packfile", "acts", " [file=acts.acpf]", "Create ACTS pack file", nullptr, packfile);
-ADD_TOOL("exit", "acts", "", "Exit repl cli", nullptr, exitcli);
-ADD_TOOL("echo", "acts", "", "echo", nullptr, echocli);
-ADD_TOOL("repl", "acts", "", "Use repl cli", nullptr, replcli);
+ADD_TOOL(packfile, "acts", " [file=acts.acpf]", "Create ACTS pack file", nullptr, packfile);
+ADD_TOOL(exit, "acts", "", "Exit repl cli", nullptr, exitcli);
+ADD_TOOL(echo, "acts", "", "echo", nullptr, echocli);
+ADD_TOOL(repl, "acts", "", "Use repl cli", nullptr, replcli);

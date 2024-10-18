@@ -100,7 +100,7 @@ namespace tool::nui {
 	};
 }
 
-#define ADD_TOOL_NUI(id, desc, function) static tool::nui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, nullptr, function, false)
-#define ADD_TOOL_NUI2(id, desc, setup, function) static tool::nui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, setup, function, false)
-#define ADD_TOOL_NUI_DEV(id, desc, function) static tool::nui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, nullptr, function, true)
-#define ADD_TOOL_NUI2_DEV(id, desc, setup, function) static tool::nui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, setup, function, true)
+#define ADD_TOOL_NUI(id, desc, function) static tool::nui::tooluifunctiondata __toolnuifunctiondata_##id(#id, desc, nullptr, function, false)
+#define ADD_TOOL_NUI2(id, desc, setup, function) static tool::nui::tooluifunctiondata __toolnuifunctiondata_##id(#id, desc, setup, function, false)
+#define ADD_TOOL_NUI_DEV(id, desc, function) static tool::nui::tooluifunctiondata __toolnuifunctiondata_##id(#id, desc, nullptr, function, true)
+#define ADD_TOOL_NUI2_DEV(id, desc, setup, function) static tool::nui::tooluifunctiondata __toolnuifunctiondata_##id(#id, desc, setup, function, true)

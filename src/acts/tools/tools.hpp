@@ -47,4 +47,4 @@ namespace tool {
 	void usage(const char* message, const char* argv0, alogs::loglevel lvl = alogs::loglevel::LVL_ERROR);
 }
 
-#define ADD_TOOL(name, category, usage, desc, needGame, function) static tool::toolfunctiondata __toolfunctiondata_##function(name, category, usage, desc, needGame, function)
+#define ADD_TOOL(id, category, usage, desc, needGame, function) static tool::toolfunctiondata __toolfunctiondata_##id(#id, category, usage, desc, needGame, function)

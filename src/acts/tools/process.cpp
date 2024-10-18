@@ -455,7 +455,7 @@ namespace {
 }
 
 #ifndef CI_BUILD
-ADD_TOOL("crashproc", "dev", "", "", nullptr, crashproc);
-ADD_TOOL("procloop", "dev", "", "proc loop", nullptr, procloop);
+ADD_TOOL(crashproc, "dev", "", "", nullptr, crashproc);
+ADD_TOOL(procloop, "dev", "", "proc loop", nullptr, procloop);
 #endif
-ADD_TOOL("proc", "dev", " (process) (s) [module] [function]", "process explorer", nullptr, processtool);
+ADD_TOOL(proc, "dev", " (process) (s) [module] [function]", "process explorer", nullptr, processtool);

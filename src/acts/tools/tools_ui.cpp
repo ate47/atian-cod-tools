@@ -93,4 +93,4 @@ namespace {
 		SetWindowPos(toolInfo.mainLabel, NULL, 8, 8, width - 8, height - 8, SWP_SHOWWINDOW);
 	}
 }
-ADD_TOOL_UI("acts", L"Atian Tools", RenderActs, UpdateActs, ResizeActs);
+ADD_TOOL_UI(acts, L"Atian Tools", RenderActs, UpdateActs, ResizeActs);

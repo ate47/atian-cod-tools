@@ -1262,20 +1262,20 @@ namespace {
 
 }
 
-ADD_TOOL_UI("hash", L"Hash", Render, Update, Resize);
-ADD_TOOL_NUI("hash", "Hash", hash_nui);
-ADD_TOOL_NUI("hashsearch", "Searcher", hashsearch_nui);
+ADD_TOOL_UI(hash, L"Hash", Render, Update, Resize);
+ADD_TOOL_NUI(hash, "Hash", hash_nui);
+ADD_TOOL_NUI(hashsearch, "Searcher", hashsearch_nui);
 
-ADD_TOOL("lookup", "hash", " (string)*", "lookup strings", nullptr, lookuptool);
-ADD_TOOL("expand_gen", "hash", " [count]", "expand test", nullptr, expand_gen);
-ADD_TOOL("h32", "hash", " (string)*", "hash strings", nullptr, hash32);
-ADD_TOOL("h64", "hash", " (string)*", "hash strings", nullptr, hash64);
-ADD_TOOL("ht7", "hash", " (string)*", "hash strings", nullptr, hasht7);
-ADD_TOOL("httest", "hash", " (string)*", "hash strings", nullptr, httest);
-ADD_TOOL("fnv1acrack", "hash", " [string] [hash] [iv]", "crack fnv1a key, base iv: 100000001b3, 10000000233", nullptr, fnv1acrack);
-ADD_TOOL("fnv1acrack2", "hash", " [csv] [iv]", "crack fnv1a key (one key based)", nullptr, fnv1acrack2);
-ADD_TOOL("fnv1acrack3", "hash", " [csv] [iv]", "crack fnv1a keys (first char based)", nullptr, fnv1acrack3);
-ADD_TOOL("str", "hash", "", "check collisions in the string file", nullptr, collisiontool);
+ADD_TOOL(lookup, "hash", " (string)*", "lookup strings", nullptr, lookuptool);
+ADD_TOOL(expand_gen, "hash", " [count]", "expand test", nullptr, expand_gen);
+ADD_TOOL(h32, "hash", " (string)*", "hash strings", nullptr, hash32);
+ADD_TOOL(h64, "hash", " (string)*", "hash strings", nullptr, hash64);
+ADD_TOOL(ht7, "hash", " (string)*", "hash strings", nullptr, hasht7);
+ADD_TOOL(httest, "hash", " (string)*", "hash strings", nullptr, httest);
+ADD_TOOL(fnv1acrack, "hash", " [string] [hash] [iv]", "crack fnv1a key, base iv: 100000001b3, 10000000233", nullptr, fnv1acrack);
+ADD_TOOL(fnv1acrack2, "hash", " [csv] [iv]", "crack fnv1a key (one key based)", nullptr, fnv1acrack2);
+ADD_TOOL(fnv1acrack3, "hash", " [csv] [iv]", "crack fnv1a keys (first char based)", nullptr, fnv1acrack3);
+ADD_TOOL(str, "hash", "", "check collisions in the string file", nullptr, collisiontool);
 #ifndef CI_BUILD
-ADD_TOOL("fakefnvds", "hash", " [csv] [key] [iv]", "gen fake fnv1a dataset", nullptr, fakefnvds);
+ADD_TOOL(fakefnvds, "hash", " [csv] [key] [iv]", "gen fake fnv1a dataset", nullptr, fakefnvds);
 #endif

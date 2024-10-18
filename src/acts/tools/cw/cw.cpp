@@ -925,16 +925,16 @@ namespace {
 	}
 }
 
-ADD_TOOL("cwdllgt", "cw", " [gametype] (map)", "set gametype", L"BlackOpsColdWar.exe", cwdllgt);
-ADD_TOOL("cwdllac", "cw", " [action] (param str)", "run dll action", L"BlackOpsColdWar.exe", cwdllac);
+ADD_TOOL(cwdllgt, "cw", " [gametype] (map)", "set gametype", L"BlackOpsColdWar.exe", cwdllgt);
+ADD_TOOL(cwdllac, "cw", " [action] (param str)", "run dll action", L"BlackOpsColdWar.exe", cwdllac);
 
 #ifndef CI_BUILD
 
-ADD_TOOL("tcrccw", "cw", "", "test crc (cw)", nullptr, cwtestchecksum);
-ADD_TOOL("rawdecryptcw", "cw", "", " raw decrypt (cw)", nullptr, rawdecryptcw);
+ADD_TOOL(tcrccw, "cw", "", "test crc (cw)", nullptr, cwtestchecksum);
+ADD_TOOL(rawdecryptcw, "cw", "", " raw decrypt (cw)", nullptr, rawdecryptcw);
 
-ADD_TOOL("ps4_dpcw100", "cw", " [ip:port]", "dump ps4 scripts (CW)", nullptr, ps4reader100);
-ADD_TOOL("ps4_vtcw100", "cw", " [ip:port]", "dump ps4 vtable (CW)", nullptr, ps4vtable100);
-ADD_TOOL("ps4_sm100", "cw", " [ip:port] [mode=0,1,2,3]", "set mode (CW)", nullptr, ps4setmode100);
+ADD_TOOL(ps4_dpcw100, "cw", " [ip:port]", "dump ps4 scripts (CW)", nullptr, ps4reader100);
+ADD_TOOL(ps4_vtcw100, "cw", " [ip:port]", "dump ps4 vtable (CW)", nullptr, ps4vtable100);
+ADD_TOOL(ps4_sm100, "cw", " [ip:port] [mode=0,1,2,3]", "set mode (CW)", nullptr, ps4setmode100);
 
 #endif

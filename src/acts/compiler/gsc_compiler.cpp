@@ -5895,6 +5895,6 @@ namespace acts::compiler {
         return tool::OK;
     }
 
-    ADD_TOOL("gscc", "gsc", " --help", "gsc compiler", nullptr, compiler);
-    ADD_TOOL("gscc_pack", "gsc", " [vm] [plt]", "pack required opcode for a vm", nullptr, gscc_pack);
+    ADD_TOOL(gscc, "gsc", " --help", "gsc compiler", nullptr, compiler);
+    ADD_TOOL(gscc_pack, "gsc", " [vm] [plt]", "pack required opcode for a vm", nullptr, gscc_pack);
 }

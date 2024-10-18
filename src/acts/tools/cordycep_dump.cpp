@@ -1584,6 +1584,6 @@ namespace tool::cordycep::dump {
 			return ret;
 		}
 	}
-	ADD_TOOL("csid", "compatibility", "", "Dump csi info", nullptr, csi_test);
-	ADD_TOOL("dpcord", "common", "", "Cordycep dump tool", L"Cordycep.CLI.exe", dpcord);
+	ADD_TOOL(csid, "compatibility", "", "Dump csi info", nullptr, csi_test);
+	ADD_TOOL(dpcord, "common", "", "Cordycep dump tool", L"Cordycep.CLI.exe", dpcord);
 }

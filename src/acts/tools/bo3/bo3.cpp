@@ -125,4 +125,4 @@ namespace {
         return ret;
     }
 }
-ADD_TOOL("injectbo3", "bo3", " (script) (replace)", "inject script (bo3)", L"BlackOps3.exe", injectbo3);
+ADD_TOOL(injectbo3, "bo3", " (script) (replace)", "inject script (bo3)", L"BlackOps3.exe", injectbo3);

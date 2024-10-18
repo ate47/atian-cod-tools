@@ -417,9 +417,9 @@ namespace tool::hash::scanner {
 			return tool::OK;
 		}
 		
-		ADD_TOOL("hashscan", "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
-		ADD_TOOL("hashbrute", "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
-		ADD_TOOL("hashbrutedict", "hash", " [dir] [output] [dict] (prefix) (suffix)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
+		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
+		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
+		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
 
 	}
 

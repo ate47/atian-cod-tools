@@ -192,6 +192,6 @@ namespace {
 
 #ifndef CI_BUILD
 
-ADD_TOOL("gscdemo", "dev", "", "", nullptr, gscdemo);
+ADD_TOOL(gscdemo, "dev", "", "", nullptr, gscdemo);
 
 #endif

@@ -281,8 +281,8 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL("serious_db", "compatibility", " ([type] [vm])+", "Create a t7compiler database", nullptr, builddb);
-	ADD_TOOL("serious_dbd", "compatibility", " [database]", "Dump a t7compiler database", nullptr, dumpdb);
-	ADD_TOOL("serious_remap", "compatibility", " [database] [vm] [plt] [old] [new]", "Remap an opcode in a vm", nullptr, remapdb);
+	ADD_TOOL(serious_db, "compatibility", " ([type] [vm])+", "Create a t7compiler database", nullptr, builddb);
+	ADD_TOOL(serious_dbd, "compatibility", " [database]", "Dump a t7compiler database", nullptr, dumpdb);
+	ADD_TOOL(serious_remap, "compatibility", " [database] [vm] [plt] [old] [new]", "Remap an opcode in a vm", nullptr, remapdb);
 }
 

@@ -35,6 +35,6 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL("hashsearcher", "hash", " [file] [output]", "search in hash file", nullptr, hashsearcher);
+	ADD_TOOL(hashsearcher, "hash", " [file] [output]", "search in hash file", nullptr, hashsearcher);
 
 }

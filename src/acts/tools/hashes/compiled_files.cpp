@@ -135,6 +135,6 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL("cfd", "hash", " [dir] (output)", "decompile raw compiled file (.cf)", nullptr, cfd);
+	ADD_TOOL(cfd, "hash", " [dir] (output)", "decompile raw compiled file (.cf)", nullptr, cfd);
 
 }

@@ -75,8 +75,8 @@ namespace {
 	
 }
 
-ADD_TOOL("test", "dev", "", "Tests", nullptr, test);
-ADD_TOOL("memalloctest", "dev", "", "Tests", nullptr, memalloctest);
-ADD_TOOL("wget", "dev", " [url]", "Tests", nullptr, testurl);
-ADD_TOOL("cfgtest", "dev", "", "", nullptr, cfgtest);
+ADD_TOOL(test, "dev", "", "Tests", nullptr, test);
+ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);
+ADD_TOOL(wget, "dev", " [url]", "Tests", nullptr, testurl);
+ADD_TOOL(cfgtest, "dev", "", "", nullptr, cfgtest);
 #endif

@@ -894,5 +894,5 @@ namespace acts::compiler::adl {
         return tool::OK;
     }
 
-    ADD_TOOL("adlc", "common", " [def] ([data] [output])", "ADL compiler", nullptr, adlcompiler);
+    ADD_TOOL(adlc, "common", " [def] ([data] [output])", "ADL compiler", nullptr, adlcompiler);
 }

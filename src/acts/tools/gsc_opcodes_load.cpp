@@ -2138,8 +2138,8 @@ namespace tool::gsc::opcode {
 		return tool::OK;
 	}
 
-	ADD_TOOL("opcodetest", "dev", "", "test opcodes names lookup", nullptr, opcodetest);
+	ADD_TOOL(opcodetest, "dev", "", "test opcodes names lookup", nullptr, opcodetest);
 #endif
-	ADD_TOOL("dop", "dev", " [file=opcodes.actsop]", "dump opcodes", nullptr, dop);
+	ADD_TOOL(dop, "dev", " [file=opcodes.actsop]", "dump opcodes", nullptr, dop);
 
 }

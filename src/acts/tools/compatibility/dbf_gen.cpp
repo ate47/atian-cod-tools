@@ -616,6 +616,6 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL("dbfgen", "compatibility", " (in) (out)", "Gen dynamic file", nullptr, dbfgen);
-	ADD_TOOL("dbfread", "compatibility", " (out)", "Read dynamic file", nullptr, dbfread);
+	ADD_TOOL(dbfgen, "compatibility", " (in) (out)", "Gen dynamic file", nullptr, dbfgen);
+	ADD_TOOL(dbfread, "compatibility", " (out)", "Read dynamic file", nullptr, dbfread);
 }

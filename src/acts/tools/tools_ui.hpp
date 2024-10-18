@@ -49,4 +49,4 @@ namespace tool::ui {
 	std::wstring GetWindowTextVal(HWND hwnd);
 	std::wstring GetActsDesc(bool nui = false);
 }
-#define ADD_TOOL_UI(id, desc, function, msg, resize) static tool::ui::tooluifunctiondata __tooluifunctiondata_##function(id, desc, function, msg, resize)
+#define ADD_TOOL_UI(id, desc, function, msg, resize) static tool::ui::tooluifunctiondata __tooluifunctiondata_##id(#id, desc, function, msg, resize)

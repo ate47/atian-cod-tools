@@ -266,5 +266,5 @@ namespace {
 	}
 
 
-	ADD_TOOL_NUI2_DEV("render_test", "Renderer test", render_test_setup, render_test);
+	ADD_TOOL_NUI2_DEV(render_test, "Renderer test", render_test_setup, render_test);
 }

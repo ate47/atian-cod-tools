@@ -116,7 +116,7 @@ namespace {
 
 #ifndef CI_BUILD
 
-ADD_TOOL("gscmerge", "gsc", "[output] [files]+", "merge GSC files", nullptr, gscmerge);
+ADD_TOOL(gscmerge, "gsc", "[output] [files]+", "merge GSC files", nullptr, gscmerge);
 
 #endif
 

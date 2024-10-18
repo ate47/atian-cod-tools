@@ -372,8 +372,8 @@ namespace {
         return tool::OK;
     }
 
-    ADD_TOOL("gschook", "gsc", " [base] [dump]", "find all the linked functions of a script from a dump", nullptr, gschook);
+    ADD_TOOL(gschook, "gsc", " [base] [dump]", "find all the linked functions of a script from a dump", nullptr, gschook);
 #ifndef CI_BUILD
-    ADD_TOOL("gsclerr", "gsc", " [dump]", "find all the link errors in a gsc dump", nullptr, gsclerr);
+    ADD_TOOL(gsclerr, "gsc", " [dump]", "find all the link errors in a gsc dump", nullptr, gsclerr);
 #endif
 }

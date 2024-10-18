@@ -87,6 +87,6 @@ namespace {
 
 #ifndef CI_BUILD
 
-ADD_TOOL("ps4r", "ps4", " [ip:port] [loc] [size]", "ps4reader", nullptr, ps4reader);
+ADD_TOOL(ps4r, "ps4", " [ip:port] [loc] [size]", "ps4reader", nullptr, ps4reader);
 
 #endif

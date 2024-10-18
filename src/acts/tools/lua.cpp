@@ -688,5 +688,5 @@ namespace tool::lua {
 
 		return tool::OK;
 	}
-	ADD_TOOL("luad", "lua", " [file]", "Lua Havok Script", nullptr, hks_bytecode);
+	ADD_TOOL(luad, "lua", " [file]", "Lua Havok Script", nullptr, hks_bytecode);
 }

@@ -998,6 +998,6 @@ namespace {
 
 
 	
-	ADD_TOOL("dpt7", "bo3", " [pool]", "Black Ops 3 dump pool", L"BlackOps3.exe", t7dp);
-	ADD_TOOL("wpst7", "bo3", " [output=scriptparsetree_t7]", "dump pooled scripts (bo3)", L"BlackOps3.exe", t7poolscripts);
+	ADD_TOOL(dpt7, "bo3", " [pool]", "Black Ops 3 dump pool", L"BlackOps3.exe", t7dp);
+	ADD_TOOL(wpst7, "bo3", " [output=scriptparsetree_t7]", "dump pooled scripts (bo3)", L"BlackOps3.exe", t7poolscripts);
 }

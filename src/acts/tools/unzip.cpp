@@ -40,5 +40,5 @@ static int resolver(Process& unused, int argc, const char* argv[]) {
 }
 
 #ifndef CI_BUILD
-ADD_TOOL("zlib", "common", " [file]", "zlib extract", nullptr, resolver);
+ADD_TOOL(zlib, "common", " [file]", "zlib extract", nullptr, resolver);
 #endif

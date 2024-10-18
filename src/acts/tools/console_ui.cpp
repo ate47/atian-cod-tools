@@ -81,5 +81,5 @@ namespace tool::console_ui {
 	}
 
 
-	ADD_TOOL_NUI("zzzz7_console", "Console", console_ui);
+	ADD_TOOL_NUI(zzzz7_console, "Console", console_ui);
 }

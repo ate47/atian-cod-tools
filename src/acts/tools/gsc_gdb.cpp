@@ -387,6 +387,6 @@ namespace tool::gsc::gdb {
 	}
 
 
-	ADD_TOOL("gscgdbd", "gsc", "", "decompile GSC GDB file", nullptr, gscgdbinfo);
-	ADD_TOOL("gscgdbc", "gsc", " [dir]", "compile GSC GDB file", nullptr, gscgdbc);
+	ADD_TOOL(gscgdbd, "gsc", "", "decompile GSC GDB file", nullptr, gscgdbinfo);
+	ADD_TOOL(gscgdbc, "gsc", " [dir]", "compile GSC GDB file", nullptr, gscgdbc);
 }
