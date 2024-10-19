@@ -259,6 +259,29 @@ namespace utils {
         GetModuleFileName(NULL, szFileName, MAX_PATH);
         return std::filesystem::absolute(szFileName).parent_path();
     }
+    int64_t ParseFormatInt(const char* number) {
+        if (!number || !*number) {
+            throw std::runtime_error(va("Invalid number %s", number ? number : "nullptr"));
+        }
+
+        if (number[0] == '0') {
+            // 0x / ob / 0
+            if (!number[1]) {
+                return 0; // 0
+            }
+
+            if (number[1] == 'x') {
+                return std::strtoll(number + 2, nullptr, 16);
+            }
+            if (number[1] == 'b') {
+                return std::strtoll(number + 2, nullptr, 2);
+            }
+
+            return std::strtoll(number + 1, nullptr, 8);
+        }
+
+        return std::strtoll(number, nullptr, 10);
+    }
 
     char* MapString(char* buffer, std::function<char(char)> map) {
         std::transform(buffer, buffer + strlen(buffer), buffer, map);

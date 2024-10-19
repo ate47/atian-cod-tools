@@ -289,6 +289,14 @@ namespace utils {
 	std::filesystem::path GetProgDir();
 
 	/*
+	 * Parse a number considering format (0xYYYY = 16, 0bYYYY = 2, 0YYYY = 8)
+	 * @param number number
+	 * @return number
+	 * @throws std::runtime_error if invalid
+	 */
+	int64_t ParseFormatInt(const char* number);
+
+	/*
 	 * Clone a string
 	 * @param str String to clone
 	 * @return cloned string

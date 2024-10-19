@@ -31,6 +31,10 @@ namespace tool {
 		return map;
 	}
 
+	toolfunctiondata::toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, tool::toolfunctionnf func) 
+		: toolfunctiondata(name, category, usage, description, nullptr, [func](Process& proc, int argc, const char* argv[]) -> int { return func(argc, argv); }) {
+	}
+	
 	toolfunctiondata::toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, const wchar_t* game, toolfunction func)
 		: m_name(name), m_category(category), m_usage(usage), m_description(description), m_game(game), m_func(func),
 			m_nameLower(name ? name : ""), m_usageLower(usage ? usage : ""), m_descriptionLower(description ? description : ""), m_gameLower(game ? game : L""), 

@@ -8,7 +8,8 @@ namespace tool {
 		BAD_USAGE = -2
 	};
 
-	typedef int(*toolfunction)(Process& proc, int argc, const char* argv[]);
+	typedef std::function<int(Process& proc, int argc, const char* argv[])> toolfunction;
+	typedef std::function<int(int argc, const char* argv[])> toolfunctionnf;
 
 	class toolfunctiondata {
 	public:
@@ -24,6 +25,7 @@ namespace tool {
 		std::wstring m_gameLower;
 		tool::toolfunction m_func;
 		toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, const wchar_t* game, tool::toolfunction func);
+		toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, tool::toolfunctionnf func);
 
 		bool operator!() const;
 		bool operatorbool() const;
@@ -45,6 +47,16 @@ namespace tool {
 	const toolfunctiondata& findtool(const char* name);
 	bool search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each);
 	void usage(const char* message, const char* argv0, alogs::loglevel lvl = alogs::loglevel::LVL_ERROR);
+
+	/*
+	 * Test if the tool args contains enough arguments (argv[0] = acts argv[1] = tool name)
+	 * @param argc argc
+	 * @param count required count
+	 * @return true if enough, false otherwise
+	 */
+	constexpr bool NotEnoughParam(int argc, size_t count) {
+		return argc < count + 2;
+	}
 }
 
-#define ADD_TOOL(id, category, usage, desc, needGame, function) static tool::toolfunctiondata __toolfunctiondata_##id(#id, category, usage, desc, needGame, function)
+#define ADD_TOOL(id, ...) static tool::toolfunctiondata __toolfunctiondata_##id(#id, __VA_ARGS__)
