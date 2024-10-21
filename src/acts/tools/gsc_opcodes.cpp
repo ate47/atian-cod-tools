@@ -6438,7 +6438,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07 ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW) ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -6467,7 +6467,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		uint64_t itemValName;
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
+		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW)) {
 			/*
 				agent = var_57acddc40b2f741[var_54ed0dc40829774];;
 
@@ -6639,7 +6639,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// remove the number of references for the key because maybe we don't use it
 		int32_t& keyRef = ctx.m_localvars_ref[keyValName];
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
+		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW)) {
 			keyRef = std::max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
 		else if (ctx.m_vm <= VM_T8) {
@@ -6670,7 +6670,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			delete it->node;
 			it = m_statements.erase(it);
 		}
-		if (ctx.m_vm == VM_MW23 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
+		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW)) {
 			// not present during the beta
 			if (it != m_statements.end()) {
 				// keyValName = undefined

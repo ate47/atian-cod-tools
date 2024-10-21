@@ -775,7 +775,7 @@ namespace tool::gsc::opcode {
 
 			//RegisterOpCode(VM_T937, PLATFORM_PC, OPCODE_StringConcat, 0x836, 0xf8a, 0x599, 0x30, 0x72c, 0x93, 0x4de, 0xbad, 0x2a4, 0xf4a, 0x7ac, 0x88a, 0x934, 0x974, 0x9fc, 0xa02, 0xe63, 0xb86, 0xeef, 0xef6);
 
-			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", "cw", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+			RegisterVM(VM_T9, "Call of Duty: Black ops Cold War", "t9", "cw", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 			RegisterVmName(VM_T9, "t9", "cw", "coldwar");
 			RegisterVMPlatform(VM_T9, PLATFORM_PC);
 			SetMaxOpCode(VM_T9, 0xFFF);
@@ -1032,7 +1032,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetString, 0x32, 0x9a, 0x22b, 0x27d, 0x436, 0x676, 0x729, 0x9ac, 0xaf0, 0xb57, 0xb87, 0xe19, 0xe2a, 0xf42);
 			RegisterOpCode(VM_T9, PLATFORM_PLAYSTATION, OPCODE_GetByte, 0xe9, 0x18b, 0x2e2, 0x30a, 0x5e8, 0x654, 0x67c, 0x6bd, 0x876, 0x884, 0x90e, 0xab0, 0xacc, 0xb75, 0xe65, 0xe6c, 0xe98, 0xee1, 0xef3, 0xf53);
 			
-			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", "mwiiia", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
+			RegisterVM(VM_MW23, "Call of Duty: Modern Warfare III", "jup", "mwiiia", VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVmName(VM_MW23, "jupa", "s5a", "mwiiia", "modernwarfareiiia", "mw23a");
 			RegisterVMPlatform(VM_MW23, PLATFORM_PC);
 			RegisterSameCodePlatform(VM_MW23, PLATFORM_PC, PLATFORM_PLAYSTATION);
@@ -1056,7 +1056,7 @@ namespace tool::gsc::opcode {
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
-			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
+			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVmName(VM_MW23B, "jup", "s5", "mwiii", "modernwarfareiii", "mw23");
 			RegisterVMPlatform(VM_MW23B, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_MW23B, "level", OPCODE_IW_GetLevel);
@@ -1079,7 +1079,7 @@ namespace tool::gsc::opcode {
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
-			RegisterVM(VM_BO6_06, "Call of Duty: Black Ops 6 (06)", "t10_6", "bo6_6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVM(VM_BO6_06, "Call of Duty: Black Ops 6 (06)", "t10_6", "bo6_6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 			RegisterVmName(VM_BO6_06, "cer6", "t10_6", "blackops6_6");
 			RegisterVMPlatform(VM_BO6_06, PLATFORM_PC_ALPHA);
 			RegisterVMGlobalVariable(VM_BO6_06, "level", OPCODE_IW_GetLevel);
@@ -1218,8 +1218,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_06, PLATFORM_PC_ALPHA, OPCODE_IW_GetAnimationTree, 0xa0);
 
 
-			RegisterVM(VM_BO6_07, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
-			RegisterVmName(VM_BO6_07, "cer", "t10", "blackops6");
+			RegisterVM(VM_BO6_07, "Call of Duty: Black Ops 6 (07)", "t10", "bo6_7", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVmName(VM_BO6_07, "cer7", "t10_7", "blackops6_7");
 			RegisterVMPlatform(VM_BO6_07, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_BO6_07, "level", OPCODE_IW_GetLevel);
 			RegisterVMGlobalVariable(VM_BO6_07, "game", OPCODE_IW_GetGame);
@@ -1248,6 +1248,31 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff);
+
+			RegisterVM(VM_BO6_0C, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVmName(VM_BO6_0C, "cer", "t10", "blackops6");
+			RegisterVMPlatform(VM_BO6_0C, PLATFORM_PC);
+			RegisterVMGlobalVariable(VM_BO6_0C, "level", OPCODE_IW_GetLevel);
+			RegisterVMGlobalVariable(VM_BO6_0C, "game", OPCODE_IW_GetGame);
+			RegisterVMGlobalVariable(VM_BO6_0C, "anim", OPCODE_IW_GetAnim);
+			RegisterVMOperatorFunction(VM_BO6_0C, "waittill", "<caller> waittill(event, var*)", OPCODE_IW_SingleWaitTill, VPFD_SELF_PARAM | VPFD_UNPACK, 1);
+			RegisterVMOperatorFunction(VM_BO6_0C, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6_0C, "notify", "<caller> notify(event, param*)", OPCODE_IW_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
+			RegisterVMOperatorFunction(VM_BO6_0C, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
+			RegisterVMOperatorFunction(VM_BO6_0C, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6_0C, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_BO6_0C, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
+			RegisterVMOperatorFunction(VM_BO6_0C, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6_0C, "flat_args", "flat_args(array, count) -> bool", OPCODE_T10_FlatArgs, VPFD_RETURN_VALUE, 2, 2);
+			RegisterVMOperatorFunction(VM_BO6_0C, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
+			RegisterVMHashOPCode(VM_BO6_0C, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64A(str); });
+			RegisterVMHashOPCode(VM_BO6_0C, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
+			RegisterVMHashOPCode(VM_BO6_0C, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIWRes(str); });
+			RegisterVMHashOPCode(VM_BO6_0C, 'r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hashutils::HashIWRes(str); });
+			RegisterVMHashOPCode(VM_BO6_0C, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
+			RegisterVMHashOPCode(VM_BO6_0C, '&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hashutils::HashT10Scr(str); });
+			RegisterDevCall(VM_BO6_0C, "assert", "assertmsg", "assertex", "println");
+			RegisterDatatype(VM_BO6_0C, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
 			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", "bo3", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7);
 			RegisterVmName(VM_T7, "t7", "blackops3");

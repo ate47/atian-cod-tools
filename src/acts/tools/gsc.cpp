@@ -740,6 +740,7 @@ namespace {
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
         { VM_BO6_06,[](byte* file, size_t fileSize) { return std::make_shared<T10GSCOBJHandler>(file, fileSize); }},
         { VM_BO6_07,[](byte* file, size_t fileSize) { return std::make_shared<T1007GSCOBJHandler>(file, fileSize); }},
+        { VM_BO6_0C,[](byte* file, size_t fileSize) { return std::make_shared<T100CGSCOBJHandler>(file, fileSize); }},
     };
 }
 
@@ -2599,7 +2600,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
     const OPCodeInfo* spawnStruct = FetchCode();
     
     if (spawnStruct->m_id != OPCODE_ScriptFunctionCall && spawnStruct->m_id != OPCODE_CallBuiltinFunction) {
-        if (ctx.m_vm == VM_T9 || ctx.m_vm == VM_MW23B || ctx.m_vm == VM_BO6_06 || ctx.m_vm == VM_BO6_07) {
+        if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_CRC_DUMP)) {
             return DVA_OK; // crc dump
         }
         // dctxt.WritePadding(out) << "Bad vtable opcode, expected ScriptFunctionCall vm" << std::hex << (int)ctx.m_vm << "\n";

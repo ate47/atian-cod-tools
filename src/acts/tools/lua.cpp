@@ -647,46 +647,48 @@ namespace tool::lua {
 		return true;
 	}
 
-	int hks_bytecode(Process& proc, int argc, const char* argv[]) {
-		CLIOption opt{};
+	namespace {
+		int luad(int argc, const char* argv[]) {
+			CLIOption opt{};
 
-		if (!opt.Compute(argv, 2, argc) || opt.m_help || !opt.m_inputFiles.size()) {
-			opt.PrintHelp();
+			if (!opt.Compute(argv, 2, argc) || opt.m_help || !opt.m_inputFiles.size()) {
+				opt.PrintHelp();
+				return tool::OK;
+			}
+			lua::opcodes::RegisterLuaOpCodesMap();
+
+			std::vector<std::filesystem::path> paths{};
+
+			for (const auto* file : opt.m_inputFiles) {
+				utils::GetFileRecurse(file, paths, [](const std::filesystem::path& f) {
+					const auto str = f.string();
+					return str.ends_with(".luac") || str.ends_with(".lua");
+				});
+			}
+
+			if (!paths.size()) {
+				LOG_ERROR("No input file");
+				return tool::BASIC_ERROR;
+			}
+
+			std::string buffer{};
+
+			for (const auto& path : paths) {
+				LOG_TRACE("Reading {}", path.string());
+
+				if (!utils::ReadFile(path, buffer)) {
+					LOG_ERROR("Can't read file {}", path.string());
+					continue;
+				}
+
+				if (!HandleByteCode(reinterpret_cast<byte*>(buffer.data()), buffer.length(), path, opt)) {
+					LOG_ERROR("Error when reading {}", path.string());
+				}
+			}
+			LOG_INFO("Done");
+
 			return tool::OK;
 		}
-		lua::opcodes::RegisterLuaOpCodesMap();
-
-		std::vector<std::filesystem::path> paths{};
-
-		for (const auto* file : opt.m_inputFiles) {
-			utils::GetFileRecurse(file, paths, [](const std::filesystem::path& f) {
-				const auto str = f.string();
-				return str.ends_with(".luac") || str.ends_with(".lua");
-			});
-		}
-
-		if (!paths.size()) {
-			LOG_ERROR("No input file");
-			return tool::BASIC_ERROR;
-		}
-
-		std::string buffer{};
-
-		for (const auto& path : paths) {
-			LOG_TRACE("Reading {}", path.string());
-
-			if (!utils::ReadFile(path, buffer)) {
-				LOG_ERROR("Can't read file {}", path.string());
-				continue;
-			}
-
-			if (!HandleByteCode(reinterpret_cast<byte*>(buffer.data()), buffer.length(), path, opt)) {
-				LOG_ERROR("Error when reading {}", path.string());
-			}
-		}
-		LOG_INFO("Done");
-
-		return tool::OK;
 	}
-	ADD_TOOL(luad, "lua", " [file]", "Lua Havok Script", nullptr, hks_bytecode);
+	ADD_TOOL(luad, "lua", " [file]", "Lua Havok Script", luad);
 }

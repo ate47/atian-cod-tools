@@ -18,6 +18,7 @@ namespace tool::gsc::opcode {
 		VM_MW23B = 0x8b,
 		VM_BO6_06 = 0x06,
 		VM_BO6_07 = 0x07,
+		VM_BO6_0C = 0x0C,
 
 		// ACTS VM
 		VM_ACTS_F1 = 0xF1,
