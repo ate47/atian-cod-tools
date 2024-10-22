@@ -1249,7 +1249,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff);
 
-			RegisterVM(VM_BO6_0C, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVM(VM_BO6_0C, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 			RegisterVmName(VM_BO6_0C, "cer", "t10", "blackops6");
 			RegisterVMPlatform(VM_BO6_0C, PLATFORM_PC);
 			RegisterVMGlobalVariable(VM_BO6_0C, "level", OPCODE_IW_GetLevel);

@@ -6348,8 +6348,8 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	*/
 	constexpr uint64_t getfirstarraykeyIWHash = hashutils::HashJupScr("getfirstarraykey");
 	constexpr uint64_t getnextarraykeyIWHash = hashutils::HashJupScr("getnextarraykey");
-	constexpr uint64_t getfirstarraykeyCerHash = 0x7e4a95b654d9324;
-	constexpr uint64_t getnextarraykeyCerHash = 0xbedcb09342b6223;
+	constexpr uint64_t getfirstarraykeyCerHash = hashutils::HashT10Scr("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyCerHash = hashutils::HashT10Scr("getnextarraykey");
 
 	size_t index = 0;
 
