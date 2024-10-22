@@ -3244,7 +3244,7 @@ public:
         return sizeof(tool::gsc::IW23GSCImport);
     }
     size_t GetExportSize() override {
-        return sizeof(tool::gsc::IW24GSCExport);
+        return sizeof(tool::gsc::IW24GSCExport2);
     }
     size_t GetStringSize() override {
         return sizeof(tool::gsc::T8GSCString);
@@ -3259,10 +3259,11 @@ public:
         return sizeof(tool::gsc::GSC_ANIMTREE_ITEM);
     }
     void WriteExport(byte* data, const tool::gsc::IW23GSCExport& item) override {
-        auto& imp = *reinterpret_cast<tool::gsc::IW24GSCExport*>(data);
+        auto& imp = *reinterpret_cast<tool::gsc::IW24GSCExport2*>(data);
         imp.name = item.name;
         imp.name_space = item.name_space;
         imp.file_name_space = item.file_name_space;
+        imp.checksum = (uint32_t)item.checksum;
         imp.flags = item.flags;
         imp.address = item.address;
         imp.param_count = item.param_count;

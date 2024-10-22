@@ -809,6 +809,22 @@ struct H64CERGSCExportReader : GSCExportReader {
     size_t SizeOf() override { return sizeof(*exp); };
 };
 
+struct H64CER2GSCExportReader : GSCExportReader {
+    IW24GSCExport2* exp{};
+
+    void SetHandle(void* handle) override { exp = (IW24GSCExport2*)handle; };
+    uint64_t GetName() override { return exp->name; };
+    uint64_t GetNamespace() override { return exp->name_space; };
+    uint64_t GetFileNamespace() override { return exp->file_name_space; };
+    uint64_t GetChecksum() override { return exp->checksum; };
+    uint32_t GetAddress() override { return exp->address; };
+    uint8_t GetParamCount() override { return exp->param_count; };
+    uint8_t GetFlags() override { return exp->flags; };
+    size_t SizeOf() override { return sizeof(*exp); };
+};
+
+
+
 const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_t floc) {
     // check the exports to find the right floc name
     uint32_t off = handler.GetExportsOffset();
@@ -1388,7 +1404,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 }
                 char* cstr = scriptfile->DecryptString(encryptedString);
 
-                asmout << '"' << cstr << "\"" << std::flush;
+                PrintFormattedString(asmout << '"', cstr) << '"' << std::flush;
 
                 if (scriptfile->GetVM() == VM_T8) {
                     size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
@@ -2851,7 +2867,12 @@ std::unique_ptr<GSCExportReader> tool::gsc::CreateExportReader(VmInfo* vmInfo) {
         return std::make_unique<H64CERGSCExportReader>();
     }
     else if (vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
-        return std::make_unique<H64GSCExportReader>();
+        if (vmInfo->HasFlag(VmFlags::VMF_EXPORT_CRC32)) {
+            return std::make_unique<H64CER2GSCExportReader>();
+        }
+        else {
+            return std::make_unique<H64GSCExportReader>();
+        }
     }
     else if (vmInfo->flags & VmFlags::VMF_NO_FILE_NAMESPACE) {
         return std::make_unique<H32T7GSCExportReader>();

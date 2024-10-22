@@ -24,6 +24,7 @@ namespace tool::gsc::opcode {
 		VMF_HASH_T7 = 0x8000,
 		VMF_FOREACH_IW = 0x10000,
 		VMF_CRC_DUMP = 0x20000,
+		VMF_EXPORT_CRC32 = 0x40000,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

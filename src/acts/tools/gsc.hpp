@@ -1173,6 +1173,16 @@ namespace tool::gsc {
         uint8_t flags;
     };
 
+    struct IW24GSCExport2 {
+        uint64_t name;
+        uint64_t name_space;
+        uint64_t file_name_space;
+        uint32_t checksum;
+        uint32_t address;
+        uint8_t param_count;
+        uint8_t flags;
+    };
+
     struct GSC_USEANIMTREE_ITEM {
         uint32_t num_address;
         uint32_t address;
