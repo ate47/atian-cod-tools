@@ -38,4 +38,6 @@ namespace hook::error {
 	 * @param size size
 	 */
 	void DumpVTable(void* object, size_t size);
+
+	void DevSetContinue(bool cont);
 }

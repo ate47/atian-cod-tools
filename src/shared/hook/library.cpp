@@ -369,6 +369,19 @@ namespace hook::library {
 		return out << ptr.GetName() << "[0x" << std::hex << reinterpret_cast<uintptr_t>(ptr.hmod) << "]";
 	}
 
+
+	void hook::library::Library::PatchIAT() const {
+		IMAGE_DATA_DIRECTORY& dir{ GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
+		DWORD importSize{ dir.Size };
+		
+		if (!dir.VirtualAddress || importSize <= 0) return; // nothing to patch
+		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)((*this)[dir.VirtualAddress]) };
+		
+		LOG_TRACE("Loading imports  0x{:x}/0x{:x}", dir.VirtualAddress, dir.Size);
+
+		// TODO: write that
+	}
+
 	std::ostream& operator<<(std::ostream& out, const hook::library::CodePointer& ptr) {
 		hook::library::Library library{ GetLibraryInfo(ptr.location) };
 		return out << library << "+0x" << std::hex << ((byte*)ptr.location - (byte*)*library);

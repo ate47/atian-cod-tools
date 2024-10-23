@@ -34,6 +34,7 @@ namespace hook::error {
 
 			HMODULE hmod{};
 			int showCmd{};
+			bool cont{};
 		};
 
 		ErrorConfig cfg{};
@@ -182,7 +183,7 @@ namespace hook::error {
 				DumpStackTraceFrom(alogs::LVL_ERROR, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 			}
 
-			if (ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP) {
+			if (cfg.cont || ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP) {
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 			return EXCEPTION_EXECUTE_HANDLER;
@@ -288,5 +289,8 @@ namespace hook::error {
 			size -= r;
 			vtable += r * sizeof(buff[0]);
 		}
+	}
+	void DevSetContinue(bool cont) {
+		cfg.cont = cont;
 	}
 }

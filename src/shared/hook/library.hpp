@@ -150,6 +150,15 @@ namespace hook::library {
 		Library(const Library& other) : hmod(other.hmod) {
 		}
 
+		void SetModule(HMODULE hmod) {
+			this->hmod = hmod;
+		}
+
+		bool Free() {
+			if (!*this) return false;
+			return FreeLibrary(hmod);
+		}
+
 		constexpr bool operator==(const Library& other) const {
 			return hmod == other.hmod;
 		}
@@ -210,6 +219,18 @@ namespace hook::library {
 
 			return res[0];
 		}
+
+		template<typename T>
+		const T* Get(size_t loc) const {
+			return reinterpret_cast<const T*>((*this)[loc]);
+		}
+
+		template<typename T>
+		T* Get(size_t loc) {
+			return reinterpret_cast<T*>((*this)[loc]);
+		}
+
+		void PatchIAT() const;
 
 		friend std::ostream& operator<<(std::ostream& out, const Library& ptr);
 	};
