@@ -34,6 +34,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | Modern Warfare III (JUP) | 8B       | DEC & EXT  | EXT      | ❌           |
 | Black Ops 6 (CER)        | 06       | DEC & EXT  | ✅       | ❌           |
 | Black Ops 6 (CER)        | 07       | DEC & EXT  | EXT      | ❌           |
+| Black Ops 6 (CER)        | 0C       | DEC & EXT  | EXT      | ❌           |
 
 - **DEC**: With pre-decode
 - **EXT**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
@@ -137,4 +138,5 @@ You can also use .wni compiled files, create a directory with the name `package_
 
 ## Credits
 
-- Serious's t8-compiler for some opcodes for Black Ops 4, it fasted up the process of understanding the internal game functions. Also for the childthread operator syntax.
+- [Serious's t8-compiler](https://github.com/shiversoftdev/t7-compiler) for some opcodes for Black Ops 4, it fasted up the process of understanding the internal game functions. Also for the childthread operator syntax.
+- [JariKCoding's CoDLuaDecompiler](https://github.com/JariKCoding/CoDLuaDecompiler) to understand the Lua HK scripting format.

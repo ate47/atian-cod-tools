@@ -1,3 +1,13 @@
+- tools
+  - thread async pooling
+  - gsc compiler optimisations
+  - hash brute and expand searcher
+  - better bo3 string decompilation
+  - better hks disassembler
+  - cold war vm37 pc compiler/decompiler
+  - serious opcodes translation tools
+  - more common tools (wps/dbgp)
+  - vm 0c decompiler without opcodes
+  - tool to decrypt gsc scripts using a dumped exe
 - ui
-  - fps limiter
-  - hash search tests
+  - dev tool test renderer
