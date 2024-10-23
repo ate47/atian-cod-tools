@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <scriptinstance.hpp>
+#include <io_utils.hpp>
 #include <hook/module_mapper.hpp>
 #include <hook/error.hpp>
 #include <decrypt.hpp>
@@ -50,9 +51,24 @@ namespace {
 		return tool::OK;
 	}
 
-	int scripts_decrypt(int argc, const char* argv[]) {
-		LOG_WARNING("Reminder: DO NOT MAP EXE WITH AC WHILE BEING CONNECTED TO INTERNET");
+	bool HasEnoughInternet(const char* website = "https://example.org") {
+		std::string tmp{};
+		try {
+			return utils::io::DownloadFile(website, tmp, false);
+		}
+		catch (std::runtime_error& e) {
+			LOG_TRACE("HasEnoughInternet err: {}", e.what());
+			return false;
+		}
+	}
 
+	int test_enough_internet(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+		LOG_INFO("HasEnoughInternet() = {}", HasEnoughInternet(argv[2]));
+		return tool::OK;
+	}
+
+	int scripts_decrypt(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 4)) return tool::BAD_USAGE;
 
 		const char* exe{ argv[2] };
@@ -79,7 +95,11 @@ namespace {
 
 		hook::module_mapper::Module mod{ true };
 
-		auto LoadMod = [&mod, exe]() -> bool {
+		auto LoadMod = [&mod, exe](bool hasAC) -> bool {
+			if (hasAC && HasEnoughInternet()) {
+				LOG_ERROR("Reminder: DO NOT MAP EXE WITH AC WHILE BEING CONNECTED TO INTERNET");
+				return false;
+			}
 			LOG_INFO("Loading module {}", exe);
 			if (!mod.Load(exe)) {
 				LOG_ERROR("Can't load module");
@@ -99,14 +119,30 @@ namespace {
 			return tool::OK; // nothing to do
 		}
 		case VM_T9: {
-			if (!LoadMod()) return tool::BASIC_ERROR;
+			if (!LoadMod(false)) return tool::BASIC_ERROR;
 			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6", "DecryptString").GetPtr<char*(*)(char* str)>();
 			DecryptString = [DecryptStringFunc](char* s) -> char* { 
 				char* sd = DecryptStringFunc(s);
 
 				// save the decrypted string at the same location
-				memmove(s, sd, std::strlen(sd));
+				memmove(s, sd, std::strlen(sd) + 1);
 				
+				return s;
+			};
+			break;
+		}
+		case VM_MW23B:
+		case VM_BO6_06:
+		case VM_BO6_07:
+		case VM_BO6_0C: {
+			if (!LoadMod(true)) return tool::BASIC_ERROR;
+			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "DecryptString").GetPtr<char* (*)(char* str)>();
+			DecryptString = [DecryptStringFunc](char* s) -> char* {
+				char* sd = DecryptStringFunc(s);
+
+				// save the decrypted string at the same location
+				memmove(s, sd, std::strlen(sd) + 1);
+
 				return s;
 			};
 			break;
@@ -150,68 +186,77 @@ namespace {
 				LOG_ERROR("Can't read {}: Invalid header", path.string());
 				continue;
 			}
-			LOG_DEBUG("Decrypting {} ({})...", path.string(), hashutils::ExtractTmpScript(handler->GetName()));
+
+			size_t strscount{ handler->GetStringsCount() };
+			size_t animtcount{ handler->GetAnimTreeDoubleCount() };
+			size_t animtucount{ handler->GetAnimTreeSingleCount() };
+
+			LOG_DEBUG("Decrypting {} ({}) ({}/{}/{})...", path.string(), hashutils::ExtractTmpScript(handler->GetName()), strscount, animtcount, animtucount);
 
 			// strings table
 
-			tool::gsc::T8GSCString* strs{ handler->Ptr<tool::gsc::T8GSCString>(handler->GetStringsOffset()) };
-			size_t strscount{ handler->GetStringsCount() };
+			if (strscount) {
+				tool::gsc::T8GSCString* strs{ handler->Ptr<tool::gsc::T8GSCString>(handler->GetStringsOffset()) };
+				size_t i = 0;
+				for (; i < strscount; i++) {
+					size_t rloc{ (size_t)((byte*)strs - handler->file) };
 
-			size_t i = 0;
-			for (; i < strscount; i++) {
-				size_t rloc{ (size_t)((byte*)strs - handler->file) };
 
+					if (rloc + sizeof(*strs) + sizeof(uint32_t) * strs->num_address > buffer.size() || strs->string >= buffer.size()) {
+						LOG_ERROR("Can't decrypt {}: String too far 0x{:x} >= {:x}", path.string(), strs->string, buffer.size());
+						break;
+					}
+					DecryptString(handler->Ptr<char>(strs->string));
 
-				if (rloc + sizeof(*strs) + sizeof(uint32_t) * strs->num_address > buffer.size() || strs->string >= buffer.size()) {
-					LOG_ERROR("Can't decrypt {}: String too far 0x{:x} >= {:x}", path.string(), strs->string, buffer.size());
-					break;
+					strs = (tool::gsc::T8GSCString*)&((uint32_t*)(&strs[1]))[strs->num_address];
 				}
-				DecryptString(handler->Ptr<char>(strs->string));
-
-				strs = (tool::gsc::T8GSCString*)&((uint32_t*)(&strs[1]))[strs->num_address];
-			}
-			if (i != strscount) {
-				continue;
+				if (i != strscount) {
+					continue;
+				}
+				LOG_TRACE("{} string(s) decrypted", i);
 			}
 
 			// animtrees tables
 
-			tool::gsc::GSC_ANIMTREE_ITEM* animt{ handler->Ptr<tool::gsc::GSC_ANIMTREE_ITEM>(handler->GetAnimTreeDoubleOffset()) };
-			size_t animtcount{ handler->GetAnimTreeDoubleCount() };
 
-			size_t j = 0;
-			for (; j < animtcount; j++) {
-				size_t rloc{ (size_t)((byte*)animt - handler->file) };
-				if (rloc + sizeof(*animt) + sizeof(uint32_t) * animt->num_address > buffer.size() || animt->address_str1 >= buffer.size() || animt->address_str2 >= buffer.size()) {
-					LOG_ERROR("Can't decrypt {}: Anim2 too far", path.string());
-					break;
+			if (animtcount) {
+				tool::gsc::GSC_ANIMTREE_ITEM* animt{ handler->Ptr<tool::gsc::GSC_ANIMTREE_ITEM>(handler->GetAnimTreeDoubleOffset()) };
+				size_t j = 0;
+				for (; j < animtcount; j++) {
+					size_t rloc{ (size_t)((byte*)animt - handler->file) };
+					if (rloc + sizeof(*animt) + sizeof(uint32_t) * animt->num_address > buffer.size() || animt->address_str1 >= buffer.size() || animt->address_str2 >= buffer.size()) {
+						LOG_ERROR("Can't decrypt {}: Anim2 too far", path.string());
+						break;
+					}
+					DecryptString(handler->Ptr<char>(animt->address_str1));
+					DecryptString(handler->Ptr<char>(animt->address_str2));
+
+					animt = reinterpret_cast<tool::gsc::GSC_ANIMTREE_ITEM*>(reinterpret_cast<uint32_t*>(&animt[1]) + animt->num_address);
 				}
-				DecryptString(handler->Ptr<char>(animt->address_str1));
-				DecryptString(handler->Ptr<char>(animt->address_str2));
-
-				animt = reinterpret_cast<tool::gsc::GSC_ANIMTREE_ITEM*>(reinterpret_cast<uint32_t*>(&animt[1]) + animt->num_address);
-			}
-			if (j != animtcount) {
-				continue;
-			}
-
-			tool::gsc::GSC_USEANIMTREE_ITEM* animtu{ handler->Ptr<tool::gsc::GSC_USEANIMTREE_ITEM>(handler->GetAnimTreeSingleOffset()) };
-			size_t animtucount{ handler->GetAnimTreeSingleCount() };
-
-			size_t k = 0;
-			for (; k < animtucount; k++) {
-				size_t rloc{ (size_t)((byte*)animt - handler->file) };
-				if (rloc + sizeof(*animtu) + sizeof(uint32_t) * animtu->num_address > buffer.size() || animtu->address >= buffer.size()) {
-					LOG_ERROR("Can't decrypt {}: Anim1 too far", path.string());
-					break;
+				if (j != animtcount) {
+					continue;
 				}
-
-				DecryptString(handler->Ptr<char>(animtu->address));
-
-				animtu = reinterpret_cast<tool::gsc::GSC_USEANIMTREE_ITEM*>(reinterpret_cast<uint32_t*>(&animtu[1]) + animtu->num_address);
+				LOG_TRACE("{} anim2(s) decrypted", j);
 			}
-			if (k != animtucount) {
-				continue;
+
+			if (animtucount) {
+				tool::gsc::GSC_USEANIMTREE_ITEM* animtu{ handler->Ptr<tool::gsc::GSC_USEANIMTREE_ITEM>(handler->GetAnimTreeSingleOffset()) };
+				size_t k = 0;
+				for (; k < animtucount; k++) {
+					size_t rloc{ (size_t)((byte*)animtu - handler->file) };
+					if (rloc + sizeof(*animtu) + sizeof(uint32_t) * animtu->num_address > buffer.size() || animtu->address >= buffer.size()) {
+						LOG_ERROR("Can't decrypt {}: Anim1 too far", path.string());
+						break;
+					}
+
+					DecryptString(handler->Ptr<char>(animtu->address));
+
+					animtu = reinterpret_cast<tool::gsc::GSC_USEANIMTREE_ITEM*>(reinterpret_cast<uint32_t*>(&animtu[1]) + animtu->num_address);
+				}
+				if (k != animtucount) {
+					continue;
+				}
+				LOG_TRACE("{} anim1(s) decrypted", k);
 			}
 
 			std::filesystem::path outdirvm{ outdir / utils::va("vm-%02x", nfo->vm) };
@@ -223,7 +268,7 @@ namespace {
 				continue;
 			}
 
-			size_t total{ i + j + k };
+			size_t total{ strscount + animtucount + animtcount };
 			LOG_INFO("Decrypted {} ({}) into {} / {} (0x{:x}) string(s)", path.string(), hashutils::ExtractTmpScript(handler->GetName()), outfile.string(), total, total);
 			c++;
 		}
@@ -235,5 +280,6 @@ namespace {
 
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
 	ADD_TOOL(scripts_decrypt, "gsc", "[exe] [type] [scripts] [ouput]", "Map exe in memory and use it to decrypt GSC scripts", scripts_decrypt);
-
+	ADD_TOOL(test_enough_internet, "dev", "[url]", "Test can load", test_enough_internet);
+	
 }
