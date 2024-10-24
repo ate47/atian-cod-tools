@@ -29,6 +29,10 @@ public:
 
     virtual std::any visitConstexpr(gscParser::ConstexprContext *context) = 0;
 
+    virtual std::any visitClass_def(gscParser::Class_defContext *context) = 0;
+
+    virtual std::any visitClass_var(gscParser::Class_varContext *context) = 0;
+
     virtual std::any visitFunction(gscParser::FunctionContext *context) = 0;
 
     virtual std::any visitDetour_info(gscParser::Detour_infoContext *context) = 0;
@@ -122,6 +126,8 @@ public:
     virtual std::any visitArray_def(gscParser::Array_defContext *context) = 0;
 
     virtual std::any visitStruct_def(gscParser::Struct_defContext *context) = 0;
+
+    virtual std::any visitClass_init(gscParser::Class_initContext *context) = 0;
 
     virtual std::any visitIdf(gscParser::IdfContext *context) = 0;
 

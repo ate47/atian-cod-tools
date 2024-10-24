@@ -94,6 +94,8 @@ namespace tool::gsc {
         bool m_noPath{};
         bool m_ignoreDebugPlatform{};
         bool m_sync{ true };
+        bool m_vtable{};
+        const char* vtable_dump{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
@@ -706,12 +708,6 @@ namespace tool::gsc {
         uint64_t name;
         uint64_t nsp;
     };
-    struct gscclass {
-        uint64_t name_space = 0;
-        std::set<uint64_t> m_superClass{};
-        std::vector<uint64_t> m_methods{};
-        std::unordered_map<uint64_t, asmcontext_func> m_vtable{};
-    };
 
     struct NameLocated {
         uint64_t name_space;
@@ -728,11 +724,19 @@ namespace tool::gsc {
             return a.name == b.name && a.name_space == b.name_space && a.script == b.script;
         }
     };
+    struct gscclass {
+        uint64_t name_space = 0;
+        std::set<uint64_t> m_superClass{};
+        std::vector<uint64_t> m_methods{};
+        std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals> m_vtableMethods{};
+        std::unordered_map<uint64_t, asmcontext_func> m_vtable{};
+    };
     struct GscDecompilerGlobalContext {
         std::mutex* asyncMtx{};
         GscInfoOption opt{};
         std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
         size_t decompiledFiles{};
+        std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>> vtables{};
 
         ~GscDecompilerGlobalContext() {
             for (auto& [n, d] : debugObjects) {
@@ -1348,6 +1352,7 @@ namespace tool::gsc {
         virtual byte MapFlagsImportToInt(byte flags);
         virtual byte MapFlagsExportToInt(byte flags);
         virtual bool IsVTableImportFlags(byte flags) = 0;
+        virtual byte GetVTableImportFlags() = 0;
 
         // Dump header
         virtual void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) = 0;

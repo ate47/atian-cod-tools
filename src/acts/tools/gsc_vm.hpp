@@ -243,6 +243,9 @@ public:
     bool IsVTableImportFlags(byte flags) override {
         return flags == CLASS_VTABLE;
     }
+    byte GetVTableImportFlags() override {
+        return CLASS_VTABLE;
+    }
 };
 
 /*****************************************************************************************************************************/
@@ -480,6 +483,9 @@ public:
     }
     bool IsVTableImportFlags(byte flags) override {
         return flags == CLASS_VTABLE;
+    }
+    byte GetVTableImportFlags() override {
+        return CLASS_VTABLE;
     }
 };
 
@@ -722,6 +728,9 @@ public:
     bool IsVTableImportFlags(byte flags) override {
         return flags == CLASS_VTABLE;
     }
+    byte GetVTableImportFlags() override {
+        return CLASS_VTABLE;
+    }
 };
 
 
@@ -890,6 +899,9 @@ public:
     }
     bool IsVTableImportFlags(byte flags) override {
         return flags == T9_EF_CLASS_VTABLE;
+    }
+    byte GetVTableImportFlags() override {
+        return T9_EF_CLASS_VTABLE;
     }
     uint16_t GetAnimTreeSingleCount() override {
         return 0;
@@ -1382,6 +1394,9 @@ public:
     bool IsVTableImportFlags(byte flags) override {
         return false;
     }
+    byte GetVTableImportFlags() override {
+        return 0;
+    }
 };
 
 
@@ -1747,6 +1762,9 @@ public:
     bool IsVTableImportFlags(byte flags) override {
         return flags == 0x15;
     }
+    byte GetVTableImportFlags() override {
+        return 0x15;
+    }
 };
 
 /*****************************************************************************************************************************/
@@ -2008,6 +2026,7 @@ public:
 
     byte MapFlagsExportToInt(byte flags) override {
         byte nflags{};
+        if (flags == tool::gsc::CLASS_VTABLE) return 0x6;
         if (flags & T8GSCExportFlags::LINKED) nflags |= 1;
         if (flags & T8GSCExportFlags::AUTOEXEC) nflags |= 2;
         if (flags & T8GSCExportFlags::PRIVATE) nflags |= 4;
@@ -2033,6 +2052,9 @@ public:
 
     bool IsVTableImportFlags(byte flags) override {
         return flags == 0x6;
+    }
+    byte GetVTableImportFlags() override {
+        return 0x6;
     }
 };
 /*****************************************************************************************************************************/
@@ -2294,6 +2316,7 @@ public:
 
     byte MapFlagsExportToInt(byte flags) override {
         byte nflags{};
+        if (flags == tool::gsc::CLASS_VTABLE) return 0x6;
         if (flags & T8GSCExportFlags::LINKED) nflags |= 1;
         if (flags & T8GSCExportFlags::AUTOEXEC) nflags |= 2;
         if (flags & T8GSCExportFlags::PRIVATE) nflags |= 4;
@@ -2319,6 +2342,9 @@ public:
 
     bool IsVTableImportFlags(byte flags) override {
         return flags == 0x6;
+    }
+    byte GetVTableImportFlags() override {
+        return 0x6;
     }
 };
 
@@ -2645,6 +2671,9 @@ public:
     }
     bool IsVTableImportFlags(byte flags) override {
         return flags == 0x15;
+    }
+    byte GetVTableImportFlags() override {
+        return 0x15;
     }
 };
 
@@ -2973,6 +3002,9 @@ public:
     bool IsVTableImportFlags(byte flags) override {
         return flags == 0x15;
     }
+    byte GetVTableImportFlags() override {
+        return 0x15;
+    }
 };
 
 
@@ -3299,6 +3331,9 @@ public:
     }
     bool IsVTableImportFlags(byte flags) override {
         return flags == 0x15;
+    }
+    byte GetVTableImportFlags() override {
+        return 0x15;
     }
 };
 

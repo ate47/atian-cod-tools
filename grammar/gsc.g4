@@ -1,11 +1,15 @@
 grammar gsc;		
 
-prog: ('/#' | '#/' | function | include | namespace | filenamespace | constexpr)* EOF;
+prog: ('/#' | '#/' | function | include | namespace | filenamespace | constexpr | class_def)* EOF;
 
 include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
 namespace: '#namespace' IDENTIFIER ';';
 filenamespace: '#file' (IDENTIFIER | PATH) ';';
 constexpr: ('#constexpr' | '#define') IDENTIFIER '=' expression ';';
+
+class_def: 'class' IDENTIFIER (':' IDENTIFIER (',' IDENTIFIER)* )? '{' class_var* function* '}';
+class_var: ('var' IDENTIFIER ('=' expression)? ';');
+
 
 function
     : ('function')? 
@@ -130,6 +134,7 @@ left_value:
 
 const_expr:
 	vector_value
+	| class_init
 	| array_def
 	| struct_def 
 	| number
@@ -159,6 +164,7 @@ vector_value: '(' expression ',' expression ',' expression ')';
 array_def:
 	'[' ((expression ':')? expression ( ',' (expression ':')? expression)* (',')?)? ']';
 struct_def: '{' ((STRUCT_IDENTIFIER | expression) ':' expression (',' (STRUCT_IDENTIFIER | expression) ':' expression)* (',')?)? '}';
+class_init: 'new' IDENTIFIER '(' (expression (',' expression)*)? ')';
 
 idf: IDENTIFIER;
 

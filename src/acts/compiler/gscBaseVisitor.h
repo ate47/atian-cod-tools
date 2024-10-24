@@ -35,6 +35,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitClass_def(gscParser::Class_defContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClass_var(gscParser::Class_varContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFunction(gscParser::FunctionContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -220,6 +228,10 @@ public:
   }
 
   virtual std::any visitStruct_def(gscParser::Struct_defContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitClass_init(gscParser::Class_initContext *ctx) override {
     return visitChildren(ctx);
   }
 

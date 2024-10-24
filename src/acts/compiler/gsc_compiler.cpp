@@ -148,6 +148,8 @@ namespace acts::compiler {
         OPCODE_Undefined,
         OPCODE_Vector,
         OPCODE_Wait,
+        OPCODE_GetClasses,
+        OPCODE_GetObjectType,
     };
 
     struct FunctionVar {
@@ -468,11 +470,13 @@ namespace acts::compiler {
         byte params;
         bool inlineCall;
         bool useIWCalls;
+        uint32_t hashSize;
 
         AscmNodeFunctionCall(OPCode opcode, int flags, byte params, uint64_t clsName, uint64_t nameSpace, VmInfo* vm)
             : AscmNodeOpCode(opcode), flags(flags), params(params), clsName(clsName), nameSpace(nameSpace) {
             inlineCall = vm->HasFlag(VmFlags::VMF_ALIGN);
             useIWCalls = vm->HasFlag(VmFlags::VMF_IW_CALLS);
+            hashSize = vm->HasFlag(VmFlags::VMF_HASH64) ? 8 : 4;
         }
 
         void SetScriptCall(CompileObject& obj, bool scriptCall);
@@ -549,7 +553,7 @@ namespace acts::compiler {
             LoadData(useParams, dataSize);
             if (aligned) {
                 if (flags & FCF_POINTER_CLASS) {
-                    return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + (useParams ? 1 : 0)) + (uint32_t)sizeof(uint32_t);
+                    return utils::Aligned<uint32_t>(AscmNodeOpCode::ShiftSize(start, aligned) + (useParams ? 1 : 0)) + hashSize;
                 }
                 if (flags & FCF_POINTER) {
                     return AscmNodeOpCode::ShiftSize(start, aligned) + (useParams ? 1 : 0);
@@ -558,7 +562,7 @@ namespace acts::compiler {
             }
 
             start = AscmNodeOpCode::ShiftSize(start, aligned);
-            if (useParams && useIWCalls) {
+            if ((inlineCall && useParams) || (useParams && useIWCalls)) {
                 start++;
             }
             start += dataSize;
@@ -580,8 +584,17 @@ namespace acts::compiler {
             }
 
             if (flags & FCF_POINTER_CLASS) {
-                ctx.Align<uint32_t>();
-                ctx.Write<uint32_t>((uint32_t)clsName);
+                switch (hashSize) {
+                case 4:
+                    ctx.Align<uint32_t>();
+                    ctx.Write<uint32_t>((uint32_t)clsName);
+                    break;
+                case 8:
+                    ctx.Align<uint64_t>();
+                    ctx.Write<uint64_t>(clsName);
+                    break;
+                default: throw std::runtime_error(utils::va("Invalid hash size cls ptr %d", hashSize));
+                }
             }
             else if (!(flags & FCF_POINTER)) {
                 // replaced by the linker
@@ -825,8 +838,8 @@ namespace acts::compiler {
     public:
         GlobalVariableDef* def;
 
-        AscmNodeGlobalVariable(GlobalVariableDef* def, bool ref) : 
-            AscmNodeOpCode(ref ? OPCODE_GetGlobalObject : OPCODE_GetGlobal), def(def) {
+        AscmNodeGlobalVariable(GlobalVariableDef* def, OPCode op) : 
+            AscmNodeOpCode(op), def(def) {
         }
 
         uint32_t ShiftSize(uint32_t start, bool aligned) const override {
@@ -1333,6 +1346,10 @@ namespace acts::compiler {
 
         AscmNode* CreateParamNode() const;
 
+        AscmNode* CreateFieldHashRaw(uint64_t v) const {
+            return m_vmInfo->HasFlag(VmFlags::VMF_HASH64) ? (AscmNode*)new AscmNodeRawData<uint64_t>(v) : new AscmNodeRawData<uint32_t>((uint32_t)v);
+        }
+
         AscmNode* CreateFieldHash(uint64_t v, OPCode op) const {
             return new AscmNodeHash(v, op, m_vmInfo->HasFlag(VmFlags::VMF_HASH64) ? 8 : 4);
         }
@@ -1340,6 +1357,10 @@ namespace acts::compiler {
         AscmNode* CreateFieldHash(const char* v, OPCode op) const;
 
         AscmNode* CreateFieldHash(const std::string& v, OPCode op) const;
+
+        AscmNode* CreateFieldHashRaw(const char* v) const;
+
+        AscmNode* CreateFieldHashRaw(const std::string& v) const;
 
         AscmNode* PeekBreakNode() const {
             if (m_jumpBreak.size()) {
@@ -1448,10 +1469,15 @@ namespace acts::compiler {
         }
     };
 
+    struct ClassCompileContext {
+        uint64_t name;
+        std::unordered_map<uint64_t, ParseTree*> vars{};
+        std::unordered_set<uint64_t> funcs{};
+    };
 
     class CompileObject {
     public:
-        size_t devBlockDepth;
+        size_t devBlockDepth{};
         GscCompilerOption& opt;
         InputInfo& info;
         GscFileType type;
@@ -1476,6 +1502,7 @@ namespace acts::compiler {
         std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler;
         std::unordered_set<std::string> hashes{};
         size_t emptyNameInc{};
+        ClassCompileContext* clsCtx{};
 
         CompileObject(GscCompilerOption& opt, GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt, std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler) 
             : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt), gscHandler(gscHandler) {
@@ -2003,7 +2030,7 @@ namespace acts::compiler {
                     decl.def = &gv;
                 }
 
-                AscmNodeGlobalVariable* gvar = new AscmNodeGlobalVariable(decl.def, false);
+                AscmNodeGlobalVariable* gvar = new AscmNodeGlobalVariable(decl.def, OPCODE_GetGlobal);
                 decl.nodes.emplace_back(gvar);
                 f.m_nodes.push_back(gvar);
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_Notify));
@@ -2637,6 +2664,16 @@ namespace acts::compiler {
         return CreateFieldHash(m_vmInfo->HashField(v), op);
     }
 
+    AscmNode* FunctionObject::CreateFieldHashRaw(const char* v) const {
+        obj.AddHash(v);
+        return CreateFieldHashRaw(m_vmInfo->HashField(v));
+    }
+
+    AscmNode* FunctionObject::CreateFieldHashRaw(const std::string& v) const {
+        obj.AddHash(v);
+        return CreateFieldHashRaw(m_vmInfo->HashField(v));
+    }
+
     void AscmNodeFunctionCall::SetScriptCall(CompileObject& obj, bool scriptCall) {
         isScriptCall = scriptCall;
 
@@ -2701,6 +2738,7 @@ namespace acts::compiler {
     }
 
     FunctionObject* ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj, byte forceFlags = 0);
+    bool ParseClassDef(RuleContext* func, gscParser& parser, CompileObject& obj);
     bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal);
 
     bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
@@ -2825,6 +2863,7 @@ namespace acts::compiler {
             case gscParser::RuleConst_expr:
             case gscParser::RuleNumber:
             case gscParser::RuleVector_value:
+            case gscParser::RuleClass_init:
             case gscParser::RuleSet_expression:
             case gscParser::RuleArray_def:
             case gscParser::RuleStruct_def:
@@ -3473,7 +3512,7 @@ namespace acts::compiler {
                     fobj.AddNode(arrVal, new AscmNodeVariable(arrayVal->id, OPCODE_EvalLocalVariableCached));
                     uint64_t fakHash = obj.vmInfo->HashField("getfirstarraykey");
                     AscmNodeFunctionCall* fakNode = new AscmNodeFunctionCall(OPCODE_CallBuiltinFunction, 0, 1, fakHash, obj.currentNamespace, obj.vmInfo);
-                    obj.AddImport(fakNode, obj.currentNamespace, fakHash, obj.currentNamespace, tool::gsc::FUNCTION | tool::gsc::GET_CALL);
+                    obj.AddImport(fakNode, obj.currentNamespace, fakHash, 1, tool::gsc::FUNCTION | tool::gsc::GET_CALL);
                     fobj.AddNode(arrVal, fakNode);
                     fobj.AddNode(arrVal, new AscmNodeVariable(keyVar->id, OPCODE_SetLocalVariableCached));
 
@@ -3509,7 +3548,7 @@ namespace acts::compiler {
 
                     uint64_t gakHash = obj.vmInfo->HashField("getnextarraykey");
                     AscmNodeFunctionCall* gakNode = new AscmNodeFunctionCall(OPCODE_CallBuiltinFunction, 0, 2, gakHash, obj.currentNamespace, obj.vmInfo);
-                    obj.AddImport(gakNode, obj.currentNamespace, gakHash, obj.currentNamespace, tool::gsc::FUNCTION | tool::gsc::GET_CALL);
+                    obj.AddImport(gakNode, obj.currentNamespace, gakHash, 2, tool::gsc::FUNCTION | tool::gsc::GET_CALL);
                     fobj.AddNode(arrVal, gakNode);
                     fobj.AddNode(rule->children[rule->children.size() - 1], new AscmNodeVariable(keyVar->id, OPCODE_SetLocalVariableCached));
 
@@ -4122,7 +4161,10 @@ namespace acts::compiler {
 
                     AscmNodeFunctionCall* funcCall = new AscmNodeFunctionCall(opcode, flags, (byte)paramCount, funcHash, funcNspHash, obj.vmInfo);
 
-                    obj.AddImport(funcCall, funcNspHash, funcHash, paramCount, importFlags);
+                    if (!(flags & FCF_POINTER_CLASS)) {
+                        // class aren't imported
+                        obj.AddImport(funcCall, funcNspHash, funcHash, paramCount, importFlags);
+                    }
 
                     fobj.AddNode(rule, funcCall);
                 }
@@ -4599,6 +4641,20 @@ namespace acts::compiler {
                     return false;
                 }
                 fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Vector));
+                return true;
+            }
+            case gscParser::RuleClass_init: {
+                std::string clsName = rule->children[1]->getText();
+                if (rule->children.size() > 4) {
+                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, "Parameters not supported for class constructor");
+                    return false;
+                }
+                obj.AddHash(clsName);
+                fobj.AddNode(rule, fobj.CreateFieldHash(clsName, OPCODE_GetObjectType));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ClassFunctionCall));
+                fobj.AddNode(rule, new AscmNodeRawData<byte>(0)); // params
+                fobj.AddNode(rule, fobj.CreateFieldHashRaw("__constructor")); // cls name
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop)); // remove constructor result
                 return true;
             }
             case gscParser::RuleArray_def: {
@@ -5084,7 +5140,7 @@ namespace acts::compiler {
                     decl.def = &gv;
                 }
 
-                AscmNodeGlobalVariable* gvar = new AscmNodeGlobalVariable(&gv, false);
+                AscmNodeGlobalVariable* gvar = new AscmNodeGlobalVariable(&gv, OPCODE_GetGlobal);
                 decl.nodes.emplace_back(gvar);
                 fobj.AddNode(term, gvar);
                 return true;
@@ -5230,6 +5286,170 @@ namespace acts::compiler {
         obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled terminal: {}", term->getText()));
         return false;
     }
+    bool ParseClassDef(RuleContext* func, gscParser& parser, CompileObject& obj) {
+        std::string clsName = func->children[1]->getText();
+
+        if (!obj.gscHandler->GetVTableImportFlags()) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("This vm doesn't support classes, can't register '{}'", clsName));
+            return false;
+        }
+
+        obj.AddHash(clsName);
+        uint64_t clsNameHash = obj.vmInfo->HashField(clsName);
+
+        ClassCompileContext cctx{ clsNameHash };
+        obj.clsCtx = &cctx;
+        utils::CloseEnd ce{ [&obj] {obj.clsCtx = nullptr; } };
+
+        bool ok = true;
+
+        size_t idx{ 2 };
+        if (func->children[idx]->getText() == ":") {
+            do {
+                idx++;
+                auto* idf{ func->children[idx++] };
+                LOG_TRACE("parent: {}", idf->getText());
+            } while (func->children[idx]->getText() != "{");
+            // todo: parse parent classes
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, func->children[idx], std::format("Parent classes not implemented yet: class {}", clsName));
+            ok = false;
+        }
+
+        if (func->children[idx]->getText() != "{") {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, func->children[idx], std::format("Invalid class reading: {}", func->children[idx]->getText()));
+            return false;
+        }
+
+        idx++;
+
+        while (IS_RULE_TYPE(func->children[idx], gscParser::RuleClass_var)) {
+            auto* v{ func->children[idx++] };
+            std::string varName = func->children[1]->getText();
+            obj.AddHash(varName);
+            uint64_t varNameHash = obj.vmInfo->HashField(varName);
+
+            if (cctx.vars.contains(varNameHash)) {
+                obj.info.PrintLineMessage(alogs::LVL_ERROR, func->children[idx], std::format("Class property {} registered twice in {}", varName, clsName));
+                ok = false;
+                continue;
+            }
+            if (func->children.size() > 3) {
+                cctx.vars[varNameHash] = func->children[3];
+            }
+            else {
+                cctx.vars[varNameHash] = nullptr;
+            }
+        }
+
+        while (IS_RULE_TYPE(func->children[idx], gscParser::RuleFunction)) {
+            auto* f{ func->children[idx++] };
+
+        }
+
+
+        auto [res, err] = obj.exports.try_emplace(clsNameHash, obj, clsNameHash, obj.currentNamespace, obj.fileNameSpace, obj.vmInfo);
+
+
+        if (!err) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("The export {} was defined twice", clsName));
+            return false;
+        }
+
+
+        FunctionObject& exp = res->second;
+        exp.m_flags = tool::gsc::CLASS_VTABLE;
+
+        exp.AddNode(func, exp.CreateParamNode());
+
+        /*
+        
+.00000000: 000d CheckClearParams          
+.00000002: 000e PreScriptCall             
+.00000004: 000f CallBuiltinFunction       params: 0 spawnstruct
+.00000010: 06a1 GetZero                   
+.00000012: 0d29 EvalFieldVariableFromGlobalObject classes.cluielemtext
+.0000001c: 09b5 SetVariableFieldFromEvalArrayRef 
+
+.0000001e: 0bb2 GetResolveFunction        &cluielem::function_7bfd10e6
+.00000028: 0253 GetUnsignedInteger        2080182502 (0x7bfd10e6)
+.00000030: 0b50 GetZero                   
+.00000032: 05dc EvalGlobalObjectFieldVariable classes.cluielemtext
+.0000003c: 0096 EvalArray                 
+.0000003e: 0749 CastFieldObject           
+.00000040: 0967 EvalFieldVariableRef      __vtable
+.00000048: 0439 SetVariableFieldFromEvalArrayRef 
+        
+        
+        
+        */
+        exp.AddNode(func, new AscmNodeOpCode(OPCODE_PreScriptCall));
+        uint64_t ss = obj.vmInfo->HashField("spawnstruct");
+        AscmNodeFunctionCall* gakNode = new AscmNodeFunctionCall(OPCODE_CallBuiltinFunction, 0, 0, ss, obj.currentNamespace, obj.vmInfo);
+        obj.AddImport(gakNode, obj.currentNamespace, ss, 0, tool::gsc::FUNCTION | tool::gsc::GET_CALL);
+        exp.AddNode(func, gakNode);
+        exp.AddNode(func, new AscmNodeOpCode(OPCODE_GetZero));
+
+
+        auto gvarIt = exp.m_vmInfo->globalvars.find(obj.vmInfo->HashField("classes"));
+
+        if (gvarIt == exp.m_vmInfo->globalvars.end()) {
+            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Can't find classes global variable, does this vm support classes?"));
+            return false;
+        }
+
+        GlobalVariableDef& gv = gvarIt->second;
+
+        if (obj.HasOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject)) {
+            // T9
+            GlobalVarObject& decl = obj.globals[gv.name];
+
+            if (!decl.def) {
+                decl.def = &gv;
+            }
+
+            AscmNodeGlobalVariable* gvar = new AscmNodeGlobalVariable(&gv, OPCODE_T9_EvalFieldVariableFromGlobalObject);
+            decl.nodes.emplace_back(gvar);
+            exp.AddNode(func, gvar);
+            exp.AddNode(func, exp.CreateFieldHashRaw(clsNameHash));
+        }
+        else {
+            if (gv.getOpCode) { // T7
+                exp.AddNode(func, new AscmNodeOpCode(gv.getOpCode));
+            }
+            else { // T8
+                if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
+                    obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("classes is defined as a global, but the vm doesn't support globals"));
+                    return false;
+                }
+
+                AscmNodeGlobalVariable* gvar = new AscmNodeGlobalVariable(&gv, OPCODE_GetGlobalObject);
+                GlobalVarObject& decl = obj.globals[gv.name];
+
+                if (!decl.def) {
+                    decl.def = &gv;
+                }
+                decl.nodes.emplace_back(gvar);
+                exp.AddNode(func, gvar);
+            }
+
+            exp.AddNode(func, exp.CreateFieldHash(clsNameHash, OPCODE_EvalFieldVariableRef));
+        }
+
+        if (obj.HasOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject)) {
+            exp.AddNode(func, new AscmNodeOpCode(OPCODE_T9_SetVariableFieldFromEvalArrayRef));
+        }
+        else {
+            exp.AddNode(func, new AscmNodeOpCode(OPCODE_EvalArrayRef));
+            exp.AddNode(func, new AscmNodeOpCode(OPCODE_SetVariableField));
+        }
+
+
+        exp.AddNode(func, new AscmNodeOpCode(OPCODE_End));
+
+        obj.info.PrintLineMessage(alogs::LVL_WARNING, func->children[idx], std::format("Class not yet fully implemented: {}", func->children[idx]->getText()));
+        return ok;
+    }
+    
 
     FunctionObject* ParseFunction(RuleContext* func, gscParser& parser, CompileObject& obj, byte forceFlags) {
         int deltaArrow = (func->children.size() > 2 && func->children[func->children.size() - 2]->getText() == "=>") ? 1 : 0;
@@ -5676,6 +5896,11 @@ namespace acts::compiler {
                 break;
             case gscParser::RuleConstexpr:
                 if (!ParseConstExpr(rule, parser, obj)) {
+                    return false;
+                }
+                break;
+            case gscParser::RuleClass_def:
+                if (!ParseClassDef(rule, parser, obj)) {
                     return false;
                 }
                 break;

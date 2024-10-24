@@ -112,6 +112,16 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--test-header", arg)) {
             m_test_header = true;
         }
+        else if (!_strcmpi("--vtable", arg)) {
+            m_vtable = true;
+        }
+        else if (!_strcmpi("--vtable-dump", arg)) {
+            if (i + 1 == endIndex) {
+                LOG_ERROR("Missing value for param: {}!", arg);
+                return false;
+            }
+            vtable_dump = args[++i];
+        }
         else if (!strcmp("-t", arg) || !_strcmpi("--type", arg)) {
             if (i + 1 == endIndex) {
                 LOG_ERROR("Missing value for param: {}!", arg);
@@ -318,7 +328,8 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("-C --copyright [t] : Set a comment text to put in front of every file");
     LOG_INFO("-d --gdb           : Dump gdb data");
     LOG_INFO("--gdb-small        : Dump only important gdb data");
-    LOG_INFO("--dumpstrings [f]  : Dump strings in f");
+    LOG_INFO("--dumpstrings [f]  : Dump strings into f");
+    LOG_INFO("--vtable-dump [f]  : Dump vtable information into f");
     // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
     // it's mostly dev tools
     LOG_DEBUG("-G --gvars         : Write gvars");
@@ -344,6 +355,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--no-path          : No path extraction");
     LOG_DEBUG("--ignore-dbg-plt   : ignore debug platform info");
     LOG_DEBUG("-A --sync [mode]   : Sync mode: async or sync");
+    LOG_DEBUG("--vtable           : Do not hide and decompile vtable functions");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -1786,7 +1798,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 output << std::flush;
                 DecompContext dctx{ 0, 0, asmctx.m_opt, 0, exp->GetAddress() };
                 if (opt.m_dcomp) {
-                    if (scriptfile->IsVTableImportFlags(exp->GetFlags())) {
+                    if (!opt.m_vtable && scriptfile->IsVTableImportFlags(exp->GetFlags())) {
                         asmctx.m_bcl = scriptfile->Ptr(exp->GetAddress());
                         int ret{ DumpVTable(*exp, output, *scriptfile, ctx, asmctx, dctx) };
                         asmctx.m_vtable = ret != DVA_NOT;
@@ -2234,6 +2246,16 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
     {
         core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+
+        if (opt.vtable_dump) {
+            for (auto& [n, c] : ctx.m_classes) {
+                auto& t = gdctx.vtables[scriptfile->GetName()][n];
+                for (auto& meth : c.m_vtableMethods) {
+                    t.insert(NameLocated{ meth.name_space , meth.name });
+                }
+            }
+
+        }
         gdctx.decompiledFiles++;
     }
 
@@ -2761,6 +2783,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         else {
             cls.m_superClass.emplace(methodClsName);
         }
+        cls.m_vtableMethods.emplace(NameLocated{ methodClsName, methodName });
         auto& mtd = cls.m_vtable[uid];
         mtd.name = methodName;
         mtd.nsp = methodClsName;
@@ -3210,12 +3233,12 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
 
             if (!utils::ReadFileAlign(path, buffer, bufferAlign, size)) {
                 LOG_ERROR("Can't read file data for {}", path.string());
-                return -1;
+                continue;
             }
 
             if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
                 LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, 0x18, path.string());
-                return -1;
+                continue;
             }
 
             auto lret = GscInfoHandleData((byte*)bufferAlign, size, pathname.c_str(), gdctx);
@@ -3283,6 +3306,34 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
             os.close();
         }
     }
+    if (gdctx.opt.vtable_dump) {
+        std::ofstream os{ gdctx.opt.vtable_dump };
+        if (!os) {
+            LOG_ERROR("Can't open vtable output");
+        }
+        else {
+            os << "script,class,namespace,name";
+            for (auto& [script, clss] : gdctx.vtables) {
+                for (auto& [cls, ns] : clss) {
+                    for (auto& n : ns) {
+                        os
+                            << "\n"
+                            << hashutils::ExtractTmp("script", script) << ","
+                            << hashutils::ExtractTmp("class", cls) << ","
+                            << hashutils::ExtractTmp("namespace", n.name_space) << ","
+                            << hashutils::ExtractTmp("function", n.name)
+                            ;
+                    }
+                }
+            }
+
+
+            os.close();
+            LOG_INFO("btable into '{}'", gdctx.opt.vtable_dump);
+        }
+
+    }
+
     if (gRosettaOutput) {
         std::ofstream os{ gRosettaOutput, std::ios::binary };
 

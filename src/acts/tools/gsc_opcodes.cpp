@@ -1125,7 +1125,21 @@ public:
 			if (context.m_runDecompiler) {
 				context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, m_valtype, false, true, true));
 			}
-			out << std::dec << intValue << " (0x" << std::hex << intValue << ")" << std::endl;
+			out << std::dec << intValue;
+			
+			if constexpr (std::is_integral<Type>()) {
+				out << " (0x" << std::hex << intValue;
+
+				const char* hashV{ hashutils::ExtractPtr(intValue) };
+
+				if (hashV) {
+					out << "/$" << hashV;
+				}
+
+				out << ")";
+			}
+			
+			out << std::endl;
 		}
 
 		bytecode += sizeof(Type);
