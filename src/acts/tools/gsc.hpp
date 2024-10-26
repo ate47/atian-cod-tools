@@ -170,6 +170,7 @@ namespace tool::gsc {
         enum ASMContextNodeType : UINT {
             TYPE_BLOCK,
             TYPE_STATEMENT,
+            TYPE_COMMENT,
             TYPE_DO_WHILE,
             TYPE_WHILE,
             TYPE_FOR,
@@ -585,8 +586,9 @@ namespace tool::gsc {
 
             /*
              * Complete any statement on the ASCM stack
+             * @param resetLoc reset the location after the statement
              */
-            void CompleteStatement();
+            void CompleteStatement(bool resetLoc = true);
 
             /*
              * Compute the default param value from the function block

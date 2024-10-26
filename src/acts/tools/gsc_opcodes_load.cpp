@@ -1055,6 +1055,9 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23, '&', OPCODE_GetHash, 8, [](const char* str) { return hashutils::HashJupScr(str); });
 			RegisterDevCall(VM_MW23, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
+			RegisterOpCode(VM_MW23, PLATFORM_PC, OPCODE_CheckClearParams, 0x43);
+			RegisterOpCode(VM_MW23, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x98);
+			RegisterOpCode(VM_MW23, PLATFORM_PC, OPCODE_IW_RegisterVariable, 0x2B, 0xA4);
 
 			RegisterVM(VM_MW23B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS);
 			RegisterVmName(VM_MW23B, "jup", "s5", "mwiii", "modernwarfareiii", "mw23");
@@ -1078,6 +1081,9 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_MW23B, '&', OPCODE_GetHash, 8, [](const char* str) { return hashutils::HashJupScr(str); });
 			RegisterDevCall(VM_MW23B, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_MW23B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
+			RegisterOpCode(VM_MW23B, PLATFORM_PC, OPCODE_CheckClearParams, 0x39);
+			RegisterOpCode(VM_MW23B, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x4d);
+			RegisterOpCode(VM_MW23B, PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x79);
 
 			RegisterVM(VM_BO6_06, "Call of Duty: Black Ops 6 (06)", "t10_6", "bo6_6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 			RegisterVmName(VM_BO6_06, "cer6", "t10_6", "blackops6_6");
@@ -1248,6 +1254,9 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_Nop, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff);
+			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_CheckClearParams, 0x4d);
+			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x5a);
+			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x53);
 
 			RegisterVM(VM_BO6_0C, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 			RegisterVmName(VM_BO6_0C, "cer", "t10", "blackops6");
@@ -1273,6 +1282,9 @@ namespace tool::gsc::opcode {
 			RegisterVMHashOPCode(VM_BO6_0C, '&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hashutils::HashT10Scr(str); });
 			RegisterDevCall(VM_BO6_0C, "assert", "assertmsg", "assertex", "println");
 			RegisterDatatype(VM_BO6_0C, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
+			RegisterOpCode(VM_BO6_0C, PLATFORM_PC, OPCODE_CheckClearParams, 0x24);
+			RegisterOpCode(VM_BO6_0C, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x20);
+			RegisterOpCode(VM_BO6_0C, PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x93);
 
 			RegisterVM(VM_T7, "Call of Duty: Black ops 3", "t7", "bo3", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7);
 			RegisterVmName(VM_T7, "t7", "blackops3");

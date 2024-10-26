@@ -37,7 +37,7 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("pc", name)) {
 			return PLATFORM_PC;
 		}
-		if (!_strcmpi("pc_alpha", name) || !_strcmpi("pca", name)) {
+		if (!_strcmpi("pc_alpha", name) || !_strcmpi("pca", name) || !_strcmpi("alpha", name) || !_strcmpi("a", name)) {
 			return PLATFORM_PC_ALPHA;
 		}
 		if (!_strcmpi("xbox", name) || !_strcmpi("xb", name)) {
@@ -140,7 +140,7 @@ namespace tool::gsc::opcode {
 		case PLATFORM_PC: return "PC";
 		case PLATFORM_XBOX: return "Xbox";
 		case PLATFORM_PLAYSTATION: return "PlayStation";
-		case PLATFORM_PC_ALPHA: return "PC Alpha";
+		case PLATFORM_PC_ALPHA: return "Alpha";
 		default: return "Unknown";
 		}
 	}
@@ -576,8 +576,6 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-
-		context.DisableDecompiler(std::format("Unknown operator 0x{:x} ({}/{})", value, context.m_objctx.m_vmInfo->codeName, PlatformName(context.m_platform)));
 		out << "Unknown operator: " << std::hex << value << "\n";
 
 		byte* oldBcl = context.m_bcl;
@@ -641,8 +639,29 @@ public:
 				}
 			}
 		}
+		if (context.m_opt.m_dcomp) {
+			ASMContextNodeMultOp* op = new ASMContextNodeMultOp("InvalidOpCode", false);
+			op->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_VALUE, true, false, true));
+
+			// add params
+			while (context.m_stack.size() && context.PeekASMCNode()->m_type != TYPE_PRECODEPOS) {
+				op->AddParam(context.PopASMCNode());
+			}
+			op->m_priority = PRIORITY_INST;
+			context.PushASMCNode(op);
+			context.CompleteStatement(false);
+
+			ASMContextNodeMultOp* op2 = new ASMContextNodeMultOp("Unknown operator ", false, TYPE_COMMENT);
+			op2->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_VALUE, true, false, true));
+			op2->AddParam(new ASMContextNodeValue<const char*>(context.m_objctx.m_vmInfo->codeName, TYPE_VALUE));
+			op2->AddParam(new ASMContextNodeValue<const char*>(PlatformName(context.m_platform), TYPE_VALUE));
+			context.PushASMCNode(op2);
+			context.CompleteStatement();
+			//context.DisableDecompiler(std::format("Unknown operator 0x{:x} ({}/{})", value, context.m_objctx.m_vmInfo->codeName, PlatformName(context.m_platform)));
+		}
+
 		
-		return -1;
+		return -2;
 	}
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		ctx.m_error = std::format("Unknown operator: {:x}", value);
@@ -1776,21 +1795,31 @@ public:
 		out << std::endl;
 
 		if (context.m_runDecompiler) {
-			ASMContextNode* prev = context.PopASMCNode();
+			ASMContextNode* prev = context.PeekASMCNode();
 
-			ASMContextNode* node;
-			if (prev->m_type == TYPE_WAITTILL_SET) {
-				auto* lro = reinterpret_cast<ASMContextNodeLeftRightOperator*>(prev);
-				lro->m_left = new ASMContextNodeLeftRightOperator(lro->m_left, new ASMContextNodeIdentifier(name), ", ", PRIORITY_SET, TYPE_WAITTILL_SET);
-				node = lro;
+			if (prev->m_type != TYPE_WAITTILL) {
+				prev = context.PopASMCNode();
+				ASMContextNode* node;
+				if (prev->m_type == TYPE_WAITTILL_SET) {
+					auto* lro = reinterpret_cast<ASMContextNodeLeftRightOperator*>(prev);
+					lro->m_left = new ASMContextNodeLeftRightOperator(lro->m_left, new ASMContextNodeIdentifier(name), ", ", PRIORITY_SET, TYPE_WAITTILL_SET);
+					node = lro;
+				}
+				else {
+					node = new ASMContextNodeLeftRightOperator(
+						new ASMContextNodeIdentifier(name), prev, " = ", PRIORITY_SET, TYPE_WAITTILL_SET);
+				}
+
+				context.SetFieldIdASMCNode(node->Clone());
+				context.PushASMCNode(node);
 			}
 			else {
-				node = new ASMContextNodeLeftRightOperator(
-					new ASMContextNodeIdentifier(name), prev, " = ", PRIORITY_SET, TYPE_WAITTILL_SET);
+				ASMContextNodeMultOp* wtop = reinterpret_cast<ASMContextNodeMultOp*>(prev);
+				ASMContextNode* idf = new ASMContextNodeIdentifier(name);
+				wtop->AddParam(idf);
+				context.SetFieldIdASMCNode(idf->Clone());
 			}
 
-			context.SetFieldIdASMCNode(node->Clone());
-			context.PushASMCNode(node);
 		}
 
 		return 0;
@@ -4598,8 +4627,9 @@ public:
 	unsigned int m_count;
 	unsigned int m_delta;
 	bool m_hasCaller;
-	OPCodeInfoSingle(OPCode id, const char* name, const char* op, bool pushReturn, unsigned int count = 1, unsigned int delta = 0, bool hasCaller = true) : OPCodeInfo(id, name),
-		m_op(op), m_pushReturn(pushReturn), m_count(count), m_delta(delta), m_hasCaller(hasCaller) {
+	ASMContextNodeType m_type = TYPE_STATEMENT;
+	OPCodeInfoSingle(OPCode id, const char* name, const char* op, bool pushReturn, unsigned int count = 1, unsigned int delta = 0, bool hasCaller = true, ASMContextNodeType type = TYPE_STATEMENT) 
+		: OPCodeInfo(id, name), m_op(op), m_pushReturn(pushReturn), m_count(count), m_delta(delta), m_hasCaller(hasCaller), m_type(type) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -4613,7 +4643,7 @@ public:
 		out << "\n";
 
 		if (context.m_runDecompiler) {
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, m_hasCaller);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, m_hasCaller, m_type);
 
 			// self
 			if (m_hasCaller) {
@@ -5288,7 +5318,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinFunction, "GetBuiltinFunction", 2));
 			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinMethod, "GetBuiltinMethod", 2));
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleEndon, "Endon", "endon", false));
-			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true));
+			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true, 1, 0, true, TYPE_WAITTILL));
 			RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true, true));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "GetLevel", GGGT_PUSH, "level"));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelGRef, "GetLevelGRef", GGGT_GLOBAL, "level"));
@@ -5319,7 +5349,7 @@ namespace tool::gsc::opcode {
 
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_IW_WaitFrame, "WaitSingleFrame", "waitframe()"));
 			RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_IW_GetThread, "GetThread", "getthread()"));
-			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2));
+			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2, true, TYPE_WAITTILL));
 			// scripts\asm\asm::asm_getanim()'s assertmsg lol
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_FlatArgs, "FlatArgs", "flat_args", true, 2, 0, false));
 			RegisterOpCodeHandler(new OPCodeInfoGetPositionRef());
@@ -5689,7 +5719,7 @@ ASMContextNode* ASMContext::PeekASMCNode() {
 	return m_stack[m_stack.size() - 1];
 }
 
-void ASMContext::CompleteStatement() {
+void ASMContext::CompleteStatement(bool resetLoc) {
 	if (m_stack.size() && m_lastOpCodeBase != -1) { // empty func tests
 		//if (m_fieldId) {
 		//	delete m_fieldId;
@@ -5703,7 +5733,9 @@ void ASMContext::CompleteStatement() {
 		auto* loc = &m_locs[m_lastOpCodeBase];
 
 		m_funcBlock.m_statements.push_back({ node, loc});
-		m_lastOpCodeBase = -1;
+		if (resetLoc) {
+			m_lastOpCodeBase = -1;
+		}
 		//// clear stack
 		//for (auto& n : m_stack) {
 		//	delete n;
@@ -5849,10 +5881,16 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 				if (hide && ref.node->m_type != TYPE_PRECODEPOS) {
 					out << "<END DETECTED> ";
 				}
+				if (ref.node->m_type == TYPE_COMMENT) {
+					out << "// ";
+				}
 				ref.node->Dump(out, ctx);
 
 				if (ref.node->m_renderSemicolon) {
-					out << ";\n";
+					if (ref.node->m_type != TYPE_COMMENT) {
+						out << ";";
+					}
+					out << "\n";
 				}
 				if (ref.node->m_type == TYPE_JUMP || ref.node->m_type == TYPE_RETURN) {
 					hide = true;
