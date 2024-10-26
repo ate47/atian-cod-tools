@@ -38,7 +38,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | Black Ops 6 (CER)        | 0C       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 
 - \* : Some source repositories might not be public yet.
-- **DEC**: With pre-decode
+- **DEC**: With pre-decode, see the [GSC Decrypter section](#gsc-decrypter).
 - **EXT**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
 
 **Commands**
