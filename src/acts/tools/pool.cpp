@@ -6416,7 +6416,7 @@ int dbgp(Process& proc, int argc, const char* argv[]) {
     return tool::OK;
 }
 ADD_TOOL(dpbo4, "bo4", " [pool]+", "Black Ops 4 dump pool", L"BlackOps4.exe", pooltool);
-ADD_TOOL(dpn, "bo4", "", "dump pool names", L"BlackOps4.exe", pooltoolnames);
-ADD_TOOL(dbgcache, "bo4", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
-ADD_TOOL(dbmtstrs, "bo4", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
+ADD_TOOL(dpnbo4, "bo4", "", "dump pool names", L"BlackOps4.exe", pooltoolnames);
+ADD_TOOL(dbgcachebo4, "bo4", "", "dump bg cache", L"BlackOps4.exe", dumpbgcache);
+ADD_TOOL(dbmtstrsbo4, "bo4", "", "dump mt strings", L"BlackOps4.exe", dbmtstrs);
 ADD_TOOL(dbgpbo4, "bo4", "", "dump bg pool", L"BlackOps4.exe", dbgp);

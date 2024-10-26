@@ -4,7 +4,10 @@
 #include <hook/module_mapper.hpp>
 #include <hook/error.hpp>
 #include <decrypt.hpp>
+#include <DbgHelp.h>
+#pragma comment(lib, "imagehlp.lib")
 #include "tools/gsc.hpp"
+#include "tools/pool.hpp"
 
 namespace {
 	using namespace tool::gsc::opcode;
@@ -17,16 +20,22 @@ namespace {
 		hook::module_mapper::Module mod{ true };
 
 		LOG_INFO("Loading module {}", exe);
-		if (!mod.Load(exe)) {
+		if (!mod.Load(exe) || !mod) {
 			LOG_ERROR("Can't load module");
 			return tool::BASIC_ERROR;
 		}
 
 		LOG_INFO("Loaded");
 
-		/*
-
+		LOG_INFO("{}", (void*)mod->GetNTHeader());
+		LOG_INFO("{:x}", mod->GetOptHeader()->ImageBase);
+		LOG_INFO("{}", *mod);
+		LOG_INFO("{}", mod->Get<void>(0ull));
+		//tool::pool::WriteHex(std::cout, 0, mod->GetOptHeader(), sizeof(*mod->GetOptHeader()));
+		
 		// TEST BO4 Dump data
+
+		/*
         struct T8BuiltInFunc {
             uint32_t name;
             uint32_t minArgs;
@@ -41,13 +50,26 @@ namespace {
         constexpr size_t len = 370;
 
         for (size_t i = 0; i < len; i++) {
-            LOG_INFO("{} -> {:x}", hashutils::ExtractTmp("function", defs[i].name), defs[i].function);
+			LOG_INFO("{} -> {}", hashutils::ExtractTmp("function", defs[i].name), mod->Rloc(defs[i].function));
         }
-
 		*/
 
-		LOG_INFO("Done");
+		/*
+		// Dump bo6 pool names
+		auto* pools{ mod->Get<uintptr_t>(0x8FFBE40) };
 
+		size_t idx{};
+		while (pools[idx]) {
+			const char* cc = mod->Rebase<const char>(pools[idx]);
+			char* c = utils::CloneString(cc);
+			LOG_INFO("    T10R_ASSET_{} = 0x{:x},", utils::UpperCase(c), idx);
+			idx++;
+		}
+		*/
+
+
+		LOG_INFO("Done");
+		
 		return tool::OK;
 	}
 

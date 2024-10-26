@@ -1,4 +1,6 @@
 #include <includes_shared.hpp>
+#include <DbgHelp.h>
+#pragma comment(lib, "imagehlp.lib")
 #include "process.hpp"
 
 #ifdef ASMJIT_STATIC
@@ -35,7 +37,7 @@ void process::WriteMemSafe(void* dest, void* src, size_t len) {
 }
 
 PIMAGE_NT_HEADERS process::PImageNtHeader(HMODULE mod) {
-	return reinterpret_cast<PIMAGE_NT_HEADERS>((mod ? mod : BaseHandle()) + PImageDosHeader(mod)->e_lfanew);
+	return ImageNtHeader((mod ? mod : BaseHandle()));
 }
 
 PIMAGE_OPTIONAL_HEADER process::PImageOptHeader(HMODULE mod) {

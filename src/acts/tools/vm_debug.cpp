@@ -846,5 +846,5 @@ namespace {
 	}
 }
 
-ADD_TOOL(dbg, "bo4", "", "vm debugger", L"BlackOps4.exe", vmdebug);
-ADD_TOOL(dbg_link, "bo4", "", "debug linking error", L"BlackOps4.exe", vmdebuglink);
+ADD_TOOL(dbgbo4, "bo4", "", "vm debugger", L"BlackOps4.exe", vmdebug);
+ADD_TOOL(dbg_linkbo4, "bo4", "", "debug linking error", L"BlackOps4.exe", vmdebuglink);

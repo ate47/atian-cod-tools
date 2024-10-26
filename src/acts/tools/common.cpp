@@ -62,4 +62,9 @@ namespace {
 	REGISTER_COMMON_TOOL(dp, "common", " [pool]+", "dump pool", "dpbo4", "dpcw", "dpt7", "dpcord");
 	REGISTER_COMMON_TOOL(wps, "common", " [output]", "write pooled scripts", "wpsbo4", "wpscw", "wpst7");
 	REGISTER_COMMON_TOOL(dbgp, "common", "", "dump bg pool", "dbgpbo4", "dbgpcw");
+	REGISTER_COMMON_TOOL(dpn, "common", "", "dump pool names", "dpnbo4", "dpncw");
+	REGISTER_COMMON_TOOL(dbgcache, "common", "", "dump bg cache", "dbgcachebo4");
+	REGISTER_COMMON_TOOL(dbmtstrs, "common", "", "dump mt strings", "dbmtstrsbo4");
+	REGISTER_COMMON_TOOL(dbg, "common", "", "vm debugger", "dbgbo4", "dbgcw");
+	REGISTER_COMMON_TOOL(dbg_link, "common", "", "debug linking error", "dbg_linkbo4");
 }

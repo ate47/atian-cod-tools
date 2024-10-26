@@ -232,6 +232,16 @@ namespace hook::library {
 
 		void PatchIAT() const;
 
+		template<typename T = void>
+		T* Rebase(uintptr_t origin) const {
+			return reinterpret_cast<T*>(origin - GetOptHeader()->ImageBase + reinterpret_cast<uintptr_t>(hmod));
+		}
+
+		template<typename T = uintptr_t>
+		T Rloc(uintptr_t origin) const {
+			return (T)(origin - GetOptHeader()->ImageBase);
+		}
+
 		friend std::ostream& operator<<(std::ostream& out, const Library& ptr);
 	};
 
