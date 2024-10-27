@@ -8,6 +8,7 @@
 #pragma comment(lib, "imagehlp.lib")
 #include "tools/gsc.hpp"
 #include "tools/pool.hpp"
+#include "tools/bo6/bo6.hpp"
 
 namespace {
 	using namespace tool::gsc::opcode;
@@ -50,7 +51,7 @@ namespace {
         constexpr size_t len = 370;
 
         for (size_t i = 0; i < len; i++) {
-			LOG_INFO("{} -> {}", hashutils::ExtractTmp("function", defs[i].name), mod->Rloc(defs[i].function));
+			LOG_INFO("{} -> {}", hashutils::ExtractTmp("function", defs[i].name), mod->RlocBased(defs[i].function));
         }
 		*/
 
@@ -70,6 +71,159 @@ namespace {
 
 		LOG_INFO("Done");
 		
+		return tool::OK;
+	}
+	int sp24_data_dump(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+
+		std::filesystem::path exe{ argv[2] };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe.string());
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Loaded");
+		LOG_INFO("base: {:x}", mod->GetOptHeader()->ImageBase);
+
+		// Dump bo6 pool names
+		auto* pools{ mod->Get<uintptr_t>(0x8DFCC90) };
+		{
+			std::filesystem::path pf{ exe.parent_path() / "pools.csv" };
+			std::ofstream osf{ pf };
+			if (!osf) {
+				LOG_ERROR("Can't open {}", pf.string());
+			}
+			else {
+				utils::CloseEnd osfce{ osf };
+				osf << "id,name";
+				for (size_t idx = 0; idx < bo6::T10R_ASSET_COUNT; idx++) {
+					const char* cc = mod->Rebase<const char>(pools[idx]);
+					osf << "\n" << std::dec << idx << "," << cc;
+				}
+			}
+			LOG_INFO("Created {}", pf.string());
+		}
+
+		return tool::OK;
+	}
+	int iw_data_dump(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+
+		std::filesystem::path exe{ argv[2] };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe.string());
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Loaded");
+		LOG_INFO("base: {:x}", mod->GetOptHeader()->ImageBase);
+
+		// Dump bo6 pool names
+		auto* pools{ mod->Get<uintptr_t>(0x8FFBE40) };
+		{
+			std::filesystem::path pf{ exe.parent_path() / "pools.csv" };
+			std::ofstream osf{ pf };
+			if (!osf) {
+				LOG_ERROR("Can't open {}", pf.string());
+			}
+			else {
+				utils::CloseEnd osfce{ osf };
+				osf << "id,name";
+				for (size_t idx = 0; idx < bo6::T10R_ASSET_COUNT; idx++) {
+					const char* cc = mod->Rebase<const char>(pools[idx]);
+					osf << "\n" << std::dec << idx << "," << cc;
+				}
+			}
+			LOG_INFO("Created {}", pf.string());
+		}
+
+		struct GscObj {
+			byte magic[0x58];
+		};
+		struct builtin_func {
+			uint64_t name;
+			void* func;
+		};
+
+		struct gscvm_builtins {
+			builtin_func builtinsF[2200];
+			builtin_func builtinsM[3200];
+			uint32_t countFunc;
+			uint32_t countMethod;
+			bool funcSorted;
+			bool methodSorted;
+		};
+
+
+		struct gscvm2 {
+			gscvm_builtins* builtins;
+			// ...
+		};
+
+
+		struct GscInfo {
+			GscObj* obj;
+			uint32_t count;
+			uint32_t group;
+		};
+
+		struct gscvm {
+			gscvm2* vm2;
+			uint64_t unk08;
+			GscInfo* objInfo;
+			uint32_t objCount;
+			uint32_t group_id;
+			GscObj default_obj;
+		};
+
+		struct gscvm3 {
+			byte pad[2510576];
+			gscvm vm;
+		};
+
+		auto* gscVm{ mod->Get<gscvm3>(0xC4096A0) };
+		LOG_INFO("gscVm: {:x}", mod->Rloc(gscVm));
+		auto* vm2{ mod->Rebase(gscVm->vm.vm2) };
+		LOG_INFO("vm2: {:x}", mod->Rloc(vm2));
+		auto* builtins{ mod->Rebase(vm2->builtins) };
+		LOG_INFO("builtins: {:x}", mod->Rloc(builtins));
+		{
+			std::filesystem::path pf{ exe.parent_path() / "funcs.csv" };
+			std::ofstream osf{ pf };
+			if (!osf) {
+				LOG_ERROR("Can't open {}", pf.string());
+			}
+			else {
+				utils::CloseEnd osfce{ osf };
+				osf << "name,type,ptr";
+				for (size_t idx = 0; idx < builtins->countFunc; idx++) {
+					auto bi{ builtins->builtinsF[idx] };
+
+					osf << "\n" << hashutils::ExtractTmp("function", bi.name) << ",function," << mod->RlocBased(bi.func);
+				}
+				for (size_t idx = 0; idx < builtins->countMethod; idx++) {
+					auto bi{ builtins->builtinsM[idx] };
+
+					osf << "\n" << hashutils::ExtractTmp("function", bi.name) << ",function," << mod->RlocBased(bi.func);
+				}
+			}
+			LOG_INFO("Created {}", pf.string());
+		}
+		
+
+
+		LOG_INFO("Done");
+
 		return tool::OK;
 	}
 
@@ -156,6 +310,7 @@ namespace {
 		case VM_MW23B:
 		case VM_BO6_06:
 		case VM_BO6_07:
+		case VM_BO6_0B:
 		case VM_BO6_0C: {
 			if (!LoadMod(true)) return tool::BASIC_ERROR;
 			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "DecryptString").GetPtr<char* (*)(char* str)>();
@@ -301,6 +456,8 @@ namespace {
 
 
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
+	ADD_TOOL(bo6_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", iw_data_dump);
+	ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);
 	ADD_TOOL(scripts_decrypt, "gsc", "[exe] [type] [scripts] [ouput]", "Map exe in memory and use it to decrypt GSC scripts", scripts_decrypt);
 	ADD_TOOL(test_enough_internet, "dev", "[url]", "Test can load", test_enough_internet);
 	

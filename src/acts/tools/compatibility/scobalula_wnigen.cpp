@@ -119,6 +119,8 @@ namespace {
 				utils::WriteString(rawdata, line.c_str());
 				utils::WriteValue(rawdata, hashutils::HashT10Scr(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
+				utils::WriteValue(rawdata, hashutils::HashT10ScrSP(line.c_str()));
+				utils::WriteString(rawdata, line.c_str());
 			}
 			count++;
 		}

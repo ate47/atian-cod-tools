@@ -96,9 +96,11 @@ namespace tool::hash::scanner {
 			HASH_DVAR = 1ull << 2,
 			HASH_SCR_JUP = 1ull << 3,
 			HASH_SCR_T10 = 1ull << 4,
+			HASH_SCR_T10_SP = 1ull << 5,
 
 			HASH_BLACKOPS4 = HASH_FNVA,
 			HASH_BLACKOPS6 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10,
+			HASH_BLACKOPS6_SP = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10_SP,
 			HASH_IW = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_JUP,
 			HASH_ALL = ~0ull,
 		};
@@ -148,6 +150,9 @@ namespace tool::hash::scanner {
 			else if (_strcmpi(n, "bo6")) {
 				data.funcs = HASH_BLACKOPS6;
 			}
+			else if (_strcmpi(n, "bo6sp")) {
+				data.funcs = HASH_BLACKOPS6_SP;
+			}
 			else if (_strcmpi(n, "iw")) {
 				data.funcs = HASH_IW;
 			}
@@ -183,6 +188,7 @@ namespace tool::hash::scanner {
 				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 					if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(str), str);
 					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(str), str);
+					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(hashutils::HashT10ScrSP(str), str);
 					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(str), str);
 					if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(str), str);
 					if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(str), str);
@@ -194,6 +200,7 @@ namespace tool::hash::scanner {
 					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 						if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(data->suffix, hashutils::Hash64A(str, hashutils::Hash64A(data->prefix))), str);
 						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(data->suffix, hashutils::HashT10Scr(str, hashutils::HashT10Scr(data->prefix))), str);
+						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(hashutils::HashT10ScrSP(data->suffix, hashutils::HashT10ScrSP(str, hashutils::HashT10ScrSP(data->prefix))), str);
 						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(data->suffix, hashutils::HashJupScr(str, hashutils::HashJupScr(data->prefix))), str);
 						if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(data->suffix, hashutils::HashIWRes(str, hashutils::HashIWRes(data->prefix))), str);
 						if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(data->suffix, hashutils::HashIWDVar(str, hashutils::HashIWDVar(data->prefix))), str);
@@ -204,6 +211,7 @@ namespace tool::hash::scanner {
 					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 						if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(str, hashutils::Hash64A(data->prefix)), str);
 						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(str, hashutils::HashT10Scr(data->prefix)), str);
+						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(hashutils::HashT10ScrSP(str, hashutils::HashT10ScrSP(data->prefix)), str);
 						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(str, hashutils::HashJupScr(data->prefix)), str);
 						if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(str, hashutils::HashIWRes(data->prefix)), str);
 						if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(str, hashutils::HashIWDVar(data->prefix)), str);
@@ -215,6 +223,7 @@ namespace tool::hash::scanner {
 				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 					if (data->UseFunc(HASH_FNVA)) data->TestHash(hashutils::Hash64A(data->suffix, hashutils::Hash64A(str)), str);
 					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(hashutils::HashT10Scr(data->suffix, hashutils::HashT10Scr(str)), str);
+					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(hashutils::HashT10ScrSP(data->suffix, hashutils::HashT10ScrSP(str)), str);
 					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(hashutils::HashJupScr(data->suffix, hashutils::HashJupScr(str)), str);
 					if (data->UseFunc(HASH_RES)) data->TestHash(hashutils::HashIWRes(data->suffix, hashutils::HashIWRes(str)), str);
 					if (data->UseFunc(HASH_DVAR)) data->TestHash(hashutils::HashIWDVar(data->suffix, hashutils::HashIWDVar(str)), str);
@@ -313,11 +322,13 @@ namespace tool::hash::scanner {
 			inline void TestHashes(const char** str, char b) {
 				class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return hashutils::Hash64A(str, base); } };
 				class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashT10Scr(str, base); } };
+				class HashT10ScrSP { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashT10ScrSP(str, base); } };
 				class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x79D6530B0BB9B5D1) { return hashutils::HashJupScr(str, base); } };
 				class HashIWRes { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return hashutils::HashIWRes(str, base); } };
 				class HashIWDVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashIWDVar(str, base); } };
 				TestHash<HashFnv1a, prefix, suffix>(HASH_FNVA, str, '_');
 				TestHash<HashT10Scr, prefix, suffix>(HASH_SCR_T10, str, '_');
+				TestHash<HashT10ScrSP, prefix, suffix>(HASH_SCR_T10_SP, str, '_');
 				TestHash<HashJupScr, prefix, suffix>(HASH_SCR_JUP, str, '_');
 				TestHash<HashIWRes, prefix, suffix>(HASH_RES, str, '_');
 				TestHash<HashIWDVar, prefix, suffix>(HASH_DVAR, str, '_');

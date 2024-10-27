@@ -233,6 +233,7 @@ namespace {
 		{ "h32", "t89 canon", [](const char* text) -> uint64_t { return hashutils::Hash32(text); } },
 		{ "iw9", "mwii/iii canon", [](const char* text) -> uint64_t { return hashutils::HashJupScr(text); } },
 		{ "bo6", "bo6 canon", [](const char* text) -> uint64_t { return hashutils::HashT10Scr(text); } },
+		{ "bo6sp", "bo6 canon (SP)", [](const char* text) -> uint64_t { return hashutils::HashT10ScrSP(text); } },
 		{ "t7", "t7 fnv1a", [](const char* text) -> uint64_t { return hashutils::HashT7(text); } },
 		{ "tag", "IW tag", [](const char* text) -> uint64_t { return hashutils::HashIWTag(text); } },
 		{ "dvar", "IW Dvar", [](const char* text) -> uint64_t { return hashutils::HashIWDVar(text); } },

@@ -363,9 +363,7 @@ namespace bo6 {
 		T10R_ASSET_INDOOREXCLUSIONTILE = 0x136,
 		T10R_ASSET_SNDMASTERPRESETBUNDLE = 0x137,
 		T10R_ASSET_CONTRAILDATA = 0x138,
-		T10R_ASSET_STRING = 0x139,
-		T10R_ASSET_ASSETLIST = 0x13a,
-		T10R_ASSET_COUNT = 0x13a,
+		T10R_ASSET_COUNT = 0x139,
 	};
 
 	enum T10AssetType : int {
@@ -683,4 +681,6 @@ namespace bo6 {
 
 	const char* PoolName(T10AssetType type);
 	T10AssetType PoolId(const char* name);
+	const char* PoolNameRelease(T10RAssetType type);
+	T10RAssetType PoolIdRelease(const char* name);
 }

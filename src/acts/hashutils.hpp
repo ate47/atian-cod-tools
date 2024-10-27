@@ -140,4 +140,5 @@ namespace hashutils {
 	constexpr uint32_t HashT7(const char* str) { return (uint32_t)(hash::Hash64A(str, 0x4B9ACE2F, 0x1000193) & 0xFFFFFFFF) * 0x1000193; }
 	constexpr uint64_t HashIWDVar(const char* str, uint64_t start = 0) { return !start ? HashSecure("q6n-+7=tyytg94_*", 0xD86A3B09566EBAAC, str, 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
 	constexpr uint64_t HashT10Scr(const char* str, uint64_t start = 0) { return !start ? HashSecure("zt@f3yp(d[kkd=_@", 0x1C2F2E3C8A257D07, str, 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
+	constexpr uint64_t HashT10ScrSP(const char* str, uint64_t start = 0) { return !start ? hashutils::Hash64A("zt@f3yp(d[kkd=_@", hashutils::Hash64A(str, 0x1C2F2E3C8A257D07, 0x10000000233), 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
 }

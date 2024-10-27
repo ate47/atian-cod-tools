@@ -752,8 +752,9 @@ namespace {
         { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
         { VM_BO6_06,[](byte* file, size_t fileSize) { return std::make_shared<T10GSCOBJHandler>(file, fileSize); }},
         { VM_BO6_07,[](byte* file, size_t fileSize) { return std::make_shared<T1007GSCOBJHandler>(file, fileSize); }},
+        { VM_BO6_0B,[](byte* file, size_t fileSize) { return std::make_shared<T100BGSCOBJHandler>(file, fileSize); }},
         { VM_BO6_0C,[](byte* file, size_t fileSize) { return std::make_shared<T100CGSCOBJHandler>(file, fileSize); }},
-    };
+    }; 
 }
 
 std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(byte vm) {

@@ -213,6 +213,9 @@ uint64_t VmInfo::HashField(const char* value) const {
 	if (HasFlag(VmFlags::VMF_HASH_CER)) {
 		return hashutils::HashT10Scr(value);
 	}
+	if (HasFlag(VmFlags::VMF_HASH_CER_SP)) {
+		return hashutils::HashT10ScrSP(value);
+	}
 	if (HasFlag(VmFlags::VMF_HASH_IW)) {
 		return hashutils::HashJupScr(value);
 	}
@@ -6402,6 +6405,8 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	constexpr uint64_t getnextarraykeyIWHash = hashutils::HashJupScr("getnextarraykey");
 	constexpr uint64_t getfirstarraykeyCerHash = hashutils::HashT10Scr("getfirstarraykey");
 	constexpr uint64_t getnextarraykeyCerHash = hashutils::HashT10Scr("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyCerBHash = hashutils::HashT10ScrSP("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyCerBHash = hashutils::HashT10ScrSP("getnextarraykey");
 
 	size_t index = 0;
 
@@ -6471,7 +6476,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 			auto* funcRef = dynamic_cast<ASMContextNodeFuncRef*>(callFunc->m_operands[0]);
 
-			return funcRef->m_func != getfirstarraykeyIWHash && funcRef->m_func != getfirstarraykeyCerHash;
+			return funcRef->m_func != getfirstarraykeyIWHash && funcRef->m_func != getfirstarraykeyCerHash && funcRef->m_func != getfirstarraykeyCerBHash;
 		})()) {
 			index += moveDelta;
 			continue; // not key = firstarray(...)

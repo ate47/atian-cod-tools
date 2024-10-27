@@ -1258,6 +1258,34 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x5a);
 			RegisterOpCode(VM_BO6_07, PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x53);
 
+			RegisterVM(VM_BO6_0B, "Call of Duty: Black Ops 6 (0B)", "t10", "bo6_b", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER_SP | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+			RegisterVmName(VM_BO6_0B, "cerb", "t10_b", "blackops6_b", "t10sp", "bo6sp");
+			RegisterVMPlatform(VM_BO6_0B, PLATFORM_PC);
+			RegisterVMGlobalVariable(VM_BO6_0B, "level", OPCODE_IW_GetLevel);
+			RegisterVMGlobalVariable(VM_BO6_0B, "game", OPCODE_IW_GetGame);
+			RegisterVMGlobalVariable(VM_BO6_0B, "anim", OPCODE_IW_GetAnim);
+			RegisterVMOperatorFunction(VM_BO6_0B, "waittill", "<caller> waittill(event, var*)", OPCODE_IW_SingleWaitTill, VPFD_SELF_PARAM | VPFD_UNPACK, 1);
+			RegisterVMOperatorFunction(VM_BO6_0B, "isdefined", "isdefined(object) -> bool", OPCODE_IsDefined, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6_0B, "notify", "<caller> notify(event, param*)", OPCODE_IW_Notify, VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL, 1);
+			RegisterVMOperatorFunction(VM_BO6_0B, "endon", "<caller> endon(event+)", OPCODE_EndOn, VPFD_SELF_PARAM | VPFD_USE_COUNT, 1);
+			RegisterVMOperatorFunction(VM_BO6_0B, "wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6_0B, "waitframe", "waitframe()", OPCODE_IW_WaitFrame, VPFD_NONE, 0, 0);
+			RegisterVMOperatorFunction(VM_BO6_0B, "getthread", "getthread() -> thread", OPCODE_IW_GetThread, VPFD_RETURN_VALUE, 0, 0);
+			RegisterVMOperatorFunction(VM_BO6_0B, "istrue", "istrue(object) -> bool", OPCODE_IW_IsTrue, VPFD_RETURN_VALUE, 1, 1);
+			RegisterVMOperatorFunction(VM_BO6_0B, "flat_args", "flat_args(array, count) -> bool", OPCODE_T10_FlatArgs, VPFD_RETURN_VALUE, 2, 2);
+			RegisterVMOperatorFunction(VM_BO6_0B, "waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
+			RegisterVMHashOPCode(VM_BO6_0B, '#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64A(str); });
+			RegisterVMHashOPCode(VM_BO6_0B, '@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hashutils::HashIWDVar(str); });
+			RegisterVMHashOPCode(VM_BO6_0B, '%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hashutils::HashIWRes(str); });
+			RegisterVMHashOPCode(VM_BO6_0B, 'r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hashutils::HashIWRes(str); });
+			RegisterVMHashOPCode(VM_BO6_0B, 't', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hashutils::HashIWTag(str); });
+			RegisterVMHashOPCode(VM_BO6_0B, '&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hashutils::HashT10ScrSP(str); });
+			RegisterDevCall(VM_BO6_0B, "assert", "assertmsg", "assertex", "println");
+			RegisterDatatype(VM_BO6_0B, "builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
+			RegisterOpCode(VM_BO6_0B, PLATFORM_PC, OPCODE_CheckClearParams, 0x24);
+			RegisterOpCode(VM_BO6_0B, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x20);
+			RegisterOpCode(VM_BO6_0B, PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x93);
+
 			RegisterVM(VM_BO6_0C, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_CER | VmFlags::VMF_CALL_NO_PARAMS); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 			RegisterVmName(VM_BO6_0C, "cer", "t10", "blackops6");
 			RegisterVMPlatform(VM_BO6_0C, PLATFORM_PC);

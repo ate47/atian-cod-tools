@@ -14,6 +14,7 @@ namespace compatibility::scobalula::csi {
 		case CG_MW5: return "Modern Warfare II";
 		case CG_MW6: return "Modern Warfare III";
 		case CG_VANGUARD: return "Vanguard";
+		case CG_BO6: return "Black Ops 6";
 		default: return "<unknown>";
 		}
 	}

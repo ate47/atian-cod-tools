@@ -11,6 +11,7 @@ namespace compatibility::scobalula::csi {
 		CG_MW5 = 0x3232524157444F4D,
 		CG_MW6 = 0x4B4F4D41594D4159,
 		CG_VANGUARD = 0x44524155474E4156,
+		CG_BO6 = 0x36504f4b43414c42,
 	};
 
 	const char* CordycepGameName(CordycepGame game);

@@ -282,6 +282,7 @@ namespace hashutils {
 			AddPrecomputed(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true);
 			AddPrecomputed(hashutils::HashIWDVar(str), str, true);
 			AddPrecomputed(hashutils::HashT10Scr(str), str, true);
+			AddPrecomputed(hashutils::HashT10ScrSP(str), str, true);
 			return true;
 		}
 		bool cand32 = true;

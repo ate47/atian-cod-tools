@@ -237,9 +237,27 @@ namespace hook::library {
 			return reinterpret_cast<T*>(origin - GetOptHeader()->ImageBase + reinterpret_cast<uintptr_t>(hmod));
 		}
 
+		template<typename T = void>
+		T* Rebase(T* origin) const {
+			return Rebase<T>(reinterpret_cast<uintptr_t>(origin));
+		}
+
 		template<typename T = uintptr_t>
 		T Rloc(uintptr_t origin) const {
+			return (T)(origin - reinterpret_cast<uintptr_t>(hmod));
+		}
+		template<typename T = uintptr_t, typename T2 = void>
+		T Rloc(T2* origin) const {
+			return Rloc<T>(reinterpret_cast<uintptr_t>(origin));
+		}
+
+		template<typename T = uintptr_t>
+		T RlocBased(uintptr_t origin) const {
 			return (T)(origin - GetOptHeader()->ImageBase);
+		}
+		template<typename T = uintptr_t, typename T2 = void>
+		T RlocBased(T2* origin) const {
+			return RlocBased<T>(reinterpret_cast<uintptr_t>(origin));
 		}
 
 		friend std::ostream& operator<<(std::ostream& out, const Library& ptr);

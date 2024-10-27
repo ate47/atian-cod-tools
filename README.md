@@ -35,6 +35,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | Modern Warfare III (JUP) | 8B       | DEC & EXT  | EXT      | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
 | Black Ops 6 (CER)        | 06       | DEC & EXT  | ✅       | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 | Black Ops 6 (CER)        | 07       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (CER)        | 0B       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 | Black Ops 6 (CER)        | 0C       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 
 - \* : Some source repositories might not be public yet.
