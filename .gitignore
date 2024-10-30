@@ -33,16 +33,14 @@
 .antlr
 scripts/antlr4.jar
 .antlr4
+*.aps
+
+# Private stuff
 src/mw23-dll/main.cpp
 src/mw23-dll/main.hpp
 src/mw23-dll/Main.cpp
 src/mw23-dll/Main.hpp
-src/acts/tools/ps4/*
-src/acts/tools/sp23/gsc23_opcodes_load.cpp
-src/acts/tools/sp23/gsc23_opcodes_load.hpp
-
-*.aps
-
+src/acts/tools/gsc_vm/vm_private_*.cpp
 # VS
 /.vs/
 /.vscode/

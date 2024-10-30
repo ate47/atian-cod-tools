@@ -3,6 +3,7 @@
 #include <decrypt.hpp>
 #include <BS_thread_pool.hpp>
 #include "tools/gsc.hpp"
+#include "tools/gsc_vm.hpp"
 #include "tools/gsc_opcode_nodes.hpp"
 #include "tools/cw/cw.hpp"
 #include "tools/gsc_acts_debug.hpp"
@@ -294,7 +295,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         }
     }
     if (!m_inputFiles.size()) {
-        m_inputFiles.push_back("scriptparsetree");
+        //m_inputFiles.push_back("scriptparsetree");
+        LOG_ERROR("No input param");
+        return false; // missing param
     }
     if (!m_dbgOutputDir) {
         m_dbgOutputDir = m_outputDir;
@@ -303,6 +306,7 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
 }
 
 void GscInfoOption::PrintHelp() {
+    LOG_INFO("> gscd [options] (input)");
     LOG_INFO("-h --help          : Print help");
     LOG_INFO("-g --gsc           : Produce GSC");
     LOG_INFO("-a --asm           : Produce ASM");
@@ -739,32 +743,8 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
 void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) {
 }
 
-namespace {
-#include "gsc_vm.hpp"
-    std::unordered_map<byte, std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>> gscReaders = {
-        { VM_T831,[](byte* file, size_t fileSize) { return std::make_shared<T831GSCOBJHandler>(file, fileSize); }},
-        { VM_T8,[](byte* file, size_t fileSize) { return std::make_shared<T8GSCOBJHandler>(file, fileSize); }},
-        { VM_T937,[](byte* file, size_t fileSize) { return std::make_shared<T937GSCOBJHandler>(file, fileSize); }},
-        { VM_T9,[](byte* file, size_t fileSize) { return std::make_shared<T9GSCOBJHandler>(file, fileSize); }},
-        { VM_MW23,[](byte* file, size_t fileSize) { return std::make_shared<MW23GSCOBJHandler>(file, fileSize); }},
-        { VM_MW23B,[](byte* file, size_t fileSize) { return std::make_shared<MW23BGSCOBJHandler>(file, fileSize); }},
-        { VM_T7,[](byte* file, size_t fileSize) { return std::make_shared<T7GSCOBJHandler>(file, fileSize); }},
-        { VM_T71B,[](byte* file, size_t fileSize) { return std::make_shared<T71BGSCOBJHandler>(file, fileSize); }},
-        { VM_BO6_06,[](byte* file, size_t fileSize) { return std::make_shared<T10GSCOBJHandler>(file, fileSize); }},
-        { VM_BO6_07,[](byte* file, size_t fileSize) { return std::make_shared<T1007GSCOBJHandler>(file, fileSize); }},
-        { VM_BO6_0B,[](byte* file, size_t fileSize) { return std::make_shared<T100BGSCOBJHandler>(file, fileSize); }},
-        { VM_BO6_0C,[](byte* file, size_t fileSize) { return std::make_shared<T100CGSCOBJHandler>(file, fileSize); }},
-    }; 
-}
-
 std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(byte vm) {
-    auto it = gscReaders.find(vm);
-
-    if (it == gscReaders.end()) {
-        return nullptr;
-    }
-
-    return &it->second;
+    return tool::gsc::vm::GetGscReader(vm); // moved
 }
 
 struct H32T7GSCExportReader : GSCExportReader {
@@ -3372,10 +3352,6 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     return ret;
 }
 
-static int gscd(Process& proc, int argc, const char* argv[]) {
-    return gscinfo(proc, argc, argv);
-}
-
 ADD_TOOL(gscinfo, "gsc", " --help", "GSC decompiler/disassembler", nullptr, gscinfo);
-ADD_TOOL(gscd, "gsc", " --help", "GSC decompiler/disassembler", nullptr, gscd);
+ADD_TOOL(gscd, "gsc", " --help", "GSC decompiler/disassembler", nullptr, gscinfo);
 ADD_TOOL(dds, "gsc", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", nullptr, dumpdataset);
