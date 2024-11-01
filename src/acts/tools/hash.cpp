@@ -256,10 +256,12 @@ namespace {
 
 		ImGui::SeparatorText("Hashes");
 
+		bool update{};
 		if (ImGui::InputText("String", hashBuff, sizeof(hashBuff))) {
 			for (HashAlg& alg : algs) {
 				sprintf_s(alg.buffer, "%llx", alg.hashFunc(hashBuff));
 			}
+			update = true;
 		}
 
 		ImGui::SeparatorText("Values");
@@ -275,7 +277,7 @@ namespace {
 		static char reverseOutputBuffer[0x80]{ "" };
 		static char reverseCustomBuffer[0x80]{ "" };
 
-		bool cr = false;
+		bool cr = update;
 
 		cr |= ImGui::InputText("Reverse (Prime)", reversePrimeBuffer, sizeof(reversePrimeBuffer));
 		cr |= ImGui::InputText("Reverse (IV)", reverseIvBuffer, sizeof(reverseIvBuffer));

@@ -10,7 +10,6 @@ namespace {
 
 	struct MergeGscOpt {
 		bool m_help = false;
-		Platform m_platform = Platform::PLATFORM_PC;
 
 
 		std::vector<const char*> m_inputFiles{};
@@ -22,18 +21,6 @@ namespace {
 
 				if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
 					m_help = true;
-				}
-				else if (!strcmp("-t", arg) || !_strcmpi("--type", arg)) {
-					if (i + 1 == endIndex) {
-						std::cerr << "Missing value for param: " << arg << "!\n";
-						return false;
-					}
-					m_platform = opcode::PlatformOf(args[++i]);
-
-					if (!m_platform) {
-						std::cerr << "Unknown platform: " << args[i] << "!\n";
-						return false;
-					}
 				}
 				else if (*arg == '-') {
 					std::cerr << "Unknown option: " << arg << "!\n";
@@ -99,15 +86,7 @@ namespace {
 
 		std::cout << "Merging " << files.size() << " files into " << output.string() << "...\n";
 
-		try {
 
-			MergeGsc(files, output, opt.m_platform);
-		}
-		catch (std::exception e) {
-			std::cerr << e.what() << "\n";
-			return tool::BASIC_ERROR;
-		}
-		std::cout << "Files merged into " << output.string() << "\n";
 		return tool::OK;
 
 	}

@@ -24,8 +24,8 @@ namespace core::memory_allocator {
 
 		template<typename T = void>
 		T* Alloc(const std::string& str) {
-			T* ptr = Alloc<T>(str.length());
-			std::memcpy(ptr, str.data(), str.length());
+			T* ptr = Alloc<T>(str.length() + 1);
+			std::memcpy(ptr, str.data(), str.length() + 1);
 			return ptr;
 		}
 	};

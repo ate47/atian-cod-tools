@@ -241,6 +241,7 @@ namespace tool::hash::scanner {
 			uint64_t funcs{};
 			const char* prefix{};
 			const char* suffix{};
+			char mid{ '_' };
 
 			HashDataDict(const char* file) : output(file, std::ios::app) {}
 			~HashDataDict() {
@@ -251,8 +252,8 @@ namespace tool::hash::scanner {
 				return (funcs & hash) != 0;
 			}
 
-			template<typename Func, bool prefix, bool suffix>
-			inline uint64_t HashMultiple(const char** str, char between) {
+			template<typename Func, bool prefix, bool suffix, bool midc>
+			inline uint64_t HashMultiple(const char** str) {
 				if (!*str) {
 					uint64_t base = 0;
 					if constexpr (prefix) {
@@ -264,7 +265,7 @@ namespace tool::hash::scanner {
 					}
 					return base;
 				}
-				char b[]{ between , 0 };
+				char b[]{ mid , 0 };
 				uint64_t base;
 				if constexpr (prefix) {
 					base = Func::Hash(*(str++), Func::Hash(this->prefix));
@@ -286,12 +287,12 @@ namespace tool::hash::scanner {
 				return base;
 			}
 
-			template<typename Func, bool prefix, bool suffix>
-			inline void TestHash(VmHashes func, const char** str, char b) {
+			template<typename Func, bool prefix, bool suffix, bool midc>
+			inline void TestHash(VmHashes func, const char** str) {
 				if (!UseFunc(func)) {
 					return;
 				}
-				uint64_t v = HashMultiple<Func, prefix, suffix>(str, b);
+				uint64_t v = HashMultiple<Func, prefix, suffix, midc>(str);
 				auto it = hashes.find(v & hashutils::MASK62);
 				if (it != hashes.end()) {
 					std::ostringstream oss{};
@@ -301,7 +302,8 @@ namespace tool::hash::scanner {
 					if (*str) {
 						oss << *str;
 						while (*(++str)) {
-							oss << b << *str;
+							if constexpr (midc) oss << mid;
+							oss << *str;
 						}
 					}
 					if constexpr (suffix) {
@@ -318,20 +320,20 @@ namespace tool::hash::scanner {
 				}
 			}
 
-			template<bool prefix, bool suffix>
-			inline void TestHashes(const char** str, char b) {
+			template<bool prefix, bool suffix, bool midc>
+			inline void TestHashes(const char** str) {
 				class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return hashutils::Hash64A(str, base); } };
 				class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashT10Scr(str, base); } };
 				class HashT10ScrSP { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashT10ScrSP(str, base); } };
 				class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x79D6530B0BB9B5D1) { return hashutils::HashJupScr(str, base); } };
 				class HashIWRes { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return hashutils::HashIWRes(str, base); } };
 				class HashIWDVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return hashutils::HashIWDVar(str, base); } };
-				TestHash<HashFnv1a, prefix, suffix>(HASH_FNVA, str, '_');
-				TestHash<HashT10Scr, prefix, suffix>(HASH_SCR_T10, str, '_');
-				TestHash<HashT10ScrSP, prefix, suffix>(HASH_SCR_T10_SP, str, '_');
-				TestHash<HashJupScr, prefix, suffix>(HASH_SCR_JUP, str, '_');
-				TestHash<HashIWRes, prefix, suffix>(HASH_RES, str, '_');
-				TestHash<HashIWDVar, prefix, suffix>(HASH_DVAR, str, '_');
+				TestHash<HashFnv1a, prefix, suffix, midc>(HASH_FNVA, str);
+				TestHash<HashT10Scr, prefix, suffix, midc>(HASH_SCR_T10, str);
+				TestHash<HashT10ScrSP, prefix, suffix, midc>(HASH_SCR_T10_SP, str);
+				TestHash<HashJupScr, prefix, suffix, midc>(HASH_SCR_JUP, str);
+				TestHash<HashIWRes, prefix, suffix, midc>(HASH_RES, str);
+				TestHash<HashIWDVar, prefix, suffix, midc>(HASH_DVAR, str);
 			}
 		};
 
@@ -361,8 +363,21 @@ namespace tool::hash::scanner {
 			}
 			dictVec.push_back(nullptr);
 			dictIs.close();
-			if (argc >= 7 && argv[5][0]) data.prefix = argv[6];
-			if (argc >= 8 && argv[6][0]) data.suffix = argv[7];
+			if (argc >= 7 && argv[6][0]) {
+				data.prefix = argv[6];
+				LOG_INFO("prefix: {}", data.prefix);
+			}
+			if (argc >= 8 && argv[7][0]) {
+				data.suffix = argv[7];
+				LOG_INFO("suffix: {}", data.suffix);
+			}
+			if (argc >= 9) {
+				if (argv[8][0] && !argv[8][1]) {
+					LOG_ERROR("Can't use string as in-between: {}", argv[8]);
+					return tool::BASIC_ERROR;
+				}
+				data.mid = argv[8][0];
+			}
 
 			if (_strcmpi(n, "bo4")) {
 				data.funcs = HASH_BLACKOPS4;
@@ -404,25 +419,53 @@ namespace tool::hash::scanner {
 
 			if (data.prefix || data.suffix) {
 				if (data.prefix && data.suffix) {
-					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
-						data->TestHashes<true, true>(str, '_');
-					}, dictVec.data(), &data);
+					if (data.mid) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+							data->TestHashes<true, true, true>(str);
+						}, dictVec.data(), &data);
+					}
+					else {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+							data->TestHashes<true, true, false>(str);
+						}, dictVec.data(), &data);
+					}
 				}
 				else if (data.suffix) {
+					if (data.mid) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+							data->TestHashes<false, true, true>(str);
+						}, dictVec.data(), &data);
+					}
+					else {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+							data->TestHashes<false, true, false>(str);
+						}, dictVec.data(), &data);
+					}
+				}
+				else {
+					if (data.mid) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+							data->TestHashes<true, false, true>(str);
+							}, dictVec.data(), &data);
+					}
+					else {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+							data->TestHashes<true, false, false>(str);
+						}, dictVec.data(), & data);
+					}
+				}
+			}
+			else {
+				if (data.mid) {
 					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
-						data->TestHashes<false, true>(str, '_');
+						data->TestHashes<false, false, true>(str);
 					}, dictVec.data(), &data);
 				}
 				else {
 					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
-						data->TestHashes<true, false>(str, '_');
+						data->TestHashes<false, false, false>(str);
 					}, dictVec.data(), &data);
 				}
-			}
-			else {
-				tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
-					data->TestHashes<false, false>(str, '_');
-				}, dictVec.data(), &data);
 			}
 
 			return tool::OK;

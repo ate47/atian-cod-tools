@@ -73,6 +73,14 @@ namespace tool::hash::text_expand {
 					}
 					buffer[idx] = nullptr;
 					func(buffer, data);
+					if ((i & 0xFFFFFF) == 0 && alogs::getlevel() <= alogs::LVL_TRACE) {
+						std::ostringstream oss{};
+						for (size_t j = 0; j < idx; j++) {
+							oss << " " << buffer[j];
+						}
+
+						LOG_TRACE("done {} ->{}", i, oss.str());
+					}
 				}
 			});
 		}
