@@ -234,6 +234,9 @@ void VmInfo::AddDevCallName(uint64_t name) {
 
 uint64_t VmInfo::HashField(const char* value) const {
 	uint64_t t;
+	if (!value || !*value) {
+		return 0;
+	}
 	if (hash::TryHashPattern(value, t)) {
 		return t;
 	}
@@ -254,10 +257,13 @@ uint64_t VmInfo::HashField(const char* value) const {
 
 uint64_t VmInfo::HashPath(const char* value) const {
 	uint64_t t;
+	if (!value || !*value) {
+		return 0;
+	}
 	if (hash::TryHashPattern(value, t)) {
 		return t;
 	}
-	if (HasFlag(VmFlags::VMF_HASH_CER) || HasFlag(VmFlags::VMF_HASH_IW)) {
+	if (HasFlag(VmFlags::VMF_HASH_CER) || HasFlag(VmFlags::VMF_HASH_CER_SP) || HasFlag(VmFlags::VMF_HASH_IW)) {
 		return hash::HashIWRes(value);
 	}
 	return hash::Hash64(value);
