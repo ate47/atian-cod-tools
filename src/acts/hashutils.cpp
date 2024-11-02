@@ -165,11 +165,11 @@ namespace hashutils {
 
 		// special value
 		AddPrecomputed(0, "", true);
-		AddPrecomputed(Hash32("<error>"), "<error>", true);
-		AddPrecomputed(Hash32("self"), "self", true);
-		AddPrecomputed(Hash32("size"), "size", true);
-		AddPrecomputed(Hash32("nextarray"), "nextarray", true);
-		AddPrecomputed(Hash32("_"), "_", true);
+		AddPrecomputed(hash::HashT89Scr("<error>"), "<error>", true);
+		AddPrecomputed(hash::HashT89Scr("self"), "self", true);
+		AddPrecomputed(hash::HashT89Scr("size"), "size", true);
+		AddPrecomputed(hash::HashT89Scr("nextarray"), "nextarray", true);
+		AddPrecomputed(hash::HashT89Scr("_"), "_", true);
 
 		// class special things
 		Add("__constructor", true, iw, true);
@@ -220,36 +220,36 @@ namespace hashutils {
 		Add("__pad", true, iw, true); // padding
 
 		// ADL names
-		AddPrecomputed(Hash64("bool"), "bool", true);
-		AddPrecomputed(Hash64("byte"), "byte", true);
-		AddPrecomputed(Hash64("uint8"), "uint8", true);
-		AddPrecomputed(Hash64("uint8_t"), "uint8_t", true);
-		AddPrecomputed(Hash64("uint16"), "uint16", true);
-		AddPrecomputed(Hash64("uint16_t"), "uint16_t", true);
-		AddPrecomputed(Hash64("uint32"), "uint32", true);
-		AddPrecomputed(Hash64("uint32_t"), "uint32_t", true);
-		AddPrecomputed(Hash64("uint64"), "uint64", true);
-		AddPrecomputed(Hash64("uint64_t"), "uint64_t", true);
-		AddPrecomputed(Hash64("char"), "char", true);
-		AddPrecomputed(Hash64("int8"), "int8", true);
-		AddPrecomputed(Hash64("int8_t"), "int8_t", true);
-		AddPrecomputed(Hash64("int16"), "int16", true);
-		AddPrecomputed(Hash64("int16_t"), "int16_t", true);
-		AddPrecomputed(Hash64("int32"), "int32", true);
-		AddPrecomputed(Hash64("int32_t"), "int32_t", true);
-		AddPrecomputed(Hash64("int64"), "int64", true);
-		AddPrecomputed(Hash64("int64_t"), "int64_t", true);
-		AddPrecomputed(Hash64("float"), "float", true);
-		AddPrecomputed(Hash64("double"), "double", true);
-		AddPrecomputed(Hash64("string"), "string", true);
-		AddPrecomputed(Hash64("hash"), "hash", true);
-		AddPrecomputed(Hash64("int"), "int", true);
-		AddPrecomputed(Hash64("uint"), "uint", true);
-		AddPrecomputed(Hash64("long"), "long", true);
-		AddPrecomputed(Hash64("ulong"), "ulong", true);
-		AddPrecomputed(Hash64("$$padding"), "$$padding", true);
+		AddPrecomputed(hash::Hash64("bool"), "bool", true);
+		AddPrecomputed(hash::Hash64("byte"), "byte", true);
+		AddPrecomputed(hash::Hash64("uint8"), "uint8", true);
+		AddPrecomputed(hash::Hash64("uint8_t"), "uint8_t", true);
+		AddPrecomputed(hash::Hash64("uint16"), "uint16", true);
+		AddPrecomputed(hash::Hash64("uint16_t"), "uint16_t", true);
+		AddPrecomputed(hash::Hash64("uint32"), "uint32", true);
+		AddPrecomputed(hash::Hash64("uint32_t"), "uint32_t", true);
+		AddPrecomputed(hash::Hash64("uint64"), "uint64", true);
+		AddPrecomputed(hash::Hash64("uint64_t"), "uint64_t", true);
+		AddPrecomputed(hash::Hash64("char"), "char", true);
+		AddPrecomputed(hash::Hash64("int8"), "int8", true);
+		AddPrecomputed(hash::Hash64("int8_t"), "int8_t", true);
+		AddPrecomputed(hash::Hash64("int16"), "int16", true);
+		AddPrecomputed(hash::Hash64("int16_t"), "int16_t", true);
+		AddPrecomputed(hash::Hash64("int32"), "int32", true);
+		AddPrecomputed(hash::Hash64("int32_t"), "int32_t", true);
+		AddPrecomputed(hash::Hash64("int64"), "int64", true);
+		AddPrecomputed(hash::Hash64("int64_t"), "int64_t", true);
+		AddPrecomputed(hash::Hash64("float"), "float", true);
+		AddPrecomputed(hash::Hash64("double"), "double", true);
+		AddPrecomputed(hash::Hash64("string"), "string", true);
+		AddPrecomputed(hash::Hash64("hash"), "hash", true);
+		AddPrecomputed(hash::Hash64("int"), "int", true);
+		AddPrecomputed(hash::Hash64("uint"), "uint", true);
+		AddPrecomputed(hash::Hash64("long"), "long", true);
+		AddPrecomputed(hash::Hash64("ulong"), "ulong", true);
+		AddPrecomputed(hash::Hash64("$$padding"), "$$padding", true);
 		// Dump CF
-		AddPrecomputed(Hash64("localize.json"), "localize.json", true);
+		AddPrecomputed(hash::Hash64("localize.json"), "localize.json", true);
 
 		std::ifstream s(file);
 
@@ -275,14 +275,14 @@ namespace hashutils {
 
 	bool Add(const char* str, bool ignoreCol, bool iw, bool async) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		AddPrecomputed(hashutils::Hash64(str), str, true);
+		AddPrecomputed(hash::Hash64(str), str, true);
 		if (iw) {
-			AddPrecomputed(hashutils::HashIWRes(str), str, true);
-			AddPrecomputed(hashutils::HashJupScr(str), str, true);
-			AddPrecomputed(hashutils::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true);
-			AddPrecomputed(hashutils::HashIWDVar(str), str, true);
-			AddPrecomputed(hashutils::HashT10Scr(str), str, true);
-			AddPrecomputed(hashutils::HashT10ScrSP(str), str, true);
+			AddPrecomputed(hash::HashIWRes(str), str, true);
+			AddPrecomputed(hash::HashJupScr(str), str, true);
+			AddPrecomputed(hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true);
+			AddPrecomputed(hash::HashIWDVar(str), str, true);
+			AddPrecomputed(hash::HashT10Scr(str), str, true);
+			AddPrecomputed(hash::HashT10ScrSP(str), str, true);
 			return true;
 		}
 		bool cand32 = true;
@@ -300,9 +300,9 @@ namespace hashutils {
 		}
 
 		if (cand32) {
-			AddPrecomputed(hashutils::HashT7(str), str, true);
+			AddPrecomputed(hash::HashT7(str), str, true);
 
-			auto h = hashutils::Hash32(str);
+			auto h = hash::HashT89Scr(str);
 			if (!ignoreCol) {
 				auto find = g_hashMap.find(h);
 				if (find != g_hashMap.end() && _strcmpi(str, find->second.data())) {

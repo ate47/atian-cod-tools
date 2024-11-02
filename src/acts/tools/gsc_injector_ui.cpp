@@ -676,9 +676,9 @@ namespace {
                     notif = (std::format("Invalid magic: 0x{:x}", magic));
                 }
                 else {
-                    notif = std::format("Vm: {} (0x{:x})", nfo->name, (int)nfo->vm);
+                    notif = std::format("Vm: {} (0x{:x})", nfo->name, nfo->vmMagic);
 
-                    auto* readerBuilder = tool::gsc::GetGscReader(nfo->vm);
+                    auto* readerBuilder = tool::gsc::GetGscReader(nfo->vmMagic);
 
                     if (!readerBuilder) {
                         notif += "\nNo GSC handler available";

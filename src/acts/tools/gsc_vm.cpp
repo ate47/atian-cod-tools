@@ -2,13 +2,14 @@
 #include "gsc_vm.hpp"
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
+#include <actscli.hpp>
 #include <decrypt.hpp>
 
 
 namespace tool::gsc::vm {
     namespace {
-        std::unordered_map<byte, GscVm*>& GscReaders() {
-            static std::unordered_map<byte, GscVm*> gscReaders{};
+        std::unordered_map<uint64_t, GscVm*>& GscReaders() {
+            static std::unordered_map<uint64_t, GscVm*> gscReaders{};
             return gscReaders;
         }
         std::vector<GscVmOpCode*>& GscOpCodes() {
@@ -17,7 +18,7 @@ namespace tool::gsc::vm {
         }
     }
 
-    GscVm::GscVm(byte vm, std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func) : vm(vm), func(func) {
+    GscVm::GscVm(uint64_t vm, std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func) : vm(vm), func(func) {
         GscReaders()[vm] = this;
     }
 
@@ -25,7 +26,7 @@ namespace tool::gsc::vm {
         GscOpCodes().emplace_back(this);
     }
 
-    std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(byte vm) {
+    std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(uint64_t vm) {
         auto& gscReaders{ GscReaders() };
         auto it = gscReaders.find(vm);
 
@@ -54,9 +55,11 @@ namespace tool::gsc::vm {
             }
         }
         // register private, this is a lazy way to fix private private opcodes vm depending on public vm
-        for (GscVmOpCode* opcode : opcodes) {
-            if (opcode->priv) {
-                opcode->func();
+        if (!actscli::options().noPrivate) {
+            for (GscVmOpCode* opcode : opcodes) {
+                if (opcode->priv) {
+                    opcode->func();
+                }
             }
         }
     }

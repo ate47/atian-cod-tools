@@ -9,23 +9,23 @@ namespace compatibility::serious::txt {
             template<typename T>
             struct DataVm {
                 T defaultVal{};
-                std::unordered_map<VM, T> vmDep{};
+                std::unordered_map<VMId, T> vmDep{};
 
                 template<typename... VmDep>
-                void AddOpVm(VM vm, T vmop, VmDep... dep) {
+                void AddOpVm(VMId vm, T vmop, VmDep... dep) {
                     vmDep[vm] = vmop;
                     AddOpVm(dep...);
                 }
                 void AddOpVm() {}
 
                 template<typename A, typename... VmDep>
-                void AddOpVmLookup(T vmop, VM vm, A any, VmDep... dep) {
+                void AddOpVmLookup(T vmop, VMId vm, A any, VmDep... dep) {
                     vmDep[vm] = vmop;
                     AddOpVmLookup(vmop, dep...);
                 }
                 void AddOpVmLookup(T vmop) {}
 
-                T FindForVm(VM vm) {
+                T FindForVm(VMId vm) {
                     auto it{ vmDep.find(vm) };
                     if (it == vmDep.end()) return defaultVal;
                     return it->second;
@@ -37,7 +37,7 @@ namespace compatibility::serious::txt {
 
             template<typename... VmDep>
             inline void AddOp(const char* str, OPCode op, VmDep... dep) {
-                auto& ito{ idToOpcode[hashutils::Hash64(str)] };
+                auto& ito{ idToOpcode[hash::Hash64(str)] };
                 auto& oti{ opcodeToId[op] };
 
                 ito.defaultVal = op;
@@ -111,7 +111,7 @@ namespace compatibility::serious::txt {
                 AddOp("GetAPIFunction", OPCODE_GetResolveFunction);
                 AddOp("GetArrayKeyIndex", OPCODE_T9_IteratorKey);
                 AddOp("GetArrayValue", OPCODE_T9_IteratorVal);
-                AddOp("GetByte", OPCODE_GetByte, VM::VM_T7, OPCODE_GetSignedByte, VM::VM_T71B, OPCODE_GetSignedByte);
+                AddOp("GetByte", OPCODE_GetByte, VMI_T7, OPCODE_GetSignedByte, VMI_T71B, OPCODE_GetSignedByte);
                 AddOp("GetClassesObject", OPCODE_GetClassesObject);
                 AddOp("GetEmptyArray", OPCODE_CreateArray);
                 AddOp("GetEmptyArray", OPCODE_EmptyArray);
@@ -121,7 +121,7 @@ namespace compatibility::serious::txt {
                 AddOp("GetGameRef", OPCODE_IW_GetGameRef);
                 AddOp("GetGlobalObject", OPCODE_GetGlobal);
                 AddOp("GetGlobalObjectRef", OPCODE_GetGlobalObject);
-                AddOp("GetHash", OPCODE_GetHash, VM::VM_T7, OPCODE_GetHash32, VM::VM_T71B, OPCODE_GetHash32);
+                AddOp("GetHash", OPCODE_GetHash, VMI_T7, OPCODE_GetHash32, VMI_T71B, OPCODE_GetHash32);
                 AddOp("GetInteger", OPCODE_GetInteger);
                 AddOp("GetIString", OPCODE_IW_GetIString);
                 AddOp("GetLevel", OPCODE_IW_GetLevel);
@@ -138,7 +138,7 @@ namespace compatibility::serious::txt {
                 AddOp("GetTime", OPCODE_GetTime);
                 AddOp("GetUndefined", OPCODE_GetUndefined);
                 AddOp("GetUnsignedInteger", OPCODE_GetUnsignedInteger);
-                AddOp("GetUnsignedShort", OPCODE_GetUnsignedShort, VM::VM_T7, OPCODE_GetShort, VM::VM_T71B, OPCODE_GetShort);
+                AddOp("GetUnsignedShort", OPCODE_GetUnsignedShort, VMI_T7, OPCODE_GetShort, VMI_T71B, OPCODE_GetShort);
                 AddOp("GetWorldObject", OPCODE_GetWorldObject);
                 AddOp("GetZero", OPCODE_GetZero);
                 AddOp("GreaterThan", OPCODE_GreaterThan);
@@ -158,7 +158,7 @@ namespace compatibility::serious::txt {
                 AddOp("Minus", OPCODE_Minus);
                 AddOp("Modulus", OPCODE_Modulus);
                 AddOp("Multiply", OPCODE_Multiply);
-                AddOp("NextArrayKey", OPCODE_NextArrayKey, VM::VM_T9, OPCODE_T9_IteratorNext, VM::VM_T937, OPCODE_T9_IteratorNext);
+                AddOp("NextArrayKey", OPCODE_NextArrayKey, VMI_T9, OPCODE_T9_IteratorNext, VMI_T937, OPCODE_T9_IteratorNext);
                 AddOp("NotEqual", OPCODE_NotEqual);
                 AddOp("Notify", OPCODE_IW_Notify);
                 AddOp("Notify", OPCODE_Notify);
@@ -199,7 +199,7 @@ namespace compatibility::serious::txt {
                 AddOp("Wait", OPCODE_Wait);
                 AddOp("WaitFrame", OPCODE_WaitFrame);
                 AddOp("WaitRealTime", OPCODE_Wait2);
-                AddOp("WaitTill", OPCODE_IW_SingleWaitTill, VM::VM_T8, OPCODE_WaitTill, VM::VM_T9, OPCODE_WaitTill, VM::VM_T937, OPCODE_WaitTill);
+                AddOp("WaitTill", OPCODE_IW_SingleWaitTill, VMI_T8, OPCODE_WaitTill, VMI_T9, OPCODE_WaitTill, VMI_T937, OPCODE_WaitTill);
                 AddOp("WaitTillFrameEnd", OPCODE_WaitTillFrameEnd);
                 AddOp("WaitTillMatch", OPCODE_WaitTillMatch);
                 AddOp("WaitTillMatch", OPCODE_WaitTillMatch2);
@@ -208,7 +208,7 @@ namespace compatibility::serious::txt {
             }
 
 
-            OPCode ConvertFrom(tool::gsc::opcode::VM vm, const char* id) {
+            OPCode ConvertFrom(tool::gsc::opcode::VMId vm, const char* id) {
                 auto it{ idToOpcode.find(hash::Hash64(id)) };
                 if (it == idToOpcode.end()) {
                     return OPCODE_Undefined;
@@ -217,7 +217,7 @@ namespace compatibility::serious::txt {
                 return it->second.FindForVm(vm);
             }
 
-            const char* ConvertTo(tool::gsc::opcode::VM vm, OPCode id, const char* defaultVal) {
+            const char* ConvertTo(tool::gsc::opcode::VMId vm, OPCode id, const char* defaultVal) {
                 auto it{ opcodeToId.find(id) };
                 if (it == opcodeToId.end()) {
                     return defaultVal;
@@ -234,11 +234,11 @@ namespace compatibility::serious::txt {
     }
 
 
-    OPCode ConvertFrom(tool::gsc::opcode::VM vm, const char* id) {
+    OPCode ConvertFrom(tool::gsc::opcode::VMId vm, const char* id) {
         return GetMap().ConvertFrom(vm, id);
     }
 
-    const char* ConvertTo(tool::gsc::opcode::VM vm, OPCode id, const char* defaultVal) {
+    const char* ConvertTo(tool::gsc::opcode::VMId vm, OPCode id, const char* defaultVal) {
         return GetMap().ConvertTo(vm, id, defaultVal);
     }
 }

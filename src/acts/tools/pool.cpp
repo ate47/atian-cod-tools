@@ -812,8 +812,8 @@ void ReadSBName(const Process& proc, const SB_ObjectsArray& arr) {
         return;
     }
 
-    static uint32_t nameHash = hash::Hash32("name");
-    static uint32_t typeHash = hash::Hash32("type");
+    constexpr uint32_t nameHash = hash::HashT89Scr("name");
+    constexpr uint32_t typeHash = hash::HashT89Scr("type");
 
     for (size_t i = 0; i < arr.sbObjectCount; i++) {
         auto& obj = objects[i];
@@ -887,7 +887,7 @@ bool ReadSBObject(const Process& proc, std::ostream& defout, int depth, const SB
                 LOG_ERROR("Can't read array key");
                 return false;
             }
-            keys.insert(hash::Hash32(strval));
+            keys.insert(hash::HashT89Scr(strval));
             defout << "\"" << strval << "\": [";
 
             for (size_t j = 0; j < sub.size; j++) {

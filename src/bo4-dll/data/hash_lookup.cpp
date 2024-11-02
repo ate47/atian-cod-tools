@@ -22,7 +22,7 @@ bool Add(const char* str) {
 	}
 
 	if (cand32) {
-		auto h = hash::Hash32(str);
+		auto h = hash::HashT89Scr(str);
 		auto find = g_lookupMap.find(h);
 		if (find != g_lookupMap.end() && _strcmpi(str, find->second.data())) {
 			LOG_WARNING("Coll '{}' = '{}' #{:x}", str, find->second.data(), h);

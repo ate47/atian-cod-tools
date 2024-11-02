@@ -35,7 +35,7 @@ namespace tool::lua::opcodes {
 	void RegisterOpCode(LuaVM vm, HKSInstId id, uint64_t val) {
 		auto it = vms.find(vm);
 		if (it == vms.end()) {
-			LOG_WARNING("Trying to register opcode with bad vm 0x{:x}", (int)vm);
+			LOG_WARNING("Trying to register opcode with bad vm 0x{:x}", (uint64_t)vm);
 			return;
 		}
 		it->second.insts[val] = id;

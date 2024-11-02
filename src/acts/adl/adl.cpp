@@ -710,7 +710,7 @@ namespace acts::compiler::adl {
 
                     output.AddHash(fieldName);
 
-                    uint64_t fieldHash{ hashutils::Hash64(fieldName.c_str()) };
+                    uint64_t fieldHash{ hash::Hash64(fieldName.c_str()) };
 
                     for (size_t j = 0; j < str->fields.size(); j++) {
                         if (str->fields[j].name == fieldHash) {
@@ -734,7 +734,7 @@ namespace acts::compiler::adl {
                 }
                 std::string root = rule->children[1]->getText();
                 output.AddHash(root);
-                output.rootName = hashutils::Hash64(root.c_str());
+                output.rootName = hash::Hash64(root.c_str());
                 break;
             }
             case adlParser::RuleAlign_def: {

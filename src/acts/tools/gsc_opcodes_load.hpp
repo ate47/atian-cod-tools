@@ -1,28 +1,49 @@
 #pragma once
 
 namespace tool::gsc::opcode {
+	enum VMId : uint64_t {
+		VMI_UNKNOWN = 0,
 
-	enum VM : byte {
-		VM_UNKNOWN = 0,
-
-		// Treyarch style VM
-		VM_T71B = 0x1B,
-		VM_T7 = 0x1C,
-		VM_T831 = 0x31,
-		VM_T8 = 0x36,
-		VM_T937 = 0x37,
-		VM_T9 = 0x38,
+		VMI_T71B = 0x1B000a0d43534780,
+		VMI_T7 = 0x1C000a0d43534780,
+		VMI_T831 = 0x31000a0d43534780,
+		VMI_T8 = 0x36000a0d43534780,
+		VMI_T937 = 0x37000a0d43534780,
+		VMI_T9 = 0x38000a0d43534780,
 
 		// IW style VM
-		VM_MW23 = 0x8a,
-		VM_MW23B = 0x8b,
-		VM_BO6_06 = 0x06,
-		VM_BO6_07 = 0x07,
-		VM_BO6_0B = 0x0B,
-		VM_BO6_0C = 0x0C,
+		VMI_JUP_8A = 0xa0d4353478a,
+		VMI_JUP_8B = 0xa0d4353478b,
+		VMI_T10_06 = 0xa0d43534706,
+		VMI_T10_07 = 0xa0d43534707,
+		VMI_T10_0B = 0xa0d4353470B,
+		VMI_T10_0C = 0xa0d4353470C,
 
 		// ACTS VM
-		VM_ACTS_F1 = 0xF1,
+		VMI_ACTS_F1 = 0xF1000a0d43534780,
+	};
+
+	enum VMOldRevisions : byte {
+		VMOld_UNKNOWN = 0,
+
+		// Treyarch style VM
+		VMOld_T71B = 0x1B,
+		VMOld_T7 = 0x1C,
+		VMOld_T831 = 0x31,
+		VMOld_T8 = 0x36,
+		VMOld_T937 = 0x37,
+		VMOld_T9 = 0x38,
+
+		// IW style VM
+		VMOld_MW23 = 0x8a,
+		VMOld_MW23B = 0x8b,
+		VMOld_BO6_06 = 0x06,
+		VMOld_BO6_07 = 0x07,
+		VMOld_BO6_0B = 0x0B,
+		VMOld_BO6_0C = 0x0C,
+
+		// ACTS VM
+		VMOld_ACTS_F1 = 0xF1,
 	};
 
 	enum Platform : byte {
@@ -37,7 +58,9 @@ namespace tool::gsc::opcode {
 	Platform PlatformOf(const char* name);
 	const char* PlatformName(Platform plt);
 	const char* PlatformIdName(Platform plt);
-	VM VMOf(const char* name);
+	VMId VMOf(const char* name);
+	VMId OldVmOf(byte vm);
+	byte MapAsOldVM(uint64_t vm);
 
 	enum OPCode : uint16_t {
 		OPCODE_Undefined,

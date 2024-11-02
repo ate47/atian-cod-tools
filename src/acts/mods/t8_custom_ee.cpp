@@ -42,8 +42,8 @@ int mods::ee::CustomEET8(Process& proc, std::string& notif) {
 		return tool::BASIC_ERROR; // can't read buffer
 	}
 
-	constexpr uint64_t name = hashutils::Hash64("scripts/zm_common/zm_utility");
-	constexpr uint32_t targetFunction = hashutils::Hash32("is_ee_enabled");
+	constexpr uint64_t name = hash::Hash64("scripts/zm_common/zm_utility");
+	constexpr uint32_t targetFunction = hash::HashT89Scr("is_ee_enabled");
 
 	// CheckClearParams 0x000d
 	// GetByte 0x018a 0x01
@@ -52,8 +52,8 @@ int mods::ee::CustomEET8(Process& proc, std::string& notif) {
 	byte data[] = { 0x0d, 0x00, 0x8a, 0x01, 0x01, 0x00, 0x3c, 0x00 };
 
 	TargetReplace targets[2] = {
-		TargetReplace(hashutils::Hash64(".gsc", name), targetFunction, data, sizeof(data)),
-		TargetReplace(hashutils::Hash64(".csc", name), targetFunction, data, sizeof(data))
+		TargetReplace(hash::Hash64(".gsc", name), targetFunction, data, sizeof(data)),
+		TargetReplace(hash::Hash64(".csc", name), targetFunction, data, sizeof(data))
 	};
 
 	const int count = sizeof(targets) / sizeof(targets[0]);
@@ -72,7 +72,7 @@ int mods::ee::CustomEET8(Process& proc, std::string& notif) {
 			}
 
 			// find
-			if (!proc.ReadMemory(&obj, buffer[i].buffer, sizeof(obj)) || obj.GetVm() != 0x36) {
+			if (!proc.ReadMemory(&obj, buffer[i].buffer, sizeof(obj)) || *(uint64_t*)obj.magic != tool::gsc::opcode::VMI_T8) {
 				std::cerr << "Can't read searched script " << std::hex << buffer[i].name << "\n";
 				continue; // can't read buffer
 			}

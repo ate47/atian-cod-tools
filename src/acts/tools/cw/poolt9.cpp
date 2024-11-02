@@ -764,7 +764,7 @@ namespace {
             return;
         }
 
-        static uint32_t nameHash = hash::Hash32("name");
+        static uint32_t nameHash = hash::HashT89Scr("name");
 
         for (size_t i = 0; i < arr.sbObjectCount; i++) {
             auto& obj = objects[i];
@@ -1368,7 +1368,7 @@ namespace {
         }
 
         auto inst = std::strtoul(argv[2], nullptr, 10);
-        auto name = hashutils::Hash64Pattern(argv[3]);
+        auto name = hash::Hash64Pattern(argv[3]);
 
         if (inst > 1) {
             return tool::BAD_USAGE;

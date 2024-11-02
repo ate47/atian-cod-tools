@@ -466,7 +466,7 @@ namespace {
 								case STC_TYPE_HASHED2:
 								case STC_TYPE_HASHED7:
 								case STC_TYPE_HASHED8:
-									cell.value.hash_value = hashutils::Hash64Pattern(cellVal.c_str());
+									cell.value.hash_value = hash::Hash64Pattern(cellVal.c_str());
 									break;
 								case STC_TYPE_INT:
 									if (cellVal.starts_with("0x")) {
@@ -528,7 +528,7 @@ namespace {
 
 					auto& e = entries.emplace_back();
 
-					e.name = hashutils::Hash64Pattern(ks);
+					e.name = hash::Hash64Pattern(ks);
 					e.type = type;
 
 					// allocate data

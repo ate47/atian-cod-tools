@@ -249,7 +249,7 @@ namespace {
 
 		const char* exe{ argv[2] };
 		VmInfo* nfo{};
-		VM type{ VMOf(argv[3]) };
+		VMId type{ VMOf(argv[3]) };
 		const char* scripts{ argv[4] };
 		const char* output{ argv[5] };
 
@@ -287,14 +287,14 @@ namespace {
 		std::function<char*(char*)> DecryptString;
 		
 		switch (type) {
-		case VM_T7:
-		case VM_T71B:
-		case VM_T8:
-		case VM_MW23: {
+		case VMI_T7:
+		case VMI_T71B:
+		case VMI_T8:
+		case VMI_JUP_8A: {
 			LOG_WARNING("Decryption useless with {}", nfo->name);
 			return tool::OK; // nothing to do
 		}
-		case VM_T9: {
+		case VMI_T9: {
 			if (!LoadMod(false)) return tool::BASIC_ERROR;
 			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6", "DecryptString").GetPtr<char*(*)(char* str)>();
 			DecryptString = [DecryptStringFunc](char* s) -> char* { 
@@ -307,11 +307,11 @@ namespace {
 			};
 			break;
 		}
-		case VM_MW23B:
-		case VM_BO6_06:
-		case VM_BO6_07:
-		case VM_BO6_0B:
-		case VM_BO6_0C: {
+		case VMI_JUP_8B:
+		case VMI_T10_06:
+		case VMI_T10_07:
+		case VMI_T10_0B:
+		case VMI_T10_0C: {
 			if (!LoadMod(true)) return tool::BASIC_ERROR;
 			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "DecryptString").GetPtr<char* (*)(char* str)>();
 			DecryptString = [DecryptStringFunc](char* s) -> char* {
@@ -351,7 +351,7 @@ namespace {
 				continue; // ignore
 			}
 
-			auto* hbuilder{ tool::gsc::GetGscReader(nfo->vm) };
+			auto* hbuilder{ tool::gsc::GetGscReader(nfo->vmMagic) };
 
 			if (!hbuilder) {
 				LOG_ERROR("Can't read {}: No gsc handler builder for vm {}", path.string(), nfo->name);
@@ -436,7 +436,7 @@ namespace {
 				LOG_TRACE("{} anim1(s) decrypted", k);
 			}
 
-			std::filesystem::path outdirvm{ outdir / utils::va("vm-%02x", nfo->vm) };
+			std::filesystem::path outdirvm{ outdir / utils::va("vm-%llx", nfo->vmMagic) };
 			std::filesystem::create_directories(outdirvm);
 			std::filesystem::path outfile{ outdirvm / utils::va("script_%llx.gscc", handler->GetName()) };
 

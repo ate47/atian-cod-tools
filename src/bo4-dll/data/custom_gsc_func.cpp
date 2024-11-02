@@ -74,14 +74,14 @@ void HashLookup(ScriptInstance inst) {
 std::vector<Builtin> custom_gsc_func::custom_functions[2] = {
 	{ // Server functions
 		{
-			.name = hash::Hash32("ACTSLogPrint"),
+			.name = hash::HashT89Scr("ACTSLogPrint"),
 			.min_args = 1,
 			.max_args = 1,
 			.actionFunc = LogPrint,
 			.type = BUILTIN_DEFAULT
 		},
 		{
-			.name = hash::Hash32("ACTSLookup"),
+			.name = hash::HashT89Scr("ACTSLookup"),
 			.min_args = 1,
 			.max_args = 1,
 			.actionFunc = HashLookup,
@@ -90,14 +90,14 @@ std::vector<Builtin> custom_gsc_func::custom_functions[2] = {
 	}, 
 	{ // Client functions
 		{
-			.name = hash::Hash32("ACTSLogPrint"),
+			.name = hash::HashT89Scr("ACTSLogPrint"),
 			.min_args = 1,
 			.max_args = 1,
 			.actionFunc = LogPrint,
 			.type = BUILTIN_DEFAULT
 		},
 		{
-			.name = hash::Hash32("ACTSLookup"),
+			.name = hash::HashT89Scr("ACTSLookup"),
 			.min_args = 1,
 			.max_args = 1,
 			.actionFunc = HashLookup,

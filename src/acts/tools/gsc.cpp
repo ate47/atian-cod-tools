@@ -13,10 +13,10 @@
 using namespace tool::gsc;
 using namespace tool::gsc::opcode;
 
-constexpr uint32_t g_constructorName = hashutils::Hash32("__constructor");
-constexpr uint32_t g_destructorName = hashutils::Hash32("__destructor");
-constexpr uint32_t g_constructorNameT7 = hashutils::HashT7("__constructor");
-constexpr uint32_t g_destructorNameT7 = hashutils::HashT7("__destructor");
+constexpr uint32_t g_constructorName = hash::HashT89Scr("__constructor");
+constexpr uint32_t g_destructorName = hash::HashT89Scr("__destructor");
+constexpr uint32_t g_constructorNameT7 = hash::HashT7("__constructor");
+constexpr uint32_t g_destructorNameT7 = hash::HashT7("__destructor");
 
 enum DumpVTableAnswer : int {
     DVA_OK = 0,
@@ -743,7 +743,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
 void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) {
 }
 
-std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(byte vm) {
+std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(uint64_t vm) {
     return tool::gsc::vm::GetGscReader(vm); // moved
 }
 
@@ -913,38 +913,22 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         gsicInfo.headerSize = gsicSize;
         data += gsicSize;
     }
-    byte vm;
-    bool iw;
 
-    uint64_t magicVal = *reinterpret_cast<uint64_t*>(data);
-    if ((magicVal & ~0xFF) == 0xa0d43534700) {
-        // IW GSC file, use 0 revision
-        vm = data[0];
-        iw = true;
-    }
-    else if ((magicVal & ~0xFF00000000000000) == 0xa0d43534780) {
-        // Treyarch GSC file, use 7 revision
-        vm = data[7];
-        iw = false;
-    }
-    else if (!memcmp("GSC", data, 4)) {
+    uint64_t vm = *reinterpret_cast<uint64_t*>(data);
+    if (!memcmp("GSC", data, 4)) {
         LOG_ERROR("gscbin format not supported");
-        return tool::BASIC_ERROR;
-    }
-    else {
-        LOG_ERROR("Bad magic 0x{:x}", *reinterpret_cast<uint64_t*>(data));
         return tool::BASIC_ERROR;
     }
     hashutils::ReadDefaultFile();
 
     if (opt.m_vm && vm != opt.m_vm) {
-        LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", (int)vm, (int)opt.m_vm);
+        LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", vm, (uint64_t)opt.m_vm);
         return tool::OK;
     }
 
     VmInfo* vmInfo;
-    if (!IsValidVm(vm, vmInfo)) {
-        LOG_ERROR("Bad vm 0x{:x} for file {}", (int)vm, path);
+    if (!IsValidVmMagic(vm, vmInfo)) {
+        LOG_ERROR("Bad vm 0x{:x} for file {}", vm, path);
         return -1;
     }
     ctx.m_vmInfo = vmInfo;
@@ -952,7 +936,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     auto readerBuilder = GetGscReader(vm);
 
     if (!readerBuilder) {
-        LOG_ERROR("No handler available for vm 0x{:x} for file {}", (int)vm, path);
+        LOG_ERROR("No handler available for vm 0x{:x} for file {}", vm, path);
         return -1;
     }
 
@@ -1208,7 +1192,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         
         const char* outDir;
         if (opt.m_splitByVm) {
-            outDir = utils::va("%s/vm-%02x", opt.m_outputDir, vmInfo->vm);
+            outDir = utils::va("%s/vm-%llx", opt.m_outputDir, vmInfo->vmMagic);
         }
         else {
             outDir = opt.m_outputDir;
@@ -1305,16 +1289,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             }
         }
 
-        asmout
-            << "// magic .... 0x" << scriptfile->Ref<uint64_t>()
-            << " vm: ";
+
+        if (!vmInfo->HasFlag(VmFlags::VMF_NO_VERSION)) {
+            asmout << "// magic .... 0x" << scriptfile->GetMagic();
+        }
         
-        if (vmInfo->flags & VmFlags::VMF_NO_VERSION) {
-            asmout << vmInfo->name;
-        }
-        else {
-            asmout << (uint32_t)vmInfo->vm << " (" << vmInfo->name << "/" << PlatformName(currentPlatform) << ")";
-        }
+        asmout << " vm: " << vmInfo->name << " (" << PlatformName(currentPlatform) << ")";
         asmout << "\n";
 
         scriptfile->DumpHeader(asmout, opt);
@@ -1361,7 +1341,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
                 size_t len{};
                 byte type{};
-                if (scriptfile->GetVM() == VM_T8) {
+                if (scriptfile->GetMagic() == VMI_T8) {
                     len = (size_t)reinterpret_cast<byte*>(encryptedString)[1] - 1;
                     type = *reinterpret_cast<byte*>(encryptedString);
 
@@ -1399,7 +1379,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
                 PrintFormattedString(asmout << '"', cstr) << '"' << std::flush;
 
-                if (scriptfile->GetVM() == VM_T8) {
+                if (scriptfile->GetMagic() == VMI_T8) {
                     size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
 
                     if (lenAfterDecrypt != len) {
@@ -1947,8 +1927,8 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 }
 
                 // handle first the constructor/destructor
-                handleMethod(vm < VM_T8 ? g_constructorNameT7 : g_constructorName, "constructor", true);
-                handleMethod(vm < VM_T8 ? g_destructorNameT7 : g_destructorName, "destructor", true);
+                handleMethod(vm < VMI_T8 ? g_constructorNameT7 : g_constructorName, "constructor", true);
+                handleMethod(vm < VMI_T8 ? g_destructorNameT7 : g_destructorName, "destructor", true);
 
                 for (const auto& method : cls.m_methods) {
                     handleMethod(method, nullptr, false);
@@ -2106,7 +2086,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
             const char* outDir;
             if (opt.m_splitByVm) {
-                outDir = utils::va("%s/vm-%02x", opt.m_dbgOutputDir, vmInfo->vm);
+                outDir = utils::va("%s/vm-%llx", opt.m_dbgOutputDir, vmInfo->vmMagic);
             }
             else {
                 outDir = opt.m_dbgOutputDir;
@@ -2641,11 +2621,11 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
-    if (gscFile.GetVM() > VM_T8) {
+    if (gscFile.GetMagic() > VMI_T8) {
         if (!AssertOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject)) return DVA_BAD;
         ctx.Aligned<uint16_t>() += 2; // - classes
     }
-    else if (gscFile.GetVM() < VM_T8) {
+    else if (gscFile.GetMagic() < VMI_T8) {
         ctx.Aligned<uint16_t>() += 2; // GetClassesObject
 
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef className
@@ -2675,7 +2655,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     dctxt.WritePadding(out) << "// " << hashutils::ExtractTmp("class", name) << "\n";
 
-    if (gscFile.GetVM() > VM_T8) {
+    if (gscFile.GetMagic() > VMI_T8) {
         if (!AssertOpCode(OPCODE_T9_SetVariableFieldFromEvalArrayRef)) return DVA_BAD;
     }
     else {
@@ -2774,7 +2754,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
         if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
-        if (gscFile.GetVM() >= VM_T8) {
+        if (gscFile.GetMagic() >= VMI_T8) {
             ctx.Aligned<uint16_t>() += 2; // EvalGlobalObjectFieldVariable
             ctx.Aligned<uint16_t>() += 2; // - gvar
         }
@@ -2788,7 +2768,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef
         ctx.Aligned<uint32_t>() += 4; // - ref
 
-        if (gscFile.GetVM() > VM_T8) {
+        if (gscFile.GetMagic() > VMI_T8) {
             ctx.Aligned<uint16_t>() += 2; // SetVariableFieldFromEvalArrayRef
         }
         else {
@@ -3111,7 +3091,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                 if (lvar.flags & T8GSCLocalVarFlag::ARRAY_REF) {
                     asmout << "&";
                 }
-                else if (gscFile.GetVM() != VM_T8 && (lvar.flags & T8GSCLocalVarFlag::T9_VAR_REF)) {
+                else if (gscFile.GetMagic() != VMI_T8 && (lvar.flags & T8GSCLocalVarFlag::T9_VAR_REF)) {
                     asmout << "*";
                 }
 
@@ -3120,7 +3100,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
             byte mask = ~(T8GSCLocalVarFlag::VARIADIC | T8GSCLocalVarFlag::ARRAY_REF);
 
-            if (ctx.m_vm != VM_T8) {
+            if (ctx.m_vm != VMI_T8) {
                 mask &= ~T8GSCLocalVarFlag::T9_VAR_REF;
             }
             

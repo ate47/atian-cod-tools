@@ -281,7 +281,7 @@ namespace {
             if (obj->imports_offset + obj->imports_count * sizeof(T8GSCImport) > size) {
                 return std::make_pair(false, L"Invalid GSC file, bad imports");
             }
-            static auto customBuiltinsHash = hash::Hash32Pattern("IsProfileBuild");
+            constexpr uint32_t customBuiltinsHash = hash::HashT89Scr("IsProfileBuild");
 
             T8GSCImport* imports = reinterpret_cast<T8GSCImport*>(obj->magic + obj->imports_offset);
             for (size_t i = 0; i < obj->imports_count; i++) {

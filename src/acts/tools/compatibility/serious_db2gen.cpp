@@ -7,6 +7,7 @@ namespace {
 	using namespace tool::gsc::opcode;
 
 	struct BuildDbGen {
+		byte vmRev;
 		Platform platform;
 		const VmInfo* vm;
 	};
@@ -26,9 +27,16 @@ namespace {
 			for (const auto& [_, vm] : vms) {
 				for (size_t i = 1; i < Platform::PLATFORM_COUNT; i++) {
 					if (vm.HasPlatform((Platform)i)) {
-						auto uid = utils::CatLocated16(vm.vm, (byte)i);
+						byte vmOld{ tool::gsc::opcode::MapAsOldVM(vm.vmMagic) };
+
+						if (!vmOld) {
+							LOG_WARNING("Can't map vm {:x} to old", vm.vmMagic);
+							continue;
+						}
+						auto uid = utils::CatLocated16(vmOld, (byte)i);
 
 						asked[uid] = {
+							.vmRev = vmOld,
 							.platform = (Platform)i,
 							.vm = &vm
 						};
@@ -46,22 +54,29 @@ namespace {
 					return tool::BASIC_ERROR;
 				}
 
-				byte vm = (byte)std::strtol(argv[i + 1], nullptr, 16);
+				uint64_t nvm{ tool::gsc::opcode::VMOf(argv[i + 1])};
 
 				VmInfo* nfo;
 
-				if (!IsValidVm(vm, nfo)) {
+				if (!IsValidVm(nvm, nfo)) {
 					LOG_ERROR("Bad VM: {}", argv[i + 1]);
 					return tool::BASIC_ERROR;
 				}
 
-				auto uid = utils::CatLocated16(nfo->vm, plt);
+				byte vmOld{ tool::gsc::opcode::MapAsOldVM(nfo->vmMagic) };
+
+				if (!vmOld) {
+					LOG_WARNING("Can't map vm {:x} to old", nfo->vmMagic);
+					continue;
+				}
+				auto uid = utils::CatLocated16(vmOld, plt);
 
 				if (asked.find(uid) != asked.end()) {
 					continue; // already asked
 				}
 
 				asked[uid] = {
+					.vmRev = vmOld,
 					.platform = plt,
 					.vm = nfo
 				};
@@ -87,13 +102,13 @@ namespace {
 
 
 			// header
-			buffer[0] = bld.vm->vm;
+			buffer[0] = bld.vmRev;
 			buffer[1] = bld.platform ? bld.platform - 1 : 0; // platform starts at 0 in compiler
 			*reinterpret_cast<uint16_t*>(&buffer[2]) = 0x1000;
 
 			// build mapping
 			for (size_t i = 0; i < 0x1000; i++) {
-				auto* loc = LookupOpCode(bld.vm->vm, bld.platform, (uint16_t) i);
+				auto* loc = LookupOpCode(bld.vm->vmMagic, bld.platform, (uint16_t) i);
 
 				auto mappedId = compatibility::serious::db2::ConvertTo(loc->m_id);
 
@@ -145,7 +160,7 @@ namespace {
 			real -= 4;
 			db += 4;
 
-			if (!tool::gsc::opcode::IsValidVm(vm, nfo)) {
+			if (!tool::gsc::opcode::IsValidVm(tool::gsc::opcode::OldVmOf(vm), nfo)) {
 				LOG_ERROR("Invalid vm: {:x}, plt: {:x}, size: {:x}", (int)vm, platform, size);
 
 				if (real < size) {
@@ -170,7 +185,7 @@ namespace {
 			}
 
 
-			LOG_INFO("Vm: {} ({:x}), platform: {} ({:x}), size: {:x}", nfo->name, (int)nfo->vm, pltName, (int)platform, size);
+			LOG_INFO("Vm: {} ({:x}), platform: {} ({:x}), size: {:x}", nfo->name, nfo->vmMagic, pltName, (int)platform, size);
 
 			std::map<byte, std::vector<uint16_t>> opcodes{};
 
@@ -189,7 +204,7 @@ namespace {
 
 			for (const auto& [val, mapping] : opcodes) {
 				std::ostringstream ss{};
-				auto* code = tool::gsc::opcode::LookupOpCode(nfo->vm, plt, mapping[0]);
+				auto* code = tool::gsc::opcode::LookupOpCode(nfo->vmMagic, plt, mapping[0]);
 				ss << "0x" << std::hex << (int)val << "/" << std::dec << (int)val << " (" << code->m_name << ") -> ";
 
 				for (size_t i = 0; i < mapping.size(); i++) {

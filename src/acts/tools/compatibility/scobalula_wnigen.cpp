@@ -99,27 +99,27 @@ namespace {
 
 		while (is.good() && std::getline(is, line)) {
 			if (canon) {
-				utils::WriteValue(rawdata, (uint64_t)hash::Hash32(line.c_str()));
+				utils::WriteValue(rawdata, (uint64_t)hash::HashT89Scr(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
 			}
 			if (useTreyarch) {
 				utils::WriteValue(rawdata, hash::Hash64(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
-				utils::WriteValue(rawdata, hashutils::HashT7(line.c_str()));
+				utils::WriteValue(rawdata, hash::HashT7(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
 			}
 			if (useIW) {
-				utils::WriteValue(rawdata, hashutils::HashIWRes(line.c_str()));
+				utils::WriteValue(rawdata, hash::HashIWRes(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
-				utils::WriteValue(rawdata, hashutils::HashJupScr(line.c_str()));
+				utils::WriteValue(rawdata, hash::HashJupScr(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
-				utils::WriteValue(rawdata, hashutils::Hash64(line.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
+				utils::WriteValue(rawdata, hash::Hash64(line.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
 				utils::WriteString(rawdata, line.c_str());
-				utils::WriteValue(rawdata, hashutils::HashIWDVar(line.c_str()));
+				utils::WriteValue(rawdata, hash::HashIWDVar(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
-				utils::WriteValue(rawdata, hashutils::HashT10Scr(line.c_str()));
+				utils::WriteValue(rawdata, hash::HashT10Scr(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
-				utils::WriteValue(rawdata, hashutils::HashT10ScrSP(line.c_str()));
+				utils::WriteValue(rawdata, hash::HashT10ScrSP(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
 			}
 			count++;

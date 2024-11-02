@@ -28,7 +28,7 @@ namespace {
             return false;
         }
         
-        auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vm);
+        auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
 
         if (!readerBuilder) {
             LOG_ERROR("No GSC handler available for {}", vmInfo->name);
@@ -194,7 +194,7 @@ namespace {
         // vm -> script
         struct ScriptData {
             uint64_t name{};
-            byte vm{};
+            uint64_t vmMagic{};
             void* bufferData{};
             size_t bufferDataLen{};
             std::unordered_map<uint64_t, uint64_t> exports{};
@@ -227,7 +227,7 @@ namespace {
                 continue;
             }
 
-            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vm);
+            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
 
             if (!readerBuilder) {
                 LOG_ERROR("{} : No GSC handler available for {}", file.string(), vmInfo->name);
@@ -244,12 +244,12 @@ namespace {
             uint64_t name = handler->GetName();
             void* ptr = alloc.Alloc(mainBuff);
 
-            auto& sc = dataset[vmInfo][name];
+            ScriptData& sc = dataset[vmInfo][name];
 
             sc.name = name;
             sc.bufferData = ptr;
             sc.bufferDataLen = mainBuff.length();
-            sc.vm = vmInfo->vm;
+            sc.vmMagic = vmInfo->vmMagic;
             sc.fileSys = file;
             LOG_TRACE("Loaded {} ({})", file.string(), hashutils::ExtractTmpScript(name));
         }
@@ -262,7 +262,7 @@ namespace {
         for (auto& [vmInfo, scs] : dataset) {
             LOG_INFO("Searching linking issues for {}...", vmInfo->name);
 
-            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vm);
+            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
 
             if (!readerBuilder) {
                 LOG_ERROR("No GSC handler available for {}", vmInfo->name);

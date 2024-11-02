@@ -165,7 +165,7 @@ namespace {
 
 			int64_t opcodeId{ utils::ParseFormatInt(k.c_str()) };
 
-			const tool::gsc::opcode::OPCodeInfo* opnfo{ tool::gsc::opcode::LookupOpCode(nfo->vm, plt, (uint16_t)opcodeId) };
+			const tool::gsc::opcode::OPCodeInfo* opnfo{ tool::gsc::opcode::LookupOpCode(nfo->vmMagic, plt, (uint16_t)opcodeId) };
 
 			dataset[tool::gsc::opcode::OpCodeName(opnfo->m_id)].insert(v);
 

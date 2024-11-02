@@ -98,7 +98,7 @@ namespace tool::gsc {
         const char* vtable_dump{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
-        opcode::VM m_vm{ opcode::VM::VM_UNKNOWN };
+        opcode::VMId m_vm{ opcode::VMId::VMI_UNKNOWN };
         const formatter::FormatterInfo* m_formatter{};
 
 
@@ -419,7 +419,7 @@ namespace tool::gsc {
             // find next location
             bool FindNextLocation();
             inline const tool::gsc::opcode::OPCodeInfo* LookupOpCode(uint16_t opcode) {
-                return tool::gsc::opcode::LookupOpCode(m_vminfo->vm, m_platform, opcode);
+                return tool::gsc::opcode::LookupOpCode(m_vminfo->vmMagic, m_platform, opcode);
             }
         };
 
@@ -468,11 +468,11 @@ namespace tool::gsc {
             GSCExportReader& m_exp;
             void* m_readerHandle;
             // file vm
-            byte m_vm;
+            uint64_t m_vm;
             // file platform
             Platform m_platform;
 
-            ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* m_readerHandle, byte vm, Platform platform);
+            ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* m_readerHandle, uint64_t vm, Platform platform);
             ~ASMContext();
 
             // @return relative location in the function
@@ -850,11 +850,6 @@ namespace tool::gsc {
         uint8_t include_count;
         uint8_t animtree_count;
         uint8_t flags;
-
-        // @return the vm
-        inline byte GetVm() {
-            return magic[7];
-        }
     };
 
     struct T8GSCOBJ {
@@ -884,11 +879,6 @@ namespace tool::gsc {
         uint16_t include_count;
         byte ukn5a;
         byte requires_implements_count;
-
-        // @return the vm
-        inline byte GetVm() {
-            return magic[7];
-        }
     };
     struct T937GSCOBJ {
         byte magic[8];
@@ -916,11 +906,6 @@ namespace tool::gsc {
         uint16_t includes_count;
         uint16_t unk52;
         uint32_t unk54;
-
-        // @return the vm
-        inline byte GetVm() {
-            return magic[7];
-        }
     };
 
     struct T9GSCOBJ {
@@ -948,11 +933,6 @@ namespace tool::gsc {
         uint32_t unk4c;
         uint32_t cseg_size;
         uint32_t unk54;
-
-        // @return the vm
-        inline byte GetVm() {
-            return magic[7];
-        }
     };
     struct T7GSCOBJ {
         byte magic[8];
@@ -977,11 +957,6 @@ namespace tool::gsc {
         uint8_t include_count;
         uint8_t animtree_count;
         uint8_t flags;
-
-        // @return the vm
-        inline byte GetVm() {
-            return magic[7];
-        }
 
         inline const char* GetName() const {
             return reinterpret_cast<const char*>(&magic[name_offset]);
@@ -1017,10 +992,6 @@ namespace tool::gsc {
         uint32_t size2;
         uint32_t string_table;
         uint32_t unk5C;
-
-        uint64_t GetMagic() {
-            return *reinterpret_cast<uint64_t*>(magic);
-        }
     };
 
     struct GscObj24 {
@@ -1049,42 +1020,6 @@ namespace tool::gsc {
         uint32_t import_table;
         uint32_t include_table;
         uint32_t string_table;
-
-        uint64_t GetMagic() {
-            return *reinterpret_cast<uint64_t*>(magic);
-        }
-    };
-
-    struct GscObj25{
-        byte magic[8];
-        uint64_t name;
-        uint16_t unk10;
-        uint16_t animtree_use_count;
-        uint16_t animtree_count;
-        uint16_t devblock_string_count;
-        uint16_t export_count;
-        uint16_t fixup_count;
-        uint16_t unk1C;
-        uint16_t imports_count;
-        uint16_t includes_count;
-        uint16_t string_count;
-        uint32_t checksum;
-        uint32_t unk28;
-        uint32_t animtree_use_offset;
-        uint32_t animtree_offset;
-        uint32_t cseg_offset;
-        uint32_t cseg_size;
-        uint32_t devblock_string_offset;
-        uint32_t export_offset;
-        uint32_t fixup_offset;
-        uint32_t size1;
-        uint32_t import_table;
-        uint32_t include_table;
-        uint32_t string_table;
-
-        uint64_t GetMagic() {
-            return *reinterpret_cast<uint64_t*>(magic);
-        }
     };
 
     struct T8GSCFixup {
@@ -1276,8 +1211,8 @@ namespace tool::gsc {
             return *PtrAlign<T, R>(shift);
         }
 
-        byte GetVM() {
-            return file[7];
+        inline uint64_t GetMagic() {
+            return Ref<uint64_t>();
         }
 
         // Read functions
@@ -1363,7 +1298,7 @@ namespace tool::gsc {
         virtual int PatchCode(T8GSCOBJContext& ctx);
     };
 
-    std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(byte vm);
+    std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(uint64_t vm);
 
     enum T8GSCExportFlags : uint8_t {
         LINKED = 0x01,

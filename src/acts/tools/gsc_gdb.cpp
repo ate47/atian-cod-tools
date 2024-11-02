@@ -54,7 +54,7 @@ namespace tool::gsc::gdb {
 				char* strings = reinterpret_cast<char*>(obj->magic + obj->stringtable_offset);
 
 				for (size_t i = 0; i < obj->stringtable_count; i++) {
-					//LOG_INFO("Str {:x} {}", hashutils::Hash32(strings), strings);
+					//LOG_INFO("Str {:x} {}", hash::HashT89Scr(strings), strings);
 
 					cannon.insert(strings);
 					strings += strlen(strings) + 1;

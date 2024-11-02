@@ -444,16 +444,24 @@ namespace {
 		LOG_INFO("path ..... {}", utils::GetProgDir().string());
 		std::filesystem::path cwd{ std::filesystem::absolute(".") };
 		LOG_INFO("cwd ...... {}", cwd.string());
-		LOG_INFO("----- games");
 
 		auto& gameMap = tool::gsc::opcode::GetVMMaps();
 
 		if (gameMap.empty()) {
 			LOG_WARNING("No game available");
 		}
-
+		std::set<uint64_t> vms{};
+		// order vms
 		for (auto& [vm, info] : gameMap) {
-			const char* out = utils::va("- %s (%s/%x) ->", info.name, info.codeName, (int)info.vm);
+			vms.insert(vm);
+		}
+		LOG_INFO("----- games ({})", vms.size());
+
+
+		for (uint64_t vm : vms) {
+			auto& info = gameMap.find(vm)->second;
+
+			const char* out{ "" };
 
 			for (size_t i = 0; i < tool::gsc::opcode::PLATFORM_COUNT; i++) {
 				tool::gsc::opcode::Platform plt = (tool::gsc::opcode::Platform)i;
@@ -474,7 +482,7 @@ namespace {
 					count);
 			}
 
-			LOG_INFO("{}", out);
+			LOG_INFO("{:16x} - {} ({}) ->{}", vm, info.name, info.codeName, out);
 		}
 
 		return tool::OK;

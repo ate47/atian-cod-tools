@@ -29,7 +29,7 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		LOG_INFO("Building db for {} (0x{:x}) {}", nfo->name, (int)nfo->vm, PlatformName(plt));
+		LOG_INFO("Building db for {} (0x{:x}) {}", nfo->name, nfo->vmMagic, PlatformName(plt));
 
 		std::ofstream vmfile{ VM_CODES_DB, std::ios::binary };
 
@@ -60,7 +60,7 @@ namespace {
 
 		int nopCodes = 0;
 		for (size_t i = 0; i < 0x1000; i++) {
-			auto* loc = LookupOpCode(nfo->vm, plt, (uint16_t)i);
+			auto* loc = LookupOpCode(nfo->vmMagic, plt, (uint16_t)i);
 			if (loc->m_id == OPCODE_Nop) {
 				nopCodes++;
 			}
@@ -74,7 +74,7 @@ namespace {
 		int seriousIdCurr = 0;
 		int nopId = 0;
 		for (size_t i = 0; i < 0x1000; i++) {
-			auto* loc = LookupOpCode(nfo->vm, plt, (uint16_t)i);
+			auto* loc = LookupOpCode(nfo->vmMagic, plt, (uint16_t)i);
 
 			auto mappedId = ConvertTo(loc->m_id);
 

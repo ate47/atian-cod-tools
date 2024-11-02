@@ -29,14 +29,14 @@ namespace {
 		size_t c = std::stoull(argv[2]);
 
 		tool::hash::text_expand::GetDynamicPtr(c, [](const char* str, void* d) { 
-			LOG_INFO("{:x},{}", hashutils::Hash64(str), str);
+			LOG_INFO("{:x},{}", hash::Hash64(str), str);
 		});
 		return tool::OK;
 	}
 
 	int hash32(Process& proc, int argc, const char* argv[]) {
 		for (int i = 2; i < argc; i++) {
-			LOG_INFO("{}={:x}", argv[i], hashutils::Hash32(argv[i]));
+			LOG_INFO("{}={:x}", argv[i], hash::HashT89Scr(argv[i]));
 		}
 		return 0;
 	}
@@ -53,14 +53,14 @@ namespace {
 			sur = 0xcbf29ce484222325LL;
 		}
 		for (; i < argc; i++) {
-			LOG_INFO("{}={:x}", argv[i], hashutils::Hash64(argv[i], sur));
+			LOG_INFO("{}={:x}", argv[i], hash::Hash64(argv[i], sur));
 		}
 		return 0;
 	}
 
 	int hasht7(Process& proc, int argc, const char* argv[]) {
 		for (int i = 2; i < argc; i++) {
-			LOG_INFO("{}={:x}", argv[i], hashutils::HashT7(argv[i]));
+			LOG_INFO("{}={:x}", argv[i], hash::HashT7(argv[i]));
 		}
 		return 0;
 	}
@@ -131,13 +131,13 @@ namespace {
 
 
 		std::wstring hash64Val = DefaultVal(hash::Hash64(info.hash.c_str()));
-		std::wstring hash32Val = DefaultVal(hash::Hash32(info.hash.c_str()));
-		std::wstring hash64IW2Val = DefaultVal(hashutils::HashIWRes(info.hash.c_str()));
-		std::wstring hash64IW3Val = DefaultVal(hashutils::HashJupScr(info.hash.c_str()));
-		std::wstring hash32IW4Val = DefaultVal(hashutils::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
-		std::wstring hashT7Val = DefaultVal(hashutils::HashT7(info.hash.c_str()));
-		std::wstring hash64IWDvar = DefaultVal(hashutils::HashIWDVar(info.hash.c_str()));
-		std::wstring hash64IWCerField = DefaultVal(hashutils::HashT10Scr(info.hash.c_str()));
+		std::wstring hash32Val = DefaultVal(hash::HashT89Scr(info.hash.c_str()));
+		std::wstring hash64IW2Val = DefaultVal(hash::HashIWRes(info.hash.c_str()));
+		std::wstring hash64IW3Val = DefaultVal(hash::HashJupScr(info.hash.c_str()));
+		std::wstring hash32IW4Val = DefaultVal(hash::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
+		std::wstring hashT7Val = DefaultVal(hash::HashT7(info.hash.c_str()));
+		std::wstring hash64IWDvar = DefaultVal(hash::HashIWDVar(info.hash.c_str()));
+		std::wstring hash64IWCerField = DefaultVal(hash::HashT10Scr(info.hash.c_str()));
 
 		Edit_SetText(info.hash64Edit, hash64Val.c_str());
 		Edit_SetText(info.hash32Edit, hash32Val.c_str());
@@ -160,7 +160,7 @@ namespace {
 			iv = std::strtoull(info.iv.data(), nullptr, 16);
 
 			if (val && iv) {
-				std::wstring customstr = std::format(L"{:x}", hashutils::Hash64A(info.hash.c_str(), val, iv));
+				std::wstring customstr = std::format(L"{:x}", hash::Hash64A(info.hash.c_str(), val, iv));
 				Edit_SetText(info.hashFNV1ACustomEdit, customstr.c_str());
 
 				uint64_t mask = 0xFFFF;
@@ -228,15 +228,15 @@ namespace {
 
 	static HashAlg algs[]
 	{
-		{ "h64", "fnv1a", [](const char* text) -> uint64_t { return hashutils::Hash64A(text); } },
-		{ "res", "iw res", [](const char* text) -> uint64_t { return hashutils::HashIWRes(text); } },
-		{ "h32", "t89 canon", [](const char* text) -> uint64_t { return hashutils::Hash32(text); } },
-		{ "iw9", "mwii/iii canon", [](const char* text) -> uint64_t { return hashutils::HashJupScr(text); } },
-		{ "bo6", "bo6 canon", [](const char* text) -> uint64_t { return hashutils::HashT10Scr(text); } },
-		{ "bo6sp", "bo6 canon (SP)", [](const char* text) -> uint64_t { return hashutils::HashT10ScrSP(text); } },
-		{ "t7", "t7 fnv1a", [](const char* text) -> uint64_t { return hashutils::HashT7(text); } },
-		{ "tag", "IW tag", [](const char* text) -> uint64_t { return hashutils::HashIWTag(text); } },
-		{ "dvar", "IW Dvar", [](const char* text) -> uint64_t { return hashutils::HashIWDVar(text); } },
+		{ "h64", "fnv1a", [](const char* text) -> uint64_t { return hash::Hash64A(text); } },
+		{ "res", "iw res", [](const char* text) -> uint64_t { return hash::HashIWRes(text); } },
+		{ "h32", "t89 canon", [](const char* text) -> uint64_t { return hash::HashT89Scr(text); } },
+		{ "iw9", "mwii/iii canon", [](const char* text) -> uint64_t { return hash::HashJupScr(text); } },
+		{ "bo6", "bo6 canon", [](const char* text) -> uint64_t { return hash::HashT10Scr(text); } },
+		{ "bo6sp", "bo6 canon (SP)", [](const char* text) -> uint64_t { return hash::HashT10ScrSP(text); } },
+		{ "t7", "t7 fnv1a", [](const char* text) -> uint64_t { return hash::HashT7(text); } },
+		{ "tag", "IW tag", [](const char* text) -> uint64_t { return hash::HashIWTag(text); } },
+		{ "dvar", "IW Dvar", [](const char* text) -> uint64_t { return hash::HashIWDVar(text); } },
 	};
 
 	static void SyncAlgCfg() {
@@ -290,7 +290,7 @@ namespace {
 				iv = std::strtoull(reverseIvBuffer, nullptr, 16);
 
 				if (val && iv) {
-					sprintf_s(reverseCustomBuffer, "%llx", hashutils::Hash64A(hashBuff, val, iv));
+					sprintf_s(reverseCustomBuffer, "%llx", hash::Hash64A(hashBuff, val, iv));
 
 					uint64_t mask = 0xFFFF;
 					uint64_t found = 0;

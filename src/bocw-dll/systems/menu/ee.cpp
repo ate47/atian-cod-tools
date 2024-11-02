@@ -29,7 +29,7 @@ namespace {
             for (size_t j = 0; j < obj->exports_count; j++) {
                 auto& exp = exports[j];
 
-                if (exp.name != hash::Hash32("is_ee_enabled")) {
+                if (exp.name != hash::HashT89Scr("is_ee_enabled")) {
                     continue;
                 }
 

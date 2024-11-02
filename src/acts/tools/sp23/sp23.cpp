@@ -309,7 +309,7 @@ namespace {
 				}
 
 				LOG_INFO("{:x}/{:x} -> {:x} ({})", 
-					method.start, method.iv, hashutils::Hash64A(argv[i], method.start, method.iv), method.name ? method.name : "???"
+					method.start, method.iv, hash::Hash64A(argv[i], method.start, method.iv), method.name ? method.name : "???"
 				);
 			}
 
@@ -346,16 +346,16 @@ namespace {
 
 			uint64_t hash = std::strtoull(line.c_str(), nullptr, 16);
 
-			if (hashutils::Hash64("cg_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+			if (hash::Hash64("cg_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
 				LOG_INFO("Candidate1: {:x}", hash);
 			}
-			if (hashutils::Hash64("g_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+			if (hash::Hash64("g_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
 				LOG_INFO("Candidate2: {:x}", hash);
 			}
-			if (hashutils::Hash64("_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+			if (hash::Hash64("_chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
 				LOG_INFO("Candidate3: {:x}", hash);
 			}
-			if (hashutils::Hash64("chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
+			if (hash::Hash64("chattime", hash, 0x10000000233) == (0x67F7F2FA59D85B1E & 0x7FFFFFFFFFFFFFFF)) {
 				LOG_INFO("Candidate4: {:x}", hash);
 			}
 			c++;
@@ -369,7 +369,7 @@ namespace {
 	int vmtest(Process& _, int argc, const char* argv[]) {
 		tool::gsc::opcode::VmInfo* nfo{};
 
-		if (!tool::gsc::opcode::IsValidVm(tool::gsc::opcode::VM_MW23, nfo)) {
+		if (!tool::gsc::opcode::IsValidVm(tool::gsc::opcode::VMI_JUP_8A, nfo)) {
 			return tool::BAD_USAGE;
 		}
 

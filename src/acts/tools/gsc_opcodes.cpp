@@ -17,20 +17,47 @@ namespace {
 	// maps to find the opcodes
 	
 	// VM->vminfo
-	std::unordered_map<byte, VmInfo> g_opcodeMap{};
-	std::unordered_map<uint64_t, byte> g_vmMap{};
+	std::unordered_map<uint64_t, VmInfo> g_opcodeMap{};
+	std::unordered_map<uint64_t, uint64_t> g_vmMap{};
 	// opcode->opcode handler
 	std::unordered_map<OPCode, const OPCodeInfo*> g_opcodeHandlerMap{};
 }
 namespace tool::gsc::opcode {
-	VM VMOf(const char* name) {
+	VMId VMOf(const char* name) {
 		RegisterOpCodes();
 		auto it = g_vmMap.find(hash::Hash64(name));
 
 		if (it != g_vmMap.end()) {
-			return (VM)it->second;
+			return (VMId)it->second;
 		}
-		return VM_UNKNOWN;
+		return VMI_UNKNOWN;
+	}
+	VMId OldVmOf(byte oldvm) {
+		switch (oldvm) {
+		case VMOld_T71B: return VMI_T71B;
+		case VMOld_T7: return VMI_T7;
+		case VMOld_T831: return VMI_T831;
+		case VMOld_T8: return VMI_T8;
+		case VMOld_T937: return VMI_T937;
+		case VMOld_T9: return VMI_T9;
+		case VMOld_MW23: return VMI_JUP_8A;
+		case VMOld_MW23B: return VMI_JUP_8B;
+		case VMOld_BO6_06: return VMI_T10_06;
+		case VMOld_BO6_07: return VMI_T10_07;
+		case VMOld_BO6_0B: return VMI_T10_0B;
+		case VMOld_BO6_0C: return VMI_T10_0C;
+		case VMOld_ACTS_F1: return VMI_ACTS_F1;
+		default: return VMI_UNKNOWN;
+		}
+	}
+	byte MapAsOldVM(uint64_t magicVal) {
+		if ((magicVal & ~0xFF) == 0xa0d43534700) {
+			return magicVal & 0xFF; // IW
+		}
+		else if ((magicVal & ~0xFF00000000000000) == 0xa0d43534780) {
+			return (magicVal >> 56) & 0xFF; // Treyarch
+		}
+		return 0; // unk
 	}
 
 	Platform PlatformOf(const char* name) {
@@ -211,18 +238,18 @@ uint64_t VmInfo::HashField(const char* value) const {
 		return t;
 	}
 	if (HasFlag(VmFlags::VMF_HASH_CER)) {
-		return hashutils::HashT10Scr(value);
+		return hash::HashT10Scr(value);
 	}
 	if (HasFlag(VmFlags::VMF_HASH_CER_SP)) {
-		return hashutils::HashT10ScrSP(value);
+		return hash::HashT10ScrSP(value);
 	}
 	if (HasFlag(VmFlags::VMF_HASH_IW)) {
-		return hashutils::HashJupScr(value);
+		return hash::HashJupScr(value);
 	}
 	if (HasFlag(VmFlags::VMF_HASH_T7)) {
-		return hashutils::HashT7(value);
+		return hash::HashT7(value);
 	}
-	return hashutils::Hash32(value);
+	return hash::HashT89Scr(value);
 }
 
 uint64_t VmInfo::HashPath(const char* value) const {
@@ -231,7 +258,7 @@ uint64_t VmInfo::HashPath(const char* value) const {
 		return t;
 	}
 	if (HasFlag(VmFlags::VMF_HASH_CER) || HasFlag(VmFlags::VMF_HASH_IW)) {
-		return hashutils::HashIWRes(value);
+		return hash::HashIWRes(value);
 	}
 	return hash::Hash64(value);
 }
@@ -702,7 +729,7 @@ public:
 
 		if (!context.m_localvars.size()) {
 			// the local variables starts at 1
-			context.m_localvars.insert(context.m_localvars.begin(), { hashutils::Hash32("<error>"), 0 });
+			context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
 		}
 
 		context.m_localvars.insert(context.m_localvars.begin(), { name, 0 });
@@ -733,7 +760,7 @@ public:
 
 			if (!context.m_localvars.size()) {
 				// the local variables starts at 1
-				context.m_localvars.insert(context.m_localvars.begin(), { hashutils::Hash32("<error>"), 0 });
+				context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
 			}
 
 			context.m_localvars.insert(context.m_localvars.begin(), { name, 0 });
@@ -762,7 +789,7 @@ public:
 		out << std::hex << "count: 0x" << (int)count << "\n";
 		if (!context.m_localvars.size()) {
 			// the local variables starts at 1
-			context.m_localvars.insert(context.m_localvars.begin(), { hashutils::Hash32("<error>"), 0 });
+			context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
 		}
 
 		for (size_t i = 0; i < count; i++) {
@@ -804,7 +831,7 @@ public:
 			else if (flags & T8GSCLocalVarFlag::ARRAY_REF) {
 				out << "&";
 			}
-			else if (context.m_vm != tool::gsc::opcode::VM_T8 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
+			else if (context.m_vm != tool::gsc::opcode::VMI_T8 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
 				out << "*";
 			}
 
@@ -815,7 +842,7 @@ public:
 
 			byte mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
-			if (context.m_vm != tool::gsc::opcode::VM_T8) {
+			if (context.m_vm != tool::gsc::opcode::VMI_T8) {
 				mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
 			}
 
@@ -1053,7 +1080,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* left = context.PopASMCNode();
-			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeIdentifier(hash::Hash32("size"), "var"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
+			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeIdentifier(hash::HashT89Scr("size"), "var"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
 		out << "\n";
@@ -1745,7 +1772,7 @@ public:
 
 		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
 		}
 		else {
@@ -1782,7 +1809,7 @@ public:
 			int lvar = *(context.m_bcl++);
 
 			if (lvar >= context.m_localvars.size()) {
-				name = hashutils::Hash32("<error>");
+				name = hash::HashT89Scr("<error>");
 				out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
 			}
 			else {
@@ -1793,7 +1820,7 @@ public:
 			out << hashutils::ExtractTmp("var", name);
 		}
 		else {
-			name = hashutils::Hash32("_");
+			name = hash::HashT89Scr("_");
 		}
 		out << std::endl;
 
@@ -1974,7 +2001,7 @@ public:
 				int lvar = *(ref++);
 
 				if (lvar >= context.m_localvars.size()) {
-					name = hashutils::Hash32("<error>");
+					name = hash::HashT89Scr("<error>");
 					out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
 				}
 				else {
@@ -2056,7 +2083,7 @@ public:
 		}
 		else {
 			hashutils::Add(gvarName);
-			name = hashutils::Hash64(gvarName);
+			name = hash::Hash64(gvarName);
 			out << gvarName;
 		}
 
@@ -2123,7 +2150,7 @@ public:
 		}
 		else {
 			hashutils::Add(gvarName);
-			name = hashutils::Hash64(gvarName);
+			name = hash::Hash64(gvarName);
 			out << gvarName;
 		}
 
@@ -2280,7 +2307,7 @@ public:
 
 			uint64_t name;
 			if (lvar >= context.m_localvars.size()) {
-				name = hashutils::Hash32("<error>");
+				name = hash::HashT89Scr("<error>");
 				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 			}
 			else {
@@ -2316,7 +2343,7 @@ public:
 		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
@@ -2355,7 +2382,7 @@ public:
 		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
@@ -2392,7 +2419,7 @@ public:
 			int lvar = (int)*(context.m_bcl++);
 
 			if (lvar >= context.m_localvars.size()) {
-				name = hashutils::Hash32("<error>");
+				name = hash::HashT89Scr("<error>");
 				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 			}
 			else {
@@ -2445,7 +2472,7 @@ public:
 			int lvar = (int)*(context.m_bcl++);
 
 			if (lvar >= context.m_localvars.size()) {
-				name = hashutils::Hash32("<error>");
+				name = hash::HashT89Scr("<error>");
 				out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 			}
 			else {
@@ -2473,7 +2500,7 @@ public:
 			else {
 				auto* node = new ASMContextNodeCallFuncPtr(FUNCTION_CALL, 0, TYPE_ARRAY_NEXTKEYPUSH);
 
-				node->AddParam(new ASMContextNodeFuncRef("", hash::Hash32("nextarray"), 0));
+				node->AddParam(new ASMContextNodeFuncRef("", hash::HashT89Scr("nextarray"), 0));
 				node->AddParam(arrayNode);
 				node->AddParam(thingNode);
 
@@ -2502,7 +2529,7 @@ public:
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
@@ -2535,7 +2562,7 @@ public:
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
@@ -2568,7 +2595,7 @@ public:
 		int lvar = (int)*(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
@@ -2600,7 +2627,7 @@ public:
 
 		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
@@ -2637,7 +2664,7 @@ public:
 
 		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
@@ -3095,7 +3122,7 @@ public:
 		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
@@ -3143,7 +3170,7 @@ public:
 		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
 		}
 		else {
@@ -3182,7 +3209,7 @@ public:
 		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
@@ -3360,8 +3387,8 @@ public:
 			context.m_bcl += m_delta;
 
 			if (idx >= objctx.m_linkedImports.size()) {
-				tmpBuffData[0] = hash::Hash32("<error>");
-				tmpBuffData[1] = hash::Hash32("<error>");
+				tmpBuffData[0] = hash::HashT89Scr("<error>");
+				tmpBuffData[1] = hash::HashT89Scr("<error>");
 			}
 			else {
 				auto& imp = objctx.m_linkedImports[idx];
@@ -3507,8 +3534,8 @@ public:
 			context.m_bcl += m_delta;
 
 			if (idx >= objctx.m_linkedImports.size()) {
-				tmpBuffData[0] = hash::Hash32("<error>");
-				tmpBuffData[1] = hash::Hash32("<error>");
+				tmpBuffData[0] = hash::HashT89Scr("<error>");
+				tmpBuffData[1] = hash::HashT89Scr("<error>");
 			}
 			else {
 				auto& imp = objctx.m_linkedImports[idx];
@@ -3576,7 +3603,7 @@ public:
 				flags |= CHILDTHREAD_CALL;
 			}
 
-			if (!flags && caller->m_type == TYPE_NEW && (function == hashutils::Hash32("__constructor") || function == hashutils::HashT7("__constructor"))) {
+			if (!flags && caller->m_type == TYPE_NEW && (function == hash::HashT89Scr("__constructor") || function == hash::HashT7("__constructor"))) {
 				// calling new constructor
 				auto* newNode = static_cast<ASMContextNodeNew*>(caller);
 
@@ -3893,7 +3920,7 @@ public:
 		}
 		else {
 			hashutils::Add(m_gvarName);
-			name = hashutils::Hash64(m_gvarName);
+			name = hash::Hash64(m_gvarName);
 			out << m_gvarName;
 		}
 		out << "\n";
@@ -4033,7 +4060,7 @@ public:
 			byte* caseLoc;
 			int64_t caseDelta;
 			byte* endBase;
-			if (context.m_vm >= VM_T8) {
+			if (context.m_vm >= VMI_T8) {
 				auto& baseCaseValue = context.Aligned<int64_t>();
 
 				context.WritePadding(out);
@@ -4402,7 +4429,7 @@ public:
 
 		baseCount += 4;
 
-		if (context.m_vm >= VM_T8) {
+		if (context.m_vm >= VMI_T8) {
 			auto& ptrBase = context.Aligned<int64_t>();
 
 			ptrBase += 16 * count;
@@ -4797,7 +4824,7 @@ public:
 		uint64_t name;
 
 		if (lvar >= context.m_localvars.size()) {
-			name = hashutils::Hash32("<error>");
+			name = hash::HashT89Scr("<error>");
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar;
 		}
 		else {
@@ -4830,7 +4857,7 @@ namespace {
 }
 
 namespace tool::gsc::opcode {
-	void RegisterVM(byte vm, const char* name, const char* codeName, const char* internalName, uint64_t flags) {
+	void RegisterVM(uint64_t vm, const char* name, const char* codeName, const char* internalName, uint64_t flags) {
 		auto it = g_opcodeMap.find(vm);
 		if (it != g_opcodeMap.end()) {
 			if (it->second.flags != flags) {
@@ -4839,19 +4866,23 @@ namespace tool::gsc::opcode {
 			return; // assuming good name
 		}
 		g_opcodeMap[vm] = { vm, name, codeName, internalName, flags, {} };
-		g_vmMap[hash::Hash64(utils::va("%x", (int)vm))] = vm;
+		g_vmMap[hash::Hash64(utils::va("%llx", vm))] = vm;
+		byte revVm{ tool::gsc::opcode::MapAsOldVM(vm) };
+		if (revVm) {
+			g_vmMap[hash::Hash64(utils::va("%02x", revVm))] = vm;
+		}
 		g_vmMap[hash::Hash64(internalName)] = vm;
 	}
 
-	void RegisterVmName(byte vm, uint64_t hash) {
+	void RegisterVmName(uint64_t vm, uint64_t hash) {
 		g_vmMap[hash] = vm;
 	}
 
-	void RegisterVMOperatorFunction(byte vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {
+	void RegisterVMOperatorFunction(uint64_t vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {
 		auto ref = g_opcodeMap.find(vm);
 
 		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered operator function to bad vm: VM_{:x}, gvar: {}", (int)vm, name);
+			LOG_ERROR("Registered operator function to bad vm: VM_{:x}, gvar: {}", vm, name);
 			return;
 		}
 
@@ -4873,11 +4904,11 @@ namespace tool::gsc::opcode {
 		gv.maxParam = maxArgs;
 	}
 
-	void RegisterVMGlobalVariable(byte vm, const char* name, OPCode getOpCode) {
+	void RegisterVMGlobalVariable(uint64_t vm, const char* name, OPCode getOpCode) {
 		auto ref = g_opcodeMap.find(vm);
 
 		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered global variable to bad vm: VM_{:x}, gvar: {}", (int)vm, name);
+			LOG_ERROR("Registered global variable to bad vm: VM_{:x}, gvar: {}", vm, name);
 			return;
 		}
 		uint64_t hash = ref->second.HashField(name);
@@ -4894,51 +4925,51 @@ namespace tool::gsc::opcode {
 		gv.getOpCode = getOpCode;
 	}
 
-	void SetMaxOpCode(byte vm, uint16_t maxOpCode) {
+	void SetMaxOpCode(uint64_t vm, uint16_t maxOpCode) {
 		auto ref = g_opcodeMap.find(vm);
 
 		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Set max opcode to bad vm: VM_{:x}", (int)vm);
+			LOG_ERROR("Set max opcode to bad vm: VM_{:x}", vm);
 			return;
 		}
 
 		ref->second.maxOpCode = maxOpCode;
 	}
-	void RegisterVMPlatform(byte vm, Platform plt) {
+	void RegisterVMPlatform(uint64_t vm, Platform plt) {
 		auto ref = g_opcodeMap.find(vm);
 
 		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered platform to bad vm: VM_{:x}, plt: {}", (int)vm, PlatformName(plt));
+			LOG_ERROR("Registered platform to bad vm: VM_{:x}, plt: {}", vm, PlatformName(plt));
 			return;
 		}
 
 		ref->second.AddPlatform(plt);
 	}
-	void RegisterVMHashOPCode(byte vm, char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
+	void RegisterVMHashOPCode(uint64_t vm, char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
 		auto ref = g_opcodeMap.find(vm);
 
 		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered hash to bad vm: VM_{:x}", (int)vm);
+			LOG_ERROR("Registered hash to bad vm: VM_{:x}", vm);
 			return;
 		}
 
 		if (!(size == 8 || size == 4)) {
-			LOG_ERROR("Invalid size for hash vm: VM_{:x}: '{}' / {} bytes", (int)vm, type, size);
+			LOG_ERROR("Invalid size for hash vm: VM_{:x}: '{}' / {} bytes", vm, type, size);
 			return;
 		}
 
 		auto [h, ok] = ref->second.hashesFunc.try_emplace(type, type, opCode, size, hashFunc);
 
 		if (!ok) {
-			LOG_ERROR("Registered existing hash into vm: VM_{:x}: '{}'", (int)vm, type);
+			LOG_ERROR("Registered existing hash into vm: VM_{:x}: '{}'", vm, type);
 			return;
 		}
 	}
-	void RegisterOpCode(byte vm, Platform platform, OPCode enumValue, uint16_t op) {
+	void RegisterOpCode(uint64_t vm, Platform platform, OPCode enumValue, uint16_t op) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {
 			assert(0);
-			LOG_ERROR("Registering unknown OPCODE vm 0x{:x}", (int)vm);
+			LOG_ERROR("Registering unknown OPCODE vm 0x{:x}", vm);
 			return;
 		}
 
@@ -4949,10 +4980,10 @@ namespace tool::gsc::opcode {
 		opnfo.opcodemappltlookup[platform][enumValue].insert(op);
 	}
 
-	void RegisterSameCodePlatform(byte vm, Platform main, Platform sub) {
+	void RegisterSameCodePlatform(uint64_t vm, Platform main, Platform sub) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registering unknown same code platform vm 0x{:x}", (int)vm);
+			LOG_ERROR("Registering unknown same code platform vm 0x{:x}", vm);
 			return;
 		}
 
@@ -4973,7 +5004,7 @@ namespace tool::gsc::opcode {
 		}
 
 		if (to == sub) {
-			LOG_ERROR("Trying to register cycling same code platform for vm 0x{:x} {} -> {}", (int)vm, PlatformName(main), PlatformName(sub));
+			LOG_ERROR("Trying to register cycling same code platform for vm 0x{:x} {} -> {}", vm, PlatformName(main), PlatformName(sub));
 			return;
 		}
 
@@ -4989,21 +5020,21 @@ namespace tool::gsc::opcode {
 		return svmIt->second;
 	}
 
-	Platform RemapSamePlatform(byte vm, Platform origin) {
+	Platform RemapSamePlatform(uint64_t vm, Platform origin) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {
-			LOG_WARNING("Remapping unknown same code platform vm 0x{:x}", (int)vm);
+			LOG_WARNING("Remapping unknown same code platform vm 0x{:x}", vm);
 			return origin;
 		}
 
 		return ref->second.RemapSamePlatform(origin);
 	}
 
-	void RegisterDatatypeRenamed(byte vm, const char* datatype, const char* trueName) {
+	void RegisterDatatypeRenamed(uint64_t vm, const char* datatype, const char* trueName) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {
 			assert(0);
-			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", (int)vm);
+			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", vm);
 			return;
 		}
 
@@ -5012,11 +5043,11 @@ namespace tool::gsc::opcode {
 		opnfo.dataType[hash::Hash64(datatype)] = trueName;
 	}
 
-	void RegisterDatatype(byte vm, const char* datatype) {
+	void RegisterDatatype(uint64_t vm, const char* datatype) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {
 			assert(0);
-			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", (int)vm);
+			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", vm);
 			return;
 		}
 
@@ -5025,10 +5056,10 @@ namespace tool::gsc::opcode {
 		opnfo.dataType[hash::Hash64(datatype)] = datatype;
 	}
 
-	void RegisterDevCall(byte vm, const char* devCall) {
+	void RegisterDevCall(uint64_t vm, const char* devCall) {
 		auto ref = g_opcodeMap.find(vm);
 		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", (int)vm);
+			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", vm);
 			return;
 		}
 
@@ -5374,30 +5405,18 @@ namespace tool::gsc::opcode {
 		g_opcodeHandlerMap[info->m_id] = info;
 	}
 
-	const std::unordered_map<byte, VmInfo>& GetVMMaps() {
+	const std::unordered_map<uint64_t, VmInfo>& GetVMMaps() {
 		RegisterOpCodes();
 		return g_opcodeMap;
 	}
 
 
 	bool IsValidVmMagic(uint64_t magic, VmInfo*& info, bool registerOpCodes) {
-		byte vm;
-		if ((magic & ~0xFF) == 0xa0d43534700) {
-			// IW GSC file, use 0 revision
-			vm = magic & 0xFF;
-		}
-		else if ((magic & ~0xFF00000000000000) == 0xa0d43534780) {
-			// Treyarch GSC file, use 7 revision
-			vm = (magic >> 56) & 0xFF;
-		}
-		else {
-			return false;
-		}
-
-		return IsValidVm(vm, info, registerOpCodes);
+		// same function, before we used the revision, now we use the magic
+		return IsValidVm(magic, info, registerOpCodes);
 	}
 
-	bool IsValidVm(byte vm, VmInfo*& info, bool registerOpCodes) {
+	bool IsValidVm(uint64_t vm, VmInfo*& info, bool registerOpCodes) {
 		// build map
 		if (registerOpCodes) RegisterOpCodes();
 		auto ref = g_opcodeMap.find(vm);
@@ -5409,7 +5428,7 @@ namespace tool::gsc::opcode {
 		return true;
 	}
 
-	const OPCodeInfo* LookupOpCode(byte vm, Platform platform, uint16_t opcode) {
+	const OPCodeInfo* LookupOpCode(uint64_t vm, Platform platform, uint16_t opcode) {
 		// build map
 		RegisterOpCodes();
 
@@ -5439,7 +5458,7 @@ namespace tool::gsc::opcode {
 
 		return refHandler->second;
 	}
-	std::pair<bool, uint16_t> GetOpCodeId(byte vm, Platform platform, OPCode opcode) {
+	std::pair<bool, uint16_t> GetOpCodeId(uint64_t vm, Platform platform, OPCode opcode) {
 		RegisterOpCodes();
 
 		VmInfo* info;
@@ -5465,14 +5484,14 @@ namespace tool::gsc::opcode {
 		return std::make_pair(true, ref2->second);
 	}
 
-	bool HasOpCode(byte vm, Platform plt, OPCode opcode) {
+	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode) {
 		auto [ok, id] = GetOpCodeId(vm, plt, opcode);
 		return ok;
 	}
 
 #pragma endregion
 #pragma region asmctx 
-	ASMContext::ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* readerHandle, byte vm, Platform platform)
+	ASMContext::ASMContext(byte* fonctionStart, GSCOBJHandler& gscReader, T8GSCOBJContext& objctx, const GscInfoOption& opt, uint64_t nsp, GSCExportReader& exp, void* readerHandle, uint64_t vm, Platform platform)
 		: m_fonctionStart(fonctionStart), m_bcl(fonctionStart), m_gscReader(gscReader), m_objctx(objctx), m_opt(opt), m_runDecompiler(opt.m_dcomp),
 		m_lastOpCodeBase(-1), m_namespace(nsp), m_funcBlock(BLOCK_DEFAULT, false, false), m_exp(exp), m_readerHandle(readerHandle), m_vm(vm), m_platform(platform) {
 		// set start as unhandled
@@ -6401,12 +6420,12 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	var_23ea8daa is the key, it might not be used, idea: counting the ref?
 	e_clip is the value
 	*/
-	constexpr uint64_t getfirstarraykeyIWHash = hashutils::HashJupScr("getfirstarraykey");
-	constexpr uint64_t getnextarraykeyIWHash = hashutils::HashJupScr("getnextarraykey");
-	constexpr uint64_t getfirstarraykeyCerHash = hashutils::HashT10Scr("getfirstarraykey");
-	constexpr uint64_t getnextarraykeyCerHash = hashutils::HashT10Scr("getnextarraykey");
-	constexpr uint64_t getfirstarraykeyCerBHash = hashutils::HashT10ScrSP("getfirstarraykey");
-	constexpr uint64_t getnextarraykeyCerBHash = hashutils::HashT10ScrSP("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyIWHash = hash::HashJupScr("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyIWHash = hash::HashJupScr("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyCerHash = hash::HashT10Scr("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyCerHash = hash::HashT10Scr("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyCerBHash = hash::HashT10ScrSP("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyCerBHash = hash::HashT10ScrSP("getnextarraykey");
 
 	size_t index = 0;
 
@@ -6495,7 +6514,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW) ? 2 : ctx.m_vm <= VM_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW) ? 2 : ctx.m_vm <= VMI_T8 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -6543,7 +6562,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 			itemValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
 		}
-		else if (ctx.m_vm > VM_T8) {
+		else if (ctx.m_vm > VMI_T8) {
 			/*
 				var_d9f19f82 = iteratorkey(var_e4aec0cf);
 				var_8487602c = iteratorval(var_e4aec0cf);
@@ -6699,7 +6718,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW)) {
 			keyRef = std::max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
-		else if (ctx.m_vm <= VM_T8) {
+		else if (ctx.m_vm <= VMI_T8) {
 			keyRef = std::max(keyRef - 5, 0);
 		}
 		else {
@@ -7560,10 +7579,10 @@ namespace {
 			}
 
 			// remove 
-			constexpr uint64_t constr = hashutils::Hash32("__constructor");
-			constexpr uint64_t desstr = hashutils::Hash32("__destructor");
-			constexpr uint64_t constrt7 = hashutils::HashT7("__constructor");
-			constexpr uint64_t desstrt7 = hashutils::HashT7("__destructor");
+			constexpr uint64_t constr = hash::HashT89Scr("__constructor");
+			constexpr uint64_t desstr = hash::HashT89Scr("__destructor");
+			constexpr uint64_t constrt7 = hash::HashT7("__constructor");
+			constexpr uint64_t desstrt7 = hash::HashT7("__destructor");
 
 			if (ctx.m_exp.GetName() == constr || ctx.m_exp.GetName() == constrt7) {
 				for (size_t i = 0; i < stmts.size();) {

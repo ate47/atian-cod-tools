@@ -4,9 +4,9 @@
 namespace tool::gsc::vm {
 	class GscVm {
 	public:
-		byte vm;
+		uint64_t vm;
 		std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func;
-		GscVm(byte vm, std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func);
+		GscVm(uint64_t vm, std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func);
 	};
 	class GscVmOpCode {
 	public:
@@ -16,9 +16,8 @@ namespace tool::gsc::vm {
 		GscVmOpCode(const char* id, std::function<void()> func, bool priv = false);
 	};
 
-	std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(byte vm);
+	std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(uint64_t vm);
 	void RegisterVmOpCodes();
-
 }
 #define REGISTER_GSC_VM(_vm, cls) static tool::gsc::vm::GscVm __GscVm##_vm(_vm, [](byte* file, size_t fileSize) { return std::make_shared<cls>(file, fileSize); })
 #define REGISTER_GSC_VM_OPCODES(id, func) static tool::gsc::vm::GscVmOpCode __GscVmOpCode##id(#id, func)

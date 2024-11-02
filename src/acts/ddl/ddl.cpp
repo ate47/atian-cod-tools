@@ -175,31 +175,31 @@ public:
         static std::once_flag tmpFlag{};
 
         std::call_once(tmpFlag, []() {
-            tmp[DDL_BYTE_TYPE] = { hashutils::Hash64("byte"), DDL_BYTE_TYPE, 8 };
-            tmp[DDL_SHORT_TYPE] = { hashutils::Hash64("short"), DDL_SHORT_TYPE, 16 };
-            tmp[DDL_UINT_TYPE] = { hashutils::Hash64("uint"), DDL_UINT_TYPE, 32 };
-            tmp[DDL_INT_TYPE] = { hashutils::Hash64("int"), DDL_INT_TYPE, 32 };
-            tmp[DDL_UINT64_TYPE] = { hashutils::Hash64("uint64"), DDL_UINT64_TYPE, 64 };
-            tmp[DDL_HASH_TYPE] = { hashutils::Hash64("hash"), DDL_HASH_TYPE, 64 };
-            tmp[DDL_FLOAT_TYPE] = { hashutils::Hash64("float"), DDL_FLOAT_TYPE, 32 };
-            tmp[DDL_FIXEDPOINT_TYPE] = { hashutils::Hash64("fixedpoint"), DDL_FIXEDPOINT_TYPE, 32 };
-            tmp[DDL_STRING_TYPE] = { hashutils::Hash64("char"), DDL_STRING_TYPE, 8 };
-            tmp[DDL_PAD_TYPE] = { hashutils::Hash64("padbit"), DDL_PAD_TYPE, 1 };
+            tmp[DDL_BYTE_TYPE] = { hash::Hash64("byte"), DDL_BYTE_TYPE, 8 };
+            tmp[DDL_SHORT_TYPE] = { hash::Hash64("short"), DDL_SHORT_TYPE, 16 };
+            tmp[DDL_UINT_TYPE] = { hash::Hash64("uint"), DDL_UINT_TYPE, 32 };
+            tmp[DDL_INT_TYPE] = { hash::Hash64("int"), DDL_INT_TYPE, 32 };
+            tmp[DDL_UINT64_TYPE] = { hash::Hash64("uint64"), DDL_UINT64_TYPE, 64 };
+            tmp[DDL_HASH_TYPE] = { hash::Hash64("hash"), DDL_HASH_TYPE, 64 };
+            tmp[DDL_FLOAT_TYPE] = { hash::Hash64("float"), DDL_FLOAT_TYPE, 32 };
+            tmp[DDL_FIXEDPOINT_TYPE] = { hash::Hash64("fixedpoint"), DDL_FIXEDPOINT_TYPE, 32 };
+            tmp[DDL_STRING_TYPE] = { hash::Hash64("char"), DDL_STRING_TYPE, 8 };
+            tmp[DDL_PAD_TYPE] = { hash::Hash64("padbit"), DDL_PAD_TYPE, 1 };
 
             size_t idx = DDL_CLASS_TYPE;
             
-            tmp[idx++] = { hashutils::Hash64("bit"), DDL_UINT_TYPE, 1 };
-            tmp[idx++] = { hashutils::Hash64("double"), DDL_FLOAT_TYPE, 64 };
+            tmp[idx++] = { hash::Hash64("bit"), DDL_UINT_TYPE, 1 };
+            tmp[idx++] = { hash::Hash64("double"), DDL_FLOAT_TYPE, 64 };
 
             char tmpName[0x20];
 
             for (size_t i = 1; i <= 64; i++) {
                 sprintf_s(tmpName, "uint%lld", i);
-                tmp[idx] = { hashutils::Hash64(tmpName), DDL_UINT_TYPE, i };
+                tmp[idx] = { hash::Hash64(tmpName), DDL_UINT_TYPE, i };
                 sprintf_s(tmpName, "int%lld", i);
-                tmp[idx + 1] = { hashutils::Hash64(tmpName), DDL_INT_TYPE, i };
+                tmp[idx + 1] = { hash::Hash64(tmpName), DDL_INT_TYPE, i };
                 sprintf_s(tmpName, "fixedpoint%lld", i); // wtf if non 8 << (x)?
-                tmp[idx + 2] = { hashutils::Hash64(tmpName), DDL_FIXEDPOINT_TYPE, i };
+                tmp[idx + 2] = { hash::Hash64(tmpName), DDL_FIXEDPOINT_TYPE, i };
 
                 idx += 3;
             }
@@ -491,7 +491,7 @@ namespace {
                         return false;
                     }
                     auto name = ReadString(e->children[1]);
-                    ddl.compiled.emplace_back(hashutils::Hash64Pattern(name.c_str()));
+                    ddl.compiled.emplace_back(hash::Hash64Pattern(name.c_str()));
                 }
                 else if (idf == "version") {
                     if (!ddl.HasFirst()) {
@@ -514,7 +514,7 @@ namespace {
                         return false;
                     }
                     auto metatable = ReadString(e->children[1]);
-                    ddl.Last().metatable = hashutils::Hash64Pattern(metatable.c_str());
+                    ddl.Last().metatable = hash::Hash64Pattern(metatable.c_str());
                 }
                 else {
                     opt.PrintLineMessage(std::cerr, e) << "Invalid data rule: " << idf << ", ignored\n";
@@ -530,7 +530,7 @@ namespace {
 
                 auto name = e->children[1]->getText();
 
-                auto nameHashed = hashutils::Hash64Pattern(name.c_str());
+                auto nameHashed = hash::Hash64Pattern(name.c_str());
 
                 if (ddl.Last().StructEnumExists(nameHashed)) {
                     opt.PrintLineMessage(std::cerr, e->children[1]) << "The type " << name << " was registered twice\n";
@@ -554,7 +554,7 @@ namespace {
                     assert(child->getTreeType() == TREE_TERMINAL && dynamic_cast<TerminalNode&>(*child).getSymbol()->getType() == ddlParser::STRING);
 
                     auto enumVal = ReadString(child);
-                    enumData.values.emplace_back(hashutils::Hash64Pattern(enumVal.c_str()));
+                    enumData.values.emplace_back(hash::Hash64Pattern(enumVal.c_str()));
                 }
             }
                 break;
@@ -566,7 +566,7 @@ namespace {
 
                 auto name = e->children[1]->getText();
 
-                auto nameHashed = hashutils::Hash64Pattern(name.c_str());
+                auto nameHashed = hash::Hash64Pattern(name.c_str());
 
                 if (ddl.Last().StructEnumExists(nameHashed)) {
                     opt.PrintLineMessage(std::cerr, e->children[1]) << "The type " << name << " was registered twice\n";
@@ -583,10 +583,10 @@ namespace {
 
                     ACTSDDLType fieldTypeDDL{};
 
-                    auto fieldTypeHashed = hashutils::Hash64Pattern(fieldType.c_str());
+                    auto fieldTypeHashed = hash::Hash64Pattern(fieldType.c_str());
 
 
-                    auto& fieldDef = structData.values.emplace_back(hashutils::Hash64Pattern(name.c_str()), fieldTypeHashed);
+                    auto& fieldDef = structData.values.emplace_back(hash::Hash64Pattern(name.c_str()), fieldTypeHashed);
 
                     if (def->children.size() > 5) { // + [ N ] (3)
 

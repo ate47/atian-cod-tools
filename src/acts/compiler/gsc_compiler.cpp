@@ -303,7 +303,7 @@ namespace acts::compiler {
         }
 
         bool Write(AscmCompilerContext& ctx) override {
-            auto [ok, op] = GetOpCodeId(ctx.vmInfo->vm, ctx.plt, opcode);
+            auto [ok, op] = GetOpCodeId(ctx.vmInfo->vmMagic, ctx.plt, opcode);
             if (!ok) {
                 LOG_ERROR("Can't find opcode {} ({}) for vm {}/{}", utils::PtrOrElse(OpCodeName(opcode), "null"), (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
 
@@ -1551,7 +1551,7 @@ namespace acts::compiler {
         }
 
         bool HasOpCode(OPCode opcode) {
-            auto [ok, op] = GetOpCodeId(vmInfo->vm, plt, opcode);
+            auto [ok, op] = GetOpCodeId(vmInfo->vmMagic, plt, opcode);
             return ok;
         }
 
@@ -2283,7 +2283,7 @@ namespace acts::compiler {
                 for (uint32_t* lis : strobj.listeners) {
                     *lis = strobj.location;
                 }
-                if (vmInfo->vm == VM_T8) {
+                if (vmInfo->vmMagic == VMI_T8) {
                     data.push_back(0x9f);
                     data.push_back((byte)(key.length() + 1));
                 }
@@ -5942,7 +5942,7 @@ namespace acts::compiler {
             return 0;
         }
 
-        auto* readerBuilder = tool::gsc::GetGscReader(opt.m_vmInfo->vm);
+        auto* readerBuilder = tool::gsc::GetGscReader(opt.m_vmInfo->vmMagic);
 
         if (!readerBuilder) {
             LOG_ERROR("No GSC handler available for {}", opt.m_vmInfo->name);
@@ -5989,7 +5989,7 @@ namespace acts::compiler {
             popt.defines.insert(utils::UpperCase(utils::va("_%s", opt.m_vmInfo->codeName)));
             popt.defines.insert(utils::MapString(utils::va("_%s", PlatformName(opt.m_platform)), [](char c) -> char { return isspace(c) ? '_' : std::toupper(c); }));
 
-            if (tool::gsc::opcode::HasOpCode(opt.m_vmInfo->vm, opt.m_platform, OPCODE_T8C_GetLazyFunction)) {
+            if (tool::gsc::opcode::HasOpCode(opt.m_vmInfo->vmMagic, opt.m_platform, OPCODE_T8C_GetLazyFunction)) {
                 popt.defines.insert("_SUPPORTS_LAZYLINK");
             }
 
@@ -6068,7 +6068,7 @@ namespace acts::compiler {
     int gscc_pack(Process& proc, int argc, const char* argv[]) {
         if (argc < 4) return tool::BAD_USAGE;
 
-        tool::gsc::opcode::VM vm{ tool::gsc::opcode::VMOf(argv[2]) };
+        tool::gsc::opcode::VMId vm{ tool::gsc::opcode::VMOf(argv[2]) };
         tool::gsc::opcode::Platform plt{ tool::gsc::opcode::PlatformOf(argv[3]) };
 
         if (!vm) {

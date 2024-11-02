@@ -273,10 +273,10 @@ namespace {
 
 			auto* end = scriptEntry + count;
 
-			static auto zm_utility = hash::Hash64("scripts/zm_common/zm_utility");
-			static auto zm_utilityGsc = hash::Hash64(".gsc", zm_utility);
-			static auto zm_utilityCsc = hash::Hash64(".csc", zm_utility);
-			static auto is_ee_enabled = hash::Hash32("is_ee_enabled");
+			constexpr uint64_t zm_utility = hash::Hash64("scripts/zm_common/zm_utility");
+			constexpr uint64_t zm_utilityGsc = hash::Hash64(".gsc", zm_utility);
+			constexpr uint64_t zm_utilityCsc = hash::Hash64(".csc", zm_utility);
+			constexpr uint64_t is_ee_enabled = hash::HashT89Scr("is_ee_enabled");
 
 			auto* targetGscEntry = std::find_if(scriptEntry, end, [](const auto& ent) { return ent.name == zm_utilityGsc; });
 			auto* targetCscEntry = std::find_if(scriptEntry, end, [](const auto& ent) { return ent.name == zm_utilityCsc; });

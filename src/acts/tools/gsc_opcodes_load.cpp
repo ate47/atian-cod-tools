@@ -14,18 +14,18 @@ namespace tool::gsc::opcode {
 		std::call_once(f, [] {
 			tool::gsc::vm::RegisterVmOpCodes();
 
-			RegisterVM(VM_ACTS_F1, "ACTS VM", "f1", "acts", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_ALIGN | VmFlags::VMF_CALL_NO_PARAMS);
-			RegisterVmName(VM_ACTS_F1, "f1");
-			RegisterVMPlatform(VM_ACTS_F1, PLATFORM_PC);
-			SetMaxOpCode(VM_ACTS_F1, 0xFF);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_CheckClearParams, acts::vm::opcodes::OPCODE_EXPORT_NO_PARAMS);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_End, acts::vm::opcodes::OPCODE_END);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, acts::vm::opcodes::OPCODE_EXPORT_PARAMS);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetFloat, acts::vm::opcodes::OPCODE_GET_FLOAT);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetInteger, acts::vm::opcodes::OPCODE_GET_INT);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetHash, acts::vm::opcodes::OPCODE_GET_HASH);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_GetUndefined, acts::vm::opcodes::OPCODE_GET_UNDEFINED);
-			RegisterOpCode(VM_ACTS_F1, PLATFORM_PC, OPCODE_IsDefined, acts::vm::opcodes::OPCODE_IS_DEFINED);
+			RegisterVM(VMI_ACTS_F1, "ACTS VM", "f1", "acts", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_ALIGN | VmFlags::VMF_CALL_NO_PARAMS);
+			RegisterVmName(VMI_ACTS_F1, "f1");
+			RegisterVMPlatform(VMI_ACTS_F1, PLATFORM_PC);
+			SetMaxOpCode(VMI_ACTS_F1, 0xFF);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_CheckClearParams, acts::vm::opcodes::OPCODE_EXPORT_NO_PARAMS);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_End, acts::vm::opcodes::OPCODE_END);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_SafeCreateLocalVariables, acts::vm::opcodes::OPCODE_EXPORT_PARAMS);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_GetFloat, acts::vm::opcodes::OPCODE_GET_FLOAT);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_GetInteger, acts::vm::opcodes::OPCODE_GET_INT);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_GetHash, acts::vm::opcodes::OPCODE_GET_HASH);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_GetUndefined, acts::vm::opcodes::OPCODE_GET_UNDEFINED);
+			RegisterOpCode(VMI_ACTS_F1, PLATFORM_PC, OPCODE_IsDefined, acts::vm::opcodes::OPCODE_IS_DEFINED);
 
 			// loading serious db2 files (if any)
 			const char* seriousDBDir = actscli::options().seriousDBFile;
@@ -365,7 +365,7 @@ namespace tool::gsc::opcode {
 			outFile = argv[2];
 		}
 		tool::gsc::opcode::RegisterOpCodesMap();
-		const std::unordered_map<byte, VmInfo>& maps{ opcode::GetVMMaps() };
+		const std::unordered_map<uint64_t, VmInfo>& maps{ opcode::GetVMMaps() };
 
 		std::ofstream os{ outFile };
 

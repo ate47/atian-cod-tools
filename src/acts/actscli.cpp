@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "actscli.hpp"
+#include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
 
@@ -14,13 +15,15 @@ namespace {
 	};
 
 	// current pack version
-	constexpr byte ActsPackCurrentVersion = 0x10;
+	constexpr byte ActsPackCurrentVersion = 0x11;
 	// change this version when the changes are too importants
 	constexpr byte ActsPackCurrentMinVersion = 0x10;
 
 	enum ActsPackMinVersion : byte {
 		APMV_Hashes = 0x10,
-		APMV_VMs = 0x10
+		APMV_VMs = 0x10,
+		APMV_FLAGS = 0x11,
+		APMV_VM64s = 0x11
 	};
 
 	struct ActsPackVMPlatform {
@@ -33,6 +36,14 @@ namespace {
 		uint32_t nameOffset;
 		uint64_t vmflags;
 		byte vm;
+		byte platformsCount;
+		uint32_t platformsOffset;
+	};
+
+	struct ActsPackNewVM {
+		uint32_t nameOffset;
+		uint64_t vmflags;
+		uint64_t vmMagic;
 		byte platformsCount;
 		uint32_t platformsOffset;
 	};
@@ -52,6 +63,21 @@ namespace {
 		uint32_t vmOffset;
 		uint32_t hashesCount;
 		uint32_t hashesOffset;
+		uint64_t flags;
+		uint32_t newVmCount;
+		uint32_t newVmOffset;
+
+		constexpr bool HasFeature(ActsPackMinVersion feat) {
+			return header.version >= feat;
+		}
+
+		constexpr bool HasFlag(uint64_t flags) {
+			return HasFeature(APMV_FLAGS) && (this->flags & flags) == flags;
+		}
+	};
+
+	enum ActsPackFlags : uint64_t {
+		APF_IGNORE_OLD_VM = 1,
 	};
 
 	class StringContainer {
@@ -102,7 +128,7 @@ namespace {
 
 		auto* pack = reinterpret_cast<ActsPack*>(buffer);
 
-		if (pack->header.version >= ActsPackMinVersion::APMV_Hashes) {
+		if (pack->HasFeature(ActsPackMinVersion::APMV_Hashes)) {
 			// load precomputed hashes
 			if (pack->hashesCount && (pack->hashesOffset + sizeof(ActsPackHash) * pack->hashesCount) > bufferSize) {
 				LOG_ERROR("Invalid hash list in acts pack file");
@@ -120,14 +146,14 @@ namespace {
 			}
 		}
 
-		if (pack->header.version >= ActsPackMinVersion::APMV_VMs) {
+		if (pack->HasFeature(ActsPackMinVersion::APMV_VMs) && !pack->HasFlag(APF_IGNORE_OLD_VM)) {
 			// load VM opcodes
 			if (pack->vmCount && (pack->vmOffset + sizeof(ActsPackVM) * pack->vmCount) > bufferSize) {
 				LOG_ERROR("Invalid vm list in acts pack file");
 				return false;
 			}
 
-			auto* vms = reinterpret_cast<ActsPackVM*>(pack->header.magic + pack->vmOffset);
+			ActsPackVM* vms = reinterpret_cast<ActsPackVM*>(pack->header.magic + pack->vmOffset);
 
 			for (size_t i = 0; i < pack->vmCount; i++) {
 				auto& vm = vms[i];
@@ -151,7 +177,15 @@ namespace {
 
 				// register the vm itself
 				const char* str = strcontainer.AddString(name);
-				tool::gsc::opcode::RegisterVM(vm.vm, str, str, str, vm.vmflags);
+
+				uint64_t nvm{ tool::gsc::opcode::OldVmOf(vm.vm) };
+
+				if (!nvm) {
+					LOG_WARNING("Can't load old vm 0x{:x} from acts pack", (int)vm.vm);
+					continue;
+				}
+
+				tool::gsc::opcode::RegisterVM(nvm, str, str, str, vm.vmflags);
 
 				auto* platforms = reinterpret_cast<ActsPackVMPlatform*>(pack->header.magic + vm.platformsOffset);
 
@@ -165,8 +199,8 @@ namespace {
 					}
 
 
-					LOG_DEBUG("{} - plt {} {} -> {}", name, (int)vm.vm, tool::gsc::opcode::PlatformName(plt.platform), plt.opCount);
-					tool::gsc::opcode::RegisterVMPlatform(vm.vm, plt.platform);
+					LOG_DEBUG("{} - plt {:x} {} -> {}", name, nvm, tool::gsc::opcode::PlatformName(plt.platform), plt.opCount);
+					tool::gsc::opcode::RegisterVMPlatform(nvm, plt.platform);
 
 					auto* ops = reinterpret_cast<ActsPackOpCode*>(pack->header.magic + plt.opOffset);
 
@@ -174,7 +208,67 @@ namespace {
 					for (size_t i = 0; i < plt.opCount; i++) {
 						auto& op = ops[i];
 						
-						tool::gsc::opcode::RegisterOpCode(vm.vm, plt.platform, op.opcode, op.value);
+						tool::gsc::opcode::RegisterOpCode(nvm, plt.platform, op.opcode, op.value);
+					}
+				}
+			}
+		}
+
+		if (pack->HasFeature(ActsPackMinVersion::APMV_VM64s)) {
+			// load VM opcodes
+			if (pack->vmCount && (pack->vmOffset + sizeof(ActsPackNewVM) * pack->vmCount) > bufferSize) {
+				LOG_ERROR("Invalid new vm list in acts pack file");
+				return false;
+			}
+
+			ActsPackNewVM* vms = reinterpret_cast<ActsPackNewVM*>(pack->header.magic + pack->vmOffset);
+
+			for (size_t i = 0; i < pack->vmCount; i++) {
+				ActsPackNewVM& vm = vms[i];
+				if (vm.nameOffset >= bufferSize) {
+					LOG_ERROR("Invalid new vm name location in acts pack file");
+					return false;
+				}
+
+
+				if (vm.platformsCount && vm.platformsOffset + sizeof(ActsPackVMPlatform) * vm.platformsCount > bufferSize) {
+					LOG_ERROR("Invalid new vm platforms location in acts pack file");
+					return false;
+				}
+
+				if (vm.platformsCount) {
+					// load default opcodes
+					tool::gsc::opcode::RegisterOpCodes();
+				}
+
+				auto* name = (const char*)(pack->header.magic + vm.nameOffset);
+
+				// register the vm itself
+				const char* str = strcontainer.AddString(name);
+				tool::gsc::opcode::RegisterVM(vm.vmMagic, str, str, str, vm.vmflags);
+
+				auto* platforms = reinterpret_cast<ActsPackVMPlatform*>(pack->header.magic + vm.platformsOffset);
+
+				// add the platforms
+				for (size_t i = 0; i < vm.platformsCount; i++) {
+					auto& plt = platforms[i];
+
+					if (plt.opCount && plt.opOffset + sizeof(ActsPackOpCode) * plt.opCount > bufferSize) {
+						LOG_ERROR("Invalid vm platform opcodes location in acts pack file");
+						return false;
+					}
+
+
+					LOG_DEBUG("{} - plt {:x} {} -> {}", name, vm.vmMagic, tool::gsc::opcode::PlatformName(plt.platform), plt.opCount);
+					tool::gsc::opcode::RegisterVMPlatform(vm.vmMagic, plt.platform);
+
+					auto* ops = reinterpret_cast<ActsPackOpCode*>(pack->header.magic + plt.opOffset);
+
+					// load the opcodes for this vm/platform
+					for (size_t i = 0; i < plt.opCount; i++) {
+						auto& op = ops[i];
+
+						tool::gsc::opcode::RegisterOpCode(vm.vmMagic, plt.platform, op.opcode, op.value);
 					}
 				}
 			}
@@ -203,8 +297,8 @@ namespace {
 		// params
 		const char* output = "acts.acpf";
 
-		std::unordered_set<uint16_t> vms{};
-		std::unordered_set<byte> vmsAny{};
+		std::unordered_set<tool::gsc::NameLocated, tool::gsc::NameLocatedHash, tool::gsc::NameLocatedEquals> vms{};
+		std::unordered_set<uint64_t> vmsAny{};
 
 		if (argc > 2) {
 			output = argv[2];
@@ -230,23 +324,23 @@ namespace {
 
 				std::string vmStr{ arg.substr(0, idx) };
 
-				tool::gsc::opcode::VM vm = tool::gsc::opcode::VMOf(vmStr.c_str());
+				tool::gsc::opcode::VMId vm = tool::gsc::opcode::VMOf(vmStr.c_str());
 
 				if (!vm) {
 					LOG_ERROR("Invalid vm: {}", vmStr);
 					return tool::BASIC_ERROR;
 				}
 
-				vms.insert(utils::CatLocated16(plt, vm));
-				vmsAny.insert((byte)vm);
+				vms.insert(tool::gsc::NameLocated{ plt, vm });
+				vmsAny.insert((uint64_t)vm);
 			}
 		}
 
-		auto doPackVm = [&vms](byte vm, tool::gsc::opcode::Platform plt) {
-			return vms.empty() || vms.contains(utils::CatLocated16(plt, vm)) || vms.contains(utils::CatLocated16(0, vm));
+		auto doPackVm = [&vms](uint64_t vm, tool::gsc::opcode::Platform plt) {
+			return vms.empty() || vms.contains(tool::gsc::NameLocated{ plt, vm }) || vms.contains(tool::gsc::NameLocated{ 0, vm });
 		};
-		auto doPackAnyVm = [&vmsAny](byte vm) {
-			return vmsAny.empty() || vmsAny.contains((byte)vm);
+		auto doPackAnyVm = [&vmsAny](uint64_t vm) {
+			return vmsAny.empty() || vmsAny.contains(vm);
 		};
 
 		// read maps
@@ -327,6 +421,12 @@ namespace {
 			size_t vmIdx{};
 			for (const auto& [vm, vminfo] : vmmap) {
 				if (!doPackAnyVm(vm)) continue;
+				byte vmOld{ tool::gsc::opcode::MapAsOldVM(vm) };
+
+				if (!vmOld) {
+					LOG_WARNING("Can't map to old vm {:x}, it'll be ignored", vm);
+					continue;
+				}
 				auto stroff = AppendString(vminfo.name);
 
 				uint32_t platformCount{};
@@ -377,7 +477,7 @@ namespace {
 				auto& vmv = reinterpret_cast<ActsPackVM*>(&packFileData[vmoffset])[vmIdx++];
 
 				vmv.nameOffset = stroff;
-				vmv.vm = vminfo.vm;
+				vmv.vm = vmOld;
 				vmv.vmflags = vminfo.flags;
 				vmv.platformsCount = (byte)pltIdx;
 				vmv.platformsOffset = plts;
@@ -388,6 +488,81 @@ namespace {
 
 			LOG_INFO("Done.");
 		}
+		
+		// dump new opcodes
+		{
+			LOG_INFO("Dumping vms (new)...");
+
+
+			auto& vmmap = tool::gsc::opcode::GetVMMaps();
+
+			auto vmoffset = CreateBlock(vmmap.size() * sizeof(ActsPackNewVM));
+
+			size_t vmIdx{};
+			for (const auto& [vm, vminfo] : vmmap) {
+				auto stroff = AppendString(vminfo.name);
+
+				uint32_t platformCount{};
+				// compute platform count
+				for (size_t i = 1; i < tool::gsc::opcode::Platform::PLATFORM_COUNT; i++) {
+					if (vminfo.HasPlatform((tool::gsc::opcode::Platform)i)) {
+						platformCount++;
+					}
+				}
+
+				auto plts = CreateBlock(platformCount * sizeof(ActsPackVMPlatform));
+
+				size_t pltIdx{};
+				for (size_t i = 1; i < tool::gsc::opcode::Platform::PLATFORM_COUNT; i++) {
+					auto p = (tool::gsc::opcode::Platform)i;
+					if (vminfo.HasPlatform(p) && doPackVm(vm, p)) {
+						uint32_t opIdx{};
+						uint32_t opcodeoff{};
+						auto pit = vminfo.opcodemappltlookup.find(p);
+
+						if (pit != vminfo.opcodemappltlookup.end()) {
+							size_t opcodelen{};
+
+							for (const auto& [_, opv] : pit->second) {
+								opcodelen += opv.size();
+							}
+
+							LOG_INFO("Dump vm {} / {} / {}", vminfo.name, tool::gsc::opcode::PlatformName(p), opcodelen);
+							opcodeoff = CreateBlock(opcodelen * sizeof(ActsPackOpCode));
+							for (const auto& [ope, opvl] : pit->second) {
+								for (auto opv : opvl) {
+									auto& opl = reinterpret_cast<ActsPackOpCode*>(&packFileData[opcodeoff])[opIdx++];
+
+									opl.opcode = ope;
+									opl.value = opv;
+								}
+							}
+						}
+
+						auto& pltv = reinterpret_cast<ActsPackVMPlatform*>(&packFileData[plts])[pltIdx++];
+						pltv.platform = p;
+						pltv.opCount = opIdx;
+						pltv.opOffset = opcodeoff;
+					}
+				}
+
+
+				auto& vmv = reinterpret_cast<ActsPackNewVM*>(&packFileData[vmoffset])[vmIdx++];
+
+				vmv.nameOffset = stroff;
+				vmv.vmMagic = vm;
+				vmv.vmflags = vminfo.flags;
+				vmv.platformsCount = (byte)pltIdx;
+				vmv.platformsOffset = plts;
+			}
+
+			reinterpret_cast<ActsPack*>(packFileData.data())->newVmCount = (uint32_t)vmIdx;
+			reinterpret_cast<ActsPack*>(packFileData.data())->newVmOffset = vmoffset;
+			reinterpret_cast<ActsPack*>(packFileData.data())->flags = APF_IGNORE_OLD_VM; // compatibility
+
+			LOG_INFO("Done.");
+		}
+
 
 		LOG_INFO("Writing into {}...", output);
 

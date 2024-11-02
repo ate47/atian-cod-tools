@@ -1518,7 +1518,7 @@ namespace {
                 if (!tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
                     notif = (std::format("Invalid magic: 0x{:x}", magic));
                 }
-                else if (nfo->vm == tool::gsc::opcode::VM::VM_BO6_06) {
+                else if (nfo->vmMagic == tool::gsc::opcode::VMI_T10_06) {
                     // bo6 injector
 
                     try {

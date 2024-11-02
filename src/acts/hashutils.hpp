@@ -109,36 +109,4 @@ namespace hashutils {
 	 * @return the size of the hash map
 	 */
 	size_t Size();
-	/*
-	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
-	 * @param str String to compute
-	 * @return Hashed value
-	 */
-	inline uint32_t Hash32Pattern(const char* str) { return hash::Hash32Pattern(str); }
-	/*
-	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
-	 * @param str String to compute
-	 * @return Hashed value
-	 */
-	inline uint64_t Hash64Pattern(const char* str) { return hash::Hash64Pattern(str); }
-
-	constexpr uint64_t HashSecure(const char* pattern, uint64_t start, const char* str, uint64_t iv) {
-		if (!str || !*str) {
-			return 0;
-		}
-
-		uint64_t base = hash::Hash64A(pattern, (start ^ *str) * iv, iv);
-		return hash::Hash64A(str + 1, base, iv);
-	}
-
-	constexpr uint32_t Hash32(const char* str) { return hash::Hash32(str); }
-	constexpr uint64_t Hash64(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) { return hash::Hash64(str, start, iv); }
-	constexpr uint64_t HashIWRes(const char* str, uint64_t start = 0x47F5817A5EF961BA) { return hash::Hash64(str, start); }
-	constexpr uint64_t HashIWTag(const char* str, uint64_t start = 0x811C9DC5) { return hash::Hash64(str, start, 0x1000193) & 0xFFFFFFFF; }
-	constexpr uint64_t Hash64A(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) { return hash::Hash64A(str, start, iv); }
-	constexpr uint64_t HashJupScr(const char* str, uint64_t start = 0x79D6530B0BB9B5D1) { return hash::Hash64A(str, start, 0x10000000233); }
-	constexpr uint32_t HashT7(const char* str) { return (uint32_t)(hash::Hash64A(str, 0x4B9ACE2F, 0x1000193) & 0xFFFFFFFF) * 0x1000193; }
-	constexpr uint64_t HashIWDVar(const char* str, uint64_t start = 0) { return !start ? HashSecure("q6n-+7=tyytg94_*", 0xD86A3B09566EBAAC, str, 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
-	constexpr uint64_t HashT10Scr(const char* str, uint64_t start = 0) { return !start ? HashSecure("zt@f3yp(d[kkd=_@", 0x1C2F2E3C8A257D07, str, 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
-	constexpr uint64_t HashT10ScrSP(const char* str, uint64_t start = 0) { return !start ? hashutils::Hash64A("zt@f3yp(d[kkd=_@", hashutils::Hash64A(str, 0x1C2F2E3C8A257D07, 0x10000000233), 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
 }

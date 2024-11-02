@@ -39,8 +39,8 @@ int mods::ee::CustomEET9(Process& proc, std::string& notif) {
 	for (size_t i = 0; i < sptPool.itemAllocCount; i++) {
 		auto& entry = entries[i];
 
-		if (entry.name != hashutils::Hash64("scripts/zm_common/zm_utility.gsc")
-			&& entry.name != hashutils::Hash64("scripts/zm_common/zm_utility.csc")) {
+		if (entry.name != hash::Hash64("scripts/zm_common/zm_utility.gsc")
+			&& entry.name != hash::Hash64("scripts/zm_common/zm_utility.csc")) {
 			continue;
 		}
 
@@ -59,7 +59,7 @@ int mods::ee::CustomEET9(Process& proc, std::string& notif) {
 		for (size_t j = 0; j < header.exports_count; j++) {
 			auto& exp = exports[j];
 
-			if (exp.name != hashutils::Hash32("is_ee_enabled")) {
+			if (exp.name != hash::HashT89Scr("is_ee_enabled")) {
 				continue;
 			}
 

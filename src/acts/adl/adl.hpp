@@ -556,7 +556,7 @@ namespace acts::compiler::adl {
 
 			for (auto& [k, v] : member.GetObj()) {
 				const char* key = k.GetString();
-				uint64_t keyHash = hashutils::Hash64(key);
+				uint64_t keyHash = hash::Hash64(key);
 
 				bool done{};
 				for (const ADLStructField& field : str.fields) {
