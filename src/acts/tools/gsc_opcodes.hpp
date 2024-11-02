@@ -63,11 +63,11 @@ namespace tool::gsc::opcode {
 
 	class OPCodeInfo;
 	struct VmInfo {
-		uint64_t vmMagic;
-		const char* name;
-		const char* codeName;
-		const char* internalName;
-		uint64_t flags;
+		uint64_t vmMagic{};
+		const char* name{ "unknown" };
+		const char* codeName{ "unk" };
+		const char* internalName{ "unk" };
+		uint64_t flags{};
 		byte platforms{};
 		uint16_t maxOpCode{ 0xFFF };
 		std::unordered_map<char, VmHashFunc> hashesFunc{};
@@ -127,6 +127,50 @@ namespace tool::gsc::opcode {
 			return HashFilePath(value.c_str());
 		}
 		Platform RemapSamePlatform(Platform origin) const;
+
+		void RegisterVMGlobalVariable(const char* name, OPCode getOpCode = OPCODE_Undefined);
+		void RegisterVMOperatorFunction(const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255);
+		void RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc);
+		void RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op);
+		void RegisterSameCodePlatform(Platform main, Platform sub);
+		void SetMaxOpCode(uint16_t maxOpCode);
+		void RegisterDevCall(const char* devCall);
+		void RegisterDatatypeRenamed(const char* datatype, const char* trueName);
+		void RegisterDatatype(const char* datatype);
+		void RegisterVmName(uint64_t hash);
+		inline void RegisterOpCode(Platform platform, OPCode enumValue) {}
+		template<typename... OpTypes>
+		inline void RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op, OpTypes... ops) {
+			RegisterOpCode(platform, enumValue, op);
+			RegisterOpCode(platform, enumValue, ops...);
+		}
+
+
+		inline void RegisterDevCall() {}
+		template<typename... DevCalls>
+		inline void RegisterDevCall(const char* devCall, DevCalls... calls) {
+			RegisterDevCall(devCall);
+			RegisterDevCall(calls...);
+		}
+
+		inline void RegisterVmName(const char* name) {
+			RegisterVmName(hash::Hash64(name));
+		}
+		inline void RegisterVmName() {}
+		template<typename... Names>
+		inline void RegisterVmName(const char* name, Names... names) {
+			RegisterVmName(name);
+			RegisterVmName(names...);
+		}
+
+
+		inline void RegisterDatatype() {}
+		template<typename... Datatypes>
+		inline void RegisterDatatype(const char* datatype, Datatypes... datatypes) {
+			RegisterDatatype(datatype);
+			RegisterDatatype(datatypes...);
+		}
+
 	};
 	const std::unordered_map<uint64_t, VmInfo>& GetVMMaps();
 	bool IsValidVmMagic(uint64_t magic, VmInfo*& info, bool registerOpCodes = true);
@@ -135,52 +179,8 @@ namespace tool::gsc::opcode {
 	std::pair<bool, uint16_t> GetOpCodeId(uint64_t vm, Platform platform, OPCode opcode);
 	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
-	void RegisterVM(uint64_t vm, const char* name, const char* codeName, const char* internalName, uint64_t flags);
-	void RegisterVMGlobalVariable(uint64_t vm, const char* name, OPCode getOpCode = OPCODE_Undefined);
-	void RegisterVMOperatorFunction(uint64_t vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255);
-	void RegisterVMPlatform(uint64_t vm, Platform plt);
-	void RegisterVMHashOPCode(uint64_t vm, char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc);
-	void RegisterOpCode(uint64_t vm, Platform platform, OPCode enumValue, uint16_t op);
-	void RegisterSameCodePlatform(uint64_t vm, Platform main, Platform sub);
-	Platform RemapSamePlatform(uint64_t vm, Platform origin);
-	void SetMaxOpCode(uint64_t vm, uint16_t maxOpCode);
-	void RegisterDevCall(uint64_t vm, const char* devCall);
-	void RegisterDatatypeRenamed(uint64_t vm, const char* datatype, const char* trueName);
-	void RegisterDatatype(uint64_t vm, const char* datatype);
-	void RegisterVmName(uint64_t vm, uint64_t hash);
+	VmInfo* RegisterVM(uint64_t vm, const char* name, const char* codeName, const char* internalName, uint64_t flags);
+	VmInfo* GetVm(uint64_t vm);
 	void RegisterOpCodes();
-
-	inline void RegisterOpCode(uint64_t vm, Platform platform, OPCode enumValue) {}
-	template<typename... OpTypes>
-	inline void RegisterOpCode(uint64_t vm, Platform platform, OPCode enumValue, uint16_t op, OpTypes... ops) {
-		RegisterOpCode(vm, platform, enumValue, op);
-		RegisterOpCode(vm, platform, enumValue, ops...);
-	}
-
-
-	inline void RegisterDevCall(uint64_t vm) {}
-	template<typename... DevCalls>
-	inline void RegisterDevCall(uint64_t vm, const char* devCall, DevCalls... calls) {
-		RegisterDevCall(vm, devCall);
-		RegisterDevCall(vm, calls...);
-	}
-
-	inline void RegisterVmName(uint64_t vm, const char* name) {
-		RegisterVmName(vm, hash::Hash64(name));
-	}
-	inline void RegisterVmName(uint64_t vm) {}
-	template<typename... Names>
-	inline void RegisterVmName(uint64_t vm, const char* name, Names... names) {
-		RegisterVmName(vm, name);
-		RegisterVmName(vm, names...);
-	}
-
-
-	inline void RegisterDatatype(uint64_t vm) {}
-	template<typename... Datatypes>
-	inline void RegisterDatatype(uint64_t vm, const char* datatype, Datatypes... datatypes) {
-		RegisterDatatype(vm, datatype);
-		RegisterDatatype(vm, datatypes...);
-	}
 
 }

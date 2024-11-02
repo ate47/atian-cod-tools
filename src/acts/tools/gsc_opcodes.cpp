@@ -4857,45 +4857,46 @@ namespace {
 }
 
 namespace tool::gsc::opcode {
-	void RegisterVM(uint64_t vm, const char* name, const char* codeName, const char* internalName, uint64_t flags) {
+	VmInfo* RegisterVM(uint64_t vm, const char* name, const char* codeName, const char* internalName, uint64_t flags) {
 		auto it = g_opcodeMap.find(vm);
-		if (it != g_opcodeMap.end()) {
+		if (it != g_opcodeMap.end() && it->second.vmMagic) {
 			if (it->second.flags != flags) {
 				LOG_WARNING("Registering twice the same vm with different flags, {:x} != {:x} for {}", it->second.flags, flags, name);
 			}
-			return; // assuming good name
+			return &it->second; // assuming good name
 		}
-		g_opcodeMap[vm] = { vm, name, codeName, internalName, flags, {} };
+		VmInfo& nfo = g_opcodeMap[vm];
+		nfo = { vm, name, codeName, internalName, flags, {} };
 		g_vmMap[hash::Hash64(utils::va("%llx", vm))] = vm;
 		byte revVm{ tool::gsc::opcode::MapAsOldVM(vm) };
 		if (revVm) {
 			g_vmMap[hash::Hash64(utils::va("%02x", revVm))] = vm;
 		}
 		g_vmMap[hash::Hash64(internalName)] = vm;
+		return &nfo;
+	}
+	VmInfo* GetVm(uint64_t vm) {
+		VmInfo& nfo = g_opcodeMap[vm];
+
+		if (!nfo.vmMagic) {
+			LOG_WARNING("Can't find vm {:x}", vm);
+		}
+		return &nfo;
 	}
 
-	void RegisterVmName(uint64_t vm, uint64_t hash) {
-		g_vmMap[hash] = vm;
+	void VmInfo::RegisterVmName(uint64_t hash) {
+		g_vmMap[hash] = vmMagic;
 	}
 
-	void RegisterVMOperatorFunction(uint64_t vm, const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {
-		auto ref = g_opcodeMap.find(vm);
+	void VmInfo::RegisterVMOperatorFunction(const char* name, const char* usage, OPCode opcode, int flags, int minArgs, int maxArgs) {
+		uint64_t funcHash = HashField(name);
 
-		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered operator function to bad vm: VM_{:x}, gvar: {}", vm, name);
+		if (opFuncs.find(funcHash) != opFuncs.end()) {
+			LOG_ERROR("Operator function already defined for vm {}, func: {}", name, name);
 			return;
 		}
 
-		auto& func = ref->second.opFuncs;
-
-		uint64_t funcHash = ref->second.HashField(name);
-
-		if (func.find(funcHash) != func.end()) {
-			LOG_ERROR("Operator function already defined for vm {}, func: {}", ref->second.name, name);
-			return;
-		}
-
-		auto& gv = func[funcHash];
+		auto& gv = opFuncs[funcHash];
 		gv.name = name;
 		gv.usage = usage;
 		gv.opCode = opcode;
@@ -4904,99 +4905,50 @@ namespace tool::gsc::opcode {
 		gv.maxParam = maxArgs;
 	}
 
-	void RegisterVMGlobalVariable(uint64_t vm, const char* name, OPCode getOpCode) {
-		auto ref = g_opcodeMap.find(vm);
+	void VmInfo::RegisterVMGlobalVariable(const char* name, OPCode getOpCode) {
+		uint64_t hash = HashField(name);
 
-		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered global variable to bad vm: VM_{:x}, gvar: {}", vm, name);
-			return;
-		}
-		uint64_t hash = ref->second.HashField(name);
-
-		auto& gvars = ref->second.globalvars;
-
-		if (gvars.find(hash) != gvars.end()) {
-			LOG_ERROR("Global variable already defined for vm {}, gvar: {}", ref->second.name, name);
+		if (globalvars.find(hash) != globalvars.end()) {
+			LOG_ERROR("Global variable already defined for vm {}, gvar: {}", this->name, name);
 			return;
 		}
 
-		auto& gv = ref->second.globalvars[hash];
+		auto& gv = globalvars[hash];
 		gv.name = name;
 		gv.getOpCode = getOpCode;
 	}
 
-	void SetMaxOpCode(uint64_t vm, uint16_t maxOpCode) {
-		auto ref = g_opcodeMap.find(vm);
-
-		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Set max opcode to bad vm: VM_{:x}", vm);
-			return;
-		}
-
-		ref->second.maxOpCode = maxOpCode;
+	void VmInfo::SetMaxOpCode(uint16_t maxOpCode) {
+		maxOpCode = maxOpCode;
 	}
-	void RegisterVMPlatform(uint64_t vm, Platform plt) {
-		auto ref = g_opcodeMap.find(vm);
-
-		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered platform to bad vm: VM_{:x}, plt: {}", vm, PlatformName(plt));
-			return;
-		}
-
-		ref->second.AddPlatform(plt);
-	}
-	void RegisterVMHashOPCode(uint64_t vm, char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
-		auto ref = g_opcodeMap.find(vm);
-
-		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registered hash to bad vm: VM_{:x}", vm);
-			return;
-		}
-
+	void VmInfo::RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
 		if (!(size == 8 || size == 4)) {
-			LOG_ERROR("Invalid size for hash vm: VM_{:x}: '{}' / {} bytes", vm, type, size);
+			LOG_ERROR("Invalid size for hash vm {}: '{}' / {} bytes", name, type, size);
 			return;
 		}
 
-		auto [h, ok] = ref->second.hashesFunc.try_emplace(type, type, opCode, size, hashFunc);
+		auto [h, ok] = hashesFunc.try_emplace(type, type, opCode, size, hashFunc);
 
 		if (!ok) {
-			LOG_ERROR("Registered existing hash into vm: VM_{:x}: '{}'", vm, type);
+			LOG_ERROR("Registered existing hash into vm {}: '{}'", name, type);
 			return;
 		}
 	}
-	void RegisterOpCode(uint64_t vm, Platform platform, OPCode enumValue, uint16_t op) {
-		auto ref = g_opcodeMap.find(vm);
-		if (ref == g_opcodeMap.end()) {
-			assert(0);
-			LOG_ERROR("Registering unknown OPCODE vm 0x{:x}", vm);
-			return;
-		}
-
-		auto& opnfo = ref->second;
-
-		opnfo.opcodemap[op][platform] = enumValue;
-		opnfo.opcodemaplookup[enumValue][platform] = op;
-		opnfo.opcodemappltlookup[platform][enumValue].insert(op);
+	void VmInfo::RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op) {
+		opcodemap[op][platform] = enumValue;
+		opcodemaplookup[enumValue][platform] = op;
+		opcodemappltlookup[platform][enumValue].insert(op);
 	}
 
-	void RegisterSameCodePlatform(uint64_t vm, Platform main, Platform sub) {
-		auto ref = g_opcodeMap.find(vm);
-		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registering unknown same code platform vm 0x{:x}", vm);
-			return;
-		}
-
-		auto& opnfo = ref->second;
-
-		opnfo.AddPlatform(sub);
+	void VmInfo::RegisterSameCodePlatform(Platform main, Platform sub) {
+		AddPlatform(sub);
 
 		Platform to = main;
 
 		while (true) {
-			auto svmIt = opnfo.sameVmMap.find(to);
+			auto svmIt = sameVmMap.find(to);
 
-			if (svmIt == opnfo.sameVmMap.end()) {
+			if (svmIt == sameVmMap.end()) {
 				break;
 			}
 
@@ -5004,11 +4956,11 @@ namespace tool::gsc::opcode {
 		}
 
 		if (to == sub) {
-			LOG_ERROR("Trying to register cycling same code platform for vm 0x{:x} {} -> {}", vm, PlatformName(main), PlatformName(sub));
+			LOG_ERROR("Trying to register cycling same code platform for vm {} {} -> {}", name, PlatformName(main), PlatformName(sub));
 			return;
 		}
 
-		opnfo.sameVmMap[sub] = to;
+		sameVmMap[sub] = to;
 	}
 	Platform VmInfo::RemapSamePlatform(Platform origin) const {
 		auto svmIt = sameVmMap.find(origin);
@@ -5020,55 +4972,19 @@ namespace tool::gsc::opcode {
 		return svmIt->second;
 	}
 
-	Platform RemapSamePlatform(uint64_t vm, Platform origin) {
-		auto ref = g_opcodeMap.find(vm);
-		if (ref == g_opcodeMap.end()) {
-			LOG_WARNING("Remapping unknown same code platform vm 0x{:x}", vm);
-			return origin;
-		}
-
-		return ref->second.RemapSamePlatform(origin);
+	void VmInfo::RegisterDatatypeRenamed(const char* datatype, const char* trueName) {
+		dataType[hash::Hash64(datatype)] = trueName;
 	}
 
-	void RegisterDatatypeRenamed(uint64_t vm, const char* datatype, const char* trueName) {
-		auto ref = g_opcodeMap.find(vm);
-		if (ref == g_opcodeMap.end()) {
-			assert(0);
-			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", vm);
-			return;
-		}
-
-		auto& opnfo = ref->second;
-
-		opnfo.dataType[hash::Hash64(datatype)] = trueName;
+	void VmInfo::RegisterDatatype(const char* datatype) {
+		dataType[hash::Hash64(datatype)] = datatype;
 	}
 
-	void RegisterDatatype(uint64_t vm, const char* datatype) {
-		auto ref = g_opcodeMap.find(vm);
-		if (ref == g_opcodeMap.end()) {
-			assert(0);
-			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", vm);
-			return;
-		}
-
-		auto& opnfo = ref->second;
-
-		opnfo.dataType[hash::Hash64(datatype)] = datatype;
-	}
-
-	void RegisterDevCall(uint64_t vm, const char* devCall) {
-		auto ref = g_opcodeMap.find(vm);
-		if (ref == g_opcodeMap.end()) {
-			LOG_ERROR("Registering unknown DevCall vm 0x{:x}", vm);
-			return;
-		}
-
-		auto& opnfo = ref->second;
-
-		uint64_t hash = opnfo.HashField(devCall);
+	void VmInfo::RegisterDevCall(const char* devCall) {
+		uint64_t hash = HashField(devCall);
 
 		//LOG_TRACE("add dev call for {} {:x} -> {}", opnfo.internalName, hash, devCall);
-		opnfo.AddDevCallName(hash);
+		AddDevCallName(hash);
 	}
 
 	void RegisterOpCodes() {

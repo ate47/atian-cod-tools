@@ -185,7 +185,7 @@ namespace {
 					continue;
 				}
 
-				tool::gsc::opcode::RegisterVM(nvm, str, str, str, vm.vmflags);
+				tool::gsc::opcode::VmInfo* nfo{ tool::gsc::opcode::RegisterVM(nvm, str, str, str, vm.vmflags) };
 
 				auto* platforms = reinterpret_cast<ActsPackVMPlatform*>(pack->header.magic + vm.platformsOffset);
 
@@ -200,7 +200,7 @@ namespace {
 
 
 					LOG_DEBUG("{} - plt {:x} {} -> {}", name, nvm, tool::gsc::opcode::PlatformName(plt.platform), plt.opCount);
-					tool::gsc::opcode::RegisterVMPlatform(nvm, plt.platform);
+					nfo->AddPlatform(plt.platform);
 
 					auto* ops = reinterpret_cast<ActsPackOpCode*>(pack->header.magic + plt.opOffset);
 
@@ -208,7 +208,7 @@ namespace {
 					for (size_t i = 0; i < plt.opCount; i++) {
 						auto& op = ops[i];
 						
-						tool::gsc::opcode::RegisterOpCode(nvm, plt.platform, op.opcode, op.value);
+						nfo->RegisterOpCode(plt.platform, op.opcode, op.value);
 					}
 				}
 			}
@@ -245,7 +245,7 @@ namespace {
 
 				// register the vm itself
 				const char* str = strcontainer.AddString(name);
-				tool::gsc::opcode::RegisterVM(vm.vmMagic, str, str, str, vm.vmflags);
+				tool::gsc::opcode::VmInfo* nfo{ tool::gsc::opcode::RegisterVM(vm.vmMagic, str, str, str, vm.vmflags) };
 
 				auto* platforms = reinterpret_cast<ActsPackVMPlatform*>(pack->header.magic + vm.platformsOffset);
 
@@ -260,7 +260,7 @@ namespace {
 
 
 					LOG_DEBUG("{} - plt {:x} {} -> {}", name, vm.vmMagic, tool::gsc::opcode::PlatformName(plt.platform), plt.opCount);
-					tool::gsc::opcode::RegisterVMPlatform(vm.vmMagic, plt.platform);
+					nfo->AddPlatform(plt.platform);
 
 					auto* ops = reinterpret_cast<ActsPackOpCode*>(pack->header.magic + plt.opOffset);
 
@@ -268,7 +268,7 @@ namespace {
 					for (size_t i = 0; i < plt.opCount; i++) {
 						auto& op = ops[i];
 
-						tool::gsc::opcode::RegisterOpCode(vm.vmMagic, plt.platform, op.opcode, op.value);
+						nfo->RegisterOpCode(plt.platform, op.opcode, op.value);
 					}
 				}
 			}

@@ -47,6 +47,7 @@ namespace tool::gsc::vm {
 
             alogs::log(alogs::LVL_TRACE, std::format("Registering opcodes for{}", oss.str()));
         }
+        actslib::profiler::Profiler pl{ "vmReg" };
 
         // register public
         for (GscVmOpCode* opcode : opcodes) {
@@ -62,5 +63,7 @@ namespace tool::gsc::vm {
                 }
             }
         }
+        pl.Stop();
+        LOG_TRACE("Registered opcodes {}ms", pl.GetCurrent().GetMillis());
     }
 }

@@ -250,7 +250,7 @@ namespace compatibility::serious::db2 {
 
 				if (actsId == OPCODE_Undefined) continue; // unknown
 
-				RegisterOpCode(vm, plt, actsId, (uint16_t)i);
+				nfo->RegisterOpCode(plt, actsId, (uint16_t)i);
 				added++;
 			}
 
