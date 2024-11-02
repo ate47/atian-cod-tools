@@ -13,11 +13,6 @@
 using namespace tool::gsc;
 using namespace tool::gsc::opcode;
 
-constexpr uint32_t g_constructorName = hash::HashT89Scr("__constructor");
-constexpr uint32_t g_destructorName = hash::HashT89Scr("__destructor");
-constexpr uint32_t g_constructorNameT7 = hash::HashT7("__constructor");
-constexpr uint32_t g_destructorNameT7 = hash::HashT7("__destructor");
-
 enum DumpVTableAnswer : int {
     DVA_OK = 0,
     DVA_NOT,
@@ -1927,8 +1922,8 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 }
 
                 // handle first the constructor/destructor
-                handleMethod(vm < VMI_T8 ? g_constructorNameT7 : g_constructorName, "constructor", true);
-                handleMethod(vm < VMI_T8 ? g_destructorNameT7 : g_destructorName, "destructor", true);
+                handleMethod(vmInfo->HashField("__constructor"), "constructor", true);
+                handleMethod(vmInfo->HashField("__destructor"), "destructor", true);
 
                 for (const auto& method : cls.m_methods) {
                     handleMethod(method, nullptr, false);
@@ -3018,7 +3013,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     }
 
     bool specialClassMember = !ctx.m_opt.m_dasm && classMember &&
-        ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || (g_constructorName == exp.GetName() || g_constructorNameT7 == exp.GetName()));
+        ((remapedFlags & T8GSCExportFlags::CLASS_DESTRUCTOR) || ctx.m_objctx.m_vmInfo->HashField("__constructor") == exp.GetName());
 
     utils::Padding(asmout, padding);
     

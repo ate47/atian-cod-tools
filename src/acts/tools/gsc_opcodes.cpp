@@ -3603,7 +3603,7 @@ public:
 				flags |= CHILDTHREAD_CALL;
 			}
 
-			if (!flags && caller->m_type == TYPE_NEW && (function == hash::HashT89Scr("__constructor") || function == hash::HashT7("__constructor"))) {
+			if (!flags && caller->m_type == TYPE_NEW && (function == objctx.m_vmInfo->HashField("__constructor"))) {
 				// calling new constructor
 				auto* newNode = static_cast<ASMContextNodeNew*>(caller);
 
@@ -7495,12 +7495,10 @@ namespace {
 			}
 
 			// remove 
-			constexpr uint64_t constr = hash::HashT89Scr("__constructor");
-			constexpr uint64_t desstr = hash::HashT89Scr("__destructor");
-			constexpr uint64_t constrt7 = hash::HashT7("__constructor");
-			constexpr uint64_t desstrt7 = hash::HashT7("__destructor");
+			uint64_t constr = ctx.m_objctx.m_vmInfo->HashField("__constructor");
+			uint64_t desstr = ctx.m_objctx.m_vmInfo->HashField("__destructor");
 
-			if (ctx.m_exp.GetName() == constr || ctx.m_exp.GetName() == constrt7) {
+			if (ctx.m_exp.GetName() == constr) {
 				for (size_t i = 0; i < stmts.size();) {
 					auto& stmt = stmts[i++];
 
@@ -7508,8 +7506,7 @@ namespace {
 						auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(stmt.node);
 
 						if (fc->m_ftype == FUNCTION_CALL && !(fc->m_flags & SELF_CALL) && fc->m_operands[0]->m_type == TYPE_FUNC_REFNAME
-							&& (dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == constr
-								|| dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == constrt7)) {
+							&& (dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == constr)) {
 							i--;
 							stmts.erase(stmts.begin() + i);
 							continue;
@@ -7517,7 +7514,7 @@ namespace {
 					}
 				}
 			}
-			else if (ctx.m_exp.GetName() == desstr || ctx.m_exp.GetName() == desstrt7) {
+			else if (ctx.m_exp.GetName() == desstr) {
 				for (size_t i = 0; i < stmts.size();) {
 					auto& stmt = stmts[i++];
 
@@ -7525,8 +7522,7 @@ namespace {
 						auto* fc = dynamic_cast<ASMContextNodeCallFuncPtr*>(stmt.node);
 
 						if (fc->m_ftype == FUNCTION_CALL && !(fc->m_flags & SELF_CALL) && fc->m_operands[0]->m_type == TYPE_FUNC_REFNAME
-							&& (dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == desstr
-								|| dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == desstrt7)) {
+							&& (dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0])->m_func == desstr)) {
 							i--;
 							stmts.erase(stmts.begin() + i);
 							continue;
