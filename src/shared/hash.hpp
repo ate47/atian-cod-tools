@@ -1,6 +1,8 @@
 #pragma once
 
 namespace hash {
+	constexpr uint64_t MASK62 = 0xFFFFFFFFFFFFFFFull;
+	constexpr uint64_t MASK63 = 0x7FFFFFFFFFFFFFFFull;
 	/*
 	 * Compute the hash32 on a string (canon id)
 	 * @param str String to compute
@@ -54,9 +56,86 @@ namespace hash {
 		return Hash64A(str, start, iv) & 0x7FFFFFFFFFFFFFFF;
 	}
 
-	bool TryHashPattern(const char* str, uint64_t& outVal);
 
-	inline uint64_t HashPattern(const char* str) {
+	constexpr bool TryHashPattern(const char* str, uint64_t& outVal) {
+		std::string_view v{ str };
+
+		if (!str || !*str) {
+			outVal = 0;
+			return true;
+		}
+
+		if (!v.rfind("var_", 0)) {
+			outVal = std::strtoull(&str[4], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind("event_", 0)) {
+			outVal = std::strtoull(&str[6], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind("function_", 0)) {
+			outVal = std::strtoull(&str[9], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind("namespace_", 0)) {
+			outVal = std::strtoull(&str[10], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind("script_", 0)) {
+			outVal = std::strtoull(&str[7], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind("hash_", 0)) {
+			outVal = std::strtoull(&str[5], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind("file_", 0)) {
+			outVal = std::strtoull(&str[5], nullptr, 16);
+			return true;
+		}
+		return false;
+	}
+
+	constexpr bool TryHashPattern(const wchar_t* str, uint64_t& outVal) {
+		std::wstring_view v{ str };
+
+		if (!str || !*str) {
+			outVal = 0;
+			return true;
+		}
+
+		if (!v.rfind(L"var_", 0)) {
+			outVal = std::wcstoull(&str[4], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind(L"event_", 0)) {
+			outVal = std::wcstoull(&str[6], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind(L"function_", 0)) {
+			outVal = std::wcstoull(&str[9], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind(L"namespace_", 0)) {
+			outVal = std::wcstoull(&str[10], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind(L"script_", 0)) {
+			outVal = std::wcstoull(&str[7], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind(L"hash_", 0)) {
+			outVal = std::wcstoull(&str[5], nullptr, 16);
+			return true;
+		}
+		if (!v.rfind(L"file_", 0)) {
+			outVal = std::wcstoull(&str[5], nullptr, 16);
+			return true;
+		}
+		return false;
+	}
+
+	constexpr uint64_t HashPattern(const char* str) {
 		uint64_t out;
 		if (TryHashPattern(str, out)) {
 			return out;
@@ -64,51 +143,23 @@ namespace hash {
 		return 0;
 	}
 
-
-	inline uint64_t HashPattern(const wchar_t* str) {
-		std::wstring_view v{ str };
-
-		if (!v.rfind(L"var_", 0)) {
-			return std::wcstoull(&str[4], nullptr, 16);
-		}
-		if (!v.rfind(L"event_", 0)) {
-			return std::wcstoull(&str[6], nullptr, 16);
-		}
-		if (!v.rfind(L"function_", 0)) {
-			return std::wcstoull(&str[9], nullptr, 16);
-		}
-		if (!v.rfind(L"namespace_", 0)) {
-			return std::wcstoull(&str[10], nullptr, 16);
-		}
-		if (!v.rfind(L"script_", 0)) {
-			return std::wcstoull(&str[7], nullptr, 16);
-		}
-		if (!v.rfind(L"hash_", 0)) {
-			return std::wcstoull(&str[5], nullptr, 16);
-		}
-		if (!v.rfind(L"file_", 0)) {
-			return std::wcstoull(&str[5], nullptr, 16);
+	constexpr uint64_t HashPattern(const wchar_t* str) {
+		uint64_t out;
+		if (TryHashPattern(str, out)) {
+			return out;
 		}
 		return 0;
 	}
 
 	/*
-	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
-	 * @param str String to compute
-	 * @return Hashed value
-	 */
-	inline uint32_t HashT89ScrPattern(const char* str) {
-		uint32_t p = (uint32_t) HashPattern(str);
-		return p ? p : HashT89Scr(str);
-	}
-	/*
 	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline uint64_t Hash64Pattern(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
-		uint64_t p = HashPattern(str);
-		return p ? p : Hash64(str, start, iv);
+	constexpr uint64_t Hash64Pattern(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+		uint64_t out;
+		if (TryHashPattern(str, out)) return out;
+		return Hash64(str, start, iv);
 	}
 
 	/*
@@ -153,23 +204,16 @@ namespace hash {
 
 		return hash & 0x7FFFFFFFFFFFFFFF;
 	}
-	/*
-	 * Compute the hash32 on a string (canon id), but allow pattern like "function_123456"
-	 * @param str String to compute
-	 * @return Hashed value
-	 */
-	inline uint32_t HashT89ScrPattern(const wchar_t* str) {
-		uint32_t p = (uint32_t)HashPattern(str);
-		return p ? p : HashT89Scr(str);
-	}
+
 	/*
 	 * Compute the hash64 on a string (fnva1), but allow pattern like "hash_123456", path are unformatted
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	inline uint64_t Hash64Pattern(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
-		uint64_t p = HashPattern(str);
-		return p ? p : Hash64(str, start, iv);
+	constexpr uint64_t Hash64Pattern(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+		uint64_t out;
+		if (TryHashPattern(str, out)) return out;
+		return Hash64(str, start, iv);
 	}
 	constexpr uint64_t HashSecure(const char* pattern, uint64_t start, const char* str, uint64_t iv) {
 		if (!str || !*str) {

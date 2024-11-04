@@ -12,7 +12,7 @@ namespace {
 
     class T1006GSCOBJHandler : public GSCOBJHandler {
     public:
-        T1006GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA) {}
+        T1006GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_VAR_VA_COUNT) {}
 
         void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
             GscObj24* data = Ptr<GscObj24>();
@@ -342,7 +342,7 @@ namespace {
 
     class T1007GSCOBJHandler : public GSCOBJHandler {
     public:
-        T1007GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA) {}
+        T1007GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_VAR_VA_COUNT) {}
 
         void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
             GscObj24* data = Ptr<GscObj24>();
@@ -671,7 +671,7 @@ namespace {
 
     class T100CGSCOBJHandler : public GSCOBJHandler {
     public:
-        T100CGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA) {}
+        T100CGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_VAR_VA_COUNT) {}
 
         void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
             GscObj24* data = Ptr<GscObj24>();
@@ -997,12 +997,12 @@ namespace {
     };
 
 
-
+    
     /*****************************************************************************************************************************/
 
     class T100BGSCOBJHandler : public GSCOBJHandler {
     public:
-        T100BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA) {}
+        T100BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_VAR_VA_COUNT) {}
 
         void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
             GscObj24* data = Ptr<GscObj24>();

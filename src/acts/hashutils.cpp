@@ -191,6 +191,7 @@ namespace hashutils {
 		Add("system", true, iw, true);
 		Add("scripts/core_common/system_shared.csc", true, iw, true);
 		Add("scripts/core_common/system_shared.gsc", true, iw, true);
+		Add("scripts/common/system.gsc", true, iw, true);
 		Add("register", true, iw, true);
 		Add("__init__system__", true, iw, true);
 		Add("__init__", true, iw, true);
@@ -198,7 +199,9 @@ namespace hashutils {
 		Add("main", true, iw, true);
 		Add("init", true, iw, true);
 		// it seems all the varargs are called "vararg", but a flag is also describing, so idk
+		// in t10 the vararg param is followed by varargcount
 		Add("vararg", true, iw, true);
+		Add("varargcount", true, iw, true);
 
 		// basic letter
 		char buff[2] = { 0, 0 };

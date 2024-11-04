@@ -5616,6 +5616,22 @@ namespace acts::compiler {
                         return nullptr;
                     }
 
+                    if (obj.gscHandler->HasFlag(tool::gsc::GOHF_VAR_VA_COUNT)) {
+                        std::string paramIdfCount = "varargcount";
+                        if (exp.m_params == 256) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Can't register param '{}': too many params", paramIdfCount));
+                            return nullptr;
+                        }
+                        exp.m_params++;
+
+                        auto [err, vardef] = exp.RegisterVar(paramIdfCount, false);
+                        if (err) {
+                            obj.info.PrintLineMessage(alogs::LVL_ERROR, param, err);
+                            return nullptr;
+                        }
+                    }
+
+
                     continue;
                 }
 

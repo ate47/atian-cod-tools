@@ -263,7 +263,7 @@ uint64_t VmInfo::HashPath(const char* value) const {
 	if (hash::TryHashPattern(value, t)) {
 		return t;
 	}
-	if (HasFlag(VmFlags::VMF_HASH_CER) || HasFlag(VmFlags::VMF_HASH_CER_SP) || HasFlag(VmFlags::VMF_HASH_IW)) {
+	if (HasFlag(VmFlags::VMF_HASH_PATH_IW)) {
 		return hash::HashIWRes(value);
 	}
 	return hash::Hash64(value);
@@ -798,6 +798,7 @@ public:
 			context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
 		}
 
+		bool lastVa{};
 		for (size_t i = 0; i < count; i++) {
 			context.WritePadding(out);
 			uint64_t varName;
@@ -817,7 +818,7 @@ public:
 				context.m_bcl += 4;
 			}
 			auto& bytecode = context.m_bcl;
-			
+
 			byte flags;
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_NO_PARAM_FLAGS) {
 				flags = 0;
@@ -826,13 +827,24 @@ public:
 				flags = *(bytecode++);
 			}
 
+			byte flagsGen{ flags };
+
+			if (lastVa) {
+				out << "(va count)";
+				flagsGen |= T8GSCLocalVarFlag::IW_VARIADIC_COUNT;
+				lastVa = false;
+			}
+
 			// the variables are in reversed order
-			context.m_localvars.insert(context.m_localvars.begin(), { varName, flags });
+			context.m_localvars.insert(context.m_localvars.begin(), { varName, flagsGen });
 
 			out << hashutils::ExtractTmp("var", varName);
 
 			if (flags & T8GSCLocalVarFlag::VARIADIC) {
 				out << "...";
+				if (context.m_gscReader.HasFlag(tool::gsc::GOHF_VAR_VA_COUNT)) {
+					lastVa = true;
+				}
 			}
 			else if (flags & T8GSCLocalVarFlag::ARRAY_REF) {
 				out << "&";

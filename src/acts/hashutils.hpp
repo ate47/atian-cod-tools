@@ -3,8 +3,8 @@
 #include <hash.hpp>
 
 namespace hashutils {
-	constexpr uint64_t MASK62 = 0xFFFFFFFFFFFFFFFull;
-	constexpr uint64_t MASK63 = 0x7FFFFFFFFFFFFFFFull;
+	constexpr uint64_t MASK62 = hash::MASK62;
+	constexpr uint64_t MASK63 = hash::MASK63;
 	constexpr auto DEFAULT_HASH_FILE = "strings.txt";
 
 	/*

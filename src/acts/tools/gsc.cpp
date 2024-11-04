@@ -24,6 +24,13 @@ GscInfoOption::GscInfoOption() {
     m_formatter = &tool::gsc::formatter::GetFromName();
 }
 
+bool tool::gsc::GscDecompilerGlobalContext::WarningType(GscDecompilerGlobalContextWarn warn) {
+    core::async::opt_lock_guard lg{ asyncMtx };
+    if ((warningOpt & warn)) return false;
+    warningOpt |= warn;
+    return true;
+}
+
 bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
     // default values
     for (size_t i = startIndex; i < endIndex; i++) {
@@ -110,6 +117,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         }
         else if (!_strcmpi("--vtable", arg)) {
             m_vtable = true;
+        }
+        else if (!_strcmpi("--debug-hashes", arg)) {
+            m_debugHashes = true;
         }
         else if (!_strcmpi("--vtable-dump", arg)) {
             if (i + 1 == endIndex) {
@@ -355,6 +365,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--ignore-dbg-plt   : ignore debug platform info");
     LOG_DEBUG("-A --sync [mode]   : Sync mode: async or sync");
     LOG_DEBUG("--vtable           : Do not hide and decompile vtable functions");
+    LOG_DEBUG("--debug-hashes     : Debug hash alogrithm");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -1182,6 +1193,16 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
     char asmfnamebuff[1000];
 
+    const char* extractedName{ hashutils::ExtractPtr(scriptfile->GetName()) };
+
+    if (opt.m_debugHashes && extractedName) {
+        uint64_t hashPath{ vmInfo->HashPath(extractedName) };
+
+        if (hashPath != scriptfile->GetName() && gdctx.WarningType(GDGCW_BAD_HASH_PATH)) {
+            LOG_WARNING("Invalid hash algorithm for extracted name 0x{:x} != 0x{:x} for {}", scriptfile->GetName(), hashPath, extractedName);
+        }
+    }
+
     if (opt.m_outputDir) {
         const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(scriptfile->GetName());
         
@@ -1462,6 +1483,17 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
             for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
                 asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
+
+                if (opt.m_debugHashes) {
+                    const char* incExt{ hashutils::ExtractPtr(includes[i]) };
+                    if (incExt) {
+                        uint64_t hashPath{ vmInfo->HashPath(incExt) };
+
+                        if (hashPath != includes[i] && gdctx.WarningType(GDGCW_BAD_HASH_PATH_INCLUDE)) {
+                            LOG_WARNING("Invalid hash alogithm for extracted include 0x{:x} != 0x{:x} for {}", includes[i], hashPath, incExt);
+                        }
+                    }
+                }
             }
             if (scriptfile->GetIncludesCount()) {
                 asmout << "\n";
@@ -1716,6 +1748,31 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             }
 
             auto& asmctx = r.first->second;
+
+
+            if (opt.m_debugHashes) {
+                uint64_t name{ exp->GetName() };
+                const char* namePtr{ hashutils::ExtractPtr(name) };
+                if (namePtr) {
+                    uint64_t hashScr{ vmInfo->HashField(namePtr) };
+
+                    if (hashScr != name && gdctx.WarningType(GDGCW_BAD_HASH_FIELD)) {
+                        LOG_WARNING("Invalid hash algorithm for extracted field 0x{:x} != 0x{:x} for {}", name, hashScr, namePtr);
+                    }
+                }
+                uint64_t fileNameSpace{ exp->GetFileNamespace() };
+                if (fileNameSpace) {
+
+                    const char* fnsPtr{ hashutils::ExtractPtr(fileNameSpace) };
+                    if (fnsPtr) {
+                        uint64_t hashFSScr{ vmInfo->HashFilePath(fnsPtr) };
+
+                        if (hashFSScr != fileNameSpace && gdctx.WarningType(GDGCW_BAD_HASH_FILE)) {
+                            LOG_WARNING("Invalid hash algorithm for extracted field 0x{:x} != 0x{:x} for {}", fileNameSpace, hashFSScr, fnsPtr);
+                        }
+                    }
+                }
+            }
 
             DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
 
@@ -3072,12 +3129,15 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         }
 
         for (size_t i = 0; i < exp.GetParamCount(); i++) {
+            // -1 to avoid the <empty> object, -1 because we are in reverse order
+            const auto& lvar = ctx.m_localvars[ctx.m_localvars.size() - i - 2];
+
+            if ((lvar.flags & T8GSCLocalVarFlag::IW_VARIADIC_COUNT) && !lvar.defaultValueNode) {
+                continue; // ignore if the varargcount is used
+            }
             if (i) {
                 asmout << ", ";
             }
-
-            // -1 to avoid the <empty> object, -1 because we are in reverse order
-            const auto& lvar = ctx.m_localvars[ctx.m_localvars.size() - i - 2];
 
             if (lvar.flags & T8GSCLocalVarFlag::VARIADIC) {
                 asmout << "...";

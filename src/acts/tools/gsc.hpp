@@ -46,6 +46,7 @@ namespace tool::gsc {
         GOHF_STRING_NAMES = 0x2000,
         GOHF_NOTIFY_CRC_STRING = 0x4000,
         GOHF_FILENAMESPACE = 0x8000,
+        GOHF_VAR_VA_COUNT = 0x10000,
     };
     static_assert(
         ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP | GOHF_FOREACH_TYPE_T7 
@@ -95,6 +96,7 @@ namespace tool::gsc {
         bool m_ignoreDebugPlatform{};
         bool m_sync{ true };
         bool m_vtable{};
+        bool m_debugHashes{};
         const char* vtable_dump{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
@@ -267,7 +269,8 @@ namespace tool::gsc {
         enum T8GSCLocalVarFlag : uint8_t {
             ARRAY_REF = 0x01,
             VARIADIC = 0x02,
-            T9_VAR_REF = 0x04 // T9
+            T9_VAR_REF = 0x04, // T9
+            IW_VARIADIC_COUNT = 0x80, // Special value
         };
 
         class OPCodeInfo {
@@ -733,9 +736,17 @@ namespace tool::gsc {
         std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals> m_vtableMethods{};
         std::unordered_map<uint64_t, asmcontext_func> m_vtable{};
     };
+    enum GscDecompilerGlobalContextWarn : uint64_t {
+        GDGCW_BAD_HASH_PATH = 1,
+        GDGCW_BAD_HASH_FIELD = 1 << 1,
+        GDGCW_BAD_HASH_FILE = 1 << 2,
+        GDGCW_BAD_HASH_PATH_INCLUDE = 1 << 3,
+    };
+
     struct GscDecompilerGlobalContext {
         std::mutex* asyncMtx{};
         GscInfoOption opt{};
+        uint64_t warningOpt{};
         std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
         size_t decompiledFiles{};
         std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>> vtables{};
@@ -745,6 +756,8 @@ namespace tool::gsc {
                 delete d;
             }
         }
+
+        bool WarningType(GscDecompilerGlobalContextWarn warn);
     };
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {

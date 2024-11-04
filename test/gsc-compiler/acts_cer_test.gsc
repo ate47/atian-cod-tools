@@ -41,9 +41,9 @@ function autoexec test_ev() {
     level.players[0] thread [[ f ]]();
 }
 
-function test2(..., params) {
+function test2(...) {
     // todo: find name of params
-    return self iprintln(flat_args(vararg, params));
+    return self iprintln(flat_args(vararg, varargcount));
 }
 
 function test() {
@@ -54,7 +54,6 @@ function test() {
 
         self iprintln("hello: " + v1 + v2 + v3);
     }
-
 
 code_loc:
     i++;
