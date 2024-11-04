@@ -31,12 +31,12 @@ My set of tools. The code is more important than the features, so feel free to r
 | Black Ops 4 (T8)         | 36       | ✅          | ✅        | [ate47/bo4-source](https://github.com/ate47/bo4-source) |
 | Black Ops Cold War (T9)  | 37       | DEC        | ✅        | [ate47/bocw-source](https://github.com/ate47/bocw-source) |
 | Black Ops Cold War (T9)  | 38       | DEC        | ✅        | [ate47/bocw-source](https://github.com/ate47/bocw-source) |
-| Modern Warfare III (JUP) | 8A       | EXT        | EXT      | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
-| Modern Warfare III (JUP) | 8B       | DEC & EXT  | EXT      | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
-| Black Ops 6 (CER)        | 06       | DEC & EXT  | ✅       | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
-| Black Ops 6 (CER)        | 07       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
-| Black Ops 6 (CER)        | 0B       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
-| Black Ops 6 (CER)        | 0C       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Modern Warfare III (JUP) | 8A       | ✅          | ✅      | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
+| Modern Warfare III (JUP) | 8B       | DEC        | ✅      | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
+| Black Ops 6 (T10)        | 06       | DEC & EXT  | ✅       | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 07       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 0B       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 0C       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 
 - \* : Some source repositories might not be public yet.
 - **DEC**: With pre-decode, see the [GSC Decrypter section](#gsc-decrypter).
