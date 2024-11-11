@@ -1,4 +1,4 @@
-#ifndef CI_BUILD
+#if false
 #include <includes_shared.hpp>
 #include <hash.hpp>
 #include <hook/error.hpp>
@@ -67,14 +67,6 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD Reason, LPVOID lpVoid) {
 		FastInject();
 	}
 	return TRUE;
-}
-
-
-#else
-#include <includes_shared.hpp>
-
-BOOL WINAPI DllMain(HMODULE hModule, DWORD Reason, LPVOID lpVoid) {
-	return TRUE; // nothing
 }
 
 #endif

@@ -234,7 +234,7 @@ public:
 		std::unique_ptr<Type[]> v{ std::make_unique<Type[]>(count) };
 
 		if (!ReadMemory(&v[0], src, sizeof(Type) * count)) {
-			throw std::runtime_error(utils::va("can't read at 0x%llx 0x%llx bytes", src, sizeof(Type) * count));
+			throw std::runtime_error(utils::va("can't array read at 0x%llx 0x%llx bytes", src, sizeof(Type) * count));
 		}
 
 		return v;
@@ -264,7 +264,7 @@ public:
 		std::unique_ptr<Type> v{ std::make_unique<Type>() };
 
 		if (!ReadMemory(&*v, src, sizeof(Type))) {
-			throw std::runtime_error(utils::va("can't read at 0x%llx 0x%llx bytes", src, sizeof(Type)));
+			throw std::runtime_error(utils::va("can't read object at 0x%llx 0x%llx bytes", src, sizeof(Type)));
 		}
 
 		return v;

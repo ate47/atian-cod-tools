@@ -216,12 +216,12 @@ namespace {
 
 		if (pack->HasFeature(ActsPackMinVersion::APMV_VM64s)) {
 			// load VM opcodes
-			if (pack->vmCount && (pack->vmOffset + sizeof(ActsPackNewVM) * pack->vmCount) > bufferSize) {
+			if (pack->vmCount && (pack->vmOffset + sizeof(ActsPackNewVM) * pack->newVmCount) > bufferSize) {
 				LOG_ERROR("Invalid new vm list in acts pack file");
 				return false;
 			}
 
-			ActsPackNewVM* vms = reinterpret_cast<ActsPackNewVM*>(pack->header.magic + pack->vmOffset);
+			ActsPackNewVM* vms = reinterpret_cast<ActsPackNewVM*>(pack->header.magic + pack->newVmOffset);
 
 			for (size_t i = 0; i < pack->vmCount; i++) {
 				ActsPackNewVM& vm = vms[i];
@@ -254,7 +254,7 @@ namespace {
 					auto& plt = platforms[i];
 
 					if (plt.opCount && plt.opOffset + sizeof(ActsPackOpCode) * plt.opCount > bufferSize) {
-						LOG_ERROR("Invalid vm platform opcodes location in acts pack file");
+						LOG_ERROR("Invalid new vm platform opcodes location in acts pack file 0x{:x}[0x{:x}] > 0x{:x}", plt.opOffset, plt.opCount, bufferSize);
 						return false;
 					}
 
@@ -417,15 +417,16 @@ namespace {
 			auto& vmmap = tool::gsc::opcode::GetVMMaps();
 
 			auto vmoffset = CreateBlock(vmmap.size() * sizeof(ActsPackVM));
+			auto nvmoffset = CreateBlock(vmmap.size() * sizeof(ActsPackNewVM));
 
 			size_t vmIdx{};
+			size_t nvmIdx{};
 			for (const auto& [vm, vminfo] : vmmap) {
 				if (!doPackAnyVm(vm)) continue;
 				byte vmOld{ tool::gsc::opcode::MapAsOldVM(vm) };
 
 				if (!vmOld) {
 					LOG_WARNING("Can't map to old vm {:x}, it'll be ignored", vm);
-					continue;
 				}
 				auto stroff = AppendString(vminfo.name);
 
@@ -447,14 +448,13 @@ namespace {
 						uint32_t opcodeoff{};
 						auto pit = vminfo.opcodemappltlookup.find(p);
 
+						size_t opcodelen{};
 						if (pit != vminfo.opcodemappltlookup.end()) {
-							size_t opcodelen{};
 
 							for (const auto& [_, opv] : pit->second) {
 								opcodelen += opv.size();
 							}
 
-							LOG_INFO("Dump vm {} / {} / {}", vminfo.name, tool::gsc::opcode::PlatformName(p), opcodelen);
 							opcodeoff = CreateBlock(opcodelen * sizeof(ActsPackOpCode));
 							for (const auto& [ope, opvl] : pit->second) {
 								for (auto opv : opvl) {
@@ -470,95 +470,36 @@ namespace {
 						pltv.platform = p;
 						pltv.opCount = opIdx;
 						pltv.opOffset = opcodeoff;
+						LOG_INFO("Dump vm {} / {} / {} (0x{:x}[0x{:x}])", vminfo.name, tool::gsc::opcode::PlatformName(p), opcodelen, opcodeoff, opIdx);
 					}
 				}
 
+				if (vmOld) {
+					auto& vmv = reinterpret_cast<ActsPackVM*>(&packFileData[vmoffset])[vmIdx++];
 
-				auto& vmv = reinterpret_cast<ActsPackVM*>(&packFileData[vmoffset])[vmIdx++];
+					vmv.nameOffset = stroff;
+					vmv.vm = vmOld;
+					vmv.vmflags = vminfo.flags;
+					vmv.platformsCount = (byte)pltIdx;
+					vmv.platformsOffset = plts;
+				}
+				auto& nvmv = reinterpret_cast<ActsPackNewVM*>(&packFileData[nvmoffset])[nvmIdx++];
 
-				vmv.nameOffset = stroff;
-				vmv.vm = vmOld;
-				vmv.vmflags = vminfo.flags;
-				vmv.platformsCount = (byte)pltIdx;
-				vmv.platformsOffset = plts;
+				nvmv.nameOffset = stroff;
+				nvmv.vmMagic = vm;
+				nvmv.vmflags = vminfo.flags;
+				nvmv.platformsCount = (byte)pltIdx;
+				nvmv.platformsOffset = plts;
+				LOG_DEBUG("Dump vm {} done -> {}/{} (0x{:x}[0x{:x}])", vminfo.name, vmIdx, nvmIdx, plts, pltIdx);
 			}
 
-			reinterpret_cast<ActsPack*>(packFileData.data())->vmCount = (uint32_t)vmIdx;
-			reinterpret_cast<ActsPack*>(packFileData.data())->vmOffset = vmoffset;
-
-			LOG_INFO("Done.");
-		}
-		
-		// dump new opcodes
-		{
-			LOG_INFO("Dumping vms (new)...");
-
-
-			auto& vmmap = tool::gsc::opcode::GetVMMaps();
-
-			auto vmoffset = CreateBlock(vmmap.size() * sizeof(ActsPackNewVM));
-
-			size_t vmIdx{};
-			for (const auto& [vm, vminfo] : vmmap) {
-				auto stroff = AppendString(vminfo.name);
-
-				uint32_t platformCount{};
-				// compute platform count
-				for (size_t i = 1; i < tool::gsc::opcode::Platform::PLATFORM_COUNT; i++) {
-					if (vminfo.HasPlatform((tool::gsc::opcode::Platform)i)) {
-						platformCount++;
-					}
-				}
-
-				auto plts = CreateBlock(platformCount * sizeof(ActsPackVMPlatform));
-
-				size_t pltIdx{};
-				for (size_t i = 1; i < tool::gsc::opcode::Platform::PLATFORM_COUNT; i++) {
-					auto p = (tool::gsc::opcode::Platform)i;
-					if (vminfo.HasPlatform(p) && doPackVm(vm, p)) {
-						uint32_t opIdx{};
-						uint32_t opcodeoff{};
-						auto pit = vminfo.opcodemappltlookup.find(p);
-
-						if (pit != vminfo.opcodemappltlookup.end()) {
-							size_t opcodelen{};
-
-							for (const auto& [_, opv] : pit->second) {
-								opcodelen += opv.size();
-							}
-
-							LOG_INFO("Dump vm {} / {} / {}", vminfo.name, tool::gsc::opcode::PlatformName(p), opcodelen);
-							opcodeoff = CreateBlock(opcodelen * sizeof(ActsPackOpCode));
-							for (const auto& [ope, opvl] : pit->second) {
-								for (auto opv : opvl) {
-									auto& opl = reinterpret_cast<ActsPackOpCode*>(&packFileData[opcodeoff])[opIdx++];
-
-									opl.opcode = ope;
-									opl.value = opv;
-								}
-							}
-						}
-
-						auto& pltv = reinterpret_cast<ActsPackVMPlatform*>(&packFileData[plts])[pltIdx++];
-						pltv.platform = p;
-						pltv.opCount = opIdx;
-						pltv.opOffset = opcodeoff;
-					}
-				}
-
-
-				auto& vmv = reinterpret_cast<ActsPackNewVM*>(&packFileData[vmoffset])[vmIdx++];
-
-				vmv.nameOffset = stroff;
-				vmv.vmMagic = vm;
-				vmv.vmflags = vminfo.flags;
-				vmv.platformsCount = (byte)pltIdx;
-				vmv.platformsOffset = plts;
-			}
-
-			reinterpret_cast<ActsPack*>(packFileData.data())->newVmCount = (uint32_t)vmIdx;
-			reinterpret_cast<ActsPack*>(packFileData.data())->newVmOffset = vmoffset;
-			reinterpret_cast<ActsPack*>(packFileData.data())->flags = APF_IGNORE_OLD_VM; // compatibility
+			//LOG_TRACE("Vm offset: 0x{:x}[{}]", vmoffset, vmIdx);
+			ActsPack* pack{ reinterpret_cast<ActsPack*>(packFileData.data()) };
+			pack->vmCount = (uint32_t)vmIdx;
+			pack->vmOffset = vmoffset;
+			pack->newVmCount = (uint32_t)nvmIdx;
+			pack->newVmOffset = nvmoffset;
+			pack->flags = APF_IGNORE_OLD_VM; // compatibility
 
 			LOG_INFO("Done.");
 		}

@@ -28,6 +28,13 @@ namespace core::memory_allocator {
 			std::memcpy(ptr, str.data(), str.length() + 1);
 			return ptr;
 		}
+
+		const char* CloneStr(const char* str) {
+			size_t len = std::strlen(str);
+			char* ptr = Alloc<char>(len + 1);
+			std::memcpy(ptr, str, len + 1);
+			return ptr;
+		}
 	};
 
 }

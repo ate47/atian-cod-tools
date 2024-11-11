@@ -41,6 +41,7 @@ src/mw23-dll/main.hpp
 src/mw23-dll/Main.cpp
 src/mw23-dll/Main.hpp
 src/acts/tools/gsc_vm/vm_private_*.cpp
+src/**/_private_*.cpp
 # VS
 /.vs/
 /.vscode/

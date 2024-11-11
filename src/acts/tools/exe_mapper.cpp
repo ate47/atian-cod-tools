@@ -111,6 +111,7 @@ namespace {
 
 		return tool::OK;
 	}
+
 	int iw_data_dump(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
 
@@ -129,7 +130,18 @@ namespace {
 		LOG_INFO("base: {:x}", mod->GetOptHeader()->ImageBase);
 
 		// Dump bo6 pool names
+		// I know it not that, but it's fine idc
+		struct PoolInfo {
+			uint32_t size;
+			uint32_t unk04;
+			uint64_t unk08;
+			uint64_t unk10;
+			uint64_t unk18;
+			uint64_t unk20;
+			uint64_t unk28;
+		};
 		auto* pools{ mod->Get<uintptr_t>(0x8FFBE40) };
+		auto* poolsSizes{ mod->Get<PoolInfo>(0x8ED5FF0) };
 		{
 			std::filesystem::path pf{ exe.parent_path() / "pools.csv" };
 			std::ofstream osf{ pf };
@@ -138,10 +150,10 @@ namespace {
 			}
 			else {
 				utils::CloseEnd osfce{ osf };
-				osf << "id,name";
+				osf << "id,name,size";
 				for (size_t idx = 0; idx < bo6::T10R_ASSET_COUNT; idx++) {
 					const char* cc = mod->Rebase<const char>(pools[idx]);
-					osf << "\n" << std::dec << idx << "," << cc;
+					osf << "\n" << std::dec << idx << "," << cc << ",0x" << std::hex << poolsSizes[idx].size;
 				}
 			}
 			LOG_INFO("Created {}", pf.string());
