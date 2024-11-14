@@ -5,13 +5,44 @@
 #define EXPORT extern "C" __declspec(dllexport)
 
 namespace {
+	hook::library::Detour GetSystemMetricsDetour;
+	hook::library::Detour ExitProcessDetour;
+	hook::library::Detour GetThreadContextDetour;
+
+	DECLSPEC_NORETURN void ExitProcessStub(UINT uExitCode) {
+		if (uExitCode) {
+			LOG_ERROR("ExitProcess with {}", uExitCode);
+			hook::error::DumpStackTraceFrom(alogs::LVL_ERROR);
+		}
+		else {
+			LOG_INFO("ExitProcess with {}", uExitCode);
+			hook::error::DumpStackTraceFrom(alogs::LVL_INFO);
+		}
+		ExitProcessDetour.Call(uExitCode);
+	}
+
+	BOOL WINAPI GetThreadContextStub(HANDLE hThread, LPCONTEXT lpContext) {
+		LOG_INFO("GetThreadContext({}, {})", hThread, (void*)lpContext);
+		return GetThreadContextDetour.Call<BOOL>(hThread, lpContext);
+	}
+	int GetSystemMetricsStub(int nIndex) {
+		LOG_INFO("GetSystemMetrics({}) / {}", nIndex, GetCurrentThread());
+		return GetSystemMetricsDetour.Call<int>(nIndex);
+	}
 	void Main() {
 		alogs::setfile("acts-mwiii.log");
 		alogs::setlevel(alogs::LVL_TRACE);
-		LOG_INFO("Init fast inject dll");
+		LOG_INFO("Init MWIII dll");
 
-		hook::error::InstallErrorHooks(false);
+		hook::error::InstallErrorHooks(true);
 		hook::error::EnableHeavyDump();
+
+		hook::library::Library kernel32 = "kernel32.dll";
+		hook::library::Library user32 = "user32.dll";
+
+		GetSystemMetricsDetour.Create(user32["GetSystemMetrics"], GetSystemMetricsStub);
+		ExitProcessDetour.Create(kernel32["ExitProcess"], ExitProcessStub);
+		GetThreadContextDetour.Create(kernel32["GetThreadContext"], GetThreadContextStub);
 
 
 		//hook::library::InitScanContainer("acts-mwiii.scan");
@@ -28,29 +59,24 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD Reason, LPVOID lpVoid) {
 	return TRUE;
 }
 
-
-// hook dxgi.dll for auto injection
-EXPORT HRESULT CreateDXGIFactory1(void* riid, void* ppFactory) {
-	static auto func = [] {
-		hook::library::Library dxgi{ "dxgi.dll", true };
-
-		if (!dxgi) throw std::runtime_error(utils::va("can't find system dxgi.dll"));
-
-		return reinterpret_cast<decltype(&CreateDXGIFactory1)>(dxgi["CreateDXGIFactory1"]);
-	}();
-
-	return func(riid, ppFactory);
+namespace {
+	int64_t DiscordCreateFake() {
+		LOG_WARNING("Tried to get discord_game_sdk_old.dll#DiscordCreate(), but failed, did the user renamed discord_game_sdk to discord_game_sdk_old?");
+		return 0;
+	}
 }
 
-
-EXPORT HRESULT CreateDXGIFactory(void* riid, void* ppFactory) {
+// 000000001368F14C		DiscordCreate	discord_game_sdk
+// hook discord_game_sdk.dll for auto injection
+EXPORT int64_t DiscordCreate() {
 	static auto func = [] {
-		hook::library::Library dxgi{ "dxgi.dll", true };
+		hook::library::Library discord_game_sdk{ "discord_game_sdk_old.dll", true };
 
-		if (!dxgi) throw std::runtime_error(utils::va("can't find system dxgi.dll"));
+		if (!discord_game_sdk) return DiscordCreateFake;
 
-		return reinterpret_cast<decltype(&CreateDXGIFactory)>(dxgi["CreateDXGIFactory"]);
+		return reinterpret_cast<decltype(&DiscordCreate)>(discord_game_sdk["DiscordCreate"]);
 	}();
 
-	return func(riid, ppFactory);
+	return func();
 }
+

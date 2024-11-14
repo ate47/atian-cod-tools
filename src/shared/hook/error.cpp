@@ -27,6 +27,17 @@ namespace hook::error {
 
 		return true;
 	}
+	const char* PtrInfo(void* location) {
+		uintptr_t relativeLocation;
+		const char* moduleName;
+
+		if (GetLocInfo(location, relativeLocation, moduleName)) {
+			return utils::va("%s 0x%llx (%p)", moduleName, relativeLocation, (PVOID)location);
+		}
+		else {
+			return utils::va("%p", (PVOID)location);
+		}
+	}
 	namespace {
 		struct ErrorConfig {
 			DWORD mainThread{};
@@ -194,15 +205,7 @@ namespace hook::error {
 				return;
 			}
 
-			uintptr_t relativeLocation;
-			const char* moduleName;
-
-			if (!GetLocInfo(lpTopLevelExceptionFilter, relativeLocation, moduleName)) {
-				LOG_TRACE("Tried to insert hook form {} 0x{} ({})", moduleName, relativeLocation, (PVOID)lpTopLevelExceptionFilter);
-			}
-			else {
-				LOG_TRACE("Tried to insert hook form {}", (PVOID)lpTopLevelExceptionFilter);
-			}
+			LOG_TRACE("Tried to insert hook from {} / {}", PtrInfo(lpTopLevelExceptionFilter), PtrInfo(_ReturnAddress()));
 		}
 
 	}
