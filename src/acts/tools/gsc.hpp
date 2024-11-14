@@ -1174,7 +1174,7 @@ namespace tool::gsc {
          * @param flag flag
          * @return if the flag is present
          */
-        inline bool HasFlag(GscObjHandlerBuildFlags flag) const {
+        constexpr bool HasFlag(GscObjHandlerBuildFlags flag) {
             return (buildFlags & flag) != 0;
         }
 
@@ -1185,7 +1185,7 @@ namespace tool::gsc {
          * @return Pointer
          */
         template<typename T = byte>
-        inline T* Ptr(size_t shift = 0) {
+        constexpr T* Ptr(size_t shift = 0) {
             return reinterpret_cast<T*>(file + shift);
         }
 
@@ -1197,7 +1197,7 @@ namespace tool::gsc {
          * @return Pointer
          */
         template<typename T = byte, typename R = T>
-        inline R* PtrAlign(size_t shift = 0) {
+        constexpr R* PtrAlign(size_t shift = 0) {
             return reinterpret_cast<R*>(utils::Aligned<T>(file + shift));
         }
 
@@ -1208,7 +1208,7 @@ namespace tool::gsc {
          * @return Ref
          */
         template<typename T = byte>
-        inline T& Ref(size_t shift = 0) {
+        constexpr T& Ref(size_t shift = 0) {
             return *Ptr<T>(shift);
         }
 
@@ -1220,11 +1220,11 @@ namespace tool::gsc {
          * @return Ref
          */
         template<typename T = byte, typename R = T>
-        inline R& RefAlign(size_t shift = 0) {
+        constexpr R& RefAlign(size_t shift = 0) {
             return *PtrAlign<T, R>(shift);
         }
 
-        inline uint64_t GetMagic() {
+        constexpr uint64_t GetMagic() {
             return Ref<uint64_t>();
         }
 
@@ -1270,6 +1270,8 @@ namespace tool::gsc {
         virtual uint32_t GetAnimTreeSingleOffset() = 0;
         virtual uint16_t GetAnimTreeDoubleCount() = 0;
         virtual uint32_t GetAnimTreeDoubleOffset() = 0;
+        virtual uint32_t GetCSEGOffset() = 0;
+        virtual uint32_t GetCSEGSize() = 0;
 
         // Write functions
         virtual void SetName(uint64_t name) = 0;
@@ -1296,7 +1298,7 @@ namespace tool::gsc {
         virtual void SetAnimTreeDoubleCount(uint16_t val) = 0;
         virtual void SetAnimTreeDoubleOffset(uint32_t val) = 0;
 
-        virtual void SetCSEGOffset(uint16_t val) = 0;
+        virtual void SetCSEGOffset(uint32_t val) = 0;
         virtual void SetCSEGSize(uint32_t val) = 0;
 
         virtual byte MapFlagsImportToInt(byte flags);
@@ -1305,7 +1307,8 @@ namespace tool::gsc {
         virtual byte GetVTableImportFlags() = 0;
 
         // Dump header
-        virtual void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) = 0;
+        virtual void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt);
+        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt);
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx);
         // Patch script to prepare disasm
         virtual int PatchCode(T8GSCOBJContext& ctx);

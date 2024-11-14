@@ -1768,10 +1768,10 @@ namespace acts::compiler {
          * @return node
          */
         AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
-            if (val == 0) {
+            if (val == 0 && HasOpCode(OPCODE_GetZero)) {
                 return new AscmNodeOpCode(OPCODE_GetZero);
             }
-            if (val > 0) {
+            if (val >= 0) {
                 if (val <= 0x7F && HasOpCode(OPCODE_GetSignedByte)) {
                     return new AscmNodeData<int8_t>((int8_t)val, OPCODE_GetSignedByte);
                 }

@@ -14,23 +14,8 @@ namespace {
     public:
         MW23GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_FILENAMESPACE) {}
 
-        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
+        void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<GscObj23>();
-            asmout
-                << "// crc: 0x" << std::hex << data->checksum << " (" << std::dec << data->checksum << ")\n"
-                << std::left << std::setfill(' ')
-                << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
-                << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
-                << "// strings ... " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
-                << "// dev strs .. " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
-                << "// exports ... " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
-                << "// imports ... " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
-                << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
-                << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
-                << "// cseg ...... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
-                << std::right
-                << std::flush;
-
             if (opt.m_test_header) {
                 // fillme
                 asmout
@@ -296,11 +281,17 @@ namespace {
             Ptr<GscObj23>()->size1 = val;
             Ptr<GscObj23>()->size2 = val;
         }
-        void SetCSEGOffset(uint16_t val) override {
+        void SetCSEGOffset(uint32_t val) override {
             Ptr<GscObj23>()->cseg_offset = val;
         }
         void SetCSEGSize(uint32_t val) override {
             Ptr<GscObj23>()->cseg_size = val;
+        }
+        uint32_t GetCSEGOffset() override {
+            return Ptr<GscObj23>()->cseg_offset;
+        }
+        uint32_t GetCSEGSize() override {
+            return Ptr<GscObj23>()->cseg_size;
         }
         void SetAnimTreeSingleCount(uint16_t val) override {
             Ptr<GscObj23>()->animtree_use_count = val;
@@ -378,23 +369,8 @@ namespace {
     public:
         MW23BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_FILENAMESPACE) {}
 
-        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
+        void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<GscObj23>();
-            asmout
-                << "// crc: 0x" << std::hex << data->checksum << " (" << std::dec << data->checksum << ")\n"
-                << std::left << std::setfill(' ')
-                << "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
-                << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->include_table << ")\n"
-                << "// strings ... " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_table << ")\n"
-                << "// dev strs .. " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
-                << "// exports ... " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->export_offset << ")\n"
-                << "// imports ... " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_table << ")\n"
-                << "// animtree1 . " << std::dec << std::setw(3) << data->animtree_use_count << " (offset: 0x" << std::hex << data->animtree_use_offset << ")\n"
-                << "// animtree2 . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
-                << "// cseg ...... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
-                << std::right
-                << std::flush;
-
             if (opt.m_test_header) {
                 // fillme
                 asmout
@@ -664,11 +640,17 @@ namespace {
             // idk
             Ptr<GscObj23>()->size1 = val;
         }
-        void SetCSEGOffset(uint16_t val) override {
+        void SetCSEGOffset(uint32_t val) override {
             Ptr<GscObj23>()->cseg_offset = val;
         }
         void SetCSEGSize(uint32_t val) override {
             Ptr<GscObj23>()->cseg_size = val;
+        }
+        uint32_t GetCSEGOffset() override {
+            return Ptr<GscObj23>()->cseg_offset;
+        }
+        uint32_t GetCSEGSize() override {
+            return Ptr<GscObj23>()->cseg_size;
         }
         void SetAnimTreeSingleCount(uint16_t val) override {
             Ptr<GscObj23>()->animtree_use_count = val;

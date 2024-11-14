@@ -16,25 +16,6 @@ namespace {
     public:
         ACTSF1GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_FOREACH_TYPE_5) {}
 
-        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
-            auto* data = Ptr<ActScript>();
-            asmout
-                //<< "// crc: 0x" << std::hex << data->checksum << " (" << std::dec << data->checksum << ")\n"
-                << std::left << std::setfill(' ')
-                //<< "// size ...... " << std::dec << std::setw(3) << data->size1 << " (0x" << std::hex << data->size1 << ")" << "\n"
-                << "// includes .. " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
-                << "// strings ... " << std::dec << std::setw(3) << data->strings_count << " (offset: 0x" << std::hex << data->strings_table << ")\n"
-                //<< "// dev strs .. " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
-                << "// exports ... " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_table << ")\n"
-                << "// imports ... " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_table << ")\n"
-                << "// cseg ...... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
-                << std::right
-                << std::flush;
-
-        }
-        void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
-        }
-
         uint64_t GetName() override {
             return Ptr<ActScript>()->name;
         }
@@ -138,11 +119,17 @@ namespace {
         void SetFileSize(uint32_t val) override {
             Ptr<ActScript>()->fileSize = val;
         }
-        void SetCSEGOffset(uint16_t val) override {
+        void SetCSEGOffset(uint32_t val) override {
             Ptr<ActScript>()->cseg_offset = val;
         }
         void SetCSEGSize(uint32_t val) override {
             Ptr<ActScript>()->cseg_size = val;
+        }
+        uint32_t GetCSEGOffset() override {
+            return Ptr<ActScript>()->cseg_offset;
+        }
+        uint32_t GetCSEGSize() override {
+            return Ptr<ActScript>()->cseg_size;
         }
         void SetAnimTreeSingleCount(uint16_t val) override {
             //Ptr<ActScript>()->animtree_use_count = val;

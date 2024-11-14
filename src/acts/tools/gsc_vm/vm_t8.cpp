@@ -15,23 +15,10 @@ namespace {
     public:
         T8GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT) {}
 
-        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
+        void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T8GSCOBJ>();
             asmout
-                << std::hex
-                << "// crc: 0x" << std::hex << data->crc << " (" << std::dec << data->crc << ")\n"
-                << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->script_size << "\n"
-                << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-                << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->export_table_offset << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
-                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
-                << std::right
-                << std::flush;
+                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n";
 
             if (opt.m_test_header) {
                 asmout
@@ -177,11 +164,17 @@ namespace {
         void SetFileSize(uint32_t val) override {
             Ptr<T8GSCOBJ>()->script_size = val;
         }
-        void SetCSEGOffset(uint16_t val) override {
+        void SetCSEGOffset(uint32_t val) override {
             Ptr<T8GSCOBJ>()->cseg_offset = val;
         }
         void SetCSEGSize(uint32_t val) override {
             Ptr<T8GSCOBJ>()->cseg_size = val;
+        }
+        uint32_t GetCSEGOffset() override {
+            return Ptr<T8GSCOBJ>()->cseg_offset;
+        }
+        uint32_t GetCSEGSize() override {
+            return Ptr<T8GSCOBJ>()->cseg_size;
         }
         void SetAnimTreeSingleCount(uint16_t val) override {}
         void SetAnimTreeSingleOffset(uint32_t val) override {}
@@ -261,26 +254,6 @@ namespace {
     class T831GSCOBJHandler : public GSCOBJHandler {
     public:
         T831GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_STRING_NAMES) {}
-
-        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
-            auto* data = Ptr<T831GSCOBJ>();
-            asmout
-                << std::hex
-                << "// crc: 0x" << std::hex << data->source_crc << " (" << std::dec << data->source_crc << ")\n"
-                << std::left << std::setfill(' ')
-                << "// includes . " << std::dec << std::setw(3) << data->include_count << " (offset: 0x" << std::hex << data->include_offset << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->stringtablefixup_count << " (offset: 0x" << std::hex << data->stringtablefixup_offset << ")\n"
-                << "// dev strs . " << std::dec << std::setw(3) << data->devblock_stringtablefixup_count << " (offset: 0x" << std::hex << data->devblock_stringtablefixup_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_offset << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
-                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n"
-                << "// animtree . " << std::dec << std::setw(3) << data->animtree_count << " (offset: 0x" << std::hex << data->animtree_offset << ")\n"
-                << "// profile .. " << std::dec << std::setw(3) << data->profile_count << " (offset: 0x" << std::hex << data->profile_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
-                << std::right
-                << std::flush;
-        }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
             auto* data = Ptr<T831GSCOBJ>();
 
@@ -411,11 +384,17 @@ namespace {
         void SetFileSize(uint32_t val) override {
             Ptr<T831GSCOBJ>()->profile_offset = val;
         }
-        void SetCSEGOffset(uint16_t val) override {
+        void SetCSEGOffset(uint32_t val) override {
             Ptr<T831GSCOBJ>()->cseg_offset = val;
         }
         void SetCSEGSize(uint32_t val) override {
             Ptr<T831GSCOBJ>()->cseg_size = val;
+        }
+        uint32_t GetCSEGOffset() override {
+            return Ptr<T831GSCOBJ>()->cseg_offset;
+        }
+        uint32_t GetCSEGSize() override {
+            return Ptr<T831GSCOBJ>()->cseg_size;
         }
         void SetAnimTreeSingleCount(uint16_t val) override {}
         void SetAnimTreeSingleOffset(uint32_t val) override {}

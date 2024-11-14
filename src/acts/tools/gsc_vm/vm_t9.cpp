@@ -14,23 +14,8 @@ namespace {
     public:
         T937GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
 
-        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
+        void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T937GSCOBJ>();
-            asmout
-                << std::hex
-                << "// crc: 0x" << std::hex << data->crc << " (" << std::dec << data->crc << ")\n"
-                << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
-                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-                << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->export_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->imports_offset << ")\n"
-                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
-                << std::right
-                << std::flush;
-
             if (opt.m_test_header) {
                 asmout
                     << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
@@ -173,11 +158,17 @@ namespace {
         void SetFileSize(uint32_t val) override {
             Ptr<T937GSCOBJ>()->file_size = val;
         }
-        void SetCSEGOffset(uint16_t val) override {
+        void SetCSEGOffset(uint32_t val) override {
             Ptr<T937GSCOBJ>()->cseg_offset = val;
         }
         void SetCSEGSize(uint32_t val) override {
             Ptr<T937GSCOBJ>()->cseg_size = val;
+        }
+        uint32_t GetCSEGOffset() override {
+            return Ptr<T937GSCOBJ>()->cseg_offset;
+        }
+        uint32_t GetCSEGSize() override {
+            return Ptr<T937GSCOBJ>()->cseg_size;
         }
         void SetAnimTreeSingleCount(uint16_t val) override {}
         void SetAnimTreeSingleOffset(uint32_t val) override {}
@@ -259,24 +250,9 @@ namespace {
     public:
         T9GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
 
-        void DumpHeader(std::ostream& asmout, const GscInfoOption& opt) override {
-            auto* data = Ptr<T9GSCOBJ>();
-            asmout
-                << std::hex
-                << "// crc: 0x" << std::hex << data->crc << " (" << std::dec << data->crc << ")\n"
-                << std::left << std::setfill(' ')
-                << "// size ..... " << std::dec << std::setw(3) << data->file_size << " (0x" << std::hex << data->file_size << ")" << "\n"
-                << "// includes . " << std::dec << std::setw(3) << data->includes_count << " (offset: 0x" << std::hex << data->includes_table << ")\n"
-                << "// strings .. " << std::dec << std::setw(3) << data->string_count << " (offset: 0x" << std::hex << data->string_offset << ")\n"
-                << "// dev strs . " << std::dec << std::setw(3) << data->devblock_string_count << " (offset: 0x" << std::hex << data->devblock_string_offset << ")\n"
-                << "// exports .. " << std::dec << std::setw(3) << data->exports_count << " (offset: 0x" << std::hex << data->exports_tables << ")\n"
-                << "// imports .. " << std::dec << std::setw(3) << data->imports_count << " (offset: 0x" << std::hex << data->import_tables << ")\n"
-                << "// globals .. " << std::dec << std::setw(3) << data->globalvar_count << " (offset: 0x" << std::hex << data->globalvar_offset << ")\n"
-                << "// cseg ..... 0x" << std::hex << data->cseg_offset << " + 0x" << std::hex << data->cseg_size << " (0x" << (data->cseg_offset + data->cseg_size) << ")" << "\n"
-                << std::right
-                << std::flush;
-
+        void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             if (opt.m_test_header) {
+                auto* data = Ptr<T9GSCOBJ>();
                 asmout
                     << "// ukn0c .... " << std::dec << data->pad0c << " / 0x" << std::hex << data->pad0c << "\n"
                     << "// unk1e .... " << std::dec << data->unk1e << " / 0x" << std::hex << data->unk1e << "\n"
@@ -480,11 +456,17 @@ namespace {
         void SetFileSize(uint32_t val) override {
             Ptr<T9GSCOBJ>()->file_size = val;
         }
-        void SetCSEGOffset(uint16_t val) override {
+        void SetCSEGOffset(uint32_t val) override {
             Ptr<T9GSCOBJ>()->cseg_offset = val;
         }
         void SetCSEGSize(uint32_t val) override {
             Ptr<T9GSCOBJ>()->cseg_size = val;
+        }
+        uint32_t GetCSEGOffset() override {
+            return Ptr<T9GSCOBJ>()->cseg_offset;
+        }
+        uint32_t GetCSEGSize() override {
+            return Ptr<T9GSCOBJ>()->cseg_size;
         }
         void SetAnimTreeSingleCount(uint16_t val) override {}
         void SetAnimTreeSingleOffset(uint32_t val) override {}

@@ -419,6 +419,75 @@ byte GSCOBJHandler::MapFlagsExportToInt(byte flags) {
 void GSCOBJHandler::SetNameString(uint32_t name) {
     throw std::runtime_error("can't set string name for this vm");
 }
+void GSCOBJHandler::DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) {};
+void GSCOBJHandler::DumpHeader(std::ostream& asmout, const GscInfoOption& opt) {
+    uint32_t checksum{ GetChecksum() };
+
+    if (checksum) {
+        asmout << "// crc: 0x" << std::hex << checksum << " (" << std::dec << checksum << ")\n";
+    }
+
+    asmout
+        << std::left << std::setfill(' ')
+        << "// size ...... " << std::dec << std::setw(3) << GetFileSize() << " (0x" << std::hex << GetFileSize() << ")" << "\n";
+
+    uint32_t includesOffset{ GetIncludesOffset() };
+    uint32_t includesCount{ GetIncludesCount() };
+    if (includesOffset) {
+        asmout << "// includes .. " << std::dec << std::setw(3) << includesCount << " (offset: 0x" << std::hex << includesOffset << ")\n";
+    }
+
+    uint32_t stringsOffset{ GetStringsOffset() };
+    uint32_t stringsCount{ GetStringsCount() };
+    if (stringsOffset) {
+        asmout << "// strings ... " << std::dec << std::setw(3) << stringsCount << " (offset: 0x" << std::hex << stringsOffset << ")\n";
+    }
+
+    uint32_t devStringsOffset{ GetDevStringsOffset() };
+    uint32_t devStringsCount{ GetDevStringsCount() };
+    if (devStringsOffset) {
+        asmout << "// dev strs .. " << std::dec << std::setw(3) << devStringsCount << " (offset: 0x" << std::hex << devStringsOffset << ")\n";
+    }
+
+    uint32_t exportsOffset{ GetExportsOffset() };
+    uint32_t exportsCount{ GetExportsCount() };
+    if (exportsOffset) {
+        asmout << "// exports ... " << std::dec << std::setw(3) << exportsCount << " (offset: 0x" << std::hex << exportsOffset << ")\n";
+    }
+
+    uint32_t csegOffset{ GetCSEGOffset() };
+    uint32_t csegSize{ GetCSEGSize() };
+    if (csegOffset + csegSize) {
+        asmout << "// cseg ...... 0x" << std::hex << csegOffset << " + 0x" << std::hex << csegSize << " (0x" << (csegOffset + csegSize) << ")" << "\n";
+    }
+
+    uint32_t importsOffset{ GetImportsOffset() };
+    uint32_t importsCount{ GetImportsCount() };
+    if (importsOffset) {
+        asmout << "// imports ... " << std::dec << std::setw(3) << importsCount << " (offset: 0x" << std::hex << importsOffset << ")\n";
+    }
+
+    uint32_t animSingleOffset{ GetAnimTreeSingleOffset() };
+    uint32_t animSingleCount{ GetAnimTreeSingleCount() };
+    if (animSingleOffset) {
+        asmout << "// animtree1 . " << std::dec << std::setw(3) << animSingleCount << " (offset: 0x" << std::hex << animSingleOffset << ")\n";
+    }
+
+    uint32_t animDoubleOffset{ GetAnimTreeDoubleOffset() };
+    uint32_t animDoubleCount{ GetAnimTreeDoubleCount() };
+    if (animDoubleOffset) {
+        asmout << "// animtree2 . " << std::dec << std::setw(3) << animDoubleCount << " (offset: 0x" << std::hex << animDoubleOffset << ")\n";
+    } 
+
+    uint32_t globalsOffset{ GetGVarsOffset() };
+    uint32_t globalsCount{ GetGVarsCount() };
+    if (globalsOffset) {
+        asmout << "// globals .. " << std::dec << std::setw(3) << globalsCount << " (offset: 0x" << std::hex << globalsOffset << ")\n";
+    }
+
+    DumpHeaderInternal(asmout, opt);
+    asmout << std::right << std::flush;
+}
 int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
     if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
