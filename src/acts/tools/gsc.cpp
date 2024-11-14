@@ -1626,6 +1626,11 @@ ignoreCscGsc:
 
                     if (typeSure) {
                         usingName[std::strlen(usingName) - 4] = 0; // remove .csc / .gsc
+
+                        if (vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                            // IW vm import types
+                            hashutils::AddPrecomputed(vmInfo->HashFilePath(usingName), usingName);
+                        }
                     }
                 }
 
