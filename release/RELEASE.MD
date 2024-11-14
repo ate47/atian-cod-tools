@@ -1,13 +1,20 @@
-- tools
-  - thread async pooling
-  - gsc compiler optimisations
-  - hash brute and expand searcher
-  - better bo3 string decompilation
-  - better hks disassembler
-  - cold war vm37 pc compiler/decompiler
-  - serious opcodes translation tools
-  - more common tools (wps/dbgp)
-  - vm 0c decompiler without opcodes
-  - tool to decrypt gsc scripts using a dumped exe
-- ui
-  - dev tool test renderer
+- gsc VMs
+  - rework vm registry to be faster
+  - bo4 ps4 (36)
+  - bocw ps4 (37/38)
+  - mwiii pc (8a/8b)
+  - wip acts VM (f1)
+- gsc decompiler
+  - remove extensions in includes and set .csc and .gsc in output
+  - better vararg decompilation for bo6
+  - dump class vtables
+  - continue decompilation after bad opcodes
+  - fix hash functions for bo6 decompilation
+- gsc compiler
+  - better vararg compilation for bo6
+  - wip on class compilation
+- dumper
+  - add pools to bo6 cordycep dumper
+  - ps4 scripts dumper for bo4
+- pack file
+  - switch to 64 bits VM names
