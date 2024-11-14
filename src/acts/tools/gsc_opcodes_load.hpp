@@ -20,7 +20,7 @@ namespace tool::gsc::opcode {
 		VMI_T10_0C = 0xa0d4353470C,
 
 		// ACTS VM
-		VMI_ACTS_F1 = 0xF1000a0d43534780,
+		VMI_ACTS_F1 = 0x4d565354434124F1,
 	};
 
 	enum VMOldRevisions : byte {

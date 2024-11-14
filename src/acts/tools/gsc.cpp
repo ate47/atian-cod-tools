@@ -1017,7 +1017,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                         actsHeader << "INVALID LOC";
                     }
                     else {
-                        PrintFormattedString(actsHeader << "\"", scriptfile->Ptr<const char>(dbg->crc_offset)) << "\"";
+                        ::PrintFormattedString(actsHeader << "\"", scriptfile->Ptr<const char>(dbg->crc_offset)) << "\"";
                     }
                 }
                 else if (scriptfile->HasFlag(GOHF_NOTIFY_CRC)) {
@@ -1055,7 +1055,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                         hashutils::AddPrecomputed(hashPath, str, true);
 
                         if (opt.m_header) {
-                            PrintFormattedString(actsHeader << "// - #\"", str)
+                            ::PrintFormattedString(actsHeader << "// - #\"", str)
                                 << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
                         }
                         // use all the known hashes for this VM
@@ -1202,6 +1202,68 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             LOG_WARNING("Invalid hash algorithm for extracted name 0x{:x} != 0x{:x} for {}", scriptfile->GetName(), hashPath, extractedName);
         }
     }
+    bool isCsc{};
+    bool typeSure{};
+    if (!scriptfile->HasFlag(GOHF_STRING_NAMES)) {
+        const char* scriptNamePtr{ hashutils::ExtractPtr(scriptfile->GetName()) };
+
+        if (scriptNamePtr) {
+            std::string_view sw{ scriptNamePtr };
+            if (sw.ends_with(".csc")) {
+                isCsc = true;
+                typeSure = true;
+            }
+            else if (sw.ends_with(".gsc")) {
+                isCsc = false;
+                typeSure = true;
+            }
+            else {
+                // the default script doesn't end with .gsc/.csc, it's fine
+                // LOG_WARNING("Script's name doesn't end with .gsc or .csc extension, can't extrapolate type: {}", scriptNamePtr);
+                goto ignoreCscGsc;
+            }
+        }
+
+        if (scriptfile->GetIncludesOffset()) {
+            uint32_t includeOffset = scriptfile->GetIncludesOffset();
+            uint64_t* includes = scriptfile->Ptr<uint64_t>(includeOffset);
+            if (!(includeOffset + scriptfile->GetIncludesCount() * sizeof(uint64_t) > scriptfile->GetFileSize())) {
+                for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
+                    const char* incPtr{ hashutils::ExtractPtr(includes[i]) };
+
+                    if (incPtr) {
+                        std::string_view sw{ incPtr };
+                    
+                        if (sw.ends_with(".csc")) {
+                            if (!isCsc && typeSure) {
+                                typeSure = false;
+                                LOG_WARNING("Found csc and gsc includes in the same script, can't extrapolate type");
+                                break;
+                            }
+                            isCsc = true;
+                            typeSure = true;
+                        }
+                        else if (sw.ends_with(".gsc")) {
+                            if (isCsc && typeSure) {
+                                typeSure = false;
+                                LOG_WARNING("Found csc and gsc includes in the same script, can't extrapolate type");
+                                break;
+                            }
+                            isCsc = false;
+                            typeSure = true;
+                        }
+                        else {
+                            typeSure = false;
+                            LOG_WARNING("Found an include without .gsc or .csc extension, can't extrapolate type: {}", incPtr);
+                            break;
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+ignoreCscGsc:
 
     if (opt.m_outputDir) {
         const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(scriptfile->GetName());
@@ -1215,11 +1277,12 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         }
 
         if (!name) {
+            const char* fileExt{ typeSure && isCsc ? "csc" : "gsc" };
             if (actscli::options().heavyHashes) {
-                sprintf_s(asmfnamebuff, "%s/%016llX.gsc", outDir, scriptfile->GetName());
+                sprintf_s(asmfnamebuff, "%s/%016llX.%s", outDir, scriptfile->GetName(), fileExt);
             }
             else {
-                sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+                sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.%s", outDir, scriptfile->GetName(), fileExt);
             }
         }
         else {
@@ -1278,7 +1341,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
 
     if (opt.m_header) {
         asmout
-            << "// " << hashutils::ExtractTmpScript(scriptfile->GetName()) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size << ")\n";
+            << "// " << hashutils::ExtractTmpScript(scriptfile->GetName()) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size;
+        
+        if (typeSure) {
+            asmout << " / " << (isCsc ? "CSC" : "GSC");
+        }
+
+        asmout << ")\n";
 
         if (gsicInfo.isGsic) {
             asmout << "// GSIC Compiled script" << ", header: 0x" << std::hex << gsicInfo.headerSize << "\n";
@@ -1393,7 +1462,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 }
                 char* cstr = scriptfile->DecryptString(encryptedString);
 
-                PrintFormattedString(asmout << '"', cstr) << '"' << std::flush;
+                ::PrintFormattedString(asmout << '"', cstr) << '"' << std::flush;
 
                 if (scriptfile->GetMagic() == VMI_T8) {
                     size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
@@ -1482,7 +1551,16 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             }
 
             for (size_t i = 0; i < scriptfile->GetIncludesCount(); i++) {
-                asmout << "#using " << hashutils::ExtractTmpScript(includes[i]) << ";\n";
+                auto [isFound, usingName] = hashutils::ExtractTmpPair("script", includes[i]);
+                if (isFound) {
+                    hashutils::CleanPath(usingName);
+
+                    if (typeSure) {
+                        usingName[std::strlen(usingName) - 4] = 0; // remove .csc / .gsc
+                    }
+                }
+
+                asmout << "#using " << usingName << ";\n";
 
                 if (opt.m_debugHashes) {
                     const char* incExt{ hashutils::ExtractPtr(includes[i]) };
@@ -1784,7 +1862,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             }
             output << "gscasm {\n";
 
-            DumpAsm(*exp, output, *scriptfile, ctx, asmctx);
+            tool::gsc::DumpAsm(*exp, output, *scriptfile, ctx, asmctx);
 
             output << "}\n";
 
@@ -2145,7 +2223,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
             }
 
             if (!name) {
-                sprintf_s(asmfnamebuffgdb, "%s/hashed/script/script_%llx.gsc", outDir, scriptfile->GetName());
+                const char* fileExt{ typeSure && isCsc ? "csc" : "gsc" };
+                if (actscli::options().heavyHashes) {
+                    sprintf_s(asmfnamebuffgdb, "%s/%016llX.%s", outDir, scriptfile->GetName(), fileExt);
+                }
+                else {
+                    sprintf_s(asmfnamebuffgdb, "%s/hashed/script/script_%llx.%s", outDir, scriptfile->GetName(), fileExt);
+                }
             }
             else {
                 sprintf_s(asmfnamebuffgdb, "%s/%s", outDir, name);
@@ -2201,7 +2285,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                     << "\n"
                     << "STRING \"";
 
-                PrintFormattedString(gdbpos, val.c_str())
+                ::PrintFormattedString(gdbpos, val.c_str())
                     << "\""
                     << std::hex
                     ;

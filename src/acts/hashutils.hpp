@@ -67,12 +67,33 @@ namespace hashutils {
 	 */
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize);
 	/*
+	 * Extract a hash into a buffer with test value
+	 * @param type Hash type
+	 * @param hash Hashed value
+	 * @return return value of extract and non thread-safe temporary pointer to a representation of this hash, the result is valid until the next call to ExtractTmp
+	 */
+	std::pair<bool, char*> ExtractTmpPair(const char* type, uint64_t hash);
+	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type
 	 * @param hash Hashed value
 	 * @return non thread-safe temporary pointer to a representation of this hash, the result is valid until the next call to ExtractTmp
 	 */
 	char* ExtractTmp(const char* type, uint64_t hash);
+	/*
+	 * Apply path formatting
+	 * @param path path
+	 * @return path formatted value
+	 */
+	inline char* CleanPath(char* path) {
+		// replace '/' -> '\' in script
+		for (char* script = path; *script; script++) {
+			if (*script == '/') {
+				*script = '\\';
+			}
+		}
+		return path;
+	}
 	/*
 	 * Call ExtractTmp for a path name and apply formatting
 	 * @param type Hash type
@@ -82,14 +103,7 @@ namespace hashutils {
 	inline char* ExtractTmpPath(const char* type, uint64_t hash) {
 		char* unhash = ExtractTmp(type, hash);
 
-		// replace '/' -> '\' in script
-		for (char* script = unhash; *script; script++) {
-			if (*script == '/') {
-				*script = '\\';
-			}
-		}
-
-		return unhash;
+		return CleanPath(unhash);
 	}
 	/*
 	 * Call ExtractTmp for a script name and apply formatting

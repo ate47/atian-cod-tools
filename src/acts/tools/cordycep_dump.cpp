@@ -2532,7 +2532,7 @@ namespace tool::cordycep::dump {
 	}
 
 	namespace {
-		int csi_test(Process& proc, int argc, const char* argv[]) {
+		int csi_test(int argc, const char* argv[]) {
 			if (!argv[2]) return tool::BAD_USAGE;
 
 			compatibility::scobalula::csi::CordycepProc cordycep{};
@@ -2579,6 +2579,28 @@ namespace tool::cordycep::dump {
 			return ret;
 		}
 	}
-	ADD_TOOL(csid, "compatibility", "", "Dump csi info", nullptr, csi_test);
+	int csidheadtest(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+		std::vector<byte> data{};
+
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_GHOSTS);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_AW);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_IW);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_MWR);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_MW2R);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_MW4);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_MW5);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_MW6);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_VANGUARD);
+		utils::WriteValue<uint64_t>(data, compatibility::scobalula::csi::CG_BO6);
+
+		utils::WriteFile(argv[2], data.data(), data.size());
+
+		return tool::OK;
+	}
+
+	ADD_TOOL(csid, "compatibility", "", "Dump csi info", csi_test);
+	//ADD_TOOL(csidheadtest, "dev", " [file]", "CSI test", csidheadtest);
 	ADD_TOOL(dpcord, "common", "", "Cordycep dump tool", L"Cordycep.CLI.exe", dpcord);
 }

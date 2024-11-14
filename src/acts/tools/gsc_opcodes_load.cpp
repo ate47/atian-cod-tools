@@ -5,7 +5,6 @@
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
 #include "tools/gsc_vm.hpp"
-#include <acts_vm_registry.hpp>
 
 namespace tool::gsc::opcode {
 	void RegisterOpCodesMap() {
@@ -13,19 +12,6 @@ namespace tool::gsc::opcode {
 
 		std::call_once(f, [] {
 			tool::gsc::vm::RegisterVmOpCodes();
-
-			VmInfo* af1 = RegisterVM(VMI_ACTS_F1, "ACTS VM", "f1", "acts", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_ALIGN | VmFlags::VMF_CALL_NO_PARAMS);
-			af1->RegisterVmName("f1");
-			af1->AddPlatform(PLATFORM_PC);
-			af1->SetMaxOpCode(0xFF);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, acts::vm::opcodes::OPCODE_EXPORT_NO_PARAMS);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_End, acts::vm::opcodes::OPCODE_END);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_SafeCreateLocalVariables, acts::vm::opcodes::OPCODE_EXPORT_PARAMS);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_GetFloat, acts::vm::opcodes::OPCODE_GET_FLOAT);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_GetInteger, acts::vm::opcodes::OPCODE_GET_INT);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_GetHash, acts::vm::opcodes::OPCODE_GET_HASH);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_GetUndefined, acts::vm::opcodes::OPCODE_GET_UNDEFINED);
-			af1->RegisterOpCode(PLATFORM_PC, OPCODE_IsDefined, acts::vm::opcodes::OPCODE_IS_DEFINED);
 
 			// loading serious db2 files (if any)
 			const char* seriousDBDir = actscli::options().seriousDBFile;

@@ -1,6 +1,7 @@
 #pragma once
 
 namespace tool::hash::text_expand {
+	constexpr const char dict[] = "abcdefghijklmnopqrstuvwxyz0123456789_";
 	void GetDynamicPtr(size_t max, void(*func)(const char* str, void* data), void* data = nullptr);
 
 	template<typename T = void>

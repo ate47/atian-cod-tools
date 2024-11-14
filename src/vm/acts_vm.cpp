@@ -4,6 +4,25 @@
 #include "acts_vm_opcodes.hpp"
 
 namespace acts::vm {
+	const char* VmVarTypeNames[] {
+		"UNDEFINED",
+		"THREAD",
+		"POINTER",
+		"INTEGER",
+		"FLOAT",
+		"HASH",
+		"PRECALL",
+		"ARRAY",
+		"VECTOR",
+		"STRUCT",
+	};
+
+	const char* VmVarTypeName(VmVarType type) {
+		if (type < ARRAYSIZE(VmVarTypeNames)) {
+			return VmVarTypeNames[type];
+		}
+		return utils::va("UNKNOWN:%d", (int)type);
+	}
 	ActsVm::ActsVm(ActsVmConfig cfg) : cfg(cfg) {
 	}
 
@@ -55,9 +74,59 @@ namespace acts::vm {
 		}
 	}
 
-	void ActsVm::ReleaseVariable(VmVar* var) {
-		// todo: when pointer
+	void ActsVm::IncRef(VmVar* var) {
+		switch (var->type) {
+		case VT_ARRAY: {
+			VmArray* v{ (VmArray*)alloc.DataByRef(var->val.ref) };
+			v->ref++;
+			break;
+		}
+		case VT_VECTOR: {
+			VmVector* v{ (VmVector*)alloc.DataByRef(var->val.ref) };
+			v->ref++;
+			break;
+		}
+		}
 	}
+
+	void ActsVm::DecRef(VmVar* var) {
+		switch (var->type) {
+		case VT_ARRAY: {
+			VmArray* v{ (VmArray*)alloc.DataByRef(var->val.ref) };
+
+			if (!(--v->ref)) {
+				// cleanup all nodes
+
+				VmRef node{ v->start };
+				while (node) {
+					VmArrayNode* v{ (VmArrayNode*)alloc.DataByRef(node) };
+					ReleaseVariable(&v->idx);
+					ReleaseVariable(&v->var);
+					VmRef next = v->next;
+					alloc.FreeRef(node);
+					node = next;
+				}
+				alloc.FreeRef(var->val.ref);
+			}
+			break;
+		}
+		case VT_VECTOR: {
+			VmVector* v{ (VmVector*)alloc.DataByRef(var->val.ref) };
+
+			if (!(--v->ref)) {
+				alloc.FreeRef(var->val.ref);
+			}
+			break;
+		}
+		}
+	}
+
+	void ActsVm::ReleaseVariable(VmVar* var) {
+		DecRef(var);
+		var->val.i = 0;
+		var->type = VT_UNDEFINED;
+	}
+
 	bool ActsVm::GetFunctionInfo(byte* codePos, ScriptExport** exp, ActScript** script) {
 		for (ScriptInfo& nfo : scripts) {
 			if (!nfo.script->IsInScript(codePos)) {
@@ -91,6 +160,20 @@ namespace acts::vm {
 		// todo
 	}
 
+	bool ActsVm::CastToBool(VmVar* var) {
+		if (var->type == VT_INTEGER) {
+			var->val.i = var->val.i != 0;
+			return var->val.i;
+		}
+		if (var->type == VT_FLOAT) {
+			var->type = VT_INTEGER;
+			var->val.i = var->val.f != 0;
+			return var->val.i;
+		}
+		Error(utils::va("Can't cast var to bool: type %s", VmVarTypeName(var->type)), false);
+		ReleaseVariable(var);
+		return false;
+	}
 
 	void ActsVm::Error(const char* msg, bool terminate) {
 		if (currentThread) {
@@ -145,6 +228,30 @@ namespace acts::vm {
 		VmVar* ptr = PushStack();
 		ptr->type = VT_HASH;
 		ptr->val.hash = val;
+	}
+
+	void ActsVm::AddArray() {
+		VmRef ref{ alloc.AllocRef(sizeof(VmArray)) };
+		VmVar* ptr = PushStack();
+		ptr->type = VT_ARRAY;
+		ptr->val.ref = ref;
+		IncRef(ptr);
+	}
+
+	void ActsVm::AddStruct() {
+		AddArray(); // wip?
+	}
+
+	void ActsVm::AddVector(float* vec) {
+		VmRef ref{ alloc.AllocRef(sizeof(VmVector)) };
+
+		VmVector* v{ (VmVector*)alloc.DataByRef(ref) };
+		std::memcpy(v->vec, vec, sizeof(v->vec));
+
+		VmVar* ptr = PushStack();
+		ptr->type = VT_VECTOR;
+		ptr->val.ref = ref;
+		IncRef(ptr);
 	}
 
 	void ActsVm::LoadScript(uint64_t name) {

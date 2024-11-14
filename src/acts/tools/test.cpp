@@ -73,9 +73,30 @@ namespace {
 		return tool::OK;
 	}
 	
+	int strtouint64(int argc, const char* argv[]) {
+
+		char buff[sizeof(uint64_t) + 1];
+		for (size_t i = 2; i < argc; i++) {
+			const char* arg{ argv[i] };
+
+			size_t len{ std::strlen(arg) };
+
+			if (len > 8) {
+				LOG_ERROR("String {} too long, can't convert to uint64", arg);
+				continue;
+			}
+
+			std::memset(buff, 0, sizeof(buff));
+			std::memcpy(buff, arg, len);
+			LOG_INFO("{} = 0x{:x}", arg, *(uint64_t*)&buff[0]);
+		}
+
+		return tool::OK;
+	}
 }
 
 ADD_TOOL(test, "dev", "", "Tests", nullptr, test);
+ADD_TOOL(strtouint64, "dev", " (str)*", "Convert string to number", strtouint64);
 ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);
 ADD_TOOL(wget, "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL(cfgtest, "dev", "", "", nullptr, cfgtest);

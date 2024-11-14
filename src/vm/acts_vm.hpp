@@ -1,7 +1,7 @@
 #pragma once
 #include <core/memory_allocator_static.hpp>
 namespace acts::vm {
-	constexpr uint64_t ACTSCRIPT_MAGIC = 0xF1000a0d43534780;
+	constexpr uint64_t ACTSCRIPT_MAGIC = 0x4d565354434124F1;
 
 	enum ScriptExportFlags {
 		SEF_AUTOEXEC = 1,
@@ -21,6 +21,8 @@ namespace acts::vm {
 		byte magic[8];
 		uint64_t name;
 		byte flags;
+
+		uint32_t fileSize;
 
 		uint32_t includes_table;
 		uint32_t strings_table;
@@ -58,6 +60,7 @@ namespace acts::vm {
 	struct ActsVmConfig {
 		std::function<ActScript* (uint64_t name)> getterFunction;
 		std::function<const char* (uint64_t hash)> hashToString;
+		bool enabledDevBlocks{};
 	};
 
 	enum ActsVmLinkOutput : int {
@@ -73,7 +76,13 @@ namespace acts::vm {
 		VT_FLOAT,
 		VT_HASH,
 		VT_PRECALL,
+
+		VT_ARRAY,
+		VT_VECTOR,
+		VT_STRUCT,
 	};
+
+	const char* VmVarTypeName(VmVarType type);
 
 	union VmVarValue {
 		int64_t i;
@@ -86,6 +95,22 @@ namespace acts::vm {
 	struct VmVar {
 		VmVarType type;
 		VmVarValue val;
+	};
+
+	struct VmVector {
+		size_t ref;
+		float vec[3]{};
+	};
+
+	struct VmArrayNode {
+		VmVar idx{};
+		VmVar var{};
+		VmRef next{};
+	};
+
+	struct VmArray {
+		size_t ref;
+		VmRef start{};
 	};
 
 	struct VmExecutionThread {
@@ -130,10 +155,19 @@ namespace acts::vm {
 		void AddInt(int64_t val);
 		void AddFloat(float val);
 		void AddHash(uint64_t val);
+		void AddArray();
+		void AddStruct();
+		void AddVector(float* vec);
 		void LoadScript(uint64_t name);
 		void Execute();
 		void ReleaseVariable(VmVar* var);
+		void IncRef(VmVar* var);
+		void DecRef(VmVar* var);
 		void Error(const char* msg, bool terminate);
+		bool CastToBool(VmVar* var);
+		constexpr const ActsVmConfig& Cfg() {
+			return cfg;
+		}
 	private:
 		void AssertThreadStarted();
 		int LinkScript(uint64_t name);

@@ -6,7 +6,6 @@
 namespace tool::hash::text_expand {
 	void GetDynamicPtr(size_t max, void(*func)(const char* str, void* data), void* data) {
 		char buffer[0x100]{ 0 };
-		constexpr const char dict[] = "abcdefghijklmnopqrstuvwxyz0123456789_";
 		constexpr size_t n = sizeof(dict) - 1;
 
 		for (size_t i = 1; i < max; i++) {
@@ -22,7 +21,6 @@ namespace tool::hash::text_expand {
 	}
 
 	void GetDynamicAsyncPtr(size_t max, void(*func)(const char* str, void* data), void* data) {
-		constexpr const char dict[] = "abcdefghijklmnopqrstuvwxyz0123456789_";
 		constexpr size_t n = sizeof(dict) - 1;
 
 		BS::thread_pool pool{};

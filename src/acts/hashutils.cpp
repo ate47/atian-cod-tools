@@ -352,13 +352,17 @@ namespace hashutils {
 		return true;
 	}
 
-	char* ExtractTmp(const char* type, uint64_t hash) {
+	std::pair<bool, char*> ExtractTmpPair(const char* type, uint64_t hash) {
 		static thread_local char buffer[10][0x600];
 		static thread_local size_t bufferIndex = 0;
 		ReadDefaultFile();
 		bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
 		auto& buff = buffer[bufferIndex];
-		Extract(type, hash, buff, sizeof(buff));
+		return { Extract(type, hash, buff, sizeof(buff)), buff };
+	}
+
+	char* ExtractTmp(const char* type, uint64_t hash) {
+		auto [ok, buff] = ExtractTmpPair(type, hash);
 		return buff;
 	}
 

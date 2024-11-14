@@ -1116,6 +1116,30 @@ namespace {
 		return 0;
 	}
 
+	uint64_t CrackFnv1aSingle(uint64_t key, const char* str, uint64_t iv = hash::IV_DEFAULT) {
+		uint64_t mask = 0xF;
+		uint64_t found{};
+		uint64_t disc{};
+
+		while (found < 64) {
+			uint64_t k;
+			for (k = 0; k < 0x10; k++) {
+				uint64_t v = (k << found) | disc;
+				if ((hash::Hash64A(str, v, iv) & mask) == (key & mask)) {
+					goto foundHash;
+				}
+			}
+			return 0;
+		foundHash:
+			disc |= k << found;
+
+			found += 4;
+			mask = (mask << 4) | 0xF;
+		}
+
+		return disc;
+	}
+
 	int fnv1acrack2(Process& proc, int argc, const char* argv[]) {
 		if (argc < 4) {
 			return tool::BAD_USAGE;
@@ -1263,6 +1287,71 @@ namespace {
 		return tool::OK;
 	}
 
+	int fnv1acrackcommon(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 3)) return tool::BAD_USAGE;
+
+		uint64_t h1 = hash::HashPattern(argv[2]);
+		uint64_t h2 = hash::HashPattern(argv[3]);
+		uint64_t len = std::strtoull(argv[4], nullptr, 10);
+
+
+		if (!len || !h1 || !h2) {
+			return tool::BAD_USAGE;
+		}
+
+
+		struct Ctx {
+			uint64_t h1;
+			uint64_t h2;
+			size_t max{ 1 };
+			const char* s1;
+			uint64_t lu1;
+		};
+
+		Ctx ctx{ h1, h2 };
+
+		for (size_t i = 0; i < len; i++) {
+			ctx.max *= sizeof(tool::hash::text_expand::dict);
+		}
+		//291e1c117ebbf5e6 - b = 2dbc620bcf7203e0
+
+		LOG_INFO("Searching common(0x{:x}, 0x{:x}, {}/{}/{})", ctx.h1, ctx.h2, len, ctx.max, ctx.max * ctx.max);
+
+		tool::hash::text_expand::GetDynamic<Ctx>(ctx.max, [](const char* s, Ctx* ctx) {
+			ctx->s1 = s;
+			ctx->lu1 = CrackFnv1aSingle(ctx->h1, s);
+			if (!ctx->lu1) {
+				LOG_TRACE("bad 0x{:x} = {}", ctx->lu1, s);
+				return; // bad
+			}
+			tool::hash::text_expand::GetDynamic<Ctx>(ctx->max, [](const char* s2, Ctx* ctx) {
+				uint64_t lu2 = CrackFnv1aSingle(ctx->h2, s2);
+				if (ctx->lu1 != lu2) return; // ignore
+				
+				LOG_INFO("FOUND SIMILAR HASH:");
+				LOG_INFO("UnFnv1a(0x{:x},\"{}\") = 0x{:x}", ctx->h1, ctx->s1, lu2);
+				LOG_INFO("UnFnv1a(0x{:x},\"{}\") = 0x{:x}", ctx->h2, s2, lu2);
+			}, ctx);
+		}, &ctx);
+
+
+		return tool::OK;
+	}
+
+	int bruteforcecustom(int argc, const char* argv[]) {
+		tool::hash::text_expand::GetDynamicAsync<void>(std::string::npos, [](const char* s, void* ctx) {
+			constexpr uint64_t start = hash::Hash64("_", 0x7a42b57be462143f);
+			uint64_t p = hash::Hash64(s, start);
+
+			if (p == 0xa16ec18512a89f20) { LOG_INFO("find2 {}", s); }
+			else if (p == 0xa2556a2905fd952) { LOG_INFO("finda255 {}", s); }
+			//else if (p == 0x7a42b57be462143f) { LOG_INFO("find {}", s); } // Demspey Matryoshka Dolls
+			else if (p == 0x291e1c117ebbf5e6) { LOG_INFO("find29 {}", s); } // Richtofen Matryoshka Dolls / rich
+			else if (p == 0x7264d6f24a950a5b) { LOG_INFO("find72 {}", s); } // Nikolai Matryoshka Dolls / niko
+			else if (p == 0x579652e2459b8c74) { LOG_INFO("find57 {}", s); } // Takeo Matryoshka Dolls / takeo
+		});
+		return tool::OK;
+	}
 }
 
 ADD_TOOL_UI(hash, L"Hash", Render, Update, Resize);
@@ -1278,7 +1367,9 @@ ADD_TOOL(httest, "hash", " (string)*", "hash strings", nullptr, httest);
 ADD_TOOL(fnv1acrack, "hash", " [string] [hash] [iv]", "crack fnv1a key, base iv: 100000001b3, 10000000233", nullptr, fnv1acrack);
 ADD_TOOL(fnv1acrack2, "hash", " [csv] [iv]", "crack fnv1a key (one key based)", nullptr, fnv1acrack2);
 ADD_TOOL(fnv1acrack3, "hash", " [csv] [iv]", "crack fnv1a keys (first char based)", nullptr, fnv1acrack3);
+ADD_TOOL(fnv1acrackcommon, "hash", " [hash1] [hash2] [len]", "try to find a common prefix and suffix of 2 hashes", fnv1acrackcommon);
 ADD_TOOL(str, "hash", "", "check collisions in the string file", nullptr, collisiontool);
 #ifndef CI_BUILD
 ADD_TOOL(fakefnvds, "hash", " [csv] [key] [iv]", "gen fake fnv1a dataset", nullptr, fakefnvds);
+ADD_TOOL(bruteforcecustom, "hash", "", "", bruteforcecustom);
 #endif

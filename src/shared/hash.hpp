@@ -30,6 +30,8 @@ namespace hash {
 			return c;
 		}
 	}
+	constexpr uint64_t IV_DEFAULT = 0x100000001b3;
+	constexpr uint64_t IV_TYPE2 = 0x10000000233;
 	/*
 	 * Compute the hash32 on a string (canon id)
 	 * @param str String to compute
@@ -68,7 +70,7 @@ namespace hash {
 	 * @param start Start value, can be a previous hash to concatenate hashes
 	 * @return Hashed value
 	 */
-	constexpr uint64_t Hash64A(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+	constexpr uint64_t Hash64A(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = IV_DEFAULT) {
 		uint64_t hash = start;
 
 		for (const char* data = str; *data; data++) {
@@ -99,20 +101,9 @@ namespace hash {
 	 * @param start Start value, can be a previous hash to concatenate hashes
 	 * @return Hashed value
 	 */
-	constexpr uint64_t Hash64(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+	constexpr uint64_t Hash64(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = IV_DEFAULT) {
 		return Hash64A(str, start, iv) & 0x7FFFFFFFFFFFFFFF;
 	}
-
-	/*
-	 * Compute the hash64 on a string (fnva1), path are unformatted. Remove high bit
-	 * @param str String to compute
-	 * @param start Start value, can be a previous hash to concatenate hashes
-	 * @return Hashed value
-	 */
-	constexpr uint64_t Hash64(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
-		return Hash64A(str, start, iv) & 0x7FFFFFFFFFFFFFFF;
-	}
-
 
 	constexpr bool TryHashPattern(const char* str, uint64_t& outVal) {
 		std::string_view v{ str };
@@ -213,10 +204,38 @@ namespace hash {
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	constexpr uint64_t Hash64Pattern(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+	constexpr uint64_t Hash64Pattern(const char* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = IV_DEFAULT) {
 		uint64_t out;
 		if (TryHashPattern(str, out)) return out;
 		return Hash64(str, start, iv);
+	}
+
+	/*
+	 * Compute the hash64 on a string (fnva1), path are unformatted
+	 * @param str String to compute
+	 * @param start Start value, can be a previous hash to concatenate hashes
+	 * @return Hashed value
+	 */
+	constexpr uint64_t Hash64(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = IV_DEFAULT) {
+		uint64_t hash = start;
+
+		for (const wchar_t* data = str; *data; data++) {
+			if (*data >= 'A' && *data <= 'Z') {
+				// to lower
+				hash = hash ^ (uint8_t)(*data - (byte)'A');
+			}
+			else if (*data == '\\') {
+				// replace path char
+				hash = hash ^ '/';
+			}
+			else {
+				hash = hash ^ (*data & 0xFF);
+			}
+
+			hash *= iv;
+		}
+
+		return hash & 0x7FFFFFFFFFFFFFFF;
 	}
 
 	/*
@@ -224,7 +243,7 @@ namespace hash {
 	 * @param str String to compute
 	 * @return Hashed value
 	 */
-	constexpr uint64_t Hash64Pattern(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = 0x100000001b3) {
+	constexpr uint64_t Hash64Pattern(const wchar_t* str, uint64_t start = 0xcbf29ce484222325LL, uint64_t iv = IV_DEFAULT) {
 		uint64_t out;
 		if (TryHashPattern(str, out)) return out;
 		return Hash64(str, start, iv);
@@ -239,9 +258,9 @@ namespace hash {
 	}
 	constexpr uint64_t HashIWRes(const char* str, uint64_t start = 0x47F5817A5EF961BA) { return hash::Hash64(str, start); }
 	constexpr uint64_t HashIWTag(const char* str, uint64_t start = 0x811C9DC5) { return hash::Hash64(str, start, 0x1000193) & 0xFFFFFFFF; }
-	constexpr uint64_t HashJupScr(const char* str, uint64_t start = 0x79D6530B0BB9B5D1) { return hash::Hash64A(str, start, 0x10000000233); }
+	constexpr uint64_t HashJupScr(const char* str, uint64_t start = 0x79D6530B0BB9B5D1) { return hash::Hash64A(str, start, IV_TYPE2); }
 	constexpr uint32_t HashT7(const char* str) { return (uint32_t)(hash::Hash64A(str, 0x4B9ACE2F, 0x1000193) & 0xFFFFFFFF) * 0x1000193; }
-	constexpr uint64_t HashIWDVar(const char* str, uint64_t start = 0) { return !start ? HashSecure("q6n-+7=tyytg94_*", 0xD86A3B09566EBAAC, str, 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
-	constexpr uint64_t HashT10Scr(const char* str, uint64_t start = 0) { return !start ? HashSecure("zt@f3yp(d[kkd=_@", 0x1C2F2E3C8A257D07, str, 0x10000000233) : hash::Hash64A(str, start, 0x10000000233); }
-	constexpr uint64_t HashT10ScrSP(const char* str) { return hash::Hash64A("zt@f3yp(d[kkd=_@", hash::Hash64A(str, 0x1C2F2E3C8A257D07, 0x10000000233), 0x10000000233); }
+	constexpr uint64_t HashIWDVar(const char* str, uint64_t start = 0) { return !start ? HashSecure("q6n-+7=tyytg94_*", 0xD86A3B09566EBAAC, str, IV_TYPE2) : hash::Hash64A(str, start, IV_TYPE2); }
+	constexpr uint64_t HashT10Scr(const char* str, uint64_t start = 0) { return !start ? HashSecure("zt@f3yp(d[kkd=_@", 0x1C2F2E3C8A257D07, str, IV_TYPE2) : hash::Hash64A(str, start, IV_TYPE2); }
+	constexpr uint64_t HashT10ScrSP(const char* str) { return hash::Hash64A("zt@f3yp(d[kkd=_@", hash::Hash64A(str, 0x1C2F2E3C8A257D07, IV_TYPE2), IV_TYPE2); }
 }
