@@ -208,6 +208,7 @@ namespace {
 	}
 
 	void PrintACTSHelp(const char* argv0) {
+		LOG_INFO("Repository: https://github.com/ate47/atian-cod-tools");
 		LOG_INFO("Usage: {} (OPTIONS) [TOOL] (TOOL ARGS)", argv0);
 		LOG_INFO("General tools:");
 		LOG_INFO("- list (category) : list the tools");
