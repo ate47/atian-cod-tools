@@ -47,6 +47,7 @@ namespace tool::gsc {
         GOHF_NOTIFY_CRC_STRING = 0x4000,
         GOHF_FILENAMESPACE = 0x8000,
         GOHF_VAR_VA_COUNT = 0x10000,
+        GOHF_IW_BIN = 0x20000,
     };
     static_assert(
         ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP | GOHF_FOREACH_TYPE_T7 
@@ -1162,9 +1163,10 @@ namespace tool::gsc {
     };
 
     class GSCOBJHandler {
-    public:
         byte* file;
         size_t fileSize;
+    public:
+        std::filesystem::path* originalFile{};
         uint64_t buildFlags;
 
         GSCOBJHandler(byte* file, uint64_t fileSize, size_t buildFlags);
@@ -1177,6 +1179,8 @@ namespace tool::gsc {
         constexpr bool HasFlag(GscObjHandlerBuildFlags flag) {
             return (buildFlags & flag) != 0;
         }
+
+        virtual void SetFile(byte* file, size_t fileSize);
 
         /*
          * Return a pointer at a particular shift
@@ -1312,6 +1316,7 @@ namespace tool::gsc {
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx);
         // Patch script to prepare disasm
         virtual int PatchCode(T8GSCOBJContext& ctx);
+        virtual int PreLoadCode();
     };
 
     std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(uint64_t vm);

@@ -388,7 +388,7 @@ namespace {
 				tool::gsc::T8GSCString* strs{ handler->Ptr<tool::gsc::T8GSCString>(handler->GetStringsOffset()) };
 				size_t i = 0;
 				for (; i < strscount; i++) {
-					size_t rloc{ (size_t)((byte*)strs - handler->file) };
+					size_t rloc{ (size_t)((byte*)strs - handler->Ptr()) };
 
 
 					if (rloc + sizeof(*strs) + sizeof(uint32_t) * strs->num_address > buffer.size() || strs->string >= buffer.size()) {
@@ -412,7 +412,7 @@ namespace {
 				tool::gsc::GSC_ANIMTREE_ITEM* animt{ handler->Ptr<tool::gsc::GSC_ANIMTREE_ITEM>(handler->GetAnimTreeDoubleOffset()) };
 				size_t j = 0;
 				for (; j < animtcount; j++) {
-					size_t rloc{ (size_t)((byte*)animt - handler->file) };
+					size_t rloc{ (size_t)((byte*)animt - handler->Ptr()) };
 					if (rloc + sizeof(*animt) + sizeof(uint32_t) * animt->num_address > buffer.size() || animt->address_str1 >= buffer.size() || animt->address_str2 >= buffer.size()) {
 						LOG_ERROR("Can't decrypt {}: Anim2 too far", path.string());
 						break;
@@ -432,7 +432,7 @@ namespace {
 				tool::gsc::GSC_USEANIMTREE_ITEM* animtu{ handler->Ptr<tool::gsc::GSC_USEANIMTREE_ITEM>(handler->GetAnimTreeSingleOffset()) };
 				size_t k = 0;
 				for (; k < animtucount; k++) {
-					size_t rloc{ (size_t)((byte*)animtu - handler->file) };
+					size_t rloc{ (size_t)((byte*)animtu - handler->Ptr()) };
 					if (rloc + sizeof(*animtu) + sizeof(uint32_t) * animtu->num_address > buffer.size() || animtu->address >= buffer.size()) {
 						LOG_ERROR("Can't decrypt {}: Anim1 too far", path.string());
 						break;

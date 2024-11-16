@@ -104,7 +104,7 @@ namespace {
             return decrypt::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T8GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x36000a0d43534780;
+            return size >= sizeof(T8GSCOBJ) && Ref<uint64_t>() == 0x36000a0d43534780;
         }
         uint16_t GetAnimTreeSingleCount() override {
             return 0;
@@ -308,9 +308,6 @@ namespace {
         uint32_t GetDevStringsOffset() override {
             return Ptr<T831GSCOBJ>()->devblock_stringtablefixup_offset;
         }
-        uint32_t GetFileSize() override {
-            return (uint32_t)fileSize;
-        }
         size_t GetHeaderSize() override {
             return sizeof(T831GSCOBJ);
         }
@@ -318,7 +315,7 @@ namespace {
             return str;
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T831GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x31000a0d43534780;
+            return size >= sizeof(T831GSCOBJ) && Ref<uint64_t>() == 0x31000a0d43534780;
         }
         uint16_t GetAnimTreeSingleCount() override {
             return 0;

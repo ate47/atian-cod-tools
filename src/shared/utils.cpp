@@ -209,23 +209,28 @@ namespace utils {
         return std::make_pair<>(a, b);
     }
 
-    static void GetFileRecurse0(const std::filesystem::path& dir, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate) {
+    static void GetFileRecurse0(const std::filesystem::path& dir, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate, const std::filesystem::path& base, bool removeBase) {
         if (std::filesystem::is_directory(dir)) {
             for (const auto& sub : std::filesystem::directory_iterator{ dir }) {
-                GetFileRecurse0(sub, files, predicate);
+                GetFileRecurse0(sub, files, predicate, base, removeBase);
             }
             return;
         }
         if (predicate(dir)) {
-            files.emplace_back(dir);
+            if (removeBase) {
+                files.emplace_back(std::filesystem::relative(dir, base));
+            }
+            else {
+                files.emplace_back(dir);
+            }
         }
     }
 
-    void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate) {
+    void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate, bool removeParent) {
         if (!std::filesystem::exists(parent)) {
             return;
         }
-        GetFileRecurse0(parent, files, predicate);
+        GetFileRecurse0(parent, files, predicate, parent, removeParent);
     }
 
 

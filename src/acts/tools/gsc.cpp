@@ -401,6 +401,11 @@ void tool::gsc::RosettaAddOpCode(uint32_t loc, uint16_t opcode) {
 
 GSCOBJHandler::GSCOBJHandler(byte* file, uint64_t fileSize, size_t buildFlags) : file(file), buildFlags(buildFlags), fileSize(fileSize) {}
 
+void GSCOBJHandler::SetFile(byte* file, size_t fileSize) {
+    this->file = file;
+    this->fileSize = fileSize;
+}
+
 // by default no remapping
 byte GSCOBJHandler::RemapFlagsImport(byte flags) {
     return flags;
@@ -487,6 +492,9 @@ void GSCOBJHandler::DumpHeader(std::ostream& asmout, const GscInfoOption& opt) {
 
     DumpHeaderInternal(asmout, opt);
     asmout << std::right << std::flush;
+}
+int GSCOBJHandler::PreLoadCode() {
+    return tool::OK;
 }
 int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
@@ -926,7 +934,9 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
     return utils::va("unk:%lx", floc);
 }
 
-int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGlobalContext& gdctx) {
+int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, GscDecompilerGlobalContext& gdctx) {
+    std::string pathStr{ fsPath.string() };
+    const char* path{ pathStr.data() };
     actslib::profiler::Profiler profiler{ "f" };
     actslib::profiler::ProfiledSection ps{ profiler, path };
 
@@ -989,10 +999,21 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
         data += gsicSize;
     }
 
-    uint64_t vm = *reinterpret_cast<uint64_t*>(data);
-    if (!memcmp("GSC", data, 4)) {
-        LOG_ERROR("gscbin format not supported");
+    if (size < 4) {
+        LOG_ERROR("GSC file too small, no magic");
         return tool::BASIC_ERROR;
+    }
+
+    uint64_t vm;
+    if (!memcmp("GSC", data, 4)) {
+        vm = tool::gsc::opcode::VMI_IW_GSCBIN;
+    }
+    else {
+        if (size < 8) {
+            LOG_ERROR("GSC file too small, no magic");
+            return tool::BASIC_ERROR;
+        }
+        vm = *reinterpret_cast<uint64_t*>(data);
     }
     hashutils::ReadDefaultFile();
 
@@ -1021,6 +1042,13 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
     if (!scriptfile->IsValidHeader(size)) {
         LOG_ERROR("Bad header 0x{:x} for file {}", scriptfile->Ref<uint64_t>(), path);
         return -1;
+    }
+
+    // required for gscbin
+    scriptfile->originalFile = &fsPath;
+    int preloadRet{ scriptfile->PreLoadCode() };
+    if (preloadRet) {
+        return preloadRet;
     }
 
     std::unique_ptr<GSCExportReader> exp = CreateExportReader(ctx.m_vmInfo);
@@ -1082,7 +1110,7 @@ int GscInfoHandleData(byte* data, size_t size, const char* path, GscDecompilerGl
                 actsHeader << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << " ";
 
                 if (scriptfile->HasFlag(GOHF_NOTIFY_CRC_STRING)) {
-                    if (dbg->crc_offset > scriptfile->fileSize) {
+                    if (dbg->crc_offset > scriptfile->GetFileSize()) {
                         actsHeader << "INVALID LOC";
                     }
                     else {
@@ -1452,9 +1480,6 @@ ignoreCscGsc:
         asmout << "\n";
 
         scriptfile->DumpHeader(asmout, opt);
-        if (opt.m_test_header && scriptfile->fileSize != scriptfile->GetFileSize()) {
-            asmout << "// Invalid defined script filesize 0x" << std::hex << scriptfile->fileSize << " != 0x" << scriptfile->GetFileSize() << "\n";
-        }
 
         asmout << actsHeader.str();
     }
@@ -1489,7 +1514,7 @@ ignoreCscGsc:
 
                 const auto* str = reinterpret_cast<T8GSCString*>(str_location);
 
-                asmout << std::hex << "String addr:" << str->string << ", count:" << std::dec << (int)str->num_address << ", type:" << (int)str->type << ", loc:0x" << std::hex << (str_location - reinterpret_cast<uintptr_t>(scriptfile->file)) << std::endl;
+                asmout << std::hex << "String addr:" << str->string << ", count:" << std::dec << (int)str->num_address << ", type:" << (int)str->type << ", loc:0x" << std::hex << (str_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr())) << std::endl;
 
                 char* encryptedString = scriptfile->Ptr<char>(str->string);
 
@@ -1786,12 +1811,12 @@ ignoreCscGsc:
         }
     }
     if (vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7) && scriptfile->GetAnimTreeDoubleOffset()) {
-        uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->file) + scriptfile->GetAnimTreeDoubleOffset();
+        uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetAnimTreeDoubleOffset()));
         auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
         for (size_t i = 0; i < anims_count; i++) {
             const auto* animt = reinterpret_cast<T7GscAnimTree*>(animt_location);
 
-            if (animt->name >= scriptfile->fileSize) {
+            if (animt->name >= scriptfile->GetFileSize()) {
                 asmout << std::hex << "invalid animtree name 0x" << animt->name << "\n";
             }
             else {
@@ -1812,7 +1837,7 @@ ignoreCscGsc:
                     const uint64_t* vars2 = reinterpret_cast<const uint64_t*>(vars);
                     for (size_t j = 0; j < animt->num_node_address; j++) {
 
-                        if (vars2[0] >= scriptfile->fileSize) {
+                        if (vars2[0] >= scriptfile->GetFileSize()) {
                             asmout << std::hex << "invalid animtree 2nd name 0x" << animt->name << "\n";
                         }
                         else {
@@ -2627,7 +2652,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
                 ctx.Aligned<uint16_t>();
             }
             uint32_t floc = ctx.ScriptAbsoluteLocation();
-            if (ctx.m_bcl < gscFile.file || floc >= gscFile.fileSize) {
+            if (ctx.m_bcl < gscFile.Ptr() || floc >= gscFile.GetFileSize()) {
                 out << std::hex << "FAILURE, FIND location after file 0x" << std::hex << floc << "\n";
                 ctx.DisableDecompiler(std::format("FIND bad floc 0x{:x}", floc));
                 break;
@@ -3384,40 +3409,50 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     }
     bool computed{};
     int ret{ tool::OK };
-    std::vector<std::filesystem::path> scriptFiles{};
+    struct FileOrigin {
+        std::filesystem::path base;
+        bool dir{};
+        std::vector<std::filesystem::path> scriptFiles{};
+    };
+    std::vector<FileOrigin> scriptFiles{};
     for (const auto& file : gdctx.opt.m_inputFiles) {
-        utils::GetFileRecurse(file, scriptFiles, [](const std::filesystem::path& path) -> bool {
-            std::string pathname = path.string();
+        scriptFiles.emplace_back(file);
+        FileOrigin& orFi{ scriptFiles[scriptFiles.size() - 1] };
+        if (std::filesystem::is_directory(orFi.base)) {
+            utils::GetFileRecurse(orFi.base, orFi.scriptFiles, [](const std::filesystem::path& path) -> bool {
+                std::string pathname = path.string();
 
-            return pathname.ends_with(".gscc") || pathname.ends_with(".cscc")
-                || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin")
-                || pathname.ends_with(".gshc") || pathname.ends_with(".cshc")
-                || pathname.ends_with(".gsic") || pathname.ends_with(".csic") // Serious GSIC format
-                ;
-        });
+                return pathname.ends_with(".gscc") || pathname.ends_with(".cscc")
+                    || pathname.ends_with(".gscbin") || pathname.ends_with(".cscbin") // xensik GSCBIN format
+                    || pathname.ends_with(".gshc") || pathname.ends_with(".cshc")
+                    || pathname.ends_with(".gsic") || pathname.ends_with(".csic") // Serious GSIC format
+                    ;
+                }, true);
+            orFi.dir = true;
+        }
+        else {
+            orFi.scriptFiles.emplace_back(orFi.base.filename());
+        }
     }
 
     if (gdctx.opt.m_sync) {
         std::string buffer{};
         void* bufferAlign{};
         size_t size{};
-        for (const std::filesystem::path& path : scriptFiles) {
-            std::string pathname = path.string();
-            LOG_DEBUG("Reading {}", pathname);
+        for (FileOrigin& pathLoc : scriptFiles) {
+            for (std::filesystem::path pathRel : pathLoc.scriptFiles) {
+                std::filesystem::path path{ pathLoc.dir ? pathLoc.base / pathRel : pathLoc.base };
+                LOG_DEBUG("Reading {} ({})", path.string(), pathRel.string());
 
-            if (!utils::ReadFileAlign(path, buffer, bufferAlign, size)) {
-                LOG_ERROR("Can't read file data for {}", path.string());
-                continue;
-            }
+                if (!utils::ReadFileAlign(path, buffer, bufferAlign, size)) {
+                    LOG_ERROR("Can't read file data for {}", path.string());
+                    continue;
+                }
 
-            if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
-                LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, 0x18, path.string());
-                continue;
-            }
-
-            auto lret = GscInfoHandleData((byte*)bufferAlign, size, pathname.c_str(), gdctx);
-            if (lret != tool::OK) {
-                ret = lret;
+                auto lret = GscInfoHandleData((byte*)bufferAlign, size, pathRel, gdctx);
+                if (lret != tool::OK) {
+                    ret = lret;
+                }
             }
         }
     }
@@ -3431,30 +3466,33 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
 
         BS::thread_pool pool{};
 
-        for (const std::filesystem::path& path : scriptFiles) {
-            pool.detach_task([path, &mtx, &ret, &gdctx] {
-                std::string buffer{};
-                void* bufferAlign{};
-                size_t size{};
+        for (FileOrigin& pathLoc : scriptFiles) {
+            for (std::filesystem::path pathRel : pathLoc.scriptFiles) {
+                std::filesystem::path path{ pathLoc.dir ? pathLoc.base / pathRel : pathLoc.base };
+                pool.detach_task([path, pathRel, &mtx, &ret, &gdctx] {
+                    std::string buffer{};
+                    void* bufferAlign{};
+                    size_t size{};
 
-                std::string pathname = path.string();
-                LOG_DEBUG("Reading {}", pathname);
-                int lret;
-                if (!utils::ReadFileAlign(path, buffer, bufferAlign, size)) {
-                    lret = tool::BASIC_ERROR;
-                } else if (size < 0x18) { // MAGIC (8), crc(4), pad(4) name(8)
-                    LOG_ERROR("Bad header, file size: {:x}/{:x} for {}", size, 0x18, path.string());
-                    lret = tool::BASIC_ERROR;
-                }
-                else {
-                    lret = GscInfoHandleData((byte*)bufferAlign, size, pathname.c_str(), gdctx);
-                }
+                    LOG_DEBUG("Reading {} ({})", path.string(), pathRel.string());
+                    int lret;
+                    if (!utils::ReadFileAlign(path, buffer, bufferAlign, size)) {
+                        lret = tool::BASIC_ERROR;
+                    }
+                    else if (size < 0x8) { // MAGIC (8) or GSC\0 + 3 * uint32_t
+                        LOG_ERROR("Invalid header, file size: {:x}/{:x} for {}", size, 0x8, path.string());
+                        lret = tool::BASIC_ERROR;
+                    }
+                    else {
+                        lret = GscInfoHandleData((byte*)bufferAlign, size, pathRel, gdctx);
+                    }
 
-                if (lret != tool::OK) {
-                    std::lock_guard lg{ mtx };
-                    ret = lret;
-                }
-            });
+                    if (lret != tool::OK) {
+                        std::lock_guard lg{ mtx };
+                        ret = lret;
+                    }
+                   });
+            }
         }
 
         pool.wait();

@@ -1173,7 +1173,7 @@ public:
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<Type>();
 		}
-		auto animTree{ objctx.m_animTreeLocations.find((uint32_t)(context.m_bcl - context.m_gscReader.file)) };
+		auto animTree{ objctx.m_animTreeLocations.find((uint32_t)(context.m_bcl - context.m_gscReader.Ptr())) };
 
 		auto& bytecode = context.m_bcl;
 		if (animTree != objctx.m_animTreeLocations.end()) {
@@ -1389,7 +1389,7 @@ public:
 		// push a location and mark it as referenced
 		byte* newLoc = &context.m_bcl[delta];
 
-		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.file) {
+		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.Ptr()) {
 			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
 			context.DisableDecompiler(std::format("jump with invalid delta: {}0x{:x}", (delta < 0 ? "-" : ""), (delta < 0 ? -delta : delta)));
 			return -1;
@@ -1538,7 +1538,7 @@ public:
 		// push a location and mark it as referenced
 		byte* newLoc = &context.m_bcl[delta];
 
-		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.file) {
+		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.Ptr()) {
 			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
 			return -1;
 		}
@@ -4116,7 +4116,7 @@ public:
 			else {
 				out << "case ";
 				// bo3 string decomp
-				uint32_t floc = (uint32_t)(caseLoc - context.m_gscReader.file);
+				uint32_t floc = (uint32_t)(caseLoc - context.m_gscReader.Ptr());
 				const char* cv = objctx.GetStringValueByLoc(floc);
 				if (cv) {
 					PrintFormattedString(out << "\"", cv) << "\"";
@@ -5587,12 +5587,12 @@ uint32_t ASMContext::ScriptAbsoluteLocation(byte* bytecodeLocation) {
 	return funcRloc + (uint32_t)FunctionRelativeLocation(bytecodeLocation);
 }
 bool ASMContext::IsInsideScript(byte* bytecodeLocation) {
-	return m_gscReader.file <= bytecodeLocation && m_gscReader.file + m_gscReader.fileSize > bytecodeLocation;
+	return m_gscReader.Ptr() <= bytecodeLocation && m_gscReader.Ptr(m_gscReader.GetFileSize()) > bytecodeLocation;
 }
 
 std::ostream& ASMContext::WritePadding(std::ostream& out) {
 	if (m_opt.m_func_floc) {
-		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (m_bcl - m_gscReader.file);
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (m_bcl - m_gscReader.Ptr());
 	}
 	return out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << FunctionRelativeLocation() << ": "
 		// no opcode write

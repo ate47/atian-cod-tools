@@ -91,7 +91,7 @@ namespace {
             return str;
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T7GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x1c000a0d43534780;
+            return size >= sizeof(T7GSCOBJ) && Ref<uint64_t>() == 0x1c000a0d43534780;
         }
         uint16_t GetAnimTreeSingleCount() override {
             return 0;
@@ -373,7 +373,7 @@ namespace {
             return str;
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T7GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x1b000a0d43534780;
+            return size >= sizeof(T7GSCOBJ) && Ref<uint64_t>() == 0x1b000a0d43534780;
         }
         uint16_t GetAnimTreeSingleCount() override {
             return 0;

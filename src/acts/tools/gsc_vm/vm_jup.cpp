@@ -135,7 +135,7 @@ namespace {
             return str; // iw -> need usage of decryption dumper
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj23) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353478a;
+            return size >= sizeof(GscObj23) && Ref<uint64_t>() == 0xa0d4353478a;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags{};
@@ -493,7 +493,7 @@ namespace {
             return str + 3; // should be decrypted before
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj23) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353478b;
+            return size >= sizeof(GscObj23) && Ref<uint64_t>() == 0xa0d4353478b;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags{};

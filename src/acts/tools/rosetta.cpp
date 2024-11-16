@@ -151,7 +151,7 @@ namespace {
 				continue;
 			}
 
-			reader->file = buffer->magic;
+			reader->SetFile((byte*)buffer->magic, 0);
 
 
 			auto blk = rosettaBlocks.find(reader->GetName());
@@ -167,9 +167,9 @@ namespace {
 
 			// clear CRC
 			reader->SetChecksum(0);
-			reader->file = (byte*)bl.header.data();
+			reader->SetFile((byte*)bl.header.data(), 0);
 			reader->SetChecksum(0);
-			reader->file = buffer->magic;
+			reader->SetFile((byte*)buffer->magic, 0);
 
 			byte* b1 = (byte*)bl.header.data();
 			byte* b2 = (byte*)reader->Ptr();

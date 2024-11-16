@@ -83,8 +83,7 @@ namespace {
                 continue;
             }
 
-            handler->file = (byte*)fileBuff.data();
-            handler->fileSize = fileBuff.size();
+            handler->SetFile((byte*)fileBuff.data(), fileBuff.size());
 
 
             if (!handler->IsValidHeader(fileBuff.size())) {
@@ -273,8 +272,7 @@ namespace {
             std::unique_ptr<tool::gsc::GSCExportReader> exportReader = tool::gsc::CreateExportReader(vmInfo);
 
             for (auto& [name, sc] : scs) {
-                handler->file = (byte*)sc.bufferData;
-                handler->fileSize = sc.bufferDataLen;
+                handler->SetFile((byte*)sc.bufferData, sc.bufferDataLen);
 
                 uint64_t* usings = handler->Ptr<uint64_t>(handler->GetIncludesOffset());
                 uint64_t* usingsEnd = usings + handler->GetIncludesCount();
@@ -284,8 +282,7 @@ namespace {
                         return; // already resolved
                     }
 
-                    handler->file = (byte*)d.bufferData;
-                    handler->fileSize = d.bufferDataLen;
+                    handler->SetFile((byte*)d.bufferData, d.bufferDataLen);
 
                     byte* exports = handler->Ptr(handler->GetExportsOffset());
 
@@ -316,8 +313,7 @@ namespace {
                     ResolveDataSet(d);
                 }
 
-                handler->file = (byte*)sc.bufferData;
-                handler->fileSize = sc.bufferDataLen;
+                handler->SetFile((byte*)sc.bufferData, sc.bufferDataLen);
                 
                 // read imports
 

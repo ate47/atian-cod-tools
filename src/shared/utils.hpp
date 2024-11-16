@@ -128,29 +128,37 @@ namespace utils {
 	 * @param Type value type
 	 * @param data buffer
 	 * @param val value to write
+	 * @return data location before write
 	 */
 	template<typename Type>
-	inline void WriteValue(std::vector<byte>& data, Type val) {
+	inline size_t WriteValue(std::vector<byte>& data, Type val) {
+		size_t begin = data.size();
 		const byte* valLoc = reinterpret_cast<const byte*>(&val);
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
+		return begin;
 	}
 	/*
 	 * Write a string into a vector buffer
 	 * @param data buffer
 	 * @param val value to write
+	 * @return data location before write
 	 */
-	inline void WriteString(std::vector<byte>& data, const char* val) {
+	inline size_t WriteString(std::vector<byte>& data, const char* val) {
+		size_t begin = data.size();
 		const byte* valLoc = reinterpret_cast<const byte*>(val);
 		data.insert(data.end(), valLoc, valLoc + strlen(val) + 1);
+		return begin;
 	}
 	/*
 	 * Write a value into a vector buffer
 	 * @param Type value type
 	 * @param data buffer
 	 * @param val value to write
+	 * @return data location before write
 	 */
 	template<typename SizeType, typename Type>
-	inline void WritePaddedValue(std::vector<byte>& data, Type val) {
+	inline size_t WritePaddedValue(std::vector<byte>& data, Type val) {
+		size_t begin = data.size();
 		const byte* valLoc = reinterpret_cast<const byte*>(&val);
 		data.insert(data.end(), valLoc, valLoc + sizeof(val));
 		static_assert(sizeof(SizeType) >= sizeof(Type), "Trying to write bigger elements possible");
@@ -160,11 +168,13 @@ namespace utils {
 			// fill with 0
 			data.insert(data.end(), reinterpret_cast<byte*>(&t), reinterpret_cast<byte*>(&t) + delta);
 		}
+		return begin;
 	}
 	/*
 	 * Allocate a pointer inside a vector
 	 * @param data buffer
 	 * @param len pointer size
+	 * @return data location before write
 	 */
 	size_t Allocate(std::vector<byte>& data, size_t len);
 	/*
@@ -227,7 +237,7 @@ namespace utils {
 	 * @param files output files
 	 * @param predicate predicate
 	 */
-	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate);
+	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate, bool removeParent = false);
 
 	/*
 	 * Get a char to a byte value, throw invalid_argument for bad character

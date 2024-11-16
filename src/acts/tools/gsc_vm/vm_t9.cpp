@@ -90,7 +90,7 @@ namespace {
             return str;
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T937GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x37000a0d43534780;
+            return size >= sizeof(T937GSCOBJ) && Ref<uint64_t>() == 0x37000a0d43534780;
         }
 
         byte RemapFlagsImport(byte flags) override {
@@ -315,7 +315,7 @@ namespace {
             return str;
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(T9GSCOBJ) && *reinterpret_cast<uint64_t*>(file) == 0x38000a0d43534780;
+            return size >= sizeof(T9GSCOBJ) && Ref<uint64_t>() == 0x38000a0d43534780;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags = 0;

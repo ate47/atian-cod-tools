@@ -97,7 +97,7 @@ namespace {
             return str + 3; // should be decrypted before
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj24) && *reinterpret_cast<uint64_t*>(file) == 0xa0d43534706;
+            return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d43534706;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags{};
@@ -418,7 +418,7 @@ namespace {
             return str + 3; // should be decrypted before
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj24) && *reinterpret_cast<uint64_t*>(file) == 0xa0d43534707;
+            return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d43534707;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags{};
@@ -738,7 +738,7 @@ namespace {
             return str + 3; // should be decrypted before
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj24) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353470C;
+            return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d4353470C;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags{};
@@ -1060,7 +1060,7 @@ namespace {
             return str + 3; // should be decrypted before
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj24) && *reinterpret_cast<uint64_t*>(file) == 0xa0d4353470B;
+            return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d4353470B;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags{};

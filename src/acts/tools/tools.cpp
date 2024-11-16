@@ -18,6 +18,7 @@ namespace tool {
 			map["hash"] = { "hash", "Hash utilities", true, {} };
 			map["bo4"] = { "bo4", "Black Ops 4 tools", true, {} };
 			map["cw"] = { "cw", "Black Ops Cold War tools", true, {} };
+			map["mw19"] = { "mw19", "Modern Warfare 2019 tools", true, {} };
 			map["mwiii"] = { "mwiii", "Modern Warfare III tools", true, {} };
 			map["bo3"] = { "bo3", "Black Ops 3 tools", true, {} };
 			map["bo6"] = { "bo6", "Black Ops 6 tools", true, {} };

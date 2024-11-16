@@ -2539,7 +2539,7 @@ namespace acts::compiler {
             }
 
             // compile header
-            gscHandler->file = data.data();
+            gscHandler->SetFile((byte*)data.data(), 0);
 
             if (nameOffSet) {
                 gscHandler->SetNameString(nameOffSet);

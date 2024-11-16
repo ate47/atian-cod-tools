@@ -1,12 +1,59 @@
 #include <includes.hpp>
 #include <core/memory_allocator.hpp>
 #include "compatibility/scobalula_csi.hpp"
+#include "compatibility/xensik_gscbin.hpp"
+#include "tools/gsc_opcodes.hpp"
 #include "tools/sp23/sp23.hpp"
 #include "tools/bo6/bo6.hpp"
+#include "tools/mw19/mw19.hpp"
 #include "tools/hashes/compiled_files.hpp"
 #include "tools/pool.hpp"
+#include "gsc_iw.hpp"
 
 namespace tool::cordycep::dump {
+	struct XAsset64 {
+		uintptr_t Header;
+		uint64_t Temp;
+		uintptr_t Next;
+		uintptr_t Previous;
+		uint64_t ID;
+		uint64_t Type;
+		int64_t HeaderSize;
+	};
+
+	struct XAssetPool64 {
+		uintptr_t Root;
+		uintptr_t End;
+		uint64_t LookupTable;
+		uint64_t HeaderMemory;
+		uint64_t AssetMemory;
+	};
+	int ForEachEntry(Process& proc, XAssetPool64& pool, std::function<bool(const XAsset64& asset, size_t count)> func) {
+		uintptr_t curr = pool.Root;
+
+		XAsset64 asset{};
+		int res{};
+		bool ok{ true };
+		size_t count{};
+		while (curr) {
+			if (!proc.ReadMemory(&asset, curr, sizeof(asset))) {
+				LOG_ERROR("Can't read pool entry {:x}", curr);
+				return false;
+			}
+
+			if (asset.Header) {
+				if (!func(asset, count++)) {
+					ok = false;
+				}
+				res++;
+			}
+
+			curr = asset.Next;
+		}
+
+		return ok ? res : -res;
+	}
+
 	using namespace sp23;
 	using namespace bo6;
 
@@ -150,23 +197,6 @@ namespace tool::cordycep::dump {
 				}
 				return str;
 			}
-		};
-		struct XAsset64 {
-			uintptr_t Header;
-			uint64_t Temp;
-			uintptr_t Next;
-			uintptr_t Previous;
-			uint64_t ID;
-			uint64_t Type;
-			int64_t HeaderSize;
-		};
-
-		struct XAssetPool64 {
-			uintptr_t Root;
-			uintptr_t End;
-			uint64_t LookupTable;
-			uint64_t HeaderMemory;
-			uint64_t AssetMemory;
 		};
 
 		struct GscObjEntry {
@@ -645,32 +675,6 @@ namespace tool::cordycep::dump {
 			uint32_t len;
 			uintptr_t buffer;
 		};
-
-		int ForEachEntry(Process& proc, XAssetPool64& pool, std::function<bool(const XAsset64& asset, size_t count)> func) {
-			uintptr_t curr = pool.Root;
-
-			XAsset64 asset{};
-			int res{};
-			bool ok{ true };
-			size_t count{};
-			while (curr) {
-				if (!proc.ReadMemory(&asset, curr, sizeof(asset))) {
-					LOG_ERROR("Can't read pool entry {:x}", curr);
-					return false;
-				}
-
-				if (asset.Header) {
-					if (!func(asset, count++)) {
-						ok = false;
-					}
-					res++;
-				}
-
-				curr = asset.Next;
-			}
-
-			return ok ? res : -res;
-		}
 
 		int dpcordjup(Process& proc, compatibility::scobalula::csi::CordycepProc& cordycep, int argc, const char* argv[]) {
 			PoolOptionJup opt{};
@@ -1586,8 +1590,8 @@ namespace tool::cordycep::dump {
 
 			bool Compute(const char** args, INT startIndex, INT endIndex) {
 				m_dump_types.clear();
-				m_dump_types.reserve(sp23::ASSET_COUNT);
-				for (size_t i = 0; i < sp23::ASSET_COUNT; i++) {
+				m_dump_types.reserve(T10R_ASSET_COUNT);
+				for (size_t i = 0; i < T10R_ASSET_COUNT; i++) {
 					m_dump_types.push_back(false);
 				}
 				// default values
@@ -1680,23 +1684,6 @@ namespace tool::cordycep::dump {
 				return str;
 			}
 		};
-		struct XAsset64 {
-			uintptr_t Header;
-			uint64_t Temp;
-			uintptr_t Next;
-			uintptr_t Previous;
-			uint64_t ID;
-			uint64_t Type;
-			int64_t HeaderSize;
-		};
-
-		struct XAssetPool64 {
-			uintptr_t Root;
-			uintptr_t End;
-			uint64_t LookupTable;
-			uint64_t HeaderMemory;
-			uint64_t AssetMemory;
-		};
 
 		struct GscObjEntry {
 			uint64_t name;
@@ -1758,33 +1745,7 @@ namespace tool::cordycep::dump {
 			uintptr_t buffer;
 		};
 
-		int ForEachEntry(Process& proc, XAssetPool64& pool, std::function<bool(const XAsset64& asset, size_t count)> func) {
-			uintptr_t curr = pool.Root;
-
-			XAsset64 asset{};
-			int res{};
-			bool ok{ true };
-			size_t count{};
-			while (curr) {
-				if (!proc.ReadMemory(&asset, curr, sizeof(asset))) {
-					LOG_ERROR("Can't read pool entry {:x}", curr);
-					return false;
-				}
-
-				if (asset.Header) {
-					if (!func(asset, count++)) {
-						ok = false;
-					}
-					res++;
-				}
-
-				curr = asset.Next;
-			}
-
-			return ok ? res : -res;
-		}
-
-		int dpcordjup(Process& proc, compatibility::scobalula::csi::CordycepProc& cordycep, int argc, const char* argv[]) {
+		int dpcordbo6(Process& proc, compatibility::scobalula::csi::CordycepProc& cordycep, int argc, const char* argv[]) {
 			PoolOptionJup opt{};
 
 			if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -2531,6 +2492,234 @@ namespace tool::cordycep::dump {
 
 	}
 
+	namespace mw19 {
+		class PoolOptionJup {
+		public:
+			bool m_help = false;
+			bool m_any_type = false;
+			bool m_dump_info = false;
+			bool m_dump_all_available = false;
+			bool m_pools{};
+			bool m_cf_files{};
+			bool m_showErr{};
+			bool m_mapLocalized{};
+			const char* m_output = "output_mw19";
+			const char* m_dump_strings{};
+			std::vector<bool> m_dump_types{};
+			uint64_t flags{};
+			std::unordered_set<std::string> dstrings{};
+
+			bool Compute(const char** args, INT startIndex, INT endIndex) {
+				m_dump_types.clear();
+				m_dump_types.reserve(::mw19::IW19_ASSETTYPE_COUNT);
+				for (size_t i = 0; i < ::mw19::IW19_ASSETTYPE_COUNT; i++) {
+					m_dump_types.push_back(false);
+				}
+				// default values
+				for (size_t i = startIndex; i < endIndex; i++) {
+					const char* arg = args[i];
+
+					if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
+						m_help = true;
+					}
+					else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
+						if (i + 1 == endIndex) {
+							std::cerr << "Missing value for param: " << arg << "!\n";
+							return false;
+						}
+						m_output = args[++i];
+					}
+					else if (!_strcmpi("--all", arg) || !strcmp("-a", arg)) {
+						m_dump_all_available = true;
+						m_any_type = true;
+					}
+					else if (!_strcmpi("--pools", arg) || !strcmp("-p", arg)) {
+						m_pools = true;
+					}
+					else if (!_strcmpi("--cf", arg) || !strcmp("-C", arg)) {
+						m_cf_files = true;
+					}
+					else if (!_strcmpi("--localized", arg) || !strcmp("-L", arg)) {
+						m_mapLocalized = true;
+					}
+					else if (!_strcmpi("--err", arg) || !strcmp("-e", arg)) {
+						m_showErr = true;
+					}
+					else if (!strcmp("-S", arg) || !_strcmpi("--strings", arg)) {
+						if (i + 1 == endIndex) {
+							std::cerr << "Missing value for param: " << arg << "!\n";
+							return false;
+						}
+						m_dump_strings = args[++i];
+					}
+					else if (*arg == '-') {
+						std::cerr << "Invalid argument: " << arg << "!\n";
+						return false;
+					}
+					else {
+						::mw19::IW19PoolType assetType = ::mw19::PoolId(arg);
+
+						if (assetType == ::mw19::IW19_ASSETTYPE_COUNT) {
+							if (std::isdigit(arg[0])) {
+								try {
+									assetType = (::mw19::IW19PoolType)std::strtol(arg, nullptr, 10);
+								}
+								catch (const std::invalid_argument& e) {
+									std::cerr << e.what() << "\n";
+									assetType = ::mw19::IW19_ASSETTYPE_COUNT;
+								}
+							}
+							if (assetType < 0 || assetType >= ::mw19::IW19_ASSETTYPE_COUNT) {
+								std::cerr << "Invalid pool name: " << arg << "!\n";
+								return false;
+							}
+						}
+
+						m_dump_types[assetType] = true;
+						m_any_type = true;
+					}
+				}
+				return true;
+			}
+			void PrintHelp() {
+				LOG_INFO("-h --help            : Print help");
+				LOG_INFO("-o --output [d]      : Output dir");
+				LOG_INFO("-p --pools           : Dump pools");
+				LOG_INFO("-C --cf              : Produce .cf files");
+				LOG_INFO("-e --err             : Show errors");
+				LOG_INFO("-L --localized       : Map localized");
+				LOG_INFO("-a --all             : Dump all available pools");
+				LOG_INFO("--v1                 : Use old pool dumper (compatibility)");
+			}
+
+			const char* AddString(const char* str) {
+				if (m_dump_strings) {
+					dstrings.insert(str);
+				}
+				return str;
+			}
+		};
+		struct ScriptFile {
+			uintptr_t name; // const char*
+			int compressedLen;
+			int len;
+			int bytecodeLen;
+			uintptr_t buffer; // const char* 
+			uintptr_t bytecode; // unsigned __int8* 
+		};
+
+
+		int dpcordmw19(Process& proc, compatibility::scobalula::csi::CordycepProc& cordycep, int argc, const char* argv[]) {
+			PoolOptionJup opt{};
+
+			if (!opt.Compute(argv, 2, argc) || opt.m_help) {
+				opt.PrintHelp();
+				return tool::OK;
+			}
+
+
+			auto [pools, ok] = proc.ReadMemoryArray<XAssetPool64>(cordycep.poolsAddress, ::mw19::IW19_ASSETTYPE_COUNT);
+
+			if (!ok) {
+				LOG_ERROR("Can't read pools");
+				return tool::BASIC_ERROR;
+			}
+
+			std::filesystem::path outDir = opt.m_output;
+
+
+			if (!opt.m_any_type) {
+				opt.PrintHelp();
+				return tool::OK;
+			}
+
+			hashutils::ReadDefaultFile();
+
+			size_t total{};
+
+			auto HandlePool = [&opt, &pools, &proc, &total](::mw19::IW19PoolType type, const std::filesystem::path& outDir, std::function<bool(const XAsset64& asset, size_t count)> func) {
+				if (!opt.m_dump_types[type] && !opt.m_dump_all_available) {
+					return;
+				}
+
+				opt.m_dump_types[type] = false;
+
+				std::filesystem::create_directories(outDir);
+
+				int du = ForEachEntry(proc, pools[type], func);
+
+				if (du < 0) {
+					LOG_ERROR("Error reading pool: {}", ::mw19::PoolName(type));
+				}
+				else {
+					total += du;
+				}
+			};
+
+			const std::filesystem::path gscDir = outDir / "gsc";
+			HandlePool(::mw19::IW19_ASSETTYPE_SCRIPTFILE, gscDir, [&opt, &proc, gscDir](const XAsset64& asset, size_t count) -> bool {
+				ScriptFile entry{};
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read scriptfile entry {:x}", asset.Header);
+					return false;
+				}
+
+				std::vector<byte> dumpFile{};
+
+				const char* fileNameRead = proc.ReadStringTmp(entry.name);
+
+				utils::Allocate(dumpFile, sizeof(compatibility::xensik::gscbin::GscBinHeader));
+
+				compatibility::xensik::gscbin::GscBinHeader& header{ *reinterpret_cast<compatibility::xensik::gscbin::GscBinHeader*>(dumpFile.data()) };
+
+				header.Magic() = compatibility::xensik::gscbin::GSCBIN_MAGIC;
+				header.compressedLen = entry.compressedLen;
+				header.len = entry.len;
+				header.bytecodeLen = entry.bytecodeLen;
+
+				size_t bufferLoc = utils::Allocate(dumpFile, entry.compressedLen);
+				size_t byteCodeLoc = utils::Allocate(dumpFile, entry.bytecodeLen);
+
+				if (entry.compressedLen) {
+					if (!proc.ReadMemory(&dumpFile[bufferLoc], entry.buffer, entry.compressedLen)) {
+						LOG_ERROR("Can't read scriptfile buffer {}", fileNameRead);
+						return false;
+					}
+				}
+				if (entry.bytecodeLen) {
+					if (!proc.ReadMemory(&dumpFile[byteCodeLoc], entry.bytecode, entry.bytecodeLen)) {
+						LOG_ERROR("Can't read scriptfile bytecode buffer {}", fileNameRead);
+						return false;
+					}
+				}
+
+				char* fileName = utils::CloneString(fileNameRead);
+
+				std::string_view nameView{ fileName };
+
+				if (nameView.ends_with(".gsc")) {
+					fileName[nameView.length() - 4] = 0;
+				}
+				fileName = utils::va("%s.gscbin", fileName);
+
+				std::filesystem::path out = gscDir / fileName;
+				std::filesystem::create_directories(out.parent_path());
+
+				if (!utils::WriteFile(out, dumpFile.data(), dumpFile.size())) {
+					LOG_ERROR("Can't write file {}", out.string());
+					return false;
+				}
+				LOG_INFO("Dumped {} ({})", out.string(), fileNameRead);
+
+				return true;
+			});
+
+			LOG_INFO("Dumped {} files", total);
+
+			return tool::OK;
+		}
+	}
+
 	namespace {
 		int csi_test(int argc, const char* argv[]) {
 			if (!argv[2]) return tool::BAD_USAGE;
@@ -2570,7 +2759,10 @@ namespace tool::cordycep::dump {
 				ret = jup::dpcordjup(proc, cordycep, argc, argv);
 				break;
 			case compatibility::scobalula::csi::CG_BO6:
-				ret = bo6::dpcordjup(proc, cordycep, argc, argv);
+				ret = bo6::dpcordbo6(proc, cordycep, argc, argv);
+				break;
+			case compatibility::scobalula::csi::CG_MW4:
+				ret = mw19::dpcordmw19(proc, cordycep, argc, argv);
 				break;
 			default:
 				LOG_ERROR("Can't find dumper for game {} (0x{:x})", CordycepGameName(cordycep.gameId), (uint64_t)cordycep.gameId);
