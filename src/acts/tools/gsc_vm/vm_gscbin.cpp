@@ -13,13 +13,26 @@ namespace {
     using namespace tool::gsc::iw;
     using namespace tool::gsc::opcode;
 
+    struct FakeLinkHeader {
+        // what is the easiest way to convert a stream based script loading to a linked script loading?
+        // idk, but today it'll be to read the stream based script into a fake linked script and then
+        // reading it. (It's dumb, yeah)
+        uint64_t name;
+        size_t exports_table;
+        size_t exports_count;
+
+        compatibility::xensik::gscbin::GscBinHeader binHeader{};
+    };
+
     class IWGSCOBJHandler : public GSCOBJHandler {
     public:
-        std::vector<byte> decompressedData{};
+
+        FakeLinkHeader fakeHeader{};
+        std::vector<byte> fakeLinked{};
         IWGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_IW_BIN) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
-            compatibility::xensik::gscbin::GscBinHeader& data{ Ref<compatibility::xensik::gscbin::GscBinHeader>() };
+            compatibility::xensik::gscbin::GscBinHeader& data{ fakeHeader.binHeader };
             asmout
                 << "// bytecode . " << std::dec << std::setw(3) << data.bytecodeLen << " (offset: 0x" << std::hex << (data.GetByteCode() - Ptr()) << ")\n"
                 << "// buffer ... " << std::dec << std::setw(3) << data.len << " / Compressed: " << data.compressedLen << " (offset: 0x" << std::hex << (data.GetBuffer() - Ptr()) << ")\n"
@@ -30,23 +43,58 @@ namespace {
         int PreLoadCode() override {
             compatibility::xensik::gscbin::GscBinHeader& header{ Ref<compatibility::xensik::gscbin::GscBinHeader>() };
 
-            decompressedData.resize(header.len + header.bytecodeLen);
+            auto decompressedData{ std::make_unique<byte[]>(header.len) };
 
-            uLongf sizef = (uLongf)decompressedData.size();
+            uLongf sizef = (uLongf)header.len;
             uLongf sizef2;
             int ret;
-            if (header.len && (ret = uncompress2(decompressedData.data(), &sizef, reinterpret_cast<const Bytef*>(header.GetBuffer()), &sizef2) < 0)) {
-                throw std::runtime_error(utils::va("Can't decompress file %s: %s", hashutils::ExtractTmpScript(GetName()), zError(ret)));
+            if (header.len && (ret = uncompress2(decompressedData.get(), &sizef, reinterpret_cast<const Bytef*>(header.GetBuffer()), &sizef2) < 0)) {
+                std::string fileName{ originalFile ? originalFile->string() : "<unk>" };
+                throw std::runtime_error(utils::va("Can't decompress file %s: %s", fileName.c_str(), zError(ret)));
             }
 
-            // add bytecode to temp buffer
-            std::memcpy(decompressedData.data() + header.len, header.GetByteCode(), header.bytecodeLen);
+            std::vector<tool::gsc::iw::BINGSCExport> functions{};
 
+            int64_t sizeRead{ sizef };
+            uint32_t locByteCode{};
 
-            return GSCOBJHandler::PreLoadCode();
-        }
+            uint32_t start{ sizeof(FakeLinkHeader) };
 
-        uint64_t GetName() override {
+            while (sizeRead > 0 && locByteCode < header.bytecodeLen) {
+                functions.emplace_back();
+                tool::gsc::iw::BINGSCExport& func{ functions[functions.size() - 1] };
+
+                func.address = start + locByteCode;
+                func.size = *(uint32_t*)&decompressedData[sizeRead];
+                locByteCode += func.size;
+                sizeRead -= sizeof(uint32_t);
+                uint32_t idRef = *(uint32_t*)&decompressedData[sizeRead];
+                sizeRead -= sizeof(uint32_t);
+                if (idRef) {
+                    const char* nameRef{ utils::va("ref_%x", idRef) };
+                    uint64_t hash{ hash::Hash64(nameRef) };
+                    hashutils::AddPrecomputed(hash, nameRef);
+                    func.name = hash;
+                }
+                else {
+                    const char* nameStr{ (const char*)&decompressedData[sizeRead] };
+                    size_t nameStrLen{ std::strlen(nameStr) };
+                    sizeRead -= nameStrLen + 1;
+                    uint64_t hash{ hash::Hash64(nameStr) };
+                    hashutils::AddPrecomputed(hash, nameStr);
+                    func.name = hash;
+                }
+            }
+
+            fakeLinked.clear();
+            fakeLinked.reserve(header.len + sizeof(functions[0]) * functions.size());
+
+            size_t bytecode{ utils::WriteValue(fakeLinked, decompressedData.get(), header.len) };
+            size_t exports{ utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size()) };
+
+            fakeHeader.exports_count = functions.size();
+            fakeHeader.exports_table = exports;
+
             if (originalFile) {
                 std::string fn = originalFile->string();
 
@@ -59,15 +107,22 @@ namespace {
 
                 const char* name{ fn.data() };
                 hashutils::Add(name);
-                return hash::Hash64(name);
+                fakeHeader.name = hash::Hash64(name);
             }
-            return 0;
+            fakeHeader.binHeader = header;
+            SetFile(fakeLinked.data(), fakeLinked.size());
+
+            return GSCOBJHandler::PreLoadCode();
+        }
+
+        uint64_t GetName() override {
+            return fakeHeader.name;
         }
         uint16_t GetExportsCount() override {
-            return 0;
+            return (uint16_t)fakeHeader.exports_count;
         }
         uint32_t GetExportsOffset() override {
-            return 0;
+            return (uint32_t)fakeHeader.exports_table;
         }
         uint16_t GetIncludesCount() override {
             return 0;

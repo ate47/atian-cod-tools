@@ -1085,6 +1085,7 @@ namespace tool::gsc {
         virtual uint8_t GetParamCount() = 0;
         virtual uint8_t GetFlags() = 0;
         virtual size_t SizeOf() = 0;
+        virtual uint32_t GetSize() { return 0; };
     };
 
     std::unique_ptr<GSCExportReader> CreateExportReader(tool::gsc::opcode::VmInfo* vmInfo);

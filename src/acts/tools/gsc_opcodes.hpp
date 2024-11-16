@@ -27,6 +27,7 @@ namespace tool::gsc::opcode {
 		VMF_EXPORT_CRC32 = 1 << 18,
 		VMF_HASH_CER_SP = 1 << 19,
 		VMF_HASH_PATH_IW = 1 << 20,
+		VMF_GSCBIN = 1 << 21,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

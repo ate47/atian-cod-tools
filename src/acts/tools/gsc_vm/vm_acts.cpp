@@ -65,7 +65,7 @@ namespace {
             return str;
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(ActScript) && *reinterpret_cast<uint64_t*>(file) == ACTSCRIPT_MAGIC;
+            return size >= sizeof(ActScript) && Ref<uint64_t>() == ACTSCRIPT_MAGIC;
         }
         uint16_t GetAnimTreeSingleCount() override {
             return 0; // Ptr<ActScript>()->animtree_use_count;

@@ -127,6 +127,20 @@ namespace utils {
 	 * Write a value into a vector buffer
 	 * @param Type value type
 	 * @param data buffer
+	 * @param ptr value to write
+	 * @param size value to write
+	 * @return data location before write
+	 */
+	inline size_t WriteValue(std::vector<byte>& data, void* ptr, size_t size) {
+		size_t begin = data.size();
+		const byte* valLoc = (const byte*)ptr;
+		data.insert(data.end(), valLoc, valLoc + size);
+		return begin;
+	}
+	/*
+	 * Write a value into a vector buffer
+	 * @param Type value type
+	 * @param data buffer
 	 * @param val value to write
 	 * @return data location before write
 	 */

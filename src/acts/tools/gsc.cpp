@@ -8,6 +8,7 @@
 #include "tools/cw/cw.hpp"
 #include "tools/gsc_acts_debug.hpp"
 #include "tools/gsc_gdb.hpp"
+#include "tools/gsc_iw.hpp"
 #include "actscli.hpp"
 
 using namespace tool::gsc;
@@ -870,6 +871,20 @@ struct H64GSCExportReader : GSCExportReader {
     uint8_t GetFlags() override { return exp->flags; };
     size_t SizeOf() override { return sizeof(*exp); };
 };
+struct BINGSCExportReader : GSCExportReader {
+    tool::gsc::iw::BINGSCExport* exp{};
+
+    void SetHandle(void* handle) override { exp = (tool::gsc::iw::BINGSCExport*)handle; };
+    uint64_t GetName() override { return exp->name; };
+    uint64_t GetNamespace() override { return exp->name_space; };
+    uint64_t GetFileNamespace() override { return exp->file_name_space; };
+    uint64_t GetChecksum() override { return exp->checksum; };
+    uint32_t GetAddress() override { return exp->address; };
+    uint8_t GetParamCount() override { return exp->param_count; };
+    uint8_t GetFlags() override { return exp->flags; };
+    uint32_t GetSize() { return exp->size; };
+    size_t SizeOf() override { return sizeof(*exp); };
+};
 
 struct H64CERGSCExportReader : GSCExportReader {
     IW24GSCExport* exp{};
@@ -1473,11 +1488,8 @@ ignoreCscGsc:
 
 
         if (!vmInfo->HasFlag(VmFlags::VMF_NO_VERSION)) {
-            asmout << "// magic .... 0x" << scriptfile->GetMagic();
+            asmout << "// magic .... 0x" << scriptfile->GetMagic() << " vm: " << vmInfo->name << " (" << PlatformName(currentPlatform) << ")\n";
         }
-        
-        asmout << " vm: " << vmInfo->name << " (" << PlatformName(currentPlatform) << ")";
-        asmout << "\n";
 
         scriptfile->DumpHeader(asmout, opt);
 
@@ -1907,6 +1919,11 @@ ignoreCscGsc:
                     output << "#namespace " << hashutils::ExtractTmpPath("namespace", currentNSP) << ";\n" << std::endl;
                 }
             }
+            else if (!currentNSP && !i) {
+                if (opt.m_dasm) {
+                    output << std::endl;
+                }
+            }
 
             Located rname = { exp->GetNamespace(), exp->GetName() };
 
@@ -2246,6 +2263,9 @@ ignoreCscGsc:
                     currentNSP = exp->GetNamespace();
 
                     asmout << "#namespace " << hashutils::ExtractTmpPath("namespace", currentNSP) << ";\n" << std::endl;
+                }
+                else if (!currentNSP && !i) {
+                    asmout << std::endl;
                 }
 
 
@@ -3082,6 +3102,9 @@ int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, Platform plt, Vm
 }
 
 std::unique_ptr<GSCExportReader> tool::gsc::CreateExportReader(VmInfo* vmInfo) {
+    if (vmInfo->HasFlag(VmFlags::VMF_GSCBIN)) {
+        return std::make_unique<BINGSCExportReader>();
+    }
     if (vmInfo->HasFlag(VmFlags::VMF_HASH64 | VmFlags::VMF_EXPORT_NOCHECKSUM)) {
         return std::make_unique<H64CERGSCExportReader>();
     }
@@ -3124,7 +3147,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
         switch (headerFormat) {
         case tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_SERIOUS: {
             utils::Padding(asmout, padding) << prefix << "Name: " << hashutils::ExtractTmp("function", exp.GetName()) << std::endl;
-            utils::Padding(asmout, padding) << prefix << "Namespace: " << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::endl;
+            if (exp.GetNamespace()) {
+                utils::Padding(asmout, padding) << prefix << "Namespace: " << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::endl;
+            }
             // no file namespace in this format, maybe later?
             if (!ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_EXPORT_NOCHECKSUM)) {
                 utils::Padding(asmout, padding) << prefix << "Checksum: 0x" << std::hex << std::uppercase << exp.GetChecksum() << std::endl;
@@ -3181,27 +3206,29 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             utils::Padding(asmout, padding) << prefix << "Header format type 4 not implemented!";
             break;
         default: { // ACTS DEFAULT FORMAT
-            utils::Padding(asmout, padding) << prefix << "Namespace "
-                << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
+            if (exp.GetNamespace()) {
+                utils::Padding(asmout, padding) << prefix << "Namespace "
+                    << hashutils::ExtractTmp(classMember ? "class" : "namespace", exp.GetNamespace()) << std::flush;
 
-            uint64_t fileNamespace = exp.GetFileNamespace();
+                uint64_t fileNamespace = exp.GetFileNamespace();
 
-            if (fileNamespace && !objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
-                // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
-                // so it's better to use spaces. A flag was added to keep the same format.
-                if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
-                    asmout << " / ";
+                if (fileNamespace && !objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_FILE_NAMESPACE)) {
+                    // some VMs are only using the filename in the second namespace field, the others are using the full name (without .gsc?)
+                    // so it's better to use spaces. A flag was added to keep the same format.
+                    if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                        asmout << " / ";
+                    }
+                    else {
+                        asmout << "/";
+                    }
+
+                    asmout
+                        << ((remapedFlags & T8GSCExportFlags::EVENT)
+                            ? hashutils::ExtractTmp("event", fileNamespace)
+                            : hashutils::ExtractTmpPath("namespace", fileNamespace));
                 }
-                else {
-                    asmout << "/";
-                }
-
-                asmout
-                    << ((remapedFlags & T8GSCExportFlags::EVENT)
-                        ? hashutils::ExtractTmp("event", fileNamespace)
-                        : hashutils::ExtractTmpPath("namespace", fileNamespace));
+                asmout << std::endl;
             }
-            asmout << std::endl;
 
             if (isDetour) {
                 auto det = detourVal->second;
