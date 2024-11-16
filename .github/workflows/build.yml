@@ -62,21 +62,21 @@ jobs:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: "latest_build"
-          artifacts: "build/package/acts.zip"
+          artifacts: "build/package/acts.zip,build/package/acts-dev.zip"
           artifactErrorsFailBuild: true
           makeLatest: false
           removeArtifacts: true
           replacesArtifacts: true
           allowUpdates: true
           name: "Dev build ${{ steps.get_version.outputs.version }}"
-          body: "Latest dev build, [get the latest release build here](https://github.com/ate47/atian-cod-tools/releases/latest)."
+          body: "Latest dev build, [get the latest release build here](https://github.com/${{ github.repository }}/releases/latest)."
       - name: Upload release
         if: inputs.release && matrix.cfg == 'Release' && github.ref == 'refs/heads/main'
         uses: ncipollo/release-action@v1
         with:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "build/package/acts.zip"
+          artifacts: "build/package/acts.zip,build/package/acts-dev.zip"
           artifactErrorsFailBuild: true
           makeLatest: true
           tag: "${{ steps.get_version.outputs.version }}"
