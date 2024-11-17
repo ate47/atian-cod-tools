@@ -4937,7 +4937,10 @@ namespace tool::gsc::opcode {
 	}
 
 	void VmInfo::SetMaxOpCode(uint16_t maxOpCode) {
-		maxOpCode = maxOpCode;
+		this->maxOpCode = maxOpCode;
+	}
+	void VmInfo::SetOpaqueStringCount(size_t opaqueStringCount) {
+		this->opaqueStringCount = opaqueStringCount;
 	}
 	void VmInfo::RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
 		if (!(size == 8 || size == 4)) {

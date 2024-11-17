@@ -35,6 +35,9 @@ namespace core::bytebuffer {
 		constexpr bool End() {
 			return pointer >= len;
 		}
+		constexpr size_t Loc() {
+			return pointer;
+		}
 
 		void GotoEnd() {
 			pointer = len;

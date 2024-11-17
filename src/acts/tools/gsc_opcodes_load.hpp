@@ -1,9 +1,16 @@
 #pragma once
 
 namespace tool::gsc::opcode {
+	constexpr uint64_t GSC0 = 0x00435347;
+
+	constexpr uint64_t Gsc0Magic(byte vm) {
+		return GSC0 | ((uint64_t)vm << 32);
+	}
+
 	enum VMId : uint64_t {
 		VMI_UNKNOWN = 0,
 
+		// Treyarch VMs
 		VMI_T71B = 0x1B000a0d43534780,
 		VMI_T7 = 0x1C000a0d43534780,
 		VMI_T831 = 0x31000a0d43534780,
@@ -11,7 +18,7 @@ namespace tool::gsc::opcode {
 		VMI_T937 = 0x37000a0d43534780,
 		VMI_T9 = 0x38000a0d43534780,
 
-		// IW style VM
+		// IW linked VMs
 		VMI_JUP_8A = 0xa0d4353478a,
 		VMI_JUP_8B = 0xa0d4353478b,
 		VMI_T10_06 = 0xa0d43534706,
@@ -19,21 +26,10 @@ namespace tool::gsc::opcode {
 		VMI_T10_0B = 0xa0d4353470B,
 		VMI_T10_0C = 0xa0d4353470C,
 
-		// // IW old VM
-		// internal value to denote gscbin file
-		VMI_IW_GSCBIN = 0x4e4942435347,
-
-		// internal ids to denote VMs, generated using "acts strtouint64 GSC_XXXX"
-		VMI_IW_BIN_MW3 = 0x33574d5f435347,
-		VMI_IW_BIN_GHOSTS = 0x534f48475f435347,
-		VMI_IW_BIN_IW = 0x57464e495f435347,
-		VMI_IW_BIN_MW19 = 0x3931574d5f435347,
-		VMI_IW_BIN_MW22 = 0x3232574d5f435347,
-		VMI_IW_BIN_RMW1 = 0x31574d525f435347,
-		VMI_IW_BIN_RMW2 = 0x32574d525f435347,
-		VMI_IW_BIN_AW = 0x57415f435347,
-		VMI_IW_BIN_WW2 = 0x3257575f435347,
-		VMI_IW_BIN_VANG = 0x474e41565f435347,
+		// IW old VMs
+		VMI_IW_GSCBIN = Gsc0Magic(0),
+		VMI_IW_BIN_MW19 = Gsc0Magic(0x3b),
+		VMI_IW_BIN_MW22 = Gsc0Magic(0x32),
 
 		// ACTS VM
 		VMI_ACTS_F1 = 0x4d565354434124F1,

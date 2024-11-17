@@ -779,7 +779,8 @@ namespace tool::gsc {
         std::unordered_map<uint64_t, gscclass> m_classes{};
         tool::gsc::gdb::ACTS_GSC_GDB* gdbctx{};
         const tool::gsc::formatter::FormatterInfo* m_formatter{};
-        T8GSCOBJContext();
+        const GscInfoOption& opt;
+        T8GSCOBJContext(const GscInfoOption& opt);
         ~T8GSCOBJContext();
 
         /*
@@ -1317,7 +1318,7 @@ namespace tool::gsc {
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx);
         // Patch script to prepare disasm
         virtual int PatchCode(T8GSCOBJContext& ctx);
-        virtual int PreLoadCode();
+        virtual int PreLoadCode(T8GSCOBJContext& ctx);
     };
 
     std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(uint64_t vm);

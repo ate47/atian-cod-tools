@@ -6,9 +6,8 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-
-		VmInfo* gscbin = RegisterVM(VMI_IW_GSCBIN, "GSCBIN", "gscbin", "gscbin", VmFlags::VMF_GSCBIN | VmFlags::VMF_NO_VERSION);
-		gscbin->RegisterVmName("gscbin");
+		VmInfo* gscbin = RegisterVM(VMI_IW_BIN_MW22, "Call of Duty: Modern Warfare II (2022)", "iw9", "mw22", VmFlags::VMF_GSCBIN | VmFlags::VMF_NO_MAGIC);
+		gscbin->RegisterVmName("gb_32");
 		gscbin->AddPlatform(PLATFORM_PC);
 
 	}

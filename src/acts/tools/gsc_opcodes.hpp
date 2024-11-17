@@ -28,6 +28,7 @@ namespace tool::gsc::opcode {
 		VMF_HASH_CER_SP = 1 << 19,
 		VMF_HASH_PATH_IW = 1 << 20,
 		VMF_GSCBIN = 1 << 21,
+		VMF_NO_MAGIC = 1 << 22,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,
@@ -72,6 +73,7 @@ namespace tool::gsc::opcode {
 		uint64_t flags{};
 		byte platforms{};
 		uint16_t maxOpCode{ 0xFFF };
+		size_t opaqueStringCount{};
 		std::unordered_map<char, VmHashFunc> hashesFunc{};
 		std::unordered_set<uint64_t> devCallsNames{};
 		std::unordered_map<uint16_t, std::unordered_map<Platform, OPCode>> opcodemap{};
@@ -136,6 +138,7 @@ namespace tool::gsc::opcode {
 		void RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op);
 		void RegisterSameCodePlatform(Platform main, Platform sub);
 		void SetMaxOpCode(uint16_t maxOpCode);
+		void SetOpaqueStringCount(size_t opaqueStringCount);
 		void RegisterDevCall(const char* devCall);
 		void RegisterDatatypeRenamed(const char* datatype, const char* trueName);
 		void RegisterDatatype(const char* datatype);

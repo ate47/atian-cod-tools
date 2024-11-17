@@ -494,7 +494,7 @@ void GSCOBJHandler::DumpHeader(std::ostream& asmout, const GscInfoOption& opt) {
     DumpHeaderInternal(asmout, opt);
     asmout << std::right << std::flush;
 }
-int GSCOBJHandler::PreLoadCode() {
+int GSCOBJHandler::PreLoadCode(T8GSCOBJContext& ctx) {
     return tool::OK;
 }
 int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
@@ -957,7 +957,7 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
 
     const GscInfoOption& opt = gdctx.opt;
     
-    T8GSCOBJContext ctx{};
+    T8GSCOBJContext ctx{ opt };
     ctx.m_formatter = opt.m_formatter;
     auto& gsicInfo = ctx.m_gsicInfo;
 
@@ -1019,39 +1019,37 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
         return tool::BASIC_ERROR;
     }
 
-    uint64_t vm;
+    uint64_t vmVal;
     if (!memcmp("GSC", data, 4)) {
-        vm = tool::gsc::opcode::VMI_IW_GSCBIN;
+        vmVal = tool::gsc::opcode::VMI_IW_GSCBIN;
     }
     else {
         if (size < 8) {
             LOG_ERROR("GSC file too small, no magic");
             return tool::BASIC_ERROR;
         }
-        vm = *reinterpret_cast<uint64_t*>(data);
+        vmVal = *reinterpret_cast<uint64_t*>(data);
+
+        if (opt.m_vm && vmVal != opt.m_vm) {
+            LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", vmVal, (uint64_t)opt.m_vm);
+            return tool::OK;
+        }
     }
     hashutils::ReadDefaultFile();
-
-    if (opt.m_vm && vm != opt.m_vm) {
-        LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", vm, (uint64_t)opt.m_vm);
-        return tool::OK;
-    }
-
-    VmInfo* vmInfo;
-    if (!IsValidVmMagic(vm, vmInfo)) {
-        LOG_ERROR("Bad vm 0x{:x} for file {}", vm, path);
+    if (!IsValidVmMagic(vmVal, ctx.m_vmInfo)) {
+        LOG_ERROR("Bad vm 0x{:x} for file {}", vmVal, path);
         return -1;
     }
-    ctx.m_vmInfo = vmInfo;
 
-    auto readerBuilder = GetGscReader(vm);
+    auto readerBuilder = GetGscReader(vmVal);
 
     if (!readerBuilder) {
-        LOG_ERROR("No handler available for vm 0x{:x} for file {}", vm, path);
+        LOG_ERROR("No handler available for vm 0x{:x} for file {}", vmVal, path);
         return -1;
     }
 
     std::shared_ptr<GSCOBJHandler> scriptfile = (*readerBuilder)(data, size);
+    std::unique_ptr<GSCExportReader> exp = CreateExportReader(ctx.m_vmInfo);
 
     // we keep it because it should also check the size
     if (!scriptfile->IsValidHeader(size)) {
@@ -1061,12 +1059,10 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
 
     // required for gscbin
     scriptfile->originalFile = &fsPath;
-    int preloadRet{ scriptfile->PreLoadCode() };
+    int preloadRet{ scriptfile->PreLoadCode(ctx) };
     if (preloadRet) {
-        return preloadRet;
+        return preloadRet > 0 ? 0 : preloadRet;
     }
-
-    std::unique_ptr<GSCExportReader> exp = CreateExportReader(ctx.m_vmInfo);
 
     auto flocName = [&exp, &scriptfile](uint32_t floc) {
         return GetFLocName(*exp, *scriptfile, floc);
@@ -1157,9 +1153,9 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
                     }
                     const char* str = scriptfile->Ptr<const char>(off);
 
-                    uint64_t hashField{ vmInfo->HashField(str) };
-                    uint64_t hashFilePath{ vmInfo->HashFilePath(str) };
-                    uint64_t hashPath{ vmInfo->HashPath(str) };
+                    uint64_t hashField{ ctx.m_vmInfo->HashField(str) };
+                    uint64_t hashFilePath{ ctx.m_vmInfo->HashFilePath(str) };
+                    uint64_t hashPath{ ctx.m_vmInfo->HashPath(str) };
                     {
                         core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
                         hashutils::AddPrecomputed(hashField, str, true);
@@ -1171,7 +1167,7 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
                                 << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
                         }
                         // use all the known hashes for this VM
-                        for (auto& [k, func] : vmInfo->hashesFunc) {
+                        for (auto& [k, func] : ctx.m_vmInfo->hashesFunc) {
                             try {
                                 int64_t hash = func.hashFunc(str);
 
@@ -1308,7 +1304,7 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
     const char* extractedName{ hashutils::ExtractPtr(scriptfile->GetName()) };
 
     if (opt.m_debugHashes && extractedName) {
-        uint64_t hashPath{ vmInfo->HashPath(extractedName) };
+        uint64_t hashPath{ ctx.m_vmInfo->HashPath(extractedName) };
 
         if (hashPath != scriptfile->GetName() && gdctx.WarningType(GDGCW_BAD_HASH_PATH)) {
             LOG_WARNING("Invalid hash algorithm for extracted name 0x{:x} != 0x{:x} for {}", scriptfile->GetName(), hashPath, extractedName);
@@ -1382,7 +1378,7 @@ ignoreCscGsc:
         
         const char* outDir;
         if (opt.m_splitByVm) {
-            outDir = utils::va("%s/vm-%llx", opt.m_outputDir, vmInfo->vmMagic);
+            outDir = utils::va("%s/vm-%llx", opt.m_outputDir, ctx.m_vmInfo->vmMagic);
         }
         else {
             outDir = opt.m_outputDir;
@@ -1487,8 +1483,14 @@ ignoreCscGsc:
         }
 
 
-        if (!vmInfo->HasFlag(VmFlags::VMF_NO_VERSION)) {
-            asmout << "// magic .... 0x" << scriptfile->GetMagic() << " vm: " << vmInfo->name << " (" << PlatformName(currentPlatform) << ")\n";
+        if (!ctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_VERSION)) {
+            if (!ctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_MAGIC)) {
+                asmout << "// magic .... 0x" << scriptfile->GetMagic();
+            }
+            else {
+                asmout << "//";
+            }
+            asmout << " vm: " << ctx.m_vmInfo->name << " (" << PlatformName(currentPlatform) << ")\n";
         }
 
         scriptfile->DumpHeader(asmout, opt);
@@ -1608,12 +1610,12 @@ ignoreCscGsc:
         {
             core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
             for (const auto& [id, str] : ctx.m_stringRefs) {
-                hashutils::AddPrecomputed(vmInfo->HashField(str), str, true);
-                hashutils::AddPrecomputed(vmInfo->HashFilePath(str), str, true);
-                hashutils::AddPrecomputed(vmInfo->HashPath(str), str, true);
+                hashutils::AddPrecomputed(ctx.m_vmInfo->HashField(str), str, true);
+                hashutils::AddPrecomputed(ctx.m_vmInfo->HashFilePath(str), str, true);
+                hashutils::AddPrecomputed(ctx.m_vmInfo->HashPath(str), str, true);
 
                 // use all the known hashes for this VM
-                for (auto& [k, func] : vmInfo->hashesFunc) {
+                for (auto& [k, func] : ctx.m_vmInfo->hashesFunc) {
                     try {
                         int64_t hash = func.hashFunc(str);
 
@@ -1664,9 +1666,9 @@ ignoreCscGsc:
                     if (typeSure) {
                         usingName[std::strlen(usingName) - 4] = 0; // remove .csc / .gsc
 
-                        if (vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                        if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
                             // IW vm import types
-                            hashutils::AddPrecomputed(vmInfo->HashFilePath(usingName), usingName);
+                            hashutils::AddPrecomputed(ctx.m_vmInfo->HashFilePath(usingName), usingName);
                         }
                     }
                 }
@@ -1676,7 +1678,7 @@ ignoreCscGsc:
                 if (opt.m_debugHashes) {
                     const char* incExt{ hashutils::ExtractPtr(includes[i]) };
                     if (incExt) {
-                        uint64_t hashPath{ vmInfo->HashPath(incExt) };
+                        uint64_t hashPath{ ctx.m_vmInfo->HashPath(incExt) };
 
                         if (hashPath != includes[i] && gdctx.WarningType(GDGCW_BAD_HASH_PATH_INCLUDE)) {
                             LOG_WARNING("Invalid hash alogithm for extracted include 0x{:x} != 0x{:x} for {}", includes[i], hashPath, incExt);
@@ -1822,7 +1824,7 @@ ignoreCscGsc:
             asmout << "\n";
         }
     }
-    if (vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7) && scriptfile->GetAnimTreeDoubleOffset()) {
+    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7) && scriptfile->GetAnimTreeDoubleOffset()) {
         uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetAnimTreeDoubleOffset()));
         auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
         for (size_t i = 0; i < anims_count; i++) {
@@ -1932,7 +1934,7 @@ ignoreCscGsc:
                 continue;
             }
 
-            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, vm, currentPlatform);
+            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, ctx.m_vmInfo->vmMagic, currentPlatform);
 
             if (!r.second) {
                 asmout << "Duplicate node "
@@ -1948,7 +1950,7 @@ ignoreCscGsc:
                 uint64_t name{ exp->GetName() };
                 const char* namePtr{ hashutils::ExtractPtr(name) };
                 if (namePtr) {
-                    uint64_t hashScr{ vmInfo->HashField(namePtr) };
+                    uint64_t hashScr{ ctx.m_vmInfo->HashField(namePtr) };
 
                     if (hashScr != name && gdctx.WarningType(GDGCW_BAD_HASH_FIELD)) {
                         LOG_WARNING("Invalid hash algorithm for extracted field 0x{:x} != 0x{:x} for {}", name, hashScr, namePtr);
@@ -1959,7 +1961,7 @@ ignoreCscGsc:
 
                     const char* fnsPtr{ hashutils::ExtractPtr(fileNameSpace) };
                     if (fnsPtr) {
-                        uint64_t hashFSScr{ vmInfo->HashFilePath(fnsPtr) };
+                        uint64_t hashFSScr{ ctx.m_vmInfo->HashFilePath(fnsPtr) };
 
                         if (hashFSScr != fileNameSpace && gdctx.WarningType(GDGCW_BAD_HASH_FILE)) {
                             LOG_WARNING("Invalid hash algorithm for extracted field 0x{:x} != 0x{:x} for {}", fileNameSpace, hashFSScr, fnsPtr);
@@ -2173,8 +2175,8 @@ ignoreCscGsc:
                 }
 
                 // handle first the constructor/destructor
-                handleMethod(vmInfo->HashField("__constructor"), "constructor", true);
-                handleMethod(vmInfo->HashField("__destructor"), "destructor", true);
+                handleMethod(ctx.m_vmInfo->HashField("__constructor"), "constructor", true);
+                handleMethod(ctx.m_vmInfo->HashField("__destructor"), "destructor", true);
 
                 for (const auto& method : cls.m_methods) {
                     handleMethod(method, nullptr, false);
@@ -2335,7 +2337,7 @@ ignoreCscGsc:
 
             const char* outDir;
             if (opt.m_splitByVm) {
-                outDir = utils::va("%s/vm-%llx", opt.m_dbgOutputDir, vmInfo->vmMagic);
+                outDir = utils::va("%s/vm-%llx", opt.m_dbgOutputDir, ctx.m_vmInfo->vmMagic);
             }
             else {
                 outDir = opt.m_dbgOutputDir;
@@ -2587,7 +2589,7 @@ int dumpdataset(Process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-tool::gsc::T8GSCOBJContext::T8GSCOBJContext() {}
+tool::gsc::T8GSCOBJContext::T8GSCOBJContext(const GscInfoOption& opt) : opt(opt) {}
 
 tool::gsc::T8GSCOBJContext::~T8GSCOBJContext() {
     for (char* string : m_allocatedStrings) {

@@ -125,6 +125,35 @@ namespace tool::mw19 {
         IW19_ASSETTYPE_COUNT = 120,
     };
 
+    enum VariableType : byte {
+        IW19_VAR_UNDEFINED = 0x0,
+        IW19_VAR_POINTER = 0x1,
+        IW19_VAR_STRING = 0x2,
+        IW19_VAR_ISTRING = 0x3,
+        IW19_VAR_VECTOR = 0x4,
+        IW19_VAR_FLOAT = 0x5,
+        IW19_VAR_INTEGER = 0x6,
+        IW19_VAR_CODEPOS = 0x7,
+        IW19_VAR_PRECODEPOS = 0x8,
+        IW19_VAR_FUNCTION = 0x9,
+        IW19_VAR_BUILTIN_FUNCTION = 0xA,
+        IW19_VAR_BUILTIN_METHOD = 0xB,
+        IW19_VAR_STACK = 0xC,
+        IW19_VAR_ANIMATION = 0xD,
+        IW19_VAR_PRE_ANIMATION = 0xE,
+        IW19_VAR_ANIM_TREE = 0xF,
+        IW19_VAR_THREAD = 0x10,
+        IW19_VAR_NOTIFY_THREAD = 0x11,
+        IW19_VAR_TIME_THREAD = 0x12,
+        IW19_VAR_CHILD_THREAD = 0x13,
+        IW19_VAR_OBJECT = 0x14,
+        IW19_VAR_DEAD_ENTITY = 0x15,
+        IW19_VAR_ENTITY = 0x16,
+        IW19_VAR_ARRAY = 0x17,
+        IW19_VAR_DEAD_THREAD = 0x18,
+        IW19_VAR_COUNT = 0x19,
+    };
+
     const char* PoolName(IW19PoolType type);
     IW19PoolType PoolId(const char* name);
 }

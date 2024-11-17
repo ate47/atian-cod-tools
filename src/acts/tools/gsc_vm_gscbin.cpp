@@ -17,9 +17,10 @@ namespace {
         // what is the easiest way to convert a stream based script loading to a linked script loading?
         // idk, but today it'll be to read the stream based script into a fake linked script and then
         // reading it. (It's dumb, yeah)
-        uint64_t name;
-        size_t exports_table;
-        size_t exports_count;
+        uint64_t name{};
+        size_t exports_table{};
+        size_t exports_count{};
+        byte vm{};
 
         compatibility::xensik::gscbin::GscBinHeader binHeader{};
     };
@@ -33,14 +34,20 @@ namespace {
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             compatibility::xensik::gscbin::GscBinHeader& data{ fakeHeader.binHeader };
-            asmout
-                << "// bytecode . 0x" << std::hex << data.bytecodeLen << "\n"
-                << "// buffer ... 0x" << std::hex << data.len << " / Compressed: 0x" << data.compressedLen << "\n"
-                ;
+
+            if (fakeHeader.vm) {
+                asmout << "// code type . 0x" << std::hex << (int)fakeHeader.vm << "\n";
+            }
+            if (data.bytecodeLen) {
+                asmout << "// bytecode .. 0x" << std::hex << data.bytecodeLen << "\n";
+            }
+            if (data.len || data.compressedLen) {
+                asmout << "// buffer .... 0x" << std::hex << data.len << " / Compressed: 0x" << data.compressedLen << "\n";
+            }
 
         }
 
-        int PreLoadCode() override {
+        int PreLoadCode(T8GSCOBJContext& ctx) override {
             compatibility::xensik::gscbin::GscBinHeader& header{ Ref<compatibility::xensik::gscbin::GscBinHeader>() };
 
             auto decompressedData{ std::make_unique<byte[]>(header.len) };
@@ -89,12 +96,29 @@ namespace {
             fakeLinked.clear();
             fakeLinked.reserve(header.len + sizeof(functions[0]) * functions.size());
 
+            if (header.bytecodeLen) {
+                fakeHeader.vm = *header.GetByteCode();
+                if (fakeHeader.vm) {
+                    uint64_t vmMagic{ tool::gsc::opcode::Gsc0Magic(fakeHeader.vm) };
+                
+                    if (!IsValidVmMagic(vmMagic, ctx.m_vmInfo)) {
+                        LOG_ERROR("Can't find gscbin bytecode vm 0x{:x}", (int)fakeHeader.vm);
+                        return tool::BASIC_ERROR;
+                    }
+                    
+                    if (ctx.opt.m_vm && vmMagic != ctx.opt.m_vm) {
+                        LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", vmMagic, (uint64_t)ctx.opt.m_vm);
+                        return 1;
+                    }
+                }
+            }
+
             size_t bytecode{ utils::WriteValue(fakeLinked, header.GetByteCode(), header.bytecodeLen)};
             size_t exports{ utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size()) };
 
-            fakeHeader.exports_count = functions.size();
-            fakeHeader.exports_table = exports;
-
+            fakeHeader.exports_count = 0;// functions.size();
+            fakeHeader.exports_table = 0;// exports;
+            
             if (originalFile) {
                 std::string fn = originalFile->string();
 
@@ -112,7 +136,7 @@ namespace {
             fakeHeader.binHeader = header;
             SetFile(fakeLinked.data(), fakeLinked.size());
 
-            return GSCOBJHandler::PreLoadCode();
+            return GSCOBJHandler::PreLoadCode(ctx);
         }
 
         uint64_t GetName() override {
@@ -303,6 +327,14 @@ namespace {
             return 0;
         }
     };
-}
+    void OpCode() {
 
+        VmInfo* gscbin = RegisterVM(VMI_IW_GSCBIN, "GSCBIN", "gscbin", "gscbin", VmFlags::VMF_GSCBIN | VmFlags::VMF_NO_VERSION);
+        gscbin->RegisterVmName("gscbin");
+        gscbin->AddPlatform(PLATFORM_PC);
+
+    }
+
+}
 REGISTER_GSC_VM(VMI_IW_GSCBIN, IWGSCOBJHandler);
+REGISTER_GSC_VM_OPCODES(gscbin, OpCode);
