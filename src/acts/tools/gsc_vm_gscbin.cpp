@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <core/bytebuffer.hpp>
 #include <compatibility/xensik_gscbin.hpp>
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
