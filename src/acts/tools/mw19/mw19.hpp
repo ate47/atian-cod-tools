@@ -1,5 +1,5 @@
 #pragma once
-namespace mw19 {
+namespace tool::mw19 {
 
     enum IW19PoolType : int {
         IW19_ASSETTYPE_PHYSICSLIBRARY = 0, // 0x0

@@ -34,8 +34,8 @@ namespace {
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             compatibility::xensik::gscbin::GscBinHeader& data{ fakeHeader.binHeader };
             asmout
-                << "// bytecode . " << std::dec << std::setw(3) << data.bytecodeLen << " (offset: 0x" << std::hex << (data.GetByteCode() - Ptr()) << ")\n"
-                << "// buffer ... " << std::dec << std::setw(3) << data.len << " / Compressed: " << data.compressedLen << " (offset: 0x" << std::hex << (data.GetBuffer() - Ptr()) << ")\n"
+                << "// bytecode . 0x" << std::hex << data.bytecodeLen << "\n"
+                << "// buffer ... 0x" << std::hex << data.len << " / Compressed: 0x" << data.compressedLen << "\n"
                 ;
 
         }
@@ -46,7 +46,7 @@ namespace {
             auto decompressedData{ std::make_unique<byte[]>(header.len) };
 
             uLongf sizef = (uLongf)header.len;
-            uLongf sizef2;
+            uLongf sizef2{ header.compressedLen };
             int ret;
             if (header.len && (ret = uncompress2(decompressedData.get(), &sizef, reinterpret_cast<const Bytef*>(header.GetBuffer()), &sizef2) < 0)) {
                 std::string fileName{ originalFile ? originalFile->string() : "<unk>" };
@@ -56,7 +56,7 @@ namespace {
             std::vector<tool::gsc::iw::BINGSCExport> functions{};
 
             int64_t sizeRead{ sizef };
-            uint32_t locByteCode{};
+            uint32_t locByteCode{ 1 };
 
             uint32_t start{ sizeof(FakeLinkHeader) };
 
@@ -66,8 +66,8 @@ namespace {
 
                 func.address = start + locByteCode;
                 func.size = *(uint32_t*)&decompressedData[sizeRead];
-                locByteCode += func.size;
                 sizeRead -= sizeof(uint32_t);
+                locByteCode += func.size;
                 uint32_t idRef = *(uint32_t*)&decompressedData[sizeRead];
                 sizeRead -= sizeof(uint32_t);
                 if (idRef) {
@@ -89,7 +89,7 @@ namespace {
             fakeLinked.clear();
             fakeLinked.reserve(header.len + sizeof(functions[0]) * functions.size());
 
-            size_t bytecode{ utils::WriteValue(fakeLinked, decompressedData.get(), header.len) };
+            size_t bytecode{ utils::WriteValue(fakeLinked, header.GetByteCode(), header.bytecodeLen)};
             size_t exports{ utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size()) };
 
             fakeHeader.exports_count = functions.size();

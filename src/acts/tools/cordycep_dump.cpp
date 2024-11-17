@@ -2511,8 +2511,8 @@ namespace tool::cordycep::dump {
 
 			bool Compute(const char** args, INT startIndex, INT endIndex) {
 				m_dump_types.clear();
-				m_dump_types.reserve(::mw19::IW19_ASSETTYPE_COUNT);
-				for (size_t i = 0; i < ::mw19::IW19_ASSETTYPE_COUNT; i++) {
+				m_dump_types.reserve(tool::mw19::IW19_ASSETTYPE_COUNT);
+				for (size_t i = 0; i < tool::mw19::IW19_ASSETTYPE_COUNT; i++) {
 					m_dump_types.push_back(false);
 				}
 				// default values
@@ -2557,19 +2557,19 @@ namespace tool::cordycep::dump {
 						return false;
 					}
 					else {
-						::mw19::IW19PoolType assetType = ::mw19::PoolId(arg);
+						tool::mw19::IW19PoolType assetType = tool::mw19::PoolId(arg);
 
-						if (assetType == ::mw19::IW19_ASSETTYPE_COUNT) {
+						if (assetType == tool::mw19::IW19_ASSETTYPE_COUNT) {
 							if (std::isdigit(arg[0])) {
 								try {
-									assetType = (::mw19::IW19PoolType)std::strtol(arg, nullptr, 10);
+									assetType = (tool::mw19::IW19PoolType)std::strtol(arg, nullptr, 10);
 								}
 								catch (const std::invalid_argument& e) {
 									std::cerr << e.what() << "\n";
-									assetType = ::mw19::IW19_ASSETTYPE_COUNT;
+									assetType = tool::mw19::IW19_ASSETTYPE_COUNT;
 								}
 							}
-							if (assetType < 0 || assetType >= ::mw19::IW19_ASSETTYPE_COUNT) {
+							if (assetType < 0 || assetType >= tool::mw19::IW19_ASSETTYPE_COUNT) {
 								std::cerr << "Invalid pool name: " << arg << "!\n";
 								return false;
 							}
@@ -2618,7 +2618,7 @@ namespace tool::cordycep::dump {
 			}
 
 
-			auto [pools, ok] = proc.ReadMemoryArray<XAssetPool64>(cordycep.poolsAddress, ::mw19::IW19_ASSETTYPE_COUNT);
+			auto [pools, ok] = proc.ReadMemoryArray<XAssetPool64>(cordycep.poolsAddress, tool::mw19::IW19_ASSETTYPE_COUNT);
 
 			if (!ok) {
 				LOG_ERROR("Can't read pools");
@@ -2637,7 +2637,7 @@ namespace tool::cordycep::dump {
 
 			size_t total{};
 
-			auto HandlePool = [&opt, &pools, &proc, &total](::mw19::IW19PoolType type, const std::filesystem::path& outDir, std::function<bool(const XAsset64& asset, size_t count)> func) {
+			auto HandlePool = [&opt, &pools, &proc, &total](tool::mw19::IW19PoolType type, const std::filesystem::path& outDir, std::function<bool(const XAsset64& asset, size_t count)> func) {
 				if (!opt.m_dump_types[type] && !opt.m_dump_all_available) {
 					return;
 				}
@@ -2649,7 +2649,7 @@ namespace tool::cordycep::dump {
 				int du = ForEachEntry(proc, pools[type], func);
 
 				if (du < 0) {
-					LOG_ERROR("Error reading pool: {}", ::mw19::PoolName(type));
+					LOG_ERROR("Error reading pool: {}", tool::mw19::PoolName(type));
 				}
 				else {
 					total += du;
@@ -2657,7 +2657,7 @@ namespace tool::cordycep::dump {
 			};
 
 			const std::filesystem::path gscDir = outDir / "gsc";
-			HandlePool(::mw19::IW19_ASSETTYPE_SCRIPTFILE, gscDir, [&opt, &proc, gscDir](const XAsset64& asset, size_t count) -> bool {
+			HandlePool(tool::mw19::IW19_ASSETTYPE_SCRIPTFILE, gscDir, [&opt, &proc, gscDir](const XAsset64& asset, size_t count) -> bool {
 				ScriptFile entry{};
 				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
 					LOG_ERROR("Can't read scriptfile entry {:x}", asset.Header);

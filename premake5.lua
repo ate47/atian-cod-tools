@@ -327,7 +327,8 @@ project "AtianCodTools"
         "deps/glfw/include/",
         "deps/imgui/",
         "deps/thread-pool/include/",
-        "deps/stb/"
+        "deps/stb/",
+        "deps/tomlplusplus/include/toml++/"
     }
 
     vpaths {

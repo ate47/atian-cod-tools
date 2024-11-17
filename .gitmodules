@@ -61,3 +61,6 @@
 [submodule "deps/stb"]
 	path = deps/stb
 	url = https://github.com/nothings/stb
+[submodule "deps/tomlplusplus"]
+	path = deps/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus

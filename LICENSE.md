@@ -15,6 +15,7 @@ This software depends on libraries with a different License.
 - [glfw/glfw](https://github.com/glfw/glfw) - [zlib/libpng license](https://github.com/glfw/glfw/blob/master/LICENSE.md)
 - [bshoshany/thread-pool](https://github.com/bshoshany/thread-pool) - [MIT license](https://github.com/bshoshany/thread-pool/blob/master/LICENSE.txt)
 - [nothings/stb](https://github.com/nothings/stb) - [MIT license](https://github.com/nothings/stb/blob/master/LICENSE)
+- [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus) - [MIT license](https://github.com/marzer/tomlplusplus/blob/master/LICENSE)
 
 
 # MIT License

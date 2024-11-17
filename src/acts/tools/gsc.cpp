@@ -3156,10 +3156,17 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             }
             utils::Padding(asmout, padding) << prefix << "Offset: 0x" << std::hex << std::uppercase << exp.GetAddress() << std::endl;
 
-            UINT size = ctx.FinalSize();
-            if (size > 1) { // at least one opcode
-                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << size << std::endl;
+            uint32_t knownSize{ exp.GetSize() };
+            if (knownSize) {
+                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << knownSize << std::endl;
             }
+            else {
+                UINT size = ctx.FinalSize();
+                if (size > 1) { // at least one opcode
+                    utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << size << std::endl;
+                }
+            }
+
 
             utils::Padding(asmout, padding) << prefix << "Parameters: " << std::dec << (int)exp.GetParamCount() << std::endl;
 
@@ -3266,9 +3273,15 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             }
             asmout << "Offset: 0x" << exp.GetAddress() << std::endl;
 
-            auto size = ctx.FinalSize();
-            if (size > 1) { // at least one opcode
-                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
+            uint32_t knownSize{ exp.GetSize() };
+            if (knownSize) {
+                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << knownSize << std::endl;
+            }
+            else {
+                auto size = ctx.FinalSize();
+                if (size > 1) { // at least one opcode
+                    utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
+                }
             }
             break;
         }

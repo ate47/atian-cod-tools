@@ -144,7 +144,13 @@ namespace hook::library {
 		Library(const char* name) : hmod(process::LoadLib(name)) {
 		}
 
+		Library(const char* name, bool system) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name)) {
+		}
+
 		Library(const std::string& name, bool system = false) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name)) {
+		}
+
+		Library(const std::filesystem::path& name, bool system = false) : hmod(system ? process::LoadSysLib(name.string()) : process::LoadLib(name.string())) {
 		}
 
 		Library(const Library& other) : hmod(other.hmod) {
