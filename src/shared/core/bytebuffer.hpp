@@ -19,6 +19,16 @@ namespace core::bytebuffer {
 			return t;
 		}
 
+		void Skip(size_t len) {
+			while (len--) {
+				Read<byte>();
+			}
+		}
+		template<typename T>
+		void Skip() {
+			Skip(sizeof(T));
+		}
+
 		template<typename T = byte>
 		T* Ptr(size_t offset = 0) {
 			return (T*)&buffer[pointer + offset];
