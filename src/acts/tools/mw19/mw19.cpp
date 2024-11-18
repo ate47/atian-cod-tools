@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <tools/gsc.hpp>
 #include <core/bytebuffer.hpp>
 #include <hook/module_mapper.hpp>
 #include <compatibility/xensik_gscbin.hpp>
@@ -187,6 +188,9 @@ return tool::OK;
         }
 
         int gscdmw19(int argc, const char* argv[]) {
+            LOG_WARNING("TOOL MOVED TO 'gscd'");
+            using namespace tool::gsc;
+            using namespace tool::gsc::opcode;
             if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
 
             std::filesystem::path outDir{ argv[3] };
@@ -200,6 +204,14 @@ return tool::OK;
             std::filesystem::create_directories(outDir);
 
             std::string scriptBuffer{};
+
+            RegisterOpCodesMap();
+            VmInfo* iw8{ tool::gsc::opcode::GetVm(VMI_IW_BIN_MW19) };
+
+            if (!iw8) {
+                LOG_ERROR("Can't find iw8 vm");
+                return tool::BASIC_ERROR;
+            }
 
             for (const std::filesystem::path& scriptFile : scriptFiles) {
                 if (!utils::ReadFile(scriptDir / scriptFile, scriptBuffer)) {
@@ -255,8 +267,8 @@ return tool::OK;
 
                 constexpr size_t opaqueStringCount = 0x1472F;
 
-                asmout << "// unk0: 0x" << std::hex << (int)bytecodeReader.Read<byte>() << "\n";
-                // mw19 3b? mwii 32 bytecode revision??
+                asmout << "// end: 0x" << std::hex << (int)bytecodeReader.Read<byte>() << "\n";
+                // mw19 3b? mwii 32 end
 
                 bool end{};
                 while (!bytecodeReader.End() && !end) {
@@ -277,75 +289,79 @@ return tool::OK;
                         asmout << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc() << " ";
                         byte opcode = bytecodeReader.Read<byte>();
 
-                        asmout << std::dec << std::setfill(' ') << std::setw(3) << (int)opcode << " | ";
+                        const OPCodeInfo* nfo{ LookupOpCode(VMI_IW_BIN_MW19, PLATFORM_PC, opcode) };
+
+                        asmout 
+                            << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int)opcode 
+                            << " " << std::setw(0x20) << std::setfill('.') << nfo->m_name << "(" << std::dec << std::setfill(' ') << std::setw(3) << (int)opcode << ")" << " | ";
                         switch (opcode) {
-                        case 1:
-                        case 3:
-                        case 20:
-                        case 22:
-                        case 40:
-                        case 48:
-                        case 52:
-                        case 68:
-                        case 69:
-                        case 70:
-                        case 71:
-                        case 81:
-                        case 82:
-                        case 91:
-                        case 99:
-                        case 104:
-                        case 107:
-                        case 113:
-                        case 116:
-                        case 140:
-                        case 142:
-                        case 147:
-                        case 161:
-                        case 185:
-                        case 186:
-                        case 187:
-                        case 188:
+                        case 0x01:
+                        case 0x03:
+                        case 0x14:
+                        case 0x16:
+                        case 0x28:
+                        case 0x30:
+                        case 0x34:
+                        case 0x44:
+                        case 0x45:
+                        case 0x46:
+                        case 0x47:
+                        case 0x51:
+                        case 0x52:
+                        case 0x5b:
+                        case 0x63:
+                        case 0x68:
+                        case 0x6b:
+                        case 0x71:
+                        case 0x74:
+                        case 0x8c:
+                        case 0x8e:
+                        case 0x93:
+                        case 0xa1:
+                        case 0xb9:
+                        case 0xba:
+                        case 0xbb:
+                        case 0xbc:
                             asmout << std::hex << "0x" << (int)bytecodeReader.Read<byte>() << "\n";
                             break;
-                        case 11:
-                        case 14:
-                        case 25:
-                        case 27:
-                        case 28:
-                        case 29:
-                        case 30:
-                        case 31:
-                        case 32:
-                        case 33:
-                        case 34:
-                        case 50:
-                        case 80:
-                        case 85:
-                        case 102:
-                        case 114:
-                        case 126:
-                        case 127:
-                        case 128:
-                        case 129:
-                        case 130:
-                        case 131:
+                        case 0x0b:
+                        case 0x0e:
+                        case 0x19:
+                        case 0x1b:
+                        case 0x1c:
+                        case 0x1d:
+                        case 0x1e:
+                        case 0x1f:
+                        case 0x20:
+                        case 0x21:
+                        case 0x22:
+                        case 0x32:
+                        case 0x50:
+                        case 0x55:
+                        case 0x66:
+                        case 0x72:
+                        case 0x7e:
+                        case 0x7f:
+                        case 0x80:
+                        case 0x81:
+                        case 0x82:
+                        case 0x83:
                             // += 2
                             asmout
                                 << std::hex << "0x" << bytecodeReader.Read<uint16_t>()
                                 << "\n"
                                 ;
                             break;
-                        case 35:
-                        case 51:
-                        case 79:
-                        case 132:
-                        case 137:
-                        case 152:
-                        case 169:
-                        case 170:
-                        case 171:
-                        case 172:
+                        case 0x23:
+                        case 0x33:
+                        case 0x4f:
+                        case 0x84:
+                        case 0x89:
+                        case 0x98:
+                        case 0xa9:
+                        case 0xaa:
+                        case 0xab:
+                        case 0xac:
                             // += 3
                             asmout
                                 << std::hex << "0x" << bytecodeReader.Read<uint16_t>()
@@ -353,25 +369,25 @@ return tool::OK;
                                 << "\n"
                                 ;
                             break;
-                        case 41:
-                        case 53:
-                        case 72:
-                        case 73:
-                        case 110:
-                        case 112:
-                        case 134:
-                        case 148:
-                        case 173:
-                        case 174:
-                        case 175:
-                        case 176:
+                        case 0x29:
+                        case 0x35:
+                        case 0x48:
+                        case 0x49:
+                        case 0x6e:
+                        case 0x70:
+                        case 0x86:
+                        case 0x94:
+                        case 0xad:
+                        case 0xae:
+                        case 0xaf:
+                        case 0xb0:
                             // += 4
                             asmout
                                 << std::hex << "0x" << bytecodeReader.Read<uint32_t>()
                                 << "\n"
                                 ;
                             break;
-                        case 160:
+                        case 0xa0:
                             // += 5
                             asmout
                                 << std::hex << bytecodeReader.Read<uint32_t>()
@@ -379,7 +395,7 @@ return tool::OK;
                                 << "\n"
                                 ;
                             break;
-                        case 19:
+                        case 0x13:
                             // += 12
                             asmout
                                 << std::dec << bytecodeReader.Read<float>()
@@ -388,8 +404,8 @@ return tool::OK;
                                 << "\n"
                                 ;
                             break;
-                        case 166:
-                        case 189: {
+                        case 0xa6:
+                        case 0xbd: {
                             // += *bytecodeRef++
                             byte count{ bytecodeReader.Read<byte>() };
                             asmout << std::hex << "count: 0x" << (int)count;
@@ -401,10 +417,10 @@ return tool::OK;
                                 ;
                         }
                             break;
-                        case 177:
-                        case 178:
-                        case 179:
-                        case 180:
+                        case 0xb1:
+                        case 0xb2:
+                        case 0xb3:
+                        case 0xb4:
                             // += 3 and read dw data
                             asmout 
                                 << "data3: 0x" << std::hex << sourceReader.Read<uint32_t>()
@@ -413,10 +429,10 @@ return tool::OK;
                                 << "\n"
                                 ;
                             break;
-                        case 181:
-                        case 182:
-                        case 183:
-                        case 184:
+                        case 0xb5:
+                        case 0xb6:
+                        case 0xb7:
+                        case 0xb8:
                             // += 4 and read dw data
                             asmout 
                                 << "data4: 0x" << std::hex << sourceReader.Read<uint32_t>()
@@ -424,7 +440,7 @@ return tool::OK;
                                 << "\n"
                                 ;
                             break;
-                        case 145: {
+                        case 0x91: {
                                 // #using_animtree  related
                             const char* unkstr1{ sourceReader.ReadString() };
                             const char* unkstr2{ sourceReader.ReadString() };
@@ -435,10 +451,10 @@ return tool::OK;
                                 ;
                         }
                             break;
-                        case 96:
-                        case 117:
-                        case 146:
-                        case 150: {
+                        case 0x60:
+                        case 0x75:
+                        case 0x92:
+                        case 0x96: {
                             asmout 
                                 << "token: " << ReadSourceToken()
                                 << ", token2: " << ReadSourceToken();
@@ -450,18 +466,18 @@ return tool::OK;
                         }
 
                             break;
-                        case 4:
-                        case 7:
-                        case 8:
-                        case 24:
-                        case 37:
-                        case 44:
-                        case 56:
-                        case 60:
-                        case 76:
-                        case 109:
-                        case 123:
-                        case 141: {
+                        case 0x4:
+                        case 0x7:
+                        case 0x8:
+                        case 0x18:
+                        case 0x25:
+                        case 0x2c:
+                        case 0x38:
+                        case 0x3c:
+                        case 0x4c:
+                        case 0x6d:
+                        case 0x7b:
+                        case 0x8d: {
                             uint32_t id{ bytecodeReader.Read<uint32_t>() };
 
                             if (id <= opaqueStringCount) {
@@ -473,10 +489,10 @@ return tool::OK;
 
                         }
                             break;
-                        case 5:
-                        case 23:
-                        case 101:
-                        case 138: {
+                        case 0x5:
+                        case 0x17:
+                        case 0x65:
+                        case 0x8a: {
                             asmout 
                                 << "token2: " << ReadSourceToken()
                                 << " / " << ReadSourceToken() 
@@ -484,7 +500,7 @@ return tool::OK;
                                 << "\n";
                         }
                             break;
-                        case 86: {
+                        case 0x56: {
                             uint16_t count{ bytecodeReader.Read<uint16_t>() };
 
                             asmout << "count: " << std::dec << count << "\n";
@@ -504,13 +520,13 @@ return tool::OK;
 
                         }
                             break;
-                        case 95:
-                        case 122: {
+                        case 0x5f:
+                        case 0x7a: {
                             const char* valStr{ sourceReader.ReadString() };
                             asmout << "data95: " << DecrytString(valStr) << ", " << bytecodeReader.Read<uint32_t>() << "\n";
                         }
                             break;
-                        case 98: {
+                        case 0x62: { // get anim tree
                             const char* valStr{ sourceReader.ReadString() };
                             asmout << "data98: " << DecrytString(valStr) << ", " << (int)bytecodeReader.Read<byte>() << "\n";
                         }
@@ -543,5 +559,6 @@ return tool::OK;
         }
         return IW19_ASSETTYPE_COUNT;
     }
-    ADD_TOOL(gscdmw19, "mw19", "[script]", "Test gsc decompiler", gscdmw19);
+    // moved to gscd
+    // ADD_TOOL(gscdmw19, "mw19", "[script]", "Test gsc decompiler", gscdmw19);
 }

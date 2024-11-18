@@ -257,7 +257,11 @@ namespace tool::gsc::opcode {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			out << m_str1 << "%" << m_str2 << std::flush;
+
+			PrintFormattedString(out, m_str1);
+			out << "%";
+			PrintFormattedString(out, m_str2);
+			out << std::flush;
 		}
 
 		ASMContextNode* Clone() const override {

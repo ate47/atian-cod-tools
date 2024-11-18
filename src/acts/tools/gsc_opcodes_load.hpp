@@ -1,12 +1,17 @@
 #pragma once
 
 namespace tool::gsc::opcode {
-	constexpr uint64_t GSC0 = 0x00435347;
+	constexpr uint64_t GetGscOldVm(const char* id) {
+		uint64_t uid{ 0x2d435347 }; // "GSC-"
+		size_t offset{ 32 };
 
-	constexpr uint64_t Gsc0Magic(byte vm) {
-		return GSC0 | ((uint64_t)vm << 32);
+		while (*id) {
+			uid |= (uint64_t) *(id++) << offset;
+			offset += 8;
+		}
+
+		return uid;
 	}
-
 	enum VMId : uint64_t {
 		VMI_UNKNOWN = 0,
 
@@ -27,9 +32,16 @@ namespace tool::gsc::opcode {
 		VMI_T10_0C = 0xa0d4353470C,
 
 		// IW old VMs
-		VMI_IW_GSCBIN = Gsc0Magic(0),
-		VMI_IW_BIN_MW19 = Gsc0Magic(0x3b),
-		VMI_IW_BIN_MW22 = Gsc0Magic(0x32),
+		VMI_IW_GSCBIN = 0x00435347, // "GSC\0"
+		VMI_IW_BIN_GHOSTS = GetGscOldVm("GH"),
+		VMI_IW_BIN_AW = GetGscOldVm("AW"),
+		VMI_IW_BIN_IW = GetGscOldVm("IW"),
+		VMI_IW_BIN_RM_MW1 = GetGscOldVm("RM1"),
+		VMI_IW_BIN_WW2 = GetGscOldVm("WW2"),
+		VMI_IW_BIN_MW19 = GetGscOldVm("M19"),
+		VMI_IW_BIN_RM_MW2 = GetGscOldVm("RM2"),
+		VMI_IW_BIN_VANGUARD = GetGscOldVm("VNG"),
+		VMI_IW_BIN_MW22 = GetGscOldVm("M22"),
 
 		// ACTS VM
 		VMI_ACTS_F1 = 0x4d565354434124F1,
@@ -351,6 +363,19 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_GetResourceHash2,
 
 		OPCODE_IW_GetPositionRef,
+
+		// undefined opcodes to pass data in gscbin
+		OPCODE_GSCBIN_SKIP_0, // skip 0 bytes
+		OPCODE_GSCBIN_SKIP_1, // skip 1 byte
+		OPCODE_GSCBIN_SKIP_2, // skip 2 bytes
+		OPCODE_GSCBIN_SKIP_3, // skip 3 bytes
+		OPCODE_GSCBIN_SKIP_4, // skip 4 bytes
+		OPCODE_GSCBIN_SKIP_5, // skip 5 bytes
+		OPCODE_GSCBIN_SKIP_N, // skip N bytes (N a byte)
+		OPCODE_GSCBIN_SKIP_3BC_4SD, // skip 3 bytes and 4 script data
+		OPCODE_GSCBIN_SKIP_4BC_4SD, // skip 4 bytes and 4 script data
+		OPCODE_GSCBIN_SKIP_STR_TOKEN, // skip opaque or str
+		OPCODE_GSCBIN_SKIP_4BC_1STR, // skip 4 bytes and read 1 string
 
 		OPCODE_COUNT,
 	};

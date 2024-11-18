@@ -98,6 +98,8 @@ namespace tool::gsc {
         bool m_sync{ true };
         bool m_vtable{};
         bool m_debugHashes{};
+        bool m_usePathOutput{};
+        bool m_dumpSkipData{};
         const char* vtable_dump{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
@@ -1318,7 +1320,7 @@ namespace tool::gsc {
         virtual void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx);
         // Patch script to prepare disasm
         virtual int PatchCode(T8GSCOBJContext& ctx);
-        virtual int PreLoadCode(T8GSCOBJContext& ctx);
+        virtual int PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout);
     };
 
     std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(uint64_t vm);

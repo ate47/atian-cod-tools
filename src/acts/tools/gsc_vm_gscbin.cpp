@@ -21,9 +21,19 @@ namespace {
         uint64_t name{};
         size_t exports_table{};
         size_t exports_count{};
-        byte vm{};
+        size_t animtree_table{};
+        size_t animtree_count{};
+        size_t useanimtree_table{};
+        size_t useanimtree_count{};
+        size_t strings_table{};
+        size_t strings_count{};
 
         compatibility::xensik::gscbin::GscBinHeader binHeader{};
+    };
+
+    struct PreString {
+        uint32_t string;
+        uint32_t address;
     };
 
     class IWGSCOBJHandler : public GSCOBJHandler {
@@ -36,9 +46,6 @@ namespace {
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             compatibility::xensik::gscbin::GscBinHeader& data{ fakeHeader.binHeader };
 
-            if (fakeHeader.vm) {
-                asmout << "// code type . 0x" << std::hex << (int)fakeHeader.vm << "\n";
-            }
             if (data.bytecodeLen) {
                 asmout << "// bytecode .. 0x" << std::hex << data.bytecodeLen << "\n";
             }
@@ -48,7 +55,7 @@ namespace {
 
         }
 
-        int PreLoadCode(T8GSCOBJContext& ctx) override {
+        int PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout) override {
             compatibility::xensik::gscbin::GscBinHeader& header{ Ref<compatibility::xensik::gscbin::GscBinHeader>() };
 
             auto decompressedData{ std::make_unique<byte[]>(header.len) };
@@ -62,64 +69,314 @@ namespace {
             }
 
             std::vector<tool::gsc::iw::BINGSCExport> functions{};
-
-            int64_t sizeRead{ sizef };
-            uint32_t locByteCode{ 1 };
-
-            uint32_t start{ sizeof(FakeLinkHeader) };
-
-            while (sizeRead > 0 && locByteCode < header.bytecodeLen) {
-                functions.emplace_back();
-                tool::gsc::iw::BINGSCExport& func{ functions[functions.size() - 1] };
-
-                func.address = start + locByteCode;
-                func.size = *(uint32_t*)&decompressedData[sizeRead];
-                sizeRead -= sizeof(uint32_t);
-                locByteCode += func.size;
-                uint32_t idRef = *(uint32_t*)&decompressedData[sizeRead];
-                sizeRead -= sizeof(uint32_t);
-                if (idRef) {
-                    const char* nameRef{ utils::va("ref_%x", idRef) };
-                    uint64_t hash{ hash::Hash64(nameRef) };
-                    hashutils::AddPrecomputed(hash, nameRef);
-                    func.name = hash;
-                }
-                else {
-                    const char* nameStr{ (const char*)&decompressedData[sizeRead] };
-                    size_t nameStrLen{ std::strlen(nameStr) };
-                    sizeRead -= nameStrLen + 1;
-                    uint64_t hash{ hash::Hash64(nameStr) };
-                    hashutils::AddPrecomputed(hash, nameStr);
-                    func.name = hash;
-                }
-            }
+            std::vector<tool::gsc::GSC_ANIMTREE_ITEM> animTrees{};
+            std::vector<tool::gsc::GSC_USEANIMTREE_ITEM> useAnimTrees{};
+            std::vector<PreString> strings{};
+            std::vector<byte> stringData{};
 
             fakeLinked.clear();
             fakeLinked.reserve(header.len + sizeof(functions[0]) * functions.size());
 
+            utils::Allocate(fakeLinked, sizeof(fakeHeader));
+            size_t bytecode{ utils::WriteValue(fakeLinked, header.GetByteCode(), header.bytecodeLen) };
+
+
             if (header.bytecodeLen) {
-                fakeHeader.vm = *header.GetByteCode();
-                if (fakeHeader.vm) {
-                    uint64_t vmMagic{ tool::gsc::opcode::Gsc0Magic(fakeHeader.vm) };
-                
-                    if (!IsValidVmMagic(vmMagic, ctx.m_vmInfo)) {
-                        LOG_ERROR("Can't find gscbin bytecode vm 0x{:x}", (int)fakeHeader.vm);
-                        return tool::BASIC_ERROR;
+                if (!ctx.opt.m_vm) {
+                    LOG_INFO("GSCBIN decompiler requires a vm");
+                    return tool::BASIC_ERROR;
+                }
+
+                if (!IsValidVmMagic(ctx.opt.m_vm, ctx.m_vmInfo)) {
+                    LOG_ERROR("Can't find gscbin vm 0x{:x}", (uint64_t)ctx.opt.m_vm);
+                    return tool::BASIC_ERROR;
+                }
+
+
+                core::bytebuffer::ByteBuffer sourceReader{ decompressedData.get(), sizef };
+                core::bytebuffer::ByteBuffer bytecodeReader{ header.GetByteCode(), header.bytecodeLen };
+
+                auto ReadSourceToken = [&sourceReader]() -> const char* {
+                    uint32_t id = sourceReader.Read<uint32_t>();
+
+                    if (!id) {
+                        return sourceReader.ReadString();
                     }
-                    
-                    if (ctx.opt.m_vm && vmMagic != ctx.opt.m_vm) {
-                        LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", vmMagic, (uint64_t)ctx.opt.m_vm);
-                        return 1;
+
+                    return utils::va("ref_%x", id);
+                };
+                auto SkipNBytes = [&asmout, &bytecodeReader](size_t n) -> std::ostream& {
+                    asmout << "{";
+                    for (size_t i = 0; i < n; i++) {
+                        if (i) asmout << ", ";
+                        asmout << "0x" << std::hex << (int)bytecodeReader.Read<byte>();
+                    }
+                    return asmout << "}";
+                };
+
+                byte endOpCode{ bytecodeReader.Read<byte>() };
+
+
+                asmout << "// end: 0x" << std::hex << (int)endOpCode << "\n";
+
+                size_t opaqueStringCount{ ctx.m_vmInfo->opaqueStringCount };
+                if (!opaqueStringCount) {
+                    LOG_WARNING("No opaqueStringCount set for the VM {}, it might be an error", ctx.m_vmInfo->name);
+                }
+
+
+                while (!bytecodeReader.End()) {
+                    BINGSCExport exp{};
+
+                    try {
+                        exp.address = (uint32_t)(bytecode + bytecodeReader.Loc());
+                        byte* funcStart{ bytecodeReader.Ptr() };
+                        exp.size = sourceReader.Read<uint32_t>();
+                        byte* funcEnd{ funcStart + exp.size };
+                        const char* name{ ReadSourceToken() };
+                        uint64_t hname{ hash::Hash64(name) };
+                        hashutils::AddPrecomputed(hname, name);
+                        exp.name = hname;
+
+                        asmout
+                            << "\n"
+                            << "// name: " << name << "\n"
+                            << "// offset: 0x" << std::hex << exp.address << "\n"
+                            << "// size: 0x" << std::hex << exp.size << "\n"
+                            ;
+                        functions.emplace_back(exp);
+                        while (bytecodeReader.Ptr() < funcEnd) {
+                            asmout << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc() << " ";
+                            byte opcode{ bytecodeReader.Read<byte>() };
+
+                            const OPCodeInfo* nfo{ LookupOpCode(VMI_IW_BIN_MW19, PLATFORM_PC, opcode) };
+
+                            asmout
+                                << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int)opcode
+                                << " " << std::setw(0x20) << std::setfill('.') << nfo->m_name << "(" << std::dec << std::setfill(' ') << std::setw(3) << (int)opcode << ")" << " | ";
+                            switch (nfo->m_id) {
+                            case OPCODE_Plus:
+                            case OPCODE_Minus:
+                            case OPCODE_Modulus:
+                            case OPCODE_Vector:
+                            case OPCODE_Bit_And:
+                            case OPCODE_Bit_Or:
+                            case OPCODE_Bit_Xor:
+                            case OPCODE_BoolComplement:
+                            case OPCODE_Divide:
+                            case OPCODE_Multiply:
+                            case OPCODE_End:
+                            case OPCODE_Return:
+                            case OPCODE_Nop:
+                            case OPCODE_NotEqual:
+                            case OPCODE_Equal:
+                            case OPCODE_SuperEqual:
+                            case OPCODE_SuperNotEqual:
+                            case OPCODE_CastBool:
+                            case OPCODE_IW_GetLevel:
+                            case OPCODE_IW_GetLevelGRef:
+                            case OPCODE_IW_GetAnim:
+                            case OPCODE_GetAnimGRef:
+                            case OPCODE_IW_GetGame:
+                            case OPCODE_IW_GetGameRef:
+                            case OPCODE_GetClasses:
+                            case OPCODE_GetClassesObject:
+                            case OPCODE_GetSelf:
+                            case OPCODE_GetSelfObject:
+                            case OPCODE_GetTime:
+                            case OPCODE_IW_GetThread:
+                            case OPCODE_CastFieldObject:
+                            case OPCODE_Dec:
+                            case OPCODE_DecTop:
+                            case OPCODE_Inc:
+                            case OPCODE_IsDefined:
+                            case OPCODE_IW_IsTrue:
+                            case OPCODE_CreateStruct:
+                            case OPCODE_CreateArray:
+                            case OPCODE_IW_EvalLocalVariableCached0:
+                            case OPCODE_IW_EvalLocalVariableCached1:
+                            case OPCODE_IW_EvalLocalVariableCached2:
+                            case OPCODE_IW_EvalLocalVariableCached3:
+                            case OPCODE_IW_EvalLocalVariableCached4:
+                            case OPCODE_IW_EvalLocalVariableCached5:
+                            case OPCODE_CheckClearParams:
+                            case OPCODE_GreaterThanOrEqualTo:
+                            case OPCODE_GreaterThan:
+                            case OPCODE_LessThanOrEqualTo:
+                            case OPCODE_LessThan:
+                            case OPCODE_T10_LowerThanOrSuperEqualTo:
+                            case OPCODE_T10_GreaterThanOrSuperEqualTo:
+                            case OPCODE_GetZero:
+                            case OPCODE_SetVariableField:
+                            case OPCODE_GSCBIN_SKIP_0:
+                                asmout << "\n";
+                                break;
+                            case OPCODE_GetByte:
+                            case OPCODE_GetNegByte:
+                            case OPCODE_GetSignedByte:
+                            case OPCODE_EvalLocalVariableCached:
+                            case OPCODE_SetLocalVariableCached:
+                            case OPCODE_EvalLocalVariableRefCached:
+                            case OPCODE_T9_IncLocalVariableCached:
+                            case OPCODE_T9_DecLocalVariableCached:
+                            case OPCODE_GSCBIN_SKIP_1:
+                                SkipNBytes(1) << "\n";
+                                break;
+                            case OPCODE_GetShort:
+                            case OPCODE_GetNegUnsignedShort:
+                            case OPCODE_GetUnsignedShort:
+                            case OPCODE_JumpOnGreaterThan:
+                            case OPCODE_JumpOnLessThan:
+                            case OPCODE_JumpOnTrue:
+                            case OPCODE_JumpOnTrueExpr:
+                            case OPCODE_JumpOnFalse:
+                            case OPCODE_JumpOnFalseExpr:
+                            case OPCODE_JumpOnDefined:
+                            case OPCODE_JumpOnDefinedExpr:
+                            case OPCODE_Jump:
+                            case OPCODE_DevblockBegin:
+                            case OPCODE_GSCBIN_SKIP_2:
+                                SkipNBytes(2) << "\n";
+                                break;
+                            case OPCODE_GSCBIN_SKIP_3:
+                                SkipNBytes(3) << "\n";
+                                break;
+                            case OPCODE_GetInteger:
+                            case OPCODE_GetUnsignedInteger:
+                            case OPCODE_GetNegUnsignedInteger:
+                            case OPCODE_GetFloat:
+                            case OPCODE_GSCBIN_SKIP_4:
+                                SkipNBytes(4) << "\n";
+                                break;
+                            case OPCODE_GSCBIN_SKIP_5:
+                                SkipNBytes(5) << "\n";
+                                break;
+                            case OPCODE_GetVector:
+                                asmout 
+                                    << "("
+                                    << bytecodeReader.Read<float>() << ", " 
+                                    << bytecodeReader.Read<float>() << ", " 
+                                    << bytecodeReader.Read<float>() << ")\n"
+                                    ;
+                                break;
+                            case OPCODE_SafeCreateLocalVariables: {
+                                byte count{ bytecodeReader.Read<byte>() };
+                                exp.param_count = count;
+                                asmout << "count: " << std::dec << (int)count << " ";
+                                SkipNBytes(count) << "\n";
+                                break;
+                            }
+                            case OPCODE_GSCBIN_SKIP_N: {
+                                byte count{ bytecodeReader.Read<byte>() };
+                                asmout << "count: " << std::dec << (int)count << " ";
+                                SkipNBytes(count) << "\n";
+                                break;
+                            }
+                            case OPCODE_IW_EndSwitch: {
+                                uint16_t count{ bytecodeReader.Read<uint16_t>() };
+                                asmout << "count: " << std::dec << count << "\n";
+
+                                for (size_t i = 0; i < count; i++) {
+                                    asmout << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc() << " ";
+                                    int32_t val{ bytecodeReader.Read<int32_t>() };
+                                    asmout << "0x" << std::hex << val << " ";
+                                    SkipNBytes(3); //rloc/type?
+
+                                    if (val < 0x100000) {
+                                        const char* valStr{ sourceReader.ReadString() };
+                                        asmout << ": " << valStr;
+                                    }
+                                    asmout << "\n";
+                                }
+                                break;
+                            }
+                            case OPCODE_GSCBIN_SKIP_STR_TOKEN: {
+                                uint32_t id{ bytecodeReader.Read<uint32_t>() };
+
+                                if (id > opaqueStringCount) {
+                                    const char* valStr{ ReadSourceToken() };
+                                }
+                                asmout << "\n";
+
+                                break;
+                            }
+                            case OPCODE_GSCBIN_SKIP_4BC_1STR: {
+                                const char* valStr{ sourceReader.ReadString() };
+                                SkipNBytes(4) << "\n";
+                                break;
+                            }
+                            case OPCODE_IW_GetAnimation: {
+                                GSC_ANIMTREE_ITEM& item{ animTrees.emplace_back() };
+                                item.address_str1 = (uint32_t)utils::WriteString(stringData, sourceReader.ReadString());
+                                item.address_str2 = (uint32_t)utils::WriteString(stringData, sourceReader.ReadString());
+                                item.num_address = (uint32_t)bytecodeReader.Loc();
+
+                                SkipNBytes(8) << "\n";
+                                break;
+                            }
+                            case OPCODE_IW_GetAnimationTree: {
+                                GSC_USEANIMTREE_ITEM& item{ useAnimTrees.emplace_back() };
+                                item.address = (uint32_t)utils::WriteString(stringData, sourceReader.ReadString());
+                                item.num_address = (uint32_t)bytecodeReader.Loc();
+
+                                SkipNBytes(1) << "\n";
+                                break;
+                            }
+                            default: {
+                                const char* err{ utils::va("Operator not handled %x (%d/%s)", opcode, opcode, nfo->m_name) };
+                                asmout << err << std::endl;
+                                throw std::runtime_error(err);
+                            }
+                            }
+                        }
+                    }
+                    catch (std::runtime_error& err) {
+                        LOG_ERROR("Error when reading the bytecode: {}", err.what());
+                        break;
                     }
                 }
             }
+            // write cseg
+            fakeHeader.exports_count = functions.size();
+            fakeHeader.exports_table = utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size());
 
-            size_t bytecode{ utils::WriteValue(fakeLinked, header.GetByteCode(), header.bytecodeLen)};
-            size_t exports{ utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size()) };
+            // write strings
+            size_t strData{ utils::WriteValue(fakeLinked, stringData.data(), stringData.size()) };
 
-            fakeHeader.exports_count = 0;// functions.size();
-            fakeHeader.exports_table = 0;// exports;
-            
+            // write strings
+            fakeHeader.strings_table = fakeLinked.size();
+            fakeHeader.strings_count = strings.size();
+            for (PreString& s : strings) {
+                T8GSCString& item = utils::Allocate<T8GSCString>(fakeLinked);
+                item.string = (uint32_t)(strData + s.string);
+                item.type = 0;
+                item.num_address = 1;
+                utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + s.address));
+            }
+
+            // write animtrees
+            fakeHeader.animtree_table = fakeLinked.size();
+            fakeHeader.animtree_count = animTrees.size();
+
+            for (GSC_ANIMTREE_ITEM& at : animTrees) {
+                GSC_ANIMTREE_ITEM& item = utils::Allocate<GSC_ANIMTREE_ITEM>(fakeLinked);
+                item.address_str1 = (uint32_t)(strData + at.address_str1);
+                item.address_str2 = (uint32_t)(strData + at.address_str2);
+                item.num_address = 1;
+                utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + at.num_address));
+            }
+
+            // write use animtrees
+            fakeHeader.useanimtree_table = fakeLinked.size();
+            fakeHeader.useanimtree_count = useAnimTrees.size();
+
+            for (GSC_USEANIMTREE_ITEM& at : useAnimTrees) {
+                GSC_USEANIMTREE_ITEM& item = utils::Allocate<GSC_USEANIMTREE_ITEM>(fakeLinked);
+                item.address = (uint32_t)(strData + at.address);
+                item.num_address = 1;
+                utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + at.num_address));
+            }
+
             if (originalFile) {
                 std::string fn = originalFile->string();
 
@@ -135,9 +392,10 @@ namespace {
                 fakeHeader.name = hash::Hash64(name);
             }
             fakeHeader.binHeader = header;
+            std::memcpy(fakeLinked.data(), &fakeHeader, sizeof(fakeHeader));
             SetFile(fakeLinked.data(), fakeLinked.size());
 
-            return GSCOBJHandler::PreLoadCode(ctx);
+            return GSCOBJHandler::PreLoadCode(ctx, asmout);
         }
 
         uint64_t GetName() override {
@@ -189,16 +447,16 @@ namespace {
             return size >= sizeof(compatibility::xensik::gscbin::GscBinHeader) && Ref<uint32_t>() == compatibility::xensik::gscbin::GSCBIN_MAGIC;
         }
         uint16_t GetAnimTreeSingleCount() override {
-            return 0;
+            return (uint16_t)fakeHeader.useanimtree_count;
         };
         uint32_t GetAnimTreeSingleOffset() override {
-            return 0;
+            return (uint32_t)fakeHeader.useanimtree_table;
         };
         uint16_t GetAnimTreeDoubleCount() override {
-            return 0;
+            return (uint16_t)fakeHeader.animtree_count;
         };
         uint32_t GetAnimTreeDoubleOffset() override {
-            return 0;
+            return (uint32_t)fakeHeader.animtree_table;
         };
 
         // no name

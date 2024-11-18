@@ -29,6 +29,8 @@ namespace tool::gsc::opcode {
 		VMF_HASH_PATH_IW = 1 << 20,
 		VMF_GSCBIN = 1 << 21,
 		VMF_NO_MAGIC = 1 << 22,
+		VMF_VAR_ID = 1 << 23,
+		VMF_IW_LIKE = 1 << 24,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

@@ -607,7 +607,7 @@ int OPCodeInfo::Skip(uint16_t value, ASMSkipContext& ctx) const {
 	return 0; // by default nop
 }
 
-class OPCodeInfounknown : public OPCodeInfo {
+class OPCodeInfoUnknown : public OPCodeInfo {
 public:
 	using OPCodeInfo::OPCodeInfo;
 
@@ -676,7 +676,7 @@ public:
 			}
 		}
 		if (context.m_opt.m_dcomp) {
-			ASMContextNodeMultOp* op = new ASMContextNodeMultOp("InvalidOpCode", false);
+			ASMContextNodeMultOp* op = new ASMContextNodeMultOp(m_id == OPCODE_Undefined ? "InvalidOpCode" : m_name, false);
 			op->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_VALUE, true, false, true));
 
 			// add params
@@ -803,7 +803,12 @@ public:
 			context.WritePadding(out);
 			uint64_t varName;
 
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_VAR_ID)) {
+				const char* varNameStr{ utils::va("local_%d", *(context.m_bcl++)) };
+				varName = hash::Hash64(varNameStr);
+				hashutils::AddPrecomputed(varName, varNameStr);
+			}
+			else if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
 				if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 					context.Aligned<uint64_t>();
 				}
@@ -820,7 +825,7 @@ public:
 			auto& bytecode = context.m_bcl;
 
 			byte flags;
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_NO_PARAM_FLAGS) {
+			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_PARAM_FLAGS)) {
 				flags = 0;
 			}
 			else {
@@ -3001,6 +3006,30 @@ public:
 		return 0;
 	}
 };
+class OPCodeInfoSkip : public OPCodeInfo {
+	const char* m_operatorName;
+public:
+	OPCodeInfoSkip(OPCode id, const char* name, const char* operatorName) : OPCodeInfo(id, name),
+		m_operatorName(operatorName) {
+	}
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		if (context.m_runDecompiler) {
+			auto* ref = new ASMContextNodeValue<const char*>(m_operatorName, TYPE_STATEMENT);
+			// convert it to statement
+			ref->m_priority = PRIORITY_INST;
+			context.PushASMCNode(ref);
+			context.CompleteStatement();
+		}
+		out << "\n";
+		LOG_ERROR("Can't decompile skip operator {}", m_operatorName);
+		return -2;
+	}
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		return -2;
+	}
+};
 
 class OPCodeInfoDevOp : public OPCodeInfo {
 	bool m_push;
@@ -3884,8 +3913,10 @@ public:
 			out << "bad str stack: 0x" << std::hex << ref2 << " ";
 			str2 = "<unknown>";
 		}
-
-		out << str1 << "%" << str2 << "\n";
+		PrintFormattedString(out, str1);
+		out << "%";
+		PrintFormattedString(out, str2);
+		out << "\n";
 
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeAnimation(str1, str2));
@@ -4871,7 +4902,7 @@ public:
 #pragma region opcode_registry
 
 namespace {
-	const OPCodeInfo* g_unknownOpcode = new OPCodeInfounknown(OPCODE_Undefined, "Undefined");
+	const OPCodeInfo* g_unknownOpcode = new OPCodeInfoUnknown(OPCODE_Undefined, "Undefined");
 }
 
 namespace tool::gsc::opcode {
@@ -5053,6 +5084,19 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoDevConsume(OPCODE_DEV_Consume8Push, "Dev8Push", 8, true));
 			RegisterOpCodeHandler(new OPCodeInfoDevConsume(OPCODE_DEV_Consume9Push, "Dev9Push", 9, true));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown38, "Unknown38", "operator_Unknown38()"));
+
+			// skip opcodes for the gscbin decomp, they need a handler for the skip
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_0, "GscBinSkip0"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_1, "GscBinSkip1"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_2, "GscBinSkip2"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_3, "GscBinSkip3"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_4, "GscBinSkip4"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_5, "GscBinSkip5"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_N, "GscBinSkipN"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_3BC_4SD, "GscBinSkip3BC4SD"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_4BC_4SD, "GscBinSkip4BC4SD"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_STR_TOKEN, "GscBinSkipSTRTOKEN"));
+			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_4BC_1STR, "GscBinSkip4BC1STR"));
 
 			// all op without params
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStart, "ProfileStart", "profilestart()"));

@@ -327,6 +327,17 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_T10_LowerThanOrSuperEqualTo, "LowerThanOrSuperEqualTo");
 			RegisterOpCode(OPCODE_IW_GetResourceHash2, "GetResourceHash2");
 			RegisterOpCode(OPCODE_IW_GetPositionRef, "GetPositionRef");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_0, "GscBinSkip0");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_1, "GscBinSkip1");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_2, "GscBinSkip2");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_3, "GscBinSkip3");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_4, "GscBinSkip4");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_5, "GscBinSkip5");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_N, "GscBinSkipN");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_3BC_4SD, "GscBinSkip3BC4SD");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_4BC_4SD, "GscBinSkip4BC4SD");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_STR_TOKEN, "GscBinSkipSTRTOKEN");
+			RegisterOpCode(OPCODE_GSCBIN_SKIP_4BC_1STR, "GscBinSkip4BC1STR");
 			RegisterOpCode(OPCODE_InvalidOpCode, "InvalidOpCode");
 		}
 	};

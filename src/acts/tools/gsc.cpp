@@ -91,6 +91,12 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--gdb-small", arg)) {
             m_generateGdbBaseData = false;
         }
+        else if (!_strcmpi("--path-output", arg)) {
+            m_usePathOutput = true;
+        }
+        else if (!strcmp("-s", arg) || !_strcmpi("--skip-data", arg)) {
+            m_dumpSkipData = true;
+        }
         else if (!_strcmpi("--ignore-dbg-plt", arg)) {
             m_ignoreDebugPlatform = true;
         }
@@ -340,6 +346,8 @@ void GscInfoOption::PrintHelp() {
     LOG_INFO("--gdb-small        : Dump only important gdb data");
     LOG_INFO("--dumpstrings [f]  : Dump strings into f");
     LOG_INFO("--vtable-dump [f]  : Dump vtable information into f");
+    LOG_INFO("--path-output      : Use the path for the output name");
+    LOG_INFO("-s --skip-data     : Dump skip data (gscbin VMs only), requires --path-output");
     // it's not that I don't want them to be known, it's just to avoid having too many of them in the help
     // it's mostly dev tools
     LOG_DEBUG("-G --gvars         : Write gvars");
@@ -494,12 +502,12 @@ void GSCOBJHandler::DumpHeader(std::ostream& asmout, const GscInfoOption& opt) {
     DumpHeaderInternal(asmout, opt);
     asmout << std::right << std::flush;
 }
-int GSCOBJHandler::PreLoadCode(T8GSCOBJContext& ctx) {
+int GSCOBJHandler::PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout) {
     return tool::OK;
 }
 int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
-    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_HASH64)) {
+    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_LIKE)) {
         if (GetAnimTreeSingleOffset()) {
             // HAS TO BE DONE FIRST BECAUSE THEY ARE STORED USING 1 byte
             uintptr_t unk2c_location = reinterpret_cast<uintptr_t>(file) + GetAnimTreeSingleOffset();
@@ -743,6 +751,11 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
             for (size_t j = 0; j < val->num_address; j++) {
 
+                if (loc[j] + sizeof(uint32_t) >= GetFileSize()) {
+                    LOG_ERROR("Invalid devstring location: 0x{:x}", loc[j]);
+                    return tool::BASIC_ERROR;
+                }
+
                 if (ctx.gdbctx) {
                     // use gdb string
                     auto it = ctx.gdbctx->strings.find(loc[j]);
@@ -778,6 +791,11 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
         for (size_t j = 0; j < str->num_address; j++) {
             // no align too....
+            if (strings[j] + sizeof(uint32_t) >= GetFileSize()) {
+                LOG_ERROR("Invalid string location: 0x{:x}", strings[j]);
+                return tool::BASIC_ERROR;
+            }
+
             Ref<uint32_t>(strings[j]) = ref;
             ctx.AddStringRef(strings[j], ref);
         }
@@ -1038,14 +1056,14 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
     hashutils::ReadDefaultFile();
     if (!IsValidVmMagic(vmVal, ctx.m_vmInfo)) {
         LOG_ERROR("Bad vm 0x{:x} for file {}", vmVal, path);
-        return -1;
+        return tool::BASIC_ERROR;
     }
 
     auto readerBuilder = GetGscReader(vmVal);
 
     if (!readerBuilder) {
         LOG_ERROR("No handler available for vm 0x{:x} for file {}", vmVal, path);
-        return -1;
+        return tool::BASIC_ERROR;
     }
 
     std::shared_ptr<GSCOBJHandler> scriptfile = (*readerBuilder)(data, size);
@@ -1054,12 +1072,41 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
     // we keep it because it should also check the size
     if (!scriptfile->IsValidHeader(size)) {
         LOG_ERROR("Bad header 0x{:x} for file {}", scriptfile->Ref<uint64_t>(), path);
-        return -1;
+        return tool::BASIC_ERROR;
+    }
+    scriptfile->originalFile = &fsPath;
+
+    std::ofstream asmout{ };
+    utils::CloseEnd asmoutclose{ asmout };
+
+    if (ctx.opt.m_usePathOutput) {
+        std::string fn = fsPath.string();
+
+        if (fsPath.has_extension()) {
+            size_t len = fsPath.extension().string().length();
+            fn = fn.substr(0, fn.length() - len);
+        }
+
+        fn = fn + ".gsc";
+
+        const char* name{ fn.data() };
+        std::filesystem::path file{ utils::va("%s/%s", opt.m_outputDir, name) };
+
+        {
+            core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+            std::filesystem::create_directories(file.parent_path());
+        }
+        asmout.open(file);
+
+        if (!asmout) {
+            LOG_ERROR("Can't open path output file {}", file.string());
+            return tool::BASIC_ERROR;
+        }
+        LOG_INFO("Decompiling into '{}'...", file.string());
     }
 
     // required for gscbin
-    scriptfile->originalFile = &fsPath;
-    int preloadRet{ scriptfile->PreLoadCode(ctx) };
+    int preloadRet{ scriptfile->PreLoadCode(ctx, opt.m_dumpSkipData ? asmout : utils::NullStream()) };
     if (preloadRet) {
         return preloadRet > 0 ? 0 : preloadRet;
     }
@@ -1402,23 +1449,22 @@ ignoreCscGsc:
     }
     profiler.GetCurrent().name = asmfnamebuff;
 
-    std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
-
-    {
-        core::async::opt_lock_guard lg{ gdctx.asyncMtx };
-        std::filesystem::create_directories(file.parent_path());
-    }
-
-    std::ofstream asmout{ file };
-
     if (!asmout) {
-        LOG_ERROR("Can't open output file {}", asmfnamebuff);
-        return -1;
+        std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
+
+        {
+            core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+            std::filesystem::create_directories(file.parent_path());
+        }
+        asmout.open(file);
+
+        if (!asmout) {
+            LOG_ERROR("Can't open output file {}", asmfnamebuff);
+            return tool::BASIC_ERROR;
+        }
+        LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
     }
 
-    utils::CloseEnd asmoutclose{ [&asmout] { asmout.close(); } };
-
-    LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
     if (opt.m_copyright && *opt.m_copyright) {
         std::string_view cv{ opt.m_copyright };
         

@@ -191,6 +191,16 @@ namespace utils {
 	 * @return data location before write
 	 */
 	size_t Allocate(std::vector<byte>& data, size_t len);
+
+	/*
+	 * Allocate a pointer inside a vector
+	 * @param data buffer
+	 * @return pointer
+	 */
+	template<typename T>
+	T& Allocate(std::vector<byte>& data) {
+		return *reinterpret_cast<T*>(&data[Allocate(data, sizeof(T))]);
+	}
 	/*
 	 * Write a padding into a stream
 	 * @param out stream
