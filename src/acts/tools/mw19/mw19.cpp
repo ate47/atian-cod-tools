@@ -560,5 +560,5 @@ return tool::OK;
         return IW19_ASSETTYPE_COUNT;
     }
     // moved to gscd
-    // ADD_TOOL(gscdmw19, "mw19", "[script]", "Test gsc decompiler", gscdmw19);
+    ADD_TOOL(gscdmw19, "dev_gsc", "[script]", "Test gsc decompiler", gscdmw19);
 }

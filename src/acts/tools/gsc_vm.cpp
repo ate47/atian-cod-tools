@@ -45,7 +45,7 @@ namespace tool::gsc::vm {
                 oss << " " << opcode->id;
             }
 
-            alogs::log(alogs::LVL_TRACE, std::format("Registering opcodes for{}", oss.str()));
+            LOG_LVLF(alogs::LVL_TRACE, "Registering opcodes for{}", oss.str());
         }
         actslib::profiler::Profiler pl{ "vmReg" };
 

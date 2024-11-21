@@ -567,7 +567,7 @@ namespace tool::nui {
 			ImGui::Text(txt.c_str());
 		}
 
-		ADD_TOOL(newui, "dev", "", "Launch new UI", nullptr, newui);
+		ADD_TOOL(newui, "acts", "", "Launch new UI", nullptr, newui);
 		ADD_TOOL_NUI(aaaa_acts, "Atian Tools", acts);
 		ADD_TOOL_NUI(zzzz9_newui_cfg, "Config", newui_bg);
 	}

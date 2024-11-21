@@ -53,10 +53,10 @@ namespace acts::compiler::preprocessor {
             }
 
             if (charPositionInLine) {
-                LOG_LVL(lvl, "{}#{}:{} {}", f.filename.string(), localLine, charPositionInLine, msg);
+                LOG_LVLF(lvl, "{}#{}:{} {}", f.filename.string(), localLine, charPositionInLine, msg);
             }
             else {
-                LOG_LVL(lvl, "{}#{} {}", f.filename.string(), localLine, msg);
+                LOG_LVLF(lvl, "{}#{} {}", f.filename.string(), localLine, msg);
             }
         }
 

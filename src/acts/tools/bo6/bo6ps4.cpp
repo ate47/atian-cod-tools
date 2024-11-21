@@ -1587,9 +1587,9 @@ namespace {
         if (c) tool::nui::SaveNextConfig();
     }
     
-    ADD_TOOL(ps4cbufbo6, "dev", " [ip:port] [cmd]", "", nullptr, ps4cbufbo6);
-    ADD_TOOL(ps4dumpbo6, "dev", " [ip:port]", "", nullptr, ps4dumpbo6);
-    ADD_TOOL(ps4repbo6, "dev", " [ip:port] [file]", "", nullptr, ps4repbo6);
+    ADD_TOOL(ps4cbufbo6, "bo6", " [ip:port] [cmd]", "", nullptr, ps4cbufbo6);
+    ADD_TOOL(ps4dumpbo6, "bo6", " [ip:port]", "", nullptr, ps4dumpbo6);
+    ADD_TOOL(ps4repbo6, "bo6", " [ip:port] [file]", "", nullptr, ps4repbo6);
     ADD_TOOL_UI(bo6_tools, L"BO6 PS4", Render, Update, Resize);
     ADD_TOOL_NUI(bo6_tools, "BO6 PS4", bo6_tools);
 }

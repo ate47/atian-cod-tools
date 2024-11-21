@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "hashutils.hpp"
+#include "decryptutils.hpp"
 #include "compatibility/scobalula_wni.hpp"
 #include "actscli.hpp"
 #include <clicolor.hpp>
@@ -55,6 +56,13 @@ namespace {
 			else if (!_strcmpi("--no-private", arg)) {
 				opt.noPrivate = true;
 			}
+			else if (!_strcmpi("--decrypt-mod", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				opt.decryptStringExec = argv[++i];
+			}
 			else if (!_strcmpi("--hashprefix", arg)) {
 				if (i + 1 == argc) {
 					LOG_ERROR("Missing value for param: {}!", arg);
@@ -85,6 +93,11 @@ namespace {
 				}
 
 				switch (*val) {
+				case 'p':
+				case 'P':
+					alogs::setlevel(alogs::LVL_TRACE_PATH);
+					actslib::logging::SetLevel(actslib::logging::LEVEL_TRACE);
+					break;
 				case 't':
 				case 'T':
 					alogs::setlevel(alogs::LVL_TRACE);
@@ -227,6 +240,7 @@ namespace {
 		LOG_INFO(" -H --no-install    : No install hashes");
 		LOG_INFO(" -T --no-treyarch   : No Treyarch hash (ignored with -N)");
 		LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
+		LOG_INFO("--decrypt-mod [f]   : Use exe dump to decrypt strings");
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
@@ -349,8 +363,12 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	for (const auto& acpf : packFiles) {
 		if (!actscli::LoadPackFile(acpf)) {
 			LOG_ERROR("Error when loading ACTS pack file {}", acpf.string());
-			return -1;
+			return tool::BASIC_ERROR;
 		}
+	}
+
+	if (opt.decryptStringExec && !acts::decryptutils::LoadDecrypt(opt.decryptStringExec)) {
+		return tool::BASIC_ERROR;
 	}
 
 	if (
@@ -358,7 +376,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		 || (hInstance && core::config::GetBool("nui.force", true))
 		) {
 		tool::nui::OpenNuiWindow();
-		return 0;
+		return tool::OK;
 	}
 
 	if (hInstance || opt.type == actscli::ACTS_NUI) {

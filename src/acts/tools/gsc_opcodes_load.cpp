@@ -413,15 +413,12 @@ namespace tool::gsc::opcode {
 		return tool::OK;
 	}
 
-#ifndef CI_BUILD
-
 	int opcodetest(Process& proc, int argc, const char* argv[]) {
 		LOG_INFO("{}", utils::PtrOrElse(OpCodeName(OPCODE_End), "null"));
 		return tool::OK;
 	}
 
 	ADD_TOOL(opcodetest, "dev", "", "test opcodes names lookup", nullptr, opcodetest);
-#endif
-	ADD_TOOL(dop, "dev", " [file=opcodes.actsop]", "dump opcodes", nullptr, dop);
+	ADD_TOOL(dop, "gsc", " [file=opcodes.actsop]", "dump opcodes", nullptr, dop);
 
 }

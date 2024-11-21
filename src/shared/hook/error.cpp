@@ -227,10 +227,10 @@ namespace hook::error {
 		}
 		for (; i < capture; i++) {
 			if (GetLocInfo(locs[i], relativeLocation, moduleName)) {
-				LOG_LVL(level, "- {} 0x{:x} ({})", moduleName, relativeLocation, locs[i]);
+				LOG_LVLF(level, "- {} 0x{:x} ({})", moduleName, relativeLocation, locs[i]);
 			}
 			else {
-				LOG_LVL(level, "- {}", locs[i]);
+				LOG_LVLF(level, "- {}", locs[i]);
 			}
 		}
 	}

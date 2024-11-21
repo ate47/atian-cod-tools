@@ -33,5 +33,5 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL(bo4_exe_mapper, "dev", "[exe]", "test bo4 mapping", bo4_exe_mapper);
+	ADD_TOOL(bo4_exe_mapper, "bo4", "[exe]", "test bo4 mapping", bo4_exe_mapper);
 }

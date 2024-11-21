@@ -1,10 +1,19 @@
 #include <includes.hpp>
 #include <clicolor.hpp>
 #include <actscli.hpp>
+#include <core/config.hpp>
 #include <tools/tools_ui.hpp>
 #include <tools/gsc_opcodes.hpp>
 
 namespace tool {
+	bool DisplayInvisibleTools() {
+#ifdef CI_BUILD
+		// use the same as the ui
+		return core::config::GetBool("nui.bg.showDevTools", false);
+#else
+		return true;
+#endif
+	}
 	std::map<std::string, tool::toolfunctiondata*>& tools() {
 		static std::map<std::string, tool::toolfunctiondata*> map{};
 		return map;
@@ -15,6 +24,7 @@ namespace tool {
 			map["acts"] = { "acts", "ACTS tools", true, {} };
 			map["lib"] = { "lib", "ACTS lib tools and tests", true, {} };
 			map["gsc"] = { "gsc", "GSC utilities", true, {} };
+			map["dev_gsc"] = { "dev_gsc", "Dev GSC utilities", false, {} };
 			map["hash"] = { "hash", "Hash utilities", true, {} };
 			map["bo4"] = { "bo4", "Black Ops 4 tools", true, {} };
 			map["cw"] = { "cw", "Black Ops Cold War tools", true, {} };
@@ -24,7 +34,7 @@ namespace tool {
 			map["bo6"] = { "bo6", "Black Ops 6 tools", true, {} };
 			map["ps4"] = { "ps4", "PS4 tools", true, {} };
 			map["common"] = { "common", "Common tools", true, {} };
-			map["dev"] = { "dev", "Dev tools", true, {} };
+			map["dev"] = { "dev", "Dev tools", false, {} };
 			map["compatibility"] = { "compatibility", "Compatibility tools", true, {} };
 			map["fastfile"] = { "fastfile", "Fastfile tools", true, {} };
 			map["lua"] = { "lua", "LUA tools", true, {} };
@@ -58,6 +68,7 @@ namespace tool {
 				LOG_WARNING("The category '{}' isn't registered, but used by the tool '{}'", category, name);
 				cat.m_name = category;
 			}
+			this->visible = cat.visible;
 			cat.m_tools[name] = this;
 		}
 	}
@@ -86,13 +97,13 @@ namespace tool {
 
 	void usage(const char* message, const char* argv0, alogs::loglevel lvl) {
 		if (message) {
-			LOG_LVL(lvl, "Error: {}", message);
+			LOG_LVLF(lvl, "Error: {}", message);
 		}
-		LOG_LVL(lvl, "{} [function] (params)", argv0);
-		LOG_LVL(lvl, "Functions", argv0);
+		LOG_LVLF(lvl, "{} [function] (params)", argv0);
+		LOG_LVLF(lvl, "Functions", argv0);
 
 		for (const auto& [key, value] : tools()) {
-			LOG_LVL(lvl, "- {}{} : {}", key, value->m_usage, value->m_description);
+			LOG_LVLF(lvl, "- {}{} : {}", key, value->m_usage, value->m_description);
 		}
 	}
 
@@ -107,9 +118,11 @@ namespace tool {
 			std::transform(w.begin(), w.end(), w.begin(), [](wchar_t c) { return std::tolower(c); });
 		}
 
+		bool showInvisible{ tool::DisplayInvisibleTools() };
+
 		bool findAny{};
 		for (const auto& [name, tool] : tools()) {
-			if (!tool) {
+			if (!tool || (!tool->visible && !showInvisible)) {
 				continue;
 			}
 			bool find{ true };
@@ -345,8 +358,9 @@ namespace {
 			LOG_INFO("Categories");
 
 			LOG_INFO("- all : all the categories");
+			bool showInvisible{ tool::DisplayInvisibleTools() };
 			for (const auto& [key, value] : tool::toolsCategories()) {
-				if (!value.visible || value.m_tools.empty()) {
+				if ((!value.visible && !showInvisible) || value.m_tools.empty()) {
 					continue;
 				}
 				LOG_INFO("- {} : {}", key, value.description);
@@ -364,8 +378,9 @@ namespace {
 			LOG_INFO("{} [function] (params)", argv[0]);
 			LOG_INFO("Functions", argv[0]);
 
+			bool showInvisible{ tool::DisplayInvisibleTools() };
 			for (const auto& [catName, cat] : categories) {
-				if (!cat.visible || cat.m_tools.empty()) {
+				if ((!cat.visible && !showInvisible) || cat.m_tools.empty()) {
 					continue;
 				}
 				LOG_INFO("- {} ({})", cat.description, catName);
@@ -483,7 +498,9 @@ namespace {
 					count);
 			}
 
-			LOG_INFO("{:16x} - {} ({}) ->{}", vm, info.name, info.codeName, out);
+			const char* type{ info.HasFlag(tool::gsc::opcode::VMF_GSCBIN) ? "gscbin" : "gscc"};
+
+			LOG_INFO("{:016x} - {} ({}/{}) ->{}", vm, info.name, type, info.codeName, out);
 		}
 
 		return tool::OK;

@@ -131,6 +131,36 @@ namespace hook::library {
 	 */
 	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single = false);
 
+	/*
+	 * Scan the memory to find a string
+	 * @param hmod module
+	 * @param pattern pattern
+	 * @param single single search
+	 * @return matches
+	 */
+	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single = false);
+
+	/*
+	 * Scan the memory to find data
+	 * @param hmod module
+	 * @param pattern pattern
+	 * @param single single search
+	 * @return matches
+	 */
+	template<typename T>
+	std::vector<ScanResult> ScanLibraryNumber(HMODULE hmod, T val, bool single = false) {
+		char buff[sizeof(T) * 3 + 1]{};
+
+		byte* ptr{ (byte*)&val };
+		char* patStrPtr{ buff };
+
+		for (size_t i = 0; i < sizeof(T); i++) {
+			patStrPtr += std::snprintf(patStrPtr, 4, "%02x ", (int)ptr[i]);
+		}
+
+		return ScanLibrary(hmod, buff, single);
+	}
+	
 	// Library information
 	class Library {
 		HMODULE hmod{};
@@ -221,6 +251,43 @@ namespace hook::library {
 			}
 			if (res.size() != 1) {
 				throw std::runtime_error(utils::va("Too many finds for pattern %s", name ? name : pattern));
+			}
+
+			return res[0];
+		}
+
+		inline std::vector<ScanResult> ScanString(const char* str, bool single = false) const {
+			return ScanLibraryString(hmod, str, single);
+		}
+
+		ScanResult ScanStringSingle(const char* str, const char* name = nullptr) const {
+			auto res = ScanString(str);
+
+			if (res.empty()) {
+				throw std::runtime_error(utils::va("Can't find string %s", name ? name : str));
+			}
+			if (res.size() != 1) {
+				throw std::runtime_error(utils::va("Too many finds for string %s", name ? name : str));
+			}
+
+			return res[0];
+		}
+
+
+		template<typename T>
+		inline std::vector<ScanResult> ScanNumber(T val, bool single = false) const {
+			return ScanLibraryNumber(hmod, val, single);
+		}
+
+		template<typename T>
+		ScanResult ScanNumberSingle(T val, const char* name = nullptr) const {
+			auto res = ScanNumber(val);
+
+			if (res.empty()) {
+				throw std::runtime_error(name ? utils::va("Can't find number %s", name) : utils::va("Can't find number %lld", val));
+			}
+			if (res.size() != 1) {
+				throw std::runtime_error(name ? utils::va("Too many finds for number %s", name) : utils::va("Too many finds for number %lld", val));
 			}
 
 			return res[0];

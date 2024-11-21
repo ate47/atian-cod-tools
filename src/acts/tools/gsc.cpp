@@ -1449,7 +1449,7 @@ ignoreCscGsc:
     }
     profiler.GetCurrent().name = asmfnamebuff;
 
-    if (!asmout) {
+    if (!ctx.opt.m_usePathOutput) {
         std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
 
         {
@@ -3671,6 +3671,6 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     return ret;
 }
 
-ADD_TOOL(gscinfo, "gsc", " --help", "GSC decompiler/disassembler", nullptr, gscinfo);
-ADD_TOOL(gscd, "gsc", " --help", "GSC decompiler/disassembler", nullptr, gscinfo);
+ADD_TOOL(gscinfo, "gsc", "", "GSC decompiler/disassembler", nullptr, gscinfo);
+ADD_TOOL(gscd, "gsc", "", "GSC decompiler/disassembler", nullptr, gscinfo);
 ADD_TOOL(dds, "gsc", " [input=scriptparsetree] [output=dataset.csv]", "dump dataset from gscinfo", nullptr, dumpdataset);

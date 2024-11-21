@@ -1,11 +1,4 @@
 #include <includes.hpp>
-#include <base64.hpp>
-
-#pragma warning(push)
-#pragma warning(disable:4996)
-#include <CascLib.h>
-#include <CascCommon.h>
-#pragma warning(pop)
 
 namespace fastfiles {
 	int ComputeChecksum32(const char* buffer, unsigned int len, int start) {
@@ -69,6 +62,15 @@ namespace fastfiles {
 		return v17 ^ HIWORD(v17);
 	}
 }
+#if 0
+#include <base64.hpp>
+
+#pragma warning(push)
+#pragma warning(disable:4996)
+#include <CascLib.h>
+#include <CascCommon.h>
+#pragma warning(pop)
+
 namespace {
 
 	void WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t size) {
@@ -354,4 +356,5 @@ ADD_TOOL(h32ck, "fastfile", " [path]", "hash checksum", nullptr, h32ck);
 ADD_TOOL(daes, "bo4", "", "dump AES keys", L"BlackOps4.exe", ffdaes);
 ADD_TOOL(daes_local, "bo4", "", "dump AES acts keys", nullptr, daes_local);
 
+#endif
 #endif

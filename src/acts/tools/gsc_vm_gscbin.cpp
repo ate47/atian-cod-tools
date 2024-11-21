@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <decryptutils.hpp>
 #include <core/bytebuffer.hpp>
 #include <compatibility/xensik_gscbin.hpp>
 #include <tools/gsc_vm.hpp>
@@ -441,7 +442,7 @@ namespace {
             return sizeof(compatibility::xensik::gscbin::GscBinHeader);
         }
         char* DecryptString(char* str) override {
-            return str;
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(compatibility::xensik::gscbin::GscBinHeader) && Ref<uint32_t>() == compatibility::xensik::gscbin::GSCBIN_MAGIC;

@@ -23,6 +23,7 @@ namespace alogs {
 	const char* name(loglevel lvl) {
 		switch (lvl) {
 		case alogs::LVL_TRACE:
+		case alogs::LVL_TRACE_PATH:
 			return "TRACE";
 		case alogs::LVL_ERROR:
 			return "ERROR";
@@ -72,7 +73,11 @@ namespace alogs {
 		return bt;
 	}
 
-	void log(loglevel level, const std::string& str) {
+	void log(loglevel level,
+#ifndef CI_BUILD
+		const char* file, size_t line, 
+#endif
+		const std::string& str) {
 		if (getlevel() > level) {
 			return;
 		}
@@ -101,9 +106,12 @@ namespace alogs {
 			}
 
 			if (!g_basiclog) {
-				out
-					<< '[' << name(level) << "] "
-					;
+				out << '[' << name(level) << "] ";
+#ifndef CI_BUILD
+				if (g_loglevel == LVL_TRACE_PATH) {
+					out << "[" << file << "@" << std::dec << line << "] ";
+				}
+#endif
 			}
 			out << str;
 

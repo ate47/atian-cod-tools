@@ -24,6 +24,7 @@ namespace actscli {
 		const char* saveProfiler{};
 		const char* seriousDBFile{};
 		const char* hashPrefixByPass{};
+		const char* decryptStringExec{};
 		bool heavyHashes{};
 		bool forceError{};
 		bool noPrivate{};

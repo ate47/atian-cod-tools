@@ -438,7 +438,7 @@ namespace {
         LOG_INFO("Compiling DDL file...");
 
         opt.m_processorOpt.ApplyPreProcessor(ddlText, 
-            [&opt](alogs::loglevel lvl, size_t line, const std::string& message) { LOG_LVL(lvl, "{}:{} : {}", opt.m_ddl, line, message); }
+            [&opt](alogs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "{}:{} : {}", opt.m_ddl, line, message); }
         );
 
         ANTLRInputStream is{ ddlText.data() };

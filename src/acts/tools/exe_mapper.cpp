@@ -3,6 +3,7 @@
 #include <io_utils.hpp>
 #include <hook/module_mapper.hpp>
 #include <hook/error.hpp>
+#include <hook/memory.hpp>
 #include <decrypt.hpp>
 #include <DbgHelp.h>
 #pragma comment(lib, "imagehlp.lib")
@@ -73,6 +74,111 @@ namespace {
 		
 		return tool::OK;
 	}
+	int exe_pool_dumper(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 3)) {
+			LOG_ERROR("Different values (first, last):");
+			LOG_ERROR("BO4 ...... \"physpreset\" \"assetlist\" ");
+			LOG_ERROR("BOCW ..... \"physpreset\" \"\" ");
+			LOG_ERROR("IW games . \"physicslibrary\" \"string\" ");
+			return tool::BAD_USAGE;
+		}
+		if (!argv[3][0]) {
+			LOG_ERROR("Can't search empty first element");
+			return tool::BAD_USAGE;
+		}
+
+		std::filesystem::path exe{ argv[2] };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe.string());
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		const char* first{ argv[3] };
+		const char* last{ argv[4][0] ? argv[4] : nullptr };
+		std::filesystem::path pools{ tool::NotEnoughParam(argc, 4) ? exe.parent_path() / "pools.hpp" : argv[5] };
+		const char* prefix{ tool::NotEnoughParam(argc, 5) ? "ASSET_TYPE_" : argv[6] };
+
+		LOG_INFO("Searching {}->{}", first, last ? last : "");
+
+		uintptr_t firstStringOffset{ mod->ScanStringSingle(first).GetPtr<uintptr_t>() };
+		LOG_INFO("\"{}\" -> 0x{:x}", first, mod->Rloc(firstStringOffset));
+		for (hook::library::ScanResult& poolNamesRes : mod->ScanNumber(firstStringOffset)) {
+			uintptr_t poolNamesOffset{ poolNamesRes.GetPtr<uintptr_t>() };
+
+			uintptr_t* poolNames{ reinterpret_cast<uintptr_t*>(poolNamesOffset)};
+			LOG_DEBUG("try poolNames -> 0x{:x}", mod->Rloc(poolNamesOffset));
+
+			// we can try to see if the next one is a valid string
+
+			void* next{ reinterpret_cast<void*>(poolNames[1]) };
+
+			if (next < **mod || next > (*mod)[0x10000000]) {
+				LOG_TRACE("Not inside library");
+				continue; // not inside the module
+			}
+
+
+			size_t count{};
+			while (true) {
+				if (!poolNames[count]) {
+					if (last) {
+						LOG_WARNING("Can't find last pool name, the result might be wrong"); // cw?
+					}
+					break;
+				}
+				const char* cc = mod->Rebase<const char>(poolNames[count]);
+				LOG_TRACE("Find {}", cc);
+				if (last && !_strcmpi(cc, last)) break;
+				count++;
+			}
+
+			LOG_INFO("poolNames -> 0x{:x}", mod->Rloc(poolNamesOffset));
+			LOG_INFO("Found {} pool(s)", count);
+
+			std::ofstream os{ pools };
+			if (!os) {
+				LOG_ERROR("Can't open {}", pools.string());
+				return tool::BASIC_ERROR;
+			}
+
+			utils::CloseEnd osce{ os };
+
+			os << "// Asset types (" << std::dec << count << "/0x" << std::hex << mod->Rloc(poolNamesOffset) << ")\n";
+			os << "enum AssetType : int {\n";
+			for (size_t i = 0; i < count; i++) {
+				const char* cc = mod->Rebase<const char>(poolNames[i]);
+				char* id{ utils::MapString(utils::CloneString(cc), [](char c) -> char {
+					c = std::toupper(c);
+
+					if (!(c == '_' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+						return '_'; // remap bad char
+					}
+
+					return c;
+				}) };
+				os << "    " << prefix << id << " = 0x" << std::hex << i << ", // " << std::dec << i << " " << cc << "\n";
+			}
+			os << "    " << prefix << "COUNT" << " = 0x" << std::hex << count << ",\n";
+			os << "};\n\n";
+
+			os << "const char* poolNames[] {\n";
+			for (size_t i = 0; i < count; i++) {
+				const char* cc = mod->Rebase<const char>(poolNames[i]);
+				os << "    \"" << cc << "\",\n";
+			}
+			os << "};\n\n";
+
+			LOG_INFO("Dump into {}", pools.string());
+			break;
+		}
+		
+		return tool::OK;
+	}
+
 	int sp24_data_dump(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
 
@@ -469,8 +575,10 @@ namespace {
 
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
 	ADD_TOOL(bo6_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", iw_data_dump);
+	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
 	ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);
 	ADD_TOOL(scripts_decrypt, "gsc", "[exe] [type] [scripts] [ouput]", "Map exe in memory and use it to decrypt GSC scripts", scripts_decrypt);
 	ADD_TOOL(test_enough_internet, "dev", "[url]", "Test can load", test_enough_internet);
+
 	
 }

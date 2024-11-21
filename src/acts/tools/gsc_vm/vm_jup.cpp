@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <decryptutils.hpp>
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
@@ -132,7 +133,7 @@ namespace {
             return sizeof(GscObj23);
         }
         char* DecryptString(char* str) override {
-            return str; // iw -> need usage of decryption dumper
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(GscObj23) && Ref<uint64_t>() == 0xa0d4353478a;
@@ -487,10 +488,7 @@ namespace {
             return sizeof(GscObj23);
         }
         char* DecryptString(char* str) override {
-            if ((*str & 0xC0) != 0x80) {
-                return str; // not encrypted
-            }
-            return str + 3; // should be decrypted before
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(GscObj23) && Ref<uint64_t>() == 0xa0d4353478b;

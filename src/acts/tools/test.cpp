@@ -96,7 +96,7 @@ namespace {
 }
 
 ADD_TOOL(test, "dev", "", "Tests", nullptr, test);
-ADD_TOOL(strtouint64, "dev", " (str)*", "Convert string to number", strtouint64);
+ADD_TOOL(strtouint64, "common", " (str)*", "Convert string to number", strtouint64);
 ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);
 ADD_TOOL(wget, "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL(cfgtest, "dev", "", "", nullptr, cfgtest);

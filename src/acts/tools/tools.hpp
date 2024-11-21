@@ -18,6 +18,7 @@ namespace tool {
 		const char* m_description;
 		const char* m_category;
 		const wchar_t* m_game;
+		bool visible{ true };
 		std::string m_nameLower;
 		std::string m_usageLower;
 		std::string m_descriptionLower;
@@ -43,6 +44,7 @@ namespace tool {
 
 	const char** ReadParams(std::string& str, int& argc);
 	int HandleCommand(int argc, const char* argv[]);
+	bool DisplayInvisibleTools();
 
 	const toolfunctiondata& findtool(const char* name);
 	bool search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each);

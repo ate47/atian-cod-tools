@@ -165,7 +165,7 @@ namespace actslib::hdt {
 			return props.cend();
 		}
 
-		int64_t GetInteger(const std::string& key, int64_t defaultVal= 0) {
+		int64_t GetInteger(const std::string& key, int64_t defaultVal = 0) {
 			const_iterator it = find(key);
 
 			if (it == cend()) {

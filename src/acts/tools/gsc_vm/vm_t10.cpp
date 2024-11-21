@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <decryptutils.hpp>
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
@@ -91,10 +92,7 @@ namespace {
             return sizeof(GscObj24);
         }
         char* DecryptString(char* str) override {
-            if ((*str & 0xC0) != 0x80) {
-                return str; // not encrypted
-            }
-            return str + 3; // should be decrypted before
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d43534706;
@@ -412,10 +410,7 @@ namespace {
             return sizeof(GscObj24);
         }
         char* DecryptString(char* str) override {
-            if ((*str & 0xC0) != 0x80) {
-                return str; // not encrypted
-            }
-            return str + 3; // should be decrypted before
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d43534707;
@@ -732,10 +727,7 @@ namespace {
             return sizeof(GscObj24);
         }
         char* DecryptString(char* str) override {
-            if ((*str & 0xC0) != 0x80) {
-                return str; // not encrypted
-            }
-            return str + 3; // should be decrypted before
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d4353470C;
@@ -1054,10 +1046,7 @@ namespace {
             return sizeof(GscObj24);
         }
         char* DecryptString(char* str) override {
-            if ((*str & 0xC0) != 0x80) {
-                return str; // not encrypted
-            }
-            return str + 3; // should be decrypted before
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d4353470B;

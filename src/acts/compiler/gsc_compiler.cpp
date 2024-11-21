@@ -1192,7 +1192,7 @@ namespace acts::compiler {
                 m_inputFiles.push_back(".");
             }
             if (!m_vmInfo) {
-                LOG_WARNING("No game set, please set a game using --game [game]");
+                LOG_ERROR("No game set, please set a game using --game [game]");
                 return false;
             }
             if (!crcEmitClient) crcEmitClient = crcClient;
@@ -1270,7 +1270,7 @@ namespace acts::compiler {
                 return;
             }
 
-            alogs::log(lvl, msg);
+            LOG_LVL(lvl, msg);
         }
     };
 
@@ -6136,6 +6136,6 @@ namespace acts::compiler {
         return tool::OK;
     }
 
-    ADD_TOOL(gscc, "gsc", " --help", "gsc compiler", nullptr, compiler);
+    ADD_TOOL(gscc, "gsc", "", "GSC compiler", nullptr, compiler);
     ADD_TOOL(gscc_pack, "gsc", " [vm] [plt]", "pack required opcode for a vm", nullptr, gscc_pack);
 }

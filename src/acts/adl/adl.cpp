@@ -205,10 +205,10 @@ namespace acts::compiler::adl {
 
         void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) {
             if (charPositionInLine) {
-                LOG_LVL(lvl, "{}#{}:{} {}", filename, line, charPositionInLine, msg);
+                LOG_LVLF(lvl, "{}#{}:{} {}", filename, line, charPositionInLine, msg);
             }
             else {
-                LOG_LVL(lvl, "{}#{} {}", filename, line, msg);
+                LOG_LVLF(lvl, "{}#{} {}", filename, line, msg);
             }
         }
         Token* GetToken(ParseTree* tree) {
@@ -228,7 +228,7 @@ namespace acts::compiler::adl {
                 return;
             }
 
-            alogs::log(lvl, msg);
+            LOG_LVL(lvl, msg);
         }
     };
 

@@ -105,6 +105,19 @@ namespace hook::library {
 		loc = "";
 		return nullptr;
 	}
+	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single) {
+		size_t pl{ std::strlen(pattern) };
+		std::string patStr{};
+		patStr.resize((pl + 1) * 3 + 1);
+
+		char* patStrPtr{ patStr.data() };
+
+		for (size_t i = 0; i <= pl; i++) {
+			std::snprintf(&patStrPtr[3 * i], 4, "%02x ", (uint32_t)pattern[i]);
+		}
+
+		return ScanLibrary(hmod, patStrPtr, single);
+	}
 
 	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single) {
 		std::vector<ScanResult> res{};
@@ -377,7 +390,7 @@ namespace hook::library {
 		if (!dir.VirtualAddress || importSize <= 0) return; // nothing to patch
 		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)((*this)[dir.VirtualAddress]) };
 		
-		LOG_TRACE("Loading imports  0x{:x}/0x{:x}", dir.VirtualAddress, dir.Size);
+		LOG_TRACE("Loading imports 0x{:x}/0x{:x}", dir.VirtualAddress, dir.Size);
 
 		// TODO: write that
 	}
