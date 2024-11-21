@@ -21,11 +21,13 @@ namespace acts::decryptutils {
 		decryptModule.Free();
 		DecryptStringImpl = nullptr;
 
-		const char* knownScans[] {
-			// iw
-			"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01",
-			// cw
-			"48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6",
+		struct {
+			const char* pattern;
+			const char* id;
+		} knownScans[]{
+			{ "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "iw" },
+			{ "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6", "cw" },
+			{ "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6 01", "mw19" },
 		};
 
 		if (!decryptModule.Load(exec)) {
@@ -33,18 +35,18 @@ namespace acts::decryptutils {
 			return false;
 		}
 
-		for (const char* scan : knownScans) {
-			std::vector<hook::library::ScanResult> res = decryptModule->Scan(scan);
+		for (auto& cfg : knownScans) {
+			std::vector<hook::library::ScanResult> res = decryptModule->Scan(cfg.pattern);
 
 			if (res.size() != 1) {
 				if (res.size() > 1) {
-					LOG_TRACE("Too many finds for scan {}", scan);
+					LOG_TRACE("Too many finds for scan {}", cfg.id);
 				}
 				continue;
 			}
 
 			DecryptStringImpl = res[0].GetPtr<char*(*)(char* str)>();
-			LOG_TRACE("Loaded DecryptStringImpl=0x{:x}", decryptModule->Rloc(DecryptStringImpl));
+			LOG_TRACE("Loaded DecryptStringImpl=0x{:x} ({})", decryptModule->Rloc(DecryptStringImpl), cfg.id);
 			return true; // loaded
 		}
 		

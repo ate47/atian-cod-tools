@@ -21,6 +21,7 @@ namespace hook::module_mapper {
 		
 		// patch lib
 		lib.PatchIAT();
+		LOG_TRACE("Module loaded {}", lib);
 
 		return true;
 	}

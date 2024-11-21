@@ -376,6 +376,22 @@ namespace tool::gsc::opcode {
 		OPCODE_GSCBIN_SKIP_4BC_4SD, // skip 4 bytes and 4 script data
 		OPCODE_GSCBIN_SKIP_STR_TOKEN, // skip opaque or str
 		OPCODE_GSCBIN_SKIP_4BC_1STR, // skip 4 bytes and read 1 string
+		
+		OPCODE_IW_CallBuiltinFunction0,
+		OPCODE_IW_CallBuiltinFunction1,
+		OPCODE_IW_CallBuiltinFunction2,
+		OPCODE_IW_CallBuiltinFunction3,
+		OPCODE_IW_CallBuiltinFunction4,
+		OPCODE_IW_CallBuiltinFunction5,
+
+		OPCODE_IW_CallBuiltinMethod0,
+		OPCODE_IW_CallBuiltinMethod1,
+		OPCODE_IW_CallBuiltinMethod2,
+		OPCODE_IW_CallBuiltinMethod3,
+		OPCODE_IW_CallBuiltinMethod4,
+		OPCODE_IW_CallBuiltinMethod5,
+
+		OPCODE_IW_ScriptFunctionCall2,
 
 		OPCODE_COUNT,
 	};

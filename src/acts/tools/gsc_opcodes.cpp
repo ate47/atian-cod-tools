@@ -122,46 +122,6 @@ namespace tool::gsc::opcode {
 		return bnode;
 	}
 
-	std::ostream& PrintFormattedString(std::ostream& out, const char* str) {
-		if (!str) {
-			return out << "nullptr";
-		}
-		for (; *str; str++) {
-			switch (*str) {
-			case '\n':
-				out << "\\n";
-				break;
-			case '\r':
-				out << "\\r";
-				break;
-			case '\t':
-				out << "\\t";
-				break;
-			case '\a':
-				out << "\\a";
-				break;
-			case '\b':
-				out << "\\b";
-				break;
-			case '\v':
-				out << "\\v";
-				break;
-			case '"':
-				out << "\\\"";
-				break;
-			default:
-				if (*str < 0x20 || *str >= 0x7F) {
-					out << "\\" << std::oct << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
-				}
-				else {
-					out << *str;
-				}
-				break;
-			}
-		}
-		return out;
-	}
-
 	const char* PlatformName(Platform plt) {
 		switch (plt) {
 		case PLATFORM_PC: return "PC";
@@ -3414,7 +3374,35 @@ public:
 			params = *(context.m_bcl++);
 		}
 		else {
-			params = -1;
+			switch (m_id) {
+			case OPCODE_IW_CallBuiltinFunction0:
+			case OPCODE_IW_CallBuiltinMethod0:
+				params = 0;
+				break;
+			case OPCODE_IW_CallBuiltinFunction1:
+			case OPCODE_IW_CallBuiltinMethod1:
+				params = 1;
+				break;
+			case OPCODE_IW_CallBuiltinFunction2:
+			case OPCODE_IW_CallBuiltinMethod2:
+				params = 2;
+				break;
+			case OPCODE_IW_CallBuiltinFunction3:
+			case OPCODE_IW_CallBuiltinMethod3:
+				params = 3;
+				break;
+			case OPCODE_IW_CallBuiltinFunction4:
+			case OPCODE_IW_CallBuiltinMethod4:
+				params = 4;
+				break;
+			case OPCODE_IW_CallBuiltinFunction5:
+			case OPCODE_IW_CallBuiltinMethod5:
+				params = 5;
+				break;
+			default:
+				params = -1;
+				break;
+			}
 		}
 
 		uint64_t tmpBuffData[2];
@@ -3480,10 +3468,22 @@ public:
 				flags |= SELF_CALL;
 				break;
 			case OPCODE_CallBuiltinMethod:
+			case OPCODE_IW_CallBuiltinMethod0:
+			case OPCODE_IW_CallBuiltinMethod1:
+			case OPCODE_IW_CallBuiltinMethod2:
+			case OPCODE_IW_CallBuiltinMethod3:
+			case OPCODE_IW_CallBuiltinMethod4:
+			case OPCODE_IW_CallBuiltinMethod5:
 				flags |= SELF_CALL;
 				break;
 			case OPCODE_ScriptFunctionCall:
 			case OPCODE_CallBuiltinFunction:
+			case OPCODE_IW_CallBuiltinFunction0:
+			case OPCODE_IW_CallBuiltinFunction1:
+			case OPCODE_IW_CallBuiltinFunction2:
+			case OPCODE_IW_CallBuiltinFunction3:
+			case OPCODE_IW_CallBuiltinFunction4:
+			case OPCODE_IW_CallBuiltinFunction5:
 				break; // ignored
 			default:
 				LOG_ERROR("bad func call {}", (int)m_id);
@@ -3839,7 +3839,7 @@ public:
 		base += 4;
 
 		if (str) {
-			PrintFormattedString(out << "\"", str) << "\"\n";
+			utils::PrintFormattedString(out << "\"", str) << "\"\n";
 			if (context.m_runDecompiler) {
 				if (m_istr) {
 					context.PushASMCNode(new ASMContextNodeString(str, "%", true));
@@ -3913,9 +3913,9 @@ public:
 			out << "bad str stack: 0x" << std::hex << ref2 << " ";
 			str2 = "<unknown>";
 		}
-		PrintFormattedString(out, str1);
+		utils::PrintFormattedString(out, str1);
 		out << "%";
-		PrintFormattedString(out, str2);
+		utils::PrintFormattedString(out, str2);
 		out << "\n";
 
 		if (context.m_runDecompiler) {
@@ -4150,7 +4150,7 @@ public:
 				uint32_t floc = (uint32_t)(caseLoc - context.m_gscReader.Ptr());
 				const char* cv = objctx.GetStringValueByLoc(floc);
 				if (cv) {
-					PrintFormattedString(out << "\"", cv) << "\"";
+					utils::PrintFormattedString(out << "\"", cv) << "\"";
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeString(cv), caseRLoc });
 					}
@@ -4349,7 +4349,7 @@ public:
 					ASMContextNodeString* outputStr;
 					if (str) {
 						out << "\"";
-						PrintFormattedString(out, str);
+						utils::PrintFormattedString(out, str);
 						out << "\"";
 						if (node) {
 							outputStr = new ASMContextNodeString(str);
@@ -5273,7 +5273,19 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_ScriptMethodCall, "ScriptMethodCall", 4, false));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_ScriptMethodThreadCall, "ScriptMethodThreadCall", 4, true));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_CallBuiltinFunction, "CallBuiltinFunction", 2, true));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction0, "CallBuiltinFunction0", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction1, "CallBuiltinFunction1", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction2, "CallBuiltinFunction2", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction3, "CallBuiltinFunction3", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction4, "CallBuiltinFunction4", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction5, "CallBuiltinFunction5", 2, false));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_CallBuiltinMethod, "CallBuiltinMethod", 2, true));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod0, "CallBuiltinMethod0", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod1, "CallBuiltinMethod1", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod2, "CallBuiltinMethod2", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod3, "CallBuiltinMethod3", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod4, "CallBuiltinMethod4", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod5, "CallBuiltinMethod5", 2, false));
 
 			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_ScriptThreadCallPointerEndOn, "ScriptThreadCallPointerEndOn", true));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_ScriptThreadCallPointer, "ScriptThreadCallPointer", true));

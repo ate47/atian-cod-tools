@@ -5,7 +5,6 @@ namespace tool::gsc::opcode {
 	size_t SizeNoEmptyNode(const std::vector<ASMContextStatement>& statements);
 	ASMContextStatement* GetNoEmptyNode(std::vector<ASMContextStatement>& statements, size_t index);
 	ASMContextNode* ASMCNodeConvertToBool(ASMContextNode* node);
-	std::ostream& PrintFormattedString(std::ostream& out, const char* str);
 
 	inline bool IsBlockInlineable(const ASMContextNodeBlock* blk, const tool::gsc::GscInfoOption& opt) {
 		if (!blk) return false;
@@ -239,7 +238,7 @@ namespace tool::gsc::opcode {
 			}
 
 			if (quotes) out << "\"";
-			PrintFormattedString(out, m_value);
+			utils::PrintFormattedString(out, m_value);
 			if (quotes) out << "\"";
 			out << std::flush;
 		}
@@ -258,9 +257,9 @@ namespace tool::gsc::opcode {
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 
-			PrintFormattedString(out, m_str1);
+			utils::PrintFormattedString(out, m_str1);
 			out << "%";
-			PrintFormattedString(out, m_str2);
+			utils::PrintFormattedString(out, m_str2);
 			out << std::flush;
 		}
 

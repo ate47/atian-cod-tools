@@ -1,4 +1,5 @@
 #include <includes_shared.hpp>
+#include "module_mapper.hpp"
 #include "error.hpp"
 #include "process.hpp"
 #include "library.hpp"

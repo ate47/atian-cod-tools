@@ -502,6 +502,13 @@ void GSCOBJHandler::DumpHeader(std::ostream& asmout, const GscInfoOption& opt) {
     DumpHeaderInternal(asmout, opt);
     asmout << std::right << std::flush;
 }
+uint16_t GSCOBJHandler::GetTokensCount() {
+    return 0;
+}
+uint32_t GSCOBJHandler::GetTokensOffset() {
+    return 0;
+}
+
 int GSCOBJHandler::PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout) {
     return tool::OK;
 }
@@ -647,6 +654,24 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                     ctx.AddStringRef(vars[j] + sizeof(*loc), ref2);
                 }
                 animt_location += sizeof(*animt) + sizeof(*vars) * animt->num_address;
+            }
+        }
+
+        if (GetTokensOffset()) {
+            auto tokens_count = GetTokensCount();
+            GSCBINToken* tokens{ Ptr<GSCBINToken>(GetTokensOffset()) };
+            for (size_t i = 0; i < tokens_count; i++) {
+                const char* val;
+                if (tokens->type == GBTT_STRING) {
+                    val = Ptr<const char>(tokens->val);
+                }
+                else {
+                    val = "TOKEN_TODO";
+                }
+                uint32_t id{ (uint32_t)ctx.m_tokens.size() };
+                ctx.m_tokens.push_back(val);
+
+                Ref<uint32_t>(tokens->location) = id;
             }
         }
 
@@ -1172,7 +1197,7 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
                         actsHeader << "INVALID LOC";
                     }
                     else {
-                        ::PrintFormattedString(actsHeader << "\"", scriptfile->Ptr<const char>(dbg->crc_offset)) << "\"";
+                        utils::PrintFormattedString(actsHeader << "\"", scriptfile->Ptr<const char>(dbg->crc_offset)) << "\"";
                     }
                 }
                 else if (scriptfile->HasFlag(GOHF_NOTIFY_CRC)) {
@@ -1210,7 +1235,7 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
                         hashutils::AddPrecomputed(hashPath, str, true);
 
                         if (opt.m_header) {
-                            ::PrintFormattedString(actsHeader << "// - #\"", str)
+                            utils::PrintFormattedString(actsHeader << "// - #\"", str)
                                 << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
                         }
                         // use all the known hashes for this VM
@@ -1616,7 +1641,7 @@ ignoreCscGsc:
                 }
                 char* cstr = scriptfile->DecryptString(encryptedString);
 
-                ::PrintFormattedString(asmout << '"', cstr) << '"' << std::flush;
+                utils::PrintFormattedString(asmout << '"', cstr) << '"' << std::flush;
 
                 if (scriptfile->GetMagic() == VMI_T8) {
                     size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
@@ -1776,7 +1801,7 @@ ignoreCscGsc:
             byte param_count;
             uint16_t numAddress;
 
-            if (ctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+            if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_LIKE)) {
                 if (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr<>()) + sizeof(IW23GSCImport) > scriptfile->GetFileSize()) {
                     LOG_ERROR("Invalid import {} location", i);
                     return tool::BASIC_ERROR;
@@ -1819,10 +1844,12 @@ ignoreCscGsc:
             case METHOD: asmout << "method "; break;
             case METHOD_THREAD: asmout << "method thread "; break;
             case METHOD_CHILDTHREAD: asmout << "method childthread "; break;
-            case ACTS_CALL_BUILTIN_FUNCTION: asmout << "builtin function"; break;
-            case ACTS_CALL_BUILTIN_METHOD: asmout << "builtin method"; break;
-            case ACTS_GET_BUILTIN_FUNCTION: asmout << "get builtin function"; break;
-            case ACTS_GET_BUILTIN_METHOD: asmout << "get builtin method"; break;
+            case ACTS_CALL_BUILTIN_FUNCTION: asmout << "builtin function "; break;
+            case ACTS_CALL_BUILTIN_METHOD: asmout << "builtin method "; break;
+            case ACTS_GET_BUILTIN_FUNCTION: asmout << "get builtin function "; break;
+            case ACTS_GET_BUILTIN_METHOD: asmout << "get builtin method "; break;
+            case ACTS_CALL_BUILTIN_FUNCTION_NO_PARAMS: asmout << "builtin function (np) "; break;
+            case ACTS_CALL_BUILTIN_METHOD_NO_PARAMS: asmout << "builtin method (np) "; break;
             default:
                 asmout << "<errorflag:" << std::hex << (remapedFlags & 0xF) << "> ";
                 break;
@@ -2452,7 +2479,7 @@ ignoreCscGsc:
                     << "\n"
                     << "STRING \"";
 
-                ::PrintFormattedString(gdbpos, val.c_str())
+                utils::PrintFormattedString(gdbpos, val.c_str())
                     << "\""
                     << std::hex
                     ;

@@ -57,46 +57,6 @@ namespace tool::cordycep::dump {
 	using namespace sp23;
 	using namespace bo6;
 
-	std::ostream& PrintFormattedString(std::ostream& out, const char* str) {
-		if (!str) {
-			return out << "nullptr";
-		}
-		for (; *str; str++) {
-			switch (*str) {
-			case '\n':
-				out << "\\n";
-				break;
-			case '\r':
-				out << "\\r";
-				break;
-			case '\t':
-				out << "\\t";
-				break;
-			case '\a':
-				out << "\\a";
-				break;
-			case '\b':
-				out << "\\b";
-				break;
-			case '\v':
-				out << "\\v";
-				break;
-			case '"':
-				out << "\\\"";
-				break;
-			default:
-				if (*str < 0x20 || *str >= 0x7F) {
-					out << "\\" << std::oct << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
-				}
-				else {
-					out << *str;
-				}
-				break;
-			}
-		}
-		return out;
-	}
-
 	namespace jup {
 		class PoolOptionJup {
 		public:
@@ -1451,7 +1411,7 @@ namespace tool::cordycep::dump {
 					if (count) os << ",";
 
 					utils::Padding(os << "\n", 1) << "\"#" << hashutils::ExtractTmp("hash", entry.hash) << "\": \"";
-					PrintFormattedString(os, proc.ReadStringTmp(entry.value)) << "\"";
+					utils::PrintFormattedString(os, proc.ReadStringTmp(entry.value)) << "\"";
 
 					return true;
 				});
@@ -2430,7 +2390,7 @@ namespace tool::cordycep::dump {
 					if (count) os << ",";
 
 					utils::Padding(os << "\n", 1) << "\"#" << hashutils::ExtractTmp("hash", entry.hash) << "\": \"";
-					PrintFormattedString(os, proc.ReadStringTmp(entry.value)) << "\"";
+					utils::PrintFormattedString(os, proc.ReadStringTmp(entry.value)) << "\"";
 
 					return true;
 				});

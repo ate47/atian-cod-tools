@@ -770,6 +770,7 @@ namespace tool::gsc {
         std::unordered_map<uint16_t, uint64_t> m_gvars{};
         std::unordered_map<uint32_t, const char*> m_stringRefs{};
         std::unordered_map<uint32_t, uint32_t> m_stringRefsLoc{};
+        std::vector<const char*> m_tokens{};
         std::vector<IW23GSCImport> m_linkedImports{};
         // getnumber hack
         std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
@@ -1078,6 +1079,18 @@ namespace tool::gsc {
         uint16_t padding;
     };
 
+    enum GSCBinTokenType : uint32_t {
+        GBTT_INVALID = 0,
+        GBTT_FIELD = 1,
+        GBTT_STRING = 4,
+    };
+
+    struct GSCBINToken {
+        GSCBinTokenType type;
+        uint32_t val;
+        uint32_t location;
+    };
+
     struct GSCExportReader {
         virtual void SetHandle(void* handle) = 0;
         virtual uint64_t GetName() = 0;
@@ -1251,6 +1264,8 @@ namespace tool::gsc {
         virtual uint32_t GetDevStringsOffset() = 0;
         virtual uint16_t GetGVarsCount() = 0;
         virtual uint32_t GetGVarsOffset() = 0;
+        virtual uint16_t GetTokensCount();
+        virtual uint32_t GetTokensOffset();
         virtual uint32_t GetFileSize() {
             return (uint32_t)fileSize;
         };
@@ -1354,6 +1369,8 @@ namespace tool::gsc {
         ACTS_CALL_BUILTIN_FUNCTION = 0x9,
         ACTS_GET_BUILTIN_METHOD = 0xa,
         ACTS_CALL_BUILTIN_METHOD = 0xb,
+        ACTS_CALL_BUILTIN_FUNCTION_NO_PARAMS = 0xc,
+        ACTS_CALL_BUILTIN_METHOD_NO_PARAMS = 0xd,
         ACTS_USE_FULL_NAMESPACE = 0x40
     };
 

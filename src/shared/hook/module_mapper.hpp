@@ -24,6 +24,4 @@ namespace hook::module_mapper {
 			return lib;
 		}
 	};
-
-
 }

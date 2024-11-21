@@ -22,18 +22,27 @@ namespace {
         uint64_t name{};
         size_t exports_table{};
         size_t exports_count{};
+        size_t imports_table{};
+        size_t imports_count{};
         size_t animtree_table{};
         size_t animtree_count{};
         size_t useanimtree_table{};
         size_t useanimtree_count{};
         size_t strings_table{};
         size_t strings_count{};
+        size_t tokens_table{};
+        size_t tokens_count{};
 
         compatibility::xensik::gscbin::GscBinHeader binHeader{};
     };
 
     struct PreString {
         uint32_t string;
+        uint32_t address;
+    };
+    struct PreImport {
+        uint32_t id;
+        byte flags;
         uint32_t address;
     };
 
@@ -69,9 +78,11 @@ namespace {
                 throw std::runtime_error(utils::va("Can't decompress file %s: %s", fileName.c_str(), zError(ret)));
             }
 
-            std::vector<tool::gsc::iw::BINGSCExport> functions{};
-            std::vector<tool::gsc::GSC_ANIMTREE_ITEM> animTrees{};
-            std::vector<tool::gsc::GSC_USEANIMTREE_ITEM> useAnimTrees{};
+            std::vector<BINGSCExport> functions{};
+            std::vector<GSC_ANIMTREE_ITEM> animTrees{};
+            std::vector<GSC_USEANIMTREE_ITEM> useAnimTrees{};
+            std::vector<GSCBINToken> tokens{};
+            std::vector<PreImport> imports{};
             std::vector<PreString> strings{};
             std::vector<byte> stringData{};
 
@@ -97,12 +108,23 @@ namespace {
                 core::bytebuffer::ByteBuffer sourceReader{ decompressedData.get(), sizef };
                 core::bytebuffer::ByteBuffer bytecodeReader{ header.GetByteCode(), header.bytecodeLen };
 
-                auto ReadSourceToken = [&sourceReader]() -> const char* {
-                    uint32_t id = sourceReader.Read<uint32_t>();
+                auto ReadSourceToken = [&sourceReader, &tokens, &stringData]() -> const char* {
+                    GSCBINToken& token{ tokens.emplace_back() };
+                    
+                    token.location = (uint32_t)sourceReader.Loc();
+                    uint32_t id{ sourceReader.Read<uint32_t>() };
 
                     if (!id) {
-                        return sourceReader.ReadString();
+                        const char* str{ sourceReader.ReadString() };
+
+                        token.type = GBTT_STRING;
+                        token.val = (uint32_t)utils::WriteString(stringData, str);
+
+                        return str;
                     }
+
+                    token.type = GBTT_FIELD;
+                    token.val = id;
 
                     return utils::va("ref_%x", id);
                 };
@@ -127,25 +149,25 @@ namespace {
 
 
                 while (!bytecodeReader.End()) {
-                    BINGSCExport exp{};
+                    BINGSCExport exph{};
 
                     try {
-                        exp.address = (uint32_t)(bytecode + bytecodeReader.Loc());
+                        exph.address = (uint32_t)(bytecode + bytecodeReader.Loc());
                         byte* funcStart{ bytecodeReader.Ptr() };
-                        exp.size = sourceReader.Read<uint32_t>();
-                        byte* funcEnd{ funcStart + exp.size };
+                        exph.size = sourceReader.Read<uint32_t>();
+                        byte* funcEnd{ funcStart + exph.size };
                         const char* name{ ReadSourceToken() };
                         uint64_t hname{ hash::Hash64(name) };
                         hashutils::AddPrecomputed(hname, name);
-                        exp.name = hname;
+                        exph.name = hname;
 
                         asmout
                             << "\n"
                             << "// name: " << name << "\n"
-                            << "// offset: 0x" << std::hex << exp.address << "\n"
-                            << "// size: 0x" << std::hex << exp.size << "\n"
+                            << "// offset: 0x" << std::hex << exph.address << "\n"
+                            << "// size: 0x" << std::hex << exph.size << "\n"
                             ;
-                        functions.emplace_back(exp);
+                        BINGSCExport& exp{ functions.emplace_back(exph) };
                         while (bytecodeReader.Ptr() < funcEnd) {
                             asmout << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc() << " ";
                             byte opcode{ bytecodeReader.Read<byte>() };
@@ -208,6 +230,8 @@ namespace {
                             case OPCODE_T10_LowerThanOrSuperEqualTo:
                             case OPCODE_T10_GreaterThanOrSuperEqualTo:
                             case OPCODE_GetZero:
+                            case OPCODE_EvalArray:
+                            case OPCODE_EvalArrayRef:
                             case OPCODE_SetVariableField:
                             case OPCODE_GSCBIN_SKIP_0:
                                 asmout << "\n";
@@ -301,25 +325,95 @@ namespace {
 
                                 break;
                             }
+                            case OPCODE_IW_CallBuiltinFunction0:
+                            case OPCODE_IW_CallBuiltinFunction1:
+                            case OPCODE_IW_CallBuiltinFunction2:
+                            case OPCODE_IW_CallBuiltinFunction3:
+                            case OPCODE_IW_CallBuiltinFunction4:
+                            case OPCODE_IW_CallBuiltinFunction5: {
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_FUNCTION_NO_PARAMS;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.id = bytecodeReader.Read<uint16_t>();
+                                asmout << "\n";
+                                break;
+                            }
+                            case OPCODE_CallBuiltinFunction: {
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_FUNCTION;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                SkipNBytes(1) << "\n";
+                                imp.id = bytecodeReader.Read<uint16_t>();
+                                break;
+                            }
+                            case OPCODE_IW_CallBuiltinMethod0:
+                            case OPCODE_IW_CallBuiltinMethod1:
+                            case OPCODE_IW_CallBuiltinMethod2:
+                            case OPCODE_IW_CallBuiltinMethod3:
+                            case OPCODE_IW_CallBuiltinMethod4:
+                            case OPCODE_IW_CallBuiltinMethod5: {
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_METHOD_NO_PARAMS;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.id = bytecodeReader.Read<uint16_t>();
+                                asmout << "\n";
+                                break;
+                            }
+                            case OPCODE_CallBuiltinMethod: {
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_METHOD;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                SkipNBytes(1) << "\n";
+                                imp.id = bytecodeReader.Read<uint16_t>();
+                                break;
+                            }
+                            case OPCODE_IW_ScriptFunctionCall2: {
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::FUNCTION;
+                                asmout << ReadSourceToken() << " "; // TODO: put token in name
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                SkipNBytes(1) << "\n";
+                                imp.id = bytecodeReader.Read<uint16_t>();
+
+                                break;
+                            }
+                            case OPCODE_IW_GetIString:
+                            case OPCODE_GetString: {
+                                PreString& ps{ strings.emplace_back() };
+                                const char* ds{ acts::decryptutils::DecryptString(utils::CloneString(sourceReader.ReadString())) };
+
+                                ps.string = (uint32_t)utils::WriteString(stringData, ds);
+                                ps.address = (uint32_t)bytecodeReader.Loc();
+                                utils::PrintFormattedString(asmout << "\"", ds) << "\"";
+                                SkipNBytes(4) << "\n";
+                                break;
+                            }
                             case OPCODE_GSCBIN_SKIP_4BC_1STR: {
-                                const char* valStr{ sourceReader.ReadString() };
+                                const char* ds{ acts::decryptutils::DecryptString(utils::CloneString(sourceReader.ReadString())) };
+                                utils::PrintFormattedString(asmout << "\"", ds) << "\"";
                                 SkipNBytes(4) << "\n";
                                 break;
                             }
                             case OPCODE_IW_GetAnimation: {
                                 GSC_ANIMTREE_ITEM& item{ animTrees.emplace_back() };
-                                item.address_str1 = (uint32_t)utils::WriteString(stringData, sourceReader.ReadString());
-                                item.address_str2 = (uint32_t)utils::WriteString(stringData, sourceReader.ReadString());
+                                const char* an1{ acts::decryptutils::DecryptString(utils::CloneString(sourceReader.ReadString())) };
+                                const char* an2{ acts::decryptutils::DecryptString(utils::CloneString(sourceReader.ReadString())) };
+                                item.address_str1 = (uint32_t)utils::WriteString(stringData, an1);
+                                item.address_str2 = (uint32_t)utils::WriteString(stringData, an2);
                                 item.num_address = (uint32_t)bytecodeReader.Loc();
 
+                                utils::PrintFormattedString(asmout, an1);
+                                utils::PrintFormattedString(asmout << ",", an2);
                                 SkipNBytes(8) << "\n";
                                 break;
                             }
                             case OPCODE_IW_GetAnimationTree: {
                                 GSC_USEANIMTREE_ITEM& item{ useAnimTrees.emplace_back() };
-                                item.address = (uint32_t)utils::WriteString(stringData, sourceReader.ReadString());
+                                const char* an{ acts::decryptutils::DecryptString(utils::CloneString(sourceReader.ReadString())) };
+                                item.address = (uint32_t)utils::WriteString(stringData, an);
                                 item.num_address = (uint32_t)bytecodeReader.Loc();
 
+                                utils::PrintFormattedString(asmout, an);
                                 SkipNBytes(1) << "\n";
                                 break;
                             }
@@ -338,44 +432,74 @@ namespace {
                 }
             }
             // write cseg
-            fakeHeader.exports_count = functions.size();
-            fakeHeader.exports_table = utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size());
+            if (fakeHeader.exports_count = functions.size()) {
+                fakeHeader.exports_table = utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size());
+            }
 
             // write strings
             size_t strData{ utils::WriteValue(fakeLinked, stringData.data(), stringData.size()) };
 
             // write strings
-            fakeHeader.strings_table = fakeLinked.size();
-            fakeHeader.strings_count = strings.size();
-            for (PreString& s : strings) {
-                T8GSCString& item = utils::Allocate<T8GSCString>(fakeLinked);
-                item.string = (uint32_t)(strData + s.string);
-                item.type = 0;
-                item.num_address = 1;
-                utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + s.address));
+            if (fakeHeader.strings_count = strings.size()) {
+                fakeHeader.strings_table = fakeLinked.size();
+                for (PreString& s : strings) {
+                    T8GSCString& item = utils::Allocate<T8GSCString>(fakeLinked);
+                    item.string = (uint32_t)(strData + s.string);
+                    item.type = 0;
+                    item.num_address = 1;
+                    utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + s.address));
+                }
             }
 
             // write animtrees
-            fakeHeader.animtree_table = fakeLinked.size();
-            fakeHeader.animtree_count = animTrees.size();
+            if (fakeHeader.animtree_count = animTrees.size()) {
+                fakeHeader.animtree_table = fakeLinked.size();
 
-            for (GSC_ANIMTREE_ITEM& at : animTrees) {
-                GSC_ANIMTREE_ITEM& item = utils::Allocate<GSC_ANIMTREE_ITEM>(fakeLinked);
-                item.address_str1 = (uint32_t)(strData + at.address_str1);
-                item.address_str2 = (uint32_t)(strData + at.address_str2);
-                item.num_address = 1;
-                utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + at.num_address));
+                for (GSC_ANIMTREE_ITEM& at : animTrees) {
+                    GSC_ANIMTREE_ITEM& item = utils::Allocate<GSC_ANIMTREE_ITEM>(fakeLinked);
+                    item.address_str1 = (uint32_t)(strData + at.address_str1);
+                    item.address_str2 = (uint32_t)(strData + at.address_str2);
+                    item.num_address = 1;
+                    utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + at.num_address));
+                }
             }
 
             // write use animtrees
-            fakeHeader.useanimtree_table = fakeLinked.size();
-            fakeHeader.useanimtree_count = useAnimTrees.size();
+            if (fakeHeader.useanimtree_count = useAnimTrees.size()) {
+                fakeHeader.useanimtree_table = fakeLinked.size();
 
-            for (GSC_USEANIMTREE_ITEM& at : useAnimTrees) {
-                GSC_USEANIMTREE_ITEM& item = utils::Allocate<GSC_USEANIMTREE_ITEM>(fakeLinked);
-                item.address = (uint32_t)(strData + at.address);
-                item.num_address = 1;
-                utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + at.num_address));
+                for (GSC_USEANIMTREE_ITEM& at : useAnimTrees) {
+                    GSC_USEANIMTREE_ITEM& item = utils::Allocate<GSC_USEANIMTREE_ITEM>(fakeLinked);
+                    item.address = (uint32_t)(strData + at.address);
+                    item.num_address = 1;
+                    utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + at.num_address));
+                }
+            }
+
+            // write tokens
+            if (fakeHeader.tokens_count = tokens.size()) {
+                fakeHeader.tokens_table = fakeLinked.size();
+                for (GSCBINToken& token : tokens) {
+                    if (token.val == tool::gsc::GBTT_STRING) {
+                        // use the string offset as a val
+                        token.val = (uint32_t)(strData + token.val);
+                    }
+                }
+                utils::WriteValue(fakeLinked, tokens.data(), sizeof(tokens[0]) * tokens.size());
+            }
+
+            // write imports
+            if (fakeHeader.imports_count = imports.size()) {
+                fakeHeader.imports_table = fakeLinked.size();
+                for (PreImport& imp : imports) {
+                    IW23GSCImport& item = utils::Allocate<IW23GSCImport>(fakeLinked);
+                    item.name = imp.id;
+                    item.name_space = 0;
+                    item.param_count = 0;
+                    item.flags = imp.flags;
+                    item.num_address = 1;
+                    utils::WriteValue<uint32_t>(fakeLinked, (uint32_t)(bytecode + imp.address));
+                }
             }
 
             if (originalFile) {
@@ -415,10 +539,10 @@ namespace {
             return 0;
         }
         uint16_t GetImportsCount() override {
-            return 0;
+            return (uint16_t)fakeHeader.imports_count;
         }
         uint32_t GetImportsOffset() override {
-            return 0;
+            return (uint32_t)fakeHeader.imports_table;
         }
         uint16_t GetGVarsCount() override {
             return 0;
@@ -427,10 +551,10 @@ namespace {
             return 0;
         }
         uint16_t GetStringsCount() override {
-            return 0;
+            return (uint16_t)fakeHeader.strings_count;
         }
         uint32_t GetStringsOffset() override {
-            return 0;
+            return (uint32_t)fakeHeader.strings_table;
         }
         uint16_t GetDevStringsCount() override {
             return 0;
@@ -449,16 +573,22 @@ namespace {
         }
         uint16_t GetAnimTreeSingleCount() override {
             return (uint16_t)fakeHeader.useanimtree_count;
-        };
+        }
         uint32_t GetAnimTreeSingleOffset() override {
             return (uint32_t)fakeHeader.useanimtree_table;
-        };
+        }
         uint16_t GetAnimTreeDoubleCount() override {
             return (uint16_t)fakeHeader.animtree_count;
-        };
+        }
         uint32_t GetAnimTreeDoubleOffset() override {
             return (uint32_t)fakeHeader.animtree_table;
-        };
+        }
+        uint16_t GetTokensCount() override {
+            return (uint16_t)fakeHeader.tokens_count;
+        }
+        uint32_t GetTokensOffset() override {
+            return (uint32_t)fakeHeader.tokens_table;
+        }
 
         // no name
         void SetName(uint64_t name) override {}
