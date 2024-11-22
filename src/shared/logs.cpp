@@ -10,6 +10,8 @@ namespace alogs {
 		const char* g_logfile{};
 		bool g_basiclog{};
 		std::ostream* g_outStream{};
+
+		std::vector<std::string> paths{};
 	}
 
 	std::mutex* getasyncmutex() {
@@ -18,6 +20,22 @@ namespace alogs {
 			return &mtx;
 		}
 		return nullptr;
+	}
+	void addlogpath(const std::string& path) {
+		size_t start{};
+		while (start < path.size()) {
+			size_t idx{ path.find(';', start) };
+			if (idx == std::string::npos) {
+				idx = path.size();
+			}
+
+			paths.push_back(path.substr(start, idx));
+
+			start = idx + 1;
+		}
+	}
+	void cleanuplogpaths() {
+		paths.clear();
 	}
 
 	const char* name(loglevel lvl) {
@@ -73,13 +91,22 @@ namespace alogs {
 		return bt;
 	}
 
-	void log(loglevel level,
-#ifndef CI_BUILD
-		const char* file, size_t line, 
-#endif
-		const std::string& str) {
+	void log(loglevel level, const char* file, size_t line, const std::string& str) {
 		if (getlevel() > level) {
 			return;
+		}
+
+		if (paths.size()) {
+			// check if the file can be handled
+			std::string_view fsw{ file };
+			bool match{};
+			for (const std::string& p : paths) {
+				if (fsw.starts_with(p)) {
+					match = true;
+					break;
+				}
+			}
+			if (!match) return; // not matching our pattern
 		}
 
 		auto f = [&](std::ostream& out, bool color) {
@@ -100,20 +127,19 @@ namespace alogs {
 				case alogs::LVL_WARNING: out << clicolor::Color(5, 4, 1); break;
 				case alogs::LVL_INFO: out << clicolor::Color(5, 5, 5); break;
 				case alogs::LVL_DEBUG: out << clicolor::Color(4, 5, 1); break;
+				case alogs::LVL_TRACE_PATH:
 				case alogs::LVL_TRACE: out << clicolor::Color(1, 5, 5); break;
 				default: out << clicolor::Reset(); break;
 				}
 			}
 
 			if (!g_basiclog) {
-				out << '[' << name(level) << "] ";
-#ifndef CI_BUILD
+				out << '[' << name(level) << ']';
 				if (g_loglevel == LVL_TRACE_PATH) {
-					out << "[" << file << "@" << std::dec << line << "] ";
+					out << '[' << file << '@' << std::dec << line << ']';
 				}
-#endif
 			}
-			out << str;
+			out << " " << str;
 
 			if (color) {
 				out << clicolor::Reset();

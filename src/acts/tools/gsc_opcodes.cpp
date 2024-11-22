@@ -12,7 +12,7 @@ namespace {
 #ifdef CI_BUILD
 # define assert(x) (void)(x)
 #else
-# define assert(x) if (!(x)) LOG_WARNING("assert error ({}:{}) : {}", __FILE__, __LINE__, #x)
+# define assert(x) if (!(x)) LOG_WARNING("assert error {}", #x)
 #endif
 	// maps to find the opcodes
 	

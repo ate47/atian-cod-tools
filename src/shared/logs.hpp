@@ -12,29 +12,77 @@ namespace alogs {
 		LVL_ERROR = 4,
 	};
 
+
+	constexpr size_t GetLogFileSplit(const char* line) {
+		std::string_view sw{ line };
+
+		size_t idx{ sw.rfind("/src/") };
+		if (idx == std::string::npos) {
+			idx = sw.rfind("\\src\\");
+
+			if (idx == std::string::npos) {
+				return 0;
+			}
+		}
+
+		return idx + 5;
+	}
+
+	constexpr size_t GetLogFileLen(const char* line) {
+		size_t l{ 0 };
+		while (*line++) l++;
+		return l;
+	}
+
+	constexpr size_t GetLogFileExt(const char* line) {
+		std::string_view sw{ line };
+
+		size_t s = sw.rfind('.');
+
+		if (s == std::string::npos || s < GetLogFileSplit(line)) {
+			return 0;
+		}
+
+		return sw.length() - s;
+	}
+
+	template<size_t len, size_t split, size_t ext>
+	constexpr std::array<char, len - split + 1 - ext> GetLogFile(const char* line) {
+		std::array<char, len - split + 1 - ext> a{};
+
+		for (size_t i = split; i < len - ext; i++) {
+			char c;
+			if (line[i] == '\\' || line[i] == '/') {
+				c = ':';
+			}
+			else {
+				c = line[i];
+			}
+			a[i - split] = c;
+		}
+
+		return a;
+	}
+
 	const char* name(loglevel lvl);
 	void setlevel(loglevel lvl);
 	loglevel getlevel();
 	void setbasiclog(bool basiclog);
+	void addlogpath(const std::string& path);
+	void cleanuplogpaths();
 
 	void setfile(const char* filename);
 	const char* logfile();
 
 	void addoutstream(std::ostream* outStream);
 
-	void log(loglevel level, 
-
-#ifndef CI_BUILD
-		const char* file, size_t line,
-#endif
-		const std::string& str);
+	void log(loglevel level, const char* file, size_t line, const std::string& str);
 }
 
-#ifndef CI_BUILD
-#define LOG_LVL(LEVEL, msg) if (alogs::getlevel() <= LEVEL) alogs::log(LEVEL, __FILE__, __LINE__, msg)
-#else
-#define LOG_LVL(LEVEL, msg) if (alogs::getlevel() <= LEVEL) alogs::log(LEVEL, msg)
-#endif
+
+// convert filename to log id
+#define LOG_GET_LOG_REF_STR (alogs::GetLogFile<alogs::GetLogFileLen(__FILE__), alogs::GetLogFileSplit(__FILE__), alogs::GetLogFileExt(__FILE__)>(__FILE__))
+#define LOG_LVL(LEVEL, msg) if (alogs::getlevel() <= LEVEL) alogs::log(LEVEL, LOG_GET_LOG_REF_STR.data(), __LINE__, msg)
 #define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))
 #define LOG_TRACE(...) LOG_LVLF(alogs::loglevel::LVL_TRACE, __VA_ARGS__)
 #define LOG_DEBUG(...) LOG_LVLF(alogs::loglevel::LVL_DEBUG, __VA_ARGS__)
