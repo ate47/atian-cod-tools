@@ -344,6 +344,13 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		return 0;
 	}
 
+	// create default directories
+	std::filesystem::create_directories(utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir);
+	std::filesystem::path depsDir{ utils::GetProgDir() / "deps" };
+	std::filesystem::create_directories(depsDir);
+	std::wstring depsDirStr{ depsDir.wstring() };
+	AddDllDirectory(depsDirStr.data());
+
 	std::filesystem::path packFilePath;
 
 	if (opt.packFile) {

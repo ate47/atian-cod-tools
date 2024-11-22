@@ -11,7 +11,7 @@ namespace hook::module_mapper {
 		if (freeOnExit) Free();
 	}
 
-	bool Module::Load(const std::filesystem::path& path) {
+	bool Module::Load(const std::filesystem::path& path, bool patchIAT) {
 		Free(); // free module if required
 		std::filesystem::path ap{ std::filesystem::absolute(path) };
 		std::string p{ ap.string() };
@@ -20,7 +20,9 @@ namespace hook::module_mapper {
 		if (!lib) return false;
 		
 		// patch lib
-		lib.PatchIAT();
+		if (patchIAT) {
+			lib.PatchIAT();
+		}
 		LOG_TRACE("Module loaded {}", lib);
 
 		return true;
@@ -29,7 +31,7 @@ namespace hook::module_mapper {
 		if (!lib) return; // nothing to free
 		// free and set the module to null
 		lib.Free();
-		lib.SetModule(NULL);
+		lib.ClearModule();
 	}
 
 

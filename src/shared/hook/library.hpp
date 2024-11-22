@@ -190,6 +190,23 @@ namespace hook::library {
 			this->hmod = hmod;
 		}
 
+		void ClearModule() {
+			this->hmod = 0;
+		}
+
+		void SetModule(const char* name, bool system = false) {
+			SetModule(system ? process::LoadSysLib(name) : process::LoadLib(name));
+		}
+
+		void SetModule(const std::string& name, bool system = false) {
+			SetModule(name.data(), system);
+		}
+
+
+		void SetModule(const std::filesystem::path& name) {
+			SetModule(name.string(), false);
+		}
+
 		bool Free() {
 			if (!*this) return false;
 			return FreeLibrary(hmod);
@@ -295,7 +312,7 @@ namespace hook::library {
 
 		template<typename T>
 		const T* Get(size_t loc) const {
-			return reinterpret_cast<const T*>((*this)[loc]);
+			return reinterpret_cast<T*>((*this)[loc]);
 		}
 
 		template<typename T>
@@ -303,7 +320,12 @@ namespace hook::library {
 			return reinterpret_cast<T*>((*this)[loc]);
 		}
 
-		void PatchIAT() const;
+		template<typename T>
+		T GetProc(const char* name) {
+			return (T)GetProcAddress(hmod, name);
+		}
+
+		void PatchIAT();
 
 		template<typename T = void>
 		T* Rebase(uintptr_t origin) const {

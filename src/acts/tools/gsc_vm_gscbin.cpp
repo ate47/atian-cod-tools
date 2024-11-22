@@ -216,6 +216,10 @@ namespace {
                             case OPCODE_IW_IsTrue:
                             case OPCODE_CreateStruct:
                             case OPCODE_CreateArray:
+                            case OPCODE_EmptyArray:
+                            case OPCODE_EmptyStruct:
+                            case OPCODE_Wait:
+                            case OPCODE_WaitFrame:
                             case OPCODE_IW_EvalLocalVariableCached0:
                             case OPCODE_IW_EvalLocalVariableCached1:
                             case OPCODE_IW_EvalLocalVariableCached2:

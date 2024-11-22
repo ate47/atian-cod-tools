@@ -383,16 +383,59 @@ namespace hook::library {
 	}
 
 
-	void hook::library::Library::PatchIAT() const {
+	void hook::library::Library::PatchIAT() {
 		IMAGE_DATA_DIRECTORY& dir{ GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
-		DWORD importSize{ dir.Size };
-		
-		if (!dir.VirtualAddress || importSize <= 0) return; // nothing to patch
+		if (!dir.VirtualAddress || dir.Size <= 0) return; // nothing to patch
+
 		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)((*this)[dir.VirtualAddress]) };
 		
 		LOG_TRACE("Loading imports 0x{:x}/0x{:x}", dir.VirtualAddress, dir.Size);
 
-		// TODO: write that
+		std::ostringstream osnames{};
+
+		while (imports->Name) {
+			IMAGE_IMPORT_DESCRIPTOR& imp{ *imports++ };
+
+			const char* name{ Get<const char>(imp.Name) };
+
+			if (alogs::getlevel() <= alogs::LVL_TRACE) osnames << " " << name;
+
+			hook::library::Library dep{ LoadLibraryExA(name, nullptr, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)  };
+
+			if (!dep) {
+				osnames << "<missing>";
+				LOG_TRACE("Can't load IAT lib {} to patch {}", name, *this);
+				continue;
+			}
+
+			IMAGE_THUNK_DATA* thunks{ Get<IMAGE_THUNK_DATA>(imp.FirstThunk) };
+			IMAGE_THUNK_DATA* originalThunks{ Get<IMAGE_THUNK_DATA>(imp.OriginalFirstThunk) };
+
+			while (originalThunks->u1.Function) {
+				IMAGE_THUNK_DATA& thunk{ *thunks++ };
+				IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
+
+				void* func;
+				if (originalThunk.u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
+					func = dep[(const char*)IMAGE_ORDINAL64(originalThunk.u1.Ordinal)];
+					if (!func) {
+						LOG_WARNING("Can't find {}::ord<{}>", dep, IMAGE_ORDINAL64(originalThunk.u1.Ordinal));
+						continue;
+					}
+				}
+				else {
+					func = dep[Get<const char>(originalThunk.u1.Function + 2)];
+					if (!func) {
+						LOG_WARNING("Can't find {}::{}", dep, Get<const char>(originalThunk.u1.Function + 2));
+						continue;
+					}
+				}
+
+				process::WriteMemSafe(&thunk, func);
+			}
+		}
+
+		LOG_TRACE("Loaded IAT for {}:{}", *this, osnames.str());
 	}
 
 	std::ostream& operator<<(std::ostream& out, const hook::library::CodePointer& ptr) {
