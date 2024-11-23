@@ -1,4 +1,6 @@
 - gsc decompiler
-  - add hashed name without extension in DB for MW engines
-- deploy
-  - add dev release with pdb files in release
+  - gscbin decompilatrer wip
+  - add decryption dto scd
+- acts
+  - better logger
+  - remove dev tools from list
