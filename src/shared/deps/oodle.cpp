@@ -23,7 +23,7 @@ namespace deps::oodle {
 
     bool LoadOodle(const char* libname) {
         FreeOodle();
-        oodle.SetModule(libname);
+        oodle.SetModule(libname, false, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
         if (!oodle) {
             LOG_ERROR("Can't load oodle lib {}", libname);
@@ -42,6 +42,18 @@ namespace deps::oodle {
 
         return true;
     }
+    bool LoadOodleFromGame(const hook::library::Library& game) {
+        for (const char* depNameCS : game.GetIATModules()) {
+            std::string_view depName{ depNameCS };
+
+            if (depName.starts_with(OO2CORE_PREFIX)) {
+                return LoadOodle(depNameCS);
+            }
+        }
+
+        LOG_ERROR("Can't find Oodle core library prefix in {}", game);
+        return false;
+    }
 
     void FreeOodle() {
         oodle.Free();
@@ -59,6 +71,10 @@ namespace deps::oodle {
         int32_t cfg[7];
         GetConfigValues(cfg);
         return cfg[6];
+    }
+
+    const hook::library::Library& GetOodleLib() {
+        return oodle;
     }
 
     size_t Decompress(void* src, size_t srcLen, void* dest, size_t destLen) {

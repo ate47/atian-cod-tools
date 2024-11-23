@@ -2,6 +2,8 @@
 
 
 #ifndef CI_BUILD
+#include <deps/oodle.hpp>
+#include <hook/module_mapper.hpp>
 #include <utils/io_utils.hpp>
 #include <core/config.hpp>
 #include <core/memory_allocator_static.hpp>
@@ -93,6 +95,26 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int oodleload(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+		hook::module_mapper::Module mod{ true };
+
+		if (!mod.Load(argv[2], false)) {
+			LOG_ERROR("Can't load {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+		if (!deps::oodle::LoadOodleFromGame(*mod)) {
+			LOG_ERROR("Can't load oodle");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Oodle 0x{:x} loaded: {}", deps::oodle::GetVersion(), deps::oodle::GetOodleLib());
+
+		return tool::OK;
+	}
 }
 
 ADD_TOOL(test, "dev", "", "Tests", nullptr, test);
@@ -100,4 +122,5 @@ ADD_TOOL(strtouint64, "common", " (str)*", "Convert string to number", strtouint
 ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);
 ADD_TOOL(wget, "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL(cfgtest, "dev", "", "", nullptr, cfgtest);
+ADD_TOOL(oodleload, "dev", " [exe]", "", oodleload);
 #endif

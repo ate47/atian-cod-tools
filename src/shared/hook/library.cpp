@@ -382,6 +382,21 @@ namespace hook::library {
 		return out << ptr.GetName() << "[0x" << std::hex << reinterpret_cast<uintptr_t>(ptr.hmod) << "]";
 	}
 
+	std::vector<const char*> hook::library::Library::GetIATModules() const {
+		std::vector<const char*> res{};
+
+		IMAGE_DATA_DIRECTORY& dir{ GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
+		if (!dir.VirtualAddress || dir.Size <= 0) return res; // nothing
+
+		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)((*this)[dir.VirtualAddress]) };
+
+		while (imports->Name) {
+			IMAGE_IMPORT_DESCRIPTOR& imp{ *imports++ };
+
+			res.push_back(Get<const char>(imp.Name));
+		}
+		return res;
+	}
 
 	void hook::library::Library::PatchIAT() {
 		IMAGE_DATA_DIRECTORY& dir{ GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
@@ -400,7 +415,7 @@ namespace hook::library {
 
 			if (core::logs::getlevel() <= core::logs::LVL_TRACE) osnames << " " << name;
 
-			hook::library::Library dep{ LoadLibraryExA(name, nullptr, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)  };
+			hook::library::Library dep{ name, false, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS };
 
 			if (!dep) {
 				osnames << "<missing>";

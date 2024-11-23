@@ -46,7 +46,10 @@ namespace hook::process {
 		return &(PImageNtHeader(mod)->OptionalHeader);
 	}
 
-	HMODULE LoadLib(const char* lib) {
+	HMODULE LoadLib(const char* lib, DWORD flags) {
+		if (flags) {
+			return LoadLibraryExA(lib, nullptr, flags);
+		}
 		return LoadLibraryA(lib);
 	}
 

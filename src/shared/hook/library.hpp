@@ -160,7 +160,8 @@ namespace hook::library {
 
 		return ScanLibrary(hmod, buff, single);
 	}
-	
+	class LibraryModule;
+
 	// Library information
 	class Library {
 		HMODULE hmod{};
@@ -174,13 +175,13 @@ namespace hook::library {
 		Library(const char* name) : hmod(process::LoadLib(name)) {
 		}
 
-		Library(const char* name, bool system) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name)) {
+		Library(const char* name, bool system, DWORD flags = 0) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name, flags)) {
 		}
 
-		Library(const std::string& name, bool system = false) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name)) {
+		Library(const std::string& name, bool system = false, DWORD flags = 0) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name, flags)) {
 		}
 
-		Library(const std::filesystem::path& name, bool system = false) : hmod(system ? process::LoadSysLib(name.string()) : process::LoadLib(name.string())) {
+		Library(const std::filesystem::path& name, bool system = false, DWORD flags = 0) : hmod(system ? process::LoadSysLib(name.string()) : process::LoadLib(name.string(), flags)) {
 		}
 
 		Library(const Library& other) : hmod(other.hmod) {
@@ -194,17 +195,17 @@ namespace hook::library {
 			this->hmod = 0;
 		}
 
-		void SetModule(const char* name, bool system = false) {
-			SetModule(system ? process::LoadSysLib(name) : process::LoadLib(name));
+		void SetModule(const char* name, bool system = false, DWORD flags = 0) {
+			SetModule(system ? process::LoadSysLib(name) : process::LoadLib(name, flags));
 		}
 
-		void SetModule(const std::string& name, bool system = false) {
-			SetModule(name.data(), system);
+		void SetModule(const std::string& name, bool system = false, DWORD flags = 0) {
+			SetModule(name.data(), system, flags);
 		}
 
 
-		void SetModule(const std::filesystem::path& name) {
-			SetModule(name.string(), false);
+		void SetModule(const std::filesystem::path& name, DWORD flags = 0) {
+			SetModule(name.string(), false, flags);
 		}
 
 		bool Free() {
@@ -325,6 +326,7 @@ namespace hook::library {
 			return (T)GetProcAddress(hmod, name);
 		}
 
+		std::vector<const char*> GetIATModules() const;
 		void PatchIAT();
 
 		template<typename T = void>

@@ -23,9 +23,9 @@ namespace hook::process {
         return reinterpret_cast<Out*>(&BasePtr()[location]);
     }
 
-    HMODULE LoadLib(const char* lib);
-    inline HMODULE LoadLib(std::string lib) {
-        return LoadLib(lib.data());
+    HMODULE LoadLib(const char* lib, DWORD flags = 0);
+    inline HMODULE LoadLib(std::string lib, DWORD flags = 0) {
+        return LoadLib(lib.data(), flags);
     }
 
     HMODULE LoadSysLib(const char* lib);
