@@ -428,7 +428,7 @@ namespace tool::nui {
 						core::config::SetBool("nui.open", false);
 						SaveNextConfig();
 					}
-					static std::string titleIn = std::format("Atian tools {} UI", actsinfo::VERSION);
+					static std::string titleIn = std::format("Atian tools {} UI", core::actsinfo::VERSION);
 					ImGui::SeparatorText(titleIn.c_str());
 				}
 				else {
@@ -467,7 +467,7 @@ namespace tool::nui {
 					SaveNextConfig();
 
 					static std::string title{};
-					title = std::format("Atian tools {} UI{}{}", actsinfo::VERSION, ((data && data->m_description) ? " - " : ""), ((data && data->m_description) ? data->m_description : ""));
+					title = std::format("Atian tools {} UI{}{}", core::actsinfo::VERSION, ((data && data->m_description) ? " - " : ""), ((data && data->m_description) ? data->m_description : ""));
 					nui.SetWindowName(title.c_str());
 				}
 

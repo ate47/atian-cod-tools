@@ -1,7 +1,6 @@
 #include <includes.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
-#include <pool.hpp>
 #include "tools/bo6/bo6.hpp"
 #include "tools/utils/ps4_process.hpp"
 #include "tools/tools_ui.hpp"

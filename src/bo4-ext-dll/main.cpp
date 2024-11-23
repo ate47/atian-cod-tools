@@ -1,5 +1,5 @@
 #include <dll_includes.hpp>
-#include <utils.hpp>
+#include <utils/utils.hpp>
 #include <hook/error.hpp>
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
@@ -37,7 +37,7 @@ namespace bo4 {
 
         BOOL WINAPI GetThreadContextStub(HANDLE hThread, LPCONTEXT lpContext) {
             // clear debug flags if inside the game
-            if (hook::library::GetLibraryInfo(_ReturnAddress()) == process::BaseHandle()) {
+            if (hook::library::GetLibraryInfo(_ReturnAddress()) == hook::process::BaseHandle()) {
                 if (lpContext && lpContext->ContextFlags & (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64)) {
                     lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
                 }
@@ -51,18 +51,18 @@ namespace bo4 {
 
         void InitDll() {
             try {
-                alogs::setfile("acts-bo4.log");
+                core::logs::setfile("acts-bo4.log");
                 core::config::SyncConfig(true);
 
                 core::config::ConfigEnumData logNames[]{
-                    { "trace", alogs::LVL_TRACE},
-                    { "debug", alogs::LVL_DEBUG},
-                    { "info", alogs::LVL_INFO},
-                    { "warning", alogs::LVL_WARNING},
-                    { "error", alogs::LVL_ERROR}
+                    { "trace", core::logs::LVL_TRACE},
+                    { "debug", core::logs::LVL_DEBUG},
+                    { "info", core::logs::LVL_INFO},
+                    { "warning", core::logs::LVL_WARNING},
+                    { "error", core::logs::LVL_ERROR}
                 };
 
-                alogs::setlevel(core::config::GetEnumVal<alogs::loglevel>("logger.level", logNames, ARRAYSIZE(logNames), alogs::LVL_INFO));
+                core::logs::setlevel(core::config::GetEnumVal<core::logs::loglevel>("logger.level", logNames, ARRAYSIZE(logNames), core::logs::LVL_INFO));
 
                 hook::library::Library main{};
                 LOG_INFO("init acts dll pid={} name={}", GetCurrentProcessId(), main.GetName());

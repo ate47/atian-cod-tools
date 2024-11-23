@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <decrypt.hpp>
+#include <utils/decrypt.hpp>
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>

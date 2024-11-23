@@ -1,5 +1,6 @@
 #pragma once
-#include <memapi.hpp>
+#include <utils/memapi.hpp>
+#include <utils/utils.hpp>
 
 namespace tool {
 	enum errorcode : int32_t {
@@ -48,7 +49,7 @@ namespace tool {
 
 	const toolfunctiondata& findtool(const char* name);
 	bool search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each);
-	void usage(const char* message, const char* argv0, alogs::loglevel lvl = alogs::loglevel::LVL_ERROR);
+	void usage(const char* message, const char* argv0, core::logs::loglevel lvl = core::logs::loglevel::LVL_ERROR);
 
 	/*
 	 * Test if the tool args contains enough arguments (argv[0] = acts argv[1] = tool name)

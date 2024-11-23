@@ -1,6 +1,8 @@
 #include <includes.hpp>
 #include "tools/dump.hpp"
-#include <pool.hpp>
+#include <games/bo4/pool.hpp>
+
+using namespace games::bo4;
 
 struct XAssetPoolEntry {
 	uintptr_t pool;
@@ -27,7 +29,7 @@ static int ps4reader(Process& _, int argc, const char* argv[]) {
 	libdebug::PS4DBG ps4{ ipd };
 	ps4.Connect();
 
-	ps4.Notify(210, std::format("Atian Tools {}", actsinfo::VERSION));
+	ps4.Notify(210, std::format("Atian Tools {}", core::actsinfo::VERSION));
 
 	auto procList = ps4.GetProcessList();
 	auto proc = procList.FindProcess("eboot.bin");
@@ -113,7 +115,7 @@ static int ps4vtable(Process& _, int argc, const char* argv[]) {
 	libdebug::PS4DBG ps4{ ipd };
 	ps4.Connect();
 
-	ps4.Notify(210, std::format("Atian Tools {}", actsinfo::VERSION));
+	ps4.Notify(210, std::format("Atian Tools {}", core::actsinfo::VERSION));
 
 	auto procList = ps4.GetProcessList();
 	auto proc = procList.FindProcess("eboot.bin");

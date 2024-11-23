@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <decrypt.hpp>
+#include <utils/decrypt.hpp>
 
 namespace {
     struct T8GSCOBJ {

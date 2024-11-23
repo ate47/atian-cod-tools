@@ -1,9 +1,10 @@
 #include <includes.hpp>
+#include <utils/utils.hpp>
 #include "hashutils.hpp"
 #include "decryptutils.hpp"
 #include "compatibility/scobalula_wni.hpp"
 #include "actscli.hpp"
-#include <clicolor.hpp>
+#include <cli/clicolor.hpp>
 #include "hook/error.hpp"
 #include "actslib/logging.hpp"
 #include "acts.hpp"
@@ -85,7 +86,7 @@ namespace {
 					LOG_ERROR("Missing value for param: {}!", arg);
 					return false;
 				}
-				alogs::addlogpath(argv[++i]);
+				core::logs::addlogpath(argv[++i]);
 			}
 			else if (!strcmp("-l", arg) || !_strcmpi("--log", arg)) {
 				if (i + 1 == argc) {
@@ -102,39 +103,39 @@ namespace {
 				switch (*val) {
 				case 'p':
 				case 'P':
-					alogs::setlevel(alogs::LVL_TRACE_PATH);
+					core::logs::setlevel(core::logs::LVL_TRACE_PATH);
 					actslib::logging::SetLevel(actslib::logging::LEVEL_TRACE);
 					break;
 				case 't':
 				case 'T':
-					alogs::setlevel(alogs::LVL_TRACE);
+					core::logs::setlevel(core::logs::LVL_TRACE);
 					actslib::logging::SetLevel(actslib::logging::LEVEL_TRACE);
 					break;
 				case 'd':
 				case 'D':
-					alogs::setlevel(alogs::LVL_DEBUG);
+					core::logs::setlevel(core::logs::LVL_DEBUG);
 					actslib::logging::SetLevel(actslib::logging::LEVEL_DEBUG);
 					break;
 				case 'i':
 				case 'I':
-					alogs::setlevel(alogs::LVL_INFO);
+					core::logs::setlevel(core::logs::LVL_INFO);
 					actslib::logging::SetLevel(actslib::logging::LEVEL_INFO);
 					break;
 				case 'w':
 				case 'W':
-					alogs::setlevel(alogs::LVL_WARNING);
+					core::logs::setlevel(core::logs::LVL_WARNING);
 					actslib::logging::SetLevel(actslib::logging::LEVEL_WARNING);
 					break;
 				case 'e':
 				case 'E':
-					alogs::setlevel(alogs::LVL_ERROR);
+					core::logs::setlevel(core::logs::LVL_ERROR);
 					actslib::logging::SetLevel(actslib::logging::LEVEL_ERROR);
 					break;
 				default:
 					LOG_ERROR("Invalid log value for param: {}/{}", arg, val);
 					return false;
 				}
-				alogs::setbasiclog(false);
+				core::logs::setbasiclog(false);
 				actslib::logging::SetBasicLog(false);
 			}
 			else if (!strcmp("-L", arg) || !_strcmpi("--log-file", arg)) {
@@ -142,9 +143,9 @@ namespace {
 					LOG_ERROR("Missing value for param: {}!", arg);
 					return false;
 				}
-				alogs::setbasiclog(false);
+				core::logs::setbasiclog(false);
 				actslib::logging::SetBasicLog(false);
-				alogs::setfile(argv[++i]);
+				core::logs::setfile(argv[++i]);
 				actslib::logging::SetLogFile(argv[i]);
 			}
 			else if (!_strcmpi("--mark-hash", arg)) {
@@ -279,33 +280,33 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	// by default we don't display heavy logs in cli
 
 	if (cli) {
-		alogs::setbasiclog(true);
+		core::logs::setbasiclog(true);
 		actslib::logging::SetBasicLog(true);
 	} else {
 		static std::string uiLogs = [] {
 			std::filesystem::path path{ utils::GetProgDir() / "acts-ui.log" };
 			return path.string();
 		}();
-		alogs::setfile(uiLogs.data());
+		core::logs::setfile(uiLogs.data());
 		actslib::logging::SetLogFile(uiLogs.data());
 
 		std::string logLevel = core::config::GetString("ui.logLevel", "INFO");
 
 		if (logLevel != "INFO") {
 			if (logLevel == "DEBUG") {
-				alogs::setlevel(alogs::LVL_DEBUG);
+				core::logs::setlevel(core::logs::LVL_DEBUG);
 				actslib::logging::SetLevel(actslib::logging::LEVEL_DEBUG);
 			}
 			else if (logLevel == "TRACE") {
-				alogs::setlevel(alogs::LVL_TRACE);
+				core::logs::setlevel(core::logs::LVL_TRACE);
 				actslib::logging::SetLevel(actslib::logging::LEVEL_TRACE);
 			}
 			else if (logLevel == "ERROR") {
-				alogs::setlevel(alogs::LVL_ERROR);
+				core::logs::setlevel(core::logs::LVL_ERROR);
 				actslib::logging::SetLevel(actslib::logging::LEVEL_ERROR);
 			}
 			else if (logLevel == "WARNING") {
-				alogs::setlevel(alogs::LVL_WARNING);
+				core::logs::setlevel(core::logs::LVL_WARNING);
 				actslib::logging::SetLevel(actslib::logging::LEVEL_WARNING);
 			}
 		}
@@ -330,7 +331,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	auto& opt = actscli::options();
 
 	if (opt.showTitle && !hInstance) {
-		LOG_INFO("Atian tools {} {}", actsinfo::VERSION, ([&opt]() -> const char* {
+		LOG_INFO("Atian tools {} {}", core::actsinfo::VERSION, ([&opt]() -> const char* {
 			switch (opt.type) {
 				case actscli::ACTS_CLI: return "CLI";
 				case actscli::ACTS_UI: return "UI";
@@ -416,13 +417,13 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		if (opt.type == actscli::ACTS_REPL) {
 			std::string line{};
 			
-			if (clicolor::ConsoleAllowColor()) {
-				std::cout << clicolor::Color(5, 1, 3) << "acts:" << actsinfo::VERSION << "> " << clicolor::Color(5, 5, 5);
+			if (cli::clicolor::ConsoleAllowColor()) {
+				std::cout << cli::clicolor::Color(5, 1, 3) << "acts:" << core::actsinfo::VERSION << "> " << cli::clicolor::Color(5, 5, 5);
 				std::getline(std::cin, line);
-				std::cout << clicolor::Reset();
+				std::cout << cli::clicolor::Reset();
 			}
 			else {
-				std::cout << "acts:" << actsinfo::VERSION << "> ";
+				std::cout << "acts:" << core::actsinfo::VERSION << "> ";
 				std::getline(std::cin, line);
 			}
 

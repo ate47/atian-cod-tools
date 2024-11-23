@@ -1,12 +1,12 @@
 #include <includes_shared.hpp>
 #include <core/async.hpp>
-#include "utils.hpp"
-#include "logs.hpp"
-#include "clicolor.hpp"
+#include <core/logs.hpp>
+#include <cli/clicolor.hpp>
+#include <utils/utils.hpp>
 
-namespace alogs {
+namespace core::logs {
 	namespace {
-		alogs::loglevel g_loglevel = alogs::LVL_INFO;
+		loglevel g_loglevel = LVL_INFO;
 		const char* g_logfile{};
 		bool g_basiclog{};
 		std::ostream* g_outStream{};
@@ -40,16 +40,16 @@ namespace alogs {
 
 	const char* name(loglevel lvl) {
 		switch (lvl) {
-		case alogs::LVL_TRACE:
-		case alogs::LVL_TRACE_PATH:
+		case LVL_TRACE:
+		case LVL_TRACE_PATH:
 			return "TRACE";
-		case alogs::LVL_ERROR:
+		case LVL_ERROR:
 			return "ERROR";
-		case alogs::LVL_WARNING:
+		case LVL_WARNING:
 			return "WARN.";
-		case alogs::LVL_INFO:
+		case LVL_INFO:
 			return "INFO.";
-		case alogs::LVL_DEBUG:
+		case LVL_DEBUG:
 			return "DEBUG";
 		default:
 			return "UKN..";
@@ -114,7 +114,7 @@ namespace alogs {
 			core::async::opt_lock_guard lg{ getasyncmutex() };
 			if (!g_basiclog) {
 				if (color) {
-					out << clicolor::Color(5, 5, 5);
+					out << cli::clicolor::Color(5, 5, 5);
 				}
 				std::tm tm = localtime_xp(std::time(nullptr));
 				out
@@ -123,13 +123,13 @@ namespace alogs {
 			}
 			if (color) {
 				switch (level) {
-				case alogs::LVL_ERROR: out << clicolor::Color(5, 1, 1); break;
-				case alogs::LVL_WARNING: out << clicolor::Color(5, 4, 1); break;
-				case alogs::LVL_INFO: out << clicolor::Color(5, 5, 5); break;
-				case alogs::LVL_DEBUG: out << clicolor::Color(4, 5, 1); break;
-				case alogs::LVL_TRACE_PATH:
-				case alogs::LVL_TRACE: out << clicolor::Color(1, 5, 5); break;
-				default: out << clicolor::Reset(); break;
+				case LVL_ERROR: out << cli::clicolor::Color(5, 1, 1); break;
+				case LVL_WARNING: out << cli::clicolor::Color(5, 4, 1); break;
+				case LVL_INFO: out << cli::clicolor::Color(5, 5, 5); break;
+				case LVL_DEBUG: out << cli::clicolor::Color(4, 5, 1); break;
+				case LVL_TRACE_PATH:
+				case LVL_TRACE: out << cli::clicolor::Color(1, 5, 5); break;
+				default: out << cli::clicolor::Reset(); break;
 				}
 			}
 
@@ -142,7 +142,7 @@ namespace alogs {
 			out << " " << str;
 
 			if (color) {
-				out << clicolor::Reset();
+				out << cli::clicolor::Reset();
 			}
 			out << "\n";
 			};
@@ -156,7 +156,7 @@ namespace alogs {
 			out.close();
 		}
 		else {
-			static bool allowColor = clicolor::ConsoleAllowColor();
+			static bool allowColor = cli::clicolor::ConsoleAllowColor();
 
 			f(level < LVL_WARNING ? std::cout : std::cerr, allowColor);
 		}

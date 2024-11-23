@@ -1,5 +1,4 @@
 #include <dll_includes.hpp>
-#include <pool.hpp>
 
 // Prototype
 static void ScrVm_Error(uint64_t code, scriptinstance::ScriptInstance inst, char* unk, bool terminal);

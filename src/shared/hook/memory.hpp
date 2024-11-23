@@ -1,5 +1,5 @@
 #pragma once
-#include <process.hpp>
+#include <hook/process.hpp>
 
 namespace hook::memory {
 	/*

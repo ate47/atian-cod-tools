@@ -1,5 +1,5 @@
 #pragma once
-#include <pool.hpp>
+#include <games/bo4/pool.hpp>
 
 namespace tool::pool {
 

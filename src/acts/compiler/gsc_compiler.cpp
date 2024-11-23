@@ -1263,7 +1263,7 @@ namespace acts::compiler {
             }
             return nullptr;
         }
-        void PrintLineMessage(alogs::loglevel lvl, ParseTree* tree, const std::string& msg) const {
+        void PrintLineMessage(core::logs::loglevel lvl, ParseTree* tree, const std::string& msg) const {
             Token* token = GetToken(tree);
             if (token) {
                 container.PrintLineMessage(lvl, token->getLine(), token->getCharPositionInLine(), msg);
@@ -1595,7 +1595,7 @@ namespace acts::compiler {
                 }
                 default:
                     if (error) {
-                        info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
+                        info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
                     }
                     return NAN;
                 }
@@ -1603,7 +1603,7 @@ namespace acts::compiler {
 
             if (!number || number->getTreeType() != TREE_TERMINAL) {
                 if (error) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
+                    info.PrintLineMessage(core::logs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
                 }
                 return NAN; // wtf?
             }
@@ -1717,7 +1717,7 @@ namespace acts::compiler {
                 }
                 default:
                     if (error) {
-                        info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
+                        info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Not a valid const number: {} ({})", rule->getText(), rule->getRuleIndex()));
                     }
                     if (extracted) *extracted = false;
                     return 0;
@@ -1726,7 +1726,7 @@ namespace acts::compiler {
 
             if (!number || number->getTreeType() != TREE_TERMINAL) {
                 if (error) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
+                    info.PrintLineMessage(core::logs::LVL_ERROR, number, std::format("Not a valid const number: {}", number->getText()));
                 }
                 if (extracted) *extracted = false;
                 return 0; // wtf?
@@ -1821,11 +1821,11 @@ namespace acts::compiler {
             }
             while (hashNode->getTreeType() != TREE_TERMINAL) {
                 if (hashNode->getTreeType() == TREE_ERROR) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Tree error");
+                    info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, "Tree error");
                     return false;
                 }
                 if (hashNode->children.size() != 1) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression");
+                    info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, "Not a hash expression");
                     return false;
                 }
 
@@ -1872,7 +1872,7 @@ namespace acts::compiler {
                 return true;
             }
             else {
-                info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a string expression, only string node available");
+                info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, "Not a string expression, only string node available");
                 return false;
             }
         }
@@ -1883,11 +1883,11 @@ namespace acts::compiler {
             }
             while (hashNode->getTreeType() != TREE_TERMINAL) {
                 if (hashNode->getTreeType() == TREE_ERROR) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Tree error");
+                    info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, "Tree error");
                     return false;
                 }
                 if (hashNode->children.size() != 1) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression");
+                    info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, "Not a hash expression");
                     return false;
                 }
 
@@ -1903,7 +1903,7 @@ namespace acts::compiler {
                 auto ith = vmInfo->hashesFunc.find(type);
 
                 if (ith == vmInfo->hashesFunc.end()) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Hash type not available for this vm: {}", type));
+                    info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, std::format("Hash type not available for this vm: {}", type));
                     return false;
                 }
 
@@ -1912,7 +1912,7 @@ namespace acts::compiler {
                 if (!hash::TryHashPattern(ss, output)) {
                     output = ith->second.hashFunc(ss);
                     if (!output) {
-                        info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Can't hash the string '{}' with the type {}", sub, type));
+                        info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, std::format("Can't hash the string '{}' with the type {}", sub, type));
                         return false;
                     }
                     AddHash(sub);
@@ -1961,7 +1961,7 @@ namespace acts::compiler {
                 auto ith = vmInfo->hashesFunc.find(type);
 
                 if (ith == vmInfo->hashesFunc.end()) {
-                    info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Hash type not available for this vm: {}", type));
+                    info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, std::format("Hash type not available for this vm: {}", type));
                     return false;
                 }
 
@@ -1970,7 +1970,7 @@ namespace acts::compiler {
                 if (!hash::TryHashPattern(ss, output)) {
                     output = ith->second.hashFunc(ss);
                     if (!output) {
-                        info.PrintLineMessage(alogs::LVL_ERROR, hashNode, std::format("Can't hash the string '{}' with the type {}", node, type));
+                        info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, std::format("Can't hash the string '{}' with the type {}", node, type));
                         return false;
                     }
                     AddHash(key);
@@ -1978,7 +1978,7 @@ namespace acts::compiler {
                 return true;
             }
             default:
-                info.PrintLineMessage(alogs::LVL_ERROR, hashNode, "Not a hash expression, only string or hash node available");
+                info.PrintLineMessage(core::logs::LVL_ERROR, hashNode, "Not a hash expression, only string or hash node available");
                 return false;
             }
         }
@@ -2505,7 +2505,7 @@ namespace acts::compiler {
                     debug_obj->flags |= plt << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT;
                 }
 
-                debug_obj->actsVersion = (uint64_t) actsinfo::VERSION_ID;
+                debug_obj->actsVersion = (uint64_t)core::actsinfo::VERSION_ID;
                 debug_obj->strings_count = (uint32_t)hashesIdx;
                 debug_obj->strings_offset = (uint32_t)hashesLoc;
                 debug_obj->detour_count = (uint32_t)detoursCount;
@@ -2743,11 +2743,11 @@ namespace acts::compiler {
 
     bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj) {
         if (!exp) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "empty tree error");
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "empty tree error");
             return false;
         }
         if (exp->getTreeType() == TREE_ERROR) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree error, bad syntax?");
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "detected tree error, bad syntax?");
             return false;
         }
         if (exp->getTreeType() == TREE_RULE) {
@@ -2758,7 +2758,7 @@ namespace acts::compiler {
             // search that we don't have a children in error, after that we'll assume the tree is right for a depth of 2
             if (std::find_if(rule->children.begin(), rule->children.end(), [](const ParseTree* tree) -> bool { return tree->getTreeType() == TREE_ERROR; })
                 != rule->children.end()) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "detected tree children error, bad syntax?");
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "detected tree children error, bad syntax?");
                 return false;
             }
 
@@ -2783,7 +2783,7 @@ namespace acts::compiler {
                 if (rule->children.size() == 1) {
                     return ParseFieldNode(rule->children[0], parser, obj, fobj);
                 }
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
                 return false;
             }
             case gscParser::RuleExpression15:
@@ -2801,7 +2801,7 @@ namespace acts::compiler {
                     if (second == "." || second == "?.") {
                         if (second == "?.") {
                             // assume that it'll fail by itself if it is undefined so we don't need to do anything
-                            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Usage of ?. in a left value: {}", rule->getText()));
+                            obj.info.PrintLineMessage(core::logs::LVL_WARNING, exp, std::format("Usage of ?. in a left value: {}", rule->getText()));
                         }
                         // object access
                         if (IS_IDF(rule->children[2])) {
@@ -2811,7 +2811,7 @@ namespace acts::compiler {
                             std::string fieldText = rule->children[2]->getText();
 
                             if (fieldText == "size") {
-                                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
+                                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format(".size can't be used as a lvalue: {}", exp->getText()));
                                 return false;
                             }
                             else {
@@ -2849,15 +2849,15 @@ namespace acts::compiler {
                         return true;
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
                         return false;
                     }
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue tree type: {}", exp->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unknown lvalue tree type: {}", exp->getText()));
                     return false;
                 }
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled lvalue type: {}", exp->getText()));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unhandled lvalue type: {}", exp->getText()));
                 return false;
             }
             case gscParser::RuleConst_expr:
@@ -2884,17 +2884,17 @@ namespace acts::compiler {
             case gscParser::RuleOperator_inst:
             case gscParser::RuleFunction_call:
             case gscParser::RuleFunction_call_exp:
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
                 return false;
             }
 
 
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unhandled lvalue rule: {} ({})", rule->getText(), rule->getRuleIndex()));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Unhandled lvalue rule: {} ({})", rule->getText(), rule->getRuleIndex()));
             return false;
         }
 
         if (exp->getTreeType() != TREE_TERMINAL) {
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Unknown tree type: {}", exp->getText()));
+            obj.info.PrintLineMessage(core::logs::LVL_WARNING, exp, std::format("Unknown tree type: {}", exp->getText()));
             return false;
         }
         TerminalNode* term = dynamic_cast<TerminalNode*>(exp);
@@ -2912,14 +2912,14 @@ namespace acts::compiler {
                 ParseTree* pt = ceit->second;
 
                 if (!ParseFieldNode(pt, parser, obj, fobj)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("error when using constexpr {}", varName));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, std::format("error when using constexpr {}", varName));
                     return false;
                 }
                 return true;
             }
 
             if (varName == "self") {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, term, "self can't be used as a lvalue");
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, "self can't be used as a lvalue");
                 return false;
             }
 
@@ -2928,13 +2928,13 @@ namespace acts::compiler {
             if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
                 GlobalVariableDef& gv = gvarIt->second;
 
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, term, std::format("The {} global variable can't be used as a lvalue", gv.name));
+                obj.info.PrintLineMessage(core::logs::LVL_WARNING, term, std::format("The {} global variable can't be used as a lvalue", gv.name));
                 return false;
             }
             auto [varerr, keyVarL] = fobj.RegisterVar(varName, true, 0);
 
             if (varerr) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, term, varerr);
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, varerr);
                 return false;
             }
 
@@ -2950,20 +2950,20 @@ namespace acts::compiler {
         case gscParser::INTEGER2:
         case gscParser::HASHSTRING:
         case gscParser::STRING:
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Not a valid lvalue: {}", term->getText()));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Not a valid lvalue: {}", term->getText()));
             return false;
         }
 
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled lvalue terminal: {}", term->getText()));
+        obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unhandled lvalue terminal: {}", term->getText()));
         return false;
     }
     bool ParseExpressionNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj, bool expressVal) {
         if (!exp) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "Empty tree error");
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "Empty tree error");
             return false;
         }
         if (exp->getTreeType() == TREE_ERROR) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "Detected tree error, bad syntax?");
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "Detected tree error, bad syntax?");
             return false;
         }
 
@@ -2973,14 +2973,14 @@ namespace acts::compiler {
             // search that we don't have a children in error, after that we'll assume the tree is right for a depth of 2
             if (std::find_if(rule->children.begin(), rule->children.end(), [](const ParseTree* tree) -> bool { return tree->getTreeType() == TREE_ERROR; })
                 != rule->children.end()) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, "Detected tree children error, bad syntax?");
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "Detected tree children error, bad syntax?");
                 return false;
             }
 
             switch (rule->getRuleIndex()) {
             case gscParser::RuleStatement: {
                 if (expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express a statement");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't express a statement");
                     return false;
                 }
 
@@ -2992,7 +2992,7 @@ namespace acts::compiler {
                     FunctionJumpLoc& loc = fobj.m_jumpLocs[locName];
 
                     if (loc.defined) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("The location {} was defined twice!", locName));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("The location {} was defined twice!", locName));
                         return false;
                     }
 
@@ -3194,7 +3194,7 @@ namespace acts::compiler {
                 auto [err, var] = fobj.RegisterVarRnd();
 
                 if (err) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering switch variable: {}", err));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering switch variable: {}", err));
                     return false;
                 }
 
@@ -3269,7 +3269,7 @@ namespace acts::compiler {
 
                     if (caseType == "default") {
                         if (defaultCase.jmpNode) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[i], "A switch can't have more than one default block");
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[i], "A switch can't have more than one default block");
                             ok = false;
                         }
                         else {
@@ -3285,7 +3285,7 @@ namespace acts::compiler {
                         continue;
                     }
 
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[i], std::format("Unknown case type: {}/{}", caseType, i));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[i], std::format("Unknown case type: {}/{}", caseType, i));
                     ok = false;
                     i++;
                 }
@@ -3321,7 +3321,7 @@ namespace acts::compiler {
                 auto [var1err, arrayVal] = fobj.RegisterVarRnd();
 
                 if (var1err) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach variable: {}", var1err));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach variable: {}", var1err));
                     return false;
                 }
 
@@ -3336,11 +3336,11 @@ namespace acts::compiler {
                     auto [var4err, valueVarL] = fobj.RegisterVar(rule->children[4]->getText(), true);
 
                     if (var3err) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach key variable: {}", var3err));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach key variable: {}", var3err));
                         return false;
                     }
                     if (var4err) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach value variable: {}", var4err));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach value variable: {}", var4err));
                         return false;
                     }
 
@@ -3353,11 +3353,11 @@ namespace acts::compiler {
                     auto [var4err, valueVarL] = fobj.RegisterVar(rule->children[2]->getText(), true);
 
                     if (var3err) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach key variable: {}", var3err));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach key variable: {}", var3err));
                         return false;
                     }
                     if (var4err) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach value variable: {}", var4err));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach value variable: {}", var4err));
                         return false;
                     }
 
@@ -3379,7 +3379,7 @@ namespace acts::compiler {
                 case tool::gsc::GOHF_FOREACH_TYPE_T8: {
                     auto [var2err, iteratorVal] = fobj.RegisterVarRnd();
                     if (var2err) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
                         return false;
                     }
 
@@ -3439,13 +3439,13 @@ namespace acts::compiler {
                     auto [varnexterr, nextVar] = fobj.RegisterVarRnd();
 
                     if (varnexterr) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach next variable: {}", varnexterr));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach next variable: {}", varnexterr));
                         ok = false;
                     }
 
                     auto [var2err, iteratorVal] = fobj.RegisterVarRnd();
                     if (var2err) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering foreach iterator variable: {}", var2err));
                         return false;
                     }
 
@@ -3565,7 +3565,7 @@ namespace acts::compiler {
                 }
                     break;
                 default:
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("foreach not implemented for vm {} (0x{:x})", obj.vmInfo->name, forEachType));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("foreach not implemented for vm {} (0x{:x})", obj.vmInfo->name, forEachType));
                     ok = false;
                     break;
                 }
@@ -3574,14 +3574,14 @@ namespace acts::compiler {
             }
             case gscParser::RuleNop_def: {
                 if (expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express a nop value");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't express a nop value");
                     return false;
                 }
                 size_t count{ 1 };
                 if (rule->children.size() > 1) {
                     int64_t val{ obj.NumberNodeValue(rule->children[2]) };
                     if (val < 0) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't define a negative amount of nop");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't define a negative amount of nop");
                         return false;
                     }
                     count = (size_t)val;
@@ -3595,23 +3595,23 @@ namespace acts::compiler {
             }
             case gscParser::RuleDevop_def: {
                 if (expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express a devop value");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't express a devop value");
                     return false;
                 }
                 int64_t val{ obj.NumberNodeValue(rule->children[2]) };
                 if (val < 0) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Negative)");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Invalid devop value (Negative)");
                     return false;
                 }
                 if (obj.vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
                     if (val > 0xFFFF) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Too large)");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Invalid devop value (Too large)");
                         return false;
                     }
                 }
                 else {
                     if (val > 0xFF) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Invalid devop value (Too large)");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Invalid devop value (Too large)");
                         return false;
                     }
                 }
@@ -3623,7 +3623,7 @@ namespace acts::compiler {
             case gscParser::RuleStatement_inst: {
                 if (rule->children.size() == 1) {
                     if (expressVal) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't express this value");
                         return false;
                     }
                     return true; // empty instruction
@@ -3632,7 +3632,7 @@ namespace acts::compiler {
             }
             case gscParser::RuleStatement_block: {
                 if (expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't express this value");
                     return false;
                 }
                 bool ok{ true };
@@ -3647,7 +3647,7 @@ namespace acts::compiler {
             }
             case gscParser::RuleStatement_dev_block: {
                 if (expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't express this value");
                     return false;
                 }
                 bool ok{ true };
@@ -3669,21 +3669,21 @@ namespace acts::compiler {
             }
             case gscParser::RuleOperator_inst: {
                 if (expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't express this value");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't express this value");
                     return false;
                 }
                 std::string idf = rule->children[0]->getText();
 
                 if (idf == "break") {
                     if (rule->children.size() > 1) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't specify jump location with break");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't specify jump location with break");
                         return false;
                     }
 
                     AscmNode* loc = fobj.PeekBreakNode();
 
                     if (!loc) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Not in a break context");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Not in a break context");
                         return false;
                     }
 
@@ -3693,14 +3693,14 @@ namespace acts::compiler {
 
                 if (idf == "continue") {
                     if (rule->children.size() > 1) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't specify jump location with continue");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't specify jump location with continue");
                         return false;
                     }
 
                     AscmNode* loc = fobj.PeekContinueNode();
 
                     if (!loc) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Not in a continue context");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Not in a continue context");
                         return false;
                     }
 
@@ -3710,7 +3710,7 @@ namespace acts::compiler {
 
                 if (idf == "goto") {
                     if (rule->children.size() <= 1 && !IS_IDF(rule->children[1])) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "goto should be used with a jump location");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "goto should be used with a jump location");
                         return false;
                     }
 
@@ -3728,7 +3728,7 @@ namespace acts::compiler {
 
                 if (idf == "jumpdev") {
                     if (rule->children.size() <= 1 && !IS_IDF(rule->children[1])) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "jumpdev should be used with a jump location");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "jumpdev should be used with a jump location");
                         return false;
                     }
 
@@ -3762,7 +3762,7 @@ namespace acts::compiler {
             
                 if (idf == "wait") {
                     if (rule->children.size() <= 1) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "wait should be used with a value");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "wait should be used with a value");
                         return false;
                     }
 
@@ -3774,7 +3774,7 @@ namespace acts::compiler {
                     return true;
                 }
 
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown operator type {}", idf));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Unknown operator type {}", idf));
                 return false;
             }
             case gscParser::RuleFunction_call:
@@ -3808,7 +3808,7 @@ namespace acts::compiler {
                         flags |= FCF_BUILTIN;
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[idx], std::format("Unknown call modifier {}", callModifier));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[idx], std::format("Unknown call modifier {}", callModifier));
                         return false;
                     }
                     idx++;
@@ -3816,13 +3816,13 @@ namespace acts::compiler {
                 ParseTree* functionComp = rule->children[idx];
 
                 if (!IS_RULE_TYPE(functionComp, gscParser::RuleFunction_component)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Not a function component {}", functionComp->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Not a function component {}", functionComp->getText()));
                     return false;
                 }
 
                 ParseTree* paramsList = rule->children[rule->children.size() - 2];
                 if (!IS_RULE_TYPE(paramsList, gscParser::RuleExpression_list)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Not a params list {}", paramsList->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, std::format("Not a params list {}", paramsList->getText()));
                     return false;
                 }
 
@@ -3840,15 +3840,15 @@ namespace acts::compiler {
                         // internal function call
                         FunctionOperator& f = funcIt->second;
                         if (f.HasFlag(tool::gsc::opcode::VPFD_SELF_PARAM) && !(flags & FCF_METHOD)) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' should have a caller, Usage: {}", funcName, f.usage));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' should have a caller, Usage: {}", funcName, f.usage));
                             return false;
                         }
                         if (expressVal && !f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' doesn't return a value, Usage: {}", funcName, f.usage));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' doesn't return a value, Usage: {}", funcName, f.usage));
                             return false;
                         }
                         if (flags & (FCF_THREAD | FCF_CHILDTHREAD | FCF_BUILTIN)) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' can't have a call modifier, Usage: {}", funcName, f.usage));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' can't have a call modifier, Usage: {}", funcName, f.usage));
                             return false;
                         }
 
@@ -3863,11 +3863,11 @@ namespace acts::compiler {
 
                         if (f.HasFlag(tool::gsc::opcode::VPFD_UNPACK)) {
                             if (expressVal) {
-                                obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' can't express a value, Usage: {}", funcName, f.usage));
+                                obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' can't express a value, Usage: {}", funcName, f.usage));
                                 paramError = true;
                             }
                             else if (!paramsList->children.size()) {
-                                obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs at least one param, Usage: {}", funcName, f.usage));
+                                obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' needs at least one param, Usage: {}", funcName, f.usage));
                                 paramError = true;
                             }
                             else {
@@ -3883,7 +3883,7 @@ namespace acts::compiler {
                                         pt = pt->children[0];
                                     }
                                     if (!IS_IDF(pt)) {
-                                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to be unpacked with variables, Usage: {}", funcName, f.usage));
+                                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to be unpacked with variables, Usage: {}", funcName, f.usage));
                                         return false;
                                     }
                                     paramCount++;
@@ -3894,14 +3894,14 @@ namespace acts::compiler {
                             int removedStart{};
                             if (f.HasFlag(VPFD_HASH_PARAM)) {
                                 if (paramsList->children.empty()) {
-                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to have at least one param, Usage: {}", funcName, f.usage));
+                                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to have at least one param, Usage: {}", funcName, f.usage));
                                     return false;
                                 }
 
                                 ParseTree* hashParam{ paramsList->children[removedStart] };
 
                                 if (!obj.TryHashNodeValue(hashParam, hashVal)) {
-                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' should start with a valid hash param, Usage: {}", funcName, f.usage));
+                                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' should start with a valid hash param, Usage: {}", funcName, f.usage));
                                     return false;
                                 }
 
@@ -3909,14 +3909,14 @@ namespace acts::compiler {
                             }
                             if (f.HasFlag(VPFD_STRING_PARAM)) {
                                 if (paramsList->children.empty()) {
-                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to have at least one param, Usage: {}", funcName, f.usage));
+                                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' needs to have at least one param, Usage: {}", funcName, f.usage));
                                     return false;
                                 }
 
                                 ParseTree* strParam{ paramsList->children[removedStart] };
 
                                 if (!obj.TryStringNodeValue(strParam, strVal)) {
-                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Operator '{}' should have a valid string param, Usage: {}", funcName, f.usage));
+                                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Operator '{}' should have a valid string param, Usage: {}", funcName, f.usage));
                                     return false;
                                 }
 
@@ -3933,23 +3933,23 @@ namespace acts::compiler {
                         // add self
                         if (flags & FCF_METHOD) {
                             if (!ParseExpressionNode(selfTree, parser, obj, fobj, true)) {
-                                obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "Error when parsing caller");
+                                obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, "Error when parsing caller");
                                 return false;
                             }
                         }
 
                         if (paramError) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Error when parsing param list");
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "Error when parsing param list");
                             return false;
                         }
 
                         if (paramCount < f.minParam) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Not enought params for operator '{}', Usage: {}", funcName, f.usage));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, std::format("Not enought params for operator '{}', Usage: {}", funcName, f.usage));
                             return false;
                         }
 
                         if (paramCount > f.maxParam) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, std::format("Too many params for operator '{}', Usage: {}", funcName, f.usage));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, std::format("Too many params for operator '{}', Usage: {}", funcName, f.usage));
                             return false;
                         }
                         fobj.AddNode(rule, new AscmNodeOpCode(f.opCode));
@@ -3975,7 +3975,7 @@ namespace acts::compiler {
                                 ParseTree* pnode = paramsList->children[i * 2];
                                 auto [errVar, var] = fobj.RegisterVar(pnode->getText(), true);
                                 if (errVar) {
-                                    obj.info.PrintLineMessage(alogs::LVL_ERROR, pnode, std::format("Can't register variable: {}", errVar));
+                                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, pnode, std::format("Can't register variable: {}", errVar));
                                     return false;
                                 }
 
@@ -4017,7 +4017,7 @@ namespace acts::compiler {
                 }
                 else if (functionComp->children.size() == 7) {
                     if (flags & FCF_METHOD) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "A class call can't have a self caller");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, "A class call can't have a self caller");
                         return false;
                     }
                     // [ [ espression ] ] -> func
@@ -4029,7 +4029,7 @@ namespace acts::compiler {
                     flags |= FCF_POINTER_CLASS | FCF_POINTER;
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, std::format("Function call not implemented {}", functionComp->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, std::format("Function call not implemented {}", functionComp->getText()));
                     return false;
                 }
 
@@ -4048,7 +4048,7 @@ namespace acts::compiler {
                 // add self
                 if (flags & FCF_METHOD) {
                     if (!ParseExpressionNode(selfTree, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "Error when parsing caller");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, "Error when parsing caller");
                         return false;
                     }
                 }
@@ -4056,18 +4056,18 @@ namespace acts::compiler {
                 // add ptr
                 if (flags & FCF_POINTER) {
                     if (!ParseExpressionNode(ptrTree, parser, obj, fobj, true)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, functionComp, "Error when parsing pointer");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, functionComp, "Error when parsing pointer");
                         return false;
                     }
                 }
 
                 if (paramError) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Error when parsing param list");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "Error when parsing param list");
                     return false;
                 }
 
                 if (paramCount >= 256) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Too many parameters for call");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "Too many parameters for call");
                     return false;
                 }
 
@@ -4082,7 +4082,7 @@ namespace acts::compiler {
                             opcode = OPCODE_ClassFunctionThreadCallEndOn;
                         }
                         else if (flags & FCF_BUILTIN) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "Class pointer can't be used with builtin calls");
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "Class pointer can't be used with builtin calls");
                             return false;
                         }
                         else {
@@ -4132,7 +4132,7 @@ namespace acts::compiler {
                             importFlags |= tool::gsc::T8GSCImportFlags::METHOD_CHILDTHREAD;
                         }
                         else if (flags & FCF_BUILTIN) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "builtin modifier can only be used with pointer calls");
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "builtin modifier can only be used with pointer calls");
                             return false;
                         }
                         else {
@@ -4150,7 +4150,7 @@ namespace acts::compiler {
                             importFlags |= tool::gsc::T8GSCImportFlags::FUNCTION_CHILDTHREAD;
                         }
                         else if (flags & FCF_BUILTIN) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, paramsList, "builtin modifier can only be used with pointer calls");
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "builtin modifier can only be used with pointer calls");
                             return false;
                         }
                         else {
@@ -4249,7 +4249,7 @@ namespace acts::compiler {
                             }
                         }
                         else {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[0], std::format("Unhandled operator: {}", op));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[0], std::format("Unhandled operator: {}", op));
                             return false;
                         }
                     }
@@ -4282,7 +4282,7 @@ namespace acts::compiler {
                             fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Dec));
                         }
                         else {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Unhandled operator: {}", op));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[1], std::format("Unhandled operator: {}", op));
                             return false;
                         }
                     }
@@ -4318,7 +4318,7 @@ namespace acts::compiler {
                     return ok;
                 }
                 if (rule->children.size() != 3) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unknown expression, excepted 3 children: {}", rule->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Unknown expression, excepted 3 children: {}", rule->getText()));
                     return false;
                 }
 
@@ -4368,7 +4368,7 @@ namespace acts::compiler {
                         auto [verr, tmp] = fobj.GetSpecialTmpVar();
 
                         if (verr) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for ?? operation: {}", verr));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for ?? operation: {}", verr));
                             return false;
                         }
 
@@ -4470,7 +4470,7 @@ namespace acts::compiler {
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ShiftRight));
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Unhandled operator: {}", op));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[1], std::format("Unhandled operator: {}", op));
                         ok = false;
                     }
                     if (!expressVal) {
@@ -4532,7 +4532,7 @@ namespace acts::compiler {
                         auto [err, tmp] = fobj.GetSpecialTmpVar();
 
                         if (err) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for is operation: {}", err));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[1], std::format("Can't create temp variable for is operation: {}", err));
                             return false;
                         }
                         // tmp = ...
@@ -4563,7 +4563,7 @@ namespace acts::compiler {
                 auto dtit = obj.vmInfo->dataType.find(typeNameHash);
 
                 if (dtit == obj.vmInfo->dataType.end()) {
-                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Can't find datatype '{}' for this VM", typeName));
+                    obj.info.PrintLineMessage(core::logs::LVL_WARNING, rule, std::format("Can't find datatype '{}' for this VM", typeName));
                     return false;
                 }
 
@@ -4588,7 +4588,7 @@ namespace acts::compiler {
                 return ParseExpressionNode(rule->children[rule->children.size() == 3 ? 1 : 0], parser, obj, fobj, expressVal);
             case gscParser::RuleVector_value: {
                 if (!expressVal) { // no need to create vector
-                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                     return true;
                 }
                 float x = obj.FloatNumberNodeValue(rule->children[1], false);
@@ -4646,7 +4646,7 @@ namespace acts::compiler {
             case gscParser::RuleClass_init: {
                 std::string clsName = rule->children[1]->getText();
                 if (rule->children.size() > 4) {
-                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, "Parameters not supported for class constructor");
+                    obj.info.PrintLineMessage(core::logs::LVL_WARNING, rule, "Parameters not supported for class constructor");
                     return false;
                 }
                 obj.AddHash(clsName);
@@ -4659,7 +4659,7 @@ namespace acts::compiler {
             }
             case gscParser::RuleArray_def: {
                 if (!expressVal) { // no need to create array
-                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                     return true;
                 }
                 fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CreateArray));
@@ -4700,7 +4700,7 @@ namespace acts::compiler {
             }
             case gscParser::RuleStruct_def: {
                 if (!expressVal) { // no need to create struct
-                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                     return true;
                 }
                 fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_CreateStruct));
@@ -4719,7 +4719,7 @@ namespace acts::compiler {
 
                     if (obj.HasOpCode(OPCODE_IW_AddToStruct)) {
                         if (!IS_TERMINAL_TYPE(term, gscParser::STRUCT_IDENTIFIER)) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("Can't use expression to define structure names in this vm: {}", term->getText()));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, std::format("Can't use expression to define structure names in this vm: {}", term->getText()));
                             ok = false;
                         }
                         else {
@@ -4757,7 +4757,7 @@ namespace acts::compiler {
                 FunctionObject* sfobj = ParseFunction(rule, parser, obj, tool::gsc::T8GSCExportFlags::PRIVATE);
 
                 if (!sfobj) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, "Can't parse sub function");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, "Can't parse sub function");
                     return false;
                 }
 
@@ -4830,7 +4830,7 @@ namespace acts::compiler {
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_BoolComplement));
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], std::format("Unhandled set operator: {}", opVal));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[1], std::format("Unhandled set operator: {}", opVal));
                         ok = false;
                     }
 
@@ -4851,7 +4851,7 @@ namespace acts::compiler {
             }
             case gscParser::RuleFunction_ref: {
                 if (!expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_WARNING, rule, std::format("Ignored useless value: {}", rule->getText()));
                     return true;
                 }
                 if (rule->children.size() == 2) {
@@ -4874,7 +4874,7 @@ namespace acts::compiler {
                     }
                     else if (IS_RULE_TYPE(rule->children[1], gscParser::RuleLeft_value)) {
                         if (!ParseFieldNode(rule->children[1], parser, obj, fobj)) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule->children[1], "Can't express field ref");
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule->children[1], "Can't express field ref");
                             return false;
                         }
                         fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_T9_GetVarRef));
@@ -4932,7 +4932,7 @@ namespace acts::compiler {
             }
             case gscParser::RuleLeft_value: {
                 if (!expressVal) {
-                    obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", rule->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_WARNING, exp, std::format("Ignored useless value: {}", rule->getText()));
                     return true;
                 }
                 if (rule->children.size() == 1) {
@@ -4982,7 +4982,7 @@ namespace acts::compiler {
                     else if (second == "?.") {
                         auto [verr, var] = fobj.GetSpecialTmpVar();
                         if (verr) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't allocate temp variable for ?. operator: {}", verr));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Can't allocate temp variable for ?. operator: {}", verr));
                             return false;
                         }
 
@@ -5054,25 +5054,25 @@ namespace acts::compiler {
                         return true;
                     }
                     else {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unknown left value type: {}", second));
                         return false;
                     }
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown lvalue tree type: {}", exp->getText()));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unknown lvalue tree type: {}", exp->getText()));
                     return false;
                 }
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled lvalue type: {}", exp->getText()));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unhandled lvalue type: {}", exp->getText()));
                 return false;
             }
             }
 
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, rule, std::format("Unhandled rule: {} ({})", rule->getText(), rule->getRuleIndex()));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Unhandled rule: {} ({})", rule->getText(), rule->getRuleIndex()));
             return false;
         }
 
         if (exp->getTreeType() != TREE_TERMINAL) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unknown tree type: {}", exp->getText()));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unknown tree type: {}", exp->getText()));
             return false;
         }
 
@@ -5089,14 +5089,14 @@ namespace acts::compiler {
                 ParseTree* pt = ceit->second;
 
                 if (!ParseExpressionNode(pt, parser, obj, fobj, expressVal)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("error when using constexpr {}", varName));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, std::format("error when using constexpr {}", varName));
                     return false;
                 }
                 return true;
             }
 
             if (!expressVal) {
-                obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
+                obj.info.PrintLineMessage(core::logs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
                 return true;
             }
 
@@ -5110,7 +5110,7 @@ namespace acts::compiler {
 
                 if (itl != fobj.m_jumpLocs.end()) {
                     if (!itl->second.node) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("The jump location {} can't be referenced", varName));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("The jump location {} can't be referenced", varName));
                         return false;
                     }
 
@@ -5130,7 +5130,7 @@ namespace acts::compiler {
                 }
 
                 if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("{} is defined as a global, but the vm doesn't support globals", varName));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, std::format("{} is defined as a global, but the vm doesn't support globals", varName));
                     return false;
                 }
 
@@ -5149,7 +5149,7 @@ namespace acts::compiler {
             FunctionVar* varIt = fobj.FindVar(varName);
 
             if (varIt == fobj.VarEnd()) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, term, std::format("Unknown variable: {}", varName));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, std::format("Unknown variable: {}", varName));
                 return false;
             }
 
@@ -5158,7 +5158,7 @@ namespace acts::compiler {
         }
 
         if (!expressVal) {
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
+            obj.info.PrintLineMessage(core::logs::LVL_WARNING, exp, std::format("Ignored useless value: {}", term->getText()));
             return true;
         }
 
@@ -5201,7 +5201,7 @@ namespace acts::compiler {
             auto ith = obj.vmInfo->hashesFunc.find(type);
 
             if (ith == obj.vmInfo->hashesFunc.end()) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Hash type not available for this vm: {}", type));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Hash type not available for this vm: {}", type));
                 return false;
             }
 
@@ -5212,7 +5212,7 @@ namespace acts::compiler {
             if (!hash::TryHashPattern(ss, val)) {
                 val = ith->second.hashFunc(ss);
                 if (!val) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Can't hash the string '{}' with the type {}", sub, type));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Can't hash the string '{}' with the type {}", sub, type));
                     return false;
                 }
             }
@@ -5223,7 +5223,7 @@ namespace acts::compiler {
             case 2: fobj.AddNode(term, new AscmNodeData<uint16_t>((uint16_t)val, ith->second.opCode)); break;
             case 1: fobj.AddNode(term, new AscmNodeData<uint8_t>((uint8_t)val, ith->second.opCode)); break;
             default: {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Invalid hash size definition: {} / {} bytes", type, ith->second.size));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Invalid hash size definition: {} / {} bytes", type, ith->second.size));
                 return false;
             }
             }
@@ -5273,7 +5273,7 @@ namespace acts::compiler {
             std::string key{ &newStr[0]};
 
             if (key.length() >= 256) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("String too long: {}", term->getText()));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("String too long: {}", term->getText()));
                 return false;
             }
 
@@ -5283,14 +5283,14 @@ namespace acts::compiler {
         }
         }
 
-        obj.info.PrintLineMessage(alogs::LVL_ERROR, exp, std::format("Unhandled terminal: {}", term->getText()));
+        obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Unhandled terminal: {}", term->getText()));
         return false;
     }
     bool ParseClassDef(RuleContext* func, gscParser& parser, CompileObject& obj) {
         std::string clsName = func->children[1]->getText();
 
         if (!obj.gscHandler->GetVTableImportFlags()) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("This vm doesn't support classes, can't register '{}'", clsName));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("This vm doesn't support classes, can't register '{}'", clsName));
             return false;
         }
 
@@ -5311,12 +5311,12 @@ namespace acts::compiler {
                 LOG_TRACE("parent: {}", idf->getText());
             } while (func->children[idx]->getText() != "{");
             // todo: parse parent classes
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func->children[idx], std::format("Parent classes not implemented yet: class {}", clsName));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func->children[idx], std::format("Parent classes not implemented yet: class {}", clsName));
             ok = false;
         }
 
         if (func->children[idx]->getText() != "{") {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func->children[idx], std::format("Invalid class reading: {}", func->children[idx]->getText()));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func->children[idx], std::format("Invalid class reading: {}", func->children[idx]->getText()));
             return false;
         }
 
@@ -5329,7 +5329,7 @@ namespace acts::compiler {
             uint64_t varNameHash = obj.vmInfo->HashField(varName);
 
             if (cctx.vars.contains(varNameHash)) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, func->children[idx], std::format("Class property {} registered twice in {}", varName, clsName));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, func->children[idx], std::format("Class property {} registered twice in {}", varName, clsName));
                 ok = false;
                 continue;
             }
@@ -5351,7 +5351,7 @@ namespace acts::compiler {
 
 
         if (!err) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("The export {} was defined twice", clsName));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("The export {} was defined twice", clsName));
             return false;
         }
 
@@ -5393,7 +5393,7 @@ namespace acts::compiler {
         auto gvarIt = exp.m_vmInfo->globalvars.find(obj.vmInfo->HashField("classes"));
 
         if (gvarIt == exp.m_vmInfo->globalvars.end()) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Can't find classes global variable, does this vm support classes?"));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("Can't find classes global variable, does this vm support classes?"));
             return false;
         }
 
@@ -5418,7 +5418,7 @@ namespace acts::compiler {
             }
             else { // T8
                 if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("classes is defined as a global, but the vm doesn't support globals"));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("classes is defined as a global, but the vm doesn't support globals"));
                     return false;
                 }
 
@@ -5446,7 +5446,7 @@ namespace acts::compiler {
 
         exp.AddNode(func, new AscmNodeOpCode(OPCODE_End));
 
-        obj.info.PrintLineMessage(alogs::LVL_WARNING, func->children[idx], std::format("Class not yet fully implemented: {}", func->children[idx]->getText()));
+        obj.info.PrintLineMessage(core::logs::LVL_WARNING, func->children[idx], std::format("Class not yet fully implemented: {}", func->children[idx]->getText()));
         return ok;
     }
     
@@ -5468,7 +5468,7 @@ namespace acts::compiler {
         auto [res, err] = obj.exports.try_emplace(nameHashed, obj, nameHashed, obj.currentNamespace, obj.fileNameSpace, obj.vmInfo);
 
         if (!err) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("The export {} was defined twice", name));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("The export {} was defined twice", name));
             return nullptr;
         }
 
@@ -5477,11 +5477,11 @@ namespace acts::compiler {
         exp.m_flags |= forceFlags;
 
         if (!IS_RULE_TYPE(paramsRule, gscParser::RuleParam_list)) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Bad function {} params declaration {}", name, func->getText()));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("Bad function {} params declaration {}", name, func->getText()));
             return nullptr;
         }
         if (!IS_RULE_TYPE(blockRule, gscParser::RuleStatement_block)) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Bad function {} block declaration {}", name, func->getText()));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("Bad function {} block declaration {}", name, func->getText()));
             return nullptr;
         }
 
@@ -5521,7 +5521,7 @@ namespace acts::compiler {
             }
 
             if (mod->getTreeType() != TREE_TERMINAL) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, mod, std::format("Bad modifier for {}", name));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, mod, std::format("Bad modifier for {}", name));
                 return nullptr;
             }
 
@@ -5550,14 +5550,14 @@ namespace acts::compiler {
             }
             else if (txt == "event_handler") {
                 if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_EV_HANDLER)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, func, "event_handler functions not available for this vm");
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, "event_handler functions not available for this vm");
                     return nullptr;
                 }
                 exp.m_flags |= tool::gsc::T8GSCExportFlags::EVENT;
                 auto* ev = func->children[i += 2];
                 i++; // ']'
                 if (ev->getTreeType() != TREE_TERMINAL) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, ev, std::format("Bad event for {}", name));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, ev, std::format("Bad event for {}", name));
                     return nullptr;
                 }
 
@@ -5584,7 +5584,7 @@ namespace acts::compiler {
             auto* param = dynamic_cast<gscParser::Param_valContext*>(child);
 
             if (varargDetected) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, child, "Can't register param after a vararg");
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, child, "Can't register param after a vararg");
                 return nullptr;
             }
 
@@ -5595,7 +5595,7 @@ namespace acts::compiler {
                     // '...'
 
                     if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_VA)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, param, "Modifier not available for this vm: vararg...");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, "Modifier not available for this vm: vararg...");
                         return nullptr;
                     }
                     exp.m_flags |= tool::gsc::T8GSCExportFlags::VE;
@@ -5604,7 +5604,7 @@ namespace acts::compiler {
 
 
                     if (exp.m_params == 256) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Can't register param '{}': too many params", paramIdf));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, std::format("Can't register param '{}': too many params", paramIdf));
                         return nullptr;
                     }
 
@@ -5612,21 +5612,21 @@ namespace acts::compiler {
 
                     auto [err, vardef] = exp.RegisterVar(paramIdf, false, tool::gsc::opcode::VARIADIC);
                     if (err) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, param, err);
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, err);
                         return nullptr;
                     }
 
                     if (obj.gscHandler->HasFlag(tool::gsc::GOHF_VAR_VA_COUNT)) {
                         std::string paramIdfCount = "varargcount";
                         if (exp.m_params == 256) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Can't register param '{}': too many params", paramIdfCount));
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, std::format("Can't register param '{}': too many params", paramIdfCount));
                             return nullptr;
                         }
                         exp.m_params++;
 
                         auto [err, vardef] = exp.RegisterVar(paramIdfCount, false);
                         if (err) {
-                            obj.info.PrintLineMessage(alogs::LVL_ERROR, param, err);
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, err);
                             return nullptr;
                         }
                     }
@@ -5641,7 +5641,7 @@ namespace acts::compiler {
                 if (modifier == "*") {
                     // ptr (T9)
                     if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_PTR)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
                         return nullptr;
                     }
                     idfFlags = tool::gsc::opcode::T9_VAR_REF;
@@ -5649,13 +5649,13 @@ namespace acts::compiler {
                 else if (modifier == "&") {
                     // ref (T8)
                     if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_REF)) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, std::format("Modifier not available for this vm: {}", modifier));
                         return nullptr;
                     }
                     idfFlags = tool::gsc::opcode::ARRAY_REF;
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, param, std::format("Modifier not implemented: {}", modifier));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, param, std::format("Modifier not implemented: {}", modifier));
                     return nullptr;
                 }
             }
@@ -5665,7 +5665,7 @@ namespace acts::compiler {
             auto paramIdf = idfNode->getText();
 
             if (exp.m_params == 256) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, std::format("Can't register param '{}': too many params", paramIdf));
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, idfNode, std::format("Can't register param '{}': too many params", paramIdf));
                 return nullptr;
             }
 
@@ -5674,7 +5674,7 @@ namespace acts::compiler {
             auto [err, vardef] = exp.RegisterVar(paramIdf, false, idfFlags);
 
             if (err) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, idfNode, err);
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, idfNode, err);
                 return nullptr;
             }
 
@@ -5698,7 +5698,7 @@ namespace acts::compiler {
                 auto* afterNode = new AscmNode();
                 exp.AddNode(defaultValueExp, new AscmNodeJump(afterNode, OPCODE_JumpOnTrue));
                 if (!ParseExpressionNode(defaultValueExp, parser, obj, exp, true)) {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, defaultValueExp, std::format("Can't create expression node for variable {}", paramIdf));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, defaultValueExp, std::format("Can't create expression node for variable {}", paramIdf));
                     return nullptr;
                 }
                 exp.AddNode(defaultValueExp, new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableRefCached));
@@ -5735,7 +5735,7 @@ namespace acts::compiler {
                 continue;
             }
 
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, loc.def ? loc.def : blockRule, std::format("The location {} was used, but isn't declared", name));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, loc.def ? loc.def : blockRule, std::format("The location {} was used, but isn't declared", name));
 
             badRef = true;
 
@@ -5748,7 +5748,7 @@ namespace acts::compiler {
         exp.AddNode(exp.m_nodes.begin(), func, exp.CreateParamNode());
 
         if (badRef) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, func, std::format("Can't compile function '{}'", hasName ? name : "<no name>"));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, func, std::format("Can't compile function '{}'", hasName ? name : "<no name>"));
             return nullptr;
         }
 
@@ -5792,7 +5792,7 @@ namespace acts::compiler {
         }
 
         if (!obj.gscHandler->HasFlag(tool::gsc::GscObjHandlerBuildFlags::GOHF_FILENAMESPACE)) {
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, nsp, "this vm doesn't support file namespace");
+            obj.info.PrintLineMessage(core::logs::LVL_WARNING, nsp, "this vm doesn't support file namespace");
             return true;
         }
 
@@ -5820,7 +5820,7 @@ namespace acts::compiler {
         ParseTree*& expr = obj.constexprs[hash];
 
         if (expr) {
-            obj.info.PrintLineMessage(alogs::LVL_WARNING, exp, std::format("Redefinition of constexpr {}", constexprName));
+            obj.info.PrintLineMessage(core::logs::LVL_WARNING, exp, std::format("Redefinition of constexpr {}", constexprName));
         }
 
         obj.constexprs[hash] = exp->children[3];
@@ -5829,7 +5829,7 @@ namespace acts::compiler {
 
     bool ParseProg(gscParser::ProgContext* prog, gscParser& parser, CompileObject& obj) {
         if (prog->getTreeType() == TREE_ERROR) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad prog context");
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, prog, "Bad prog context");
             return false;
         }
 
@@ -5841,7 +5841,7 @@ namespace acts::compiler {
                 break;
             }
             if (es->getTreeType() == TREE_ERROR) {
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, "Bad export rule type");
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, prog, "Bad export rule type");
                 return false;
             }
             if (es->getTreeType() == TREE_TERMINAL) {
@@ -5877,7 +5877,7 @@ namespace acts::compiler {
                 }
                 else if (txt == "#/") {
                     if (!obj.devBlockDepth) {
-                        obj.info.PrintLineMessage(alogs::LVL_ERROR, es, "Usage of #/ with no starting /#");
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, es, "Usage of #/ with no starting /#");
                         return false;
                     }
                     else {
@@ -5885,7 +5885,7 @@ namespace acts::compiler {
                     }
                 }
                 else {
-                    obj.info.PrintLineMessage(alogs::LVL_ERROR, es, std::format("Bad export terminal {}", txt));
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, es, std::format("Bad export terminal {}", txt));
                     return false;
                 }
 
@@ -5926,13 +5926,13 @@ namespace acts::compiler {
                 }
                 break;
             default:
-                obj.info.PrintLineMessage(alogs::LVL_ERROR, es, "Bad export rule");
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, es, "Bad export rule");
                 return false;
             }
         }
 
         if (obj.devBlockDepth > 0) {
-            obj.info.PrintLineMessage(alogs::LVL_ERROR, prog, std::format("Missing {} #/", obj.devBlockDepth));
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, prog, std::format("Missing {} #/", obj.devBlockDepth));
             return false;
         }
 
@@ -5947,7 +5947,7 @@ namespace acts::compiler {
 
         void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line, size_t charPositionInLine,
             const std::string& msg, std::exception_ptr e) override {
-            m_info.container.PrintLineMessage(alogs::LVL_ERROR, line, charPositionInLine, msg);
+            m_info.container.PrintLineMessage(core::logs::LVL_ERROR, line, charPositionInLine, msg);
         }
     };
 
@@ -6017,7 +6017,7 @@ namespace acts::compiler {
             }
 
             if (!popt.ApplyPreProcessor(info.container.data, 
-                [&info](alogs::loglevel lvl, size_t line, const std::string& message) { info.container.PrintLineMessage(lvl, line, 0, message); })) {
+                [&info](core::logs::loglevel lvl, size_t line, const std::string& message) { info.container.PrintLineMessage(lvl, line, 0, message); })) {
                 LOG_ERROR("Error when applying preprocessor on data");
                 return tool::BASIC_ERROR;
             }

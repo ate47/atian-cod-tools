@@ -25,8 +25,8 @@
 #include <asmjit/asmjit.h>
 #endif
 
-#include <logs.hpp>
-#include <actsinfo.hpp>
+#include <core/logs.hpp>
+#include <core/actsinfo.hpp>
 
 #ifdef min
 #undef min

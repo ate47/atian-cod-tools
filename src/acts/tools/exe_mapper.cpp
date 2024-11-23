@@ -1,10 +1,10 @@
 #include <includes.hpp>
-#include <scriptinstance.hpp>
-#include <io_utils.hpp>
+#include <games/bo4/scriptinstance.hpp>
+#include <utils/io_utils.hpp>
 #include <hook/module_mapper.hpp>
 #include <hook/error.hpp>
 #include <hook/memory.hpp>
-#include <decrypt.hpp>
+#include <utils/decrypt.hpp>
 #include <DbgHelp.h>
 #pragma comment(lib, "imagehlp.lib")
 #include "tools/gsc.hpp"

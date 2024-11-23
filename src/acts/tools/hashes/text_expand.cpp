@@ -71,7 +71,7 @@ namespace tool::hash::text_expand {
 					}
 					buffer[idx] = nullptr;
 					func(buffer, data);
-					if ((i & 0xFFFFFF) == 0 && alogs::getlevel() <= alogs::LVL_TRACE) {
+					if ((i & 0xFFFFFF) == 0 && core::logs::getlevel() <= core::logs::LVL_TRACE) {
 						std::ostringstream oss{};
 						for (size_t j = 0; j < idx; j++) {
 							oss << " " << buffer[j];

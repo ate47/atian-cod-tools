@@ -1,5 +1,5 @@
 #include <dll_includes.hpp>
-#include <hash.hpp>
+#include <utils/hash.hpp>
 
 
 enum StringTableCellType : INT {

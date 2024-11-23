@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
-#include "process.hpp"
-#include "utils.hpp"
+#include <hook/process.hpp>
+#include <utils/utils.hpp>
 
 class Process;
 class ProcessModule;
@@ -373,10 +373,10 @@ public:
 private:
 #ifdef ASMJIT_STATIC
 	// param+ = stack, last first pushed
-	inline void CallExtFuncBuildStack(process::AssemblerExp& asml, uint8_t* params, int idx) const {
+	inline void CallExtFuncBuildStack(hook::process::AssemblerExp& asml, uint8_t* params, int idx) const {
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuildStack(process::AssemblerExp& asml, uint8_t* params, int idx, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuildStack(hook::process::AssemblerExp& asml, uint8_t* params, int idx, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + idx) = arg;
 		CallExtFuncBuildStack(asml, params, idx + 8, args...);
@@ -385,24 +385,24 @@ private:
 	}
 
 	// param 3 -> R9  | XMM3
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params) const {
+	inline void CallExtFuncBuild3(hook::process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild3(hook::process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params + 24) = arg;
 		CallExtFuncBuildStack(asml, params, 32, args...);
 		asml.movsd(xmm3, qword_ptr(rcx, 24));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild3(hook::process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params + 24) = arg;
 		CallExtFuncBuildStack(asml, params, 32, args...);
 		asml.movss(xmm3, dword_ptr(rcx, 24));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild3(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild3(hook::process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + 24) = arg;
 		CallExtFuncBuildStack(asml, params, 32, args...);
@@ -410,24 +410,24 @@ private:
 	}
 
 	// param 2 -> R8  | XMM2
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params) const {
+	inline void CallExtFuncBuild2(hook::process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild2(hook::process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params + 16) = arg;
 		CallExtFuncBuild3(asml, params, args...);
 		asml.movsd(xmm2, qword_ptr(rcx, 16));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild2(hook::process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params + 16) = arg;
 		CallExtFuncBuild3(asml, params, args...);
 		asml.movss(xmm2, dword_ptr(rcx, 16));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild2(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild2(hook::process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + 16) = arg;
 		CallExtFuncBuild3(asml, params, args...);
@@ -435,24 +435,24 @@ private:
 	}
 
 	// param 1 -> RDX | XMM1
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params) const {
+	inline void CallExtFuncBuild1(hook::process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild1(hook::process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params + 8) = arg;
 		CallExtFuncBuild2(asml, params, args...);
 		asml.movsd(xmm1, qword_ptr(rcx, 8));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild1(hook::process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params + 8) = arg;
 		CallExtFuncBuild2(asml, params, args...);
 		asml.movss(xmm1, dword_ptr(rcx, 8));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild1(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild1(hook::process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params + 8) = arg;
 		CallExtFuncBuild2(asml, params, args...);
@@ -460,24 +460,24 @@ private:
 	}
 
 	// param 0 -> RCX | XMM0
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params) const {
+	inline void CallExtFuncBuild0(hook::process::AssemblerExp& asml, uint8_t* params) const {
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
+	inline void CallExtFuncBuild0(hook::process::AssemblerExp& asml, uint8_t* params, double arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<double*>(params) = arg;
 		CallExtFuncBuild1(asml, params, args...);
 		asml.movsd(xmm0, qword_ptr(rcx));
 	}
 	template<typename... Args>
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
+	inline void CallExtFuncBuild0(hook::process::AssemblerExp& asml, uint8_t* params, float arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<float*>(params) = arg;
 		CallExtFuncBuild1(asml, params, args...);
 		asml.movss(xmm0, dword_ptr(rcx));
 	}
 	template<typename Arg0, typename... Args>
-	inline void CallExtFuncBuild0(process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
+	inline void CallExtFuncBuild0(hook::process::AssemblerExp& asml, uint8_t* params, Arg0 arg, Args... args) const {
 		using namespace asmjit::x86;
 		*reinterpret_cast<Arg0*>(params) = arg;
 		CallExtFuncBuild1(asml, params, args...);
@@ -500,13 +500,13 @@ public:
 
 		constexpr auto argcount = sizeof...(args);
 		uint8_t params[argcount * 8 + 1]; // add +1 to avoid 0 case
-		auto& jr = process::GetJitRuntime();
+		auto& jr = hook::process::GetJitRuntime();
 		asmjit::CodeHolder holder;
 		holder.init(jr.environment());
 		void* fullInt = nullptr;
 		{
 			using namespace asmjit::x86;
-			process::AssemblerExp asml{ &holder };
+			hook::process::AssemblerExp asml{ &holder };
 			// https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170#parameter-passing
 
 			// param0 = RCX | XMM0

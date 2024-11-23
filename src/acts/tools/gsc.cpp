@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <core/async.hpp>
-#include <decrypt.hpp>
+#include <utils/decrypt.hpp>
 #include <BS_thread_pool.hpp>
 #include "tools/gsc.hpp"
 #include "tools/gsc_vm.hpp"
@@ -1152,12 +1152,12 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
         LOG_TRACE("Reading ACTS debug data v{:x}", (int)dbg->version);
         actsHeader << "// ACTS compiled file, file version 0x" << std::hex << (int)dbg->version << ", acts version ";
 
-        if (dbg->actsVersion == actsinfo::DEV_VERSION_ID) {
+        if (dbg->actsVersion == core::actsinfo::DEV_VERSION_ID) {
             actsHeader << "DEV";
         }
         else {
-            actsHeader << "0x" << std::hex << actsinfo::VERSION_ID;
-            if (dbg->actsVersion == actsinfo::VERSION_ID) {
+            actsHeader << "0x" << std::hex << core::actsinfo::VERSION_ID;
+            if (dbg->actsVersion == core::actsinfo::VERSION_ID) {
                 actsHeader << " (current)";
             }
         }

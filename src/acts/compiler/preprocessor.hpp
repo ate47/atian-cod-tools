@@ -40,7 +40,7 @@ namespace acts::compiler::preprocessor {
             return blocks[blocks.size() - 1];
         }
 
-        void PrintLineMessage(alogs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) const {
+        void PrintLineMessage(core::logs::loglevel lvl, size_t line, size_t charPositionInLine, const std::string& msg) const {
             const StringData& f = FindFile(line);
 
             size_t localLine;
@@ -143,7 +143,7 @@ namespace acts::compiler::preprocessor {
             }
         }
 
-        bool ApplyPreProcessorComments(std::string& str, std::function<void(alogs::loglevel lvl, size_t line, const std::string& message)> errorHandler) {
+        bool ApplyPreProcessorComments(std::string& str, std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler) {
             size_t idx{};
             char* data = str.data();
             char* dataEnd = data + str.length();
@@ -185,7 +185,7 @@ namespace acts::compiler::preprocessor {
                     } while (data != dataEnd && !(data[0] == '*' && data[1] == '/'));
 
                     if (data == dataEnd) {
-                        errorHandler(alogs::LVL_ERROR, 0, "No end for multiline comments");
+                        errorHandler(core::logs::LVL_ERROR, 0, "No end for multiline comments");
                         return false;
                     }
                     SetBlankChar(*(data++));
@@ -200,7 +200,7 @@ namespace acts::compiler::preprocessor {
                     } while (data != dataEnd && !(data[0] == '#' && data[1] == '/'));
 
                     if (data == dataEnd) {
-                        errorHandler(alogs::LVL_ERROR, 0, "No end for dev block");
+                        errorHandler(core::logs::LVL_ERROR, 0, "No end for dev block");
                         return false;
                     }
                     SetBlankChar(*(data++));
@@ -214,7 +214,7 @@ namespace acts::compiler::preprocessor {
             return true;
         }
 
-        bool ApplyPreProcessor(std::string& str, std::function<void(alogs::loglevel lvl, size_t line, const std::string& message)> errorHandler) {
+        bool ApplyPreProcessor(std::string& str, std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler) {
             if (!ApplyPreProcessorComments(str, errorHandler)) {
                 return false;
             }
@@ -241,11 +241,11 @@ namespace acts::compiler::preprocessor {
                 if (line.starts_with("#ifdef")) {
                     std::string define{ line.substr(6) };
                     if (define.length() < 1 || !isspace(define[0])) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#ifdef should be used with a parameter");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#ifdef should be used with a parameter");
                         err = true;
                     }
                     else if (!TrimDefineVal(define)) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#ifdef should be used with one valid parameter");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#ifdef should be used with one valid parameter");
                         err = true;
                     }
                     else {
@@ -260,11 +260,11 @@ namespace acts::compiler::preprocessor {
                 else if (line.starts_with("#ifndef")) {
                     std::string define{ line.substr(7) };
                     if (define.length() < 1 || !isspace(define[0])) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#ifndef should be used with a parameter");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#ifndef should be used with a parameter");
                         err = true;
                     }
                     else if (!TrimDefineVal(define)) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#ifndef should be used with one valid parameter");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#ifndef should be used with one valid parameter");
                         err = true;
                     }
                     else {
@@ -278,11 +278,11 @@ namespace acts::compiler::preprocessor {
                 }
                 else if (line.starts_with("#else")) {
                     if (!HasOnlySpaceAfter(line, 5)) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#else can't have parameters");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#else can't have parameters");
                         err = true;
                     }
                     else if (eraseCtx.empty()) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "Usage of #else without start if");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "Usage of #else without start if");
                         err = true;
                     }
                     else {
@@ -305,11 +305,11 @@ namespace acts::compiler::preprocessor {
                 }
                 else if (line.starts_with("#endif")) {
                     if (!HasOnlySpaceAfter(line, 6)) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#endif can't have parameters");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#endif can't have parameters");
                         err = true;
                     }
                     else if (eraseCtx.empty()) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "Usage of #endif without start if");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "Usage of #endif without start if");
                         err = true;
                     }
                     else {
@@ -319,11 +319,11 @@ namespace acts::compiler::preprocessor {
                 else if (!noDefineExpr && line.starts_with("#define")) {
                     std::string define{ line.substr(7) };
                     if (define.length() < 1 || !isspace(define[0])) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#define should be used with a parameter");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#define should be used with a parameter");
                         err = true;
                     }
                     else if (!TrimDefineVal(define)) {
-                        errorHandler(alogs::LVL_ERROR, lineIdx, "#define should be used with one valid parameter");
+                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#define should be used with one valid parameter");
                         err = true;
                     }
                     else {
@@ -331,11 +331,11 @@ namespace acts::compiler::preprocessor {
                     }
                 }
                 else if (line.starts_with("#error")) {
-                    errorHandler(alogs::LVL_ERROR, lineIdx, std::string{ line.substr(line.length() > 6 ? 7 : 6) });
+                    errorHandler(core::logs::LVL_ERROR, lineIdx, std::string{ line.substr(line.length() > 6 ? 7 : 6) });
                     err = true;
                 }
                 else if (line.starts_with("#warning")) {
-                    errorHandler(alogs::LVL_WARNING, lineIdx, std::string{ line.substr(line.length() > 8 ? 9 : 8) });
+                    errorHandler(core::logs::LVL_WARNING, lineIdx, std::string{ line.substr(line.length() > 8 ? 9 : 8) });
                 }
                 else if (!line.starts_with("#region") && !line.starts_with("#endregion")) {
                     if (eraseCtx.empty() || !eraseCtx.top()) {
@@ -353,7 +353,7 @@ namespace acts::compiler::preprocessor {
             }
 
             if (!eraseCtx.empty()) {
-                errorHandler(alogs::LVL_ERROR, lineIdx, "end of file before the end of all the if");
+                errorHandler(core::logs::LVL_ERROR, lineIdx, "end of file before the end of all the if");
                 return false;
             }
 

@@ -3,7 +3,6 @@
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
 #include <actscli.hpp>
-#include <decrypt.hpp>
 
 
 namespace tool::gsc::vm {
@@ -38,14 +37,14 @@ namespace tool::gsc::vm {
     }
     void RegisterVmOpCodes() {
         auto& opcodes{ GscOpCodes() };
-        if (alogs::getlevel() <= alogs::loglevel::LVL_TRACE) {
+        if (core::logs::getlevel() <= core::logs::loglevel::LVL_TRACE) {
             std::ostringstream oss{};
 
             for (GscVmOpCode* opcode : opcodes) {
                 oss << " " << opcode->id;
             }
 
-            LOG_LVLF(alogs::LVL_TRACE, "Registering opcodes for{}", oss.str());
+            LOG_LVLF(core::logs::LVL_TRACE, "Registering opcodes for{}", oss.str());
         }
         actslib::profiler::Profiler pl{ "vmReg" };
 

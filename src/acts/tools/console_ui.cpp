@@ -77,7 +77,7 @@ namespace tool::console_ui {
 		}
 	}
 	void AttachConsoleUI() {
-		alogs::addoutstream(&consoleStream);
+		core::logs::addoutstream(&consoleStream);
 	}
 
 

@@ -2,8 +2,9 @@
 #include "custom_ees.hpp"
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
-#include <offsets.hpp>
+#include <games/bo4/offsets.hpp>
 
+using namespace games::bo4;
 /*
  * integrated version of the T8CustomEE mod.
  * https://github.com/ate47/t8-custom-ee

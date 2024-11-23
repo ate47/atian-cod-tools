@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/utils.hpp>
 #include <core/async.hpp>
 #include <rapidcsv.h>
 #include "actscli.hpp"

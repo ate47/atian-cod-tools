@@ -1,14 +1,15 @@
 #include <dll_includes.hpp>
 #include <hook/library.hpp>
 #include <hook/threads.hpp>
-#include <utils.hpp>
-#include <scriptinstance.hpp>
+#include <utils/utils.hpp>
+#include <games/bo4/scriptinstance.hpp>
 #include <core/system.hpp>
 #include "data/cw.hpp"
 #include "systems/gsc.hpp"
 #include "callbacks.hpp"
 #include <HwBpLib.h>
 
+using namespace games::bo4;
 
 namespace gsc {
 	cw::ObjFileInfoStruct* gObjFileInfo;
@@ -90,7 +91,7 @@ namespace {
 
 		gObjFileInfoCount = objFile.GetRelative<int32_t, uint32_t*>(3);
 		gObjFileInfo = objFile.GetRelative<int32_t, cw::ObjFileInfoStruct*>(10);
-		gVmOpJumpTable = reinterpret_cast<void**>(process::Relativise(table.Get<int32_t>(4)));
+		gVmOpJumpTable = reinterpret_cast<void**>(hook::process::Relativise(table.Get<int32_t>(4)));
 
 		gVmOpJumpTable[0x13] = VM_OP_LazyLink_Handler;
 	}

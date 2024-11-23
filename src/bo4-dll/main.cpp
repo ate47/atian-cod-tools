@@ -1,5 +1,5 @@
 #include <dll_includes.hpp>
-clisync::CliSyncData inject::g_cliData{};
+cli::clisync::CliSyncData inject::g_cliData{};
 
 std::vector<inject::DetourRegistryData*>& detourRegistryData() {
     static std::vector<inject::DetourRegistryData*> vec{};
@@ -44,7 +44,7 @@ namespace {
         auto& systems = inject::InjectedSystem::GetSystems();
         std::sort(systems.begin(), systems.end(), [](const inject::InjectedSystem* e1, const inject::InjectedSystem* e2) { return e1->level < e2->level; });
 
-        HMODULE modStart = process::BaseHandle();
+        HMODULE modStart = hook::process::BaseHandle();
 
         LOG_INFO("Init ACTS BO4 DLL with {} system(s) using type {}", systems.size(), (char)('0' + inject::g_dllType));
         LOG_INFO("workdir: {0}", g_cliData.workDir);
@@ -77,13 +77,13 @@ namespace {
         LOG_DEBUG("Post init systems done");
     }
 
-    void SyncCLIOnce(clisync::CliSyncData* data) {
+    void SyncCLIOnce(cli::clisync::CliSyncData* data) {
         g_cliData = *data;
 
         auto logpath = (std::filesystem::path{ g_cliData.workDir } / "acts-bo4.log").string();
-        alogs::setfile(logpath.c_str());
-        if (g_cliData.HasFeature(clisync::FEATURE_LOG)) {
-            alogs::setlevel(alogs::LVL_DEBUG);
+        core::logs::setfile(logpath.c_str());
+        if (g_cliData.HasFeature(cli::clisync::FEATURE_LOG)) {
+            core::logs::setlevel(core::logs::LVL_DEBUG);
         }
 
         PreInitDll();
@@ -99,18 +99,18 @@ namespace {
         GetCurrentDirectoryA(sizeof(g_cliData.workDir), g_cliData.workDir);
 
 #ifdef DEBUG
-        g_cliData.features = alogs::LVL_DEBUG;
+        g_cliData.features = core::logs::LVL_DEBUG;
 #endif
 
         auto logpath = (std::filesystem::path{ g_cliData.workDir } / "acts-bo4.log").string();
-        alogs::setfile(logpath.c_str());
-        if (g_cliData.HasFeature(clisync::FEATURE_LOG)) {
-            alogs::setlevel(alogs::LVL_DEBUG);
+        core::logs::setfile(logpath.c_str());
+        if (g_cliData.HasFeature(cli::clisync::FEATURE_LOG)) {
+            core::logs::setlevel(core::logs::LVL_DEBUG);
         }
 
         // clear start
-        auto start = process::PImageOptHeader()->AddressOfEntryPoint;
-        auto modStart = process::BaseHandle();
+        auto start = hook::process::PImageOptHeader()->AddressOfEntryPoint;
+        auto modStart = hook::process::BaseHandle();
 
         if (!modStart) {
             LOG_ERROR("BAD MODULE START, ABORT");
@@ -210,7 +210,7 @@ EXPORT HRESULT D3D11CreateDevice(void* adapter, const uint64_t driver_type,
 #endif
 
 
-EXPORT void SyncCLI(clisync::CliSyncData* data) {
+EXPORT void SyncCLI(cli::clisync::CliSyncData* data) {
     if (!CanStart(inject::DLLTYPE_EXTENSION)) return;
     SyncCLIOnce(data);
 }

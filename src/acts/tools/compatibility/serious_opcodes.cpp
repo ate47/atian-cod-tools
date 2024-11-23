@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <utils.hpp>
+#include <utils/utils.hpp>
 #include <core/strings.hpp>
 #include "tools/gsc.hpp"
 #include "compiler/preprocessor.hpp"
@@ -17,7 +17,7 @@ namespace {
 
 		acts::compiler::preprocessor::PreProcessorOption opt{};
 
-		opt.ApplyPreProcessor(file, [&argv](alogs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "{}@{}: {}", argv[2], line, message); });
+		opt.ApplyPreProcessor(file, [&argv](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "{}@{}: {}", argv[2], line, message); });
 
 
 		LOG_INFO("Parsing file...");
@@ -117,7 +117,7 @@ namespace {
 
 		acts::compiler::preprocessor::PreProcessorOption opt{};
 
-		opt.ApplyPreProcessor(file, [&argv](alogs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "{}@{}: {}", argv[2], line, message); });
+		opt.ApplyPreProcessor(file, [&argv](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "{}@{}: {}", argv[2], line, message); });
 
 		const char* output{ argv[5] };
 

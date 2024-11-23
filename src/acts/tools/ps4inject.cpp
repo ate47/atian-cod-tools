@@ -1,7 +1,9 @@
 #include <includes.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
-#include <pool.hpp>
+#include <games/bo4/pool.hpp>
+
+using namespace games::bo4;
 
 namespace {
 	struct XAssetPoolEntry {

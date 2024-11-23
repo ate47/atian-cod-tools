@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <pool.hpp>
+#include <games/bo4/pool.hpp>
 #include <dbflib.hpp>
 #include <rapidcsv.h>
 #include "tools/pool.hpp"
@@ -9,6 +9,7 @@
 
 
 namespace {
+	using namespace games::bo4;
 
 	struct RawFileEntry {
 		tool::pool::XHash name;

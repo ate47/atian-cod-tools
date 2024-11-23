@@ -3,7 +3,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
-#include <utils.hpp>
+#include <utils/utils.hpp>
 
 namespace core::config {
 	namespace {

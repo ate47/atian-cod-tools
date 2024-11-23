@@ -31,7 +31,7 @@ namespace hook::error {
 	 * @param level log level
 	 * @param location start location
 	 */
-	void DumpStackTraceFrom(alogs::loglevel level = alogs::LVL_ERROR, const void* location = nullptr);
+	void DumpStackTraceFrom(core::logs::loglevel level = core::logs::LVL_ERROR, const void* location = nullptr);
 	/*
 	 * Dump a vtable in the logs
 	 * @param object object to dump

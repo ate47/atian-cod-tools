@@ -1,7 +1,7 @@
 #pragma once
 #include <includes_shared.hpp>
 
-namespace alogs {
+namespace core::logs {
 
 	enum loglevel {
 		LVL_TRACE_PATH = -1,
@@ -81,11 +81,11 @@ namespace alogs {
 
 
 // convert filename to log id
-#define LOG_GET_LOG_REF_STR (alogs::GetLogFile<alogs::GetLogFileLen(__FILE__), alogs::GetLogFileSplit(__FILE__), alogs::GetLogFileExt(__FILE__)>(__FILE__))
-#define LOG_LVL(LEVEL, msg) if (alogs::getlevel() <= LEVEL) alogs::log(LEVEL, LOG_GET_LOG_REF_STR.data(), __LINE__, msg)
+#define LOG_GET_LOG_REF_STR (core::logs::GetLogFile<core::logs::GetLogFileLen(__FILE__), core::logs::GetLogFileSplit(__FILE__), core::logs::GetLogFileExt(__FILE__)>(__FILE__))
+#define LOG_LVL(LEVEL, msg) if (core::logs::getlevel() <= LEVEL) core::logs::log(LEVEL, LOG_GET_LOG_REF_STR.data(), __LINE__, msg)
 #define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))
-#define LOG_TRACE(...) LOG_LVLF(alogs::loglevel::LVL_TRACE, __VA_ARGS__)
-#define LOG_DEBUG(...) LOG_LVLF(alogs::loglevel::LVL_DEBUG, __VA_ARGS__)
-#define LOG_ERROR(...) LOG_LVLF(alogs::loglevel::LVL_ERROR, __VA_ARGS__)
-#define LOG_WARNING(...) LOG_LVLF(alogs::loglevel::LVL_WARNING, __VA_ARGS__)
-#define LOG_INFO(...) LOG_LVLF(alogs::loglevel::LVL_INFO, __VA_ARGS__)
+#define LOG_TRACE(...) LOG_LVLF(core::logs::loglevel::LVL_TRACE, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG_LVLF(core::logs::loglevel::LVL_DEBUG, __VA_ARGS__)
+#define LOG_ERROR(...) LOG_LVLF(core::logs::loglevel::LVL_ERROR, __VA_ARGS__)
+#define LOG_WARNING(...) LOG_LVLF(core::logs::loglevel::LVL_WARNING, __VA_ARGS__)
+#define LOG_INFO(...) LOG_LVLF(core::logs::loglevel::LVL_INFO, __VA_ARGS__)

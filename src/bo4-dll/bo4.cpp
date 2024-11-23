@@ -1,5 +1,4 @@
 #include <dll_includes.hpp>
-#include <offsets.hpp>
 
 t8internal::scrVmPub* bo4::scrVmPub = reinterpret_cast<t8internal::scrVmPub*>(Relativise(offset::scrVmPub));
 t8internal::scrVarPub* bo4::scrVarPub = reinterpret_cast<t8internal::scrVarPub*>(Relativise(offset::gScrVarPub));

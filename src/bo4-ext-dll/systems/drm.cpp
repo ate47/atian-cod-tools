@@ -23,10 +23,10 @@ namespace {
     }
 
     HANDLE WINAPI CreateThreadStub(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId) {
-        if (hook::library::GetLibraryInfo(lpStartAddress) == process::BaseHandle()) {
+        if (hook::library::GetLibraryInfo(lpStartAddress) == hook::process::BaseHandle()) {
             void** c = GetTlsLoc();
             if (c) {
-                process::WriteMemSafe(c, tlsOriginal);
+                hook::process::WriteMemSafe(c, tlsOriginal);
             }
             CreateThreadDetour.Clear();
             return CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
@@ -101,7 +101,7 @@ namespace {
         if (c) {
             tlsOriginal = *c;
 
-            process::WriteMemSafe(c, nullptr);
+            hook::process::WriteMemSafe(c, nullptr);
 
             CreateThreadDetour.Create(CreateThread, CreateThreadStub);
         }

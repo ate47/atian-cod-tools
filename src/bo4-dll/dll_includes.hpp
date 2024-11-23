@@ -2,8 +2,8 @@
 
 #include <includes_shared.hpp>
 #include <detours.h>
-#include <clisync.hpp>
-#include <process.hpp>
+#include <cli/clisync.hpp>
+#include <hook/process.hpp>
 
 #include "bo4.hpp"
 
@@ -24,7 +24,7 @@ namespace inject {
 
 	extern DllType g_dllType;
 
-	extern clisync::CliSyncData g_cliData;
+	extern cli::clisync::CliSyncData g_cliData;
 
 	struct InjectedSystem {
 		static void InjectSystem(InjectedSystem* sys);
@@ -74,7 +74,7 @@ namespace inject {
 		}
 
 		DetourInfo(const char* title, uintptr_t location, Func detour, DetourTime time = POST_INIT)
-			: m_pointer(reinterpret_cast<Func>(&(process::BasePtr()[location]))), m_detour(detour),
+			: m_pointer(reinterpret_cast<Func>(&(hook::process::BasePtr()[location]))), m_detour(detour),
 			data(title, &m_pointer, m_detour, time) {
 			RegisterDetour(&data);
 		}

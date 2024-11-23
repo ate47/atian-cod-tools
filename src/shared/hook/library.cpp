@@ -1,7 +1,7 @@
 #include <includes_shared.hpp>
 #include "library.hpp"
 #include "process.hpp"
-#include "utils.hpp"
+#include <utils/utils.hpp>
 
 namespace hook::library {
 	HMODULE GetLibraryInfo(const void* address) {
@@ -398,7 +398,7 @@ namespace hook::library {
 
 			const char* name{ Get<const char>(imp.Name) };
 
-			if (alogs::getlevel() <= alogs::LVL_TRACE) osnames << " " << name;
+			if (core::logs::getlevel() <= core::logs::LVL_TRACE) osnames << " " << name;
 
 			hook::library::Library dep{ LoadLibraryExA(name, nullptr, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)  };
 

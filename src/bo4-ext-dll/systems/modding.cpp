@@ -1,7 +1,6 @@
 #include <dll_includes.hpp>
 #include <core/system.hpp>
 #include <hook/library.hpp>
-#include <pool.hpp>
 #include <data/bo4.hpp>
 
 namespace {

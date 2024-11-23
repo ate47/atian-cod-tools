@@ -1,7 +1,7 @@
 #pragma once
 #include <detours.h>
-#include "../process.hpp"
-#include "../utils.hpp"
+#include <hook/process.hpp>
+#include <utils/utils.hpp>
 
 namespace hook::library {
 	struct ScanResult;

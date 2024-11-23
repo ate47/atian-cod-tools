@@ -12,11 +12,11 @@ namespace {
 	DECLSPEC_NORETURN void ExitProcessStub(UINT uExitCode) {
 		if (uExitCode) {
 			LOG_ERROR("ExitProcess with {}", uExitCode);
-			hook::error::DumpStackTraceFrom(alogs::LVL_ERROR);
+			hook::error::DumpStackTraceFrom(core::logs::LVL_ERROR);
 		}
 		else {
 			LOG_INFO("ExitProcess with {}", uExitCode);
-			hook::error::DumpStackTraceFrom(alogs::LVL_INFO);
+			hook::error::DumpStackTraceFrom(core::logs::LVL_INFO);
 		}
 		ExitProcessDetour.Call(uExitCode);
 	}
@@ -30,8 +30,8 @@ namespace {
 		return GetSystemMetricsDetour.Call<int>(nIndex);
 	}
 	void Main() {
-		alogs::setfile("acts-mwiii.log");
-		alogs::setlevel(alogs::LVL_TRACE);
+		core::logs::setfile("acts-mwiii.log");
+		core::logs::setlevel(core::logs::LVL_TRACE);
 		LOG_INFO("Init MWIII dll");
 
 		hook::error::InstallErrorHooks(true);

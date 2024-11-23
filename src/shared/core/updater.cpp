@@ -1,18 +1,19 @@
 #include <includes_shared.hpp>
-#include <io_utils.hpp>
+#include <utils/io_utils.hpp>
+#include <utils/utils.hpp>
 #include <hook/library.hpp>
 #include <core/config.hpp>
-#include <actsinfo.hpp>
+#include <core/actsinfo.hpp>
 #include "updater.hpp"
 
 
 namespace core::updater {
 #ifdef CI_BUILD
-	constexpr auto ACTS_VERSION = actsinfo::VERSION_ID;
+	constexpr auto ACTS_VERSION = core::actsinfo::VERSION_ID;
 #else
 #define DEV_UPDATER
 	// dev, force a version for the updater
-	constexpr auto ACTS_VERSION = actsinfo::VERSION_ID;
+	constexpr auto ACTS_VERSION = core::actsinfo::VERSION_ID;
 #endif
     
 	bool CheckUpdate() {
@@ -20,7 +21,7 @@ namespace core::updater {
         return false; // not available yet
 #endif
 
-		if constexpr (actsinfo::DEV_VERSION_ID == ACTS_VERSION) {
+		if constexpr (core::actsinfo::DEV_VERSION_ID == ACTS_VERSION) {
 			return false; // can't update dev version
 		}
 

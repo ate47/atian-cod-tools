@@ -1,6 +1,6 @@
 #include <includes_shared.hpp>
 #include "memapi.hpp"
-#include "utils.hpp"
+#include <utils/utils.hpp>
 
 ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0, 0) {
 }

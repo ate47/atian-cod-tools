@@ -50,8 +50,8 @@ namespace tool::ui {
 			"Cordycep loaded: {} \n\r"
 			,
 			nui ? L"NUI" : L"UI",
-			actsinfo::VERSIONW,
-			actsinfo::VERSION_ID,
+			core::actsinfo::VERSIONW,
+			core::actsinfo::VERSION_ID,
 			tools().size(),
 			tool::nui::tools().size(),
 			tool::tools().size(),

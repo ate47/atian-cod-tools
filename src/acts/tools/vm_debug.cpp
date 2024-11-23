@@ -1,13 +1,14 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
 #include "tools/dump.hpp"
-#include <t8_internal.hpp>
-#include <decrypt.hpp>
-#include <offsets.hpp>
-#include <scriptinstance.hpp>
+#include <games/bo4/t8_internal.hpp>
+#include <games/bo4/offsets.hpp>
+#include <games/bo4/scriptinstance.hpp>
+#include <utils/decrypt.hpp>
 
 namespace {
-	using namespace t8internal;
+	using namespace games::bo4;
+	using namespace games::bo4::t8internal;
 
 	class VmDebugOption {
 	public:

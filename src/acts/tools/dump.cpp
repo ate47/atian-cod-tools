@@ -1,12 +1,13 @@
 #include <includes.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
-#include <pool.hpp>
+#include <games/bo4/pool.hpp>
 #include "tools/pool.hpp"
-#include <offsets.hpp>
-#include <scriptinstance.hpp>
+#include <games/bo4/offsets.hpp>
+#include <games/bo4/scriptinstance.hpp>
 
 using namespace tool::dump;
+using namespace games::bo4;
 
 int poolscripts(Process& proc, int argc, const char* argv[]) {
     uintptr_t poolPtr = proc.ReadMemory<uintptr_t>(proc[offset::XASSET_SCRIPTPARSETREE]);

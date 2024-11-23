@@ -1,6 +1,6 @@
 #include <includes_shared.hpp>
 #include "library.hpp"
-#include "utils.hpp"
+#include <utils/utils.hpp>
 #include "threads.hpp"
 
 namespace hook::threads {

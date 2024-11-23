@@ -3,7 +3,7 @@
 #include "error.hpp"
 #include "process.hpp"
 #include "library.hpp"
-#include "utils.hpp"
+#include <utils/utils.hpp>
 #include "memory.hpp"
 
 
@@ -192,7 +192,7 @@ namespace hook::error {
 				PrintRegister("rip", ExceptionInfo->ContextRecord->Rip);
 
 				LOG_ERROR("Stack trace:");
-				DumpStackTraceFrom(alogs::LVL_ERROR, ExceptionInfo->ExceptionRecord->ExceptionAddress);
+				DumpStackTraceFrom(core::logs::LVL_ERROR, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 			}
 
 			if (cfg.cont || ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP) {
@@ -202,7 +202,7 @@ namespace hook::error {
 		}
 
 		void WINAPI EmptySetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter) {
-			if (alogs::getlevel() > alogs::LVL_TRACE) {
+			if (core::logs::getlevel() > core::logs::LVL_TRACE) {
 				return;
 			}
 
@@ -211,7 +211,7 @@ namespace hook::error {
 
 	}
 
-	void DumpStackTraceFrom(alogs::loglevel level, const void* location) {
+	void DumpStackTraceFrom(core::logs::loglevel level, const void* location) {
 		void* locs[50];
 		WORD capture = RtlCaptureStackBackTrace(0, ARRAYSIZE(locs), locs, NULL);
 

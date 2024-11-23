@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 
-namespace scriptinstance {
+namespace games::bo4::scriptinstance {
 	enum ScriptInstance : uint32_t {
 		SI_SERVER = 0,
 		SI_CLIENT = 1,

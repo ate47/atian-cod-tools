@@ -18,7 +18,7 @@ namespace {
 		libdebug::PS4DBG ps4{ ipd };
 		ps4.Connect();
 
-		ps4.Notify(210, std::format("Atian Tools {}", actsinfo::VERSION));
+		ps4.Notify(210, std::format("Atian Tools {}", core::actsinfo::VERSION));
 
 		auto procList = ps4.GetProcessList();
 		auto proc = procList.FindProcess("eboot.bin");

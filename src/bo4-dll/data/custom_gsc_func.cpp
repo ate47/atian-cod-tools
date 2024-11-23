@@ -1,9 +1,9 @@
 #include <dll_includes.hpp>
-#include <hash.hpp>
+#include <utils/hash.hpp>
 
 using namespace custom_gsc_func;
 using namespace bo4;
-using scriptinstance::ScriptInstance;
+using games::bo4::scriptinstance::ScriptInstance;
 
 void LogPrint(ScriptInstance inst) {
 	using namespace t8internal;

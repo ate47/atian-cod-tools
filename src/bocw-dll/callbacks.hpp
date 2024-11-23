@@ -1,6 +1,6 @@
 #pragma once
 #include <core/eventhandler.hpp>
-#include <hash.hpp>
+#include <utils/hash.hpp>
 
 namespace callbacks {
 	using namespace core::eventhandler;

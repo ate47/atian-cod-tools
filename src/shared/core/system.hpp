@@ -1,5 +1,5 @@
 #pragma once
-#include "../hash.hpp"
+#include <utils/hash.hpp>
 
 namespace core::system {
 	typedef std::function<void(uint64_t uid)> SystemCallback;

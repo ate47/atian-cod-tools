@@ -1,6 +1,6 @@
 #pragma once
 #include <Windows.h>
-#include <hash.hpp>
+#include <utils/hash.hpp>
 
 namespace hashutils {
 	constexpr uint64_t MASK62 = hash::MASK62;

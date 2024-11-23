@@ -1,5 +1,5 @@
 #pragma once
-namespace t8internal {
+namespace games::bo4::t8internal {
 	enum ScrVarType : uint32_t {
 		TYPE_UNDEFINED = 0x0,
 		TYPE_POINTER = 0x1,

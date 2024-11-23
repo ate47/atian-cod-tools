@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include "tools/gsc.hpp"
 #include "sp23.hpp"
-#include <decryptiw.hpp>
+#include <decryptutils.hpp>
 #include <actslib/actslib.hpp>
 
 namespace {
@@ -265,7 +265,7 @@ namespace {
 
 		while (location < size) {
 			auto name = *reinterpret_cast<uint64_t*>(&buffer[location]);
-			auto* dec = decrypt::DecryptStringIW(reinterpret_cast<char*>(&buffer[location + 8]));
+			auto* dec = acts::decryptutils::DecryptString(reinterpret_cast<char*>(&buffer[location + 8]));
 			if (!dec) {
 				continue;
 			}

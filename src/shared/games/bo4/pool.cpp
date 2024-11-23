@@ -1,7 +1,7 @@
 #include <includes_shared.hpp>
 #include "pool.hpp"
 
-namespace pool {
+namespace games::bo4::pool {
 	namespace {
 		const char* xassetsNames[] = {
 			"physpreset",

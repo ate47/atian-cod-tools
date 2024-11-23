@@ -1,7 +1,7 @@
 #pragma once
 #include <includes_shared.hpp>
 
-namespace pool {
+namespace games::bo4::pool {
     enum XAssetType : byte{
         ASSET_TYPE_PHYSPRESET = 0,
         ASSET_TYPE_PHYSCONSTRAINTS = 1,

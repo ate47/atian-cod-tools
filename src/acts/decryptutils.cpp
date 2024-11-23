@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <decrypt.hpp>
+#include <utils/decrypt.hpp>
 #include <hook/module_mapper.hpp>
 #include "decryptutils.hpp"
 

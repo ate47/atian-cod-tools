@@ -1,6 +1,8 @@
 #include <includes.hpp>
-#include <offsets.hpp>
-#include <pool.hpp>
+#include <games/bo4/offsets.hpp>
+#include <games/bo4/pool.hpp>
+
+using namespace games::bo4;
 
 enum StringTableCellType : INT {
     STC_TYPE_UNDEFINED = 0,

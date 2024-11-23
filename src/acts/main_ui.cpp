@@ -22,7 +22,7 @@ namespace tool::ui {
 		}
 
 		const wchar_t* id = tci.pszText && *tci.pszText ? tci.pszText : nullptr;
-		std::wstring winName{ std::format(L"Atian tools {} UI{}{}", actsinfo::VERSIONW, (id ? L" - " : L""), (id ? id : L"")) };
+		std::wstring winName{ std::format(L"Atian tools {} UI{}{}", core::actsinfo::VERSIONW, (id ? L" - " : L""), (id ? id : L"")) };
 		SendMessage(hwnd, WM_SETTEXT, 0, (LPARAM)winName.c_str());
 	}
 

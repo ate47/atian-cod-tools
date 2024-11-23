@@ -1,7 +1,7 @@
 #include <includes_shared.hpp>
 #include "memory.hpp"
 #include "process.hpp"
-#include "utils.hpp"
+#include <utils/utils.hpp>
 
 namespace hook::memory {
 	namespace {

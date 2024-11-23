@@ -1,6 +1,6 @@
 #pragma once
 
-namespace offset {
+namespace games::bo4::offset {
 	constexpr auto VM_EVENT = 0x7D9BC10;
 	constexpr auto gObjFileInfo = 0x82efcd0;
 	constexpr auto gObjFileInfoCount = 0x82f76b0;

@@ -15,9 +15,9 @@ function buildinfo()
     versionfile:close()
 
     -- set version
-    local file = assert(io.open("src/shared/actsinfo.hpp", "w"))
+    local file = assert(io.open("src/shared/core/actsinfo.hpp", "w"))
     file:write("#pragma once\n")
-    file:write("namespace actsinfo {\n")
+    file:write("namespace core::actsinfo {\n")
     file:write("    // Do not write in this file, it is updated by premake\n")
     file:write("    constexpr unsigned int DEV_VERSION_ID = 0xFFFFFFFF;\n")
     file:write("#ifdef CI_BUILD\n\n")

@@ -16,9 +16,9 @@
 #define CURL_DISABLE_TELNET
 #define CURL_DISABLE_TFTP
 #include <curl/curl.h>
-#include "io_utils.hpp"
-#include "utils.hpp"
-#include "actsinfo.hpp"
+#include <core/actsinfo.hpp>
+#include <utils/io_utils.hpp>
+#include <utils/utils.hpp>
 
 #pragma comment(lib, "wldap32")
 #pragma comment(lib, "ws2_32")

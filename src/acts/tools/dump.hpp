@@ -1,8 +1,9 @@
 #pragma once
 #include <includes.hpp>
-#include <scriptinstance.hpp>
+#include <games/bo4/scriptinstance.hpp>
 
 namespace tool::dump {
+    using namespace games::bo4;
     struct T8ScriptParseTreeEntry {
         uint64_t name;
         uint64_t pad0;

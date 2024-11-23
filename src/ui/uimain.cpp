@@ -1,9 +1,9 @@
 #include <ui_includes.hpp>
-#include <memapi.hpp>
-#include <scriptinstance.hpp>
-#include <offsets.hpp>
-#include <hash.hpp>
-#include <clisync.hpp>
+#include <utils/memapi.hpp>
+#include <games/bo4/scriptinstance.hpp>
+#include <games/bo4/offsets.hpp>
+#include <utils/hash.hpp>
+#include <cli/clisync.hpp>
 #include <acts.hpp>
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -13,6 +13,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 namespace {
+    using namespace games::bo4;
 
     struct ReadScriptDetour { // t8compiler/t8cinternal/detours.cpp
         int32_t FixupName;
@@ -511,7 +512,7 @@ namespace {
                     return L"Can't find acts-bo4-dll.dll@SyncCLI";
                 }
 
-                clisync::CliSyncData data{ };
+                cli::clisync::CliSyncData data{ };
                 strncpy_s(data.execDir, sizeof(data.execDir), ppstr.c_str(), ppstr.length());
                 strncpy_s(data.workDir, sizeof(data.workDir), ppstr.c_str(), ppstr.length());
 
@@ -702,7 +703,7 @@ int WINAPI wWinMain(
 
     std::filesystem::path progpath = utils::GetProgDir();
     auto ppstr = (progpath / "atian-ui.log").string();
-    alogs::setfile(ppstr.c_str());
+    core::logs::setfile(ppstr.c_str());
 #endif
     LOG_INFO("Init ACTS-UI");
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);

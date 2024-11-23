@@ -1,7 +1,7 @@
 #pragma once
 #include <includes_shared.hpp>
 
-namespace process {
+namespace hook::process {
 #ifdef ASMJIT_STATIC
     asmjit::JitRuntime& GetJitRuntime();
 #endif

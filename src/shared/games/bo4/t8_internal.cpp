@@ -1,7 +1,7 @@
 #include <includes_shared.hpp>
 #include "t8_internal.hpp"
 
-const char* t8internal::ScrVarTypeName(ScrVarType type) {
+const char* games::bo4::t8internal::ScrVarTypeName(ScrVarType type) {
 	switch (type) {
 	case TYPE_UNDEFINED: return "UNDEFINED";
 	case TYPE_POINTER: return "POINTER";

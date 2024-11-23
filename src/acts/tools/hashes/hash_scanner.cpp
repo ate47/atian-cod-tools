@@ -44,7 +44,7 @@ namespace tool::hash::scanner {
 		profiler.PushSection("Wait");
 		pool.wait();
 		profiler.PopSection();
-		if (alogs::getlevel() == alogs::LVL_TRACE) {
+		if (core::logs::getlevel() == core::logs::LVL_TRACE) {
 			profiler.WriteToStr(std::cout);
 		}
 	}

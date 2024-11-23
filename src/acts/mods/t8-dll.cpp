@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <clisync.hpp>
+#include <cli/clisync.hpp>
 
 namespace {
 	int t8dll(int argc, const char* argv[]) {
@@ -10,7 +10,7 @@ namespace {
 			auto arg = argv[i];
 
 			if (strcmp(arg, "-l") || _strcmpi(arg, "--log")) {
-				features |= clisync::FEATURE_LOG;
+				features |= cli::clisync::FEATURE_LOG;
 			}
 			else {
 				std::cerr << "Unknown option: " << arg << "\n";
@@ -49,7 +49,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		clisync::CliSyncData data{ .features = features };
+		cli::clisync::CliSyncData data{ .features = features };
 
 		auto ppstr = progpath.string();
 

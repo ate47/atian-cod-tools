@@ -4,11 +4,12 @@
 #include "tools/pool.hpp"
 #include "tools/fastfile.hpp"
 #include "pool_weapon.hpp"
-#include <pool.hpp>
-#include <decrypt.hpp>
-#include <offsets.hpp>
+#include <utils/decrypt.hpp>
+#include <games/bo4/pool.hpp>
+#include <games/bo4/offsets.hpp>
 
 using namespace tool::pool;
+using namespace games::bo4;
 
 // min hash value, otherwise might be a ptr
 constexpr auto MIN_HASH_VAL = 0x1000000000000;

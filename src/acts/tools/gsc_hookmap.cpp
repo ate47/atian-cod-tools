@@ -2,7 +2,6 @@
 #include <core/memory_allocator.hpp>
 #include "tools/dump.hpp"
 #include "tools/gsc.hpp"
-#include <pool.hpp>
 
 namespace {
     int gschook(Process& _, int argc, const char* argv[]) {

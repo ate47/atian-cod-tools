@@ -1,9 +1,9 @@
 #pragma once
 
-namespace clisync {
+namespace cli::clisync {
 
 
-	enum CliSyncDataFeature : uint64_t{
+	enum CliSyncDataFeature : uint64_t {
 		FEATURE_LOG = 0x1
 	};
 

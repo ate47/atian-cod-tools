@@ -1,13 +1,16 @@
 #pragma once
 
 #include <dll_includes.hpp>
-#include <process.hpp>
-#include <t8_internal.hpp>
-#include <scriptinstance.hpp>
+#include <hook/process.hpp>
+#include <games/bo4/t8_internal.hpp>
+#include <games/bo4/scriptinstance.hpp>
+#include <games/bo4/offsets.hpp>
+#include <games/bo4/pool.hpp>
 
+using namespace games::bo4;
 namespace bo4 {
     inline byte* Relativise(uintptr_t location) {
-        return process::Relativise(location);
+        return hook::process::Relativise(location);
     }
 
 	struct Hash {

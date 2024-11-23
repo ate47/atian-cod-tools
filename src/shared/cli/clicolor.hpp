@@ -1,6 +1,6 @@
 #pragma once
 
-namespace clicolor {
+namespace cli::clicolor {
 
 	enum ColorData : uint32_t {
 		CD_RESET = 0,
@@ -27,4 +27,4 @@ namespace clicolor {
 	}
 
 }
-std::ostream& operator<<(std::ostream& out, clicolor::ColorData data);
+std::ostream& operator<<(std::ostream& out, cli::clicolor::ColorData data);

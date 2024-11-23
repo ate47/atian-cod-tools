@@ -1,6 +1,6 @@
 #if false
 #include <includes_shared.hpp>
-#include <hash.hpp>
+#include <utils/hash.hpp>
 #include <hook/error.hpp>
 #include <hook/library.hpp>
 #include "gsctools.hpp"
@@ -28,8 +28,8 @@ namespace {
 	}
 
 	void FastInject() {
-		alogs::setfile("acts-mwiii.log");
-		alogs::setlevel(alogs::LVL_TRACE);
+		core::logs::setfile("acts-mwiii.log");
+		core::logs::setlevel(core::logs::LVL_TRACE);
 		LOG_INFO("Init fast inject dll");
 
 		hook::error::InstallErrorHooks(false);

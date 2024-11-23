@@ -1,6 +1,6 @@
 #include <includes_shared.hpp>
 #include "afs.hpp"
-#include "utils.hpp"
+#include <utils/utils.hpp>
 
 namespace filesystem::afs {
 	ActsFileSystem::ActsFileSystem(byte* data, size_t len) : data(data) {

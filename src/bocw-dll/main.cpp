@@ -1,5 +1,5 @@
 #include <dll_includes.hpp>
-#include <utils.hpp>
+#include <utils/utils.hpp>
 #include <imgui.h>
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_dx12.h>
@@ -10,6 +10,7 @@
 #include <hook/error.hpp>
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
+#include <hook/process.hpp>
 #include <core/system.hpp>
 #include "systems/core.hpp"
 #include "data/cw.hpp"
@@ -37,18 +38,18 @@ namespace cw {
         DECLSPEC_NORETURN void ExitProcessStub(UINT uExitCode) {
             if (uExitCode) {
                 LOG_ERROR("ExitProcess with {}", uExitCode);
-                hook::error::DumpStackTraceFrom(alogs::LVL_ERROR);
+                hook::error::DumpStackTraceFrom(core::logs::LVL_ERROR);
             }
             else {
                 LOG_INFO("ExitProcess with {}", uExitCode);
-                hook::error::DumpStackTraceFrom(alogs::LVL_INFO);
+                hook::error::DumpStackTraceFrom(core::logs::LVL_INFO);
             }
             ExitProcessDetour.Call(uExitCode);
         }
 
         BOOL WINAPI GetThreadContextStub(HANDLE hThread, LPCONTEXT lpContext) {
             // clear debug flags if inside the game
-            if (hook::library::GetLibraryInfo(_ReturnAddress()) == process::BaseHandle()) {
+            if (hook::library::GetLibraryInfo(_ReturnAddress()) == hook::process::BaseHandle()) {
                 if (lpContext && lpContext->ContextFlags & (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64)) {
                     lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
                 }
@@ -61,7 +62,7 @@ namespace cw {
         }
         BOOL WINAPI SetThreadContextStub(HANDLE hThread, CONTEXT* lpContext) {
             // clear debug flags if inside the game
-            if (hook::library::GetLibraryInfo(_ReturnAddress()) == process::BaseHandle()) {
+            if (hook::library::GetLibraryInfo(_ReturnAddress()) == hook::process::BaseHandle()) {
                 if (lpContext && lpContext->ContextFlags & (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64)) {
                     lpContext->ContextFlags &= ~(CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
                 }
@@ -94,7 +95,7 @@ namespace cw {
         }
 
         byte* DecryptSTR(byte* str) {
-            return reinterpret_cast<byte * (*)(byte * str)>(process::Relativise(0xc990ad0))(str);
+            return reinterpret_cast<byte * (*)(byte * str)>(hook::process::Relativise(0xc990ad0))(str);
         }
 
         int DecryptGSCFile(T9GSCOBJ* script) {
@@ -124,7 +125,7 @@ namespace cw {
         void DecryptMTBuffer(size_t count) {
             int done = 0;
             std::unordered_set<std::string> strs{};
-            auto* mt_buffer = *reinterpret_cast<byte**>(process::Relativise(0xF5EC9C8));
+            auto* mt_buffer = *reinterpret_cast<byte**>(hook::process::Relativise(0xF5EC9C8));
             for (size_t i = 1; i < count; i++) {
                 auto* loc = mt_buffer + i * 0x10;
                 if (i % 0x100 == 0) {
@@ -249,7 +250,7 @@ namespace cw {
         void HandleImGuiMenu() {
             ImGui::Begin("Atian Tools", nullptr, 0);
 
-            ImGui::Text("Version %s", actsinfo::VERSION);
+            ImGui::Text("Version %s", core::actsinfo::VERSION);
 
 #ifndef CI_BUILD
 
@@ -555,8 +556,8 @@ namespace cw {
 
         void InitDll() {
             try {
-                alogs::setfile("acts-bocw.log");
-                alogs::setlevel(alogs::LVL_TRACE);
+                core::logs::setfile("acts-bocw.log");
+                core::logs::setlevel(core::logs::LVL_TRACE);
                 hook::library::Library main{};
                 std::string_view libname{ main.GetName() };
                 if (libname.rfind("CrashHandler") != std::string::npos) {

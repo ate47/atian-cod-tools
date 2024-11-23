@@ -1,6 +1,6 @@
 #include <includes_shared.hpp>
 #include <core/updater.hpp>
-#include "memapi.hpp"
+#include <utils/memapi.hpp>
 
 int main(int argc, char const *argv[]) {
     constexpr size_t maxWait = 10;

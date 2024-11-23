@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <clicolor.hpp>
+#include <cli/clicolor.hpp>
 #include <actscli.hpp>
 #include <core/config.hpp>
 #include <tools/tools_ui.hpp>
@@ -95,7 +95,7 @@ namespace tool {
 		return *tool->second;
 	}
 
-	void usage(const char* message, const char* argv0, alogs::loglevel lvl) {
+	void usage(const char* message, const char* argv0, core::logs::loglevel lvl) {
 		if (message) {
 			LOG_LVLF(lvl, "Error: {}", message);
 		}
@@ -426,11 +426,11 @@ namespace {
 		for (int b = 0; b < 6; b++) {
 			for (int i = 0; i < 6; i++) {
 				for (int j = 0; j < 6; j++) {
-					std::cout << " " << clicolor::ColorBackground(i, j, b) << i << j << b << clicolor::Reset();
+					std::cout << " " << cli::clicolor::ColorBackground(i, j, b) << i << j << b << cli::clicolor::Reset();
 				}
 				std::cout << " ";
 				for (int j = 0; j < 6; j++) {
-					std::cout << " " << clicolor::Color(i, j, b) << i << j << b << clicolor::Reset();
+					std::cout << " " << cli::clicolor::Color(i, j, b) << i << j << b << cli::clicolor::Reset();
 				}
 				std::cout << "\n";
 			}
@@ -453,7 +453,7 @@ namespace {
 		hashutils::ReadDefaultFile();
 		tool::gsc::opcode::RegisterOpCodes();
 		LOG_INFO("----- acts");
-		LOG_INFO("version .. {} (0x{:x})", actsinfo::VERSION, actsinfo::VERSION_ID);
+		LOG_INFO("version .. {} (0x{:x})", core::actsinfo::VERSION, core::actsinfo::VERSION_ID);
 		LOG_INFO("tools .... {} ({} categories)", tool::tools().size(), tool::toolsCategories().size());
 		LOG_INFO("tools ui . {}", tool::ui::tools().size());
 		LOG_INFO("hash(es) . {}", hashutils::GetMap().size());

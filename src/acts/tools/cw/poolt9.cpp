@@ -4,11 +4,12 @@
 #include "tools/gsc.hpp"
 #include "tools/cw/cw.hpp"
 #include "tools/cw/poolt9.hpp"
-#include <scriptinstance.hpp>
-#include <pool.hpp>
+#include <games/bo4/scriptinstance.hpp>
+#include <games/bo4/pool.hpp>
 
 
 namespace {
+    using namespace games::bo4;
 
     struct XAssetPool {
         uintptr_t pool; // void*
