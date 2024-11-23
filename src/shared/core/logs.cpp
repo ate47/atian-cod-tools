@@ -138,8 +138,9 @@ namespace core::logs {
 				if (g_loglevel == LVL_TRACE_PATH) {
 					out << '[' << file << '@' << std::dec << line << ']';
 				}
+				out << " ";
 			}
-			out << " " << str;
+			out << str;
 
 			if (color) {
 				out << cli::clicolor::Reset();

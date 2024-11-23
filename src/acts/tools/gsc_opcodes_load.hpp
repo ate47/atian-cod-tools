@@ -392,6 +392,7 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_CallBuiltinMethod5,
 
 		OPCODE_IW_ScriptFunctionCall2,
+		OPCODE_IW_Jump32,
 
 		OPCODE_COUNT,
 	};

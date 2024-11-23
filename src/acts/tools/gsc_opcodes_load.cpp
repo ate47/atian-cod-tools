@@ -338,6 +338,20 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_GSCBIN_SKIP_4BC_4SD, "GscBinSkip4BC4SD");
 			RegisterOpCode(OPCODE_GSCBIN_SKIP_STR_TOKEN, "GscBinSkipSTRTOKEN");
 			RegisterOpCode(OPCODE_GSCBIN_SKIP_4BC_1STR, "GscBinSkip4BC1STR");
+			RegisterOpCode(OPCODE_IW_CallBuiltinFunction0, "CallBuiltinFunction0");
+			RegisterOpCode(OPCODE_IW_CallBuiltinFunction1, "CallBuiltinFunction1");
+			RegisterOpCode(OPCODE_IW_CallBuiltinFunction2, "CallBuiltinFunction2");
+			RegisterOpCode(OPCODE_IW_CallBuiltinFunction3, "CallBuiltinFunction3");
+			RegisterOpCode(OPCODE_IW_CallBuiltinFunction4, "CallBuiltinFunction4");
+			RegisterOpCode(OPCODE_IW_CallBuiltinFunction5, "CallBuiltinFunction5");
+			RegisterOpCode(OPCODE_IW_CallBuiltinMethod0, "CallBuiltinMethod0");
+			RegisterOpCode(OPCODE_IW_CallBuiltinMethod1, "CallBuiltinMethod1");
+			RegisterOpCode(OPCODE_IW_CallBuiltinMethod2, "CallBuiltinMethod2");
+			RegisterOpCode(OPCODE_IW_CallBuiltinMethod3, "CallBuiltinMethod3");
+			RegisterOpCode(OPCODE_IW_CallBuiltinMethod4, "CallBuiltinMethod4");
+			RegisterOpCode(OPCODE_IW_CallBuiltinMethod5, "CallBuiltinMethod5");
+			RegisterOpCode(OPCODE_IW_ScriptFunctionCall2, "ScriptFunctionCall2");
+			RegisterOpCode(OPCODE_IW_Jump32, "Jump32");
 			RegisterOpCode(OPCODE_InvalidOpCode, "InvalidOpCode");
 		}
 	};

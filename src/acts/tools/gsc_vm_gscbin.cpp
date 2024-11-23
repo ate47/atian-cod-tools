@@ -237,6 +237,9 @@ namespace {
                             case OPCODE_EvalArray:
                             case OPCODE_EvalArrayRef:
                             case OPCODE_SetVariableField:
+                            case OPCODE_IW_SingleWaitTill:
+                            case OPCODE_ClearParams:
+                            case OPCODE_BoolNot:
                             case OPCODE_GSCBIN_SKIP_0:
                                 asmout << "\n";
                                 break;
@@ -274,6 +277,7 @@ namespace {
                             case OPCODE_GetUnsignedInteger:
                             case OPCODE_GetNegUnsignedInteger:
                             case OPCODE_GetFloat:
+                            case OPCODE_IW_Jump32:
                             case OPCODE_GSCBIN_SKIP_4:
                                 SkipNBytes(4) << "\n";
                                 break;
@@ -421,6 +425,12 @@ namespace {
                                 SkipNBytes(1) << "\n";
                                 break;
                             }
+                            case OPCODE_GSCBIN_SKIP_3BC_4SD: {
+
+
+                                break;
+                            }
+                            case OPCODE_GSCBIN_SKIP_4BC_4SD:
                             default: {
                                 const char* err{ utils::va("Operator not handled %x (%d/%s)", opcode, opcode, nfo->m_name) };
                                 asmout << err << std::endl;

@@ -106,12 +106,14 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		if (!deps::oodle::LoadOodleFromGame(*mod)) {
+		deps::oodle::Oodle oodle{};
+
+		if (!oodle.LoadOodleFromGame(*mod)) {
 			LOG_ERROR("Can't load oodle");
 			return tool::BASIC_ERROR;
 		}
 
-		LOG_INFO("Oodle 0x{:x} loaded: {}", deps::oodle::GetVersion(), deps::oodle::GetOodleLib());
+		LOG_INFO("Oodle 0x{:x} loaded: {}", oodle.GetVersion(), oodle.GetOodleLib());
 
 		return tool::OK;
 	}

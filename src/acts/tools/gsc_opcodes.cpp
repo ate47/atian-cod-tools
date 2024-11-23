@@ -1278,7 +1278,9 @@ public:
 
 class OPCodeInfoJump : public OPCodeInfo {
 public:
-	using OPCodeInfo::OPCodeInfo;
+	bool jump32;
+public:
+	OPCodeInfoJump(OPCode id, const char* name, bool jump32 = false) : jump32(jump32),  OPCodeInfo(id, name) {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		// get the jump opcode location
@@ -1330,6 +1332,7 @@ public:
 				name = "jumpdev";
 				break;
 			case OPCODE_Jump:
+			case OPCODE_IW_Jump32:
 				name = "goto";
 				break;
 			default:
@@ -1342,14 +1345,28 @@ public:
 		assert(!context.m_runDecompiler || name != nullptr);
 
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
-			context.Aligned<int16_t>();
+			if (jump32) {
+				context.Aligned<int32_t>();
+			}
+			else {
+				context.Aligned<int16_t>();
+			}
 		}
 
 		auto& bytecode = context.m_bcl;
 
-		int16_t delta = *(int16_t*)bytecode;
+		int32_t delta;
+		
+		if (jump32) {
+			delta = *(int32_t*)bytecode;
 
-		bytecode += 2;
+			bytecode += 4;
+		}
+		else {
+			delta = *(int16_t*)bytecode;
+
+			bytecode += 2;
+		}
 
 		// push a location and mark it as referenced
 		byte* newLoc = &context.m_bcl[delta];
@@ -1378,7 +1395,7 @@ public:
 		if (delta != 0 || m_id == OPCODE_DevblockBegin) {
 			if (context.m_runDecompiler) {
 				bool inject = true;
-				if (m_id == OPCODE_Jump && delta > 0) {
+				if ((m_id == OPCODE_Jump || m_id == OPCODE_IW_Jump32) && delta > 0) {
 					// might be ternary
 					//ASMContextNodeTernary
 					if (context.m_stack.size() && context.m_funcBlock.m_statements.size()) {
@@ -1469,13 +1486,26 @@ public:
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
 		int32_t m_jumpLocation = ctx.FunctionRelativeLocation(ctx.m_bcl - 2);
 		if (ctx.m_vminfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
-			ctx.Aligned<int16_t>();
+			if (jump32) {
+				ctx.Aligned<int32_t>();
+			}
+			else {
+				ctx.Aligned<int16_t>();
+			}
 		}
 		auto& bytecode = ctx.m_bcl;
 
-		int16_t delta = *(int16_t*)bytecode;
+		int32_t delta;
+		if (jump32) {
+			delta = *(int32_t*)bytecode;
 
-		bytecode += 2;
+			bytecode += 4;
+		}
+		else {
+			delta = *(int16_t*)bytecode;
+
+			bytecode += 2;
+		}
 
 		ctx.PushLocation(&ctx.m_bcl[delta]);
 
@@ -2954,6 +2984,29 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
 			auto* ref = new ASMContextNodeValue<const char*>(m_operatorName, TYPE_STATEMENT);
+			// convert it to statement
+			ref->m_priority = PRIORITY_INST;
+			context.PushASMCNode(ref);
+			context.CompleteStatement();
+		}
+		out << "\n";
+		return 0;
+	}
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
+};
+class OPCodeInfoGscBinStrToken : public OPCodeInfo {
+public:
+	using OPCodeInfo::OPCodeInfo;
+
+	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		int32_t token{ *(int32_t*)context.m_bcl };
+		context.m_bcl += 4;
+
+		out << "0x" << std::hex << token;
+		if (context.m_runDecompiler) {
+			auto* ref = new ASMContextNodeValue<int32_t>(token, TYPE_VALUE, true);
 			// convert it to statement
 			ref->m_priority = PRIORITY_INST;
 			context.PushASMCNode(ref);
@@ -5095,8 +5148,9 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_N, "GscBinSkipN"));
 			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_3BC_4SD, "GscBinSkip3BC4SD"));
 			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_4BC_4SD, "GscBinSkip4BC4SD"));
-			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_STR_TOKEN, "GscBinSkipSTRTOKEN"));
 			RegisterOpCodeHandler(new OPCodeInfoUnknown(OPCODE_GSCBIN_SKIP_4BC_1STR, "GscBinSkip4BC1STR"));
+
+			RegisterOpCodeHandler(new OPCodeInfoGscBinStrToken(OPCODE_GSCBIN_SKIP_STR_TOKEN, "GscBinSkipSTRTOKEN"));
 
 			// all op without params
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStart, "ProfileStart", "profilestart()"));
@@ -5116,6 +5170,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoEndSwitch());
 			// dev/jump
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_DevblockBegin, "DevblockBegin"));
+			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_IW_Jump32, "Jump", true));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_Jump, "Jump"));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_JumpOnTrue, "JumpOnTrue"));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_JumpOnGreaterThan, "JumpOnGreaterThan"));
