@@ -241,7 +241,7 @@ namespace tool::hash::scanner {
 			uint64_t funcs{};
 			const char* prefix{};
 			const char* suffix{};
-			char mid{ '_' };
+			const char* mid{ "_" };
 
 			HashDataDict(const char* file) : output(file, std::ios::app) {}
 			~HashDataDict() {
@@ -265,7 +265,6 @@ namespace tool::hash::scanner {
 					}
 					return base;
 				}
-				char b[]{ mid , 0 };
 				uint64_t base;
 				if constexpr (prefix) {
 					base = Func::Hash(*(str++), Func::Hash(this->prefix));
@@ -276,7 +275,7 @@ namespace tool::hash::scanner {
 
 
 				while (*(str)) {
-					base = Func::Hash(b, base);
+					base = Func::Hash(mid, base);
 					base = Func::Hash(*(str++), base);
 				}
 
@@ -372,11 +371,8 @@ namespace tool::hash::scanner {
 				LOG_INFO("suffix: {}", data.suffix);
 			}
 			if (argc >= 9) {
-				if (argv[8][0] && !argv[8][1]) {
-					LOG_ERROR("Can't use string as in-between: {}", argv[8]);
-					return tool::BASIC_ERROR;
-				}
-				data.mid = argv[8][0];
+				data.mid = argv[8];
+				LOG_INFO("middle: {}", data.mid);
 			}
 
 			if (_strcmpi(n, "bo4")) {
@@ -419,7 +415,7 @@ namespace tool::hash::scanner {
 
 			if (data.prefix || data.suffix) {
 				if (data.prefix && data.suffix) {
-					if (data.mid) {
+					if (*data.mid) {
 						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
 							data->TestHashes<true, true, true>(str);
 						}, dictVec.data(), &data);
@@ -431,7 +427,7 @@ namespace tool::hash::scanner {
 					}
 				}
 				else if (data.suffix) {
-					if (data.mid) {
+					if (*data.mid) {
 						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
 							data->TestHashes<false, true, true>(str);
 						}, dictVec.data(), &data);
@@ -443,7 +439,7 @@ namespace tool::hash::scanner {
 					}
 				}
 				else {
-					if (data.mid) {
+					if (*data.mid) {
 						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
 							data->TestHashes<true, false, true>(str);
 							}, dictVec.data(), &data);
@@ -456,7 +452,7 @@ namespace tool::hash::scanner {
 				}
 			}
 			else {
-				if (data.mid) {
+				if (*data.mid) {
 					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
 						data->TestHashes<false, false, true>(str);
 					}, dictVec.data(), &data);
