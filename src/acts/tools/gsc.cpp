@@ -94,6 +94,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--path-output", arg)) {
             m_usePathOutput = true;
         }
+        else if (!_strcmpi("--no-usings-sort", arg)) {
+            m_noUsingsSort = true;
+        }
         else if (!strcmp("-s", arg) || !_strcmpi("--skip-data", arg)) {
             m_dumpSkipData = true;
         }
@@ -371,6 +374,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--internalnames    : Print asm nodes internal names");
     LOG_DEBUG("--rawhash          : Add raw hashes to export dump");
     LOG_DEBUG("--no-path          : No path extraction");
+    LOG_DEBUG("--no-usings-sort   : No usings sort");
     LOG_DEBUG("--ignore-dbg-plt   : ignore debug platform info");
     LOG_DEBUG("-A --sync [mode]   : Sync mode: async or sync");
     LOG_DEBUG("--vtable           : Do not hide and decompile vtable functions");
@@ -1702,8 +1706,9 @@ ignoreCscGsc:
         }
     }
 
-    if (opt.m_includes && scriptfile->GetIncludesOffset()) {
+    if (opt.m_includes && scriptfile->GetIncludesOffset() && scriptfile->GetIncludesCount()) {
         uint32_t includeOffset = scriptfile->GetIncludesOffset();
+        std::vector<std::string> usingsList{};
         if (scriptfile->HasFlag(GOHF_STRING_NAMES)) {
             if (includeOffset + scriptfile->GetIncludesCount() * sizeof(uint32_t) > scriptfile->GetFileSize()) {
                 LOG_ERROR("Invalid include offset 0x{:x} > 0x{:x}", includeOffset, scriptfile->GetFileSize());
@@ -1716,10 +1721,8 @@ ignoreCscGsc:
                     LOG_ERROR("Invalid include string offset 0x{:x} > 0x{:x}", includes[i], scriptfile->GetFileSize());
                     return tool::BASIC_ERROR;
                 }
-                asmout << "#using " << scriptfile->Ptr<char>(includes[i]) << ";\n";
-            }
-            if (scriptfile->GetIncludesCount()) {
-                asmout << "\n";
+                //asmout << "#using " << scriptfile->Ptr<char>(includes[i]) << ";\n";
+                usingsList.emplace_back(scriptfile->Ptr<char>(includes[i]));
             }
         }
         else {
@@ -1744,7 +1747,8 @@ ignoreCscGsc:
                     }
                 }
 
-                asmout << "#using " << usingName << ";\n";
+                usingsList.emplace_back(usingName);
+                //asmout << "#using " << usingName << ";\n";
 
                 if (opt.m_debugHashes) {
                     const char* incExt{ hashutils::ExtractPtr(includes[i]) };
@@ -1752,15 +1756,22 @@ ignoreCscGsc:
                         uint64_t hashPath{ ctx.m_vmInfo->HashPath(incExt) };
 
                         if (hashPath != includes[i] && gdctx.WarningType(GDGCW_BAD_HASH_PATH_INCLUDE)) {
-                            LOG_WARNING("Invalid hash alogithm for extracted include 0x{:x} != 0x{:x} for {}", includes[i], hashPath, incExt);
+                            LOG_WARNING("Invalid hash algorithm for extracted include 0x{:x} != 0x{:x} for {}", includes[i], hashPath, incExt);
                         }
                     }
                 }
             }
-            if (scriptfile->GetIncludesCount()) {
-                asmout << "\n";
-            }
         }
+        // better rendering, but not really good for debug
+        if (!opt.m_noUsingsSort) {
+            std::sort(usingsList.begin(), usingsList.end());
+        }
+
+        for (const std::string& usingName : usingsList) {
+            asmout << "#using " << usingName << ";\n";
+        }
+
+        asmout << "\n";
     }
 
     asmout

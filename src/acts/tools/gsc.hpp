@@ -100,6 +100,7 @@ namespace tool::gsc {
         bool m_debugHashes{};
         bool m_usePathOutput{};
         bool m_dumpSkipData{};
+        bool m_noUsingsSort{};
         const char* vtable_dump{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
