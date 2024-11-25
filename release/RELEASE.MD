@@ -1,6 +1,5 @@
-- gsc decompiler
-  - gscbin decompilatrer wip
-  - add decryption dto scd
-- acts
-  - better logger
-  - remove dev tools from list
+- use csv to create wni files
+- fix hash_scanner
+- add t89/bo6sp hash to scanner
+- use string as mid in scanner
+- add paths to package
