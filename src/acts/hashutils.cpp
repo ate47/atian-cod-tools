@@ -146,7 +146,7 @@ namespace hashutils {
 		}
 
 		for (const auto& v : g_extracted) {
-			auto e = g_hashMap.find(v);
+			auto e = g_hashMap.find(v & hashutils::MASK63);
 			if (e != g_hashMap.end()) {
 				out << std::hex << v << "," << e->second << "\n";
 			}
