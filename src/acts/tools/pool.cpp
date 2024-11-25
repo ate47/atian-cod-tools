@@ -1367,7 +1367,9 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
         return tool::OK;
     }
 
-    hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
+    if (opt.m_dump_hashmap) {
+        hashutils::SaveExtracted(true, false);
+    }
 
     std::error_code ec;
     std::filesystem::create_directories(opt.m_output, ec);

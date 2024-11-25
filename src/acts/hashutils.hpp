@@ -34,8 +34,9 @@ namespace hashutils {
 	/*
 	 * Save the extract hashes for a future use with WriteExtracted
 	 * @param value save extracted
+	 * @param unk unk values
 	 */
-	void SaveExtracted(bool value);
+	void SaveExtracted(bool value, bool unk);
 	/*
 	 * Save the extract hashes
 	 * @param file file to read

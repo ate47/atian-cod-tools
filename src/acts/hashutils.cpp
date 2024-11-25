@@ -10,6 +10,7 @@ namespace {
 	std::set<uint64_t> g_extracted{};
 	const char* hashPrefix{};
 	bool g_saveExtracted = false;
+	bool g_saveExtractedUnk = false;
 	bool show0 = false;
 	bool markHash = false;
 	bool heavyHashes = false;
@@ -126,8 +127,9 @@ namespace hashutils {
 		}
 	}
 
-	void SaveExtracted(bool value) {
+	void SaveExtracted(bool value, bool unk) {
 		g_saveExtracted = value;
+		g_saveExtractedUnk = unk;
 		g_extracted.clear();
 	}
 
@@ -155,7 +157,7 @@ namespace hashutils {
 
 		out.close();
 		// clear and unset extract
-		SaveExtracted(false);
+		SaveExtracted(false, false);
 		LOG_TRACE("End write extracted into {}", file);
 	}
 
@@ -336,10 +338,12 @@ namespace hashutils {
 			}
 			return true;
 		}
-		if (g_saveExtracted) {
-			g_extracted.emplace(hash);
-		}
 		const auto res = g_hashMap.find(hash & hashutils::MASK63);
+		if (g_saveExtracted) {
+			if (g_saveExtractedUnk || res != g_hashMap.end()) {
+				g_extracted.emplace(hash);
+			}
+		}
 		if (res == g_hashMap.end()) {
 			snprintf(out, outSize, heavyHashes ? "%s_%016llX" : "%s_%llx", type, hash);
 			return false;

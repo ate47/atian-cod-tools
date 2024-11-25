@@ -945,7 +945,9 @@ int cw::pool::pooltool(Process& proc, int argc, const char* argv[]) {
         return tool::OK;
     }
 
-    hashutils::SaveExtracted(opt.m_dump_hashmap != NULL);
+    if (opt.m_dump_hashmap) {
+        hashutils::SaveExtracted(true, false);
+    }
     hashutils::ReadDefaultFile();
 
     std::error_code ec;

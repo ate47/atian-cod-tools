@@ -308,7 +308,9 @@ namespace tool {
 			}
 		}
 
-		hashutils::SaveExtracted(opt.dumpHashmap != nullptr);
+		if (opt.dumpHashmap) {
+			hashutils::SaveExtracted(true, opt.dumpHashmapUnknown);
+		}
 
 		const clock_t beginTime = clock();
 

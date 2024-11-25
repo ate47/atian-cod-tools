@@ -157,6 +157,9 @@ namespace {
 					return false;
 				}
 				opt.dumpHashmap = argv[++i];
+				}
+			else if (!_strcmpi("--extracted-unk", arg)) {
+				opt.dumpHashmapUnknown = true;
 			}
 			else if (!strcmp("-p", arg) || !_strcmpi("--pack", arg)) {
 				if (i + 1 == argc) {
@@ -242,6 +245,7 @@ namespace {
 		LOG_INFO(" --log-path [p]     : Set the log path(s), semicolon separated");
 		LOG_INFO(" -d --debug         : Enable debug mode");
 		LOG_INFO(" -x --extracted [f] : Write the extracted hashes into a file after the process");
+		LOG_INFO(" --extracted-unk    : with -x Extract the unknown values");
 		LOG_INFO(" -t --no-title      : Hide ACTS title at start");
 		LOG_INFO(" -p --pack [f]      : Load ACTS pack file");
 		LOG_INFO(" -P --profiler [f]  : Save profiler file after tool usage");

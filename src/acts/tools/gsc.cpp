@@ -3529,9 +3529,9 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
 
 
     const char* globalHM = actscli::options().dumpHashmap;
-    if (!globalHM) {
+    if (!globalHM && gdctx.opt.m_dump_hashmap != nullptr) {
         // keep the option for backward compatibility
-        hashutils::SaveExtracted(gdctx.opt.m_dump_hashmap != nullptr);
+        hashutils::SaveExtracted(true, false);
     }
     bool computed{};
     int ret{ tool::OK };

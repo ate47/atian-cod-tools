@@ -638,7 +638,7 @@ namespace {
 		}
 
 		hashutils::ReadDefaultFile();
-		hashutils::SaveExtracted(true);
+		hashutils::SaveExtracted(true, true);
 
 
 		if (opt.m_outputDir) {

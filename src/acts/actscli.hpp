@@ -18,6 +18,7 @@ namespace actscli {
 		bool noIWHash{};
 		bool markHash{};
 		const char* dumpHashmap{};
+		bool dumpHashmapUnknown{ false };
 		const char* wniFiles{};
 		bool installDirHashes{ true };
 		bool show0Hash{ false };
