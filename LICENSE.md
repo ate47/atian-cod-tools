@@ -16,6 +16,7 @@ This software depends on libraries with a different License.
 - [bshoshany/thread-pool](https://github.com/bshoshany/thread-pool) - [MIT license](https://github.com/bshoshany/thread-pool/blob/master/LICENSE.txt)
 - [nothings/stb](https://github.com/nothings/stb) - [MIT license](https://github.com/nothings/stb/blob/master/LICENSE)
 - [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus) - [MIT license](https://github.com/marzer/tomlplusplus/blob/master/LICENSE)
+- [tfussell/miniz-cpp](https://github.com/tfussell/miniz-cpp) - [MIT license](https://github.com/tfussell/miniz-cpp/blob/master/LICENSE.md)
 
 
 # MIT License

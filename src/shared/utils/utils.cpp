@@ -60,7 +60,51 @@ namespace utils {
         return true;
     }
 
+    bool ReadFile(const std::filesystem::path& path, std::vector<byte>& buffer, bool append) {
+        std::ifstream in{ path, std::ios::binary };
+        if (!in) {
+            return false;
+        }
+
+        in.seekg(0, std::ios::end);
+        size_t length = in.tellg();
+        in.seekg(0, std::ios::beg);
+        size_t offset;
+        if (append) {
+            offset = buffer.size();
+            buffer.resize(length + buffer.size());
+        }
+        else {
+            offset = 0;
+            buffer.resize(length);
+        }
+
+        in.read((char*)buffer.data() + offset, length);
+
+        in.close();
+        return true;
+    }
+
     bool ReadFileAlign(const std::filesystem::path& path, std::string& buffer, void*& bufferAligned, size_t& sizeAligned) {
+        std::ifstream in{ path, std::ios::binary };
+        if (!in) {
+            return false;
+        }
+
+        in.seekg(0, std::ios::end);
+        sizeAligned = in.tellg();
+        in.seekg(0, std::ios::beg);
+        buffer.resize(sizeAligned + 0xF);
+
+        bufferAligned = reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(buffer.data()) + 0xF) & ~0xF);
+
+        in.read((char*)bufferAligned, sizeAligned);
+
+        in.close();
+        return true;
+    }
+
+    bool ReadFileAlign(const std::filesystem::path& path, std::vector<byte>& buffer, void*& bufferAligned, size_t& sizeAligned) {
         std::ifstream in{ path, std::ios::binary };
         if (!in) {
             return false;
@@ -286,6 +330,23 @@ namespace utils {
         }
 
         return std::strtoll(number, nullptr, 10);
+    }
+    const char* FancyNumber(uint64_t number, bool si) {
+        int base = si ? 1000 : 1024;
+
+        if (number < base) {
+            return utils::va("%lld", number);
+        }
+
+        static char suffixes[]{ 'K', 'M', 'G', 'T', 'P', 'E' };
+        constexpr size_t suffixesSize = ARRAYSIZE(suffixes);
+        int lg{};
+        do {
+            number = number / base;
+            lg++;
+        } while (number > base && lg < suffixesSize);
+
+        return utils::va("%lld%c", number, suffixes[lg - 1]);
     }
 
     char* MapString(char* buffer, std::function<char(char)> map) {

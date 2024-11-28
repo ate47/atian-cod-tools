@@ -42,6 +42,14 @@ namespace utils {
 	 */
 	bool ReadFile(const std::filesystem::path& path, std::string& buffer, bool append = false);
 	/*
+	 * Read a file inside a string buffer
+	 * @param path file path
+	 * @param buffer buffer to write the size
+	 * @param append append to end of the buffer
+	 * @return if the file was read
+	 */
+	bool ReadFile(const std::filesystem::path& path, std::vector<byte>& buffer, bool append = false);
+	/*
 	 * Read a file inside a buffer
 	 * @param path file path
 	 * @param buffer buffer to write the size, NULL to allocate it (with std::malloc)
@@ -70,6 +78,15 @@ namespace utils {
 	 */
 	bool ReadFileAlign(const std::filesystem::path& path, std::string& buffer, void*& bufferAligned, size_t& sizeAligned);
 	/*
+	 * Read a file inside a buffer and align the result at 128 bits
+	 * @param path file path
+	 * @param buffer buffer to write the size
+	 * @param size size of the buffer
+	 * @param sizeAligned size of the aligned buffer
+	 * @return if the file was read
+	 */
+	bool ReadFileAlign(const std::filesystem::path& path, std::vector<byte>& buffer, void*& bufferAligned, size_t& sizeAligned);
+	/*
 	 * write a buffer into a file
 	 * @param path file path
 	 * @param ptr buffer location
@@ -85,6 +102,15 @@ namespace utils {
 	 */
 	inline bool WriteFile(const std::filesystem::path& path, const std::string& str) {
 		return WriteFile(path, str.data(), str.size());
+	}
+	/*
+	 * write a buffer into a file
+	 * @param path file path
+	 * @param str buffer
+	 * @return if the file was written
+	 */
+	inline bool WriteFile(const std::filesystem::path& path, const std::vector<byte>& data) {
+		return WriteFile(path, data.data(), data.size());
 	}
 	/*
 	 * Align a pointer
@@ -330,6 +356,14 @@ namespace utils {
 	 * @throws std::runtime_error if invalid
 	 */
 	int64_t ParseFormatInt(const char* number);
+
+	/**
+	 * Add suffix to number K,M,G,T,etc.
+	 * @param number number
+	 * @param si base 1000(true) or 1024(false)
+	 * @return fancy version
+	 */
+	const char* FancyNumber(uint64_t number, bool si = true);
 
 	/*
 	 * Clone a string

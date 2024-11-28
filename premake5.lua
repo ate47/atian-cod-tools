@@ -95,6 +95,7 @@ project "ACTSSharedLibrary"
 		"deps/Detours/src/",
         "deps/curl/include/",
         "deps/rapidjson/include/",
+        "deps/miniz-cpp/"
     }
 
     vpaths {
@@ -328,7 +329,8 @@ project "AtianCodTools"
         "deps/imgui/",
         "deps/thread-pool/include/",
         "deps/stb/",
-        "deps/tomlplusplus/include/toml++/"
+        "deps/tomlplusplus/include/toml++/",
+        "deps/miniz-cpp/"
     }
 
     vpaths {
