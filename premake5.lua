@@ -207,6 +207,42 @@ project "AtianCodToolsBO4DLL2"
     dependson "detours"
     dependson "asmjit"
 
+project "AtianCodToolsBO4ShieldPlugin"
+    kind "SharedLib"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts-shield-plugin"
+    
+    files {
+        "./src/shield-plugin/**.hpp",
+        "./src/shield-plugin/**.h",
+        "./src/shield-plugin/**.cpp",
+    }
+
+    includedirs {
+        "src/shield-plugin",
+        "src/shared",
+    -- link detours
+		"deps/Detours/src/",
+        "deps/asmjit/src/",
+        "deps/curl/include/",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    links { "detours" }
+    links { "asmjit" }
+    links { "libcurl" }
+    dependson "ACTSSharedLibrary"
+    dependson "detours"
+    dependson "asmjit"
+
 project "AtianCodToolsBOCWDLL"
     kind "SharedLib"
     language "C++"
