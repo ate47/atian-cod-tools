@@ -11,9 +11,8 @@ EXPORT const char* PBO4_GetPluginName() {
     return "acts-shield";
 }
 
-EXPORT bool PBO4_PreStart() {
+EXPORT void PBO4_PreStart() {
     shield_sdk::log(shield_sdk::LOG_TYPE_INFO, "prestart acts plugin");
-    return true;
 }
 
 EXPORT void PBO4_PostUnpack() {
@@ -21,4 +20,3 @@ EXPORT void PBO4_PostUnpack() {
 }
 
 EXPORT void PBO4_PreDestroy() {} // nothing
-EXPORT void PBO4_Clean() {} // nothing

@@ -229,6 +229,7 @@ project "AtianCodToolsBO4ShieldPlugin"
 		"deps/Detours/src/",
         "deps/asmjit/src/",
         "deps/curl/include/",
+        "deps/rapidjson/include/",
     }
 
     vpaths {
