@@ -226,6 +226,11 @@ namespace bo4 {
         const char* ptr{};
     };
 
+	struct XAsset {
+		XAssetType type;
+		void* header;
+	}; static_assert(sizeof(XAsset) == 0x10);
+
 	typedef uint32_t ScrVarIndex_t;
 	typedef uint64_t ScrVarNameIndex_t;
 

@@ -25,23 +25,23 @@ namespace mods {
 
 	void ModContainer::LoadContainer(const std::filesystem::path& directory) {
 		std::vector<std::filesystem::path> xmods{};
+		std::filesystem::create_directories(directory);
 		utils::GetFileRecurse(directory, xmods, [](const std::filesystem::path& p) {
 			std::string s = p.string();
 			return s.ends_with(".xmod");
 		});
 
+		std::string tmpBuff{};
 		for (const std::filesystem::path& xmod : xmods) {
-			std::string tmpBuff{};
 
 			if (!utils::ReadFile(xmod, tmpBuff)) {
 				LOG_ERROR("Can't read xmod {}", xmod.string());
 				continue;
 			}
 
-			void* buff{ commonAlloc.Alloc(tmpBuff) };
 			Mod* mod{ AllocMod() };
 
-			mod->data = buff;
+			mod->data = commonAlloc.Alloc(tmpBuff);
 			mod->dataLen = tmpBuff.length();
 
 			core::bytebuffer::ByteBuffer reader{ mod->CreateReader() };
@@ -99,6 +99,11 @@ namespace mods {
 			return engineMods.DoesAssetExist(type, name) || commonMods.DoesAssetExist(type, name) || DB_DoesXAssetExistDetour.Call<bool>(type, name);
 		}
 
+		void ModsInit(uint64_t uid) {
+			engineMods.LoadContainer("acts/engine");
+			commonMods.LoadContainer("acts/mods");
+		}
+
 		void ModsPostInit(uint64_t uid) {
 
 			DB_FindXAssetHeaderDetour.Create(0x2EB75B0_a, DB_FindXAssetHeaderStub);
@@ -106,6 +111,6 @@ namespace mods {
 		}
 
 
-		REGISTER_SYSTEM(mods, nullptr, ModsPostInit);
+		REGISTER_SYSTEM(mods, ModsInit, ModsPostInit);
 	}
 }

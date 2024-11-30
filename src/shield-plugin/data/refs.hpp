@@ -48,4 +48,6 @@ namespace bo4 {
 	S_ANY Ref<uint32_t> gObjFileInfoCount{ 0x82F76B0_a };
 	S_ANY Ref<objFileInfo_t[SCRIPTINSTANCE_MAX][650]> gObjFileInfo{ 0x82EFCD0_a };
 
+	// xassets
+	S_ANY Ref<XHash* (XHash* hash, const XAsset* asset)> DB_GetXAssetName{ 0x28AAB60_a };
 }
