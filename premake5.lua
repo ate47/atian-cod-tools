@@ -168,45 +168,6 @@ project "AtianCodToolsBO4DLL"
     dependson "asmjit"
     
 
-project "AtianCodToolsBO4DLL2"
-    kind "SharedLib"
-    language "C++"
-    cppdialect "C++20"
-    targetdir "%{wks.location}/bin/"
-    objdir "%{wks.location}/obj/"
-
-    targetname "acts-bo4-ext"
-    
-    files {
-        "./src/bo4-ext-dll/**.hpp",
-        "./src/bo4-ext-dll/**.h",
-        "./src/bo4-ext-dll/**.cpp",
-    }
-
-    includedirs {
-        "src/bo4-ext-dll",
-        "src/shared",
-    -- link detours
-		"deps/Detours/src/",
-        "deps/asmjit/src/",
-        "deps/rapidjson/include/",
-        "deps/dbflib/src/lib/",
-        "deps/hw_break/HwBpLib/inc/",
-        "deps/curl/include/",
-    }
-
-    vpaths {
-        ["*"] = "*"
-    }
-    
-    links { "ACTSSharedLibrary" }
-    links { "detours" }
-    links { "asmjit" }
-    links { "libcurl" }
-    dependson "ACTSSharedLibrary"
-    dependson "detours"
-    dependson "asmjit"
-
 project "AtianCodToolsBO4ShieldPlugin"
     kind "SharedLib"
     language "C++"
@@ -230,6 +191,7 @@ project "AtianCodToolsBO4ShieldPlugin"
         "deps/asmjit/src/",
         "deps/curl/include/",
         "deps/rapidjson/include/",
+        "deps/dbflib/src/lib/",
     }
 
     vpaths {
