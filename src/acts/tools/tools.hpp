@@ -1,16 +1,10 @@
 #pragma once
 #include <utils/memapi.hpp>
 #include <utils/utils.hpp>
+#include "tools_data.hpp"
 
 namespace tool {
-	enum errorcode : int32_t {
-		OK = 0,
-		BASIC_ERROR = -1,
-		BAD_USAGE = -2
-	};
-
 	typedef std::function<int(Process& proc, int argc, const char* argv[])> toolfunction;
-	typedef std::function<int(int argc, const char* argv[])> toolfunctionnf;
 
 	class toolfunctiondata {
 	public:
@@ -50,16 +44,6 @@ namespace tool {
 	const toolfunctiondata& findtool(const char* name);
 	bool search(const char** query, int paramCount, std::function<void(const toolfunctiondata* tool)> each);
 	void usage(const char* message, const char* argv0, core::logs::loglevel lvl = core::logs::loglevel::LVL_ERROR);
-
-	/*
-	 * Test if the tool args contains enough arguments (argv[0] = acts argv[1] = tool name)
-	 * @param argc argc
-	 * @param count required count
-	 * @return true if enough, false otherwise
-	 */
-	constexpr bool NotEnoughParam(int argc, size_t count) {
-		return argc < count + 2;
-	}
 }
 
 #define ADD_TOOL(id, ...) static tool::toolfunctiondata __toolfunctiondata_##id(#id, __VA_ARGS__)

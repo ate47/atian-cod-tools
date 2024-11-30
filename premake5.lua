@@ -397,6 +397,41 @@ project "AtianCodToolsCLI"
     links { "AtianCodTools" }
     dependson "AtianCodTools"
     
+project "AtianCodToolsGPL"
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++20"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts-gpl"
+    
+    files {
+        "./resources/cli-gpl/**",
+        "./src/acts-gpl/**.hpp",
+        "./src/acts-gpl/**.h",
+        "./src/acts-gpl/**.cpp"
+    }
+    defines { 
+        "ACTS_GPL_SHIT"
+    }
+
+    includedirs {
+        "src/cli",
+        "src/acts",
+        "src/acts-gpl",
+        "src/shared",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    links { "AtianCodTools" }
+    links { "ACTSSharedLibrary" }
+    dependson "AtianCodTools"
+    dependson { "ACTSSharedLibrary" }
+    
+
 project "AtianCodToolsUI"
     kind "WindowedApp"
     language "C++"

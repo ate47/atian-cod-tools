@@ -15,6 +15,7 @@ try {
     # Delete previous builds
     Remove-Item -Recurse -Force -ErrorAction Ignore  "$base" > $null
     Remove-Item -Force -ErrorAction Ignore "$base.zip" > $null
+    Remove-Item -Force -ErrorAction Ignore "$base-dev.zip" > $null
 
     # Create structure
     New-Item "$base" -ItemType Directory > $null
@@ -36,8 +37,8 @@ try {
         build\bin\acts.exe wni_gen $file.FullName $fileOut
     }
 
-    # Build default acpf
-    build\bin\acts packfile "$base/bin/package_index/common.acpf"
+    # Build default acpf (useless)
+    #build\bin\acts packfile "$base/bin/package_index/common.acpf"
  
     # Binaries
     Copy-Item "build/bin/*.exe" "$base/bin" > $null
@@ -46,10 +47,14 @@ try {
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
 
-    # License
+    # Info data
     Copy-Item "README.md" "$base/README.md" > $null
     Copy-Item "release/version" "$base/bin/version" > $null
-    Copy-Item "LICENSE.md" "$base/licenses/acts.md" > $null
+    # acts licenses
+    Copy-Item "LICENSE.md" "$base/licenses.md" > $null
+    Copy-Item "licenses/mit.md" "$base/licenses/mit.md" > $null
+    Copy-Item "licenses/gpl3.md" "$base/licenses/gpl3.md" > $null
+    # licenses
     Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/antlr4.txt" > $null
     Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/detours.md" > $null
     Copy-Item "deps/zlib/LICENSE" "$base/licenses/zlib.txt" > $null
@@ -68,6 +73,7 @@ try {
     Copy-Item "deps/stb/LICENSE" "$base/licenses/stb.txt" > $null
     Copy-Item "deps/tomlplusplus/LICENSE" "$base/licenses/tomlplusplus.txt" > $null
     Copy-Item "deps/miniz-cpp/LICENSE.md" "$base/licenses/miniz-cpp.md" > $null
+
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

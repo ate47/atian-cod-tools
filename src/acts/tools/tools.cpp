@@ -4,6 +4,7 @@
 #include <core/config.hpp>
 #include <tools/tools_ui.hpp>
 #include <tools/gsc_opcodes.hpp>
+#include <acts.hpp>
 
 namespace tool {
 	bool DisplayInvisibleTools() {
@@ -508,6 +509,14 @@ namespace {
 		return tool::OK;
 	}
 }
+namespace {
+	std::vector<std::unique_ptr<tool::toolfunctiondata>> exToolAlloc{};
+}
+
+void RegisterActsTool(const char* name, const char* category, const char* usage, const char* description, int(*func)(int argc, const char* argv[])) {
+	exToolAlloc.push_back(std::make_unique<tool::toolfunctiondata>(name, category, usage, description, func));
+}
+
 ADD_TOOL(list, "acts", "", "list all the tools", nullptr, list);
 ADD_TOOL(help, "acts", "", "list all the tools", nullptr, help);
 ADD_TOOL(info, "acts", "", "acts info", nullptr, info);

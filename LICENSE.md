@@ -1,3 +1,9 @@
+This software is composed of two parts, acts-gpl using the [GPL-3 license](licenses/gpl3.md) and the other modules using the [MIT](licenses/mit.md) license.
+
+The acts-gpl module is using the MIT module, but the other modules aren't using the GPL-3. (Because it's a f**** cancer)
+
+## MIT part dependencies
+
 This software depends on libraries with a different License.
 
 - [ANTLR/ANTLR-4](https://github.com/antlr/antlr4) - [BSD-3-Clause license](https://github.com/antlr/antlr4/blob/master/LICENSE.txt).
@@ -18,25 +24,8 @@ This software depends on libraries with a different License.
 - [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus) - [MIT license](https://github.com/marzer/tomlplusplus/blob/master/LICENSE)
 - [tfussell/miniz-cpp](https://github.com/tfussell/miniz-cpp) - [MIT license](https://github.com/tfussell/miniz-cpp/blob/master/LICENSE.md)
 
+## GPL-3 part dependencies
 
-# MIT License
+The GPL-3 module depends on other libraries.
 
-Copyright (c) 2024 Antoine Willerval
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+- [itself](https://github.com/ate47/atian-cod-tools) - [MIT license](licenses/mit.md)
