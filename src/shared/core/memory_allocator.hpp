@@ -15,9 +15,9 @@ namespace core::memory_allocator {
 		}
 
 		template<typename T = void>
-		T* Alloc(size_t len) {
-			totalLen += len;
-			void* ptr = new byte[len];
+		T* Alloc(size_t size = sizeof(T), size_t count = 1) {
+			totalLen += size * count;
+			void* ptr = new byte[size * count];
 			ptrs.push_back(ptr);
 			return (T*)ptr;
 		}
@@ -34,6 +34,21 @@ namespace core::memory_allocator {
 			char* ptr = Alloc<char>(len + 1);
 			std::memcpy(ptr, str, len + 1);
 			return ptr;
+		}
+
+		void Free(void* ptr) {
+			if (!ptr) return;
+
+			auto it = ptrs.begin();
+			while (it != ptrs.end()) {
+				if (*it == ptr) {
+					delete[] ptr;
+					it = ptrs.erase(it);
+				}
+				else {
+					it++;
+				}
+			}
 		}
 	};
 
