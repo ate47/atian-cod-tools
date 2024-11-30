@@ -12,6 +12,11 @@ namespace utils {
 	 */
 	Timestamp GetTimestamp();
 
+	template<typename S>
+	constexpr size_t GetMaxSize() {
+		return ~(~0ull << (sizeof(S) << 3)) >> (std::is_unsigned<S>() ? 0 : 1);
+	}
+
 	/*
 	 * Get null stream
 	 * @return stream
@@ -187,6 +192,25 @@ namespace utils {
 		size_t begin = data.size();
 		const byte* valLoc = reinterpret_cast<const byte*>(val);
 		data.insert(data.end(), valLoc, valLoc + strlen(val) + 1);
+		return begin;
+	}
+	/*
+	 * Write a string into a vector buffer
+	 * @param data buffer
+	 * @param val value to write
+	 * @return data location before write
+	 */
+	template<typename S>
+	inline size_t WriteSizedString(std::vector<byte>& data, const char* val) {
+		size_t begin = data.size();
+		const byte* valLoc = reinterpret_cast<const byte*>(val);
+		size_t len = strlen(val);
+		constexpr size_t maxSize = GetMaxSize<S>();
+		if (len >= maxSize) {
+			throw std::runtime_error(va("can't write more than %llu elements", maxSize));
+		}
+		WriteValue<S>(data, (S)len);
+		data.insert(data.end(), valLoc, valLoc + len);
 		return begin;
 	}
 	/*

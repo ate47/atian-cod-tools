@@ -8,6 +8,7 @@ namespace core::bytebuffer {
 
 	public:
 		ByteBuffer(byte* buffer, size_t len) : buffer(buffer), len(len) {}
+		ByteBuffer(std::string& buff) : buffer((byte*)buff.data()), len(buff.size()) {}
 
 		template<typename T>
 		T Read() {
@@ -40,6 +41,15 @@ namespace core::bytebuffer {
 			while (Read<char>()) _len++;
 			if (len) *len = _len;
 			return str;
+		}
+
+		template<typename S>
+		std::string ReadSizedString(S* len = nullptr) {
+			S _len = Read<S>();
+			const char* str{ Ptr<const char>() };
+			Skip(_len);
+			if (len) *len = _len;
+			return { str, str + _len };
 		}
 
 		constexpr bool End() {
