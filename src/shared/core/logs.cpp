@@ -1,19 +1,11 @@
 #include <includes_shared.hpp>
 #include <core/async.hpp>
+#include <core/shared_cfg.hpp>
 #include <core/logs.hpp>
 #include <cli/clicolor.hpp>
 #include <utils/utils.hpp>
 
 namespace core::logs {
-	namespace {
-		loglevel g_loglevel = LVL_INFO;
-		const char* g_logfile{};
-		bool g_basiclog{};
-		std::ostream* g_outStream{};
-
-		std::vector<std::string> paths{};
-	}
-
 	std::mutex* getasyncmutex() {
 		if (core::async::IsSync(core::async::AT_LOGS)) {
 			static std::mutex mtx{};
@@ -22,6 +14,7 @@ namespace core::logs {
 		return nullptr;
 	}
 	void addlogpath(const std::string& path) {
+		core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
 		size_t start{};
 		while (start < path.size()) {
 			size_t idx{ path.find(';', start) };
@@ -29,13 +22,14 @@ namespace core::logs {
 				idx = path.size();
 			}
 
-			paths.push_back(path.substr(start, idx));
+			
+			cfg.log.paths.push_back(path.substr(start, idx));
 
 			start = idx + 1;
 		}
 	}
 	void cleanuplogpaths() {
-		paths.clear();
+		core::shared_cfg::GetSharedConfig().log.paths.clear();
 	}
 
 	const char* name(loglevel lvl) {
@@ -57,23 +51,23 @@ namespace core::logs {
 	}
 
 	void setlevel(loglevel lvl) {
-		g_loglevel = lvl;
+		core::shared_cfg::GetSharedConfig().log.loglevel = lvl;
 	}
 	loglevel getlevel() {
-		return g_loglevel;
+		return core::shared_cfg::GetSharedConfig().log.loglevel;
 	}
 	void setbasiclog(bool basiclog) {
-		g_basiclog = basiclog;
+		core::shared_cfg::GetSharedConfig().log.basiclog = basiclog;
 	}
 
 	void setfile(const char* filename) {
-		g_logfile = filename;
+		core::shared_cfg::GetSharedConfig().log.logfile = filename;
 	}
 	void addoutstream(std::ostream* outStream) {
-		g_outStream = outStream;
+		core::shared_cfg::GetSharedConfig().log.outStream = outStream;
 	}
 	const char* logfile() {
-		return g_logfile;
+		return core::shared_cfg::GetSharedConfig().log.logfile;
 	}
 
 	inline std::tm localtime_xp(std::time_t timer) {
@@ -95,12 +89,13 @@ namespace core::logs {
 		if (getlevel() > level) {
 			return;
 		}
+		core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
 
-		if (paths.size()) {
+		if (cfg.log.paths.size()) {
 			// check if the file can be handled
 			std::string_view fsw{ file };
 			bool match{};
-			for (const std::string& p : paths) {
+			for (const std::string& p : cfg.log.paths) {
 				if (fsw.starts_with(p)) {
 					match = true;
 					break;
@@ -112,7 +107,7 @@ namespace core::logs {
 		auto f = [&](std::ostream& out, bool color) {
 			bool locked{};
 			core::async::opt_lock_guard lg{ getasyncmutex() };
-			if (!g_basiclog) {
+			if (!cfg.log.basiclog) {
 				if (color) {
 					out << cli::clicolor::Color(5, 5, 5);
 				}
@@ -133,9 +128,9 @@ namespace core::logs {
 				}
 			}
 
-			if (!g_basiclog) {
+			if (!cfg.log.basiclog) {
 				out << '[' << name(level) << ']';
-				if (g_loglevel == LVL_TRACE_PATH) {
+				if (cfg.log.loglevel == LVL_TRACE_PATH) {
 					out << '[' << file << '@' << std::dec << line << ']';
 				}
 				out << " ";
@@ -161,8 +156,8 @@ namespace core::logs {
 
 			f(level < LVL_WARNING ? std::cout : std::cerr, allowColor);
 		}
-		if (g_outStream) {
-			f(*g_outStream, false);
+		if (cfg.log.outStream) {
+			f(*cfg.log.outStream, false);
 		}
 	}
 }

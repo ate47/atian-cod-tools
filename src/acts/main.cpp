@@ -12,6 +12,7 @@
 #include "tools/tools_nui.hpp"
 #include <core/config.hpp>
 #include <core/updater.hpp>
+#include <core/shared_cfg_data.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -270,6 +271,14 @@ namespace {
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
 	return TRUE; // ignore
+}
+
+void* GetActsSharedConfig() {
+	return core::shared_cfg::GetSharedConfigPtr();
+}
+
+void SetActsSharedConfig(void* cfg) {
+	core::shared_cfg::SetSharedConfigPtr(cfg);
 }
 
 int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {

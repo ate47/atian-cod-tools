@@ -19,3 +19,7 @@ ACTS_COMMON_API int MainActs(int argc, const char* argv[], HINSTANCE hInstance =
 
 // Register tool
 ACTS_COMMON_API void RegisterActsTool(const char* name, const char* category, const char* usage, const char* description, int(*func)(int argc, const char* argv[]));
+
+// Config sync tool
+ACTS_COMMON_API void* GetActsSharedConfig();
+ACTS_COMMON_API void SetActsSharedConfig(void* cfg);
