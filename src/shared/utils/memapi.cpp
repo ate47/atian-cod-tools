@@ -16,12 +16,12 @@ DWORD Process::GetProcId(const wchar_t* name) {
 		PROCESSENTRY32W entry{};
 		entry.dwSize = sizeof(entry);
 
-		if (Process32First(hSnap, &entry)) {
+		if (Process32FirstW(hSnap, &entry)) {
 			do {
 				if (!_wcsicmp(entry.szExeFile, name)) {
 					pid = entry.th32ProcessID;
 				}
-			} while (Process32Next(hSnap, &entry));
+			} while (Process32NextW(hSnap, &entry));
 		}
 	}
 	CloseHandle(hSnap);
@@ -36,7 +36,7 @@ bool Process::GetModuleAddress(DWORD pid, const wchar_t* name, uintptr_t* hModul
 		MODULEENTRY32W entry{};
 		entry.dwSize = sizeof(entry);
 
-		if (Module32First(hSnap, &entry)) {
+		if (Module32FirstW(hSnap, &entry)) {
 			if (!name) {
 				*hModule = reinterpret_cast<uintptr_t>(entry.modBaseAddr);
 				*modSize = entry.modBaseSize;
@@ -47,7 +47,7 @@ bool Process::GetModuleAddress(DWORD pid, const wchar_t* name, uintptr_t* hModul
 						*hModule = reinterpret_cast<uintptr_t>(entry.modBaseAddr);
 						*modSize = entry.modBaseSize;
 					}
-				} while (Module32Next(hSnap, &entry));
+				} while (Module32NextW(hSnap, &entry));
 			}
 		}
 	}
@@ -320,7 +320,7 @@ void Process::ComputeModules() {
 		MODULEENTRY32W entry{};
 		entry.dwSize = sizeof(entry);
 
-		if (Module32First(hSnap, &entry)) {
+		if (Module32FirstW(hSnap, &entry)) {
 			do {
 				ProcessModule& e = m_modules.emplace_back(ProcessModule(*this));
 
@@ -344,7 +344,7 @@ void Process::ComputeModules() {
 				e.handle = entry.hModule;
 				e.size = entry.modBaseSize;
 				e.start = reinterpret_cast<uintptr_t>(entry.modBaseAddr);
-			} while (Module32Next(hSnap, &entry));
+			} while (Module32NextW(hSnap, &entry));
 		}
 	}
 	CloseHandle(hSnap);

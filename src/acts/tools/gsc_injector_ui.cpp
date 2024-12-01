@@ -46,7 +46,7 @@ namespace {
     }
 
     int Render(HWND window, HINSTANCE hInstance) {
-        info.titleLabel = CreateWindowEx(
+        info.titleLabel = CreateWindowExW(
             0,
             L"STATIC",
             L"GSC Injector",
@@ -58,7 +58,7 @@ namespace {
             NULL
         );
 
-        info.notificationLabel = CreateWindowEx(
+        info.notificationLabel = CreateWindowExW(
             0,
             L"STATIC",
             info.lastNotif.c_str(),
@@ -82,7 +82,7 @@ namespace {
             NULL
         );
         
-        info.filePathEditLabel = CreateWindowEx(
+        info.filePathEditLabel = CreateWindowExW(
             0,
             L"STATIC",
             L"GSC File : ",
@@ -95,7 +95,7 @@ namespace {
         );
         info.hookPathEdit = CreateWindowExW(
             0,
-            WC_COMBOBOX,
+            WC_COMBOBOXW,
             L"",
              CBS_HASSTRINGS | CBS_DROPDOWN | WS_CHILD | WS_VISIBLE,
             0, 0, 0, 0,
@@ -105,7 +105,7 @@ namespace {
             NULL
         );
 
-        info.hookPathEditLabel = CreateWindowEx(
+        info.hookPathEditLabel = CreateWindowExW(
             0,
             L"STATIC",
             L"Hook : ",
@@ -117,7 +117,7 @@ namespace {
             NULL
         );
 
-        info.filePathButton = CreateWindowEx(
+        info.filePathButton = CreateWindowExW(
             0,
             L"BUTTON",
             L"...",
@@ -129,7 +129,7 @@ namespace {
             NULL
         );
 
-        info.injectButton = CreateWindowEx(
+        info.injectButton = CreateWindowExW(
             0,
             L"BUTTON",
             L"Inject",
@@ -141,7 +141,7 @@ namespace {
             NULL
         );
 
-        info.injectEEButton = CreateWindowEx(
+        info.injectEEButton = CreateWindowExW(
             0,
             L"BUTTON",
             L"Patch EEs (Zombies)",
@@ -204,30 +204,30 @@ namespace {
             if (HIWORD(wParam) == CBN_SELCHANGE) {
                 if (info.hookPathEdit == (HWND)lParam) {
                     DWORD sel = ComboBox_GetCurSel(info.hookPathEdit);
-                    wchar_t path[MAX_PATH + 1];
+                    char path[MAX_PATH + 1];
 
                     if (SUCCEEDED(ComboBox_GetLBText(info.hookPathEdit, sel, path))) {
                         path[ARRAYSIZE(path) - 1] = 0;
-                        core::config::SetString("ui.injector.hook", utils::WStrToStr(path));
+                        core::config::SetString("ui.injector.hook", path);
                         core::config::SaveConfig();
                     }
                 }
             } else if (HIWORD(wParam) == CBN_EDITUPDATE) {
                 if (info.hookPathEdit == (HWND)lParam) {
-                    wchar_t path[MAX_PATH + 1];
+                    char path[MAX_PATH + 1];
 
                     if (SUCCEEDED(ComboBox_GetText(info.hookPathEdit, &path[0], ARRAYSIZE(path)))) {
-                        core::config::SetString("ui.injector.hook", utils::WStrToStr(path));
+                        core::config::SetString("ui.injector.hook", path);
                         core::config::SaveConfig();
                     }
                 }
             } else if (HIWORD(wParam) == EN_CHANGE) {
                 if (info.filePathEdit == (HWND)lParam) {
 
-                    wchar_t path[MAX_PATH + 1];
+                    char path[MAX_PATH + 1];
 
                     if (SUCCEEDED(GetWindowText(info.filePathEdit, &path[0], ARRAYSIZE(path)))) {
-                        core::config::SetString("ui.injector.path", utils::WStrToStr(path));
+                        core::config::SetString("ui.injector.path", path);
                         core::config::SaveConfig();
                     }
                 } 
@@ -235,8 +235,8 @@ namespace {
                 if (info.filePathButton == (HWND)lParam) {
                     // Open file
 
-                    OPENFILENAME ofn;
-                    TCHAR szFile[MAX_PATH + 1] = { 0 };
+                    OPENFILENAMEW ofn;
+                    WCHAR szFile[MAX_PATH + 1] = { 0 };
 
                     // Initialize OPENFILENAME
                     ZeroMemory(&ofn, sizeof(ofn));
@@ -252,7 +252,7 @@ namespace {
                     ofn.lpstrInitialDir = NULL;
                     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-                    if (GetOpenFileName(&ofn) == TRUE) {
+                    if (GetOpenFileNameW(&ofn) == TRUE) {
                         core::config::SetString("ui.injector.path", utils::WStrToStr(ofn.lpstrFile));
                         core::config::SaveConfig();
                         SendMessage(info.filePathEdit, WM_SETTEXT, (WPARAM)0, (LPARAM)ofn.lpstrFile);
@@ -427,8 +427,8 @@ namespace {
         if (ImGui::Button("Open file...")) {
             // Open file
 
-            OPENFILENAME ofn;
-            TCHAR szFile[MAX_PATH + 1] = { 0 };
+            OPENFILENAMEW ofn;
+            WCHAR szFile[MAX_PATH + 1] = { 0 };
 
             // Initialize OPENFILENAME
             ZeroMemory(&ofn, sizeof(ofn));
@@ -444,7 +444,7 @@ namespace {
             ofn.lpstrInitialDir = NULL;
             ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-            if (GetOpenFileName(&ofn) == TRUE) {
+            if (GetOpenFileNameW(&ofn) == TRUE) {
                 std::string injGsc = utils::WStrToStr(ofn.lpstrFile);
                 core::config::SetString("ui.injector.path", injGsc);
                 snprintf(gscFileIn, sizeof(gscFileIn), "%s", injGsc.data());

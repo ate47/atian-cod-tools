@@ -78,7 +78,7 @@ namespace core::updater {
 
         std::wstring updaterOtherExeStr{ updaterOtherExe.wstring() };
 
-        STARTUPINFO si;
+        STARTUPINFOW si;
         PROCESS_INFORMATION pi;
 
         ZeroMemory(&si, sizeof(si));

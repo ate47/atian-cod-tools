@@ -75,6 +75,7 @@ project "ACTSSharedLibrary"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -112,6 +113,7 @@ project "ACTSLibrary"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -135,6 +137,7 @@ project "AtianCodToolsBO4DLL"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -172,6 +175,7 @@ project "AtianCodToolsBO4ShieldPlugin"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -210,6 +214,7 @@ project "AtianCodToolsBOCWDLL"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -250,6 +255,7 @@ project "ACTSVM"
     kind "StaticLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -276,6 +282,7 @@ project "AtianCodTools"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -374,6 +381,7 @@ project "AtianCodToolsCLI"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -401,6 +409,7 @@ project "AtianCodToolsGPL"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -421,6 +430,7 @@ project "AtianCodToolsGPL"
         "src/acts",
         "src/acts-gpl",
         "src/shared",
+        "deps/cordycep/src/Parasyte/"
     }
 
     vpaths {
@@ -436,6 +446,7 @@ project "AtianCodToolsUI"
     kind "WindowedApp"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
     targetname "acts-ui"
@@ -480,6 +491,7 @@ project "AtianCodToolsUpdater"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
     targetname "acts-updater"
@@ -511,6 +523,7 @@ project "TestDll"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -551,6 +564,7 @@ project "AtianCodToolsMW23DLL"
     kind "SharedLib"
     language "C++"
     cppdialect "C++20"
+    characterset "MBCS"
     targetdir "%{wks.location}/bin/"
     objdir "%{wks.location}/obj/"
 
@@ -588,6 +602,7 @@ group "deps"
         language "C++"
         kind "StaticLib"
         cppdialect "C++20"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "antlr4-runtime"
@@ -612,6 +627,7 @@ group "deps"
         language "C++"
         kind "StaticLib"
         cppdialect "C++20"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "detours"
@@ -637,6 +653,7 @@ group "deps"
     project "zlib"
         language "C"
         kind "StaticLib"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "zlib"
@@ -650,6 +667,7 @@ group "deps"
     project "asmjit"
         language "C++"
         kind "StaticLib"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "asmjit"
@@ -671,6 +689,7 @@ group "deps"
         language "C++"
         kind "StaticLib"
         cppdialect "C++17"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "libps4debug"
@@ -690,6 +709,7 @@ group "deps"
         language "C++"
         kind "StaticLib"
         cppdialect "C++17"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "lz4"
@@ -709,6 +729,7 @@ group "deps"
         language "C++"
         kind "StaticLib"
         cppdialect "C++17"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "CascLib"
@@ -741,6 +762,7 @@ group "deps"
         language "C++"
         kind "StaticLib"
         cppdialect "C++17"
+        characterset "MBCS"
         warnings "Off"
 
         targetname "imgui"
@@ -775,6 +797,7 @@ group "deps"
         language "C"
         kind "StaticLib"
         warnings "Off"
+        characterset "MBCS"
 
         targetname "libcurl"
         targetdir "%{wks.location}/bin/"
@@ -821,6 +844,7 @@ group "deps"
         language "C"
         kind "StaticLib"
         warnings "Off"
+        characterset "MBCS"
 
         targetname "glfw"
         targetdir "%{wks.location}/bin/"
@@ -872,3 +896,34 @@ group "deps"
             "deps/glfw/src",
             "deps/glfw/include"
         }
+    project "cordycep"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++20"
+        characterset "MBCS"
+
+        targetname "Cordycep"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/cordycep/src/Parasyte/**.cpp",
+            "deps/cordycep/src/Parasyte/**.h"
+        }
+
+        includedirs {
+            "deps/cordycep/src/Parasyte/",
+            "deps/casclib/src/",
+            "deps/lz4/lib/",
+		    "deps/zlib/",
+            "deps/tomlplusplus/include/",
+            "deps/nlohmann-json/single_include",
+		    "deps/Detours/src/",
+            "deps/deps-detour",
+        }
+        dependson { "casclib" }
+        dependson { "lz4" }
+        dependson { "zlib" }
+        links { "casclib" }
+        links { "lz4" }
+        links { "zlib" }

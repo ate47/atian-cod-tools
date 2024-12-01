@@ -11,8 +11,8 @@ namespace tool::ui {
 	ActsWindow actsWindow{};
 
 	void ActsWindow::UpdateWindowName() {
-		TCITEM tci{};
-		TCHAR achTemp[256];
+		TCITEMW tci{};
+		WCHAR achTemp[256];
 		tci.mask = TCIF_TEXT;
 		tci.pszText = achTemp;
 		tci.cchTextMax = ARRAYSIZE(achTemp);
@@ -46,8 +46,8 @@ namespace tool::ui {
 	}
 	void ActsWindow::SetLogMessage(const std::wstring& str) {
 		if (actsWindow.hwndLogTab) {
-			static std::wstring logs{};
-			logs = std::format(L"{}\n{}", logs, str);
+			static std::string logs{};
+			logs = std::format("{}\n{}", logs, utils::WStrToStr(str));
 			Static_SetText(hwndLogTab, logs.c_str());
 		}
 	}
@@ -106,9 +106,9 @@ namespace tool::ui {
 	}
 
 	std::wstring GetWindowTextVal(HWND hwnd) {
-		static thread_local wchar_t tmp[0x512];
+		static thread_local WCHAR tmp[0x512];
 
-		if (SUCCEEDED(GetWindowText(hwnd, &tmp[0], ARRAYSIZE(tmp)))) {
+		if (SUCCEEDED(GetWindowTextW(hwnd, &tmp[0], ARRAYSIZE(tmp)))) {
 			tmp[ARRAYSIZE(tmp) - 1] = 0;
 			return tmp;
 		}
@@ -120,34 +120,34 @@ namespace tool::ui {
 		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
 		if (FAILED(hr)) {
-			MessageBox(NULL, L"Can't init con.", L"ACTS", MB_OK | MB_ICONERROR);
+			MessageBoxW(NULL, L"Can't init con.", L"ACTS", MB_OK | MB_ICONERROR);
 			return -1;
 		}
 
 		hook::error::InstallErrorUI(hInstance, nShowCmd);
 
 		actsWindow.hinst = hInstance;
-		WNDCLASS wc{};
+		WNDCLASSW wc{};
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = hInstance;
 		wc.lpszClassName = CLASS_NAME;
-		wc.hIcon = LoadIcon(hInstance, L"acts_logo");
+		wc.hIcon = LoadIconW(hInstance, L"acts_logo");
 		wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
 		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
-		RegisterClass(&wc);
+		RegisterClassW(&wc);
 
-		WNDCLASS wc2{};
+		WNDCLASSW wc2{};
 		wc2.lpfnWndProc = DialogProc;
 		wc2.hInstance = hInstance;
 		wc2.lpszClassName = PAGE_CLASS_NAME;
 		wc2.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 		wc2.hCursor = LoadCursor(NULL, IDC_ARROW);
 
-		RegisterClass(&wc2);
+		RegisterClassW(&wc2);
 
 		// Create the window.
-		actsWindow.hwnd = CreateWindowEx(
+		actsWindow.hwnd = CreateWindowExW(
 			0,
 			CLASS_NAME,
 			L"Menu",
@@ -165,7 +165,7 @@ namespace tool::ui {
 		if (actsWindow.hwnd == NULL) {
 			return -1;
 		}
-		actsWindow.hwndLogTab = CreateWindowEx(
+		actsWindow.hwndLogTab = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"",
@@ -209,10 +209,10 @@ namespace tool::ui {
 		
 		std::string lastPage = core::config::GetString("ui.last");
 
-		TCITEM tie;
+		TCITEMW tie;
 		tie.mask = TCIF_TEXT;
 		tie.iImage = -1;
-		TCHAR achTemp[256];
+		WCHAR achTemp[256];
 		tie.pszText = achTemp;
 		int i{};
 		int lastPageIdx{};

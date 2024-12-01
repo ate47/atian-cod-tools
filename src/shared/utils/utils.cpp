@@ -305,7 +305,7 @@ namespace utils {
 
     std::filesystem::path GetProgDir() {
         wchar_t szFileName[MAX_PATH];
-        GetModuleFileName(NULL, szFileName, MAX_PATH);
+        GetModuleFileNameW(NULL, szFileName, MAX_PATH);
         return std::filesystem::absolute(szFileName).parent_path();
     }
     int64_t ParseFormatInt(const char* number) {

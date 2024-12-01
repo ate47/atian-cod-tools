@@ -1024,7 +1024,7 @@ namespace {
     }
 
     int Render(HWND window, HINSTANCE hInstance) {
-        info.titleLabel = CreateWindowEx(
+        info.titleLabel = CreateWindowExW(
             0,
             L"STATIC",
             L"Black Ops 6 Beta tools",
@@ -1036,7 +1036,7 @@ namespace {
             NULL
         );
 
-        info.notificationLabel = CreateWindowEx(
+        info.notificationLabel = CreateWindowExW(
             0,
             L"STATIC",
             info.lastNotif.c_str(),
@@ -1060,7 +1060,7 @@ namespace {
             NULL
         );
 
-        info.filePathEditLabel = CreateWindowEx(
+        info.filePathEditLabel = CreateWindowExW(
             0,
             L"STATIC",
             L"GSC File : ",
@@ -1083,7 +1083,7 @@ namespace {
             NULL
         );
 
-        info.ps4EditLabel = CreateWindowEx(
+        info.ps4EditLabel = CreateWindowExW(
             0,
             L"STATIC",
             L"PS4 : ",
@@ -1095,7 +1095,7 @@ namespace {
             NULL
         );
 
-        info.filePathButton = CreateWindowEx(
+        info.filePathButton = CreateWindowExW(
             0,
             L"BUTTON",
             L"...",
@@ -1107,7 +1107,7 @@ namespace {
             NULL
         );
 
-        info.injectButton = CreateWindowEx(
+        info.injectButton = CreateWindowExW(
             0,
             L"BUTTON",
             L"Inject GSC script",
@@ -1131,7 +1131,7 @@ namespace {
             NULL
         );
 
-        info.cbuffEditLabel = CreateWindowEx(
+        info.cbuffEditLabel = CreateWindowExW(
             0,
             L"STATIC",
             L"Command : ",
@@ -1143,7 +1143,7 @@ namespace {
             NULL
         );
 
-        info.cbuffButton = CreateWindowEx(
+        info.cbuffButton = CreateWindowExW(
             0,
             L"BUTTON",
             L"Send command",
@@ -1192,7 +1192,7 @@ namespace {
 
                     wchar_t path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(GetWindowText(info.filePathEdit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(GetWindowTextW(info.filePathEdit, &path[0], ARRAYSIZE(path)))) {
                         core::config::SetString("ui.bo6.path", utils::WStrToStr(path));
                         core::config::SaveConfig();
                     }
@@ -1200,7 +1200,7 @@ namespace {
                 else if (info.ps4Edit == (HWND)lParam) {
                     wchar_t path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(GetWindowText(info.ps4Edit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(GetWindowTextW(info.ps4Edit, &path[0], ARRAYSIZE(path)))) {
                         core::config::SetString("ui.ps4.ipd", utils::WStrToStr(path));
                         core::config::SaveConfig();
                     }
@@ -1208,7 +1208,7 @@ namespace {
                 else if (info.cbuffEdit == (HWND)lParam) {
                     wchar_t path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(GetWindowText(info.cbuffEdit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(GetWindowTextW(info.cbuffEdit, &path[0], ARRAYSIZE(path)))) {
                         core::config::SetString("ui.bo6.cbuf", utils::WStrToStr(path));
                         core::config::SaveConfig();
                     }
@@ -1218,8 +1218,8 @@ namespace {
                 if (info.filePathButton == (HWND)lParam) {
                     // Open file
 
-                    OPENFILENAME ofn;
-                    TCHAR szFile[MAX_PATH + 1] = { 0 };
+                    OPENFILENAMEW ofn;
+                    WCHAR szFile[MAX_PATH + 1] = { 0 };
 
                     // Initialize OPENFILENAME
                     ZeroMemory(&ofn, sizeof(ofn));
@@ -1235,7 +1235,7 @@ namespace {
                     ofn.lpstrInitialDir = NULL;
                     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-                    if (GetOpenFileName(&ofn) == TRUE) {
+                    if (GetOpenFileNameW(&ofn) == TRUE) {
                         core::config::SetString("ui.bo6.path", utils::WStrToStr(ofn.lpstrFile));
                         core::config::SaveConfig();
                         SendMessage(info.filePathEdit, WM_SETTEXT, (WPARAM)0, (LPARAM)ofn.lpstrFile);
@@ -1467,8 +1467,8 @@ namespace {
         if (ImGui::Button("Open file...")) {
             // Open file
 
-            OPENFILENAME ofn;
-            TCHAR szFile[MAX_PATH + 1] = { 0 };
+            OPENFILENAMEW ofn;
+            WCHAR szFile[MAX_PATH + 1] = { 0 };
 
             // Initialize OPENFILENAME
             ZeroMemory(&ofn, sizeof(ofn));
@@ -1484,7 +1484,7 @@ namespace {
             ofn.lpstrInitialDir = NULL;
             ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-            if (GetOpenFileName(&ofn) == TRUE) {
+            if (GetOpenFileNameW(&ofn) == TRUE) {
                 std::string injGsc = utils::WStrToStr(ofn.lpstrFile);
                 core::config::SetString("ui.bo6.path", injGsc);
                 snprintf(gscFileIn, sizeof(gscFileIn), "%s", injGsc.data());

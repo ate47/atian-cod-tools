@@ -69,7 +69,7 @@ namespace {
 	} toolInfo;
 	int RenderActs(HWND window, HINSTANCE hInstance) {
 		std::wstring text = tool::ui::GetActsDesc();
-		toolInfo.mainLabel = CreateWindowEx(
+		toolInfo.mainLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			text.data(),

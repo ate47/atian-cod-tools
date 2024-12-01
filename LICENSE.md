@@ -29,3 +29,5 @@ This software depends on libraries with a different License.
 The GPL-3 module depends on other libraries.
 
 - [itself](https://github.com/ate47/atian-cod-tools) - [MIT license](licenses/mit.md)
+- [Scobalula/Cordycep)](https://github.com/Scobalula/Cordycep) - [GNU GPL-3 license](https://github.com/Scobalula/Cordycep/blob/main/LICENSE.md)
+- [nlohmann/json](https://github.com/nlohmann/json) - [MIT license](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)

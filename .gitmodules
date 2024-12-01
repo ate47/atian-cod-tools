@@ -67,3 +67,9 @@
 [submodule "deps/miniz-cpp"]
 	path = deps/miniz-cpp
 	url = https://github.com/tfussell/miniz-cpp
+[submodule "deps/cordycep"]
+	path = deps/cordycep
+	url = https://github.com/Scobalula/Cordycep
+[submodule "deps/nlohmann-json"]
+	path = deps/nlohmann-json
+	url = https://github.com/nlohmann/json

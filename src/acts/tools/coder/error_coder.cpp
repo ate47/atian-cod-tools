@@ -1727,7 +1727,7 @@ namespace {
 		info.decodeStr = utils::WStrToStr(tool::ui::GetWindowTextVal(info.decodeEdit));
 
 		if (info.decodeStr.empty()) {
-			Edit_SetText(info.decodeResEdit, L"");
+			Edit_SetText(info.decodeResEdit, "");
 			return;
 		}
 
@@ -1739,7 +1739,7 @@ namespace {
 				size_t f = info.decodeStr.find(' ', idx);
 				if (f == std::string::npos) {
 					if (i != 3) {
-						Edit_SetText(info.decodeResEdit, L"Not enough components");
+						Edit_SetText(info.decodeResEdit, "Not enough components");
 						return;
 					}
 					f = info.decodeStr.length();
@@ -1758,7 +1758,7 @@ namespace {
 				idx++; // ignore end spaces
 			}
 			if (idx < info.decodeStr.length()) {
-				Edit_SetText(info.decodeResEdit, L"Too many components");
+				Edit_SetText(info.decodeResEdit, "Too many components");
 				return;
 			}
 
@@ -1766,11 +1766,11 @@ namespace {
 
 			uint32_t err = error_coder::Decode(code);
 
-			std::wstring res = utils::StrToWStr(std::format("{}", err));
+			std::string res = std::format("{}", err);
 			Edit_SetText(info.decodeResEdit, res.c_str());
 		}
 		catch (std::exception& e) {
-			std::wstring res = utils::StrToWStr(std::format("{}", e.what()));
+			std::string res = std::format("{}", e.what());
 			Edit_SetText(info.decodeResEdit, res.c_str());
 		}
 	}
@@ -1778,7 +1778,7 @@ namespace {
 		info.encodeStr = utils::WStrToStr(tool::ui::GetWindowTextVal(info.encodeEdit));
 
 		if (info.encodeStr.empty()) {
-			Edit_SetText(info.encodeResEdit, L"");
+			Edit_SetText(info.encodeResEdit, "");
 			return;
 		}
 
@@ -1793,11 +1793,11 @@ namespace {
 			error_coder::ErrorCode code{};
 			error_coder::Encode(code, err);
 
-			std::wstring res = utils::StrToWStr(error_coder::ToStr(code));
+			std::string res = error_coder::ToStr(code);
 			Edit_SetText(info.encodeResEdit, res.c_str());
 		}
 		catch (std::exception& e) {
-			std::wstring res = utils::StrToWStr(std::format("{}", e.what()));
+			std::string res = std::format("{}", e.what());
 			Edit_SetText(info.encodeResEdit, res.c_str());
 		}
 	}
@@ -1806,7 +1806,7 @@ namespace {
 		std::wstring encw = utils::StrToWStr(info.encodeStr);
 		std::wstring decw = utils::StrToWStr(info.decodeStr);
 
-		info.titleLabel = CreateWindowEx(
+		info.titleLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Error coder",
@@ -1842,7 +1842,7 @@ namespace {
 			NULL
 		);
 
-		info.encodeEditLabel = CreateWindowEx(
+		info.encodeEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Encode : ",
@@ -1878,7 +1878,7 @@ namespace {
 			NULL
 		);
 
-		info.decodeEditLabel = CreateWindowEx(
+		info.decodeEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Decode : ",

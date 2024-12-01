@@ -295,14 +295,12 @@ namespace {
 			return tool::BAD_USAGE;
 		}
 
-		std::wstring path = utils::StrToWStr(argv[2]);
-
-		LOG_INFO("{}", utils::WStrToStr(path));
+		LOG_INFO("{}", argv[2]);
 
 		HANDLE storage{};
 
-		if (!CascOpenStorage(path.c_str(), 0, &storage)) {
-			LOG_ERROR("Can't open local path");
+		if (!CascOpenStorage(argv[2], 0, &storage)) {
+			LOG_ERROR("Can't open local path {}", argv[2]);
 			return tool::BASIC_ERROR;
 		}
 

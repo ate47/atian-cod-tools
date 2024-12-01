@@ -122,22 +122,22 @@ namespace {
 		HWND titleLabel{};
     } info{};
 
-	const std::wstring DefaultVal(uint64_t h) {
-		return h ? std::format(L"{:x}", h) : L"N/A";
+	const std::string DefaultVal(uint64_t h) {
+		return h ? std::format("{:x}", h) : "N/A";
 	}
 
 	void ComputeHashes() {
 		info.hash = utils::WStrToStr(tool::ui::GetWindowTextVal(info.hashEdit));
 
 
-		std::wstring hash64Val = DefaultVal(hash::Hash64(info.hash.c_str()));
-		std::wstring hash32Val = DefaultVal(hash::HashT89Scr(info.hash.c_str()));
-		std::wstring hash64IW2Val = DefaultVal(hash::HashIWRes(info.hash.c_str()));
-		std::wstring hash64IW3Val = DefaultVal(hash::HashJupScr(info.hash.c_str()));
-		std::wstring hash32IW4Val = DefaultVal(hash::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
-		std::wstring hashT7Val = DefaultVal(hash::HashT7(info.hash.c_str()));
-		std::wstring hash64IWDvar = DefaultVal(hash::HashIWDVar(info.hash.c_str()));
-		std::wstring hash64IWCerField = DefaultVal(hash::HashT10Scr(info.hash.c_str()));
+		std::string hash64Val = DefaultVal(hash::Hash64(info.hash.c_str()));
+		std::string hash32Val = DefaultVal(hash::HashT89Scr(info.hash.c_str()));
+		std::string hash64IW2Val = DefaultVal(hash::HashIWRes(info.hash.c_str()));
+		std::string hash64IW3Val = DefaultVal(hash::HashJupScr(info.hash.c_str()));
+		std::string hash32IW4Val = DefaultVal(hash::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
+		std::string hashT7Val = DefaultVal(hash::HashT7(info.hash.c_str()));
+		std::string hash64IWDvar = DefaultVal(hash::HashIWDVar(info.hash.c_str()));
+		std::string hash64IWCerField = DefaultVal(hash::HashT10Scr(info.hash.c_str()));
 
 		Edit_SetText(info.hash64Edit, hash64Val.c_str());
 		Edit_SetText(info.hash32Edit, hash32Val.c_str());
@@ -160,7 +160,7 @@ namespace {
 			iv = std::strtoull(info.iv.data(), nullptr, 16);
 
 			if (val && iv) {
-				std::wstring customstr = std::format(L"{:x}", hash::Hash64A(info.hash.c_str(), val, iv));
+				std::string customstr = std::format("{:x}", hash::Hash64A(info.hash.c_str(), val, iv));
 				Edit_SetText(info.hashFNV1ACustomEdit, customstr.c_str());
 
 				uint64_t mask = 0xFFFF;
@@ -185,19 +185,19 @@ namespace {
 					mask = (mask << 4) | 0xF;
 				}
 
-				std::wstring discstr = std::format(L"{:x}", disc);
+				std::string discstr = std::format("{:x}", disc);
 				Edit_SetText(info.hashFNV1AReverseStartEdit, discstr.c_str());
 			}
 			else {
-				Edit_SetText(info.hashFNV1AReverseStartEdit, L"N/A");
-				Edit_SetText(info.hashFNV1ACustomEdit, L"N/A");
+				Edit_SetText(info.hashFNV1AReverseStartEdit, "N/A");
+				Edit_SetText(info.hashFNV1ACustomEdit, "N/A");
 			}
 		}
 		catch (std::runtime_error& e) {
-			std::wstring discstr = utils::StrToWStr(e.what());
+			std::string discstr = e.what();
 			Edit_SetText(info.hashFNV1AReverseStartEdit, discstr.c_str());
 			if (!val || !iv) {
-				Edit_SetText(info.hashFNV1ACustomEdit, L"N/A");
+				Edit_SetText(info.hashFNV1ACustomEdit, "N/A");
 			}
 		}
 	}
@@ -210,11 +210,11 @@ namespace {
 
 			const char* lookupVal = hashutils::ExtractPtr(val);
 
-			std::wstring discstr = lookupVal ? utils::StrToWStr(lookupVal) : L"can't find";
+			std::string discstr = lookupVal ? lookupVal : "can't find";
 			Edit_SetText(info.hashLookupEditRet, discstr.c_str());
 		}
 		catch (std::runtime_error& e) {
-			std::wstring discstr = utils::StrToWStr(e.what());
+			std::string discstr = e.what();
 			Edit_SetText(info.hashLookupEditRet, discstr.c_str());
 		}
 	}
@@ -479,7 +479,7 @@ namespace {
 		std::wstring ivw = utils::StrToWStr(info.iv);
 		std::wstring lookupw = utils::StrToWStr(info.lookup);
 		
-		info.titleLabel = CreateWindowEx(
+		info.titleLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Hash",
@@ -503,7 +503,7 @@ namespace {
 			NULL
 		);
 
-		info.hashEditLabel = CreateWindowEx(
+		info.hashEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"String : ",
@@ -527,7 +527,7 @@ namespace {
 			NULL
 		);
 
-		info.hash64EditLabel = CreateWindowEx(
+		info.hash64EditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"FNV1A : ",
@@ -551,7 +551,7 @@ namespace {
 			NULL
 		);
 
-		info.hash32EditLabel = CreateWindowEx(
+		info.hash32EditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"T7/8/9 Canon : ",
@@ -575,7 +575,7 @@ namespace {
 			NULL
 		);
 
-		info.hash64IW2EditLabel = CreateWindowEx(
+		info.hash64IW2EditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"IW Resource : ",
@@ -599,7 +599,7 @@ namespace {
 			NULL
 		);
 
-		info.hash64IW3EditLabel = CreateWindowEx(
+		info.hash64IW3EditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"MWII/III Canon : ",
@@ -623,7 +623,7 @@ namespace {
 			NULL
 		);
 
-		info.hash32IW4EditLabel = CreateWindowEx(
+		info.hash32IW4EditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"IW Tag : ",
@@ -647,7 +647,7 @@ namespace {
 			NULL
 		);
 
-		info.hashT7EditLabel = CreateWindowEx(
+		info.hashT7EditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"T7 FNV1A : ",
@@ -671,7 +671,7 @@ namespace {
 			NULL
 		);
 
-		info.hash64IWDVEditLabel = CreateWindowEx(
+		info.hash64IWDVEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"IW DVar : ",
@@ -695,7 +695,7 @@ namespace {
 			NULL
 		);
 
-		info.hash64IWCerFieldEditLabel = CreateWindowEx(
+		info.hash64IWCerFieldEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"BO6 Canon : ",
@@ -731,7 +731,7 @@ namespace {
 			hInstance,
 			NULL
 		);
-		info.hashFNV1AReverseValLabel = CreateWindowEx(
+		info.hashFNV1AReverseValLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Reverse (Val/IV) : ",
@@ -753,7 +753,7 @@ namespace {
 			hInstance,
 			NULL
 		);
-		info.hashFNV1AReverseStartEditLabel = CreateWindowEx(
+		info.hashFNV1AReverseStartEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Reverse (Start) : ",
@@ -775,7 +775,7 @@ namespace {
 			hInstance,
 			NULL
 		);
-		info.hashFNV1ACustomEditLabel = CreateWindowEx(
+		info.hashFNV1ACustomEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Custom : ",
@@ -810,7 +810,7 @@ namespace {
 			hInstance,
 			NULL
 		);
-		info.hashLookupEditLabel = CreateWindowEx(
+		info.hashLookupEditLabel = CreateWindowExW(
 			0,
 			L"STATIC",
 			L"Lookup : ",
