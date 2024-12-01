@@ -8,7 +8,6 @@ newoption {
 }
 
 function buildinfo()
-
     local versionfile = assert(io.open("release/version", "r"))
     local version = assert(versionfile:read())
     local versionid = assert(versionfile:read())
@@ -39,7 +38,15 @@ function buildinfo()
     file:write("\n#endif // CI_BUILD\n")
     file:write("}\n")
     file:close()
+end
 
+function patch_dogshit(original, dest)
+    local patch = assert(io.open(original , "r"))
+    local file = assert(io.open(dest , "w"))
+    file:write(patch:read("a"))
+    file:close()
+    patch:close()
+    
 end
 
 workspace "AtianCodTools"
@@ -54,6 +61,8 @@ workspace "AtianCodTools"
     platforms "x64"
 
     buildinfo()
+    patch_dogshit("patch/cordycep/log.h", "deps/cordycep/src/Parasyte/Log.h")
+    patch_dogshit("patch/cordycep/log.cpp", "deps/cordycep/src/Parasyte/Log.cpp")
 
     filter { "options:ci-build" }
         defines { "CI_BUILD" }
@@ -429,6 +438,7 @@ project "AtianCodToolsGPL"
         "src/cli",
         "src/acts",
         "src/acts-gpl",
+		"deps/Detours/src/",
         "src/shared",
         "deps/cordycep/src/Parasyte/"
     }
@@ -438,8 +448,12 @@ project "AtianCodToolsGPL"
     }
     links { "AtianCodTools" }
     links { "ACTSSharedLibrary" }
+    links { "detours" }
+    links "cordycep"
     dependson "AtianCodTools"
     dependson { "ACTSSharedLibrary" }
+    dependson { "detours" }
+    dependson "cordycep"
     
 
 project "AtianCodToolsUI"
@@ -905,6 +919,9 @@ group "deps"
         targetname "Cordycep"
         targetdir "%{wks.location}/bin/"
         objdir "%{wks.location}/obj/"
+
+        pchheader "pch.h"
+        pchsource "./deps/cordycep/src/Parasyte/pch.cpp"
 
         files {
             "deps/cordycep/src/Parasyte/**.cpp",

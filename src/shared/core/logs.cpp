@@ -84,14 +84,17 @@ namespace core::logs {
 #endif
 		return bt;
 	}
-
 	void log(loglevel level, const char* file, size_t line, const std::string& str) {
 		if (getlevel() > level) {
 			return;
 		}
+		log(level, name(level), file, line, str);
+	}
+
+	void log(loglevel level, const char* header, const char* file, size_t line, const std::string& str) {
 		core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
 
-		if (cfg.log.paths.size()) {
+		if (file && cfg.log.paths.size()) {
 			// check if the file can be handled
 			std::string_view fsw{ file };
 			bool match{};
@@ -129,9 +132,15 @@ namespace core::logs {
 			}
 
 			if (!cfg.log.basiclog) {
-				out << '[' << name(level) << ']';
-				if (cfg.log.loglevel == LVL_TRACE_PATH) {
-					out << '[' << file << '@' << std::dec << line << ']';
+				if (header) {
+					out << '[' << header << ']';
+				}
+				if (file && cfg.log.loglevel == LVL_TRACE_PATH) {
+					out << '[' << file;
+					if (line) {
+						out << '@' << std::dec << line;
+					}
+					out << ']';
 				}
 				out << " ";
 			}

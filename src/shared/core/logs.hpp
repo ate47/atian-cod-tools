@@ -76,6 +76,7 @@ namespace core::logs {
 
 	void addoutstream(std::ostream* outStream);
 
+	void log(loglevel level, const char* header, const char* file, size_t line, const std::string& str);
 	void log(loglevel level, const char* file, size_t line, const std::string& str);
 }
 
