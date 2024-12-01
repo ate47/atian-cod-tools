@@ -84,14 +84,14 @@ namespace core::logs {
 #endif
 		return bt;
 	}
-	void log(loglevel level, const char* file, size_t line, const std::string& str) {
+	void log(loglevel level, const char* file, size_t line, const char* str) {
 		if (getlevel() > level) {
 			return;
 		}
 		log(level, name(level), file, line, str);
 	}
 
-	void log(loglevel level, const char* header, const char* file, size_t line, const std::string& str) {
+	void log(loglevel level, const char* header, const char* file, size_t line, const char* str) {
 		core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
 
 		if (file && cfg.log.paths.size()) {
