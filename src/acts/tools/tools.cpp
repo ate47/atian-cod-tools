@@ -510,11 +510,14 @@ namespace {
 	}
 }
 namespace {
-	std::vector<std::unique_ptr<tool::toolfunctiondata>> exToolAlloc{};
+	std::vector<std::unique_ptr<tool::toolfunctiondata>>& GetExToolAlloc() {
+		static std::vector<std::unique_ptr<tool::toolfunctiondata>> exToolAlloc{};
+		return exToolAlloc;
+	}
 }
 
 void RegisterActsTool(const char* name, const char* category, const char* usage, const char* description, int(*func)(int argc, const char* argv[])) {
-	exToolAlloc.push_back(std::make_unique<tool::toolfunctiondata>(name, category, usage, description, func));
+	GetExToolAlloc().push_back(std::make_unique<tool::toolfunctiondata>(name, category, usage, description, func));
 }
 
 ADD_TOOL(list, "acts", "", "list all the tools", nullptr, list);
