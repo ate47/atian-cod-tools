@@ -1566,7 +1566,7 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
                         break;
                     case STC_TYPE_STRING: 
                         if (proc.ReadString(namebuf, *reinterpret_cast<uintptr_t*>(&cell[j].value[0]), sizeof(namebuf)) < 0) {
-                            out << "<bad_str>";
+                            out << "<bad_str:" << std::hex << *reinterpret_cast<uintptr_t*>(&cell[j].value[0]) << ">";
                         }
                         else {
                             out << namebuf;
