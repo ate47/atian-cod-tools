@@ -1,5 +1,7 @@
-- use csv to create wni files
-- fix hash_scanner
-- add t89/bo6sp hash to scanner
-- use string as mid in scanner
-- add paths to package
+- nui
+  - add bo4 event tool
+- add gpl tools
+- remove bo4ext2
+- acts
+  - dump serious hash files
+  - add download_hash_index tool
