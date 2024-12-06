@@ -572,8 +572,72 @@ namespace {
 		return tool::OK;
 	}
 
+	constexpr bool IsValidChar(char c) {
+		return (c >= 0x20 && c < 0x7F) || c == '\n' || c == '\r' || c == '\t';
+	}
+
+	int read_strings(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) {
+			return tool::BAD_USAGE;
+		}
+
+		std::filesystem::path exe{ argv[2] };
+		std::filesystem::path output{ argv[3] };
+		int64_t minSizeOpt{ tool::NotEnoughParam(argc, 3) ? 4 : utils::ParseFormatInt(argv[4]) };
+
+		if (minSizeOpt < 1) {
+			LOG_ERROR("Invalid min size {}", minSizeOpt);
+			return tool::BASIC_ERROR;
+		}
+		size_t minSize{ (size_t)minSizeOpt };
+
+		LOG_INFO("Loading {} -> {} with min size {}", exe.string(), output.string(), minSize);
+
+		std::string file{};
+
+		if (!utils::ReadFile(exe, file)) {
+			LOG_ERROR("Can't load file {}", exe.string());
+			return tool::BASIC_ERROR;
+		}
+		{
+			std::ofstream os{ output };
+			if (!os) {
+				LOG_ERROR("Can't open output {}", output.string());
+				return tool::BASIC_ERROR;
+			}
+			utils::CloseEnd osce{ os };
+
+			char* start{ file.data() };
+			char* ptr{ file.data() + file.size() - 1 };
+
+			while (ptr > start) {
+				if (*ptr) {
+					ptr--;
+					continue;
+				}
+
+				size_t len{};
+
+				while (ptr > start && IsValidChar(ptr[-1])) {
+					ptr--;
+					len++;
+				}
+
+				if (len >= minSize) {
+					os << ptr << "\n";
+				}
+
+				ptr--;
+			}
+		}
+		LOG_INFO("Dump into {}", output.string());
+
+		return tool::OK;
+	}
+
 
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
+	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
 	ADD_TOOL(bo6_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", iw_data_dump);
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
 	ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);
