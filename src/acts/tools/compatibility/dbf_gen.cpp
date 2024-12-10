@@ -97,12 +97,20 @@ namespace {
 		void** location;
 	};
 
+	// ref to a string to link
+	struct DBFileAssetStringRef {
+		const char* str;
+		void** location;
+	};
+
 	// root entry
 	struct DBFFileAssetTable {
 		uint64_t entriesCount;
 		DBFFileAssetEntry* entries;
 		uint64_t refEntriesCount;
 		DBFFileAssetAssetRef* refEntries;
+		uint64_t stringsEntriesCount;
+		DBFileAssetStringRef* stringsEntries;
 	};
 
 	uint64_t NamePattern(const std::filesystem::path& path) {
@@ -263,6 +271,7 @@ namespace {
 		std::vector<DBFFileAssetEntry> entries{};
 		std::vector<dbflib::BlockId> entriesLoc{};
 		std::vector<DBFFileAssetAssetRef> refEntries{};
+		std::vector<DBFileAssetStringRef> refStrings{};
 
 		// compile entries
 
@@ -467,15 +476,15 @@ namespace {
 								case STC_TYPE_HASHED2:
 								case STC_TYPE_HASHED7:
 								case STC_TYPE_HASHED8:
-									cell.value.hash_value = hash::Hash64Pattern(cellVal.c_str());
-									break;
-								case STC_TYPE_INT:
-									if (cellVal.starts_with("0x")) {
-										cell.value.int_value = std::stoull(cellVal.substr(2), nullptr, 16);
+									if (cellVal.empty()) {
+										cell.value.hash_value = 0;
 									}
 									else {
-										cell.value.int_value = std::stoll(cellVal);
+										cell.value.hash_value = hash::Hash64Pattern(cellVal.c_str());
 									}
+									break;
+								case STC_TYPE_INT:
+									cell.value.int_value = utils::ParseFormatInt(cellVal.c_str());
 									break;
 								case STC_TYPE_FLOAT:
 									cell.value.float_value = std::stof(cellVal);
@@ -576,9 +585,20 @@ namespace {
 			builder.CreateLink(tableId, offsetof(DBFFileAssetTable, refEntries), refEntriesId);
 		}
 
+		if (refStrings.size()) {
+			dbflib::BlockId refStringsId = builder.CreateBlock(refStrings.data(), sizeof(refStrings[0]) * refStrings.size());
+
+			for (size_t i = 0; i < refStrings.size(); i++) {
+				builder.CreateLink(refStringsId, (dbflib::BlockOffset)(sizeof(refStrings[0]) * i + offsetof(DBFileAssetStringRef, str)), (dbflib::BlockId)refStrings[i].str);
+				builder.CreateLink(refStringsId, (dbflib::BlockOffset)(sizeof(refStrings[0]) * i + offsetof(DBFileAssetStringRef, location)), (dbflib::BlockId)refStrings[i].location);
+			}
+			builder.CreateLink(tableId, offsetof(DBFFileAssetTable, stringsEntries), refStringsId);
+		}
+
 		DBFFileAssetTable* table = builder.GetBlock<DBFFileAssetTable>(tableId);
 		table->entriesCount = entries.size();
 		table->refEntriesCount = refEntries.size();
+		table->stringsEntriesCount = refStrings.size();
 
 
 		builder.WriteToFile(output);
@@ -586,6 +606,7 @@ namespace {
 
 		return tool::OK;
 	}
+
 	int dbfread(Process& proc, int argc, const char* argv[]) {
 		if (argc < 3) {
 			return tool::BAD_USAGE;

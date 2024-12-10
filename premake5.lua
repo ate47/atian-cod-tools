@@ -105,7 +105,8 @@ project "ACTSSharedLibrary"
 		"deps/Detours/src/",
         "deps/curl/include/",
         "deps/rapidjson/include/",
-        "deps/miniz-cpp/"
+        "deps/miniz-cpp/",
+        "deps/dbflib/src/lib/",
     }
 
     vpaths {
