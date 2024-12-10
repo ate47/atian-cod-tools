@@ -117,7 +117,11 @@ public:
 
     virtual std::any visitConst_expr(gscParser::Const_exprContext *context) = 0;
 
+    virtual std::any visitConst_expr_static(gscParser::Const_expr_staticContext *context) = 0;
+
     virtual std::any visitFunction_ref(gscParser::Function_refContext *context) = 0;
+
+    virtual std::any visitData_ref(gscParser::Data_refContext *context) = 0;
 
     virtual std::any visitNumber(gscParser::NumberContext *context) = 0;
 

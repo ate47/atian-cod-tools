@@ -211,7 +211,15 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitConst_expr_static(gscParser::Const_expr_staticContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitFunction_ref(gscParser::Function_refContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitData_ref(gscParser::Data_refContext *ctx) override {
     return visitChildren(ctx);
   }
 

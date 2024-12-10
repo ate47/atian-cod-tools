@@ -47,9 +47,9 @@ public:
     RuleExpression8 = 36, RuleExpression9 = 37, RuleExpression10 = 38, RuleExpression11 = 39, 
     RuleExpression12 = 40, RuleExpression13 = 41, RuleExpression14 = 42, 
     RuleExpression15 = 43, RuleIs_expression = 44, RuleFunction_call_exp = 45, 
-    RuleFunction_call = 46, RuleLeft_value = 47, RuleConst_expr = 48, RuleFunction_ref = 49, 
-    RuleNumber = 50, RuleVector_value = 51, RuleArray_def = 52, RuleStruct_def = 53, 
-    RuleClass_init = 54, RuleIdf = 55
+    RuleFunction_call = 46, RuleLeft_value = 47, RuleConst_expr = 48, RuleConst_expr_static = 49, 
+    RuleFunction_ref = 50, RuleData_ref = 51, RuleNumber = 52, RuleVector_value = 53, 
+    RuleArray_def = 54, RuleStruct_def = 55, RuleClass_init = 56, RuleIdf = 57
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -118,7 +118,9 @@ public:
   class Function_callContext;
   class Left_valueContext;
   class Const_exprContext;
+  class Const_expr_staticContext;
   class Function_refContext;
+  class Data_refContext;
   class NumberContext;
   class Vector_valueContext;
   class Array_defContext;
@@ -853,18 +855,14 @@ public:
   public:
     Const_exprContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    Vector_valueContext *vector_value();
     Class_initContext *class_init();
     Array_defContext *array_def();
     Struct_defContext *struct_def();
-    NumberContext *number();
     FunctionContext *function();
-    antlr4::tree::TerminalNode *BOOL_VALUE();
-    antlr4::tree::TerminalNode *FLOATVAL();
-    antlr4::tree::TerminalNode *STRING();
-    antlr4::tree::TerminalNode *HASHSTRING();
+    Const_expr_staticContext *const_expr_static();
     antlr4::tree::TerminalNode *UNDEFINED_VALUE();
     Function_refContext *function_ref();
+    Data_refContext *data_ref();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -872,6 +870,24 @@ public:
   };
 
   Const_exprContext* const_expr();
+
+  class  Const_expr_staticContext : public antlr4::ParserRuleContext {
+  public:
+    Const_expr_staticContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    Vector_valueContext *vector_value();
+    NumberContext *number();
+    antlr4::tree::TerminalNode *BOOL_VALUE();
+    antlr4::tree::TerminalNode *FLOATVAL();
+    antlr4::tree::TerminalNode *STRING();
+    antlr4::tree::TerminalNode *HASHSTRING();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Const_expr_staticContext* const_expr_static();
 
   class  Function_refContext : public antlr4::ParserRuleContext {
   public:
@@ -888,6 +904,20 @@ public:
   };
 
   Function_refContext* function_ref();
+
+  class  Data_refContext : public antlr4::ParserRuleContext {
+  public:
+    Data_refContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
+    antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Data_refContext* data_ref();
 
   class  NumberContext : public antlr4::ParserRuleContext {
   public:

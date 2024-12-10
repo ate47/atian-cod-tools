@@ -133,25 +133,32 @@ left_value:
 	| (function_call | const_expr | expression15) '[' expression ']';
 
 const_expr:
-	vector_value
-	| class_init
+	  class_init
 	| array_def
 	| struct_def 
-	| number
 	| function
+	| const_expr_static
+	| UNDEFINED_VALUE
+	| function_ref
+	| data_ref
+	;
+
+const_expr_static:
+	  vector_value
+	| number
     | BOOL_VALUE
     | FLOATVAL
     | STRING
     | HASHSTRING
-	| UNDEFINED_VALUE
-	| function_ref
-;
+	;
 
 function_ref:
 	'&' (IDENTIFIER '::')? IDENTIFIER
 	| '@' IDENTIFIER '<' PATH '>' '::' IDENTIFIER
 	| '&' left_value
     ;
+
+data_ref:  '@' '[' IDENTIFIER ',' IDENTIFIER ']' ;
 
 number: INTEGER10
 	| INTEGER16
