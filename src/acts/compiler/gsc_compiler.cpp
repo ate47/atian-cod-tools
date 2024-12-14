@@ -3,9 +3,8 @@
 #include "gscLexer.h"
 #include "gscParser.h"
 #include "gscVisitor.h"
-#include "tools/gsc.hpp"
-#include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_acts_debug.hpp"
+#include "gsc_compiler.hpp"
 #include "compiler/preprocessor.hpp"
 
 namespace acts::compiler {
@@ -982,34 +981,19 @@ namespace acts::compiler {
         return flag;
     }
 
-    enum DetourType {
-        DETOUR_UNKNOWN = 0,
-        DETOUR_GSIC,
-        DETOUR_ACTS
-    };
-
     class GscCompilerOption {
     public:
         bool m_help{};
-        bool m_computeDevOption{};
         const char* m_preproc{};
-        VmInfo* m_vmInfo{};
-        Platform m_platform{ Platform::PLATFORM_PC };
         const char* m_outFileName{ "compiled" };
         std::vector<const char*> m_inputFiles{};
-        int64_t crcServer{};
-        int64_t crcClient{};
-        int64_t crcEmitServer{};
-        int64_t crcEmitClient{};
+        CompilerConfig config{};
+        int32_t crcServer{};
+        int32_t crcClient{};
         const char* nameServer{ "" };
         const char* nameClient{ "" };
         const char* fileNameSpaceServer{ "" };
         const char* fileNameSpaceClient{ "" };
-        bool defineAsConstExpr{};
-        bool noDevCallInline{};
-        bool obfuscate{};
-        DetourType detourType{ DETOUR_UNKNOWN };
-        preprocessor::PreProcessorOption processorOpt{};
 
         bool Compute(const char** args, INT startIndex, INT endIndex) {
             // default values
@@ -1024,9 +1008,9 @@ namespace acts::compiler {
                         LOG_ERROR("Missing value for param: {}!", arg);
                         return false;
                     }
-                    m_platform = PlatformOf(args[++i]);
+                    config.platform = PlatformOf(args[++i]);
 
-                    if (!m_platform) {
+                    if (!config.platform) {
                         LOG_ERROR("Unknown platform: {}!", args[i]);
                         return false;
                     }
@@ -1043,7 +1027,7 @@ namespace acts::compiler {
                         return false;
                     }
 
-                    m_vmInfo = out;
+                    config.vm = (VMId)out->vmMagic;
                 }
                 else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
                     if (i + 1 == endIndex) {
@@ -1053,13 +1037,13 @@ namespace acts::compiler {
                     m_outFileName = args[++i];
                 }
                 else if (!strcmp("-d", arg) || !_strcmpi("--dbg", arg)) {
-                    m_computeDevOption = true;
+                    config.computeDevOption = true;
                 }
                 else if (!strcmp("-O", arg) || !_strcmpi("--obfuscate", arg)) {
-                    obfuscate = true;
+                    config.obfuscate = true;
                 }
                 else if (!_strcmpi("--dev-block-as-comment", arg)) {
-                    processorOpt.devBlockAsComment = true;
+                    config.processorOpt.devBlockAsComment = true;
                     LOG_WARNING("{} used, this message is just here to remind you that you're stupid.", arg);
                 }
                 else if (!_strcmpi("--preproc", arg)) {
@@ -1078,7 +1062,7 @@ namespace acts::compiler {
                         return false;
                     }
                     try {
-                        crcServer = std::strtoll(args[++i], nullptr, 16);
+                        crcServer = std::strtol(args[++i], nullptr, 16);
                     }
                     catch (std::exception& e) {
                         LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
@@ -1091,33 +1075,7 @@ namespace acts::compiler {
                         return false;
                     }
                     try {
-                        crcClient = std::strtoll(args[++i], nullptr, 16);
-                    }
-                    catch (std::exception& e) {
-                        LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
-                        return false;
-                    }
-                }
-                else if (!_strcmpi("--crc-emit", arg)) {
-                    if (i + 1 == endIndex) {
-                        LOG_ERROR("Missing value for param: {}!", arg);
-                        return false;
-                    }
-                    try {
-                        crcEmitServer = std::strtoll(args[++i], nullptr, 16);
-                    }
-                    catch (std::exception& e) {
-                        LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
-                        return false;
-                    }
-                }
-                else if (!_strcmpi("--crc-emit-client", arg)) {
-                    if (i + 1 == endIndex) {
-                        LOG_ERROR("Missing value for param: {}!", arg);
-                        return false;
-                    }
-                    try {
-                        crcEmitClient = std::strtoll(args[++i], nullptr, 16);
+                        crcClient = std::strtol(args[++i], nullptr, 16);
                     }
                     catch (std::exception& e) {
                         LOG_ERROR("Invalid crc for {}: {} / {}!", arg, args[i], e.what());
@@ -1153,10 +1111,10 @@ namespace acts::compiler {
                     fileNameSpaceClient = args[++i];
                 }
                 else if (!_strcmpi("--define-as-constxpr", arg)) {
-                    processorOpt.noDefineExpr = true;
+                    config.processorOpt.noDefineExpr = true;
                 }
                 else if (!_strcmpi("--no-devcall-inline", arg)) {
-                    noDevCallInline = true;
+                    config.noDevCallInline = true;
                 }
                 else if (!_strcmpi("--detour", arg)) {
                     if (i + 1 == endIndex) {
@@ -1165,10 +1123,10 @@ namespace acts::compiler {
                     }
                     const char* dt = args[++i];
                     if (!_strcmpi(dt, "acts")) {
-                        detourType = DETOUR_ACTS;
+                        config.detourType = DETOUR_ACTS;
                     }
                     else if (!_strcmpi(dt, "gsic")) {
-                        detourType = DETOUR_GSIC;
+                        config.detourType = DETOUR_GSIC;
                     }
                     else if (_strcmpi(dt, "none")) {
                         LOG_ERROR("Invalid value value for param '{}': {}!", arg, dt);
@@ -1177,7 +1135,7 @@ namespace acts::compiler {
                 }
                 else if (*arg == '-') {
                     if (arg[1] == 'D' && arg[2]) {
-                        processorOpt.defines.insert(arg + 2);
+                        config.processorOpt.defines.insert(arg + 2);
                         continue;
                     }
 
@@ -1191,12 +1149,10 @@ namespace acts::compiler {
             if (!m_inputFiles.size()) {
                 m_inputFiles.push_back(".");
             }
-            if (!m_vmInfo) {
+            if (!config.vm) {
                 LOG_ERROR("No game set, please set a game using --game [game]");
                 return false;
             }
-            if (!crcEmitClient) crcEmitClient = crcClient;
-            if (!crcEmitServer) crcEmitServer = crcServer;
             return true;
         }
 
@@ -1475,18 +1431,37 @@ namespace acts::compiler {
         std::unordered_set<uint64_t> funcs{};
     };
 
+    static struct NumberOpCodesS {
+        OPCode opcode;
+        int64_t minValue;
+        int64_t maxValue;
+        size_t sizeOf;
+        bool negat;
+        bool unsign;
+    } NumberOpCodes[] {
+        { OPCODE_GetZero, 0, 0, 0, false, false },
+        { OPCODE_GetNegByte, -0xFF, 0, 1, true, true  },
+        { OPCODE_GetSignedByte, -0x80, 0x7F, 1, false, false },
+        { OPCODE_GetByte, 0, 0xFF, 1, false, true  },
+        { OPCODE_GetUnsignedShort, 0, 0xFFFF, 2, false, true },
+        { OPCODE_GetNegUnsignedShort, -0xFFFF, 0, 2, true, true  },
+        { OPCODE_GetShort, -0x8000, 0x7FFF, 2, false, false },
+        { OPCODE_GetNegUnsignedInteger, -0xFFFFFFFFLL, 0, 4, true, true },
+        { OPCODE_GetInteger, 0x80000000, 0x7FFFFFFF, 4, false, false },
+        { OPCODE_GetUnsignedInteger, 0, 0xFFFFFFFF, 4, false, true },
+        { OPCODE_GetLongInteger, (-0x7FFFFFFFFFFFFFFFLL - 1LL), 0x7FFFFFFFFFFFFFFF, 8, false, false },
+    };
+
     class CompileObject {
     public:
         size_t devBlockDepth{};
-        GscCompilerOption& opt;
+        CompilerConfig& config;
         InputInfo& info;
         GscFileType type;
         uint64_t currentNamespace;
         uint64_t fileName{};
         const char* fileNameStr{};
         uint64_t fileNameSpace{};
-        int64_t crc{};
-        int64_t crcEmit{};
         std::set<std::string> includes{};
         std::vector<AscmNode*> m_devBlocks{};
         std::unordered_map<uint64_t, FunctionObject> exports{};
@@ -1497,36 +1472,17 @@ namespace acts::compiler {
         std::unordered_map<std::string, GlobalVarObject> globals{};
         std::unordered_map<uint64_t, ParseTree*> constexprs{};
         VmInfo* vmInfo;
-        Platform plt;
         int64_t autoexecOrder{};
         std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler;
         std::unordered_set<std::string> hashes{};
         size_t emptyNameInc{};
         ClassCompileContext* clsCtx{};
 
-        CompileObject(GscCompilerOption& opt, GscFileType file, InputInfo& nfo, VmInfo* vmInfo, Platform plt, std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler) 
-            : opt(opt), type(file), info(nfo), vmInfo(vmInfo), plt(plt), gscHandler(gscHandler) {
-            bool client = type == FILE_CSC;
-            crc = client ? opt.crcClient : opt.crcServer;
-            crcEmit = client ? opt.crcEmitClient : opt.crcEmitServer;
-
-            if (!crc) {
-                crc = gscHandler->GetDefaultChecksum(client);
-            }
-            if (!crcEmit) {
-                crcEmit = crc;
-            }
-
-            const char* fn = client ? opt.nameClient : opt.nameServer;
-            fileNameStr = fn && *fn ? fn : nullptr;
-
-            if (!fileNameStr) {
-                fileNameStr = gscHandler->GetDefaultName(client);
-            }
-
-            fileName = vmInfo->HashPath(fileNameStr);
-            const char* fns = client ? opt.fileNameSpaceClient : opt.fileNameSpaceServer;
-            fileNameSpace = fns && *fns ? vmInfo->HashFilePath(opt.fileNameSpaceClient) : 0;
+        CompileObject(CompilerConfig& config, GscFileType file, InputInfo& nfo, std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler)
+            : config(config), type(file), info(nfo), vmInfo(config.GetVm()), gscHandler(gscHandler) {
+            fileName = vmInfo->HashPath(config.name);
+            const char* fns = config.fileName;
+            fileNameSpace = fns && *fns ? vmInfo->HashFilePath(fns) : 0;
 
             currentNamespace = fileNameSpace;
         }
@@ -1551,7 +1507,7 @@ namespace acts::compiler {
         }
 
         bool HasOpCode(OPCode opcode) {
-            auto [ok, op] = GetOpCodeId(vmInfo->vmMagic, plt, opcode);
+            auto [ok, op] = GetOpCodeId(vmInfo->vmMagic, config.platform, opcode);
             return ok;
         }
 
@@ -1588,6 +1544,7 @@ namespace acts::compiler {
                 case gscParser::RuleExpression14:
                 case gscParser::RuleNumber:
                 case gscParser::RuleConst_expr:
+                case gscParser::RuleConst_expr_static:
                 case gscParser::RuleIdf: {
                     if (number->children.size() == 1) {
                         return FloatNumberNodeValue(number->children[0], error);
@@ -1668,6 +1625,7 @@ namespace acts::compiler {
                 case gscParser::RuleExpression14:
                 case gscParser::RuleNumber:
                 case gscParser::RuleConst_expr:
+                case gscParser::RuleConst_expr_static:
                 case gscParser::RuleIdf: {
                     if (number->children.size() == 1) {
                         return NumberNodeValue(number->children[0], error, extracted);
@@ -1761,6 +1719,28 @@ namespace acts::compiler {
             }
         }
 
+        AscmNodeOpCode* BuildAscmNodeData(const NumberOpCodesS& opcode, int64_t val) const {
+            if (opcode.minValue > val || opcode.maxValue < val) {
+                info.PrintLineMessage(core::logs::LVL_WARNING, nullptr, std::format("opcode not big enough to store the value {}", val));
+            }
+            if (opcode.negat) {
+                val = -val;
+            }
+            switch (opcode.sizeOf) {
+            case 0:
+                return new AscmNodeOpCode(opcode.opcode);
+            case 1:
+                return opcode.unsign ? (AscmNodeOpCode*)new AscmNodeData<uint8_t>((uint8_t)val, opcode.opcode) : new AscmNodeData<int8_t>((int8_t)val, opcode.opcode);
+            case 2:
+                return opcode.unsign ? (AscmNodeOpCode*)new AscmNodeData<uint16_t>((uint16_t)val, opcode.opcode) : new AscmNodeData<int16_t>((int16_t)val, opcode.opcode);
+            case 4:
+                return opcode.unsign ? (AscmNodeOpCode*)new AscmNodeData<uint32_t>((uint32_t)val, opcode.opcode) : new AscmNodeData<int32_t>((int32_t)val, opcode.opcode);
+            case 8:
+                return opcode.unsign ? (AscmNodeOpCode*)new AscmNodeData<uint64_t>((uint64_t)val, opcode.opcode) : new AscmNodeData<int64_t>((int64_t)val, opcode.opcode);
+            default:
+                throw std::runtime_error(std::format("Can't create node with sizeof {}", opcode.sizeOf));
+            };
+        }
 
         /*
          * Compute the node using the minimum amount of bits
@@ -1768,47 +1748,20 @@ namespace acts::compiler {
          * @return node
          */
         AscmNodeOpCode* BuildAscmNodeData(int64_t val) {
-            if (val == 0 && HasOpCode(OPCODE_GetZero)) {
-                return new AscmNodeOpCode(OPCODE_GetZero);
-            }
-            if (val >= 0) {
-                if (val <= 0x7F && HasOpCode(OPCODE_GetSignedByte)) {
-                    return new AscmNodeData<int8_t>((int8_t)val, OPCODE_GetSignedByte);
-                }
-                if (val <= 0xFF && HasOpCode(OPCODE_GetByte)) {
-                    return new AscmNodeData<uint8_t>((uint8_t)val, OPCODE_GetByte);
-                }
-                if (val <= 0x7FFF && HasOpCode(OPCODE_GetShort)) {
-                    return new AscmNodeData<int16_t>((int16_t)val, OPCODE_GetShort);
-                }
-                if (val <= 0xFFFF && HasOpCode(OPCODE_GetUnsignedShort)) {
-                    return new AscmNodeData<uint16_t>((uint16_t)val, OPCODE_GetUnsignedShort);
-                }
-                if (val <= 0x7FFFFFFF && HasOpCode(OPCODE_GetInteger)) {
-                    return new AscmNodeData<int32_t>((int32_t)val, OPCODE_GetInteger);
-                }
-                if (val <= 0xFFFFFFFF && HasOpCode(OPCODE_GetUnsignedInteger)) {
-                    return new AscmNodeData<uint32_t>((uint32_t)val, OPCODE_GetUnsignedInteger);
+            for (const NumberOpCodesS& opcode : NumberOpCodes) {
+                if (opcode.minValue <= val && val <= opcode.maxValue && HasOpCode(opcode.opcode)) {
+                    return BuildAscmNodeData(opcode, val);
                 }
             }
-            else {
-                if (val >= -0x7F && HasOpCode(OPCODE_GetSignedByte)) {
-                    return new AscmNodeData<int8_t>((int8_t)(val), OPCODE_GetSignedByte);
-                }
-                if (val >= -0xFF && HasOpCode(OPCODE_GetNegByte)) {
-                    return new AscmNodeData<uint8_t>((uint8_t)(-val), OPCODE_GetNegByte);
-                }
-                if (val >= -0x7FFF && HasOpCode(OPCODE_GetShort)) {
-                    return new AscmNodeData<int16_t>((int16_t)(val), OPCODE_GetShort);
-                }
-                if (val >= -0xFFFF && HasOpCode(OPCODE_GetNegUnsignedShort)) {
-                    return new AscmNodeData<uint16_t>((uint16_t)(-val), OPCODE_GetNegUnsignedShort);
-                }
-                if (val >= -0x7FFFFFFF && HasOpCode(OPCODE_GetInteger)) {
-                    return new AscmNodeData<int32_t>((int32_t)val, OPCODE_GetInteger);
-                }
-                if (val >= -0xFFFFFFFFLL && HasOpCode(OPCODE_GetNegUnsignedInteger)) {
-                    return new AscmNodeData<uint32_t>((uint32_t)(-val), OPCODE_GetNegUnsignedInteger);
+            // fallback result
+            return new AscmNodeData<int64_t>(val, OPCODE_GetLongInteger);
+        }
+
+        AscmNodeOpCode* CreateBiggestValue(int64_t val) {
+            for (size_t i = ARRAYSIZE(NumberOpCodes); i > 0; i--) {
+                const NumberOpCodesS& opcode{ NumberOpCodes[i - 1] };
+                if (HasOpCode(opcode.opcode)) {
+                    return BuildAscmNodeData(opcode, val);
                 }
             }
 
@@ -2007,11 +1960,11 @@ namespace acts::compiler {
                 f.m_flags = tool::gsc::CLASS_VTABLE;
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
-                if (crcEmit < 0) {
-                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(-crcEmit), OPCODE_GetNegUnsignedInteger));
+                if (config.checksum < 0) {
+                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(-config.checksum), OPCODE_GetNegUnsignedInteger));
                 }
                 else {
-                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(crcEmit), OPCODE_GetUnsignedInteger));
+                    f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(config.checksum), OPCODE_GetUnsignedInteger));
                 }
                 //forceDebugHeader = true;
 
@@ -2055,7 +2008,7 @@ namespace acts::compiler {
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
                 f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
 
-                const char* crcStr = utils::va("%lld", crcEmit);
+                const char* crcStr = utils::va("%lld", config.checksum);
 
                 StringObject& strdef = strings[crcStr];
                 auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
@@ -2127,9 +2080,9 @@ namespace acts::compiler {
 
             }
 
-            utils::Allocate(data, gscHandler->GetHeaderSize());
+            size_t headerLoc{ utils::Allocate(data, gscHandler->GetHeaderSize()) };
             size_t actsDebugHeader{};
-            if (forceDebugHeader || opt.m_computeDevOption || opt.detourType == DETOUR_ACTS) {
+            if (forceDebugHeader || config.computeDevOption || config.detourType == DETOUR_ACTS) {
                 actsDebugHeader = utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DEBUG));
             }
 
@@ -2212,7 +2165,7 @@ namespace acts::compiler {
                 e.checksum = 0x12345678;
                 that.gscHandler->WriteExport(&data[expTable + that.gscHandler->GetExportSize() * exportIndex++], e);
 
-                AscmCompilerContext cctx{ that.vmInfo, that.plt, exp.m_allocatedVar, data };
+                AscmCompilerContext cctx{ that.vmInfo, that.config.platform, exp.m_allocatedVar, data };
 
                 for (AscmNode* node : exp.m_nodes) {
                     if (!node->Write(cctx)) {
@@ -2245,7 +2198,7 @@ namespace acts::compiler {
 
             std::sort(autoexecs.begin(), autoexecs.end(), [](auto& f1, auto& f2) -> bool { return f1->autoexecOrder < f2->autoexecOrder; });
 
-            if (opt.obfuscate) {
+            if (config.obfuscate) {
                 std::shuffle(othersfuncs.begin(), othersfuncs.end(), std::mt19937{ std::random_device{}() });
             }
 
@@ -2267,7 +2220,7 @@ namespace acts::compiler {
             if (!exportsOk) {
                 return false;
             }
-            if (!detourObjs.empty() && !opt.detourType) {
+            if (!detourObjs.empty() && !config.detourType) {
                 LOG_ERROR("Detour parsed, but no --detour has been specified, they will be ignored.");
             }
 
@@ -2374,9 +2327,9 @@ namespace acts::compiler {
                 size_t linesIdx{};
                 size_t filesLoc{};
                 size_t filesIdx{};
-                if (opt.m_computeDevOption) {
+                if (config.computeDevOption) {
 
-                    if (!opt.obfuscate) {
+                    if (!config.obfuscate) {
                         LOG_TRACE("Compile {} hash(es)...", hashes.size());
 
                         hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
@@ -2415,7 +2368,7 @@ namespace acts::compiler {
                         }
                     }
 
-                    if (!opt.obfuscate) {
+                    if (!config.obfuscate) {
                         LOG_TRACE("Compile dev lines...");
                         // GSC_ACTS_LINES
                         std::vector<tool::gsc::acts_debug::GSC_ACTS_LINES> lines{};
@@ -2473,7 +2426,7 @@ namespace acts::compiler {
 
                 uint32_t detoursLoc{};
                 uint32_t detoursCount{};
-                if (!detourObjs.empty() && opt.detourType == DETOUR_ACTS) {
+                if (!detourObjs.empty() && config.detourType == DETOUR_ACTS) {
                     LOG_TRACE("Compile {} detour(s)...", detourObjs.size());
                     detoursCount = (uint32_t)detourObjs.size();
                     detoursLoc = (uint32_t)utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DETOUR) * detourObjs.size());
@@ -2495,14 +2448,14 @@ namespace acts::compiler {
                 *reinterpret_cast<uint64_t*>(debug_obj->magic) = tool::gsc::acts_debug::MAGIC;
                 debug_obj->version = tool::gsc::acts_debug::CURRENT_VERSION;
                 debug_obj->flags = 0;
-                if (opt.obfuscate) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_OBFUSCATED;
-                if (opt.m_computeDevOption) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_DEBUG;
+                if (config.obfuscate) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_OBFUSCATED;
+                if (config.computeDevOption) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_DEBUG;
                 if (type == FILE_CSC) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_CLIENT;
-                if (((plt << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT) & ~tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_MASK)) {
-                    LOG_WARNING("Can't encode platform ID in debug header: Too big {}", (int)plt);
+                if (((config.platform << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT) & ~tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_MASK)) {
+                    LOG_WARNING("Can't encode platform ID in debug header: Too big {}", (int)config.platform);
                 }
                 else {
-                    debug_obj->flags |= plt << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT;
+                    debug_obj->flags |= config.platform << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT;
                 }
 
                 debug_obj->actsVersion = (uint64_t)core::actsinfo::VERSION_ID;
@@ -2539,7 +2492,7 @@ namespace acts::compiler {
             }
 
             // compile header
-            gscHandler->SetFile((byte*)data.data(), 0);
+            gscHandler->SetFile((byte*)data.data() + headerLoc, 0);
 
             if (nameOffSet) {
                 gscHandler->SetNameString(nameOffSet);
@@ -2547,7 +2500,7 @@ namespace acts::compiler {
             else {
                 gscHandler->SetName(fileName);
             }
-            gscHandler->SetChecksum(crc);
+            gscHandler->SetChecksum(config.checksum);
             gscHandler->SetHeader();
 
             gscHandler->SetIncludesCount((int16_t)includes.size());
@@ -2635,7 +2588,7 @@ namespace acts::compiler {
     }
 
     AscmNode* FunctionObject::CreateParamNode() const {
-        return new AscmNodeCreateLocalVariables(m_vars, m_allocatedVar, (size_t)m_params, *this, obj.opt.obfuscate);
+        return new AscmNodeCreateLocalVariables(m_vars, m_allocatedVar, (size_t)m_params, *this, obj.config.obfuscate);
     }
 
     void FunctionObject::AddNode(ParseTree* tree, AscmNode* node) {
@@ -2861,6 +2814,7 @@ namespace acts::compiler {
                 return false;
             }
             case gscParser::RuleConst_expr:
+            case gscParser::RuleConst_expr_static:
             case gscParser::RuleNumber:
             case gscParser::RuleVector_value:
             case gscParser::RuleClass_init:
@@ -3989,7 +3943,7 @@ namespace acts::compiler {
                         return true;
                     }
                     // test dev call
-                    if (!obj.opt.noDevCallInline && !obj.devBlockDepth && fobj.m_vmInfo->devCallsNames.find(funcHash & 0x7FFFFFFFFFFFFFFF) != fobj.m_vmInfo->devCallsNames.end()) {
+                    if (!obj.config.noDevCallInline && !obj.devBlockDepth && fobj.m_vmInfo->devCallsNames.find(funcHash & 0x7FFFFFFFFFFFFFFF) != fobj.m_vmInfo->devCallsNames.end()) {
                         if (!expressVal) { // can't inline a returned value
                             devCallInlineEnd = new AscmNode();
                             fobj.AddNode(rule, new AscmNodeJump(devCallInlineEnd, OPCODE_DevblockBegin));
@@ -4581,6 +4535,7 @@ namespace acts::compiler {
                 return true;
             }
             case gscParser::RuleConst_expr:
+            case gscParser::RuleConst_expr_static:
             case gscParser::RuleNumber:
             case gscParser::RuleExpression13:
             case gscParser::RuleExpression14:
@@ -5167,7 +5122,7 @@ namespace acts::compiler {
             fobj.AddNode(term, new AscmNodeOpCode(OPCODE_GetUndefined));
             return true;
         case gscParser::BOOL_VALUE:
-            fobj.AddNode(term, obj.BuildAscmNodeData(term->getText() == "true" ? (fobj.obj.opt.obfuscate ? rand() + 1 : 1) : 0));
+            fobj.AddNode(term, obj.BuildAscmNodeData(term->getText() == "true" ? (fobj.obj.config.obfuscate ? rand() + 1 : 1) : 0));
             return true;
         case gscParser::FLOATVAL:
             fobj.AddNode(term, new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), nullptr), OPCODE_GetFloat));
@@ -5460,7 +5415,7 @@ namespace acts::compiler {
     
         std::string name = hasName ? 
             func->children[(size_t)(func->children.size() - (5 + deltaArrow))]->getText() 
-            : utils::va("$nameless_%llx", (obj.opt.obfuscate ? (obj.emptyNameInc += 1 + rand()) : obj.emptyNameInc++));
+            : utils::va("$nameless_%llx", (obj.config.obfuscate ? (obj.emptyNameInc += 1 + rand()) : obj.emptyNameInc++));
 
         obj.AddHash(name);
         uint64_t nameHashed = obj.vmInfo->HashField(name.data());
@@ -5958,10 +5913,11 @@ namespace acts::compiler {
             return 0;
         }
 
-        auto* readerBuilder = tool::gsc::GetGscReader(opt.m_vmInfo->vmMagic);
+        VmInfo* vmInfo{ opt.config.GetVm() };
+        auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
 
         if (!readerBuilder) {
-            LOG_ERROR("No GSC handler available for {}", opt.m_vmInfo->name);
+            LOG_ERROR("No GSC handler available for {}", vmInfo->name);
             return tool::BASIC_ERROR;
         }
 
@@ -5974,8 +5930,27 @@ namespace acts::compiler {
         }
 
         auto produceFile = [&opt, &inputs, &handler](bool client) -> int {
-            InputInfo info{};
+            opt.config.clientScript = client;
+            VmInfo* vmInfo{ opt.config.GetVm() };
 
+            opt.config.checksum = client ? opt.crcClient : opt.crcServer;
+
+            if (!opt.config.checksum) {
+                opt.config.checksum = (int32_t)handler->GetDefaultChecksum(client);
+            }
+
+            const char* fn = opt.config.name;
+            // client ? opt.nameClient : opt.nameServer;
+            const char* fileNameStr = fn && *fn ? fn : nullptr;
+
+            if (!fileNameStr) {
+                fileNameStr = handler->GetDefaultName(client);
+            }
+
+            opt.config.fileName = client ? opt.fileNameSpaceClient : opt.fileNameSpaceServer;
+
+
+            std::vector<std::filesystem::path> files{};
             for (const std::filesystem::path& file : inputs) {
                 auto ext = file.extension();
                 if (client) {
@@ -5988,89 +5963,27 @@ namespace acts::compiler {
                         continue;
                     }
                 }
-
-                if (!info.container.AppendFile(file)) {
-                    LOG_ERROR("Can't read file {}", file.string());
-                    return tool::BASIC_ERROR;
-                }
+                files.emplace_back(file);
             }
-
-            if (!info.container.currentLines) {
-                return tool::OK; // no file
-            }
-
-            preprocessor::PreProcessorOption popt = opt.processorOpt;
-            popt.defines.insert("_SUPPORTS_GCSC");
-            popt.defines.insert("_SUPPORTS_DETOURS");
-            popt.defines.insert(utils::UpperCase(utils::va("_%s", opt.m_vmInfo->codeName)));
-            popt.defines.insert(utils::MapString(utils::va("_%s", PlatformName(opt.m_platform)), [](char c) -> char { return isspace(c) ? '_' : std::toupper(c); }));
-
-            if (tool::gsc::opcode::HasOpCode(opt.m_vmInfo->vmMagic, opt.m_platform, OPCODE_T8C_GetLazyFunction)) {
-                popt.defines.insert("_SUPPORTS_LAZYLINK");
-            }
-
-            if (client) {
-                popt.defines.insert("_CSC");
-            }
-            else {
-                popt.defines.insert("_GSC");
-            }
-
-            if (!popt.ApplyPreProcessor(info.container.data, 
-                [&info](core::logs::loglevel lvl, size_t line, const std::string& message) { info.container.PrintLineMessage(lvl, line, 0, message); })) {
-                LOG_ERROR("Error when applying preprocessor on data");
-                return tool::BASIC_ERROR;
-            }
-
-            if (opt.m_preproc) {
-                utils::WriteFile(opt.m_preproc, info.container.data);
-            }
-
-            ANTLRInputStream is{ info.container.data };
-
-            auto errList = std::make_unique<ACTSErrorListener>(info);
-
-            gscLexer lexer{ &is };
-            lexer.addErrorListener(&*errList);
-            CommonTokenStream tokens{ &lexer };
-
-            tokens.fill();
-            gscParser parser{ &tokens };
-
-            parser.removeErrorListeners();
-
-            parser.addErrorListener(&*errList);
-
-            gscParser::ProgContext* prog = parser.prog();
-            CompileObject obj{ opt, client ? FILE_CSC : FILE_GSC, info, opt.m_vmInfo, opt.m_platform, handler };
-
-            auto error = parser.getNumberOfSyntaxErrors();
-            if (error) {
-                LOG_ERROR("{} error(s) detected, abort", error);
-                return tool::BASIC_ERROR;
-            }
-
-            LOG_TRACE("Parse tree");
-
-            if (!ParseProg(prog, parser, obj)) {
-                LOG_ERROR("Error when parsing the object");
-                return tool::BASIC_ERROR;
-            }
-
-
-            RegisterOpCodesMap();
             std::vector<byte> data{};
 
             LOG_TRACE("Compile tree");
-            if (!obj.Compile(data)) {
-                LOG_ERROR("Error when compiling the object");
-                return tool::BASIC_ERROR;
+
+            std::string preprocout{};
+            if (opt.m_preproc) {
+                opt.config.preprocOutput = &preprocout;
+            }
+
+            CompileGsc(inputs, data, opt.config);
+
+            if (opt.m_preproc) {
+                utils::WriteFile(opt.m_preproc, *opt.config.preprocOutput);
             }
 
             const char* outFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscc" : "gscc")};
             utils::WriteFile(outFile, (const void*)data.data(), data.size());
 
-            LOG_INFO("Done into {} ({}/{})", outFile, obj.vmInfo->codeName, PlatformName(obj.plt));
+            LOG_INFO("Done into {} ({}/{})", outFile, vmInfo->codeName, PlatformName(opt.config.platform));
             return tool::OK;
         };
 
@@ -6134,6 +6047,92 @@ namespace acts::compiler {
         }
 
         return tool::OK;
+    }
+
+
+    void CompileGsc(const std::vector<std::filesystem::path>& files, std::vector<byte>& data, CompilerConfig& config) {
+        VmInfo* vmInfo{ config.GetVm() };
+        InputInfo info{};
+        for (const std::filesystem::path& file : files) {
+            auto ext = file.extension();
+
+            if (!info.container.AppendFile(file)) {
+                throw std::runtime_error(std::format("Can't read file {}", file.string()));
+            }
+        }
+
+        preprocessor::PreProcessorOption& popt = config.processorOpt;
+        popt.defines.insert("_SUPPORTS_GCSC");
+        if (config.detourType) {
+            popt.defines.insert("_SUPPORTS_DETOURS");
+        }
+        popt.defines.insert(utils::UpperCase(utils::va("_%s", vmInfo->codeName)));
+        popt.defines.insert(utils::MapString(utils::va("_%s", PlatformName(config.platform)), [](char c) -> char { return isspace(c) ? '_' : std::toupper(c); }));
+
+        if (tool::gsc::opcode::HasOpCode(config.vm, config.platform, OPCODE_T8C_GetLazyFunction)) {
+            popt.defines.insert("_SUPPORTS_LAZYLINK");
+        }
+
+        if (config.clientScript) {
+            popt.defines.insert("_CSC");
+        }
+        else {
+            popt.defines.insert("_GSC");
+        }
+
+        if (!popt.ApplyPreProcessor(info.container.data,
+            [&info](core::logs::loglevel lvl, size_t line, const std::string& message) { info.container.PrintLineMessage(lvl, line, 0, message); })) {
+            throw std::runtime_error("Error when applying preprocessor on data");
+        }
+
+        if (config.preprocOutput) {
+            *config.preprocOutput = info.container.data;
+        }
+
+        ANTLRInputStream is{ info.container.data };
+
+        auto errList = std::make_unique<ACTSErrorListener>(info);
+
+        gscLexer lexer{ &is };
+        lexer.addErrorListener(&*errList);
+        CommonTokenStream tokens{ &lexer };
+
+        tokens.fill();
+        gscParser parser{ &tokens };
+
+        parser.removeErrorListeners();
+
+        parser.addErrorListener(&*errList);
+
+        gscParser::ProgContext* prog = parser.prog();
+
+        auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
+
+        if (!readerBuilder) {
+            throw std::runtime_error(std::format("No GSC handler available for {}", vmInfo->name));
+        }
+
+        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)(nullptr, 0) };
+
+        CompileObject obj{ config, config.clientScript ? FILE_CSC : FILE_GSC, info, handler };
+
+        auto error = parser.getNumberOfSyntaxErrors();
+        if (error) {
+            throw std::runtime_error(std::format("{} error(s) detected, abort", error));
+        }
+
+        LOG_TRACE("Parse tree");
+
+        if (!ParseProg(prog, parser, obj)) {
+            throw std::runtime_error("Error when parsing the object");
+        }
+
+
+        RegisterOpCodesMap();
+
+        if (!obj.Compile(data)) {
+            throw std::runtime_error("Error when compiling the object");
+        }
     }
 
     ADD_TOOL(gscc, "gsc", "", "GSC compiler", nullptr, compiler);
