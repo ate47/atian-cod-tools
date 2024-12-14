@@ -6,6 +6,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
+#include <compiler/gsc_compiler.hpp>
 
 
 namespace {
@@ -319,16 +320,33 @@ namespace {
 			}
 				break;
 			case pool::ASSET_TYPE_SCRIPTPARSETREE: {
-				if (!precompiled) {
-					LOG_WARNING("No GSC compiler available for file {}", path.string());
-					continue;
+				std::vector<byte> buffer{};
+
+				if (precompiled) {
+					if (!utils::ReadFile(path, buffer)) {
+						LOG_WARNING("Can't read {}", path.string());
+						continue;
+					}
 				}
+				else {
+					// compile file
+					acts::compiler::CompilerConfig cfg{};
+					char namePatt[0x100];
+					sprintf_s(namePatt, "hash_%llx", name);
 
-				std::string buffer{};
+					cfg.name = namePatt;
+					cfg.platform = tool::gsc::opcode::PLATFORM_PC;
+					cfg.vm = tool::gsc::opcode::VMI_T8;
+					cfg.detourType = acts::compiler::DETOUR_ACTS;
+					cfg.processorOpt.defines.insert("_DFG_GEN");
 
-				if (!utils::ReadFile(path, buffer)) {
-					LOG_WARNING("Can't read {}", path.string());
-					continue;
+					try {
+						acts::compiler::CompileGsc(path, buffer, cfg);
+					}
+					catch (std::runtime_error& re) {
+						LOG_ERROR("Can't compile {}: {}", path.string(), re.what());
+						continue;
+					}
 				}
 
 				auto& e = entries.emplace_back();
@@ -337,13 +355,13 @@ namespace {
 				e.type = type;
 
 				// allocate data
-				dbflib::BlockId rawDataId = builder.CreateBlock(buffer.data(), buffer.length());
+				dbflib::BlockId rawDataId = builder.CreateBlock(buffer.data(), buffer.size());
 
 				// allocate header
 				auto [rawId, rawptr] = builder.CreateBlock<ScriptParseTreeEntry>();
 				entriesLoc.emplace_back(rawId);
 				rawptr->name.name = name;
-				rawptr->size = (uint32_t)buffer.length();
+				rawptr->size = (uint32_t)buffer.size();
 
 				// link header -> data
 				builder.CreateLink(rawId, offsetof(ScriptParseTreeEntry, buffer), rawDataId);
@@ -608,13 +626,17 @@ namespace {
 	}
 
 	int dbfread(Process& proc, int argc, const char* argv[]) {
-		if (argc < 3) {
+		if (tool::NotEnoughParam(argc, 2)) {
 			return tool::BAD_USAGE;
 		}
 
 		dbflib::DBFileReader reader{ argv[2] };
+		std::filesystem::path outDir{ argv[3] };
 
+		std::filesystem::create_directories(outDir);
 		DBFFileAssetTable* table = reader.GetStart<DBFFileAssetTable>();
+		
+		
 
 		LOG_INFO("Entries: {}", table->entriesCount);
 		for (size_t i = 0; i < table->entriesCount; i++) {
@@ -623,6 +645,12 @@ namespace {
 			case pool::ASSET_TYPE_LOCALIZE_ENTRY:
 				LOG_INFO("- {:x} ({}) -> '{}'", e.name, pool::XAssetNameFromId(e.type), e.header.localize->string);
 				break;
+			case pool::ASSET_TYPE_SCRIPTPARSETREE: {
+				std::filesystem::path outGscc{ outDir / std::format("script_{:x}.gscc", e.header.spt->name.name) };
+				utils::WriteFile(outGscc, e.header.spt->buffer, e.header.spt->size);
+				LOG_INFO("- {:x} ({}) -> {}", e.name, pool::XAssetNameFromId(e.type), outGscc.string());
+				break;
+			}
 			default:
 				LOG_INFO("- {:x} ({}) -> {}", e.name, pool::XAssetNameFromId(e.type), e.header.ptr);
 				break;
