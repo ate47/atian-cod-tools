@@ -170,7 +170,7 @@ namespace {
 	};
 
 	int fftest(Process& proc, int argc, const char* argv[]) {
-		if (argc < 3) {
+		if (tool::NotEnoughParam(argc, 1)) {
 			return tool::BAD_USAGE;
 		}
 
@@ -208,8 +208,9 @@ namespace {
 			LOG_INFO("archiveChecksum[{}] = {:x}", i, buffer->archiveChecksum[i]);
 		}
 
-		LOG_INFO("key: ....... {}", buffer->key);
-		LOG_INFO("compress: .. {}", (int)buffer->compression);
+		LOG_INFO("key ........ {}", buffer->key);
+		LOG_INFO("compress ... {}", (int)buffer->compression);
+		LOG_INFO("size ....... {}B", utils::FancyNumber(fileBuff.size()));
 
 		// 6 = inflate?
 		// 7 = lzma?
@@ -221,11 +222,22 @@ namespace {
 			LOG_INFO("checksum32 . {}", checksum32);
 		}
 
-		//WriteHex(std::cout, 0, reinterpret_cast<byte*>(buffer), sizeof(*buffer));
+		if (!tool::NotEnoughParam(argc, 2)) {
+			utils::OutFileCE os{ argv[3] };
 
-		//std::cout << "-----------------------------\n";
+			if (!os) {
+				LOG_ERROR("Can't open {}", argv[3]);
+				return tool::BASIC_ERROR;
+			}
 
-		//WriteHex(std::cout, reinterpret_cast<uintptr_t>(buffer + 1) - reinterpret_cast<uintptr_t>(buffer), reinterpret_cast<byte*>(buffer + 1), size - sizeof(*buffer));
+			WriteHex(os, 0, reinterpret_cast<byte*>(buffer), sizeof(*buffer));
+
+			os << "-----------------------------\n";
+
+			WriteHex(os, reinterpret_cast<uintptr_t>(buffer + 1) - reinterpret_cast<uintptr_t>(buffer), reinterpret_cast<byte*>(buffer + 1), fileBuff.size() - sizeof(*buffer));
+
+			LOG_INFO("Read into {}", argv[3]);
+		}
 
 
 

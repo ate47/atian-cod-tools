@@ -418,6 +418,49 @@ namespace utils {
 		~CloseEnd() { func(); };
 	};
 
+	class OutFileCE {
+		std::ofstream os;
+
+	public:
+		OutFileCE() : os() {}
+		OutFileCE(const char* f) : os(f) {}
+		OutFileCE(const std::filesystem::path& f) : os(f) {}
+		OutFileCE(const std::string& f) : os(f) {}
+
+		~OutFileCE() {
+			os.close();
+		}
+
+		bool operator!() {
+			return !os;
+		}
+
+		std::ofstream& operator*() {
+			return os;
+		}
+
+
+		operator std::ofstream& () {
+			return os;
+		}
+
+		std::ofstream* operator->() {
+			return &os;
+		}
+
+		template<typename T>
+		OutFileCE& operator<<(T&& t) {
+			os << std::move(t);
+			return *this;
+		}
+		template<typename T>
+		OutFileCE& operator<<(const T& t) {
+			os << t;
+			return *this;
+		}
+	};
+
+
 	template<typename Type>
 	struct BasicFormatter {
 		template<class ParseContext>
