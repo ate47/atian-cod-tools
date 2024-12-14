@@ -1,4 +1,5 @@
 #pragma once
+#include <utils/utils.hpp>
 
 namespace cli::clicolor {
 
@@ -28,3 +29,5 @@ namespace cli::clicolor {
 
 }
 std::ostream& operator<<(std::ostream& out, cli::clicolor::ColorData data);
+template<>
+struct std::formatter<cli::clicolor::ColorData, char> : utils::BasicFormatter<cli::clicolor::ColorData> {};

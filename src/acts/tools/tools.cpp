@@ -441,6 +441,8 @@ namespace {
 
 		std::cout << "\n";
 
+		LOG_INFO("test color {}OK /{}BAD", cli::clicolor::Color(0, 5, 0), cli::clicolor::Color(5, 0, 0));
+
 		LOG_TRACE("Trace log");
 		LOG_DEBUG("Debug log");
 		LOG_INFO("Info log");

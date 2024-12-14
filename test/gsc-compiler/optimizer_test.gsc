@@ -1,3 +1,5 @@
+#namespace optimizer_test;
+
 function vector_test() {
     a = (1, 0, 0);
     a = (1, -1, 0);
@@ -60,4 +62,22 @@ function vector_test() {
     }
 
     return 12;
+}
+
+function numbers_test() {
+    a = [
+        0,
+        0x7F,
+        -0x80,
+        0xFF,
+        0x7FFF,
+        -0x8000,
+        0xFFFF,
+        0x7FFFFFFF,
+        -0x80000000,
+        0xFFFFFFFF,
+        0x12345678901,
+        0x7FFFFFFFFFFFFFFF,
+        -0x8000000000000000,
+    ];
 }
