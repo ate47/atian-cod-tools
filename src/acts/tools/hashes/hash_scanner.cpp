@@ -10,7 +10,7 @@
 namespace tool::hash::scanner {
 
 	void ScanHashes(const std::vector<std::filesystem::path>& files, std::unordered_set<uint64_t>& hashes) {
-		static std::regex pattern{ "(hash|file|var|function|namespace|event|script)_([0-9a-fA-F]{1,16})" };
+		static std::regex pattern{ "(hash|file|var|function|namespace|event|script|class|_id|x64)[:_]([0-9a-fA-F]{1,16})" };
 
 		BS::thread_pool pool{};
 		std::mutex mtx{};
@@ -20,6 +20,15 @@ namespace tool::hash::scanner {
 		profiler.PushSection("Scan");
 		for (const std::filesystem::path& p : files) {
 			pool.detach_task([p, &mtx, &hashes] {
+				std::unordered_set<uint64_t> read{};
+				std::string fns{ p.string() };
+				auto nrbegin = std::sregex_iterator(fns.begin(), fns.end(), pattern);
+				auto nrend = std::sregex_iterator();
+				for (std::sregex_iterator it = nrbegin; it != nrend; ++it) {
+					std::smatch match = *it;
+					read.insert(std::stoull(match[2].str(), nullptr, 16));
+				}
+
 				std::string buffer{};
 				if (!utils::ReadFile(p, buffer)) {
 					LOG_ERROR("Can't read file {}.", p.string());
@@ -27,7 +36,6 @@ namespace tool::hash::scanner {
 				}
 				auto rbegin = std::sregex_iterator(buffer.begin(), buffer.end(), pattern);
 				auto rend = std::sregex_iterator();
-				std::unordered_set<uint64_t> read{};
 				for (std::sregex_iterator it = rbegin; it != rend; ++it) {
 					std::smatch match = *it;
 
@@ -48,24 +56,30 @@ namespace tool::hash::scanner {
 			profiler.WriteToStr(std::cout);
 		}
 	}
+
+	std::vector<std::filesystem::path> GetHashFiles(const std::filesystem::path& path) {
+		std::vector<std::filesystem::path> files{};
+
+		LOG_TRACE("Load file(s)...");
+		utils::GetFileRecurse(path, files, [](const std::filesystem::path& p) {
+			std::string name = p.string();
+			return
+				name.ends_with(".gsc") || name.ends_with(".csc")
+				|| name.ends_with(".csv") || name.ends_with(".tsv")
+				|| name.ends_with(".dec.lua")
+				|| name.ends_with(".ddl") || name.ends_with(".ddldef")
+				|| name.ends_with(".json");
+			});
+
+		return files;
+	}
 	namespace {
 
 		int hashscan(Process& proc, int argc, const char* argv[]) {
 			if (argc < 4) {
 				return tool::BAD_USAGE;
 			}
-
-			std::vector<std::filesystem::path> files{};
-
-			LOG_TRACE("Load file(s)...");
-			utils::GetFileRecurse(argv[2], files, [](const std::filesystem::path& p) {
-				std::string name = p.string();
-				return
-					name.ends_with(".gsc") || name.ends_with(".csc")
-					|| name.ends_with(".csv") || name.ends_with(".tsv")
-					|| name.ends_with(".dec.lua")
-					|| name.ends_with(".json");
-				});
+			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
 			LOG_TRACE("{} file(s) loaded...", files.size());
 
 			std::unordered_set<uint64_t> hashes{};
@@ -140,7 +154,6 @@ namespace tool::hash::scanner {
 				return tool::BAD_USAGE;
 			}
 
-			std::vector<std::filesystem::path> files{};
 			HashData data{ argv[3] };
 			const char* n{ argv[4] };
 			if (argc >= 6 && argv[5][0]) data.prefix = argv[5];
@@ -170,14 +183,7 @@ namespace tool::hash::scanner {
 			}
 
 			LOG_TRACE("Load file(s)...");
-			utils::GetFileRecurse(argv[2], files, [](const std::filesystem::path& p) {
-				std::string name = p.string();
-				return
-					name.ends_with(".gsc") || name.ends_with(".csc")
-					|| name.ends_with(".csv") || name.ends_with(".tsv")
-					|| name.ends_with(".dec.lua")
-					|| name.ends_with(".json");
-				});
+			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
 			LOG_TRACE("{} file(s) loaded...", files.size());
 
 			std::unordered_set<uint64_t> hashesTmp{};
@@ -361,8 +367,6 @@ namespace tool::hash::scanner {
 				return tool::BAD_USAGE;
 			}
 
-			std::vector<std::filesystem::path> files{};
-
 			HashDataDict data{ argv[3] };
 			const char* n{ argv[4] };
 			std::ifstream dictIs{ argv[5] };
@@ -419,14 +423,7 @@ namespace tool::hash::scanner {
 			}
 
 			LOG_TRACE("Load file(s) for {} (0x{:x})...", n, data.funcs);
-			utils::GetFileRecurse(argv[2], files, [](const std::filesystem::path& p) {
-				std::string name = p.string();
-				return
-					name.ends_with(".gsc") || name.ends_with(".csc")
-					|| name.ends_with(".csv") || name.ends_with(".tsv")
-					|| name.ends_with(".dec.lua")
-					|| name.ends_with(".json");
-				});
+			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
 			LOG_TRACE("{} file(s) loaded...", files.size());
 
 			std::unordered_set<uint64_t> hashesTmp{};
