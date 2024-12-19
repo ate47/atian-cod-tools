@@ -33,7 +33,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | Black Ops Cold War (T9)  | 38       | Dc        | ✅        | pc,ps4| [ate47/bocw-source](https://github.com/ate47/bocw-source) |
 | Modern Warfare III (JUP) | 8A       | ✅          | ✅      | pc | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
 | Modern Warfare III (JUP) | 8B       | Dc        | ✅       | pc | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
-| Black Ops 6 (T10)        | 06       | Dc & Ex  | ✅        | - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 06       | Dc & Ex  | ✅        | alpha | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 | Black Ops 6 (T10)        | 07       | Dc & Ex  | Ex       |  - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 | Black Ops 6 (T10)        | 0B       | Dc & Ex  | Ex      |  -  | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 | Black Ops 6 (T10)        | 0C       | Dc & Ex  | Ex      |  - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
