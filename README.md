@@ -24,41 +24,49 @@ My set of tools. The code is more important than the features, so feel free to r
 
 **Supported features**
 
-| Name                     | Revision | Decompiler | Compiler | Source\* |
-| ------------------------ | -------- | ---------- | -------- | ----------- |
-| Black Ops 3 (T7)         | 1B       | Partial    | ✅        | [ate47/bo3-source](https://github.com/ate47/bo3-source) |
-| Black Ops 3 (T7)         | 1C       | ✅          | ✅        | [ate47/bo3-source](https://github.com/ate47/bo3-source) |
-| Black Ops 4 (T8)         | 36       | ✅          | ✅        | [ate47/bo4-source](https://github.com/ate47/bo4-source) |
-| Black Ops Cold War (T9)  | 37       | DEC        | ✅        | [ate47/bocw-source](https://github.com/ate47/bocw-source) |
-| Black Ops Cold War (T9)  | 38       | DEC        | ✅        | [ate47/bocw-source](https://github.com/ate47/bocw-source) |
-| Modern Warfare III (JUP) | 8A       | ✅          | ✅      | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
-| Modern Warfare III (JUP) | 8B       | DEC        | ✅      | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
-| Black Ops 6 (T10)        | 06       | DEC & EXT  | ✅       | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
-| Black Ops 6 (T10)        | 07       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
-| Black Ops 6 (T10)        | 0B       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
-| Black Ops 6 (T10)        | 0C       | DEC & EXT  | EXT      | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Name                     | Rev | Decompiler | Compiler | Types | Source\* |
+| ------------------------ | -------- | ---------- | -------- | ---------| ----- |
+| Black Ops 3 (T7)         | 1B       | Partial    | ✅        | pc | [ate47/bo3-source](https://github.com/ate47/bo3-source) |
+| Black Ops 3 (T7)         | 1C       | ✅          | ✅        | pc | [ate47/bo3-source](https://github.com/ate47/bo3-source) |
+| Black Ops 4 (T8)         | 36       | ✅          | ✅        | pc,ps4 | [ate47/bo4-source](https://github.com/ate47/bo4-source) |
+| Black Ops Cold War (T9)  | 37       | Dc        | ✅        | pc,ps4,alpha| [ate47/bocw-source](https://github.com/ate47/bocw-source) |
+| Black Ops Cold War (T9)  | 38       | Dc        | ✅        | pc,ps4| [ate47/bocw-source](https://github.com/ate47/bocw-source) |
+| Modern Warfare III (JUP) | 8A       | ✅          | ✅      | pc | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
+| Modern Warfare III (JUP) | 8B       | Dc        | ✅       | pc | [ate47/mwiii-source](https://github.com/ate47/mwiii-source) |
+| Black Ops 6 (T10)        | 06       | Dc & Ex  | ✅        | - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 07       | Dc & Ex  | Ex       |  - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 0B       | Dc & Ex  | Ex      |  -  | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 0C       | Dc & Ex  | Ex      |  - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 
 - \* : Some source repositories might not be public yet.
-- **DEC**: With pre-decode, see the [GSC Decrypter section](#gsc-decrypter).
-- **EXT**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
+- **Dc**: With pre-decode, see the [GSC Decrypter section](#gsc-decrypter).
+- **Ex**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
 
 **Commands**
 ```pwsh
 # Compile gsc file
 
-acts gscc <input.gsc> -g <game>
+acts gscc <input.gsc> -g <game> (-p <type>)
 
 # Example
-acts gscc my_script.gsc -g cw # Compile my_script.gsc into a cold war script
+# Compile my_script.gsc into a cold war script
+acts gscc my_script.gsc -g cw
+
+# Compile my_script.gsc into a cold war script for ps4
+acts gscc my_script.gsc -g cw -p ps4
 ```
 
-```
+```pwsh
 # Decompile gsc file
-
-acts gscd file.gscc -g
+acts gscd <input.gscc> -g (-t <type>)
 
 # Example
-acts gscd compiled.gscc -g # Decompile the script compiled.gscc
+
+# Decompile the script compiled.gscc
+acts gscd compiled.gscc -g
+
+# Decompile the script compiled.gscc from a ps4 dump
+acts gscd compiled.gscc -g -t ps4
 ```
 
 ## Dumper
