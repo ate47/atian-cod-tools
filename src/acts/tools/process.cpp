@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/memapi_calls.hpp>
 #include "tools/pool.hpp"
 
 	/*
@@ -164,7 +165,7 @@ namespace {
 
 	int PTCallExt(Process& proc, int argc, const char* argv[]) {
 		Beep(750, 300);
-		auto ret = proc.Call<DWORD, DWORD>(proc["Kernel32.dll"]["beep"], 750, 300); // r8 r9
+		auto ret = memapi::Call<DWORD, DWORD>(proc, proc["Kernel32.dll"]["beep"], 750, 300); // r8 r9
 		if (!ret) {
 			std::cerr << "Error when calling func\n";
 			return tool::BASIC_ERROR;
@@ -180,7 +181,7 @@ namespace {
 	}
 
 	int PTCallExt2(Process& proc, int argc, const char* argv[]) {
-		auto ret = proc.Call<void*, const wchar_t*, int, int, int, int, int>(reinterpret_cast<uintptr_t>(&TestFunc1), nullptr, L"test", 32, 42, 65, 72, 85);
+		auto ret = memapi::Call<void*, const wchar_t*, int, int, int, int, int>(proc, reinterpret_cast<uintptr_t>(&TestFunc1), nullptr, L"test", 32, 42, 65, 72, 85);
 
 		if (!ret) {
 			std::cerr << "Error when calling func\n";
@@ -197,7 +198,7 @@ namespace {
 	}
 
 	int PTCallExt3(Process& proc, int argc, const char* argv[]) {
-		auto ret = proc.Call<double, const wchar_t*, int, int, int, const wchar_t*, double>(reinterpret_cast<uintptr_t>(&TestFunc2), 12.3, L"test", 32, 42, 65, L"test 3", 85.65);
+		auto ret = memapi::Call<double, const wchar_t*, int, int, int, const wchar_t*, double>(proc, reinterpret_cast<uintptr_t>(&TestFunc2), 12.3, L"test", 32, 42, 65, L"test 3", 85.65);
 
 		if (!ret) {
 			std::cerr << "Error when calling func\n";
@@ -214,7 +215,7 @@ namespace {
 	}
 
 	int PTCallExt4(Process& proc, int argc, const char* argv[]) {
-		auto ret = proc.Call<>(reinterpret_cast<uintptr_t>(&TestFunc3));
+		auto ret = memapi::Call<>(proc, reinterpret_cast<uintptr_t>(&TestFunc3));
 
 		if (!ret) {
 			std::cerr << "Error when calling func\n";
@@ -241,14 +242,14 @@ namespace {
 			<< "test1: " << ProcessInjectionTest1 << "\n"
 			<< "test2: " << ProcessInjectionTest2 << "\n";
 
-		if (!proc.Call<>(ProcessInjectionTest1)) {
+		if (!memapi::Call<>(proc, ProcessInjectionTest1)) {
 			std::cerr << "Error when calling ProcessInjectionTest1\n";
 			return tool::BASIC_ERROR;
 		}
 
 		std::cout << "ok 1\n";
 
-		if (!proc.Call<int, double, float, const wchar_t*, bool>(ProcessInjectionTest2, 2, 3.5, 4.5, L"Hello", true)) {
+		if (!memapi::Call<int, double, float, const wchar_t*, bool>(proc, ProcessInjectionTest2, 2, 3.5, 4.5, L"Hello", true)) {
 			std::cerr << "Error when calling ProcessInjectionTest2\n";
 			return tool::BASIC_ERROR;
 		}
@@ -270,7 +271,7 @@ namespace {
 		std::cout << "dll: " << mod << "\n"
 			<< "test1: " << TestFunctionScan << "\n";
 
-		if (!proc.Call<>(TestFunctionScan)) {
+		if (!memapi::Call<>(proc, TestFunctionScan)) {
 			std::cerr << "Error when calling TestFunctionScan\n";
 			return tool::BASIC_ERROR;
 		}
@@ -311,7 +312,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		if (!proc.Call<>(TestFunctionScan)) {
+		if (!memapi::Call<>(proc, TestFunctionScan)) {
 			std::cerr << "Error when calling TestFunctionScan\n";
 			return tool::BASIC_ERROR;
 		}

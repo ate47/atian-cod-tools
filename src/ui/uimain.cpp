@@ -1,5 +1,6 @@
 #include <ui_includes.hpp>
 #include <utils/memapi.hpp>
+#include <utils/memapi_calls.hpp>
 #include <games/bo4/scriptinstance.hpp>
 #include <games/bo4/offsets.hpp>
 #include <utils/hash.hpp>
@@ -250,7 +251,7 @@ namespace {
             game.FreeMemory(injectedScript.injectedScript, injectedScript.injectedScriptSize);
 
             if (injectedScript.detoursInjected) {
-                game.Call<int>(game["t8cinternal.dll"]["RemoveDetours"], scriptinstance::SI_SERVER);
+                memapi::Call<int>(game, game["t8cinternal.dll"]["RemoveDetours"], scriptinstance::SI_SERVER);
             }
         }
 
@@ -525,7 +526,7 @@ namespace {
                     return L"Can't write ACTS sync data";
                 }
 
-                if (!game.Call(rSyncCLI, rsync)) {
+                if (!memapi::Call(game, rSyncCLI, rsync)) {
                     game.FreeMemory(rsync, sizeof(data));
                     return L"Can't call ACTS sync data";
                 }
@@ -561,7 +562,7 @@ namespace {
 
                 // Init lazylinks
                 LOG_INFO("Init lazylinks...");
-                if (!game.Call(T8Dll_LazyLinkInit)) {
+                if (!memapi::Call(game, T8Dll_LazyLinkInit)) {
                     return L"Can't call t8cinternal.dll@T8Dll_LazyLinkInit";
                 }
 
@@ -574,7 +575,7 @@ namespace {
 
                     // Init builtins
                     LOG_INFO("Init builtins...");
-                    if (!game.Call(T8Dll_BuiltinsInit)) {
+                    if (!memapi::Call(game, T8Dll_BuiltinsInit)) {
                         return L"Can't call t8cinternal.dll@T8Dll_BuiltinsInit";
                     }
 
@@ -587,7 +588,7 @@ namespace {
 
                         // Init detour hooks
                         LOG_INFO("Init detours...");
-                        if (!game.Call(T8Dll_DetoursInit)) {
+                        if (!memapi::Call(game, T8Dll_DetoursInit)) {
                             return L"Can't call t8cinternal.dll@T8Dll_DetoursInit";
                         }
                     }
@@ -667,7 +668,7 @@ namespace {
                 }
 
                 // EXPORT bool RegisterDetours(void* DetourData, int NumDetours, int64_t scriptOffset, int32_t inst)
-                auto ret = game.Call<uintptr_t, int, int64_t, int32_t>(registerDetours, detourInfo, (int) gsicInfo.detours.size(), scriptAllocation, scriptinstance::SI_SERVER);
+                auto ret = memapi::Call<uintptr_t, int, int64_t, int32_t>(game, registerDetours, detourInfo, (int) gsicInfo.detours.size(), scriptAllocation, scriptinstance::SI_SERVER);
 
                 game.FreeMemory(detourInfo, detourDataSize);
 

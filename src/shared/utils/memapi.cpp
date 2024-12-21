@@ -1,6 +1,7 @@
 #include <includes_shared.hpp>
 #include "memapi.hpp"
 #include <utils/utils.hpp>
+#include <hook/library.hpp>
 
 ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0, 0) {
 }
@@ -118,7 +119,7 @@ bool Process::Open() {
 	if (m_handle) {
 		return true; // already open
 	}
-	m_handle = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, FALSE, m_pid);
+	m_handle = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION | PROCESS_ALL_ACCESS, FALSE, m_pid);
 
 	ComputeModules();
 
@@ -189,18 +190,50 @@ bool Process::IsInsideModule(uintptr_t ptr) const {
 	return ptr >= m_modAddress && ptr < m_modAddress + m_modSize;
 }
 
+namespace {
+	HANDLE NtCreateThreadEx(const Process& proc, uintptr_t location, uintptr_t arg) {
+		static
+			NTSTATUS
+			(NTAPI * func)(
+				_Out_ PHANDLE ThreadHandle,
+				_In_ ACCESS_MASK DesiredAccess,
+				_In_opt_ LPVOID  ObjectAttributes,
+				_In_ HANDLE ProcessHandle,
+				_In_ LPVOID StartRoutine,
+				_In_opt_ uintptr_t Argument,
+				_In_ ULONG CreateFlags, // THREAD_CREATE_FLAGS_*
+				_In_ SIZE_T ZeroBits,
+				_In_ SIZE_T StackSize,
+				_In_ SIZE_T MaximumStackSize,
+				_In_opt_ LPVOID AttributeList
+				) {
+			([]() {
+				hook::library::Library ntdll{ "ntdll.dll", true };
+				if (!ntdll) {
+					throw std::runtime_error("Can't load ntdll.dll");
+				}
+
+				decltype(func) f{ reinterpret_cast<decltype(func)>(ntdll["NtCreateThreadEx"]) };
+				if (!f) throw std::runtime_error("Can't load ntdll.dll::NtCreateThreadEx");
+				return f;
+				})()
+		};
+
+		HANDLE out{};
+		NTSTATUS ret{ func(&out, SPECIFIC_RIGHTS_ALL | STANDARD_RIGHTS_ALL, nullptr, proc.GetHandle(), reinterpret_cast<void*>(location), arg, 0x6, 0, 0, 0, nullptr) };
+
+		if (ret >= 0) return out;
+
+		LOG_ERROR("Can't create thread 0x{:x}", (uint32_t)ret);
+		return nullptr;
+	}
+}
 
 HANDLE Process::Exec(uintptr_t location, uintptr_t arg) const {
 	if (!m_handle) {
 		return INVALID_HANDLE_VALUE;
 	}
-
-	 return CreateRemoteThread(
-		m_handle, 0, 0,
-		reinterpret_cast<LPTHREAD_START_ROUTINE>(location), 
-		reinterpret_cast<void*>(arg), 
-		0, 0
-	 );
+	return NtCreateThreadEx(*this, location, arg);
 }
 
 void Process::FreeMemory(uintptr_t ptr, size_t size) const {

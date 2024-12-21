@@ -28,6 +28,11 @@ namespace tool::cordycep::dump {
 		uint64_t HeaderMemory;
 		uint64_t AssetMemory;
 	};
+
+	class PoolOption {
+	public:
+		virtual const char* AddString(const char* str) = 0;
+	};
 	int ForEachEntry(Process& proc, XAssetPool64& pool, std::function<bool(const XAsset64& asset, size_t count)> func) {
 		uintptr_t curr = pool.Root;
 
@@ -58,7 +63,7 @@ namespace tool::cordycep::dump {
 	using namespace bo6;
 
 	namespace jup {
-		class PoolOptionJup {
+		class PoolOptionJup : public PoolOption {
 		public:
 			bool m_help = false;
 			bool m_any_type = false;
@@ -151,7 +156,7 @@ namespace tool::cordycep::dump {
 				LOG_INFO("--v1                 : Use old pool dumper (compatibility)");
 			}
 
-			const char* AddString(const char* str) {
+			const char* AddString(const char* str) override {
 				if (m_dump_strings) {
 					dstrings.insert(str);
 				}
@@ -512,7 +517,7 @@ namespace tool::cordycep::dump {
 			};
 
 
-			bool WriteBundleDef(PoolOptionJup& opt, std::ostringstream& os, Process& proc, ScriptBundle& entry, ScriptBundleObjectDef& def, int depth) {
+			bool WriteBundleDef(PoolOption& opt, std::ostringstream& os, Process& proc, ScriptBundle& entry, ScriptBundleObjectDef& def, int depth) {
 				switch (def.type) {
 				case SBT_UNDEFINED:
 					os << "undefined";
@@ -1530,7 +1535,7 @@ namespace tool::cordycep::dump {
 	}
 
 	namespace bo6 {
-		class PoolOptionJup {
+		class PoolOptionJup : public PoolOption {
 		public:
 			bool m_help = false;
 			bool m_any_type = false;
@@ -1637,7 +1642,7 @@ namespace tool::cordycep::dump {
 				LOG_INFO("--v1                 : Use old pool dumper (compatibility)");
 			}
 
-			const char* AddString(const char* str) {
+			const char* AddString(const char* str) override {
 				if (m_dump_strings) {
 					dstrings.insert(str);
 				}
@@ -2373,6 +2378,189 @@ namespace tool::cordycep::dump {
 				return true;
 				});
 
+			HandlePool(T10R_ASSET_SCRIPTABLE, dumpDir, [&opt, &proc, dumpDir](const XAsset64& asset, size_t count) -> bool {
+				struct ScriptableInfo
+				{
+					uint64_t unk0;
+					uint64_t unk8;
+					uint32_t flags;
+					byte unk14;
+					byte unk15;
+					byte unk16;
+					byte unk17;
+					uint64_t unk18;
+					uint64_t unk20;
+					uint64_t unk28;
+					uint32_t unk30;
+					uint32_t unk34;
+					uint64_t unk38;
+					uint64_t unk40;
+					uint32_t unk50_count;
+					uint32_t unk4c;
+					byte* unk50;
+					uint64_t unk58;
+					uint64_t unk60;
+					uint16_t unk68;
+					uint16_t unk6a;
+					uint32_t unk6c;
+				};
+
+				struct Scriptable
+				{
+					uint64_t name;
+					uint64_t unk8;
+					uintptr_t nextScriptableDef; // Scriptable*
+					uint64_t flags;
+					uint32_t unk28_count;
+					uint32_t unk24;
+					uintptr_t unk28; // byte*
+					uintptr_t unk30; // ScriptableInfo*
+					uint64_t unk38;
+					byte unk40;
+					byte unk41;
+					byte unk42;
+					byte unk43;
+					byte unk44;
+					byte unk45;
+					byte unk46;
+					byte unk47;
+					uint64_t unk48;
+					byte unk50;
+					byte unk51;
+					byte unk52;
+					byte unk53;
+					uint32_t unk54;
+					uint64_t unk58;
+					byte unk60;
+					byte unk61;
+					byte unk62;
+					byte unk63;
+					byte unk64;
+					byte unk65;
+					byte unk66;
+					byte unk67;
+					uint64_t unk68;
+					uint64_t unk70;
+					uint64_t unk78;
+					uint32_t unk80;
+					byte unk84;
+					byte unk85;
+					byte unk86;
+					byte unk87;
+					uint32_t unk88;
+					uint32_t numXModels;
+					uintptr_t models; // XModel**
+					uint64_t unk98;
+					uintptr_t unka0; // SoundBankTransient*
+					uint64_t unka8;
+					uint64_t unkb0;
+					uint64_t unkb8;
+				};
+
+				auto entry = proc.ReadMemoryObjectEx<Scriptable>(asset.Header);
+				auto info = proc.ReadMemoryObjectEx< ScriptableInfo>(entry->unk30);
+
+				const char* filename = hashutils::ExtractPtr(entry->name);
+				std::filesystem::path path{ std::filesystem::path{ opt.m_output } / (filename ? utils::va("scriptable/%s.json", filename) : utils::va("scriptable/file_%llx.json", entry->name)) };
+				std::filesystem::create_directories(path.parent_path());
+
+				utils::OutFileCE os{ path };
+
+				if (!os) {
+					LOG_ERROR("Can't open {}", path.string());
+					return false;
+				}
+				os << "{\n";
+				utils::Padding(os, 1) << "\"name\": \"#" << hashutils::ExtractTmp("hash", entry->name) << "\"";
+
+				uint64_t next{ entry->nextScriptableDef ? proc.ReadMemory<uint64_t>(entry->nextScriptableDef) : 0 };
+
+				if (next) {
+					utils::Padding(os << ",\n", 1) << "\"next\": \"#" << hashutils::ExtractTmp("hash", next) << "\"";
+				}
+
+				if (entry->numXModels) {
+					auto models = proc.ReadMemoryArrayEx<uintptr_t>(entry->models, entry->numXModels);
+
+					utils::Padding(os << ",\n", 1) << "\"xModels\": [";
+					for (size_t i = 0; i < entry->numXModels; i++) {
+						if (i) os << ",";
+						utils::Padding(os << "\n", 2) << "\"#"  << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(models[i])) << "\"";
+					}
+					utils::Padding(os << "\n", 1) << "]";
+				}
+
+				os << "\n}";
+				tool::pool::WriteHex(os, asset.Header, (void*)entry.get(), asset.HeaderSize, proc);
+				os << "----------------------------------\n";
+				tool::pool::WriteHex(os, asset.Header, (void*)info.get(), sizeof(*info), proc);
+
+				LOG_INFO("Dump into {}", path.string());
+
+				return true;
+			});
+			HandlePool(T10R_ASSET_SCRIPTBUNDLE, dumpDir, [&opt, &proc, dumpDir](const XAsset64& asset, size_t count) -> bool {
+					
+					using namespace jup::jupv2;
+					ScriptBundle entry{};
+					if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+						LOG_ERROR("Can't read ScriptBundle {:x}", asset.Header);
+						return false;
+					}
+
+					const char* filename = hashutils::ExtractPtr(entry.name);
+
+					if (!filename) filename = utils::va("file_%llx.%s", entry.name, opt.m_cf_files ? ".cf" : "json");
+
+					if (!opt.m_cf_files) {
+						filename = utils::va("scriptbundle/%s", filename);
+					}
+
+					std::filesystem::path out = dumpDir / filename;
+					std::filesystem::create_directories(out.parent_path());
+
+					LOG_INFO("Dump {} -> {}", hashutils::ExtractTmp("hash", entry.name), out.string());
+					std::ostringstream os{};
+
+					os << "{";
+
+					if (entry.data.count) {
+						auto objects = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(entry.data.defs, entry.data.count);
+						auto names = proc.ReadMemoryArrayEx<uint64_t>(entry.data.names, entry.data.count);
+
+						for (size_t i = 0; i < entry.data.count; i++) {
+							if (i) os << ",";
+							os << "\n";
+							utils::Padding(os, 1) << "\"#" << hashutils::ExtractTmp("hash", names[i]) << "\": ";
+							WriteBundleDef(opt, os, proc, entry, objects[i], 1);
+						}
+
+					}
+					os
+						<< "\n"
+						<< "}";
+
+					if (opt.m_cf_files) {
+						std::ofstream osf{ out, std::ios::binary };
+						if (osf) {
+							tool::hashes::compiled_files::CompiledFileHeader header{};
+							header.name = entry.name;
+							header.isString = true;
+							header.isSpecial = true;
+							strcpy_s(header.type, "scriptbundle");
+							strcpy_s(header.preferedExtension, "json");
+							osf.write((const char*)&header, sizeof(header));
+							std::string osc = os.str();
+							osf.write(osc.data(), osc.size());
+							osf.close();
+						}
+					}
+					else {
+						utils::WriteFile(out, os.str());
+					}
+
+				return true;
+			});
 			// LocalizeEntry
 			if (opt.m_dump_types[T10R_ASSET_LOCALIZE] || opt.m_dump_all_available) {
 				opt.m_dump_types[T10R_ASSET_LOCALIZE] = false;
@@ -2453,7 +2641,7 @@ namespace tool::cordycep::dump {
 	}
 
 	namespace mw19 {
-		class PoolOptionJup {
+		class PoolOptionJup : public PoolOption {
 		public:
 			bool m_help = false;
 			bool m_any_type = false;
@@ -2552,7 +2740,7 @@ namespace tool::cordycep::dump {
 				LOG_INFO("--v1                 : Use old pool dumper (compatibility)");
 			}
 
-			const char* AddString(const char* str) {
+			const char* AddString(const char* str) override {
 				if (m_dump_strings) {
 					dstrings.insert(str);
 				}
