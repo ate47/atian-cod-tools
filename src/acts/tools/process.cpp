@@ -16,6 +16,7 @@ namespace {
 	int PTCallExt4(Process& proc, int argc, const char* argv[]);
 	int PTCallExt5(Process& proc, int argc, const char* argv[]);
 	int PTCallExt6(Process& proc, int argc, const char* argv[]);
+	int PTCallMessage(Process& proc, int argc, const char* argv[]);
 
 	int processtool(Process& unused, int argc, const char* argv[]) {
 		if (argc <= 3) {
@@ -64,6 +65,9 @@ namespace {
 		}
 		else if (!_strcmpi("ce6", argv[3])) {
 			func = PTCallExt6;
+		}
+		else if (!_strcmpi("mb", argv[3])) {
+			func = PTCallMessage;
 		}
 	#endif // !CI
 
@@ -319,6 +323,24 @@ namespace {
 
 		return tool::OK;
 	}
+	void TestCallMB(int t, const char* msg, const char* title, DWORD icon) {
+		//LOG_INFO("{}, {}, {}, {}", t, (void*)msg, (void*)title, icon);
+		LOG_INFO("test");
+	}
+
+	int PTCallMessage(Process& proc, int argc, const char* argv[]) {
+		ProcessModuleExport& mb = proc["User32.dll"]["MessageBoxA"];
+
+		if (!mb) {
+			LOG_ERROR("Can't find MessageBoxA");
+			return tool::BASIC_ERROR;
+		}
+		
+		//memapi::Call<uintptr_t, const char*, const char*, DWORD>(proc, reinterpret_cast<uintptr_t>(&TestCallMB), 0, argv[4], "test", MB_ICONINFORMATION);
+		memapi::Call<>(proc, reinterpret_cast<uintptr_t>(&TestCallMB), 0, 0, 0, 0);
+		return tool::OK;
+	}
+	
 
 	int PTCall(Process& proc, int argc, const char* argv[]) {
 		ProcessModuleExport& beep = proc["kernel32.dll"]["beep"];

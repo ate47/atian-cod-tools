@@ -16,6 +16,32 @@ class ProcessLocation;
 // - Find exports
 // - Call functions
 
+class ProcessMemory {
+	const Process& proc;
+	uintptr_t ptr;
+	size_t size;
+public:
+	ProcessMemory(const Process& proc, uintptr_t ptr, size_t size) : proc(proc), ptr(ptr), size(size) {}
+	~ProcessMemory() { Free(); }
+	ProcessMemory(ProcessMemory&& other) noexcept : proc(other.proc), ptr(other.ptr), size(other.size) {
+		other.ptr = 0;
+	}
+	ProcessMemory(ProcessMemory& other) = delete;
+
+	operator uintptr_t() const {
+		return ptr;
+	}
+	operator bool() const {
+		return ptr && size;
+	}
+
+	constexpr size_t Size() const {
+		return size;
+	}
+
+	void Free();
+};
+
 class ProcessLocation {
 private:
 	const Process& proc;
@@ -177,6 +203,34 @@ public:
 	 * @return pointer or null
 	 */
 	uintptr_t AllocateString(const char* string, size_t* sizeOut) const;
+	/*
+	 * Allocate memory in the process
+	 * @param size Size to allocate
+	 * @return pointer or null
+	 */
+	ProcessMemory AllocateMemoryRef(size_t size) const {
+		return { *this, AllocateMemory(size), size };
+	}
+	/*
+	 * Allocate memory in the process with protection
+	 * @param size Size to allocate
+	 * @param protection Protection
+	 * @return pointer or null
+	 */
+	ProcessMemory AllocateMemoryRef(size_t size, DWORD protection) const {
+		return { *this, AllocateMemory(size, protection), size };
+	}
+	/*
+	 * Allocate string in the process
+	 * @param string String to allocate
+	 * @return pointer or null
+	 */
+	ProcessMemory AllocateStringRef(const char* string, size_t* sizeOut) const {
+		size_t size{};
+		uintptr_t str{ AllocateString(string, &size) };
+		if (sizeOut) *sizeOut = size;
+		return { *this, str, size };
+	}
 	/*
 	 * Set the protection of a location in memory
 	 * @param ptr Pointer to set

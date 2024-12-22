@@ -10,6 +10,10 @@ int64_t ProcessModule::GetRelativeOffset(uintptr_t ptr) const {
 	return ptr - start;
 }
 
+void ProcessMemory::Free() {
+	if (*this) proc.FreeMemory(ptr, size);
+}
+
 DWORD Process::GetProcId(const wchar_t* name) {
 	DWORD pid = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
