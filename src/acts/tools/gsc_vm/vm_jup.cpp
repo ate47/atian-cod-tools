@@ -13,7 +13,7 @@ namespace {
 
     class MW23GSCOBJHandler : public GSCOBJHandler {
     public:
-        MW23GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_FILENAMESPACE) {}
+        MW23GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_FILENAMESPACE | GOHF_SWITCH_TYPE_IW) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<GscObj23>();
@@ -368,7 +368,7 @@ namespace {
 
     class MW23BGSCOBJHandler : public GSCOBJHandler {
     public:
-        MW23BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_FILENAMESPACE) {}
+        MW23BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_FILENAMESPACE | GOHF_SWITCH_TYPE_IW) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<GscObj23>();

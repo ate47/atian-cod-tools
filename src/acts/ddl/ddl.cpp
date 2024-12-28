@@ -182,24 +182,19 @@ public:
             tmp[DDL_UINT64_TYPE] = { hash::Hash64("uint64"), DDL_UINT64_TYPE, 64 };
             tmp[DDL_HASH_TYPE] = { hash::Hash64("hash"), DDL_HASH_TYPE, 64 };
             tmp[DDL_FLOAT_TYPE] = { hash::Hash64("float"), DDL_FLOAT_TYPE, 32 };
-            tmp[DDL_FIXEDPOINT_TYPE] = { hash::Hash64("fixedpoint"), DDL_FIXEDPOINT_TYPE, 32 };
+            tmp[DDL_FIXEDPOINT_TYPE] = { hash::Hash64("fixed"), DDL_FIXEDPOINT_TYPE, 32 };
             tmp[DDL_STRING_TYPE] = { hash::Hash64("char"), DDL_STRING_TYPE, 8 };
-            tmp[DDL_PAD_TYPE] = { hash::Hash64("padbit"), DDL_PAD_TYPE, 1 };
+            tmp[DDL_PAD_TYPE] = { hash::Hash64("pad"), DDL_PAD_TYPE, 1 };
 
             size_t idx = DDL_CLASS_TYPE;
             
-            tmp[idx++] = { hash::Hash64("bit"), DDL_UINT_TYPE, 1 };
+            tmp[idx++] = { hash::Hash64("bool"), DDL_UINT_TYPE, 1 };
             tmp[idx++] = { hash::Hash64("double"), DDL_FLOAT_TYPE, 64 };
 
-            char tmpName[0x20];
-
             for (size_t i = 1; i <= 64; i++) {
-                sprintf_s(tmpName, "uint%lld", i);
-                tmp[idx] = { hash::Hash64(tmpName), DDL_UINT_TYPE, i };
-                sprintf_s(tmpName, "int%lld", i);
-                tmp[idx + 1] = { hash::Hash64(tmpName), DDL_INT_TYPE, i };
-                sprintf_s(tmpName, "fixedpoint%lld", i); // wtf if non 8 << (x)?
-                tmp[idx + 2] = { hash::Hash64(tmpName), DDL_FIXEDPOINT_TYPE, i };
+                tmp[idx] = { hash::Hash64(std::format("uint:{}", i)), DDL_UINT_TYPE, i };
+                tmp[idx + 1] = { hash::Hash64(std::format("int:{}", i)), DDL_INT_TYPE, i };
+                tmp[idx + 2] = { hash::Hash64(std::format("fixed<{}>", i)), DDL_FIXEDPOINT_TYPE, i };
 
                 idx += 3;
             }
@@ -480,7 +475,7 @@ namespace {
             }
 
             auto rule = dynamic_cast<RuleContext&>(*e).getRuleIndex();
-
+            /*
             switch (rule) {
             case ddlParser::RuleData: {
                 auto idf = e->children[0]->getText();
@@ -649,6 +644,7 @@ namespace {
                 opt.PrintLineMessage(std::cerr, e) << "Bad export rule\n";
                 return false;
             }
+            */
         }
 
         LOG_INFO("Checking DDL structure...");

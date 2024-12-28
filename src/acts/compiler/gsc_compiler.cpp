@@ -990,6 +990,8 @@ namespace acts::compiler {
         CompilerConfig config{};
         int32_t crcServer{};
         int32_t crcClient{};
+        bool oneFilePerComp{};
+        bool hashFile{};
         const char* nameServer{ "" };
         const char* nameClient{ "" };
         const char* fileNameSpaceServer{ "" };
@@ -1038,6 +1040,9 @@ namespace acts::compiler {
                 }
                 else if (!strcmp("-d", arg) || !_strcmpi("--dbg", arg)) {
                     config.computeDevOption = true;
+                }
+                else if (!strcmp("-f", arg) || !_strcmpi("--file", arg)) {
+                    oneFilePerComp = true;
                 }
                 else if (!strcmp("-O", arg) || !_strcmpi("--obfuscate", arg)) {
                     config.obfuscate = true;
@@ -1186,6 +1191,7 @@ namespace acts::compiler {
             LOG_INFO("-o --output [f]        : Set output file (without extension), default: 'compiled'");
             LOG_INFO("-D[name]               : Define variable");
             LOG_INFO("-c --csc               : Build client script with csc files");
+            LOG_INFO("-f --file              : Compile each file inside an independant one");
             LOG_INFO("--detour [t]           : Set the detour compilation type ('none' / 'acts' / 'gsic') default: 'none'");
             LOG_INFO("--crc [c]              : Set the crc for the server script");
             LOG_INFO("--crc-client [c]       : Set the crc for the client script");
@@ -1486,21 +1492,18 @@ namespace acts::compiler {
 
             currentNamespace = fileNameSpace;
         }
-
-        void AddHash(const std::string& str) {
-            const char* strc{ str.c_str() };
-            if (!hash::HashPattern(strc)) {
-                hashes.insert(str);
-                hashutils::Add(strc);
-            }
-        }
-
         void AddHash(const char* str) {
             if (!hash::HashPattern(str)) {
                 hashes.insert(str);
                 hashutils::Add(str);
+                if (config.hashes) config.hashes->insert(str);
             }
         }
+
+        void AddHash(const std::string& str) {
+            AddHash(str.c_str());
+        }
+
 
         void AddInclude(std::string& data) {
             includes.insert(data);
@@ -2236,10 +2239,11 @@ namespace acts::compiler {
                 for (uint32_t* lis : strobj.listeners) {
                     *lis = strobj.location;
                 }
-                if (vmInfo->vmMagic == VMI_T8) {
-                    data.push_back(0x9f);
-                    data.push_back((byte)(key.length() + 1));
-                }
+
+                auto [strHeader, strHeaderSize] = gscHandler->GetStringHeader(key.length());
+
+                utils::WriteValue(data, (void*)strHeader, strHeaderSize);
+
                 utils::WriteString(data, key.c_str());
                 // add bytes to the string
                 if (key.length() < strobj.forceLen) {
@@ -2251,6 +2255,7 @@ namespace acts::compiler {
 
             size_t stringRefs = data.size();
             size_t stringCount{};
+
 
             for (auto& [key, strobj] : strings) {
                 size_t w{};
@@ -3145,6 +3150,7 @@ namespace acts::compiler {
                 return !err;
             }
             case gscParser::RuleStatement_switch: {
+                //uint64_t switchType{ obj.gscHandler->buildFlags & tool::gsc::GOHF_SWITCH_TYPE_MASK };
                 auto [err, var] = fobj.RegisterVarRnd();
 
                 if (err) {
@@ -3943,7 +3949,7 @@ namespace acts::compiler {
                         return true;
                     }
                     // test dev call
-                    if (!obj.config.noDevCallInline && !obj.devBlockDepth && fobj.m_vmInfo->devCallsNames.find(funcHash & 0x7FFFFFFFFFFFFFFF) != fobj.m_vmInfo->devCallsNames.end()) {
+                    if (!obj.config.noDevCallInline && !obj.devBlockDepth && fobj.m_vmInfo->devCallsNames.find(funcHash & hash::MASK62) != fobj.m_vmInfo->devCallsNames.end()) {
                         if (!expressVal) { // can't inline a returned value
                             devCallInlineEnd = new AscmNode();
                             fobj.AddNode(rule, new AscmNodeJump(devCallInlineEnd, OPCODE_DevblockBegin));
@@ -5923,13 +5929,7 @@ namespace acts::compiler {
 
         std::shared_ptr<tool::gsc::GSCOBJHandler> handler {(*readerBuilder)(nullptr, 0)};
 
-        std::vector<std::filesystem::path> inputs{};
-
-        for (const char* file : opt.m_inputFiles) {
-            utils::GetFileRecurse(file, inputs);
-        }
-
-        auto produceFile = [&opt, &inputs, &handler](bool client) -> int {
+        auto produceFile = [&opt, &handler](bool client, std::vector<std::filesystem::path>& inputs) -> int {
             opt.config.clientScript = client;
             VmInfo* vmInfo{ opt.config.GetVm() };
 
@@ -5947,7 +5947,12 @@ namespace acts::compiler {
                 fileNameStr = handler->GetDefaultName(client);
             }
 
-            opt.config.fileName = client ? opt.fileNameSpaceClient : opt.fileNameSpaceServer;
+            if (client) {
+                if (opt.fileNameSpaceClient && *opt.fileNameSpaceClient) opt.config.fileName = opt.fileNameSpaceClient;
+            }
+            else {
+                if (opt.fileNameSpaceServer && *opt.fileNameSpaceServer) opt.config.fileName = opt.fileNameSpaceServer;
+            }
 
 
             std::vector<std::filesystem::path> files{};
@@ -5965,6 +5970,8 @@ namespace acts::compiler {
                 }
                 files.emplace_back(file);
             }
+
+            if (files.empty()) return tool::OK; // nothing to compile
             std::vector<byte> data{};
 
             LOG_TRACE("Compile tree");
@@ -5974,6 +5981,12 @@ namespace acts::compiler {
                 opt.config.preprocOutput = &preprocout;
             }
 
+            std::unordered_set<std::string> hashes{};
+
+            if (opt.hashFile) {
+                opt.config.hashes = &hashes;
+            }
+
             CompileGsc(inputs, data, opt.config);
 
             if (opt.m_preproc) {
@@ -5981,18 +5994,112 @@ namespace acts::compiler {
             }
 
             const char* outFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscc" : "gscc")};
-            utils::WriteFile(outFile, (const void*)data.data(), data.size());
+            std::filesystem::path outPath{ outFile };
 
+            if (outPath.has_parent_path()) {
+                std::filesystem::create_directories(outPath.parent_path());
+            }
+
+            if (!utils::WriteFile(outFile, (const void*)data.data(), data.size())) {
+                LOG_ERROR("Error when writing out file");
+                return tool::BASIC_ERROR;
+            }
             LOG_INFO("Done into {} ({}/{})", outFile, vmInfo->codeName, PlatformName(opt.config.platform));
+
+            if (opt.hashFile) {
+                const char* outFileHash{ utils::va("%s.hash", outFile) };
+                utils::OutFileCE hos{ outFileHash };
+                if (!hos) {
+                    LOG_ERROR("Can't open hash file {}", outFileHash);
+                    return tool::BASIC_ERROR;
+                }
+                else {
+                    for (const std::string& str : hashes) {
+                        hos << str << "\n";
+                    }
+                    LOG_INFO("Hashes dumped into {}", outFileHash);
+                }
+            }
+
             return tool::OK;
         };
 
-        int ret = produceFile(false);
+        if (opt.oneFilePerComp) {
+            // create one per file
+            char outnameDir[0x200]{};
+            std::filesystem::path outDir{ opt.m_outFileName };
+            int ret{ tool::OK };
+            std::vector<std::filesystem::path> inputs{};
+            std::vector<std::filesystem::path> singleInputs{};
+            for (const char* file : opt.m_inputFiles) {
+                std::filesystem::path base{ file };
+                inputs.clear();
+                utils::GetFileRecurse(base, inputs);
 
-        if (ret) {
+                for (const std::filesystem::path& path : inputs) {
+                    auto ext{ path.extension() };
+                    if (ext != ".gsc" && ext != ".csc" && ext != ".gcsc" && ext != ".gcsc") continue;
+
+                    std::filesystem::path trueFileName{ std::filesystem::relative(path, base) };
+                    std::filesystem::path outFile{ outDir / trueFileName };
+
+
+                    std::string outFileName{ outFile.string() };
+                    LOG_INFO("Compiling {} into {}", trueFileName.string(), outFileName);
+                    outFile.replace_extension();
+                    std::string outFileNameNE{ outFile.string() };
+
+                    opt.config.name = outFileName.data();
+                    std::string fileNamespace;
+                    if (vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                        fileNamespace = outFileName;
+                    }
+                    else {
+                        fileNamespace = outFile.filename().string();
+                    }
+                    opt.config.fileName = fileNamespace.data();
+                    opt.m_outFileName = outFileNameNE.data();
+
+                    singleInputs.clear();
+                    singleInputs.push_back(path);
+
+                    try {
+                        int sret;
+                        
+                        if (ext == ".gsc" || ext == ".gcsc") {
+                            sret = produceFile(false, singleInputs);
+                            if (sret != tool::OK) ret = sret;
+                        }
+
+                        if (ext == ".csc" || ext == ".gcsc") {
+                            sret = produceFile(true, singleInputs);
+                            if (sret != tool::OK) ret = sret;
+                        }
+                    }
+                    catch (std::runtime_error& err) {
+                        LOG_ERROR("Error when compiling: {}", err.what());
+                        ret = tool::BASIC_ERROR;
+                    }
+                }
+
+            }
             return ret;
         }
-        return produceFile(true);
+        else {
+            std::vector<std::filesystem::path> inputs{};
+
+            for (const char* file : opt.m_inputFiles) {
+                utils::GetFileRecurse(file, inputs);
+            }
+
+            // build csc/gsc
+            int ret = produceFile(false, inputs);
+
+            if (ret) {
+                return ret;
+            }
+            return produceFile(true, inputs);
+        }
     }
     int gscc_pack(Process& proc, int argc, const char* argv[]) {
         if (argc < 4) return tool::BAD_USAGE;

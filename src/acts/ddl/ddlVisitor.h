@@ -21,7 +21,7 @@ public:
    */
     virtual std::any visitProg(ddlParser::ProgContext *context) = 0;
 
-    virtual std::any visitData(ddlParser::DataContext *context) = 0;
+    virtual std::any visitBuffer_data(ddlParser::Buffer_dataContext *context) = 0;
 
     virtual std::any visitEnum(ddlParser::EnumContext *context) = 0;
 

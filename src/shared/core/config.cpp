@@ -6,81 +6,80 @@
 #include <utils/utils.hpp>
 
 namespace core::config {
-	namespace {
-		rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
-			static rapidjson::Value nullAnswer{ rapidjson::kNullType };
-			if (!path || !*path || loc.IsNull()) {
-				return nullAnswer; // not a valid path/object
-			}
+	rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& Config::GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
+		static rapidjson::Value nullAnswer{ rapidjson::kNullType };
+		if (!path || !*path || loc.IsNull()) {
+			return nullAnswer; // not a valid path/object
+		}
 
-			std::string_view sv{ path + off };
-			size_t idx = sv.find('.', 0);
+		std::string_view sv{ path + off };
+		size_t idx = sv.find('.', 0);
 
-			if (idx == std::string::npos) {
-				std::string node{ path + off, sv.length() };
+		if (idx == std::string::npos) {
+			std::string node{ path + off, sv.length() };
 
 				if (!loc.HasMember(node.c_str())) {
-					return nullAnswer;
-				}
-
-				return loc[node.c_str()];
+				return nullAnswer;
 			}
-			std::string node{ path + off, idx };
+
+			return loc[node.c_str()];
+		}
+		std::string node{ path + off, idx };
 
 			if (!loc.HasMember(node.c_str())) {
-				return nullAnswer;
-			}
-
-			auto& val = loc[node.c_str()];
-
-			if (!val.IsObject()) {
-				return nullAnswer;
-			}
-
-			return GetVal(path + off, idx + 1, val);
+			return nullAnswer;
 		}
 
-		void SetVal(Config& cfg, const char* path, rapidjson::Value& value, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
-			if (!path || !*path) {
-				LOG_WARNING("Using setval with invalid path");
-				return; // not a valid path
-			}
-			if (!loc.IsObject()) {
-				loc.SetObject();
-			}
-			std::string_view sv{ path + off };
-			size_t idx = sv.find('.', 0);
+		auto& val = loc[node.c_str()];
 
-			if (idx == std::string::npos) {
-				std::string node{ path + off, sv.length() };
+		if (!val.IsObject()) {
+			return nullAnswer;
+		}
 
-				rapidjson::Value key{ rapidjson::kStringType };
-				key.SetString(node.c_str(), cfg.main.GetAllocator());
+		return GetVal(path + off, idx + 1, val);
+	}
 
-				if (loc.HasMember(key)) {
-					loc.EraseMember(key);
-				}
+	void Config::SetVal(const char* path, rapidjson::Value& value, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
+		if (!path || !*path) {
+			LOG_WARNING("Using setval with invalid path");
+			return; // not a valid path
+		}
+		if (!loc.IsObject()) {
+			loc.SetObject();
+		}
+		std::string_view sv{ path + off };
+		size_t idx = sv.find('.', 0);
 
-				loc.AddMember(key, value, cfg.main.GetAllocator());
-				return;
-			}
-
-			std::string node{ path + off, idx };
+		if (idx == std::string::npos) {
+			std::string node{ path + off, sv.length() };
 
 			rapidjson::Value key{ rapidjson::kStringType };
-			key.SetString(node.c_str(), cfg.main.GetAllocator());
+			key.SetString(node.c_str(), main.GetAllocator());
 
-			if (!loc.HasMember(key)) {
-				rapidjson::Value v{ rapidjson::kObjectType };
-				SetVal(cfg, path + off, value, idx + 1, v);
-				loc.AddMember(key, v, cfg.main.GetAllocator());
-			}
-			else {
-				SetVal(cfg, path + off, value, idx + 1, loc[key]);
+			if (loc.HasMember(key)) {
+				loc.EraseMember(key);
 			}
 
+			loc.AddMember(key, value, main.GetAllocator());
+			return;
 		}
+
+		std::string node{ path + off, idx };
+
+		rapidjson::Value key{ rapidjson::kStringType };
+		key.SetString(node.c_str(), main.GetAllocator());
+
+		if (!loc.HasMember(key)) {
+			rapidjson::Value v{ rapidjson::kObjectType };
+			SetVal(path + off, value, idx + 1, v);
+			loc.AddMember(key, v, main.GetAllocator());
+		}
+		else {
+			SetVal(path + off, value, idx + 1, loc[key]);
+		}
+
 	}
+
 	Config::Config(const std::filesystem::path& path) : configFile(path.is_absolute() ? path : (utils::GetProgDir() / path)) {}
 
 	int64_t Config::GetInteger(const char* path, int64_t defaultValue) {
@@ -125,23 +124,23 @@ namespace core::config {
 
 	void Config::SetInteger(const char* path, int64_t defaultValue) {
 		rapidjson::Value v{ defaultValue };
-		SetVal(*this, path, v, 0, main);
+		SetVal(path, v, 0, main);
 	}
 
 	void Config::SetDouble(const char* path, double defaultValue) {
 		rapidjson::Value v{ defaultValue };
-		SetVal(*this, path, v, 0, main);
+		SetVal(path, v, 0, main);
 	}
 
 	void Config::SetString(const char* path, const std::string& defaultValue) {
 		rapidjson::Value v{ rapidjson::kStringType };
 		v.SetString(defaultValue.c_str(), main.GetAllocator());
-		SetVal(*this, path, v, 0, main);
+		SetVal(path, v, 0, main);
 	}
 
 	void Config::SetBool(const char* path, bool defaultValue) {
 		rapidjson::Value v{ defaultValue };
-		SetVal(*this, path, v, 0, main);
+		SetVal(path, v, 0, main);
 	}
 	int64_t Config::GetEnum(const char* path, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue) {
 		const char* defaultValueStr{ "" };

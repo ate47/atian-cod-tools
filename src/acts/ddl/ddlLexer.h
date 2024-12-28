@@ -13,8 +13,9 @@ class  ddlLexer : public antlr4::Lexer {
 public:
   enum {
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
-    T__7 = 8, T__8 = 9, NEWLINE = 10, WHITESPACE = 11, INTEGER10 = 12, INTEGER16 = 13, 
-    INTEGER8 = 14, INTEGER2 = 15, IDENTIFIER = 16, PATH = 17, STRING = 18
+    T__7 = 8, T__8 = 9, T__9 = 10, NEWLINE = 11, WHITESPACE = 12, INTEGER10 = 13, 
+    INTEGER16 = 14, INTEGER8 = 15, INTEGER2 = 16, IDENTIFIER = 17, PATH = 18, 
+    STRING = 19
   };
 
   explicit ddlLexer(antlr4::CharStream *input);

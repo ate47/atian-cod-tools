@@ -217,6 +217,15 @@ namespace hashutils {
 			Add(buff, true, iw, true);
 		}
 
+		// nameless fields in compiler
+		Add("$$tmp", true, iw, true);
+		Add("$notif_checkum", true, iw, true);
+		Add("$BAD_VAR", true, iw, true);
+		for (size_t i = 0; i < 0x100; i++) {
+			Add(utils::va("$nameless_%llx", i), true, iw, true);
+			Add(utils::va("$$v%llx", i), true, iw, true);
+		}
+
 		// Decompiler special values
 		Add("self", true, iw, true);
 		Add("size", true, iw, true);

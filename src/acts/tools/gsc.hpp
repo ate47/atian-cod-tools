@@ -48,12 +48,20 @@ namespace tool::gsc {
         GOHF_FILENAMESPACE = 0x8000,
         GOHF_VAR_VA_COUNT = 0x10000,
         GOHF_IW_BIN = 0x20000,
+        GOHF_SWITCH_TYPE_V1 = 0x40000,
+        GOHF_SWITCH_TYPE_V2 = 0x80000,
+        GOHF_SWITCH_TYPE_V3 = 0x100000,
+
+        GOHF_SWITCH_TYPE_IFTABLE = 0, // 000 default value
+        GOHF_SWITCH_TYPE_T89 = GOHF_SWITCH_TYPE_V1, // 100
+        GOHF_SWITCH_TYPE_T7 = GOHF_SWITCH_TYPE_V2, // 010
+        GOHF_SWITCH_TYPE_IW = GOHF_SWITCH_TYPE_V1 | GOHF_SWITCH_TYPE_V2, // 110
+        GOHF_SWITCH_TYPE_4 = GOHF_SWITCH_TYPE_V3, // 001
+        GOHF_SWITCH_TYPE_5 = GOHF_SWITCH_TYPE_V1 | GOHF_SWITCH_TYPE_V3, // 101
+        GOHF_SWITCH_TYPE_6 = GOHF_SWITCH_TYPE_V2 | GOHF_SWITCH_TYPE_V3, // 110
+        GOHF_SWITCH_TYPE_7 = GOHF_SWITCH_TYPE_V1 | GOHF_SWITCH_TYPE_V2 | GOHF_SWITCH_TYPE_V3, // 111
+        GOHF_SWITCH_TYPE_MASK = GOHF_SWITCH_TYPE_V1 | GOHF_SWITCH_TYPE_V2 | GOHF_SWITCH_TYPE_V3,
     };
-    static_assert(
-        ((GOHF_FOREACH_TYPE_T8 | GOHF_FOREACH_TYPE_T9 | GOHF_FOREACH_TYPE_JUP | GOHF_FOREACH_TYPE_T7 
-            | GOHF_FOREACH_TYPE_5 | GOHF_FOREACH_TYPE_6) & ~GOHF_FOREACH_TYPE_MASK) == 0
-        && "Foreach mask isn't matching all the types"
-    );
 
     // cli options
     class GscInfoOption {
@@ -1287,7 +1295,10 @@ namespace tool::gsc {
         virtual void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) = 0;
         virtual void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) = 0;
 
+        // decrypt a string
         virtual char* DecryptString(char* str) = 0;
+        // header to encrypt a non ascii string
+        virtual std::pair<const char*, size_t> GetStringHeader(size_t len);
         virtual byte RemapFlagsImport(byte flags);
         virtual byte RemapFlagsExport(byte flags);
         virtual uint16_t GetAnimTreeSingleCount() = 0;

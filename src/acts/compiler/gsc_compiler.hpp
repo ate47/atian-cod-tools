@@ -23,6 +23,7 @@ namespace acts::compiler {
 		bool noDevCallInline{};
 		preprocessor::PreProcessorOption processorOpt{};
 		std::string* preprocOutput{};
+		std::unordered_set<std::string>* hashes{};
 
 		tool::gsc::opcode::VmInfo* GetVm() {
 			if (!nfo || nfo->vmMagic != vm) {
@@ -36,7 +37,7 @@ namespace acts::compiler {
 
 	void CompileGsc(const std::vector<std::filesystem::path>& files, std::vector<byte>& data, CompilerConfig& cfg);
 	inline void CompileGsc(const std::filesystem::path& file, std::vector<byte>& data, CompilerConfig& cfg) {
-		std::vector<std::filesystem::path> files{};
+		std::vector<std::filesystem::path> files{ 1 };
 		files.emplace_back(file);
 		CompileGsc(files, data, cfg);
 	}

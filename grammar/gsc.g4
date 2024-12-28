@@ -182,7 +182,7 @@ INTEGER10: '-'? [1-9]([0-9])*;
 INTEGER16: '-'? '0' [xX] ([0-9a-fA-F])+;
 INTEGER8: '-'? '0' ([0-7])*;
 INTEGER2: '-'? '0' [bB] ([01])*;
-FLOATVAL: '-'? ((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*));
+FLOATVAL: '-'? ((((([0-9])* '.' ([0-9])+) | (([0-9])+ '.' ([0-9])*)) ([eE] ('+'|'-')? [0-9]+)?)|([0-9]+ ([eE] ('+'|'-')? [0-9]+)));
 BUILTIN: 'break' | 'continue' | 'goto' | 'return' | 'wait' | 'jumpdev';
 BOOL_VALUE: 'true' | 'false';
 UNDEFINED_VALUE: 'undefined';

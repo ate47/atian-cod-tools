@@ -13,7 +13,7 @@ namespace {
 
     class T8GSCOBJHandler : public GSCOBJHandler {
     public:
-        T8GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT) {}
+        T8GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_SWITCH_TYPE_T89) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T8GSCOBJ>();
@@ -102,6 +102,11 @@ namespace {
         }
         char* DecryptString(char* str) override {
             return decrypt::DecryptString(str);
+        }
+        std::pair<const char*, size_t> GetStringHeader(size_t len) override {
+            static thread_local byte str[2]{ 0x9f, 0xFF };
+            str[1] = (byte)(len + 1);
+            return { reinterpret_cast<const char*>(&str[0]), sizeof(str) };
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T8GSCOBJ) && Ref<uint64_t>() == 0x36000a0d43534780;
@@ -253,7 +258,7 @@ namespace {
 
     class T831GSCOBJHandler : public GSCOBJHandler {
     public:
-        T831GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_STRING_NAMES) {}
+        T831GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_STRING_NAMES | GOHF_SWITCH_TYPE_T89) {}
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
             auto* data = Ptr<T831GSCOBJ>();
 

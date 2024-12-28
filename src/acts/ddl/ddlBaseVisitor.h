@@ -19,7 +19,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitData(ddlParser::DataContext *ctx) override {
+  virtual std::any visitBuffer_data(ddlParser::Buffer_dataContext *ctx) override {
     return visitChildren(ctx);
   }
 

@@ -126,6 +126,9 @@ namespace hash {
 	constexpr uint64_t Hash64(const char* str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
 		return Hash64A(str, start, iv) & MASK63;
 	}
+	inline uint64_t Hash64(const std::string& str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
+		return Hash64(str.data(), start, iv);
+	}
 
 	constexpr bool TryHashPattern(const char* str, uint64_t& outVal) {
 		std::string_view v{ str };
@@ -288,4 +291,13 @@ namespace hash {
 	constexpr uint64_t HashT10ScrSPPre(const char* str, uint64_t start = FNV1A_T10_SCR_OFFSET) { return hash::Hash64A(str, start, IV_TYPE2); }
 	constexpr uint64_t HashT10ScrSPPost(uint64_t hash) { return hash::Hash64A(XHASHSEC_T10_SCR_STR, hash); }
 	constexpr uint64_t HashT10ScrSP(const char* str) { return HashT10ScrSPPost(HashT10ScrSPPre(str)); }
+
+	inline uint64_t HashIWRes(const std::string& str, uint64_t start = FNV1A_IW_PRIME) { return HashIWRes(str.data(), FNV1A_IW_PRIME); }
+	inline uint64_t HashIWTag(const std::string& str, uint64_t start = FNV1A_32_PRIME) { return HashIWTag(str.data(), FNV1A_32_PRIME); }
+	inline uint64_t HashJupScr(const std::string& str, uint64_t start = FNV1A_IW_SCR_PRIME) { return HashJupScr(str.data(), FNV1A_IW_SCR_PRIME); }
+	inline uint32_t HashT7(const std::string& str) { return HashT7(str.data()); }
+	inline uint64_t HashIWDVar(const std::string& str, uint64_t start = 0) { return HashIWDVar(str.data(), start); }
+	inline uint64_t HashT10Scr(const std::string& str, uint64_t start = 0) { return HashT10Scr(str.data(), start); }
+	inline uint64_t HashT10ScrSPPre(const std::string& str, uint64_t start = FNV1A_T10_SCR_OFFSET) { return HashT10ScrSPPre(str.data(), start); }
+	inline uint64_t HashT10ScrSP(const std::string& str) { return HashT10ScrSP(str.data()); }
 }

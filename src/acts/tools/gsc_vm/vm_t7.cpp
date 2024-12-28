@@ -12,7 +12,7 @@ namespace {
 
     class T7GSCOBJHandler : public GSCOBJHandler {
     public:
-        T7GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_STRING_NAMES | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T7 | GOHF_SUPPORT_GET_API_SCRIPT) {}
+        T7GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_STRING_NAMES | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T7 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_SWITCH_TYPE_T7) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T7GSCOBJ>();
@@ -294,7 +294,7 @@ namespace {
 
     class T71BGSCOBJHandler : public GSCOBJHandler {
     public:
-        T71BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_STRING_NAMES | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T7 | GOHF_SUPPORT_GET_API_SCRIPT) {}
+        T71BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_STRING_NAMES | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T7 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_SWITCH_TYPE_T7) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T7GSCOBJ>();

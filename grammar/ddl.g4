@@ -1,14 +1,14 @@
 grammar ddl;
 
-prog: ((data | struct | enum) ';')* EOF;
+prog: buffer_data* EOF;
 
-data: IDENTIFIER (STRING | number);
+buffer_data: 'version' number '{' (enum | struct | struct_def)*  '}';
 
-enum: 'enum' IDENTIFIER '{' (STRING ('=' number)? (',' STRING ('=' number)?)*)? '}';
+enum: 'enum' IDENTIFIER '{' ((STRING|IDENTIFIER) ('=' number)? (',' (STRING|IDENTIFIER) ('=' number)?)*)? '}'  ';';
 
-struct: 'struct' IDENTIFIER '{' struct_def* '}';
+struct: 'struct' IDENTIFIER '{' struct_def* '}' ';';
 
-struct_def: IDENTIFIER IDENTIFIER ('[' number ']' ('[' number ']')?)? ';' ;
+struct_def: IDENTIFIER IDENTIFIER ('[' number ']' ('[' number ']')?)? ';';
 
 number: INTEGER10 | INTEGER16 | INTEGER8 | INTEGER2 ;
 

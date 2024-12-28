@@ -189,7 +189,7 @@ namespace tool::gsc::opcode {
 }
 
 void VmInfo::AddDevCallName(uint64_t name) {
-	devCallsNames.insert(name & 0x7FFFFFFFFFFFFFFF);
+	devCallsNames.insert(name & hash::MASK62);
 }
 
 uint64_t VmInfo::HashField(const char* value) const {

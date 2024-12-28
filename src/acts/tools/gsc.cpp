@@ -516,6 +516,9 @@ uint32_t GSCOBJHandler::GetTokensOffset() {
 int GSCOBJHandler::PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout) {
     return tool::OK;
 }
+std::pair<const char*, size_t> GSCOBJHandler::GetStringHeader(size_t len) {
+    return { "", 0 }; // no encryption header by default
+}
 int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     size_t opcodeSize = ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1;
     if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_LIKE)) {
@@ -1450,8 +1453,8 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
 ignoreCscGsc:
 
     if (opt.m_outputDir) {
-        const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(scriptfile->GetName());
-        
+        uint64_t hashname{ scriptfile->GetName() };
+
         const char* outDir;
         if (opt.m_splitByVm) {
             outDir = utils::va("%s/vm-%llx", opt.m_outputDir, ctx.m_vmInfo->vmMagic);
@@ -1460,17 +1463,31 @@ ignoreCscGsc:
             outDir = opt.m_outputDir;
         }
 
-        if (!name) {
-            const char* fileExt{ typeSure && isCsc ? "csc" : "gsc" };
-            if (actscli::options().heavyHashes) {
-                sprintf_s(asmfnamebuff, "%s/%016llX.%s", outDir, scriptfile->GetName(), fileExt);
+        if (hashname) {
+            const char* name = opt.m_noPath ? nullptr : hashutils::ExtractPtr(hashname);
+
+            if (!name) {
+                const char* fileExt{ typeSure && isCsc ? "csc" : "gsc" };
+                if (actscli::options().heavyHashes) {
+                    sprintf_s(asmfnamebuff, "%s/%016llX.%s", outDir, hashname, fileExt);
+                }
+                else {
+                    sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.%s", outDir, hashname, fileExt);
+                }
             }
             else {
-                sprintf_s(asmfnamebuff, "%s/hashed/script/script_%llx.%s", outDir, scriptfile->GetName(), fileExt);
+                sprintf_s(asmfnamebuff, "%s/%s", outDir, name);
             }
         }
         else {
-            sprintf_s(asmfnamebuff, "%s/%s", outDir, name);
+            const char* fileExt{ typeSure && isCsc ? "csc" : "gsc" };
+            std::filesystem::path fn = fsPath;
+
+            fn.replace_extension(fileExt);
+
+            std::string name{ fn.string() };
+            LOG_WARNING("Can't find script name, using {}", name);
+            sprintf_s(asmfnamebuff, "%s/%s", outDir, name.data());
         }
     }
     else {
@@ -1488,7 +1505,7 @@ ignoreCscGsc:
         asmout.open(file);
 
         if (!asmout) {
-            LOG_ERROR("Can't open output file {}", asmfnamebuff);
+            LOG_ERROR("Can't open output file {} ({})", asmfnamebuff, hashutils::ExtractTmpScript(scriptfile->GetName()));
             return tool::BASIC_ERROR;
         }
         LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
@@ -1588,8 +1605,9 @@ ignoreCscGsc:
                 asmout << "loc: ";
 
                 uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
-                for (size_t j = 0; j < val->num_address; j++) {
-                    asmout << " 0x" << std::hex << loc[j];
+                asmout << flocName(loc[0]);
+                for (size_t j = 1; j < val->num_address; j++) {
+                    asmout << "," << flocName(loc[j]);
                 }
 
                 asmout << "\n";
@@ -1607,63 +1625,58 @@ ignoreCscGsc:
 
                 char* encryptedString = scriptfile->Ptr<char>(str->string);
 
-                size_t len{};
-                byte type{};
-                if (scriptfile->GetMagic() == VMI_T8) {
-                    len = (size_t)reinterpret_cast<byte*>(encryptedString)[1] - 1;
-                    type = *reinterpret_cast<byte*>(encryptedString);
+                size_t len{ std::strlen(encryptedString) };
+                byte type{ (byte)(*reinterpret_cast<byte*>(encryptedString)) };
 
-                    if (str->string + len + 1 > scriptfile->GetFileSize()) {
-                        asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
-                        break;
-                    }
+                if (str->string + len > scriptfile->GetFileSize()) {
+                    asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
+                    break;
+                }
 
-                    asmout << "encryption: ";
-                    asmout << "0x" << std::hex << (int)type;
-                    if ((type & 0xC0) == 0x80) {
-                        asmout << "(none)";
-                    }
-                    asmout << " len: " << std::dec << len << " -> " << std::flush;
-
+                asmout << "encryption: ";
+                if ((type & 0xC0) != 0x80) {
+                    asmout << "(none)";
                 }
                 else {
-                    auto* ess = reinterpret_cast<byte*>(encryptedString);
-                    type = ess[0];
-                    len = (size_t)ess[2] - 1;
-
-                    if (str->string + len + 3 > scriptfile->GetFileSize()) {
-                        asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
-                        break;
-                    }
-
-                    asmout << "encryption: ";
                     asmout << "0x" << std::hex << (int)type;
-                    if ((type & 0xC0) == 0x80) {
-                        asmout << "(none)";
-                    }
-                    asmout << " len: " << std::dec << len << ", unk1: 0x" << std::hex << (int)ess[1] << " -> " << std::flush;
                 }
+                asmout << " elen: " << std::dec << len << " -> " << std::flush;
+
                 char* cstr = scriptfile->DecryptString(encryptedString);
 
-                utils::PrintFormattedString(asmout << '"', cstr) << '"' << std::flush;
-
-                if (scriptfile->GetMagic() == VMI_T8) {
-                    size_t lenAfterDecrypt = strnlen_s(cstr, len + 2);
-
-                    if (lenAfterDecrypt != len) {
-                        asmout << " ERROR LEN (" << std::dec << lenAfterDecrypt << " != " << len << " for type 0x" << std::hex << (int)type << ")";
-                        assert(false);
+                size_t dlen{ strlen(cstr) };
+                utils::PrintFormattedString(asmout << '"', cstr) << '"' << "(" << std::dec << dlen;
+                
+                if (dlen > len) {
+                    asmout << ",missing";
+                }
+                if ((type & 0xC0) == 0x80) {
+                    byte ntype{ (byte)(*reinterpret_cast<byte*>(encryptedString)) };
+                    asmout << ",pt:0x" << std::hex << (int)ntype;
+                    if (encryptedString <= cstr) {
+                        size_t delta{ (size_t)(cstr - encryptedString) };
+                        asmout << ",delta:0x" << delta;
+                        if (delta && delta < 5) {
+                            asmout << ",data=";
+                            for (size_t i = 0; i < delta; i++) {
+                                if (i) asmout << ",";
+                                asmout << "0x" << std::hex << (int)reinterpret_cast<byte*>(encryptedString)[i];
+                            }
+                        }
+                    }
+                    else {
+                        asmout << ",delta:-0x" << (encryptedString - cstr);
                     }
                 }
-
-                asmout << "\n";
+                
+                asmout << ")" << std::endl;
 
                 asmout << "location(s): ";
 
                 const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
-                asmout << std::hex << flocName(strings[0]);
+                asmout << flocName(strings[0]);
                 for (size_t j = 1; j < str->num_address; j++) {
-                    asmout << std::hex << "," << flocName(strings[j]);
+                    asmout << "," << flocName(strings[j]);
                 }
                 asmout << "\n";
                 str_location += sizeof(*str) + sizeof(*strings) * str->num_address;

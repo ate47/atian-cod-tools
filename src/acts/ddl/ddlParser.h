@@ -13,12 +13,13 @@ class  ddlParser : public antlr4::Parser {
 public:
   enum {
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
-    T__7 = 8, T__8 = 9, NEWLINE = 10, WHITESPACE = 11, INTEGER10 = 12, INTEGER16 = 13, 
-    INTEGER8 = 14, INTEGER2 = 15, IDENTIFIER = 16, PATH = 17, STRING = 18
+    T__7 = 8, T__8 = 9, T__9 = 10, NEWLINE = 11, WHITESPACE = 12, INTEGER10 = 13, 
+    INTEGER16 = 14, INTEGER8 = 15, INTEGER2 = 16, IDENTIFIER = 17, PATH = 18, 
+    STRING = 19
   };
 
   enum {
-    RuleProg = 0, RuleData = 1, RuleEnum = 2, RuleStruct = 3, RuleStruct_def = 4, 
+    RuleProg = 0, RuleBuffer_data = 1, RuleEnum = 2, RuleStruct = 3, RuleStruct_def = 4, 
     RuleNumber = 5
   };
 
@@ -40,7 +41,7 @@ public:
 
 
   class ProgContext;
-  class DataContext;
+  class Buffer_dataContext;
   class EnumContext;
   class StructContext;
   class Struct_defContext;
@@ -51,12 +52,8 @@ public:
     ProgContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *EOF();
-    std::vector<DataContext *> data();
-    DataContext* data(size_t i);
-    std::vector<StructContext *> struct_();
-    StructContext* struct_(size_t i);
-    std::vector<EnumContext *> enum_();
-    EnumContext* enum_(size_t i);
+    std::vector<Buffer_dataContext *> buffer_data();
+    Buffer_dataContext* buffer_data(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -65,26 +62,31 @@ public:
 
   ProgContext* prog();
 
-  class  DataContext : public antlr4::ParserRuleContext {
+  class  Buffer_dataContext : public antlr4::ParserRuleContext {
   public:
-    DataContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    Buffer_dataContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *IDENTIFIER();
-    antlr4::tree::TerminalNode *STRING();
     NumberContext *number();
+    std::vector<EnumContext *> enum_();
+    EnumContext* enum_(size_t i);
+    std::vector<StructContext *> struct_();
+    StructContext* struct_(size_t i);
+    std::vector<Struct_defContext *> struct_def();
+    Struct_defContext* struct_def(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
-  DataContext* data();
+  Buffer_dataContext* buffer_data();
 
   class  EnumContext : public antlr4::ParserRuleContext {
   public:
     EnumContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *IDENTIFIER();
+    std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
+    antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
     std::vector<antlr4::tree::TerminalNode *> STRING();
     antlr4::tree::TerminalNode* STRING(size_t i);
     std::vector<NumberContext *> number();

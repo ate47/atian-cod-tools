@@ -4,10 +4,8 @@
 #include "text_expand.hpp"
 
 namespace tool::hash::text_expand {
-	void GetDynamicPtr(size_t max, void(*func)(const char* str, void* data), void* data) {
+	void GetDynamicPtr(size_t max, void(*func)(const char* str, void* data), void* data, const char* dict, size_t n) {
 		char buffer[0x100]{ 0 };
-		constexpr size_t n = sizeof(dict) - 1;
-
 		for (size_t i = 1; i < max; i++) {
 			size_t v = i;
 			size_t idx{};
@@ -20,15 +18,13 @@ namespace tool::hash::text_expand {
 		}
 	}
 
-	void GetDynamicAsyncPtr(size_t max, void(*func)(const char* str, void* data), void* data) {
-		constexpr size_t n = sizeof(dict) - 1;
-
+	void GetDynamicAsyncPtr(size_t max, void(*func)(const char* str, void* data), void* data, const char* dict, size_t n) {
 		BS::thread_pool pool{};
 
 		size_t threads = pool.get_thread_count();
 		LOG_TRACE("Load dynamic thread pool {}", threads);
 		for (size_t t = 0; t < threads; t++) {
-			pool.detach_task([t, max, threads, func, data]() -> void {
+			pool.detach_task([t, max, threads, func, data, dict, n]() -> void {
 				thread_local char buffer[0x100]{ 0 };
 				for (size_t i = t; i < max; i += threads) {
 					size_t v = i;

@@ -18,8 +18,11 @@ namespace core::config {
 	class Config {
 	public:
 		const std::filesystem::path configFile;
-		rapidjson::Document main{};
+		rapidjson::GenericDocument<rapidjson::UTF8<>, rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator>> main{};
 		Config(const std::filesystem::path& path);
+
+		rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc);
+		void SetVal(const char* path, rapidjson::Value& value, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc);
 
 		int64_t GetInteger(const char* path, int64_t defaultValue = 0);
 		inline int64_t GetInteger(const std::string& path, int64_t defaultValue = 0) { return GetInteger(path.c_str(), defaultValue); }

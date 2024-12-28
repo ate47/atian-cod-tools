@@ -9,6 +9,7 @@ namespace core::bytebuffer {
 	public:
 		ByteBuffer(byte* buffer, size_t len) : buffer(buffer), len(len) {}
 		ByteBuffer(std::string& buff) : buffer((byte*)buff.data()), len(buff.size()) {}
+		ByteBuffer(std::vector<byte>& buff) : buffer((byte*)buff.data()), len(buff.size()) {}
 
 		template<typename T>
 		T Read() {

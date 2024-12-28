@@ -104,6 +104,41 @@ namespace tool::hash::scanner {
 
 			return tool::OK;
 		}
+
+		int scanlookup(Process& proc, int argc, const char* argv[]) {
+			if (argc < 4) {
+				return tool::BAD_USAGE;
+			}
+			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
+			LOG_TRACE("{} file(s) loaded...", files.size());
+
+			std::unordered_set<uint64_t> hashes{};
+			ScanHashes(files, hashes);
+
+			LOG_INFO("Find {} hash(es)", hashes.size());
+
+			std::ofstream output{ argv[3] };
+
+			if (!output) {
+				LOG_ERROR("Can't open {}", argv[3]);
+				return tool::BASIC_ERROR;
+			}
+
+			hashutils::ReadDefaultFile();
+
+			for (uint64_t h : hashes) {
+				const char* ptr{ hashutils::ExtractPtr(h) };
+				if (ptr) {
+					output << std::hex << h << "," << ptr << "\n";
+				}
+			}
+
+			output.close();
+
+			LOG_INFO("Dump into {}", argv[3]);
+
+			return tool::OK;
+		}
 		enum VmHashes : uint64_t {
 			HASH_FNVA = 1,
 			HASH_RES = 1ull << 1,
@@ -130,6 +165,8 @@ namespace tool::hash::scanner {
 			uint64_t funcs{};
 			const char* prefix{};
 			const char* suffix{};
+			const char* dict{ hash::text_expand::cdict };
+			size_t dictSize{ sizeof(hash::text_expand::cdict) - 1};
 
 			HashData(const char* file) : output(file, std::ios::app) {}
 			~HashData() {
@@ -158,6 +195,10 @@ namespace tool::hash::scanner {
 			const char* n{ argv[4] };
 			if (argc >= 6 && argv[5][0]) data.prefix = argv[5];
 			if (argc >= 7 && argv[6][0]) data.suffix = argv[6];
+			if (argc >= 8 && argv[7][0]) {
+				data.dict = argv[7];
+				data.dictSize = std::strlen(data.dict);
+			}
 
 			if (!_strcmpi(n, "bo4")) {
 				data.funcs = HASH_BLACKOPS4;
@@ -204,7 +245,7 @@ namespace tool::hash::scanner {
 					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(str), str);
 					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(str), str);
 					if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(str), str);
-				}, &data);
+				}, &data, data.dict, data.dictSize);
 			}
 			else if (data.prefix) {
 				if (data.suffix) {
@@ -217,7 +258,7 @@ namespace tool::hash::scanner {
 						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(data->suffix, ::hash::HashJupScr(str, ::hash::HashJupScr(data->prefix))), str);
 						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(data->suffix, ::hash::HashIWRes(str, ::hash::HashIWRes(data->prefix))), str);
 						if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(data->suffix, ::hash::HashIWDVar(str, ::hash::HashIWDVar(data->prefix))), str);
-					}, &data);
+					}, &data, data.dict, data.dictSize);
 				}
 				else {
 					// prefix only
@@ -229,7 +270,7 @@ namespace tool::hash::scanner {
 						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(str, ::hash::HashJupScr(data->prefix)), str);
 						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(str, ::hash::HashIWRes(data->prefix)), str);
 						if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(str, ::hash::HashIWDVar(data->prefix)), str);
-					}, &data);
+					}, &data, data.dict, data.dictSize);
 				}
 			}
 			else {
@@ -242,7 +283,7 @@ namespace tool::hash::scanner {
 					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(data->suffix, ::hash::HashJupScr(str)), str);
 					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(data->suffix, ::hash::HashIWRes(str)), str);
 					if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(data->suffix, ::hash::HashIWDVar(str)), str);
-				}, &data);
+				}, &data, data.dict, data.dictSize);
 			}
 
 			return tool::OK;
@@ -491,6 +532,7 @@ namespace tool::hash::scanner {
 		}
 		
 		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
+		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", nullptr, scanlookup);
 		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
 		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
 

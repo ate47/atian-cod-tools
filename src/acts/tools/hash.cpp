@@ -1311,7 +1311,7 @@ namespace {
 		Ctx ctx{ h1, h2 };
 
 		for (size_t i = 0; i < len; i++) {
-			ctx.max *= sizeof(tool::hash::text_expand::dict);
+			ctx.max *= sizeof(tool::hash::text_expand::cdict);
 		}
 		//291e1c117ebbf5e6 - b = 2dbc620bcf7203e0
 

@@ -13,7 +13,7 @@ namespace {
 
     class T937GSCOBJHandler : public GSCOBJHandler {
     public:
-        T937GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
+        T937GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_SWITCH_TYPE_T89) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T937GSCOBJ>();
@@ -89,6 +89,11 @@ namespace {
         }
         char* DecryptString(char* str) override {
             return acts::decryptutils::DecryptString(str);
+        }
+        std::pair<const char*, size_t> GetStringHeader(size_t len) override {
+            static thread_local byte str[3]{ 0x8b, 0xFF, 0 };
+            str[1] = (byte)(len + 1);
+            return { reinterpret_cast<const char*>(&str[0]), sizeof(str) };
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T937GSCOBJ) && Ref<uint64_t>() == 0x37000a0d43534780;
@@ -249,7 +254,7 @@ namespace {
 
     class T9GSCOBJHandler : public GSCOBJHandler {
     public:
-        T9GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT) {}
+        T9GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_NOTIFY_CRC | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_SUPPORT_VAR_PTR | GOHF_FOREACH_TYPE_T9 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_SWITCH_TYPE_T89) {}
 
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             if (opt.m_test_header) {
@@ -314,6 +319,11 @@ namespace {
         }
         char* DecryptString(char* str) override {
             return acts::decryptutils::DecryptString(str);
+        }
+        std::pair<const char*, size_t> GetStringHeader(size_t len) override {
+            static thread_local byte str[3]{ 0x8b, 0xFF, 0 };
+            str[1] = (byte)(len + 1);
+            return { reinterpret_cast<const char*>(&str[0]), sizeof(str) };
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T9GSCOBJ) && Ref<uint64_t>() == 0x38000a0d43534780;
