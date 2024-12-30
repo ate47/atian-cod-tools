@@ -54,6 +54,10 @@ namespace core::raw_file {
 			return *this;
 		}
 
+		inline RawFileWriter& WriteString(const std::string& str) {
+			return WriteString(str.data(), str.size());
+		}
+
 		RawFileWriter& WriteEncryptedString(const char* str) {
 			size_t len{ std::strlen(str) + 0x10 }; // add to compute data
 

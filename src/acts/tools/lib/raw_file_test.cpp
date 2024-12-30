@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <unit_test.hpp>
 #include <core/raw_file.hpp>
+#include <core/raw_file_json.hpp>
 
 namespace {
 	void rawfiletest() {
@@ -49,6 +50,54 @@ namespace {
 		ASSERT_EQ("not the same", expected, actual);
 	}
 
+	void WriteJsonRes(std::vector<byte> res) {
+		core::bytebuffer::ByteBuffer bb{ res };
+		core::raw_file::RawFileReader reader{ bb, nullptr, [](uint64_t c) -> const char* {return hashutils::ExtractTmp("hash", c); } };
+
+		LOG_DEBUG("{}", reader.ReadAll());
+	}
+
+	void rawfilejsontest() {
+		core::raw_file::json::RawFileJsonWriter writer{};
+		hashutils::AddPrecomputed(hash::Hash64("test"), "test", true);
+
+		writer.BeginObject();
+		writer.WriteFieldNameString("test");
+		writer.WriteValueNumber(42);
+		writer.WriteFieldNameString("test2");
+		writer.WriteValueNumber(42.69);
+		writer.WriteFieldNameString("test_null");
+		writer.WriteValueNull();
+		writer.WriteFieldNameString("string");
+		writer.WriteValueString("hello world");
+		writer.WriteFieldNameString("empty_array");
+		writer.BeginArray();
+		writer.EndArray();
+		writer.WriteFieldNameString("array2");
+		writer.BeginArray();
+		writer.BeginObject();
+		writer.WriterFieldNameHash(hash::Hash64("test"));
+		writer.WriteValueString("56");
+		writer.EndObject();
+		writer.WriteValueNumber(52);
+		writer.WriteValueString("qzdzdq");
+		writer.WriteValueString("hdrhrd");
+		writer.WriteValueNull();
+		writer.BeginArray();
+		writer.BeginObject();
+		writer.EndObject();
+		writer.EndArray();
+		writer.BeginArray();
+		writer.EndArray();
+		writer.EndArray();
+		writer.BeginObject();
+		writer.EndObject();
+		writer.EndObject();
+
+		WriteJsonRes(writer.Build());
+	}
+
 	ADD_TEST(rawfile, rawfiletest);
 	ADD_TEST(rawfilereadall, rawfilereadalltest);
+	ADD_TEST(rawfilejson, rawfilejsontest);
 }
