@@ -14,6 +14,6 @@ namespace acts::unit_test {
 	};
 }
 
-#define ASSERT_VAL(msg, val) acts::unit_test::AssertImpl(std::format("{} - {}", #val, msg), LOG_GET_LOG_REF_STR.data(), __LINE__, val)
+#define ASSERT_VAL(msg, val) acts::unit_test::AssertImpl(std::format("{} - {}", #val, msg), LOG_GET_LOG_REF_STR, __LINE__, val)
 #define ASSERT_EQ(msg, expected, actual) ASSERT_VAL(msg, (expected) == (actual))
 #define ADD_TEST(id, func) static acts::unit_test::UnitTest __unittest_##id(hash::Hash64(#id), #id, func)

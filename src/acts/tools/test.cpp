@@ -10,6 +10,7 @@
 //#include <jsonrpccxx/server.hpp>
 
 namespace {
+	constexpr auto dzqtest = LOG_GET_LOG_REF_STR_DATA;
 	int test(Process& proc, int argc, const char* argv[]) {
 
 		return tool::OK;

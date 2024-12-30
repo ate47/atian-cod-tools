@@ -20,8 +20,10 @@ namespace tool {
 		std::string m_categoryLower;
 		std::wstring m_gameLower;
 		tool::toolfunction m_func;
-		toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, const wchar_t* game, tool::toolfunction func);
-		toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, tool::toolfunctionnf func);
+		std::string filename;
+		size_t line;
+		toolfunctiondata(const char* name, const char* filename, size_t line, const char* category, const char* usage, const char* description, const wchar_t* game, tool::toolfunction func);
+		toolfunctiondata(const char* name, const char* filename, size_t line, const char* category, const char* usage, const char* description, tool::toolfunctionnf func);
 
 		bool operator!() const;
 		bool operatorbool() const;
@@ -46,4 +48,4 @@ namespace tool {
 	void usage(const char* message, const char* argv0, core::logs::loglevel lvl = core::logs::loglevel::LVL_ERROR);
 }
 
-#define ADD_TOOL(id, ...) static tool::toolfunctiondata __toolfunctiondata_##id(#id, __VA_ARGS__)
+#define ADD_TOOL(id, ...) static tool::toolfunctiondata __toolfunctiondata_##id(#id, LOG_GET_LOG_REF_STR, __LINE__, __VA_ARGS__)

@@ -88,8 +88,10 @@ namespace core::logs {
 
 
 // convert filename to log id
-#define LOG_GET_LOG_REF_STR (core::logs::GetLogFile<core::logs::GetLogFileLen(__FILE__), core::logs::GetLogFileSplit(__FILE__), core::logs::GetLogFileExt(__FILE__)>(__FILE__))
-#define LOG_LVL(LEVEL, msg) if (core::logs::getlevel() <= LEVEL) core::logs::log(LEVEL, LOG_GET_LOG_REF_STR.data(), __LINE__, msg)
+#define LOG_GET_LOG_REF_STR_DATA (core::logs::GetLogFile<core::logs::GetLogFileLen(__FILE__), core::logs::GetLogFileSplit(__FILE__), core::logs::GetLogFileExt(__FILE__)>(__FILE__))
+#define LOG_GET_LOG_REF_STR (LOG_GET_LOG_REF_STR_DATA.data())
+#define HAS_LOG_LEVEL(LEVEL) (core::logs::getlevel() <= LEVEL)
+#define LOG_LVL(LEVEL, msg) if (HAS_LOG_LEVEL(LEVEL)) { constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA; core::logs::log(LEVEL, ___ff.data(), __LINE__, msg); }
 #define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))
 #define LOG_TRACE(...) LOG_LVLF(core::logs::loglevel::LVL_TRACE, __VA_ARGS__)
 #define LOG_DEBUG(...) LOG_LVLF(core::logs::loglevel::LVL_DEBUG, __VA_ARGS__)

@@ -44,15 +44,14 @@ namespace tool {
 		return map;
 	}
 
-	toolfunctiondata::toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, tool::toolfunctionnf func) 
-		: toolfunctiondata(name, category, usage, description, nullptr, [func](Process& proc, int argc, const char* argv[]) -> int { return func(argc, argv); }) {
+	toolfunctiondata::toolfunctiondata(const char* name, const char* filename, size_t line, const char* category, const char* usage, const char* description, tool::toolfunctionnf func)
+		: toolfunctiondata(name, filename, line, category, usage, description, nullptr, [func](Process& proc, int argc, const char* argv[]) -> int { return func(argc, argv); }) {
 	}
 	
-	toolfunctiondata::toolfunctiondata(const char* name, const char* category, const char* usage, const char* description, const wchar_t* game, toolfunction func)
+	toolfunctiondata::toolfunctiondata(const char* name, const char* filename, size_t line, const char* category, const char* usage, const char* description, const wchar_t* game, toolfunction func)
 		: m_name(name), m_category(category), m_usage(usage), m_description(description), m_game(game), m_func(func),
 			m_nameLower(name ? name : ""), m_usageLower(usage ? usage : ""), m_descriptionLower(description ? description : ""), m_gameLower(game ? game : L""), 
-		m_categoryLower(category ? category : "") {
-
+		m_categoryLower(category ? category : ""), filename(filename), line(line) {
 		std::transform(m_nameLower.begin(), m_nameLower.end(), m_nameLower.begin(), [](char c) { return std::tolower(c); });
 		std::transform(m_usageLower.begin(), m_usageLower.end(), m_usageLower.begin(), [](char c) { return std::tolower(c); });
 		std::transform(m_descriptionLower.begin(), m_descriptionLower.end(), m_descriptionLower.begin(), [](char c) { return std::tolower(c); });
@@ -83,7 +82,7 @@ namespace tool {
 	}
 
 	const toolfunctiondata& findtool(const char* name) {
-		static toolfunctiondata invalid{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+		static toolfunctiondata invalid{ nullptr, LOG_GET_LOG_REF_STR, __LINE__, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 		auto& tls = tools();
 
@@ -417,7 +416,7 @@ namespace {
 
 	int search(Process& proc, int argc, const char* argv[]) {
 		if (!tool::search(argv + 2, argc - 2, [](const tool::toolfunctiondata* tool) {
-				LOG_INFO("- {}{} : {}", tool->m_name, tool->m_usage, tool->m_description);
+				LOG_INFO("- {}{} :{} {}", tool->m_name, tool->m_usage, HAS_LOG_LEVEL(core::logs::LVL_TRACE) ? std::format(" ({}@{})", tool->filename, tool->line) : "", tool->m_description);
 			})) {
 			LOG_ERROR("Can't find any tool with this query");
 			return tool::BASIC_ERROR;
@@ -518,8 +517,8 @@ namespace {
 	}
 }
 
-void RegisterActsTool(const char* name, const char* category, const char* usage, const char* description, int(*func)(int argc, const char* argv[])) {
-	GetExToolAlloc().push_back(std::make_unique<tool::toolfunctiondata>(name, category, usage, description, func));
+void RegisterActsTool(const char* name, const char* filename, size_t line, const char* category, const char* usage, const char* description, int(*func)(int argc, const char* argv[])) {
+	GetExToolAlloc().push_back(std::make_unique<tool::toolfunctiondata>(name, filename, line, category, usage, description, func));
 }
 
 ADD_TOOL(list, "acts", "", "list all the tools", nullptr, list);
