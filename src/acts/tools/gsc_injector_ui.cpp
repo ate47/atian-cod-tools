@@ -299,6 +299,40 @@ namespace {
                             SetNotif(notif);
 
                         }
+                        else if (magic == cw::GSC_MAGIC_37) {
+                            // cw gsc
+
+                            Process proc{ L"BlackOpsColdWar.exe" }; // base game
+
+                            if (!!proc) {
+                                if (proc.Open()) {
+                                    utils::CloseEnd ce{ [&proc] { proc.Close(); } };
+                                    cw::InjectScriptCW(proc, filePath.c_str(), hookPath.c_str(), "scripts/core_common/clientids_shared.gsc", notif);
+                                    SetNotif(notif);
+                                }
+                                else {
+                                    SetNotif("Can't open Black Ops Cold War");
+                                    return TRUE;
+                                }
+                            }
+                            else {
+                                Process proc2{ L"COD2020.exe" }; // alpha game
+
+                                if (!!proc2) {
+                                    if (proc2.Open()) {
+                                        utils::CloseEnd ce{ [&proc2] { proc2.Close(); } };
+                                        cw::InjectScriptCWAlpha(proc2, filePath.c_str(), hookPath.c_str(), "scripts/core_common/clientids_shared.gsc", notif);
+                                        SetNotif(notif);
+                                    }
+                                    else {
+                                        SetNotif("Can't open Black Ops Cold War Alpha");
+                                        return TRUE;
+                                    }
+                                }
+                                SetNotif("Can't find Black Ops Cold War");
+                                return TRUE;
+                            }
+                        }
                         else if (magic == bo3::GSC_MAGIC) {
                             // bo3 gsc
 
