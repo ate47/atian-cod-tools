@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "tools/cw/cw.hpp"
+#include "tools/cw/pool_cod2020.hpp"
 #include "tools/gsc.hpp"
 
 char* cw::DecryptString(char* str) {
@@ -337,8 +338,7 @@ int cw::InjectScriptCWAlpha(Process& proc, const char* script, const char* targe
 
 	proc.WriteLocation(std::cout << "pool: ", poolLoc) << "\n";
 
-	// 65 = SPT (alpha)
-	if (!proc.ReadMemory(&sptPool, poolLoc + sizeof(sptPool) * 65, sizeof(sptPool))) {
+	if (!proc.ReadMemory(&sptPool, poolLoc + sizeof(sptPool) * cw::alpha::ASSET_TYPE_SCRIPTPARSETREE, sizeof(sptPool))) {
 		notify = "Can't read SPT pool";
 		return tool::BASIC_ERROR;
 	}
