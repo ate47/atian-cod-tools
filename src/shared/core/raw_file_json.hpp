@@ -2,18 +2,49 @@
 #include "raw_file.hpp"
 
 namespace core::raw_file::json {
+	enum JsonFormat {
+		JFF_PRETTY,
+		JFF_INLINE,
+		JFF_REDUCED
+	};
+
 	class RawFileJsonWriter {
 		core::raw_file::RawFileWriter writer{};
+		JsonFormat format{ JFF_PRETTY };
 
 		size_t depth{};
 		bool startStruct{ true };
 		bool inlined{ true };
 
 	public:
-		void WritePadding() {
-			for (size_t i = 0; i < depth; i++) {
-				writer.WriteString("    ");
+		RawFileJsonWriter(JsonFormat format = JFF_PRETTY) : format(format) {
+		}
+
+		void WriteNewSpace() {
+			switch (format) {
+			case JFF_PRETTY:
+			case JFF_INLINE:
+				writer.WriteString(" ");
+				break;
 			}
+		}
+		void WriteNewLine() {
+			switch (format) {
+			case JFF_PRETTY:
+				writer.WriteString("\n");
+				// padding
+				for (size_t i = 0; i < depth; i++) {
+					writer.WriteString("    ");
+				}
+				break;
+			case JFF_INLINE:
+				writer.WriteString(" ");
+				break;
+			}
+		}
+
+		void SetFormat(JsonFormat _format) {
+			format = _format;
 		}
 
 		void WritePreData(bool forceNoInline = false) {
@@ -25,8 +56,7 @@ namespace core::raw_file::json {
 			else {
 				startStruct = false;
 			}
-			writer.WriteString("\n");
-			WritePadding();
+			WriteNewLine();
 		}
 
 		void WriteValueNull() {
@@ -66,21 +96,24 @@ namespace core::raw_file::json {
 			WritePreData(true);
 			inlined = true;
 			WriteValueString(name);
-			writer.WriteString(": ");
+			writer.WriteString(":");
+			WriteNewSpace();
 		}
 
 		void WriteFieldNameStringEncrypted(const char* name) {
 			WritePreData(true);
 			inlined = true;
 			WriteValueEncrypted(name);
-			writer.WriteString(": ");
+			writer.WriteString(":");
+			WriteNewSpace();
 		}
 
 		void WriterFieldNameHash(uint64_t name, const char* type = "#") {
 			WritePreData(true);
 			inlined = true;
 			WriteValueHash(name, type);
-			writer.WriteString(": ");
+			writer.WriteString(":");
+			WriteNewSpace();
 		}
 
 		void BeginObject() {
@@ -103,8 +136,7 @@ namespace core::raw_file::json {
 			if (!depth) throw std::runtime_error("End array without creating one");
 			depth--;
 			if (!startStruct) {
-				writer.WriteString("\n");
-				WritePadding();
+				WriteNewLine();
 			}
 			writer.WriteString("}");
 			startStruct = false;
@@ -115,8 +147,7 @@ namespace core::raw_file::json {
 			if (!depth) throw std::runtime_error("End array without creating one");
 			depth--;
 			if (!startStruct) {
-				writer.WriteString("\n");
-				WritePadding();
+				WriteNewLine();
 			}
 			writer.WriteString("]");
 			startStruct = false;
