@@ -82,7 +82,8 @@ namespace tool {
 	}
 
 	const toolfunctiondata& findtool(const char* name) {
-		static toolfunctiondata invalid{ nullptr, LOG_GET_LOG_REF_STR, (size_t)__LINE__, nullptr, nullptr, nullptr, nullptr, nullptr };
+		constexpr auto invalidToolName = LOG_GET_LOG_REF_STR_DATA;
+		static toolfunctiondata invalid{ nullptr, invalidToolName.data(), (size_t)__LINE__, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 		auto& tls = tools();
 

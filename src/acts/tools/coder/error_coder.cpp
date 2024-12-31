@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#include <core/config.hpp>
+#include <hook/module_mapper.hpp>
 #include "error_coder.hpp"
 #include "tools/tools_ui.hpp"
 #include "tools/tools_nui.hpp"
@@ -1964,6 +1966,18 @@ namespace {
 		static char encodeOutput[0x100]{ 0 };
 		static char decodeInput[0x100]{ 0 };
 		static char decodeOutput[0x100]{ 0 };
+		static uint32_t decodeOutputVal{};
+		static char exePath[MAX_PATH + 1]{ 0 };
+		static std::string searchOutput{};
+		static std::string notif{};
+
+		static std::once_flag cfgof{};
+
+		std::call_once(cfgof, [] {
+			std::string exeCfg{ core::config::GetString("ui.error_coder.exe") };
+
+			sprintf_s(exePath, exeCfg.c_str());
+		});
 
 		ImGui::SeparatorText("Error encoder");
 
@@ -2002,6 +2016,8 @@ namespace {
 
 			if (decodeStr.empty()) {
 				decodeOutput[0] = 0;
+				decodeOutputVal = 0;
+				searchOutput = "";
 			}
 			else {
 
@@ -2038,13 +2054,94 @@ namespace {
 
 					uint32_t err = error_coder::Decode(code);
 					sprintf_s(decodeOutput, "%lu", err);
+					decodeOutputVal = err;
 				}
 				catch (std::exception& e) {
 					sprintf_s(decodeOutput, "%s", e.what());
+					decodeOutputVal = 0;
 				}
 			}
 		}
 		ImGui::InputText("Decoded", decodeOutput, sizeof(decodeOutput), ImGuiInputTextFlags_ReadOnly);
+
+		ImGui::SeparatorText("Exe search");
+		if (ImGui::InputText("Dump exe", exePath, sizeof(exePath))) {
+			core::config::SetString("ui.error_coder.exe", exePath);
+			tool::nui::SaveNextConfig();
+		}
+		if (ImGui::Button("Open file...")) {
+			// Open file
+
+			OPENFILENAMEW ofn;
+			WCHAR szFile[MAX_PATH + 1] = { 0 };
+
+			// Initialize OPENFILENAME
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = NULL;
+			ofn.lpstrFile = szFile;
+			ofn.nMaxFile = sizeof(szFile);
+			ofn.lpstrFilter = L"Dump file (.exe,.dll)\0*.exe;*.dll\0All\0*.*\0";
+			ofn.lpstrTitle = L"Open Dump file";
+			ofn.nFilterIndex = 1;
+			ofn.lpstrFileTitle = NULL;
+			ofn.nMaxFileTitle = 0;
+			ofn.lpstrInitialDir = NULL;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+			if (GetOpenFileNameW(&ofn) == TRUE) {
+				std::string path = utils::WStrToStr(ofn.lpstrFile);
+				core::config::SetString("ui.error_coder.exe", path);
+				snprintf(exePath, sizeof(exePath), "%s", path.data());
+				tool::nui::SaveNextConfig();
+			}
+			searchOutput = "";
+		}
+		static hook::module_mapper::Module exe{ true };
+		if (ImGui::Button("Load dump")) {
+			exe.Free();
+			if (!exe.Load(exePath)) {
+				notif = std::format("Can't load {}", exePath);
+			}
+			else {
+				notif = std::format("Loaded {}", exePath);
+			}
+			searchOutput = "";
+		}
+
+
+		if (exe && decodeOutputVal) {
+			if (ImGui::Button("Search error")) {
+				std::stringstream ss{};
+
+				auto res{ exe->ScanNumber(decodeOutputVal) };
+				if (res.size()) {
+					for (auto& v : res) {
+						ss << "0x" << std::hex << exe->Rloc(v.location) << " ";
+						LOG_TRACE("Match one 0x{} -> {}", (void*)v.location, v.Get<uint32_t>());
+					}
+					notif = std::format("Find {} occurence(s)", res.size());
+				}
+				else {
+					searchOutput = "";
+					notif = "can't find error";
+				}
+
+				searchOutput = ss.str();
+			}
+			if (!searchOutput.empty()) {
+				ImGui::InputText("Search", searchOutput.data(), searchOutput.length() + 1, ImGuiInputTextFlags_ReadOnly);
+			}
+		}
+
+		if (!notif.empty()) {
+			ImGui::Separator();
+
+			ImGui::Text("%s", notif.data());
+		}
+
+
+
 	}
 }
 ADD_TOOL_UI(errenc, L"T8/9 Error encoder", Render, Update, Resize);
