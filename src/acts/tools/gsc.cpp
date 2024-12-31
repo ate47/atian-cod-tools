@@ -1974,6 +1974,9 @@ ignoreCscGsc:
         return patchCodeResult;
     }
 
+    bool dumpAllErrors = actscli::options().debug;
+    int exportErrors{};
+
     if (opt.m_func) {
         actslib::profiler::ProfiledSection ps{ profiler, "decompiling" };
         // current namespace
@@ -2077,7 +2080,23 @@ ignoreCscGsc:
             }
             output << "gscasm {\n";
 
-            tool::gsc::DumpAsm(*exp, output, *scriptfile, ctx, asmctx);
+            try {
+                tool::gsc::DumpAsm(*exp, output, *scriptfile, ctx, asmctx);
+            }
+            catch (std::runtime_error& err) {
+                output << "FAILURE, " << err.what() << std::endl;
+                asmctx.DisableDecompiler(err.what());
+
+                {
+                    core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+                    gdctx.hardErrors++;
+                    if (!exportErrors || dumpAllErrors) {
+                        LOG_ERROR("Can't decompile export: {}", err.what());
+                        exportErrors++;
+                    }
+                }
+            }
+
 
             output << "}\n";
 
@@ -2572,6 +2591,9 @@ ignoreCscGsc:
 
         }
         gdctx.decompiledFiles++;
+        if (exportErrors) {
+            LOG_ERROR("Found {} error(s)", exportErrors);
+        }
     }
 
     return 0;
@@ -2772,9 +2794,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
             }
             uint32_t floc = ctx.ScriptAbsoluteLocation();
             if (ctx.m_bcl < gscFile.Ptr() || floc >= gscFile.GetFileSize()) {
-                out << std::hex << "FAILURE, FIND location after file 0x" << std::hex << floc << "\n";
-                ctx.DisableDecompiler(std::format("FIND bad floc 0x{:x}", floc));
-                break;
+                throw std::runtime_error(std::format("FIND location after file 0x{:x}", floc));
             }
             byte*& base = ctx.m_bcl;
 
@@ -2857,8 +2877,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
             }
 
             if (opCode > objctx.m_vmInfo->maxOpCode) {
-                out << std::hex << "FAILURE, FIND errec: " << opcodeName << "(0x" << opCode << " > 0x" << objctx.m_vmInfo->maxOpCode << ")" << "\n";
-                ctx.DisableDecompiler(std::format("FIND errec 0x{:x}", opCode));
+                throw std::runtime_error(std::format("FIND errec {} (0x{:x} > 0x{:x})", opcodeName, opCode, objctx.m_vmInfo->maxOpCode));
                 opCode &= objctx.m_vmInfo->maxOpCode;
                 break;
             }
@@ -2883,7 +2902,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             // update ASMContext::WritePadding if you change the format
 
-            auto ret = handler->Dump(out, opCode, ctx, objctx);
+            int ret = handler->Dump(out, opCode, ctx, objctx);
 
             if (ret) {
                 break;
@@ -3639,6 +3658,10 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
         core::async::SetAsync(prevAsyncTypes);
     }
 
+
+    if (gdctx.hardErrors) {
+        LOG_ERROR("{} (0x{:x}) error(s), are you using the right vm type?", gdctx.hardErrors, gdctx.hardErrors);
+    }
     LOG_INFO("{} (0x{:x}) file(s) decompiled.", gdctx.decompiledFiles, gdctx.decompiledFiles);
 
     if (!globalHM) {

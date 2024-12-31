@@ -530,9 +530,14 @@ namespace tool::gsc {
              * @return absolute location from script start
              */
             uint32_t ScriptAbsoluteLocation(byte* location);
+            /*
+             * Check we are inside the script
+             */
+            void CheckInsideScript();
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
             inline byte*& Aligned() {
+                CheckInsideScript();
                 return m_bcl = utils::Aligned<Type>(m_bcl);
             }
             // @return Write asm padding and return out
@@ -761,6 +766,7 @@ namespace tool::gsc {
         uint64_t warningOpt{};
         std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
         size_t decompiledFiles{};
+        size_t hardErrors{};
         std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>> vtables{};
 
         ~GscDecompilerGlobalContext() {

@@ -31,6 +31,7 @@ namespace actscli {
 		bool noPrivate{};
 		ActsType type{ ACTS_CLI };
 		bool exitAfterEnd{};
+		bool debug{};
 	};
 
 	ActsOptions& options();

@@ -653,7 +653,7 @@ public:
 			op2->AddParam(new ASMContextNodeValue<const char*>(PlatformName(context.m_platform), TYPE_VALUE));
 			context.PushASMCNode(op2);
 			context.CompleteStatement();
-			//context.DisableDecompiler(std::format("Unknown operator 0x{:x} ({}/{})", value, context.m_objctx.m_vmInfo->codeName, PlatformName(context.m_platform)));
+			//throw std::runtime_error(std::format("Unknown operator 0x{:x} ({}/{})", value, context.m_objctx.m_vmInfo->codeName, PlatformName(context.m_platform)));
 		}
 
 		
@@ -1372,8 +1372,7 @@ public:
 		byte* newLoc = &context.m_bcl[delta];
 
 		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.Ptr()) {
-			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
-			context.DisableDecompiler(std::format("jump with invalid delta: {}0x{:x}", (delta < 0 ? "-" : ""), (delta < 0 ? -delta : delta)));
+			throw std::runtime_error(std::format("jump with invalid delta: {}0x{:x}", (delta < 0 ? "-" : ""), (delta < 0 ? -delta : delta)));
 			return -1;
 		}
 
@@ -4344,8 +4343,7 @@ public:
 		baseTable += table + 4;
 
 		if (!context.IsInsideScript()) {
-			out << "INVALID switch table: " << std::hex << table << "\n";
-			context.DisableDecompiler(std::format("Invalid switch table: {:x}", table));
+			throw std::runtime_error(std::format("Invalid switch table: {:x}", table));
 			return -1;
 		}
 
@@ -5702,6 +5700,11 @@ uint32_t ASMContext::ScriptAbsoluteLocation(byte* bytecodeLocation) {
 }
 bool ASMContext::IsInsideScript(byte* bytecodeLocation) {
 	return m_gscReader.Ptr() <= bytecodeLocation && m_gscReader.Ptr(m_gscReader.GetFileSize()) > bytecodeLocation;
+}
+void ASMContext::CheckInsideScript() {
+	if (!IsInsideScript()) {
+		throw std::runtime_error(std::format("Outside script {}", (void*)m_bcl));
+	}
 }
 
 std::ostream& ASMContext::WritePadding(std::ostream& out) {

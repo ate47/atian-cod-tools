@@ -74,6 +74,7 @@ namespace {
 			}
 			else if (!strcmp("-d", arg) || !_strcmpi("--debug", arg)) {
 				hook::error::EnableHeavyDump();
+				opt.debug = true;
 			}
 			else if (!strcmp("-s", arg) || !_strcmpi("--strings", arg)) {
 				if (i + 1 == argc) {
