@@ -532,14 +532,26 @@ namespace tool::gsc {
             uint32_t ScriptAbsoluteLocation(byte* location);
             /*
              * Check we are inside the script
+             * @param location pointer
              */
-            void CheckInsideScript();
+            void CheckInsideScript(byte* location);
+
+            inline void CheckInsideScript() {
+                CheckInsideScript(m_bcl);
+            }
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
             inline byte*& Aligned() {
                 CheckInsideScript();
                 return m_bcl = utils::Aligned<Type>(m_bcl);
             }
+            template<typename Type>
+            inline Type Read(byte* loc = m_bcl) {
+                CheckInsideScript(loc);
+                CheckInsideScript(loc + (sizeof(Type) - 1));
+                return *(Type*)loc;
+            }
+
             // @return Write asm padding and return out
             std::ostream& WritePadding(std::ostream& out);
 

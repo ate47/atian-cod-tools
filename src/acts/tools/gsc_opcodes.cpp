@@ -672,7 +672,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& loc = context.Aligned<uint16_t>();
 
-		uint16_t val = *(uint16_t*)loc;
+		uint16_t val = context.Read<uint16_t>(loc);
 
 		loc += 2;
 		out << std::hex << val << "\n";
@@ -690,7 +690,7 @@ public:
 	OPCodeInfoRegisterVariable() : OPCodeInfo(OPCode::OPCODE_IW_RegisterVariable, "RegisterVariable") {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		uint64_t name = *reinterpret_cast<uint64_t*>(context.m_bcl);
+		uint64_t name = context.Read<uint64_t>(context.m_bcl);
 		context.m_bcl += 8;
 
 		if (!context.m_localvars.size()) {
@@ -716,12 +716,12 @@ public:
 	OPCodeInfoRegisterMultipleVariables() : OPCodeInfo(OPCode::OPCODE_IW_RegisterMultipleVariables, "RegisterMultipleVariables") {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		byte count = *(context.m_bcl++);
+		byte count = context.Read<byte>(context.m_bcl++);
 
 		out << "count: " << std::dec << (int)count << "\n";
 
 		for (size_t i = 0; i < count; i++) {
-			uint64_t name = *reinterpret_cast<uint64_t*>(context.m_bcl);
+			uint64_t name = context.Read<uint64_t>(context.m_bcl);
 			context.m_bcl += 8;
 
 			if (!context.m_localvars.size()) {
@@ -748,7 +748,7 @@ public:
 	OPCodeInfoSafeCreateLocalVariables() : OPCodeInfo(OPCODE_SafeCreateLocalVariables, "SafeCreateLocalVariables") {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		byte count = *context.m_bcl++;
+		byte count = context.Read<byte>(context.m_bcl++);
 
 		context.m_localvars.reserve((size_t)count + 1);
 
@@ -764,7 +764,7 @@ public:
 			uint64_t varName;
 
 			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_VAR_ID)) {
-				const char* varNameStr{ utils::va("local_%d", *(context.m_bcl++)) };
+				const char* varNameStr{ utils::va("local_%d", context.Read<byte>(context.m_bcl++)) };
 				varName = hash::Hash64(varNameStr);
 				hashutils::AddPrecomputed(varName, varNameStr);
 			}
@@ -772,14 +772,14 @@ public:
 				if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 					context.Aligned<uint64_t>();
 				}
-				varName = *(uint64_t*)context.m_bcl;
+				varName = context.Read<uint64_t>(context.m_bcl);
 				context.m_bcl += 8;
 			}
 			else {
 				if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 					context.Aligned<uint32_t>();
 				}
-				varName = *(uint32_t*)context.m_bcl;
+				varName = context.Read<uint32_t>(context.m_bcl);
 				context.m_bcl += 4;
 			}
 			auto& bytecode = context.m_bcl;
@@ -901,7 +901,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(uint32_t*)ref;
+		auto name = context.Read<uint32_t>(ref);
 
 		ref += 4;
 
@@ -932,7 +932,7 @@ public:
 		}
 		auto& bytecode = context.m_bcl;
 
-		int64_t negv = -(int64_t)*(Type*)bytecode;
+		int64_t negv = -(int64_t)context.Read<Type>(bytecode);
 
 		bytecode += sizeof(Type);
 
@@ -1151,7 +1151,7 @@ public:
 			out << "anim tree #" << (str ? str : "<error>") << std::endl;
 		}
 		else {
-			WriteType intValue = *(Type*)bytecode;
+			WriteType intValue = context.Read<Type>(bytecode);
 
 
 			if (context.m_runDecompiler) {
@@ -1198,7 +1198,7 @@ public:
 		}
 		auto& bytecode = context.m_bcl;
 
-		int16_t delta = *(int16_t*)bytecode;
+		int16_t delta = context.Read<int16_t>(bytecode);
 
 		bytecode += sizeof(delta);
 
@@ -1245,11 +1245,11 @@ public:
 		uint64_t hash;
 		
 		if (m_hash64) {
-			hash = *(uint64_t*)bytecode;
+			hash = context.Read<uint64_t>(bytecode);
 			bytecode += 8;
 		}
 		else {
-			hash = *(uint32_t*)bytecode;
+			hash = context.Read<uint32_t>(bytecode);
 			bytecode += 4;
 		}
 
@@ -1358,12 +1358,12 @@ public:
 		int32_t delta;
 		
 		if (jump32) {
-			delta = *(int32_t*)bytecode;
+			delta = context.Read<int32_t>(bytecode);
 
 			bytecode += 4;
 		}
 		else {
-			delta = *(int16_t*)bytecode;
+			delta = context.Read<int16_t>(bytecode);
 
 			bytecode += 2;
 		}
@@ -1525,7 +1525,7 @@ public:
 		}
 		auto& bytecode = context.m_bcl;
 
-		int16_t delta = *(int16_t*)bytecode;
+		int16_t delta = context.Read<int16_t>(bytecode);
 
 		bytecode += 2;
 
@@ -1596,7 +1596,7 @@ public:
 		int32_t jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		auto& bytecode = context.Aligned<uintptr_t>();
 
-		uintptr_t location = *(uintptr_t*)bytecode;
+		uintptr_t location = context.Read<uintptr_t>(bytecode);
 
 		bytecode += 8;
 
@@ -1643,17 +1643,17 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
-			context.Aligned<FLOAT>();
+			context.Aligned<float>();
 		}
 		auto& bytecode = context.m_bcl;
 
-		float x = *(FLOAT*)bytecode;
+		float x = context.Read<float>(bytecode);
 		bytecode += 4;
 
-		float y = *(FLOAT*)bytecode;
+		float y = context.Read<float>(bytecode);
 		bytecode += 4;
 
-		float z = *(FLOAT*)bytecode;
+		float z = context.Read<float>(bytecode);
 		bytecode += 4;
 
 		if (context.m_runDecompiler) {
@@ -1694,7 +1694,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		byte flag = *(context.m_bcl++);
+		byte flag = context.Read<byte>(context.m_bcl++);
 
 		float x, y, z;
 
@@ -1727,7 +1727,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(uint32_t*)ref;
+		auto name = context.Read<uint32_t>(ref);
 
 		ref += 4;
 
@@ -1750,7 +1750,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(uint32_t*)ref;
+		auto name = context.Read<uint32_t>(ref);
 
 		ref += 4;
 
@@ -1780,7 +1780,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = *(context.m_bcl++);
+		int lvar = context.Read<byte>(context.m_bcl++);
 
 		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
@@ -1818,7 +1818,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		uint64_t name;
 		if (!m_valueName) {
-			int lvar = *(context.m_bcl++);
+			int lvar = context.Read<byte>(context.m_bcl++);
 
 			if (lvar >= context.m_localvars.size()) {
 				name = hash::HashT89Scr("<error>");
@@ -1973,7 +1973,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& ref = context.Aligned<uint32_t>();
 
-		auto name = *(uint32_t*)ref;
+		auto name = context.Read<uint32_t>(ref);
 
 		ref += 4;
 
@@ -2010,7 +2010,7 @@ public:
 			auto& ref = context.m_bcl;
 
 			if (m_isref) {
-				int lvar = *(ref++);
+				int lvar = context.Read<byte>(ref++);
 
 				if (lvar >= context.m_localvars.size()) {
 					name = hash::HashT89Scr("<error>");
@@ -2023,11 +2023,11 @@ public:
 			}
 			else {
 				if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-					name = *(uint64_t*)ref;
+					name = context.Read<uint64_t>(ref);
 					ref += 8;
 				}
 				else {
-					name = *(uint32_t*)ref;
+					name = context.Read<uint32_t>(ref);
 					ref += 4;
 				}
 			}
@@ -2081,7 +2081,7 @@ public:
 			}
 			auto& base = context.m_bcl;
 
-			uint16_t objectid = *(uint16_t*)base;
+			uint16_t objectid = context.Read<uint16_t>(base);
 			base += 2;
 
 			name = objctx.GetGlobalVarName(objectid);
@@ -2106,11 +2106,11 @@ public:
 		uint64_t fieldName;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-			fieldName = *(uint64_t*)(base2);
+			fieldName = context.Read<uint64_t>(base2);
 			base2 += 8;
 		}
 		else {
-			fieldName = *(uint32_t*)(base2);
+			fieldName = context.Read<uint32_t>(base2);
 			base2 += 4;
 		}
 
@@ -2148,7 +2148,7 @@ public:
 			}
 			auto& base = context.m_bcl;
 
-			uint16_t objectid = *(uint16_t*)base;
+			uint16_t objectid = context.Read<uint16_t>(base);
 			base += 2;
 
 			name = objctx.GetGlobalVarName(objectid);
@@ -2173,11 +2173,11 @@ public:
 		uint64_t fieldName;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-			fieldName = *(uint64_t*)(base2);
+			fieldName = context.Read<uint64_t>(base2);
 			base2 += 8;
 		}
 		else {
-			fieldName = *(uint32_t*)(base2);
+			fieldName = context.Read<uint32_t>(base2);
 			base2 += 4;
 		}
 		
@@ -2217,11 +2217,11 @@ public:
 		uint64_t name;
 
 		if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-			name = *(uint64_t*)(base2);
+			name = context.Read<uint64_t>(base2);
 			base2 += 8;
 		}
 		else {
-			name = *(uint32_t*)(base2);
+			name = context.Read<uint32_t>(base2);
 			base2 += 4;
 		}
 
@@ -2259,11 +2259,11 @@ public:
 			auto& ref = context.m_bcl;
 
 			if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-				name = *(uint64_t*)ref;
+				name = context.Read<uint64_t>(ref);
 				ref += 8;
 			}
 			else {
-				name = *(uint32_t*)ref;
+				name = context.Read<uint32_t>(ref);
 				ref += 4;
 			}
 
@@ -2310,7 +2310,7 @@ public:
 			int lvar;
 			
 			if (forceId < 0) {
-				lvar = (int)*(context.m_bcl++);
+				lvar = (int)context.Read<byte>(context.m_bcl++);
 			}
 			else {
 				lvar = forceId;
@@ -2350,7 +2350,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		uint64_t name;
 
@@ -2389,7 +2389,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		uint64_t name;
 
@@ -2428,7 +2428,7 @@ public:
 
 		uint64_t name;
 		if (!m_stack) {
-			int lvar = (int)*(context.m_bcl++);
+			int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 			if (lvar >= context.m_localvars.size()) {
 				name = hash::HashT89Scr("<error>");
@@ -2481,7 +2481,7 @@ public:
 
 		uint64_t name{};
 		if (m_set) {
-			int lvar = (int)*(context.m_bcl++);
+			int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 			if (lvar >= context.m_localvars.size()) {
 				name = hash::HashT89Scr("<error>");
@@ -2538,7 +2538,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		uint64_t name;
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
@@ -2571,7 +2571,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		uint64_t name;
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
@@ -2604,7 +2604,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
 		uint64_t name;
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
@@ -2635,7 +2635,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
@@ -2672,7 +2672,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
@@ -2823,7 +2823,7 @@ public:
 
 		uint64_t key{};
 		if (!m_popKey) {
-			key = *(uint64_t*)context.m_bcl;
+			key = context.Read<uint64_t>(context.m_bcl);
 			context.m_bcl += 8;
 			out << hashutils::ExtractTmp("hash", key);
 		}
@@ -3000,7 +3000,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int32_t token{ *(int32_t*)context.m_bcl };
+		int32_t token{ context.Read<int32_t>(context.m_bcl) };
 		context.m_bcl += 4;
 
 		out << "0x" << std::hex << token;
@@ -3102,7 +3102,7 @@ public:
 		out << "data(" << std::dec << len << "):";
 		std::vector<ASMContextNode*> numbers{};
 		for (size_t i = 0; i < len; i++) {
-			int data = (int)*(context.m_bcl++);
+			int data = (int)context.Read<byte>(context.m_bcl++);
 			if (context.m_runDecompiler) {
 				numbers.push_back(new ASMContextNodeValue<int>(data, TYPE_VALUE, true));
 			}
@@ -3141,7 +3141,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& bytecode = context.Aligned<uint64_t>();
 
-		uint64_t hash = *(uint64_t*)bytecode;
+		uint64_t hash = context.Read<uint64_t>(bytecode);
 
 		bytecode += 8;
 
@@ -3174,7 +3174,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		auto& bytecode = context.Aligned<uint32_t>();
 
@@ -3190,7 +3190,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 
-		uint32_t field = *(uint32_t*)bytecode;
+		uint32_t field = context.Read<uint32_t>(bytecode);
 		bytecode += 4;
 
 		out << "." << hashutils::ExtractTmp("var", field) << std::endl;
@@ -3224,7 +3224,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		uint64_t name;
 
@@ -3261,7 +3261,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int)*(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		auto& bytecode = context.Aligned<uint32_t>();
 
@@ -3277,7 +3277,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 
-		uint64_t field = *(uint32_t*)bytecode;
+		uint64_t field = context.Read<uint32_t>(bytecode);
 		bytecode += 4;
 
 		out << "." << hashutils::ExtractTmp("var", field) << std::endl;
@@ -3423,7 +3423,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int params;
 		if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_CALL_NO_PARAMS) || (objctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_CALLS) && m_hasParam)) {
-			params = *(context.m_bcl++);
+			params = context.Read<byte>(context.m_bcl++);
 		}
 		else {
 			switch (m_id) {
@@ -3464,13 +3464,13 @@ public:
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			auto& bytecode = context.Aligned<uint64_t>();
 
-			tmpBuffData[0] = ((uint32_t*)bytecode)[0];
-			tmpBuffData[1] = ((uint32_t*)bytecode)[1];
+			tmpBuffData[0] = context.Read<uint32_t>(bytecode);
+			tmpBuffData[1] = context.Read<uint32_t>(bytecode + 4);
 
 			bytecode += 8;
 		}
 		else {
-			auto idx = *(uint16_t*)context.m_bcl;
+			auto idx = context.Read<uint16_t>(context.m_bcl);
 			context.m_bcl += m_delta;
 
 			if (idx >= objctx.m_linkedImports.size()) {
@@ -3618,15 +3618,15 @@ public:
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			auto& bytecode = context.Aligned<uint64_t>();
 
-			tmpBuffData[0] = ((uint32_t*)bytecode)[0];
-			tmpBuffData[1] = ((uint32_t*)bytecode)[1];
+			tmpBuffData[0] = context.Read<uint32_t>(bytecode);
+			tmpBuffData[1] = context.Read<uint32_t>(bytecode + 4);
 
 			bytecode += 8;
 		}
 		else {
-			size_t idx = *(uint16_t*)context.m_bcl;
+			size_t idx = context.Read<uint16_t>(context.m_bcl);
 
-			// (mwiii)
+			// (iw)
 			// builtins: 16 bits
 			// script functions: 32 bits
 			
@@ -3681,7 +3681,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		byte params = *(context.m_bcl++);
+		byte params = context.Read<byte>(context.m_bcl++);
 		auto& bytecode = context.Aligned<uint32_t>();
 
 		uint32_t function = *(uint32_t*)bytecode;
@@ -3767,7 +3767,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int params;
 		if ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) || (m_hasParam && objctx.m_vmInfo->HasFlag(VMF_IW_CALLS))) {
-			params = *(context.m_bcl++);
+			params = context.Read<byte>(context.m_bcl++);
 			out << std::dec << "params:" << (int)params << ":" << std::hex << context.FunctionRelativeLocation();
 		}
 		else {
@@ -3878,7 +3878,7 @@ public:
 		}
 		auto& base = context.m_bcl;
 
-		uint32_t ref = *(uint32_t*)base;
+		uint32_t ref = context.Read<uint32_t>(base);
 
 		uint32_t floc = context.ScriptAbsoluteLocation(base);
 
@@ -3939,12 +3939,12 @@ public:
 		const char* str2;
 		uint32_t ref2;
 		if (m_doubleAnim) {
-			ref1 = *(uint32_t*)base;
+			ref1 = context.Read<uint32_t>(base);
 			str1 = objctx.GetStringValueOrError(ref1, context.ScriptAbsoluteLocation(base), nullptr);
 
 			base += 4;
 
-			ref2 = *(uint32_t*)base;
+			ref2 = context.Read<uint32_t>(base);
 			str2 = objctx.GetStringValueOrError(ref2, context.ScriptAbsoluteLocation(base), nullptr);
 
 			base += 4;
@@ -3952,7 +3952,7 @@ public:
 		else {
 			str1 = "";
 			ref1 = 0;
-			ref2 = *base;
+			ref2 = context.Read<byte>(base);
 			str2 = objctx.GetStringValueOrError(ref2, context.ScriptAbsoluteLocation(base), nullptr);
 			base++;
 		}
@@ -4007,7 +4007,7 @@ public:
 			}
 			auto& base = context.m_bcl;
 
-			uint16_t objectid = *(uint16_t*)base;
+			uint16_t objectid = context.Read<uint16_t>(base);
 			base += 2;
 
 			name = objctx.GetGlobalVarName(objectid);
@@ -4063,7 +4063,7 @@ public:
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& base = context.Aligned<uint16_t>();
 
-		uint16_t ref = *(uint16_t*)base;
+		uint16_t ref = context.Read<uint16_t>(base);
 
 		uint64_t name = objctx.GetGlobalVarName(ref);
 
@@ -4071,7 +4071,7 @@ public:
 
 		auto& baseField = context.Aligned<uint32_t>();
 
-		uint32_t field = *(uint32_t*)baseField;
+		uint32_t field = context.Read<uint32_t>(baseField);
 
 		base += 4;
 
@@ -4107,7 +4107,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		int lvar = (int) *(context.m_bcl++);
+		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
 			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
@@ -4138,7 +4138,7 @@ public:
 		// move to switch table using deltaSwitchTable;pop value;search case using case; if found move using delta
 
 		auto& baseTable = context.Aligned<int32_t>();
-		int32_t table = *(int32_t*)baseTable;
+		int32_t table = context.Read<int32_t>(baseTable);
 		// we move to the table
 		baseTable += 4 + table;
 
@@ -4166,11 +4166,11 @@ public:
 
 				context.WritePadding(out);
 
-				caseValue = *(uint64_t*)baseCaseValue;
+				caseValue = context.Read<uint64_t>(baseCaseValue);
 				caseLoc = baseCaseValue;
 				baseCaseValue += 8;
 				auto& baseCaseDelta = context.Aligned<int64_t>();
-				caseDelta = *(int64_t*)baseCaseDelta;
+				caseDelta = context.Read<int64_t>(baseCaseDelta);
 				baseCaseDelta += 8;
 				endBase = baseCaseDelta;
 			}
@@ -4179,11 +4179,11 @@ public:
 
 				context.WritePadding(out);
 
-				caseValue = *(uint32_t*)baseCaseValue;
+				caseValue = context.Read<uint32_t>(baseCaseValue);
 				caseLoc = baseCaseValue;
 				baseCaseValue += 4;
 				auto& baseCaseDelta = context.Aligned<int32_t>();
-				caseDelta = *(int32_t*)baseCaseDelta;
+				caseDelta = context.Read<int32_t>(baseCaseDelta);
 				baseCaseDelta += 4;
 				endBase = baseCaseDelta;
 			}
@@ -4338,7 +4338,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& baseTable = context.m_bcl;
-		int32_t table = *(int32_t*)baseTable;
+		int32_t table = context.Read<int32_t>(baseTable);
 		// we move to the table
 		baseTable += table + 4;
 
@@ -4347,7 +4347,7 @@ public:
 			return -1;
 		}
 
-		uint16_t cases = (*(uint16_t*)baseTable) & 0x7FFFFFFF;
+		uint16_t cases = context.Read<uint16_t>(baseTable) & 0x7FFFFFFF;
 
 		baseTable += 2;
 
@@ -4371,9 +4371,9 @@ public:
 				uint32_t unkb; // i32
 			};
 			
-			CaseValue val = *(CaseValue*)basecase;
-			int32_t caseDelta = ((*(int32_t*)(basecase + 8) << 8) >> 8) + 8; // remove type
-			byte type = basecase[11];
+			CaseValue val = context.Read<CaseValue>(basecase);
+			int32_t caseDelta = ((context.Read<int32_t>(basecase + 8) << 8) >> 8) + 8; // remove type
+			byte type = context.Read<byte>(basecase + 11);
 
 			context.WritePadding(out);
 
@@ -4525,7 +4525,7 @@ public:
 		int32_t jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		auto& baseCount = context.Aligned<int32_t>();
 
-		int32_t count = *(int32_t*)baseCount;
+		int32_t count = context.Read<int32_t>(baseCount);
 
 		baseCount += 4;
 
@@ -4571,7 +4571,7 @@ public:
 		int32_t jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
 		auto& baseCount = context.m_bcl;
 
-		uint16_t count = *(uint16_t*)baseCount;
+		uint16_t count = context.Read<uint16_t>(baseCount);
 
 		baseCount += 2 + 12 * count;
 
@@ -4685,7 +4685,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		byte count = *(context.m_bcl++) + m_addedToCount;
+		byte count = context.Read<byte>(context.m_bcl++) + m_addedToCount;
 
 		out << "count:" << (int)count << "\n";
 
@@ -4724,7 +4724,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		byte count = *(context.m_bcl++) + m_added;
+		byte count = context.Read<byte>(context.m_bcl++) + m_added;
 
 		out << "count:" << (int)count << "\n";
 
@@ -4859,9 +4859,9 @@ public:
 		int32_t lazylocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) ? 2 : 1));
 		auto& base = context.Aligned<int32_t>();
 
-		uint32_t nsp = *(uint32_t*)base;
-		uint32_t function = *(uint32_t*)(base + 4);
-		uint64_t script = *(uint64_t*)(base + 8);
+		uint32_t nsp = context.Read<uint32_t>(base);
+		uint32_t function = context.Read<uint32_t>(base + 4);
+		uint64_t script = context.Read<uint64_t>(base + 8);
 
 		base += 16;
 
@@ -5701,8 +5701,8 @@ uint32_t ASMContext::ScriptAbsoluteLocation(byte* bytecodeLocation) {
 bool ASMContext::IsInsideScript(byte* bytecodeLocation) {
 	return m_gscReader.Ptr() <= bytecodeLocation && m_gscReader.Ptr(m_gscReader.GetFileSize()) > bytecodeLocation;
 }
-void ASMContext::CheckInsideScript() {
-	if (!IsInsideScript()) {
+void ASMContext::CheckInsideScript(byte* location) {
+	if (!IsInsideScript(location)) {
 		throw std::runtime_error(std::format("Outside script {}", (void*)m_bcl));
 	}
 }

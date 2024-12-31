@@ -2850,10 +2850,10 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
             uint16_t opCode;
 
             if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
-                opCode = *(uint16_t*)base;
+                opCode = ctx.Read<uint16_t>(base);
             }
             else {
-                opCode = (uint16_t)*base;
+                opCode = (uint16_t)ctx.Read<byte>(base);
             }
 
             const auto* handler = ctx.LookupOpCode(opCode);
