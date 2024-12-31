@@ -2090,9 +2090,8 @@ ignoreCscGsc:
                 {
                     core::async::opt_lock_guard lg{ gdctx.asyncMtx };
                     gdctx.hardErrors++;
-                    if (!exportErrors || dumpAllErrors) {
+                    if (!(exportErrors++) || dumpAllErrors) {
                         LOG_ERROR("Can't decompile export: {}", err.what());
-                        exportErrors++;
                     }
                 }
             }
