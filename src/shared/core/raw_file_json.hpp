@@ -71,6 +71,11 @@ namespace core::raw_file::json {
 			writer.WriteString("\"");
 		}
 
+
+		void WriteValueString(const std::string& str) {
+			WriteValueString(str.c_str());
+		}
+
 		void WriteValueEncrypted(const char* str) {
 			WritePreData();
 			writer.WriteString("\"");

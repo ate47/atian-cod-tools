@@ -78,7 +78,7 @@ namespace {
 		if (tool::NotEnoughParam(argc, 3)) {
 			LOG_ERROR("Different values (first, last):");
 			LOG_ERROR("BO4 ...... \"physpreset\" \"assetlist\" ");
-			LOG_ERROR("BOCW ..... \"physpreset\" \"\" ");
+			LOG_ERROR("BOCW ..... \"zone\" \"\" ");
 			LOG_ERROR("IW games . \"physicslibrary\" \"string\" ");
 			return tool::BAD_USAGE;
 		}
@@ -104,79 +104,89 @@ namespace {
 
 		LOG_INFO("Searching {}->{}", first, last ? last : "");
 
-		uintptr_t firstStringOffset{ mod->ScanStringSingle(first).GetPtr<uintptr_t>() };
-		LOG_INFO("\"{}\" -> 0x{:x}", first, mod->Rloc(firstStringOffset));
-		for (hook::library::ScanResult& poolNamesRes : mod->ScanNumber(firstStringOffset)) {
-			uintptr_t poolNamesOffset{ poolNamesRes.GetPtr<uintptr_t>() };
+		for (hook::library::ScanResult& firstStringOffsetRes : mod->ScanString(first)) {
+			uintptr_t firstStringOffset{ firstStringOffsetRes.GetPtr<uintptr_t>() };
+			LOG_INFO("try string \"{}\" -> 0x{:x}", first, mod->Rloc(firstStringOffset));
+			for (hook::library::ScanResult& poolNamesRes : mod->ScanNumber(firstStringOffset)) {
+				uintptr_t poolNamesOffset{ poolNamesRes.GetPtr<uintptr_t>() };
 
-			uintptr_t* poolNames{ reinterpret_cast<uintptr_t*>(poolNamesOffset)};
-			LOG_DEBUG("try poolNames -> 0x{:x}", mod->Rloc(poolNamesOffset));
+				uintptr_t* poolNames{ reinterpret_cast<uintptr_t*>(poolNamesOffset) };
+				LOG_INFO("try poolNames -> 0x{:x}", mod->Rloc(poolNamesOffset));
 
-			// we can try to see if the next one is a valid string
+				// we can try to see if the next one is a valid string
 
-			void* next{ reinterpret_cast<void*>(poolNames[1]) };
+				void* next{ reinterpret_cast<void*>(poolNames[1]) };
 
-			if (next < **mod || next > (*mod)[0x10000000]) {
-				LOG_TRACE("Not inside library");
-				continue; // not inside the module
-			}
-
-
-			size_t count{};
-			while (true) {
-				if (!poolNames[count]) {
-					if (last) {
-						LOG_WARNING("Can't find last pool name, the result might be wrong"); // cw?
-					}
-					break;
+				if (next < **mod || next >(*mod)[0x10000000]) {
+					LOG_ERROR("Not inside library");
+					continue; // not inside the module
 				}
-				const char* cc = mod->Rebase<const char>(poolNames[count]);
-				LOG_TRACE("Find {}", cc);
-				if (last && !_strcmpi(cc, last)) break;
-				count++;
-			}
 
-			LOG_INFO("poolNames -> 0x{:x}", mod->Rloc(poolNamesOffset));
-			LOG_INFO("Found {} pool(s)", count);
 
-			std::ofstream os{ pools };
-			if (!os) {
-				LOG_ERROR("Can't open {}", pools.string());
-				return tool::BASIC_ERROR;
-			}
-
-			utils::CloseEnd osce{ os };
-
-			os << "// Asset types (" << std::dec << count << "/0x" << std::hex << mod->Rloc(poolNamesOffset) << ")\n";
-			os << "enum AssetType : int {\n";
-			for (size_t i = 0; i < count; i++) {
-				const char* cc = mod->Rebase<const char>(poolNames[i]);
-				char* id{ utils::MapString(utils::CloneString(cc), [](char c) -> char {
-					c = std::toupper(c);
-
-					if (!(c == '_' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
-						return '_'; // remap bad char
+				size_t count{};
+				while (true) {
+					if (!poolNames[count]) {
+						if (last) {
+							LOG_ERROR("Can't find last pool name"); // cw?
+						}
+						break;
 					}
+					const char* cc = mod->Rebase<const char>(poolNames[count]);
+					LOG_TRACE("Find {}", cc);
+					if (last && !_strcmpi(cc, last)) break;
+					count++;
+				}
 
-					return c;
-				}) };
-				os << "    " << prefix << id << " = 0x" << std::hex << i << ", // " << std::dec << i << " " << cc << "\n";
+				if (count <= 40) {
+					LOG_ERROR("Not enough candidates: {}", count);
+					continue;
+				}
+
+				LOG_INFO("poolNames -> 0x{:x}", mod->Rloc(poolNamesOffset));
+				LOG_INFO("Found {} pool(s)", count);
+
+				std::ofstream os{ pools };
+				if (!os) {
+					LOG_ERROR("Can't open {}", pools.string());
+					return tool::BASIC_ERROR;
+				}
+
+				utils::CloseEnd osce{ os };
+
+				os << "// Asset types (" << std::dec << count << "/0x" << std::hex << mod->Rloc(poolNamesOffset) << ")\n";
+				os << "enum AssetType : int {\n";
+				for (size_t i = 0; i < count; i++) {
+					const char* cc = mod->Rebase<const char>(poolNames[i]);
+					char* id{ utils::MapString(utils::CloneString(cc), [](char c) -> char {
+						c = std::toupper(c);
+
+						if (!(c == '_' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+							return '_'; // remap bad char
+						}
+
+						return c;
+					}) };
+					os << "    " << prefix << id << " = 0x" << std::hex << i << ", // " << std::dec << i << " " << cc << "\n";
+				}
+				os << "    " << prefix << "COUNT" << " = 0x" << std::hex << count << ",\n";
+				os << "};\n\n";
+
+				os << "const char* poolNames[] {\n";
+				for (size_t i = 0; i < count; i++) {
+					const char* cc = mod->Rebase<const char>(poolNames[i]);
+					os << "    \"" << cc << "\",\n";
+				}
+				os << "};\n\n";
+
+				LOG_INFO("Dump into {}", pools.string());
+
+				return tool::OK;
 			}
-			os << "    " << prefix << "COUNT" << " = 0x" << std::hex << count << ",\n";
-			os << "};\n\n";
-
-			os << "const char* poolNames[] {\n";
-			for (size_t i = 0; i < count; i++) {
-				const char* cc = mod->Rebase<const char>(poolNames[i]);
-				os << "    \"" << cc << "\",\n";
-			}
-			os << "};\n\n";
-
-			LOG_INFO("Dump into {}", pools.string());
-			break;
+			LOG_ERROR("Can't find ref");
 		}
 		
-		return tool::OK;
+		LOG_ERROR("Can't find candidate");
+		return tool::BASIC_ERROR;
 	}
 
 	int sp24_data_dump(int argc, const char* argv[]) {

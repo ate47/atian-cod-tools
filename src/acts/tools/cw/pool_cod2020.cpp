@@ -1,10 +1,12 @@
 #include <includes.hpp>
+#include <core/raw_file_json.hpp>
 #include "cw.hpp"
 #include "pool_cod2020.hpp"
 
 namespace {
-
     const char* poolNames[]{
+        "zone",
+        "assetlist",
         "physpreset",
         "physconstraints",
         "destructibledef",
@@ -214,6 +216,8 @@ namespace {
         "compasstunables",
     };
 
+
+
     struct XAssetPool {
         uintptr_t pool; // void*
         unsigned int itemSize;
@@ -227,6 +231,63 @@ namespace {
         uintptr_t buffer; // GSC_OBJ*
         int32_t len;
     };
+    int pdcod2020(Process& proc, int argc, const char* argv[]) {
+        uintptr_t poolsPtr{ cw::ScanPool(proc) };
+
+        auto pool{ proc.ReadMemoryArrayEx<XAssetPool>(cw::ScanPool(proc), cw::alpha::ASSET_TYPE_COUNT) };
+
+
+        core::raw_file::json::RawFileJsonWriter writer{};
+
+        writer.BeginObject();
+        writer.WriteFieldNameString("fields");
+        writer.BeginArray();
+        for (size_t i = 0; i < cw::alpha::ASSET_TYPE_COUNT; i++) {
+            XAssetPool& po{ pool[i] };
+            writer.BeginObject();
+
+            writer.WriteFieldNameString("name");
+            writer.WriteValueString(poolNames[i]);
+
+            writer.WriteFieldNameString("pool");
+            writer.WriteValueString(std::format("0x{:x}", po.pool));
+            writer.WriteFieldNameString("itemSize");
+            writer.WriteValueString(std::format("0x{:x}", po.itemSize));
+            writer.WriteFieldNameString("itemCount");
+            writer.WriteValueString(std::format("0x{:x}", po.itemCount));
+            writer.WriteFieldNameString("itemAllocCount");
+            writer.WriteValueString(std::format("0x{:x}", po.itemAllocCount));
+
+
+            LOG_INFO("Pool {} 0x{:x} 0x{:x} 0x{:x} 0x{:x}", poolNames[i], po.pool, po.itemSize, po.itemCount, po.itemAllocCount);
+            if (po.itemAllocCount) {
+                writer.WriteFieldNameString("firsts");
+                int size{ std::min(po.itemAllocCount, 10) };
+                auto data{ proc.ReadMemoryArrayEx<byte>(po.pool, size * po.itemSize) };
+
+                for (size_t i = 0; i < size; i++) {
+                    uint64_t name{ *reinterpret_cast<uint64_t*>(&data[i * po.itemSize]) };
+
+                    writer.WriteValueHash(name);
+                }
+            }
+
+            writer.EndObject();
+        }
+        writer.EndArray();
+        writer.EndObject();
+
+        std::filesystem::path file{ "nfo.data" };
+
+        if (utils::WriteFile(file, writer.Build())) {
+            LOG_INFO("Dump into {}", file.string());
+        }
+        else {
+            LOG_ERROR("Error when dumping into {}", file.string());
+        }
+
+        return tool::OK;
+    }
 
     int wpscod2020(Process& proc, int argc, const char* argv[]) {
         std::filesystem::path output{ tool::NotEnoughParam(argc, 1) ? "scriptparsetree_cod2020" : argv[2] };
@@ -274,6 +335,28 @@ namespace {
         return tool::OK;
     }
 
+    int rfextract(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
 
+        std::vector<byte> buff{};
+
+        if (!utils::ReadFile(argv[2], buff)) {
+            LOG_ERROR("Can't read {}", argv[2]);
+            return tool::BASIC_ERROR;
+        }
+
+        core::bytebuffer::ByteBuffer bytebuff{ buff };
+        core::raw_file::RawFileReader reader{ bytebuff, nullptr, [](uint64_t h) -> const char* { return hashutils::ExtractTmp("hash", h); } };
+
+        std::string data{ reader.ReadAll() };
+
+        utils::WriteFile(argv[3], data);
+
+        return tool::OK;
+    }
+
+
+    ADD_TOOL(rfextract, "cw", "", "", rfextract);
+    ADD_TOOL(pdcod2020, "cw", "", "", L"CoD2020.exe", pdcod2020);
     ADD_TOOL(wpscod2020, "cw", " [output=scriptparsetree_cod2020]", "write pooled scripts (cwa)", L"CoD2020.exe", wpscod2020);
 }

@@ -1477,6 +1477,26 @@ ignoreCscGsc:
             }
             else {
                 sprintf_s(asmfnamebuff, "%s/%s", outDir, name);
+
+                char* extName{ utils::CloneString(name) };
+                std::string_view usingSw{ extName };
+                size_t usingSwPath{ usingSw.find_last_of('/') };
+                if (usingSw.ends_with(".gsc") || usingSw.ends_with(".csc")) {
+                    extName[usingSw.length() - 4] = 0;
+                }
+
+                if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                    // IW vm import types
+                    hashutils::AddPrecomputed(ctx.m_vmInfo->HashFilePath(extName), extName);
+                }
+                if (usingSwPath != std::string::npos) {
+                    const char* namespaceAdd(&extName[usingSwPath + 1]);
+                    hashutils::AddPrecomputed(ctx.m_vmInfo->HashField(namespaceAdd), namespaceAdd);
+
+                    if (!ctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                        hashutils::AddPrecomputed(ctx.m_vmInfo->HashFilePath(namespaceAdd), namespaceAdd);
+                    }
+                }
             }
         }
         else {
@@ -1735,7 +1755,20 @@ ignoreCscGsc:
                     return tool::BASIC_ERROR;
                 }
                 //asmout << "#using " << scriptfile->Ptr<char>(includes[i]) << ";\n";
-                usingsList.emplace_back(scriptfile->Ptr<char>(includes[i]));
+                const char* usingName{ scriptfile->Ptr<char>(includes[i]) };
+                usingsList.emplace_back(usingName);
+
+                std::string_view usingSw{ usingName };
+                size_t usingSwPath{ usingSw.find_last_of('/') };
+
+                if (usingSwPath != std::string::npos) {
+                    const char* namespaceAdd(&usingName[usingSwPath + 1]);
+                    hashutils::AddPrecomputed(ctx.m_vmInfo->HashField(namespaceAdd), namespaceAdd);
+
+                    if (!ctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                        hashutils::AddPrecomputed(ctx.m_vmInfo->HashFilePath(namespaceAdd), namespaceAdd);
+                    }
+                }
             }
         }
         else {
@@ -1756,6 +1789,17 @@ ignoreCscGsc:
                         if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
                             // IW vm import types
                             hashutils::AddPrecomputed(ctx.m_vmInfo->HashFilePath(usingName), usingName);
+                        }
+                        std::string_view usingSw{ usingName };
+                        size_t usingSwPath{ usingSw.find_last_of('/') };
+
+                        if (usingSwPath != std::string::npos) {
+                            const char* namespaceAdd(&usingName[usingSwPath + 1]);
+                            hashutils::AddPrecomputed(ctx.m_vmInfo->HashField(namespaceAdd), namespaceAdd);
+
+                            if (!ctx.m_vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                                hashutils::AddPrecomputed(ctx.m_vmInfo->HashFilePath(namespaceAdd), namespaceAdd);
+                            }
                         }
                     }
                 }
