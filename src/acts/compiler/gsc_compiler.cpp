@@ -6093,11 +6093,13 @@ namespace acts::compiler {
             }
 
             // build csc/gsc
+            opt.config.name = opt.nameServer;
             int ret = produceFile(false, inputs);
 
             if (ret) {
                 return ret;
             }
+            opt.config.name = opt.nameClient;
             return produceFile(true, inputs);
         }
     }
