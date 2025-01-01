@@ -343,21 +343,21 @@ int cw::InjectScriptCWAlpha(Process& proc, const char* script, const char* targe
 		return tool::BASIC_ERROR;
 	}
 
-	auto entries = std::make_unique<ScriptParseTree[]>(sptPool.itemAllocCount);
+	auto entries = std::make_unique<ScriptParseTreeAlpha[]>(sptPool.itemAllocCount);
 
 	if (!proc.ReadMemory(&entries[0], sptPool.pool, sptPool.itemAllocCount * sizeof(entries[0]))) {
 		notify = "Can't read SPT pool entries";
 		return tool::BASIC_ERROR;
 	}
 
-	auto* scriptEntry = reinterpret_cast<ScriptParseTree*>(&entries[0]);
+	auto* scriptEntry = reinterpret_cast<ScriptParseTreeAlpha*>(&entries[0]);
 
 	auto* end = scriptEntry + sptPool.itemAllocCount;
 
 	auto* targetEntry = std::find_if(scriptEntry, end, [targetHash](const auto& ent) { return ent.name == targetHash; });
 
 	uintptr_t replacedEntry = 0;
-	ScriptParseTree* replacedEntryH = NULL;
+	ScriptParseTreeAlpha* replacedEntryH = NULL;
 
 	for (size_t i = 0; i < sptPool.itemAllocCount; i++) {
 		if (scriptEntry[i].name == replacedHash) {
@@ -444,7 +444,7 @@ int cw::InjectScriptCWAlpha(Process& proc, const char* script, const char* targe
 		return tool::BASIC_ERROR;
 	}
 
-	if (!proc.WriteMemory(replacedEntry + offsetof(ScriptParseTree, buffer), &locAligned, sizeof(locAligned))) {
+	if (!proc.WriteMemory(replacedEntry + offsetof(ScriptParseTreeAlpha, buffer), &locAligned, sizeof(locAligned))) {
 		notify = std::format("Error when patching SPT entry to 0x{:x}", locAligned);
 		proc.FreeMemory(loc, scriptSize + 0xF);
 		return tool::BASIC_ERROR;

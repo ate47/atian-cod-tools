@@ -228,9 +228,11 @@ namespace {
     };
     struct ScriptParseTree {
         uint64_t name;
+        uint64_t namenull;
         uintptr_t buffer; // GSC_OBJ*
         int32_t len;
-    };
+    }; static_assert(sizeof(ScriptParseTree) == 0x20);
+
     int pdcod2020(Process& proc, int argc, const char* argv[]) {
         uintptr_t poolsPtr{ cw::ScanPool(proc) };
 
@@ -311,7 +313,7 @@ namespace {
         for (size_t i = 0; i < pool->itemAllocCount; i++) {
             ScriptParseTree& e{ entries[i] };
 
-            if (e.name < 0x1000000000 || e.buffer == 0 || e.len == 0) continue; // ignore bad entries
+            if (e.name < 0x1000000000000 || e.buffer == 0 || e.len <= 0 || e.len >= 1000000000) continue; // ignore bad entries
 
             std::filesystem::path of{ output / std::format("script_{:x}.gscc", e.name) };
             try {

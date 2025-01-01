@@ -278,7 +278,14 @@ namespace cw {
         uint64_t name;
         uintptr_t buffer; // GSC_OBJ*
         int len;
-    };
+    }; static_assert(sizeof(ScriptParseTree) == 0x18);
+
+    struct ScriptParseTreeAlpha {
+        uint64_t name;
+        uint64_t namenull;
+        uintptr_t buffer; // GSC_OBJ*
+        int32_t len;
+    }; static_assert(sizeof(ScriptParseTreeAlpha) == 0x20);
 
 	char* DecryptString(char* str);
 	byte* DecryptRawBuffer(byte* buffer);
