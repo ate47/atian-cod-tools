@@ -261,6 +261,46 @@ project "AtianCodToolsBOCWDLL"
     dependson "asmjit"
     dependson "imgui"
 
+
+project "AtianCodToolsCOD2020DLL"
+    kind "SharedLib"
+    language "C++"
+    cppdialect "C++20"
+    characterset "MBCS"
+    targetdir "%{wks.location}/bin/"
+    objdir "%{wks.location}/obj/"
+
+    targetname "acts-cod2020"
+    
+    files {
+        "./src/bo2020-dll/**.hpp",
+        "./src/bo2020-dll/**.h",
+        "./src/bo2020-dll/**.cpp",
+    }
+
+    includedirs {
+        "src/bo2020-dll",
+        "src/shared",
+    -- link detours
+		"deps/Detours/src/",
+        "deps/asmjit/src/",
+        "deps/curl/include/",
+        "deps/rapidjson/include/",
+        "deps/dbflib/src/lib/",
+    }
+
+    vpaths {
+        ["*"] = "*"
+    }
+    
+    links { "ACTSSharedLibrary" }
+    links { "detours" }
+    links { "asmjit" }
+    links { "libcurl" }
+    dependson "ACTSSharedLibrary"
+    dependson "detours"
+    dependson "asmjit"
+
 project "ACTSVM"
     kind "StaticLib"
     language "C++"
