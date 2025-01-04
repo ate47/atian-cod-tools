@@ -394,6 +394,11 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_ScriptFunctionCall2,
 		OPCODE_IW_Jump32,
 
+		OPCODE_IW_LocalCall,
+		OPCODE_IW_GetLocal,
+		OPCODE_IW_LocalCall2,
+		OPCODE_IW_LocalThreadCall,
+
 		OPCODE_COUNT,
 	};
 	void RegisterOpCodesMap();

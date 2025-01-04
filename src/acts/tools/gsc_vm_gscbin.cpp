@@ -139,6 +139,11 @@ namespace {
 
                 byte endOpCode{ bytecodeReader.Read<byte>() };
 
+                const OPCodeInfo* nfoEnd{ LookupOpCode(ctx.m_vmInfo->vmMagic, ctx.opt.m_platform, endOpCode) };
+
+                if (nfoEnd && nfoEnd->m_id != OPCODE_End) {
+                    LOG_WARNING("end opcode isn't matching registered one: {:x}", (int)endOpCode);
+                }
 
                 asmout << "// end: 0x" << std::hex << (int)endOpCode << "\n";
 
@@ -172,7 +177,7 @@ namespace {
                             asmout << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc() << " ";
                             byte opcode{ bytecodeReader.Read<byte>() };
 
-                            const OPCodeInfo* nfo{ LookupOpCode(VMI_IW_BIN_MW19, PLATFORM_PC, opcode) };
+                            const OPCodeInfo* nfo{ LookupOpCode(ctx.m_vmInfo->vmMagic, ctx.opt.m_platform, opcode) };
 
                             asmout
                                 << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int)opcode
@@ -248,6 +253,7 @@ namespace {
                             case OPCODE_GetSignedByte:
                             case OPCODE_EvalLocalVariableCached:
                             case OPCODE_SetLocalVariableCached:
+                            case OPCODE_IW_EvalLocalArrayCached:
                             case OPCODE_EvalLocalVariableRefCached:
                             case OPCODE_T9_IncLocalVariableCached:
                             case OPCODE_T9_DecLocalVariableCached:
@@ -270,6 +276,17 @@ namespace {
                             case OPCODE_GSCBIN_SKIP_2:
                                 SkipNBytes(2) << "\n";
                                 break;
+                            //case OPCODE_CallBuiltinFunction:
+                            // case 0x33:
+                            //case OPCODE_CallBuiltinMethod:
+                            // case 0xA9:
+                            // case 0xAA:
+                            // case 0xAB:
+                            // case 0xAC:
+                            //case OPCODE_IW_ScriptFunctionCall2:
+                            case OPCODE_IW_LocalCall2:
+                            case OPCODE_IW_LocalCall:
+                            case OPCODE_IW_GetLocal:
                             case OPCODE_GSCBIN_SKIP_3:
                                 SkipNBytes(3) << "\n";
                                 break;
@@ -278,6 +295,7 @@ namespace {
                             case OPCODE_GetNegUnsignedInteger:
                             case OPCODE_GetFloat:
                             case OPCODE_IW_Jump32:
+                            case OPCODE_IW_LocalThreadCall:
                             case OPCODE_GSCBIN_SKIP_4:
                                 SkipNBytes(4) << "\n";
                                 break;
@@ -432,7 +450,7 @@ namespace {
                             }
                             case OPCODE_GSCBIN_SKIP_4BC_4SD:
                             default: {
-                                const char* err{ utils::va("Operator not handled %x (%d/%s)", opcode, opcode, nfo->m_name) };
+                                const char* err{ utils::va("Operator not handled 0x%x (%d/%s)", opcode, opcode, nfo->m_name) };
                                 asmout << err << std::endl;
                                 throw std::runtime_error(err);
                             }

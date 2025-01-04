@@ -352,6 +352,10 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_IW_CallBuiltinMethod5, "CallBuiltinMethod5");
 			RegisterOpCode(OPCODE_IW_ScriptFunctionCall2, "ScriptFunctionCall2");
 			RegisterOpCode(OPCODE_IW_Jump32, "Jump32");
+			RegisterOpCode(OPCODE_IW_LocalCall, "LocalCall");
+			RegisterOpCode(OPCODE_IW_GetLocal, "GetLocal");
+			RegisterOpCode(OPCODE_IW_LocalCall2, "LocalCall2");
+			RegisterOpCode(OPCODE_IW_LocalThreadCall, "LocalThreadCall");
 			RegisterOpCode(OPCODE_InvalidOpCode, "InvalidOpCode");
 		}
 	};
