@@ -281,6 +281,17 @@ namespace utils {
     void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files) {
         GetFileRecurse(parent, files, [](const auto& ref) { return true; });
     }
+    void GetFileRecurseExt(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, const char* ends, bool removeParent) {
+        GetFileRecurse(parent, files, [ends](const std::filesystem::path& p) -> bool {
+            std::string s{ p.string() };
+
+            for (const char* exts{ ends }; *exts; exts += std::strlen(exts) + 1) {
+                if (s.ends_with(exts)) return true;
+            }
+
+            return false;
+        }, removeParent);
+    }
 
     // https://stackoverflow.com/questions/215963/how-do-you-properly-use-widechartomultibyte
     std::string WStrToStr(const std::wstring& wstr) {

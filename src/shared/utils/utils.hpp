@@ -138,6 +138,17 @@ namespace utils {
 	inline TypeIn Aligned(TypeIn ptr) {
 		return (ptr + (sizeof(Type) - 1)) & ~(sizeof(Type) - 1);
 	}
+	/*
+	 * Align a pointer
+	 * @param TypeIn pointer type
+	 * @param len val to align
+	 * @param ptr pointer to align
+	 * @return aligned ptr value
+	 */
+	template<typename TypeIn = uintptr_t>
+	inline TypeIn Aligned(TypeIn ptr, size_t len) {
+		return (ptr + (len - 1)) & ~(len - 1);
+	}
 
 	/*
 	 * Align a vector buffer with its size
@@ -304,6 +315,15 @@ namespace utils {
 	 * @param files output files
 	 */
 	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files);
+
+	/*
+	 * Get all the files in a directory
+	 * @param parent parent dir
+	 * @param files output files
+	 * @param ends \0 separated ends to check, must end with two \0
+	 * @param removeParent remove parent
+	 */
+	void GetFileRecurseExt(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, const char* ends, bool removeParent = false);
 
 	/*
 	 * Get all the files in a directory matching a predicate
