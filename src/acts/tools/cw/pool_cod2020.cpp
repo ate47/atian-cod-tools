@@ -264,6 +264,8 @@ namespace {
             LOG_INFO("Pool {} 0x{:x} 0x{:x} 0x{:x} 0x{:x}", poolNames[i], po.pool, po.itemSize, po.itemCount, po.itemAllocCount);
             if (po.itemAllocCount) {
                 writer.WriteFieldNameString("firsts");
+
+                writer.BeginArray();
                 int size{ std::min(po.itemAllocCount, 10) };
                 auto data{ proc.ReadMemoryArrayEx<byte>(po.pool, size * po.itemSize) };
 
@@ -272,6 +274,7 @@ namespace {
 
                     writer.WriteValueHash(name);
                 }
+                writer.EndArray();
             }
 
             writer.EndObject();
@@ -337,28 +340,6 @@ namespace {
         return tool::OK;
     }
 
-    int rfextract(int argc, const char* argv[]) {
-        if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
-
-        std::vector<byte> buff{};
-
-        if (!utils::ReadFile(argv[2], buff)) {
-            LOG_ERROR("Can't read {}", argv[2]);
-            return tool::BASIC_ERROR;
-        }
-
-        core::bytebuffer::ByteBuffer bytebuff{ buff };
-        core::raw_file::RawFileReader reader{ bytebuff, nullptr, [](uint64_t h) -> const char* { return hashutils::ExtractTmp("hash", h); } };
-
-        std::string data{ reader.ReadAll() };
-
-        utils::WriteFile(argv[3], data);
-
-        return tool::OK;
-    }
-
-
-    ADD_TOOL(rfextract, "cw", "", "", rfextract);
     ADD_TOOL(pdcod2020, "cw", "", "", L"CoD2020.exe", pdcod2020);
     ADD_TOOL(wpscod2020, "cw", " [output=scriptparsetree_cod2020]", "write pooled scripts (cwa)", L"CoD2020.exe", wpscod2020);
 }

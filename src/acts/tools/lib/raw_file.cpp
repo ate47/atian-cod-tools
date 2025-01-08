@@ -2,6 +2,7 @@
 #include <unit_test.hpp>
 #include <core/raw_file.hpp>
 #include <core/raw_file_json.hpp>
+#include "tools/utils/raw_file_extractor.hpp"
 
 namespace {
 	void rawfiletest() {
@@ -183,4 +184,25 @@ namespace {
 	ADD_TEST(rawfilejson, rawfilejsontest);
 	ADD_TEST(rawfilejson1, rawfilejson1test);
 	ADD_TEST(rawfilejson2, rawfilejson2test);
+
+
+	int rfextract(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+		std::vector<byte> buff{};
+
+		if (!utils::ReadFile(argv[2], buff)) {
+			LOG_ERROR("Can't read {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+		std::string data{ tool::utils::raw_file_extractor::ExtractRawFile(buff) };
+
+		utils::WriteFile(argv[3], data);
+
+		return tool::OK;
+	}
+
+
+	ADD_TOOL(rfextract, "acts", " [file] [out]", "Extract rf file", rfextract);
 }
