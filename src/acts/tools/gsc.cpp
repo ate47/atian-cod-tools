@@ -976,6 +976,9 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
     void* maxPtr{};
     for (size_t i = 0; i < handler.GetExportsCount(); i++) {
         void* ptr = exportTable + reader.SizeOf() * i;
+        if (handler.GetExportsOffset() + reader.SizeOf() * (i + 1) > handler.GetFileSize()) {
+            throw std::runtime_error("Invalid export size");
+        }
         reader.SetHandle(ptr);
 
         uint32_t addr = reader.GetAddress();
@@ -1643,13 +1646,18 @@ ignoreCscGsc:
 
                 asmout << std::hex << "String addr:" << str->string << ", count:" << std::dec << (int)str->num_address << ", type:" << (int)str->type << ", loc:0x" << std::hex << (str_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr())) << std::endl;
 
+                if (str->string >= scriptfile->GetFileSize()) {
+                    asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
+                    break;
+                }
+
                 char* encryptedString = scriptfile->Ptr<char>(str->string);
 
                 size_t len{ std::strlen(encryptedString) };
                 byte type{ (byte)(*reinterpret_cast<byte*>(encryptedString)) };
 
                 if (str->string + len > scriptfile->GetFileSize()) {
-                    asmout << "bad string location : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
+                    asmout << "bad string location + len : 0x" << std::hex << str->string << "/0x" << scriptfile->GetFileSize() << "\n";
                     break;
                 }
 
@@ -3649,10 +3657,15 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
                     LOG_ERROR("Can't read file data for {}", path.string());
                     continue;
                 }
-
-                auto lret = GscInfoHandleData((byte*)bufferAlign, size, pathRel, gdctx);
-                if (lret != tool::OK) {
-                    ret = lret;
+                try {
+                    auto lret = GscInfoHandleData((byte*)bufferAlign, size, pathRel, gdctx);
+                    if (lret != tool::OK) {
+                        ret = lret;
+                    }
+                }
+                catch (std::runtime_error& e) {
+                    LOG_ERROR("Exception when reading {}: {}", path.string(), e.what());
+                    ret = tool::BASIC_ERROR;
                 }
             }
         }
