@@ -96,6 +96,22 @@ namespace {
 
 		return tool::OK;
 	}
+	int oodlecomp(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+		deps::oodle::Oodle oodle{ deps::oodle::OO2CORE_6 };
+
+		byte rawData[0x1000];
+
+		for (size_t i = 0; i < sizeof(rawData); i++) {
+			rawData[i] = (byte)(((int)rawData[i - 1] ^ (int)i) * 0x11);
+		}
+
+		auto ptr{ std::make_unique<byte[]>((size_t)oodle.GetCompressedBufferSizeNeeded(deps::oodle::OODLE_COMP_KRAKEN, sizeof(rawData))) };
+
+		//oodle.Compress(deps::oodle::OODLE_COMP_KRAKEN, &rawData[0], sizeof(rawData));
+
+	}
 
 	int oodleload(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
@@ -126,4 +142,5 @@ ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);
 ADD_TOOL(wget, "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL(cfgtest, "dev", "", "", nullptr, cfgtest);
 ADD_TOOL(oodleload, "dev", " [exe]", "", oodleload);
+//ADD_TOOL(oodlecomp, "dev", "", "", oodlecomp);
 #endif
