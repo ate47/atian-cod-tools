@@ -825,7 +825,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             // no align too....
             if (strings[j] + sizeof(uint32_t) >= GetFileSize()) {
                 LOG_ERROR("Invalid string location: 0x{:x}", strings[j]);
-                return tool::BASIC_ERROR;
+                break;
             }
 
             Ref<uint32_t>(strings[j]) = ref;

@@ -538,7 +538,7 @@ namespace {
             return sizeof(T831GSCOBJ);
         }
         char* DecryptString(char* str) override {
-            return str;
+            return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T831GSCOBJ) && Ref<uint64_t>() == 0x31000a0d43534780;

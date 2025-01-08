@@ -60,8 +60,8 @@ namespace core::bytebuffer {
 			return (T*)&buffer[pointer + offset];
 		}
 
-		const char* ReadString(size_t* len = nullptr) {
-			const char* str{ Ptr<const char>() };
+		char* ReadString(size_t* len = nullptr) {
+			char* str{ Ptr<char>() };
 			size_t _len{};
 			while (Read<char>()) _len++;
 			if (len) *len = _len;
