@@ -97,6 +97,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--no-usings-sort", arg)) {
             m_noUsingsSort = true;
         }
+        else if (!_strcmpi("--no-str-decrypt", arg)) {
+            m_noStrDecrypt = true;
+        }
         else if (!strcmp("-s", arg) || !_strcmpi("--skip-data", arg)) {
             m_dumpSkipData = true;
         }
@@ -375,6 +378,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--rawhash          : Add raw hashes to export dump");
     LOG_DEBUG("--no-path          : No path extraction");
     LOG_DEBUG("--no-usings-sort   : No usings sort");
+    LOG_DEBUG("--no-str-decrypt   : No string decrypt");
     LOG_DEBUG("--ignore-dbg-plt   : ignore debug platform info");
     LOG_DEBUG("-A --sync [mode]   : Sync mode: async or sync");
     LOG_DEBUG("--vtable           : Do not hide and decompile vtable functions");
@@ -529,7 +533,11 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             for (size_t i = 0; i < anims_count; i++) {
                 const auto* unk2c = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(unk2c_location);
 
-                char* s = DecryptString(Ptr<char>(unk2c->address));
+                char* s = Ptr<char>(unk2c->address);
+
+                if (!ctx.opt.m_noStrDecrypt) {
+                    s = DecryptString(s);
+                }
 
                 uint32_t ref = ctx.AddStringValue(s);
                 const auto* vars = reinterpret_cast<const uint32_t*>(&unk2c[1]);
@@ -583,7 +591,11 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         for (size_t i = 0; i < string_count; i++) {
 
             const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-            char* cstr = DecryptString(Ptr<char>(str->string));
+            char* cstr = Ptr<char>(str->string);
+
+            if (!ctx.opt.m_noStrDecrypt) {
+                cstr = DecryptString(cstr);
+            }
             if (gDumpStrings) {
                 gDumpStringsStore.insert(cstr);
             }
@@ -644,8 +656,13 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             for (size_t i = 0; i < anims_count; i++) {
                 const auto* animt = reinterpret_cast<GSC_ANIMTREE_ITEM*>(animt_location);
 
-                auto* s1 = DecryptString(Ptr<char>(animt->address_str1));
-                auto* s2 = DecryptString(Ptr<char>(animt->address_str2));
+                auto* s1 = Ptr<char>(animt->address_str1);
+                auto* s2 = Ptr<char>(animt->address_str2);
+
+                if (!ctx.opt.m_noStrDecrypt) {
+                    s1 = DecryptString(s1);
+                    s2 = DecryptString(s2);
+                }
 
                 uint32_t ref1 = ctx.AddStringValue(s1);
                 uint32_t ref2 = ctx.AddStringValue(s2);
@@ -795,14 +812,14 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                         std::string& str = it->second;
 
                         uint32_t strref = ctx.AddStringValue(str.c_str());
-                        Ref<uint32_t>(loc[j]) = strref;
+                        //Ref<uint32_t>(loc[j]) = strref;
                         ctx.AddStringRef(loc[j], strref);
                         continue;
                     }
                 }
                 ctx.m_unkstrings[str].insert(loc[j]);
                 uint32_t strref = ctx.AddStringValue(str);
-                Ref<uint32_t>(loc[j]) = strref;
+                //Ref<uint32_t>(loc[j]) = strref;
                 ctx.AddStringRef(loc[j], strref);
             }
             val = reinterpret_cast<T8GSCString*>(loc + val->num_address);
@@ -814,7 +831,10 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     for (size_t i = 0; i < string_count; i++) {
 
         const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-        char* cstr = DecryptString(Ptr<char>(str->string));
+        char* cstr = Ptr<char>(str->string);
+        if (!ctx.opt.m_noStrDecrypt) {
+            cstr = DecryptString(cstr);
+        }
         if (gDumpStrings) {
             gDumpStringsStore.insert(cstr);
         }
@@ -828,7 +848,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 break;
             }
 
-            Ref<uint32_t>(strings[j]) = ref;
+            //Ref<uint32_t>(strings[j]) = ref;
             ctx.AddStringRef(strings[j], ref);
         }
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
@@ -1670,7 +1690,11 @@ ignoreCscGsc:
                 }
                 asmout << " elen: " << std::dec << len << " -> " << std::flush;
 
-                char* cstr = scriptfile->DecryptString(encryptedString);
+                char* cstr = encryptedString;
+
+                if (!ctx.opt.m_noStrDecrypt) {
+                    cstr = scriptfile->DecryptString(cstr);
+                }
 
                 size_t dlen{ strlen(cstr) };
                 utils::PrintFormattedString(asmout << '"', cstr) << '"' << "(" << std::dec << dlen;
