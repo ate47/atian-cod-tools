@@ -174,15 +174,17 @@ namespace {
 		char key[8];
 		byte pad1[328];
 	}; static_assert(sizeof(XFile) == 0x840);
-	struct XFileFD {
-		XFile header;
-		XFile newHeader;
-		uint64_t headerSize;
-		uint64_t unk1088;
-		uint64_t unk1090;
-		uint64_t unk1098;
-		uint64_t unk10a0;
-	};
+	struct BDiffHeader {
+		XFile newXFileHeader;
+		XFile baseXFileHdr;
+		uint32_t size;
+		float version;
+		uint32_t flags;
+		size_t maxDestWindowSize;
+		uint64_t maxSourceWindowSize;
+		uint64_t maxDiffWindowSize;
+	}; static_assert(sizeof(BDiffHeader) == 0x10a8);
+
 	struct DBStreamHeader {
 		uint32_t compressedSize;
 		uint32_t uncompressedSize;
@@ -224,6 +226,7 @@ namespace {
 	public:
 		bool m_help{};
 		bool m_fd{};
+		bool m_header{};
 		const char* m_casc{};
 		const char* game{};
 		HANDLE cascStorage{};
@@ -273,6 +276,9 @@ namespace {
 				else if (!_strcmpi("--fd", arg) || !strcmp("-p", arg)) {
 					m_fd = true;
 				}
+				else if (!_strcmpi("--header", arg) || !strcmp("-H", arg)) {
+					m_header = true;
+				}
 				else if (*arg == '-') {
 					std::cerr << "Invalid argument: " << arg << "!\n";
 					return false;
@@ -286,9 +292,45 @@ namespace {
 		void PrintHelp() {
 			LOG_INFO("-h --help            : Print help");
 			LOG_INFO("-o --output [d]      : Output dir");
+			LOG_INFO("-H --header          : Dump header info");
 			LOG_INFO("-C --casc [c]        : Use casc db");
 			LOG_INFO("-g --game [g]        : exe");
 			LOG_INFO("-p --fd              : Use patch file (fd)");
+		}
+
+		std::vector<std::string> GetFileRecurse(const char* path) {
+			std::vector<std::string> res{};
+			if (cascStorage) {
+				CASC_FIND_DATA data;
+
+				HANDLE firstFileHandle{ CascFindFirstFile(cascStorage, path, &data, NULL) };
+
+				if (!firstFileHandle) {
+					LOG_ERROR("Can't find path {}", path);
+					return res;
+				}
+				utils::CloseEnd ce{ [firstFileHandle] { CascFindClose(firstFileHandle); } };
+
+
+				do {
+					if (data.bFileAvailable) {
+						res.push_back(data.szFileName);
+					}
+				} while (CascFindNextFile(firstFileHandle, &data));
+			}
+			else {
+				std::vector<std::filesystem::path> files{};
+
+				utils::GetFileRecurse(path, files);
+
+
+				for (const std::filesystem::path& file : files) {
+					res.push_back(file.string());
+				}
+			}
+
+			return res;
+
 		}
 
 		bool ReadFile(const char* path, std::vector<byte>& buff) {
@@ -324,6 +366,88 @@ namespace {
 		}
 	};
 
+	enum BDiffFlags : byte {
+		BDF_START_BD = 1,
+		BDF_UNK2 = 2,
+		BDF_MASK21 = BDF_START_BD | BDF_UNK2,
+		BDF_FROM_START = 4,
+		BDF_UNK8 = 8,
+	};
+
+	void bdiff(core::bytebuffer::ByteBuffer& patchData, core::bytebuffer::ByteBuffer& buffer) {
+		size_t offset{ 0x405 };
+		if (!patchData.CanRead(offset)) {
+			throw std::runtime_error(std::format("Can't read 0x{:x} bytes", offset));
+		}
+
+		byte* bdiffMagic{ patchData.ReadPtr<byte>(5) };
+
+		if (std::memcmp(bdiffMagic, "\xd6\xc3\xc4", 3)) {
+			throw std::runtime_error(std::format("Invalid bdiff magic for 0x{:x} 0x{:x} 0x{:x}", bdiffMagic[0], bdiffMagic[1], bdiffMagic[2]));
+		}
+
+		if (bdiffMagic[4] & 0xF3) {
+			LOG_WARNING("unk & 0xF3, error?");
+		}
+
+		// ok bdiff
+
+		while (patchData.CanRead(1)) {
+			byte bdiffFlags{ patchData.Read<byte>() };
+
+			size_t unkShift{ (size_t)((bdiffFlags >> 1) & 4) };
+
+			if ((bdiffFlags & BDF_UNK2)) {
+				throw std::runtime_error("flag 2 sets, can't load");
+			}
+
+			LOG_INFO("---------- {:x}", patchData.Loc());
+			// diff? maybe offset/size -> data[]
+			size_t unk0;
+			byte* diffBlockPost{};
+			if (bdiffFlags & BDF_MASK21) {
+				// layer start
+				unk0 = patchData.ReadVByte();
+				size_t sourceSegmentLocationEx{ patchData.ReadVByte() };
+
+				size_t sourceSegmentLocation;
+
+				if (bdiffFlags & BDF_FROM_START) {
+					sourceSegmentLocation = patchData.ReadVByte();
+				}
+				else {
+					sourceSegmentLocation = sourceSegmentLocationEx;
+				}
+
+				size_t sizeUnk{ sourceSegmentLocationEx - sourceSegmentLocation };
+				size_t rsized{ sizeUnk + unk0 };
+
+				LOG_INFO("{:x} {:x} {:x} {:x} {:x}", unk0, sourceSegmentLocationEx, sourceSegmentLocation, sizeUnk, rsized);
+				buffer.Goto(sourceSegmentLocation);
+				byte* diffblock{ buffer.ReadPtr<byte>(rsized) };
+				diffBlockPost = diffblock + sizeUnk;
+			}
+			else {
+				// layer post
+				throw std::runtime_error("bdiff 0 part not implemented");
+			}
+
+			size_t unkvbyte2{ patchData.ReadVByte() };
+			LOG_INFO("{:x} {:x}", unkvbyte2, unkvbyte2 + unkShift);
+
+			// patch data:
+			// off: ptr + offset - bdiffDataStart 
+			// siz: unkvbyte2 + unkShift
+			byte* patchDataBf{ patchData.ReadPtr<byte>(unkvbyte2 + unkShift) };
+
+			//size_t unkvbyte3{ patchData.ReadVByte() };
+
+
+			//utils::OutFileCE os{ "output_ff/test.ff.dec" };
+			//WriteHex(os, sizeof(*fdheader), uncompress.get(), uncompressSize);
+		}
+	}
+
 	int fftest(int argc, const char* argv[]) {
 		FastFileOption opt{};
 
@@ -336,232 +460,319 @@ namespace {
 		std::vector<byte> fileBuff{};
 		std::vector<byte> fileFDBuff{};
 		for (const char* f : opt.files) {
-			if (!opt.ReadFile(f, fileBuff)) {
-				LOG_ERROR("Can't read file {}", f);
-				return tool::BASIC_ERROR;
-			}
-			std::filesystem::path fffile{ f };
-			std::filesystem::path fdfile{ f };
-
-			fdfile.replace_extension(".fd");
-
-			LOG_INFO("Reading {}", fffile.string());
-
-			core::bytebuffer::ByteBuffer reader{ fileBuff };
-
-			int ret{};
-			auto PrintXFile = [&ret, &reader](XFile* buffer) {
-				if (*reinterpret_cast<uint64_t*>(buffer->magic) != 0x3030303066664154) {
-					LOG_ERROR("Invalid FF magic: {:x}", *reinterpret_cast<uint64_t*>(buffer));
-					ret = tool::BASIC_ERROR;
-					return;
-				}
-
-				if (buffer->version != 0x27F) {
-					LOG_ERROR("Not a T8 FF");
-					ret = tool::BASIC_ERROR;
-					return;
-				}
-
-
-				if (buffer->encrypted) {
-					auto checksum32 = fastfiles::ComputeChecksum32(buffer->key, (unsigned int)strlen(buffer->key), 0);
-					LOG_INFO("checksum32 . {}", checksum32);
-				}
-
-				if (buffer->compression >= XFILE_COMPRESSION_COUNT) {
-					LOG_ERROR("Not implemented for this compression type: {}", (int)buffer->compression);
-					ret = tool::BASIC_ERROR;
-					return;
-				}
-
-				LOG_INFO("server ............. {}", (buffer->server ? "true" : "false"));
-				LOG_INFO("encrypted .......... {}", (buffer->encrypted ? "true" : "false"));
-				LOG_INFO("compress ........... {} (0x{:x})", CompressionNames[buffer->compression], (int)buffer->compression);
-				LOG_INFO("platform ........... {}", (int)buffer->platform);
-				LOG_INFO("builder ............ {}", buffer->builder);
-				LOG_INFO("timestamp .......... {}", buffer->timestamp);
-
-				for (size_t i = 0; i < 4; i++) {
-					LOG_INFO("archiveChecksum[{}] . {:x}", i, buffer->archiveChecksum[i]);
-				}
-
-				LOG_INFO("key ................ {}", buffer->key);
-				};
-
-			LOG_INFO("size ............... {}B (0x{:x})", utils::FancyNumber(fileBuff.size()), fileBuff.size());
-			XFile* buffer = reader.ReadPtr<XFile>();
-			PrintXFile(buffer);
-			if (ret) return ret;
-
-			deps::oodle::Oodle oodle{ deps::oodle::OO2CORE_6 };
-
-			if (!oodle) return tool::BASIC_ERROR;
-
-			size_t idx{};
-
-			std::vector<byte> ffdata{};
-			while (true) {
-				size_t loc{ reader.Loc() };
-
-				DBStreamHeader* block{ reader.ReadPtr<DBStreamHeader>() };
-				if (!block->alignedSize) break; // end
-
-				if (block->offset != loc) {
-					LOG_ERROR("bad block position: 0x{:x} != 0x{:x}", loc, block->offset);
-					break;
-				}
-
-
-				if (!block->uncompressedSize) {
-					reader.Align(0x800000);
+			for (const std::string filename : opt.GetFileRecurse(f)) {
+				if (!filename.ends_with(".ff")) {
+					LOG_DEBUG("Ignore {}", filename);
 					continue;
 				}
+				if (!opt.ReadFile(filename.data(), fileBuff)) {
+					LOG_ERROR("Can't read file {}", filename);
+					return tool::BASIC_ERROR;
+				}
 
-				byte* blockBuff{ reader.ReadPtr<byte>(block->alignedSize) };
+				LOG_INFO("Reading {}", filename);
 
+				core::bytebuffer::ByteBuffer reader{ fileBuff };
 
-				LOG_TRACE("Decompressing block 0x{:x} (0x{:x}/0x{:x} -> 0x{:x})", loc, block->compressedSize, block->alignedSize, block->uncompressedSize);
-
-				auto decompressed{ std::make_unique<byte[]>(block->uncompressedSize) };
-
-				switch (buffer->compression) {
-				case XFILE_UNCOMPRESSED:
-					if (block->uncompressedSize > block->compressedSize) {
-						throw std::runtime_error(std::format("Can't decompress block, decompressed size isn't big enough: 0x{:x} != 0x{:x}", block->compressedSize, block->uncompressedSize));
+				int ret{};
+				auto PrintXFile = [&opt, &ret, &reader](XFile* buffer) {
+					if (*reinterpret_cast<uint64_t*>(buffer->magic) != 0x3030303066664154) {
+						LOG_ERROR("Invalid FF magic: {:x}", *reinterpret_cast<uint64_t*>(buffer));
+						ret = tool::BASIC_ERROR;
+						return;
 					}
-					memcpy(decompressed.get(), blockBuff, block->uncompressedSize);
-					break;
-				case XFILE_ZLIB:
-				case XFILE_ZLIB_HC: {
 
-					uLongf sizef = (uLongf)block->uncompressedSize;
-					uLongf sizef2{ (uLongf)block->compressedSize };
-					int ret;
-					if (ret = uncompress2(decompressed.get(), &sizef, reader.Ptr<const Bytef>(), &sizef2) < 0) {
-						throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
+					if (buffer->version != 0x27F) {
+						LOG_ERROR("Not a T8 FF");
+						ret = tool::BASIC_ERROR;
+						return;
 					}
-					break;
-				}
-				case XFILE_OODLE_KRAKEN:
-				case XFILE_OODLE_MERMAID:
-				case XFILE_OODLE_SELKIE:
-				case XFILE_OODLE_LZNA: {
-					int ret{ oodle.Decompress(blockBuff, block->compressedSize, decompressed.get(), block->uncompressedSize, deps::oodle::OODLE_FS_YES) };
 
-					if (ret != block->uncompressedSize) {
-						throw std::runtime_error(std::format("Can't decompress block, returned size isn't the expected one: 0x{:x} != 0x{:x}", ret, block->uncompressedSize));
+					if (buffer->compression >= XFILE_COMPRESSION_COUNT) {
+						LOG_ERROR("Not implemented for this compression type: {}", (int)buffer->compression);
+						ret = tool::BASIC_ERROR;
+						return;
 					}
-				}
-									 break;
-				default:
-					throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)buffer->compression));
-				}
+
+					if (!opt.m_header) return;
 
 
-				utils::WriteValue(ffdata, decompressed.get(), block->uncompressedSize);
-			}
+					if (buffer->encrypted) {
+						auto checksum32 = fastfiles::ComputeChecksum32(buffer->key, (unsigned int)strlen(buffer->key), 0);
+						LOG_INFO("checksum32 . {}", checksum32);
+					}
 
-			LOG_INFO("Decompressed 0x{:x} byte(s)", ffdata.size());
+					LOG_INFO("server ............. {}", (buffer->server ? "true" : "false"));
+					LOG_INFO("encrypted .......... {}", (buffer->encrypted ? "true" : "false"));
+					LOG_INFO("compress ........... {} (0x{:x})", CompressionNames[buffer->compression], (int)buffer->compression);
+					LOG_INFO("platform ........... {}", (int)buffer->platform);
+					LOG_INFO("builder ............ {}", buffer->builder);
+					LOG_INFO("timestamp .......... {}", buffer->timestamp);
 
-			core::bytebuffer::ByteBuffer buff{ ffdata };
+					for (size_t i = 0; i < 4; i++) {
+						LOG_INFO("archiveChecksum[{}] . {:x}", i, buffer->archiveChecksum[i]);
+					}
 
-			uint64_t magic{ 0x00a0d43534780 };
-			uint64_t magicMask{ 0xFFFFFFFFFFFFF };
+					LOG_INFO("key ................ {}", buffer->key);
+					};
 
-			size_t loc{};
-			std::filesystem::path out{ "scriptparsetree_t8ff" };
+				if (opt.m_header) LOG_INFO("size ............... {}B (0x{:x})", utils::FancyNumber(fileBuff.size()), fileBuff.size());
+				XFile* buffer = reader.ReadPtr<XFile>();
+				PrintXFile(buffer);
+				if (ret) return ret;
 
-			byte* start{ buff.Ptr<byte>() };
-			while (true) {
-				loc = buff.FindMasked((byte*)&magic, (byte*)&magicMask, sizeof(magic));
-				if (loc == std::string::npos) break;
-				struct T8GSCOBJ {
-					byte magic[8];
-					int32_t crc;
-					int32_t pad;
-					uint64_t name;
-				};
+				deps::oodle::Oodle oodle{ deps::oodle::OO2CORE_6 };
 
-				buff.Goto(loc);
+				if (!oodle) return tool::BASIC_ERROR;
+				
+				size_t idx{};
 
-				if (!buff.CanRead(sizeof(T8GSCOBJ))) {
-					break; // can't read buffer
-				}
+				std::vector<byte> ffdata{};
+				while (true) {
+					size_t loc{ reader.Loc() };
 
-				// we are 32 bytes aligned
-				T8GSCOBJ* obj{ buff.Ptr<T8GSCOBJ>() };
+					DBStreamHeader* block{ reader.ReadPtr<DBStreamHeader>() };
+					if (!block->alignedSize) break; // end
 
-				uint64_t name{ obj->name };
-
-
-				byte* sptCan{ buff.Ptr<byte>() };
-
-				while (*(uint64_t*)sptCan != name) {
-					sptCan--;
-					if (start == sptCan) {
+					if (block->offset != loc) {
+						LOG_ERROR("bad block position: 0x{:x} != 0x{:x}", loc, block->offset);
 						break;
 					}
-				}
-				if (start == sptCan) {
-					loc++;
-					continue;
-				}
+					idx++;
+
+					if (!block->uncompressedSize) {
+						reader.Align(0x800000);
+						continue;
+					}
+
+					byte* blockBuff{ reader.ReadPtr<byte>(block->alignedSize) };
 
 
-				uint64_t smagic{ *reinterpret_cast<uint64_t*>(obj) };
+					LOG_TRACE("Decompressing block 0x{:x} (0x{:x}/0x{:x} -> 0x{:x})", loc, block->compressedSize, block->alignedSize, block->uncompressedSize);
 
-				size_t size;
-				struct T8SPT {
-					uint64_t name;
-					uint64_t pad0;
-					uintptr_t buffer;
-					uint32_t size;
-					uint32_t pad02;
-				};
-				struct T8SPT35 {
-					uint64_t name;
-					uintptr_t buffer;
-					uint32_t size;
-					uint32_t pad02;
-				};
+					auto decompressed{ std::make_unique<byte[]>(block->uncompressedSize) };
 
-				if (smagic == 0x36000a0d43534780) {
-					size = ((T8SPT*)sptCan)->size;
-				}
-				else if (smagic == 0x35000a0d43534780) {
-					size = ((T8SPT35*)sptCan)->size;
-				}
-				else {
-					LOG_ERROR("Invalid magic 0x{:x}", smagic);
-					loc++;
-					continue;
-				}
+					switch (buffer->compression) {
+					case XFILE_UNCOMPRESSED:
+						if (block->uncompressedSize > block->compressedSize) {
+							throw std::runtime_error(std::format("Can't decompress block, decompressed size isn't big enough: 0x{:x} != 0x{:x}", block->compressedSize, block->uncompressedSize));
+						}
+						memcpy(decompressed.get(), blockBuff, block->uncompressedSize);
+						break;
+					case XFILE_ZLIB:
+					case XFILE_ZLIB_HC: {
 
-				LOG_TRACE("gsc: 0x{:x} 0x{:x} 0x{:x}: {}", smagic, loc, size, hashutils::ExtractTmpScript(obj->name));
+						uLongf sizef = (uLongf)block->uncompressedSize;
+						uLongf sizef2{ (uLongf)block->compressedSize };
+						int ret;
+						if (ret = uncompress2(decompressed.get(), &sizef, reader.Ptr<const Bytef>(), &sizef2) < 0) {
+							throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
+						}
+						break;
+					}
+					case XFILE_OODLE_KRAKEN:
+					case XFILE_OODLE_MERMAID:
+					case XFILE_OODLE_SELKIE:
+					case XFILE_OODLE_LZNA: {
+						int ret{ oodle.Decompress(blockBuff, block->compressedSize, decompressed.get(), block->uncompressedSize, deps::oodle::OODLE_FS_YES) };
+
+						if (ret != block->uncompressedSize) {
+							throw std::runtime_error(std::format("Can't decompress block, returned size isn't the expected one: 0x{:x} != 0x{:x}", ret, block->uncompressedSize));
+						}
+						break;
+					}
+					default:
+						throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)buffer->compression));
+					}
 
 
-				if (!buff.CanRead(size)) {
-					loc++;
-					LOG_ERROR("Bad size 0x{:x}", size);
-					continue;
-				}
-				buff.Skip(size);
-
-				std::filesystem::path outFile{ out / std::format("vm_{:x}/script_{:x}.gscc", smagic, obj->name) };
-				std::filesystem::create_directories(outFile.parent_path());
-
-				if (!utils::WriteFile(outFile, obj->magic, size)) {
-					LOG_ERROR("Can't write {}", outFile.string());
-				}
-				else {
-					LOG_INFO("Dump {}", outFile.string());
+					utils::WriteValue(ffdata, decompressed.get(), block->uncompressedSize);
 				}
 
-				loc++;
+				LOG_INFO("Decompressed 0x{:x} byte(s) from 0x{:x} block(s)", ffdata.size(), idx);
+
+				core::bytebuffer::ByteBuffer buff{ ffdata };
+
+				if (opt.m_fd) {
+					std::filesystem::path fdfile{ filename };
+
+					fdfile.replace_extension(".fd");
+					const std::string filenameFd{ fdfile.string() };
+
+					if (!opt.ReadFile(filenameFd.data(), fileFDBuff)) {
+						LOG_INFO("No fd file for {}: {}", filename, filenameFd);
+					}
+					else {
+						core::bytebuffer::ByteBuffer bufffd{ fileFDBuff };
+
+						BDiffHeader* fdheader{ bufffd.ReadPtr<BDiffHeader>() };
+
+						if (fdheader->size != sizeof(BDiffHeader)) {
+							throw std::runtime_error(std::format("Invalid xfile fd header size 0x{:x}", fdheader->size));
+						}
+
+						LOG_INFO("Loading fd file {}", filenameFd);
+
+						if (opt.m_header) {
+							LOG_INFO("fd size ............... {}B (0x{:x})", utils::FancyNumber(fileFDBuff.size()), fileFDBuff.size());
+							LOG_INFO("---- header ----");
+						}
+						PrintXFile(&fdheader->baseXFileHdr);
+						if (opt.m_header) LOG_INFO("---- new header ----");
+						PrintXFile(&fdheader->newXFileHeader);
+						if (ret) return ret;
+
+						LOG_INFO("size 0x{:x}", fdheader->size);
+						LOG_INFO("version {}", fdheader->version);
+						LOG_INFO("flags 0x{:x}", fdheader->flags);
+						LOG_INFO("maxDestWindowSize   0x{:x}", fdheader->maxDestWindowSize);
+						LOG_INFO("maxSourceWindowSize 0x{:x}", fdheader->maxSourceWindowSize);
+						LOG_INFO("maxDiffWindowSize   0x{:x}", fdheader->maxDiffWindowSize);
+
+						auto uncompress{ std::make_unique<byte[]>(fdheader->maxSourceWindowSize)};
+						size_t uncompressSize{};
+
+						switch (fdheader->newXFileHeader.compression) {
+						case XFILE_BDELTA_ZLIB: {
+							uLongf sizef = (uLongf)fdheader->maxSourceWindowSize;
+							uLongf sizef2{ (uLongf)(fileFDBuff.size() - sizeof(BDiffHeader)) };
+							int ret;
+							if (ret = uncompress2((Bytef*)uncompress.get(), &sizef, bufffd.Ptr<const Bytef>(), &sizef2) < 0) {
+								throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
+							}
+
+							uncompressSize = sizef;
+						}
+							break;
+						//case XFILE_BDELTA_UNCOMP:
+						//case XFILE_BDELTA_LZMA:
+						default:
+							throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)fdheader->baseXFileHdr.compression));
+						}
+
+						core::bytebuffer::ByteBuffer buffbd{ uncompress.get(), uncompressSize };
+
+						bdiff(buffbd, buff);
+					}
+
+				}
+				// search gscobj
+				{
+					/*
+					 The pattern is :
+					 align<8>
+					 ScriptParseTree {
+					    u64 name;
+						u64 namepad?; // maybe not there
+						void* buffer = -1;
+						u32 size;
+						u32 unk;
+					 }
+					 align<32>
+					 GSC_OBJ {
+					    u64 magic = 0x??00a0d43534780
+					 }
+					
+					*/
+					uint64_t magic{ 0x00a0d43534780 };
+					uint64_t magicMask{ 0xFFFFFFFFFFFFF };
+
+					size_t loc{};
+					std::filesystem::path out{ "scriptparsetree_t8ff" };
+					buff.Goto(0);
+					byte* start{ buff.Ptr<byte>() };
+					while (true) {
+						loc = buff.FindMasked((byte*)&magic, (byte*)&magicMask, sizeof(magic));
+						if (loc == std::string::npos) break;
+						struct T8GSCOBJ {
+							byte magic[8];
+							int32_t crc;
+							int32_t pad;
+							uint64_t name;
+						};
+
+						buff.Goto(loc);
+
+						if (!buff.CanRead(sizeof(T8GSCOBJ))) {
+							break; // can't read buffer
+						}
+
+						byte* sptCan{ buff.Ptr<byte>() - 0x18 }; // 0x18 is the minimum size to lookup
+
+						// we are 32 bytes aligned
+						T8GSCOBJ* obj{ buff.ReadPtr<T8GSCOBJ>() };
+
+						uint64_t name{ obj->name };
+
+						while (*(uint64_t*)sptCan != name) {
+							sptCan--;
+							if (start == sptCan) {
+								break;
+							}
+						}
+						if (start == sptCan) {
+							loc++;
+							continue;
+						}
+
+
+						uint64_t smagic{ *reinterpret_cast<uint64_t*>(obj) };
+
+						size_t size;
+						struct T8SPT {
+							uint64_t name;
+							uint64_t pad0;
+							uintptr_t buffer;
+							uint32_t size;
+							uint32_t pad02;
+						};
+						struct T8SPTOld {
+							uint64_t name;
+							uintptr_t buffer;
+							uint32_t size;
+							uint32_t pad02;
+						};
+
+						// Depending on how old the ff is, we might use a XHash of 0x10 or 8 bytes. The pointer
+						// to the buffer will constantly be -1 because it is not linked yet
+						if (((T8SPT*)sptCan)->buffer == 0xFFFFFFFFFFFFFFFF) {
+							size = ((T8SPT*)sptCan)->size;
+						}
+						else if (((T8SPTOld*)sptCan)->buffer == 0xFFFFFFFFFFFFFFFF) {
+							size = ((T8SPTOld*)sptCan)->size;
+						}
+						else {
+							LOG_ERROR("Can't get size 0x{:x} for loc 0x{:x}", smagic, loc);
+							loc++;
+							continue;
+						}
+
+						LOG_TRACE("gsc: 0x{:x} 0x{:x} 0x{:x}: {}", smagic, loc, size, hashutils::ExtractTmpScript(obj->name));
+
+
+						if (!buff.CanRead(size)) {
+							loc++;
+							LOG_ERROR("Bad size 0x{:x} 0x{:x} for loc 0x{:x}", smagic, size, loc);
+							continue;
+						}
+						buff.Skip(size);
+
+						std::filesystem::path outFile{ out / std::format("vm_{:x}/script_{:x}.gscc", smagic, obj->name) };
+						std::filesystem::create_directories(outFile.parent_path());
+
+						if (!utils::WriteFile(outFile, obj->magic, size)) {
+							LOG_ERROR("Can't write {}", outFile.string());
+						}
+						else {
+							LOG_INFO("Dump {}", outFile.string());
+						}
+
+						loc++;
+					}
+
+				}
+				LOG_INFO("Done");
 			}
-
-			LOG_INFO("Done");
 		}
 
 

@@ -167,6 +167,31 @@ namespace core::bytebuffer {
 
 			return std::string::npos;
 		}
+
+		uint64_t ReadVByte() {
+			uint64_t v{};
+			byte r;
+			do {
+				r = Read<byte>();
+
+				v = (v << 7) | (r & 0x7F);
+			} while (r & 0x80);
+
+			return v;
+		}
+
+		int64_t ReadSignedVByte() {
+			uint64_t v{ ReadVByte() };
+
+			if (v & 1) {
+				// -
+				return ~(int64_t)(v >> 1);
+			}
+			else {
+				// +
+				return (int64_t)(v >> 1);
+			}
+		}
 	};
 
 
