@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <core/bytebuffer.hpp>
+#include <deps/oodle.hpp>
 #include "pools.hpp"
 
 namespace {
@@ -33,7 +34,7 @@ namespace {
 
 				uint64_t version{ reader.Read<uint32_t>() };
 
-				if (version != 0x251) {
+				if (version != 0x251 && version != 0x265) {
 					throw std::runtime_error(std::format("bad version 0x{:x}", version));
 				}
 
@@ -42,21 +43,35 @@ namespace {
 				byte plt{ reader.Read<byte>() };
 				byte encrypted{ reader.Read<byte>() };
 
+				deps::oodle::Oodle oodle{};
+
 				if (compression != 1) {
-					throw std::runtime_error(std::format("bad compression {}", (int)compression));
+					if (compression == 8) {
+						if (!oodle.LoadOodle(deps::oodle::OO2CORE_7) || !oodle) {
+							throw std::runtime_error("can't load oodle");
+						}
+					}
+					else {
+						throw std::runtime_error(std::format("bad compression {}", (int)compression));
+					}
 				}
 				if (plt) {
-					throw std::runtime_error("non pc fastfile");
+					LOG_WARNING("non pc fastfile");
 				}
 				if (encrypted) {
 					throw std::runtime_error("encrypted fastfile");
 				}
 
-				reader.Goto(144);
-				size_t size{ reader.Read<size_t>() };
-				LOG_INFO("size 0x{:x}", size);
 				// skip header
-				reader.Goto(584);
+				if (version == 0x251) {
+					reader.Goto(0x248);
+				}
+				else if (version == 0x265) {
+					reader.Goto(0x638);
+				}
+				else {
+					throw std::runtime_error("bad ver");
+				}
 
 
 				size_t consumed{};
@@ -64,11 +79,15 @@ namespace {
 				std::vector<byte> ffdata{};
 
 				size_t blocks{};
-				while (consumed < size) {
+				while (true) {
 					int32_t compressedSize{ reader.Read<int32_t>() };
 					int32_t decompressedSize{ reader.Read<int32_t>() };
 					int32_t blockSize{ reader.Read<int32_t>() };
 					int32_t blockPosition{ reader.Read<int32_t>() };
+
+					LOG_TRACE("{:x} {:x} {:x} {:x}", compressedSize, decompressedSize, blockSize, blockPosition);
+
+					if (!blockSize) break;
 
 					if (blockPosition != reader.Loc() - 16) {
 						throw std::runtime_error("bad block position");
@@ -85,19 +104,32 @@ namespace {
 					}
 
 					try {
+						
+						byte* decompressed{ &ffdata[utils::Allocate(ffdata, decompressedSize)]};
 
-						auto decompressed{ std::make_unique<byte[]>(decompressedSize) };
+						if (compression == 1) {
+							uLongf sizef = (uLongf)decompressedSize;
+							uLongf sizef2{ (uLongf)compressedSize };
+							int ret;
+							if ((ret = uncompress2(decompressed, &sizef, reader.Ptr<const Bytef>(), &sizef2)) < 0) {
+								throw std::runtime_error(std::format("error when decompressing: {}", zError(ret)));
+							}
 
-						uLongf sizef = (uLongf)decompressedSize;
-						uLongf sizef2{ (uLongf)compressedSize };
-						int ret;
-						if (ret = uncompress2(decompressed.get(), &sizef, reader.Ptr<const Bytef>(), &sizef2) < 0) {
-							throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
+							LOG_TRACE("read 0x{:x}", compressedSize);
+						}
+						else if (compression == 8) {
+							int ret{ oodle.Decompress(reader.Ptr<byte>(), compressedSize, decompressed, decompressedSize, deps::oodle::OODLE_FS_YES) };
+
+							if (ret != decompressedSize) {
+								throw std::runtime_error(std::format("Can't decompress block, returned size isn't the expected one: 0x{:x} != 0x{:x}", ret, decompressedSize));
+							}
+
+							LOG_TRACE("read 0x{:x}", compressedSize);
+						}
+						else {
+							throw std::runtime_error(std::format("bad compress 0x{:x}", (int)compression));
 						}
 
-						LOG_TRACE("read 0x{:x}", compressedSize);
-
-						utils::WriteValue(ffdata, decompressed.get(), sizef);
 						blocks++;
 					}
 					catch (std::runtime_error& e) {

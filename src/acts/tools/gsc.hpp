@@ -896,6 +896,10 @@ namespace tool::gsc {
         uint8_t include_count;
         uint8_t animtree_count;
         uint8_t flags;
+
+        inline const char* GetName() const {
+            return reinterpret_cast<const char*>(&magic[name]);
+        }
     };
 
     struct T8GSCOBJ {

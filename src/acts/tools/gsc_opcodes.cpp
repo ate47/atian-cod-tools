@@ -4226,8 +4226,8 @@ public:
 						node->m_cases.push_back({ new ASMContextNodeString(cv), caseRLoc });
 					}
 				}
-				else if (caseValue >= 0x100000000LL) {
-					// assume it's an hash after int32_t max value
+				else if (caseValue >= 0x100000000LL || (context.m_vm == VMI_T831 && caseValue >= 0x10000LL)) {
+					// assume it's an hash after int32_t max value, for vm31, only 32bits hashes are used, so the bar is lower
 					out << "#\"" << hashutils::ExtractTmp("hash", caseValue) << "\"" << std::flush;
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeHash(caseValue, false, "#"), caseRLoc });

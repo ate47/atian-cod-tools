@@ -687,6 +687,13 @@ namespace {
     class T831GSCOBJHandler : public GSCOBJHandler {
     public:
         T831GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_GLOBAL | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T8 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_STRING_NAMES | GOHF_SWITCH_TYPE_T89) {}
+        void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
+            auto* data = Ptr<T831GSCOBJ>();
+            asmout
+                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offset << ")\n";
+            asmout
+                << "// profile .. " << std::dec << std::setw(3) << data->profile_count << " (offset: 0x" << std::hex << data->profile_offset << ")\n";
+        }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
             auto* data = Ptr<T831GSCOBJ>();
 
@@ -703,7 +710,9 @@ namespace {
         }
 
         uint64_t GetName() override {
-            return Ptr<T831GSCOBJ>()->name;
+            const char* name{ Ptr<T831GSCOBJ>()->GetName() };
+            hashutils::Add(name);
+            return hash::Hash64(name);
         }
         uint16_t GetExportsCount() override {
             return Ptr<T831GSCOBJ>()->exports_count;

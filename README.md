@@ -28,7 +28,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | ------------------------ | -------- | ---------- | -------- | ---------| ----- |
 | Black Ops 3 (T7)         | 1B       | Partial    | ✅        | pc | [ate47/bo3-source](https://github.com/ate47/bo3-source) |
 | Black Ops 3 (T7)         | 1C       | ✅          | ✅        | pc,ps4 | [ate47/bo3-source](https://github.com/ate47/bo3-source) |
-| Black Ops 4 (T8)         | 31       | Partial          | ❌        | ps4 | None |
+| Black Ops 4 (T8)         | 31       | ✅          | ✅        | ps4 | [ate47/oldcod-source](https://github.com/ate47/oldcod-source) |
 | Black Ops 4 (T8)         | 34       | ✅          | ✅        | ps4 | [ate47/oldcod-source](https://github.com/ate47/oldcod-source) |
 | Black Ops 4 (T8)         | 35       | Partial          | ❌        | pc | None |
 | Black Ops 4 (T8)         | 36       | ✅          | ✅        | pc,ps4 | [ate47/bo4-source](https://github.com/ate47/bo4-source) |
