@@ -908,10 +908,10 @@ namespace {
             return "scripts/core_common/clientids_shared.gsc";
         }
         bool IsVTableImportFlags(byte flags) override {
-            return flags == CLASS_VTABLE;
+            return flags == 0x6;
         }
         byte GetVTableImportFlags() override {
-            return CLASS_VTABLE;
+            return 0x6;
         }
     };
 
