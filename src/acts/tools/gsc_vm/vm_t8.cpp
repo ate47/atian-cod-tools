@@ -1,5 +1,4 @@
 #include <includes.hpp>
-#include <utils/decrypt.hpp>
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
@@ -102,12 +101,7 @@ namespace {
             return sizeof(T8GSCOBJ);
         }
         char* DecryptString(char* str) override {
-            return decrypt::DecryptString(str);
-        }
-        std::pair<const char*, size_t> GetStringHeader(size_t len) override {
-            static thread_local byte str[2]{ 0x9f, 0xFF };
-            str[1] = (byte)(len + 1);
-            return { reinterpret_cast<const char*>(&str[0]), sizeof(str) };
+            return acts::decryptutils::DecryptStringT8(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T8GSCOBJ) && Ref<uint64_t>() == 0x36000a0d43534780;
@@ -322,12 +316,7 @@ namespace {
             return sizeof(T8GSCOBJ);
         }
         char* DecryptString(char* str) override {
-            return acts::decryptutils::DecryptString(str);
-        }
-        std::pair<const char*, size_t> GetStringHeader(size_t len) override {
-            static thread_local byte str[2]{ 0x9f, 0xFF };
-            str[1] = (byte)(len + 1);
-            return { reinterpret_cast<const char*>(&str[0]), sizeof(str) };
+            return acts::decryptutils::DecryptStringT8(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T8GSCOBJ) && Ref<uint64_t>() == 0x35000a0d43534780;
@@ -545,12 +534,7 @@ namespace {
             return sizeof(T8GSCOBJ);
         }
         char* DecryptString(char* str) override {
-            return acts::decryptutils::DecryptString(str);
-        }
-        std::pair<const char*, size_t> GetStringHeader(size_t len) override {
-            static thread_local byte str[2]{ 0x9f, 0xFF };
-            str[1] = (byte)(len + 1);
-            return { reinterpret_cast<const char*>(&str[0]), sizeof(str) };
+            return acts::decryptutils::DecryptStringT8(str);
         }
         bool IsValidHeader(size_t size) override {
             return size >= sizeof(T8GSCOBJ) && Ref<uint64_t>() == 0x34000a0d43534780;

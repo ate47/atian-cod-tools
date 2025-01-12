@@ -65,6 +65,22 @@ namespace {
 				}
 				opt.decryptStringExec = argv[++i];
 			}
+			else if (!_strcmpi("--decrypt-t8", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				
+				int64_t s{ utils::ParseFormatInt(argv[++i]) };
+
+				if (s < 0 || s >= acts::decryptutils::T8D_COUNT) {
+					LOG_ERROR("Invalid t8 decryption: {}!", argv[i]);
+					return false;
+				}
+				acts::decryptutils::T8Decryption dec{ (acts::decryptutils::T8Decryption)s };
+				acts::decryptutils::SetT8OldDecryption(dec);
+				LOG_TRACE("Using t8dec {}", acts::decryptutils::GetT8OldDecryptionName(dec));
+			}
 			else if (!_strcmpi("--hashprefix", arg)) {
 				if (i + 1 == argc) {
 					LOG_ERROR("Missing value for param: {}!", arg);
@@ -256,6 +272,7 @@ namespace {
 		LOG_INFO(" -T --no-treyarch   : No Treyarch hash (ignored with -N)");
 		LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
 		LOG_INFO("--decrypt-mod [f]   : Use exe dump to decrypt strings");
+		LOG_INFO("--decrypt-t8 [v]    : Set the bo4 decryption algorithm, default 0");
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);

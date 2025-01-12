@@ -4180,7 +4180,7 @@ public:
 			byte* caseLoc;
 			int64_t caseDelta;
 			byte* endBase;
-			if (context.m_vm >= VMI_T8) {
+			if (context.m_vm >= VMI_T834) {
 				auto& baseCaseValue = context.Aligned<int64_t>();
 
 				context.WritePadding(out);
@@ -4548,7 +4548,7 @@ public:
 
 		baseCount += 4;
 
-		if (context.m_vm >= VMI_T8) {
+		if (context.m_vm >= VMI_T834) {
 			auto& ptrBase = context.Aligned<int64_t>();
 
 			ptrBase += 16 * count;

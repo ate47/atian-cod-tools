@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <utils/decrypt.hpp>
+#include <utils/decrypt_t8old.hpp>
 #include <hook/module_mapper.hpp>
 #include "decryptutils.hpp"
 
@@ -8,6 +9,7 @@ namespace acts::decryptutils {
 	namespace {
 		char* (*DecryptStringImpl)(char* str) {};
 		hook::module_mapper::Module decryptModule{ true };
+		T8Decryption t8old{};
 	}
 
 	char* DecryptString(char* str) {
@@ -55,5 +57,26 @@ namespace acts::decryptutils {
 		return false;
 	}
 
+
+	void SetT8OldDecryption(T8Decryption alg) {
+		t8old = alg;
+	}
+	char* DecryptStringT8(char* str) {
+		switch (t8old) {
+		case T8D_X1_LATEST: return decrypt::DecryptString(str);
+		case T8D_X3_20181013: return decrypt::DecryptStringT8Old(str);
+		case T8D_X2_UNK_OLD: // the one in the ff
+		default: return DecryptString(str); // fallback on the module one
+		}
+	}
+
+	const char* GetT8OldDecryptionName(T8Decryption alg) {
+		switch (alg) {
+			case T8D_X1_LATEST: return "latest";
+			case T8D_X2_UNK_OLD: return "unk_x2";
+			case T8D_X3_20181013: return "x3_181013";
+			default: return "unk_dec";
+		}
+	}
 
 }

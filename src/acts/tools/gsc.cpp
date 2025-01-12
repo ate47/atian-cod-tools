@@ -3069,11 +3069,11 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
-    if (gscFile.GetMagic() > VMI_T8) {
+    if (gscFile.GetMagic() > VMI_T834) {
         if (!AssertOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject)) return DVA_BAD;
         ctx.Aligned<uint16_t>() += 2; // - classes
     }
-    else if (gscFile.GetMagic() < VMI_T8) {
+    else if (gscFile.GetMagic() < VMI_T834) {
         ctx.Aligned<uint16_t>() += 2; // GetClassesObject
 
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef className
@@ -3202,7 +3202,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
         if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
-        if (gscFile.GetMagic() >= VMI_T8) {
+        if (gscFile.GetMagic() >= VMI_T834) {
             ctx.Aligned<uint16_t>() += 2; // EvalGlobalObjectFieldVariable
             ctx.Aligned<uint16_t>() += 2; // - gvar
         }
