@@ -8,10 +8,7 @@ namespace tool::gsc::gdb {
 			std::vector<std::filesystem::path> paths{};
 
 			for (size_t i = 2; i < argc; i++) {
-				utils::GetFileRecurse(argv[i], paths, [](const std::filesystem::path& path) -> bool {
-					auto str = path.string();
-					return str.ends_with(".gdb");
-				});
+				utils::GetFileRecurseExt(argv[i], paths, ".gdb\0.gdbc\0");
 			}
 
 			if (paths.empty()) {
