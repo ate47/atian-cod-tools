@@ -289,46 +289,53 @@ namespace {
 
 	int vtabledumread(Process& proc, int argc, const char* argv[]) {
 		using namespace tool::gsc::opcode;
-		if (argc < 3) {
+		if (tool::NotEnoughParam(argc, 3)) {
 			return tool::BAD_USAGE;
 		}
 
-		size_t maxOpCode{ 0x1000 };
-		if (argc >= 4) {
-			maxOpCode = std::strtoull(argv[3], nullptr, 16);
-			LOG_TRACE("set maxopcode to {}/0x{:x}", argv[3], maxOpCode);
+		size_t maxOpCode{ std::strtoull(argv[3], nullptr, 16) };
+
+		LOG_TRACE("set maxopcode to {}/0x{:x}", argv[3], maxOpCode);
+
+		std::vector<byte> buffer{};
+
+		if (!utils::ReadFile(argv[2], buffer)) {
+			LOG_ERROR("Can't read {}!", argv[2]);
+			return tool::BASIC_ERROR;
 		}
 
-		PVOID buffer = NULL;
-		size_t bufferSize = 0;
-
-		if (!utils::ReadFileNotAlign(argv[2], buffer, bufferSize)) {
-			std::cerr << "Can't read " << argv[2] << "!\n";
+		if (buffer.size() < maxOpCode * 8) {
+			LOG_ERROR("Can't read {}! Too small: 0x{:x} < 0x{:x}", argv[2], buffer.size(), maxOpCode * 8);
 			return tool::BASIC_ERROR;
 		}
 
 		std::map<uintptr_t, std::vector<size_t>> map{};
-		auto* codes = reinterpret_cast<uintptr_t*>(buffer);
+		uintptr_t* codes = (uintptr_t*)buffer.data();
 
 		for (size_t i = 0; i < maxOpCode; i++) {
 			map[codes[i]].push_back(i);
 		}
+		{
+			utils::OutFileCE os{ argv[4] };
 
-		for (const auto& [loc, map] : map) {
-			std::cout << std::hex << std::setfill('0') << std::setw(3) << map[0] << ":" << loc << " -> {";
-			for (size_t i = 0; i < map.size(); i++) {
-				if (i) {
-					std::cout << ", ";
-				}
-				std::cout << std::hex << "0x" << map[i];
+			if (!os) {
+				LOG_ERROR("Can't open {}", argv[4]);
+				return tool::BASIC_ERROR;
 			}
-			std::cout << "}\n";
+
+			for (const auto& [loc, map] : map) {
+				os << std::hex << std::setfill('0') << std::setw(3) << map[0] << ":" << loc << " -> {";
+				for (size_t i = 0; i < map.size(); i++) {
+					if (i) {
+						os << ", ";
+					}
+					os << std::hex << "0x" << map[i];
+				}
+				os << "}\n";
+			}
+
+			LOG_INFO("Dump into {}", argv[4]);
 		}
-
-
-		std::free(buffer);
-
-		std::cout << "done\n";
 
 		return tool::OK;
 	}
@@ -336,5 +343,5 @@ namespace {
 
 ADD_TOOL(rosetta, "gsc", " [rosetta_file] [compiled script dump]", "Compute the opcodes of a dump using a Rosetta file", nullptr, rosetta);
 ADD_TOOL(gscfreq, "gsc", "", "Frequency of opcodes", nullptr, gscfreq);
-ADD_TOOL(vtdr, "dev_gsc", "", "VTable tests", nullptr, vtabledumread);
+ADD_TOOL(vtdr, "dev_gsc", " [dump] [maxOpCodes] [output]", "Dump opcode vtable", nullptr, vtabledumread);
 
