@@ -589,6 +589,25 @@ public:
 			context.m_bcl += 8;
 		}
 		context.m_bcl = oldBcl;
+		// check strings
+		for (size_t j = 0; j < 0x32; j++) {
+			uint32_t floc = context.ScriptAbsoluteLocation(context.m_bcl);
+			const char* cand{ objctx.GetStringValueByLoc(floc) };
+			if (cand) {
+				context.WritePadding(out);
+				out << "match string loc u8:0x" << (int)*(byte*)context.m_bcl;
+				out << ", u16:0x" << *(uint16_t*)context.m_bcl;
+				out << ", u32:0x" << *(uint32_t*)context.m_bcl;
+				context.WritePadding(out << "\n");
+				utils::PrintFormattedString(out << "\"", cand) << "\"";
+				out << "\n";
+			}
+
+			context.m_bcl++;
+		}
+
+
+		context.m_bcl = oldBcl;
 
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			for (size_t i = 0; i < 0x3; i++) {
