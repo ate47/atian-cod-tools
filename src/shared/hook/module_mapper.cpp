@@ -11,9 +11,9 @@ namespace hook::module_mapper {
 		if (freeOnExit) Free();
 	}
 
-	bool Module::Load(const std::filesystem::path& path, bool patchIAT) {
+	bool Module::Load(const std::filesystem::path& path, bool patchIAT, bool absolute) {
 		Free(); // free module if required
-		std::filesystem::path ap{ std::filesystem::absolute(path) };
+		std::filesystem::path ap{ absolute ? std::filesystem::absolute(path) : path };
 		std::string p{ ap.string() };
 		lib.SetModule(LoadLibraryExA(p.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | DONT_RESOLVE_DLL_REFERENCES));
 

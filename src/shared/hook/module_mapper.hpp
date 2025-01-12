@@ -9,7 +9,7 @@ namespace hook::module_mapper {
 		Module(bool freeOnExit = false);
 		~Module();
 
-		bool Load(const std::filesystem::path& path, bool patchIAT = true);
+		bool Load(const std::filesystem::path& path, bool patchIAT = true, bool absolute = true);
 		void Free();
 
 		constexpr operator bool() {

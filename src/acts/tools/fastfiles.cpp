@@ -3,6 +3,7 @@
 #include <hook/module_mapper.hpp>
 #include <hook/memory.hpp>
 #include <deps/oodle.hpp>
+#include <deps/bo4.hpp>
 #include <games/bo4/pool.hpp>
 #include <utils/decrypt.hpp>
 
@@ -456,6 +457,16 @@ namespace {
 			return opt.m_help ? tool::OK : tool::BASIC_ERROR;
 		}
 
+		deps::bo4::Bo4 bo4{};
+
+		if (opt.m_fd) {
+			if (!bo4.LoadFromDeps()) {
+				LOG_ERROR("Can't load bo4 exec from deps, did you put a dump inside the deps/ directory?");
+				return tool::BASIC_ERROR;
+			}
+			bo4.PatchErrorAsThrow();
+			LOG_INFO("{} loaded", *bo4);
+		}
 
 		std::vector<byte> fileBuff{};
 		std::vector<byte> fileFDBuff{};
@@ -482,8 +493,8 @@ namespace {
 						return;
 					}
 
-					if (buffer->version != 0x27F) {
-						LOG_ERROR("Not a T8 FF");
+					if (buffer->version != 0x27F && buffer->version != 0x27E) {
+						LOG_ERROR("Not a T8 FF, version: 0x{:X}", buffer->version);
 						ret = tool::BASIC_ERROR;
 						return;
 					}
@@ -521,7 +532,7 @@ namespace {
 				PrintXFile(buffer);
 				if (ret) return ret;
 
-				deps::oodle::Oodle oodle{ deps::oodle::OO2CORE_6 };
+				deps::oodle::Oodle oodle{ deps::oodle::OO2CORE_8 };
 
 				if (!oodle) return tool::BASIC_ERROR;
 				
@@ -652,7 +663,42 @@ namespace {
 
 						core::bytebuffer::ByteBuffer buffbd{ uncompress.get(), uncompressSize };
 
-						bdiff(buffbd, buff);
+						deps::bo4::BDiffState state{};
+
+						static struct {
+							core::bytebuffer::ByteBuffer* buffbd{};
+							core::bytebuffer::ByteBuffer* buffsrc{};
+							int64_t size{};
+							byte* destWindow{};
+						} ffDecode{};
+
+						ffDecode.buffbd = &buffbd;
+						ffDecode.buffsrc = &buff;
+						ffDecode.size = 0;
+						ffDecode.destWindow = uncompress.get() + 0x80000 + 0x80000;
+
+						if (!bo4.bdiff(&state,
+							[](uint64_t offset, uint64_t size) -> byte* {
+								// srcDataCallback
+								ffDecode.buffsrc->Goto(offset);
+								return ffDecode.buffbd->ReadPtr<byte>(size);
+							}, 
+							[](uint64_t offset, uint64_t size, uint64_t* pOffset) -> byte* {
+								// patchDataCB
+								if (offset) {
+									ffDecode.buffbd->Goto(offset);
+								}
+								byte* ret{ ffDecode.buffbd->ReadPtr<byte>(size) };
+								if (pOffset) *pOffset = ffDecode.buffbd->Loc();
+								return ret;
+							},
+							[](uint64_t size) -> byte* {
+								// destDataCB
+								return ffDecode.destWindow;
+							} 
+							)) {
+							LOG_ERROR("Error when bdiff");
+						}
 					}
 
 				}
@@ -876,7 +922,7 @@ namespace {
 				}
 
 				if (buffer->version != 0x27F) {
-					LOG_ERROR("Not a T8 FF");
+					LOG_ERROR("Not a T8 FF, version: 0x{:x} != 0x27F", buffer->version);
 					ret = tool::BASIC_ERROR;
 					return;
 				}

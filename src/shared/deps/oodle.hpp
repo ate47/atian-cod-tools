@@ -91,9 +91,6 @@ namespace deps::oodle {
         Oodle(const char* libname) {
             LoadOodle(libname);
         }
-        ~Oodle() {
-            oodle.Free();
-        }
 
         constexpr operator bool() const {
             return oodle;
@@ -139,9 +136,9 @@ namespace deps::oodle {
         }
 
         void FreeOodle() {
-            oodle.Free();
             OodleLZ_Decompress = nullptr;
             Oodle_GetConfigValues = nullptr;
+            oodle.ClearModule();
         }
 
         void GetConfigValues(int32_t* cfg) const {
