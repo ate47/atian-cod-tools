@@ -591,15 +591,22 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         for (size_t i = 0; i < string_count; i++) {
 
             const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-            char* cstr = Ptr<char>(str->string);
+            const char* rcstr;
+            if (str->string) {
+                char* cstr = Ptr<char>(str->string);
 
-            if (!ctx.opt.m_noStrDecrypt) {
-                cstr = DecryptString(cstr);
+                if (!ctx.opt.m_noStrDecrypt) {
+                    cstr = DecryptString(cstr);
+                }
+                rcstr = cstr;
+            }
+            else {
+                rcstr = "<invalid>";
             }
             if (gDumpStrings) {
-                gDumpStringsStore.insert(cstr);
+                gDumpStringsStore.insert(rcstr);
             }
-            uint32_t ref = ctx.AddStringValue(cstr);
+            uint32_t ref = ctx.AddStringValue(rcstr);
 
             const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
             for (size_t j = 0; j < str->num_address; j++) {
@@ -831,14 +838,21 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
     for (size_t i = 0; i < string_count; i++) {
 
         const auto* str = reinterpret_cast<T8GSCString*>(str_location);
-        char* cstr = Ptr<char>(str->string);
-        if (!ctx.opt.m_noStrDecrypt) {
-            cstr = DecryptString(cstr);
+        const char* rcstr;
+        if (str->string) {
+            char* cstr = Ptr<char>(str->string);
+            if (!ctx.opt.m_noStrDecrypt) {
+                cstr = DecryptString(cstr);
+            }
+            rcstr = cstr;
+        }
+        else {
+            rcstr = "<invalid>";
         }
         if (gDumpStrings) {
-            gDumpStringsStore.insert(cstr);
+            gDumpStringsStore.insert(rcstr);
         }
-        uint32_t ref = ctx.AddStringValue(cstr);
+        uint32_t ref = ctx.AddStringValue(rcstr);
 
         const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
         for (size_t j = 0; j < str->num_address; j++) {
@@ -849,7 +863,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             }
 
             //Ref<uint32_t>(strings[j]) = ref;
-            ctx.AddStringRef(strings[j], ref);
+            if (str->string || !ctx.GetStringValueByLoc(strings[j])) {
+                ctx.AddStringRef(strings[j], ref);
+            }
         }
         str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
     }
@@ -3069,7 +3085,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
-    if (gscFile.GetMagic() > VMI_T834) {
+    if (gscFile.GetMagic() > VMI_T8) {
         if (!AssertOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject)) return DVA_BAD;
         ctx.Aligned<uint16_t>() += 2; // - classes
     }
