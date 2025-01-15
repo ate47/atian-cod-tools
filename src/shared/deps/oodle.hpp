@@ -80,7 +80,7 @@ namespace deps::oodle {
 
 
     class Oodle {
-        hook::library::Library oodle{};
+        hook::library::Library oodle{ (HMODULE)0 };
         POodleLZ_Decompress OodleLZ_Decompress{};
         POodle_GetConfigValues Oodle_GetConfigValues{};
         POodleLZ_GetCompressedBufferSizeNeeded OodleLZ_GetCompressedBufferSizeNeeded{};

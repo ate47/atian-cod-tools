@@ -191,7 +191,7 @@ namespace {
 		uint32_t uncompressedSize;
 		uint32_t alignedSize;
 		uint32_t offset;
-	}; static_assert(sizeof(DBStreamHeader) == 16);
+	}; static_assert(sizeof(DBStreamHeader) == 0x10);
 	struct aesKey_t {
 		uint32_t fileNameHash;
 		uint32_t version;

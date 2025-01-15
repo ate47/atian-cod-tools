@@ -480,6 +480,24 @@ namespace utils {
 		}
 	};
 
+	template<typename Type, typename TypeIn = Type>
+	class ArrayAdder {
+		Type data;
+
+	public:
+		template<typename... Args>
+		ArrayAdder(std::vector<TypeIn*>& vec, Args... args) : data(args...) {
+			vec.push_back(&data);
+		}
+
+		constexpr Type& operator*() {
+			return data;
+		}
+
+		constexpr Type* operator->() {
+			return &data;
+		}
+	};
 
 	template<typename Type>
 	struct BasicFormatter {
