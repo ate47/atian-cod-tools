@@ -7,6 +7,7 @@
 #include <utils/io_utils.hpp>
 #include <core/config.hpp>
 #include <core/memory_allocator_static.hpp>
+#include <cli/cli_options.hpp>
 //#include <jsonrpccxx/server.hpp>
 
 namespace {
@@ -150,6 +151,37 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int opttest(int argc, const char* argv[]) {
+
+		struct {
+			bool help{};
+			int val{};
+			bool flag2;
+		} options{};
+
+		cli::options::CliOptions cliopts{};
+
+		cliopts
+			.addOption(&options.help, "print help", "--help", "", "-h")
+			.addOption(&options.val, "test val v", "--val", " [v]")
+			.addOption(&options.flag2, "set flag 2", "--set-flag-nb-2", "");
+
+		if (!cliopts.ComputeOptions(2, argc, argv) || options.help || cliopts.NotEnoughParam(1)) {
+			cliopts.PrintOptions();
+			return tool::OK;
+		}
+
+		LOG_INFO("val: {}", options.val);
+		LOG_INFO("flag2: {}", options.flag2);
+
+		for (size_t i = 0; i < cliopts.ParamsCount(); i++) {
+			LOG_INFO("{} : {}", i, cliopts[i]);
+		}
+
+
+		return tool::OK;
+	}
 }
 
 ADD_TOOL(test, "dev", "", "Tests", nullptr, test);
@@ -159,5 +191,6 @@ ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);
 ADD_TOOL(wget, "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL(cfgtest, "dev", "", "", nullptr, cfgtest);
 ADD_TOOL(oodleload, "dev", " [exe]", "", oodleload);
+ADD_TOOL(opttest, "dev", " [exe]", "", opttest);
 //ADD_TOOL(oodlecomp, "dev", "", "", oodlecomp);
 #endif

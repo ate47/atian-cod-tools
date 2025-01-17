@@ -81,6 +81,10 @@ namespace core::bytebuffer {
 			return (T*)&buffer[pointer + offset];
 		}
 
+		constexpr size_t Size() const {
+			return len;
+		}
+
 		char* ReadString(size_t* len = nullptr) {
 			char* str{ Ptr<char>() };
 			size_t _len{};
