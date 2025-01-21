@@ -26,6 +26,7 @@ namespace {
 
 			bool xhashType{};
 
+			// todo: probably we can scan the data and find the chunks
 			switch (header->version) {
 			case 0x251: // Black ops 3
 				fastFileSize = 0x248;
@@ -71,7 +72,10 @@ namespace {
 				byte* blockBuff{ reader.ReadPtr<byte>(block->alignedSize) };
 
 
-				LOG_TRACE("Decompressing block 0x{:x} (0x{:x}/0x{:x} -> 0x{:x})", loc, block->compressedSize, block->alignedSize, block->uncompressedSize);
+				LOG_TRACE("Decompressing {} block 0x{:x} (0x{:x}/0x{:x} -> 0x{:x})", 
+					fastfile::GetFastFileCompressionName(header->compression), loc,
+					block->compressedSize, block->alignedSize, block->uncompressedSize
+				);
 
 				size_t unloc{ utils::Allocate(ffdata, block->uncompressedSize) };
 				byte* decompressed{ &ffdata[unloc] };
@@ -89,7 +93,7 @@ namespace {
 					uLongf sizef = (uLongf)block->uncompressedSize;
 					uLongf sizef2{ (uLongf)block->compressedSize };
 					int ret;
-					if (ret = uncompress2(decompressed, &sizef, reader.Ptr<const Bytef>(), &sizef2) < 0) {
+					if (ret = uncompress2(decompressed, &sizef, blockBuff, &sizef2) < 0) {
 						throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
 					}
 					break;
@@ -131,6 +135,76 @@ namespace {
 					// todo: handle fd file
 				}
 			}
+
+			if (opt.dump_decompressed) {
+				std::filesystem::path decfile{ file };
+
+				decfile.replace_extension(".ff.dec");
+
+				if (!utils::WriteFile(decfile, ffdata)) {
+					LOG_ERROR("Can't dump {}", decfile.string());
+				} else{
+					LOG_INFO("Dump into {}", decfile.string());
+				}
+			}
+
+			// read asset data
+			struct XAsset_0 {
+				byte type;
+				uintptr_t header;
+			};
+
+			struct AssetList {
+				uint32_t numStrings;
+				uintptr_t strings;
+				uint32_t assetCount;
+				uintptr_t assets;
+			};
+
+			AssetList* assetList{ buff.ReadPtr<AssetList>() };
+
+			if (!assetList->assetCount) {
+				LOG_TRACE("No assets in ff");
+				return;
+			}
+
+			// skip list
+			buff.ReadPtr<void*>(assetList->numStrings);
+
+			LOG_TRACE("{:x}", buff.Loc());
+
+			while (true) {
+				if (!buff.CanRead(sizeof(XAsset_0) * assetList->assetCount)) {
+					LOG_ERROR("Can't find assets start");
+					return;
+				}
+
+				XAsset_0* ptr{ buff.Ptr<XAsset_0>() };
+
+				size_t i{};
+
+				size_t end{ std::min<size_t>(assetList->assetCount, 4) };
+
+				while (i < end) {
+					if (ptr[i].header != 0xFFFFFFFFFFFFFFFF) {
+						break;
+					}
+					i++;
+				}
+
+				if (i != end) {
+					buff.Skip(1); // next byte
+					continue;
+				}
+				break;
+			}
+
+			XAsset_0* assets{ buff.Ptr<XAsset_0>() };
+			for (size_t i = 0; i < assetList->assetCount; i++) {
+				LOG_DEBUG("{} {:x}", (int)assets[i].type, assets[i].header);
+			}
+
+
 
 			// todo: read buffer
 		}

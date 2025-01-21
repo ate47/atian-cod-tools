@@ -414,6 +414,7 @@ project "AtianCodTools"
 	links { "OpenGL32" }
 	links { "GLU32" }
     links { "imgui" }
+	links { "Crypt32.lib" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"

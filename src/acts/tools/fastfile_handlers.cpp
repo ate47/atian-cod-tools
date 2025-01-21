@@ -109,6 +109,9 @@ namespace fastfile {
 			else if (!_strcmpi("--fd", arg) || !strcmp("-p", arg)) {
 				m_fd = true;
 			}
+			else if (!_strcmpi("--decomp", arg)) {
+				dump_decompressed = true;
+			}
 			else if (!_strcmpi("--header", arg) || !strcmp("-H", arg)) {
 				m_header = true;
 			}
@@ -130,6 +133,7 @@ namespace fastfile {
 		LOG_INFO("-C --casc [c]        : Use casc db");
 		LOG_INFO("-g --game [g]        : exe");
 		LOG_INFO("-p --fd              : Use patch file (fd)");
+		LOG_INFO("--decomp             : Dump decompressed");
 	}
 
 	std::vector<std::string> FastFileOption::GetFileRecurse(const char* path) {
@@ -216,9 +220,11 @@ namespace fastfile {
 		FFAssetPool assetPool{};
 
 		std::vector<byte> buff{};
+		size_t count{}, completed{};
 		int ret{ tool::OK };
 		for (const char* f : opt.files) {
 			for (const std::string filename : opt.GetFileRecurse(f)) {
+				count++;
 				if (!filename.ends_with(".ff")) {
 					LOG_DEBUG("Ignore {}", filename);
 					continue;
@@ -252,6 +258,7 @@ namespace fastfile {
 					LOG_INFO("Loading {}... ({})", filename, handler->name);
 
 					handler->LoadFastFile(assetPool, opt, reader, filename.c_str());
+					completed++;
 				}
 				catch (std::runtime_error& err) {
 					LOG_ERROR("Can't read {}: {}", filename, err.what());
@@ -259,6 +266,14 @@ namespace fastfile {
 				}
 
 			}
+		}
+
+		size_t errors{ count - completed };
+		if (errors) {
+			LOG_ERROR("Parsed {} (0x{:x}) file(s) with {} (0x{:x}) error(s)", count, count, errors, errors);
+		}
+		else {
+			LOG_INFO("Parsed {} (0x{:x}) file(s)", count, count);
 		}
 
 		return ret;

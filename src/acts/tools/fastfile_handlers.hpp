@@ -34,12 +34,21 @@ namespace fastfile {
 		uint8_t platform;
 		uint8_t encrypted;
 	};
+	struct TX32FileHeader {
+		uint8_t magic[4];
+		uint32_t version;
+		uint8_t server;
+		fastfile::FastFileCompression compression;
+		uint8_t platform;
+		uint8_t encrypted;
+	};
 
 	class FastFileOption {
 	public:
 		bool m_help{};
 		bool m_fd{};
 		bool m_header{};
+		bool dump_decompressed{};
 		const char* m_casc{};
 		const char* game{};
 		HANDLE cascStorage{};

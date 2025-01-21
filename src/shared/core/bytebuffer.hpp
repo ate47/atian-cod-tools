@@ -25,6 +25,15 @@ namespace core::bytebuffer {
 			return t;
 		}
 
+		void Read(void* to, size_t size) {
+			if (!CanRead(size)) {
+				throw std::runtime_error(utils::va("Reading pointer too much at 0x%llx + 0x%llx > 0x%llx", pointer, size, len));
+			}
+			
+			std::memmove(to, &buffer[pointer], size);
+			pointer += size;
+		}
+
 		template<typename T>
 		T Read(size_t len) {
 			if (!CanRead(len)) {
