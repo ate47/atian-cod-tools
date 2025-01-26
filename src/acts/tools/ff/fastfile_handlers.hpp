@@ -2,6 +2,10 @@
 #include <core/bytebuffer.hpp>
 
 namespace fastfile {
+	template<typename T>
+	inline bool IsSame(T t, int64_t val) {
+		return reinterpret_cast<T>(val) == t;
+	}
 
 	struct DBStreamHeader {
 		uint32_t compressedSize;
@@ -26,13 +30,25 @@ namespace fastfile {
 		XFILE_COMPRESSION_COUNT = 0xC,
 	};
 
+	enum FastFilePlatform : byte {
+		XFILE_PC = 0x0,
+		XFILE_XBOX = 0x1,
+		XFILE_PLAYSTATION = 0x2,
+		XFILE_COUNT = 0x3,
+	};
+
+
 	struct TXFileHeader {
 		uint8_t magic[8];
 		uint32_t version;
 		uint8_t server;
 		fastfile::FastFileCompression compression;
-		uint8_t platform;
+		fastfile::FastFilePlatform platform;
 		uint8_t encrypted;
+		uint64_t timestamp;
+		uint32_t changelist;
+		uint32_t archiveChecksum[4];
+		char builder[32];
 	};
 	struct TX32FileHeader {
 		uint8_t magic[4];
@@ -43,23 +59,36 @@ namespace fastfile {
 		uint8_t encrypted;
 	};
 
+	class FFHandler;
+
+	struct FastFileContext {
+		const char* file;
+		const char* ffname{};
+	};
+
 	class FastFileOption {
 	public:
 		bool m_help{};
 		bool m_fd{};
 		bool m_header{};
-		bool dump_decompressed{};
+		bool print_handlers{};
 		const char* m_casc{};
 		const char* game{};
 		HANDLE cascStorage{};
-		const char* m_output{ "output_ff" };
+		std::filesystem::path m_output{ "output_ff" };
 		std::vector<const char*> files{};
+		FFHandler* handler{};
 
 		~FastFileOption();
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
 		void PrintHelp();
 		std::vector<std::string> GetFileRecurse(const char* path);
 		bool ReadFile(const char* path, std::vector<byte>& buff);
+
+
+		inline bool ReadFile(const std::string& path, std::vector<byte>& buff) {
+			return ReadFile(path.data(), buff);
+		}
 	};
 
 	class FFAssetPool {
@@ -77,19 +106,33 @@ namespace fastfile {
 	constexpr uint64_t MASK32 = 0xFFFFFFFF;
 	constexpr uint64_t MASK64 = 0xFFFFFFFFFFFFFFFF;
 
-	class FFHandler {
+	class FFDecompressor {
 	public:
 		const char* name;
 		uint64_t magic;
 		uint64_t mask;
 
-		FFHandler(const char* name, uint64_t magic, uint64_t mask) : name(name), magic(magic), mask(mask) {
+		FFDecompressor(const char* name, uint64_t magic, uint64_t mask) : name(name), magic(magic), mask(mask) {
 		}
 
-		virtual void LoadFastFile(FFAssetPool& pool, FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, const char* file) = 0;
+		virtual void LoadFastFile(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx, std::vector<byte>& ffdata) = 0;
+	};
+
+	class FFHandler {
+	public:
+		const char* name;
+		const char* description;
+
+		FFHandler(const char* name, const char* description) : name(name), description(description) {
+		}
+
+		virtual void Handle(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx) = 0;
 	};
 
 	const char* GetFastFileCompressionName(FastFileCompression comp);
+	const char* GetFastFilePlatformName(FastFilePlatform comp);
+	std::vector<FFDecompressor*>& GetDecompressors();
+	FFDecompressor* FindDecompressor(uint64_t magic);
 	std::vector<FFHandler*>& GetHandlers();
-	FFHandler* FindHandler(uint64_t magic);
+	FFHandler* FindHandler(const char* name);
 }

@@ -8,14 +8,28 @@
 
 
 namespace fastfile {
+	std::vector<FFDecompressor*>& GetDecompressors() {
+		static std::vector<FFDecompressor*> handlers{};
+		return handlers;
+	}
+
 	std::vector<FFHandler*>& GetHandlers() {
 		static std::vector<FFHandler*> handlers{};
 		return handlers;
 	}
 
-	FFHandler* FindHandler(uint64_t magic) {
-		for (FFHandler* handler : GetHandlers()) {
+	FFDecompressor* FindDecompressor(uint64_t magic) {
+		for (FFDecompressor* handler : GetDecompressors()) {
 			if (handler->magic == (magic & handler->mask)) {
+				return handler;
+			}
+		}
+		return nullptr;
+	}
+
+	FFHandler* FindHandler(const char* name) {
+		for (FFHandler* handler : GetHandlers()) {
+			if (!_strcmpi(name, handler->name)) {
 				return handler;
 			}
 		}
@@ -46,7 +60,7 @@ namespace fastfile {
 	}
 
 	const char* GetFastFileCompressionName(FastFileCompression comp) {
-		static const char* compressionNames[]{
+		static const char* names[]{
 			"none",
 			"zlib",
 			"zlib_hc",
@@ -60,10 +74,22 @@ namespace fastfile {
 			"oodle_selkie",
 			"oodle_lzna",
 		};
-		if (comp >= ARRAYSIZE(compressionNames) || comp < 0) {
+		if (comp >= ARRAYSIZE(names) || comp < 0) {
 			return "unknown";
 		}
-		return compressionNames[comp];
+		return names[comp];
+	}
+
+	const char* GetFastFilePlatformName(FastFilePlatform plt) {
+		static const char* names[]{
+			"pc",
+			"xbox",
+			"playstation",
+		};
+		if (plt >= ARRAYSIZE(names) || plt < 0) {
+			return "unknown";
+		}
+		return names[plt];
 	}
 
 	FastFileOption::~FastFileOption() {
@@ -106,11 +132,22 @@ namespace fastfile {
 					return false;
 				}
 			}
-			else if (!_strcmpi("--fd", arg) || !strcmp("-p", arg)) {
+			else if (!strcmp("-r", arg) || !_strcmpi("--handler", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				const char* id{ args[++i] };
+				if (!(handler = FindHandler(id))) {
+					LOG_ERROR("Can't find handler for name '{}'", id);
+					return false;
+				}
+			}
+			else if (!_strcmpi("--patch", arg) || !strcmp("-p", arg)) {
 				m_fd = true;
 			}
-			else if (!_strcmpi("--decomp", arg)) {
-				dump_decompressed = true;
+			else if (!strcmp("-R", arg) || !_strcmpi("--handlers", arg)) {
+				print_handlers = true;
 			}
 			else if (!_strcmpi("--header", arg) || !strcmp("-H", arg)) {
 				m_header = true;
@@ -130,10 +167,11 @@ namespace fastfile {
 		LOG_INFO("-h --help            : Print help");
 		LOG_INFO("-o --output [d]      : Output dir");
 		LOG_INFO("-H --header          : Dump header info");
+		LOG_INFO("-r --handler         : Handler to use (use --handlers to print)");
+		LOG_INFO("-R --handlers        : Print handlers");
 		LOG_INFO("-C --casc [c]        : Use casc db");
 		LOG_INFO("-g --game [g]        : exe");
-		LOG_INFO("-p --fd              : Use patch file (fd)");
-		LOG_INFO("--decomp             : Dump decompressed");
+		LOG_INFO("-p --patch           : Use patch files (fd/fp)");
 	}
 
 	std::vector<std::string> FastFileOption::GetFileRecurse(const char* path) {
@@ -178,7 +216,6 @@ namespace fastfile {
 			HANDLE firstFileHandle{ CascFindFirstFile(cascStorage, path, &data, NULL) };
 
 			if (!firstFileHandle || !data.bFileAvailable) {
-				LOG_ERROR("Can't find path {}", path);
 				return false;
 			}
 			utils::CloseEnd ce{ [firstFileHandle] { CascFindClose(firstFileHandle); } };
@@ -191,7 +228,6 @@ namespace fastfile {
 			buff.resize(data.FileSize);
 			HANDLE fhandle;
 			if (!CascOpenFile(cascStorage, data.szFileName, CASC_LOCALE_ALL, 0, &fhandle)) {
-				LOG_ERROR("Can't open path {}", data.szFileName);
 				return false;
 			}
 			utils::CloseEnd cef{ [fhandle] { CascCloseFile(fhandle); } };
@@ -216,23 +252,31 @@ namespace fastfile {
 				return tool::OK;
 			}
 		}
+		
+		if (opt.print_handlers) {
+			LOG_INFO("Handlers:");
 
-		FFAssetPool assetPool{};
+			for (FFHandler* handler : GetHandlers()) {
+				LOG_INFO("{:10} - {}", handler->name, handler->description);
+			}
+
+			return tool::OK;
+		}
 
 		std::vector<byte> buff{};
+		std::vector<byte> ffdata{};
 		size_t count{}, completed{};
-		int ret{ tool::OK };
 		for (const char* f : opt.files) {
 			for (const std::string filename : opt.GetFileRecurse(f)) {
-				count++;
+				ffdata.clear();
 				if (!filename.ends_with(".ff")) {
 					LOG_DEBUG("Ignore {}", filename);
 					continue;
 				}
+				count++;
 
 				if (!opt.ReadFile(filename.data(), buff)) {
 					LOG_ERROR("Can't read file {}", filename);
-					ret = tool::BASIC_ERROR;
 					continue;
 				}
 
@@ -240,43 +284,48 @@ namespace fastfile {
 
 				if (!reader.CanRead(sizeof(uint64_t))) {
 					LOG_ERROR("Can't read file {}: too small", filename);
-					ret = tool::BASIC_ERROR;
 					continue;
 				}
 
 				uint64_t magic{ *reader.Ptr<uint64_t>() };
 
 				try {
-					FFHandler* handler{ FindHandler(magic) };
+					fastfile::FastFileContext ctx{};
+					ctx.file = filename.c_str();
+					FFDecompressor* handler{ FindDecompressor(magic) };
 
 					if (!handler) {
 						LOG_ERROR("Can't open {}: Can't find handler for magic 0x{:x}", filename, magic);
-						ret = tool::BASIC_ERROR;
 						continue;
 					}
 
 					LOG_INFO("Loading {}... ({})", filename, handler->name);
 
-					handler->LoadFastFile(assetPool, opt, reader, filename.c_str());
+					handler->LoadFastFile(opt, reader, ctx, ffdata);
+
+					LOG_TRACE("Decompressed 0x{:x} byte(s)", ffdata.size());
+
+					if (opt.handler) {
+						core::bytebuffer::ByteBuffer ffreader{ ffdata };
+						LOG_TRACE("Reading using {}", opt.handler->name);
+
+						opt.handler->Handle(opt, ffreader, ctx);
+					}
 					completed++;
 				}
 				catch (std::runtime_error& err) {
 					LOG_ERROR("Can't read {}: {}", filename, err.what());
-					ret = tool::BASIC_ERROR;
 				}
-
 			}
 		}
 
 		size_t errors{ count - completed };
 		if (errors) {
 			LOG_ERROR("Parsed {} (0x{:x}) file(s) with {} (0x{:x}) error(s)", count, count, errors, errors);
+			return tool::BASIC_ERROR;
 		}
-		else {
-			LOG_INFO("Parsed {} (0x{:x}) file(s)", count, count);
-		}
-
-		return ret;
+		LOG_INFO("Parsed {} (0x{:x}) file(s)", count, count);
+		return tool::OK;
 	}
 
 	ADD_TOOL(fastfile, "common", "", "fastfile reader", fastfile);

@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <deps/oodle.hpp>
 #include <tools/fastfile.hpp>
-#include <tools/fastfile_handlers.hpp>
+#include <tools/ff/fastfile_handlers.hpp>
 #include <games/bo4/pool.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>
@@ -157,11 +157,11 @@ namespace {
 	}
 
 
-	class T9FFHandler : public fastfile::FFHandler {
+	class T9FFDecompressor : public fastfile::FFDecompressor {
 	public:
-		T9FFHandler() : fastfile::FFHandler("Black Ops Cold War", 0x46464154, fastfile::MASK32) {}
+        T9FFDecompressor() : fastfile::FFDecompressor("Black Ops Cold War", 0x46464154, fastfile::MASK32) {}
 
-        void LoadFastFile(fastfile::FFAssetPool& pool, fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, const char* file) {
+        void LoadFastFile(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx, std::vector<byte>& ffdata) {
             if (!reader.CanRead(sizeof(XFileData))) {
                 throw std::runtime_error("Can't read XFile header");
             }
@@ -182,45 +182,6 @@ namespace {
                 throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", data.version));
             }
 
-            HCRYPTPROV hProv{};
-            HCRYPTHASH hHash{};
-            HCRYPTKEY hKey{};
-            utils::CloseEnd hProvCE{ [hProv, hKey, hHash] {
-                if (hProv) CryptReleaseContext(hProv, 0);
-                if (hHash) CryptDestroyHash(hHash);
-                if (hKey) CryptDestroyKey(hKey);
-            } };
-
-            if (data.encrypted) {
-                compatibility::acti::crypto_keys::AesKeyLocal* key{ compatibility::acti::crypto_keys::GetKeyByName(data.fastfileName) };
-
-                if (!key) {
-                    throw std::runtime_error(std::format("Missing aes key for ff {}", data.fastfileName));
-                }
-
-                if (!CryptAcquireContextA(&hProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
-                    throw std::runtime_error(std::format("Can't acquire AES context 0x{:x}", GetLastError()));
-                }
-
-                if (!CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
-                    throw std::runtime_error(std::format("Can't get SHA256 hash 0x{:x}", GetLastError()));
-                }
-
-                if (!CryptHashData(hHash, (BYTE*)key->key, sizeof(key->key), 0)) {
-                    throw std::runtime_error(std::format("Can't hash key 0x{:x}", GetLastError()));
-                }
-
-                if (!CryptDeriveKey(hProv, CALG_AES_128, hHash, 0, &hKey)) {
-                    throw std::runtime_error(std::format("Can't get key 0x{:x}", GetLastError()));
-                }
-
-                throw std::runtime_error(std::format("Can't read encrypted header: error {}", data.fastfileName));
-            }
-
-
-            //std::vector<byte>& ffdata{ pool.CreateMemoryBuffer() };
-
-            std::vector<byte> ffdata{};
             size_t idx{};
             while (true) {
                 size_t loc{ reader.Loc() };
@@ -241,15 +202,6 @@ namespace {
 
                 byte* blockBuff{ reader.ReadPtr<byte>(block->alignedSize) };
                 LOG_TRACE("Decompressing block 0x{:x} {}(0x{:x}/0x{:x} -> 0x{:x})", loc, data.encrypted ? "encrypted " : "", block->compressedSize, block->alignedSize, block->uncompressedSize);
-
-                if (data.encrypted) {
-                    DWORD comp{ block->compressedSize };
-                    if (!CryptDecrypt(hKey, hHash, true, 0, blockBuff, &comp)) {
-                        throw std::runtime_error(std::format("Can't read decrypt chunk 0x{:x}", GetLastError()));
-                    }
-                    continue;
-                }
-
 
                 size_t unloc{ utils::Allocate(ffdata, block->uncompressedSize) };
                 byte* decompressed{ &ffdata[unloc] };
@@ -290,150 +242,8 @@ namespace {
                     throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)data.compression));
                 }
             }
-
-            LOG_TRACE("Decompressed 0x{:x} byte(s) from 0x{:x} block(s)", ffdata.size(), idx);
-
-            if (opt.dump_decompressed) {
-                std::filesystem::path decfile{ file };
-
-                decfile.replace_extension(".ff.dec");
-
-                if (!utils::WriteFile(decfile, ffdata)) {
-                    LOG_ERROR("Can't dump {}", decfile.string());
-                }
-                else {
-                    LOG_INFO("Dump into {}", decfile.string());
-                }
-            }
-
-
-            core::bytebuffer::ByteBuffer buff{ ffdata };
-
-            uint64_t dbgMagic{ 0xA0D42444780 };
-            uint64_t dbgMagicMask{ 0xFFFFFFFFFFFFF };
-            if (buff.FindMasked(&dbgMagic, &dbgMagicMask, sizeof(dbgMagic)) != std::string::npos) {
-                LOG_WARNING("FIND A DBG SPT");
-            }
-
-
-
-            // search gscobj
-            {
-                /*
-                 The pattern is :
-                 align<8>
-                 ScriptParseTree {
-                    u64 name;
-                    u64 namepad?; // maybe not there
-                    void* buffer = -1;
-                    u32 size;
-                    u32 unk;
-                 }
-                 align<32>
-                 GSC_OBJ {
-                    u64 magic = 0x??00a0d43534780
-                 }
-
-                */
-                uint64_t magic{ 0x00a0d43534780 };
-                uint64_t magicMask{ 0xFFFFFFFFFFFFF };
-
-                size_t loc{};
-                std::filesystem::path out{ "scriptparsetree_cod2020ff" };
-                buff.Goto(0);
-                byte* start{ buff.Ptr<byte>() };
-                while (true) {
-                    loc = buff.FindMasked((byte*)&magic, (byte*)&magicMask, sizeof(magic));
-                    if (loc == std::string::npos) break;
-                    struct T8GSCOBJ {
-                        byte magic[8];
-                        int32_t crc;
-                        int32_t pad;
-                        uint64_t name;
-                    };
-
-                    buff.Goto(loc);
-
-                    if (!buff.CanRead(sizeof(T8GSCOBJ))) {
-                        break; // can't read buffer
-                    }
-
-                    byte* sptCan{ buff.Ptr<byte>() - 0x18 }; // 0x18 is the minimum size to lookup
-
-                    // we are 32 bytes aligned
-                    T8GSCOBJ* obj{ buff.ReadPtr<T8GSCOBJ>() };
-
-                    uint64_t name{ obj->name };
-
-                    while (*(uint64_t*)sptCan != name) {
-                        sptCan--;
-                        if (start == sptCan) {
-                            break;
-                        }
-                    }
-                    if (start == sptCan) {
-                        loc++;
-                        continue;
-                    }
-
-
-                    uint64_t smagic{ *reinterpret_cast<uint64_t*>(obj) };
-
-                    size_t size;
-                    struct T8SPT {
-                        uint64_t name;
-                        uint64_t pad0;
-                        uintptr_t buffer;
-                        uint32_t size;
-                        uint32_t pad02;
-                    };
-                    struct T8SPTOld {
-                        uint64_t name;
-                        uintptr_t buffer;
-                        uint32_t size;
-                        uint32_t pad02;
-                    };
-
-                    // Depending on how old the ff is, we might use a XHash of 0x10 or 8 bytes. The pointer
-                    // to the buffer will constantly be -1 because it is not linked yet
-                    if (((T8SPT*)sptCan)->buffer == 0xFFFFFFFFFFFFFFFF) {
-                        size = ((T8SPT*)sptCan)->size;
-                    }
-                    else if (((T8SPTOld*)sptCan)->buffer == 0xFFFFFFFFFFFFFFFF) {
-                        size = ((T8SPTOld*)sptCan)->size;
-                    }
-                    else {
-                        LOG_ERROR("Can't get size 0x{:x} for loc 0x{:x}", smagic, loc);
-                        loc++;
-                        continue;
-                    }
-
-                    LOG_TRACE("gsc: 0x{:x} 0x{:x} 0x{:x}: {}", smagic, loc, size, hashutils::ExtractTmpScript(obj->name));
-
-
-                    if (!buff.CanRead(size)) {
-                        loc++;
-                        LOG_ERROR("Bad size 0x{:x} 0x{:x} for loc 0x{:x}", smagic, size, loc);
-                        continue;
-                    }
-                    buff.Skip(size);
-
-                    std::filesystem::path outFile{ out / std::format("vm_{:x}/script_{:x}.gscc", smagic, obj->name) };
-                    std::filesystem::create_directories(outFile.parent_path());
-
-                    if (!utils::WriteFile(outFile, obj->magic, size)) {
-                        LOG_ERROR("Can't write {}", outFile.string());
-                    }
-                    else {
-                        LOG_INFO("Dump {}", outFile.string());
-                    }
-
-                    loc++;
-                }
-
-            }
         }
 	};
 
-	utils::ArrayAdder<T9FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+	utils::ArrayAdder<T9FFDecompressor, fastfile::FFDecompressor> arr{ fastfile::GetDecompressors() };
 }

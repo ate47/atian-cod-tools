@@ -15,6 +15,14 @@ namespace core::bytebuffer {
 			return pointer + size <= len;
 		}
 
+		constexpr size_t Length() const {
+			return len;
+		}
+
+		constexpr size_t Remaining() const {
+			return len - pointer;
+		}
+		
 		template<typename T>
 		T Read() {
 			if (!CanRead(sizeof(T))) {
