@@ -1,4 +1,5 @@
 #pragma once
+#include <hook/module_mapper.hpp>
 #include <core/bytebuffer.hpp>
 
 namespace fastfile {
@@ -74,10 +75,12 @@ namespace fastfile {
 		bool print_handlers{};
 		const char* m_casc{};
 		const char* game{};
+		const char* exec{};
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };
 		std::vector<const char*> files{};
 		FFHandler* handler{};
+		hook::module_mapper::Module mod{};
 
 		~FastFileOption();
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
@@ -125,6 +128,10 @@ namespace fastfile {
 
 		FFHandler(const char* name, const char* description) : name(name), description(description) {
 		}
+
+		virtual void Init(FastFileOption& opt) {}
+
+		virtual void Cleanup() {}
 
 		virtual void Handle(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx) = 0;
 	};

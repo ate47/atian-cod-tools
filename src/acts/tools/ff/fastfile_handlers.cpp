@@ -263,6 +263,14 @@ namespace fastfile {
 			return tool::OK;
 		}
 
+		if (opt.handler) {
+			opt.handler->Init(opt);
+		}
+
+		utils::CloseEnd hce{ [&opt] {
+			if (opt.handler) opt.handler->Cleanup();
+		} };
+
 		std::vector<byte> buff{};
 		std::vector<byte> ffdata{};
 		size_t count{}, completed{};
@@ -295,7 +303,7 @@ namespace fastfile {
 					FFDecompressor* handler{ FindDecompressor(magic) };
 
 					if (!handler) {
-						LOG_ERROR("Can't open {}: Can't find handler for magic 0x{:x}", filename, magic);
+						LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);
 						continue;
 					}
 

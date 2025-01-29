@@ -46,5 +46,16 @@ namespace utils::data {
 		}
 		out << "\n";
 	}
+	std::string AsHex(void* buff, size_t size) {
+		std::stringstream ss{};
+
+		byte* ptr{ (byte*)buff };
+		for (size_t i = 0; i < size; i++) {
+			if ((i & 7) == 0 && i) ss << " ";
+			ss << std::setw(2) << std::hex << std::setfill('0') << (int)ptr[i];
+		}
+
+		return ss.str();
+	}
 
 }
