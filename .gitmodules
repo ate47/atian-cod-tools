@@ -73,3 +73,6 @@
 [submodule "deps/nlohmann-json"]
 	path = deps/nlohmann-json
 	url = https://github.com/nlohmann/json
+[submodule "deps/salsa20"]
+	path = deps/salsa20
+	url = https://github.com/everard/Salsa20

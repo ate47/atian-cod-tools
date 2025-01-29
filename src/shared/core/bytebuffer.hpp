@@ -7,10 +7,10 @@ namespace core::bytebuffer {
 		size_t pointer{};
 
 	public:
-		ByteBuffer(byte* buffer, size_t len) : buffer(buffer), len(len) {}
+		ByteBuffer(byte* buffer, size_t len, size_t pointer = 0) : buffer(buffer), len(len), pointer(pointer) {}
 		ByteBuffer(std::string& buff) : buffer((byte*)buff.data()), len(buff.size()) {}
 		ByteBuffer(std::vector<byte>& buff) : buffer((byte*)buff.data()), len(buff.size()) {}
-
+		
 		bool CanRead(size_t size) const {
 			return pointer + size <= len;
 		}

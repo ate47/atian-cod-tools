@@ -386,6 +386,7 @@ project "AtianCodTools"
         "deps/thread-pool/include/",
         "deps/stb/",
         "deps/tomlplusplus/include/toml++/",
+        "deps/salsa20/Source/",
         "deps/miniz-cpp/"
     }
 

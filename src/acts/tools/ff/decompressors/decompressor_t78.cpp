@@ -420,7 +420,7 @@ namespace {
 		// vcSourceCB_t* 
 		auto sourceDataCB = [&ffdata, &fddata](size_t offset, size_t size) -> byte* {
 			ffdata.Goto(offset);
-			if (!ffdata.CanRead(size)) return nullptr;
+			if (!ffdata.CanRead(size)) throw std::runtime_error("end source data cb");
 			return ffdata.ReadPtr<byte>(size);
 		};
 		// vcDiffCB_t* 
@@ -435,7 +435,7 @@ namespace {
 			}
 			if (pOffset) *pOffset = offset;
 			fddata.Goto(offset);
-			if (!fddata.CanRead(size)) return nullptr;
+			if (!fddata.CanRead(size)) throw std::runtime_error("end patch data cb");
 			return fddata.ReadPtr<byte>(size);
 		};
 		// vcDestCB_t* 
