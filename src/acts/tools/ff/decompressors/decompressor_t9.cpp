@@ -1,19 +1,18 @@
 #include <includes.hpp>
-#include <deps/oodle.hpp>
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
 #include <games/bo4/pool.hpp>
 #include <tools/utils/data_utils.hpp>
+#include <tools/utils/compress_utils.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>
 #include <wincrypt.h>
 
 namespace {
-	static deps::oodle::Oodle oodle{};
     struct XFileData {
         uint32_t version;
         bool server;
-        byte compression;
-        byte platform;
+        fastfile::FastFileCompression compression;
+        fastfile::FastFilePlatform platform;
         bool encrypted;
         uint64_t unk8;
         uint64_t unk10;
@@ -182,6 +181,8 @@ namespace {
                 throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", data.version));
             }
 
+            utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(data.compression) };
+
             size_t idx{};
             while (true) {
                 size_t loc{ reader.Loc() };
@@ -206,40 +207,8 @@ namespace {
                 size_t unloc{ utils::Allocate(ffdata, block->uncompressedSize) };
                 byte* decompressed{ &ffdata[unloc] };
 
-                switch (data.compression) {
-                case fastfile::XFILE_UNCOMPRESSED:
-                    if (block->uncompressedSize > block->compressedSize) {
-                        throw std::runtime_error(std::format("Can't decompress block, decompressed size isn't big enough: 0x{:x} != 0x{:x}", block->compressedSize, block->uncompressedSize));
-                    }
-                    memcpy(decompressed, blockBuff, block->uncompressedSize);
-                    break;
-                case fastfile::XFILE_ZLIB:
-                case fastfile::XFILE_ZLIB_HC: {
-
-                    uLongf sizef = (uLongf)block->uncompressedSize;
-                    uLongf sizef2{ (uLongf)block->compressedSize };
-                    int ret;
-                    if (ret = uncompress2(decompressed, &sizef, reader.Ptr<const Bytef>(), &sizef2) < 0) {
-                        throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
-                    }
-                    break;
-                }
-                case fastfile::XFILE_OODLE_KRAKEN:
-                case fastfile::XFILE_OODLE_MERMAID:
-                case fastfile::XFILE_OODLE_SELKIE:
-                case fastfile::XFILE_OODLE_LZNA: {
-                    if (!oodle && !oodle.LoadOodle(deps::oodle::OO2CORE_6)) {
-                        throw std::runtime_error("Oodle is required to read this fastfile, did you put oo2core_6_win64.dll inside the deps directory?");
-                    }
-                    int ret{ oodle.Decompress(blockBuff, block->compressedSize, decompressed, block->uncompressedSize, deps::oodle::OODLE_FS_YES) };
-
-                    if (ret != block->uncompressedSize) {
-                        throw std::runtime_error(std::format("Can't decompress block, returned size isn't the expected one: 0x{:x} != 0x{:x}", ret, block->uncompressedSize));
-                    }
-                    break;
-                }
-                default:
-                    throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)data.compression));
+                if (!utils::compress::Decompress(alg, decompressed, block->uncompressedSize, blockBuff, block->compressedSize)) {
+                    throw std::runtime_error(std::format("Can't decompress block 0x{:x}", loc));
                 }
             }
         }

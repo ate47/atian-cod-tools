@@ -80,6 +80,36 @@ namespace fastfile {
 		return names[comp];
 	}
 
+	const char* GetFastFileCompressionName(FastFileIWCompression comp) {
+		static const char* names[]{
+			"invalid",
+			"none",
+			"zlib_size",
+			"zlib_speed",
+			"lz4_hc",
+			"lz4",
+			"oodle_kraken_size",
+			"oodle_kraken_speed",
+			"hw_zlib_size",
+			"hw_zlib_speed",
+			"ps4_zlib_size",
+			"ps4_zlib_spreed",
+			"oodle_leviathan_size",
+			"oodle_leviathan_speed",
+			"oodle_mermaid_size",
+			"oodle_mermaid_speed",
+			"oodle_selkie_size",
+			"oodle_selkie_speed",
+			"zstd_size",
+			"zstd_speed",
+		};
+
+		if (comp >= ARRAYSIZE(names) || comp < 0) {
+			return "unknown";
+		}
+		return names[comp];
+	}
+
 	const char* GetFastFilePlatformName(FastFilePlatform plt) {
 		static const char* names[]{
 			"pc",
@@ -90,6 +120,52 @@ namespace fastfile {
 			return "unknown";
 		}
 		return names[plt];
+	}
+
+	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp) {
+		switch (comp) {
+		case fastfile::XFILE_UNCOMPRESSED:
+			return utils::compress::COMP_NONE;
+		case fastfile::XFILE_ZLIB:
+		case fastfile::XFILE_ZLIB_HC:
+			return utils::compress::COMP_ZLIB;
+		case fastfile::XFILE_OODLE_KRAKEN:
+		case fastfile::XFILE_OODLE_MERMAID:
+		case fastfile::XFILE_OODLE_SELKIE:
+		case fastfile::XFILE_OODLE_LZNA:
+			return utils::compress::COMP_OODLE;
+		default:
+			throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)comp));
+		}
+	}
+
+	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileIWCompression comp) {
+		switch (comp) {
+		case fastfile::IWFFC_NONE:
+			return utils::compress::COMP_NONE;
+		case fastfile::IWFFC_LZ4:
+		case fastfile::IWFFC_LZ4_HC:
+			return utils::compress::COMP_LZ4;
+		case IWFFC_HW_ZLIB_SIZE:
+		case IWFFC_HW_ZLIB_SPEED:
+		case IWFFC_PS4_ZLIB_SIZE:
+		case IWFFC_PS4_ZLIB_SPREED:
+			return utils::compress::COMP_ZLIB;
+		case IWFFC_OODLE_KRAKEN_SIZE:
+		case IWFFC_OODLE_KRAKEN_SPEED:
+		case IWFFC_OODLE_LEVIATHAN_SIZE:
+		case IWFFC_OODLE_LEVIATHAN_SPEED:
+		case IWFFC_OODLE_MERMAID_SIZE:
+		case IWFFC_OODLE_MERMAID_SPEED:
+		case IWFFC_OODLE_SELKIE_SIZE:
+		case IWFFC_OODLE_SELKIE_SPEED:
+			return utils::compress::COMP_OODLE;
+		case IWFFC_ZSTD_SIZE:
+		case IWFFC_ZSTD_SPEED:
+			return utils::compress::COMP_ZSTD;
+		default:
+			throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)comp));
+		}
 	}
 
 	FastFileOption::~FastFileOption() {
@@ -149,6 +225,9 @@ namespace fastfile {
 			else if (!strcmp("-R", arg) || !_strcmpi("--handlers", arg)) {
 				print_handlers = true;
 			}
+			else if (!strcmp("-D", arg) || !_strcmpi("--decompressors", arg)) {
+				print_decompressors = true;
+			}
 			else if (!_strcmpi("--header", arg) || !strcmp("-H", arg)) {
 				m_header = true;
 			}
@@ -169,6 +248,7 @@ namespace fastfile {
 		LOG_INFO("-H --header          : Dump header info");
 		LOG_INFO("-r --handler         : Handler to use (use --handlers to print)");
 		LOG_INFO("-R --handlers        : Print handlers");
+		LOG_INFO("-D --decompressors   : Print decompressors");
 		LOG_INFO("-C --casc [c]        : Use casc db");
 		LOG_INFO("-g --game [g]        : exe");
 		LOG_INFO("-p --patch           : Use patch files (fd/fp)");
@@ -253,13 +333,23 @@ namespace fastfile {
 			}
 		}
 		
-		if (opt.print_handlers) {
-			LOG_INFO("Handlers:");
 
-			for (FFHandler* handler : GetHandlers()) {
-				LOG_INFO("{:10} - {}", handler->name, handler->description);
+		if (opt.print_handlers || opt.print_decompressors) {
+			if (opt.print_handlers) {
+				LOG_INFO("Handlers:");
+
+				for (FFHandler* handler : GetHandlers()) {
+					LOG_INFO("{:10} - {}", handler->name, handler->description);
+				}
 			}
 
+			if (opt.print_decompressors) {
+				LOG_INFO("Decompressors:");
+
+				for (FFDecompressor* decompr : GetDecompressors()) {
+					LOG_INFO("{:20} - 0x{:x}/0x{:x}", decompr->name, decompr->magic, decompr->mask);
+				}
+			}
 			return tool::OK;
 		}
 
@@ -267,13 +357,16 @@ namespace fastfile {
 			opt.handler->Init(opt);
 		}
 
-		utils::CloseEnd hce{ [&opt] {
-			if (opt.handler) opt.handler->Cleanup();
-		} };
-
 		std::vector<byte> buff{};
 		std::vector<byte> ffdata{};
 		size_t count{}, completed{};
+		FFDecompressor* lastDecompressor{};
+
+		utils::CloseEnd hce{ [&opt, &lastDecompressor] {
+			if (lastDecompressor) lastDecompressor->Cleanup();
+			if (opt.handler) opt.handler->Cleanup();
+		} };
+
 		for (const char* f : opt.files) {
 			for (const std::string filename : opt.GetFileRecurse(f)) {
 				ffdata.clear();
@@ -305,6 +398,12 @@ namespace fastfile {
 					if (!handler) {
 						LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);
 						continue;
+					}
+
+					if (lastDecompressor != handler) {
+						if (lastDecompressor) lastDecompressor->Cleanup();
+						lastDecompressor = handler;
+						handler->Init(opt);
 					}
 
 					LOG_INFO("Loading {}... ({})", filename, handler->name);

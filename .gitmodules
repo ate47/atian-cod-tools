@@ -76,3 +76,6 @@
 [submodule "deps/salsa20"]
 	path = deps/salsa20
 	url = https://github.com/everard/Salsa20
+[submodule "deps/zstd"]
+	path = deps/zstd
+	url = https://github.com/facebook/zstd

@@ -3,7 +3,8 @@
 
 namespace deps::oodle {
 	constexpr const char* OO2CORE_PREFIX = "oo2core_";
-	constexpr const char* OO2CORE_6 = "oo2core_6_win64";
+    constexpr const char* OO2CORE_PATTERN = "oo2core_{}_win64";
+    constexpr const char* OO2CORE_6 = "oo2core_6_win64";
 	constexpr const char* OO2CORE_7 = "oo2core_7_win64";
 	constexpr const char* OO2CORE_8 = "oo2core_8_win64";
 
@@ -60,7 +61,7 @@ namespace deps::oodle {
     );
 
     typedef int32_t(*POodleLZ_Decompress)(
-        void* src, 
+        const void* src, 
         uint32_t srcLen, 
         void* dest, 
         uint32_t destLen,
@@ -122,6 +123,34 @@ namespace deps::oodle {
             return true;
         }
 
+        bool LoadAny() {
+            FreeOodle();
+
+            for (int i = 0; i < 10; i++) {
+                std::string libname{ std::format(OO2CORE_PATTERN, i) };
+                oodle.SetModule(libname, false, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+
+                if (!oodle) continue;
+
+                if (!(OodleLZ_Decompress = oodle.GetProc<POodleLZ_Decompress>("OodleLZ_Decompress"))) {
+                    LOG_ERROR("Can't load find OodleLZ_Decompress in lib {}, is this an oodle dll?", libname);
+                    FreeOodle();
+                    return false;
+                }
+                if (Oodle_GetConfigValues = oodle.GetProc<POodle_GetConfigValues>("Oodle_GetConfigValues")) {
+                    LOG_TRACE("Loaded oodle version 0x{:x}", GetVersion());
+                }
+
+                if ((OodleLZ_GetCompressedBufferSizeNeeded = oodle.GetProc<POodleLZ_GetCompressedBufferSizeNeeded>("OodleLZ_GetCompressedBufferSizeNeeded"))
+                    && (OodleLZ_Compress = oodle.GetProc<POodleLZ_Compress>("OodleLZ_Compress"))) {
+                    LOG_TRACE("Loaded oodle compress");
+                }
+
+                return true;
+            }
+            return false;
+        }
+
         bool LoadOodleFromGame(const hook::library::Library& game) {
             for (const char* depNameCS : game.GetIATModules()) {
                 std::string_view depName{ depNameCS };
@@ -173,7 +202,7 @@ namespace deps::oodle {
         }
 
         int Decompress(
-            void* src, uint32_t srcLen, void* dest, uint32_t destLen, 
+            const void* src, uint32_t srcLen, void* dest, uint32_t destLen, 
             OodleFuzeSafe fuzeSafe = OODLE_FS_NO, OodleCheckCrcValues checkCrc = OODLE_CRC_NO, OodleVerbosity verbosity = OODLE_VERB_NONE,
             OodleThreadPhase threadPhase = OODLE_TP_Unthreaded) const {
             if (!OodleLZ_Decompress) {
@@ -183,4 +212,6 @@ namespace deps::oodle {
             return OodleLZ_Decompress(src, srcLen, dest, destLen, fuzeSafe, checkCrc, verbosity, nullptr, 0, 0, nullptr, nullptr, 0, threadPhase);
         }
     };
+
+    Oodle& GetInstance();
 }

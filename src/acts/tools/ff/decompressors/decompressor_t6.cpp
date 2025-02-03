@@ -15,7 +15,7 @@ namespace {
 	void fillIV(byte* table, size_t len, const char* name) {
 		size_t s{ std::strlen(name) };
 		size_t s4{ s * 4 };
-
+		/*
 		int32_t addDiv{};
 		for (size_t i = 0; i < len; i += s4) {
 			for (size_t x = 0; x < s4; x += 4) {
@@ -34,6 +34,7 @@ namespace {
 				}
 			}
 		}
+		*/
 	}
 
 	class T6FFDecompressor : public fastfile::FFDecompressor {

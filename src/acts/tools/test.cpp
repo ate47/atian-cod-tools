@@ -75,7 +75,7 @@ namespace {
 
 		return tool::OK;
 	}
-	
+
 	int strtouint64(int argc, const char* argv[]) {
 
 		char buff[sizeof(uint64_t) + 1];
@@ -96,6 +96,22 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int uint64tostr(int argc, const char* argv[]) {
+		char buff[sizeof(uint64_t) + 1];
+		for (size_t i = 2; i < argc; i++) {
+			const char* arg{ argv[i] };
+
+			uint64_t s{ std::strtoull(arg, nullptr, 16) };
+
+			std::memset(buff, 0, sizeof(buff));
+			std::memcpy(buff, &s, sizeof(uint64_t));
+			LOG_INFO("{} = {}", arg, buff);
+		}
+
+		return tool::OK;
+	}
+
 	int oodlecomp(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
 
@@ -138,6 +154,7 @@ namespace {
 
 ADD_TOOL(test, "dev", "", "Tests", nullptr, test);
 ADD_TOOL(strtouint64, "common", " (str)*", "Convert string to number", strtouint64);
+ADD_TOOL(uint64tostr, "common", " (number)*", "Convert number to string", uint64tostr);
 ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);
 ADD_TOOL(wget, "dev", " [url]", "Tests", nullptr, testurl);
 ADD_TOOL(cfgtest, "dev", "", "", nullptr, cfgtest);

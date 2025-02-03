@@ -756,6 +756,7 @@ namespace {
 				}
 			}
 
+			utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(header->compression) };
 
 			ffdata.resize(decompressedSize);
 
@@ -806,44 +807,8 @@ namespace {
 					continue;
 				}
 
-				switch (header->compression) {
-				case fastfile::XFILE_UNCOMPRESSED:
-					if (block->uncompressedSize > block->compressedSize) {
-						throw std::runtime_error(std::format("Can't decompress block, decompressed size isn't big enough: 0x{:x} != 0x{:x}", block->compressedSize, block->uncompressedSize));
-					}
-					memcpy(decompressed, blockBuff, block->uncompressedSize);
-					break;
-				case fastfile::XFILE_ZLIB:
-				case fastfile::XFILE_ZLIB_HC: {
-
-					uLongf sizef = (uLongf)block->uncompressedSize;
-					uLongf sizef2{ (uLongf)block->compressedSize };
-					int ret;
-					if (ret = uncompress2(decompressed, &sizef, blockBuff, &sizef2) < 0) {
-						throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
-					}
-
-					if (block->uncompressedSize != sizef) {
-						throw std::runtime_error(std::format("Can't decompress block, returned size isn't the expected one: 0x{:x} != 0x{:x}", sizef, block->uncompressedSize));
-					}
-					break;
-				}
-				case fastfile::XFILE_OODLE_KRAKEN:
-				case fastfile::XFILE_OODLE_MERMAID:
-				case fastfile::XFILE_OODLE_SELKIE:
-				case fastfile::XFILE_OODLE_LZNA: {
-					if (!oodle && !oodle.LoadOodle(deps::oodle::OO2CORE_6)) {
-						throw std::runtime_error("Oodle is required to read this fastfile, did you put oo2core_6_win64.dll inside the deps directory?");
-					}
-					int ret{ oodle.Decompress(blockBuff, block->compressedSize, decompressed, block->uncompressedSize, deps::oodle::OODLE_FS_YES) };
-
-					if (ret != block->uncompressedSize) {
-						throw std::runtime_error(std::format("Can't decompress block, returned size isn't the expected one: 0x{:x} != 0x{:x}", ret, block->uncompressedSize));
-					}
-					break;
-				}
-				default:
-					throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)header->compression));
+				if (!utils::compress::Decompress(alg, decompressed, block->uncompressedSize, blockBuff, block->compressedSize)) {
+					throw std::runtime_error(std::format("Can't decompress block 0x{:x}", loc));
 				}
 			}
 

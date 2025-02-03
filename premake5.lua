@@ -374,6 +374,7 @@ project "AtianCodTools"
         "deps/curl/include/",
         "deps/casclib/src/",
         "deps/lz4/lib/",
+        "deps/zstd/lib/",
 		"deps/Detours/src/",
         "deps/rapidjson/include/",
         "deps/dbflib/src/lib/",
@@ -409,13 +410,14 @@ project "AtianCodTools"
     links { "asmjit" }
     links { "casclib" }
     links { "lz4" }
+    links { "zstd" }
     links { "detours" }
     links { "libcurl" }
     links { "glfw" }
 	links { "OpenGL32" }
 	links { "GLU32" }
     links { "imgui" }
-	links { "Crypt32.lib" }
+    links { "Crypt32.lib" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
@@ -426,6 +428,7 @@ project "AtianCodTools"
     dependson "asmjit"
     dependson "casclib"
     dependson "lz4"
+    dependson "zstd"
     dependson "glfw"
     dependson "imgui"
 
@@ -985,5 +988,34 @@ group "deps"
         dependson { "lz4" }
         dependson { "zlib" }
         links { "casclib" }
+        links { "lz4" }
+        links { "zlib" }
+    project "zstd"
+        language "C"
+        kind "StaticLib"
+        characterset "MBCS"
+
+        targetname "zstd"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/zstd/lib/zstd.h",
+            "deps/zstd/lib/common/**.c",
+            "deps/zstd/lib/common/**.h",
+            "deps/zstd/lib/decompress/**.c",
+            "deps/zstd/lib/decompress/**.h",
+        }
+
+        defines {
+            "XXH_NAMESPACE=ZSTD_",
+        }
+
+        includedirs {
+            "deps/zstd/lib/",
+            "deps/zstd/lib/common",
+        }
+        dependson { "lz4" }
+        dependson { "zlib" }
         links { "lz4" }
         links { "zlib" }

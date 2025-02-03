@@ -11,6 +11,40 @@ namespace {
 
 	class BO3FFHandler;
 
+	enum XFileBlock : int {
+		XFILE_BLOCK_TEMP = 0x0,
+		XFILE_BLOCK_RUNTIME_VIRTUAL = 0x1,
+		XFILE_BLOCK_RUNTIME_PHYSICAL = 0x2,
+		XFILE_BLOCK_DELAY_VIRTUAL = 0x3,
+		XFILE_BLOCK_DELAY_PHYSICAL = 0x4,
+		XFILE_BLOCK_VIRTUAL = 0x5,
+		XFILE_BLOCK_PHYSICAL = 0x6,
+		XFILE_BLOCK_STREAMER_RESERVE = 0x7,
+		XFILE_BLOCK_STREAMER = 0x8,
+		XFILE_BLOCK_MEMMAPPED = 0x9,
+		MAX_XFILE_COUNT = 0xA,
+	};
+
+	const char* XFileBlockName(XFileBlock id) {
+		static const char* names[]{
+			"TEMP",
+			"RUNTIME_VIRTUAL",
+			"RUNTIME_PHYSICAL",
+			"DELAY_VIRTUAL",
+			"DELAY_PHYSICAL",
+			"VIRTUAL",
+			"PHYSICAL",
+			"STREAMER_RESERVE",
+			"STREAMER",
+			"MEMMAPPED"
+		};
+
+		if (id >= ARRAYSIZE(names) || id < 0) {
+			return "unknown";
+		}
+		return names[id];
+	}
+
 	struct XAsset_0 {
 		T7XAssetType type;
 		void* header;
@@ -28,7 +62,7 @@ namespace {
 
 	struct StreamRead {
 		core::bytebuffer::ByteBuffer buff;
-		int index;
+		XFileBlock index;
 	};
 
 	struct {
@@ -61,23 +95,9 @@ namespace {
 		}
 	} bo3FFHandlerContext{};
 
-	enum XFileBlock : int {
-		XFILE_BLOCK_TEMP = 0x0,
-		XFILE_BLOCK_RUNTIME_VIRTUAL = 0x1,
-		XFILE_BLOCK_RUNTIME_PHYSICAL = 0x2,
-		XFILE_BLOCK_UNK3 = 0x3,
-		XFILE_BLOCK_UNK4 = 0x4,
-		XFILE_BLOCK_VIRTUAL = 0x5,
-		XFILE_BLOCK_PHYSICAL = 0x6,
-		XFILE_BLOCK_UNK7 = 0x7,
-		XFILE_BLOCK_STREAMER = 0x8,
-		XFILE_BLOCK_MEMMAPPED = 0x9,
-		MAX_XFILE_COUNT = 0xA,
-	};
-
 	bool Load_StreamStub(bool atStreamStart, void* ptr, uint32_t size) {
 		auto& top{ bo3FFHandlerContext.Top() };
-		LOG_TRACE("{} Load_Stream({}, {}, 0x{:x}) from 0x{:x}/{}", hook::library::CodePointer{ _ReturnAddress() }, atStreamStart, ptr, size, bo3FFHandlerContext.Loc(), top.index);
+		LOG_TRACE("{} Load_Stream({}, {}, 0x{:x}) from 0x{:x}/{}", hook::library::CodePointer{ _ReturnAddress() }, atStreamStart, ptr, size, bo3FFHandlerContext.Loc(), XFileBlockName(top.index));
 		bool ret;
 		if (atStreamStart && size) {
 			switch (top.index) {
@@ -99,10 +119,10 @@ namespace {
 				top.buff.Skip(size);
 				ret = false;
 				break;
-			case XFILE_BLOCK_UNK7:
+			case XFILE_BLOCK_STREAMER_RESERVE:
 				return false;
-			case XFILE_BLOCK_UNK3:
-			case XFILE_BLOCK_UNK4:
+			case XFILE_BLOCK_DELAY_VIRTUAL:
+			case XFILE_BLOCK_DELAY_PHYSICAL:
 			case XFILE_BLOCK_STREAMER:
 				if (!top.buff.CanRead(size)) {
 					hook::error::DumpStackTraceFrom();
@@ -111,7 +131,7 @@ namespace {
 				ret = false;
 				break;
 			default:
-				throw std::runtime_error(std::format("Invalid stream index {}", top.index));
+				throw std::runtime_error(std::format("Invalid stream index {}", (int)top.index));
 			}
 		}
 		else {
@@ -130,7 +150,7 @@ namespace {
 	}
 	void* DB_AllocStreamPos(int alignment) {
 		bo3FFHandlerContext.Align((size_t)alignment + 1);
-		LOG_TRACE("{} DB_AllocStreamPos({}) -> 0x{:x} / {}", hook::library::CodePointer{ _ReturnAddress() }, alignment, bo3FFHandlerContext.Loc(), bo3FFHandlerContext.Reader().Ptr<void>());
+		LOG_TRACE("{} DB_AllocStreamPos(0x{:x}) -> 0x{:x} / {}", hook::library::CodePointer{ _ReturnAddress() }, alignment + 1, bo3FFHandlerContext.Loc(), bo3FFHandlerContext.Reader().Ptr<void>());
 		return bo3FFHandlerContext.Reader().Ptr();
 	}
 
@@ -191,14 +211,14 @@ namespace {
 		bo3FFHandlerContext.Reader().Skip(delta);
 		LOG_TRACE("{} DB_PopStreamPos -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, bo3FFHandlerContext.Loc());
 	}
-	void DB_PushStreamPos(int index) {
+	void DB_PushStreamPos(XFileBlock index) {
 		core::bytebuffer::ByteBuffer& top{ bo3FFHandlerContext.Reader() };
-		int old{ bo3FFHandlerContext.Top().index };
+		XFileBlock old{ bo3FFHandlerContext.Top().index };
 		if (index == XFILE_BLOCK_MEMMAPPED) {
 			index = old;
 		}
 		bo3FFHandlerContext.readers.emplace_back(core::bytebuffer::ByteBuffer{ top.Ptr(), top.Remaining() }, index);
-		LOG_TRACE("{} DB_PushStreamPos({}) -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, index, bo3FFHandlerContext.Loc());
+		LOG_TRACE("{} DB_PushStreamPos({}) -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName(index), bo3FFHandlerContext.Loc());
 	}
 
 	void DB_IncStreamPos(int size) {
@@ -233,6 +253,7 @@ namespace {
 		LOG_TRACE("{} Load_XStringCustom({})", hook::library::CodePointer{ _ReturnAddress() }, (void*)*str);
 		LOG_DEBUG("str {}", *str);
 		DB_IncStreamPos((int)std::strlen(*str) + 1);
+		while (**str == ',') (*str)++;
 	}
 
 	class BO3FFHandler : public fastfile::FFHandler {
@@ -300,7 +321,7 @@ namespace {
 			XAssetList_0& assetList{ *reader.ReadPtr<XAssetList_0>() };
 
 			if (assetList.stringsCount) {
-				reader.Align<void*>();
+				//reader.Align<void*>();
 				assetList.strings = reader.ReadPtr<const char*>(assetList.stringsCount);
 
 				for (size_t i = 0; i < assetList.stringsCount; i++) {
@@ -348,7 +369,7 @@ namespace {
 			if (!osa) {
 				throw std::runtime_error(std::format("Can't open {}", outAssets.string()));
 			}
-			bo3FFHandlerContext.readers.emplace_back(reader, 0);
+			bo3FFHandlerContext.readers.emplace_back(reader, XFILE_BLOCK_TEMP);
 			bo3FFHandlerContext.opt = &opt;
 
 			for (size_t i = 0; i < assetList.assetCount; i++) {

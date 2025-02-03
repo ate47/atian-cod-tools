@@ -1,6 +1,7 @@
 #pragma once
 #include <hook/module_mapper.hpp>
 #include <core/bytebuffer.hpp>
+#include <tools/utils/compress_utils.hpp>
 
 namespace fastfile {
 	template<typename T>
@@ -29,6 +30,35 @@ namespace fastfile {
 		XFILE_OODLE_SELKIE = 0xA,
 		XFILE_OODLE_LZNA = 0xB,
 		XFILE_COMPRESSION_COUNT = 0xC,
+	};
+
+	enum FastFileIWCompression : byte {
+		IWFFC_INVALID = 0,
+		IWFFC_NONE = 1,
+		IWFFC_ZLIB_SIZE = 0x2,
+		IWFFC_ZLIB_SPEED = 0x3,
+		IWFFC_LZ4_HC = 0x4,
+		IWFFC_LZ4 = 0x5,
+		IWFFC_OODLE_KRAKEN_SIZE = 0x6,
+		IWFFC_OODLE_KRAKEN_SPEED = 0x7,
+		IWFFC_HW_ZLIB_SIZE = 0x8,
+		IWFFC_HW_ZLIB_SPEED = 0x9,
+		IWFFC_PS4_ZLIB_SIZE = 0xA,
+		IWFFC_PS4_ZLIB_SPREED = 0xB,
+		IWFFC_OODLE_LEVIATHAN_SIZE = 0xC,
+		IWFFC_OODLE_LEVIATHAN_SPEED = 0xD,
+		IWFFC_OODLE_MERMAID_SIZE = 0xE,
+		IWFFC_OODLE_MERMAID_SPEED = 0xF,
+		IWFFC_OODLE_SELKIE_SIZE = 0x10,
+		IWFFC_OODLE_SELKIE_SPEED = 0x11,
+		IWFFC_ZSTD_SIZE = 0x12,
+		IWFFC_ZSTD_SPEED = 0x13,
+
+		// mwiii
+		// DEV ERROR 141 -> Unsupported block compression type (hw zlib) (8,9,10,11)
+		// DEV ERROR 5816 -> Unknown block compression type
+		// bo6
+		// DEV ERROR 664 -> Unknown block compression type
 	};
 
 	enum FastFilePlatform : byte {
@@ -73,6 +103,7 @@ namespace fastfile {
 		bool m_fd{};
 		bool m_header{};
 		bool print_handlers{};
+		bool print_decompressors{};
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};
@@ -115,8 +146,12 @@ namespace fastfile {
 		uint64_t magic;
 		uint64_t mask;
 
-		FFDecompressor(const char* name, uint64_t magic, uint64_t mask) : name(name), magic(magic), mask(mask) {
+		FFDecompressor(const char* name, uint64_t magic, uint64_t mask) : name(name), magic(magic & mask), mask(mask) {
 		}
+
+		virtual void Init(FastFileOption& opt) {}
+
+		virtual void Cleanup() {}
 
 		virtual void LoadFastFile(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx, std::vector<byte>& ffdata) = 0;
 	};
@@ -136,10 +171,13 @@ namespace fastfile {
 		virtual void Handle(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx) = 0;
 	};
 
+	const char* GetFastFileCompressionName(FastFileIWCompression comp);
 	const char* GetFastFileCompressionName(FastFileCompression comp);
 	const char* GetFastFilePlatformName(FastFilePlatform comp);
 	std::vector<FFDecompressor*>& GetDecompressors();
 	FFDecompressor* FindDecompressor(uint64_t magic);
 	std::vector<FFHandler*>& GetHandlers();
 	FFHandler* FindHandler(const char* name);
+	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp);
+	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileIWCompression comp);
 }
