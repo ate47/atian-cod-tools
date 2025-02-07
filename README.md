@@ -40,6 +40,7 @@ My set of tools. The code is more important than the features, so feel free to r
 | Black Ops 6 (T10)        | 07       | Dc & Ex  | Ex       |  - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 | Black Ops 6 (T10)        | 0B       | Dc & Ex  | Ex      |  -  | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 | Black Ops 6 (T10)        | 0C       | Dc & Ex  | Ex      |  - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
+| Black Ops 6 (T10)        | 10       | Dc & Ex  | Ex      |  - | [ate47/bo6-source](https://github.com/ate47/bo6-source) |
 
 - \* : Some source repositories might not be public yet.
 - **Dc**: With pre-decode, see the [GSC Decrypter section](#gsc-decrypter).
