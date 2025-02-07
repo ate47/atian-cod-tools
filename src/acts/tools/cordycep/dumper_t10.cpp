@@ -731,7 +731,7 @@ namespace {
 							os << *reinterpret_cast<float*>(value);
 							break;
 						case STT_BOOL:
-							os << *value ? "TRUE" : "FALSE";
+							os << (*value ? "TRUE" : "FALSE");
 							break;
 						default:
 							os << "unk:" << column.type;
