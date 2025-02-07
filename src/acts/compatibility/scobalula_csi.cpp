@@ -2,7 +2,6 @@
 #include "scobalula_csi.hpp"
 
 namespace compatibility::scobalula::csi {
-
 	const char* CordycepGameName(CordycepGame game) {
 		switch (game) {
 		case CG_GHOSTS: return "Ghosts";
@@ -15,7 +14,12 @@ namespace compatibility::scobalula::csi {
 		case CG_MW6: return "Modern Warfare III";
 		case CG_VANGUARD: return "Vanguard";
 		case CG_BO6: return "Black Ops 6";
-		default: return "<unknown>";
+		default: {
+			static char invName[sizeof(game) + 1];
+			*reinterpret_cast<CordycepGame*>(&invName[0]) = game;
+			invName[sizeof(game)] = 0;
+			return invName;
+		}
 		}
 	}
 

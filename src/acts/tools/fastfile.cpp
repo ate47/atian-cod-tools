@@ -1480,8 +1480,34 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int fdtest(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+		std::vector<byte> file{};
+
+		if (!utils::ReadFile(argv[2], file)) {
+			LOG_ERROR("Can't open fd.dec file");
+			return tool::BASIC_ERROR;
+		}
+
+		core::bytebuffer::ByteBuffer buff{ file };
+
+		static byte deltaMagic[]{ 0xD6, 0xC3, 0xC4 };
+
+		byte* magic{ buff.ReadPtr<byte>(sizeof(deltaMagic)) };
+
+		if (!std::memcmp(magic, deltaMagic, sizeof(deltaMagic))) {
+			LOG_ERROR("Bad magic");
+			return tool::BASIC_ERROR;
+		}
+
+
+		return tool::OK;
+	}
 }
 
+ADD_TOOL(fdtest, "fastfile", " [fd]", "test fd file", fdtest);
 ADD_TOOL(fftest, "fastfile", " [ff]", "test fastfile", fftest);
 ADD_TOOL(ffexe, "fastfile", " [ff]", "test fastfile", ffexe);
 ADD_TOOL(casctest, "fastfile", " [path]", "test casc", nullptr, casctest);

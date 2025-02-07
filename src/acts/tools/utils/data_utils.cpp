@@ -46,7 +46,7 @@ namespace utils::data {
 		}
 		out << "\n";
 	}
-	std::string AsHex(void* buff, size_t size) {
+	std::string AsHex(const void* buff, size_t size) {
 		std::stringstream ss{};
 
 		byte* ptr{ (byte*)buff };

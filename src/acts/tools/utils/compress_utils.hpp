@@ -5,6 +5,7 @@ namespace utils::compress {
 		COMP_INVALID = 0,
 		COMP_NONE,
 		COMP_ZLIB,
+		COMP_LZMA,
 		COMP_LZ4,
 		COMP_OODLE,
 		COMP_ZSTD,

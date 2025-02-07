@@ -880,41 +880,51 @@ namespace {
 					auto uncompress{ std::make_unique<byte[]>(fdDecompressedSize) };
 					size_t uncompressSize{};
 
+					utils::compress::CompressionAlgorithm alg{};
 					switch (newXFileHeader->compression) {
-					case fastfile::XFILE_BDELTA_UNCOMP: {
-						if (fdDecompressedSize > compressedSize) {
-							throw std::runtime_error(std::format("Can't decompress block, decompressed size isn't big enough: 0x{:x} != 0x{:x}", compressedSize, fdDecompressedSize));
-						}
-						memcpy(uncompress.get(), fdreader.ReadPtr<byte>(fdDecompressedSize), fdDecompressedSize);
-						uncompressSize = fdDecompressedSize;
+					case fastfile::XFILE_BDELTA_UNCOMP:
+						alg = utils::compress::COMP_NONE;
 						break;
-					}
-					case fastfile::XFILE_BDELTA_ZLIB: {
-						uLongf sizef = (uLongf)fdDecompressedSize;
-						uLongf sizef2{ (uLongf)(compressedSize) };
-						int ret;
-						if (ret = uncompress2((Bytef*)uncompress.get(), &sizef, fdreader.Ptr<const Bytef>(), &sizef2) < 0) {
-							throw std::runtime_error(std::format("error when decompressing {}", zError(ret)));
-						}
-
-						uncompressSize = sizef;
+					case fastfile::XFILE_BDELTA_ZLIB:
+						alg = utils::compress::COMP_ZLIB;
 						break;
-					}
-					//case fastfile::XFILE_BDELTA_LZMA:
+					case fastfile::XFILE_BDELTA_LZMA:
+						alg = utils::compress::COMP_LZMA;
+						break;
 					default:
 						throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)newXFileHeader->compression));
 					}
 
+					if (!utils::compress::Decompress(alg, uncompress.get(), fdDecompressedSize, fdreader.ReadPtr<byte>(compressedSize), compressedSize)) {
+						throw std::runtime_error(std::format("Error when decompressing fd data for type {}", fastfile::GetFastFileCompressionName(newXFileHeader->compression)));
+					}
+
 					LOG_TRACE("Decompressed 0x{:x} byte(s) from patch file", uncompressSize);
+
+					if (opt.dump_decompressed) {
+						std::filesystem::path of{ ctx.file };
+						std::filesystem::path decfile{ opt.m_output / ctx.ffname };
+
+						decfile.replace_extension(".fd.dec");
+
+						std::filesystem::create_directories(decfile.parent_path());
+						if (!utils::WriteFile(decfile, uncompress.get(), uncompressSize)) {
+							LOG_ERROR("Can't dump {}", decfile.string());
+						}
+						else {
+							LOG_INFO("Dump fd into {}", decfile.string());
+						}
+					}
 
 					core::bytebuffer::ByteBuffer patchdata{ uncompress.get(), uncompressSize };
 					// todo: read patch data
 
 					core::bytebuffer::ByteBuffer ffwriter{ ffdata };
 
-					std::vector<byte> outwindow{};
-					outwindow.resize(bdiffHeader->maxDestWindowSize);
-					bdiff(ffwriter, patchdata, outwindow);
+					//std::vector<byte> outwindow{};
+					//outwindow.resize(bdiffHeader->maxDestWindowSize);
+					//bdiff(ffwriter, patchdata, outwindow);
+					LOG_WARNING("fd file not implemented for this vm yet");
 				}
 				else {
 					LOG_TRACE("No patch file {}", fdfile.string());

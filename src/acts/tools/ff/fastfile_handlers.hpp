@@ -104,6 +104,7 @@ namespace fastfile {
 		bool m_header{};
 		bool print_handlers{};
 		bool print_decompressors{};
+		bool dump_decompressed{};
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};

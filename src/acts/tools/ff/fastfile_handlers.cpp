@@ -129,6 +129,9 @@ namespace fastfile {
 		case fastfile::XFILE_ZLIB:
 		case fastfile::XFILE_ZLIB_HC:
 			return utils::compress::COMP_ZLIB;
+		case fastfile::XFILE_LZ4:
+		case fastfile::XFILE_LZ4_HC:
+			return utils::compress::COMP_LZ4;
 		case fastfile::XFILE_OODLE_KRAKEN:
 		case fastfile::XFILE_OODLE_MERMAID:
 		case fastfile::XFILE_OODLE_SELKIE:
@@ -228,6 +231,9 @@ namespace fastfile {
 			else if (!strcmp("-D", arg) || !_strcmpi("--decompressors", arg)) {
 				print_decompressors = true;
 			}
+			else if (!strcmp("-d", arg) || !_strcmpi("--dump", arg)) {
+				dump_decompressed = true;
+			}
 			else if (!_strcmpi("--header", arg) || !strcmp("-H", arg)) {
 				m_header = true;
 			}
@@ -249,6 +255,7 @@ namespace fastfile {
 		LOG_INFO("-r --handler         : Handler to use (use --handlers to print)");
 		LOG_INFO("-R --handlers        : Print handlers");
 		LOG_INFO("-D --decompressors   : Print decompressors");
+		LOG_INFO("-d --dump            : Dump decompressed (if available)");
 		LOG_INFO("-C --casc [c]        : Use casc db");
 		LOG_INFO("-g --game [g]        : exe");
 		LOG_INFO("-p --patch           : Use patch files (fd/fp)");
@@ -411,6 +418,21 @@ namespace fastfile {
 					handler->LoadFastFile(opt, reader, ctx, ffdata);
 
 					LOG_TRACE("Decompressed 0x{:x} byte(s)", ffdata.size());
+
+					if (opt.dump_decompressed) {
+						std::filesystem::path of{ ctx.file };
+						std::filesystem::path decfile{ opt.m_output / ctx.ffname };
+
+						decfile.replace_extension(".ff.dec");
+
+						std::filesystem::create_directories(decfile.parent_path());
+						if (!utils::WriteFile(decfile, reader.Ptr(), reader.Length())) {
+							LOG_ERROR("Can't dump {}", decfile.string());
+						}
+						else {
+							LOG_INFO("Dump into {}", decfile.string());
+						}
+					}
 
 					if (opt.handler) {
 						core::bytebuffer::ByteBuffer ffreader{ ffdata };
