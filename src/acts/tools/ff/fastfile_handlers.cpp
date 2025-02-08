@@ -314,7 +314,7 @@ namespace fastfile {
 	int fastfile(int argc, const char* argv[]) {
 		FastFileOption opt{};
 
-		if (!opt.Compute(argv, 2, argc) || opt.m_help || opt.files.empty()) {
+		if (!opt.Compute(argv, 2, argc) || opt.m_help || (opt.files.empty() && !(opt.print_handlers || opt.print_decompressors))) {
 			opt.PrintHelp();
 			if (opt.files.empty()) {
 				LOG_ERROR("Missing fast file");

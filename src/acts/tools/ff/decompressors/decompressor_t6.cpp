@@ -80,5 +80,7 @@ namespace {
 		}
 
 	};
+#ifndef CI_BUILD
 	utils::ArrayAdder<T6FFDecompressor, fastfile::FFDecompressor> arr{ fastfile::GetDecompressors() };
+#endif
 }
