@@ -22,6 +22,7 @@ namespace {
 		bool m_sp{};
 		bool m_showErr{};
 		bool m_mapLocalized{};
+		bool m_ignoreOld{};
 		bool analVal{};
 		const char* m_output = "output_bo6";
 		const char* m_dump_strings{};
@@ -74,6 +75,9 @@ namespace {
 				else if (!_strcmpi("--analVal", arg)) {
 					analVal = true;
 				}
+				else if (!_strcmpi("--ignoreOld", arg)) {
+					m_ignoreOld = true;
+				}
 				else if (!strcmp("-S", arg) || !_strcmpi("--strings", arg)) {
 					if (i + 1 == endIndex) {
 						std::cerr << "Missing value for param: " << arg << "!\n";
@@ -120,6 +124,7 @@ namespace {
 			LOG_INFO("-a --all             : Dump all available pools");
 			LOG_INFO("--v1                 : Use old pool dumper (compatibility)");
 			LOG_INFO("--analVal            : Dump binaries");
+			LOG_INFO("--ignoreOld          : Ignore old");
 		}
 
 		const char* AddString(const char* str) override {
@@ -189,88 +194,410 @@ namespace {
 		uint32_t len;
 		uintptr_t buffer;
 	};
-	struct ScriptBundleObject {
-		uint64_t name;
-		uintptr_t def; // ScriptBundleObjectDef*
-	};
 
-	enum ScriptBundleObjectDefType : byte {
-		SBT_UNDEFINED = 0x0,
-		SBT_INT1 = 0x1,
-		SBT_INT2 = 0x2,
-		SBT_FLOAT = 0x3,
-		SBT_ISTRING = 0x4,
-		SBT_STRING = 0x5,
-		SBT_STRUCT = 0x6,
-		SBT_ARRAY_INDEXED = 0x7,
-		SBT_ARRAY = 0x8,
-		SBT_STRUCT_ANIMATION = 0x9,
-		SBT_STRUCT_NAMEID = 0xA,
-		SBT_HASH = 0xB,
-		SBT_HASH_TAG = 0xC,
-		SBT_HASH_DVAR = 0xD,
-		SBT_UNKE = 0xE,
-		SBT_HASH_RESOURCE = 0xF,
-	};
+	namespace sbv1 {
+		struct ScriptBundleObject {
+			uint64_t name;
+			uintptr_t def; // ScriptBundleObjectDef*
+		};
 
-	union ScriptBundleObjectDefValue {
-		int32_t int_val;
-		float float_val;
-		uint32_t id;
-		uint64_t hash;
-		uint32_t hash32;
-		uintptr_t str; // const char**
-		uintptr_t anim; // ScriptBundleObjectDefValueAnim*
-		uintptr_t array; // ScriptBundleObjectDefValueArray*
-		uintptr_t arrayIndexed; // ScriptBundleObjectDefValueArrayIndexed*
-		uintptr_t obj; // ScriptBundleObjectData*
-		uintptr_t nameId; // ScriptBundleObjectDefValueNameId*
-	};
+		enum ScriptBundleObjectDefType : byte {
+			SBT_UNDEFINED = 0x0,
+			SBT_INT1 = 0x1,
+			SBT_INT2 = 0x2,
+			SBT_FLOAT = 0x3,
+			SBT_ISTRING = 0x4,
+			SBT_STRING = 0x5,
+			SBT_STRUCT = 0x6,
+			SBT_ARRAY_INDEXED = 0x7,
+			SBT_ARRAY = 0x8,
+			SBT_STRUCT_ANIMATION = 0x9,
+			SBT_STRUCT_NAMEID = 0xA,
+			SBT_HASH = 0xB,
+			SBT_HASH_TAG = 0xC,
+			SBT_HASH_DVAR = 0xD,
+			SBT_UNKE = 0xE,
+			SBT_HASH_RESOURCE = 0xF,
+		};
 
-	struct ScriptBundleObjectDefValueAnim {
-		uintptr_t name_offset;
-		uint64_t id;
-		uint64_t anim;
-	};
+		union ScriptBundleObjectDefValue {
+			int32_t int_val;
+			float float_val;
+			uint32_t id;
+			uint64_t hash;
+			uint32_t hash32;
+			uintptr_t str; // const char**
+			uintptr_t anim; // ScriptBundleObjectDefValueAnim*
+			uintptr_t array; // ScriptBundleObjectDefValueArray*
+			uintptr_t arrayIndexed; // ScriptBundleObjectDefValueArrayIndexed*
+			uintptr_t obj; // ScriptBundleObjectData*
+			uintptr_t nameId; // ScriptBundleObjectDefValueNameId*
+		};
 
-	struct ScriptBundleObjectDefValueArray {
-		int32_t count;
-		int32_t id;
-		uintptr_t defs; // ScriptBundleObjectDef*
-	};
+		struct ScriptBundleObjectDefValueAnim {
+			uintptr_t name_offset;
+			uint64_t id;
+			uint64_t anim;
+		};
 
-	struct ScriptBundleObjectDefValueArrayIndexed {
-		int32_t count;
-		int32_t id;
-		uintptr_t names2; // uint64_t*
-		uintptr_t names1; // uint64_t*
-		uintptr_t vals; // ScriptBundleObjectDef*
-	};
+		struct ScriptBundleObjectDefValueArray {
+			int32_t count;
+			int32_t id;
+			uintptr_t defs; // ScriptBundleObjectDef*
+		};
 
-	struct ScriptBundleObjectData {
-		uint32_t count;
-		uintptr_t rawdata; // byte*
-		uintptr_t names; // uint64_t*
-		uintptr_t defs; // ScriptBundleObjectDef*
-	};
+		struct ScriptBundleObjectDefValueArrayIndexed {
+			int32_t count;
+			int32_t id;
+			uintptr_t names2; // uint64_t*
+			uintptr_t names1; // uint64_t*
+			uintptr_t vals; // ScriptBundleObjectDef*
+		};
 
-	struct __declspec(align(8)) ScriptBundleObjectDefValueNameId {
-		uintptr_t name; // const char**
-		int32_t id;
-	};
+		struct ScriptBundleObjectData {
+			uint32_t count;
+			uintptr_t rawdata; // byte*
+			uintptr_t names; // uint64_t*
+			uintptr_t defs; // ScriptBundleObjectDef*
+		};
 
-	struct ScriptBundleObjectDef {
-		ScriptBundleObjectDefType type;
-		byte pad[7];
-		ScriptBundleObjectDefValue value;
-	};
+		struct __declspec(align(8)) ScriptBundleObjectDefValueNameId {
+			uintptr_t name; // const char**
+			int32_t id;
+		};
 
-	struct ScriptBundle {
-		uint64_t name;
-		uint64_t unk8;
-		ScriptBundleObjectData data;
-	};
+		struct ScriptBundleObjectDef {
+			ScriptBundleObjectDefType type;
+			byte pad[7];
+			ScriptBundleObjectDefValue value;
+		};
 
+		struct ScriptBundle {
+			uint64_t name;
+			uint64_t unk8;
+			ScriptBundleObjectData data;
+		};
+
+
+
+		bool WriteBundleDef(PoolOption& opt, std::ostringstream& os, Process& proc, ScriptBundle& entry, ScriptBundleObjectDef& def, int depth) {
+			switch (def.type) {
+			case SBT_UNDEFINED:
+				os << "undefined";
+				break;
+			case SBT_INT1:
+			case SBT_INT2:
+				os << std::dec << def.value.int_val;
+				break;
+			case SBT_FLOAT:
+				os << def.value.float_val;
+				break;
+			case SBT_ISTRING:
+				os << "\"&" << opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(def.value.str))) << "\"";
+				break;
+			case SBT_STRING:
+				os << "\"" << opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(def.value.str))) << "\"";
+				break;
+			case SBT_STRUCT: {
+				os << "{";
+				std::unique_ptr<ScriptBundleObjectData> obj = proc.ReadMemoryObjectEx<ScriptBundleObjectData>(def.value.obj);
+
+				if (obj->count) {
+					std::unique_ptr<uint64_t[]> names = proc.ReadMemoryArrayEx<uint64_t>(obj->names, obj->count);
+					std::unique_ptr<ScriptBundleObjectDef[]> vals = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(obj->defs, obj->count);
+
+					for (size_t i = 0; i < obj->count; i++) {
+
+						if (i) os << ",";
+						utils::Padding(os << "\n", depth + 1) << "\"#" << hashutils::ExtractTmp("hash", names[i]) << "\": ";
+						if (!WriteBundleDef(opt, os, proc, entry, vals[i], depth + 1)) return false;
+					}
+
+				}
+
+				utils::Padding(os << "\n", depth) << "}";
+				break;
+			}
+			case SBT_ARRAY_INDEXED: {
+				os << "[";
+				auto arrayIndexed = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueArrayIndexed>(def.value.arrayIndexed);
+
+				if (arrayIndexed->count) {
+					auto vals = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(arrayIndexed->vals, arrayIndexed->count);
+					auto names1 = proc.ReadMemoryArrayEx<uint64_t>(arrayIndexed->names1, arrayIndexed->count);
+					auto names2 = proc.ReadMemoryArrayEx<uint64_t>(arrayIndexed->names2, arrayIndexed->count);
+
+					for (size_t i = 0; i < arrayIndexed->count; i++) {
+						if (i) os << ",";
+						utils::Padding(os << "\n", depth + 1) << "\"#" << hashutils::ExtractTmp("hash", names1[i]) << ":#" << hashutils::ExtractTmp("hash", names2[i]) << "\": ";
+						if (!WriteBundleDef(opt, os, proc, entry, vals[i], depth + 1)) return false;
+					}
+
+				}
+
+				utils::Padding(os << "\n", depth) << "]";
+				break;
+			}
+			case SBT_ARRAY: {
+				os << "[";
+				auto array = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueArray>(def.value.array);
+
+				if (array->count) {
+					auto defs = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(array->defs, array->count);
+
+					for (size_t i = 0; i < array->count; i++) {
+						if (i) os << ",";
+						utils::Padding(os << "\n", depth + 1);
+						if (!WriteBundleDef(opt, os, proc, entry, defs[i], depth + 1)) return false;
+					}
+				}
+
+				utils::Padding(os << "\n", depth) << "]";
+				break;
+			}
+			case SBT_STRUCT_ANIMATION: {
+				os << "{";
+				auto anim = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueAnim>(def.value.anim);
+				const char* name = opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(anim->name_offset)));
+				hashutils::Add(name, true, true);
+				utils::Padding(os << "\n", depth + 1) << "\"#name\": \"" << name << "\"";
+				if (anim->anim) utils::Padding(os << ",\n", depth + 1) << "\"#id\": \"anim#" << hashutils::ExtractTmp("hash", anim->anim) << "\"";
+				utils::Padding(os << "\n", depth) << "}";
+				break;
+			}
+			case SBT_STRUCT_NAMEID: {
+				os << "{";
+				auto nameId = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueNameId>(def.value.nameId);
+				const char* name = opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(nameId->name)));
+				utils::Padding(os << "\n", depth + 1) << "\"#name\": \"" << name << "\",";
+				utils::Padding(os << "\n", depth + 1) << "\"#id\": " << std::dec << nameId->id;
+				utils::Padding(os << "\n", depth) << "}";
+				break;
+			}
+			case SBT_HASH:
+				os << "\"#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
+				break;
+			case SBT_HASH_TAG:
+				os << "\"t#" << hashutils::ExtractTmp("hash", def.value.hash32) << "\"";
+				break;
+			case SBT_HASH_DVAR:
+				os << "\"@#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
+				break;
+			case SBT_HASH_RESOURCE:
+				os << "\"%#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
+				break;
+			default:
+				os << "\"error:0x" << std::hex << (int)def.type << "\"";
+				return false;
+			}
+			return true;
+		}
+
+	}
+
+	namespace sbv2 {
+		struct __declspec(align(8)) ScriptBundleObjectDefValueNameId {
+			uintptr_t name; // const char**
+			int32_t id;
+		};
+
+		struct ScriptBundleObjectDefValueArrayIndexed {
+			uintptr_t names2; // uint64_t*
+			uintptr_t names1; // uint64_t*
+			uintptr_t vals; // ScriptBundleObjectDef*
+			int32_t count;
+			int32_t id;
+		};
+
+		struct ScriptBundleObjectDefValueArray {
+			uintptr_t defs; // ScriptBundleObjectDef*
+			uint64_t id;
+			int32_t count;
+		};
+
+		struct ScriptBundleObjectDefValueAnim {
+			uintptr_t name_offset; // const char**
+			uint64_t id;
+			uint32_t anim;
+		};
+
+		union ScriptBundleObjectDefValue {
+			int32_t int_val;
+			float float_val;
+			uint32_t id;
+			uint64_t hash;
+			uint32_t hash32;
+			uintptr_t str; // const char**
+			uintptr_t anim; // ScriptBundleObjectDefValueAnim*
+			uintptr_t array; // ScriptBundleObjectDefValueArray*
+			uintptr_t arrayIndexed; // ScriptBundleObjectDefValueArrayIndexed*
+			uintptr_t obj; // ScriptBundleObjectData*
+			uintptr_t nameId; // ScriptBundleObjectDefValueNameId*
+		};
+
+		enum ScriptBundleObjectDefType : unsigned __int8 {
+			SBT_UNDEFINED = 0x0,
+			SBT_BOOL = 0x1,
+			SBT_INTEGER = 0x2,
+			SBT_FLOAT = 0x3,
+			SBT_IHASH = 0x4,
+			SBT_STRING = 0x5,
+			SBT_STRUCT = 0x6,
+			SBT_ARRAY_INDEXED = 0x7,
+			SBT_ARRAY = 0x8,
+			SBT_STRUCT_ANIMATION = 0x9,
+			SBT_STRUCT_NAMEID = 0xA,
+			SBT_HASH = 0xB,
+			SBT_HASH_TAG = 0xC,
+			SBT_HASH_DVAR = 0xD,
+			SBT_HASH_SCR = 0xE,
+			SBT_HASH_RESOURCE = 0xF,
+		};
+
+		struct ScriptBundleObjectDef {
+			ScriptBundleObjectDefType type;
+			byte pad[7];
+			ScriptBundleObjectDefValue value;
+		};
+
+
+		struct ScriptBundleObjectData {
+			uintptr_t rawdata; // byte*
+			uintptr_t names; // uint64_t*
+			uintptr_t defs; // ScriptBundleObjectDef*
+			uint32_t count;
+		};
+
+		struct ScriptBundle {
+			uint64_t name;
+			uint64_t unk8;
+			ScriptBundleObjectData data;
+		};
+
+
+		bool WriteBundleDef(PoolOption& opt, std::ostringstream& os, Process& proc, ScriptBundle& entry, ScriptBundleObjectDef& def, int depth, std::function<const char* (uint64_t hash)>& GetLocalized) {
+			switch (def.type) {
+			case SBT_UNDEFINED:
+				os << "undefined";
+				break;
+			case SBT_BOOL:
+				if (def.value.int_val && def.value.int_val != 1) {
+					os << std::dec << def.value.int_val; // wtf?
+				}
+				else {
+					os << '"' << (def.value.int_val ? "TRUE" : "FALSE") << '"';
+				}
+				break;
+			case SBT_INTEGER:
+				os << std::dec << def.value.int_val;
+				break;
+			case SBT_FLOAT:
+				os << def.value.float_val;
+				break;
+			case SBT_STRING:
+				os << "\"" << opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(def.value.str))) << "\"";
+				break;
+			case SBT_STRUCT: {
+				os << "{";
+				std::unique_ptr<ScriptBundleObjectData> obj = proc.ReadMemoryObjectEx<ScriptBundleObjectData>(def.value.obj);
+
+				if (obj->count) {
+					std::unique_ptr<uint64_t[]> names = proc.ReadMemoryArrayEx<uint64_t>(obj->names, obj->count);
+					std::unique_ptr<ScriptBundleObjectDef[]> vals = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(obj->defs, obj->count);
+
+					for (size_t i = 0; i < obj->count; i++) {
+
+						if (i) os << ",";
+						utils::Padding(os << "\n", depth + 1) << "\"#" << hashutils::ExtractTmp("hash", names[i]) << "\": ";
+						if (!WriteBundleDef(opt, os, proc, entry, vals[i], depth + 1, GetLocalized)) return false;
+					}
+
+				}
+
+				utils::Padding(os << "\n", depth) << "}";
+				break;
+			}
+			case SBT_ARRAY_INDEXED: {
+				os << "[";
+				auto arrayIndexed = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueArrayIndexed>(def.value.arrayIndexed);
+
+				if (arrayIndexed->count) {
+					auto vals = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(arrayIndexed->vals, arrayIndexed->count);
+					auto names1 = proc.ReadMemoryArrayEx<uint64_t>(arrayIndexed->names1, arrayIndexed->count);
+					auto names2 = proc.ReadMemoryArrayEx<uint64_t>(arrayIndexed->names2, arrayIndexed->count);
+
+					for (size_t i = 0; i < arrayIndexed->count; i++) {
+						if (i) os << ",";
+						utils::Padding(os << "\n", depth + 1) << "\"#" << hashutils::ExtractTmp("hash", names1[i]) << ":#" << hashutils::ExtractTmp("hash", names2[i]) << "\": ";
+						if (!WriteBundleDef(opt, os, proc, entry, vals[i], depth + 1, GetLocalized)) return false;
+					}
+
+				}
+
+				utils::Padding(os << "\n", depth) << "]";
+				break;
+			}
+			case SBT_ARRAY: {
+				os << "[";
+				auto array = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueArray>(def.value.array);
+
+				if (array->count) {
+					auto defs = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(array->defs, array->count);
+
+					for (size_t i = 0; i < array->count; i++) {
+						if (i) os << ",";
+						utils::Padding(os << "\n", depth + 1);
+						if (!WriteBundleDef(opt, os, proc, entry, defs[i], depth + 1, GetLocalized)) return false;
+					}
+				}
+
+				utils::Padding(os << "\n", depth) << "]";
+				break;
+			}
+			case SBT_STRUCT_ANIMATION: {
+				os << "{";
+				auto anim = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueAnim>(def.value.anim);
+				const char* name = opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(anim->name_offset)));
+				hashutils::Add(name, true, true);
+				utils::Padding(os << "\n", depth + 1) << "\"#name\": \"" << name << "\"";
+				if (anim->anim) utils::Padding(os << ",\n", depth + 1) << "\"#id\": \"anim#" << hashutils::ExtractTmp("hash", anim->anim) << "\"";
+				utils::Padding(os << "\n", depth) << "}";
+				break;
+			}
+			case SBT_STRUCT_NAMEID: {
+				os << "{";
+				auto nameId = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueNameId>(def.value.nameId);
+				const char* name = opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(nameId->name)));
+				utils::Padding(os << "\n", depth + 1) << "\"#name\": \"" << name << "\",";
+				utils::Padding(os << "\n", depth + 1) << "\"#id\": " << std::dec << nameId->id;
+				utils::Padding(os << "\n", depth) << "}";
+				break;
+			}
+			case SBT_HASH:
+				os << "\"#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
+				break;
+			case SBT_IHASH:
+				os << "\"r#" << GetLocalized(def.value.hash) << "\"";
+				break;
+			case SBT_HASH_TAG:
+				os << "\"t#" << hashutils::ExtractTmp("hash", def.value.hash32) << "\"";
+				break;
+			case SBT_HASH_DVAR:
+				os << "\"@#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
+				break;
+			case SBT_HASH_RESOURCE:
+				os << "\"%#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
+				break;
+			case SBT_HASH_SCR:
+				os << "\"&#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
+				break;
+			default:
+				os << "\"error:0x" << std::hex << (int)def.type << "\"";
+				return false;
+			}
+			return true;
+		}
+	}
 	bool IsNull(void* ptr, size_t p) {
 		byte* pp{ (byte*)ptr };
 		size_t r{ p };
@@ -284,120 +611,6 @@ namespace {
 
 			r -= tr;
 			pp += tr;
-		}
-		return true;
-	}
-
-
-	bool WriteBundleDef(PoolOption& opt, std::ostringstream& os, Process& proc, ScriptBundle& entry, ScriptBundleObjectDef& def, int depth) {
-		switch (def.type) {
-		case SBT_UNDEFINED:
-			os << "undefined";
-			break;
-		case SBT_INT1:
-		case SBT_INT2:
-			os << std::dec << def.value.int_val;
-			break;
-		case SBT_FLOAT:
-			os << def.value.float_val;
-			break;
-		case SBT_ISTRING:
-			os << "\"&" << opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(def.value.str))) << "\"";
-			break;
-		case SBT_STRING:
-			os << "\"" << opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(def.value.str))) << "\"";
-			break;
-		case SBT_STRUCT: {
-			os << "{";
-			std::unique_ptr<ScriptBundleObjectData> obj = proc.ReadMemoryObjectEx<ScriptBundleObjectData>(def.value.obj);
-
-			if (obj->count) {
-				std::unique_ptr<uint64_t[]> names = proc.ReadMemoryArrayEx<uint64_t>(obj->names, obj->count);
-				std::unique_ptr<ScriptBundleObjectDef[]> vals = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(obj->defs, obj->count);
-
-				for (size_t i = 0; i < obj->count; i++) {
-
-					if (i) os << ",";
-					utils::Padding(os << "\n", depth + 1) << "\"#" << hashutils::ExtractTmp("hash", names[i]) << "\": ";
-					if (!WriteBundleDef(opt, os, proc, entry, vals[i], depth + 1)) return false;
-				}
-
-			}
-
-			utils::Padding(os << "\n", depth) << "}";
-			break;
-		}
-		case SBT_ARRAY_INDEXED: {
-			os << "[";
-			auto arrayIndexed = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueArrayIndexed>(def.value.arrayIndexed);
-
-			if (arrayIndexed->count) {
-				auto vals = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(arrayIndexed->vals, arrayIndexed->count);
-				auto names1 = proc.ReadMemoryArrayEx<uint64_t>(arrayIndexed->names1, arrayIndexed->count);
-				auto names2 = proc.ReadMemoryArrayEx<uint64_t>(arrayIndexed->names2, arrayIndexed->count);
-
-				for (size_t i = 0; i < arrayIndexed->count; i++) {
-					if (i) os << ",";
-					utils::Padding(os << "\n", depth + 1) << "\"#" << hashutils::ExtractTmp("hash", names1[i]) << ":#" << hashutils::ExtractTmp("hash", names2[i]) << "\": ";
-					if (!WriteBundleDef(opt, os, proc, entry, vals[i], depth + 1)) return false;
-				}
-
-			}
-
-			utils::Padding(os << "\n", depth) << "]";
-			break;
-		}
-		case SBT_ARRAY: {
-			os << "[";
-			auto array = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueArray>(def.value.array);
-
-			if (array->count) {
-				auto defs = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(array->defs, array->count);
-
-				for (size_t i = 0; i < array->count; i++) {
-					if (i) os << ",";
-					utils::Padding(os << "\n", depth + 1);
-					if (!WriteBundleDef(opt, os, proc, entry, defs[i], depth + 1)) return false;
-				}
-			}
-
-			utils::Padding(os << "\n", depth) << "]";
-			break;
-		}
-		case SBT_STRUCT_ANIMATION: {
-			os << "{";
-			auto anim = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueAnim>(def.value.anim);
-			const char* name = opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(anim->name_offset)));
-			hashutils::Add(name, true, true);
-			utils::Padding(os << "\n", depth + 1) << "\"#name\": \"" << name << "\"";
-			if (anim->anim) utils::Padding(os << ",\n", depth + 1) << "\"#id\": \"anim#" << hashutils::ExtractTmp("hash", anim->anim) << "\"";
-			utils::Padding(os << "\n", depth) << "}";
-			break;
-		}
-		case SBT_STRUCT_NAMEID: {
-			os << "{";
-			auto nameId = proc.ReadMemoryObjectEx<ScriptBundleObjectDefValueNameId>(def.value.nameId);
-			const char* name = opt.AddString(proc.ReadStringTmp(proc.ReadMemory<uintptr_t>(nameId->name)));
-			utils::Padding(os << "\n", depth + 1) << "\"#name\": \"" << name << "\",";
-			utils::Padding(os << "\n", depth + 1) << "\"#id\": " << std::dec << nameId->id;
-			utils::Padding(os << "\n", depth) << "}";
-			break;
-		}
-		case SBT_HASH:
-			os << "\"#" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
-			break;
-		case SBT_HASH_TAG:
-			os << "\"t#" << hashutils::ExtractTmp("hash", def.value.hash32) << "\"";
-			break;
-		case SBT_HASH_DVAR:
-			os << "\"@" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
-			break;
-		case SBT_HASH_RESOURCE:
-			os << "\"%" << hashutils::ExtractTmp("hash", def.value.hash) << "\"";
-			break;
-		default:
-			os << "\"error:0x" << std::hex << (int)def.type << "\"";
-			return false;
 		}
 		return true;
 	}
@@ -581,7 +794,7 @@ namespace {
 			std::unordered_map<uint64_t, const char*> map{};
 		} localized;
 
-		auto GetLocalized = [&opt, &localized, &proc, &pools](uint64_t hash) -> const char* {
+		std::function<const char*(uint64_t hash)> GetLocalized = [&opt, &localized, &proc, &pools](uint64_t hash) -> const char* {
 			if (!opt.m_mapLocalized) {
 				return hashutils::ExtractTmp("hash", hash);
 			}
@@ -604,7 +817,7 @@ namespace {
 
 			auto it = localized.map.find(hash & hash::MASK62);
 			if (it == localized.map.end()) {
-				return hashutils::ExtractTmp("unk", hash);
+				return hashutils::ExtractTmp("hash", hash);
 			}
 			return it->second;
 			};
@@ -623,6 +836,7 @@ namespace {
 			if (!filename) filename = utils::va("hashed/stringtable/file_%llx.%s", entry.hash, opt.m_cf_files ? ".cf" : "csv");
 
 			std::filesystem::path out = dumpDir / filename;
+			if (opt.m_ignoreOld && std::filesystem::exists(out)) return true;
 			std::filesystem::create_directories(out.parent_path());
 
 			LOG_INFO("Dump {} -> {}", hashutils::ExtractTmp("hash", entry.hash), out.string());
@@ -764,7 +978,7 @@ namespace {
 			return true;
 			});
 		const std::filesystem::path gscDir = outDir / "gsc";
-		HandlePool(T10R_ASSET_GSCOBJ, gscDir, [&proc, gscDir](const XAsset64& asset, size_t count) -> bool {
+		HandlePool(T10R_ASSET_GSCOBJ, gscDir, [&opt, &proc, gscDir](const XAsset64& asset, size_t count) -> bool {
 			GscObjEntry entry{};
 			LOG_TRACE("{} / {:x} / {:x}", hashutils::ExtractTmpScript(asset.ID), asset.Header, asset.HeaderSize);
 			if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
@@ -780,6 +994,7 @@ namespace {
 			}
 
 			std::filesystem::path out = gscDir / utils::va("script_%llx.gscc", entry.name);
+			if (opt.m_ignoreOld && std::filesystem::exists(out)) return true;
 			LOG_INFO("Dump {} -> {} (0x{:x})", hashutils::ExtractTmpScript(entry.name), out.string(), entry.len);
 			auto buff = std::make_unique<byte[]>(entry.len);
 			if (!proc.ReadMemory(&buff[0], entry.buffer, entry.len)) {
@@ -795,7 +1010,7 @@ namespace {
 			});
 
 		const std::filesystem::path gdbDir = outDir / "gscgdb";
-		HandlePool(T10R_ASSET_GSCGDB, gdbDir, [&proc, gdbDir](const XAsset64& asset, size_t count) -> bool {
+		HandlePool(T10R_ASSET_GSCGDB, gdbDir, [&opt, &proc, gdbDir](const XAsset64& asset, size_t count) -> bool {
 			GscObjEntry entry{};
 			if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
 				LOG_ERROR("Can't read gscgdb {:x}", asset.Header);
@@ -808,6 +1023,7 @@ namespace {
 			}
 
 			std::filesystem::path out = gdbDir / utils::va("script_%llx.gdbc", entry.name);
+			if (opt.m_ignoreOld && std::filesystem::exists(out)) return true;
 			LOG_INFO("Dump {} -> {} (0x{:x})", hashutils::ExtractTmpScript(entry.name), out.string(), entry.len);
 			auto buff = std::make_unique<byte[]>(entry.len);
 			if (!proc.ReadMemory(&buff[0], entry.buffer, entry.len)) {
@@ -906,6 +1122,7 @@ namespace {
 			if (!dfilename) dfilename = utils::va("hashed/ddl/file_%llx.%s", entry.name, opt.m_cf_files ? ".cf" : "ddl");
 
 			std::filesystem::path loc{ dumpDir / dfilename };
+			if (opt.m_ignoreOld && std::filesystem::exists(loc)) return true;
 			std::filesystem::create_directories(loc.parent_path());
 			std::ostringstream os{};
 
@@ -1210,6 +1427,7 @@ namespace {
 
 			const char* filename = hashutils::ExtractPtr(entry->name);
 			std::filesystem::path path{ std::filesystem::path{ opt.m_output } / (filename ? utils::va("scriptable/%s.json", filename) : utils::va("scriptable/file_%llx.json", entry->name)) };
+			if (opt.m_ignoreOld && std::filesystem::exists(path)) return true;
 			std::filesystem::create_directories(path.parent_path());
 
 			utils::OutFileCE os{ path };
@@ -1247,62 +1465,128 @@ namespace {
 
 			return true;
 			});
-		HandlePool(T10R_ASSET_SCRIPTBUNDLE, dumpDir, [&opt, &proc, dumpDir](const XAsset64& asset, size_t count) -> bool {
-			ScriptBundle entry{};
-			if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
-				LOG_ERROR("Can't read ScriptBundle {:x}", asset.Header);
-				return false;
-			}
-
-			const char* filename = hashutils::ExtractPtr(entry.name);
-
-			if (!filename) filename = utils::va("file_%llx.%s", entry.name, opt.m_cf_files ? ".cf" : "json");
-
-			if (!opt.m_cf_files) {
-				filename = utils::va("scriptbundle/%s", filename);
-			}
-
-			std::filesystem::path out = dumpDir / filename;
-			std::filesystem::create_directories(out.parent_path());
-
-			LOG_INFO("Dump {} -> {}", hashutils::ExtractTmp("hash", entry.name), out.string());
-			std::ostringstream os{};
-
-			os << "{";
-
-			if (entry.data.count) {
-				auto objects = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(entry.data.defs, entry.data.count);
-				auto names = proc.ReadMemoryArrayEx<uint64_t>(entry.data.names, entry.data.count);
-
-				for (size_t i = 0; i < entry.data.count; i++) {
-					if (i) os << ",";
-					os << "\n";
-					utils::Padding(os, 1) << "\"#" << hashutils::ExtractTmp("hash", names[i]) << "\": ";
-					WriteBundleDef(opt, os, proc, entry, objects[i], 1);
+		HandlePool(T10R_ASSET_SCRIPTBUNDLE, dumpDir, [&opt, &proc, dumpDir, &GetLocalized](const XAsset64& asset, size_t count) -> bool {
+			if (opt.m_usev1) {
+				using namespace sbv1;
+				ScriptBundle entry{};
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read ScriptBundle {:x}", asset.Header);
+					return false;
 				}
 
-			}
-			os
-				<< "\n"
-				<< "}";
+				const char* filename = hashutils::ExtractPtr(entry.name);
 
-			if (opt.m_cf_files) {
-				std::ofstream osf{ out, std::ios::binary };
-				if (osf) {
-					tool::hashes::compiled_files::CompiledFileHeader header{};
-					header.name = entry.name;
-					header.isString = true;
-					header.isSpecial = true;
-					strcpy_s(header.type, "scriptbundle");
-					strcpy_s(header.preferedExtension, "json");
-					osf.write((const char*)&header, sizeof(header));
-					std::string osc = os.str();
-					osf.write(osc.data(), osc.size());
-					osf.close();
+				if (!filename) filename = utils::va("file_%llx.%s", entry.name, opt.m_cf_files ? ".cf" : "json");
+
+				if (!opt.m_cf_files) {
+					filename = utils::va("scriptbundle/%s.json", filename);
+				}
+
+				std::filesystem::path out = dumpDir / filename;
+				if (opt.m_ignoreOld && std::filesystem::exists(out)) return true;
+				std::filesystem::create_directories(out.parent_path());
+
+				LOG_INFO("Dump {} -> {}", hashutils::ExtractTmp("hash", entry.name), out.string());
+				std::ostringstream os{};
+
+				os << "{";
+
+				if (entry.data.count) {
+					auto objects = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(entry.data.defs, entry.data.count);
+					auto names = proc.ReadMemoryArrayEx<uint64_t>(entry.data.names, entry.data.count);
+
+					for (size_t i = 0; i < entry.data.count; i++) {
+						if (i) os << ",";
+						os << "\n";
+						utils::Padding(os, 1) << "\"#" << hashutils::ExtractTmp("hash", names[i]) << "\": ";
+						WriteBundleDef(opt, os, proc, entry, objects[i], 1);
+					}
+
+				}
+				os
+					<< "\n"
+					<< "}";
+
+				if (opt.m_cf_files) {
+					std::ofstream osf{ out, std::ios::binary };
+					if (osf) {
+						tool::hashes::compiled_files::CompiledFileHeader header{};
+						header.name = entry.name;
+						header.isString = true;
+						header.isSpecial = true;
+						strcpy_s(header.type, "scriptbundle");
+						strcpy_s(header.preferedExtension, "json");
+						osf.write((const char*)&header, sizeof(header));
+						std::string osc = os.str();
+						osf.write(osc.data(), osc.size());
+						osf.close();
+					}
+				}
+				else {
+					utils::WriteFile(out, os.str());
 				}
 			}
 			else {
-				utils::WriteFile(out, os.str());
+				using namespace sbv2;
+				ScriptBundle entry{};
+				if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
+					LOG_ERROR("Can't read ScriptBundle {:x}", asset.Header);
+					return false;
+				}
+
+				const char* filename = hashutils::ExtractPtr(entry.name);
+
+				if (!filename) {
+					filename = utils::va("file_%llx", entry.name);
+				}
+
+				if (!opt.m_cf_files) {
+					filename = utils::va("scriptbundle/%s.%s", filename, opt.m_cf_files ? ".cf" : "json");
+				}
+
+				std::filesystem::path out = dumpDir / filename;
+				if (opt.m_ignoreOld && std::filesystem::exists(out)) return true;
+				std::filesystem::create_directories(out.parent_path());
+
+				LOG_INFO("Dump {} -> {}", hashutils::ExtractTmp("hash", entry.name), out.string());
+				std::ostringstream os{};
+
+				os << "{";
+
+				if (entry.data.count) {
+					auto objects = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(entry.data.defs, entry.data.count);
+					auto names = proc.ReadMemoryArrayEx<uint64_t>(entry.data.names, entry.data.count);
+
+					for (size_t i = 0; i < entry.data.count; i++) {
+						if (i) os << ",";
+						os << "\n";
+						utils::Padding(os, 1) << "\"#" << hashutils::ExtractTmp("hash", names[i]) << "\": ";
+						WriteBundleDef(opt, os, proc, entry, objects[i], 1, GetLocalized);
+					}
+
+				}
+				os
+					<< "\n"
+					<< "}";
+
+				if (opt.m_cf_files) {
+					std::ofstream osf{ out, std::ios::binary };
+					if (osf) {
+						tool::hashes::compiled_files::CompiledFileHeader header{};
+						header.name = entry.name;
+						header.isString = true;
+						header.isSpecial = true;
+						strcpy_s(header.type, "scriptbundle");
+						strcpy_s(header.preferedExtension, "json");
+						osf.write((const char*)&header, sizeof(header));
+						std::string osc = os.str();
+						osf.write(osc.data(), osc.size());
+						osf.close();
+					}
+				}
+				else {
+					utils::WriteFile(out, os.str());
+				}
 			}
 
 			return true;
