@@ -1,7 +1,47 @@
 - nui
-  - add bo4 event tool
-- add gpl tools
-- remove bo4ext2
+  - add options to bo4 event tool
+  - add bo4 lobby tool
+  - add cold war alpha to gsc injector
+  - add code search in error coder
 - acts
-  - dump serious hash files
-  - add download_hash_index tool
+  - fast files
+    - bo3, bo4 (alpha+release) and cw fast file decompressors
+    - xhash, xstring gsc/gdb ff handler
+    - wip bo3 pool ff handler
+    - test iw decompressor
+  - dp
+    - new bo4 ddl format
+    - fix cw alpha dumper
+    - fix cordycep bo6 scriptbundle dumper
+    - fix cordycep csv bool dumper
+    - dump localizes in bo6 scriptbundles
+  - gsc decompiler
+    - better error handling
+    - option to disable string decrypt (`--no-str-decrypt`)
+    - black ops 4 vm31 ps4 support
+    - black ops 4 vm34 ps4 support
+    - black ops 4 vm35 partial support
+    - black ops 6 vm10 support (no opcodes)
+    - better format when finding an undefined opcode
+    - fix some read issues
+    - wip in gscbin decomp
+    - no need for the `-g` option by default
+  - gsc compiler
+    - black ops 4 vm31 ps4 support
+    - black ops 4 vm34 ps4 support
+    - compile multiple files at once
+    - fix filename in compilation
+  - dbf
+    - add gsc scripts
+  - hashes
+    - more hash patterns in scanner
+    - ignore not found hashes in scanner
+    - add iw gsc temp var names in default hashes
+  - old black ops4 string decryption algorithm
+  - read_strings tool
+  - search using filename
+  - internal unit tests
+- acts-gpl
+  - add more internal cordycep tests
+- dll
+  - test cod2020
