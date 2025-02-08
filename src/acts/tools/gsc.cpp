@@ -320,6 +320,10 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
     if (!m_dbgOutputDir) {
         m_dbgOutputDir = m_outputDir;
     }
+    if (m_func && !(m_dcomp || m_dasm)) {
+        m_dcomp = true; // produce gsc by default
+    }
+
     return true;
 }
 
