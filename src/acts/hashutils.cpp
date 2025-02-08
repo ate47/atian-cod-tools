@@ -234,6 +234,24 @@ namespace hashutils {
 		Add("root", true, iw, true); // root struct
 		Add("__pad", true, iw, true); // padding
 
+		// gsc temp vars
+		static const char* gscTmpStart =
+			"__a\0" // array
+			"__k\0" // key
+			"__ki\0" // key iterator
+			"__ka\0" // keys array
+			;
+		const char* gscTmpStartIt = gscTmpStart;
+		while (*gscTmpStartIt) {
+			for (size_t i = 0; i < 1000; i++) {
+				const char* s{ utils::va("%s%lld", gscTmpStartIt, i) };
+				AddPrecomputed(hash::HashT10Scr(s), s, true);
+				AddPrecomputed(hash::HashT10ScrSP(s), s, true);
+				AddPrecomputed(hash::HashJupScr(s), s, true);
+			}
+			gscTmpStartIt += std::strlen(gscTmpStartIt) + 1;
+		}
+
 		// ADL names
 		AddPrecomputed(hash::Hash64("bool"), "bool", true);
 		AddPrecomputed(hash::Hash64("byte"), "byte", true);
