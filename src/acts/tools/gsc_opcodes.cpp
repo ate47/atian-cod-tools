@@ -6618,6 +6618,10 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		uint64_t itemValName;
+		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW_KEYS)) {
+			index += moveDelta;
+			continue; // TODO: implement, they are using the keys instead of an iterator
+		}
 		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW)) {
 			/*
 				agent = var_57acddc40b2f741[var_54ed0dc40829774];;

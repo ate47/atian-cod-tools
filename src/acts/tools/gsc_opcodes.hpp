@@ -31,6 +31,7 @@ namespace tool::gsc::opcode {
 		VMF_NO_MAGIC = 1 << 22,
 		VMF_VAR_ID = 1 << 23,
 		VMF_IW_LIKE = 1 << 24,
+		VMF_FOREACH_IW_KEYS = 1 << 25,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

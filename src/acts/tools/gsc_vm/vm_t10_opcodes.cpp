@@ -96,7 +96,7 @@ namespace {
 		t10c->RegisterOpCode(PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x20);
 		t10c->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x93);
 
-		VmInfo* t1010 = RegisterVM(VMI_T10_10, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+		VmInfo* t1010 = RegisterVM(VMI_T10_10, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 		t1010->RegisterVmName("cer", "t10", "blackops6");
 		t1010->AddPlatform(PLATFORM_PC);
 		t1010->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
