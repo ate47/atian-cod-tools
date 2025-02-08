@@ -36,29 +36,6 @@ namespace fastfile {
 		return nullptr;
 	}
 
-	void* FFAssetPool::FindAssetHeader(size_t type, uint64_t name) {
-		if (type >= pool.size()) return nullptr;
-		auto it{ pool[type].find(name) };
-		if (it == pool[type].end()) return nullptr;
-		return it->second;
-	}
-
-	void FFAssetPool::AddAssetHeader(size_t type, uint64_t name, void* header) {
-		if (type >= pool.size()) {
-			pool.resize(type + 1);
-		}
-		pool[type][name] = header;
-	}
-
-	void FFAssetPool::ClearRef() {
-		pool.clear();
-		memory.clear();
-	}
-
-	std::vector<byte>& FFAssetPool::CreateMemoryBuffer() {
-		return *memory.emplace_back(std::make_unique<std::vector<byte>>()).get();
-	}
-
 	const char* GetFastFileCompressionName(FastFileCompression comp) {
 		static const char* names[]{
 			"none",
@@ -237,6 +214,12 @@ namespace fastfile {
 			else if (!_strcmpi("--header", arg) || !strcmp("-H", arg)) {
 				m_header = true;
 			}
+			else if (!_strcmpi("--noAssetDump", arg)) {
+				noAssetDump = true;
+			}
+			else if (!_strcmpi("--assertContainer", arg)) {
+				assertContainer = true;
+			}
 			else if (*arg == '-') {
 				std::cerr << "Invalid argument: " << arg << "!\n";
 				return false;
@@ -259,6 +242,8 @@ namespace fastfile {
 		LOG_INFO("-C --casc [c]        : Use casc db");
 		LOG_INFO("-g --game [g]        : exe");
 		LOG_INFO("-p --patch           : Use patch files (fd/fp)");
+		LOG_INFO("--noAssetDump        : No asset dump");
+		LOG_INFO("--assertContainer    : Use acts as a container for other software");
 	}
 
 	std::vector<std::string> FastFileOption::GetFileRecurse(const char* path) {
@@ -426,7 +411,7 @@ namespace fastfile {
 						decfile.replace_extension(".ff.dec");
 
 						std::filesystem::create_directories(decfile.parent_path());
-						if (!utils::WriteFile(decfile, reader.Ptr(), reader.Length())) {
+						if (!utils::WriteFile(decfile, ffdata.data(), ffdata.size())) {
 							LOG_ERROR("Can't dump {}", decfile.string());
 						}
 						else {

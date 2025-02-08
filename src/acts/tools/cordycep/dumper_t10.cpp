@@ -7,6 +7,7 @@
 #include <tools/utils/data_utils.hpp>
 
 namespace {
+	using namespace compatibility::scobalula::csi;
 	using namespace tool::cordycep::dump;
 	using namespace bo6;
 

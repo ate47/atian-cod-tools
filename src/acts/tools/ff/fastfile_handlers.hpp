@@ -105,6 +105,8 @@ namespace fastfile {
 		bool print_handlers{};
 		bool print_decompressors{};
 		bool dump_decompressed{};
+		bool noAssetDump{};
+		bool assertContainer{};
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};
@@ -124,18 +126,6 @@ namespace fastfile {
 		inline bool ReadFile(const std::string& path, std::vector<byte>& buff) {
 			return ReadFile(path.data(), buff);
 		}
-	};
-
-	class FFAssetPool {
-		std::vector<std::unordered_map<uint64_t, void*>> pool{};
-		std::vector<std::unique_ptr<std::vector<byte>>> memory{};
-	public:
-		FFAssetPool() {};
-
-		void* FindAssetHeader(size_t type, uint64_t name);
-		void AddAssetHeader(size_t type, uint64_t name, void* header);
-		void ClearRef();
-		std::vector<byte>& CreateMemoryBuffer();
 	};
 
 	constexpr uint64_t MASK32 = 0xFFFFFFFF;

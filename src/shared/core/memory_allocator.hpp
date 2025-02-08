@@ -36,6 +36,13 @@ namespace core::memory_allocator {
 			return ptr;
 		}
 
+		void FreeAll() {
+			for (void* ptr : ptrs) {
+				delete[] ptr;
+			}
+			ptrs.clear();
+		}
+
 		void Free(void* ptr) {
 			if (!ptr) return;
 

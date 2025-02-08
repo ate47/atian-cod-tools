@@ -5,6 +5,7 @@
 #include <hook/module_mapper.hpp>
 #include <hook/memory.hpp>
 #include <hook/error.hpp>
+#include <tools/ff/fastfile_asset_pool.hpp>
 
 namespace {
 	using namespace bo3::pool;
@@ -71,7 +72,10 @@ namespace {
 		void (*Load_XAsset)(bool atStreamStart) {};
 		const char*(*DB_GetXAssetName)(T7XAssetType type, void** header) {};
 		fastfile::FastFileOption* opt{};
+		size_t loaded{};
+		utils::OutFileCE* osassets{};
 		//core::bytebuffer::ByteBuffer* reader{};
+		fastfile::pool::FFAssetPool pool{};
 
 		std::vector<StreamRead> readers{};
 
@@ -112,11 +116,11 @@ namespace {
 				break;
 			case XFILE_BLOCK_RUNTIME_VIRTUAL:
 			case XFILE_BLOCK_RUNTIME_PHYSICAL:
-				if (!top.buff.CanRead(size)) {
-					hook::error::DumpStackTraceFrom();
-				}
-				std::memset(ptr, 0, size);
-				top.buff.Skip(size);
+				//if (!top.buff.CanRead(size)) {
+				//	hook::error::DumpStackTraceFrom();
+				//}
+				//std::memset(ptr, 0, size);
+				//top.buff.Skip(size);
 				ret = false;
 				break;
 			case XFILE_BLOCK_STREAMER_RESERVE:
@@ -124,10 +128,10 @@ namespace {
 			case XFILE_BLOCK_DELAY_VIRTUAL:
 			case XFILE_BLOCK_DELAY_PHYSICAL:
 			case XFILE_BLOCK_STREAMER:
-				if (!top.buff.CanRead(size)) {
-					hook::error::DumpStackTraceFrom();
-				}
-				top.buff.Skip(size);
+				//if (!top.buff.CanRead(size)) {
+				//	hook::error::DumpStackTraceFrom();
+				//}
+				//top.buff.Skip(size);
 				ret = false;
 				break;
 			default:
@@ -154,8 +158,27 @@ namespace {
 		return bo3FFHandlerContext.Reader().Ptr();
 	}
 
+	bool FixupName(const char*& s) {
+		int b;
+		if (!s) return false;
+		if (!hook::memory::ReadMemorySafe((void*)s, &b, sizeof(b))) {
+			LOG_ERROR("Error when checking name {}", (void*)s);
+			s = nullptr;
+			return false;
+		}
+		if (*s == ',') s++;
+		return true;
+	}
+
 	void Load_SimpleAsset_Internal(void** header, T7XAssetType assetType) {
-		goto ignore;
+		bo3FFHandlerContext.loaded++;
+
+		if (bo3FFHandlerContext.opt->assertContainer) {
+			// todo: add header name
+			bo3FFHandlerContext.pool.AddAssetHeader(assetType, 0, *header);
+		}
+
+		if (bo3FFHandlerContext.opt->noAssetDump) return; // ignore
 		switch (assetType) {
 		case T7_ASSET_TYPE_SCRIPTPARSETREE: {
 			struct ScriptParseTree {
@@ -169,13 +192,15 @@ namespace {
 
 			std::filesystem::path outDir{ bo3FFHandlerContext.opt->m_output / "bo3" / "spt"};
 
+			if (!FixupName(spt->name)) {
+				break;
+			}
+
 			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}c", *(uint64_t*)spt->buffer, spt->name) };
 			std::filesystem::create_directories(outFile.parent_path());
+			LOG_INFO("Dump scriptparsetree {} {} 0x{:x}", outFile.string(), (void*)spt->buffer, spt->len);
 			if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
-			}
-			else {
-				LOG_INFO("Dump scriptparsetree into {}", outFile.string());
 			}
 		}
 			break;
@@ -187,19 +212,20 @@ namespace {
 			}; static_assert(sizeof(RawFile) == 0x18);
 			RawFile* asset{ (RawFile*)*header };
 
+			if (!FixupName(asset->name)) {
+				break;
+			}
+
 			std::filesystem::path outFile{ bo3FFHandlerContext.opt->m_output / "bo3" / "source" / asset->name };
 
 			std::filesystem::create_directories(outFile.parent_path());
+			LOG_INFO("Dump raw file {} {} 0x{:x}", outFile.string(), (void*)asset->buffer, asset->len);
 			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
-			else {
-				LOG_INFO("Dump rawfile into {}", outFile.string());
-			}
 			break;
 		}
-		default:
-		ignore: {
+		default: {
 			LOG_TRACE("Ignoring asset {}/{}", T7XAssetName(assetType), (void*)header);
 			break;
 		}
@@ -250,7 +276,7 @@ namespace {
 	}
 
 	void Load_XStringCustom(const char** str) {
-		LOG_TRACE("{} Load_XStringCustom({})", hook::library::CodePointer{ _ReturnAddress() }, (void*)*str);
+		LOG_TRACE("{} Load_XStringCustom({}) 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, (void*)*str, bo3FFHandlerContext.Loc());
 		LOG_DEBUG("str {}", *str);
 		DB_IncStreamPos((int)std::strlen(*str) + 1);
 		while (**str == ',') (*str)++;
@@ -298,15 +324,21 @@ namespace {
 			hook::memory::RedirectJmp(lib[0x1CD47C0], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x1D27810], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x1D17660], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1426160], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1426090], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x22728B0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x22728F0], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x1C8C050], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x14260C0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8C050], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8C050], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8C050], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x1C8C190], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x1426160], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x1426090], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x14260F0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x1C8BFB0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x1CD4610], EmptyStub); // unk
 			
+			// write pool data to disk
+			if (opt.assertContainer) {
+				bo3FFHandlerContext.pool.csiHeader.WriteCsi(compatibility::scobalula::csi::ActsCsiLocation());
+			}
 		}
 		
 		void Cleanup() override {
@@ -314,7 +346,7 @@ namespace {
 		}
 
 		void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
-			std::filesystem::path out{ opt.m_output / "bo3" / ctx.ffname };
+			std::filesystem::path out{ opt.m_output / "bo3" / "data"};
 			std::filesystem::create_directories(out);
 
 
@@ -336,7 +368,7 @@ namespace {
 			}
 
 			{
-				std::filesystem::path outStrings{ out / "strings.txt" };
+				std::filesystem::path outStrings{ out / std::format("{}_strings.txt", ctx.ffname)};
 				utils::OutFileCE os{ outStrings };
 				if (!os) {
 					throw std::runtime_error(std::format("Can't open {}", outStrings.string()));
@@ -352,7 +384,7 @@ namespace {
 			}
 
 			if (!assetList.assetCount) {
-				LOG_TRACE("not asset");
+				LOG_INFO("no asset");
 				return;
 			}
 
@@ -364,13 +396,15 @@ namespace {
 			assetList.assets = reader.ReadPtr<XAsset_0>(assetList.assetCount);
 			LOG_DEBUG("assets data 0x{:x}", reader.Loc());
 
-			std::filesystem::path outAssets{ out / "assets.csv" };
+			std::filesystem::path outAssets{ out / std::format("{}_assets.csv", ctx.ffname) };
 			utils::OutFileCE osa{ outAssets };
 			if (!osa) {
 				throw std::runtime_error(std::format("Can't open {}", outAssets.string()));
 			}
 			bo3FFHandlerContext.readers.emplace_back(reader, XFILE_BLOCK_TEMP);
 			bo3FFHandlerContext.opt = &opt;
+			bo3FFHandlerContext.osassets = &osa;
+			bo3FFHandlerContext.loaded = 0;
 
 			for (size_t i = 0; i < assetList.assetCount; i++) {
 				XAsset_0& asset{ assetList.assets[i] };
@@ -380,6 +414,9 @@ namespace {
 				*bo3FFHandlerContext.varXAsset = &asset;
 				bo3FFHandlerContext.Load_XAsset(false);
 			}
+
+			LOG_INFO("{} asset(s) loaded (0x{:x})", bo3FFHandlerContext.loaded, bo3FFHandlerContext.loaded);
+
 		}
 	};
 

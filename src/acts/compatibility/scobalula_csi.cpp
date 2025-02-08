@@ -22,6 +22,9 @@ namespace compatibility::scobalula::csi {
 		}
 		}
 	}
+	std::filesystem::path ActsCsiLocation() {
+		return utils::GetProgDir() / ACTS_CSI_LOCATION;
+	}
 
 	bool CordycepProc::ReadCsi(const std::filesystem::path& path) {
 		std::string dbBuff{};
@@ -50,8 +53,22 @@ namespace compatibility::scobalula::csi {
 		gameId = header->gameId;
 		poolsAddress = header->poolsAddress;
 		stringsAddress = header->stringsAddress;
+		stringSize = header->stringSize;
 
 		return true;
+	}
+
+
+	bool CordycepProc::WriteCsi(const std::filesystem::path& path) {
+		std::vector<byte> data{};
+
+		utils::WriteValue<uint64_t>(data, gameId);
+		utils::WriteValue<uintptr_t>(data, poolsAddress);
+		utils::WriteValue<uintptr_t>(data, stringsAddress);
+		utils::WriteValue<uint32_t>(data, stringSize);
+		utils::WriteString(data, gameDir.c_str());
+
+		return utils::WriteFile(path, data);
 	}
 
 

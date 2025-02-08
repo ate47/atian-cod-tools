@@ -64,7 +64,7 @@ namespace {
 			default:
 				throw std::runtime_error(std::format("Unknown version 0x{:x}", version));
 			}
-
+			/*
 			reader.Goto(fastfileNameLoc);
 			ctx.ffname = reader.ReadString();
 			constexpr size_t tableLen = 16000;
@@ -75,6 +75,7 @@ namespace {
 
 			ucstk::Salsa20 salsa20{ key };
 			salsa20.setIv(nullptr);
+			*/
 
 		}
 

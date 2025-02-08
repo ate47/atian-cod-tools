@@ -5,6 +5,7 @@
 #include "tools/pool.hpp"
 
 namespace {
+	using namespace compatibility::scobalula::csi;
 	using namespace tool::cordycep::dump;
 	using namespace sp23;
 

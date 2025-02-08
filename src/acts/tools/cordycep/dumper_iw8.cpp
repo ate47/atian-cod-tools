@@ -130,7 +130,7 @@ namespace {
 		}
 
 
-		auto [pools, ok] = proc.ReadMemoryArray<XAssetPool64>(cordycep.poolsAddress, tool::mw19::IW19_ASSETTYPE_COUNT);
+		auto [pools, ok] = proc.ReadMemoryArray<compatibility::scobalula::csi::XAssetPool64>(cordycep.poolsAddress, tool::mw19::IW19_ASSETTYPE_COUNT);
 
 		if (!ok) {
 			LOG_ERROR("Can't read pools");
@@ -149,7 +149,7 @@ namespace {
 
 		size_t total{};
 
-		auto HandlePool = [&opt, &pools, &proc, &total](tool::mw19::IW19PoolType type, const std::filesystem::path& outDir, std::function<bool(const XAsset64& asset, size_t count)> func) {
+		auto HandlePool = [&opt, &pools, &proc, &total](tool::mw19::IW19PoolType type, const std::filesystem::path& outDir, std::function<bool(const compatibility::scobalula::csi::XAsset64& asset, size_t count)> func) {
 			if (!opt.m_dump_types[type] && !opt.m_dump_all_available) {
 				return;
 			}
@@ -169,7 +169,7 @@ namespace {
 			};
 
 		const std::filesystem::path gscDir = outDir / "gsc";
-		HandlePool(tool::mw19::IW19_ASSETTYPE_SCRIPTFILE, gscDir, [&opt, &proc, gscDir](const XAsset64& asset, size_t count) -> bool {
+		HandlePool(tool::mw19::IW19_ASSETTYPE_SCRIPTFILE, gscDir, [&opt, &proc, gscDir](const compatibility::scobalula::csi::XAsset64& asset, size_t count) -> bool {
 			ScriptFile entry{};
 			if (!proc.ReadMemory(&entry, asset.Header, sizeof(entry))) {
 				LOG_ERROR("Can't read scriptfile entry {:x}", asset.Header);

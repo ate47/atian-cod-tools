@@ -6,10 +6,10 @@
 #include "gsc_iw.hpp"
 
 namespace tool::cordycep::dump {
-	int ForEachEntry(Process& proc, XAssetPool64& pool, std::function<bool(const XAsset64& asset, size_t count)> func) {
+	int ForEachEntry(Process& proc, compatibility::scobalula::csi::XAssetPool64& pool, std::function<bool(const compatibility::scobalula::csi::XAsset64& asset, size_t count)> func) {
 		uintptr_t curr = pool.Root;
 
-		XAsset64 asset{};
+		compatibility::scobalula::csi::XAsset64 asset{};
 		int res{};
 		bool ok{ true };
 		size_t count{};
