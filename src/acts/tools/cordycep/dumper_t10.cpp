@@ -1534,10 +1534,14 @@ namespace {
 					return false;
 				}
 
-				const char* filename = hashutils::ExtractPtr(entry.name);
+				const char* filenameExtracted = hashutils::ExtractPtr(entry.name);
 
-				if (!filename) {
+				char* filename;
+				if (!filenameExtracted) {
 					filename = utils::va("file_%llx", entry.name);
+				}
+				else {
+					filename = utils::MapString(utils::CloneString(filenameExtracted), [](char c) -> char { return c == ':' ? '/' : c; });
 				}
 
 				if (!opt.m_cf_files) {
