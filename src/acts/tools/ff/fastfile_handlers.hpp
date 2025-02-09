@@ -114,11 +114,13 @@ namespace fastfile {
 		std::filesystem::path m_output{ "output_ff" };
 		std::vector<const char*> files{};
 		FFHandler* handler{};
-		hook::module_mapper::Module mod{};
+		hook::module_mapper::Module gameMod{};
 
 		~FastFileOption();
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
 		void PrintHelp();
+
+		hook::library::Library GetGame(bool crashError, bool* init = nullptr);
 		std::vector<std::string> GetFileRecurse(const char* path);
 		bool ReadFile(const char* path, std::vector<byte>& buff);
 

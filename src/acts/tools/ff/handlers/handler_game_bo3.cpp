@@ -283,19 +283,13 @@ namespace {
 	}
 
 	class BO3FFHandler : public fastfile::FFHandler {
-		hook::module_mapper::Module game{};
 	public:
 		BO3FFHandler() : fastfile::FFHandler("bo3", "Black Ops 3") {
 			bo3FFHandlerContext.handler = this;
 		}
 
 		void Init(fastfile::FastFileOption& opt) override {
-			const char* g{ opt.game ? opt.game : "BlackOps3_dump.exe" };
-			if (!game.Load(g)) {
-				throw std::runtime_error(std::format("Can't load {}", g));
-			}
-
-			hook::library::Library lib{ *game };
+			hook::library::Library lib{ opt.GetGame(true) };
 
 			bo3FFHandlerContext.varXAsset = lib.Get<XAsset_0*>(0x940E838);
 			bo3FFHandlerContext.Load_XAsset = reinterpret_cast<decltype(bo3FFHandlerContext.Load_XAsset)>(lib[0x140E200]);
@@ -339,10 +333,6 @@ namespace {
 			if (opt.assertContainer) {
 				bo3FFHandlerContext.pool.csiHeader.WriteCsi(compatibility::scobalula::csi::ActsCsiLocation());
 			}
-		}
-		
-		void Cleanup() override {
-			game.Free();
 		}
 
 		void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {

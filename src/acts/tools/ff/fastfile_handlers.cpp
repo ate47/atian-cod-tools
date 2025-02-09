@@ -246,6 +246,26 @@ namespace fastfile {
 		LOG_INFO("--assertContainer    : Use acts as a container for other software");
 	}
 
+	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init) {
+		if (init) *init = false;
+
+		if (!game) {
+			if (crashError) {
+				throw std::runtime_error("No game module specified");
+			}
+			return (HMODULE)0;
+		}
+
+		if (!gameMod) {
+			if (!gameMod.Load(game)) {
+				throw std::runtime_error(std::format("Can't load {}", game));
+			}
+			if (init) *init = true;
+		}
+
+		return *gameMod;
+	}
+
 	std::vector<std::string> FastFileOption::GetFileRecurse(const char* path) {
 		std::vector<std::string> res{};
 		if (cascStorage) {
