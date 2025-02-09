@@ -268,6 +268,7 @@ namespace hook::library {
 			return ScanLibrary(hmod, pattern, single);
 		}
 
+
 		ScanResult ScanSingle(const char* pattern, const char* name = nullptr) const {
 			auto res = Scan(pattern);
 
@@ -279,6 +280,21 @@ namespace hook::library {
 			}
 
 			return res[0];
+		}
+
+		ScanResult FindAnyScan(const char* name) const {
+			throw std::runtime_error(utils::va("Can't find patter %s", name ? name : "<multiple>"));
+		}
+
+		template<typename... Args>
+		ScanResult FindAnyScan(const char* name, const char* pattern, Args... args) const {
+			auto res = Scan(pattern);
+
+			if (res.size() == 1) {
+				return res[0];
+			}
+
+			return FindAnyScan(name, args...);
 		}
 
 		inline std::vector<ScanResult> ScanString(const char* str, bool single = false) const {
