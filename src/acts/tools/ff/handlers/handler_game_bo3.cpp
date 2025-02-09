@@ -248,11 +248,11 @@ namespace {
 	}
 
 	void DB_IncStreamPos(int size) {
-		auto& top{ bo3FFHandlerContext.Reader() };
-		if (!top.CanRead(size)) {
-			hook::error::DumpStackTraceFrom();
-		}
-		top.Skip(size);
+		//auto& top{ bo3FFHandlerContext.Reader() };
+		//if (!top.CanRead(size)) {
+		//	hook::error::DumpStackTraceFrom();
+		//}
+		//top.Skip(size);
 		LOG_TRACE("{} DB_IncStreamPos(0x{:x}) -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, size, bo3FFHandlerContext.Loc());
 	}
 
@@ -275,11 +275,16 @@ namespace {
 		LOG_TRACE("{} EmptyStub", hook::library::CodePointer{ _ReturnAddress() });
 	}
 
-	void Load_XStringCustom(const char** str) {
+	void Load_XStringCustom(char** str) {
 		LOG_TRACE("{} Load_XStringCustom({}) 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, (void*)*str, bo3FFHandlerContext.Loc());
+		auto& top{ bo3FFHandlerContext.Reader() };
+		size_t size;
+		const char* ptr{ top.ReadString(&size) };
+		if (ptr != *str) {
+			std::memcpy(*str, ptr, size + 1);
+		}
 		LOG_DEBUG("str {}", *str);
-		DB_IncStreamPos((int)std::strlen(*str) + 1);
-		while (**str == ',') (*str)++;
+		DB_IncStreamPos((int)size);
 	}
 
 	class BO3FFHandler : public fastfile::FFHandler {
@@ -331,6 +336,7 @@ namespace {
 			
 			// write pool data to disk
 			if (opt.assertContainer) {
+				bo3FFHandlerContext.pool.csiHeader.gameId = compatibility::scobalula::csi::CG_BO3;
 				bo3FFHandlerContext.pool.csiHeader.WriteCsi(compatibility::scobalula::csi::ActsCsiLocation());
 			}
 		}
