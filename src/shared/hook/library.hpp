@@ -196,6 +196,13 @@ namespace hook::library {
 		}
 
 		void SetModule(const char* name, bool system = false, DWORD flags = 0) {
+			HMODULE loaded{ GetModuleHandleA(name) };
+			
+			if (loaded) {
+				SetModule(loaded);
+				return;
+			}
+
 			SetModule(system ? process::LoadSysLib(name) : process::LoadLib(name, flags));
 		}
 
