@@ -126,7 +126,7 @@ namespace {
                         LOG_ERROR("Can't write {}", outFile.string());
                     }
                     else {
-                        LOG_INFO("Dump {}", outFile.string());
+                        LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(obj->name));
                     }
 
                     loc++;

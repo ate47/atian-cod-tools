@@ -11,6 +11,11 @@
 namespace {
 	using namespace games::bo4::pool;
 
+	struct XHash {
+		uint64_t hash;
+		uint64_t pad;
+	};
+
 	class BO4FFHandler;
 
 	enum XFileBlock : int {
@@ -53,6 +58,13 @@ namespace {
 		void* header;
 	}; static_assert(sizeof(XAsset_0) == 0x10);
 
+	struct XAssetEntry {
+		XAsset_0 asset;
+		byte zoneIndex;
+		bool inuse;
+		uint32_t nextHash;
+		uint32_t nextType;
+	};
 
 	struct XAssetList_0 {
 		int stringsCount;
@@ -76,6 +88,7 @@ namespace {
 		utils::OutFileCE* osassets{};
 		//core::bytebuffer::ByteBuffer* reader{};
 		fastfile::pool::FFAssetPool pool{};
+		std::vector<const char*> mtStrings{};
 
 		std::vector<StreamRead> readers{};
 
@@ -158,65 +171,50 @@ namespace {
 		return bo4FFHandlerContext.Reader().Ptr();
 	}
 
-	bool FixupName(const char*& s) {
-		int b;
-		if (!s) return false;
-		if (!hook::memory::ReadMemorySafe((void*)s, &b, sizeof(b))) {
-			LOG_ERROR("Error when checking name {}", (void*)s);
-			s = nullptr;
-			return false;
-		}
-		if (*s == ',') s++;
-		return true;
-	}
-
-	void Load_SimpleAsset_Internal(void** header, XAssetType assetType) {
+	XAsset_0* DB_LinkXAssetEntry(XAsset_0* xasset, bool allowOverride) {
 		bo4FFHandlerContext.loaded++;
 
 		if (bo4FFHandlerContext.opt->assertContainer) {
 			// todo: add header name
-			bo4FFHandlerContext.pool.AddAssetHeader(assetType, 0, *header);
+			bo4FFHandlerContext.pool.AddAssetHeader(xasset->type, 0, xasset->header);
 		}
 
-		if (bo4FFHandlerContext.opt->noAssetDump) return; // ignore
-		switch (assetType) {
+		if (bo4FFHandlerContext.opt->noAssetDump) return xasset; // ignore
+		switch (xasset->type) {
 		case ASSET_TYPE_SCRIPTPARSETREE: {
 			struct ScriptParseTree {
-				const char* name;
-				int32_t len;
-				int32_t pad;
+				XHash name;
 				byte* buffer;
-			}; static_assert(sizeof(ScriptParseTree) == 0x18);
-			ScriptParseTree* spt{ (ScriptParseTree*)*header };
+				uint32_t len;
+			}; static_assert(sizeof(ScriptParseTree) == 0x20);
+			ScriptParseTree* spt{ (ScriptParseTree*)xasset->header };
 
 
 			std::filesystem::path outDir{ bo4FFHandlerContext.opt->m_output / "bo4" / "spt" };
 
-			if (!FixupName(spt->name)) {
-				break;
-			}
-
-			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}c", *(uint64_t*)spt->buffer, spt->name) };
+			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/script_{:x}.gscc", *(uint64_t*)spt->buffer, spt->name.hash) };
 			std::filesystem::create_directories(outFile.parent_path());
 			LOG_INFO("Dump scriptparsetree {} {} 0x{:x}", outFile.string(), (void*)spt->buffer, spt->len);
 			if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
+			break;
 		}
-										  break;
 		case ASSET_TYPE_RAWFILE: {
 			struct RawFile {
-				const char* name;
+				XHash name;
 				int32_t len;
 				byte* buffer;
-			}; static_assert(sizeof(RawFile) == 0x18);
-			RawFile* asset{ (RawFile*)*header };
+			}; static_assert(sizeof(RawFile) == 0x20);
+			RawFile* asset{ (RawFile*)xasset->header };
 
-			if (!FixupName(asset->name)) {
-				break;
+			const char* n{ hashutils::ExtractPtr(asset->name.hash) };
+
+			if (!n) {
+				n = utils::va("hashed/rawfile/file_%llx.raw", asset->name.hash);
 			}
 
-			std::filesystem::path outFile{ bo4FFHandlerContext.opt->m_output / "bo4" / "source" / asset->name };
+			std::filesystem::path outFile{ bo4FFHandlerContext.opt->m_output / "bo4" / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
 			LOG_INFO("Dump raw file {} {} 0x{:x}", outFile.string(), (void*)asset->buffer, asset->len);
@@ -226,10 +224,11 @@ namespace {
 			break;
 		}
 		default: {
-			LOG_TRACE("Ignoring asset {}/{}", XAssetNameFromId(assetType), (void*)header);
+			LOG_TRACE("Ignoring asset {}/{}", XAssetNameFromId(xasset->type), (void*)xasset->header);
 			break;
 		}
 		}
+		return xasset;
 	}
 	void DB_PopStreamPos() {
 		size_t delta{ bo4FFHandlerContext.Reader().Loc() };
@@ -261,6 +260,10 @@ namespace {
 	}
 	void DB_ConvertOffsetToPointer(void* data) {
 		LOG_TRACE("{} DB_ConvertOffsetToPointer", hook::library::CodePointer{ _ReturnAddress() });
+	}
+	uint64_t* DB_UnkPtr(uint64_t* data) {
+		LOG_TRACE("{} DB_UnkPtr {}", hook::library::CodePointer{ _ReturnAddress() }, (void*)data);
+		return data;
 	}
 
 	void** DB_InsertPointer() {
@@ -296,39 +299,43 @@ namespace {
 		void Init(fastfile::FastFileOption& opt) override {
 			hook::library::Library lib{ opt.GetGame(true) };
 
+
+			bo4FFHandlerContext.Load_XAsset = reinterpret_cast<decltype(bo4FFHandlerContext.Load_XAsset)>(lib[0x2E35D10]);
+
 			hook::memory::RedirectJmp(lib[0x2EBC050], Load_StreamStub);
 			hook::memory::RedirectJmp(lib[0x2EBBBA0], DB_AllocStreamPos);
 			hook::memory::RedirectJmp(lib[0x2EBBFB0], DB_ConvertOffsetToAlias);
-			hook::memory::RedirectJmp(lib[0x2EBB6F0], Load_SimpleAsset_Internal);
+			hook::memory::RedirectJmp(lib[0x2EB84F0], DB_LinkXAssetEntry);
 			hook::memory::RedirectJmp(lib[0x2EBBFF0], DB_ConvertOffsetToPointer);
 			hook::memory::RedirectJmp(lib[0x2EBBCC0], DB_InsertPointer);
 			hook::memory::RedirectJmp(lib[0x2EBBBE0], DB_IncStreamPos);
 			hook::memory::RedirectJmp(lib[0x2EBC110], Load_XStringCustom);
 			hook::memory::RedirectJmp(lib[0x2EBBE20], DB_PopStreamPos);
 			hook::memory::RedirectJmp(lib[0x2EBBEA0], DB_PushStreamPos);
-			bo4FFHandlerContext.Load_XAsset = reinterpret_cast<decltype(bo4FFHandlerContext.Load_XAsset)>(lib[0x2E35D10]);
-
+			hook::memory::RedirectJmp(lib[0x2EBC020], DB_UnkPtr);
+			
+			hook::memory::RedirectJmp(lib[0x2EBC480], EmptyStub); //Load_ScrStringPtr
+			hook::memory::RedirectJmp(lib[0x2EBC430], EmptyStub); //Load_ScriptStringCustom
+			hook::memory::RedirectJmp(lib[0x35BA450], EmptyStub); // Load_GfxImageAdapter
+			hook::memory::RedirectJmp(lib[0x3CA8870], EmptyStub); // Load_SndBankAsset
+			hook::memory::RedirectJmp(lib[0x35FC100], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x3733C90], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x35FB980], EmptyStub); // load texture
+			hook::memory::RedirectJmp(lib[0x35FC060], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x35FBFC0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x35FBDD0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x3600EA0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x370BD10], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x353AE00], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x3700CE0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x3DC46F0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x3CBBE00], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x353AF10], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x353ADD0], EmptyStub); // unk
+			
 			/*
-
 			bo4FFHandlerContext.DB_GetXAssetName = reinterpret_cast<decltype(bo4FFHandlerContext.DB_GetXAssetName)>(lib[0x13E9D80]);
 
-			hook::memory::RedirectJmp(lib[0x141F4C0], EmptyStub); // link image
-			hook::memory::RedirectJmp(lib[0x1CB6F20], EmptyStub); // load texture
-			hook::memory::RedirectJmp(lib[0x1426800], EmptyStub); // Load_ScriptStringCustom, use idx
-			hook::memory::RedirectJmp(lib[0x14261B0], EmptyStub); // Load_SndBankAsset
-			hook::memory::RedirectJmp(lib[0x1CD4190], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD45B0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD4550], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD4380], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD4430], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD47C0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1D27810], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1D17660], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x22728B0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x22728F0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8C050], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x14260C0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8C190], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x1426160], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x1426090], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x14260F0], EmptyStub); // unk
@@ -365,7 +372,7 @@ namespace {
 					}
 				}
 			}
-
+			bo4FFHandlerContext.mtStrings.clear();
 			{
 				std::filesystem::path outStrings{ out / std::format("{}_strings.txt", ctx.ffname) };
 				utils::OutFileCE os{ outStrings };
@@ -373,7 +380,9 @@ namespace {
 					throw std::runtime_error(std::format("Can't open {}", outStrings.string()));
 				}
 				for (size_t i = 0; i < assetList.stringsCount; i++) {
-					os << acts::decryptutils::DecryptStringT8(assetList.strings[i]) << "\n";
+					char* scrstr{ acts::decryptutils::DecryptStringT8(assetList.strings[i]) };
+					bo4FFHandlerContext.mtStrings.push_back(scrstr);
+					os << scrstr << "\n";
 				}
 				LOG_INFO("Dump strings into {}", outStrings.string());
 			}
