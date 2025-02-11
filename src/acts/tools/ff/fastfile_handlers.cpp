@@ -92,6 +92,7 @@ namespace fastfile {
 			"pc",
 			"xbox",
 			"playstation",
+			"dev",
 		};
 		if (plt >= ARRAYSIZE(names) || plt < 0) {
 			return "unknown";

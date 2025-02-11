@@ -65,7 +65,8 @@ namespace fastfile {
 		XFILE_PC = 0x0,
 		XFILE_XBOX = 0x1,
 		XFILE_PLAYSTATION = 0x2,
-		XFILE_COUNT = 0x3,
+		XFILE_DEV = 0x3,
+		XFILE_COUNT = 0x4,
 	};
 
 

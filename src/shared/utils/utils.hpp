@@ -140,6 +140,17 @@ namespace utils {
 	}
 	/*
 	 * Align a pointer
+	 * @param Type type to align
+	 * @param TypeIn pointer type
+	 * @param ptr pointer to align
+	 * @return aligned ptr value
+	 */
+	template<typename Type, typename TypeIn = uintptr_t>
+	constexpr TypeIn AlignedC(TypeIn ptr) {
+		return (ptr + (sizeof(Type) - 1)) & ~(sizeof(Type) - 1);
+	}
+	/*
+	 * Align a pointer
 	 * @param TypeIn pointer type
 	 * @param len val to align
 	 * @param ptr pointer to align
