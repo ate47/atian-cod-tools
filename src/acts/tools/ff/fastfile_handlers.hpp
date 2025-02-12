@@ -108,6 +108,7 @@ namespace fastfile {
 		bool dump_decompressed{};
 		bool noAssetDump{};
 		bool assertContainer{};
+		bool dumpBinaryAssets{};
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};

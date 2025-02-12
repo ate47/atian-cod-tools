@@ -402,13 +402,39 @@ namespace {
 			bo3FFHandlerContext.osassets = &osa;
 			bo3FFHandlerContext.loaded = 0;
 
+
 			for (size_t i = 0; i < assetList.assetCount; i++) {
 				XAsset_0& asset{ assetList.assets[i] };
 
-				LOG_DEBUG("Load asset {} (0x{:x})", T7XAssetName(asset.type), (int)asset.type);
+				const char* assType{ T7XAssetName(asset.type) };
+				LOG_DEBUG("Load asset {} (0x{:x})", assType, (int)asset.type);
+				std::filesystem::path binout{ opt.m_output / "bo3" / "binary" / ctx.ffname };
+				if (opt.dumpBinaryAssets) {
+					std::filesystem::create_directories(binout);
+				}
 
 				*bo3FFHandlerContext.varXAsset = &asset;
+				size_t originLoc{ bo3FFHandlerContext.Loc() };
 				bo3FFHandlerContext.Load_XAsset(false);
+				size_t endLoc{ bo3FFHandlerContext.Loc() };
+
+				if (opt.dumpBinaryAssets) {
+					std::vector<byte> rawAsset{};
+
+					utils::WriteValue(rawAsset, &asset, sizeof(asset));
+					reader.Goto(originLoc);
+					size_t len{ endLoc - originLoc };
+					utils::WriteValue(rawAsset, reader.ReadPtr<byte>(len), len);
+
+					std::filesystem::path assetOut{ binout / std::format("{:04}_{}.bin", i, assType) };
+
+					if (utils::WriteFile(assetOut, rawAsset)) {
+						LOG_INFO("Dump asset {}", assetOut.string());
+					}
+					else {
+						LOG_ERROR("Error when dumping {}", assetOut.string());
+					}
+				}
 			}
 
 			LOG_INFO("{} asset(s) loaded (0x{:x})", bo3FFHandlerContext.loaded, bo3FFHandlerContext.loaded);

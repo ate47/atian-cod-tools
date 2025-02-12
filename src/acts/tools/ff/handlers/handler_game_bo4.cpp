@@ -194,7 +194,7 @@ namespace {
 
 			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/script_{:x}.gscc", *(uint64_t*)spt->buffer, spt->name.hash) };
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump scriptparsetree {} {} 0x{:x}", outFile.string(), (void*)spt->buffer, spt->len);
+			LOG_INFO("Dump scriptparsetree {} 0x{:x} ({})", outFile.string(), spt->len, hashutils::ExtractTmpScript(spt->name.hash));
 			if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
@@ -266,6 +266,10 @@ namespace {
 		return data;
 	}
 
+	void* DB_FindXAssetHeader(XAssetType type, XHash* name, bool errorIfMissing, int waitTime) {
+		return nullptr;
+	}
+
 	void** DB_InsertPointer() {
 		bo4FFHandlerContext.Align(8);
 		void** ptr{ bo4FFHandlerContext.Reader().Ptr<void*>() };
@@ -313,11 +317,13 @@ namespace {
 			hook::memory::RedirectJmp(lib[0x2EBBE20], DB_PopStreamPos);
 			hook::memory::RedirectJmp(lib[0x2EBBEA0], DB_PushStreamPos);
 			hook::memory::RedirectJmp(lib[0x2EBC020], DB_UnkPtr);
-			
+			hook::memory::RedirectJmp(lib[0x2EB75B0], DB_FindXAssetHeader);
+
 			hook::memory::RedirectJmp(lib[0x2EBC480], EmptyStub); //Load_ScrStringPtr
 			hook::memory::RedirectJmp(lib[0x2EBC430], EmptyStub); //Load_ScriptStringCustom
 			hook::memory::RedirectJmp(lib[0x35BA450], EmptyStub); // Load_GfxImageAdapter
 			hook::memory::RedirectJmp(lib[0x3CA8870], EmptyStub); // Load_SndBankAsset
+			hook::memory::RedirectJmp(lib[0x3CA88C0], EmptyStub); // Load_SndBankAsset
 			hook::memory::RedirectJmp(lib[0x35FC100], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x3733C90], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x35FB980], EmptyStub); // load texture
@@ -332,6 +338,16 @@ namespace {
 			hook::memory::RedirectJmp(lib[0x3CBBE00], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x353AF10], EmptyStub); // unk
 			hook::memory::RedirectJmp(lib[0x353ADD0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x3729A70], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x35FBC90], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x35FBF20], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x35FBE80], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x35FBD30], EmptyStub); // unk
+			
+			hook::memory::RedirectJmp(lib[0x22B7AF0], EmptyStub); // unk
+			hook::memory::RedirectJmp(lib[0x22B7B00], EmptyStub); // unk
+
+			
 			
 			/*
 			bo4FFHandlerContext.DB_GetXAssetName = reinterpret_cast<decltype(bo4FFHandlerContext.DB_GetXAssetName)>(lib[0x13E9D80]);
@@ -413,9 +429,35 @@ namespace {
 			for (size_t i = 0; i < assetList.assetCount; i++) {
 				XAsset_0& asset{ assetList.assets[i] };
 
-				LOG_DEBUG("Load asset {} (0x{:x})", XAssetNameFromId(asset.type), (int)asset.type);
+				const char* assType{ XAssetNameFromId(asset.type) };
+				LOG_DEBUG("Load asset {} (0x{:x})", assType, (int)asset.type);
+				std::filesystem::path binout{ opt.m_output / "bo4" / "binary" / ctx.ffname };
+				if (opt.dumpBinaryAssets) {
+					std::filesystem::create_directories(binout);
+				}
 
+
+				size_t originLoc{ bo4FFHandlerContext.Loc() };
 				bo4FFHandlerContext.Load_XAsset(false, &asset);
+				size_t endLoc{ bo4FFHandlerContext.Loc() };
+
+				if (opt.dumpBinaryAssets) {
+					std::vector<byte> rawAsset{};
+
+					utils::WriteValue(rawAsset, &asset, sizeof(asset));
+					reader.Goto(originLoc);
+					size_t len{ endLoc - originLoc };
+					utils::WriteValue(rawAsset, reader.ReadPtr<byte>(len), len);
+
+					std::filesystem::path assetOut{ binout / std::format("{:04}_{}.bin", i, assType) };
+
+					if (utils::WriteFile(assetOut, rawAsset)) {
+						LOG_INFO("Dump asset {}", assetOut.string());
+					}
+					else {
+						LOG_ERROR("Error when dumping {}", assetOut.string());
+					}
+				}
 			}
 
 			LOG_INFO("{} asset(s) loaded (0x{:x})", bo4FFHandlerContext.loaded, bo4FFHandlerContext.loaded);

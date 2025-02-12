@@ -218,6 +218,9 @@ namespace fastfile {
 			else if (!_strcmpi("--noAssetDump", arg)) {
 				noAssetDump = true;
 			}
+			else if (!_strcmpi("--dumpBinaryAssets", arg)) {
+				dumpBinaryAssets = true;
+			}
 			else if (!_strcmpi("--assertContainer", arg)) {
 				assertContainer = true;
 			}
@@ -244,6 +247,7 @@ namespace fastfile {
 		LOG_INFO("-g --game [g]        : exe");
 		LOG_INFO("-p --patch           : Use patch files (fd/fp)");
 		LOG_INFO("--noAssetDump        : No asset dump");
+		LOG_INFO("--dumpBinaryAssets   : Dump binary assets");
 		LOG_INFO("--assertContainer    : Use acts as a container for other software");
 	}
 
