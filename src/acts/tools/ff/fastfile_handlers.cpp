@@ -224,6 +224,9 @@ namespace fastfile {
 			else if (!_strcmpi("--assertContainer", arg)) {
 				assertContainer = true;
 			}
+			else if (!_strcmpi("--dumpBinaryAssetsMap", arg)) {
+				dumpBinaryAssetsMap = true;
+			}
 			else if (*arg == '-') {
 				std::cerr << "Invalid argument: " << arg << "!\n";
 				return false;

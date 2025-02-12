@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
+#include <tools/ff/fastfile_dump.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <hook/module_mapper.hpp>
 #include <hook/memory.hpp>
@@ -217,7 +218,30 @@ namespace {
 			std::filesystem::path outFile{ bo4FFHandlerContext.opt->m_output / "bo4" / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump raw file {} {} 0x{:x}", outFile.string(), (void*)asset->buffer, asset->len);
+			LOG_INFO("Dump raw file {} 0x{:x}", outFile.string(), asset->len);
+			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
+				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+			break;
+		}
+		case ASSET_TYPE_LUAFILE: {
+			struct LuaFile {
+				XHash name;
+				uint32_t len;
+				byte* buffer;
+			}; static_assert(sizeof(LuaFile) == 0x20);
+			LuaFile* asset{ (LuaFile*)xasset->header };
+
+			const char* n{ hashutils::ExtractPtr(asset->name.hash) };
+
+			if (!n) {
+				n = utils::va("hashed/%llx.lua", asset->name.hash);
+			}
+
+			std::filesystem::path outFile{ bo4FFHandlerContext.opt->m_output / "bo4" / "luafile" / n };
+
+			std::filesystem::create_directories(outFile.parent_path());
+			LOG_INFO("Dump lua file {} 0x{:x}", outFile.string(), asset->len);
 			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
@@ -374,6 +398,9 @@ namespace {
 
 			static char emptyStr[1]{};
 
+			std::vector<fastfile::dump::BinXAsset> assetMap{};
+			size_t stringsOffsetStart{ reader.Loc() };
+
 			if (assetList.stringsCount) {
 				//reader.Align<void*>();
 				assetList.strings = reader.ReadPtr<char*>(assetList.stringsCount);
@@ -388,6 +415,8 @@ namespace {
 					}
 				}
 			}
+			size_t stringsOffsetEnd{ reader.Loc() };
+
 			bo4FFHandlerContext.mtStrings.clear();
 			{
 				std::filesystem::path outStrings{ out / std::format("{}_strings.txt", ctx.ffname) };
@@ -426,27 +455,33 @@ namespace {
 			bo4FFHandlerContext.osassets = &osa;
 			bo4FFHandlerContext.loaded = 0;
 
+			std::filesystem::path bindir{ opt.m_output / "bo4" / "binary" };
+			std::filesystem::path binout{ bindir / ctx.ffname };
+			if (opt.dumpBinaryAssets) {
+				std::filesystem::create_directories(binout);
+			}
+			else if (opt.dumpBinaryAssetsMap) {
+				std::filesystem::create_directories(bindir);
+			}
+
 			for (size_t i = 0; i < assetList.assetCount; i++) {
 				XAsset_0& asset{ assetList.assets[i] };
 
 				const char* assType{ XAssetNameFromId(asset.type) };
 				LOG_DEBUG("Load asset {} (0x{:x})", assType, (int)asset.type);
-				std::filesystem::path binout{ opt.m_output / "bo4" / "binary" / ctx.ffname };
-				if (opt.dumpBinaryAssets) {
-					std::filesystem::create_directories(binout);
-				}
 
 
 				size_t originLoc{ bo4FFHandlerContext.Loc() };
 				bo4FFHandlerContext.Load_XAsset(false, &asset);
-				size_t endLoc{ bo4FFHandlerContext.Loc() };
+				size_t len{ bo4FFHandlerContext.Loc() - originLoc };
+
+				LOG_DEBUG("asset {} loaded (0x{:x}:0x{:x})", assType, originLoc, len);
 
 				if (opt.dumpBinaryAssets) {
 					std::vector<byte> rawAsset{};
 
 					utils::WriteValue(rawAsset, &asset, sizeof(asset));
 					reader.Goto(originLoc);
-					size_t len{ endLoc - originLoc };
 					utils::WriteValue(rawAsset, reader.ReadPtr<byte>(len), len);
 
 					std::filesystem::path assetOut{ binout / std::format("{:04}_{}.bin", i, assType) };
@@ -457,6 +492,32 @@ namespace {
 					else {
 						LOG_ERROR("Error when dumping {}", assetOut.string());
 					}
+				}
+				if (opt.dumpBinaryAssetsMap) {
+					assetMap.emplace_back((uint32_t)asset.type, (uint32_t)i, originLoc, len);
+				}
+			}
+
+			if (opt.dumpBinaryAssetsMap) {
+				std::vector<byte> mapData{};
+
+				fastfile::dump::BinXAssetListHeader& header{ utils::Allocate<fastfile::dump::BinXAssetListHeader>(mapData) };
+				header.magic = fastfile::dump::BIN_MAGIC;
+				header.stringsCount = assetList.stringsCount;
+				header.stringsOffsetStart = stringsOffsetStart;
+				header.stringsOffsetEnd = stringsOffsetEnd;
+				header.assetOffset = mapData.size();
+				header.assetCount = assetMap.size();
+
+				utils::WriteValue(mapData, assetMap.data(), sizeof(assetMap[0]) * assetMap.size());
+
+				std::filesystem::path binmapout{ bindir / std::format("{}.map", ctx.ffname) };
+
+				if (utils::WriteFile(binmapout, mapData)) {
+					LOG_INFO("Dump asset {}", binmapout.string());
+				}
+				else {
+					LOG_ERROR("Error when dumping {}", binmapout.string());
 				}
 			}
 
