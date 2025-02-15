@@ -180,6 +180,14 @@ namespace {
 			bo4FFHandlerContext.pool.AddAssetHeader(xasset->type, 0, xasset->header);
 		}
 
+		games::bo4::pool::XHash* hash{ xasset->header ? games::bo4::pool::GetAssetName(xasset->type, xasset->header, 0) : nullptr };
+		const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
+
+		*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
+		if (hash && hash->hash) {
+			bo4FFHandlerContext.opt->AddAssetName(xasset->type, hash->hash);
+		}
+
 		if (bo4FFHandlerContext.opt->noAssetDump) return xasset; // ignore
 		switch (xasset->type) {
 		case ASSET_TYPE_SCRIPTPARSETREE: {
@@ -327,6 +335,7 @@ namespace {
 		void Init(fastfile::FastFileOption& opt) override {
 			hook::library::Library lib{ opt.GetGame(true) };
 
+			bo4FFHandlerContext.opt = &opt;
 
 			bo4FFHandlerContext.Load_XAsset = reinterpret_cast<decltype(bo4FFHandlerContext.Load_XAsset)>(lib[0x2E35D10]);
 
@@ -401,6 +410,10 @@ namespace {
 			std::vector<fastfile::dump::BinXAsset> assetMap{};
 			size_t stringsOffsetStart{ reader.Loc() };
 
+			hashutils::ReadDefaultFile();
+			// add hashes
+			hashutils::AddPrecomputed(hash::Hash64(ctx.ffname), ctx.ffname, true);
+
 			if (assetList.stringsCount) {
 				//reader.Align<void*>();
 				assetList.strings = reader.ReadPtr<char*>(assetList.stringsCount);
@@ -408,6 +421,7 @@ namespace {
 				for (size_t i = 0; i < assetList.stringsCount; i++) {
 					if (fastfile::IsSame(assetList.strings[i], -1)) {
 						assetList.strings[i] = reader.ReadString();
+						hashutils::AddPrecomputed(hash::Hash64(assetList.strings[i]), assetList.strings[i], true);
 					}
 					else {
 
@@ -450,8 +464,8 @@ namespace {
 			if (!osa) {
 				throw std::runtime_error(std::format("Can't open {}", outAssets.string()));
 			}
+			osa << "type,name";
 			bo4FFHandlerContext.readers.emplace_back(reader, XFILE_BLOCK_TEMP);
-			bo4FFHandlerContext.opt = &opt;
 			bo4FFHandlerContext.osassets = &osa;
 			bo4FFHandlerContext.loaded = 0;
 
@@ -523,6 +537,25 @@ namespace {
 
 			LOG_INFO("{} asset(s) loaded (0x{:x})", bo4FFHandlerContext.loaded, bo4FFHandlerContext.loaded);
 
+		}
+
+		void Cleanup() override {
+			if (bo4FFHandlerContext.opt->dumpAssetNames) {
+				std::filesystem::path outAssets{ bo4FFHandlerContext.opt->m_output / "bo4" / "assetnames.csv" };
+				{
+					utils::OutFileCE osa{ outAssets };
+					osa << "type,name";
+
+					size_t n{ std::min<size_t>(bo4FFHandlerContext.opt->assetNames.size(), games::bo4::pool::ASSET_TYPE_COUNT)};
+
+					for (size_t i = 0; i < n; i++) {
+						for (uint64_t h : bo4FFHandlerContext.opt->assetNames[i]) {
+							osa << "\n" << XAssetNameFromId((games::bo4::pool::XAssetType)i) << "," << hashutils::ExtractTmp("hash", h);
+						}
+					}
+				}
+				LOG_INFO("Dumped assets into {}", outAssets.string());
+			}
 		}
 	};
 

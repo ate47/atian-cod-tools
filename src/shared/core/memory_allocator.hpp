@@ -35,6 +35,9 @@ namespace core::memory_allocator {
 			std::memcpy(ptr, str, len + 1);
 			return ptr;
 		}
+		const char* CloneStr(const std::string& str) {
+			return CloneStr(str.data());
+		}
 
 		void FreeAll() {
 			for (void* ptr : ptrs) {

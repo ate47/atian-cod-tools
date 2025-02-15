@@ -1,6 +1,7 @@
 #pragma once
 #include <hook/module_mapper.hpp>
 #include <core/bytebuffer.hpp>
+#include <core/memory_allocator.hpp>
 #include <tools/utils/compress_utils.hpp>
 
 namespace fastfile {
@@ -53,6 +54,7 @@ namespace fastfile {
 		IWFFC_OODLE_SELKIE_SPEED = 0x11,
 		IWFFC_ZSTD_SIZE = 0x12,
 		IWFFC_ZSTD_SPEED = 0x13,
+		IWFFC_COUNT,
 
 		// mwiii
 		// DEV ERROR 141 -> Unsupported block compression type (hw zlib) (8,9,10,11)
@@ -66,7 +68,7 @@ namespace fastfile {
 		XFILE_XBOX = 0x1,
 		XFILE_PLAYSTATION = 0x2,
 		XFILE_DEV = 0x3,
-		XFILE_COUNT = 0x4,
+		XFILE_PLATFORM_COUNT = 0x4,
 	};
 
 
@@ -92,7 +94,9 @@ namespace fastfile {
 	};
 
 	class FFHandler;
-
+	class FFCompressor;
+	class FFLinker;
+	
 	struct FastFileContext {
 		const char* file;
 		const char* ffname{};
@@ -110,6 +114,7 @@ namespace fastfile {
 		bool assertContainer{};
 		bool dumpBinaryAssets{};
 		bool dumpBinaryAssetsMap{};
+		bool dumpAssetNames{};
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};
@@ -118,6 +123,7 @@ namespace fastfile {
 		std::vector<const char*> files{};
 		FFHandler* handler{};
 		hook::module_mapper::Module gameMod{};
+		std::vector<std::set<uint64_t>> assetNames{};
 
 		~FastFileOption();
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
@@ -131,6 +137,49 @@ namespace fastfile {
 		inline bool ReadFile(const std::string& path, std::vector<byte>& buff) {
 			return ReadFile(path.data(), buff);
 		}
+
+		void AddAssetName(int type, uint64_t name);
+	};
+
+	class FastFileLinkerOption {
+	public:
+		bool m_help{};
+		bool m_fd{};
+		bool m_header{};
+		bool printCompressors{};
+		bool printLinkers{};
+		size_t chunkSize{};
+		std::filesystem::path m_output{ "output_ff" };
+		const char* ffname{};
+		std::vector<const char*> files{};
+		FFCompressor* compressor{};
+		FFLinker* linker{};
+		bool server{};
+		FastFilePlatform platform{ FastFilePlatform::XFILE_PC };
+		const char* compressionType{};
+
+		~FastFileLinkerOption();
+		bool Compute(const char** args, size_t startIndex, size_t endIndex);
+		void PrintHelp();
+	};
+
+	class FastFileLinkerContext {
+	public:
+		std::filesystem::path input;
+		std::string inputFileNameStr;
+		FastFileLinkerOption& opt;
+		std::vector<byte>& data;
+		const char* ffname{};
+		core::memory_allocator::MemoryAllocator strs{};
+
+		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path input, std::vector<byte>& data)
+			: opt(opt), input(input), data(data) {
+			if (opt.ffname) ffname = opt.ffname;
+			else {
+				inputFileNameStr = input.filename().string();
+				ffname = inputFileNameStr.data();
+			}
+		}
 	};
 
 	constexpr uint64_t MASK32 = 0xFFFFFFFF;
@@ -142,7 +191,7 @@ namespace fastfile {
 		uint64_t magic;
 		uint64_t mask;
 
-		FFDecompressor(const char* name, uint64_t magic, uint64_t mask) : name(name), magic(magic & mask), mask(mask) {
+		FFDecompressor(const char* name, uint64_t magic, uint64_t mask) : name(name), magic(magic& mask), mask(mask) {
 		}
 
 		virtual void Init(FastFileOption& opt) {}
@@ -150,6 +199,36 @@ namespace fastfile {
 		virtual void Cleanup() {}
 
 		virtual void LoadFastFile(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx, std::vector<byte>& ffdata) = 0;
+	};
+
+	class FFLinker {
+	public:
+		const char* name;
+		const char* description;
+
+		FFLinker(const char* name, const char* description) : name(name), description(description) {
+		}
+
+		virtual void Init(FastFileLinkerOption& opt) {}
+
+		virtual void Cleanup() {}
+
+		virtual void Link(FastFileLinkerContext& ctx) = 0;
+	};
+
+	class FFCompressor {
+	public:
+		const char* name;
+		const char* description;
+
+		FFCompressor(const char* name, const char* description) : name(name), description(description) {
+		}
+
+		virtual void Init(FastFileLinkerOption& opt) {}
+
+		virtual void Cleanup() {}
+
+		virtual void Compress(FastFileLinkerContext& ctx) = 0;
 	};
 
 	class FFHandler {
@@ -170,10 +249,21 @@ namespace fastfile {
 	const char* GetFastFileCompressionName(FastFileIWCompression comp);
 	const char* GetFastFileCompressionName(FastFileCompression comp);
 	const char* GetFastFilePlatformName(FastFilePlatform comp);
+
+	FastFileIWCompression GetFastFileIWCompression(const char* name);
+	FastFileCompression GetFastFileCompression(const char* name);
+	FastFilePlatform GetFastFilePlatform(const char* name);
+
 	std::vector<FFDecompressor*>& GetDecompressors();
-	FFDecompressor* FindDecompressor(uint64_t magic);
 	std::vector<FFHandler*>& GetHandlers();
+	std::vector<FFCompressor*>& GetCompressors();
+	std::vector<FFLinker*>& GetLinkers();
+
+	FFDecompressor* FindDecompressor(uint64_t magic);
 	FFHandler* FindHandler(const char* name);
+	FFCompressor* FindCompressor(const char* name);
+	FFLinker* FindLinker(const char* name);
+
 	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp);
 	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileIWCompression comp);
 }

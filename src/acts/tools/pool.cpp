@@ -1295,23 +1295,6 @@ int pooltoolnames(Process& proc, int argc, const char* argv[]) {
 
     XAssetPoolEntry entry{};
 
-    std::unordered_map<XAssetType, size_t> xoffsets{
-        { ASSET_TYPE_RAGDOLL, 0xBA0 },
-        { ASSET_TYPE_FLAMETABLE, 0x1B0 },
-        { ASSET_TYPE_XANIM, 0x70 },
-        { ASSET_TYPE_IMAGE, 0x20 },
-        { ASSET_TYPE_KLF, 0x18 },
-        { ASSET_TYPE_PLAYLISTS, 0x10 },
-        { ASSET_TYPE_DLOGEVENT, 8 },
-        { ASSET_TYPE_UNLOCKABLE_ITEM, 8 },
-        { ASSET_TYPE_STORECATEGORY, 8 },
-        { ASSET_TYPE_STORAGEFILE, 8 },
-        { ASSET_TYPE_SOUND, 8 },
-        { ASSET_TYPE_SANIM, 8 },
-        { ASSET_TYPE_PLAYLIST_GLOBAL_SETTINGS, 8 },
-        { ASSET_TYPE_PLAYLIST_SCHEDULE, 8 },
-        { ASSET_TYPE_LOCALIZE_ENTRY, 8 },
-    };
 
     for (size_t i = 0; i < ASSET_TYPE_COUNT; i++) {
         auto id = (XAssetType)i;
@@ -1338,7 +1321,7 @@ int pooltoolnames(Process& proc, int argc, const char* argv[]) {
             
 
         defout << "id,name,type,offset";
-        auto off = xoffsets[id];
+        size_t off{ GetAssetNameOffset(id) };
 
         for (size_t asset = 0; asset < entry.itemAllocCount; asset++) {
             uintptr_t offset = entry.pool + entry.itemSize * asset;

@@ -73,6 +73,7 @@ try {
     Copy-Item "deps/stb/LICENSE" "$base/licenses/stb.txt" > $null
     Copy-Item "deps/tomlplusplus/LICENSE" "$base/licenses/tomlplusplus.txt" > $null
     Copy-Item "deps/miniz-cpp/LICENSE.md" "$base/licenses/miniz-cpp.md" > $null
+    Copy-Item "deps/zstd/LICENSE" "$base/licenses/zstd.md" > $null
 
 
     # Compress

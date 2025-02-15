@@ -101,11 +101,11 @@ namespace deps::oodle {
         Oodle_GetConfigValues(cfg);
     }
 
-    void Oodle::Compress(OodleCompressor compressor, const void* src, int32_t srcLen, void* dest, OodleCompressionLevel level) const {
+    int Oodle::Compress(OodleCompressor compressor, const void* src, int32_t srcLen, void* dest, OodleCompressionLevel level) const {
         if (!OodleLZ_Compress) {
             throw std::runtime_error("OodleLZ_Compress not available or oodle not loaded");
         }
-        OodleLZ_Compress(compressor, src, srcLen, dest, level, nullptr, nullptr, nullptr, nullptr, 0);
+        return OodleLZ_Compress(compressor, src, srcLen, dest, level, nullptr, nullptr, nullptr, nullptr, 0);
     }
 
     int32_t Oodle::GetCompressedBufferSizeNeeded(OodleCompressor compressor, int32_t rawSize) const {

@@ -1,7 +1,13 @@
 #pragma once
 #include <includes_shared.hpp>
+#include <utils/hash.hpp>
 
 namespace games::bo4::pool {
+    struct XHash {
+        uint64_t hash;
+        const char* str{};
+    };
+
     enum XAssetType : byte{
         ASSET_TYPE_PHYSPRESET = 0,
         ASSET_TYPE_PHYSCONSTRAINTS = 1,
@@ -246,4 +252,7 @@ namespace games::bo4::pool {
      * @return bgcache type name
      */
     const char* BGCacheNameFromId(BGCacheTypes id);
+
+    size_t GetAssetNameOffset(XAssetType type);
+    XHash* GetAssetName(XAssetType type, void* asset, size_t size);
 }

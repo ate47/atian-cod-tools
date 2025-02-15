@@ -778,7 +778,9 @@ group "deps"
 
         files {
             "deps/lz4/lib/lz4.c",
-            "deps/lz4/lib/lz4.h"
+            "deps/lz4/lib/lz4.h",
+            "deps/lz4/lib/lz4hc.c",
+            "deps/lz4/lib/lz4hc.h"
         }
 
         includedirs {
@@ -1005,6 +1007,8 @@ group "deps"
             "deps/zstd/lib/common/**.h",
             "deps/zstd/lib/decompress/**.c",
             "deps/zstd/lib/decompress/**.h",
+            "deps/zstd/lib/compress/**.c",
+            "deps/zstd/lib/compress/**.h",
         }
 
         defines {

@@ -109,7 +109,7 @@ namespace deps::oodle {
 
         void GetConfigValues(int32_t* cfg) const;
 
-        void Compress(OodleCompressor compressor, const void* src, int32_t srcLen, void* dest, OodleCompressionLevel level = OODLE_COMPL_NORMAL) const;
+        int Compress(OodleCompressor compressor, const void* src, int32_t srcLen, void* dest, OodleCompressionLevel level = OODLE_COMPL_NORMAL) const;
 
         int32_t GetCompressedBufferSizeNeeded(OodleCompressor compressor, int32_t rawSize) const;
 
