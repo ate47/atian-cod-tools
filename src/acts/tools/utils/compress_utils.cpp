@@ -121,7 +121,8 @@ namespace utils::compress {
 	}
 
 	bool CompressBuffer(CompressionAlgorithm alg, const void* src, size_t srcSize, std::vector<byte>& out) {
-		out.resize(GetCompressSize(alg, srcSize));
+		size_t allocSize{ GetCompressSize(alg, srcSize) };
+		out.resize(allocSize);
 
 		size_t outLen{ out.size() };
 		if (!Compress(alg, out.data(), &outLen, src, srcSize)) {

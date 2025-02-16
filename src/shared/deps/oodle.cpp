@@ -20,6 +20,18 @@ namespace deps::oodle {
     Oodle::Oodle(const char* libname) {
         LoadOodle(libname);
     }
+    namespace {
+        void DefaultPrintF(int unk, const char* filename, int len, const char* fmt, ...) {
+            if (HAS_LOG_LEVEL(core::logs::LVL_INFO)) {
+                va_list va{};
+                va_start(va, fmt);
+
+                core::logs::log(core::logs::LVL_INFO, filename, len, utils::vap(fmt, va));
+
+                va_end(va);
+            }
+        }
+    }
 
     bool Oodle::LoadOodle(const char* libname) {
         FreeOodle();
@@ -39,9 +51,15 @@ namespace deps::oodle {
             LOG_TRACE("Loaded oodle version 0x{:x}", GetVersion());
         }
 
-        if ((OodleLZ_GetCompressedBufferSizeNeeded = oodle.GetProc<POodleLZ_GetCompressedBufferSizeNeeded>("OodleLZ_GetCompressedBufferSizeNeeded"))
+        if ((OodleLZ_GetCompressedBufferSizeNeeded.v8 = oodle.GetProc<POodleLZ_GetCompressedBufferSizeNeededV8>("OodleLZ_GetCompressedBufferSizeNeeded"))
             && (OodleLZ_Compress = oodle.GetProc<POodleLZ_Compress>("OodleLZ_Compress"))) {
             LOG_TRACE("Loaded oodle compress");
+
+            useV8 = OodleLZ_GetCompressedBufferSizeNeeded.v8(deps::oodle::OODLE_COMP_KRAKEN, 10000) > 10000;
+        }
+
+        if (OodleCore_Plugins_SetPrintf = oodle.GetProc<POodleCore_Plugins_SetPrintf>("OodleCore_Plugins_SetPrintf")) {
+            OodleCore_Plugins_SetPrintf(DefaultPrintF);
         }
 
         return true;
@@ -65,9 +83,15 @@ namespace deps::oodle {
                 LOG_TRACE("Loaded oodle version 0x{:x}", GetVersion());
             }
 
-            if ((OodleLZ_GetCompressedBufferSizeNeeded = oodle.GetProc<POodleLZ_GetCompressedBufferSizeNeeded>("OodleLZ_GetCompressedBufferSizeNeeded"))
+            if ((OodleLZ_GetCompressedBufferSizeNeeded.v8 = oodle.GetProc<POodleLZ_GetCompressedBufferSizeNeededV8>("OodleLZ_GetCompressedBufferSizeNeeded"))
                 && (OodleLZ_Compress = oodle.GetProc<POodleLZ_Compress>("OodleLZ_Compress"))) {
                 LOG_TRACE("Loaded oodle compress");
+
+                useV8 = OodleLZ_GetCompressedBufferSizeNeeded.v8(deps::oodle::OODLE_COMP_KRAKEN, 10000) >= 10000;
+            }
+
+            if (OodleCore_Plugins_SetPrintf = oodle.GetProc<POodleCore_Plugins_SetPrintf>("OodleCore_Plugins_SetPrintf")) {
+                OodleCore_Plugins_SetPrintf(DefaultPrintF);
             }
 
             return true;
@@ -109,16 +133,28 @@ namespace deps::oodle {
     }
 
     int32_t Oodle::GetCompressedBufferSizeNeeded(OodleCompressor compressor, int32_t rawSize) const {
-        if (!OodleLZ_GetCompressedBufferSizeNeeded) {
+        if (!OodleLZ_GetCompressedBufferSizeNeeded.v8) {
             throw std::runtime_error("OodleLZ_GetCompressedBufferSizeNeeded not available or oodle not loaded");
         }
-        return OodleLZ_GetCompressedBufferSizeNeeded(compressor, rawSize);
+        if (useV8) {
+            return OodleLZ_GetCompressedBufferSizeNeeded.v8(compressor, rawSize);
+        }
+        else {
+            return OodleLZ_GetCompressedBufferSizeNeeded.v67(rawSize);
+        }
     }
 
     int32_t Oodle::GetVersion() const {
         int32_t cfg[7];
         GetConfigValues(cfg);
         return cfg[6];
+    }
+
+    void Oodle::SetPrintf(printffunc func) const {
+        if (!OodleCore_Plugins_SetPrintf) {
+            throw std::runtime_error("OodleCore_Plugins_SetPrintf not available or oodle not loaded");
+        }
+        OodleCore_Plugins_SetPrintf(func);
     }
 
     int Oodle::Decompress(

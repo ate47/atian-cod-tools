@@ -46,6 +46,9 @@ namespace {
 
 			}
 			alg = fastfile::GetFastFileCompressionAlgorithm(compression);
+			if (opt.useHC) {
+				alg = alg | utils::compress::COMP_HIGH_COMPRESSION;
+			}
 			constexpr size_t maxSize{ utils::GetMaxSize<int32_t>() };
 			if (opt.chunkSize > maxSize) {
 				LOG_WARNING("Chunk size can't be above {}", maxSize);
@@ -65,6 +68,7 @@ namespace {
 
 			size_t idx{};
 			std::vector<byte> compressBuffer{};
+			size_t compressedSize{};
 			LOG_TRACE("start compressing chunk 0x{:x} byte(s) using {}...", remainingSize, alg);
 			while (remainingSize > 0) {
 				uint32_t uncompressedSize{ (uint32_t)std::min<size_t>(chunkSize, remainingSize) };
@@ -74,6 +78,7 @@ namespace {
 					throw std::runtime_error(std::format("Can't compress chunk 0x{:x} of size 0x{:x}", idx - 1, uncompressedSize));
 				}
 				uint32_t alignedSize{ utils::Aligned<uint32_t>((uint32_t)compressBuffer.size()) };
+				compressedSize += compressBuffer.size();
 
 				uint32_t blockOffset{ (uint32_t)utils::Allocate(out, sizeof(fastfile::DBStreamHeader) + alignedSize) };
 
@@ -139,7 +144,7 @@ namespace {
 				LOG_WARNING(".fd file generator not implemented");
 			}
 
-			LOG_INFO("Compressed {} into {}", ctx.ffname, outputFile.string());
+			LOG_INFO("Compressed {} into {} ({} -> {} bytes / {}% saved)", ctx.ffname, outputFile.string(), ctx.data.size(), compressedSize, (100 - 100 * compressedSize / ctx.data.size()));
 		}
 
 	};

@@ -150,6 +150,7 @@ namespace fastfile {
 		bool m_header{};
 		bool printCompressors{};
 		bool printLinkers{};
+		bool useHC{};
 		size_t chunkSize{};
 		std::filesystem::path m_output{ "output_ff" };
 		const char* ffname{};

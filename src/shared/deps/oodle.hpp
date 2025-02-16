@@ -33,12 +33,20 @@ namespace deps::oodle {
     };
 
     enum OodleCompressor : int {
+        OODLE_COMP_LZH = 0,
+        OODLE_COMP_LZH_LW = 1,
+        OODLE_COMP_LZNIB = 2,
         OODLE_COMP_NONE = 3,
+        OODLE_COMP_LZB16 = 4,
+        OODLE_COMP_LZBW = 5,
+        OODLE_COMP_LZA = 6,
+        OODLE_COMP_LZNA = 7,
         OODLE_COMP_KRAKEN = 8,
-        OODLE_COMP_LEVIATHAN = 13,
         OODLE_COMP_MERMAID = 9,
+        OODLE_COMP_BITKNIT = 10,
         OODLE_COMP_SELKIE = 11,
         OODLE_COMP_HYDRA = 12,
+        OODLE_COMP_LEVIATHAN = 13,
     };
     enum OodleCompressionLevel : int {
         OODLE_COMPL_NONE = 0,
@@ -77,15 +85,24 @@ namespace deps::oodle {
         OodleThreadPhase threadPhase);
     typedef void(*POodle_GetConfigValues)(int32_t* cfg);
 
-    typedef int32_t(*POodleLZ_GetCompressedBufferSizeNeeded)(OodleCompressor compressor, int32_t rawSize);
-
+    typedef int32_t(*POodleLZ_GetCompressedBufferSizeNeededV8)(OodleCompressor compressor, int32_t rawSize);
+    typedef int32_t(*POodleLZ_GetCompressedBufferSizeNeededV67)(int32_t rawSize);
+    union POodleLZ_GetCompressedBufferSizeNeeded {
+        POodleLZ_GetCompressedBufferSizeNeededV8 v8;
+        POodleLZ_GetCompressedBufferSizeNeededV67 v67;
+    };
+    typedef void (*printffunc)(int a1, const char* filename, int line, const char* format, ...);
+    typedef void(*POodleCore_Plugins_SetPrintf)(printffunc func);
+    
 
     class Oodle {
         hook::library::Library oodle{ (HMODULE)0 };
         POodleLZ_Decompress OodleLZ_Decompress{};
         POodle_GetConfigValues Oodle_GetConfigValues{};
         POodleLZ_GetCompressedBufferSizeNeeded OodleLZ_GetCompressedBufferSizeNeeded{};
+        bool useV8{};
         POodleLZ_Compress OodleLZ_Compress{};
+        POodleCore_Plugins_SetPrintf OodleCore_Plugins_SetPrintf{};
 
     public:
         Oodle() {}
@@ -114,6 +131,8 @@ namespace deps::oodle {
         int32_t GetCompressedBufferSizeNeeded(OodleCompressor compressor, int32_t rawSize) const;
 
         int32_t GetVersion() const;
+
+        void SetPrintf(printffunc func) const;
 
         int Decompress(
             const void* src, uint32_t srcLen, void* dest, uint32_t destLen,

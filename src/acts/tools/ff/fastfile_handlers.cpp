@@ -294,6 +294,9 @@ namespace fastfile {
 			else if (!_strcmpi("--server", arg)) {
 				server = true;
 			}
+			else if (!strcmp("-H", arg) || !_strcmpi("--high-compression", arg)) {
+				useHC = true;
+			}
 			else if (!_strcmpi("--chunkSize", arg)) {
 				if (i + 1 == endIndex) {
 					std::cerr << "Missing value for param: " << arg << "!\n";
@@ -325,6 +328,7 @@ namespace fastfile {
 		LOG_INFO("-c --compressor       : Compressor to use");
 		LOG_INFO("-C --compressors      : Print compressors");
 		LOG_INFO("--chunkSize [size]    : Set chunk sizes");
+		LOG_INFO("-H --high-compression : Use high compression (if available)");
 	}
 
 
