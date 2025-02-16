@@ -37,7 +37,7 @@ namespace acts::compiler {
 
 	void CompileGsc(const std::vector<std::filesystem::path>& files, std::vector<byte>& data, CompilerConfig& cfg);
 	inline void CompileGsc(const std::filesystem::path& file, std::vector<byte>& data, CompilerConfig& cfg) {
-		std::vector<std::filesystem::path> files{ 1 };
+		std::vector<std::filesystem::path> files{};
 		files.emplace_back(file);
 		CompileGsc(files, data, cfg);
 	}

@@ -104,10 +104,10 @@ namespace {
 			// write header data
 			XFile& header{ *(XFile*)out.data() };
 			*(uint64_t*)&header.magic[0] = 0x3030303066664154;
+			header.version = 0x27F;
 			header.platform = ctx.opt.platform;
 			header.server = ctx.opt.server;
-			header.timestamp = utils::GetTimestamp();
-			header.version = 0x27F;
+			header.timestamp = utils::GetTimestamp() / 1000;
 			header.encrypted = false;
 			header.size = ctx.data.size();
 			header.compression = compression;

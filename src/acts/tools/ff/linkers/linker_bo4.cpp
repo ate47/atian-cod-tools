@@ -1,24 +1,27 @@
 #include <includes.hpp>
-#include <core/config.hpp>
-#include <tools/fastfile.hpp>
-#include <tools/ff/fastfile_handlers.hpp>
-#include <games/bo4/pool.hpp>
+#include <tools/ff/linkers/linker_bo4.hpp>
 
-namespace {
-	using namespace fastfile;
+namespace fastfile::linker::bo4 {
+	std::vector<LinkerWorker*>& GetWorkers() {
+		static std::vector<LinkerWorker*> workers{};
+		return workers;
+	}
 
-	struct Asset {
-		games::bo4::pool::XAssetType type;
-		void* location;
-	};
+	uint64_t HashPathName(const std::filesystem::path& path) {
+		std::filesystem::path p{ path };
+		if (p.has_extension()) {
+			p.replace_extension();
+		}
+		std::string fn{ p.filename().string() };
+		uint64_t r;
+		if (!hash::TryHashPattern(fn.data(), r)) {
+			fn = path.string();
+			r = hash::Hash64(fn.data());
+		}
+		LOG_TRACE("Hash path {} -> 0x{:x}", path.string(), r);
+		return r;
 
-	struct BO4LinkContext {
-		FastFileLinkerContext& linkCtx;
-		std::vector<byte> assetData{};
-		std::vector<const char*> strings{};
-		std::vector<Asset> assets{};
-
-	};
+	}
 
 	class FFLinkerBO4 : public FFLinker {
 	public:
@@ -32,6 +35,7 @@ namespace {
 
 			// load common configs
 			core::config::Config cfg{ ctx.input / "config.json" };
+			cfg.SyncConfig(false);
 
 			std::string ffName{ cfg.GetString("data.name") };
 
@@ -39,15 +43,53 @@ namespace {
 				ctx.ffname = ctx.strs.CloneStr(ffName);
 			}
 			
-			BO4LinkContext bo4ctx{ ctx };
+			BO4LinkContext bo4ctx{ ctx, cfg };
 
 
-			// todo: load files into bo4ctx.assetData
+			// load files into bo4ctx.assetData
 
-
-			// todo: add to ctx.data the assets/strings headers
+			for (LinkerWorker* w : GetWorkers()) {
+				LOG_DEBUG("Compute '{}'...", w->id);
+				w->Compute(bo4ctx);
+			}
 			
-			throw std::runtime_error("not implemented");
+			if (bo4ctx.error) {
+				throw std::runtime_error("Error when linking fast file data");
+			}
+
+			// add to ctx.data the assets/strings headers
+			XAssetList& assetlist{ utils::Allocate<XAssetList>(ctx.data) };
+
+			// write header
+			if (bo4ctx.strings.size()) {
+				assetlist.stringList.count = (int)bo4ctx.strings.size();
+				assetlist.stringList.strings = fastfile::ALLOC_PTR;
+			}
+
+			if (bo4ctx.assets.size()) {
+				assetlist.assetCount = (int)bo4ctx.assets.size();
+				assetlist.assets = fastfile::ALLOC_PTR;
+			}
+
+			if (bo4ctx.strings.size()) {
+				// write string ref array
+				uintptr_t* ptrs{ utils::AllocateArray<uintptr_t>(ctx.data, bo4ctx.strings.size()) };
+				for (size_t i = 0; i < bo4ctx.strings.size(); i++) {
+					ptrs[i] = fastfile::ALLOC_PTR;
+				}
+
+				// write strings
+				for (const char* str : bo4ctx.strings) {
+					utils::WriteString(ctx.data, str);
+				}
+			}
+			if (bo4ctx.assets.size()) {
+				// write asset array
+				utils::WriteValue(ctx.data, bo4ctx.assets.data(), bo4ctx.assets.size() * sizeof(bo4ctx.assets[0]));
+			}
+
+			// write asset data
+			utils::WriteValue(ctx.data, bo4ctx.assetData.data(), bo4ctx.assetData.size());
 		}
 
 	};

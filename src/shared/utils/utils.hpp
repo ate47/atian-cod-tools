@@ -274,6 +274,16 @@ namespace utils {
 		return *reinterpret_cast<T*>(&data[Allocate(data, sizeof(T))]);
 	}
 	/*
+	 * Allocate an array pointer inside a vector
+	 * @param data buffer
+	 * @param count count
+	 * @return pointer
+	 */
+	template<typename T>
+	T* AllocateArray(std::vector<byte>& data, size_t count) {
+		return reinterpret_cast<T*>(&data[Allocate(data, sizeof(T) * count)]);
+	}
+	/*
 	 * Write a padding into a stream
 	 * @param out stream
 	 * @param padding padding size

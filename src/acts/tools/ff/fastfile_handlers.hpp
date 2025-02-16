@@ -9,6 +9,8 @@ namespace fastfile {
 	inline bool IsSame(T t, int64_t val) {
 		return reinterpret_cast<T>(val) == t;
 	}
+	
+	constexpr uintptr_t ALLOC_PTR = static_cast<uintptr_t>(-1);
 
 	struct DBStreamHeader {
 		uint32_t compressedSize;
@@ -172,8 +174,8 @@ namespace fastfile {
 		const char* ffname{};
 		core::memory_allocator::MemoryAllocator strs{};
 
-		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path input, std::vector<byte>& data)
-			: opt(opt), input(input), data(data) {
+		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path in, std::vector<byte>& data)
+			: opt(opt), input(std::filesystem::absolute(in)), data(data) {
 			if (opt.ffname) ffname = opt.ffname;
 			else {
 				inputFileNameStr = input.filename().string();

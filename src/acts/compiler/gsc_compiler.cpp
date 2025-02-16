@@ -6163,10 +6163,8 @@ namespace acts::compiler {
         VmInfo* vmInfo{ config.GetVm() };
         InputInfo info{};
         for (const std::filesystem::path& file : files) {
-            auto ext = file.extension();
-
             if (!info.container.AppendFile(file)) {
-                throw std::runtime_error(std::format("Can't read file {}", file.string()));
+                throw std::runtime_error(std::format("Can't read file '{}'", file.string()));
             }
         }
 
