@@ -44,6 +44,7 @@ namespace fastfile::linker::bo4 {
 			}
 			
 			BO4LinkContext bo4ctx{ ctx, cfg };
+			bo4ctx.ffnameHash = hash::Hash64Pattern(ctx.ffname);
 
 
 			// load files into bo4ctx.assetData

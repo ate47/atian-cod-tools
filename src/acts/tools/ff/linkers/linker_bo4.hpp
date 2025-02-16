@@ -31,6 +31,7 @@ namespace fastfile::linker::bo4 {
 		std::vector<const char*> strings{};
 		std::vector<XAsset> assets{};
 		bool error{};
+		uint64_t ffnameHash{};
 	};
 
 	class LinkerWorker {

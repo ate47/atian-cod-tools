@@ -36,14 +36,15 @@ namespace fastfile::linker::bo4 {
 
 				RawFile& rf{ utils::Allocate<RawFile>(ctx.assetData) };
 
-				rf.name.hash = HashPathName(rfpath);
+				uint64_t hash = HashPathName(rfpath);
+				rf.name.hash = hash;
 				rf.buffer = fastfile::ALLOC_PTR;
 				rf.len = (uint32_t)buffer.size();
 
 				// write header
 				utils::WriteValue(ctx.assetData, buffer.data(), buffer.length() + 1); // add \0
 				ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_RAWFILE, fastfile::ALLOC_PTR);
-				LOG_INFO("Added asset rawfile {} (hash_{:x})", path.string(), rf.name.hash);
+				LOG_INFO("Added asset rawfile {} (hash_{:x})", path.string(), hash);
 			}
 		}
 	};

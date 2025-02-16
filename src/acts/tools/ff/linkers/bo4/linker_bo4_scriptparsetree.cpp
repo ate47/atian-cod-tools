@@ -31,7 +31,7 @@ namespace fastfile::linker::bo4 {
 			buffer.push_back(0); // the game is reading (len + 1) so we add a byte at the end
 			utils::WriteValue(ctx.assetData, buffer.data(), buffer.size());
 			ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREE, fastfile::ALLOC_PTR);
-			LOG_INFO("Added asset scriptparsetree {} (hash_{:x})", path.string(), spt.name.hash);
+			LOG_INFO("Added asset scriptparsetree {} (hash_{:x})", path.string(), obj.name);
 		}
 
 		void Compute(BO4LinkContext& ctx) override {
