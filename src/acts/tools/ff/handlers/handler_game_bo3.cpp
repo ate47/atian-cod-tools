@@ -6,7 +6,14 @@
 #include <hook/memory.hpp>
 #include <hook/error.hpp>
 #include <tools/ff/fastfile_asset_pool.hpp>
+#include <tools/ff/handlers/handler_game_bo3.hpp>
 
+namespace fastfile::handlers::bo3 {
+	std::unordered_map<::bo3::pool::T7XAssetType, Worker*>& GetWorkers() {
+		static std::unordered_map<::bo3::pool::T7XAssetType, Worker*> map{};
+		return map;
+	}
+}
 namespace {
 	using namespace bo3::pool;
 
@@ -179,56 +186,65 @@ namespace {
 		}
 
 		if (bo3FFHandlerContext.opt->noAssetDump) return; // ignore
-		switch (assetType) {
-		case T7_ASSET_TYPE_SCRIPTPARSETREE: {
-			struct ScriptParseTree {
-				const char* name;
-				int32_t len;
-				int32_t pad;
-				byte* buffer;
-			}; static_assert(sizeof(ScriptParseTree) == 0x18);
-			ScriptParseTree* spt{ (ScriptParseTree*)*header };
+
+		auto& workers{ fastfile::handlers::bo3::GetWorkers() };
+
+		auto it{ workers.find(assetType) };
+		if (it != workers.end()) {
+			it->second->Unlink(*bo3FFHandlerContext.opt, header);
+		}
+		else {
+			switch (assetType) {
+			case T7_ASSET_TYPE_SCRIPTPARSETREE: {
+				struct ScriptParseTree {
+					const char* name;
+					int32_t len;
+					int32_t pad;
+					byte* buffer;
+				}; static_assert(sizeof(ScriptParseTree) == 0x18);
+				ScriptParseTree* spt{ (ScriptParseTree*)*header };
 
 
-			std::filesystem::path outDir{ bo3FFHandlerContext.opt->m_output / "bo3" / "spt"};
+				std::filesystem::path outDir{ bo3FFHandlerContext.opt->m_output / "bo3" / "spt" };
 
-			if (!FixupName(spt->name)) {
+				if (!FixupName(spt->name)) {
+					break;
+				}
+
+				std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}c", *(uint64_t*)spt->buffer, spt->name) };
+				std::filesystem::create_directories(outFile.parent_path());
+				LOG_INFO("Dump scriptparsetree {} {} 0x{:x}", outFile.string(), (void*)spt->buffer, spt->len);
+				if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
+					LOG_ERROR("Error when dumping {}", outFile.string());
+				}
+			}
+											  break;
+			case T7_ASSET_TYPE_RAWFILE: {
+				struct RawFile {
+					const char* name;
+					int32_t len;
+					byte* buffer;
+				}; static_assert(sizeof(RawFile) == 0x18);
+				RawFile* asset{ (RawFile*)*header };
+
+				if (!FixupName(asset->name)) {
+					break;
+				}
+
+				std::filesystem::path outFile{ bo3FFHandlerContext.opt->m_output / "bo3" / "source" / asset->name };
+
+				std::filesystem::create_directories(outFile.parent_path());
+				LOG_INFO("Dump raw file {} {} 0x{:x}", outFile.string(), (void*)asset->buffer, asset->len);
+				if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
+					LOG_ERROR("Error when dumping {}", outFile.string());
+				}
 				break;
 			}
-
-			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}c", *(uint64_t*)spt->buffer, spt->name) };
-			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump scriptparsetree {} {} 0x{:x}", outFile.string(), (void*)spt->buffer, spt->len);
-			if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
-				LOG_ERROR("Error when dumping {}", outFile.string());
-			}
-		}
-			break;
-		case T7_ASSET_TYPE_RAWFILE: {
-			struct RawFile {
-				const char* name;
-				int32_t len;
-				byte* buffer;
-			}; static_assert(sizeof(RawFile) == 0x18);
-			RawFile* asset{ (RawFile*)*header };
-
-			if (!FixupName(asset->name)) {
+			default: {
+				LOG_TRACE("Ignoring asset {}/{}", T7XAssetName(assetType), (void*)header);
 				break;
 			}
-
-			std::filesystem::path outFile{ bo3FFHandlerContext.opt->m_output / "bo3" / "source" / asset->name };
-
-			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump raw file {} {} 0x{:x}", outFile.string(), (void*)asset->buffer, asset->len);
-			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
-				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
-			break;
-		}
-		default: {
-			LOG_TRACE("Ignoring asset {}/{}", T7XAssetName(assetType), (void*)header);
-			break;
-		}
 		}
 	}
 	void DB_PopStreamPos() {

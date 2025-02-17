@@ -388,7 +388,8 @@ project "AtianCodTools"
         "deps/stb/",
         "deps/tomlplusplus/include/toml++/",
         "deps/salsa20/Source/",
-        "deps/miniz-cpp/"
+        "deps/miniz-cpp/",
+        "deps/hash-library/"
     }
 
     vpaths {
@@ -418,6 +419,7 @@ project "AtianCodTools"
 	links { "GLU32" }
     links { "imgui" }
     links { "Crypt32.lib" }
+    links { "hashlibrary" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
@@ -431,6 +433,7 @@ project "AtianCodTools"
     dependson "zstd"
     dependson "glfw"
     dependson "imgui"
+    dependson { "hashlibrary" }
 
 project "AtianCodToolsCLI"
     kind "ConsoleApp"
@@ -1023,3 +1026,23 @@ group "deps"
         dependson { "zlib" }
         links { "lz4" }
         links { "zlib" }
+
+    project "hashlibrary"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++20"
+        characterset "MBCS"
+
+        targetname "hashlibrary"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/hash-library/*.cpp",
+            "deps/hash-library/*.h"
+        }
+
+        includedirs {
+            "deps/hash-library/"
+        }
+        

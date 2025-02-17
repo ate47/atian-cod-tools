@@ -16,4 +16,14 @@ namespace tool::utils::raw_file_extractor {
 		return reader.ReadAll();
 	}
 
+	void WriteRawFileInto(std::vector<byte>& data, std::ostream& out) {
+		core::bytebuffer::ByteBuffer bytebuff{ data };
+		core::raw_file::RawFileReader reader{
+			bytebuff,
+			[](char* str) -> char* { return acts::decryptutils::DecryptString(str); },
+			[](uint64_t h) -> const char* { return hashutils::ExtractTmp("hash", h); }
+		};
+
+		reader.ReadAll(out);
+	}
 }

@@ -162,11 +162,13 @@ namespace fastfile {
 		case fastfile::XFILE_UNCOMPRESSED:
 			return utils::compress::COMP_NONE;
 		case fastfile::XFILE_ZLIB:
-		case fastfile::XFILE_ZLIB_HC:
 			return utils::compress::COMP_ZLIB;
+		case fastfile::XFILE_ZLIB_HC:
+			return utils::compress::COMP_ZLIB | utils::compress::COMP_HIGH_COMPRESSION;
 		case fastfile::XFILE_LZ4:
-		case fastfile::XFILE_LZ4_HC:
 			return utils::compress::COMP_LZ4;
+		case fastfile::XFILE_LZ4_HC:
+			return utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION;
 		case fastfile::XFILE_OODLE_KRAKEN:
 			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_KRAKEN;
 		case fastfile::XFILE_OODLE_MERMAID:
@@ -174,7 +176,7 @@ namespace fastfile {
 		case fastfile::XFILE_OODLE_SELKIE:
 			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_SELKIE;
 		case fastfile::XFILE_OODLE_LZNA:
-			return utils::compress::COMP_LZMA;
+			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_LZNA;
 		default:
 			throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)comp));
 		}

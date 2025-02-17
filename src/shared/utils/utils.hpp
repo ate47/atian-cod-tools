@@ -520,6 +520,17 @@ namespace utils {
 		}
 	};
 
+	template<typename Type, typename KeyType, typename TypeIn = Type, typename MapType = std::unordered_map<KeyType, TypeIn*>>
+	class MapAdder {
+		Type data;
+
+	public:
+		template<typename... Args>
+		MapAdder(MapType& vec, KeyType&& key, Args... args) : data(args...) {
+			vec[key] = &data;
+		}
+	};
+
 	template<typename Type>
 	struct BasicFormatter {
 		template<class ParseContext>

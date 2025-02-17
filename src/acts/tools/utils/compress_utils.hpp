@@ -17,11 +17,20 @@ namespace utils::compress {
 		COMP_HIGH_COMPRESSION = 1 << 8,
 		// oodle compression type, by default use kraken
 		COMP_OODLE_TYPE_KRAKEN = 0ull << 9,
-		COMP_OODLE_TYPE_LEVIATHAN = 1ull << 9,
-		COMP_OODLE_TYPE_MERMAID = 2ull << 9,
-		COMP_OODLE_TYPE_SELKIE = 3ull << 9,
-		COMP_OODLE_TYPE_HYDRA = 4ull << 9,
-		COMP_OODLE_TYPE_MASK = 7ull << 9,
+		COMP_OODLE_TYPE_LZH = 1ull << 9,
+		COMP_OODLE_TYPE_LZH_LW = 2ull << 9,
+		COMP_OODLE_TYPE_LZNIB = 3ull << 9,
+		COMP_OODLE_TYPE_NONE = 4ull << 9,
+		COMP_OODLE_TYPE_LZB16 = 5ull << 9,
+		COMP_OODLE_TYPE_LZBW = 6ull << 9,
+		COMP_OODLE_TYPE_LZA = 7ull << 9,
+		COMP_OODLE_TYPE_LZNA = 8ull << 9,
+		COMP_OODLE_TYPE_MERMAID = 9ull << 9,
+		COMP_OODLE_TYPE_BITKNIT = 10ull << 9,
+		COMP_OODLE_TYPE_SELKIE = 11ull << 9,
+		COMP_OODLE_TYPE_HYDRA = 12ull << 9,
+		COMP_OODLE_TYPE_LEVIATHAN = 13ull << 9,
+		COMP_OODLE_TYPE_MASK = 15ull << 9,
 	};
 
 	constexpr utils::compress::CompressionAlgorithm operator|(utils::compress::CompressionAlgorithm a, utils::compress::CompressionAlgorithm b) {

@@ -160,7 +160,7 @@ namespace core::raw_file::json {
 		}
 
 
-		const std::vector<byte>& Build() {
+		std::vector<byte>& Build() {
 			return writer.Build();
 		}
 	};

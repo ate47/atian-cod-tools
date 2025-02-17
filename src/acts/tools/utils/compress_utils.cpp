@@ -10,16 +10,20 @@ namespace utils::compress {
 		if (GetCompressionType(c) != COMP_OODLE) throw std::runtime_error("Not an oodle compressor");
 
 		switch (GetOodleCompressionType(c)) {
-			case COMP_OODLE_TYPE_KRAKEN:
-				return deps::oodle::OODLE_COMP_KRAKEN;
-			case COMP_OODLE_TYPE_LEVIATHAN:
-				return deps::oodle::OODLE_COMP_LEVIATHAN;
-			case COMP_OODLE_TYPE_MERMAID:
-				return deps::oodle::OODLE_COMP_MERMAID;
-			case COMP_OODLE_TYPE_SELKIE:
-				return deps::oodle::OODLE_COMP_SELKIE;
-			case COMP_OODLE_TYPE_HYDRA:
-				return deps::oodle::OODLE_COMP_HYDRA;
+			case COMP_OODLE_TYPE_KRAKEN: return deps::oodle::OODLE_COMP_KRAKEN;
+			case COMP_OODLE_TYPE_LZH: return deps::oodle::OODLE_COMP_LZH;
+			case COMP_OODLE_TYPE_LZH_LW: return deps::oodle::OODLE_COMP_LZH_LW;
+			case COMP_OODLE_TYPE_LZNIB: return deps::oodle::OODLE_COMP_LZNIB;
+			case COMP_OODLE_TYPE_NONE: return deps::oodle::OODLE_COMP_NONE;
+			case COMP_OODLE_TYPE_LZB16: return deps::oodle::OODLE_COMP_LZB16;
+			case COMP_OODLE_TYPE_LZBW: return deps::oodle::OODLE_COMP_LZBW;
+			case COMP_OODLE_TYPE_LZA: return deps::oodle::OODLE_COMP_LZA;
+			case COMP_OODLE_TYPE_LZNA: return deps::oodle::OODLE_COMP_LZNA;
+			case COMP_OODLE_TYPE_MERMAID: return deps::oodle::OODLE_COMP_MERMAID;
+			case COMP_OODLE_TYPE_BITKNIT: return deps::oodle::OODLE_COMP_BITKNIT;
+			case COMP_OODLE_TYPE_SELKIE: return deps::oodle::OODLE_COMP_SELKIE;
+			case COMP_OODLE_TYPE_HYDRA: return deps::oodle::OODLE_COMP_HYDRA;
+			case COMP_OODLE_TYPE_LEVIATHAN: return deps::oodle::OODLE_COMP_LEVIATHAN;
 			default: 
 				throw std::runtime_error(std::format("Unknown oodle compressor for {}", c));
 		}

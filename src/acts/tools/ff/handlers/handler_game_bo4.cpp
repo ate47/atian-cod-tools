@@ -8,6 +8,14 @@
 #include <tools/ff/fastfile_asset_pool.hpp>
 #include <games/bo4/pool.hpp>
 #include <decryptutils.hpp>
+#include <tools/ff/handlers/handler_game_bo4.hpp>
+
+namespace fastfile::handlers::bo4 {
+	std::unordered_map<games::bo4::pool::XAssetType, Worker*>& GetWorkers() {
+		static std::unordered_map<games::bo4::pool::XAssetType, Worker*> map{};
+		return map;
+	}
+}
 
 namespace {
 	using namespace games::bo4::pool;
@@ -189,76 +197,13 @@ namespace {
 		}
 
 		if (bo4FFHandlerContext.opt->noAssetDump) return xasset; // ignore
-		switch (xasset->type) {
-		case ASSET_TYPE_SCRIPTPARSETREE: {
-			struct ScriptParseTree {
-				XHash name;
-				byte* buffer;
-				uint32_t len;
-			}; static_assert(sizeof(ScriptParseTree) == 0x20);
-			ScriptParseTree* spt{ (ScriptParseTree*)xasset->header };
-
-
-			std::filesystem::path outDir{ bo4FFHandlerContext.opt->m_output / "bo4" / "spt" };
-
-			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/script_{:x}.gscc", *(uint64_t*)spt->buffer, spt->name.hash) };
-			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump scriptparsetree {} 0x{:x} ({})", outFile.string(), spt->len, hashutils::ExtractTmpScript(spt->name.hash));
-			if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
-				LOG_ERROR("Error when dumping {}", outFile.string());
-			}
-			break;
+		auto& workers{ fastfile::handlers::bo4::GetWorkers() };
+		auto it{ workers.find(xasset->type) };
+		if (it != workers.end()) {
+			it->second->Unlink(*bo4FFHandlerContext.opt, xasset->header);
 		}
-		case ASSET_TYPE_RAWFILE: {
-			struct RawFile {
-				XHash name;
-				int32_t len;
-				byte* buffer;
-			}; static_assert(sizeof(RawFile) == 0x20);
-			RawFile* asset{ (RawFile*)xasset->header };
-
-			const char* n{ hashutils::ExtractPtr(asset->name.hash) };
-
-			if (!n) {
-				n = utils::va("hashed/rawfile/file_%llx.raw", asset->name.hash);
-			}
-
-			std::filesystem::path outFile{ bo4FFHandlerContext.opt->m_output / "bo4" / "source" / n };
-
-			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump raw file {} 0x{:x}", outFile.string(), asset->len);
-			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
-				LOG_ERROR("Error when dumping {}", outFile.string());
-			}
-			break;
-		}
-		case ASSET_TYPE_LUAFILE: {
-			struct LuaFile {
-				XHash name;
-				uint32_t len;
-				byte* buffer;
-			}; static_assert(sizeof(LuaFile) == 0x20);
-			LuaFile* asset{ (LuaFile*)xasset->header };
-
-			const char* n{ hashutils::ExtractPtr(asset->name.hash) };
-
-			if (!n) {
-				n = utils::va("hashed/%llx.lua", asset->name.hash);
-			}
-
-			std::filesystem::path outFile{ bo4FFHandlerContext.opt->m_output / "bo4" / "luafile" / n };
-
-			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump lua file {} 0x{:x}", outFile.string(), asset->len);
-			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
-				LOG_ERROR("Error when dumping {}", outFile.string());
-			}
-			break;
-		}
-		default: {
+		else {
 			LOG_TRACE("Ignoring asset {}/{}", XAssetNameFromId(xasset->type), (void*)xasset->header);
-			break;
-		}
 		}
 		return xasset;
 	}
@@ -510,6 +455,10 @@ namespace {
 				if (opt.dumpBinaryAssetsMap) {
 					assetMap.emplace_back((uint32_t)asset.type, (uint32_t)i, originLoc, len);
 				}
+			}
+			size_t eofLoc{ bo4FFHandlerContext.Loc() };
+			if (eofLoc != reader.Length()) {
+				LOG_WARNING("eof at 0x{:x} != 0x{:x}", eofLoc, reader.Length());
 			}
 
 			if (opt.dumpBinaryAssetsMap) {

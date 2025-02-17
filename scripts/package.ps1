@@ -74,7 +74,7 @@ try {
     Copy-Item "deps/tomlplusplus/LICENSE" "$base/licenses/tomlplusplus.txt" > $null
     Copy-Item "deps/miniz-cpp/LICENSE.md" "$base/licenses/miniz-cpp.md" > $null
     Copy-Item "deps/zstd/LICENSE" "$base/licenses/zstd.md" > $null
-
+    Copy-Item "deps/hash-library/LICENSE" "$base/licenses/hash-library.md" > $null
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null

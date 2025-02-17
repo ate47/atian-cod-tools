@@ -87,7 +87,7 @@ namespace core::raw_file {
 			return WriteHash(t.v);
 		}
 		
-		const std::vector<byte>& Build() {
+		std::vector<byte>& Build() {
 			WriteDT(RFDT_END);
 			return data;
 		}
