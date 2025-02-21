@@ -160,6 +160,17 @@ namespace utils {
 	inline TypeIn Aligned(TypeIn ptr, size_t len) {
 		return (ptr + (len - 1)) & ~(len - 1);
 	}
+	/*
+	 * Align a pointer
+	 * @param TypeIn pointer type
+	 * @param len val to align
+	 * @param ptr pointer to align
+	 * @return aligned ptr value
+	 */
+	template<>
+	inline byte* Aligned(byte* ptr, size_t len) {
+		return reinterpret_cast<byte*>((reinterpret_cast<uintptr_t>(ptr) + (len - 1)) & ~(len - 1));
+	}
 
 	/*
 	 * Align a vector buffer with its size

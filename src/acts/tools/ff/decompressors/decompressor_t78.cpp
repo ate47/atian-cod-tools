@@ -36,6 +36,7 @@ namespace {
 			size_t fastFileSize;
 			size_t decompressedSizeLoc;
 			size_t fastfileNameLoc;
+			size_t blockSizeLoc;
 			size_t aesIVLoc{};
 			size_t aesIVSize{};
 
@@ -47,6 +48,8 @@ namespace {
 				fastFileSize = 0x248;
 				decompressedSizeLoc = 0x90;
 				fastfileNameLoc = 0xF8;
+				blockSizeLoc = 0xA8;
+				ctx.blocksCount = 10;
 				break;
 			case 0x265: // Black ops 4 Dev
 				fastFileSize = 0x638;
@@ -54,12 +57,16 @@ namespace {
 				fastfileNameLoc = 0x4E8;
 				aesIVLoc = 0x628;
 				aesIVSize = 16;
+				blockSizeLoc = 0x4A8;
+				ctx.blocksCount = 8;
 				break;
 			case 0x27E:
 			case 0x27F: // Black Ops 4
 				fastFileSize = 0x840;
 				decompressedSizeLoc = 0x490;
 				fastfileNameLoc = 0x6F0;
+				blockSizeLoc = 0x4A8;
+				ctx.blocksCount = 9;
 				xhashType = true;
 				break;
 			default:
@@ -84,6 +91,12 @@ namespace {
 
 			if (opt.m_header) {
 				LOG_INFO("{} size:0x{:x}", ctx.ffname, decompressedSize);
+			}
+
+			reader.Goto(blockSizeLoc);
+
+			for (size_t i = 0; i < ctx.blocksCount; i++) {
+				ctx.blockSizes[i].size = reader.Read<uint64_t>();
 			}
 
 			reader.Goto(fastFileSize);
@@ -231,6 +244,15 @@ namespace {
 					fastfile::TXFileHeader* newXFileHeader{ fdreader.Ptr<fastfile::TXFileHeader>() };
 					fdreader.Goto(decompressedSizeLoc);
 					uint64_t fdDecompressedSize{ fdreader.Read<uint64_t>() };
+
+					// use patch block sizes
+					fdreader.Goto(blockSizeLoc);
+
+					for (size_t i = 0; i < ctx.blocksCount; i++) {
+						uint64_t s{ fdreader.Read<uint64_t>() };
+						ctx.blockSizes[i].size = s;
+					}
+
 					fdreader.Goto(fastFileSize);
 					fastfile::TXFileHeader* baseXFileHdr{ fdreader.Ptr<fastfile::TXFileHeader>() };
 					fdreader.Goto(fastFileSize * 2);

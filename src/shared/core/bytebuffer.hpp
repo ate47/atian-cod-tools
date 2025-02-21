@@ -22,6 +22,10 @@ namespace core::bytebuffer {
 		constexpr size_t Remaining() const {
 			return len - pointer;
 		}
+
+		byte* GetBuffer() {
+			return buffer;
+		}
 		
 		template<typename T>
 		T Read() {

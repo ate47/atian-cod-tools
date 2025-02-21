@@ -26,4 +26,13 @@ namespace tool::utils::raw_file_extractor {
 
 		reader.ReadAll(out);
 	}
+
+	bool JsonWriter::WriteToFile(const std::filesystem::path& out) {
+		::utils::OutFileCE os{ out };
+		if (!os) return false;
+
+		WriteRawFileInto(Build(), os);
+
+		return true;
+	}
 }

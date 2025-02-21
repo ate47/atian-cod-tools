@@ -98,10 +98,18 @@ namespace fastfile {
 	class FFHandler;
 	class FFCompressor;
 	class FFLinker;
+
+	struct XBlockInfo {
+		byte* data{};
+		size_t size{};
+	};
 	
 	struct FastFileContext {
 		const char* file;
 		const char* ffname{};
+		// 0x10 to have more without recompiling
+		XBlockInfo blockSizes[0x10]{};
+		size_t blocksCount{};
 	};
 
 	class FastFileOption {

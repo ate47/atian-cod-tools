@@ -15,6 +15,29 @@ namespace fastfile::handlers::bo3 {
 	}
 }
 namespace {
+	struct XFile
+	{
+		uint8_t magic[8];
+		uint32_t version;
+		uint8_t server;
+		fastfile::FastFileCompression compression;
+		fastfile::FastFilePlatform platform;
+		uint8_t encrypted;
+		uint64_t timestamp;
+		uint32_t changelist;
+		uint32_t archiveChecksum[4];
+		char builder[32];
+		uint32_t metaVersion;
+		char mergeFastfile[64];
+		uint64_t size;
+		uint64_t externalSize;
+		uint64_t memMappedOffset;
+		uint64_t blockSize[10];
+		char fastfileName[64];
+		uint8_t signature[256];
+		uint8_t aesIV[16];
+	};
+
 	using namespace bo3::pool;
 
 	class BO3FFHandler;
