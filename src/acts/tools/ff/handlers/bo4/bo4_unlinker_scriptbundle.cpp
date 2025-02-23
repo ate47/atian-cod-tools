@@ -124,9 +124,9 @@ namespace {
 			ScriptBundle* asset{ (ScriptBundle*)ptr };
 
 			// most likely added because it is inside the scr strings
-			const char* n{ hashutils::ExtractTmp("file", asset->name.hash) };
+			const char* n{ hashutils::ExtractTmp("file", asset->name.name) };
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "scriptbundle" 
-				/ (asset->bundleType.hash ? hashutils::ExtractTmp("hash", asset->bundleType.hash) : "default") 
+				/ (asset->bundleType.name ? hashutils::ExtractTmp("hash", asset->bundleType.name) : "default")
 				/ std::format("{}.json", n)};
 
 			std::filesystem::create_directories(outFile.parent_path());
@@ -142,5 +142,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ScriptBundleWorker, games::bo4::pool::XAssetType, Worker> impl{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_SCRIPTBUNDLE };
+	//utils::MapAdder<ScriptBundleWorker, games::bo4::pool::XAssetType, Worker> impl{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_SCRIPTBUNDLE };
 }

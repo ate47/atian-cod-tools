@@ -214,14 +214,14 @@ namespace fastfile::handlers::bo4 {
 				//bo4FFHandlerContext.pool.AddAssetHeader(xasset->type, 0, xasset->header);
 			}
 
-			games::bo4::pool::XHash* hash{ xasset->header ? games::bo4::pool::GetAssetName(xasset->type, xasset->header, 0) : nullptr };
+			XHash* hash{ xasset->header ? games::bo4::pool::GetAssetName(xasset->type, xasset->header, 0) : nullptr };
 
 			//const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
 			//*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
-			if (hash && hash->hash) {
-				gcx.opt->AddAssetName(xasset->type, hash->hash);
+			if (hash && hash->name) {
+				gcx.opt->AddAssetName(xasset->type, hash->name);
 			}
-			LOG_DEBUG("Loading asset {}/{} -> {}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->hash), xasset->header);
+			LOG_DEBUG("Loading asset {}/{} -> {}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header);
 
 			if (gcx.opt->noAssetDump) return xasset; // ignore
 			auto& workers{ fastfile::handlers::bo4::GetWorkers() };

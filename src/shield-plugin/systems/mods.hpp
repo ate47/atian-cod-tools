@@ -22,7 +22,7 @@ namespace mods {
 	public:
 		ModContainer() {}
 		// Redirect a name
-		void ApplyRedirects(bo4::XAssetType type, bo4::XHash* name);
+		void ApplyRedirects(bo4::XAssetType type, XHash* name);
 		// load the xmod files
 		void LoadContainer(const std::filesystem::path& directory);
 		// sync the container data
@@ -34,9 +34,9 @@ namespace mods {
 		// free a mod
 		void FreeMod(Mod* mod);
 		// Find the asset in the registered
-		void* FindAsset(bo4::XAssetType type, bo4::XHash* name);
+		void* FindAsset(bo4::XAssetType type, XHash* name);
 		// Does the asset exists in the container
-		bool DoesAssetExist(bo4::XAssetType type, bo4::XHash* name);
+		bool DoesAssetExist(bo4::XAssetType type, XHash* name);
 	};
 
 }

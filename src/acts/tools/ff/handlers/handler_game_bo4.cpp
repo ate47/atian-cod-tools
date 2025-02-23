@@ -91,6 +91,7 @@ namespace fastfile::handlers::bo4 {
 				case XFILE_BLOCK_MEMMAPPED:
 				case XFILE_BLOCK_MEMMAPPED2:
 					if (!top.buff.CanRead(size)) {
+						LOG_ERROR("Can't read for index {}", XFileBlockName(top.index));
 						hook::error::DumpStackTraceFrom();
 					}
 					top.buff.Read(ptr, size);
@@ -155,15 +156,15 @@ namespace fastfile::handlers::bo4 {
 				bo4FFHandlerContext.pool.AddAssetHeader(xasset->type, 0, xasset->header);
 			}
 
-			games::bo4::pool::XHash* hash{ xasset->header ? games::bo4::pool::GetAssetName(xasset->type, xasset->header, 0) : nullptr };
-			const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
+			XHash* hash{ xasset->header ? games::bo4::pool::GetAssetName(xasset->type, xasset->header, 0) : nullptr };
+			const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->name) : "<unknown>" };
 
 			*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
-			if (hash && hash->hash) {
-				bo4FFHandlerContext.opt->AddAssetName(xasset->type, hash->hash);
+			if (hash && hash->name) {
+				bo4FFHandlerContext.opt->AddAssetName(xasset->type, hash->name);
 			}
 
-			LOG_DEBUG("Loading asset {}/{} -> {}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->hash), xasset->header);
+			LOG_DEBUG("Loading asset {}/{} -> {}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header);
 
 			if (bo4FFHandlerContext.opt->noAssetDump) return xasset; // ignore
 			auto& workers{ fastfile::handlers::bo4::GetWorkers() };
@@ -221,10 +222,10 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		void** DB_InsertPointer() {
-			void** ptr{ bo4FFHandlerContext.Reader().Ptr<void*>() };
+			//void** ptr{ bo4FFHandlerContext.Reader().Ptr<void*>() };
 
-			LOG_TRACE("{} DB_InsertPointer {} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, (void*)ptr, bo4FFHandlerContext.Loc());
-			return ptr;
+			//LOG_TRACE("{} DB_InsertPointer {} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, (void*)ptr, bo4FFHandlerContext.Loc());
+			return nullptr;
 			/*
 			auto& top{ bo4FFHandlerContext.Top() };
 
@@ -317,18 +318,9 @@ namespace fastfile::handlers::bo4 {
 			
 				hook::memory::RedirectJmp(lib[0x22B7AF0], EmptyStub); // unk
 				hook::memory::RedirectJmp(lib[0x22B7B00], EmptyStub); // unk
+				hook::memory::RedirectJmp(lib[0x35FCE50], EmptyStub); // unk
 
-			
-			
-				/*
-				bo4FFHandlerContext.DB_GetXAssetName = reinterpret_cast<decltype(bo4FFHandlerContext.DB_GetXAssetName)>(lib[0x13E9D80]);
-
-				hook::memory::RedirectJmp(lib[0x1426160], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x1426090], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x14260F0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x1C8BFB0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x1CD4610], EmptyStub); // unk
-				*/
+				
 				// write pool data to disk
 				if (opt.assertContainer) {
 					bo4FFHandlerContext.pool.csiHeader.gameId = compatibility::scobalula::csi::CG_BO4;

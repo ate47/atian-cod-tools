@@ -14,7 +14,7 @@ namespace error_coder {
 			"Juliett",
 			"Zed",
 			"XRay",
-			"charlie",
+			"Charlie",
 			"Summer",
 			"Edward",
 			"Nora",

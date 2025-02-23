@@ -13,11 +13,6 @@ namespace bo4 {
         return hook::process::Relativise(location);
     }
 
-	struct Hash {
-		uint64_t hash;
-		void* v = 0;
-	};
-
 	struct Vec3 {
 		float x;
 		float y;
@@ -195,7 +190,7 @@ namespace bo4 {
 
 	const auto ScrVm_AddBool = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst, int value)>(Relativise(OFFSET_ScrVm_AddBool));
 	const auto ScrVm_AddFloat = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst, float value)>(Relativise(OFFSET_ScrVm_AddFloat));
-	const auto ScrVm_AddHash = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst, Hash *value)>(Relativise(OFFSET_ScrVm_AddHash));
+	const auto ScrVm_AddHash = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst, XHash *value)>(Relativise(OFFSET_ScrVm_AddHash));
 	const auto ScrVm_AddInt = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst, int64_t value)>(Relativise(OFFSET_ScrVm_AddInt));
 	const auto ScrVm_AddString = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst, const char* value) > (Relativise(OFFSET_ScrVm_AddString));
 	const auto ScrVm_AddUndefined = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst)>(Relativise(OFFSET_ScrVm_AddUndefined));
@@ -203,7 +198,7 @@ namespace bo4 {
 
 	const auto ScrVm_GetBool = reinterpret_cast<bool(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetBool));
 	const auto ScrVm_GetFloat = reinterpret_cast<float(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetFloat));
-	const auto ScrVm_GetHash = reinterpret_cast<Hash * (__fastcall*)(Hash * hash, scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetHash));
+	const auto ScrVm_GetHash = reinterpret_cast<XHash * (__fastcall*)(XHash * hash, scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetHash));
 	const auto ScrVm_GetInt = reinterpret_cast<int64_t(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetInt));
 	const auto ScrVm_GetString = reinterpret_cast<const char*(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index)>(Relativise(OFFSET_ScrVm_GetString));
 	const auto ScrVm_GetVector = reinterpret_cast<void(__fastcall*)(scriptinstance::ScriptInstance inst, unsigned int index, Vec3 * vector)>(Relativise(OFFSET_ScrVm_GetVector));
@@ -219,7 +214,7 @@ namespace bo4 {
     const auto Scr_GetMethod = reinterpret_cast<BuiltinFunction(__fastcall*)(uint32_t name, BuiltinType * type, int* min_args, int* max_args)> (Relativise(OFFSET_Scr_GetMethod));
     const auto CScr_GetMethod = reinterpret_cast<BuiltinFunction(__fastcall*)(uint32_t name, BuiltinType * type, int* min_args, int* max_args)> (Relativise(OFFSET_CScr_GetMethod));
 
-    const auto Cmd_AddCommandInternal = reinterpret_cast<void(__fastcall*)(Hash* cmdName, void (*command)(), CmdFunction* alloc)>(Relativise(OFFSET_Cmd_AddCommandInternal));
+    const auto Cmd_AddCommandInternal = reinterpret_cast<void(__fastcall*)(XHash * cmdName, void (*command)(), CmdFunction* alloc)>(Relativise(OFFSET_Cmd_AddCommandInternal));
 
 	extern t8internal::scrVmPub* scrVmPub;
 	extern t8internal::scrVarPub* scrVarPub;

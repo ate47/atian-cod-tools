@@ -22,7 +22,7 @@ namespace fastfile::linker::bo4 {
 						LOG_WARNING("Invalid entry in sptforced.json: {}", e.GetString());
 						continue;
 					}
-					serverScripts.emplace_back(hash::Hash64Pattern(e.GetString()), 0);
+					serverScripts.emplace_back(hash::Hash64(e.GetString()));
 				}
 			}
 			if (forcedConfig.main.HasMember("client")) {
@@ -31,7 +31,7 @@ namespace fastfile::linker::bo4 {
 						LOG_WARNING("Invalid entry in sptforced.json: {}", e.GetString());
 						continue;
 					}
-					clientScripts.emplace_back(hash::Hash64Pattern(e.GetString()), 0);
+					clientScripts.emplace_back(hash::Hash64(e.GetString()));
 				}
 			}
 
@@ -49,7 +49,7 @@ namespace fastfile::linker::bo4 {
 			};
 
 			ScriptParseTreeForced& header{ utils::Allocate<ScriptParseTreeForced>(ctx.assetData) };
-			header.name.hash = ctx.ffnameHash;
+			header.name.name = ctx.ffnameHash;
 			header.gscCount = (uint32_t)serverScripts.size();
 			header.cscCount = (uint32_t)clientScripts.size();
 			if (serverScripts.size()) header.gscScripts = fastfile::ALLOC_PTR;

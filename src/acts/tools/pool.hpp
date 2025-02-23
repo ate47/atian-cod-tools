@@ -1,6 +1,7 @@
 #pragma once
 
 #include <includes.hpp>
+#include <games/bo4/pool.hpp>
 
 namespace tool::pool {
 
@@ -20,11 +21,6 @@ namespace tool::pool {
 		return defaultValue;
 	}
 	int pooltool(Process& proc, int argc, const char* argv[]);
-
-	struct XHash {
-		uint64_t name;
-		uintptr_t pad0;
-	};
 
 	// keep compatibility
 	typedef XHash Hash;

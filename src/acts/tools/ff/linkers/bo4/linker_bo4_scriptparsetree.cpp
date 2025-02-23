@@ -23,7 +23,7 @@ namespace fastfile::linker::bo4 {
 
 			ScriptParseTree& spt{ utils::Allocate<ScriptParseTree>(ctx.assetData) };
 
-			spt.name.hash = obj.name;
+			spt.name.name = obj.name;
 			spt.buffer = fastfile::ALLOC_PTR;
 			spt.len = (uint32_t)buffer.size();
 
@@ -61,7 +61,7 @@ namespace fastfile::linker::bo4 {
 
 			ScriptParseTreeDBG& spt{ utils::Allocate<ScriptParseTreeDBG>(ctx.assetData) };
 
-			spt.name.hash = obj.name;
+			spt.name.name = obj.name;
 			spt.src = fastfile::ALLOC_PTR;
 			spt.srcLen = (uint32_t)preproc.size();
 			// todo: implement gdb compiler

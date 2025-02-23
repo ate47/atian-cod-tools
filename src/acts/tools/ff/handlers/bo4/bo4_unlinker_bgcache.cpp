@@ -23,7 +23,7 @@ namespace {
 
 			BGCacheInfo* asset{ (BGCacheInfo*)ptr };
 
-			const char* n{ hashutils::ExtractTmp("file", asset->name.hash) };
+			const char* n{ hashutils::ExtractTmp("file", asset->name.name) };
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "bgcache" / std::format("{}.csv", n) };
 
 			std::filesystem::create_directories(outFile.parent_path());
@@ -41,7 +41,7 @@ namespace {
 
 			for (size_t i = 0; i < asset->defCount; i++) {
 				BGCacheInfoDef& def{ asset->def[i] };
-				os << "\n" << games::bo4::pool::BGCacheNameFromId(def.type) << "," << hashutils::ExtractTmp("hash", def.name.hash);
+				os << "\n" << games::bo4::pool::BGCacheNameFromId(def.type) << "," << hashutils::ExtractTmp("hash", def.name.name);
 			}
 
 		}

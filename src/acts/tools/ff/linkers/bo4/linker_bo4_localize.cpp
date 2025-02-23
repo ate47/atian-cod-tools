@@ -25,7 +25,7 @@ namespace fastfile::linker::bo4 {
 					continue;
 				}
 				LocalizeEntry& header{ utils::Allocate<LocalizeEntry>(ctx.assetData) };
-				header.name.hash = hash::Hash64Pattern(k.GetString());
+				header.name.name = hash::Hash64Pattern(k.GetString());
 				header.value = fastfile::ALLOC_PTR;
 				utils::WriteString(ctx.assetData, v.GetString());
 				ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY, fastfile::ALLOC_PTR);

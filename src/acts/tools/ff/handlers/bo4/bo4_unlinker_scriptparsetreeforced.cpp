@@ -18,7 +18,7 @@ namespace {
 
 			ScriptParseTreeForced* asset{ (ScriptParseTreeForced*)ptr };
 
-			const char* n{ hashutils::ExtractTmp("file", asset->name.hash) };
+			const char* n{ hashutils::ExtractTmp("file", asset->name.name) };
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "scriptparsetreeforced" / std::format("{}.csv", n) };
 
 			std::filesystem::create_directories(outFile.parent_path());
@@ -35,10 +35,10 @@ namespace {
 			os << "vm,name";
 
 			for (size_t i = 0; i < asset->gscCount; i++) {
-				os << "\nserver," << hashutils::ExtractTmp("hash", asset->gscScripts[i].hash);
+				os << "\nserver," << hashutils::ExtractTmp("hash", asset->gscScripts[i].name);
 			}
 			for (size_t i = 0; i < asset->cscCount; i++) {
-				os << "\nclient," << hashutils::ExtractTmp("hash", asset->cscScripts[i].hash);
+				os << "\nclient," << hashutils::ExtractTmp("hash", asset->cscScripts[i].name);
 			}
 		}
 	};

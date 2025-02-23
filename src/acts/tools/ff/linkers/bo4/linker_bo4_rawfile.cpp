@@ -37,7 +37,7 @@ namespace fastfile::linker::bo4 {
 				RawFile& rf{ utils::Allocate<RawFile>(ctx.assetData) };
 
 				uint64_t hash = HashPathName(rfpath);
-				rf.name.hash = hash;
+				rf.name.name = hash;
 				rf.buffer = fastfile::ALLOC_PTR;
 				rf.len = (uint32_t)buffer.size();
 

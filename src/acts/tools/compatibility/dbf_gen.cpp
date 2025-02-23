@@ -1,4 +1,6 @@
 #include <includes.hpp>
+/* 
+// not in dev anymore
 #include <games/bo4/pool.hpp>
 #include <dbflib.hpp>
 #include <rapidcsv.h>
@@ -13,14 +15,14 @@ namespace {
 	using namespace games::bo4;
 
 	struct RawFileEntry {
-		tool::pool::XHash name;
+		XHash name;
 		uint64_t size; // 0x10
 		char* buffer; // 0x18
 	}; static_assert(sizeof(RawFileEntry) == 0x20);
 
 
 	struct ScriptParseTreeEntry {
-		tool::pool::XHash name;
+		XHash name;
 		void* buffer;
 		uint32_t size;
 		uint32_t pad02;
@@ -53,7 +55,7 @@ namespace {
 	};
 
 	struct StringTable {
-		tool::pool::XHash name;
+		XHash name;
 		int32_t columns_count{};
 		int32_t rows_count{};
 		int32_t cells_count{};
@@ -65,14 +67,14 @@ namespace {
 	}; static_assert(sizeof(StringTable) == 0x40);
 
 	struct LuaFileEntry {
-		tool::pool::XHash name;
+		XHash name;
 		uint64_t size{};
 		byte* buffer{};
 	}; static_assert(sizeof(LuaFileEntry) == 0x20);
 
 	struct LocalizeEntry {
 		const char* string{ "" };
-		tool::pool::XHash name;
+		XHash name;
 	}; static_assert(sizeof(LocalizeEntry) == 0x18);
 
 	union AssetHeader {
@@ -669,3 +671,4 @@ namespace {
 	ADD_TOOL(dbfgen, "compatibility", " (in) (out)", "Gen dynamic file", nullptr, dbfgen);
 	ADD_TOOL(dbfread, "compatibility", " (out)", "Read dynamic file", nullptr, dbfread);
 }
+*/

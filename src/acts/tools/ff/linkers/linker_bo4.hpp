@@ -4,10 +4,6 @@
 #include <games/bo4/pool.hpp>
 
 namespace fastfile::linker::bo4 {
-	struct XHash {
-		uint64_t hash;
-		uint64_t nulled;
-	};
 	struct XAsset {
 		games::bo4::pool::XAssetType type;
 		uintptr_t header; // XAssetHeader

@@ -5,11 +5,6 @@
 namespace fastfile::handlers::bo4 {
 	typedef uint32_t ScrString_t;
 
-	struct XHash {
-		uint64_t hash;
-		uint64_t pad;
-	};
-
 	enum XFileBlock : int {
 		XFILE_BLOCK_TEMP = 0x0,
 		XFILE_BLOCK_TEMP_PRELOAD = 0x1,

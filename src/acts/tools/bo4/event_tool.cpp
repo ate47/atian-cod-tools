@@ -188,7 +188,7 @@ namespace {
 				};
 
 				struct StringTableEntry {
-					tool::pool::XHash name{};
+					XHash name{};
 					int32_t columnCount{};
 					int32_t rowCount{};
 					int32_t cellscount{};

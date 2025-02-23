@@ -18,9 +18,9 @@ namespace {
 
 			std::filesystem::path outDir{ opt.m_output / "bo4" / "spt" };
 
-			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/script_{:x}.gscc", *(uint64_t*)spt->buffer, spt->name.hash) };
+			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/script_{:x}.gscc", *(uint64_t*)spt->buffer, spt->name.name) };
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump scriptparsetree {} 0x{:x} ({})", outFile.string(), spt->len, hashutils::ExtractTmpScript(spt->name.hash));
+			LOG_INFO("Dump scriptparsetree {} 0x{:x} ({})", outFile.string(), spt->len, hashutils::ExtractTmpScript(spt->name.name));
 			if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}

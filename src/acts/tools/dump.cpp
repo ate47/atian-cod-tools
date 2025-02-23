@@ -766,7 +766,7 @@ namespace {
         };
 
         struct dvar_t {
-            tool::pool::XHash name;
+            XHash name;
             uintptr_t hashnext; // dvar_t*
             uintptr_t value; // DvarData*
             dvarType_t type;
@@ -1029,7 +1029,7 @@ namespace {
         }
 
         struct __declspec(align(8)) GfxWorld {
-            tool::pool::XHash name;
+            XHash name;
             uintptr_t baseName; // const char*
             int32_t surfaceCount;
             uint64_t unk20;

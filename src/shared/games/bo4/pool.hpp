@@ -2,11 +2,24 @@
 #include <includes_shared.hpp>
 #include <utils/hash.hpp>
 
+struct XHash {
+    uint64_t name;
+    uint64_t str;
+
+    constexpr bool operator==(const char* other) {
+        return name == hash::Hash64(other);
+    }
+    constexpr operator bool() {
+        return name;
+    }
+    constexpr operator uint64_t() {
+        return name;
+    }
+}; static_assert(sizeof(XHash) == 0x10);
 namespace games::bo4::pool {
-    struct XHash {
-        uint64_t hash;
-        const char* str{};
-    };
+    typedef float vec2_t[2];
+    typedef float vec3_t[3];
+    typedef float vec4_t[4];
 
     enum XAssetType : byte{
         ASSET_TYPE_PHYSPRESET = 0,

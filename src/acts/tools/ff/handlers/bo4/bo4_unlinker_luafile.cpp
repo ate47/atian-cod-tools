@@ -12,10 +12,10 @@ namespace {
 			}; static_assert(sizeof(LuaFile) == 0x20);
 			LuaFile* asset{ (LuaFile*)ptr };
 
-			const char* n{ hashutils::ExtractPtr(asset->name.hash) };
+			const char* n{ hashutils::ExtractPtr(asset->name.name) };
 
 			if (!n) {
-				n = utils::va("hashed/%llx.lua", asset->name.hash);
+				n = utils::va("hashed/%llx.lua", asset->name.name);
 			}
 
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "luafile" / n };

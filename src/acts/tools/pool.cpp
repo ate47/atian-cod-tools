@@ -292,6 +292,28 @@ const char* tool::pool::ProjExplosionTypeName(projExplosionType_t t) {
     return t >= ARRAYSIZE(names) ? "invalid" : names[t];
 }
 
+const char* tool::pool::ImpactTypeName(ImpactType t) {
+    static const char* names[] = {
+        "NONE",
+        "BULLET_SMALL",
+        "BULLET_LARGE",
+        "BULLET_AP",
+        "BULLET_XTREME",
+        "SHOTGUN",
+        "GRENADE_BOUNCE",
+        "GRENADE_EXPLODE",
+        "RIFLE_GRENADE",
+        "ROCKET_EXPLODE",
+        "ROCKET_EXPLODE_XTREME",
+        "PROJECTILE_DUD",
+        "MORTAR_SHELL",
+        "TANK_SHELL",
+        "BOLT",
+        "BLADE",
+    };
+    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+}
+
 #pragma endregion
 enum PoolDumpOptionFlags {
     DDL_OFFSET = 1,

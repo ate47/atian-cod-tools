@@ -185,6 +185,26 @@ namespace tool::pool {
 		OFFHAND_SLOT_SCRIPTED = 0x9,
 		OFFHAND_SLOT_COUNT = 0xa,
 	};
+    enum ImpactType : uint32_t {
+        IMPACT_TYPE_NONE = 0x0,
+        IMPACT_TYPE_BULLET_SMALL = 0x1,
+        IMPACT_TYPE_BULLET_LARGE = 0x2,
+        IMPACT_TYPE_BULLET_AP = 0x3,
+        IMPACT_TYPE_BULLET_XTREME = 0x4,
+        IMPACT_TYPE_SHOTGUN = 0x5,
+        IMPACT_TYPE_GRENADE_BOUNCE = 0x6,
+        IMPACT_TYPE_GRENADE_EXPLODE = 0x7,
+        IMPACT_TYPE_RIFLE_GRENADE = 0x8,
+        IMPACT_TYPE_ROCKET_EXPLODE = 0x9,
+        IMPACT_TYPE_ROCKET_EXPLODE_XTREME = 0xA,
+        IMPACT_TYPE_PROJECTILE_DUD = 0xB,
+        IMPACT_TYPE_MORTAR_SHELL = 0xC,
+        IMPACT_TYPE_TANK_SHELL = 0xD,
+        IMPACT_TYPE_BOLT = 0xE,
+        IMPACT_TYPE_BLADE = 0xF,
+        IMPACT_TYPE_COUNT = 0x10,
+    };
+
 
 	const char* WeapInventoryTypeName(weapInventoryType_t t);
 	const char* WeapTypeName(weapType_t t);
@@ -195,6 +215,7 @@ namespace tool::pool {
     const char* LockOnTypeName(lockOnType_t t);
     const char* WeapClassName(weapClass_t t);
     const char* ProjExplosionTypeName(projExplosionType_t t);
+    const char* ImpactTypeName(ImpactType t);
 
 	
 #pragma once
@@ -216,9 +237,10 @@ namespace tool::pool {
         uint64_t unk38;
         uint64_t unk40;
     };
-
+    
     struct WeaponDef
     {
+        
         XHash name;
         XHash baseWeapon;
         XHash displayname;

@@ -12,10 +12,10 @@ namespace {
 			}; static_assert(sizeof(RawFile) == 0x20);
 			RawFile* asset{ (RawFile*)ptr };
 
-			const char* n{ hashutils::ExtractPtr(asset->name.hash) };
+			const char* n{ hashutils::ExtractPtr(asset->name.name) };
 
 			if (!n) {
-				n = utils::va("hashed/rawfile/file_%llx.raw", asset->name.hash);
+				n = utils::va("hashed/rawfile/file_%llx.raw", asset->name.name);
 			}
 
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / n };
