@@ -59,7 +59,7 @@ namespace core::bytebuffer {
 		template<typename T>
 		T* ReadPtr(size_t count = 1) {
 			if (!CanRead(sizeof(T) * count)) {
-				throw std::runtime_error(utils::va("Reading too much at 0x%llx + 0x%llx > 0x%llx", pointer, sizeof(T), len));
+				throw std::runtime_error(utils::va("Reading too much at 0x%llx + 0x%llx > 0x%llx", pointer, sizeof(T) * count, len));
 			}
 			T* t = (T*)&buffer[pointer];
 			pointer += sizeof(T) * count;
@@ -93,9 +93,64 @@ namespace core::bytebuffer {
 			return str;
 		}
 
+		uint64_t ReadVByte() {
+			uint64_t v{};
+			byte r;
+			do {
+				r = Read<byte>();
+
+				v = (v << 7) | (r & 0x7F);
+			} while (r & 0x80);
+
+			return v;
+		}
+
+		uint64_t ReadVByteInv() {
+			uint64_t v{};
+			byte r;
+			int shift{};
+			do {
+				r = Read<byte>();
+
+				v |= (uint64_t)(r & 0x7F) << shift;
+				shift += 7;
+			} while ((r & 0x80) == 0);
+
+			return v;
+		}
+
+		int64_t ReadSignedVByte() {
+			uint64_t v{ ReadVByte() };
+
+			if (v & 1) {
+				// -
+				return ~(int64_t)(v >> 1);
+			}
+			else {
+				// +
+				return (int64_t)(v >> 1);
+			}
+		}
+
 		template<typename S>
 		std::string ReadSizedString(S* len = nullptr) {
 			S _len = Read<S>();
+			const char* str{ Ptr<const char>() };
+			Skip(_len);
+			if (len) *len = _len;
+			return { str, str + _len };
+		}
+
+		std::string ReadVByteSizedString(uint64_t* len = nullptr) {
+			uint64_t _len{ ReadVByte() };
+			const char* str{ Ptr<const char>() };
+			Skip(_len);
+			if (len) *len = _len;
+			return { str, str + _len };
+		}
+
+		std::string ReadVByteInvSizedString(uint64_t* len = nullptr) {
+			uint64_t _len{ ReadVByteInv() };
 			const char* str{ Ptr<const char>() };
 			Skip(_len);
 			if (len) *len = _len;
@@ -191,31 +246,6 @@ namespace core::bytebuffer {
 			}
 
 			return std::string::npos;
-		}
-
-		uint64_t ReadVByte() {
-			uint64_t v{};
-			byte r;
-			do {
-				r = Read<byte>();
-
-				v = (v << 7) | (r & 0x7F);
-			} while (r & 0x80);
-
-			return v;
-		}
-
-		int64_t ReadSignedVByte() {
-			uint64_t v{ ReadVByte() };
-
-			if (v & 1) {
-				// -
-				return ~(int64_t)(v >> 1);
-			}
-			else {
-				// +
-				return (int64_t)(v >> 1);
-			}
 		}
 	};
 
