@@ -17,8 +17,8 @@ void LogPrint(ScriptInstance inst) {
 		LOG_INFO("{}", ScrVm_GetString(inst, 0));
 		break;
 	case TYPE_HASH: {
-		Hash hash;
-		LOG_INFO("#{}", hash_lookup::ExtractTmp(inst, ScrVm_GetHash(&hash, inst, 0)->hash));
+		XHash hash;
+		LOG_INFO("#{}", hash_lookup::ExtractTmp(inst, ScrVm_GetHash(&hash, inst, 0)->name));
 	}
 		break;
 	case TYPE_INTEGER:
@@ -49,9 +49,9 @@ void HashLookup(ScriptInstance inst) {
 		ScrVm_AddConstString(inst, ScrVm_GetConstString(inst, 0));
 	}
 	else if (type == t8internal::TYPE_HASH) {
-		Hash hash;
+		XHash hash;
 
-		auto hashedValue = ScrVm_GetHash(&hash, inst, 0)->hash;
+		auto hashedValue = ScrVm_GetHash(&hash, inst, 0)->name;
 
 		auto* res = hash_lookup::Extract(hashedValue);
 
