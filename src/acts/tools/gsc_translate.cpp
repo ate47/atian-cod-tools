@@ -69,7 +69,7 @@ namespace {
 
 		hashutils::ReadDefaultFile();
 
-		std::unordered_map<byte, std::unordered_set<byte>> opcodeMapping{};
+		std::unordered_map<uint16_t, std::unordered_set<uint16_t>> opcodeMapping{};
 
 		for (auto& [name, olddata] : oldScriptsMap) {
 			auto it{ newScriptsMap.find(name) };
@@ -82,8 +82,7 @@ namespace {
 
 			LOG_INFO("Translating {}...", hashutils::ExtractTmpScript(name));
 
-			if (olddata.reader->GetCSEGOffset() == newdata.reader->GetCSEGOffset()
-				&& olddata.reader->GetCSEGSize() == newdata.reader->GetCSEGSize()) {
+			if (olddata.reader->GetCSEGSize() == newdata.reader->GetCSEGSize()) {
 				LOG_INFO("Find similar CSEG");
 
 
@@ -103,9 +102,19 @@ namespace {
 				}
 
 				LOG_INFO("Adding {} candidates", opcodesLocs[name].size());
+				uint32_t csegStartOld{ olddata.reader->GetCSEGOffset() };
+				uint32_t csegStartNew{ newdata.reader->GetCSEGOffset() };
 
-				for (uint32_t loc : opcodesLocs[name]) {
-					opcodeMapping[*(byte*)(&olddata.buffer[loc])].insert(*(byte*)(&newdata.buffer[loc]));
+
+				if (oldVm->HasFlag(VmFlags::VMF_OPCODE_U16)) {
+					for (uint32_t loc : opcodesLocs[name]) {
+						opcodeMapping[*(uint16_t*)(&olddata.buffer[loc])].insert(*(uint16_t*)(&newdata.buffer[loc - csegStartOld + csegStartNew]));
+					}
+				}
+				else {
+					for (uint32_t loc : opcodesLocs[name]) {
+						opcodeMapping[*(byte*)(&olddata.buffer[loc])].insert(*(byte*)(&newdata.buffer[loc - csegStartOld + csegStartNew]));
+					}
 				}
 
 				continue;
@@ -134,7 +143,11 @@ namespace {
 
 				os << oldNfo->m_name << " ->";
 
-				for (byte v : newVals) {
+				if (!oldVm->HasFlag(VmFlags::VMF_OPCODE_U16) && newVals.size() != 1) {
+					LOG_WARNING("Invalid mapping for opcode {}, {} results", oldNfo->m_name, newVals.size());
+				}
+
+				for (uint16_t v : newVals) {
 					os << " 0x" << std::hex << (int)v;
 				}
 
