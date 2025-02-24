@@ -227,5 +227,5 @@ namespace bo4 {
 	
 }
 #define REGISTER_COMMAND(id, name, cmd) static bo4::CmdFunction alloc_func_##id;\
-    static bo4::Hash alloc_func_hash##id = { hash::Hash64Pattern(name) };\
+    static XHash alloc_func_hash##id = { hash::Hash64Pattern(name) };\
     bo4::Cmd_AddCommandInternal(&alloc_func_hash##id, cmd, &alloc_func_##id)
