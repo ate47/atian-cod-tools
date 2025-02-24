@@ -3,6 +3,7 @@
 #include <utils/decrypt.hpp>
 #include <BS_thread_pool.hpp>
 #include "tools/gsc.hpp"
+#include "tools/gsc_decompiler.hpp"
 #include "tools/gsc_vm.hpp"
 #include "tools/gsc_opcode_nodes.hpp"
 #include "tools/cw/cw.hpp"
@@ -1042,7 +1043,7 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
     return utils::va("unk:%lx", floc);
 }
 
-int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, GscDecompilerGlobalContext& gdctx) {
+int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPath, GscDecompilerGlobalContext& gdctx) {
     std::string pathStr{ fsPath.string() };
     const char* path{ pathStr.data() };
     actslib::profiler::Profiler profiler{ "f" };
@@ -1050,7 +1051,7 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
 
     const GscInfoOption& opt = gdctx.opt;
     
-    T8GSCOBJContext ctx{ opt };
+    T8GSCOBJContext ctx{ gdctx };
     ctx.m_formatter = opt.m_formatter;
     auto& gsicInfo = ctx.m_gsicInfo;
 
@@ -1171,11 +1172,13 @@ int GscInfoHandleData(byte* data, size_t size, std::filesystem::path fsPath, Gsc
             core::async::opt_lock_guard lg{ gdctx.asyncMtx };
             std::filesystem::create_directories(file.parent_path());
         }
-        asmout.open(file);
+        if (!gdctx.noDump) {
+            asmout.open(file);
 
-        if (!asmout) {
-            LOG_ERROR("Can't open path output file {}", file.string());
-            return tool::BASIC_ERROR;
+            if (!asmout) {
+                LOG_ERROR("Can't open path output file {}", file.string());
+                return tool::BASIC_ERROR;
+            }
         }
         LOG_INFO("Decompiling into '{}'...", file.string());
     }
@@ -1565,13 +1568,18 @@ ignoreCscGsc:
             core::async::opt_lock_guard lg{ gdctx.asyncMtx };
             std::filesystem::create_directories(file.parent_path());
         }
-        asmout.open(file);
+        if (!gdctx.noDump) {
+            asmout.open(file);
 
-        if (!asmout) {
-            LOG_ERROR("Can't open output file {} ({})", asmfnamebuff, hashutils::ExtractTmpScript(scriptfile->GetName()));
-            return tool::BASIC_ERROR;
+            if (!asmout) {
+                LOG_ERROR("Can't open output file {} ({})", asmfnamebuff, hashutils::ExtractTmpScript(scriptfile->GetName()));
+                return tool::BASIC_ERROR;
+            }
+            LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
         }
-        LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
+        else {
+            LOG_INFO("Decompiling '{}'{}...", hashutils::ExtractTmpScript(scriptfile->GetName()), (gsicInfo.isGsic ? " (GSIC)" : ""));
+        }
     }
 
     if (opt.m_copyright && *opt.m_copyright) {
@@ -2803,7 +2811,7 @@ int dumpdataset(Process& proc, int argc, const char* argv[]) {
     return 0;
 }
 
-tool::gsc::T8GSCOBJContext::T8GSCOBJContext(const GscInfoOption& opt) : opt(opt) {}
+tool::gsc::T8GSCOBJContext::T8GSCOBJContext(GscDecompilerGlobalContext& gdctx) : opt(gdctx.opt), gdctx(gdctx) {}
 
 tool::gsc::T8GSCOBJContext::~T8GSCOBJContext() {
     for (char* string : m_allocatedStrings) {
@@ -2880,7 +2888,8 @@ char* tool::gsc::T8GSCOBJContext::CloneString(const char* str) {
 }
 
 int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx) {
-    uint32_t baseloc = exp.GetAddress();
+    uint32_t baseloc{ exp.GetAddress() };
+    uint64_t filename{ ctx.m_gscReader.GetName() };
     // main reading loop
     while (ctx.FindNextLocation()) {
         while (true) {
@@ -2951,7 +2960,7 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
             else {
                 opCode = (uint16_t)ctx.Read<byte>(base);
             }
-
+            
             const auto* handler = ctx.LookupOpCode(opCode);
 
             if (ctx.m_opt.m_func_floc) {
@@ -2984,7 +2993,11 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
                 << std::right << " " << std::flush;
 
             // dump rosetta data
-            RosettaAddOpCode((uint32_t)(reinterpret_cast<uint64_t>(base) - reinterpret_cast<uint64_t>(gscFile.Ptr())), handler->m_id);
+            uint32_t opcodeRloc{ (uint32_t)(reinterpret_cast<uint64_t>(base) - reinterpret_cast<uint64_t>(gscFile.Ptr())) };
+            if (ctx.m_objctx.gdctx.opcodesLocs) {
+                (*ctx.m_objctx.gdctx.opcodesLocs)[filename].insert(opcodeRloc);
+            }
+            RosettaAddOpCode(opcodeRloc, handler->m_id);
 
             // pass the opcode
 
@@ -3702,7 +3715,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
                     continue;
                 }
                 try {
-                    auto lret = GscInfoHandleData((byte*)bufferAlign, size, pathRel, gdctx);
+                    auto lret = DecompileGsc((byte*)bufferAlign, size, pathRel, gdctx);
                     if (lret != tool::OK) {
                         ret = lret;
                     }
@@ -3742,7 +3755,7 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
                         lret = tool::BASIC_ERROR;
                     }
                     else {
-                        lret = GscInfoHandleData((byte*)bufferAlign, size, pathRel, gdctx);
+                        lret = DecompileGsc((byte*)bufferAlign, size, pathRel, gdctx);
                     }
 
                     if (lret != tool::OK) {

@@ -1283,6 +1283,7 @@ namespace {
 
     /*****************************************************************************************************************************/
 
+    template<tool::gsc::opcode::VMId Magic>
     class T1010GSCOBJHandler : public GSCOBJHandler {
     public:
         T1010GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_ANIMTREE | GOHF_ANIMTREE_DOUBLE | GOHF_FOREACH_TYPE_JUP | GOHF_NOTIFY_CRC_STRING | GOHF_SUPPORT_EV_HANDLER | GOHF_SUPPORT_VAR_VA | GOHF_VAR_VA_COUNT | GOHF_SWITCH_TYPE_IW) {}
@@ -1367,7 +1368,7 @@ namespace {
             return acts::decryptutils::DecryptString(str);
         }
         bool IsValidHeader(size_t size) override {
-            return size >= sizeof(GscObj24) && Ref<uint64_t>() == 0xa0d43534710;
+            return size >= sizeof(GscObj24) && Ref<uint64_t>() == Magic;
         }
         byte RemapFlagsImport(byte flags) override {
             byte nflags{};
@@ -1603,5 +1604,6 @@ REGISTER_GSC_VM(VMI_T10_06, T1006GSCOBJHandler);
 REGISTER_GSC_VM(VMI_T10_07, T1007GSCOBJHandler);
 REGISTER_GSC_VM(VMI_T10_0B, T100BGSCOBJHandler);
 REGISTER_GSC_VM(VMI_T10_0C, T100CGSCOBJHandler);
-REGISTER_GSC_VM(VMI_T10_10, T1010GSCOBJHandler);
+REGISTER_GSC_VM(VMI_T10_10, T1010GSCOBJHandler<VMI_T10_10>);
+REGISTER_GSC_VM(VMI_T10_11, T1010GSCOBJHandler<VMI_T10_11>);
 

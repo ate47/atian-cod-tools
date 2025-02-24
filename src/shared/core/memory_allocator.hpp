@@ -22,6 +22,12 @@ namespace core::memory_allocator {
 			return (T*)ptr;
 		}
 
+		template<typename T>
+		T* Add(T* ptr) {
+			ptrs.push_back(ptr);
+			return ptr;
+		}
+
 		template<typename T = void>
 		T* Alloc(const std::string& str) {
 			T* ptr = Alloc<T>(str.length() + 1);

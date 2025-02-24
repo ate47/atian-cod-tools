@@ -776,11 +776,13 @@ namespace tool::gsc {
     struct GscDecompilerGlobalContext {
         std::mutex* asyncMtx{};
         GscInfoOption opt{};
+        bool noDump{};
         uint64_t warningOpt{};
         std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
         size_t decompiledFiles{};
         size_t hardErrors{};
         std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>> vtables{};
+        std::unordered_map<uint64_t, std::unordered_set<uint32_t>>* opcodesLocs{};
 
         ~GscDecompilerGlobalContext() {
             for (auto& [n, d] : debugObjects) {
@@ -811,7 +813,8 @@ namespace tool::gsc {
         tool::gsc::gdb::ACTS_GSC_GDB* gdbctx{};
         const tool::gsc::formatter::FormatterInfo* m_formatter{};
         const GscInfoOption& opt;
-        T8GSCOBJContext(const GscInfoOption& opt);
+        GscDecompilerGlobalContext& gdctx;
+        T8GSCOBJContext(GscDecompilerGlobalContext& gdctx);
         ~T8GSCOBJContext();
 
         /*

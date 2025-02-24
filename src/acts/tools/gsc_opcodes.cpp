@@ -706,7 +706,7 @@ public:
 
 class OPCodeInfoRegisterVariable : public OPCodeInfo {
 public:
-	OPCodeInfoRegisterVariable() : OPCodeInfo(OPCode::OPCODE_IW_RegisterVariable, "RegisterVariable") {}
+	OPCodeInfoRegisterVariable() : OPCodeInfo(OPCode::OPCODE_IW_RegisterVariable, "IW_RegisterVariable") {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		uint64_t name = context.Read<uint64_t>(context.m_bcl);
@@ -732,7 +732,7 @@ public:
 
 class OPCodeInfoRegisterMultipleVariables : public OPCodeInfo {
 public:
-	OPCodeInfoRegisterMultipleVariables() : OPCodeInfo(OPCode::OPCODE_IW_RegisterMultipleVariables, "RegisterMultipleVariables") {}
+	OPCodeInfoRegisterMultipleVariables() : OPCodeInfo(OPCode::OPCODE_IW_RegisterMultipleVariables, "IW_RegisterMultipleVariables") {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		byte count = context.Read<byte>(context.m_bcl++);
@@ -1209,7 +1209,7 @@ public:
 
 class OPCodeInfoDevBlockCall : public OPCodeInfo {
 public:
-	OPCodeInfoDevBlockCall() : OPCodeInfo(OPCODE_IW_DevBlock, "DevBlockCall") {}
+	OPCodeInfoDevBlockCall() : OPCodeInfo(OPCODE_IW_DevBlock, "IW_DevBlock") {}
 	
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
@@ -2650,7 +2650,7 @@ public:
 
 class OPCodeInfoEvalLocalArrayCached : public OPCodeInfo {
 public:
-	OPCodeInfoEvalLocalArrayCached() : OPCodeInfo(OPCODE_IW_EvalLocalArrayCached, "EvalLocalArrayCached") {
+	OPCodeInfoEvalLocalArrayCached() : OPCodeInfo(OPCODE_IW_EvalLocalArrayCached, "IW_EvalLocalArrayCached") {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -2687,7 +2687,7 @@ public:
 };
 class OPCodeInfoEvalLocalObjectCached : public OPCodeInfo {
 public:
-	OPCodeInfoEvalLocalObjectCached() : OPCodeInfo(OPCODE_IW_EvalLocalVariableObjectCached, "EvalLocalVariableObjectCached") {
+	OPCodeInfoEvalLocalObjectCached() : OPCodeInfo(OPCODE_IW_EvalLocalVariableObjectCached, "IW_EvalLocalVariableObjectCached") {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -3276,7 +3276,7 @@ public:
 
 class OPCodeT9SetFieldVariableFromObjectFromRef : public OPCodeInfo {
 public:
-	OPCodeT9SetFieldVariableFromObjectFromRef() : OPCodeInfo(OPCODE_T9_SetFieldVariableFromObjectFromRef, "SetFieldVariableFromObjectFromRef") {
+	OPCodeT9SetFieldVariableFromObjectFromRef() : OPCodeInfo(OPCODE_T9_SetFieldVariableFromObjectFromRef, "T9_SetFieldVariableFromObjectFromRef") {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -4076,7 +4076,7 @@ public:
 
 class OPCodeT9EvalFieldVariableFromGlobalObject : public OPCodeInfo {
 public:
-	OPCodeT9EvalFieldVariableFromGlobalObject() : OPCodeInfo(OPCODE_T9_EvalFieldVariableFromGlobalObject, "EvalFieldVariableFromGlobalObject") {
+	OPCodeT9EvalFieldVariableFromGlobalObject() : OPCodeInfo(OPCODE_T9_EvalFieldVariableFromGlobalObject, "T9_EvalFieldVariableFromGlobalObject") {
 	}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -4313,7 +4313,7 @@ public:
 
 class OPCodeInfoGetPositionRef : public OPCodeInfo {
 public:
-	OPCodeInfoGetPositionRef() : OPCodeInfo(OPCODE_IW_GetPositionRef, "GetPositionRef") {}
+	OPCodeInfoGetPositionRef() : OPCodeInfo(OPCODE_IW_GetPositionRef, "IW_GetPositionRef") {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int32_t opcodeLocation = context.FunctionRelativeLocation(context.m_bcl - ((objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) ? 2 : 1));
@@ -4353,7 +4353,7 @@ public:
 
 class OPCodeInfoIWSwitch : public OPCodeInfo {
 public:
-	OPCodeInfoIWSwitch() : OPCodeInfo(OPCODE_IW_Switch, "Switch") {}
+	OPCodeInfoIWSwitch() : OPCodeInfo(OPCODE_IW_Switch, "IW_Switch") {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		auto& baseTable = context.m_bcl;
@@ -4584,7 +4584,7 @@ public:
 };
 class OPCodeInfoIWEndSwitch : public OPCodeInfo {
 public:
-	OPCodeInfoIWEndSwitch() : OPCodeInfo(OPCODE_IW_EndSwitch, "EndSwitch") {}
+	OPCodeInfoIWEndSwitch() : OPCodeInfo(OPCODE_IW_EndSwitch, "IW_EndSwitch") {}
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int32_t jumpLocation = context.FunctionRelativeLocation(context.m_bcl - 2);
@@ -5173,7 +5173,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStart, "ProfileStart", "profilestart()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_ProfileStop, "ProfileStop", "profilestop()"));
 			RegisterOpCodeHandler(new OPCodeInfoFuncHash(OPCODE_PixBeginEvent, "PixBeginEvent", false, "pixbeginevent"));
-			RegisterOpCodeHandler(new OPCodeInfoFuncHash(OPCODE_T7_ProfileStart, "ProfileStart", true, "profilestart"));
+			RegisterOpCodeHandler(new OPCodeInfoFuncHash(OPCODE_T7_ProfileStart, "T7_ProfileStart", true, "profilestart"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_PixEndEvent, "PixEndEvent", "pixendevent()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown10e, "Unknown10e", "operator_Unknown10e()"));
 			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_Unknown126, "Unknown126", "operator_Unknown126()"));
@@ -5187,7 +5187,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoEndSwitch());
 			// dev/jump
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_DevblockBegin, "DevblockBegin"));
-			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_IW_Jump32, "Jump", true));
+			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_IW_Jump32, "IW_Jump32", true));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_Jump, "Jump"));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_JumpOnTrue, "JumpOnTrue"));
 			RegisterOpCodeHandler(new OPCodeInfoJump(OPCODE_JumpOnGreaterThan, "JumpOnGreaterThan"));
@@ -5258,7 +5258,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatchTimeout, "WaitTillMatchTimeout", "waittillmatchtimeout"));
 			RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatch, "WaitTillMatch", "waittillmatch")); // count = params + self
 			RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaittillTimeout, "WaittillTimeout", "waittilltimeout")); // count = params + self
-			RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatch2, "WaitTillMatch", "waittillmatch", 1)); // count = params + self - 1 (no hash?)
+			RegisterOpCodeHandler(new OPCodeInfoCountWaittill(OPCODE_WaitTillMatch2, "WaitTillMatch2", "waittillmatch", 1)); // count = params + self - 1 (no hash?)
 			// operation
 			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_And, "Bit_And", 2, "&", TYPE_OPERATION_MERGE, PRIORITY_BIT_AND));
 			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Bit_Or, "Bit_Or", 2, "|", TYPE_OPERATION_MERGE, PRIORITY_BIT_OR));
@@ -5276,8 +5276,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Multiply, "Multiply", 2, "*", TYPE_OPERATION_MERGE, PRIORITY_MULT));
 			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_Equal, "Equal", 2, "==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
 			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_SuperEqual, "SuperEqual", 2, "===", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
-			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_T10_GreaterThanOrSuperEqualTo, "GreaterThanOrSuperEqualTo", 2, ">==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
-			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_T10_LowerThanOrSuperEqualTo, "LowerThanOrSuperEqualTo", 2, "<==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
+			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_T10_GreaterThanOrSuperEqualTo, "T10_GreaterThanOrSuperEqualTo", 2, ">==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
+			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_T10_LowerThanOrSuperEqualTo, "T10_LowerThanOrSuperEqualTo", 2, "<==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
 			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_NotEqual, "NotEqual", 2, "!=", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
 			RegisterOpCodeHandler(new OPCodeInfopushopn(OPCODE_SuperNotEqual, "SuperNotEqual", 2, "!==", TYPE_OPERATION2, PRIORITY_EQUALS, false, false, false, true));
 
@@ -5345,23 +5345,23 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_ScriptMethodCall, "ScriptMethodCall", 4, false));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_ScriptMethodThreadCall, "ScriptMethodThreadCall", 4, true));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_CallBuiltinFunction, "CallBuiltinFunction", 2, true));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction0, "CallBuiltinFunction0", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction1, "CallBuiltinFunction1", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction2, "CallBuiltinFunction2", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction3, "CallBuiltinFunction3", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction4, "CallBuiltinFunction4", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction5, "CallBuiltinFunction5", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction0, "IW_CallBuiltinFunction0", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction1, "IW_CallBuiltinFunction1", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction2, "IW_CallBuiltinFunction2", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction3, "IW_CallBuiltinFunction3", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction4, "IW_CallBuiltinFunction4", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinFunction5, "IW_CallBuiltinFunction5", 2, false));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_CallBuiltinMethod, "CallBuiltinMethod", 2, true));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod0, "CallBuiltinMethod0", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod1, "CallBuiltinMethod1", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod2, "CallBuiltinMethod2", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod3, "CallBuiltinMethod3", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod4, "CallBuiltinMethod4", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod5, "CallBuiltinMethod5", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod0, "IW_CallBuiltinMethod0", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod1, "IW_CallBuiltinMethod1", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod2, "IW_CallBuiltinMethod2", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod3, "IW_CallBuiltinMethod3", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod4, "IW_CallBuiltinMethod4", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_CallBuiltinMethod5, "IW_CallBuiltinMethod5", 2, false));
 
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_LocalCall, "LocalCall", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_LocalCall2, "LocalCall2", 2, false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_LocalThreadCall, "LocalThreadCall", 2, true));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_LocalCall, "IW_LocalCall", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_LocalCall2, "IW_LocalCall2", 2, false));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCall(OPCODE_IW_LocalThreadCall, "IW_LocalThreadCall", 2, true));
 
 			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_ScriptThreadCallPointerEndOn, "ScriptThreadCallPointerEndOn", true));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_ScriptThreadCallPointer, "ScriptThreadCallPointer", true));
@@ -5369,29 +5369,29 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_ScriptMethodThreadCallPointerEndOn, "ScriptMethodThreadCallPointerEndOn", true));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_ScriptFunctionCallPointer, "ScriptFunctionCallPointer", false));
 			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_ScriptMethodCallPointer, "ScriptMethodCallPointer", false));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_IW_BuiltinFunctionCallPointer, "BuiltinFunctionCallPointer", true));
-			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_IW_BuiltinMethodCallPointer, "BuiltinMethodCallPointer", true));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_IW_BuiltinFunctionCallPointer, "IW_BuiltinFunctionCallPointer", true));
+			RegisterOpCodeHandler(new OPCodeInfoFuncCallPtr(OPCODE_IW_BuiltinMethodCallPointer, "IW_BuiltinMethodCallPointer", true));
 
 			// linked ref
 			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetResolveFunction, "GetResolveFunction", 4));
 			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_GetFunction, "GetFunction", 2));
-			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetLocal, "GetLocal", 2));
+			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetLocal, "IW_GetLocal", 2));
 			RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_GetString, "GetString", false));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetGlobal, "GetGlobal", GGGT_PUSH, nullptr));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetGlobalObject, "GetGlobalObject", GGGT_GLOBAL, nullptr));
 
 			// T9
-			RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromObject(OPCODE_T9_EvalFieldVariableFromObjectFromRef, "EvalFieldVariableFromObjectFromRef", true));
-			RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromObject(OPCODE_T9_EvalFieldVariableFromObjectCached, "EvalFieldVariableFromObjectCached", false));
+			RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromObject(OPCODE_T9_EvalFieldVariableFromObjectFromRef, "T9_EvalFieldVariableFromObjectFromRef", true));
+			RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromObject(OPCODE_T9_EvalFieldVariableFromObjectCached, "T9_EvalFieldVariableFromObjectCached", false));
 			RegisterOpCodeHandler(new OPCodeT9SetFieldVariableFromObjectFromRef());
 			RegisterOpCodeHandler(new OPCodeT9EvalFieldVariableFromGlobalObject());
 			RegisterOpCodeHandler(new OPCodeT9SetVariableFieldFromEvalArrayRef());
-			RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_T9_EvalArrayCached, "EvalArrayCached", true));
-			RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_T9_EndOnCallbackParam, "EndOnCallbackParam", "endoncallbackparam", false)); // count = params + self
+			RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_T9_EvalArrayCached, "T9_EvalArrayCached", true));
+			RegisterOpCodeHandler(new OPCodeInfoCount(OPCODE_T9_EndOnCallbackParam, "T9_EndOnCallbackParam", "endoncallbackparam", false)); // count = params + self
 			RegisterOpCodeHandler(new OPCodeT9GetVarRef());
-			RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorKey, "IteratorKey", "iteratorkey", TYPE_ARRAY_NEXTKEY_IT));
-			RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorVal, "IteratorVal", "iteratorval", TYPE_ARRAY_NEXTVAL_IT));
-			RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorNext, "IteratorNext", "iteratornext", TYPE_ARRAY_NEXT_IT));
+			RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorKey, "T9_IteratorKey", "iteratorkey", TYPE_ARRAY_NEXTKEY_IT));
+			RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorVal, "T9_IteratorVal", "iteratorval", TYPE_ARRAY_NEXTVAL_IT));
+			RegisterOpCodeHandler(new OPCodeT9Iterator(OPCODE_T9_IteratorNext, "T9_IteratorNext", "iteratornext", TYPE_ARRAY_NEXT_IT));
 
 			RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_IncLocalVariableCached, "IncLocalVariableCached", "++"));
 			RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_DecLocalVariableCached, "DecLocalVariableCached", "--"));
@@ -5401,67 +5401,67 @@ namespace tool::gsc::opcode {
 			// IW
 			RegisterOpCodeHandler(new OPCodeInfoRegisterVariable());
 			RegisterOpCodeHandler(new OPCodeInfoRegisterMultipleVariables());
-			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached0, "EvalLocalVariableCached0", 1, 0));
-			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached1, "EvalLocalVariableCached1", 1, 1));
-			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached2, "EvalLocalVariableCached2", 1, 2));
-			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached3, "EvalLocalVariableCached3", 1, 3));
-			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached4, "EvalLocalVariableCached4", 1, 4));
-			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached5, "EvalLocalVariableCached5", 1, 5));
+			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached0, "IW_EvalLocalVariableCached0", 1, 0));
+			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached1, "IW_EvalLocalVariableCached1", 1, 1));
+			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached2, "IW_EvalLocalVariableCached2", 1, 2));
+			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached3, "IW_EvalLocalVariableCached3", 1, 3));
+			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached4, "IW_EvalLocalVariableCached4", 1, 4));
+			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_IW_EvalLocalVariableCached5, "IW_EvalLocalVariableCached5", 1, 5));
 			RegisterOpCodeHandler(new OPCodeInfoEvalLocalArrayCached());
 			RegisterOpCodeHandler(new OPCodeInfoEvalLocalObjectCached());
-			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalLevelFieldVariable, "EvalLevelFieldVariable", "level", true));
-			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalLevelFieldVariableRef, "EvalLevelFieldVariableRef", "level", false));
-			RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetLevelFieldVariable, "SetLevelFieldVar", "level"));
-			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalAnimFieldVar, "EvalAnimFieldVar", "anim", true));
-			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalAnimFieldVarRef, "EvalAnimFieldVarRef", "anim", false));
-			RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetAnimFieldVar, "SetAnimFieldVar", "anim"));
+			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalLevelFieldVariable, "IW_EvalLevelFieldVariable", "level", true));
+			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalLevelFieldVariableRef, "IW_EvalLevelFieldVariableRef", "level", false));
+			RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetLevelFieldVariable, "IW_SetLevelFieldVariable", "level"));
+			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalAnimFieldVar, "IW_EvalAnimFieldVar", "anim", true));
+			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalAnimFieldVarRef, "IW_EvalAnimFieldVarRef", "anim", false));
+			RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetAnimFieldVar, "IW_SetAnimFieldVar", "anim"));
 			// let's say it's a "global"
-			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalSelfFieldVar, "EvalSelfFieldVar", "self", true));
-			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalSelfFieldVarRef, "EvalSelfFieldVarRef", "self", false));
-			RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetSelfFieldVar, "SetSelfFieldVar", "self"));
-			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinFunction, "GetBuiltinFunction", 2));
-			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinMethod, "GetBuiltinMethod", 2));
-			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleEndon, "Endon", "endon", false));
-			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "WaitTill", "waittill", true, 1, 0, true, TYPE_WAITTILL));
-			RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IsTrue", "istrue", true, true));
-			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "GetLevel", GGGT_PUSH, "level"));
-			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelGRef, "GetLevelGRef", GGGT_GLOBAL, "level"));
-			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGame, "GetGame", GGGT_PUSH, "game"));
-			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGameRef, "GetGameRef", GGGT_FIELD, "game"));
-			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnim, "GetAnim", GGGT_PUSH, "anim"));
+			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalSelfFieldVar, "IW_EvalSelfFieldVar", "self", true));
+			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_IW_EvalSelfFieldVarRef, "IW_EvalSelfFieldVarRef", "self", false));
+			RegisterOpCodeHandler(new OPCodeInfoSetGlobalObjectFieldVariable(OPCODE_IW_SetSelfFieldVar, "IW_SetSelfFieldVar", "self"));
+			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinFunction, "IW_GetBuiltinFunction", 2));
+			RegisterOpCodeHandler(new OPCodeInfoFuncGet(OPCODE_IW_GetBuiltinMethod, "IW_GetBuiltinMethod", 2));
+			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleEndon, "IW_SingleEndon", "endon", false));
+			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_SingleWaitTill, "IW_SingleWaitTill", "waittill", true, 1, 0, true, TYPE_WAITTILL));
+			RegisterOpCodeHandler(new OPCodeInfoSingleFunc(OPCODE_IW_IsTrue, "IW_IsTrue", "istrue", true, true));
+			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevel, "IW_GetLevel", GGGT_PUSH, "level"));
+			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetLevelGRef, "IW_GetLevelGRef", GGGT_GLOBAL, "level"));
+			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGame, "IW_GetGame", GGGT_PUSH, "game"));
+			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetGameRef, "IW_GetGameRef", GGGT_FIELD, "game"));
+			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_IW_GetAnim, "IW_GetAnim", GGGT_PUSH, "anim"));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetAnimGRef, "GetAnimGRef", GGGT_GLOBAL, "anim"));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetWorld, "GetWorld", GGGT_PUSH, "world"));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetWorldObject, "GetWorldObject", GGGT_GLOBAL, "world"));
-			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetClasses, "OPCODE_GetClasses", GGGT_PUSH, "classes"));
+			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetClasses, "GetClasses", GGGT_PUSH, "classes"));
 			RegisterOpCodeHandler(new OPCodeInfoGetGlobal(OPCODE_GetClassesObject, "GetClassesObject", GGGT_GLOBAL, "classes"));
-			RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_IW_EvalArrayCachedField, "EvalArrayCachedField", false));
-			RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "ClearFieldVariableRef"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "GetDVarHash", "@"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash, "GetResourceHash", "%"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash2, "GetResourceHash2", "r"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "GetTagHash", "t", false));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "GetScrHash", "&"));
+			RegisterOpCodeHandler(new OPCodeT9EvalArrayCached(OPCODE_IW_EvalArrayCachedField, "IW_EvalArrayCachedField", false));
+			RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "IW_ClearFieldVariableRef"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "IW_GetDVarHash", "@"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash, "IW_GetResourceHash", "%"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash2, "IW_GetResourceHash2", "r"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "IW_GetTagHash", "t", false));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "T10_GetScrHash", "&"));
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWSwitch());
 			RegisterOpCodeHandler(new OPCodeInfoIWEndSwitch());
-			RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_IW_GetIString, "GetIString", true));
-			RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimation, "GetAnimation", true));
-			RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimationTree, "GetAnimationTree", false));
-			RegisterOpCodeHandler(new OPCodeInfoAddToStruct(OPCODE_IW_AddToStruct, "AddToStruct", false));
-			RegisterOpCodeHandler(new OPCodeInfoSetWaittillVariableFieldCached(OPCODE_IW_SetWaittillVariableFieldCached, "SetWaittillVariableFieldCached"));
-			RegisterOpCodeHandler(new OPCodeInfoSetWaittillVariableFieldCached(OPCODE_IgnoreWaittillVariableFieldCached, "SafeDecTop", "_"));
+			RegisterOpCodeHandler(new OPCodeInfoGetString(OPCODE_IW_GetIString, "IW_GetIString", true));
+			RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimation, "IW_GetAnimation", true));
+			RegisterOpCodeHandler(new OPCodeInfoGetAnimation(OPCODE_IW_GetAnimationTree, "IW_GetAnimationTree", false));
+			RegisterOpCodeHandler(new OPCodeInfoAddToStruct(OPCODE_IW_AddToStruct, "IW_AddToStruct", false));
+			RegisterOpCodeHandler(new OPCodeInfoSetWaittillVariableFieldCached(OPCODE_IW_SetWaittillVariableFieldCached, "IW_SetWaittillVariableFieldCached"));
+			RegisterOpCodeHandler(new OPCodeInfoSetWaittillVariableFieldCached(OPCODE_IgnoreWaittillVariableFieldCached, "IgnoreWaittillVariableFieldCached", "_"));
 
-			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_IW_WaitFrame, "WaitSingleFrame", "waitframe()"));
-			RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_IW_GetThread, "GetThread", "getthread()"));
-			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "WaitTillMatch", "waittillmatch", true, 2, 2, true, TYPE_WAITTILL));
+			RegisterOpCodeHandler(new OPCodeInfoStatement(OPCODE_IW_WaitFrame, "IW_WaitFrame", "waitframe()"));
+			RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_IW_GetThread, "IW_GetThread", "getthread()"));
+			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "IW_WaitTillMatch", "waittillmatch", true, 2, 2, true, TYPE_WAITTILL));
 			// scripts\asm\asm::asm_getanim()'s assertmsg lol
-			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_FlatArgs, "FlatArgs", "flat_args", true, 2, 0, false));
+			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_FlatArgs, "T10_FlatArgs", "flat_args", true, 2, 0, false));
 			RegisterOpCodeHandler(new OPCodeInfoGetPositionRef());
 			
-			RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "Notify"));
+			RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "IW_Notify"));
 
 			// T7
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash32, "GetHash", "#", false));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash32, "GetHash32", "#", false));
 
 
 			// T8compiler custom opcode

@@ -35,6 +35,7 @@ namespace tool::gsc::opcode {
 		VMI_T10_0B = 0xa0d4353470B,
 		VMI_T10_0C = 0xa0d4353470C,
 		VMI_T10_10 = 0xa0d43534710,
+		VMI_T10_11 = 0xa0d43534711,
 
 		// IW old VMs
 		VMI_IW_GSCBIN = 0x00435347, // "GSC\0"
