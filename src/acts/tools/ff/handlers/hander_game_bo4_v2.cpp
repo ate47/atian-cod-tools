@@ -26,7 +26,7 @@ namespace fastfile::handlers::bo4 {
 		struct XBlockStackMember {
 			XFileBlock type;
 			byte* pos;
-			size_t read{};
+			size_t remaining;
 		};
 
 		struct {
@@ -37,9 +37,22 @@ namespace fastfile::handlers::bo4 {
 			core::bytebuffer::ByteBuffer* reader{};
 			XBlock blocks[XFILE_BLOCK_COUNT2]{};
 			size_t loaded{};
-			std::stack<XFileBlock> blocksStack{};
+			std::stack<XBlockStackMember> blocksStack{};
 			XAssetList_0 assetList{};
 		} gcx{};
+
+		void PrintIndexStack(core::logs::loglevel lvl) {
+			if (HAS_LOG_LEVEL(lvl)) {
+				std::stringstream ss{};
+
+				for (const XBlockStackMember& blk : gcx.blocksStack._Get_container()) {
+					ss << " -> " << XFileBlockName(blk.type) << "(0x" << std::hex << blk.remaining << ")";
+				}
+
+				LOG_LVLF(lvl, "Stack: {}", ss.str());
+			}
+		}
+
 		const char* XBlockLocPtr(void* ptr) {
 			byte* p{ (byte*)ptr };
 			for (size_t i = 0; i < XFILE_BLOCK_COUNT2; i++) {
@@ -57,32 +70,40 @@ namespace fastfile::handlers::bo4 {
 					size_t rloc{ (size_t)(p - gcx.ctx->blockSizes[i].data) };
 					if (rloc + len > gcx.ctx->blockSizes[i].size) {
 						hook::error::DumpStackTraceFrom();
-						throw std::runtime_error(std::format("Can't read 0x{:x}/0x{:x} at {} ({}: 0x{:x})", len, gcx.ctx->blockSizes[i].size - rloc, ptr, XFileBlockName((XFileBlock)i), rloc));
+						throw std::runtime_error(std::format("AssertCanWrite: Can't read 0x{:x}, remaining 0x{:x} at {} ({} rloc:0x{:x})", len, gcx.ctx->blockSizes[i].size - rloc, ptr, XFileBlockName((XFileBlock)i), rloc));
 					}
 					break;
 				}
 			}
 		}
 
+		constexpr bool IsTemp(XFileBlock blk) {
+			return blk == XFILE_BLOCK_TEMP || blk == XFILE_BLOCK_TEMP_PRELOAD;
+		}
+
+		constexpr bool IsStreamOrMapped(XFileBlock blk) {
+			return blk == XFILE_BLOCK_MEMMAPPED || blk == XFILE_BLOCK_MEMMAPPED2 || blk == XFILE_BLOCK_STREAMER || blk == XFILE_BLOCK_STREAMER_CPU;
+		}
+
 		void DB_PushStreamPos(XFileBlock type) {
 			LOG_TRACE("{} DB_PushStreamPos({})", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName(type));
-			if (type >= XFILE_BLOCK_MEMMAPPED) {
-				type = XFILE_BLOCK_MEMMAPPED;// gcx.blocksStack.top();
+			if (type > XFILE_BLOCK_MEMMAPPED) {
+				type = XFILE_BLOCK_MEMMAPPED;
 			}
-			gcx.blocksStack.push(type);
+			gcx.blocksStack.emplace(type, gcx.blocks[type].pos, gcx.blocks[type].remaining);
 		}
 
 		void DB_IncStreamPos(size_t size) {
 			LOG_TRACE("{} DB_IncStreamPos(0x{:x})", hook::library::CodePointer{ _ReturnAddress() }, size);
-			XFileBlock type{ gcx.blocksStack.top() };
-			if (type == XFILE_BLOCK_MEMMAPPED) return;
+			XFileBlock type{ gcx.blocksStack.top().type };
+			if (IsStreamOrMapped(type)) return; // todo: handle xpak
 			if (size <= gcx.blocks[type].remaining) {
 				gcx.blocks[type].remaining -= size;
 				gcx.blocks[type].pos += size;
 			}
 			else {
 				hook::error::DumpStackTraceFrom();
-				throw std::runtime_error(std::format("Can't align IncStreamPos(0x{:x}): Not enough data in {}", size, XFileBlockName(type)));
+				throw std::runtime_error(std::format("Can't align IncStreamPos(0x{:x}): Not enough data in {}, remaining 0x{:x}", size, XFileBlockName(type), gcx.blocks[type].remaining));
 			}
 		}
 
@@ -91,17 +112,17 @@ namespace fastfile::handlers::bo4 {
 			if (gcx.blocksStack.empty()) {
 				throw std::runtime_error("Stream stack underflow");
 			}
-			XFileBlock idx{ gcx.blocksStack.top() };
-			gcx.blocksStack.pop();
+			XFileBlock idx{ gcx.blocksStack.top().type };
 
-			if (idx == XFILE_BLOCK_TEMP || idx == XFILE_BLOCK_TEMP_PRELOAD) {
-				if (gcx.blocksStack.top() != idx) {
-					// reset the temp buffer
-					gcx.blocks[idx].pos = gcx.ctx->blockSizes[idx].data;
-					gcx.blocks[idx].remaining = gcx.ctx->blockSizes[idx].size;
-				}
+			if (IsTemp(idx)) {
+				XBlockStackMember& mb{ gcx.blocksStack.top() };
+				// reset the temp buffer
+				gcx.blocks[idx].pos = mb.pos;
+				gcx.blocks[idx].remaining = mb.remaining;
+				gcx.blocksStack.pop();
 			}
 			else {
+				gcx.blocksStack.pop();
 				byte* ap{ utils::Aligned(gcx.blocks[idx].pos, 0x10) };
 				size_t delta{ (size_t)(ap - gcx.blocks[idx].pos) };
 				if (delta > gcx.blocks[idx].remaining) {
@@ -117,7 +138,7 @@ namespace fastfile::handlers::bo4 {
 
 		void* DB_AllocStreamPos(int alignement) {
 			LOG_TRACE("{} DB_AllocStreamPos(0x{:x})", hook::library::CodePointer{ _ReturnAddress() }, alignement + 1);
-			XFileBlock type{ gcx.blocksStack.top() };
+			XFileBlock type{ gcx.blocksStack.top().type };
 			if (type == XFILE_BLOCK_MEMMAPPED) return nullptr;
 			byte* pos{ gcx.blocks[type].pos };
 
@@ -145,7 +166,8 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		void DB_LoadXFileData(void* pos, size_t size) {
-			LOG_TRACE("{} DB_LoadXFileData({}, 0x{:x}) -> {}/0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr(pos), size, XFileBlockName(gcx.blocksStack.top()), gcx.reader->Loc());
+			LOG_TRACE("{} DB_LoadXFileData({}, 0x{:x}) -> {}/0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr(pos), size, XFileBlockName(gcx.blocksStack.top().type), gcx.reader->Loc());
+			PrintIndexStack(core::logs::LVL_TRACE);
 			if (!gcx.reader->CanRead(size)) {
 				hook::error::DumpStackTraceFrom();
 			}
@@ -169,7 +191,7 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		bool Load_Stream(bool atStreamStart, void* ptr, size_t size) {
-			XFileBlock type{ gcx.blocksStack.top() };
+			XFileBlock type{ gcx.blocksStack.top().type };
 			LOG_TRACE("{} Load_Stream({}, {}, 0x{:x}) -> {}/0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, atStreamStart, XBlockLocPtr(ptr), size, XFileBlockName(type), gcx.reader->Loc());
 			if (!atStreamStart || !size) return true;
 			switch (type) {
@@ -224,14 +246,16 @@ namespace fastfile::handlers::bo4 {
 			LOG_DEBUG("Loading asset {}/{} -> {}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header);
 
 			if (gcx.opt->noAssetDump) return xasset; // ignore
-			auto& workers{ fastfile::handlers::bo4::GetWorkers() };
-			auto it{ workers.find(xasset->type) };
-			if (it != workers.end()) {
-				try {
-					it->second->Unlink(*gcx.opt, xasset->header);
-				}
-				catch (std::runtime_error& e) {
-					LOG_ERROR("Can't dump asset asset {}/{}: {}", XAssetNameFromId(xasset->type), (void*)xasset->header, e.what());
+			if (xasset->header) {
+				auto& workers{ fastfile::handlers::bo4::GetWorkers() };
+				auto it{ workers.find(xasset->type) };
+				if (it != workers.end()) {
+					try {
+						it->second->Unlink(*gcx.opt, xasset->header);
+					}
+					catch (std::runtime_error& e) {
+						LOG_ERROR("Can't dump asset asset {}/{}: {}", XAssetNameFromId(xasset->type), (void*)xasset->header, e.what());
+					}
 				}
 			}
 			return xasset;
@@ -244,6 +268,11 @@ namespace fastfile::handlers::bo4 {
 		template<size_t offset = 0>
 		void EmptyStub() {
 			LOG_TRACE("{} EmptyStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset);
+		}
+		template<size_t offset = 0>
+		void ErrorStub() {
+			hook::error::DumpStackTraceFrom();
+			throw std::runtime_error(std::format("{} ErrorStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset));
 		}
 
 		void DB_ConvertOffsetToAlias(void** data) {
@@ -295,9 +324,14 @@ namespace fastfile::handlers::bo4 {
 			return ptr;
 		}
 
-		template<size_t off>
+		template<size_t off, bool error = false>
 		void RemoveStub(hook::library::Library& lib) {
-			hook::memory::RedirectJmp(lib[off], &EmptyStub<off>);
+			if constexpr (error) {
+				hook::memory::RedirectJmp(lib[off], &ErrorStub<off>);
+			}
+			else {
+				hook::memory::RedirectJmp(lib[off], &EmptyStub<off>);
+			}
 		}
 
 		class BO4FFHandler : public fastfile::FFHandler {
@@ -353,6 +387,11 @@ namespace fastfile::handlers::bo4 {
 				RemoveStub<0x35FBD30>(lib); // unk
 				RemoveStub<0x22B7AF0>(lib); // unk
 				RemoveStub<0x22B7B00>(lib); // unk
+				RemoveStub<0x35FCE50>(lib); // unk
+
+				RemoveStub<0x2EBBDC0, true>(lib); // not sure
+				RemoveStub<0x2EBBF40, true>(lib); // not sure
+				
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
@@ -367,17 +406,17 @@ namespace fastfile::handlers::bo4 {
 
 				// alloc the blocks
 				for (size_t i = 0; i < XFILE_BLOCK_COUNT; i++) {
-					size_t toAlloc{ ctx.blockSizes[i].size + 0x1000 };
+					size_t toAlloc{ ctx.blockSizes[i].size + 0xFFFF };
 					LOG_DEBUG("Allocating blocks {} -> {}B (0x{:x})", XFileBlockName((XFileBlock)i), utils::FancyNumber(ctx.blockSizes[i].size), ctx.blockSizes[i].size);
-					ctx.blockSizes[i].data = utils::Aligned((byte*)blockAlloc.Alloc(toAlloc), 0x1000);
+					ctx.blockSizes[i].data = utils::Aligned((byte*)blockAlloc.Alloc(toAlloc), 0x10000);
 
 					gcx.blocks[i].pos = ctx.blockSizes[i].data;
 					gcx.blocks[i].remaining = ctx.blockSizes[i].size;
 				}
 
 				gcx.loaded = 0;
-				gcx.blocksStack = {};
-				gcx.blocksStack.push(XFILE_BLOCK_TEMP);
+				gcx.blocksStack = {}; // cleanup
+				gcx.blocksStack.emplace(XFILE_BLOCK_TEMP, gcx.blocks[XFILE_BLOCK_TEMP].pos, gcx.blocks[XFILE_BLOCK_TEMP].remaining);
 
 				DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 
@@ -423,9 +462,20 @@ namespace fastfile::handlers::bo4 {
 
 					for (size_t i = 0; i < assetList.assetCount; i++) {
 						const char* assType{ XAssetNameFromId(assetList.assets[i].type) };
-						LOG_DEBUG("Load asset {} (0x{:x})", assType, (int)assetList.assets[i].type);
+						LOG_DEBUG("{}/{} Load asset {} (0x{:x})", i, assetList.assetCount, assType, (int)assetList.assets[i].type);
 						gcx.Load_XAsset(false, &assetList.assets[i]);
 					}
+				}
+
+				if (HAS_LOG_LEVEL(core::logs::LVL_DEBUG)) {
+					LOG_DEBUG("Remaining:");
+					LOG_DEBUG("stream: 0x{:x}", reader.Remaining());
+					LOG_DEBUG("blocks:");
+					for (size_t i = 0; i < XFILE_BLOCK_COUNT; i++) {
+						size_t perc{ ctx.blockSizes[i].size ? 100 * gcx.blocks[i].remaining / ctx.blockSizes[i].size : 0 };
+						LOG_DEBUG("- {}% 0x{:x}/0x{:x} {}", perc, gcx.blocks[i].remaining, ctx.blockSizes[i].size, XFileBlockName((XFileBlock)i));
+					}
+
 				}
 
 				DB_PopStreamPos();
