@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <cli/cli_options.hpp>
 #include <core/bytebuffer.hpp>
+#include <core/memory_allocator.hpp>
 #include <deps/mio.hpp>
 
 
@@ -39,53 +40,18 @@ namespace {
 		}
 		return (totalBits - 1) % 64 + 1;
 	}
+	class HDTBitmapTriplesIndex;
 
 	class SequenceLog {
 		int numBits{};
 		byte* data{};
+		size_t datasize{};
 		uint64_t numwords{};
 		uint64_t lastWord{};
 		uint64_t numentries{};
 	public:
 		SequenceLog() {}
-		void Load(core::bytebuffer::ByteBuffer& buff) {
-			if (buff.Read<byte>() != 1) {
-				throw std::runtime_error("Not a sequence log: Invalid type");
-			}
-
-			numBits = (int)buff.Read<byte>();
-			numentries = buff.ReadVByteInv();
-
-			buff.Skip(1); // crc check
-
-			if (numBits > 64) {
-				throw std::runtime_error("Numbits can't be above 64");
-			}
-
-			numwords = NumWords(numBits, numentries);
-			size_t add{ LastWordNumBits(numBits, numentries) };
-			if (numwords > 0) {
-				size_t addBytes{ (add - 1) / 8 + 1 };
-				size_t toRead{ (numwords - 1) * 8 };
-				LOG_TRACE("Loaded SequenceLog with {} bits (max 0x{:x}), {} entries ({} words) {}/{}", numBits, (1ull << numBits), numentries, numwords, add, toRead);
-				if (addBytes) {
-					data = buff.ReadPtr<byte>(toRead);
-					byte* lastBytes{ buff.ReadPtr<byte>(addBytes) };
-					lastWord = 0;
-					std::memcpy(&lastWord, lastBytes, addBytes);
-				}
-				else {
-					data = buff.ReadPtr<byte>(toRead - 1);
-					lastWord = *buff.ReadPtr<uint64_t>(1);
-				}
-			}
-			else {
-				data = nullptr;
-				lastWord = 0;
-			}
-			buff.Skip(4); // crc check
-		}
-
+		void Load(core::bytebuffer::ByteBuffer& buff, HDTBitmapTriplesIndex& idx);
 		constexpr uint64_t GetNumEntries() const {
 			return numentries;
 		}
@@ -116,33 +82,13 @@ namespace {
 	};
 	class Bitmap64 {
 		byte* data{};
+		size_t datasize{};
 		size_t words{};
 		size_t numbits{};
 	public:
 		Bitmap64() {}
 
-		void Load(core::bytebuffer::ByteBuffer& buff) {
-			if (buff.Read<byte>() != 1) {
-				throw std::runtime_error("Not a bitmap plain");
-			}
-
-			numbits = buff.ReadVByteInv();
-			buff.Skip<uint8_t>(); // skip crc
-
-			if (numbits > 0) {
-				words = ((numbits - 1) >> 3) + 1;
-
-				// should be converted to LE if required
-				LOG_TRACE("Loaded Bitmap64 with {} bits ({} words)", numbits, words);
-				data = buff.ReadPtr<byte>(words);
-			}
-			else {
-				words = 0;
-				data = nullptr;
-			}
-
-			buff.Skip<uint32_t>(); // skip crc
-		}
+		void Load(core::bytebuffer::ByteBuffer& buff, HDTBitmapTriplesIndex& idx);
 
 		constexpr uint64_t GetNumEntries() const {
 			return numbits;
@@ -160,6 +106,20 @@ namespace {
 
 	struct TripleID {
 		uint64_t s{}, p{}, o{};
+
+		TripleID() {};
+		TripleID(uint64_t s, uint64_t p, uint64_t o) : s(s), p(p), o(o) {};
+		TripleID(TripleID& other) : s(other.s), p(other.p), o(other.o) {}
+
+		bool operator<(const TripleID& other) {
+			if (s != other.s) {
+				return s < other.s;
+			}
+			if (p != other.p) {
+				return p < other.p;
+			}
+			return o < other.o;
+		}
 	};
 
 	std::ostream& operator<<(std::ostream& os, const TripleID& id) {
@@ -238,8 +198,10 @@ namespace {
 		SequenceLog seqZ;
 		Bitmap64 bitZ;
 		TripleOrder order;
+		core::memory_allocator::MemoryAllocator alloc{};
 	public:
-		HDTBitmapTriplesIndex(core::bytebuffer::ByteBuffer& buff) {
+		const bool memory;
+		HDTBitmapTriplesIndex(core::bytebuffer::ByteBuffer& buff, bool memory = false) : memory(memory) {
 			constexpr const char magic[] = "$HDTIDX";
 			char magicTmp[sizeof(magic)]{};
 			buff.Read(&magicTmp[0], sizeof(magic) - 1);
@@ -270,15 +232,15 @@ namespace {
 			}
 			LOG_DEBUG("order: {} {}", idxOrder, (uint64_t)order);
 
-			seqY.Load(buff);
-			bitY.Load(buff);
+			seqY.Load(buff, *this);
+			bitY.Load(buff, *this);
 
 			if (seqY.GetNumEntries() != bitY.GetNumEntries()) {
 				throw std::runtime_error(std::format("Invalid num entries for seqy/bity: {} != {}", seqY.GetNumEntries(), bitY.GetNumEntries()));
 			}
 
-			seqZ.Load(buff);
-			bitZ.Load(buff);
+			seqZ.Load(buff, *this);
+			bitZ.Load(buff, *this);
 
 			if (seqY.GetNumEntries() != bitY.GetNumEntries()) {
 				throw std::runtime_error(std::format("Invalid num entries for seqy/bity: {} != {}", seqY.GetNumEntries(), bitY.GetNumEntries()));
@@ -289,10 +251,93 @@ namespace {
 		const SequenceLog& GetSeqZ() const { return seqZ; }
 		const Bitmap64& GetBitZ() const { return bitZ; }
 
+		core::memory_allocator::MemoryAllocator& GetAlloc() {
+			return alloc;
+		}
+
 		HDTBitmapTriplesIndexIterator CreateIterator() {
 			return HDTBitmapTriplesIndexIterator(*this);
 		}
+
+		constexpr size_t GetNumEntries() {
+			return seqZ.GetNumEntries();
+		}
 	};
+
+
+	void Bitmap64::Load(core::bytebuffer::ByteBuffer& buff, HDTBitmapTriplesIndex& idx) {
+		if (buff.Read<byte>() != 1) {
+			throw std::runtime_error("Not a bitmap plain");
+		}
+
+		numbits = buff.ReadVByteInv();
+		buff.Skip<uint8_t>(); // skip crc
+
+		if (numbits > 0) {
+			words = ((numbits - 1) >> 3) + 1;
+
+			// should be converted to LE if required
+			LOG_TRACE("Loaded Bitmap64 with {} bits ({} words)", numbits, words);
+			data = buff.ReadPtr<byte>(datasize = words);
+		}
+		else {
+			words = 0;
+			datasize = 0;
+			data = nullptr;
+		}
+
+		if (datasize && idx.memory) {
+			void* d{ idx.GetAlloc().Alloc(datasize) };
+			std::memcpy(d, data, datasize);
+			data = (byte*)d;
+		}
+
+		buff.Skip<uint32_t>(); // skip crc
+	}
+	void SequenceLog::Load(core::bytebuffer::ByteBuffer& buff, HDTBitmapTriplesIndex& idx) {
+		if (buff.Read<byte>() != 1) {
+			throw std::runtime_error("Not a sequence log: Invalid type");
+		}
+
+		numBits = (int)buff.Read<byte>();
+		numentries = buff.ReadVByteInv();
+
+		buff.Skip(1); // crc check
+
+		if (numBits > 64) {
+			throw std::runtime_error("Numbits can't be above 64");
+		}
+
+		numwords = NumWords(numBits, numentries);
+		size_t add{ LastWordNumBits(numBits, numentries) };
+		if (numwords > 0) {
+			size_t addBytes{ (add - 1) / 8 + 1 };
+			size_t toRead{ (numwords - 1) * 8 };
+			LOG_TRACE("Loaded SequenceLog with {} bits (max 0x{:x}), {} entries ({} words) {}/{}", numBits, (1ull << numBits), numentries, numwords, add, toRead);
+			if (addBytes) {
+				data = buff.ReadPtr<byte>(datasize = toRead);
+				byte* lastBytes{ buff.ReadPtr<byte>(addBytes) };
+				lastWord = 0;
+				std::memcpy(&lastWord, lastBytes, addBytes);
+			}
+			else {
+				data = buff.ReadPtr<byte>(datasize = toRead - 1);
+				lastWord = *buff.ReadPtr<uint64_t>(1);
+			}
+		}
+		else {
+			data = nullptr;
+			lastWord = 0;
+			datasize = 0;
+		}
+		//if (datasize && idx.memory) {
+		//	void* d{ idx.GetAlloc().Alloc(datasize) };
+		//	std::memcpy(d, data, datasize);
+		//	data = (byte*)d;
+		//}
+		buff.Skip(4); // crc check
+	}
+
 
 	HDTBitmapTriplesIndexIterator::HDTBitmapTriplesIndexIterator(HDTBitmapTriplesIndex& src) : src(src) {
 		y = 1;
@@ -333,10 +378,14 @@ namespace {
 
 		struct {
 			bool showHelp{};
+			bool checkIntegrity{};
+			bool mapBitmap{};
 		} opt;
 
 		opts
-			.addOption(&opt, "show help", "--help", "", "-h")
+			.addOption(&opt.showHelp, "show help", "--help", "", "-h")
+			.addOption(&opt.checkIntegrity, "check integrity", "--integrity")
+			.addOption(&opt.mapBitmap, "map bitmap", "--mapBitmap")
 			.ComputeOptions(2, argc, argv);
 
 		if (opts.ParamsCount() < 2 || opt.showHelp) {
@@ -354,17 +403,33 @@ namespace {
 
 		core::bytebuffer::ByteBuffer buff{ (byte*)mmap.begin(), mmap.size() };
 		
-		HDTBitmapTriplesIndex idx{ buff };
+		HDTBitmapTriplesIndex idx{ buff, opt.mapBitmap };
 
-		HDTBitmapTriplesIndexIterator it{ idx.CreateIterator() };
+		if (opt.checkIntegrity) {
+			TripleID tid{};
+			HDTBitmapTriplesIndexIterator it{ idx.CreateIterator() };
 
-		for (size_t i = 0; i < 100; i++) {
-			if (!it) break;
+			size_t id{};
+			size_t diff{ std::max<size_t>(1, idx.GetNumEntries() / 100) };
+			while (it) {
+				const TripleID& next{ *it };
+				if (!(tid < next)) {
+					LOG_ERROR("Invalid order at idx#{} {} >= {}", id, tid, next);
+					return tool::BASIC_ERROR;
+				}
 
-			LOG_INFO("{}", *it)
+				if ((id % diff) == 0) {
+					LOG_INFO("{}% {}/{}", 100 * id / idx.GetNumEntries(), id, idx.GetNumEntries());
+				}
+				tid = next;
+				id++;
+				++it;
+			}
 
-			++it;
+			LOG_INFO("100% : Index sorted");
+			return tool::OK;
 		}
+
 
 		return tool::OK;
 	}
