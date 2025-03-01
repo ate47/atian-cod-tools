@@ -1144,7 +1144,6 @@ namespace {
 				LOG_ERROR("Can't read DDL {:x}", asset.Header);
 				return false;
 			}
-			def.next = entry.def;
 			std::ostringstream os{};
 
 			if (!proc.ReadMemory(&def, reinterpret_cast<uintptr_t>(entry.def), sizeof(def))) {
@@ -1206,12 +1205,15 @@ namespace {
 
 						for (size_t i = 0; i < stct.memberCount; i++) {
 							DDLMember& member = members[i];
+							if (member.type == DDL_PAD_TYPE) {
+								continue; // ignore padding
+							}
 							utils::Padding(os, padding) << "// offset: 0x" << std::hex << member.offset << ", bitSize: 0x" << member.bitSize;
 							if (!(member.bitSize & 0x7)) {
 								os << "(0x" << std::hex << (member.bitSize >> 3) << " Byte(s))";
 							}
 							if (member.isArray) {
-								os << ", array:0x" << member.arraySize << "(ext:0x" << member.externalIndex << ",hti:0x" << member.hashTableIndex << ")";
+								os << ", array:0x" << member.arraySize << "(hti:0x" << member.hashTableIndex << ")";
 							}
 							os << "\n";
 
@@ -1305,7 +1307,7 @@ namespace {
 
 					utils::Padding(os, 1) << "// bitSize: 0x" << std::hex << stct.bitSize << ", members: " << std::dec << stct.memberCount << "\n";
 					utils::Padding(os, 1) << "struct " << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(stct.name))) << " {\n";
-					if (!DumpDDLStructMembers(structList[0], 2)) return false;
+					if (!DumpDDLStructMembers(stct, 2)) return false;
 					utils::Padding(os, 1) << "};\n\n";
 				}
 
