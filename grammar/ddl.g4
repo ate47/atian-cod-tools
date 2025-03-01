@@ -1,14 +1,18 @@
 grammar ddl;
 
-prog: buffer_data* EOF;
+prog: buffer_data+ EOF;
 
-buffer_data: 'version' number '{' (enum | struct | struct_def)*  '}';
+buffer_data: buffer_flags* 'version' number '{' (enum | struct | struct_def)*  '}';
 
-enum: 'enum' IDENTIFIER '{' ((STRING|IDENTIFIER) ('=' number)? (',' (STRING|IDENTIFIER) ('=' number)?)*)? '}'  ';';
+buffer_flags: '[' IDENTIFIER number? ']';
+
+enum: 'enum' IDENTIFIER '{' (IDENTIFIER (',' IDENTIFIER)*)? '}'  ';';
 
 struct: 'struct' IDENTIFIER '{' struct_def* '}' ';';
 
-struct_def: IDENTIFIER IDENTIFIER ('[' number ']' ('[' number ']')?)? ';';
+struct_def: struct_type IDENTIFIER ('[' (number | IDENTIFIER) ']')? ';';
+
+struct_type: IDENTIFIER | (('uint' | 'int') (':' number)? | ('string' '(' number ')') | ('fixed' '<' number ',' number '>'));
 
 number: INTEGER10 | INTEGER16 | INTEGER8 | INTEGER2 ;
 
@@ -20,5 +24,3 @@ INTEGER16: '-'? '0' [xX] ([0-9a-fA-F])+;
 INTEGER8: '-'? '0' ([0-7])*;
 INTEGER2: '-'? '0' [bB] ([01])*;
 IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;
-PATH: [a-z_A-Z0-9\\/.]+;
-STRING: '"' (~["\\] | ('\\' .))* '"';

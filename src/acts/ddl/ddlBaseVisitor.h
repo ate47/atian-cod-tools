@@ -23,6 +23,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitBuffer_flags(ddlParser::Buffer_flagsContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitEnum(ddlParser::EnumContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -32,6 +36,10 @@ public:
   }
 
   virtual std::any visitStruct_def(ddlParser::Struct_defContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitStruct_type(ddlParser::Struct_typeContext *ctx) override {
     return visitChildren(ctx);
   }
 

@@ -23,11 +23,15 @@ public:
 
     virtual std::any visitBuffer_data(ddlParser::Buffer_dataContext *context) = 0;
 
+    virtual std::any visitBuffer_flags(ddlParser::Buffer_flagsContext *context) = 0;
+
     virtual std::any visitEnum(ddlParser::EnumContext *context) = 0;
 
     virtual std::any visitStruct(ddlParser::StructContext *context) = 0;
 
     virtual std::any visitStruct_def(ddlParser::Struct_defContext *context) = 0;
+
+    virtual std::any visitStruct_type(ddlParser::Struct_typeContext *context) = 0;
 
     virtual std::any visitNumber(ddlParser::NumberContext *context) = 0;
 
