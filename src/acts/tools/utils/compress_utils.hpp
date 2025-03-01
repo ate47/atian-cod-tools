@@ -33,6 +33,13 @@ namespace utils::compress {
 		COMP_OODLE_TYPE_MASK = 15ull << 9,
 	};
 
+	enum DecompressResult : int {
+		DCOMP_NOTHING = 0,
+		DCOMP_BAD_ALGORITHM = -1,
+		DCOMP_DEST_TOO_SMALL = -2,
+		DCOMP_UNKNOWN_ERROR = -3,
+	};
+
 	constexpr utils::compress::CompressionAlgorithm operator|(utils::compress::CompressionAlgorithm a, utils::compress::CompressionAlgorithm b) {
 		return (utils::compress::CompressionAlgorithm)((_CompressionAlgorithm)a | (_CompressionAlgorithm)b);
 	}
@@ -51,8 +58,14 @@ namespace utils::compress {
 	}
 
 	const char* GetCompressionName(CompressionAlgorithm c, const char* defaultValue = "invalid");
+	int Decompress2(CompressionAlgorithm alg, void* dest, size_t destSize, const void* src, size_t srcSize);
 
-	bool Decompress(CompressionAlgorithm alg, void* dest, size_t destSize, const void* src, size_t srcSize);
+	inline bool Decompress(CompressionAlgorithm alg, void* dest, size_t destSize, const void* src, size_t srcSize) {
+		return Decompress2(alg, dest, destSize, src, srcSize) < 0;
+	}
+
+	std::vector<byte> Decompress(CompressionAlgorithm alg, const void* src, size_t srcSize, float increaseFactor = 1.5);
+
 	bool Compress(CompressionAlgorithm alg, void* dest, size_t* destSize, const void* src, size_t srcSize);
 	size_t GetCompressSize(CompressionAlgorithm alg, size_t srcSize);
 	deps::oodle::OodleCompressor GetOodleCompressor(CompressionAlgorithm c);

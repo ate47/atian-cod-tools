@@ -20,7 +20,13 @@ namespace tool::cordycep::dump {
 			}
 
 			if (asset.Header) {
-				if (!func(asset, count++)) {
+				try {
+					if (!func(asset, count++)) {
+						ok = false;
+					}
+				}
+				catch (std::runtime_error& e) {
+					LOG_ERROR("{}", e.what());
 					ok = false;
 				}
 				res++;

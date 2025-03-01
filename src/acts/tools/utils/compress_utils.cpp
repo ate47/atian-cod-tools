@@ -29,32 +29,97 @@ namespace utils::compress {
 		}
 	}
 
-	bool Decompress(CompressionAlgorithm alg, void* dest, size_t destSize, const void* src, size_t srcSize) {
+	int Decompress2(CompressionAlgorithm alg, void* dest, size_t destSize, const void* src, size_t srcSize) {
 		CompressionAlgorithm type{ GetCompressionType(alg) };
 		switch (type) {
 		case COMP_NONE:
+			if (destSize < srcSize) {
+				return DecompressResult::DCOMP_DEST_TOO_SMALL;
+			}
 			std::memcpy(dest, src, srcSize);
-			return true;
-		case COMP_LZ4:
-			return LZ4_decompress_safe((const char*)src, (char*)dest, (int)srcSize, (int)destSize);
+			return (int)srcSize;
+		case COMP_LZ4: {
+			int r{ LZ4_decompress_safe((const char*)src, (char*)dest, (int)srcSize, (int)destSize) };
+			if (r < 0) {
+				return DecompressResult::DCOMP_UNKNOWN_ERROR;
+			}
+			return r;
+		}
 		case COMP_OODLE: {
 			deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
 
-			return oodle.Decompress(src, (uint32_t)srcSize, dest, (uint32_t)destSize, deps::oodle::OODLE_FS_YES) != 0;
+			int r{ oodle.Decompress(src, (uint32_t)srcSize, dest, (uint32_t)destSize, deps::oodle::OODLE_FS_YES) };
+
+			if (r <= 0) {
+				return DecompressResult::DCOMP_UNKNOWN_ERROR;
+			}
+			return r;
 		}
 		case COMP_ZLIB: {
 			uLongf sizef = (uLongf)destSize;
 			uLongf sizef2{ (uLongf)srcSize };
-			return uncompress2((Bytef*)dest, &sizef, (const Bytef*)src, &sizef2) >= 0;
+			int r{ uncompress2((Bytef*)dest, &sizef, (const Bytef*)src, &sizef2) };
+			if (r < 0) {
+				switch (r) {
+				case Z_BUF_ERROR:
+					return DecompressResult::DCOMP_DEST_TOO_SMALL;
+				default:
+					return DecompressResult::DCOMP_UNKNOWN_ERROR;
+				}
+			}
+			return r;
 		}
 		case COMP_ZSTD: {
 			size_t ret{ ZSTD_decompress(dest, destSize, src, srcSize) };
-			return !ZSTD_isError(ret);
+			if (ZSTD_isError(ret)) {
+				switch (ret) {
+				case ZSTD_ErrorCode::ZSTD_error_dstSize_tooSmall:
+					return DecompressResult::DCOMP_DEST_TOO_SMALL;
+				default:
+					return DecompressResult::DCOMP_UNKNOWN_ERROR;
+				}
+			}
+			return (int)ret;
 		}
 		default:
-			LOG_WARNING("Can't decompress {}", alg);
-			return false;
+			throw std::runtime_error(std::format("Can't decompress {}", alg));
+			return DecompressResult::DCOMP_BAD_ALGORITHM;
 		}
+	}
+
+	std::vector<byte> Decompress(CompressionAlgorithm alg, const void* src, size_t srcSize, float increaseFactor) {
+		std::vector<byte> outBuff{};
+
+		if (alg == CompressionAlgorithm::COMP_NONE) {
+			size_t len{ srcSize };
+			outBuff.resize(len);
+
+			Decompress(alg, outBuff.data(), outBuff.size(), src, srcSize);
+			return outBuff;
+		}
+
+		if (!srcSize) return outBuff;
+
+		size_t len{ srcSize };
+		if (len == len * increaseFactor) {
+			increaseFactor = 2; // too small, we use 2 as default
+		}
+
+		while (true) {
+			len = (size_t)(len * increaseFactor);
+			outBuff.resize(len);
+
+			int r{ Decompress(alg, outBuff.data(), outBuff.size(), src, srcSize) };
+
+			if (r >= 0) {
+				break;
+			}
+
+			if (r != DecompressResult::DCOMP_DEST_TOO_SMALL) {
+				throw std::runtime_error(std::format("Error when decompressing {}", r));
+			}
+		}
+		return outBuff;
 	}
 
 	bool Compress(CompressionAlgorithm alg, void* dest, size_t* destSize, const void* src, size_t srcSize) {
