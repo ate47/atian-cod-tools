@@ -1061,7 +1061,7 @@ namespace {
 
 			struct DDL {
 				uint64_t name;
-				DDLDef* def; // 
+				DDLDef* def;
 			};
 
 			struct DDLDef {
@@ -1130,7 +1130,7 @@ namespace {
 				DDLHashTable hashTableUpper;
 			};
 			struct DDLEnum {
-				uint64_t name;
+				const char* name;
 				DDLHashTable list;
 				uint64_t* members;
 				uint16_t count;
