@@ -27,6 +27,7 @@ namespace {
 		bool m_ignoreOld{};
 		bool analVal{};
 		bool decompressLua{};
+		bool ignoreArchiveDDL{};
 		bool header{};
 		const char* m_output = "output_bo6";
 		const char* m_dump_strings{};
@@ -84,6 +85,9 @@ namespace {
 				}
 				else if (!_strcmpi("--decompressLua", arg)) {
 					decompressLua = true;
+				}
+				else if (!_strcmpi("--ignoreArchiveDDL", arg)) {
+					ignoreArchiveDDL = true;
 				}
 				else if (!_strcmpi("--header", arg)) {
 					header = true;
@@ -1050,19 +1054,33 @@ namespace {
 			});
 
 		HandlePool(T10R_ASSET_DDL, dumpDir, [&opt, &proc, dumpDir](const XAsset64& asset, size_t count) -> bool {
+			struct DDLDef;
+			struct DDLStruct;
+			struct DDLEnum;
+			struct DDLDef;
+
 			struct DDL {
 				uint64_t name;
-				uintptr_t def; // DDLDef*
+				DDLDef* def; // 
 			};
 
 			struct DDLDef {
-				uint64_t name;
-				uint64_t unk08;
+				uint64_t version;
+				const char* nameStr;
 				uint64_t unk10;
-				uint64_t unk18;
-				uintptr_t structList; // DDLStruct*
-				uintptr_t enumList; // DDLEnum*
+				uint64_t archiveId;
+				DDLStruct* structList;
+				DDLEnum* enumList;
+				DDLDef* next;
+				uint32_t headerBitSize;
+				uint32_t headerByteSize;
+				int32_t structsCount;
+				int16_t enumsCount;
+				uint64_t unk48;
+				uint64_t unk50;
 			};
+			static_assert(sizeof(DDLDef) == 0x58);
+
 			enum DDLType : byte {
 				DDL_INVALID_TYPE = 0xFF,
 				DDL_BYTE_TYPE = 0x0,
@@ -1077,10 +1095,11 @@ namespace {
 				DDL_STRUCT_TYPE = 0x9,
 				DDL_ENUM_TYPE = 0xA,
 				DDL_PAD_TYPE = 0xB,
+				DDL_HASH_RESOURCE_TYPE = 0xC,
 			};
 
 			struct DDLMember {
-				uintptr_t name; // const char*
+				const char* name;
 				int32_t bitSize;
 				uint32_t intSize;
 				uint32_t offset;
@@ -1103,20 +1122,19 @@ namespace {
 			};
 
 			struct DDLStruct {
-				uintptr_t name; // const char*
+				const char* name;
 				int bitSize;
 				int memberCount;
-				uintptr_t members; // DDLMember*
+				DDLMember* members;
 				DDLHashTable hashTableLower;
 				DDLHashTable hashTableUpper;
 			};
 			struct DDLEnum {
 				uint64_t name;
 				DDLHashTable list;
-				uintptr_t members; // uint64_t
+				uint64_t* members;
 				uint16_t count;
-				uint16_t unk0;
-				uint32_t unk1;
+				DDLType type;
 			};
 
 
@@ -1126,7 +1144,21 @@ namespace {
 				LOG_ERROR("Can't read DDL {:x}", asset.Header);
 				return false;
 			}
+			def.next = entry.def;
+			std::ostringstream os{};
 
+			if (!proc.ReadMemory(&def, reinterpret_cast<uintptr_t>(entry.def), sizeof(def))) {
+				LOG_ERROR("Can't read DDL definition {}", (void*)entry.def);
+				return false;
+			}
+			if (def.nameStr) {
+				const char* nameStr{ proc.ReadStringTmp(reinterpret_cast<uintptr_t>(def.nameStr)) };
+				if (opt.ignoreArchiveDDL && std::string_view{ hashutils::CleanPath(utils::CloneString(nameStr)) }.starts_with("ddl\\cer\\archive")) {
+					LOG_INFO("Ignore archive {}", nameStr);
+					return true;
+				}
+				hashutils::AddPrecomputed(hash::HashIWRes(nameStr), nameStr, true);
+			}
 
 			const char* dfilename = hashutils::ExtractPtr(entry.name);
 
@@ -1135,23 +1167,21 @@ namespace {
 			std::filesystem::path loc{ dumpDir / dfilename };
 			if (opt.m_ignoreOld && std::filesystem::exists(loc)) return true;
 			std::filesystem::create_directories(loc.parent_path());
-			std::ostringstream os{};
 
 			const char* filename = hashutils::ExtractTmpPath("ddl", entry.name);
 
 			LOG_INFO("Dump {} -> {}", filename, loc.string());
-			os << "// file " << filename << "\n\n";
+			os << "// file .... " << filename << "\n\n";
 
+			while (true) {
+				os << "version " << std::dec << def.version << " {\n";
 
-			if (!entry.def || !proc.ReadMemory(&def, entry.def, sizeof(def))) {
-				os << "// Can't read DDL definition\n";
-				LOG_ERROR("Can't read DDL definition {}", entry.def);
-			}
-			else {
-				std::set<int> toParse{ {0} };
-				std::set<int> toParseEnum{};
-				std::set<int> parsedStructs{};
-
+				utils::Padding(os, 1) << "// enums ..... " << std::dec << def.enumsCount << " (0x" << std::hex << def.enumsCount << ")\n";
+				utils::Padding(os, 1) << "// structs ... " << std::dec << def.structsCount << " (0x" << std::hex << def.structsCount << ")\n";
+				utils::Padding(os, 1) << "// bit size .. " << std::dec << def.headerBitSize << " (0x" << std::hex << def.headerBitSize << ")\n";
+				utils::Padding(os, 1) << "// byte size . " << std::dec << def.headerByteSize << " (0x" << std::hex << def.headerByteSize << ")\n";
+				utils::Padding(os, 1) << "// archive ... " << hashutils::ExtractTmp("hash", def.archiveId) << "\n\n";
+				//tool::pool::WriteHex(os, 0, &def, sizeof(def), proc);
 
 				if (!def.structList) {
 					LOG_ERROR("Missing struct pointer");
@@ -1159,25 +1189,13 @@ namespace {
 					return false;
 				}
 
-				DDLStruct stct{};
 
-				while (toParse.size()) {
-					auto first = toParse.begin();
-					int id = *first;
-					toParse.erase(first);
-					if (parsedStructs.contains(id)) continue;
-					parsedStructs.insert(id);
+				auto structList{ proc.ReadMemoryArrayEx<DDLStruct>(reinterpret_cast<uintptr_t>(def.structList), def.structsCount) };
+				auto enumList{ def.enumsCount ? proc.ReadMemoryArrayEx<DDLEnum>(reinterpret_cast<uintptr_t>(def.enumList), def.enumsCount) : std::make_unique<DDLEnum[]>(1) };
 
-					if (!proc.ReadMemory(&stct, def.structList + sizeof(stct) * id, sizeof(stct))) {
-						LOG_ERROR("Can't read DDL struct {} / {}", hashutils::ExtractTmpPath("ddl", entry.name), def.structList);
-						return false;
-					}
-
-					os << "// bitSize: 0x" << std::hex << stct.bitSize << ", members: " << std::dec << stct.memberCount << "\n";
-					os << "struct " << opt.AddString(proc.ReadStringTmp(stct.name)) << " {\n";
-
+				auto DumpDDLStructMembers = [&os, &proc, &def, &entry, &opt, &structList, &enumList](DDLStruct& stct, int padding)  -> bool {
 					if (stct.memberCount && stct.members) {
-						auto [members, ok] = proc.ReadMemoryArray<DDLMember>(stct.members, stct.memberCount);
+						auto [members, ok] = proc.ReadMemoryArray<DDLMember>(reinterpret_cast<uintptr_t>(stct.members), stct.memberCount);
 
 						if (!ok) {
 							LOG_ERROR("Can't read DDL members {}", hashutils::ExtractTmpPath("ddl", entry.name));
@@ -1188,32 +1206,41 @@ namespace {
 
 						for (size_t i = 0; i < stct.memberCount; i++) {
 							DDLMember& member = members[i];
-							utils::Padding(os, 1) << "// offset: 0x" << std::hex << member.offset << ", bitSize: 0x" << member.bitSize;
+							utils::Padding(os, padding) << "// offset: 0x" << std::hex << member.offset << ", bitSize: 0x" << member.bitSize;
 							if (!(member.bitSize & 0x7)) {
-								os << "(0x" << std::hex << (member.bitSize >> 3) << "B)";
+								os << "(0x" << std::hex << (member.bitSize >> 3) << " Byte(s))";
+							}
+							if (member.isArray) {
+								os << ", array:0x" << member.arraySize << "(ext:0x" << member.externalIndex << ",hti:0x" << member.hashTableIndex << ")";
 							}
 							os << "\n";
 
-							utils::Padding(os, 1);
+							utils::Padding(os, padding);
 
 							switch (member.type) {
 							case DDL_BYTE_TYPE: os << "byte"; break;
 							case DDL_SHORT_TYPE: os << "short"; break;
 							case DDL_UINT_TYPE: {
 								if (member.intSize == 1) {
-									os << "bit";
+									os << "bool";
 									break;
 								}
-								os << "uint" << std::dec << member.intSize;
-
+								os << "uint";
+								if (member.intSize != 32) {
+									os << ":" << std::dec << member.intSize;
+								}
 								break;
 							}
 							case DDL_INT_TYPE: {
-								os << "int" << std::dec << member.intSize;
+								os << "int";
+								if (member.intSize != 32) {
+									os << ":" << std::dec << member.intSize;
+								}
 								break;
 							}
 							case DDL_UINT64_TYPE: os << "uint64"; break;
 							case DDL_HASH_TYPE: os << "hash"; break;
+							case DDL_HASH_RESOURCE_TYPE: os << "hashres"; break;
 							case DDL_FLOAT_TYPE: {
 								if (member.intSize == 32) {
 									os << "float";
@@ -1224,61 +1251,37 @@ namespace {
 									break;
 								}
 
-								os << "float" << std::dec << member.intSize;
+								os << "float:" << std::dec << member.intSize;
 								break;
 							}
 							case DDL_FIXEDPOINT_TYPE: {
-								os << "fixedpoint" << std::dec << member.intSize;
+								os << "fixed<" << std::dec << member.intSize << "," << member.maxIntValue << ">";
 								break;
 							}
-							case DDL_STRING_TYPE: os << "char"; break;
+							case DDL_STRING_TYPE: os << "string(" << std::dec << ((member.bitSize / (member.isArray ? member.arraySize : 1)) / 8) << ")";
+								break;
 							case DDL_STRUCT_TYPE: {
-								// os << "struct"; break;
-
-								DDLStruct stct2{};
-
-								if (!proc.ReadMemory(&stct2, def.structList + sizeof(stct2) * member.externalIndex, sizeof(stct2))) {
-									LOG_ERROR("Can't read DDL {}", hashutils::ExtractTmpPath("ddl", entry.name));
-									return false;
-								}
-								toParse.insert(member.externalIndex);
-								os << opt.AddString(proc.ReadStringTmp(stct2.name));
-
+								os << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(structList[member.externalIndex].name)));
 								break;
 							}
 							case DDL_ENUM_TYPE: {
-								// os << "enum"; break;
-
-								DDLEnum enum2{};
-
-								if (!proc.ReadMemory(&enum2, def.enumList + sizeof(enum2) * member.externalIndex, sizeof(enum2))) {
-									LOG_ERROR("Can't read DDL {}", hashutils::ExtractTmpPath("ddl", entry.name));
-									return false;
-								}
-								toParseEnum.insert(member.externalIndex);
-
-								os << opt.AddString(proc.ReadStringTmp(enum2.name));
-
-
+								os << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(enumList[member.externalIndex].name)));
 								break;
 							}
 							case DDL_PAD_TYPE: os << "pad"; break;
-							default: os << "<invalid:" << std::dec << (int)member.type << ">"; break;
+							default: os << "<unk" << std::hex << (int)member.type << ">"; break;
 							}
 
 
-							os << " " << opt.AddString(proc.ReadStringTmp(member.name));
-
-							if (member.type == DDL_STRING_TYPE) {
-								int strLen = member.bitSize / 8;
-								if (member.isArray) {
-									strLen /= member.arraySize;
-								}
-								os << "[" << std::dec << (int)strLen << "]";
-							}
+							os << " " << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(member.name)));
 
 							if (member.isArray) {
-								os << "[" << std::dec << (int)member.arraySize << "]";
+								if (member.hashTableIndex >= 0 && member.hashTableIndex < def.enumsCount) {
+									os << "[" << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(enumList[member.hashTableIndex].name))) << "]";
+								}
+								else {
+									os << "[" << std::dec << (int)member.arraySize << "]";
+								}
 							}
 							else if (member.type == DDL_PAD_TYPE) {
 								os << "[" << std::dec << member.bitSize << "]";
@@ -1292,43 +1295,66 @@ namespace {
 						LOG_ERROR("Missing struct members pointer");
 						utils::Padding(os, 1) << "// missing struct members pointer\n";
 					}
+					return true;
+				};
 
-					os << "}\n\n";
+				DDLStruct& root{ structList[0] };
+
+				for (size_t i = 1; i < def.structsCount; i++) {
+					DDLStruct& stct{ structList[i] };
+
+					utils::Padding(os, 1) << "// bitSize: 0x" << std::hex << stct.bitSize << ", members: " << std::dec << stct.memberCount << "\n";
+					utils::Padding(os, 1) << "struct " << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(stct.name))) << " {\n";
+					if (!DumpDDLStructMembers(structList[0], 2)) return false;
+					utils::Padding(os, 1) << "};\n\n";
 				}
 
-				DDLEnum enm{};
-				for (int id : toParseEnum) {
+				for (size_t i = 0; i < def.enumsCount; i++) {
+					DDLEnum& enm{ enumList[i] };
 
-					if (!proc.ReadMemory(&enm, def.enumList + sizeof(enm) * id, sizeof(enm))) {
-						LOG_ERROR("Can't read DDL enum {}", hashutils::ExtractTmpPath("ddl", entry.name));
-						return false;
-					}
-
-
-					os << "// members: " << std::hex << enm.count << "\n";
-					os << "enum " << opt.AddString(proc.ReadStringTmp(enm.name)) << " {\n";
+					utils::Padding(os, 1) << "// idx 0x" << std::hex << i << " members: 0x" <<  enm.count << "\n";
+					utils::Padding(os, 1) << "enum " << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(enm.name))) << " {\n";
 					if (enm.count && enm.members) {
 
-						auto [members, ok] = proc.ReadMemoryArray<uint64_t>(enm.members, enm.count);
+						auto [members, ok] = proc.ReadMemoryArray<uint64_t>(reinterpret_cast<uintptr_t>(enm.members), enm.count);
 
 						if (!ok) {
-							LOG_ERROR("Can't read DDL enum members {} / {}", hashutils::ExtractTmpPath("ddl", entry.name), enm.members);
+							LOG_ERROR("Can't read DDL enum members {} / {}", hashutils::ExtractTmpPath("ddl", entry.name), (void*)enm.members);
 							return false;
 						}
 
 						for (size_t i = 0; i < enm.count; i++) {
-							utils::Padding(os, 1) << "\"" << opt.AddString(proc.ReadStringTmp(members[i])) << "\" = 0x" << std::hex << i << ",\n";
+							utils::Padding(os, 2) << opt.AddString(proc.ReadStringTmp(members[i]));
+
+							if (i + 1 != enm.count) {
+								os << ",";
+							}
+
+							os << " // 0x" << std::hex << i << "\n";
 						}
 
 
 					}
 					else if (!enm.members) {
 						LOG_ERROR("Missing enum members pointer");
-						utils::Padding(os, 1) << "// missing enum members pointer\n";
+						utils::Padding(os, 2) << "// missing enum members pointer\n";
 					}
 
-					os << "}\n\n";
+					utils::Padding(os, 1) << "};\n\n";
+				}
 
+
+				utils::Padding(os, 1) << "// root: bitSize: 0x" << std::hex << root.bitSize << ", members: " << std::dec << root.memberCount << "\n\n";
+				if (!DumpDDLStructMembers(structList[0], 1)) return false;
+				os << "};\n\n";
+
+				if (!def.next) {
+					break;
+				}
+
+				if (!proc.ReadMemory(&def, reinterpret_cast<uintptr_t>(def.next), sizeof(def))) {
+					LOG_ERROR("Can't read DDL definition {}", (void*)def.next);
+					return false;
 				}
 			}
 
