@@ -41,7 +41,7 @@ namespace {
 
 			for (size_t i = 0; i < asset->defCount; i++) {
 				BGCacheInfoDef& def{ asset->def[i] };
-				os << "\n" << games::bo4::pool::BGCacheNameFromId(def.type) << "," << hashutils::ExtractTmp("hash", def.name.name);
+				os << "\n" << games::bo4::pool::BGCacheNameFromId(def.type) << ",#" << hashutils::ExtractTmp("hash", def.name.name);
 			}
 
 		}

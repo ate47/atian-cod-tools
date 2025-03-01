@@ -415,6 +415,13 @@ namespace fastfile::handlers::bo4 {
 					std::filesystem::create_directories(bindir);
 				}
 
+
+				if (!opt.noAssetDump) {
+					for (auto& [t, w] : GetWorkers()) {
+						w->PreXFileLoading(opt, ctx);
+					}
+				}
+
 				for (size_t i = 0; i < assetList.assetCount; i++) {
 					XAsset_0& asset{ assetList.assets[i] };
 
@@ -448,6 +455,13 @@ namespace fastfile::handlers::bo4 {
 						assetMap.emplace_back((uint32_t)asset.type, (uint32_t)i, originLoc, len);
 					}
 				}
+
+				if (!opt.noAssetDump) {
+					for (auto& [t, w] : GetWorkers()) {
+						w->PostXFileLoading(opt, ctx);
+					}
+				}
+
 				size_t eofLoc{ bo4FFHandlerContext.Loc() };
 				if (eofLoc != reader.Length()) {
 					LOG_WARNING("eof at 0x{:x} != 0x{:x}", eofLoc, reader.Length());

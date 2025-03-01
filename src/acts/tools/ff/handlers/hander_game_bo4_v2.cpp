@@ -32,12 +32,16 @@ namespace fastfile::handlers::bo4 {
 		struct {
 			BO4FFHandler* handler{};
 			void (*Load_XAsset)(bool atStreamStart, XAsset_0* asset) {};
+			int (*DB_GetXAssetTypeSize)(XAssetType type) {};
+
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
 			XBlock blocks[XFILE_BLOCK_COUNT2]{};
 			size_t loaded{};
 			std::stack<XBlockStackMember> blocksStack{};
+			core::memory_allocator::MemoryAllocator linkedAssetsAlloc{};
+			std::unordered_map<uint64_t, void*> linkedAssets[XAssetType::ASSET_TYPE_COUNT]{};
 			XAssetList_0 assetList{};
 		} gcx{};
 
@@ -206,6 +210,7 @@ namespace fastfile::handlers::bo4 {
 				return true;
 			case XFILE_BLOCK_RUNTIME_VIRTUAL:
 			case XFILE_BLOCK_RUNTIME_PHYSICAL:
+				AssertCanWrite(ptr, size);
 				std::memset(ptr, 0, size);
 				DB_IncStreamPos(size);
 				return false;
@@ -240,10 +245,22 @@ namespace fastfile::handlers::bo4 {
 
 			//const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
 			//*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
+			int assetSize{ gcx.DB_GetXAssetTypeSize(xasset->type) };
+			void* baseHeader{ xasset->header };
+			void* linkedHeader{ gcx.linkedAssetsAlloc.Alloc(assetSize) };
+
+			if (xasset->header) {
+				std::memcpy(linkedHeader, xasset->header, assetSize);
+
+				xasset->header = linkedHeader;
+			}
+
 			if (hash && hash->name) {
 				gcx.opt->AddAssetName(xasset->type, hash->name);
+
+				gcx.linkedAssets[xasset->type][hash->name] = xasset->header;
 			}
-			LOG_DEBUG("Loading asset {}/{} -> {}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header);
+			LOG_DEBUG("Loading asset {}/{} -> {}/{}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header, XBlockLocPtr(baseHeader));
 
 			if (gcx.opt->noAssetDump) return xasset; // ignore
 			if (xasset->header) {
@@ -262,6 +279,15 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		void* DB_FindXAssetHeader(XAssetType type, XHash* name, bool errorIfMissing, int waitTime) {
+			if (!name || name->name) return nullptr;
+			auto it{ gcx.linkedAssets[type].find(name->name) };
+
+			if (it != gcx.linkedAssets[type].end()) {
+				return it->second;
+			}
+
+			LOG_WARNING("MISSING XASSET {} : {}", XAssetNameFromId(type), hashutils::ExtractTmp("hash", name->name));
+
 			return nullptr;
 		}
 
@@ -276,37 +302,34 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		void DB_ConvertOffsetToAlias(void** data) {
-			uint64_t* p{ (uint64_t*)data };
-			uint64_t block{ (*p - 1) >> 60 };
-			uint64_t val{ (*p - 1) & ~0xF000000000000000ull };
-			LOG_TRACE("{} DB_ConvertOffsetToAlias {}/{:x} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName((XFileBlock)block), val, gcx.reader->Loc());
-			return;
+			uintptr_t p{ *(uintptr_t*)data - 1};
+			uint64_t block{ p >> 60 };
+			uint64_t val{ p & ~0xF000000000000000ull };
 			if (gcx.ctx->blockSizes[block].size < val) {
 				hook::error::DumpStackTraceFrom();
-				throw std::runtime_error(std::format("Invalid ConvertOffsetToPointer with val {}/{:x}/{:x}", XFileBlockName((XFileBlock)block), val, *p));
+				throw std::runtime_error(std::format("Invalid ConvertOffsetToPointer with val {}/{:x}/{:x}", XFileBlockName((XFileBlock)block), val, p));
 			}
+			LOG_DEBUG("{} DB_ConvertOffsetToAlias({}) {}/{:x} -> 0x{:x} / 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr(data), XFileBlockName((XFileBlock)block), val, gcx.reader->Loc(), *(uint64_t*)&gcx.ctx->blockSizes[block].data[val]);
 			*data = *(void**)&gcx.ctx->blockSizes[block].data[val];
 		}
 
 		void DB_ConvertOffsetToPointer(void** data) {
-			uint64_t* p{ (uint64_t*)data };
-			uint64_t block{ (*p - 1) >> 60 };
-			uint64_t val{ (*p - 1) & ~0xF000000000000000ull };
-			LOG_TRACE("{} DB_ConvertOffsetToPointer {}/{:x}/{:x} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName((XFileBlock)block), val, *p, gcx.reader->Loc());
-			return;
+			uintptr_t p{ *(uintptr_t*)data - 1 };
+			uint64_t block{ p >> 60 };
+			uint64_t val{ p & ~0xF000000000000000ull };
 			if (gcx.ctx->blockSizes[block].size < val) {
 				hook::error::DumpStackTraceFrom();
-				throw std::runtime_error(std::format("Invalid ConvertOffsetToPointer with val {}/{:x}/{:x}", XFileBlockName((XFileBlock)block), val, *p));
+				throw std::runtime_error(std::format("Invalid ConvertOffsetToPointer with val {}/{:x}/{:x}", XFileBlockName((XFileBlock)block), val, p));
 			}
+			LOG_DEBUG("{} DB_ConvertOffsetToPointer({}) {}/{:x}/{:x} -> 0x{:x} / 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr(data), XFileBlockName((XFileBlock)block), val, p, gcx.reader->Loc(), *(uint64_t*)&gcx.ctx->blockSizes[block].data[val]);
 			*data = &gcx.ctx->blockSizes[block].data[val];
 		}
 
 		void* DB_ConvertOffsetToUnk(void* data) {
-			uint64_t p{ reinterpret_cast<uint64_t>(data) };
-			uint64_t block{ (p - 1) >> 60 };
-			uint64_t val{ (p - 1) & ~0xF000000000000000ull };
-			LOG_TRACE("{} DB_ConvertOffsetToUnk {}/{:x} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName((XFileBlock)block), val, gcx.reader->Loc());
-			return data;
+			uint64_t p{ reinterpret_cast<uint64_t>(data) - 1 };
+			uint64_t block{ p >> 60 };
+			uint64_t val{ p & ~0xF000000000000000ull };
+			LOG_DEBUG("{} DB_ConvertOffsetToUnk {}/{:x} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName((XFileBlock)block), val, gcx.reader->Loc());
 			if (gcx.ctx->blockSizes[block].size < val) {
 				hook::error::DumpStackTraceFrom();
 				throw std::runtime_error(std::format("Invalid ConvertOffsetToPointer with val {}/{:x}/{:x}", XFileBlockName((XFileBlock)block), val, p));
@@ -315,9 +338,10 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		void** DB_InsertPointer() {
-			LOG_TRACE("{} DB_InsertPointer -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, gcx.reader->Loc());
 			DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 			void** ptr{ AllocStreamPos<void*>() };
+			LOG_DEBUG("{} DB_InsertPointer -> 0x{:x} {}", hook::library::CodePointer{ _ReturnAddress() }, gcx.reader->Loc(), XBlockLocPtr(ptr));
+			DB_IncStreamPos(sizeof(void*));
 
 			DB_PopStreamPos();
 
@@ -346,6 +370,7 @@ namespace fastfile::handlers::bo4 {
 				gcx.opt = &opt;
 
 				gcx.Load_XAsset = reinterpret_cast<decltype(gcx.Load_XAsset)>(lib[0x2E35D10]);
+				gcx.DB_GetXAssetTypeSize = reinterpret_cast<decltype(gcx.DB_GetXAssetTypeSize)>(lib[0x28AABA0]);
 
 				hook::memory::RedirectJmp(lib[0x2E0E130], DB_LoadXFileData);
 				hook::memory::RedirectJmp(lib[0x2EBC050], Load_Stream);
@@ -361,8 +386,13 @@ namespace fastfile::handlers::bo4 {
 				hook::memory::RedirectJmp(lib[0x2EB84F0], DB_LinkXAssetEntry);
 				hook::memory::RedirectJmp(lib[0x2EB75B0], DB_FindXAssetHeader);
 
-				RemoveStub<0x2EBC480>(lib); //Load_ScrStringPtr
-				RemoveStub<0x2EBC430>(lib); //Load_ScriptStringCustom
+				RemoveStub<0x2EBC480>(lib); // Load_ScriptStringCustom1
+				RemoveStub<0x2EBC430>(lib); // Load_ScriptStringCustom2
+				RemoveStub<0x2EBC540>(lib); // Load_ScriptStringCustom3
+				RemoveStub<0x22B7AF0>(lib); // unk
+				RemoveStub<0x22B7B00>(lib); // unk
+				RemoveStub<0x2EBBDC0, true>(lib); // not sure
+				RemoveStub<0x2EBBF40, true>(lib); // not sure
 				RemoveStub<0x35BA450>(lib); // Load_GfxImageAdapter
 				RemoveStub<0x3CA8870>(lib); // Load_SndBankAsset
 				RemoveStub<0x3CA88C0>(lib); // Load_SndBankAsset
@@ -385,12 +415,7 @@ namespace fastfile::handlers::bo4 {
 				RemoveStub<0x35FBF20>(lib); // unk
 				RemoveStub<0x35FBE80>(lib); // unk
 				RemoveStub<0x35FBD30>(lib); // unk
-				RemoveStub<0x22B7AF0>(lib); // unk
-				RemoveStub<0x22B7B00>(lib); // unk
 				RemoveStub<0x35FCE50>(lib); // unk
-
-				RemoveStub<0x2EBBDC0, true>(lib); // not sure
-				RemoveStub<0x2EBBF40, true>(lib); // not sure
 				
 			}
 
@@ -416,6 +441,8 @@ namespace fastfile::handlers::bo4 {
 
 				gcx.loaded = 0;
 				gcx.blocksStack = {}; // cleanup
+				gcx.linkedAssetsAlloc.FreeAll();
+				gcx.linkedAssets->clear();
 				gcx.blocksStack.emplace(XFILE_BLOCK_TEMP, gcx.blocks[XFILE_BLOCK_TEMP].pos, gcx.blocks[XFILE_BLOCK_TEMP].remaining);
 
 				DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
@@ -425,7 +452,6 @@ namespace fastfile::handlers::bo4 {
 				SetAssetList(&assetList);
 				DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 
-				// Load_ScriptStringList(false, scriptStrings);
 				if (assetList.strings) {
 					assetList.strings = AllocStreamPos<char*>();
 
@@ -443,6 +469,7 @@ namespace fastfile::handlers::bo4 {
 									assetList.strings[i] = AllocStreamPos<char>();
 									Load_XStringCustom(&assetList.strings[i]);
 									char* scrstr{ acts::decryptutils::DecryptStringT8(assetList.strings[i]) };
+									hashutils::AddPrecomputed(hash::Hash64(scrstr), scrstr, true);
 									os << scrstr << "\n";
 								}
 								else {
@@ -460,10 +487,22 @@ namespace fastfile::handlers::bo4 {
 					assetList.assets = AllocStreamPos<XAsset_0, 7>();
 					Load_Stream(true, assetList.assets, sizeof(*assetList.assets) * assetList.assetCount);
 
+					if (!opt.noAssetDump) {
+						for (auto& [t, w] : GetWorkers()) {
+							w->PreXFileLoading(opt, ctx);
+						}
+					}
+
 					for (size_t i = 0; i < assetList.assetCount; i++) {
 						const char* assType{ XAssetNameFromId(assetList.assets[i].type) };
-						LOG_DEBUG("{}/{} Load asset {} (0x{:x})", i, assetList.assetCount, assType, (int)assetList.assets[i].type);
+						LOG_DEBUG("{}/{} Load asset {} (0x{:x}) {}", i, assetList.assetCount, assType, (int)assetList.assets[i].type, assetList.assets[i].header);
 						gcx.Load_XAsset(false, &assetList.assets[i]);
+					}
+
+					if (!opt.noAssetDump) {
+						for (auto& [t, w] : GetWorkers()) {
+							w->PostXFileLoading(opt, ctx);
+						}
 					}
 				}
 
@@ -473,7 +512,10 @@ namespace fastfile::handlers::bo4 {
 					LOG_DEBUG("blocks:");
 					for (size_t i = 0; i < XFILE_BLOCK_COUNT; i++) {
 						size_t perc{ ctx.blockSizes[i].size ? 100 * gcx.blocks[i].remaining / ctx.blockSizes[i].size : 0 };
-						LOG_DEBUG("- {}% 0x{:x}/0x{:x} {}", perc, gcx.blocks[i].remaining, ctx.blockSizes[i].size, XFileBlockName((XFileBlock)i));
+						LOG_DEBUG("- {}% remaining:0x{:x}, used:0x{:x}, total: 0x{:x} {}({})", perc,
+							gcx.blocks[i].remaining, ctx.blockSizes[i].size - gcx.blocks[i].remaining, ctx.blockSizes[i].size, 
+							XFileBlockName((XFileBlock)i), i
+						);
 					}
 
 				}

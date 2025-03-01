@@ -97,6 +97,11 @@ namespace core::raw_file::json {
 			writer.WriteString(std::format("{}", hash));
 		}
 
+		void WriteValueBool(bool val) {
+			WritePreData();
+			writer.WriteString(val ? "true" : "false");
+		}
+
 		void WriteFieldNameString(const char* name) {
 			WritePreData(true);
 			inlined = true;

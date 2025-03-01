@@ -44,6 +44,8 @@ namespace fastfile::handlers::bo4 {
 	class Worker {
 	public:
 		virtual void Unlink(fastfile::FastFileOption& opt, void* ptr) = 0;
+		virtual void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
+		virtual void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 	};
 
 	std::unordered_map<games::bo4::pool::XAssetType, Worker*>& GetWorkers();

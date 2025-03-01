@@ -250,6 +250,7 @@ namespace {
 
 					for (size_t i = 0; i < ctx.blocksCount; i++) {
 						uint64_t s{ fdreader.Read<uint64_t>() };
+						LOG_DEBUG("New size for block {} 0x{:x} -> 0x{:x}", i, ctx.blockSizes[i].size, s);
 						ctx.blockSizes[i].size = s;
 					}
 

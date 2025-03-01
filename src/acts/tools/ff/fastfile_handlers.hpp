@@ -9,8 +9,11 @@ namespace fastfile {
 	inline bool IsSame(T t, int64_t val) {
 		return reinterpret_cast<T>(val) == t;
 	}
-	
+
+	// data after
 	constexpr uintptr_t ALLOC_PTR = static_cast<uintptr_t>(-1);
+	// data after, expect to allocate a virtual alias
+	constexpr uintptr_t ALLOC_REF_PTR = static_cast<uintptr_t>(-2);
 
 	struct DBStreamHeader {
 		uint32_t compressedSize;

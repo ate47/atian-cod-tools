@@ -568,7 +568,7 @@ namespace {
 
 			WeaponDef* asset{ (WeaponDef*)ptr };
 
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "tables" / "weapon" / std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name)) };
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "weapon" / std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name)) };
 			std::filesystem::create_directories(outFile.parent_path());
 
 			tool::utils::raw_file_extractor::JsonWriter json{};
@@ -590,11 +590,11 @@ namespace {
 				};
 				auto AddXAssetRef = [&json, &AddXHash](const char* name, XAssetType type, uintptr_t ptr, bool onlyValue = false) {
 					if (!ptr) return; // ignore
-					if (ptr & 0xF000000000000000ull) {
+					if ((ptr & 0xF000000000000000ull) || (ptr < 0x10000)) {
 						// ref, error
 
 						json.WriteFieldNameString(name);
-						json.WriteValueString("<invalidref>");
+						json.WriteValueString(utils::va("<invalidref:0x%llx>", ptr));
 						return;
 					}
 

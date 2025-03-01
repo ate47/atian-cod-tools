@@ -890,7 +890,7 @@ namespace {
 			static_assert(sizeof(WeaponTunables) == 0x1218);
 			WeaponTunables* asset{ (WeaponTunables*)ptr };
 
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "tables" / "weapon" / "tunables" / std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name))};
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "weapon" / "tunables" / std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name))};
 			std::filesystem::create_directories(outFile.parent_path());
 
 			tool::utils::raw_file_extractor::JsonWriter json{};

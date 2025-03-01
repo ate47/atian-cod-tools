@@ -142,5 +142,5 @@ namespace {
 		}
 	};
 
-	//utils::MapAdder<ScriptBundleWorker, games::bo4::pool::XAssetType, Worker> impl{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_SCRIPTBUNDLE };
+	utils::MapAdder<ScriptBundleWorker, games::bo4::pool::XAssetType, Worker> impl{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_SCRIPTBUNDLE };
 }
