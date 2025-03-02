@@ -68,27 +68,19 @@ namespace compatibility::scobalula::wni {
 	bool ReadWNIFiles(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each) {
 		std::vector<std::filesystem::path> paths{};
 
-		utils::GetFileRecurse(path, paths, [](const std::filesystem::path& p) {
-			auto s = p.string();
-			return s.ends_with(".wni");
-		});
+		utils::GetFileRecurseExt(path, paths, ".wni\0");
 
-		for (const auto& p : paths) {
-			void* buffer{};
-			size_t size{};
+		std::vector<byte> buff{};
+		for (const std::filesystem::path& p : paths) {
 
 			LOG_DEBUG("Read {}", p.string());
 
-			if (!utils::ReadFileNotAlign(p, buffer, size, true)) {
+			if (!utils::ReadFile(p, buff)) {
 				LOG_ERROR("Can't read {}", path.string());
 				return false;
 			}
 
-			bool res = WniRead((byte*)buffer, size, each);
-
-			std::free(buffer);
-
-			if (!res) {
+			if (!WniRead((byte*)buff.data(), buff.size(), each)) {
 				return false;
 			}
 		}
