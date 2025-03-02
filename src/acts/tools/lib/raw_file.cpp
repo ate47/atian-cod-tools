@@ -196,7 +196,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		std::string data{ tool::utils::raw_file_extractor::ExtractRawFile(buff) };
+		std::string data{ utils::raw_file_extractor::ExtractRawFile(buff) };
 
 		utils::WriteFile(argv[3], data);
 

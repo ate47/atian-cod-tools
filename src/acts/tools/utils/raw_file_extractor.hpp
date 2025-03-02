@@ -1,7 +1,7 @@
 #pragma once
 #include <core/raw_file_json.hpp>
 
-namespace tool::utils::raw_file_extractor {
+namespace utils::raw_file_extractor {
 
 	std::string ExtractRawFile(std::vector<byte>& data);
 

@@ -3,7 +3,7 @@
 #include <decryptutils.hpp>
 #include "raw_file_extractor.hpp"
 
-namespace tool::utils::raw_file_extractor {
+namespace utils::raw_file_extractor {
 
 	std::string ExtractRawFile(std::vector<byte>& data) {
 		core::bytebuffer::ByteBuffer bytebuff{ data };

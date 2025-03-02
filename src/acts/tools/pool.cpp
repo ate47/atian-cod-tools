@@ -660,7 +660,7 @@ inline bool HexValidString(const char* str) {
     return true;
 }
 
-void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t size, const Process& proc) {
+void tool::pool::WriteHex(std::ostream& out, uintptr_t base, const byte* buff, size_t size, const Process& proc) {
     char strBuffer[101];
     for (size_t j = 0; j < size; j++) {
         if (j % 8 == 0) {
@@ -669,7 +669,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
             }
             out << std::hex << std::setw(3) << std::setfill('0') << j << "|";
             if (j + 7 < size) {
-                out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<uint64_t*>(&buff[j]);
+                out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<const uint64_t*>(&buff[j]);
             }
         }
         if (j - j % 8 + 7 >= size) {
@@ -689,7 +689,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
 
             // check x64 values
             if (j >= 7) {
-                uint64_t val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
+                uint64_t val = *reinterpret_cast<const uint64_t*>(&buff[j - 7]);
                 if (val) {
                     // not null, hash?
                     const char* h = hashutils::ExtractPtr(val);
@@ -717,7 +717,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
     }
     out << "\n";
 }
-void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t size) {
+void tool::pool::WriteHex(std::ostream& out, uintptr_t base, const byte* buff, size_t size) {
     for (size_t j = 0; j < size; j++) {
         if (j % 8 == 0) {
             if (base) {
@@ -725,7 +725,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
             }
             out << std::hex << std::setw(3) << std::setfill('0') << j << "|";
             if (j + 7 < size) {
-                out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<uint64_t*>(&buff[j]);
+                out << std::hex << std::setw(16) << std::setfill('0') << *reinterpret_cast<const uint64_t*>(&buff[j]);
             }
         }
         if (j - j % 8 + 7 >= size) {
@@ -745,7 +745,7 @@ void tool::pool::WriteHex(std::ostream& out, uintptr_t base, byte* buff, size_t 
 
             // check x64 values
             if (j >= 7) {
-                uint64_t val = *reinterpret_cast<uint64_t*>(&buff[j - 7]);
+                uint64_t val = *reinterpret_cast<const uint64_t*>(&buff[j - 7]);
                 if (val) {
                     // not null, hash?
                     const char* h = hashutils::ExtractPtr(val);

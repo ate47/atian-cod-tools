@@ -49,7 +49,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "streamkey" / std::format("{}.json", ctx.ffname) };
 			std::filesystem::create_directories(outFile.parent_path());
 
-			tool::utils::raw_file_extractor::JsonWriter json{};
+			utils::raw_file_extractor::JsonWriter json{};
 
 			json.BeginObject();
 			json.WriteFieldNameString("keys");

@@ -50,7 +50,7 @@ namespace {
 	};
 
 	class ScriptBundleWorker : public Worker {
-		static void WriteObject(tool::utils::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr) {
+		static void WriteObject(utils::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr) {
 			json.BeginObject();
 
 			// subs
@@ -131,7 +131,7 @@ namespace {
 
 			std::filesystem::create_directories(outFile.parent_path());
 
-			tool::utils::raw_file_extractor::JsonWriter json{};
+			utils::raw_file_extractor::JsonWriter json{};
 
 			LOG_INFO("Dump scriptbundle {}", outFile.string());
 			WriteObject(json, asset->sbObjectsArray);

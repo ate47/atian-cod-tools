@@ -893,7 +893,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "weapon" / "tunables" / std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name))};
 			std::filesystem::create_directories(outFile.parent_path());
 
-			tool::utils::raw_file_extractor::JsonWriter json{};
+			utils::raw_file_extractor::JsonWriter json{};
 
 			LOG_INFO("Dump weapontunables {}", outFile.string());
 
