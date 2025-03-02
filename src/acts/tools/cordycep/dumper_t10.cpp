@@ -105,7 +105,7 @@ namespace tool::cordycep::dump::t10 {
 				return tool::OK;
 			}
 
-			if (!opt.m_any_type) {
+			if (!opt.m_any_type && !opt.dumpScrStrings) {
 				opt.PrintHelp();
 				return tool::OK;
 			}
@@ -239,8 +239,28 @@ namespace tool::cordycep::dump::t10 {
 				};
 
 			std::filesystem::path dumpDir = outDir / "dump";
+			std::filesystem::create_directories(dumpDir);
 
-			UnlinkerContext uctx{ proc, opt, outDir, GetLocalized };
+
+			UnlinkerContext uctx{ proc, opt, outDir, GetLocalized, cordycep };
+
+			if (opt.dumpScrStrings) {
+				uctx.GetScrString(0);
+
+				utils::OutFileCE stros{ dumpDir / "scrstr.txt" };
+
+				if (!stros) {
+					LOG_ERROR("Can't dump scr strings");
+					return tool::BASIC_ERROR;
+				}
+
+				const char* origin{ uctx.scrBuffer.get() };
+				const char* ss{ uctx.scrBuffer.get() };
+				while ((ss - origin) < cordycep.stringSize) {
+					stros << ss << "\n";
+					ss += std::strlen(ss) + 1;
+				}
+			}
 
 			for (auto& [type, unlinker] : GetUnlinkers()) {
 				HandlePool(type, outDir, [&uctx, &unlinker](const XAsset64& asset, size_t count) { return unlinker->Unlink(asset, uctx); });
@@ -323,6 +343,144 @@ namespace tool::cordycep::dump::t10 {
 			return tool::OK;
 		}
 	}
+
+	
+	bool PoolOptionImpl::Compute(const char** args, INT startIndex, INT endIndex) {
+		m_dump_types.clear();
+		m_dump_types.reserve(T10R_ASSET_COUNT);
+		for (size_t i = 0; i < T10R_ASSET_COUNT; i++) {
+			m_dump_types.push_back(false);
+		}
+		// default values
+		for (size_t i = startIndex; i < endIndex; i++) {
+			const char* arg = args[i];
+
+			if (!strcmp("-?", arg) || !_strcmpi("--help", arg) || !strcmp("-h", arg)) {
+				m_help = true;
+			}
+			else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				m_output = args[++i];
+			}
+			else if (!_strcmpi("--all", arg) || !strcmp("-a", arg)) {
+				m_dump_all_available = true;
+				m_any_type = true;
+			}
+			else if (!_strcmpi("--pools", arg) || !strcmp("-p", arg)) {
+				m_pools = true;
+			}
+			else if (!_strcmpi("--cf", arg) || !strcmp("-C", arg)) {
+				m_cf_files = true;
+			}
+			else if (!_strcmpi("--localized", arg) || !strcmp("-L", arg)) {
+				m_mapLocalized = true;
+			}
+			else if (!_strcmpi("--err", arg) || !strcmp("-e", arg)) {
+				m_showErr = true;
+			}
+			else if (!_strcmpi("--sp", arg)) {
+				m_sp = true;
+			}
+			else if (!_strcmpi("--v1", arg)) {
+				m_usev1 = true;
+			}
+			else if (!_strcmpi("--analVal", arg)) {
+				analVal = true;
+			}
+			else if (!_strcmpi("--ignoreOld", arg)) {
+				m_ignoreOld = true;
+			}
+			else if (!_strcmpi("--decompressLua", arg)) {
+				decompressLua = true;
+			}
+			else if (!_strcmpi("--ignoreArchiveDDL", arg)) {
+				ignoreArchiveDDL = true;
+			}
+			else if (!_strcmpi("--header", arg)) {
+				header = true;
+			}
+			else if (!_strcmpi("--dumpScrStrings", arg)) {
+				dumpScrStrings = true;
+			}
+			else if (!strcmp("-S", arg) || !_strcmpi("--strings", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				m_dump_strings = args[++i];
+			}
+			else if (*arg == '-') {
+				std::cerr << "Invalid argument: " << arg << "!\n";
+				return false;
+			}
+			else {
+				T10RAssetType assetType = PoolIdRelease(arg);
+
+				if (assetType == T10R_ASSET_COUNT) {
+					if (std::isdigit(arg[0])) {
+						try {
+							assetType = (T10RAssetType)std::strtol(arg, nullptr, 10);
+						}
+						catch (const std::invalid_argument& e) {
+							std::cerr << e.what() << "\n";
+							assetType = T10R_ASSET_COUNT;
+						}
+					}
+					if (assetType < 0 || assetType >= T10R_ASSET_COUNT) {
+						std::cerr << "Invalid pool name: " << arg << "!\n";
+						return false;
+					}
+				}
+
+				m_dump_types[assetType] = true;
+				m_any_type = true;
+			}
+		}
+		return true;
+	}
+	void PoolOptionImpl::PrintHelp() {
+		LOG_INFO("-h --help            : Print help");
+		LOG_INFO("-o --output [d]      : Output dir");
+		LOG_INFO("-p --pools           : Dump pools");
+		LOG_INFO("-C --cf              : Produce .cf files");
+		LOG_INFO("-e --err             : Show errors");
+		LOG_INFO("-L --localized       : Map localized");
+		LOG_INFO("-a --all             : Dump all available pools");
+		LOG_INFO("--v1                 : Use old pool dumper (compatibility)");
+		LOG_INFO("--analVal            : Dump binaries");
+		LOG_INFO("--ignoreOld          : Ignore old");
+		LOG_INFO("--decompressLua      : Decompress lua");
+	}
+
+	const char* PoolOptionImpl::AddString(const char* str) {
+		hashutils::AddPrecomputed(hash::Hash64(str), str);
+		hashutils::AddPrecomputed(hash::HashT10Scr(str), str);
+		hashutils::AddPrecomputed(hash::HashIWRes(str), str);
+		if (m_dump_strings) {
+			dstrings.insert(str);
+		}
+		return str;
+	}
+
+	const char* UnlinkerContext::GetScrString(ScrString str) {
+		if (!scrBufferSize) {
+			scrBufferSize = cordycep.stringSize;
+			scrBuffer = std::make_unique<char[]>(1 + cordycep.stringSize);
+			if (cordycep.stringSize) {
+				if (!proc.ReadMemory(scrBuffer.get(), cordycep.stringsAddress, cordycep.stringSize)) {
+					throw std::runtime_error("Can't read cordycep strings");
+				}
+			}
+		}
+		if (str >= scrBufferSize) {
+			return utils::va("<invalid:%d/%d>", str, scrBufferSize);
+		}
+		return &scrBuffer[str];
+	}
+
 	std::unordered_map<bo6::T10RAssetType, Unlinker*>& GetUnlinkers() {
 		static std::unordered_map<bo6::T10RAssetType, Unlinker*> unlinkers{};
 		return unlinkers;
