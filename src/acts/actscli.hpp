@@ -14,7 +14,6 @@ namespace actscli {
 		const char* defaultHashFile{};
 		const char* packFile{};
 		bool noDefaultHash{};
-		bool noTreyarchHash{};
 		bool noIWHash{};
 		bool markHash{};
 		const char* dumpHashmap{};

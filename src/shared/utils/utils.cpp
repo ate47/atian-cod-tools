@@ -60,6 +60,31 @@ namespace utils {
         return true;
     }
 
+    void* ReadFilePtr(const std::filesystem::path& path, size_t* len, std::function<void* (size_t)> alloc) {
+        static byte emptyBuff[]{ 0 };
+        std::ifstream in{ path, std::ios::binary };
+        if (!in) {
+            return nullptr;
+        }
+
+        in.seekg(0, std::ios::end);
+        size_t length = (size_t)in.tellg();
+        if (len) *len = length;
+        in.seekg(0, std::ios::beg);
+
+        if (!length) {
+            return emptyBuff;
+        }
+
+        char* ptr{ (char*)alloc(length + 1) };
+
+        in.read(ptr, length);
+        ptr[length] = 0;
+
+        in.close();
+        return ptr;
+    }
+
     bool ReadFile(const std::filesystem::path& path, std::vector<byte>& buffer, bool append) {
         std::ifstream in{ path, std::ios::binary };
         if (!in) {

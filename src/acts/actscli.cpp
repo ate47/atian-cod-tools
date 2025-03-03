@@ -399,7 +399,7 @@ namespace {
 
 			size_t hashIdx{};
 			for (const auto& [val, str] : hashmap) {
-				auto stroff = AppendString(str.c_str());
+				auto stroff = AppendString(str);
 
 				auto& hv = reinterpret_cast<ActsPackHash*>(&packFileData[hashmapoffset])[hashIdx++];
 

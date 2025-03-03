@@ -17,7 +17,14 @@ namespace hashutils {
 	/*
 	 * Get hash map
 	 */
-	const std::unordered_map<uint64_t, std::string>& GetMap();
+	const std::unordered_map<uint64_t, const char*>& GetMap();
+
+	/*
+	 * Alloc string hash memory, it is used to store the hashes
+	 * @param len size
+	 * @return allocated memory
+	 */
+	void* AllocHashMemory(size_t len);
 	/*
 	 * Read the default hash file
 	 */
@@ -48,16 +55,18 @@ namespace hashutils {
 	 * @param ignoreCol ignore collisions
 	 * @param iw hash
 	 * @param async run async
+	 * @param clone clone string
 	 * @return if it collided with another string
 	 */
-	bool Add(const char* str, bool ignoreCol = true, bool iw = false, bool async = false);
+	bool Add(const char* str, bool ignoreCol = true, bool iw = false, bool async = false, bool clone = true);
 	/*
 	 * Add a precomputed hash into the map
 	 * @param value hash value
 	 * @param str string
 	 * @param async run async
+	 * @param clone clone string
 	 */
-	void AddPrecomputed(uint64_t value, const char* str, bool async = false);
+	void AddPrecomputed(uint64_t value, const char* str, bool async = false, bool clone = true);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type

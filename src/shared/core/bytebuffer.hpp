@@ -85,10 +85,15 @@ namespace core::bytebuffer {
 			return len;
 		}
 
-		char* ReadString(size_t* len = nullptr) {
+		char* ReadString(size_t* len = nullptr, char end = 0) {
 			char* str{ Ptr<char>() };
 			size_t _len{};
-			while (Read<char>()) _len++;
+			if (end) {
+				while (Read<char>() != end) _len++;
+			}
+			else {
+				while (Read<char>()) _len++;
+			}
 			if (len) *len = _len;
 			return str;
 		}

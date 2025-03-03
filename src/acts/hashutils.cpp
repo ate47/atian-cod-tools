@@ -4,9 +4,13 @@
 #include <rapidcsv.h>
 #include "actscli.hpp"
 #include "compatibility/scobalula_wni.hpp"
+#include <core/memory_allocator.hpp>
+#include <core/bytebuffer.hpp>
+#include <BS_thread_pool.hpp>
 
 namespace {
-	std::unordered_map<uint64_t, std::string> g_hashMap{};
+	core::memory_allocator::MemoryAllocator alloc{};
+	std::unordered_map<uint64_t, const char*> g_hashMap{};
 	std::set<uint64_t> g_extracted{};
 	const char* hashPrefix{};
 	bool g_saveExtracted = false;
@@ -25,8 +29,12 @@ namespace hashutils {
 		return &asyncMutex;
 	}
 
-	const std::unordered_map<uint64_t, std::string>& GetMap() {
+	const std::unordered_map<uint64_t, const char*>& GetMap() {
 		return g_hashMap;
+	}
+
+	void* AllocHashMemory(size_t len) {
+		return alloc.Alloc<byte>(len);
 	}
 
 	static void ReadDefaultFile0() {
@@ -39,12 +47,22 @@ namespace hashutils {
 			wniPackageIndex = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
 		}
 
+		actslib::profiler::Profiler prof{ "hash" };
 		if (opt.installDirHashes) {
-			if (!compatibility::scobalula::wni::ReadWNIFiles(wniPackageIndex, [](uint64_t hash, const char* str) {
-				AddPrecomputed(hash, str, true);
-				})) {
-				LOG_ERROR("Error when reading WNI files");
-			};
+
+			std::vector<std::filesystem::path> wnipaths{};
+
+			utils::GetFileRecurseExt(wniPackageIndex, wnipaths, ".wni\0");
+
+			for (std::filesystem::path& p : wnipaths) {
+				if (!compatibility::scobalula::wni::ReadWNIFile(p, [](uint64_t hash, const char* str) {
+					AddPrecomputed(hash, str, true, false);
+					}, [](size_t len) -> void* {
+						return AllocHashMemory(len);
+					})) {
+					LOG_ERROR("Error when reading WNI files");
+				};
+			}
 
 			std::vector<std::filesystem::path> csvs{};
 
@@ -89,10 +107,10 @@ namespace hashutils {
 
 		}
 
-		show0 = opt.show0Hash;
-		markHash = opt.markHash;
-		hashPrefix = opt.hashPrefixByPass;
-		heavyHashes = opt.heavyHashes;
+		::show0 = opt.show0Hash;
+		::markHash = opt.markHash;
+		::hashPrefix = opt.hashPrefixByPass;
+		::heavyHashes = opt.heavyHashes;
 
 		if (opt.noDefaultHash) {
 			return;
@@ -104,12 +122,10 @@ namespace hashutils {
 		}
 		std::filesystem::path filePath{ file };
 		LOG_DEBUG("Load default hash file {}", filePath.string());
-		if (!actscli::options().noTreyarchHash) {
-			LoadMap(file, true, false, true);
-		}
-		if (!opt.noIWHash) {
-			LoadMap(file, true, true, true);
-		}
+		LoadMap(file, true, !opt.noIWHash, true);
+
+		prof.Stop();
+		LOG_TRACE("Loaded wni in {}ms", prof.GetMainSection().GetMillis());
 		LOG_DEBUG("End load default hash file");
 	}
 
@@ -119,6 +135,7 @@ namespace hashutils {
 
 		if (cleanup) {
 			g_hashMap.clear();
+			alloc.FreeAll();
 			loaded = false;
 		}
 		if (!loaded) {
@@ -167,44 +184,44 @@ namespace hashutils {
 		LOG_TRACE("Load hash file {}", file);
 
 		// special value
-		AddPrecomputed(0, "", true);
-		AddPrecomputed(hash::HashT89Scr("<error>"), "<error>", true);
-		AddPrecomputed(hash::HashT89Scr("self"), "self", true);
-		AddPrecomputed(hash::HashT89Scr("size"), "size", true);
-		AddPrecomputed(hash::HashT89Scr("nextarray"), "nextarray", true);
-		AddPrecomputed(hash::HashT89Scr("_"), "_", true);
+		AddPrecomputed(0, "", true, false);
+		AddPrecomputed(hash::HashT89Scr("<error>"), "<error>", true, false);
+		AddPrecomputed(hash::HashT89Scr("self"), "self", true, false);
+		AddPrecomputed(hash::HashT89Scr("size"), "size", true, false);
+		AddPrecomputed(hash::HashT89Scr("nextarray"), "nextarray", true, false);
+		AddPrecomputed(hash::HashT89Scr("_"), "_", true, false);
 
 		// class special things
-		Add("__constructor", true, iw, true);
-		Add("__destructor", true, iw, true);
-		Add("__vtable", true, iw, true);
-		Add("_deleted", true, iw, true);
+		Add("__constructor", true, iw, true, false);
+		Add("__destructor", true, iw, true, false);
+		Add("__vtable", true, iw, true, false);
+		Add("_deleted", true, iw, true, false);
 
 		// global vars
-		Add("level", true, iw, true);
-		Add("game", true, iw, true);
-		Add("classes", true, iw, true);
-		Add("mission", true, iw, true);
-		Add("anim", true, iw, true);
-		Add("world", true, iw, true);
-		Add("sharedstructs", true, iw, true);
-		Add("memory", true, iw, true);
+		Add("level", true, iw, true, false);
+		Add("game", true, iw, true, false);
+		Add("classes", true, iw, true, false);
+		Add("mission", true, iw, true, false);
+		Add("anim", true, iw, true, false);
+		Add("world", true, iw, true, false);
+		Add("sharedstructs", true, iw, true, false);
+		Add("memory", true, iw, true, false);
 
 		// structure basic hashes
-		Add("system", true, iw, true);
-		Add("scripts/core_common/system_shared.csc", true, iw, true);
-		Add("scripts/core_common/system_shared.gsc", true, iw, true);
-		Add("scripts/common/system.gsc", true, iw, true);
-		Add("register", true, iw, true);
-		Add("__init__system__", true, iw, true);
-		Add("__init__", true, iw, true);
-		Add("__main__", true, iw, true);
-		Add("main", true, iw, true);
-		Add("init", true, iw, true);
+		Add("system", true, iw, true, false);
+		Add("scripts/core_common/system_shared.csc", true, iw, true, false);
+		Add("scripts/core_common/system_shared.gsc", true, iw, true, false);
+		Add("scripts/common/system.gsc", true, iw, true, false);
+		Add("register", true, iw, true, false);
+		Add("__init__system__", true, iw, true, false);
+		Add("__init__", true, iw, true, false);
+		Add("__main__", true, iw, true, false);
+		Add("main", true, iw, true, false);
+		Add("init", true, iw, true, false);
 		// it seems all the varargs are called "vararg", but a flag is also describing, so idk
 		// in t10 the vararg param is followed by varargcount
-		Add("vararg", true, iw, true);
-		Add("varargcount", true, iw, true);
+		Add("vararg", true, iw, true, false);
+		Add("varargcount", true, iw, true, false);
 
 		// basic letter
 		char buff[2] = { 0, 0 };
@@ -218,21 +235,21 @@ namespace hashutils {
 		}
 
 		// nameless fields in compiler
-		Add("$$tmp", true, iw, true);
-		Add("$notif_checkum", true, iw, true);
-		Add("$BAD_VAR", true, iw, true);
+		Add("$$tmp", true, iw, true, false);
+		Add("$notif_checkum", true, iw, true, false);
+		Add("$BAD_VAR", true, iw, true, false);
 		for (size_t i = 0; i < 0x100; i++) {
 			Add(utils::va("$nameless_%llx", i), true, iw, true);
 			Add(utils::va("$$v%llx", i), true, iw, true);
 		}
 
 		// Decompiler special values
-		Add("self", true, iw, true);
-		Add("size", true, iw, true);
+		Add("self", true, iw, true, false);
+		Add("size", true, iw, true, false);
 
 		// DDL names
-		Add("root", true, iw, true); // root struct
-		Add("__pad", true, iw, true); // padding
+		Add("root", true, iw, true, false); // root struct
+		Add("__pad", true, iw, true, false); // padding
 
 		// gsc temp vars
 		static const char* gscTmpStart =
@@ -244,79 +261,97 @@ namespace hashutils {
 		const char* gscTmpStartIt = gscTmpStart;
 		while (*gscTmpStartIt) {
 			for (size_t i = 0; i < 1000; i++) {
-				const char* s{ utils::va("%s%lld", gscTmpStartIt, i) };
-				AddPrecomputed(hash::HashT10Scr(s), s, true);
-				AddPrecomputed(hash::HashT10ScrSP(s), s, true);
-				AddPrecomputed(hash::HashJupScr(s), s, true);
+				const char* s{ alloc.CloneStr(utils::va("%s%lld", gscTmpStartIt, i)) };
+				AddPrecomputed(hash::HashT10Scr(s), s, true, false);
+				AddPrecomputed(hash::HashT10ScrSP(s), s, true, false);
+				AddPrecomputed(hash::HashJupScr(s), s, true, false);
 			}
 			gscTmpStartIt += std::strlen(gscTmpStartIt) + 1;
 		}
 
 		// ADL names
-		AddPrecomputed(hash::Hash64("bool"), "bool", true);
-		AddPrecomputed(hash::Hash64("byte"), "byte", true);
-		AddPrecomputed(hash::Hash64("uint8"), "uint8", true);
-		AddPrecomputed(hash::Hash64("uint8_t"), "uint8_t", true);
-		AddPrecomputed(hash::Hash64("uint16"), "uint16", true);
-		AddPrecomputed(hash::Hash64("uint16_t"), "uint16_t", true);
-		AddPrecomputed(hash::Hash64("uint32"), "uint32", true);
-		AddPrecomputed(hash::Hash64("uint32_t"), "uint32_t", true);
-		AddPrecomputed(hash::Hash64("uint64"), "uint64", true);
-		AddPrecomputed(hash::Hash64("uint64_t"), "uint64_t", true);
-		AddPrecomputed(hash::Hash64("char"), "char", true);
-		AddPrecomputed(hash::Hash64("int8"), "int8", true);
-		AddPrecomputed(hash::Hash64("int8_t"), "int8_t", true);
-		AddPrecomputed(hash::Hash64("int16"), "int16", true);
-		AddPrecomputed(hash::Hash64("int16_t"), "int16_t", true);
-		AddPrecomputed(hash::Hash64("int32"), "int32", true);
-		AddPrecomputed(hash::Hash64("int32_t"), "int32_t", true);
-		AddPrecomputed(hash::Hash64("int64"), "int64", true);
-		AddPrecomputed(hash::Hash64("int64_t"), "int64_t", true);
-		AddPrecomputed(hash::Hash64("float"), "float", true);
-		AddPrecomputed(hash::Hash64("double"), "double", true);
-		AddPrecomputed(hash::Hash64("string"), "string", true);
-		AddPrecomputed(hash::Hash64("hash"), "hash", true);
-		AddPrecomputed(hash::Hash64("int"), "int", true);
-		AddPrecomputed(hash::Hash64("uint"), "uint", true);
-		AddPrecomputed(hash::Hash64("long"), "long", true);
-		AddPrecomputed(hash::Hash64("ulong"), "ulong", true);
-		AddPrecomputed(hash::Hash64("$$padding"), "$$padding", true);
+		AddPrecomputed(hash::Hash64("bool"), "bool", true, false);
+		AddPrecomputed(hash::Hash64("byte"), "byte", true, false);
+		AddPrecomputed(hash::Hash64("uint8"), "uint8", true, false);
+		AddPrecomputed(hash::Hash64("uint8_t"), "uint8_t", true, false);
+		AddPrecomputed(hash::Hash64("uint16"), "uint16", true, false);
+		AddPrecomputed(hash::Hash64("uint16_t"), "uint16_t", true, false);
+		AddPrecomputed(hash::Hash64("uint32"), "uint32", true, false);
+		AddPrecomputed(hash::Hash64("uint32_t"), "uint32_t", true, false);
+		AddPrecomputed(hash::Hash64("uint64"), "uint64", true, false);
+		AddPrecomputed(hash::Hash64("uint64_t"), "uint64_t", true, false);
+		AddPrecomputed(hash::Hash64("char"), "char", true, false);
+		AddPrecomputed(hash::Hash64("int8"), "int8", true, false);
+		AddPrecomputed(hash::Hash64("int8_t"), "int8_t", true, false);
+		AddPrecomputed(hash::Hash64("int16"), "int16", true, false);
+		AddPrecomputed(hash::Hash64("int16_t"), "int16_t", true, false);
+		AddPrecomputed(hash::Hash64("int32"), "int32", true, false);
+		AddPrecomputed(hash::Hash64("int32_t"), "int32_t", true, false);
+		AddPrecomputed(hash::Hash64("int64"), "int64", true, false);
+		AddPrecomputed(hash::Hash64("int64_t"), "int64_t", true, false);
+		AddPrecomputed(hash::Hash64("float"), "float", true, false);
+		AddPrecomputed(hash::Hash64("double"), "double", true, false);
+		AddPrecomputed(hash::Hash64("string"), "string", true, false);
+		AddPrecomputed(hash::Hash64("hash"), "hash", true, false);
+		AddPrecomputed(hash::Hash64("int"), "int", true, false);
+		AddPrecomputed(hash::Hash64("uint"), "uint", true, false);
+		AddPrecomputed(hash::Hash64("long"), "long", true, false);
+		AddPrecomputed(hash::Hash64("ulong"), "ulong", true, false);
+		AddPrecomputed(hash::Hash64("$$padding"), "$$padding", true, false);
 		// Dump CF
-		AddPrecomputed(hash::Hash64("localize.json"), "localize.json", true);
+		AddPrecomputed(hash::Hash64("localize.json"), "localize.json", true, false);
 
-		std::ifstream s(file);
+		size_t hashFileLen;
+		byte* hashFile{ (byte*)utils::ReadFilePtr(file, &hashFileLen, [](size_t len) { return AllocHashMemory(len); }) };
 
-		if (!s) {
+		if (!hashFile) {
 			LOG_TRACE("End load hash file {}", file);
 			return 0; // nothing to read
 		}
 
-		std::string line;
+		hashFile[hashFileLen] = '\n'; // for last
+
 		int issues{};
+		core::bytebuffer::ByteBuffer hashFileBuffer{ hashFile, hashFileLen + 1 };
+
 		size_t count{};
-		while (s.good() && std::getline(s, line)) {
-			if (!Add(line.c_str(), ignoreCol, iw, true)) {
+		while (hashFileBuffer.CanRead(1)) {
+			size_t len;
+			char* line{ hashFileBuffer.ReadString(&len, '\n') };
+			if (len) {
+				if (line[len - 1] == '\r') {
+					line[len - 1] = 0;
+					len--;
+				}
+				else {
+					line[len] = 0;
+				}
+			}
+			if (!len) continue;
+			if (!Add(line, ignoreCol, iw, true, false)) {
 				issues++;
 			}
 			count++;
 		}
 
-		s.close();
 		LOG_TRACE("End load hash file {} -> {}", file, count);
 		return issues;
 	}
 
-	bool Add(const char* str, bool ignoreCol, bool iw, bool async) {
+	bool Add(const char* str, bool ignoreCol, bool iw, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		AddPrecomputed(hash::Hash64(str), str, true);
+		// use the same string for all the hashes
+		if (clone) {
+			str = alloc.CloneStr(str);
+		}
+		AddPrecomputed(hash::Hash64(str), str, true, false);
 		if (iw) {
-			AddPrecomputed(hash::HashIWRes(str), str, true);
-			AddPrecomputed(hash::HashJupScr(str), str, true);
-			AddPrecomputed(hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true);
-			AddPrecomputed(hash::HashIWDVar(str), str, true);
-			AddPrecomputed(hash::HashT10Scr(str), str, true);
-			AddPrecomputed(hash::HashT10ScrSP(str), str, true);
-			return true;
+			AddPrecomputed(hash::HashIWRes(str), str, true, false);
+			AddPrecomputed(hash::HashJupScr(str), str, true, false);
+			AddPrecomputed(hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true, false);
+			AddPrecomputed(hash::HashIWDVar(str), str, true, false);
+			AddPrecomputed(hash::HashT10Scr(str), str, true, false);
+			AddPrecomputed(hash::HashT10ScrSP(str), str, true, false);
 		}
 		bool cand32 = true;
 
@@ -333,23 +368,23 @@ namespace hashutils {
 		}
 
 		if (cand32) {
-			AddPrecomputed(hash::HashT7(str), str, true);
+			AddPrecomputed(hash::HashT7(str), str, true, false);
 
 			auto h = hash::HashT89Scr(str);
 			if (!ignoreCol) {
 				auto find = g_hashMap.find(h);
-				if (find != g_hashMap.end() && _strcmpi(str, find->second.data())) {
-					LOG_WARNING("Coll '{}'='{}' #{:x}", str, find->second.data(), h);
+				if (find != g_hashMap.end() && _strcmpi(str, find->second)) {
+					LOG_WARNING("Coll '{}'='{}' #{:x}", str, find->second, h);
 					return false;
 				}
 			}
-			AddPrecomputed(h, str, true);
+			AddPrecomputed(h, str, true, false);
 		}
 		return true;
 	}
-	void AddPrecomputed(uint64_t value, const char* str, bool async) {
+	void AddPrecomputed(uint64_t value, const char* str, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		g_hashMap.emplace(value & hashutils::MASK63, str);
+		g_hashMap.emplace(value & hashutils::MASK63, clone ? alloc.CloneStr(str) : str);
 	}
 
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
@@ -376,10 +411,10 @@ namespace hashutils {
 			return false;
 		}
 		if (markHash) {
-			snprintf(out, outSize, heavyHashes ? "<%016llX>%s" : "<%llx>%s", hash, res->second.c_str());
+			snprintf(out, outSize, heavyHashes ? "<%016llX>%s" : "<%llx>%s", hash, res->second);
 		}
 		else {
-			snprintf(out, outSize, "%s", res->second.c_str());
+			snprintf(out, outSize, "%s", res->second);
 		}
 		return true;
 	}
@@ -404,7 +439,7 @@ namespace hashutils {
 		if (res == g_hashMap.end()) {
 			return NULL;
 		}
-		return res->second.data();
+		return res->second;
 	}
 
 	size_t Size() {

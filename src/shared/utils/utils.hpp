@@ -46,6 +46,14 @@ namespace utils {
 	 * @return if the file was read
 	 */
 	bool ReadFile(const std::filesystem::path& path, std::string& buffer, bool append = false);
+
+	/*
+	 * Read a file inside an allocated buffer
+	 * @param path file path
+	 * @param alloc alloc function
+	 * @return ptr or nullptr_t if the string can't be loaded
+	 */
+	void* ReadFilePtr(const std::filesystem::path& path, size_t* len, std::function<void*(size_t)> alloc);
 	/*
 	 * Read a file inside a string buffer
 	 * @param path file path

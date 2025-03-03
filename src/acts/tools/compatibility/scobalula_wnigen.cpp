@@ -247,8 +247,6 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 		auto& opt = actscli::options();
-		bool useIW = !opt.noIWHash;
-		bool useTreyarch = !opt.noTreyarchHash;
 
 		std::string line;
 		uint32_t count{};

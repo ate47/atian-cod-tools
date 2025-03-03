@@ -40,9 +40,6 @@ namespace {
 			else if (!strcmp("-t", arg) || !_strcmpi("--no-title", arg)) {
 				opt.showTitle = false;
 			}
-			else if (!strcmp("-T", arg) || !_strcmpi("--no-treyarch", arg)) {
-				opt.noTreyarchHash = true;
-			}
 			else if (!strcmp("-I", arg) || !_strcmpi("--no-iw", arg)) {
 				opt.noIWHash = true;
 			}
@@ -269,7 +266,6 @@ namespace {
 		LOG_INFO(" -P --profiler [f]  : Save profiler file after tool usage");
 		LOG_INFO(" -N --no-hash       : No default hash");
 		LOG_INFO(" -H --no-install    : No install hashes");
-		LOG_INFO(" -T --no-treyarch   : No Treyarch hash (ignored with -N)");
 		LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
 		LOG_INFO("--decrypt-mod [f]   : Use exe dump to decrypt strings");
 		LOG_INFO("--decrypt-t8 [v]    : Set the bo4 decryption algorithm, default 0");
