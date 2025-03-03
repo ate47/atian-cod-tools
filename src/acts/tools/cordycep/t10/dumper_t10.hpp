@@ -19,7 +19,6 @@ namespace tool::cordycep::dump::t10 {
 		bool m_any_type = false;
 		bool m_dump_info = false;
 		bool m_dump_all_available = false;
-		bool dumpScrStrings{};
 		bool m_pools{};
 		bool m_cf_files{};
 		bool m_usev1{};
@@ -51,10 +50,7 @@ namespace tool::cordycep::dump::t10 {
 		std::function<const char* (uint64_t hash)> GetLocalized;
 		compatibility::scobalula::csi::CordycepProc& cordycep;
 
-		std::unique_ptr<char[]> scrBuffer{ nullptr };
-		size_t scrBufferSize{};
-
-		const char* GetScrString(ScrString str);
+		const char* GetScrString(ScrString str) const;
 	};
 
 	class Unlinker {

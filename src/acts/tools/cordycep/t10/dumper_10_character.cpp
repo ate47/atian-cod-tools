@@ -16,16 +16,16 @@ namespace {
 		uint64_t unk18;
 		uint64_t unk20;
 		uint64_t unk28;
-		Dismemberment* unk30;
-		AIAnimSettings* unk38;
-		ScrString unk40;
+		Dismemberment* dismemberment;
+		AIAnimSettings* aiAnimSettings;
+		ScrString bodyScr;
 		ScrString unk44;
-		ScrString unk48;
+		ScrString headScr;
 		ScrString unk4c;
-		ScrString unk50;
+		ScrString hatScr;
 		ScrString unk54;
-		ScrString unk58;
-		ScrString unk5c;
+		ScrString classScr;
+		ScrString animtreeScr;
 		int32_t unk68_count;
 		const char** unk68;
 		uint64_t unk70;
@@ -46,39 +46,50 @@ namespace {
 				LOG_ERROR("Can't read {} header ", hashutils::ExtractTmp("hash", asset.ID));
 				return false;
 			}
-
-
-			std::filesystem::path loc{ ctx.outDir / "tables" / "character" / std::format("{}.json", hashutils::ExtractTmp("file", data.name)) };
-			if (opt.m_ignoreOld && std::filesystem::exists(loc)) return true;
-			std::filesystem::create_directories(loc.parent_path());
 			utils::raw_file_extractor::JsonWriter json{};
-
-			LOG_INFO("Dump {}", loc.string());
 
 			// Dump pool
 			json.BeginObject();
 
-			json.WriteFieldNameString("name");
-			json.WriteValueHash(data.name);
-			json.WriteFieldNameString("unk40"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk40)));
-			json.WriteFieldNameString("unk44"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk44)));
-			json.WriteFieldNameString("unk48"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk48)));
-			json.WriteFieldNameString("unk4c"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk4c)));
-			json.WriteFieldNameString("unk50"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk50)));
-			json.WriteFieldNameString("unk54"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk54)));
-			json.WriteFieldNameString("unk58"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk58)));
-			json.WriteFieldNameString("unk5c"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk5c)));
-			json.WriteFieldNameString("unk68");
-			json.BeginArray();
+			json.WriteFieldNameString("name"); json.WriteValueHash(data.name);
+			if (data.dismemberment) {
+				json.WriteFieldNameString("dismemberment"); json.WriteValueHash(proc.ReadMemory<uint64_t>(reinterpret_cast<uintptr_t>(data.dismemberment)));
+			}
+			if (data.aiAnimSettings) {
+				json.WriteFieldNameString("aiAnimSettings"); json.WriteValueHash(proc.ReadMemory<uint64_t>(reinterpret_cast<uintptr_t>(data.aiAnimSettings)));
+			}
+			
+			json.WriteFieldNameString("hash08"); json.WriteValueHash(data.unk08);
+			json.WriteFieldNameString("hash10"); json.WriteValueHash(data.unk10);
+			json.WriteFieldNameString("hash18"); json.WriteValueHash(data.unk18);
+			json.WriteFieldNameString("hash20"); json.WriteValueHash(data.unk20);
+			json.WriteFieldNameString("hash28"); json.WriteValueHash(data.unk28);
+
+			if (data.bodyScr) { json.WriteFieldNameString("body"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.bodyScr))); }
+			if (data.unk44) { json.WriteFieldNameString("unk44"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk44))); }
+			if (data.headScr) { json.WriteFieldNameString("head"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.headScr))); }
+			if (data.unk4c) { json.WriteFieldNameString("unk4c"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk4c))); }
+			if (data.hatScr) { json.WriteFieldNameString("hat"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.hatScr))); }
+			if (data.unk54) { json.WriteFieldNameString("unk54"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.unk54))); }
+			if (data.classScr) { json.WriteFieldNameString("class"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.classScr))); }
+			if (data.animtreeScr) { json.WriteFieldNameString("animtree"); json.WriteValueString(opt.AddString(ctx.GetScrString(data.animtreeScr))); }
 			if (data.unk68_count) {
+				json.WriteFieldNameString("unk68");
+				json.BeginArray();
 				auto unk68{ proc.ReadMemoryArrayEx<uintptr_t>(reinterpret_cast<uintptr_t>(data.unk68), data.unk68_count) };
 				for (size_t i = 0; i < data.unk68_count; i++) {
 					json.WriteValueString(opt.AddString(proc.ReadStringTmp(unk68[i])));
 				}
+				json.EndArray();
 			}
-			json.EndArray();
 			json.EndObject();
 
+
+			std::filesystem::path loc{ ctx.outDir / "tables" / "character" / std::format("{}.json", hashutils::ExtractTmp("file", data.name)) };
+
+			LOG_INFO("Dump {}", loc.string());
+			if (opt.m_ignoreOld && std::filesystem::exists(loc)) return true;
+			std::filesystem::create_directories(loc.parent_path());
 
 			if (!json.WriteToFile(loc)) {
 				LOG_ERROR("Can't write {}", loc.string());
@@ -88,5 +99,5 @@ namespace {
 
 	};
 
-	//utils::MapAdder<UnlinkerImpl, bo6::T10RAssetType, Unlinker> impl{ GetUnlinkers(), bo6::T10R_ASSET_CHARACTER };
+	utils::MapAdder<UnlinkerImpl, bo6::T10RAssetType, Unlinker> impl{ GetUnlinkers(), bo6::T10R_ASSET_CHARACTER };
 }

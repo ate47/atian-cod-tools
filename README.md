@@ -65,7 +65,7 @@ See the wiki to know how to use the features
 - Black Ops Cold War (DEC): `rawfile`, `rawfilepreproc`, `rawtextfile`, `stringtable`, `scriptparsetree`, `scriptbundle`.
 - Modern Warfare 2019 (COR): `scriptfile`.
 - Modern Warfare III (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `luafile`, `ddl`.
-- Black Ops 6 (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `ddl`, `operator`, `operatorlist`, `operatorskin`, `luafile`, `rawfile`, `storagefile`, `project`, `projecttable`.
+- Black Ops 6 (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `ddl`, `operator`, `operatorlist`, `operatorskin`, `luafile`, `rawfile`, `storagefile`, `project`, `projecttable`, `character`.
 
 - **DEC**: Requires pre-decode
 - **COR**: Using [Cordycep](https://github.com/Scobalula/Cordycep).

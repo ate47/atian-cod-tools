@@ -105,7 +105,7 @@ namespace tool::cordycep::dump::t10 {
 				return tool::OK;
 			}
 
-			if (!opt.m_any_type && !opt.dumpScrStrings) {
+			if (!opt.m_any_type) {
 				opt.PrintHelp();
 				return tool::OK;
 			}
@@ -243,24 +243,6 @@ namespace tool::cordycep::dump::t10 {
 
 
 			UnlinkerContext uctx{ proc, opt, outDir, GetLocalized, cordycep };
-
-			if (opt.dumpScrStrings) {
-				uctx.GetScrString(0);
-
-				utils::OutFileCE stros{ dumpDir / "scrstr.txt" };
-
-				if (!stros) {
-					LOG_ERROR("Can't dump scr strings");
-					return tool::BASIC_ERROR;
-				}
-
-				const char* origin{ uctx.scrBuffer.get() };
-				const char* ss{ uctx.scrBuffer.get() };
-				while ((ss - origin) < cordycep.stringSize) {
-					stros << ss << "\n";
-					ss += std::strlen(ss) + 1;
-				}
-			}
 
 			for (auto& [type, unlinker] : GetUnlinkers()) {
 				HandlePool(type, outDir, [&uctx, &unlinker](const XAsset64& asset, size_t count) { return unlinker->Unlink(asset, uctx); });
@@ -402,9 +384,6 @@ namespace tool::cordycep::dump::t10 {
 			else if (!_strcmpi("--header", arg)) {
 				header = true;
 			}
-			else if (!_strcmpi("--dumpScrStrings", arg)) {
-				dumpScrStrings = true;
-			}
 			else if (!strcmp("-S", arg) || !_strcmpi("--strings", arg)) {
 				if (i + 1 == endIndex) {
 					std::cerr << "Missing value for param: " << arg << "!\n";
@@ -465,20 +444,8 @@ namespace tool::cordycep::dump::t10 {
 		return str;
 	}
 
-	const char* UnlinkerContext::GetScrString(ScrString str) {
-		if (!scrBufferSize) {
-			scrBufferSize = cordycep.stringSize;
-			scrBuffer = std::make_unique<char[]>(1 + cordycep.stringSize);
-			if (cordycep.stringSize) {
-				if (!proc.ReadMemory(scrBuffer.get(), cordycep.stringsAddress, cordycep.stringSize)) {
-					throw std::runtime_error("Can't read cordycep strings");
-				}
-			}
-		}
-		if (str >= scrBufferSize) {
-			return utils::va("<invalid:%d/%d>", str, scrBufferSize);
-		}
-		return &scrBuffer[str];
+	const char* UnlinkerContext::GetScrString(ScrString str) const {
+		return proc.ReadStringTmp(cordycep.stringsAddress + str);
 	}
 
 	std::unordered_map<bo6::T10RAssetType, Unlinker*>& GetUnlinkers() {
