@@ -241,13 +241,14 @@ namespace tool::cordycep::dump::t10::scriptbundle {
 	}
 	bool sbv2::WriteBundleData(PoolOption& opt, utils::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectData& data, std::function<const char* (uint64_t hash)>& GetLocalized) {
 		json.BeginObject();
+		if (data.count) {
+			auto objects = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(data.defs, data.count);
+			auto names = proc.ReadMemoryArrayEx<uint64_t>(data.names, data.count);
 
-		auto objects = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(data.defs, data.count);
-		auto names = proc.ReadMemoryArrayEx<uint64_t>(data.names, data.count);
-
-		for (size_t i = 0; i < data.count; i++) {
-			json.WriterFieldNameHash(names[i]);
-			if (!WriteBundleDef(opt, json, proc, objects[i], GetLocalized)) return false;
+			for (size_t i = 0; i < data.count; i++) {
+				json.WriterFieldNameHash(names[i]);
+				if (!WriteBundleDef(opt, json, proc, objects[i], GetLocalized)) return false;
+			}
 		}
 		json.EndObject();
 		return true;

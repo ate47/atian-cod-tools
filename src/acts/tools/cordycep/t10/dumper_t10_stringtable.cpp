@@ -65,11 +65,14 @@ namespace {
 
 			const char* dfilename = hashutils::ExtractPtr(entry.name);
 
-			if (!dfilename) dfilename = utils::va("hashed/scripttable/file_%llx.csv", entry.name);
+			if (!dfilename) dfilename = utils::va("hashed/stringtable/file_%llx.csv", entry.name);
 
 			std::filesystem::path loc{ ctx.outDir / "dump" / dfilename };
 			if (opt.m_ignoreOld && std::filesystem::exists(loc)) return true;
 			std::filesystem::create_directories(loc.parent_path());
+
+			LOG_INFO("Dump {}", loc.string());
+
 			utils::OutFileCE os{ loc };
 
 			if (!os) {
