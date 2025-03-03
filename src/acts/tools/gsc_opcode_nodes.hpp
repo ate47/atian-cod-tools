@@ -325,7 +325,7 @@ namespace tool::gsc::opcode {
 		ASMContextNode* m_operandleft;
 		ASMContextNode* m_operandright;
 		ASMContextNodeArrayAccess(ASMContextNode* operandleft, ASMContextNode* operandright) :
-			ASMContextNode(PRIORITY_ACCESS), m_operandleft(operandleft), m_operandright(operandright) {
+			ASMContextNode(PRIORITY_ACCESS, TYPE_ARRAY_ACCESS), m_operandleft(operandleft), m_operandright(operandright) {
 		}
 		~ASMContextNodeArrayAccess() {
 			delete m_operandleft;

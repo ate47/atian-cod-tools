@@ -2260,6 +2260,7 @@ ignoreCscGsc:
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_WHILE)) {
                             asmctx.ComputeWhileBlocks();
                         }
+                        asmctx.ComputeSpecialPattern();
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_FOR)) {
                             asmctx.ComputeForBlocks();
                         }
@@ -2272,7 +2273,6 @@ ignoreCscGsc:
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_BOOL_RETURN)) {
                             asmctx.ComputeBoolReturn();
                         }
-                        asmctx.ComputeSpecialPattern();
                         if (opt.m_dasm) {
                             output << " ";
                             asmctx.Dump(output, dctx);

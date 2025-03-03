@@ -235,6 +235,7 @@ namespace tool::gsc {
             TYPE_WAITTILL_SET,
             TYPE_DELTA,
             TYPE_ACCESS,
+            TYPE_ARRAY_ACCESS,
             TYPE_END,
             TYPE_RETURN,
             TYPE_NEW,

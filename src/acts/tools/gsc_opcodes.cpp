@@ -467,6 +467,12 @@ namespace {
 			return IsStructSimilar(aa->m_operand1, bb->m_operand1)
 				&& IsStructSimilar(aa->m_operand2, bb->m_operand2);
 		}
+		case TYPE_ARRAY_ACCESS: {
+			auto* aa = dynamic_cast<ASMContextNodeArrayAccess*>(a);
+			auto* bb = dynamic_cast<ASMContextNodeArrayAccess*>(b);
+
+			return IsStructSimilar(aa->m_operandleft, bb->m_operandleft) && IsStructSimilar(aa->m_operandright, bb->m_operandright);
+		}
 		case TYPE_ACCESS:
 		case TYPE_SET: {
 			auto* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
@@ -7612,6 +7618,81 @@ namespace {
 			stmt.node->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) { ApplySpecialPatternBlock(ctx, block->m_statements); }, ctx);
 
 			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_SPECIAL_PATTERN)) {
+				ASMContextNodeLeftRightOperator* mainSet;
+				if (i && stmts[i - 1].node->m_type == TYPE_SET && (mainSet = dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node))->m_left->m_type == TYPE_IDENTIFIER
+					&& stmt.node->m_type == TYPE_SET) {
+					// at this point
+					// arr = ...
+					// ? = ?
+					uint64_t keyHash = dynamic_cast<ASMContextNodeIdentifier*>(mainSet->m_left)->m_value;
+					/*
+						m_localvars_ref
+						i - 1 __axx = ...
+						i patt1 = __axx[0]
+						patt2 = __axx[1]
+						...
+						pattn = __axx[n]
+						convert to [patt1, patt2, ... pattn]
+					*/
+
+					auto keyit = ctx.m_localvars_ref.find(keyHash);
+
+					int32_t keyrefs;
+					if (keyit != ctx.m_localvars_ref.end() && (keyrefs = keyit->second) > 1 && i + keyrefs - 1 <= stmts.size()) {
+						size_t j{ i };
+						size_t latest{ (size_t)keyrefs - 1 }; // we remove 1 for the first set ref
+						size_t end{ i + keyrefs - 1 };
+						for (; j < end; j++) {
+							if (stmts[j].node->m_type != TYPE_SET) {
+								break; // not: ... = ...
+							}
+							ASMContextNodeLeftRightOperator* set = dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[j].node);
+							if (set->m_right->m_type != TYPE_ARRAY_ACCESS) {
+								break; // not: var = ... [ ... ]
+							}
+							ASMContextNodeArrayAccess* arrayAccess = dynamic_cast<ASMContextNodeArrayAccess*>(set->m_right);
+							if (arrayAccess->m_operandleft->m_type != TYPE_IDENTIFIER || !arrayAccess->m_operandright->IsIntConst()
+								|| dynamic_cast<ASMContextNodeIdentifier*>(arrayAccess->m_operandleft)->m_value != keyHash
+								) {
+								break; // not: var = arr [ x ]
+							}
+
+							int64_t idx = arrayAccess->m_operandright->GetIntConst();
+
+							if (idx < 0) break; // can't have negative index
+
+							if ((size_t)(idx + 1) != latest) {
+								break; // not: var = arr [ n - 1 ]
+							}
+
+							latest = (size_t)idx;
+						}
+
+						if (latest == 0) {
+							// latest > 0 : bad index looking
+							ASMContextNodeArrayBuild* bld = new ASMContextNodeArrayBuild();
+
+							if (mainSet->m_left) delete mainSet->m_left;
+
+							mainSet->m_left = bld;
+
+							--i; // put the cursor at start
+
+							for (size_t k = 1; k < keyrefs; k++) {
+								ASMContextNodeLeftRightOperator* set = dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i + (keyrefs - k)].node);
+								assert(set != nullptr);
+
+								// use the left identifier in our array
+								bld->AddValue(new ASMContextNodeValue<size_t>(k - 1, TYPE_VALUE, false, true, true), set->m_left, false);
+								set->m_left = nullptr;
+								delete stmts[i + (keyrefs - k)].node;
+								stmts.erase(stmts.begin() + (i + (keyrefs - k)));
+							}
+
+						}
+
+					}
+				}
 				if (i
 					/*
 					  unk = undefined;
@@ -7629,6 +7710,7 @@ namespace {
 					stmts.erase(stmts.begin() + i);
 					continue;
 				}
+				
 			}
 
 			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_DEVBLOCK_INLINE)
