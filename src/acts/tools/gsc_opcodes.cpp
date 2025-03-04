@@ -7619,7 +7619,9 @@ namespace {
 
 			if (!(ctx.m_opt.m_stepskip & tool::gsc::STEPSKIP_SPECIAL_PATTERN)) {
 				ASMContextNodeLeftRightOperator* mainSet;
-				if (i && stmts[i - 1].node->m_type == TYPE_SET && (mainSet = dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node))->m_left->m_type == TYPE_IDENTIFIER
+				if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_LIKE) &&
+					i && stmts[i - 1].node->m_type == TYPE_SET 
+					&& (mainSet = dynamic_cast<ASMContextNodeLeftRightOperator*>(stmts[i - 1].node))->m_left->m_type == TYPE_IDENTIFIER
 					&& stmt.node->m_type == TYPE_SET) {
 					// at this point
 					// arr = ...
