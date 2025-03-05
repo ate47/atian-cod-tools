@@ -645,8 +645,29 @@ namespace {
 		return tool::OK;
 	}
 
+	int exe_scan(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+		const char* exe{ argv[2] };
+		const char* pattern{ argv[3] };
+
+		hook::module_mapper::Module mod{ true };
+
+		if (!mod.Load(exe, false)) {
+			LOG_ERROR("no load");
+			return tool::BASIC_ERROR;
+		}
+
+		for (auto& patt : mod->Scan(pattern)) {
+			LOG_INFO("{} -> {}", pattern, (void*)patt.location);
+		}
+
+		return tool::OK;
+	}
+
 
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
+	ADD_TOOL(exe_scan, "dev", "[exe] [pattern]", "Scan exe", exe_scan);
 	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
 	ADD_TOOL(bo6_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", iw_data_dump);
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);

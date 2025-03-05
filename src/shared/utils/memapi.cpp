@@ -572,6 +572,8 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 
 	byte buffer[0x1000];
 
+	LOG_TRACE("search for {} from {:x} to {:x}", pattern, start, end);
+
 	if (sizeof(buffer) < mask.size()) {
 		throw std::runtime_error(utils::va("Pattern too big! %s", pattern)); // wtf?
 	}
@@ -581,6 +583,7 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 
 	while (current < end) {
 		if (!m_parent.ReadMemory(buffer, current, sizeof(buffer))) {
+			LOG_TRACE("can't read memory {:x}", current);
 			current += delta;
 			continue;
 		}
@@ -598,6 +601,8 @@ uintptr_t ProcessModule::Scan(const char* pattern, DWORD start_ptr) {
 
 		current += delta;
 	}
+
+	LOG_TRACE("no find");
 
 	return 0;
 }
