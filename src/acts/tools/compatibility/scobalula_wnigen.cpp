@@ -207,7 +207,7 @@ namespace {
 				case hash::Hash64("t8"):
 				case hash::Hash64("t9"):
 				case hash::Hash64("t89"):
-					alg |= ALG_SCR_T8,
+					alg |= ALG_SCR_T89;
 					break;
 				case hash::Hash64("t10"):
 					alg |= ALG_SCR_T10;
