@@ -383,11 +383,11 @@ namespace tool::hash::scanner {
 				class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return ::hash::Hash64A(str, base); } };
 				class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10Scr(str, base); } };
 				class HashT10ScrSP { public:
-					static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10ScrSPPre(str, base); }
+					static constexpr uint64_t Hash(const char* str, uint64_t base = 0x1C2F2E3C8A257D07) { return ::hash::HashT10ScrSPPre(str, base); }
 					static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT10ScrSPPost(base); }
 				};
 				class HashT89Scr { public:
-					static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT89ScrPre(str, (uint32_t)base); }
+					static constexpr uint64_t Hash(const char* str, uint64_t base = 0x4B9ACE2F) { return ::hash::HashT89ScrPre(str, (uint32_t)base); }
 					static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT89ScrPost((uint32_t)base); }
 				};
 				class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x79D6530B0BB9B5D1) { return ::hash::HashJupScr(str, base); } };
