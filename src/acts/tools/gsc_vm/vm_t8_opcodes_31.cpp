@@ -10,6 +10,14 @@ namespace {
 		vt831->RegisterVmName("t8_31", "blackops4_31");
 		vt831->AddPlatform(PLATFORM_PLAYSTATION);
 		vt831->SetMaxOpCode(0xFFF);
+		vt831->RegisterVMGlobalVariable("level");
+		vt831->RegisterVMGlobalVariable("game");
+		vt831->RegisterVMGlobalVariable("classes");
+		vt831->RegisterVMGlobalVariable("mission");
+		vt831->RegisterVMGlobalVariable("anim");
+		vt831->RegisterVMGlobalVariable("world");
+		vt831->RegisterVMGlobalVariable("sharedstructs");
+		vt831->RegisterVMGlobalVariable("memory");
 		vt831->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt831->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt831->RegisterDatatypeRenamed("function", "functionptr");

@@ -82,6 +82,7 @@ namespace tool::gsc::opcode {
 		PLATFORM_PLAYSTATION = 2,
 		PLATFORM_XBOX = 3,
 		PLATFORM_PC_ALPHA = 4,
+		PLATFORM_ACTS_TEST = 5,
 		PLATFORM_COUNT,
 	};
 

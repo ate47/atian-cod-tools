@@ -13,6 +13,7 @@ namespace {
 		std::filesystem::path origin;
 		std::vector<byte> buffer{};
 		std::shared_ptr<GSCOBJHandler> reader{};
+		std::unordered_map<uint64_t, std::unordered_set<uint32_t>> opcodesLocs{};
 	};
 
 	struct GscExportData {
@@ -27,13 +28,17 @@ namespace {
 		struct {
 			bool help{};
 			bool sameVm{};
+			const char* testDecompDir{};
 			const char* pltName{};
+			bool exportConv{};
 			opcode::Platform plt{ PLATFORM_PC };
 		} opt;
 
 		opts
 			.addOption(&opt.help, "Show help", "--help", "", "-h")
-			.addOption(&opt.sameVm, "Use same vm for new", "--same-vm", "", "-s")
+			.addOption(&opt.sameVm, "Use same vm for new", "--sameVm", "", "-s")
+			.addOption(&opt.exportConv, "Use exports", "--export", "", "-e")
+			.addOption(&opt.testDecompDir, "Start decompiler with new opcodes", "--decomp", "", "-d")
 			.addOption(&opt.pltName, "Input platform name", "--plt", " [plt]", "-t")
 			;
 
@@ -153,12 +158,11 @@ namespace {
 			}
 
 			GscDecompilerGlobalContext gdctx{};
-			std::unordered_map<uint64_t, std::unordered_set<uint32_t>> opcodesLocs{};
 
 			// disable output file
 			gdctx.noDump = true;
 			// the decompiler will put everything in this map
-			gdctx.opcodesLocs = &opcodesLocs;
+			gdctx.opcodesLocs = &newdata.opcodesLocs;
 
 
 			if (olddata.reader->GetCSEGSize() == newdata.reader->GetCSEGSize()) {
@@ -171,10 +175,10 @@ namespace {
 					continue;
 				}
 
-				LOG_INFO("Adding {} candidates", opcodesLocs[name].size());
+				LOG_INFO("Adding {} candidates", newdata.opcodesLocs[name].size());
 				uint32_t csegStartOld{ olddata.reader->GetCSEGOffset() };
 				uint32_t csegStartNew{ newdata.reader->GetCSEGOffset() };
-				for (uint32_t loc : opcodesLocs[name]) {
+				for (uint32_t loc : newdata.opcodesLocs[name]) {
 					void* opbase{ &olddata.buffer[loc] };
 					void* nopbase{ &newdata.buffer[(size_t)loc - csegStartOld + csegStartNew] };
 
@@ -203,127 +207,128 @@ namespace {
 				continue;
 			}
 
+			if (opt.exportConv) {
+				// not working, maybe we can translate checking first same CSEG and then the export codes while ignoring strange results
+				std::unordered_map<NameLocated, GscExportData*, NameLocatedHash, NameLocatedEquals> oldExportsMap{};
+				std::unordered_map<NameLocated, GscExportData*, NameLocatedHash, NameLocatedEquals> newExportsMap{};
+				std::vector<GscExportData> oldExports{};
+				std::vector<GscExportData> newExports{};
 
-			std::unordered_map<NameLocated, GscExportData*, NameLocatedHash, NameLocatedEquals> oldExportsMap{};
-			std::unordered_map<NameLocated, GscExportData*, NameLocatedHash, NameLocatedEquals> newExportsMap{};
-			std::vector<GscExportData> oldExports{};
-			std::vector<GscExportData> newExports{};
+				auto LoadExports = [](GSCOBJHandler& reader, GSCExportReader& exreader, std::vector<GscExportData>& exports, std::unordered_map<NameLocated, GscExportData*, NameLocatedHash, NameLocatedEquals>& map, VmInfo* vmInfo, bool sameFieldHash) -> void {
+					uint16_t exportsCount{ reader.GetExportsCount() };
+					for (size_t i = 0; i < exportsCount; i++) {
+						exreader.SetHandle(reader.Ptr(reader.GetExportsOffset() + i * reader.GetExportSize()));
 
-			auto LoadExports = [](GSCOBJHandler& reader, GSCExportReader& exreader, std::vector<GscExportData>& exports, std::unordered_map<NameLocated, GscExportData*, NameLocatedHash, NameLocatedEquals>& map, VmInfo* vmInfo, bool sameFieldHash) -> void {
-				uint16_t exportsCount{ reader.GetExportsCount() };
-				for (size_t i = 0; i < exportsCount; i++) {
-					exreader.SetHandle(reader.Ptr(reader.GetExportsOffset() + i * reader.GetExportSize()));
+						GscExportData ged{};
 
-					GscExportData ged{};
+						ged.nl.name = exreader.GetName();
+						ged.nl.name_space = exreader.GetNamespace();
+						ged.start = exreader.GetAddress();
 
-					ged.nl.name = exreader.GetName();
-					ged.nl.name_space = exreader.GetNamespace();
-					ged.start = exreader.GetAddress();
+						// map hash field names
+						if (!sameFieldHash) {
+							const char* mappedName{ hashutils::ExtractPtr(ged.nl.name) };
+							const char* mappedNamespace{ hashutils::ExtractPtr(ged.nl.name_space) };
+							if (!mappedName || !mappedNamespace) {
+								LOG_WARNING("No hash lookup for name {}::{}, vm with different hashes", hashutils::ExtractTmp("namespace", ged.nl.name_space), hashutils::ExtractTmp("function", ged.nl.name));
+								ged.nl.name = 0;
+								ged.nl.name_space = 0;
+							}
+							else {
+								ged.nl.name = vmInfo->HashField(mappedName);
+								ged.nl.name_space = vmInfo->HashField(mappedNamespace);
+							}
+						}
 
-					// map hash field names
-					if (!sameFieldHash) {
-						const char* mappedName{ hashutils::ExtractPtr(ged.nl.name) };
-						const char* mappedNamespace{ hashutils::ExtractPtr(ged.nl.name_space) };
-						if (!mappedName || !mappedNamespace) {
-							LOG_WARNING("No hash lookup for name {}::{}, vm with different hashes", hashutils::ExtractTmp("namespace", ged.nl.name_space), hashutils::ExtractTmp("function", ged.nl.name));
-							ged.nl.name = 0;
-							ged.nl.name_space = 0;
+						exports.emplace_back(std::move(ged));
+
+					}
+					// write end of the cseg to get the size of the last func
+					exports.emplace_back(NameLocated{ 0, 0 }, reader.GetCSEGOffset() + reader.GetCSEGSize(), 0);
+
+					// sort, shouldn't be required for now, but still good
+					std::sort(exports.begin(), exports.end(), [](GscExportData& a, GscExportData& b) -> bool { return a.start < b.start; });
+					for (size_t i = 0; i < exports.size() - 1; i++) {
+						// compute the size using the delta with the next func
+						exports[i].size = exports[i + 1].start - exports[i].start;
+
+						if (exports[i].nl.name && exports[i].nl.name_space) {
+							// add the export to the map
+							map[exports[i].nl] = &exports[i];
+						}
+					}
+				};
+
+				LoadExports(*olddata.reader, *oer, oldExports, oldExportsMap, oldVm, sameFieldHash);
+				LoadExports(*newdata.reader, *ner, newExports, newExportsMap, newVm, true);
+
+				bool isDecompiled{};
+				bool anySimilar{};
+				for (auto& [nl, oged] : oldExportsMap) {
+					auto ite{ newExportsMap.find(nl) };
+
+					if (ite == newExportsMap.end()) {
+						LOG_TRACE("Can't find {}::{} in new dump", hashutils::ExtractTmp("namespace", oged->nl.name_space), hashutils::ExtractTmp("function", oged->nl.name));
+						continue;
+					}
+
+					GscExportData* nged{ ite->second };
+
+					if (oged->size != nged->size) {
+						LOG_TRACE("Not the same size for {}::{} in new dump", hashutils::ExtractTmp("namespace", oged->nl.name_space), hashutils::ExtractTmp("function", oged->nl.name));
+						continue;
+					}
+
+
+					if (!isDecompiled) {
+						// decompile the script
+						int ret{ DecompileGsc(olddata.buffer.data(), olddata.buffer.size(), olddata.origin, gdctx) };
+
+						if (ret) {
+							LOG_ERROR("Decompiler output 0x{:x}", ret);
+							break;
+						}
+						isDecompiled = true;
+					}
+					anySimilar = true;
+
+					for (uint32_t loc : newdata.opcodesLocs[name]) {
+						if (loc < oged->start || loc >= oged->start + oged->size) {
+							continue; // not inside the current export
+						}
+
+						void* opbase{ &olddata.buffer[loc] };
+						void* nopbase{ &newdata.buffer[(size_t)loc - oged->start + nged->start] };
+
+						uint16_t op;
+						uint16_t nop;
+						if (oldVm->HasFlag(VmFlags::VMF_OPCODE_U16)) {
+							op = *(uint16_t*)opbase;
+							nop = *(uint16_t*)nopbase;
 						}
 						else {
-							ged.nl.name = vmInfo->HashField(mappedName);
-							ged.nl.name_space = vmInfo->HashField(mappedNamespace);
+							op = (uint16_t)(*(byte*)opbase);
+							nop = (uint16_t)(*(byte*)nopbase);
 						}
-					}
 
-					exports.emplace_back(std::move(ged));
 
-				}
-				// write end of the cseg to get the size of the last func
-				exports.emplace_back(NameLocated{ 0, 0 }, reader.GetCSEGOffset() + reader.GetCSEGSize(), 0);
+						const OPCodeInfo* oldNfo{ LookupOpCode(oldVm->vmMagic, opt.plt, op) };
 
-				// sort, shouldn't be required for now, but still good
-				std::sort(exports.begin(), exports.end(), [](GscExportData& a, GscExportData& b) -> bool { return a.start < b.start; });
-				for (size_t i = 0; i < exports.size() - 1; i++) {
-					// compute the size using the delta with the next func
-					exports[i].size = exports[i + 1].start - exports[i].start;
+						if (!oldNfo || oldNfo->m_id == OPCODE_Undefined) {
+							continue; // ignore bad ids
+						}
 
-					if (exports[i].nl.name && exports[i].nl.name_space) {
-						// add the export to the map
-						map[exports[i].nl] = &exports[i];
+
+						opcodeMapping[oldNfo].insert(nop);
 					}
 				}
-			};
 
-			LoadExports(*olddata.reader, *oer, oldExports, oldExportsMap, oldVm, sameFieldHash);
-			LoadExports(*newdata.reader, *ner, newExports, newExportsMap, newVm, true);
-
-			bool isDecompiled{};
-			bool anySimilar{};
-			for (auto& [nl, oged] : oldExportsMap) {
-				auto ite{ newExportsMap.find(nl) };
-
-				if (ite == newExportsMap.end()) {
-					LOG_TRACE("Can't find {}::{} in new dump", hashutils::ExtractTmp("namespace", oged->nl.name_space), hashutils::ExtractTmp("function", oged->nl.name));
-					continue;
-				}
-
-				GscExportData* nged{ ite->second };
-
-				if (oged->size != nged->size) {
-					LOG_TRACE("Not the same size for {}::{} in new dump", hashutils::ExtractTmp("namespace", oged->nl.name_space), hashutils::ExtractTmp("function", oged->nl.name));
-					continue;
-				}
-
-
-				if (!isDecompiled) {
-					// decompile the script
-					int ret{ DecompileGsc(olddata.buffer.data(), olddata.buffer.size(), olddata.origin, gdctx) };
-
-					if (ret) {
-						LOG_ERROR("Decompiler output 0x{:x}", ret);
-						break;
-					}
-					isDecompiled = true;
-				}
-				anySimilar = true;
-
-				for (uint32_t loc : opcodesLocs[name]) {
-					if (loc < oged->start || loc >= oged->start + oged->size) {
-						continue; // not inside the current export
-					}
-
-					void* opbase{ &olddata.buffer[loc] };
-					void* nopbase{ &newdata.buffer[(size_t)loc - oged->start + nged->start] };
-
-					uint16_t op;
-					uint16_t nop;
-					if (oldVm->HasFlag(VmFlags::VMF_OPCODE_U16)) {
-						op = *(uint16_t*)opbase;
-						nop = *(uint16_t*)nopbase;
-					}
-					else {
-						op = (uint16_t)(*(byte*)opbase);
-						nop = (uint16_t)(*(byte*)nopbase);
-					}
-
-
-					const OPCodeInfo* oldNfo{ LookupOpCode(oldVm->vmMagic, opt.plt, op) };
-
-					if (!oldNfo || oldNfo->m_id == OPCODE_Undefined) {
-						continue; // ignore bad ids
-					}
-
-
-					opcodeMapping[oldNfo].insert(nop);
-				}
+				if (anySimilar) continue;
 			}
-			
 			
 
 			// compute exports list
-			if (!anySimilar) {
-				LOG_WARNING("No similar data to exploit for {}", hashutils::ExtractTmpScript(name));
-			}
+			LOG_WARNING("No similar data to exploit for {}", hashutils::ExtractTmpScript(name));
 		}
 
 		{
@@ -348,6 +353,42 @@ namespace {
 
 				os << "\n";
 			}
+		}
+
+		if (opt.testDecompDir) {
+			// register opcodes
+			newVm->AddPlatform(PLATFORM_ACTS_TEST);
+			newVm->ClearPlatformOpCode(PLATFORM_ACTS_TEST);
+
+			LOG_INFO("Registering new opcodes...");
+			for (auto& [oldNfo, newVals] : opcodeMapping) {
+				for (uint16_t v : newVals) {
+					newVm->RegisterOpCode(PLATFORM_ACTS_TEST, oldNfo->m_id, v);
+				}
+			}
+
+			LOG_INFO("Decompiling...");
+			GscDecompilerGlobalContext outdctx{};
+
+			outdctx.opt.m_platform = PLATFORM_ACTS_TEST;
+			outdctx.opt.m_outputDir = opt.testDecompDir;
+			outdctx.opt.m_dcomp = true;
+			outdctx.opt.m_splitByVm = true;
+
+			
+			int r{ tool::OK };
+			for (auto& [k, v] : newScriptsMap) {
+
+				int ores{ tool::gsc::DecompileGsc(v.buffer.data(), v.buffer.size(), v.origin, outdctx) };
+
+				if (ores) {
+					LOG_ERROR("Error when decompiling {}", hashutils::ExtractTmpScript(k));
+					r = tool::BASIC_ERROR;
+				}
+			}
+
+			LOG_INFO("Decompiled test dump into {}", opt.testDecompDir);
+			return r;
 		}
 
 		return tool::OK;

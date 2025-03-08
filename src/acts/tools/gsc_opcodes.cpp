@@ -5068,6 +5068,26 @@ namespace tool::gsc::opcode {
 		opcodemappltlookup[platform][enumValue].insert(op);
 	}
 
+	void VmInfo::ClearPlatformOpCode(Platform platform) {
+		for (auto& [op, pltop] : opcodemap) {
+			auto it{ pltop.find(platform) };
+			if (it != pltop.end()) {
+				pltop.erase(it);
+			}
+		}
+		for (auto& [op, pltop] : opcodemaplookup) {
+			auto it{ pltop.find(platform) };
+			if (it != pltop.end()) {
+				pltop.erase(it);
+			}
+		}
+
+		auto it{ opcodemappltlookup.find(platform) };
+		if (it != opcodemappltlookup.end()) {
+			opcodemappltlookup.erase(it);
+		}
+	}
+
 	void VmInfo::RegisterSameCodePlatform(Platform main, Platform sub) {
 		AddPlatform(sub);
 

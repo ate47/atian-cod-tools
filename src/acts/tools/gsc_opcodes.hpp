@@ -140,6 +140,7 @@ namespace tool::gsc::opcode {
 		void RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc);
 		void RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op);
 		void RegisterSameCodePlatform(Platform main, Platform sub);
+		void ClearPlatformOpCode(Platform platform);
 		void SetMaxOpCode(uint16_t maxOpCode);
 		void SetOpaqueStringCount(size_t opaqueStringCount);
 		void RegisterDevCall(const char* devCall);
