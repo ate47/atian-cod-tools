@@ -131,6 +131,7 @@ namespace fastfile {
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};
+		bool disableScriptsDecomp{};
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };
 		std::vector<const char*> files{};

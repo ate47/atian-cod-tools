@@ -525,7 +525,9 @@ namespace fastfile::handlers::bo4 {
 		if ((int)id >= bo4FFHandlerContext.assetList->stringsCount) {
 			throw std::runtime_error(std::format("Can't get scr string: {} >= {}", id, bo4FFHandlerContext.assetList->stringsCount));
 		}
-		return acts::decryptutils::DecryptStringT8(bo4FFHandlerContext.assetList->strings[id]);
+		char* c{ bo4FFHandlerContext.assetList->strings[id] };
+		if (!IsValidHandle(c)) return GetValidString(c);
+		return acts::decryptutils::DecryptStringT8(c);
 	}
 
 	void SetAssetList(XAssetList_0* assetList) {
@@ -566,5 +568,18 @@ namespace fastfile::handlers::bo4 {
 			XFILE_BLOCK_LOC_STREAM_MMAP,
 		};
 		return data[id];
+	}
+
+	bool IsValidHandle(const void* handle) {
+		uintptr_t h{ (uintptr_t)handle };
+
+		if (h < 0x1000000) return false;
+		if (h >> 60) return false;
+		return true; // maybe ok
+	}
+
+	const char* GetValidString(const char* handle, const char* defaultVal) {
+		if (IsValidHandle(handle)) return handle;
+		return defaultVal ? defaultVal : utils::va("<invalid:0x%llx>", (uintptr_t)handle);
 	}
 }

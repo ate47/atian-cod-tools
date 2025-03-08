@@ -60,7 +60,11 @@ namespace {
 				blockSizeLoc = 0x4A8;
 				ctx.blocksCount = 8;
 				break;
-			case 0x27E:
+			//case 0x27E:
+				fastFileSize = 0x830;
+				ctx.blocksCount = 9;
+				xhashType = true;
+
 			case 0x27F: // Black Ops 4
 				fastFileSize = 0x840;
 				decompressedSizeLoc = 0x490;
@@ -210,21 +214,6 @@ namespace {
 				std::vector<byte> fileFDBuff{};
 				if (opt.ReadFile(fdfile.string(), fileFDBuff)) {
 					core::bytebuffer::ByteBuffer fdreader{ fileFDBuff };
-
-					// todo: handle fd file
-
-					/*
-					struct BDiffHeader {
-						XFile newXFileHeader;
-						XFile baseXFileHdr;
-						uint32_t size;
-						float version;
-						uint32_t flags;
-						size_t maxDestWindowSize;
-						uint64_t maxSourceWindowSize;
-						uint64_t maxDiffWindowSize;
-					}; static_assert(sizeof(BDiffHeader) == 0x10a8);
-					*/
 
 					struct BDiffHeaderPost {
 						uint32_t size;

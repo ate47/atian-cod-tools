@@ -54,4 +54,8 @@ namespace fastfile::handlers::bo4 {
 	const char* XFileBlockName(XFileBlock id);
 
 	XFileBlockMemLocation GetXFileBlockMemLocation(XFileBlock id);
+
+	bool IsValidHandle(const void* handle);
+
+	const char* GetValidString(const char* handle, const char* defaultVal = nullptr);
 }

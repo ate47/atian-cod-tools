@@ -35,10 +35,10 @@ namespace {
 			os << "vm,name";
 
 			for (size_t i = 0; i < asset->gscCount; i++) {
-				os << "\nserver,#" << hashutils::ExtractTmp("hash", asset->gscScripts[i].name);
+				os << "\nserver,#" << hashutils::ExtractTmp("script", asset->gscScripts[i].name);
 			}
 			for (size_t i = 0; i < asset->cscCount; i++) {
-				os << "\nclient,#" << hashutils::ExtractTmp("hash", asset->cscScripts[i].name);
+				os << "\nclient,#" << hashutils::ExtractTmp("script", asset->cscScripts[i].name);
 			}
 		}
 	};

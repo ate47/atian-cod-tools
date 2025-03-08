@@ -36,7 +36,7 @@ namespace {
 
 			for (size_t i = 0; i < asset->numVariables; i++) {
 				KeyValuePair& pair{ asset->keyValuePairs[i] };
-				os << "\n0x" << std::hex << pair.keyHash << "," << pair.value;
+				os << "\n0x" << std::hex << pair.keyHash << "," << GetValidString(pair.value);
 			}
 
 		}

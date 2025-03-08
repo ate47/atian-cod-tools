@@ -415,6 +415,9 @@ namespace fastfile {
 			else if (!_strcmpi("--dumpBinaryAssetsMap", arg)) {
 				dumpBinaryAssetsMap = true;
 			}
+			else if (!_strcmpi("--disableScriptsDecomp", arg)) {
+				disableScriptsDecomp = true;
+			}
 			else if (*arg == '-') {
 				std::cerr << "Invalid argument: " << arg << "!\n";
 				return false;
@@ -427,21 +430,23 @@ namespace fastfile {
 	}
 
 	void FastFileOption::PrintHelp() {
-		LOG_INFO("-h --help             : Print help");
-		LOG_INFO("-o --output [d]       : Output dir");
-		LOG_INFO("-H --header           : Dump header info");
-		LOG_INFO("-r --handler          : Handler to use (use --handlers to print)");
-		LOG_INFO("-R --handlers         : Print handlers");
-		LOG_INFO("-D --decompressors    : Print decompressors");
-		LOG_INFO("-d --dump             : Dump decompressed (if available)");
-		LOG_INFO("-C --casc [c]         : Use casc db");
-		LOG_INFO("-g --game [g]         : exe");
-		LOG_INFO("-p --patch            : Use patch files (fd/fp)");
-		LOG_INFO("--noAssetDump         : No asset dump");
-		LOG_INFO("--dumpBinaryAssets    : Dump binary assets");
-		LOG_INFO("--dumpBinaryAssetsMap : Dump binary assets map");
-		LOG_INFO("--dumpAssetNames      : Dump binary assets");
-		LOG_INFO("--assertContainer     : Use acts as a container for other software");
+		LOG_INFO("-h --help              : Print help");
+		LOG_INFO("-o --output [d]        : Output dir");
+		LOG_INFO("-H --header            : Dump header info");
+		LOG_INFO("-r --handler           : Handler to use (use --handlers to print)");
+		LOG_INFO("-R --handlers          : Print handlers");
+		LOG_INFO("-D --decompressors     : Print decompressors");
+		LOG_INFO("-d --dump              : Dump decompressed (if available)");
+		LOG_INFO("-C --casc [c]          : Use casc db");
+		LOG_INFO("-g --game [g]          : exe");
+		LOG_INFO("-p --patch             : Use patch files (fd/fp)");
+		LOG_INFO("--noAssetDump          : No asset dump");
+		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
+		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
+		LOG_INFO("--dumpAssetNames       : Dump binary assets");
+		LOG_INFO("--disableScriptsDecomp : Disable GSC script decompilation");
+		LOG_INFO("--assertContainer      : Use acts as a container for other software");
+		
 	}
 
 	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init) {

@@ -50,70 +50,95 @@ namespace {
 	};
 
 	class ScriptBundleWorker : public Worker {
-		static void WriteObject(utils::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr) {
+		static void WriteObject(utils::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error) {
 			json.BeginObject();
 
-			// subs
-			for (size_t i = 0; i < arr.sbSubCount; i++) {
-				SB_Sub& sub{ arr.sbSubs[i] };
-				json.WriteFieldNameString(GetScrString(sub.keyname));
-				json.BeginArray();
-				{
-					for (size_t i = 0; i < sub.size; i++) {
-						WriteObject(json, sub.item[i]);
-					}
-				}
-				json.EndArray();
+			std::unordered_set<uint32_t> handles{};
+
+			if (arr.sbSubCount && !IsValidHandle(arr.sbObjects)) {
+				error = true;
+				json.WriteFieldNameString("subs");
+				json.WriteValueString(GetValidString((const char*)arr.sbObjects));
 			}
-
-			// objects
-			for (size_t i = 0; i < arr.sbObjectCount; i++) {
-				SB_Object& obj = arr.sbObjects[i];
-
-				// no idea why
-				switch (obj.type) {
-				case SBT_INT2:
-				case SBT_INT25:
-					if (!obj.value.intVal) {
+			else {
+				// subs
+				for (size_t i = 0; i < arr.sbSubCount; i++) {
+					SB_Sub& sub{ arr.sbSubs[i] };
+					const char* keyName{ GetScrString(sub.keyname) };
+					handles.insert(hash::HashT89Scr(keyName));
+					json.WriteFieldNameString(keyName);
+					if (!IsValidHandle(sub.item)) {
+						error = true;
+						json.WriteValueString(GetValidString((const char*)sub.item));
 						continue;
 					}
-					break;
-				case SBT_FLOAT:
-					if (!obj.value.floatVal) {
-						continue;
+					json.BeginArray();
+					{
+						for (size_t i = 0; i < sub.size; i++) {
+							WriteObject(json, sub.item[i], error);
+						}
 					}
-					break;
+					json.EndArray();
+				}
+			}
+			if (arr.sbObjectCount && !IsValidHandle(arr.sbObjects)) {
+				error = true;
+				json.WriteFieldNameString("fields");
+				json.WriteValueString(GetValidString((const char*)arr.sbObjects));
+			}
+			else {
+				// objects
+				for (size_t i = 0; i < arr.sbObjectCount; i++) {
+					SB_Object& obj = arr.sbObjects[i];
+
+					// no idea why
+					switch (obj.type) {
+					case SBT_INT2:
+					case SBT_INT25:
+						if (!obj.value.intVal) {
+							continue;
+						}
+						break;
+					case SBT_FLOAT:
+						if (!obj.value.floatVal) {
+							continue;
+						}
+						break;
+					}
+
+					if (handles.contains(obj.name)) continue; // ignore sub
+
+					json.WriterFieldNameHash(obj.name, "");
+
+					switch (obj.type) {
+					case SBT_INT2:
+					case SBT_INT22:
+					case SBT_INT25: // int?
+						json.WriteValueNumber(obj.value.intVal);
+						break;
+					case SBT_FLOAT: // float?
+						json.WriteValueNumber(obj.value.floatVal);
+						break;
+					case SBT_WEAPON:
+						// weapon
+						json.WriteValueHash(obj.hash, "weapon#");
+						break;
+					default:
+						if (obj.stringRef) {
+							// str?
+							json.WriteValueString(GetScrString(obj.stringRef));
+						}
+						else if (obj.hash & 0x7FFFFFFFFFFFFFFF) {
+							// hash?
+							json.WriteValueHash(obj.hash, "#");
+						}
+						else {
+							json.WriteValueString(utils::va("<unk:%d>", obj.type));
+						}
+						break;
+					}
 				}
 
-				json.WriterFieldNameHash(obj.name, "");
-
-				switch (obj.type) {
-				case SBT_INT2:
-				case SBT_INT22:
-				case SBT_INT25: // int?
-					json.WriteValueNumber(obj.value.intVal);
-					break;
-				case SBT_FLOAT: // float?
-					json.WriteValueNumber(obj.value.floatVal);
-					break;
-				case SBT_WEAPON:
-					// weapon
-					json.WriteValueHash(obj.hash, "weapon#");
-					break;
-				default:
-					if (obj.stringRef) {
-						// str?
-						json.WriteValueString(GetScrString(obj.stringRef));
-					}
-					else if (obj.hash & 0x7FFFFFFFFFFFFFFF) {
-						// hash?
-						json.WriteValueHash(obj.hash, "#");
-					}
-					else {
-						json.WriteValueString(utils::va("<unk:%d>", obj.type));
-					}
-					break;
-				}
 			}
 
 			json.EndObject();
@@ -134,9 +159,10 @@ namespace {
 			utils::raw_file_extractor::JsonWriter json{};
 
 			LOG_INFO("Dump scriptbundle {}", outFile.string());
-			WriteObject(json, asset->sbObjectsArray);
+			bool error{};
+			WriteObject(json, asset->sbObjectsArray, error);
 
-			if (!json.WriteToFile(outFile)) {
+			if (!json.WriteToFile(outFile) || error) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
 		}
