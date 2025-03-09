@@ -75,6 +75,7 @@ See the wiki to know how to use the features
 **Supported pools**
 
 - `bo3`: `rawfile`, `scriptparsetree`
+- `bo4`: `rawfile`, `scriptparsetree`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`
 - `GscXHash`: `scriptparsetree`
 - `GscXString`: `scriptparsetree`, `scriptparsetreedbg`
 

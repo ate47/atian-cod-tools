@@ -536,7 +536,7 @@ namespace fastfile {
 	void FastFileOption::AddAssetName(int type, uint64_t name) {
 		if (!dumpAssetNames) return;
 
-		if (assetNames.size() < type) {
+		if (assetNames.size() <= type) {
 			assetNames.resize(type + 10);
 		}
 

@@ -360,7 +360,7 @@ namespace fastfile::handlers::bo4 {
 
 		class BO4FFHandler : public fastfile::FFHandler {
 		public:
-			BO4FFHandler() : fastfile::FFHandler("bo4v2", "Black Ops 4") {
+			BO4FFHandler() : fastfile::FFHandler("bo4v2", "Black Ops 4 (v2)") {
 				gcx.handler = this;
 			}
 
@@ -524,8 +524,6 @@ namespace fastfile::handlers::bo4 {
 				LOG_INFO("Loaded {} asset(s)", gcx.loaded);
 			}
 		};
-#ifndef CI_BUILD
 		utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
-#endif
 	}
 }

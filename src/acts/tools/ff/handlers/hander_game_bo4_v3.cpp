@@ -203,7 +203,7 @@ namespace fastfile::handlers::bo4 {
 
 		class BO4FFHandler : public fastfile::FFHandler {
 		public:
-			BO4FFHandler() : fastfile::FFHandler("bo4v3", "Black Ops 4") {
+			BO4FFHandler() : fastfile::FFHandler("bo4", "Black Ops 4") {
 				gcx.handler = this;
 			}
 
@@ -223,7 +223,7 @@ namespace fastfile::handlers::bo4 {
 				gcx.DB_ConvertOffsetToPointer = reinterpret_cast<decltype(gcx.DB_ConvertOffsetToPointer)>(lib[0x2EBBFF0]);
 				gcx.DB_AllocXBlocks = reinterpret_cast<decltype(gcx.DB_AllocXBlocks)>(lib[0x2EB5870]);
 				gcx.DB_InitStreams = reinterpret_cast<decltype(gcx.DB_InitStreams)>(lib[0x2EBBBF0]);
-				gcx.g_load_blocks = reinterpret_cast<decltype(gcx.g_load_blocks)>(lib[0xA0F3B10]);
+				gcx.g_load_blocks = reinterpret_cast<decltype(gcx.g_load_blocks)>(lib[0xA0F3B10 + 0x20]);
 
 				hook::memory::RedirectJmp(lib[0x2E0E130], DB_LoadXFileData);
 				hook::memory::RedirectJmp(lib[0x2EBC110], Load_XStringCustom);
@@ -297,7 +297,8 @@ namespace fastfile::handlers::bo4 {
 					assetList.strings = AllocStreamPos<char*>();
 
 					LOG_TRACE("Log strings...");
-					std::filesystem::path outStrings{ out / std::format("{}_strings.txt", ctx.ffname) };
+					std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE os{ outStrings };
 					if (!os) {
 						throw std::runtime_error(std::format("Can't open {}", outStrings.string()));
@@ -340,6 +341,23 @@ namespace fastfile::handlers::bo4 {
 						gcx.Load_XAsset(false, &assetList.assets[i]);
 					}
 
+					if (gcx.opt->dumpAssetNames) {
+						std::filesystem::path outAssets{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "assets" / std::format("{}.csv", ctx.ffname)};
+						{
+							std::filesystem::create_directories(outAssets.parent_path());
+							utils::OutFileCE osa{ outAssets };
+							osa << "type,name";
+
+							size_t n{ std::min<size_t>(gcx.opt->assetNames.size(), games::bo4::pool::ASSET_TYPE_COUNT) };
+
+							for (size_t i = 0; i < n; i++) {
+								for (uint64_t h : gcx.opt->assetNames[i]) {
+									osa << "\n" << XAssetNameFromId((games::bo4::pool::XAssetType)i) << ",#" << hashutils::ExtractTmp("hash", h);
+								}
+							}
+						}
+						LOG_INFO("Dumped assets into {}", outAssets.string());
+					}
 					if (!opt.noAssetDump) {
 						for (auto& [t, w] : GetWorkers()) {
 							w->PostXFileLoading(opt, ctx);

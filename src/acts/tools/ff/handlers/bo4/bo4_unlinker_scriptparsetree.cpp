@@ -31,6 +31,11 @@ namespace {
 
 				tool::gsc::GscDecompilerGlobalContext gdctx{};
 
+				std::filesystem::path outSourceGDB{ opt.m_output / "bo4" / "source" / "gdb" };
+				std::string outSourceGDBStr{ outSourceGDB.string() };
+				gdctx.opt.m_generateGdbData = true;
+				gdctx.opt.m_generateGdbBaseData = false;
+				gdctx.opt.m_dbgOutputDir = outSourceGDBStr.data();
 				gdctx.opt.m_platform = tool::gsc::opcode::PLATFORM_PC; // todo: use header type
 				gdctx.opt.m_dcomp = true;
 				std::filesystem::path outSource{ opt.m_output / "bo4" / "source" };

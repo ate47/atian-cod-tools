@@ -267,7 +267,7 @@ namespace fastfile::handlers::bo4 {
 
 		class BO4FFHandler : public fastfile::FFHandler {
 		public:
-			BO4FFHandler() : fastfile::FFHandler("bo4", "Black Ops 4 (old)") {
+			BO4FFHandler() : fastfile::FFHandler("bo4v1", "Black Ops 4 (v1)") {
 				bo4FFHandlerContext.handler = this;
 			}
 
@@ -523,9 +523,11 @@ namespace fastfile::handlers::bo4 {
 
 	const char* GetScrString(ScrString_t id) {
 		if ((int)id >= bo4FFHandlerContext.assetList->stringsCount) {
-			throw std::runtime_error(std::format("Can't get scr string: {} >= {}", id, bo4FFHandlerContext.assetList->stringsCount));
+			LOG_WARNING("Can't get scr string: {} >= {}", id, bo4FFHandlerContext.assetList->stringsCount);
+			return utils::va("<invalid:0x%x>", id);
 		}
 		char* c{ bo4FFHandlerContext.assetList->strings[id] };
+		if (!c) return "";
 		if (!IsValidHandle(c)) return GetValidString(c);
 		return acts::decryptutils::DecryptStringT8(c);
 	}
@@ -582,4 +584,8 @@ namespace fastfile::handlers::bo4 {
 		if (IsValidHandle(handle)) return handle;
 		return defaultVal ? defaultVal : utils::va("<invalid:0x%llx>", (uintptr_t)handle);
 	}
+}
+
+std::ostream& operator<<(std::ostream& os, const fastfile::handlers::bo4::ScrString_t& scr) {
+	return os << scr.id;
 }

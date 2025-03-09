@@ -3,7 +3,14 @@
 #include <games/bo4/pool.hpp>
 
 namespace fastfile::handlers::bo4 {
-	typedef uint32_t ScrString_t;
+	struct ScrString_t {
+		uint32_t id;
+
+		operator uint32_t() {
+			return id;
+		}
+	};
+	typedef uint64_t ID64Metatable;
 
 	enum XFileBlock : uint32_t {
 		XFILE_BLOCK_TEMP = 0x0,
@@ -58,4 +65,9 @@ namespace fastfile::handlers::bo4 {
 	bool IsValidHandle(const void* handle);
 
 	const char* GetValidString(const char* handle, const char* defaultVal = nullptr);
+
 }
+
+std::ostream& operator<<(std::ostream& os, const fastfile::handlers::bo4::ScrString_t& scr);
+template<>
+struct std::formatter<fastfile::handlers::bo4::ScrString_t, char> : utils::BasicFormatter<fastfile::handlers::bo4::ScrString_t> {};
