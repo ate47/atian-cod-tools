@@ -228,6 +228,93 @@ namespace {
 		return tool::OK;
 	}
 
+	struct GscFunction {
+		uint64_t name;
+		void(__fastcall* func)(void* vm);
+		bool devFunc;
+		byte minArgs;
+		byte maxArgs;
+	};
+
+	struct GscFuncContainerData {
+		GscFunction* functions;
+		uint64_t count;
+	};
+	static struct {
+		std::vector<std::vector<GscFuncContainerData>> pool{};
+		std::vector<GscFuncContainerData>* functions{};
+	} bo6GscData;
+
+	void Bo6LoadFuncs(void* container, GscFuncContainerData* cfg) {
+		bo6GscData.functions->emplace_back(*cfg);
+	}
+
+	int bo6_gsc_dump(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+		std::filesystem::path exe{ argv[2] };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe.string());
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Loaded");
+
+		constexpr size_t len = 0x100000;
+
+		std::unique_ptr<byte[]> data{ std::make_unique<byte[]>(len) };
+
+		bo6GscData.pool.clear();
+
+		hook::memory::RedirectJmp(mod->ScanSingle("4C 8B 4A 08 4D 85 C9 74 35").location, Bo6LoadFuncs);
+
+		for (hook::library::ScanResult& res : mod->Scan("48 89 5C 24 08 55 48 8B EC 48 83 EC 40 48 8B D9 E8 ? ? ? ? ? ? ? ?")) {
+			LOG_INFO("Loading function: {}", hook::library::CodePointer{ res.location });
+
+			bo6GscData.pool.emplace_back();
+			bo6GscData.functions = &bo6GscData.pool[bo6GscData.pool.size() - 1];
+
+			res.GetPtr<void(*)(byte*)>()(data.get());
+		}
+
+		utils::OutFileCE os{ argv[3] };
+
+		if (!os) {
+			LOG_ERROR("Can't open {}", argv[3]);
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Dumping functions in {}", argv[3]);
+
+		os << "pool,container,name,dev,minargs,maxargs,offset";
+
+		for (size_t i = 0; i < bo6GscData.pool.size(); i++) {
+			std::vector<GscFuncContainerData>& pool{ bo6GscData.pool[i] };
+			for (size_t j = 0; j < pool.size(); j++) {
+				GscFuncContainerData& container{ pool[j] };
+				for (size_t k = 0; k < container.count; k++) {
+					GscFunction& func{ container.functions[k] };
+					os
+						<< "\n" << std::dec
+						<< i << ","
+						<< j << ","
+						<< hashutils::ExtractTmp("function", func.name) << ","
+						<< (int)func.minArgs << ","
+						<< (int)func.maxArgs << ","
+						<< (func.devFunc ? "dev" : "common") << ","
+						<< hook::library::CodePointer{ func.func };
+				}
+			}
+		}
+
+
+		return tool::OK;
+	}
+
 	int iw_data_dump(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
 
@@ -670,6 +757,7 @@ namespace {
 	ADD_TOOL(exe_scan, "dev", "[exe] [pattern]", "Scan exe", exe_scan);
 	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
 	ADD_TOOL(bo6_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", iw_data_dump);
+	ADD_TOOL(bo6_gsc_dump, "bo6", "[exe]", "Dump gsc function data from an exe dump", bo6_gsc_dump);
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
 	ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);
 	ADD_TOOL(scripts_decrypt, "gsc", "[exe] [type] [scripts] [ouput]", "Map exe in memory and use it to decrypt GSC scripts", scripts_decrypt);
