@@ -240,13 +240,18 @@ namespace {
 		GscFunction* functions;
 		uint64_t count;
 	};
+	struct GscFuncContainerDataType {
+		GscFuncContainerData data;
+		bool isMethod;
+	};
 	static struct {
-		std::vector<std::vector<GscFuncContainerData>> pool{};
-		std::vector<GscFuncContainerData>* functions{};
+		std::vector<std::vector<GscFuncContainerDataType>> pool{};
+		std::vector<GscFuncContainerDataType>* functions{};
 	} bo6GscData;
 
+	template<bool isMethod>
 	void Bo6LoadFuncs(void* container, GscFuncContainerData* cfg) {
-		bo6GscData.functions->emplace_back(*cfg);
+		bo6GscData.functions->emplace_back(*cfg, isMethod);
 	}
 
 	int bo6_gsc_dump(int argc, const char* argv[]) {
@@ -270,7 +275,8 @@ namespace {
 
 		bo6GscData.pool.clear();
 
-		hook::memory::RedirectJmp(mod->ScanSingle("4C 8B 4A 08 4D 85 C9 74 35").location, Bo6LoadFuncs);
+		mod->Redirect("4C 8B 4A 08 4D 85 C9 74 35", Bo6LoadFuncs<false>);
+		mod->Redirect("4C 8B 4A 08 4D 85 C9 74 3F", Bo6LoadFuncs<true>);
 
 		for (hook::library::ScanResult& res : mod->Scan("48 89 5C 24 08 55 48 8B EC 48 83 EC 40 48 8B D9 E8 ? ? ? ? ? ? ? ?")) {
 			LOG_INFO("Loading function: {}", hook::library::CodePointer{ res.location });
@@ -290,18 +296,19 @@ namespace {
 
 		LOG_INFO("Dumping functions in {}", argv[3]);
 
-		os << "pool,container,name,dev,minargs,maxargs,offset";
+		os << "pool,container,type,name,dev,minargs,maxargs,offset";
 
 		for (size_t i = 0; i < bo6GscData.pool.size(); i++) {
-			std::vector<GscFuncContainerData>& pool{ bo6GscData.pool[i] };
+			std::vector<GscFuncContainerDataType>& pool{ bo6GscData.pool[i] };
 			for (size_t j = 0; j < pool.size(); j++) {
-				GscFuncContainerData& container{ pool[j] };
-				for (size_t k = 0; k < container.count; k++) {
-					GscFunction& func{ container.functions[k] };
+				GscFuncContainerDataType& container{ pool[j] };
+				for (size_t k = 0; k < container.data.count; k++) {
+					GscFunction& func{ container.data.functions[k] };
 					os
 						<< "\n" << std::dec
 						<< i << ","
 						<< j << ","
+						<< (container.isMethod ? "method" : "function") << ","
 						<< hashutils::ExtractTmp("function", func.name) << ","
 						<< (int)func.minArgs << ","
 						<< (int)func.maxArgs << ","

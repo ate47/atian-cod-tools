@@ -86,10 +86,13 @@ namespace hook::memory {
 	 */
 	void* GetRelativeMemorySafe(void* location);
 
+#ifdef ASMJIT_STATIC
 	/*
 	 * Assemble a function and return it
 	 * @param builder builder function
 	 * @return assembled function
 	 */
 	void* Assembler(std::function<void(process::AssemblerExp& a)> builder);
+
+#endif
 }

@@ -283,7 +283,7 @@ namespace {
 				for (size_t i = 0; i < def.enumsCount; i++) {
 					DDLEnum& enm{ enumList[i] };
 
-					utils::Padding(os, 1) << "// idx 0x" << std::hex << i << " members: 0x" << enm.count << " type: " << enm.type << "\n";
+					utils::Padding(os, 1) << "// idx 0x" << std::hex << i << " members: 0x" << enm.count << " type: " << (int)enm.type << "\n";
 					utils::Padding(os, 1) << "enum " << opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(enm.name))) << " {\n";
 					if (enm.count && enm.members) {
 

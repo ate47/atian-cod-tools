@@ -253,6 +253,18 @@ namespace hook::library {
 		return res;
 	}
 
+	void hook::library::Library::Redirect(const char* pattern, void* func, const char* name) const {
+		hook::memory::RedirectJmp(ScanSingle(pattern, name).location, func);
+	}
+
+	hook::library::Detour&& hook::library::Library::CreateDetour(const char* pattern, void* to, const char* name) const {
+		hook::library::Detour det;
+
+		det.Create(ScanSingle(pattern, name).location, to);
+
+		return std::move(det);
+	}
+
 	constexpr uint64_t SCAN_CONTAINER_FILE_MAGIC = 0x000a4e41435380;
 	constexpr uint64_t SCAN_CONTAINER_FILE_VERSION = 0x210000000000000;
 

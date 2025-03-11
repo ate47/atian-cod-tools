@@ -1,6 +1,7 @@
 #pragma once
 #include <detours.h>
 #include <hook/process.hpp>
+#include <hook/memory.hpp>
 #include <utils/utils.hpp>
 
 namespace hook::library {
@@ -161,6 +162,7 @@ namespace hook::library {
 		return ScanLibrary(hmod, buff, single);
 	}
 	class LibraryModule;
+	class Detour;
 
 	// Library information
 	class Library {
@@ -282,6 +284,10 @@ namespace hook::library {
 			return res[0];
 		}
 
+		void Redirect(const char* pattern, void* func, const char* name = nullptr) const;
+
+		Detour&& CreateDetour(const char* pattern, void* to, const char* name = nullptr) const;
+
 		ScanResult FindAnyScan(const char* name) const {
 			throw std::runtime_error(utils::va("Can't find patter %s", name ? name : "<multiple>"));
 		}
@@ -389,7 +395,12 @@ namespace hook::library {
 		void* base{};
 		void* to{};
 	public:
-		inline Detour() {}
+		Detour() {}
+		Detour(Detour&& other) noexcept {
+			origin = other.origin;
+			base = other.base;
+			to = other.to;
+		}
 
 		/*
 		 * Create a detour from a base to a location
