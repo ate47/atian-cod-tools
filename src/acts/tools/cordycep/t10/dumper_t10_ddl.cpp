@@ -170,7 +170,7 @@ namespace {
 							return false;
 						}
 
-						std::sort(&members[0], &members[stct.memberCount - 1], [](const DDLMember& d1, const DDLMember& d2) -> bool { return d1.offset < d2.offset; });
+						std::sort(&members[0], &members[stct.memberCount], [](const DDLMember& d1, const DDLMember& d2) -> bool { return d1.offset < d2.offset; });
 
 						for (size_t i = 0; i < stct.memberCount; i++) {
 							DDLMember& member = members[i];
