@@ -11,6 +11,19 @@ namespace fastfile::handlers::bo4 {
 		}
 	};
 	typedef uint64_t ID64Metatable;
+	typedef const char* XString;
+	struct WeaponDef;
+	struct ScriptBundle;
+	struct Character;
+	struct FootstepTableDef;
+	struct SurfaceFXTableDef;
+	struct AnimMappingTable;
+	struct AimTable;
+	struct ShootTable;
+	struct BehaviorTree;
+	struct AnimStateMachine;
+	struct AnimSelectorTableSet;
+	struct GfxImage;
 
 	enum XFileBlock : uint32_t {
 		XFILE_BLOCK_TEMP = 0x0,

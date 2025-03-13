@@ -119,6 +119,7 @@ namespace fastfile {
 	public:
 		bool m_help{};
 		bool m_fd{};
+		bool alpha{};
 		bool m_header{};
 		bool print_handlers{};
 		bool print_decompressors{};
@@ -278,6 +279,7 @@ namespace fastfile {
 	FFHandler* FindHandler(const char* name);
 	FFCompressor* FindCompressor(const char* name);
 	FFLinker* FindLinker(const char* name);
+	fastfile::FastFileContext& GetCurrentContext();
 
 	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp);
 	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileIWCompression comp);

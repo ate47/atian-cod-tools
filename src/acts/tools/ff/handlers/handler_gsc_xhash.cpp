@@ -20,7 +20,6 @@ namespace {
             {
                 /*
                  The pattern is :
-                 align<8>
                  ScriptParseTree {
                     u64 name;
                     u64 namepad?; // maybe not there
@@ -28,7 +27,6 @@ namespace {
                     u32 size;
                     u32 unk;
                  }
-                 align<32>
                  GSC_OBJ {
                     u64 magic = 0x??00a0d43534780
                  }
@@ -59,7 +57,6 @@ namespace {
 
                     byte* sptCan{ buff.Ptr<byte>() - 0x18 }; // 0x18 is the minimum size to lookup
 
-                    // we are 32 bytes aligned
                     T8GSCOBJ* obj{ buff.ReadPtr<T8GSCOBJ>() };
 
                     uint64_t name{ obj->name };

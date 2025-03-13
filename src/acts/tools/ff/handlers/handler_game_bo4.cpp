@@ -415,6 +415,7 @@ namespace fastfile::handlers::bo4 {
 					std::filesystem::create_directories(bindir);
 				}
 
+				bo4FFHandlerContext.opt->assetNames.clear();
 
 				if (!opt.noAssetDump) {
 					for (auto& [t, w] : GetWorkers()) {

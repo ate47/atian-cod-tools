@@ -107,6 +107,12 @@ namespace fastfile {
 			"playstation",
 			"dev",
 		};
+
+		fastfile::FastFileContext* currentCtx{};
+	}
+
+	fastfile::FastFileContext& GetCurrentContext() {
+		return *currentCtx;
 	}
 
 	const char* GetFastFileCompressionName(FastFileCompression comp) {
@@ -409,6 +415,9 @@ namespace fastfile {
 			else if (!_strcmpi("--dumpAssetNames", arg)) {
 				dumpAssetNames = true;
 			}
+			else if (!_strcmpi("--alpha", arg)) {
+				alpha = true;
+			}
 			else if (!_strcmpi("--assertContainer", arg)) {
 				assertContainer = true;
 			}
@@ -446,6 +455,7 @@ namespace fastfile {
 		LOG_INFO("--dumpAssetNames       : Dump binary assets");
 		LOG_INFO("--disableScriptsDecomp : Disable GSC script decompilation");
 		LOG_INFO("--assertContainer      : Use acts as a container for other software");
+		LOG_INFO("--alpha                : Is alpha file");
 		
 	}
 
@@ -617,6 +627,7 @@ namespace fastfile {
 				try {
 					fastfile::FastFileContext ctx{};
 					ctx.file = filename.c_str();
+					currentCtx = &ctx;
 					FFDecompressor* handler{ FindDecompressor(magic) };
 
 					if (!handler) {
@@ -662,6 +673,7 @@ namespace fastfile {
 				catch (std::runtime_error& err) {
 					LOG_ERROR("Can't read {}: {}", filename, err.what());
 				}
+				currentCtx = nullptr;
 			}
 		}
 

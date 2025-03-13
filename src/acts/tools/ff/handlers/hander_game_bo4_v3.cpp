@@ -293,6 +293,8 @@ namespace fastfile::handlers::bo4 {
 				SetAssetList(&assetList);
 				gcx.DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 
+				gcx.opt->assetNames.clear();
+
 				if (assetList.strings) {
 					assetList.strings = AllocStreamPos<char*>();
 
@@ -310,13 +312,14 @@ namespace fastfile::handlers::bo4 {
 								if (assetList.strings[i] == (const char*)0xFFFFFFFFFFFFFFFF) {
 									assetList.strings[i] = AllocStreamPos<char>();
 									Load_XStringCustom(&assetList.strings[i]);
-									char* scrstr{ acts::decryptutils::DecryptStringT8(assetList.strings[i]) };
-									hashutils::AddPrecomputed(hash::Hash64(scrstr), scrstr, true);
-									os << scrstr << "\n";
 								}
 								else {
 									gcx.DB_ConvertOffsetToPointer((void**)&assetList.strings[i]);
 								}
+
+								char* scrstr{ acts::decryptutils::DecryptStringT8(assetList.strings[i]) };
+								hashutils::AddPrecomputed(hash::Hash64(scrstr), scrstr, true);
+								os << scrstr << "\n";
 							}
 						}
 						LOG_INFO("Dump strings into {}", outStrings.string());

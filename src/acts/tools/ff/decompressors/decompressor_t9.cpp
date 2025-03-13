@@ -11,30 +11,98 @@
 #include <wincrypt.h>
 
 namespace {
-    struct XFileData {
-		uint32_t version;
-		bool server;
-		fastfile::FastFileCompression compression;
-		fastfile::FastFilePlatform platform;
-		bool encrypted;
-		uint64_t unk8;
-		uint64_t timestamp;
-		uint32_t changelist;
-		uint32_t archiveChecksum[4];
-		char builderName[32];
-		uint32_t unk4c;
-		uint32_t unk50;
-		byte linkResultCode;
-		char linkResult[256];
-		uint64_t size;
-		uint64_t externalSize;
-		byte pad[640];
-		char fastfileName[64];
-		uint8_t signature[256];
-		uint8_t aesIV[16];
-	}; static_assert(sizeof(XFileData) == 0x538);
 
-	void DumpHeader(XFileData& data, const char* title) {
+	namespace cod2020 {
+		enum XFileBlock : __int32 {
+			XFILE_BLOCK_TEMP = 0x0,
+			XFILE_BLOCK_TEMP_PRELOAD = 0x1,
+			XFILE_BLOCK_RUNTIME_VIRTUAL = 0x2,
+			XFILE_BLOCK_RUNTIME_PHYSICAL = 0x3,
+			XFILE_BLOCK_VIRTUAL = 0x4,
+			XFILE_BLOCK_CPU_GPU_SHARE = 0x5,
+			XFILE_BLOCK_PHYSICAL = 0x6,
+			XFILE_BLOCK_STREAMER = 0x7,
+			XFILE_BLOCK_STREAMER_CPU = 0x8,
+			XFILE_BLOCK_MEMMAPPED = 0x9,
+			XFILE_BLOCK_LOAD_TIME = 0xA,
+			XFILE_BLOCK_TEMP_PRELOAD_SAVED_PTR = 0xB,
+			XFILE_BLOCK_COUNT = 0xC,
+		};
+		struct XFileData {
+			uint32_t version;
+			bool server;
+			fastfile::FastFileCompression compression;
+			fastfile::FastFilePlatform platform;
+			bool encrypted;
+			uint64_t unk8;
+			uint64_t timestamp;
+			uint32_t changelist;
+			uint32_t archiveChecksum[4];
+			char builderName[32];
+			uint32_t unk4c;
+			uint32_t unk50;
+			byte linkResultCode;
+			char linkResult[256];
+			uint64_t size;
+			uint64_t externalSize;
+			uint64_t memMappedOffset;
+			uint64_t blockSize[12];
+			byte pad[536];
+			char fastfileName[64];
+			uint8_t signature[256];
+			uint8_t aesIV[16];
+		}; static_assert(sizeof(XFileData) == 0x538);
+	}
+	namespace cwrelease {
+		enum XFileBlock : __int32 {
+			XFILE_BLOCK_TEMP = 0x0,
+			XFILE_BLOCK_TEMP_PRELOAD = 0x1,
+			XFILE_BLOCK_RUNTIME_VIRTUAL = 0x2,
+			XFILE_BLOCK_RUNTIME_PHYSICAL = 0x3,
+			XFILE_BLOCK_VIRTUAL = 0x4,
+			XFILE_BLOCK_CPU_GPU_SHARE = 0x5,
+			XFILE_BLOCK_PHYSICAL = 0x6,
+			XFILE_BLOCK_STREAMER = 0x7,
+			XFILE_BLOCK_STREAMER_CPU = 0x8,
+			XFILE_BLOCK_MEMMAPPED = 0x9,
+			XFILE_BLOCK_LOAD_TIME = 0xA,
+			XFILE_BLOCK_TEMP_PRELOAD_SAVED_PTR = 0xB,
+			XFILE_BLOCK_MESH = 0xC,
+			XFILE_BLOCK_COUNT = 0xD,
+		};
+		struct XFileData {
+			uint32_t version;
+			bool server;
+			fastfile::FastFileCompression compression;
+			fastfile::FastFilePlatform platform;
+			bool encrypted;
+			uint64_t unk8;
+			uint64_t timestamp;
+			uint32_t changelist;
+			uint32_t archiveChecksum[4];
+			char builderName[32];
+			uint32_t unk4c;
+			uint32_t unk50;
+			byte linkResultCode;
+			char linkResult[256];
+			uint64_t size;
+			uint64_t externalSize;
+			uint64_t memMappedOffset;
+			uint64_t blockSize[13];
+			byte pad[584];
+			char fastfileName[64];
+			uint8_t signature[256];
+			uint8_t aesIV[16];
+		}; static_assert(sizeof(XFileData) == 0x570);
+
+	}
+	union XFileData {
+		cod2020::XFileData cod2020;
+		cwrelease::XFileData cw;
+	};
+
+	void DumpHeader(XFileData& udata, const char* title) {
+		cwrelease::XFileData& data{ udata.cw };
 		LOG_INFO("{}: v{} server:{}, comp:{}, plt:{} enc:{}, unk:{} bld:{}", 
 			title, data.version, data.server ? "true" : "false",
 			fastfile::GetFastFileCompressionName(data.compression), fastfile::GetFastFilePlatformName(data.platform),
@@ -51,12 +119,14 @@ namespace {
 	}
 
     static byte ff_magic[4]{ 'T', 'A', 'F', 'F' };
-	XFileData& DecryptHeader(core::bytebuffer::ByteBuffer& headerBuffer) {
-		XFileData tmp{};
+	XFileData& DecryptHeader(core::bytebuffer::ByteBuffer& headerBuffer, size_t* headerSizeOut = nullptr) {
+		byte tmpBuff[0x570]{};
+
+		size_t headerSize{ headerBuffer.Loc() };
 		// to write the result inside the ff data at the end
 		if (!headerBuffer.CanRead(sizeof(XFileData))) throw std::runtime_error("Can't read xfile header size");
 		XFileData* res{ headerBuffer.Ptr<XFileData>() };
-        byte* data{ (byte*)&tmp };
+        byte* data{ tmpBuff };
         __int64 v7; // rcx
         __int64 v8; // r8
         byte v9; // dl
@@ -68,7 +138,7 @@ namespace {
         uint32_t v17[2]; // [rsp+20h] [rbp-48h] BYREF
         XFileMagic magicData; // [rsp+28h] [rbp-40h] BYREF
 
-        std::memset(data, 0, sizeof(XFileData));
+        std::memset(data, 0, sizeof(tmpBuff));
         //read_func->stream_readskip(&magicData, 8i64, 0i64, &read_func->streamff);
         headerBuffer.Read(&magicData, sizeof(magicData));
         v7 = 0i64;
@@ -82,7 +152,10 @@ namespace {
             LABEL_5:
                 v12 = 0;
                 if (!magicData.blocks) {
-					std::memcpy(res, &tmp, sizeof(tmp));
+				WRITE_RES:
+					headerSize = headerBuffer.Loc() - headerSize;
+					if (headerSizeOut) *headerSizeOut = headerSize;
+					std::memcpy(res, tmpBuff, std::min<size_t>(headerSize, sizeof(tmpBuff)));
                     return *res;
                 }
                 while (1) {
@@ -160,8 +233,7 @@ namespace {
                         headerBuffer.Skip(v17[1] - v14);
                     }
                     if (++v12 >= magicData.blocks) {
-						std::memcpy(res, &tmp, sizeof(tmp));
-						return *res;
+						goto WRITE_RES;
                     }
                 }
             }
@@ -187,19 +259,36 @@ namespace {
             XFileMagic* header{ reader.Ptr<XFileMagic>() };
             // patch header B96310
 
-			XFileData& data{ DecryptHeader(reader) };
+			size_t headerSize{};
+
+			XFileData& data{ DecryptHeader(reader, &headerSize) };
 
 			if (opt.m_header) {
 				DumpHeader(data, "header");
 			}
 
-            if (data.version != 0x64) {
-                throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", data.version));
-            }
 
-			ctx.ffname = data.fastfileName;
+			if (data.cw.version != 0x64) {
+				throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", data.cw.version));
+			}
+			if (data.cw.encrypted) {
+				throw std::runtime_error(std::format("Encrypted Fast file version not supported: 0x{:x}", data.cw.version));
+			}
 
-            utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(data.compression) };
+			if (opt.alpha) {
+				ctx.ffname = data.cod2020.fastfileName;
+				ctx.blocksCount = cod2020::XFileBlock::XFILE_BLOCK_COUNT;
+			}
+			else {
+				ctx.ffname = data.cw.fastfileName;
+				ctx.blocksCount = cwrelease::XFileBlock::XFILE_BLOCK_COUNT;
+			}
+
+			for (size_t i = 0; i < ctx.blocksCount; i++) {
+				ctx.blockSizes[i].size = data.cw.blockSize[i];
+			}
+
+            utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(data.cw.compression) };
 
             size_t idx{};
             while (true) {
@@ -220,7 +309,7 @@ namespace {
                 }
 
                 byte* blockBuff{ reader.ReadPtr<byte>(block->alignedSize) };
-                LOG_TRACE("Decompressing block 0x{:x} {}(0x{:x}/0x{:x} -> 0x{:x})", loc, data.encrypted ? "encrypted " : "", block->compressedSize, block->alignedSize, block->uncompressedSize);
+                LOG_TRACE("Decompressing block 0x{:x} {}(0x{:x}/0x{:x} -> 0x{:x})", loc, data.cw.encrypted ? "encrypted " : "", block->compressedSize, block->alignedSize, block->uncompressedSize);
 
                 size_t unloc{ utils::Allocate(ffdata, block->uncompressedSize) };
                 byte* decompressed{ &ffdata[unloc] };
@@ -289,18 +378,23 @@ namespace {
 						throw std::runtime_error("The patch file is for this fast file");
 					}
 
+					for (size_t i = 0; i < ctx.blocksCount; i++) {
+						LOG_DEBUG("New size for block {} 0x{:x} -> 0x{:x}", i, ctx.blockSizes[i].size, newXFileHeader.cw.blockSize[i]);
+						ctx.blockSizes[i].size = newXFileHeader.cw.blockSize[i];
+					}
+
 					if (bdiffHeader->maxDiffWindowSize < 0x10000) bdiffHeader->maxDiffWindowSize = 0x10000;
 					if (bdiffHeader->maxDestWindowSize < 0x10000) bdiffHeader->maxDestWindowSize = 0x10000;
 					if (bdiffHeader->maxSourceWindowSize < 0x10000) bdiffHeader->maxSourceWindowSize = 0x10000;
 
 					size_t compressedSize{ fdreader.Remaining() };
-					size_t fdDecompressedSize{ newXFileHeader.size };
+					size_t fdDecompressedSize{ newXFileHeader.cw.size };
 
-					LOG_TRACE("Decompressing patch {} 0x{:x}: 0x{:x} -> 0x{:x}", fastfile::GetFastFileCompressionName(newXFileHeader.compression), fdreader.Loc(), compressedSize, fdDecompressedSize);
+					LOG_TRACE("Decompressing patch {} 0x{:x}: 0x{:x} -> 0x{:x}", fastfile::GetFastFileCompressionName(newXFileHeader.cw.compression), fdreader.Loc(), compressedSize, fdDecompressedSize);
 					auto uncompress{ std::make_unique<byte[]>(fdDecompressedSize) };
 
 					utils::compress::CompressionAlgorithm alg{};
-					switch (newXFileHeader.compression) {
+					switch (newXFileHeader.cw.compression) {
 					case fastfile::XFILE_BDELTA_UNCOMP:
 						alg = utils::compress::COMP_NONE;
 						break;
@@ -311,11 +405,11 @@ namespace {
 						alg = utils::compress::COMP_LZMA;
 						break;
 					default:
-						throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)newXFileHeader.compression));
+						throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)newXFileHeader.cw.compression));
 					}
 
 					if (!utils::compress::Decompress(alg, uncompress.get(), fdDecompressedSize, fdreader.ReadPtr<byte>(compressedSize), compressedSize)) {
-						throw std::runtime_error(std::format("Error when decompressing fd data for type {}", fastfile::GetFastFileCompressionName(newXFileHeader.compression)));
+						throw std::runtime_error(std::format("Error when decompressing fd data for type {}", fastfile::GetFastFileCompressionName(newXFileHeader.cw.compression)));
 					}
 
 					LOG_TRACE("Decompressed 0x{:x} byte(s) from patch file", fdDecompressedSize);

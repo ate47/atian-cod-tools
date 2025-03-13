@@ -216,7 +216,152 @@ namespace games::bo4::pool {
 			"client_lui_elem_uid",
 			"requires_implements",
 		};
-
+		const char* teamNames[]{
+			"TEAM_FREE",
+			"TEAM_ALLIES",
+			"TEAM_AXIS",
+			"TEAM_THREE",
+			"TEAM_FOUR",
+			"TEAM_FIVE",
+			"TEAM_SIX",
+			"TEAM_SEVEN",
+			"TEAM_EIGHT",
+			"TEAM_NINE",
+			"TEAM_TEN",
+			"TEAM_ELEVEN",
+			"TEAM_TWELVE",
+			"TEAM_THIRTEEN",
+			"TEAM_FOURTEEN",
+			"TEAM_FIFTEEN",
+			"TEAM_SIXTEEN",
+			"TEAM_SEVENTEEN",
+			"TEAM_EIGHTEEN",
+			"TEAM_NINETEEN",
+			"TEAM_TWENTY",
+			"TEAM_TWENTYONE",
+			"TEAM_TWENTYTWO",
+			"TEAM_TWENTYTHREE",
+			"TEAM_TWENTYFOUR",
+			"TEAM_TWENTYFIVE",
+			"TEAM_TWENTYSIX",
+			"TEAM_TWENTYSEVEN",
+			"TEAM_TWENTYEIGHT",
+			"TEAM_TWENTYNINE",
+			"TEAM_THIRTY",
+			"TEAM_THIRTYONE",
+			"TEAM_THIRTYTWO",
+			"TEAM_THIRTYTHREE",
+			"TEAM_THIRTYFOUR",
+			"TEAM_THIRTYFIVE",
+			"TEAM_THIRTYSIX",
+			"TEAM_THIRTYSEVEN",
+			"TEAM_THIRTYEIGHT",
+			"TEAM_THIRTYNINE",
+			"TEAM_FOURTY",
+			"TEAM_FOURTYONE",
+			"TEAM_FOURTYTWO",
+			"TEAM_FOURTYTHREE",
+			"TEAM_FOURTYFOUR",
+			"TEAM_FOURTYFIVE",
+			"TEAM_FOURTYSIX",
+			"TEAM_FOURTYSEVEN",
+			"TEAM_FOURTYEIGHT",
+			"TEAM_FOURTYNINE",
+			"TEAM_FIFTY",
+			"TEAM_FIFTYONE",
+			"TEAM_FIFTYTWO",
+			"TEAM_FIFTYTHREE",
+			"TEAM_FIFTYFOUR",
+			"TEAM_FIFTYFIVE",
+			"TEAM_FIFTYSIX",
+			"TEAM_FIFTYSEVEN",
+			"TEAM_FIFTYEIGHT",
+			"TEAM_FIFTYNINE",
+			"TEAM_SIXTY",
+			"TEAM_SIXTYONE",
+			"TEAM_SIXTYTWO",
+			"TEAM_SIXTYTHREE",
+			"TEAM_SIXTYFOUR",
+			"TEAM_SIXTYFIVE",
+			"TEAM_SIXTYSIX",
+			"TEAM_SIXTYSEVEN",
+			"TEAM_SIXTYEIGHT",
+			"TEAM_SIXTYNINE",
+			"TEAM_SEVENTY",
+			"TEAM_SEVENTYONE",
+			"TEAM_SEVENTYTWO",
+			"TEAM_SEVENTYTHREE",
+			"TEAM_SEVENTYFOUR",
+			"TEAM_SEVENTYFIVE",
+			"TEAM_SEVENTYSIX",
+			"TEAM_SEVENTYSEVEN",
+			"TEAM_SEVENTYEIGHT",
+			"TEAM_SEVENTYNINE",
+			"TEAM_EIGHTY",
+			"TEAM_EIGHTYONE",
+			"TEAM_EIGHTYTWO",
+			"TEAM_EIGHTYTHREE",
+			"TEAM_EIGHTYFOUR",
+			"TEAM_EIGHTYFIVE",
+			"TEAM_EIGHTYSIX",
+			"TEAM_EIGHTYSEVEN",
+			"TEAM_EIGHTYEIGHT",
+			"TEAM_EIGHTYNINE",
+			"TEAM_NINETY",
+			"TEAM_NINETYONE",
+			"TEAM_NINETYTWO",
+			"TEAM_NINETYTHREE",
+			"TEAM_NINETYFOUR",
+			"TEAM_NINETYFIVE",
+			"TEAM_NINETYSIX",
+			"TEAM_NINETYSEVEN",
+			"TEAM_NINETYEIGHT",
+			"TEAM_NINETYNINE",
+			"TEAM_ONEHUNDRED",
+			"TEAM_ONEHUNDRED_ONE",
+			"TEAM_ONEHUNDRED_TWO",
+			"TEAM_ONEHUNDRED_THREE",
+			"TEAM_ONEHUNDRED_FOUR",
+			"TEAM_ONEHUNDRED_FIVE",
+			"TEAM_ONEHUNDRED_SIX",
+			"TEAM_ONEHUNDRED_SEVEN",
+			"TEAM_ONEHUNDRED_EIGHT",
+			"TEAM_ONEHUNDRED_NINE",
+			"TEAM_ONEHUNDRED_TEN",
+			"TEAM_ONEHUNDRED_ELEVEN",
+			"TEAM_ONEHUNDRED_TWELVE",
+			"TEAM_ONEHUNDRED_THIRTEEN",
+			"TEAM_ONEHUNDRED_FOURTEEN",
+			"TEAM_ONEHUNDRED_FIFTEEN",
+			"TEAM_ONEHUNDRED_SIXTEEN",
+			"TEAM_ONEHUNDRED_SEVENTEEN",
+			"TEAM_ONEHUNDRED_EIGHTEEN",
+			"TEAM_ONEHUNDRED_NINETEEN",
+			"TEAM_ONEHUNDRED_TWENTY",
+			"TEAM_ONEHUNDRED_TWENTYONE",
+			"TEAM_ONEHUNDRED_TWENTYTWO",
+			"TEAM_ONEHUNDRED_TWENTYTHREE",
+			"TEAM_ONEHUNDRED_TWENTYFOUR",
+			"TEAM_NEUTRAL",
+			"TEAM_WORLD",
+			"TEAM_SPECTATOR",
+			"TEAM_INVALID",
+		};
+		const char* aiWeaponFireTypeNames[]{
+			"fullauto",
+			"burst",
+			"singleshot"
+		};
+		const char* aiCategoryNames[]{
+			"none",
+			"civilian",
+			"assault",
+			"cqb",
+			"rpg",
+			"sniper",
+			"suppressor",
+			"riot_shield",
+		};
 	}
 
 	XAssetType XAssetIdFromName(const char* name) {
@@ -291,5 +436,53 @@ namespace games::bo4::pool {
 
 		return (XHash*)((byte*)asset + offset);
 	}
-	
+
+	const char* GetTeamName(team_t team) {
+		if (team >= 0 && team < ARRAYSIZE(teamNames)) {
+			return teamNames[team];
+		}
+
+		return "<invalid>";
+	}
+	team_t GetTeam(const char* name) {
+		for (size_t i = 0; i < ARRAYSIZE(teamNames); i++) {
+			if (!_strcmpi(teamNames[i], name)) {
+				return (team_t)i;
+			}
+		}
+
+		return TEAM_INVALID;
+	}
+	const char* GetAIWeaponFireTypeName(AIWeaponFireType type) {
+		if (type >= 0 && type < ARRAYSIZE(aiWeaponFireTypeNames)) {
+			return aiWeaponFireTypeNames[type];
+		}
+
+		return "<invalid>";
+	}
+	AIWeaponFireType GetAIWeaponFireType(const char* name) {
+		for (size_t i = 0; i < ARRAYSIZE(aiWeaponFireTypeNames); i++) {
+			if (!_strcmpi(aiWeaponFireTypeNames[i], name)) {
+				return (AIWeaponFireType)i;
+			}
+		}
+
+		return AI_WEAPON_FIRE_NUM_INVALID;
+	}
+	const char* GetAICategoryName(AICategory type) {
+		if (type >= 0 && type < ARRAYSIZE(aiCategoryNames)) {
+			return aiCategoryNames[type];
+		}
+
+		return "<invalid>";
+	}
+	AICategory GetAICategory(const char* name) {
+		for (size_t i = 0; i < ARRAYSIZE(aiCategoryNames); i++) {
+			if (!_strcmpi(aiCategoryNames[i], name)) {
+				return (AICategory)i;
+			}
+		}
+
+		return AI_CATEGORY_COUNT;
+	}
 }
