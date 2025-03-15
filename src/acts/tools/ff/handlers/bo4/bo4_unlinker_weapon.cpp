@@ -790,13 +790,13 @@ namespace {
 				AddXAssetRef("fx_ca8", ASSET_TYPE_FX, asset->unkca8);
 				AddXAssetRef("image_cb0", ASSET_TYPE_IMAGE, asset->unkcb0);
 				AddXAssetRef("image_cb8", ASSET_TYPE_IMAGE, asset->unkcb8);
-				uintptr_t worldModel; // XModel**
-				uintptr_t unkcd0; // XModel**
-				uintptr_t stowedmodel; // XModel**
-				uintptr_t clipmodel; // XModel**
-				uintptr_t unkcf8; // GfxImageHandle*
-				uintptr_t unkd00; // GfxImageHandle*
-				uintptr_t unkd08; // GfxImageHandle*
+				//uintptr_t worldModel; // XModel**
+				//uintptr_t unkcd0; // XModel**
+				//uintptr_t stowedmodel; // XModel**
+				//uintptr_t clipmodel; // XModel**
+				//uintptr_t unkcf8; // GfxImageHandle*
+				//uintptr_t unkd00; // GfxImageHandle*
+				//uintptr_t unkd08; // GfxImageHandle*
 				AddXAssetRef("unkd28", ASSET_TYPE_XMODEL, asset->unkd28);
 				AddXAssetRef("var_22082a57", ASSET_TYPE_XMODEL, asset->var_22082a57);
 				AddXAssetRef("image_d38", ASSET_TYPE_IMAGE, asset->unkd38);
@@ -880,16 +880,16 @@ namespace {
 				AddXAssetRef("fx_f90", ASSET_TYPE_FX, asset->unkf90);
 				AddXAssetRef("fx_f98", ASSET_TYPE_FX, asset->unkf98);
 				AddXAssetRef("fx_fa0", ASSET_TYPE_FX, asset->unkfa0);
-				uintptr_t unkfb8; // FxImpactTablePtr 
-				uintptr_t unkfc0; // FxImpactTablePtr 
-				uintptr_t unkfc8; // FxImpactTablePtr 
-				uintptr_t unkfd0; // FxImpactTablePtr 
-				uintptr_t unkfd8; // FxImpactTablePtr 
-				uintptr_t unkfe0; // SoundsImpactTable* 
-				uintptr_t unkfe8; // SoundsImpactTable* 
-				uintptr_t unkff0; // SoundsImpactTable* 
-				uintptr_t unkff8; // SoundsImpactTable* 
-				uintptr_t unk1000; // SoundsImpactTable* 
+				//uintptr_t unkfb8; // FxImpactTablePtr 
+				//uintptr_t unkfc0; // FxImpactTablePtr 
+				//uintptr_t unkfc8; // FxImpactTablePtr 
+				//uintptr_t unkfd0; // FxImpactTablePtr 
+				//uintptr_t unkfd8; // FxImpactTablePtr 
+				//uintptr_t unkfe0; // SoundsImpactTable* 
+				//uintptr_t unkfe8; // SoundsImpactTable* 
+				//uintptr_t unkff0; // SoundsImpactTable* 
+				//uintptr_t unkff8; // SoundsImpactTable* 
+				//uintptr_t unk1000; // SoundsImpactTable* 
 				AddXAssetRef("scriptbundle_1008", ASSET_TYPE_SCRIPTBUNDLE, asset->unk1008);
 				AddXAssetRef("scriptbundle_1010", ASSET_TYPE_SCRIPTBUNDLE, asset->unk1010);
 				AddXAssetRef("scriptbundle_1018", ASSET_TYPE_SCRIPTBUNDLE, asset->unk1018);

@@ -184,12 +184,13 @@ namespace fastfile {
 		std::filesystem::path input;
 		std::string inputFileNameStr;
 		FastFileLinkerOption& opt;
-		std::vector<byte>& data;
+		std::vector<byte> linkedData{};
 		const char* ffname{};
+		size_t blockSizes[0x10]{};
 		core::memory_allocator::MemoryAllocator strs{};
 
-		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path in, std::vector<byte>& data)
-			: opt(opt), input(std::filesystem::absolute(in)), data(data) {
+		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path in)
+			: opt(opt), input(std::filesystem::absolute(in)) {
 			if (opt.ffname) ffname = opt.ffname;
 			else {
 				inputFileNameStr = input.filename().string();

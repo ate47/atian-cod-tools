@@ -44,20 +44,30 @@ namespace fastfile::linker::bo4 {
 				XHash name;
 				uint32_t gscCount;
 				uint32_t cscCount;
-				uintptr_t gscScripts; // XHash*
-				uintptr_t cscScripts; // XHash*
+				XHash* gscScripts;
+				XHash* cscScripts;
 			};
+			ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, fastfile::linker::data::POINTER_NEXT);
 
-			ScriptParseTreeForced& header{ utils::Allocate<ScriptParseTreeForced>(ctx.assetData) };
+			ctx.data.PushStream(XFILE_BLOCK_TEMP);
+			ScriptParseTreeForced header{};
 			header.name.name = ctx.ffnameHash;
 			header.gscCount = (uint32_t)serverScripts.size();
 			header.cscCount = (uint32_t)clientScripts.size();
-			if (serverScripts.size()) header.gscScripts = fastfile::ALLOC_PTR;
-			if (clientScripts.size()) header.cscScripts = fastfile::ALLOC_PTR;
+			if (serverScripts.size()) header.gscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
+			if (clientScripts.size()) header.cscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
 
-			utils::WriteValue(ctx.assetData, serverScripts.data(), serverScripts.size() * sizeof(serverScripts[0]));
-			utils::WriteValue(ctx.assetData, clientScripts.data(), clientScripts.size() * sizeof(clientScripts[0]));
-			ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, fastfile::ALLOC_PTR);
+			// todo: implement gdb compiler
+			ctx.data.WriteData(header);
+
+			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			ctx.data.Align(8);
+			ctx.data.WriteData(serverScripts.data(), serverScripts.size() * sizeof(serverScripts[0]));
+			ctx.data.Align(8);
+			ctx.data.WriteData(clientScripts.data(), clientScripts.size() * sizeof(clientScripts[0]));
+			ctx.data.PopStream();
+
+			ctx.data.PopStream();
 			LOG_INFO("Added asset scriptparsetreeforced {} (hash_{:x})", forcedConfigPath.string(), ctx.ffnameHash);
 		}
 	};

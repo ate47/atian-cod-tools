@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
+#include <tools/ff/linkers/linker_bo4.hpp>
 
 namespace {
 	using namespace fastfile;
@@ -21,8 +22,16 @@ namespace {
 		uint64_t size;
 		uint64_t externalSize;
 		uint64_t memMappedOffset;
-		uint64_t blockSize[8];
-		byte pad0[520];
+		uint64_t blockSize[fastfile::linker::bo4::XFILE_BLOCK_COUNT];
+		uint64_t unk4f0;
+		uint64_t unk4f8;
+		uint64_t unk500;
+		uint64_t unk508;
+		uint64_t unk510s;
+		uint64_t unk518s;
+		uint64_t unk520pa;
+		byte pad0[392];
+		char unkSign[64];
 		char fastfileName[64];
 		uint8_t signature[256];
 		uint8_t aesIV[16];
@@ -63,8 +72,8 @@ namespace {
 			// write blocks
 			uint32_t chunkSize = (uint32_t)(ctx.opt.chunkSize ? ctx.opt.chunkSize : 0x3fee0);
 
-			byte* toCompress{ ctx.data.data() };
-			size_t remainingSize{ ctx.data.size() };
+			byte* toCompress{ ctx.linkedData.data() };
+			size_t remainingSize{ ctx.linkedData.size() };
 
 			size_t idx{};
 			std::vector<byte> compressBuffer{};
@@ -114,14 +123,13 @@ namespace {
 			header.server = ctx.opt.server;
 			header.timestamp = utils::GetTimestamp() / 1000;
 			header.encrypted = false;
-			header.size = ctx.data.size();
+			header.size = ctx.linkedData.size();
 			header.compression = compression;
 			static uint32_t archiveChecksum[4]{ 0x34FF23CB, 0xE4505D2, 0xB3C783A, 0x3208003D };
 			static_assert(sizeof(archiveChecksum) == sizeof(header.archiveChecksum));
 			std::memcpy(header.archiveChecksum, archiveChecksum, sizeof(archiveChecksum));
 
-			// todo: write other data
-
+			// build data
 			TCHAR szBuffer[std::max<size_t>(MAX_COMPUTERNAME_LENGTH + 1, 16)];
 			DWORD dwSize = sizeof(szBuffer);
 			if (!GetComputerNameA(szBuffer, &dwSize)) {
@@ -132,6 +140,12 @@ namespace {
 			snprintf(header.builder, sizeof(header.builder), "%s", szBuffer);
 			snprintf(header.fastfileName, sizeof(header.builder), "%s", ctx.ffname);
 
+			// blocks load data
+			for (size_t i = 0; i < fastfile::linker::bo4::XFILE_BLOCK_COUNT; i++) {
+				header.blockSize[i] = (uint64_t)ctx.blockSizes[i];
+			}
+
+			// todo: write other data
 
 			std::filesystem::path outputFile{ ctx.opt.m_output / "bo4" / std::format("{}.ff", ctx.ffname) };
 
@@ -144,7 +158,7 @@ namespace {
 				LOG_WARNING(".fd file generator not implemented");
 			}
 
-			LOG_INFO("Compressed {} into {} ({} -> {} bytes / {}% saved)", ctx.ffname, outputFile.string(), ctx.data.size(), compressedSize, (100 - 100 * compressedSize / ctx.data.size()));
+			LOG_INFO("Compressed {} into {} ({} -> {} bytes / {}% saved)", ctx.ffname, outputFile.string(), ctx.linkedData.size(), compressedSize, (100 - 100 * compressedSize / ctx.linkedData.size()));
 		}
 
 	};

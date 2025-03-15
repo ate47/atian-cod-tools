@@ -14,9 +14,10 @@ namespace fastfile::linker::bo4 {
 			if (localize.main.Empty()) return; // nothing to force
 
 			struct LocalizeEntry {
-				uintptr_t value; // const char*
+				const char* value;
 				XHash name;
 			};
+			static_assert(sizeof(LocalizeEntry) == 0x18);
 
 			size_t added{};
 			for (auto& [k, v] : localize.main.GetObj()) {
@@ -24,11 +25,21 @@ namespace fastfile::linker::bo4 {
 					LOG_WARNING("Invalid localize: {} -> {}", k.GetString(), v.GetString());
 					continue;
 				}
-				LocalizeEntry& header{ utils::Allocate<LocalizeEntry>(ctx.assetData) };
+				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY, fastfile::linker::data::POINTER_NEXT);
+
+				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				LocalizeEntry header{};
+
 				header.name.name = hash::Hash64Pattern(k.GetString());
-				header.value = fastfile::ALLOC_PTR;
-				utils::WriteString(ctx.assetData, v.GetString());
-				ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY, fastfile::ALLOC_PTR);
+				header.value = (const char*)fastfile::linker::data::POINTER_NEXT;
+				ctx.data.WriteData(header);
+
+				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.data.Align<char>();
+				ctx.data.WriteData(v.GetString());
+				ctx.data.PopStream();
+
+				ctx.data.PopStream();
 				added++;
 			}
 			LOG_INFO("Added asset localizeentry {}: {} entry(ies)", localizePath.string(), added);

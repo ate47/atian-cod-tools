@@ -743,11 +743,9 @@ namespace fastfile {
 
 		utils::CloseEnd linkerCE{ [&opt]() {opt.linker->Cleanup(); } };
 
-		std::vector<byte> data{};
 		for (const char* file : opt.files) {
-			data.clear();
 			try {
-				FastFileLinkerContext ctx{ opt, file, data };
+				FastFileLinkerContext ctx{ opt, file };
 
 				if (opt.linker) {
 					opt.linker->Link(ctx);

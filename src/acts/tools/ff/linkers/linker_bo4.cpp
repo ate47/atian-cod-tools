@@ -49,6 +49,8 @@ namespace fastfile::linker::bo4 {
 
 			// load files into bo4ctx.assetData
 
+			bo4ctx.data.SetMode(fastfile::linker::data::LM_DATA);
+
 			for (LinkerWorker* w : GetWorkers()) {
 				LOG_DEBUG("Compute '{}'...", w->id);
 				w->Compute(bo4ctx);
@@ -58,39 +60,61 @@ namespace fastfile::linker::bo4 {
 				throw std::runtime_error("Error when linking fast file data");
 			}
 
+			bo4ctx.data.SetMode(fastfile::linker::data::LM_HEADER);
+
 			// add to ctx.data the assets/strings headers
-			XAssetList& assetlist{ utils::Allocate<XAssetList>(ctx.data) };
-
+			XAssetList assetlist{};
+			
 			// write header
-			if (bo4ctx.strings.size()) {
-				assetlist.stringList.count = (int)bo4ctx.strings.size();
-				assetlist.stringList.strings = fastfile::ALLOC_PTR;
+			if (bo4ctx.data.strings.size()) {
+				assetlist.stringList.count = (int)bo4ctx.data.strings.size();
+				assetlist.stringList.strings = fastfile::linker::data::POINTER_NEXT;
 			}
 
-			if (bo4ctx.assets.size()) {
-				assetlist.assetCount = (int)bo4ctx.assets.size();
-				assetlist.assets = fastfile::ALLOC_PTR;
+			if (bo4ctx.data.assets.size()) {
+				assetlist.assetCount = (int)bo4ctx.data.assets.size();
+				assetlist.assets = fastfile::linker::data::POINTER_NEXT;
 			}
+			bo4ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
-			if (bo4ctx.strings.size()) {
+			bo4ctx.data.WriteData(assetlist);
+
+			bo4ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			if (bo4ctx.data.strings.size()) {
 				// write string ref array
-				uintptr_t* ptrs{ utils::AllocateArray<uintptr_t>(ctx.data, bo4ctx.strings.size()) };
-				for (size_t i = 0; i < bo4ctx.strings.size(); i++) {
-					ptrs[i] = fastfile::ALLOC_PTR;
+				bo4ctx.data.Align<void*>();
+
+				for (size_t i = 0; i < bo4ctx.data.strings.size(); i++) {
+					bo4ctx.data.WriteData<void*>((void*)fastfile::linker::data::POINTER_NEXT);
 				}
 
 				// write strings
-				for (const char* str : bo4ctx.strings) {
-					utils::WriteString(ctx.data, str);
+				for (const char* str : bo4ctx.data.strings) {
+					bo4ctx.data.Align<char>();
+					bo4ctx.data.WriteData(str);
 				}
 			}
-			if (bo4ctx.assets.size()) {
-				// write asset array
-				utils::WriteValue(ctx.data, bo4ctx.assets.data(), bo4ctx.assets.size() * sizeof(bo4ctx.assets[0]));
-			}
+			bo4ctx.data.PopStream();
 
-			// write asset data
-			utils::WriteValue(ctx.data, bo4ctx.assetData.data(), bo4ctx.assetData.size());
+			if (bo4ctx.data.assets.size()) {
+				bo4ctx.data.Align(8); // GetAlignment_XAsset
+
+				struct XAsset {
+					games::bo4::pool::XAssetType type;
+					uintptr_t header; // XAssetHeader
+				};
+				// write asset array
+				
+				XAsset tmpAsset{};
+				for (const fastfile::linker::data::AssetData& asset : bo4ctx.data.assets) {
+					tmpAsset.type = (games::bo4::pool::XAssetType)asset.type;
+					tmpAsset.header = (uintptr_t)asset.header;
+					bo4ctx.data.WriteData(tmpAsset);
+				}
+			}
+			bo4ctx.data.PopStream();
+
+			bo4ctx.data.Link(ctx.linkedData, ctx.blockSizes);
 		}
 
 	};

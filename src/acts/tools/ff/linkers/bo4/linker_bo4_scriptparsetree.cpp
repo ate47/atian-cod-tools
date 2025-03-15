@@ -17,20 +17,26 @@ namespace fastfile::linker::bo4 {
 
 			struct ScriptParseTree {
 				XHash name;
-				uintptr_t buffer;
+				void* buffer;
 				uint32_t len;
 			}; static_assert(sizeof(ScriptParseTree) == 0x20);
 
-			ScriptParseTree& spt{ utils::Allocate<ScriptParseTree>(ctx.assetData) };
+			ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREE, fastfile::linker::data::POINTER_NEXT);
 
+			ctx.data.PushStream(XFILE_BLOCK_TEMP);
+			ScriptParseTree spt{};
 			spt.name.name = obj.name;
-			spt.buffer = fastfile::ALLOC_PTR;
+			spt.buffer = (void*)fastfile::linker::data::POINTER_NEXT;
 			spt.len = (uint32_t)buffer.size();
+			ctx.data.WriteData(spt);
 
-			// write script header
-			buffer.push_back(0); // the game is reading (len + 1) so we add a byte at the end
-			utils::WriteValue(ctx.assetData, buffer.data(), buffer.size());
-			ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREE, fastfile::ALLOC_PTR);
+			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			ctx.data.Align(0x20);
+			ctx.data.WriteData(buffer.data(), buffer.size());
+			ctx.data.WriteData<byte>(0);
+			ctx.data.PopStream();
+
+			ctx.data.PopStream();
 			LOG_INFO("Added asset scriptparsetree {} (hash_{:x})", path.string(), obj.name);
 		}
 
@@ -55,22 +61,27 @@ namespace fastfile::linker::bo4 {
 				XHash name;
 				int gdbLen;
 				int srcLen;
-				uintptr_t gdb;
-				uintptr_t src;
+				void* gdb;
+				const char* src;
 			}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
 
-			ScriptParseTreeDBG& spt{ utils::Allocate<ScriptParseTreeDBG>(ctx.assetData) };
+			ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, fastfile::linker::data::POINTER_NEXT);
 
+			ctx.data.PushStream(XFILE_BLOCK_TEMP);
+			ScriptParseTreeDBG spt{};
 			spt.name.name = obj.name;
-			spt.src = fastfile::ALLOC_PTR;
+			spt.src = (const char*)fastfile::linker::data::POINTER_NEXT;
 			spt.srcLen = (uint32_t)preproc.size();
 			// todo: implement gdb compiler
+			ctx.data.WriteData(spt);
 
-			// write script header
-			preproc.push_back(0); // the game is reading (len + 1) so we add a byte at the end
-			utils::WriteValue(ctx.assetData, preproc.data(), preproc.size());
+			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			ctx.data.Align<char>();
+			preproc.push_back(0);
+			ctx.data.WriteData(preproc.data(), preproc.size());
+			ctx.data.PopStream();
 
-			ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, fastfile::ALLOC_PTR);
+			ctx.data.PopStream();
 			LOG_INFO("Added asset scriptparsetreedbg {} (hash_{:x})", path.string(), obj.name);
 		}
 
@@ -96,7 +107,6 @@ namespace fastfile::linker::bo4 {
 				cfg.platform = GetGSCPlatform(ctx.linkCtx.opt.platform);
 				cfg.vm = tool::gsc::opcode::VMI_T8; // read cfg?
 				cfg.detourType = acts::compiler::DETOUR_ACTS;
-				cfg.computeDevOption = cfgDev;
 				cfg.computeDevOption = cfgDev;
 				std::string preprocOutput{};
 				if (cfgGenDBG) {

@@ -86,6 +86,10 @@ namespace {
 			reader.Goto(fastfileNameLoc);
 			ctx.ffname = reader.ReadString();
 
+			if (xhashType) {
+				hashutils::Add(ctx.ffname, true, true);
+			}
+
 			byte* aesIV{};
 			if (aesIVLoc) {
 				if (!aesIVSize) throw std::runtime_error("Missing aesIVSize value");

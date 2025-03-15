@@ -31,20 +31,27 @@ namespace fastfile::linker::bo4 {
 				struct RawFile {
 					XHash name;
 					int32_t len;
-					uintptr_t buffer;
+					const char* buffer;
 				}; static_assert(sizeof(RawFile) == 0x20);
 
-				RawFile& rf{ utils::Allocate<RawFile>(ctx.assetData) };
+				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_RAWFILE, fastfile::linker::data::POINTER_NEXT);
 
-				uint64_t hash = HashPathName(rfpath);
-				rf.name.name = hash;
-				rf.buffer = fastfile::ALLOC_PTR;
+				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				RawFile rf{};
+
+				rf.name.name = HashPathName(rfpath);
+				rf.buffer = (const char*)fastfile::linker::data::POINTER_NEXT;
 				rf.len = (uint32_t)buffer.size();
+				ctx.data.WriteData(rf);
 
-				// write header
-				utils::WriteValue(ctx.assetData, buffer.data(), buffer.length() + 1); // add \0
-				ctx.assets.emplace_back(games::bo4::pool::ASSET_TYPE_RAWFILE, fastfile::ALLOC_PTR);
-				LOG_INFO("Added asset rawfile {} (hash_{:x})", path.string(), hash);
+				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.data.Align(0x10);
+				ctx.data.WriteData(buffer.data(), buffer.length() + 1); // add \0
+				ctx.data.PopStream();
+
+				ctx.data.PopStream();
+
+				LOG_INFO("Added asset rawfile {}", path.string());
 			}
 		}
 	};

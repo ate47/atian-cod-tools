@@ -203,7 +203,7 @@ namespace utils {
 	 * @param size value to write
 	 * @return data location before write
 	 */
-	inline size_t WriteValue(std::vector<byte>& data, void* ptr, size_t size) {
+	inline size_t WriteValue(std::vector<byte>& data, const void* ptr, size_t size) {
 		size_t begin = data.size();
 		const byte* valLoc = (const byte*)ptr;
 		data.insert(data.end(), valLoc, valLoc + size);
