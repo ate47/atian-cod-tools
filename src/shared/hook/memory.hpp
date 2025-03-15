@@ -48,6 +48,11 @@ namespace hook::memory {
 	void Int3(void* location, size_t size = 1);
 
 	/*
+	 * Replace return, the function should be at least 3 bytes
+	 */
+	void ReturnVal(void* location, bool val);
+
+	/*
 	 * Write memory in log
 	 * @param location start
 	 * @param size size

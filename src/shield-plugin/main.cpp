@@ -2,6 +2,7 @@
 #include <core/actsinfo.hpp>
 #include <core/config.hpp>
 #include <core/system.hpp>
+#include <hook/error.hpp>
 #include <hook/library.hpp>
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
@@ -27,6 +28,7 @@ EXPORT void PBO4_PreStart() {
     };
 
     core::logs::setlevel(core::config::GetEnumVal<core::logs::loglevel>("logger.level", logNames, ARRAYSIZE(logNames), core::logs::LVL_INFO));
+    hook::error::InstallErrorHooks();
 
     hook::library::Library main{};
     LOG_INFO("init acts dll pid={} name={}", GetCurrentProcessId(), main.GetName());

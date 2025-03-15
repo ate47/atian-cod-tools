@@ -415,6 +415,9 @@ namespace fastfile {
 			else if (!_strcmpi("--dumpAssetNames", arg)) {
 				dumpAssetNames = true;
 			}
+			else if (!_strcmpi("--testDump", arg)) {
+				testDump = true;
+			}
 			else if (!_strcmpi("--alpha", arg)) {
 				alpha = true;
 			}

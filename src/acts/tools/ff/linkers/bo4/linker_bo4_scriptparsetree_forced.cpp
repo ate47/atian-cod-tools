@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <rapidcsv.h>
 #include <tools/ff/linkers/linker_bo4.hpp>
 
 namespace fastfile::linker::bo4 {
@@ -8,30 +9,41 @@ namespace fastfile::linker::bo4 {
 
 		void Compute(BO4LinkContext& ctx) override {
 
-			std::filesystem::path forcedConfigPath{ ctx.linkCtx.input / "sptforced.json" };
-			core::config::Config forcedConfig{ forcedConfigPath };
-			forcedConfig.SyncConfig(false);
-			if (forcedConfig.main.Empty()) return; // nothing to force
+			std::filesystem::path forcedConfigPath{ ctx.linkCtx.input / "sptforced.csv" };
+			std::string buffer{};
+
+			if (!utils::ReadFile(forcedConfigPath, buffer)) {
+				LOG_WARNING("Can't read csv {}", forcedConfigPath.string());
+				return;
+			}
+
+			rapidcsv::Document doc{};
+
+			std::stringstream stream{ buffer };
+
+			doc.Load(stream, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
+
+			if (doc.GetColumnCount() < 2) {
+				LOG_WARNING("Can't read hash csv {}: invalid file", forcedConfigPath.string());
+				return;
+			}
 
 			std::vector<XHash> serverScripts{};
 			std::vector<XHash> clientScripts{};
 
-			if (forcedConfig.main.HasMember("server")) {
-				for (auto& e : forcedConfig.main["server"].GetArray()) {
-					if (!e.IsString()) {
-						LOG_WARNING("Invalid entry in sptforced.json: {}", e.GetString());
-						continue;
-					}
-					serverScripts.emplace_back(hash::Hash64(e.GetString()));
+			for (size_t i = 0; i < doc.GetRowCount(); i++) {
+				const std::string type{ doc.GetCell<std::string>(0, i) };
+				const std::string scriptStr{ doc.GetCell<std::string>(1, i) };
+
+				if (type == "server") {
+					serverScripts.emplace_back(hash::Hash64(scriptStr.data()));
 				}
-			}
-			if (forcedConfig.main.HasMember("client")) {
-				for (auto& e : forcedConfig.main["client"].GetArray()) {
-					if (!e.IsString()) {
-						LOG_WARNING("Invalid entry in sptforced.json: {}", e.GetString());
-						continue;
-					}
-					clientScripts.emplace_back(hash::Hash64(e.GetString()));
+				else if (type == "client") {
+					clientScripts.emplace_back(hash::Hash64(scriptStr.data()));
+				}
+				else {
+					LOG_WARNING("Invalid entry in sptforced.csv: unknown type: {}", type);
+					continue;
 				}
 			}
 

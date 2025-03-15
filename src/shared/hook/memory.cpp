@@ -213,6 +213,18 @@ namespace hook::memory {
 			loc += w;
 		}
 	}
+	void ReturnVal(void* location, bool val) {
+		byte hook[]{ 0, 0, 0xC3 }; // ? ?, ret
+		if (val) {
+			hook[0] = 0xB0;
+			hook[1] = 0x01; // mov    al,0x1
+		}
+		else {
+			hook[0] = 0x30;
+			hook[1] = 0xC0; // xor    al,al
+		}
+		process::WriteMemSafe(location, hook, sizeof(hook));
+	}
 
 	void DumpMemory(void* location, size_t size) {
 		byte* b = (byte*)location;
