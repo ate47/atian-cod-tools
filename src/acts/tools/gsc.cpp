@@ -3500,14 +3500,37 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             asmout << "Offset: 0x" << exp.GetAddress() << std::endl;
 
             uint32_t knownSize{ exp.GetSize() };
+            bool hasSize{ (bool)knownSize };
             if (knownSize) {
-                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << knownSize << std::endl;
+                utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << std::hex << knownSize;
             }
             else {
                 auto size = ctx.FinalSize();
-                if (size > 1) { // at least one opcode
-                    utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size << "\n";
+                if (size) { // at least one opcode
+                    utils::Padding(asmout, padding) << prefix << std::hex << "Size: 0x" << size;
+                    hasSize = true;
                 }
+            }
+
+            if (ctx.m_devFuncCandidate || ctx.m_boolFuncCandidate) {
+
+                if (hasSize) {
+                    asmout << "," << " Type:";
+                }
+                else {
+                    utils::Padding(asmout, padding) << prefix << "Type:";
+                }
+
+                if (ctx.m_devFuncCandidate) {
+                    asmout << " dev";
+                }
+                if (ctx.m_boolFuncCandidate) {
+                    asmout << " bool";
+                }
+                asmout << std::nouppercase;
+            }
+            if (hasSize) {
+                asmout << std::endl;
             }
             break;
         }

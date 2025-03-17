@@ -480,6 +480,7 @@ namespace tool::gsc {
             std::vector<ASMContextDevBlock> m_devBlocks{};
             // if this function is a dev function candidate
             bool m_devFuncCandidate{};
+            bool m_boolFuncCandidate{};
             bool m_vtable{};
             // export
             GSCExportReader& m_exp;

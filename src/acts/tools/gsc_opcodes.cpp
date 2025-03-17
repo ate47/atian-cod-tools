@@ -7572,6 +7572,8 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 		return 0;
 	}
 
+	ctx.m_boolFuncCandidate = true;
+
 	// convert the return values to booleans
 	for (size_t i = 0; i < m_statements.size(); i++) {
 		auto& stmt = m_statements[i];
