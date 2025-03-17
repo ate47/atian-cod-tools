@@ -50,4 +50,7 @@ namespace bo4 {
 
 	// xassets
 	S_ANY Ref<XHash* (XHash* hash, const XAsset* asset)> DB_GetXAssetName{ 0x28AAB60_a };
+	S_ANY Ref<bool(const char* file)> DB_FileExists{ 0x2EB72C0_a };
+	S_ANY Ref<int32_t(const char* file)> Stream_OpenFile49{ 0x2E0E8B0_a };
+	S_ANY Ref<void(int32_t fileid)> Stream_CloseFile{ 0x3C4C260_a };
 }

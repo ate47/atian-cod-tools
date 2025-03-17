@@ -130,6 +130,49 @@ namespace core::raw_file::json {
 			WriteNewSpace();
 		}
 
+		void WriteFieldValueBool(int64_t name, bool val) {
+			WriterFieldNameHash(name);
+			WriteValueBool(val);
+		}
+
+		template<bool encryptedKey = false>
+		void WriteFieldValueBool(const char* name, bool val) {
+			if constexpr (encryptedKey) {
+				WriteFieldNameStringEncrypted(name);
+			}
+			else {
+				WriteFieldNameString(name);
+			}
+			WriteValueBool(val);
+		}
+
+		template<bool encryptedStr = false>
+		void WriteFieldValueString(int64_t name, const char* val) {
+			WriterFieldNameHash(name);
+			if constexpr (encryptedStr) {
+				WriteValueEncrypted(name);
+			}
+			else {
+				WriteValueString(name);
+			}
+		}
+
+		template<bool encryptedKey = false, bool encryptedStr = false>
+		void WriteFieldValueString(const char* name, const char* val) {
+			if constexpr (encryptedKey) {
+				WriteFieldNameStringEncrypted(name);
+			}
+			else {
+				WriteFieldNameString(name);
+			}
+			if constexpr (encryptedStr) {
+				WriteValueEncrypted(name);
+			}
+			else {
+				WriteValueString(name);
+			}
+		}
+
 		void BeginObject() {
 			WritePreData();
 			writer.WriteString("{");

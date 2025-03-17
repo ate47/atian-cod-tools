@@ -28,7 +28,7 @@ EXPORT void PBO4_PreStart() {
     };
 
     core::logs::setlevel(core::config::GetEnumVal<core::logs::loglevel>("logger.level", logNames, ARRAYSIZE(logNames), core::logs::LVL_INFO));
-    hook::error::InstallErrorHooks();
+    hook::error::InstallErrorHooks(true);
 
     hook::library::Library main{};
     LOG_INFO("init acts dll pid={} name={}", GetCurrentProcessId(), main.GetName());

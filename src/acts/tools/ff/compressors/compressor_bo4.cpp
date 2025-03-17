@@ -138,11 +138,11 @@ namespace {
 			}
 
 			snprintf(header.builder, sizeof(header.builder), "%s", szBuffer);
-			snprintf(header.fastfileName, sizeof(header.builder), "%s", ctx.ffname);
+			snprintf(header.fastfileName, sizeof(header.fastfileName), "%s", ctx.ffname);
 
 			// blocks load data
 			for (size_t i = 0; i < fastfile::linker::bo4::XFILE_BLOCK_COUNT; i++) {
-				header.blockSize[i] = (uint64_t)ctx.blockSizes[i];
+				header.blockSize[i] = (uint64_t)ctx.blockSizes[i] * 2;
 			}
 
 			// todo: write other data
