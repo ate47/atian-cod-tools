@@ -1,4 +1,24 @@
 - acts
   - fast files
-    - complete bo3 pool ff handler
-    - print handlers list without ff name
+    - unlinker
+      - complete bo4 pool ff handler with some pools (aitype, bgcache, ddl, keyvaluepairs, luafile, rawfile, rawstring, sb, spt, sptdbg, streamkey, stringtable, weapon, weapontunables)
+      - print handlers list without ff name
+      - read .fd with fastfiles
+      - cw ?fd handling
+      - treyarch xhash based luafile dumper
+    - linker
+      - wip linker with basic pools
+  - cordycep dumper
+    - better loading
+    - more t10 pools (character, ddl, gamemode, luafile, map, gametypes, netconststrings, operator, rawfile, project, storagefile)
+    - replace ddl grammar
+  - gsc decompiler/compiler
+    - gsc vm 11 (without opcodes)
+    - treyarch gsc code formatter
+    - array unpacking for IW gsc code analysis
+    - add inferred type (bool/dev) to export header
+  - gsc opcode translation tool
+  - fix t8 generation in wnigen
+  - fix t10scrsp and t8scrsp hashes search
+  - better oodle lib loading
+  - update antlr4
