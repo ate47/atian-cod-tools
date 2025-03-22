@@ -33,27 +33,79 @@ namespace {
 		LOG_INFO("{:x}", mod->GetOptHeader()->ImageBase);
 		LOG_INFO("{}", *mod);
 		LOG_INFO("{}", mod->Get<void>(0ull));
-		//tool::pool::WriteHex(std::cout, 0, mod->GetOptHeader(), sizeof(*mod->GetOptHeader()));
+
 		
+		utils::OutFileCE outVC{ "imports.txt" };
+		LOG_INFO("imports.txt");
+
+		hook::library::Library lib{ *mod };
+
+		IMAGE_DATA_DIRECTORY& dir{ lib.GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
+		if (!dir.VirtualAddress || dir.Size <= 0) return 0; // nothing to patch
+
+		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)(lib[dir.VirtualAddress]) };
+
+		LOG_TRACE("Loading imports 0x{:x}/0x{:x}", dir.VirtualAddress, dir.Size);
+
+		std::ostringstream osnames{};
+
+		Process proc{ L"acts.exe" };
+
+		while (imports->Name) {
+			IMAGE_IMPORT_DESCRIPTOR& imp{ *imports++ };
+
+			const char* name{ lib.Get<const char>(imp.Name) };
+
+			if (core::logs::getlevel() <= core::logs::LVL_TRACE) osnames << " " << name;
+
+			hook::library::Library dep{ name, false, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS };
+
+			outVC << dep << ":\n";
+
+			if (!dep) {
+				osnames << "<missing>";
+				LOG_TRACE("Can't load IAT lib {} to patch {}", name, *lib);
+				continue;
+			}
+
+			//lib.Get<IMAGE_THUNK_DATA>(imp.)
+
+			IMAGE_THUNK_DATA* thunks{ lib.Get<IMAGE_THUNK_DATA>(imp.FirstThunk) };
+			IMAGE_THUNK_DATA* originalThunks{ lib.Get<IMAGE_THUNK_DATA>(imp.OriginalFirstThunk) };
+
+			while (originalThunks->u1.Function) {
+				IMAGE_THUNK_DATA& thunk{ *thunks++ };
+				IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
+
+				if (originalThunk.u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
+					outVC << std::hex << "0x" << originalThunk.u1.Ordinal << "-> " << hook::library::CodePointer{&thunk} << "\n";
+				}
+				else {
+					outVC << lib.Get<const char>(originalThunk.u1.Function + 2) << "-> " << hook::library::CodePointer{ &thunk } << "\n";
+				}
+			}
+		}
+		//tool::pool::WriteHex(std::cout, 0, mod->GetOptHeader(), sizeof(*mod->GetOptHeader()));
+
 		// TEST BO4 Dump data
 
 		/*
-        struct T8BuiltInFunc {
-            uint32_t name;
-            uint32_t minArgs;
-            uint32_t maxArgs;
-            uint32_t pad01;
-            uintptr_t function;
-            uint32_t type;
-            uint32_t pad02;
-        };
+		struct T8BuiltInFunc {
+			uint32_t name;
+			uint32_t minArgs;
+			uint32_t maxArgs;
+			uint32_t pad01;
+			uintptr_t function;
+			uint32_t type;
+			uint32_t pad02;
+		};
 
-        const T8BuiltInFunc* defs = mod->Get<T8BuiltInFunc>(0x4f437c0);
-        constexpr size_t len = 370;
+		const T8BuiltInFunc* defs = mod->Get<T8BuiltInFunc>(0x4f437c0);
+		constexpr size_t len = 370;
 
-        for (size_t i = 0; i < len; i++) {
+		for (size_t i = 0; i < len; i++) {
 			LOG_INFO("{} -> {}", hashutils::ExtractTmp("function", defs[i].name), mod->RlocBased(defs[i].function));
-        }
+		}
 		*/
 
 		/*
@@ -69,9 +121,8 @@ namespace {
 		}
 		*/
 
-
 		LOG_INFO("Done");
-		
+
 		return tool::OK;
 	}
 	int exe_pool_dumper(int argc, const char* argv[]) {
@@ -184,7 +235,7 @@ namespace {
 			}
 			LOG_ERROR("Can't find ref");
 		}
-		
+
 		LOG_ERROR("Can't find candidate");
 		return tool::BASIC_ERROR;
 	}
@@ -441,7 +492,7 @@ namespace {
 			}
 			LOG_INFO("Created {}", pf.string());
 		}
-		
+
 
 
 		LOG_INFO("Done");
@@ -484,7 +535,7 @@ namespace {
 		utils::GetFileRecurse(scripts, paths, [](const std::filesystem::path& p) {
 			auto s = p.string();
 			return s.ends_with(".gscc") || s.ends_with(".cscc") || s.ends_with(".gscbin") || s.ends_with(".cscbin");
-		});
+			});
 
 		if (paths.empty()) {
 			LOG_ERROR("Not gsc files found in {}", scripts);
@@ -504,10 +555,10 @@ namespace {
 				return false;
 			}
 			return true;
-		};
+			};
 
-		std::function<char*(char*)> DecryptString;
-		
+		std::function<char* (char*)> DecryptString;
+
 		switch (type) {
 		case VMI_T7:
 		case VMI_T71B:
@@ -518,15 +569,15 @@ namespace {
 		}
 		case VMI_T9: {
 			if (!LoadMod(false)) return tool::BASIC_ERROR;
-			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6", "DecryptString").GetPtr<char*(*)(char* str)>();
-			DecryptString = [DecryptStringFunc](char* s) -> char* { 
+			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6", "DecryptString").GetPtr<char* (*)(char* str)>();
+			DecryptString = [DecryptStringFunc](char* s) -> char* {
 				char* sd = DecryptStringFunc(s);
 
 				// save the decrypted string at the same location
 				memmove(s, sd, std::strlen(sd) + 1);
-				
+
 				return s;
-			};
+				};
 			break;
 		}
 		case VMI_JUP_8B:
@@ -543,7 +594,7 @@ namespace {
 				memmove(s, sd, std::strlen(sd) + 1);
 
 				return s;
-			};
+				};
 			break;
 		}
 		default:
@@ -770,5 +821,5 @@ namespace {
 	ADD_TOOL(scripts_decrypt, "gsc", "[exe] [type] [scripts] [ouput]", "Map exe in memory and use it to decrypt GSC scripts", scripts_decrypt);
 	ADD_TOOL(test_enough_internet, "dev", "[url]", "Test can load", test_enough_internet);
 
-	
+
 }
