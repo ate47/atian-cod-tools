@@ -226,6 +226,7 @@ namespace tool::gsc {
             TYPE_FUNC_CALL,
             TYPE_FUNC_REFNAME,
             TYPE_FUNC_IS_DEFINED,
+            TYPE_FUNC_IS_DEFINED_OP,
             TYPE_GET_REF,
 
             TYPE_PRECODEPOS,
@@ -370,6 +371,8 @@ namespace tool::gsc {
             void Dump(std::ostream& out, DecompContext& ctx) const override;
             ASMContextNode* Clone() const override;
             int ComputeDevBlocks(ASMContext& ctx);
+            int ComputeForEachBlocksKeys(ASMContext& ctx);
+            int ComputeForEachBlocksIterator(ASMContext& ctx);
             int ComputeForEachBlocks(ASMContext& ctx);
             int ComputeForBlocks(ASMContext& ctx);
             int ComputeWhileBlocks(ASMContext& ctx);

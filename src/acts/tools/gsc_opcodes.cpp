@@ -3334,16 +3334,17 @@ class OPCodeInfoFunctionOperator : public OPCodeInfo {
 	bool m_canHaveArg2;
 	bool m_isBool;
 	bool m_noParenthesis;
+	ASMContextNodeType m_type;
 	
 public:
-	OPCodeInfoFunctionOperator(OPCode id, const char* name, const char* operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false, bool isBool = false, bool noParenthesis = false) : OPCodeInfo(id, name),
-		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2), m_isBool(isBool), m_noParenthesis(noParenthesis) {
+	OPCodeInfoFunctionOperator(OPCode id, const char* name, const char* operatorName, bool hasSelf = false, bool complete = true, bool canHaveArg2 = false, bool isBool = false, bool noParenthesis = false, ASMContextNodeType type = TYPE_STATEMENT) : OPCodeInfo(id, name),
+		m_operatorName(operatorName), m_hasSelf(hasSelf), m_complete(complete), m_canHaveArg2(canHaveArg2), m_isBool(isBool), m_noParenthesis(noParenthesis), m_type(type) {
 	}
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_operatorName, m_hasSelf, TYPE_STATEMENT, m_isBool, m_noParenthesis);
+			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_operatorName, m_hasSelf, m_type, m_isBool, m_noParenthesis);
 			if (m_hasSelf) {
 				node->AddParam(context.PopASMCNode());
 			}
@@ -5345,7 +5346,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_Wait2, "Wait2", "wait", false, true, false, false, true));
 			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_WaitFrame, "WaitFrame", "waitframe"));
 			RegisterOpCodeHandler(new OPCodeInfoNotify(OPCODE_Notify, "Notify"));
-			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined", false, false, false, true));
+			RegisterOpCodeHandler(new OPCodeInfoFunctionOperator(OPCODE_IsDefined, "IsDefined", "isdefined", false, false, false, true, false, TYPE_FUNC_IS_DEFINED_OP));
 
 			// PRECODEPOS/CODEPOS on stack
 			RegisterOpCodeHandler(new OPCodeInfoNopStmt(OPCODE_ClearParams, "ClearParams"));
@@ -6441,8 +6442,332 @@ void ApplySubStatement(ASMContextStatement& stmt, ASMContext& ctx, std::function
 		}
 	}, ctx);
 }
+namespace {
 
-int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
+	constexpr uint64_t getfirstarraykeyIWHash = hash::HashJupScr("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyIWHash = hash::HashJupScr("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyCerHash = hash::HashT10Scr("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyCerHash = hash::HashT10Scr("getnextarraykey");
+	constexpr uint64_t getfirstarraykeyCerBHash = hash::HashT10ScrSP("getfirstarraykey");
+	constexpr uint64_t getnextarraykeyCerBHash = hash::HashT10ScrSP("getnextarraykey");
+
+	constexpr uint64_t getarraykeysCerHash = hash::HashT10Scr("getarraykeys");
+}
+
+
+int ASMContextNodeBlock::ComputeForEachBlocksKeys(ASMContext& ctx) {
+	/*
+	T10 VM10
+	arrayRef = array;
+	if (isdefined(arrayRef)) {
+		__ka2 = getarraykeys(arrayRef);
+		for (__ki1 = 0; __ki1 < __ka2.size; __ki1++) {
+			keyname = __ka2[__ki1];
+			valuename = arrayRef[keyname];
+
+			// loop code
+		}
+		// cleanup code
+		arrayRef = undefined;
+		__ka2 = undefined;
+		keyname = undefined;
+		valuename = undefined;
+		__ki1 = undefined;
+	}
+
+	*/
+
+	size_t index{};
+
+	while (index < m_statements.size()) {
+		ASMContextStatement& arrayRefLoc{ m_statements[index] };
+		arrayRefLoc.node->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) {
+			block->ComputeForEachBlocks(ctx);
+		}, ctx);
+		const size_t startIndex{ index };
+		int moveDelta{ 1 };
+
+
+		ASMContextNodeLeftRightOperator* setOp;
+		// arrayRef = array
+		if (arrayRefLoc.node->m_type != TYPE_SET 
+			|| (setOp = static_cast<ASMContextNodeLeftRightOperator*>(arrayRefLoc.node))->m_left->m_type != TYPE_IDENTIFIER) {
+			index += moveDelta;
+			continue;
+		}
+
+		uint64_t names[0x10]{};
+		uint64_t* namesEnd{ names };
+
+		uint64_t arrayRefName{ static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value };
+		*(namesEnd++) = arrayRefName;
+
+		index++;
+		moveDelta--;
+
+		ASMContextStatement& arrayDefinedTest{ m_statements[index] };
+		ASMContextNodeJumpOperator* arrayDefinedTestJump;
+		ASMContextNodeMultOp* arrayDefinedTestJumpIsDefined;
+
+		// LOC_00000141:jumpiffalse(isdefined(arrayRef)) LOC_00000187 delta: 0x43 (type:b/spec:false);
+
+		if (arrayDefinedTest.node->m_type != TYPE_JUMP_ONFALSE
+			|| (arrayDefinedTestJump = static_cast<ASMContextNodeJumpOperator*>(arrayDefinedTest.node))->m_operand->m_type != TYPE_FUNC_IS_DEFINED_OP
+			|| arrayDefinedTestJump->m_delta < 0
+			|| (arrayDefinedTestJumpIsDefined = static_cast<ASMContextNodeMultOp*>(arrayDefinedTestJump->m_operand))->m_operands.size() != 1
+			|| arrayDefinedTestJumpIsDefined->m_operands[0]->m_type != TYPE_IDENTIFIER
+			|| static_cast<ASMContextNodeIdentifier*>(arrayDefinedTestJumpIsDefined->m_operands[0])->m_value != arrayRefName
+			) {
+			index += moveDelta;
+			continue;
+		}
+
+		index++;
+		moveDelta--;
+		ASMContextStatement& getArrayKeys{ m_statements[index] };
+		ASMContextNodeLeftRightOperator* setKeysOp;
+		ASMContextNodeCallFuncPtr* funcCall;
+
+		// __ka2 = getarraykeys(__a3);
+		if (getArrayKeys.node->m_type != TYPE_SET
+			|| (setKeysOp = static_cast<ASMContextNodeLeftRightOperator*>(getArrayKeys.node))->m_left->m_type != TYPE_IDENTIFIER
+			|| setKeysOp->m_right->m_type != TYPE_FUNC_CALL
+			|| (funcCall = static_cast<ASMContextNodeCallFuncPtr*>(setKeysOp->m_right))->m_flags // no flags = normal call
+			|| funcCall->m_operands.size() != 2 // name + param
+			|| funcCall->m_operands[0]->m_type != TYPE_FUNC_REFNAME
+			|| funcCall->m_operands[1]->m_type != TYPE_IDENTIFIER
+			|| static_cast<ASMContextNodeFuncRef*>(funcCall->m_operands[0])->m_func != getarraykeysCerHash
+			|| static_cast<ASMContextNodeIdentifier*>(funcCall->m_operands[1])->m_value != arrayRefName
+			) {
+			index += moveDelta;
+			continue;
+		}
+		uint64_t keysRefName{ static_cast<ASMContextNodeIdentifier*>(setKeysOp->m_left)->m_value };
+		*(namesEnd++) = keysRefName;
+
+		index++;
+		moveDelta--;
+
+		// __ki1 = 0;
+		ASMContextStatement& incInit{ m_statements[index] };
+		ASMContextNodeLeftRightOperator* setIncOp;
+		if (incInit.node->m_type != TYPE_SET
+			|| (setIncOp = static_cast<ASMContextNodeLeftRightOperator*>(incInit.node))->m_left->m_type != TYPE_IDENTIFIER
+			|| !setIncOp->m_right->IsConstNumber()
+			|| setIncOp->m_right->GetIntConst()
+			) {
+			index += moveDelta;
+			continue;
+		}
+		uint64_t incRefName{ static_cast<ASMContextNodeIdentifier*>(setIncOp->m_left)->m_value };
+		*(namesEnd++) = incRefName;
+
+		index++;
+		moveDelta--;
+
+		// jumpiffalse(__ki1 < __ka2.size) LOC_00000178;
+		ASMContextStatement& loopJumpStmt{ m_statements[index] };
+		ASMContextNodeJumpOperator* loopJump;
+		if (loopJumpStmt.node->m_type != TYPE_JUMP_ONFALSE
+			|| !(loopJump = static_cast<ASMContextNodeJumpOperator*>(loopJumpStmt.node))->m_operand
+			|| loopJump->m_operand->m_type != TYPE_OPERATION2 
+			|| strcmp(static_cast<ASMContextNodeOp2*>(loopJump->m_operand)->m_description, "<")
+			// assume correct for the rest
+			) {
+			index += moveDelta;
+			continue;
+		}
+
+
+
+		index++;
+		moveDelta--;
+		// __k0 = __ka2[__ki1];
+		ASMContextStatement& getKeyStmt{ m_statements[index] };
+		ASMContextNodeLeftRightOperator* getKey;
+		ASMContextNodeArrayAccess* keyAccess;
+		if (getKeyStmt.node->m_type != TYPE_SET
+			|| (getKey = static_cast<ASMContextNodeLeftRightOperator*>(getKeyStmt.node))->m_right->m_type != TYPE_ARRAY_ACCESS
+			|| getKey->m_left->m_type != TYPE_IDENTIFIER
+			|| (keyAccess = static_cast<ASMContextNodeArrayAccess*>(getKey->m_right))->m_operandleft->m_type != TYPE_IDENTIFIER
+			|| static_cast<ASMContextNodeIdentifier*>(keyAccess->m_operandleft)->m_value != keysRefName
+			|| static_cast<ASMContextNodeIdentifier*>(keyAccess->m_operandright)->m_value != incRefName
+			// assume correct for the rest
+			) {
+			index += moveDelta;
+			continue;
+		}
+		uint64_t keyRefName{ static_cast<ASMContextNodeIdentifier*>(getKey->m_left)->m_value };
+		*(namesEnd++) = keyRefName;
+
+		index++;
+		moveDelta--;
+		// var_9503b421fb8ed25d = __a3[__k0];
+		ASMContextStatement& getValueStmt{ m_statements[index] };
+		ASMContextNodeLeftRightOperator* getValue;
+		ASMContextNodeArrayAccess* valueAccess;
+		if (getValueStmt.node->m_type != TYPE_SET
+			|| (getValue = static_cast<ASMContextNodeLeftRightOperator*>(getValueStmt.node))->m_right->m_type != TYPE_ARRAY_ACCESS
+			|| getValue->m_left->m_type != TYPE_IDENTIFIER
+			|| (valueAccess = static_cast<ASMContextNodeArrayAccess*>(getValue->m_right))->m_operandleft->m_type != TYPE_IDENTIFIER
+			|| static_cast<ASMContextNodeIdentifier*>(valueAccess->m_operandleft)->m_value != arrayRefName
+			|| static_cast<ASMContextNodeIdentifier*>(valueAccess->m_operandright)->m_value != keyRefName
+			// assume correct for the rest
+			) {
+			index += moveDelta;
+			continue;
+		}
+		uint64_t valueRefName{ static_cast<ASMContextNodeIdentifier*>(getValue->m_left)->m_value };
+		*(namesEnd++) = valueRefName;
+
+		index++;
+		moveDelta--;
+
+		// jumpiffalse(isdefined(var_9503b421fb8ed25d)) LOC_00000172;
+		ASMContextStatement& checkValueStmt{ m_statements[index] };
+		ASMContextNodeJumpOperator* checkValueJump;
+		if ((checkValueStmt.node->m_type != TYPE_JUMP_ONFALSE && checkValueStmt.node->m_type != TYPE_IF)) { // assume ok, if for empty block
+			index += moveDelta;
+			continue;
+		}
+		checkValueJump = static_cast<ASMContextNodeJumpOperator*>(checkValueStmt.node);
+
+		index++;
+		moveDelta--;
+
+		// load loop data
+		int64_t endLoc{ checkValueJump->m_location }; // jump location for the break
+		size_t startNodeIndex{ index };
+
+		while (index < m_statements.size() && m_statements[index].location->rloc < endLoc) {
+			index++;
+			moveDelta--;
+		}
+
+		if (index >= m_statements.size()) {
+			LOG_ERROR("Bad foreach node endNodeIndex");
+			index += moveDelta;
+			continue;
+		}
+		size_t endNodeIndex{ index };
+
+
+		// __ki1++;
+		size_t incIndex{ index };
+		ASMContextStatement& incPPStmt{ m_statements[index] };
+		if (incPPStmt.node->m_type != TYPE_DELTA) { // assume ok
+			index += moveDelta;
+			continue;
+		}
+		index++;
+		moveDelta--;
+
+		// goto LOC_0000014f;
+		ASMContextStatement& jumpBackStmt{ m_statements[index] };
+		if (jumpBackStmt.node->m_type != TYPE_JUMP) { // assume ok
+			index += moveDelta;
+			continue;
+		}
+		index++;
+		moveDelta--;
+		ASMContextStatement& cleanupFirst{ m_statements[index] };
+
+		// match cleanup data
+		while (true) {
+			ASMContextStatement& maybeSet{ m_statements[index] };
+			ASMContextNodeLeftRightOperator* setOpRem;
+			if (maybeSet.node->m_type != TYPE_SET
+				|| (setOpRem = static_cast<ASMContextNodeLeftRightOperator*>(maybeSet.node))->m_left->m_type != TYPE_IDENTIFIER
+				|| setOpRem->m_right->m_type != TYPE_GET_UNDEFINED
+				) {
+				break; // not a cleanup
+			}
+
+			uint64_t testName{ static_cast<ASMContextNodeIdentifier*>(setOpRem->m_left)->m_value };
+
+
+			if (std::find(names, namesEnd, testName) == namesEnd) {
+				break; // not one of the used val
+			}
+
+			// we can remove it
+			index++;
+			moveDelta--;
+		}
+
+		bool keyUsed{ ctx.m_localvars_ref[keyRefName] > 3 }; // creation + value access + cleanup
+
+		// remove array jump test
+		m_statements[index].location->RemoveRef(arrayDefinedTestJump->m_opLoc);
+		m_statements[incIndex].location->RemoveRef(checkValueJump->m_opLoc);
+
+
+		// assume set good
+
+		int64_t incrementLoc{ incPPStmt.location->rloc };
+		asmcontextlocation* endNodeLocation{ cleanupFirst.location };
+		int64_t breakLoc{ cleanupFirst.location->rloc };
+
+		// we found the foreach, we can now patch the jumps (TODO: find if we need to specify the jump location, i.e.: nested foreach)
+		for (size_t i = startIndex; i < index; i++) {
+			ASMContextStatement& stmt = m_statements[i];
+
+			ApplySubStatement(stmt, ctx, [&ctx, &breakLoc, &endNodeLocation, &incrementLoc, &incPPStmt](ASMContextStatement& stmt) {
+				if (!IsJumpType(stmt.node->m_type)) {
+					return;
+				}
+
+				ASMContextNodeJumpOperator* j = static_cast<ASMContextNodeJumpOperator*>(stmt.node);
+				if (j->m_location == breakLoc) {
+					j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break<foreach>" : "break";
+					j->m_special_op = SPECIAL_JUMP_BREAK;
+					j->m_showJump = false;
+					if (endNodeLocation) {
+						endNodeLocation->RemoveRef(j->m_opLoc);
+					}
+				}
+				else if (j->m_location == incrementLoc && j->m_special_op != SPECIAL_JUMP_BREAK) {
+					j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "continue<foreach>" : "continue";
+					j->m_showJump = false;
+					j->m_special_op = SPECIAL_JUMP_CONTINUE;
+					incPPStmt.location->RemoveRef(j->m_opLoc);
+				}
+			});
+		}
+
+		ASMContextNodeBlock* block = new ASMContextNodeBlock();
+		ASMContextNodeForEach* forEachNode = new ASMContextNodeForEach(setOp->m_right->Clone(), block, keyUsed ? keyRefName : 0, valueRefName);
+
+		auto it = m_statements.begin() + startIndex;
+		delete it->node;
+		it->node = forEachNode;
+
+		it++;
+		for (size_t i = startIndex + 1; i < startNodeIndex; i++) {
+			// remove component statement
+			it = m_statements.erase(it);
+		}
+		for (size_t i = startNodeIndex; i < endNodeIndex; i++) {
+			block->m_statements.push_back({ it->node, it->location });
+			it = m_statements.erase(it);
+		}
+		block->m_statements.push_back({ new ASMContextNodeValue<const char*>("<emptypos_foreachcontinue>", TYPE_PRECODEPOS), it->location });
+		for (size_t i = endNodeIndex; i < index; i++) {
+			// remove component statement
+			delete it->node;
+			it = m_statements.erase(it);
+		}
+
+		forEachNode->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) {
+			block->ComputeForEachBlocks(ctx);
+		}, ctx);
+		// go back to the first index
+		index = startIndex;
+	}
+	
+	return 0;
+}
+int ASMContextNodeBlock::ComputeForEachBlocksIterator(ASMContext& ctx) {
 	/*
 	// INIT STEP
 	// T8
@@ -6455,7 +6780,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		nextarray(var_f15d3f7b, var_7cbeb6de)
 
 		// loop code
-		
+
 		jump LOC_000002f0 = break;
 		jump LOC_000002e4 = continue;
 
@@ -6472,7 +6797,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 
 	// MWIII
-	
+
 	same as T8, but using functions instead of operator and undefineds at the end:
 
 	var_26568fed2b866c11 = level.teamdata[victim.team]["players"];
@@ -6502,39 +6827,34 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 	getnextarraykey = function_6db433ae7304a362 (79d6530b0bb9b5d1/10000000233)
 
 	// T9
-	
+
 	var_a970ac8 = var_f04dd3ef;
 	var_b4eeb030 = firstarray(var_a970ac8);
 	while (isdefined(var_b4eeb030)) {
-	    var_23ea8daa = iteratorkey(var_b4eeb030);
-	    e_clip = iteratorval(var_b4eeb030);
-	    var_bff7a077 = iteratornext(var_b4eeb030);
+		var_23ea8daa = iteratorkey(var_b4eeb030);
+		e_clip = iteratorval(var_b4eeb030);
+		var_bff7a077 = iteratornext(var_b4eeb030);
 
 		// loop code
 
 		// N+1 STEP
-	    var_b4eeb030 = var_bff7a077;
+		var_b4eeb030 = var_bff7a077;
 	}
 	var_a970ac8 is a ref to the array
 	var_b4eeb030 is an iterator
 
 	var_23ea8daa is the key, it might not be used, idea: counting the ref?
 	e_clip is the value
+
 	*/
-	constexpr uint64_t getfirstarraykeyIWHash = hash::HashJupScr("getfirstarraykey");
-	constexpr uint64_t getnextarraykeyIWHash = hash::HashJupScr("getnextarraykey");
-	constexpr uint64_t getfirstarraykeyCerHash = hash::HashT10Scr("getfirstarraykey");
-	constexpr uint64_t getnextarraykeyCerHash = hash::HashT10Scr("getnextarraykey");
-	constexpr uint64_t getfirstarraykeyCerBHash = hash::HashT10ScrSP("getfirstarraykey");
-	constexpr uint64_t getnextarraykeyCerBHash = hash::HashT10ScrSP("getnextarraykey");
 
 	size_t index = 0;
 
 	while (index < m_statements.size()) {
-		auto& arrayRefLoc = m_statements[index];
+		ASMContextStatement& arrayRefLoc = m_statements[index];
 		arrayRefLoc.node->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) {
 			block->ComputeForEachBlocks(ctx);
-		}, ctx);
+			}, ctx);
 		const auto startIndex = index;
 		int moveDelta = 1;
 
@@ -6550,7 +6870,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			continue;
 		}
 
-		auto* setOp = static_cast<ASMContextNodeLeftRightOperator*>(arrayRefLoc.node);
+		ASMContextNodeLeftRightOperator* setOp = static_cast<ASMContextNodeLeftRightOperator*>(arrayRefLoc.node);
 
 		if (setOp->m_left->m_type != TYPE_IDENTIFIER) {
 			index += moveDelta;
@@ -6561,7 +6881,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		// array ref name
 		uint64_t arrayRefName = static_cast<ASMContextNodeIdentifier*>(setOp->m_left)->m_value;
 
-		auto arrayRefIndex = index;
+		size_t arrayRefIndex = index;
 
 		index++;
 		moveDelta--;
@@ -6570,12 +6890,12 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			index += moveDelta;
 			continue;
 		}
-		auto& firstArrayLoc = m_statements[index];
+		ASMContextStatement& firstArrayLoc = m_statements[index];
 		if (firstArrayLoc.node->m_type != TYPE_SET) {
 			index += moveDelta;
 			continue;
 		}
-		auto* setFirstArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(firstArrayLoc.node);
+		ASMContextNodeLeftRightOperator* setFirstArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(firstArrayLoc.node);
 
 
 		if (([setFirstArrayOp]() {
@@ -6588,16 +6908,16 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			if (setFirstArrayOp->m_right->m_type != TYPE_FUNC_CALL) {
 				return true; // not mw
 			}
-			auto* callFunc = dynamic_cast<ASMContextNodeCallFuncPtr*>(setFirstArrayOp->m_right);
+			ASMContextNodeCallFuncPtr* callFunc = dynamic_cast<ASMContextNodeCallFuncPtr*>(setFirstArrayOp->m_right);
 
 			if (callFunc->m_flags || !callFunc->m_operands.size() || callFunc->m_operands[0]->m_type != TYPE_FUNC_REFNAME) {
 				return true;
 			}
 
-			auto* funcRef = dynamic_cast<ASMContextNodeFuncRef*>(callFunc->m_operands[0]);
+			ASMContextNodeFuncRef* funcRef = dynamic_cast<ASMContextNodeFuncRef*>(callFunc->m_operands[0]);
 
 			return funcRef->m_func != getfirstarraykeyIWHash && funcRef->m_func != getfirstarraykeyCerHash && funcRef->m_func != getfirstarraykeyCerBHash;
-		})()) {
+			})()) {
 			index += moveDelta;
 			continue; // not key = firstarray(...)
 		}
@@ -6631,9 +6951,9 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		auto* jumpOp = static_cast<ASMContextNodeJumpOperator*>(condJump.node);
+		ASMContextNodeJumpOperator* jumpOp = static_cast<ASMContextNodeJumpOperator*>(condJump.node);
 
-		auto& itemSetStmt = m_statements[index];
+		ASMContextStatement& itemSetStmt = m_statements[index];
 
 		if (itemSetStmt.node->m_type != TYPE_SET) {
 			index += moveDelta;
@@ -6644,10 +6964,6 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		// keyValName
 		uint64_t itemValName;
-		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW_KEYS)) {
-			index += moveDelta;
-			continue; // TODO: implement, they are using the keys instead of an iterator
-		}
 		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW)) {
 			/*
 				agent = var_57acddc40b2f741[var_54ed0dc40829774];;
@@ -6658,7 +6974,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 				var_54ed0dc40829774 = getnextarraykey(var_57acddc40b2f741, var_54ed0dc40829774)
 				continue
 			*/
-			auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
+			ASMContextNodeLeftRightOperator* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
 
 			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
 				index += moveDelta;
@@ -6673,7 +6989,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 				var_8487602c = iteratorval(var_e4aec0cf);
 				var_60ff8ae8 = iteratornext(var_e4aec0cf);
 			*/
-			auto& iteratorvalStmt = m_statements[index];
+			ASMContextStatement& iteratorvalStmt = m_statements[index];
 
 			if (iteratorvalStmt.node->m_type != TYPE_SET) {
 				index += moveDelta;
@@ -6682,19 +6998,19 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 			index++;
 			moveDelta--;
 
-			auto& iteratornextStmt = m_statements[index];
+			ASMContextStatement& iteratornextStmt = m_statements[index];
 
 			if (iteratornextStmt.node->m_type != TYPE_SET) {
 				index += moveDelta;
 				continue;
 			}
 
-			auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
-			auto* setValArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(iteratorvalStmt.node);
-			auto* setNextArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(iteratornextStmt.node);
+			ASMContextNodeLeftRightOperator* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
+			ASMContextNodeLeftRightOperator* setValArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(iteratorvalStmt.node);
+			ASMContextNodeLeftRightOperator* setNextArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(iteratornextStmt.node);
 
-			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER 
-				|| setValArrayOp->m_left->m_type != TYPE_IDENTIFIER 
+			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER
+				|| setValArrayOp->m_left->m_type != TYPE_IDENTIFIER
 				|| setNextArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
 				index += moveDelta;
 				continue; // not our 3 sets
@@ -6711,16 +7027,16 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 				doorblocker = var_f15d3f7b[key];
 				nextarray(var_f15d3f7b, var_7cbeb6de)
 			*/
-			auto& nextArrayStmt = m_statements[index];
-			
-			if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY 
-				&& !(nextArrayStmt.node->m_type == TYPE_SET 
+			ASMContextStatement& nextArrayStmt = m_statements[index];
+
+			if (nextArrayStmt.node->m_type != TYPE_ARRAY_NEXTKEY
+				&& !(nextArrayStmt.node->m_type == TYPE_SET
 					&& static_cast<ASMContextNodeLeftRightOperator*>(nextArrayStmt.node)->m_right->m_type == TYPE_ARRAY_NEXTKEYPUSH)
 				) {
 				index += moveDelta;
 				continue;
 			}
-			auto* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
+			ASMContextNodeLeftRightOperator* setKeyArrayOp = static_cast<ASMContextNodeLeftRightOperator*>(itemSetStmt.node);
 
 			if (setKeyArrayOp->m_left->m_type != TYPE_IDENTIFIER) {
 				index += moveDelta;
@@ -6744,7 +7060,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		int64_t endLoc = jumpOp->m_location; // jump location for the break
 		int64_t condLoc = condJump.location->rloc; // jump back location for the end of the loop
 		// index of the last node (at least + 2 for the next value set and the jump)
-		auto endNodeIndex = index;
+		size_t endNodeIndex = index;
 
 
 		while (endNodeIndex < m_statements.size() && m_statements[endNodeIndex].location->rloc < endLoc) {
@@ -6761,8 +7077,8 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		auto* endNodeLocation = endNodeIndex == m_statements.size() ? nullptr : m_statements[endNodeIndex].location;
 		auto incrementIndex = endNodeIndex - 2;
 
-		auto& setNextKeyStmt = m_statements[incrementIndex];
-		auto& jumpBackStmt = m_statements[incrementIndex + 1];
+		ASMContextStatement& setNextKeyStmt = m_statements[incrementIndex];
+		ASMContextStatement& jumpBackStmt = m_statements[incrementIndex + 1];
 
 		// at the end ot the loop we can continue, break, return or return <...>
 		if (jumpBackStmt.node->m_type != TYPE_END && jumpBackStmt.node->m_type != TYPE_RETURN && (jumpBackStmt.node->m_type != TYPE_JUMP
@@ -6775,12 +7091,12 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 		int64_t incrementLoc;
 		if (setNextKeyStmt.node->m_type != TYPE_SET) {
 			incrementIndex += 2,
-			incrementLoc = jumpBackStmt.location->rloc; // jump location for the continue
+				incrementLoc = jumpBackStmt.location->rloc; // jump location for the continue
 		}
 		else {
 			incrementLoc = setNextKeyStmt.location->rloc; // jump location for the continue
 		}
-		
+
 		// assume set good
 
 
@@ -6793,7 +7109,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 					return;
 				}
 
-				auto* j = static_cast<ASMContextNodeJumpOperator*>(stmt.node);
+				ASMContextNodeJumpOperator* j = static_cast<ASMContextNodeJumpOperator*>(stmt.node);
 				if (j->m_location == endLoc) {
 					j->m_operatorName = ctx.m_opt.m_mark_jump_type ? "break<foreach>" : "break";
 					j->m_special_op = SPECIAL_JUMP_BREAK;
@@ -6808,7 +7124,7 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 					j->m_special_op = SPECIAL_JUMP_CONTINUE;
 					setNextKeyStmt.location->RemoveRef(j->m_opLoc);
 				}
-			});
+				});
 		}
 
 		if (endNodeLocation) {
@@ -6882,12 +7198,19 @@ int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
 
 		forEachNode->ApplySubBlocks([](ASMContextNodeBlock* block, ASMContext& ctx) {
 			block->ComputeForEachBlocks(ctx);
-		}, ctx);
+			}, ctx);
 		// go back to the first index
 		index = startIndex;
 	}
 
 	return 0;
+
+}
+int ASMContextNodeBlock::ComputeForEachBlocks(ASMContext& ctx) {
+	if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW_KEYS)) {
+		return ComputeForEachBlocksKeys(ctx);
+	}
+	return ComputeForEachBlocksIterator(ctx);
 }
 
 int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
