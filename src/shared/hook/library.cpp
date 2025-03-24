@@ -257,7 +257,7 @@ namespace hook::library {
 		hook::memory::RedirectJmp(ScanSingle(pattern, name).location, func);
 	}
 
-	hook::library::Detour&& hook::library::Library::CreateDetour(const char* pattern, void* to, const char* name) const {
+	hook::library::Detour hook::library::Library::CreateDetour(const char* pattern, void* to, const char* name) const {
 		hook::library::Detour det;
 
 		det.Create(ScanSingle(pattern, name).location, to);
