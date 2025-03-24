@@ -146,9 +146,6 @@ namespace {
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetBuiltinMethod, 0x3a); // 18
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetAnimation, 0x4c); // 20
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetAnimationTree, 0xa0);
-
 	}
-
-
 }
 REGISTER_GSC_VM_OPCODES(bo6_06, OpCode);
