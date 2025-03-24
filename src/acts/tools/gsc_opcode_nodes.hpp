@@ -4,7 +4,7 @@
 namespace tool::gsc::opcode {
 	size_t SizeNoEmptyNode(const std::vector<ASMContextStatement>& statements);
 	ASMContextStatement* GetNoEmptyNode(std::vector<ASMContextStatement>& statements, size_t index);
-	ASMContextNode* ASMCNodeConvertToBool(ASMContextNode* node);
+	ASMContextNode* ASMCNodeConvertToBool(ASMContextNode* node, ASMContext& ctx);
 
 	inline bool IsBlockInlineable(const ASMContextNodeBlock* blk, const tool::gsc::GscInfoOption& opt) {
 		if (!blk) return false;
@@ -68,7 +68,7 @@ namespace tool::gsc::opcode {
 			return new ASMContextNodeValue<const char*>("false", TYPE_VALUE);
 		}
 
-		bool IsBoolConvertable(bool strict) override {
+		bool IsBoolConvertable(bool strict, ASMContext& ctx) override {
 			if (!strict) {
 				return m_canBeCastToBool;
 			}
@@ -569,6 +569,48 @@ namespace tool::gsc::opcode {
 			return ref;
 		}
 
+		bool IsBoolConvertable(bool strict, ASMContext& ctx) override {
+			size_t idx;
+			if (m_flags & SELF_CALL) {
+				idx = 1;
+			}
+			else {
+				idx = 0;
+			}
+			if (idx >= m_operands.size()) return false; // wtf
+			if (m_operands[idx]->m_type != TYPE_FUNC_REFNAME) return false; // not a named call
+
+			ASMContextNodeFuncRef* idf{ static_cast<ASMContextNodeFuncRef*>(m_operands[idx]) };
+			//idf->m_func
+			NameLocated loc{};
+			loc.name = idf->m_func;
+			loc.name_space = idf->m_nsp ? idf->m_nsp : ctx.m_namespace;
+
+			if (ctx.m_objctx.gdctx.asyncMtx) {
+				// mutex, we check first the sync data
+				auto it{ ctx.m_objctx.contextes.find(loc) };
+
+				if (it != ctx.m_objctx.contextes.end()) {
+					// if the other function is a bool candidate, we can return this one as a bool candidate too
+					return it->second.m_boolFuncCandidate;
+				}
+			}
+			{
+				core::async::opt_lock_guard lg{ ctx.m_objctx.gdctx.asyncMtx };
+
+				auto it{ ctx.m_objctx.gdctx.exportInfos.find(loc) };
+
+				if (it != ctx.m_objctx.gdctx.exportInfos.end()) {
+					return it->second.boolFunc; // it is a bool somewhere else
+				}
+			}
+			return false; // not seen
+		}
+
+		ASMContextNode* ConvertToBool() {
+			return this;
+		}
+
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			size_t start = 0;
 			if (m_flags & SELF_CALL) {
@@ -788,7 +830,7 @@ namespace tool::gsc::opcode {
 			return m_isBoolValue ? this : nullptr;
 		}
 
-		bool IsBoolConvertable(bool strict) override {
+		bool IsBoolConvertable(bool strict, ASMContext& ctx) override {
 			return m_isBoolValue;
 		}
 
@@ -850,7 +892,7 @@ namespace tool::gsc::opcode {
 			return m_isBoolValue ? this : nullptr;
 		}
 
-		bool IsBoolConvertable(bool strict) override {
+		bool IsBoolConvertable(bool strict, ASMContext& ctx) override {
 			return m_isBoolValue;
 		}
 
@@ -892,7 +934,7 @@ namespace tool::gsc::opcode {
 			return m_isBoolVal ? this : nullptr;
 		}
 
-		bool IsBoolConvertable(bool strict) override {
+		bool IsBoolConvertable(bool strict, ASMContext& ctx) override {
 			return m_isBoolVal;
 		}
 
@@ -974,7 +1016,7 @@ namespace tool::gsc::opcode {
 			return m_isBoolVal ? this : nullptr;
 		}
 
-		bool IsBoolConvertable(bool strict) override {
+		bool IsBoolConvertable(bool strict, ASMContext& ctx) override {
 			return m_isBoolVal;
 		}
 

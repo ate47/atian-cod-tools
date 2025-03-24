@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <core/async.hpp>
 #include "tools/gsc.hpp"
 #include "tools/gsc_formatter.hpp"
 #include "tools/gsc_opcodes.hpp"
@@ -104,8 +105,8 @@ namespace tool::gsc::opcode {
 	 * @param node node to convert
 	 * @return boolean version of node or node
 	 */
-	ASMContextNode* ASMCNodeConvertToBool(ASMContextNode* node) {
-		if (!node || !node->IsBoolConvertable(false)) {
+	ASMContextNode* ASMCNodeConvertToBool(ASMContextNode* node, ASMContext& ctx) {
+		if (!node || !node->IsBoolConvertable(false, ctx)) {
 			return node;
 		}
 
@@ -321,7 +322,7 @@ ASMContextNode* ASMContextNode::ConvertToBool() {
 	return new ASMContextNodeValue<const char*>("false", TYPE_VALUE);
 }
 
-bool ASMContextNode::IsBoolConvertable(bool strict) {
+bool ASMContextNode::IsBoolConvertable(bool strict, ASMContext& ctx) {
 	if (!IsIntConst()) {
 		return false;
 	}
@@ -1014,7 +1015,7 @@ class OPCodeInfoCastBool : public OPCodeInfo {
 				context.PushASMCNode(context.PopASMCNode());
 			}
 			else {
-				context.PushASMCNode(ASMCNodeConvertToBool(context.PopASMCNode()));
+				context.PushASMCNode(ASMCNodeConvertToBool(context.PopASMCNode(), context));
 			}
 		}
 
@@ -1451,7 +1452,7 @@ public:
 
 									ASMContextNode* ifpart = jumpNode->m_operand;
 									if (!(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
-										ifpart = ASMCNodeConvertToBool(ifpart);
+										ifpart = ASMCNodeConvertToBool(ifpart, context);
 									}
 									locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(ifpart, top, !IsJumpConditionForceReversed(jumpNode)));
 									jumpNode->m_operand = nullptr;
@@ -1488,7 +1489,7 @@ public:
 					// empty if
 					// context.PushASMCNode(new ASMContextNodeJumpOperator(name, node, locref.rloc, type, m_jumpLocation, true, delta));
 					if (!(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
-						node = ASMCNodeConvertToBool(node);
+						node = ASMCNodeConvertToBool(node, context);
 					}
 					context.PushASMCNode(new ASMContextNodeIfElse(node, new ASMContextNodeBlock(), nullptr));
 					context.CompleteStatement();
@@ -4637,7 +4638,7 @@ public:
 			bool cb = m_convertBool;
 			auto popVal = [&context, cb]() {
 				if (cb && !(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
-					return ASMCNodeConvertToBool(context.PopASMCNode());
+					return ASMCNodeConvertToBool(context.PopASMCNode(), context);
 				}
 				return context.PopASMCNode();
 			};
@@ -7330,7 +7331,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 
 			auto* block = new ASMContextNodeBlock();
 			if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
-				cond = ASMCNodeConvertToBool(cond);
+				cond = ASMCNodeConvertToBool(cond, ctx);
 			}
 			auto* node = new ASMContextNodeWhile(cond, block, jumpOp->Clone());
 			for (size_t i = startIndex; i < index; i++) {
@@ -7456,7 +7457,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 			auto* newBlock = new ASMContextNodeBlock();
 
 			if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
-				cond = ASMCNodeConvertToBool(cond);
+				cond = ASMCNodeConvertToBool(cond, ctx);
 			}
 			auto* doWhile = new ASMContextNodeDoWhile(cond, newBlock, jumpOp->Clone());
 
@@ -7676,7 +7677,7 @@ int ASMContextNodeBlock::ComputeIfBlocks(ASMContext& ctx) {
 
 		ASMContextNode* ifCond = JumpCondition(static_cast<ASMContextNodeJumpOperator*>(m_statements[index].node), true);
 		if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
-			ifCond = ASMCNodeConvertToBool(ifCond);
+			ifCond = ASMCNodeConvertToBool(ifCond, ctx);
 		}
 		auto* ifElse = new ASMContextNodeIfElse(ifCond, blockIf, blockElse);
 		delete m_statements[index].node;
@@ -7833,7 +7834,7 @@ int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
 					delete stmt.node;
 
 					if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
-						cond = ASMCNodeConvertToBool(cond);
+						cond = ASMCNodeConvertToBool(cond, ctx);
 					}
 					stmt.node = new ASMContextNodeIfElse(cond, blockIf, nullptr);
 				}
@@ -7866,7 +7867,7 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 	for (size_t i = 0; i < m_statements.size(); i++) {
 		auto& stmt = m_statements[i];
 
-		ApplySubStatement(stmt, ctx, [&isCandidate](ASMContextStatement& stmt) {
+		ApplySubStatement(stmt, ctx, [&isCandidate, &ctx](ASMContextStatement& stmt) {
 			if (stmt.node->m_type == TYPE_END) {
 				isCandidate = false;
 				return; // empty return -> return undefined
@@ -7876,11 +7877,7 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 				return;
 			}
 
-			auto* ret = reinterpret_cast<ASMContextNodeOp1*>(stmt.node);
-
-			auto* retRes = ret->m_operand;
-
-			if (!retRes->IsBoolConvertable(true)) {
+			if (!static_cast<ASMContextNodeOp1*>(stmt.node)->m_operand->IsBoolConvertable(true, ctx)) {
 				isCandidate = false;
 				return;
 			}
@@ -7896,19 +7893,29 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 	}
 
 	ctx.m_boolFuncCandidate = true;
+	{
+		core::async::opt_lock_guard lg{ ctx.m_objctx.gdctx.asyncMtx };
+
+		ctx.m_exp.SetHandle(ctx.m_readerHandle);
+		NameLocated loc{};
+		loc.name = ctx.m_exp.GetName();
+		loc.name_space = ctx.m_exp.GetNamespace();
+
+		ctx.m_objctx.gdctx.exportInfos[loc].boolFunc = true;
+	}
 
 	// convert the return values to booleans
 	for (size_t i = 0; i < m_statements.size(); i++) {
 		auto& stmt = m_statements[i];
 
-		ApplySubStatement(stmt, ctx, [](ASMContextStatement& stmt) {
+		ApplySubStatement(stmt, ctx, [&ctx](ASMContextStatement& stmt) {
 			if (stmt.node->m_type != TYPE_RETURN) {
 				return;
 			}
 
 			auto* ret = reinterpret_cast<ASMContextNodeOp1*>(stmt.node);
 
-			ret->m_operand = ASMCNodeConvertToBool(ret->m_operand);
+			ret->m_operand = ASMCNodeConvertToBool(ret->m_operand, ctx);
 		}, false);
 	}
 
@@ -8073,7 +8080,7 @@ namespace {
 					if (fc && fc->m_ftype == FUNCTION_CALL) {
 						auto* name = fc->m_operands[fc->m_flags & ASMContextNodeCallFuncFlag::SELF_CALL ? 1 : 0];
 						if (name->m_type == TYPE_FUNC_REFNAME) {
-							uint64_t refName = dynamic_cast<ASMContextNodeFuncRef*>(name)->m_func & 0x7FFFFFFFFFFFFFFF;
+							uint64_t refName = dynamic_cast<ASMContextNodeFuncRef*>(name)->m_func & hash::MASK62;
 							if (ctx.m_objctx.m_vmInfo->devCallsNames.find(refName) != ctx.m_objctx.m_vmInfo->devCallsNames.end()) {
 								// inline the dev call
 								stmt.node = fc;

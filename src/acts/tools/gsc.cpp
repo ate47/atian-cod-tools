@@ -2086,23 +2086,6 @@ ignoreCscGsc:
         // current namespace
         uint64_t currentNSP = 0;
 
-        struct Located {
-            uint64_t name_space;
-            uint64_t name;
-        };
-        struct LocatedHash {
-            size_t operator()(const Located& k) const {
-                return k.name_space ^ RotateLeft64(k.name, 32);
-            }
-        };
-        struct LocatedEquals {
-            bool operator()(const Located& a, const Located& b) const {
-                return a.name == b.name && a.name_space == b.name_space;
-            }
-        };
-
-        std::unordered_map<Located, ASMContext, LocatedHash, LocatedEquals> contextes{};
-
         if (scriptfile->GetExportsOffset() + scriptfile->GetExportsCount() * exp->SizeOf() > scriptfile->GetFileSize()) {
             asmout << "// INVALID EXPORT TABLE: 0x" << std::hex << scriptfile->GetExportsOffset() << "\n";
             return -1;
@@ -2131,14 +2114,14 @@ ignoreCscGsc:
                 }
             }
 
-            Located rname = { exp->GetNamespace(), exp->GetName() };
+            NameLocated rname = { exp->GetNamespace(), exp->GetName() };
 
             if (exp->GetAddress() > scriptfile->GetFileSize()) {
                 asmout << "// INVALID EXPORT ADDRESS: 0x" << std::hex << exp->GetAddress() << "\n";
                 continue;
             }
 
-            auto r = contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, ctx.m_vmInfo->vmMagic, currentPlatform);
+            auto r = ctx.contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, ctx.m_vmInfo->vmMagic, currentPlatform);
 
             if (!r.second) {
                 asmout << "Duplicate node "
@@ -2326,12 +2309,12 @@ ignoreCscGsc:
 
                 
 
-                auto handleMethod = [&currentPadding, &opt, & contextes, & asmout, & scriptfile, name, & ctx](uint64_t method, const char* forceName, bool ignoreEmpty) -> void {
-                    auto lname = Located{ name, method };
+                auto handleMethod = [&currentPadding, &opt, & asmout, & scriptfile, name, &ctx](uint64_t method, const char* forceName, bool ignoreEmpty) -> void {
+                    auto lname = NameLocated{ name, method };
 
-                    auto masmctxit = contextes.find(lname);
+                    auto masmctxit = ctx.contextes.find(lname);
 
-                    if (masmctxit == contextes.end()) {
+                    if (masmctxit == ctx.contextes.end()) {
                         return;
                     }
 
@@ -2362,17 +2345,17 @@ ignoreCscGsc:
                         asmout << "\n";
                     }
 
-                    contextes.erase(masmctxit);
+                    ctx.contextes.erase(masmctxit);
                 };
 
                 std::unordered_set<uint64_t> selfmembers{};
 
                 for (const auto& method : cls.m_methods) {
-                    auto lname = Located{ name, method };
+                    auto lname = NameLocated{ name, method };
 
-                    auto masmctxit = contextes.find(lname);
+                    auto masmctxit = ctx.contextes.find(lname);
 
-                    if (masmctxit == contextes.end()) {
+                    if (masmctxit == ctx.contextes.end()) {
                         LOG_WARNING("Can't find {}", hashutils::ExtractTmp("function", method));
                         continue;
                     }
@@ -2409,11 +2392,11 @@ ignoreCscGsc:
                 void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
                 exp->SetHandle(handle);
 
-                Located lname = Located{ exp->GetNamespace(), exp->GetName() };
+                NameLocated lname{ exp->GetNamespace(), exp->GetName() };
 
-                auto f = contextes.find(lname);
+                auto f = ctx.contextes.find(lname);
 
-                if (f == contextes.end()) {
+                if (f == ctx.contextes.end()) {
                     continue; // already parsed
                 }
 
@@ -2423,7 +2406,7 @@ ignoreCscGsc:
                     continue;
                 }
 
-                asmctx.ForSubNodes([&contextes, &lname](ASMContextNode*& node, SubNodeContext& ctx) {
+                asmctx.ForSubNodes([&ctx, &lname](ASMContextNode*& node, SubNodeContext& sctx) {
                     if (!node) {
                         return;
                     }
@@ -2448,15 +2431,15 @@ ignoreCscGsc:
                         return; // script call
                     }
 
-                    Located lnames{ funcRef->m_nsp ? funcRef->m_nsp : lname.name_space, funcRef->m_func };
+                    NameLocated lnames{ funcRef->m_nsp ? funcRef->m_nsp : lname.name_space, funcRef->m_func };
 
-                    auto f = contextes.find(lnames);
+                    auto f = ctx.contextes.find(lnames);
 
-                    if (f == contextes.end()) {
+                    if (f == ctx.contextes.end()) {
                         return; // already parsed or builtin?
                     }
 
-                    if (!ctx.devBlockDepth) {
+                    if (!sctx.devBlockDepth) {
                         f->second.m_devFuncCandidate = false; // called outside a dev block, can't be a canditate
                     }
                 });
@@ -2467,11 +2450,11 @@ ignoreCscGsc:
                 void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset()) + i * exp->SizeOf();
                 exp->SetHandle(handle);
 
-                Located lname = Located{ exp->GetNamespace(), exp->GetName() };
+                NameLocated lname{ exp->GetNamespace(), exp->GetName() };
 
-                auto f = contextes.find(lname);
+                auto f = ctx.contextes.find(lname);
 
-                if (f == contextes.end()) {
+                if (f == ctx.contextes.end()) {
                     continue; // already parsed
                 }
                 auto& asmctx = f->second;
@@ -2503,6 +2486,17 @@ ignoreCscGsc:
                         inDevBlock = true;
                         utils::Padding(asmout, currentPadding) << "/#\n" << std::endl;
                         currentPadding++;
+                    }
+
+                    {
+                        core::async::opt_lock_guard lg{ ctx.gdctx.asyncMtx };
+
+                        asmctx.m_exp.SetHandle(asmctx.m_readerHandle);
+                        NameLocated loc{};
+                        loc.name = asmctx.m_exp.GetName();
+                        loc.name_space = asmctx.m_namespace;
+
+                        ctx.gdctx.exportInfos[loc].devFunc = true;
                     }
                 }
                 else {

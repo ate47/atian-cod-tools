@@ -319,7 +319,7 @@ namespace tool::gsc {
             virtual ASMContextNode* ConvertToBool();
             virtual int64_t GetIntConst() const;
             virtual bool IsIntConst() const;
-            virtual bool IsBoolConvertable(bool strict);
+            virtual bool IsBoolConvertable(bool strict, ASMContext& ctx);
             virtual bool IsConstNumber() const { return IsIntConst() || m_type == TYPE_FLOAT; };
 
             virtual void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>&, ASMContext& ctx);
@@ -771,11 +771,18 @@ namespace tool::gsc {
         std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals> m_vtableMethods{};
         std::unordered_map<uint64_t, asmcontext_func> m_vtable{};
     };
+
+
     enum GscDecompilerGlobalContextWarn : uint64_t {
         GDGCW_BAD_HASH_PATH = 1,
         GDGCW_BAD_HASH_FIELD = 1 << 1,
         GDGCW_BAD_HASH_FILE = 1 << 2,
         GDGCW_BAD_HASH_PATH_INCLUDE = 1 << 3,
+    };
+
+    struct GscExportInformation {
+        bool boolFunc{};
+        bool devFunc{};
     };
 
     struct GscDecompilerGlobalContext {
@@ -787,6 +794,7 @@ namespace tool::gsc {
         size_t decompiledFiles{};
         size_t hardErrors{};
         std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>> vtables{};
+        std::unordered_map<NameLocated, GscExportInformation, NameLocatedHash, NameLocatedEquals> exportInfos{};
         std::unordered_map<uint64_t, std::unordered_set<uint32_t>>* opcodesLocs{};
 
         ~GscDecompilerGlobalContext() {
@@ -802,6 +810,7 @@ namespace tool::gsc {
     private:
         std::vector<char*> m_allocatedStrings{};
     public:
+        std::unordered_map<NameLocated, opcode::ASMContext, NameLocatedHash, NameLocatedEquals> contextes{};
         std::unordered_map<uint16_t, uint64_t> m_gvars{};
         std::unordered_map<uint32_t, const char*> m_stringRefs{};
         std::unordered_map<uint32_t, uint32_t> m_stringRefsLoc{};
