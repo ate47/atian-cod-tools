@@ -1480,12 +1480,24 @@ namespace tool::gsc::opcode {
 				out << " ";
 			}
 			out << "(";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
 			if (m_key) {
 				out << hashutils::ExtractTmp("var", m_key) << std::flush << ", ";
 			}
 			out << hashutils::ExtractTmp("var", m_item) << std::flush << " in ";
 			m_arrayNode->Dump(out, ctx);
-			out << ") ";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << ")";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
 			m_block->Dump(out, ctx);
 		}
 
