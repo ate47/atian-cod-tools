@@ -28,8 +28,8 @@ namespace {
 		t106->RegisterVMHashOPCode('r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hash::HashIWRes(str); });
 		t106->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashIWTag(str); });
 		t106->RegisterVMHashOPCode('&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
-		t106->RegisterDevCall("assert", "assertmsg", "assertex", "println");
-		t106->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
+		t106->RegisterDevCall("assert", "assertmsg", "function_79901b4637c83c86", "assertex", "println", "print");
+		t106->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "xhash", "xhashasset", "istring");
 		// compatibility
 		t106->RegisterSameCodePlatform(PLATFORM_PC, PLATFORM_PC_ALPHA);
 		t106->AddPlatform(PLATFORM_PC_ALPHA);

@@ -28,8 +28,8 @@ namespace {
 		t1010->RegisterVMHashOPCode('r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hash::HashIWRes(str); });
 		t1010->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashIWTag(str); });
 		t1010->RegisterVMHashOPCode('&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
-		t1010->RegisterDevCall("assert", "assertmsg", "assertex", "println");
-		t1010->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
+		t1010->RegisterDevCall("assert", "assertmsg", "function_79901b4637c83c86", "assertex", "println", "print");
+		t1010->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "xhash", "xhashasset", "istring");
 		t1010->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0x1d);
 		t1010->RegisterOpCode(PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x5f);
 		t1010->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x4b);
