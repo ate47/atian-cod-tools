@@ -501,14 +501,15 @@ namespace {
 	}
 
 	bool HasEnoughInternet(const char* website = "https://example.org") {
-		std::string tmp{};
-		try {
-			return utils::io::DownloadFile(website, tmp, false);
-		}
-		catch (std::runtime_error& e) {
-			LOG_TRACE("HasEnoughInternet err: {}", e.what());
-			return false;
-		}
+		//std::string tmp{};
+		//try {
+		//	return utils::io::DownloadFile(website, tmp, false);
+		//}
+		//catch (std::runtime_error& e) {
+		//	LOG_TRACE("HasEnoughInternet err: {}", e.what());
+		//	return false;
+		//}
+		return false;
 	}
 
 	int test_enough_internet(int argc, const char* argv[]) {
@@ -584,7 +585,10 @@ namespace {
 		case VMI_T10_06:
 		case VMI_T10_07:
 		case VMI_T10_0B:
-		case VMI_T10_0C: {
+		case VMI_T10_0C:
+		case VMI_T10_0D:
+		case VMI_T10_10:
+		case VMI_T10_11: {
 			if (!LoadMod(true)) return tool::BASIC_ERROR;
 			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "DecryptString").GetPtr<char* (*)(char* str)>();
 			DecryptString = [DecryptStringFunc](char* s) -> char* {

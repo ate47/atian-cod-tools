@@ -50,6 +50,11 @@ namespace hashutils {
 	 */
 	void WriteExtracted(const char* file);
 	/*
+	 * Save the extract hashes
+	 * @param extracted set to add the hashes
+	 */
+	void SetExtracted(std::unordered_set<uint64_t>* extracted);
+	/*
 	 * Add a hash into the map
 	 * @param str string
 	 * @param ignoreCol ignore collisions

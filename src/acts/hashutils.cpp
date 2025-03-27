@@ -13,6 +13,7 @@ namespace {
 	std::unordered_map<uint64_t, const char*> g_hashMap{};
 	std::set<uint64_t> g_extracted{};
 	const char* hashPrefix{};
+	std::unordered_set<uint64_t>* g_extractedOut{};
 	bool g_saveExtracted = false;
 	bool g_saveExtractedUnk = false;
 	bool show0 = false;
@@ -163,7 +164,7 @@ namespace hashutils {
 		}
 
 		for (const auto& v : g_extracted) {
-			auto e = g_hashMap.find(v & hashutils::MASK63);
+			auto e = g_hashMap.find(v & hashutils::MASK62);
 			if (e != g_hashMap.end()) {
 				out << std::hex << v << "," << e->second << "\n";
 			}
@@ -176,6 +177,10 @@ namespace hashutils {
 		// clear and unset extract
 		SaveExtracted(false, false);
 		LOG_TRACE("End write extracted into {}", file);
+	}
+
+	void SetExtracted(std::unordered_set<uint64_t>* extracted) {
+		g_extractedOut = extracted;
 	}
 
 	int LoadMap(const char* file, bool ignoreCol, bool iw, bool async) {
@@ -384,7 +389,7 @@ namespace hashutils {
 	}
 	void AddPrecomputed(uint64_t value, const char* str, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		g_hashMap.emplace(value & hashutils::MASK63, clone ? alloc.CloneStr(str) : str);
+		g_hashMap.emplace(value & hashutils::MASK62, clone ? alloc.CloneStr(str) : str);
 	}
 
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
@@ -400,11 +405,14 @@ namespace hashutils {
 			}
 			return true;
 		}
-		const auto res = g_hashMap.find(hash & hashutils::MASK63);
+		const auto res = g_hashMap.find(hash & hashutils::MASK62);
 		if (g_saveExtracted) {
 			if (g_saveExtractedUnk || res != g_hashMap.end()) {
 				g_extracted.emplace(hash);
 			}
+		}
+		if (g_extractedOut) {
+			g_extractedOut->insert(hash & hashutils::MASK62);
 		}
 		if (res == g_hashMap.end()) {
 			snprintf(out, outSize, heavyHashes ? "%s_%016llX" : "%s_%llx", type, hash);
@@ -435,7 +443,7 @@ namespace hashutils {
 
 	const char* ExtractPtr(uint64_t hash) {
 		ReadDefaultFile();
-		const auto res = g_hashMap.find(hash & hashutils::MASK63);
+		const auto res = g_hashMap.find(hash & hashutils::MASK62);
 		if (res == g_hashMap.end()) {
 			return NULL;
 		}
