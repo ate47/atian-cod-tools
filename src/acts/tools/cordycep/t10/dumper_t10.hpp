@@ -58,7 +58,10 @@ namespace tool::cordycep::dump::t10 {
 		Unlinker() {}
 		virtual bool Unlink(const compatibility::scobalula::csi::XAsset64& asset, UnlinkerContext& ctx) = 0;
 	};
-
+	struct AssetMapping {
+		bo6::T10AssetType to;
+	};
 	std::unordered_map<bo6::T10RAssetType, Unlinker*>& GetUnlinkers();
+	std::unordered_map<bo6::T10RAssetType, AssetMapping*>& GetSpMap();
 
 }

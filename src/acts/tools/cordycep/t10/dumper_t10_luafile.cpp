@@ -101,4 +101,5 @@ namespace {
 	};
 
 	utils::MapAdder<UnlinkerImpl, bo6::T10RAssetType, Unlinker> impl{ GetUnlinkers(), bo6::T10R_ASSET_LUAFILE };
+	utils::MapAdder<AssetMapping, bo6::T10RAssetType> sp{ GetSpMap(), bo6::T10R_ASSET_LUAFILE, bo6::T10_ASSET_LUAFILE };
 }

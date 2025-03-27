@@ -309,7 +309,15 @@ namespace tool::cordycep::dump::t10::scriptbundle {
 					return false;
 				}
 
-				std::filesystem::path out = ctx.outDir / "dump" / "scriptbundle" / std::format("{}.json", hashutils::ExtractTmp("file", entry.name));
+				const char* name{ hashutils::ExtractPtr(entry.name) };
+				if (name) {
+					name = utils::MapString(utils::va("%s.json", name), [](char c) -> char { return c == ':' ? '/' : c; });
+				}
+				else {
+					name = utils::va("hashed/file_%llx.json", entry.name);
+				}
+
+				std::filesystem::path out = ctx.outDir / "dump" / "scriptbundle" / name;
 				if (opt.m_ignoreOld && std::filesystem::exists(out)) return true;
 				std::filesystem::create_directories(out.parent_path());
 

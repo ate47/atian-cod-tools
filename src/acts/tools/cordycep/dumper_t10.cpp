@@ -174,30 +174,22 @@ namespace tool::cordycep::dump::t10 {
 
 				opt.m_dump_types[type] = false;
 
-				const char* name{ PoolNameRelease(type) };
+
 				if (opt.m_sp) {
-					switch (type) {
-					case T10RAssetType::T10R_ASSET_GSCOBJ:
-						type = (T10RAssetType)69;
-						break;
-					case T10RAssetType::T10R_ASSET_GSCGDB:
-						type = (T10RAssetType)70;
-						break;
-					default:
-						LOG_ERROR("Can't remap pool {}", name);
-						return;
-						break;
-					}
+					auto& spMap{ GetSpMap() };
+					auto it{ spMap.find(type) };
+					if (it == spMap.end()) return; // ignore asset
+					type = (bo6::T10RAssetType)it->second->to;
 				}
 
 				std::filesystem::create_directories(outDir);
 
-				LOG_TRACE("Reading pool {} ({})", name, (int)type);
+				LOG_INFO("Reading pool {}", (int)type);
 
 				int du = ForEachEntry(proc, pools[type], func);
 
 				if (du < 0) {
-					LOG_ERROR("Error reading pool: {}", name);
+					LOG_ERROR("Error reading pool: {}", (int)type);
 				}
 				else {
 					total += du;
@@ -430,6 +422,7 @@ namespace tool::cordycep::dump::t10 {
 		LOG_INFO("-a --all             : Dump all available pools");
 		LOG_INFO("--v1                 : Use old pool dumper (compatibility)");
 		LOG_INFO("--analVal            : Dump binaries");
+		LOG_INFO("--sp                 : Sp dumper");
 		LOG_INFO("--ignoreOld          : Ignore old");
 		LOG_INFO("--decompressLua      : Decompress lua");
 	}
@@ -451,6 +444,10 @@ namespace tool::cordycep::dump::t10 {
 	std::unordered_map<bo6::T10RAssetType, Unlinker*>& GetUnlinkers() {
 		static std::unordered_map<bo6::T10RAssetType, Unlinker*> unlinkers{};
 		return unlinkers;
+	}
+	std::unordered_map<bo6::T10RAssetType, AssetMapping*>& GetSpMap() {
+		static std::unordered_map<bo6::T10RAssetType, AssetMapping*> map{};
+		return map;
 	}
 
 	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_BO6, dpcordimpl };
