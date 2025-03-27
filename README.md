@@ -49,6 +49,7 @@ See the wiki to know how to use the features
 | Black Ops 6 (T10)        | 07  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 0B  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 0C  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
+| Black Ops 6 (T10)        | 0D  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 10  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 11  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 
