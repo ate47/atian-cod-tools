@@ -289,7 +289,7 @@ namespace hash {
 	constexpr uint64_t HashIWDVar(const char* str, uint64_t start = 0) { return !start ? HashSecure(XHASHSEC_DVAR_STR, FNV1A_IW_DVAR_OFFSET, str, IV_TYPE2) : hash::Hash64A(str, start, IV_TYPE2); }
 	constexpr uint64_t HashT10Scr(const char* str, uint64_t start = 0) { return !start ? HashSecure(XHASHSEC_T10_SCR_STR, FNV1A_T10_SCR_OFFSET, str, IV_TYPE2) : hash::Hash64A(str, start, IV_TYPE2); }
 	constexpr uint64_t HashT10ScrSPPre(const char* str, uint64_t start = FNV1A_T10_SCR_OFFSET) { return hash::Hash64A(str, start, IV_TYPE2); }
-	constexpr uint64_t HashT10ScrSPPost(uint64_t hash) { return hash::Hash64A(XHASHSEC_T10_SCR_STR, hash); }
+	constexpr uint64_t HashT10ScrSPPost(uint64_t hash) { return hash::Hash64A(XHASHSEC_T10_SCR_STR, hash, IV_TYPE2); }
 	constexpr uint64_t HashT10ScrSP(const char* str) { return HashT10ScrSPPost(HashT10ScrSPPre(str)); }
 
 	inline uint64_t HashIWRes(const std::string& str, uint64_t start = FNV1A_IW_PRIME) { return HashIWRes(str.data(), FNV1A_IW_PRIME); }
