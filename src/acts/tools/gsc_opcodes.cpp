@@ -6446,13 +6446,11 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 void ApplySubStatement(ASMContextStatement& stmt, ASMContext& ctx, std::function<void(ASMContextStatement& stmt)> func, bool endOnReturn = false) {
 	if (stmt.node->m_type != TYPE_BLOCK) {
 		if (endOnReturn && stmt.node && (stmt.node->m_type == TYPE_RETURN || stmt.node->m_type == TYPE_END)) {
+			func(stmt);
 			return;
 		}
 		stmt.node->ApplySubBlocks([endOnReturn, &func](ASMContextNodeBlock* block, ASMContext& ctx) {
 			for (auto& stmt : block->m_statements) {
-				if (endOnReturn && stmt.node && (stmt.node->m_type == TYPE_RETURN || stmt.node->m_type == TYPE_END)) {
-					break;
-				}
 				ApplySubStatement(stmt, ctx, func, endOnReturn);
 			}
 		}, ctx);
@@ -6462,10 +6460,10 @@ void ApplySubStatement(ASMContextStatement& stmt, ASMContext& ctx, std::function
 
 	dynamic_cast<ASMContextNodeBlock*>(stmt.node)->ApplySubBlocks([&func, endOnReturn](ASMContextNodeBlock* block, ASMContext& ctx) {
 		for (auto& stmt : block->m_statements) {
+			ApplySubStatement(stmt, ctx, func, endOnReturn);
 			if (endOnReturn && stmt.node && (stmt.node->m_type == TYPE_RETURN || stmt.node->m_type == TYPE_END)) {
 				break;
 			}
-			ApplySubStatement(stmt, ctx, func, endOnReturn);
 		}
 	}, ctx);
 }
