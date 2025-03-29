@@ -7862,12 +7862,13 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 		return 0;
 	}
 	bool isCandidate{ true };
+	bool anyReturn{};
 
 	// check all the return values, if all of them are bools, we can replace to bool
 	for (size_t i = 0; i < m_statements.size(); i++) {
 		auto& stmt = m_statements[i];
 
-		ApplySubStatement(stmt, ctx, [&isCandidate, &ctx](ASMContextStatement& stmt) {
+		ApplySubStatement(stmt, ctx, [&isCandidate, &anyReturn, &ctx](ASMContextStatement& stmt) {
 			if (stmt.node->m_type == TYPE_END) {
 				isCandidate = false;
 				return; // empty return -> return undefined
@@ -7876,18 +7877,22 @@ int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
 			if (stmt.node->m_type != TYPE_RETURN) {
 				return;
 			}
+			anyReturn = true;
 
 			if (!static_cast<ASMContextNodeOp1*>(stmt.node)->m_operand->IsBoolConvertable(true, ctx)) {
 				isCandidate = false;
 				return;
 			}
 			// ok
-		}, false);
+		}, true);
 
 		if (!isCandidate) {
 			return 0;
 		}
 	}
+
+	if (!anyReturn) isCandidate = false;
+
 	if (!isCandidate) {
 		return 0;
 	}
