@@ -6,7 +6,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* t10f = RegisterVM(VMI_T10_0F, "Call of Duty: Black Ops 6 (0E)", "t10", "bo6_e", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER_SP | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+		VmInfo* t10f = RegisterVM(VMI_T10_0F, "Call of Duty: Black Ops 6 (0E)", "t10", "bo6_e", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 		t10f->RegisterVmName("cerf", "t10_f", "blackops6_f");
 		t10f->AddPlatform(PLATFORM_PC);
 		t10f->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
@@ -28,7 +28,7 @@ namespace {
 		t10f->RegisterVMHashOPCode('r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hash::HashIWRes(str); });
 		t10f->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashIWTag(str); });
 		t10f->RegisterVMHashOPCode('&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10ScrSP(str); });
-		t10f->RegisterDevCall("assert", "assertmsg", "assertex", "function_615be98aeb6084e0", "println", "print");
+		t10f->RegisterDevCall("assert", "assertmsg", "assertex", "function_79901b4637c83c86", "println", "print");
 		t10f->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 	}
 }
