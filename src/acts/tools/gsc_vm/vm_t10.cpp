@@ -85,9 +85,6 @@ namespace {
         uint32_t GetDevStringsOffset() override {
             return Ptr<GscObj24>()->devblock_string_offset;
         }
-        uint32_t GetFileSize() override {
-            return Ptr<GscObj24>()->size1;
-        }
         size_t GetHeaderSize() override {
             return sizeof(GscObj24);
         }
@@ -403,9 +400,6 @@ namespace {
         uint32_t GetDevStringsOffset() override {
             return Ptr<GscObj24>()->devblock_string_offset;
         }
-        uint32_t GetFileSize() override {
-            return Ptr<GscObj24>()->size1;
-        }
         size_t GetHeaderSize() override {
             return sizeof(GscObj24);
         }
@@ -719,9 +713,6 @@ namespace {
         }
         uint32_t GetDevStringsOffset() override {
             return Ptr<GscObj24>()->devblock_string_offset;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<GscObj24>()->size1;
         }
         size_t GetHeaderSize() override {
             return sizeof(GscObj24);
@@ -1039,9 +1030,6 @@ namespace {
         uint32_t GetDevStringsOffset() override {
             return Ptr<GscObj24>()->devblock_string_offset;
         }
-        uint32_t GetFileSize() override {
-            return Ptr<GscObj24>()->size1;
-        }
         size_t GetHeaderSize() override {
             return sizeof(GscObj24);
         }
@@ -1357,9 +1345,6 @@ namespace {
         }
         uint32_t GetDevStringsOffset() override {
             return Ptr<GscObj24>()->devblock_string_offset;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<GscObj24>()->size1;
         }
         size_t GetHeaderSize() override {
             return sizeof(GscObj24);

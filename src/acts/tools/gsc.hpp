@@ -1315,7 +1315,7 @@ namespace tool::gsc {
         virtual uint32_t GetGVarsOffset() = 0;
         virtual uint16_t GetTokensCount();
         virtual uint32_t GetTokensOffset();
-        virtual uint32_t GetFileSize() {
+        uint32_t GetFileSize() const {
             return (uint32_t)fileSize;
         };
         virtual int64_t GetDefaultChecksum(bool client) = 0;

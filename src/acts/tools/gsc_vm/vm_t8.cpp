@@ -94,9 +94,6 @@ namespace {
         uint32_t GetDevStringsOffset() override {
             return Ptr<T8GSCOBJ>()->devblock_string_offset;
         }
-        uint32_t GetFileSize() override {
-            return Ptr<T8GSCOBJ>()->script_size;
-        }
         size_t GetHeaderSize() override {
             return sizeof(T8GSCOBJ);
         }
@@ -308,9 +305,6 @@ namespace {
         }
         uint32_t GetDevStringsOffset() override {
             return Ptr<T8GSCOBJ>()->devblock_string_offset;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<T8GSCOBJ>()->script_size;
         }
         size_t GetHeaderSize() override {
             return sizeof(T8GSCOBJ);
@@ -526,9 +520,6 @@ namespace {
         }
         uint32_t GetDevStringsOffset() override {
             return Ptr<T8GSCOBJ>()->devblock_string_offset;
-        }
-        uint32_t GetFileSize() override {
-            return Ptr<T8GSCOBJ>()->script_size;
         }
         size_t GetHeaderSize() override {
             return sizeof(T8GSCOBJ);

@@ -55,9 +55,6 @@ namespace {
         uint32_t GetDevStringsOffset() override {
             return 0; // return Ptr<ActScript>()->devblock_string_offset;
         }
-        uint32_t GetFileSize() override {
-            return Ptr<ActScript>()->fileSize;
-        }
         size_t GetHeaderSize() override {
             return sizeof(ActScript);
         }

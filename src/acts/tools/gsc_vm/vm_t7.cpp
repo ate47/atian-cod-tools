@@ -40,9 +40,6 @@ namespace {
             }
         }
 
-        uint32_t GetFileSize() override {
-            return Ptr<T7GSCOBJ>()->script_size;
-        }
         uint64_t GetName() override {
             const char* name{ Ptr<T7GSCOBJ>()->GetName() };
             hashutils::Add(name);
@@ -322,9 +319,6 @@ namespace {
             }
         }
 
-        uint32_t GetFileSize() override {
-            return Ptr<T7GSCOBJ>()->script_size;
-        }
         uint64_t GetName() override {
             const char* name{ Ptr<T7GSCOBJ>()->GetName() };
             hashutils::Add(name);
