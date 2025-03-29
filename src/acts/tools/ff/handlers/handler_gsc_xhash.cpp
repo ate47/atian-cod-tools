@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
+#include <tools/gsc_opcodes_load.hpp>
 
 namespace {
 
@@ -10,30 +11,17 @@ namespace {
 
 		void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& buff, fastfile::FastFileContext& ctx) override {
 
+            // search scriptparsetreedbg
             uint64_t dbgMagic{ 0xA0D42444780 };
             uint64_t dbgMagicMask{ 0xFFFFFFFFFFFFF };
             if (buff.FindMasked(&dbgMagic, &dbgMagicMask, sizeof(dbgMagic)) != std::string::npos) {
                 LOG_WARNING("FIND A DBG SPT");
             }
 
-            // search gscobj
+            // search scriptparsetree
             {
-                /*
-                 The pattern is :
-                 ScriptParseTree {
-                    u64 name;
-                    u64 namepad?; // maybe not there
-                    void* buffer = -1;
-                    u32 size;
-                    u32 unk;
-                 }
-                 GSC_OBJ {
-                    u64 magic = 0x??00a0d43534780
-                 }
-
-                */
-                uint64_t magic{ 0x00a0d43534780 };
-                uint64_t magicMask{ 0xFFFFFFFFFFFFF };
+                uint64_t magic{ tool::gsc::opcode::VMI_TRE_BASE };
+                uint64_t magicMask{ 0x00FFFFFFFFFFFFFF };
 
                 size_t loc{};
                 std::filesystem::path out{ opt.m_output / "spt" };
@@ -124,6 +112,64 @@ namespace {
                     }
                     else {
                         LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(obj->name));
+                    }
+
+                    loc++;
+                }
+
+            }
+            // search gscobj
+            {
+                uint64_t magic{ tool::gsc::opcode::VMI_IW_BASE };
+                uint64_t magicMask{ 0xFFFFFFFFFFFFFF00 };
+
+                size_t loc{};
+                std::filesystem::path out{ opt.m_output / "gscobj" };
+                buff.Goto(0);
+                byte* start{ buff.Ptr<byte>() };
+                while (true) {
+                    loc = buff.FindMasked((byte*)&magic, (byte*)&magicMask, sizeof(magic));
+                    if (loc == std::string::npos) break;
+                    struct GscObjEntry {
+                        uint64_t name;
+                        uint32_t len;
+                        void* obj;
+                    };
+
+                    buff.Goto(loc);
+                    uint64_t smagic{ buff.Read<uint64_t>() };
+
+                    if (loc < sizeof(GscObjEntry)) {
+                        continue; // not enough data
+                    }
+                    buff.Goto(loc - sizeof(GscObjEntry));
+
+                    GscObjEntry* entry{ buff.ReadPtr<GscObjEntry>() };
+
+                    if (!entry->name) {
+                        LOG_ERROR("0x{:x} INVALID {}/{} for 0x{:x}", smagic, entry->obj, hashutils::ExtractTmpScript(entry->name), loc);
+                        continue;
+                    }
+
+
+                    if (!buff.CanRead(entry->len)) {
+                        loc++;
+                        LOG_ERROR("Bad size 0x{:x} for loc 0x{:x}", entry->len, loc);
+                        continue;
+                    }
+
+                    LOG_TRACE("gsc: 0x{:x} 0x{:x} 0x{:x}: {}", smagic, loc, entry->len, hashutils::ExtractTmpScript(entry->name));
+
+                    byte* obj{ buff.ReadPtr<byte>(entry->len) };
+
+                    std::filesystem::path outFile{ out / std::format("vm_{:x}/script_{:x}.gscc", smagic, entry->name) };
+                    std::filesystem::create_directories(outFile.parent_path());
+
+                    if (!utils::WriteFile(outFile, obj, entry->len)) {
+                        LOG_ERROR("Can't write {}", outFile.string());
+                    }
+                    else {
+                        LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(entry->name));
                     }
 
                     loc++;
