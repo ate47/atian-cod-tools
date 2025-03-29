@@ -60,22 +60,67 @@ namespace {
 				LOG_INFO("version: 0x{:x} / 0x{:x}", header->headerVersion, header->xfileVersion);
 				LOG_INFO("flags: 0x{:x}, plt: {}", header->flags, platform);
 			}
+			utils::compress::CompressionAlgorithm alg{};
 			switch (header->headerVersion) {
-			case IWFV_BO6: {
-				reader.Goto(0xe0);
-				byte* compHeader{ reader.Ptr() };
-				// todo
-				throw std::runtime_error("bo6 header decrypter not implemented");
-			}
+			case IWFV_BO6:
 			case IWFV_MW23: {
 				reader.Goto(0xe0);
+				alg = utils::compress::COMP_OODLE;
 				byte* compHeader{ reader.Ptr() };
-				// todo
-				throw std::runtime_error("mw23 header decrypter not implemented");
+
+				const char* iwc{ "\x02IWC" };
+
+				size_t sec{ reader.Find((byte*)iwc, 4) };
+				if (sec == std::string::npos) {
+					throw std::runtime_error("can't find iwc");
+				}
+
+				reader.Skip(sec + 0x800C);
 			}
 				break;
 			default:
 				throw std::runtime_error(std::format("version not supported 0x{:x}", header->headerVersion));
+			}
+
+
+			size_t offset{};
+			size_t count{};
+			ffdata.clear();
+
+			while (reader.CanRead(sizeof(uint32_t) * 3)) {
+				size_t id{ count++ };
+
+				if ((id & 0x1ff) == 0x1ff) {
+					if (!reader.CanRead(0x4000)) break;
+					reader.Skip(0x4000);
+				}
+
+				size_t loc{ reader.Loc() };
+				uint32_t compressedSize{ reader.Read<uint32_t>() };
+				uint32_t uncompressedSize{ reader.Read<uint32_t>() };
+				uint32_t flags{ reader.Read<uint32_t>() };
+
+				if (!compressedSize) break; // done
+
+				uint32_t alignedSize{ utils::Aligned<uint32_t>(compressedSize) };
+
+				LOG_TRACE("Decompressing block#{:x} 0x{:x} (0x{:x}/0x{:x} -> 0x{:x}) flags:0x{:x}",
+					id, loc, compressedSize, alignedSize, uncompressedSize, flags
+				);
+
+				byte* blockBuff{ reader.ReadPtr<byte>(alignedSize) };
+
+				// allc data
+				ffdata.resize(offset + uncompressedSize);
+
+				byte* decompressed{ &ffdata[offset] };
+				offset += uncompressedSize;
+
+				int r{ utils::compress::Decompress2(alg, decompressed, uncompressedSize, blockBuff, compressedSize) };
+				if (r < 0) {
+					throw std::runtime_error(std::format("Can't decompress block 0x{:x}: {} ({})", loc, utils::compress::DecompressResultName(r), r));
+				}
+
 			}
 		}
 

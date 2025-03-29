@@ -48,7 +48,7 @@ namespace utils::compress {
 		case COMP_OODLE: {
 			deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
 
-			int r{ oodle.Decompress(src, (uint32_t)srcSize, dest, (uint32_t)destSize, deps::oodle::OODLE_FS_YES) };
+			int r{ oodle.Decompress(src, (uint32_t)srcSize, dest, (uint32_t)destSize, deps::oodle::OODLE_FS_NO) };
 
 			if (r <= 0) {
 				return DecompressResult::DCOMP_UNKNOWN_ERROR;
@@ -221,6 +221,16 @@ namespace utils::compress {
 			case COMP_OODLE | COMP_OODLE_TYPE_HYDRA: return hc ? "oodle_hydra" : "oodle_hydra_hc";
 			case COMP_ZSTD: return hc ? "zstd" : "zstd_hc";
 			default: return defaultValue;
+		}
+	}
+
+	const char* DecompressResultName(int res) {
+		if (res >= 0) return "nothing";
+		switch (res) {
+		case DCOMP_BAD_ALGORITHM: return "bad algorithm";
+		case DCOMP_DEST_TOO_SMALL: return "too small";
+		case DCOMP_UNKNOWN_ERROR: return "unknown error";
+		default: return "unhandled error";
 		}
 	}
 

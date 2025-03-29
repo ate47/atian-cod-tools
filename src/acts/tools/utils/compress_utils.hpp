@@ -40,6 +40,8 @@ namespace utils::compress {
 		DCOMP_UNKNOWN_ERROR = -3,
 	};
 
+	const char* DecompressResultName(int res);
+
 	constexpr utils::compress::CompressionAlgorithm operator|(utils::compress::CompressionAlgorithm a, utils::compress::CompressionAlgorithm b) {
 		return (utils::compress::CompressionAlgorithm)((_CompressionAlgorithm)a | (_CompressionAlgorithm)b);
 	}
