@@ -45,7 +45,7 @@ namespace tool::gsc::opcode {
 		VMI_T10_0B = 0xa0d4353470B,
 		VMI_T10_0C = 0xa0d4353470C,
 		VMI_T10_0D = 0xa0d4353470D,
-		VMI_T10_0E = 0xa0d4353470E, // unknown
+		VMI_T10_0E = 0xa0d4353470E,
 		VMI_T10_0F = 0xa0d4353470F, // unknown
 		VMI_T10_10 = 0xa0d43534710,
 		VMI_T10_11 = 0xa0d43534711,
