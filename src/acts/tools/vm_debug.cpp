@@ -541,7 +541,7 @@ namespace {
 					byte* bytecodeStart = utils::Aligned<uint16_t>(&info.script->magic[info.exp.address]);
 
 					uint16_t opcodeVal = *reinterpret_cast<uint16_t*>(bytecodeStart);
-					auto opcode = tool::gsc::opcode::LookupOpCode(tool::gsc::opcode::VMI_T8, tool::gsc::opcode::PLATFORM_PC, opcodeVal);
+					auto opcode = tool::gsc::opcode::LookupOpCode(tool::gsc::opcode::VMI_T8_36, tool::gsc::opcode::PLATFORM_PC, opcodeVal);
 
 					// dump local variables (if any)
 					if (opt.m_vars && opcode && opcode->m_id == tool::gsc::opcode::OPCODE_SafeCreateLocalVariables) {

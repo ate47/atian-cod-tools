@@ -338,7 +338,7 @@ namespace {
 
 					cfg.name = namePatt;
 					cfg.platform = tool::gsc::opcode::PLATFORM_PC;
-					cfg.vm = tool::gsc::opcode::VMI_T8;
+					cfg.vm = tool::gsc::opcode::VMI_T8_36;
 					cfg.detourType = acts::compiler::DETOUR_ACTS;
 					cfg.processorOpt.defines.insert("_DFG_GEN");
 

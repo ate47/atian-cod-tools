@@ -119,7 +119,7 @@ namespace {
 			byte vm;
 
 			auto magicVal = *reinterpret_cast<uint64_t*>(buffer) & ~0xFF00000000000000;
-			if (magicVal == 0xa0d43534780) {
+			if (magicVal == tool::gsc::opcode::VMI_TRE_BASE) {
 				// Treyarch GSC file, use revision
 				vm = buffer->magic[7];
 			}

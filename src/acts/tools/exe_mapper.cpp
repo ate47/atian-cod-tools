@@ -561,14 +561,14 @@ namespace {
 		std::function<char* (char*)> DecryptString;
 
 		switch (type) {
-		case VMI_T7:
-		case VMI_T71B:
-		case VMI_T8:
+		case VMI_T7_1C:
+		case VMI_T7_1B:
+		case VMI_T8_36:
 		case VMI_JUP_8A: {
 			LOG_WARNING("Decryption useless with {}", nfo->name);
 			return tool::OK; // nothing to do
 		}
-		case VMI_T9: {
+		case VMI_T9_38: {
 			if (!LoadMod(false)) return tool::BASIC_ERROR;
 			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6", "DecryptString").GetPtr<char* (*)(char* str)>();
 			DecryptString = [DecryptStringFunc](char* s) -> char* {
@@ -713,7 +713,7 @@ namespace {
 				LOG_TRACE("{} anim1(s) decrypted", k);
 			}
 
-			std::filesystem::path outdirvm{ outdir / utils::va("vm-%llx", nfo->vmMagic) };
+			std::filesystem::path outdirvm{ outdir / tool::gsc::opcode::VMIdFancyName(nfo->vmMagic) };
 			std::filesystem::create_directories(outdirvm);
 			std::filesystem::path outfile{ outdirvm / utils::va("script_%llx.gscc", handler->GetName()) };
 

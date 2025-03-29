@@ -73,7 +73,7 @@ int mods::ee::CustomEET8(Process& proc, std::string& notif) {
 			}
 
 			// find
-			if (!proc.ReadMemory(&obj, buffer[i].buffer, sizeof(obj)) || *(uint64_t*)obj.magic != tool::gsc::opcode::VMI_T8) {
+			if (!proc.ReadMemory(&obj, buffer[i].buffer, sizeof(obj)) || *(uint64_t*)obj.magic != tool::gsc::opcode::VMI_T8_36) {
 				std::cerr << "Can't read searched script " << std::hex << buffer[i].name << "\n";
 				continue; // can't read buffer
 			}

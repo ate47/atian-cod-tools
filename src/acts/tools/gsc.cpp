@@ -1503,7 +1503,7 @@ ignoreCscGsc:
 
         const char* outDir;
         if (opt.m_splitByVm) {
-            outDir = utils::va("%s/vm-%llx", opt.m_outputDir, ctx.m_vmInfo->vmMagic);
+            outDir = utils::va("%s/%s", opt.m_outputDir, tool::gsc::opcode::VMIdFancyName(ctx.m_vmInfo->vmMagic));
         }
         else {
             outDir = opt.m_outputDir;
@@ -2550,7 +2550,7 @@ ignoreCscGsc:
 
             const char* outDir;
             if (opt.m_splitByVm) {
-                outDir = utils::va("%s/vm-%llx", opt.m_dbgOutputDir, ctx.m_vmInfo->vmMagic);
+                outDir = utils::va("%s/%s", opt.m_dbgOutputDir, tool::gsc::opcode::VMIdFancyName(ctx.m_vmInfo->vmMagic));
             }
             else {
                 outDir = opt.m_dbgOutputDir;
@@ -3096,11 +3096,11 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
-    if (gscFile.GetMagic() > VMI_T8) {
+    if (gscFile.GetMagic() > VMI_T8_36) {
         if (!AssertOpCode(OPCODE_T9_EvalFieldVariableFromGlobalObject)) return DVA_BAD;
         ctx.Aligned<uint16_t>() += 2; // - classes
     }
-    else if (gscFile.GetMagic() < VMI_T834) {
+    else if (gscFile.GetMagic() < VMI_T8_34) {
         ctx.Aligned<uint16_t>() += 2; // GetClassesObject
 
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef className
@@ -3130,7 +3130,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
     dctxt.WritePadding(out) << "// " << hashutils::ExtractTmp("class", name) << "\n";
 
-    if (gscFile.GetMagic() > VMI_T8) {
+    if (gscFile.GetMagic() > VMI_T8_36) {
         if (!AssertOpCode(OPCODE_T9_SetVariableFieldFromEvalArrayRef)) return DVA_BAD;
     }
     else {
@@ -3229,7 +3229,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
 
         if (!AssertOpCode(OPCODE_GetZero)) return DVA_BAD;
 
-        if (gscFile.GetMagic() >= VMI_T834) {
+        if (gscFile.GetMagic() >= VMI_T8_34) {
             ctx.Aligned<uint16_t>() += 2; // EvalGlobalObjectFieldVariable
             ctx.Aligned<uint16_t>() += 2; // - gvar
         }
@@ -3243,7 +3243,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
         ctx.Aligned<uint16_t>() += 2; // EvalFieldVariableRef
         ctx.Aligned<uint32_t>() += 4; // - ref
 
-        if (gscFile.GetMagic() > VMI_T8) {
+        if (gscFile.GetMagic() > VMI_T8_36) {
             ctx.Aligned<uint16_t>() += 2; // SetVariableFieldFromEvalArrayRef
         }
         else {
@@ -3612,7 +3612,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                 if (lvar.flags & T8GSCLocalVarFlag::ARRAY_REF) {
                     asmout << "&";
                 }
-                else if (gscFile.GetMagic() != VMI_T8 && (lvar.flags & T8GSCLocalVarFlag::T9_VAR_REF)) {
+                else if (gscFile.GetMagic() != VMI_T8_36 && (lvar.flags & T8GSCLocalVarFlag::T9_VAR_REF)) {
                     asmout << "*";
                 }
 
@@ -3621,7 +3621,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
             byte mask = ~(T8GSCLocalVarFlag::VARIADIC | T8GSCLocalVarFlag::ARRAY_REF);
 
-            if (ctx.m_vm != VMI_T8) {
+            if (ctx.m_vm != VMI_T8_36) {
                 mask &= ~T8GSCLocalVarFlag::T9_VAR_REF;
             }
             

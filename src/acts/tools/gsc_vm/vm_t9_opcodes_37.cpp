@@ -6,7 +6,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* vt937 = RegisterVM(VMI_T937, "Call of Duty: Black ops Cold War (37)", "t9", "cw37", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+		VmInfo* vt937 = RegisterVM(VMI_T9_37, "Call of Duty: Black ops Cold War (37)", "t9", "cw37", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 		vt937->RegisterVmName("t937", "cw37", "coldwar37");
 		vt937->AddPlatform(PLATFORM_PC_ALPHA);
 		vt937->AddPlatform(PLATFORM_PC);

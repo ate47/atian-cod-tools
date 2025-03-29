@@ -35,12 +35,12 @@ namespace tool::gsc::opcode {
 	}
 	VMId OldVmOf(byte oldvm) {
 		switch (oldvm) {
-		case VMOld_T71B: return VMI_T71B;
-		case VMOld_T7: return VMI_T7;
-		case VMOld_T831: return VMI_T831;
-		case VMOld_T8: return VMI_T8;
-		case VMOld_T937: return VMI_T937;
-		case VMOld_T9: return VMI_T9;
+		case VMOld_T71B: return VMI_T7_1B;
+		case VMOld_T7: return VMI_T7_1C;
+		case VMOld_T831: return VMI_T8_31;
+		case VMOld_T8: return VMI_T8_36;
+		case VMOld_T937: return VMI_T9_37;
+		case VMOld_T9: return VMI_T9_38;
 		case VMOld_MW23: return VMI_JUP_8A;
 		case VMOld_MW23B: return VMI_JUP_8B;
 		case VMOld_BO6_06: return VMI_T10_06;
@@ -52,13 +52,36 @@ namespace tool::gsc::opcode {
 		}
 	}
 	byte MapAsOldVM(uint64_t magicVal) {
-		if ((magicVal & ~0xFF) == 0xa0d43534700) {
+		if ((magicVal & ~0xFF) == VMI_IW_BASE) {
 			return magicVal & 0xFF; // IW
 		}
-		else if ((magicVal & ~0xFF00000000000000) == 0xa0d43534780) {
+		else if ((magicVal & ~0xFF00000000000000) == VMI_TRE_BASE) {
 			return (magicVal >> 56) & 0xFF; // Treyarch
 		}
 		return 0; // unk
+	}
+
+	const char* VMIdFancyName(uint64_t magicVal) {
+		uint64_t vm;
+		const char* type;
+		if ((magicVal & ~0xFF) == VMI_IW_BASE) {
+			vm = (magicVal & 0xFF); // IW
+			type = "iw";
+		}
+		else if ((magicVal & ~0xFF00000000000000) == VMI_TRE_BASE) {
+			vm = ((magicVal >> 56) & 0xFF); // Treyarch
+			type = "t";
+		}
+		else if ((magicVal & ~0xFF00000000000000) == VMI_DBG_TRE_BASE) {
+			vm = ((magicVal >> 56) & 0xFF); // Treyarch dbg
+			type = "dbg-t";
+		}
+		else {
+			vm = magicVal;
+			type = "";
+		}
+
+		return utils::va("vm-%s%02llx", type, vm);
 	}
 
 	Platform PlatformOf(const char* name) {
@@ -73,6 +96,9 @@ namespace tool::gsc::opcode {
 		}
 		if (!_strcmpi("ps", name) || !_strcmpi("ps4", name) || !_strcmpi("playstation", name)) {
 			return PLATFORM_PLAYSTATION;
+		}
+		if (!_strcmpi("acts", name) || !_strcmpi("test", name)) {
+			return PLATFORM_ACTS_TEST;
 		}
 		return PLATFORM_UNKNOWN;
 	}
@@ -840,7 +866,7 @@ public:
 			else if (flags & T8GSCLocalVarFlag::ARRAY_REF) {
 				out << "&";
 			}
-			else if (context.m_vm != tool::gsc::opcode::VMI_T8 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
+			else if (context.m_vm != tool::gsc::opcode::VMI_T8_36 && (flags & tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF)) {
 				out << "*";
 			}
 
@@ -851,7 +877,7 @@ public:
 
 			byte mask = ~(tool::gsc::opcode::T8GSCLocalVarFlag::VARIADIC | tool::gsc::opcode::T8GSCLocalVarFlag::ARRAY_REF);
 
-			if (context.m_vm != tool::gsc::opcode::VMI_T8) {
+			if (context.m_vm != tool::gsc::opcode::VMI_T8_36) {
 				mask &= ~tool::gsc::opcode::T8GSCLocalVarFlag::T9_VAR_REF;
 			}
 
@@ -4188,7 +4214,7 @@ public:
 			byte* caseLoc;
 			int64_t caseDelta;
 			byte* endBase;
-			if (context.m_vm >= VMI_T834) {
+			if (context.m_vm >= VMI_T8_34) {
 				auto& baseCaseValue = context.Aligned<int64_t>();
 
 				context.WritePadding(out);
@@ -4234,7 +4260,7 @@ public:
 						node->m_cases.push_back({ new ASMContextNodeString(cv), caseRLoc });
 					}
 				}
-				else if (caseValue >= 0x100000000LL || (context.m_vm == VMI_T831 && caseValue >= 0x10000LL)) {
+				else if (caseValue >= 0x100000000LL || (context.m_vm == VMI_T8_31 && caseValue >= 0x10000LL)) {
 					// assume it's an hash after int32_t max value, for vm31, only 32bits hashes are used, so the bar is lower
 					out << "#\"" << hashutils::ExtractTmp("hash", caseValue) << "\"" << std::flush;
 					if (node) {
@@ -4556,7 +4582,7 @@ public:
 
 		baseCount += 4;
 
-		if (context.m_vm >= VMI_T834) {
+		if (context.m_vm >= VMI_T8_34) {
 			auto& ptrBase = context.Aligned<int64_t>();
 
 			ptrBase += 16 * count;
@@ -6936,7 +6962,7 @@ int ASMContextNodeBlock::ComputeForEachBlocksIterator(ASMContext& ctx) {
 		index++;
 		moveDelta--;
 
-		size_t forincsize = ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW) ? 2 : ctx.m_vm <= VMI_T8 ? 3 : 4;
+		size_t forincsize = ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW) ? 2 : ctx.m_vm <= VMI_T8_36 ? 3 : 4;
 
 		if (index + forincsize >= m_statements.size()) {
 			index += moveDelta;
@@ -6984,7 +7010,7 @@ int ASMContextNodeBlock::ComputeForEachBlocksIterator(ASMContext& ctx) {
 
 			itemValName = static_cast<ASMContextNodeIdentifier*>(setKeyArrayOp->m_left)->m_value;
 		}
-		else if (ctx.m_vm > VMI_T8) {
+		else if (ctx.m_vm > VMI_T8_36) {
 			/*
 				var_d9f19f82 = iteratorkey(var_e4aec0cf);
 				var_8487602c = iteratorval(var_e4aec0cf);
@@ -7140,7 +7166,7 @@ int ASMContextNodeBlock::ComputeForEachBlocksIterator(ASMContext& ctx) {
 		if (ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_FOREACH_IW)) {
 			keyRef = std::max(keyRef - 6, 0); // key is undefined at the end in mw23
 		}
-		else if (ctx.m_vm <= VMI_T8) {
+		else if (ctx.m_vm <= VMI_T8_36) {
 			keyRef = std::max(keyRef - 5, 0);
 		}
 		else {

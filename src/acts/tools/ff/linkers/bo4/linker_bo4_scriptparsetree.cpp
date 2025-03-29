@@ -105,7 +105,7 @@ namespace fastfile::linker::bo4 {
 				std::string snp{ scriptName.string() };
 				cfg.name = hashutils::CleanPath(snp.data());
 				cfg.platform = GetGSCPlatform(ctx.linkCtx.opt.platform);
-				cfg.vm = tool::gsc::opcode::VMI_T8; // read cfg?
+				cfg.vm = tool::gsc::opcode::VMI_T8_36; // read cfg?
 				cfg.detourType = acts::compiler::DETOUR_ACTS;
 				cfg.computeDevOption = cfgDev;
 				std::string preprocOutput{};

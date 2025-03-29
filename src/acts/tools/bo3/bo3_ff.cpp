@@ -2,6 +2,7 @@
 #include <core/bytebuffer.hpp>
 #include <deps/oodle.hpp>
 #include "pools.hpp"
+#include <tools/gsc_opcodes_load.hpp>
 
 namespace {
 	int ffrbo3(int argc, const char* argv[]) {
@@ -250,7 +251,7 @@ namespace {
 						}
 						byte* data{ decReader.ReadPtr<byte>(spt.len + 1) };
 
-						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != 0x00a0d43534780) {
+						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_TRE_BASE) {
 							LOG_ERROR("Bad gsc magic {:x}", *(uint64_t*)data);
 							continue; // bad magic
 						}
@@ -312,7 +313,7 @@ namespace {
 						}
 						byte* data{ decReader.ReadPtr<byte>(spt.gdbLen + 1) };
 
-						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != 0xA0D42444780) {
+						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_DBG_TRE_BASE) {
 							LOG_ERROR("Bad gsc magic {:x}", *(uint64_t*)data);
 							continue; // bad magic
 						}

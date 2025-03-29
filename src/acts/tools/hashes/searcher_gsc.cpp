@@ -65,7 +65,7 @@ namespace {
 					tool::gsc::T8GSCString* strings{ reader->Ptr<tool::gsc::T8GSCString>(reader->GetStringsOffset()) };
 
 					for (size_t i = 0; i < stringsCount; i++) {
-						if (magic == tool::gsc::opcode::VMI_T8) {
+						if (magic == tool::gsc::opcode::VMI_T8_36) {
 							scriptStrings.emplace_back(alloc.CloneStr(acts::decryptutils::DecryptStringT8(reader->Ptr<char>(strings->string))));
 						}
 						else {

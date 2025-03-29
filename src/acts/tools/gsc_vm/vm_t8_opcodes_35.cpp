@@ -6,7 +6,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* vt835 = RegisterVM(VMI_T835, "Call of Duty: Black ops 4 (35)", "t8", "bo4_35", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
+		VmInfo* vt835 = RegisterVM(VMI_T8_35, "Call of Duty: Black ops 4 (35)", "t8", "bo4_35", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM);
 		vt835->RegisterVmName("t8_35", "blackops4_35");
 		vt835->AddPlatform(PLATFORM_PC);
 		vt835->SetMaxOpCode(0xFFF);

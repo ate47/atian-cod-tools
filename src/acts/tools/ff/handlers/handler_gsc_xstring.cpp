@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
+#include <tools/gsc.hpp>
 
 namespace {
 
@@ -52,8 +53,8 @@ namespace {
 					}
 					byte* data{ decReader.ReadPtr<byte>(spt.len + 1) };
 
-					if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != 0xa0d43534780) {
-						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != 0xA0D42444780) {
+					if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_TRE_BASE) {
+						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_DBG_TRE_BASE) {
 							LOG_ERROR("Bad gsc magic {:x}", *(uint64_t*)data); // not a gscc file
 						}
 						continue; // bad magic
@@ -116,9 +117,9 @@ namespace {
 					}
 					byte* data{ decReader.ReadPtr<byte>(spt.gdbLen + 1) };
 
-					if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != 0xA0D42444780) {
+					if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_DBG_TRE_BASE) {
 						// bad magic
-						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != 0xa0d43534780) {
+						if ((*(uint64_t*)data & 0xFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_TRE_BASE) {
 							LOG_ERROR("Bad gsc magic {:x}", *(uint64_t*)data); // not a dbg file
 						}
 						continue;

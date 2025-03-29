@@ -917,7 +917,7 @@ namespace {
 					continue;
 				}
 				uint64_t magic = *reinterpret_cast<uint64_t*>(&buffer[0]);
-				if ((magic & 0xFFFFFFFFFFFFFF) != 0xa0d43534780) {
+				if ((magic & 0xFFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_TRE_BASE) {
 					LOG_ERROR("Can't read script {}: invalid magic", name);
 					continue;
 				}
@@ -971,7 +971,7 @@ namespace {
 				continue;
 			}
 			uint64_t magic = *reinterpret_cast<uint64_t*>(&buffer[0]);
-			if ((magic & 0xFFFFFFFFFFFFFF) != 0xa0d43534780) {
+			if ((magic & 0xFFFFFFFFFFFFFF) != tool::gsc::opcode::VMI_TRE_BASE) {
 				LOG_ERROR("Can't read script {}: invalid magic", name);
 				continue;
 			}
