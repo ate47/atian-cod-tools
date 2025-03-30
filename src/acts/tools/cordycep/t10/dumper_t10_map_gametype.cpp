@@ -28,16 +28,19 @@ namespace {
 		const char* unk38;
 		const char* omnvarsCsv;
 		uint64_t unk48;
-		uint64_t unk50;
-		uint64_t unk58;
-		uint64_t unk60;
-		uint64_t unk68;
-		uint64_t unk70;
-		uint64_t unk78;
+		float unk50[3];
+		float unk5c[3];
+		float unk68;
+		uint32_t unk6c;
+		uint32_t unk70;
+		uint32_t unk74;
+		uint32_t unk78;
+		uint32_t unk7c;
 		uint64_t unk88_count;
 		MapInfoData* unk88;
 		sbv2::ScriptBundleObjectData bundleData;
-	};
+	}; 
+	static_assert(sizeof(MapInfo) == 0xb0);
 
 
 	struct MapTable {
@@ -163,17 +166,22 @@ namespace {
 				json.WriteFieldNameString("unk30");
 				json.WriteValueHash(proc.ReadMemory<uint64_t>(reinterpret_cast<uintptr_t>(data.unk30)));
 			}
-			
-			//json.WriteFieldNameString("unk48"); json.WriteValueHash(data.unk48);
-			//json.WriteFieldNameString("unk50"); json.WriteValueHash(data.unk50);
-			//json.WriteFieldNameString("unk58"); json.WriteValueHash(data.unk58);
-			//json.WriteFieldNameString("unk60"); json.WriteValueHash(data.unk60);
-			//json.WriteFieldNameString("unk68"); json.WriteValueHash(data.unk68);
-			//json.WriteFieldNameString("unk70"); json.WriteValueHash(data.unk70);
-			//json.WriteFieldNameString("unk78"); json.WriteValueHash(data.unk78);
 
-			json.WriteFieldNameString("bundle");
-			sbv2::WriteBundleData(opt, json, proc, data.bundleData, ctx.GetLocalized);
+			/*
+			json.WriteFieldNameString("unk48"); json.WriteValueHash(data.unk48);
+			json.WriteFieldNameString("unk50"); json.WriteValueString(std::format("({}, {}, {})", data.unk50[0], data.unk50[1], data.unk50[2]));
+			json.WriteFieldNameString("unk5c"); json.WriteValueString(std::format("({}, {}, {})", data.unk5c[0], data.unk5c[1], data.unk5c[2]));
+			json.WriteFieldNameString("unk68"); json.WriteValueNumber(data.unk68);
+			json.WriteFieldNameString("unk6c"); json.WriteValueNumber(data.unk6c);
+			json.WriteFieldNameString("unk70"); json.WriteValueNumber(data.unk70);
+			json.WriteFieldNameString("unk74"); json.WriteValueNumber(data.unk74);
+			json.WriteFieldNameString("unk78"); json.WriteValueNumber(data.unk78);
+			json.WriteFieldNameString("unk7c"); json.WriteValueNumber(data.unk7c);
+			*/
+			if (data.bundleData.count) {
+				json.WriteFieldNameString("bundle");
+				sbv2::WriteBundleData(opt, json, proc, data.bundleData, ctx.GetLocalized);
+			}
 			json.EndObject();
 
 
@@ -217,12 +225,18 @@ namespace {
 				return false;
 			}
 
-			os << "id,map";
+			os << "id,map,name";
 
 			if (data.mapsCount) {
+				MapInfo mapInfo{};
 				auto maps{ proc.ReadMemoryArrayEx<uintptr_t>(reinterpret_cast<uintptr_t>(data.maps), data.mapsCount) };
 				for (size_t i = 0; i < data.mapsCount; i++) {
-					os << "\n" << std::dec << i << ",#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(maps[i]));
+					if (!proc.ReadMemory(&mapInfo, maps[i], sizeof(mapInfo))) {
+						os << "\n<error reading>";
+						continue;
+					}
+					mapInfo.nameStr = opt.AddString(proc.ReadStringTmp(reinterpret_cast<uintptr_t>(mapInfo.nameStr)));
+					os << "\n" << std::dec << i << ",#" << hashutils::ExtractTmp("hash", mapInfo.name) << "," << mapInfo.nameStr;
 				}
 			}
 
