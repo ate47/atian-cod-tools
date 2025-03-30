@@ -10,9 +10,14 @@
 #include "tools/gsc.hpp"
 #include "tools/pool.hpp"
 #include "tools/bo6/bo6.hpp"
+#include <core/memory_allocator.hpp>
 
 namespace {
 	using namespace tool::gsc::opcode;
+	void NullStub() {}
+	template<typename T, T val>
+	T ReturnStub() { return val; }
+
 	int exe_mapper(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
 
@@ -368,6 +373,103 @@ namespace {
 				}
 			}
 		}
+
+
+		return tool::OK;
+	}
+
+	constexpr const char* defaultBo6LuaFuncObject = "default";
+	static struct {
+		std::map<const char*, std::map<uint64_t, void*>> funcs{};
+		const char* currentFunc{ defaultBo6LuaFuncObject };
+
+		void Cleanup() {
+			funcs.clear();
+			bo6LuaData.currentFunc = defaultBo6LuaFuncObject;
+		}
+	} bo6LuaData;
+
+	void Bo6LoadLuaPop(void* vm, size_t count) {
+		bo6LuaData.currentFunc = defaultBo6LuaFuncObject;
+	}
+	void Bo6LoadLuaPush(void* vm, int a2, const char* category) {
+		bo6LuaData.currentFunc = category;
+	}
+
+	void Bo6LoadLuaFunc(void* vm, uint64_t hash, void* func) {
+		bo6LuaData.funcs[bo6LuaData.currentFunc][hash] = func;
+	}
+	void Bo6LoadLuaFuncStr(void* vm, const char* str, void* func) {
+		uint64_t hash{ hash::Hash64A(str) };
+		hashutils::AddPrecomputed(hash, str, true);
+		Bo6LoadLuaFunc(vm, hash, func);
+	}
+
+	int bo6_lua_dump(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+		std::filesystem::path exe{ argv[2] };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe.string());
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Loaded");
+
+		bo6LuaData.Cleanup();
+		
+		// remove lua things
+		mod->Redirect("48 89 5C 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 87", NullStub); // 88F4A60
+		mod->Redirect("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D D2 A9", NullStub); // 88F5610
+		mod->Redirect("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 62", NullStub); // 88F2B80
+		// if false it creates some useless calls
+		mod->Redirect("40 53 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 5B", ReturnStub<bool, true>); // 88F5390
+
+
+		// registry function
+		mod->Redirect("40 53 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 6B", Bo6LoadLuaPop); // 88F4E80
+		mod->Redirect("48 89 5C 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 47", Bo6LoadLuaPush); // 88F2FA0
+
+		void* stub{ mod->ScanSingle("E8 ? ? ? ? 48 BA 34 DB FC 73 86 28 B6 F9").GetRelative<int32_t>(1) };
+		void* stubStr{ mod->ScanSingle("E8 ? ? ? ? 4C 8D 05 ? ? ? ? 48 8D 15 ? ? ? ? 49 8B CC").GetRelative<int32_t>(1) };
+
+		LOG_INFO("redirect hash . {}", hook::library::CodePointer{ stub });
+		LOG_INFO("redirect str .. {}", hook::library::CodePointer{ stubStr });
+
+		hook::memory::RedirectJmp(
+			stub,
+			Bo6LoadLuaFunc
+		);
+
+		hook::memory::RedirectJmp(
+			stubStr,
+			Bo6LoadLuaFuncStr
+		);
+
+		mod->ScanSingle("E9 EC AA 0A 00").GetPtr<void(*)(void*)>()(nullptr);
+
+		utils::OutFileCE os{ argv[3] };
+
+		if (!os) {
+			LOG_ERROR("Can't open {}", argv[3]);
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Dumping functions in {}", argv[3]);
+
+		os << "object,name,offset";
+
+		for (auto& [cat, funcs] : bo6LuaData.funcs) {
+			for (auto& [name, func] : funcs) {
+				os << "\n" << cat << "," << hashutils::ExtractTmp("hash", name) << "," << hook::library::CodePointer{func};
+			}
+		}
+
+		bo6LuaData.Cleanup();
 
 
 		return tool::OK;
@@ -820,6 +922,7 @@ namespace {
 	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
 	ADD_TOOL(bo6_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", iw_data_dump);
 	ADD_TOOL(bo6_gsc_dump, "bo6", "[exe]", "Dump gsc function data from an exe dump", bo6_gsc_dump);
+	ADD_TOOL(bo6_lua_dump, "bo6", "[exe]", "Dump lua function data from an exe dump", bo6_lua_dump);
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
 	ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);
 	ADD_TOOL(scripts_decrypt, "gsc", "[exe] [type] [scripts] [ouput]", "Map exe in memory and use it to decrypt GSC scripts", scripts_decrypt);

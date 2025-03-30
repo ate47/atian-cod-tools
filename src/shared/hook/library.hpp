@@ -286,6 +286,11 @@ namespace hook::library {
 
 		void Redirect(const char* pattern, void* func, const char* name = nullptr) const;
 
+		template<typename T = void*>
+		void Redirect(const char* pattern, T func, const char* name = nullptr) const {
+			Redirect(pattern, (void*)func, name);
+		}
+
 		Detour CreateDetour(const char* pattern, void* to, const char* name = nullptr) const;
 
 		ScanResult FindAnyScan(const char* name) const {
