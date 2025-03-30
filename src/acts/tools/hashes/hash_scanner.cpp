@@ -212,6 +212,9 @@ namespace tool::hash::scanner {
 			else if (!_strcmpi(n, "bo6sp")) {
 				data.funcs = HASH_BLACKOPS6_SP;
 			}
+			else if (!_strcmpi(n, "bo6all")) {
+				data.funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
+			}
 			else if (!_strcmpi(n, "iw")) {
 				data.funcs = HASH_IW;
 			}
@@ -451,6 +454,9 @@ namespace tool::hash::scanner {
 			}
 			else if (!_strcmpi(n, "bo6sp")) {
 				data.funcs = HASH_BLACKOPS6_SP;
+			}
+			else if (!_strcmpi(n, "bo6all")) {
+				data.funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
 			}
 			else if (!_strcmpi(n, "iw")) {
 				data.funcs = HASH_IW;
