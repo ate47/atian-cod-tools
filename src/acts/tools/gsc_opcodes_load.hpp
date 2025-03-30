@@ -30,6 +30,7 @@ namespace tool::gsc::opcode {
 
 		// Treyarch VMs DBG
 		VMI_DBG_TRE_BASE = 0xa0d42444780,
+		VMI_DBG_T7_12 = 0x13000a0d42444780,
 		VMI_DBG_T7_13 = 0x13000a0d42444780,
 		VMI_DBG_T8_21 = 0x21000a0d42444780,
 
