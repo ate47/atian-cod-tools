@@ -67,6 +67,7 @@ namespace tool::hash::scanner {
 				name.ends_with(".gsc") || name.ends_with(".csc")
 				|| name.ends_with(".csv") || name.ends_with(".tsv")
 				|| name.ends_with(".dec.lua")
+				|| name.ends_with(".txt")
 				|| name.ends_with(".ddl") || name.ends_with(".ddldef")
 				|| name.ends_with(".json");
 			});

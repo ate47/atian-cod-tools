@@ -130,7 +130,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		auto CheckHash = [&hashes, &os](uint64_t val, const char* str) -> void {
+		auto CheckHash = [&hashes, &os](uint64_t val, const char* str) -> bool {
 			auto it{ hashes.find(val & hashutils::MASK62) };
 			if (it != hashes.end()) {
 				// remove from searched list
@@ -139,15 +139,19 @@ namespace {
 				// display
 				os << std::hex << val << "," << str << "\n";
 				LOG_INFO("{:x},{}", val, str);
+				return true;
 			}
+			return false;
 		};
-		auto CheckHashes = [&CheckHash](const char* str) -> void {
-			CheckHash(hash::Hash64A(str), str);
-			CheckHash(hash::HashIWRes(str), str);
-			CheckHash(hash::HashIWDVar(str), str);
-			CheckHash(hash::HashJupScr(str), str);
-			CheckHash(hash::HashT10Scr(str), str);
-			CheckHash(hash::HashT10ScrSP(str), str);
+		auto CheckHashes = [&CheckHash](const char* str) -> bool {
+			bool r{};
+			r |= CheckHash(hash::Hash64A(str), str);
+			r |= CheckHash(hash::HashIWRes(str), str);
+			r |= CheckHash(hash::HashIWDVar(str), str);
+			r |= CheckHash(hash::HashJupScr(str), str);
+			r |= CheckHash(hash::HashT10Scr(str), str);
+			r |= CheckHash(hash::HashT10ScrSP(str), str);
+			return r;
 		};
 
 		std::unordered_map<uint64_t, const char*> paths{};
@@ -176,8 +180,10 @@ namespace {
 			CheckHashes(buff);
 
 			for (auto& [h, path] : paths) {
-				CheckHashes(utils::va("%s%s.gsc", path, buff));
-				//CheckHashes(utils::va("%s%s.csc", path, buff));
+				if (CheckHashes(utils::va("%s%s.gsc", path, buff))) {
+					// search csc if we found a result
+					CheckHashes(utils::va("%s%s.csc", path, buff));
+				}
 			}
 		};
 
