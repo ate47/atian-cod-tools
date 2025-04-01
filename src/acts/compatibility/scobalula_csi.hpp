@@ -14,6 +14,7 @@ namespace compatibility::scobalula::csi {
 		CG_VANGUARD = 0x44524155474E4156,
 		CG_BO3 = 0x33504f4b43414c42,
 		CG_BO4 = 0x34504f4b43414c42,
+		CG_BOCW = 0x574353504f4b4c42,
 		CG_BO6 = 0x36504f4b43414c42,
 	};
 
