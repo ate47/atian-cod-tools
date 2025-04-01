@@ -12,7 +12,7 @@ namespace tool::gsc::formatter {
 			&defaultFormatter,
 			&seriousFormatter,
 			&xenFormatter,
-			& treyarchFormatter,
+			&treyarchFormatter,
 		};
 
 	}

@@ -427,16 +427,25 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "[";
 
-			for (size_t i = 0; i < m_operands.size(); i++) {
-				if (i) out << ", ";
-
-				auto& item = m_operands[i];
-				if (item->m_key->IsIntConst() && item->m_key->GetIntConst() == i) {
-					// we can omit this key because it matches the index
-					item->m_value->Dump(out, ctx);
+			if (m_operands.size()) {
+				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+					out << " ";
 				}
-				else {
-					item->Dump(out, ctx);
+
+				for (size_t i = 0; i < m_operands.size(); i++) {
+					if (i) out << ", ";
+
+					auto& item = m_operands[i];
+					if (item->m_key->IsIntConst() && item->m_key->GetIntConst() == i) {
+						// we can omit this key because it matches the index
+						item->m_value->Dump(out, ctx);
+					}
+					else {
+						item->Dump(out, ctx);
+					}
+				}
+				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+					out << " ";
 				}
 			}
 
@@ -487,9 +496,19 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "{";
 
-			for (size_t i = 0; i < m_operands.size(); i++) {
-				if (i) out << ", ";
-				m_operands[i]->Dump(out, ctx);
+			if (m_operands.size()) {
+				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+					out << " ";
+				}
+
+				for (size_t i = 0; i < m_operands.size(); i++) {
+					if (i) out << ", ";
+					m_operands[i]->Dump(out, ctx);
+				}
+
+				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+					out << " ";
+				}
 			}
 
 			out << "}";
@@ -1422,6 +1441,9 @@ namespace tool::gsc::opcode {
 						ctx.WritePadding(out << "\n", true);
 					}
 					cs.block->Dump(out, ctx);
+					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS_PADDING) {
+						ctx.WritePadding(out, true) << "\n";
+					}
 				}
 			}
 			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
