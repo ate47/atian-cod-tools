@@ -422,6 +422,9 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_LocalCall2,
 		OPCODE_IW_LocalThreadCall,
 
+		OPCODE_T10_EvalLocalVariableCachedTriple,
+		OPCODE_T10_ArrayContainsKey,
+
 		OPCODE_COUNT,
 	};
 	void RegisterOpCodesMap();

@@ -5451,7 +5451,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeT9DeltaLocalVariableCached(OPCODE_T9_DecLocalVariableCached, "DecLocalVariableCached", "--"));
 
 			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_T9_EvalLocalVariableCachedDouble, "EvalLocalVariableCached2n", 2));
-
+			RegisterOpCodeHandler(new OPCodeInfoEvalLocalVariableCached(OPCODE_T10_EvalLocalVariableCachedTriple, "EvalLocalVariableCached3n", 3));
+			
 			// IW
 			RegisterOpCodeHandler(new OPCodeInfoRegisterVariable());
 			RegisterOpCodeHandler(new OPCodeInfoRegisterMultipleVariables());
@@ -5510,6 +5511,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_IW_WaitTillMatch, "IW_WaitTillMatch", "waittillmatch", true, 2, 2, true, TYPE_WAITTILL));
 			// scripts\asm\asm::asm_getanim()'s assertmsg lol
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_FlatArgs, "T10_FlatArgs", "flat_args", true, 2, 0, false));
+			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_ArrayContainsKey, "T10_ArrayContainsKey", "array_contains_key", true, 2, 0, false));
 			RegisterOpCodeHandler(new OPCodeInfoGetPositionRef());
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "IW_Notify"));

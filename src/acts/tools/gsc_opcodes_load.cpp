@@ -356,6 +356,9 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_IW_GetLocal, "GetLocal");
 			RegisterOpCode(OPCODE_IW_LocalCall2, "LocalCall2");
 			RegisterOpCode(OPCODE_IW_LocalThreadCall, "LocalThreadCall");
+			RegisterOpCode(OPCODE_T10_EvalLocalVariableCachedTriple, "T10_EvalLocalVariableCachedTriple");
+			RegisterOpCode(OPCODE_T10_ArrayContainsKey, "T10_ArrayContainsKey");
+			
 			RegisterOpCode(OPCODE_InvalidOpCode, "InvalidOpCode");
 		}
 	};
