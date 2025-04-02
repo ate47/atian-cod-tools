@@ -686,11 +686,16 @@ namespace {
 		case VMI_JUP_8B:
 		case VMI_T10_06:
 		case VMI_T10_07:
+		case VMI_T10_08:
+		case VMI_T10_09:
+		case VMI_T10_0A:
 		case VMI_T10_0B:
 		case VMI_T10_0C:
 		case VMI_T10_0D:
+		case VMI_T10_0E:
 		case VMI_T10_10:
-		case VMI_T10_11: {
+		case VMI_T10_11:
+		case VMI_T10_12: {
 			if (!LoadMod(true)) return tool::BASIC_ERROR;
 			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "DecryptString").GetPtr<char* (*)(char* str)>();
 			DecryptString = [DecryptStringFunc](char* s) -> char* {
