@@ -12,9 +12,80 @@ namespace {
 	public:
 		UnlinkerImpl() {}
 
+		bool UnlinkGuesser(const compatibility::scobalula::csi::XAsset64& asset, UnlinkerContext& ctx) {
+			Process& proc{ ctx.proc };
+			PoolOptionImpl& opt{ ctx.opt };
+
+			const char* n{ hashutils::ExtractPtr(asset.ID) };
+
+			if (!n) {
+				n = utils::va("hashed/luafile/file_%llx.lua", asset.ID);
+			}
+
+			std::filesystem::path loc{ ctx.outDir / "luafile" / n };
+			std::filesystem::create_directories(loc.parent_path());
+
+			auto header{ proc.ReadMemoryArrayEx<byte>(asset.Header, asset.HeaderSize) };
+
+			if (asset.HeaderSize < 8) {
+				LOG_ERROR("header too small");
+				return false;
+			}
+
+			// check that the first element is the name
+			int start{ *(uint64_t*)header.get() == asset.ID ? 8 : 0};
+
+			byte magic;
+
+			std::vector<byte> luaFileCompressed{};
+			std::vector<byte> luaFileDecompressed{};
+			bool anyValid{};
+			for (int i = (int)asset.HeaderSize - 0x8; i >= start; i -= sizeof(uintptr_t)) {
+				uintptr_t buffer{ *(uintptr_t*)(&header[i]) };
+
+				if (!buffer // invalid buffer
+					|| !proc.ReadMemory(&magic, buffer, sizeof(magic)) // can't read magic
+					|| magic != 0x78 // invalid zlib magic
+					) {
+					continue; 
+				}
+
+				// buffer maybe found, check for the size
+
+				for (int j = i - sizeof(int32_t); j >= start; j -= sizeof(int32_t)) {
+					int32_t len{ *(int32_t*)(header.get() + j) };
+
+					if (len < 2 || len > 10000000) continue; // too small/big
+
+					luaFileCompressed.resize(len);
+
+					if (!proc.ReadMemory(luaFileCompressed.data(), buffer, len)) {
+						continue; // can't read buffer data
+					}
+
+					int r{ utils::compress::Decompress(utils::compress::COMP_ZLIB, luaFileDecompressed, luaFileCompressed.data(), len, 1.5F) };
+					if (r >= 0) {
+						if (!utils::WriteFile(loc, luaFileDecompressed)) {
+							LOG_ERROR("Can't write file {}", loc.string());
+							return false;
+						}
+						LOG_INFO("Dump {} (off:0x{:x}/0x{:x}/0x{:x})", loc.string(), i, j, len);
+						return true;
+					}
+				}
+			}
+			LOG_ERROR("Buffer was not found for {}", loc.string());
+			return false;
+		}
+
 		virtual bool Unlink(const compatibility::scobalula::csi::XAsset64& asset, UnlinkerContext& ctx) {
 			Process& proc{ ctx.proc };
 			PoolOptionImpl& opt{ ctx.opt };
+
+			if (opt.guessHeader) {
+				return UnlinkGuesser(asset, ctx);
+			}
+
 			struct LuaFile {
 				uint64_t name;
 				uint64_t unk10_count;
@@ -31,7 +102,7 @@ namespace {
 			}; static_assert(sizeof(LuaFile) == 0x50);
 
 			if (asset.HeaderSize != sizeof(LuaFile)) {
-				LOG_ERROR("INVALID LUAFILE HEADER SIZE: 0x{:x}", asset.HeaderSize);
+				LOG_ERROR("INVALID LUAFILE HEADER SIZE: 0x{:x}, use --guessHeader to switch the header guesser", asset.HeaderSize);
 				return false;
 			}
 

@@ -376,6 +376,9 @@ namespace tool::cordycep::dump::t10 {
 			else if (!_strcmpi("--header", arg)) {
 				header = true;
 			}
+			else if (!_strcmpi("--guessHeader", arg)) {
+				guessHeader = true;
+			}
 			else if (!strcmp("-S", arg) || !_strcmpi("--strings", arg)) {
 				if (i + 1 == endIndex) {
 					std::cerr << "Missing value for param: " << arg << "!\n";
@@ -425,6 +428,7 @@ namespace tool::cordycep::dump::t10 {
 		LOG_INFO("--sp                 : Sp dumper");
 		LOG_INFO("--ignoreOld          : Ignore old");
 		LOG_INFO("--decompressLua      : Decompress lua");
+		LOG_INFO("--guessHeader        : Use header guessers");
 	}
 
 	const char* PoolOptionImpl::AddString(const char* str) {

@@ -30,6 +30,7 @@ namespace tool::cordycep::dump::t10 {
 		bool decompressLua{};
 		bool ignoreArchiveDDL{};
 		bool header{};
+		bool guessHeader{};
 		const char* m_output = "output_bo6";
 		const char* m_dump_strings{};
 		std::vector<bool> m_dump_types{};

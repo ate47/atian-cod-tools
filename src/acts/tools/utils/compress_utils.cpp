@@ -87,18 +87,15 @@ namespace utils::compress {
 		}
 	}
 
-	std::vector<byte> Decompress(CompressionAlgorithm alg, const void* src, size_t srcSize, float increaseFactor) {
-		std::vector<byte> outBuff{};
-
+	int Decompress(CompressionAlgorithm alg, std::vector<byte>& outBuff, const void* src, size_t srcSize, float increaseFactor) {
 		if (alg == CompressionAlgorithm::COMP_NONE) {
 			size_t len{ srcSize };
 			outBuff.resize(len);
 
-			Decompress(alg, outBuff.data(), outBuff.size(), src, srcSize);
-			return outBuff;
+			return Decompress2(alg, outBuff.data(), outBuff.size(), src, srcSize);
 		}
 
-		if (!srcSize) return outBuff;
+		if (!srcSize) return 0;
 
 		size_t len{ srcSize };
 		if (len == len * increaseFactor) {
@@ -112,14 +109,22 @@ namespace utils::compress {
 			int r{ Decompress(alg, outBuff.data(), outBuff.size(), src, srcSize) };
 
 			if (r >= 0) {
-				break;
+				return r;
 			}
 
 			if (r != DecompressResult::DCOMP_DEST_TOO_SMALL) {
-				throw std::runtime_error(std::format("Error when decompressing {}", r));
+				return r;
 			}
 		}
-		return outBuff;
+	}
+
+	std::vector<byte> Decompress(CompressionAlgorithm alg, const void* src, size_t srcSize, float increaseFactor) {
+		std::vector<byte> outBuff{};
+		int r{ Decompress(alg, outBuff, src, srcSize, increaseFactor) };
+		if (r >= 0) {
+			return outBuff;
+		}
+		throw std::runtime_error(std::format("Error when decompressing {}", r));
 	}
 
 	bool Compress(CompressionAlgorithm alg, void* dest, size_t* destSize, const void* src, size_t srcSize) {

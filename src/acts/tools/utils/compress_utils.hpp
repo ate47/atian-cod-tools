@@ -67,6 +67,7 @@ namespace utils::compress {
 	}
 
 	std::vector<byte> Decompress(CompressionAlgorithm alg, const void* src, size_t srcSize, float increaseFactor = 1.5);
+	int Decompress(CompressionAlgorithm alg, std::vector<byte>& vec, const void* src, size_t srcSize, float increaseFactor = 1.5);
 
 	bool Compress(CompressionAlgorithm alg, void* dest, size_t* destSize, const void* src, size_t srcSize);
 	size_t GetCompressSize(CompressionAlgorithm alg, size_t srcSize);
