@@ -546,6 +546,23 @@ namespace {
 #pragma endregion
 #pragma region opcode_info
 
+static thread_local int tryCatchId{};
+
+class ASMContextLocationOpCatch : public ASMContextLocationOp {
+private:
+	int tid;
+public:
+	ASMContextLocationOpCatch(int tid) : ASMContextLocationOp("Catch"), tid(tid) {
+	}
+	void Run(ASMContext& context, tool::gsc::T8GSCOBJContext& objctx)  const override {
+		auto* ref = new ASMContextNodeValue<const char*>("Catch", TYPE_CATCH_PRECOMPUTE);
+		// convert it to statement
+		ref->m_priority = PRIORITY_INST;
+		// TODO: use tid
+		context.PushASMCNode(ref);
+		context.CompleteStatement();
+	}
+};
 class ASMContextLocationOpOp : public ASMContextLocationOp {
 private:
 	ASMContextNode* m_node;
@@ -1690,28 +1707,36 @@ public:
 };
 
 class OPCodeInfoGetVector : public OPCodeInfo {
+	size_t count;
 public:
-	OPCodeInfoGetVector() : OPCodeInfo(OPCODE_GetVector, "GetVector") {}
+	OPCodeInfoGetVector(OPCode id, const char* name, size_t count) : OPCodeInfo(id, name), count(count) {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			context.Aligned<float>();
 		}
+		float vec[0x10];
+		assert(count < 0x10);
+
 		auto& bytecode = context.m_bcl;
 
-		float x = context.Read<float>(bytecode);
-		bytecode += 4;
-
-		float y = context.Read<float>(bytecode);
-		bytecode += 4;
-
-		float z = context.Read<float>(bytecode);
-		bytecode += 4;
+		out << "(";
+		for (size_t i = 0; i < count; i++) {
+			if (i) out << ", ";
+			vec[i] = context.Read<float>(bytecode);
+			bytecode += 4;
+			out << vec[i];
+		}
+		out << ")\n";
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeVector(x, y, z));
+			if (count == 3) {
+				context.PushASMCNode(new ASMContextNodeVector(vec[0], vec[1], vec[2]));
+			}
+			else {
+				context.PushASMCNode(new ASMContextNodeVectorN(vec, count));
+			}
 		}
-		out << "(" << x << ", " << y << ", " << z << ")\n";
 
 		return 0;
 	}
@@ -4697,6 +4722,70 @@ public:
 	}
 };
 
+class OPCodeInfoTry : public OPCodeInfo {
+public:
+	OPCodeInfoTry() : OPCodeInfo(OPCODE_T10_Try, "T10_Try") {
+	}
+
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+			context.Aligned<int16_t>();
+		}
+		auto& base = context.m_bcl;
+
+		int16_t delta = context.Read<int16_t>(base);
+
+		byte* newLoc = &context.m_bcl[delta];
+		auto& locref = context.PushLocation(newLoc);
+
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc 
+			<< "(" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << "\n";
+
+		if (context.m_runDecompiler) {
+			int tid{ tryCatchId++ };
+			auto* ref = new ASMContextNodeValue<const char*>("Try", TYPE_TRY_PRECOMPUTE);
+			// TODO: use tid
+			ref->m_priority = PRIORITY_INST;
+			context.PushASMCNode(ref);
+			context.CompleteStatement();
+			locref.m_lateop.push_back(new ASMContextLocationOpCatch(tid));
+		}
+		return 0;
+	}
+
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
+};
+class OPCodeInfoTryEnd : public OPCodeInfo {
+public:
+	OPCodeInfoTryEnd() : OPCodeInfo(OPCODE_T10_TryEnd, "T10_TryEnd") {
+	}
+
+	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+			context.Aligned<int16_t>();
+		}
+		auto& base = context.m_bcl;
+
+		int16_t delta = context.Read<int16_t>(base);
+
+		byte* newLoc = &context.m_bcl[delta];
+		auto& locref = context.PushLocation(newLoc);
+
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc
+			<< "(" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << "\n";
+
+		// Todo: do we need it?
+		return 0;
+	}
+
+	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
+		return 0;
+	}
+};
+
+ 
 class OPCodeInfodec : public OPCodeInfo {
 public:
 	OPCodeInfodec(OPCode id, const char* name) : OPCodeInfo(id, name) {
@@ -5363,7 +5452,9 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoGetNumber<int16_t>(OPCODE_GetShort, "GetShort"));
 			RegisterOpCodeHandler(new OPCodeInfoVector());
 			RegisterOpCodeHandler(new OPCodeInfoVectorConstant());
-			RegisterOpCodeHandler(new OPCodeInfoGetVector());
+			RegisterOpCodeHandler(new OPCodeInfoGetVector(OPCODE_T10_GetVector2, "T10_GetVector2", 2));
+			RegisterOpCodeHandler(new OPCodeInfoGetVector(OPCODE_GetVector, "GetVector", 3));
+			RegisterOpCodeHandler(new OPCodeInfoGetVector(OPCODE_T10_GetVector4, "T10_GetVector4", 4));
 
 			RegisterOpCodeHandler(new OPCodeInfoVectorScale(OPCODE_VectorScale, "VectorScale"));
 			RegisterOpCodeHandler(new OPCodeInfoGetObjectSize(OPCODE_SizeOf, "SizeOf"));
@@ -5512,6 +5603,7 @@ namespace tool::gsc::opcode {
 			// scripts\asm\asm::asm_getanim()'s assertmsg lol
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_FlatArgs, "T10_FlatArgs", "flat_args", true, 2, 0, false));
 			RegisterOpCodeHandler(new OPCodeInfoSingle(OPCODE_T10_ArrayContainsKey, "T10_ArrayContainsKey", "array_contains_key", true, 2, 0, false));
+			RegisterOpCodeHandler(new OPCodeInfoTry());
 			RegisterOpCodeHandler(new OPCodeInfoGetPositionRef());
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWNotify(OPCODE_IW_Notify, "IW_Notify"));

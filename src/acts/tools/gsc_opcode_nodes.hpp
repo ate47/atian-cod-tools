@@ -154,6 +154,61 @@ namespace tool::gsc::opcode {
 		}
 	};
 
+	class ASMContextNodeVectorN : public ASMContextNode {
+	public:
+		typedef ASMContextNode* NodePtr;
+		NodePtr* nodes;
+		size_t count;
+		ASMContextNodeVectorN(ASMContextNode** nodes, size_t count) : ASMContextNode(PRIORITY_VALUE, TYPE_VECTORN), count(count), nodes(nodes) {
+		}
+		ASMContextNodeVectorN(float* vector, size_t count) : ASMContextNode(PRIORITY_VALUE, TYPE_VECTORN), count(count) {
+			nodes = new NodePtr[count];
+			for (size_t i = 0; i < count; i++) {
+				nodes[i] = new ASMContextNodeValue<float>(vector[i], TYPE_FLOAT);
+			}
+		}
+		~ASMContextNodeVectorN() {
+			for (size_t i = 0; i < count; i++) {
+				delete nodes[i];
+			}
+			delete[] nodes;
+		}
+
+		void Dump(std::ostream& out, DecompContext& ctx) const override {
+			out << "(";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			for (size_t i = 0; i < count; i++) {
+				if (i)
+					out << ", ";
+				nodes[i]->Dump(out, ctx);;
+			}
+
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << ")";
+		}
+
+		ASMContextNode* Clone() const override {
+			ASMContextNode** copy = new NodePtr[count];
+			for (size_t i = 0; i < count; i++) {
+				copy[i] = nodes[i]->Clone();
+			}
+			return new ASMContextNodeVectorN(copy, count);
+		}
+
+		void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override {
+			for (size_t i = 0; i < count; i++) {
+				if (!nodes[i]) continue;
+
+				func(nodes[i], ctx);
+				nodes[i]->ApplySubNodes(func, ctx);
+			}
+		}
+	};
+
 	class ASMContextNodeVector : public ASMContextNode {
 	public:
 		ASMContextNode* m_x;
@@ -161,10 +216,10 @@ namespace tool::gsc::opcode {
 		ASMContextNode* m_z;
 		ASMContextNodeVector(ASMContextNode* x, ASMContextNode* y, ASMContextNode* z) : ASMContextNode(PRIORITY_VALUE, TYPE_VECTOR), m_x(x), m_y(y), m_z(z) {
 		}
-		ASMContextNodeVector(FLOAT x, FLOAT y, FLOAT z) : ASMContextNodeVector(
-			new ASMContextNodeValue<FLOAT>(x, TYPE_FLOAT),
-			new ASMContextNodeValue<FLOAT>(y, TYPE_FLOAT),
-			new ASMContextNodeValue<FLOAT>(z, TYPE_FLOAT)
+		ASMContextNodeVector(float x, float y, float z) : ASMContextNodeVector(
+			new ASMContextNodeValue<float>(x, TYPE_FLOAT),
+			new ASMContextNodeValue<float>(y, TYPE_FLOAT),
+			new ASMContextNodeValue<float>(z, TYPE_FLOAT)
 			) {
 		}
 		~ASMContextNodeVector() {

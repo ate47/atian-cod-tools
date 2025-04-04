@@ -424,6 +424,10 @@ namespace tool::gsc::opcode {
 
 		OPCODE_T10_EvalLocalVariableCachedTriple,
 		OPCODE_T10_ArrayContainsKey,
+		OPCODE_T10_Try,
+		OPCODE_T10_TryEnd,
+		OPCODE_T10_GetVector2,
+		OPCODE_T10_GetVector4,
 
 		OPCODE_COUNT,
 	};

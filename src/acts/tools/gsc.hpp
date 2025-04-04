@@ -207,10 +207,13 @@ namespace tool::gsc {
 
             TYPE_SWITCH_PRECOMPUTE,
             TYPE_SWITCH_POSTCOMPUTE,
+            TYPE_TRY_PRECOMPUTE,
+            TYPE_CATCH_PRECOMPUTE,
 
             TYPE_CONST_HASH,
             TYPE_STRING,
             TYPE_VECTOR,
+            TYPE_VECTORN,
             TYPE_FLOAT,
 
             TYPE_ARRAY_FIRSTKEY,
