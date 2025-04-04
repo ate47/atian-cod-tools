@@ -64,5 +64,45 @@ namespace {
 		return tool::OK;
 	}
 
+
+	int lua_file_delta(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 3)) {
+			return tool::BAD_USAGE;
+		}
+		std::vector<byte> f1{};
+		std::vector<byte> f2{};
+		size_t offset{ std::strtoull(argv[4], nullptr, 10) };
+		if (!utils::ReadFile(argv[2], f1) || !utils::ReadFile(argv[3], f2)) {
+			LOG_ERROR("Can't read files");
+			return tool::BASIC_ERROR;
+		}
+
+		size_t max{ std::max<size_t>(f1.size(), f2.size()) };
+
+		std::map<byte, std::unordered_set<byte>> diff{};
+
+		for (size_t i = offset; i < max; i++) {
+			if (f1[i] != f2[i]) {
+				diff[f1[i]].insert(f2[i]);
+			}
+		}
+
+		for (auto& [old, news] : diff) {
+			std::stringstream ss{};
+
+			for (byte nw : news) {
+				ss << " " << std::dec << (int)nw;
+			}
+
+			LOG_INFO("{} ->{}", (int)old, ss.str());
+		}
+
+		
+
+
+		return tool::OK;
+	}
+
 	ADD_TOOL(bo6_radiant_keys, "bo6", " [keys] [out]", "Read bo6 radiant keys", bo6_radiant_keys);
+	ADD_TOOL(lua_file_delta, "dev", " [a1] [a2] [offset]", "Lua file delta", lua_file_delta);
 }
