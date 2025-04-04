@@ -1,4 +1,5 @@
 #pragma once
+#include <hook/module_mapper.hpp>
 
 namespace acts::decryptutils {
 	/*
@@ -12,6 +13,11 @@ namespace acts::decryptutils {
 	 * @param exec the executable
 	 */
 	bool LoadDecrypt(const std::filesystem::path& exec);
+	/*
+	 * Load a decryption implementation from an already loaded module
+	 * @param mod the module
+	 */
+	bool LoadDecryptModule(const hook::module_mapper::Module& mod);
 
 	enum T8Decryption {
 		T8D_X1_LATEST = 0,

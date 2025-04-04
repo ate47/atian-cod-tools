@@ -145,7 +145,7 @@ namespace fastfile {
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
 		void PrintHelp();
 
-		hook::library::Library GetGame(bool crashError, bool* init = nullptr);
+		hook::library::Library GetGame(bool crashError, bool* init = nullptr, bool needDecrypt = false);
 		std::vector<std::string> GetFileRecurse(const char* path);
 		bool ReadFile(const char* path, std::vector<byte>& buff);
 

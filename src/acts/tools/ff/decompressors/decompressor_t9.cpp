@@ -430,7 +430,7 @@ namespace {
 					}
 					// todo: read patch data
 					bool init{};
-					hook::library::Library game{ opt.GetGame(true, &init) };
+					hook::library::Library game{ opt.GetGame(true, &init, true) };
 
 					//if (init) {
 					//	LOG_TRACE("Init bo4 game");
@@ -475,7 +475,8 @@ namespace {
 						hook::library::ScanResult bdiffOff{ game.FindAnyScan(
 							"bdiff",
 							"40 53 55 41 54 41 56 B8", // cw/cod2020
-							"40 55 41 54 41 56 41 57 B8" // bo4
+							"40 55 41 54 41 56 41 57 B8", // bo4
+							"40 55 41 54 41 55 41 56 41 57 B8" // bo6
 						) };
 
 						LOG_TRACE("find bdiff: {}", hook::library::CodePointer{ bdiffOff.location });

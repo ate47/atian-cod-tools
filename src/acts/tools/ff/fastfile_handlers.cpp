@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include "fastfile_handlers.hpp"
+#include <decryptutils.hpp>
 #pragma warning(push)
 #pragma warning(disable:4996)
 #include <CascLib.h>
@@ -462,7 +463,7 @@ namespace fastfile {
 		
 	}
 
-	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init) {
+	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init, bool needDecrypt) {
 		if (init) *init = false;
 
 		if (!game) {
@@ -476,6 +477,11 @@ namespace fastfile {
 			if (!gameMod.Load(game)) {
 				throw std::runtime_error(std::format("Can't load {}", game));
 			}
+
+			if (needDecrypt && !acts::decryptutils::LoadDecryptModule(gameMod)) {
+				throw std::runtime_error(std::format("Can't load {}: Can't find DecryptString", game));
+			}
+
 			if (init) *init = true;
 		}
 

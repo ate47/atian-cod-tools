@@ -19,8 +19,7 @@ namespace acts::decryptutils {
 
 		return DecryptStringImpl(str);
 	}
-	bool LoadDecrypt(const std::filesystem::path& exec) {
-		decryptModule.Free();
+	bool LoadDecryptModule(const hook::module_mapper::Module& mod) {
 		DecryptStringImpl = nullptr;
 
 		struct {
@@ -32,13 +31,8 @@ namespace acts::decryptutils {
 			{ "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6 01", "mw19" },
 		};
 
-		if (!decryptModule.Load(exec)) {
-			LOG_ERROR("Can't load decryption module {}", exec.string());
-			return false;
-		}
-
 		for (auto& cfg : knownScans) {
-			std::vector<hook::library::ScanResult> res = decryptModule->Scan(cfg.pattern);
+			std::vector<hook::library::ScanResult> res = mod->Scan(cfg.pattern);
 
 			if (res.size() != 1) {
 				if (res.size() > 1) {
@@ -47,16 +41,30 @@ namespace acts::decryptutils {
 				continue;
 			}
 
-			DecryptStringImpl = res[0].GetPtr<char*(*)(char* str)>();
-			LOG_TRACE("Loaded DecryptStringImpl=0x{:x} ({})", decryptModule->Rloc(DecryptStringImpl), cfg.id);
+			DecryptStringImpl = res[0].GetPtr<char* (*)(char* str)>();
+			LOG_TRACE("Loaded DecryptStringImpl=0x{:x} ({})", mod->Rloc(DecryptStringImpl), cfg.id);
 			return true; // loaded
 		}
-		
+
+		return false;
+	}
+
+	bool LoadDecrypt(const std::filesystem::path& exec) {
+		decryptModule.Free();
+
+		if (!decryptModule.Load(exec)) {
+			LOG_ERROR("Can't load decryption module {}", exec.string());
+			return false;
+		}
+
+		if (LoadDecryptModule(decryptModule)) {
+			return true;
+		}
+
 		decryptModule.Free();
 		LOG_ERROR("Can't load decryption DecryptString in {}", exec.string());
 		return false;
 	}
-
 
 	void SetT8OldDecryption(T8Decryption alg) {
 		t8old = alg;
