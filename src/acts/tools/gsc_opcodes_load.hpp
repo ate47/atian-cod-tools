@@ -428,6 +428,8 @@ namespace tool::gsc::opcode {
 		OPCODE_T10_TryEnd,
 		OPCODE_T10_GetVector2,
 		OPCODE_T10_GetVector4,
+		OPCODE_T10_Vector2,
+		OPCODE_T10_Vector4,
 
 		OPCODE_COUNT,
 	};

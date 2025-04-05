@@ -54,6 +54,19 @@ namespace bo6 {
 		T10VT_ENDON_LIST = 0x22,
 		T10VT_TYPE_COUNT = 0x23,
 	};
+	enum ScrVarArrayKeyType : byte {
+		AKT_UNDEFINED = 0,
+		AKT_INTEGER = 0x1,
+		AKT_STRING = 0x2,
+		AKT_UNK3 = 0x3,
+		AKT_XHASH = 0x4,
+		AKT_XHASH32 = 0x5,
+		AKT_XHASH_ASSET = 0x6,
+		AKT_XHASH_DVAR = 0x7,
+		AKT_XHASH_SCR = 0x8, // only in structs
+		AKT_COUNT
+	};
+
 
 	enum T10OldScrVarType : uint32_t {
 		T10OldVT_UNDEFINED = 0x0,

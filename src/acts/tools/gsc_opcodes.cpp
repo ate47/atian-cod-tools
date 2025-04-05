@@ -1686,15 +1686,25 @@ public:
 };
 
 class OPCodeInfoVector : public OPCodeInfo {
+	size_t count;
 public:
-	OPCodeInfoVector() : OPCodeInfo(OPCODE_Vector, "Vector") {}
+	OPCodeInfoVector(OPCode opcode, const char* desc, size_t count) : OPCodeInfo(opcode, desc), count(count) {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			auto* x = context.PopASMCNode();
-			auto* y = context.PopASMCNode();
-			auto* z = context.PopASMCNode();
-			context.PushASMCNode(new ASMContextNodeVector(x, y, z));
+			if (count == 3) {
+				auto* x = context.PopASMCNode();
+				auto* y = context.PopASMCNode();
+				auto* z = context.PopASMCNode();
+				context.PushASMCNode(new ASMContextNodeVector(x, y, z));
+			}
+			else {
+				ASMContextNode** nodes{ new ASMContextNodeVectorN::NodePtr[count] };
+				for (size_t i = 0; i < count; i++) {
+					nodes[i] = context.PopASMCNode();
+				}
+				context.PushASMCNode(new ASMContextNodeVectorN(nodes, count));
+			}
 		}
 
 		out << "\n";
@@ -5450,7 +5460,9 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoGetNumber<uintptr_t, uintptr_t>(OPCODE_GetUIntPtr, "GetUIntPtr"));
 			RegisterOpCodeHandler(new OPCodeInfoGetNumber<int8_t>(OPCODE_GetSignedByte, "GetSignedByte"));
 			RegisterOpCodeHandler(new OPCodeInfoGetNumber<int16_t>(OPCODE_GetShort, "GetShort"));
-			RegisterOpCodeHandler(new OPCodeInfoVector());
+			RegisterOpCodeHandler(new OPCodeInfoVector(OPCODE_Vector, "Vector", 3));
+			RegisterOpCodeHandler(new OPCodeInfoVector(OPCODE_T10_Vector2, "T10_Vector2", 2));
+			RegisterOpCodeHandler(new OPCodeInfoVector(OPCODE_T10_Vector4, "T10_Vector4", 4));
 			RegisterOpCodeHandler(new OPCodeInfoVectorConstant());
 			RegisterOpCodeHandler(new OPCodeInfoGetVector(OPCODE_T10_GetVector2, "T10_GetVector2", 2));
 			RegisterOpCodeHandler(new OPCodeInfoGetVector(OPCODE_GetVector, "GetVector", 3));
