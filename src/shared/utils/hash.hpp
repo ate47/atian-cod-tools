@@ -7,6 +7,7 @@ namespace hash {
 	constexpr uint64_t IV_DEFAULT = 0x100000001b3;
 	constexpr uint64_t IV_32_DEFAULT = 0x1000193;
 	constexpr uint64_t IV_TYPE2 = 0x10000000233;
+	constexpr uint64_t IV_TYPE3 = 0x100000002C1;
 
 	constexpr uint64_t FNV1A_PRIME = 0xcbf29ce484222325LL;
 	constexpr uint64_t FNV1A_32_PRIME = 0x811C9DC5;
@@ -14,11 +15,13 @@ namespace hash {
 	constexpr uint64_t FNV1A_IW_PRIME = 0x47F5817A5EF961BA;
 	constexpr uint64_t FNV1A_IW_SCR_PRIME = 0x79D6530B0BB9B5D1;
 	constexpr uint64_t FNV1A_IW_DVAR_OFFSET = 0xD86A3B09566EBAAC;
+	constexpr uint64_t FNV1A_IW_OMNVAR_OFFSET = 0xCBF28CE593123345;
 	constexpr uint64_t FNV1A_T10_SCR_OFFSET = 0x1C2F2E3C8A257D07;
 	constexpr uint64_t FNV1A_32_T7_PRIME = 0x4B9ACE2F;
 
 	constexpr const char* XHASHSEC_DVAR_STR = "q6n-+7=tyytg94_*";
 	constexpr const char* XHASHSEC_T10_SCR_STR = "zt@f3yp(d[kkd=_@";
+	constexpr const char* XHASHSEC_T10_OMNVAR_STR = "gvbs9*vpm@mh@krh";
 
 	constexpr char lowerc(char c) {
 		if (c >= 'A' && c <= 'Z') {
@@ -291,6 +294,7 @@ namespace hash {
 	constexpr uint64_t HashT10ScrSPPre(const char* str, uint64_t start = FNV1A_T10_SCR_OFFSET) { return hash::Hash64A(str, start, IV_TYPE2); }
 	constexpr uint64_t HashT10ScrSPPost(uint64_t hash) { return hash::Hash64A(XHASHSEC_T10_SCR_STR, hash, IV_TYPE2); }
 	constexpr uint64_t HashT10ScrSP(const char* str) { return HashT10ScrSPPost(HashT10ScrSPPre(str)); }
+	constexpr uint64_t HashT10OmnVar(const char* str, uint64_t start = 0) { return !start ? HashSecure(XHASHSEC_T10_OMNVAR_STR, FNV1A_IW_OMNVAR_OFFSET, str, IV_TYPE3) : hash::Hash64A(str, start, IV_TYPE3); }
 
 	inline uint64_t HashIWRes(const std::string& str, uint64_t start = FNV1A_IW_PRIME) { return HashIWRes(str.data(), FNV1A_IW_PRIME); }
 	inline uint64_t HashIWTag(const std::string& str, uint64_t start = FNV1A_32_PRIME) { return HashIWTag(str.data(), FNV1A_32_PRIME); }

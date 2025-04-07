@@ -357,6 +357,7 @@ namespace hashutils {
 			AddPrecomputed(hash::HashIWDVar(str), str, true, false);
 			AddPrecomputed(hash::HashT10Scr(str), str, true, false);
 			AddPrecomputed(hash::HashT10ScrSP(str), str, true, false);
+			AddPrecomputed(hash::HashT10OmnVar(str), str, true, false);
 		}
 		bool cand32 = true;
 

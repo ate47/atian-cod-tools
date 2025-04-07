@@ -237,6 +237,7 @@ namespace {
 		{ "t7", "t7 fnv1a", [](const char* text) -> uint64_t { return hash::HashT7(text); } },
 		{ "tag", "IW tag", [](const char* text) -> uint64_t { return hash::HashIWTag(text); } },
 		{ "dvar", "IW Dvar", [](const char* text) -> uint64_t { return hash::HashIWDVar(text); } },
+		{ "omnvar", "bo6 Omnvar", [](const char* text) -> uint64_t { return hash::HashT10OmnVar(text); } },
 	};
 
 	static void SyncAlgCfg() {

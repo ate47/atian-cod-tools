@@ -11,6 +11,7 @@
 #include "tools/pool.hpp"
 #include "tools/bo6/bo6.hpp"
 #include <core/memory_allocator.hpp>
+#include <decryptutils.hpp>
 
 namespace {
 	using namespace tool::gsc::opcode;
@@ -281,24 +282,6 @@ namespace {
 		return tool::OK;
 	}
 
-	bool HasEnoughInternet(const char* website = "https://example.org") {
-		//std::string tmp{};
-		//try {
-		//	return utils::io::DownloadFile(website, tmp, false);
-		//}
-		//catch (std::runtime_error& e) {
-		//	LOG_TRACE("HasEnoughInternet err: {}", e.what());
-		//	return false;
-		//}
-		return false;
-	}
-
-	int test_enough_internet(int argc, const char* argv[]) {
-		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
-		LOG_INFO("HasEnoughInternet() = {}", HasEnoughInternet(argv[2]));
-		return tool::OK;
-	}
-
 	int scripts_decrypt(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 4)) return tool::BAD_USAGE;
 
@@ -324,74 +307,25 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		hook::module_mapper::Module mod{ true };
+		LOG_INFO("Loading module {}", exe);
 
-		auto LoadMod = [&mod, exe](bool hasAC) -> bool {
-			if (hasAC && HasEnoughInternet()) {
-				LOG_ERROR("Reminder: DO NOT MAP EXE WITH AC WHILE BEING CONNECTED TO INTERNET");
-				return false;
-			}
-			LOG_INFO("Loading module {}", exe);
-			if (!mod.Load(exe)) {
-				LOG_ERROR("Can't load module");
-				return false;
-			}
-			return true;
-			};
-
-		std::function<char* (char*)> DecryptString;
-
-		switch (type) {
-		case VMI_T7_1C:
-		case VMI_T7_1B:
-		case VMI_T8_36:
-		case VMI_JUP_8A: {
-			LOG_WARNING("Decryption useless with {}", nfo->name);
-			return tool::OK; // nothing to do
-		}
-		case VMI_T9_38: {
-			if (!LoadMod(false)) return tool::BASIC_ERROR;
-			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6", "DecryptString").GetPtr<char* (*)(char* str)>();
-			DecryptString = [DecryptStringFunc](char* s) -> char* {
-				char* sd = DecryptStringFunc(s);
-
-				// save the decrypted string at the same location
-				memmove(s, sd, std::strlen(sd) + 1);
-
-				return s;
-				};
-			break;
-		}
-		case VMI_JUP_8B:
-		case VMI_T10_06:
-		case VMI_T10_07:
-		case VMI_T10_08:
-		case VMI_T10_09:
-		case VMI_T10_0A:
-		case VMI_T10_0B:
-		case VMI_T10_0C:
-		case VMI_T10_0D:
-		case VMI_T10_0E:
-		case VMI_T10_10:
-		case VMI_T10_11:
-		case VMI_T10_12: {
-			if (!LoadMod(true)) return tool::BASIC_ERROR;
-			auto DecryptStringFunc = mod->ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "DecryptString").GetPtr<char* (*)(char* str)>();
-			DecryptString = [DecryptStringFunc](char* s) -> char* {
-				char* sd = DecryptStringFunc(s);
-
-				// save the decrypted string at the same location
-				memmove(s, sd, std::strlen(sd) + 1);
-
-				return s;
-				};
-			break;
-		}
-		default:
-			LOG_ERROR("No module information about {} are registered", nfo->name);
+		if (!acts::decryptutils::LoadDecrypt(exe)) {
 			return tool::BASIC_ERROR;
 		}
+
 		LOG_INFO("Module loaded");
+
+
+		std::function<char* (char*)> DecryptString = [](char* s) -> char* {
+			char* sd = acts::decryptutils::DecryptString(s);
+
+			// save the decrypted string at the same location
+			if (sd != s) {
+				memmove(s, sd, std::strlen(sd) + 1);
+			}
+
+			return s;
+		};
 
 		hashutils::ReadDefaultFile();
 
@@ -607,7 +541,6 @@ namespace {
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
 	ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);
 	ADD_TOOL(scripts_decrypt, "gsc", "[exe] [type] [scripts] [ouput]", "Map exe in memory and use it to decrypt GSC scripts", scripts_decrypt);
-	ADD_TOOL(test_enough_internet, "dev", "[url]", "Test can load", test_enough_internet);
 
 
 }

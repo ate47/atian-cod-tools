@@ -3,6 +3,7 @@
 #include <rapidcsv.h>
 #include "actscli.hpp"
 #include "compatibility/scobalula_wni.hpp"
+#include <tools/utils/compress_utils.hpp>
 
 namespace {
 
@@ -71,6 +72,7 @@ namespace {
 		ALG_SCR_JUP = 1 << 7,
 		ALG_SCR_T10 = 1 << 8,
 		ALG_SCR_T10_SP = 1 << 9,
+		ALG_OMNVAR_T10 = 1 << 10,
 
 		ALG_ALL = static_cast<Algorithms>(-1),
 	};
@@ -221,6 +223,9 @@ namespace {
 				case hash::Hash64("dvar"):
 					alg |= ALG_DVAR;
 					break;
+				case hash::Hash64("omnvar"):
+					alg |= ALG_OMNVAR_T10;
+					break;
 				case hash::Hash64("all"):
 					alg |= ALG_ALL;
 					break;
@@ -300,6 +305,11 @@ namespace {
 				utils::WriteValue(rawdata, hash::HashT10ScrSP(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
 			}
+
+			if (alg & ALG_OMNVAR_T10) {
+				utils::WriteValue(rawdata, hash::HashT10OmnVar(line.c_str()));
+				utils::WriteString(rawdata, line.c_str());
+			}
 			count++;
 		}
 		LOG_DEBUG("strings loaded: {}", count);
@@ -311,14 +321,16 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		int bound = LZ4_compressBound((int)rawdata.size());
+		size_t bound = utils::compress::GetCompressSize(utils::compress::COMP_LZ4, rawdata.size());
 
-		auto comp = std::make_unique<char[]>(bound);
+		auto comp = std::make_unique<byte[]>(bound);
 
 		LOG_DEBUG("Compressing...");
 
-		int compressedSize = LZ4_compress_default((const char*)&rawdata[0], &comp[0], (int)rawdata.size(), bound);
-		if (compressedSize <= 0) {
+		if (!utils::compress::Compress(
+			utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION,
+			comp.get(), &bound, rawdata.data(), rawdata.size()
+		)) {
 			LOG_ERROR("Failed to compress, abort.");
 			is.close();
 			os.close();
@@ -339,7 +351,7 @@ namespace {
 		LOG_INFO("Entries: {}", tmp);
 		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
 		// compressedSize
-		tmp = compressedSize;
+		tmp = (uint32_t)bound;
 		LOG_INFO("Compressed Size: {}", tmp);
 		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
 		// decompressedSize
@@ -347,7 +359,7 @@ namespace {
 		LOG_INFO("Decompressed Size: {}", tmp);
 		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
 		// buffer
-		os.write(reinterpret_cast<const char*>(&comp[0]), compressedSize + 1);
+		os.write(reinterpret_cast<const char*>(&comp[0]), bound + 1);
 
 
 		is.close();
