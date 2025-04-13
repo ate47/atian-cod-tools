@@ -277,7 +277,7 @@ namespace {
 			}
 
 			if (alg & ALG_FNV_IW_RES) {
-				utils::WriteValue(rawdata, hash::HashIWRes(line.c_str()));
+				utils::WriteValue(rawdata, hash::HashIWAsset(line.c_str()));
 				utils::WriteString(rawdata, line.c_str());
 			}
 

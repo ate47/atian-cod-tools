@@ -164,7 +164,7 @@ namespace hashutils {
 		}
 
 		for (const auto& v : g_extracted) {
-			auto e = g_hashMap.find(v & hashutils::MASK62);
+			auto e = g_hashMap.find(v & hashutils::MASK60);
 			if (e != g_hashMap.end()) {
 				out << std::hex << v << "," << e->second << "\n";
 			}
@@ -351,7 +351,7 @@ namespace hashutils {
 		}
 		AddPrecomputed(hash::Hash64(str), str, true, false);
 		if (iw) {
-			AddPrecomputed(hash::HashIWRes(str), str, true, false);
+			AddPrecomputed(hash::HashIWAsset(str), str, true, false);
 			AddPrecomputed(hash::HashJupScr(str), str, true, false);
 			AddPrecomputed(hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true, false);
 			AddPrecomputed(hash::HashIWDVar(str), str, true, false);
@@ -390,7 +390,7 @@ namespace hashutils {
 	}
 	void AddPrecomputed(uint64_t value, const char* str, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		g_hashMap.emplace(value & hashutils::MASK62, clone ? alloc.CloneStr(str) : str);
+		g_hashMap.emplace(value & hashutils::MASK60, clone ? alloc.CloneStr(str) : str);
 	}
 
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
@@ -406,14 +406,14 @@ namespace hashutils {
 			}
 			return true;
 		}
-		const auto res = g_hashMap.find(hash & hashutils::MASK62);
+		const auto res = g_hashMap.find(hash & hashutils::MASK60);
 		if (g_saveExtracted) {
 			if (g_saveExtractedUnk || res != g_hashMap.end()) {
 				g_extracted.emplace(hash);
 			}
 		}
 		if (g_extractedOut) {
-			g_extractedOut->insert(hash & hashutils::MASK62);
+			g_extractedOut->insert(hash & hashutils::MASK60);
 		}
 		if (res == g_hashMap.end()) {
 			snprintf(out, outSize, heavyHashes ? "%s_%016llX" : "%s_%llx", type, hash);
@@ -444,7 +444,7 @@ namespace hashutils {
 
 	const char* ExtractPtr(uint64_t hash) {
 		ReadDefaultFile();
-		const auto res = g_hashMap.find(hash & hashutils::MASK62);
+		const auto res = g_hashMap.find(hash & hashutils::MASK60);
 		if (res == g_hashMap.end()) {
 			return NULL;
 		}

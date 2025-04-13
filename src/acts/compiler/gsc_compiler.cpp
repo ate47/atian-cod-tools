@@ -3949,7 +3949,7 @@ namespace acts::compiler {
                         return true;
                     }
                     // test dev call
-                    if (!obj.config.noDevCallInline && !obj.devBlockDepth && fobj.m_vmInfo->devCallsNames.find(funcHash & hash::MASK62) != fobj.m_vmInfo->devCallsNames.end()) {
+                    if (!obj.config.noDevCallInline && !obj.devBlockDepth && fobj.m_vmInfo->devCallsNames.find(funcHash & hash::MASK60) != fobj.m_vmInfo->devCallsNames.end()) {
                         if (!expressVal) { // can't inline a returned value
                             devCallInlineEnd = new AscmNode();
                             fobj.AddNode(rule, new AscmNodeJump(devCallInlineEnd, OPCODE_DevblockBegin));

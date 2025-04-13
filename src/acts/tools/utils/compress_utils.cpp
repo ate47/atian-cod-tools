@@ -59,15 +59,14 @@ namespace utils::compress {
 			uLongf sizef = (uLongf)destSize;
 			uLongf sizef2{ (uLongf)srcSize };
 			int r{ uncompress2((Bytef*)dest, &sizef, (const Bytef*)src, &sizef2) };
-			if (r < 0) {
-				switch (r) {
-				case Z_BUF_ERROR:
-					return DecompressResult::DCOMP_DEST_TOO_SMALL;
-				default:
-					return DecompressResult::DCOMP_UNKNOWN_ERROR;
-				}
+			switch (r) {
+			case Z_OK:
+				return sizef;
+			case Z_BUF_ERROR:
+				return DecompressResult::DCOMP_DEST_TOO_SMALL;
+			default:
+				return DecompressResult::DCOMP_UNKNOWN_ERROR;
 			}
-			return r;
 		}
 		case COMP_ZSTD: {
 			size_t ret{ ZSTD_decompress(dest, destSize, src, srcSize) };
@@ -106,7 +105,7 @@ namespace utils::compress {
 			len = (size_t)(len * increaseFactor);
 			outBuff.resize(len);
 
-			int r{ Decompress(alg, outBuff.data(), outBuff.size(), src, srcSize) };
+			int r{ Decompress2(alg, outBuff.data(), outBuff.size(), src, srcSize) };
 
 			if (r >= 0) {
 				return r;

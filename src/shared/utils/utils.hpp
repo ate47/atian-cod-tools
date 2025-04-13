@@ -373,7 +373,7 @@ namespace utils {
 	 */
 	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate, bool removeParent = false);
 
-	std::ostream& PrintFormattedString(std::ostream& out, const char* str);
+	std::ostream& PrintFormattedString(std::ostream& out, const char* str, size_t len = 0);
 	/*
 	 * Get a char to a byte value, throw invalid_argument for bad character
 	 * @param c char value (a-fA-F0-9)
@@ -483,9 +483,15 @@ namespace utils {
 
 	public:
 		OutFileCE() : os() {}
-		OutFileCE(const char* f) : os(f) {}
-		OutFileCE(const std::filesystem::path& f) : os(f) {}
-		OutFileCE(const std::string& f) : os(f) {}
+		OutFileCE(const char* f, bool failOpen = false) : os(f) {
+			if (failOpen && !os) throw std::runtime_error(std::format("Can't open {}", f));
+		}
+		OutFileCE(const std::filesystem::path& f, bool failOpen = false) : os(f) {
+			if (failOpen && !os) throw std::runtime_error(std::format("Can't open {}", f.string()));
+		}
+		OutFileCE(const std::string& f, bool failOpen = false) : os(f) {
+			if (failOpen && !os) throw std::runtime_error(std::format("Can't open {}", f));
+		}
 
 		~OutFileCE() {
 			os.close();
@@ -516,6 +522,54 @@ namespace utils {
 		template<typename T>
 		OutFileCE& operator<<(const T& t) {
 			os << t;
+			return *this;
+		}
+	};
+
+	class InFileCE {
+		std::ifstream is;
+
+	public:
+		InFileCE() : is() {}
+		InFileCE(const char* f, bool failOpen = false) : is(f, std::ios::binary) {
+			if (failOpen && !is) throw std::runtime_error(std::format("Can't open {}", f));
+		}
+		InFileCE(const std::filesystem::path& f, bool failOpen = false) : is(f, std::ios::binary) {
+			if (failOpen && !is) throw std::runtime_error(std::format("Can't open {}", f.string()));
+		}
+		InFileCE(const std::string& f, bool failOpen = false) : is(f, std::ios::binary) {
+			if (failOpen && !is) throw std::runtime_error(std::format("Can't open {}", f));
+		}
+
+		~InFileCE() {
+			is.close();
+		}
+
+		bool operator!() {
+			return !is;
+		}
+
+		std::ifstream& operator*() {
+			return is;
+		}
+
+
+		operator std::ifstream& () {
+			return is;
+		}
+
+		std::ifstream* operator->() {
+			return &is;
+		}
+
+		template<typename T>
+		OutFileCE& operator>>(T&& t) {
+			is >> std::move(t);
+			return *this;
+		}
+		template<typename T>
+		OutFileCE& operator<<(const T& t) {
+			is >> t;
 			return *this;
 		}
 	};

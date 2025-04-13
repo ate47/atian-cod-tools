@@ -398,11 +398,12 @@ namespace utils {
         return MapString(buffer, [](char c) { return std::tolower(c); });
     }
 
-    std::ostream& PrintFormattedString(std::ostream& out, const char* str) {
+    std::ostream& PrintFormattedString(std::ostream& out, const char* str, size_t len) {
         if (!str) {
             return out << "nullptr";
         }
-        for (; *str; str++) {
+
+        for (size_t i = 0; (!len && *str) || (len && i < len); str++, i++) {
             switch (*str) {
             case '\n':
                 out << "\\n";
@@ -427,7 +428,7 @@ namespace utils {
                 break;
             default:
                 if (*str < 0x20 || *str >= 0x7F) {
-                    out << "\\" << std::oct << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
+                    out << "\\x" << std::hex << std::setfill('0') << std::setw(2) << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
                 }
                 else {
                     out << *str;

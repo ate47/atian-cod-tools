@@ -118,7 +118,7 @@ namespace {
 					LOG_INFO("Ignore archive {}", nameStr);
 					return true;
 				}
-				hashutils::AddPrecomputed(hash::HashIWRes(nameStr), nameStr, true);
+				hashutils::AddPrecomputed(hash::HashIWAsset(nameStr), nameStr, true);
 			}
 
 			const char* dfilename = hashutils::ExtractPtr(entry.name);

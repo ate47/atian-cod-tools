@@ -131,7 +131,7 @@ namespace {
 		}
 
 		auto CheckHash = [&hashes, &os](uint64_t val, const char* str) -> bool {
-			auto it{ hashes.find(val & hashutils::MASK62) };
+			auto it{ hashes.find(val & hashutils::MASK60) };
 			if (it != hashes.end()) {
 				// remove from searched list
 				hashes.erase(it);
@@ -146,7 +146,7 @@ namespace {
 		auto CheckHashes = [&CheckHash](const char* str) -> bool {
 			bool r{};
 			r |= CheckHash(hash::Hash64A(str), str);
-			r |= CheckHash(hash::HashIWRes(str), str);
+			r |= CheckHash(hash::HashIWAsset(str), str);
 			r |= CheckHash(hash::HashIWDVar(str), str);
 			r |= CheckHash(hash::HashJupScr(str), str);
 			r |= CheckHash(hash::HashT10Scr(str), str);

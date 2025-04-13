@@ -79,13 +79,13 @@ namespace tool::cordycep::dump::t9 {
 						return false;
 					}
 
-					localized.map[entry.hash & hash::MASK62] = localized.alloc.CloneStr(proc.ReadStringTmp(entry.value));
+					localized.map[entry.hash & hash::MASK60] = localized.alloc.CloneStr(proc.ReadStringTmp(entry.value));
 
 					return true;
 					});
 			}
 
-			auto it = localized.map.find(hash & hash::MASK62);
+			auto it = localized.map.find(hash & hash::MASK60);
 			if (it == localized.map.end()) {
 				return hashutils::ExtractTmp("hash", hash);
 			}
@@ -283,7 +283,7 @@ namespace tool::cordycep::dump::t9 {
 	const char* PoolOptionImpl::AddString(const char* str) {
 		hashutils::AddPrecomputed(hash::Hash64(str), str);
 		hashutils::AddPrecomputed(hash::HashT10Scr(str), str);
-		hashutils::AddPrecomputed(hash::HashIWRes(str), str);
+		hashutils::AddPrecomputed(hash::HashIWAsset(str), str);
 		if (m_dump_strings) {
 			dstrings.insert(str);
 		}

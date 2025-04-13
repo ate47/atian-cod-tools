@@ -175,7 +175,7 @@ namespace tool::hash::scanner {
 			}
 
 			inline void TestHash(uint64_t v, const char* str) {
-				auto it = hashes.find(v & hashutils::MASK62);
+				auto it = hashes.find(v & hashutils::MASK60);
 				if (it != hashes.end()) {
 					std::lock_guard lg{ mtx };
 					output << std::hex << v << "," << (prefix ? prefix : "") << str << (suffix ? suffix : "") << std::endl;
@@ -236,7 +236,7 @@ namespace tool::hash::scanner {
 
 
 			for (uint64_t h : hashesTmp) {
-				data.hashes.insert(h & hashutils::MASK62);
+				data.hashes.insert(h & hashutils::MASK60);
 			}
 
 			LOG_INFO("Find {} hash(es)", data.hashes.size());
@@ -247,7 +247,7 @@ namespace tool::hash::scanner {
 					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSP(str), str);
 					if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89Scr(str), str);
 					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(str), str);
-					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(str), str);
+					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(str), str);
 					if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(str), str);
 				}, &data, data.dict, data.dictSize);
 			}
@@ -260,7 +260,7 @@ namespace tool::hash::scanner {
 						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(data->suffix, ::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(data->prefix)))), str);
 						if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(data->suffix, ::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(data->prefix)))), str);
 						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(data->suffix, ::hash::HashJupScr(str, ::hash::HashJupScr(data->prefix))), str);
-						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(data->suffix, ::hash::HashIWRes(str, ::hash::HashIWRes(data->prefix))), str);
+						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(data->suffix, ::hash::HashIWAsset(str, ::hash::HashIWAsset(data->prefix))), str);
 						if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(data->suffix, ::hash::HashIWDVar(str, ::hash::HashIWDVar(data->prefix))), str);
 					}, &data, data.dict, data.dictSize);
 				}
@@ -272,7 +272,7 @@ namespace tool::hash::scanner {
 						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(data->prefix))), str);
 						if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(data->prefix))), str);
 						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(str, ::hash::HashJupScr(data->prefix)), str);
-						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(str, ::hash::HashIWRes(data->prefix)), str);
+						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(str, ::hash::HashIWAsset(data->prefix)), str);
 						if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(str, ::hash::HashIWDVar(data->prefix)), str);
 					}, &data, data.dict, data.dictSize);
 				}
@@ -285,7 +285,7 @@ namespace tool::hash::scanner {
 					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(data->suffix, ::hash::HashT10ScrSPPre(str))), str);
 					if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(data->suffix, ::hash::HashT89ScrPre(str))), str);
 					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(data->suffix, ::hash::HashJupScr(str)), str);
-					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWRes(data->suffix, ::hash::HashIWRes(str)), str);
+					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(data->suffix, ::hash::HashIWAsset(str)), str);
 					if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(data->suffix, ::hash::HashIWDVar(str)), str);
 				}, &data, data.dict, data.dictSize);
 			}
@@ -355,7 +355,7 @@ namespace tool::hash::scanner {
 				if constexpr (prePost) {
 					v = Func::HashPost(v);
 				}
-				auto it = hashes.find(v & hashutils::MASK62);
+				auto it = hashes.find(v & hashutils::MASK60);
 				if (it != hashes.end()) {
 					std::ostringstream oss{};
 					if constexpr (prefix) {
@@ -395,14 +395,14 @@ namespace tool::hash::scanner {
 					static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT89ScrPost((uint32_t)base); }
 				};
 				class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x79D6530B0BB9B5D1) { return ::hash::HashJupScr(str, base); } };
-				class HashIWRes { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return ::hash::HashIWRes(str, base); } };
+				class HashIWAsset { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return ::hash::HashIWAsset(str, base); } };
 				class HashIWDVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashIWDVar(str, base); } };
 				TestHash<HashFnv1a, prefix, suffix, midc>(HASH_FNVA, str);
 				TestHash<HashT10Scr, prefix, suffix, midc>(HASH_SCR_T10, str);
 				TestHash<HashT10ScrSP, prefix, suffix, midc, true>(HASH_SCR_T10_SP, str);
 				TestHash<HashT89Scr, prefix, suffix, midc, true>(HASH_SCR_T89, str);
 				TestHash<HashJupScr, prefix, suffix, midc>(HASH_SCR_JUP, str);
-				TestHash<HashIWRes, prefix, suffix, midc>(HASH_RES, str);
+				TestHash<HashIWAsset, prefix, suffix, midc>(HASH_RES, str);
 				TestHash<HashIWDVar, prefix, suffix, midc>(HASH_DVAR, str);
 			}
 		};
@@ -479,7 +479,7 @@ namespace tool::hash::scanner {
 
 
 			for (uint64_t h : hashesTmp) {
-				data.hashes.insert(h & hashutils::MASK62);
+				data.hashes.insert(h & hashutils::MASK60);
 			}
 
 			LOG_INFO("Find {} hash(es)", data.hashes.size());

@@ -132,7 +132,7 @@ namespace {
 
 		std::string hash64Val = DefaultVal(hash::Hash64(info.hash.c_str()));
 		std::string hash32Val = DefaultVal(hash::HashT89Scr(info.hash.c_str()));
-		std::string hash64IW2Val = DefaultVal(hash::HashIWRes(info.hash.c_str()));
+		std::string hash64IW2Val = DefaultVal(hash::HashIWAsset(info.hash.c_str()));
 		std::string hash64IW3Val = DefaultVal(hash::HashJupScr(info.hash.c_str()));
 		std::string hash32IW4Val = DefaultVal(hash::Hash64(info.hash.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
 		std::string hashT7Val = DefaultVal(hash::HashT7(info.hash.c_str()));
@@ -229,13 +229,13 @@ namespace {
 	static HashAlg algs[]
 	{
 		{ "h64", "fnv1a", [](const char* text) -> uint64_t { return hash::Hash64A(text); } },
-		{ "res", "iw res", [](const char* text) -> uint64_t { return hash::HashIWRes(text); } },
+		{ "res", "iw res", [](const char* text) -> uint64_t { return hash::HashIWAsset(text); } },
 		{ "h32", "t89 canon", [](const char* text) -> uint64_t { return hash::HashT89Scr(text); } },
 		{ "iw9", "mwii/iii canon", [](const char* text) -> uint64_t { return hash::HashJupScr(text); } },
 		{ "bo6", "bo6 canon", [](const char* text) -> uint64_t { return hash::HashT10Scr(text); } },
 		{ "bo6sp", "bo6 canon (SP)", [](const char* text) -> uint64_t { return hash::HashT10ScrSP(text); } },
 		{ "t7", "t7 fnv1a", [](const char* text) -> uint64_t { return hash::HashT7(text); } },
-		{ "tag", "IW tag", [](const char* text) -> uint64_t { return hash::HashIWTag(text); } },
+		{ "tag", "IW tag", [](const char* text) -> uint64_t { return hash::HashX32(text); } },
 		{ "dvar", "IW Dvar", [](const char* text) -> uint64_t { return hash::HashIWDVar(text); } },
 		{ "omnvar", "bo6 Omnvar", [](const char* text) -> uint64_t { return hash::HashT10OmnVar(text); } },
 	};

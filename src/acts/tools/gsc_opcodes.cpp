@@ -216,7 +216,7 @@ namespace tool::gsc::opcode {
 }
 
 void VmInfo::AddDevCallName(uint64_t name) {
-	devCallsNames.insert(name & hash::MASK62);
+	devCallsNames.insert(name & hash::MASK60);
 }
 
 uint64_t VmInfo::HashField(const char* value) const {
@@ -251,7 +251,7 @@ uint64_t VmInfo::HashPath(const char* value) const {
 		return t;
 	}
 	if (HasFlag(VmFlags::VMF_HASH_PATH_IW)) {
-		return hash::HashIWRes(value);
+		return hash::HashIWAsset(value);
 	}
 	return hash::Hash64(value);
 }
@@ -8215,7 +8215,7 @@ namespace {
 					if (fc && fc->m_ftype == FUNCTION_CALL) {
 						auto* name = fc->m_operands[fc->m_flags & ASMContextNodeCallFuncFlag::SELF_CALL ? 1 : 0];
 						if (name->m_type == TYPE_FUNC_REFNAME) {
-							uint64_t refName = dynamic_cast<ASMContextNodeFuncRef*>(name)->m_func & hash::MASK62;
+							uint64_t refName = dynamic_cast<ASMContextNodeFuncRef*>(name)->m_func & hash::MASK60;
 							if (ctx.m_objctx.m_vmInfo->devCallsNames.find(refName) != ctx.m_objctx.m_vmInfo->devCallsNames.end()) {
 								// inline the dev call
 								stmt.node = fc;
