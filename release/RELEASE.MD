@@ -1,24 +1,26 @@
 - acts
-  - fast files
-    - unlinker
-      - complete bo4 pool ff handler with some pools (aitype, bgcache, ddl, keyvaluepairs, luafile, rawfile, rawstring, sb, spt, sptdbg, streamkey, stringtable, weapon, weapontunables)
-      - print handlers list without ff name
-      - read .fd with fastfiles
-      - cw ?fd handling
-      - treyarch xhash based luafile dumper
-    - linker
-      - wip linker with basic pools
-  - cordycep dumper
-    - better loading
-    - more t10 pools (character, ddl, gamemode, luafile, map, gametypes, netconststrings, operator, rawfile, project, storagefile)
-    - replace ddl grammar
-  - gsc decompiler/compiler
-    - gsc vm 11 (without opcodes)
-    - treyarch gsc code formatter
-    - array unpacking for IW gsc code analysis
-    - add inferred type (bool/dev) to export header
-  - gsc opcode translation tool
-  - fix t8 generation in wnigen
-  - fix t10scrsp and t8scrsp hashes search
-  - better oodle lib loading
-  - update antlr4
+  - hashes
+    - omnvar hashes
+    - add .txt file to searchers
+    - add bo6all scanner option
+    - gsc hash searcher
+    - fix t10sp scr hash
+  - decompiler
+    - iw format
+    - t10 operators
+    - fix inlined struct/array for treyarch format
+    - fix foreach for treyarch format
+    - add t10 vm 0e and 0d
+    - better vm naming with --split-vm
+    - better bool analysis
+    - fix gsc decompilation using size
+    - t10 getarraykeys foreach decompilation
+  - t10 radiant keys reader tool
+  - dumper
+    - fix zlib decompress
+    - t9 cordycep ddl dumper
+    - better t10 sp handling with Cordycep
+  - fastfile
+    - add iw gscobj to xhash ff handler
+- acts-ui
+  - omnvar hash
