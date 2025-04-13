@@ -64,7 +64,8 @@ namespace fastfile::linker::data {
 					size += chunk.size;
 					break;
 				case CHUNKTYPE_ALIGN:
-					size = utils::Aligned<size_t>(size, chunk.align);
+					//size = utils::Aligned<size_t>(size, chunk.align);
+					size += chunk.align - 1; // lazy
 					break;
 				case CHUNKTYPE_POP:
 				case CHUNKTYPE_PUSH:
