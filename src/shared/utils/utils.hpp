@@ -224,6 +224,28 @@ namespace utils {
 		return begin;
 	}
 	/*
+	 * Write a value into a stream
+	 * @param Type value type
+	 * @param os stream
+	 * @param ptr value to write
+	 * @param size value to write
+	 * @return data location before write
+	 */
+	inline void WriteValue(std::ostream& os, const void* ptr, size_t size) {
+		os.write((const char*)ptr, size);
+	}
+	/*
+	 * Write a value into a stream
+	 * @param Type value type
+	 * @param os stream
+	 * @param val value to write
+	 * @return data location before write
+	 */
+	template<typename Type>
+	inline void WriteValue(std::ostream& os, Type val) {
+		WriteValue(os, (const void*)&val, sizeof(val));
+	}
+	/*
 	 * Write a string into a vector buffer
 	 * @param data buffer
 	 * @param val value to write

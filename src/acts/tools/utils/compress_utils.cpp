@@ -164,6 +164,13 @@ namespace utils::compress {
 			}
 			return true;
 		}
+		case COMP_ZSTD: {
+			int lvl{ alg & COMP_HIGH_COMPRESSION ? ZSTD_maxCLevel() : ZSTD_defaultCLevel() };
+			size_t r{ ZSTD_compress(dest, *destSize, src, srcSize, lvl) };
+			if (ZSTD_isError(r)) return false;
+			*destSize = r;
+			return true;
+		}
 		default:
 			throw std::runtime_error(std::format("Can't compress alg {}", alg));
 			break;

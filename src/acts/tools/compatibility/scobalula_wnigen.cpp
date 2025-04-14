@@ -77,12 +77,80 @@ namespace {
 		ALG_ALL = static_cast<Algorithms>(-1),
 	};
 
+	int CompressWNIFile(std::map<std::string, std::unordered_set<uint64_t>>& dataMap, const std::filesystem::path& out) {
+
+		uint32_t count{};
+
+		std::vector<byte> rawdata{};
+		for (auto& [str, hashVal] : dataMap) {
+			for (uint64_t hash : hashVal) {
+				utils::WriteValue(rawdata, hash);
+				utils::WriteString(rawdata, str.c_str());
+				count++;
+			}
+		}
+
+		utils::OutFileCE os{ out };
+
+		if (!os) {
+			LOG_ERROR("Can't open output {}", out.string());
+			return tool::BASIC_ERROR;
+		}
+
+		utils::compress::CompressionAlgorithm alg{ utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION };
+
+		if (rawdata.size() >= LZ4_MAX_INPUT_SIZE) {
+			LOG_ERROR("File too big.");
+			return tool::BASIC_ERROR;
+		}
+
+		size_t bound = utils::compress::GetCompressSize(alg, rawdata.size());
+
+		auto comp = std::make_unique<char[]>(bound + 1);
+		comp[bound] = 0;
+
+		LOG_DEBUG("Compressing...");
+
+		if (!utils::compress::Compress(alg, comp.get(), &bound, rawdata.data(), rawdata.size())) {
+			LOG_ERROR("Failed to compress, abort.");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO(
+			"{} hash(es) compressed {}B -> {}B ({}% saved) into {}",
+			count, utils::FancyNumber(rawdata.size()), utils::FancyNumber(bound),
+			100 - 100 * bound / rawdata.size(),
+			out.string()
+		);
+
+		// header
+		utils::WriteValue<uint32_t>(os, compatibility::scobalula::wni::WNI_MAGIC);
+		utils::WriteValue<uint16_t>(os, compatibility::scobalula::wni::WNI_VERSION);
+		utils::WriteValue<uint32_t>(os, count); // entries
+		utils::WriteValue<uint32_t>(os, (uint32_t)bound); // compressedSize
+		utils::WriteValue<uint32_t>(os, (uint32_t)rawdata.size()); // decompressedSize
+
+		// buffer
+		utils::WriteValue(os, comp.get(), bound + 1);
+
+		return tool::OK;
+	}
+
 	int wni_gen_csv(int argc, const char* argv[]) {
-		if (tool::NotEnoughParam(argc, 2)) {
+		if (tool::NotEnoughParam(argc, 1)) {
 			return tool::BAD_USAGE;
 		}
 		std::filesystem::path csv{ argv[2] };
-		std::filesystem::path out{ argv[3] };
+
+
+		std::filesystem::path out;
+		if (tool::NotEnoughParam(argc, 2)) {
+			out = csv;
+			out.replace_extension(".wni");
+		}
+		else {
+			out = argv[3];
+		}
 		LOG_DEBUG("Reading HASH CSV {}", csv.string());
 		std::string buffer{};
 
@@ -103,12 +171,12 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		uint32_t count{};
+		std::map<std::string, std::unordered_set<uint64_t>> dataMap{};
 
-		std::vector<byte> rawdata{};
 		for (size_t i = 0; i < doc.GetRowCount(); i++) {
 			const std::string hash = doc.GetCell<std::string>(0, i);
 			const std::string value = doc.GetCell<std::string>(1, i);
+
 
 			uint64_t hashVal;
 			try {
@@ -118,77 +186,31 @@ namespace {
 				LOG_WARNING("Error when reading {}: invalid line {}: {}", csv.string(), i, e.what());
 				continue;
 			}
-
-			utils::WriteValue(rawdata, hashVal);
-			utils::WriteString(rawdata, value.c_str());
-			count++;
+			dataMap[value].insert(hashVal);
 		}
 
-
-		std::ofstream os{ out, std::ios::binary };
-		utils::CloseEnd osce{ os };
-
-		if (!os) {
-			LOG_ERROR("Can't open output {}", out.string());
-			return tool::BASIC_ERROR;
-		}
-
-		if (rawdata.size() >= LZ4_MAX_INPUT_SIZE) {
-			LOG_ERROR("File too big.");
-			return tool::BASIC_ERROR;
-		}
-
-		int bound = LZ4_compressBound((int)rawdata.size());
-
-		auto comp = std::make_unique<char[]>(bound);
-
-		LOG_DEBUG("Compressing...");
-
-		int compressedSize = LZ4_compress_default((const char*)&rawdata[0], &comp[0], (int)rawdata.size(), bound);
-		if (compressedSize <= 0) {
-			LOG_ERROR("Failed to compress, abort.");
-			return tool::BASIC_ERROR;
-		}
-
-		// magic
-		auto magic = compatibility::scobalula::wni::WNI_MAGIC;
-		os.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-		// version
-		auto version = compatibility::scobalula::wni::WNI_VERSION;
-		os.write(reinterpret_cast<const char*>(&version), sizeof(version));
-
-		uint32_t tmp;
-
-		// entries
-		tmp = count;
-		LOG_INFO("Entries: {}", tmp);
-		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
-		// compressedSize
-		tmp = compressedSize;
-		LOG_INFO("Compressed Size: {}", tmp);
-		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
-		// decompressedSize
-		tmp = (uint32_t)rawdata.size();
-		LOG_INFO("Decompressed Size: {}", tmp);
-		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
-		// buffer
-		os.write(reinterpret_cast<const char*>(&comp[0]), compressedSize + 1);
-
-		LOG_INFO("Created into {}", out.string());
-
-		return tool::OK;
+		return CompressWNIFile(dataMap, out);
 	}
 
 
 	int wni_gen(int argc, const char* argv[]) {
-		if (tool::NotEnoughParam(argc, 2)) {
+		if (tool::NotEnoughParam(argc, 1)) {
 			return tool::BAD_USAGE;
 		}
 
-		const char* in = argv[2];
-		const char* out = argv[3];
+		std::filesystem::path in{ argv[2] };
+		std::filesystem::path out;
+
+		if (tool::NotEnoughParam(argc, 2)) {
+			out = in;
+			out.replace_extension(".wni");
+		}
+		else {
+			out = argv[3];
+		}
+
 		uint64_t alg{};
-		if (4 == argc) {
+		if (tool::NotEnoughParam(argc, 3)) {
 			alg |= ALG_ALL;
 		}
 		else {
@@ -203,7 +225,7 @@ namespace {
 				case hash::Hash64("iwres"): 
 					alg |= ALG_FNV_IW_RES; 
 					break;
-				case hash::Hash64("t7"): 
+				case hash::Hash64("t7"):
 					alg |= ALG_SCR_T7; 
 					break;
 				case hash::Hash64("t8"):
@@ -240,136 +262,48 @@ namespace {
 		std::ifstream is{ in };
 
 		if (!is) {
-			LOG_ERROR("Can't open input {}", in);
+			LOG_ERROR("Can't open input {}", in.string());
 			return tool::BASIC_ERROR;
 		}
+		utils::CloseEnd isce{ is };
 
-		std::ofstream os{ out, std::ios::binary };
+		utils::OutFileCE os{ out };
 
 		if (!os) {
-			LOG_ERROR("Can't open output {}", out);
-			is.close();
+			LOG_ERROR("Can't open output {}", out.string());
 			return tool::BASIC_ERROR;
 		}
+
 		auto& opt = actscli::options();
 
 		std::string line;
 		uint32_t count{};
 
-		std::vector<byte> rawdata{};
+		std::map<std::string, std::unordered_set<uint64_t>> dataMap{};
 
 		LOG_DEBUG("Loading strings...");
 
 		while (is.good() && std::getline(is, line)) {
-			if (alg & ALG_SCR_T89) {
-				utils::WriteValue(rawdata, (uint64_t)hash::HashT89Scr(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_FNV) {
-				utils::WriteValue(rawdata, hash::Hash64(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_SCR_T7) {
-				utils::WriteValue(rawdata, hash::HashT7(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_FNV_IW_RES) {
-				utils::WriteValue(rawdata, hash::HashIWAsset(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_SCR_JUP) {
-				utils::WriteValue(rawdata, hash::HashJupScr(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_FNV32) {
-				utils::WriteValue(rawdata, hash::Hash64(line.c_str(), 0x811C9DC5, 0x1000193) & 0xFFFFFFFF);
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_DVAR) {
-				utils::WriteValue(rawdata, hash::HashIWDVar(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_SCR_T10) {
-				utils::WriteValue(rawdata, hash::HashT10Scr(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_SCR_T10_SP) {
-				utils::WriteValue(rawdata, hash::HashT10ScrSP(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
-
-			if (alg & ALG_OMNVAR_T10) {
-				utils::WriteValue(rawdata, hash::HashT10OmnVar(line.c_str()));
-				utils::WriteString(rawdata, line.c_str());
-			}
+			std::unordered_set<uint64_t>& i{ dataMap[line] };
+			const char* cstr{ line.c_str() };
+			if (alg & ALG_SCR_T89) i.insert(hash::HashT89Scr(cstr));
+			if (alg & ALG_SCR_T7) i.insert(hash::HashT7(cstr));
+			if (alg & ALG_FNV32) i.insert(hash::HashX32(cstr));
+			if (alg & ALG_FNV) i.insert(hash::Hash64(cstr));
+			if (alg & ALG_FNV_IW_RES) i.insert(hash::HashIWAsset(cstr));
+			if (alg & ALG_SCR_JUP) i.insert(hash::HashJupScr(cstr));
+			if (alg & ALG_DVAR) i.insert(hash::HashIWDVar(cstr));
+			if (alg & ALG_SCR_T10) i.insert(hash::HashT10Scr(cstr));
+			if (alg & ALG_SCR_T10_SP) i.insert(hash::HashT10ScrSP(cstr));
+			if (alg & ALG_OMNVAR_T10) i.insert(hash::HashT10OmnVar(cstr));
 			count++;
 		}
 		LOG_DEBUG("strings loaded: {}", count);
 
-		if (rawdata.size() >= LZ4_MAX_INPUT_SIZE) {
-			LOG_ERROR("File too big.");
-			is.close();
-			os.close();
-			return tool::BASIC_ERROR;
-		}
-
-		size_t bound = utils::compress::GetCompressSize(utils::compress::COMP_LZ4, rawdata.size());
-
-		auto comp = std::make_unique<byte[]>(bound);
-
-		LOG_DEBUG("Compressing...");
-
-		if (!utils::compress::Compress(
-			utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION,
-			comp.get(), &bound, rawdata.data(), rawdata.size()
-		)) {
-			LOG_ERROR("Failed to compress, abort.");
-			is.close();
-			os.close();
-			return tool::BASIC_ERROR;
-		}
-
-		// magic
-		auto magic = compatibility::scobalula::wni::WNI_MAGIC;
-		os.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-		// version
-		auto version = compatibility::scobalula::wni::WNI_VERSION;
-		os.write(reinterpret_cast<const char*>(&version), sizeof(version));
-
-		uint32_t tmp;
-
-		// entries
-		tmp = count;
-		LOG_INFO("Entries: {}", tmp);
-		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
-		// compressedSize
-		tmp = (uint32_t)bound;
-		LOG_INFO("Compressed Size: {}", tmp);
-		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
-		// decompressedSize
-		tmp = (uint32_t)rawdata.size();
-		LOG_INFO("Decompressed Size: {}", tmp);
-		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp));
-		// buffer
-		os.write(reinterpret_cast<const char*>(&comp[0]), bound + 1);
-
-
-		is.close();
-		os.close();
-		LOG_INFO("Created into {}", out);
-
-		return tool::OK;
+		return CompressWNIFile(dataMap, out);
 	}
 
 	ADD_TOOL(wni_r, "compatibility", " [input] [output] [type=csv,txt]", "Read WNI file/dir", wni_r);
-	ADD_TOOL(wni_gen_csv, "compatibility", " [input] [output]", "Gen WNI file from csv", wni_gen_csv);
-	ADD_TOOL(wni_gen, "compatibility", " [input] [output] [algorithms=all]+", "Gen WNI file with algo", wni_gen);
+	ADD_TOOL(wni_gen_csv, "compatibility", " [input] (output=input.wni)", "Gen WNI file from csv", wni_gen_csv);
+	ADD_TOOL(wni_gen, "compatibility", " [input] (output=input.wni) (algorithms=all)+", "Gen WNI file with algo", wni_gen);
 }
