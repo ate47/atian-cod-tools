@@ -1,26 +1,7 @@
 - acts
-  - hashes
-    - omnvar hashes
-    - add .txt file to searchers
-    - add bo6all scanner option
-    - gsc hash searcher
-    - fix t10sp scr hash
-  - decompiler
-    - iw format
-    - t10 operators
-    - fix inlined struct/array for treyarch format
-    - fix foreach for treyarch format
-    - add t10 vm 0e and 0d
-    - better vm naming with --split-vm
-    - better bool analysis
-    - fix gsc decompilation using size
-    - t10 getarraykeys foreach decompilation
-  - t10 radiant keys reader tool
-  - dumper
-    - fix zlib decompress
-    - t9 cordycep ddl dumper
-    - better t10 sp handling with Cordycep
   - fastfile
-    - add iw gscobj to xhash ff handler
-- acts-ui
-  - omnvar hash
+    - bo4 linker fixes
+  - better wni generation
+- acts-shield-plugin
+  - fastfile tests
+  - better error handling
