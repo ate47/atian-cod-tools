@@ -313,7 +313,7 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 
 			utils::PrintFormattedString(out, m_str1);
-			out << "%";
+			out << "#";
 			utils::PrintFormattedString(out, m_str2);
 			out << std::flush;
 		}

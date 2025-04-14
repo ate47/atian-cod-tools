@@ -6,7 +6,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* vt71b = RegisterVM(VMI_T7_1B, "Call of Duty: Black ops 3 (1B)", "t7_1b", "bo3_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7); // | VmFlags::VMF_CALL_NO_PARAMS
+		VmInfo* vt71b = RegisterVM(VMI_T7_1B, "Call of Duty: Black ops 3 (1B)", "t7_1b", "bo3_1b", VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7 | VmFlags::VMF_ISTRING); // | VmFlags::VMF_CALL_NO_PARAMS
 		vt71b->RegisterVmName("t7_1b", "blackops3_1b");
 		vt71b->AddPlatform(PLATFORM_PC);
 		vt71b->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);

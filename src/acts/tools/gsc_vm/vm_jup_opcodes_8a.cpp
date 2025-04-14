@@ -7,7 +7,7 @@ namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
 
-		VmInfo* v8a = RegisterVM(VMI_JUP_8A, "Call of Duty: Modern Warfare III", "jup", "mwiiia", VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS | VmFlags::VMF_IW_LIKE);
+		VmInfo* v8a = RegisterVM(VMI_JUP_8A, "Call of Duty: Modern Warfare III", "jup", "mwiiia", VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING);
 		v8a->RegisterVmName("jupa", "s5a", "mwiiia", "modernwarfareiiia", "mw23a");
 		v8a->AddPlatform(PLATFORM_PC);
 		v8a->RegisterSameCodePlatform(PLATFORM_PC, PLATFORM_PLAYSTATION);

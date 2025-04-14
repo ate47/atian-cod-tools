@@ -6,7 +6,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* t106 = RegisterVM(VMI_T10_06, "Call of Duty: Black Ops 6 (06)", "t10_6", "bo6_6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+		VmInfo* t106 = RegisterVM(VMI_T10_06, "Call of Duty: Black Ops 6 (06)", "t10_6", "bo6_6", VmFlags::VMF_EXPORT_NOCHECKSUM | VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 		t106->RegisterVmName("cer6", "t10_6", "blackops6_6");
 		t106->AddPlatform(PLATFORM_PC);
 		t106->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
@@ -25,7 +25,6 @@ namespace {
 		t106->RegisterVMHashOPCode('#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64A(str); });
 		t106->RegisterVMHashOPCode('@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hash::HashIWDVar(str); });
 		t106->RegisterVMHashOPCode('%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hash::HashIWAsset(str); });
-		t106->RegisterVMHashOPCode('r', OPCODE_IW_GetResourceHash2, 8, [](const char* str) { return hash::HashIWAsset(str); });
 		t106->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashX32(str); });
 		t106->RegisterVMHashOPCode('&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
 		t106->RegisterDevCall("assert", "assertmsg", "function_79901b4637c83c86", "assertex", "println", "print");
@@ -41,7 +40,7 @@ namespace {
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetDVarHash, 0x72); // 11
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetTagHash, 0x57); // 12
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_T10_GetScrHash, 0x16); // 13
-		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetResourceHash2, 0x69);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetLocalizedHash, 0x69);
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SingleWaitTill, 0x80);
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetThread, 0x07);
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_T10_FlatArgs, 0x6a);

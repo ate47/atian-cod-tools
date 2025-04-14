@@ -325,7 +325,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_T10_FlatArgs, "FlatArgs");
 			RegisterOpCode(OPCODE_T10_GreaterThanOrSuperEqualTo, "GreaterThanOrSuperEqualTo");
 			RegisterOpCode(OPCODE_T10_LowerThanOrSuperEqualTo, "LowerThanOrSuperEqualTo");
-			RegisterOpCode(OPCODE_IW_GetResourceHash2, "GetResourceHash2");
+			RegisterOpCode(OPCODE_IW_GetLocalizedHash, "GetLocalizedHash");
 			RegisterOpCode(OPCODE_IW_GetPositionRef, "GetPositionRef");
 			RegisterOpCode(OPCODE_GSCBIN_SKIP_0, "GscBinSkip0");
 			RegisterOpCode(OPCODE_GSCBIN_SKIP_1, "GscBinSkip1");

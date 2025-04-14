@@ -383,7 +383,7 @@ namespace tool::gsc::opcode {
 		OPCODE_T10_FlatArgs,
 		OPCODE_T10_GreaterThanOrSuperEqualTo,
 		OPCODE_T10_LowerThanOrSuperEqualTo,
-		OPCODE_IW_GetResourceHash2,
+		OPCODE_IW_GetLocalizedHash,
 
 		OPCODE_IW_GetPositionRef,
 

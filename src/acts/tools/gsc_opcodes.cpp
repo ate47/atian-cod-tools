@@ -1297,8 +1297,9 @@ class OPCodeInfoGetHash : public OPCodeInfo {
 private:
 	const char* m_type;
 	bool m_hash64;
+	bool m_isInlined;
 public:
-	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true) : m_type(type), m_hash64(hash64), OPCodeInfo(id, name) {}
+	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true, bool isInlined = false) : m_type(type), m_hash64(hash64), m_isInlined(isInlined), OPCodeInfo(id, name) {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
@@ -1323,13 +1324,8 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeHash(hash, false, m_type));
+			context.PushASMCNode(new ASMContextNodeHash(hash, m_isInlined, m_type));
 		}
-
-		// dump dvars into stderr
-		//if (OPCodeInfo::m_id == OPCODE_IW_GetDVarHash) {
-		//	LOG_ERROR("dvar_{:x}", hash);
-		//}
 
 		out << m_type << "\"" << hashutils::ExtractTmp("hash", hash) << "\" (" << m_type << std::hex << hash << ")" << std::endl;
 
@@ -4054,7 +4050,7 @@ public:
 			str2 = "<unknown>";
 		}
 		utils::PrintFormattedString(out, str1);
-		out << "%";
+		out << "#";
 		utils::PrintFormattedString(out, str2);
 		out << "\n";
 
@@ -5596,7 +5592,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearFieldVariableRef, "IW_ClearFieldVariableRef"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "IW_GetDVarHash", "@"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash, "IW_GetResourceHash", "%"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash2, "IW_GetResourceHash2", "r"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetLocalizedHash, "IW_GetLocalizedHash", "%", true, true));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "IW_GetTagHash", "t", false));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "T10_GetScrHash", "&"));
 			
