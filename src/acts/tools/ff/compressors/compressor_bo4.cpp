@@ -125,7 +125,8 @@ namespace {
 			header.encrypted = false;
 			header.size = ctx.linkedData.size();
 			header.compression = compression;
-			static uint32_t archiveChecksum[4]{ 0x34FF23CB, 0xE4505D2, 0xB3C783A, 0x3208003D };
+			//static uint32_t archiveChecksum[4]{ 0x34FF23CB, 0xE4505D2, 0xB3C783A, 0x3208003D };
+			static uint32_t archiveChecksum[4]{ 0xCF92ECF4, 0xA75D3F79, 0x2A550D25, 0xF927447B };
 			static_assert(sizeof(archiveChecksum) == sizeof(header.archiveChecksum));
 			std::memcpy(header.archiveChecksum, archiveChecksum, sizeof(archiveChecksum));
 

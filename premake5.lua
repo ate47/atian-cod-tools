@@ -206,6 +206,7 @@ project "AtianCodToolsBO4ShieldPlugin"
         "deps/curl/include/",
         "deps/rapidjson/include/",
         "deps/dbflib/src/lib/",
+        "deps/rapidcsv/src/",
     }
 
     vpaths {

@@ -16,6 +16,10 @@ namespace hook::error {
 	 */
 	void InstallErrorHooks(bool clearSetFunction = false);
 	/*
+	 * Install an error dumper called during errors
+	 */
+	void AddErrorDumper(void(*dumper)());
+	/*
 	 * Display UI error when an error is generated, HMODULE
 	 * @param hmod module
 	 * @param showCmd show cmd param

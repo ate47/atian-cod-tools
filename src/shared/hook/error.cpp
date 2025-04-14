@@ -40,6 +40,7 @@ namespace hook::error {
 		}
 	}
 	namespace {
+		std::vector<void(*)()> dumpers{};
 		struct ErrorConfig {
 			DWORD mainThread{};
 			bool heavyDump{};
@@ -195,6 +196,10 @@ namespace hook::error {
 				DumpStackTraceFrom(core::logs::LVL_ERROR, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 			}
 
+			for (auto d : dumpers) {
+				d();
+			}
+
 			if (cfg.cont || ExceptionInfo->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP) {
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
@@ -248,6 +253,10 @@ namespace hook::error {
 		catch (std::exception& e) {
 			LOG_ERROR("Can't install error hooks: {}", e.what());
 		}
+	}
+
+	void AddErrorDumper(void(*dumper)()) {
+		dumpers.push_back(dumper);
 	}
 
 	void InstallErrorUI(HMODULE hmod, int showCmd) {
