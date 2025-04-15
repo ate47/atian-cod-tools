@@ -5,6 +5,8 @@
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
 #include "tools/gsc_vm.hpp"
+#include <core/bytebuffer.hpp>
+#include <extension/acts_extension.hpp>
 
 namespace tool::gsc::opcode {
 	void RegisterOpCodesMap() {
@@ -47,6 +49,30 @@ namespace tool::gsc::opcode {
 
 			}
 
+			
+			acts::extension::AcefArray* opcodesData;
+			size_t opcodesCount;
+			acts::extension::GetExtensionData("acts.opcodes", &opcodesData, &opcodesCount);
+			for (size_t i = 0; i < opcodesCount; i++) {
+				core::bytebuffer::ByteBuffer reader{ (byte*)opcodesData[i].data, opcodesData[i].len };
+				uint64_t magic{ reader.Read<uint64_t>() };
+				Platform plt{ (Platform)reader.Read<uint64_t>() };
+
+				VmInfo* nfo{ GetVm(magic) };
+
+				if (!nfo->vmMagic) continue;
+				nfo->AddPlatform(plt);
+
+				size_t numLoaded{};
+				while (reader.CanRead(4)) {
+					OPCode opcode{ (OPCode)reader.Read<uint16_t>() };
+					uint16_t opval{ reader.Read<uint16_t>() };
+
+					nfo->RegisterOpCode(plt, opcode, opval);
+					numLoaded++;
+				}
+				LOG_TRACE("loaded {} custom opcodes for {}", numLoaded, nfo->internalName);
+			}
 		});
 	}
 

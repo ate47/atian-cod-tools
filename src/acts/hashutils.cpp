@@ -7,6 +7,7 @@
 #include <core/memory_allocator.hpp>
 #include <core/bytebuffer.hpp>
 #include <BS_thread_pool.hpp>
+#include <extension/acts_extension.hpp>
 
 namespace {
 	core::memory_allocator::MemoryAllocator alloc{};
@@ -63,6 +64,27 @@ namespace hashutils {
 					})) {
 					LOG_ERROR("Error when reading WNI files");
 				};
+			}
+
+			acts::extension::AcefArray* hashStorages;
+			size_t hashStoragesCount;
+
+			acts::extension::GetExtensionData("acts.hash", &hashStorages, &hashStoragesCount);
+
+			if (hashStoragesCount) LOG_DEBUG("Loading {} hash extension(s)", hashStoragesCount);
+			for (size_t i = 0; i < hashStoragesCount; i++) {
+				acts::extension::AcefArray* arr{ hashStorages + i };
+				core::bytebuffer::ByteBuffer storage{ (byte*)arr->data, arr->len };
+
+				uint64_t count{ storage.Read<uint64_t>() };
+				for (size_t i = 0; i < count; i++) {
+					uint64_t key{ storage.Read<uint64_t>() };
+
+					const char* str{ storage.ReadString() };
+
+					// the extension will contain the string data
+					AddPrecomputed(key, str, true, false);
+				}
 			}
 
 			std::vector<std::filesystem::path> csvs{};

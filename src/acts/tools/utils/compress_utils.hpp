@@ -12,6 +12,8 @@ namespace utils::compress {
 		COMP_LZ4,
 		COMP_OODLE,
 		COMP_ZSTD,
+
+		COMP_COUNT,
 		COMP_TYPE_MASK = 0xFF,
 		// use high compression
 		COMP_HIGH_COMPRESSION = 1 << 8,
@@ -77,6 +79,8 @@ namespace utils::compress {
 	inline bool CompressBuffer(CompressionAlgorithm alg, const std::vector<byte>& data, std::vector<byte>& out) {
 		return CompressBuffer(alg, data.data(), data.size(), out);
 	}
+
+	CompressionAlgorithm GetConfigName(const char* cfg);
 }
 template<>
 struct std::formatter<utils::compress::CompressionAlgorithm, char> : utils::BasicFormatter<utils::compress::CompressionAlgorithm> {};

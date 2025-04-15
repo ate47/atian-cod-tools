@@ -41,6 +41,7 @@ namespace utils::compress {
 		case COMP_LZ4: {
 			int r{ LZ4_decompress_safe((const char*)src, (char*)dest, (int)srcSize, (int)destSize) };
 			if (r < 0) {
+				LOG_ERROR("lz4 error: {}", r);
 				return DecompressResult::DCOMP_UNKNOWN_ERROR;
 			}
 			return r;
@@ -75,6 +76,7 @@ namespace utils::compress {
 				case ZSTD_ErrorCode::ZSTD_error_dstSize_tooSmall:
 					return DecompressResult::DCOMP_DEST_TOO_SMALL;
 				default:
+					LOG_ERROR("zstd error: {}", ZSTD_getErrorName(ret));
 					return DecompressResult::DCOMP_UNKNOWN_ERROR;
 				}
 			}
@@ -233,6 +235,31 @@ namespace utils::compress {
 			case COMP_ZSTD: return hc ? "zstd" : "zstd_hc";
 			default: return defaultValue;
 		}
+	}
+
+	CompressionAlgorithm GetConfigName(const char* cfg) {
+		if (!cfg || !*cfg || !_strcmpi(cfg, "none")) return COMP_NONE;
+		if (!_strcmpi(cfg, "zlib")) return COMP_ZLIB;
+		if (!_strcmpi(cfg, "zlib_hc")) return COMP_ZLIB | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "lzma")) return COMP_LZMA;
+		if (!_strcmpi(cfg, "lzma_hc")) return COMP_LZMA | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "lz4")) return COMP_LZ4;
+		if (!_strcmpi(cfg, "lz4_hc")) return COMP_LZ4 | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "zstd")) return COMP_ZSTD;
+		if (!_strcmpi(cfg, "zstd_hc")) return COMP_ZSTD | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "oodle")) return COMP_OODLE;
+		if (!_strcmpi(cfg, "oodle_hc")) return COMP_OODLE;
+		if (!_strcmpi(cfg, "oodle_kraken")) return COMP_OODLE | COMP_HIGH_COMPRESSION; 
+		if (!_strcmpi(cfg, "oodle_kraken_hc")) return COMP_OODLE | COMP_OODLE_TYPE_KRAKEN | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "oodle_leviathan")) return COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN; 
+		if (!_strcmpi(cfg, "oodle_leviathan_hc")) return COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "oodle_mermaid")) return COMP_OODLE | COMP_OODLE_TYPE_MERMAID; 
+		if (!_strcmpi(cfg, "oodle_mermaid_hc")) return COMP_OODLE | COMP_OODLE_TYPE_MERMAID | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "oodle_selkie")) return COMP_OODLE | COMP_OODLE_TYPE_SELKIE; 
+		if (!_strcmpi(cfg, "oodle_selkie_hc")) return COMP_OODLE | COMP_OODLE_TYPE_SELKIE | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "oodle_hydra")) return COMP_OODLE | COMP_OODLE_TYPE_HYDRA; 
+		if (!_strcmpi(cfg, "oodle_hydra_hc")) return COMP_OODLE | COMP_OODLE_TYPE_HYDRA | COMP_HIGH_COMPRESSION;
+		throw std::runtime_error(std::format("Invalid compression name {}", cfg));
 	}
 
 	const char* DecompressResultName(int res) {

@@ -66,7 +66,7 @@ namespace core::bytebuffer {
 
 			ValidateState();
 
-			location = loc;
+			location = is.tellg();
 		}
 	
 	};
