@@ -1,7 +1,2 @@
 - acts
-  - fastfile
-    - bo4 linker fixes
-  - better wni generation
-- acts-shield-plugin
-  - fastfile tests
-  - better error handling
+  - acef file loading and creation
