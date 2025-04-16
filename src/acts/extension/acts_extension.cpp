@@ -28,7 +28,7 @@ namespace acts::extension {
 				LOG_DEBUG("read ACEF {}", path.string());
 
 				try {
-					utils::InFileCE is{ path, true };
+					utils::InFileCE is{ path, true, std::ios::binary };
 
 					core::bytebuffer::FileReader reader{ is };
 

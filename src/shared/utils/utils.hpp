@@ -505,13 +505,13 @@ namespace utils {
 
 	public:
 		OutFileCE() : os() {}
-		OutFileCE(const char* f, bool failOpen = false) : os(f) {
+		OutFileCE(const char* f, bool failOpen = false, std::ios::openmode mode = std::ios::out) : os(f, mode) {
 			if (failOpen && !os) throw std::runtime_error(std::format("Can't open {}", f));
 		}
-		OutFileCE(const std::filesystem::path& f, bool failOpen = false) : os(f) {
+		OutFileCE(const std::filesystem::path& f, bool failOpen = false, std::ios::openmode mode = std::ios::out) : os(f, mode) {
 			if (failOpen && !os) throw std::runtime_error(std::format("Can't open {}", f.string()));
 		}
-		OutFileCE(const std::string& f, bool failOpen = false) : os(f) {
+		OutFileCE(const std::string& f, bool failOpen = false, std::ios::openmode mode = std::ios::out) : os(f, mode) {
 			if (failOpen && !os) throw std::runtime_error(std::format("Can't open {}", f));
 		}
 
@@ -553,13 +553,13 @@ namespace utils {
 
 	public:
 		InFileCE() : is() {}
-		InFileCE(const char* f, bool failOpen = false) : is(f, std::ios::binary) {
+		InFileCE(const char* f, bool failOpen = false, std::ios::openmode mode = std::ios::in) : is(f, mode) {
 			if (failOpen && !is) throw std::runtime_error(std::format("Can't open {}", f));
 		}
-		InFileCE(const std::filesystem::path& f, bool failOpen = false) : is(f, std::ios::binary) {
+		InFileCE(const std::filesystem::path& f, bool failOpen = false, std::ios::openmode mode = std::ios::in) : is(f, mode) {
 			if (failOpen && !is) throw std::runtime_error(std::format("Can't open {}", f.string()));
 		}
-		InFileCE(const std::string& f, bool failOpen = false) : is(f, std::ios::binary) {
+		InFileCE(const std::string& f, bool failOpen = false, std::ios::openmode mode = std::ios::in) : is(f, mode) {
 			if (failOpen && !is) throw std::runtime_error(std::format("Can't open {}", f));
 		}
 

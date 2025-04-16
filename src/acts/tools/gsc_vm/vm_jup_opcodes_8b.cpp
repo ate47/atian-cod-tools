@@ -6,7 +6,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* v8b = RegisterVM(VMI_JUP_8B, "Call of Duty: Modern Warfare III (8B)", "jup8b", "mwiii", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING);
+		VmInfo* v8b = RegisterVM(VMI_JUP_8B, "Call of Duty: Modern Warfare III (8B)", "jup", "mwiii", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW | VmFlags::VMF_HASH64 | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_FULL_FILE_NAMESPACE | VmFlags::VMF_HASH_IW | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_CALLS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING);
 		v8b->RegisterVmName("jup", "s5", "mwiii", "modernwarfareiii", "mw23");
 		v8b->AddPlatform(PLATFORM_PC);
 		v8b->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);

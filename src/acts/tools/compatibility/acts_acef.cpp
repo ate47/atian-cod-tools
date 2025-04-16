@@ -6,6 +6,7 @@
 #include <tools/compatibility/acts_acef.hpp>
 #include <rapidcsv.h>
 #include <tools/gsc.hpp>
+#include <regex>
 
 namespace compatibility::acts_acef {
 	using namespace acts::extension;
@@ -79,6 +80,8 @@ namespace compatibility::acts_acef {
 					opcodes += 2;
 				}
 			}
+
+			LOG_INFO("Add VM {}/{} -> {} 0x{:x} opcode(s)", info->name, tool::gsc::opcode::PlatformName(plt), tool::gsc::opcode::VMIdFancyName(info->vmMagic), numopcodes);
 		}
 	}
 
@@ -224,26 +227,18 @@ namespace compatibility::acts_acef {
 				
 				std::string vmid{ cfg.begin() + idxcut + 1, cfg.begin() + idxcut2 };
 				
-				
+				bool allVms = vmid == "all";
+				std::regex pattern{ vmid };
 
-				AcefBlock blocksVm[tool::gsc::opcode::Platform::PLATFORM_COUNT];
 				size_t blockCount{};
-				if (vmid == "all") {
-					for (auto& [k, nfo] : tool::gsc::opcode::GetVMMaps()) {
-						CreateACEFOpCodeBlock(plts, &nfo, alloc, blocksVm, &blockCount);
-						blocks.insert(blocks.end(), blocksVm, &blocksVm[blockCount]);
+				AcefBlock blocksVm[tool::gsc::opcode::Platform::PLATFORM_COUNT];
+				for (auto& [k, nfo] : tool::gsc::opcode::GetVMMaps()) {
+					if (!allVms) {
+						if (!std::regex_match(nfo.codeName, pattern) && !std::regex_match(nfo.internalName, pattern)) {
+							continue;
+						}
 					}
-
-				} else {
-					tool::gsc::opcode::VMId vm{ tool::gsc::opcode::VMOf(vmid.c_str()) };
-
-					if (!vm) {
-						LOG_WARNING("Invalid vm for name {}", vmid);
-						return tool::BASIC_ERROR;
-					}
-					tool::gsc::opcode::VmInfo* nfo{ tool::gsc::opcode::GetVm(vm) };
-
-					CreateACEFOpCodeBlock(plts, nfo, alloc, blocksVm, &blockCount);
+					CreateACEFOpCodeBlock(plts, &nfo, alloc, blocksVm, &blockCount);
 					blocks.insert(blocks.end(), blocksVm, &blocksVm[blockCount]);
 				}
 			} else {

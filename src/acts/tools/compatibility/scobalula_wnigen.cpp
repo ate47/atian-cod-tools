@@ -90,12 +90,7 @@ namespace {
 			}
 		}
 
-		utils::OutFileCE os{ out };
-
-		if (!os) {
-			LOG_ERROR("Can't open output {}", out.string());
-			return tool::BASIC_ERROR;
-		}
+		utils::OutFileCE os{ out, true, std::ios::binary };
 
 		utils::compress::CompressionAlgorithm alg{ utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION };
 
