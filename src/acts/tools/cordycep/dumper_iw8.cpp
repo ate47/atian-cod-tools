@@ -231,5 +231,5 @@ namespace {
 		return tool::OK;
 	}
 
-	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_MW4, dpcordimpl };
+	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_MW4, dpcordimpl, tool::mw19::IW19_ASSETTYPE_COUNT };
 }

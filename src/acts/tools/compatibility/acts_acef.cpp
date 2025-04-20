@@ -15,7 +15,7 @@ namespace compatibility::acts_acef {
 	struct AcefOption {
 		bool help{};
 		const char* algName{};
-		utils::compress::CompressionAlgorithm alg{ utils::compress::COMP_ZSTD };
+		utils::compress::CompressionAlgorithm alg{ compatibility::acts_acef::DEFAULT_COMPRESS };
 
 	};
 
@@ -270,7 +270,7 @@ namespace compatibility::acts_acef {
 
 		utils::compress::CompressionAlgorithm alg;
 		if (tool::NotEnoughParam(argc, 3)) {
-			alg = utils::compress::COMP_ZSTD;
+			alg = compatibility::acts_acef::DEFAULT_COMPRESS;
 		} else {
 			alg = utils::compress::GetConfigName(argv[4]);
 		}

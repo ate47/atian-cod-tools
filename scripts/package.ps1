@@ -34,11 +34,21 @@ try {
             $fileOut = "$base/bin/package_index/$($file.Name).wni"
         }
 
-        build\bin\acts.exe wni_gen $file.FullName $fileOut
+        build\bin\acts.exe -t wni_gen $file.FullName $fileOut
     }
+    Write-Host "Building opaque string index"
+    foreach ($file in (Get-ChildItem config\opaques)) {
+        $split = $file.Name.LastIndexOf('.')
 
-    # Build default acpf (useless)
-    #build\bin\acts packfile "$base/bin/package_index/common.acpf"
+        if ($split -ne -1) {
+            $vmName = $file.Name.SubString(0, $split)
+        } else {
+            $vmName = $file.Name;
+        }
+        $fileOut = "$base/bin/package_index/gscbin-opaques-$vmName.acef"
+
+        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut
+    }
  
     # Binaries
     Copy-Item "build/bin/*.exe" "$base/bin" > $null

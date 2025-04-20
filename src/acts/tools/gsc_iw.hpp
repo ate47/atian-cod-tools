@@ -1,4 +1,5 @@
 #pragma once
+#include <tools/gsc_opcodes.hpp>
 
 namespace tool::gsc::iw {
 
@@ -13,4 +14,6 @@ namespace tool::gsc::iw {
         uint8_t param_count;
         uint8_t flags;
     };
+
+    const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str);
 }

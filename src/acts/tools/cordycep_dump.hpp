@@ -14,6 +14,7 @@ namespace tool::cordycep::dump {
 	struct CordycepDumper {
 		compatibility::scobalula::csi::CordycepGame game;
 		dumpfunc dump;
+		size_t numpools;
 	};
 
 	std::vector<CordycepDumper*>& GetDumpers();

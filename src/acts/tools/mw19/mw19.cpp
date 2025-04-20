@@ -559,6 +559,33 @@ return tool::OK;
         }
         return IW19_ASSETTYPE_COUNT;
     }
+    int gscopaquemw19(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+        hook::module_mapper::Module mod{ true };
+        if (!mod.Load(argv[2], false)) {
+            LOG_ERROR("Can't load module");
+            return tool::BASIC_ERROR;
+        }
+
+        auto* opaques{ mod->Get<char*>(0x47559D0) };
+        constexpr size_t count = 72013;
+
+        {
+            utils::OutFileCE os{ argv[3], true };
+
+            for (size_t i = 0; i < count; i++) {
+                os << "0x" << std::hex << std::setfill('0') << std::setw(4) << i << "\t" << mod->Rebase(opaques[i]) << "\n";
+            }
+        }
+        LOG_INFO("Dump into {}", argv[3]);
+
+
+
+        return tool::OK;
+    }
+
     // moved to gscd
-    ADD_TOOL(gscdmw19, "dev_gsc", "[script]", "Test gsc decompiler", gscdmw19);
+    //ADD_TOOL(gscdmw19, "dev_gsc", " [script]", "Test gsc decompiler", gscdmw19);
+    ADD_TOOL(gscopaquemw19, "dev_gsc", " [dump] [out]", "Test opaque dump", gscopaquemw19);
 }

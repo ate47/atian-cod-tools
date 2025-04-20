@@ -92,8 +92,52 @@ namespace tool::cordycep::dump {
 
 			return dump->dump(proc, cordycep, argc, argv);
 		}
+
+		int dpcordhashes(Process& proc, int argc, const char* argv[]) {
+			if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+			std::filesystem::path exe{ proc[nullptr].path };
+			std::filesystem::path db{ exe.parent_path() / "Data/CurrentHandler.csi" };
+			std::string dbBuff{};
+
+			compatibility::scobalula::csi::CordycepProc cordycep{};
+
+			if (!cordycep.ReadCsi(db)) {
+				LOG_ERROR("Can't read Cordycep database: {}", db.string());
+				return tool::BASIC_ERROR;
+			}
+
+			CordycepDumper* dump{};
+
+			for (CordycepDumper* d : GetDumpers()) {
+				if (d->game == cordycep.gameId) {
+					dump = d;
+					break;
+				}
+			}
+
+			if (!dump) {
+				LOG_ERROR("Can't find dumper for game {} (0x{:x})", CordycepGameName(cordycep.gameId), (uint64_t)cordycep.gameId);
+				return tool::BASIC_ERROR;
+			}
+
+
+			auto pools = proc.ReadMemoryArrayEx<compatibility::scobalula::csi::XAssetPool64>(cordycep.poolsAddress, dump->numpools);
+
+			utils::OutFileCE out{ argv[2], true };
+
+			out << "type,id";
+			for (size_t i = 0; i < dump->numpools; i++) {
+				cordycep::dump::ForEachEntry(proc, pools[i], [&out](const compatibility::scobalula::csi::XAsset64& asset, size_t count) -> bool {
+					out << "\n0x" << std::hex << asset.Type << ",#" << hashutils::ExtractTmp("hash", asset.ID);
+					return true;
+				});
+			}
+
+			return tool::OK;
+		}
 	}
 
 	ADD_TOOL(csid, "compatibility", "", "Dump csi info", csi_test);
 	ADD_TOOL(dpcord, "common", "", "Cordycep dump tool", L"Cordycep.CLI.exe", dpcord);
+	ADD_TOOL(dpcordhashes, "common", " [dump]", "Cordycep dump hashes", L"Cordycep.CLI.exe", dpcordhashes);
 }

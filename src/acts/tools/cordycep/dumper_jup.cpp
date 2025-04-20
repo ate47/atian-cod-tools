@@ -1478,5 +1478,5 @@ namespace {
 		return tool::OK;
 	}
 
-	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_MW6, dpcordimpl };
+	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_MW6, dpcordimpl, ASSET_COUNT };
 }

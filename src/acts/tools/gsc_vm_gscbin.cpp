@@ -108,25 +108,25 @@ namespace {
                 core::bytebuffer::ByteBuffer sourceReader{ decompressedData.get(), sizef };
                 core::bytebuffer::ByteBuffer bytecodeReader{ header.GetByteCode(), header.bytecodeLen };
 
-                auto ReadSourceToken = [&sourceReader, &tokens, &stringData]() -> const char* {
+                auto ReadSourceToken = [&ctx, &sourceReader, &tokens, &stringData]() -> const char* {
                     GSCBINToken& token{ tokens.emplace_back() };
                     
                     token.location = (uint32_t)sourceReader.Loc();
                     uint32_t id{ sourceReader.Read<uint32_t>() };
 
                     if (!id) {
-                        const char* str{ sourceReader.ReadString() };
+                        char* str{ sourceReader.ReadString() };
 
                         token.type = GBTT_STRING;
                         token.val = (uint32_t)utils::WriteString(stringData, str);
 
-                        return str;
+                        return acts::decryptutils::DecryptString(str);
                     }
 
                     token.type = GBTT_FIELD;
                     token.val = id;
 
-                    return utils::va("ref_%x", id);
+                    return tool::gsc::iw::GetOpaqueStringForVm(ctx.m_vmInfo->vmMagic, id);
                 };
                 auto SkipNBytes = [&asmout, &bytecodeReader](size_t n) -> std::ostream& {
                     asmout << "{";
@@ -344,8 +344,13 @@ namespace {
                             case OPCODE_GSCBIN_SKIP_STR_TOKEN: {
                                 uint32_t id{ bytecodeReader.Read<uint32_t>() };
 
+                                asmout << "0x" << std::hex << id << " ";
                                 if (id > opaqueStringCount) {
                                     const char* valStr{ ReadSourceToken() };
+                                    asmout << ": " << valStr;
+                                }
+                                else {
+                                    asmout << ": " << tool::gsc::iw::GetOpaqueStringForVm(ctx.m_vmInfo->vmMagic, id);
                                 }
                                 asmout << "\n";
 

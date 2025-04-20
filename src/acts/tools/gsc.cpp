@@ -544,6 +544,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                     s = DecryptString(s);
                 }
 
+                if (gDumpStrings) {
+                    gDumpStringsStore.insert(s);
+                }
                 uint32_t ref = ctx.AddStringValue(s);
                 const auto* vars = reinterpret_cast<const uint32_t*>(&unk2c[1]);
 
@@ -674,6 +677,10 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 if (!ctx.opt.m_noStrDecrypt) {
                     s1 = DecryptString(s1);
                     s2 = DecryptString(s2);
+                }
+                if (gDumpStrings) {
+                    gDumpStringsStore.insert(s1);
+                    gDumpStringsStore.insert(s2);
                 }
 
                 uint32_t ref1 = ctx.AddStringValue(s1);
@@ -884,6 +891,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             auto* s1 = Ptr<char>(animt->name);
 
             uint32_t ref1 = ctx.AddStringValue(s1);
+            if (gDumpStrings) {
+                gDumpStringsStore.insert(s1);
+            }
 
             const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
             for (size_t j = 0; j < animt->num_tree_address; j++) {
@@ -898,6 +908,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 if (vars2[0] < fileSize) {
                     const char* v = Ptr<const char>(vars2[0]);
                     uint32_t ref2 = ctx.AddStringValue(v);
+                    if (gDumpStrings) {
+                        gDumpStringsStore.insert(v);
+                    }
 
                     uint32_t rloc = (uint32_t)vars2[1];
                     uint32_t* loc = Ptr<uint32_t>(rloc);

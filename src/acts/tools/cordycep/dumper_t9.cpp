@@ -294,5 +294,5 @@ namespace tool::cordycep::dump::t9 {
 		static std::unordered_map<cw::XAssetType, Unlinker*> map{};
 		return map;
 	}
-	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_BOCW, dpcordimpl };
+	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_BOCW, dpcordimpl, ASSET_TYPE_COUNT };
 }
