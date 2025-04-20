@@ -47,7 +47,7 @@ try {
         }
         $fileOut = "$base/bin/package_index/gscbin-opaques-$vmName.acef"
 
-        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut
+        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut zstd_hc
     }
  
     # Binaries
