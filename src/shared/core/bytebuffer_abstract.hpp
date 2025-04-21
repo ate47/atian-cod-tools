@@ -34,8 +34,11 @@ namespace core::bytebuffer {
 
 		template<typename T = byte>
 		void Skip(size_t len = 1) {
-			while (len--) {
-				Read<T>();
+			byte tmp[0x400];
+			while (len) {
+				size_t r{ std::min<size_t>(sizeof(tmp), sizeof(T) * len) };
+				Read(&tmp, r);
+				len -= r;
 			}
 		}
 
