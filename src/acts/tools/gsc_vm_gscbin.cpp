@@ -94,16 +94,6 @@ namespace {
 
 
             if (header.bytecodeLen) {
-                if (!ctx.opt.m_vm) {
-                    LOG_INFO("GSCBIN decompiler requires a vm");
-                    return tool::BASIC_ERROR;
-                }
-
-                if (!IsValidVmMagic(ctx.opt.m_vm, ctx.m_vmInfo)) {
-                    LOG_ERROR("Can't find gscbin vm 0x{:x}", (uint64_t)ctx.opt.m_vm);
-                    return tool::BASIC_ERROR;
-                }
-
 
                 core::bytebuffer::ByteBuffer sourceReader{ decompressedData.get(), sizef };
                 core::bytebuffer::ByteBuffer bytecodeReader{ header.GetByteCode(), header.bytecodeLen };

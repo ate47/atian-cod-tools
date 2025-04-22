@@ -7,7 +7,7 @@
 #include "gsc_iw.hpp"
 
 namespace tool::gsc::iw {
-	const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str) {
+	const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str, bool useDefault) {
 		static thread_local struct {
 			// cache that to avoid having to load them multiple times for the same VM
 			uint64_t last{};
@@ -31,7 +31,7 @@ namespace tool::gsc::iw {
 			return reader.ReadString();
 		}
 
-		return utils::va("ref_%04x", str);
+		return useDefault ? utils::va("ref_%04x", str) : nullptr;
 	}
 }
 

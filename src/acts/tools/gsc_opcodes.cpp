@@ -5169,6 +5169,9 @@ namespace tool::gsc::opcode {
 	void VmInfo::SetMaxOpCode(uint16_t maxOpCode) {
 		this->maxOpCode = maxOpCode;
 	}
+	void VmInfo::SetMaxOpCodeMask(uint16_t opcodeMask) {
+		this->opcodeMask = opcodeMask;
+	}
 	void VmInfo::SetOpaqueStringCount(size_t opaqueStringCount) {
 		this->opaqueStringCount = opaqueStringCount;
 	}

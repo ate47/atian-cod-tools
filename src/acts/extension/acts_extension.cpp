@@ -168,12 +168,12 @@ namespace acts::extension {
 			return;
 		}
 
-		for (AcefFileLoc* l : it->second.locs) {
+		for (size_t i = 0; i < it->second.locs.size(); i++) {
 			// data data
-			LoadExtensionFile(l, false);
-		}
+			LoadExtensionFile(it->second.locs[i], false);
 
-		*data = it->second.allocs.data();
-		*count = it->second.allocs.size();
+			*data = it->second.allocs.data();
+			*count = it->second.allocs.size();
+		}
 	}
 }

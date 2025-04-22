@@ -1129,6 +1129,16 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
     uint64_t vmVal;
     if (!memcmp("GSC", data, 4)) {
         vmVal = tool::gsc::opcode::VMI_IW_GSCBIN;
+
+        if (!ctx.opt.m_vm) {
+            LOG_INFO("GSCBIN decompiler requires a vm");
+            return tool::BASIC_ERROR;
+        }
+
+        if (!IsValidVmMagic(opt.m_vm, ctx.m_vmInfo)) {
+            LOG_ERROR("Can't find gscbin vm 0x{:x}", (uint64_t)ctx.opt.m_vm);
+            return tool::BASIC_ERROR;
+        }
     }
     else {
         if (size < 8) {
@@ -1141,12 +1151,13 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             LOG_INFO("Not the wanted vm: 0x{:x} != 0x{:x}", vmVal, (uint64_t)opt.m_vm);
             return tool::OK;
         }
+
+        if (!IsValidVmMagic(vmVal, ctx.m_vmInfo)) {
+            LOG_ERROR("Bad vm 0x{:x} for file {}", vmVal, path);
+            return tool::BASIC_ERROR;
+        }
     }
     hashutils::ReadDefaultFile();
-    if (!IsValidVmMagic(vmVal, ctx.m_vmInfo)) {
-        LOG_ERROR("Bad vm 0x{:x} for file {}", vmVal, path);
-        return tool::BASIC_ERROR;
-    }
 
     auto readerBuilder = GetGscReader(vmVal);
 
@@ -1169,17 +1180,30 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
     utils::CloseEnd asmoutclose{ asmout };
 
     if (ctx.opt.m_usePathOutput) {
-        std::string fn = fsPath.string();
+        std::filesystem::path file{ std::filesystem::path{opt.m_outputDir} / fsPath };
 
-        if (fsPath.has_extension()) {
-            size_t len = fsPath.extension().string().length();
-            fn = fn.substr(0, fn.length() - len);
+        file.replace_extension();
+        bool loaded{};
+        if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_GSCBIN)) {
+            std::string fn{ file.filename().string() };
+
+            if (std::find_if(fn.begin(), fn.end(), [](auto c) { return c > '9' || c < '0'; }) == fn.end()) {
+                // only number
+                try {
+                    int id{ (int)std::strtol(fn.data(), nullptr, 10) };
+                    const char* opaque{ tool::gsc::iw::GetOpaqueStringForVm(ctx.m_vmInfo->vmMagic, id, false) };
+
+                    if (opaque) {
+                        file = std::filesystem::path{opt.m_outputDir} / opaque;
+                        loaded = true;
+                    }
+                }
+                catch (...) {}
+            }
         }
-
-        fn = fn + ".gsc";
-
-        const char* name{ fn.data() };
-        std::filesystem::path file{ utils::va("%s/%s", opt.m_outputDir, name) };
+        if (!loaded) {
+            file.replace_extension(".gsc");
+        }
 
         {
             core::async::opt_lock_guard lg{ gdctx.asyncMtx };
@@ -2967,6 +2991,8 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
             else {
                 opCode = (uint16_t)ctx.Read<byte>(base);
             }
+
+            opCode &= objctx.m_vmInfo->opcodeMask;
             
             const auto* handler = ctx.LookupOpCode(opCode);
 

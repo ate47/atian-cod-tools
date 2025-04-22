@@ -15,5 +15,5 @@ namespace tool::gsc::iw {
         uint8_t flags;
     };
 
-    const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str);
+    const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str, bool useDefault = true);
 }
