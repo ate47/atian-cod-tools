@@ -2992,7 +2992,9 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
                 opCode = (uint16_t)ctx.Read<byte>(base);
             }
 
-            opCode &= objctx.m_vmInfo->opcodeMask;
+            //if (objctx.m_vmInfo->modToolFlag && (opCode & objctx.m_vmInfo->modToolFlag)) {
+            //    // modtool
+            //}
             
             const auto* handler = ctx.LookupOpCode(opCode);
 

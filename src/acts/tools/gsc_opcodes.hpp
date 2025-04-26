@@ -78,7 +78,7 @@ namespace tool::gsc::opcode {
 		uint64_t flags{};
 		byte platforms{};
 		uint16_t maxOpCode{ 0xFFF };
-		uint16_t opcodeMask{ 0xFFFF };
+		uint16_t modToolFlag{};
 		size_t opaqueStringCount{};
 		std::unordered_map<char, VmHashFunc> hashesFunc{};
 		std::unordered_set<uint64_t> devCallsNames{};
@@ -145,7 +145,7 @@ namespace tool::gsc::opcode {
 		void RegisterSameCodePlatform(Platform main, Platform sub);
 		void ClearPlatformOpCode(Platform platform);
 		void SetMaxOpCode(uint16_t maxOpCode);
-		void SetMaxOpCodeMask(uint16_t opcodeMask);
+		void SetModToolFlag(uint16_t flag);
 		void SetOpaqueStringCount(size_t opaqueStringCount);
 		void RegisterDevCall(const char* devCall);
 		void RegisterDatatypeRenamed(const char* datatype, const char* trueName);

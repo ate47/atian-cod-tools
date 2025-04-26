@@ -5169,12 +5169,15 @@ namespace tool::gsc::opcode {
 	void VmInfo::SetMaxOpCode(uint16_t maxOpCode) {
 		this->maxOpCode = maxOpCode;
 	}
-	void VmInfo::SetMaxOpCodeMask(uint16_t opcodeMask) {
-		this->opcodeMask = opcodeMask;
+
+	void VmInfo::SetModToolFlag(uint16_t flag) {
+		this->modToolFlag = flag;
 	}
+
 	void VmInfo::SetOpaqueStringCount(size_t opaqueStringCount) {
 		this->opaqueStringCount = opaqueStringCount;
 	}
+
 	void VmInfo::RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
 		if (!(size == 8 || size == 4)) {
 			LOG_ERROR("Invalid size for hash vm {}: '{}' / {} bytes", name, type, size);
@@ -5188,6 +5191,7 @@ namespace tool::gsc::opcode {
 			return;
 		}
 	}
+
 	void VmInfo::RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op) {
 		opcodemap[op][platform] = enumValue;
 		opcodemaplookup[enumValue][platform] = op;

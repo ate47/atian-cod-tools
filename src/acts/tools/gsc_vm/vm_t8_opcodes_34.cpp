@@ -9,7 +9,8 @@ namespace {
 		VmInfo* vt834 = RegisterVM(VMI_T8_34, "Call of Duty: Black ops 4 (34)", "t8", "bo4_34", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM | VmFlags::VMF_HASH_T7);
 		vt834->RegisterVmName("t8_34", "blackops4_34");
 		vt834->AddPlatform(PLATFORM_PLAYSTATION);
-		vt834->SetMaxOpCode(0xFFF);
+		vt834->SetMaxOpCode(0x1FFF);
+		vt834->SetModToolFlag(0x1000);
 		vt834->RegisterVMGlobalVariable("level");
 		vt834->RegisterVMGlobalVariable("game");
 		vt834->RegisterVMGlobalVariable("classes");
