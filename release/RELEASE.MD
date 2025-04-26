@@ -1,2 +1,7 @@
 - acts
-  - fix wni file generation
+  - gsc decompiler
+    - mod tool opcodes support (pc 1c, 36 and 38)
+    - add gsc opaque tokens in iw8 decomp
+    - fix some bo3 ps4 opcodes
+  - better acef loading
+  - gscmap tool
