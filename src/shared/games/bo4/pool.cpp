@@ -405,6 +405,7 @@ namespace games::bo4::pool {
 		{ ASSET_TYPE_FLAMETABLE, 0x1B0 },
 		{ ASSET_TYPE_XANIM, 0x70 },
 		{ ASSET_TYPE_IMAGE, 0x20 },
+		{ ASSET_TYPE_WEAPON_TUNABLES, 0x40 },
 		{ ASSET_TYPE_KLF, 0x18 },
 		{ ASSET_TYPE_PLAYLISTS, 0x10 },
 		{ ASSET_TYPE_DLOGEVENT, 8 },
@@ -416,6 +417,7 @@ namespace games::bo4::pool {
 		{ ASSET_TYPE_PLAYLIST_GLOBAL_SETTINGS, 8 },
 		{ ASSET_TYPE_PLAYLIST_SCHEDULE, 8 },
 		{ ASSET_TYPE_LOCALIZE_ENTRY, 8 },
+		{ ASSET_TYPE_ARENASEASONS, 8 },
 	};
 
 	size_t GetAssetNameOffset(XAssetType type) {
