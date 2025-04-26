@@ -198,6 +198,10 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		void* PMem_Alloc(size_t size, size_t alignment, void* loaded, int pool, int stack) {
+			static byte empty[1];
+			if (!size) return &empty;
+			LOG_TRACE("PMem_Alloc(0x{:x}, 0x{:x}, {}, {}, {})", size, alignment, loaded, pool, stack);
+			if (pool == 2) return &empty; // no gpu streamer pool
 			return utils::Aligned(gcx.allocator.Alloc<byte>(size + alignment - 1), alignment);
 		}
 
