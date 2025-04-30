@@ -1224,7 +1224,12 @@ public:
 
 
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, m_valtype, false, true, true));
+				bool isHex{};
+				if constexpr (std::is_integral<Type>()) {
+					//isHex = utils::IsProbablyHex((int64_t)intValue); // to test
+				}
+
+				context.PushASMCNode(new ASMContextNodeValue<WriteType>(intValue, m_valtype, isHex, true, true));
 			}
 			out << std::dec << intValue;
 			

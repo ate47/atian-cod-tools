@@ -385,6 +385,33 @@ namespace utils {
         return utils::va("%lld%c", number, suffixes[lg - 1]);
     }
 
+    bool IsProbablyHex(int64_t number) {
+        if (number < 0x800) {
+            return false; // too small or negative
+        }
+
+        size_t frequencies[0x10]{};
+        size_t log16{};
+
+        // count the numbers and try to find one which has a 2/3 frequency
+        // 0x100 would work in this logic
+        while (number) {
+            frequencies[number & 0xf]++;
+            number >>= 4;
+            log16++;
+        }
+
+        size_t okay{ log16 * 2 / 3 };
+
+        for (size_t i = 0; i < 0x10; i++) {
+            if (frequencies[i] >= okay) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     char* MapString(char* buffer, std::function<char(char)> map) {
         std::transform(buffer, buffer + strlen(buffer), buffer, map);
         return buffer;

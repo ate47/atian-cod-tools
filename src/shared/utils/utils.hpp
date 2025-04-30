@@ -481,6 +481,13 @@ namespace utils {
 	}
 
 	/*
+	 * Test if a number is probably a hex number
+	 * @param number
+	 * @return true if the number is a hex number
+	 */
+	bool IsProbablyHex(int64_t number);
+
+	/*
 	 * @param ptr Pointer
 	 * @param defaultVal default value
 	 * @param Type type
