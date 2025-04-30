@@ -32,6 +32,12 @@ function autoexec __init__system__() {
     f = &test;
 
     level.players[0] thread [[ f ]]();
+
+    unpack = [42, 52, 62];
+    [v1, v2, v3] = unpack;
+    
+    self iprintln("unpack: " + v1 + v2 + v3);
+
 }
 
 function test() {

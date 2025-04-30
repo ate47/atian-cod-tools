@@ -71,6 +71,8 @@ public:
 
     virtual std::any visitOperator_inst(gscParser::Operator_instContext *context) = 0;
 
+    virtual std::any visitArray_unpack(gscParser::Array_unpackContext *context) = 0;
+
     virtual std::any visitExpression(gscParser::ExpressionContext *context) = 0;
 
     virtual std::any visitSet_expression(gscParser::Set_expressionContext *context) = 0;

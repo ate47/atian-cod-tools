@@ -41,15 +41,16 @@ public:
     RuleStatement_for = 15, RuleStatement_while = 16, RuleStatement_dowhile = 17, 
     RuleStatement_foreach = 18, RuleStatement_if = 19, RuleStatement_switch = 20, 
     RuleStatement_inst = 21, RuleNop_def = 22, RuleDevop_def = 23, RuleFunction_component = 24, 
-    RuleOperator_inst = 25, RuleExpression = 26, RuleSet_expression = 27, 
-    RuleExpression0 = 28, RuleExpression1 = 29, RuleExpression2 = 30, RuleExpression3 = 31, 
-    RuleExpression4 = 32, RuleExpression5 = 33, RuleExpression6 = 34, RuleExpression7 = 35, 
-    RuleExpression8 = 36, RuleExpression9 = 37, RuleExpression10 = 38, RuleExpression11 = 39, 
-    RuleExpression12 = 40, RuleExpression13 = 41, RuleExpression14 = 42, 
-    RuleExpression15 = 43, RuleIs_expression = 44, RuleFunction_call_exp = 45, 
-    RuleFunction_call = 46, RuleLeft_value = 47, RuleConst_expr = 48, RuleConst_expr_static = 49, 
-    RuleFunction_ref = 50, RuleData_ref = 51, RuleNumber = 52, RuleVector_value = 53, 
-    RuleArray_def = 54, RuleStruct_def = 55, RuleClass_init = 56, RuleIdf = 57
+    RuleOperator_inst = 25, RuleArray_unpack = 26, RuleExpression = 27, 
+    RuleSet_expression = 28, RuleExpression0 = 29, RuleExpression1 = 30, 
+    RuleExpression2 = 31, RuleExpression3 = 32, RuleExpression4 = 33, RuleExpression5 = 34, 
+    RuleExpression6 = 35, RuleExpression7 = 36, RuleExpression8 = 37, RuleExpression9 = 38, 
+    RuleExpression10 = 39, RuleExpression11 = 40, RuleExpression12 = 41, 
+    RuleExpression13 = 42, RuleExpression14 = 43, RuleExpression15 = 44, 
+    RuleIs_expression = 45, RuleFunction_call_exp = 46, RuleFunction_call = 47, 
+    RuleLeft_value = 48, RuleConst_expr = 49, RuleConst_expr_static = 50, 
+    RuleFunction_ref = 51, RuleData_ref = 52, RuleNumber = 53, RuleVector_value = 54, 
+    RuleArray_def = 55, RuleStruct_def = 56, RuleClass_init = 57, RuleIdf = 58
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -95,6 +96,7 @@ public:
   class Devop_defContext;
   class Function_componentContext;
   class Operator_instContext;
+  class Array_unpackContext;
   class ExpressionContext;
   class Set_expressionContext;
   class Expression0Context;
@@ -465,6 +467,7 @@ public:
     Function_call_expContext *function_call_exp();
     Nop_defContext *nop_def();
     Devop_defContext *devop_def();
+    Array_unpackContext *array_unpack();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -528,6 +531,21 @@ public:
   };
 
   Operator_instContext* operator_inst();
+
+  class  Array_unpackContext : public antlr4::ParserRuleContext {
+  public:
+    Array_unpackContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
+    antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
+    ExpressionContext *expression();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Array_unpackContext* array_unpack();
 
   class  ExpressionContext : public antlr4::ParserRuleContext {
   public:

@@ -2841,6 +2841,7 @@ namespace acts::compiler {
             case gscParser::RuleStatement_block:
             case gscParser::RuleStatement_dev_block:
             case gscParser::RuleOperator_inst:
+            case gscParser::RuleArray_unpack:
             case gscParser::RuleFunction_call:
             case gscParser::RuleFunction_call_exp:
                 obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Not a valid lvalue: {} ({})", rule->getText(), rule->getRuleIndex()));
@@ -3551,6 +3552,40 @@ namespace acts::compiler {
                     fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_Nop));
                 }
             
+                return true;
+            }
+            case gscParser::RuleArray_unpack: {
+                auto [varerr, arrVar] = fobj.RegisterVarRnd();
+                if (varerr) {
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, rule, std::format("Error when registering array unpack variable: {}", varerr));
+                    return false;
+                }
+
+                if (!ParseExpressionNode(rule->children[rule->children.size() - 1], parser, obj, fobj, true)) {
+                    return false;
+                }
+                fobj.AddNode(rule, new AscmNodeVariable(arrVar->id, OPCODE_EvalLocalVariableRefCached));
+                fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_SetVariableField));
+
+                size_t numEntries{ 1 + (rule->children.size() - 5) / 2 };
+
+                for (int i = (int)(numEntries - 1); i >= 0; i--) {
+                    auto* child{ rule->children[1 + i * 2] };
+                    const std::string unpackName{ child->getText() };
+                    
+                    auto [varerr2, arrVar2] = fobj.RegisterVar(unpackName, true);
+                    if (varerr2) {
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, child, std::format("Error when registering array unpack variable {}: {}", unpackName, varerr2));
+                        return false;
+                    }
+                    
+                    fobj.AddNode(child, obj.BuildAscmNodeData(i));
+                    fobj.AddNode(child, new AscmNodeVariable(arrVar->id, OPCODE_EvalLocalVariableCached));
+                    fobj.AddNode(child, new AscmNodeOpCode(OPCODE_EvalArray));
+                    fobj.AddNode(child, new AscmNodeVariable(arrVar2->id, OPCODE_EvalLocalVariableRefCached));
+                    fobj.AddNode(child, new AscmNodeOpCode(OPCODE_SetVariableField));
+                }
+
                 return true;
             }
             case gscParser::RuleDevop_def: {

@@ -55,7 +55,7 @@ statement_foreach:
 
 statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
-statement_inst: (expression | operator_inst | statement_dowhile | function_call_exp | nop_def | devop_def) ';';
+statement_inst: (expression | operator_inst | statement_dowhile | function_call_exp | nop_def | devop_def | array_unpack) ';';
 
 nop_def: ('nop' | 'Nop') ('(' number ')')?;
 devop_def: ('DevOp' | 'devop' | 'Devop') '(' number ')';
@@ -68,6 +68,7 @@ function_component:
 
 operator_inst: BUILTIN (IDENTIFIER | expression)?;
 
+array_unpack: '[' IDENTIFIER (',' IDENTIFIER)* ']' '=' expression;
 
 expression:
 	set_expression
