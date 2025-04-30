@@ -1636,48 +1636,63 @@ namespace tool::gsc::opcode {
 					out << "NO_ORIGIN";
 				}
 				out << ">";
+			} 
+			else if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+				out << " ";
 			}
-	 else if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
-	  out << " ";
-	}
-	out << "(";
-	m_init->Dump(out, ctx);
-	out << "; ";
-	if (m_cond) {
-		m_cond->Dump(out, ctx);
-	}
-	out << "; ";
-	m_delta->Dump(out, ctx);
-	out << ") ";
-	m_block->Dump(out, ctx);
-	}
+			out << "(";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			m_init->Dump(out, ctx);
+			out << "; ";
+			if (m_cond) {
+				m_cond->Dump(out, ctx);
+			}
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << "; ";
+			m_delta->Dump(out, ctx);
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				out << " ";
+			}
+			out << ")";
+			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				ctx.WritePadding(out << "\n", true);
+			}
+			else {
+				out << " ";
+			}
+			m_block->Dump(out, ctx);
+		}
 
-	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
-		m_block->ApplySubBlocks(func, ctx);
-	}
+		void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+			m_block->ApplySubBlocks(func, ctx);
+		}
 
-	void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override {
-		if (m_init) {
-			func(m_init, ctx);
-			m_init->ApplySubNodes(func, ctx);
+		void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override {
+			if (m_init) {
+				func(m_init, ctx);
+				m_init->ApplySubNodes(func, ctx);
+			}
+			if (m_cond) {
+				func(m_cond, ctx);
+				m_cond->ApplySubNodes(func, ctx);
+			}
+			if (m_delta) {
+				func(m_delta, ctx);
+				m_delta->ApplySubNodes(func, ctx);
+			}
+			if (m_originJump) {
+				func(m_originJump, ctx);
+				m_originJump->ApplySubNodes(func, ctx);
+			}
+			if (m_block) {
+				func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
+				m_block->ApplySubNodes(func, ctx);
+			}
 		}
-		if (m_cond) {
-			func(m_cond, ctx);
-			m_cond->ApplySubNodes(func, ctx);
-		}
-		if (m_delta) {
-			func(m_delta, ctx);
-			m_delta->ApplySubNodes(func, ctx);
-		}
-		if (m_originJump) {
-			func(m_originJump, ctx);
-			m_originJump->ApplySubNodes(func, ctx);
-		}
-		if (m_block) {
-			func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
-			m_block->ApplySubNodes(func, ctx);
-		}
-	}
 
 	};
 
