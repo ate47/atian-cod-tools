@@ -68,6 +68,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--nofunc", arg)) {
             m_func = false;
         }
+        else if (!_strcmpi("--tokens", arg)) {
+            m_tokens = true;
+        }
         else if (!strcmp("-F", arg) || !_strcmpi("--nofuncheader", arg)) {
             m_func_header = false;
         }
@@ -704,17 +707,16 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             auto tokens_count = GetTokensCount();
             GSCBINToken* tokens{ Ptr<GSCBINToken>(GetTokensOffset()) };
             for (size_t i = 0; i < tokens_count; i++) {
-                const char* val;
-                if (tokens->type == GBTT_STRING) {
-                    val = Ptr<const char>(tokens->val);
+                GSCOBJTokenData& tdt{ ctx.m_tokens.emplace_back() };
+                tdt.loc = tokens[i].location;
+                if (tokens[i].type == GBTT_STRING) {
+                    tdt.isString = true;
+                    tdt.val.str = Ptr<const char>(tokens[i].val);
                 }
                 else {
-                    val = "TOKEN_TODO";
+                    tdt.isString = false;
+                    tdt.val.id = tokens[i].val;
                 }
-                uint32_t id{ (uint32_t)ctx.m_tokens.size() };
-                ctx.m_tokens.push_back(val);
-
-                Ref<uint32_t>(tokens->location) = id;
             }
         }
 
@@ -1933,6 +1935,23 @@ ignoreCscGsc:
 
     scriptfile->DumpExperimental(asmout, opt, ctx);
 
+    if (opt.m_tokens && ctx.m_tokens.size()) {
+        asmout << "// tokens\n";
+        for (size_t i = 0; i < ctx.m_tokens.size(); i++) {
+            GSCOBJTokenData& data{ ctx.m_tokens[i] };
+
+            asmout  << "token 0x" << std::hex << i << " loc:0x" << data.loc << " | ";
+            if (data.isString) {
+                asmout << "(str) " << data.val.str;
+            }
+            else {
+                asmout << "(id) " << tool::gsc::iw::GetOpaqueStringForVm(ctx.m_vmInfo->vmMagic, data.val.id);
+            }
+            asmout << "\n";
+        }
+        asmout << "\n";
+    }
+
     if (opt.m_gvars && scriptfile->GetGVarsOffset()) {
         uintptr_t gvars_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetGVarsOffset()));
 
@@ -2845,7 +2864,7 @@ int dumpdataset(Process& proc, int argc, const char* argv[]) {
 tool::gsc::T8GSCOBJContext::T8GSCOBJContext(GscDecompilerGlobalContext& gdctx) : opt(gdctx.opt), gdctx(gdctx) {}
 
 tool::gsc::T8GSCOBJContext::~T8GSCOBJContext() {
-    for (char* string : m_allocatedStrings) {
+    for (auto& [k, string] : m_allocatedStrings) {
         delete[] string;
     }
 }
@@ -2879,6 +2898,17 @@ const char* tool::gsc::T8GSCOBJContext::GetStringValueByLoc(uint32_t floc) {
     return GetStringValue(f->second);
 }
 
+const char* tool::gsc::T8GSCOBJContext::GetTokenValue(uint32_t tokenRef) {
+    if (tokenRef >= m_tokens.size()) {
+        return CloneString(utils::va("<badtoken:%x>", tokenRef));
+    }
+    GSCOBJTokenData& td{ m_tokens[tokenRef] };
+    if (td.isString) return td.val.str;
+    const char* extracted{ tool::gsc::iw::GetOpaqueStringForVm(m_vmInfo->vmMagic, td.val.id, false) };
+    if (extracted) return extracted;
+    return CloneString(utils::va("ref_%x", td.val.id));
+}
+
 const char* tool::gsc::T8GSCOBJContext::GetStringValueOrError(uint32_t stringRef, uint32_t floc, const char* errorValue) {
     const char* v = GetStringValue(stringRef);
 
@@ -2908,12 +2938,16 @@ uint32_t tool::gsc::T8GSCOBJContext::AddStringValue(const char* value) {
     return id;
 }
 char* tool::gsc::T8GSCOBJContext::CloneString(const char* str) {
+    char*& r{ m_allocatedStrings[hash::Hash64(str)] };
+    if (r) {
+        return r;
+    }
     size_t len = std::strlen(str);
     char* ptr = new char[len + 1];
 
     memcpy(ptr, str, len + 1);
 
-    m_allocatedStrings.push_back(ptr);
+    r = ptr;
 
     return ptr;
 }

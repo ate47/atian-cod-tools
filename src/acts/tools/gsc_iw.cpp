@@ -7,42 +7,61 @@
 #include "gsc_iw.hpp"
 
 namespace tool::gsc::iw {
-	const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str, bool useDefault) {
-		static thread_local struct {
-			// cache that to avoid having to load them multiple times for the same VM
-			uint64_t last{};
-			acts::extension::AcefArray* arr{};
-			size_t count{};
-		} lastVmData;
+	struct StoreCache {
+		// cache that to avoid having to load them multiple times for the same VM
+		uint64_t last{};
+		acts::extension::AcefArray* arr{};
+		size_t count{};
+	};
 
-		if (lastVmData.last != vm) {
-			acts::extension::GetExtensionData(utils::va("acts.gscbinopaque.%llx", vm), &lastVmData.arr, &lastVmData.count);
-			lastVmData.last = vm;
+	static const char* GetDataFromCache(StoreCache& cache, uint64_t vm, const char* name, uint32_t str) {
+		if (cache.last != vm) {
+			const char* f{ utils::va("acts.gscbin%s.%llx", name, vm) };
+			acts::extension::GetExtensionData(f, &cache.arr, &cache.count);
+			cache.last = vm;
+			if (!cache.count) {
+				LOG_WARNING("Can't find any data for file {}", f);
+			}
 		}
-
-		for (size_t i = 0; i < lastVmData.count; i++) {
-			core::bytebuffer::ByteBuffer reader{ (byte*)lastVmData.arr[i].data, lastVmData.arr[i].len };
+		for (size_t i = 0; i < cache.count; i++) {
+			core::bytebuffer::ByteBuffer reader{ (byte*)cache.arr[i].data, cache.arr[i].len };
 			uint32_t count{ reader.Read<uint32_t>() };
 			if (str >= count) continue; // string too high
-			uint32_t loc{ reader.ReadPtr<uint32_t>(count)[str]};
+			uint32_t loc{ reader.ReadPtr<uint32_t>(count)[str] };
 			if (!loc) continue; // not defined in this ext
 
 			reader.Skip(loc);
 			return reader.ReadString();
 		}
+		return nullptr;
+	}
 
-		return useDefault ? utils::va("ref_%04x", str) : nullptr;
+	const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str, bool useDefault) {
+		static thread_local StoreCache lastVmData;
+		const char* s{ GetDataFromCache(lastVmData, vm, "opaque", str) };
+		return !s && useDefault ? utils::va("ref_%04x", str) : s;
+	}
+	const char* GetMethodForVm(uint64_t vm, uint32_t str, bool useDefault) {
+		static thread_local StoreCache lastVmData;
+		const char* s{ GetDataFromCache(lastVmData, vm, "method", str) };
+		return !s && useDefault ? utils::va("method_%04x", str) : s;
+	}
+	const char* GetFunctionForVm(uint64_t vm, uint32_t str, bool useDefault) {
+		static thread_local StoreCache lastVmData;
+		const char* s{ GetDataFromCache(lastVmData, vm, "function", str) };
+		return !s && useDefault ? utils::va("function_%04x", str) : s;
 	}
 }
 
 namespace {
 	int acef_gscopaque(int argc, const char* argv[]) {
-		if (tool::NotEnoughParam(argc, 3)) return tool::BAD_USAGE;
+		if (tool::NotEnoughParam(argc, 4)) return tool::BAD_USAGE;
 
 		tool::gsc::opcode::VMId vmid{ tool::gsc::opcode::VMOf(argv[2]) };
 		std::filesystem::path tsv{ argv[3] };
 		std::filesystem::path output{ argv[4] };
-		utils::compress::CompressionAlgorithm alg{ tool::NotEnoughParam(argc, 4) ? compatibility::acts_acef::DEFAULT_COMPRESS : utils::compress::GetConfigName(argv[5]) };
+		const char* type{ argv[5] };
+		utils::compress::CompressionAlgorithm alg{ tool::NotEnoughParam(argc, 5) ? compatibility::acts_acef::DEFAULT_COMPRESS : utils::compress::GetConfigName(argv[6]) };
 
 		if (!vmid) {
 			LOG_ERROR("Can't find vm for name {}", argv[2]);
@@ -96,7 +115,7 @@ namespace {
 		utils::WriteValue(blockData, strmemory.data(), (uint32_t)(strmemory.size())); // string memory
 
 		compatibility::acts_acef::AcefBlock block{};
-		block.name = hash::Hash64(utils::va("acts.gscbinopaque.%llx", vmid));
+		block.name = hash::Hash64(utils::va("acts.gscbin%s.%llx", type, vmid));
 		block.data = blockData.data();
 		block.size = blockData.size();
 
@@ -104,5 +123,5 @@ namespace {
 
 		return tool::OK;
 	}
-	ADD_TOOL(acef_gscopaque, "gsc", " [vm] [strings] [output] (compress=zstd)", "compile gscbin opaque strings tsv file to acef file", acef_gscopaque);
+	ADD_TOOL(acef_gscopaque, "gsc", " [vm] [strings] [output] [type] (compress=zstd)", "compile gscbin strings tsv file to acef file", acef_gscopaque);
 }

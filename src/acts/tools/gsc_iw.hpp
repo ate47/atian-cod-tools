@@ -16,4 +16,6 @@ namespace tool::gsc::iw {
     };
 
     const char* GetOpaqueStringForVm(uint64_t vm, uint32_t str, bool useDefault = true);
+    const char* GetMethodForVm(uint64_t vm, uint32_t str, bool useDefault = true);
+    const char* GetFunctionForVm(uint64_t vm, uint32_t str, bool useDefault = true);
 }

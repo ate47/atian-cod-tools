@@ -34,6 +34,7 @@ namespace tool::gsc::opcode {
 		VMF_FOREACH_IW_KEYS = 1 << 25,
 		VMF_ISTRING = 1 << 26,
 		VMF_ISTRING_HASHED = 1 << 27,
+		VMF_FUNC_REF_24 = 1 << 28,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

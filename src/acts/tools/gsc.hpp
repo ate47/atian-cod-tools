@@ -84,6 +84,7 @@ namespace tool::gsc {
         bool m_show_jump_delta{};
         bool m_show_pre_dump{};
         bool m_show_ref_count{};
+        bool m_tokens{};
         bool m_test_header{};
         const char* m_rosetta{};
         const char* m_dump_hashmap{};
@@ -808,16 +809,25 @@ namespace tool::gsc {
 
         bool WarningType(GscDecompilerGlobalContextWarn warn);
     };
+    struct GSCOBJTokenData {
+        uint32_t loc;
+        bool isString;
+        union {
+            uint32_t id;
+            const char* str;
+        } val;
+    };
+
     // Result context for T8GSCOBJ::PatchCode
     class T8GSCOBJContext {
     private:
-        std::vector<char*> m_allocatedStrings{};
+        std::unordered_map<uint64_t, char*> m_allocatedStrings{};
     public:
         std::unordered_map<NameLocated, opcode::ASMContext, NameLocatedHash, NameLocatedEquals> contextes{};
         std::unordered_map<uint16_t, uint64_t> m_gvars{};
         std::unordered_map<uint32_t, const char*> m_stringRefs{};
         std::unordered_map<uint32_t, uint32_t> m_stringRefsLoc{};
-        std::vector<const char*> m_tokens{};
+        std::vector<GSCOBJTokenData> m_tokens{};
         std::vector<IW23GSCImport> m_linkedImports{};
         // getnumber hack
         std::unordered_map<uint32_t, uint32_t> m_animTreeLocations{};
@@ -852,6 +862,12 @@ namespace tool::gsc {
          * @return string or null
          */
         const char* GetStringValueByLoc(uint32_t floc);
+        /*
+         * Get a token for a floc
+         * @param floc loc
+         * @return string or null
+         */
+        const char* GetTokenValue(uint32_t tokenRef);
         /*
          * Get a string for a string ref, return errorValue in case of error
          * @param stringRef string ref
@@ -1417,7 +1433,8 @@ namespace tool::gsc {
         METHOD_CHILDTHREAD = 0x7,
         CALLTYPE_MASK = 0xF,
         DEV_CALL = 0x10,
-        GET_CALL = 0x20
+        GET_CALL = 0x20,
+        LOCAL_CALL = 0x40
     };
     enum ACTSGSCImportFlags : uint8_t {
         ACTS_GET_BUILTIN_FUNCTION = 0x8,

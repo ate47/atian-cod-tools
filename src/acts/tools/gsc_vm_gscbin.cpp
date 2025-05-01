@@ -41,10 +41,27 @@ namespace {
         uint32_t address;
     };
     struct PreImport {
-        uint32_t id;
+        uint64_t ns;
+        uint64_t name;
         byte flags;
         uint32_t address;
     };
+
+    uint64_t ConvertToHash(const char* name) {
+        uint64_t h{ hash::HashJupScr(name) };
+        hashutils::AddPrecomputed(h, name);
+        return h;
+    }
+    inline uint64_t ConvertToHash(const std::string& name) { return ConvertToHash(name.data()); }
+
+    uint64_t CreateScriptNameSpace(const char* name) {
+        std::string_view s{ name };
+        if (!s.ends_with(".gsc")) {
+            return ConvertToHash(name);
+        }
+        return ConvertToHash(std::string{ s.begin(), s.end() - 4 });
+    }
+
 
     class IWGSCOBJHandler : public GSCOBJHandler {
     public:
@@ -88,21 +105,40 @@ namespace {
 
             fakeLinked.clear();
             fakeLinked.reserve(header.len + sizeof(functions[0]) * functions.size());
-
             utils::Allocate(fakeLinked, sizeof(fakeHeader));
-            size_t bytecode{ utils::WriteValue(fakeLinked, header.GetByteCode(), header.bytecodeLen) };
+            size_t bytecode{ utils::Allocate(fakeLinked, header.bytecodeLen) };
 
+            std::unordered_map<uint64_t, uint64_t> locals{};
+
+            auto GetLocalId = [&locals](uint64_t loc) -> uint64_t {
+                auto it{ locals.find(loc) };
+                if (it != locals.end()) {
+                    return it->second;
+                }
+                return ConvertToHash(utils::va("<errlocal:%x>", loc));
+            };
 
             if (header.bytecodeLen) {
 
                 core::bytebuffer::ByteBuffer sourceReader{ decompressedData.get(), sizef };
                 core::bytebuffer::ByteBuffer bytecodeReader{ header.GetByteCode(), header.bytecodeLen };
 
-                auto ReadSourceToken = [&ctx, &sourceReader, &tokens, &stringData]() -> const char* {
+                auto AddTokenID = [&ctx, &sourceReader, &tokens](uint32_t* base, uint32_t id) {
+                    *base = (uint32_t)tokens.size();
+                    GSCBINToken& token{ tokens.emplace_back() };
+                    //token.location = 0;
+                    token.type = GBTT_FIELD;
+                    token.val = id;
+                };
+
+                auto ReadSourceToken = [&ctx, &sourceReader, &tokens, &stringData](uint32_t* oid = nullptr, uint32_t* outtokenid = nullptr) -> const char* {
+                    if (outtokenid) *outtokenid = (uint32_t)tokens.size();
                     GSCBINToken& token{ tokens.emplace_back() };
                     
                     token.location = (uint32_t)sourceReader.Loc();
                     uint32_t id{ sourceReader.Read<uint32_t>() };
+
+                    if (oid) *oid = id;
 
                     if (!id) {
                         char* str{ sourceReader.ReadString() };
@@ -147,31 +183,37 @@ namespace {
                     BINGSCExport exph{};
 
                     try {
-                        exph.address = (uint32_t)(bytecode + bytecodeReader.Loc());
+                        uint32_t trueLoc{ (uint32_t) bytecodeReader.Loc() };
+                        exph.address = (uint32_t)(bytecode + trueLoc);
                         byte* funcStart{ bytecodeReader.Ptr() };
                         exph.size = sourceReader.Read<uint32_t>();
                         byte* funcEnd{ funcStart + exph.size };
-                        const char* name{ ReadSourceToken() };
-                        uint64_t hname{ hash::Hash64(name) };
+                        uint32_t funcId;
+                        const char* name{ ReadSourceToken(&funcId) };
+                        uint64_t hname{ hash::HashJupScr(name) };
                         hashutils::AddPrecomputed(hname, name);
                         exph.name = hname;
+                        locals[trueLoc] = hname;
 
                         asmout
                             << "\n"
-                            << "// name: " << name << "\n"
+                            << "// name: " << name << " (0x" << std::hex << funcId << ")" << "\n"
                             << "// offset: 0x" << std::hex << exph.address << "\n"
-                            << "// size: 0x" << std::hex << exph.size << "\n"
+                            << "// size: 0x" << std::hex << exph.size << "/ 0x" << (exph.address + exph.size) << "\n"
                             ;
                         BINGSCExport& exp{ functions.emplace_back(exph) };
                         while (bytecodeReader.Ptr() < funcEnd) {
-                            asmout << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc() << " ";
+                            asmout 
+                                << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc()
+                                << "." << std::hex << std::setfill('0') << std::setw(4) << sourceReader.Loc() 
+                                << " ";
                             byte opcode{ bytecodeReader.Read<byte>() };
 
                             const OPCodeInfo* nfo{ LookupOpCode(ctx.m_vmInfo->vmMagic, ctx.opt.m_platform, opcode) };
 
                             asmout
                                 << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int)opcode
-                                << " " << std::setw(0x20) << std::setfill('.') << nfo->m_name << "(" << std::dec << std::setfill(' ') << std::setw(3) << (int)opcode << ")" << " | ";
+                                << " " << std::setw(0x24) << std::setfill('.') << nfo->m_name << "(" << std::dec << std::setfill(' ') << std::setw(3) << (int)opcode << ")" << " | ";
                             switch (nfo->m_id) {
                             case OPCODE_Plus:
                             case OPCODE_Minus:
@@ -235,6 +277,13 @@ namespace {
                             case OPCODE_IW_SingleWaitTill:
                             case OPCODE_ClearParams:
                             case OPCODE_BoolNot:
+                            case OPCODE_WaitTillFrameEnd:
+                            case OPCODE_PreScriptCall:
+                            case OPCODE_SizeOf:
+                            case OPCODE_IW_SetLocalVariableCached0:
+                            case OPCODE_IW_ClearLocalVariableCached0:
+                            case OPCODE_IW_WaitFrame:
+                            case OPCODE_GetUndefined:
                             case OPCODE_GSCBIN_SKIP_0:
                                 asmout << "\n";
                                 break;
@@ -244,9 +293,13 @@ namespace {
                             case OPCODE_EvalLocalVariableCached:
                             case OPCODE_SetLocalVariableCached:
                             case OPCODE_IW_EvalLocalArrayCached:
+                            case OPCODE_IW_EvalLocalArrayRefCached:
                             case OPCODE_EvalLocalVariableRefCached:
                             case OPCODE_T9_IncLocalVariableCached:
                             case OPCODE_T9_DecLocalVariableCached:
+                            case OPCODE_IW_SetNewLocalVariableFieldCached0:
+                            case OPCODE_IW_CreateLocalVar:
+                            case OPCODE_IW_ClearFieldVariableRef:
                             case OPCODE_GSCBIN_SKIP_1:
                                 SkipNBytes(1) << "\n";
                                 break;
@@ -262,6 +315,7 @@ namespace {
                             case OPCODE_JumpOnDefined:
                             case OPCODE_JumpOnDefinedExpr:
                             case OPCODE_Jump:
+                            case OPCODE_IW_JumpBack:
                             case OPCODE_DevblockBegin:
                             case OPCODE_GSCBIN_SKIP_2:
                                 SkipNBytes(2) << "\n";
@@ -274,9 +328,6 @@ namespace {
                             // case 0xAB:
                             // case 0xAC:
                             //case OPCODE_IW_ScriptFunctionCall2:
-                            case OPCODE_IW_LocalCall2:
-                            case OPCODE_IW_LocalCall:
-                            case OPCODE_IW_GetLocal:
                             case OPCODE_GSCBIN_SKIP_3:
                                 SkipNBytes(3) << "\n";
                                 break;
@@ -285,7 +336,6 @@ namespace {
                             case OPCODE_GetNegUnsignedInteger:
                             case OPCODE_GetFloat:
                             case OPCODE_IW_Jump32:
-                            case OPCODE_IW_LocalThreadCall:
                             case OPCODE_GSCBIN_SKIP_4:
                                 SkipNBytes(4) << "\n";
                                 break;
@@ -318,7 +368,10 @@ namespace {
                                 asmout << "count: " << std::dec << count << "\n";
 
                                 for (size_t i = 0; i < count; i++) {
-                                    asmout << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc() << " ";
+                                    asmout
+                                        << "." << std::hex << std::setfill('0') << std::setw(4) << bytecodeReader.Loc()
+                                        << "." << std::hex << std::setfill('0') << std::setw(4) << sourceReader.Loc()
+                                        << " ";
                                     int32_t val{ bytecodeReader.Read<int32_t>() };
                                     asmout << "0x" << std::hex << val << " ";
                                     SkipNBytes(3); //rloc/type?
@@ -331,18 +384,25 @@ namespace {
                                 }
                                 break;
                             }
+                            case OPCODE_IW_EvalLevelFieldVariableToken:
+                            case OPCODE_IW_EvalLevelFieldVariableTokenRef:
+                            case OPCODE_IW_EvalAnimFieldVariableToken:
+                            case OPCODE_IW_EvalAnimFieldVariableTokenRef:
+                            case OPCODE_IW_SetLevelFieldVariableToken:
                             case OPCODE_GSCBIN_SKIP_STR_TOKEN: {
+                                uint32_t* idLoc{ bytecodeReader.Ptr<uint32_t>() };
                                 uint32_t id{ bytecodeReader.Read<uint32_t>() };
 
                                 asmout << "0x" << std::hex << id << " ";
                                 if (id > opaqueStringCount) {
-                                    const char* valStr{ ReadSourceToken() };
+                                    const char* valStr{ ReadSourceToken(nullptr, idLoc) };
                                     asmout << ": " << valStr;
                                 }
                                 else {
+                                    AddTokenID(idLoc, id);
                                     asmout << ": " << tool::gsc::iw::GetOpaqueStringForVm(ctx.m_vmInfo->vmMagic, id);
                                 }
-                                asmout << "\n";
+                                asmout << " -> 0x" << std::hex << *idLoc << "\n";
 
                                 break;
                             }
@@ -355,16 +415,21 @@ namespace {
                                 PreImport& imp{ imports.emplace_back() };
                                 imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_FUNCTION_NO_PARAMS;
                                 imp.address = (uint32_t)bytecodeReader.Loc();
-                                imp.id = bytecodeReader.Read<uint16_t>();
-                                asmout << "\n";
+                                uint16_t fid{ bytecodeReader.Read<uint16_t>() };
+                                const char* t{ tool::gsc::iw::GetFunctionForVm(ctx.m_vmInfo->vmMagic, fid) };
+                                imp.name = ConvertToHash(t);
+                                asmout << t << " 0x" << std::hex << fid << "\n";
                                 break;
                             }
                             case OPCODE_CallBuiltinFunction: {
                                 PreImport& imp{ imports.emplace_back() };
                                 imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_FUNCTION;
                                 imp.address = (uint32_t)bytecodeReader.Loc();
-                                SkipNBytes(1) << "\n";
-                                imp.id = bytecodeReader.Read<uint16_t>();
+                                SkipNBytes(1);
+                                uint16_t fid{ bytecodeReader.Read<uint16_t>() };
+                                const char* t{ tool::gsc::iw::GetFunctionForVm(ctx.m_vmInfo->vmMagic, fid) };
+                                imp.name = ConvertToHash(t);
+                                asmout << t << " 0x" << std::hex << fid << "\n";
                                 break;
                             }
                             case OPCODE_IW_CallBuiltinMethod0:
@@ -376,26 +441,171 @@ namespace {
                                 PreImport& imp{ imports.emplace_back() };
                                 imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_METHOD_NO_PARAMS;
                                 imp.address = (uint32_t)bytecodeReader.Loc();
-                                imp.id = bytecodeReader.Read<uint16_t>();
-                                asmout << "\n";
+                                uint16_t fid{ bytecodeReader.Read<uint16_t>() };
+                                const char* t{ tool::gsc::iw::GetMethodForVm(ctx.m_vmInfo->vmMagic, fid) };
+                                imp.name = ConvertToHash(t);
+                                asmout << t << " 0x" << std::hex << fid << "\n";
                                 break;
                             }
                             case OPCODE_CallBuiltinMethod: {
                                 PreImport& imp{ imports.emplace_back() };
                                 imp.flags = ACTSGSCImportFlags::ACTS_CALL_BUILTIN_METHOD;
                                 imp.address = (uint32_t)bytecodeReader.Loc();
-                                SkipNBytes(1) << "\n";
-                                imp.id = bytecodeReader.Read<uint16_t>();
+                                SkipNBytes(1);
+                                uint16_t fid{ bytecodeReader.Read<uint16_t>() };
+                                const char* t{ tool::gsc::iw::GetMethodForVm(ctx.m_vmInfo->vmMagic, fid) };
+                                imp.name = ConvertToHash(t);
+                                asmout << t << " 0x" << std::hex << fid << "\n";
                                 break;
                             }
                             case OPCODE_IW_ScriptFunctionCall2: {
                                 PreImport& imp{ imports.emplace_back() };
                                 imp.flags = T8GSCImportFlags::FUNCTION;
-                                asmout << ReadSourceToken() << " "; // TODO: put token in name
+                                const char* token{ ReadSourceToken() };
+                                asmout << token << " ";
                                 imp.address = (uint32_t)bytecodeReader.Loc();
-                                SkipNBytes(1) << "\n";
-                                imp.id = bytecodeReader.Read<uint16_t>();
+                                SkipNBytes(1);
+                                uint16_t fid{ bytecodeReader.Read<uint16_t>() };
+                                imp.name = ConvertToHash(tool::gsc::iw::GetFunctionForVm(ctx.m_vmInfo->vmMagic, fid));
+                                asmout << " 0x" << std::hex << fid << "\n";
 
+                                break;
+                            }
+                            case OPCODE_ScriptMethodThreadCallEndOn:
+                            case OPCODE_ScriptThreadCall:
+                            case OPCODE_ScriptMethodThreadCall:
+                            case OPCODE_ScriptThreadCallEndOn: {
+                                uint32_t sid, fid;
+                                const char* script{ ReadSourceToken(&sid) };
+                                const char* func{ ReadSourceToken(&fid) };
+                                asmout << ": " << script << "::" << func << "(0x" << std::hex << sid << "::0x" << fid << ") ";
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::FUNCTION_THREAD;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = ConvertToHash(func);
+                                imp.ns = CreateScriptNameSpace(script);
+                                SkipNBytes(4) << "\n";
+                                break;
+                            }
+                            case OPCODE_ScriptMethodCall: {
+                                uint32_t sid, fid;
+                                const char* script{ ReadSourceToken(&sid) };
+                                const char* func{ ReadSourceToken(&fid) };
+                                asmout << ": " << script << "::" << func << "(0x" << std::hex << sid << "::0x" << fid << ") ";
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::METHOD;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = ConvertToHash(func);
+                                imp.ns = CreateScriptNameSpace(script);
+
+                                SkipNBytes(3) << "\n";
+                                break;
+                            }
+                            case OPCODE_IW_ScriptFunctionCallFar2:
+                            case OPCODE_ScriptFunctionCall: {
+                                uint32_t sid, fid;
+                                const char* script{ ReadSourceToken(&sid) };
+                                const char* func{ ReadSourceToken(&fid) };
+                                asmout << ": " << script << "::" << func << "(0x" << std::hex << sid << "::0x" << fid << ") ";
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::FUNCTION;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = ConvertToHash(func);
+                                imp.ns = CreateScriptNameSpace(script);
+
+                                SkipNBytes(3) << "\n";
+                                break;
+                            }
+                            case OPCODE_GetResolveFunction: {
+                                uint32_t sid, fid;
+                                const char* script{ ReadSourceToken(&sid) };
+                                const char* func{ ReadSourceToken(&fid) };
+                                asmout << ": " << script << "::" << func << "(0x" << std::hex << sid << "::0x" << fid << ") ";
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::FUNC_METHOD;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = ConvertToHash(func);
+                                imp.ns = CreateScriptNameSpace(script);
+
+                                SkipNBytes(3) << "\n";
+                                break;
+                            }
+                            case OPCODE_IW_GetLocal: {
+                                if (!bytecodeReader.CanRead(3)) {
+                                    throw std::runtime_error("Can't read 3 byte for getlocal");
+                                }
+                                int32_t localDelta{ (*bytecodeReader.Ptr<int32_t>() << 8) >> 8 };
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::FUNC_METHOD | T8GSCImportFlags::LOCAL_CALL;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = imp.address + localDelta;
+                                bytecodeReader.Skip(3);
+                                asmout << "(0x" << std::hex << localDelta << ")\n";
+                                break;
+                            }
+                            case OPCODE_IW_LocalMethodCall:
+                            case OPCODE_IW_LocalMethodCall2: {
+                                if (!bytecodeReader.CanRead(3)) {
+                                    throw std::runtime_error("Can't read 3 byte for localcall method");
+                                }
+                                int32_t localDelta{ (*bytecodeReader.Ptr<int32_t>() << 8) >> 8 };
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::METHOD | T8GSCImportFlags::LOCAL_CALL;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = imp.address + localDelta;
+                                bytecodeReader.Skip(3);
+                                asmout << "(0x" << std::hex << localDelta << ")\n";
+                                break;
+                            }
+                            case OPCODE_IW_LocalCall2:
+                            case OPCODE_IW_LocalCall: {
+                                if (!bytecodeReader.CanRead(3)) {
+                                    throw std::runtime_error("Can't read 3 byte for localcall");
+                                }
+                                int32_t localDelta{ (*bytecodeReader.Ptr<int32_t>() << 8) >> 8 };
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::FUNCTION | T8GSCImportFlags::LOCAL_CALL;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = imp.address + localDelta;
+                                bytecodeReader.Skip(3);
+                                asmout << "(0x" << std::hex << localDelta << ")\n";
+                                break;
+                            }
+                            case OPCODE_IW_LocalThreadCall: {
+                                if (!bytecodeReader.CanRead(3)) {
+                                    throw std::runtime_error("Can't read 3 byte for localcall");
+                                }
+                                int32_t localDelta{ (*bytecodeReader.Ptr<int32_t>() << 8) >> 8 };
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::FUNCTION_THREAD | T8GSCImportFlags::LOCAL_CALL;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = imp.address + localDelta;
+                                bytecodeReader.Skip(3);
+                                asmout << "(0x" << std::hex << localDelta << ")";
+                                SkipNBytes(1) << "\n";
+                                break;
+                            }
+                            case OPCODE_IW_LocalMethodThreadCall: {
+                                if (!bytecodeReader.CanRead(3)) {
+                                    throw std::runtime_error("Can't read 3 byte for localcall");
+                                }
+                                int32_t localDelta{ (*bytecodeReader.Ptr<int32_t>() << 8) >> 8 };
+
+                                PreImport& imp{ imports.emplace_back() };
+                                imp.flags = T8GSCImportFlags::METHOD_THREAD | T8GSCImportFlags::LOCAL_CALL;
+                                imp.address = (uint32_t)bytecodeReader.Loc();
+                                imp.name = imp.address + localDelta;
+                                bytecodeReader.Skip(3);
+                                asmout << "(0x" << std::hex << localDelta << ")";
+                                SkipNBytes(1) << "\n";
                                 break;
                             }
                             case OPCODE_IW_GetIString:
@@ -445,11 +655,14 @@ namespace {
                             }
                             case OPCODE_GSCBIN_SKIP_4BC_4SD:
                             default: {
-                                const char* err{ utils::va("Operator not handled 0x%x (%d/%s)", opcode, opcode, nfo->m_name) };
+                                const char* err{ utils::va("Operator not handled 0x%x (%d/%s) for vm %s", opcode, opcode, nfo->m_name, ctx.m_vmInfo->name) };
                                 asmout << err << std::endl;
                                 throw std::runtime_error(err);
                             }
                             }
+                        }
+                        if (bytecodeReader.Ptr() != funcEnd) {
+                            throw std::runtime_error(std::format("Reading too much for function"));
                         }
                     }
                     catch (std::runtime_error& err) {
@@ -462,6 +675,7 @@ namespace {
             if (fakeHeader.exports_count = functions.size()) {
                 fakeHeader.exports_table = utils::WriteValue(fakeLinked, functions.data(), sizeof(functions[0]) * functions.size());
             }
+            std::memcpy(fakeLinked.data() + bytecode, header.GetByteCode(), header.bytecodeLen);
 
             // write strings
             size_t strData{ utils::WriteValue(fakeLinked, stringData.data(), stringData.size()) };
@@ -507,7 +721,7 @@ namespace {
             if (fakeHeader.tokens_count = tokens.size()) {
                 fakeHeader.tokens_table = fakeLinked.size();
                 for (GSCBINToken& token : tokens) {
-                    if (token.val == tool::gsc::GBTT_STRING) {
+                    if (token.type == tool::gsc::GBTT_STRING) {
                         // use the string offset as a val
                         token.val = (uint32_t)(strData + token.val);
                     }
@@ -520,8 +734,13 @@ namespace {
                 fakeHeader.imports_table = fakeLinked.size();
                 for (PreImport& imp : imports) {
                     IW23GSCImport& item = utils::Allocate<IW23GSCImport>(fakeLinked);
-                    item.name = imp.id;
-                    item.name_space = 0;
+                    if (imp.flags & T8GSCImportFlags::LOCAL_CALL) {
+                        item.name = GetLocalId(imp.name);
+                    }
+                    else {
+                        item.name = imp.name;
+                    }
+                    item.name_space = imp.ns;
                     item.param_count = 0;
                     item.flags = imp.flags;
                     item.num_address = 1;
@@ -541,7 +760,7 @@ namespace {
 
                 const char* name{ fn.data() };
                 hashutils::Add(name);
-                fakeHeader.name = hash::Hash64(name);
+                fakeHeader.name = hash::HashJupScr(name);
             }
             fakeHeader.binHeader = header;
             std::memcpy(fakeLinked.data(), &fakeHeader, sizeof(fakeHeader));

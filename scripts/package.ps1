@@ -36,8 +36,8 @@ try {
 
         build\bin\acts.exe -t wni_gen $file.FullName $fileOut
     }
-    Write-Host "Building opaque string index"
-    foreach ($file in (Get-ChildItem config\opaques)) {
+    Write-Host "Building gscbin string index"
+    foreach ($file in (Get-ChildItem config\gscbin\opaques)) {
         $split = $file.Name.LastIndexOf('.')
 
         if ($split -ne -1) {
@@ -47,7 +47,33 @@ try {
         }
         $fileOut = "$base/bin/package_index/gscbin-opaques-$vmName.acef"
 
-        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut zstd_hc
+        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut opaque zstd_hc
+    }
+
+    foreach ($file in (Get-ChildItem config\gscbin\functions)) {
+        $split = $file.Name.LastIndexOf('.')
+
+        if ($split -ne -1) {
+            $vmName = $file.Name.SubString(0, $split)
+        } else {
+            $vmName = $file.Name;
+        }
+        $fileOut = "$base/bin/package_index/gscbin-functions-$vmName.acef"
+
+        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut function zstd_hc
+    }
+    
+    foreach ($file in (Get-ChildItem config\gscbin\methods)) {
+        $split = $file.Name.LastIndexOf('.')
+
+        if ($split -ne -1) {
+            $vmName = $file.Name.SubString(0, $split)
+        } else {
+            $vmName = $file.Name;
+        }
+        $fileOut = "$base/bin/package_index/gscbin-methods-$vmName.acef"
+
+        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut method zstd_hc
     }
  
     # Binaries

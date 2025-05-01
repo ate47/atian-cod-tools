@@ -431,6 +431,27 @@ namespace tool::gsc::opcode {
 		OPCODE_T10_Vector2,
 		OPCODE_T10_Vector4,
 
+		OPCODE_IW_ScriptFunctionCallFar2,
+		OPCODE_IW_SetNewLocalVariableFieldCached0,
+		OPCODE_IW_SetLocalVariableCached0,
+		OPCODE_IW_ClearLocalVariableCached0,
+		OPCODE_IW_CreateLocalVar,
+		OPCODE_IW_SetLevelFieldVariableToken,
+		OPCODE_IW_SetAnimFieldVariableToken,
+		OPCODE_IW_SetGameFieldVariableToken,
+		OPCODE_IW_SetSelfFieldVariableToken,
+		OPCODE_IW_EvalLevelFieldVariableToken,
+		OPCODE_IW_EvalLevelFieldVariableTokenRef,
+		OPCODE_IW_EvalAnimFieldVariableToken,
+		OPCODE_IW_EvalAnimFieldVariableTokenRef,
+		OPCODE_IW_EvalSelfFieldVariableToken,
+		OPCODE_IW_EvalSelfFieldVariableTokenRef,
+		OPCODE_IW_JumpBack,
+		OPCODE_IW_LocalMethodCall,
+		OPCODE_IW_LocalMethodCall2,
+		OPCODE_IW_LocalMethodThreadCall,
+		OPCODE_IW_EvalLocalArrayRefCached,
+
 		OPCODE_COUNT,
 	};
 	void RegisterOpCodesMap();

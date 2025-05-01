@@ -568,17 +568,57 @@ return tool::OK;
             return tool::BASIC_ERROR;
         }
 
-        auto* opaques{ mod->Get<char*>(0x47559D0) };
-        constexpr size_t count = 72013;
+        std::filesystem::path outdir{ argv[3] };
+        std::filesystem::path tokensOut{ outdir / "opaques/mw19.tsv" };
+        std::filesystem::path funcsOut{ outdir / "functions/mw19.tsv" };
+        std::filesystem::path methodsOut{ outdir / "methods/mw19.tsv" };
+
+        std::filesystem::create_directories(tokensOut.parent_path());
+        std::filesystem::create_directories(funcsOut.parent_path());
+        std::filesystem::create_directories(methodsOut.parent_path());
+
+
+        constexpr size_t off_opaques = 0x47559D0;
+        constexpr size_t count_opaques = 72013;
+        constexpr size_t off_methods = 0x7EF6550;
+        constexpr size_t count_methods = 1956;
+        constexpr size_t off_funcs = 0x7EF4460;
+        constexpr size_t count_funcs = 1053;
+
+        auto* opaques{ mod->Get<char*>(off_opaques) };
+        auto* methods{ mod->Get<char*>(off_methods) };
+        auto* funcs{ mod->Get<char*>(off_funcs) };
 
         {
-            utils::OutFileCE os{ argv[3], true };
+            utils::OutFileCE os{ tokensOut, true };
+            // empty str
+            os << "0x" << std::hex << std::setfill('0') << std::setw(4) << 0 << "\t" << "\n";
 
-            for (size_t i = 0; i < count; i++) {
-                os << "0x" << std::hex << std::setfill('0') << std::setw(4) << i << "\t" << mod->Rebase(opaques[i]) << "\n";
+            for (size_t i = 0; i < count_opaques; i++) {
+                os << "0x" << std::hex << std::setfill('0') << std::setw(4) << (i + 1) << "\t" << mod->Rebase(opaques[i]) << "\n";
             }
         }
-        LOG_INFO("Dump into {}", argv[3]);
+        LOG_INFO("Dump into {}", tokensOut.string());
+        {
+            utils::OutFileCE os{ methodsOut, true };
+
+            // empty str
+            os << "0x" << std::hex << std::setfill('0') << std::setw(4) << 0 << "\t" << "\n";
+            for (size_t i = 0; i < count_methods; i++) {
+                os << "0x" << std::hex << std::setfill('0') << std::setw(4) << (i + 1) << "\t" << mod->Rebase(methods[i]) << "\n";
+            }
+        }
+        LOG_INFO("Dump into {}", methodsOut.string());
+        {
+            utils::OutFileCE os{ funcsOut, true };
+
+            // empty str
+            os << "0x" << std::hex << std::setfill('0') << std::setw(4) << 0 << "\t" << "\n";
+            for (size_t i = 0; i < count_funcs; i++) {
+                os << "0x" << std::hex << std::setfill('0') << std::setw(4) << (i + 1) << "\t" << mod->Rebase(funcs[i]) << "\n";
+            }
+        }
+        LOG_INFO("Dump into {}", funcsOut.string());
 
 
 
