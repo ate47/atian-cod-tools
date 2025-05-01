@@ -603,9 +603,8 @@ return tool::OK;
             utils::OutFileCE os{ methodsOut, true };
 
             // empty str
-            os << "0x" << std::hex << std::setfill('0') << std::setw(4) << 0 << "\t" << "\n";
             for (size_t i = 0; i < count_methods; i++) {
-                os << "0x" << std::hex << std::setfill('0') << std::setw(4) << (i + 1) << "\t" << mod->Rebase(methods[i]) << "\n";
+                os << "0x" << std::hex << std::setfill('0') << std::setw(4) << (i + 0x8000) << "\t" << mod->Rebase(methods[i]) << "\n";
             }
         }
         LOG_INFO("Dump into {}", methodsOut.string());
@@ -613,7 +612,6 @@ return tool::OK;
             utils::OutFileCE os{ funcsOut, true };
 
             // empty str
-            os << "0x" << std::hex << std::setfill('0') << std::setw(4) << 0 << "\t" << "\n";
             for (size_t i = 0; i < count_funcs; i++) {
                 os << "0x" << std::hex << std::setfill('0') << std::setw(4) << (i + 1) << "\t" << mod->Rebase(funcs[i]) << "\n";
             }

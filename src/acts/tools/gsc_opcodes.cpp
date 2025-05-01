@@ -215,6 +215,11 @@ namespace tool::gsc::opcode {
 	}
 }
 
+enum ReadObjectType {
+	ROT_ID,
+	ROT_TOKEN
+};
+
 void VmInfo::AddDevCallName(uint64_t name) {
 	devCallsNames.insert(name & hash::MASK60);
 }
@@ -2148,12 +2153,14 @@ class OPCodeInfoClearFieldVariable : public OPCodeInfo {
 private:
 	bool m_stack;
 	bool m_isref;
+	ReadObjectType readtype;
 public:
-	OPCodeInfoClearFieldVariable(OPCode id, const char* name, bool stack, bool isref) : OPCodeInfo(id, name), m_stack(stack), m_isref(isref) {
+	OPCodeInfoClearFieldVariable(OPCode id, const char* name, bool stack, bool isref, ReadObjectType readtype = ROT_ID)
+		: OPCodeInfo(id, name), m_stack(stack), m_isref(isref), readtype(readtype) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		uint64_t name = 0;
+		ASMContextNode* fieldNameNode;
 		if (!m_stack) {
 			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				context.Aligned<uint32_t>();
@@ -2163,6 +2170,7 @@ public:
 			if (m_isref) {
 				int lvar = context.Read<byte>(ref++);
 
+				uint64_t name;
 				if (lvar >= context.m_localvars.size()) {
 					name = hash::HashT89Scr("<error>");
 					out << "bad lvar stack: 0x" << std::hex << (int)lvar << " ";
@@ -2171,27 +2179,42 @@ public:
 					name = context.m_localvars[lvar].name;
 					context.m_localvars_ref[name]++;
 				}
+
+				fieldNameNode = context.m_runDecompiler ? new ASMContextNodeIdentifier(name) : nullptr;
+
+				out << hashutils::ExtractTmp("var", name) << std::endl;
 			}
 			else {
-				if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-					name = context.Read<uint64_t>(ref);
-					ref += 8;
+				if (readtype == ROT_ID) {
+					uint64_t fieldName;
+					if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+						fieldName = context.Read<uint64_t>(ref);
+						ref += 8;
+					}
+					else {
+						fieldName = context.Read<uint32_t>(ref);
+						ref += 4;
+					}
+					fieldNameNode = context.m_runDecompiler ? new ASMContextNodeIdentifier(fieldName) : nullptr;
+					out << "." << hashutils::ExtractTmp("var", fieldName) << std::endl;
+				}
+				else if (readtype == ROT_TOKEN) {
+					const char* name{ objctx.GetTokenValue(context.Read<uint32_t>(ref)) };
+					ref += 4;
+					fieldNameNode = context.m_runDecompiler ? new ASMContextNodeValue<const char*>(name, TYPE_IDENTIFIER) : nullptr;
+					out << "." << name << std::endl;
 				}
 				else {
-					name = context.Read<uint32_t>(ref);
-					ref += 4;
+					throw std::runtime_error(std::format("OPCodeInfoSetGlobalObjectFieldVariable: Can't read {}", (int)readtype));
 				}
 			}
-
-
-			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 		else {
 			out << "\n";
 		}
 
 		if (context.m_runDecompiler) {
-			ASMContextNode* nameNode = m_stack ? context.PopASMCNode() : new ASMContextNodeIdentifier(name);
+			ASMContextNode* nameNode = m_stack ? context.PopASMCNode() : fieldNameNode;
 			ASMContextNode* fieldAccessNode = new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
 			context.PushASMCNode(new ASMContextNodeLeftRightOperator(fieldAccessNode, new ASMContextNodeValue<const char*>("undefined", TYPE_GET_UNDEFINED), " = ", PRIORITY_SET, TYPE_SET));
 			context.CompleteStatement();
@@ -2217,12 +2240,6 @@ public:
 		return 0;
 	}
 };
-
-enum ReadObjectType {
-	ROT_ID,
-	ROT_TOKEN
-};
-
 class OPCodeInfoSetGlobalObjectFieldVariable : public OPCodeInfo {
 private:
 	const char* gvarName;
@@ -2272,13 +2289,13 @@ public:
 				fieldName = context.Read<uint32_t>(base2);
 				base2 += 4;
 			}
-			fieldNameNode = new ASMContextNodeIdentifier(fieldName);
+			fieldNameNode = context.m_runDecompiler ? new ASMContextNodeIdentifier(fieldName) : nullptr;
 			out << "." << hashutils::ExtractTmp("var", fieldName) << std::endl;
 		}
 		else if (readtype == ROT_TOKEN) {
 			const char* name{ objctx.GetTokenValue(context.Read<uint32_t>(base2)) };
 			base2 += 4;
-			fieldNameNode = new ASMContextNodeValue<const char*>(name, TYPE_IDENTIFIER);
+			fieldNameNode = context.m_runDecompiler ? new ASMContextNodeValue<const char*>(name, TYPE_IDENTIFIER) : nullptr;
 			out << "." << name << std::endl;
 		}
 		else {
@@ -2353,13 +2370,13 @@ public:
 				fieldName = context.Read<uint32_t>(base2);
 				base2 += 4;
 			}
-			fieldNameNode = new ASMContextNodeIdentifier(fieldName);
+			fieldNameNode = context.m_runDecompiler ? new ASMContextNodeIdentifier(fieldName) : nullptr;
 			out << "." << hashutils::ExtractTmp("var", fieldName) << std::endl;
 		}
 		else if (readtype == ROT_TOKEN) {
 			const char* name{ objctx.GetTokenValue(context.Read<uint32_t>(base2)) };
 			base2 += 4;
-			fieldNameNode = new ASMContextNodeValue<const char*>(name, TYPE_IDENTIFIER);
+			fieldNameNode = context.m_runDecompiler ? new ASMContextNodeValue<const char*>(name, TYPE_IDENTIFIER) : nullptr;
 			out << "." << name << std::endl;
 		}
 		else {
@@ -2428,36 +2445,51 @@ class OPCodeInfoEvalFieldVariable : public OPCodeInfo {
 private:
 	bool m_stack;
 	bool m_ref;
+	ReadObjectType readtype;
 public:
-	OPCodeInfoEvalFieldVariable(OPCode id, const char* name, bool stack, bool ref) : OPCodeInfo(id, name), m_stack(stack), m_ref(ref) {
+	OPCodeInfoEvalFieldVariable(OPCode id, const char* name, bool stack, bool ref, ReadObjectType readtype = ROT_ID)
+		: OPCodeInfo(id, name), m_stack(stack), m_ref(ref), readtype(readtype) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		uint64_t name = 0;
-
+		ASMContextNode* fieldNameNode{};
 		if (!m_stack) {
 			if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 				context.Aligned<uint32_t>();
 			}
+
 			auto& ref = context.m_bcl;
 
-			if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
-				name = context.Read<uint64_t>(ref);
-				ref += 8;
+			if (readtype == ROT_ID) {
+				uint64_t name;
+				if (objctx.m_vmInfo->flags & VmFlags::VMF_HASH64) {
+					name = context.Read<uint64_t>(ref);
+					ref += 8;
+				}
+				else {
+					name = context.Read<uint32_t>(ref);
+					ref += 4;
+				}
+				fieldNameNode = new ASMContextNodeIdentifier(name);
+
+				out << hashutils::ExtractTmp("var", name) << std::endl;
+			}
+			else if (readtype == ROT_TOKEN) {
+				const char* name{ objctx.GetTokenValue(context.Read<uint32_t>(ref)) };
+				ref += 4;
+				fieldNameNode = new ASMContextNodeValue<const char*>(name, TYPE_IDENTIFIER);
+				out << "." << name << std::endl;
 			}
 			else {
-				name = context.Read<uint32_t>(ref);
-				ref += 4;
+				throw std::runtime_error(std::format("OPCodeInfoSetGlobalObjectFieldVariable: Can't read {}", (int)readtype));
 			}
-
-			out << hashutils::ExtractTmp("var", name) << std::endl;
 		}
 		else {
 			out << "\n";
 		}
 
 		if (context.m_runDecompiler) {
-			ASMContextNode* node = new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), m_stack ? context.PopASMCNode() : new ASMContextNodeIdentifier(name), ".", PRIORITY_ACCESS, TYPE_ACCESS);
+			ASMContextNode* node = new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), m_stack ? context.PopASMCNode() : fieldNameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
 
 			if (m_ref) {
 				context.SetFieldIdASMCNode(node);
@@ -5514,6 +5546,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoSetVariableFieldRef(OPCODE_SetVariableFieldRef, "SetVariableFieldRef"));
 			RegisterOpCodeHandler(new OPCodeInfoClearFieldVariable(OPCODE_ClearFieldVariable, "ClearFieldVariable", false, false));
 			RegisterOpCodeHandler(new OPCodeInfoClearFieldVariable(OPCODE_ClearFieldVariableOnStack, "ClearFieldVariableOnStack", true, false));
+			RegisterOpCodeHandler(new OPCodeInfoClearFieldVariable(OPCODE_IW_ClearFieldVariableToken, "IW_ClearFieldVariableToken", false, false, ROT_TOKEN));
+			
 			RegisterOpCodeHandler(new OPCodeInfoEvalSelfFieldVariable(OPCODE_EvalSelfFieldVariable, "EvalSelfFieldVariable"));
 			RegisterOpCodeHandler(new OPCodeInfoEvalGlobalObjectFieldVariable(OPCODE_EvalGlobalObjectFieldVariable, "EvalGlobalObjectFieldVariable"));
 			RegisterOpCodeHandler(new OPCodeInfoCastAndEvalFieldVariable(OPCODE_CastAndEvalFieldVariable, "CastAndEvalFieldVariable"));
@@ -5521,6 +5555,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_EvalFieldVariableRef, "EvalFieldVariableRef", false, true));
 			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_EvalFieldVariableOnStack, "EvalFieldVariableOnStack", true, false));
 			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_EvalFieldVariableOnStackRef, "EvalFieldVariableOnStackRef", true, true));
+			//RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_IW_EvalFieldVariableToken, "IW_EvalFieldVariableToken", false, false, ROT_TOKEN));
+			//RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_IW_EvalFieldVariableTokenRef, "IW_EvalFieldVariableTokenRef", false, true, ROT_TOKEN));
 
 			// localvar related
 			RegisterOpCodeHandler(new OPCodeInfoCheckClearParams());

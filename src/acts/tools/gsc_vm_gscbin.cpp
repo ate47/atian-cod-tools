@@ -300,6 +300,7 @@ namespace {
                             case OPCODE_IW_SetNewLocalVariableFieldCached0:
                             case OPCODE_IW_CreateLocalVar:
                             case OPCODE_IW_ClearFieldVariableRef:
+                            case OPCODE_IW_SetWaittillVariableFieldCached:
                             case OPCODE_GSCBIN_SKIP_1:
                                 SkipNBytes(1) << "\n";
                                 break;
@@ -389,6 +390,13 @@ namespace {
                             case OPCODE_IW_EvalAnimFieldVariableToken:
                             case OPCODE_IW_EvalAnimFieldVariableTokenRef:
                             case OPCODE_IW_SetLevelFieldVariableToken:
+                            case OPCODE_IW_SetSelfFieldVariableToken:
+                            case OPCODE_IW_SetAnimFieldVariableToken:
+                            case OPCODE_IW_EvalFieldVariableToken:
+                            case OPCODE_IW_EvalFieldVariableTokenRef:
+                            case OPCODE_IW_EvalSelfFieldVariableToken:
+                            case OPCODE_IW_EvalSelfFieldVariableTokenRef:
+                            case OPCODE_IW_ClearFieldVariableToken:
                             case OPCODE_GSCBIN_SKIP_STR_TOKEN: {
                                 uint32_t* idLoc{ bytecodeReader.Ptr<uint32_t>() };
                                 uint32_t id{ bytecodeReader.Read<uint32_t>() };

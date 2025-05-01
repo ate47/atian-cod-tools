@@ -451,6 +451,9 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_LocalMethodCall2,
 		OPCODE_IW_LocalMethodThreadCall,
 		OPCODE_IW_EvalLocalArrayRefCached,
+		OPCODE_IW_EvalFieldVariableToken,
+		OPCODE_IW_EvalFieldVariableTokenRef,
+		OPCODE_IW_ClearFieldVariableToken,
 
 		OPCODE_COUNT,
 	};
