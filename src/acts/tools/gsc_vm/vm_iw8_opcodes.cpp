@@ -202,6 +202,7 @@ namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
 		VmInfo* gscbin = RegisterVM(VMI_IW_BIN_MW19, "Call of Duty: Modern Warfare (2019)", "iw8", "mw19", VmFlags::VMF_GSCBIN | VmFlags::VMF_NO_MAGIC | VmFlags::VMF_VAR_ID | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_IW_CALLS | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_FUNC_REF_24 | VmFlags::VMF_FOREACH_IW);
+		gscbin->RegisterVmName("iw8", "mw19", "modernwarfare19");
 		gscbin->AddPlatform(PLATFORM_PC);
 		// GetOpaqueStringCount / Scr_InitStringConstants =  useReducedSpGoldLimits ? 0xE2C0 : 0x1472F 
 		gscbin->SetOpaqueStringCount(0x1472F);
@@ -212,7 +213,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_CastFieldObject, 0x00);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_SetLocalVariableCached, 0x01);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Plus, 0x02);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_1, 0x03);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RemoveVariables, 0x03);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalSelfFieldVariableTokenRef, 0x04);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_ScriptMethodThreadCallEndOn, 0x05);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetGameRef, 0x06);
@@ -222,7 +223,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GreaterThan, 0x0A);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_2, 0x0B);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_ShiftRight, 0x0C);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Dec, 0x0D);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_DecRef, 0x0D);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_JumpOnTrue, 0x0E);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Bit_Or, 0x0F);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Equal, 0x10);
@@ -249,7 +250,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_SizeOf, 0x27);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SetWaittillVariableFieldCached, 0x28);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_LocalMethodThreadCall, 0x29);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_AddToArray, 0x2A);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_AppendToArray, 0x2A);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SingleEndon, 0x2B);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalFieldVariableToken, 0x2C);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_ShiftLeft, 0x2D);
@@ -281,7 +282,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_EvalLocalVariableRefCached, 0x47);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_LocalThreadCall, 0x48); // OP_ScriptLocalThreadCall
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GetInteger, 0x49);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_0, 0x4A);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_ScriptMethodCallPointer, 0x4A);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0x4B);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SetAnimFieldVariableToken, 0x4C);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Minus, 0x4E);
@@ -293,7 +294,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Vector, 0x54);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_2, 0x55);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EndSwitch, 0x56);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_0, 0x57);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_ClearArray, 0x57);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_DecTop, 0x58);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_CastBool, OP_CastBool);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_EvalArrayRef, 0x5A);
@@ -312,16 +313,16 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_ClearParams, 0x67);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_1, 0x68);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_0, 0x69);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_EmptyArray, 0x6A);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_CreateArray, 0x6A);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_1, 0x6B);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalFieldVariableTokenRef, 0x6D);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_4, 0x6E);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GetFloat, 0x70);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_1, 0x71);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_EvalLocalVariableRefCached, 0x71);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_JumpOnFalse, 0x72);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_BoolComplement, 0x73);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_1, 0x74);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_ScriptFunctionCall2, 0x75);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_ScriptFunctionCallFar2, 0x75);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_LessThan, 0x76);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_BoolNot, 0x77);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_WaitTillFrameEnd, 0x78);
@@ -329,7 +330,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GetString, 0x7A);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLevelFieldVariableToken, 0x7B);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetLevelGRef, 0x7C);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Inc, OP_inc);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_IncRef, OP_inc);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_CallBuiltinMethod0, 0x7E);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_CallBuiltinMethod1, 0x7F);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_CallBuiltinMethod2, 0x80);
@@ -338,7 +339,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_CallBuiltinMethod5, 0x83);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_CallBuiltinMethod, 0x84);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_0, 0x85);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_4, 0x86);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_4, 0x86); // switch
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_SetVariableField, 0x87);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Divide, 0x88);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetLocal, 0x89); // OP_GetLocalFunction
@@ -347,13 +348,13 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_ClearFieldVariableRef, 0x8C);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalAnimFieldVariableTokenRef, 0x8D);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalArrayRefCached, 0x8E);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_0, 0x8F);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableRefCached0, 0x8F);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Bit_And, 0x90);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetAnimation, 0x91);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GetResolveFunction, 0x92);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_1, 0x93);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_Jump32, 0x94); // OP_jump
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_0, 0x95);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_VoidCodePos, 0x95);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_ScriptMethodCall, 0x96);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_NotEqual, OP_inequality);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_LocalCall, 0x98); // OP_ScriptLocalFunctionCall
@@ -362,7 +363,7 @@ namespace {
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_Abort, OP_abort);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_5, 0xA0);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_1, 0xA1);
-		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_GSCBIN_SKIP_0, 0xA5);
+		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_BoolNot, 0xA5); // other
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_SafeCreateLocalVariables, OP_FormalParams);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IsDefined, 0xA7);
 		gscbin->RegisterOpCode(PLATFORM_PC, OPCODE_IW_IsTrue, 0xA8);

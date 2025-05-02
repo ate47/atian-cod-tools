@@ -621,6 +621,10 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
 
             const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
             for (size_t j = 0; j < str->num_address; j++) {
+                if (strings[j] >= fileSize) {
+                    LOG_ERROR("Invalid string ref 0x{:x} for {}", strings[j], rcstr);
+                    return tool::BASIC_ERROR;
+                }
                 Ref<uint32_t>(strings[j]) = ref;
                 ctx.AddStringRef(strings[j], ref);
             }
@@ -1650,8 +1654,14 @@ ignoreCscGsc:
     }
 
     if (opt.m_header) {
-        asmout
-            << "// " << hashutils::ExtractTmpScript(scriptfile->GetName()) << " (" << path << ")" << " (size: " << size << " Bytes / " << std::hex << "0x" << size;
+        asmout << "// ";
+        if (!ctx.m_vmInfo->HasFlag(VmFlags::VMF_GSCBIN)) {
+            asmout << hashutils::ExtractTmpScript(scriptfile->GetName()) << "  (" << path << ")";
+        }
+        else {
+            asmout << path;
+        }
+        asmout << " (size: " << size << " Bytes / " << std::hex << "0x" << size;
         
         if (typeSure) {
             asmout << " / " << (isCsc ? "CSC" : "GSC");
@@ -2313,7 +2323,12 @@ ignoreCscGsc:
                             asmctx.ComputeBoolReturn();
                         }
                         if (opt.m_dasm) {
-                            output << " ";
+                            if (asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                                output << "\n";
+                            }
+                            else {
+                                output << " ";
+                            }
                             asmctx.Dump(output, dctx);
                         }
                     }
@@ -3449,7 +3464,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             if (!ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_EXPORT_NOCHECKSUM)) {
                 utils::Padding(asmout, padding) << prefix << "Checksum: 0x" << std::hex << std::uppercase << exp.GetChecksum() << std::endl;
             }
-            utils::Padding(asmout, padding) << prefix << "Offset: 0x" << std::hex << std::uppercase << exp.GetAddress() << std::endl;
+            if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_GSCBIN)) {
+                utils::Padding(asmout, padding) << prefix << "Offset: 0x" << std::hex << std::uppercase << exp.GetAddress() << std::endl;
+            }
 
             uint32_t knownSize{ exp.GetSize() };
             if (knownSize) {
@@ -3541,19 +3558,23 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                     ;
             }
 
-            utils::Padding(asmout, padding) << prefix << "Params " << std::dec << (int)exp.GetParamCount() << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
+            utils::Padding(asmout, padding) << prefix << "Params " << std::dec << (int)exp.GetParamCount();
+            
+            if (remapedFlags) {
+                asmout << ", eflags: 0x" << std::hex << (int)exp.GetFlags();
 
-            if (remapedFlags & T8GSCExportFlags::LINKED) {
-                asmout << " linked";
-            }
-            if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
-                asmout << " class_linked";
-            }
-            if (remapedFlags & T8GSCExportFlags::VE) {
-                asmout << " variadic";
-            }
-            if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
-                asmout << " vtable";
+                if (remapedFlags & T8GSCExportFlags::LINKED) {
+                    asmout << " linked";
+                }
+                if (remapedFlags & T8GSCExportFlags::CLASS_LINKED) {
+                    asmout << " class_linked";
+                }
+                if (remapedFlags & T8GSCExportFlags::VE) {
+                    asmout << " variadic";
+                }
+                if (gscFile.IsVTableImportFlags(exp.GetFlags())) {
+                    asmout << " vtable";
+                }
             }
 
             asmout << std::endl;
@@ -3562,11 +3583,14 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
                     << std::hex
                     << "namespace_" << exp.GetNamespace() << "<file_" << exp.GetFileNamespace() << ">::function_" << exp.GetName() << std::endl;
             }
-            utils::Padding(asmout, padding) << prefix;
-            if (!ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_EXPORT_NOCHECKSUM)) {
-                asmout << "Checksum 0x" << exp.GetChecksum() << ", ";
+
+            if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_GSCBIN)) {
+                utils::Padding(asmout, padding) << prefix;
+                if (!ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_EXPORT_NOCHECKSUM)) {
+                    asmout << "Checksum 0x" << exp.GetChecksum() << ", ";
+                }
+                asmout << "Offset: 0x" << exp.GetAddress() << std::endl;
             }
-            asmout << "Offset: 0x" << exp.GetAddress() << std::endl;
 
             uint32_t knownSize{ exp.GetSize() };
             bool hasSize{ (bool)knownSize };

@@ -222,6 +222,8 @@ namespace {
                             case OPCODE_Bit_And:
                             case OPCODE_Bit_Or:
                             case OPCODE_Bit_Xor:
+                            case OPCODE_ShiftLeft:
+                            case OPCODE_ShiftRight:
                             case OPCODE_BoolComplement:
                             case OPCODE_Divide:
                             case OPCODE_Multiply:
@@ -249,6 +251,8 @@ namespace {
                             case OPCODE_Dec:
                             case OPCODE_DecTop:
                             case OPCODE_Inc:
+                            case OPCODE_IW_IncRef:
+                            case OPCODE_IW_DecRef:
                             case OPCODE_IsDefined:
                             case OPCODE_IW_IsTrue:
                             case OPCODE_CreateStruct:
@@ -284,6 +288,14 @@ namespace {
                             case OPCODE_IW_ClearLocalVariableCached0:
                             case OPCODE_IW_WaitFrame:
                             case OPCODE_GetUndefined:
+                            case OPCODE_IW_Notify:
+                            case OPCODE_IW_SingleEndon:
+                            case OPCODE_IW_VoidCodePos:
+                            case OPCODE_ClearArray:
+                            case OPCODE_IW_EvalLocalVariableRefCached0:
+                            case OPCODE_ScriptMethodCallPointer:
+                            case OPCODE_AddToArray:
+                            case OPCODE_IW_AppendToArray:
                             case OPCODE_GSCBIN_SKIP_0:
                                 asmout << "\n";
                                 break;
@@ -301,6 +313,7 @@ namespace {
                             case OPCODE_IW_CreateLocalVar:
                             case OPCODE_IW_ClearFieldVariableRef:
                             case OPCODE_IW_SetWaittillVariableFieldCached:
+                            case OPCODE_IW_RemoveVariables:
                             case OPCODE_GSCBIN_SKIP_1:
                                 SkipNBytes(1) << "\n";
                                 break;
@@ -466,19 +479,6 @@ namespace {
                                 asmout << t << " 0x" << std::hex << fid << "\n";
                                 break;
                             }
-                            case OPCODE_IW_ScriptFunctionCall2: {
-                                PreImport& imp{ imports.emplace_back() };
-                                imp.flags = T8GSCImportFlags::FUNCTION;
-                                const char* token{ ReadSourceToken() };
-                                asmout << token << " ";
-                                imp.address = (uint32_t)bytecodeReader.Loc();
-                                SkipNBytes(1);
-                                uint16_t fid{ bytecodeReader.Read<uint16_t>() };
-                                imp.name = ConvertToHash(tool::gsc::iw::GetFunctionForVm(ctx.m_vmInfo->vmMagic, fid));
-                                asmout << " 0x" << std::hex << fid << "\n";
-
-                                break;
-                            }
                             case OPCODE_ScriptMethodThreadCallEndOn:
                             case OPCODE_ScriptThreadCall:
                             case OPCODE_ScriptMethodThreadCall:
@@ -623,7 +623,12 @@ namespace {
 
                                 ps.string = (uint32_t)utils::WriteString(stringData, ds);
                                 ps.address = (uint32_t)bytecodeReader.Loc();
-                                utils::PrintFormattedString(asmout << "\"", ds) << "\"";
+                                if (nfo->m_id == OPCODE_IW_GetIString) {
+                                    utils::PrintFormattedString(asmout << "&", ds);
+                                }
+                                else {
+                                    utils::PrintFormattedString(asmout << "\"", ds) << "\"";
+                                }
                                 SkipNBytes(4) << "\n";
                                 break;
                             }

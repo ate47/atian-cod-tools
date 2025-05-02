@@ -120,15 +120,18 @@ namespace tool::gsc::opcode {
 	public:
 		uint64_t m_value;
 		const char* m_type;
-		ASMContextNodeIdentifier(uint64_t value, const char* type = "var") : ASMContextNode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(value), m_type(type) {
+		const char* m_strVal;
+		ASMContextNodeIdentifier(uint64_t value, const char* type = "var", const char* idf = nullptr) : ASMContextNode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(value), m_type(type), m_strVal(idf) {
+		}
+		ASMContextNodeIdentifier(const char* idf) : ASMContextNode(PRIORITY_VALUE, TYPE_IDENTIFIER), m_value(hash::Hash64(idf)), m_type("hash"), m_strVal(idf) {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			out << hashutils::ExtractTmp(m_type, m_value) << std::flush;
+			out << (m_strVal ? m_strVal : hashutils::ExtractTmp(m_type, m_value)) << std::flush;
 		}
 
 		ASMContextNode* Clone() const override {
-			return new ASMContextNodeIdentifier(m_value, m_type);
+			return new ASMContextNodeIdentifier(m_value, m_type, m_strVal);
 		}
 	};
 
@@ -439,20 +442,22 @@ namespace tool::gsc::opcode {
 			ASMContextNode(PRIORITY_SET), m_key(key), m_value(value) {
 		}
 		~ASMContextNodeArrayBuildNode() {
-			delete m_key;
-			delete m_value;
+			if (m_key) delete m_key;
+			if (m_value) delete m_value;
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			m_key->Dump(out, ctx);
+			if (m_key) {
+				m_key->Dump(out, ctx);
 
-			out << ":";
+				out << ":";
+			}
 
 			m_value->Dump(out, ctx);
 		}
 
 		ASMContextNode* Clone() const override {
-			return new ASMContextNodeArrayBuildNode(m_key->Clone(), m_value->Clone());
+			return new ASMContextNodeArrayBuildNode(m_key ? m_key->Clone() : nullptr, m_value->Clone());
 		}
 
 		void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override {
@@ -491,7 +496,7 @@ namespace tool::gsc::opcode {
 					if (i) out << ", ";
 
 					auto& item = m_operands[i];
-					if (item->m_key->IsIntConst() && item->m_key->GetIntConst() == i) {
+					if (!item->m_key || (item->m_key->IsIntConst() && item->m_key->GetIntConst() == i)) {
 						// we can omit this key because it matches the index
 						item->m_value->Dump(out, ctx);
 					}
@@ -520,7 +525,7 @@ namespace tool::gsc::opcode {
 			auto* n = new ASMContextNodeArrayBuild();
 
 			for (const auto& ref : m_operands) {
-				n->AddValue(ref->m_key->Clone(), ref->m_value->Clone(), false);
+				n->AddValue(ref->m_key ? ref->m_key->Clone() : nullptr, ref->m_value->Clone(), false);
 			}
 
 			return n;
@@ -570,7 +575,7 @@ namespace tool::gsc::opcode {
 		}
 
 		void AddValue(ASMContextNode* key, ASMContextNode* value, bool start) {
-			if (key->m_type == TYPE_CONST_HASH) {
+			if (key && key->m_type == TYPE_CONST_HASH) {
 				// this hash is a canon id, not a fnva1
 				static_cast<ASMContextNodeHash*>(key)->m_canonid = true;
 			}

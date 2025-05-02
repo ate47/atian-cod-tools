@@ -51,6 +51,8 @@ namespace tool::gsc::opcode {
 		VMI_T10_10 = 0xa0d43534710,
 		VMI_T10_11 = 0xa0d43534711,
 		VMI_T10_12 = 0xa0d43534712,
+		VMI_T10_13 = 0xa0d43534713, // unknown
+		VMI_T10_14 = 0xa0d43534714,
 
 		// IW old VMs
 		VMI_IW_GSCBIN = 0x00435347, // "GSC\0"
@@ -414,7 +416,7 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_CallBuiltinMethod4,
 		OPCODE_IW_CallBuiltinMethod5,
 
-		OPCODE_IW_ScriptFunctionCall2,
+		OPCODE_IW_REMOVED_284,
 		OPCODE_IW_Jump32,
 
 		OPCODE_IW_LocalCall,
@@ -454,6 +456,12 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_EvalFieldVariableToken,
 		OPCODE_IW_EvalFieldVariableTokenRef,
 		OPCODE_IW_ClearFieldVariableToken,
+		OPCODE_IW_RemoveVariables,
+		OPCODE_IW_VoidCodePos,
+		OPCODE_IW_IncRef,
+		OPCODE_IW_DecRef,
+		OPCODE_IW_EvalLocalVariableRefCached0,
+		OPCODE_IW_AppendToArray,
 
 		OPCODE_COUNT,
 	};
