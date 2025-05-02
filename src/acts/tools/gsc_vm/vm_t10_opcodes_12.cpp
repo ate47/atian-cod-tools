@@ -6,8 +6,8 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* t1012 = RegisterVM(VMI_T10_12, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
-		t1012->RegisterVmName("cer", "t10", "blackops6");
+		VmInfo* t1012 = RegisterVM(VMI_T10_12, "Call of Duty: Black Ops 6 (12)", "t10", "bo6_12", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
+		t1012->RegisterVmName("cer12", "t10_12", "blackops6_12");
 		t1012->AddPlatform(PLATFORM_PC);
 		t1012->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
 		t1012->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);

@@ -16,7 +16,7 @@ namespace {
 		STT_XHASH = 0x5,
 		STT_XHASH_RES = 0x6,
 		STT_XHASH_DVAR = 0x7,
-		STT_UNK8_32 = 0x8,
+		STT_XHASH_32 = 0x8,
 		STT_XHASH_LOCALIZED = 0x9,
 	};
 	union StringTableValue {
@@ -102,7 +102,7 @@ namespace {
 					case STT_XHASH_RES: os << "xhashres"; break;
 					case STT_XHASH_LOCALIZED: os << "xhashlocalized"; break;
 					case STT_XHASH_DVAR: os << "xhashdvar"; break;
-					case STT_UNK8_32: os << "unk8_32"; break;
+					case STT_XHASH_32: os << "xhash32"; break;
 					default: os << "unk" << std::dec << col.type; break;
 					}
 				}
@@ -131,7 +131,7 @@ namespace {
 						case STT_INT64:
 							elemSize = 8;
 							break;
-						case STT_UNK8_32:
+						case STT_XHASH_32:
 						case STT_FLOAT:
 							elemSize = 4;
 							break;
@@ -178,8 +178,8 @@ namespace {
 						case STT_INT64:
 							os << std::dec << *reinterpret_cast<uint64_t*>(value);
 							break;
-						case STT_UNK8_32:
-							os << std::dec << *reinterpret_cast<uint32_t*>(value);
+						case STT_XHASH_32:
+							os << "x32#" << hashutils::ExtractTmp("hash", *reinterpret_cast<uint32_t*>(value));
 							break;
 						case STT_FLOAT:
 							os << *reinterpret_cast<float*>(value);
