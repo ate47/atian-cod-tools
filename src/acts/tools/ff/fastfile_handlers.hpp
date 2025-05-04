@@ -109,7 +109,7 @@ namespace fastfile {
 	
 	struct FastFileContext {
 		const char* file;
-		const char* ffname{};
+		char ffname[0x100]{};
 		// 0x10 to have more without recompiling
 		XBlockInfo blockSizes[0x10]{};
 		size_t blocksCount{};
@@ -119,6 +119,7 @@ namespace fastfile {
 	public:
 		bool m_help{};
 		bool m_fd{};
+		bool m_fdIgnoreMissing{};
 		bool alpha{};
 		bool m_header{};
 		bool print_handlers{};

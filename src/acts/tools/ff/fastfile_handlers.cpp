@@ -431,6 +431,9 @@ namespace fastfile {
 			else if (!_strcmpi("--disableScriptsDecomp", arg)) {
 				disableScriptsDecomp = true;
 			}
+			else if (!strcmp("-i", arg) || !_strcmpi("--fd-ignore", arg)) {
+				m_fdIgnoreMissing = true;
+			}
 			else if (*arg == '-') {
 				std::cerr << "Invalid argument: " << arg << "!\n";
 				return false;
@@ -453,6 +456,7 @@ namespace fastfile {
 		LOG_INFO("-C --casc [c]          : Use casc db");
 		LOG_INFO("-g --game [g]          : exe");
 		LOG_INFO("-p --patch             : Use patch files (fd/fp)");
+		LOG_INFO("-i --fd-ignore         : Ignore missing fd file");
 		LOG_INFO("--noAssetDump          : No asset dump");
 		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
 		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");

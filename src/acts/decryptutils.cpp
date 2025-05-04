@@ -19,7 +19,7 @@ namespace acts::decryptutils {
 
 		return DecryptStringImpl(str);
 	}
-	bool LoadDecryptModule(const hook::module_mapper::Module& mod) {
+	bool LoadDecryptModule(const hook::library::Library& lib) {
 		DecryptStringImpl = nullptr;
 
 		struct {
@@ -33,7 +33,7 @@ namespace acts::decryptutils {
 		};
 
 		for (auto& cfg : knownScans) {
-			std::vector<hook::library::ScanResult> res = mod->Scan(cfg.pattern);
+			std::vector<hook::library::ScanResult> res = lib.Scan(cfg.pattern);
 
 			if (res.size() != 1) {
 				if (res.size() > 1) {
@@ -43,7 +43,7 @@ namespace acts::decryptutils {
 			}
 
 			DecryptStringImpl = res[0].GetPtr<char* (*)(char* str)>();
-			LOG_TRACE("Loaded DecryptStringImpl=0x{:x} ({})", mod->Rloc(DecryptStringImpl), cfg.id);
+			LOG_TRACE("Loaded DecryptStringImpl=0x{:x} ({})", lib.Rloc(DecryptStringImpl), cfg.id);
 			return true; // loaded
 		}
 

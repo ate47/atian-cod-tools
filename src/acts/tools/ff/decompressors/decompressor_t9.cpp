@@ -275,14 +275,16 @@ namespace {
 				throw std::runtime_error(std::format("Encrypted Fast file version not supported: 0x{:x}", data.cw.version));
 			}
 
+			const char* ffname;
 			if (opt.alpha) {
-				ctx.ffname = data.cod2020.fastfileName;
+				ffname = data.cod2020.fastfileName;
 				ctx.blocksCount = cod2020::XFileBlock::XFILE_BLOCK_COUNT;
 			}
 			else {
-				ctx.ffname = data.cw.fastfileName;
+				ffname = data.cw.fastfileName;
 				ctx.blocksCount = cwrelease::XFileBlock::XFILE_BLOCK_COUNT;
 			}
+			sprintf_s(ctx.ffname, "%s", ffname);
 
 			for (size_t i = 0; i < ctx.blocksCount; i++) {
 				ctx.blockSizes[i].size = data.cw.blockSize[i];

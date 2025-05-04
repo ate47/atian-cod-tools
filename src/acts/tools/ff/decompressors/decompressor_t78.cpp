@@ -84,7 +84,9 @@ namespace {
 			uint64_t decompressedSize{ reader.Read<uint64_t>() };
 
 			reader.Goto(fastfileNameLoc);
-			ctx.ffname = reader.ReadString();
+			const char* ffname{ reader.ReadString() };
+			sprintf_s(ctx.ffname, "%s", ffname);
+
 
 			if (xhashType) {
 				hashutils::Add(ctx.ffname, true, true);
