@@ -61,7 +61,7 @@ namespace {
 		auto LoadVmMap = [](std::unordered_map<uint64_t, GscData>& map, const char* type, const std::filesystem::path& origin, VmInfo*& vm) -> void {
 			LOG_INFO("Loading {} path...", type);
 			std::vector<std::filesystem::path> paths{};
-			utils::GetFileRecurseExt(origin, paths, ".gscc\0.cscc\0");
+			utils::GetFileRecurseExt(origin, paths, ".gscc\0.cscc\0.gscbin\0.cscbin\0");
 
 			for (const std::filesystem::path& path : paths) {
 				GscData data{ path };

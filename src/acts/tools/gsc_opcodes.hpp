@@ -35,6 +35,7 @@ namespace tool::gsc::opcode {
 		VMF_ISTRING = 1 << 26,
 		VMF_ISTRING_HASHED = 1 << 27,
 		VMF_FUNC_REF_24 = 1 << 28,
+		VMF_SWITCH_32 = 1 << 29,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

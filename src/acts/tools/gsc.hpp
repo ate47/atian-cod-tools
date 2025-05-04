@@ -562,6 +562,15 @@ namespace tool::gsc {
                 return *(Type*)loc;
             }
 
+            template<typename Type>
+            inline void Read(Type* out, size_t count = 1, byte* loc = m_bcl) {
+                CheckInsideScript(loc);
+                CheckInsideScript(loc + (sizeof(Type) * count - 1));
+                if ((byte*)out != loc) {
+                    std::memcpy(out, loc, sizeof(Type) * count);
+                }
+            }
+
             // @return Write asm padding and return out
             std::ostream& WritePadding(std::ostream& out);
 

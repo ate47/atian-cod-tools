@@ -2187,10 +2187,11 @@ class OPCodeInfoClearFieldVariable : public OPCodeInfo {
 private:
 	bool m_stack;
 	bool m_isref;
+	bool m_useref;
 	ReadObjectType readtype;
 public:
-	OPCodeInfoClearFieldVariable(OPCode id, const char* name, bool stack, bool isref, ReadObjectType readtype = ROT_ID)
-		: OPCodeInfo(id, name), m_stack(stack), m_isref(isref), readtype(readtype) {
+	OPCodeInfoClearFieldVariable(OPCode id, const char* name, bool stack, bool isref, ReadObjectType readtype = ROT_ID, bool useref = false)
+		: OPCodeInfo(id, name), m_stack(stack), m_isref(isref), readtype(readtype), m_useref(useref) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -2249,7 +2250,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* nameNode = m_stack ? context.PopASMCNode() : fieldNameNode;
-			ASMContextNode* fieldAccessNode = new ASMContextNodeLeftRightOperator(context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
+			ASMContextNode* fieldAccessNode = new ASMContextNodeLeftRightOperator(m_useref ? context.GetFieldIdASMCNode() : context.GetObjectIdASMCNode(), nameNode, ".", PRIORITY_ACCESS, TYPE_ACCESS);
 			context.PushASMCNode(new ASMContextNodeLeftRightOperator(fieldAccessNode, new ASMContextNodeValue<const char*>("undefined", TYPE_GET_UNDEFINED), " = ", PRIORITY_SET, TYPE_SET));
 			context.CompleteStatement();
 		}
@@ -2479,11 +2480,10 @@ class OPCodeInfoEvalFieldVariable : public OPCodeInfo {
 private:
 	bool m_stack;
 	bool m_ref;
-	bool m_useRef;
 	ReadObjectType readtype;
 public:
-	OPCodeInfoEvalFieldVariable(OPCode id, const char* name, bool stack, bool ref, ReadObjectType readtype = ROT_ID, bool useRef = false)
-		: OPCodeInfo(id, name), m_stack(stack), m_ref(ref), readtype(readtype), m_useRef(useRef) {
+	OPCodeInfoEvalFieldVariable(OPCode id, const char* name, bool stack, bool ref, ReadObjectType readtype = ROT_ID)
+		: OPCodeInfo(id, name), m_stack(stack), m_ref(ref), readtype(readtype) {
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
@@ -2525,7 +2525,7 @@ public:
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* node = new ASMContextNodeLeftRightOperator(
-				m_useRef ? context.GetFieldIdASMCNode() : context.GetObjectIdASMCNode(), 
+				context.GetObjectIdASMCNode(), 
 				m_stack ? context.PopASMCNode() : fieldNameNode, 
 				".", PRIORITY_ACCESS, TYPE_ACCESS
 			);
@@ -2966,7 +2966,7 @@ public:
 			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name);
 		}
-		out << "\n";
+		out << "(0x" << std::hex << lvar << ")\n";
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(new ASMContextNodeIdentifier(name));
@@ -3706,13 +3706,18 @@ public:
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		int params;
-		if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_CALL_NO_PARAMS) || (objctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_CALLS) && m_hasParam)) {
+		bool readParam{ !objctx.m_vmInfo->HasFlag(VmFlags::VMF_CALL_NO_PARAMS) || (objctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_CALLS) && m_hasParam) };
+		if (readParam) {
 			params = context.Read<byte>(context.m_bcl++);
 		}
 		else {
 			switch (m_id) {
 			case OPCODE_IW_CallBuiltinFunction0:
 			case OPCODE_IW_CallBuiltinMethod0:
+			// because it makes so much sense to name them with a bloody 2 at the end
+			case OPCODE_IW_ScriptFunctionCallFar2:
+			case OPCODE_IW_LocalCall2:
+			case OPCODE_IW_LocalMethodCall2:
 				params = 0;
 				break;
 			case OPCODE_IW_CallBuiltinFunction1:
@@ -3855,7 +3860,7 @@ public:
 					ptr->AddParam(context.PopASMCNode());
 				}
 
-				if (context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
+				if (readParam && context.m_stack.size() && context.PeekASMCNode()->m_type == TYPE_PRECODEPOS) {
 					// clear PreScriptCall
 					delete context.PopASMCNode();
 				}
@@ -4635,6 +4640,22 @@ public:
 	}
 };
 
+namespace {
+	void GetSwitchInfo(VmInfo* info, size_t* caseSize, size_t* caseValSize, bool* hasType) {
+		if (info->HasFlag(VmFlags::VMF_SWITCH_32)) {
+			if (caseSize) *caseSize = 7;
+			if (caseValSize) *caseValSize = 4;
+			if (hasType) *hasType = false;
+		}
+		else {
+			if (caseSize) *caseSize = 12;
+			if (caseValSize) *caseValSize = 8;
+			if (hasType) *hasType = true;
+		}
+	}
+
+}
+
 class OPCodeInfoIWSwitch : public OPCodeInfo {
 public:
 	OPCodeInfoIWSwitch() : OPCodeInfo(OPCODE_IW_Switch, "IW_Switch") {}
@@ -4663,10 +4684,15 @@ public:
 		if (context.m_runDecompiler) {
 			node = new ASMContextNodeSwitchPreCompute(context.PopASMCNode());
 		}
+		size_t caseSize;
+		size_t caseValSize;
+		bool hasType;
+		GetSwitchInfo(objctx.m_vmInfo, &caseSize, &caseValSize, &hasType);
 
 		for (size_t c = 1; c <= cases; c++) {
-			auto* basecase = baseLocation + 12 * (c - 1);
-			context.m_bcl = basecase + 12;
+
+			auto* basecase = baseLocation + caseSize * (c - 1);
+			context.m_bcl = basecase + caseSize;
 			union CaseValue {
 				int64_t integer;
 				uint32_t str;
@@ -4674,21 +4700,27 @@ public:
 				uint32_t unkb; // i32
 			};
 			
-			CaseValue val = context.Read<CaseValue>(basecase);
-			int32_t caseDelta = ((context.Read<int32_t>(basecase + 8) << 8) >> 8) + 8; // remove type
-			byte type = context.Read<byte>(basecase + 11);
+			CaseValue val;
+
+			context.Read<byte>((byte*)&val, caseValSize, basecase);
+			int32_t caseDelta = (int32_t)(((context.Read<int32_t>(basecase + caseValSize) << 8) >> 8) + caseValSize); // i24
+			byte type;
+
+			if (hasType) {
+				type = context.Read<byte>(basecase + caseSize - 1);
+			}
 
 			context.WritePadding(out);
 
 			auto caseRLoc = context.PushLocation(&basecase[caseDelta]).rloc;
 
-			if (c == cases && (!val.hash || val.hash == 0xdefdefdefdefdef0 || val.hash == 0xDDEFDEFFDEFFDEFF)) {
+			if (c == cases && (!val.hash || val.hash == 0xdefdefdefdefdef0 || val.hash == 0xDDEFDEFFDEFFDEFF || val.str == 0xdefdef)) {
 				out << "default";
 				if (node) {
 					node->m_cases.push_back({ nullptr, caseRLoc });
 				}
 			}
-			else {
+			else if (hasType) {
 				out << "case ";
 				switch (type) {
 				case 1: // integer
@@ -4754,6 +4786,25 @@ public:
 					break;
 				}
 			}
+			else {
+				// no type
+				uint32_t floc = (uint32_t)(basecase - context.m_gscReader.Ptr());
+				const char* casestr{ objctx.GetStringValueByLoc(floc) };
+
+				if (casestr) {
+					utils::PrintFormattedString(out << "case \"", casestr) << "\"";
+					if (node) {
+						node->m_cases.push_back({ new ASMContextNodeString(casestr), caseRLoc });
+					}
+				}
+				else {
+					out << "case 0x" << std::hex << val.str;
+
+					if (node) {
+						node->m_cases.push_back({ new ASMContextNodeValue<int64_t>(val.str, TYPE_VALUE), caseRLoc });
+					}
+				}
+			}
 
 			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
 				<< caseRLoc << "\n";
@@ -4779,6 +4830,7 @@ public:
 		}
 
 		context.PushLocation();
+		context.WritePadding(out) << "end" << std::endl;
 		return -2; // use pushed location to get asm from previous value
 	}
 
@@ -4876,7 +4928,10 @@ public:
 
 		uint16_t count = context.Read<uint16_t>(baseCount);
 
-		baseCount += 2 + 12 * count;
+		size_t caseSize;
+		GetSwitchInfo(objctx.m_vmInfo, &caseSize, nullptr, nullptr);
+
+		baseCount += 2 + caseSize * count;
 
 		auto rloc = context.FunctionRelativeLocation();
 
@@ -5606,8 +5661,8 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_EvalFieldVariableRef, "EvalFieldVariableRef", false, true));
 			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_EvalFieldVariableOnStack, "EvalFieldVariableOnStack", true, false));
 			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_EvalFieldVariableOnStackRef, "EvalFieldVariableOnStackRef", true, true));
-			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_IW_EvalFieldVariableToken, "IW_EvalFieldVariableToken", false, false, ROT_TOKEN, true));
-			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_IW_EvalFieldVariableTokenRef, "IW_EvalFieldVariableTokenRef", false, true, ROT_TOKEN, true));
+			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_IW_EvalFieldVariableToken, "IW_EvalFieldVariableToken", false, false, ROT_TOKEN));
+			RegisterOpCodeHandler(new OPCodeInfoEvalFieldVariable(OPCODE_IW_EvalFieldVariableTokenRef, "IW_EvalFieldVariableTokenRef", false, true, ROT_TOKEN));
 
 			// localvar related
 			RegisterOpCodeHandler(new OPCodeInfoCheckClearParams());
@@ -7559,8 +7614,10 @@ int ASMContextNodeBlock::ComputeForEachBlocksIterator(ASMContext& ctx) {
 				// arrayRefName = undefined
 
 				if (it->node->m_type == TYPE_SET) {
+					ASMContextNodeIdentifier* tmp;
 					auto* clearKeyVal = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
-					if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER && static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left)->m_value == keyValName
+					if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER 
+						&& ((tmp = static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left))->m_value == keyValName || tmp->m_value == arrayRefName)
 						&& clearKeyVal->m_right->m_type == TYPE_GET_UNDEFINED) {
 						delete it->node;
 						it = m_statements.erase(it);
@@ -7569,7 +7626,8 @@ int ASMContextNodeBlock::ComputeForEachBlocksIterator(ASMContext& ctx) {
 
 							if (it->node->m_type == TYPE_SET) {
 								auto* clearKeyVal = static_cast<ASMContextNodeLeftRightOperator*>(it->node);
-								if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER && static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left)->m_value == arrayRefName
+								if (clearKeyVal->m_left->m_type == TYPE_IDENTIFIER 
+									&& ((tmp = static_cast<ASMContextNodeIdentifier*>(clearKeyVal->m_left))->m_value == keyValName || tmp->m_value == arrayRefName)
 									&& clearKeyVal->m_right->m_type == TYPE_GET_UNDEFINED) {
 									delete it->node;
 									it = m_statements.erase(it);

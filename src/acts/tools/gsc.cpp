@@ -2993,8 +2993,8 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
             auto printStack = [&ctx, &out, &loc](const char* type) {
                 if (ctx.m_opt.m_dcomp && ctx.m_opt.m_display_stack) {
                     out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ":"
-                        << std::setfill(' ') << std::setw(5) << std::left << " " << std::right
-                        << std::setfill(' ') << std::setw(32) << std::left << type << std::right
+                        << std::setfill(' ') << std::setw(6) << std::left << " " << std::right
+                        << std::setfill(' ') << std::setw(26) << std::left << type << std::right
                         << "stack(" << std::dec << ctx.m_stack.size() << "): "
                         << std::flush;
 

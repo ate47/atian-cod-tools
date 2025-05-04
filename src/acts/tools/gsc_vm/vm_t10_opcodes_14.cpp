@@ -29,6 +29,9 @@ namespace {
 		t1014->RegisterVMHashOPCode('&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
 		t1014->RegisterDevCall("assert", "assertmsg", "function_79901b4637c83c86", "assertex", "println", "print");
 		t1014->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "xhash", "xhashasset", "istring");
+		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0x31);
+		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x5f);
+		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x8f);
 	}
 }
 REGISTER_GSC_VM_OPCODES(bo6, OpCode);
