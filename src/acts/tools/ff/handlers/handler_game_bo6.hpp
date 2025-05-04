@@ -12,5 +12,7 @@ namespace fastfile::handlers::bo6 {
 		virtual void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 	};
 
-	std::unordered_map<T10RAssetType, Worker*>& GetWorkers();
+	const char* GetPoolName(uint32_t hash);
+
+	std::unordered_map<uint32_t, Worker*>& GetWorkers();
 }

@@ -430,7 +430,27 @@ namespace {
 		return tool::OK;
 	}
 
+	int bo6_test_hash_types(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+
+		std::filesystem::path out{ argv[2] };
+
+		utils::OutFileCE os{ out };
+
+		for (size_t i = 0; i < bo6::T10R_ASSET_COUNT; i++) {
+			os << std::dec << i << ","
+				<< bo6::PoolNameRelease((bo6::T10RAssetType)i) 
+				<< ",0x" << std::hex << hash::HashX32(bo6::PoolNameRelease((bo6::T10RAssetType)i)) << "\n";
+		}
+
+		LOG_INFO("Dump into {}", out.string());;
+
+		return tool::OK;
+	}
+
 	ADD_TOOL(bo6_data_dump, "bo6", " [exe]", "Dump common data from an exe dump", bo6_data_dump);
+	ADD_TOOL(bo6_test_hash_types, "dev", " [exe]", "Dump int map for types", bo6_test_hash_types);
 	ADD_TOOL(bo6_gsc_dump, "bo6", " [exe]", "Dump gsc function data from an exe dump", bo6_gsc_dump);
 	ADD_TOOL(bo6_lua_dump, "bo6", " [exe]", "Dump lua function data from an exe dump", bo6_lua_dump);
 	ADD_TOOL(bo6_radiant_keys, "bo6", " [keys] [out]", "Read bo6 radiant keys", bo6_radiant_keys);

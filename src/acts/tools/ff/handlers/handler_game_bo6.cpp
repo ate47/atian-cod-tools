@@ -14,16 +14,11 @@
 namespace fastfile::handlers::bo6 {
 	using namespace ::bo6;
 
-	std::unordered_map<T10RAssetType, Worker*>& GetWorkers() {
-		static std::unordered_map<T10RAssetType, Worker*> workers{};
-		return workers;
-	}
-
 	namespace {
 		class BO6FFHandler;
 
 		struct Asset {
-			T10RAssetType type;
+			uint32_t type; // T10RAssetType
 			void* handle;
 		};
 
@@ -36,6 +31,11 @@ namespace fastfile::handlers::bo6 {
 			Asset* assets;
 		};
 
+		struct HashedType {
+			uint32_t hash;
+			T10RAssetType type;
+			const char* name;
+		};
 
 		struct {
 			BO6FFHandler* handler{};
@@ -47,7 +47,99 @@ namespace fastfile::handlers::bo6 {
 			core::memory_allocator::MemoryAllocator allocator{};
 			std::unordered_map<uint64_t, void*> linkedAssets[T10RAssetType::T10R_ASSET_COUNT]{};
 			AssetList assets{};
+			HashedType typeMaps[0x200];
+			size_t typeMapsCount;
+			bool typeMapsLoaded{};
+
+			void InitTypeMaps(hook::library::Library& lib) {
+				if (!typeMapsLoaded) {
+					// that:
+					// acts exe_pool_dumper .\output_bo6\Cordycep-2.5.8.0\Data\Dumps\cod_dump.exe  physicslibrary string
+					constexpr const char* first = "physicslibrary";
+					constexpr const char* last = "string";
+					for (hook::library::ScanResult& firstStringOffsetRes : lib.ScanString(first)) {
+						uintptr_t firstStringOffset{ firstStringOffsetRes.GetPtr<uintptr_t>() };
+						LOG_TRACE("try string \"{}\" -> 0x{:x}", first, lib.Rloc(firstStringOffset));
+						for (hook::library::ScanResult& poolNamesRes : lib.ScanNumber(firstStringOffset)) {
+							uintptr_t poolNamesOffset{ poolNamesRes.GetPtr<uintptr_t>() };
+
+							uintptr_t* poolNames{ reinterpret_cast<uintptr_t*>(poolNamesOffset) };
+							LOG_TRACE("try poolNames -> 0x{:x}", lib.Rloc(poolNamesOffset));
+
+							// we can try to see if the next one is a valid string
+
+							void* next{ reinterpret_cast<void*>(poolNames[1]) };
+
+							if (next < *lib || next > lib[0x10000000]) {
+								LOG_TRACE("Not inside library");
+								continue; // not inside the module
+							}
+
+
+							size_t count{};
+							while (true) {
+								if (!poolNames[count]) {
+									LOG_TRACE("Can't find last pool name"); // cw?
+									count = 0;
+									break;
+								}
+								const char* cc = lib.Rebase<const char>(poolNames[count]);
+								if (last && !_strcmpi(cc, last)) break;
+								count++;
+							}
+
+							if (count <= 40) {
+								LOG_TRACE("Not enough candidates: {}", count);
+								continue;
+							}
+
+							if (count > ARRAYSIZE(typeMaps)) {
+								LOG_TRACE("Too many candidates: {}", count);
+								continue;
+							}
+
+							typeMapsCount = count;
+							for (size_t i = 0; i < count; i++) {
+								HashedType* type = &typeMaps[i];
+								type->type = (T10RAssetType)i;
+								type->name = lib.Rebase<const char>(poolNames[i]);
+								type->hash = (uint32_t)hash::HashX32(type->name);
+							}
+
+							// sort it for better usage
+							std::sort(typeMaps, typeMaps + typeMapsCount, [](auto& a, auto& b) { return a.hash < b.hash; });
+							typeMapsLoaded = true;
+							LOG_DEBUG("{} asset names loaded", typeMapsCount);
+							return;
+						}
+					}
+					throw std::runtime_error("Can't scan asset pool names");
+				}
+			}
+
+			const HashedType* GetMappedType(uint32_t val) const {
+				size_t min{}, max{ typeMapsCount };
+
+				while (min < max) {
+					size_t mid{ (min + max) / 2 };
+					if (typeMaps[mid].hash > val) {
+						max = mid;
+					}
+					else if (typeMaps[mid].hash != val) {
+						min = mid + 1;
+					}
+					else {
+						return &typeMaps[mid];
+					}
+				}
+				throw std::runtime_error(std::format("Invalid asset type name {}", hashutils::ExtractTmp("hash", val)));
+			}
+
 		} gcx{};
+
+		int32_t GetMappedTypeStub(uint32_t hash) {
+			return gcx.GetMappedType(hash)->type;
+		}
 
 		class BO6FFHandler : public fastfile::FFHandler {
 		public:
@@ -64,7 +156,9 @@ namespace fastfile::handlers::bo6 {
 					throw std::runtime_error("Can't load decryption module");
 				}
 
+				gcx.InitTypeMaps(lib);
 
+				lib.Redirect("40 56 41 56 48 83 EC ? 48 8B 15", GetMappedTypeStub);
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
@@ -103,21 +197,26 @@ namespace fastfile::handlers::bo6 {
 					LOG_INFO("no assets to load");
 					return;
 				}
+
 				std::filesystem::path outAssets{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "assets" / std::format("{}.csv", ctx.ffname) };
 				{
 					std::filesystem::create_directories(outAssets.parent_path());
 					utils::OutFileCE assetsOs{ outAssets };
 					assetsOs << "type,name";
 					gcx.assets.assets = reader.ReadPtr<Asset>(gcx.assets.assetsCount);
+
+					hook::library::Library lib{ opt.GetGame(true) };
+
+					bool err{};
 					for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
-						Asset& asset{ gcx.assets.assets[i] };
+						Asset* asset{ gcx.assets.assets + i };
 
-						// todo:
-						// asset.type = sub_88B85F0(asset.type)
+						const HashedType* type{ gcx.GetMappedType(asset->type) };
 
-						assetsOs << "\n" << std::hex << asset.type << ",<unk>";
+						assetsOs << "\n" << std::hex << type->name << ",<unk>";
 
-
+						//asset->type = type->type;
+						// load_asset
 					}
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());
@@ -127,5 +226,14 @@ namespace fastfile::handlers::bo6 {
 
 		
 		utils::ArrayAdder<BO6FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+	}
+
+	std::unordered_map<uint32_t, Worker*>& GetWorkers() {
+		static std::unordered_map<uint32_t, Worker*> workers{};
+		return workers;
+	}
+
+	const char* GetPoolName(uint32_t hash) {
+		return gcx.GetMappedType(hash)->name;
 	}
 }
