@@ -106,8 +106,8 @@ namespace hash {
 
 	// Hash algorithms
 
-	constexpr uint64_t HashX64(const char* str, uint64_t start = FNV1A_IW_ASSET_PRIME) { return Hash64A(str, start); }
-	constexpr uint64_t HashX63(const char* str, uint64_t start = FNV1A_IW_ASSET_PRIME) { return Hash64(str, start); }
+	constexpr uint64_t HashX64(const char* str, uint64_t start = FNV1A_PRIME) { return Hash64A(str, start); }
+	constexpr uint64_t HashX63(const char* str, uint64_t start = FNV1A_PRIME) { return Hash64(str, start); }
 	constexpr uint64_t HashX32(const char* str, uint64_t start = FNV1A_32_PRIME) { return Hash64(str, start, IV_32_DEFAULT) & MASK32; }
 	constexpr uint32_t HashT7(const char* str) { return (uint32_t)(Hash64A(str, FNV1A_32_T7_PRIME, IV_32_DEFAULT) & MASK32) * IV_32_DEFAULT; }
 	constexpr uint32_t HashT89Scr(const char* str) { return HashT89ScrPost(HashT89ScrPre(str)); }
