@@ -198,6 +198,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         }
         else if (!_strcmpi("--refcount", arg)) {
             m_show_ref_count = true;
+            }
+        else if (!_strcmpi("--hideop", arg)) {
+            m_show_opcode_values = false;
         }
         else if (!_strcmpi("--rawhash", arg)) {
             m_rawhash = true;
@@ -377,6 +380,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("--test-header      : Write test header");
     LOG_DEBUG("--internalblocks   : Show internal blocks ");
     LOG_DEBUG("--jumpdelta        : Show jump delta");
+    LOG_DEBUG("--hideop           : Hide opcode values in disassembly");
     LOG_DEBUG("--prestruct        : Show prestruct");
     LOG_DEBUG("--refcount         : Show ref count");
     LOG_DEBUG("--markjump         : Show jump type");
@@ -3051,7 +3055,9 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
                 out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (baseloc + loc.rloc);
             }
 
-            out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ": " << std::flush;
+            if (ctx.m_opt.m_show_opcode_values) {
+                out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << loc.rloc << ": " << std::flush;
+            }
 
             const char* opcodeName{};
             if (ctx.m_opt.m_use_internal_names) {
@@ -3070,10 +3076,13 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
                 break;
             }
 
-            out << std::hex << std::setfill('0') << std::setw(sizeof(int16_t) << 1) << opCode
-                << " "
-                << std::setfill(' ') << std::setw(25) << std::left
-                << opcodeName 
+            if (ctx.m_opt.m_show_opcode_values) {
+                out << std::hex << std::setfill('0') << std::setw(sizeof(int16_t) << 1) << opCode
+                    << " ";
+            }
+
+            out << std::setfill(' ') << std::setw(25) << std::left
+                << opcodeName
                 << std::right << " " << std::flush;
 
             // dump rosetta data

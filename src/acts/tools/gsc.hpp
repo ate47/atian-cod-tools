@@ -84,6 +84,7 @@ namespace tool::gsc {
         bool m_show_jump_delta{};
         bool m_show_pre_dump{};
         bool m_show_ref_count{};
+        bool m_show_opcode_values{ true };
         bool m_tokens{};
         bool m_test_header{};
         const char* m_rosetta{};
