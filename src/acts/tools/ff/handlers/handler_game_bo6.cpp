@@ -15,6 +15,17 @@ namespace fastfile::handlers::bo6 {
 	using namespace ::bo6;
 
 	namespace {
+		template<size_t offset = 0>
+		void EmptyStub() {
+			LOG_TRACE("{} EmptyStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset);
+		}
+		template<size_t offset = 0>
+		void ErrorStub() {
+			hook::error::DumpStackTraceFrom();
+			throw std::runtime_error(std::format("{} ErrorStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset));
+		}
+
+
 		class BO6FFHandler;
 
 		struct Asset {
@@ -37,8 +48,44 @@ namespace fastfile::handlers::bo6 {
 			const char* name;
 		};
 
+		struct DBLoadCtx {
+			void* __vtb;
+		};
+		union LoadStreamObjectData;
+
+		struct LoadStreamObjectVtable {
+			bool(__fastcall* LoadStream)(LoadStreamObjectData* that, DBLoadCtx* context, bool* atStreamStart, void** data, int64_t* len);
+			void(__fastcall* copy2)(LoadStreamObjectData* that);
+			void(__fastcall* copy3)(LoadStreamObjectData* that);
+			void(__fastcall* f4)(LoadStreamObjectData* that);
+			void(__fastcall* nulled)(LoadStreamObjectData* that);
+		};
+
+		union LoadStreamObjectData {
+			struct {
+				bool(__fastcall * LoadStream)(DBLoadCtx * ctx, bool atStreamStart, void* ptr, size_t len);
+				uint64_t unk08;
+				uint64_t unk10;
+				uint64_t unk18;
+			} loadStream;
+		};
+		static_assert(sizeof(LoadStreamObjectData) == 0x20);
+		struct LoadStreamObject {
+			LoadStreamObjectVtable* __vtb;
+			LoadStreamObjectData data;
+		};
+
+
+		bool LoadStreamImpl(LoadStreamObjectData* that, DBLoadCtx* context, bool* atStreamStart, void** data, int64_t* len);
+		void ErrorStub(LoadStreamObjectData* that) {
+			throw std::runtime_error(std::format("Error loadstream {}", hook::library::CodePointer{ _ReturnAddress() }));
+		}
+
+		LoadStreamObjectVtable dbLoadStreamVTable{ LoadStreamImpl, ErrorStub, ErrorStub, ErrorStub , ErrorStub };
+
 		struct {
 			BO6FFHandler* handler{};
+			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
 
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
@@ -49,69 +96,65 @@ namespace fastfile::handlers::bo6 {
 			AssetList assets{};
 			HashedType typeMaps[0x200];
 			size_t typeMapsCount;
-			bool typeMapsLoaded{};
 
 			void InitTypeMaps(hook::library::Library& lib) {
-				if (!typeMapsLoaded) {
-					// that:
-					// acts exe_pool_dumper .\output_bo6\Cordycep-2.5.8.0\Data\Dumps\cod_dump.exe  physicslibrary string
-					constexpr const char* first = "physicslibrary";
-					constexpr const char* last = "string";
-					for (hook::library::ScanResult& firstStringOffsetRes : lib.ScanString(first)) {
-						uintptr_t firstStringOffset{ firstStringOffsetRes.GetPtr<uintptr_t>() };
-						LOG_TRACE("try string \"{}\" -> 0x{:x}", first, lib.Rloc(firstStringOffset));
-						for (hook::library::ScanResult& poolNamesRes : lib.ScanNumber(firstStringOffset)) {
-							uintptr_t poolNamesOffset{ poolNamesRes.GetPtr<uintptr_t>() };
+				// that:
+				// acts exe_pool_dumper .\output_bo6\Cordycep-2.5.8.0\Data\Dumps\cod_dump.exe  physicslibrary string
+				constexpr const char* first = "physicslibrary";
+				constexpr const char* last = "string";
+				for (hook::library::ScanResult& firstStringOffsetRes : lib.ScanString(first)) {
+					uintptr_t firstStringOffset{ firstStringOffsetRes.GetPtr<uintptr_t>() };
+					LOG_TRACE("try string \"{}\" -> 0x{:x}", first, lib.Rloc(firstStringOffset));
+					for (hook::library::ScanResult& poolNamesRes : lib.ScanNumber(firstStringOffset)) {
+						uintptr_t poolNamesOffset{ poolNamesRes.GetPtr<uintptr_t>() };
 
-							uintptr_t* poolNames{ reinterpret_cast<uintptr_t*>(poolNamesOffset) };
-							LOG_TRACE("try poolNames -> 0x{:x}", lib.Rloc(poolNamesOffset));
+						uintptr_t* poolNames{ reinterpret_cast<uintptr_t*>(poolNamesOffset) };
+						LOG_TRACE("try poolNames -> 0x{:x}", lib.Rloc(poolNamesOffset));
 
-							// we can try to see if the next one is a valid string
+						// we can try to see if the next one is a valid string
 
-							void* next{ reinterpret_cast<void*>(poolNames[1]) };
+						void* next{ reinterpret_cast<void*>(poolNames[1]) };
 
-							if (next < *lib || next > lib[0x10000000]) {
-								LOG_TRACE("Not inside library");
-								continue; // not inside the module
-							}
-
-
-							size_t count{};
-							while (true) {
-								if (!poolNames[count]) {
-									LOG_TRACE("Can't find last pool name"); // cw?
-									count = 0;
-									break;
-								}
-								const char* cc = lib.Rebase<const char>(poolNames[count]);
-								if (last && !_strcmpi(cc, last)) break;
-								count++;
-							}
-
-							if (count <= 40) {
-								LOG_TRACE("Not enough candidates: {}", count);
-								continue;
-							}
-
-							if (count > ARRAYSIZE(typeMaps)) {
-								LOG_TRACE("Too many candidates: {}", count);
-								continue;
-							}
-
-							typeMapsCount = count;
-							for (size_t i = 0; i < count; i++) {
-								HashedType* type = &typeMaps[i];
-								type->type = (T10RAssetType)i;
-								type->name = lib.Rebase<const char>(poolNames[i]);
-								type->hash = (uint32_t)hash::HashX32(type->name);
-							}
-
-							// sort it for better usage
-							std::sort(typeMaps, typeMaps + typeMapsCount, [](auto& a, auto& b) { return a.hash < b.hash; });
-							typeMapsLoaded = true;
-							LOG_DEBUG("{} asset names loaded", typeMapsCount);
-							return;
+						if (next < *lib || next > lib[0x10000000]) {
+							LOG_TRACE("Not inside library");
+							continue; // not inside the module
 						}
+
+
+						size_t count{};
+						while (true) {
+							if (!poolNames[count]) {
+								LOG_TRACE("Can't find last pool name"); // cw?
+								count = 0;
+								break;
+							}
+							const char* cc = lib.Rebase<const char>(poolNames[count]);
+							if (last && !_strcmpi(cc, last)) break;
+							count++;
+						}
+
+						if (count <= 40) {
+							LOG_TRACE("Not enough candidates: {}", count);
+							continue;
+						}
+
+						if (count > ARRAYSIZE(typeMaps)) {
+							LOG_TRACE("Too many candidates: {}", count);
+							continue;
+						}
+
+						typeMapsCount = count;
+						for (size_t i = 0; i < count; i++) {
+							HashedType* type = &typeMaps[i];
+							type->type = (T10RAssetType)i;
+							type->name = lib.Rebase<const char>(poolNames[i]);
+							type->hash = (uint32_t)hash::HashX32(type->name);
+						}
+
+						// sort it for better usage
+						std::sort(typeMaps, typeMaps + typeMapsCount, [](auto& a, auto& b) { return a.hash < b.hash; });
+						LOG_DEBUG("{} asset names loaded", typeMapsCount);
+						return;
 					}
 					throw std::runtime_error("Can't scan asset pool names");
 				}
@@ -137,6 +180,21 @@ namespace fastfile::handlers::bo6 {
 
 		} gcx{};
 
+
+		void LoadXFileData(void* ptr, int64_t len) {
+			throw std::runtime_error("not implemented LoadXFileData");
+		}
+
+		bool LoadStream(DBLoadCtx* context, bool atStreamStart, void* data, int64_t len) {
+			throw std::runtime_error("not implemented LoadStream");
+		}
+
+
+		bool LoadStreamImpl(LoadStreamObjectData* that, DBLoadCtx* context, bool* atStreamStart, void** data, int64_t* len) {
+			// redirect to custom version
+			return LoadStream(context, *atStreamStart, *data, *len);
+		}
+
 		int32_t GetMappedTypeStub(uint32_t hash) {
 			return gcx.GetMappedType(hash)->type;
 		}
@@ -159,6 +217,14 @@ namespace fastfile::handlers::bo6 {
 				gcx.InitTypeMaps(lib);
 
 				lib.Redirect("40 56 41 56 48 83 EC ? 48 8B 15", GetMappedTypeStub);
+
+				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?").GetRelative<int32_t, LoadStreamObject*>(3) };
+				loadStreamObj->__vtb = &dbLoadStreamVTable;
+
+				lib.Redirect("40 53 48 83 EC ? 49 8B D9 4D", LoadStream);
+				lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
+				gcx.Load_Asset = lib.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48")
+					.Get<void(*)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset)>();
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
@@ -207,6 +273,8 @@ namespace fastfile::handlers::bo6 {
 
 					hook::library::Library lib{ opt.GetGame(true) };
 
+					DBLoadCtx loadCtx{};
+
 					bool err{};
 					for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
 						Asset* asset{ gcx.assets.assets + i };
@@ -215,8 +283,8 @@ namespace fastfile::handlers::bo6 {
 
 						assetsOs << "\n" << std::hex << type->name << ",<unk>";
 
-						//asset->type = type->type;
-						// load_asset
+						asset->type = type->type;
+						gcx.Load_Asset(&loadCtx, false, asset);
 					}
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());
