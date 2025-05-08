@@ -284,6 +284,17 @@ namespace hook::library {
 			return res[0];
 		}
 
+
+		ScanResult ScanAny(const char* pattern, const char* name = nullptr) const {
+			auto res = Scan(pattern, true);
+
+			if (res.empty()) {
+				throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : pattern));
+			}
+
+			return res[0];
+		}
+
 		void Redirect(const char* pattern, void* func, const char* name = nullptr) const;
 
 		template<typename T = void*>
@@ -299,7 +310,7 @@ namespace hook::library {
 
 		template<typename... Args>
 		ScanResult FindAnyScan(const char* name, const char* pattern, Args... args) const {
-			auto res = Scan(pattern);
+			auto res = Scan(pattern, true);
 
 			if (res.size() == 1) {
 				return res[0];
@@ -325,6 +336,16 @@ namespace hook::library {
 			return res[0];
 		}
 
+		ScanResult ScanStringAny(const char* str, const char* name = nullptr) const {
+			auto res = ScanString(str, true);
+
+			if (res.empty()) {
+				throw std::runtime_error(utils::va("Can't find string %s", name ? name : str));
+			}
+
+			return res[0];
+		}
+
 
 		template<typename T>
 		inline std::vector<ScanResult> ScanNumber(T val, bool single = false) const {
@@ -340,6 +361,17 @@ namespace hook::library {
 			}
 			if (res.size() != 1) {
 				throw std::runtime_error(name ? utils::va("Too many finds for number %s", name) : utils::va("Too many finds for number %lld", val));
+			}
+
+			return res[0];
+		}
+
+		template<typename T>
+		ScanResult ScanNumberAny(T val, const char* name = nullptr) const {
+			auto res = ScanNumber(val, true);
+
+			if (res.empty()) {
+				throw std::runtime_error(name ? utils::va("Can't find number %s", name) : utils::va("Can't find number %lld", val));
 			}
 
 			return res[0];

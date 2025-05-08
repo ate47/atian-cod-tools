@@ -112,7 +112,13 @@ namespace {
 			}
 
 			// end stream header
-			utils::Allocate<fastfile::DBStreamHeader>(out);
+			uint32_t endBlockOffset{ (uint32_t)utils::Allocate(out, sizeof(fastfile::DBStreamHeader)) };
+			fastfile::DBStreamHeader& h{ *(fastfile::DBStreamHeader*)&out[endBlockOffset] };
+			h.offset = endBlockOffset;
+			h.uncompressedSize = 0;
+			h.alignedSize = 0;
+			h.compressedSize = 0;
+			utils::Allocate(out, 0x40);
 
 
 			// write header data
@@ -125,6 +131,16 @@ namespace {
 			header.encrypted = false;
 			header.size = ctx.linkedData.size();
 			header.compression = compression;
+
+			
+			//header.unk4f0 = 0xFFFFFFFFF;
+			//header.unk4f8 = 0xFFFFFFFFF;
+			//header.unk500 = 0xFFFFFFFFF;
+			//header.unk508 = 0xFFFFFFFFF;
+			//header.unk510s = 0xFFFFFFFFF;
+			//header.unk518s = 0xFFFFFFFFF;
+			//header.unk520pa = 0xFFFFFFFFF;
+			//std::memset(header.pad0, 0xff, sizeof(header.pad0));
 			//static uint32_t archiveChecksum[4]{ 0x34FF23CB, 0xE4505D2, 0xB3C783A, 0x3208003D };
 			static uint32_t archiveChecksum[4]{ 0xCF92ECF4, 0xA75D3F79, 0x2A550D25, 0xF927447B };
 			static_assert(sizeof(archiveChecksum) == sizeof(header.archiveChecksum));

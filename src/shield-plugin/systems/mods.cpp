@@ -4,6 +4,7 @@
 #include <core/memory_allocator.hpp>
 #include <hook/error.hpp>
 #include <hook/library.hpp>
+#include <games/bo4/pool.hpp>
 #include "mods.hpp"
 
 namespace mods {
@@ -85,6 +86,7 @@ namespace mods {
 		};
 		*/
 		enum ZoneFlags : uint32_t {
+			DB_ZONE_COMMON8 = 0x8,
 			DB_ZONE_COMMON = 0x20,
 			DB_FLAG_IGNORE_MISSING = 0x800000,
 			DB_FLAG_CUSTOM = 0x40000000
@@ -99,13 +101,29 @@ namespace mods {
 			XZoneBuffer fileBuffer;
 		};
 
+		struct XAsset {
+			bo4::XAssetType type;
+			byte unk1;
+			void* header;
+		};
+
+
 		struct {
 			std::unordered_map<std::string, std::vector<XZoneInfo>> hooks{};
 			core::memory_allocator::MemoryAllocator alloc{};
 		} zoneHooks;
 
-		hook::library::Detour DB_LoadXAssets_Detour;
 
+		hook::library::Detour DB_LoadXFile_Detour;
+		hook::library::Detour Stream_OpenFile_Detour;
+		hook::library::Detour DB_AllocXBlocks_Detour;
+		hook::library::Detour DB_ValidateFileHeader_Detour;
+		hook::library::Detour DB_AuthLoad_AnalyzeData_Detour;
+		hook::library::Detour PMem_Free_Detour;
+		hook::library::Detour DB_LoadXAssets_Detour;
+		hook::library::Detour DB_LinkXAssetEntry_Detour;
+		hook::library::Detour UnkCheckSum_Detour;
+		
 		constexpr bool forceHook = true;
 
 		void DB_LoadXAssets(XZoneInfo* zoneInfo, int zoneCount, bool sync) {
@@ -155,13 +173,6 @@ namespace mods {
 			DB_LoadXAssets_Detour.Call(zoneInfo, zoneCount, sync);
 		}
 
-		hook::library::Detour DB_LoadXFile_Detour;
-		hook::library::Detour Stream_OpenFile_Detour;
-		hook::library::Detour DB_AllocXBlocks_Detour;
-		hook::library::Detour DB_ValidateFileHeader_Detour;
-		hook::library::Detour DB_AuthLoad_AnalyzeData_Detour;
-		hook::library::Detour PMem_Free_Detour;
-
 
 		bool loadFakeFastFile{};
 
@@ -179,7 +190,9 @@ namespace mods {
 			if (path) LOG_INFO("DB_LoadXFile({}, 0x{:x})", path, flags);
 			loadFakeFastFile = flags & DB_FLAG_CUSTOM;
 
-			return DB_LoadXFile_Detour.Call<bool>(path, f, fileBuffer, filename, assetList, blocks, interrupt, buf, side, flags);
+			bool v{ DB_LoadXFile_Detour.Call<bool>(path, f, fileBuffer, filename, assetList, blocks, interrupt, buf, side, flags) };
+			loadFakeFastFile = false;
+			return v;
 		}
 
 		int Stream_OpenFile(const char* filename, int flags) {
@@ -212,11 +225,6 @@ namespace mods {
 			return r;
 		}
 
-		void PMem_Free_Stub() {
-			loadFakeFastFile = false;
-			PMem_Free_Detour.Call();
-		}
-
 		int DB_AuthLoad_AnalyzeData_Stub(uint8_t* data, uint32_t size, int activeStream, uint8_t* checksum) {
 			if (!loadFakeFastFile) {
 				return DB_AuthLoad_AnalyzeData_Detour.Call<int>(data, size, activeStream, checksum);
@@ -229,10 +237,29 @@ namespace mods {
 			zoneHooks.hooks["core_common"].emplace_back(
 				XZoneInfo{
 					.name = "core_acts",
-					.allocFlags = DB_ZONE_COMMON | DB_FLAG_IGNORE_MISSING | DB_FLAG_CUSTOM,
-					.freeFlags = DB_ZONE_COMMON | DB_FLAG_IGNORE_MISSING,
+					.allocFlags = DB_ZONE_COMMON8 | DB_FLAG_IGNORE_MISSING | DB_FLAG_CUSTOM,
+					.freeFlags = DB_ZONE_COMMON8 | DB_FLAG_IGNORE_MISSING,
 				}
 			);
+		}
+
+		void* DB_LinkXAssetEntry_Stub(XAsset* newEntry, bool allowOverride) {
+			void* entry{ DB_LinkXAssetEntry_Detour.Call<void*>(newEntry, allowOverride) };
+			if (loadFakeFastFile) {
+				LOG_DEBUG(
+					"DB_LinkXAssetEntry({}={}, {:x}, allowOverride={}) -> {}",
+					games::bo4::pool::XAssetNameFromId(newEntry->type), (int)newEntry->type,
+					games::bo4::pool::GetAssetName(newEntry->type, newEntry->header)->name,
+					allowOverride, entry
+				);
+			}
+			return entry;
+		}
+
+		void UnkCheckSum_Stub() {
+			if (!loadFakeFastFile) {
+				UnkCheckSum_Detour.Call();
+			}
 		}
 
 		void ModsPostInit(uint64_t uid) {
@@ -240,14 +267,18 @@ namespace mods {
 			DB_LoadXFile_Detour.Create(0x2E0CC10_a, DB_LoadXFile);
 			DB_AllocXBlocks_Detour.Create(0x2EB5870_a, DB_AllocXBlocksStub);
 			DB_ValidateFileHeader_Detour.Create(0x2E0EBE0_a, DB_ValidateFileHeader_Stub);
-			PMem_Free_Detour.Create(0x2E0C0A0_a, PMem_Free_Stub);
+			//PMem_Free_Detour.Create(0x2E0C0A0_a, PMem_Free_Stub);
 			DB_AuthLoad_AnalyzeData_Detour.Create(0x28B5F40_a, DB_AuthLoad_AnalyzeData_Stub);
+			DB_LinkXAssetEntry_Detour.Create(0x2EB84F0_a, DB_LinkXAssetEntry_Stub);
+			UnkCheckSum_Detour.Create(0x28B5FA0_a, UnkCheckSum_Stub);
 
 #ifndef CI_BUILD
 			hook::error::AddErrorDumper([] {
 				LOG_INFO("preload: {}", *(bool*)(0xA0F59D4_a));
 				LOG_INFO("io: {}", *(void**)(0xA0F3B10_a + 0x50));
 				LOG_INFO("g_fileBuf: {}", *(void**)(0xA0F58D0_a));
+				LOG_INFO("g_copyInfoCount: {}", *(int*)(0xA0F58E8_a));
+				
 			});
 #endif
 			// Stream_OpenFile_Detour.Create(0x3C4CDE0_a, Stream_OpenFile);

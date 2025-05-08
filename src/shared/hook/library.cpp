@@ -144,6 +144,12 @@ namespace hook::library {
 				if (mid) {
 					throw std::runtime_error(utils::va("Wildcard pattern in half byte! %s", pattern));
 				}
+				if (str[0] == '?') {
+					// test if we are in a packed context
+					if (!str[1] || isspace(str[1])) {
+						str++; // consume both ??
+					}
+				}
 				// consume both
 				mid = !mid;
 				mask.push_back(0);

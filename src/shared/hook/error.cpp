@@ -97,12 +97,12 @@ namespace hook::error {
 			switch (ExceptionInfo->ExceptionRecord->ExceptionCode) {
 			case EXCEPTION_ACCESS_VIOLATION: {
 				LOG_ERROR("Error info: invalid {} at 0x{:x}", 
-					ExceptionInfo->ExceptionRecord->ExceptionInformation[0] ? "read" : "write", ExceptionInfo->ExceptionRecord->ExceptionInformation[1]);
+					!ExceptionInfo->ExceptionRecord->ExceptionInformation[0] ? "read" : "write", ExceptionInfo->ExceptionRecord->ExceptionInformation[1]);
 				break;
 			}
 			case EXCEPTION_IN_PAGE_ERROR: {
 				LOG_ERROR("Error info: invalid {} at 0x{:x} status: 0x{:x}", 
-					ExceptionInfo->ExceptionRecord->ExceptionInformation[0] ? "read" : "write", ExceptionInfo->ExceptionRecord->ExceptionInformation[1], ExceptionInfo->ExceptionRecord->ExceptionInformation[2]);
+					!ExceptionInfo->ExceptionRecord->ExceptionInformation[0] ? "read" : "write", ExceptionInfo->ExceptionRecord->ExceptionInformation[1], ExceptionInfo->ExceptionRecord->ExceptionInformation[2]);
 				break;
 			}
 			default: {
@@ -167,6 +167,10 @@ namespace hook::error {
 
 					LOG_ERROR("{}", ss.str());
 				};
+				auto PrintRegisterXmm = [PrintRegister](const char* name, M128A& val) {
+					PrintRegister(utils::va("%s-high", name), val.High);
+					PrintRegister(utils::va("%s-low", name), val.Low);
+				};
 
 
 				LOG_ERROR("DebugRegisters: 0:0x{:x} 1:0x{:x} 2:0x{:x} 3:0x{:x} 6:0x{:x} 7:0x{:x}",
@@ -191,6 +195,10 @@ namespace hook::error {
 				PrintRegister("r14", ExceptionInfo->ContextRecord->R14);
 				PrintRegister("r15", ExceptionInfo->ContextRecord->R15);
 				PrintRegister("rip", ExceptionInfo->ContextRecord->Rip);
+				PrintRegisterXmm("xmm0", ExceptionInfo->ContextRecord->Xmm0);
+				PrintRegisterXmm("xmm1", ExceptionInfo->ContextRecord->Xmm1);
+				PrintRegisterXmm("xmm2", ExceptionInfo->ContextRecord->Xmm2);
+				PrintRegisterXmm("xmm3", ExceptionInfo->ContextRecord->Xmm3);
 
 				LOG_ERROR("Stack trace:");
 				DumpStackTraceFrom(core::logs::LVL_ERROR, ExceptionInfo->ExceptionRecord->ExceptionAddress);
