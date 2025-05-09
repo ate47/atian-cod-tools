@@ -61,8 +61,8 @@ namespace {
 			constexpr size_t maxSize{ utils::GetMaxSize<int32_t>() };
 			if (opt.chunkSize > maxSize) {
 				LOG_WARNING("Chunk size can't be above {}", maxSize);
+				opt.chunkSize = maxSize;
 			}
-			opt.chunkSize = maxSize;
 		}
 
 		void Compress(FastFileLinkerContext& ctx) override {
@@ -78,7 +78,7 @@ namespace {
 			size_t idx{};
 			std::vector<byte> compressBuffer{};
 			size_t compressedSize{};
-			LOG_TRACE("start compressing chunk 0x{:x} byte(s) using {}...", remainingSize, alg);
+			LOG_TRACE("start compressing chunk 0x{:x} byte(s) using {} with chunks of size 0x{:x}...", remainingSize, alg, chunkSize);
 			while (remainingSize > 0) {
 				uint32_t uncompressedSize{ (uint32_t)std::min<size_t>(chunkSize, remainingSize) };
 
@@ -106,7 +106,7 @@ namespace {
 				toCompress += uncompressedSize;
 				remainingSize -= uncompressedSize;
 
-				LOG_TRACE("Compressed 0x{:x} at chunk 0x{:x}, remaining 0x{:x}", h.compressedSize, idx, remainingSize);
+				LOG_TRACE("Compressed 0x{:x}->0x{:x} at chunk 0x{:x}, remaining 0x{:x}", uncompressedSize, h.compressedSize, idx, remainingSize);
 
 				idx++;
 			}
