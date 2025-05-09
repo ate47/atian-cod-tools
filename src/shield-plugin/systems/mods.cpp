@@ -110,6 +110,7 @@ namespace mods {
 
 		struct {
 			std::unordered_map<std::string, std::vector<XZoneInfo>> hooks{};
+			std::unordered_map<uint64_t, uint64_t> nameHooks[bo4::XAssetType::ASSET_TYPE_COUNT];
 			core::memory_allocator::MemoryAllocator alloc{};
 		} zoneHooks;
 
@@ -123,6 +124,8 @@ namespace mods {
 		hook::library::Detour DB_LoadXAssets_Detour;
 		hook::library::Detour DB_LinkXAssetEntry_Detour;
 		hook::library::Detour UnkCheckSum_Detour;
+		hook::library::Detour DB_FindXAssetHeader_Detour;
+		hook::library::Detour DB_DoesXAssetExist_Detour;
 		
 		constexpr bool forceHook = true;
 
@@ -241,6 +244,8 @@ namespace mods {
 					.freeFlags = DB_ZONE_COMMON8 | DB_FLAG_IGNORE_MISSING,
 				}
 			);
+			zoneHooks.nameHooks[bo4::XAssetType::ASSET_TYPE_IMAGE][0x36faa5c7eb141973] = hash::Hash64("acts_test_icon");
+			zoneHooks.nameHooks[bo4::XAssetType::ASSET_TYPE_IMAGE][0x3f683e907686134c] = hash::Hash64("acts_test_hover");
 		}
 
 		void* DB_LinkXAssetEntry_Stub(XAsset* newEntry, bool allowOverride) {
@@ -255,6 +260,25 @@ namespace mods {
 			}
 			return entry;
 		}
+
+		XHash RedirectName(bo4::XAssetType type, XHash* name) {
+			auto it{ zoneHooks.nameHooks[type].find(name->name) };
+			if (it != zoneHooks.nameHooks[type].end()) {
+				return { it->second, 0 };
+			}
+			return *name;
+		}
+
+		void* DB_FindXAssetHeader_Stub(bo4::XAssetType type, XHash* name, bool errorIfMissing, int waitTime) {
+			XHash other{ RedirectName(type, name) };
+			return DB_FindXAssetHeader_Detour.Call<void*>(type, &other, errorIfMissing, waitTime);
+		}
+
+		bool DB_DoesXAssetExist_Stub(bo4::XAssetType type, XHash* name) {
+			XHash other{ RedirectName(type, name) };
+			return DB_DoesXAssetExist_Detour.Call<bool>(type, &other);
+		}
+
 
 		void UnkCheckSum_Stub() {
 			if (!loadFakeFastFile) {
@@ -271,7 +295,10 @@ namespace mods {
 			DB_AuthLoad_AnalyzeData_Detour.Create(0x28B5F40_a, DB_AuthLoad_AnalyzeData_Stub);
 			DB_LinkXAssetEntry_Detour.Create(0x2EB84F0_a, DB_LinkXAssetEntry_Stub);
 			UnkCheckSum_Detour.Create(0x28B5FA0_a, UnkCheckSum_Stub);
-
+			DB_FindXAssetHeader_Detour.Create(0x2EB75B0_a, DB_FindXAssetHeader_Stub);
+			DB_DoesXAssetExist_Detour.Create(0x2EB6C90_a, DB_DoesXAssetExist_Stub);
+			
+			
 #ifndef CI_BUILD
 			hook::error::AddErrorDumper([] {
 				LOG_INFO("preload: {}", *(bool*)(0xA0F59D4_a));

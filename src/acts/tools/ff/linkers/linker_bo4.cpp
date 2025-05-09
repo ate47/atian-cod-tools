@@ -28,6 +28,12 @@ namespace fastfile::linker::bo4 {
 		FFLinkerBO4() : FFLinker("Bo4", "Bo4 fastfile linker") {
 		}
 
+		void Init(FastFileLinkerOption& opt) override {
+			std::vector<LinkerWorker*>& w{ GetWorkers() };
+
+			std::sort(w.begin(), w.end(), [](LinkerWorker* a, LinkerWorker* b) { return a->priority > b->priority; });
+		}
+
 		void Link(FastFileLinkerContext& ctx) override {
 			if (std::filesystem::is_regular_file(ctx.input)) {
 				throw std::runtime_error("bo4 linker can't link regular file");

@@ -47,7 +47,8 @@ namespace fastfile::linker::bo4 {
 	class LinkerWorker {
 	public:
 		const char* id;
-		LinkerWorker(const char* id) : id(id) {}
+		int priority;
+		LinkerWorker(const char* id, int priority = 0) : id(id), priority(priority) {}
 
 		virtual void Compute(BO4LinkContext& ctx) = 0;
 	};
