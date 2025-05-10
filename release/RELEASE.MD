@@ -1,7 +1,24 @@
 - acts
   - gsc decompiler
-    - mod tool opcodes support (pc 1c, 36 and 38)
-    - add gsc opaque tokens in iw8 decomp
-    - fix some bo3 ps4 opcodes
-  - better acef loading
-  - gscmap tool
+    - fix treyarch format for 'for' loop
+    - working on IW8 decompiler
+    - bo6 vm14 support
+    - add option to hide op values in disassembly
+  - gsc compiler
+    - add array unpack in grammar
+  - fastfile unlinker
+    - fix bo4 handler
+    - fix weapon tunables names
+    - test bo6 handler
+  - fastfile linker
+    - stringtable and gfximage linker
+    - fix chunk compression
+  - some bo6 asset improvement
+  - fix hash::XHash63 and hash::XHash64
+- acts-shield-plugin
+  - mods
+    - mod config
+    - add asset redirect
+    - fix fastfile loading
+    - use isCommon as the default way of loading a fastfile, ***this is will be removed in the future***
+  - deploy plugin as separate file
