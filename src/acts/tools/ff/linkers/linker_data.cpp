@@ -28,9 +28,18 @@ namespace fastfile::linker::data {
 		chunks[headerMode][GetCurrentStream()].emplace_back(LinkerDataChunk{ .type = LinkerDataChunkType::CHUNKTYPE_ALIGN, .align = alignment });
 	}
 
-	void LinkerData::WriteData(const void* data, size_t size) {
+	template<>
+	void* LinkerData::GetData(size_t offset) {
+		return &fileData[headerMode][offset];
+	}
+
+	size_t LinkerData::AllocData(size_t size) {
+		return utils::Allocate(fileData[headerMode], size);
+	}
+
+	size_t LinkerData::WriteData(const void* data, size_t size) {
 		chunks[headerMode][GetCurrentStream()].emplace_back(LinkerDataChunk{ .type = LinkerDataChunkType::CHUNKTYPE_DATA, .start = fileData[headerMode].size(), .size = size });
-		utils::WriteValue(fileData[headerMode], data, size);
+		return utils::WriteValue(fileData[headerMode], data, size);
 	}
 
 	void LinkerData::SetMode(LinkerMode mode) {

@@ -64,16 +64,27 @@ namespace fastfile::linker::data {
 		void PushStream(size_t blockType);
 		void PopStream();
 		void Align(size_t alignment);
-		void WriteData(const void* data, size_t size);
+		template<typename T>
+		T* GetData(size_t offset) {
+			return (T*)GetData<void>(offset);
+		}
+		template<>
+		void* GetData(size_t offset);
+		size_t AllocData(size_t size);
+		template<typename T>
+		T* AllocDataPtr(size_t size) {
+			return (T*)GetData(AllocData(size));
+		}
+		size_t WriteData(const void* data, size_t size);
 		template<typename Type>
-		void WriteData(const Type& data) {
-			WriteData(&data, sizeof(data));
+		size_t WriteData(const Type& data) {
+			return WriteData(&data, sizeof(data));
 		}
-		void WriteData(const char* str) {
-			WriteData(str, std::strlen(str) + 1);
+		size_t WriteData(const char* str) {
+			return WriteData(str, std::strlen(str) + 1);
 		}
-		void WriteData(const std::string& str) {
-			WriteData(str.data(), str.size() + 1);
+		size_t WriteData(const std::string& str) {
+			return WriteData(str.data(), str.size() + 1);
 		}
 		void SetMode(LinkerMode mode);
 		size_t AddString(const char* str);
