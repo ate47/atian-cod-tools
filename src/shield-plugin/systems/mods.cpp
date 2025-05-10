@@ -400,27 +400,13 @@ namespace mods {
 			DB_LoadXFile_Detour.Create(0x2E0CC10_a, DB_LoadXFile);
 			DB_AllocXBlocks_Detour.Create(0x2EB5870_a, DB_AllocXBlocksStub);
 			DB_ValidateFileHeader_Detour.Create(0x2E0EBE0_a, DB_ValidateFileHeader_Stub);
-			//PMem_Free_Detour.Create(0x2E0C0A0_a, PMem_Free_Stub);
 			DB_AuthLoad_AnalyzeData_Detour.Create(0x28B5F40_a, DB_AuthLoad_AnalyzeData_Stub);
 			DB_LinkXAssetEntry_Detour.Create(0x2EB84F0_a, DB_LinkXAssetEntry_Stub);
 			UnkCheckSum_Detour.Create(0x28B5FA0_a, UnkCheckSum_Stub);
 			DB_FindXAssetHeader_Detour.Create(0x2EB75B0_a, DB_FindXAssetHeader_Stub);
 			DB_DoesXAssetExist_Detour.Create(0x2EB6C90_a, DB_DoesXAssetExist_Stub);
-			
-			
-#ifndef CI_BUILD
-			hook::error::AddErrorDumper([] {
-				LOG_INFO("preload: {}", *(bool*)(0xA0F59D4_a));
-				LOG_INFO("io: {}", *(void**)(0xA0F3B10_a + 0x50));
-				LOG_INFO("g_fileBuf: {}", *(void**)(0xA0F58D0_a));
-				LOG_INFO("g_copyInfoCount: {}", *(int*)(0xA0F58E8_a));
-				
-			});
-#endif
-			// Stream_OpenFile_Detour.Create(0x3C4CDE0_a, Stream_OpenFile);
 		}
-#ifndef CI_BUILD
+
 		REGISTER_SYSTEM(mods, ModsInit, ModsPostInit);
-#endif
 	}
 }
