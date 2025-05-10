@@ -1,0 +1,22 @@
+{
+    "modid": "test",
+    "fastfile_hook": [
+        {
+            "name": "core_acts",
+            "hook": "core_common",
+            "is_common": true
+        }
+    ],
+    "redirects": [
+        {
+            "type": "image",
+            "origin": "hash_36faa5c7eb141973",
+            "dest": "acts_test_icon"
+        },
+        {
+            "type": "image",
+            "origin": "hash_3f683e907686134c",
+            "dest": "acts_test_hover"
+        }
+    ]
+}
