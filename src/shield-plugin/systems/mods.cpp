@@ -1,6 +1,7 @@
 #include <dll_includes.hpp>
 #include <data/bo4.hpp>
 #include <data/refs.hpp>
+#include <core/config.hpp>
 #include <core/memory_allocator.hpp>
 #include <hook/error.hpp>
 #include <hook/library.hpp>
@@ -235,19 +236,6 @@ namespace mods {
 			return 0;
 		}
 
-		void ModsInit(uint64_t uid) {
-			// hook the custom ff
-			zoneHooks.hooks["core_common"].emplace_back(
-				XZoneInfo{
-					.name = "core_acts",
-					.allocFlags = DB_ZONE_COMMON8 | DB_FLAG_IGNORE_MISSING | DB_FLAG_CUSTOM,
-					.freeFlags = DB_ZONE_COMMON8 | DB_FLAG_IGNORE_MISSING,
-				}
-			);
-			zoneHooks.nameHooks[bo4::XAssetType::ASSET_TYPE_IMAGE][0x36faa5c7eb141973] = hash::Hash64("acts_test_icon");
-			zoneHooks.nameHooks[bo4::XAssetType::ASSET_TYPE_IMAGE][0x3f683e907686134c] = hash::Hash64("acts_test_hover");
-		}
-
 		void* DB_LinkXAssetEntry_Stub(XAsset* newEntry, bool allowOverride) {
 			void* entry{ DB_LinkXAssetEntry_Detour.Call<void*>(newEntry, allowOverride) };
 			if (loadFakeFastFile) {
@@ -283,6 +271,127 @@ namespace mods {
 		void UnkCheckSum_Stub() {
 			if (!loadFakeFastFile) {
 				UnkCheckSum_Detour.Call();
+			}
+		}
+
+		void ModsInit(uint64_t uid) {
+			std::vector<std::filesystem::path> modConfigs{};
+
+			std::filesystem::path moddir{ "acts/mods" };
+			std::filesystem::create_directories(moddir);
+			for (const std::filesystem::directory_entry& sub : std::filesystem::directory_iterator{ moddir }) {
+				if (!sub.is_directory()) continue; // ignore files
+
+				std::filesystem::path subPath{ sub };
+				try {
+					std::filesystem::path cpath{ subPath / "config.json" };
+
+					core::config::Config cfg{ cpath };
+					cfg.SyncConfig(false);
+
+					std::string modid{ cfg.GetString("modid") };
+
+					LOG_INFO("Loading {}...", modid);
+
+					auto itHooks{ cfg.main.FindMember("fastfile_hook") };
+
+					if (itHooks != cfg.main.MemberEnd() && itHooks->value.IsArray()) {
+						for (rapidjson::Value& hook : itHooks->value.GetArray()) {
+							if (!hook.IsObject()) {
+								LOG_WARNING("Found invalid fastfile hook: not an object");
+								continue;
+							}
+
+							auto obj{ hook.GetObj() };
+							
+							auto nameIt{ obj.FindMember("name") };
+							auto hookIt{ obj.FindMember("hook") };
+							auto isCommonIt{ obj.FindMember("is_common") };
+
+							if (nameIt == obj.MemberEnd()) {
+								LOG_WARNING("Found invalid fastfile hook: missing name");
+								continue;
+							}
+
+							const char* ffname{ nameIt->value.GetString() };
+							if (hookIt == obj.MemberEnd()) {
+								LOG_WARNING("Found invalid fastfile hook: missing hook for {}", ffname);
+								continue;
+							}
+							const char* hook{ hookIt->value.GetString() };
+
+							// to test, not for use
+							bool isCommon = isCommonIt == obj.MemberEnd() || !isCommonIt->value.IsBool() || isCommonIt->value.GetBool();
+
+							XZoneInfo info{};
+							info.name = zoneHooks.alloc.CloneStr(ffname);
+							info.allocFlags = DB_FLAG_IGNORE_MISSING | DB_FLAG_CUSTOM;
+							info.freeFlags = DB_FLAG_IGNORE_MISSING;
+							if (isCommon) {
+								info.allocFlags |= DB_ZONE_COMMON8;
+								info.freeFlags |= DB_ZONE_COMMON8;
+							}
+							zoneHooks.hooks[hook].emplace_back(info);
+
+							LOG_INFO("Loaded fastfile hook {}->{} (iscommon={})", hook, ffname, isCommon ? "true" : "false");
+						}
+					}
+
+					auto itRedirects{ cfg.main.FindMember("redirects") };
+
+					if (itRedirects != cfg.main.MemberEnd() && itRedirects->value.IsArray()) {
+						for (rapidjson::Value& redirect : itRedirects->value.GetArray()) {
+							if (!redirect.IsObject()) {
+								LOG_WARNING("Found invalid fastfile hook: not an object");
+								continue;
+							}
+							auto obj{ redirect.GetObj() };
+
+							auto originIt{ obj.FindMember("origin") };
+							auto destIt{ obj.FindMember("dest") };
+							auto typeIt{ obj.FindMember("type") };
+
+							if (originIt == obj.MemberEnd()) {
+								LOG_WARNING("Found invalid redirect: missing origin name");
+								continue;
+							}
+							if (destIt == obj.MemberEnd()) {
+								LOG_WARNING("Found invalid redirect: missing dest name");
+								continue;
+							}
+							if (typeIt == obj.MemberEnd()) {
+								LOG_WARNING("Found invalid redirect: missing type");
+								continue;
+							}
+
+
+							const char* origin{ originIt->value.GetString() };
+							const char* dest{ destIt->value.GetString() };
+							const char* typeName{ typeIt->value.GetString() };
+
+							bo4::XAssetType type{ games::bo4::pool::XAssetIdFromName(typeName) };
+
+							if (type == bo4::XAssetType::ASSET_TYPE_COUNT) {
+								LOG_WARNING("Found invalid redirect: bad type for {}->{}", origin, dest);
+								continue;
+							}
+
+							uint64_t horigin{ hash::Hash64Pattern(origin) };
+							uint64_t hdest{ hash::Hash64Pattern(dest) };
+
+							zoneHooks.nameHooks[type][horigin] = hdest;
+							LOG_INFO(
+								"Loaded redirect {} {}(0x{:x})->{}(0x{:x})", 
+								games::bo4::pool::XAssetNameFromId(type),
+								origin, horigin,
+								dest, hdest
+							);
+						}
+					}
+				}
+				catch (...) {
+					LOG_ERROR("Exception when loading mod {}", subPath.string());
+				}
 			}
 		}
 
