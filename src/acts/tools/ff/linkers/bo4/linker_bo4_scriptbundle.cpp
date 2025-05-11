@@ -174,21 +174,23 @@ namespace fastfile::linker::bo4 {
 
 						sobj->type = typeEntry.vtype;
 
-						if (typeEntry.type == ET_INT) {
+						switch (typeEntry.type) {
+						case ET_INT:
 							sobj->value.intVal = (int32_t)utils::ParseFormatInt(val);
 							break;
-						}
-
-						if (typeEntry.type == ET_STRING) {
+						case ET_STRING:
 							sobj->stringRef = (ScrString_t)ctx.data.AddString(val);
+							break;
+						case ET_XHASH:
+							sobj->hashValue.name = hash::Hash64Pattern(val);
+							break;
 						}
-						sobj->hashValue.name = hash::Hash64(val);
 						break;
 					}
 
 					if (sobj->type == KVP_STRING) {
-						sobj->hashValue.name = hash::Hash64(stringValue);
 						sobj->stringRef = (ScrString_t)ctx.data.AddString(stringValue);
+						sobj->hashValue.name = hash::Hash64(stringValue);
 					}
 				
 				}

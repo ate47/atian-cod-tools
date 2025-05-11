@@ -51,11 +51,9 @@ namespace fastfile::linker::data {
 	}
 
 	size_t LinkerData::AddString(const char* str) {
-		size_t id{ strings.size() };
-
 		strings.push_back(alloc.CloneStr(str));
 
-		return id;
+		return strings.size();
 	}
 
 	void LinkerData::AddAsset(size_t type, size_t header) {

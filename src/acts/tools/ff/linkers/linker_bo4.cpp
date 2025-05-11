@@ -72,10 +72,8 @@ namespace fastfile::linker::bo4 {
 			XAssetList assetlist{};
 			
 			// write header
-			if (bo4ctx.data.strings.size()) {
-				assetlist.stringList.count = (int)bo4ctx.data.strings.size();
-				assetlist.stringList.strings = fastfile::linker::data::POINTER_NEXT;
-			}
+			assetlist.stringList.count = (int)bo4ctx.data.strings.size() + 1; // +1 for the null
+			assetlist.stringList.strings = fastfile::linker::data::POINTER_NEXT;
 
 			if (bo4ctx.data.assets.size()) {
 				assetlist.assetCount = (int)bo4ctx.data.assets.size();
@@ -86,19 +84,18 @@ namespace fastfile::linker::bo4 {
 			bo4ctx.data.WriteData(assetlist);
 
 			bo4ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-			if (bo4ctx.data.strings.size()) {
-				// write string ref array
-				bo4ctx.data.Align<void*>();
+			// write string ref array
+			bo4ctx.data.Align<void*>();
 
-				for (size_t i = 0; i < bo4ctx.data.strings.size(); i++) {
-					bo4ctx.data.WriteData<void*>((void*)fastfile::linker::data::POINTER_NEXT);
-				}
+			bo4ctx.data.WriteData<void*>(nullptr); // empty str
+			for (size_t i = 0; i < bo4ctx.data.strings.size(); i++) {
+				bo4ctx.data.WriteData<void*>((void*)fastfile::linker::data::POINTER_NEXT);
+			}
 
-				// write strings
-				for (const char* str : bo4ctx.data.strings) {
-					bo4ctx.data.Align<char>();
-					bo4ctx.data.WriteData(str);
-				}
+			// write strings
+			for (const char* str : bo4ctx.data.strings) {
+				bo4ctx.data.Align<char>();
+				bo4ctx.data.WriteData(str);
 			}
 			bo4ctx.data.PopStream();
 

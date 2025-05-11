@@ -44,7 +44,6 @@ namespace fastfile::linker::data {
 
 		template<typename... Args>
 		LinkerData(size_t numBlocks, Args... tempBlocks) : numBlocks(numBlocks) {
-			strings.push_back("");
 			for (size_t i = 0; i < LM_COUNT; i++) {
 				chunks[i].resize(numBlocks);
 			}
