@@ -6,37 +6,37 @@ namespace {
 	using namespace fastfile::handlers::bo4;
 
 	enum SB_ValueType : uint32_t {
-		SBT_STRING = 0,
-		SBT_XHASH = 1,
-		SBT_INT = 2,
-		SBT_FLOAT = 3,
-		SBT_ANIM4 = 4,
-		SBT_ANIM5 = 5,
-		SBT_ANIM6 = 6,
-		SBT_MODEL = 7,
-		SBT_AITYPE = 8,
-		SBT_CHARACTER = 9,
-		SBT_FX = 10,
-		SBT_SURFACE_FX_TABLE = 11,
-		SBT_RUMBLE_STR = 12,
-		SBT_SCRIPTBUNDLE_STR = 13,
-		SBT_XCAM_STR = 14,
-		SBT_UNK15 = 15,
-		SBT_IMAGE = 16,
-		SBT_LOCALIZED17 = 17,
-		SBT_LOCALIZED18 = 18,
-		SBT_UNK19 = 19,
-		SBT_WEAPON = 20,
-		SBT_VEHICLE = 21,
-		SBT_BUTTON_INT = 22,
-		SBT_STREAMERHINT_STR = 23,
-		SBT_STATUS_EFFECT_STR = 24,
-		SBT_DURATION_INT = 25,
-		SBT_OBJECTIVE = 26,
-		SBT_GESTURE = 27,
-		SBT_RENDER_OVERRIDE_BUNDLE = 28,
-		SBT_GESTURE_TABLE_STR = 29,
-		SBT_IMPACT_FX_TABLE = 30,
+		KVP_STRING = 0,
+		KVP_XHASH = 1,
+		KVP_INT = 2,
+		KVP_FLOAT = 3,
+		KVP_ANIMATION = 4,
+		KVP_PLAYER_ANIMATION = 5,
+		KVP_SIEGE_ANIMATION = 6,
+		KVP_MODEL = 7,
+		KVP_AITYPE = 8,
+		KVP_CHARACTER = 9,
+		KVP_FX = 10,
+		KVP_SURFACE_FX_TABLE = 11,
+		KVP_RUMBLE_STR = 12,
+		KVP_SCRIPTBUNDLE_STR = 13,
+		KVP_XCAM_STR = 14,
+		KVP_MATERIAL = 15,
+		KVP_IMAGE = 16,
+		KVP_LOCALIZED17 = 17,
+		KVP_LOCALIZED18 = 18,
+		KVP_UNK19 = 19,
+		KVP_WEAPON = 20,
+		KVP_VEHICLE = 21,
+		KVP_ENUM_INT = 22,
+		KVP_STREAMERHINT_STR = 23,
+		KVP_STATUS_EFFECT_STR = 24,
+		KVP_DURATION_INT = 25,
+		KVP_OBJECTIVE = 26,
+		KVP_GESTURE = 27,
+		KVP_RENDER_OVERRIDE_BUNDLE = 28,
+		KVP_GESTURE_TABLE_STR = 29,
+		KVP_IMPACT_FX_TABLE = 30,
 	};
 
 	struct SB_Object {
@@ -120,95 +120,95 @@ namespace {
 					json.WriterFieldNameHash(obj.keyScrName, "");
 
 					switch (obj.type) {
-					case SBT_STRING: // string
+					case KVP_STRING: // string
 						json.WriteValueString(GetScrString(obj.stringRef));
 						break;
-					case SBT_XHASH: // xhash
+					case KVP_XHASH: // xhash
 						json.WriteValueHash(obj.hashValue.name, "#");
 						break;
-					case SBT_INT: //int2
+					case KVP_INT: //int2
 						json.WriteValueNumber(obj.value.intVal);
 						break;
-					case SBT_FLOAT: //float
+					case KVP_FLOAT: //float
 						json.WriteValueNumber(obj.value.floatVal);
 						break;
-					case SBT_ANIM4: //anim4
-						json.WriteValueHash(obj.hashValue.name, "anim4#");
+					case KVP_ANIMATION: //anim4
+						json.WriteValueHash(obj.hashValue.name, "anim#");
 						break;
-					case SBT_ANIM5: //anim5
-						json.WriteValueHash(obj.hashValue.name, "anim5#");
+					case KVP_PLAYER_ANIMATION: //anim5
+						json.WriteValueHash(obj.hashValue.name, "playeranim#");
 						break;
-					case SBT_ANIM6: //anim6
-						json.WriteValueHash(obj.hashValue.name, "anim6#");
+					case KVP_SIEGE_ANIMATION: //anim6
+						json.WriteValueHash(obj.hashValue.name, "siegeanim#");
 						break;
-					case SBT_MODEL: //model
+					case KVP_MODEL: //model
 						json.WriteValueHash(obj.hashValue.name, "model#");
 						break;
-					case SBT_AITYPE: //aitype
+					case KVP_AITYPE: //aitype
 						json.WriteValueHash(obj.hashValue.name, "aitype#");
 						break;
-					case SBT_CHARACTER: //character
+					case KVP_CHARACTER: //character
 						json.WriteValueHash(obj.hashValue.name, "character#");
 						break;
-					case SBT_FX: //fx
+					case KVP_FX: //fx
 						json.WriteValueHash(obj.hashValue.name, "fx#");
 						break;
-					case SBT_SURFACE_FX_TABLE: //surface_fx_table
+					case KVP_SURFACE_FX_TABLE: //surface_fx_table
 						json.WriteValueHash(obj.hashValue.name, "surface_fx_table#");
 						break;
-					case SBT_RUMBLE_STR: //rumble
+					case KVP_RUMBLE_STR: //rumble
 						json.WriteValueString(std::format("rumble&{}", GetScrString(obj.stringRef)));
 						break;
-					case SBT_SCRIPTBUNDLE_STR: //scriptbundle
+					case KVP_SCRIPTBUNDLE_STR: //scriptbundle
 						json.WriteValueString(std::format("scriptbundle&{}", GetScrString(obj.stringRef)));
 						break;
-					case SBT_XCAM_STR: //xcam
+					case KVP_XCAM_STR: //xcam
 						json.WriteValueString(std::format("xcam&{}", GetScrString(obj.stringRef)));
 						break;
-					case SBT_IMAGE: //image
+					case KVP_IMAGE: //image
 						json.WriteValueHash(obj.hashValue.name, "image#");
 						break;
-					case SBT_LOCALIZED17: //localized17
+					case KVP_LOCALIZED17: //localized17
 						json.WriteValueHash(obj.hashValue.name, "localized17#");
 						break;
-					case SBT_LOCALIZED18: //localized18
+					case KVP_LOCALIZED18: //localized18
 						json.WriteValueHash(obj.hashValue.name, "localized18#");
 						break;
-					case SBT_WEAPON: //weapon
+					case KVP_WEAPON: //weapon
 						json.WriteValueHash(obj.hashValue.name, "weapon#");
 						break;
-					case SBT_VEHICLE: //vehicle
+					case KVP_VEHICLE: //vehicle
 						json.WriteValueHash(obj.hashValue.name, "vehicle#");
 						break;
-					case SBT_BUTTON_INT: //button
-						json.WriteValueString(std::format("button:{}", obj.value.intVal));
+					case KVP_ENUM_INT: //enum
+						json.WriteValueString(std::format("enum:{}", obj.value.intVal));
 						break;
-					case SBT_STREAMERHINT_STR: //streamerhint
+					case KVP_STREAMERHINT_STR: //streamerhint
 						json.WriteValueString(std::format("streamerhint&{}", GetScrString(obj.stringRef)));
 						break;
-					case SBT_STATUS_EFFECT_STR: //status_effect
+					case KVP_STATUS_EFFECT_STR: //status_effect
 						json.WriteValueString(std::format("status_effect&{}", GetScrString(obj.stringRef)));
 						break;
-					case SBT_DURATION_INT: //duration
+					case KVP_DURATION_INT: //duration
 						json.WriteValueString(std::format("duration:{}", obj.value.intVal));
 						break;
-					case SBT_OBJECTIVE: //objective
+					case KVP_OBJECTIVE: //objective
 						json.WriteValueHash(obj.hashValue.name, "objective#");
 						break;
-					case SBT_GESTURE: //gesture
+					case KVP_GESTURE: //gesture
 						json.WriteValueHash(obj.hashValue.name, "gesture#");
 						break;
-					case SBT_RENDER_OVERRIDE_BUNDLE: //render_override_bundle
+					case KVP_RENDER_OVERRIDE_BUNDLE: //render_override_bundle
 						json.WriteValueHash(obj.hashValue.name, "render_override_bundle#");
 						break;
-					case SBT_GESTURE_TABLE_STR: //gesture_table
+					case KVP_GESTURE_TABLE_STR: //gesture_table
 						json.WriteValueString(std::format("gesture_table&{}", GetScrString(obj.stringRef)));
 						break;
-					case SBT_IMPACT_FX_TABLE: //impact_fx_table
+					case KVP_IMPACT_FX_TABLE: //impact_fx_table
 						json.WriteValueHash(obj.hashValue.name, "impact_fx_table#");
 						break;
-					case SBT_UNK15: //unk15
-					case SBT_UNK19: //unk19
+					case KVP_MATERIAL: //unk15
+					case KVP_UNK19: //unk19
 					default:
 						if (obj.stringRef) {
 							// str?

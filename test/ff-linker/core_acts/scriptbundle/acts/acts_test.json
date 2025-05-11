@@ -1,14 +1,12 @@
 {
-    "name": "acts_test",
-    "type": "acts",
     "val": "value",
     "xhash": "#value",
     "image": "image#test",
-    "weapon": "weapon#test",
-    "hash_1234567": "xcam&test",
+    "weapon": "weapon#none",
+    "hash_d8020792": "xcam&test",
     "number": 42,
     "dur": "duration:60000",
-    "button": "button:7",
+    "button": "enum:7",
     "array": [
         {
             "item": 25,

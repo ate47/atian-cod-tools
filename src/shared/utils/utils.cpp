@@ -425,6 +425,17 @@ namespace utils {
         return MapString(buffer, [](char c) { return std::tolower(c); });
     }
 
+    bool EqualIgnoreCase(const char* s1, const char* s2) {
+        while (*s1) {
+            if (tolower(*s1) != tolower(*s2)) {
+                return false;
+            }
+            s1++;
+            s2++;
+        }
+        return !*s2;
+    }
+
     std::ostream& PrintFormattedString(std::ostream& out, const char* str, size_t len) {
         if (!str) {
             return out << "nullptr";

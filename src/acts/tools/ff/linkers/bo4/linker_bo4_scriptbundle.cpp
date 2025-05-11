@@ -4,37 +4,37 @@
 namespace fastfile::linker::bo4 {
 
 	enum SB_ValueType : uint32_t {
-		SBT_STRING = 0,
-		SBT_XHASH = 1,
-		SBT_INT = 2,
-		SBT_FLOAT = 3,
-		SBT_ANIM4 = 4,
-		SBT_ANIM5 = 5,
-		SBT_ANIM6 = 6,
-		SBT_MODEL = 7,
-		SBT_AITYPE = 8,
-		SBT_CHARACTER = 9,
-		SBT_FX = 10,
-		SBT_SURFACE_FX_TABLE = 11,
-		SBT_RUMBLE_STR = 12,
-		SBT_SCRIPTBUNDLE_STR = 13,
-		SBT_XCAM_STR = 14,
-		SBT_UNK15 = 15,
-		SBT_IMAGE = 16,
-		SBT_LOCALIZED17 = 17,
-		SBT_LOCALIZED18 = 18,
-		SBT_UNK19 = 19,
-		SBT_WEAPON = 20,
-		SBT_VEHICLE = 21,
-		SBT_BUTTON_INT = 22,
-		SBT_STREAMERHINT_STR = 23,
-		SBT_STATUS_EFFECT_STR = 24,
-		SBT_DURATION_INT = 25,
-		SBT_OBJECTIVE = 26,
-		SBT_GESTURE = 27,
-		SBT_RENDER_OVERRIDE_BUNDLE = 28,
-		SBT_GESTURE_TABLE_STR = 29,
-		SBT_IMPACT_FX_TABLE = 30,
+		KVP_STRING = 0,
+		KVP_XHASH = 1,
+		KVP_INT = 2,
+		KVP_FLOAT = 3,
+		KVP_ANIMATION = 4,
+		KVP_PLAYER_ANIMATION = 5,
+		KVP_SIEGE_ANIMATION = 6,
+		KVP_MODEL = 7,
+		KVP_AITYPE = 8,
+		KVP_CHARACTER = 9,
+		KVP_FX = 10,
+		KVP_SURFACE_FX_TABLE = 11,
+		KVP_RUMBLE_STR = 12,
+		KVP_SCRIPTBUNDLE_STR = 13,
+		KVP_XCAM_STR = 14,
+		KVP_MATERIAL = 15,
+		KVP_IMAGE = 16,
+		KVP_LOCALIZED17 = 17,
+		KVP_LOCALIZED18 = 18,
+		KVP_UNK19 = 19,
+		KVP_WEAPON = 20,
+		KVP_VEHICLE = 21,
+		KVP_ENUM_INT = 22,
+		KVP_STREAMERHINT_STR = 23,
+		KVP_STATUS_EFFECT_STR = 24,
+		KVP_DURATION_INT = 25,
+		KVP_OBJECTIVE = 26,
+		KVP_GESTURE = 27,
+		KVP_RENDER_OVERRIDE_BUNDLE = 28,
+		KVP_GESTURE_TABLE_STR = 29,
+		KVP_IMPACT_FX_TABLE = 30,
 	};
 
 	struct SB_Object {
@@ -82,32 +82,32 @@ namespace fastfile::linker::bo4 {
 		EntryType type;
 		const char* start;
 	} typeEntries[] {
-		{ SBT_XHASH, ET_XHASH, "#" },
-		{ SBT_ANIM4, ET_XHASH, "anim4#" },
-		{ SBT_ANIM5, ET_XHASH, "anim5#" },
-		{ SBT_ANIM6, ET_XHASH, "anim6#" },
-		{ SBT_MODEL, ET_XHASH, "model#" },
-		{ SBT_AITYPE, ET_XHASH, "aitype#" },
-		{ SBT_CHARACTER, ET_XHASH, "character#" },
-		{ SBT_FX, ET_XHASH, "fx#" },
-		{ SBT_SURFACE_FX_TABLE, ET_XHASH, "surface_fx_table#" },
-		{ SBT_RUMBLE_STR, ET_STRING, "rumble&" },
-		{ SBT_SCRIPTBUNDLE_STR, ET_STRING, "scriptbundle&" },
-		{ SBT_XCAM_STR, ET_STRING, "xcam&" },
-		{ SBT_IMAGE, ET_XHASH, "image#" },
-		{ SBT_LOCALIZED17, ET_XHASH, "localized17#" },
-		{ SBT_LOCALIZED18, ET_XHASH, "localized18#" },
-		{ SBT_WEAPON, ET_XHASH, "weapon#" },
-		{ SBT_VEHICLE, ET_XHASH, "vehicle#" },
-		{ SBT_BUTTON_INT, ET_INT, "button:" },
-		{ SBT_STREAMERHINT_STR, ET_STRING, "streamerhint&" },
-		{ SBT_STATUS_EFFECT_STR, ET_STRING, "status_effect&" },
-		{ SBT_DURATION_INT, ET_INT, "duration:" },
-		{ SBT_OBJECTIVE, ET_XHASH, "objective#" },
-		{ SBT_GESTURE, ET_XHASH, "gesture#" },
-		{ SBT_RENDER_OVERRIDE_BUNDLE, ET_XHASH, "render_override_bundle#" },
-		{ SBT_GESTURE_TABLE_STR, ET_STRING, "gesture_table&" },
-		{ SBT_IMPACT_FX_TABLE, ET_XHASH, "impact_fx_table#" },
+		{ KVP_XHASH, ET_XHASH, "#" },
+		{ KVP_ANIMATION, ET_XHASH, "anim#" },
+		{ KVP_PLAYER_ANIMATION, ET_XHASH, "playeranim#" },
+		{ KVP_SIEGE_ANIMATION, ET_XHASH, "siegeanim#" },
+		{ KVP_MODEL, ET_XHASH, "model#" },
+		{ KVP_AITYPE, ET_XHASH, "aitype#" },
+		{ KVP_CHARACTER, ET_XHASH, "character#" },
+		{ KVP_FX, ET_XHASH, "fx#" },
+		{ KVP_SURFACE_FX_TABLE, ET_XHASH, "surface_fx_table#" },
+		{ KVP_RUMBLE_STR, ET_STRING, "rumble&" },
+		{ KVP_SCRIPTBUNDLE_STR, ET_STRING, "scriptbundle&" },
+		{ KVP_XCAM_STR, ET_STRING, "xcam&" },
+		{ KVP_IMAGE, ET_XHASH, "image#" },
+		{ KVP_LOCALIZED17, ET_XHASH, "localized17#" },
+		{ KVP_LOCALIZED18, ET_XHASH, "localized18#" },
+		{ KVP_WEAPON, ET_XHASH, "weapon#" },
+		{ KVP_VEHICLE, ET_XHASH, "vehicle#" },
+		{ KVP_ENUM_INT, ET_INT, "enum:" },
+		{ KVP_STREAMERHINT_STR, ET_STRING, "streamerhint&" },
+		{ KVP_STATUS_EFFECT_STR, ET_STRING, "status_effect&" },
+		{ KVP_DURATION_INT, ET_INT, "duration:" },
+		{ KVP_OBJECTIVE, ET_XHASH, "objective#" },
+		{ KVP_GESTURE, ET_XHASH, "gesture#" },
+		{ KVP_RENDER_OVERRIDE_BUNDLE, ET_XHASH, "render_override_bundle#" },
+		{ KVP_GESTURE_TABLE_STR, ET_STRING, "gesture_table&" },
+		{ KVP_IMPACT_FX_TABLE, ET_XHASH, "impact_fx_table#" },
 	};
 
 	bool WriteArray(BO4LinkContext& ctx, rapidjson::Value& val, size_t arrayOffset) {
@@ -151,22 +151,22 @@ namespace fastfile::linker::bo4 {
 				}
 
 				if (v.IsInt() || v.IsInt64()) {
-					sobj->type = SBT_INT;
+					sobj->type = KVP_INT;
 					sobj->value.intVal = v.GetInt();
 				}
 				else if (v.IsNumber()) {
-					sobj->type = SBT_FLOAT;
+					sobj->type = KVP_FLOAT;
 					sobj->value.floatVal = v.GetFloat();
 				}
 				else if (v.IsBool()) {
-					sobj->type = SBT_INT;
+					sobj->type = KVP_INT;
 					sobj->value.intVal = v.GetBool() ? 1 : 0;
 				}
 				else if (v.IsString()) {
 					const char* stringValue{ v.GetString() };
 					std::string_view sw{ stringValue };
 
-					sobj->type = SBT_STRING;
+					sobj->type = KVP_STRING;
 
 					for (auto& typeEntry : typeEntries) {
 						if (!sw.starts_with(typeEntry.start)) continue; // not our type
@@ -186,7 +186,7 @@ namespace fastfile::linker::bo4 {
 						break;
 					}
 
-					if (sobj->type == SBT_STRING) {
+					if (sobj->type == KVP_STRING) {
 						sobj->hashValue.name = hash::Hash64(stringValue);
 						sobj->stringRef = (ScrString_t)ctx.data.AddString(stringValue);
 					}
@@ -256,9 +256,25 @@ namespace fastfile::linker::bo4 {
 					ctx.error = true;
 					continue;
 				}
+
 				std::filesystem::path fname{ rfpath.filename() };
 				fname.replace_extension();
 				std::string name{ fname.string() };
+
+				std::string type{};
+				if (rfpath.has_parent_path()) {
+					if (rfpath.parent_path().has_parent_path()) {
+						LOG_ERROR("Can't load scriptbundle {}: too deep", name);
+						ctx.error = true;
+						continue;
+					}
+					std::filesystem::path typeFile{ rfpath.parent_path().filename() };
+					type = typeFile.string();
+					if (utils::EqualIgnoreCase("default", type)) {
+						type = {};
+					}
+				}
+
 
 				rapidjson::Document main{};
 				main.Parse(buffer.data());
@@ -278,7 +294,19 @@ namespace fastfile::linker::bo4 {
 
 				ScriptBundle* bundle{ ctx.data.GetData<ScriptBundle>(header) };
 
-				bundle->name.name = hash::Hash64Pattern(name.data());
+				// add name and type to bundle
+				bundle->name.name = hash::Hash64(name);
+				rapidjson::Value nameValue{};
+				nameValue.SetString(name.data(), main.GetAllocator());
+				main.AddMember(rapidjson::StringRef("name"), nameValue, main.GetAllocator());
+				
+				if (type.size()) {
+					bundle->bundleType.name = hash::Hash64(type);
+
+					rapidjson::Value typeValue{};
+					typeValue.SetString(type.data(), main.GetAllocator());
+					main.AddMember(rapidjson::StringRef("type"), typeValue, main.GetAllocator());
+				}
 
 				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 				if (!WriteArray(ctx, main, arrayOffset)) {

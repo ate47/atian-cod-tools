@@ -449,7 +449,16 @@ namespace utils {
 	 * @return string
 	 */
 	char* MapString(char* buffer, std::function<char(char)> map);
-
+	/*
+	 * Compare 2 strings ignoring the case
+	 * @param s1 string 1
+	 * @param s2 string 2
+	 * @return if s1 == s2
+	 */
+	bool EqualIgnoreCase(const char* s1, const char* s2);
+	inline bool EqualIgnoreCase(const std::string& s1, const char* s2) { return EqualIgnoreCase(s1.c_str(), s2); }
+	inline bool EqualIgnoreCase(const char* s1, const std::string& s2) { return EqualIgnoreCase(s1, s2.c_str()); }
+	inline bool EqualIgnoreCase(const std::string& s1, const std::string& s2) { return EqualIgnoreCase(s1.c_str(), s2.c_str()); }
 	/*
 	 * @return prog exe directory
 	 */
