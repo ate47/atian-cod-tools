@@ -102,6 +102,10 @@ namespace core::raw_file::json {
 			writer.WriteString(val);
 		}
 
+		void WriteValueLiteral(const std::string& val) {
+			WriteValueLiteral(val.data());
+		}
+
 		void WriteValueBool(bool val) {
 			WriteValueLiteral(val ? "true" : "false");
 		}

@@ -5,6 +5,7 @@
 #include <games/bo4/pool.hpp>
 
 namespace fastfile::linker::bo4 {
+	typedef uint32_t ScrString_t;
 	enum XFileBlock : __int32 {
 		XFILE_BLOCK_TEMP = 0x0,
 		XFILE_BLOCK_TEMP_PRELOAD = 0x1,
