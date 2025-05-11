@@ -24,6 +24,8 @@ namespace fastfile::handlers::bo4 {
 	struct AnimStateMachine;
 	struct AnimSelectorTableSet;
 	struct GfxImage;
+	struct Material;
+	struct Gesture;
 
 	enum XFileBlock : uint32_t {
 		XFILE_BLOCK_TEMP = 0x0,

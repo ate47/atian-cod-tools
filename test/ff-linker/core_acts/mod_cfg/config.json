@@ -17,6 +17,16 @@
             "type": "image",
             "origin": "hash_3f683e907686134c",
             "dest": "acts_test_hover"
+        },
+        {
+            "type": "image",
+            "origin": "hash_1e1b21d10e20e324",
+            "dest": "acts_spray"
+        },
+        {
+            "type": "localizeentry",
+            "origin": "hash_4ccf78cd6dd0333a",
+            "dest": "acts_spray_desc"
         }
     ]
 }
