@@ -10,6 +10,7 @@ namespace fastfile::handlers::bo4 {
 			return id;
 		}
 	};
+	typedef float vec3_t[3];
 	typedef uint64_t ID64Metatable;
 	typedef const char* XString;
 	struct WeaponDef;
@@ -26,6 +27,16 @@ namespace fastfile::handlers::bo4 {
 	struct GfxImage;
 	struct Material;
 	struct Gesture;
+	struct SurfaceSoundDef;
+	struct SurfaceFXTableDef;
+	struct DestructibleDef;
+	struct RumbleInfo;
+	struct FxEffectDef;
+	struct VehicleFxDef;
+	struct XModel;
+	struct VehicleSoundDef;
+	typedef FxEffectDef* FxEffectDefHandle;
+	typedef Material* MaterialHandle;
 
 	enum XFileBlock : uint32_t {
 		XFILE_BLOCK_TEMP = 0x0,
