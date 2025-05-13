@@ -6,7 +6,7 @@
 namespace games::bo4::errors {
 	namespace {
 		core::memory_allocator::MemoryAllocator fileData{};
-		std::unordered_map<uint32_t, const char*> errors{
+		std::unordered_map<uint64_t, const char*> errors{
 			{ 3199439626, "Can't register dvar" },
 			{ 2082640650, "No file descriptor available" },
 			{ 904544970, "Attempt to register Client Field post finalization of Client Field registration period failed." },
