@@ -359,5 +359,13 @@ namespace acts::compiler::preprocessor {
 
             return !err;
         }
+        
+        bool ApplyPreProcessor(std::string& str, const char* filename = nullptr) {
+            if (filename) {
+                return ApplyPreProcessor(str, [filename](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "[{}:{}] {}", filename, line, message); });
+            } else {
+                return ApplyPreProcessor(str, [](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "[line:{}] {}", line, message); });
+            }
+        }
     };
 }

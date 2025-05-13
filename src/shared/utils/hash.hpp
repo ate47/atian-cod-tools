@@ -144,7 +144,22 @@ namespace hash {
 		if (TryHashPattern(str, out)) return out;
 		return Hash64(str, start, iv);
 	}
+	template<typename StringType>
+	constexpr uint64_t Hash64AStr(const StringType& str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
+		uint64_t hash = start;
 
+		for (auto it = str.begin(); it != str.end(); it++) {
+			hash = (hash ^ lowerc(*it)) * iv;
+		}
+
+		return hash;
+	}
+	
+	template<typename StringType>
+	constexpr uint64_t Hash64Str(const StringType& str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
+		return Hash64AStr<StringType>(str, start, iv) & MASK63;
+	}
+	
 	constexpr uint64_t Hash64(const wchar_t* str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
 		return Hash64A(str, start, iv) & MASK63;
 	}

@@ -43,7 +43,7 @@ namespace acts::unit_test {
 
 	namespace {
 		int utest(int argc, const char* argv[]) {
-			uint64_t tuid{ tool::NotEnoughParam(argc, 2) ? 0 : hash::Hash64(argv[2]) };
+			uint64_t tuid{ tool::NotEnoughParam(argc, 1) ? 0 : hash::Hash64(argv[2]) };
 
 			size_t errors{};
 			size_t tests{};

@@ -1,0 +1,26 @@
+// example and test file for the fastfile linker
+
+// fastfile options
+>game=bo4              // the game to use
+>name=core_acts        // fastfile name
+>compression=zlib      // compression type, by default no compression is used
+>compression.high=true // use high compression
+
+// a script entry
+scriptparsetree,scripts/core_common/acts/no_linked_test.gsc
+// to automatically link a script to be linked, a '!' can be added
+scriptparsetree,!scripts/core_common/acts/echo_test.gsc
+
+// stringtable
+stringtable,acts/test.csv
+
+// a script bundle, the file will be searched in the scriptbundle directory.
+scriptbundle,acts:acts_test
+
+// images, the file will be searched in the images directory. the file extension will be removed
+image,acts_spray.png
+image,acts_test_hello_world.png
+image,acts_test_hover.png
+image,acts_test_icon.png
+
+// todo: localize list

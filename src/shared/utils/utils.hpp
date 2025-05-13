@@ -47,6 +47,17 @@ namespace utils {
 	 */
 	bool ReadFile(const std::filesystem::path& path, std::string& buffer, bool append = false);
 
+	
+	template<typename Type>
+	Type ReadFile(const std::filesystem::path& path) {
+		Type buff{};
+		if (!ReadFile(path, buff)) {
+			throw std::runtime_error(std::format("Can't read {}", path.string()));
+		}
+
+		return buff;
+	}
+
 	/*
 	 * Read a file inside an allocated buffer
 	 * @param path file path

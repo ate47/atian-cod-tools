@@ -3,28 +3,56 @@
 
 namespace core::memory_allocator {
 
+	struct MemoryAllocatorPtr {
+		void(*deleteFunc)(void* ptr);
+		void* ptr;
+	};
+
 	class MemoryAllocator {
 		size_t totalLen{};
-		std::vector<void*> ptrs{};
+		std::vector<MemoryAllocatorPtr> ptrs{};
 
 	public:
+		MemoryAllocator() {}
+		
+		MemoryAllocator(MemoryAllocator&& other) noexcept
+			: totalLen(other.totalLen), ptrs(std::move(other.ptrs)) {
+			other.totalLen = 0;
+			other.ptrs.clear();
+		}
+
 		~MemoryAllocator() {
-			for (void* ptr : ptrs) {
-				delete[] ptr;
+			for (MemoryAllocatorPtr& ptr : ptrs) {
+				if (ptr.ptr) {
+					ptr.deleteFunc(ptr.ptr);
+				}
 			}
+		}
+
+		MemoryAllocator(const MemoryAllocator&) = delete;
+		MemoryAllocator& operator=(const MemoryAllocator&) = delete;
+		MemoryAllocator& operator=(MemoryAllocator&& other) = delete;
+
+
+		template<typename T = void, typename... Args>
+		T* New(Args... args) {
+			totalLen += sizeof(T);
+			T* ptr = new T(std::forward<Args>(args)...);
+			ptrs.emplace_back([](void* p) { delete static_cast<T*>(p); }, (void*)ptr);
+			return ptr;
 		}
 
 		template<typename T = void>
 		T* Alloc(size_t size = sizeof(T), size_t count = 1) {
 			totalLen += size * count;
 			void* ptr = new byte[size * count];
-			ptrs.push_back(ptr);
+			ptrs.emplace_back([](void* p) { delete[] static_cast<byte*>(p); }, (void*)ptr);
 			return (T*)ptr;
 		}
 
 		template<typename T>
 		T* Add(T* ptr) {
-			ptrs.push_back(ptr);
+			ptrs.emplace_back([](void* p) { delete static_cast<T*>(p); }, (void*)ptr);
 			return ptr;
 		}
 
@@ -35,19 +63,24 @@ namespace core::memory_allocator {
 			return ptr;
 		}
 
+		template<typename T = void>
+		T* ClonePtr(const T* src, size_t len) {
+			void* dst = Alloc<byte>(len);
+			std::memcpy(dst, src, len);
+			return (T*)dst;
+		}
+
 		const char* CloneStr(const char* str) {
 			size_t len = std::strlen(str);
-			char* ptr = Alloc<char>(len + 1);
-			std::memcpy(ptr, str, len + 1);
-			return ptr;
+			return ClonePtr<const char>(str, len + 1);
 		}
 		const char* CloneStr(const std::string& str) {
 			return CloneStr(str.data());
 		}
 
 		void FreeAll() {
-			for (void* ptr : ptrs) {
-				delete[] ptr;
+			for (MemoryAllocatorPtr& ptr : ptrs) {
+				ptr.deleteFunc(ptr.ptr);
 			}
 			ptrs.clear();
 		}
@@ -57,14 +90,22 @@ namespace core::memory_allocator {
 
 			auto it = ptrs.begin();
 			while (it != ptrs.end()) {
-				if (*it == ptr) {
-					delete[] ptr;
-					it = ptrs.erase(it);
+				if (it->ptr == ptr) {
+					it->deleteFunc(it->ptr);
+					ptrs.erase(it);
+					break;
 				}
-				else {
-					it++;
-				}
+
+				it++;
 			}
+		}
+
+		size_t Count() const {
+			return ptrs.size();
+		}
+
+		size_t DebugAllocSize() const {
+			return totalLen;
 		}
 	};
 
