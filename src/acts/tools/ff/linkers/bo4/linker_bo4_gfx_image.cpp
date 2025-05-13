@@ -65,13 +65,9 @@ namespace fastfile::linker::bo4 {
 		GfxImageWorker() : LinkerWorker("GfxImage", -1) {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			std::vector<std::filesystem::path> images{};
-			std::filesystem::path imagesDir{ ctx.linkCtx.input / "images" };
-			utils::GetFileRecurseExt(imagesDir, images, ".png\0.bmp\0", true);
-
-			for (const std::filesystem::path& sub : images) {
-				std::filesystem::path path{ imagesDir / sub };
-				std::filesystem::path filename{ sub };
+			for (const char*& imageName : ctx.linkCtx.zone.assets["image"]) {
+				std::filesystem::path path{ ctx.linkCtx.input / "images" / imageName };
+				std::filesystem::path filename{ path.filename() };
 				filename.replace_extension();
 				std::string name{ filename.string() };
 				uint64_t hash{ hash::Hash64Pattern(name.data()) };

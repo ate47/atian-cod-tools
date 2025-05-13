@@ -86,65 +86,123 @@ namespace fastfile::linker::bo4 {
 		}
 
 		void Compute(BO4LinkContext& ctx) override {
-			std::vector<std::filesystem::path> scripts{};
-			std::filesystem::path scriptDir{ ctx.linkCtx.input / "scripts" };
-			utils::GetFileRecurseExt(scriptDir, scripts, ".csc\0.gsc\0", true);
+			bool cfgGenDBG{ ctx.linkCtx.zone.GetConfigBool("gsc.gendbg", false) };
+			bool cfgDev{ ctx.linkCtx.zone.GetConfigBool("gsc.dev", false) };
+			bool cfgNoDevCallInline{ ctx.linkCtx.zone.GetConfigBool("gsc.noDevCallInline", false) };
+			bool genDevBlockAsComment{ ctx.linkCtx.zone.GetConfigBool("gsc.devBlockAsComment", false) };
 
-			bool cfgGenDBG{ ctx.ffConfig.GetBool("gsc.gendbg", false) };
-			bool cfgDev{ ctx.ffConfig.GetBool("gsc.dev", false) };
-			bool cfgNoDevCallInline{ ctx.ffConfig.GetBool("gsc.noDevCallInline", false) };
-			bool genDevBlockAsComment{ ctx.ffConfig.GetBool("gsc.devBlockAsComment", false) };
+			std::vector<XHash> forcedServerScripts{};
+			std::vector<XHash> forcedClientScripts{};
 
-			for (const std::filesystem::path& sub : scripts) {
-				std::filesystem::path path{ scriptDir / sub };
-				std::filesystem::path scriptName{ std::filesystem::path{"scripts"} / sub };
+			for (const char*& scriptparsetreeName : ctx.linkCtx.zone.assets["scriptparsetree"]) {
+				const char* scriptparsetreeNameCfg{ scriptparsetreeName };
+				bool forced{ *scriptparsetreeNameCfg == '!' };
+				if (forced) scriptparsetreeNameCfg++;
+				std::filesystem::path scriptName{ scriptparsetreeNameCfg };
+				std::filesystem::path path{ ctx.linkCtx.input / scriptparsetreeNameCfg };
 				LOG_TRACE("Processing {} ({})", scriptName.string(), path.string());
 
-				// compile file
-				acts::compiler::CompilerConfig cfg{};
-				std::string snp{ scriptName.string() };
-				cfg.name = hashutils::CleanPath(snp.data());
-				cfg.platform = GetGSCPlatform(ctx.linkCtx.opt.platform);
-				cfg.vm = tool::gsc::opcode::VMI_T8_36; // read cfg?
-				cfg.detourType = acts::compiler::DETOUR_ACTS;
-				cfg.computeDevOption = cfgDev;
-				std::string preprocOutput{};
-				if (cfgGenDBG) {
-					cfg.preprocOutput = &preprocOutput;
-				}
-				cfg.noDevCallInline = cfgNoDevCallInline;
-				cfg.processorOpt.devBlockAsComment = genDevBlockAsComment;
-				cfg.clientScript = scriptName.extension() == ".csc";
-				cfg.processorOpt.defines.insert(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
-
 				std::vector<byte> buffer{};
-				try {
-					acts::compiler::CompileGsc(path, buffer, cfg);
+
+				bool isCsc;
+
+				if (scriptName.extension() == ".cscc") {
+					if (!utils::ReadFile(path, buffer)) {
+						LOG_ERROR("Can't read {}", path.string());
+						ctx.error = true;
+						continue;
+					}
+					scriptName.replace_extension(".csc");
+					isCsc = true;
 				}
-				catch (std::runtime_error& re) {
-					LOG_ERROR("Can't compile {}: {}", path.string(), re.what());
-					ctx.error = true;
-					continue;
+				else if (scriptName.extension() == ".gscc") {
+					if (!utils::ReadFile(path, buffer)) {
+						LOG_ERROR("Can't read {}", path.string());
+						ctx.error = true;
+						continue;
+					}
+					scriptName.replace_extension(".gsc");
+					isCsc = false;
 				}
+				else {
+					// compile file
+					acts::compiler::CompilerConfig cfg{};
+					std::string snp{ scriptName.string() };
+					cfg.name = hashutils::CleanPath(snp.data());
+					cfg.platform = GetGSCPlatform(ctx.linkCtx.opt.platform);
+					cfg.vm = tool::gsc::opcode::VMI_T8_36; // read cfg?
+					cfg.detourType = acts::compiler::DETOUR_ACTS;
+					cfg.computeDevOption = cfgDev;
+					std::string preprocOutput{};
+					if (cfgGenDBG) {
+						cfg.preprocOutput = &preprocOutput;
+					}
+					cfg.noDevCallInline = cfgNoDevCallInline;
+					cfg.processorOpt.devBlockAsComment = genDevBlockAsComment;
+					cfg.clientScript = scriptName.extension() == ".csc";
+					isCsc = cfg.clientScript;
+					cfg.processorOpt.defines.insert(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
+
+					try {
+						acts::compiler::CompileGsc(path, buffer, cfg);
+					}
+					catch (std::runtime_error& re) {
+						LOG_ERROR("Can't compile {}: {}", path.string(), re.what());
+						ctx.error = true;
+						continue;
+					}
 
 
-				LOG_INFO("Compiled {} ({})", path.string(), cfg.name);
+					LOG_INFO("Compiled {} ({})", path.string(), cfg.name);
+					if (cfgGenDBG) {
+						AddGscDBGHeader(ctx, buffer, preprocOutput, path);
+					}
+				}
+				if (forced) {
+					tool::gsc::T8GSCOBJ& obj{ *(tool::gsc::T8GSCOBJ*)buffer.data() };
+
+					// add forced script
+					if (isCsc) {
+						forcedClientScripts.emplace_back(obj.name);
+					}
+					else {
+						forcedServerScripts.emplace_back(obj.name);
+					}
+				}
+
 				AddGscHeader(ctx, buffer, path);
-				if (cfgGenDBG) {
-					AddGscDBGHeader(ctx, buffer, preprocOutput, path);
-				}
 			}
 
-			scripts.clear();
-			utils::GetFileRecurseExt(ctx.linkCtx.input, scripts, ".cscc\0.gscc\0");
-			for (const std::filesystem::path& path : scripts) {
-				std::vector<byte> buffer{};
-				if (!utils::ReadFile(path, buffer)) {
-					LOG_ERROR("Can't read {}", path.string());
-					ctx.error = true;
-					continue;
-				}
-				AddGscHeader(ctx, buffer, path);
+			if (forcedClientScripts.size() || forcedServerScripts.size()) {
+				struct ScriptParseTreeForced {
+					XHash name;
+					uint32_t gscCount;
+					uint32_t cscCount;
+					XHash* gscScripts;
+					XHash* cscScripts;
+				};
+				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, fastfile::linker::data::POINTER_NEXT);
+
+				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ScriptParseTreeForced header{};
+				header.name.name = ctx.ffnameHash;
+				header.gscCount = (uint32_t)forcedServerScripts.size();
+				header.cscCount = (uint32_t)forcedClientScripts.size();
+				if (forcedServerScripts.size()) header.gscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
+				if (forcedClientScripts.size()) header.cscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
+
+				// todo: implement gdb compiler
+				ctx.data.WriteData(header);
+
+				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.data.Align(8);
+				ctx.data.WriteData(forcedServerScripts.data(), forcedServerScripts.size() * sizeof(forcedServerScripts[0]));
+				ctx.data.Align(8);
+				ctx.data.WriteData(forcedClientScripts.data(), forcedClientScripts.size() * sizeof(forcedClientScripts[0]));
+				ctx.data.PopStream();
+
+				ctx.data.PopStream();
+				LOG_INFO("Added asset scriptparsetreeforced {} (hash_{:x})", ctx.linkCtx.ffname, ctx.ffnameHash);
 			}
 		}
 	};

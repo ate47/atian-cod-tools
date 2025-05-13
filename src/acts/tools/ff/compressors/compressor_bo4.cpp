@@ -39,25 +39,10 @@ namespace {
 
 
 	class FFCompressorBO4 : public FFCompressor {
-		// bo4 seems constantly use oodle, but DB_DecompressIOStream can handle everything
-		FastFileCompression compression{ FastFileCompression::XFILE_UNCOMPRESSED };
-		utils::compress::CompressionAlgorithm alg{ utils::compress::COMP_NONE };
 	public:
 		FFCompressorBO4() : FFCompressor("BO4", "Black ops 4 fast file compressor") {
 		}
 		void Init(FastFileLinkerOption& opt) override {
-			if (opt.compressionType) {
-				compression = GetFastFileCompression(opt.compressionType);
-
-				if (compression == FastFileCompression::XFILE_COMPRESSION_COUNT) {
-					throw std::runtime_error(std::format("Invalid compression format name: {}", opt.compressionType));
-				}
-
-			}
-			alg = fastfile::GetFastFileCompressionAlgorithm(compression);
-			if (opt.useHC) {
-				alg = alg | utils::compress::COMP_HIGH_COMPRESSION;
-			}
 			constexpr size_t maxSize{ utils::GetMaxSize<int32_t>() };
 			if (opt.chunkSize > maxSize) {
 				LOG_WARNING("Chunk size can't be above {}", maxSize);
@@ -66,6 +51,22 @@ namespace {
 		}
 
 		void Compress(FastFileLinkerContext& ctx) override {
+			// bo4 seems constantly use oodle, but DB_DecompressIOStream can handle everything
+			FastFileCompression compression{ FastFileCompression::XFILE_UNCOMPRESSED };
+			const char* compressionType{ ctx.zone.GetConfig("compression") };
+			if (compressionType) {
+				compression = GetFastFileCompression(compressionType);
+
+				if (compression == FastFileCompression::XFILE_COMPRESSION_COUNT) {
+					throw std::runtime_error(std::format("Invalid compression format name: {}", compressionType));
+				}
+
+			}
+			utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(compression) };
+			if (ctx.zone.GetConfigBool("compression.high", false)) {
+				alg = alg | utils::compress::COMP_HIGH_COMPRESSION;
+			}
+
 			std::vector<byte> out{};
 			utils::Allocate<XFile>(out);
 

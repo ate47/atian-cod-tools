@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <tools/ff/linkers/linker_bo4.hpp>
+#include <compiler/preprocessor.hpp>
 
 namespace fastfile::linker::bo4 {
 	std::vector<LinkerWorker*>& GetWorkers() {
@@ -35,21 +36,7 @@ namespace fastfile::linker::bo4 {
 		}
 
 		void Link(FastFileLinkerContext& ctx) override {
-			if (std::filesystem::is_regular_file(ctx.input)) {
-				throw std::runtime_error("bo4 linker can't link regular file");
-			}
-
-			// load common configs
-			core::config::Config cfg{ ctx.input / "config.json" };
-			cfg.SyncConfig(false);
-
-			std::string ffName{ cfg.GetString("data.name") };
-
-			if (!ffName.empty()) {
-				ctx.ffname = ctx.strs.CloneStr(ffName);
-			}
-			
-			BO4LinkContext bo4ctx{ ctx, cfg };
+			BO4LinkContext bo4ctx{ ctx };
 			bo4ctx.ffnameHash = hash::Hash64Pattern(ctx.ffname);
 
 

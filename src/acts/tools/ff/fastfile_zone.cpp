@@ -3,8 +3,16 @@
 #include <compiler/preprocessor.hpp>
 
 namespace fastfile::zone {
-	
-	void Zone::ParseFile(const std::string& file) {
+
+	void Zone::ParseFile(const std::string& file, const char* filename) {
+		if (filename) {
+			ParseFile(file, [filename](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "[{}:{}] {}", filename, line, message); });
+		}
+		else {
+			ParseFile(file, [](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "[line:{}] {}", line, message); });
+		}
+	}
+	void Zone::ParseFile(const std::string& file, std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler) {
 		std::istringstream is{ file };
 		
 		size_t lineIdx{};
@@ -32,7 +40,7 @@ namespace fastfile::zone {
 				size_t split{ sw.find_first_of('=') };
 
 				if (split == std::string::npos) {
-					LOG_WARNING("[line:{}] Invalid config item: missing = for {}", lineIdx, sw);
+					errorHandler(core::logs::LVL_WARNING, lineIdx, "Invalid item, missing '='");
 					continue;
 				}
 
@@ -40,7 +48,7 @@ namespace fastfile::zone {
 				const char*& val{ cfgs[key] };
 				
 				if (val) {
-					LOG_WARNING("[line:{}] Config item {} registered twice", lineIdx, key);
+					errorHandler(core::logs::LVL_WARNING, lineIdx, std::format("Config item {} registered twice", key));
 					continue;
 				}
 
@@ -53,7 +61,7 @@ namespace fastfile::zone {
 				size_t split{ sw.find_first_of(',') };
 
 				if (split == std::string::npos) {
-					LOG_WARNING("[line:{}] Invalid asset item: missing , for {}", lineIdx, sw);
+					errorHandler(core::logs::LVL_WARNING, lineIdx, std::format("Invalid asset item: missing ',' for {}", sw));
 					continue;
 				}
 
@@ -66,8 +74,31 @@ namespace fastfile::zone {
 				vals.push_back(keyStr);
 			}
 		}
+	}
 
+	const char* Zone::GetConfig(const char* name, const char* defaultVal) {
+		const char* v{ cfgs[name] };
+		return v ? v : defaultVal;
+	}
 
+	int64_t Zone::GetConfigInt(const char* name, int64_t defaultVal) {
+		const char* v{ cfgs[name] };
+		if (!v) return defaultVal;
+		try {
+			return utils::ParseFormatInt(v);
+		}
+		catch (...) {
+			LOG_WARNING("Invalid int value for {}: {}", name, v);
+			return defaultVal;
+		}
+	}
+	bool Zone::GetConfigBool(const char* name, bool defaultVal) {
+		const char* v{ cfgs[name] };
+		if (!v) return defaultVal;
+		if (utils::EqualIgnoreCase("true", v)) return true;
+		if (utils::EqualIgnoreCase("false", v)) return true;
+		LOG_WARNING("Invalid bool value for {}: {}", name, v);
+		return defaultVal;
 	}
 	namespace {
 

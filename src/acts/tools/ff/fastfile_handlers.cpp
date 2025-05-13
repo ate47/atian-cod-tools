@@ -277,13 +277,6 @@ namespace fastfile {
 					return false;
 				}
 			}
-			else if (!strcmp("-t", arg) || !_strcmpi("--compression", arg)) {
-				if (i + 1 == endIndex) {
-					std::cerr << "Missing value for param: " << arg << "!\n";
-					return false;
-				}
-				compressionType = args[++i];
-			}
 			else if (!strcmp("-n", arg) || !_strcmpi("--name", arg)) {
 				if (i + 1 == endIndex) {
 					std::cerr << "Missing value for param: " << arg << "!\n";
@@ -302,9 +295,6 @@ namespace fastfile {
 			}
 			else if (!_strcmpi("--server", arg)) {
 				server = true;
-			}
-			else if (!strcmp("-H", arg) || !_strcmpi("--high-compression", arg)) {
-				useHC = true;
 			}
 			else if (!_strcmpi("--chunkSize", arg)) {
 				if (i + 1 == endIndex) {
@@ -707,6 +697,27 @@ namespace fastfile {
 		return tool::OK;
 	}
 
+	void FastFileLinkerContext::ReadZoneFile() {
+		std::string zoneFileData{ utils::ReadFile<std::string>(zoneFile) };
+		std::string zoneFileName{ zoneFile.string() };
+		preProcOpt.ApplyPreProcessor(zoneFileData, zoneFileName.data());
+		zone.ParseFile(zoneFileData, zoneFileName.data());
+
+		if (!ffname) {
+			ffname = zone.GetConfig("name");
+		}
+		const char* game{ zone.GetConfig("game") };
+
+		if (game) {
+			if (!linker) {
+				linker = FindLinker(game);
+			}
+			if (!compressor) {
+				compressor = FindCompressor(game);
+			}
+		}
+	}
+
 	int fastfilelinker(int argc, const char* argv[]) {
 		FastFileLinkerOption opt{};
 
@@ -741,31 +752,32 @@ namespace fastfile {
 			return tool::OK;
 		}
 
-		if (!opt.linker) {
-			LOG_ERROR("No linker");
-			return tool::BAD_USAGE;
-		}
-
-		if (opt.compressor) {
-			opt.compressor->Init(opt);
-		}
-
-		utils::CloseEnd compCE{ [&opt]() {opt.compressor->Cleanup(); } };
-
-		opt.linker->Init(opt);
-
-		utils::CloseEnd linkerCE{ [&opt]() {opt.linker->Cleanup(); } };
-
 		for (const char* file : opt.files) {
 			try {
 				FastFileLinkerContext ctx{ opt, file };
 
-				if (opt.linker) {
-					opt.linker->Link(ctx);
+				ctx.ReadZoneFile();
+
+				if (!ctx.linker) {
+					LOG_ERROR("No linker for {}", file);
+					continue;
 				}
 
-				if (opt.compressor) {
-					opt.compressor->Compress(ctx);
+				ctx.linker->Init(opt);
+
+				utils::CloseEnd linkerCE{ [&ctx]() {ctx.linker->Cleanup(); } };
+
+
+				if (ctx.compressor) {
+					ctx.compressor->Init(opt);
+				}
+
+				utils::CloseEnd compCE{ [&ctx]() {ctx.compressor->Cleanup(); } };
+				
+				ctx.linker->Link(ctx);
+
+				if (ctx.compressor) {
+					ctx.compressor->Compress(ctx);
 				}
 			}
 			catch (std::runtime_error& err) {

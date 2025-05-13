@@ -7,6 +7,6 @@
 
 function private autoexec __init__system__()
 {
-    ActsLog( "THIS MESSAGE SHOULD BE THERE" );
+    ActsLog( "THIS MESSAGE SHOULDN't BE THERE" );
     ErrorMsg( "ERROR LINKED" );
 }

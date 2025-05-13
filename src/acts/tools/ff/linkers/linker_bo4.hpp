@@ -39,7 +39,6 @@ namespace fastfile::linker::bo4 {
 
 	struct BO4LinkContext {
 		FastFileLinkerContext& linkCtx;
-		core::config::Config& ffConfig;
 		fastfile::linker::data::LinkerData data{ XFILE_BLOCK_COUNT, XFILE_BLOCK_TEMP, XFILE_BLOCK_TEMP_PRELOAD };
 		bool error{};
 		uint64_t ffnameHash{};

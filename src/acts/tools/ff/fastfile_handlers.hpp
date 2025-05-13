@@ -2,6 +2,8 @@
 #include <hook/module_mapper.hpp>
 #include <core/bytebuffer.hpp>
 #include <core/memory_allocator.hpp>
+#include <tools/ff/fastfile_zone.hpp>
+#include <compiler/preprocessor.hpp>
 #include <tools/utils/compress_utils.hpp>
 
 namespace fastfile {
@@ -165,7 +167,6 @@ namespace fastfile {
 		bool m_header{};
 		bool printCompressors{};
 		bool printLinkers{};
-		bool useHC{};
 		size_t chunkSize{};
 		std::filesystem::path m_output{ "output_ff" };
 		const char* ffname{};
@@ -174,7 +175,6 @@ namespace fastfile {
 		FFLinker* linker{};
 		bool server{};
 		FastFilePlatform platform{ FastFilePlatform::XFILE_PC };
-		const char* compressionType{};
 
 		~FastFileLinkerOption();
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
@@ -183,22 +183,25 @@ namespace fastfile {
 
 	class FastFileLinkerContext {
 	public:
+		std::filesystem::path zoneFile;
 		std::filesystem::path input;
+		zone::Zone zone{};
+		acts::compiler::preprocessor::PreProcessorOption preProcOpt{};
 		std::string inputFileNameStr;
 		FastFileLinkerOption& opt;
 		std::vector<byte> linkedData{};
 		const char* ffname{};
 		size_t blockSizes[0x10]{};
 		core::memory_allocator::MemoryAllocator strs{};
+		FFCompressor* compressor{};
+		FFLinker* linker{};
 
-		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path in)
-			: opt(opt), input(std::filesystem::absolute(in)) {
-			if (opt.ffname) ffname = opt.ffname;
-			else {
-				inputFileNameStr = input.filename().string();
-				ffname = inputFileNameStr.data();
-			}
+		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path zoneFile)
+			: opt(opt), zoneFile(zoneFile), input(std::filesystem::absolute(zoneFile).parent_path()),
+			  compressor(opt.compressor), linker(opt.linker) {
 		}
+
+		void ReadZoneFile();
 	};
 
 	constexpr uint64_t MASK32 = 0xFFFFFFFF;

@@ -15,7 +15,7 @@ scriptparsetree,!scripts/core_common/acts/echo_test.gsc
 stringtable,acts/test.csv
 
 // a script bundle, the file will be searched in the scriptbundle directory.
-scriptbundle,acts:acts_test
+scriptbundle,acts/acts_test
 
 // images, the file will be searched in the images directory. the file extension will be removed
 image,acts_spray.png
@@ -23,4 +23,5 @@ image,acts_test_hello_world.png
 image,acts_test_hover.png
 image,acts_test_icon.png
 
-// todo: localize list
+// add a localize list file
+localizelist,acts/localize.json

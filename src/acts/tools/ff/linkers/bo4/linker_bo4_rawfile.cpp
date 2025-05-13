@@ -7,19 +7,8 @@ namespace fastfile::linker::bo4 {
 		RawFileWorker() : LinkerWorker("RawFile") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			std::vector<std::filesystem::path> files{};
-			utils::GetFileRecurseExt(ctx.linkCtx.input, files,
-				// all the extensions to read into the rawfile assets
-				".cfg\0"
-				".txt\0"
-				".vision\0"
-				".graph\0"
-				".baseline\0"
-				// extension used in the dump
-				".raw\0" 
-				, true);
-
-			for (const std::filesystem::path& rfpath : files) {
+			for (const char*& stringtableName : ctx.linkCtx.zone.assets["rawfile"]) {
+				std::filesystem::path rfpath{ stringtableName };
 				std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 				std::string buffer{};
 				if (!utils::ReadFile(path, buffer)) {

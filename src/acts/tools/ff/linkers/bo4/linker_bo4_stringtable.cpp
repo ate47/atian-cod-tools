@@ -53,12 +53,9 @@ namespace fastfile::linker::bo4 {
 		StringTableWorker() : LinkerWorker("StringTable") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			std::vector<std::filesystem::path> files{};
-			std::filesystem::path dir{ ctx.linkCtx.input / "stringtable" };
-			utils::GetFileRecurseExt(dir, files, ".csv\0", true);
-
-			for (const std::filesystem::path& rfpath : files) {
-				std::filesystem::path path{ dir / rfpath };
+			for (const char*& stringtableName : ctx.linkCtx.zone.assets["stringtable"]) {
+				std::filesystem::path rfpath{ stringtableName };
+				std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 				utils::InFileCE is{ path };
 				if (!is) {
 					LOG_ERROR("Can't read {}", path.string());
