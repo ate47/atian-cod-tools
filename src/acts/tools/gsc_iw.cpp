@@ -2,6 +2,7 @@
 #include <extension/acts_extension.hpp>
 #include <tools/utils/compress_utils.hpp>
 #include <tools/compatibility/acts_acef.hpp>
+#include <compatibility/xensik_gscbin.hpp>
 #include <core/bytebuffer.hpp>
 #include <rapidcsv.h>
 #include "gsc_iw.hpp"
@@ -123,5 +124,76 @@ namespace {
 
 		return tool::OK;
 	}
+	int gscbin_recompress(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BASIC_ERROR;
+		
+		std::filesystem::path in{ argv[2] };
+		std::filesystem::path out{ argv[3] };
+
+		std::vector<byte> buff{};
+
+		if (!utils::ReadFile(in, buff)) {
+			LOG_ERROR("Can't read {}", in.string());
+			return tool::BASIC_ERROR;
+		}
+		constexpr size_t headerSize{ sizeof(compatibility::xensik::gscbin::GscBinHeader) };
+
+		compatibility::xensik::gscbin::GscBinHeader* header{ (compatibility::xensik::gscbin::GscBinHeader*)buff.data() };
+
+		if (buff.size() < headerSize || buff.size() < header->compressedLen + header->bytecodeLen + headerSize) {
+			LOG_ERROR("bad file size");
+			return tool::BASIC_ERROR;
+		}
+
+
+		byte* bufferComp{ header->GetBuffer() };
+
+		auto bufferDecomp{ std::make_unique<byte[]>(header->len) };
+
+		int r{ utils::compress::Decompress2(utils::compress::COMP_ZLIB, bufferDecomp.get(), header->len, bufferComp, header->compressedLen) };
+
+		if (r <= 0) {
+			LOG_ERROR("Can't decompress data {}", utils::compress::DecompressResultName(r));
+			return tool::BASIC_ERROR;
+		}
+		
+		constexpr utils::compress::CompressionAlgorithm alg = utils::compress::COMP_ZLIB | utils::compress::COMP_HIGH_COMPRESSION;
+
+		size_t bufferTmpLen{ utils::compress::GetCompressSize(alg, header->len) };
+		auto bufferNewComp{ std::make_unique<byte[]>(bufferTmpLen) };
+
+
+		size_t comp{ bufferTmpLen };
+		if (!utils::compress::Compress(alg, bufferNewComp.get(), &comp, bufferDecomp.get(), header->len)) {
+			LOG_ERROR("Can't compress data");
+			return tool::BASIC_ERROR;
+		}
+
+		{
+			std::filesystem::create_directories(out.parent_path());
+			utils::OutFileCE os{ out, true, std::ios::binary };
+			compatibility::xensik::gscbin::GscBinHeader nh;
+
+			nh.Magic() = compatibility::xensik::gscbin::GSCBIN_MAGIC;
+			nh.bytecodeLen = header->bytecodeLen;
+			nh.len = header->len;
+			nh.compressedLen = (uint32_t)comp;
+
+			// write header
+			utils::WriteValue(os, &nh, sizeof(nh));
+			utils::WriteValue(os, bufferNewComp.get(), comp);
+			utils::WriteValue(os, header->GetByteCode(), header->bytecodeLen);
+		}
+
+
+		LOG_INFO("done in {} {}B -> {}B ({}% saved)", out.string(), 
+				 header->compressedLen, comp,
+				 100 - (int64_t)(100 * comp / header->compressedLen));
+
+
+		return tool::OK;
+	}
+
 	ADD_TOOL(acef_gscopaque, "gsc", " [vm] [strings] [output] [type] (compress=zstd)", "compile gscbin strings tsv file to acef file", acef_gscopaque);
+	ADD_TOOL(gscbin_recompress, "gsc", " [in] [out]", "recompress gscbin files", gscbin_recompress);
 }
