@@ -8,7 +8,7 @@
 
 // a script entry
 scriptparsetree,scripts/core_common/acts/no_linked_test.gsc
-// to automatically link a script to be linked, a '!' can be added
+// to automatically link a script, a '!' can be added
 scriptparsetree,!scripts/core_common/acts/echo_test.gsc
 
 // stringtable
