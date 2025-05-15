@@ -72,7 +72,7 @@ namespace {
 		XHash archeType;
 		ScrString_t scoreType;
 		ScrString_t playerDrivenVersion;
-		ScrString_t species;
+		ScrString_t var_409bdb86;
 		XHash unk38;
 		XHash spawnerType;
 		XHash spawnInfluencers[2];
@@ -308,11 +308,11 @@ namespace {
 		ScrString_t unk14b8[4];
 		uint64_t unk14c8;
 		uint64_t unk14d0;
-		const char* unk14d8;
+		const char* shootshock;
 		uint64_t unk14e0;
 		uint64_t unk14e8;
 		RumbleInfo* unk14f0;
-		const char* unk14f8;
+		const char* rumbletype;
 		uint64_t unk1500;
 		uint64_t unk1508;
 		uint64_t unk1510;
@@ -458,12 +458,12 @@ namespace {
 		uint64_t unk1968;
 		uint64_t unk1970;
 		uint64_t unk1978;
-		ScriptBundle* unk1980;
+		ScriptBundle* killstreakSettings;
 		ScriptBundle* scriptBundleSettings;
 		ScriptBundle* vehicleRidersBundle;
 		ScriptBundle* vehicleRidersRobotBundle;
 		ScriptBundle* vehicleRidersWarlordBundle;
-		ScriptBundle* unk19a8;
+		ScriptBundle* assassinationBundle;
 		ScriptBundle* shrapnelSettings;
 		AnimStateMachine* animStateMachine;
 		AnimSelectorTableSet* animSelectorTable;
@@ -581,7 +581,7 @@ namespace {
 			AddScrString("scriptVehicleType", asset->scriptVehicleType);
 			AddScrString("scoreType", asset->scoreType);
 			AddScrString("playerDrivenVersion", asset->playerDrivenVersion);
-			AddScrString("species", asset->species);
+			AddScrString(hashutils::ExtractTmp("var", 0x409bdb86), asset->var_409bdb86);
 			AddScrString("cameraTag", asset->cameraTag);
 			AddXHash("archeType", asset->archeType);
 			AddXHash("unk38", asset->unk38);
@@ -601,14 +601,14 @@ namespace {
 			AddXAssetRef("unk1340", games::bo4::pool::ASSET_TYPE_FX, asset->unk1340);
 			AddXAssetRef("unk1350", games::bo4::pool::ASSET_TYPE_FX, asset->unk1350);
 
-			AddXAssetRef("unk1980", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->unk1980);
-			AddXAssetRef("unk19a8", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->unk19a8);
 
+			AddXAssetRef("killstreakSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->killstreakSettings);
 			AddXAssetRef("scriptBundleSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->scriptBundleSettings);
 			AddXAssetRef("vehicleRidersBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersBundle);
 			AddXAssetRef("vehicleRidersRobotBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersRobotBundle);
 			AddXAssetRef("vehicleRidersWarlordBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersWarlordBundle);
 			AddXAssetRef("shrapnelSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->shrapnelSettings);
+			AddXAssetRef("assassinationBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->assassinationBundle);
 
 			AddXAssetRef("deathFx", games::bo4::pool::ASSET_TYPE_FX, asset->deathFx);
 			AddScrString("deathFxTag", asset->deathFxTag);
@@ -716,6 +716,12 @@ namespace {
 			}
 			if (asset->steerGraphName && *asset->steerGraphName) {
 				json.WriteFieldNameString("steerGraphName"); json.WriteValueString(asset->steerGraphName);
+			}
+			if (asset->shootshock && *asset->shootshock) {
+				json.WriteFieldNameString("shootshock"); json.WriteValueString(asset->shootshock);
+			}
+			if (asset->rumbletype && *asset->rumbletype) {
+				json.WriteFieldNameString("rumbletype"); json.WriteValueString(asset->rumbletype);
 			}
 
 			

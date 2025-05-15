@@ -72,6 +72,13 @@ namespace fastfile::handlers::bo4::scriptbundle {
 		SB_ObjectsArray sbObjectsArray;
 	}; static_assert(sizeof(ScriptBundle) == 0x40);
 
+	struct ScriptBundleList
+	{
+		XHash name;
+		ScrString_t assetType;
+		uint32_t assetCount;
+		ScriptBundle** assets;
+	}; static_assert(sizeof(ScriptBundleList) == 0x20);
 
 	void WriteObject(utils::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error) {
 		json.BeginObject();
@@ -251,6 +258,52 @@ namespace fastfile::handlers::bo4::scriptbundle {
 			}
 		}
 	};
+	class ScriptBundleListWorker : public Worker {
+
+		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
+			ScriptBundleList* asset{ (ScriptBundleList*)ptr };
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "scriptbundle" / "list"
+				/ std::format("{}.json", hashutils::ExtractTmp("hash", asset->name)) };
+
+			std::filesystem::create_directories(outFile.parent_path());
+
+			utils::raw_file_extractor::JsonWriter json{};
+
+			LOG_INFO("Dump scriptbundlelist {}", outFile.string());
+
+			json.BeginObject();
+
+			json.WriteFieldNameString("name");
+			json.WriteValueHash(asset->name);
+
+			if (asset->assetType) {
+				json.WriteFieldNameString("type");
+				json.WriteValueString(GetScrString(asset->assetType));
+			}
+			json.WriteFieldNameString("bundles");
+			json.BeginArray();
+			for (size_t i = 0; i < asset->assetCount; i++) {
+				if (asset->assets[i]->bundleType) {
+					json.WriteValueString(
+						std::format("#{}/#{}",
+							hashutils::ExtractTmp("hash", asset->assets[i]->bundleType),
+							hashutils::ExtractTmp("hash", asset->assets[i]->name)
+						));
+				}
+				else {
+					json.WriteValueHash(asset->assets[i]->name);
+				}
+			}
+			json.EndArray();
+
+			json.EndObject();
+
+			if (!json.WriteToFile(outFile)) {
+				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+		}
+	};
 
 	utils::MapAdder<ScriptBundleWorker, games::bo4::pool::XAssetType, Worker> impl{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_SCRIPTBUNDLE };
+	utils::MapAdder<ScriptBundleListWorker, games::bo4::pool::XAssetType, Worker> impllist{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_SCRIPTBUNDLELIST };
 }

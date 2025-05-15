@@ -140,6 +140,7 @@ namespace fastfile {
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };
 		std::vector<const char*> files{};
+		const char* assetTypes{};
 		FFHandler* handler{};
 		hook::module_mapper::Module gameMod{};
 		std::vector<std::set<uint64_t>> assetNames{};

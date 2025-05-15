@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/enumlist.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/ff/fastfile_dump.hpp>
 #include <tools/utils/data_utils.hpp>
@@ -46,6 +47,7 @@ namespace fastfile::handlers::bo4 {
 			core::memory_allocator::MemoryAllocator allocator{};
 			std::unordered_map<uint64_t, void*> linkedAssets[XAssetType::ASSET_TYPE_COUNT]{};
 			XAssetList_0 assetList{};
+			utils::EnumList<XAssetType, XAssetType::ASSET_TYPE_COUNT> handleList{ games::bo4::pool::XAssetIdFromName };
 		} gcx{};
 
 		const char* XBlockLocPtr(void* ptr) {
@@ -148,7 +150,7 @@ namespace fastfile::handlers::bo4 {
 			}
 			LOG_DEBUG("Loading asset {}/{} -> {}/{}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header, XBlockLocPtr(baseHeader));
 
-			if (gcx.opt->noAssetDump) return xasset; // ignore
+			if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[xasset->type])) return xasset; // ignore
 			if (xasset->header) {
 				auto& workers{ fastfile::handlers::bo4::GetWorkers() };
 				auto it{ workers.find(xasset->type) };
@@ -213,6 +215,11 @@ namespace fastfile::handlers::bo4 {
 
 			void Init(fastfile::FastFileOption& opt) override {
 				hook::library::Library lib{ opt.GetGame(true) };
+
+				gcx.handleList.Clear();
+				if (opt.assetTypes) {
+					gcx.handleList.LoadConfig(opt.assetTypes);
+				}
 
 				gcx.opt = &opt;
 

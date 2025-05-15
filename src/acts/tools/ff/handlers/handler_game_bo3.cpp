@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/enumlist.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/bo3/pools.hpp>
 #include <tools/utils/data_utils.hpp>
@@ -13,8 +14,21 @@ namespace fastfile::handlers::bo3 {
 		static std::unordered_map<::bo3::pool::T7XAssetType, Worker*> map{};
 		return map;
 	}
+
+	bool FixupName(const char*& s) {
+		int b;
+		if (!s) return false;
+		if (!hook::memory::ReadMemorySafe((void*)s, &b, sizeof(b))) {
+			LOG_ERROR("Error when checking name {}", (void*)s);
+			s = nullptr;
+			return false;
+		}
+		if (*s == ',') s++;
+		return true;
+	}
 }
 namespace {
+	using namespace fastfile::handlers::bo3;
 	struct XFile
 	{
 		uint8_t magic[8];
@@ -106,7 +120,7 @@ namespace {
 		utils::OutFileCE* osassets{};
 		//core::bytebuffer::ByteBuffer* reader{};
 		fastfile::pool::FFAssetPool pool{};
-
+		utils::EnumList<T7XAssetType, T7XAssetType::T7_ASSET_TYPE_COUNT> handleList{ bo3::pool::T7XAssetIdFromName };
 		std::vector<StreamRead> readers{};
 
 		StreamRead& Top() {
@@ -188,18 +202,6 @@ namespace {
 		return bo3FFHandlerContext.Reader().Ptr();
 	}
 
-	bool FixupName(const char*& s) {
-		int b;
-		if (!s) return false;
-		if (!hook::memory::ReadMemorySafe((void*)s, &b, sizeof(b))) {
-			LOG_ERROR("Error when checking name {}", (void*)s);
-			s = nullptr;
-			return false;
-		}
-		if (*s == ',') s++;
-		return true;
-	}
-
 	void Load_SimpleAsset_Internal(void** header, T7XAssetType assetType) {
 		bo3FFHandlerContext.loaded++;
 
@@ -208,66 +210,16 @@ namespace {
 			bo3FFHandlerContext.pool.AddAssetHeader(assetType, 0, *header);
 		}
 
-		if (bo3FFHandlerContext.opt->noAssetDump) return; // ignore
+		if (bo3FFHandlerContext.opt->noAssetDump || (!bo3FFHandlerContext.handleList.Empty() && !bo3FFHandlerContext.handleList[assetType])) return; // ignore
 
 		auto& workers{ fastfile::handlers::bo3::GetWorkers() };
 
 		auto it{ workers.find(assetType) };
 		if (it != workers.end()) {
-			it->second->Unlink(*bo3FFHandlerContext.opt, header);
+			it->second->Unlink(*bo3FFHandlerContext.opt, *header);
 		}
 		else {
-			switch (assetType) {
-			case T7_ASSET_TYPE_SCRIPTPARSETREE: {
-				struct ScriptParseTree {
-					const char* name;
-					int32_t len;
-					int32_t pad;
-					byte* buffer;
-				}; static_assert(sizeof(ScriptParseTree) == 0x18);
-				ScriptParseTree* spt{ (ScriptParseTree*)*header };
-
-
-				std::filesystem::path outDir{ bo3FFHandlerContext.opt->m_output / "bo3" / "spt" };
-
-				if (!FixupName(spt->name)) {
-					break;
-				}
-
-				std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}c", *(uint64_t*)spt->buffer, spt->name) };
-				std::filesystem::create_directories(outFile.parent_path());
-				LOG_INFO("Dump scriptparsetree {} {} 0x{:x}", outFile.string(), (void*)spt->buffer, spt->len);
-				if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
-					LOG_ERROR("Error when dumping {}", outFile.string());
-				}
-			}
-											  break;
-			case T7_ASSET_TYPE_RAWFILE: {
-				struct RawFile {
-					const char* name;
-					int32_t len;
-					byte* buffer;
-				}; static_assert(sizeof(RawFile) == 0x18);
-				RawFile* asset{ (RawFile*)*header };
-
-				if (!FixupName(asset->name)) {
-					break;
-				}
-
-				std::filesystem::path outFile{ bo3FFHandlerContext.opt->m_output / "bo3" / "source" / asset->name };
-
-				std::filesystem::create_directories(outFile.parent_path());
-				LOG_INFO("Dump raw file {} {} 0x{:x}", outFile.string(), (void*)asset->buffer, asset->len);
-				if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
-					LOG_ERROR("Error when dumping {}", outFile.string());
-				}
-				break;
-			}
-			default: {
-				LOG_TRACE("Ignoring asset {}/{}", T7XAssetName(assetType), (void*)header);
-				break;
-			}
-			}
+			LOG_DEBUG("Ignoring asset {}/{}", T7XAssetName(assetType), (void*)header);
 		}
 	}
 	void DB_PopStreamPos() {
@@ -334,6 +286,11 @@ namespace {
 
 		void Init(fastfile::FastFileOption& opt) override {
 			hook::library::Library lib{ opt.GetGame(true) };
+
+			bo3FFHandlerContext.handleList.Clear();
+			if (opt.assetTypes) {
+				bo3FFHandlerContext.handleList.LoadConfig(opt.assetTypes);
+			}
 
 			bo3FFHandlerContext.varXAsset = lib.Get<XAsset_0*>(0x940E838);
 			bo3FFHandlerContext.Load_XAsset = reinterpret_cast<decltype(bo3FFHandlerContext.Load_XAsset)>(lib[0x140E200]);

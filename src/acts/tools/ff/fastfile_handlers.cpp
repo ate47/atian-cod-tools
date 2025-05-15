@@ -382,6 +382,13 @@ namespace fastfile {
 					return false;
 				}
 			}
+			else if (!strcmp("-a", arg) || !_strcmpi("--assets", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				assetTypes = args[++i];
+			}
 			else if (!_strcmpi("--patch", arg) || !strcmp("-p", arg)) {
 				m_fd = true;
 			}
@@ -447,6 +454,7 @@ namespace fastfile {
 		LOG_INFO("-g --game [g]          : exe");
 		LOG_INFO("-p --patch             : Use patch files (fd/fp)");
 		LOG_INFO("-i --fd-ignore         : Ignore missing fd file");
+		LOG_INFO("-a --assets [g]        : Set the assets to dump by name (by default all)");
 		LOG_INFO("--noAssetDump          : No asset dump");
 		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
 		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
