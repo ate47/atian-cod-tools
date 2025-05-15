@@ -292,6 +292,7 @@ namespace fastfile::handlers::bo4 {
 				// alloc the blocks
 				for (size_t i = 0; i < XFILE_BLOCK_COUNT; i++) {
 					blockSizes[i] = ctx.blockSizes[i].size;
+					LOG_DEBUG("Block size {} = 0x{:x}", XFileBlockName((XFileBlock)i), blockSizes[i]);
 				}
 
 				gcx.DB_AllocXBlocks(blockSizes, ctx.ffname, ctx.ffname, gcx.g_load_blocks, 0, nullptr);
@@ -309,7 +310,7 @@ namespace fastfile::handlers::bo4 {
 				if (assetList.strings) {
 					assetList.strings = AllocStreamPos<char*>();
 
-					LOG_TRACE("Log strings...");
+					LOG_TRACE("Log strings... {}", (void*)assetList.strings);
 					std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE os{ outStrings };

@@ -137,7 +137,7 @@ namespace fastfile::linker::data {
 			}
 			else {
 				size_t size{ ComputeChunkSize(chunks[LM_HEADER][i], 0) };
-				size = ComputeChunkSize(chunks[LM_DATA][i], 0);
+				size = ComputeChunkSize(chunks[LM_DATA][i], size);
 				blocks[i] = size;
 			}
 
