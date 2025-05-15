@@ -5,6 +5,7 @@
 #include "tools/pool.hpp"
 #include <games/bo4/offsets.hpp>
 #include <games/bo4/scriptinstance.hpp>
+#include <hook/module_mapper.hpp>
 
 using namespace tool::dump;
 using namespace games::bo4;
@@ -2102,6 +2103,53 @@ namespace {
 
         return tool::OK;
     }
+
+    int dvehfields(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+        const char* out{ tool::NotEnoughParam(argc, 2) ? "vehfields.csv" : argv[3] };
+
+        hook::module_mapper::Module mod{ true };
+        if (!mod.Load(argv[2], false)) {
+            LOG_ERROR("Can't map module");
+            return tool::BASIC_ERROR;
+        }
+
+        struct vehicle_fields_t {
+            uint32_t canonId;
+            fieldtype_t type;
+            bool isReadOnly;
+            int32_t ofs;
+            int32_t size;
+            uint64_t whichbits;
+            void* setter; // ScriptCallbackVehicle
+            void* getter; // ScriptCallbackVehicle
+        }; static_assert(sizeof(vehicle_fields_t) == 0x30);
+
+        {
+            utils::OutFileCE os{ out, true };
+
+            os << "name,type,isReadOnly,offset,size,whichbits,getter,setter";
+
+            for (const vehicle_fields_t* fields = mod->Get<vehicle_fields_t>(0x49B6AA0); fields->canonId; fields++) {
+                os
+                    << std::hex
+                    << "\n" << hashutils::ExtractTmp("var", fields->canonId)
+                    << "," << (fields->type < F_COUNT ? fieldTypeNames[fields->type] : "<error>")
+                    << "," << (fields->isReadOnly ? "true" : "false")
+                    << ",0x" << fields->ofs
+                    << ",0x" << fields->size
+                    << ",0x" << fields->whichbits
+                    ;
+                if (fields->getter) os << "," << hook::library::CodePointer{ fields->getter }; else os << ",NULL";
+                if (fields->setter) os << "," << hook::library::CodePointer{ fields->setter }; else os << ",NULL";
+            }
+        }
+
+        LOG_INFO("Dump into {}", out);
+
+        return tool::OK;
+    }
 }
 
 ADD_TOOL(dps, "bo4", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
@@ -2116,3 +2164,4 @@ ADD_TOOL(dscfunc, "bo4", " [output=csfuncs.csv]", "dump sv cmd functions", L"Bla
 ADD_TOOL(dfields, "bo4", " [output=dfields.csv]", "dump class fields", L"BlackOps4.exe", dfields);
 ADD_TOOL(dcm, "bo4", " [output=gfxworld.json]", "dump gfx world", L"BlackOps4.exe", dcm);
 ADD_TOOL(dstorage, "bo4", " [output=storage.json]", "dump storage", L"BlackOps4.exe", dstorage);
+ADD_TOOL(dvehfields, "bo4", " [exe] [output=vehfields.csv]", "dump vehicle fields", dvehfields);
