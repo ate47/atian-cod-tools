@@ -981,6 +981,44 @@ namespace acts::compiler {
         return flag;
     }
 
+    std::string ParseString(TerminalNode* term) {
+        std::string node = term->getText();
+        auto newStr = std::make_unique<char[]>(node.length() - 1);
+        char* newStrWriter = &newStr[0];
+
+        // format string
+        for (size_t i = 1; i < node.length() - 1; i++) {
+            if (node[i] != '\\') {
+                *(newStrWriter++) = node[i];
+                continue; // default case
+            }
+
+            i++;
+
+            assert(i < node.length() && "bad format, \\ before end");
+
+            switch (node[i]) {
+            case 'n':
+                *(newStrWriter++) = '\n';
+                break;
+            case 't':
+                *(newStrWriter++) = '\t';
+                break;
+            case 'r':
+                *(newStrWriter++) = '\r';
+                break;
+            case 'b':
+                *(newStrWriter++) = '\b';
+                break;
+            default:
+                *(newStrWriter++) = node[i];
+                break;
+            }
+        }
+        *(newStrWriter++) = 0; // end char
+        return &newStr[0];
+    }
+
     class GscCompilerOption {
     public:
         bool m_help{};
@@ -1790,41 +1828,7 @@ namespace acts::compiler {
 
             TerminalNode* term = dynamic_cast<TerminalNode*>(hashNode);
             if (term->getSymbol()->getType() == gscParser::STRING) {
-                std::string node = term->getText();
-                auto newStr = std::make_unique<char[]>(node.length() - 1);
-                char* newStrWriter = &newStr[0];
-
-                // format string
-                for (size_t i = 1; i < node.length() - 1; i++) {
-                    if (node[i] != '\\') {
-                        *(newStrWriter++) = node[i];
-                        continue; // default case
-                    }
-
-                    i++;
-
-                    assert(i < node.length() && "bad format, \\ before end");
-
-                    switch (node[i]) {
-                    case 'n':
-                        *(newStrWriter++) = '\n';
-                        break;
-                    case 't':
-                        *(newStrWriter++) = '\t';
-                        break;
-                    case 'r':
-                        *(newStrWriter++) = '\r';
-                        break;
-                    case 'b':
-                        *(newStrWriter++) = '\b';
-                        break;
-                    default:
-                        *(newStrWriter++) = node[i];
-                        break;
-                    }
-                }
-                *(newStrWriter++) = 0; // end char
-                output = &newStr[0];
+                output = ParseString(term);
                 return true;
             }
             else {
@@ -1877,43 +1881,9 @@ namespace acts::compiler {
             }
             case gscParser::STRING: {
                 std::string node = term->getText();
-                auto newStr = std::make_unique<char[]>(node.length() - 1);
-                char* newStrWriter = &newStr[0];
-
-                // format string
-                for (size_t i = 1; i < node.length() - 1; i++) {
-                    if (node[i] != '\\') {
-                        *(newStrWriter++) = node[i];
-                        continue; // default case
-                    }
-
-                    i++;
-
-                    assert(i < node.length() && "bad format, \\ before end");
-
-                    switch (node[i]) {
-                    case 'n':
-                        *(newStrWriter++) = '\n';
-                        break;
-                    case 't':
-                        *(newStrWriter++) = '\t';
-                        break;
-                    case 'r':
-                        *(newStrWriter++) = '\r';
-                        break;
-                    case 'b':
-                        *(newStrWriter++) = '\b';
-                        break;
-                    default:
-                        *(newStrWriter++) = node[i];
-                        break;
-                    }
-                }
-                *(newStrWriter++) = 0; // end char
-
                 constexpr char type = '#'; // default type
 
-                std::string key{ &newStr[0] };
+                std::string key{ ParseString(term)};
                 auto ith = vmInfo->hashesFunc.find(type);
 
                 if (ith == vmInfo->hashesFunc.end()) {
@@ -5751,6 +5721,29 @@ namespace acts::compiler {
         return &exp;
     }
 
+    bool ParsePrecache(RuleContext* prec, gscParser& parser, CompileObject& obj) {
+        if (!obj.config.precache) {
+            obj.info.PrintLineMessage(core::logs::LVL_WARNING, prec, "No precache handler available, but a #preache was declared");
+            return true;
+        }
+
+        std::string type{ ParseString((TerminalNode*)prec->children[2]) };
+
+        if (type.empty()) {
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, prec->children[2], "Empty precache type");
+            return false;
+        }
+        std::string val{ ParseString((TerminalNode*)prec->children[4]) };
+
+        if (val.empty()) {
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, prec->children[4], "Empty precache value");
+            return false;
+        }
+
+        (*obj.config.precache)[type].push_back(val);
+        return true;
+    }
+    
     bool ParseInclude(RuleContext* nsp, gscParser& parser, CompileObject& obj) {
         if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
             return false; // bad
@@ -5893,6 +5886,11 @@ namespace acts::compiler {
             switch (rule->getRuleIndex()) {
             case gscParser::RuleInclude:
                 if (!ParseInclude(rule, parser, obj)) {
+                    return false;
+                }
+                break;
+            case gscParser::RulePrecache:
+                if (!ParsePrecache(rule, parser, obj)) {
                     return false;
                 }
                 break;

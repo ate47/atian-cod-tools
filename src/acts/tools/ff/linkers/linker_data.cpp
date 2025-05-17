@@ -34,6 +34,7 @@ namespace fastfile::linker::data {
 	}
 
 	size_t LinkerData::AllocData(size_t size) {
+		chunks[headerMode][GetCurrentStream()].emplace_back(LinkerDataChunk{ .type = LinkerDataChunkType::CHUNKTYPE_DATA, .start = fileData[headerMode].size(), .size = size });
 		return utils::Allocate(fileData[headerMode], size);
 	}
 
@@ -57,6 +58,7 @@ namespace fastfile::linker::data {
 	}
 
 	void LinkerData::AddAsset(size_t type, size_t header) {
+		LOG_TRACE("AddAsset({},{:x})", type, header);
 		assets.emplace_back(type, header);
 	}
 

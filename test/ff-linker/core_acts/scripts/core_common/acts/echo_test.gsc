@@ -5,6 +5,8 @@
 
 #namespace echo_test;
 
+#precache( "string", "ACTS_SPRAY_DESC" );
+
 function private autoexec __init__system__()
 {
     system::register( #"acts_echo_test", &__pre_init__, undefined );

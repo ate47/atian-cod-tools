@@ -105,6 +105,8 @@ namespace fastfile::linker::bo4 {
 			bo4ctx.data.PopStream();
 
 			bo4ctx.data.Link(ctx.linkedData, ctx.blockSizes);
+
+			LOG_INFO("Fastfile data linked with {} asset(s) and {} string(s)", assetlist.assetCount, assetlist.stringList.count);
 		}
 
 	};

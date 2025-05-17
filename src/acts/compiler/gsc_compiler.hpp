@@ -23,6 +23,7 @@ namespace acts::compiler {
 		bool noDevCallInline{};
 		preprocessor::PreProcessorOption processorOpt{};
 		std::string* preprocOutput{};
+		std::unordered_map<std::string, std::vector<std::string>>* precache{};
 		std::unordered_set<std::string>* hashes{};
 
 		tool::gsc::opcode::VmInfo* GetVm() {

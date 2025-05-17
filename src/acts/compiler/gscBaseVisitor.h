@@ -23,6 +23,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitPrecache(gscParser::PrecacheContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitNamespace(gscParser::NamespaceContext *ctx) override {
     return visitChildren(ctx);
   }

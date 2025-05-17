@@ -12,13 +12,13 @@ namespace {
 				games::bo4::pool::BGCacheTypes type;
 				XHash name;
 				uint64_t asset;
-			};
+			}; static_assert(sizeof(BGCacheInfoDef) == 0x20);
 
 			struct BGCacheInfo {
 				XHash name;
 				BGCacheInfoDef* def;
 				int defCount;
-			};
+			}; static_assert(sizeof(BGCacheInfo) == 0x20);
 
 
 			BGCacheInfo* asset{ (BGCacheInfo*)ptr };

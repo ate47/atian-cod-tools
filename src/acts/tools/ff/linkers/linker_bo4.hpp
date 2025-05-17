@@ -40,6 +40,7 @@ namespace fastfile::linker::bo4 {
 	struct BO4LinkContext {
 		FastFileLinkerContext& linkCtx;
 		fastfile::linker::data::LinkerData data{ XFILE_BLOCK_COUNT, XFILE_BLOCK_TEMP, XFILE_BLOCK_TEMP_PRELOAD };
+		std::unordered_map<games::bo4::pool::BGCacheTypes, std::unordered_set<uint64_t>> bgcache{};
 		bool error{};
 		uint64_t ffnameHash{};
 	};

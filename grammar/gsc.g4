@@ -1,8 +1,9 @@
 grammar gsc;		
 
-prog: ('/#' | '#/' | function | include | namespace | filenamespace | constexpr | class_def)* EOF;
+prog: ('/#' | '#/' | function | include | precache | namespace | filenamespace | constexpr | class_def)* EOF;
 
 include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
+precache: '#precache' '(' STRING ',' STRING ')' ';';
 namespace: '#namespace' IDENTIFIER ';';
 filenamespace: '#file' (IDENTIFIER | PATH) ';';
 constexpr: ('#constexpr' | '#define') IDENTIFIER '=' expression ';';

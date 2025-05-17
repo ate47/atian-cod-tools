@@ -23,6 +23,8 @@ public:
 
     virtual std::any visitInclude(gscParser::IncludeContext *context) = 0;
 
+    virtual std::any visitPrecache(gscParser::PrecacheContext *context) = 0;
+
     virtual std::any visitNamespace(gscParser::NamespaceContext *context) = 0;
 
     virtual std::any visitFilenamespace(gscParser::FilenamespaceContext *context) = 0;

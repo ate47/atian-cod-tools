@@ -26,7 +26,7 @@
         {
             "type": "localizeentry",
             "origin": "hash_4ccf78cd6dd0333a",
-            "dest": "acts_spray_desc"
+            "dest": "ACTS_SPRAY_DESC"
         }
     ]
 }

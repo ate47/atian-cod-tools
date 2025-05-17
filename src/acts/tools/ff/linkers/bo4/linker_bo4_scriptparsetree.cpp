@@ -141,6 +141,8 @@ namespace fastfile::linker::bo4 {
 					cfg.processorOpt.devBlockAsComment = genDevBlockAsComment;
 					cfg.clientScript = scriptName.extension() == ".csc";
 					isCsc = cfg.clientScript;
+					std::unordered_map<std::string, std::vector<std::string>> bgcacheCompiled{};
+					cfg.precache = &bgcacheCompiled;
 					cfg.processorOpt.defines.insert(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
 
 					try {
@@ -152,6 +154,22 @@ namespace fastfile::linker::bo4 {
 						continue;
 					}
 
+					for (auto& [bgtype, entries] : bgcacheCompiled) {
+						games::bo4::pool::BGCacheTypes type{ games::bo4::pool::BGCacheIdFromName(bgtype.c_str()) };
+						if (type == games::bo4::pool::BGCacheTypes::BG_CACHE_TYPE_INVALID) {
+							LOG_ERROR("Can't compile {}: Invalid precache asset type {}", path.string(), bgtype);
+							ctx.error = true;
+							continue;
+						}
+
+						std::unordered_set<uint64_t>& bg{ ctx.bgcache[type] };
+
+						for (const std::string& entry : entries) {
+							uint64_t hash{ hash::Hash64Pattern(entry.c_str()) };
+							LOG_DEBUG("add {}::{} ({:x}) to bgcache", games::bo4::pool::BGCacheNameFromId(type), entry, hash);
+							bg.insert(hash);
+						}
+					}
 
 					LOG_INFO("Compiled {} ({})", path.string(), cfg.name);
 					if (cfgGenDBG) {

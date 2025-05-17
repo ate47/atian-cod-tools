@@ -27,30 +27,30 @@ public:
     T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, T__78 = 79, T__79 = 80, 
     T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, T__84 = 85, T__85 = 86, 
     T__86 = 87, T__87 = 88, T__88 = 89, T__89 = 90, T__90 = 91, T__91 = 92, 
-    T__92 = 93, NEWLINE = 94, WHITESPACE = 95, INTEGER10 = 96, INTEGER16 = 97, 
-    INTEGER8 = 98, INTEGER2 = 99, FLOATVAL = 100, BUILTIN = 101, BOOL_VALUE = 102, 
-    UNDEFINED_VALUE = 103, IDENTIFIER = 104, STRUCT_IDENTIFIER = 105, PATH = 106, 
-    STRING = 107, HASHSTRING = 108
+    T__92 = 93, T__93 = 94, NEWLINE = 95, WHITESPACE = 96, INTEGER10 = 97, 
+    INTEGER16 = 98, INTEGER8 = 99, INTEGER2 = 100, FLOATVAL = 101, BUILTIN = 102, 
+    BOOL_VALUE = 103, UNDEFINED_VALUE = 104, IDENTIFIER = 105, STRUCT_IDENTIFIER = 106, 
+    PATH = 107, STRING = 108, HASHSTRING = 109
   };
 
   enum {
-    RuleProg = 0, RuleInclude = 1, RuleNamespace = 2, RuleFilenamespace = 3, 
-    RuleConstexpr = 4, RuleClass_def = 5, RuleClass_var = 6, RuleFunction = 7, 
-    RuleDetour_info = 8, RuleParam_list = 9, RuleParam_val = 10, RuleExpression_list = 11, 
-    RuleStatement_block = 12, RuleStatement = 13, RuleStatement_dev_block = 14, 
-    RuleStatement_for = 15, RuleStatement_while = 16, RuleStatement_dowhile = 17, 
-    RuleStatement_foreach = 18, RuleStatement_if = 19, RuleStatement_switch = 20, 
-    RuleStatement_inst = 21, RuleNop_def = 22, RuleDevop_def = 23, RuleFunction_component = 24, 
-    RuleOperator_inst = 25, RuleArray_unpack = 26, RuleExpression = 27, 
-    RuleSet_expression = 28, RuleExpression0 = 29, RuleExpression1 = 30, 
-    RuleExpression2 = 31, RuleExpression3 = 32, RuleExpression4 = 33, RuleExpression5 = 34, 
-    RuleExpression6 = 35, RuleExpression7 = 36, RuleExpression8 = 37, RuleExpression9 = 38, 
-    RuleExpression10 = 39, RuleExpression11 = 40, RuleExpression12 = 41, 
-    RuleExpression13 = 42, RuleExpression14 = 43, RuleExpression15 = 44, 
-    RuleIs_expression = 45, RuleFunction_call_exp = 46, RuleFunction_call = 47, 
-    RuleLeft_value = 48, RuleConst_expr = 49, RuleConst_expr_static = 50, 
-    RuleFunction_ref = 51, RuleData_ref = 52, RuleNumber = 53, RuleVector_value = 54, 
-    RuleArray_def = 55, RuleStruct_def = 56, RuleClass_init = 57, RuleIdf = 58
+    RuleProg = 0, RuleInclude = 1, RulePrecache = 2, RuleNamespace = 3, 
+    RuleFilenamespace = 4, RuleConstexpr = 5, RuleClass_def = 6, RuleClass_var = 7, 
+    RuleFunction = 8, RuleDetour_info = 9, RuleParam_list = 10, RuleParam_val = 11, 
+    RuleExpression_list = 12, RuleStatement_block = 13, RuleStatement = 14, 
+    RuleStatement_dev_block = 15, RuleStatement_for = 16, RuleStatement_while = 17, 
+    RuleStatement_dowhile = 18, RuleStatement_foreach = 19, RuleStatement_if = 20, 
+    RuleStatement_switch = 21, RuleStatement_inst = 22, RuleNop_def = 23, 
+    RuleDevop_def = 24, RuleFunction_component = 25, RuleOperator_inst = 26, 
+    RuleArray_unpack = 27, RuleExpression = 28, RuleSet_expression = 29, 
+    RuleExpression0 = 30, RuleExpression1 = 31, RuleExpression2 = 32, RuleExpression3 = 33, 
+    RuleExpression4 = 34, RuleExpression5 = 35, RuleExpression6 = 36, RuleExpression7 = 37, 
+    RuleExpression8 = 38, RuleExpression9 = 39, RuleExpression10 = 40, RuleExpression11 = 41, 
+    RuleExpression12 = 42, RuleExpression13 = 43, RuleExpression14 = 44, 
+    RuleExpression15 = 45, RuleIs_expression = 46, RuleFunction_call_exp = 47, 
+    RuleFunction_call = 48, RuleLeft_value = 49, RuleConst_expr = 50, RuleConst_expr_static = 51, 
+    RuleFunction_ref = 52, RuleData_ref = 53, RuleNumber = 54, RuleVector_value = 55, 
+    RuleArray_def = 56, RuleStruct_def = 57, RuleClass_init = 58, RuleIdf = 59
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -72,6 +72,7 @@ public:
 
   class ProgContext;
   class IncludeContext;
+  class PrecacheContext;
   class NamespaceContext;
   class FilenamespaceContext;
   class ConstexprContext;
@@ -139,6 +140,8 @@ public:
     FunctionContext* function(size_t i);
     std::vector<IncludeContext *> include();
     IncludeContext* include(size_t i);
+    std::vector<PrecacheContext *> precache();
+    PrecacheContext* precache(size_t i);
     std::vector<NamespaceContext *> namespace_();
     NamespaceContext* namespace_(size_t i);
     std::vector<FilenamespaceContext *> filenamespace();
@@ -168,6 +171,20 @@ public:
   };
 
   IncludeContext* include();
+
+  class  PrecacheContext : public antlr4::ParserRuleContext {
+  public:
+    PrecacheContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<antlr4::tree::TerminalNode *> STRING();
+    antlr4::tree::TerminalNode* STRING(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  PrecacheContext* precache();
 
   class  NamespaceContext : public antlr4::ParserRuleContext {
   public:
