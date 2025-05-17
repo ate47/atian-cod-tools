@@ -11,6 +11,8 @@ scriptparsetree,scripts/core_common/acts/no_linked_test.gsc
 // to automatically link a script, a '!' can be added
 scriptparsetree,!scripts/core_common/acts/echo_test.gsc
 
+luafile,lua/acts/test.lua
+
 // stringtable
 stringtable,acts/test.csv
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <tools/ff/fastfile_handlers.hpp>
+#include <tools/utils/raw_file_extractor.hpp>
 #include <games/bo4/pool.hpp>
 
 namespace fastfile::handlers::bo4 {
@@ -10,7 +11,9 @@ namespace fastfile::handlers::bo4 {
 			return id;
 		}
 	};
+	typedef float vec2_t[2];
 	typedef float vec3_t[3];
+	typedef float vec4_t[4];
 	typedef uint64_t ID64Metatable;
 	typedef const char* XString;
 	struct WeaponDef;
@@ -92,6 +95,122 @@ namespace fastfile::handlers::bo4 {
 
 	const char* GetValidString(const char* handle, const char* defaultVal = nullptr);
 
+	class BO4JsonWriter : public utils::raw_file_extractor::JsonWriter {
+	public:
+		using utils::raw_file_extractor::JsonWriter::JsonWriter;
+
+		void WriteFieldValueScrString(const char* name, ScrString_t val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(name, GetScrString(val));
+		}
+
+		void WriteFieldValueScrString(uint64_t hash, ScrString_t val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(hash, GetScrString(val));
+		}
+
+		void WriteFieldValueXHash(const char* name, XHash& val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueHash(name, val);
+		}
+
+		void WriteFieldValueXHash(uint64_t hash, XHash& val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueHash(hash, val);
+		}
+
+		void WriteFieldValueXAsset(const char* name, games::bo4::pool::XAssetType type, void* val) {
+			if (!val) return;
+			XHash* hname{ games::bo4::pool::GetAssetName(type, val) };
+			if (*hname) {
+				WriteFieldValueXHash(name, *hname);
+			}
+		}
+
+		void WriteFieldValueXAsset(uint64_t hash, games::bo4::pool::XAssetType type, void* val) {
+			if (!val) return;
+			XHash* hname{ games::bo4::pool::GetAssetName(type, val) };
+			if (*hname) {
+				WriteFieldValueXHash(hash, *hname);
+			}
+		}
+
+		void WriteFieldValueScrStringArray(const char* name, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
+			if (ignoreEmpty && (!count || !*val)) return;
+			JsonWriter::WriteFieldNameString(name);
+			JsonWriter::BeginArray();
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueString(GetScrString(val[i]));
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueScrStringArray(uint64_t hash, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
+			if (ignoreEmpty && (!count || !*val)) return;
+			JsonWriter::WriterFieldNameHash(hash);
+			JsonWriter::BeginArray();
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueString(GetScrString(val[i]));
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueXHashArray(const char* name, size_t count, XHash* val, bool ignoreEmpty = true) {
+			if (ignoreEmpty && (!count || !*val)) return;
+			JsonWriter::WriteFieldNameString(name);
+			JsonWriter::BeginArray();
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueHash(val[i]);
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueXHashArray(uint64_t hash, size_t count, XHash* val, bool ignoreEmpty = true) {
+			if (ignoreEmpty && (!count || !*val)) return;
+			JsonWriter::WriterFieldNameHash(hash);
+			JsonWriter::BeginArray();
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueHash(val[i]);
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueXAssetArray(const char* name, games::bo4::pool::XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
+			void** val{ (void**)handle };
+			if (ignoreEmpty && (!count || !*val)) return;
+			size_t off{ games::bo4::pool::GetAssetNameOffset(type) };
+
+			JsonWriter::WriteFieldNameString(name);
+			JsonWriter::BeginArray();
+
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				XHash* hname{ (XHash*)((byte*)val[i] + off) };
+				JsonWriter::WriteValueHash(*hname);
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueXAssetArray(uint64_t hash, games::bo4::pool::XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
+			void** val{ (void**)handle };
+			if (ignoreEmpty && (!count || !*val)) return;
+			size_t off{ games::bo4::pool::GetAssetNameOffset(type) };
+
+			JsonWriter::WriterFieldNameHash(hash);
+			JsonWriter::BeginArray();
+
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				XHash* hname{ (XHash*)((byte*)val[i] + off) };
+				JsonWriter::WriteValueHash(*hname);
+			}
+			JsonWriter::EndArray();
+		}
+	};
 }
 
 std::ostream& operator<<(std::ostream& os, const fastfile::handlers::bo4::ScrString_t& scr);

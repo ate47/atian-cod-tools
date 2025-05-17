@@ -82,3 +82,7 @@
 [submodule "deps/hash-library"]
 	path = deps/hash-library
 	url = https://github.com/stbrumme/hash-library
+[submodule "deps/hksc"]
+	path = deps/hksc
+	url = https://github.com/ate47/hksc
+	branch = test_t8

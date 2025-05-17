@@ -390,7 +390,9 @@ project "AtianCodTools"
         "deps/tomlplusplus/include/toml++/",
         "deps/salsa20/Source/",
         "deps/miniz-cpp/",
-        "deps/hash-library/"
+        "deps/hash-library/",
+        "deps/hksc/etc/",
+        "deps/hksc/src/"
     }
 
     vpaths {
@@ -421,6 +423,7 @@ project "AtianCodTools"
     links { "imgui" }
     links { "Crypt32.lib" }
     links { "hashlibrary" }
+    links { "hksc" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
@@ -434,7 +437,8 @@ project "AtianCodTools"
     dependson "zstd"
     dependson "glfw"
     dependson "imgui"
-    dependson { "hashlibrary" }
+    dependson "hashlibrary"
+    dependson "hksc"
 
 project "AtianCodToolsCLI"
     kind "ConsoleApp"
@@ -1046,4 +1050,27 @@ group "deps"
         includedirs {
             "deps/hash-library/"
         }
+        
+
+    project "hksc"
+        language "C"
+        kind "StaticLib"
+        characterset "MBCS"
+        warnings "Off"
+
+        targetname "hksc"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/hksc/src/*.c",
+            "deps/hksc/src/*.def",
+            "deps/hksc/src/*.h",
+            "deps/hksc/src/*.hpp"
+        }
+
+        includedirs {
+            "deps/hksc/src/"
+        }
+        
         

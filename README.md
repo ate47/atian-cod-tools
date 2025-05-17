@@ -20,7 +20,8 @@ See the wiki to know how to use the features
 - [Atian Tools](#atian-tools)
 	- [GSC Compiler/Decompiler](#gsc-compilerdecompiler)
 	- [Dumper](#dumper)
-	- [Fast File Handler](#fast-file-handler)
+	- [Fast File Reader](#fast-file-reader)
+	- [Fast File Linker](#fast-file-linker)
 	- [ACTS Lib](#acts-lib)
 	- [Dependencies](#dependencies)
 	- [Downloads](#downloads)
@@ -74,14 +75,20 @@ See the wiki to know how to use the features
 - **DEC**: Requires pre-decode
 - **COR**: Using [Cordycep](https://github.com/Scobalula/Cordycep).
 
-## Fast File Handler
+## Fast File Reader
 
 **Supported pools**
 
 - `bo3`: `rawfile`, `scriptparsetree`
-- `bo4`: `rawfile`, `scriptparsetree`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`
-- `GscXHash`: `scriptparsetree`
+- `bo4`: `rawfile`, `scriptparsetree`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`
+- `GscXHash`: `scriptparsetree`, `gscobj`
 - `GscXString`: `scriptparsetree`, `scriptparsetreedbg`
+
+## Fast File Linker
+
+**Supported pools**
+
+- `bo4`: `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`
 
 ## ACTS Lib
 
@@ -115,3 +122,4 @@ The tool `download_hash_index` allows to download the latest hash index from [at
 
 - [Serious's t8-compiler](https://github.com/shiversoftdev/t7-compiler) for some opcodes for Black Ops 4, it fasted up the process of understanding the internal game functions. Also for the childthread operator syntax.
 - [JariKCoding's CoDLuaDecompiler](https://github.com/JariKCoding/CoDLuaDecompiler) to understand the Lua HK scripting format.
+- [Jake-NotTheMuss's hksc](https://github.com/Jake-NotTheMuss/hksc) I've modified to support BO4 Lua compilation for the fastfile linker.

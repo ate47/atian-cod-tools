@@ -487,241 +487,158 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "vehicle" / std::format("{}.json", n) };
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			BO4JsonWriter json{};
 
 			LOG_INFO("Dump vehicle {}", outFile.string());
 			json.BeginObject();
 
-			auto AddXHash = [&json](const char* name, uint64_t hash, bool onlyValue = false) {
-				if (hash) {
-					if (!onlyValue) {
-						json.WriteFieldNameString(name);
-					}
-					json.WriteValueHash(hash);
-				}
-				else if (onlyValue) {
-					json.WriteValueHash(hash);
-				}
-				};
-			auto AddXAssetRef = [&json, &AddXHash](const char* name, games::bo4::pool::XAssetType type, void* handle, bool onlyValue = false) {
-				uintptr_t ptr{ reinterpret_cast<uintptr_t>(handle) };
-				if (!ptr) return; // ignore
-				if ((ptr & 0xF000000000000000ull) || (ptr < 0x10000)) {
-					// ref, error
-
-					json.WriteFieldNameString(name);
-					json.WriteValueString(utils::va("<invalidref:0x%llx>", ptr));
-					return;
-				}
-
-				size_t off{ games::bo4::pool::GetAssetNameOffset(type) };
-
-				XHash& hash{ *reinterpret_cast<XHash*>(ptr + off) };
-				AddXHash(name, hash, onlyValue);
-			};
-
-			auto AddXHashArray = [&json](const char* name, size_t count, XHash* hashes, bool ignoreEmpty = true) {
-				if (!hashes->name && ignoreEmpty) return;
-
-				json.WriteFieldNameString(name);
-				json.BeginArray();
-				for (size_t i = 0; i < count; i++) {
-					if (!hashes[i]) break;
-					json.WriteValueHash(hashes[i]);
-				}
-				json.EndArray();
-				};
-			auto AddXAssetRefArray = [&json, &AddXHash](const char* name, games::bo4::pool::XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
-				void** arr{ (void**)handle };
-
-				if (ignoreEmpty && !*arr) return;
-
-				size_t off{ games::bo4::pool::GetAssetNameOffset(type) };
-
-				json.WriteFieldNameString(name);
-				json.BeginArray();
-				for (size_t i = 0; i < count; i++) {
-					void* asset{ arr[i] };
-					if (!asset) break;
-					XHash* hash{ (XHash*)((byte*)asset + off) };
-					json.WriteValueHash(hash->name);
-				}
-				json.EndArray();
-				};
-
-			auto AddScrString = [&json](const char* name, ScrString_t str, bool onlyValue = false) {
-				if (str) {
-					if (!onlyValue) {
-						json.WriteFieldNameString(name);
-					}
-					json.WriteValueString(GetScrString(str));
-				}
-				else if (onlyValue) {
-					json.WriteValueString(GetScrString(str));
-				}
-				};
-			auto AddScrStringArray = [&json](const char* name, size_t count, ScrString_t* strs, bool ignoreEmpty = true) {
-				if (!*strs && ignoreEmpty) return;
-
-				json.WriteFieldNameString(name);
-				json.BeginArray();
-				for (size_t i = 0; i < count; i++) {
-					if (!strs[i]) break;
-					json.WriteValueString(GetScrString(strs[i]));
-				}
-				json.EndArray();
-			};
-
-
-
-			AddXHash("name", asset->name);
-			json.WriteFieldNameString("type");
-			json.WriteValueString(VehicleTypesName(asset->type));
+			json.WriteFieldValueXHash("name", asset->name);
+			json.WriteFieldValueString("type", VehicleTypesName(asset->type));
 			
-			AddScrString("scriptVehicleType", asset->scriptVehicleType);
-			AddScrString("scoreType", asset->scoreType);
-			AddScrString("playerDrivenVersion", asset->playerDrivenVersion);
-			AddScrString(hashutils::ExtractTmp("var", 0x409bdb86), asset->var_409bdb86);
-			AddScrString("cameraTag", asset->cameraTag);
-			AddXHash("archeType", asset->archeType);
-			AddXHash("unk38", asset->unk38);
-			AddXHash("spawnerType", asset->spawnerType);
-			AddXHash("spawnInfluencers1", asset->spawnInfluencers[0]);
-			AddXHash("spawnInfluencers2", asset->spawnInfluencers[1]);
-			AddXAssetRef("exhaustFx", games::bo4::pool::ASSET_TYPE_FX, asset->exhaustFx);
-			AddScrString("exhaustFxTag1", asset->exhaustFxTag1);
-			AddScrString("exhaustFxTag2", asset->exhaustFxTag2);
+			json.WriteFieldValueScrString("scriptVehicleType", asset->scriptVehicleType);
+			json.WriteFieldValueScrString("scoreType", asset->scoreType);
+			json.WriteFieldValueScrString("playerDrivenVersion", asset->playerDrivenVersion);
+			json.WriteFieldValueScrString(hashutils::ExtractTmp("var", 0x409bdb86), asset->var_409bdb86);
+			json.WriteFieldValueScrString("cameraTag", asset->cameraTag);
+			json.WriteFieldValueXHash("archeType", asset->archeType);
+			json.WriteFieldValueXHash("unk38", asset->unk38);
+			json.WriteFieldValueXHash("spawnerType", asset->spawnerType);
+			json.WriteFieldValueXHash("spawnInfluencers1", asset->spawnInfluencers[0]);
+			json.WriteFieldValueXHash("spawnInfluencers2", asset->spawnInfluencers[1]);
+			json.WriteFieldValueXAsset("exhaustFx", games::bo4::pool::ASSET_TYPE_FX, asset->exhaustFx);
+			json.WriteFieldValueScrString("exhaustFxTag1", asset->exhaustFxTag1);
+			json.WriteFieldValueScrString("exhaustFxTag2", asset->exhaustFxTag2);
 
-			AddXAssetRef("unk13c0", games::bo4::pool::ASSET_TYPE_FX, asset->unk13c0);
-			AddScrString("unk13c8", asset->unk13c8);
-			AddXHash("unk13d0", asset->unk13d0);
-			AddXAssetRef("unk13e8", games::bo4::pool::ASSET_TYPE_FX, asset->unk13e8);
-			AddScrString("unk13f0", asset->unk13f0);
-			AddXHash("unk13f8", asset->unk13f8);
-			AddXAssetRef("unk1340", games::bo4::pool::ASSET_TYPE_FX, asset->unk1340);
-			AddXAssetRef("unk1350", games::bo4::pool::ASSET_TYPE_FX, asset->unk1350);
-
-
-			AddXAssetRef("killstreakSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->killstreakSettings);
-			AddXAssetRef("scriptBundleSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->scriptBundleSettings);
-			AddXAssetRef("vehicleRidersBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersBundle);
-			AddXAssetRef("vehicleRidersRobotBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersRobotBundle);
-			AddXAssetRef("vehicleRidersWarlordBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersWarlordBundle);
-			AddXAssetRef("shrapnelSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->shrapnelSettings);
-			AddXAssetRef("assassinationBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->assassinationBundle);
-
-			AddXAssetRef("deathFx", games::bo4::pool::ASSET_TYPE_FX, asset->deathFx);
-			AddScrString("deathFxTag", asset->deathFxTag);
-			AddXHash("deathFxSound", asset->deathFxSound);
-			AddXAssetRefArray("lightFx", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->lightFx), &asset->lightFx[0]);
-			AddScrStringArray("lightFxTag", ARRAYSIZE(asset->lightFxTag), &asset->lightFxTag[0]);
-			AddXAssetRefArray("unk1438", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->unk1438), &asset->unk1438[0]);
-			AddScrStringArray("unk1458", ARRAYSIZE(asset->unk1458), &asset->unk1458[0]);
-			AddXAssetRefArray("unk1468", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->unk1468), &asset->unk1468[0]);
-			AddScrStringArray("unk1488", ARRAYSIZE(asset->unk1488), &asset->unk1488[0]);
-			AddXAssetRefArray("unk1498", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->unk1498), &asset->unk1498[0]);
-			AddScrStringArray("unk14b8", ARRAYSIZE(asset->unk14b8), &asset->unk14b8[0]);
-
-			AddScrString("unk1268", asset->unk1268);
-			AddScrString("unk12fc", asset->unk12fc);
-			AddScrString("driverHideTag", asset->driverHideTag);
-			AddScrStringArray("unk11f4", ARRAYSIZE(asset->unk11f4), &asset->unk11f4[0]);
-			AddScrStringArray("driverOtherHideTags", ARRAYSIZE(asset->driverOtherHideTags), &asset->driverOtherHideTags[0]);
-			AddScrStringArray("attachmentTags", ARRAYSIZE(asset->attachmentTags), &asset->attachmentTags[0]);
-			AddScrStringArray("deathAttachmentTags", ARRAYSIZE(asset->deathAttachmentTags), &asset->deathAttachmentTags[0]);
-			AddScrStringArray("targetTags", ARRAYSIZE(asset->targetTags), &asset->targetTags[0]);
+			json.WriteFieldValueXAsset("unk13c0", games::bo4::pool::ASSET_TYPE_FX, asset->unk13c0);
+			json.WriteFieldValueScrString("unk13c8", asset->unk13c8);
+			json.WriteFieldValueXHash("unk13d0", asset->unk13d0);
+			json.WriteFieldValueXAsset("unk13e8", games::bo4::pool::ASSET_TYPE_FX, asset->unk13e8);
+			json.WriteFieldValueScrString("unk13f0", asset->unk13f0);
+			json.WriteFieldValueXHash("unk13f8", asset->unk13f8);
+			json.WriteFieldValueXAsset("unk1340", games::bo4::pool::ASSET_TYPE_FX, asset->unk1340);
+			json.WriteFieldValueXAsset("unk1350", games::bo4::pool::ASSET_TYPE_FX, asset->unk1350);
 
 
-			AddXHashArray("sndNames", ARRAYSIZE(asset->sndNames), asset->sndNames);
-			AddXHashArray("sndMaterialNames", ARRAYSIZE(asset->sndMaterialNames), asset->sndMaterialNames);
+			json.WriteFieldValueXAsset("killstreakSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->killstreakSettings);
+			json.WriteFieldValueXAsset("scriptBundleSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->scriptBundleSettings);
+			json.WriteFieldValueXAsset("vehicleRidersBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersBundle);
+			json.WriteFieldValueXAsset("vehicleRidersRobotBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersRobotBundle);
+			json.WriteFieldValueXAsset("vehicleRidersWarlordBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->vehicleRidersWarlordBundle);
+			json.WriteFieldValueXAsset("shrapnelSettings", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->shrapnelSettings);
+			json.WriteFieldValueXAsset("assassinationBundle", games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, asset->assassinationBundle);
+
+			json.WriteFieldValueXAsset("deathFx", games::bo4::pool::ASSET_TYPE_FX, asset->deathFx);
+			json.WriteFieldValueScrString("deathFxTag", asset->deathFxTag);
+			json.WriteFieldValueXHash("deathFxSound", asset->deathFxSound);
+			json.WriteFieldValueXAssetArray("lightFx", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->lightFx), &asset->lightFx[0]);
+			json.WriteFieldValueScrStringArray("lightFxTag", ARRAYSIZE(asset->lightFxTag), &asset->lightFxTag[0]);
+			json.WriteFieldValueXAssetArray("unk1438", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->unk1438), &asset->unk1438[0]);
+			json.WriteFieldValueScrStringArray("unk1458", ARRAYSIZE(asset->unk1458), &asset->unk1458[0]);
+			json.WriteFieldValueXAssetArray("unk1468", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->unk1468), &asset->unk1468[0]);
+			json.WriteFieldValueScrStringArray("unk1488", ARRAYSIZE(asset->unk1488), &asset->unk1488[0]);
+			json.WriteFieldValueXAssetArray("unk1498", games::bo4::pool::ASSET_TYPE_FX, ARRAYSIZE(asset->unk1498), &asset->unk1498[0]);
+			json.WriteFieldValueScrStringArray("unk14b8", ARRAYSIZE(asset->unk14b8), &asset->unk14b8[0]);
+
+			json.WriteFieldValueScrString("unk1268", asset->unk1268);
+			json.WriteFieldValueScrString("unk12fc", asset->unk12fc);
+			json.WriteFieldValueScrString("driverHideTag", asset->driverHideTag);
+			json.WriteFieldValueScrStringArray("unk11f4", ARRAYSIZE(asset->unk11f4), &asset->unk11f4[0]);
+			json.WriteFieldValueScrStringArray("driverOtherHideTags", ARRAYSIZE(asset->driverOtherHideTags), &asset->driverOtherHideTags[0]);
+			json.WriteFieldValueScrStringArray("attachmentTags", ARRAYSIZE(asset->attachmentTags), &asset->attachmentTags[0]);
+			json.WriteFieldValueScrStringArray("deathAttachmentTags", ARRAYSIZE(asset->deathAttachmentTags), &asset->deathAttachmentTags[0]);
+			json.WriteFieldValueScrStringArray("targetTags", ARRAYSIZE(asset->targetTags), &asset->targetTags[0]);
+
+
+			json.WriteFieldValueXHashArray("sndNames", ARRAYSIZE(asset->sndNames), asset->sndNames);
+			json.WriteFieldValueXHashArray("sndMaterialNames", ARRAYSIZE(asset->sndMaterialNames), asset->sndMaterialNames);
 			json.WriteFieldNameString("skidSpeedMin"); json.WriteValueNumber(asset->skidSpeedMin);
 			json.WriteFieldNameString("skidSpeedMax"); json.WriteValueNumber(asset->skidSpeedMax);
 			json.WriteFieldNameString("peelSpeedMax"); json.WriteValueNumber(asset->peelSpeedMax);
-			AddXHash("futzName", asset->futzName);
-			AddXAssetRef("model", games::bo4::pool::ASSET_TYPE_XMODEL, asset->model);
-			AddXAssetRef("viewModel", games::bo4::pool::ASSET_TYPE_XMODEL, asset->viewModel);
-			AddXAssetRef("deathModel", games::bo4::pool::ASSET_TYPE_XMODEL, asset->deathModel);
-			AddXAssetRef("enemyModel", games::bo4::pool::ASSET_TYPE_XMODEL, asset->enemyModel);
-			AddXAssetRefArray("deathAttachmentModels", games::bo4::pool::ASSET_TYPE_XMODEL, ARRAYSIZE(asset->attachmentModels), &asset->attachmentModels[0]);
-			AddXAssetRefArray("deathAttachmentModels", games::bo4::pool::ASSET_TYPE_XMODEL, ARRAYSIZE(asset->deathAttachmentModels), &asset->deathAttachmentModels[0]);
-			AddXAssetRef("soundDef", games::bo4::pool::ASSET_TYPE_VEHICLESOUNDDEF, asset->soundDef);
-			AddXAssetRef("compassIconMaterial", games::bo4::pool::ASSET_TYPE_MATERIAL, asset->compassIconMaterial);
-			AddXAssetRef("lightCollisionRumble", games::bo4::pool::ASSET_TYPE_RUMBLE, asset->lightCollisionRumble);
-			AddXAssetRef("heavyCollisionRumble", games::bo4::pool::ASSET_TYPE_RUMBLE, asset->heavyCollisionRumble);
-			AddXAssetRef("jumpLandingRumble", games::bo4::pool::ASSET_TYPE_RUMBLE, asset->jumpLandingRumble);
-			AddXAssetRef("animStateMachine", games::bo4::pool::ASSET_TYPE_ANIMSTATEMACHINE, asset->animStateMachine);
-			AddXAssetRef("animSelectorTable", games::bo4::pool::ASSET_TYPE_ANIMSELECTORTABLESET, asset->animSelectorTable);
-			AddXAssetRef("animMappingTable", games::bo4::pool::ASSET_TYPE_ANIMMAPPINGTABLE, asset->animMappingTable);
-			AddXAssetRef("vehicleFootstepTable", games::bo4::pool::ASSET_TYPE_SURFACESOUNDDEF, asset->vehicleFootstepTable);
-			AddXAssetRef("vehicleFootstepFXTable", games::bo4::pool::ASSET_TYPE_SURFACEFX_TABLE, asset->vehicleFootstepFXTable);
-			AddXAssetRef("destructibleDef", games::bo4::pool::ASSET_TYPE_DESTRUCTIBLEDEF, asset->destructibleDef);
-			AddXAssetRef("tacticalModeIcon", games::bo4::pool::ASSET_TYPE_IMAGE, asset->tacticalModeIcon);
+			json.WriteFieldValueXHash("futzName", asset->futzName);
+			json.WriteFieldValueXAsset("model", games::bo4::pool::ASSET_TYPE_XMODEL, asset->model);
+			json.WriteFieldValueXAsset("viewModel", games::bo4::pool::ASSET_TYPE_XMODEL, asset->viewModel);
+			json.WriteFieldValueXAsset("deathModel", games::bo4::pool::ASSET_TYPE_XMODEL, asset->deathModel);
+			json.WriteFieldValueXAsset("enemyModel", games::bo4::pool::ASSET_TYPE_XMODEL, asset->enemyModel);
+			json.WriteFieldValueXAssetArray("deathAttachmentModels", games::bo4::pool::ASSET_TYPE_XMODEL, ARRAYSIZE(asset->attachmentModels), &asset->attachmentModels[0]);
+			json.WriteFieldValueXAssetArray("deathAttachmentModels", games::bo4::pool::ASSET_TYPE_XMODEL, ARRAYSIZE(asset->deathAttachmentModels), &asset->deathAttachmentModels[0]);
+			json.WriteFieldValueXAsset("soundDef", games::bo4::pool::ASSET_TYPE_VEHICLESOUNDDEF, asset->soundDef);
+			json.WriteFieldValueXAsset("compassIconMaterial", games::bo4::pool::ASSET_TYPE_MATERIAL, asset->compassIconMaterial);
+			json.WriteFieldValueXAsset("lightCollisionRumble", games::bo4::pool::ASSET_TYPE_RUMBLE, asset->lightCollisionRumble);
+			json.WriteFieldValueXAsset("heavyCollisionRumble", games::bo4::pool::ASSET_TYPE_RUMBLE, asset->heavyCollisionRumble);
+			json.WriteFieldValueXAsset("jumpLandingRumble", games::bo4::pool::ASSET_TYPE_RUMBLE, asset->jumpLandingRumble);
+			json.WriteFieldValueXAsset("animStateMachine", games::bo4::pool::ASSET_TYPE_ANIMSTATEMACHINE, asset->animStateMachine);
+			json.WriteFieldValueXAsset("animSelectorTable", games::bo4::pool::ASSET_TYPE_ANIMSELECTORTABLESET, asset->animSelectorTable);
+			json.WriteFieldValueXAsset("animMappingTable", games::bo4::pool::ASSET_TYPE_ANIMMAPPINGTABLE, asset->animMappingTable);
+			json.WriteFieldValueXAsset("vehicleFootstepTable", games::bo4::pool::ASSET_TYPE_SURFACESOUNDDEF, asset->vehicleFootstepTable);
+			json.WriteFieldValueXAsset("vehicleFootstepFXTable", games::bo4::pool::ASSET_TYPE_SURFACEFX_TABLE, asset->vehicleFootstepFXTable);
+			json.WriteFieldValueXAsset("destructibleDef", games::bo4::pool::ASSET_TYPE_DESTRUCTIBLEDEF, asset->destructibleDef);
+			json.WriteFieldValueXAsset("tacticalModeIcon", games::bo4::pool::ASSET_TYPE_IMAGE, asset->tacticalModeIcon);
 
 			if (asset->animSet && *asset->animSet) {
-				json.WriteFieldNameString("animSet"); json.WriteValueString(asset->animSet);
+				json.WriteFieldValueString("animSet", asset->animSet);
 			}
 
 			constexpr const char* EMPTY_BUTTON_NAME = "none";
 			
 			if (asset->steerAxisName && strcmp(EMPTY_BUTTON_NAME, asset->steerAxisName)) {
-				json.WriteFieldNameString("steerAxisName"); json.WriteValueString(asset->steerAxisName);
+				json.WriteFieldValueString("steerAxisName", asset->steerAxisName);
 			}
 			if (asset->gasAxisName && strcmp(EMPTY_BUTTON_NAME, asset->gasAxisName)) {
-				json.WriteFieldNameString("gasAxisName"); json.WriteValueString(asset->gasAxisName);
+				json.WriteFieldValueString("gasAxisName", asset->gasAxisName);
 			}
 			if (asset->gasButtonName && strcmp(EMPTY_BUTTON_NAME, asset->gasButtonName)) {
-				json.WriteFieldNameString("gasButtonName"); json.WriteValueString(asset->gasButtonName);
+				json.WriteFieldValueString("gasButtonName", asset->gasButtonName);
 			}
 			if (asset->reverseBrakeButtonName && strcmp(EMPTY_BUTTON_NAME, asset->reverseBrakeButtonName)) {
-				json.WriteFieldNameString("reverseBrakeButtonName"); json.WriteValueString(asset->reverseBrakeButtonName);
+				json.WriteFieldValueString("reverseBrakeButtonName", asset->reverseBrakeButtonName);
 			}
 			if (asset->handBrakeButtonName && strcmp(EMPTY_BUTTON_NAME, asset->handBrakeButtonName)) {
-				json.WriteFieldNameString("handBrakeButtonName"); json.WriteValueString(asset->handBrakeButtonName);
+				json.WriteFieldValueString("handBrakeButtonName", asset->handBrakeButtonName);
 			}
 			if (asset->attackButtonName && strcmp(EMPTY_BUTTON_NAME, asset->attackButtonName)) {
-				json.WriteFieldNameString("unk15a8"); json.WriteValueString(asset->attackButtonName);
+				json.WriteFieldValueString("attackButtonName", asset->attackButtonName);
 			}
 			if (asset->attackSecondaryButtonName && strcmp(EMPTY_BUTTON_NAME, asset->attackSecondaryButtonName)) {
-				json.WriteFieldNameString("attackSecondaryButtonName"); json.WriteValueString(asset->attackSecondaryButtonName);
+				json.WriteFieldValueString("attackSecondaryButtonName", asset->attackSecondaryButtonName);
 			}
 			if (asset->boostButtonName && strcmp(EMPTY_BUTTON_NAME, asset->boostButtonName)) {
-				json.WriteFieldNameString("boostButtonName"); json.WriteValueString(asset->boostButtonName);
+				json.WriteFieldValueString("boostButtonName", asset->boostButtonName);
 			}
 			if (asset->unk15d8 && strcmp(EMPTY_BUTTON_NAME, asset->unk15d8)) {
-				json.WriteFieldNameString("unk15d8"); json.WriteValueString(asset->unk15d8);
+				json.WriteFieldValueString("unk15d8", asset->unk15d8);
 			}
 			if (asset->unk15e8 && strcmp(EMPTY_BUTTON_NAME, asset->unk15e8)) {
-				json.WriteFieldNameString("unk15e8"); json.WriteValueString(asset->unk15e8);
+				json.WriteFieldValueString("unk15e8", asset->unk15e8);
 			}
 			if (asset->unk15f8 && strcmp(EMPTY_BUTTON_NAME, asset->unk15f8)) {
-				json.WriteFieldNameString("unk15f8"); json.WriteValueString(asset->unk15f8);
+				json.WriteFieldValueString("unk15f8", asset->unk15f8);
 			}
 			if (asset->unk1608 && strcmp(EMPTY_BUTTON_NAME, asset->unk1608)) {
-				json.WriteFieldNameString("unk1608"); json.WriteValueString(asset->unk1608);
+				json.WriteFieldValueString("unk1608", asset->unk1608);
 			}
 			if (asset->unk1618 && strcmp(EMPTY_BUTTON_NAME, asset->unk1618)) {
-				json.WriteFieldNameString("unk1618"); json.WriteValueString(asset->unk1618);
+				json.WriteFieldValueString("unk1618", asset->unk1618);
 			}
 			if (asset->unk1628 && strcmp(EMPTY_BUTTON_NAME, asset->unk1628)) {
-				json.WriteFieldNameString("unk1628"); json.WriteValueString(asset->unk1628);
+				json.WriteFieldValueString("unk1628", asset->unk1628);
 			}
 			if (asset->unk1638 && strcmp(EMPTY_BUTTON_NAME, asset->unk1638)) {
-				json.WriteFieldNameString("unk1638"); json.WriteValueString(asset->unk1638);
+				json.WriteFieldValueString("unk1638", asset->unk1638);
 			}
 			if (asset->unk1648 && strcmp(EMPTY_BUTTON_NAME, asset->unk1648)) {
-				json.WriteFieldNameString("unk1648"); json.WriteValueString(asset->unk1648);
+				json.WriteFieldValueString("unk1648", asset->unk1648);
 			}
 			if (asset->unk1658 && strcmp(EMPTY_BUTTON_NAME, asset->unk1658)) {
-				json.WriteFieldNameString("unk1658"); json.WriteValueString(asset->unk1658);
+				json.WriteFieldValueString("unk1658", asset->unk1658);
 			}
 			if (asset->steerGraphName && *asset->steerGraphName) {
-				json.WriteFieldNameString("steerGraphName"); json.WriteValueString(asset->steerGraphName);
+				json.WriteFieldValueString("steerGraphName", asset->steerGraphName);
 			}
 			if (asset->shootshock && *asset->shootshock) {
-				json.WriteFieldNameString("shootshock"); json.WriteValueString(asset->shootshock);
+				json.WriteFieldValueString("shootshock", asset->shootshock);
 			}
 			if (asset->rumbletype && *asset->rumbletype) {
-				json.WriteFieldNameString("rumbletype"); json.WriteValueString(asset->rumbletype);
+				json.WriteFieldValueString("rumbletype", asset->rumbletype);
 			}
 
 			

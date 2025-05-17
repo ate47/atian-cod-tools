@@ -91,10 +91,15 @@ namespace core::raw_file::json {
 			writer.WriteString("\"");
 		}
 
-		template<typename T>
+		template<typename T, bool hex = false>
 		void WriteValueNumber(T hash) {
 			WritePreData();
-			writer.WriteString(std::format("{}", hash));
+			if constexpr (hex) {
+				writer.WriteString(std::format("0x{:x}", hash));
+			}
+			else {
+				writer.WriteString(std::format("{}", hash));
+			}
 		}
 
 		void WriteValueLiteral(const char* val) {
@@ -134,6 +139,39 @@ namespace core::raw_file::json {
 			WriteNewSpace();
 		}
 
+		void WriteFieldValueHash(int64_t name, uint64_t val) {
+			WriterFieldNameHash(name);
+			WriteValueHash(val);
+		}
+
+		template<bool encryptedKey = false>
+		void WriteFieldValueHash(const char* name, uint64_t val) {
+			if constexpr (encryptedKey) {
+				WriteFieldNameStringEncrypted(name);
+			}
+			else {
+				WriteFieldNameString(name);
+			}
+			WriteValueHash(val);
+		}
+
+		template<typename T, bool hex = false>
+		void WriteFieldValueNumber(int64_t hash, T val) {
+			WriterFieldNameHash(hash);
+			WriteValueNumber<T, hex>(val);
+		}
+
+		template<typename T, bool encryptedKey = false, bool hex = false>
+		void WriteFieldValueNumber(const char* name, T val) {
+			if constexpr (encryptedKey) {
+				WriteFieldNameStringEncrypted(name);
+			}
+			else {
+				WriteFieldNameString(name);
+			}
+			WriteValueNumber<T, hex>(val);
+		}
+
 		void WriteFieldValueBool(int64_t name, bool val) {
 			WriterFieldNameHash(name);
 			WriteValueBool(val);
@@ -154,10 +192,10 @@ namespace core::raw_file::json {
 		void WriteFieldValueString(int64_t name, const char* val) {
 			WriterFieldNameHash(name);
 			if constexpr (encryptedStr) {
-				WriteValueEncrypted(name);
+				WriteValueEncrypted(val);
 			}
 			else {
-				WriteValueString(name);
+				WriteValueString(val);
 			}
 		}
 
@@ -170,11 +208,20 @@ namespace core::raw_file::json {
 				WriteFieldNameString(name);
 			}
 			if constexpr (encryptedStr) {
-				WriteValueEncrypted(name);
+				WriteValueEncrypted(val);
 			}
 			else {
-				WriteValueString(name);
+				WriteValueString(val);
 			}
+		}
+
+		void WriteFieldValueString(int64_t name, const std::string& val) {
+			WriteFieldValueString(name, val.c_str());
+		}
+
+		template<bool encryptedKey = false>
+		void WriteFieldValueString(const char* name, const std::string& val) {
+			WriteFieldValueString(name, val.c_str());
 		}
 
 		void BeginObject() {

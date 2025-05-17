@@ -25,11 +25,12 @@ This software depends on libraries with a different License.
 - [tfussell/miniz-cpp](https://github.com/tfussell/miniz-cpp) - [MIT license](https://github.com/tfussell/miniz-cpp/blob/master/LICENSE.md)
 - [facebook/zstd](https://github.com/facebook/zstd) - [BSD license](https://github.com/facebook/zstd/blob/dev/LICENSE)
 - [stbrumme/hash-library](https://github.com/stbrumme/hash-library) - [zlib License](https://github.com/stbrumme/hash-library/blob/master/LICENSE)
+- Modifed version of [Jake-NotTheMuss/hksc](https://github.com/Jake-NotTheMuss/hksc) ([ate47/hksc/t8](https://github.com/ate47/hksc/tree/test_t8)) - [MIT License](https://github.com/Jake-NotTheMuss/hksc/blob/master/COPYRIGHT)
 
 ## GPL-3 part dependencies
 
 The GPL-3 module depends on other libraries.
 
 - [itself](https://github.com/ate47/atian-cod-tools) - [MIT license](licenses/mit.md)
-- [Scobalula/Cordycep)](https://github.com/Scobalula/Cordycep) - [GNU GPL-3 license](https://github.com/Scobalula/Cordycep/blob/main/LICENSE.md)
+- [Scobalula/Cordycep](https://github.com/Scobalula/Cordycep) - [GNU GPL-3 license](https://github.com/Scobalula/Cordycep/blob/main/LICENSE.md)
 - [nlohmann/json](https://github.com/nlohmann/json) - [MIT license](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)
