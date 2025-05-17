@@ -176,7 +176,7 @@ namespace {
 				LOG_WARNING(".fd file generator not implemented");
 			}
 
-			LOG_INFO("Compressed {} into {} ({} -> {} bytes / {}% saved)", ctx.ffname, outputFile.string(), ctx.linkedData.size(), compressedSize, (100 - 100 * compressedSize / ctx.linkedData.size()));
+			LOG_INFO("Compressed {} into {} [{}]({} -> {} bytes / {}% saved)", ctx.ffname, outputFile.string(), alg, ctx.linkedData.size(), compressedSize, (100 - 100 * compressedSize / ctx.linkedData.size()));
 		}
 
 	};

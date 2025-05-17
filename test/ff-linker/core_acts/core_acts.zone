@@ -3,7 +3,13 @@
 // fastfile options
 >game=bo4              // the game to use
 >name=core_acts        // fastfile name
->compression=zlib      // compression type, by default no compression is used
+
+#ifdef CI
+>compression=zlib        // compression type, by default no compression is used
+#else
+// requires the oodle ddl, so I don't deploy it as default
+>compression=oodle_kraken
+#endif
 >compression.high=true // use high compression
 
 // a script entry
