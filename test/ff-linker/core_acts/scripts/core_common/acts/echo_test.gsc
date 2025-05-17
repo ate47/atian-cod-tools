@@ -51,7 +51,7 @@ function private on_player_connect()
 
     for (i = 0; ; i++)
     {
-        self iprintlnbold("^2Hello world " + i);
+        self IPrintLnBold( "^2Hello world " + i );
 
         wait(1);
     }

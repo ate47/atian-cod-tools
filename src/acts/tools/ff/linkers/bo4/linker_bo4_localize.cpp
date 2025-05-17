@@ -42,7 +42,7 @@ namespace fastfile::linker::bo4 {
 					ctx.data.PopStream();
 					added++;
 				}
-				LOG_INFO("Added asset localizeentry {}: {} entry(ies)", localizePath.string(), added);
+				LOG_INFO("Added asset localizeentry {}: {} entry(ies)", localizelistName, added);
 			}
 		}
 	};

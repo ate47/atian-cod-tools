@@ -294,7 +294,8 @@ namespace fastfile::linker::bo4 {
 				ScriptBundle* bundle{ ctx.data.GetData<ScriptBundle>(header) };
 
 				// add name and type to bundle
-				bundle->name.name = hash::Hash64(name);
+				uint64_t hname{ hash::Hash64(name) };
+				bundle->name.name = hname;
 				rapidjson::Value nameValue{};
 				nameValue.SetString(name.data(), main.GetAllocator());
 				main.AddMember(rapidjson::StringRef("name"), nameValue, main.GetAllocator());
@@ -318,7 +319,7 @@ namespace fastfile::linker::bo4 {
 				ctx.data.PopStream();
 
 
-				LOG_INFO("Added asset scriptbundle {}", path.string());
+				LOG_INFO("Added asset scriptbundle {} (hash_{:x})", rfpath.string(), hname);
 			}
 		}
 	};

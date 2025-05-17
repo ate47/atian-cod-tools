@@ -72,7 +72,7 @@ namespace fastfile::linker::bo4 {
 
 				ctx.data.PopStream();
 
-				LOG_INFO("Added asset luafile {}", pathstr);
+				LOG_INFO("Added asset luafile {} (hash_{:x})", rfpath.string(), lf.name.name);
 			}
 		}
 	};

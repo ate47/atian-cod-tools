@@ -158,7 +158,7 @@ namespace fastfile::linker::bo4 {
 
 				ctx.data.PopStream();
 
-				LOG_INFO("Added asset stringtable {}", path.string());
+				LOG_INFO("Added asset stringtable {} (hash_{:x})", rfpath.string(), table.name.name);
 			}
 		}
 	};

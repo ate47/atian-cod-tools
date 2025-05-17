@@ -57,7 +57,7 @@ namespace fastfile::linker::bo4 {
 
 			ctx.data.PopStream();
 
-			LOG_INFO("Added asset bgcache {}", ctx.linkCtx.ffname);
+			LOG_INFO("Added asset bgcache {} (hash_{:x})", ctx.linkCtx.ffname, ctx.ffnameHash);
 		}
 	};
 

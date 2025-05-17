@@ -40,7 +40,7 @@ namespace fastfile::linker::bo4 {
 
 				ctx.data.PopStream();
 
-				LOG_INFO("Added asset rawfile {}", path.string());
+				LOG_INFO("Added asset rawfile {} (hash_{:x})", rfpath.string(), rf.name.name);
 			}
 		}
 	};

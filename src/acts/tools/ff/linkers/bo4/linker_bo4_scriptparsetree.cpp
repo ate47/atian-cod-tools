@@ -171,9 +171,9 @@ namespace fastfile::linker::bo4 {
 						}
 					}
 
-					LOG_INFO("Compiled {} ({})", path.string(), cfg.name);
+					LOG_DEBUG("Compiled {} ({})", path.string(), cfg.name);
 					if (cfgGenDBG) {
-						AddGscDBGHeader(ctx, buffer, preprocOutput, path);
+						AddGscDBGHeader(ctx, buffer, preprocOutput, scriptName);
 					}
 				}
 				if (forced) {
@@ -188,7 +188,7 @@ namespace fastfile::linker::bo4 {
 					}
 				}
 
-				AddGscHeader(ctx, buffer, path);
+				AddGscHeader(ctx, buffer, scriptName);
 			}
 
 			if (forcedClientScripts.size() || forcedServerScripts.size()) {
