@@ -132,6 +132,7 @@ namespace fastfile {
 		bool dumpBinaryAssets{};
 		bool dumpBinaryAssetsMap{};
 		bool dumpAssetNames{};
+		bool dumpXStrings{};
 		bool testDump{};
 		const char* m_casc{};
 		const char* game{};

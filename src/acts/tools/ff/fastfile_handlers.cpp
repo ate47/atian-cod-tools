@@ -407,6 +407,9 @@ namespace fastfile {
 			else if (!_strcmpi("--noAssetDump", arg)) {
 				noAssetDump = true;
 			}
+			else if (!_strcmpi("--dumpXStrings", arg)) {
+				dumpXStrings = true;
+			}
 			else if (!_strcmpi("--dumpBinaryAssets", arg)) {
 				dumpBinaryAssets = true;
 			}
@@ -460,6 +463,7 @@ namespace fastfile {
 		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
 		LOG_INFO("--dumpAssetNames       : Dump binary assets");
 		LOG_INFO("--disableScriptsDecomp : Disable GSC script decompilation");
+		LOG_INFO("--dumpXStrings         : Dump XStrings");
 		LOG_INFO("--assertContainer      : Use acts as a container for other software");
 		LOG_INFO("--alpha                : Is alpha file");
 		

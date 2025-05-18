@@ -601,7 +601,7 @@ namespace utils {
 		std::ifstream& operator*() {
 			return is;
 		}
-
+		
 
 		operator std::ifstream& () {
 			return is;

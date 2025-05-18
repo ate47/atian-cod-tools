@@ -2150,6 +2150,74 @@ namespace {
 
         return tool::OK;
     }
+
+    constexpr uint32_t MaterialHash(const char* name) {
+        uint32_t h{};
+
+        while (*name) {
+            h = (33 * h) ^ (*(name++) | 0x20);
+        }
+
+        return h;
+    }
+
+    int dmatbo4texturenames(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+        const char* out{ tool::NotEnoughParam(argc, 2) ? "mttxtnames.csv" : argv[3] };
+
+        hook::module_mapper::Module mod{ true };
+        if (!mod.Load(argv[2], false)) {
+            LOG_ERROR("Can't map module");
+            return tool::BASIC_ERROR;
+        }
+
+
+        {
+            utils::OutFileCE os{ out, true };
+
+            os << "name,hash32,xhash";
+
+            const char* const* names{ mod->Get<const char*>(0x4FFC5F0) };
+
+            for (size_t i = 0; i < 102; i++) {
+                const char* cc = mod->Rebase<const char>(names[i]);
+                os
+                    << "\n" << cc
+                    << ",0x" << std::hex << MaterialHash(cc)
+                    << ",hash_" << std::hex << hash::Hash64(cc)
+                    ;
+            }
+        }
+
+
+
+        LOG_INFO("Dump into {}", out);
+
+        return tool::OK;
+    }
+
+    int dmattesthash(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+        const char* out{ tool::NotEnoughParam(argc, 2) ? "mttxtout.csv" : argv[3] };
+
+        utils::InFileCE input{ argv[2], true };
+        utils::OutFileCE os{ out, true };
+
+        std::string line{};
+
+        while (*input && std::getline(*input, line, '\n')) {
+            os
+                << "\n"
+                << "0x" << std::hex << MaterialHash(line.c_str())
+                << "," << line;
+        }
+
+        LOG_INFO("Dump into {}", out);
+
+        return tool::OK;
+    }
 }
 
 ADD_TOOL(dps, "bo4", " [output=pool.csv]", "dump pooled scripts", L"BlackOps4.exe", poolscripts);
@@ -2165,3 +2233,5 @@ ADD_TOOL(dfields, "bo4", " [output=dfields.csv]", "dump class fields", L"BlackOp
 ADD_TOOL(dcm, "bo4", " [output=gfxworld.json]", "dump gfx world", L"BlackOps4.exe", dcm);
 ADD_TOOL(dstorage, "bo4", " [output=storage.json]", "dump storage", L"BlackOps4.exe", dstorage);
 ADD_TOOL(dvehfields, "bo4", " [exe] [output=vehfields.csv]", "dump vehicle fields", dvehfields);
+ADD_TOOL(dmatbo4texturenames, "bo4", " [exe] [output=mttxtnames.csv]", "test hash", dmatbo4texturenames);
+ADD_TOOL(dmattesthash, "bo4", " [csv] [output=mttxtout.csv]", "test hash", dmattesthash);

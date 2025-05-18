@@ -41,6 +41,7 @@ namespace fastfile::handlers::bo4 {
 			XBlock* g_load_blocks{};
 
 			fastfile::FastFileOption* opt{};
+			std::vector<char*> xstrings{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
 			size_t loaded{};
@@ -118,6 +119,9 @@ namespace fastfile::handlers::bo4 {
 			LOG_TRACE("{} Load_XStringCustom({}, 0x{:x}) -> 0x{:x} / {}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr((void*)str), size, gcx.reader->Loc(), acts::decryptutils::DecryptStringT8(ptr));
 			AssertCanWrite(*str, size + 1);
 			std::memcpy(*str, ptr, size + 1);
+			if (gcx.opt->dumpXStrings) {
+				gcx.xstrings.push_back(*str);
+			}
 			gcx.DB_IncStreamPos(size + 1);
 		}
 
@@ -156,7 +160,9 @@ namespace fastfile::handlers::bo4 {
 				auto it{ workers.find(xasset->type) };
 				if (it != workers.end()) {
 					try {
-						it->second->Unlink(*gcx.opt, xasset->header);
+						if (!it->second->ignoreFull || !gcx.handleList.Empty()) {
+							it->second->Unlink(*gcx.opt, xasset->header);
+						}
 					}
 					catch (std::runtime_error& e) {
 						LOG_ERROR("Can't dump asset asset {}/{}: {}", XAssetNameFromId(xasset->type), (void*)xasset->header, e.what());
@@ -299,6 +305,7 @@ namespace fastfile::handlers::bo4 {
 				gcx.DB_InitStreams(gcx.g_load_blocks);
 
 				gcx.DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
+				gcx.xstrings.clear();
 
 				XAssetList_0& assetList{ gcx.assetList };
 				DB_LoadXFileData(&assetList, sizeof(assetList));
@@ -377,6 +384,19 @@ namespace fastfile::handlers::bo4 {
 						for (auto& [t, w] : GetWorkers()) {
 							w->PostXFileLoading(opt, ctx);
 						}
+					}
+
+					// xstrings
+					if (opt.dumpXStrings) {
+						std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xstrings" / std::format("{}.txt", ctx.ffname) };
+						std::filesystem::create_directories(outStrings.parent_path());
+						utils::OutFileCE os{ outStrings, true };
+
+
+						for (char* xstr : gcx.xstrings) {
+							os << acts::decryptutils::DecryptStringT8(xstr) << "\n";
+						}
+						LOG_INFO("Dump xstrings into {}", outStrings.string());
 					}
 				}
 

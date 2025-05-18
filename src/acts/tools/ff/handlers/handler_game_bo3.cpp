@@ -122,6 +122,7 @@ namespace {
 		fastfile::pool::FFAssetPool pool{};
 		utils::EnumList<T7XAssetType, T7XAssetType::T7_ASSET_TYPE_COUNT> handleList{ bo3::pool::T7XAssetIdFromName };
 		std::vector<StreamRead> readers{};
+		std::vector<char*> xstrings{};
 
 		StreamRead& Top() {
 			if (readers.empty()) throw std::runtime_error("No reader");
@@ -274,6 +275,9 @@ namespace {
 		if (ptr != *str) {
 			std::memcpy(*str, ptr, size + 1);
 		}
+		if (bo3FFHandlerContext.opt->dumpXStrings) {
+			bo3FFHandlerContext.xstrings.push_back(*str);
+		}
 		LOG_DEBUG("str {}", *str);
 		DB_IncStreamPos((int)size);
 	}
@@ -360,7 +364,8 @@ namespace {
 			}
 
 			{
-				std::filesystem::path outStrings{ out / std::format("{}_strings.txt", ctx.ffname)};
+				std::filesystem::path outStrings{ opt.m_output / "bo3" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
+				std::filesystem::create_directories(outStrings.parent_path());
 				utils::OutFileCE os{ outStrings };
 				if (!os) {
 					throw std::runtime_error(std::format("Can't open {}", outStrings.string()));
@@ -397,6 +402,7 @@ namespace {
 			bo3FFHandlerContext.opt = &opt;
 			bo3FFHandlerContext.osassets = &osa;
 			bo3FFHandlerContext.loaded = 0;
+			bo3FFHandlerContext.xstrings.clear();
 
 
 			for (size_t i = 0; i < assetList.assetCount; i++) {
@@ -434,6 +440,19 @@ namespace {
 			}
 
 			LOG_INFO("{} asset(s) loaded (0x{:x})", bo3FFHandlerContext.loaded, bo3FFHandlerContext.loaded);
+
+			// xstrings
+			if (opt.dumpXStrings) {
+				std::filesystem::path outStrings{ bo3FFHandlerContext.opt->m_output / "bo3" / "source" / "tables" / "data" / "xstrings" / std::format("{}.txt", ctx.ffname) };
+				std::filesystem::create_directories(outStrings.parent_path());
+				utils::OutFileCE os{ outStrings, true };
+
+
+				for (char* xstr : bo3FFHandlerContext.xstrings) {
+					os << xstr << "\n";
+				}
+				LOG_INFO("Dump xstrings into {}", outStrings.string());
+			}
 
 		}
 	};
