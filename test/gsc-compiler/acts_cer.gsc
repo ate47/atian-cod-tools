@@ -1,4 +1,5 @@
 #using scripts\engine\utility;
+#using scripts\common\values;
 #using scripts\common\system;
 #using scripts\common\callbacks;
 #using scripts\mp\killstreaks\killstreaks;
@@ -27,6 +28,8 @@ function on_player_spawned(params) {
         self setweaponammoclip(weap, weaponclipsize(weap));
         self givemaxammo(weap);
         self enableinvulnerability();
+        self.doublejumpenergy = 100;
+        self.doublejumpenergyrestorerate = 100;
 
         waitframe();
     }
@@ -117,13 +120,14 @@ function menu() {
 			    if (isdefined(self.originObj)) self.originObj delete();
             }
         },
-        //{ 
-        //    #title: "flat_args", 
-        //    #action: function (id) {
-        //        self iprintlnbold("test " + (id ?? "inv"));
-        //    },
-        //    #args: [ 4 ]
-        //},
+        { 
+            #title: "Enable wallrun", 
+            #action: function (id) {
+                self iprintlnbold("wallrun");
+                self val::set("acts", "wallrun", true);
+                self val::set("acts", "doublejump", true);
+            }
+        },
     ];
     item = 0;
     lasttime = 0;
