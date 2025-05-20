@@ -1,5 +1,6 @@
 #pragma once
 #include <games/bo4/pool.hpp>
+#include <gsc/gsc_acts_debug.hpp>
 #include <games/bo4/scriptinstance.hpp>
 
 namespace bo4 {
@@ -322,4 +323,36 @@ namespace bo4 {
 		byte* m_context;
 		// ...
 	};
+
+	enum ScopedCriticalSectionType : int32_t {
+		SCOPED_CRITSECT_NORMAL = 0x0,
+		SCOPED_CRITSECT_DISABLED = 0x1,
+		SCOPED_CRITSECT_RELEASE = 0x2,
+		SCOPED_CRITSECT_TRY = 0x3,
+	};
+
+	enum CriticalSection : int32_t {
+		CRITSECT_VM = 0x36,
+	};
+
+	struct ScriptParseTreeDBG {
+		XHash name;
+		int32_t gdbLen;
+		int32_t srcLen;
+		shared::gsc::acts_debug::GSC_ACTS_DEBUG* gdb;
+		const char* src;
+	}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
+
+	struct ScriptParseTree {
+		XHash name;
+		byte* buffer;
+		uint32_t len;
+	}; static_assert(sizeof(ScriptParseTree) == 0x20);
+
+	union XAssetHeader {
+		void* data;
+		ScriptParseTree* spt;
+		ScriptParseTreeDBG* sptdbg;
+	}; static_assert(sizeof(XAssetHeader) == 8);
+
 }

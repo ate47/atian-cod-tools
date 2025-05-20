@@ -19,6 +19,8 @@ function private __pre_init__()
         callback::on_connect( &on_player_connect );
     }
 
+    // test script bundles
+
     sbtest = GetScriptBundle( #"acts_test" );
 
     ActsLog( "test ScriptBundle" );
@@ -29,6 +31,8 @@ function private __pre_init__()
     ActsLog( sbtest.array[ 0 ].item );
     ActsLog( sbtest.array[ 0 ].test );
     ActsLog( "-----------------" );
+
+    // test string tables
 
     st = #"acts/test.csv";
     ActsLog( "test StringTable" );
@@ -46,6 +50,7 @@ function private __pre_init__()
 
 function private on_player_connect()
 {
+    // ingame test
     self endon( #"disconnect", #"bled_out" );
     level endon( #"end_game", #"game_ended" );
 

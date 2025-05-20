@@ -4,6 +4,8 @@
 namespace bo4 {
 	using namespace hook::refs;
 
+	S_ANY Ref<XAssetHeader(bo4::XAssetType type, XHash* name, bool errorIfMissing, int waitTime)> DB_FindXAssetHeader{ 0x2EB75B0_a };
+
 	// gsc
 	S_ANY Ref<void(scriptInstance_t inst, int value)> ScrVm_AddBool{ 0x276E760_a };
 	S_ANY Ref<void(scriptInstance_t inst, float value)> ScrVm_AddFloat{ 0x276E9B0_a };
@@ -53,4 +55,23 @@ namespace bo4 {
 	S_ANY Ref<bool(const char* file)> DB_FileExists{ 0x2EB72C0_a };
 	S_ANY Ref<int32_t(const char* file)> Stream_OpenFile49{ 0x2E0E8B0_a };
 	S_ANY Ref<void(int32_t fileid)> Stream_CloseFile{ 0x3C4C260_a };
+
+	// mutex
+	class ScopedCriticalSection;
+	S_ANY Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor{ 0x289E3C0_a };
+	S_ANY Ref<void(ScopedCriticalSection* sec)> ScopedCriticalSectionDestructor{ 0x289E440_a };
+
+	class ScopedCriticalSection {
+		int32_t _s;
+		bool _hasOwnership;
+		bool _isScopedRelease;
+		ScopedCriticalSection* _next;
+	public:
+		ScopedCriticalSection(int32_t s, ScopedCriticalSectionType type) {
+			ScopedCriticalSectionConstructor(this, s, type);
+		}
+		~ScopedCriticalSection() {
+			ScopedCriticalSectionDestructor(this);
+		}
+	};
 }

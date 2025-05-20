@@ -78,22 +78,20 @@ namespace fastfile::linker::bo4 {
 				spt.gdbLen = (int32_t)dbgbuffer.size();
 			}
 			ctx.data.WriteData(spt);
-			
+
+			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			if (dbgbuffer.size()) {
+				ctx.data.Align(0x20);
+				void* ptr{ ctx.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
+				std::memcpy(ptr, dbgbuffer.data(), dbgbuffer.size());
+			}
+
 			if (preproc.size()) {
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 				ctx.data.Align<char>();
 				void* ptr{ ctx.data.AllocDataPtr<void>(preproc.size() + 1) };
 				std::memcpy(ptr, preproc.data(), preproc.size());
-				ctx.data.PopStream();
 			}
-
-			if (dbgbuffer.size()) {
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.data.Align<char>();
-				void* ptr{ ctx.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
-				std::memcpy(ptr, dbgbuffer.data(), dbgbuffer.size());
-				ctx.data.PopStream();
-			}
+			ctx.data.PopStream();
 
 			ctx.data.PopStream();
 			LOG_INFO("Added asset scriptparsetreedbg {} (hash_{:x})", path.string(), obj.name);

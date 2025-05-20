@@ -3,6 +3,9 @@
 // fastfile options
 >game=bo4              // the game to use
 >name=core_acts        // fastfile name
+// gsc configs
+>gsc.gendbg=true
+>gsc.dev=true
 
 #ifdef CI
 >compression=zlib        // compression type, by default no compression is used

@@ -2,6 +2,7 @@
 #include <data/bo4.hpp>
 #include <data/refs.hpp>
 #include <core/config.hpp>
+#include <core/hashes/hash_store.hpp>
 #include <core/system.hpp>
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
@@ -27,7 +28,7 @@ namespace {
 		}
 		case bo4::TYPE_HASH: {
 			XHash out;
-			LOG_INFO("{} hash_{:x}", prefix, bo4::ScrVm_GetHash(&out, inst, 0)->name);
+			LOG_INFO("{} #\"{}\"", prefix, core::hashes::ExtractTmp("hash", bo4::ScrVm_GetHash(&out, inst, 0)->name));
 			break;
 		}
 		case bo4::TYPE_FLOAT:
@@ -41,6 +42,18 @@ namespace {
 			break;
 		}
 	}
+
+	void ActsHashLookup(bo4::scriptInstance_t inst) {
+		XHash hash{ *bo4::ScrVm_GetHash(&hash, inst, 0) };
+		const char* str{ core::hashes::ExtractPtr(hash) };
+		if (str) {
+			bo4::ScrVm_AddString(inst, str);
+		}
+		else {
+			bo4::ScrVm_AddHash(inst, &hash);
+		}
+	}
+
 	struct BuiltinFunctionDef {
 		uint32_t canonId;
 		uint32_t min_args;
@@ -57,6 +70,13 @@ namespace {
 			.actionFunc = ActsLog,
 			.type = 0,
 		},
+		{ // ActsHashLookup(hash)
+			.canonId = hash::HashT89Scr("ActsHashLookup"),
+			.min_args = 1,
+			.max_args = 1,
+			.actionFunc = ActsHashLookup,
+			.type = 0,
+		},
 	};
 	BuiltinFunctionDef customFuncsCsc[] {
 		{ // ActsLog(message)
@@ -64,6 +84,13 @@ namespace {
 			.min_args = 1,
 			.max_args = 1,
 			.actionFunc = ActsLog,
+			.type = 0,
+		},
+		{ // ActsHashLookup(hash)
+			.canonId = hash::HashT89Scr("ActsHashLookup"),
+			.min_args = 1,
+			.max_args = 1,
+			.actionFunc = ActsHashLookup,
 			.type = 0,
 		},
 	};
