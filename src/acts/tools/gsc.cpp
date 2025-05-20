@@ -1245,8 +1245,8 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
     std::stringstream actsHeader{};
     Platform currentPlatform{ opt.m_platform };
 
-    if (size > scriptfile->GetHeaderSize() + 0x10 && scriptfile->Ref<uint64_t>(scriptfile->GetHeaderSize()) == tool::gsc::acts_debug::MAGIC) {
-        using namespace tool::gsc::acts_debug;
+    if (size > scriptfile->GetHeaderSize() + 0x10 && scriptfile->Ref<uint64_t>(scriptfile->GetHeaderSize()) == shared::gsc::acts_debug::MAGIC) {
+        using namespace shared::gsc::acts_debug;
         // acts compiled file, read data
         auto* dbg = scriptfile->Ptr<GSC_ACTS_DEBUG>(scriptfile->GetHeaderSize());
         LOG_TRACE("Reading ACTS debug data v{:x}", (int)dbg->version);

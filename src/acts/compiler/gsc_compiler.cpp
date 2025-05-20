@@ -6,6 +6,7 @@
 #include "tools/gsc_acts_debug.hpp"
 #include "gsc_compiler.hpp"
 #include "compiler/preprocessor.hpp"
+#include <utils/crc.hpp>
 
 namespace acts::compiler {
     using namespace antlr4;
@@ -1909,7 +1910,7 @@ namespace acts::compiler {
             }
         }
 
-        bool Compile(std::vector<byte>& data) {
+        bool Compile(std::vector<byte>& data, std::vector<byte>* pdbgdata) {
             union {
                 AscmNode* opcode;
                 uint32_t strlistener;
@@ -2054,10 +2055,6 @@ namespace acts::compiler {
             }
 
             size_t headerLoc{ utils::Allocate(data, gscHandler->GetHeaderSize()) };
-            size_t actsDebugHeader{};
-            if (forceDebugHeader || config.computeDevOption || config.detourType == DETOUR_ACTS) {
-                actsDebugHeader = utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DEBUG));
-            }
 
             LOG_TRACE("Compile {} include(s)...", includes.size());
             size_t incTable{};
@@ -2135,8 +2132,6 @@ namespace acts::compiler {
                 e.flags = that.gscHandler->MapFlagsExportToInt(exp.m_flags);
                 e.address = (int32_t)exp.location;
                 e.param_count = exp.m_params;
-                e.checksum = 0x12345678;
-                that.gscHandler->WriteExport(&data[expTable + that.gscHandler->GetExportSize() * exportIndex++], e);
 
                 AscmCompilerContext cctx{ that.vmInfo, that.config.platform, exp.m_allocatedVar, data };
 
@@ -2147,6 +2142,14 @@ namespace acts::compiler {
                 }
                 // add size for detours
                 exp.size = data.size() - exp.location;
+
+                // compute function crc
+                utils::crc::CRC32 crc{};
+                // function crc
+                crc.Update(&data[exp.location], exp.size);
+                e.checksum = crc;
+
+                that.gscHandler->WriteExport(&data[expTable + that.gscHandler->GetExportSize() * exportIndex++], e);
 
                 if (exp.IsDetour()) {
                     detourObjs.push_back(&exp);
@@ -2290,173 +2293,193 @@ namespace acts::compiler {
                     }
                 }
             }
+            
+            
+            int32_t checksum = config.checksum;
+            if (!checksum) {
+                utils::crc::CRC32 fileCRC{};
+                fileCRC.Update(data.data(), data.size());
+                checksum = fileCRC;
 
-            if (actsDebugHeader) {
-                size_t hashesLoc{};
-                size_t hashesIdx{};
-                size_t devBlocksLoc{};
-                size_t devBlocksIdx{};
-                size_t lazyLinksLoc{};
-                size_t lazyLinksIdx{};
-                size_t linesLoc{};
-                size_t linesIdx{};
-                size_t filesLoc{};
-                size_t filesIdx{};
-                if (config.computeDevOption) {
+                // todo: replace checksum for the post cw games
+            }
 
-                    if (!config.obfuscate) {
-                        LOG_TRACE("Compile {} hash(es)...", hashes.size());
 
-                        hashesLoc = utils::Allocate(data, sizeof(uint32_t) * hashes.size());
-                        for (const std::string& h : hashes) {
-                            reinterpret_cast<uint32_t*>(&data[hashesLoc])[hashesIdx++] = (uint32_t)data.size();
-                            utils::WriteString(data, h.c_str());
+            if (forceDebugHeader || config.computeDevOption || config.detourType == DETOUR_ACTS) {
+                if (!pdbgdata) {
+                    LOG_WARNING("Trying to compile debug file, but no buffer was defined");
+                } else {
+                    std::vector<byte>& dbgdata{ *pdbgdata };
+                    // all header
+                    utils::Allocate<shared::gsc::acts_debug::GSC_ACTS_DEBUG>(dbgdata);
+                    size_t hashesLoc{};
+                    size_t hashesIdx{};
+                    size_t devBlocksLoc{};
+                    size_t devBlocksIdx{};
+                    size_t lazyLinksLoc{};
+                    size_t lazyLinksIdx{};
+                    size_t linesLoc{};
+                    size_t linesIdx{};
+                    size_t filesLoc{};
+                    size_t filesIdx{};
+                    if (config.computeDevOption) {
+
+                        if (!config.obfuscate) {
+                            LOG_TRACE("Compile {} hash(es)...", hashes.size());
+
+                            hashesLoc = utils::Allocate(dbgdata, sizeof(uint32_t) * hashes.size());
+                            for (const std::string& h : hashes) {
+                                reinterpret_cast<uint32_t*>(&dbgdata[hashesLoc])[hashesIdx++] = (uint32_t)dbgdata.size();
+                                utils::WriteString(dbgdata, h.c_str());
+                            }
                         }
-                    }
 
-                    LOG_TRACE("Compile {} dev block(s)...", m_devBlocks.size());
-                    devBlocksLoc = utils::Allocate(data, sizeof(uint32_t) * m_devBlocks.size());
-                    for (const AscmNode* node : m_devBlocks) {
-                        reinterpret_cast<uint32_t*>(&data[devBlocksLoc])[devBlocksIdx++] = node->floc;
-                    }
-
-                    LOG_TRACE("Compile {} lazy link(s)...", lazyimports.size());
-                    for (auto& [loc, lz] : lazyimports) {
-                        size_t lzi = utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_LAZYLINK) + sizeof(uint32_t) * lz.size());
-                        lazyLinksIdx++;
-
-                        if (!lazyLinksLoc) {
-                            lazyLinksLoc = lzi;
+                        LOG_TRACE("Compile {} dev block(s)...", m_devBlocks.size());
+                        devBlocksLoc = utils::Allocate(dbgdata, sizeof(uint32_t) * m_devBlocks.size());
+                        for (const AscmNode* node : m_devBlocks) {
+                            reinterpret_cast<uint32_t*>(&dbgdata[devBlocksLoc])[devBlocksIdx++] = node->floc;
                         }
 
+                        LOG_TRACE("Compile {} lazy link(s)...", lazyimports.size());
+                        for (auto& [loc, lz] : lazyimports) {
+                            size_t lzi = utils::Allocate(dbgdata, sizeof(shared::gsc::acts_debug::GSC_ACTS_LAZYLINK) + sizeof(uint32_t) * lz.size());
+                            lazyLinksIdx++;
 
-                        tool::gsc::acts_debug::GSC_ACTS_LAZYLINK* lzd = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_LAZYLINK*>(&data[lzi]);
+                            if (!lazyLinksLoc) {
+                                lazyLinksLoc = lzi;
+                            }
 
-                        lzd->name = loc.name;
-                        lzd->name_space = loc.name_space;
-                        lzd->script = loc.script;
-                        lzd->num_address = (uint32_t)lz.size();
 
-                        uint32_t* locs = reinterpret_cast<uint32_t*>(&lzd[1]);
-                        for (AscmNodeLazyLink* node : lz) {
-                            *(locs++) = node->floc;
+                            shared::gsc::acts_debug::GSC_ACTS_LAZYLINK* lzd = reinterpret_cast<shared::gsc::acts_debug::GSC_ACTS_LAZYLINK*>(&dbgdata[lzi]);
+
+                            lzd->name = loc.name;
+                            lzd->name_space = loc.name_space;
+                            lzd->script = loc.script;
+                            lzd->num_address = (uint32_t)lz.size();
+
+                            uint32_t* locs = reinterpret_cast<uint32_t*>(&lzd[1]);
+                            for (AscmNodeLazyLink* node : lz) {
+                                *(locs++) = node->floc;
+                            }
                         }
-                    }
 
-                    if (!config.obfuscate) {
-                        LOG_TRACE("Compile dev lines...");
-                        // GSC_ACTS_LINES
-                        std::vector<tool::gsc::acts_debug::GSC_ACTS_LINES> lines{};
+                        if (!config.obfuscate) {
+                            LOG_TRACE("Compile dev lines...");
+                            // GSC_ACTS_LINES
+                            std::vector<shared::gsc::acts_debug::GSC_ACTS_LINES> lines{};
 
-                        tool::gsc::acts_debug::GSC_ACTS_LINES curr{};
-                        for (auto& [name, exp] : exports) {
-                            for (AscmNode* node : exp.m_nodes) {
-                                curr.end = node->floc;
-                                if (!node->line) {
-                                    // bad line, we flush a previous info and clear the current
+                            shared::gsc::acts_debug::GSC_ACTS_LINES curr{};
+                            for (auto& [name, exp] : exports) {
+                                for (AscmNode* node : exp.m_nodes) {
+                                    curr.end = node->floc;
+                                    if (!node->line) {
+                                        // bad line, we flush a previous info and clear the current
+                                        if (curr.lineNum) {
+                                            lines.emplace_back(curr);
+                                        }
+                                        curr.lineNum = 0;
+
+                                        continue; 
+                                    }
+
+                                    if (curr.lineNum == node->line) {
+                                        continue; // same line, we can continue
+                                    }
+
                                     if (curr.lineNum) {
                                         lines.emplace_back(curr);
                                     }
-                                    curr.lineNum = 0;
-
-                                    continue; 
+                                    curr.lineNum = node->line;
+                                    curr.start = node->floc;
                                 }
-
-                                if (curr.lineNum == node->line) {
-                                    continue; // same line, we can continue
-                                }
-
-                                if (curr.lineNum) {
-                                    lines.emplace_back(curr);
-                                }
-                                curr.lineNum = node->line;
-                                curr.start = node->floc;
+                                // to keep track of the last op end
+                                curr.end = (uint32_t)(exp.location + exp.size);
                             }
-                            // to keep track of the last op end
-                            curr.end = (uint32_t)(exp.location + exp.size);
-                        }
-                        if (curr.lineNum) {
-                            lines.emplace_back(curr);
-                        }
+                            if (curr.lineNum) {
+                                lines.emplace_back(curr);
+                            }
 
-                        linesIdx = lines.size();
-                        linesLoc = data.size();
-                        data.insert(data.end(), (byte*)lines.data(), (byte*)(lines.data() + linesIdx));
+                            linesIdx = lines.size();
+                            linesLoc = dbgdata.size();
+                            dbgdata.insert(dbgdata.end(), (byte*)lines.data(), (byte*)(lines.data() + linesIdx));
 
 
-                        LOG_TRACE("Compile filenames...");
-                        filesLoc = data.size();
-                        utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_FILES) * info.container.blocks.size());
-                        for (preprocessor::StringData& block : info.container.blocks) {
-                            size_t strLoc = data.size();
-                            std::string filename = block.filename.string();
-                            utils::WriteString(data, filename.c_str());
-                            tool::gsc::acts_debug::GSC_ACTS_FILES& f = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_FILES*>(data.data() + filesLoc)[filesIdx++];
-                            f.filename = (uint32_t)strLoc;
-                            f.lineStart = block.startLine;
-                            f.lineEnd = block.startLine + block.sizeLine;
+                            LOG_TRACE("Compile filenames...");
+                            filesLoc = dbgdata.size();
+                            utils::Allocate(dbgdata, sizeof(shared::gsc::acts_debug::GSC_ACTS_FILES) * info.container.blocks.size());
+                            for (preprocessor::StringData& block : info.container.blocks) {
+                                size_t strLoc = dbgdata.size();
+                                std::string filename = block.filename.string();
+                                utils::WriteString(dbgdata, filename.c_str());
+                                shared::gsc::acts_debug::GSC_ACTS_FILES& f = reinterpret_cast<shared::gsc::acts_debug::GSC_ACTS_FILES*>(dbgdata.data() + filesLoc)[filesIdx++];
+                                f.filename = (uint32_t)strLoc;
+                                f.lineStart = block.startLine;
+                                f.lineEnd = block.startLine + block.sizeLine;
+                            }
                         }
                     }
-                }
 
-                uint32_t detoursLoc{};
-                uint32_t detoursCount{};
-                if (!detourObjs.empty() && config.detourType == DETOUR_ACTS) {
-                    LOG_TRACE("Compile {} detour(s)...", detourObjs.size());
-                    detoursCount = (uint32_t)detourObjs.size();
-                    detoursLoc = (uint32_t)utils::Allocate(data, sizeof(tool::gsc::acts_debug::GSC_ACTS_DETOUR) * detourObjs.size());
-                    tool::gsc::acts_debug::GSC_ACTS_DETOUR* detours = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DETOUR*>(&data[detoursLoc]);
+                    uint32_t detoursLoc{};
+                    uint32_t detoursCount{};
+                    if (!detourObjs.empty() && config.detourType == DETOUR_ACTS) {
+                        LOG_TRACE("Compile {} detour(s)...", detourObjs.size());
+                        detoursCount = (uint32_t)detourObjs.size();
+                        detoursLoc = (uint32_t)utils::Allocate(dbgdata, sizeof(shared::gsc::acts_debug::GSC_ACTS_DETOUR) * detourObjs.size());
+                        shared::gsc::acts_debug::GSC_ACTS_DETOUR* detours = reinterpret_cast<shared::gsc::acts_debug::GSC_ACTS_DETOUR*>(&dbgdata[detoursLoc]);
 
-                    for (FunctionObject* objexp : detourObjs) {
-                        detours->location = (uint32_t)objexp->location;
-                        detours->size = (uint32_t)objexp->size;
+                        for (FunctionObject* objexp : detourObjs) {
+                            detours->location = (uint32_t)objexp->location;
+                            detours->size = (uint32_t)objexp->size;
 
-                        detours->name = objexp->detour.func;
-                        detours->name_space = objexp->detour.nsp;
-                        detours->script = objexp->detour.script;
-                        detours++;
+                            detours->name = objexp->detour.func;
+                            detours->name_space = objexp->detour.nsp;
+                            detours->script = objexp->detour.script;
+                            detours++;
+                        }
                     }
-                }
 
-                tool::gsc::acts_debug::GSC_ACTS_DEBUG* debug_obj = reinterpret_cast<tool::gsc::acts_debug::GSC_ACTS_DEBUG*>(data.data() + actsDebugHeader);
+                    shared::gsc::acts_debug::GSC_ACTS_DEBUG* debug_obj = reinterpret_cast<shared::gsc::acts_debug::GSC_ACTS_DEBUG*>(dbgdata.data());
 
-                *reinterpret_cast<uint64_t*>(debug_obj->magic) = tool::gsc::acts_debug::MAGIC;
-                debug_obj->version = tool::gsc::acts_debug::CURRENT_VERSION;
-                debug_obj->flags = 0;
-                if (config.obfuscate) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_OBFUSCATED;
-                if (config.computeDevOption) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_DEBUG;
-                if (type == FILE_CSC) debug_obj->flags |= tool::gsc::acts_debug::ActsDebugFlags::ADFG_CLIENT;
-                if (((config.platform << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT) & ~tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_MASK)) {
-                    LOG_WARNING("Can't encode platform ID in debug header: Too big {}", (int)config.platform);
-                }
-                else {
-                    debug_obj->flags |= config.platform << tool::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT;
-                }
+                    *reinterpret_cast<uint64_t*>(debug_obj->magic) = shared::gsc::acts_debug::MAGIC;
+                    debug_obj->version = shared::gsc::acts_debug::CURRENT_VERSION;
+                    debug_obj->flags = 0;
+                    if (config.obfuscate) debug_obj->flags |= shared::gsc::acts_debug::ActsDebugFlags::ADFG_OBFUSCATED;
+                    if (config.computeDevOption) debug_obj->flags |= shared::gsc::acts_debug::ActsDebugFlags::ADFG_DEBUG;
+                    if (type == FILE_CSC) debug_obj->flags |= shared::gsc::acts_debug::ActsDebugFlags::ADFG_CLIENT;
+                    if (((config.platform << shared::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT) & ~shared::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_MASK)) {
+                        LOG_WARNING("Can't encode platform ID in debug header: Too big {}", (int)config.platform);
+                    }
+                    else {
+                        debug_obj->flags |= config.platform << shared::gsc::acts_debug::ActsDebugFlags::ADFG_PLATFORM_SHIFT;
+                    }
 
-                debug_obj->actsVersion = (uint64_t)core::actsinfo::VERSION_ID;
-                debug_obj->strings_count = (uint32_t)hashesIdx;
-                debug_obj->strings_offset = (uint32_t)hashesLoc;
-                debug_obj->detour_count = (uint32_t)detoursCount;
-                debug_obj->detour_offset = (uint32_t)detoursLoc;
-                debug_obj->devblock_offset = (uint32_t)devBlocksLoc;
-                debug_obj->devblock_count = (uint32_t)devBlocksIdx;
-                debug_obj->lazylink_offset = (uint32_t)lazyLinksLoc;
-                debug_obj->lazylink_count = (uint32_t)lazyLinksIdx;
-                debug_obj->devstrings_offset = 0;
-                debug_obj->lines_count = (uint32_t)linesIdx;
-                debug_obj->lines_offset = (uint32_t)linesLoc;
-                debug_obj->files_count = (uint32_t)filesIdx;
-                debug_obj->files_offset = (uint32_t)filesLoc;
+                    debug_obj->actsVersion = (uint64_t)core::actsinfo::VERSION_ID;
+                    debug_obj->strings_count = (uint32_t)hashesIdx;
+                    debug_obj->strings_offset = (uint32_t)hashesLoc;
+                    debug_obj->detour_count = (uint32_t)detoursCount;
+                    debug_obj->detour_offset = (uint32_t)detoursLoc;
+                    debug_obj->devblock_offset = (uint32_t)devBlocksLoc;
+                    debug_obj->devblock_count = (uint32_t)devBlocksIdx;
+                    debug_obj->lazylink_offset = (uint32_t)lazyLinksLoc;
+                    debug_obj->lazylink_count = (uint32_t)lazyLinksIdx;
+                    debug_obj->devstrings_offset = 0;
+                    debug_obj->lines_count = (uint32_t)linesIdx;
+                    debug_obj->lines_offset = (uint32_t)linesLoc;
+                    debug_obj->files_count = (uint32_t)filesIdx;
+                    debug_obj->files_offset = (uint32_t)filesLoc;
 
-                // add crc location
-                if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
-                    debug_obj->crc_offset = (uint32_t)crcData.opcode->floc;
-                }
-                else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
-                    debug_obj->crc_offset = (uint32_t)crcData.strlistener;
-                }
-                else {
-                    debug_obj->crc_offset = 0;
+                    // add crc location
+                    if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
+                        debug_obj->crc_offset = (uint32_t)crcData.opcode->floc;
+                    }
+                    else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
+                        debug_obj->crc_offset = (uint32_t)crcData.strlistener;
+                    }
+                    else {
+                        debug_obj->crc_offset = 0;
+                    }
+
+                    debug_obj->checksum = checksum;
                 }
             }
 
@@ -2475,7 +2498,7 @@ namespace acts::compiler {
             else {
                 gscHandler->SetName(fileName);
             }
-            gscHandler->SetChecksum(config.checksum);
+            gscHandler->SetChecksum(checksum);
             gscHandler->SetHeader();
 
             gscHandler->SetIncludesCount((int16_t)includes.size());
@@ -6020,24 +6043,37 @@ namespace acts::compiler {
                 opt.config.hashes = &hashes;
             }
 
+            std::vector<byte> dbgdata{};
+            opt.config.dbgoutput = &dbgdata;
+
             CompileGsc(inputs, data, opt.config);
 
             if (opt.m_preproc) {
                 utils::WriteFile(opt.m_preproc, *opt.config.preprocOutput);
             }
-
+            
             const char* outFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscc" : "gscc")};
+            const char* dbgOutFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscgdbc" : "gscgdbc")};
             std::filesystem::path outPath{ outFile };
 
             if (outPath.has_parent_path()) {
                 std::filesystem::create_directories(outPath.parent_path());
             }
 
-            if (!utils::WriteFile(outFile, (const void*)data.data(), data.size())) {
-                LOG_ERROR("Error when writing out file");
+            if (!utils::WriteFile(outPath, (const void*)data.data(), data.size())) {
+                LOG_ERROR("Error when writing out file {}", outFile);
                 return tool::BASIC_ERROR;
             }
+
             LOG_INFO("Done into {} ({}/{})", outFile, vmInfo->codeName, PlatformName(opt.config.platform));
+
+            if (!dbgdata.empty()) {
+                if (!utils::WriteFile(dbgOutFile, (const void*)dbgdata.data(), dbgdata.size())) {
+                    LOG_ERROR("Error when writing out dbg file {}", dbgOutFile);
+                    return tool::BASIC_ERROR;
+                }
+                LOG_INFO("Debug file dump into {}", dbgOutFile);
+            }
 
             if (opt.hashFile) {
                 const char* outFileHash{ utils::va("%s.hash", outFile) };
@@ -6064,6 +6100,7 @@ namespace acts::compiler {
             int ret{ tool::OK };
             std::vector<std::filesystem::path> inputs{};
             std::vector<std::filesystem::path> singleInputs{};
+            size_t doneFiles{};
             for (const char* file : opt.m_inputFiles) {
                 std::filesystem::path base{ file };
                 inputs.clear();
@@ -6072,6 +6109,7 @@ namespace acts::compiler {
                 for (const std::filesystem::path& path : inputs) {
                     auto ext{ path.extension() };
                     if (ext != ".gsc" && ext != ".csc" && ext != ".gcsc" && ext != ".gcsc") continue;
+                    doneFiles++;
 
                     std::filesystem::path trueFileName{ std::filesystem::relative(path, base) };
                     std::filesystem::path outFile{ outDir / trueFileName };
@@ -6115,6 +6153,10 @@ namespace acts::compiler {
                     }
                 }
 
+            }
+            if (!ret && doneFiles) {
+                LOG_ERROR("No file produced");
+                return tool::BASIC_ERROR;
             }
             return ret;
         }
@@ -6270,7 +6312,7 @@ namespace acts::compiler {
 
         RegisterOpCodesMap();
 
-        if (!obj.Compile(data)) {
+        if (!obj.Compile(data, config.dbgoutput)) {
             throw std::runtime_error("Error when compiling the object");
         }
     }

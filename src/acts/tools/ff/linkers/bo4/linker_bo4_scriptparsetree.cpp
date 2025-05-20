@@ -50,7 +50,7 @@ namespace fastfile::linker::bo4 {
 			}
 		}
 
-		static void AddGscDBGHeader(BO4LinkContext& ctx, std::vector<byte>& buffer, std::string& preproc, const std::filesystem::path& path) {
+		static void AddGscDBGHeader(BO4LinkContext& ctx, std::vector<byte>& buffer, std::string& preproc, std::vector<byte>& dbgbuffer, const std::filesystem::path& path) {
 			if (buffer.size() < sizeof(tool::gsc::T8GSCOBJ)) {
 				LOG_ERROR("Can't read compiled gsc header for {}", path.string());
 				return;
@@ -59,8 +59,8 @@ namespace fastfile::linker::bo4 {
 			struct ScriptParseTreeDBG
 			{
 				XHash name;
-				int gdbLen;
-				int srcLen;
+				int32_t gdbLen;
+				int32_t srcLen;
 				void* gdb;
 				const char* src;
 			}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
@@ -70,16 +70,31 @@ namespace fastfile::linker::bo4 {
 			ctx.data.PushStream(XFILE_BLOCK_TEMP);
 			ScriptParseTreeDBG spt{};
 			spt.name.name = obj.name;
-			spt.src = (const char*)fastfile::linker::data::POINTER_NEXT;
-			spt.srcLen = (uint32_t)preproc.size();
-			// todo: implement gdb compiler
+			if (preproc.size()) {
+				spt.src = (const char*)fastfile::linker::data::POINTER_NEXT;
+				spt.srcLen = (int32_t)preproc.size();
+			}
+			if (dbgbuffer.size()) {
+				spt.gdb = (void*)fastfile::linker::data::POINTER_NEXT;
+				spt.gdbLen = (int32_t)dbgbuffer.size();
+			}
 			ctx.data.WriteData(spt);
+			
+			if (preproc.size()) {
+				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.data.Align<char>();
+				void* ptr{ ctx.data.AllocDataPtr<void>(preproc.size() + 1) };
+				std::memcpy(ptr, preproc.data(), preproc.size());
+				ctx.data.PopStream();
+			}
 
-			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-			ctx.data.Align<char>();
-			preproc.push_back(0);
-			ctx.data.WriteData(preproc.data(), preproc.size());
-			ctx.data.PopStream();
+			if (dbgbuffer.size()) {
+				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.data.Align<char>();
+				void* ptr{ ctx.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
+				std::memcpy(ptr, dbgbuffer.data(), dbgbuffer.size());
+				ctx.data.PopStream();
+			}
 
 			ctx.data.PopStream();
 			LOG_INFO("Added asset scriptparsetreedbg {} (hash_{:x})", path.string(), obj.name);
@@ -134,9 +149,11 @@ namespace fastfile::linker::bo4 {
 					cfg.detourType = acts::compiler::DETOUR_ACTS;
 					cfg.computeDevOption = cfgDev;
 					std::string preprocOutput{};
+					std::vector<byte> dbgdata{};
 					if (cfgGenDBG) {
 						cfg.preprocOutput = &preprocOutput;
 					}
+					cfg.dbgoutput = &dbgdata;
 					cfg.noDevCallInline = cfgNoDevCallInline;
 					cfg.processorOpt.devBlockAsComment = genDevBlockAsComment;
 					cfg.clientScript = scriptName.extension() == ".csc";
@@ -171,9 +188,9 @@ namespace fastfile::linker::bo4 {
 						}
 					}
 
-					LOG_DEBUG("Compiled {} ({})", path.string(), cfg.name);
+					LOG_INFO("Compiled {} ({})", path.string(), cfg.name);
 					if (cfgGenDBG) {
-						AddGscDBGHeader(ctx, buffer, preprocOutput, scriptName);
+						AddGscDBGHeader(ctx, buffer, preprocOutput, path);
 					}
 				}
 				if (forced) {

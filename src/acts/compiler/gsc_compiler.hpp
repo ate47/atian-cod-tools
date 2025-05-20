@@ -21,6 +21,7 @@ namespace acts::compiler {
 		bool obfuscate{};
 		bool defineAsConstExpr{};
 		bool noDevCallInline{};
+		std::vector<byte>* dbgoutput{};
 		preprocessor::PreProcessorOption processorOpt{};
 		std::string* preprocOutput{};
 		std::unordered_map<std::string, std::vector<std::string>>* precache{};
