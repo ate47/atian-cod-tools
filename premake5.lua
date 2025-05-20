@@ -107,6 +107,9 @@ project "ACTSSharedLibrary"
         "deps/rapidjson/include/",
         "deps/miniz-cpp/",
         "deps/dbflib/src/lib/",
+        "deps/lz4/lib/",
+        "deps/zstd/lib/",
+		"deps/zlib/",
     }
 
     vpaths {
@@ -115,9 +118,15 @@ project "ACTSSharedLibrary"
     links { "asmjit" }
     links { "detours" }
     links { "libcurl" }
+    links { "lz4" }
+    links { "zstd" }
+    links { "zlib" }
     dependson "detours"
     dependson "asmjit"
     dependson "libcurl"
+    dependson "lz4"
+    dependson "zstd"
+    dependson "zlib"
 
 project "ACTSLibrary"
     kind "StaticLib"
@@ -376,6 +385,7 @@ project "AtianCodTools"
         "deps/casclib/src/",
         "deps/lz4/lib/",
         "deps/zstd/lib/",
+        "deps/salsa20/Source/",
 		"deps/Detours/src/",
         "deps/rapidjson/include/",
         "deps/dbflib/src/lib/",
@@ -388,7 +398,6 @@ project "AtianCodTools"
         "deps/thread-pool/include/",
         "deps/stb/",
         "deps/tomlplusplus/include/toml++/",
-        "deps/salsa20/Source/",
         "deps/miniz-cpp/",
         "deps/hash-library/",
         "deps/hksc/etc/",

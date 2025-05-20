@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <cli/cli_options.hpp>
 #include <extension/acts_extension.hpp>
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 #include <core/memory_allocator.hpp>
 #include <tools/compatibility/acts_acef.hpp>
 #include <rapidcsv.h>

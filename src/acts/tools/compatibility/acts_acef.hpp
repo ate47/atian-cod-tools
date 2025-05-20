@@ -1,5 +1,5 @@
 #pragma once
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 
 namespace compatibility::acts_acef {
 	constexpr utils::compress::CompressionAlgorithm DEFAULT_COMPRESS = utils::compress::COMP_ZSTD;

@@ -56,8 +56,7 @@ namespace fastfile::linker::bo4 {
 				return;
 			}
 			tool::gsc::T8GSCOBJ& obj{ *(tool::gsc::T8GSCOBJ*)buffer.data() };
-			struct ScriptParseTreeDBG
-			{
+			struct ScriptParseTreeDBG {
 				XHash name;
 				int32_t gdbLen;
 				int32_t srcLen;
@@ -189,8 +188,8 @@ namespace fastfile::linker::bo4 {
 					}
 
 					LOG_INFO("Compiled {} ({})", path.string(), cfg.name);
-					if (cfgGenDBG) {
-						AddGscDBGHeader(ctx, buffer, preprocOutput, path);
+					if (preprocOutput.size() || dbgdata.size()) {
+						AddGscDBGHeader(ctx, buffer, preprocOutput, dbgdata, path);
 					}
 				}
 				if (forced) {

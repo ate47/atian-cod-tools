@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <tools/cordycep/t10/dumper_t10.hpp>
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 
 namespace {
 	using namespace compatibility::scobalula::csi;

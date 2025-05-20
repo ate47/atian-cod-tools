@@ -4,7 +4,7 @@
 #include <core/memory_allocator.hpp>
 #include <tools/ff/fastfile_zone.hpp>
 #include <compiler/preprocessor.hpp>
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 
 namespace fastfile {
 	template<typename T>

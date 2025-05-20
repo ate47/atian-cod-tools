@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <cli/cli_options.hpp>
 #include <core/bytebuffer.hpp>
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 
 namespace {
 

@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <core/memory_allocator.hpp>
 #include <core/bytebuffer_file.hpp>
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 #include "acts_extension.hpp"
 
 namespace acts::extension {

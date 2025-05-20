@@ -3,15 +3,13 @@
 #include <core/async.hpp>
 #include <rapidcsv.h>
 #include "actscli.hpp"
-#include "compatibility/scobalula_wni.hpp"
-#include <core/memory_allocator.hpp>
+#include <deps/scobalula_wni.hpp>
+#include <core/hashes/hash_store.hpp>
 #include <core/bytebuffer.hpp>
 #include <BS_thread_pool.hpp>
 #include <extension/acts_extension.hpp>
 
 namespace {
-	core::memory_allocator::MemoryAllocator alloc{};
-	std::unordered_map<uint64_t, const char*> g_hashMap{};
 	std::set<uint64_t> g_extracted{};
 	const char* hashPrefix{};
 	std::unordered_set<uint64_t>* g_extractedOut{};
@@ -32,11 +30,11 @@ namespace hashutils {
 	}
 
 	const std::unordered_map<uint64_t, const char*>& GetMap() {
-		return g_hashMap;
+		return core::hashes::GetMap();
 	}
 
 	void* AllocHashMemory(size_t len) {
-		return alloc.Alloc<byte>(len);
+		return core::hashes::AllocHashMemory(len);
 	}
 
 	static void ReadDefaultFile0() {
@@ -46,7 +44,7 @@ namespace hashutils {
 			wniPackageIndex = opt.wniFiles;
 		}
 		else {
-			wniPackageIndex = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
+			wniPackageIndex = utils::GetProgDir() / deps::scobalula::wni::packageIndexDir;
 		}
 
 		actslib::profiler::Profiler prof{ "hash" };
@@ -57,10 +55,10 @@ namespace hashutils {
 			utils::GetFileRecurseExt(wniPackageIndex, wnipaths, ".wni\0");
 
 			for (std::filesystem::path& p : wnipaths) {
-				if (!compatibility::scobalula::wni::ReadWNIFile(p, [](uint64_t hash, const char* str) {
+				if (!deps::scobalula::wni::ReadWNIFile(p, [](uint64_t hash, const char* str) {
 					AddPrecomputed(hash, str, true, false);
 					}, [](size_t len) -> void* {
-						return AllocHashMemory(len);
+						return core::hashes::AllocHashMemory(len);
 					})) {
 					LOG_ERROR("Error when reading WNI files");
 				};
@@ -157,8 +155,7 @@ namespace hashutils {
 		std::lock_guard lg{ asyncMutex };
 
 		if (cleanup) {
-			g_hashMap.clear();
-			alloc.FreeAll();
+			core::hashes::Clean();
 			loaded = false;
 		}
 		if (!loaded) {
@@ -185,9 +182,10 @@ namespace hashutils {
 			return;
 		}
 
+		auto& hashmap{ core::hashes::GetMap() };
 		for (const auto& v : g_extracted) {
-			auto e = g_hashMap.find(v & hashutils::MASK60);
-			if (e != g_hashMap.end()) {
+			auto e = hashmap.find(v & hashutils::MASK60);
+			if (e != hashmap.end()) {
 				out << std::hex << v << "," << e->second << "\n";
 			}
 			else {
@@ -288,7 +286,7 @@ namespace hashutils {
 		const char* gscTmpStartIt = gscTmpStart;
 		while (*gscTmpStartIt) {
 			for (size_t i = 0; i < 1000; i++) {
-				const char* s{ alloc.CloneStr(utils::va("%s%lld", gscTmpStartIt, i)) };
+				const char* s{ core::hashes::CloneHashStr(utils::va("%s%lld", gscTmpStartIt, i)) };
 				AddPrecomputed(hash::HashT10Scr(s), s, true, false);
 				AddPrecomputed(hash::HashT10ScrSP(s), s, true, false);
 				AddPrecomputed(hash::HashJupScr(s), s, true, false);
@@ -329,7 +327,7 @@ namespace hashutils {
 		AddPrecomputed(hash::Hash64("localize.json"), "localize.json", true, false);
 
 		size_t hashFileLen;
-		byte* hashFile{ (byte*)utils::ReadFilePtr(file, &hashFileLen, [](size_t len) { return AllocHashMemory(len); }) };
+		byte* hashFile{ (byte*)utils::ReadFilePtr(file, &hashFileLen, [](size_t len) { return core::hashes::AllocHashMemory(len); }) };
 
 		if (!hashFile) {
 			LOG_TRACE("End load hash file {}", file);
@@ -369,7 +367,7 @@ namespace hashutils {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
 		// use the same string for all the hashes
 		if (clone) {
-			str = alloc.CloneStr(str);
+			str = core::hashes::CloneHashStr(str);
 		}
 		AddPrecomputed(hash::Hash64(str), str, true, false);
 		if (iw) {
@@ -400,9 +398,9 @@ namespace hashutils {
 
 			auto h = hash::HashT89Scr(str);
 			if (!ignoreCol) {
-				auto find = g_hashMap.find(h);
-				if (find != g_hashMap.end() && _strcmpi(str, find->second)) {
-					LOG_WARNING("Coll '{}'='{}' #{:x}", str, find->second, h);
+				auto find = core::hashes::ExtractPtr(h);
+				if (find && _strcmpi(str, find)) {
+					LOG_WARNING("Coll '{}'='{}' #{:x}", str, find, h);
 					return false;
 				}
 			}
@@ -412,7 +410,7 @@ namespace hashutils {
 	}
 	void AddPrecomputed(uint64_t value, const char* str, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		g_hashMap.emplace(value & hashutils::MASK60, clone ? alloc.CloneStr(str) : str);
+		core::hashes::AddPrecomputed(value, str, clone);
 	}
 
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
@@ -428,16 +426,17 @@ namespace hashutils {
 			}
 			return true;
 		}
-		const auto res = g_hashMap.find(hash & hashutils::MASK60);
+		auto& hashmap{ core::hashes::GetMap() };
+		const auto res = hashmap.find(hash & hashutils::MASK60);
 		if (g_saveExtracted) {
-			if (g_saveExtractedUnk || res != g_hashMap.end()) {
+			if (g_saveExtractedUnk || res != hashmap.end()) {
 				g_extracted.emplace(hash);
 			}
 		}
 		if (g_extractedOut) {
 			g_extractedOut->insert(hash & hashutils::MASK60);
 		}
-		if (res == g_hashMap.end()) {
+		if (res == hashmap.end()) {
 			snprintf(out, outSize, heavyHashes ? "%s_%016llX" : "%s_%llx", type, hash);
 			return false;
 		}
@@ -466,16 +465,12 @@ namespace hashutils {
 
 	const char* ExtractPtr(uint64_t hash) {
 		ReadDefaultFile();
-		const auto res = g_hashMap.find(hash & hashutils::MASK60);
-		if (res == g_hashMap.end()) {
-			return NULL;
-		}
-		return res->second;
+		return core::hashes::ExtractPtr(hash);
 	}
 
 	size_t Size() {
 		ReadDefaultFile();
-		return g_hashMap.size() >> 1; // 2 hashes/string
+		return core::hashes::GetMap().size() >> 1; // 2 hashes/string
 	}
 
 }

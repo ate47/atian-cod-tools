@@ -77,4 +77,8 @@ bgpool
 *.gscasmp
 *.cscp
 *.cscasmp
+*.gscgdb
+*.cscgdb
+*.gscgdbc
+*.cscgdbc
 gfxworld.json

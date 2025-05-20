@@ -1,5 +1,6 @@
-#include <includes.hpp>
+#include <includes_shared.hpp>
 #include <deps/oodle.hpp>
+#include <zlib.h>
 #include <lz4.h>
 #include <lz4hc.h>
 #include <zstd.h>

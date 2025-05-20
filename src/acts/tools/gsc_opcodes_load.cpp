@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <actscli.hpp>
-#include "compatibility/scobalula_wni.hpp"
+#include <deps/scobalula_wni.hpp>
 #include "compatibility/serious_db2.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
@@ -19,7 +19,7 @@ namespace tool::gsc::opcode {
 			const char* seriousDBDir = actscli::options().seriousDBFile;
 			std::filesystem::path seriousDBDirPath;
 			if (!seriousDBDir) {
-				seriousDBDirPath = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
+				seriousDBDirPath = utils::GetProgDir() / deps::scobalula::wni::packageIndexDir;
 			}
 			else {
 				seriousDBDirPath = seriousDBDir;
@@ -36,7 +36,7 @@ namespace tool::gsc::opcode {
 				compatibility::serious::db2::LoadVMDatabase(db);
 			}
 
-			std::filesystem::path actsopDirPath = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
+			std::filesystem::path actsopDirPath = utils::GetProgDir() / deps::scobalula::wni::packageIndexDir;
 			std::vector<std::filesystem::path> actsopFiles{};
 
 			utils::GetFileRecurse(actsopDirPath, actsopFiles, [](const std::filesystem::path& p) {

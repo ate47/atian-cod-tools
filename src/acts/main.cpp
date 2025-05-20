@@ -2,7 +2,7 @@
 #include <utils/utils.hpp>
 #include "hashutils.hpp"
 #include "decryptutils.hpp"
-#include "compatibility/scobalula_wni.hpp"
+#include <deps/scobalula_wni.hpp>
 #include "actscli.hpp"
 #include <cli/clicolor.hpp>
 #include "hook/error.hpp"
@@ -270,8 +270,8 @@ namespace {
 		LOG_INFO("--decrypt-mod [f]   : Use exe dump to decrypt strings");
 		LOG_INFO("--decrypt-t8 [v]    : Set the bo4 decryption algorithm, default 0");
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
-		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
-		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", compatibility::scobalula::wni::packageIndexDir);
+		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
+		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -W --work          : Tell which work to use: repl, cli");
 		
 		LOG_DEBUG(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
@@ -381,7 +381,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	}
 
 	// create default directories
-	std::filesystem::create_directories(utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir);
+	std::filesystem::create_directories(utils::GetProgDir() / deps::scobalula::wni::packageIndexDir);
 	std::filesystem::path depsDir{ utils::GetProgDir() / "deps" };
 	std::filesystem::create_directories(depsDir);
 	std::wstring depsDirStr{ depsDir.wstring() };
@@ -393,7 +393,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		packFilePath = opt.packFile;
 	}
 	else {
-		packFilePath = utils::GetProgDir() / compatibility::scobalula::wni::packageIndexDir;
+		packFilePath = utils::GetProgDir() / deps::scobalula::wni::packageIndexDir;
 	}
 
 	std::vector<std::filesystem::path> packFiles{};

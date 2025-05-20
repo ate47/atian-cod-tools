@@ -18,11 +18,15 @@ namespace core::bytebuffer {
 			else {
 				this->fileend = fileend;
 			}
-			ValidateState();
+			ValidateState("Can't create FileReader");
 		}
 
-		void ValidateState() {
-			if (!is) throw std::runtime_error("stream error");
+		void ValidateState(const char* err) {
+			if (is) return;
+			
+			if (is.eof() && !Remaining()) return; // not eof
+
+			throw std::runtime_error(err);
 		}
 
 		bool CanRead(size_t size) const override {
@@ -47,7 +51,7 @@ namespace core::bytebuffer {
 
 			is.read((char*)to, size);
 
-			ValidateState();
+			ValidateState("Invalid state after Read");
 
 			location += size;
 		}
@@ -64,7 +68,7 @@ namespace core::bytebuffer {
 				is.seekg(filestart + loc, std::ios::beg);
 			}
 
-			ValidateState();
+			ValidateState("Invalid state after Goto");
 
 			location = is.tellg();
 		}

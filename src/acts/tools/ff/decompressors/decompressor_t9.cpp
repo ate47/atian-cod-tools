@@ -3,7 +3,7 @@
 #include <tools/ff/fastfile_handlers.hpp>
 #include <games/bo4/pool.hpp>
 #include <tools/utils/data_utils.hpp>
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>
 #include <hook/error.hpp>
 #include <hook/memory.hpp>

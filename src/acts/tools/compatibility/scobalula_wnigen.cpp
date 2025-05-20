@@ -2,8 +2,8 @@
 #include <lz4.h>
 #include <rapidcsv.h>
 #include "actscli.hpp"
-#include "compatibility/scobalula_wni.hpp"
-#include <tools/utils/compress_utils.hpp>
+#include <deps/scobalula_wni.hpp>
+#include <utils/compress_utils.hpp>
 
 namespace {
 
@@ -48,7 +48,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		compatibility::scobalula::wni::ReadWNIFiles(in, [&os, type](uint64_t hash, const char* str) {
+		deps::scobalula::wni::ReadWNIFiles(in, [&os, type](uint64_t hash, const char* str) {
 			if (type == DT_CSV) {
 				os << std::hex << hash;
 				os << ",";
@@ -119,8 +119,8 @@ namespace {
 		);
 
 		// header
-		utils::WriteValue<uint32_t>(os, compatibility::scobalula::wni::WNI_MAGIC);
-		utils::WriteValue<uint16_t>(os, compatibility::scobalula::wni::WNI_VERSION);
+		utils::WriteValue<uint32_t>(os, deps::scobalula::wni::WNI_MAGIC);
+		utils::WriteValue<uint16_t>(os, deps::scobalula::wni::WNI_VERSION);
 		utils::WriteValue<uint32_t>(os, count); // entries
 		utils::WriteValue<uint32_t>(os, (uint32_t)bound); // compressedSize
 		utils::WriteValue<uint32_t>(os, (uint32_t)rawdata.size()); // decompressedSize

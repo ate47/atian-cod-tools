@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <extension/acts_extension.hpp>
-#include <tools/utils/compress_utils.hpp>
+#include <utils/compress_utils.hpp>
 #include <tools/compatibility/acts_acef.hpp>
 #include <compatibility/xensik_gscbin.hpp>
 #include <core/bytebuffer.hpp>
