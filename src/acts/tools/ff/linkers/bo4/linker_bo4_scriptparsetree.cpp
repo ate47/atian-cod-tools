@@ -153,6 +153,7 @@ namespace fastfile::linker::bo4 {
 					cfg.dbgoutput = &dbgdata;
 					cfg.noDevCallInline = cfgNoDevCallInline;
 					cfg.processorOpt.devBlockAsComment = genDevBlockAsComment;
+					cfg.processorOpt.cwd = ctx.linkCtx.input;
 					cfg.clientScript = scriptName.extension() == ".csc";
 					cfg.baseDir = ctx.linkCtx.input;
 					isCsc = cfg.clientScript;

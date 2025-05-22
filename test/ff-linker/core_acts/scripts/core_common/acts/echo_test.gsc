@@ -3,6 +3,13 @@
 #using scripts\core_common\callbacks_shared;
 #using scripts\core_common\util_shared;
 
+#insert scripts\core_common\acts\test_defs.gsh;
+
+#ifndef ACTS_DEFS_TEST
+// should be part of the gsh file
+#error Missing ACTS_DEFS_TEST
+#endif
+
 #namespace echo_test;
 
 #precache( "string", "ACTS_SPRAY_DESC" );

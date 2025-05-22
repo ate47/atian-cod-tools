@@ -537,6 +537,20 @@ namespace fastfile::handlers::bo4 {
 		bo4FFHandlerContext.assetList = assetList;
 	}
 
+	const char* GetEModeName(eModes id) {
+		static const char* names[]{
+			"ZOMBIES",
+			"MULTIPLAYER",
+			"CAMPAIGN",
+			"WARZONE",
+		};
+
+		if (id >= ARRAYSIZE(names) || id < 0) {
+			return "unknown";
+		}
+		return names[id];
+	}
+
 	const char* XFileBlockName(XFileBlock id) {
 		static const char* names[]{
 			"TEMP",

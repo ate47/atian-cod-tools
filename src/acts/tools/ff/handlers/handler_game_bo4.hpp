@@ -41,6 +41,16 @@ namespace fastfile::handlers::bo4 {
 	typedef FxEffectDef* FxEffectDefHandle;
 	typedef Material* MaterialHandle;
 
+	enum eModes : int32_t {
+		MODE_ZOMBIES = 0x0,
+		MODE_MULTIPLAYER = 0x1,
+		MODE_CAMPAIGN = 0x2,
+		MODE_WARZONE = 0x3,
+		MODE_COUNT = 0x4,
+		MODE_INVALID = 0x4,
+		MODE_FIRST = 0x0,
+	};
+
 	enum XFileBlock : uint32_t {
 		XFILE_BLOCK_TEMP = 0x0,
 		XFILE_BLOCK_TEMP_PRELOAD = 0x1,
@@ -90,6 +100,7 @@ namespace fastfile::handlers::bo4 {
 	const char* GetScrString(ScrString_t id);
 	void SetAssetList(XAssetList_0* assetList);
 	const char* XFileBlockName(XFileBlock id);
+	const char* GetEModeName(eModes mode);
 
 	XFileBlockMemLocation GetXFileBlockMemLocation(XFileBlock id);
 
