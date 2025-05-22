@@ -48,6 +48,7 @@ namespace bo4 {
 	S_ANY Ref<scrVmPub_t> scrVmPub{ 0x8307AA0_a };
 	S_ANY Ref<VM_OP_FUNC> gVmOpJumpTable{ 0x4EED340_a };
 	S_ANY Ref<uint32_t> gObjFileInfoCount{ 0x82F76B0_a };
+	S_ANY Ref<const char*> scrVarTypeNames{ 0x4EED240_a };
 	S_ANY Ref<objFileInfo_t[games::bo4::scriptinstance::ScriptInstance::SI_COUNT][650]> gObjFileInfo{ 0x82EFCD0_a };
 
 	// xassets

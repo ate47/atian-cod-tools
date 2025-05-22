@@ -1,4 +1,5 @@
 #include <dll_includes.hpp>
+#include <games/bo4/t8_errors.hpp>
 #include <data/bo4.hpp>
 #include <data/refs.hpp>
 #include <core/config.hpp>
@@ -19,6 +20,7 @@ namespace {
 
 	hook::library::Detour Scr_GscObjLink_Detour;
 	hook::library::Detour Scr_ResetLinkInfo_Detour;
+
 	int Scr_GscObjLink_Stub(bo4::scriptInstance_t inst, bo4::GSC_OBJ* prime_obj, bool runScript) {
 		bo4::ScopedCriticalSection scs{ bo4::CRITSECT_VM, bo4::SCOPED_CRITSECT_NORMAL };
 
@@ -141,7 +143,7 @@ namespace {
 			shared::gsc::acts_debug::GetGDBInfo(rloc, gdb, &filename, &line);
 			if (filename) {
 				// use debug data
-				sprintf_s(scriptnamebuffer[inst], "%s::%s::%d", filename, core::hashes::ExtractTmp("function", expit->name), line + 1);
+				sprintf_s(scriptnamebuffer[inst], "%s::%s:%d@%x", filename, core::hashes::ExtractTmp("function", expit->name), line + 1, rloc - expit->address);
 				*scriptname = scriptnamebuffer[inst];
 				return;
 			}
@@ -166,15 +168,12 @@ namespace {
 	}
 
 	void Scr_ResetLinkInfo_Stub(bo4::scriptInstance_t inst) {
-		{
-			bo4::ScopedCriticalSection scs{ bo4::CRITSECT_VM, bo4::SCOPED_CRITSECT_NORMAL };
-			Scr_ResetLinkInfo_Detour.Call(inst);
-			// cleanup debug data
-			std::memset(gObjGDBFileInfo[inst], 0, sizeof(gObjGDBFileInfo[inst]));
-			gObjGDBFileInfoCount[inst] = 0;
-		}
+		bo4::ScopedCriticalSection scs{ bo4::CRITSECT_VM, bo4::SCOPED_CRITSECT_NORMAL };
+		Scr_ResetLinkInfo_Detour.Call(inst);
+		// cleanup debug data
+		std::memset(gObjGDBFileInfo[inst], 0, sizeof(gObjGDBFileInfo[inst]));
+		gObjGDBFileInfoCount[inst] = 0;
 	}
-
 
 	void PostInit(uint64_t uid) {
 		Scr_GscObjLink_Detour.Create(0x2748E70_a, Scr_GscObjLink_Stub);

@@ -2409,7 +2409,15 @@ namespace acts::compiler {
                             utils::Allocate(dbgdata, sizeof(shared::gsc::acts_debug::GSC_ACTS_FILES) * info.container.blocks.size());
                             for (preprocessor::StringData& block : info.container.blocks) {
                                 size_t strLoc = dbgdata.size();
-                                std::string filename = block.filename.string();
+                                std::string filename;
+                                if (!config.baseDir.empty()) {
+                                    std::filesystem::path rfile{ std::filesystem::relative(block.filename, config.baseDir) };
+                                    filename = rfile.string();
+                                }
+                                else {
+                                    filename = block.filename.string();
+                                }
+                                //baseDir
                                 utils::WriteString(dbgdata, filename.c_str());
                                 shared::gsc::acts_debug::GSC_ACTS_FILES& f = reinterpret_cast<shared::gsc::acts_debug::GSC_ACTS_FILES*>(dbgdata.data() + filesLoc)[filesIdx++];
                                 f.filename = (uint32_t)strLoc;
@@ -5433,7 +5441,7 @@ namespace acts::compiler {
         }
 
 
-        exp.AddNode(func, new AscmNodeOpCode(OPCODE_End));
+        exp.AddNode(func->children[func->children.size() - 1], new AscmNodeOpCode(OPCODE_End));
 
         obj.info.PrintLineMessage(core::logs::LVL_WARNING, func->children[idx], std::format("Class not yet fully implemented: {}", func->children[idx]->getText()));
         return ok;

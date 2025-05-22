@@ -15,6 +15,7 @@ namespace acts::compiler {
 		const char* fileName{};
 		tool::gsc::opcode::Platform platform{ tool::gsc::opcode::PLATFORM_PC };
 		tool::gsc::opcode::VMId vm{ tool::gsc::opcode::VMI_UNKNOWN };
+		std::filesystem::path baseDir{};
 		DetourType detourType{ DETOUR_UNKNOWN };
 		int32_t checksum{};
 		bool computeDevOption{};

@@ -6,6 +6,7 @@
 #include <core/system.hpp>
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
+#include <systems/errors.hpp>
 
 namespace {
 
@@ -38,19 +39,31 @@ namespace {
 			LOG_INFO("{} {}", prefix, bo4::ScrVm_GetInt(inst, 0));
 			break;
 		default:
-			LOG_INFO("{} \"unk:{}\"", prefix, (int)type);
+			LOG_INFO("{} \"unk:{}\"", prefix, bo4::scrVarTypeNames[type]);
 			break;
 		}
 	}
 
 	void ActsHashLookup(bo4::scriptInstance_t inst) {
-		XHash hash{ *bo4::ScrVm_GetHash(&hash, inst, 0) };
-		const char* str{ core::hashes::ExtractPtr(hash) };
-		if (str) {
-			bo4::ScrVm_AddString(inst, str);
+		bo4::ScrVarType_t type{ bo4::ScrVm_GetType(inst, 0) };
+
+		if (type == bo4::TYPE_HASH) {
+			XHash hash{ *bo4::ScrVm_GetHash(&hash, inst, 0) };
+			const char* str{ core::hashes::ExtractPtr(hash) };
+
+			if (str) {
+				bo4::ScrVm_AddString(inst, str);
+			}
+			else {
+				bo4::ScrVm_AddHash(inst, &hash);
+			}
 		}
-		else {
-			bo4::ScrVm_AddHash(inst, &hash);
+		else if (type == bo4::TYPE_STRING) {
+			// redirect str
+			bo4::ScrVm_AddConstString(inst, bo4::ScrVm_GetConstString(inst, 0));
+		}
+		else if (type != bo4::TYPE_UNDEFINED) {
+			systems::errors::ScrVm_Error(inst, "Invalid Hash lookup type '%s'", false, bo4::scrVarTypeNames[type]);
 		}
 	}
 

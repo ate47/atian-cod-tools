@@ -154,6 +154,7 @@ namespace fastfile::linker::bo4 {
 					cfg.noDevCallInline = cfgNoDevCallInline;
 					cfg.processorOpt.devBlockAsComment = genDevBlockAsComment;
 					cfg.clientScript = scriptName.extension() == ".csc";
+					cfg.baseDir = ctx.linkCtx.input;
 					isCsc = cfg.clientScript;
 					std::unordered_map<std::string, std::vector<std::string>> bgcacheCompiled{};
 					cfg.precache = &bgcacheCompiled;

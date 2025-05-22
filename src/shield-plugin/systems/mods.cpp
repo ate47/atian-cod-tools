@@ -8,7 +8,7 @@
 #include <games/bo4/pool.hpp>
 #include "mods.hpp"
 
-namespace mods {
+namespace systems::mods {
 	namespace {
 
 		struct XZoneBuffer {

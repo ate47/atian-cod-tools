@@ -9,7 +9,7 @@ namespace shared::gsc::acts_debug {
 		const GSC_ACTS_LINES* linesEnd{ dbg->GetLinesEnd() };
 
 		for (; lines != linesEnd; lines++) {
-			if (rloc < lines->start && rloc >= lines->end) {
+			if (rloc < lines->start || rloc >= lines->end) {
 				continue;
 			}
 
