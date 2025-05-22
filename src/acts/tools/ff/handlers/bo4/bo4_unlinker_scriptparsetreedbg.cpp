@@ -24,7 +24,7 @@ namespace {
 			
 			const char* filename{ hashutils::ExtractPtr(spt->name) };
 			if (!filename) {
-				filename = utils::va("script_%llx.gsc", spt->name);
+				filename = utils::va("script_%llx.gsc", spt->name.name);
 			}
 
 			if (spt->gdb && spt->gdbLen) {
