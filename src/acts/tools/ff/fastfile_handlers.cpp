@@ -711,9 +711,7 @@ namespace fastfile {
 
 	void FastFileLinkerContext::ReadZoneFile() {
 		std::string zoneFileData{ utils::ReadFile<std::string>(zoneFile) };
-		std::string zoneFileName{ zoneFile.string() };
-		preProcOpt.ApplyPreProcessor(zoneFileData, zoneFileName.data());
-		zone.ParseFile(zoneFileData, zoneFileName.data());
+		zone.ParseFile(zoneFile, zoneFileData);
 
 		if (!ffname) {
 			ffname = zone.GetConfig("name");

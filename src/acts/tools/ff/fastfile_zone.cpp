@@ -4,15 +4,18 @@
 
 namespace fastfile::zone {
 
-	void Zone::ParseFile(const std::string& file, const char* filename) {
-		if (filename) {
-			ParseFile(file, [filename](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "[{}:{}] {}", filename, line, message); });
-		}
-		else {
-			ParseFile(file, [](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "[line:{}] {}", line, message); });
-		}
+	void Zone::ParseFile(const std::filesystem::path& path, std::string& file, size_t depth) {
+		ParseFile(path, file, [&path](core::logs::loglevel lvl, size_t line, const std::string& message) { LOG_LVLF(lvl, "[{}:{}] {}", path.string(), line, message); }, depth);
 	}
-	void Zone::ParseFile(const std::string& file, std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler) {
+	void Zone::ParseFile(const std::filesystem::path& path, std::string& file, std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler, size_t depth) {
+		if (depth == 10) {
+			throw std::runtime_error(std::format("Can't parse zone file '{}', max depth", path.string()));
+		}
+		// preproc apply
+		if (!preProcOpt.ApplyPreProcessor(file, [&errorHandler](core::logs::loglevel lvl, size_t line, const std::string& message) { errorHandler(lvl, line, message); })) {
+			throw std::runtime_error(std::format("Can't apply preprocessor on '{}'", path.string()));
+		}
+
 		std::istringstream is{ file };
 		
 		size_t lineIdx{};
@@ -48,8 +51,9 @@ namespace fastfile::zone {
 				const char*& val{ cfgs[key] };
 				
 				if (val) {
-					errorHandler(core::logs::LVL_WARNING, lineIdx, std::format("Config item {} registered twice", key));
-					continue;
+					//errorHandler(core::logs::LVL_WARNING, lineIdx, std::format("Config item '{}' registered twice", key));
+					alloc.Free((void*)(val));
+					val = nullptr;
 				}
 
 				size_t valLen{ sw.length() - split - 1 + 1 };
@@ -66,11 +70,28 @@ namespace fastfile::zone {
 				}
 
 				std::string assettype{ sw.substr(0, split) };
-				std::vector<const char*>& vals{ assets[assettype] };
 
 				size_t valLen{ sw.length() - split - 1 + 1 };
-				char* keyStr{ alloc.ClonePtr<char>(&line.data()[start + split + 1], valLen) };
+				char* keyStr{ &line.data()[start + split + 1] };
+				if (utils::EqualIgnoreCase(assettype, "include")) {
+					// including zone file
+					std::string includeName{ keyStr, keyStr + valLen - 1 };
+
+					std::filesystem::path includePath{ path.parent_path() / includeName };
+					errorHandler(core::logs::LVL_INFO, lineIdx, std::format("Include zone file '{}'", includePath.string()));
+
+					std::string incfileData{ utils::ReadFile<std::string>(includePath) };
+
+					std::string zoneFileName{ includePath.string() };
+					ParseFile(includePath, incfileData, [&zoneFileName, &errorHandler](core::logs::loglevel lvl, size_t line, const std::string& message) {
+						errorHandler(lvl, line, std::format("[{}:{}] {}", zoneFileName, line, message));
+					}, depth + 1);
+					continue;
+				}
+				keyStr = alloc.ClonePtr<char>(keyStr, valLen);
+
 				keyStr[valLen - 1] = 0;
+				std::vector<const char*>& vals{ assets[assettype] };
 				vals.push_back(keyStr);
 			}
 		}
@@ -115,7 +136,7 @@ namespace fastfile::zone {
 				return tool::BASIC_ERROR;
 			}
 
-			zone.ParseFile(zoneFile);
+			zone.ParseFile(argv[2], zoneFile);
 			LOG_INFO("Configs: {}", zone.cfgs.size());
 			for (auto& [k, c] : zone.cfgs) {
 				LOG_INFO("- {} -> \"{}\"", k, c);

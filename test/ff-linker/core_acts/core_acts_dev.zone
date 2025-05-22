@@ -1,0 +1,15 @@
+#warning use dev configs
+
+#ifdef CI
+#error DEV CONFIGS DEPLOYED TO CI
+#endif
+// cause max depth error
+//include,core_acts_dev.zone
+
+
+// requires the oodle ddl, so I don't deploy it as default
+>compression=oodle_kraken
+
+// gsc configs
+>gsc.gendbg=true
+>gsc.dev=true

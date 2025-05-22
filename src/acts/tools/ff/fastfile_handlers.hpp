@@ -3,7 +3,6 @@
 #include <core/bytebuffer.hpp>
 #include <core/memory_allocator.hpp>
 #include <tools/ff/fastfile_zone.hpp>
-#include <compiler/preprocessor.hpp>
 #include <utils/compress_utils.hpp>
 
 namespace fastfile {
@@ -188,7 +187,6 @@ namespace fastfile {
 		std::filesystem::path zoneFile;
 		std::filesystem::path input;
 		zone::Zone zone{};
-		acts::compiler::preprocessor::PreProcessorOption preProcOpt{};
 		std::string inputFileNameStr;
 		FastFileLinkerOption& opt;
 		std::vector<byte> linkedData{};

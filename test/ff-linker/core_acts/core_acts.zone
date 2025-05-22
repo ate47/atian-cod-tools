@@ -3,17 +3,11 @@
 // fastfile options
 >game=bo4              // the game to use
 >name=core_acts        // fastfile name
-// gsc configs
->gsc.gendbg=true
->gsc.dev=true
-
-#ifdef CI
 >compression=zlib        // compression type, by default no compression is used
-#else
-// requires the oodle ddl, so I don't deploy it as default
->compression=oodle_kraken
-#endif
 >compression.high=true // use high compression
+
+// include another zone file
+include,test.zone
 
 // a script entry
 scriptparsetree,scripts/core_common/acts/no_linked_test.gsc
@@ -21,6 +15,7 @@ scriptparsetree,scripts/core_common/acts/no_linked_test.gsc
 scriptparsetree,!scripts/core_common/acts/echo_test.gsc
 scriptparsetree,!scripts/core_common/acts/echo_test.csc
 
+// a lua script
 luafile,lua/acts/test.lua
 
 // stringtable
@@ -37,3 +32,9 @@ image,acts_test_icon.png
 
 // add a localize list file
 localizelist,acts/localize.json
+
+
+// dev stuff
+#ifndef CI
+include,core_acts_dev.zone
+#endif
