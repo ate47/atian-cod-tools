@@ -71,7 +71,7 @@ namespace fastfile::linker::bo4 {
 
 				ctx.data.PushStream(XFILE_BLOCK_TEMP);
 				StringTable table{};
-				table.name.name = HashPathName(rfpath);
+				table.name.name = ctx.HashPathName(rfpath);
 				table.columnCount = (int32_t)doc.GetColumnCount();
 				table.rowCount = doc.GetRowCount() ? (int32_t)(doc.GetRowCount() - 1) : 0;
 				table.values = (StringTableVar*)fastfile::linker::data::POINTER_NEXT;
@@ -137,7 +137,7 @@ namespace fastfile::linker::bo4 {
 							case STC_TYPE_HASHED2:
 							case STC_TYPE_HASHED7:
 							case STC_TYPE_HASHED8:
-								var.value.hash.name = hash::Hash64Pattern(val.data());
+								var.value.hash.name = ctx.HashXHash(val.data());
 								break;
 							case STC_TYPE_INT:
 								var.value.int_value = utils::ParseFormatInt(val.data());
@@ -146,7 +146,7 @@ namespace fastfile::linker::bo4 {
 								var.value.float_value = std::strtof(val.data(), nullptr);
 								break;
 							case STC_TYPE_BOOL:
-								var.value.bool_value = hash::Hash64("true") == hash::Hash64(val);
+								var.value.bool_value = utils::EqualIgnoreCase("true", val);
 								break;
 							default:
 								throw std::runtime_error("STRINGTABLE LINKER MISSING CASE");

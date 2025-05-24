@@ -81,7 +81,7 @@ namespace deps::scobalula::wni {
 		utils::GetFileRecurseExt(path, paths, ".wni\0");
 
 		for (const std::filesystem::path& p : paths) {
-			if (!ReadWNIFile(path, each, allocMemory, loadMutex)) return false;
+			if (!ReadWNIFile(p, each, allocMemory, loadMutex)) return false;
 		}
 		return true;
 	}

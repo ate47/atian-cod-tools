@@ -141,6 +141,7 @@ namespace fastfile::linker::bo4 {
 					acts::compiler::CompilerConfig cfg{};
 					std::string snp{ scriptName.string() };
 					cfg.name = hashutils::CleanPath(snp.data());
+					ctx.HashPathName(scriptName);
 					cfg.platform = GetGSCPlatform(ctx.linkCtx.opt.platform);
 					cfg.vm = tool::gsc::opcode::VMI_T8_36; // read cfg?
 					cfg.detourType = acts::compiler::DETOUR_ACTS;
@@ -161,6 +162,9 @@ namespace fastfile::linker::bo4 {
 					cfg.precache = &bgcacheCompiled;
 					cfg.processorOpt.defines.insert(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
 
+					std::unordered_set<std::string> hashes{};
+					cfg.hashes = &hashes;
+
 					try {
 						acts::compiler::CompileGsc(path, buffer, cfg);
 					}
@@ -168,6 +172,12 @@ namespace fastfile::linker::bo4 {
 						LOG_ERROR("Can't compile {}: {}", path.string(), re.what());
 						ctx.error = true;
 						continue;
+					}
+
+					for (const std::string& str : hashes) {
+						char* v{ hashutils::CleanPath(utils::CloneString(str.data())) };
+						ctx.linkCtx.RegisterHash(hash::Hash64(str.data()), str);
+						ctx.linkCtx.RegisterHash(hash::HashT89Scr(str.data()), str);
 					}
 
 					for (auto& [bgtype, entries] : bgcacheCompiled) {
@@ -181,7 +191,7 @@ namespace fastfile::linker::bo4 {
 						std::unordered_set<uint64_t>& bg{ ctx.bgcache[type] };
 
 						for (const std::string& entry : entries) {
-							uint64_t hash{ hash::Hash64Pattern(entry.c_str()) };
+							uint64_t hash{ ctx.HashXHash(entry.c_str()) };
 							LOG_DEBUG("add {}::{} ({:x}) to bgcache", games::bo4::pool::BGCacheNameFromId(type), entry, hash);
 							bg.insert(hash);
 						}

@@ -425,9 +425,14 @@ namespace utils {
         return MapString(buffer, [](char c) { return std::tolower(c); });
     }
 
+    int RemoveCase(int c) {
+        if (c == '\\') return '/';
+        return tolower(c);
+    }
+
     bool EqualIgnoreCase(const char* s1, const char* s2) {
         while (*s1) {
-            if (tolower(*s1) != tolower(*s2)) {
+            if (RemoveCase(*s1) != RemoveCase(*s2)) {
                 return false;
             }
             s1++;

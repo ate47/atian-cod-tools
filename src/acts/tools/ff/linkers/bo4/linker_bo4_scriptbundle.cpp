@@ -141,14 +141,9 @@ namespace fastfile::linker::bo4 {
 
 				SB_Object* sobj{ ctx.data.GetData<SB_Object>(sbObjects) + idxobj++ };
 
-				if (hash::TryHashPattern(keyName, sobj->keyName.name)) {
-					// not good, what if the user wants a XHash key
-					sobj->keyScrName = (uint32_t)sobj->keyName.name;
-				}
-				else {
-					sobj->keyName.name = hash::Hash64Pattern(keyName);
-					sobj->keyScrName = hash::HashT89Scr(keyName);
-				}
+				// not good, what if the user wants a hashed key
+				sobj->keyName.name = ctx.HashXHash(keyName);
+				sobj->keyScrName = ctx.HashScr(keyName);
 
 				if (v.IsInt() || v.IsInt64()) {
 					sobj->type = KVP_INT;
@@ -182,7 +177,7 @@ namespace fastfile::linker::bo4 {
 							sobj->stringRef = (ScrString_t)ctx.data.AddString(val);
 							break;
 						case ET_XHASH:
-							sobj->hashValue.name = hash::Hash64Pattern(val);
+							sobj->hashValue.name = ctx.HashXHash(val);
 							break;
 						}
 						break;
@@ -190,7 +185,7 @@ namespace fastfile::linker::bo4 {
 
 					if (sobj->type == KVP_STRING) {
 						sobj->stringRef = (ScrString_t)ctx.data.AddString(stringValue);
-						sobj->hashValue.name = hash::Hash64(stringValue);
+						sobj->hashValue.name = ctx.HashXHash(stringValue);
 					}
 				
 				}
@@ -294,14 +289,13 @@ namespace fastfile::linker::bo4 {
 				ScriptBundle* bundle{ ctx.data.GetData<ScriptBundle>(header) };
 
 				// add name and type to bundle
-				uint64_t hname{ hash::Hash64(name) };
-				bundle->name.name = hname;
+				bundle->name.name = ctx.HashXHash(name);
 				rapidjson::Value nameValue{};
 				nameValue.SetString(name.data(), main.GetAllocator());
 				main.AddMember(rapidjson::StringRef("name"), nameValue, main.GetAllocator());
 				
 				if (type.size()) {
-					bundle->bundleType.name = hash::Hash64(type);
+					bundle->bundleType.name = ctx.HashXHash(type);
 
 					rapidjson::Value typeValue{};
 					typeValue.SetString(type.data(), main.GetAllocator());
@@ -319,7 +313,7 @@ namespace fastfile::linker::bo4 {
 				ctx.data.PopStream();
 
 
-				LOG_INFO("Added asset scriptbundle {} (hash_{:x})", rfpath.string(), hname);
+				LOG_INFO("Added asset scriptbundle {} (hash_{:x})", rfpath.string(), bundle->name.name);
 			}
 		}
 	};

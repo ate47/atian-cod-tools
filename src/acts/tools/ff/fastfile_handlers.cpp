@@ -727,6 +727,18 @@ namespace fastfile {
 			}
 		}
 	}
+	void FastFileLinkerContext::RegisterHash(uint64_t val, const char* str) {
+		if (!val) return;
+
+		const char*& old{ storedHashes[val] };
+		if (old) {
+			if (!utils::EqualIgnoreCase(old, str)) {
+				LOG_WARNING("Hash collision {} != {} for val 0x{:x}", old, str, val);
+			}
+		}
+
+		old = strs.CloneStr(str);
+	}
 
 	int fastfilelinker(int argc, const char* argv[]) {
 		FastFileLinkerOption opt{};

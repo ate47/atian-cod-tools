@@ -2,6 +2,7 @@
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/ff/linkers/linker_bo4.hpp>
+#include <tools/compatibility/scobalula_wnigen.hpp>
 
 namespace {
 	using namespace fastfile;
@@ -165,18 +166,28 @@ namespace {
 
 			// todo: write other data
 
-			std::filesystem::path outputFile{ ctx.opt.m_output / "bo4" / std::format("{}.ff", ctx.ffname) };
+			std::filesystem::path outputFileFF{ ctx.opt.m_output / "zone" / std::format("{}.ff", ctx.ffname) };
 
-			std::filesystem::create_directories(outputFile.parent_path());
-			if (!utils::WriteFile(outputFile, out)) {
-				throw std::runtime_error(std::format("Can't write into {}", outputFile.string()));
+			std::filesystem::create_directories(outputFileFF.parent_path());
+			if (!utils::WriteFile(outputFileFF, out)) {
+				throw std::runtime_error(std::format("Can't write into {}", outputFileFF.string()));
 			}
 
 			if (ctx.opt.m_fd) {
 				LOG_WARNING(".fd file generator not implemented");
 			}
 
-			LOG_INFO("Compressed {} into {} [{}]({} -> {} bytes / {}% saved)", ctx.ffname, outputFile.string(), alg, ctx.linkedData.size(), compressedSize, (100 - 100 * compressedSize / ctx.linkedData.size()));
+			LOG_INFO("Compressed {} into {} [{}]({} -> {} bytes / {}% saved)", ctx.ffname, outputFileFF.string(), alg, ctx.linkedData.size(), compressedSize, (100 - 100 * compressedSize / ctx.linkedData.size()));
+
+
+			if (!ctx.storedHashes.empty()) {
+				std::filesystem::path outputFileWNI{ ctx.opt.m_output / "acts" / "package_index" / std::format("{}.wni", ctx.ffname) };
+				std::filesystem::create_directories(outputFileWNI.parent_path());
+
+				if (compatibility::scobalula::wnigen::CompressWNIFile(ctx.storedHashes, outputFileWNI) != tool::OK) {
+					throw std::runtime_error(std::format("Can't write wni info into {}", outputFileWNI.string()));
+				}
+			}
 		}
 
 	};

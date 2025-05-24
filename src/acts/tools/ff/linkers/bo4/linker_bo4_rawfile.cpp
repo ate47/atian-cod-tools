@@ -28,7 +28,7 @@ namespace fastfile::linker::bo4 {
 				ctx.data.PushStream(XFILE_BLOCK_TEMP);
 				RawFile rf{};
 
-				rf.name.name = HashPathName(rfpath);
+				rf.name.name = ctx.HashPathName(rfpath);
 				rf.buffer = (const char*)fastfile::linker::data::POINTER_NEXT;
 				rf.len = (uint32_t)buffer.size();
 				ctx.data.WriteData(rf);

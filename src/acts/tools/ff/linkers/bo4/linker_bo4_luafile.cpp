@@ -59,7 +59,7 @@ namespace fastfile::linker::bo4 {
 				ctx.data.PushStream(XFILE_BLOCK_TEMP);
 				LuaFile lf{};
 
-				lf.name.name = HashPathName(rfpath);
+				lf.name.name = ctx.HashPathName(rfpath);
 				lf.buffer = (byte*)fastfile::linker::data::POINTER_NEXT;
 				lf.len = (uint32_t)outluac.size();
 				outluac.push_back(0);

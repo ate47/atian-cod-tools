@@ -70,7 +70,7 @@ namespace fastfile::linker::bo4 {
 				std::filesystem::path filename{ path.filename() };
 				filename.replace_extension();
 				std::string name{ filename.string() };
-				uint64_t hash{ hash::Hash64Pattern(name.data()) };
+				uint64_t hash{ ctx.HashXHash(name.data()) };
 				std::string pathStr{ path.string() };
 				GfxImage gfx{};
 				gfx.name.name = hash;

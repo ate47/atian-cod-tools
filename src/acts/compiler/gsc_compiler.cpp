@@ -1527,7 +1527,12 @@ namespace acts::compiler {
             : config(config), type(file), info(nfo), vmInfo(config.GetVm()), gscHandler(gscHandler) {
             fileName = vmInfo->HashPath(config.name);
             const char* fns = config.fileName;
-            fileNameSpace = fns && *fns ? vmInfo->HashFilePath(fns) : 0;
+            if (fns && *fns) {
+                fileNameSpace = vmInfo->HashFilePath(fns);
+                if (config.hashes) {
+                    config.hashes->insert(fns);
+                }
+            }
 
             currentNamespace = fileNameSpace;
         }

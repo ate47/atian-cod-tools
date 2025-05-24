@@ -7,6 +7,7 @@
 #include <hook/library.hpp>
 #include <games/bo4/pool.hpp>
 #include "mods.hpp"
+#include <core/hashes/hash_store.hpp>
 
 namespace systems::mods {
 	namespace {
@@ -240,9 +241,9 @@ namespace systems::mods {
 			void* entry{ DB_LinkXAssetEntry_Detour.Call<void*>(newEntry, allowOverride) };
 			if (loadFakeFastFile) {
 				LOG_DEBUG(
-					"DB_LinkXAssetEntry({}={}, {:x}, allowOverride={}) -> {}",
+					"DB_LinkXAssetEntry({}={}, {}, allowOverride={}) -> {}",
 					games::bo4::pool::XAssetNameFromId(newEntry->type), (int)newEntry->type,
-					games::bo4::pool::GetAssetName(newEntry->type, newEntry->header)->name,
+					core::hashes::ExtractTmp("hash", games::bo4::pool::GetAssetName(newEntry->type, newEntry->header)->name),
 					allowOverride, entry
 				);
 			}

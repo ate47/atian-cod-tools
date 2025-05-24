@@ -8,7 +8,33 @@ namespace fastfile::linker::bo4 {
 		return workers;
 	}
 
-	uint64_t HashPathName(const std::filesystem::path& path) {
+	uint32_t BO4LinkContext::HashScr(const char* str) {
+		uint64_t r;
+		if (hash::TryHashPattern(str, r)) {
+			return (uint32_t)r; // nothing to add
+		}
+
+		r = hash::HashT89Scr(str);
+
+		linkCtx.RegisterHash(r, str);
+
+		return (uint32_t)r;
+	}
+
+	uint64_t BO4LinkContext::HashXHash(const char* str) {
+		uint64_t r;
+		if (hash::TryHashPattern(str, r)) {
+			return r; // nothing to add
+		}
+
+		r = hash::Hash64(str);
+
+		linkCtx.RegisterHash(r, str);
+
+		return r;
+	}
+
+	uint64_t BO4LinkContext::HashPathName(const std::filesystem::path& path) {
 		std::filesystem::path p{ path };
 		if (p.has_extension()) {
 			p.replace_extension();
@@ -17,7 +43,7 @@ namespace fastfile::linker::bo4 {
 		uint64_t r;
 		if (!hash::TryHashPattern(fn.data(), r)) {
 			fn = path.string();
-			r = hash::Hash64(fn.data());
+			r = HashXHash(fn.data());
 		}
 		LOG_TRACE("Hash path {} -> 0x{:x}", path.string(), r);
 		return r;
@@ -38,6 +64,7 @@ namespace fastfile::linker::bo4 {
 		void Link(FastFileLinkerContext& ctx) override {
 			BO4LinkContext bo4ctx{ ctx };
 			bo4ctx.ffnameHash = hash::Hash64Pattern(ctx.ffname);
+			ctx.RegisterHash(bo4ctx.ffnameHash, ctx.ffname);
 
 
 			// load files into bo4ctx.assetData

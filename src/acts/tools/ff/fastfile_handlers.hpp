@@ -192,6 +192,7 @@ namespace fastfile {
 		std::vector<byte> linkedData{};
 		const char* ffname{};
 		size_t blockSizes[0x10]{};
+		std::unordered_map<uint64_t, const char*> storedHashes{};
 		core::memory_allocator::MemoryAllocator strs{};
 		FFCompressor* compressor{};
 		FFLinker* linker{};
@@ -202,6 +203,12 @@ namespace fastfile {
 		}
 
 		void ReadZoneFile();
+
+		void RegisterHash(uint64_t val, const char* str);
+
+		inline void RegisterHash(uint64_t val, const std::string& str) {
+			RegisterHash(val, str.data());
+		}
 	};
 
 	constexpr uint64_t MASK32 = 0xFFFFFFFF;

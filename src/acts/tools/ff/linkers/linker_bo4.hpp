@@ -43,6 +43,12 @@ namespace fastfile::linker::bo4 {
 		std::unordered_map<games::bo4::pool::BGCacheTypes, std::unordered_set<uint64_t>> bgcache{};
 		bool error{};
 		uint64_t ffnameHash{};
+
+		uint32_t HashScr(const char* str);
+		uint64_t HashXHash(const char* str);
+		inline uint64_t HashXHash(const std::string& str) { return HashXHash(str.data()); }
+		inline uint64_t HashScr(const std::string& str) { return HashScr(str.data()); }
+		uint64_t HashPathName(const std::filesystem::path& path);
 	};
 
 	class LinkerWorker {
@@ -53,8 +59,6 @@ namespace fastfile::linker::bo4 {
 
 		virtual void Compute(BO4LinkContext& ctx) = 0;
 	};
-
-	uint64_t HashPathName(const std::filesystem::path& path);
 
 	std::vector<LinkerWorker*>& GetWorkers();
 }

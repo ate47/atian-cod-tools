@@ -30,7 +30,7 @@ namespace fastfile::linker::bo4 {
 					ctx.data.PushStream(XFILE_BLOCK_TEMP);
 					LocalizeEntry header{};
 
-					header.name.name = hash::Hash64Pattern(k.GetString());
+					header.name.name = ctx.HashXHash(k.GetString());
 					header.value = (const char*)fastfile::linker::data::POINTER_NEXT;
 					ctx.data.WriteData(header);
 
