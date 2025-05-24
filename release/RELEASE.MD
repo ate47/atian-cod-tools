@@ -1,24 +1,19 @@
 - acts
-  - gsc decompiler
-    - fix treyarch format for 'for' loop
-    - working on IW8 decompiler
-    - bo6 vm14 support
-    - add option to hide op values in disassembly
-  - gsc compiler
-    - add array unpack in grammar
-  - fastfile unlinker
-    - fix bo4 handler
-    - fix weapon tunables names
-    - test bo6 handler
   - fastfile linker
-    - stringtable and gfximage linker
-    - fix chunk compression
-  - some bo6 asset improvement
-  - fix hash::XHash63 and hash::XHash64
+    - use zone file to describe linker
+    - add include in zone file
+    - scriptparsetreedbg, bgcache, luafile and scriptbundle bo4 linkers
+    - dump files in the same paths as the game dir
+    - produce WNI files with the fastfile
+  - fastfile unlinker
+    - vehicle bo4 pool
+    - graphic bo4 pools test
+    - allow to only dump particular types
+  - preprocessor
+    - fix directives in removed blocks
+    - add #insert directive
+  - test gscbin recompressor with zlib
 - acts-shield-plugin
-  - mods
-    - mod config
-    - add asset redirect
-    - fix fastfile loading
-    - use isCommon as the default way of loading a fastfile, ***this is will be removed in the future***
-  - deploy plugin as separate file
+  - add ActsHashLookup gsc function
+  - hash store integration
+  - load gsc debug files
