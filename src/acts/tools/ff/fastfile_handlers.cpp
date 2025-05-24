@@ -779,7 +779,7 @@ namespace fastfile {
 				FastFileLinkerContext ctx{ opt, file };
 
 #ifdef CI_BUILD
-				ctx.preProcOpt.defines.insert("CI");
+				ctx.zone.preProcOpt.defines.insert("CI");
 #endif
 
 				ctx.ReadZoneFile();
