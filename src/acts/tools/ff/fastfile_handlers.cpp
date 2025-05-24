@@ -6,6 +6,7 @@
 #include <CascLib.h>
 #include <CascCommon.h>
 #pragma warning(pop)
+#include <core/actsinfo.hpp>
 
 
 namespace fastfile {
@@ -781,6 +782,9 @@ namespace fastfile {
 #ifdef CI_BUILD
 				ctx.zone.preProcOpt.defines.insert("CI");
 #endif
+				if (core::actsinfo::DEV_VERSION_ID == core::actsinfo::VERSION_ID) {
+					ctx.zone.preProcOpt.defines.insert("ACTS_DEV");
+				}
 
 				ctx.ReadZoneFile();
 

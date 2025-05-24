@@ -5,8 +5,8 @@
 namespace fastfile::zone {
 	class Zone {
 		core::memory_allocator::MemoryAllocator alloc{};
-		acts::compiler::preprocessor::PreProcessorOption preProcOpt{};
 	public:
+		acts::compiler::preprocessor::PreProcessorOption preProcOpt{};
 		std::unordered_map<std::string, std::vector<const char*>> assets;
 		std::unordered_map<std::string, const char*> cfgs;
 
