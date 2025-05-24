@@ -83,8 +83,8 @@ namespace fastfile::zone {
 					std::string incfileData{ utils::ReadFile<std::string>(includePath) };
 
 					std::string zoneFileName{ includePath.string() };
-					ParseFile(includePath, incfileData, [&zoneFileName, &errorHandler](core::logs::loglevel lvl, size_t line, const std::string& message) {
-						errorHandler(lvl, line, std::format("[{}:{}] {}", zoneFileName, line, message));
+					ParseFile(includePath, incfileData, [&zoneFileName, &errorHandler, lineIdx](core::logs::loglevel lvl, size_t line, const std::string& message) {
+						errorHandler(lvl, lineIdx, std::format("[{}:{}] {}", zoneFileName, line, message));
 					}, depth + 1);
 					continue;
 				}
