@@ -160,6 +160,7 @@ namespace fastfile::linker::bo4 {
 					isCsc = cfg.clientScript;
 					std::unordered_map<std::string, std::vector<std::string>> bgcacheCompiled{};
 					cfg.precache = &bgcacheCompiled;
+					cfg.useModToolOpCodes = true;
 					cfg.processorOpt.defines.insert(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
 
 					std::unordered_set<std::string> hashes{};

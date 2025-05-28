@@ -85,7 +85,8 @@ namespace tool::gsc::opcode {
 		std::unordered_map<char, VmHashFunc> hashesFunc{};
 		std::unordered_set<uint64_t> devCallsNames{};
 		std::unordered_map<uint16_t, std::unordered_map<Platform, OPCode>> opcodemap{};
-		std::unordered_map<OPCode, std::unordered_map<Platform, uint16_t>> opcodemaplookup{};
+		std::unordered_map<OPCode, std::unordered_map<Platform, std::vector<uint16_t>>> opcodemaplookup{};
+		std::unordered_map<OPCode, std::unordered_map<Platform, std::vector<uint16_t>>> opcodemaplookupModTool{};
 		std::unordered_map<Platform, std::unordered_map<OPCode, std::unordered_set<uint16_t>>> opcodemappltlookup{};
 		std::unordered_map<uint64_t, GlobalVariableDef> globalvars{};
 		std::unordered_map<uint64_t, FunctionOperator> opFuncs{};
@@ -191,8 +192,8 @@ namespace tool::gsc::opcode {
 	bool IsValidVmMagic(uint64_t magic, VmInfo*& info, bool registerOpCodes = true);
 	bool IsValidVm(uint64_t vm, VmInfo*& info, bool registerOpCodes = true);
 	const OPCodeInfo* LookupOpCode(uint64_t vm, Platform platform, uint16_t opcode);
-	std::pair<bool, uint16_t> GetOpCodeId(uint64_t vm, Platform platform, OPCode opcode);
-	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode);
+	std::pair<bool, uint16_t> GetOpCodeId(uint64_t vm, Platform platform, OPCode opcode, bool modTool = false);
+	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode, bool modTool = false);
 	void RegisterOpCodeHandler(const OPCodeInfo* info);
 	VmInfo* RegisterVM(uint64_t vm, const char* name, const char* codeName, const char* internalName, uint64_t flags);
 	VmInfo* GetVm(uint64_t vm);

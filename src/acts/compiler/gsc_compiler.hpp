@@ -22,6 +22,7 @@ namespace acts::compiler {
 		bool obfuscate{};
 		bool defineAsConstExpr{};
 		bool noDevCallInline{};
+		bool useModToolOpCodes{};
 		std::vector<byte>* dbgoutput{};
 		preprocessor::PreProcessorOption processorOpt{};
 		std::string* preprocOutput{};

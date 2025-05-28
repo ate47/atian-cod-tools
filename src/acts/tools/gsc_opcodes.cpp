@@ -5471,7 +5471,10 @@ namespace tool::gsc::opcode {
 
 	void VmInfo::RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op) {
 		opcodemap[op][platform] = enumValue;
-		opcodemaplookup[enumValue][platform] = op;
+		if (op & modToolFlag) {
+			opcodemaplookupModTool[enumValue][platform].push_back(op);
+		}
+		opcodemaplookup[enumValue][platform].push_back(op);
 		opcodemappltlookup[platform][enumValue].insert(op);
 	}
 
@@ -5997,7 +6000,7 @@ namespace tool::gsc::opcode {
 
 		return refHandler->second;
 	}
-	std::pair<bool, uint16_t> GetOpCodeId(uint64_t vm, Platform platform, OPCode opcode) {
+	std::pair<bool, uint16_t> GetOpCodeId(uint64_t vm, Platform platform, OPCode opcode, bool modTool) {
 		RegisterOpCodes();
 
 		VmInfo* info;
@@ -6006,25 +6009,29 @@ namespace tool::gsc::opcode {
 			return std::make_pair(false, 0);
 		}
 
+		if (modTool && info->modToolFlag == 0) {
+			return std::make_pair(false, 0); // no mod tool flag
+		}
 
-		auto ref = info->opcodemaplookup.find(opcode);
+		auto& map{ modTool ? info->opcodemaplookupModTool : info->opcodemaplookup };
 
-		if (ref == info->opcodemaplookup.end()) {
+		auto ref = map.find(opcode);
+
+		if (ref == map.end()) {
 			return std::make_pair(false, 0);
 		}
 
 		auto ref2 = ref->second.find(info->RemapSamePlatform(platform));
 
-
-		if (ref2 == ref->second.end()) {
+		if (ref2 == ref->second.end() || ref2->second.empty()) {
 			return std::make_pair(false, 0);
 		}
-
-		return std::make_pair(true, ref2->second);
+		
+		return std::make_pair(true, ref2->second[rand() % ref2->second.size()]);
 	}
 
-	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode) {
-		auto [ok, id] = GetOpCodeId(vm, plt, opcode);
+	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode, bool modTool) {
+		auto [ok, id] = GetOpCodeId(vm, plt, opcode, modTool);
 		return ok;
 	}
 

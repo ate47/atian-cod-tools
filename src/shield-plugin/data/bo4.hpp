@@ -227,7 +227,8 @@ namespace bo4 {
 	};
 
 	typedef void (*VM_OP_FUNC)(scriptInstance_t, function_stack_t*, ScrVmContext_t*, bool*);
-
+	typedef void (*VM_OP_ERR_FUNC)(scriptInstance_t, function_stack_t*, ScrVmContext_t*);
+	
 	struct scrVarGlob_t {
 		ScrVarIndex_t* scriptNameSearchHashList;
 		ScrVar_t* scriptVariables;

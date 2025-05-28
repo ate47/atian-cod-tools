@@ -47,9 +47,13 @@ namespace bo4 {
 	S_ANY Ref<scrVarGlob_t> scrVarGlob{ 0x8307830_a };
 	S_ANY Ref<scrVmPub_t> scrVmPub{ 0x8307AA0_a };
 	S_ANY Ref<VM_OP_FUNC> gVmOpJumpTable{ 0x4EED340_a };
+	S_ANY Ref<VM_OP_FUNC> gVmOpJumpTableModTool{ 0x4EFD340_a };
+	S_ANY Ref<VM_OP_ERR_FUNC> gVmOpJumpTableError{ 0x4EF5340_a };
+	S_ANY Ref<VM_OP_ERR_FUNC> gVmOpJumpTableErrorModTool{ 0x4F05340_a };
 	S_ANY Ref<uint32_t> gObjFileInfoCount{ 0x82F76B0_a };
 	S_ANY Ref<const char*> scrVarTypeNames{ 0x4EED240_a };
 	S_ANY Ref<objFileInfo_t[games::bo4::scriptinstance::ScriptInstance::SI_COUNT][650]> gObjFileInfo{ 0x82EFCD0_a };
+	S_ANY Ref<void*> scrVmInvalidFuncs{ 0x4EED038_a };
 
 	// xassets
 	S_ANY Ref<XHash* (XHash* hash, const XAsset* asset)> DB_GetXAssetName{ 0x28AAB60_a };

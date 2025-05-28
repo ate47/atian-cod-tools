@@ -176,6 +176,15 @@ namespace {
 
 	void Scr_GetGscExportInfo_Stub(bo4::scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm) {
 		static char scriptnamebuffer[bo4::scriptInstance_t::SI_COUNT][0x200];
+		if (codepos >= bo4::scrVmInvalidFuncs[inst] && codepos < (byte*)bo4::scrVmInvalidFuncs[inst] + 32) {
+			// invalid link
+			if (crc) *crc = 0;
+			if (vm) *vm = 0x36;
+			if (sloc) *sloc = (int32_t)(codepos - (byte*)bo4::scrVmInvalidFuncs[inst]);
+			if (scriptname) *scriptname = "<error>";
+
+			return;
+		}
 		bo4::GSC_OBJ* script_obj{};
 		GSC_ACTS_DEBUG* gdb{};
 		{

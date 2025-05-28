@@ -184,11 +184,12 @@ namespace acts::compiler {
     class AscmCompilerContext {
     public:
         const VmInfo* vmInfo;
+        CompilerConfig& cfg;
         Platform plt;
         std::vector<byte>& data;
         size_t lvars;
 
-        AscmCompilerContext(const VmInfo* vmInfo, Platform plt, size_t lvars, std::vector<byte>& data) : vmInfo(vmInfo), plt(plt), data(data), lvars(lvars) {}
+        AscmCompilerContext(const VmInfo* vmInfo, Platform plt, size_t lvars, std::vector<byte>& data, CompilerConfig& cfg) : vmInfo(vmInfo), plt(plt), data(data), lvars(lvars), cfg(cfg) {}
 
         bool HasAlign() const {
             return vmInfo->HasFlag(VmFlags::VMF_ALIGN);
@@ -303,7 +304,7 @@ namespace acts::compiler {
         }
 
         bool Write(AscmCompilerContext& ctx) override {
-            auto [ok, op] = GetOpCodeId(ctx.vmInfo->vmMagic, ctx.plt, opcode);
+            auto [ok, op] = GetOpCodeId(ctx.vmInfo->vmMagic, ctx.plt, opcode, ctx.cfg.useModToolOpCodes);
             if (!ok) {
                 LOG_ERROR("Can't find opcode {} ({}) for vm {}/{}", utils::PtrOrElse(OpCodeName(opcode), "null"), (int)opcode, ctx.vmInfo->name, PlatformName(ctx.plt));
 
@@ -1160,6 +1161,9 @@ namespace acts::compiler {
                 else if (!_strcmpi("--no-devcall-inline", arg)) {
                     config.noDevCallInline = true;
                 }
+                else if (!_strcmpi("--mod-tool", arg)) {
+                    config.useModToolOpCodes = true;
+                }
                 else if (!_strcmpi("--detour", arg)) {
                     if (i + 1 == endIndex) {
                         LOG_ERROR("Missing value for param: {}!", arg);
@@ -1242,6 +1246,7 @@ namespace acts::compiler {
             LOG_INFO("--define-as-constxpr   : Consider #define as constexpr");
             LOG_INFO("--no-devcall-inline    : Do not automatically inline dev calls in /# #/ blocks");
             LOG_INFO("-O --obfuscate         : Obfuscate some parts of the code");
+            LOG_INFO("--mod-tool             : use mod tool opcodes (if available)");
             LOG_DEBUG("--preproc [f]         : Export preproc result into f");
         }
     };  
@@ -1554,8 +1559,7 @@ namespace acts::compiler {
         }
 
         bool HasOpCode(OPCode opcode) {
-            auto [ok, op] = GetOpCodeId(vmInfo->vmMagic, config.platform, opcode);
-            return ok;
+            return tool::gsc::opcode::HasOpCode(vmInfo->vmMagic, config.platform, opcode, config.useModToolOpCodes);
         }
 
         float FloatNumberNodeValue(ParseTree* number, bool error = true) {
@@ -2143,7 +2147,7 @@ namespace acts::compiler {
                 e.address = (int32_t)exp.location;
                 e.param_count = exp.m_params;
 
-                AscmCompilerContext cctx{ that.vmInfo, that.config.platform, exp.m_allocatedVar, data };
+                AscmCompilerContext cctx{ that.vmInfo, that.config.platform, exp.m_allocatedVar, data, that.config };
 
                 for (AscmNode* node : exp.m_nodes) {
                     if (!node->Write(cctx)) {
