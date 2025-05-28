@@ -1915,6 +1915,21 @@ namespace acts::compiler {
             }
         }
 
+        std::string GetIncludeName(const std::string& origin) {
+            std::string data{ origin };
+            if (!(data.ends_with(".gsc") || data.ends_with(".csc")) && !(data.starts_with("script_"))) {
+                switch (type) {
+                case FILE_CSC:
+                    data += ".csc";
+                    break;
+                case FILE_GSC:
+                    data += ".gsc";
+                    break;
+                }
+            }
+            return data;
+        }
+
         bool Compile(std::vector<byte>& data, std::vector<byte>* pdbgdata) {
             union {
                 AscmNode* opcode;
@@ -2081,17 +2096,7 @@ namespace acts::compiler {
                     uint64_t* tab = reinterpret_cast<uint64_t*>(&data[incTable]);
 
                     for (const std::string& i : includes) {
-                        std::string data{ i };
-                        if (!(data.ends_with(".gsc") || data.ends_with(".csc")) && !(data.starts_with("script_"))) {
-                            switch (type) {
-                            case FILE_CSC:
-                                data += ".csc";
-                                break;
-                            case FILE_GSC:
-                                data += ".gsc";
-                                break;
-                            }
-                        }
+                        std::string data{ GetIncludeName(i) };
                         AddHash(data);
 
                         *tab = vmInfo->HashPath(data.data());
@@ -5501,13 +5506,13 @@ namespace acts::compiler {
                     std::string dnsp = mod->children[1]->getText();
                     std::string dscript = mod->children[3]->getText();
                     std::string dfunc = mod->children[6]->getText();
-
+                    std::string dscriptp{ obj.GetIncludeName(dscript) };
                     obj.AddHash(dnsp);
-                    obj.AddHash(dscript);
+                    obj.AddHash(dscriptp);
                     obj.AddHash(dfunc);
                     exp.detour.nsp = obj.vmInfo->HashField(dnsp);
                     exp.detour.func = obj.vmInfo->HashField(dfunc);
-                    exp.detour.script = obj.vmInfo->HashPath(dscript);
+                    exp.detour.script = obj.vmInfo->HashPath(dscriptp);
                 }
                 else {
                     // builtin detour

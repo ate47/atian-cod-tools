@@ -72,6 +72,7 @@ function private on_player_connect()
     }
 }
 
-detour util<scripts\core_common\util_shared.gsc>::is_safehouse() {
+detour util<scripts\core_common\util_shared>::is_safehouse()
+{
     return 42;
 }
