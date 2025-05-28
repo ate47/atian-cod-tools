@@ -3596,9 +3596,9 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_GSCBIN)) {
                 utils::Padding(asmout, padding) << prefix;
                 if (!ctx.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_EXPORT_NOCHECKSUM)) {
-                    asmout << "Checksum 0x" << exp.GetChecksum() << ", ";
+                    asmout << "Checksum 0x" << std::hex << exp.GetChecksum() << ", ";
                 }
-                asmout << "Offset: 0x" << exp.GetAddress() << std::endl;
+                asmout << "Offset: 0x" << std::hex << exp.GetAddress() << std::endl;
             }
 
             uint32_t knownSize{ exp.GetSize() };
