@@ -15,7 +15,7 @@ function private __pre_init__()
     ActsLog( "Log from client" );
     ActsLog( "Test hash: " + ActsHashLookup( #"this is a hash" ) );
 
-    thread late_error();
+    // thread late_error();
 }
 
 function private late_error()

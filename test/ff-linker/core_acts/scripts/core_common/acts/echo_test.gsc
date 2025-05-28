@@ -39,6 +39,9 @@ function private __pre_init__()
     ActsLog( sbtest.array[ 0 ].test );
     ActsLog( "-----------------" );
 
+    // test detour
+    ActsLog( "safehouse: " + util::is_safehouse() );
+
     // test string tables
 
     st = #"acts/test.csv";
@@ -67,4 +70,8 @@ function private on_player_connect()
 
         wait(1);
     }
+}
+
+detour util<scripts\core_common\util_shared.gsc>::is_safehouse() {
+    return 42;
 }

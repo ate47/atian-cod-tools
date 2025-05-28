@@ -9,72 +9,175 @@
 #include <core/hashes/hash_store.hpp>
 
 namespace {
+	using namespace shared::gsc::acts_debug;
 	struct objGDBFileInfo_t {
 		XHash name;
 		bo4::GSC_OBJ* obj;
-		shared::gsc::acts_debug::GSC_ACTS_DEBUG* gdb;
+		GSC_ACTS_DEBUG* gdb;
 	};
 
-	objGDBFileInfo_t gObjGDBFileInfo[2][650];
-	int gObjGDBFileInfoCount[2];
+	bool traceDetours;
+	objGDBFileInfo_t gObjGDBFileInfo[bo4::scriptInstance_t::SI_COUNT][650];
+	int gObjGDBFileInfoCount[bo4::scriptInstance_t::SI_COUNT];
+	size_t gObjCountLinked[bo4::scriptInstance_t::SI_COUNT];
 
-	hook::library::Detour Scr_GscObjLink_Detour;
+	hook::library::Detour Scr_GscLink_Detour;
 	hook::library::Detour Scr_ResetLinkInfo_Detour;
 
-	int Scr_GscObjLink_Stub(bo4::scriptInstance_t inst, bo4::GSC_OBJ* prime_obj, bool runScript) {
+	void CheckDetour(objGDBFileInfo_t* dbgobj, bo4::GSC_OBJ* obj) {
+		if (!dbgobj) return;
+		GSC_ACTS_DEBUG* dbg{ dbgobj->gdb };
+		if (!dbg || !dbg->HasFeature(ADF_DETOUR) || !dbg->detour_count || !obj->imports_count) return;
+
+		GSC_ACTS_DETOUR* detour{ dbg->GetDetours() };
+		GSC_ACTS_DETOUR* detourend{ dbg->GetDetoursEnd() };
+		for (; detour != detourend; detour++) {
+			uint64_t* usings{ (uint64_t*)(obj->magic + obj->include_offset) };
+			uint64_t* usingsend{ usings + obj->include_count };
+
+			if (!detour->script && detour->script != obj->name && !std::find(usings, usingsend, detour->script)) {
+				continue; // not included by this script
+			}
+
+			bo4::GSC_IMPORT_ITEM* next{ (bo4::GSC_IMPORT_ITEM*)(obj->magic + obj->imports_offset) };
+			for (size_t i = 0; i < obj->imports_count; i++) {
+				bo4::GSC_IMPORT_ITEM* imp{ next };
+				int32_t* locs{ (int32_t*)(imp + 1) };
+				next = (bo4::GSC_IMPORT_ITEM*)(locs + imp->num_address);
+				if (imp->name_space != detour->name_space || imp->name != detour->name) {
+					continue; // bad export
+				}
+
+				size_t off;
+				switch (imp->flags & bo4::GIF_CALLTYPE_MASK) {
+				case bo4::GIF_FUNC_METHOD: // &ns::fc
+					off = 0; // no count
+					break;
+				case bo4::GIF_FUNCTION:
+				case bo4::GIF_FUNCTION_CHILDTHREAD:
+				case bo4::GIF_FUNCTION_THREAD:
+				case bo4::GIF_METHOD:
+				case bo4::GIF_METHOD_CHILDTHREAD:
+				case bo4::GIF_METHOD_THREAD:
+					off = 1;
+					break;
+				default:
+					LOG_ERROR("INVALID LINK ITEM, BAD IMPORT TYPE {}", (int)(imp->flags & bo4::GIF_CALLTYPE_MASK));
+					return;
+				}
+
+				byte* detourFunc{ dbgobj->obj->magic + detour->location };
+				byte* detourFuncEnd{ detourFunc + detour->size };
+
+				size_t match{};
+				for (size_t j = 0; j < imp->num_address; j++) {
+					byte* loc{ utils::Aligned<uint16_t>(obj->magic + locs[j])};
+
+					if (loc >= detourFunc && loc < detourFuncEnd) {
+						continue; // inside the def, we do not replace it
+					}
+
+					// PATCHME: patch opcode for API
+					// *(uint16_t*)loc = 0;
+
+					byte** ref{ (byte**)utils::Aligned<byte*>(loc + 2 + off) };
+
+					*ref = detourFunc;
+					match++;
+				}
+
+				if (traceDetours) {
+					LOG_TRACE(
+						"[{}] Loading detour {}<{}>::{} with {}/{} patch(es)",
+						core::hashes::ExtractTmp("script", obj->name),
+						core::hashes::ExtractTmp("namespace", detour->name_space),
+						core::hashes::ExtractTmp("script", detour->script),
+						core::hashes::ExtractTmp("function", detour->name),
+						match, (int)imp->num_address
+					);
+				}
+			}
+			
+		}
+	}
+
+	// sync the registered detours for this entry
+	void SyncDetours(bo4::scriptInstance_t inst, bo4::GSC_OBJ* obj) {
+		size_t count{ (size_t)gObjGDBFileInfoCount[inst] };
+		for (size_t i = 0; i < count; i++) {
+			CheckDetour(&gObjGDBFileInfo[inst][i], obj);
+		}
+	}
+
+	// sync the previously linked scripts with a new debug object
+	void AddDetours(bo4::scriptInstance_t inst, objGDBFileInfo_t* dbgobj) {
+		if (!dbgobj) return;
+		GSC_ACTS_DEBUG* dbg{ dbgobj->gdb };
+		if (!dbg || !dbg->HasFeature(ADF_DETOUR) || !dbg->detour_count) return;
+
+		size_t count{ (size_t)bo4::gObjFileInfoCount[inst] };
+		for (size_t i = 0; i < count; i++) {
+			bo4::GSC_OBJ* obj{ ((*bo4::gObjFileInfo)[inst][i].activeVersion) };
+			if (dbgobj->obj == obj) continue; // avoid double match
+			CheckDetour(dbgobj, obj);
+		}
+	}
+
+	void Scr_GscLink_Stub(bo4::scriptInstance_t inst, XHash* filename, bool runScript) {
 		bo4::ScopedCriticalSection scs{ bo4::CRITSECT_VM, bo4::SCOPED_CRITSECT_NORMAL };
 
-		int r{ Scr_GscObjLink_Detour.Call<int>(inst, prime_obj, runScript) };
+		Scr_GscLink_Detour.Call(inst, filename, runScript);
 
-		if (r < 0) return r;
+		// we now have to link the newly linked scripts
+		size_t count{ (size_t)bo4::gObjFileInfoCount[inst] };
+		for (; gObjCountLinked[inst] < count; gObjCountLinked[inst]++) {
+			bo4::GSC_OBJ* prime_obj{ (*bo4::gObjFileInfo)[inst][gObjCountLinked[inst]].activeVersion };
+			XHash hash{ prime_obj->name };
 
-		// todo: load detour data
-
-		XHash hash{ prime_obj->name };
-
-		bo4::ScriptParseTreeDBG* dbg{ bo4::DB_FindXAssetHeader(bo4::XAssetType::ASSET_TYPE_SCRIPTPARSETREEDBG, &hash, false, -1).sptdbg };
-		if (!dbg || !dbg->gdb || dbg->gdbLen < 8 || dbg->gdb->GetMagic() != shared::gsc::acts_debug::MAGIC) return r; // bad or no file
-		shared::gsc::acts_debug::GSC_ACTS_DEBUG* gdb{ dbg->gdb };
+			// load dbg data
+			bo4::ScriptParseTreeDBG* dbg{ bo4::DB_FindXAssetHeader(bo4::XAssetType::ASSET_TYPE_SCRIPTPARSETREEDBG, &hash, false, -1).sptdbg };
+			if (dbg && dbg->gdb && dbg->gdbLen >= 8 && dbg->gdb->GetMagic() == MAGIC) {
+				GSC_ACTS_DEBUG* gdb{ dbg->gdb };
 
 
-		if (!gdb->HasFeature(shared::gsc::acts_debug::ADF_CHECKSUM)) {
-			LOG_WARNING("Found ADF file without checksum feature: {}", core::hashes::ExtractTmp("script", hash));
-		}
-		else {
-			if (gdb->checksum != prime_obj->crc) {
-				LOG_ERROR("Found ADF file with bad checksum for file {}", core::hashes::ExtractTmp("script", hash));
-				return -1;
+				if (!gdb->HasFeature(ADF_CHECKSUM)) {
+					LOG_WARNING("Found ADF file without checksum feature: {}", core::hashes::ExtractTmp("script", hash));
+				}
+				else {
+					if (gdb->checksum != prime_obj->crc) {
+						LOG_ERROR("Found ADF file with bad checksum for file {}", core::hashes::ExtractTmp("script", hash));
+						continue;
+					}
+				}
+
+				if (gdb->HasFeature(ADF_STRING)) {
+					uint32_t* strings{ gdb->GetStrings() };
+					uint32_t* stringsend{ gdb->GetStringsEnd() };
+
+					// load strings
+					for (; strings != stringsend; strings++) {
+						const char* str{ gdb->GetString(*strings) };
+						core::hashes::AddPrecomputed(hash::Hash64(str), str);
+						core::hashes::AddPrecomputed(hash::HashT89Scr(str), str);
+					}
+				}
+
+				int idx{ gObjGDBFileInfoCount[inst]++ };
+
+				objGDBFileInfo_t* obj{ gObjGDBFileInfo[inst] + idx };
+				obj->name = hash;
+				obj->gdb = gdb;
+				obj->obj = prime_obj;
+				AddDetours(inst, obj);
 			}
+			SyncDetours(inst, prime_obj);
 		}
-
-		if (gdb->HasFeature(shared::gsc::acts_debug::ADF_STRING)) {
-			uint32_t* strings{ gdb->GetStrings() };
-			uint32_t* stringsend{ gdb->GetStringsEnd() };
-
-			// load strings
-			for (; strings != stringsend; strings++) {
-				const char* str{ gdb->GetString(*strings) };
-				core::hashes::AddPrecomputed(hash::Hash64(str), str);
-				core::hashes::AddPrecomputed(hash::HashT89Scr(str), str);
-			}
-		}
-
-		// todo: load detour data
-
-		int idx{ gObjGDBFileInfoCount[inst]++ };
-
-		objGDBFileInfo_t* obj{ gObjGDBFileInfo[inst] + idx };
-		obj->name = hash;
-		obj->gdb = gdb;
-		obj->obj = prime_obj;
-
-		return r;
 	}
 
 	void Scr_GetGscExportInfo_Stub(bo4::scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm) {
 		static char scriptnamebuffer[bo4::scriptInstance_t::SI_COUNT][0x200];
 		bo4::GSC_OBJ* script_obj{};
-		shared::gsc::acts_debug::GSC_ACTS_DEBUG* gdb{};
+		GSC_ACTS_DEBUG* gdb{};
 		{
 			bo4::ScopedCriticalSection scs{ bo4::CRITSECT_VM, bo4::SCOPED_CRITSECT_NORMAL };
 
@@ -140,7 +243,7 @@ namespace {
 		if (gdb) {
 			const char* filename{};
 			uint32_t line{};
-			shared::gsc::acts_debug::GetGDBInfo(rloc, gdb, &filename, &line);
+			GetGDBInfo(rloc, gdb, &filename, &line);
 			if (filename) {
 				// use debug data
 				sprintf_s(scriptnamebuffer[inst], "%s::%s:%d@%x", filename, core::hashes::ExtractTmp("function", expit->name), line + 1, rloc - expit->address);
@@ -173,10 +276,13 @@ namespace {
 		// cleanup debug data
 		std::memset(gObjGDBFileInfo[inst], 0, sizeof(gObjGDBFileInfo[inst]));
 		gObjGDBFileInfoCount[inst] = 0;
+		gObjCountLinked[inst] = 0;
 	}
 
 	void PostInit(uint64_t uid) {
-		Scr_GscObjLink_Detour.Create(0x2748E70_a, Scr_GscObjLink_Stub);
+		traceDetours = core::config::GetBool("test.tracedetours");
+
+		Scr_GscLink_Detour.Create(0x2748BB0_a, Scr_GscLink_Stub);
 		Scr_ResetLinkInfo_Detour.Create(0x2749480_a, Scr_ResetLinkInfo_Stub);
 		hook::memory::RedirectJmp(0x2748550_a, Scr_GetGscExportInfo_Stub);
 	}

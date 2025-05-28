@@ -42,6 +42,33 @@ namespace {
 			}
 		}
 
+		if (dbg->HasFeature(ADF_STRING)) {
+			uint32_t* strings{ dbg->GetStrings() };
+			uint32_t* stringsend{ dbg->GetStringsEnd() };
+			size_t idx{};
+			for (; strings != stringsend; strings++) {
+				hashutils::Add(dbg->GetString(*strings));
+				idx++;
+			}
+			LOG_INFO("{} string(s) loaded", idx);
+		}
+
+		if (dbg->HasFeature(ADF_DETOUR)) {
+			GSC_ACTS_DETOUR* detours{ dbg->GetDetours() };
+			GSC_ACTS_DETOUR* detoursend{ dbg->GetDetoursEnd() };
+
+
+			for (; detours != detoursend; detours++) {
+				LOG_INFO(
+					"detour {}<{}>::{} -> 0x{:x}:0x{:x}",
+					hashutils::ExtractTmp("namespace", detours->name_space),
+					hashutils::ExtractTmpScript(detours->script),
+					hashutils::ExtractTmp("function", detours->name),
+					detours->location, detours->location + detours->size
+				);
+			}
+		}
+
 		return tool::OK;
 	}
 	ADD_TOOL(acts_debug_decomp, "gsc", " [in]", "decomp acts gsc debug files", acts_debug_decomp);
