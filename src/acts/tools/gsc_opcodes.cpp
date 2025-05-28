@@ -5474,7 +5474,9 @@ namespace tool::gsc::opcode {
 		if (op & modToolFlag) {
 			opcodemaplookupModTool[enumValue][platform].push_back(op);
 		}
-		opcodemaplookup[enumValue][platform].push_back(op);
+		else {
+			opcodemaplookup[enumValue][platform].push_back(op);
+		}
 		opcodemappltlookup[platform][enumValue].insert(op);
 	}
 

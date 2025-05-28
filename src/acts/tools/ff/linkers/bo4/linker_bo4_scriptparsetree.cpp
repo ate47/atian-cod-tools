@@ -98,6 +98,7 @@ namespace fastfile::linker::bo4 {
 		}
 
 		void Compute(BO4LinkContext& ctx) override {
+			bool cfguseModToolOpcodes{ ctx.linkCtx.zone.GetConfigBool("gsc.opModTool", true) };
 			bool cfgGenDBG{ ctx.linkCtx.zone.GetConfigBool("gsc.gendbg", false) };
 			bool cfgDev{ ctx.linkCtx.zone.GetConfigBool("gsc.dev", false) };
 			bool cfgNoDevCallInline{ ctx.linkCtx.zone.GetConfigBool("gsc.noDevCallInline", false) };
@@ -160,7 +161,7 @@ namespace fastfile::linker::bo4 {
 					isCsc = cfg.clientScript;
 					std::unordered_map<std::string, std::vector<std::string>> bgcacheCompiled{};
 					cfg.precache = &bgcacheCompiled;
-					cfg.useModToolOpCodes = true;
+					cfg.useModToolOpCodes = cfguseModToolOpcodes;
 					cfg.processorOpt.defines.insert(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
 
 					std::unordered_set<std::string> hashes{};
