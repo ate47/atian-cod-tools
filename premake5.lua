@@ -151,7 +151,7 @@ project "ACTSLibrary"
     vpaths {
         ["*"] = "*"
     }
-
+--[[
 project "AtianCodToolsBO4DLL"
     kind "SharedLib"
     language "C++"
@@ -188,7 +188,7 @@ project "AtianCodToolsBO4DLL"
     dependson "ACTSSharedLibrary"
     dependson "detours"
     dependson "asmjit"
-    
+]]
 
 project "AtianCodToolsBO4ShieldPlugin"
     kind "SharedLib"
