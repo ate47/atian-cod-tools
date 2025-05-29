@@ -356,4 +356,16 @@ namespace bo4 {
 		ScriptParseTreeDBG* sptdbg;
 	}; static_assert(sizeof(XAssetHeader) == 8);
 
+	enum BuiltinType : uint32_t {
+		BUILTIN_DEFAULT = 0,
+		BUILTIN_DEV = 1
+	};
+
+	struct BuiltinFunctionDef {
+		uint32_t canonId;
+		uint32_t min_args;
+		uint32_t max_args;
+		void* actionFunc;
+		BuiltinType type;
+	};
 }

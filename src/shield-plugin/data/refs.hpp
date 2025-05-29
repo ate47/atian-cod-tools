@@ -24,6 +24,9 @@ namespace bo4 {
 	S_ANY Ref<uint32_t(scriptInstance_t inst)> ScrVm_GetNumParam{ 0x2774440_a };
 	S_ANY Ref<ScrVarType_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetPointerType{ 0x27746E0_a };
 	S_ANY Ref<ScrVarType_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetType{ 0x2774A20_a };
+	S_ANY Ref<ScrVarValue_t*(scriptInstance_t inst, unsigned int index)> ScrVm_GetValue{ 0x2774D60_a };
+	S_ANY Ref<void(scriptInstance_t inst, byte* codePos)> ScrVm_AddScriptFunction{ 0x276EA60_a };
+	S_ANY Ref<void(scriptInstance_t inst, void* func)> ScrVm_AddAPIFunction{ 0x276E540_a };
 	S_ANY Ref<uint32_t(scriptInstance_t inst)> ScrVm_AddStruct{ 0x276EF00_a };
 	S_ANY Ref<void(scriptInstance_t inst, uint32_t structId, uint32_t name)> ScrVm_SetStructField{ 0x2778450_a };
 	S_ANY Ref<void(scriptInstance_t inst)> ScrVm_AddToArray{ 0x276F1C0_a };
@@ -37,8 +40,11 @@ namespace bo4 {
 	// gsc funcs
 	S_ANY Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetFunction{ 0x1F13140_a };
 	S_ANY Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetFunction{ 0x33AF840_a };
-	S_ANY Ref<void* (uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetMethod{ 0x1F13650_a };
-	S_ANY Ref<void* (uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetMethod{ 0x33AFC20_a };
+	S_ANY Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetMethod{ 0x1F13650_a };
+	S_ANY Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetMethod{ 0x33AFC20_a };
+	S_ANY Ref<bool(byte* func, uint32_t* name, bool* isFunction)> Scr_GetFunctionReverseLookup{ 0x33AF8A0_a };
+	S_ANY Ref<bool(byte* func, uint32_t* name, bool* isFunction)> CScr_GetFunctionReverseLookup{ 0x1F132A0_a };
+
 	S_ANY Ref<void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)> Scr_GetGscExportInfo{ 0x2748550_a };
 	S_ANY Ref<void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)> ScrVm_Error{ 0x2770330_a };
 

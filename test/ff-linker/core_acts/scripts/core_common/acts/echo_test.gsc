@@ -39,8 +39,20 @@ function private __pre_init__()
     ActsLog( sbtest.array[ 0 ].test );
     ActsLog( "-----------------" );
 
+    // print test
+    [[ &ActsLog ]]( "test func ptr" );
+    ActsLog( &ActsLog );
+
     // test detour
     ActsLog( "safehouse: " + util::is_safehouse() );
+    ActsLog( @util<scripts\core_common\util_shared.gsc>::is_safehouse );
+    ActsLog( &util::is_safehouse );
+    ActsLog( @system<scripts\core_common\system_shared.gsc>::register );
+    ActsLog( &system::register );
+
+    // test xhashscr operations
+    ActsLog( ActsGetDetour( #"scripts/core_common/util_shared.gsc", &"util", &"is_safehouse" ) );
+    ActsLog( ActsGetDetour( "scripts/core_common/util_shared.gsc", "util", "is_safehouse" ) );
 
     // test string tables
 
