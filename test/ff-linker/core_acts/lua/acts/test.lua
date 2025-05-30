@@ -39,13 +39,14 @@ else
       require( "x64:37c614e146b5eea5" )
 ]]
 
-Engine[ @"PrintInfo" ](0, "Hello from map  " .. Engine[ @"GetCurrentMap"]() .. " inject? " .. tostring(LUI.createMenu["T7Hud_" .. Engine[@"getcurrentmap"]()] ~= nil))
+
+Engine.@PrintInfo(0, "Hello from map  " .. Engine.@GetCurrentMap() .. " inject? " .. tostring(LUI.createMenu["T7Hud_" .. Engine.@GetCurrentMap()] ~= nil))
 
 -- Should be injected after 2b23cf5ef446c848
 
-LUI.createMenu["T7Hud_" .. Engine[@"getcurrentmap"]()] = function ( controller ) 
+LUI.createMenu["T7Hud_" .. Engine.@GetCurrentMap()] = function ( controller ) 
       local self = LUI.createMenu.T7Hud_zm_factory( controller )
-      Engine[ @"PrintInfo" ](0, "Injecting custom menu")
+      Engine.@PrintInfo(0, "Injecting custom menu")
 
       
       return self
