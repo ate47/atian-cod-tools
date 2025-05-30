@@ -9,6 +9,15 @@ struct XHash {
     constexpr bool operator==(const char* other) const {
         return name == hash::Hash64(other);
     }
+    constexpr bool operator!=(const char* other) const {
+        return name != hash::Hash64(other);
+    }
+    constexpr bool operator==(const XHash& other) const {
+        return name == other.name;
+    }
+    constexpr bool operator!=(const XHash& other) const {
+        return name != other.name;
+    }
     constexpr operator bool() const {
         return name;
     }
