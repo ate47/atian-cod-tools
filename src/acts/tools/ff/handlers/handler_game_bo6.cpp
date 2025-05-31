@@ -39,8 +39,11 @@ namespace fastfile::handlers::bo6 {
 			const char** strings;
 			uint32_t assetsCount;
 			uint32_t assetsLoaded;
+			uint32_t* unk10;
+			uint32_t unk10_count;
 			Asset* assets;
 		};
+
 
 		struct HashedType {
 			uint32_t hash;
@@ -48,9 +51,77 @@ namespace fastfile::handlers::bo6 {
 			const char* name;
 		};
 
-		struct DBLoadCtx {
-			void* __vtb;
+		struct DBLoadCtx;
+		struct DBLoadCtxData;
+		struct DBLoadCtxVT {
+			void*(__fastcall* AllocStreamPos)(DBLoadCtx* ctx, int align);
+			void(__fastcall* PushStreamPos)(DBLoadCtx* ctx, int type);
+			void(__fastcall* PopStreamPos)(DBLoadCtx* ctx);
+			void(__fastcall* PreAssetRead)(DBLoadCtx* ctx, T10RAssetType type);
+			void(__fastcall* PostAssetRead)(DBLoadCtx* ctx);
 		};
+
+		struct StreamPosInfo {
+			byte* pos;
+			int index;
+		};
+
+		struct DBLoadCtxData {
+			uint32_t streamRead[16];
+			uint64_t unk40;
+			uint64_t unk48;
+			uint64_t unk50;
+			uint64_t unk58;
+			uint64_t unk60;
+			uint64_t unk68;
+			uint64_t unk70;
+			uint64_t unk78;
+			uint64_t unk80;
+			uint64_t unk88;
+			uint64_t unk90;
+			uint64_t unk98;
+			uint64_t unka0;
+			uint64_t unka8;
+			uint64_t unkb0;
+			uint64_t unkb8;
+			uint64_t unkc0;
+			uint64_t unkc8;
+			uint64_t unkd0;
+			uint64_t unkd8;
+			uint64_t unke0;
+			uint64_t unke8;
+			uint64_t unkf0;
+			uint64_t unkf8;
+			byte* streamPos;
+			byte* streamPosArray[16];
+			uint32_t streamPosIndex;
+			uint32_t blockType;
+			StreamPosInfo streamPosInfo[64];
+			uint32_t g_streamPosStackIdx;
+			uint32_t unk594;
+			uint32_t unk598;
+			uint32_t unk59c;
+			uint64_t unk5a0;
+			uint64_t unk5a8;
+			uint64_t unk5b0;
+			uint64_t unk5b8;
+			uint64_t unk5c0;
+			uint64_t loadData;
+			uint64_t unk5d0;
+			uint64_t unk5d8;
+			uint64_t unk5e0;
+			bool unk5e8;
+			uint64_t unk5f0;
+			uint32_t unk5f4;
+			byte* streamPos2;
+		};
+
+		struct DBLoadCtx {
+			DBLoadCtxVT* __vtb;
+			DBLoadCtxData data;
+		};
+
+
 		union LoadStreamObjectData;
 
 		struct LoadStreamObjectVtable {
@@ -63,7 +134,7 @@ namespace fastfile::handlers::bo6 {
 
 		union LoadStreamObjectData {
 			struct {
-				bool(__fastcall * LoadStream)(DBLoadCtx * ctx, bool atStreamStart, void* ptr, size_t len);
+				bool(*LoadStream)(DBLoadCtx* ctx, bool atStreamStart, void* ptr, size_t len);
 				uint64_t unk08;
 				uint64_t unk10;
 				uint64_t unk18;
@@ -80,8 +151,29 @@ namespace fastfile::handlers::bo6 {
 		void ErrorStub(LoadStreamObjectData* that) {
 			throw std::runtime_error(std::format("Error loadstream {}", hook::library::CodePointer{ _ReturnAddress() }));
 		}
+		void* AllocStreamPos(DBLoadCtx* ctx, int align) {
+			LOG_TRACE("AllocStreamPos({}) {}", align, hook::library::CodePointer{ _ReturnAddress() });
+			return nullptr;
+		}
+
+		void PushStreamPos(DBLoadCtx* ctx, int type) {
+			LOG_TRACE("PushStreamPos({}) {}", type, hook::library::CodePointer{ _ReturnAddress() });
+		}
+
+		void PopStreamPos(DBLoadCtx* ctx) {
+			LOG_TRACE("PopStreamPos() {}", hook::library::CodePointer{ _ReturnAddress() });
+		}
+
+		void PreAssetRead(DBLoadCtx* ctx, T10RAssetType type) {
+			LOG_TRACE("PreAssetRead({}) {}", (int)type, hook::library::CodePointer{ _ReturnAddress() });
+		}
+
+		void PostAssetRead(DBLoadCtx* ctx) {
+			LOG_TRACE("PostAssetRead() {}", hook::library::CodePointer{ _ReturnAddress() });
+		}
 
 		LoadStreamObjectVtable dbLoadStreamVTable{ LoadStreamImpl, ErrorStub, ErrorStub, ErrorStub , ErrorStub };
+		DBLoadCtxVT dbLoadCtxVTable{ AllocStreamPos, PushStreamPos, PopStreamPos, PreAssetRead, PostAssetRead };
 
 		struct {
 			BO6FFHandler* handler{};
@@ -221,10 +313,11 @@ namespace fastfile::handlers::bo6 {
 				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?").GetRelative<int32_t, LoadStreamObject*>(3) };
 				loadStreamObj->__vtb = &dbLoadStreamVTable;
 
-				lib.Redirect("40 53 48 83 EC ? 49 8B D9 4D", LoadStream);
-				lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
-				gcx.Load_Asset = lib.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48")
-					.Get<void(*)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset)>();
+				lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9", LoadStream);
+				//E8 ?? ?? ?? ?? 80 3E 00 74 1E
+				//lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
+				//gcx.Load_Asset = lib.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48")
+				//	.Get<void(*)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset)>();
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
@@ -235,7 +328,7 @@ namespace fastfile::handlers::bo6 {
 
 				reader.Read(&gcx.assets, sizeof(gcx.assets));
 
-				LOG_INFO("assets: {}, strings: {}", gcx.assets.assetsCount, gcx.assets.stringsCount);
+				LOG_INFO("assets: {}, strings: {}, unk: {}", gcx.assets.assetsCount, gcx.assets.stringsCount, gcx.assets.unk10_count);
 
 				std::filesystem::path outStrings{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
 
@@ -259,6 +352,19 @@ namespace fastfile::handlers::bo6 {
 				LOG_INFO("String dump into {}", outStrings.string());
 				LOG_DEBUG("string end at 0x{:x}", reader.Loc());
 
+				gcx.assets.unk10 = reader.ReadPtr<uint32_t>(gcx.assets.unk10_count);
+				// idk
+				//std::filesystem::path outUnk{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "unk" / std::format("{}.csv", ctx.ffname) };
+				//{
+				//	std::filesystem::create_directories(outUnk.parent_path());
+				//	utils::OutFileCE stringsOs{ outUnk };
+				//	for (size_t i = 0; i < gcx.assets.unk10_count; i++) {
+				//		stringsOs << i << ",0x" << std::hex << gcx.assets.unk10[i] << "," << hashutils::ExtractTmp("hash", gcx.assets.unk10[i]) << "\n";
+				//	}
+				//}
+				//
+				//LOG_INFO("unk dump into {}", outUnk.string());
+
 				if (!gcx.assets.assetsCount) {
 					LOG_INFO("no assets to load");
 					return;
@@ -274,6 +380,7 @@ namespace fastfile::handlers::bo6 {
 					hook::library::Library lib{ opt.GetGame(true) };
 
 					DBLoadCtx loadCtx{};
+					loadCtx.__vtb = &dbLoadCtxVTable;
 
 					bool err{};
 					for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
@@ -284,7 +391,7 @@ namespace fastfile::handlers::bo6 {
 						assetsOs << "\n" << std::hex << type->name << ",<unk>";
 
 						asset->type = type->type;
-						gcx.Load_Asset(&loadCtx, false, asset);
+						//gcx.Load_Asset(&loadCtx, false, asset);
 					}
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());

@@ -996,6 +996,15 @@ const char* poolNamesRelease[]{
     "perlinnoise",
     "botbtconstants",
     "dismembermenttype",
+    "deatheffect",
+    "weathersoundthresholds",
+    "sndocclusionsetting",
+    "weaponsndreflectionzone",
+    "weaponsndreflections",
+    "objectstoreddlconfig",
+    "objectstoreddlconfiggroup",
+    "grappleweapontunables",
+    "unlockfeedconfig",
 };
 
 const char* bo6::PoolName(T10AssetType type) {
