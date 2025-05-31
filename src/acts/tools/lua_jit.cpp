@@ -131,6 +131,6 @@ namespace {
 		return tool::OK;
 	}
 
-	ADD_TOOL(luajit, "lib", " [file] (out=file.csv)", "Read qlever vocabulary file", luajit);
+	ADD_TOOL(luajit, "lib", " [file] (out=file.csv)", "Read luajit file", luajit);
 
 }
