@@ -10,7 +10,7 @@ namespace {
 
 	struct RawFile {
 		uint64_t name;
-		uint32_t unk8;
+		uint32_t type;
 		uint32_t compressedLen;
 		uint32_t uncompressedLen;
 		byte* data;

@@ -340,8 +340,18 @@ namespace fastfile::handlers::bo6 {
 		}
 
 		void* DB_LinkGenericXAsset(DBLoadCtx* ctx, T10RAssetType type, void** handle) {
-			*(gcx.outAsset) << "\n" << type << ",#" << hashutils::ExtractTmp("hash", handle ? *(uint64_t*)*handle : 0);
-			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, hashutils::ExtractTmp("hash", handle ? *(uint64_t*)*handle : 0), hook::library::CodePointer{_ReturnAddress()});
+			const char* name{ hashutils::ExtractTmp("hash", handle ? *(uint64_t*)*handle : 0) };
+			*(gcx.outAsset) << "\n" << type << ",#" << name;
+			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, name, hook::library::CodePointer{_ReturnAddress()});
+
+			if (handle) {
+				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
+				auto it{ map.find(type) };
+				if (it != map.end()) {
+					it->second->Unlink(*gcx.opt, *handle);
+				}
+			}
+
 			return handle ? *handle : nullptr;
 		}
 
@@ -405,6 +415,9 @@ namespace fastfile::handlers::bo6 {
 				lib.Redirect("48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75", EmptyStub<15>); // computeshaders
 				lib.Redirect("40 53 55 56 57 41 57 48 83 EC ?? 8B 1D", EmptyStub<16>); // computeshaders
 				lib.Redirect("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", EmptyStub<17>); // computeshaders, TODO: better
+				lib.Redirect("40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B", EmptyStub<18>); // libshared
+				lib.Redirect("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", EmptyStub<19>); // libshared, TODO: better
+				lib.Redirect("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", EmptyStub<20>); // dlogschema
 
 
 				//E8 ? ? ? ? 80 3E 00 74 1E
@@ -477,6 +490,10 @@ namespace fastfile::handlers::bo6 {
 					DBLoadCtx loadCtx{};
 					DBLoadCtxVT* vt = &dbLoadCtxVTable;
 
+					for (auto& [k, v] : GetWorkers()) {
+						v->PreXFileLoading(*gcx.opt, ctx);
+					}
+
 					bool err{};
 					for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
 						Asset* asset{ gcx.assets.assets + i };
@@ -491,6 +508,10 @@ namespace fastfile::handlers::bo6 {
 							gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
 						}
 					}
+
+					for (auto& [k, v] : GetWorkers()) {
+						v->PostXFileLoading(*gcx.opt, ctx);
+					}
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());
 			}
@@ -501,8 +522,8 @@ namespace fastfile::handlers::bo6 {
 		utils::ArrayAdder<BO6FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 	}
 
-	std::unordered_map<uint32_t, Worker*>& GetWorkers() {
-		static std::unordered_map<uint32_t, Worker*> workers{};
+	std::unordered_map<bo6::T10RAssetType, Worker*>& GetWorkers() {
+		static std::unordered_map<bo6::T10RAssetType, Worker*> workers{};
 		return workers;
 	}
 

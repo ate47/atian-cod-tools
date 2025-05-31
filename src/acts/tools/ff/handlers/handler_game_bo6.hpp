@@ -14,5 +14,5 @@ namespace fastfile::handlers::bo6 {
 
 	const char* GetPoolName(uint32_t hash);
 
-	std::unordered_map<uint32_t, Worker*>& GetWorkers();
+	std::unordered_map<bo6::T10RAssetType, Worker*>& GetWorkers();
 }
