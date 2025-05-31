@@ -81,4 +81,8 @@ bgpool
 *.cscgdb
 *.gscgdbc
 *.cscgdbc
+# compiler lua files
+*.dec.lua
+*.luac
+
 gfxworld.json
