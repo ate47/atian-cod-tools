@@ -7,6 +7,7 @@
 #include <CascCommon.h>
 #pragma warning(pop)
 #include <core/actsinfo.hpp>
+#include <HwBpLib.h>
 
 
 namespace fastfile {
@@ -682,6 +683,7 @@ namespace fastfile {
 						core::bytebuffer::ByteBuffer ffreader{ ffdata };
 						LOG_TRACE("Reading using {}", opt.handler->name);
 
+						//HwBp::Set(&lastDecompressor, 8, HwBp::When::Written);
 						opt.handler->Handle(opt, ffreader, ctx);
 					}
 					completed++;

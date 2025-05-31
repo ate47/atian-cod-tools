@@ -1963,3 +1963,7 @@ namespace {
     ADD_TOOL_UI(bo6_tools, L"BO6 PS4", Render, Update, Resize);
     ADD_TOOL_NUI(bo6_tools, "BO6 PS4", bo6_tools);
 }
+
+std::ostream& operator<<(std::ostream& os, const bo6::T10RAssetType& obj) {
+    return os << bo6::PoolNameRelease(obj);
+}

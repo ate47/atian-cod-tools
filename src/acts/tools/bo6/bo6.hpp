@@ -1772,3 +1772,7 @@ namespace bo6 {
 	const char* PoolNameRelease(T10RAssetType type);
 	T10RAssetType PoolIdRelease(const char* name);
 }
+std::ostream& operator<<(std::ostream& os, const bo6::T10RAssetType& obj);
+
+template<>
+struct std::formatter<bo6::T10RAssetType, char> : utils::BasicFormatter<bo6::T10RAssetType> {};

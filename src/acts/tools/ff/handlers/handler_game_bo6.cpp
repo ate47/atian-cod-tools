@@ -24,8 +24,13 @@ namespace fastfile::handlers::bo6 {
 			hook::error::DumpStackTraceFrom();
 			throw std::runtime_error(std::format("{} ErrorStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset));
 		}
+		template<size_t offset = 0, typename T, T value>
+		T ReturnStub() {
+			LOG_TRACE("{} ReturnStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset);
+			return value;
+		}
 
-
+		
 		class BO6FFHandler;
 
 		struct Asset {
@@ -151,26 +156,12 @@ namespace fastfile::handlers::bo6 {
 		void ErrorStub(LoadStreamObjectData* that) {
 			throw std::runtime_error(std::format("Error loadstream {}", hook::library::CodePointer{ _ReturnAddress() }));
 		}
-		void* AllocStreamPos(DBLoadCtx* ctx, int align) {
-			LOG_TRACE("AllocStreamPos({}) {}", align, hook::library::CodePointer{ _ReturnAddress() });
-			return nullptr;
-		}
+		void* AllocStreamPos(DBLoadCtx* ctx, int align);
+		void PushStreamPos(DBLoadCtx* ctx, int type);
+		void PopStreamPos(DBLoadCtx* ctx);
+		void PreAssetRead(DBLoadCtx* ctx, T10RAssetType type);
+		void PostAssetRead(DBLoadCtx* ctx);
 
-		void PushStreamPos(DBLoadCtx* ctx, int type) {
-			LOG_TRACE("PushStreamPos({}) {}", type, hook::library::CodePointer{ _ReturnAddress() });
-		}
-
-		void PopStreamPos(DBLoadCtx* ctx) {
-			LOG_TRACE("PopStreamPos() {}", hook::library::CodePointer{ _ReturnAddress() });
-		}
-
-		void PreAssetRead(DBLoadCtx* ctx, T10RAssetType type) {
-			LOG_TRACE("PreAssetRead({}) {}", (int)type, hook::library::CodePointer{ _ReturnAddress() });
-		}
-
-		void PostAssetRead(DBLoadCtx* ctx) {
-			LOG_TRACE("PostAssetRead() {}", hook::library::CodePointer{ _ReturnAddress() });
-		}
 
 		LoadStreamObjectVtable dbLoadStreamVTable{ LoadStreamImpl, ErrorStub, ErrorStub, ErrorStub , ErrorStub };
 		DBLoadCtxVT dbLoadCtxVTable{ AllocStreamPos, PushStreamPos, PopStreamPos, PreAssetRead, PostAssetRead };
@@ -182,12 +173,15 @@ namespace fastfile::handlers::bo6 {
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
+			int streamPosStack[64]{};
+			int streamPosStackIndex{};
 			size_t loaded{};
 			core::memory_allocator::MemoryAllocator allocator{};
 			std::unordered_map<uint64_t, void*> linkedAssets[T10RAssetType::T10R_ASSET_COUNT]{};
 			AssetList assets{};
 			HashedType typeMaps[0x200];
 			size_t typeMapsCount;
+			utils::OutFileCE* outAsset{};
 
 			void InitTypeMaps(hook::library::Library& lib) {
 				// that:
@@ -273,12 +267,66 @@ namespace fastfile::handlers::bo6 {
 		} gcx{};
 
 
-		void LoadXFileData(void* ptr, int64_t len) {
-			throw std::runtime_error("not implemented LoadXFileData");
+		void LoadXFileData(DBLoadCtx* context, void* ptr, int64_t len) {
+			LOG_TRACE("LoadXFileData({}, {}) {}", ptr, len, hook::library::CodePointer{ _ReturnAddress() });
+			gcx.reader->Read(ptr, len);
 		}
 
-		bool LoadStream(DBLoadCtx* context, bool atStreamStart, void* data, int64_t len) {
-			throw std::runtime_error("not implemented LoadStream");
+		bool LoadStream(DBLoadCtx* context, bool atStreamStart, void* ptr, int64_t len) {
+			LOG_TRACE("LoadStream({}, {}, {}) {}", atStreamStart, ptr, len, hook::library::CodePointer{ _ReturnAddress() });
+			if (!gcx.streamPosStackIndex) throw std::runtime_error("empty streampos stack");
+
+			int block{ gcx.streamPosStack[gcx.streamPosStackIndex - 1] };
+
+			if (block == 11) {
+				return false;
+			}
+			else {
+				LoadXFileData(context, ptr, len);
+				return true;
+			}
+
+		}
+
+		void Load_String(DBLoadCtx* context, char** pstr) {
+			char* str{ *pstr };
+			do {
+				gcx.reader->Read(str, 1);
+			} while (*str++);
+		}
+		void Load_CustomScriptString(DBLoadCtx* context, uint32_t* pstr) {
+			uint32_t k;
+			LoadXFileData(context, &k, sizeof(k));
+		}
+
+		void* AllocStreamPos(DBLoadCtx* ctx, int align) {
+			LOG_TRACE("AllocStreamPos({}) {}", align, hook::library::CodePointer{ _ReturnAddress() });
+			if (gcx.reader->CanRead(1)) {
+				return gcx.reader->Ptr();
+			}
+			else {
+				static char empty[1];
+				return empty;
+			}
+		}
+
+		void PushStreamPos(DBLoadCtx* ctx, int type) {
+			LOG_TRACE("PushStreamPos({}) {}", type, hook::library::CodePointer{ _ReturnAddress() });
+			gcx.streamPosStack[gcx.streamPosStackIndex++] = type;
+		}
+
+		void PopStreamPos(DBLoadCtx* ctx) {
+			LOG_TRACE("PopStreamPos() {}", hook::library::CodePointer{ _ReturnAddress() });
+			if (!gcx.streamPosStackIndex) throw std::runtime_error("Can't pop empty stack");
+			gcx.streamPosStackIndex--;
+		}
+
+		void PreAssetRead(DBLoadCtx* ctx, T10RAssetType type) {
+			LOG_TRACE("PreAssetRead({}) {}", type, hook::library::CodePointer{ _ReturnAddress() });
+		}
+
+		void PostAssetRead(DBLoadCtx* ctx) {
+			LOG_TRACE("PostAssetRead() {}", hook::library::CodePointer{ _ReturnAddress() });
 		}
 
 
@@ -289,6 +337,22 @@ namespace fastfile::handlers::bo6 {
 
 		int32_t GetMappedTypeStub(uint32_t hash) {
 			return gcx.GetMappedType(hash)->type;
+		}
+
+		void* DB_LinkGenericXAsset(DBLoadCtx* ctx, T10RAssetType type, void** handle) {
+			*(gcx.outAsset) << "\n" << type << ",#" << hashutils::ExtractTmp("hash", handle ? *(uint64_t*)*handle : 0);
+			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, hashutils::ExtractTmp("hash", handle ? *(uint64_t*)*handle : 0), hook::library::CodePointer{_ReturnAddress()});
+			return handle ? *handle : nullptr;
+		}
+
+		void* DB_LinkGenericXAssetEx(T10RAssetType type, uint64_t name, void** handle) {
+			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", type, hashutils::ExtractTmp("hash", name), hook::library::CodePointer{_ReturnAddress()});
+			return handle ? *handle : nullptr;
+		}
+
+		uint32_t* Unk_Align_Ret(DBLoadCtx* ctx) {
+			static uint32_t data{};
+			return &data;
 		}
 
 		class BO6FFHandler : public fastfile::FFHandler {
@@ -314,15 +378,45 @@ namespace fastfile::handlers::bo6 {
 				loadStreamObj->__vtb = &dbLoadStreamVTable;
 
 				lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9", LoadStream);
-				//E8 ?? ?? ?? ?? 80 3E 00 74 1E
+				lib.Redirect("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", Load_String); // scr
+				lib.Redirect("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41", Load_String); // str
+				lib.Redirect("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA", DB_LinkGenericXAsset);
+				lib.Redirect("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", DB_LinkGenericXAssetEx);
+				lib.Redirect("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8", Load_CustomScriptString);
+				// Stream delta, todo
+				lib.Redirect("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B", EmptyStub<0>); // 2DD6730
+				lib.Redirect("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", EmptyStub<1>); //2E24F20
+				lib.Redirect("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33", EmptyStub<2>);
+				lib.Redirect("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", EmptyStub<3>);
+
+				// idk
+				lib.Redirect("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", ReturnStub<4, bool, false>);
+				lib.Redirect("C5 FB 10 02 44", EmptyStub<5>); // 2DE3F00
+				lib.Redirect("8B 81 ?? ?? ?? ?? 48 8D 04 40 48", Unk_Align_Ret); // 2DE3CC0
+				// remove
+				lib.Redirect("40 53 48 83 EC ?? 41 8B 40 ?? 49", EmptyStub<7>); // image
+				lib.Redirect("48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9", EmptyStub<8>);
+				lib.Redirect("48 8B C4 53 48 81 EC ?? ?? ?? ?? 41 0F B7", EmptyStub<9>);
+				lib.Redirect("40 53 48 83 EC ?? 8B 42 ?? 49", EmptyStub<10>);
+				lib.Redirect("48 8B 05 ?? ?? ?? ?? 0F B7 80", EmptyStub<11>); // sound
+				lib.Redirect("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F", EmptyStub<12>); // sound
+				lib.Redirect("40 53 48 83 EC ?? 81 61", EmptyStub<13>); // model
+				lib.Redirect("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2", EmptyStub<14>); // streaminginfo
+				lib.Redirect("48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75", EmptyStub<15>); // computeshaders
+				lib.Redirect("40 53 55 56 57 41 57 48 83 EC ?? 8B 1D", EmptyStub<16>); // computeshaders
+				lib.Redirect("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", EmptyStub<17>); // computeshaders, TODO: better
+
+
+				//E8 ? ? ? ? 80 3E 00 74 1E
 				//lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
-				//gcx.Load_Asset = lib.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48")
-				//	.Get<void(*)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset)>();
+				gcx.Load_Asset = lib.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48")
+					.GetPtr<void(*)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset)>();
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
 				gcx.ctx = &ctx;
 				gcx.reader = &reader;
+				//HwBp::Set(&gcx.reader, 8, HwBp::When::Written);
 				std::filesystem::path out{ opt.m_output / "bo6" / "data" };
 				std::filesystem::create_directories(out);
 
@@ -374,13 +468,14 @@ namespace fastfile::handlers::bo6 {
 				{
 					std::filesystem::create_directories(outAssets.parent_path());
 					utils::OutFileCE assetsOs{ outAssets };
+					gcx.outAsset = &assetsOs;
 					assetsOs << "type,name";
 					gcx.assets.assets = reader.ReadPtr<Asset>(gcx.assets.assetsCount);
 
 					hook::library::Library lib{ opt.GetGame(true) };
 
 					DBLoadCtx loadCtx{};
-					loadCtx.__vtb = &dbLoadCtxVTable;
+					DBLoadCtxVT* vt = &dbLoadCtxVTable;
 
 					bool err{};
 					for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
@@ -388,10 +483,13 @@ namespace fastfile::handlers::bo6 {
 
 						const HashedType* type{ gcx.GetMappedType(asset->type) };
 
-						assetsOs << "\n" << std::hex << type->name << ",<unk>";
-
-						asset->type = type->type;
-						//gcx.Load_Asset(&loadCtx, false, asset);
+						LOG_DEBUG("load #{} -> {}", i, type->name);
+						if (opt.noAssetDump) {
+							assetsOs << "\n" << std::hex << type->name << ",<unk>";
+						}
+						else {
+							gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
+						}
 					}
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());
