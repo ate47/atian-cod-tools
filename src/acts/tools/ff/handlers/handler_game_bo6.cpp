@@ -9,6 +9,7 @@
 #include <tools/bo6/bo6.hpp>
 #include <decryptutils.hpp>
 #include <tools/ff/handlers/handler_game_bo6.hpp>
+#include <utils/enumlist.hpp>
 
 
 namespace fastfile::handlers::bo6 {
@@ -182,6 +183,7 @@ namespace fastfile::handlers::bo6 {
 			HashedType typeMaps[0x200];
 			size_t typeMapsCount;
 			utils::OutFileCE* outAsset{};
+			utils::EnumList<T10RAssetType, T10RAssetType::T10R_ASSET_COUNT> handleList{ PoolIdRelease };
 
 			void InitTypeMaps(hook::library::Library& lib) {
 				// that:
@@ -344,7 +346,8 @@ namespace fastfile::handlers::bo6 {
 			*(gcx.outAsset) << "\n" << type << ",#" << name;
 			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, name, hook::library::CodePointer{_ReturnAddress()});
 
-			if (handle) {
+			if (handle && !(gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))) {
+
 				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
 				auto it{ map.find(type) };
 				if (it != map.end()) {
@@ -380,6 +383,12 @@ namespace fastfile::handlers::bo6 {
 					throw std::runtime_error("Can't load decryption module");
 				}
 
+				gcx.handleList.Clear();
+				if (opt.assetTypes) {
+					gcx.handleList.LoadConfig(opt.assetTypes);
+				}
+
+
 				gcx.InitTypeMaps(lib);
 
 				lib.Redirect("40 56 41 56 48 83 EC ? 48 8B 15", GetMappedTypeStub);
@@ -396,8 +405,8 @@ namespace fastfile::handlers::bo6 {
 				// Stream delta, todo
 				lib.Redirect("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B", EmptyStub<0>); // 2DD6730
 				lib.Redirect("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", EmptyStub<1>); //2E24F20
-				lib.Redirect("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33", EmptyStub<2>);
-				lib.Redirect("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", EmptyStub<3>);
+				lib.Redirect("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33", EmptyStub<2>); // 2DD63E0
+				lib.Redirect("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", EmptyStub<3>); // 2E25100
 
 				// idk
 				lib.Redirect("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", ReturnStub<4, bool, false>);
@@ -493,6 +502,23 @@ namespace fastfile::handlers::bo6 {
 					for (auto& [k, v] : GetWorkers()) {
 						v->PreXFileLoading(*gcx.opt, ctx);
 					}
+
+					if (!gcx.handleList.Empty()) {
+						// check that we match at least one required type
+						bool anySee{};
+						for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
+							Asset* asset{ gcx.assets.assets + i };
+
+							if (gcx.handleList[gcx.GetMappedType(asset->type)->type]) {
+								anySee = true;
+								break;
+							}
+						}
+
+						if (!anySee) return;
+					}
+
+					if (opt.noAssetDump) return;
 
 					bool err{};
 					for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
