@@ -81,6 +81,7 @@ See the wiki to know how to use the features
 
 - `bo3`: `rawfile`, `scriptparsetree`
 - `bo4`: `rawfile`, `scriptparsetree`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`
+- `bo6`: `rawfile`, `gscobj`
 - `GscXHash`: `scriptparsetree`, `gscobj`
 - `GscXString`: `scriptparsetree`, `scriptparsetreedbg`
 
@@ -104,6 +105,8 @@ You can download the latest release here:
 
 - [Latest Release](https://github.com/ate47/atian-cod-tools/releases/latest)
 - [Latest Dev Build](https://github.com/ate47/atian-cod-tools/releases/tag/latest_build) (Might be unstable)
+
+The tool `checkupdate` allows to check for the latest update.
 
 ## Related repositories
 
