@@ -82,6 +82,8 @@ try {
     
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
+    # Clear config data
+    Remove-Item build\bin\acts.json
 
     # Info data
     Copy-Item "README.md" "$base/README.md" > $null

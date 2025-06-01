@@ -18,18 +18,20 @@ namespace core::updater {
 	constexpr auto ACTS_VERSION = core::actsinfo::VERSION_ID;
 #endif
     
-	bool CheckUpdate(bool forceUpdate) {
+	bool CheckUpdate(bool forceUpdate, bool silent) {
         if (!forceUpdate) {
 #ifndef DEV_UPDATER
             return false; // not available yet
 #endif
             if constexpr (core::actsinfo::DEV_VERSION_ID == ACTS_VERSION) {
-                return false; // can't update dev version
+                if (core::config::GetBool("updater.allowdev", false)) {
+                    LOG_WARNING("Updating DEV version");
+                }
+                else {
+                    LOG_ERROR("Updating DEV version");
+                    return false; // can't update dev version
+                }
             }
-
-            //if (!core::config::GetBool("updater.enabled", true)) {
-            //    return false;
-            //}
         }
 
         static std::filesystem::path mainPath{ utils::GetProgDir() };
@@ -42,10 +44,12 @@ namespace core::updater {
             return false;
         }
 
+        core::logs::loglevel lvl{ silent ? core::logs::LVL_TRACE : core::logs::LVL_INFO };
+
         if (!forceUpdate) {
             // Check if we need an update
             std::string url = core::config::GetString("updater.versionUrl", VERSION_ENDPOINT);
-            LOG_TRACE("Fetching version from {}...", url);
+            LOG_LVLF(lvl, "Fetching version from {}...", url);
 
             VersionData latestVersion{};
             if (!latestVersion.ReadURL(url)) {
@@ -54,9 +58,12 @@ namespace core::updater {
             }
 
             if (latestVersion.v <= ACTS_VERSION) {
-                LOG_TRACE("Latest version 0x{:x} <= 0x{:x}", latestVersion.v, ACTS_VERSION);
+                LOG_LVLF(lvl, "Latest version {} <= {}", GetVersionName(latestVersion.v), GetVersionName(ACTS_VERSION));
+                LOG_DEBUG("0x{:x} <= 0x{:x}", latestVersion.v, ACTS_VERSION);
                 return false; // nothing to update
             }
+
+            LOG_INFO("Updating to {}...", GetVersionName(latestVersion.v));
         }
 
         std::string zip = core::config::GetString("updater.zipUrl", ZIP_ENDPOINT);
@@ -148,7 +155,10 @@ namespace core::updater {
             }
         }
 
-        LOG_INFO("ACTS Updated");
+        VersionData vd{};
+        vd.ReadFile(mainPath / "version");
+
+        LOG_INFO("ACTS Updated to {}", vd.name);
     }
 
     bool VersionData::Read(const std::string& input) {
@@ -185,5 +195,16 @@ namespace core::updater {
         catch (std::exception) {
             return false;
         }
+    }
+    const char* GetVersionName(uint32_t v) {
+        if (v == core::actsinfo::DEV_VERSION_ID) {
+            return "DEV";
+        }
+        // 0x2008000 -> 2.8.0
+        int patch{ v & 0xfff };
+        int minor{ (v >> 12) & 0xfff };
+        int major{ (v >> 24) & 0xfff };
+
+        return utils::va("%d.%d.%d", major, minor, patch);
     }
 }

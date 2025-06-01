@@ -6,7 +6,7 @@ namespace core::updater {
 	constexpr const char* UPDATE_ZIP_NAME = "acts_update.zip";
 
     struct VersionData {
-        unsigned int v;
+		uint32_t v;
         std::string name;
 
         bool Read(const std::string& input);
@@ -19,10 +19,17 @@ namespace core::updater {
 	 * Check for an update for this installation
 	 * @return if the process should stop
 	 */
-	bool CheckUpdate(bool forceUpdate = false);
+	bool CheckUpdate(bool forceUpdate, bool silent);
 
 	/**
 	 * apply the update
 	 */
 	void ApplyUpdate();
+
+	/*
+	 * Get a string of a version
+	 * @param v version
+	 * @return string
+	 */
+	const char* GetVersionName(uint32_t v);
 }

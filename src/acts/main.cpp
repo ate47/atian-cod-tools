@@ -298,7 +298,7 @@ void SetActsSharedConfig(void* cfg) {
 int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	core::config::SyncConfig(true);
 	srand((unsigned int)time(nullptr));
-	//if (core::updater::CheckUpdate()) {
+	//if (core::updater::CheckUpdate(false, true)) {
 	//	return 0;
 	//}
 	bool cli{ hInstance == nullptr };
