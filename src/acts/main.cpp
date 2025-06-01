@@ -298,9 +298,9 @@ void SetActsSharedConfig(void* cfg) {
 int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	core::config::SyncConfig(true);
 	srand((unsigned int)time(nullptr));
-	if (core::updater::CheckUpdate()) {
-		return 0;
-	}
+	//if (core::updater::CheckUpdate()) {
+	//	return 0;
+	//}
 	bool cli{ hInstance == nullptr };
 	auto& profiler = actscli::GetProfiler();
 

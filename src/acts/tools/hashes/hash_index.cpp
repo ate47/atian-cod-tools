@@ -1,7 +1,6 @@
 #include <includes.hpp>
 #include <utils/io_utils.hpp>
-#define MINIZ_NO_ZLIB_COMPATIBLE_NAMES
-#include <zip_file.hpp>
+#include <deps/miniz.hpp>
 
 namespace {
 	constexpr const char* HashIndexURL = "https://github.com/ate47/HashIndex/releases/download/release/hashes-all.zip";

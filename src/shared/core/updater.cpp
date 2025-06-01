@@ -5,6 +5,8 @@
 #include <core/config.hpp>
 #include <core/actsinfo.hpp>
 #include "updater.hpp"
+#include <deps/miniz.hpp>
+
 
 
 namespace core::updater {
@@ -16,18 +18,19 @@ namespace core::updater {
 	constexpr auto ACTS_VERSION = core::actsinfo::VERSION_ID;
 #endif
     
-	bool CheckUpdate() {
+	bool CheckUpdate(bool forceUpdate) {
+        if (!forceUpdate) {
 #ifndef DEV_UPDATER
-        return false; // not available yet
+            return false; // not available yet
 #endif
+            if constexpr (core::actsinfo::DEV_VERSION_ID == ACTS_VERSION) {
+                return false; // can't update dev version
+            }
 
-		if constexpr (core::actsinfo::DEV_VERSION_ID == ACTS_VERSION) {
-			return false; // can't update dev version
-		}
-
-		if (!core::config::GetBool("updater.enabled", true)) {
-			return false;
-		}
+            //if (!core::config::GetBool("updater.enabled", true)) {
+            //    return false;
+            //}
+        }
 
         static std::filesystem::path mainPath{ utils::GetProgDir() };
         static std::filesystem::path updaterExe{ mainPath / "acts-updater.exe" };
@@ -39,23 +42,24 @@ namespace core::updater {
             return false;
         }
 
-        // Check if we need an update
-        std::string url = core::config::GetString("updater.versionUrl", VERSION_ENDPOINT);
+        if (!forceUpdate) {
+            // Check if we need an update
+            std::string url = core::config::GetString("updater.versionUrl", VERSION_ENDPOINT);
+            LOG_TRACE("Fetching version from {}...", url);
+
+            VersionData latestVersion{};
+            if (!latestVersion.ReadURL(url)) {
+                // todo: maybe we can check for the last time we updated acts to reduce impacts of timeouts/bad co
+                return false; // can't fetch latest update
+            }
+
+            if (latestVersion.v <= ACTS_VERSION) {
+                LOG_TRACE("Latest version 0x{:x} <= 0x{:x}", latestVersion.v, ACTS_VERSION);
+                return false; // nothing to update
+            }
+        }
+
         std::string zip = core::config::GetString("updater.zipUrl", ZIP_ENDPOINT);
-
-        LOG_TRACE("Fetching version from {}...", url);
-
-        VersionData latestVersion{};
-        if (!latestVersion.ReadURL(url)) {
-            // todo: maybe we can check for the last time we updated acts to reduce impacts of timeouts/bad co
-            return false; // can't fetch latest update
-        }
-
-        if (latestVersion.v <= ACTS_VERSION) {
-            LOG_TRACE("Latest version 0x{:x} <= 0x{:x}", latestVersion.v, ACTS_VERSION);
-            return false; // nothing to update
-        }
-
         LOG_INFO("Download latest version '{}'...", zip);
 
         std::string latest{};
@@ -101,6 +105,8 @@ namespace core::updater {
             LOG_ERROR("Can't create process {}", updaterOtherExe.string());
             return false;
         }
+        
+        AttachConsole(pi.dwThreadId);
 
 		return true;
 	}
@@ -115,8 +121,34 @@ namespace core::updater {
             return;
         }
 
-        // todo: extract zip
+        std::vector<byte> buff{ utils::ReadFile<std::vector<byte>>(zipOut) };
 
+        miniz_cpp::zip_file zf{ buff };
+
+        std::filesystem::path bindir{ "acts/bin" };
+
+        for (miniz_cpp::zip_info& member : zf.infolist()) {
+            std::filesystem::path rdir{ member.filename };
+            std::filesystem::path out;
+            if (utils::IsSubDir(bindir, rdir)) {
+                out = mainPath / std::filesystem::relative(rdir, bindir);
+            }
+            else {
+                out = mainPath / member.filename;
+            }
+
+            std::filesystem::create_directories(out.parent_path());
+            LOG_INFO("Extracting into {}", out.string());
+
+            std::string wni{ zf.read(member.filename) };
+
+            if (!utils::WriteFile(out, wni)) {
+                LOG_ERROR("Can't write file");
+                continue;
+            }
+        }
+
+        LOG_INFO("ACTS Updated");
     }
 
     bool VersionData::Read(const std::string& input) {

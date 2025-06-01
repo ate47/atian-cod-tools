@@ -3,6 +3,7 @@
 #include "tools/gsc.hpp"
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
+#include <core/updater.hpp>
 
 namespace {
 
@@ -516,6 +517,22 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int forceupdate(int argc, const char* argv[]) {
+		core::updater::CheckUpdate(true);
+		return tool::OK;
+	}
+
+	int checkupdate(int argc, const char* argv[]) {
+		if (core::updater::CheckUpdate()) {
+			// force the exit for the retards
+			actscli::options().exitAfterEnd = true;
+		}
+		else {
+			LOG_INFO("Already up to date");
+		}
+		return tool::OK;
+	}
 }
 
 namespace actscli {
@@ -556,3 +573,5 @@ ADD_TOOL(packfile, "acts", " [file=acts.acpf]", "Create ACTS pack file", nullptr
 ADD_TOOL(exit, "acts", "", "Exit repl cli", nullptr, exitcli);
 ADD_TOOL(echo, "acts", "", "echo", nullptr, echocli);
 ADD_TOOL(repl, "acts", "", "Use repl cli", nullptr, replcli);
+ADD_TOOL(forceupdate, "acts", "", "force update", forceupdate);
+ADD_TOOL(checkupdate, "acts", "", "check update", checkupdate);

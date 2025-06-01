@@ -19,7 +19,7 @@ namespace core::updater {
 	 * Check for an update for this installation
 	 * @return if the process should stop
 	 */
-	bool CheckUpdate();
+	bool CheckUpdate(bool forceUpdate = false);
 
 	/**
 	 * apply the update

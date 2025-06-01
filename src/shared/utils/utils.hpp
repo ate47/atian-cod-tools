@@ -47,17 +47,6 @@ namespace utils {
 	 */
 	bool ReadFile(const std::filesystem::path& path, std::string& buffer, bool append = false);
 
-	
-	template<typename Type>
-	Type ReadFile(const std::filesystem::path& path) {
-		Type buff{};
-		if (!ReadFile(path, buff)) {
-			throw std::runtime_error(std::format("Can't read {}", path.string()));
-		}
-
-		return buff;
-	}
-
 	/*
 	 * Read a file inside an allocated buffer
 	 * @param path file path
@@ -110,6 +99,16 @@ namespace utils {
 	 * @return if the file was read
 	 */
 	bool ReadFileAlign(const std::filesystem::path& path, std::vector<byte>& buffer, void*& bufferAligned, size_t& sizeAligned);
+
+	template<typename Type>
+	Type ReadFile(const std::filesystem::path& path) {
+		Type buff{};
+		if (!ReadFile(path, buff)) {
+			throw std::runtime_error(std::format("Can't read {}", path.string()));
+		}
+
+		return buff;
+	}
 	/*
 	 * write a buffer into a file
 	 * @param path file path
@@ -470,6 +469,14 @@ namespace utils {
 	inline bool EqualIgnoreCase(const std::string& s1, const char* s2) { return EqualIgnoreCase(s1.c_str(), s2); }
 	inline bool EqualIgnoreCase(const char* s1, const std::string& s2) { return EqualIgnoreCase(s1, s2.c_str()); }
 	inline bool EqualIgnoreCase(const std::string& s1, const std::string& s2) { return EqualIgnoreCase(s1.c_str(), s2.c_str()); }
+
+	/*
+	 * Test if a path is a child of a directory
+	 * @param parent parent dir
+	 * @param child child dir
+	 * @return if it is the case
+	 */
+	bool IsSubDir(const std::filesystem::path& parent, const std::filesystem::path& child);
 	/*
 	 * @return prog exe directory
 	 */

@@ -15,11 +15,11 @@ int main(int argc, char const *argv[]) {
                 break;
             }
             else {
-                LOG_INFO("Waiting for {}... ({}/{})", acts, i, maxWait);
+                LOG_INFO("Waiting for acts.exe {}... ({}/{})", acts, i, maxWait);
             }
         }
         else {
-            LOG_INFO("Waiting for {}... ({}/{})", actsui, i, maxWait);
+            LOG_INFO("Waiting for acts-ui.exe {}... ({}/{})", actsui, i, maxWait);
         }
         Sleep(1000);
     }
