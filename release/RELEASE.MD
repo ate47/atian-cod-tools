@@ -1,19 +1,28 @@
 - acts
-  - fastfile linker
-    - use zone file to describe linker
-    - add include in zone file
-    - scriptparsetreedbg, bgcache, luafile and scriptbundle bo4 linkers
-    - dump files in the same paths as the game dir
-    - produce WNI files with the fastfile
-  - fastfile unlinker
-    - vehicle bo4 pool
-    - graphic bo4 pools test
-    - allow to only dump particular types
-  - preprocessor
-    - fix directives in removed blocks
-    - add #insert directive
-  - test gscbin recompressor with zlib
+  - add checkupdate and forceupdate to update to the latest version
+  - fastfile
+    - bo4
+      - unlinker for arenaseasons, dlogevent, hwplatform, gametypetable and ttf
+      - ttf linker
+      - use modtool opcodes in gsc compiler, can be disabled with the option `gsc.opModTool=false`
+    - bo6
+      - fastfile decompressor
+      - wip basic fastfile implementation
+      - rawfile unlinker
+  - lua
+    - update to new hksc version for the .@ syntax
+    - add hksc tool to directly compile luafiles
+  - gsc decompiler
+    - fix checksum decomp
+  - gsc compiler
+    - remove need for file extension in detour definition
+    - allow to use mod tool op codes for bo3, bo4 and cw
+    - use random opcodes
+  - add new bo6 decryption pattern
+  - fix luajit tool description
 - acts-shield-plugin
-  - add ActsHashLookup gsc function
-  - hash store integration
-  - load gsc debug files
+  - add gsc detours and lazylinks support
+  - add API function and script function types to ActsLog output
+  - add ActsGetDetour function
+- acts-bo4
+  - remove dll from build
