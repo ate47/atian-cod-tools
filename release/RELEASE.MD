@@ -1,2 +1,2 @@
-- acts-updater
-  - blank version to test autoupdater
+- acts
+  - remove test updater 
