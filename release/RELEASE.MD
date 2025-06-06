@@ -1,28 +1,5 @@
 - acts
-  - add checkupdate and forceupdate to update to the latest version
-  - fastfile
-    - bo4
-      - unlinker for arenaseasons, dlogevent, hwplatform, gametypetable and ttf
-      - ttf linker
-      - use modtool opcodes in gsc compiler, can be disabled with the option `gsc.opModTool=false`
-    - bo6
-      - fastfile decompressor
-      - wip basic fastfile implementation
-      - rawfile unlinker
-  - lua
-    - update to new hksc version for the .@ syntax
-    - add hksc tool to directly compile luafiles
-  - gsc decompiler
-    - fix checksum decomp
-  - gsc compiler
-    - remove need for file extension in detour definition
-    - allow to use mod tool op codes for bo3, bo4 and cw
-    - use random opcodes
-  - add new bo6 decryption pattern
-  - fix luajit tool description
-- acts-shield-plugin
-  - add gsc detours and lazylinks support
-  - add API function and script function types to ActsLog output
-  - add ActsGetDetour function
-- acts-bo4
-  - remove dll from build
+  - enable autoupdater
+  - disable REPL worker by default
+  - use '\`' instead of `\\` for string escape in REPL worker
+  - ignore acts.exe and acts if used in the REPL as 1st argument
