@@ -86,3 +86,6 @@
 	path = deps/hksc
 	url = https://github.com/ate47/hksc
 	branch = test_t8
+[submodule "deps/bdiff"]
+	path = deps/bdiff
+	url = https://github.com/ate47/bdiff

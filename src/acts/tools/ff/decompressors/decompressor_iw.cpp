@@ -3,10 +3,10 @@
 #include <hook/error.hpp>
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
-#include <tools/ff/bdiff.hpp>
 #include <games/bo4/pool.hpp>
 #include <utils/compress_utils.hpp>
 #include <utils/data_utils.hpp>
+#include <bdiff.hpp>
 
 namespace {
 	enum IWFFVersion {
@@ -102,13 +102,6 @@ namespace {
 		IWFFDecompressor() : fastfile::FFDecompressor("IW", 0x3030317066665749, 0xFFFFFF00FFFFFFFF) {}
 
 		void Init(fastfile::FastFileOption& opt) override {
-			if (!opt.game) {
-				return; // no game
-			}
-			if (!game.Load(opt.game)) {
-				throw std::runtime_error(std::format("Can't load {}", opt.game));
-			}
-
 			//DB_UnpackHeader = game->ScanSingle("40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 88 B4").GetPtr<decltype(DB_UnpackHeader)>();
 			//game->Redirect("48 89 5C 24 ? 55 56 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 05 ? ? ? ? 48 33 C4 48 89 84 24 ? ? ? ? 48 8B EA", []() { return true; });
 			//decryptBuffer = std::make_unique<byte[]>(0x5000); // 0x4928, but maybe it'll change by few bytes
@@ -145,7 +138,6 @@ namespace {
 
 			DB_FFHeader* header{ reader.Ptr<DB_FFHeader>() };
 
-			hook::library::Library lib{ *game };
 			if (opt.m_header) {
 				PrintHeader(header);
 			}
@@ -375,10 +367,6 @@ namespace {
 
 				LOG_TRACE("Loaded {} 0x{:x} bytes", fpdata.size(), fpdata.size());
 
-				//*
-				bool init{};
-				hook::library::Library game{ opt.GetGame(true, &init, true) };
-
 				struct BdiffStateData {
 					std::vector<byte> outwindow{};
 					byte* destWindow{};
@@ -400,23 +388,8 @@ namespace {
 					}
 				} bdiffStates{};
 
-				typedef uint8_t* vcSourceCB_t(BdiffStateData* state, size_t offset, size_t size);
-				typedef uint8_t* vcDiffCB_t(BdiffStateData* state, size_t offset, size_t size, size_t* pOffset);
-				typedef uint8_t* vcDestCB_t(BdiffStateData* state, size_t size);
-
-				static bool (*bdiff)(BdiffStateData* ctx, fastfile::bdiff::BDiffState* diffState, vcSourceCB_t* sourceDataCB, vcDiffCB_t* patchDataCB, vcDestCB_t* destDataCB) {};
-				if (!bdiff) {
-					hook::library::ScanResult bdiffOff{ game.FindAnyScan(
-						"bdiff",
-						// the bo4/cw one is not using a state, todo: merge in one module
-						// "40 53 55 41 54 41 56 B8", // cw/cod2020
-						// "40 55 41 54 41 56 41 57 B8", // bo4
-						"40 55 41 54 41 55 41 56 41 57 B8" // bo6
-					) };
-
-					LOG_TRACE("find bdiff: {}", hook::library::CodePointer{ bdiffOff.location });
-					bdiff = reinterpret_cast<decltype(bdiff)>(bdiffOff.location);
-				}
+				bdiff::diffInfo diffInfo{};
+				diffInfo.state = &bdiffStates;
 
 				bdiffStates.destWindowSize = 0x480000; //bdiffHeader->maxDestWindowSize + bdiffHeader->maxSourceWindowSize + 2 * (bdiffHeader->maxDiffWindowSize + 0x80000);
 				bdiffStates.outwindow.resize(bdiffStates.destWindowSize);
@@ -429,17 +402,16 @@ namespace {
 				bdiffStates.fdbb = &fdbb;
 				bdiffStates.ffbb = &ffbb;
 
-				fastfile::bdiff::BDiffState state{};
 				bdiffStates.patchWindowOffsetLast = 0;
 				do {
 					if (!bdiffStates.fdbb->CanRead(0x400)) {
 						break; // can't read header
 					}
 					LOG_TRACE("Pre bdiff");
-					if (!bdiff(
-						&bdiffStates,
-						&state,
-						[](BdiffStateData* state, size_t offset, size_t size) -> uint8_t* {
+					if (!bdiff::bdiff_internal(
+						&diffInfo,
+						[](void* data, size_t offset, size_t size) -> uint8_t* {
+							BdiffStateData* state{ (BdiffStateData*)data };
 							// vcSourceCB_t
 							state->ffbb->Goto(offset);
 							if (!state->ffbb->CanRead(size)) {
@@ -449,7 +421,8 @@ namespace {
 							LOG_TRACE("vcSourceCB_t: read 0x{:x}:0x{:x}", state->ffbb->Loc(), size);
 							return state->ffbb->ReadPtr<uint8_t>(size);
 						},
-						[](BdiffStateData* state, size_t offset, size_t size, size_t* pOffset) -> uint8_t* {
+						[](void* data, size_t offset, size_t size, size_t* pOffset) -> uint8_t* {
+							BdiffStateData* state{ (BdiffStateData*)data };
 							if (offset) {
 								state->patchWindowOffsetLast = offset;
 							}
@@ -467,7 +440,8 @@ namespace {
 							LOG_TRACE("vcDiffCB_t: read 0x{:x}:0x{:x}", state->fdbb->Loc(), size);
 							return state->fdbb->ReadPtr<uint8_t>(size);
 						},
-						[](BdiffStateData* state, size_t size) -> uint8_t* {
+						[](void* data, size_t size) -> uint8_t* {
+							BdiffStateData* state{ (BdiffStateData*)data };
 							// vcDestCB_t
 							state->SyncData();
 							state->destWindowLastSize = size;
@@ -496,7 +470,7 @@ namespace {
 								LOG_INFO("Dump bdifferr patch into {}", decfile.string());
 							}
 						}
-						throw std::runtime_error(std::format("bdiff error: 0x{:x}", state.features));
+						throw std::runtime_error("bdiff error");
 					}
 				} while (bdiffStates.destWindowLastSize);
 				bdiffStates.SyncData();

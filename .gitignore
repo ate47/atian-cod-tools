@@ -86,3 +86,4 @@ bgpool
 *.luac
 
 gfxworld.json
+/deps/Modern-Warfare-BDiff
