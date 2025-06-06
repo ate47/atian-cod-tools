@@ -52,7 +52,7 @@ jobs:
         shell: pwsh
         run: msbuild build/AtianCodTools.sln /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
       - name: Run tests
-        run: build/bin/acts.exe -l p -d -t utest
+        run: build/bin/acts.exe --noUpdater -l p -d -t utest
       - name: Package project
         if: matrix.cfg == 'Release'
         shell: pwsh

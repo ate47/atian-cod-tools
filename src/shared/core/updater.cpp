@@ -10,29 +10,46 @@
 
 
 namespace core::updater {
-#ifdef CI_BUILD
-	constexpr auto ACTS_VERSION = core::actsinfo::VERSION_ID;
-#else
-#define DEV_UPDATER
-	// dev, force a version for the updater
-	constexpr auto ACTS_VERSION = core::actsinfo::VERSION_ID;
-#endif
     
-	bool CheckUpdate(bool forceUpdate, bool silent) {
+    static bool NeedCheck(bool silent) {
+        if constexpr (core::actsinfo::DEV_VERSION_ID == core::actsinfo::VERSION_ID) {
+            if (core::config::GetBool("updater.allowdev", false)) {
+                LOG_WARNING("Updating DEV version");
+            }
+            else {
+                if (!silent) {
+                    LOG_ERROR("Updating DEV version");
+                }
+                return false; // can't update dev version
+            }
+        }
+        return !core::config::GetBool("updater.disabled", false);
+    }
+
+	bool CheckUpdate(bool forceUpdate, bool silent, bool ui) {
         if (!forceUpdate) {
 #ifndef DEV_UPDATER
             return false; // not available yet
 #endif
-            if constexpr (core::actsinfo::DEV_VERSION_ID == ACTS_VERSION) {
-                if (core::config::GetBool("updater.allowdev", false)) {
-                    LOG_WARNING("Updating DEV version");
+            if (!NeedCheck(silent)) return false;
+        }
+
+        auto LogInfo = [ui](const std::string& fmt, bool canCancel) {
+            if (ui) {
+                if (canCancel) {
+                    if (MessageBoxA(NULL, fmt.data(), "Updater", MB_ICONINFORMATION | MB_OKCANCEL) == IDCANCEL) {
+                        return false;
+                    }
                 }
                 else {
-                    LOG_ERROR("Updating DEV version");
-                    return false; // can't update dev version
+                    MessageBoxA(NULL, fmt.data(), "Updater", MB_ICONINFORMATION | MB_OK);
                 }
             }
-        }
+            else {
+                LOG_INFO("{}", fmt);
+            }
+            return true;
+        };
 
         static std::filesystem::path mainPath{ utils::GetProgDir() };
         static std::filesystem::path updaterExe{ mainPath / "acts-updater.exe" };
@@ -57,13 +74,15 @@ namespace core::updater {
                 return false; // can't fetch latest update
             }
 
-            if (latestVersion.v <= ACTS_VERSION) {
-                LOG_LVLF(lvl, "Latest version {} <= {}", GetVersionName(latestVersion.v), GetVersionName(ACTS_VERSION));
-                LOG_DEBUG("0x{:x} <= 0x{:x}", latestVersion.v, ACTS_VERSION);
+            if (latestVersion.v <= core::actsinfo::VERSION_ID) {
+                LOG_LVLF(lvl, "Latest version {} <= {}", GetVersionName(latestVersion.v), GetVersionName(core::actsinfo::VERSION_ID));
+                LOG_DEBUG("0x{:x} <= 0x{:x}", latestVersion.v, core::actsinfo::VERSION_ID);
                 return false; // nothing to update
             }
 
-            LOG_INFO("Updating to {}...", GetVersionName(latestVersion.v));
+            if (!LogInfo(std::format("Updating to {}", GetVersionName(latestVersion.v)), true)) {
+                return false; // canceled by the user
+            }
         }
 
         std::string zip = core::config::GetString("updater.zipUrl", ZIP_ENDPOINT);
@@ -87,7 +106,7 @@ namespace core::updater {
 
         LOG_INFO("Start updater with {}", zipOut.string());
 
-        std::wstring updaterOtherExeStr{ updaterOtherExe.wstring() };
+        std::wstring updaterOtherExeStr{ std::format(L"{} {}", updaterOtherExe.wstring(), ui ? L"true" : L"false") };
 
         STARTUPINFOW si;
         PROCESS_INFORMATION pi;
@@ -95,8 +114,7 @@ namespace core::updater {
         ZeroMemory(&si, sizeof(si));
         si.cb = sizeof(si);
         ZeroMemory(&pi, sizeof(pi));
-
-
+        
         if (!CreateProcessW(
             NULL,
             updaterOtherExeStr.data(),
@@ -118,7 +136,7 @@ namespace core::updater {
 		return true;
 	}
 
-    void ApplyUpdate() {
+    void ApplyUpdate(bool ui) {
         static hook::library::Library main{};
         static std::filesystem::path mainPath{ utils::GetProgDir() };
         std::filesystem::path zipOut{ std::filesystem::absolute(mainPath / UPDATE_ZIP_NAME) };
@@ -158,7 +176,52 @@ namespace core::updater {
         VersionData vd{};
         vd.ReadFile(mainPath / "version");
 
-        LOG_INFO("ACTS Updated to {}", vd.name);
+        std::string msg{ std::format("ACTS Updated to {}", vd.name) };
+
+        LOG_INFO("{}", msg);
+
+        if (ui) {
+            MessageBoxA(NULL, msg.data(), "Updater", MB_ICONINFORMATION | MB_OK);
+        }
+    }
+
+    bool FindUpdate(bool cli) {
+        static std::filesystem::path mainPath{ utils::GetProgDir() };
+        static std::filesystem::path updaterTest{ mainPath / "acts-updater.json" };
+
+
+        if (!NeedCheck(true)) {
+            return false;
+        }
+
+        LOG_TRACE("Check for update...");
+
+        int64_t now{ utils::GetTimestamp() };
+
+
+        core::config::Config cfg{ updaterTest };
+        try {
+            cfg.SyncConfig(false);
+            bool disabled{ cfg.GetBool("disabled", false) };
+            bool forced{ cfg.GetBool("forced", false) };
+            int64_t lastCheck{ cfg.GetInteger("lastCheck", now) };
+            int64_t timeDelta{ cfg.GetInteger("timeDelta", 1000LL * 3600 * 24) }; // by default one day
+
+            if (!forced && (disabled || lastCheck + timeDelta > now)) {
+                // nothing to check
+                cfg.SaveConfig();
+                LOG_TRACE("Nothing to update.");
+                return false;
+            }
+            cfg.SetInteger("lastCheck", now);
+            cfg.SetBool("forced", false);
+            cfg.SaveConfig();
+            return CheckUpdate(forced, true, !cli);
+        }
+        catch (std::runtime_error& err) {
+            LOG_ERROR("Can't read {}: {}", updaterTest.string(), err.what());
+        }
+        return false;
     }
 
     bool VersionData::Read(const std::string& input) {

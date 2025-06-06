@@ -3,6 +3,13 @@
 #include <utils/memapi.hpp>
 
 int main(int argc, char const *argv[]) {
+    if (argc < 2) {
+        // we are updating the process
+        core::updater::FindUpdate(true);
+        return 0;
+    }
+    bool ui{ utils::EqualIgnoreCase(argv[1], "true") };
+
     constexpr size_t maxWait = 10;
     // wait for acts to stop
     size_t i;
@@ -29,6 +36,6 @@ int main(int argc, char const *argv[]) {
         return -1;
     }
 
-    core::updater::ApplyUpdate();
+    core::updater::ApplyUpdate(ui);
     return 0;
 }

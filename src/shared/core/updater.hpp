@@ -19,12 +19,18 @@ namespace core::updater {
 	 * Check for an update for this installation
 	 * @return if the process should stop
 	 */
-	bool CheckUpdate(bool forceUpdate, bool silent);
+	bool CheckUpdate(bool forceUpdate, bool silent, bool ui);
 
 	/**
 	 * apply the update
 	 */
-	void ApplyUpdate();
+	void ApplyUpdate(bool ui);
+
+	/*
+	 * Try to find an update
+	 * @return if the process should stop
+	 */
+	bool FindUpdate(bool cli);
 
 	/*
 	 * Get a string of a version

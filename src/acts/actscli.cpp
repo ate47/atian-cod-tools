@@ -519,12 +519,12 @@ namespace {
 	}
 
 	int forceupdate(int argc, const char* argv[]) {
-		core::updater::CheckUpdate(true, false);
+		core::updater::CheckUpdate(true, false, false);
 		return tool::OK;
 	}
 
 	int checkupdate(int argc, const char* argv[]) {
-		if (core::updater::CheckUpdate(false, false)) {
+		if (core::updater::CheckUpdate(false, false, false)) {
 			// force the exit for the retards
 			actscli::options().exitAfterEnd = true;
 		}

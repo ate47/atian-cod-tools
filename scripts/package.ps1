@@ -34,7 +34,7 @@ try {
             $fileOut = "$base/bin/package_index/$($file.Name).wni"
         }
 
-        build\bin\acts.exe -t wni_gen $file.FullName $fileOut
+        build\bin\acts.exe --noUpdater -t wni_gen $file.FullName $fileOut
     }
     Write-Host "Building gscbin string index"
     foreach ($file in (Get-ChildItem config\gscbin\opaques)) {
@@ -47,7 +47,7 @@ try {
         }
         $fileOut = "$base/bin/package_index/gscbin-opaques-$vmName.acef"
 
-        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut opaque zstd_hc
+        build\bin\acts.exe --noUpdater -t acef_gscopaque $vmName $file.FullName $fileOut opaque zstd_hc
     }
 
     foreach ($file in (Get-ChildItem config\gscbin\functions)) {
@@ -60,7 +60,7 @@ try {
         }
         $fileOut = "$base/bin/package_index/gscbin-functions-$vmName.acef"
 
-        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut function zstd_hc
+        build\bin\acts.exe --noUpdater -t acef_gscopaque $vmName $file.FullName $fileOut function zstd_hc
     }
     
     foreach ($file in (Get-ChildItem config\gscbin\methods)) {
@@ -73,7 +73,7 @@ try {
         }
         $fileOut = "$base/bin/package_index/gscbin-methods-$vmName.acef"
 
-        build\bin\acts.exe -t acef_gscopaque $vmName $file.FullName $fileOut method zstd_hc
+        build\bin\acts.exe --noUpdater -t acef_gscopaque $vmName $file.FullName $fileOut method zstd_hc
     }
  
     # Binaries
@@ -83,7 +83,7 @@ try {
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
     # Clear config data
-    Remove-Item build\bin\acts.json
+    # Remove-Item build\bin\acts.json
 
     # Info data
     Copy-Item "README.md" "$base/README.md" > $null

@@ -49,6 +49,9 @@ namespace {
 			else if (!_strcmpi("--hash0", arg)) {
 				opt.show0Hash = true;
 			}
+			else if (!_strcmpi("--noUpdater", arg)) {
+				opt.noUpdater = true;
+			}
 			else if (!_strcmpi("--heavy-hashes", arg)) {
 				opt.heavyHashes = true;
 			}
@@ -273,6 +276,7 @@ namespace {
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -W --work          : Tell which work to use: repl, cli");
+		LOG_INFO(" --noUpdater        : Disable updater");
 		
 		LOG_DEBUG(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
 		LOG_DEBUG("--mark-hash         : Mark the hash default value");
@@ -298,9 +302,7 @@ void SetActsSharedConfig(void* cfg) {
 int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	core::config::SyncConfig(true);
 	srand((unsigned int)time(nullptr));
-	//if (core::updater::CheckUpdate(false, true)) {
-	//	return 0;
-	//}
+
 	bool cli{ hInstance == nullptr };
 	auto& profiler = actscli::GetProfiler();
 
@@ -374,6 +376,10 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		GetWindowThreadProcessId(GetConsoleWindow(), &pid);
 		return GetCurrentProcessId() != pid;
 	})();
+	
+	if (!opt.noUpdater && core::updater::FindUpdate(useCli)) {
+		return 0;
+	}
 
 	if (useCli && (opt.showHelp || argc == 1)) {
 		PrintACTSHelp(argv[0]);

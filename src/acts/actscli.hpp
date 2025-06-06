@@ -21,6 +21,7 @@ namespace actscli {
 		const char* wniFiles{};
 		bool installDirHashes{ true };
 		bool show0Hash{ false };
+		bool noUpdater{};
 		const char* saveProfiler{};
 		const char* seriousDBFile{};
 		const char* hashPrefixByPass{};
