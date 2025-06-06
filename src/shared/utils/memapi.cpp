@@ -142,7 +142,7 @@ bool Process::operator!() const {
 	return m_pid == 0;
 }
 
-bool Process::operatorbool() const {
+Process::operator bool() const {
 	return m_pid != 0;
 }
 

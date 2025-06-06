@@ -153,7 +153,7 @@ public:
 	// @return if the process wasn't found
 	bool operator!() const;
 	// @return if the process was found
-	bool operatorbool() const;
+	operator bool() const;
 	/*
 	 * Get the offset inside the module
 	 * @param offset Relative offset
