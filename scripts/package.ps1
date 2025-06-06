@@ -22,6 +22,7 @@ try {
     New-Item "$base/licenses" -ItemType Directory > $null
     New-Item "$base/bin" -ItemType Directory > $null
     New-Item "$base/bin/package_index" -ItemType Directory > $null
+    New-Item "$base/bin/deps" -ItemType Directory > $null
 
     # Build hashes
     Write-Host "Building hash index directory"
@@ -114,6 +115,8 @@ try {
     Copy-Item "deps/zstd/LICENSE" "$base/licenses/zstd.md" > $null
     Copy-Item "deps/hash-library/LICENSE" "$base/licenses/hash-library.md" > $null
     Copy-Item "deps/hksc/COPYRIGHT" "$base/licenses/hksc.md" > $null
+
+    "Put the game dependencies in this directory." > "$base/bin/deps/README.md"
 
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null
