@@ -1,4 +1,2 @@
 - acts
-  - updater memory fix
-- acts-updater
-  - add cli options
+  - fix updater check for fast release
