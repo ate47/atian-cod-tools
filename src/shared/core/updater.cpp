@@ -27,11 +27,8 @@ namespace core::updater {
     }
 
 	bool CheckUpdate(bool forceUpdate, bool silent, bool ui) {
-        if (!forceUpdate) {
-#ifndef DEV_UPDATER
-            return false; // not available yet
-#endif
-            if (!NeedCheck(silent)) return false;
+        if (!forceUpdate && !NeedCheck(silent)) {
+            return false;
         }
 
         auto LogInfo = [ui](const std::string& fmt, bool canCancel) {
@@ -70,7 +67,6 @@ namespace core::updater {
 
             VersionData latestVersion{};
             if (!latestVersion.ReadURL(url)) {
-                // todo: maybe we can check for the last time we updated acts to reduce impacts of timeouts/bad co
                 return false; // can't fetch latest update
             }
 
