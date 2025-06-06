@@ -102,7 +102,7 @@ namespace core::updater {
 
         LOG_INFO("Start updater with {}", zipOut.string());
 
-        std::wstring updaterOtherExeStr{ std::format(L"{} {}", updaterOtherExe.wstring(), ui ? L"true" : L"false") };
+        std::wstring updaterOtherExeStr{ std::format(L"{} -U {}", updaterOtherExe.wstring(), ui ? L"-u" : L"") };
 
         STARTUPINFOW si;
         PROCESS_INFORMATION pi;
@@ -127,6 +127,8 @@ namespace core::updater {
             LOG_ERROR("Can't create process {}", updaterOtherExe.string());
             return false;
         }
+
+        AttachConsole(pi.dwProcessId);
 
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);

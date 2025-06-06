@@ -1,2 +1,4 @@
 - acts
   - updater memory fix
+- acts-updater
+  - add cli options
