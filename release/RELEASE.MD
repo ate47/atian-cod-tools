@@ -1,5 +1,2 @@
-- acts
-  - enable autoupdater
-  - disable REPL worker by default
-  - use '\`' instead of `\\` for string escape in REPL worker
-  - ignore acts.exe and acts if used in the REPL as 1st argument
+- acts-updater
+  - blank version to test autoupdater
