@@ -83,10 +83,10 @@ namespace {
                     // Depending on how old the ff is, we might use a XHash of 0x10 or 8 bytes. The pointer
                     // to the buffer will constantly be -1 because it is not linked yet
                     if (((T8SPT*)sptCan)->buffer == 0xFFFFFFFFFFFFFFFF) {
-                        size = ((T8SPT*)sptCan)->size;
+                        size = ((T8SPT*)sptCan)->size & 0x7FFFFFFF;
                     }
                     else if (((T8SPTOld*)sptCan)->buffer == 0xFFFFFFFFFFFFFFFF) {
-                        size = ((T8SPTOld*)sptCan)->size;
+                        size = ((T8SPTOld*)sptCan)->size & 0x7FFFFFFF;
                     }
                     else {
                         LOG_ERROR("Can't get size 0x{:x} for loc 0x{:x}", smagic, loc);
