@@ -204,7 +204,7 @@ namespace core::updater {
             cfg.SyncConfig(false);
             bool disabled{ cfg.GetBool("disabled", false) };
             bool forced{ cfg.GetBool("forced", false) };
-            int64_t lastCheck{ cfg.GetInteger("lastCheck", now) };
+            int64_t lastCheck{ cfg.GetInteger("lastCheck", 0) };
             int64_t timeDelta{ cfg.GetInteger("timeDelta", 1000LL * 3600 * 24) }; // by default one day
 
             if (!forced && (disabled || lastCheck + timeDelta > now)) {
@@ -216,7 +216,13 @@ namespace core::updater {
             cfg.SetInteger("lastCheck", now);
             cfg.SetBool("forced", false);
             cfg.SaveConfig();
-            return CheckUpdate(forced, true, !cli);
+            if (CheckUpdate(forced, true, !cli)) {
+                // cleanup
+                cfg.SetInteger("lastCheck", 0);
+                cfg.SaveConfig();
+                return true;
+            }
+            return false;
         }
         catch (std::runtime_error& err) {
             LOG_ERROR("Can't read {}: {}", updaterTest.string(), err.what());
