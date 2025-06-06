@@ -432,7 +432,26 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		opt.type = actscli::ACTS_CLI;
 	}
 	else {
-		opt.type = actscli::ACTS_REPL;
+		if (opt.type != actscli::ACTS_REPL) {
+			if (!core::config::GetBool("dev.allowRepl", false)) {
+				LOG_ERROR("");
+				LOG_ERROR("The REPL console is disabled due to a too large amount of people not");
+				LOG_ERROR("understanding how to use it. This program is intended to and should,");
+				LOG_ERROR("be used in a terminal. I suggest you to use it within Powershell.");
+				LOG_ERROR("Any issue with cmd.exe or the REPL worker won't be looked at.");
+				LOG_ERROR("");
+				LOG_ERROR("ate47");
+				LOG_ERROR("");
+
+				LOG_INFO("press return key to exit...");
+				std::cin.get();
+
+				return tool::BASIC_ERROR;
+			}
+			else {
+				opt.type = actscli::ACTS_REPL;
+			}
+		}
 	}
 
 	if (opt.type == actscli::ACTS_REPL) {
@@ -460,6 +479,11 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 
 			if (!argv || argc < 2) {
 				continue;
+			}
+			if (utils::EqualIgnoreCase("acts", argv[1]) || utils::EqualIgnoreCase("acts.exe", argv[1])) {
+				argv++; // skip the > to use acts as first component
+				argc--;
+				if (argc < 2) continue; // not enough params
 			}
 		}
 

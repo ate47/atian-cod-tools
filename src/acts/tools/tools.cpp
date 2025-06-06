@@ -199,7 +199,7 @@ namespace tool {
 
 						bool isFormatted{};
 						while (idx < str.length() && str[idx] != c) {
-							if (str[idx] == '\\') {
+							if (str[idx] == '`') {
 								idx++; // ignore next char
 								if (idx == str.length()) {
 									LOG_ERROR("Missing end quote {} for param {}", c, str.substr(start - 1));
@@ -223,7 +223,7 @@ namespace tool {
 
 
 							for (size_t i = 0; i < sw.length(); i++) {
-								if (sw[i] != '\\') {
+								if (sw[i] != '`') {
 									formatted.push_back(sw[i]);
 									continue;
 								}
