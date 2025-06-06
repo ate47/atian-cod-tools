@@ -108,9 +108,10 @@ namespace core::updater {
         PROCESS_INFORMATION pi;
 
         ZeroMemory(&si, sizeof(si));
-        si.cb = sizeof(si);
         ZeroMemory(&pi, sizeof(pi));
-        
+
+        si.cb = sizeof(si);
+
         if (!CreateProcessW(
             NULL,
             updaterOtherExeStr.data(),
@@ -126,8 +127,9 @@ namespace core::updater {
             LOG_ERROR("Can't create process {}", updaterOtherExe.string());
             return false;
         }
-        
-        AttachConsole(pi.dwThreadId);
+
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
 
 		return true;
 	}
