@@ -201,16 +201,14 @@ namespace {
 					utils::data::AsHex(entry.pad, entry.padLen)
 				);
 
-				size_t loc{ reader.Loc() };
-
+				reader.PushLocation();
 				reader.Goto(entry.offset);
 				std::unique_ptr<byte[]> tmp{ reader.ReadArray<byte>(entry.size) };
 				std::filesystem::create_directories(of.parent_path());
 				if (!utils::WriteFile(of, tmp.get(), entry.size)) {
 					LOG_ERROR("Can't write file");
 				}
-
-				reader.Goto(loc);
+				reader.PopLocation();
 			}
 		}
 

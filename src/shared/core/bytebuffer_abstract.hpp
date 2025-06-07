@@ -1,8 +1,11 @@
 #pragma once
 
 namespace core::bytebuffer {
+	constexpr size_t BYTE_BUFFER_MAX_LOC_STACK = 16;
 
 	class AbstractByteBuffer {
+		size_t locstack[BYTE_BUFFER_MAX_LOC_STACK];
+		size_t locstackIdx{};
 	public:
 		virtual bool CanRead(size_t size) const = 0;
 		virtual void ReadImpl(void* to, size_t size) = 0;
@@ -10,6 +13,16 @@ namespace core::bytebuffer {
 		virtual size_t Length() const = 0;
 		virtual size_t Remaining() const = 0;
 		virtual size_t Loc() const = 0;
+
+		void PushLocation() {
+			if (locstackIdx == BYTE_BUFFER_MAX_LOC_STACK) throw std::runtime_error("byte buffer stack overflow");
+			locstack[locstackIdx++] = Loc();
+		}
+
+		void PopLocation() {
+			if (!locstackIdx) throw std::runtime_error("byte buffer stack underflow");
+			Goto(locstack[--locstackIdx]);
+		}
 
 		bool End() const {
 			return Loc() >= Length();
