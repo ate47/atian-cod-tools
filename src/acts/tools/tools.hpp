@@ -48,4 +48,5 @@ namespace tool {
 	void usage(const char* message, const char* argv0, core::logs::loglevel lvl = core::logs::loglevel::LVL_ERROR);
 }
 
+// id, category, usage, description, (proc), handler
 #define ADD_TOOL(id, ...) static tool::toolfunctiondata __toolfunctiondata_##id(#id, LOG_GET_LOG_REF_STR, __LINE__, __VA_ARGS__)
