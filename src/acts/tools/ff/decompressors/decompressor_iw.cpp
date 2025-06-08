@@ -187,18 +187,23 @@ namespace {
 				if (!found) {
 					throw std::runtime_error("can't find iwc");
 				}
+				reader.Skip<uint32_t>(); // skip IWC
 
 				secure = reader.Read<uint32_t>() == 0x66665749;
 				if (secure) {
 					reader.Skip(0x8000);
 				}
-				byte data[8];
+				byte data[4];
 				reader.Read(data, sizeof(data));
 
-				//alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+				if (data[3] >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
+					throw std::runtime_error("Can't find compression type");
+				}
+				else {
+					alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+				}
 
-				alg = utils::compress::COMP_OODLE;
-				LOG_TRACE("loaded bo6 header secure:{}, alg:{}", secure, alg);
+				LOG_DEBUG("loaded bo6 header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], reader.Loc());
 				break;
 			}
 			default:
@@ -311,17 +316,24 @@ namespace {
 					if (!found) {
 						throw std::runtime_error("can't find iwc");
 					}
+					fpreader.Skip<uint32_t>(); // skip IWC
 
 					secure = fpreader.Read<uint32_t>() == 0x66665749;
 					if (secure) {
 						fpreader.Skip(0x8000);
 					}
-					byte data[8];
+					byte data[4];
 					fpreader.Read(data, sizeof(data));
 
-					alg = utils::compress::COMP_OODLE;
-					//alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
-					LOG_TRACE("loaded bo6 patch header secure:{}, alg:{}", secure, alg);
+
+					if (data[3] >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
+						throw std::runtime_error("Can't find patch compression type");
+					}
+					else {
+						alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+					}
+
+					LOG_DEBUG("loaded bo6 patch secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], fpreader.Loc());
 					break;
 				}
 				default:
