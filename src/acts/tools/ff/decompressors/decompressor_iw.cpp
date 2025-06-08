@@ -144,6 +144,7 @@ namespace {
 
 			IWFastFileHeader ffHeader{};
 			size_t ffHeaderSize{};
+			bool secure{};
 
 			utils::compress::CompressionAlgorithm alg{};
 			switch (header->headerVersion) {
@@ -152,6 +153,7 @@ namespace {
 				reader.Read(&ffHeader.__size, ffHeaderSize);
 
 				reader.Skip(0x40);
+				secure = false;
 				break;
 			}
 			case IWFV_BO6: {
@@ -186,8 +188,17 @@ namespace {
 					throw std::runtime_error("can't find iwc");
 				}
 
-				reader.Skip(0x800C);
-				//*/
+				secure = reader.Read<uint32_t>() == 0x66665749;
+				if (secure) {
+					reader.Skip(0x8000);
+				}
+				byte data[8];
+				reader.Read(data, sizeof(data));
+
+				//alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+
+				alg = utils::compress::COMP_OODLE;
+				LOG_TRACE("loaded bo6 header secure:{}, alg:{}", secure, alg);
 				break;
 			}
 			default:
@@ -202,9 +213,11 @@ namespace {
 			while (reader.CanRead(sizeof(uint32_t) * 3)) {
 				size_t id{ count++ };
 
-				if ((id & 0x1ff) == 0x1ff) {
-					if (!reader.CanRead(0x4000)) break;
-					reader.Skip(0x4000);
+				if (secure) {
+					if ((id & 0x1ff) == 0x1ff) {
+						if (!reader.CanRead(0x4000)) break;
+						reader.Skip(0x4000);
+					}
 				}
 
 				size_t loc{ reader.Loc() };
@@ -251,6 +264,7 @@ namespace {
 			}
 
 			if (hasFdFile) {
+				LOG_TRACE("loading patch {}", fpfile.string());
 				core::bytebuffer::ByteBuffer fpreader{ fileFPBuff };
 
 				if (!fpreader.CanRead(8) || *fpreader.Ptr<uint64_t>() != 0x3030316466665749) {
@@ -298,7 +312,16 @@ namespace {
 						throw std::runtime_error("can't find iwc");
 					}
 
-					fpreader.Skip(0x800C);
+					secure = fpreader.Read<uint32_t>() == 0x66665749;
+					if (secure) {
+						fpreader.Skip(0x8000);
+					}
+					byte data[8];
+					fpreader.Read(data, sizeof(data));
+
+					alg = utils::compress::COMP_OODLE;
+					//alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+					LOG_TRACE("loaded bo6 patch header secure:{}, alg:{}", secure, alg);
 					break;
 				}
 				default:
@@ -317,9 +340,11 @@ namespace {
 				while (fpreader.CanRead(sizeof(uint32_t) * 3)) {
 					size_t id{ countfp++ };
 
-					if ((id & 0x1ff) == 0x1ff) {
-						if (!fpreader.CanRead(0x4000)) break;
-						fpreader.Skip(0x4000);
+					if (secure) {
+						if ((id & 0x1ff) == 0x1ff) {
+							if (!fpreader.CanRead(0x4000)) break;
+							fpreader.Skip(0x4000);
+						}
 					}
 
 					size_t loc{ fpreader.Loc() };
