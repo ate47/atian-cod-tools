@@ -26,7 +26,8 @@ namespace {
 		char zoneName[64];
 		char platform[8];
 		char language[2];
-		char padding[1374];
+		char convertedAssetVersion0[4];
+		char padding[1370];
 	};
 	static_assert(sizeof(SndAssetBankHeader) == 0x800);
 
@@ -101,7 +102,6 @@ namespace {
 		uint16_t EnvelopeTime2;
 	};
 
-
 	struct SndAssetBankEntryBo4 {
 		uint64_t id;
 		uint64_t idnull;
@@ -109,31 +109,27 @@ namespace {
 		uint32_t size;
 		uint32_t frameCount;
 		uint32_t order;
-		uint32_t unk;
+		uint32_t unk24;
 		uint8_t frameRateIndex;
 		uint8_t channelCount;
 		uint8_t looping;
 		SndAssetFormat format;
-		byte pad[0x30];
-		size_t padLen;
+		uint32_t unk2c;
 
 		void Read(core::bytebuffer::AbstractByteBuffer& buffer) {
 			// XHash
-			size_t loc{ buffer.Loc() };
 			id = buffer.Read<uint64_t>();
 			buffer.Skip<uint64_t>();
 			offset = buffer.Read<uint64_t>();
 			size = buffer.Read<uint32_t>();
 			frameCount = buffer.Read<uint32_t>();
 			order = buffer.Read<uint32_t>();
-			unk = buffer.Read<uint32_t>();
+			unk24 = buffer.Read<uint32_t>();
 			frameRateIndex = buffer.Read<uint8_t>();
 			channelCount = buffer.Read<uint8_t>();
 			looping = buffer.Read<uint8_t>();
 			format = buffer.Read<SndAssetFormat>();
-
-			padLen = sizeof(pad) - (buffer.Loc() - loc);
-			buffer.Read(pad, padLen);
+			unk2c = buffer.Read<uint32_t>();
 		}
 	};
 
@@ -170,6 +166,37 @@ namespace {
 		LOG_INFO("fileSize : 0x{:x}", header.fileSize);
 		LOG_INFO("entryOffset : 0x{:x}", header.entryOffset);
 		LOG_INFO("checksumOffset : 0x{:x}", header.checksumOffset);
+		LOG_INFO("pad32 : 0x{:x}", header.pad32);
+		LOG_INFO("SourceChecksumOffset : 0x{:x}", header.SourceChecksumOffset);
+		LOG_INFO("AssetNameOffset : 0x{:x}", header.AssetNameOffset);
+		LOG_INFO("zoneName : {}", header.zoneName);
+		LOG_INFO("platform : {}", header.platform);
+		char lang[3]{};
+		std::memcpy(lang, header.language, 2);
+		LOG_INFO("language : {}", lang);
+		LOG_INFO("convertedAssetVersion : 0x{:x}", *(uint32_t*)(&header.convertedAssetVersion0[0]));
+
+		// empty??
+		//if (header.dependencyCount) {
+		//	
+		//	for (size_t i = 0; i < header.dependencyCount; i++) {
+		//		void* dep{ &header.dependencies[header.dependencySize * i] };
+		//
+		//		LOG_INFO("{}", utils::data::AsHex(dep, header.dependencySize));
+		//	}
+		//
+		//}
+		// AssetNameOffset seem to contain the asset hashed names with a 0x70 padding (0x80)
+		// SourceChecksumOffset and checksumOffset are 128 bits values for each entries (checksumSize?)
+
+		//LOG_INFO("checksumOffset");
+		//if (header.checksumOffset) {
+		//	reader.Goto(header.checksumOffset);
+		//	byte buff[0x100];
+		//	reader.Read(&buff[0], sizeof(buff));
+		//
+		//	utils::data::WriteHex(std::cout, header.checksumOffset, buff, sizeof(buff));
+		//}
 
 		if (header.entryCount) {
 			if (header.entrySize != 0x30) {
@@ -183,22 +210,19 @@ namespace {
 				entry.Read(reader);
 
 				const char* name{ hashutils::ExtractPtr(entry.id) };
-				if (!name) name = utils::va("hashed/snd/file_%llx", entry.id);
+				if (!name) name = utils::va("hashed/snd/%s/file_%llx", lang[0] ? lang : "all", entry.id);
 
 				std::filesystem::path of{ std::filesystem::path{"output_ff/snd/"} / std::format("{}{}", name, SndAssetFormatExt(entry.format)) };
 
 				LOG_INFO(
 					"dump {}"
 					" - {} off:0x{:x}+0x{:x}:0x{:x}"
-					" fc:0x{:x} or:0x{:x} fri:0x{:x} cc:0x{:x} lp:0x{:x} uk:0x{:x}"
-				    "  {}"
+					" fc:0x{:x} or:0x{:x} fri:0x{:x} cc:0x{:x} lp:0x{:x} uk:0x{:x} 0x{:x}"
 					,
 					of.string(),
 					SndAssetFormatName(entry.format),
 					entry.offset, entry.size, entry.offset + entry.size,
-					entry.frameCount, entry.order, entry.frameRateIndex, entry.channelCount, entry.looping, entry.unk,
-
-					utils::data::AsHex(entry.pad, entry.padLen)
+					entry.frameCount, entry.order, entry.frameRateIndex, entry.channelCount, entry.looping, entry.unk24, entry.unk2c
 				);
 
 				reader.PushLocation();

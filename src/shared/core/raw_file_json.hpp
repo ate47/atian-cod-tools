@@ -87,7 +87,7 @@ namespace core::raw_file::json {
 			WritePreData();
 			writer.WriteString("\"");
 			writer.WriteString(type);
-			writer.WriteHash(hash);
+			writer.WriteHashEscaped(hash);
 			writer.WriteString("\"");
 		}
 

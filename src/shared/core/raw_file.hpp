@@ -9,10 +9,14 @@ namespace core::raw_file {
 		RFDT_STRING,
 		RFDT_STRING_ENCRYPTED,
 		RFDT_HASH,
+		RFDT_HASH_ESCAPED,
 		RFDT_COUNT
 	};
 
 	struct RFHash {
+		uint64_t v;
+	};
+	struct RFHashEsc {
 		uint64_t v;
 	};
 
@@ -74,6 +78,12 @@ namespace core::raw_file {
 			return *this;
 		}
 
+		RawFileWriter& WriteHashEscaped(uint64_t hash) {
+			WriteDT(RFDT_HASH_ESCAPED);
+			utils::WriteValue(data, hash);
+			return *this;
+		}
+
 		template<typename T>
 		RawFileWriter& operator<<(const T& t) {
 			std::stringstream ss{};
@@ -85,6 +95,11 @@ namespace core::raw_file {
 		template<>
 		RawFileWriter& operator<<(const RFHash& t) {
 			return WriteHash(t.v);
+		}
+
+		template<>
+		RawFileWriter& operator<<(const RFHashEsc& t) {
+			return WriteHashEscaped(t.v);
 		}
 		
 		std::vector<byte>& Build() {
@@ -99,9 +114,9 @@ namespace core::raw_file {
 		DataType curr{};
 		// optional functions
 		char* (*DecryptString)(char* str);
-		const char* (*FindHash)(uint64_t hash);
+		const char* (*FindHash)(uint64_t hash, bool escape);
 	public:
-		RawFileReader(bytebuffer::ByteBuffer& buffer, char* (*DecryptString)(char* str) = nullptr, const char* (*FindHash)(uint64_t hash) = nullptr) 
+		RawFileReader(bytebuffer::ByteBuffer& buffer, char* (*DecryptString)(char* str) = nullptr, const char* (*FindHash)(uint64_t hash, bool escape) = nullptr)
 			: buffer(buffer), DecryptString(DecryptString), FindHash(FindHash) {
 			if (buffer.Read<uint64_t>() != MAGIC) {
 				throw std::runtime_error("Can't read RawFile: bad magic");
@@ -117,6 +132,7 @@ namespace core::raw_file {
 			case RFDT_END: 
 				break;
 			case RFDT_HASH:
+			case RFDT_HASH_ESCAPED:
 				buffer.Skip<uint64_t>();
 				break;
 			case RFDT_STRING:
@@ -147,8 +163,9 @@ namespace core::raw_file {
 		const char* GetString() {
 			switch (curr) {
 			case RFDT_HASH:
+			case RFDT_HASH_ESCAPED:
 				if (FindHash) {
-					return FindHash(GetHash());
+					return FindHash(GetHash(), curr == RFDT_HASH_ESCAPED);
 				}
 				return utils::va("hash_%llx", GetHash());
 			case RFDT_STRING:

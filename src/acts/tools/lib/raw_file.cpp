@@ -39,7 +39,7 @@ namespace {
 		std::vector<byte> buff{ writer.Build() };
 
 		core::bytebuffer::ByteBuffer bb{ buff };
-		core::raw_file::RawFileReader reader{ bb, nullptr, [](uint64_t c) -> const char* {return hashutils::ExtractTmp("hash", c); } };
+		core::raw_file::RawFileReader reader{ bb, nullptr, [](uint64_t c, bool escaped) -> const char* {return hashutils::ExtractTmp("hash", c); } };
 
 		hashutils::AddPrecomputed(hash::Hash64("test"), "test", true);
 		std::string expected{ "test: #\"test\"" };
@@ -53,7 +53,7 @@ namespace {
 
 	void WriteJsonRes(std::vector<byte> res) {
 		core::bytebuffer::ByteBuffer bb{ res };
-		core::raw_file::RawFileReader reader{ bb, nullptr, [](uint64_t c) -> const char* {return hashutils::ExtractTmp("hash", c); } };
+		core::raw_file::RawFileReader reader{ bb, nullptr, [](uint64_t c, bool escaped) -> const char* {return hashutils::ExtractTmp("hash", c); } };
 
 		LOG_DEBUG("{}", reader.ReadAll());
 	}
