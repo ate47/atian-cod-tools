@@ -5,9 +5,20 @@
 namespace {
 
 	class GscXHashFFHandler : public fastfile::FFHandler {
+        size_t count{};
+        bool anyDbg{};
 	public:
 		GscXHashFFHandler() : fastfile::FFHandler("GscXHash", "Dump gsc scripts xhash based") {
 		}
+        void Init(fastfile::FastFileOption& opt) override {
+            count = 0;
+            anyDbg = false;
+        }
+
+        void Cleanup() override {
+            if (count) LOG_INFO("{} file(s) dumped", count);
+            if (anyDbg) LOG_WARNING("Debug file found");
+        }
 
 		void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& buff, fastfile::FastFileContext& ctx) override {
 
@@ -16,6 +27,7 @@ namespace {
             uint64_t dbgMagicMask{ 0xFFFFFFFFFFFFF };
             if (buff.FindMasked(&dbgMagic, &dbgMagicMask, sizeof(dbgMagic)) != std::string::npos) {
                 LOG_WARNING("FIND A DBG SPT");
+                anyDbg = true;
             }
 
             // search scriptparsetree
@@ -112,6 +124,7 @@ namespace {
                     }
                     else {
                         LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(obj->name));
+                        count++;
                     }
 
                     loc++;
@@ -170,6 +183,7 @@ namespace {
                     }
                     else {
                         LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(entry->name));
+                        count++;
                     }
 
                     loc++;

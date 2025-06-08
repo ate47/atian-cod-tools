@@ -148,34 +148,11 @@ namespace {
 
 			utils::compress::CompressionAlgorithm alg{};
 			switch (header->headerVersion) {
-			case IWFV_MW23: {
-				ffHeaderSize = 0xe0;
-				reader.Read(&ffHeader.__size, ffHeaderSize);
-
-				reader.Skip(0x40);
-				secure = false;
-				break;
-			}
+			case IWFV_MW23:
 			case IWFV_BO6: {
 				ffHeaderSize = 0xe0;
 				reader.Read(&ffHeader.__size, ffHeaderSize);
-				alg = utils::compress::COMP_OODLE;
-				byte* compHeader{ reader.Ptr() };
 
-				DBUnpackHeaderCtxLoad loadCtx{};
-				loadCtx.vtable = &dbUnpackHeaderCtxFuncs;
-				loadCtx.data.reader = &reader;
-
-				/*
-				bool err{};
-				if (!DB_UnpackHeader(decryptBuffer.get(), ctx.ffname, &err, &loadCtx) || !err) {
-					throw std::runtime_error("error unpack");
-				}
-
-				utils::data::WriteHex(std::cout, 0, decryptBuffer.get(), 0x4928);
-				LOG_INFO("new loc 0x{:x}", reader.Loc());
-				*/
-				//*
 				bool found{};
 				while (reader.CanRead(sizeof(uint32_t))) {
 					if (*reader.Ptr<uint32_t>() == 0x43574902) {
@@ -314,7 +291,7 @@ namespace {
 						fpreader.Skip(1);
 					}
 					if (!found) {
-						throw std::runtime_error("can't find iwc");
+						throw std::runtime_error("can't find patch iwc");
 					}
 					fpreader.Skip<uint32_t>(); // skip IWC
 
