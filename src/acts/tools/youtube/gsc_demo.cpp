@@ -68,7 +68,7 @@ namespace {
     };
 
 
-	int gscdemo(Process& _, int argc, const char* argv[]) {
+	int gscdemo(int argc, const char* argv[]) {
         std::string buffer{};
 
         if (argc < 3 || !utils::ReadFile(argv[2], buffer)) {
@@ -188,10 +188,10 @@ namespace {
 
 		return tool::OK;
 	}
-}
 
 #ifndef CI_BUILD
 
-ADD_TOOL(gscdemo, "dev", "", "", nullptr, gscdemo);
+    ADD_TOOL(gscdemo, "dev", "", "", gscdemo);
 
 #endif
+}
