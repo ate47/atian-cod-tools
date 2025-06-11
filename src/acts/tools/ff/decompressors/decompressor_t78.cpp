@@ -60,11 +60,14 @@ namespace {
 				blockSizeLoc = 0x4A8;
 				ctx.blocksCount = 8;
 				break;
-				//case 0x27E:
-				fastFileSize = 0x830;
-				ctx.blocksCount = 9;
+			case 0x27E: // Black Ops 4 Old
+				fastFileSize = 0x840;
 				xhashType = true;
-
+				fastfileNameLoc = 0x6F0;
+				decompressedSizeLoc = 0x490;
+				blockSizeLoc = 0x4A8;
+				ctx.blocksCount = 9;
+				break;
 			case 0x27F: // Black Ops 4
 				fastFileSize = 0x840;
 				decompressedSizeLoc = 0x490;
