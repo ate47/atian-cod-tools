@@ -99,7 +99,9 @@ namespace {
 				byte* buffer;
 				uint64_t unk40;
 				uint64_t unk48;
-			}; static_assert(sizeof(LuaFile) == 0x50);
+				uint64_t unk50;
+				uint64_t unk58;
+			}; static_assert(sizeof(LuaFile) == 0x60);
 
 			if (asset.HeaderSize != sizeof(LuaFile)) {
 				LOG_ERROR("INVALID LUAFILE HEADER SIZE: 0x{:x}, use --guessHeader to switch the header guesser", asset.HeaderSize);
