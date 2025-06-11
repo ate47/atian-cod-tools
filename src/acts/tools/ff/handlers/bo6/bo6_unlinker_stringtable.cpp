@@ -5,6 +5,8 @@ namespace {
 
 	using namespace fastfile::handlers::bo6;
 	class ImplWorker : public Worker {
+		using Worker::Worker;
+
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			// tablelookupbyrow  26a6c8cb862c750f
 			enum StringTableType : uint8_t {
@@ -187,6 +189,6 @@ namespace {
 		}
 	};
 
-	// utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_STRINGTABLE };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_STRINGTABLE, true };
 
 }

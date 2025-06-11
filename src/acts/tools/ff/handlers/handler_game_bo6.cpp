@@ -14,6 +14,7 @@
 
 namespace fastfile::handlers::bo6 {
 	using namespace ::bo6;
+	constexpr bool hasRelativeLoads = false;
 
 	namespace {
 		template<size_t offset = 0>
@@ -351,7 +352,14 @@ namespace fastfile::handlers::bo6 {
 				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
 				auto it{ map.find(type) };
 				if (it != map.end()) {
-					it->second->Unlink(*gcx.opt, *handle);
+					if constexpr (!hasRelativeLoads) {
+						if (!it->second->requiresRelativeLoads) {
+							it->second->Unlink(*gcx.opt, *handle);
+						}
+					}
+					else {
+						it->second->Unlink(*gcx.opt, *handle);
+					}
 				}
 			}
 
@@ -500,6 +508,9 @@ namespace fastfile::handlers::bo6 {
 					DBLoadCtxVT* vt = &dbLoadCtxVTable;
 
 					for (auto& [k, v] : GetWorkers()) {
+						if constexpr (!hasRelativeLoads) {
+							if (v->requiresRelativeLoads) continue;
+						}
 						v->PreXFileLoading(*gcx.opt, ctx);
 					}
 
@@ -536,6 +547,9 @@ namespace fastfile::handlers::bo6 {
 					}
 
 					for (auto& [k, v] : GetWorkers()) {
+						if constexpr (!hasRelativeLoads) {
+							if (v->requiresRelativeLoads) continue;
+						}
 						v->PostXFileLoading(*gcx.opt, ctx);
 					}
 				}

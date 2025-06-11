@@ -31,6 +31,8 @@ namespace {
 
 	using namespace fastfile::handlers::bo6;
 	class ImplWorker : public Worker {
+		using Worker::Worker;
+
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			struct RawFile {
 				uint64_t name;
