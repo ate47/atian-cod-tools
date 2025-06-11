@@ -76,6 +76,44 @@ namespace tool::hash::scanner {
 	}
 	namespace {
 
+		int strscan(int argc, const char* argv[]) {
+			if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
+			LOG_TRACE("{} file(s) loaded...", files.size());
+
+			static std::regex pattern{ "([0-9a-zA-Z_]+)" };
+
+			utils::OutFileCE os{ argv[3], true };
+
+
+			std::unordered_set<uint64_t> hashes{};
+
+			for (const std::filesystem::path& path : files) {
+				std::string str{ utils::ReadFile<std::string>(path) };
+				auto nrbegin = std::sregex_iterator(str.begin(), str.end(), pattern);
+				auto nrend = std::sregex_iterator();
+				for (std::sregex_iterator it = nrbegin; it != nrend; ++it) {
+					std::smatch match = *it;
+					std::string sh{ match[1] };
+					uint64_t ho;
+					if (::hash::TryHashPattern(sh.data(), ho)) continue;
+					uint64_t h{ ::hash::Hash64(sh) };
+
+					if (hashes.contains(h)) {
+						continue;
+					}
+					else {
+						hashes.insert(h);
+					}
+					os << match[1] << "\n";
+				}
+			}
+
+			LOG_INFO("dump into {}", argv[3]);
+
+			return tool::OK;
+		}
+
 		int hashscan(Process& proc, int argc, const char* argv[]) {
 			if (argc < 4) {
 				return tool::BAD_USAGE;
@@ -542,6 +580,7 @@ namespace tool::hash::scanner {
 		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", nullptr, scanlookup);
 		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
 		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
+		ADD_TOOL(strscan, "hash", " [dir] [output]", "brute search hashes in a directory with dictionary", strscan);
 
 	}
 
