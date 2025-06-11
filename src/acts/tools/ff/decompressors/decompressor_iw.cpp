@@ -11,6 +11,7 @@
 namespace {
 	enum IWFFVersion {
 		IWFV_MW19 = 0x0B,
+		IWFV_MW22 = 0x17,
 		IWFV_MW23 = 0x18,
 		IWFV_BO6 = 0x19,
 
@@ -148,44 +149,58 @@ namespace {
 
 			utils::compress::CompressionAlgorithm alg{};
 			switch (header->headerVersion) {
+			case IWFV_MW22: {
+				ffHeaderSize = 0xc0;
+				reader.Read(&ffHeader.__size, ffHeaderSize);
+
+				break;
+			}
 			case IWFV_MW23:
 			case IWFV_BO6: {
 				ffHeaderSize = 0xe0;
 				reader.Read(&ffHeader.__size, ffHeaderSize);
 
-				bool found{};
-				while (reader.CanRead(sizeof(uint32_t))) {
-					if (*reader.Ptr<uint32_t>() == 0x43574902) {
-						found = true;
-						break;
-					}
-					reader.Skip(1);
-				}
-				if (!found) {
-					throw std::runtime_error("can't find iwc");
-				}
-				reader.Skip<uint32_t>(); // skip IWC
-
-				secure = reader.Read<uint32_t>() == 0x66665749;
-				if (secure) {
-					reader.Skip(0x8000);
-				}
-				byte data[4];
-				reader.Read(data, sizeof(data));
-
-				if (data[3] >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
-					throw std::runtime_error("Can't find compression type");
-				}
-				else {
-					alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
-				}
-
-				LOG_DEBUG("loaded bo6 header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], reader.Loc());
+				//ctx.blocksCount = 16;
+				//
+				//
+				//uint64_t* blockSizes{ (uint64_t*)&ffHeader.__size[0x50] };
+				//for (size_t i = 0; i < ctx.blocksCount; i++) {
+				//	ctx.blockSizes[i].size = blockSizes[i];
+				//}
+				//
 				break;
 			}
 			default:
 				throw std::runtime_error(std::format("version not supported 0x{:x}", header->headerVersion));
 			}
+			bool found{};
+			while (reader.CanRead(sizeof(uint32_t))) {
+				if (*reader.Ptr<uint32_t>() == 0x43574902) {
+					found = true;
+					break;
+				}
+				reader.Skip(1);
+			}
+			if (!found) {
+				throw std::runtime_error("can't find iwc");
+			}
+			reader.Skip<uint32_t>(); // skip IWC
+
+			secure = reader.Read<uint32_t>() == 0x66665749;
+			if (secure) {
+				reader.Skip(0x8000);
+			}
+			byte data[4];
+			reader.Read(data, sizeof(data));
+
+			if (data[3] >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
+				throw std::runtime_error("Can't find compression type");
+			}
+			else {
+				alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+			}
+
+			LOG_DEBUG("loaded bo6 header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], reader.Loc());
 
 
 			size_t offset{};
@@ -276,11 +291,9 @@ namespace {
 				}
 
 				// goto data
-				switch (header->headerVersion) {
-				case IWFV_MW23: {
-					fpreader.Skip(0x40);
-					break;
-				}
+				switch (header->headerVersion) { 
+				case IWFV_MW22:
+				case IWFV_MW23:
 				case IWFV_BO6: {
 					bool found{};
 					while (fpreader.CanRead(sizeof(uint32_t))) {
