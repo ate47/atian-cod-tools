@@ -87,6 +87,7 @@ namespace tool::gsc {
         bool m_show_opcode_values{ true };
         bool m_tokens{};
         bool m_test_header{};
+        bool m_dataDump{};
         const char* m_rosetta{};
         const char* m_dump_hashmap{};
         const char* m_dump_strings{};

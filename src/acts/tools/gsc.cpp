@@ -110,6 +110,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
         else if (!_strcmpi("--ignore-dbg-plt", arg)) {
             m_ignoreDebugPlatform = true;
         }
+        else if (!_strcmpi("--data-dump", arg)) {
+            m_dataDump = true;
+        }
         else if (!strcmp("-A", arg) || !_strcmpi("--sync", arg)) {
             if (i + 1 == endIndex) {
                 LOG_ERROR("Missing value for param: {}!", arg);
@@ -395,6 +398,7 @@ void GscInfoOption::PrintHelp() {
     LOG_DEBUG("-A --sync [mode]   : Sync mode: async or sync");
     LOG_DEBUG("--vtable           : Do not hide and decompile vtable functions");
     LOG_DEBUG("--debug-hashes     : Debug hash alogrithm");
+    LOG_DEBUG("--data-dump        : Dump data in asm");
     LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
     LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
     LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");
@@ -3094,6 +3098,8 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             // pass the opcode
 
+            byte* opBase{ ctx.m_bcl };
+
             if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
                 base += 2;
             }
@@ -3105,9 +3111,25 @@ int tool::gsc::DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& g
 
             int ret = handler->Dump(out, opCode, ctx, objctx);
 
+            if (ctx.m_opt.m_dataDump) {
+                if (ctx.m_bcl >= opBase) {
+                    size_t l{ (size_t)(ctx.m_bcl - opBase) };
+                    out << "// data (0x" << std::hex << l << ")";
+                    for (size_t i = 0; i < l; i++) {
+                        out << " " << std::setfill('0') << std::setw(2) << (int)opBase[i];
+                    }
+
+                    out << std::endl;
+                }
+                else {
+                    out << "// ERROR: NEW BASE AFTER OLD BASE" << std::endl;
+                }
+            }
+
             if (ret) {
                 break;
             }
+
             printStack("endop");
         }
     }
