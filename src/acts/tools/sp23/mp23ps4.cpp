@@ -1,5 +1,7 @@
 #include <includes.hpp>
 #include <tools/utils/ps4_process.hpp>
+#include <tools/sp23/sp23.hpp>
+
 namespace {
 
     const char* assetNames[]{
@@ -276,6 +278,25 @@ namespace {
     };
     static_assert(sizeof(GscObjEntry) == 0x18);
 
+    void Cod23CBuf(utils::ps4::PS4Process& ps4, const char* cmd) {
+        uintptr_t cbuf{ ps4[0xC0A5AD0] };
+
+        struct CBuf {
+            char buff[65536];
+            int32_t maxLen;
+            int32_t ptr;
+        };
+
+        int32_t ptr{ ps4.Read<int32_t>(cbuf + offsetof(CBuf, ptr)) };
+        size_t l{ std::strlen(cmd) };
+        if (ptr + l >= sizeof(CBuf::buff)) {
+            throw std::runtime_error("cbuf error: buffer too small");
+        }
+
+        ps4.Write(cbuf + ptr, cmd, l + 1);
+        ps4.Notify(std::format("cbuf {}", cmd));
+    }
+
 	int mp23ps4test(int argc, const char* argv[]) {
         if (tool::NotEnoughParam(argc, 1)) {
             return tool::BAD_USAGE;
@@ -333,10 +354,10 @@ namespace {
         //*/
 
 
-        //*
+        /*
         std::filesystem::path outDir{ "output_mwiii/ps4gsc" };
         std::filesystem::create_directories(outDir);
-        DB_AssetPool* gscobjPool{ &pools[69] };
+        DB_AssetPool* gscobjPool{ &pools[sp23::ASSET_GSCOBJ] };
 
         std::unique_ptr<GscObjEntry[]> gscObjPoolEntries{ ps4.ReadArray<GscObjEntry>(gscobjPool->m_entries, gscobjPool->m_loadedPoolSize) };
 
@@ -359,6 +380,8 @@ namespace {
         }
 
         //*/
+
+        
 
 		return tool::OK;
 	}

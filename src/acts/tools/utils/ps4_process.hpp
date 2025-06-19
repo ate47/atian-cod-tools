@@ -104,6 +104,14 @@ namespace utils::ps4 {
         inline void Notify(const std::string& message) {
             Notify(utils::ps4::PS4N_MESSAGE, message);
         }
+
+        libdebug::PS4DBG& Ps4Dbg() {
+            return this->ps4;
+        }
+
+        constexpr int32_t Pid() const {
+            return this->pid;
+        }
 	};
 
 
