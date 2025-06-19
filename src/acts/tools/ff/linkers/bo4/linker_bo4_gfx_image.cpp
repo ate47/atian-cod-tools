@@ -79,6 +79,12 @@ namespace fastfile::linker::bo4 {
 				{
 					int x, y, channels;
 					stbi_uc* img{ stbi_load(pathStr.data(), &x, &y, &channels, 0) };
+					
+					if (!img) {
+						ctx.error = true;
+						LOG_ERROR("Can't process image {}: {}", path.string(), stbi_failure_reason());
+						continue;
+					}
 
 					utils::CloseEnd imgce{ [img]() { stbi_image_free(img); } };
 
