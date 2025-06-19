@@ -481,6 +481,18 @@ namespace tool::hash::scanner {
 				data.mid = argv[8];
 				LOG_INFO("middle: {}", data.mid);
 			}
+			size_t maxLen{ std::string::npos };
+			if (argc >= 10) {
+				int64_t count = utils::ParseFormatInt(argv[9]);
+				if (count) {
+					maxLen = 1;
+					for (size_t i = 0; i < count; i++) {
+						maxLen *= dictVec.size();
+					}
+					maxLen++;
+				}
+				LOG_INFO("middle: {}", data.mid);
+			}
 
 			if (!_strcmpi(n, "bo4scr")) {
 				data.funcs = HASH_BLACKOPS4SCR;
@@ -525,36 +537,36 @@ namespace tool::hash::scanner {
 			if (data.prefix || data.suffix) {
 				if (data.prefix && data.suffix) {
 					if (*data.mid) {
-						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 							data->TestHashes<true, true, true>(str);
 						}, dictVec.data(), &data);
 					}
 					else {
-						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 							data->TestHashes<true, true, false>(str);
 						}, dictVec.data(), &data);
 					}
 				}
 				else if (data.suffix) {
 					if (*data.mid) {
-						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 							data->TestHashes<false, true, true>(str);
 						}, dictVec.data(), &data);
 					}
 					else {
-						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 							data->TestHashes<false, true, false>(str);
 						}, dictVec.data(), &data);
 					}
 				}
 				else {
 					if (*data.mid) {
-						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 							data->TestHashes<true, false, true>(str);
 							}, dictVec.data(), &data);
 					}
 					else {
-						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+						tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 							data->TestHashes<true, false, false>(str);
 						}, dictVec.data(), & data);
 					}
@@ -562,12 +574,12 @@ namespace tool::hash::scanner {
 			}
 			else {
 				if (*data.mid) {
-					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 						data->TestHashes<false, false, true>(str);
 					}, dictVec.data(), &data);
 				}
 				else {
-					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(~0, [](const char** str, HashDataDict* data) {
+					tool::hash::text_expand::GetDynamicAsyncDict<HashDataDict>(maxLen, [](const char** str, HashDataDict* data) {
 						data->TestHashes<false, false, false>(str);
 					}, dictVec.data(), &data);
 				}
@@ -579,7 +591,7 @@ namespace tool::hash::scanner {
 		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
 		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", nullptr, scanlookup);
 		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
-		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
+		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix) (maxlen)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
 		ADD_TOOL(strscan, "hash", " [dir] [output]", "brute search hashes in a directory with dictionary", strscan);
 
 	}
