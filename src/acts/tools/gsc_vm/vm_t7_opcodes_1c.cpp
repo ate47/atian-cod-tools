@@ -23,9 +23,11 @@ namespace {
 		vt7->RegisterVMOperatorFunction("wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
 		vt7->RegisterVMOperatorFunction("waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 		vt7->RegisterVMHashOPCode('#', OPCODE_GetHash32, 4, [](const char* str) { return hash::HashT7(str); });
+		vt7->RegisterVMHashOPCode('s', OPCODE_GetHash32, 4, [](const char* str) { return hash::HashT7(str); });
 		vt7->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt7->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt7->RegisterDatatypeRenamed("function", "functionptr");
+		vt7->SetCompilerHookFunctionName(hash::HashT7("isprofilebuild"));
 		vt7->SetMaxOpCode(0x3FFF);
 		vt7->SetModToolFlag(0x2000);
 

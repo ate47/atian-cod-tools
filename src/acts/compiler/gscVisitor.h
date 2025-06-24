@@ -23,6 +23,8 @@ public:
 
     virtual std::any visitInclude(gscParser::IncludeContext *context) = 0;
 
+    virtual std::any visitUsing_animtree(gscParser::Using_animtreeContext *context) = 0;
+
     virtual std::any visitPrecache(gscParser::PrecacheContext *context) = 0;
 
     virtual std::any visitNamespace(gscParser::NamespaceContext *context) = 0;
@@ -124,6 +126,8 @@ public:
     virtual std::any visitConst_expr_static(gscParser::Const_expr_staticContext *context) = 0;
 
     virtual std::any visitFunction_ref(gscParser::Function_refContext *context) = 0;
+
+    virtual std::any visitAnim_ref(gscParser::Anim_refContext *context) = 0;
 
     virtual std::any visitData_ref(gscParser::Data_refContext *context) = 0;
 

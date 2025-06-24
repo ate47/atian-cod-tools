@@ -27,7 +27,7 @@ namespace {
 		v8a->RegisterVMHashOPCode('@', OPCODE_IW_GetDVarHash, 8, [](const char* str) { return hash::HashIWDVar(str); });
 		v8a->RegisterVMHashOPCode('%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hash::HashIWAsset(str); });
 		v8a->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashX32(str); });
-		v8a->RegisterVMHashOPCode('&', OPCODE_GetHash, 8, [](const char* str) { return hash::HashJupScr(str); });
+		v8a->RegisterVMHashOPCode('s', OPCODE_GetHash, 8, [](const char* str) { return hash::HashJupScr(str); });
 		v8a->RegisterDevCall("assert", "assertmsg", "assertex", "println");
 		v8a->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 		v8a->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0x43);

@@ -487,6 +487,8 @@ namespace tool::gsc {
             std::unordered_map<uint64_t, int32_t> m_localvars_ref{};
             // dev blocks locations
             std::vector<ASMContextDevBlock> m_devBlocks{};
+            // used animtree
+            const char* useAnimTree{};
             // if this function is a dev function candidate
             bool m_devFuncCandidate{};
             bool m_boolFuncCandidate{};

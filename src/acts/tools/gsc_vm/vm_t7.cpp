@@ -214,7 +214,7 @@ namespace {
         void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
         void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
         int64_t GetDefaultChecksum(bool client) override {
-            return 0x1234567;
+            return 0;
         }
         void SetChecksum(uint64_t val) override {
             Ptr<T7GSCOBJ>()->source_crc = (uint32_t)val;
@@ -493,7 +493,7 @@ namespace {
         void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override { }
         void WriteAnimTreeDouble(byte* data, const tool::gsc::GSC_ANIMTREE_ITEM& item) override { }
         int64_t GetDefaultChecksum(bool client) override {
-            return 0x1234567;
+            return 0;
         }
         void SetChecksum(uint64_t val) override {
             Ptr<T7GSCOBJ>()->source_crc = (uint32_t)val;

@@ -314,15 +314,47 @@ namespace tool::gsc::opcode {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-
-			utils::PrintFormattedString(out, m_str1);
-			out << "#";
-			utils::PrintFormattedString(out, m_str2);
+			
+			if (m_str1 && *m_str1) {
+				// anim ref
+				out << "%";
+				utils::PrintFormattedString(out, m_str1);
+				out << "::";
+				utils::PrintFormattedString(out, m_str2);
+			} else {
+				// animtree
+				out << "$";
+				utils::PrintFormattedString(out, m_str2);
+			}
 			out << std::flush;
 		}
 
 		ASMContextNode* Clone() const override {
 			return new ASMContextNodeAnimation(m_str1, m_str2);
+		}
+	};
+
+	class ASMContextNodeAnimationRender : public ASMContextNode {
+	public:
+		const char* m_name;
+		ASMContextNodeAnimationRender(const char* name) : ASMContextNode(PRIORITY_VALUE), m_name(name) {
+		}
+
+		void Dump(std::ostream& out, DecompContext& ctx) const override {
+			
+			if (m_name) {
+				// anim ref
+				out << "%";
+				utils::PrintFormattedString(out, m_name);
+			} else {
+				// animtree
+				out << "#animtree";
+			}
+			out << std::flush;
+		}
+
+		ASMContextNode* Clone() const override {
+			return new ASMContextNodeAnimationRender(m_name);
 		}
 	};
 

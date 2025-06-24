@@ -1,8 +1,9 @@
 grammar gsc;		
 
-prog: ('/#' | '#/' | function | include | precache | namespace | filenamespace | constexpr | class_def)* EOF;
+prog: ('/#' | '#/' | function | include | precache | using_animtree | namespace | filenamespace | constexpr | class_def)* EOF;
 
 include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
+using_animtree: '#using_animtree' '(' STRING ')' ';';
 precache: '#precache' '(' STRING ',' STRING ')' ';';
 namespace: '#namespace' IDENTIFIER ';';
 filenamespace: '#file' (IDENTIFIER | PATH) ';';
@@ -142,6 +143,7 @@ const_expr:
 	| const_expr_static
 	| UNDEFINED_VALUE
 	| function_ref
+	| anim_ref
 	| data_ref
 	;
 
@@ -151,7 +153,10 @@ const_expr_static:
     | BOOL_VALUE
     | FLOATVAL
     | STRING
+    | ISTRING
     | HASHSTRING
+	| SCR_HASH
+	| ANIMTREE_IDENTIFIER
 	;
 
 function_ref:
@@ -159,6 +164,9 @@ function_ref:
 	| '@' IDENTIFIER '<' PATH '>' '::' IDENTIFIER
 	| '&' left_value
     ;
+
+// %str -> using_animtree %tree::str -> self define
+anim_ref: '%' IDENTIFIER ('::' IDENTIFIER) ?;
 
 data_ref:  '@' '[' IDENTIFIER ',' IDENTIFIER ']' ;
 
@@ -172,7 +180,7 @@ number: INTEGER10
 vector_value: '(' expression ',' expression ',' expression ')';
 array_def:
 	'[' ((expression ':')? expression ( ',' (expression ':')? expression)* (',')?)? ']';
-struct_def: '{' ((STRUCT_IDENTIFIER | expression) ':' expression (',' (STRUCT_IDENTIFIER | expression) ':' expression)* (',')?)? '}';
+struct_def: '{' (expression ':' expression (',' expression ':' expression)* (',')?)? '}';
 class_init: 'new' IDENTIFIER '(' (expression (',' expression)*)? ')';
 
 idf: IDENTIFIER;
@@ -189,7 +197,9 @@ BUILTIN: 'break' | 'continue' | 'goto' | 'return' | 'wait' | 'jumpdev';
 BOOL_VALUE: 'true' | 'false';
 UNDEFINED_VALUE: 'undefined';
 IDENTIFIER: [a-z_A-Z] ([a-z_A-Z0-9])*;
-STRUCT_IDENTIFIER: '#' [a-z_A-Z] ([a-z_A-Z0-9])*;
+SCR_HASH: '#' [a-z_A-Z] ([a-z_A-Z0-9])*;
+ANIMTREE_IDENTIFIER: '$' [a-z_A-Z] ([a-z_A-Z0-9])*;
 PATH: [a-z_A-Z0-9\\/]+ ('.gsc' | '.csc')?;
 STRING: '"' (~["\\] | ('\\'.))* '"';
-HASHSTRING: ('r' | '#' | '@' | 't' | '%' | '&') STRING;
+ISTRING: '&' STRING;
+HASHSTRING: ('s' | 'r' | '#' | '@' | 't' | '%') STRING;

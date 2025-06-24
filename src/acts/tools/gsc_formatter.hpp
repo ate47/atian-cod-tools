@@ -22,6 +22,7 @@ namespace tool::gsc::formatter {
 		FFL_FUNC_HEADER_FORMAT_NONE = FFL_FUNC_HEADER_FORMAT2,
 		FFL_FUNC_HEADER_FORMAT_TYPE_4 = FFL_FUNC_HEADER_FORMAT1 | FFL_FUNC_HEADER_FORMAT2,
 		FFL_SWITCH_FORCE_BLOCKS_PADDING = 1 << 14,
+		FFL_ANIM_REAL = 1 << 15,
 	};
 	struct FormatterInfo {
 		const char* name;

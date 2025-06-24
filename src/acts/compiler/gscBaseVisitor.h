@@ -23,6 +23,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitUsing_animtree(gscParser::Using_animtreeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitPrecache(gscParser::PrecacheContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -224,6 +228,10 @@ public:
   }
 
   virtual std::any visitFunction_ref(gscParser::Function_refContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitAnim_ref(gscParser::Anim_refContext *ctx) override {
     return visitChildren(ctx);
   }
 

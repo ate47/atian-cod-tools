@@ -39,10 +39,11 @@ namespace {
 		vt937->RegisterVMOperatorFunction("waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 		vt937->RegisterVMOperatorFunction("waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 		vt937->RegisterVMHashOPCode('#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
-		vt937->RegisterVMHashOPCode('&', OPCODE_GetHash, 8, [](const char* str) { return hash::HashT89Scr(str); });
+		vt937->RegisterVMHashOPCode('s', OPCODE_GetHash, 8, [](const char* str) { return hash::HashT89Scr(str); });
 		vt937->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt937->RegisterDatatype("functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 		vt937->RegisterDatatypeRenamed("function", "functionptr");
+		vt937->SetCompilerHookFunctionName(hash::HashT89Scr("isprofilebuild"));
 
 		vt937->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Nop, 0x13, 0x16, 0x19, 0x1a, 0x21, 0x24, 0x2a, 0x2c, 0x31, 0x33, 0x35, 0x38, 0x39, 0x3c, 0x3e, 0x41, 0x43, 0x4a);
 		vt937->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Nop, 0x4b, 0x4c, 0x4d, 0x57, 0x59, 0x5b, 0x5c, 0x5d, 0x5e, 0x62, 0x63, 0x65, 0x66, 0x68, 0x6d, 0x6e, 0x73, 0x74, 0x75, 0x76, 0x77, 0x7b, 0x83, 0x86, 0x87, 0x8d);

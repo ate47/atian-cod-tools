@@ -223,6 +223,10 @@ enum ReadObjectType {
 void VmInfo::AddDevCallName(uint64_t name) {
 	devCallsNames.insert(name & hash::MASK60);
 }
+void VmInfo::SetCompilerHookFunctionName(uint64_t name) {
+	if (compilerHookFunctionName && compilerHookFunctionName != name) LOG_WARNING("compiler hook function defined twice for {}", name);
+	compilerHookFunctionName = name;
+}
 
 uint64_t VmInfo::HashField(const char* value) const {
 	uint64_t t;
@@ -1297,10 +1301,10 @@ public:
 			const char* str = objctx.GetStringValue(animTree->second);
 
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeString((str ? str : "<error>"), "#", true));
+				context.PushASMCNode(new ASMContextNodeAnimation(nullptr, (str ? str : "<error>")));
 			}
 
-			out << "anim tree #" << (str ? str : "<error>") << std::endl;
+			out << "anim tree $" << (str ? str : "<error>") << std::endl;
 		}
 		else {
 			WriteType intValue = context.Read<Type>(bytecode);
@@ -4202,7 +4206,7 @@ public:
 			utils::PrintFormattedString(out << "\"", str) << "\"\n";
 			if (context.m_runDecompiler) {
 				if (m_istr) {
-					context.PushASMCNode(new ASMContextNodeString(str, "%", true));
+					context.PushASMCNode(new ASMContextNodeString(str, "&"));
 				}
 				else {
 					context.PushASMCNode(new ASMContextNodeString(str));
@@ -4213,7 +4217,7 @@ public:
 			// probably only dev blocks
 			out << "bad str stack: 0x" << std::hex << ref << "\n";
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>", m_istr ? "%" : nullptr));
+				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>", m_istr ? "&" : nullptr));
 			}
 		}
 
@@ -4256,6 +4260,29 @@ public:
 			str2 = objctx.GetStringValueOrError(ref2, context.ScriptAbsoluteLocation(base), nullptr);
 
 			base += 4;
+			
+			out << "%";
+			utils::PrintFormattedString(out, str1);
+			out << "::";
+			utils::PrintFormattedString(out, str2);
+			
+			bool useReal{ (context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL) != 0 };
+			// check if we can only display the anim name
+			if (useReal && context.useAnimTree && strcmp(context.useAnimTree, str2)) {
+				context.m_exp.SetHandle(context.m_readerHandle);
+				LOG_WARNING("using more than one animtree in {}::{}, can't use anim renderer", hashutils::ExtractTmp("namespace", context.m_exp.GetNamespace()), hashutils::ExtractTmp("function", context.m_exp.GetName()));
+				useReal = false;
+			}
+			context.useAnimTree = str1;
+			
+			if (context.m_runDecompiler) {
+				if (useReal) {
+					context.PushASMCNode(new ASMContextNodeAnimationRender(str2));
+				} else {
+					context.PushASMCNode(new ASMContextNodeAnimation(str1, str2));
+
+				}
+			}
 		}
 		else {
 			str1 = "";
@@ -4263,6 +4290,27 @@ public:
 			ref2 = context.Read<byte>(base);
 			str2 = objctx.GetStringValueOrError(ref2, context.ScriptAbsoluteLocation(base), nullptr);
 			base++;
+			out << "$";
+			utils::PrintFormattedString(out, str2);
+			
+			bool useReal{ (context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL) != 0 };
+			// check if we can only display the anim name
+			if (useReal && context.useAnimTree && strcmp(context.useAnimTree, str2)) {
+				context.m_exp.SetHandle(context.m_readerHandle);
+				LOG_WARNING("using more than one animtree in {}::{}, can't use anim renderer", hashutils::ExtractTmp("namespace", context.m_exp.GetNamespace()), hashutils::ExtractTmp("function", context.m_exp.GetName()));
+				useReal = false;
+			}
+			context.useAnimTree = str2;
+			
+			if (context.m_runDecompiler) {
+				if (useReal) {
+					context.PushASMCNode(new ASMContextNodeAnimationRender(str2));
+				} else {
+					context.PushASMCNode(new ASMContextNodeAnimation(str1, str2));
+
+				}
+			}
+
 		}
 
 		if (!str1) {
@@ -4273,14 +4321,7 @@ public:
 			out << "bad str stack: 0x" << std::hex << ref2 << " ";
 			str2 = "<unknown>";
 		}
-		utils::PrintFormattedString(out, str1);
-		out << "#";
-		utils::PrintFormattedString(out, str2);
 		out << "\n";
-
-		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeAnimation(str1, str2));
-		}
 
 		return 0;
 	}
@@ -5910,9 +5951,9 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearLocalVariableCached0, "IW_ClearLocalVariableCached0", 0));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "IW_GetDVarHash", "@"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash, "IW_GetResourceHash", "%"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetLocalizedHash, "IW_GetLocalizedHash", "%", true, true));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetLocalizedHash, "IW_GetLocalizedHash", "&", true));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "IW_GetTagHash", "t", false));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "T10_GetScrHash", "&"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "T10_GetScrHash", "#", true, true));
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWSwitch());
 			RegisterOpCodeHandler(new OPCodeInfoIWEndSwitch());

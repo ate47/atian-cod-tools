@@ -38,10 +38,11 @@ namespace {
 		vt938->RegisterVMOperatorFunction("waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 		vt938->RegisterVMOperatorFunction("waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 		vt938->RegisterVMHashOPCode('#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
-		vt938->RegisterVMHashOPCode('&', OPCODE_GetHash, 8, [](const char* str) { return hash::HashT89Scr(str); });
+		vt938->RegisterVMHashOPCode('s', OPCODE_GetHash, 8, [](const char* str) { return hash::HashT89Scr(str); });
 		vt938->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt938->RegisterDatatype("functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 		vt938->RegisterDatatypeRenamed("function", "functionptr");
+		vt938->SetCompilerHookFunctionName(hash::HashT89Scr("isprofilebuild"));
 
 		vt938->RegisterOpCode(PLATFORM_PC, OPCODE_Abort, 0x0);
 		vt938->RegisterOpCode(PLATFORM_PC, OPCODE_Nop, 0x1);

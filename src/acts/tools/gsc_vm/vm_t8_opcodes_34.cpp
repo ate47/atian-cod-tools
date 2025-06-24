@@ -34,10 +34,12 @@ namespace {
 		vt834->RegisterVMOperatorFunction("waitframe", "waitframe(frames)", OPCODE_WaitFrame, VPFD_NONE, 1, 1);
 		vt834->RegisterVMOperatorFunction("waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 		vt834->RegisterVMHashOPCode('#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64(str); });
-		vt834->RegisterVMHashOPCode('&', OPCODE_GetHash, 8, [](const char* str) { return hash::HashT89Scr(str); });
+		vt834->RegisterVMHashOPCode('s', OPCODE_GetHash, 8, [](const char* str) { return hash::HashT89Scr(str); });
 		vt834->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt834->RegisterDatatype("functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 		vt834->RegisterDatatypeRenamed("function", "functionptr");
+		vt834->SetCompilerHookFunctionName(hash::HashT89Scr("isprofilebuild"));
+
 		vt834->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
 		vt834->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);
 		vt834->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Breakpoint, 0x2);

@@ -23,9 +23,11 @@ namespace {
 		vt71b->RegisterVMOperatorFunction("wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
 		vt71b->RegisterVMOperatorFunction("waittillframeend", "waittillframeend()", OPCODE_WaitTillFrameEnd, VPFD_NONE, 0, 0);
 		vt71b->RegisterVMHashOPCode('#', OPCODE_GetHash32, 4, [](const char* str) { return hash::HashT7(str); });
+		vt71b->RegisterVMHashOPCode('s', OPCODE_GetHash32, 4, [](const char* str) { return hash::HashT7(str); });
 		vt71b->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt71b->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt71b->RegisterDatatypeRenamed("function", "functionptr");
+		vt71b->SetCompilerHookFunctionName(hash::HashT7("isprofilebuild"));
 		vt71b->SetMaxOpCode(0xFF);
 
 

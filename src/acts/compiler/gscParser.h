@@ -27,30 +27,32 @@ public:
     T__74 = 75, T__75 = 76, T__76 = 77, T__77 = 78, T__78 = 79, T__79 = 80, 
     T__80 = 81, T__81 = 82, T__82 = 83, T__83 = 84, T__84 = 85, T__85 = 86, 
     T__86 = 87, T__87 = 88, T__88 = 89, T__89 = 90, T__90 = 91, T__91 = 92, 
-    T__92 = 93, T__93 = 94, NEWLINE = 95, WHITESPACE = 96, INTEGER10 = 97, 
-    INTEGER16 = 98, INTEGER8 = 99, INTEGER2 = 100, FLOATVAL = 101, BUILTIN = 102, 
-    BOOL_VALUE = 103, UNDEFINED_VALUE = 104, IDENTIFIER = 105, STRUCT_IDENTIFIER = 106, 
-    PATH = 107, STRING = 108, HASHSTRING = 109
+    T__92 = 93, T__93 = 94, T__94 = 95, NEWLINE = 96, WHITESPACE = 97, INTEGER10 = 98, 
+    INTEGER16 = 99, INTEGER8 = 100, INTEGER2 = 101, FLOATVAL = 102, BUILTIN = 103, 
+    BOOL_VALUE = 104, UNDEFINED_VALUE = 105, IDENTIFIER = 106, SCR_HASH = 107, 
+    ANIMTREE_IDENTIFIER = 108, PATH = 109, STRING = 110, ISTRING = 111, 
+    HASHSTRING = 112
   };
 
   enum {
-    RuleProg = 0, RuleInclude = 1, RulePrecache = 2, RuleNamespace = 3, 
-    RuleFilenamespace = 4, RuleConstexpr = 5, RuleClass_def = 6, RuleClass_var = 7, 
-    RuleFunction = 8, RuleDetour_info = 9, RuleParam_list = 10, RuleParam_val = 11, 
-    RuleExpression_list = 12, RuleStatement_block = 13, RuleStatement = 14, 
-    RuleStatement_dev_block = 15, RuleStatement_for = 16, RuleStatement_while = 17, 
-    RuleStatement_dowhile = 18, RuleStatement_foreach = 19, RuleStatement_if = 20, 
-    RuleStatement_switch = 21, RuleStatement_inst = 22, RuleNop_def = 23, 
-    RuleDevop_def = 24, RuleFunction_component = 25, RuleOperator_inst = 26, 
-    RuleArray_unpack = 27, RuleExpression = 28, RuleSet_expression = 29, 
-    RuleExpression0 = 30, RuleExpression1 = 31, RuleExpression2 = 32, RuleExpression3 = 33, 
-    RuleExpression4 = 34, RuleExpression5 = 35, RuleExpression6 = 36, RuleExpression7 = 37, 
-    RuleExpression8 = 38, RuleExpression9 = 39, RuleExpression10 = 40, RuleExpression11 = 41, 
-    RuleExpression12 = 42, RuleExpression13 = 43, RuleExpression14 = 44, 
-    RuleExpression15 = 45, RuleIs_expression = 46, RuleFunction_call_exp = 47, 
-    RuleFunction_call = 48, RuleLeft_value = 49, RuleConst_expr = 50, RuleConst_expr_static = 51, 
-    RuleFunction_ref = 52, RuleData_ref = 53, RuleNumber = 54, RuleVector_value = 55, 
-    RuleArray_def = 56, RuleStruct_def = 57, RuleClass_init = 58, RuleIdf = 59
+    RuleProg = 0, RuleInclude = 1, RuleUsing_animtree = 2, RulePrecache = 3, 
+    RuleNamespace = 4, RuleFilenamespace = 5, RuleConstexpr = 6, RuleClass_def = 7, 
+    RuleClass_var = 8, RuleFunction = 9, RuleDetour_info = 10, RuleParam_list = 11, 
+    RuleParam_val = 12, RuleExpression_list = 13, RuleStatement_block = 14, 
+    RuleStatement = 15, RuleStatement_dev_block = 16, RuleStatement_for = 17, 
+    RuleStatement_while = 18, RuleStatement_dowhile = 19, RuleStatement_foreach = 20, 
+    RuleStatement_if = 21, RuleStatement_switch = 22, RuleStatement_inst = 23, 
+    RuleNop_def = 24, RuleDevop_def = 25, RuleFunction_component = 26, RuleOperator_inst = 27, 
+    RuleArray_unpack = 28, RuleExpression = 29, RuleSet_expression = 30, 
+    RuleExpression0 = 31, RuleExpression1 = 32, RuleExpression2 = 33, RuleExpression3 = 34, 
+    RuleExpression4 = 35, RuleExpression5 = 36, RuleExpression6 = 37, RuleExpression7 = 38, 
+    RuleExpression8 = 39, RuleExpression9 = 40, RuleExpression10 = 41, RuleExpression11 = 42, 
+    RuleExpression12 = 43, RuleExpression13 = 44, RuleExpression14 = 45, 
+    RuleExpression15 = 46, RuleIs_expression = 47, RuleFunction_call_exp = 48, 
+    RuleFunction_call = 49, RuleLeft_value = 50, RuleConst_expr = 51, RuleConst_expr_static = 52, 
+    RuleFunction_ref = 53, RuleAnim_ref = 54, RuleData_ref = 55, RuleNumber = 56, 
+    RuleVector_value = 57, RuleArray_def = 58, RuleStruct_def = 59, RuleClass_init = 60, 
+    RuleIdf = 61
   };
 
   explicit gscParser(antlr4::TokenStream *input);
@@ -72,6 +74,7 @@ public:
 
   class ProgContext;
   class IncludeContext;
+  class Using_animtreeContext;
   class PrecacheContext;
   class NamespaceContext;
   class FilenamespaceContext;
@@ -123,6 +126,7 @@ public:
   class Const_exprContext;
   class Const_expr_staticContext;
   class Function_refContext;
+  class Anim_refContext;
   class Data_refContext;
   class NumberContext;
   class Vector_valueContext;
@@ -142,6 +146,8 @@ public:
     IncludeContext* include(size_t i);
     std::vector<PrecacheContext *> precache();
     PrecacheContext* precache(size_t i);
+    std::vector<Using_animtreeContext *> using_animtree();
+    Using_animtreeContext* using_animtree(size_t i);
     std::vector<NamespaceContext *> namespace_();
     NamespaceContext* namespace_(size_t i);
     std::vector<FilenamespaceContext *> filenamespace();
@@ -171,6 +177,19 @@ public:
   };
 
   IncludeContext* include();
+
+  class  Using_animtreeContext : public antlr4::ParserRuleContext {
+  public:
+    Using_animtreeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *STRING();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Using_animtreeContext* using_animtree();
 
   class  PrecacheContext : public antlr4::ParserRuleContext {
   public:
@@ -897,6 +916,7 @@ public:
     Const_expr_staticContext *const_expr_static();
     antlr4::tree::TerminalNode *UNDEFINED_VALUE();
     Function_refContext *function_ref();
+    Anim_refContext *anim_ref();
     Data_refContext *data_ref();
 
 
@@ -915,7 +935,10 @@ public:
     antlr4::tree::TerminalNode *BOOL_VALUE();
     antlr4::tree::TerminalNode *FLOATVAL();
     antlr4::tree::TerminalNode *STRING();
+    antlr4::tree::TerminalNode *ISTRING();
     antlr4::tree::TerminalNode *HASHSTRING();
+    antlr4::tree::TerminalNode *SCR_HASH();
+    antlr4::tree::TerminalNode *ANIMTREE_IDENTIFIER();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -939,6 +962,20 @@ public:
   };
 
   Function_refContext* function_ref();
+
+  class  Anim_refContext : public antlr4::ParserRuleContext {
+  public:
+    Anim_refContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
+    antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  Anim_refContext* anim_ref();
 
   class  Data_refContext : public antlr4::ParserRuleContext {
   public:
@@ -1005,8 +1042,6 @@ public:
     virtual size_t getRuleIndex() const override;
     std::vector<ExpressionContext *> expression();
     ExpressionContext* expression(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> STRUCT_IDENTIFIER();
-    antlr4::tree::TerminalNode* STRUCT_IDENTIFIER(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

@@ -1456,7 +1456,7 @@ namespace {
             Ptr<GscObj24>()->name = name;
         }
         void SetHeader() override {
-            Ref<uint64_t>() = 0xa0d43534710;
+            Ref<uint64_t>() = Magic;
         }
         void SetExportsCount(uint16_t val) override {
             Ptr<GscObj24>()->export_count = val;

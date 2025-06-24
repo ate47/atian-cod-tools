@@ -150,6 +150,8 @@ namespace acts::compiler {
         OPCODE_Wait,
         OPCODE_GetClasses,
         OPCODE_GetObjectType,
+        OPCODE_IW_GetAnimationTree,
+        OPCODE_IW_GetAnimation,
     };
 
     struct FunctionVar {
@@ -321,6 +323,10 @@ namespace acts::compiler {
 
             return true;
         }
+
+        virtual uint32_t GetDataFLoc(bool aligned) const {
+            throw std::runtime_error("GetDataFLoc not implemented");
+        }
     };
 
     AscmNodeOpCode* AscmNode::AsOpCode() {
@@ -383,7 +389,7 @@ namespace acts::compiler {
             return true;
         }
 
-        uint32_t GetDataFLoc(bool aligned) const {
+        uint32_t GetDataFLoc(bool aligned) const override {
             return ShiftSize(floc, aligned) - sizeof(Type);
         }
     };
@@ -422,7 +428,7 @@ namespace acts::compiler {
             return true;
         }
 
-        uint32_t GetDataFLoc(bool aligned) const {
+        uint32_t GetDataFLoc(bool aligned) const override {
             return ShiftSize(floc, aligned) - hashSize;
         }
     };
@@ -860,7 +866,7 @@ namespace acts::compiler {
             return true;
         }
 
-        uint32_t GetDataFLoc(bool aligned) const {
+        uint32_t GetDataFLoc(bool aligned) const override {
             return ShiftSize(floc, aligned) - sizeof(uint16_t);
         }
     };
@@ -983,13 +989,24 @@ namespace acts::compiler {
         return flag;
     }
 
-    std::string ParseString(TerminalNode* term) {
+    std::string ParseString(TerminalNode* term, size_t start = 0) {
         std::string node = term->getText();
-        auto newStr = std::make_unique<char[]>(node.length() - 1);
+
+        if (node.length() <= start) return {};
+
+        size_t end{ node.length() };
+
+        // string val, remove delimiter
+        if ((node[start] == '"' || node[start] == '\'') && node[node.length() - 1] == node[start]) {
+            end--;
+            start++;
+        }
+
+        auto newStr = std::make_unique<char[]>(end - start + 1);
         char* newStrWriter = &newStr[0];
 
         // format string
-        for (size_t i = 1; i < node.length() - 1; i++) {
+        for (size_t i = start; i < end; i++) {
             if (node[i] != '\\') {
                 *(newStrWriter++) = node[i];
                 continue; // default case
@@ -1287,6 +1304,15 @@ namespace acts::compiler {
         std::vector<uint32_t*> listeners{};
         std::vector<AscmNodeData<uint32_t>*> nodes{};
     };
+    struct AnimObject {
+        uint32_t location{};
+        std::vector<AscmNodeOpCode*> anim{};
+    };
+    struct AnimTreeObject {
+        uint32_t location{};
+        std::vector<AscmNodeOpCode*> animtree{};
+        std::unordered_map<std::string, AnimObject> anims{};
+    };
     class ImportObject {
     public:
         byte flags;
@@ -1497,7 +1523,7 @@ namespace acts::compiler {
         { OPCODE_GetNegUnsignedShort, -0xFFFF, 0, 2, true, true  },
         { OPCODE_GetShort, -0x8000, 0x7FFF, 2, false, false },
         { OPCODE_GetNegUnsignedInteger, -0xFFFFFFFFLL, 0, 4, true, true },
-        { OPCODE_GetInteger, 0x80000000, 0x7FFFFFFF, 4, false, false },
+        { OPCODE_GetInteger, -0x80000000LL, 0x7FFFFFFF, 4, false, false },
         { OPCODE_GetUnsignedInteger, 0, 0xFFFFFFFF, 4, false, true },
         { OPCODE_GetLongInteger, (-0x7FFFFFFFFFFFFFFFLL - 1LL), 0x7FFFFFFFFFFFFFFF, 8, false, false },
     };
@@ -1512,10 +1538,12 @@ namespace acts::compiler {
         uint64_t fileName{};
         const char* fileNameStr{};
         uint64_t fileNameSpace{};
+        std::string lastAnimTree{};
         std::set<std::string> includes{};
         std::vector<AscmNode*> m_devBlocks{};
         std::unordered_map<uint64_t, FunctionObject> exports{};
         std::unordered_map<std::string, StringObject> strings{};
+        std::unordered_map<std::string, AnimTreeObject> animtrees{};
         
         std::unordered_map<Located, std::vector<AscmNodeLazyLink*>, LocatedHash, LocatedEquals> lazyimports{};
         std::unordered_map<Located, std::vector<ImportObject>, LocatedHash, LocatedEquals> imports{};
@@ -1560,6 +1588,32 @@ namespace acts::compiler {
 
         bool HasOpCode(OPCode opcode) {
             return tool::gsc::opcode::HasOpCode(vmInfo->vmMagic, config.platform, opcode, config.useModToolOpCodes);
+        }
+
+        TerminalNode* GetUniqueNode(ParseTree* tree, bool error = true) {
+            if (tree->getTreeType() == TREE_ERROR) {
+                if (error) {
+                    info.PrintLineMessage(core::logs::LVL_ERROR, tree, std::format("Tree error for GetUniqueNode: {}", tree->getText()));
+                }
+                return nullptr;
+            }
+            if (tree->getTreeType() == TREE_TERMINAL) {
+                return dynamic_cast<TerminalNode*>(tree); // done
+            }
+            RuleContext* rule = dynamic_cast<RuleContext*>(tree);
+
+            if (rule->getRuleIndex() == gscParser::RuleExpression15) {
+                return GetUniqueNode(rule->children[1], error);
+            }
+
+            if (rule->children.size() != 1) {
+                if (error) {
+                    info.PrintLineMessage(core::logs::LVL_ERROR, tree, std::format("Not a valid terminal node: {}", rule->getText()));
+                }
+                return nullptr;
+            }
+
+            return GetUniqueNode(rule->children[0], error);
         }
 
         float FloatNumberNodeValue(ParseTree* number, bool error = true) {
@@ -2080,7 +2134,7 @@ namespace acts::compiler {
 
             size_t headerLoc{ utils::Allocate(data, gscHandler->GetHeaderSize()) };
 
-            LOG_TRACE("Compile {} include(s)...", includes.size());
+            if (includes.size()) LOG_TRACE("Compile {} include(s)...", includes.size());
             size_t incTable{};
             if (includes.size()) {
                 if (gscHandler->HasFlag(tool::gsc::GOHF_STRING_NAMES)) {
@@ -2113,7 +2167,7 @@ namespace acts::compiler {
 
             size_t csegOffset = data.size();
 
-            LOG_TRACE("Compile {} export(s)...", exports.size());
+           if (exports.size()) LOG_TRACE("Compile {} export(s)...", exports.size());
 
             size_t exportIndex{};
 
@@ -2216,7 +2270,7 @@ namespace acts::compiler {
 
             size_t csegSize = data.size() - csegOffset;
 
-            LOG_TRACE("Compile {} strings(s)...", strings.size());
+            if (strings.size()) LOG_TRACE("Compile {} strings(s)...", strings.size());
 
             // compile strings
 
@@ -2259,10 +2313,111 @@ namespace acts::compiler {
                     utils::WriteValue<uint32_t>(data, strobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN)));
                 }
             }
+            
+            if (animtrees.size()) LOG_TRACE("Compile {} anim tree(s)...", animtrees.size());
+
+            for (auto& [key, atree] : animtrees) {
+                atree.location = (uint32_t)data.size();
+
+                auto [strHeader, strHeaderSize] = gscHandler->GetStringHeader(key.length());
+
+                utils::WriteValue(data, (void*)strHeader, strHeaderSize);
+                utils::WriteString(data, key.c_str());
+
+                for (auto& [anim, ref] : atree.anims) {
+                    ref.location = (uint32_t)data.size();
+                    utils::WriteValue(data, (void*)strHeader, strHeaderSize);
+                    utils::WriteString(data, anim.c_str());
+                }
+            }
+
+            size_t animRefs{};
+            size_t animCount{};
+            size_t animDoubleRefs{};
+            size_t animDoubleCount{};
+
+            if (vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7)) {
+                animDoubleRefs = data.size();
+                animDoubleCount = animtrees.size();
+
+                for (auto& [key, atree] : animtrees) {
+                    if (atree.animtree.size() > 0x7FFF) {
+                        // if you reach that, you're the issue, not the code
+                        LOG_ERROR("Too many animtree nodes {} > {}", atree.animtree.size(), 0x7FFF); 
+                        return false;
+                    }
+                    size_t treeLoc{ utils::Allocate(data, sizeof(tool::gsc::T7GscAnimTree)) };
+                    uint32_t* atNodes{ utils::AllocateArray<uint32_t>(data, atree.animtree.size()) };
+                    for (AscmNodeOpCode* op : atree.animtree) {
+                        *(atNodes++) = op->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN));
+                    }
+                    
+                    size_t numNodes{};
+                    for (auto& [nkey, anode] : atree.anims) {
+                        for (AscmNodeOpCode* op : anode.anim) {
+                            uint64_t* atNodes{ utils::AllocateArray<uint64_t>(data, 2) };
+                            atNodes[0] = anode.location;
+                            atNodes[1] = op->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN));
+                            numNodes++;
+                        }
+                    }
+                    
+                    if (numNodes > 0x7FFF) {
+                        // if you reach that, you're the issue, not the code
+                        LOG_ERROR("Too many anim nodes {} > {}", atree.anims.size(), 0x7FFF); 
+                        return false;
+                    }
+
+                    tool::gsc::T7GscAnimTree& tree{ *(tool::gsc::T7GscAnimTree*)&data[treeLoc] };
+                    tree.name = (uint32_t)atree.location;
+                    tree.num_tree_address = (uint16_t)atree.animtree.size();
+                    tree.num_node_address = (uint16_t)numNodes;
+                }
+            } else {
+                animRefs = data.size();
+
+                // write animtrees
+                for (auto& [key, atree] : animtrees) {
+                    size_t w{};
+                    while (w < atree.animtree.size()) {
+                        if (w % 0xFF == 0) {
+                            size_t buff{ utils::Allocate(data, gscHandler->GetAnimTreeSingleSize()) };
+                            tool::gsc::GSC_USEANIMTREE_ITEM anim{};
+                            anim.address = atree.location;
+                            anim.num_address = (byte)((atree.animtree.size() - w) > 0xFF ? 0xFF : (atree.animtree.size() - w));
+                            gscHandler->WriteAnimTreeSingle(&data[buff], anim);
+                            animCount++;
+                        }
+                        utils::WriteValue<uint32_t>(data, atree.animtree[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN)));
+                    }
+                }
+                
+                // write anims
+                animDoubleRefs = data.size();
+                for (auto& [key, atree] : animtrees) {
+                    for (auto& [anim, ref] : atree.anims) {
+                        size_t w{};
+                        while (w < ref.anim.size()) {
+                            if (w % 0xFF == 0) {
+                                size_t buff{ utils::Allocate(data, gscHandler->GetAnimTreeDoubleSize()) };
+                                tool::gsc::GSC_ANIMTREE_ITEM anim{};
+                                anim.address_str1 = atree.location;
+                                anim.address_str2 = ref.location;
+                                anim.num_address = (byte)((ref.anim.size() - w) > 0xFF ? 0xFF : (ref.anim.size() - w));
+                                gscHandler->WriteAnimTreeDouble(&data[buff], anim);
+                                animDoubleCount++;
+                            }
+                            utils::WriteValue<uint32_t>(data, ref.anim[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN)));
+                        }
+                    }
+                }
+
+            }
+
 
             size_t gvarRefs = data.size();
             size_t gvarCount{};
-            if (gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
+            if (gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL) && globals.size()) {
                 LOG_TRACE("Compile {} global(s)...", globals.size());
 
                 for (auto& [key, gvobj] : globals) {
@@ -2282,7 +2437,7 @@ namespace acts::compiler {
                 }
             }
 
-            LOG_TRACE("Compile {} import(s)...", imports.size());
+            if (imports.size()) LOG_TRACE("Compile {} import(s)...", imports.size());
             size_t implRefs = data.size();
             size_t implCount{};
 
@@ -2492,6 +2647,7 @@ namespace acts::compiler {
 
                     // add crc location
                     if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
+                        assert(crcData.opcode);
                         debug_obj->crc_offset = (uint32_t)crcData.opcode->floc;
                     }
                     else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
@@ -2508,7 +2664,7 @@ namespace acts::compiler {
             uint32_t nameOffSet{};
             if (gscHandler->HasFlag(tool::gsc::GOHF_STRING_NAMES)) {
                 nameOffSet = (uint32_t)data.size();
-                utils::WriteString(data, fileNameStr);
+                utils::WriteString(data, fileNameStr ? fileNameStr : "");
             }
 
             // compile header
@@ -2538,9 +2694,15 @@ namespace acts::compiler {
             gscHandler->SetExportsOffset((int32_t)expTable);
             gscHandler->SetCSEGOffset((int32_t)csegOffset);
             gscHandler->SetCSEGSize((int32_t)csegSize);
-
+            
             gscHandler->SetImportsCount((int16_t)implCount);
             gscHandler->SetImportsOffset((int32_t)implRefs);
+            
+            gscHandler->SetAnimTreeDoubleCount((int16_t)animDoubleCount);
+            gscHandler->SetAnimTreeDoubleOffset((int32_t)animDoubleRefs);
+            gscHandler->SetAnimTreeSingleCount((int16_t)animCount);
+            gscHandler->SetAnimTreeSingleOffset((int32_t)animRefs);
+
 
             gscHandler->SetFileSize((int32_t)data.size());
 
@@ -2645,6 +2807,41 @@ namespace acts::compiler {
     AscmNode* FunctionObject::CreateFieldHashRaw(const std::string& v) const {
         obj.AddHash(v);
         return CreateFieldHashRaw(m_vmInfo->HashField(v));
+    }
+
+    
+    bool AddHashNode(ParseTree* tree, char type, const std::string& sub, FunctionObject& fobj, CompileObject& obj) {
+        obj.AddHash(sub);
+        auto ith = obj.vmInfo->hashesFunc.find(type);
+
+        if (ith == obj.vmInfo->hashesFunc.end()) {
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, tree, std::format("Hash type not available for this vm: {}", type));
+            return false;
+        }
+
+        const char* ss = sub.c_str();
+
+        uint64_t val;
+
+        if (!hash::TryHashPattern(ss, val)) {
+            val = ith->second.hashFunc(ss);
+            if (!val) {
+                obj.info.PrintLineMessage(core::logs::LVL_ERROR, tree, std::format("Can't hash the string '{}' with the type {}", sub, type));
+                return false;
+            }
+        }
+
+        switch (ith->second.size) {
+        case 8: fobj.AddNode(tree, new AscmNodeData<uint64_t>((uint64_t)val, ith->second.opCode)); break;
+        case 4: fobj.AddNode(tree, new AscmNodeData<uint32_t>((uint32_t)val, ith->second.opCode)); break;
+        case 2: fobj.AddNode(tree, new AscmNodeData<uint16_t>((uint16_t)val, ith->second.opCode)); break;
+        case 1: fobj.AddNode(tree, new AscmNodeData<uint8_t>((uint8_t)val, ith->second.opCode)); break;
+        default: {
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, tree, std::format("Invalid hash size definition: {} / {} bytes", type, ith->second.size));
+            return false;
+        }
+        }
+        return true;
     }
 
     void AscmNodeFunctionCall::SetScriptCall(CompileObject& obj, bool scriptCall) {
@@ -3792,6 +3989,7 @@ namespace acts::compiler {
                 if (rule->children.size() == 1) {
                     return ParseExpressionNode(rule->children[0], parser, obj, fobj, expressVal);
                 }
+                uint64_t compilerCallHash{};
                 uint64_t funcNspHash{};
                 uint64_t funcHash{};
                 ParseTree* ptrTree{};
@@ -4010,15 +4208,28 @@ namespace acts::compiler {
                     obj.AddHash(funcName);
                 }
                 else if (functionComp->children.size() == 3) {
-                        // namespace::func
+                    // namespace::func
 
-                        std::string funcNspName = functionComp->children[0]->getText();
-                        std::string funcName = functionComp->children[2]->getText();
+                    std::string funcNspName = functionComp->children[0]->getText();
+                    std::string funcName = functionComp->children[2]->getText();
 
+                    obj.AddHash(funcName);
+                    funcHash = obj.vmInfo->HashField(funcName.c_str());
+                    
+                    if (utils::EqualIgnoreCase("compiler", funcNspName)) {
+                        compilerCallHash = funcHash;
+                        importFlags |= tool::gsc::GET_CALL;
+                        funcNspHash = obj.currentNamespace;
+
+                        if (!obj.vmInfo->compilerHookFunctionName) {
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "no compiler:: function hook name defined for this vm");
+                            return false;
+                        }
+                        funcHash = obj.vmInfo->compilerHookFunctionName;
+                    } else {
                         obj.AddHash(funcNspName);
-                        obj.AddHash(funcName);
                         funcNspHash = obj.vmInfo->HashField(funcNspName.c_str());
-                        funcHash = obj.vmInfo->HashField(funcName.c_str());
+                    }
                 }
                 else if (functionComp->children.size() == 5) {
                     // [ [ espression ] ]
@@ -4052,6 +4263,12 @@ namespace acts::compiler {
                     if (!ParseExpressionNode(paramsList->children[i], parser, obj, fobj, true)) {
                         paramError = true;
                     }
+                    paramCount++;
+                }
+
+                if (compilerCallHash) {
+                    // compiler::test(1, 2, 3) = hookfunc(#test, 1, 2, 3)
+                    fobj.AddNode(functionComp->children[2], obj.BuildAscmNodeData((int64_t)compilerCallHash));
                     paramCount++;
                 }
 
@@ -4728,9 +4945,10 @@ namespace acts::compiler {
                         ok = false;
                     }
 
+                    TerminalNode* scrName{ obj.GetUniqueNode(term, false) }; 
                     if (obj.HasOpCode(OPCODE_IW_AddToStruct)) {
-                        if (!IS_TERMINAL_TYPE(term, gscParser::STRUCT_IDENTIFIER)) {
-                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, std::format("Can't use expression to define structure names in this vm: {}", term->getText()));
+                        if (!IS_TERMINAL_TYPE(scrName, gscParser::SCR_HASH)) {
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, term, std::format("Structure names in this vm should be hashes: {}", term->getText()));
                             ok = false;
                         }
                         else {
@@ -4741,10 +4959,11 @@ namespace acts::compiler {
                         }
                     }
                     else {
-                        if (!IS_TERMINAL_TYPE(term, gscParser::STRUCT_IDENTIFIER)) {
+                        if (!IS_TERMINAL_TYPE(scrName, gscParser::SCR_HASH)) {
                             if (!ParseExpressionNode(term, parser, obj, fobj, true)) {
                                 ok = false;
                             }
+                            // cast the expression to a canon id
                             fobj.AddNode(term, new AscmNodeOpCode(OPCODE_CastCanon));
                         }
                         else {
@@ -4938,6 +5157,34 @@ namespace acts::compiler {
                 AscmNodeFunctionCall* asmc = new AscmNodeFunctionCall(OPCODE_GetResolveFunction, FCF_GETTER, 0, 0, 0, obj.vmInfo);
                 obj.AddImport(asmc, nsp, func, 0, flags);
                 fobj.AddNode(rule, asmc);
+
+                return true;
+            }
+            case gscParser::RuleAnim_ref: {
+                assert(IS_TERMINAL_TYPE(rule->children[1], gscParser::IDENTIFIER));
+                if (rule->children.size() > 2) {
+                    assert(IS_TERMINAL_TYPE(rule->children[3], gscParser::IDENTIFIER));
+                    std::string tree{ ParseString(dynamic_cast<TerminalNode*>(rule->children[1])) };
+                    std::string anim{ ParseString(dynamic_cast<TerminalNode*>(rule->children[3])) };
+                    
+                    auto* asmc = new AscmNodeData<uint64_t>(0x1234567812345678, OPCODE_IW_GetAnimation);
+                    fobj.AddNode(rule, asmc);
+                    
+                    // add animtree + anim ref
+                    obj.animtrees[tree].anims[anim].anim.push_back(asmc);
+                } else {
+                    if (obj.lastAnimTree.empty()) {
+                        obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "Can't use %anim without having a #using_animtree before the function");
+                        return false;
+                    }
+                    
+                    std::string anim{ ParseString(dynamic_cast<TerminalNode*>(rule->children[1])) };
+                    auto* asmc = new AscmNodeData<uint64_t>(0x1234567812345678, OPCODE_IW_GetAnimation);
+                    fobj.AddNode(rule, asmc);
+                    
+                    // add anim ref
+                    obj.animtrees[obj.lastAnimTree].anims[anim].anim.push_back(asmc);
+                }
 
                 return true;
             }
@@ -5206,45 +5453,58 @@ namespace acts::compiler {
         }
         case gscParser::HASHSTRING: {
             std::string hash = term->getText();
-            char type = hash[0];
-            std::string sub = hash.substr(2, len - 3);
-            obj.AddHash(sub);
-            auto ith = obj.vmInfo->hashesFunc.find(type);
+            return AddHashNode(term, hash[0], hash.substr(2, len - 3), fobj, obj);
+        }
+        case gscParser::ANIMTREE_IDENTIFIER: {
+            std::string node{ ParseString(term, 1) };
 
-            if (ith == obj.vmInfo->hashesFunc.end()) {
-                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Hash type not available for this vm: {}", type));
-                return false;
+            
+            AscmNodeOpCode* asmc;
+            if (obj.vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7)) {
+                // t7 doesn't have a GetAnimationTree operator, it uses the 
+                asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_GetInteger);
+            } else {
+                asmc = new AscmNodeData<byte>(0x12, OPCODE_IW_GetAnimationTree);
             }
+            fobj.AddNode(term, asmc);
+            
+            // add animtree ref
+            obj.animtrees[node].animtree.push_back(asmc);
 
-            const char* ss = sub.c_str();
+            return true;
+        }
+        case gscParser::SCR_HASH: {
+            std::string node{ ParseString(term, 1) };
 
-            uint64_t val;
+            if (utils::EqualIgnoreCase(node, "animtree")) {
+                // use animtree
 
-            if (!hash::TryHashPattern(ss, val)) {
-                val = ith->second.hashFunc(ss);
-                if (!val) {
-                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Can't hash the string '{}' with the type {}", sub, type));
+                if (obj.lastAnimTree.empty()) {
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, "Can't use #animtree without having a #using_animtree before the function");
                     return false;
                 }
-            }
 
-            switch (ith->second.size) {
-            case 8: fobj.AddNode(term, new AscmNodeData<uint64_t>((uint64_t)val, ith->second.opCode)); break;
-            case 4: fobj.AddNode(term, new AscmNodeData<uint32_t>((uint32_t)val, ith->second.opCode)); break;
-            case 2: fobj.AddNode(term, new AscmNodeData<uint16_t>((uint16_t)val, ith->second.opCode)); break;
-            case 1: fobj.AddNode(term, new AscmNodeData<uint8_t>((uint8_t)val, ith->second.opCode)); break;
-            default: {
-                obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("Invalid hash size definition: {} / {} bytes", type, ith->second.size));
-                return false;
-            }
+                AscmNodeOpCode* asmc;
+                if (obj.vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7)) {
+                    // t7 doesn't have a GetAnimationTree operator, it uses the 
+                    asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_GetInteger);
+                } else {
+                    asmc = new AscmNodeData<byte>(0x12, OPCODE_IW_GetAnimationTree);
+                }
+                fobj.AddNode(term, asmc);
+            
+                // add animtree ref
+                obj.animtrees[obj.lastAnimTree].animtree.push_back(asmc);
+            } else {
+                return AddHashNode(term, 's', node, fobj, obj);
             }
 
             return true;
         }
         case gscParser::STRING: {
-            auto node = term->getText();
+            std::string node = term->getText();
             auto newStr = std::make_unique<char[]>(node.length() - 1);
-            auto* newStrWriter = &newStr[0];
+            char* newStrWriter = &newStr[0];
 
             // format string
             for (size_t i = 1; i < node.length() - 1; i++) {
@@ -5290,6 +5550,29 @@ namespace acts::compiler {
 
             auto& str = obj.strings[key];
             str.nodes.push_back(asmc);
+            return true;
+        }
+        case gscParser::ISTRING: {
+            std::string node{ ParseString(term, 1) };
+
+            if (obj.vmInfo->HasFlag(VmFlags::VMF_ISTRING_HASHED)) {
+                const char* reshash{ &node[0] };
+                uint64_t h{ obj.vmInfo->HashPath(reshash) };
+                fobj.AddNode(term, new AscmNodeData<uint64_t>(h, OPCODE_IW_GetLocalizedHash));
+                obj.AddHash(reshash);
+            } else {
+                // link by the game
+                auto* asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_IW_GetIString);
+                fobj.AddNode(term, asmc);
+
+                if (node.length() >= 256) {
+                    obj.info.PrintLineMessage(core::logs::LVL_ERROR, exp, std::format("IString too long: {}", term->getText()));
+                    return false;
+                }
+
+                auto& str = obj.strings[node];
+                str.nodes.push_back(asmc);
+            }
             return true;
         }
         }
@@ -5788,6 +6071,23 @@ namespace acts::compiler {
         (*obj.config.precache)[type].push_back(val);
         return true;
     }
+
+    bool ParseAnimTree(RuleContext* atr, gscParser& parser, CompileObject& obj) {
+        std::string tree{ ParseString((TerminalNode*)atr->children[2]) };
+
+        if (tree.empty()) {
+            obj.info.PrintLineMessage(core::logs::LVL_ERROR, atr->children[2], "Empty animtree");
+            return false;
+        }
+
+        // allocate the tree
+        obj.animtrees[tree];
+
+        // define it at last for #animtree
+        obj.lastAnimTree = tree;
+
+        return true;
+    }
     
     bool ParseInclude(RuleContext* nsp, gscParser& parser, CompileObject& obj) {
         if (nsp->children.size() < 2 || nsp->children[1]->getTreeType() != TREE_TERMINAL) {
@@ -5936,6 +6236,11 @@ namespace acts::compiler {
                 break;
             case gscParser::RulePrecache:
                 if (!ParsePrecache(rule, parser, obj)) {
+                    return false;
+                }
+                break;
+            case gscParser::RuleUsing_animtree:
+                if (!ParseAnimTree(rule, parser, obj)) {
                     return false;
                 }
                 break;

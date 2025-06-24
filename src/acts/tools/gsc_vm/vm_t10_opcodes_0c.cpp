@@ -27,7 +27,7 @@ namespace {
 		t10c->RegisterVMHashOPCode('%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hash::HashIWAsset(str); });
 		t10c->RegisterVMHashOPCode('r', OPCODE_IW_GetLocalizedHash, 8, [](const char* str) { return hash::HashIWAsset(str); });
 		t10c->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashX32(str); });
-		t10c->RegisterVMHashOPCode('&', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
+		t10c->RegisterVMHashOPCode('s', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
 		t10c->RegisterDevCall("assert", "assertmsg", "function_79901b4637c83c86", "assertex", "println", "print");
 		t10c->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 		t10c->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0x24);

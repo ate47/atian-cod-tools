@@ -5,6 +5,8 @@
 #namespace acts;
 #file scripts\test\acts;
 
+#using_animtree( "demo_atr" );
+
 function autoexec __init__system__() {
     level.acts = {
         #a: 42,
@@ -30,6 +32,9 @@ function autoexec __init__system__() {
     }
 
     f = &test;
+
+    ant = #animtree;
+    an = %animname;
 
     level.players[0] thread [[ f ]]();
 

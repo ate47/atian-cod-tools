@@ -78,6 +78,7 @@ namespace tool::gsc::opcode {
 		const char* codeName{ "unk" };
 		const char* internalName{ "unk" };
 		uint64_t flags{};
+		uint64_t compilerHookFunctionName{};
 		byte platforms{};
 		uint16_t maxOpCode{ 0xFFF };
 		uint16_t modToolFlag{};
@@ -107,6 +108,11 @@ namespace tool::gsc::opcode {
 		 * Add a dev call name for this platform
 		 */
 		void AddDevCallName(uint64_t name);
+
+		/*
+		 * Set the compiler:: hook function name
+		 */
+		void SetCompilerHookFunctionName(uint64_t name);
 
 		/*
 		 * Is this VM available for this platform

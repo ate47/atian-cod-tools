@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <core/async.hpp>
+#include <core/bytebuffer.hpp>
 #include <utils/decrypt.hpp>
 #include <BS_thread_pool.hpp>
 #include "tools/gsc.hpp"
@@ -936,7 +937,7 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 }
                 vars2 += 2;
             }
-            animt_location += sizeof(*animt) + sizeof(*vars) * (animt->num_tree_address + (size_t)animt->num_node_address * 2);
+            animt_location += sizeof(*animt) + sizeof(*vars) * (animt->num_tree_address + (size_t)animt->num_node_address * 4);
         }
     }
     return tool::OK;
@@ -1070,7 +1071,7 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
     return utils::va("unk:%lx", floc);
 }
 
-int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPath, GscDecompilerGlobalContext& gdctx) {
+int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPath, GscDecompilerGlobalContext& gdctx, byte* dbgData, size_t dbgSize) {
     std::string pathStr{ fsPath.string() };
     const char* path{ pathStr.data() };
     actslib::profiler::Profiler profiler{ "f" };
@@ -1249,10 +1250,18 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
     std::stringstream actsHeader{};
     Platform currentPlatform{ opt.m_platform };
 
-    if (size > scriptfile->GetHeaderSize() + 0x10 && scriptfile->Ref<uint64_t>(scriptfile->GetHeaderSize()) == shared::gsc::acts_debug::MAGIC) {
+    if (!dbgData || !dbgSize) {
+        // search the debug data inside the script
+        dbgData = scriptfile->Ptr(scriptfile->GetHeaderSize());
+        dbgSize = scriptfile->GetFileSize() - scriptfile->GetHeaderSize();
+    }
+
+    core::bytebuffer::ByteBuffer dbgReader{ dbgData, dbgSize };
+
+    if (dbgReader.CanRead(8) && *dbgReader.Ptr<uint64_t>() == shared::gsc::acts_debug::MAGIC) {
         using namespace shared::gsc::acts_debug;
         // acts compiled file, read data
-        auto* dbg = scriptfile->Ptr<GSC_ACTS_DEBUG>(scriptfile->GetHeaderSize());
+        GSC_ACTS_DEBUG* dbg = dbgReader.Ptr<GSC_ACTS_DEBUG>();
         LOG_TRACE("Reading ACTS debug data v{:x}", (int)dbg->version);
         actsHeader << "// ACTS compiled file, file version 0x" << std::hex << (int)dbg->version << ", acts version ";
 
@@ -1266,6 +1275,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             }
         }
         actsHeader << "\n";
+
         if (dbg->HasFeature(ADF_FLAGS)) {
             actsHeader << "// flags ....";
             if (!dbg->flags) actsHeader << " NONE";
@@ -1292,6 +1302,14 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             actsHeader << "\n";
         }
 
+        if (dbg->HasFeature(ADF_CHECKSUM)) {
+            actsHeader << "// dbg crc .. " << "0x" << std::hex << dbg->checksum << "\n";
+            if (scriptfile->GetChecksum() && scriptfile->GetChecksum() != dbg->checksum) {
+                LOG_WARNING("Can't use dbg data: unmatching checksums: 0x{:x} != 0x{:x}", scriptfile->GetChecksum(), dbg->checksum);
+                goto postDbg;
+            }
+        }
+
         if (dbg->HasFeature(ADF_CRC_LOC)) {
             if (dbg->crc_offset) {
                 actsHeader << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << " ";
@@ -1315,7 +1333,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             }
         }
         if (dbg->HasFeature(ADF_STRING)) {
-            uint32_t* strOffsets = scriptfile->Ptr<uint32_t>(dbg->strings_offset);
+            uint32_t* strOffsets = dbgReader.Ptr<uint32_t>(dbg->strings_offset);
             if (dbg->strings_count * sizeof(*strOffsets) > size) {
                 LOG_ERROR("Bad ACTS debug strings, too far");
             }
@@ -1327,7 +1345,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
                         LOG_ERROR("Bad ACTS debug string, too far");
                         break;
                     }
-                    const char* str = scriptfile->Ptr<const char>(off);
+                    const char* str = dbgReader.Ptr<const char>(off);
 
                     uint64_t hashField{ ctx.m_vmInfo->HashField(str) };
                     uint64_t hashFilePath{ ctx.m_vmInfo->HashFilePath(str) };
@@ -1368,7 +1386,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
         }
 
         if (dbg->HasFeature(ADF_DETOUR)) {
-            const GSC_ACTS_DETOUR* detours = scriptfile->Ptr<GSC_ACTS_DETOUR>(dbg->detour_offset);
+            const GSC_ACTS_DETOUR* detours = dbgReader.Ptr<GSC_ACTS_DETOUR>(dbg->detour_offset);
 
             if (dbg->detour_count * sizeof(*detours) > size) {
                 LOG_ERROR("Bad ACTS debug detour, too far");
@@ -1390,7 +1408,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
         if (dbg->HasFeature(ADF_DEVBLOCK_BEGIN)) {
             // not used by acts decompiler, but can be useful for a vm
             if (opt.m_header) {
-                uint32_t* dvOffsets = scriptfile->Ptr<uint32_t>(dbg->devblock_offset);
+                uint32_t* dvOffsets = dbgReader.Ptr<uint32_t>(dbg->devblock_offset);
 
                 if (dbg->devblock_count * sizeof(*dvOffsets) > size) {
                     LOG_ERROR("Bad ACTS debug dev blocks, too far");
@@ -1415,7 +1433,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
                         LOG_ERROR("Bad ACTS debug lazylink, too far");
                         break;
                     }
-                    GSC_ACTS_LAZYLINK* lzOff = scriptfile->Ptr<GSC_ACTS_LAZYLINK>(off);
+                    GSC_ACTS_LAZYLINK* lzOff = dbgReader.Ptr<GSC_ACTS_LAZYLINK>(off);
 
                     if (off + sizeof(GSC_ACTS_LAZYLINK) + sizeof(uint32_t) * lzOff->num_address > size) {
                         LOG_ERROR("Bad ACTS debug lazylink, too far with {} addresses", lzOff->num_address);
@@ -1427,7 +1445,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
                         << hashutils::ExtractTmp("function", lzOff->name) << "\n"
                         << "// locs: ";
                     off += sizeof(*lzOff);
-                    uint32_t* locs = scriptfile->Ptr<uint32_t>(off);
+                    uint32_t* locs = dbgReader.Ptr<uint32_t>(off);
                     for (size_t i = 0; i < lzOff->num_address; i++) {
                         if (i) actsHeader << ", ";
                         actsHeader << flocName(locs[i]);
@@ -1440,7 +1458,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
         if (dbg->HasFeature(ADF_FILES)) {
             if (opt.m_header) {
                 actsHeader << "// files .... " << std::dec << dbg->files_count << " (offset: 0x" << std::hex << dbg->files_offset << ")\n";
-                GSC_ACTS_FILES* linesOff = scriptfile->Ptr<GSC_ACTS_FILES>(dbg->files_offset);
+                GSC_ACTS_FILES* linesOff = dbgReader.Ptr<GSC_ACTS_FILES>(dbg->files_offset);
                 if (dbg->files_offset + sizeof(GSC_ACTS_FILES) * dbg->files_count > size) {
                     LOG_ERROR("Bad ACTS debug files, too far with {} lines", dbg->files_count);
                 }
@@ -1450,7 +1468,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
                         if (l.filename >= size) {
                             LOG_ERROR("Bad ACTS debug files name, too far with {}", l.filename);
                         }
-                        actsHeader << "// - " << std::dec << scriptfile->Ptr<const char>(l.filename) << " " << l.lineStart << "->" << l.lineEnd << "\n";
+                        actsHeader << "// - " << std::dec << dbgReader.Ptr<const char>(l.filename) << " " << l.lineStart << "->" << l.lineEnd << "\n";
                     }
                 }
 
@@ -1460,7 +1478,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             // not used by acts decompiler, but can be useful for a vm
             if (opt.m_header) {
                 actsHeader << "// lines .... " << std::dec << dbg->lines_count << " (offset: 0x" << std::hex << dbg->lines_offset << ")\n";
-                GSC_ACTS_LINES* linesOff = scriptfile->Ptr<GSC_ACTS_LINES>(dbg->lines_offset);
+                GSC_ACTS_LINES* linesOff = dbgReader.Ptr<GSC_ACTS_LINES>(dbg->lines_offset);
                 if (dbg->lines_offset + sizeof(GSC_ACTS_LINES) * dbg->lines_count > size) {
                     LOG_ERROR("Bad ACTS debug lines, too far with {} lines", dbg->lines_count);
                 }
@@ -1474,6 +1492,7 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             }
         }
     }
+postDbg:
 
     char asmfnamebuff[1000];
 
@@ -2099,52 +2118,88 @@ ignoreCscGsc:
             asmout << "\n";
         }
     }
-    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7) && scriptfile->GetAnimTreeDoubleOffset()) {
-        uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetAnimTreeDoubleOffset()));
-        auto anims_count = (int)scriptfile->GetAnimTreeDoubleCount();
-        for (size_t i = 0; i < anims_count; i++) {
-            const auto* animt = reinterpret_cast<T7GscAnimTree*>(animt_location);
+    if (opt.m_imports) {
+        if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_ANIMTREE_T7)) {
+            // in t7 the anims are in a single struct
+            if (scriptfile->GetAnimTreeDoubleOffset()) {
+                uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetAnimTreeDoubleOffset()));
+                size_t anims_count = (size_t)scriptfile->GetAnimTreeDoubleCount();
 
-            if (animt->name >= scriptfile->GetFileSize()) {
-                asmout << std::hex << "invalid animtree name 0x" << animt->name << "\n";
-            }
-            else {
-                char* s = scriptfile->Ptr<char>(animt->name);
+                for (size_t i = 0; i < anims_count; i++) {
+                    const auto* animt = reinterpret_cast<T7GscAnimTree*>(animt_location);
 
-                asmout << "#using_animtree(\"" << s << "\");\n";
-                if (opt.m_imports) {
+                    if (animt->name >= scriptfile->GetFileSize()) {
+                        asmout << std::hex << "invalid animtree name 0x" << animt->name << "\n";
+                    } else {
+                        char* s = scriptfile->Ptr<char>(animt->name);
 
-                    asmout << std::hex << "animtree " << (s ? s : "<err>") << "\n";
+                        asmout << std::hex << "animtree " << (s ? s : "<err>") << " : 0x" << ((byte*)animt - scriptfile->Ptr()) << "\n";
 
-                    asmout << "tree address:";
-                    const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
-                    for (size_t j = 0; j < animt->num_tree_address; j++) {
-                        asmout << " " << flocName(*(vars++));
-                    }
-                    asmout << std::endl;
-                    asmout << "node address:";
-                    const uint64_t* vars2 = reinterpret_cast<const uint64_t*>(vars);
-                    for (size_t j = 0; j < animt->num_node_address; j++) {
-
-                        if (vars2[0] >= scriptfile->GetFileSize()) {
-                            asmout << std::hex << "invalid animtree 2nd name 0x" << animt->name << "\n";
+                        const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
+                        asmout << "tree address (" << std::dec << animt->num_tree_address << ", 0x" << std::hex << ((byte*)vars - scriptfile->Ptr()) << "):";
+                        for (size_t j = 0; j < animt->num_tree_address; j++) {
+                            asmout << " " << flocName(*(vars++));
                         }
-                        else {
-                            char* v = scriptfile->Ptr<char>(vars2[0]);
-                            // why u64?
-                            asmout << " " << flocName((uint32_t)vars2[1]) << ":" << v;
-                        }
+                        asmout << std::endl;
+                        const uint64_t* vars2 = reinterpret_cast<const uint64_t*>(vars);
+                        asmout << "node address (" << std::dec << animt->num_node_address << ", 0x" << std::hex << ((byte*)vars2 - scriptfile->Ptr()) << "):";
+                        for (size_t j = 0; j < animt->num_node_address; j++) {
 
-                        vars2 += 2;
+                            if (vars2[0] >= scriptfile->GetFileSize()) {
+                                asmout << std::hex << "invalid animtree 2nd name 0x" << animt->name << "\n";
+                            } else {
+                                char* v = scriptfile->Ptr<char>(vars2[0]);
+                                // why u64?
+                                asmout << " " << flocName((uint32_t)vars2[1]) << ":" << v;
+                            }
+
+                            vars2 += 2;
+                        }
+                        asmout << std::endl;
                     }
-                    asmout << std::endl;
+
+                    animt_location += sizeof(*animt) + sizeof(uint32_t) * (animt->num_tree_address + (size_t)animt->num_node_address * 4);
+                }
+                if (scriptfile->GetAnimTreeDoubleCount()) {
+                    asmout << "\n";
                 }
             }
+        } else {
+            if (scriptfile->GetAnimTreeSingleOffset()) {
+                uintptr_t animt_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetAnimTreeSingleOffset()));
+                size_t anims_count = (size_t)scriptfile->GetAnimTreeSingleCount();
 
-            animt_location += sizeof(*animt) + sizeof(uint32_t) * (animt->num_tree_address + (size_t)animt->num_node_address * 2);
-        }
-        if (scriptfile->GetAnimTreeDoubleCount()) {
-            asmout << "\n";
+                for (size_t i = 0; i < anims_count; i++) {
+                    const auto* animt = reinterpret_cast<GSC_USEANIMTREE_ITEM*>(animt_location);
+
+                    if (animt->address >= scriptfile->GetFileSize()) {
+                        asmout << std::hex << "invalid animtree name 0x" << animt->address << "\n";
+                    } else {
+                        char* s = scriptfile->Ptr<char>(animt->address);
+                    
+                        asmout << "#using_animtree(";
+
+                        if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+                            asmout << " ";
+                        }
+
+                        asmout << "\"";
+                        utils::PrintFormattedString(asmout, s);
+                        asmout << "\"";
+
+                        if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+                            asmout << " ";
+                        }
+
+                        asmout << ");" << std::endl;
+                    }
+
+                    animt_location += sizeof(*animt) + sizeof(uint32_t) * animt->num_address;
+                }
+                if (scriptfile->GetAnimTreeDoubleCount()) {
+                    asmout << "\n";
+                }
+            }
         }
     }
 
@@ -2158,7 +2213,8 @@ ignoreCscGsc:
     if (opt.m_func) {
         actslib::profiler::ProfiledSection ps{ profiler, "decompiling" };
         // current namespace
-        uint64_t currentNSP = 0;
+        uint64_t currentNSP{};
+        const char* currentAnimTree{};
 
         if (scriptfile->GetExportsOffset() + scriptfile->GetExportsCount() * exp->SizeOf() > scriptfile->GetFileSize()) {
             asmout << "// INVALID EXPORT TABLE: 0x" << std::hex << scriptfile->GetExportsOffset() << "\n";
@@ -2259,6 +2315,29 @@ ignoreCscGsc:
 
 
             output << "}\n";
+
+            if (asmctx.useAnimTree && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_ANIM_REAL)) {
+                if (!currentAnimTree || strcmp(currentAnimTree, asmctx.useAnimTree)) {
+                    // new animtree
+                    currentAnimTree = asmctx.useAnimTree;
+
+                    asmout << "#using_animtree(";
+
+                    if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+                        asmout << " ";
+                    }
+
+                    asmout << "\"";
+                    utils::PrintFormattedString(asmout, currentAnimTree);
+                    asmout << "\"";
+
+                    if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+                        asmout << " ";
+                    }
+
+                    asmout << ");\n" << std::endl;
+                }
+            }
 
             if (asmctx.m_disableDecompiler) {
                 if (opt.m_dasm || opt.m_func_header_post) {
@@ -3772,6 +3851,36 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
     asmout << ")";
 }
 
+static bool ReadDbgFile(const std::filesystem::path& path, std::string& buffer) {
+    std::filesystem::path dbgPath{ path };
+    std::string ext{ path.extension().string() };
+    
+    if (ext == ".gscc") {
+        dbgPath.replace_extension(".gscgdbc");
+    }
+    else if (ext == ".cscc") {
+        dbgPath.replace_extension(".cscgdbc");
+    }
+    else if (ext == ".gscbin") {
+        dbgPath.replace_extension(".gscbingdbc");
+    }
+    else if (ext == ".gshc") {
+        dbgPath.replace_extension(".gshgdbc");
+    }
+    else if (ext == ".cshc") {
+        dbgPath.replace_extension(".cshgdbc");
+    } else {
+        return false;
+    }
+
+    if (!utils::ReadFile(dbgPath, buffer)) {
+        return false;
+    }
+
+    LOG_INFO("Loaded debug data {}", dbgPath.string());
+    return true;
+}
+
 int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
     GscDecompilerGlobalContext gdctx{};
 
@@ -3861,8 +3970,14 @@ int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {
                     LOG_ERROR("Can't read file data for {}", path.string());
                     continue;
                 }
+                std::string dbgBuffer;
+
+                if (!ReadDbgFile(path, dbgBuffer)) {
+                    dbgBuffer = {};
+                }
+
                 try {
-                    auto lret = DecompileGsc((byte*)bufferAlign, size, pathRel, gdctx);
+                    auto lret = DecompileGsc((byte*)bufferAlign, size, pathRel, gdctx, (byte*)dbgBuffer.data(), dbgBuffer.size());
                     if (lret != tool::OK) {
                         ret = lret;
                     }
