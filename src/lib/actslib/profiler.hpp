@@ -12,18 +12,20 @@ namespace actslib::profiler {
 	// File magic
 	constexpr char PROFILER_MAGIC[] = "HDTPROFILE";
 
+	typedef long long ProfTs;
+	
 	/*
 	 * Get current timestamp in millis
 	 * @return timestamp in millis
 	 */
-	constexpr long long GetTimestamp() {
+	constexpr ProfTs GetTimestamp() {
 		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	}
 
 	// Profiling section
 	class ProfilerSection {
-		long long startTime;
-		long long endTime;
+		ProfTs startTime;
+		ProfTs endTime;
 		std::vector<ProfilerSection> sections{};
 		ProfilerSection* current{};
 
@@ -84,6 +86,40 @@ namespace actslib::profiler {
 				s.Write(os);
 			}
 		}
+
+		static void WritePrettyMillisTime(std::ostream& os, ProfTs millis) {
+			ProfTs ms{ millis % 1000 };
+			ProfTs sc{ (millis / 1000) % 60 };
+			ProfTs min{ (millis / 60000) % 60 };
+			ProfTs hr{ (millis / 3600000) % 24 };
+			ProfTs days{ (millis / (3600000 * 24)) };
+			
+			os << std::dec;
+			bool any{};
+			if (days) {
+				os << days << "d";
+				any = true;
+			}
+			if (hr) {
+				if (any) os << " ";
+				os << hr << "h";
+				any = true;
+			}
+			if (min) {
+				if (any) os << " ";
+				os << min << "min";
+				any = true;
+			}
+			if (sc) {
+				if (any) os << " ";
+				os << sc << "s";
+				any = true;
+			}
+			if (ms) {
+				if (any) os << " ";
+				os << ms << "ms";
+			}
+		}
 	private:
 		void WriteToStr(std::ostream& out, size_t depth) const {
 
@@ -93,7 +129,9 @@ namespace actslib::profiler {
 			if (depth) {
 				out << "+-";
 			}
-			out << name << " elapsed=" << std::dec << GetMillis() << "ms\n";
+			out << name << " elapsed=" << std::dec << GetMillis() << "ms (";
+			WritePrettyMillisTime(out, GetMillis());
+			out << ")\n";
 
 			for (const auto& sub : sections) {
 				sub.WriteToStr(out, depth + 1);
@@ -174,15 +212,15 @@ namespace actslib::profiler {
 			endTime = GetTimestamp();
 		}
 
-		constexpr long long GetMillis() const {
+		constexpr ProfTs GetMillis() const {
 			return endTime - startTime;
 		}
 
-		constexpr long long GetStartMillis() const {
+		constexpr ProfTs GetStartMillis() const {
 			return startTime;
 		}
 
-		constexpr long long GetEndMillis() const {
+		constexpr ProfTs GetEndMillis() const {
 			return endTime;
 		}
 

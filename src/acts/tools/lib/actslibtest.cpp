@@ -442,38 +442,87 @@ namespace {
 		return tool::OK;
 	}
 
-	int actslibprofiler(Process& proc, int argc, const char* argv[]) {
-		if (argc < 3) {
-			return tool::BAD_USAGE;
-		}
+	int actslibprofiler(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
 
-		std::ifstream is{ argv[2], std::ios::binary };
+		utils::InFileCE is{ argv[2], true, std::ios::binary };
 
-		if (!is) {
-			LOG_ERROR("Can't open {}", argv[2]);
-			return tool::BASIC_ERROR;
-		}
 
 		try {
 			actslib::profiler::Profiler prof{ is };
-			is.close();
 
 			prof.WriteToStr(std::cout);
 		}
 		catch (std::runtime_error& err) {
 			LOG_ERROR("Can't read profiler {}", err.what());
-			is.close();
 			return tool::BASIC_ERROR;
 		}
-		is.close();
 
 		return tool::OK;
 	}
 
+
+	int proftocsv(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+		std::vector<std::filesystem::path> profs{};
+
+		utils::GetFileRecurseExt(argv[2], profs, ".prof\0");
+		std::filesystem::path out{ argv[3] };
+
+	
+		std::unordered_map<std::string, size_t> colms{};
+		utils::OutFileCE os{ out, true };
+		std::vector<actslib::profiler::ProfTs> row{};
+
+		for (const std::filesystem::path& path : profs) {
+			LOG_INFO("Loading {}", path.string());
+
+			utils::InFileCE is{ path, true, std::ios::binary };
+			actslib::profiler::Profiler prof{ is };
+
+			const actslib::profiler::ProfilerSection& global{ prof.GetMainSection() };
+			for (actslib::profiler::ProfilerSection::const_iterator itg = global.cbegin(); itg != global.cend(); itg++) {
+				const actslib::profiler::ProfilerSection& main{ *itg };
+				if (colms.empty()) {
+					os << "name";
+					for (actslib::profiler::ProfilerSection::const_iterator it = main.cbegin(); it != main.cend(); it++) {
+						colms[it->name] = colms.size() + 1;
+
+						os << "," << it->name;
+					}
+					row.resize(colms.size());
+				}
+
+				os << "\n" << path.string();
+				// cleanup times
+				std::memset(row.data(), 0, row.size() * sizeof(row[0]));
+
+				for (actslib::profiler::ProfilerSection::const_iterator it = main.cbegin(); it != main.cend(); it++) {
+					size_t idx{ colms[it->name] };
+
+					if (!idx) {
+						LOG_ERROR("Invalid sub section name: {}", it->name);
+						continue;
+					}
+
+					row[idx - 1] = it->GetMillis();
+				}
+
+				for (actslib::profiler::ProfTs t : row) {
+					os << "," << std::dec << t;
+				}
+			}
+		}
+
+		LOG_INFO("dump into {}", out.string());
+
+		return tool::OK;
+	}
 }
 
 #ifndef CI_BUILD
 ADD_TOOL(actslibtest, "lib", "", "Acts lib test", nullptr, actslibtest);
 #endif
 
-ADD_TOOL(actslibprofiler, "lib", " [profile file]", "Read profiler", nullptr, actslibprofiler);
+ADD_TOOL(profr, "lib", " [profile file]", "Read profiler file", actslibprofiler);
+ADD_TOOL(proftocsv, "lib", " [profile files dir] [out csv]", "Read profiler files into a csv", proftocsv);

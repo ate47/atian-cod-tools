@@ -73,6 +73,7 @@ namespace utils {
         in.seekg(0, std::ios::beg);
 
         if (!length) {
+            in.close();
             return emptyBuff;
         }
 

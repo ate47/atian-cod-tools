@@ -250,7 +250,10 @@ namespace {
 	}
 
 	void PrintACTSHelp(const char* argv0) {
-		LOG_INFO("Repository: https://github.com/ate47/atian-cod-tools");
+		LOG_INFO("");
+		LOG_INFO("Repository    : https://github.com/ate47/atian-cod-tools");
+		LOG_INFO("Donation page : https://ko-fi.com/ate47");
+		LOG_INFO("");
 		LOG_INFO("Usage: {} (OPTIONS) [TOOL] (TOOL ARGS)", argv0);
 		LOG_INFO("General tools:");
 		LOG_INFO("- list (category) : list the tools");
@@ -359,18 +362,20 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 
 	auto& opt = actscli::options();
 
-	if (opt.showTitle && !hInstance) {
-		LOG_INFO("Atian tools {} {}", core::actsinfo::VERSION, ([&opt]() -> const char* {
-			switch (opt.type) {
-				case actscli::ACTS_CLI: return "CLI";
-				case actscli::ACTS_UI: return "UI";
-				case actscli::ACTS_NUI: return "NUI";
-				case actscli::ACTS_REPL: return "REPL";
-				default: return "";
-			}
-		})());
+	if (!hInstance) {
+		bool cfgTitle{ core::config::GetBool("cli.showTitle", true) };
+		if (cfgTitle == opt.showTitle) {
+			LOG_INFO("Atian tools {} {}", core::actsinfo::VERSION, ([&opt]() -> const char* {
+				switch (opt.type) {
+					case actscli::ACTS_CLI: return "CLI";
+					case actscli::ACTS_UI: return "UI";
+					case actscli::ACTS_NUI: return "NUI";
+					case actscli::ACTS_REPL: return "REPL";
+					default: return "";
+				}
+			})());
+		}
 	}
-
 	bool useCli = !hInstance && opt.type == actscli::ACTS_CLI && ([]() {
 		DWORD pid;
 		GetWindowThreadProcessId(GetConsoleWindow(), &pid);

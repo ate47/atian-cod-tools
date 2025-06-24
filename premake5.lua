@@ -110,6 +110,9 @@ project "ACTSSharedLibrary"
         "deps/lz4/lib/",
         "deps/zstd/lib/",
 		"deps/zlib/",
+        "deps/ps4debug/kdebugger/include/",
+        "deps/ps4debug/ps4-ksdk/include/",
+        
     }
 
     vpaths {
@@ -380,6 +383,8 @@ project "AtianCodTools"
 		"deps/antlr4/runtime/Cpp/runtime/src/",
 		"deps/zlib/",
         "deps/ps4debug/libdebug/cpp/include/",
+        "deps/ps4debug/kdebugger/include/",
+        "deps/ps4debug/ps4-ksdk/include/",
         "deps/asmjit/src/",
         "deps/curl/include/",
         "deps/casclib/src/",

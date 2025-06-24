@@ -44,9 +44,9 @@ See the wiki to know how to use the features
 | Black Ops 4 (T8)         | 36  | ✅          | ✅        | pc,ps4       | [ate47/bo4-source](https://github.com/ate47/bo4-source)       |
 | Black Ops Cold War (T9)  | 37  | Dc         | ✅        | pc,ps4,alpha | [ate47/bocw-source](https://github.com/ate47/bocw-source)     |
 | Black Ops Cold War (T9)  | 38  | Dc         | ✅        | pc,ps4       | [ate47/bocw-source](https://github.com/ate47/bocw-source)     |
-| Modern Warfare III (JUP) | 8A  | ✅          | ✅        | pc           | [ate47/mwiii-source](https://github.com/ate47/mwiii-source)   |
-| Modern Warfare III (JUP) | 8B  | Dc         | ✅        | pc           | [ate47/mwiii-source](https://github.com/ate47/mwiii-source)   |
-| Black Ops 6 (T10)        | 06  | Dc & Ex    | ✅        | alpha        | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
+| Modern Warfare III (JUP) | 8A  | ✅          | ✅        | -            | [ate47/mwiii-source](https://github.com/ate47/mwiii-source)   |
+| Modern Warfare III (JUP) | 8B  | Dc         | ✅        | -            | [ate47/mwiii-source](https://github.com/ate47/mwiii-source)   |
+| Black Ops 6 (T10)        | 06  | Dc & Ex    | ✅        | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 07  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 0B  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 0C  | Dc & Ex    | Ex       | -            | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
