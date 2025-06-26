@@ -43,7 +43,7 @@ namespace core::bytebuffer {
 
 		void Goto(size_t loc) override {
 			if (loc > len) {
-				throw std::runtime_error(utils::va("Goto after end 0x%llx + 0x%llx > 0x%llx", loc, len));
+				throw std::runtime_error(utils::va("Goto after end 0x%llx > 0x%llx", loc, len));
 			}
 			pointer = loc;
 		}
