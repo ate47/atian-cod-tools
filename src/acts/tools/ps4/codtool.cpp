@@ -189,6 +189,6 @@ namespace tool::ps4::codtool {
             }
         }
 
-        ADD_TOOL_NUI(codps4, "Call of duty PS4", codps4);
+        ADD_TOOL_NUI_DEV(codps4, "Call of duty PS4", codps4);
     }
 }
