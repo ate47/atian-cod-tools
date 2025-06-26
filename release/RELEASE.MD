@@ -1,2 +1,31 @@
 - acts
-  - fix updater check for fast release
+  - gsc compiler
+    - animation and animation tree compilation
+    - replace scr hash syntax to match mod tool one
+    - istring compilation
+    - add t789 builtin syntax (compiler::func)
+    - fix large integer add for bo3
+    - add compiled crc in notify functions for supported games
+  - gsc decompiler
+    - fix bo3 animation decompilation when more than one non-empty tree
+    - replace format of istrings and anims to match the bo3 modtool syntax
+    - builtin decompilation
+    - fix empty name compilation for bo3
+  - cordycep t10
+    - add compassdata dumper
+    - fix lua dumper
+  - fastfile
+    - use bdiff lib instead of exe for iw files
+    - use fastfile compression type instead of oodle by default for iw files
+    - fix issue with big gsc in gscxhash scan
+    - fix mwiii decompression
+    - add support for mw22 fastfiles
+    - add support for old bo4 fastfiles
+  - snd file reader (ffsndr)
+  - tool to scan idendifiers (strscan)
+  - option to limit hash scan count for hashbrutedict
+  - mw23 ps4 test tools
+  - show error when linking bo4 fastfile image
+  - profile dump merge tool (proftocsv)
+- acts-nui
+  - cod ps4 tool (dev/wip)
