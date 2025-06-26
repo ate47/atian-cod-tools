@@ -17,6 +17,7 @@ namespace tool::gsc {
         STEPSKIP_DEVBLOCK_INLINE = 0x100,
         STEPSKIP_CLASSMEMBER_INLINE = 0x200,
         STEPSKIP_SPECIAL_PATTERN = 0x400,
+        STEPSKIP_COMPILER_PATTERNS = 0x800,
     };
 
     enum GscObjHandlerBuildFlags : uint64_t {
@@ -388,6 +389,7 @@ namespace tool::gsc {
             int ComputeBoolReturn(ASMContext& ctx);
             int ComputeSpecialPattern(ASMContext& ctx);
             int ComputePreSpecialPattern(ASMContext& ctx);
+            int ComputeCustomCompilerPattern(ASMContext& ctx);
 
             ASMContextStatement* FetchFirstForLocation(int64_t rloc);
 
@@ -709,6 +711,12 @@ namespace tool::gsc {
              */
             inline void ComputePreSpecialPattern() {
                 m_funcBlock.ComputePreSpecialPattern(*this);
+            }
+            /*
+             * Compute the custom compiler pattern candidates
+             */
+            inline void ComputeCustomCompilerPattern() {
+                m_funcBlock.ComputeCustomCompilerPattern(*this);
             }
 
             /*

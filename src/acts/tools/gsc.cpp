@@ -253,6 +253,9 @@ bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
                 case 'c':
                     m_stepskip |= STEPSKIP_CLASSMEMBER_INLINE;
                     break;
+                case 'C':
+                    m_stepskip |= STEPSKIP_COMPILER_PATTERNS;
+                    break;
                 case 'S':
                     m_stepskip |= STEPSKIP_SPECIAL_PATTERN;
                     break;
@@ -2408,6 +2411,9 @@ ignoreCscGsc:
                         }
                         if (!(asmctx.m_opt.m_stepskip & STEPSKIP_BOOL_RETURN)) {
                             asmctx.ComputeBoolReturn();
+                        }
+                        if (!(asmctx.m_opt.m_stepskip & STEPSKIP_COMPILER_PATTERNS)) {
+                            asmctx.ComputeCustomCompilerPattern();
                         }
                         if (opt.m_dasm) {
                             if (asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {

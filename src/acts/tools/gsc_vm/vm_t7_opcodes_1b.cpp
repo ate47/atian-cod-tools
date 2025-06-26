@@ -27,7 +27,7 @@ namespace {
 		vt71b->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt71b->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt71b->RegisterDatatypeRenamed("function", "functionptr");
-		vt71b->SetCompilerHookFunctionName(hash::HashT7("isprofilebuild"));
+		vt71b->SetCompilerHookFunctionName("isprofilebuild");
 		vt71b->SetMaxOpCode(0xFF);
 
 

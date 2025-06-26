@@ -17,6 +17,8 @@ namespace acts::compiler {
     constexpr ParseTreeType TREE_RULE = ParseTreeType::RULE;
     constexpr ParseTreeType TREE_TERMINAL = ParseTreeType::TERMINAL;
 
+    constexpr size_t CRC_LEN_PADDING = 21;
+
     class GscCompilerOption;
     class FunctionObject;
     class CompileObject;
@@ -1131,6 +1133,9 @@ namespace acts::compiler {
                         return false;
                     }
                 }
+                else if (!_strcmpi("--gen-crc", arg)) {
+                    config.noDefaultChecksum = true;
+                }
                 else if (!_strcmpi("--crc-client", arg)) {
                     if (i + 1 == endIndex) {
                         LOG_ERROR("Missing value for param: {}!", arg);
@@ -2066,7 +2071,7 @@ namespace acts::compiler {
                 auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
                 strdef.nodes.push_back(getstr);
                 // add some padding so we can patch the crc at runtime (maybe one day it'll be 64 bits?)
-                strdef.forceLen = 21;
+                strdef.forceLen = CRC_LEN_PADDING;
                 strdef.listeners.push_back(&crcData.strlistener);
                 //forceDebugHeader = true;
                 f.m_nodes.push_back(getstr);
@@ -2470,7 +2475,51 @@ namespace acts::compiler {
                 fileCRC.Update(data.data(), data.size());
                 checksum = fileCRC;
 
-                // todo: replace checksum for the post cw games
+                if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
+                    // write the end crc string into the padding
+                    std::snprintf((char*)&data[crcData.strlistener], CRC_LEN_PADDING, "%d", checksum);
+                } else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
+                    // todo: replace checksum for cw
+                    //crcData.opcode
+                    if (!crcData.opcode) throw std::runtime_error("Missing CRC opcode floc");
+                    byte* crcOp{ &data[crcData.opcode->floc] };
+
+                    OPCode opcode;
+
+                    if (checksum < 0) {
+                        opcode = OPCODE_GetNegUnsignedInteger;
+                    } else {
+                        opcode = OPCODE_GetUnsignedInteger;
+                    }
+
+                    auto [ok, op] = GetOpCodeId(vmInfo->vmMagic, config.platform, opcode, config.useModToolOpCodes);
+
+                    if (!ok) {
+                        LOG_ERROR("Can't find crc opcode {} ({}) for vm {}/{}", utils::PtrOrElse(OpCodeName(opcode), "null"), (int)opcode, vmInfo->name, PlatformName(config.platform));
+                        return false;
+                    }
+
+                    if (vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
+                        if (vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+                            crcOp = utils::Aligned<uint16_t>(crcOp);
+                        }
+                        *(uint16_t*)crcOp = op;
+                        crcOp += 2;
+                    } else {
+                        *crcOp = (byte)op;
+                        crcOp += 1;
+                    }
+                    if (vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+                        crcOp = utils::Aligned<uint32_t>(crcOp);
+                    }
+                    
+                    LOG_INFO("crc: {} 0x{:x}", checksum, checksum);
+                    if (checksum < 0) {
+                        *(uint32_t*)crcOp = (uint32_t)(-checksum);
+                    } else {
+                        *(uint32_t*)crcOp = (uint32_t)checksum;
+                    }
+                }
             }
 
 
@@ -6318,7 +6367,7 @@ namespace acts::compiler {
 
             opt.config.checksum = client ? opt.crcClient : opt.crcServer;
 
-            if (!opt.config.checksum) {
+            if (!opt.config.checksum && !opt.config.noDefaultChecksum) {
                 opt.config.checksum = (int32_t)handler->GetDefaultChecksum(client);
             }
 

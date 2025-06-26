@@ -21,7 +21,7 @@ namespace {
 		vt831->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt831->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt831->RegisterDatatypeRenamed("function", "functionptr");
-		vt831->SetCompilerHookFunctionName(hash::HashT7("isprofilebuild"));
+		vt831->SetCompilerHookFunctionName("isprofilebuild");
 
 		vt831->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
 		vt831->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);

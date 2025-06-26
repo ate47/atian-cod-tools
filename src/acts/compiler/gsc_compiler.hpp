@@ -18,6 +18,7 @@ namespace acts::compiler {
 		std::filesystem::path baseDir{};
 		DetourType detourType{ DETOUR_UNKNOWN };
 		int32_t checksum{};
+		bool noDefaultChecksum{};
 		bool computeDevOption{};
 		bool obfuscate{};
 		bool defineAsConstExpr{};

@@ -155,6 +155,10 @@ namespace tool::gsc::opcode {
 		ASMContextNode* Clone() const override {
 			return new ASMContextNodeHash(m_value, m_canonid, m_type);
 		}
+
+		int64_t GetIntConst() const override {
+			return static_cast<int64_t>(m_value);
+		}
 	};
 
 	class ASMContextNodeVectorN : public ASMContextNode {

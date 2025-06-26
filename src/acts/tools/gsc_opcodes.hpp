@@ -112,7 +112,7 @@ namespace tool::gsc::opcode {
 		/*
 		 * Set the compiler:: hook function name
 		 */
-		void SetCompilerHookFunctionName(uint64_t name);
+		void SetCompilerHookFunctionName(const char* name);
 
 		/*
 		 * Is this VM available for this platform

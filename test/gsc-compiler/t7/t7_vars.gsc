@@ -28,7 +28,12 @@ function demo()
     s.b = SpawnStruct();
     s.b.c = 4;
 
-    compiler::nprintln( "test" );
+    if ( s.a )
+    {
+        compiler::nprintln( "test" );
+        compiler::nprintln(isprofilebuild());
+    }
+    isprofilebuild(#nprintln, "test2");
 
     // va test
     PrintLn( "sum() = " + sumva( 1, 3, 5, 7, 9 ) );

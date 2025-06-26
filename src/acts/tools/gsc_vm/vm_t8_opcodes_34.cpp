@@ -38,7 +38,7 @@ namespace {
 		vt834->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt834->RegisterDatatype("functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 		vt834->RegisterDatatypeRenamed("function", "functionptr");
-		vt834->SetCompilerHookFunctionName(hash::HashT89Scr("isprofilebuild"));
+		vt834->SetCompilerHookFunctionName("isprofilebuild");
 
 		vt834->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
 		vt834->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);

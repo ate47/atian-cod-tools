@@ -27,7 +27,7 @@ namespace {
 		vt7->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt7->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt7->RegisterDatatypeRenamed("function", "functionptr");
-		vt7->SetCompilerHookFunctionName(hash::HashT7("isprofilebuild"));
+		vt7->SetCompilerHookFunctionName("isprofilebuild");
 		vt7->SetMaxOpCode(0x3FFF);
 		vt7->SetModToolFlag(0x2000);
 

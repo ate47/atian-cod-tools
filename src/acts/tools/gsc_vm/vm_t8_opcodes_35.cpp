@@ -38,7 +38,7 @@ namespace {
 		vt835->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt835->RegisterDatatype("functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 		vt835->RegisterDatatypeRenamed("function", "functionptr");
-		vt835->SetCompilerHookFunctionName(hash::HashT89Scr("isprofilebuild"));
+		vt835->SetCompilerHookFunctionName("isprofilebuild");
 
 		vt835->RegisterOpCode(PLATFORM_PC, OPCODE_Abort, 0x0);
 		vt835->RegisterOpCode(PLATFORM_PC, OPCODE_Nop, 0x1);

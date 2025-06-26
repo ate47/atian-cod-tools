@@ -271,6 +271,7 @@ namespace hashutils {
 		// Decompiler special values
 		Add("self", true, iw, true, false);
 		Add("size", true, iw, true, false);
+		Add("compiler", true, iw, true, false);
 
 		// DDL names
 		Add("root", true, iw, true, false); // root struct

@@ -39,7 +39,7 @@ namespace {
 		vt8->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt8->RegisterDatatype("functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 		vt8->RegisterDatatypeRenamed("function", "functionptr");
-		vt8->SetCompilerHookFunctionName(hash::HashT89Scr("isprofilebuild"));
+		vt8->SetCompilerHookFunctionName("isprofilebuild");
 
 
 		vt8->RegisterOpCode(PLATFORM_PC, OPCODE_Abort, 0x0);

@@ -223,9 +223,10 @@ enum ReadObjectType {
 void VmInfo::AddDevCallName(uint64_t name) {
 	devCallsNames.insert(name & hash::MASK60);
 }
-void VmInfo::SetCompilerHookFunctionName(uint64_t name) {
-	if (compilerHookFunctionName && compilerHookFunctionName != name) LOG_WARNING("compiler hook function defined twice for {}", name);
-	compilerHookFunctionName = name;
+void VmInfo::SetCompilerHookFunctionName(const char* name) {
+	uint64_t hash{ HashField(name) };
+	if (compilerHookFunctionName && compilerHookFunctionName != hash) LOG_WARNING("compiler hook function defined twice for {}", name);
+	compilerHookFunctionName = hash;
 }
 
 uint64_t VmInfo::HashField(const char* value) const {
@@ -1096,7 +1097,7 @@ public:
 			context.PushASMCNode(new ASMContextNodeValue<int64_t>(negv, TYPE_VALUE, false, true, true));
 		}
 
-		out << std::dec << negv << " (0x" << std::hex << -negv << ")" << std::endl;
+		out << std::dec << negv << " (-0x" << std::hex << -negv << ")" << std::endl;
 
 		return 0;
 	}
@@ -8673,6 +8674,48 @@ int ASMContextNodeBlock::ComputeSpecialPattern(ASMContext& ctx) {
 int ASMContextNodeBlock::ComputePreSpecialPattern(ASMContext& ctx) {
 	// apply pre special structural changes
 	ApplyPreSpecialPatternBlock(ctx, m_statements);
+
+	return 0;
+}
+
+int ASMContextNodeBlock::ComputeCustomCompilerPattern(ASMContext& ctx) {
+	//hookfuncname(#test, ...) ->  compiler::test(...)
+	uint64_t compilerHookFunctionName{ ctx.m_objctx.m_vmInfo->compilerHookFunctionName & hash::MASK60 };
+	if (!compilerHookFunctionName) {
+		return 0; // nothing to do
+	}
+	for (size_t i = 0; i < m_statements.size(); i++) {
+		auto& stmt = m_statements[i];
+
+		ApplySubStatement(stmt, ctx, [compilerHookFunctionName, &ctx](ASMContextStatement& stmt) {
+			if (stmt.node->m_type != TYPE_FUNC_CALL) {
+				return; // func calls
+			}
+
+			ASMContextNodeCallFuncPtr* fc{ dynamic_cast<ASMContextNodeCallFuncPtr*>(stmt.node) };
+			if (fc->m_operands.size() < 2 || fc->m_operands[0]->m_type != TYPE_FUNC_REFNAME || (fc->m_operands[1]->m_type != TYPE_VALUE && fc->m_operands[1]->m_type != TYPE_CONST_HASH)) {
+				return; // not at least a func call with a value
+			}
+
+			ASMContextNodeFuncRef* name{ dynamic_cast<ASMContextNodeFuncRef*>(fc->m_operands[0]) };
+			if ((name->m_func & hash::MASK60) != compilerHookFunctionName) {
+				return; // not the right function name
+			}
+
+			uint64_t funcName{ static_cast<uint64_t>(fc->m_operands[1]->GetIntConst()) };
+			if (!funcName) {
+				return; // invalid function name
+			}
+
+			// replace the namespace/name
+			name->m_nsp = hash::HashT89Scr("compiler");
+			name->m_func = funcName;
+
+			// remove the first param
+			delete fc->m_operands[1];
+			fc->m_operands.erase(fc->m_operands.begin() + 1);
+		});
+	}
 
 	return 0;
 }
