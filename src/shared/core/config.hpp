@@ -58,6 +58,8 @@ namespace core::config {
 		void SaveConfig() const;
 	};
 
+	void SetMainConfig(const std::filesystem::path& path);
+
 	Config& GetMainConfig();
 
 	inline int64_t GetInteger(const char* path, int64_t defaultValue = 0) {

@@ -278,7 +278,7 @@ namespace systems::mods {
 		void ModsInit(uint64_t uid) {
 			std::vector<std::filesystem::path> modConfigs{};
 
-			std::filesystem::path moddir{ "acts/mods" };
+			std::filesystem::path moddir{ "project-bo4/acts/mods" };
 			std::filesystem::create_directories(moddir);
 			for (const std::filesystem::directory_entry& sub : std::filesystem::directory_iterator{ moddir }) {
 				if (!sub.is_directory()) continue; // ignore files

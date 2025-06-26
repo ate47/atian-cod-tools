@@ -6,6 +6,9 @@
 #include <utils/utils.hpp>
 
 namespace core::config {
+	namespace {
+		std::filesystem::path mainConfigFile{ MAIN_CONFIG_FILE };
+	}
 	rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& Config::GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
 		static rapidjson::Value nullAnswer{ rapidjson::kNullType };
 		if (!path || !*path || loc.IsNull()) {
@@ -198,8 +201,12 @@ namespace core::config {
 		utils::WriteFile(utils::GetProgDir() / configFile, json);
 	}
 
+	void SetMainConfig(const std::filesystem::path& path) {
+		mainConfigFile = path;
+	}
+
 	Config& GetMainConfig() {
-		static Config mainCfg{ MAIN_CONFIG_FILE };
+		static Config mainCfg{ mainConfigFile };
 		return mainCfg;
 	}
 }
