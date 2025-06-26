@@ -71,17 +71,31 @@ namespace bo3 {
 		LOG_DEBUG("{} -> {:x} ({})", replaced, replacedEntryH->script, proc.ReadStringTmp(replacedEntryH->name, "<err>"));
 
 		// fixup crc & name
-		reinterpret_cast<tool::gsc::T7GSCOBJ*>(scriptBuffer)->source_crc = replacerScriptHeader.source_crc;
-		// reinterpret_cast<tool::gsc::T7GSCOBJ*>(scriptBuffer)->name = replacerScriptHeader.name; // assume that we have the right name??
+		tool::gsc::T7GSCOBJ* obj{ (tool::gsc::T7GSCOBJ*)scriptBuffer };
+		obj->source_crc = replacerScriptHeader.source_crc;
 
-		auto loc = proc.AllocateMemory(scriptSize + 0xF, PAGE_READWRITE);
+		if (std::strcmp(replaced, (const char*)(obj->magic + obj->name_offset))) {
+			// we need to replace the name
+			size_t nameLen{ std::strlen(replaced) + 1 };
+
+			obj->name_offset = (uint32_t)scriptBuffStr.size();
+			scriptBuffStr.resize(scriptBuffStr.size() + nameLen);
+
+			scriptBuffer = scriptBuffStr.data();
+			scriptSize = scriptBuffStr.size();
+
+			// add the string
+			std::memcpy(&scriptBuffStr[obj->name_offset], replaced, nameLen);
+		}
+
+		uintptr_t loc = proc.AllocateMemory(scriptSize + 0x1F, PAGE_READWRITE);
 
 		if (!loc) {
 			notify = "Can't allocate memory";
 			return tool::BASIC_ERROR;
 		}
 
-		auto locAligned = (loc + 0xF) & ~0xF;
+		uintptr_t locAligned = (loc + 0x1F) & ~0x1F;
 		LOG_DEBUG("Allocating script at 0x{:x} (0x{:x})", locAligned, loc);
 
 		if (!proc.WriteMemory(locAligned, scriptBuffer, scriptSize)) {
