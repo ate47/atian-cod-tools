@@ -11,11 +11,7 @@ namespace {
         void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& buff, fastfile::FastFileContext& ctx) override {
             // search lua file
             {
-                size_t loc{};
                 std::filesystem::path out{ opt.m_output / "luafile" };
-                buff.Goto(0);
-                byte* start{ buff.Ptr<byte>() };
-
 
                 struct {
                     uint32_t magic;
@@ -27,21 +23,30 @@ namespace {
                 };
 
                 for (auto& magic : magics) {
-                    LOG_INFO("searching {} 0x{:x}/0x{:x}", magic.type, magic.magic, magic.mask);
+                    size_t loc{};
+                    LOG_DEBUG("searching {} 0x{:x}/0x{:x}", magic.type, magic.magic, magic.mask);
                     while (true) {
+                        buff.Goto(loc);
+                        if (buff.CanRead(4)) buff.Skip(4);
                         loc = buff.FindMasked((byte*)&magic.magic, (byte*)&magic.mask, sizeof(magic.magic));
+
                         if (loc == std::string::npos) break;
 
                         buff.Goto(loc);
 
+                        uint32_t len;
                         size_t size;
-                        byte* bufferData{ buff.Ptr<byte>() };
+                        byte* bufferData{ buff.ReadPtr<byte>() };
 
                         if ((*(uintptr_t*)(bufferData - 8)) != 0xFFFFFFFFFFFFFFFF) {
-                            LOG_ERROR("Can't get ptr for loc 0x{:x}", loc);
-                            return; // not a valid candidate
+                            LOG_TRACE("Can't get ptr for loc 0x{:x}", loc);
+                            continue; // not a valid candidate
                         }
                         size = (size_t)*(uint32_t*)(bufferData - 0x10);
+
+                        if (!size) {
+                            continue;
+                        }
 
                         uint64_t name;
 
@@ -55,18 +60,19 @@ namespace {
                         LOG_TRACE("lua: 0x{:x} 0x{:x}: {}", loc, size, hashutils::ExtractTmpScript(name));
 
 
-                        if (!buff.CanRead(size)) {
-                            loc++;
-                            LOG_ERROR("Bad size for loc 0x{:x}", size, loc);
-                            return;
-                        }
-                        buff.Skip(size);
 
                         const char* nameStr{ hashutils::ExtractPtr(name) };
 
                         if (!nameStr) {
                             nameStr = utils::va("hashed/%llx.lua", name);
                         }
+
+                        if (!buff.CanRead(size - 1)) {
+                            LOG_ERROR("Bad size 0x{:x} for loc 0x{:x}, name: {}", size, loc, nameStr);
+                            continue;
+                        }
+
+                        buff.Skip(size - 1);
 
                         std::filesystem::path outFile{ out / nameStr };
                         std::filesystem::create_directories(outFile.parent_path());
@@ -77,8 +83,6 @@ namespace {
                         else {
                             LOG_INFO("Dump {}", outFile.string());
                         }
-
-                        loc++;
                     }
                 }
 
