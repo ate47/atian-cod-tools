@@ -30,6 +30,8 @@ image,acts_test_hello_world.png
 image,acts_test_hover.png
 image,acts_test_icon.png
 
+bgcache,cache.csv
+
 // add a localize list file
 localizelist,acts/localize.json
 

@@ -42,6 +42,7 @@ namespace utils::compress {
 		DCOMP_UNKNOWN_ERROR = -3,
 	};
 
+	int GetLastErr();
 	const char* DecompressResultName(int res);
 
 	constexpr utils::compress::CompressionAlgorithm operator|(utils::compress::CompressionAlgorithm a, utils::compress::CompressionAlgorithm b) {

@@ -7,6 +7,13 @@
 #include "compress_utils.hpp"
 
 namespace utils::compress {
+	namespace {
+		thread_local int lastoutput;
+	}
+
+	int GetLastErr() {
+		return lastoutput;
+	}
 	deps::oodle::OodleCompressor GetOodleCompressor(CompressionAlgorithm c) {
 		if (GetCompressionType(c) != COMP_OODLE) throw std::runtime_error("Not an oodle compressor");
 
@@ -41,6 +48,7 @@ namespace utils::compress {
 			return (int)srcSize;
 		case COMP_LZ4: {
 			int r{ LZ4_decompress_safe((const char*)src, (char*)dest, (int)srcSize, (int)destSize) };
+			lastoutput = r;
 			if (r < 0) {
 				LOG_ERROR("lz4 error: {}", r);
 				return DecompressResult::DCOMP_UNKNOWN_ERROR;
@@ -51,6 +59,7 @@ namespace utils::compress {
 			deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
 
 			int r{ oodle.Decompress(src, (uint32_t)srcSize, dest, (uint32_t)destSize, deps::oodle::OODLE_FS_NO) };
+			lastoutput = r;
 
 			if (r <= 0) {
 				return DecompressResult::DCOMP_UNKNOWN_ERROR;
@@ -61,6 +70,7 @@ namespace utils::compress {
 			uLongf sizef = (uLongf)destSize;
 			uLongf sizef2{ (uLongf)srcSize };
 			int r{ uncompress2((Bytef*)dest, &sizef, (const Bytef*)src, &sizef2) };
+			lastoutput = r;
 			switch (r) {
 			case Z_OK:
 				return sizef;
