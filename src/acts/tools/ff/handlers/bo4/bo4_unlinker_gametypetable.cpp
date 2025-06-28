@@ -102,15 +102,14 @@ namespace {
 				if (entry->unka8) json.WriteFieldValueNumber("unka8", entry->unka8);
 				if (entry->unkac) json.WriteFieldValueNumber("unkac", entry->unkac);
 
-				// ????
-				//if (entry->unkf0_count) {
-				//	json.WriteFieldNameString("unkf0");
-				//	json.BeginArray();
-				//	for (size_t j = 0; j < entry->unkf0_count; j++) {
-				//		json.WriteValueNumber((int)entry->unkf0[j]);
-				//	}
-				//	json.EndArray();
-				//}
+				if (entry->unkf0_count) {
+					std::filesystem::path outFileF0{ outDir / std::format("{}.bin", entry->nameStr) };
+
+					if (!utils::WriteFile(outFileF0, entry->unkf0, entry->unkf0_count)) {
+						LOG_ERROR("Error when dumping {}", outFileF0.string());
+					}
+					LOG_INFO("Dump {}", outFileF0.string());
+				}
 
 				if (entry->settingsCount) {
 					json.WriteFieldNameString("settings");
