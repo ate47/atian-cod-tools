@@ -806,7 +806,7 @@ namespace fastfile {
 					ctx.compressor->Init(opt);
 				}
 
-				utils::CloseEnd compCE{ [&ctx]() {ctx.compressor->Cleanup(); } };
+				utils::CloseEnd compCE{ [&ctx]() { if (ctx.compressor) ctx.compressor->Cleanup(); } };
 				
 				ctx.linker->Link(ctx);
 

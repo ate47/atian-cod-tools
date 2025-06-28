@@ -46,7 +46,11 @@ namespace fastfile::packed {
 				break;
 			case ST_BUILD_DATA:
 				ReadInto(reader, &build);
-				LOG_TRACE("ff header build: {}, ts:{}", build.builderName, build.timestamp);
+				LOG_TRACE("ff header build: {}, ts:{}, changeList:0x{:x} archiveChecksum:(0x{:x},0x{:x},0x{:x},0x{:x})", 
+					build.builderName, build.timestamp,
+					build.changelist,
+					build.archiveChecksum[0], build.archiveChecksum[1], build.archiveChecksum[2], build.archiveChecksum[3]
+				);
 				break;
 			case ST_LINK_RESULT:
 				ReadInto(reader, &link);
@@ -89,6 +93,31 @@ namespace fastfile::packed {
 			}
 		}
 	}
+
+	HeaderPacker::HeaderPacker(std::vector<byte>& data) : data(data) {
+		utils::Allocate(data, sizeof(uint32_t) * 2); // magic + numBlock
+	}
+
+	void HeaderPacker::AddBlock(SectionType type, const void* ptr, uint32_t len) {
+		utils::WriteValue<uint32_t>(data, type);
+		utils::WriteValue<uint32_t>(data, len);
+		size_t off{ utils::Allocate(data, len) };
+		
+		chunks.emplace_back(off, ptr, len);
+	}
+
+	void HeaderPacker::WriteEnd() {
+		uint32_t* header{ (uint32_t*)data.data() };
+		// complete header
+		header[0] = MAGIC;
+		header[1] = (uint32_t)chunks.size();
+
+		// write chunks
+		for (PackChunk& chunk : chunks) {
+			std::memcpy(&data[chunk.offset], chunk.buffer, chunk.size);
+		}
+	}
+
 	namespace {
 		int readpackff(int argc, const char* argv[]) {
 			if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;

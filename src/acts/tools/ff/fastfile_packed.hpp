@@ -76,28 +76,18 @@ namespace fastfile::packed {
 		void ReadHeader(core::bytebuffer::AbstractByteBuffer& reader);
 	};
 
+	struct PackChunk {
+		size_t offset;
+		const void* buffer;
+		size_t size;
+	};
+
 	class HeaderPacker {
-		std::vector<byte> data{};
-		uint32_t numBlocks{};
 	public:
-		HeaderPacker() {
-			utils::Allocate(data, sizeof(uint32_t) * 2); // magic + numBlock
-		}
-
-		void AddBlock(SectionType type, const void* ptr, uint32_t len) {
-			utils::WriteValue<uint32_t>(data, type);
-			utils::WriteValue<uint32_t>(data, len);
-			utils::WriteValue(data, ptr, len);
-			numBlocks++;
-		}
-
-		void Write(const std::filesystem::path& out) {
-			uint32_t* header{ (uint32_t*)data.data() };
-			// complete header
-			header[0] = MAGIC;
-			header[1] = numBlocks;
-
-			utils::WriteFile(out, data);
-		}
+		std::vector<byte>& data;
+		std::vector<PackChunk> chunks{};
+		HeaderPacker(std::vector<byte>& data);
+		void AddBlock(SectionType type, const void* ptr, uint32_t len);
+		void WriteEnd();
 	};
 }

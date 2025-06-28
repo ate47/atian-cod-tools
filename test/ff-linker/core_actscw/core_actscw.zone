@@ -1,0 +1,10 @@
+// test file for the cw fastfile linker
+
+// fastfile options
+>game=cw
+>name=core_acts_dev
+>compression=oodle_kraken
+>compression.high=true
+
+
+rawfile,acts/test_rawfile.txt
