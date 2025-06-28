@@ -31,6 +31,7 @@ image,acts_test_hover.png
 image,acts_test_icon.png
 
 bgcache,cache.csv
+//rawstring,acts_test_string
 
 // add a localize list file
 localizelist,acts/localize.json
