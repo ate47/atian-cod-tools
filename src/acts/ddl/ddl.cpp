@@ -44,10 +44,10 @@ public:
                 m_help = true;
             }
             else if (*arg == '-') {
-                if (arg[1] == 'D' && arg[2]) {
-                    m_processorOpt.defines.insert(arg + 2);
+                if (arg[1] == 'D' && arg[2] && m_processorOpt.AddDefineConfig(arg + 2)) {
                     continue;
                 }
+
 
                 LOG_ERROR("Unknown option: {}!", arg);
                 return false;

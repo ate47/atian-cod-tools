@@ -162,7 +162,7 @@ namespace fastfile::linker::bo4 {
 					std::unordered_map<std::string, std::vector<std::string>> bgcacheCompiled{};
 					cfg.precache = &bgcacheCompiled;
 					cfg.useModToolOpCodes = cfguseModToolOpcodes;
-					cfg.processorOpt.defines.insert(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
+					cfg.processorOpt.AddDefine(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
 
 					std::unordered_set<std::string> hashes{};
 					cfg.hashes = &hashes;

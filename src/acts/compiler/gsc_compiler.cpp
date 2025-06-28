@@ -1204,8 +1204,7 @@ namespace acts::compiler {
                     }
                 }
                 else if (*arg == '-') {
-                    if (arg[1] == 'D' && arg[2]) {
-                        config.processorOpt.defines.insert(arg + 2);
+                    if (arg[1] == 'D' && arg[2] && config.processorOpt.AddDefineConfig(arg + 2)) {
                         continue;
                     }
 
@@ -6620,22 +6619,22 @@ namespace acts::compiler {
         }
 
         preprocessor::PreProcessorOption& popt = config.processorOpt;
-        popt.defines.insert("_SUPPORTS_GCSC");
+        popt.AddDefine("_SUPPORTS_GCSC");
         if (config.detourType) {
-            popt.defines.insert("_SUPPORTS_DETOURS");
+            popt.AddDefine("_SUPPORTS_DETOURS");
         }
-        popt.defines.insert(utils::UpperCase(utils::va("_%s", vmInfo->codeName)));
-        popt.defines.insert(utils::MapString(utils::va("_%s", PlatformName(config.platform)), [](char c) -> char { return isspace(c) ? '_' : std::toupper(c); }));
+        popt.AddDefine(utils::UpperCase(utils::va("_%s", vmInfo->codeName)));
+        popt.AddDefine(utils::MapString(utils::va("_%s", PlatformName(config.platform)), [](char c) -> char { return isspace(c) ? '_' : std::toupper(c); }));
 
         if (tool::gsc::opcode::HasOpCode(config.vm, config.platform, OPCODE_T8C_GetLazyFunction)) {
-            popt.defines.insert("_SUPPORTS_LAZYLINK");
+            popt.AddDefine("_SUPPORTS_LAZYLINK");
         }
 
         if (config.clientScript) {
-            popt.defines.insert("_CSC");
+            popt.AddDefine("_CSC");
         }
         else {
-            popt.defines.insert("_GSC");
+            popt.AddDefine("_GSC");
         }
 
         if (!popt.ApplyPreProcessor(info.container.data,

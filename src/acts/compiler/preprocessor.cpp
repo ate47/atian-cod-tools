@@ -126,6 +126,88 @@ namespace acts::compiler::preprocessor {
             }
         }
     }
+
+    bool PreProcessorOption::AddDefineConfig(const std::string& config) {
+        if (config.empty() || config[0] == '=') {
+            LOG_ERROR("Empty define config name");
+            return false;
+        }
+        size_t split{ config.find('=') };
+        if (split == std::string::npos) {
+            defines[config] = "";
+        }
+        else {
+            defines[config.substr(0, split)] = &config[split + 1];
+        }
+        return true;
+    }
+
+    void PreProcessorOption::AddDefine(const std::string& name, const std::string& value) {
+        defines[name] = value;
+    }
+
+    void PreProcessorOption::RemoveDefine(const char* name) {
+        auto it{ defines.find(name) };
+        if (it != defines.end()) {
+            defines.erase(it);
+        }
+    }
+
+    static bool IsIdentifierChar(char c) {
+        return c == '_' || isalnum(c);
+    }
+
+    static size_t IdfSize(const char* str) {
+        size_t len{};
+        while (IsIdentifierChar(*str)) {
+            len++;
+            str++;
+        }
+        return len;
+    }
+
+    void PreProcessorOption::ReplaceDefines(std::string& str, size_t start, size_t* end) {
+        for (size_t i = start; i < *end; i++) {
+            char c{ str[i] };
+
+            if (!IsIdentifierChar(c)) {
+                continue; // skip val
+            }
+
+            size_t len{ IdfSize(&str[i]) };
+
+            std::string idf{ str.substr(i, len) };
+
+            auto it{ defines.find(idf) };
+            if (it == defines.end()) {
+                i += len;
+                continue;
+            }
+
+            std::string& replace{ it->second };
+            if (replace.size() <= len) {
+                // no reshape needed
+
+                std::memcpy(&str[i], replace.data(), replace.size());
+
+                // remove next chars
+                for (size_t j = replace.size(); j < len; j++) {
+                    SetBlankChar(str[i + j]);
+                }
+                i += len;
+                continue;
+            }
+
+            // fill existing part
+            std::memcpy(&str[i], replace.data(), len);
+            // add remaining part
+            str.insert(i + len, &replace[len]);
+            *end = str.size();
+
+            i += replace.size();
+        }
+    }
+
     bool PreProcessorOption::ApplyPreProcessorComments(std::string& str, std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler) {
         size_t idx{};
         char* data = str.data();
@@ -224,8 +306,12 @@ namespace acts::compiler::preprocessor {
             while (lineStart < next && isspace(str[lineStart])) {
                 lineStart++;
             }
+            size_t removed{};
+            if (lineStart < next && str[next - 1] == '\r') {
+                removed++;
+            }
 
-            std::string_view line{ str.data() + lineStart, str.data() + next };
+            std::string_view line{ str.data() + lineStart, str.data() + (next - removed) };
             if (line.starts_with("#ifdef")) {
                 std::string define{ line.substr(6) };
                 if (define.length() < 1 || !isspace(define[0])) {
@@ -306,17 +392,20 @@ namespace acts::compiler::preprocessor {
             }
             else if (eraseCtx.empty() || !eraseCtx.top()) {
                 if (!noDefineExpr && line.starts_with("#define")) {
-                    std::string define{ line.substr(7) };
-                    if (define.length() < 1 || !isspace(define[0])) {
+                    size_t defStartIdx{ 7 };
+                    while (defStartIdx < line.size() && isspace(line[defStartIdx])) {
+                        defStartIdx++;
+                    }
+                    if (defStartIdx == line.size() || defStartIdx == 7) {
                         errorHandler(core::logs::LVL_ERROR, lineIdx, "#define should be used with a parameter");
                         err = true;
                     }
-                    else if (!TrimDefineVal(define)) {
-                        errorHandler(core::logs::LVL_ERROR, lineIdx, "#define should be used with one valid parameter");
-                        err = true;
-                    }
                     else {
-                        defines.insert(define);
+                        std::string define{ line.substr(defStartIdx) };
+
+                        size_t len{ IdfSize(define.data()) };
+
+                        AddDefine(define.substr(0, len), &define[len]);
                     }
                 }
                 else if (line.starts_with("#error")) {
@@ -367,10 +456,14 @@ namespace acts::compiler::preprocessor {
                                 }
                             }
                             str.replace(str.begin() + lineStart, str.begin() + next, insertData);
+                            next = lineStart + insertData.size();
                         }
                     }
                 }
                 else if (!line.starts_with("#region") && !line.starts_with("#endregion")) {
+                    // not a known directive
+                    ReplaceDefines(str, lineStart, &next);
+
                     lineStart = next + 1;
                     continue;
                 }

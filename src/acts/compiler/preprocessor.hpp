@@ -25,12 +25,21 @@ namespace acts::compiler::preprocessor {
     };
 
     struct PreProcessorOption {
-        std::unordered_set<std::string> defines{};
+        std::unordered_map<std::string, std::string> defines{};
         bool devBlockAsComment{};
         bool noDefineExpr{};
         size_t currentDepth{};
         std::filesystem::path cwd{ std::filesystem::current_path() };
 
+        bool AddDefineConfig(const std::string& config);
+
+        void AddDefine(const std::string& name, const std::string& value = "");
+
+        void RemoveDefine(const char* name);
+
+        inline void RemoveDefine(const std::string& name) { RemoveDefine(name.data()); }
+
+        void ReplaceDefines(std::string& str, size_t start, size_t* end);
 
         bool ApplyPreProcessorComments(std::string& str, std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler);
 

@@ -44,8 +44,7 @@ namespace acts::compiler::adl {
                     outFileName = args[++i];
                 }
                 else if (*arg == '-') {
-                    if (arg[1] == 'D' && arg[2]) {
-                        processorOpt.defines.insert(arg + 2);
+                    if (arg[1] == 'D' && arg[2] && processorOpt.AddDefineConfig(arg + 2)) {
                         continue;
                     }
 

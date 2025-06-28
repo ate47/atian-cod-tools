@@ -784,10 +784,10 @@ namespace fastfile {
 				FastFileLinkerContext ctx{ opt, file };
 
 #ifdef CI_BUILD
-				ctx.zone.preProcOpt.defines.insert("CI");
+				ctx.zone.preProcOpt.AddDefine("CI");
 #endif
 				if (core::actsinfo::DEV_VERSION_ID == core::actsinfo::VERSION_ID) {
-					ctx.zone.preProcOpt.defines.insert("ACTS_DEV");
+					ctx.zone.preProcOpt.AddDefine("ACTS_DEV");
 				}
 
 				ctx.ReadZoneFile();
