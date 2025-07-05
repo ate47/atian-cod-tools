@@ -1,8 +1,10 @@
 #include <includes.hpp>
+#include <cli/clicolor.hpp>
 #include <hook/memory.hpp>
 #include <hook/error.hpp>
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
+#include <tools/ff/fastfile_packed.hpp>
 #include <games/bo4/pool.hpp>
 #include <utils/compress_utils.hpp>
 #include <utils/data_utils.hpp>
@@ -19,12 +21,12 @@ namespace {
 		IWFV_BO6_PATCH = 0x12,
 	};
 
+	constexpr char FFMagicType(byte* b) {
+		return b[5];
+	}
+
 	struct DB_FFHeader {
-		byte magic[4];
-		char type;
-		byte unk5;
-		byte unk6;
-		byte unk7;
+		byte magic[8];
 		unsigned int headerVersion;
 		unsigned int xfileVersion;
 		uint32_t flags;
@@ -37,11 +39,82 @@ namespace {
 		uint32_t unk2c;
 		uint32_t unk30;
 		uint32_t unk34;
-	}; static_assert(sizeof(DB_FFHeader) == 0x38);
+	};
+	static_assert(sizeof(DB_FFHeader) == 0x38);
+
+	struct EncryptionHeader
+	{
+		unsigned int isEncrypted;
+		unsigned __int8 IV[16];
+	};
+
+	struct __declspec(align(8)) XFileMw19 {
+		unsigned __int64 size;
+		unsigned __int64 preloadWalkSize;
+		unsigned __int64 blockSize[11];
+		EncryptionHeader encryption;
+	};
+
+	struct DB_FFHeaderMW19 {
+		char magic[8];
+		unsigned int headerVersion;
+		unsigned int xfileVersion;
+		bool dashCompressBuild;
+		bool dashEncryptBuild;
+		byte transientFileType[1];
+		unsigned int residentPartSize;
+		unsigned int residentHash;
+		unsigned int alwaysLoadedPartSize;
+		XFileMw19 xfileHeader;
+	};
+	static_assert(sizeof(DB_FFHeaderMW19) == 0xa0);
+
+	struct DB_FFHeaderMWIII {
+		byte magic[8];
+		unsigned int headerVersion;
+		unsigned int xfileVersion;
+		uint32_t flags;
+		uint32_t fileSize;
+		uint64_t timestamp;
+		uint32_t unk20;
+		uint32_t unk24;
+		uint64_t unk28;
+		uint64_t unk30;
+		uint64_t size;
+		uint64_t preloadWalkSize;
+		uint64_t blockSize[16];
+		EncryptionHeader encrypt;
+	}; static_assert(sizeof(DB_FFHeaderMWIII) == 0xe0);
+
+	struct DB_FFHeaderBO6 {
+		byte magic[8];
+		unsigned int headerVersion;
+		unsigned int xfileVersion;
+		uint32_t flags;
+		uint32_t fileSize;
+		uint64_t unk18;
+		uint32_t unk20;
+		uint32_t unk24;
+		uint64_t unk28;
+		uint64_t unk30;
+		uint64_t size;
+		uint64_t preloadWalkSize;
+		uint64_t blockSize[16];
+		EncryptionHeader encrypt;
+
+		void Print() {
+			LOG_INFO("size:0x{:x}", size);
+			LOG_INFO("preloadWalkSize:0x{:x}", preloadWalkSize);
+			LOG_INFO("Blocks: {}", utils::data::ArrayAsString<uint64_t>(blockSize, ARRAYSIZE(blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
+			LOG_INFO("isEncrypted: {}", encrypt.isEncrypted ? "true" : "false");
+		}
+	}; static_assert(sizeof(DB_FFHeaderBO6) == 0xe0);
 
 	union IWFastFileHeader {
-		DB_FFHeader header{};
-		byte __size[0xe0];
+		DB_FFHeader header;
+		DB_FFHeaderMWIII mwiii;
+		DB_FFHeaderBO6 bo6;
+		byte __size[0xe0]{};
 	}; static_assert(sizeof(IWFastFileHeader) == 0xe0);
 
 	// bo6  "48 83 EC 28 FF C9 83"
@@ -53,16 +126,30 @@ namespace {
 		}
 	}
 
-	void PrintHeader(DB_FFHeader* header) {
-		LOG_INFO("-- header");
+	void PrintHeader(DB_FFHeader* header, const char* title, bool ffHeader) {
+		char type{ FFMagicType(header->magic) };
+		LOG_INFO("---- {}{} header {}{} ----", cli::clicolor::COLOR_RED, ffHeader ? "ff" : "fp", title, cli::clicolor::CD_RESET);
 		LOG_INFO("version: 0x{:x} / 0x{:x}", header->headerVersion, header->xfileVersion);
-		LOG_INFO("flags: 0x{:x}, plt: {}", header->flags, header->type);
+		LOG_INFO("flags: 0x{:x}, plt: {}", header->flags, type);
 
 		LOG_INFO("unk14:0x{:x}", header->unk14);
 		LOG_INFO("unk18:0x{:x}({}) / unk1c:0x{:x}/({})", header->unk18, header->unk18, header->unk1c, header->unk1c);
 		LOG_INFO("unk20:0x{:x}({}) / unk24:0x{:x}/({})", header->unk20, header->unk20, header->unk24, header->unk24);
 		LOG_INFO("unk28:0x{:x}({}) / unk2c:0x{:x}/({})", header->unk28, header->unk28, header->unk2c, header->unk2c);
 		LOG_INFO("unk30:0x{:x}({}) / unk34:0x{:x}/({})", header->unk30, header->unk30, header->unk34, header->unk34);
+
+		if (ffHeader) {
+			switch (header->headerVersion) {
+			case IWFV_BO6:
+				switch (header->xfileVersion) {
+				case 1:
+					((IWFastFileHeader*)header)->bo6.Print();
+					return;
+				}
+				break;
+			}
+			LOG_WARNING("Unknown header data");
+		}
 	}
 
 	struct DBUnpackHeaderCtxLoadData {
@@ -139,10 +226,6 @@ namespace {
 
 			DB_FFHeader* header{ reader.Ptr<DB_FFHeader>() };
 
-			if (opt.m_header) {
-				PrintHeader(header);
-			}
-
 			IWFastFileHeader ffHeader{};
 			size_t ffHeaderSize{};
 			bool secure{};
@@ -173,6 +256,11 @@ namespace {
 			default:
 				throw std::runtime_error(std::format("version not supported 0x{:x}", header->headerVersion));
 			}
+
+			if (opt.m_header) {
+				PrintHeader(&ffHeader.header, "ff::header", true);
+			}
+
 			bool found{};
 			while (reader.CanRead(sizeof(uint32_t))) {
 				if (*reader.Ptr<uint32_t>() == 0x43574902) {
@@ -218,27 +306,25 @@ namespace {
 				}
 
 				size_t loc{ reader.Loc() };
-				uint32_t compressedSize{ reader.Read<uint32_t>() };
-				uint32_t uncompressedSize{ reader.Read<uint32_t>() };
-				uint32_t flags{ reader.Read<uint32_t>() };
+				fastfile::XBlockCompressionBlockHeader* block{ reader.ReadPtr<fastfile::XBlockCompressionBlockHeader>() };
 
-				if (!compressedSize) break; // done
+				if (!block->compressedSize) break; // done
 
-				uint32_t alignedSize{ utils::Aligned<uint32_t>(compressedSize) };
+				uint32_t alignedSize{ utils::Aligned<uint32_t>(block->compressedSize) };
 
-				LOG_TRACE("Decompressing {} block#{:x} 0x{:x} (0x{:x}/0x{:x} -> 0x{:x}) flags:0x{:x}",
-					utils::compress::GetCompressionName(alg), id, loc, compressedSize, alignedSize, uncompressedSize, flags
+				LOG_TRACE("Decompressing {} block#{:x} 0x{:x} (0x{:x}/0x{:x} -> 0x{:x}) encryptionCTR:0x{:x}",
+					utils::compress::GetCompressionName(alg), id, loc, block->compressedSize, alignedSize, block->uncompressedSize, block->encryptionCTR
 				);
 
 				byte* blockBuff{ reader.ReadPtr<byte>(alignedSize) };
 
 				// allc data
-				ffdata.resize(offset + uncompressedSize);
+				ffdata.resize(offset + block->uncompressedSize);
 
 				byte* decompressed{ &ffdata[offset] };
-				offset += uncompressedSize;
+				offset += block->uncompressedSize;
 
-				int r{ utils::compress::Decompress2(alg, decompressed, uncompressedSize, blockBuff, compressedSize) };
+				int r{ utils::compress::Decompress2(alg, decompressed, block->uncompressedSize, blockBuff, block->compressedSize) };
 				if (r < 0) {
 					throw std::runtime_error(std::format("Can't decompress block 0x{:x}: {} ({})", loc, utils::compress::DecompressResultName(r), r));
 				}
@@ -258,6 +344,10 @@ namespace {
 				else {
 					LOG_INFO("Dump ff into {}", decfile.string());
 				}
+			}
+
+			if (opt.m_header) {
+				LOG_INFO("Decompressed size: 0x{:x}", ffdata.size());
 			}
 
 			if (hasFdFile) {
@@ -288,6 +378,18 @@ namespace {
 				}
 				default:
 					throw std::runtime_error(std::format("patch version not supported 0x{:x}", fpHeader->headerVersion));
+				}
+
+				if (opt.m_header) {
+					PrintHeader(fpHeader, "fp::header", false);
+				}
+
+				if (opt.m_header) {
+					PrintHeader(&prevHeader.header, "fp::prevHeader", true);
+				}
+
+				if (opt.m_header) {
+					PrintHeader(&newHeader.header, "fp::newHeader", true);
 				}
 
 				// goto data
@@ -330,10 +432,6 @@ namespace {
 					throw std::runtime_error(std::format("version not supported 0x{:x}", header->headerVersion));
 				}
 
-				if (opt.m_header) {
-					PrintHeader(header);
-				}
-
 				// load fp data
 				std::vector<byte> fpdata{};
 
@@ -350,27 +448,26 @@ namespace {
 					}
 
 					size_t loc{ fpreader.Loc() };
-					uint32_t compressedSize{ fpreader.Read<uint32_t>() };
-					uint32_t uncompressedSize{ fpreader.Read<uint32_t>() };
-					uint32_t flags{ fpreader.Read<uint32_t>() };
 
-					if (!compressedSize) break; // done
+					fastfile::XBlockCompressionBlockHeader* block{ fpreader.ReadPtr<fastfile::XBlockCompressionBlockHeader>() };
 
-					uint32_t alignedSize{ utils::Aligned<uint32_t>(compressedSize) };
+					if (!block->compressedSize) break; // done
 
-					LOG_TRACE("Decompressing {} block#{:x} 0x{:x} (0x{:x}/0x{:x} -> 0x{:x}) flags:0x{:x}",
-						utils::compress::GetCompressionName(alg), id, loc, compressedSize, alignedSize, uncompressedSize, flags
+					uint32_t alignedSize{ utils::Aligned<uint32_t>(block->compressedSize) };
+
+					LOG_TRACE("Decompressing {} block#{:x} 0x{:x} (0x{:x}/0x{:x} -> 0x{:x}) encryptionCTR:0x{:x}",
+						utils::compress::GetCompressionName(alg), id, loc, block->compressedSize, alignedSize, block->uncompressedSize, block->encryptionCTR
 					);
 
 					byte* blockBuff{ fpreader.ReadPtr<byte>(alignedSize) };
 
 					// allc data
-					fpdata.resize(offsetpatch + uncompressedSize);
+					fpdata.resize(offsetpatch + block->uncompressedSize);
 
 					byte* decompressed{ &fpdata[offsetpatch] };
-					offsetpatch += uncompressedSize;
+					offsetpatch += block->uncompressedSize;
 
-					int r{ utils::compress::Decompress2(alg, decompressed, uncompressedSize, blockBuff, compressedSize) };
+					int r{ utils::compress::Decompress2(alg, decompressed, block->uncompressedSize, blockBuff, block->compressedSize) };
 					if (r < 0) {
 						throw std::runtime_error(std::format("Can't decompress block 0x{:x}: {} ({})", loc, utils::compress::DecompressResultName(r), r));
 					}
@@ -521,6 +618,9 @@ namespace {
 				}
 
 
+			}
+			if (opt.m_header) {
+				LOG_INFO("Decompressed size: 0x{:x}", ffdata.size());
 			}
 		}
 

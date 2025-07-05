@@ -7,7 +7,11 @@ namespace utils::data {
 	std::string AsHex(const void* buff, size_t size);
 
 	template<typename T>
-	std::string ArrayAsString(const T* array, size_t count, const char* delim = ", ", const char* prefix = "[", const char* suffix = "]") {
+	std::string ArrayAsString(
+		const T* array, size_t count, 
+		const char* delim = ", ", const char* prefix = "[", const char* suffix = "]", 
+		std::function<std::string(const T&)> format = [](const T& t) { return std::format("{}", t); }
+	) {
 		if (!array) {
 			return "nullptr[]";
 		}
@@ -15,7 +19,7 @@ namespace utils::data {
 		ss << prefix;
 		for (size_t i = 0; i < count; i++) {
 			if (i) ss << delim;
-			ss << array[count];
+			ss << format(array[i]);
 		}
 		ss << suffix;
 

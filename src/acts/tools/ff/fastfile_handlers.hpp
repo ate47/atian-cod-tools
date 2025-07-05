@@ -23,6 +23,12 @@ namespace fastfile {
 		uint32_t offset;
 	}; static_assert(sizeof(DBStreamHeader) == 0x10);
 
+	struct XBlockCompressionBlockHeader {
+		uint32_t compressedSize;
+		uint32_t uncompressedSize;
+		uint32_t encryptionCTR;
+	}; static_assert(sizeof(XBlockCompressionBlockHeader) == 0xc);
+
 	enum FastFileCompression : byte {
 		XFILE_UNCOMPRESSED = 0x0,
 		XFILE_ZLIB = 0x1,

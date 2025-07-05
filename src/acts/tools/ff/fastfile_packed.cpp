@@ -139,6 +139,61 @@ namespace fastfile::packed {
 			return tool::OK;
 		}
 
+		int ffheadertest(int argc, const char* argv[]) {
+			if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+			std::vector<std::filesystem::path> files{};
+			utils::GetFileRecurseExt(argv[2], files, ".ff\0");
+
+			size_t split{ std::max<size_t>(files.size() / 25, 1) };
+			for (size_t i = 0; i < files.size(); i++) {
+				const std::filesystem::path& file{ files[i] };
+				if ((i % split) == 0) {
+					LOG_INFO("{}% {}/{} {}", i * 100 / files.size(), (i + 1), files.size(), file.string());
+				}
+				utils::InFileCE is{ file, true, std::ios::binary };
+				core::bytebuffer::FileReader reader{ is };
+
+				struct EncryptionHeader
+				{
+					unsigned int isEncrypted;
+					unsigned __int8 IV[16];
+				};
+
+				struct DB_FFHeaderBO6 {
+					byte magic[4];
+					char type;
+					byte unk5;
+					byte unk6;
+					byte unk7;
+					unsigned int headerVersion;
+					unsigned int xfileVersion;
+					uint32_t flags;
+					uint32_t fileSize;
+					uint64_t timestamp;
+					uint32_t unk20;
+					uint32_t unk24;
+					uint64_t unk28;
+					uint64_t unk30;
+					uint64_t size;
+					uint64_t preloadWalkSize;
+					uint64_t blockSize[16];
+					EncryptionHeader encrypt;
+				}; static_assert(sizeof(DB_FFHeaderBO6) == 0xe0);
+
+				DB_FFHeaderBO6 header{};
+				reader.Read(&header, sizeof(header));
+				static EncryptionHeader empty{};
+				if (std::memcmp(&header.encrypt, &empty, sizeof(empty))) {
+					LOG_INFO("{}", file.string());
+				}
+
+			}
+
+			LOG_INFO("done");
+			return tool::OK;
+		}
+
 		ADD_TOOL(readpackff, "fastfile", " [ff] (off=0)", "read packed header", readpackff);
+		ADD_TOOL(ffheadertest, "dev", " [ff]", "test header", ffheadertest);
 	}
 }
