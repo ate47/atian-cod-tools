@@ -1,31 +1,22 @@
 - acts
-  - gsc compiler
-    - animation and animation tree compilation
-    - replace scr hash syntax to match mod tool one
-    - istring compilation
-    - add t789 builtin syntax (compiler::func)
-    - fix large integer add for bo3
-    - add compiled crc in notify functions for supported games
-  - gsc decompiler
-    - fix bo3 animation decompilation when more than one non-empty tree
-    - replace format of istrings and anims to match the bo3 modtool syntax
-    - builtin decompilation
-    - fix empty name compilation for bo3
-  - cordycep t10
-    - add compassdata dumper
-    - fix lua dumper
   - fastfile
-    - use bdiff lib instead of exe for iw files
-    - use fastfile compression type instead of oodle by default for iw files
-    - fix issue with big gsc in gscxhash scan
-    - fix mwiii decompression
-    - add support for mw22 fastfiles
-    - add support for old bo4 fastfiles
-  - snd file reader (ffsndr)
-  - tool to scan idendifiers (strscan)
-  - option to limit hash scan count for hashbrutedict
-  - mw23 ps4 test tools
-  - show error when linking bo4 fastfile image
-  - profile dump merge tool (proftocsv)
-- acts-nui
-  - cod ps4 tool (dev/wip)
+    - linker
+      - bo4
+        - add bgcache zone entry without using a gsc file
+        - add rawstring linker
+      - cw
+        - basic fastfile linker test
+        - rawfile linker
+    - reader
+      - fixup luaxhash ff handler
+      - better cw decompressor
+      - iw header dumper
+  - error de/encoder: add option for alternative errors (bo4/cw)
+  - better name injection for bo3 gsc injector
+  - fix bytebuffer error
+  - allow to use #define with values in preprocessor
+- acts-shield-plugin
+  - use project-bo4/acts directory instead of acts
+  - use project-bo4/acts/zone directory for hooked zone files
+- acts-ui
+  - t89 error encoder option to use alternative coder
