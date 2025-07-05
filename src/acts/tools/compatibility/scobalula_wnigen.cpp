@@ -309,8 +309,29 @@ namespace compatibility::scobalula::wnigen {
 			return CompressWNIFile(dataMap, out);
 		}
 
+		int wni_merge(int argc, const char* argv[]) {
+			if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+			std::vector<std::filesystem::path> files{};
+
+			utils::GetFileRecurseExt(argv[2], files, ".wni\0");
+
+			std::map<std::string, std::unordered_set<uint64_t>> dataMap{};
+			for (std::filesystem::path& p : files) {
+				size_t count{};
+				deps::scobalula::wni::ReadWNIFiles(p, [&dataMap, &count](uint64_t hash, const char* str) {
+					dataMap[str].insert(hash);
+					count++;
+				});
+				LOG_INFO("Loaded {}: {} hash(es)", p.string(), count);
+			}
+
+			return CompressWNIFile(dataMap, argv[3]);
+		}
+
 		ADD_TOOL(wni_r, "compatibility", " [input] [output] [type=csv,txt]", "Read WNI file/dir", wni_r);
 		ADD_TOOL(wni_gen_csv, "compatibility", " [input] (output=input.wni)", "Gen WNI file from csv", wni_gen_csv);
 		ADD_TOOL(wni_gen, "compatibility", " [input] (output=input.wni) (algorithms=all)+", "Gen WNI file with algo", wni_gen);
+		ADD_TOOL(wni_merge, "compatibility", " [input] [output]", "Merge all WNI files into one", wni_merge);
 	}
 }
