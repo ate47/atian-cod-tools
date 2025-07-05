@@ -7,8 +7,9 @@ namespace error_coder {
 	 * Encode an error from a value
 	 * @param code code to encode
 	 * @param val error value to encode
+	 * @param alternative use alternative
 	 */
-	void Encode(ErrorCode& code, uint32_t val);
+	void Encode(ErrorCode& code, uint32_t val, bool alternative);
 	/*
 	 * Convert an error code to a string
 	 * @param code to string
