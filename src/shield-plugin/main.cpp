@@ -16,8 +16,8 @@ EXPORT const char* PBO4_GetPluginName() {
 EXPORT void PBO4_PreStart() {
     LOG_INFO("prestart acts plugin");
     // default config for now
-    core::logs::setfile("project-bo4/acts-plugin.log");
-    core::config::SetMainConfig(std::format("project-bo4/{}", core::config::MAIN_CONFIG_FILE));
+    core::logs::setfile("project-bo4/acts/acts-plugin.log");
+    core::config::SetMainConfig(std::format("project-bo4/acts/{}", core::config::MAIN_CONFIG_FILE));
     core::config::SyncConfig(true);
 
     core::config::ConfigEnumData logNames[]{

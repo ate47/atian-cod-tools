@@ -11,6 +11,8 @@
 
 namespace systems::mods {
 	namespace {
+		std::filesystem::path moddir{ "project-bo4/acts/mods" };
+		std::filesystem::path zonedir{ "project-bo4/acts/zone" };
 
 		struct XZoneBuffer {
 			void* data;
@@ -112,6 +114,7 @@ namespace systems::mods {
 
 		struct {
 			std::unordered_map<std::string, std::vector<XZoneInfo>> hooks{};
+			std::vector<const char*> zoneNames{};
 			std::unordered_map<uint64_t, uint64_t> nameHooks[bo4::XAssetType::ASSET_TYPE_COUNT];
 			core::memory_allocator::MemoryAllocator alloc{};
 		} zoneHooks;
@@ -128,6 +131,7 @@ namespace systems::mods {
 		hook::library::Detour UnkCheckSum_Detour;
 		hook::library::Detour DB_FindXAssetHeader_Detour;
 		hook::library::Detour DB_DoesXAssetExist_Detour;
+		hook::library::Detour Stream_OpenFileInternal_Detour;
 		
 		constexpr bool forceHook = true;
 
@@ -278,7 +282,6 @@ namespace systems::mods {
 		void ModsInit(uint64_t uid) {
 			std::vector<std::filesystem::path> modConfigs{};
 
-			std::filesystem::path moddir{ "project-bo4/acts/mods" };
 			std::filesystem::create_directories(moddir);
 			for (const std::filesystem::directory_entry& sub : std::filesystem::directory_iterator{ moddir }) {
 				if (!sub.is_directory()) continue; // ignore files
@@ -333,6 +336,7 @@ namespace systems::mods {
 								info.freeFlags |= DB_ZONE_COMMON8;
 							}
 							zoneHooks.hooks[hook].emplace_back(info);
+							zoneHooks.zoneNames.emplace_back(info.name);
 
 							LOG_INFO("Loaded fastfile hook {}->{} (iscommon={})", hook, ffname, isCommon ? "true" : "false");
 						}
@@ -396,6 +400,31 @@ namespace systems::mods {
 			}
 		}
 
+		int Stream_OpenFileInternal_Stub(const char* name, int flags, uint8_t* key, size_t keyLen, uint8_t* iv, size_t ivLen) {
+			static std::filesystem::path bo4zoneDir{ std::filesystem::absolute("zone") };
+			std::filesystem::path path{ std::filesystem::absolute(name) };
+			if (path.has_extension() && utils::IsSubDir(bo4zoneDir, path)) {
+				path = std::filesystem::relative(path, bo4zoneDir);
+
+				std::filesystem::path fname{ path.filename() };
+				fname.replace_extension();
+
+				std::string zoneName{ fname.string() };
+
+				if (std::find_if(
+						zoneHooks.zoneNames.begin(), zoneHooks.zoneNames.end(), 
+						[&zoneName](const char* zn) { return !_strcmpi(zoneName.data(), zn); }
+					) != zoneHooks.zoneNames.end()) {
+					// hooked, we need to redirect them to the acts/zone dir
+					fname = zonedir / path;
+					zoneName = fname.string();
+					LOG_INFO("[Stream_OpenFileInternal] Redirected file {} to {}", name, fname.string());
+					return Stream_OpenFileInternal_Detour.Call<int>(zoneName.data(), flags, key, keyLen, iv, ivLen);
+				}
+			}
+
+			return Stream_OpenFileInternal_Detour.Call<int>(name, flags, key, keyLen, iv, ivLen);
+		}
 		void ModsPostInit(uint64_t uid) {
 			DB_LoadXAssets_Detour.Create(0x2EB8BC0_a, DB_LoadXAssets);
 			DB_LoadXFile_Detour.Create(0x2E0CC10_a, DB_LoadXFile);
@@ -406,6 +435,7 @@ namespace systems::mods {
 			UnkCheckSum_Detour.Create(0x28B5FA0_a, UnkCheckSum_Stub);
 			DB_FindXAssetHeader_Detour.Create(0x2EB75B0_a, DB_FindXAssetHeader_Stub);
 			DB_DoesXAssetExist_Detour.Create(0x2EB6C90_a, DB_DoesXAssetExist_Stub);
+			Stream_OpenFileInternal_Detour.Create(0x3C4CE00_a, Stream_OpenFileInternal_Stub);
 		}
 
 		REGISTER_SYSTEM(mods, ModsInit, ModsPostInit);

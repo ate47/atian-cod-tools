@@ -181,7 +181,7 @@ namespace {
 
 
 			if (!ctx.storedHashes.empty()) {
-				std::filesystem::path outputFileWNI{ ctx.opt.m_output / "acts" / "package_index" / std::format("{}.wni", ctx.ffname) };
+				std::filesystem::path outputFileWNI{ ctx.opt.m_output / "package_index" / std::format("{}.wni", ctx.ffname) };
 				std::filesystem::create_directories(outputFileWNI.parent_path());
 
 				if (compatibility::scobalula::wnigen::CompressWNIFile(ctx.storedHashes, outputFileWNI) != tool::OK) {
