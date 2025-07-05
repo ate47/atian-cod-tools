@@ -136,7 +136,7 @@ namespace error_coder {
 			.data:0000000004F12350                     dq 27C5F147561BF245h; tables.hash
 			.data:0000000004F12350                     dq 0; tables.padding
 			*/
-			.sizes = { 4, 4, 4, 4 },
+			.sizes = { 8, 8, 8, 8 },
 			.words = {
 				{
 					"Openly","Bleakly","Frightfully","Delightfully","Abnormally","Dreamily","Broadly","Successfully","Briskly","Happily","Sympathetically","Righteously","Cleverly","Reproachfully","Almost","Daily",
