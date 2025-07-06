@@ -226,6 +226,11 @@ namespace hook::memory {
 		process::WriteMemSafe(location, hook, sizeof(hook));
 	}
 
+	void Nulled(void* location) {
+		byte hook{ 0xC3 }; // ret
+		process::WriteMemSafe(location, &hook, sizeof(hook));
+	}
+
 	void DumpMemory(void* location, size_t size) {
 		byte* b = (byte*)location;
 

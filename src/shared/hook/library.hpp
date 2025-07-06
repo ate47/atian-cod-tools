@@ -296,13 +296,40 @@ namespace hook::library {
 		}
 
 		void Redirect(const char* pattern, void* func, const char* name = nullptr) const;
+		void Redirect(size_t offset, void* func) const;
 
 		template<typename T = void*>
 		void Redirect(const char* pattern, T func, const char* name = nullptr) const {
 			Redirect(pattern, (void*)func, name);
 		}
+		template<typename T = void*>
+		void Redirect(size_t offset, T func) const {
+			Redirect(offset, (void*)func);
+		}
 
 		Detour CreateDetour(const char* pattern, void* to, const char* name = nullptr) const;
+		Detour CreateDetour(size_t offset, void* to) const;
+
+		template<typename... Args>
+		void NullFunc(const char* pattern, const char* name = nullptr) const {
+			if constexpr (sizeof...(Args) > 4) {
+				Redirect(pattern, [](Args... args) {}, name);
+			}
+			else {
+				memory::Nulled(ScanSingle(pattern, name).location);
+			}
+		}
+
+		template<typename... Args>
+		void NullFunc(size_t offset) const {
+			Redirect(offset, [](Args... args) {});
+			if constexpr (sizeof...(Args) > 4) {
+				Redirect(offset, [](Args... args) {});
+			}
+			else {
+				memory::Nulled((*this)[offset]);
+			}
+		}
 
 		ScanResult FindAnyScan(const char* name) const {
 			throw std::runtime_error(utils::va("Can't find patter %s", name ? name : "<multiple>"));

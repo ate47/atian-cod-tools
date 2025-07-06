@@ -53,6 +53,11 @@ namespace hook::memory {
 	void ReturnVal(void* location, bool val);
 
 	/*
+	 * Null a function
+	 */
+	void Nulled(void* location);
+
+	/*
 	 * Write memory in log
 	 * @param location start
 	 * @param size size
