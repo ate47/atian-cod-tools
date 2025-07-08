@@ -80,7 +80,7 @@ See the wiki to know how to use the features
 **Supported pools**
 
 - `bo3`: `rawfile`, `scriptparsetree`
-- `bo4`: `rawfile`, `scriptparsetree`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`
+- `bo4`: `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`
 - `bo6`: `rawfile`, `gscobj`
 - `GscXHash`: `scriptparsetree`, `gscobj`
 - `GscXString`: `scriptparsetree`, `scriptparsetreedbg`
@@ -89,7 +89,8 @@ See the wiki to know how to use the features
 
 **Supported pools**
 
-- `bo4`: `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`
+- `bo4`: `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`, `ttf`, `bgcache`
+- `cw`: `rawfile`
 
 ## ACTS Lib
 

@@ -80,6 +80,10 @@ namespace fastfile::linker::data {
 		size_t WriteData(const Type& data) {
 			return WriteData(&data, sizeof(data));
 		}
+		template<typename Type>
+		inline size_t WriteDataVector(const std::vector<Type>& data) {
+			return WriteData(data.data(), data.size() * sizeof(Type));
+		}
 		size_t WriteData(const char* str) {
 			return WriteData(str, std::strlen(str) + 1);
 		}

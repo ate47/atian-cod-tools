@@ -406,6 +406,13 @@ namespace utils {
 	void GetFileRecurse(const std::filesystem::path& parent, std::vector<std::filesystem::path>& files, std::function<bool(const std::filesystem::path&)> predicate, bool removeParent = false);
 
 	std::ostream& PrintFormattedString(std::ostream& out, const char* str, size_t len = 0);
+
+	/*
+	 * Format a string
+	 * @param string
+	 * @return formatted string
+	 */
+	std::string FormatString(const char* str);
 	/*
 	 * Get a char to a byte value, throw invalid_argument for bad character
 	 * @param c char value (a-fA-F0-9)

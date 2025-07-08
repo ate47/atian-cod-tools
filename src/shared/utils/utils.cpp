@@ -496,4 +496,12 @@ namespace utils {
         }
         return out;
     }
+
+    std::string FormatString(const char* str) {
+        std::ostringstream out;
+
+        PrintFormattedString(out, str);
+
+        return out.str();
+    }
 }

@@ -104,6 +104,14 @@ namespace hash {
 		return Hash64A(str + 1, base, iv);
 	}
 
+	constexpr uint32_t HashPrime(const char* str, uint32_t start = 5381, uint32_t prime = 33) {
+		uint32_t h{ start };
+		while (*str) {
+			h = prime * h + lowerc(*str++);
+		}
+		return h;
+	}
+
 	// Hash algorithms
 
 	constexpr uint64_t HashX64(const char* str, uint64_t start = FNV1A_PRIME) { return Hash64A(str, start); }

@@ -225,6 +225,7 @@ namespace hook::error {
 	}
 
 	void DumpStackTraceFrom(core::logs::loglevel level, const void* location) {
+		if (!HAS_LOG_LEVEL(level)) return; // useless
 		void* locs[50];
 		WORD capture = RtlCaptureStackBackTrace(0, ARRAYSIZE(locs), locs, NULL);
 

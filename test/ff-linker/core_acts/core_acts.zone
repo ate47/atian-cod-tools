@@ -21,6 +21,9 @@ luafile,lua/acts/test.lua
 // stringtable
 stringtable,acts/test.csv
 
+// structured table
+structuredtable,acts/demo_structured.json
+
 // a script bundle, the file will be searched in the scriptbundle directory.
 scriptbundle,acts/acts_test
 
