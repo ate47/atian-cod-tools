@@ -17,13 +17,11 @@ namespace {
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T7GSCOBJ>();
             asmout
-                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n";
+                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n"
+                << "// profiles . " << std::dec << std::setw(3) << data->profile_count << " (offset: 0x" << std::hex << data->profile_offset << ")\n"
+                << "// flags .... 0x" << std::hex << (int)data->flags << "\n";
+                ;
 
-            if (opt.m_test_header) {
-                asmout
-                    << "// unk40 .... " << std::dec << (int)data->unk40 << " / 0x" << std::hex << (int)data->unk40 << "\n"
-                    ;
-            }
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
             auto* data = Ptr<T7GSCOBJ>();
@@ -150,7 +148,7 @@ namespace {
         void SetGVarsOffset(uint32_t val) override {
         }
         void SetFileSize(uint32_t val) override {
-            Ptr<T7GSCOBJ>()->script_size = val; // not available?
+            Ptr<T7GSCOBJ>()->profile_offset = val;
         }
         void SetCSEGOffset(uint32_t val) override {
             Ptr<T7GSCOBJ>()->cseg_offset = val;
@@ -296,13 +294,9 @@ namespace {
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T7GSCOBJ>();
             asmout
-                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n";
-
-            if (opt.m_test_header) {
-                asmout
-                    << "// unk40 .... " << std::dec << (int)data->unk40 << " / 0x" << std::hex << (int)data->unk40 << "\n"
-                    ;
-            }
+                << "// fixups ... " << std::dec << std::setw(3) << data->fixup_count << " (offset: 0x" << std::hex << data->fixup_offsets << ")\n"
+                << "// profiles . " << std::dec << std::setw(3) << data->profile_count << " (offset: 0x" << std::hex << data->profile_offset << ")\n"
+                << "// flags .... 0x" << std::hex << (int)data->flags << "\n";
         }
         void DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) override {
             auto* data = Ptr<T7GSCOBJ>();
@@ -429,7 +423,7 @@ namespace {
         void SetGVarsOffset(uint32_t val) override {
         }
         void SetFileSize(uint32_t val) override {
-            Ptr<T7GSCOBJ>()->script_size = val; // not available?
+            Ptr<T7GSCOBJ>()->profile_offset = val;
         }
         void SetCSEGOffset(uint32_t val) override {
             Ptr<T7GSCOBJ>()->cseg_offset = val;

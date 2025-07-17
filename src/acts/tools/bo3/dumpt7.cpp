@@ -907,10 +907,10 @@ namespace {
 				}
 
 				// probably profile or another shit, but this isn't used by the game
-				if (header.script_size < sizeof(header) || header.script_size < header.cseg_offset + header.cseg_size) {
+				if (header.profile_offset < sizeof(header) || header.profile_offset < header.cseg_offset + header.cseg_size) {
 					continue; // bad size, end before cseg
 				}
-				auto [buffer, okb] = proc.ReadMemoryArray<byte>(entry.activeVersion, header.script_size);
+				auto [buffer, okb] = proc.ReadMemoryArray<byte>(entry.activeVersion, header.profile_offset);
 
 				if (!okb) {
 					LOG_ERROR("Can't read script {}", name);
@@ -929,11 +929,11 @@ namespace {
 					std::filesystem::create_directories(outFile.parent_path());
 					added++;
 				}
-				if (!utils::WriteFile(outFile, &buffer[0], header.script_size)) {
-					LOG_ERROR("Error when dumping {} bytes into {}", header.script_size, outFile.string());
+				if (!utils::WriteFile(outFile, &buffer[0], header.profile_offset)) {
+					LOG_ERROR("Error when dumping {} bytes into {}", header.profile_offset, outFile.string());
 					continue;
 				}
-				LOG_INFO("Dump into {} ({}){}", outFile.string(), header.script_size, isNew ? " (new)" : "");
+				LOG_INFO("Dump into {} ({}){}", outFile.string(), header.profile_offset, isNew ? " (new)" : "");
 			}
 		}
 

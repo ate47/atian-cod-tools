@@ -999,7 +999,7 @@ namespace tool::gsc {
         int16_t devblock_string_count;
         int32_t cseg_size;
         uint16_t include_count;
-        byte ukn5a;
+        byte flags;
         byte requires_implements_count;
     };
     struct T937GSCOBJ {
@@ -1067,14 +1067,14 @@ namespace tool::gsc {
         uint32_t export_offset;
         uint32_t import_offset;
         uint32_t fixup_offsets;
-        uint32_t script_size;
+        uint32_t profile_offset;
         uint32_t cseg_size;
         uint32_t name_offset;
         uint16_t string_count;
         uint16_t export_count;
         uint16_t import_count;
         uint16_t fixup_count;
-        uint16_t unk40;
+        uint16_t profile_count;
         uint16_t devblock_string_count;
         uint8_t include_count;
         uint8_t animtree_count;
