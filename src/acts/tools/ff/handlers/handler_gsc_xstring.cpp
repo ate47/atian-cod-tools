@@ -125,7 +125,7 @@ namespace {
 						continue;
 					}
 					{
-						std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}.gdbc", *(uint64_t*)data, name) };
+						std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}.gdb", *(uint64_t*)data, name) };
 						std::filesystem::create_directories(outFile.parent_path());
 						if (!utils::WriteFile(outFile, data, spt.gdbLen)) {
 							LOG_ERROR("Error when dumping");

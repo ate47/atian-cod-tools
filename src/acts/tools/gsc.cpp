@@ -24,7 +24,7 @@ enum DumpVTableAnswer : int {
 
 GscInfoOption::GscInfoOption() {
     // set default formatter
-    m_formatter = &tool::gsc::formatter::GetFromName();
+    m_formatter = &tool::gsc::formatter::GetDefaultFormatter();
 }
 
 bool tool::gsc::GscDecompilerGlobalContext::WarningType(GscDecompilerGlobalContextWarn warn) {
@@ -361,7 +361,7 @@ void GscInfoOption::PrintHelp() {
             formats << " '" << fmt->name << "'";
         }
 
-        LOG_INFO("-f --format [f]    : Use formatter, values:{}", formats.str());
+        LOG_INFO("-f --format [f]    : Use formatter, values:{}, default: '{}'", formats.str(), formatter::GetDefaultFormatter().name);
     }
     LOG_INFO("-l --rloc          : Write relative location of the function code");
     LOG_INFO("-L --floc          : Write file location of the function code");
@@ -579,11 +579,31 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             }
         }
 
-        if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
+        if (GetDevStringsOffset()) {
             T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
             for (size_t i = 0; i < GetDevStringsCount(); i++) {
-
-                const char* str = ctx.CloneString(utils::va("<dev string:x%x>", val->string)); // Ptr<char>(val->string); // no gdb
+                const char* str;
+                if (val->string) {
+                    if (ctx.dbgData && ctx.dbgSize) {
+                        if (val->string >= ctx.dbgSize) {
+                            LOG_ERROR("Invalid dev string: location outside of debug file: 0x{:x} >= 0x{:x}", val->string, ctx.dbgSize);
+                            str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
+                        }
+                        else {
+                            str = (const char*)&ctx.dbgData[val->string];
+                        }
+                    }
+                    else {
+                        // no gdb
+                        if (ctx.m_formatter && ctx.m_formatter->HasFlag(tool::gsc::formatter::FFL_NOERROR_STR)) {
+                            break; // nothing
+                        }
+                        str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
+                    }
+                }
+                else {
+                    str = "<dev string>";
+                }
 
                 uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
                 for (size_t j = 0; j < val->num_address; j++) {
@@ -828,11 +848,32 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
     }
 
-    if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
+    if (GetDevStringsOffset() && !(ctx.m_formatter && ctx.m_formatter->HasFlag(tool::gsc::formatter::FFL_NOERROR_STR))) {
         T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
         for (size_t i = 0; i < GetDevStringsCount(); i++) {
-
-            const char* str = ctx.CloneString(utils::va("<dev string:x%x>", val->string)); // Ptr<char>(val->string); // no gdb
+            const char* str;
+            if (val->string) {
+                // the acts compiler uses empty strings location when they're not compiled in the gdb
+                if (ctx.dbgData && ctx.dbgSize) {
+                    if (val->string >= ctx.dbgSize) {
+                        LOG_ERROR("Invalid dev string: location outside of debug file: 0x{:x} >= 0x{:x}", val->string, ctx.dbgSize);
+                        str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
+                    }
+                    else {
+                        str = (const char*)&ctx.dbgData[val->string];
+                    }
+                }
+                else {
+                    // no gdb
+                    if (ctx.m_formatter && ctx.m_formatter->HasFlag(tool::gsc::formatter::FFL_NOERROR_STR)) {
+                        break; // nothing
+                    }
+                    str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
+                }
+            }
+            else {
+                str = "<dev string>";
+            }
 
             uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
             for (size_t j = 0; j < val->num_address; j++) {
@@ -1038,22 +1079,22 @@ struct H64CER2GSCExportReader : GSCExportReader {
 
 
 
-const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_t floc) {
+const char* T8GSCOBJContext::GetFLocName(uint32_t floc) const {
     // check the exports to find the right floc name
-    uint32_t off = handler.GetExportsOffset();
+    uint32_t off = scriptfile->GetExportsOffset();
 
-    byte* exportTable = handler.Ptr(off);
+    byte* exportTable = scriptfile->Ptr(off);
 
     uint32_t max{};
     void* maxPtr{};
-    for (size_t i = 0; i < handler.GetExportsCount(); i++) {
-        void* ptr = exportTable + reader.SizeOf() * i;
-        if (handler.GetExportsOffset() + reader.SizeOf() * (i + 1) > handler.GetFileSize()) {
+    for (size_t i = 0; i < scriptfile->GetExportsCount(); i++) {
+        void* ptr = exportTable + exp->SizeOf() * i;
+        if (scriptfile->GetExportsOffset() + exp->SizeOf() * (i + 1) > scriptfile->GetFileSize()) {
             throw std::runtime_error("Invalid export size");
         }
-        reader.SetHandle(ptr);
+        exp->SetHandle(ptr);
 
-        uint32_t addr = reader.GetAddress();
+        uint32_t addr = exp->GetAddress();
 
         if (addr <= floc && addr > max) {
             maxPtr = ptr;
@@ -1062,12 +1103,12 @@ const char* GetFLocName(GSCExportReader& reader, GSCOBJHandler& handler, uint32_
     }
     
     if (maxPtr) {
-        reader.SetHandle(maxPtr);
+        exp->SetHandle(maxPtr);
         return utils::va(
             "%s::%s@%x",
-            hashutils::ExtractTmpPath("namespace", reader.GetNamespace()),
-            hashutils::ExtractTmp("function", reader.GetName()),
-            floc - reader.GetAddress()
+            hashutils::ExtractTmpPath("namespace", exp->GetNamespace()),
+            hashutils::ExtractTmp("function", exp->GetName()),
+            floc - exp->GetAddress()
         );
     }
 
@@ -1084,6 +1125,8 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
     
     T8GSCOBJContext ctx{ gdctx };
     ctx.m_formatter = opt.m_formatter;
+    ctx.dbgData = dbgData;
+    ctx.dbgSize = dbgSize;
     auto& gsicInfo = ctx.m_gsicInfo;
 
     gsicInfo.isGsic = size > 4 && !memcmp(data, "GSIC", 4);
@@ -1184,8 +1227,11 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
         return tool::BASIC_ERROR;
     }
 
-    std::shared_ptr<GSCOBJHandler> scriptfile = (*readerBuilder)(data, size);
-    std::unique_ptr<GSCExportReader> exp = CreateExportReader(ctx.m_vmInfo);
+    ctx.scriptfile = (*readerBuilder)(data, size);
+    ctx.exp = CreateExportReader(ctx.m_vmInfo);
+
+    GSCOBJHandler* scriptfile{ ctx.scriptfile.get() };
+    GSCExportReader* exp{ ctx.exp.get() };
 
     // we keep it because it should also check the size
     if (!scriptfile->IsValidHeader(size)) {
@@ -1244,16 +1290,13 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
         return preloadRet > 0 ? 0 : preloadRet;
     }
 
-    auto flocName = [&exp, &scriptfile](uint32_t floc) {
-        return GetFLocName(*exp, *scriptfile, floc);
-    };
-
     tool::gsc::RosettaStartFile(*scriptfile);
 
-    std::stringstream actsHeader{};
-    Platform currentPlatform{ opt.m_platform };
+    std::stringstream dbgHeader{};
+    ctx.currentPlatform = opt.m_platform;
 
-    if (!dbgData || !dbgSize) {
+    bool inFileDBG{ !dbgData || !dbgSize };
+    if (inFileDBG) {
         // search the debug data inside the script
         dbgData = scriptfile->Ptr(scriptfile->GetHeaderSize());
         dbgSize = scriptfile->GetFileSize() - scriptfile->GetHeaderSize();
@@ -1261,241 +1304,27 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
 
     core::bytebuffer::ByteBuffer dbgReader{ dbgData, dbgSize };
 
-    if (dbgReader.CanRead(8) && *dbgReader.Ptr<uint64_t>() == shared::gsc::acts_debug::MAGIC) {
-        using namespace shared::gsc::acts_debug;
-        // acts compiled file, read data
-        GSC_ACTS_DEBUG* dbg = dbgReader.Ptr<GSC_ACTS_DEBUG>();
-        LOG_TRACE("Reading ACTS debug data v{:x}", (int)dbg->version);
-        actsHeader << "// ACTS compiled file, file version 0x" << std::hex << (int)dbg->version << ", acts version ";
+    if (dbgReader.CanRead(8)) {
+        uint64_t magic{ *dbgReader.Ptr<uint64_t>() };
 
-        if (dbg->actsVersion == core::actsinfo::DEV_VERSION_ID) {
-            actsHeader << "DEV";
+        auto* dbgreader{ gsc::vm::GetGdbReader(magic) };
+
+        if (!dbgreader) {
+            if (!inFileDBG) {
+                LOG_WARNING("No debug handler for magic 0x{:x}", magic);
+            }
         }
         else {
-            actsHeader << "0x" << std::hex << core::actsinfo::VERSION_ID;
-            if (dbg->actsVersion == core::actsinfo::VERSION_ID) {
-                actsHeader << " (current)";
+            dbgReader.Goto(0);
+
+            try {
+                (*dbgreader)(ctx, dbgReader, dbgHeader);
             }
-        }
-        actsHeader << "\n";
-
-        if (dbg->HasFeature(ADF_FLAGS)) {
-            actsHeader << "// flags ....";
-            if (!dbg->flags) actsHeader << " NONE";
-            else {
-                // read known flags
-
-                if (dbg->HasFlag(ADFG_OBFUSCATED)) actsHeader << " OBFUSCATED";
-                if (dbg->HasFlag(ADFG_DEBUG)) actsHeader << " DEBUG";
-                if (dbg->HasFlag(ADFG_CLIENT)) actsHeader << " CLIENT";
-
-                uint32_t pltFlag = (dbg->flags & ADFG_PLATFORM_MASK) >> ADFG_PLATFORM_SHIFT;
-                if (pltFlag) {
-                    Platform nplt{ (Platform)pltFlag };
-                    actsHeader << " PLT(" << utils::MapString(utils::CloneString(PlatformName(nplt)), [](char c) { return std::isspace(c) ? '_' : std::toupper(c); }) << ")";
-
-                    // the script is saying which platform is was compiled, so we follow it
-                    if (!opt.m_ignoreDebugPlatform && pltFlag < Platform::PLATFORM_COUNT) {
-                        LOG_TRACE("Using debug platform {}", PlatformName(nplt));
-                        currentPlatform = nplt;
-                    }
-                }
-            }
-            
-            actsHeader << "\n";
-        }
-
-        if (dbg->HasFeature(ADF_CHECKSUM)) {
-            actsHeader << "// dbg crc .. " << "0x" << std::hex << dbg->checksum << "\n";
-            if (scriptfile->GetChecksum() && scriptfile->GetChecksum() != dbg->checksum) {
-                LOG_WARNING("Can't use dbg data: unmatching checksums: 0x{:x} != 0x{:x}", scriptfile->GetChecksum(), dbg->checksum);
-                goto postDbg;
-            }
-        }
-
-        if (dbg->HasFeature(ADF_CRC_LOC)) {
-            if (dbg->crc_offset) {
-                actsHeader << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << " ";
-
-                if (scriptfile->HasFlag(GOHF_NOTIFY_CRC_STRING)) {
-                    if (dbg->crc_offset > scriptfile->GetFileSize()) {
-                        actsHeader << "INVALID LOC";
-                    }
-                    else {
-                        utils::PrintFormattedString(actsHeader << "\"", scriptfile->Ptr<const char>(dbg->crc_offset)) << "\"";
-                    }
-                }
-                else if (scriptfile->HasFlag(GOHF_NOTIFY_CRC)) {
-                    actsHeader << flocName(dbg->crc_offset);
-                }
-                else {
-                    actsHeader << "USELESS"; // why?
-                }
-
-                actsHeader << "\n";
-            }
-        }
-        if (dbg->HasFeature(ADF_STRING)) {
-            uint32_t* strOffsets = dbgReader.Ptr<uint32_t>(dbg->strings_offset);
-            if (dbg->strings_count * sizeof(*strOffsets) > size) {
-                LOG_ERROR("Bad ACTS debug strings, too far");
-            }
-            else {
-                actsHeader << "// hashes ... " << std::dec << dbg->strings_count << " (offset: 0x" << std::hex << dbg->strings_offset << ")\n";
-                for (size_t i = 0; i < dbg->strings_count; i++) {
-                    uint32_t off = strOffsets[i];
-                    if (off >= size) {
-                        LOG_ERROR("Bad ACTS debug string, too far");
-                        break;
-                    }
-                    const char* str = dbgReader.Ptr<const char>(off);
-
-                    uint64_t hashField{ ctx.m_vmInfo->HashField(str) };
-                    uint64_t hashFilePath{ ctx.m_vmInfo->HashFilePath(str) };
-                    uint64_t hashPath{ ctx.m_vmInfo->HashPath(str) };
-                    {
-                        core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
-                        hashutils::AddPrecomputed(hashField, str, true);
-                        hashutils::AddPrecomputed(hashFilePath, str, true);
-                        hashutils::AddPrecomputed(hashPath, str, true);
-
-                        if (opt.m_header) {
-                            utils::PrintFormattedString(actsHeader << "// - #\"", str)
-                                << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
-                        }
-                        // use all the known hashes for this VM
-                        for (auto& [k, func] : ctx.m_vmInfo->hashesFunc) {
-                            try {
-                                int64_t hash = func.hashFunc(str);
-
-                                if (hash) {
-                                    if (opt.m_header) {
-                                        actsHeader << "/" << k << '=' << std::hex << hash;
-                                    }
-                                    hashutils::AddPrecomputed(hash, str, true);
-                                }
-                            }
-                            catch (std::exception&) {
-                                // ignore
-                            }
-                        }
-                    }
-                    if (opt.m_header) {
-                        actsHeader << ")\n";
-                    }
-                }
-                LOG_TRACE("{} hash(es) added", dbg->strings_count);
-            }
-        }
-
-        if (dbg->HasFeature(ADF_DETOUR)) {
-            const GSC_ACTS_DETOUR* detours = dbgReader.Ptr<GSC_ACTS_DETOUR>(dbg->detour_offset);
-
-            if (dbg->detour_count * sizeof(*detours) > size) {
-                LOG_ERROR("Bad ACTS debug detour, too far");
-            }
-            else {
-                for (size_t i = 0; i < dbg->detour_count; i++) {
-                    const GSC_ACTS_DETOUR& detour = detours[i];
-
-                    GscDetourInfo& det = gsicInfo.detours[detour.location];
-                    det.name = detour.name;
-                    det.fixupOffset = detour.location;
-                    det.fixupSize = detour.size;
-                    det.replaceFunction = detour.name;
-                    det.replaceNamespace = detour.name_space;
-                    det.replaceScript = detour.script;
-                }
-            }
-        }
-        if (dbg->HasFeature(ADF_DEVBLOCK_BEGIN)) {
-            // not used by acts decompiler, but can be useful for a vm
-            if (opt.m_header) {
-                uint32_t* dvOffsets = dbgReader.Ptr<uint32_t>(dbg->devblock_offset);
-
-                if (dbg->devblock_count * sizeof(*dvOffsets) > size) {
-                    LOG_ERROR("Bad ACTS debug dev blocks, too far");
-                }
-                else {
-                    actsHeader << "// devblock . " << std::dec << dbg->devblock_count << " (offset: 0x" << std::hex << dbg->devblock_offset << ")\n";
-                    for (size_t i = 0; i < dbg->devblock_count; i++) {
-                        uint32_t off = dvOffsets[i];
-                        actsHeader << "// - " << flocName(off) << "\n";
-                    }
-                }
-            }
-        }
-        if (dbg->HasFeature(ADF_LAZYLINK)) {
-            // not used by acts decompiler, but can be useful for a vm
-            if (opt.m_header) {
-                actsHeader << "// lazylink . " << std::dec << dbg->lazylink_count << " (offset: 0x" << std::hex << dbg->lazylink_offset << ")\n";
-
-                size_t off = dbg->lazylink_offset;
-                for (size_t i = 0; i < dbg->lazylink_count; i++) {
-                    if (off + sizeof(GSC_ACTS_LAZYLINK) > size) {
-                        LOG_ERROR("Bad ACTS debug lazylink, too far");
-                        break;
-                    }
-                    GSC_ACTS_LAZYLINK* lzOff = dbgReader.Ptr<GSC_ACTS_LAZYLINK>(off);
-
-                    if (off + sizeof(GSC_ACTS_LAZYLINK) + sizeof(uint32_t) * lzOff->num_address > size) {
-                        LOG_ERROR("Bad ACTS debug lazylink, too far with {} addresses", lzOff->num_address);
-                        break;
-                    }
-                    actsHeader << "// "
-                        << hashutils::ExtractTmp("namespace", lzOff->name_space)
-                        << "<" << hashutils::ExtractTmpScript(lzOff->script) << ">::"
-                        << hashutils::ExtractTmp("function", lzOff->name) << "\n"
-                        << "// locs: ";
-                    off += sizeof(*lzOff);
-                    uint32_t* locs = dbgReader.Ptr<uint32_t>(off);
-                    for (size_t i = 0; i < lzOff->num_address; i++) {
-                        if (i) actsHeader << ", ";
-                        actsHeader << flocName(locs[i]);
-                    }
-                    actsHeader << "\n";
-                    off += sizeof(uint32_t) * lzOff->num_address;
-                }
-            }
-        }
-        if (dbg->HasFeature(ADF_FILES)) {
-            if (opt.m_header) {
-                actsHeader << "// files .... " << std::dec << dbg->files_count << " (offset: 0x" << std::hex << dbg->files_offset << ")\n";
-                GSC_ACTS_FILES* linesOff = dbgReader.Ptr<GSC_ACTS_FILES>(dbg->files_offset);
-                if (dbg->files_offset + sizeof(GSC_ACTS_FILES) * dbg->files_count > size) {
-                    LOG_ERROR("Bad ACTS debug files, too far with {} lines", dbg->files_count);
-                }
-                else {
-                    for (size_t i = 0; i < dbg->files_count; i++) {
-                        GSC_ACTS_FILES& l = linesOff[i];
-                        if (l.filename >= size) {
-                            LOG_ERROR("Bad ACTS debug files name, too far with {}", l.filename);
-                        }
-                        actsHeader << "// - " << std::dec << dbgReader.Ptr<const char>(l.filename) << " " << l.lineStart << "->" << l.lineEnd << "\n";
-                    }
-                }
-
-            }
-        }
-        if (dbg->HasFeature(ADF_LINES)) {
-            // not used by acts decompiler, but can be useful for a vm
-            if (opt.m_header) {
-                actsHeader << "// lines .... " << std::dec << dbg->lines_count << " (offset: 0x" << std::hex << dbg->lines_offset << ")\n";
-                GSC_ACTS_LINES* linesOff = dbgReader.Ptr<GSC_ACTS_LINES>(dbg->lines_offset);
-                if (dbg->lines_offset + sizeof(GSC_ACTS_LINES) * dbg->lines_count > size) {
-                    LOG_ERROR("Bad ACTS debug lines, too far with {} lines", dbg->lines_count);
-                }
-                else {
-                    for (size_t i = 0; i < dbg->lines_count; i++) {
-                        GSC_ACTS_LINES& l = linesOff[i];
-                        actsHeader << "// - " << std::dec << l.lineNum << " " << flocName(l.start) << "->" << flocName(l.end) << "\n";
-                    }
-                }
-
+            catch (std::runtime_error& err) {
+                LOG_WARNING("Can't parse gdb data {}", err.what());
             }
         }
     }
-postDbg:
 
     char asmfnamebuff[1000];
 
@@ -1671,7 +1500,7 @@ ignoreCscGsc:
             idx = nl + 1;
         } while (idx < cv.size());
 
-        if (opt.m_formatter->flags & tool::gsc::formatter::FFL_LINE_AFTER_COPYRIGHT) {
+        if (opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_LINE_AFTER_COPYRIGHT)) {
             asmout << "\n";
         }
     }
@@ -1732,17 +1561,17 @@ ignoreCscGsc:
             else {
                 asmout << "//";
             }
-            asmout << " vm: " << ctx.m_vmInfo->name << " (" << PlatformName(currentPlatform) << ")\n";
+            asmout << " vm: " << ctx.m_vmInfo->name << " (" << PlatformName(ctx.currentPlatform) << ")\n";
         }
 
         scriptfile->DumpHeader(asmout, opt);
 
-        asmout << actsHeader.str();
+        asmout << dbgHeader.str();
     }
 
     // write the strings before the patch to avoid reading pre-decrypted strings
     if (opt.m_strings) {
-        if (scriptfile->GetDevStringsOffset() && !(opt.m_formatter->flags & tool::gsc::formatter::FFL_NOERROR_STR)) {
+        if (scriptfile->GetDevStringsOffset() && !(opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NOERROR_STR))) {
             T8GSCString* val = scriptfile->Ptr<T8GSCString>(scriptfile->GetDevStringsOffset());
             for (size_t i = 0; i < scriptfile->GetDevStringsCount(); i++) {
 
@@ -1755,9 +1584,9 @@ ignoreCscGsc:
                 asmout << "loc: ";
 
                 uint32_t* loc = reinterpret_cast<uint32_t*>(val + 1);
-                asmout << flocName(loc[0]);
+                asmout << ctx.GetFLocName(loc[0]);
                 for (size_t j = 1; j < val->num_address; j++) {
-                    asmout << "," << flocName(loc[j]);
+                    asmout << "," << ctx.GetFLocName(loc[j]);
                 }
 
                 asmout << "\n";
@@ -1833,9 +1662,9 @@ ignoreCscGsc:
                 asmout << "location(s): ";
 
                 const auto* strings = reinterpret_cast<const uint32_t*>(&str[1]);
-                asmout << flocName(strings[0]);
+                asmout << ctx.GetFLocName(strings[0]);
                 for (size_t j = 1; j < str->num_address; j++) {
-                    asmout << "," << flocName(strings[j]);
+                    asmout << "," << ctx.GetFLocName(strings[j]);
                 }
                 asmout << "\n";
                 str_location += sizeof(*str) + sizeof(*strings) * str->num_address;
@@ -2002,9 +1831,9 @@ ignoreCscGsc:
             asmout << "location(s): ";
 
             const auto* vars = reinterpret_cast<const uint32_t*>(&globalvar[1]);
-            asmout << std::hex << flocName(vars[0]);
+            asmout << std::hex << ctx.GetFLocName(vars[0]);
             for (size_t j = 1; j < globalvar->num_address; j++) {
-                asmout << std::hex << "," << flocName(vars[j]);
+                asmout << std::hex << "," << ctx.GetFLocName(vars[j]);
             }
             asmout << "\n";
             gvars_location += sizeof(*globalvar) + sizeof(*vars) * globalvar->num_address;
@@ -2107,9 +1936,9 @@ ignoreCscGsc:
             asmout << "location(s): ";
 
             const auto* imports = reinterpret_cast<const uint32_t*>(import_location + impSize);
-            asmout << std::hex << flocName(imports[0]);
+            asmout << std::hex << ctx.GetFLocName(imports[0]);
             for (size_t j = 1; j < numAddress; j++) {
-                asmout << std::hex << "," << flocName(imports[j]) << "(0x" << imports[j] << ")";
+                asmout << std::hex << "," << ctx.GetFLocName(imports[j]) << "(0x" << imports[j] << ")";
             }
             asmout << "\n";
 
@@ -2141,7 +1970,7 @@ ignoreCscGsc:
                         const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
                         asmout << "tree address (" << std::dec << animt->num_tree_address << ", 0x" << std::hex << ((byte*)vars - scriptfile->Ptr()) << "):";
                         for (size_t j = 0; j < animt->num_tree_address; j++) {
-                            asmout << " " << flocName(*(vars++));
+                            asmout << " " << ctx.GetFLocName(*(vars++));
                         }
                         asmout << std::endl;
                         const uint64_t* vars2 = reinterpret_cast<const uint64_t*>(vars);
@@ -2153,7 +1982,7 @@ ignoreCscGsc:
                             } else {
                                 char* v = scriptfile->Ptr<char>(vars2[0]);
                                 // why u64?
-                                asmout << " " << flocName((uint32_t)vars2[1]) << ":" << v;
+                                asmout << " " << ctx.GetFLocName((uint32_t)vars2[1]) << ":" << v;
                             }
 
                             vars2 += 2;
@@ -2182,7 +2011,7 @@ ignoreCscGsc:
                     
                         asmout << "#using_animtree(";
 
-                        if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+                        if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
                             asmout << " ";
                         }
 
@@ -2190,7 +2019,7 @@ ignoreCscGsc:
                         utils::PrintFormattedString(asmout, s);
                         asmout << "\"";
 
-                        if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+                        if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
                             asmout << " ";
                         }
 
@@ -2254,7 +2083,7 @@ ignoreCscGsc:
                 continue;
             }
 
-            auto r = ctx.contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, ctx.m_vmInfo->vmMagic, currentPlatform);
+            auto r = ctx.contextes.try_emplace(rname, scriptfile->Ptr(exp->GetAddress()), *scriptfile, ctx, opt, currentNSP, *exp, handle, ctx.m_vmInfo->vmMagic, ctx.currentPlatform);
 
             if (!r.second) {
                 asmout << "Duplicate node "
@@ -2290,9 +2119,9 @@ ignoreCscGsc:
                 }
             }
 
-            DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
+            DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx, 0, nullptr, &currentAnimTree);
 
-            if (asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+            if (asmctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
                 output << "\n";
             }
             else {
@@ -2319,32 +2148,9 @@ ignoreCscGsc:
 
             output << "}\n";
 
-            if (asmctx.useAnimTree && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_ANIM_REAL)) {
-                if (!currentAnimTree || strcmp(currentAnimTree, asmctx.useAnimTree)) {
-                    // new animtree
-                    currentAnimTree = asmctx.useAnimTree;
-
-                    asmout << "#using_animtree(";
-
-                    if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
-                        asmout << " ";
-                    }
-
-                    asmout << "\"";
-                    utils::PrintFormattedString(asmout, currentAnimTree);
-                    asmout << "\"";
-
-                    if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
-                        asmout << " ";
-                    }
-
-                    asmout << ");\n" << std::endl;
-                }
-            }
-
             if (asmctx.m_disableDecompiler) {
                 if (opt.m_dasm || opt.m_func_header_post) {
-                    DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
+                    DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx, 0, nullptr, &currentAnimTree);
                     output << ";\n";
                 }
 
@@ -2359,8 +2165,9 @@ ignoreCscGsc:
 
             if ((!opt.m_dasm || opt.m_dcomp || opt.m_func_header_post) && !asmctx.m_disableDecompiler) {
                 asmctx.ComputeDefaultParamValue();
+
                 if (opt.m_dasm || opt.m_func_header_post) {
-                    DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx);
+                    DumpFunctionHeader(*exp, output, *scriptfile, ctx, asmctx, 0, nullptr, &currentAnimTree);
                 }
                 output << std::flush;
                 DecompContext dctx{ 0, 0, asmctx.m_opt, 0, exp->GetAddress() };
@@ -2416,7 +2223,7 @@ ignoreCscGsc:
                             asmctx.ComputeCustomCompilerPattern();
                         }
                         if (opt.m_dasm) {
-                            if (asmctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                            if (asmctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
                                 output << "\n";
                             }
                             else {
@@ -2436,14 +2243,80 @@ ignoreCscGsc:
         if (!opt.m_dasm && opt.m_dcomp) {
             // current namespace
             currentNSP = 0;
+            currentAnimTree = nullptr;
             int currentPadding{};
             bool inDevBlock{};
+
+            uint64_t constructorName{ ctx.m_vmInfo->HashField("__constructor") };
+            uint64_t destructorName{ ctx.m_vmInfo->HashField("__destructor") };
+
+            
+            auto handleClsAnimTree = [&ctx](uint64_t name, uint64_t method, gscclass& cls) -> bool {
+                NameLocated lname{ name, method };
+
+                auto masmctxit = ctx.contextes.find(lname);
+
+                if (masmctxit == ctx.contextes.end()) {
+                    return true;
+                }
+
+                const char* atr{ masmctxit->second.useAnimTree };
+
+                if (!atr) {
+                    return true; // nothing to check
+                }
+
+                if (!cls.animtree) {
+                    cls.animtree = atr;
+                    cls.hasAnimTrees = true;
+                    return true; // default
+                }
+
+                if (strcmp(cls.animtree, atr)) {
+                    cls.animtree = nullptr;
+                    return false; // no common atr, we can't put it at the top level
+                }
+
+                return true;
+            };
+
+            for (auto& [name, cls] : ctx.m_classes) {
+                if (!handleClsAnimTree(name, constructorName, cls)) continue;
+                if (!handleClsAnimTree(name, destructorName, cls)) continue;
+                for (const auto& method : cls.m_methods) {
+                    if (method == constructorName || method == destructorName) continue; // ignore const/destr
+                    if (!handleClsAnimTree(name, method, cls)) break;
+                }
+            }
 
             for (const auto& [name, cls] : ctx.m_classes) {
                 if (cls.name_space != currentNSP) {
                     currentNSP = cls.name_space;
 
                     asmout << "#namespace " << hashutils::ExtractTmpPath("namespace", currentNSP) << ";\n" << std::endl;
+                }
+
+                if (cls.animtree && (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_ANIM_REAL))) {
+                    if (!currentAnimTree || std::strcmp(currentAnimTree, cls.animtree)) {
+                        currentAnimTree = cls.animtree; // new name
+                        // write animtree
+
+                        asmout << "#using_animtree(";
+
+                        if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+                            asmout << " ";
+                        }
+
+                        asmout << "\"";
+                        utils::PrintFormattedString(asmout, cls.animtree);
+                        asmout << "\"";
+
+                        if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+                            asmout << " ";
+                        }
+
+                        asmout << ");\n" << std::endl;
+                    }
                 }
 
                 asmout << "// Namespace " << hashutils::ExtractTmpPath("namespace", cls.name_space) << std::endl;
@@ -2463,7 +2336,7 @@ ignoreCscGsc:
                     }
                 }
 
-                if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                if (opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
                     asmout << "\n";
                 }
                 else {
@@ -2473,7 +2346,7 @@ ignoreCscGsc:
 
                 
 
-                auto handleMethod = [&currentPadding, &opt, & asmout, & scriptfile, name, &ctx](uint64_t method, const char* forceName, bool ignoreEmpty) -> void {
+                auto handleMethod = [&currentPadding, &opt, &asmout, &scriptfile, name, &ctx, &currentAnimTree](uint64_t method, const char* forceName, bool ignoreEmpty, bool specialMember) -> void {
                     auto lname = NameLocated{ name, method };
 
                     auto masmctxit = ctx.contextes.find(lname);
@@ -2483,12 +2356,15 @@ ignoreCscGsc:
                     }
 
                     auto& e = masmctxit->second;
+
+                    if (specialMember) e.noFunctionPrefix = true;
+
                     // set the export handle
                     e.m_exp.SetHandle(e.m_readerHandle);
                     uint32_t floc = e.m_exp.GetAddress();
 
                     if (e.m_disableDecompiler) {
-                        DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
+                        DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName, &currentAnimTree);
                         asmout << ";\n";
                         return;
                     }
@@ -2497,9 +2373,9 @@ ignoreCscGsc:
                         // ignore empty exports (constructor/destructors)
                         
 
-                        DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName);
+                        DumpFunctionHeader(e.m_exp, asmout, *scriptfile, ctx, e, 1, forceName, &currentAnimTree);
                         DecompContext dctx{ 0, 0, e.m_opt, currentPadding + 1, floc };
-                        if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                        if (opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
                             dctx.WritePadding(asmout << "\n");
                         }
                         else {
@@ -2541,11 +2417,16 @@ ignoreCscGsc:
                 }
 
                 // handle first the constructor/destructor
-                handleMethod(ctx.m_vmInfo->HashField("__constructor"), "constructor", true);
-                handleMethod(ctx.m_vmInfo->HashField("__destructor"), "destructor", true);
+                handleMethod(constructorName, "constructor", true, true);
+                handleMethod(destructorName, "destructor", true, true);
 
                 for (const auto& method : cls.m_methods) {
-                    handleMethod(method, nullptr, false);
+                    handleMethod(method, nullptr, false, false);
+                }
+
+                if (cls.hasAnimTrees && !cls.animtree) {
+                    // we need to cleanup the animtree using because it is not scoped anymore
+                    currentAnimTree = nullptr;
                 }
 
                 asmout << "}\n\n";
@@ -2673,8 +2554,8 @@ ignoreCscGsc:
                 DecompContext dctx{ 0, 0, asmctx.m_opt, currentPadding, exp->GetAddress() };
 
                 if (asmctx.m_disableDecompiler) {
-                    DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding);
-                    if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                    DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding, nullptr, &currentAnimTree);
+                    if (opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
                         dctx.WritePadding(asmout << "\n");
                     }
                     else {
@@ -2688,8 +2569,8 @@ ignoreCscGsc:
                     continue;
                 }
 
-                DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding);
-                if (opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+                DumpFunctionHeader(*exp, asmout, *scriptfile, ctx, asmctx, currentPadding, nullptr, &currentAnimTree);
+                if (opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
                     dctx.WritePadding(asmout << "\n");
                 }
                 else {
@@ -2776,7 +2657,7 @@ ignoreCscGsc:
                 gdbpos << "#";
 
                 for (const uint32_t floc : flocs) {
-                    gdbpos << " " << flocName(floc);
+                    gdbpos << " " << ctx.GetFLocName(floc);
                 }
 
                 gdbpos
@@ -2802,7 +2683,7 @@ ignoreCscGsc:
                 ;
             for (auto& floc : ctx.m_devblocks) {
                 gdbpos
-                    << "# " << flocName(floc) << "\n"
+                    << "# " << ctx.GetFLocName(floc) << "\n"
                     << "DEVBLOCK 0x" << std::hex << floc << "\n";
             }
         }
@@ -2816,7 +2697,7 @@ ignoreCscGsc:
                 gdbpos << "#";
 
                 for (const uint32_t floc : flocs) {
-                    gdbpos << " " << flocName(floc);
+                    gdbpos << " " << ctx.GetFLocName(floc);
                 }
 
                 gdbpos
@@ -3326,7 +3207,7 @@ int tool::gsc::DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler
     cls.name_space = exp.GetNamespace();
 
     clsName += 4;
-    if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+    if (ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
         out << "\n";
     }
     else {
@@ -3550,18 +3431,41 @@ std::unique_ptr<GSCExportReader> tool::gsc::CreateExportReader(VmInfo* vmInfo) {
     }
 }
 
-void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, int padding, const char* forceName) {
+void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, ASMContext& ctx, int padding, const char* forceName, const char** currentAnimTree) {
     auto remapedFlags = gscFile.RemapFlagsExport(exp.GetFlags());
     bool classMember = remapedFlags & (T8GSCExportFlags::CLASS_MEMBER | T8GSCExportFlags::CLASS_DESTRUCTOR);
 
     auto detourVal = objctx.m_gsicInfo.detours.find(exp.GetAddress());
     bool isDetour = detourVal != objctx.m_gsicInfo.detours.end();
 
-    tool::gsc::formatter::FormatterFlags headerFormat = tool::gsc::formatter::GetHeaderFormat(ctx.m_opt.m_formatter->flags);
+    tool::gsc::formatter::FormatterFlags headerFormat{ ctx.m_opt.m_formatter->GetHeaderFormat() };
+
+    if (ctx.useAnimTree && (objctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_ANIM_REAL))) {
+        if (!currentAnimTree || !*currentAnimTree || std::strcmp(*currentAnimTree, ctx.useAnimTree)) {
+            if (currentAnimTree) *currentAnimTree = ctx.useAnimTree; // new name
+            // write animtree
+
+            utils::Padding(asmout, padding) << "#using_animtree(";
+
+            if (objctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+                asmout << " ";
+            }
+
+            asmout << "\"";
+            utils::PrintFormattedString(asmout, ctx.useAnimTree);
+            asmout << "\"";
+
+            if (objctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+                asmout << " ";
+            }
+
+            asmout << ");\n" << std::endl;
+        }
+    }
 
     if (ctx.m_opt.m_func_header && headerFormat != tool::gsc::formatter::FFL_FUNC_HEADER_FORMAT_NONE) {
         const char* prefix;
-        if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
+        if (ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS)) {
             utils::Padding(asmout, padding) << "/*\n";
             padding++;
             prefix = "";
@@ -3744,7 +3648,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             break;
         }
         }
-        if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS) {
+        if (ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_ONE_LINE_HEADER_COMMENTS)) {
             padding--;
             utils::Padding(asmout, padding) << "*/\n";
         }
@@ -3755,7 +3659,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
     utils::Padding(asmout, padding);
     
-    if (!specialClassMember && !(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_FUNCTION_TITLE)) {
+    if (!specialClassMember && !ctx.noFunctionPrefix && !(ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_FUNCTION_TITLE))) {
         asmout << "function ";
     }
     if (remapedFlags & T8GSCExportFlags::PRIVATE) {
@@ -3805,7 +3709,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
 
     // local var size = <empty>, <params>, <localvars> so we need to check that we have at least param_count + 1
     if (ctx.m_localvars.size() > exp.GetParamCount()) {
-        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS))) {
             asmout << " ";
         }
 
@@ -3850,7 +3754,7 @@ void tool::gsc::DumpFunctionHeader(GSCExportReader& exp, std::ostream& asmout, G
             }
         }
 
-        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+        if (exp.GetParamCount() && (ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS))) {
             asmout << " ";
         }
     }
@@ -3861,30 +3765,33 @@ static bool ReadDbgFile(const std::filesystem::path& path, std::string& buffer) 
     std::filesystem::path dbgPath{ path };
     std::string ext{ path.extension().string() };
     
+    auto TestLoad = [&buffer, &path](const char* ext) -> bool {
+        std::filesystem::path dbgPath{ path };
+        dbgPath.replace_extension(ext);
+        if (!utils::ReadFile(dbgPath, buffer)) {
+            return false;
+        }
+
+        LOG_INFO("Loaded debug data {}", dbgPath.string());
+        return true;
+    };
+
     if (ext == ".gscc") {
-        dbgPath.replace_extension(".gscgdbc");
+        if (TestLoad(".gsc.gdb") || TestLoad(".gscgdbc")) return true;
     }
     else if (ext == ".cscc") {
-        dbgPath.replace_extension(".cscgdbc");
+        if (TestLoad(".csc.gdb") || TestLoad(".cscgdbc")) return true;
     }
     else if (ext == ".gscbin") {
-        dbgPath.replace_extension(".gscbingdbc");
+        if (TestLoad(".gscbin.gdb") || TestLoad(".gscbingdbc")) return true;
     }
     else if (ext == ".gshc") {
-        dbgPath.replace_extension(".gshgdbc");
+        if (TestLoad(".gsh.gdb") || TestLoad(".gshgdbc")) return true;
     }
     else if (ext == ".cshc") {
-        dbgPath.replace_extension(".cshgdbc");
-    } else {
-        return false;
+        if (TestLoad(".csh.gdb") || TestLoad(".cshgdbc")) return true;
     }
-
-    if (!utils::ReadFile(dbgPath, buffer)) {
-        return false;
-    }
-
-    LOG_INFO("Loaded debug data {}", dbgPath.string());
-    return true;
+    return false;
 }
 
 int tool::gsc::gscinfo(Process& proc, int argc, const char* argv[]) {

@@ -8,7 +8,7 @@ namespace tool::gsc::opcode {
 
 	inline bool IsBlockInlineable(const ASMContextNodeBlock* blk, const tool::gsc::GscInfoOption& opt) {
 		if (!blk) return false;
-		if ((opt.m_formatter->flags & tool::gsc::formatter::FFL_BLOCK_INLINE) && blk->m_allowInline) {
+		if ((opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_BLOCK_INLINE)) && blk->m_allowInline) {
 			size_t count{};
 			for (size_t i = 0; i < blk->m_statements.size(); i++) {
 				if (blk->m_statements[i].node->m_type != TYPE_PRECODEPOS && count++) {
@@ -183,7 +183,7 @@ namespace tool::gsc::opcode {
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			for (size_t i = 0; i < count; i++) {
@@ -192,7 +192,7 @@ namespace tool::gsc::opcode {
 				nodes[i]->Dump(out, ctx);;
 			}
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
@@ -237,7 +237,7 @@ namespace tool::gsc::opcode {
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			m_x->Dump(out, ctx);
@@ -246,7 +246,7 @@ namespace tool::gsc::opcode {
 			out << ", ";
 			m_z->Dump(out, ctx);
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
@@ -429,11 +429,11 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			if (m_operandleft->m_priority < m_priority) {
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_operandleft->Dump(out, ctx);
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
@@ -443,12 +443,12 @@ namespace tool::gsc::opcode {
 			}
 			out << "[";
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			m_operandright->Dump(out, ctx);
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << "]";
@@ -524,7 +524,7 @@ namespace tool::gsc::opcode {
 			out << "[";
 
 			if (m_operands.size()) {
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 
@@ -540,7 +540,7 @@ namespace tool::gsc::opcode {
 						item->Dump(out, ctx);
 					}
 				}
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 			}
@@ -593,7 +593,7 @@ namespace tool::gsc::opcode {
 			out << "{";
 
 			if (m_operands.size()) {
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 
@@ -602,7 +602,7 @@ namespace tool::gsc::opcode {
 					m_operands[i]->Dump(out, ctx);
 				}
 
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 			}
@@ -774,7 +774,7 @@ namespace tool::gsc::opcode {
 
 			out << "(";
 			if (start < m_operands.size()) {
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 
@@ -785,7 +785,7 @@ namespace tool::gsc::opcode {
 					m_operands[i]->Dump(out, ctx);
 				}
 
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 			}
@@ -823,12 +823,12 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			if (m_operand1->m_priority < m_priority) {
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_operand1->Dump(out, ctx);
 
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
@@ -841,11 +841,11 @@ namespace tool::gsc::opcode {
 
 			if (m_operand2->m_priority < m_priority) {
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_operand2->Dump(out, ctx);
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
@@ -858,11 +858,11 @@ namespace tool::gsc::opcode {
 
 			if (m_operand3->m_priority < m_priority) {
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_operand3->Dump(out, ctx);
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
@@ -910,11 +910,11 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			if (m_operand1->m_priority < m_priority) {
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_operand1->Dump(out, ctx);
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
@@ -927,11 +927,11 @@ namespace tool::gsc::opcode {
 
 			if (m_operand2->m_priority < m_priority) {
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_operand2->Dump(out, ctx);
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
@@ -985,11 +985,11 @@ namespace tool::gsc::opcode {
 			}
 			if (m_operand->m_priority < m_priority) {
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_operand->Dump(out, ctx);
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
@@ -1072,7 +1072,7 @@ namespace tool::gsc::opcode {
 			if (!m_noParenthesis) {
 				out << "(";
 
-				if (start < m_operands.size() && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+				if (start < m_operands.size() && (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS))) {
 					out << " ";
 				}
 			}
@@ -1089,7 +1089,7 @@ namespace tool::gsc::opcode {
 			}
 
 			if (!m_noParenthesis) {
-				if (start < m_operands.size() && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+				if (start < m_operands.size() && (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS))) {
 					out << " ";
 				}
 				out << ")";
@@ -1143,12 +1143,12 @@ namespace tool::gsc::opcode {
 			out << m_operatorName;
 			out << "(";
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			m_operand->Dump(out, ctx);
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
@@ -1227,7 +1227,7 @@ namespace tool::gsc::opcode {
 					if (fakeIf) {
 						out << "if";
 
-						if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+						if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 							out << " ";
 						}
 					}
@@ -1402,23 +1402,23 @@ namespace tool::gsc::opcode {
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "switchpre(";
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			m_node->Dump(out, ctx);
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 				ctx.WritePadding(out << "\n", true);
 			}
 			else {
 				out << " ";
 			}
 			out << "{\n";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SWITCH_PAD_CASES)) {
 				ctx.padding++;
 			}
 
@@ -1434,7 +1434,7 @@ namespace tool::gsc::opcode {
 			}
 
 			ctx.WritePadding(out, true) << "end: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << m_endLocation << ";\n";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SWITCH_PAD_CASES)) {
 				ctx.padding--;
 			}
 			//
@@ -1489,19 +1489,19 @@ namespace tool::gsc::opcode {
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "switch";
-			if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 				out << " ";
 			}
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			m_node->Dump(out, ctx);
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 				ctx.WritePadding(out << "\n", true);
 			}
 			else {
@@ -1509,7 +1509,7 @@ namespace tool::gsc::opcode {
 			}
 			out << "{\n";
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SWITCH_PAD_CASES)) {
 				ctx.padding++;
 			}
 
@@ -1533,16 +1533,16 @@ namespace tool::gsc::opcode {
 					out << "\n";
 				}
 				else {
-					if ((ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) && (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS)) {
+					if ((ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) && (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS))) {
 						ctx.WritePadding(out << "\n", true);
 					}
 					cs.block->Dump(out, ctx);
-					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS_PADDING) {
+					if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS_PADDING)) {
 						ctx.WritePadding(out, true) << "\n";
 					}
 				}
 			}
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_PAD_CASES) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SWITCH_PAD_CASES)) {
 				ctx.padding--;
 			}
 
@@ -1594,11 +1594,11 @@ namespace tool::gsc::opcode {
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "foreach";
-			if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 				out << " ";
 			}
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			if (m_key) {
@@ -1606,11 +1606,11 @@ namespace tool::gsc::opcode {
 			}
 			out << hashutils::ExtractTmp("var", m_item) << std::flush << " in ";
 			m_arrayNode->Dump(out, ctx);
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 				ctx.WritePadding(out << "\n", true);
 			}
 			else {
@@ -1678,11 +1678,11 @@ namespace tool::gsc::opcode {
 				}
 				out << ">";
 			} 
-			else if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			else if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 				out << " ";
 			}
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			m_init->Dump(out, ctx);
@@ -1690,16 +1690,16 @@ namespace tool::gsc::opcode {
 			if (m_cond) {
 				m_cond->Dump(out, ctx);
 			}
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << "; ";
 			m_delta->Dump(out, ctx);
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 				ctx.WritePadding(out << "\n", true);
 			}
 			else {
@@ -1774,7 +1774,7 @@ namespace tool::gsc::opcode {
 				out << ">";
 			}
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 				ctx.WritePadding(out << "\n", true);
 			}
 			else {
@@ -1785,7 +1785,7 @@ namespace tool::gsc::opcode {
 			ctx.WritePadding(out, true) << "}";
 
 
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 				ctx.WritePadding(out << "\n", true);
 			}
 			else {
@@ -1793,15 +1793,15 @@ namespace tool::gsc::opcode {
 			}
 
 			out << "while";
-			if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 				out << " ";
 			}
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			m_condition->Dump(out, ctx);
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
@@ -1868,19 +1868,19 @@ namespace tool::gsc::opcode {
 					}
 					out << ">";
 				}
-				else if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+				else if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 					out << " ";
 				}
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				m_condition->Dump(out, ctx);
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 					ctx.WritePadding(out << "\n", true);
 				}
 				else {
@@ -1902,17 +1902,17 @@ namespace tool::gsc::opcode {
 					}
 					out << ">";
 				}
-	 else if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+	 else if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 	  out << " ";
 	}
-	if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+	if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 		out << "( ;; )";
 	}
 	else {
 		out << "(;;)";
 	}
 
-	if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+	if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 		ctx.WritePadding(out << "\n", true);
 	}
 	else {
@@ -1980,11 +1980,11 @@ namespace tool::gsc::opcode {
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
 			out << "if";
-			if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+			if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 				out << " ";
 			}
 			out << "(";
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			if (m_condition) {
@@ -1993,14 +1993,14 @@ namespace tool::gsc::opcode {
 			else {
 				out << "<error_no_condition>";
 			}
-			if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+			if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 				out << " ";
 			}
 			out << ")";
 
 			bool lastInlineable = IsBlockInlineable(m_ifblock, ctx.opt);
 			if (!lastInlineable) {
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 					ctx.WritePadding(out << "\n", true);
 				}
 				else {
@@ -2025,7 +2025,7 @@ namespace tool::gsc::opcode {
 				auto* ifb = static_cast<ASMContextNodeIfElse*>(ref);
 				if (!lastInlineable) {
 					ctx.WritePadding(out, true) << "}";
-					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+					if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 						ctx.WritePadding(out << "\n", true);
 					}
 					else {
@@ -2037,11 +2037,11 @@ namespace tool::gsc::opcode {
 				}
 
 				out << "else if";
-				if (!(ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL)) {
+				if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 					out << " ";
 				}
 				out << "(";
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				if (ifb->m_condition) {
@@ -2050,13 +2050,13 @@ namespace tool::gsc::opcode {
 				else {
 					out << "<error_no_condition>";
 				}
-				if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS) {
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
 					out << " ";
 				}
 				out << ")";
 				lastInlineable = IsBlockInlineable(ifb->m_ifblock, ctx.opt);
 				if (!lastInlineable) {
-					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+					if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 						ctx.WritePadding(out << "\n", true);
 					}
 					else {
@@ -2076,7 +2076,7 @@ namespace tool::gsc::opcode {
 				if (!lastInlineable) {
 					ctx.WritePadding(out, true) << "}";
 
-					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+					if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 						ctx.WritePadding(out << "\n", true);
 					}
 					else {
@@ -2090,7 +2090,7 @@ namespace tool::gsc::opcode {
 				out << "else";
 				lastInlineable = IsBlockInlineable(elseBlock, ctx.opt);
 				if (!lastInlineable) {
-					if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START) {
+					if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
 						ctx.WritePadding(out << "\n", true);
 					}
 					else {

@@ -14,6 +14,7 @@ namespace tool::gsc::gdb {
 		uint32_t stringtable_offset;
 		uint32_t stringtable_count;
 	};
+	static_assert(sizeof(GSC_GDB) == 0x28);
 
 	struct GSC_LINEINFO {
 		uint32_t offset;

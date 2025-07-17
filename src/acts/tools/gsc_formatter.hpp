@@ -34,13 +34,21 @@ namespace tool::gsc::formatter {
 		// space between if/for/while/switch and (
 		// space between () and { (if inline)
 		// one line header comments
+
+		// Check if the format has a flag
+		constexpr bool HasFlag(uint64_t flag) const {
+			return (flags & flag) == flag;
+		}
+
+		// get the func header format
+		constexpr FormatterFlags GetHeaderFormat() const {
+			return (FormatterFlags)(flags & FFL_FUNC_HEADER_FORMAT_MASK);
+		}
 	};
 
-	constexpr FormatterFlags GetHeaderFormat(uint64_t flags) {
-		return (FormatterFlags)(flags & FFL_FUNC_HEADER_FORMAT_MASK);
-	}
 
-	const FormatterInfo& GetFromName(const char* name = nullptr);
+	const FormatterInfo& GetDefaultFormatter();
+	const FormatterInfo& GetFromName(const char* name);
 	const std::vector<FormatterInfo*>& GetFormatters();
 
 }

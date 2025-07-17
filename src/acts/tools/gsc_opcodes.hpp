@@ -36,6 +36,7 @@ namespace tool::gsc::opcode {
 		VMF_ISTRING_HASHED = 1 << 27,
 		VMF_FUNC_REF_24 = 1 << 28,
 		VMF_SWITCH_32 = 1 << 29,
+		VMF_UNIQUE_HASH = 1 << 30,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,
@@ -135,6 +136,7 @@ namespace tool::gsc::opcode {
 		uint64_t HashField(const char* value) const;
 		uint64_t HashPath(const char* value) const;
 		uint64_t HashFilePath(const char* value) const;
+		bool IsScrHash(uint64_t hash) const;
 
 		inline uint64_t HashField(const std::string& value) const {
 			return HashField(value.c_str());

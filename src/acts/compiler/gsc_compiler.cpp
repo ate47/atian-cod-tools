@@ -1004,7 +1004,7 @@ namespace acts::compiler {
             start++;
         }
 
-        auto newStr = std::make_unique<char[]>(end - start + 1);
+        std::unique_ptr<char[]> newStr = std::make_unique<char[]>(end - start + 1);
         char* newStrWriter = &newStr[0];
 
         // format string
@@ -1305,6 +1305,7 @@ namespace acts::compiler {
     public:
         uint32_t location{};
         size_t forceLen{};
+        bool devString{};
         std::vector<uint32_t*> listeners{};
         std::vector<AscmNodeData<uint32_t>*> nodes{};
     };
@@ -1573,6 +1574,25 @@ namespace acts::compiler {
 
             currentNamespace = fileNameSpace;
         }
+
+        StringObject& RegisterString(const char* str) {
+            StringObject& obj{ strings[str] };
+
+            if (obj.nodes.empty()) {
+                obj.devString = devBlockDepth > 0;
+            }
+            else if (obj.devString) {
+                // we need to check this string is still a dev one
+                obj.devString = devBlockDepth > 0;
+            }
+
+            return obj;
+        }
+
+        StringObject& RegisterString(const std::string& str) {
+            return RegisterString(str.data());
+        }
+
         void AddHash(const char* str) {
             if (!hash::HashPattern(str)) {
                 hashes.insert(str);
@@ -2066,8 +2086,8 @@ namespace acts::compiler {
 
                 const char* crcStr = utils::va("%lld", config.checksum);
 
-                StringObject& strdef = strings[crcStr];
-                auto* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
+                StringObject& strdef = RegisterString(crcStr);
+                AscmNodeData<uint32_t>* getstr = new AscmNodeData<uint32_t>(0xFFFFFFFF, OPCODE_GetString);
                 strdef.nodes.push_back(getstr);
                 // add some padding so we can patch the crc at runtime (maybe one day it'll be 64 bits?)
                 strdef.forceLen = CRC_LEN_PADDING;
@@ -2279,7 +2299,7 @@ namespace acts::compiler {
             // compile strings
 
             for (auto& [key, strobj] : strings) {
-                // TODO: check vm, in mwiii it's not the same
+                if (strobj.devString) continue; // ignore dev strings
                 strobj.location = (uint32_t)data.size();
                 for (uint32_t* lis : strobj.listeners) {
                     *lis = strobj.location;
@@ -2301,8 +2321,8 @@ namespace acts::compiler {
             size_t stringRefs = data.size();
             size_t stringCount{};
 
-
             for (auto& [key, strobj] : strings) {
+                if (strobj.devString) continue; // ignore dev strings
                 size_t w{};
                 while (w < strobj.nodes.size()) {
                     if (w % 0xFF == 0) {
@@ -2642,6 +2662,26 @@ namespace acts::compiler {
                                 f.lineEnd = block.startLine + block.sizeLine;
                             }
                         }
+
+                        for (auto& [key, strobj] : strings) {
+                            if (!strobj.devString) continue; // ignore dev strings
+                            strobj.location = (uint32_t)dbgdata.size();
+                            for (uint32_t* lis : strobj.listeners) {
+                                *lis = strobj.location;
+                            }
+
+                            auto [strHeader, strHeaderSize] = gscHandler->GetStringHeader(key.length());
+
+                            utils::WriteValue(dbgdata, (void*)strHeader, strHeaderSize);
+
+                            utils::WriteString(dbgdata, key.c_str());
+                            // add bytes to the string
+                            if (key.length() < strobj.forceLen) {
+                                for (size_t i = key.length(); i < strobj.forceLen; i++) {
+                                    dbgdata.push_back(0);
+                                }
+                            }
+                        }
                     }
 
                     uint32_t detoursLoc{};
@@ -2715,6 +2755,27 @@ namespace acts::compiler {
                 utils::WriteString(data, fileNameStr ? fileNameStr : "");
             }
 
+
+            size_t devStringRefs = data.size();
+            size_t devStringCount{};
+            for (auto& [key, strobj] : strings) {
+                if (!strobj.devString) continue; // ignore normal strings
+                size_t w{};
+                while (w < strobj.nodes.size()) {
+                    if (w % 0xFF == 0) {
+                        size_t buff = utils::Allocate(data, gscHandler->GetStringSize());
+                        tool::gsc::T8GSCString str{};
+                        str.string = strobj.location;
+                        str.type = 0;
+                        str.num_address = (byte)((strobj.nodes.size() - w) > 0xFF ? 0xFF : (strobj.nodes.size() - w));
+                        gscHandler->WriteString(&data[buff], str);
+                        devStringCount++;
+                    }
+                    utils::WriteValue<uint32_t>(data, strobj.nodes[w++]->GetDataFLoc(vmInfo->HasFlag(VmFlags::VMF_ALIGN)));
+                }
+            }
+
+
             // compile header
             gscHandler->SetFile((byte*)data.data() + headerLoc, 0);
 
@@ -2732,6 +2793,9 @@ namespace acts::compiler {
 
             gscHandler->SetStringsCount((int16_t)stringCount);
             gscHandler->SetStringsOffset((int32_t)stringRefs);
+
+            gscHandler->SetDevStringsCount((int16_t)devStringCount);
+            gscHandler->SetDevStringsOffset((int32_t)devStringRefs);
 
             if (gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
                 gscHandler->SetGVarsCount((int16_t)gvarCount);
@@ -5551,7 +5615,7 @@ namespace acts::compiler {
         }
         case gscParser::STRING: {
             std::string node = term->getText();
-            auto newStr = std::make_unique<char[]>(node.length() - 1);
+            std::unique_ptr<char[]> newStr = std::make_unique<char[]>(node.length() - 1);
             char* newStrWriter = &newStr[0];
 
             // format string
@@ -5586,7 +5650,7 @@ namespace acts::compiler {
             *(newStrWriter++) = 0; // end char
 
             // link by the game
-            auto* asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_GetString);
+            AscmNodeData<uint32_t>* asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_GetString);
             fobj.AddNode(term, asmc);
 
             std::string key{ &newStr[0]};
@@ -5596,7 +5660,7 @@ namespace acts::compiler {
                 return false;
             }
 
-            auto& str = obj.strings[key];
+            StringObject& str = obj.RegisterString(key);
             str.nodes.push_back(asmc);
             return true;
         }
@@ -5610,7 +5674,7 @@ namespace acts::compiler {
                 obj.AddHash(reshash);
             } else {
                 // link by the game
-                auto* asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_IW_GetIString);
+                AscmNodeData<uint32_t>* asmc = new AscmNodeData<uint32_t>(0x12345678, OPCODE_IW_GetIString);
                 fobj.AddNode(term, asmc);
 
                 if (node.length() >= 256) {
@@ -5618,7 +5682,7 @@ namespace acts::compiler {
                     return false;
                 }
 
-                auto& str = obj.strings[node];
+                StringObject& str = obj.RegisterString(node);
                 str.nodes.push_back(asmc);
             }
             return true;
@@ -5649,7 +5713,7 @@ namespace acts::compiler {
         if (func->children[idx]->getText() == ":") {
             do {
                 idx++;
-                auto* idf{ func->children[idx++] };
+                ParseTree* idf{ func->children[idx++] };
                 LOG_TRACE("parent: {}", idf->getText());
             } while (func->children[idx]->getText() != "{");
             // todo: parse parent classes
@@ -5665,7 +5729,7 @@ namespace acts::compiler {
         idx++;
 
         while (IS_RULE_TYPE(func->children[idx], gscParser::RuleClass_var)) {
-            auto* v{ func->children[idx++] };
+            ParseTree* v{ func->children[idx++] };
             std::string varName = func->children[1]->getText();
             obj.AddHash(varName);
             uint64_t varNameHash = obj.vmInfo->HashField(varName);
@@ -5684,7 +5748,7 @@ namespace acts::compiler {
         }
 
         while (IS_RULE_TYPE(func->children[idx], gscParser::RuleFunction)) {
-            auto* f{ func->children[idx++] };
+            ParseTree* f{ func->children[idx++] };
 
         }
 
@@ -5797,8 +5861,8 @@ namespace acts::compiler {
         int deltaArrow = (func->children.size() > 2 && func->children[func->children.size() - 2]->getText() == "=>") ? 1 : 0;
         bool hasName = func->children.size() > (4 + deltaArrow) && IS_IDF(func->children[(size_t)(func->children.size() - 5 - deltaArrow)]);
 
-        auto* paramsRule = func->children[(size_t)(func->children.size() - 3 - deltaArrow)];
-        auto* blockRule = func->children[(size_t)(func->children.size() - 1)];
+        ParseTree* paramsRule = func->children[(size_t)(func->children.size() - 3 - deltaArrow)];
+        ParseTree* blockRule = func->children[(size_t)(func->children.size() - 1)];
     
         std::string name = hasName ? 
             func->children[(size_t)(func->children.size() - (5 + deltaArrow))]->getText() 
@@ -5896,7 +5960,7 @@ namespace acts::compiler {
                     return nullptr;
                 }
                 exp.m_flags |= tool::gsc::T8GSCExportFlags::EVENT;
-                auto* ev = func->children[i += 2];
+                ParseTree* ev = func->children[i += 2];
                 i++; // ']'
                 if (ev->getTreeType() != TREE_TERMINAL) {
                     obj.info.PrintLineMessage(core::logs::LVL_ERROR, ev, std::format("Bad event for {}", name));
@@ -5912,18 +5976,18 @@ namespace acts::compiler {
 
         // handle params
 
-        auto* params = dynamic_cast<gscParser::Param_listContext*>(paramsRule);
+        gscParser::Param_listContext* params = dynamic_cast<gscParser::Param_listContext*>(paramsRule);
 
         size_t index = 0;
         bool varargDetected{};
 
-        for (auto* child : params->children) {
+        for (ParseTree* child : params->children) {
             if (index++ % 2) {
                 continue; // ','
             }
 
             assert(IS_RULE_TYPE(child, gscParser::RuleParam_val));
-            auto* param = dynamic_cast<gscParser::Param_valContext*>(child);
+            gscParser::Param_valContext* param = dynamic_cast<gscParser::Param_valContext*>(child);
 
             if (varargDetected) {
                 obj.info.PrintLineMessage(core::logs::LVL_ERROR, child, "Can't register param after a vararg");
@@ -5979,7 +6043,7 @@ namespace acts::compiler {
 
                 // skip modifier
                 idfNode = dynamic_cast<TerminalNode*>(param->children[1]);
-                auto modifier = param->children[0]->getText();
+                std::string modifier = param->children[0]->getText();
                 if (modifier == "*") {
                     // ptr (T9)
                     if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_VAR_PTR)) {
@@ -6004,7 +6068,7 @@ namespace acts::compiler {
             else {
                 idfNode = dynamic_cast<TerminalNode*>(param->children[0]);
             }
-            auto paramIdf = idfNode->getText();
+            std::string paramIdf = idfNode->getText();
 
             if (exp.m_params == 256) {
                 obj.info.PrintLineMessage(core::logs::LVL_ERROR, idfNode, std::format("Can't register param '{}': too many params", paramIdf));
@@ -6037,7 +6101,7 @@ namespace acts::compiler {
                     exp.AddNode(defaultValueExp, new AscmNodeVariable(vardef->id, OPCODE_EvalLocalVariableCached));
                     exp.AddNode(defaultValueExp, new AscmNodeOpCode(OPCODE_IsDefined));
                 }
-                auto* afterNode = new AscmNode();
+                AscmNode* afterNode = new AscmNode();
                 exp.AddNode(defaultValueExp, new AscmNodeJump(afterNode, OPCODE_JumpOnTrue));
                 if (!ParseExpressionNode(defaultValueExp, parser, obj, exp, true)) {
                     obj.info.PrintLineMessage(core::logs::LVL_ERROR, defaultValueExp, std::format("Can't create expression node for variable {}", paramIdf));
@@ -6215,10 +6279,10 @@ namespace acts::compiler {
             return false;
         }
 
-        auto* eof = prog->EOF();
+        TerminalNode* eof = prog->EOF();
 
         // find the first namespace (used for multifile inputs)
-        for (auto* es : prog->children) {
+        for (ParseTree* es : prog->children) {
             if (es == eof) {
                 break;
             }
@@ -6246,7 +6310,7 @@ namespace acts::compiler {
         }
 
         obj.devBlockDepth = 0;
-        for (auto& es : prog->children) {
+        for (ParseTree* es : prog->children) {
             if (es == eof) {
                 break; // done
             }
@@ -6388,7 +6452,7 @@ namespace acts::compiler {
 
             std::vector<std::filesystem::path> files{};
             for (const std::filesystem::path& file : inputs) {
-                auto ext = file.extension();
+                std::filesystem::path ext = file.extension();
                 if (client) {
                     if (ext != ".csc" && ext != ".gcsc") {
                         continue;
@@ -6428,7 +6492,7 @@ namespace acts::compiler {
             }
             
             const char* outFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscc" : "gscc")};
-            const char* dbgOutFile{ utils::va("%s.%s", opt.m_outFileName, client ? "cscgdbc" : "gscgdbc")};
+            const char* dbgOutFile{ utils::va("%s.%s", opt.m_outFileName, client ? "csc.gdb" : "gsc.gdb")};
             std::filesystem::path outPath{ outFile };
 
             if (outPath.has_parent_path()) {
@@ -6482,7 +6546,7 @@ namespace acts::compiler {
                 utils::GetFileRecurse(base, inputs);
 
                 for (const std::filesystem::path& path : inputs) {
-                    auto ext{ path.extension() };
+                    std::filesystem::path ext{ path.extension() };
                     if (ext != ".gsc" && ext != ".csc" && ext != ".gcsc" && ext != ".gcsc") continue;
                     doneFiles++;
 
@@ -6648,7 +6712,7 @@ namespace acts::compiler {
 
         ANTLRInputStream is{ info.container.data };
 
-        auto errList = std::make_unique<ACTSErrorListener>(info);
+        std::unique_ptr<ACTSErrorListener> errList = std::make_unique<ACTSErrorListener>(info);
 
         gscLexer lexer{ &is };
         lexer.addErrorListener(&*errList);
@@ -6673,7 +6737,7 @@ namespace acts::compiler {
 
         CompileObject obj{ config, config.clientScript ? FILE_CSC : FILE_GSC, info, handler };
 
-        auto error = parser.getNumberOfSyntaxErrors();
+        size_t error = parser.getNumberOfSyntaxErrors();
         if (error) {
             throw std::runtime_error(std::format("{} error(s) detected, abort", error));
         }

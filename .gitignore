@@ -79,6 +79,8 @@ bgpool
 *.cscasmp
 *.gscgdb
 *.cscgdb
+*.gsc.gdb
+*.csc.gdb
 *.gscgdbc
 *.cscgdbc
 # compiler lua files

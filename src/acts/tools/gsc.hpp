@@ -491,6 +491,7 @@ namespace tool::gsc {
             std::vector<ASMContextDevBlock> m_devBlocks{};
             // used animtree
             const char* useAnimTree{};
+            bool noFunctionPrefix{};
             // if this function is a dev function candidate
             bool m_devFuncCandidate{};
             bool m_boolFuncCandidate{};
@@ -791,6 +792,8 @@ namespace tool::gsc {
     };
     struct gscclass {
         uint64_t name_space = 0;
+        bool hasAnimTrees{};
+        const char* animtree{};
         std::set<uint64_t> m_superClass{};
         std::vector<uint64_t> m_methods{};
         std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals> m_vtableMethods{};
@@ -857,6 +860,11 @@ namespace tool::gsc {
         std::set<uint32_t> m_devblocks{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
+        byte* dbgData{};
+        size_t dbgSize{};
+        tool::gsc::opcode::Platform currentPlatform{};
+        std::shared_ptr<GSCOBJHandler> scriptfile{};
+        std::unique_ptr<GSCExportReader> exp{};
         std::unordered_map<uint64_t, gscclass> m_classes{};
         tool::gsc::gdb::ACTS_GSC_GDB* gdbctx{};
         const tool::gsc::formatter::FormatterInfo* m_formatter{};
@@ -926,6 +934,12 @@ namespace tool::gsc {
          * @return allocated string
          */
         char* CloneString(const char* str);
+        /*
+         * Get file location name
+         * @param floc file location
+         * @return render name
+         */
+        const char* GetFLocName(uint32_t floc) const;
     };
 
     struct T831GSCOBJ {
@@ -1195,7 +1209,7 @@ namespace tool::gsc {
 
     std::unique_ptr<GSCExportReader> CreateExportReader(tool::gsc::opcode::VmInfo* vmInfo);
 
-    void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding = 0, const char* forceName = nullptr);
+    void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding, const char* forceName, const char** currentAnimTree);
     int DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx);
     int DumpVTable(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx, opcode::ASMContext& ctx, opcode::DecompContext& dctxt);
     /*

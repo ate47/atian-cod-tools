@@ -270,6 +270,12 @@ uint64_t VmInfo::HashFilePath(const char* value) const {
 	return HashField(value);
 }
 
+bool VmInfo::IsScrHash(uint64_t hash) const {
+	if (HasFlag(VMF_UNIQUE_HASH)) return false;
+	const char* pt{ hashutils::ExtractPtr(hash) };
+	return pt && (HashField(pt) & hash::MASK60) == (hash & hash::MASK60);
+}
+
 OPCodeInfo::OPCodeInfo(OPCode id, const char* name) : m_id(id), m_name(name) {
 }
 
@@ -1142,7 +1148,7 @@ class OPCodeInfoCastBool : public OPCodeInfo {
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (context.m_runDecompiler) {
-			if (context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS) {
+			if (context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
 				context.PushASMCNode(context.PopASMCNode());
 			}
 			else {
@@ -1302,7 +1308,25 @@ public:
 			const char* str = objctx.GetStringValue(animTree->second);
 
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeAnimation(nullptr, (str ? str : "<error>")));
+				bool useReal{ (context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL)) != 0 };
+				// check if we can only display the anim name
+				if (useReal && context.useAnimTree && strcmp(context.useAnimTree, str)) {
+					context.m_exp.SetHandle(context.m_readerHandle);
+					LOG_WARNING(
+						"using more than one #animtree in {}::{}, can't use anim renderer, current: {} != {}",
+						hashutils::ExtractTmp("namespace", context.m_exp.GetNamespace()), hashutils::ExtractTmp("function", context.m_exp.GetName()),
+						context.useAnimTree ? context.useAnimTree : "<none>", str
+					);
+					useReal = false;
+				}
+				context.useAnimTree = str;
+
+				if (useReal) {
+					context.PushASMCNode(new ASMContextNodeAnimationRender(nullptr));
+				}
+				else {
+					context.PushASMCNode(new ASMContextNodeAnimation(nullptr, (str ? str : "<error>")));
+				}
 			}
 
 			out << "anim tree $" << (str ? str : "<error>") << std::endl;
@@ -1391,8 +1415,10 @@ private:
 	const char* m_type;
 	bool m_hash64;
 	bool m_isInlined;
+	bool m_canInline;
 public:
-	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true, bool isInlined = false) : m_type(type), m_hash64(hash64), m_isInlined(isInlined), OPCodeInfo(id, name) {}
+	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true, bool isInlined = false, bool canInline = false)
+		: m_type(type), m_hash64(hash64), m_isInlined(isInlined), m_canInline(canInline), OPCodeInfo(id, name) {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
@@ -1417,7 +1443,8 @@ public:
 		}
 
 		if (context.m_runDecompiler) {
-			context.PushASMCNode(new ASMContextNodeHash(hash, m_isInlined, m_type));
+
+			context.PushASMCNode(new ASMContextNodeHash(hash, m_isInlined || (m_canInline && objctx.m_vmInfo->IsScrHash(hash)), m_type));
 		}
 
 		out << m_type << "\"" << hashutils::ExtractTmp("hash", hash) << "\" (" << m_type << std::hex << hash << ")" << std::endl;
@@ -1599,7 +1626,7 @@ public:
 									// I decided to avoid using ! so the result is prettier (imo)
 
 									ASMContextNode* ifpart = jumpNode->m_operand;
-									if (!(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+									if (!(context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS))) {
 										ifpart = ASMCNodeConvertToBool(ifpart, context);
 									}
 									locref.m_lateop.emplace_back(new ASMContextLocationOpCompleteTernary(ifpart, top, !IsJumpConditionForceReversed(jumpNode)));
@@ -1636,7 +1663,7 @@ public:
 				else {
 					// empty if
 					// context.PushASMCNode(new ASMContextNodeJumpOperator(name, node, locref.rloc, type, m_jumpLocation, true, delta));
-					if (!(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+					if (!(context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS))) {
 						node = ASMCNodeConvertToBool(node, context);
 					}
 					context.PushASMCNode(new ASMContextNodeIfElse(node, new ASMContextNodeBlock(), nullptr));
@@ -4218,7 +4245,7 @@ public:
 			// probably only dev blocks
 			out << "bad str stack: 0x" << std::hex << ref << "\n";
 			if (context.m_runDecompiler) {
-				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>", m_istr ? "&" : nullptr));
+				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR)) ? "" : "<unknown string>", m_istr ? "&" : nullptr));
 			}
 		}
 
@@ -4267,11 +4294,15 @@ public:
 			out << "::";
 			utils::PrintFormattedString(out, str2);
 			
-			bool useReal{ (context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL) != 0 };
+			bool useReal{ (context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL)) != 0 };
 			// check if we can only display the anim name
-			if (useReal && context.useAnimTree && strcmp(context.useAnimTree, str2)) {
+			if (useReal && context.useAnimTree && strcmp(context.useAnimTree, str1)) {
 				context.m_exp.SetHandle(context.m_readerHandle);
-				LOG_WARNING("using more than one animtree in {}::{}, can't use anim renderer", hashutils::ExtractTmp("namespace", context.m_exp.GetNamespace()), hashutils::ExtractTmp("function", context.m_exp.GetName()));
+				LOG_WARNING(
+					"using more than one animtree in {}::{}, can't use anim renderer, current: {} != {}", 
+					hashutils::ExtractTmp("namespace", context.m_exp.GetNamespace()), hashutils::ExtractTmp("function", context.m_exp.GetName()),
+					context.useAnimTree ? context.useAnimTree : "<none>", str1
+				);
 				useReal = false;
 			}
 			context.useAnimTree = str1;
@@ -4294,18 +4325,22 @@ public:
 			out << "$";
 			utils::PrintFormattedString(out, str2);
 			
-			bool useReal{ (context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL) != 0 };
+			bool useReal{ (context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL)) != 0 };
 			// check if we can only display the anim name
 			if (useReal && context.useAnimTree && strcmp(context.useAnimTree, str2)) {
 				context.m_exp.SetHandle(context.m_readerHandle);
-				LOG_WARNING("using more than one animtree in {}::{}, can't use anim renderer", hashutils::ExtractTmp("namespace", context.m_exp.GetNamespace()), hashutils::ExtractTmp("function", context.m_exp.GetName()));
+				LOG_WARNING(
+					"using more than one #animtree in {}::{}, can't use anim renderer, current: {} != {}", 
+					hashutils::ExtractTmp("namespace", context.m_exp.GetNamespace()), hashutils::ExtractTmp("function", context.m_exp.GetName()),
+					context.useAnimTree ? context.useAnimTree : "<none>", str2
+				);
 				useReal = false;
 			}
 			context.useAnimTree = str2;
 			
 			if (context.m_runDecompiler) {
 				if (useReal) {
-					context.PushASMCNode(new ASMContextNodeAnimationRender(str2));
+					context.PushASMCNode(new ASMContextNodeAnimationRender(nullptr));
 				} else {
 					context.PushASMCNode(new ASMContextNodeAnimation(str1, str2));
 
@@ -4787,7 +4822,7 @@ public:
 						// probably only dev blocks
 						out << "bad str stack: 0x" << std::hex << val.hash;
 						if (node) {
-							outputStr = new ASMContextNodeString((context.m_opt.m_formatter->flags & tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR) ? "" : "<unknown string>");
+							outputStr = new ASMContextNodeString((context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR)) ? "" : "<unknown string>");
 						}
 					}
 					if (node) {
@@ -5010,7 +5045,7 @@ public:
 		if (context.m_runDecompiler) {
 			bool cb = m_convertBool;
 			auto popVal = [&context, cb]() {
-				if (cb && !(context.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+				if (cb && !(context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS))) {
 					return ASMCNodeConvertToBool(context.PopASMCNode(), context);
 				}
 				return context.PopASMCNode();
@@ -5784,7 +5819,7 @@ namespace tool::gsc::opcode {
 			// gets
 			RegisterOpCodeHandler(new OPCodeInfoGetConstant<const char*>(OPCODE_GetUndefined, "GetUndefined", "undefined", false, false, TYPE_GET_UNDEFINED));
 			RegisterOpCodeHandler(new OPCodeInfoGetConstant(OPCODE_GetTime, "GetTime", "gettime()"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash, "GetHash", "#"));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_GetHash, "GetHash", "#", true, false, false)); // set last to true for test?
 			RegisterOpCodeHandler(new OPCodeInfoGetConstant<int32_t>(OPCODE_GetZero, "GetZero", 0, true, true));
 			RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint32_t>(OPCODE_GetNegUnsignedInteger, "GetNegUnsignedInteger"));
 			RegisterOpCodeHandler(new OPCodeInfoGetNeg<uint16_t>(OPCODE_GetNegUnsignedShort, "GetNegUnsignedShort"));
@@ -6446,7 +6481,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 	while (i < m_statements.size()) {
 		const auto& ref = m_statements[i];
 		ctx.rloc = ref.location->rloc;
-		if (ctx.opt.m_formatter->flags & tool::gsc::formatter::FFL_NEWLINES_BETWEEN_BLOCKS) {
+		if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINES_BETWEEN_BLOCKS)) {
 			if (lastType && (((!hide && ref.node->m_type != TYPE_PRECODEPOS) || ctx.opt.m_show_internal_blocks))) {
 				if (ref.node->m_type != TYPE_END || i != m_statements.size() - 1) {
 					if (IsBlockType(ref.node->m_type)) {
@@ -6836,7 +6871,7 @@ int ASMContextNodeBlock::ComputeSwitchBlocks(ASMContext& ctx) {
 			size_t cid{};
 
 			do {
-				nodeblocktype blockType = (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS) ? BLOCK_DEFAULT : BLOCK_PADDING;
+				nodeblocktype blockType = (ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SWITCH_FORCE_BLOCKS)) ? BLOCK_DEFAULT : BLOCK_PADDING;
 				ASMContextNodeBlock* block = new ASMContextNodeBlock(blockType);
 				switchBlock->m_cases.push_back({ cases[cid].casenode ? cases[cid].casenode->Clone() : nullptr, block});
 				// we pass this case to fetch the end
@@ -7823,7 +7858,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 			}
 
 			auto* block = new ASMContextNodeBlock();
-			if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+			if (!(ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS))) {
 				cond = ASMCNodeConvertToBool(cond, ctx);
 			}
 			auto* node = new ASMContextNodeWhile(cond, block, jumpOp->Clone());
@@ -7949,7 +7984,7 @@ int ASMContextNodeBlock::ComputeWhileBlocks(ASMContext& ctx) {
 
 			auto* newBlock = new ASMContextNodeBlock();
 
-			if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+			if (!(ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS))) {
 				cond = ASMCNodeConvertToBool(cond, ctx);
 			}
 			auto* doWhile = new ASMContextNodeDoWhile(cond, newBlock, jumpOp->Clone());
@@ -8169,7 +8204,7 @@ int ASMContextNodeBlock::ComputeIfBlocks(ASMContext& ctx) {
 		assert(IsJumpType(m_statements[index].node->m_type) && m_statements[index].node->m_type != TYPE_JUMP);
 
 		ASMContextNode* ifCond = JumpCondition(static_cast<ASMContextNodeJumpOperator*>(m_statements[index].node), true);
-		if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+		if (!(ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS))) {
 			ifCond = ASMCNodeConvertToBool(ifCond, ctx);
 		}
 		auto* ifElse = new ASMContextNodeIfElse(ifCond, blockIf, blockElse);
@@ -8326,7 +8361,7 @@ int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
 					blockIf->m_statements.emplace_back(returnNode, stmt.location);
 					delete stmt.node;
 
-					if (!(ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
+					if (!(ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS))) {
 						cond = ASMCNodeConvertToBool(cond, ctx);
 					}
 					stmt.node = new ASMContextNodeIfElse(cond, blockIf, nullptr);
@@ -8351,7 +8386,7 @@ int ASMContextNodeBlock::ComputeReturnJump(ASMContext& ctx) {
 }
 
 int ASMContextNodeBlock::ComputeBoolReturn(ASMContext& ctx) {
-	if (ctx.m_opt.m_formatter->flags & tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS) {
+	if (ctx.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_BOOL_ANALYSIS)) {
 		return 0;
 	}
 	bool isCandidate{ true };

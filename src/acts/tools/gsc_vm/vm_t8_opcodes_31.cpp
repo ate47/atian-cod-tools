@@ -6,7 +6,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* vt831 = RegisterVM(VMI_T8_31, "Call of Duty: Black ops 4 (31)", "t8", "bo4_31", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM | VmFlags::VMF_HASH_T7 | VmFlags::VMF_ANIMTREE_T7);
+		VmInfo* vt831 = RegisterVM(VMI_T8_31, "Call of Duty: Black ops 4 (31)", "t8", "bo4_31", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM | VmFlags::VMF_HASH_T7 | VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_UNIQUE_HASH);
 		vt831->RegisterVmName("t8_31", "blackops4_31");
 		vt831->AddPlatform(PLATFORM_PLAYSTATION);
 		vt831->SetMaxOpCode(0xFFF);
@@ -18,6 +18,8 @@ namespace {
 		vt831->RegisterVMGlobalVariable("world");
 		vt831->RegisterVMGlobalVariable("sharedstructs");
 		vt831->RegisterVMGlobalVariable("memory");
+		vt831->RegisterVMHashOPCode('#', OPCODE_GetHash32, 4, [](const char* str) { return hash::HashT7(str); });
+		vt831->RegisterVMHashOPCode('s', OPCODE_GetHash32, 4, [](const char* str) { return hash::HashT7(str); });
 		vt831->RegisterDevCall("assert", "assertmsg", "errormsg", "throw", "println");
 		vt831->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt831->RegisterDatatypeRenamed("function", "functionptr");

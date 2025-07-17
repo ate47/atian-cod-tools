@@ -1,4 +1,5 @@
 #pragma once
+#include <core/bytebuffer.hpp>
 #include <tools/gsc.hpp>
 
 namespace tool::gsc::vm {
@@ -7,6 +8,12 @@ namespace tool::gsc::vm {
 		uint64_t vm;
 		std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func;
 		GscVm(uint64_t vm, std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func);
+	};
+	class GscGdb {
+	public:
+		uint64_t magic;
+		std::function<void(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout)> load;
+		GscGdb(uint64_t magic, std::function<void(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout)> load);
 	};
 	class GscVmOpCode {
 	public:
@@ -17,8 +24,10 @@ namespace tool::gsc::vm {
 	};
 
 	std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(uint64_t vm);
+	std::function<void(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout)>* GetGdbReader(uint64_t magic);
 	void RegisterVmOpCodes();
 }
 #define REGISTER_GSC_VM(_vm, cls) static tool::gsc::vm::GscVm __GscVm##_vm(_vm, [](byte* file, size_t fileSize) { return std::make_shared<cls>(file, fileSize); })
+#define REGISTER_GDB_HANDLE(magic, func) static tool::gsc::vm::GscGdb __GscGdb##magic(magic, func)
 #define REGISTER_GSC_VM_OPCODES(id, func) static tool::gsc::vm::GscVmOpCode __GscVmOpCode##id(#id, func)
 #define REGISTER_GSC_VM_OPCODES_PRIVATE(id, func) static tool::gsc::vm::GscVmOpCode __GscVmOpCode##id(#id, func, true)

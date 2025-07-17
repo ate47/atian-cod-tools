@@ -452,7 +452,10 @@ namespace {
 					}
 				}
 				else {
-					throw std::runtime_error(std::format("No patch file {}", fdfile.string()));
+					if (!opt.m_fdIgnoreMissing) {
+						throw std::runtime_error(std::format("No patch file {}", fdfile.string()));
+					}
+					LOG_INFO("No patch file {}", fdfile.string());
 				}
 			}
 		}
