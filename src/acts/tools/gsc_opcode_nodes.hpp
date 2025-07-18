@@ -111,7 +111,7 @@ namespace tool::gsc::opcode {
 			return ASCNVD_UNDEFINED;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeValue<Type>(m_value, m_type, m_hex, m_canBeCastToBool, m_isIntConst);
 		}
 	};
@@ -130,7 +130,7 @@ namespace tool::gsc::opcode {
 			out << (m_strVal ? m_strVal : hashutils::ExtractTmp(m_type, m_value)) << std::flush;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeIdentifier(m_value, m_type, m_strVal);
 		}
 	};
@@ -152,7 +152,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeHash(m_value, m_canonid, m_type);
 		}
 
@@ -198,7 +198,7 @@ namespace tool::gsc::opcode {
 			out << ")";
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			ASMContextNode** copy = new NodePtr[count];
 			for (size_t i = 0; i < count; i++) {
 				copy[i] = nodes[i]->Clone();
@@ -252,7 +252,7 @@ namespace tool::gsc::opcode {
 			out << ")";
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeVector(m_x->Clone(), m_y->Clone(), m_z->Clone());
 		}
 
@@ -305,7 +305,7 @@ namespace tool::gsc::opcode {
 			out << std::flush;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeString(m_value, m_prefix, m_allowNoQuote);
 		}
 	};
@@ -333,7 +333,7 @@ namespace tool::gsc::opcode {
 			out << std::flush;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeAnimation(m_str1, m_str2);
 		}
 	};
@@ -357,7 +357,7 @@ namespace tool::gsc::opcode {
 			out << std::flush;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeAnimationRender(m_name);
 		}
 	};
@@ -384,7 +384,7 @@ namespace tool::gsc::opcode {
 			out << hashutils::ExtractTmp("function", m_func) << std::flush;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeFuncRef(m_op, m_func, m_nsp, m_script);
 		}
 	};
@@ -402,7 +402,7 @@ namespace tool::gsc::opcode {
 			m_var->Dump(out, ctx);
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeRef(m_op, m_var->Clone());
 		}
 
@@ -454,7 +454,7 @@ namespace tool::gsc::opcode {
 			out << "]";
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeArrayAccess(m_operandleft->Clone(), m_operandright->Clone());
 		}
 
@@ -492,7 +492,7 @@ namespace tool::gsc::opcode {
 			m_value->Dump(out, ctx);
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeArrayBuildNode(m_key ? m_key->Clone() : nullptr, m_value->Clone());
 		}
 
@@ -557,7 +557,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			auto* n = new ASMContextNodeArrayBuild();
 
 			for (const auto& ref : m_operands) {
@@ -623,7 +623,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			auto* n = new ASMContextNodeStructBuild();
 
 			for (const auto& ref : m_operands) {
@@ -674,7 +674,7 @@ namespace tool::gsc::opcode {
 			m_operands.push_back(node);
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			auto* ref = new ASMContextNodeCallFuncPtr(m_ftype, m_flags, m_type);
 			ref->m_operands.reserve(m_operands.size());
 			for (const auto& op : m_operands) {
@@ -816,7 +816,7 @@ namespace tool::gsc::opcode {
 			delete m_operand3;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeTernary(m_operand1->Clone(), m_operand2->Clone(), m_operand3->Clone());
 		}
 
@@ -903,7 +903,7 @@ namespace tool::gsc::opcode {
 			delete m_operand2;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeOp2(m_description, m_priority, m_operand1->Clone(), m_operand2->Clone(), m_isBoolValue, m_type);
 		}
 
@@ -975,7 +975,7 @@ namespace tool::gsc::opcode {
 			delete m_operand;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeOp1(m_description, m_prefix, m_operand->Clone(), m_type, m_isBoolValue);
 		}
 
@@ -1035,7 +1035,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			auto* ref = new ASMContextNodeMultOp(m_description, m_caller, m_type, m_isBoolVal, m_noParenthesis);
 			ref->m_operands.reserve(m_operands.size());
 			for (const auto& op : m_operands) {
@@ -1123,7 +1123,7 @@ namespace tool::gsc::opcode {
 			delete m_operand;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeFunctionOperator(m_operatorName, m_self ? m_self->Clone() : nullptr, m_operand->Clone(), m_type, m_isBoolVal);
 		}
 
@@ -1198,7 +1198,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeJumpOperator(m_operatorName, m_operand ? m_operand->Clone() : nullptr, m_location, m_type, m_opLoc, m_showJump, m_delta, m_special_op, m_returnCandidate);
 		}
 
@@ -1285,7 +1285,7 @@ namespace tool::gsc::opcode {
 			ASMContextNode(PRIORITY_VALUE, TYPE_GET_CODE_REF), m_location(location) {
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeCodeRef(m_location);
 		}
 
@@ -1310,7 +1310,7 @@ namespace tool::gsc::opcode {
 			if (m_right) delete m_right;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeLeftRightOperator(m_left->Clone(), m_right->Clone(), m_operatorName, m_priority, m_type);
 		}
 
@@ -1348,7 +1348,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeNew(m_classname, m_constructorCall ? m_constructorCall->Clone() : nullptr, m_constructorCallDec);
 		}
 
@@ -1390,7 +1390,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			auto* sw = new ASMContextNodeSwitchPreCompute(m_node->Clone(), m_endLocation);
 			sw->m_cases.reserve(m_cases.size());
 			for (const auto& cs : m_cases) {
@@ -1478,7 +1478,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			auto* sw = new ASMContextNodeSwitchPostCompute(m_node->Clone());
 			sw->m_cases.reserve(m_cases.size());
 			for (const auto& cs : m_cases) {
@@ -1588,7 +1588,7 @@ namespace tool::gsc::opcode {
 			delete m_block;
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeForEach(m_arrayNode->Clone(), static_cast<ASMContextNodeBlock*>(m_block->Clone()), m_key, m_item);
 		}
 
@@ -1662,7 +1662,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeForDelta(m_init->Clone(), m_cond ? m_cond->Clone() : nullptr, m_delta->Clone(), static_cast<ASMContextNodeBlock*>(m_block->Clone()), m_originJump ? m_originJump->Clone() : nullptr);
 		}
 
@@ -1755,7 +1755,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeDoWhile(m_condition->Clone(), static_cast<ASMContextNodeBlock*>(m_block->Clone()), m_originJump ? m_originJump->Clone() : nullptr);
 		}
 
@@ -1849,7 +1849,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeWhile(m_condition ? m_condition->Clone() : nullptr, static_cast<ASMContextNodeBlock*>(m_block->Clone()), m_originJump ? m_originJump->Clone() : nullptr);
 		}
 
@@ -1972,7 +1972,7 @@ namespace tool::gsc::opcode {
 			}
 		}
 
-		ASMContextNode* Clone() const override {
+		ASMContextNode* Clone0() const override {
 			return new ASMContextNodeIfElse(m_condition ? m_condition->Clone() : nullptr,
 				m_ifblock ? static_cast<ASMContextNodeBlock*>(m_ifblock->Clone()) : nullptr,
 				m_elseblock ? static_cast<ASMContextNodeBlock*>(m_elseblock->Clone()) : nullptr);

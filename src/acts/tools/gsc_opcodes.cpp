@@ -314,7 +314,7 @@ ASMContextStatement* ASMContextNodeBlock::FetchFirstForLocation(int64_t rloc) {
 	return nullptr;
 }
 
-ASMContextNode* ASMContextNodeBlock::Clone() const {
+ASMContextNode* ASMContextNodeBlock::Clone0() const {
 	ASMContextNodeBlock* n = new ASMContextNodeBlock(m_blockType, m_disabled, m_allowInline);
 	for (auto& node : m_statements) {
 		n->m_statements.push_back({ node.node->Clone(), node.location });
@@ -346,9 +346,8 @@ void ASMContextNode::Dump(std::ostream& out, DecompContext& ctx) const {
 	// nothing by default
 }
 
-ASMContextNode* ASMContextNode::Clone() const {
-	assert(0); // shouldn't be possible
-	return nullptr;
+ASMContextNode* ASMContextNode::Clone0() const {
+	throw std::runtime_error("ASMContextNode::Clone0() not implemented for this node");
 }
 
 ASMContextNode::ASMContextNode(ASMContextNodePriority priority, ASMContextNodeType type) : m_priority(priority), m_type(type) {
@@ -362,6 +361,14 @@ ASMContextNode* ASMContextNode::ConvertToBool() {
 		return new ASMContextNodeValue<const char*>("true", TYPE_VALUE);
 	}
 	return new ASMContextNodeValue<const char*>("false", TYPE_VALUE);
+}
+
+ASMContextNode* ASMContextNode::Clone() const {
+    ASMContextNode* c{ Clone0() };
+    c->m_rlocEstimated = m_rlocEstimated;
+    c->m_renderSemicolon = m_renderSemicolon;
+    c->m_renderRefIfAny = m_renderRefIfAny;
+    return c;
 }
 
 bool ASMContextNode::IsBoolConvertable(bool strict, ASMContext& ctx) {

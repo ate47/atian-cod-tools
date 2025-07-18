@@ -322,7 +322,8 @@ namespace tool::gsc {
             ASMContextNode(ASMContextNodePriority priority, ASMContextNodeType type = TYPE_UNDEFINED);
             virtual ~ASMContextNode();
             virtual void Dump(std::ostream& out, DecompContext& ctx) const;
-            virtual ASMContextNode* Clone() const;
+            virtual ASMContextNode* Clone0() const;
+            ASMContextNode* Clone() const;
             virtual ASMContextNode* ConvertToBool();
             virtual int64_t GetIntConst() const;
             virtual bool IsIntConst() const;
@@ -376,7 +377,7 @@ namespace tool::gsc {
             ASMContextNodeBlock(nodeblocktype blockType = BLOCK_DEFAULT, bool disabled = false, bool allowInline = true);
             ~ASMContextNodeBlock();
             void Dump(std::ostream& out, DecompContext& ctx) const override;
-            ASMContextNode* Clone() const override;
+            ASMContextNode* Clone0() const override;
             int ComputeDevBlocks(ASMContext& ctx);
             int ComputeForEachBlocksKeys(ASMContext& ctx);
             int ComputeForEachBlocksIterator(ASMContext& ctx);
