@@ -37,6 +37,8 @@ namespace tool::nui {
 	void EndDefaultWindow();
 	void DisableNextBackground();
 	void SaveNextConfig();
+	bool OpenFile(const wchar_t* title, const wchar_t* patterns, wchar_t* outFile, size_t outFileLen, DWORD flags = OFN_PATHMUSTEXIST);
+	bool OpenFile(const wchar_t* title, const wchar_t* patterns, char* outFile, size_t outFileLen, DWORD flags = OFN_PATHMUSTEXIST);
 
 	class ActsConfig {
 		std::vector<float> floor{};

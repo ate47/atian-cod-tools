@@ -1,6 +1,9 @@
 #include <includes.hpp>
 #include <core/memory_allocator.hpp>
+#include <core/config.hpp>
+#include <tools/tools_nui.hpp>
 #include "hash_scanner.hpp"
+#include <tools/hash.hpp>
 #include "text_expand.hpp"
 #include <regex>
 #include <future>
@@ -483,7 +486,7 @@ namespace tool::hash::scanner {
 			}
 			size_t maxLen{ std::string::npos };
 			if (argc >= 10) {
-				int64_t count = utils::ParseFormatInt(argv[9]);
+				size_t count = (size_t)utils::ParseFormatInt(argv[9]);
 				if (count) {
 					maxLen = 1;
 					for (size_t i = 0; i < count; i++) {
@@ -491,7 +494,7 @@ namespace tool::hash::scanner {
 					}
 					maxLen++;
 				}
-				LOG_INFO("middle: {}", data.mid);
+				LOG_INFO("count: {}", count);
 			}
 
 			if (!_strcmpi(n, "bo4scr")) {
@@ -588,12 +591,170 @@ namespace tool::hash::scanner {
 			return tool::OK;
 		}
 		
+		void hashscanner() {
+			tool::nui::NuiUseDefaultWindow dw{};
+			
+			static char inPath[MAX_PATH + 1]{ 0 };
+			static char outPath[MAX_PATH + 1]{ 0 };
+			static char dictPath[MAX_PATH + 1]{ 0 };
+			static char startStr[0x100]{ 0 };
+			static char midStr[sizeof(startStr)]{ '_' };
+			static char endStr[sizeof(startStr)]{ 0 };
+			static int count{ 2 };
+			static std::string guessOut{};
+			static std::unordered_set<uint64_t> loadedHashes{};
+			static std::once_flag of;
+			static std::string notif{};
+
+			std::call_once(of, [] {
+				std::string inPathCfg = core::config::GetString("hash.scanner.input", "");
+				std::string outPathCfg = core::config::GetString("hash.scanner.output", "");
+				std::string dictPathCfg = core::config::GetString("hash.scanner.dict", "");
+				count = (int)core::config::GetInteger("hash.scanner.count", count);
+
+				if (count <= 0) count = 1;
+				snprintf(outPath, sizeof(outPath), "%s", outPathCfg.c_str());
+				snprintf(inPath, sizeof(inPath), "%s", inPathCfg.c_str());
+				snprintf(dictPath, sizeof(dictPath), "%s", dictPathCfg.c_str());
+			});
+			::hash::HashAlg::SyncAlgCfg();
+
+			bool c{};
+			ImGui::SeparatorText("Config");
+			if (ImGui::InputText("input file", inPath, sizeof(inPath))) {
+				core::config::SetString("hash.scanner.input", inPath);
+				c = true;
+			}
+			if (ImGui::Button("Open input file...")) {
+				if (tool::nui::OpenFile(L"Input file", L"Any file\0*.*\0", inPath, sizeof(inPath), OFN_PATHMUSTEXIST)) {
+					core::config::SetString("hash.scanner.input", inPath);
+					c = true;
+				}
+			}
+			ImGui::Separator();
+			if (ImGui::InputText("Output file", outPath, sizeof(outPath))) {
+				core::config::SetString("hash.scanner.output", outPath);
+				c = true;
+			}
+			if (ImGui::Button("Open output file...")) {
+				if (tool::nui::OpenFile(L"Output file", L"Csv file (.csv)\0*.csv\0All\0*.*\0", outPath, sizeof(outPath), OFN_PATHMUSTEXIST)) {
+					core::config::SetString("hash.scanner.output", outPath);
+					c = true;
+				}
+			}
+			ImGui::Separator();
+			if (ImGui::InputText("Dictionary file", dictPath, sizeof(dictPath))) {
+				core::config::SetString("hash.scanner.dict", dictPath);
+				c = true;
+			}
+			if (ImGui::Button("Open dictionary file...")) {
+				if (tool::nui::OpenFile(L"Dictionary file", L"Text file (.txt)\0*.txt\0All\0*.*\0", dictPath, sizeof(dictPath), OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST)) {
+					core::config::SetString("hash.scanner.dict", dictPath);
+					c = true;
+				}
+			}
+			ImGui::Separator();
+			
+			if (ImGui::Button("Load hashes")) {
+				loadedHashes.clear();
+				std::vector<std::filesystem::path> files{ tool::hash::scanner::GetHashFiles(inPath) };
+				LOG_TRACE("{} file(s) loaded...", files.size());
+				tool::hash::scanner::ScanHashes(files, loadedHashes);
+			}
+
+			if (loadedHashes.size()) {
+				ImGui::Text("%llu hash(es) loaded", loadedHashes.size());
+
+				ImGui::SeparatorText("Scan options");
+
+				if (ImGui::BeginCombo("Selected hashes", nullptr, ImGuiComboFlags_NoPreview)) {
+					for (::hash::HashAlg& alg : ::hash::HashAlg::algs) {
+						if (ImGui::Checkbox(alg.desc, &alg.selected)) {
+							core::config::SetBool(std::format("hash.alg.{}", alg.id), alg.selected);
+							c = true;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				
+				ImGui::InputText("Start", startStr, sizeof(startStr));
+				ImGui::InputText("Middle", midStr, sizeof(midStr));
+				ImGui::InputText("End", endStr, sizeof(endStr));
+				if (ImGui::SliderInt("Count", &count, 1, 10, "%d")) {
+					core::config::SetInteger("hash.scanner.count", count);
+					c = true;
+				}
+
+				static BS::thread_pool pool{};
+				static tool::hash::text_expand::AsyncStop asyncStop{};
+
+				if (asyncStop.IsRunning()) {
+					if (ImGui::Button("Stop")) {
+						asyncStop.Stop();
+					}
+				} else if (asyncStop.IsStop()) {
+					ImGui::Text("Stopping...");
+				} else if (ImGui::Button("Start")) {
+					notif = "";
+					std::ifstream dictIs{ dictPath };
+
+					if (!dictIs) {
+						notif = std::format("Can't open {}", dictPath);
+					} else {
+						std::string line{};
+						core::memory_allocator::MemoryAllocator alloc{};
+
+						std::vector<const char*> dictVec{};
+
+						while (dictIs.good() && std::getline(dictIs, line)) {
+							dictVec.push_back((const char*)alloc.Alloc(line));
+						}
+						dictVec.push_back(nullptr);
+						dictIs.close();
+
+						size_t maxLen{};
+						if (count) {
+							maxLen = 1;
+							for (size_t i = 0; i < count; i++) {
+								maxLen *= dictVec.size();
+							}
+							maxLen++;
+						} else {
+							maxLen = std::string::npos;
+						}
+						tool::hash::text_expand::GetDynamicAsyncDict<void>(maxLen, [](const char** str, void* data) {
+							for (::hash::HashAlg& alg : ::hash::HashAlg::algs) {
+								static thread_local char buff[0x400];
+								tool::hash::text_expand::MergeInto(buff, sizeof(buff), str, midStr);
+								uint64_t h{ alg.hashFunc(buff) };
+
+								// todo: check h
+							}
+						}, dictVec.data(), nullptr);
+					}
+				}
+
+
+			} else {
+				ImGui::Text("No hash loaded");
+			}
+			
+			if (!notif.empty()) {
+				ImGui::Separator();
+
+				ImGui::Text("%s", notif.data());
+			}
+			
+			if (c) tool::nui::SaveNextConfig();
+		}
+
+
 		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
 		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", nullptr, scanlookup);
 		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
 		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix) (maxlen)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
 		ADD_TOOL(strscan, "hash", " [dir] [output]", "brute search hashes in a directory with dictionary", strscan);
-
+		ADD_TOOL_NUI(hashscanner, "Hash Brute Searcher", hashscanner);
 	}
 
 

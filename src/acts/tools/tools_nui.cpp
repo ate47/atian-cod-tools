@@ -385,12 +385,42 @@ namespace tool::nui {
 	void EndDefaultWindow() {
 		ImGui::End();
 	}
+
 	void DisableNextBackground() {
 		ActsNUI::nui->bg.nextDisabled = true;
 	}
 
 	void SaveNextConfig() {
 		ActsNUI::nui->saveNext = true;
+	}
+	
+	bool OpenFile(const wchar_t* title, const wchar_t* patterns, wchar_t* outFile, size_t outFileLen, DWORD flags) {
+        OPENFILENAMEW ofn;
+        ZeroMemory(&ofn, sizeof(ofn));
+        ofn.lStructSize = sizeof(ofn);
+        ofn.hwndOwner = NULL;
+        ofn.lpstrFile = outFile;
+        ofn.nMaxFile = (DWORD)outFileLen;
+        ofn.lpstrFilter = patterns;
+        ofn.lpstrTitle = title;
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFileTitle = NULL;
+        ofn.nMaxFileTitle = 0;
+        ofn.lpstrInitialDir = NULL;
+        ofn.Flags = flags;
+
+		return GetOpenFileNameW(&ofn) == TRUE;
+	}
+	bool OpenFile(const wchar_t* title, const wchar_t* patterns, char* outFile, size_t outFileLen, DWORD flags) {
+		std::wstring buffer{};
+		buffer.resize(outFileLen);
+
+		if (OpenFile(title, patterns, buffer.data(), buffer.size(), flags)) {
+			std::string bc{ utils::WStrToStr(buffer) };
+			std::snprintf(outFile, outFileLen, "%s", bc.data());
+			return true;
+		}
+		return false;
 	}
 
 	void OpenNuiWindow() {
