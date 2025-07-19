@@ -247,5 +247,10 @@ namespace {
         }
     }
 
-    REGISTER_GDB_HANDLE(MAGIC, DbgLoad);
+    bool DbgSave(GscDecompilerGDBData* gdb, std::string& buffer) {
+        LOG_ERROR("GDB save not defined");
+        return false;
+    }
+
+    REGISTER_GDB_HANDLE(MAGIC, DbgLoad, DbgSave);
 }

@@ -84,6 +84,7 @@ namespace tool::gsc::opcode {
 		uint16_t maxOpCode{ 0xFFF };
 		uint16_t modToolFlag{};
 		size_t opaqueStringCount{};
+		uint64_t gdbMagic{};
 		std::unordered_map<char, VmHashFunc> hashesFunc{};
 		std::unordered_set<uint64_t> devCallsNames{};
 		std::unordered_map<uint16_t, std::unordered_map<Platform, OPCode>> opcodemap{};
@@ -158,6 +159,7 @@ namespace tool::gsc::opcode {
 		void SetMaxOpCode(uint16_t maxOpCode);
 		void SetModToolFlag(uint16_t flag);
 		void SetOpaqueStringCount(size_t opaqueStringCount);
+		void SetGDBType(uint64_t gdbMagic);
 		void RegisterDevCall(const char* devCall);
 		void RegisterDatatypeRenamed(const char* datatype, const char* trueName);
 		void RegisterDatatype(const char* datatype);

@@ -430,7 +430,7 @@ namespace {
                                             PreString& ps{ strings.emplace_back() };
                                             ps.string = (uint32_t)utils::WriteString(stringData, valStr);
                                             ps.address = (uint32_t)rloc;
-                                            utils::PrintFormattedString(asmout << "case \"", valStr) << "\":";
+                                            asmout << "case \"" << utils::FormattedString(valStr) << "\":";
                                         }
 
                                     }
@@ -714,17 +714,17 @@ namespace {
                                 ps.string = (uint32_t)utils::WriteString(stringData, ds);
                                 ps.address = (uint32_t)bytecodeReader.Loc();
                                 if (nfo->m_id == OPCODE_IW_GetIString) {
-                                    utils::PrintFormattedString(asmout << "&", ds);
+                                    asmout << "&" << utils::FormattedString(ds);
                                 }
                                 else {
-                                    utils::PrintFormattedString(asmout << "\"", ds) << "\"";
+                                    asmout << "\"" << utils::FormattedString(ds) << "\"";
                                 }
                                 SkipNBytes(4) << "\n";
                                 break;
                             }
                             case OPCODE_GSCBIN_SKIP_4BC_1STR: {
                                 const char* ds{ acts::decryptutils::DecryptString(utils::CloneString(sourceReader.ReadString())) };
-                                utils::PrintFormattedString(asmout << "\"", ds) << "\"";
+                                asmout << "\"" << utils::FormattedString(ds) << "\"";
                                 SkipNBytes(4) << "\n";
                                 break;
                             }
@@ -736,8 +736,7 @@ namespace {
                                 item.address_str2 = (uint32_t)utils::WriteString(stringData, an2);
                                 item.num_address = (uint32_t)bytecodeReader.Loc();
 
-                                utils::PrintFormattedString(asmout, an1);
-                                utils::PrintFormattedString(asmout << ",", an2);
+                                asmout << utils::FormattedString(an1) << "," << utils::FormattedString(an2);
                                 SkipNBytes(8) << "\n";
                                 break;
                             }
@@ -747,7 +746,7 @@ namespace {
                                 item.address = (uint32_t)utils::WriteString(stringData, an);
                                 item.num_address = (uint32_t)bytecodeReader.Loc();
 
-                                utils::PrintFormattedString(asmout, an);
+                                asmout << utils::FormattedString(an);
                                 SkipNBytes(1) << "\n";
                                 break;
                             }

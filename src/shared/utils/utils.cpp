@@ -504,4 +504,21 @@ namespace utils {
 
         return out.str();
     }
+
+    int LineStreamBuf::sync() {
+        std::string_view s{ view() };
+        // load the lines
+        for (size_t i = 0; i < s.length(); i++) {
+            if (s[i] == '\n') line++;
+        }
+
+        in.write(s.data(), s.length());
+
+        str({});
+
+        return 0;
+    }
+}
+std::ostream& operator<<(std::ostream& stream, const utils::FormattedString& fs) {
+    return utils::PrintFormattedString(stream, fs.str, fs.len);
 }

@@ -29,6 +29,7 @@ namespace {
 		vt71b->RegisterDatatypeRenamed("function", "functionptr");
 		vt71b->SetCompilerHookFunctionName("isprofilebuild");
 		vt71b->SetMaxOpCode(0xFF);
+		vt71b->SetGDBType(VMI_DBG_T7_12);
 
 
 		vt71b->RegisterOpCode(PLATFORM_PC, OPCODE_Abort, 0x0);

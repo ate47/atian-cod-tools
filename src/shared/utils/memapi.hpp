@@ -262,6 +262,13 @@ public:
 	 */
 	bool ReadMemory(void* dest, uintptr_t src, size_t size) const;
 	/*
+	 * Read memory from a source to a destination or error
+	 * @param dest Local destination
+	 * @param src Process source
+	 * @param size Size to read
+	 */
+	void ReadMemoryEx(void* dest, uintptr_t src, size_t size) const;
+	/*
 	 * Read memory array
 	 * @param src Process source
 	 * @param count Array count to read
@@ -281,7 +288,7 @@ public:
 	 * Read memory array
 	 * @param src Process source
 	 * @param count Array count to read
-	 * @return pair containing the allocated resource with the error, if pair.second == false, an error occured
+	 * @return array or error
 	 */
 	template<typename Type>
 	std::unique_ptr<Type[]> ReadMemoryArrayEx(uintptr_t src, size_t count) const {

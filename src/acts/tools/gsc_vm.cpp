@@ -25,7 +25,10 @@ namespace tool::gsc::vm {
         GscReaders()[vm] = this;
     }
 
-    GscGdb::GscGdb(uint64_t magic, std::function<void(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout)> load) : magic(magic), load(load) {
+    GscGdb::GscGdb(uint64_t magic, 
+        std::function<void(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout)> load,
+        std::function<bool(GscDecompilerGDBData* gdb, std::string& data)> saver)
+        : magic(magic), load(load), saver(saver) {
         GdbReaders()[magic] = this;
     }
 
@@ -44,7 +47,7 @@ namespace tool::gsc::vm {
         return &it->second->func;
     }
 
-    std::function<void(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout)>* GetGdbReader(uint64_t magic) {
+    GscGdb* GetGdbReader(uint64_t magic) {
         auto& gscReaders{ GdbReaders() };
         auto it = gscReaders.find(magic);
 
@@ -52,7 +55,7 @@ namespace tool::gsc::vm {
             return nullptr;
         }
 
-        return &it->second->load;
+        return it->second;
     }
 
     void RegisterVmOpCodes() {

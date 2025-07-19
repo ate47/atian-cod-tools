@@ -407,6 +407,11 @@ namespace utils {
 
 	std::ostream& PrintFormattedString(std::ostream& out, const char* str, size_t len = 0);
 
+	struct FormattedString {
+		const char* str;
+		size_t len{};
+	};
+
 	/*
 	 * Format a string
 	 * @param string
@@ -691,4 +696,19 @@ namespace utils {
 			return std::ranges::copy(std::move(out).str(), ctx.out()).out;
 		}
 	};
+
+
+	class LineStreamBuf : public std::stringbuf {
+	public:
+		std::ofstream in{};
+		size_t line{ 1 };
+
+		inline void close() {
+			in.close();
+		}
+
+		virtual int sync();
+	};
 }
+
+std::ostream& operator<<(std::ostream& stream, const utils::FormattedString& fs);

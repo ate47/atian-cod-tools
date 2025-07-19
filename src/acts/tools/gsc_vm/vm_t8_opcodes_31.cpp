@@ -24,6 +24,7 @@ namespace {
 		vt831->RegisterDatatype("functionptr", "string", "array", "weapon", "int", "float", "vec");
 		vt831->RegisterDatatypeRenamed("function", "functionptr");
 		vt831->SetCompilerHookFunctionName("isprofilebuild");
+		vt831->SetGDBType(VMI_DBG_T8_21);
 
 		vt831->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
 		vt831->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);

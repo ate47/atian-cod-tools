@@ -300,7 +300,7 @@ namespace tool::gsc::opcode {
 			}
 
 			if (quotes) out << "\"";
-			utils::PrintFormattedString(out, m_value);
+			out << utils::FormattedString(m_value);
 			if (quotes) out << "\"";
 			out << std::flush;
 		}
@@ -321,14 +321,10 @@ namespace tool::gsc::opcode {
 			
 			if (m_str1 && *m_str1) {
 				// anim ref
-				out << "%";
-				utils::PrintFormattedString(out, m_str1);
-				out << "::";
-				utils::PrintFormattedString(out, m_str2);
+				out << "%" << utils::FormattedString(m_str1) << "::" << utils::FormattedString(m_str2);
 			} else {
 				// animtree
-				out << "$";
-				utils::PrintFormattedString(out, m_str2);
+				out << "$" << utils::FormattedString(m_str2);
 			}
 			out << std::flush;
 		}
@@ -348,8 +344,7 @@ namespace tool::gsc::opcode {
 			
 			if (m_name) {
 				// anim ref
-				out << "%";
-				utils::PrintFormattedString(out, m_name);
+				out << "%" << utils::FormattedString(m_name);
 			} else {
 				// animtree
 				out << "#animtree";

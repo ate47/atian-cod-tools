@@ -1,4 +1,5 @@
 #pragma once
+#include <core/memory_allocator.hpp>
 #include "gsc_opcodes.hpp"
 #include "gsc_formatter.hpp"
 #include "gsc_gdb.hpp"
@@ -96,6 +97,7 @@ namespace tool::gsc {
         const char* m_dbgOutputDir{};
         const char* m_copyright{};
         const char* m_dbgInputDir{};
+        const char* m_gdbZipOutputFile{};
         bool m_show_internal_blocks{};
         bool m_show_func_vars{};
         bool m_mark_jump_type{};
@@ -114,6 +116,7 @@ namespace tool::gsc {
         bool m_dumpSkipData{};
         bool m_noUsingsSort{};
         bool m_noStrDecrypt{};
+        bool m_lineCount{};
         const char* vtable_dump{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
@@ -142,7 +145,7 @@ namespace tool::gsc {
     class T8GSCOBJContext;
     class GSCOBJHandler;
     struct GSCExportReader;
-
+    struct GscDecompilerGDBData;
     namespace opcode {
         struct asmcontextlocation;
         class ASMContext;
@@ -156,6 +159,8 @@ namespace tool::gsc {
             const GscInfoOption& opt;
             int paddingPre{};
             uint32_t baseloc{};
+            GscDecompilerGDBData* gdbData{};
+            utils::LineStreamBuf* lineBuf{};
 
             std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc = false);
         };
@@ -814,23 +819,27 @@ namespace tool::gsc {
         bool devFunc{};
     };
 
+    struct GscDecompilerGDBData {
+        uint64_t gdb{};
+        uint32_t checksum{};
+        std::set<uint32_t> devStringsLocation{};
+        std::map<size_t, uint32_t> fileOffsets{};
+        std::map<size_t, uint32_t> lineInfos{};
+    };
+
     struct GscDecompilerGlobalContext {
+        core::memory_allocator::MemoryAllocator alloc{};
         std::mutex* asyncMtx{};
         GscInfoOption opt{};
         bool noDump{};
         uint64_t warningOpt{};
         std::unordered_map<uint64_t, tool::gsc::gdb::ACTS_GSC_GDB*> debugObjects{};
+        std::unordered_map<uint64_t, GscDecompilerGDBData*> gdbData{};
         size_t decompiledFiles{};
         size_t hardErrors{};
         std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>> vtables{};
         std::unordered_map<NameLocated, GscExportInformation, NameLocatedHash, NameLocatedEquals> exportInfos{};
         std::unordered_map<uint64_t, std::unordered_set<uint32_t>>* opcodesLocs{};
-
-        ~GscDecompilerGlobalContext() {
-            for (auto& [n, d] : debugObjects) {
-                delete d;
-            }
-        }
 
         bool WarningType(GscDecompilerGlobalContextWarn warn);
     };
@@ -863,6 +872,8 @@ namespace tool::gsc {
         opcode::VmInfo* m_vmInfo{};
         byte* dbgData{};
         size_t dbgSize{};
+        GscDecompilerGDBData* gdbData{};
+        utils::LineStreamBuf* lineBuf{};
         tool::gsc::opcode::Platform currentPlatform{};
         std::shared_ptr<GSCOBJHandler> scriptfile{};
         std::unique_ptr<GSCExportReader> exp{};

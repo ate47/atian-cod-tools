@@ -263,6 +263,11 @@ bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 	}
 	return false;
 }
+void Process::ReadMemoryEx(void* dest, uintptr_t src, size_t size) const {
+	if (!ReadMemory(dest, src, size)) {
+		throw std::runtime_error(utils::va("can't read memory at 0x%llx 0x%llx bytes", src, size));
+	}
+}
 
 const char* Process::ReadStringTmp(uintptr_t src, const char* defaultVal) const {
 	static char buffer[10][0x200];

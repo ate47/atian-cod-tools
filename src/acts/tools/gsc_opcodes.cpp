@@ -185,7 +185,7 @@ namespace tool::gsc::opcode {
 		case TYPE_JUMP_GREATERTHAN:
 		case TYPE_JUMP_LOWERTHAN:
 		{
-			auto* clo = static_cast<ASMContextNodeOp2*>(op->m_operand->Clone());
+			ASMContextNodeOp2* clo = static_cast<ASMContextNodeOp2*>(op->m_operand->Clone());
 			if (reversed) {
 				clo->m_description = op->m_type == TYPE_JUMP_GREATERTHAN ? "<" : ">";
 			}
@@ -441,9 +441,9 @@ namespace {
 		if (!a || !b || !a->IsConstNumber() || !b->IsConstNumber()) {
 			return false;
 		}
-		auto* aa = dynamic_cast<ASMContextNodeValueVir*>(a);
-		auto* bb = dynamic_cast<ASMContextNodeValueVir*>(b);
-		auto dt = aa->GetDatatype();
+		ASMContextNodeValueVir* aa = dynamic_cast<ASMContextNodeValueVir*>(a);
+		ASMContextNodeValueVir* bb = dynamic_cast<ASMContextNodeValueVir*>(b);
+		ASMContextNodeValueVirDataType dt = aa->GetDatatype();
 
 		if (dt != bb->GetDatatype()) {
 			return false;
@@ -478,14 +478,14 @@ namespace {
 		case TYPE_IDENTIFIER:
 			return dynamic_cast<ASMContextNodeIdentifier*>(a)->m_value == dynamic_cast<ASMContextNodeIdentifier*>(b)->m_value;
 		case TYPE_VECTOR: {
-			auto* veca = dynamic_cast<ASMContextNodeVector*>(a);
-			auto* vecb = dynamic_cast<ASMContextNodeVector*>(b);
+			ASMContextNodeVector* veca = dynamic_cast<ASMContextNodeVector*>(a);
+			ASMContextNodeVector* vecb = dynamic_cast<ASMContextNodeVector*>(b);
 			
 			return IsStructSimilar(veca->m_x, vecb->m_x) && IsStructSimilar(veca->m_y, vecb->m_y) && IsStructSimilar(veca->m_z, vecb->m_z);
 		}
 		case TYPE_TERNARY: {
-			auto* tera = dynamic_cast<ASMContextNodeTernary*>(a);
-			auto* terb = dynamic_cast<ASMContextNodeTernary*>(b);
+			ASMContextNodeTernary* tera = dynamic_cast<ASMContextNodeTernary*>(a);
+			ASMContextNodeTernary* terb = dynamic_cast<ASMContextNodeTernary*>(b);
 			return IsStructSimilar(tera->m_operand1, terb->m_operand1) && IsStructSimilar(tera->m_operand2, terb->m_operand2) && IsStructSimilar(tera->m_operand3, terb->m_operand3);
 		}
 		case TYPE_CONST_HASH:
@@ -497,8 +497,8 @@ namespace {
 			return IsEqualNumber(a, b);
 		case TYPE_OPERATION1:
 		case TYPE_DELTA: {
-			auto* aa = dynamic_cast<ASMContextNodeOp1*>(a);
-			auto* bb = dynamic_cast<ASMContextNodeOp1*>(b);
+			ASMContextNodeOp1* aa = dynamic_cast<ASMContextNodeOp1*>(a);
+			ASMContextNodeOp1* bb = dynamic_cast<ASMContextNodeOp1*>(b);
 
 			if (_strcmpi(aa->m_description, bb->m_description)) {
 				return false;
@@ -508,8 +508,8 @@ namespace {
 		case TYPE_OPERATION2:
 		case TYPE_OPERATION_MERGE:
 		{
-			auto* aa = dynamic_cast<ASMContextNodeOp2*>(a);
-			auto* bb = dynamic_cast<ASMContextNodeOp2*>(b);
+			ASMContextNodeOp2* aa = dynamic_cast<ASMContextNodeOp2*>(a);
+			ASMContextNodeOp2* bb = dynamic_cast<ASMContextNodeOp2*>(b);
 
 			if (_strcmpi(aa->m_description, bb->m_description)) {
 				return false;
@@ -518,28 +518,28 @@ namespace {
 				&& IsStructSimilar(aa->m_operand2, bb->m_operand2);
 		}
 		case TYPE_ARRAY_ACCESS: {
-			auto* aa = dynamic_cast<ASMContextNodeArrayAccess*>(a);
-			auto* bb = dynamic_cast<ASMContextNodeArrayAccess*>(b);
+			ASMContextNodeArrayAccess* aa = dynamic_cast<ASMContextNodeArrayAccess*>(a);
+			ASMContextNodeArrayAccess* bb = dynamic_cast<ASMContextNodeArrayAccess*>(b);
 
 			return IsStructSimilar(aa->m_operandleft, bb->m_operandleft) && IsStructSimilar(aa->m_operandright, bb->m_operandright);
 		}
 		case TYPE_ACCESS:
 		case TYPE_SET: {
-			auto* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
-			auto* bb = dynamic_cast<ASMContextNodeLeftRightOperator*>(b);
+			ASMContextNodeLeftRightOperator* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
+			ASMContextNodeLeftRightOperator* bb = dynamic_cast<ASMContextNodeLeftRightOperator*>(b);
 
 			return IsStructSimilar(aa->m_left, bb->m_left) && IsStructSimilar(aa->m_right, bb->m_right);
 		}
 		case TYPE_SET_OP: {
-			auto* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
-			auto* bb = dynamic_cast<ASMContextNodeLeftRightOperator*>(b);
+			ASMContextNodeLeftRightOperator* aa = dynamic_cast<ASMContextNodeLeftRightOperator*>(a);
+			ASMContextNodeLeftRightOperator* bb = dynamic_cast<ASMContextNodeLeftRightOperator*>(b);
 
 			return aa->m_operatorName == bb->m_operatorName 
 				&& IsStructSimilar(aa->m_left, bb->m_left) && IsStructSimilar(aa->m_right, bb->m_right);
 		}
 		case TYPE_FUNC_REFNAME: {
-			auto* aa = dynamic_cast<ASMContextNodeFuncRef*>(a);
-			auto* bb = dynamic_cast<ASMContextNodeFuncRef*>(b);
+			ASMContextNodeFuncRef* aa = dynamic_cast<ASMContextNodeFuncRef*>(a);
+			ASMContextNodeFuncRef* bb = dynamic_cast<ASMContextNodeFuncRef*>(b);
 
 			return aa->m_func == bb->m_func
 				&& aa->m_script == bb->m_script
@@ -547,8 +547,8 @@ namespace {
 				&& !_strcmpi(aa->m_op, bb->m_op);
 		}
 		case TYPE_FUNC_CALL: {
-			auto* aa = dynamic_cast<ASMContextNodeCallFuncPtr*>(a);
-			auto* bb = dynamic_cast<ASMContextNodeCallFuncPtr*>(b);
+			ASMContextNodeCallFuncPtr* aa = dynamic_cast<ASMContextNodeCallFuncPtr*>(a);
+			ASMContextNodeCallFuncPtr* bb = dynamic_cast<ASMContextNodeCallFuncPtr*>(b);
 			if (aa->m_flags != bb->m_flags || aa->m_operands.size() != bb->m_operands.size()) {
 				return false;
 			}
@@ -578,7 +578,7 @@ public:
 	ASMContextLocationOpCatch(int tid) : ASMContextLocationOp("Catch"), tid(tid) {
 	}
 	void Run(ASMContext& context, tool::gsc::T8GSCOBJContext& objctx)  const override {
-		auto* ref = new ASMContextNodeValue<const char*>("Catch", TYPE_CATCH_PRECOMPUTE);
+		ASMContextNodeValue<const char*>* ref = new ASMContextNodeValue<const char*>("Catch", TYPE_CATCH_PRECOMPUTE);
 		// convert it to statement
 		ref->m_priority = PRIORITY_INST;
 		// TODO: use tid
@@ -632,7 +632,7 @@ public:
 };
 
 int OPCodeInfo::Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const {
-	out << "\n";
+	out << std::endl;
 	return 0; // by default nop
 }
 
@@ -645,7 +645,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "Unknown operator: " << std::hex << value << "\n";
+		out << "Unknown operator: " << std::hex << value << std::endl;
 
 		byte* oldBcl = context.m_bcl;
 		for (size_t j = 0; j < 0x4; j++) {
@@ -658,7 +658,7 @@ public:
 			}
 
 			out << " | " << *(float*)&context.m_bcl[0] << "/" << *(float*)&context.m_bcl[4] << "/" << std::hex << *(uint64_t*)&context.m_bcl[0];
-			out << "\n";
+			out << std::endl;
 			context.m_bcl += 8;
 		}
 		context.m_bcl = oldBcl;
@@ -671,9 +671,9 @@ public:
 				out << "match string loc u8:0x" << (int)*(byte*)context.m_bcl;
 				out << ", u16:0x" << *(uint16_t*)context.m_bcl;
 				out << ", u32:0x" << *(uint32_t*)context.m_bcl;
-				context.WritePadding(out << "\n");
-				utils::PrintFormattedString(out << "\"", cand) << "\"";
-				out << "\n";
+				context.WritePadding(out << std::endl);
+				out << '"' << utils::FormattedString(cand) << '"';
+				out << std::endl;
 			}
 
 			context.m_bcl++;
@@ -686,44 +686,44 @@ public:
 			for (size_t i = 0; i < 0x3; i++) {
 				auto* loc = utils::Aligned<uint32_t>(context.m_bcl);
 
-				auto hash = *reinterpret_cast<uint32_t*>(loc + i * 4);
+				uint32_t hash = *reinterpret_cast<uint32_t*>(loc + i * 4);
 				auto* str = hashutils::ExtractPtr(hash);
 
 				if (str) {
-					context.WritePadding(out) << "#" << std::dec << i << ": " << str << " (var_" << std::hex << hash << ")\n";
+					context.WritePadding(out) << "#" << std::dec << i << ": " << str << " (var_" << std::hex << hash << ")" << std::endl;
 				}
 			}
 		}
 		else if (!(objctx.m_vmInfo->flags & tool::gsc::opcode::VmFlags::VMF_HASH64)) {
 			for (size_t i = 0; i < 0x10; i++) {
-				auto hash = *reinterpret_cast<uint32_t*>(context.m_bcl + i);
-				auto* str = hash ? hashutils::ExtractPtr(hash) : nullptr;
+				uint32_t hash = *reinterpret_cast<uint32_t*>(context.m_bcl + i);
+				const char* str = hash ? hashutils::ExtractPtr(hash) : nullptr;
 
 				if (str) {
-					context.WritePadding(out) << "#0x" << std::hex << i << ": " << str << " (var_" << std::hex << hash << ")\n";
+					context.WritePadding(out) << "#0x" << std::hex << i << ": " << str << " (var_" << std::hex << hash << ")" << std::endl;
 				}
 			}
 		}
 
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
 			for (size_t i = 0; i < 0x3; i++) {
-				auto* loc = utils::Aligned<uint64_t>(context.m_bcl);
+				byte* loc = utils::Aligned<uint64_t>(context.m_bcl);
 
-				auto hash = *reinterpret_cast<uint64_t*>(loc + i * 8);
-				auto* str = hashutils::ExtractPtr(hash);
+				uint64_t hash = *reinterpret_cast<uint64_t*>(loc + i * 8);
+				const char* str = hashutils::ExtractPtr(hash);
 
 				if (str) {
-					context.WritePadding(out) << "#" << std::dec << i << ": #\"" << str << "\" (hash_" << std::hex << hash << ")\n";
+					context.WritePadding(out) << "#" << std::dec << i << ": #\"" << str << "\" (hash_" << std::hex << hash << ")" << std::endl;
 				}
 			}
 		}
 		else {
 			for (size_t i = 0; i < 0x18; i++) {
-				auto hash = *reinterpret_cast<uint64_t*>(context.m_bcl + i);
-				auto* str = hash ? hashutils::ExtractPtr(hash) : nullptr;
+				uint64_t hash = *reinterpret_cast<uint64_t*>(context.m_bcl + i);
+				const char* str = hash ? hashutils::ExtractPtr(hash) : nullptr;
 
 				if (str) {
-					context.WritePadding(out) << "#0x" << std::hex << i << ": " << str << " (hash_" << std::hex << hash << ")\n";
+					context.WritePadding(out) << "#0x" << std::hex << i << ": " << str << " (hash_" << std::hex << hash << ")" << std::endl;
 				}
 			}
 		}
@@ -767,7 +767,7 @@ public:
 		uint16_t val = context.Read<uint16_t>(loc);
 
 		loc += 2;
-		out << std::hex << val << "\n";
+		out << std::hex << val << std::endl;
 		return 0;
 	}
 
@@ -822,7 +822,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		byte count = context.Read<byte>(context.m_bcl++);
 
-		out << "count: " << std::dec << (int)count << "\n";
+		out << "count: " << std::dec << (int)count << std::endl;
 
 		for (size_t i = 0; i < count; i++) {
 			uint64_t name = context.Read<uint64_t>(context.m_bcl);
@@ -922,7 +922,7 @@ public:
 
 		context.m_localvars.reserve((size_t)count + 1);
 
-		out << std::hex << "count: 0x" << (int)count << "\n";
+		out << std::hex << "count: 0x" << (int)count << std::endl;
 		if (!context.m_localvars.size()) {
 			// the local variables starts at 1
 			context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
@@ -1052,7 +1052,7 @@ public:
 	OPCodeInfoCheckClearParams() : OPCodeInfo(OPCODE_CheckClearParams, "CheckClearParams") {}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 		// don't create statement, we can ignore it
 		context.m_lastOpCodeBase = -1;
 		return 0;
@@ -1140,7 +1140,7 @@ public:
 			context.PushASMCNode(new ASMContextNodeValue<Type>(m_value, m_nodeType, false, m_canBeCastToBool, m_isIntConst));
 		}
 
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -1163,7 +1163,7 @@ class OPCodeInfoCastBool : public OPCodeInfo {
 			}
 		}
 
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -1187,7 +1187,7 @@ public:
 			context.SetObjectIdASMCNode(new ASMContextNodeValue<Type>(m_value, m_type));
 		}
 
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -1216,7 +1216,7 @@ public:
 			}
 		}
 
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -1236,7 +1236,7 @@ public:
 			context.PushASMCNode(new ASMContextNodeLeftRightOperator(left, new ASMContextNodeIdentifier(hash::HashT89Scr("size"), "var"), ".", PRIORITY_ACCESS, TYPE_ACCESS));
 		}
 
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -1288,7 +1288,7 @@ public:
 			}
 		}
 
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -1403,7 +1403,7 @@ public:
 		}
 
 
-		out << "delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << "\n";
+		out << "delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << std::endl;
 
 		return 0;
 	}
@@ -1684,7 +1684,7 @@ public:
 			context.m_objctx.m_devblocks.insert(context.ScriptAbsoluteLocation(context.m_fonctionStart + m_jumpLocation));
 		}
 
-		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
+		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << std::endl;
 
 		return 0;
 		//return m_id == OPCODE_Jump ? -2 : 0; // no code after jump
@@ -1741,7 +1741,7 @@ public:
 		byte* newLoc = &context.m_bcl[delta];
 
 		if (newLoc - context.m_gscReader.Ptr() > context.m_gscReader.GetFileSize() || newLoc < context.m_gscReader.Ptr()) {
-			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
+			out << "INVALID JUMP, TOO FAR: delta:" << std::hex << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << std::endl;
 			return -1;
 		}
 
@@ -1766,7 +1766,7 @@ public:
 					desc = "??";
 					break;
 				default:
-					out << "bad op code jumpexpr: " << std::hex << m_id << "\n";
+					out << "bad op code jumpexpr: " << std::hex << m_id << std::endl;
 					return -1;
 				}
 			}
@@ -1776,7 +1776,7 @@ public:
 
 		locref.refs.insert(m_jumpLocation);
 
-		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")\n";
+		out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << std::endl;
 
 		return 0;
 	}
@@ -1813,7 +1813,7 @@ public:
 			context.CompleteStatement();
 		}
 
-		out << "Jump 0x" << std::hex << location << "\n";
+		out << "Jump 0x" << std::hex << location << std::endl;
 
 		return -2; // no code after that
 	}
@@ -1846,7 +1846,7 @@ public:
 			}
 		}
 
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 
@@ -1876,7 +1876,7 @@ public:
 			bytecode += 4;
 			out << vec[i];
 		}
-		out << ")\n";
+		out << ")" << std::endl;
 
 		if (context.m_runDecompiler) {
 			if (count == 3) {
@@ -1932,7 +1932,7 @@ public:
 			context.PushASMCNode(new ASMContextNodeVector(x, y, z));
 		}
 
-		out << "(" << x << ", " << y << ", " << z << ")\n";
+		out << "(" << x << ", " << y << ", " << z << ")" << std::endl;
 
 		return 0;
 	}
@@ -2104,7 +2104,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			// iw8 check
@@ -2128,7 +2128,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(context.GetFieldIdASMCNode());
@@ -2156,7 +2156,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 		if (context.m_runDecompiler) {
 			ASMContextNode* iterator = context.PopASMCNode();
 
@@ -2181,7 +2181,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeRef("&", context.GetFieldIdASMCNode()->Clone()));
 		}
@@ -2284,7 +2284,7 @@ public:
 			}
 		}
 		else {
-			out << "\n";
+			out << std::endl;
 		}
 
 		if (context.m_runDecompiler) {
@@ -2559,7 +2559,7 @@ public:
 			}
 		}
 		else {
-			out << "\n";
+			out << std::endl;
 		}
 
 		if (context.m_runDecompiler) {
@@ -2613,7 +2613,7 @@ public:
 			uint64_t name;
 			if (lvar >= context.m_localvars.size()) {
 				name = hash::HashT89Scr("<error>");
-				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+				out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 			}
 			else {
 				name = context.m_localvars[lvar].name;
@@ -2657,7 +2657,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2704,7 +2704,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2741,7 +2741,7 @@ public:
 
 			if (lvar >= context.m_localvars.size()) {
 				name = hash::HashT89Scr("<error>");
-				out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+				out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 			}
 			else {
 				name = context.m_localvars[lvar].name;
@@ -2750,7 +2750,7 @@ public:
 			}
 		}
 		else {
-			out << "\n";
+			out << std::endl;
 		}
 
 		if (context.m_runDecompiler) {
@@ -2851,7 +2851,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2892,7 +2892,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2925,7 +2925,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -2958,7 +2958,7 @@ public:
 		uint64_t name;
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -3005,7 +3005,7 @@ public:
 			context.m_localvars_ref[name]++;
 			out << hashutils::ExtractTmp("var", name);
 		}
-		out << "(0x" << std::hex << lvar << ")\n";
+		out << "(0x" << std::hex << lvar << ")" << std::endl;
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(new ASMContextNodeIdentifier(name));
@@ -3029,7 +3029,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			if (!m_stack) {
@@ -3060,7 +3060,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeArrayBuild());
@@ -3082,7 +3082,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* key = m_hasKey ? context.PopASMCNode() : nullptr;
@@ -3120,7 +3120,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeStructBuild());
@@ -3150,7 +3150,7 @@ public:
 			out << hashutils::ExtractTmp("hash", key);
 		}
 
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNode* keyNode = m_popKey ? context.PopASMCNode() : new ASMContextNodeHash(key);
@@ -3187,7 +3187,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			context.SetObjectIdASMCNode(context.PopASMCNode());
@@ -3208,7 +3208,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			context.PushASMCNode(new ASMContextNodeValue<const char*>("<emptypos_prescriptcall>", TYPE_PRECODEPOS));
@@ -3244,7 +3244,7 @@ public:
 			}
 			context.CompleteStatement();
 		}
-		out << "\n";
+		out << std::endl;
 		int64_t rloc = context.FunctionRelativeLocation();
 		for (const auto& loc : context.m_locs) {
 			if (loc.second.rloc > rloc) {
@@ -3284,7 +3284,7 @@ public:
 
 			context.CompleteStatement();
 		}
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -3310,7 +3310,7 @@ public:
 			context.PushASMCNode(ref);
 			context.CompleteStatement();
 		}
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
@@ -3333,7 +3333,7 @@ public:
 			context.PushASMCNode(ref);
 			context.CompleteStatement();
 		}
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
@@ -3356,7 +3356,7 @@ public:
 			context.PushASMCNode(ref);
 			context.CompleteStatement();
 		}
-		out << "\n";
+		out << std::endl;
 		LOG_ERROR("Can't decompile skip operator {}", m_operatorName);
 		return -2;
 	}
@@ -3373,7 +3373,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("DevOp", false);
 
@@ -3398,7 +3398,7 @@ public:
 	using OPCodeInfo::OPCodeInfo;
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp("InvalidOpCode", false);
 
@@ -3430,7 +3430,7 @@ public:
 			}
 			out << " " << std::hex << std::setfill('0') << std::setw(2) << data;
 		}
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_name, false);
@@ -3552,7 +3552,7 @@ public:
 
 		if (lvar >= context.m_localvars.size()) {
 			name = hash::HashT89Scr("<error>");
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			name = context.m_localvars[lvar].name;
@@ -3652,7 +3652,7 @@ public:
 				context.CompleteStatement();
 			}
 		}
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
@@ -3693,7 +3693,7 @@ public:
 			context.PushASMCNode(node);
 			context.CompleteStatement();
 		}
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
@@ -3728,7 +3728,7 @@ public:
 			context.PushASMCNode(node);
 			context.CompleteStatement();
 		}
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 	int Skip(uint16_t value, ASMSkipContext& ctx) const override {
@@ -3932,7 +3932,7 @@ public:
 		if (flags) {
 			out << " iflags: 0x" << std::hex << flags << " (ift:0x" << (flags & 0xF) << ")";
 		}
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -4203,7 +4203,7 @@ public:
 				context.m_objectId = nullptr;
 			}
 		}
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -4238,7 +4238,7 @@ public:
 		base += 4;
 
 		if (str) {
-			utils::PrintFormattedString(out << "\"", str) << "\"\n";
+			out << '"' << utils::FormattedString(str) << '"' << std::endl;
 			if (context.m_runDecompiler) {
 				if (m_istr) {
 					context.PushASMCNode(new ASMContextNodeString(str, "&"));
@@ -4250,7 +4250,7 @@ public:
 		}
 		else {
 			// probably only dev blocks
-			out << "bad str stack: 0x" << std::hex << ref << "\n";
+			out << "bad str stack: 0x" << std::hex << ref << std::endl;
 			if (context.m_runDecompiler) {
 				context.PushASMCNode(new ASMContextNodeString((context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_NOERROR_STR)) ? "" : "<unknown string>", m_istr ? "&" : nullptr));
 			}
@@ -4296,10 +4296,7 @@ public:
 
 			base += 4;
 			
-			out << "%";
-			utils::PrintFormattedString(out, str1);
-			out << "::";
-			utils::PrintFormattedString(out, str2);
+			out << "%" << utils::FormattedString(str1) << "::" << utils::FormattedString(str2);
 			
 			bool useReal{ (context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL)) != 0 };
 			// check if we can only display the anim name
@@ -4329,8 +4326,7 @@ public:
 			ref2 = context.Read<byte>(base);
 			str2 = objctx.GetStringValueOrError(ref2, context.ScriptAbsoluteLocation(base), nullptr);
 			base++;
-			out << "$";
-			utils::PrintFormattedString(out, str2);
+			out << "$" << utils::FormattedString(str2);
 			
 			bool useReal{ (context.m_opt.m_formatter->HasFlag(tool::gsc::formatter::FormatterFlags::FFL_ANIM_REAL)) != 0 };
 			// check if we can only display the anim name
@@ -4364,7 +4360,7 @@ public:
 			out << "bad str stack: 0x" << std::hex << ref2 << " ";
 			str2 = "<unknown>";
 		}
-		out << "\n";
+		out << std::endl;
 
 		return 0;
 	}
@@ -4416,7 +4412,7 @@ public:
 			name = hash::Hash64(m_gvarName);
 			out << m_gvarName;
 		}
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			switch (m_ref) {
@@ -4502,7 +4498,7 @@ public:
 		int lvar = (int)context.Read<byte>(context.m_bcl++);
 
 		if (lvar >= context.m_localvars.size()) {
-			out << "bad lvar stack: 0x" << std::hex << (int)lvar << "\n";
+			out << "bad lvar stack: 0x" << std::hex << (int)lvar << std::endl;
 		}
 		else {
 			uint64_t name = context.m_localvars[lvar].name;
@@ -4541,7 +4537,7 @@ public:
 		baseCases += 4;
 
 		out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
-			<< context.FunctionRelativeLocation(utils::Aligned<int64_t>(baseTable)) << " cases: " << cases << "\n";
+			<< context.FunctionRelativeLocation(utils::Aligned<int64_t>(baseTable)) << " cases: " << cases << std::endl;
 
 		ASMContextNodeSwitchPreCompute* node = nullptr;
 		if (context.m_runDecompiler) {
@@ -4594,7 +4590,7 @@ public:
 				uint32_t floc = (uint32_t)(caseLoc - context.m_gscReader.Ptr());
 				const char* cv = objctx.GetStringValueByLoc(floc);
 				if (cv) {
-					utils::PrintFormattedString(out << "\"", cv) << "\"";
+					out << '"' << utils::FormattedString(cv) << '"';
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeString(cv), caseRLoc });
 					}
@@ -4616,7 +4612,7 @@ public:
 			}
 
 			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
-				<< caseRLoc << "\n";
+				<< caseRLoc << std::endl;
 
 			if (c == cases) {
 				if (node) {
@@ -4703,7 +4699,7 @@ public:
 		byte* refLocation = &context.m_bcl[delta];
 
 		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
-			<< context.FunctionRelativeLocation(refLocation) << "\n";
+			<< context.FunctionRelativeLocation(refLocation) << std::endl;
 
 		tool::gsc::opcode::asmcontextlocation& loc = context.PushLocation(refLocation);
 
@@ -4762,7 +4758,7 @@ public:
 		byte* baseLocation = baseTable;
 
 		out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
-			<< context.FunctionRelativeLocation(baseTable) << " cases: " << cases << "\n";
+			<< context.FunctionRelativeLocation(baseTable) << " cases: " << cases << std::endl;
 
 		ASMContextNodeSwitchPreCompute* node = nullptr;
 		if (context.m_runDecompiler) {
@@ -4818,9 +4814,7 @@ public:
 
 					ASMContextNodeString* outputStr;
 					if (str) {
-						out << "\"";
-						utils::PrintFormattedString(out, str);
-						out << "\"";
+						out << '"' << utils::FormattedString(str) << '"';
 						if (node) {
 							outputStr = new ASMContextNodeString(str);
 						}
@@ -4876,7 +4870,7 @@ public:
 				const char* casestr{ objctx.GetStringValueByLoc(floc) };
 
 				if (casestr) {
-					utils::PrintFormattedString(out << "case \"", casestr) << "\"";
+					out << "case \"" << utils::FormattedString(casestr) << '"';
 					if (node) {
 						node->m_cases.push_back({ new ASMContextNodeString(casestr), caseRLoc });
 					}
@@ -4891,7 +4885,7 @@ public:
 			}
 
 			out << ": ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
-				<< caseRLoc << "\n";
+				<< caseRLoc << std::endl;
 
 			if (c == cases) {
 				if (node) {
@@ -4986,7 +4980,7 @@ public:
 			context.CompleteStatement();
 		}
 
-		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << std::hex << rloc << "\n";
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << std::hex << rloc << std::endl;
 
 		return 0;
 	}
@@ -5024,7 +5018,7 @@ public:
 			context.CompleteStatement();
 		}
 
-		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << std::hex << rloc << "\n";
+		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << std::hex << rloc << std::endl;
 
 		return 0;
 	}
@@ -5077,7 +5071,7 @@ public:
 				context.PushASMCNode(node);
 			}
 		}
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 
@@ -5103,7 +5097,7 @@ public:
 		auto& locref = context.PushLocation(newLoc);
 
 		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc 
-			<< "(" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << "\n";
+			<< "(" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << std::endl;
 
 		if (context.m_runDecompiler) {
 			int tid{ tryCatchId++ };
@@ -5138,7 +5132,7 @@ public:
 		auto& locref = context.PushLocation(newLoc);
 
 		out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc
-			<< "(" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << "\n";
+			<< "(" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << std::endl;
 
 		// Todo: do we need it?
 		return 0;
@@ -5172,7 +5166,7 @@ public:
 			context.CompleteStatement();
 		}
 	end:
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 
@@ -5193,7 +5187,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		byte count = context.Read<byte>(context.m_bcl++) + m_addedToCount;
 
-		out << "count:" << (int)count << "\n";
+		out << "count:" << (int)count << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, true);
@@ -5232,7 +5226,7 @@ public:
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		byte count = context.Read<byte>(context.m_bcl++) + m_added;
 
-		out << "count:" << (int)count << "\n";
+		out << "count:" << (int)count << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, true, TYPE_WAITTILL);
@@ -5276,7 +5270,7 @@ public:
 				out << std::hex << std::setfill('0') << std::setw(2) << (int)*(context.m_bcl++) << " ";
 			}
 		}
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, m_hasCaller, m_type);
@@ -5316,7 +5310,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << "\n";
+		out << std::endl;
 
 		if (context.m_runDecompiler) {
 			ASMContextNodeMultOp* node = new ASMContextNodeMultOp(m_op, false, TYPE_STATEMENT, m_isBoolVal);
@@ -5351,7 +5345,7 @@ public:
 
 	int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		context.CompleteStatement();
-		out << "\n";
+		out << std::endl;
 		return 0;
 	}
 };
@@ -5403,7 +5397,7 @@ public:
 	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
-		out << m_op << "\n";
+		out << m_op << std::endl;
 
 		if (context.m_runDecompiler) {
 			if (context.m_fieldId) {
@@ -5442,7 +5436,7 @@ public:
 			out << hashutils::ExtractTmp("var", name) << std::flush;
 		}
 
-		out << m_op << "\n";
+		out << m_op << std::endl;
 
 		if (context.m_runDecompiler) {
 			auto* op = new ASMContextNodeIdentifier(name);
@@ -5537,6 +5531,10 @@ namespace tool::gsc::opcode {
 
 	void VmInfo::SetOpaqueStringCount(size_t opaqueStringCount) {
 		this->opaqueStringCount = opaqueStringCount;
+	}
+
+	void VmInfo::SetGDBType(uint64_t gdbMagic) {
+		this->gdbMagic = gdbMagic;
 	}
 
 	void VmInfo::RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
@@ -6408,6 +6406,13 @@ void ASMContext::CompleteStatement(bool resetLoc) {
 
 std::ostream& DecompContext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 	utils::Padding(out, paddingPre);
+	if (gdbData && baseloc && lineBuf) {
+		// add these offset/line to the gdb output
+		gdbData->lineInfos[lineBuf->line] = baseloc + rloc;
+		if (opt.m_lineCount) {
+			out << "/*" << std::dec << lineBuf->line << "/" << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (baseloc + rloc) << "*/";
+		}
+	}
 	if (opt.m_func_rloc || opt.m_func_floc) {
 		out << "/*";
 		if (forceNoRLoc) {
@@ -6455,18 +6460,18 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 		case BLOCK_DEFAULT: {
 			inlined = IsBlockInlineable(this, ctx.opt);
 			if (inlined) {
-				out << "\n";
+				out << std::endl;
 			}
 			else {
-				out << "{\n";
+				out << "{" << std::endl;
 			}
 			break;
 		}
 		case BLOCK_DEV:
-			out << "/#\n";
+			out << "/#" << std::endl;
 			break;
 		default:
-			out << "\n";
+			out << std::endl;
 			break;
 		}
 
@@ -6492,11 +6497,11 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 			if (lastType && (((!hide && ref.node->m_type != TYPE_PRECODEPOS) || ctx.opt.m_show_internal_blocks))) {
 				if (ref.node->m_type != TYPE_END || i != m_statements.size() - 1) {
 					if (IsBlockType(ref.node->m_type)) {
-						ctx.WritePadding(out) << "\n";
+						ctx.WritePadding(out) << std::endl;
 						lastType = LT_BLOCK;
 					}
 					else if (lastType != LT_STMT) {
-						ctx.WritePadding(out) << "\n";
+						ctx.WritePadding(out) << std::endl;
 						lastType = LT_STMT;
 					}
 				}
@@ -6529,7 +6534,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 
 				out << ")";
 			}
-			out << ":\n";
+			out << ":" << std::endl;
 			ctx.padding++;
 		}
 		if (ref.node->m_type != TYPE_END) {
@@ -6549,7 +6554,7 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 					if (ref.node->m_type != TYPE_COMMENT) {
 						out << ";";
 					}
-					out << "\n";
+					out << std::endl;
 				}
 				if (ref.node->m_type == TYPE_JUMP || ref.node->m_type == TYPE_RETURN) {
 					hide = true;
@@ -6561,14 +6566,14 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 			if (i != m_statements.size() - 1) {
 				ctx.WritePadding(out);
 				// if we're not at the end, it means we are reading a return;
-				out << "return;\n";
+				out << "return;" << std::endl;
 			}
 			else if (ctx.opt.m_show_internal_blocks) {
-				ctx.WritePadding(out) << "<end>;\n";
+				ctx.WritePadding(out) << "<end>;" << std::endl;
 			}
 			else if (m_statements.size() == 1) {
 				// empty end block, write a small empty line
-				ctx.WritePadding(out) << "\n";
+				ctx.WritePadding(out) << std::endl;
 			}
 		}
 		out << std::flush;
@@ -6603,17 +6608,17 @@ void ASMContextNodeBlock::Dump(std::ostream& out, DecompContext& ctx) const {
 		switch (m_blockType) {
 		case BLOCK_DEFAULT:
 			if (!inlined) {
-				ctx.WritePadding(out, true) << "}\n";
+				ctx.WritePadding(out, true) << "}" << std::endl;
 			}
 			break;
 		case BLOCK_DEV:
-			ctx.WritePadding(out, true) << "#/\n";
+			ctx.WritePadding(out, true) << "#/" << std::endl;
 			break;
 		}
 	}
 	else {
 		if (SizeNoEmptyNode(m_statements) == 0) {
-			out << "\n"; // disabled and empty, we add an empty line
+			out << std::endl; // disabled and empty, we add an empty line
 		}
 	}
 }

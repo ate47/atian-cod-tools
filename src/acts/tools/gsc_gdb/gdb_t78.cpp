@@ -78,7 +78,76 @@ namespace {
         }
     }
 
-    REGISTER_GDB_HANDLE(VMI_DBG_T7_12, DbgLoad);
-    REGISTER_GDB_HANDLE(VMI_DBG_T7_13, DbgLoad);
-    REGISTER_GDB_HANDLE(VMI_DBG_T8_21, DbgLoad);
+    bool DbgSave(GscDecompilerGDBData* gdb, std::string& buffer) {
+        std::vector<byte> data{};
+
+        utils::Allocate<GSC_GDB>(data);
+
+        size_t devStringTable{};
+        size_t devStringsCount{ gdb->devStringsLocation.size() };
+
+
+        // know the size for the devstring table
+        if (devStringsCount) {
+            auto it{ gdb->devStringsLocation.begin() };
+            devStringTable = *it;
+            for (size_t i = 1; i < devStringsCount; i++) it++; // goto last
+            size_t maxDevString = *it;
+
+            if (data.size() > devStringTable) {
+                LOG_ERROR("Dev string in header");
+                return false;
+            }
+
+            // reshape the debug file to have the gsc dev strings
+            data.resize(maxDevString + 1);
+        }
+        // line info are 8 bytes aligned
+        utils::Aligned<uint64_t>(data);
+        size_t linesInfo{ data.size() };
+        size_t linesCount{};
+        uint32_t lastOffset{};
+
+        if (!gdb->lineInfos.empty()) {
+            auto [cl, off] = *gdb->lineInfos.begin();
+            lastOffset = off;
+        }
+
+        // write the obtained lines
+        for (auto& [cl, off] : gdb->lineInfos) {
+            while (linesCount < cl) {
+                GSC_LINEINFO& line{ utils::Allocate<GSC_LINEINFO>(data) };
+                line.offset = lastOffset;
+                linesCount++;
+            }
+            if (off > lastOffset) {
+                // keep cumulative offsets for the game
+                lastOffset = off;
+            }
+            GSC_LINEINFO& line{ utils::Allocate<GSC_LINEINFO>(data) };
+            line.offset = lastOffset;
+            linesCount++;
+        }
+
+        // write header data
+        GSC_GDB* header{ (GSC_GDB*)data.data() };
+        *(uint64_t*)header = gdb->gdb;
+        header->source_crc = gdb->checksum;
+        header->version = 0;
+        header->devblock_stringtable_offset = (uint32_t)devStringTable;
+        header->devblock_stringtable_count = (uint32_t)devStringsCount;
+        header->lineinfo_offset = (uint32_t)linesInfo;
+        header->lineinfo_count = (uint32_t)linesCount;
+        // not implemented
+        header->stringtable_offset = (uint32_t)data.size(); 
+        header->stringtable_count = (uint32_t)0;
+
+        buffer.resize(data.size());
+        std::memcpy(buffer.data(), data.data(), data.size());
+        return true;
+    }
+
+    REGISTER_GDB_HANDLE(VMI_DBG_T7_12, DbgLoad, DbgSave);
+    REGISTER_GDB_HANDLE(VMI_DBG_T7_13, DbgLoad, DbgSave);
+    REGISTER_GDB_HANDLE(VMI_DBG_T8_21, DbgLoad, DbgSave);
 }
