@@ -758,7 +758,10 @@ namespace {
 				return false;
 			}
 
-			std::filesystem::path out = luaDir / utils::va("lua_%llx.lua", entry.name);
+			const char* na{ hashutils::ExtractPtr(entry.name) };
+			if (!na) na = utils::va("hashed/lua_%llx.lua", entry.name);
+			std::filesystem::path out = luaDir / na;
+			std::filesystem::create_directories(out.parent_path());
 			LOG_INFO("Dump {} -> {} (0x{:x})", hashutils::ExtractTmpScript(entry.name), out.string(), entry.len);
 			auto buff = std::make_unique<byte[]>(entry.len);
 			if (!proc.ReadMemory(&buff[0], entry.buffer, entry.len)) {
