@@ -176,8 +176,6 @@ namespace {
 				if (opt.ReadFile(fdfile.string(), fileFDBuff)) {
 					core::bytebuffer::ByteBuffer fdreader{ fileFDBuff };
 
-					// todo: handle fd file
-
 					
 					struct BDiffHeader {
 						uint32_t size;
