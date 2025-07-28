@@ -20,6 +20,9 @@ namespace utils::crc {
 				}
 			}
 		}
+		void Update(const char* str) {
+			Update(str, std::strlen(str) + 1);
+		}
 		template<typename T>
 		void Update(const T val) {
 			Update(&val, sizeof(val));

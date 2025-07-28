@@ -81,7 +81,7 @@ See the wiki to know how to use the features
 
 - `bo3`: `string`, `rawfile`, `scriptparsetree`
 - `bo4`: `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`
-- `cw`: `string`
+- `cw`: `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`
 - `bo6`: `string`, `rawfile`, `gscobj`
 - `GscXHash`: `scriptparsetree`, `gscobj`
 - `GscXString`: `scriptparsetree`, `scriptparsetreedbg`

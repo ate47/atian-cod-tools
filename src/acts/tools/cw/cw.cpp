@@ -1,7 +1,308 @@
 #include <includes.hpp>
+#include <hook/module_mapper.hpp>
 #include "tools/cw/cw.hpp"
 #include "tools/cw/pool_cod2020.hpp"
 #include "tools/gsc.hpp"
+
+static const char* cwBgNames[]{
+	"invalid",
+	"vehicle",
+	"model",
+	"aitype",
+	"character",
+	"xmodelalias",
+	"weapon",
+	"gesture",
+	"gesturetable",
+	"zbarrier",
+	"rumble",
+	"shellshock",
+	"statuseffect",
+	"xcam",
+	"destructible",
+	"streamerhint",
+	"flowgraph",
+	"xanim",
+	"sanim",
+	"scriptbundle",
+	"talent",
+	"cinematicmotion",
+	"vehicleassembly",
+	"execution",
+	"statusicon",
+	"locationselector",
+	"menu",
+	"material",
+	"string",
+	"eventstring",
+	"moviefile",
+	"objective",
+	"fx",
+	"lui_menu_data",
+	"lui_elem",
+	"radiant_exploder",
+	"soundalias",
+	"client_fx",
+	"client_tagfxset",
+	"client_lui_elem",
+};
+
+static const char* cwPoolNames[]{
+	"zone",
+	"assetlist",
+	"physpreset",
+	"physconstraints",
+	"destructibledef",
+	"xanim",
+	"xmodel",
+	"xcollision",
+	"xskeleton",
+	"xmodelmesh",
+	"material",
+	"csdef",
+	"computeshaderset",
+	"rtsdef",
+	"raytraceshaderset",
+	"techset",
+	"image",
+	"sound",
+	"sound_bank",
+	"sound_asset",
+	"sound_duck",
+	"sound_alias_modifier",
+	"sound_acoustics",
+	"col_map",
+	"clip_map",
+	"com_map",
+	"game_map",
+	"gfx_map",
+	"fonticon",
+	"localizeentry",
+	"gesture",
+	"gesturetable",
+	"cinematicmotion",
+	"weapon",
+	"weaponfull",
+	"weaponfrontend",
+	"weaponblueprint",
+	"weaponstylesettings",
+	"weaponsecondarymovement",
+	"weapontunables",
+	"cgmediatable",
+	"playersoundstable",
+	"playerfxtable",
+	"sharedweaponsounds",
+	"attachment",
+	"attachmentunique",
+	"weaponcamo",
+	"weaponcamobinding",
+	"customizationtable",
+	"customizationtablefrontend",
+	"snddriverglobals",
+	"fx",
+	"tagfx",
+	"klf",
+	"impactsfxtable",
+	"impactsoundstable",
+	"aitype",
+	"character",
+	"xmodelalias",
+	"rawfile",
+	"rawfilepreproc",
+	"rawtextfile",
+	"animtree",
+	"stringtable",
+	"structuredtable",
+	"leaderboarddef",
+	"ddl",
+	"glasses",
+	"scriptparsetree",
+	"scriptparsetreedbg",
+	"script_using",
+	"script_using_cp",
+	"script_using_mp",
+	"script_using_wz",
+	"script_using_zm",
+	"keyvaluepairs",
+	"vehicle",
+	"tracer",
+	"surfacefxtable",
+	"surfacesounddef",
+	"footsteptable",
+	"entityfximpacts",
+	"entitysoundimpacts",
+	"zbarrier",
+	"vehiclefxdef",
+	"vehiclesounddef",
+	"typeinfo",
+	"scriptbundle",
+	"scriptbundlelist",
+	"rumble",
+	"bulletpenetration",
+	"locdmgtable",
+	"aimtable",
+	"shoottable",
+	"playerglobaltunables",
+	"overheadcameratunables",
+	"animselectortable",
+	"animmappingtable",
+	"animstatemachine",
+	"behaviortree",
+	"behaviorstatemachine",
+	"ttf",
+	"sanim",
+	"shellshock",
+	"statuseffect",
+	"cinematic_camera",
+	"cinematic_sequence",
+	"spectate_camera",
+	"xcam",
+	"bgcache",
+	"flametable",
+	"bitfield",
+	"maptable",
+	"maptableentry",
+	"maptablelist",
+	"objective",
+	"objectivelist",
+	"navmesh",
+	"navvolume",
+	"laser",
+	"beam",
+	"streamerhint",
+	"flowgraph",
+	"postfxbundle",
+	"luafile",
+	"luafiledebug",
+	"renderoverridebundle",
+	"staticlevelfxlist",
+	"triggerlist",
+	"playerroletemplate",
+	"playerroletemplatefrontend",
+	"playerrolecategorytable",
+	"playerrolecategory",
+	"characterbodytype",
+	"characterbodytypefrontend",
+	"playeroutfit",
+	"gametypetable",
+	"gametypetableentry",
+	"feature",
+	"featuretable",
+	"unlockableitem",
+	"unlockableitemtable",
+	"entitylist",
+	"playlists",
+	"playlistglobalsettings",
+	"playlistschedule",
+	"motionmatchinginput",
+	"blackboard",
+	"tacticalquery",
+	"playermovementtunables",
+	"hierarchicaltasknetwork",
+	"ragdoll",
+	"storagefile",
+	"storagefilelist",
+	"charmixer",
+	"storeproduct",
+	"storecategory",
+	"storecategorylist",
+	"rank",
+	"ranktable",
+	"prestige",
+	"prestigetable",
+	"firstpartyentitlement",
+	"firstpartyentitlementlist",
+	"entitlement",
+	"entitlementlist",
+	"sku",
+	"labelstore",
+	"labelstorelist",
+	"cpu_occlusion_data",
+	"lighting",
+	"districts",
+	"streamerworld",
+	"talent",
+	"playertalenttemplate",
+	"playeranimation",
+	"<unused>",
+	"terraingfx",
+	"highlightreelinfodefines",
+	"highlightreelprofileweighting",
+	"highlightreelstarlevels",
+	"dlogevent",
+	"rawstring",
+	"ballisticdesc",
+	"streamkey",
+	"rendertargets",
+	"drawnodes",
+	"grouplodmodel",
+	"fxlibraryvolume",
+	"arenaseasons",
+	"sprayorgestureitem",
+	"sprayorgesturelist",
+	"hwplatform",
+	"attachmenttable",
+	"navinput",
+	"uimodeldatastruct",
+	"crafticon",
+	"crafticonlist",
+	"craftweaponsticker",
+	"craftweaponstickerlist",
+	"craftbackground",
+	"craftbackgroundlist",
+	"craftmaterial",
+	"craftmateriallist",
+	"craftcategory",
+	"craftcategorylist",
+	"craftweaponicontransform",
+	"craftweaponicontransformlist",
+	"xanimcurve",
+	"dynmodel",
+	"vectorfield",
+	"winddef",
+	"vehicleassembly",
+	"milestone",
+	"milestonetable",
+	"triggereffectdesc",
+	"triggeractions",
+	"playersettings",
+	"compasstunables",
+	"execution",
+	"scenario",
+};
+
+
+const char* cw::PoolName(cw::XAssetType type) {
+	return type >= 0 && type < ARRAYSIZE(cwPoolNames) ? cwPoolNames[type] : "<invalid>";
+}
+
+cw::XAssetType cw::PoolId(const char* name) {
+	for (size_t i = 0; i < ARRAYSIZE(cwPoolNames); i++) {
+		if (!_strcmpi(cwPoolNames[i], name)) {
+			return (cw::XAssetType)i;
+		}
+	}
+	return cw::XAssetType::ASSET_TYPE_COUNT;
+}
+
+
+cw::BGCacheTypes cw::BgCacheId(const char* name) {
+	for (size_t i = 0; i < ARRAYSIZE(cwBgNames); i++) {
+		if (!_strcmpi(cwBgNames[i], name)) {
+			return (cw::BGCacheTypes)i;
+		}
+	}
+
+	return cw::BG_CACHE_TYPE_INVALID;
+}
+
+const char* cw::BgCacheName(cw::BGCacheTypes id) {
+	if (id >= 0 && id < ARRAYSIZE(cwBgNames)) {
+		return cwBgNames[id];
+	}
+
+	return *cwBgNames;
+}
 
 char* cw::DecryptString(char* str) {
 	// for now I'm using the DLL to call the decrypt function
@@ -923,12 +1224,65 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int cwdbgcn(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+		hook::module_mapper::Module mod{ true };
+		if (!mod.Load(argv[2], false)) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		struct BGCacheInfo
+		{
+			const char* name;
+			cw::XAssetType assetType;
+			uint32_t allocItems;
+			void* registerFunc;
+			uint64_t unk18;
+			uint64_t hash;
+			byte demoOnly;
+			byte unk31;
+			byte unk32;
+			byte unk33;
+			uint32_t defaultEntryIndex;
+			uint32_t startIndex;
+			uint32_t numEntries;
+			uint32_t checksum;
+			byte unk44;
+			byte unk45;
+			byte unk46;
+			byte unk47;
+		};
+
+
+		utils::OutFileCE os{ "output_cw/bgcache.csv", true };
+		os << "name,assetType,registerFunc,hash,allocItems,defaultEntryIndex,startIndex,numEntries,checksum";
+		const BGCacheInfo* t{ mod->Get<BGCacheInfo>(0xDB8F200) };
+		for (size_t i = 0; i < 40; i++) {
+			const BGCacheInfo* bg{ t + i };
+			os << "\n"
+				<< (bg->name ? mod->Rebase<const char>(bg->name) : "<invalid>") << ","
+				<< cw::PoolName(bg->assetType) << ","
+				<< hook::library::CodePointer{ bg->registerFunc } << ","
+				<< hashutils::ExtractTmp("hash", bg->hash) << ","
+				<< std::hex << "0x" << bg->allocItems << ","
+				<< std::hex << "0x" << bg->defaultEntryIndex << ","
+				<< std::hex << "0x" << bg->startIndex << ","
+				<< std::hex << "0x" << bg->numEntries << ","
+				<< std::hex << "0x" << bg->checksum;
+		}
+
+		LOG_INFO("Dump into output_cw/bgcache.csv");
+
+		return tool::OK;
+	}
 }
 
 ADD_TOOL(cwdllgt, "cw", " [gametype] (map)", "set gametype", L"BlackOpsColdWar.exe", cwdllgt);
 ADD_TOOL(cwdllac, "cw", " [action] (param str)", "run dll action", L"BlackOpsColdWar.exe", cwdllac);
-
-#ifndef CI_BUILD
+ADD_TOOL(cwdbgcn, "cw", " [exe)", "static dump bgcache names", cwdbgcn);
 
 ADD_TOOL(tcrccw, "cw", "", "test crc (cw)", nullptr, cwtestchecksum);
 ADD_TOOL(rawdecryptcw, "cw", "", " raw decrypt (cw)", nullptr, rawdecryptcw);
@@ -936,5 +1290,3 @@ ADD_TOOL(rawdecryptcw, "cw", "", " raw decrypt (cw)", nullptr, rawdecryptcw);
 ADD_TOOL(ps4_dpcw100, "cw", " [ip:port]", "dump ps4 scripts (CW)", nullptr, ps4reader100);
 ADD_TOOL(ps4_vtcw100, "cw", " [ip:port]", "dump ps4 vtable (CW)", nullptr, ps4vtable100);
 ADD_TOOL(ps4_sm100, "cw", " [ip:port] [mode=0,1,2,3]", "set mode (CW)", nullptr, ps4setmode100);
-
-#endif

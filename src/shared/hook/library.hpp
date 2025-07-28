@@ -254,6 +254,8 @@ namespace hook::library {
 			return LocatePDB(hmod);
 		}
 
+		uint32_t GetUID() const;
+
 		inline PIMAGE_NT_HEADERS GetNTHeader() const {
 			return process::PImageNtHeader(hmod);
 		}

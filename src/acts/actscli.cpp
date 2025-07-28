@@ -4,6 +4,7 @@
 #include "tools/gsc_opcodes.hpp"
 #include "tools/gsc_opcodes_load.hpp"
 #include <core/updater.hpp>
+#include <hook/scan_container.hpp>
 
 namespace {
 
@@ -533,6 +534,11 @@ namespace {
 		}
 		return tool::OK;
 	}
+	int cleanscans(int argc, const char* argv[]) {
+		hook::scan_container::CleanContainers();
+		LOG_INFO("Removed scan containers");
+		return tool::OK;
+	}
 }
 
 namespace actscli {
@@ -575,3 +581,4 @@ ADD_TOOL(echo, "acts", "", "echo", nullptr, echocli);
 ADD_TOOL(repl, "acts", "", "Use repl cli", nullptr, replcli);
 ADD_TOOL(forceupdate, "acts", "", "force update", forceupdate);
 ADD_TOOL(checkupdate, "acts", "", "check update", checkupdate);
+ADD_TOOL(cleanscans, "acts", "", "clean scan containers", cleanscans);

@@ -274,6 +274,50 @@ namespace cw {
         ASSET_TYPE_COUNT
     };
 
+    enum BGCacheTypes : byte {
+        BG_CACHE_TYPE_INVALID = 0,
+        BG_CACHE_TYPE_VEHICLE,
+        BG_CACHE_TYPE_MODEL,
+        BG_CACHE_TYPE_AITYPE,
+        BG_CACHE_TYPE_CHARACTER,
+        BG_CACHE_TYPE_XMODELALIAS,
+        BG_CACHE_TYPE_WEAPON,
+        BG_CACHE_TYPE_GESTURE,
+        BG_CACHE_TYPE_GESTURETABLE,
+        BG_CACHE_TYPE_ZBARRIER,
+        BG_CACHE_TYPE_RUMBLE,
+        BG_CACHE_TYPE_SHELLSHOCK,
+        BG_CACHE_TYPE_STATUSEFFECT,
+        BG_CACHE_TYPE_XCAM,
+        BG_CACHE_TYPE_DESTRUCTIBLE,
+        BG_CACHE_TYPE_STREAMERHINT,
+        BG_CACHE_TYPE_FLOWGRAPH,
+        BG_CACHE_TYPE_XANIM,
+        BG_CACHE_TYPE_SANIM,
+        BG_CACHE_TYPE_SCRIPTBUNDLE,
+        BG_CACHE_TYPE_TALENT,
+        BG_CACHE_TYPE_CINEMATICMOTION,
+        BG_CACHE_TYPE_VEHICLEASSEMBLY,
+        BG_CACHE_TYPE_EXECUTION,
+        BG_CACHE_TYPE_STATUSICON,
+        BG_CACHE_TYPE_LOCATIONSELECTOR,
+        BG_CACHE_TYPE_MENU,
+        BG_CACHE_TYPE_MATERIAL,
+        BG_CACHE_TYPE_STRING,
+        BG_CACHE_TYPE_EVENTSTRING,
+        BG_CACHE_TYPE_MOVIEFILE,
+        BG_CACHE_TYPE_OBJECTIVE,
+        BG_CACHE_TYPE_FX,
+        BG_CACHE_TYPE_LUI_MENU_DATA,
+        BG_CACHE_TYPE_LUI_ELEM,
+        BG_CACHE_TYPE_RADIANT_EXPLODER,
+        BG_CACHE_TYPE_SOUNDALIAS,
+        BG_CACHE_TYPE_CLIENT_FX,
+        BG_CACHE_TYPE_CLIENT_TAGFXSET,
+        BG_CACHE_TYPE_CLIENT_LUI_ELEM,
+        BG_CACHE_TYPE_COUNT,
+    };
+
     struct ScriptParseTree {
         uint64_t name;
         uintptr_t buffer; // GSC_OBJ*
@@ -290,6 +334,12 @@ namespace cw {
 	char* DecryptString(char* str);
 	byte* DecryptRawBuffer(byte* buffer);
 	uintptr_t ScanPool(Process& proc);
+
+
+    const char* PoolName(cw::XAssetType type);
+    XAssetType PoolId(const char* name);
+    BGCacheTypes BgCacheId(const char* name);
+    const char* BgCacheName(cw::BGCacheTypes id);
 
     int InjectScriptCW(Process& proc, const char* script, const char* target, const char* replace, std::string& notify);
     int InjectScriptCWAlpha(Process& proc, const char* script, const char* target, const char* replaced, std::string& notify);

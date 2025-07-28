@@ -2,6 +2,7 @@
 #include "library.hpp"
 #include "process.hpp"
 #include <utils/utils.hpp>
+#include <utils/crc.hpp>
 
 namespace hook::library {
 	HMODULE GetLibraryInfo(const void* address) {
@@ -265,6 +266,23 @@ namespace hook::library {
 
 	void hook::library::Library::Redirect(size_t offset, void* func) const {
 		hook::memory::RedirectJmp((*this)[offset], func);
+	}
+
+	uint32_t hook::library::Library::GetUID() const {
+		utils::crc::CRC32 crc{};
+
+		PIMAGE_OPTIONAL_HEADER ohd{ GetOptHeader() };
+		PIMAGE_DOS_HEADER dhd{ GetDosHeader() };
+
+		crc.Update(GetPath());
+		crc.Update(ohd->SizeOfCode);
+		crc.Update(ohd->SizeOfHeaders);
+		crc.Update(ohd->SizeOfImage);
+		crc.Update(ohd->SizeOfInitializedData);
+		crc.Update(ohd->SizeOfUninitializedData);
+		crc.Update(dhd->e_cp);
+
+		return crc;
 	}
 
 	hook::library::Detour hook::library::Library::CreateDetour(const char* pattern, void* to, const char* name) const {
