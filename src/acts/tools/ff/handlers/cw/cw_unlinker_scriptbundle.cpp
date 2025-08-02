@@ -90,7 +90,8 @@ namespace fastfile::handlers::cw::scriptbundle {
 
 		std::unordered_set<uint32_t> handles{};
 
-		if (arr.sbSubCount && !IsValidHandle(arr.sbObjects)) {
+		if (arr.sbSubCount && !IsValidHandle(arr.sbSubs)) {
+			LOG_ERROR("Invalid arr.sbSubs handle: {}", (void*)arr.sbSubs);
 			error = true;
 			json.WriteFieldNameString("subs");
 			json.WriteValueString(GetValidString((const char*)arr.sbObjects));
@@ -112,6 +113,7 @@ namespace fastfile::handlers::cw::scriptbundle {
 			}
 		}
 		if (arr.sbObjectCount && !IsValidHandle(arr.sbObjects)) {
+			LOG_ERROR("Invalid arr.sbObjects handle: {}", (void*)arr.sbObjects);
 			error = true;
 			json.WriteFieldNameString("fields");
 			json.WriteValueString(GetValidString((const char*)arr.sbObjects));
