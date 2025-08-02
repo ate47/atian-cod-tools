@@ -26,7 +26,7 @@ namespace fastfile::linker::bo4 {
 					uint16_t prevCharIndex;
 					uint16_t nextCharIndex;
 					int16_t kerning;
-				};
+				}; static_assert(sizeof(TTFKerningEntry) == 8);
 
 				struct TTFDef {
 					XHash name;
@@ -37,7 +37,7 @@ namespace fastfile::linker::bo4 {
 					TTFDef* next;
 					TTFKerningEntry* kerningCache;
 					uint32_t kerningCacheCount;
-				};; static_assert(sizeof(TTFDef) == 0x50);
+				}; static_assert(sizeof(TTFDef) == 0x50);
 
 				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_TTF, fastfile::linker::data::POINTER_NEXT);
 
@@ -47,6 +47,7 @@ namespace fastfile::linker::bo4 {
 				ttf.name.name = ctx.HashXHash(defname);
 				ttf.filename.name = ctx.HashPathName(filenamePath);
 				ttf.file = (byte*)fastfile::linker::data::POINTER_NEXT;
+				ttf.next = nullptr;
 				ttf.fileLen = (int32_t)buffer.size();
 				ttf.kerningCache = (TTFKerningEntry*)fastfile::linker::data::POINTER_NEXT;
 				ttf.kerningCacheCount = 0x4000;
@@ -59,7 +60,7 @@ namespace fastfile::linker::bo4 {
 
 				// alloc cache
 				ctx.data.PushStream(XFILE_BLOCK_RUNTIME_VIRTUAL);
-				ctx.data.Align(2);
+				ctx.data.Align<uint16_t>();
 				ctx.data.AllocData(ttf.kerningCacheCount * sizeof(TTFKerningEntry));
 				ctx.data.PopStream();
 
