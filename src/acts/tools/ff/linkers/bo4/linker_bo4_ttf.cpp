@@ -7,10 +7,11 @@ namespace fastfile::linker::bo4 {
 		TTFWorker() : LinkerWorker("TTF") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			for (const char*& filename : ctx.linkCtx.zone.assets["ttf"]) {
-				std::filesystem::path path{ ctx.linkCtx.input / filename };
-				std::filesystem::path filenamePath{ filename };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["ttf"]) {
+				std::filesystem::path path{ ctx.linkCtx.input / assval.value };
+				std::filesystem::path filenamePath{ assval.value };
 				std::filesystem::path rfpath{ path.filename() };
+				assval.handled = true;
 				rfpath.replace_extension();
 				std::string defname{ rfpath.string() };
 

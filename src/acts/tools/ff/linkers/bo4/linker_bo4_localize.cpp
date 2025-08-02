@@ -7,8 +7,9 @@ namespace fastfile::linker::bo4 {
 		LocalizeWorker() : LinkerWorker("Localize") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			for (const char*& localizelistName : ctx.linkCtx.zone.assets["localizelist"]) {
-				std::filesystem::path localizePath{ ctx.linkCtx.input / localizelistName };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["localizelist"]) {
+				std::filesystem::path localizePath{ ctx.linkCtx.input / assval.value };
+				assval.handled = true;
 				core::config::Config localize{ localizePath };
 				localize.SyncConfig(false);
 				if (localize.main.Empty()) continue; // nothing to force
@@ -42,7 +43,7 @@ namespace fastfile::linker::bo4 {
 					ctx.data.PopStream();
 					added++;
 				}
-				LOG_INFO("Added asset localizeentry {}: {} entry(ies)", localizelistName, added);
+				LOG_INFO("Added asset localizeentry {}: {} entry(ies)", assval.value, added);
 			}
 		}
 	};

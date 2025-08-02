@@ -241,8 +241,9 @@ namespace fastfile::linker::bo4 {
 		ScriptBundleWorker() : LinkerWorker("ScriptBundle") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			for (const char*& bundleName : ctx.linkCtx.zone.assets["scriptbundle"]) {
-				std::filesystem::path rfpath{ std::format("{}.json", bundleName) };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["scriptbundle"]) {
+				std::filesystem::path rfpath{ std::format("{}.json", assval.value) };
+				assval.handled = true;
 				std::filesystem::path path{ ctx.linkCtx.input / "scriptbundle" / rfpath };
 				std::string buffer{};
 				if (!utils::ReadFile(path, buffer)) {

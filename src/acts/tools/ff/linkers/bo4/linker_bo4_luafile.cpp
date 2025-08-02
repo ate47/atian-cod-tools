@@ -8,8 +8,9 @@ namespace fastfile::linker::bo4 {
 		LuaFileWorker() : LinkerWorker("LuaFile") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			for (const char*& luaFileName : ctx.linkCtx.zone.assets["luafile"]) {
-				std::filesystem::path rfpath{ luaFileName };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["luafile"]) {
+				std::filesystem::path rfpath{ assval.value };
+				assval.handled = true;
 				std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 				std::string pathstr{ path.string() };
 

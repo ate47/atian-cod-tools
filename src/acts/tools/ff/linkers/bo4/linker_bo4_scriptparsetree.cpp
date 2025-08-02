@@ -107,8 +107,9 @@ namespace fastfile::linker::bo4 {
 			std::vector<XHash> forcedServerScripts{};
 			std::vector<XHash> forcedClientScripts{};
 
-			for (const char*& scriptparsetreeName : ctx.linkCtx.zone.assets["scriptparsetree"]) {
-				const char* scriptparsetreeNameCfg{ scriptparsetreeName };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["scriptparsetree"]) {
+				const char* scriptparsetreeNameCfg{ assval.value };
+				assval.handled = true;
 				bool forced{ *scriptparsetreeNameCfg == '!' };
 				if (forced) scriptparsetreeNameCfg++;
 				std::filesystem::path scriptName{ scriptparsetreeNameCfg };

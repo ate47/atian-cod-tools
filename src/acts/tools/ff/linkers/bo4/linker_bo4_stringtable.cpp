@@ -53,8 +53,9 @@ namespace fastfile::linker::bo4 {
 		StringTableWorker() : LinkerWorker("StringTable") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			for (const char*& stringtableName : ctx.linkCtx.zone.assets["stringtable"]) {
-				std::filesystem::path rfpath{ stringtableName };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["stringtable"]) {
+				std::filesystem::path rfpath{ assval.value };
+				assval.handled = true;
 				std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 				utils::InFileCE is{ path };
 				if (!is) {

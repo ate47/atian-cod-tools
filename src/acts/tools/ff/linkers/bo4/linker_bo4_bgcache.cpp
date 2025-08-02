@@ -9,8 +9,9 @@ namespace fastfile::linker::bo4 {
 		BGCacheWorker() : LinkerWorker("BGCache", MININT32) {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			for (const char*& bgName : ctx.linkCtx.zone.assets["bgcache"]) {
-				std::filesystem::path path{ ctx.linkCtx.input / bgName };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["bgcache"]) {
+				assval.handled = true;
+				std::filesystem::path path{ ctx.linkCtx.input / assval.value };
 				utils::InFileCE is{ path };
 				if (!is) {
 					LOG_ERROR("Can't read {}", path.string());
@@ -22,7 +23,7 @@ namespace fastfile::linker::bo4 {
 
 				doc.Load(is, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
 
-				LOG_INFO("Loaded bgcache data {}", bgName);
+				LOG_INFO("Loaded bgcache data {}", assval.value);
 
 				if (!doc.GetRowCount()) continue; // empty
 

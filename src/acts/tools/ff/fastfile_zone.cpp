@@ -91,8 +91,8 @@ namespace fastfile::zone {
 				keyStr = alloc.ClonePtr<char>(keyStr, valLen);
 
 				keyStr[valLen - 1] = 0;
-				std::vector<const char*>& vals{ assets[assettype] };
-				vals.push_back(keyStr);
+				std::vector<zone::AssetData>& vals{ assets[assettype] };
+				vals.emplace_back(keyStr, false, lineIdx);
 			}
 		}
 	}
@@ -121,6 +121,22 @@ namespace fastfile::zone {
 		LOG_WARNING("Invalid bool value for {}: {}", name, v);
 		return defaultVal;
 	}
+
+	bool Zone::AssertAllHandled(bool warn) {
+		core::logs::loglevel lvl{ warn ? core::logs::LVL_WARNING : core::logs::LVL_ERROR };
+		bool ok{ true };
+		for (auto& [k, v] : this->assets) {
+			for (zone::AssetData& data : v) {
+				if (!data.handled) {
+					LOG_LVLF(lvl, "Asset not handled: {}::{}#{}", k, data.value, data.line);
+					ok = false;
+				}
+			}
+		}
+
+		return ok;
+	}
+
 	namespace {
 
 		int fastfilezonetest(int argc, const char* argv[]) {
@@ -144,8 +160,8 @@ namespace fastfile::zone {
 			
 			LOG_INFO("Assets: {}", zone.assets.size());
 			for (auto& [k, vec] : zone.assets) {
-				for (const char* asset : vec) {
-					LOG_INFO("- {} -> \"{}\"", k, asset);
+				for (zone::AssetData& asset : vec) {
+					LOG_INFO("- {} -> \"{}\"", k, asset.value);
 				}
 			}
 

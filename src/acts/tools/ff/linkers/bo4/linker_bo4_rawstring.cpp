@@ -7,7 +7,8 @@ namespace fastfile::linker::bo4 {
 		RawStringWorker() : LinkerWorker("RawString") {}
 
 		void Compute(BO4LinkContext& ctx) override {
-			for (const char*& value : ctx.linkCtx.zone.assets["rawstring"]) {
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["rawstring"]) {
+				assval.handled = true;
 				struct RawString {
 					XHash name;
 					const char* str;
@@ -18,17 +19,17 @@ namespace fastfile::linker::bo4 {
 				ctx.data.PushStream(XFILE_BLOCK_TEMP);
 				RawString rf{};
 
-				rf.name.name = ctx.HashPathName(value);
+				rf.name.name = ctx.HashPathName(assval.value);
 				rf.str = (const char*)fastfile::linker::data::POINTER_NEXT;
 				ctx.data.WriteData(rf);
 
 				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.data.WriteData(value, std::strlen(value) + 1);
+				ctx.data.WriteData(assval.value, std::strlen(assval.value) + 1);
 				ctx.data.PopStream();
 
 				ctx.data.PopStream();
 
-				LOG_INFO("Added asset rawstring {} (hash_{:x})", value, rf.name.name);
+				LOG_INFO("Added asset rawstring {} (hash_{:x})", assval.value, rf.name.name);
 			}
 		}
 	};

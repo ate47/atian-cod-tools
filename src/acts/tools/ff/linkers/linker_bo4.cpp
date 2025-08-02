@@ -80,6 +80,8 @@ namespace fastfile::linker::bo4 {
 				throw std::runtime_error("Error when linking fast file data");
 			}
 
+			bo4ctx.linkCtx.zone.AssertAllHandled(true);
+
 			bo4ctx.data.SetMode(fastfile::linker::data::LM_HEADER);
 
 			// add to ctx.data the assets/strings headers

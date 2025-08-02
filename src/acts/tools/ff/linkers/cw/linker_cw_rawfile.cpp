@@ -7,8 +7,9 @@ namespace fastfile::linker::cw {
 		RawFileWorker() : LinkerWorker("RawFile") {}
 
 		void Compute(BOCWLinkContext& ctx) override {
-			for (const char*& stringtableName : ctx.linkCtx.zone.assets["rawfile"]) {
-				std::filesystem::path rfpath{ stringtableName };
+			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["rawfile"]) {
+				std::filesystem::path rfpath{ assval.value };
+				assval.handled = true;
 				std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 				std::string buffer{};
 				if (!utils::ReadFile(path, buffer)) {
