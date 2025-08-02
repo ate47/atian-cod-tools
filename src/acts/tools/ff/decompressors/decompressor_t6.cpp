@@ -12,10 +12,9 @@ namespace {
 	};
 	static deps::oodle::Oodle oodle{};
 
-	void fillIV(byte* table, size_t len, const char* name) {
+	void FillIV(byte* table, size_t len, const char* name) {
 		size_t s{ std::strlen(name) };
 		size_t s4{ s * 4 };
-		/*
 		int32_t addDiv{};
 		for (size_t i = 0; i < len; i += s4) {
 			for (size_t x = 0; x < s4; x += 4) {
@@ -23,7 +22,7 @@ namespace {
 					return;
 				}
 				if (x > 0) {
-					addDiv = x / 4;
+					addDiv = (int32_t)(x / 4);
 				}
 				else {
 					addDiv = 0;
@@ -34,7 +33,6 @@ namespace {
 				}
 			}
 		}
-		*/
 	}
 
 	class T6FFDecompressor : public fastfile::FFDecompressor {
@@ -45,38 +43,64 @@ namespace {
 			struct T6FileHeader {
 				uint8_t magic[8];
 				uint32_t version;
+				char builderName[0x0c];
+				char ffname[0x20];
+				byte iv[0x100];
 			};
+			static_assert(sizeof(T6FileHeader) == 0x138);
 
 			if (!reader.CanRead(sizeof(T6FileHeader))) {
 				throw std::runtime_error("Can't read header");
 			}
-
-			uint32_t version{ reader.ReadPtr<T6FileHeader>()->version };
+			reader.Skip<uint64_t>(); // magic
+			uint32_t version{ reader.Read<uint32_t>() };
 			size_t fastFileSize;
 			size_t decompressedSizeLoc{};
 			size_t fastfileNameLoc;
 
 			switch (version) {
 			case 0x93:
-				fastfileNameLoc = 0x18;
-				fastFileSize = 0x138;
+				fastfileNameLoc = offsetof(T6FileHeader, ffname);
+				fastFileSize = sizeof(T6FileHeader);
 				break;
 			default:
 				throw std::runtime_error(std::format("Unknown version 0x{:x}", version));
 			}
-			/*
-			reader.Goto(fastfileNameLoc);
-			ctx.ffname = reader.ReadString();
-			constexpr size_t tableLen = 16000;
-			auto table{ std::make_unique<byte>(tableLen) };
-			int32_t counter[4]{};
 
-			fillIV(table.get(), tableLen, ctx.ffname);
+			reader.Goto(fastfileNameLoc);
+			const char* ffname{ reader.ReadString() };
+			sprintf_s(ctx.ffname, "%s", ffname);
+
+			constexpr size_t tableLen = 16000;
+			auto table{ std::make_unique<byte[]>(tableLen)};
+			size_t counter[4]{ 1, 1, 1, 1 };
+			byte iv[8]{};
+
+			FillIV(table.get(), tableLen, ctx.ffname);
 
 			ucstk::Salsa20 salsa20{ key };
-			salsa20.setIv(nullptr);
-			*/
 
+			reader.Goto(fastFileSize);
+
+			size_t blockId{};
+			while (true) {
+				int32_t size{ reader.Read<int32_t>() };
+
+				if (!size) {
+					break; // done
+				}
+
+				size_t ivLoc{ (blockId + 4 * (counter[blockId] - 1)) % 800 * 20 };
+				byte iv[8];
+				std::memcpy(iv, &table[ivLoc], sizeof(iv));
+				salsa20.setIv(iv);
+
+				size_t unloc{ utils::Allocate(ffdata, size) };
+				byte* decompressed{ &ffdata[unloc] };
+				//salsa20.
+
+				blockId++;
+			}
 		}
 
 	};
