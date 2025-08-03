@@ -4,7 +4,7 @@ Acts.@Log( "Hello from map  " .. Engine.@GetCurrentMap() .. " inject? " .. tostr
 
 LUI.createMenu[ "T7Hud_" .. Engine.@GetCurrentMap() ] = function ( controller ) 
     local self = LUI.createMenu.T7Hud_zm_factory( controller )
-    Acts.@Log( 0, "Injecting custom menu" )
+    Acts.@Log( "Injecting custom menu" )
     self.luatest = {}
 
 
