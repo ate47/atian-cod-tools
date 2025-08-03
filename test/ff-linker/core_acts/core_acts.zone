@@ -38,6 +38,8 @@ image,acts_test_icon.png
 ttf,acts/cascadiacode_bold.ttf
 ttf,acts/cascadiamono_bold.ttf
 
+hashlist,acts/hashlist.txt
+
 bgcache,cache.csv
 //rawstring,acts_test_string
 

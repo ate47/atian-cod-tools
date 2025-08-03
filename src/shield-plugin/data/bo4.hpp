@@ -290,13 +290,34 @@ namespace bo4 {
 		const hksInstruction* m_hook_return_addr;
 		int32_t m_hook_level;
 	};
+
+	enum HksType : uint32_t
+	{
+		HKST_TNIL = 0x0,
+		HKST_TBOOLEAN = 0x1,
+		HKST_TLIGHTUSERDATA = 0x2,
+		HKST_TNUMBER = 0x3,
+		HKST_TSTRING = 0x4,
+		HKST_TTABLE = 0x5,
+		HKST_TFUNCTION = 0x6,
+		HKST_TUSERDATA = 0x7,
+		HKST_TTHREAD = 0x8,
+		HKST_TIFUNCTION = 0x9,
+		HKST_TCFUNCTION = 0xA,
+		HKST_TUI64 = 0xB,
+		HKST_TSTRUCT = 0xC,
+		HKST_TXHASH = 0xD,
+		HKST_COUNT = 0xE,
+	};
+
 	struct HksObject {
-		uint32_t t;
+		HksType t;
 		union {
 			void* ptr;
 			float number;
 			int32_t boolean;
 			uint32_t native;
+			uint64_t hash;
 			lua_State* thread;
 		} v;
 	};

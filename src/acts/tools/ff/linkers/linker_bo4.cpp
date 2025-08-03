@@ -79,7 +79,7 @@ namespace fastfile::linker::bo4 {
 			if (bo4ctx.error) {
 				throw std::runtime_error("Error when linking fast file data");
 			}
-
+				
 			bo4ctx.linkCtx.zone.AssertAllHandled(true);
 
 			bo4ctx.data.SetMode(fastfile::linker::data::LM_HEADER);
