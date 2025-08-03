@@ -68,7 +68,7 @@ namespace systems::lua {
 			RegisterFunction(state, "GetVersion", Lua_Acts_Function_GetVersion);
 
 			bo4::Lua_EndTableReadOnly(state);
-			bo4::hksi_lua_setfield(state, -10002, "Acts");
+			bo4::hksi_lua_setfield(state, bo4::LUA_GLOBALS_INDEX, "Acts");
 		}
 
 		void Lua_CoD_RegisterEngineFunctions_Stub(bo4::lua_State* state) {

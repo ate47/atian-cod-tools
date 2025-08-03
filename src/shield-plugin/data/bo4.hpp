@@ -291,8 +291,7 @@ namespace bo4 {
 		int32_t m_hook_level;
 	};
 
-	enum HksType : uint32_t
-	{
+	enum HksType : uint32_t {
 		HKST_TNIL = 0x0,
 		HKST_TBOOLEAN = 0x1,
 		HKST_TLIGHTUSERDATA = 0x2,
@@ -308,6 +307,12 @@ namespace bo4 {
 		HKST_TSTRUCT = 0xC,
 		HKST_TXHASH = 0xD,
 		HKST_COUNT = 0xE,
+	};
+
+	enum HksIndex {
+		LUA_REGISTRY_INDEX = -10000,
+		LUA_ENVIRON_INDEX = -10001,
+		LUA_GLOBALS_INDEX = -10002,
 	};
 
 	struct HksObject {
