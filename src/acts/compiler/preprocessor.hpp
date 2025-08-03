@@ -33,6 +33,8 @@ namespace acts::compiler::preprocessor {
 
         bool AddDefineConfig(const std::string& config);
 
+        void AddDefineListConfig(const char* cfg);
+
         void AddDefine(const std::string& name, const std::string& value = "");
 
         void RemoveDefine(const char* name);

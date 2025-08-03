@@ -103,6 +103,7 @@ namespace fastfile::linker::bo4 {
 			bool cfgDev{ ctx.linkCtx.zone.GetConfigBool("gsc.dev", false) };
 			bool cfgNoDevCallInline{ ctx.linkCtx.zone.GetConfigBool("gsc.noDevCallInline", false) };
 			bool genDevBlockAsComment{ ctx.linkCtx.zone.GetConfigBool("gsc.devBlockAsComment", false) };
+			const char* preprocDefs{ ctx.linkCtx.zone.GetConfig("gsc.defs", "") };
 
 			std::vector<XHash> forcedServerScripts{};
 			std::vector<XHash> forcedClientScripts{};
@@ -164,6 +165,8 @@ namespace fastfile::linker::bo4 {
 					cfg.precache = &bgcacheCompiled;
 					cfg.useModToolOpCodes = cfguseModToolOpcodes;
 					cfg.processorOpt.AddDefine(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
+					cfg.processorOpt.AddDefineListConfig(preprocDefs);
+
 
 					std::unordered_set<std::string> hashes{};
 					cfg.hashes = &hashes;

@@ -141,6 +141,24 @@ namespace acts::compiler::preprocessor {
         }
         return true;
     }
+    void PreProcessorOption::AddDefineListConfig(const char* cfg) {
+        if (!cfg || !*cfg) return; // nothing
+
+        std::string cpy{ cfg };
+        size_t idx{ cpy.size() };
+
+        while (idx) {
+            size_t start{ cpy.find_last_of(',', idx - 1) };
+            if (start == std::string::npos) {
+                start = 0;
+            }
+
+            AddDefineConfig(&cpy[start]);
+
+            cpy[start] = '\0';
+            idx = start;
+        }
+    }
 
     void PreProcessorOption::AddDefine(const std::string& name, const std::string& value) {
         defines[name] = value;

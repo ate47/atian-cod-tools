@@ -13,5 +13,6 @@
 // gsc configs
 >gsc.gendbg=true
 >gsc.dev=true
+>lua.defs=LUA_DEV,CI
 
 //asdzqzqd,missing_asset_test
