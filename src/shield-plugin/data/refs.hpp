@@ -69,6 +69,7 @@ namespace bo4 {
 	S_ANY Ref<const char* (lua_State* luaVM, HksObject* obj, size_t* len)> hks_obj_tolstring{ 0x3755730_a };
 	S_ANY Ref<float(lua_State* luaVM, const HksObject* obj)> hks_obj_tonumber{ 0x3755A90_a };
 	S_ANY Ref<void(lua_State* s, int index, const char* k) > hksi_lua_setfield{ 0x22C8E80_a };
+	S_ANY Ref<void(lua_State* s, const char* str, size_t l)> hksi_lua_pushlstring{ 0xC49D70_a };
 	
 	// xassets
 	S_ANY Ref<XHash* (XHash* hash, const XAsset* asset)> DB_GetXAssetName{ 0x28AAB60_a };

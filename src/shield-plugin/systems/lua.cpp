@@ -3,6 +3,7 @@
 #include <core/config.hpp>
 #include <core/system.hpp>
 #include <core/hashes/hash_lookup.hpp>
+#include <core/updater.hpp>
 #include <hook/library.hpp>
 #include <systems/mods.hpp>
 
@@ -23,6 +24,12 @@ namespace systems::lua {
 			return 0;
 		}
 
+		int Lua_Acts_Function_GetVersion(bo4::lua_State* luaVM) {
+			const char* v{ core::updater::GetVersionName(core::actsinfo::VERSION_ID) };
+			bo4::hksi_lua_pushlstring(luaVM, v, std::strlen(v));
+			return 1;
+		}
+
 		inline void RegisterFunction(bo4::lua_State* state, const char* name, int(*func)(bo4::lua_State* s)) {
 			XHash hash{ hash::Hash64(name) };
 
@@ -35,6 +42,7 @@ namespace systems::lua {
 			RegisterFunction(state, "Log", Lua_Acts_Function_Log<core::logs::loglevel::LVL_INFO>);
 			RegisterFunction(state, "Error", Lua_Acts_Function_Log<core::logs::loglevel::LVL_ERROR>);
 			RegisterFunction(state, "Warning", Lua_Acts_Function_Log<core::logs::loglevel::LVL_WARNING>);
+			RegisterFunction(state, "GetVersion", Lua_Acts_Function_GetVersion);
 
 			bo4::Lua_EndTableReadOnly(state);
 			bo4::hksi_lua_setfield(state, -10002, "Acts");

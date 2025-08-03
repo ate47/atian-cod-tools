@@ -33,6 +33,10 @@
         {
             "name": "ui/uieditor/menus/hud/actsmenu.lua",
             "hook": "ui/uieditor/menus/hud/t7hud_zm_factory.lua"
+        },
+        {
+            "name": "lua/acts/test.lua",
+            "hook": "ui/main.lua"
         }
     ]
 }
