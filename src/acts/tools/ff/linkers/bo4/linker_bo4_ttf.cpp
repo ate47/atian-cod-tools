@@ -62,7 +62,7 @@ namespace fastfile::linker::bo4 {
 				// alloc cache
 				ctx.data.PushStream(XFILE_BLOCK_RUNTIME_VIRTUAL);
 				ctx.data.Align<uint16_t>();
-				ctx.data.AllocData(ttf.kerningCacheCount * sizeof(TTFKerningEntry));
+				ctx.data.AllocRuntimeData(ttf.kerningCacheCount * sizeof(TTFKerningEntry));
 				ctx.data.PopStream();
 
 				ctx.data.PopStream();

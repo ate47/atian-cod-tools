@@ -12,7 +12,7 @@ LUI.createMenu[ "T7Hud_" .. Engine.@GetCurrentMap() ] = function ( controller )
 
     self.luatest.text = text
     text:setText("test string")
-    --text:setTTF( "ttmussels_regular" )
+    text:setTTF( "cascadiacode_bold" )
     text:setAlignment( Enum.@LuiAlignment.@LUI_ALIGNMENT_RIGHT )
     text:setAlignment( Enum.@LuiAlignment.@LUI_ALIGNMENT_TOP )
     self:addElement(text)

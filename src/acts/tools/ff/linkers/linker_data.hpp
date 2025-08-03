@@ -71,6 +71,7 @@ namespace fastfile::linker::data {
 		template<>
 		void* GetData(size_t offset);
 		size_t AllocData(size_t size);
+		void AllocRuntimeData(size_t size);
 		template<typename T>
 		T* AllocDataPtr(size_t size) {
 			return (T*)GetData<void>(AllocData(size));

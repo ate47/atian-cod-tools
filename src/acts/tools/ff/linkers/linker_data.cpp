@@ -38,6 +38,10 @@ namespace fastfile::linker::data {
 		return utils::Allocate(fileData[headerMode], size);
 	}
 
+	void LinkerData::AllocRuntimeData(size_t size) {
+		chunks[headerMode][GetCurrentStream()].emplace_back(LinkerDataChunk{ .type = LinkerDataChunkType::CHUNKTYPE_DATA, .start = fileData[headerMode].size(), .size = size });
+	}
+
 	size_t LinkerData::WriteData(const void* data, size_t size) {
 		chunks[headerMode][GetCurrentStream()].emplace_back(LinkerDataChunk{ .type = LinkerDataChunkType::CHUNKTYPE_DATA, .start = fileData[headerMode].size(), .size = size });
 		return utils::WriteValue(fileData[headerMode], data, size);

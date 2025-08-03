@@ -34,6 +34,10 @@ image,acts_test_hello_world.png
 image,acts_test_hover.png
 image,acts_test_icon.png
 
+// custom ttf
+ttf,acts/cascadiacode_bold.ttf
+ttf,acts/cascadiamono_bold.ttf
+
 bgcache,cache.csv
 //rawstring,acts_test_string
 
