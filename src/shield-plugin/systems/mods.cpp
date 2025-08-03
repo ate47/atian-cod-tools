@@ -1,15 +1,18 @@
 #include <dll_includes.hpp>
 #include <data/bo4.hpp>
 #include <data/refs.hpp>
-#include <core/config.hpp>
-#include <core/memory_allocator.hpp>
 #include <hook/error.hpp>
 #include <hook/library.hpp>
 #include <games/bo4/pool.hpp>
-#include "mods.hpp"
+#include <systems/mods.hpp>
 #include <core/hashes/hash_store.hpp>
 
 namespace systems::mods {
+	std::vector<ModLoadingHook*>& GetModLoadingHooks() {
+		static std::vector<ModLoadingHook*> hooks{};
+		return hooks;
+	}
+
 	namespace {
 		std::filesystem::path moddir{ "project-bo4/acts/mods" };
 		std::filesystem::path zonedir{ "project-bo4/acts/zone" };
@@ -392,6 +395,10 @@ namespace systems::mods {
 								dest, hdest
 							);
 						}
+					}
+
+					for (mods::ModLoadingHook* hook : GetModLoadingHooks()) {
+						hook->hook(modid.data(), zoneHooks.alloc, cfg);
 					}
 				}
 				catch (...) {

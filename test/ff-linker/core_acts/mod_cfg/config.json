@@ -28,5 +28,11 @@
             "origin": "hash_4ccf78cd6dd0333a",
             "dest": "ACTS_SPRAY_DESC"
         }
+    ],
+    "lua_hook": [
+        {
+            "name": "ui/uieditor/menus/hud/actsmenu.lua",
+            "hook": "ui/uieditor/menus/hud/t7hud_zm_factory.lua"
+        }
     ]
 }

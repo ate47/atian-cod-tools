@@ -17,6 +17,7 @@
 function private autoexec __init__system__()
 {
     system::register( #"acts_echo_test", &__pre_init__, undefined );
+    setgametypesetting( #"drafttime", 2 );
 }
 
 function private __pre_init__()

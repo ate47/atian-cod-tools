@@ -17,6 +17,7 @@ scriptparsetree,!scripts/core_common/acts/echo_test.csc
 
 // a lua script
 luafile,lua/acts/test.lua
+luafile,ui/uieditor/menus/hud/actsmenu.lua
 
 // stringtable
 stringtable,acts/test.csv
