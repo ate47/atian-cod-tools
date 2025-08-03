@@ -38,6 +38,7 @@ image,acts_test_icon.png
 ttf,acts/cascadiacode_bold.ttf
 ttf,acts/cascadiamono_bold.ttf
 
+// hash list one string per line, prefix with # to have the scr hash
 hashlist,acts/hashlist.txt
 
 bgcache,cache.csv
