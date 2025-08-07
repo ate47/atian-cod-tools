@@ -29,8 +29,8 @@ namespace {
 			size_t invalid{};
 			for (size_t i = 0; i < vals.size(); i++) {
 				Localize* loc{ vals[i] };
-				os << "\n";
 				if (i) os << ",";
+				os << "\n";
 				utils::Padding(os, 1) << "\"" << hashutils::ExtractTmp("hash", loc->name) << "\": ";
 				if (!loc->val) {
 					os << "null";
