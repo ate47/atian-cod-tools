@@ -123,7 +123,24 @@ namespace fastfile::handlers::bo4::scriptbundle {
 
 				if (handles.contains(obj.keyScrName)) continue; // ignore sub
 
-				json.WriterFieldNameHash(obj.keyScrName, "");
+				const char* keyScrName{ hashutils::ExtractPtr(obj.keyScrName) }; // h32
+				if (!keyScrName || !*keyScrName) keyScrName = hashutils::ExtractPtr(obj.hashValue.name); // 64
+
+				if (keyScrName && *keyScrName) {
+					json.WriteFieldNameString(keyScrName);
+				}
+				else {
+					if (obj.hashValue.name && obj.keyScrName) {
+						json.WriteFieldNameString(utils::va("hash_%llx:hash_%llx", obj.hashValue.name, obj.keyScrName));
+					}
+					else if (obj.hashValue.name) {
+						json.WriteFieldNameString(utils::va("hash_%llx", obj.hashValue.name));
+					}
+					else {
+						json.WriteFieldNameString(utils::va("hash_%llx", obj.keyScrName));
+					}
+				}
+
 
 				switch (obj.type) {
 				case KVP_STRING: // string

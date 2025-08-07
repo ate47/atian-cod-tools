@@ -155,6 +155,22 @@ namespace core::raw_file::json {
 			WriteValueHash(val);
 		}
 
+		template<typename T, bool encryptedKey = false>
+		void WriteFieldValueUnknown(const char* name, T val) {
+			WriteFieldValueUnknown(name, &val, sizeof(val));
+		}
+
+		template<bool encryptedKey = false>
+		void WriteFieldValueUnknown(const char* name, void* ptr, size_t l) {
+			if constexpr (encryptedKey) {
+				WriteFieldNameStringEncrypted(name);
+			}
+			else {
+				WriteFieldNameString(name);
+			}
+			WriteUnknownData(ptr, l);
+		}
+
 		template<typename T, bool hex = false>
 		void WriteFieldValueNumber(int64_t hash, T val) {
 			WriterFieldNameHash(hash);
@@ -222,6 +238,13 @@ namespace core::raw_file::json {
 		template<bool encryptedKey = false>
 		void WriteFieldValueString(const char* name, const std::string& val) {
 			WriteFieldValueString(name, val.c_str());
+		}
+
+		void WriteUnknownData(const void* data, size_t len);
+
+		template<typename T>
+		inline void WriteUnknownData(const T t) {
+			WriteUnknownData(&t, sizeof(t));
 		}
 
 		void BeginObject() {

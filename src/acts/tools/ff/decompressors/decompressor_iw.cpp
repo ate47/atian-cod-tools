@@ -406,7 +406,8 @@ namespace {
 						fpreader.Skip(1);
 					}
 					if (!found) {
-						throw std::runtime_error("can't find patch iwc");
+						LOG_WARNING("can't find patch iwc, ignore");
+						return;
 					}
 					fpreader.Skip<uint32_t>(); // skip IWC
 

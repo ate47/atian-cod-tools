@@ -7,7 +7,7 @@ namespace {
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
-		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
+		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			struct KeyValuePairs {
 				uint64_t name;
 				const char** kv;

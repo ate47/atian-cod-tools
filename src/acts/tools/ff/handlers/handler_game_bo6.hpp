@@ -10,7 +10,7 @@ namespace fastfile::handlers::bo6 {
 		bool requiresRelativeLoads;
 
 		Worker(bool requiresRelativeLoads = false) : requiresRelativeLoads(requiresRelativeLoads) {}
-		virtual void Unlink(fastfile::FastFileOption& opt, void* ptr) = 0;
+		virtual void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) = 0;
 		virtual void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 		virtual void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 	};

@@ -7,7 +7,7 @@ namespace {
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
-		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
+		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			// tablelookupbyrow  26a6c8cb862c750f
 			enum StringTableType : uint8_t {
 				STT_UNK0 = 0x0,

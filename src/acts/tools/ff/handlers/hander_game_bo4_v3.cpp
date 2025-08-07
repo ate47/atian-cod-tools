@@ -284,6 +284,7 @@ namespace fastfile::handlers::bo4 {
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
 				gcx.ctx = &ctx;
+				SetFFContext(&ctx);
 				gcx.reader = &reader;
 				std::filesystem::path out{ opt.m_output / "bo4" / "data" };
 				std::filesystem::create_directories(out);

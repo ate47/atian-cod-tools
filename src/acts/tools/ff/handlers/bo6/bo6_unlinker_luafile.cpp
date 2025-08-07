@@ -7,23 +7,25 @@ namespace {
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
-		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
+		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			struct LuaFile {
 				uint64_t name;
 				uint64_t unk10_count;
 				uint64_t* unk10;
 				uint64_t unk18;
 				uint64_t unk20;
-				LuaFile** unk28;
-				uint16_t unk28_count;
-				uint16_t unk32;
+				uint64_t unk28;
+				LuaFile** unk30;
+				uint16_t unk30_count;
+				uint16_t unk3a;
 				int32_t len;
 				byte* buffer;
-				uint64_t unk40;
-				uint64_t unk48;
-				uint64_t unk50;
-				uint64_t unk58;
-			}; static_assert(sizeof(LuaFile) == 0x60);
+				uint32_t unk50_count;
+				void* unk50;
+				uint32_t unk60_count;
+				void* unk60;
+			};
+			static_assert(sizeof(LuaFile) == 0x68);
 			LuaFile* asset{ (LuaFile*)ptr };
 
 			const char* n{ hashutils::ExtractPtr(asset->name) };

@@ -331,6 +331,7 @@ namespace fastfile::handlers::bo4 {
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
 				std::filesystem::path out{ opt.m_output / "bo4" / "data" };
 				std::filesystem::create_directories(out);
+				SetFFContext(&ctx);
 
 
 				XAssetList_0& assetList{ *reader.ReadPtr<XAssetList_0>() };
@@ -520,6 +521,13 @@ namespace fastfile::handlers::bo4 {
 	std::unordered_map<games::bo4::pool::XAssetType, Worker*>& GetWorkers() {
 		static std::unordered_map<games::bo4::pool::XAssetType, Worker*> map{};
 		return map;
+	}
+
+	fastfile::FastFileContext* GetFFContext() {
+		return bo4FFHandlerContext.ctx;
+	}
+	void SetFFContext(fastfile::FastFileContext* ctx) {
+		bo4FFHandlerContext.ctx = ctx;
 	}
 
 	const char* GetScrString(ScrString_t id) {
