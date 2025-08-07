@@ -38,6 +38,7 @@ namespace tool::lua {
 		bool m_asm{};
 		bool m_inst{};
 		bool m_types{};
+		bool m_handle{};
 
 		const char* m_outputDir{};
 		std::vector<const char*> m_inputFiles{};
@@ -64,6 +65,9 @@ namespace tool::lua {
 				}
 				else if (!strcmp("-i", arg) || !_strcmpi("--inst", arg)) {
 					m_inst = true;
+				}
+				else if (!strcmp("-l", arg) || !_strcmpi("--load", arg)) {
+					m_handle = true;
 				}
 				else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
 					if (i + 1 == endIndex) {
@@ -94,6 +98,7 @@ namespace tool::lua {
 			LOG_INFO("-a --asm        : Decompile ASM");
 			LOG_INFO("-i --inst       : Decompile instructions");
 			LOG_INFO("-T --types      : Decompile types name");
+			LOG_INFO("-l --load       : Load opcodes");
 		}
 	};
 
@@ -339,11 +344,15 @@ namespace tool::lua {
 			bool anyErr{};
 
 			std::ostream& out = ctx.opt.m_asm ? asmout : utils::NullStream();
-			for (LuaInst& inst : insts) {
+			ctx.WriteAsmLocPadding(out, this->location) << "--- func ---" << std::endl;
+			size_t count{};
+			for (size_t i = 0; i < insts.size(); i++) {
+				LuaInst& inst{ insts[i] };
 				HKSInstId id{ ctx.GetOpCodeId(inst.code) };
 				HKSInstHandler* handler{ GetInstHandler(id) };
 
 				ctx.WriteAsmLocPadding(out, inst.loc)
+					<< std::dec << i << " "
 					<< std::setfill('0') << std::setw(2) << (int)inst.code
 					<< " "
 					<< std::setfill(' ') << std::setw(28) << std::left
@@ -356,9 +365,14 @@ namespace tool::lua {
 					break;
 				}
 
-				if (!handler->Read(out, ctx)) {
-					anyErr = true;
-					break;
+				if (ctx.opt.m_handle) {
+					if (!handler->Read(out, ctx)) {
+						anyErr = true;
+						break;
+					}
+				}
+				else {
+					out << std::endl;
 				}
 			}
 
