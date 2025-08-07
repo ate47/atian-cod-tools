@@ -30,10 +30,15 @@ namespace fastfile {
 		static std::vector<FFHandler*> handlers{};
 		return handlers;
 	}
+	
+	bool FFDecompressor::MatchFile(const std::filesystem::path& path, core::bytebuffer::ByteBuffer& data) const {
+		uint64_t magic{ *data.Ptr<uint64_t>() };
+		return (magic & mask) == (this->magic & mask);
+	}
 
-	FFDecompressor* FindDecompressor(uint64_t magic) {
+	FFDecompressor* FindDecompressor(const std::filesystem::path& path, core::bytebuffer::ByteBuffer& data) {
 		for (FFDecompressor* handler : GetDecompressors()) {
-			if (handler->magic == (magic & handler->mask)) {
+			if (handler->MatchFile(path, data)) {
 				return handler;
 			}
 		}
@@ -623,7 +628,7 @@ namespace fastfile {
 		for (const char* f : opt.files) {
 			for (const std::string filename : opt.GetFileRecurse(f)) {
 				ffdata.clear();
-				if (!filename.ends_with(".ff")) {
+				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone")) {
 					LOG_DEBUG("Ignore {}", filename);
 					continue;
 				}
@@ -647,7 +652,7 @@ namespace fastfile {
 					fastfile::FastFileContext ctx{};
 					ctx.file = filename.c_str();
 					currentCtx = &ctx;
-					FFDecompressor* handler{ FindDecompressor(magic) };
+					FFDecompressor* handler{ FindDecompressor(filename, reader) };
 
 					if (!handler) {
 						LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);

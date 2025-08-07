@@ -226,8 +226,10 @@ namespace fastfile {
 		uint64_t magic;
 		uint64_t mask;
 
-		FFDecompressor(const char* name, uint64_t magic, uint64_t mask) : name(name), magic(magic& mask), mask(mask) {
+		FFDecompressor(const char* name, uint64_t magic = 0, uint64_t mask = MASK64) : name(name), magic(magic& mask), mask(mask) {
 		}
+		
+		virtual bool MatchFile(const std::filesystem::path& path, core::bytebuffer::ByteBuffer& data) const;
 
 		virtual void Init(FastFileOption& opt) {}
 
@@ -294,7 +296,7 @@ namespace fastfile {
 	std::vector<FFCompressor*>& GetCompressors();
 	std::vector<FFLinker*>& GetLinkers();
 
-	FFDecompressor* FindDecompressor(uint64_t magic);
+	FFDecompressor* FindDecompressor(const std::filesystem::path& path, core::bytebuffer::ByteBuffer& data);
 	FFHandler* FindHandler(const char* name);
 	FFCompressor* FindCompressor(const char* name);
 	FFLinker* FindLinker(const char* name);

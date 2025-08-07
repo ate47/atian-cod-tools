@@ -544,18 +544,23 @@ namespace fastfile::handlers::bo6 {
 					if (opt.noAssetDump) return;
 
 					bool err{};
-					for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
-						Asset* asset{ gcx.assets.assets + i };
+					try {
+						for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
+							Asset* asset{ gcx.assets.assets + i };
 
-						const HashedType* type{ gcx.GetMappedType(asset->type) };
+							const HashedType* type{ gcx.GetMappedType(asset->type) };
 
-						LOG_DEBUG("load #{} -> {}", i, type->name);
-						if (opt.noAssetDump) {
-							assetsOs << "\n" << std::hex << type->name << ",<unk>";
+							LOG_DEBUG("load #{} -> {}", i, type->name);
+							if (opt.noAssetDump) {
+								assetsOs << "\n" << std::hex << type->name << ",<unk>";
+							}
+							else {
+								gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
+							}
 						}
-						else {
-							gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
-						}
+
+					} catch (std::runtime_error& e) {
+						LOG_ERROR("can't dump ff {}", e.what());
 					}
 
 					for (auto& [k, v] : GetWorkers()) {
