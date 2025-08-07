@@ -102,9 +102,19 @@ namespace hook::scan_container {
 		std::vector<hook::library::ScanResult> res{ Scan(path, name) };
 
 		if (res.empty()) {
+			if (ignoreMissing) {
+				LOG_ERROR("Can't find pattern", name ? name : path);
+				foundMissing = true;
+				return { nullptr };
+			}
 			throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : path));
 		}
 		if (res.size() != 1) {
+			if (ignoreMissing) {
+				LOG_ERROR("Too many finds for pattern", name ? name : path);
+				foundMissing = true;
+				return { nullptr };
+			}
 			throw std::runtime_error(utils::va("Too many finds for pattern %s", name ? name : path));
 		}
 
@@ -114,6 +124,11 @@ namespace hook::scan_container {
 		std::vector<hook::library::ScanResult> res{ Scan(path, name) };
 
 		if (res.empty()) {
+			if (ignoreMissing) {
+				LOG_ERROR("Can't find pattern", name ? name : path);
+				foundMissing = true;
+				return { nullptr };
+			}
 			throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : path));
 		}
 

@@ -26,6 +26,9 @@ namespace hook::scan_container {
 		bool sync{};
 
 	public:
+		bool ignoreMissing{};
+		bool foundMissing{};
+
 		ScanContainer(hook::library::Library lib, bool savePost = false)
 			: lib(lib), uid(lib.GetUID()), savePost(savePost) {
 			scanPath = GetContainerPath(uid);

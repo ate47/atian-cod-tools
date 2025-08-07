@@ -8,9 +8,13 @@ namespace {
 		using Worker::Worker;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
+			struct KeyValuePair {
+				const char* value;
+				uint32_t key;
+			};
 			struct KeyValuePairs {
 				uint64_t name;
-				const char** kv;
+				KeyValuePair* kv;
 				int32_t count;
 			};
 			
@@ -31,11 +35,12 @@ namespace {
 			}
 
 			for (size_t i = 0; i < asset->count; i++) {
-				os << asset->kv[i] << "\n";
+				KeyValuePair* kvp{ asset->kv + i };
+				os << "0x" << std::hex << kvp->key << "," << kvp->value << "\n";
 			}
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_KEYVALUEPAIRS, true };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_KEYVALUEPAIRS };
 
 }

@@ -222,6 +222,8 @@ namespace {
 			ffnamet = ffnamet.filename();
 			std::string ffnamets{ ffnamet.string() };
 			sprintf_s(ctx.ffname, "%s", ffnamets.data());
+
+			hashutils::Add(ctx.ffname, true, true);
 			
 
 			DB_FFHeader* header{ reader.Ptr<DB_FFHeader>() };

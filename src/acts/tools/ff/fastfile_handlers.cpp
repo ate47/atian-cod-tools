@@ -577,6 +577,18 @@ namespace fastfile {
 		assetNames[type].insert(name);
 	}
 
+	void SetBP(void* ptr, byte len) {
+		HwBp::Set(ptr, len, HwBp::When::Written);
+	}
+
+	struct FFLoadContext {
+		std::vector<byte> buff{};
+		std::vector<byte> ffdata{};
+		size_t count{}, completed{};
+		FFDecompressor* lastDecompressor{};
+		byte pad[0x100];
+	};
+
 	int fastfile(int argc, const char* argv[]) {
 		FastFileOption opt{};
 
@@ -615,31 +627,28 @@ namespace fastfile {
 			opt.handler->Init(opt);
 		}
 
-		std::vector<byte> buff{};
-		std::vector<byte> ffdata{};
-		size_t count{}, completed{};
-		FFDecompressor* lastDecompressor{};
+		FFLoadContext cc{};
 
-		utils::CloseEnd hce{ [&opt, &lastDecompressor] {
-			if (lastDecompressor) lastDecompressor->Cleanup();
+		utils::CloseEnd hce{ [&opt, &cc] {
+			if (cc.lastDecompressor) cc.lastDecompressor->Cleanup();
 			if (opt.handler) opt.handler->Cleanup();
 		} };
 
 		for (const char* f : opt.files) {
 			for (const std::string filename : opt.GetFileRecurse(f)) {
-				ffdata.clear();
+				cc.ffdata.clear();
 				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone")) {
 					LOG_DEBUG("Ignore {}", filename);
 					continue;
 				}
-				count++;
+				cc.count++;
 
-				if (!opt.ReadFile(filename.data(), buff)) {
+				if (!opt.ReadFile(filename.data(), cc.buff)) {
 					LOG_ERROR("Can't read file {}", filename);
 					continue;
 				}
 
-				core::bytebuffer::ByteBuffer reader{ buff };
+				core::bytebuffer::ByteBuffer reader{ cc.buff };
 
 				if (!reader.CanRead(sizeof(uint64_t))) {
 					LOG_ERROR("Can't read file {}: too small", filename);
@@ -658,18 +667,23 @@ namespace fastfile {
 						LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);
 						continue;
 					}
-
-					if (lastDecompressor != handler) {
-						if (lastDecompressor) lastDecompressor->Cleanup();
-						lastDecompressor = handler;
+					if (cc.lastDecompressor != handler) {
+						if (cc.lastDecompressor) {
+							cc.lastDecompressor->Cleanup();
+							cc.lastDecompressor = handler;
+							//SetBP(&lastDecompressor, 8);
+						}
+						else {
+							cc.lastDecompressor = handler;
+						}
 						handler->Init(opt);
 					}
 
 					LOG_INFO("Loading {}... ({})", filename, handler->name);
 
-					handler->LoadFastFile(opt, reader, ctx, ffdata);
+					handler->LoadFastFile(opt, reader, ctx, cc.ffdata);
 
-					LOG_TRACE("Decompressed 0x{:x} byte(s)", ffdata.size());
+					LOG_TRACE("Decompressed 0x{:x} byte(s)", cc.ffdata.size());
 
 					if (opt.dump_decompressed) {
 						std::filesystem::path of{ ctx.file };
@@ -678,7 +692,7 @@ namespace fastfile {
 						decfile.replace_extension(".ff.dec");
 
 						std::filesystem::create_directories(decfile.parent_path());
-						if (!utils::WriteFile(decfile, ffdata.data(), ffdata.size())) {
+						if (!utils::WriteFile(decfile, cc.ffdata.data(), cc.ffdata.size())) {
 							LOG_ERROR("Can't dump {}", decfile.string());
 						}
 						else {
@@ -687,13 +701,11 @@ namespace fastfile {
 					}
 
 					if (opt.handler) {
-						core::bytebuffer::ByteBuffer ffreader{ ffdata };
+						core::bytebuffer::ByteBuffer ffreader{ cc.ffdata };
 						LOG_TRACE("Reading using {}", opt.handler->name);
-
-						//HwBp::Set(&lastDecompressor, 8, HwBp::When::Written);
 						opt.handler->Handle(opt, ffreader, ctx);
 					}
-					completed++;
+					cc.completed++;
 				}
 				catch (std::runtime_error& err) {
 					LOG_ERROR("Can't read {}: {}", filename, err.what());
@@ -702,19 +714,19 @@ namespace fastfile {
 			}
 		}
 
-		if (lastDecompressor) {
-			lastDecompressor->Cleanup();
+		if (cc.lastDecompressor) {
+			cc.lastDecompressor->Cleanup();
 		}
 		if (opt.handler) {
 			opt.handler->Cleanup();
 		}
 
-		size_t errors{ count - completed };
+		size_t errors{ cc.count - cc.completed };
 		if (errors) {
-			LOG_ERROR("Parsed {} (0x{:x}) file(s) with {} (0x{:x}) error(s)", count, count, errors, errors);
+			LOG_ERROR("Parsed {} (0x{:x}) file(s) with {} (0x{:x}) error(s)", cc.count, cc.count, errors, errors);
 			return tool::BASIC_ERROR;
 		}
-		LOG_INFO("Parsed {} (0x{:x}) file(s)", count, count);
+		LOG_INFO("Parsed {} (0x{:x}) file(s)", cc.count, cc.count);
 
 		return tool::OK;
 	}

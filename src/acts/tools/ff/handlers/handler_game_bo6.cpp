@@ -17,6 +17,14 @@ namespace fastfile::handlers::bo6 {
 	using namespace ::bo6;
 	constexpr bool hasRelativeLoads = false;
 
+	enum StreamPointerFlag : uint64_t {
+		SPF_CREATE_REF = 1ull << 61, // create a offset with the data as name
+		SPF_NEXT = 2ull << 61, // load the data after, otherwise data is name of offset
+		SPF_UNK = 4ull << 61, // unk
+
+		SPF_DATA_MASK = ~(SPF_CREATE_REF | SPF_NEXT | SPF_UNK)
+	};
+
 	namespace {
 		template<size_t offset = 0>
 		void EmptyStub() {
@@ -184,6 +192,8 @@ namespace fastfile::handlers::bo6 {
 			AssetList assets{};
 			HashedType typeMaps[0x200];
 			size_t typeMapsCount;
+			std::unordered_map<uint64_t, void*> streamLocations{};
+			std::vector<const char*>* xstringLocs{};
 			utils::OutFileCE* outAsset{};
 			utils::EnumList<T10RAssetType, T10RAssetType::T10R_ASSET_COUNT> handleList{ PoolIdRelease };
 
@@ -297,6 +307,8 @@ namespace fastfile::handlers::bo6 {
 			do {
 				gcx.reader->Read(str, 1);
 			} while (*str++);
+			if (gcx.xstringLocs) gcx.xstringLocs->push_back(*pstr);
+			hashutils::Add(*pstr, true, true);
 		}
 		void Load_CustomScriptString(DBLoadCtx* context, uint32_t* pstr) {
 			uint32_t k;
@@ -348,22 +360,6 @@ namespace fastfile::handlers::bo6 {
 			*(gcx.outAsset) << "\n" << type << ",#" << name;
 			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, name, hook::library::CodePointer{_ReturnAddress()});
 
-			if (handle && !(gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))) {
-
-				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
-				auto it{ map.find(type) };
-				if (it != map.end()) {
-					if constexpr (!hasRelativeLoads) {
-						if (!it->second->requiresRelativeLoads) {
-							it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
-						}
-					}
-					else {
-						it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
-					}
-				}
-			}
-
 			return handle ? *handle : nullptr;
 		}
 
@@ -375,6 +371,21 @@ namespace fastfile::handlers::bo6 {
 		uint32_t* Unk_Align_Ret(DBLoadCtx* ctx) {
 			static uint32_t data{};
 			return &data;
+		}
+
+		void DB_LoadStreamOffset(DBLoadCtx* ctx, uint64_t val, void** pptr) {
+			void*& ref{ gcx.streamLocations[val & StreamPointerFlag::SPF_DATA_MASK] };
+			if (ref) {
+				*pptr = ref;
+			}
+			else {
+				LOG_WARNING("missing val for DB_LoadStreamOffset {:x}", val);
+				*pptr = nullptr;
+			}
+		}
+
+		void DB_RegisterStreamOffset(DBLoadCtx* ctx, uint64_t val, void* ptr) {
+			gcx.streamLocations[val & StreamPointerFlag::SPF_DATA_MASK] = ptr;
 		}
 
 		class BO6FFHandler : public fastfile::FFHandler {
@@ -402,11 +413,81 @@ namespace fastfile::handlers::bo6 {
 
 				gcx.InitTypeMaps(lib);
 
-
-				hook::memory::RedirectJmp(scan.ScanSingle("40 56 41 56 48 83 EC ? 48 8B 15", "GetMappedTypeStub").location, GetMappedTypeStub);
-
 				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?").GetRelative<int32_t, LoadStreamObject*>(3) };
 				loadStreamObj->__vtb = &dbLoadStreamVTable;
+				/*
+[22:37:33][TRACE][shared:hook:library@218] Start searching of pattern 48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?
+[22:37:33][TRACE][shared:hook:library@250] Pattern find -> 0x7ff612e6d781
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48 (gcx.Load_Asset)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2968fe0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 56 41 56 48 83 EC ? 48 8B 15 (GetMappedTypeStub)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x88a6960
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9 (LoadStream)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb220
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2 (Load_String)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb2c0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41 (Load_StringName)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb390
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA (DB_LinkGenericXAsset)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a7b3b0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B (DB_LinkGenericXAssetEx)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a7d950
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8 (Load_CustomScriptString)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb9e0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B (EmptyStub<0>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a77c60
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA (DB_RegisterStreamOffset)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2aca6e0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33 (EmptyStub<2>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a77910
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA (DB_LoadStreamOffset)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2aca8c0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 14 40 83 (ReturnStub<4, bool, false>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a85990
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached C5 FB 10 02 44 (EmptyStub<5>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a85bb0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 04 40 48 (Unk_Align_Ret)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a85970
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 41 8B 40 ?? 49 (EmptyStub<7>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a652a0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9 (EmptyStub<8>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x837b4d0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B C4 53 48 81 EC ?? ?? ?? ?? 41 0F B7 (EmptyStub<9>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x6699900
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 8B 42 ?? 49 (EmptyStub<10>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x67d5bc0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B 05 ?? ?? ?? ?? 0F B7 80 (EmptyStub<11>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acddb0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F (EmptyStub<12>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x82c5130
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 81 61 (EmptyStub<13>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a76460
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2 (EmptyStub<14>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2aca410
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75 (EmptyStub<15>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a62af0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 55 56 57 41 57 48 83 EC ?? 8B 1D (EmptyStub<16>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x671eaa0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B (EmptyStub<17>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a65200
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B (EmptyStub<18>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x671dcc0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8 (EmptyStub<19>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a652d0
+[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33 (EmptyStub<20>)
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x8b46270
+				
+				
+				*/
+
+				//E8 ? ? ? ? 80 3E 00 74 1E
+				//lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
+				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "gcx.Load_Asset")
+					.GetPtr<void(*)(DBLoadCtx * ctx, bool atStreamStart, Asset * asset)>();
+
+				scan.ignoreMissing = true;
+
+				hook::memory::RedirectJmp(scan.ScanSingle("40 56 41 56 48 83 EC ? 48 8B 15", "GetMappedTypeStub").location, GetMappedTypeStub);
 
 				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9", "LoadStream").location, LoadStream);
 				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", "Load_String").location, Load_String);
@@ -417,9 +498,9 @@ namespace fastfile::handlers::bo6 {
 
 				// Stream delta, todo
 				hook::memory::RedirectJmp(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "EmptyStub<1>").location, EmptyStub<1>); //2E24F20
+				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "DB_RegisterStreamOffset").location, DB_RegisterStreamOffset); //2E24F20
 				hook::memory::RedirectJmp(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "EmptyStub<3>").location, EmptyStub<3>); // 2E25100
+				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "DB_LoadStreamOffset").location, DB_LoadStreamOffset); // 2E25100
 
 				// idk
 				hook::memory::RedirectJmp(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", "ReturnStub<4, bool, false>").location, ReturnStub<4, bool, false>);
@@ -443,16 +524,16 @@ namespace fastfile::handlers::bo6 {
 				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
 
 
-				//E8 ? ? ? ? 80 3E 00 74 1E
-				//lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
-				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "gcx.Load_Asset")
-					.GetPtr<void(*)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset)>();
-
+				if (scan.foundMissing) {
+					throw std::runtime_error("Can't find some patterns");
+				}
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
 				gcx.ctx = &ctx;
 				gcx.reader = &reader;
+				gcx.streamLocations.clear();
+
 				//HwBp::Set(&gcx.reader, 8, HwBp::When::Written);
 				std::filesystem::path out{ opt.m_output / "bo6" / "data" };
 				std::filesystem::create_directories(out);
@@ -466,6 +547,12 @@ namespace fastfile::handlers::bo6 {
 
 				LOG_INFO("assets: {}, strings: {}, unk: {}", gcx.assets.assetsCount, gcx.assets.stringsCount, gcx.assets.unk10_count);
 
+
+				std::vector<const char*> xstringLocs{};
+				if (opt.dumpXStrings) {
+					gcx.xstringLocs = &xstringLocs;
+				}
+
 				std::filesystem::path outStrings{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
 
 				{
@@ -474,14 +561,43 @@ namespace fastfile::handlers::bo6 {
 					gcx.assets.strings = reader.ReadPtr<const char*>(gcx.assets.stringsCount);
 					for (size_t i = 0; i < gcx.assets.stringsCount; i++) {
 						const char* str;
-						if (gcx.assets.strings[i]) {
-							str = acts::decryptutils::DecryptString(reader.ReadString());
+						uint64_t stroff{ (uint64_t)gcx.assets.strings[i] };
+						if (stroff) {
+							if (stroff & StreamPointerFlag::SPF_NEXT) {
+								str = acts::decryptutils::DecryptString(reader.ReadString());
+								if (stroff & StreamPointerFlag::SPF_CREATE_REF) {
+									DB_RegisterStreamOffset(nullptr, stroff, (void*)str);
+									//LOG_INFO("store offset {:x} -> {}", stroff, str);
+								}
+								hashutils::Add(str, true, true);
+								if (gcx.xstringLocs) gcx.xstringLocs->push_back(str);
+							}
+							else {
+								DB_LoadStreamOffset(nullptr, stroff, (void**)&str);
+							}
 						}
 						else {
 							str = "";
 						}
 						gcx.assets.strings[i] = str;
-						stringsOs << i << "\t" << str << "\n";
+						stringsOs << i << "\t";
+						if (stroff) {
+							if (stroff & StreamPointerFlag::SPF_NEXT) {
+								if (stroff & StreamPointerFlag::SPF_CREATE_REF) {
+									stringsOs << "[ref:" << std::setw(16) << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
+								}
+								else {
+									stringsOs << "[next]";
+								}
+							}
+							else {
+								stringsOs << "[off:" << std::setw(16) << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
+							}
+						}
+						else {
+							stringsOs << "[null]";
+						}
+						stringsOs << "\t" << str << "\n";
 					}
 				}
 
@@ -559,6 +675,28 @@ namespace fastfile::handlers::bo6 {
 							}
 						}
 
+						// everything is loaded, we can unlink everything
+						for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
+							Asset* asset{ gcx.assets.assets + i };
+
+							bo6::T10RAssetType type{ (bo6::T10RAssetType)asset->type };
+							if (asset->handle && !(gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))) {
+
+								std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
+								auto it{ map.find(type) };
+								if (it != map.end()) {
+									if constexpr (!hasRelativeLoads) {
+										if (!it->second->requiresRelativeLoads) {
+											it->second->Unlink(*gcx.opt, *gcx.ctx, asset->handle);
+										}
+									}
+									else {
+										it->second->Unlink(*gcx.opt, *gcx.ctx, asset->handle);
+									}
+								}
+							}
+						}
+
 					} catch (std::runtime_error& e) {
 						LOG_ERROR("can't dump ff {}", e.what());
 					}
@@ -571,6 +709,22 @@ namespace fastfile::handlers::bo6 {
 					}
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());
+				if (gcx.xstringLocs) {
+					std::filesystem::path ostr{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "xstrings" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::create_directories(ostr.parent_path());
+					utils::OutFileCE sos{ ostr };
+					sos << "xhash,xhashres,str";
+					for (const char* s : *gcx.xstringLocs) {
+						if (!s) continue;
+						sos 
+							<< "\n"
+							<< std::hex << "hash_" << hash::Hash64A(s) << ","
+							<< std::hex << "hash_" << hash::HashIWAsset(s) << ","
+							<< utils::FormattedString{ s };
+					}
+					LOG_INFO("XStrings names dump into {}", ostr.string());
+				}
+				LOG_DEBUG("done reading {}", ctx.ffname);
 			}
 
 		};

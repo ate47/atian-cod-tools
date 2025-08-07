@@ -9,7 +9,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			// tablelookupbyrow  26a6c8cb862c750f
-			enum StringTableType : uint8_t {
+			enum StringTableType : byte {
 				STT_UNK0 = 0x0,
 				STT_STRING = 0x1,
 				STT_INT64 = 0x2,
@@ -21,11 +21,12 @@ namespace {
 				STT_XHASH_OMNVAR = 0x8,
 				STT_XHASH_32 = 0x9,
 				STT_XHASH_LOCALIZED = 0xa,
-				STT_UNKB = 0xb,
+				STT_XHASH_B = 0xb,
 			};
 
 			union StringTableValue {
 				uint64_t u64;
+				int64_t i64;
 				uint32_t u32;
 				float f;
 				const char* str;
@@ -36,15 +37,17 @@ namespace {
 				StringTableValue output;
 				uint32_t unk8;
 				StringTableType type;
-			};
+			}; static_assert(sizeof(StringTableOutput) == 0x10);
 
 			struct StringTableColumn {
 				StringTableType type;
+				uint16_t rows_count;
+				uint16_t unk8_count;
 				uint16_t* unk8_row;
 				uint16_t* offsets_row;
-				uint64_t unk18;
+				uint16_t* unk18;
 				void* data;
-			};
+			}; static_assert(sizeof(StringTableColumn) == 0x28);
 
 			struct StringTable {
 				uint64_t name;
@@ -65,7 +68,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo6" / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump stringtable {}", outFile.string());
+			LOG_INFO("Dump stringtable {} ({:x})", outFile.string(), asset->name);
 
 			utils::OutFileCE os{ outFile };
 
@@ -96,7 +99,7 @@ namespace {
 					case STT_XHASH_DVAR: os << "xhashdvar"; break;
 					case STT_XHASH_32: os << "xhash32"; break;
 					case STT_XHASH_OMNVAR: os << "xhashomnvar"; break;
-					case STT_UNKB: os << "unkb"; break;
+					case STT_XHASH_B: os << "unkb"; break;
 					default: os << "unk" << std::dec << col->type; break;
 					}
 				}
@@ -121,7 +124,7 @@ namespace {
 						case STT_XHASH_LOCALIZED:
 						case STT_XHASH_DVAR:
 						case STT_XHASH_OMNVAR:
-						case STT_UNKB:
+						case STT_XHASH_B:
 						case STT_INT64:
 							elemSize = 8;
 							break;
@@ -144,9 +147,17 @@ namespace {
 						void* value{ &((byte*)column->data)[elemSize * rowIndex] };
 
 						switch (column->type) {
-						case STT_STRING: 
-							os << *(const char**)value;
+						case STT_STRING: {
+							const char* str{ *(const char**)value };
+							byte b;
+							if (hook::memory::ReadMemorySafe((void*)str, &b, sizeof(b))) {
+								os << *(const char**)value;
+							}
+							else {
+								os << "invalid:" << (void*)str << "/" << (void*)((uintptr_t)str & 0xE000000000000000ULL);
+							}
 							break;
+						}
 						case STT_XHASH:
 							os << "#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
@@ -162,11 +173,11 @@ namespace {
 						case STT_XHASH_OMNVAR:
 							os << "o#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
-						case STT_UNKB:
+						case STT_XHASH_B:
 							os << "?b#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
 						case STT_INT64:
-							os << std::dec << *(uint64_t*)value;
+							os << std::dec << *(int64_t*)value;
 							break;
 						case STT_XHASH_32:
 							os << "x32#" << hashutils::ExtractTmp("hash", *(uint32_t*)value);
@@ -189,6 +200,6 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_STRINGTABLE, true };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_STRINGTABLE };
 
 }
