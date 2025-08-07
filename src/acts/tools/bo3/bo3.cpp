@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include "pools.hpp"
 #include "bo3.hpp"
-#include "tools/gsc.hpp"
+#include <tools/gsc_vm/vm_t7.hpp>
 
 namespace bo3 {
     int InjectScriptBO3(Process& proc, const char* script, const char* replaced, std::string& notify) {

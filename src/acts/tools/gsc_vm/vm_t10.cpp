@@ -3,6 +3,7 @@
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
+#include <tools/gsc_vm/vm_t10.hpp>
 
 
 // Call of Duty: Black Ops 6 (T10)

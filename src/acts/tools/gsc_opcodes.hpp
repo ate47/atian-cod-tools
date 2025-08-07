@@ -81,6 +81,7 @@ namespace tool::gsc::opcode {
 		uint64_t flags{};
 		uint64_t compilerHookFunctionName{};
 		byte platforms{};
+		byte platformEndians{};
 		uint16_t maxOpCode{ 0xFFF };
 		uint16_t modToolFlag{};
 		size_t opaqueStringCount{};
@@ -105,6 +106,15 @@ namespace tool::gsc::opcode {
 				platforms |= 1 << (plt - 1);
 			}
 		}
+		/*
+		 * Set a platform to be big endian
+		 * @param plt platform
+		 */
+		inline void SetPlatformBigEndian(Platform plt) {
+			if (plt != PLATFORM_UNKNOWN) {
+				platformEndians |= 1 << (plt - 1);
+			}
+		}
 
 		/*
 		 * Add a dev call name for this platform
@@ -123,6 +133,14 @@ namespace tool::gsc::opcode {
 		 */
 		inline bool HasPlatform(Platform plt) const {
 			return plt != PLATFORM_UNKNOWN && (platforms & (1 << (plt - 1)));
+		}
+		/*
+		 * Is this VM big endian for this platform
+		 * @param plt platform
+		 * @return true if big endian
+		 */
+		inline bool IsPlatformBigEndian(Platform plt) const {
+			return plt != PLATFORM_UNKNOWN && (platformEndians & (1 << (plt - 1)));
 		}
 
 		/*

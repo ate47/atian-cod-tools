@@ -527,6 +527,12 @@ namespace utils {
 	bool IsProbablyHex(int64_t number);
 
 	/*
+	 * Swap the bytes of a pointer
+	 * @param ptr pointer
+	 * @param len length
+	 */
+	void SwapByte(void* ptr, size_t len);
+	/*
 	 * @param ptr Pointer
 	 * @param defaultVal default value
 	 * @param Type type

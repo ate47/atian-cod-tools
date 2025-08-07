@@ -49,6 +49,7 @@ namespace {
                     if (!ctx.opt.m_ignoreDebugPlatform && pltFlag < Platform::PLATFORM_COUNT) {
                         LOG_TRACE("Using debug platform {}", PlatformName(nplt));
                         ctx.currentPlatform = nplt;
+                        ctx.isBigEndian = ctx.m_vmInfo->IsPlatformBigEndian(ctx.currentPlatform);
                     }
                 }
             }

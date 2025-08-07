@@ -413,6 +413,13 @@ namespace utils {
         return false;
     }
 
+    void SwapByte(void* ptr, size_t n) {
+        byte* in{ (byte*)ptr };
+        for (size_t lo = 0, hi = n - 1; hi > lo; ++lo, --hi) {
+            in[lo] ^= in[hi], in[hi] ^= in[lo], in[lo] ^= in[hi];
+        }
+    }
+
     char* MapString(char* buffer, std::function<char(char)> map) {
         std::transform(buffer, buffer + strlen(buffer), buffer, map);
         return buffer;

@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include "custom_ees.hpp"
-#include "tools/gsc.hpp"
-#include "tools/cw/cw.hpp"
+#include <tools/cw/cw.hpp>
+#include <tools/gsc_vm/vm_t9.hpp>
 
 struct XAssetPool {
 	uintptr_t pool; // void*

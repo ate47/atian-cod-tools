@@ -2,6 +2,7 @@
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
+#include <tools/gsc_vm/vm_t7.hpp>
 
 
 // Call of Duty: Black Ops 3 (T7)
@@ -290,7 +291,10 @@ namespace {
     class T71BGSCOBJHandler : public GSCOBJHandler {
     public:
         T71BGSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_STRING_NAMES | GOHF_INLINE_FUNC_PTR | GOHF_SUPPORT_VAR_VA | GOHF_SUPPORT_VAR_REF | GOHF_FOREACH_TYPE_T7 | GOHF_SUPPORT_GET_API_SCRIPT | GOHF_SWITCH_TYPE_T7) {}
-
+        
+        void SwitchHeaderEndian() override {
+            throw std::runtime_error("SwitchHeaderEndian not implemented");
+        }
         void DumpHeaderInternal(std::ostream& asmout, const GscInfoOption& opt) override {
             auto* data = Ptr<T7GSCOBJ>();
             asmout

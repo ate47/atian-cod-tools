@@ -15,7 +15,7 @@ namespace {
     class ACTSF1GSCOBJHandler : public GSCOBJHandler {
     public:
         ACTSF1GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_FOREACH_TYPE_5) {}
-
+        
         uint64_t GetName() override {
             return Ptr<ActScript>()->name;
         }

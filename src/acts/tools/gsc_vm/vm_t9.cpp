@@ -3,6 +3,7 @@
 #include <tools/gsc_vm.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_opcodes.hpp>
+#include <tools/gsc_vm/vm_t9.hpp>
 
 
 // Call of Duty: Black Ops Cold War (T9)

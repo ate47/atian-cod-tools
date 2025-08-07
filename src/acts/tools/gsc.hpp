@@ -1,8 +1,13 @@
 #pragma once
 #include <core/memory_allocator.hpp>
-#include "gsc_opcodes.hpp"
-#include "gsc_formatter.hpp"
-#include "gsc_gdb.hpp"
+#include <tools/gsc_vm/vm_jup.hpp>
+#include <tools/gsc_vm/vm_t7.hpp>
+#include <tools/gsc_vm/vm_t8.hpp>
+#include <tools/gsc_vm/vm_t9.hpp>
+#include <tools/gsc_vm/vm_t10.hpp>
+#include <tools/gsc_opcodes.hpp>
+#include <tools/gsc_formatter.hpp>
+#include <tools/gsc_gdb.hpp>
 #include <includes.hpp>
 
 namespace tool::gsc {
@@ -569,11 +574,7 @@ namespace tool::gsc {
                 return m_bcl = utils::Aligned<Type>(m_bcl);
             }
             template<typename Type>
-            inline Type Read(byte* loc = m_bcl) {
-                CheckInsideScript(loc);
-                CheckInsideScript(loc + (sizeof(Type) - 1));
-                return *(Type*)loc;
-            }
+            Type Read(byte* loc = m_bcl);
 
             template<typename Type>
             inline void Read(Type* out, size_t count = 1, byte* loc = m_bcl) {
@@ -870,6 +871,7 @@ namespace tool::gsc {
         std::set<uint32_t> m_devblocks{};
         GsicInfo m_gsicInfo{};
         opcode::VmInfo* m_vmInfo{};
+        bool isBigEndian{};
         byte* dbgData{};
         size_t dbgSize{};
         GscDecompilerGDBData* gdbData{};
@@ -884,6 +886,14 @@ namespace tool::gsc {
         GscDecompilerGlobalContext& gdctx;
         T8GSCOBJContext(GscDecompilerGlobalContext& gdctx);
         ~T8GSCOBJContext();
+
+        constexpr bool SwitchEndian() const {
+            if (isBigEndian) {
+                return std::endian::native != std::endian::big;
+            } else {
+                return std::endian::native != std::endian::little;
+            }
+        }
 
         /*
          * Get a name for a global var ref
@@ -954,246 +964,18 @@ namespace tool::gsc {
         const char* GetFLocName(uint32_t floc) const;
     };
 
-    struct T831GSCOBJ {
-        byte magic[8];
-        uint32_t source_crc;
-        uint32_t include_offset;
-        uint32_t animtree_offset;
-        uint32_t cseg_offset;
-        uint32_t stringtablefixup_offset;
-        uint32_t devblock_stringtablefixup_offset;
-        uint32_t exports_offset;
-        uint32_t imports_offset;
-        uint32_t fixup_offset;
-        uint32_t globalvar_offset;
-        uint32_t profile_offset;
-        uint32_t cseg_size;
-        uint32_t name;
-        uint16_t stringtablefixup_count;
-        uint16_t exports_count;
-        uint16_t imports_count;
-        uint16_t fixup_count;
-        uint16_t globalvar_count;
-        uint16_t profile_count;
-        uint16_t devblock_stringtablefixup_count;
-        uint8_t include_count;
-        uint8_t animtree_count;
-        uint8_t flags;
-
-        inline const char* GetName() const {
-            return reinterpret_cast<const char*>(&magic[name]);
+    template<typename Type>
+    Type tool::gsc::opcode::ASMContext::Read(byte* loc) {
+        CheckInsideScript(loc);
+        CheckInsideScript(loc + (sizeof(Type) - 1));
+        Type t{ *(Type*)loc };
+        if (this->m_objctx.SwitchEndian()) {
+            utils::SwapByte(&t, sizeof(Type));
         }
-    };
+        return t;
+    }
 
-    struct T8GSCOBJ {
-        byte magic[8];
-        int32_t crc;
-        int32_t pad;
-        uint64_t name;
-        int32_t include_offset;
-        uint16_t string_count;
-        uint16_t exports_count;
-        int32_t cseg_offset;
-        int32_t string_offset;
-        int16_t imports_count;
-        uint16_t fixup_count;
-        int32_t devblock_string_offset;
-        int32_t export_table_offset;
-        int32_t ukn34;
-        int32_t imports_offset;
-        uint16_t globalvar_count;
-        int32_t fixup_offset;
-        int32_t globalvar_offset;
-        int32_t script_size;
-        int32_t requires_implements_offset;
-        int16_t ukn50;
-        int16_t devblock_string_count;
-        int32_t cseg_size;
-        uint16_t include_count;
-        byte flags;
-        byte requires_implements_count;
-    };
-    struct T937GSCOBJ {
-        byte magic[8];
-        uint32_t crc;
-        uint32_t pad0c;
-        uint64_t name;
-        uint32_t includes_table;
-        uint16_t string_count;
-        uint16_t export_count;
-        uint32_t cseg_offset;
-        uint32_t string_offset;
-        uint16_t imports_count;
-        uint16_t fixup_count;
-        uint32_t devblock_string_offset;
-        uint32_t exports_tables;
-        uint32_t imports_offset;
-        uint16_t globalvar_count;
-        uint16_t unk3a;
-        uint32_t fixup_offset;
-        uint32_t globalvar_offset;
-        uint32_t file_size;
-        uint16_t unk48;
-        uint16_t devblock_string_count;
-        uint32_t cseg_size;
-        uint16_t includes_count;
-        uint16_t unk52;
-        uint32_t unk54;
-    };
-
-    struct T9GSCOBJ {
-        byte magic[8];
-        int32_t crc;
-        int32_t pad0c;
-        uint64_t name;
-        uint16_t string_count;
-        uint16_t exports_count;
-        uint16_t imports_count;
-        uint16_t unk1e;
-        uint16_t globalvar_count;
-        uint16_t unk22;
-        uint16_t includes_count;
-        uint16_t devblock_string_count;
-        uint32_t devblock_string_offset;
-        uint32_t cseg_offset;
-        uint32_t string_offset;
-        uint32_t includes_table;
-        uint32_t exports_tables;
-        uint32_t import_tables;
-        uint32_t unk40;
-        uint32_t globalvar_offset;
-        uint32_t file_size;
-        uint32_t unk4c;
-        uint32_t cseg_size;
-        uint32_t unk54;
-    };
-    struct T7GSCOBJ {
-        byte magic[8];
-        uint32_t source_crc;
-        uint32_t include_offset;
-        uint32_t animtree_offset;
-        uint32_t cseg_offset;
-        uint32_t string_offset;
-        uint32_t devblock_string_offset;
-        uint32_t export_offset;
-        uint32_t import_offset;
-        uint32_t fixup_offsets;
-        uint32_t profile_offset;
-        uint32_t cseg_size;
-        uint32_t name_offset;
-        uint16_t string_count;
-        uint16_t export_count;
-        uint16_t import_count;
-        uint16_t fixup_count;
-        uint16_t profile_count;
-        uint16_t devblock_string_count;
-        uint8_t include_count;
-        uint8_t animtree_count;
-        uint8_t flags;
-
-        inline const char* GetName() const {
-            return reinterpret_cast<const char*>(&magic[name_offset]);
-        }
-    };
-
-    struct GscObj23 {
-        byte magic[8];
-        uint64_t name;
-        uint16_t unk10;
-        uint16_t animtree_use_count;
-        uint16_t animtree_count;
-        uint16_t devblock_string_count;
-        uint16_t export_count;
-        uint16_t fixup_count;
-        uint16_t unk1C;
-        uint16_t imports_count;
-        uint16_t includes_count;
-        uint16_t unk22;
-        uint16_t string_count;
-        uint16_t unk26;
-        uint32_t checksum;
-        uint32_t animtree_use_offset;
-        uint32_t animtree_offset;
-        uint32_t cseg_offset;
-        uint32_t cseg_size;
-        uint32_t devblock_string_offset;
-        uint32_t export_offset;
-        uint32_t fixup_offset;
-        uint32_t size1;
-        uint32_t import_table;
-        uint32_t include_table;
-        uint32_t size2;
-        uint32_t string_table;
-        uint32_t unk5C;
-    };
-
-    struct GscObj24 {
-        byte magic[8];
-        uint64_t name;
-        uint16_t unk10;
-        uint16_t animtree_use_count;
-        uint16_t animtree_count;
-        uint16_t devblock_string_count;
-        uint16_t export_count;
-        uint16_t fixup_count;
-        uint16_t unk1C;
-        uint16_t imports_count;
-        uint16_t includes_count;
-        uint16_t string_count;
-        uint32_t checksum;
-        uint32_t unk28;
-        uint32_t animtree_use_offset;
-        uint32_t animtree_offset;
-        uint32_t cseg_offset;
-        uint32_t cseg_size;
-        uint32_t devblock_string_offset;
-        uint32_t export_offset;
-        uint32_t fixup_offset;
-        uint32_t size1;
-        uint32_t import_table;
-        uint32_t include_table;
-        uint32_t string_table;
-    };
-
-    struct T8GSCFixup {
-        uintptr_t offset;
-        uintptr_t address;
-    };
-
-    struct T8GSCImport {
-        uint32_t name;
-        uint32_t import_namespace;
-        uint16_t num_address;
-        uint8_t param_count;
-        uint8_t flags;
-    };
-
-    struct T8GSCGlobalVar {
-        uint32_t name;
-        uint32_t num_address;
-    };
-
-    struct T8GSCExport {
-        uint32_t checksum;
-        uint32_t address;
-        uint32_t name;
-        uint32_t name_space;
-        uint32_t callback_event;
-        uint8_t param_count;
-        uint8_t flags;
-        uint16_t padding;
-    };
-
-    struct T7GSCExport {
-        uint32_t checksum;
-        uint32_t address;
-        uint32_t name;
-        uint32_t name_space;
-        uint8_t param_count;
-        uint8_t flags;
-        uint16_t padding;
-    };
-
+    
     enum GSCBinTokenType : uint32_t {
         GBTT_INVALID = 0,
         GBTT_FIELD = 1,
@@ -1232,67 +1014,6 @@ namespace tool::gsc {
      * @return size or 0 if a bad opcode was found
      */
     int ComputeSize(GSCExportReader& exp, byte* gscFile, gsc::opcode::Platform plt, gsc::opcode::VmInfo* vminfo);
-
-    struct IW23GSCImport {
-        uint64_t name;
-        uint64_t name_space;
-        uint16_t num_address;
-        uint8_t param_count;
-        uint8_t flags;
-    };
-
-    struct IW23GSCExport {
-        uint64_t name;
-        uint64_t name_space;
-        uint64_t file_name_space;
-        uint64_t checksum;
-        uint32_t address;
-        uint8_t param_count;
-        uint8_t flags;
-    };
-
-    struct IW24GSCExport {
-        uint64_t name;
-        uint64_t name_space;
-        uint64_t file_name_space;
-        uint32_t address;
-        uint8_t param_count;
-        uint8_t flags;
-    };
-
-    struct IW24GSCExport2 {
-        uint64_t name;
-        uint64_t name_space;
-        uint64_t file_name_space;
-        uint32_t checksum;
-        uint32_t address;
-        uint8_t param_count;
-        uint8_t flags;
-    };
-
-    struct GSC_USEANIMTREE_ITEM {
-        uint32_t num_address;
-        uint32_t address;
-    };
-
-    struct GSC_ANIMTREE_ITEM {
-        uint32_t num_address;
-        uint32_t address_str1;
-        uint32_t address_str2;
-    };
-
-    struct T7GscAnimTree {
-        uint32_t name;
-        uint16_t num_tree_address;
-        uint16_t num_node_address;
-    };
-
-    struct T8GSCString {
-        uint32_t string;
-        uint8_t num_address;
-        uint8_t type;
-        uint16_t pad;
-    };
 
     class GSCOBJHandler {
         byte* file;
@@ -1367,6 +1088,7 @@ namespace tool::gsc {
         // Read functions
         virtual uint64_t GetName() = 0;
         virtual bool IsValidHeader(size_t size) = 0;
+        virtual void SwitchHeaderEndian();
         virtual uint16_t GetExportsCount() = 0;
         virtual uint32_t GetExportsOffset() = 0;
         virtual uint16_t GetIncludesCount() = 0;
@@ -1458,31 +1180,6 @@ namespace tool::gsc {
 
     std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(uint64_t vm);
 
-    enum T8GSCExportFlags : uint8_t {
-        LINKED = 0x01,
-        AUTOEXEC = 0x02,
-        PRIVATE = 0x04,
-        CLASS_MEMBER = 0x08,
-        CLASS_DESTRUCTOR = 0x10,
-        VE = 0x20,
-        EVENT = 0x40,
-        CLASS_LINKED = 0x80,
-        CLASS_VTABLE = 0x86
-    };
-
-    enum T8GSCImportFlags : uint8_t {
-        FUNC_METHOD = 0x1,
-        FUNCTION = 0x2,
-        FUNCTION_THREAD = 0x3,
-        FUNCTION_CHILDTHREAD = 0x4,
-        METHOD = 0x5,
-        METHOD_THREAD = 0x6,
-        METHOD_CHILDTHREAD = 0x7,
-        CALLTYPE_MASK = 0xF,
-        DEV_CALL = 0x10,
-        GET_CALL = 0x20,
-        LOCAL_CALL = 0x40
-    };
     enum ACTSGSCImportFlags : uint8_t {
         ACTS_GET_BUILTIN_FUNCTION = 0x8,
         ACTS_CALL_BUILTIN_FUNCTION = 0x9,
@@ -1491,31 +1188,6 @@ namespace tool::gsc {
         ACTS_CALL_BUILTIN_FUNCTION_NO_PARAMS = 0xc,
         ACTS_CALL_BUILTIN_METHOD_NO_PARAMS = 0xd,
         ACTS_USE_FULL_NAMESPACE = 0x40
-    };
-
-    enum T9GSCExportFlags : uint8_t {
-        T9_EF_AUTOEXEC = 0x01,
-        T9_EF_LINKED = 0x02,
-        T9_EF_PRIVATE = 0x04,
-        T9_EF_CLASS_MEMBER = 0x08,
-        T9_EF_CLASS_DESTRUCTOR = 0x10,
-        T9_EF_EVENT = 0x20,
-        T9_EF_VE = 0x40,
-        T9_EF_CLASS_LINKED = 0x80,
-        T9_EF_CLASS_VTABLE = 0x15
-    };
-
-    enum T9GSCImportFlags : uint8_t {
-        T9_IF_METHOD_CHILDTHREAD = 0x1,
-        T9_IF_METHOD_THREAD = 0x2,
-        T9_IF_FUNCTION_CHILDTHREAD = 0x3,
-        T9_IF_FUNCTION = 0x4,
-        T9_IF_FUNC_METHOD = 0x5,
-        T9_IF_FUNCTION_THREAD = 0x6,
-        T9_IF_METHOD = 0x7,
-        T9_IF_CALLTYPE_MASK = 0xF,
-        T9_IF_GET_CALL = 0x10,
-        T9_IF_DEV_CALL = 0x20,
     };
 
     enum RosettaBlockType : byte {

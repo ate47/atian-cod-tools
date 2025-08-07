@@ -541,6 +541,11 @@ void GSCOBJHandler::DumpHeader(std::ostream& asmout, const GscInfoOption& opt) {
     DumpHeaderInternal(asmout, opt);
     asmout << std::right << std::flush;
 }
+
+void GSCOBJHandler::SwitchHeaderEndian() {
+    throw std::runtime_error("SwitchHeaderEndian not implemented for this vm");
+}
+
 uint16_t GSCOBJHandler::GetTokensCount() {
     return 0;
 }
@@ -1305,6 +1310,16 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
         }
         LOG_INFO("Decompiling into '{}'...", file.string());
     }
+    
+    tool::gsc::RosettaStartFile(*scriptfile);
+    ctx.currentPlatform = opt.m_platform;
+    ctx.isBigEndian = ctx.m_vmInfo->IsPlatformBigEndian(ctx.currentPlatform);
+
+    bool endianSwapped{};
+    if (ctx.SwitchEndian()) {
+        scriptfile->SwitchHeaderEndian();
+        endianSwapped = true;
+    }
 
     // required for gscbin
     int preloadRet{ scriptfile->PreLoadCode(ctx, opt.m_dumpSkipData ? asmout : nullstream) };
@@ -1312,10 +1327,8 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
         return preloadRet > 0 ? 0 : preloadRet;
     }
 
-    tool::gsc::RosettaStartFile(*scriptfile);
 
     std::stringstream dbgHeader{};
-    ctx.currentPlatform = opt.m_platform;
 
     bool inFileDBG{ !dbgData || !dbgSize };
     if (inFileDBG) {
@@ -1346,6 +1359,10 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
                 LOG_WARNING("Can't parse gdb data {}", err.what());
             }
         }
+    }
+
+    if (endianSwapped != ctx.SwitchEndian()) {
+        scriptfile->SwitchHeaderEndian();
     }
 
     char asmfnamebuff[1000];
