@@ -94,7 +94,7 @@ namespace fastfile::handlers::cw::scriptbundle {
 			LOG_ERROR("Invalid arr.sbSubs handle: {}", (void*)arr.sbSubs);
 			error = true;
 			json.WriteFieldNameString("subs");
-			json.WriteValueString(GetValidString((const char*)arr.sbObjects));
+			json.WriteValueString(GetValidString((const char*)arr.sbSubs));
 		}
 		else {
 			// subs
@@ -263,6 +263,10 @@ namespace fastfile::handlers::cw::scriptbundle {
 			utils::raw_file_extractor::JsonWriter json{};
 
 			LOG_INFO("Dump scriptbundle {}", outFile.string());
+			if (!asset->sbObjectsArray.sbObjectCount) {
+				LOG_INFO("ignore empty asset->sbObjectsArray");
+				return;
+			}
 			bool error{};
 			WriteObject(json, asset->sbObjectsArray, error);
 
