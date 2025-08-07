@@ -274,13 +274,19 @@ namespace bo4 {
 		int refCount;
 		uint32_t groupId;
 	};
+	struct lua_State;
 
-	struct HksGlobal {};
+	typedef void (*HksLogFunc)(lua_State*, const char*, ...);
+
+	struct HksGlobal {
+		byte _pad[1456];
+		HksLogFunc m_logFunction;
+	};
+	struct HksClosure;
 	struct HksCallStackActivationRecord {};
 	struct hksInstruction {};
 	struct HksUpvalue {};
 	typedef void* HksErrorhandler;
-	struct lua_State;
 
 	struct HksCallstack {
 		HksCallStackActivationRecord* m_records;
@@ -324,6 +330,7 @@ namespace bo4 {
 			uint32_t native;
 			uint64_t hash;
 			lua_State* thread;
+			HksClosure* closure;
 		} v;
 	};
 	struct hks_api_stack {
@@ -333,12 +340,78 @@ namespace bo4 {
 		HksObject* bottom;
 	};
 
-	struct lua_State {
-		// hks::GenericChunkHeader
-		size_t m_flags;
-		// hks::ChunkHeader
-		void* m_next;
+	enum lua_State_Status : uint32_t {
+		NEW = 0x1,
+		RUNNING = 0x2,
+		YIELDED = 0x3,
+		DEAD_ERROR = 0x4,
+	};
 
+	enum HksError : uint32_t {
+		HKS_NO_ERROR = 0x0,
+		LUA_ERRSYNTAX = 0xFFFFFFFC,
+		LUA_ERRFILE = 0xFFFFFFFB,
+		LUA_ERRRUN = 0xFFFFFF9C,
+		LUA_ERRMEM = 0xFFFFFF38,
+		LUA_ERRERR = 0xFFFFFED4,
+		HKS_THROWING_ERROR = 0xFFFFFE0C,
+		HKS_GC_YIELD = 0x1,
+	};
+
+	struct GenericChunkHeader {
+		uint64_t m_flags;
+	};
+
+	struct ChunkHeader : GenericChunkHeader {
+		ChunkHeader* m_next;
+	};
+
+	struct HksMethodDebugInfo { };
+
+	template<typename T>
+	struct HksArray {
+		uint32_t count;
+		T* data;
+	};
+
+	struct HksMethod : ChunkHeader {
+		uint32_t hash;
+		uint16_t num_upvals;
+		uint16_t m_numRegisters;
+		byte num_params;
+		byte m_flags;
+		HksArray<const hksInstruction> instructions;
+		HksArray<void> constants;
+		HksArray<void> children;
+		HksMethodDebugInfo* m_debug;
+	};
+	static_assert(sizeof(HksMethod) == 0x58);
+
+	struct HksClosure : ChunkHeader {
+		HksMethod* m_method;
+		// ...
+	};
+
+	struct lua_Debug {
+		int32_t event;
+		const char* name;
+		const char* namewhat;
+		const char* what;
+		const char* source;
+		int32_t currentline;
+		int32_t nups;
+		int32_t nparams;
+		bool ishksfunc;
+		int32_t linedefined;
+		int32_t lastlinedefined;
+		char short_src[512];
+		int32_t callstack_level;
+		bool is_tail_call;
+	};
+	static_assert(sizeof(lua_Debug) == 0x248);
+
+
+	struct lua_State : ChunkHeader {
 		HksGlobal* m_global;
 		HksCallstack m_callStack;
 		hks_api_stack m_apistack;
@@ -348,6 +421,12 @@ namespace bo4 {
 		HksErrorhandler m_callsites;
 		int32_t m_numberOfCCalls;
 		byte* m_context;
+
+		void* m_name;
+		lua_State* m_next2;
+		lua_State* m_nextStateStack;
+		lua_State_Status m_status;
+		HksError m_error;
 		// ...
 	};
 
@@ -376,10 +455,18 @@ namespace bo4 {
 		uint32_t len;
 	}; static_assert(sizeof(ScriptParseTree) == 0x20);
 
+	struct LuaFile {
+		XHash name;
+		int len;
+		const char* buffer;
+	}; static_assert(sizeof(LuaFile) == 0x20);
+
+
 	union XAssetHeader {
 		void* data;
 		ScriptParseTree* spt;
 		ScriptParseTreeDBG* sptdbg;
+		LuaFile* luafile;
 	}; static_assert(sizeof(XAssetHeader) == 8);
 
 	enum BuiltinType : uint32_t {
@@ -394,4 +481,17 @@ namespace bo4 {
 		void* actionFunc;
 		BuiltinType type;
 	};
+
+	struct AssetLink {
+		AssetLink* next;
+	};
+
+	struct XAssetPool {
+		void* pool;
+		unsigned int itemSize;
+		int itemCount;
+		bool isSingleton;
+		int itemAllocCount;
+		AssetLink* freeHead;
+	}; static_assert(sizeof(XAssetPool) == 0x20);
 }

@@ -49,7 +49,8 @@ LUI.createMenu[ "T7Hud_" .. Engine.@GetCurrentMap() ] = function ( controller )
     self.luatest = {}
     
 #ifdef LUA_DEV
-#warning test preprocessor
+--#warning test preprocessor
+      --Acts.@Log( "test fail " .. nil )
 #endif
 
     Acts.@Log( "Injecting custom menu" )

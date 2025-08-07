@@ -11,6 +11,8 @@
 namespace systems::lua {
 	namespace {
 		hook::library::Detour hksl_loadfile_Hook;
+		hook::library::Detour hksi_hks_error_Hook;
+		hook::library::Detour hksi_lua_getclosureinfo_Hook;
 
 		struct LuaHook {
 			const char* filename;
@@ -104,8 +106,66 @@ namespace systems::lua {
 
 		}
 
+		bo4::LuaFile* GetLuaFile(const void* ptr) {
+			bo4::XAssetPool* pool{ &bo4::s_assetPools[bo4::XAssetType::ASSET_TYPE_LUAFILE] };
+
+			// fixme: use better iteration
+			bo4::LuaFile* data{ (bo4::LuaFile*)pool->pool };
+			for (size_t i = 0; i < pool->itemAllocCount; i++) {
+				bo4::LuaFile* lf{ data + i };
+				if (ptr >= lf->buffer && ptr < &lf->buffer[lf->len]) {
+					return lf;
+				}
+			}
+
+			return nullptr;
+		}
+
+		bool hksi_lua_getclosureinfo_Stub(bo4::lua_State* s, bo4::HksClosure* closure, bo4::lua_Debug* ar, const char* what) {
+			if (!hksi_lua_getclosureinfo_Hook.Call<bool>(s, closure, ar, what)) {
+				return false;
+			}
+
+			for (const char* cc = what; *cc; cc++) {
+				switch (*cc) {
+				case 'S': {
+					if (closure->m_method->m_debug) {
+						break; // ignore, already done
+					}
+
+					bo4::LuaFile* origin{ GetLuaFile(closure->m_method->instructions.data) };
+
+					if (origin) {
+						core::hashes::Extract("hash", origin->name, ar->short_src, sizeof(ar->short_src));
+						ar->source = ar->short_src;
+					}
+
+					break;
+				}
+				default:
+					// ignore
+					break;
+				}
+			}
+
+			return true;
+		}
+
+		int hksi_hks_error_Stub(bo4::lua_State* s, bo4::HksError errorCode) {
+			bo4::HksObject* base{ s->m_apistack.base };
+			bo4::HksObject* top{ s->m_apistack.top - 1 };
+			if (top > base) {
+				const char* info{ bo4::hks_obj_tolstring(s, top, nullptr) };
+				LOG_ERROR("[Lua] {}", info);
+			}
+
+			return hksi_hks_error_Hook.Call<int>(s, errorCode);
+		}
+
 		void PostInit(uint64_t uid) {
 			hksl_loadfile_Hook.Create(0x375D6A0_a, hksl_loadfile_Stub);
+			hksi_hks_error_Hook.Create(0x3756490_a, hksi_hks_error_Stub);
+			hksi_lua_getclosureinfo_Hook.Create(0x375DE20_a, hksi_lua_getclosureinfo_Stub);
 		}
 
 		utils::ArrayAdder<systems::mods::ModLoadingHook> cfgHook{ systems::mods::GetModLoadingHooks(), LoadLuaCfg};
