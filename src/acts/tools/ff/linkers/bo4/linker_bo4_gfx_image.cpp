@@ -102,7 +102,7 @@ namespace fastfile::linker::bo4 {
 					LOG_TRACE("Image: {}x{}x{}", x, y, channels);
 					switch (channels) {
 					case 4:
-						gfx.imageFormat = GFX_PF_R8G8B8A8_T1;
+						gfx.imageFormat = GFX_PF_R8G8B8A8_T2;
 						break;
 					default:
 						LOG_ERROR("Can't compile {} channels image", channels);
