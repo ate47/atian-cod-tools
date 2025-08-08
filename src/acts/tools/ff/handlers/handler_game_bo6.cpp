@@ -360,6 +360,22 @@ namespace fastfile::handlers::bo6 {
 			*(gcx.outAsset) << "\n" << type << ",#" << name;
 			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, name, hook::library::CodePointer{_ReturnAddress()});
 
+			if (handle && !(gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))) {
+
+				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
+				auto it{ map.find(type) };
+				if (it != map.end()) {
+					if constexpr (!hasRelativeLoads) {
+						if (!it->second->requiresRelativeLoads) {
+							it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
+						}
+					}
+					else {
+						it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
+					}
+				}
+			}
+
 			return handle ? *handle : nullptr;
 		}
 
@@ -453,7 +469,7 @@ namespace fastfile::handlers::bo6 {
 [22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9 (EmptyStub<8>)
 [22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x837b4d0
 [22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B C4 53 48 81 EC ?? ?? ?? ?? 41 0F B7 (EmptyStub<9>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x6699900
+[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:g0x6699900
 [22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 8B 42 ?? 49 (EmptyStub<10>)
 [22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x67d5bc0
 [22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B 05 ?? ?? ?? ?? 0F B7 80 (EmptyStub<11>)
@@ -478,6 +494,63 @@ namespace fastfile::handlers::bo6 {
 [22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x8b46270
 				
 				
+
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48 (gcx.Load_Asset)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x298edd0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 56 41 56 48 83 EC ? 48 8B 15 (GetMappedTypeStub)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x89e19a0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9 (LoadStream)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9f50
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2 (Load_String)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9ff0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41 (Load_StringName)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2afa0c0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA (DB_LinkGenericXAsset)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa93f0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B (DB_LinkGenericXAssetEx)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aabca0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8 (Load_CustomScriptString)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2afa710
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B (EmptyStub<0>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa4fb0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA (DB_RegisterStreamOffset)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9410
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33 (EmptyStub<2>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa4c60
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA (DB_LoadStreamOffset)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af95f0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 14 40 83 (ReturnStub<4, bool, false>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2ab4130
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached C5 FB 10 02 44 (EmptyStub<5>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2ab4350
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 04 40 48 (Unk_Align_Ret)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2ab4110
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 41 8B 40 ?? 49 (EmptyStub<7>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a92740
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9 (EmptyStub<8>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x84b15f0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 55 48 8D 6C 24 A9 48 81 EC ? ? ? ? 41 (EmptyStub<9>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x676e0d0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 8B 42 ?? 49 (EmptyStub<10>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x68ad3e0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B 05 ?? ?? ?? ?? 0F B7 80 (EmptyStub<11>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2afcbd0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F (EmptyStub<12>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x83f18c0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 81 61 (EmptyStub<13>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa37b0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2 (EmptyStub<14>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9140
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75 (EmptyStub<15>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a8ff00
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 55 56 57 41 57 (EmptyStub<16>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x67f37d0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B (EmptyStub<17>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a926a0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B (EmptyStub<18>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x67f29f0
+[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8 (EmptyStub<19>)
+[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a92770
 				*/
 
 				//E8 ? ? ? ? 80 3E 00 74 1E
@@ -487,41 +560,47 @@ namespace fastfile::handlers::bo6 {
 
 				scan.ignoreMissing = true;
 
-				hook::memory::RedirectJmp(scan.ScanSingle("40 56 41 56 48 83 EC ? 48 8B 15", "GetMappedTypeStub").location, GetMappedTypeStub);
+				auto Red = [](void* from, void* to) {
+					if (from) {
+						hook::memory::RedirectJmp(from, to);
+					}
+				};
 
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9", "LoadStream").location, LoadStream);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", "Load_String").location, Load_String);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41", "Load_StringName").location, Load_String); // str
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_LinkGenericXAssetEx").location, DB_LinkGenericXAssetEx);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8", "Load_CustomScriptString").location, Load_CustomScriptString);
+				Red(scan.ScanSingle("40 56 41 56 48 83 EC ? 48 8B 15", "GetMappedTypeStub").location, GetMappedTypeStub);
+
+				Red(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9", "LoadStream").location, LoadStream);
+				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", "Load_String").location, Load_String);
+				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41", "Load_StringName").location, Load_String); // str
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_LinkGenericXAssetEx").location, DB_LinkGenericXAssetEx);
+				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8", "Load_CustomScriptString").location, Load_CustomScriptString);
 
 				// Stream delta, todo
-				hook::memory::RedirectJmp(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "DB_RegisterStreamOffset").location, DB_RegisterStreamOffset); //2E24F20
-				hook::memory::RedirectJmp(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "DB_LoadStreamOffset").location, DB_LoadStreamOffset); // 2E25100
+				Red(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "DB_RegisterStreamOffset").location, DB_RegisterStreamOffset); //2E24F20
+				Red(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
+				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "DB_LoadStreamOffset").location, DB_LoadStreamOffset); // 2E25100
 
 				// idk
-				hook::memory::RedirectJmp(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", "ReturnStub<4, bool, false>").location, ReturnStub<4, bool, false>);
-				hook::memory::RedirectJmp(scan.ScanSingle("C5 FB 10 02 44", "EmptyStub<5>").location, EmptyStub<5>); // 2DE3F00
-				hook::memory::RedirectJmp(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 04 40 48", "Unk_Align_Ret").location, Unk_Align_Ret); // 2DE3CC0
+				Red(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", "ReturnStub<4, bool, false>").location, ReturnStub<4, bool, false>);
+				Red(scan.ScanSingle("C5 FB 10 02 44", "EmptyStub<5>").location, EmptyStub<5>); // 2DE3F00
+				Red(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 04 40 48", "Unk_Align_Ret").location, Unk_Align_Ret); // 2DE3CC0
 
 				// remove
-				hook::memory::RedirectJmp(scan.ScanSingle("40 53 48 83 EC ?? 41 8B 40 ?? 49", "EmptyStub<7>").location, EmptyStub<7>); // image
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9", "EmptyStub<8>").location, EmptyStub<8>);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 8B C4 53 48 81 EC ?? ?? ?? ?? 41 0F B7", "EmptyStub<9>").location, EmptyStub<9>);
-				hook::memory::RedirectJmp(scan.ScanSingle("40 53 48 83 EC ?? 8B 42 ?? 49", "EmptyStub<10>").location, EmptyStub<10>);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 0F B7 80", "EmptyStub<11>").location, EmptyStub<11>); // sound
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F", "EmptyStub<12>").location, EmptyStub<12>); // sound
-				hook::memory::RedirectJmp(scan.ScanSingle("40 53 48 83 EC ?? 81 61", "EmptyStub<13>").location, EmptyStub<13>); // model
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2", "EmptyStub<14>").location, EmptyStub<14>); // streaminginfo
-				hook::memory::RedirectJmp(scan.ScanSingle("48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75", "EmptyStub<15>").location, EmptyStub<15>); // computeshaders
-				hook::memory::RedirectJmp(scan.ScanSingle("40 53 55 56 57 41 57 48 83 EC ?? 8B 1D", "EmptyStub<16>").location, EmptyStub<16>); // computeshaders
-				hook::memory::RedirectJmp(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", "EmptyStub<17>").location, EmptyStub<17>); // computeshaders, TODO: better
-				hook::memory::RedirectJmp(scan.ScanSingle("40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B", "EmptyStub<18>").location, EmptyStub<18>); // libshared
-				hook::memory::RedirectJmp(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "EmptyStub<19>").location, EmptyStub<19>); // libshared, TODO: better
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 41 8B 40 ?? 49", "EmptyStub<7>").location, EmptyStub<7>); // image
+				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9", "EmptyStub<8>").location, EmptyStub<8>);
+				Red(scan.ScanSingle("48 89 5C 24 ? 55 48 8D 6C 24 A9 48 81 EC ? ? ? ? 41", "EmptyStub<9>").location, EmptyStub<9>);
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 8B 42 ?? 49", "EmptyStub<10>").location, EmptyStub<10>);
+				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 0F B7 80", "EmptyStub<11>").location, EmptyStub<11>); // sound
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F", "EmptyStub<12>").location, EmptyStub<12>); // sound
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 81 61", "EmptyStub<13>").location, EmptyStub<13>); // model
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2", "EmptyStub<14>").location, EmptyStub<14>); // streaminginfo
+				Red(scan.ScanSingle("48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75", "EmptyStub<15>").location, EmptyStub<15>); // computeshaders
+				Red(scan.ScanSingle("48 89 5C 24 ? 55 56 57 41 57", "EmptyStub<16>").location, EmptyStub<16>); // computeshaders
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", "EmptyStub<17>").location, EmptyStub<17>); // computeshaders, TODO: better
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B", "EmptyStub<18>").location, EmptyStub<18>); // libshared
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "EmptyStub<19>").location, EmptyStub<19>); // libshared, TODO: better
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
 
 
 				if (scan.foundMissing) {
@@ -672,28 +751,6 @@ namespace fastfile::handlers::bo6 {
 							}
 							else {
 								gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
-							}
-						}
-
-						// everything is loaded, we can unlink everything
-						for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
-							Asset* asset{ gcx.assets.assets + i };
-
-							bo6::T10RAssetType type{ (bo6::T10RAssetType)asset->type };
-							if (asset->handle && !(gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))) {
-
-								std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
-								auto it{ map.find(type) };
-								if (it != map.end()) {
-									if constexpr (!hasRelativeLoads) {
-										if (!it->second->requiresRelativeLoads) {
-											it->second->Unlink(*gcx.opt, *gcx.ctx, asset->handle);
-										}
-									}
-									else {
-										it->second->Unlink(*gcx.opt, *gcx.ctx, asset->handle);
-									}
-								}
 							}
 						}
 

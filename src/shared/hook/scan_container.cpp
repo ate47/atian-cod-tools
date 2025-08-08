@@ -103,7 +103,7 @@ namespace hook::scan_container {
 
 		if (res.empty()) {
 			if (ignoreMissing) {
-				LOG_ERROR("Can't find pattern", name ? name : path);
+				LOG_ERROR("Can't find pattern {}", name ? name : path);
 				foundMissing = true;
 				return { nullptr };
 			}
@@ -111,7 +111,7 @@ namespace hook::scan_container {
 		}
 		if (res.size() != 1) {
 			if (ignoreMissing) {
-				LOG_ERROR("Too many finds for pattern", name ? name : path);
+				LOG_ERROR("Too many finds for pattern {}", name ? name : path);
 				foundMissing = true;
 				return { nullptr };
 			}
@@ -125,7 +125,7 @@ namespace hook::scan_container {
 
 		if (res.empty()) {
 			if (ignoreMissing) {
-				LOG_ERROR("Can't find pattern", name ? name : path);
+				LOG_ERROR("Can't find pattern {}", name ? name : path);
 				foundMissing = true;
 				return { nullptr };
 			}
