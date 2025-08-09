@@ -96,6 +96,27 @@ namespace fastfile::handlers::cw {
 	public:
 		using utils::raw_file_extractor::JsonWriter::JsonWriter;
 
+		void WriteFieldValueXHash(const char* name, CWXHash val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueHash(name, val);
+		}
+
+		void WriteFieldValueXHash(uint64_t hash, CWXHash val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueHash(hash, val);
+		}
+
+
+		void WriteFieldValueXString(const char* name, XString val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(name, val);
+		}
+
+		void WriteFieldValueXString(uint64_t hash, XString val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(hash, val);
+		}
+
 		void WriteFieldValueScrString(const char* name, ScrString_t val) {
 			if (!val) return;
 			JsonWriter::WriteFieldValueString(name, GetScrString(val));
@@ -128,53 +149,52 @@ namespace fastfile::handlers::cw {
 			JsonWriter::EndArray();
 		}
 
-		/*
-		void WriteFieldValueXAsset(const char* name, games::bo4::pool::XAssetType type, void* val) {
+		void WriteFieldValueXAsset(const char* name, XAssetType type, void* val) {
 			if (!val) return;
-			XHash* hname{ games::bo4::pool::GetAssetName(type, val) };
+			uint64_t* hname{ cw::GetAssetName(type, val) };
 			if (*hname) {
 				WriteFieldValueXHash(name, *hname);
 			}
 		}
 
-		void WriteFieldValueXAsset(uint64_t hash, games::bo4::pool::XAssetType type, void* val) {
+		void WriteFieldValueXAsset(uint64_t hash, XAssetType type, void* val) {
 			if (!val) return;
-			XHash* hname{ games::bo4::pool::GetAssetName(type, val) };
+			uint64_t* hname{ cw::GetAssetName(type, val) };
 			if (*hname) {
 				WriteFieldValueXHash(hash, *hname);
 			}
 		}
-		void WriteFieldValueXAssetArray(const char* name, games::bo4::pool::XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
+
+		void WriteFieldValueXAssetArray(const char* name, XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
 			void** val{ (void**)handle };
 			if (ignoreEmpty && (!count || !*val)) return;
-			size_t off{ games::bo4::pool::GetAssetNameOffset(type) };
+			size_t off{ cw::GetAssetNameOffset(type) };
 
 			JsonWriter::WriteFieldNameString(name);
 			JsonWriter::BeginArray();
 
 			for (size_t i = 0; i < count; i++) {
 				if (!val[i]) break;
-				XHash* hname{ (XHash*)((byte*)val[i] + off) };
+				CWXHash* hname{ (CWXHash*)((byte*)val[i] + off) };
 				JsonWriter::WriteValueHash(*hname);
 			}
 			JsonWriter::EndArray();
 		}
 
-		void WriteFieldValueXAssetArray(uint64_t hash, games::bo4::pool::XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
+		void WriteFieldValueXAssetArray(uint64_t hash, XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
 			void** val{ (void**)handle };
 			if (ignoreEmpty && (!count || !*val)) return;
-			size_t off{ games::bo4::pool::GetAssetNameOffset(type) };
+			size_t off{ cw::GetAssetNameOffset(type) };
 
 			JsonWriter::WriterFieldNameHash(hash);
 			JsonWriter::BeginArray();
 
 			for (size_t i = 0; i < count; i++) {
 				if (!val[i]) break;
-				XHash* hname{ (XHash*)((byte*)val[i] + off) };
+				CWXHash* hname{ (CWXHash*)((byte*)val[i] + off) };
 				JsonWriter::WriteValueHash(*hname);
 			}
 			JsonWriter::EndArray();
 		}
-		*/
 	};
 }

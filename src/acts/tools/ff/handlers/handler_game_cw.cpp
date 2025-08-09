@@ -24,12 +24,15 @@ namespace fastfile::handlers::cw {
 			uint64_t unk10;
 		};
 
+		struct XAssetRef {
+			void* ptr;
+		};
 
 		struct {
 			BOCWFFHandler* handler{};
 			void (*Load_XAsset)(bool atStreamStart, XAsset_0* asset) {};
 			int (*DB_GetXAssetTypeSize)(XAssetType type) {};
-			CWXHash (*DB_GetXAssetName)(XAssetType type, const void* header) {};
+			//CWXHash (*DB_GetXAssetName)(XAssetType type, const void* header) {};
 			char* (*DecryptString)(char*) {};
 			void* (*DB_AllocStreamPos)(int alignement) {};
 			void (*DB_PushStreamPos)(XFileBlock type) {};
@@ -176,10 +179,11 @@ namespace fastfile::handlers::cw {
 			if (gcx.opt->dumpXStrings) {
 				gcx.xstrings.push_back(*str);
 			}
+			hashutils::AddPrecomputed(hash::Hash64(*str), *str);
 			gcx.DB_IncStreamPos(size + 1);
 		}
 
-		void* DB_LinkXAssetEntry(XAssetType type, void* header) {
+		XAssetRef* DB_LinkXAssetEntry(XAssetType type, void* header) {
 			gcx.loaded++;
 
 			if (gcx.opt->assertContainer) {
@@ -187,18 +191,26 @@ namespace fastfile::handlers::cw {
 				//bo4FFHandlerContext.pool.AddAssetHeader(xasset->type, 0, xasset->header);
 			}
 
-			CWXHash hash{ header ? gcx.DB_GetXAssetName(type, header) : 0 };
+			int assetSize{ gcx.DB_GetXAssetTypeSize(type) };
+			CWXHash* phash{ header ? cw::GetAssetName(type, header, assetSize) : nullptr };
+			CWXHash hash{ phash ? *phash : 0 };
+			if (hash && gcx.opt->dumpAssetNames) {
+				if (gcx.opt->assetNames.size() < type) {
+					gcx.opt->assetNames.resize(type + 10);
+				}
+				gcx.opt->assetNames[type].insert((uint64_t)hash);
+			}
 
 			//const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
 			//*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
-			int assetSize{ gcx.DB_GetXAssetTypeSize(type) };
 			void* baseHeader{ header };
-			void* linkedHeader{ gcx.allocator.Alloc(assetSize) };
+			XAssetRef* ref{ gcx.allocator.Alloc<XAssetRef>() };
+			ref->ptr = gcx.allocator.Alloc(assetSize);
 
 			if (header) {
-				std::memcpy(linkedHeader, header, assetSize);
+				std::memcpy(ref->ptr, header, assetSize);
 
-				header = linkedHeader;
+				header = ref->ptr;
 			}
 
 			//if (hash && hash->name) {
@@ -213,7 +225,7 @@ namespace fastfile::handlers::cw {
 				XBlockLocPtr(baseHeader)
 			);
 
-			if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type])) return header; // ignore
+			if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type])) return ref; // ignore
 			if (header) {
 				auto& workers{ GetWorkers() };
 				auto it{ workers.find(type) };
@@ -228,7 +240,7 @@ namespace fastfile::handlers::cw {
 					}
 				}
 			}
-			return header;
+			return ref;
 		}
 
 		void* DB_FindXAssetHeader(XAssetType type, CWXHash name, bool errorIfMissing, int waitTime) {
@@ -298,7 +310,7 @@ namespace fastfile::handlers::cw {
 #define __GCX_LOAD_PATTERN(_func, _pattern) try { _func = scan.ScanSingle(_pattern, #_func).GetPtr<decltype(_func)>(); } catch (std::exception& e) { LOG_ERROR("{}", e.what()); err = true; }
 				gcx.Load_XAsset = scan.ScanSingle("E8 ? ? ? ? 48 83 C3 ? 8D 4E ? E8 ? ? ? ? 8B F1 84 C0 75 06", "gcx.Load_XAsset").GetRelative<int32_t, decltype(gcx.Load_XAsset)>(1);
 				__GCX_LOAD_PATTERN(gcx.DB_GetXAssetTypeSize, "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 8B");
-				__GCX_LOAD_PATTERN(gcx.DB_GetXAssetName, "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 48 8B");
+				//__GCX_LOAD_PATTERN(gcx.DB_GetXAssetName, "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 48 8B");
 				
 				__GCX_LOAD_PATTERN(gcx.DecryptString, "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6");
 
@@ -391,6 +403,8 @@ namespace fastfile::handlers::cw {
 				//SetAssetList(&assetList);
 
 				gcx.opt->assetNames.clear();
+
+				hashutils::ReadDefaultFile(); // fix hashutils::Add in Load_String
 
 				if (assetList.strings) {
 					assetList.strings = AllocStreamPos<char*>();

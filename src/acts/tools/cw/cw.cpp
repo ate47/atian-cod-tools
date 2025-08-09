@@ -317,6 +317,51 @@ char* cw::DecryptString(char* str) {
 	}
 	return str;
 }
+static std::unordered_map<cw::XAssetType, size_t> xoffsets{
+	{ cw::ASSET_TYPE_PLAYLISTS, 0x10 },
+	{ cw::ASSET_TYPE_CRAFTICON, 0x10 },
+	{ cw::ASSET_TYPE_CRAFTWEAPONSTICKER, 0x10 },
+	{ cw::ASSET_TYPE_CRAFTMATERIAL, 0x10 },
+	{ cw::ASSET_TYPE_KLF, 0x10 },
+	{ cw::ASSET_TYPE_FLAMETABLE, 0x1b0 },
+	{ cw::ASSET_TYPE_GAMETYPETABLEENTRY, 0x20 },
+	{ cw::ASSET_TYPE_WEAPONTUNABLES, 0x30 },
+	{ cw::ASSET_TYPE_XANIM, 0x70 },
+	{ cw::ASSET_TYPE_SANIM, 0x8 },
+	{ cw::ASSET_TYPE_MAPTABLEENTRY, 0x8 },
+	{ cw::ASSET_TYPE_UNLOCKABLEITEM, 0x8 },
+	{ cw::ASSET_TYPE_PLAYLISTGLOBALSETTINGS, 0x8 },
+	{ cw::ASSET_TYPE_PLAYLISTSCHEDULE, 0x8 },
+	{ cw::ASSET_TYPE_STORAGEFILE, 0x8 },
+	{ cw::ASSET_TYPE_STORECATEGORY, 0x8 },
+	{ cw::ASSET_TYPE_SOUND, 0x8 },
+	{ cw::ASSET_TYPE_DLOGEVENT, 0x8 },
+	{ cw::ASSET_TYPE_ARENASEASONS, 0x8 },
+	{ cw::ASSET_TYPE_CRAFTBACKGROUND, 0x8 },
+	{ cw::ASSET_TYPE_CRAFTCATEGORY, 0x8 },
+	{ cw::ASSET_TYPE_LOCALIZEENTRY, 0x8 },
+	{ cw::ASSET_TYPE_RAGDOLL, 0xba0 },
+	{ cw::ASSET_TYPE_DYNMODEL, 0xe0 },
+};
+
+size_t cw::GetAssetNameOffset(cw::XAssetType type) {
+	auto it{ xoffsets.find(type) };
+
+	if (it != xoffsets.end()) {
+		return it->second;
+	}
+	return 0;
+}
+
+uint64_t* cw::GetAssetName(cw::XAssetType type, void* asset, size_t size) {
+	size_t offset{ GetAssetNameOffset(type) };
+
+	if (size && offset + 0x10 > size) {
+		return nullptr; // bad ref
+	}
+
+	return (uint64_t*)((byte*)asset + offset);
+}
 
 byte* cw::DecryptRawBuffer(byte* buffer) {
 	byte* v14;
@@ -1279,11 +1324,56 @@ namespace {
 
 		return tool::OK;
 	}
+	int cwassoff(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+		hook::module_mapper::Module mod{ true };
+		if (!mod.Load(argv[2], false)) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+		uint64_t(*DB_GetXAssetName)(cw::XAssetType type, const void* header) {};
+
+		DB_GetXAssetName = mod->ScanSingle("0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 48 8B").GetPtr<decltype(DB_GetXAssetName)>();
+
+		LOG_INFO("found: {}", hook::library::CodePointer{ DB_GetXAssetName });
+
+		utils::OutFileCE os{ "output_cw/offass.csv", true };
+
+		constexpr size_t maxOff = 0x100000;
+		constexpr uint64_t VALIDATION = 0x12345600000000;
+		constexpr uint64_t MASK = 0xFFFFFFFF;
+		auto fakeData{ std::make_unique<uint64_t[]>(maxOff) };
+		for (size_t i = 0; i < maxOff; i++) {
+			fakeData[i] = VALIDATION | (i * sizeof(fakeData[i]));
+		}
+
+		os << "id,name,offset";
+		for (size_t i = 0; i < cw::ASSET_TYPE_COUNT; i++) {
+			*os << std::endl;
+			cw::XAssetType type{ (cw::XAssetType)i };
+
+			uint64_t name{ DB_GetXAssetName(type, &fakeData[0]) };
+			if ((name & ~MASK) != VALIDATION) {
+				os << std::dec << i << "," << cw::PoolName(type) << ",<invalid>";
+			}
+			else {
+				size_t off{ (name & MASK) };
+				LOG_INFO("{}/0x{:x}", cw::PoolName(type), off);
+				os << std::dec << i << "," << cw::PoolName(type) << ",0x" << std::hex << off;
+			}
+		}
+
+		LOG_INFO("Dump into output_cw/offass.csv");
+		return tool::OK;
+	}
+	//  
 }
 
 ADD_TOOL(cwdllgt, "cw", " [gametype] (map)", "set gametype", L"BlackOpsColdWar.exe", cwdllgt);
 ADD_TOOL(cwdllac, "cw", " [action] (param str)", "run dll action", L"BlackOpsColdWar.exe", cwdllac);
-ADD_TOOL(cwdbgcn, "cw", " [exe)", "static dump bgcache names", cwdbgcn);
+ADD_TOOL(cwdbgcn, "cw", " [exe]", "static dump bgcache names", cwdbgcn);
+ADD_TOOL(cwassoff, "cw", " [exe]", "get cw asset name offsets", cwassoff);
 
 ADD_TOOL(tcrccw, "cw", "", "test crc (cw)", nullptr, cwtestchecksum);
 ADD_TOOL(rawdecryptcw, "cw", "", " raw decrypt (cw)", nullptr, rawdecryptcw);
