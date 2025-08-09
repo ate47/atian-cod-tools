@@ -132,20 +132,35 @@ namespace fastfile::handlers::bo6::scriptbundle {
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
+		std::unordered_map<uint64_t, std::vector<ScriptBundle*>> bundles{};
+
+		void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
+			bundles.clear();
+		}
+
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ScriptBundle* asset{ (ScriptBundle*)ptr };
 
 			// most likely added because it is inside the scr strings
-			const char* name{ hashutils::ExtractPtr(asset->name) };
+			const char* ename{ hashutils::ExtractPtr(asset->name) };
 
-			if (name) {
-				name = utils::MapString(utils::va("%s.json", name), [](char c) -> char { return c == ':' ? '/' : c; });
+			if (!ename) {
+				bundles[asset->category].push_back(asset);
+				return; // we don't know the name, combine it
 			}
-			else {
-				name = utils::va("hashed/file_%llx.json", asset->name);
+
+			char* name{ utils::MapString(utils::va("%s.json", ename), [](char c) -> char { return c == ':' ? '/' : c; }) };
+
+			std::string_view sw{ name };
+			size_t catcut{ sw.find('/') };
+			if (catcut != std::string::npos) {
+				name[catcut] = 0;
+				hashutils::AddPrecomputed(hash::Hash64(name), name); // add category to know categories
+				name[catcut] = '/';
 			}
 
 			std::filesystem::path outFile{ opt.m_output / "bo6" / "source" / "scriptbundle" / name };
+
 
 			std::filesystem::create_directories(outFile.parent_path());
 
@@ -155,6 +170,42 @@ namespace fastfile::handlers::bo6::scriptbundle {
 
 			if (!WriteData(json, asset->data) || !json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+		}
+
+		void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
+			if (bundles.empty()) return;
+
+			for (auto& [cat, vec] : bundles) {
+				std::filesystem::path outFile{ 
+					opt.m_output / "bo6" / "source" / "scriptbundle" 
+					/ (cat ? hashutils::ExtractTmp("hash", cat) : "default") / "hashed"
+					/ std::format("{}.json", ctx.ffname)
+				};
+
+				std::filesystem::create_directories(outFile.parent_path());
+
+				utils::raw_file_extractor::JsonWriter json{};
+
+				std::sort(vec.begin(), vec.end(), [](ScriptBundle* a, ScriptBundle* b) -> bool { return a->name < b->name; });
+
+				LOG_INFO("Dump {} hashed scriptbundle(s) {}", vec.size(), outFile.string());
+
+				json.BeginObject();
+
+				for (ScriptBundle* bundle : vec) {
+					json.WriterFieldNameHash(bundle->name);
+					if (!WriteBundle(json, bundle)) {
+						LOG_ERROR("Error when dumping {} into {}", hashutils::ExtractTmp("hash", bundle->name), outFile.string());
+						return;
+					}
+				}
+
+				json.EndObject();
+
+				if (!json.WriteToFile(outFile)) {
+					LOG_ERROR("Error when dumping {}", outFile.string());
+				}
 			}
 		}
 	};

@@ -11,8 +11,8 @@ namespace fastfile::handlers::bo6::scriptbundle {
 	};
 
 	struct ScriptBundleObjectDefValueArrayIndexed {
-		uint64_t* names2;
-		uint64_t* names1;
+		XHash64* names2;
+		XHash64* names1;
 		ScriptBundleObjectDef* vals;
 		int32_t count;
 		int32_t id;
@@ -20,13 +20,13 @@ namespace fastfile::handlers::bo6::scriptbundle {
 
 	struct ScriptBundleObjectDefValueArray {
 		ScriptBundleObjectDef* defs;
-		uint64_t id;
+		XHash64 id;
 		int32_t count;
 	};
 
 	struct ScriptBundleObjectDefValueAnim {
 		const char** name_offset;
-		uint64_t id;
+		XHash64 id;
 		uint32_t anim;
 	};
 
@@ -34,8 +34,8 @@ namespace fastfile::handlers::bo6::scriptbundle {
 		int32_t int_val;
 		float float_val;
 		uint32_t id;
-		uint64_t hash;
-		uint32_t hash32;
+		XHash64 hash;
+		XHash32 hash32;
 		const char** str;
 		ScriptBundleObjectDefValueAnim* anim;
 		ScriptBundleObjectDefValueArray* array;
@@ -83,8 +83,8 @@ namespace fastfile::handlers::bo6::scriptbundle {
 	static_assert(sizeof(ScriptBundleObjectData) == 0x20);
 
 	struct ScriptBundle {
-		uint64_t name;
-		uint64_t unk8;
+		XHash64 name;
+		XHash64 category;
 		ScriptBundleObjectData data;
 	};
 	static_assert(sizeof(ScriptBundle) == 0x30);
