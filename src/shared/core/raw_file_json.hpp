@@ -157,6 +157,7 @@ namespace core::raw_file::json {
 
 		template<typename T, bool encryptedKey = false>
 		void WriteFieldValueUnknown(const char* name, T val) {
+			if (!val) return;
 			WriteFieldValueUnknown(name, &val, sizeof(val));
 		}
 
