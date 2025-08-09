@@ -70,21 +70,32 @@ See the wiki to know how to use the features
 - Black Ops Cold War (DEC): `rawfile`, `rawfilepreproc`, `rawtextfile`, `stringtable`, `scriptparsetree`, `scriptbundle`.
 - Modern Warfare 2019 (COR): `scriptfile`.
 - Modern Warfare III (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `luafile`, `ddl`.
-- Black Ops 6 (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `ddl`, `operator`, `operatorlist`, `operatorskin`, `luafile`, `rawfile`, `storagefile`, `project`, `projecttable`, `character`.
 
 - **DEC**: Requires pre-decode
 - **COR**: Using [Cordycep](https://github.com/Scobalula/Cordycep).
 
 ## Fast File Reader
 
+**Supported fastfile formats**
+
+- `iw` : MW19, MWII, MWIII, BO6.
+- `t9` (EXE) : CW, COD2020.
+- `t78` (EXE) : BO4, BO4(old), BO4(dev), BO3.
+- `zone` : `.ff.zone` files
+
+- **EXE**: Requires executable load patch files
+
 **Supported pools**
 
-- `bo3`: `string`, `rawfile`, `scriptparsetree`
-- `bo4`: `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`
-- `cw`: `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`
-- `bo6`: `string`, `rawfile`, `gscobj`
+- `bo3` (EXE): `string`, `rawfile`, `scriptparsetree`
+- `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`
+- `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`
+- `bo6` (EXE): `string`, `rawfile`, `gscobj`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`
 - `GscXHash`: `scriptparsetree`, `gscobj`
 - `GscXString`: `scriptparsetree`, `scriptparsetreedbg`
+- `GscBin`: `scriptfile`
+
+- **DEC**: Requires executable
 
 ## Fast File Linker
 

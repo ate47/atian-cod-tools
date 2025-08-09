@@ -454,5 +454,5 @@ namespace tool::cordycep::dump::t10 {
 		return map;
 	}
 
-	utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_BO6, dpcordimpl, T10R_ASSET_COUNT };
+	//utils::ArrayAdder<tool::cordycep::dump::CordycepDumper> impl{ tool::cordycep::dump::GetDumpers(), compatibility::scobalula::csi::CG_BO6, dpcordimpl, T10R_ASSET_COUNT };
 }
