@@ -42,7 +42,7 @@ namespace core::raw_file::json {
 				uint32_t hash{ v[i] };
 				const char* res{ core::hashes::ExtractPtr(hash) };
 				if (res) {
-					ss << "[64h0x" << std::hex << (i * 4) << "=" << res << "]";
+					ss << "[32h0x" << std::hex << (i * 4) << "=" << res << "]";
 				}
 			}
 		}

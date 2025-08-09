@@ -125,6 +125,10 @@ namespace fastfile::handlers::bo6::scriptbundle {
 		return true;
 	}
 
+	bool WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
+		return WriteData(json, bundle->data);
+	}
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 

@@ -382,6 +382,23 @@ namespace utils {
 	std::pair<byte, byte> UnCatLocated16(uint16_t located);
 
 	/*
+	* log
+	* @param b b
+	* @param v value
+	* @return Log b(v)
+	*/
+	template<size_t b>
+	size_t Log(size_t v) {
+		static_assert(b > 1);
+		size_t k{};
+		while (v > b) {
+			k++;
+			v /= b;
+		}
+		return k;
+	}
+
+	/*
 	 * Get all the files in a directory
 	 * @param parent parent dir
 	 * @param files output files

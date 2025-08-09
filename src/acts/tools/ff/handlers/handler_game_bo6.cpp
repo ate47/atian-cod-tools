@@ -180,6 +180,7 @@ namespace fastfile::handlers::bo6 {
 		struct {
 			BO6FFHandler* handler{};
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
+			uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
 
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
@@ -190,6 +191,7 @@ namespace fastfile::handlers::bo6 {
 			core::memory_allocator::MemoryAllocator allocator{};
 			std::unordered_map<uint64_t, void*> linkedAssets[T10RAssetType::T10R_ASSET_COUNT]{};
 			AssetList assets{};
+			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
 			HashedType typeMaps[0x200];
 			size_t typeMapsCount;
 			std::unordered_map<uint64_t, void*> streamLocations{};
@@ -310,9 +312,25 @@ namespace fastfile::handlers::bo6 {
 			if (gcx.xstringLocs) gcx.xstringLocs->push_back(*pstr);
 			hashutils::Add(*pstr, true, true);
 		}
+
 		void Load_CustomScriptString(DBLoadCtx* context, uint32_t* pstr) {
-			uint32_t k;
-			LoadXFileData(context, &k, sizeof(k));
+			uint32_t low{ *pstr };
+			uint32_t high;
+			LoadXFileData(context, &high, sizeof(high));
+
+			uint64_t strHash{ (uint64_t)low | ((uint64_t)high << 32) };
+			if (!strHash) {
+				return;
+			}
+			auto it{ gcx.scrStringMap.find(strHash) };
+			if (it == gcx.scrStringMap.end()) {
+				LOG_ERROR("Can't load scr string, bad hash value: {:x}/{}", strHash, hashutils::ExtractTmp("hash", strHash));
+				*pstr = 0xFFFFFFFF;
+				return;
+			}
+			else {
+				*pstr = it->second;
+			}
 		}
 
 		void* AllocStreamPos(DBLoadCtx* ctx, int align) {
@@ -360,6 +378,10 @@ namespace fastfile::handlers::bo6 {
 			*(gcx.outAsset) << "\n" << type << ",#" << name;
 			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, name, hook::library::CodePointer{_ReturnAddress()});
 
+			if (*handle) {
+				gcx.linkedAssets[type][*(uint64_t*)*handle] = *handle;
+			}
+
 			if (handle && !(gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))) {
 
 				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
@@ -381,7 +403,17 @@ namespace fastfile::handlers::bo6 {
 
 		void* DB_LinkGenericXAssetEx(T10RAssetType type, uint64_t name, void** handle) {
 			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", type, hashutils::ExtractTmp("hash", name), hook::library::CodePointer{_ReturnAddress()});
-			return handle ? *handle : nullptr;
+			if (handle) {
+				return *handle;
+			}
+			auto it{ gcx.linkedAssets[type].find(name) };
+			if (it != gcx.linkedAssets[type].end()) {
+				return it->second;
+			}
+			// create a fake asset
+			uint64_t* fk{ gcx.allocator.Alloc<uint64_t>() };
+			*fk = name;
+			return fk;
 		}
 
 		uint32_t* Unk_Align_Ret(DBLoadCtx* ctx) {
@@ -556,7 +588,9 @@ namespace fastfile::handlers::bo6 {
 				//E8 ? ? ? ? 80 3E 00 74 1E
 				//lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
 				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "gcx.Load_Asset")
-					.GetPtr<void(*)(DBLoadCtx * ctx, bool atStreamStart, Asset * asset)>();
+					.GetPtr<decltype(gcx.Load_Asset)>();
+				gcx.DB_HashScrStringName = scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48", "gcx.DB_HashScrStringName")
+					.GetPtr<decltype(gcx.DB_HashScrStringName)>();
 
 				scan.ignoreMissing = true;
 
@@ -627,6 +661,10 @@ namespace fastfile::handlers::bo6 {
 				LOG_INFO("assets: {}, strings: {}, unk: {}", gcx.assets.assetsCount, gcx.assets.stringsCount, gcx.assets.unk10_count);
 
 
+				gcx.opt->assetNames.clear();
+
+				gcx.allocator.FreeAll();
+
 				std::vector<const char*> xstringLocs{};
 				if (opt.dumpXStrings) {
 					gcx.xstringLocs = &xstringLocs;
@@ -635,6 +673,7 @@ namespace fastfile::handlers::bo6 {
 				std::filesystem::path outStrings{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
 
 				{
+					gcx.scrStringMap.clear();
 					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE stringsOs{ outStrings };
 					gcx.assets.strings = reader.ReadPtr<const char*>(gcx.assets.stringsCount);
@@ -659,18 +698,20 @@ namespace fastfile::handlers::bo6 {
 							str = "";
 						}
 						gcx.assets.strings[i] = str;
-						stringsOs << i << "\t";
+						uint64_t hash{ gcx.DB_HashScrStringName(str, std::strlen(str), hash::IV_DEFAULT) };
+						gcx.scrStringMap[hash] = (uint32_t)i;
+						stringsOs << std::dec << std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i << "\t" << std::setw(16) << std::setfill('0') << std::hex << hash << "\t";
 						if (stroff) {
 							if (stroff & StreamPointerFlag::SPF_NEXT) {
 								if (stroff & StreamPointerFlag::SPF_CREATE_REF) {
-									stringsOs << "[ref:" << std::setw(16) << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
+									stringsOs << "[ref:" << std::setw(16) << std::setfill('0') << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
 								}
 								else {
 									stringsOs << "[next]";
 								}
 							}
 							else {
-								stringsOs << "[off:" << std::setw(16) << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
+								stringsOs << "[off:" << std::setw(16) << std::setfill('0') << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
 							}
 						}
 						else {
@@ -701,7 +742,12 @@ namespace fastfile::handlers::bo6 {
 					return;
 				}
 
-				std::filesystem::path outAssets{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "assets" / std::format("{}.csv", ctx.ffname) };
+				std::string fftype{ ctx.ffname };
+				size_t fdd{ fftype.find('_') };
+				if (fdd != std::string::npos) {
+					fftype.resize(fdd);
+				}
+				std::filesystem::path outAssets{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "assets" / fftype / std::format("{}.csv", ctx.ffname) };
 				{
 					std::filesystem::create_directories(outAssets.parent_path());
 					utils::OutFileCE assetsOs{ outAssets };
@@ -736,8 +782,6 @@ namespace fastfile::handlers::bo6 {
 						if (!anySee) return;
 					}
 
-					if (opt.noAssetDump) return;
-
 					bool err{};
 					try {
 						for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
@@ -746,12 +790,7 @@ namespace fastfile::handlers::bo6 {
 							const HashedType* type{ gcx.GetMappedType(asset->type) };
 
 							LOG_DEBUG("load #{} -> {}", i, type->name);
-							if (opt.noAssetDump) {
-								assetsOs << "\n" << std::hex << type->name << ",<unk>";
-							}
-							else {
-								gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
-							}
+							gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
 						}
 
 					} catch (std::runtime_error& e) {
@@ -767,7 +806,7 @@ namespace fastfile::handlers::bo6 {
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());
 				if (gcx.xstringLocs) {
-					std::filesystem::path ostr{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "xstrings" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::path ostr{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(ostr.parent_path());
 					utils::OutFileCE sos{ ostr };
 					sos << "xhash,xhashres,str";
@@ -781,6 +820,7 @@ namespace fastfile::handlers::bo6 {
 					}
 					LOG_INFO("XStrings names dump into {}", ostr.string());
 				}
+
 				LOG_DEBUG("done reading {}", ctx.ffname);
 			}
 
@@ -797,5 +837,15 @@ namespace fastfile::handlers::bo6 {
 
 	const char* GetPoolName(uint32_t hash) {
 		return gcx.GetMappedType(hash)->name;
+	}
+
+	const char* GetScrString(ScrString_t id) {
+		if ((int)id >= gcx.assets.stringsCount) {
+			LOG_WARNING("Can't get scr string: {} >= {}", id.id, gcx.assets.stringsCount);
+			return utils::va("<invalid:0x%x>", id);
+		}
+		const char* c{ gcx.assets.strings[id] };
+		if (!c) return "";
+		return c;
 	}
 }

@@ -404,6 +404,13 @@ namespace fastfile {
 			else if (!strcmp("-R", arg) || !_strcmpi("--handlers", arg)) {
 				print_handlers = true;
 			}
+			else if (!strcmp("-w", arg) || !_strcmpi("--wildcard", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				wildcard = args[++i];
+			}
 			else if (!strcmp("-D", arg) || !_strcmpi("--decompressors", arg)) {
 				print_decompressors = true;
 			}
@@ -457,6 +464,7 @@ namespace fastfile {
 	void FastFileOption::PrintHelp() {
 		LOG_INFO("-h --help              : Print help");
 		LOG_INFO("-o --output [d]        : Output dir");
+		LOG_INFO("-w --wildcard [wc]     : Wildcard to match for the filename");
 		LOG_INFO("-H --header            : Dump header info");
 		LOG_INFO("-r --handler           : Handler to use (use --handlers to print)");
 		LOG_INFO("-R --handlers          : Print handlers");
@@ -635,9 +643,11 @@ namespace fastfile {
 		} };
 
 		for (const char* f : opt.files) {
-			for (const std::string filename : opt.GetFileRecurse(f)) {
-				cc.ffdata.clear();
-				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone")) {
+			for (std::string& filename : opt.GetFileRecurse(f)) {
+				utils::MapString(filename.data(), [](char c) -> char {return c == '\\' ? '/' : c; });
+				if (
+					(!filename.ends_with(".ff") && !filename.ends_with(".ff.zone"))
+					|| (opt.wildcard && filename.rfind(opt.wildcard) == std::string::npos)) {
 					LOG_DEBUG("Ignore {}", filename);
 					continue;
 				}
@@ -655,6 +665,7 @@ namespace fastfile {
 					continue;
 				}
 
+				cc.ffdata.clear();
 				uint64_t magic{ *reader.Ptr<uint64_t>() };
 
 				try {

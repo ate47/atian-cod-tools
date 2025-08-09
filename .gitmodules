@@ -89,3 +89,6 @@
 [submodule "deps/bdiff"]
 	path = deps/bdiff
 	url = https://github.com/ate47/bdiff
+[submodule "deps/xxHash"]
+	path = deps/xxHash
+	url = https://github.com/Cyan4973/xxHash

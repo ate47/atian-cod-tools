@@ -439,6 +439,7 @@ project "AtianCodTools"
     links { "imgui" }
     links { "Crypt32.lib" }
     links { "hashlibrary" }
+    links { "xxhash" }
     links { "hksc" }
     links { "bdiff" }
     dependson "detours"
@@ -455,6 +456,7 @@ project "AtianCodTools"
     dependson "glfw"
     dependson "imgui"
     dependson "hashlibrary"
+    dependson "xxhash"
     dependson "hksc"
     dependson "bdiff"
 
@@ -1049,6 +1051,25 @@ group "deps"
         dependson { "zlib" }
         links { "lz4" }
         links { "zlib" }
+
+    project "xxhash"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++20"
+        characterset "MBCS"
+
+        targetname "xxhash"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/xxHash/xxhash.c",
+            "deps/xxHash/xxhash.h"
+        }
+
+        includedirs {
+            "deps/xxHash/"
+        }
 
     project "hashlibrary"
         language "C++"

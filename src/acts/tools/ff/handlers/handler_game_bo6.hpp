@@ -1,9 +1,23 @@
 #pragma once
 #include <tools/ff/fastfile_handlers.hpp>
+#include <tools/utils/raw_file_extractor.hpp>
 #include <tools/bo6/bo6.hpp>
 
 namespace fastfile::handlers::bo6 {
 	using namespace ::bo6;
+
+	typedef uint64_t XHash64;
+	typedef uint32_t XHash32;
+
+	typedef const char* XString;
+	
+	struct ScrString_t {
+		uint32_t id;
+
+		operator uint32_t() {
+			return id;
+		}
+	};
 
 	class Worker {
 	public:
@@ -16,6 +30,108 @@ namespace fastfile::handlers::bo6 {
 	};
 
 	const char* GetPoolName(uint32_t hash);
+	const char* GetScrString(ScrString_t id);
+
+	class BO6JsonWriter : public utils::raw_file_extractor::JsonWriter {
+	public:
+		using utils::raw_file_extractor::JsonWriter::JsonWriter;
+
+		void WriteFieldValueXHash(const char* name, XHash64 val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueHash(name, val);
+		}
+
+		void WriteFieldValueXHash(uint64_t hash, XHash64 val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueHash(hash, val);
+		}
+
+
+		void WriteFieldValueXString(const char* name, XString val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(name, val);
+		}
+
+		void WriteFieldValueXString(uint64_t hash, XString val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(hash, val);
+		}
+
+		void WriteFieldValueScrString(const char* name, ScrString_t val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(name, GetScrString(val));
+		}
+
+		void WriteFieldValueScrString(uint64_t hash, ScrString_t val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(hash, GetScrString(val));
+		}
+
+		void WriteFieldValueScrStringArray(const char* name, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
+			if (ignoreEmpty && (!count || !*val)) return;
+			JsonWriter::WriteFieldNameString(name);
+			JsonWriter::BeginArray();
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueString(GetScrString(val[i]));
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueScrStringArray(uint64_t hash, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
+			if (ignoreEmpty && (!count || !*val)) return;
+			JsonWriter::WriterFieldNameHash(hash);
+			JsonWriter::BeginArray();
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueString(GetScrString(val[i]));
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueXAsset(const char* name, void* val) {
+			if (!val) return;
+			XHash64 hname{ *(XHash64*)val };
+			if (hname) {
+				WriteFieldValueXHash(name, hname);
+			}
+		}
+
+		void WriteFieldValueXAsset(uint64_t hash, void* val) {
+			if (!val) return;
+			XHash64 hname{ *(XHash64*)val };
+			if (hname) {
+				WriteFieldValueXHash(hash, hname);
+			}
+		}
+
+		void WriteFieldValueXAssetArray(const char* name, size_t count, void* handle, bool ignoreEmpty = true) {
+			void** val{ (void**)handle };
+			if (ignoreEmpty && (!count || !*val)) return;
+
+			JsonWriter::WriteFieldNameString(name);
+			JsonWriter::BeginArray();
+
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueHash(*(XHash64*)val[i]);
+			}
+			JsonWriter::EndArray();
+		}
+
+		void WriteFieldValueXAssetArray(uint64_t hash, size_t count, void* handle, bool ignoreEmpty = true) {
+			void** val{ (void**)handle };
+			if (ignoreEmpty && (!count || !*val)) return;
+			JsonWriter::WriterFieldNameHash(hash);
+			JsonWriter::BeginArray();
+
+			for (size_t i = 0; i < count; i++) {
+				if (!val[i]) break;
+				JsonWriter::WriteValueHash(*(XHash64*)val[i]);
+			}
+			JsonWriter::EndArray();
+		}
+	};
 
 	std::unordered_map<bo6::T10RAssetType, Worker*>& GetWorkers();
 }
