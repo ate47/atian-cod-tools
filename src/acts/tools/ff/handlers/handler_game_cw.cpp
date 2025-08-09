@@ -284,6 +284,11 @@ namespace fastfile::handlers::cw {
 			return utils::Aligned(gcx.allocator.Alloc<byte>(size + alignment - 1), alignment);
 		}
 
+		template<XAssetType type>
+		void DB_LinkCustomAsset(void** asset) {
+			*asset = DB_LinkXAssetEntry(type, *asset)->ptr;
+		}
+
 		class BOCWFFHandler : public fastfile::FFHandler {
 		public:
 			BOCWFFHandler() : fastfile::FFHandler("cw", "Black Ops Cold War") {
@@ -350,18 +355,19 @@ namespace fastfile::handlers::cw {
 				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 83 C6 ? 48 83 C3 ? 49 83 EE ? 75 BA").GetRelative<int32_t, void*>(1));
 				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 83 EF 80 48 83 EB 80 48 83 EE ? 75 BA").GetRelative<int32_t, void*>(1));
 
-				// fixme: find better scan or replace them
-				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 84 D2 75 0D 48 8B 11 B1 ? E8 ? ? ? ? 48 89 07 48 8B 3F 48 8D 9F ? ? ? ?", "DB_LinkWeapon").location);
-				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 48 89 6C 24 ? 48 8B D9", "DB_LinkAttachmentUnique").location);
-				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 48 8B 11 48 8B F9 B1", "DB_LinkSoundBank").location);
-				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 83 7B ? ? 74 37", "DB_LinkDestructibleDef").GetRelative<int32_t, void*>(1));
-				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 8D 4B ? E8 ? ? ? ? 48 83 C3", "DB_LinkDynModel").GetRelative<int32_t, void*>(1));
+
+				// the link functions are inlined for these assets, we need to patch them
+				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 84 D2 75 0D 48 8B 11 B1 ? E8 ? ? ? ? 48 89 07 48 8B 3F 48 8D 9F ? ? ? ?", "DB_LinkWeapon").location, DB_LinkCustomAsset<ASSET_TYPE_WEAPON>);
+				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 48 89 6C 24 ? 48 8B D9", "DB_LinkAttachmentUnique").location, DB_LinkCustomAsset<ASSET_TYPE_ATTACHMENTUNIQUE>);
+				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 48 8B 11 48 8B F9 B1", "DB_LinkSoundBank").location, DB_LinkCustomAsset<ASSET_TYPE_SOUND_BANK>);
+				hook::memory::RedirectJmp(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 83 7B ? ? 74 37", "DB_LinkDestructibleDef").GetRelative<int32_t, void*>(1), DB_LinkCustomAsset<ASSET_TYPE_DESTRUCTIBLEDEF>);
+				hook::memory::RedirectJmp(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 8D 4B ? E8 ? ? ? ? 48 83 C3", "DB_LinkDynModel").GetRelative<int32_t, void*>(1), DB_LinkCustomAsset<ASSET_TYPE_DYNMODEL>);
 				// fixme: find scan
-				RemoveStub<0x9E1A420>(lib); // DB_LinkVehicle
-				RemoveStub<0xBF4C710>(lib); // DB_LinkNavMesh
-				RemoveStub<0xC9695E0>(lib); // DB_LinkVehicleAssembly
-				RemoveStub<0xC7BBA30>(lib); // DB_LinkClipMap
-				RemoveStub<0xC559210>(lib); // DB_LinkGfxMap
+				hook::memory::RedirectJmp(lib[0x9E1A420], DB_LinkCustomAsset<ASSET_TYPE_VEHICLE>);
+				hook::memory::RedirectJmp(lib[0xBF4C710], DB_LinkCustomAsset<ASSET_TYPE_NAVMESH>);
+				hook::memory::RedirectJmp(lib[0xC9695E0], DB_LinkCustomAsset<ASSET_TYPE_VEHICLEASSEMBLY>);
+				hook::memory::RedirectJmp(lib[0xC7BBA30], DB_LinkCustomAsset<ASSET_TYPE_CLIP_MAP>);
+				hook::memory::RedirectJmp(lib[0xC559210], DB_LinkCustomAsset<ASSET_TYPE_GFX_MAP>);
 				
 				
 #undef __GCX_LOAD_PATTERN
