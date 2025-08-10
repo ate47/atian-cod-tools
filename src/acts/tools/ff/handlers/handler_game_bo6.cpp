@@ -387,7 +387,8 @@ namespace fastfile::handlers::bo6 {
 		}
 
 		void* DB_LinkGenericXAsset(DBLoadCtx* ctx, T10RAssetType type, void** handle) {
-			const char* name{ hashutils::ExtractTmp("hash", handle ? *(uint64_t*)*handle : 0) };
+			uint64_t hash{ GetXAssetName(type, handle ? *handle : 0) };
+			const char* name{ hashutils::ExtractTmp("hash", hash) };
 			*(gcx.outAsset) << "\n" << type << ",#" << name;
 			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, name, hook::library::CodePointer{_ReturnAddress()});
 
