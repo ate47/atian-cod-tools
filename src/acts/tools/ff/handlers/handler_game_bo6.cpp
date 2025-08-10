@@ -162,6 +162,18 @@ namespace fastfile::handlers::bo6 {
 			LoadStreamObjectData data;
 		};
 
+		struct AssetPoolInfo {
+			uint32_t itemSize;
+			uint32_t unk4;
+			uint32_t unk8;
+			uint32_t unkc;
+			uint64_t(*GetAssetName)(void* header);
+			uint64_t unk18;
+			void(*SetAssetName)(void* header, uint64_t name, const char* strName);
+			byte unk28;
+			byte unk29;
+		};
+
 
 		bool LoadStreamImpl(LoadStreamObjectData* that, DBLoadCtx* context, bool* atStreamStart, void** data, int64_t* len);
 		void ErrorStub(LoadStreamObjectData* that) {
@@ -180,6 +192,7 @@ namespace fastfile::handlers::bo6 {
 		struct {
 			BO6FFHandler* handler{};
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
+			AssetPoolInfo* poolInfo{};
 			uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
 
 			fastfile::FastFileOption* opt{};
@@ -411,9 +424,9 @@ namespace fastfile::handlers::bo6 {
 				return it->second;
 			}
 			// create a fake asset
-			uint64_t* fk{ gcx.allocator.Alloc<uint64_t>() };
-			*fk = name;
-			return fk;
+			void* asset{ gcx.allocator.Alloc(gcx.poolInfo[type].itemSize) };
+			gcx.poolInfo[type].SetAssetName(asset, name, hashutils::ExtractPtr(name));
+			return asset;
 		}
 
 		uint32_t* Unk_Align_Ret(DBLoadCtx* ctx) {
@@ -438,7 +451,7 @@ namespace fastfile::handlers::bo6 {
 
 		class BO6FFHandler : public fastfile::FFHandler {
 		public:
-			// -w "((mp|zm)_t10|ingame|code).*"
+			// -w "((mp|zm)_t10|ingame|code|global).*"
 			BO6FFHandler() : fastfile::FFHandler("bo6", "Black Ops 6") {
 				gcx.handler = this;
 			}
@@ -592,6 +605,9 @@ namespace fastfile::handlers::bo6 {
 					.GetPtr<decltype(gcx.Load_Asset)>();
 				gcx.DB_HashScrStringName = scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48", "gcx.DB_HashScrStringName")
 					.GetPtr<decltype(gcx.DB_HashScrStringName)>();
+
+				gcx.poolInfo = (AssetPoolInfo*)(scan.ScanSingle("40 53 48 63 C9 48 8D 1D ? ? ? ?", "poolInfo")
+					.GetRelative<int32_t>(8) - offsetof(AssetPoolInfo, SetAssetName));
 
 				scan.ignoreMissing = true;
 
@@ -848,5 +864,9 @@ namespace fastfile::handlers::bo6 {
 		const char* c{ gcx.assets.strings[id] };
 		if (!c) return "";
 		return c;
+	}
+
+	uint64_t GetXAssetName(T10RAssetType type, void* handle) {
+		return gcx.poolInfo[type].GetAssetName(handle);
 	}
 }

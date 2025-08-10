@@ -145,8 +145,30 @@ namespace fastfile::handlers::bo6::scriptbundle {
 			const char* ename{ hashutils::ExtractPtr(asset->name) };
 
 			if (!ename) {
-				bundles[asset->category].push_back(asset);
-				return; // we don't know the name, combine it
+				/*
+				const char* cname{ hashutils::ExtractPtr(asset->category) };
+				if (cname) {
+					constexpr uint64_t nameHash = hash::Hash64("name");
+					for (size_t i = 0; i < asset->data.count; i++) {
+						if (asset->data.names[i] == nameHash) {
+							ScriptBundleObjectDef* def{ asset->data.defs + i };
+							if (def->type == SBT_STRING) {
+								// try to craft the 
+								const char* like{ utils::va("%s:%s", cname, def->value.str) };
+								if (hash::HashIWAsset(like) == asset->name) {
+									hashutils::Add(like, true, true);
+								}
+								break;
+							}
+						}
+					}
+
+
+				}*/
+				if (!ename) {
+					bundles[asset->category].push_back(asset);
+					return; // we don't know the name, combine it
+				}
 			}
 
 			char* name{ utils::MapString(utils::va("%s.json", ename), [](char c) -> char { return c == ':' ? '/' : c; }) };

@@ -78,16 +78,16 @@ namespace {
 			json.WriteFieldValueXString("typeSuffix", asset.typeSuffix);
 			json.WriteFieldValueScrString("species", asset.species);
 			
-			json.WriteFieldValueXAsset("footStepsFxTable", asset.footStepsFxTable);
-			json.WriteFieldValueXAsset("foliagesFXTable", asset.foliagesFXTable);
-			json.WriteFieldValueXAsset("handPlantsFXTable", asset.handPlantsFXTable);
-			json.WriteFieldValueXAsset("aiImpactVFXTable", asset.aiImpactVFXTable);
-			json.WriteFieldValueXAsset("particleSystem1", asset.particleSystem1);
-			json.WriteFieldValueXAsset("particleSystem2", asset.particleSystem2);
-			json.WriteFieldValueXAsset("dismemberment", asset.dismemberment);
-			json.WriteFieldValueXAsset("weaponAccuracy", asset.weaponAccuracy);
-			json.WriteFieldValueXAsset("calloutMarkerPing", asset.calloutMarkerPing);
-			json.WriteFieldValueXAsset("bundle", asset.bundle);
+			json.WriteFieldValueXAsset("footStepsFxTable", T10RAssetType::T10R_ASSET_FOOTSTEPSFXTABLE, asset.footStepsFxTable);
+			json.WriteFieldValueXAsset("foliagesFXTable", T10RAssetType::T10R_ASSET_FOLIAGESFXTABLE, asset.foliagesFXTable);
+			json.WriteFieldValueXAsset("handPlantsFXTable", T10RAssetType::T10R_ASSET_HANDPLANTSFXTABLE, asset.handPlantsFXTable);
+			json.WriteFieldValueXAsset("aiImpactVFXTable", T10RAssetType::T10R_ASSET_AIIMPACTVFXTABLE, asset.aiImpactVFXTable);
+			json.WriteFieldValueXAsset("particleSystem1", T10RAssetType::T10R_ASSET_PARTICLESYSTEM, asset.particleSystem1);
+			json.WriteFieldValueXAsset("particleSystem2", T10RAssetType::T10R_ASSET_PARTICLESYSTEM, asset.particleSystem2);
+			json.WriteFieldValueXAsset("dismemberment", T10RAssetType::T10R_ASSET_DISMEMBERMENT, asset.dismemberment);
+			json.WriteFieldValueXAsset("weaponAccuracy", T10RAssetType::T10R_ASSET_WEAPONACCURACY, asset.weaponAccuracy);
+			json.WriteFieldValueXAsset("calloutMarkerPing", T10RAssetType::T10R_ASSET_CALLOUTMARKERPING, asset.calloutMarkerPing);
+			json.WriteFieldValueXAsset("bundle", T10RAssetType::T10R_ASSET_SCRIPTBUNDLE, asset.bundle);
 			json.WriteFieldValueXHash("characters.unk10", asset.characters.unk10);
 			if (asset.characters.unk18) json.WriteFieldValueNumber("characters.unk18", asset.characters.unk18);
 			if (asset.characters.unk1c) json.WriteFieldValueNumber("characters.unk1c", asset.characters.unk1c);
@@ -95,7 +95,7 @@ namespace {
 			json.BeginArray();
 			for (size_t i = 0; i < asset.characters.charactersCount; i++) {
 				json.BeginObject();
-				if (asset.characters.characters) json.WriteFieldValueXAsset("character", asset.characters.characters[i]);
+				if (asset.characters.characters) json.WriteFieldValueXAsset("character", T10RAssetType::T10R_ASSET_CHARACTER, asset.characters.characters[i]);
 				if (asset.characters.odds) json.WriteFieldValueNumber("odd", asset.characters.odds[i]);
 				json.EndObject();
 			}

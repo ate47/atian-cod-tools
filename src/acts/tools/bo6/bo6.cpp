@@ -449,10 +449,97 @@ namespace {
 		return tool::OK;
 	}
 
+
+	struct AssetPoolInfo {
+		uint32_t itemSize;
+		uint32_t unk4;
+		uint32_t unk8;
+		uint32_t unkc;
+		uint64_t(* GetAssetName)(void* header);
+		uint64_t unk18;
+		void(* SetAssetName)(void* header, uint64_t name, const char* strName);
+		byte unk28;
+		byte unk29;
+	};
+	static_assert(sizeof(AssetPoolInfo) == 0x30);
+
+	int bo6_asset_sizes(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+		hook::module_mapper::Module mod{ true };
+		if (!mod.Load(argv[2], false)) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+		AssetPoolInfo* poolInfo{ (AssetPoolInfo*)(mod->ScanSingle("40 53 48 63 C9 48 8D 1D ? ? ? ?", "poolInfo")
+			.GetRelative<int32_t>(8) - offsetof(AssetPoolInfo, SetAssetName))};
+
+		// 0x9689BB0
+		// 0x9689bd0
+
+		LOG_INFO("found: {}", hook::library::CodePointer{ poolInfo });
+
+		utils::OutFileCE os{ "output_bo6/offass.csv", true };
+
+		constexpr size_t maxOff = 0x100000;
+		constexpr uint64_t VALIDATION = 0x12345600000000;
+		constexpr uint64_t MASK = 0xFFFFFFFF;
+		auto fakeData{ std::make_unique<uint64_t[]>(maxOff) };
+		for (size_t i = 0; i < maxOff; i++) {
+			fakeData[i] = VALIDATION | (i * sizeof(fakeData[i]));
+		}
+
+		constexpr uint64_t singleton = hash::HashIWAsset("singleton");
+
+		os << "id,name,size,offset,default,getter,setter";
+		for (size_t i = 0; i < bo6::T10RAssetType::T10R_ASSET_COUNT; i++) {
+			*os << std::endl;
+			bo6::T10RAssetType type{ (bo6::T10RAssetType)i };
+			AssetPoolInfo* nfo{ &poolInfo[type] };
+
+			LOG_INFO(
+				"{} 0x{:x} g:{} s:{}", bo6::PoolNameRelease(type), nfo->itemSize,
+				hook::library::CodePointer{ nfo->GetAssetName },
+				hook::library::CodePointer{ nfo->SetAssetName }
+			);
+
+			bool custom{};
+			static byte defaultSet[]{ 0x48, 0x89, 0x11, 0xC3 };
+			byte read[sizeof(defaultSet)];
+			custom = nfo->SetAssetName
+				&& hook::memory::ReadMemorySafe(nfo->SetAssetName, read, sizeof(nfo->SetAssetName))
+				&& std::memcmp(read, defaultSet, sizeof(read));
+
+			uint64_t name{ nfo->GetAssetName ? nfo->GetAssetName(&fakeData[0]) : 0 };
+			size_t off{ std::string::npos };
+			os << std::dec << i
+				<< "," << bo6::PoolNameRelease(type)
+				<< ",0x" << nfo->itemSize
+				<< "," << (custom ? "true" : "false");
+			if ((name & ~MASK) == VALIDATION) {
+				os << ",0x" << std::hex << (off = (name & MASK));
+			}
+			else if (name == singleton) {
+				os << ",<singleton>";
+			}
+			else {
+				os << ",<invalid>";
+			}
+			os
+				<< "," << hook::library::CodePointer{ nfo->GetAssetName }
+				<< "," << hook::library::CodePointer{ nfo->SetAssetName }
+			;
+			LOG_INFO("{}/0x{:x}/0x{:x}/{}", bo6::PoolNameRelease(type), nfo->itemSize, off, custom);
+		}
+
+		LOG_INFO("Dump into output_bo6/offass.csv");
+		return tool::OK;
+	}
 	ADD_TOOL(bo6_data_dump, "bo6", " [exe]", "Dump common data from an exe dump", bo6_data_dump);
 	ADD_TOOL(bo6_test_hash_types, "dev", " [exe]", "Dump int map for types", bo6_test_hash_types);
 	ADD_TOOL(bo6_gsc_dump, "bo6", " [exe]", "Dump gsc function data from an exe dump", bo6_gsc_dump);
 	ADD_TOOL(bo6_lua_dump, "bo6", " [exe]", "Dump lua function data from an exe dump", bo6_lua_dump);
+	ADD_TOOL(bo6_asset_sizes, "bo6", " [exe]", "Dump asset sizes", bo6_asset_sizes);
 	ADD_TOOL(bo6_radiant_keys, "bo6", " [keys] [out]", "Read bo6 radiant keys", bo6_radiant_keys);
 	ADD_TOOL(lua_file_delta, "dev", " [a1] [a2] [offset]", "Lua file delta", lua_file_delta);
 }

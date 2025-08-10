@@ -31,6 +31,7 @@ namespace fastfile::handlers::bo6 {
 
 	const char* GetPoolName(uint32_t hash);
 	const char* GetScrString(ScrString_t id);
+	uint64_t GetXAssetName(T10RAssetType type, void* handle);
 
 	class BO6JsonWriter : public utils::raw_file_extractor::JsonWriter {
 	public:
@@ -89,23 +90,23 @@ namespace fastfile::handlers::bo6 {
 			JsonWriter::EndArray();
 		}
 
-		void WriteFieldValueXAsset(const char* name, void* val) {
+		void WriteFieldValueXAsset(const char* name, T10RAssetType type, void* val) {
 			if (!val) return;
-			XHash64 hname{ *(XHash64*)val };
+			XHash64 hname{ GetXAssetName(type, val) };
 			if (hname) {
 				WriteFieldValueXHash(name, hname);
 			}
 		}
 
-		void WriteFieldValueXAsset(uint64_t hash, void* val) {
+		void WriteFieldValueXAsset(uint64_t hash, T10RAssetType type, void* val) {
 			if (!val) return;
-			XHash64 hname{ *(XHash64*)val };
+			XHash64 hname{ GetXAssetName(type, val) };
 			if (hname) {
 				WriteFieldValueXHash(hash, hname);
 			}
 		}
 
-		void WriteFieldValueXAssetArray(const char* name, size_t count, void* handle, bool ignoreEmpty = true) {
+		void WriteFieldValueXAssetArray(const char* name, T10RAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
 			void** val{ (void**)handle };
 			if (ignoreEmpty && (!count || !*val)) return;
 
@@ -114,12 +115,12 @@ namespace fastfile::handlers::bo6 {
 
 			for (size_t i = 0; i < count; i++) {
 				if (!val[i]) break;
-				JsonWriter::WriteValueHash(*(XHash64*)val[i]);
+				JsonWriter::WriteValueHash(GetXAssetName(type, val[i]));
 			}
 			JsonWriter::EndArray();
 		}
 
-		void WriteFieldValueXAssetArray(uint64_t hash, size_t count, void* handle, bool ignoreEmpty = true) {
+		void WriteFieldValueXAssetArray(uint64_t hash, T10RAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
 			void** val{ (void**)handle };
 			if (ignoreEmpty && (!count || !*val)) return;
 			JsonWriter::WriterFieldNameHash(hash);
@@ -127,7 +128,7 @@ namespace fastfile::handlers::bo6 {
 
 			for (size_t i = 0; i < count; i++) {
 				if (!val[i]) break;
-				JsonWriter::WriteValueHash(*(XHash64*)val[i]);
+				JsonWriter::WriteValueHash(GetXAssetName(type, val[i]));
 			}
 			JsonWriter::EndArray();
 		}
