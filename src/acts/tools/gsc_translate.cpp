@@ -54,6 +54,7 @@ namespace {
 				LOG_ERROR("Invalid platform name '{}'", opt.pltName);
 				return tool::BASIC_ERROR;
 			}
+			LOG_INFO("use plt: {}", opcode::PlatformName(opt.plt));
 		}
 
 		RegisterOpCodesMap();
@@ -163,6 +164,7 @@ namespace {
 			gdctx.noDump = true;
 			// the decompiler will put everything in this map
 			gdctx.opcodesLocs = &newdata.opcodesLocs;
+			gdctx.opt.m_platform = opt.plt;
 
 
 			if (olddata.reader->GetCSEGSize() == newdata.reader->GetCSEGSize()) {

@@ -9,6 +9,7 @@ namespace {
 		VmInfo* t1014 = RegisterVM(VMI_T10_14, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
 		t1014->RegisterVmName("cer", "t10", "blackops6");
 		t1014->AddPlatform(PLATFORM_PC);
+		t1014->AddPlatform(PLATFORM_OLD);
 		t1014->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
 		t1014->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
 		t1014->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
@@ -29,9 +30,13 @@ namespace {
 		t1014->RegisterVMHashOPCode('s', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
 		t1014->RegisterDevCall("assert", "assertmsg", "function_79901b4637c83c86", "assertex", "println", "print");
 		t1014->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "xhash", "xhashasset", "istring");
-		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0x31);
-		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x5f);
-		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x8f);
+		t1014->RegisterOpCode(PLATFORM_OLD, OPCODE_CheckClearParams, 0x31);
+		t1014->RegisterOpCode(PLATFORM_OLD, OPCODE_SafeCreateLocalVariables, 0x5f);
+		t1014->RegisterOpCode(PLATFORM_OLD, OPCODE_IW_RegisterMultipleVariables, 0x8f);
+
+		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0x0b);
+		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_SafeCreateLocalVariables, 0x56);
+		t1014->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x6a);
 	}
 }
 REGISTER_GSC_VM_OPCODES(bo6, OpCode);

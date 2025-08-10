@@ -100,6 +100,9 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("acts", name) || !_strcmpi("test", name)) {
 			return PLATFORM_ACTS_TEST;
 		}
+		if (!_strcmpi("old", name)) {
+			return PLATFORM_OLD;
+		}
 		return PLATFORM_UNKNOWN;
 	}
 
@@ -149,25 +152,26 @@ namespace tool::gsc::opcode {
 		return bnode;
 	}
 
+	static struct {
+		const char* id;
+		const char* name;
+	} platformNames[]{
+		{"unk", "Unknown"},
+		{"pc", "PC"},
+		{"ps", "PlayStation"},
+		{"xbox", "Xbox"},
+		{"pc_alpha", "Alpha"},
+		{"test", "Test"},
+		{"old", "Old"},
+	};
+	static_assert(ARRAYSIZE(platformNames) == PLATFORM_COUNT && "platform(s) added without names");
+
 	const char* PlatformName(Platform plt) {
-		switch (plt) {
-		case PLATFORM_PC: return "PC";
-		case PLATFORM_XBOX: return "Xbox";
-		case PLATFORM_PLAYSTATION: return "PlayStation";
-		case PLATFORM_PC_ALPHA: return "Alpha";
-		default: return "Unknown";
-		}
+		return platformNames[plt < PLATFORM_COUNT ? plt : PLATFORM_UNKNOWN].name;
 	}
 
-
 	const char* PlatformIdName(Platform plt) {
-		switch (plt) {
-		case PLATFORM_PC: return "pc";
-		case PLATFORM_XBOX: return "xbox";
-		case PLATFORM_PLAYSTATION: return "ps";
-		case PLATFORM_PC_ALPHA: return "pc_alpha";
-		default: return "unk";
-		}
+		return platformNames[plt < PLATFORM_COUNT ? plt : PLATFORM_UNKNOWN].id;
 	}
 
 	std::ostream& operator<<(std::ostream& os, const ASMContextNode& obj) {
