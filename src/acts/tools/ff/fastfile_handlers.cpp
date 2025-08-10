@@ -8,6 +8,7 @@
 #pragma warning(pop)
 #include <core/actsinfo.hpp>
 #include <HwBpLib.h>
+#include <regex>
 
 
 namespace fastfile {
@@ -642,15 +643,24 @@ namespace fastfile {
 			if (opt.handler) opt.handler->Cleanup();
 		} };
 
+		std::regex wildcard{ opt.wildcard ? opt.wildcard : ".*" };
+
 		for (const char* f : opt.files) {
 			for (std::string& filename : opt.GetFileRecurse(f)) {
-				utils::MapString(filename.data(), [](char c) -> char {return c == '\\' ? '/' : c; });
-				if (
-					(!filename.ends_with(".ff") && !filename.ends_with(".ff.zone"))
-					|| (opt.wildcard && filename.rfind(opt.wildcard) == std::string::npos)) {
-					LOG_DEBUG("Ignore {}", filename);
+				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone")) {
+					LOG_TRACE("Ignore {}", filename);
 					continue;
 				}
+				std::filesystem::path flpname{ filename };
+				flpname = flpname.filename();
+				std::string rfilename{ flpname.string() };
+				utils::MapString(rfilename.data(), [](char c) -> char {return c == '\\' ? '/' : c; });
+				std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), wildcard };
+
+				if (rbegin == std::sregex_iterator() || rbegin->length() != rfilename.size()) {
+					continue; // nothing else
+				}
+
 				cc.count++;
 
 				if (!opt.ReadFile(filename.data(), cc.buff)) {

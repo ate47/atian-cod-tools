@@ -438,6 +438,7 @@ namespace fastfile::handlers::bo6 {
 
 		class BO6FFHandler : public fastfile::FFHandler {
 		public:
+			// -w "((mp|zm)_t10|ingame|code).*"
 			BO6FFHandler() : fastfile::FFHandler("bo6", "Black Ops 6") {
 				gcx.handler = this;
 			}
