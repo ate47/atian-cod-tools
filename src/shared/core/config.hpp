@@ -42,6 +42,15 @@ namespace core::config {
 		inline T GetEnumVal(const std::string& path, ConfigEnumData* data, size_t dataCount, T defaultEnumValue = 0) {
 			return (T)GetEnum(path.c_str(), data, dataCount, (int64_t)defaultEnumValue);
 		}
+		bool ScanStringN(const char* path, const char* format, size_t count, ...);
+		template<typename... Args>
+		inline bool ScanString(const char* path, const char* format, Args... args) {
+			return ScanStringN(path, format, sizeof...(Args), args...);
+		}
+		template<typename... Args>
+		inline bool ScanString(const std::string& path, const char* format, Args... args) {
+			return ScanString<Args>(path.c_str(), format, args...);
+		}
 
 		void SetInteger(const char* path, int64_t defaultValue);
 		inline void SetInteger(const std::string& path, int64_t defaultValue) { SetInteger(path.c_str(), defaultValue); }

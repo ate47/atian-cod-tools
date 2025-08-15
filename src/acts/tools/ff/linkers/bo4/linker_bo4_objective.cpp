@@ -118,7 +118,6 @@ namespace {
 				ctx.data.PushStream(XFILE_BLOCK_TEMP);
 				Objective obj{};
 
-				obj.name.name = ctx.HashPathName(rfpath);
 
 				static core::config::ConfigEnumData obvaCfg[]{
 					{ "BOTTOM", ObjectiveVAlign::OBVA_BOTTOM },
@@ -133,6 +132,8 @@ namespace {
 				obj.hAlign = objCfg.GetEnumVal<ObjectiveHAlign>("hAlign", obvaCfg, ARRAYSIZE(obvaCfg), ObjectiveHAlign::OBHA_LEFT);
 				obj.vAlign = objCfg.GetEnumVal<ObjectiveVAlign>("vAlign", obhaCfg, ARRAYSIZE(obhaCfg), ObjectiveVAlign::OBVA_TOP);
 
+				std::string rfpathStr{ rfpath.string() };
+				obj.name.name = ctx.HashXHash(objCfg.GetString("name", rfpathStr.c_str()), true);
 				obj.waypointShowDistance = objCfg.GetBool("waypointShowDistance");
 				obj.waypointHideArrow = objCfg.GetBool("waypointHideArrow");
 				obj.waypointClamp = objCfg.GetBool("waypointClamp");
@@ -169,6 +170,11 @@ namespace {
 				obj.unk5c = (uint32_t)objCfg.GetInteger("unk5c", 0);
 				obj.unk60 = (float)objCfg.GetDouble("unk60", 70);
 				obj.unk64 = (float)objCfg.GetDouble("unk64", 40);
+				if (!objCfg.ScanString("waypointOffset", "%f, %f, %f", &obj.waypointOffset[0], &obj.waypointOffset[1], &obj.waypointOffset[2])) {
+					LOG_ERROR("Bad format for waypointOffset \"123, 123, 123\"");
+					ctx.error = true;
+					continue;
+				}
 
 				std::string waypointImage{ objCfg.GetString("waypointImage") };
 				std::string objectiveImage{ objCfg.GetString("objectiveImage") };

@@ -115,6 +115,18 @@ namespace core::config {
 		return val.GetString();
 	}
 
+	bool Config::ScanStringN(const char* path, const char* format, size_t count, ...) {
+		va_list va;
+		va_start(va, count);
+		std::string v{ this->GetString(path) };
+		if (v.empty()) {
+			return true; // no data
+		}
+		bool r{ std::vsscanf(v.c_str(), format, va) == count };
+		va_end(va);
+		return r;
+	}
+
 	bool Config::GetBool(const char* path, bool defaultValue) {
 		rapidjson::Value& val = GetVal(path, 0, main);
 
