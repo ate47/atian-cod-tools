@@ -133,7 +133,8 @@ namespace {
 				obj.vAlign = objCfg.GetEnumVal<ObjectiveVAlign>("vAlign", obhaCfg, ARRAYSIZE(obhaCfg), ObjectiveVAlign::OBVA_TOP);
 
 				std::string rfpathStr{ rfpath.string() };
-				obj.name.name = ctx.HashXHash(objCfg.GetString("name", rfpathStr.c_str()), true);
+				std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
+				obj.name.name = ctx.HashXHash(assetName, true);
 				obj.waypointShowDistance = objCfg.GetBool("waypointShowDistance");
 				obj.waypointHideArrow = objCfg.GetBool("waypointHideArrow");
 				obj.waypointClamp = objCfg.GetBool("waypointClamp");
@@ -200,7 +201,7 @@ namespace {
 
 				ctx.data.PopStream();
 
-				LOG_INFO("Added asset objective {} (hash_{:x})", rfpath.string(), obj.name.name);
+				LOG_INFO("Added asset objective {} (hash_{:x})", assetName, obj.name.name);
 			}
 		}
 	};
