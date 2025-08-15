@@ -54,7 +54,7 @@ namespace core::config {
 		void SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount);
 		inline void SetEnum(const std::string& path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) { SetEnum(path.c_str(), enumValue, data, dataCount); }
 
-		void SyncConfig(bool save);
+		bool SyncConfig(bool save);
 		void SaveConfig() const;
 	};
 
@@ -135,8 +135,8 @@ namespace core::config {
 	/*
 	 * Load and save the config
 	 */
-	inline void SyncConfig(bool save) {
-		GetMainConfig().SyncConfig(save);
+	inline bool SyncConfig(bool save) {
+		return GetMainConfig().SyncConfig(save);
 	}
 	/*
 	 * Save the config

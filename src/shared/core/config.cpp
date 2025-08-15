@@ -180,16 +180,19 @@ namespace core::config {
 		LOG_WARNING("No enum value for path '{}': {}", path, enumValue);
 	}
 
-	void Config::SyncConfig(bool save) {
+	bool Config::SyncConfig(bool save) {
 		std::string json{};
 
+		bool r{};
 		if (utils::ReadFile(utils::GetProgDir() / configFile, json)) {
 			main.Parse(json.data());
+			r = true;
 		}
 		// not reading isn't an error
 		if (save) {
 			this->SaveConfig();
 		}
+		return r;
 	}
 
 	void Config::SaveConfig() const {

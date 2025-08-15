@@ -51,6 +51,9 @@ namespace fastfile::linker::bo4 {
 		uint64_t HashPathName(const std::filesystem::path& path);
 	};
 
+	struct GfxImage;
+	typedef float vec3_t[3];
+
 	class LinkerWorker {
 	public:
 		const char* id;

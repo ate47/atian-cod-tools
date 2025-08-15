@@ -6,6 +6,19 @@
 namespace {
 	using namespace fastfile::handlers::bo4;
 
+	enum ObjectiveVAlign : uint32_t {
+		OBVA_TOP = 0,
+		OBVA_CENTER = 1,
+		OBVA_BOTTOM = 2,
+		OBVA_COUNT = 3,
+	};
+	enum ObjectiveHAlign : uint32_t {
+		OBHA_LEFT = 0,
+		OBHA_CENTER = 1,
+		OBHA_RIGHT = 2,
+		OBHA_COUNT = 3,
+	};
+
 	const char* VALIGN[]{
 		"TOP", "CENTER", "BOTTOM"
 	};
@@ -39,8 +52,8 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			struct Objective {
 				XHash name;
-				uint32_t hAlign;
-				uint32_t vAlign;
+				ObjectiveHAlign hAlign;
+				ObjectiveVAlign vAlign;
 				vec3_t waypointOffset;
 				byte unk24;
 				byte unk25;
