@@ -1,4 +1,6 @@
 {
     "ACTS_SPRAY_DESC": "Atian-cod-tools' cat",
-    "ACTS_TEST": "Test string"
+    "ACTS_TEST": "Test string",
+    "ACTS_TEST_OBJECTIVE_WAYPOINT": "Test waypoint",
+    "ACTS_TEST_OBJECTIVE_DESC": "Test objective description"
 }

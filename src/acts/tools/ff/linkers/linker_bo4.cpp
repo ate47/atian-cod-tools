@@ -21,7 +21,10 @@ namespace fastfile::linker::bo4 {
 		return (uint32_t)r;
 	}
 
-	uint64_t BO4LinkContext::HashXHash(const char* str) {
+	uint64_t BO4LinkContext::HashXHash(const char* str, bool ignoreTop) {
+		if (ignoreTop && *str == '#') {
+			str++;
+		}
 		uint64_t r;
 		if (hash::TryHashPattern(str, r)) {
 			return r; // nothing to add

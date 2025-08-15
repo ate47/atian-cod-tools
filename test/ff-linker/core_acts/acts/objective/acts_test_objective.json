@@ -1,0 +1,11 @@
+{
+    "hAlign": "CENTER",
+    "vAlign": "CENTER",
+    "description": "ACTS_TEST_OBJECTIVE_DESC",
+    "waypointImage": "acts_hud_obj_waypoint.png",
+    "objectiveImage": "acts_hud_obj_objective.png",
+    "bundle": {
+        "widget": "TestWidget",
+        "scale3d": 1
+    }
+}

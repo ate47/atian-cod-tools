@@ -45,8 +45,8 @@ namespace fastfile::linker::bo4 {
 		uint64_t ffnameHash{};
 
 		uint32_t HashScr(const char* str);
-		uint64_t HashXHash(const char* str);
-		inline uint64_t HashXHash(const std::string& str) { return HashXHash(str.data()); }
+		uint64_t HashXHash(const char* str, bool ignoreTop = false);
+		inline uint64_t HashXHash(const std::string& str, bool ignoreTop = false) { return HashXHash(str.data(), ignoreTop); }
 		inline uint64_t HashScr(const std::string& str) { return HashScr(str.data()); }
 		uint64_t HashPathName(const std::filesystem::path& path);
 	};

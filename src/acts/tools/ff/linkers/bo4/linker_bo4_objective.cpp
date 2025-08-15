@@ -100,10 +100,10 @@ namespace {
 
 		void Compute(BO4LinkContext& ctx) override {
 			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["objective"]) {
-				std::filesystem::path rfpath{ assval.value };
 				assval.handled = true;
-				std::filesystem::path path{ ctx.linkCtx.input / rfpath };
-				std::string buffer{};
+				std::filesystem::path path{ ctx.linkCtx.input / assval.value };
+				std::filesystem::path rfpath{ path.filename() };
+				rfpath.replace_extension();
 
 				core::config::Config objCfg{ path };
 				
@@ -144,12 +144,12 @@ namespace {
 				obj.shouldCullDistance = objCfg.GetBool("shouldCullDistance");
 				obj.hasLowAmmoState = objCfg.GetBool("hasLowAmmoState");
 
-				obj.waypointText.name = ctx.HashXHash(objCfg.GetString("waypointText"));
-				obj.description.name = ctx.HashXHash(objCfg.GetString("description"));
-				obj.friendlyDescription.name = ctx.HashXHash(objCfg.GetString("friendlyDescription"));
-				obj.enemyDescription.name = ctx.HashXHash(objCfg.GetString("enemyDescription"));
-				obj.subObjectiveDescription.name = ctx.HashXHash(objCfg.GetString("subObjectiveDescription"));
-				obj.notifyString.name = ctx.HashXHash(objCfg.GetString("notifyString"));
+				obj.waypointText.name = ctx.HashXHash(objCfg.GetString("waypointText"), true);
+				obj.description.name = ctx.HashXHash(objCfg.GetString("description"), true);
+				obj.friendlyDescription.name = ctx.HashXHash(objCfg.GetString("friendlyDescription"), true);
+				obj.enemyDescription.name = ctx.HashXHash(objCfg.GetString("enemyDescription"), true);
+				obj.subObjectiveDescription.name = ctx.HashXHash(objCfg.GetString("subObjectiveDescription"), true);
+				obj.notifyString.name = ctx.HashXHash(objCfg.GetString("notifyString"), true);
 				
 				obj.cullDistance = (float)objCfg.GetDouble("cullDistance");
 				obj.waypointShowDistanceWhenFarDist = (float)objCfg.GetDouble("waypointShowDistanceWhenFarDist");
@@ -190,6 +190,7 @@ namespace {
 				if (bundle != objCfg.main.MemberEnd() && !scriptbundle::WriteArray(ctx, bundle->value, objData + offsetof(Objective, bundle))) {
 					continue;
 				}
+				ctx.data.PopStream();
 
 				ctx.data.PopStream();
 

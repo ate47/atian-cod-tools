@@ -34,6 +34,8 @@ image,acts_test_hello_world.png
 image,acts_test_hover.png
 image,acts_test_icon.png
 
+objective,acts/objective/acts_test_objective.json
+
 // custom ttf
 ttf,acts/cascadiacode_bold.ttf
 ttf,acts/cascadiamono_bold.ttf

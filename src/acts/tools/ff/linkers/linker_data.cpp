@@ -50,7 +50,7 @@ namespace fastfile::linker::data {
 	void LinkerData::SetMode(LinkerMode mode) {
 		if (mode == headerMode) return; // ignore
 		if (!blockTypes.empty()) {
-			throw std::runtime_error("Can't set linker mode with non empty chunks");
+			throw std::runtime_error("Can't set linker mode with non empty chunks, missing PopStream()?");
 		}
 		headerMode = mode;
 	}
