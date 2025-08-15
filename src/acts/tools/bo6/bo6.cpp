@@ -250,20 +250,16 @@ namespace {
 
 		bo6LuaData.Cleanup();
 
-		// remove lua things
-		mod->Redirect("48 89 5C 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 87", NullStub); // 88F4A60
-		mod->Redirect("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D D2 A9", NullStub); // 88F5610
-		mod->Redirect("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 62", NullStub); // 88F2B80
-		// if false it creates some useless calls
-		mod->Redirect("40 53 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 5B", ReturnStub<bool, true>); // 88F5390
+		// remove lua things if false it creates some useless calls
+		mod->Redirect("40 53 48 83 EC ?? 48 8B 44 24 ?? 48 8B D9 48 8D 0D EB BA", ReturnStub<bool, true>, "Bo6LuaUnkReturn"); // 88F5390
 
 
 		// registry function
-		mod->Redirect("40 53 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 6B", Bo6LoadLuaPop); // 88F4E80
-		mod->Redirect("48 89 5C 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B D9 48 8D 0D 47", Bo6LoadLuaPush); // 88F2FA0
+		mod->Redirect("40 53 48 83 EC ?? 48 8B 44 24 ?? 48 8B D9 48 8D 0D EB BF", Bo6LoadLuaPop, "Bo6LoadLuaPop"); // 88F4E80
+		mod->Redirect("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 44 24 ?? 48 8B D9 48 8D 0D B7", Bo6LoadLuaPush, "Bo6LoadLuaPush"); // 88F2FA0
 
-		void* stub{ mod->ScanSingle("E8 ? ? ? ? 48 BA 34 DB FC 73 86 28 B6 F9").GetRelative<int32_t>(1) };
-		void* stubStr{ mod->ScanSingle("E8 ? ? ? ? 4C 8D 05 ? ? ? ? 48 8D 15 ? ? ? ? 49 8B CC").GetRelative<int32_t>(1) };
+		void* stub{ mod->ScanSingle("E8 ?? ?? ?? ?? 48 BA EA C8 1A 47 1B 60 F9 08", "Bo6LoadLuaFunc").GetRelative<int32_t>(1)}; // Bo6LoadLuaFunc(luastate*, 0xhash, func)
+		void* stubStr{ mod->ScanSingle("E8 ? ? ? ? 4C 8D 05 ? ? ? ? 48 8D 15 ? ? ? ? 49 8B CC", "Bo6LoadLuaFuncStr").GetRelative<int32_t>(1) }; // Bo6LoadLuaFuncStr(luastate*, "str", func)
 
 		LOG_INFO("redirect hash . {}", hook::library::CodePointer{ stub });
 		LOG_INFO("redirect str .. {}", hook::library::CodePointer{ stubStr });
@@ -278,14 +274,10 @@ namespace {
 			Bo6LoadLuaFuncStr
 		);
 
-		mod->ScanSingle("E9 EC AA 0A 00").GetPtr<void(*)(void*)>()(nullptr);
+		// 71b36f0bb44547d4 / bb69baec8be93d50 ?
+		mod->ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 48 89 4C 24 ?? 57 41 54 41 55 41 56 41 57 48 83 EC ?? 4C 8D 05").GetPtr<void(*)(void*)>()(nullptr);// load_funcs(luastate*)
 
-		utils::OutFileCE os{ argv[3] };
-
-		if (!os) {
-			LOG_ERROR("Can't open {}", argv[3]);
-			return tool::BASIC_ERROR;
-		}
+		utils::OutFileCE os{ argv[3], true };
 
 		LOG_INFO("Dumping functions in {}", argv[3]);
 
@@ -538,7 +530,7 @@ namespace {
 	ADD_TOOL(bo6_data_dump, "bo6", " [exe]", "Dump common data from an exe dump", bo6_data_dump);
 	ADD_TOOL(bo6_test_hash_types, "dev", " [exe]", "Dump int map for types", bo6_test_hash_types);
 	ADD_TOOL(bo6_gsc_dump, "bo6", " [exe]", "Dump gsc function data from an exe dump", bo6_gsc_dump);
-	ADD_TOOL(bo6_lua_dump, "bo6", " [exe]", "Dump lua function data from an exe dump", bo6_lua_dump);
+	ADD_TOOL(bo6_lua_dump, "bo6", " [exe] [func]", "Dump lua function data from an exe dump", bo6_lua_dump);
 	ADD_TOOL(bo6_asset_sizes, "bo6", " [exe]", "Dump asset sizes", bo6_asset_sizes);
 	ADD_TOOL(bo6_radiant_keys, "bo6", " [keys] [out]", "Read bo6 radiant keys", bo6_radiant_keys);
 	ADD_TOOL(lua_file_delta, "dev", " [a1] [a2] [offset]", "Lua file delta", lua_file_delta);

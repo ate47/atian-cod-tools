@@ -206,6 +206,8 @@ namespace fastfile::handlers::bo6 {
 			AssetList assets{};
 			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
 			HashedType typeMaps[0x200];
+			T10RAssetType typeExeToActs[0x200];
+			size_t typeActsToExe[T10RAssetType::T10R_ASSET_COUNT];
 			size_t typeMapsCount;
 			std::unordered_map<uint64_t, void*> streamLocations{};
 			std::vector<const char*>* xstringLocs{};
@@ -258,12 +260,27 @@ namespace fastfile::handlers::bo6 {
 							continue;
 						}
 
+						// set default value
+						for (size_t i = 0; i < ARRAYSIZE(typeExeToActs); i++) {
+							typeExeToActs[i] = T10RAssetType::T10R_ASSET_COUNT;
+						}
+
 						typeMapsCount = count;
 						for (size_t i = 0; i < count; i++) {
 							HashedType* type = &typeMaps[i];
 							type->type = (T10RAssetType)i;
 							type->name = lib.Rebase<const char>(poolNames[i]);
 							type->hash = (uint32_t)hash::HashX32(type->name);
+
+							T10RAssetType mapId{ bo6::PoolIdRelease(type->name) };
+							if (mapId != T10R_ASSET_COUNT) {
+								// map this id to acts
+								typeExeToActs[i] = mapId;
+								typeActsToExe[mapId] = i;
+							}
+							else {
+								typeActsToExe[i] = count;
+							}
 						}
 
 						// sort it for better usage
@@ -478,127 +495,6 @@ namespace fastfile::handlers::bo6 {
 
 				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?").GetRelative<int32_t, LoadStreamObject*>(3) };
 				loadStreamObj->__vtb = &dbLoadStreamVTable;
-				/*
-[22:37:33][TRACE][shared:hook:library@218] Start searching of pattern 48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?
-[22:37:33][TRACE][shared:hook:library@250] Pattern find -> 0x7ff612e6d781
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48 (gcx.Load_Asset)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2968fe0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 56 41 56 48 83 EC ? 48 8B 15 (GetMappedTypeStub)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x88a6960
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9 (LoadStream)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb220
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2 (Load_String)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb2c0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41 (Load_StringName)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb390
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA (DB_LinkGenericXAsset)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a7b3b0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B (DB_LinkGenericXAssetEx)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a7d950
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8 (Load_CustomScriptString)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acb9e0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B (EmptyStub<0>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a77c60
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA (DB_RegisterStreamOffset)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2aca6e0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33 (EmptyStub<2>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a77910
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA (DB_LoadStreamOffset)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2aca8c0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 14 40 83 (ReturnStub<4, bool, false>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a85990
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached C5 FB 10 02 44 (EmptyStub<5>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a85bb0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 04 40 48 (Unk_Align_Ret)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a85970
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 41 8B 40 ?? 49 (EmptyStub<7>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a652a0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9 (EmptyStub<8>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x837b4d0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B C4 53 48 81 EC ?? ?? ?? ?? 41 0F B7 (EmptyStub<9>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:g0x6699900
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 8B 42 ?? 49 (EmptyStub<10>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x67d5bc0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B 05 ?? ?? ?? ?? 0F B7 80 (EmptyStub<11>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2acddb0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F (EmptyStub<12>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x82c5130
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 81 61 (EmptyStub<13>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a76460
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2 (EmptyStub<14>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2aca410
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75 (EmptyStub<15>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a62af0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 55 56 57 41 57 48 83 EC ?? 8B 1D (EmptyStub<16>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x671eaa0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B (EmptyStub<17>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a65200
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B (EmptyStub<18>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x671dcc0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8 (EmptyStub<19>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x2a652d0
-[22:37:33][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33 (EmptyStub<20>)
-[22:37:33][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff610570000]:0x8b46270
-				
-				
-
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48 (gcx.Load_Asset)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x298edd0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 56 41 56 48 83 EC ? 48 8B 15 (GetMappedTypeStub)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x89e19a0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9 (LoadStream)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9f50
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2 (Load_String)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9ff0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41 (Load_StringName)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2afa0c0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA (DB_LinkGenericXAsset)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa93f0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B (DB_LinkGenericXAssetEx)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aabca0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8 (Load_CustomScriptString)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2afa710
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B (EmptyStub<0>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa4fb0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA (DB_RegisterStreamOffset)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9410
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33 (EmptyStub<2>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa4c60
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA (DB_LoadStreamOffset)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af95f0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 14 40 83 (ReturnStub<4, bool, false>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2ab4130
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached C5 FB 10 02 44 (EmptyStub<5>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2ab4350
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 8B 81 ?? ?? ?? ?? 48 8D 04 40 48 (Unk_Align_Ret)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2ab4110
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 41 8B 40 ?? 49 (EmptyStub<7>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a92740
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9 (EmptyStub<8>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x84b15f0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 55 48 8D 6C 24 A9 48 81 EC ? ? ? ? 41 (EmptyStub<9>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x676e0d0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 8B 42 ?? 49 (EmptyStub<10>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x68ad3e0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 8B 05 ?? ?? ?? ?? 0F B7 80 (EmptyStub<11>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2afcbd0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F (EmptyStub<12>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x83f18c0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 81 61 (EmptyStub<13>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2aa37b0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2 (EmptyStub<14>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2af9140
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75 (EmptyStub<15>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a8ff00
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 48 89 5C 24 ? 55 56 57 41 57 (EmptyStub<16>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x67f37d0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B (EmptyStub<17>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a926a0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B (EmptyStub<18>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x67f29f0
-[02:11:59][TRACE][shared:hook:scan_container@80] ScanContainer: Use cached 40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8 (EmptyStub<19>)
-[02:11:59][TRACE][shared:hook:scan_container@81] ScanContainer: Value: cod_dump.exe[0x7ff658780000]:0x2a92770
-				*/
 
 				//E8 ? ? ? ? 80 3E 00 74 1E
 				//lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);

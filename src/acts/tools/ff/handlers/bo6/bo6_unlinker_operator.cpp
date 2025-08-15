@@ -5,14 +5,6 @@
 namespace {
 	using namespace fastfile::handlers::bo6;
 
-	struct ParticleSystem;
-	struct GfxImage;
-	struct XModel;
-	struct XBoneSet;
-	struct ReactiveAudioPackage;
-	struct ReactiveVFXPackage;
-	struct FootStepVFX;
-
 	struct OperatorSkin {
 		scriptbundle::ScriptBundleObjectData bundleData;
 		uint64_t name;

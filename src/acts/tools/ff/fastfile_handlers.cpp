@@ -442,6 +442,9 @@ namespace fastfile {
 			else if (!_strcmpi("--assertContainer", arg)) {
 				assertContainer = true;
 			}
+			else if (!_strcmpi("--archiveDDL", arg)) {
+				archiveDDL = true;
+			}
 			else if (!_strcmpi("--dumpBinaryAssetsMap", arg)) {
 				dumpBinaryAssetsMap = true;
 			}
@@ -483,6 +486,7 @@ namespace fastfile {
 		LOG_INFO("--disableScriptsDecomp : Disable GSC script decompilation");
 		LOG_INFO("--dumpXStrings         : Dump XStrings");
 		LOG_INFO("--assertContainer      : Use acts as a container for other software");
+		LOG_INFO("--archiveDDL           : dump archived ddl (bo6)");
 		LOG_INFO("--alpha                : Is alpha file");
 		
 	}

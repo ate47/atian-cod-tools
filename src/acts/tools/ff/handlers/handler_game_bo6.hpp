@@ -9,6 +9,25 @@ namespace fastfile::handlers::bo6 {
 	typedef uint64_t XHash64;
 	typedef uint32_t XHash32;
 
+	struct GfxImage;
+	struct MaterialAnimation;
+	struct ParticleSystem;
+	struct FootStepsFxTable;
+	struct FoliagesFXTable;
+	struct HandPlantsFXTable;
+	struct AiImpactVFXTable;
+	struct Dismemberment;
+	struct CalloutMarkerPing;
+	struct WeaponAccuracy;
+	struct Character;
+	struct XModel;
+	struct XBoneSet;
+	struct ReactiveAudioPackage;
+	struct ReactiveVFXPackage;
+	struct FootStepVFX;
+	struct Camo;
+	struct Material;
+
 	typedef const char* XString;
 	
 	struct ScrString_t {

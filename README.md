@@ -90,12 +90,12 @@ See the wiki to know how to use the features
 - `bo3` (EXE): `string`, `rawfile`, `scriptparsetree`
 - `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`
 - `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`
-- `bo6` (EXE): `string`, `rawfile`, `gscobj`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`
+- `bo6` (EXE): `string`, `rawfile`, `gscobj`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`
 - `GscXHash`: `scriptparsetree`, `gscobj`
 - `GscXString`: `scriptparsetree`, `scriptparsetreedbg`
 - `GscBin`: `scriptfile`
 
-- **DEC**: Requires executable
+- **EXE**: Requires executable
 
 ## Fast File Linker
 

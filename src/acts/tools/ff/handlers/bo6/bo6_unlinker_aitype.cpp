@@ -8,16 +8,6 @@ namespace {
 		using Worker::Worker;
 		using ScriptBundle = scriptbundle::ScriptBundle;
 
-		struct FootStepsFxTable;
-		struct FoliagesFXTable;
-		struct HandPlantsFXTable;
-		struct AiImpactVFXTable;
-		struct ParticleSystem;
-		struct Dismemberment;
-		struct CalloutMarkerPing;
-		struct WeaponAccuracy;
-		struct Character;
-
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			struct AITypeCharacters {
 				Character** characters;
@@ -101,35 +91,38 @@ namespace {
 			}
 			json.EndArray();
 
+			if (opt.testDump) {
 
-			json.WriteFieldValueXHash("unk08", asset.unk08);
-			json.WriteFieldValueXHash("unk18", asset.unk18);
-			json.WriteFieldValueXHash("unk28", asset.unk28);
-			json.WriteFieldValueXHash("unk30", asset.unk30);
+				json.WriteFieldValueXHash("unk08", asset.unk08);
+				json.WriteFieldValueXHash("unk18", asset.unk18);
+				json.WriteFieldValueXHash("unk28", asset.unk28);
+				json.WriteFieldValueXHash("unk30", asset.unk30);
 
-			// unused?
-			json.WriteFieldValueUnknown("unk10", asset.unk10);
-			json.WriteFieldValueUnknown("unk20", asset.unk20);
+				// unused?
+				json.WriteFieldValueUnknown("unk10", asset.unk10);
+				json.WriteFieldValueUnknown("unk20", asset.unk20);
 
-			json.WriteFieldValueUnknown("unk80", asset.unk80);
-			json.WriteFieldValueUnknown("unk88", asset.unk88);
-			json.WriteFieldValueUnknown("unk90", asset.unk90);
-			json.WriteFieldValueUnknown("unka8", asset.unka8);
-			json.WriteFieldValueUnknown("unkb0", asset.unkb0);
-			json.WriteFieldValueUnknown("unkb8", asset.unkb8);
-			json.WriteFieldValueUnknown("unkc0", asset.unkc0);
-			json.WriteFieldValueUnknown("unke8", asset.unke8);
-			json.WriteFieldValueUnknown("unkf0", asset.unkf0);
+				json.WriteFieldValueUnknown("unk80", asset.unk80);
+				json.WriteFieldValueUnknown("unk88", asset.unk88);
+				json.WriteFieldValueUnknown("unk90", asset.unk90);
+				json.WriteFieldValueUnknown("unka8", asset.unka8);
+				json.WriteFieldValueUnknown("unkb0", asset.unkb0);
+				json.WriteFieldValueUnknown("unkb8", asset.unkb8);
+				json.WriteFieldValueUnknown("unkc0", asset.unkc0);
+				json.WriteFieldValueUnknown("unke8", asset.unke8);
+				json.WriteFieldValueUnknown("unkf0", asset.unkf0);
 
-			json.WriteFieldValueUnknown("unk100", asset.unk100);
-			json.WriteFieldValueUnknown("unk108", asset.unk108);
-			json.WriteFieldValueUnknown("unk110", asset.unk110);
-			json.WriteFieldValueUnknown("unk118", asset.unk118);
-			json.WriteFieldValueUnknown("unk120", asset.unk120);
-			json.WriteFieldValueUnknown("unk128", asset.unk128);
-			json.WriteFieldValueUnknown("unk130", asset.unk130);
-			json.WriteFieldValueUnknown("unk138", asset.unk138);
-			json.WriteFieldValueUnknown("unk140", asset.unk140);
+				json.WriteFieldValueUnknown("unk100", asset.unk100);
+				json.WriteFieldValueUnknown("unk108", asset.unk108);
+				json.WriteFieldValueUnknown("unk110", asset.unk110);
+				json.WriteFieldValueUnknown("unk118", asset.unk118);
+				json.WriteFieldValueUnknown("unk120", asset.unk120);
+				json.WriteFieldValueUnknown("unk128", asset.unk128);
+				json.WriteFieldValueUnknown("unk130", asset.unk130);
+				json.WriteFieldValueUnknown("unk138", asset.unk138);
+				json.WriteFieldValueUnknown("unk140", asset.unk140);
+
+			}
 			
 
 			json.EndObject();
