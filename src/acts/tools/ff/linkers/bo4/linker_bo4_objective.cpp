@@ -129,8 +129,8 @@ namespace {
 					{ "CENTER", ObjectiveHAlign::OBHA_CENTER },
 					{ "RIGHT", ObjectiveHAlign::OBHA_RIGHT },
 				};
-				obj.hAlign = objCfg.GetEnumVal<ObjectiveHAlign>("hAlign", obvaCfg, ARRAYSIZE(obvaCfg), ObjectiveHAlign::OBHA_LEFT);
-				obj.vAlign = objCfg.GetEnumVal<ObjectiveVAlign>("vAlign", obhaCfg, ARRAYSIZE(obhaCfg), ObjectiveVAlign::OBVA_TOP);
+				obj.hAlign = objCfg.GetEnumVal<ObjectiveHAlign>("hAlign", obhaCfg, ARRAYSIZE(obhaCfg), ObjectiveHAlign::OBHA_LEFT);
+				obj.vAlign = objCfg.GetEnumVal<ObjectiveVAlign>("vAlign", obvaCfg, ARRAYSIZE(obvaCfg), ObjectiveVAlign::OBVA_TOP);
 
 				std::string rfpathStr{ rfpath.string() };
 				std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
