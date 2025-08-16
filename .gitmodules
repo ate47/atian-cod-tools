@@ -92,3 +92,6 @@
 [submodule "deps/xxHash"]
 	path = deps/xxHash
 	url = https://github.com/Cyan4973/xxHash
+[submodule "deps/crc_cpp"]
+	path = deps/crc_cpp
+	url = https://github.com/AshleyRoll/crc_cpp

@@ -112,7 +112,7 @@ project "ACTSSharedLibrary"
 		"deps/zlib/",
         "deps/ps4debug/kdebugger/include/",
         "deps/ps4debug/ps4-ksdk/include/",
-        
+        "deps/crc_cpp/include/",
     }
 
     vpaths {
@@ -407,7 +407,8 @@ project "AtianCodTools"
         "deps/hash-library/",
         "deps/hksc/etc/",
         "deps/hksc/src/",
-        "deps/bdiff/"
+        "deps/bdiff/",
+        "deps/crc_cpp/include/",
     }
 
     vpaths {
@@ -514,7 +515,8 @@ project "AtianCodToolsGPL"
         "src/acts-gpl",
 		"deps/Detours/src/",
         "src/shared",
-        "deps/cordycep/src/Parasyte/"
+        "deps/cordycep/src/Parasyte/",
+        "deps/crc_cpp/include/",
     }
 
     vpaths {

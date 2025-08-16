@@ -115,6 +115,8 @@ try {
     Copy-Item "deps/zstd/LICENSE" "$base/licenses/zstd.md" > $null
     Copy-Item "deps/hash-library/LICENSE" "$base/licenses/hash-library.md" > $null
     Copy-Item "deps/hksc/COPYRIGHT" "$base/licenses/hksc.md" > $null
+    Copy-Item "deps/crc_cpp/LICENSE" "$base/licenses/crc_cpp.txt" > $null
+    Copy-Item "deps/xxHash/LICENSE" "$base/licenses/xxHash.txt" > $null
 
     "Put the game dependencies in this directory." > "$base/bin/deps/README.md"
 
