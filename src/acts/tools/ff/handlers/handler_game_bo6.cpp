@@ -490,6 +490,12 @@ namespace fastfile::handlers::bo6 {
 					gcx.handleList.LoadConfig(opt.assetTypes);
 				}
 
+#ifdef CI_BUILD
+				LOG_WARNING("You are using the bo6 handler, for now Black Ops 6 is still under");
+				LOG_WARNING("Development and it might not work after a game update.");
+				LOG_WARNING("This handler was developed for the Steam version and might not");
+				LOG_WARNING("for the BattleNet or the Gamepass version.");
+#endif
 
 				gcx.InitTypeMaps(lib);
 
