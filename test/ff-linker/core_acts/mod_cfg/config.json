@@ -5,6 +5,12 @@
             "name": "core_acts",
             "hook": "core_common",
             "is_common": true
+        },
+        {
+            "name": "fr_core_acts"
+        },
+        {
+            "name": "en_core_acts"
         }
     ],
     "redirects": [

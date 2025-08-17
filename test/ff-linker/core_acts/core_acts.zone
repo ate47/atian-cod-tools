@@ -47,11 +47,14 @@ bgcache,cache.csv
 //rawstring,acts_test_string
 
 // add a localize list file
-localizelist,acts/localize.json
+localizelist,acts/localize/all.json
+localizelist,acts/localize/fr.json
+localizelist,acts/localize/en.json
 
 // sound
 sound,acts/sound/all.json
 sound,acts/sound/fr.json
+sound,acts/sound/en.json
 
 // dev stuff
 #ifndef CI

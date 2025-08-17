@@ -26,6 +26,8 @@ function private __pre_init__()
     {
         callback::on_connect( &on_player_connect );
     }
+    // test localization
+    ActsLog( #"ACTS_TEST_LOCALIZED_KEY" );
 
     // test script bundles
 

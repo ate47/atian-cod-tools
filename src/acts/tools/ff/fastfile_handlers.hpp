@@ -190,16 +190,21 @@ namespace fastfile {
 		void PrintHelp();
 	};
 
+	struct FastFile {
+		std::vector<byte> linkedData{};
+		const char* ffname{};
+		size_t blockSizes[0x10]{};
+	};
+
 	class FastFileLinkerContext {
 	public:
 		std::filesystem::path zoneFile;
 		std::filesystem::path input;
 		zone::Zone zone{};
 		std::string inputFileNameStr;
+		const char* mainFFName{};
+		std::vector<FastFile> fastfiles{};
 		FastFileLinkerOption& opt;
-		std::vector<byte> linkedData{};
-		const char* ffname{};
-		size_t blockSizes[0x10]{};
 		std::unordered_map<uint64_t, const char*> storedHashes{};
 		core::memory_allocator::MemoryAllocator strs{};
 		FFCompressor* compressor{};

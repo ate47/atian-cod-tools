@@ -67,121 +67,122 @@ namespace {
 			if (ctx.zone.GetConfigBool("compression.high", false)) {
 				alg = alg | utils::compress::COMP_HIGH_COMPRESSION;
 			}
-
-			std::vector<byte> out{};
-			utils::Allocate<XFile>(out);
-
-			// write blocks
 			uint32_t chunkSize = (uint32_t)(ctx.opt.chunkSize ? ctx.opt.chunkSize : 0x3fee0);
 
-			byte* toCompress{ ctx.linkedData.data() };
-			size_t remainingSize{ ctx.linkedData.size() };
+			for (fastfile::FastFile& ff : ctx.fastfiles) {
+				std::vector<byte> out{};
+				utils::Allocate<XFile>(out);
 
-			size_t idx{};
-			std::vector<byte> compressBuffer{};
-			size_t compressedSize{};
-			LOG_TRACE("start compressing chunk 0x{:x} byte(s) using {} with chunks of size 0x{:x}...", remainingSize, alg, chunkSize);
-			while (remainingSize > 0) {
-				uint32_t uncompressedSize{ (uint32_t)std::min<size_t>(chunkSize, remainingSize) };
 
-				compressBuffer.clear();
-				if (!utils::compress::CompressBuffer(alg, toCompress, uncompressedSize, compressBuffer)) {
-					throw std::runtime_error(std::format("Can't compress chunk 0x{:x} of size 0x{:x}", idx - 1, uncompressedSize));
+				// write blocks
+				byte* toCompress{ ff.linkedData.data() };
+				size_t remainingSize{ ff.linkedData.size() };
+
+				size_t idx{};
+				std::vector<byte> compressBuffer{};
+				size_t compressedSize{};
+				LOG_TRACE("start compressing chunk 0x{:x} byte(s) using {} with chunks of size 0x{:x}...", remainingSize, alg, chunkSize);
+				while (remainingSize > 0) {
+					uint32_t uncompressedSize{ (uint32_t)std::min<size_t>(chunkSize, remainingSize) };
+
+					compressBuffer.clear();
+					if (!utils::compress::CompressBuffer(alg, toCompress, uncompressedSize, compressBuffer)) {
+						throw std::runtime_error(std::format("Can't compress chunk 0x{:x} of size 0x{:x}", idx - 1, uncompressedSize));
+					}
+					uint32_t alignedSize{ utils::Aligned<uint32_t>((uint32_t)compressBuffer.size()) };
+					compressedSize += compressBuffer.size();
+
+					uint32_t blockOffset{ (uint32_t)utils::Allocate(out, sizeof(fastfile::DBStreamHeader) + alignedSize) };
+
+					fastfile::DBStreamHeader& h{ *(fastfile::DBStreamHeader*)&out[blockOffset] };
+
+					h.offset = blockOffset;
+					h.uncompressedSize = uncompressedSize;
+					h.compressedSize = (uint32_t)compressBuffer.size();
+					h.alignedSize = (uint32_t)alignedSize;
+
+					// write compressed chunk
+					std::memcpy(&out[blockOffset + sizeof(fastfile::DBStreamHeader)], compressBuffer.data(), compressBuffer.size());
+
+
+					// move to the next buffer
+					toCompress += uncompressedSize;
+					remainingSize -= uncompressedSize;
+
+					LOG_TRACE("Compressed 0x{:x}->0x{:x} at chunk 0x{:x}, remaining 0x{:x}", uncompressedSize, h.compressedSize, idx, remainingSize);
+
+					idx++;
 				}
-				uint32_t alignedSize{ utils::Aligned<uint32_t>((uint32_t)compressBuffer.size()) };
-				compressedSize += compressBuffer.size();
 
-				uint32_t blockOffset{ (uint32_t)utils::Allocate(out, sizeof(fastfile::DBStreamHeader) + alignedSize) };
-
-				fastfile::DBStreamHeader& h{ *(fastfile::DBStreamHeader*)&out[blockOffset] };
-				
-				h.offset = blockOffset;
-				h.uncompressedSize = uncompressedSize;
-				h.compressedSize = (uint32_t)compressBuffer.size();
-				h.alignedSize = (uint32_t)alignedSize;
-
-				// write compressed chunk
-				std::memcpy(&out[blockOffset + sizeof(fastfile::DBStreamHeader)], compressBuffer.data(), compressBuffer.size());
+				// end stream header
+				uint32_t endBlockOffset{ (uint32_t)utils::Allocate(out, sizeof(fastfile::DBStreamHeader)) };
+				fastfile::DBStreamHeader& h{ *(fastfile::DBStreamHeader*)&out[endBlockOffset] };
+				h.offset = endBlockOffset;
+				h.uncompressedSize = 0;
+				h.alignedSize = 0;
+				h.compressedSize = 0;
+				utils::Allocate(out, 0x40);
 
 
-				// move to the next buffer
-				toCompress += uncompressedSize;
-				remainingSize -= uncompressedSize;
+				// write header data
+				XFile& header{ *(XFile*)out.data() };
+				*(uint64_t*)&header.magic[0] = 0x3030303066664154;
+				header.version = 0x27F;
+				header.platform = ctx.opt.platform;
+				header.server = ctx.opt.server;
+				header.timestamp = utils::GetTimestamp() / 1000;
+				header.encrypted = false;
+				header.size = ff.linkedData.size();
+				header.compression = compression;
 
-				LOG_TRACE("Compressed 0x{:x}->0x{:x} at chunk 0x{:x}, remaining 0x{:x}", uncompressedSize, h.compressedSize, idx, remainingSize);
 
-				idx++;
+				//header.unk4f0 = 0xFFFFFFFFF;
+				//header.unk4f8 = 0xFFFFFFFFF;
+				//header.unk500 = 0xFFFFFFFFF;
+				//header.unk508 = 0xFFFFFFFFF;
+				//header.unk510s = 0xFFFFFFFFF;
+				//header.unk518s = 0xFFFFFFFFF;
+				//header.unk520pa = 0xFFFFFFFFF;
+				//std::memset(header.pad0, 0xff, sizeof(header.pad0));
+				//static uint32_t archiveChecksum[4]{ 0x34FF23CB, 0xE4505D2, 0xB3C783A, 0x3208003D };
+				static uint32_t archiveChecksum[4]{ 0xCF92ECF4, 0xA75D3F79, 0x2A550D25, 0xF927447B };
+				static_assert(sizeof(archiveChecksum) == sizeof(header.archiveChecksum));
+				std::memcpy(header.archiveChecksum, archiveChecksum, sizeof(archiveChecksum));
+
+				// build data
+				TCHAR szBuffer[std::max<size_t>(MAX_COMPUTERNAME_LENGTH + 1, 16)];
+				DWORD dwSize = sizeof(szBuffer);
+				if (!GetComputerNameA(szBuffer, &dwSize)) {
+					LOG_WARNING("Can't get computer name");
+					strncpy_s(szBuffer, "ERROR", sizeof(szBuffer));
+				}
+
+				snprintf(header.builder, sizeof(header.builder), "%s", szBuffer);
+				snprintf(header.fastfileName, sizeof(header.fastfileName), "%s", ff.ffname);
+
+				// blocks load data
+				for (size_t i = 0; i < fastfile::linker::bo4::XFILE_BLOCK_COUNT; i++) {
+					header.blockSize[i] = (uint64_t)ff.blockSizes[i] * 2;
+				}
+
+				// todo: write other data
+
+				std::filesystem::path outputFileFF{ ctx.opt.m_output / "zone" / std::format("{}.ff", ff.ffname) };
+
+				std::filesystem::create_directories(outputFileFF.parent_path());
+				if (!utils::WriteFile(outputFileFF, out)) {
+					throw std::runtime_error(std::format("Can't write into {}", outputFileFF.string()));
+				}
+
+				if (ctx.opt.m_fd) {
+					LOG_WARNING(".fd file generator not implemented");
+				}
+
+				LOG_INFO("Compressed {} into {} [{}]({} -> {} bytes / {}% saved)", ff.ffname, outputFileFF.string(), alg, ff.linkedData.size(), compressedSize, (100 - 100 * compressedSize / ff.linkedData.size()));
 			}
-
-			// end stream header
-			uint32_t endBlockOffset{ (uint32_t)utils::Allocate(out, sizeof(fastfile::DBStreamHeader)) };
-			fastfile::DBStreamHeader& h{ *(fastfile::DBStreamHeader*)&out[endBlockOffset] };
-			h.offset = endBlockOffset;
-			h.uncompressedSize = 0;
-			h.alignedSize = 0;
-			h.compressedSize = 0;
-			utils::Allocate(out, 0x40);
-
-
-			// write header data
-			XFile& header{ *(XFile*)out.data() };
-			*(uint64_t*)&header.magic[0] = 0x3030303066664154;
-			header.version = 0x27F;
-			header.platform = ctx.opt.platform;
-			header.server = ctx.opt.server;
-			header.timestamp = utils::GetTimestamp() / 1000;
-			header.encrypted = false;
-			header.size = ctx.linkedData.size();
-			header.compression = compression;
-
-			
-			//header.unk4f0 = 0xFFFFFFFFF;
-			//header.unk4f8 = 0xFFFFFFFFF;
-			//header.unk500 = 0xFFFFFFFFF;
-			//header.unk508 = 0xFFFFFFFFF;
-			//header.unk510s = 0xFFFFFFFFF;
-			//header.unk518s = 0xFFFFFFFFF;
-			//header.unk520pa = 0xFFFFFFFFF;
-			//std::memset(header.pad0, 0xff, sizeof(header.pad0));
-			//static uint32_t archiveChecksum[4]{ 0x34FF23CB, 0xE4505D2, 0xB3C783A, 0x3208003D };
-			static uint32_t archiveChecksum[4]{ 0xCF92ECF4, 0xA75D3F79, 0x2A550D25, 0xF927447B };
-			static_assert(sizeof(archiveChecksum) == sizeof(header.archiveChecksum));
-			std::memcpy(header.archiveChecksum, archiveChecksum, sizeof(archiveChecksum));
-
-			// build data
-			TCHAR szBuffer[std::max<size_t>(MAX_COMPUTERNAME_LENGTH + 1, 16)];
-			DWORD dwSize = sizeof(szBuffer);
-			if (!GetComputerNameA(szBuffer, &dwSize)) {
-				LOG_WARNING("Can't get computer name");
-				strncpy_s(szBuffer, "ERROR", sizeof(szBuffer));
-			}
-
-			snprintf(header.builder, sizeof(header.builder), "%s", szBuffer);
-			snprintf(header.fastfileName, sizeof(header.fastfileName), "%s", ctx.ffname);
-
-			// blocks load data
-			for (size_t i = 0; i < fastfile::linker::bo4::XFILE_BLOCK_COUNT; i++) {
-				header.blockSize[i] = (uint64_t)ctx.blockSizes[i] * 2;
-			}
-
-			// todo: write other data
-
-			std::filesystem::path outputFileFF{ ctx.opt.m_output / "zone" / std::format("{}.ff", ctx.ffname) };
-
-			std::filesystem::create_directories(outputFileFF.parent_path());
-			if (!utils::WriteFile(outputFileFF, out)) {
-				throw std::runtime_error(std::format("Can't write into {}", outputFileFF.string()));
-			}
-
-			if (ctx.opt.m_fd) {
-				LOG_WARNING(".fd file generator not implemented");
-			}
-
-			LOG_INFO("Compressed {} into {} [{}]({} -> {} bytes / {}% saved)", ctx.ffname, outputFileFF.string(), alg, ctx.linkedData.size(), compressedSize, (100 - 100 * compressedSize / ctx.linkedData.size()));
-
 
 			if (!ctx.storedHashes.empty()) {
-				std::filesystem::path outputFileWNI{ ctx.opt.m_output / "package_index" / std::format("{}.wni", ctx.ffname) };
+				std::filesystem::path outputFileWNI{ ctx.opt.m_output / "package_index" / std::format("{}.wni", ctx.mainFFName) };
 				std::filesystem::create_directories(outputFileWNI.parent_path());
 
 				if (compatibility::scobalula::wnigen::CompressWNIFile(ctx.storedHashes, outputFileWNI) != tool::OK) {

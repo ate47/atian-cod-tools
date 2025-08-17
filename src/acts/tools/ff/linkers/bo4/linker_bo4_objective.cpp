@@ -113,9 +113,9 @@ namespace {
 					continue;
 				}
 
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_OBJECTIVE, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_OBJECTIVE, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 				Objective obj{};
 
 
@@ -184,8 +184,8 @@ namespace {
 				if (!objectiveImage.empty()) obj.objectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
 				if (!subObjectiveImage.empty()) obj.subObjectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
 
-				size_t objData{ ctx.data.WriteData(obj) };
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				size_t objData{ ctx.mainFF.data.WriteData(obj) };
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
 				// link images
 				if (!waypointImage.empty() && !image::LinkGfxImagePtr(ctx, waypointImage.data())) continue;
@@ -197,9 +197,9 @@ namespace {
 				if (bundle != objCfg.main.MemberEnd() && !scriptbundle::WriteArray(ctx, bundle->value, objData + offsetof(Objective, bundle))) {
 					continue;
 				}
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
 				LOG_INFO("Added asset objective {} (hash_{:x})", assetName, obj.name.name);
 			}

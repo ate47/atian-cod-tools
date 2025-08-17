@@ -21,22 +21,22 @@ namespace fastfile::linker::bo4 {
 				uint32_t len;
 			}; static_assert(sizeof(ScriptParseTree) == 0x20);
 
-			ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREE, fastfile::linker::data::POINTER_NEXT);
+			ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREE, fastfile::linker::data::POINTER_NEXT);
 
-			ctx.data.PushStream(XFILE_BLOCK_TEMP);
+			ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 			ScriptParseTree spt{};
 			spt.name.name = obj.name;
 			spt.buffer = (void*)fastfile::linker::data::POINTER_NEXT;
 			spt.len = (uint32_t)buffer.size();
-			ctx.data.WriteData(spt);
+			ctx.mainFF.data.WriteData(spt);
 
-			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-			ctx.data.Align(0x20);
-			ctx.data.WriteData(buffer.data(), buffer.size());
-			ctx.data.WriteData<byte>(0);
-			ctx.data.PopStream();
+			ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			ctx.mainFF.data.Align(0x20);
+			ctx.mainFF.data.WriteData(buffer.data(), buffer.size());
+			ctx.mainFF.data.WriteData<byte>(0);
+			ctx.mainFF.data.PopStream();
 
-			ctx.data.PopStream();
+			ctx.mainFF.data.PopStream();
 			LOG_INFO("Added asset scriptparsetree {} (hash_{:x})", path.string(), obj.name);
 		}
 
@@ -64,9 +64,9 @@ namespace fastfile::linker::bo4 {
 				const char* src;
 			}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
 
-			ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, fastfile::linker::data::POINTER_NEXT);
+			ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, fastfile::linker::data::POINTER_NEXT);
 
-			ctx.data.PushStream(XFILE_BLOCK_TEMP);
+			ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 			ScriptParseTreeDBG spt{};
 			spt.name.name = obj.name;
 			if (preproc.size()) {
@@ -77,23 +77,23 @@ namespace fastfile::linker::bo4 {
 				spt.gdb = (void*)fastfile::linker::data::POINTER_NEXT;
 				spt.gdbLen = (int32_t)dbgbuffer.size();
 			}
-			ctx.data.WriteData(spt);
+			ctx.mainFF.data.WriteData(spt);
 
-			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
 			if (dbgbuffer.size()) {
-				ctx.data.Align(0x20);
-				void* ptr{ ctx.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
+				ctx.mainFF.data.Align(0x20);
+				void* ptr{ ctx.mainFF.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
 				std::memcpy(ptr, dbgbuffer.data(), dbgbuffer.size());
 			}
 
 			if (preproc.size()) {
-				ctx.data.Align<char>();
-				void* ptr{ ctx.data.AllocDataPtr<void>(preproc.size() + 1) };
+				ctx.mainFF.data.Align<char>();
+				void* ptr{ ctx.mainFF.data.AllocDataPtr<void>(preproc.size() + 1) };
 				std::memcpy(ptr, preproc.data(), preproc.size());
 			}
-			ctx.data.PopStream();
+			ctx.mainFF.data.PopStream();
 
-			ctx.data.PopStream();
+			ctx.mainFF.data.PopStream();
 			LOG_INFO("Added asset scriptparsetreedbg {} (hash_{:x})", path.string(), obj.name);
 		}
 
@@ -164,7 +164,7 @@ namespace fastfile::linker::bo4 {
 					std::unordered_map<std::string, std::vector<std::string>> bgcacheCompiled{};
 					cfg.precache = &bgcacheCompiled;
 					cfg.useModToolOpCodes = cfguseModToolOpcodes;
-					cfg.processorOpt.AddDefine(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
+					cfg.processorOpt.AddDefine(std::format("_FF_GEN_{}", ctx.linkCtx.mainFFName));
 					cfg.processorOpt.AddDefineListConfig(preprocDefs);
 
 
@@ -194,7 +194,7 @@ namespace fastfile::linker::bo4 {
 							continue;
 						}
 
-						std::unordered_set<uint64_t>& bg{ ctx.bgcache[type] };
+						std::unordered_set<uint64_t>& bg{ ctx.mainFF.bgcache[type] };
 
 						for (const std::string& entry : entries) {
 							uint64_t hash{ ctx.HashXHash(entry.c_str()) };
@@ -231,28 +231,28 @@ namespace fastfile::linker::bo4 {
 					XHash* gscScripts;
 					XHash* cscScripts;
 				};
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 				ScriptParseTreeForced header{};
-				header.name.name = ctx.ffnameHash;
+				header.name.name = ctx.mainFF.ffnameHash;
 				header.gscCount = (uint32_t)forcedServerScripts.size();
 				header.cscCount = (uint32_t)forcedClientScripts.size();
 				if (forcedServerScripts.size()) header.gscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
 				if (forcedClientScripts.size()) header.cscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
 
 				// todo: implement gdb compiler
-				ctx.data.WriteData(header);
+				ctx.mainFF.data.WriteData(header);
 
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.data.Align(8);
-				ctx.data.WriteData(forcedServerScripts.data(), forcedServerScripts.size() * sizeof(forcedServerScripts[0]));
-				ctx.data.Align(8);
-				ctx.data.WriteData(forcedClientScripts.data(), forcedClientScripts.size() * sizeof(forcedClientScripts[0]));
-				ctx.data.PopStream();
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.mainFF.data.Align(8);
+				ctx.mainFF.data.WriteData(forcedServerScripts.data(), forcedServerScripts.size() * sizeof(forcedServerScripts[0]));
+				ctx.mainFF.data.Align(8);
+				ctx.mainFF.data.WriteData(forcedClientScripts.data(), forcedClientScripts.size() * sizeof(forcedClientScripts[0]));
+				ctx.mainFF.data.PopStream();
 
-				ctx.data.PopStream();
-				LOG_INFO("Added asset scriptparsetreeforced {} (hash_{:x})", ctx.linkCtx.ffname, ctx.ffnameHash);
+				ctx.mainFF.data.PopStream();
+				LOG_INFO("Added asset scriptparsetreeforced {} (hash_{:x})", ctx.linkCtx.mainFFName, ctx.mainFF.ffnameHash);
 			}
 		}
 	};

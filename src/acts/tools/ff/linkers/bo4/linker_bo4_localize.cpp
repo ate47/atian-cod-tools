@@ -20,30 +20,46 @@ namespace fastfile::linker::bo4 {
 				};
 				static_assert(sizeof(LocalizeEntry) == 0x18);
 
+				std::string lang{ localize.GetString("language", "all")};
+
+				BO4FFContext* pffctx;
+				if (lang == "all") {
+					pffctx = &ctx.mainFF;
+				}
+				else {
+					pffctx = &ctx.GetFFContext(utils::va("%s_", lang.c_str()));
+				}
+
+				BO4FFContext& ffctx{ *pffctx };
+
 				size_t added{};
 				for (auto& [k, v] : localize.main.GetObj()) {
 					if (!k.IsString() || !v.IsString()) {
 						LOG_WARNING("Invalid localize: {} -> {}", k.GetString(), v.GetString());
 						continue;
 					}
-					ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY, fastfile::linker::data::POINTER_NEXT);
+					const char* key{ k.GetString() };
+					if (!std::strcmp(key, "language")) continue; // ignore language key
 
-					ctx.data.PushStream(XFILE_BLOCK_TEMP);
+					// todo: better localize format to support multilang
+					ffctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY, fastfile::linker::data::POINTER_NEXT);
+
+					ffctx.data.PushStream(XFILE_BLOCK_TEMP);
 					LocalizeEntry header{};
 
-					header.name.name = ctx.HashXHash(k.GetString());
+					header.name.name = ctx.HashXHash(key);
 					header.value = (const char*)fastfile::linker::data::POINTER_NEXT;
-					ctx.data.WriteData(header);
+					ffctx.data.WriteData(header);
 
-					ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-					ctx.data.Align<char>();
-					ctx.data.WriteData(v.GetString());
-					ctx.data.PopStream();
+					ffctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+					ffctx.data.Align<char>();
+					ffctx.data.WriteData(v.GetString());
+					ffctx.data.PopStream();
 
-					ctx.data.PopStream();
+					ffctx.data.PopStream();
 					added++;
 				}
-				LOG_INFO("Added asset localizeentry {}: {} entry(ies)", assval.value, added);
+				LOG_INFO("Added asset localizeentry {}: {} entry(ies) into {}", assval.value, added, ffctx.ffname);
 			}
 		}
 	};

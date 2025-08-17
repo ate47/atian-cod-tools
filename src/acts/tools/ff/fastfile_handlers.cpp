@@ -760,8 +760,8 @@ namespace fastfile {
 		std::string zoneFileData{ utils::ReadFile<std::string>(zoneFile) };
 		zone.ParseFile(zoneFile, zoneFileData);
 
-		if (!ffname) {
-			ffname = zone.GetConfig("name");
+		if (!mainFFName) {
+			mainFFName = zone.GetConfig("name");
 		}
 		const char* game{ zone.GetConfig("game") };
 

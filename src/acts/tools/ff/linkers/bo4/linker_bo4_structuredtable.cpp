@@ -70,11 +70,11 @@ namespace fastfile::linker::bo4 {
 						continue;
 					}
 
-					ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_STRUCTURED_TABLE, fastfile::linker::data::POINTER_NEXT);
+					ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_STRUCTURED_TABLE, fastfile::linker::data::POINTER_NEXT);
 
-					ctx.data.PushStream(XFILE_BLOCK_TEMP);
+					ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 
-					size_t stoff{ ctx.data.AllocData(sizeof(StructuredTable)) };
+					size_t stoff{ ctx.mainFF.data.AllocData(sizeof(StructuredTable)) };
 
 					std::vector<StructuredTableHeader> headers{};
 					std::vector<byte> headersStrings{};
@@ -145,7 +145,7 @@ namespace fastfile::linker::bo4 {
 						}
 					}
 
-					StructuredTable& st{ *ctx.data.GetData<StructuredTable>(stoff) };
+					StructuredTable& st{ *ctx.mainFF.data.GetData<StructuredTable>(stoff) };
 					uint64_t hash{ ctx.HashPathName(rfpath) };
 					st.name.name = hash;
 					size_t cellCount{ rowCount * columnCount };
@@ -160,17 +160,17 @@ namespace fastfile::linker::bo4 {
 						st.headers = (StructuredTableHeader*)ALLOC_PTR;
 						st.headerIndex = (int32_t*)ALLOC_PTR;
 					}
-					ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+					ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
 					if (cellCount) {
 						// cells
-						ctx.data.Align(8);
-						ctx.data.WriteDataVector(cells);
-						ctx.data.WriteDataVector(cellsStrings);
+						ctx.mainFF.data.Align(8);
+						ctx.mainFF.data.WriteDataVector(cells);
+						ctx.mainFF.data.WriteDataVector(cellsStrings);
 
 						// cell index
-						ctx.data.Align<uint32_t>();
-						uint32_t* cellIndex{ ctx.data.AllocDataPtr<uint32_t>(cellCount * sizeof(uint32_t)) };
+						ctx.mainFF.data.Align<uint32_t>();
+						uint32_t* cellIndex{ ctx.mainFF.data.AllocDataPtr<uint32_t>(cellCount * sizeof(uint32_t)) };
 						for (size_t i = 0; i < cellCount; i++) {
 							cellIndex[i] = (uint32_t)i;
 						}
@@ -182,13 +182,13 @@ namespace fastfile::linker::bo4 {
 
 					if (columnCount) {
 						// headers
-						ctx.data.Align(8);
-						ctx.data.WriteDataVector(headers);
-						ctx.data.WriteDataVector(headersStrings);
+						ctx.mainFF.data.Align(8);
+						ctx.mainFF.data.WriteDataVector(headers);
+						ctx.mainFF.data.WriteDataVector(headersStrings);
 
 						// header index
-						ctx.data.Align<uint32_t>();
-						uint32_t* headerIndex{ ctx.data.AllocDataPtr<uint32_t>(columnCount * sizeof(uint32_t)) };
+						ctx.mainFF.data.Align<uint32_t>();
+						uint32_t* headerIndex{ ctx.mainFF.data.AllocDataPtr<uint32_t>(columnCount * sizeof(uint32_t)) };
 						for (size_t i = 0; i < columnCount; i++) {
 							headerIndex[i] = (uint32_t)i;
 						}
@@ -198,9 +198,9 @@ namespace fastfile::linker::bo4 {
 						});
 					}
 
-					ctx.data.PopStream();
+					ctx.mainFF.data.PopStream();
 
-					ctx.data.PopStream();
+					ctx.mainFF.data.PopStream();
 
 					LOG_INFO("Added asset structuredtable {} (hash_{:x})", rfpath.string(), hash);
 				}

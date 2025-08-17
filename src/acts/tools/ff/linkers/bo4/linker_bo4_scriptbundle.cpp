@@ -63,7 +63,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 		if (sbObjectsCount) {
 			size_t idxobj{};
-			size_t sbObjects{ ctx.data.AllocData(sizeof(SB_Object) * sbObjectsCount) };
+			size_t sbObjects{ ctx.mainFF.data.AllocData(sizeof(SB_Object) * sbObjectsCount) };
 
 			for (auto& [k, v] : obj) {
 				if (v.IsArray()) {
@@ -71,7 +71,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 				}
 				const char* keyName{ k.GetString() };
 
-				SB_Object* sobj{ ctx.data.GetData<SB_Object>(sbObjects) + idxobj++ };
+				SB_Object* sobj{ ctx.mainFF.data.GetData<SB_Object>(sbObjects) + idxobj++ };
 
 				// not good, what if the user wants a hashed key
 				sobj->keyName.name = ctx.HashXHash(keyName);
@@ -106,7 +106,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 							sobj->value.intVal = (int32_t)utils::ParseFormatInt(val);
 							break;
 						case ET_STRING:
-							sobj->stringRef = (ScrString_t)ctx.data.AddString(val);
+							sobj->stringRef = (ScrString_t)ctx.mainFF.data.AddString(val);
 							break;
 						case ET_XHASH:
 							sobj->hashValue.name = ctx.HashXHash(val);
@@ -116,7 +116,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 					}
 
 					if (sobj->type == KVP_STRING) {
-						sobj->stringRef = (ScrString_t)ctx.data.AddString(stringValue);
+						sobj->stringRef = (ScrString_t)ctx.mainFF.data.AddString(stringValue);
 						sobj->hashValue.name = ctx.HashXHash(stringValue);
 					}
 				
@@ -131,20 +131,20 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 		if (sbSubCount) {
 			size_t idxsub{};
-			size_t sbSub{ ctx.data.AllocData(sizeof(SB_Sub) * sbSubCount) };
+			size_t sbSub{ ctx.mainFF.data.AllocData(sizeof(SB_Sub) * sbSubCount) };
 			for (auto& [k, v] : obj) {
 				if (!v.IsArray()) {
 					continue;
 				}
 				const char* keyName{ k.GetString() };
-				SB_Sub* ssub{ ctx.data.GetData<SB_Sub>(sbSub) + idxsub++ };
-				ssub->keyname = (ScrString_t)ctx.data.AddString(keyName);
+				SB_Sub* ssub{ ctx.mainFF.data.GetData<SB_Sub>(sbSub) + idxsub++ };
+				ssub->keyname = (ScrString_t)ctx.mainFF.data.AddString(keyName);
 				auto arr{ v.GetArray() };
 				ssub->size = (uint64_t)arr.Size();
 				ssub->item = (SB_ObjectsArray*)fastfile::linker::data::POINTER_NEXT;
 
 				// alloc sub elements
-				size_t subArray{ ctx.data.AllocData(sizeof(SB_ObjectsArray) * ssub->size) };
+				size_t subArray{ ctx.mainFF.data.AllocData(sizeof(SB_ObjectsArray) * ssub->size) };
 
 				for (auto& el : arr) {
 					if (!WriteArray(ctx, el, subArray)) {
@@ -156,7 +156,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 		}
 
 		// we have enough data, we can link the header
-		SB_ObjectsArray* arr{ ctx.data.GetData<SB_ObjectsArray>(arrayOffset) };
+		SB_ObjectsArray* arr{ ctx.mainFF.data.GetData<SB_ObjectsArray>(arrayOffset) };
 		if (sbObjectsCount) {
 			arr->sbObjects = (SB_Object*)fastfile::linker::data::POINTER_NEXT;
 			arr->sbObjectCount = sbObjectsCount;
@@ -212,14 +212,14 @@ namespace fastfile::linker::bo4::scriptbundle {
 					continue;
 				}
 
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 
-				size_t header{ ctx.data.AllocData(sizeof(ScriptBundle)) };
+				size_t header{ ctx.mainFF.data.AllocData(sizeof(ScriptBundle)) };
 				size_t arrayOffset{ header + offsetof(ScriptBundle, sbObjectsArray) };
 
-				ScriptBundle* bundle{ ctx.data.GetData<ScriptBundle>(header) };
+				ScriptBundle* bundle{ ctx.mainFF.data.GetData<ScriptBundle>(header) };
 
 				// add name and type to bundle
 				bundle->name.name = ctx.HashXHash(name);
@@ -235,15 +235,15 @@ namespace fastfile::linker::bo4::scriptbundle {
 					main.AddMember(rapidjson::StringRef("type"), typeValue, main.GetAllocator());
 				}
 
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
 				if (!WriteArray(ctx, main, arrayOffset)) {
 					LOG_ERROR("Can't compile json object");
 					ctx.error = true;
 					continue;
 				}
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
 
 				LOG_INFO("Added asset scriptbundle {} (hash_{:x})", rfpath.string(), bundle->name.name);

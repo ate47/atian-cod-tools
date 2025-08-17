@@ -26,7 +26,7 @@ namespace fastfile::linker::bo4 {
 				}
 				acts::compiler::preprocessor::PreProcessorOption prepopt{};
 				prepopt.cwd = ctx.linkCtx.input;
-				prepopt.AddDefine(std::format("_FF_GEN_{}", ctx.linkCtx.ffname));
+				prepopt.AddDefine(std::format("_FF_GEN_{}", ctx.linkCtx.mainFFName));
 				prepopt.AddDefineListConfig(preprocDefs);
 
 				if (!prepopt.ApplyPreProcessor(luaFile, pathstr.data())) {
@@ -76,23 +76,23 @@ namespace fastfile::linker::bo4 {
 					byte* buffer;
 				}; static_assert(sizeof(LuaFile) == 0x20);
 
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_LUAFILE, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_LUAFILE, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 				LuaFile lf{};
 
 				lf.name.name = ctx.HashPathName(rfpath);
 				lf.buffer = (byte*)fastfile::linker::data::POINTER_NEXT;
 				lf.len = (uint32_t)outluac.size();
 				outluac.push_back(0);
-				ctx.data.WriteData(lf);
+				ctx.mainFF.data.WriteData(lf);
 
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.data.Align(0x10);
-				ctx.data.WriteData(outluac.data(), outluac.size());
-				ctx.data.PopStream();
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.mainFF.data.Align(0x10);
+				ctx.mainFF.data.WriteData(outluac.data(), outluac.size());
+				ctx.mainFF.data.PopStream();
 
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
 				LOG_INFO("Added asset luafile {} (hash_{:x})", rfpath.string(), lf.name.name);
 			}

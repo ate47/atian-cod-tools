@@ -24,22 +24,22 @@ namespace fastfile::linker::bo4 {
 					const char* buffer;
 				}; static_assert(sizeof(RawFile) == 0x20);
 
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_RAWFILE, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_RAWFILE, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 				RawFile rf{};
 
 				rf.name.name = ctx.HashPathName(rfpath);
 				rf.buffer = (const char*)fastfile::linker::data::POINTER_NEXT;
 				rf.len = (uint32_t)buffer.size();
-				ctx.data.WriteData(rf);
+				ctx.mainFF.data.WriteData(rf);
 
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.data.Align(0x10);
-				ctx.data.WriteData(buffer.data(), buffer.length() + 1); // add \0
-				ctx.data.PopStream();
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.mainFF.data.Align(0x10);
+				ctx.mainFF.data.WriteData(buffer.data(), buffer.length() + 1); // add \0
+				ctx.mainFF.data.PopStream();
 
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
 				LOG_INFO("Added asset rawfile {} (hash_{:x})", rfpath.string(), rf.name.name);
 			}

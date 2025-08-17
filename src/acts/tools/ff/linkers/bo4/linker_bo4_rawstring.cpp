@@ -14,20 +14,20 @@ namespace fastfile::linker::bo4 {
 					const char* str;
 				}; static_assert(sizeof(RawString) == 0x18);
 
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_RAWSTRING, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_RAWSTRING, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 				RawString rf{};
 
 				rf.name.name = ctx.HashPathName(assval.value);
 				rf.str = (const char*)fastfile::linker::data::POINTER_NEXT;
-				ctx.data.WriteData(rf);
+				ctx.mainFF.data.WriteData(rf);
 
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.data.WriteData(assval.value, std::strlen(assval.value) + 1);
-				ctx.data.PopStream();
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.mainFF.data.WriteData(assval.value, std::strlen(assval.value) + 1);
+				ctx.mainFF.data.PopStream();
 
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
 				LOG_INFO("Added asset rawstring {} (hash_{:x})", assval.value, rf.name.name);
 			}

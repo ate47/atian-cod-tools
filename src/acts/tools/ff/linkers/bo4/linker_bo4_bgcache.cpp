@@ -8,6 +8,59 @@ namespace fastfile::linker::bo4 {
 		// force the priority to last so the other tools can add entries
 		BGCacheWorker() : LinkerWorker("BGCache", MININT32) {}
 
+		void ComputeFFBG(BO4FFContext& ctx) {
+
+			size_t entries{};
+			for (auto& [_, v] : ctx.bgcache) {
+				for (auto& vv : v) {
+					entries++;
+				}
+			}
+
+			if (!entries) {
+				return; // nothing to build
+			}
+
+			struct BGCacheInfoDef {
+				games::bo4::pool::BGCacheTypes type;
+				XHash name;
+				uint64_t asset;
+			}; static_assert(sizeof(BGCacheInfoDef) == 0x20);
+
+			struct BGCacheInfo {
+				XHash name;
+				BGCacheInfoDef* def;
+				int defCount;
+			}; static_assert(sizeof(BGCacheInfo) == 0x20);
+
+			ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_BG_CACHE, fastfile::linker::data::POINTER_NEXT);
+
+			ctx.data.PushStream(XFILE_BLOCK_TEMP);
+			BGCacheInfo bg{};
+
+			bg.name.name = ctx.ffnameHash;
+			bg.def = (BGCacheInfoDef*)fastfile::linker::data::POINTER_NEXT;
+			bg.defCount = (uint32_t)entries;
+			ctx.data.WriteData(bg);
+
+			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			ctx.data.Align(8);
+			BGCacheInfoDef* defs{ ctx.data.AllocDataPtr<BGCacheInfoDef>(sizeof(BGCacheInfoDef) * entries) };
+
+			for (auto& [type, v] : ctx.bgcache) {
+				for (auto& name : v) {
+					defs->name.name = name;
+					defs->type = type;
+					defs++;
+				}
+			}
+			ctx.data.PopStream();
+
+			ctx.data.PopStream();
+
+			LOG_INFO("Added asset bgcache {} (hash_{:x})", ctx.ffname, ctx.ffnameHash);
+		}
+
 		void Compute(BO4LinkContext& ctx) override {
 			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["bgcache"]) {
 				assval.handled = true;
@@ -46,59 +99,14 @@ namespace fastfile::linker::bo4 {
 						continue;
 					}
 
-					ctx.bgcache[type].insert(ctx.HashXHash(nameStr.c_str()));
+					ctx.mainFF.bgcache[type].insert(ctx.HashXHash(nameStr.c_str()));
 				}
 			}
 
-			size_t entries{};
-			for (auto& [_, v] : ctx.bgcache) {
-				for (auto& vv : v) {
-					entries++;
-				}
+			ComputeFFBG(ctx.mainFF);
+			for (auto& [k, v] : ctx.ffs) {
+				ComputeFFBG(v);
 			}
-
-			if (!entries) {
-				return; // nothing to build
-			}
-
-			struct BGCacheInfoDef {
-				games::bo4::pool::BGCacheTypes type;
-				XHash name;
-				uint64_t asset;
-			}; static_assert(sizeof(BGCacheInfoDef) == 0x20);
-
-			struct BGCacheInfo {
-				XHash name;
-				BGCacheInfoDef* def;
-				int defCount;
-			}; static_assert(sizeof(BGCacheInfo) == 0x20);
-
-			ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_BG_CACHE, fastfile::linker::data::POINTER_NEXT);
-
-			ctx.data.PushStream(XFILE_BLOCK_TEMP);
-			BGCacheInfo bg{};
-
-			bg.name.name = ctx.ffnameHash;
-			bg.def = (BGCacheInfoDef*)fastfile::linker::data::POINTER_NEXT;
-			bg.defCount = (uint32_t)entries;
-			ctx.data.WriteData(bg);
-
-			ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-			ctx.data.Align(8);
-			BGCacheInfoDef* defs{ ctx.data.AllocDataPtr<BGCacheInfoDef>(sizeof(BGCacheInfoDef) * entries) };
-			
-			for (auto& [type, v] : ctx.bgcache) {
-				for (auto& name : v) {
-					defs->name.name = name;
-					defs->type = type;
-					defs++;
-				}
-			}
-			ctx.data.PopStream();
-
-			ctx.data.PopStream();
-
-			LOG_INFO("Added asset bgcache {} (hash_{:x})", ctx.linkCtx.ffname, ctx.ffnameHash);
 		}
 	};
 

@@ -37,12 +37,20 @@ namespace fastfile::linker::bo4 {
 		uintptr_t assets; // XAsset*
 	};
 
-	struct BO4LinkContext {
-		FastFileLinkerContext& linkCtx;
+	struct BO4FFContext {
 		fastfile::linker::data::LinkerData data{ XFILE_BLOCK_COUNT, XFILE_BLOCK_TEMP, XFILE_BLOCK_TEMP_PRELOAD };
 		std::unordered_map<games::bo4::pool::BGCacheTypes, std::unordered_set<uint64_t>> bgcache{};
-		bool error{};
 		uint64_t ffnameHash{};
+		const char* ffname{};
+	};
+
+	struct BO4LinkContext {
+		FastFileLinkerContext& linkCtx;
+		BO4FFContext mainFF;
+		std::map<std::string, BO4FFContext> ffs{};
+		bool error{};
+
+		BO4FFContext& GetFFContext(const char* prefix);
 
 		uint32_t HashScr(const char* str);
 		uint64_t HashXHash(const char* str, bool ignoreTop = false);

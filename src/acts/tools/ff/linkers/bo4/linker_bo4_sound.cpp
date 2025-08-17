@@ -403,51 +403,51 @@ namespace fastfile::linker::bo4 {
 		return sab.size();
 	}
 
-	void WriteStreamKey(BO4LinkContext& ctx, StreamKey* key) {
-		ctx.data.PushStream(XFILE_BLOCK_TEMP);
-		ctx.data.WriteData(*key);
+	void WriteStreamKey(BO4FFContext& ffctx, StreamKey* key) {
+		ffctx.data.PushStream(XFILE_BLOCK_TEMP);
+		ffctx.data.WriteData(*key);
 
-		ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+		ffctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
 		int flags{ key->keyFlags };
 		// Load_StreamKeyData
 		switch (flags & 3) {
 		case 0: // stream
-			ctx.data.PushStream(XFILE_BLOCK_STREAMER);
-			ctx.data.Align(0x10000);
-			ctx.data.AllocRuntimeData(key->size);
-			ctx.data.PopStream();
+			ffctx.data.PushStream(XFILE_BLOCK_STREAMER);
+			ffctx.data.Align(0x10000);
+			ffctx.data.AllocRuntimeData(key->size);
+			ffctx.data.PopStream();
 			break;
 		case 1: // stream cpu
-			ctx.data.PushStream(XFILE_BLOCK_STREAMER_CPU);
-			ctx.data.Align(0x10000);
-			ctx.data.AllocRuntimeData(key->size);
-			ctx.data.PopStream();
+			ffctx.data.PushStream(XFILE_BLOCK_STREAMER_CPU);
+			ffctx.data.Align(0x10000);
+			ffctx.data.AllocRuntimeData(key->size);
+			ffctx.data.PopStream();
 			break;
 		case 2:
 		case 3:
-			ctx.data.Align(0x10000);
-			ctx.data.AllocData(key->size);
+			ffctx.data.Align(0x10000);
+			ffctx.data.AllocData(key->size);
 			break;
 		}
-		ctx.data.PopStream();
+		ffctx.data.PopStream();
 
-		ctx.data.PopStream();
+		ffctx.data.PopStream();
 		LOG_INFO("Added subasset streamkey hash_{:x}", key->name.name);
 	}
 
-	void WriteStreamKeys(BO4LinkContext& ctx, SndBankStreamKeys& key) {
+	void WriteStreamKeys(BO4FFContext& ffctx, SndBankStreamKeys& key) {
 		if (key.streamKey1) {
-			WriteStreamKey(ctx, key.streamKey1);
+			WriteStreamKey(ffctx, key.streamKey1);
 		}
 		if (key.data1) {
-			ctx.data.AllocData(key.len1);
+			ffctx.data.AllocData(key.len1);
 		}
 		if (key.fileKey) {
-			WriteStreamKey(ctx, key.fileKey);
+			WriteStreamKey(ffctx, key.fileKey);
 		}
 		if (key.fileData) {
-			ctx.data.AllocData(key.fileLen);
+			ffctx.data.AllocData(key.fileLen);
 		}
 	}
 
@@ -469,8 +469,19 @@ namespace fastfile::linker::bo4 {
 
 				std::string gameLanguage{ scfg.GetString("gameLanguage", "all") };
 				std::string soundLanguage{ scfg.GetString("soundLanguage", "all") };
+
+				BO4FFContext* pffctx;
+				if (soundLanguage == "all") {
+					pffctx = &ctx.mainFF;
+				}
+				else {
+					pffctx = &ctx.GetFFContext(utils::va("%s_", soundLanguage.c_str()));
+				}
+
+				BO4FFContext& ffctx{ *pffctx };
+
 				// shouldn't be set, but whatever
-				std::string zone{ scfg.GetString("zone", ctx.linkCtx.ffname) };
+				std::string zone{ scfg.GetString("zone", ctx.linkCtx.mainFFName) };
 				std::string name{ scfg.GetString("name", std::format("{}.{}", zone, soundLanguage)) };
 
 				std::vector<SndAssetBankEntryBo4> streamEntries{};
@@ -540,9 +551,9 @@ namespace fastfile::linker::bo4 {
 					continue;
 				}
 
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SOUND, fastfile::linker::data::POINTER_NEXT);
+				ffctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SOUND, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ffctx.data.PushStream(XFILE_BLOCK_TEMP);
 				SndBank sndbank{};
 				sndbank.nameHash.name = ctx.HashXHash(name);
 				sndbank.name = (const char*)fastfile::ALLOC_PTR;
@@ -576,14 +587,14 @@ namespace fastfile::linker::bo4 {
 
 				sndbank.patchZone = scfg.GetBool("patchZone");
 
-				ctx.data.WriteData(sndbank);
+				ffctx.data.WriteData(sndbank);
 
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ffctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
-				ctx.data.WriteData(name);
-				ctx.data.WriteData(zone);
-				ctx.data.WriteData(gameLanguage);
-				ctx.data.WriteData(soundLanguage);
+				ffctx.data.WriteData(name);
+				ffctx.data.WriteData(zone);
+				ffctx.data.WriteData(gameLanguage);
+				ffctx.data.WriteData(soundLanguage);
 
 				// alias
 
@@ -609,12 +620,12 @@ namespace fastfile::linker::bo4 {
 
 				sndbank.streamKeysSABL.streamKey1 = &loadStreamKey1;
 				sndbank.streamKeysSABL.fileKey = &loadStreamKeyFile;
-				WriteStreamKeys(ctx, sndbank.streamKeysSABL);
-				WriteStreamKeys(ctx, sndbank.streamKeysSABS);
+				WriteStreamKeys(ffctx, sndbank.streamKeysSABL);
+				WriteStreamKeys(ffctx, sndbank.streamKeysSABS);
 
-				ctx.data.PopStream();
+				ffctx.data.PopStream();
 
-				ctx.data.PopStream();
+				ffctx.data.PopStream();
 
 
 
@@ -623,7 +634,5 @@ namespace fastfile::linker::bo4 {
 		}
 	};
 
-#ifndef CI_BUILD
 	utils::ArrayAdder<SoundWorker, LinkerWorker> impl{ GetWorkers() };
-#endif
 }

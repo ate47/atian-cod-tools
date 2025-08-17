@@ -20,6 +20,15 @@ namespace fastfile::linker::bo4 {
 
 		return (uint32_t)r;
 	}
+	BO4FFContext& BO4LinkContext::GetFFContext(const char* prefix) {
+		BO4FFContext& sctx{ ffs[prefix] };
+		if (!sctx.ffnameHash) {
+			sctx.ffname = this->linkCtx.strs.CloneStr(utils::va("%s%s", prefix, mainFF.ffname));
+			sctx.ffnameHash = HashXHash(sctx.ffname);
+			sctx.data.SetMode(fastfile::linker::data::LM_DATA);
+		}
+		return sctx;
+	}
 
 	uint64_t BO4LinkContext::HashXHash(const char* str, bool ignoreTop) {
 		if (ignoreTop && *str == '#') {
@@ -66,13 +75,9 @@ namespace fastfile::linker::bo4 {
 
 		void Link(FastFileLinkerContext& ctx) override {
 			BO4LinkContext bo4ctx{ ctx };
-			bo4ctx.ffnameHash = hash::Hash64Pattern(ctx.ffname);
-			ctx.RegisterHash(bo4ctx.ffnameHash, ctx.ffname);
-
-
-			// load files into bo4ctx.assetData
-
-			bo4ctx.data.SetMode(fastfile::linker::data::LM_DATA);
+			bo4ctx.mainFF.ffname = ctx.mainFFName;
+			bo4ctx.mainFF.ffnameHash = bo4ctx.HashXHash(ctx.mainFFName);
+			bo4ctx.mainFF.data.SetMode(fastfile::linker::data::LM_DATA);
 
 			for (LinkerWorker* w : GetWorkers()) {
 				LOG_DEBUG("Compute '{}'...", w->id);
@@ -85,60 +90,73 @@ namespace fastfile::linker::bo4 {
 				
 			bo4ctx.linkCtx.zone.AssertAllHandled(true);
 
-			bo4ctx.data.SetMode(fastfile::linker::data::LM_HEADER);
+			auto LinkFF = [&bo4ctx](BO4FFContext& ff, std::vector<byte>& data, size_t* blocks) {
 
-			// add to ctx.data the assets/strings headers
-			XAssetList assetlist{};
-			
-			// write header
-			assetlist.stringList.count = (int)bo4ctx.data.strings.size() + 1; // +1 for the null
-			assetlist.stringList.strings = fastfile::linker::data::POINTER_NEXT;
+				ff.data.SetMode(fastfile::linker::data::LM_HEADER);
 
-			if (bo4ctx.data.assets.size()) {
-				assetlist.assetCount = (int)bo4ctx.data.assets.size();
-				assetlist.assets = fastfile::linker::data::POINTER_NEXT;
-			}
-			bo4ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				// add to ctx.data the assets/strings headers
+				XAssetList assetlist{};
 
-			bo4ctx.data.WriteData(assetlist);
+				// write header
+				assetlist.stringList.count = (int)ff.data.strings.size() + 1; // +1 for the null
+				assetlist.stringList.strings = fastfile::linker::data::POINTER_NEXT;
 
-			bo4ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-			// write string ref array
-			bo4ctx.data.Align<void*>();
-
-			bo4ctx.data.WriteData<void*>(nullptr); // empty str
-			for (size_t i = 0; i < bo4ctx.data.strings.size(); i++) {
-				bo4ctx.data.WriteData<void*>((void*)fastfile::linker::data::POINTER_NEXT);
-			}
-
-			// write strings
-			for (const char* str : bo4ctx.data.strings) {
-				bo4ctx.data.Align<char>();
-				bo4ctx.data.WriteData(str);
-			}
-			bo4ctx.data.PopStream();
-
-			if (bo4ctx.data.assets.size()) {
-				bo4ctx.data.Align(8); // GetAlignment_XAsset
-
-				struct XAsset {
-					games::bo4::pool::XAssetType type;
-					uintptr_t header; // XAssetHeader
-				};
-				// write asset array
-				
-				XAsset tmpAsset{};
-				for (const fastfile::linker::data::AssetData& asset : bo4ctx.data.assets) {
-					tmpAsset.type = (games::bo4::pool::XAssetType)asset.type;
-					tmpAsset.header = (uintptr_t)asset.header;
-					bo4ctx.data.WriteData(tmpAsset);
+				if (ff.data.assets.size()) {
+					assetlist.assetCount = (int)ff.data.assets.size();
+					assetlist.assets = fastfile::linker::data::POINTER_NEXT;
 				}
+				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
+
+				ff.data.WriteData(assetlist);
+
+				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				// write string ref array
+				ff.data.Align<void*>();
+
+				ff.data.WriteData<void*>(nullptr); // empty str
+				for (size_t i = 0; i < ff.data.strings.size(); i++) {
+					ff.data.WriteData<void*>((void*)fastfile::linker::data::POINTER_NEXT);
+				}
+
+				// write strings
+				for (const char* str : ff.data.strings) {
+					ff.data.Align<char>();
+					ff.data.WriteData(str);
+				}
+				ff.data.PopStream();
+
+				if (ff.data.assets.size()) {
+					ff.data.Align(8); // GetAlignment_XAsset
+
+					struct XAsset {
+						games::bo4::pool::XAssetType type;
+						uintptr_t header; // XAssetHeader
+					};
+					// write asset array
+
+					XAsset tmpAsset{};
+					for (const fastfile::linker::data::AssetData& asset : ff.data.assets) {
+						tmpAsset.type = (games::bo4::pool::XAssetType)asset.type;
+						tmpAsset.header = (uintptr_t)asset.header;
+						ff.data.WriteData(tmpAsset);
+					}
+				}
+				ff.data.PopStream();
+
+				ff.data.Link(data, blocks);
+
+				LOG_INFO("Fastfile {} data linked with {} asset(s) and {} string(s)", ff.ffname, assetlist.assetCount, assetlist.stringList.count);
+			};
+
+			fastfile::FastFile& mff{ ctx.fastfiles.emplace_back() };
+			mff.ffname = ctx.mainFFName;
+			LinkFF(bo4ctx.mainFF, mff.linkedData, mff.blockSizes);
+
+			for (auto& [k, ff] : bo4ctx.ffs) {
+				fastfile::FastFile& mff{ ctx.fastfiles.emplace_back() };
+				mff.ffname = ff.ffname;
+				LinkFF(ff, mff.linkedData, mff.blockSizes);
 			}
-			bo4ctx.data.PopStream();
-
-			bo4ctx.data.Link(ctx.linkedData, ctx.blockSizes);
-
-			LOG_INFO("Fastfile data linked with {} asset(s) and {} string(s)", assetlist.assetCount, assetlist.stringList.count);
 		}
 
 	};

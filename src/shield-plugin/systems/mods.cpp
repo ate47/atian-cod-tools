@@ -159,10 +159,29 @@ namespace systems::mods {
 
 				// add hook zones
 				LOG_INFO("Hook {} -> {} fast file(s)", zoneInfo[i].name, it->second.size());
+
+				int lg{};
+				if ((*bo4::dvar_loc_language)) {
+					lg = (*bo4::dvar_loc_language)->value->current.integer;
+				}
+				const char* lgp{ bo4::SEH_GetLanguageNameAbbr(lg) };
+
+				LOG_TRACE("lang: {}", lgp);
 				for (XZoneInfo& nfo : it->second) {
 					LOG_DEBUG("- {}", nfo.name ? nfo.name : "null");
+					any.emplace_back(nfo);
+					// search for localized ff
+					const char* u18nff{utils::va("%s%s", lgp, nfo.name)};
+					for (const char* zh : zoneHooks.zoneNames) {
+						if (!std::strcmp(zh, u18nff)) {
+							LOG_INFO("Hook localized {}", zh);
+							XZoneInfo nfol{ nfo };
+							nfol.name = zh;
+							any.emplace_back(nfol);
+							break;
+						}
+					}
 				}
-				any.insert(any.end(), it->second.begin(), it->second.end());
 			}
 
 			if (!any.empty()) {
@@ -320,9 +339,11 @@ namespace systems::mods {
 								continue;
 							}
 
-							const char* ffname{ nameIt->value.GetString() };
+							const char* ffname{ zoneHooks.alloc.CloneStr(nameIt->value.GetString()) };
+							zoneHooks.zoneNames.emplace_back(ffname);
+
 							if (hookIt == obj.MemberEnd()) {
-								LOG_WARNING("Found invalid fastfile hook: missing hook for {}", ffname);
+								LOG_INFO("Loaded fastfile ref {}", ffname);
 								continue;
 							}
 							const char* hook{ hookIt->value.GetString() };
@@ -331,7 +352,7 @@ namespace systems::mods {
 							bool isCommon = isCommonIt == obj.MemberEnd() || !isCommonIt->value.IsBool() || isCommonIt->value.GetBool();
 
 							XZoneInfo info{};
-							info.name = zoneHooks.alloc.CloneStr(ffname);
+							info.name = ffname;
 							info.allocFlags = DB_FLAG_IGNORE_MISSING | DB_FLAG_CUSTOM;
 							info.freeFlags = DB_FLAG_IGNORE_MISSING;
 							if (isCommon) {
@@ -339,7 +360,6 @@ namespace systems::mods {
 								info.freeFlags |= DB_ZONE_COMMON8;
 							}
 							zoneHooks.hooks[hook].emplace_back(info);
-							zoneHooks.zoneNames.emplace_back(info.name);
 
 							LOG_INFO("Loaded fastfile hook {}->{} (iscommon={})", hook, ffname, isCommon ? "true" : "false");
 						}

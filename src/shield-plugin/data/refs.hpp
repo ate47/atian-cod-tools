@@ -5,6 +5,7 @@ namespace bo4 {
 	using namespace hook::refs;
 
 	S_ANY Ref<XAssetHeader(bo4::XAssetType type, XHash* name, bool errorIfMissing, int waitTime)> DB_FindXAssetHeader{ 0x2EB75B0_a };
+	S_ANY Ref<bool(bo4::XAssetType type, XHash* name)> DB_DoesXAssetExist{ 0x2EB6C90_a };
 
 	// gsc
 	S_ANY Ref<void(scriptInstance_t inst, int value)> ScrVm_AddBool{ 0x276E760_a };
@@ -80,6 +81,9 @@ namespace bo4 {
 	S_ANY Ref<void(int32_t fileid)> Stream_CloseFile{ 0x3C4C260_a };
 	S_ANY Ref<XAssetPool> s_assetPools{ 0x912A5B0_a };
 	
+	// common
+	S_ANY Ref<const char* (int32_t lang)> SEH_GetLanguageNameAbbr{ 0x3CB1340_a };
+	S_ANY Ref<const dvar_t*> dvar_loc_language{ 0xF92B348_a };
 
 	// mutex
 	class ScopedCriticalSection;

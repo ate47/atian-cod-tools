@@ -104,18 +104,18 @@ namespace fastfile::linker::bo4::image {
 			return false;
 		}
 
-		ctx.data.PushStream(XFILE_BLOCK_TEMP);
+		ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 		// header
-		ctx.data.WriteData(gfx);
+		ctx.mainFF.data.WriteData(gfx);
 
-		ctx.data.PushStream(XFILE_BLOCK_PHYSICAL);
+		ctx.mainFF.data.PushStream(XFILE_BLOCK_PHYSICAL);
 		// pixels
-		ctx.data.Align(0xFF);
-		ctx.data.WriteData(img, gfx.totalSize);
+		ctx.mainFF.data.Align(0xFF);
+		ctx.mainFF.data.WriteData(img, gfx.totalSize);
 
-		ctx.data.PopStream();
+		ctx.mainFF.data.PopStream();
 
-		ctx.data.PopStream();
+		ctx.mainFF.data.PopStream();
 
 		return true;
 	}
@@ -130,7 +130,7 @@ namespace fastfile::linker::bo4::image {
 				assval.handled = true;
 
 				uint64_t hashOut;
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_IMAGE, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_IMAGE, fastfile::linker::data::POINTER_NEXT);
 				if (LinkGfxImagePtr(ctx, assval.value, &hashOut)) {
 					LOG_INFO("Added asset gfximage {} (hash_{:x})", assval.value, hashOut);
 				}

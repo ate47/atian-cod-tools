@@ -461,12 +461,18 @@ namespace bo4 {
 		const char* buffer;
 	}; static_assert(sizeof(LuaFile) == 0x20);
 
+	struct LocalizeEntry {
+		const char* value;
+		XHash name;
+	};
+	static_assert(sizeof(LocalizeEntry) == 0x18);
 
 	union XAssetHeader {
 		void* data;
 		ScriptParseTree* spt;
 		ScriptParseTreeDBG* sptdbg;
 		LuaFile* luafile;
+		LocalizeEntry* localize;
 	}; static_assert(sizeof(XAssetHeader) == 8);
 
 	enum BuiltinType : uint32_t {
@@ -481,6 +487,86 @@ namespace bo4 {
 		void* actionFunc;
 		BuiltinType type;
 	};
+
+	struct dvar_t;
+
+	enum dvarType_t : __int32 {
+		DVAR_TYPE_INVALID = 0x0,
+		DVAR_TYPE_BOOL = 0x1,
+		DVAR_TYPE_FLOAT = 0x2,
+		DVAR_TYPE_FLOAT_2 = 0x3,
+		DVAR_TYPE_FLOAT_3 = 0x4,
+		DVAR_TYPE_FLOAT_4 = 0x5,
+		DVAR_TYPE_INT = 0x6,
+		DVAR_TYPE_ENUM = 0x7,
+		DVAR_TYPE_STRING = 0x8,
+		DVAR_TYPE_COLOR = 0x9,
+		DVAR_TYPE_INT64 = 0xA,
+		DVAR_TYPE_UINT64 = 0xB,
+		DVAR_TYPE_LINEAR_COLOR_RGB = 0xC,
+		DVAR_TYPE_COLOR_XYZ = 0xD,
+		DVAR_TYPE_COLOR_LAB = 0xE,
+		DVAR_TYPE_SESSIONMODE_BASE_DVAR = 0xF,
+		DVAR_TYPE_COUNT = 0x10,
+	};
+	union DvarLimits {
+		struct {
+			vec_t min;
+			vec_t max;
+		} vector;
+		struct {
+			float min;
+			float max;
+		} value;
+		struct {
+			uint64_t min;
+			uint64_t max;
+		} uint64;
+		struct {
+			int64_t min;
+			int64_t max;
+		} int64;
+		struct {
+			int32_t min;
+			int32_t max;
+		} int32;
+		struct {
+			int stringCount;
+			const char** strings;
+		} enumeration;
+	};
+
+	union DvarValue {
+		bool enabled;
+		int32_t integer;
+		uint32_t unsignedInt;
+		int64_t integer64;
+		uint64_t unsignedInt64;
+		float value;
+		vec4_t vector;
+		const char* string;
+		byte color[4];
+		const dvar_t* indirect[3];
+	};
+
+	struct DvarData {
+		DvarValue current;
+		DvarValue latched;
+		DvarValue reset;
+		DvarValue unk48;
+	};
+	static_assert(sizeof(DvarData) == 0x60);
+
+	struct dvar_t {
+		XHash name;
+		dvar_t* hashnext;
+		DvarData* value;
+		dvarType_t type;
+		unsigned int flags;
+		DvarLimits domain;
+		uint64_t unk38;
+	};
+	static_assert(sizeof(dvar_t) == 0x40);
 
 	struct AssetLink {
 		AssetLink* next;

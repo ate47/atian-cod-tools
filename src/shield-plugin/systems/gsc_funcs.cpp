@@ -8,6 +8,7 @@
 #include <systems/errors.hpp>
 #include <systems/gsc_link.hpp>
 #include <systems/gsc_funcs.hpp>
+#include <utils/decrypt.hpp>
 
 namespace systems::gsc::funcs {
 	uint32_t ScrVm_GetHashScr(bo4::scriptInstance_t inst, unsigned int index) {
@@ -40,8 +41,15 @@ namespace systems::gsc::funcs {
 				break;
 			}
 			case bo4::TYPE_HASH: {
-				XHash out;
-				LOG_INFO("{} #\"{}\"", prefix, core::hashes::ExtractTmp("hash", bo4::ScrVm_GetHash(&out, inst, 0)->name));
+				XHash out{ *bo4::ScrVm_GetHash(&out, inst, 0) };
+				const char* post{ "" };
+				if (bo4::DB_DoesXAssetExist(bo4::XAssetType::ASSET_TYPE_LOCALIZE_ENTRY, &out)) {
+					bo4::LocalizeEntry* loc{ bo4::DB_FindXAssetHeader(bo4::XAssetType::ASSET_TYPE_LOCALIZE_ENTRY, &out, false, 0).localize };
+					if (loc && loc->value) {
+						post = utils::va(" ('%s')", decrypt::DecryptString((char*)loc->value));
+					}
+				}
+				LOG_INFO("{} #\"{}\"{}", prefix, core::hashes::ExtractTmp("hash", out), post);
 				break;
 			}
 			case bo4::TYPE_FLOAT:

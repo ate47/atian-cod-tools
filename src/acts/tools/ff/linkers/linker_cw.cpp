@@ -63,8 +63,8 @@ namespace fastfile::linker::cw {
 
 		void Link(FastFileLinkerContext& ctx) override {
 			BOCWLinkContext bocwctx{ ctx };
-			bocwctx.ffnameHash = hash::Hash64Pattern(ctx.ffname);
-			ctx.RegisterHash(bocwctx.ffnameHash, ctx.ffname);
+			bocwctx.ffnameHash = hash::Hash64Pattern(ctx.mainFFName);
+			ctx.RegisterHash(bocwctx.ffnameHash, ctx.mainFFName);
 
 
 			// load files into bocwctx.assetData
@@ -133,7 +133,8 @@ namespace fastfile::linker::cw {
 			}
 			bocwctx.data.PopStream();
 
-			bocwctx.data.Link(ctx.linkedData, ctx.blockSizes);
+			fastfile::FastFile& mff{ ctx.fastfiles.emplace_back() };
+			bocwctx.data.Link(mff.linkedData, mff.blockSizes);
 
 			LOG_INFO("Fastfile data linked with {} asset(s) and {} string(s)", assetlist.assetCount, assetlist.stringList.count);
 		}

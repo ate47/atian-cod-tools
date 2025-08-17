@@ -40,9 +40,9 @@ namespace fastfile::linker::bo4 {
 					uint32_t kerningCacheCount;
 				}; static_assert(sizeof(TTFDef) == 0x50);
 
-				ctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_TTF, fastfile::linker::data::POINTER_NEXT);
+				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_TTF, fastfile::linker::data::POINTER_NEXT);
 
-				ctx.data.PushStream(XFILE_BLOCK_TEMP);
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
 				TTFDef ttf{};
 
 				ttf.name.name = ctx.HashXHash(defname);
@@ -52,20 +52,20 @@ namespace fastfile::linker::bo4 {
 				ttf.fileLen = (int32_t)buffer.size();
 				ttf.kerningCache = (TTFKerningEntry*)fastfile::linker::data::POINTER_NEXT;
 				ttf.kerningCacheCount = 0x4000;
-				ctx.data.WriteData(ttf);
+				ctx.mainFF.data.WriteData(ttf);
 
-				ctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.data.Align(0x10);
-				ctx.data.WriteData(buffer.data(), buffer.size() + 1);
-				ctx.data.PopStream();
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				ctx.mainFF.data.Align(0x10);
+				ctx.mainFF.data.WriteData(buffer.data(), buffer.size() + 1);
+				ctx.mainFF.data.PopStream();
 
 				// alloc cache
-				ctx.data.PushStream(XFILE_BLOCK_RUNTIME_VIRTUAL);
-				ctx.data.Align<uint16_t>();
-				ctx.data.AllocRuntimeData(ttf.kerningCacheCount * sizeof(TTFKerningEntry));
-				ctx.data.PopStream();
+				ctx.mainFF.data.PushStream(XFILE_BLOCK_RUNTIME_VIRTUAL);
+				ctx.mainFF.data.Align<uint16_t>();
+				ctx.mainFF.data.AllocRuntimeData(ttf.kerningCacheCount * sizeof(TTFKerningEntry));
+				ctx.mainFF.data.PopStream();
 
-				ctx.data.PopStream();
+				ctx.mainFF.data.PopStream();
 
 				LOG_INFO("Added asset ttf {} (hash_{:x})", rfpath.string(), ttf.name.name);
 			}
