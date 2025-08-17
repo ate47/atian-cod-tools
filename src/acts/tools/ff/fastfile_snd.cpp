@@ -114,22 +114,22 @@ namespace {
 		uint8_t channelCount;
 		uint8_t looping;
 		SndAssetFormat format;
-		uint32_t unk2c;
+		uint32_t unk3c;
 
 		void Read(core::bytebuffer::AbstractByteBuffer& buffer) {
 			// XHash
-			id = buffer.Read<uint64_t>();
-			buffer.Skip<uint64_t>();
-			offset = buffer.Read<uint64_t>();
-			size = buffer.Read<uint32_t>();
-			frameCount = buffer.Read<uint32_t>();
-			order = buffer.Read<uint32_t>();
-			unk24 = buffer.Read<uint32_t>();
-			frameRateIndex = buffer.Read<uint8_t>();
-			channelCount = buffer.Read<uint8_t>();
-			looping = buffer.Read<uint8_t>();
-			format = buffer.Read<SndAssetFormat>();
-			unk2c = buffer.Read<uint32_t>();
+			id = buffer.Read<uint64_t>(); // 8
+			buffer.Skip<uint64_t>(); // 10
+			offset = buffer.Read<uint64_t>(); // 18
+			size = buffer.Read<uint32_t>(); // 1c
+			frameCount = buffer.Read<uint32_t>(); // 20
+			order = buffer.Read<uint32_t>(); // 24
+			unk24 = buffer.Read<uint32_t>(); // 28
+			frameRateIndex = buffer.Read<uint8_t>(); // 29
+			channelCount = buffer.Read<uint8_t>(); // 2a
+			looping = buffer.Read<uint8_t>(); // 2b
+			format = buffer.Read<SndAssetFormat>(); // 2c
+			unk3c = buffer.Read<uint32_t>(); // 30
 		}
 	};
 
@@ -158,12 +158,12 @@ namespace {
 		}
 
 		LOG_INFO("trueSize: 0x{:x}", reader.Size());
+		LOG_INFO("fileSize : 0x{:x}", header.fileSize);
 		LOG_INFO("entrySize : 0x{:x}", header.entrySize);
 		LOG_INFO("checksumSize : 0x{:x}", header.checksumSize);
 		LOG_INFO("dependencySize : 0x{:x}", header.dependencySize);
 		LOG_INFO("entryCount : 0x{:x}", header.entryCount);
 		LOG_INFO("dependencyCount : 0x{:x}", header.dependencyCount);
-		LOG_INFO("fileSize : 0x{:x}", header.fileSize);
 		LOG_INFO("entryOffset : 0x{:x}", header.entryOffset);
 		LOG_INFO("checksumOffset : 0x{:x}", header.checksumOffset);
 		LOG_INFO("pad32 : 0x{:x}", header.pad32);
@@ -176,27 +176,22 @@ namespace {
 		LOG_INFO("language : {}", lang);
 		LOG_INFO("convertedAssetVersion : 0x{:x}", *(uint32_t*)(&header.convertedAssetVersion0[0]));
 
+		if (!utils::data::IsNulled(header.padding, sizeof(header.padding))) {
+			LOG_WARNING("Missing padding");
+		}
+
 		// empty??
-		//if (header.dependencyCount) {
-		//	
-		//	for (size_t i = 0; i < header.dependencyCount; i++) {
-		//		void* dep{ &header.dependencies[header.dependencySize * i] };
-		//
-		//		LOG_INFO("{}", utils::data::AsHex(dep, header.dependencySize));
-		//	}
-		//
-		//}
-		// AssetNameOffset seem to contain the asset hashed names with a 0x70 padding (0x80)
+		
+		for (size_t i = 0; i < header.dependencyCount; i++) {
+			void* dep{ &header.dependencies[header.dependencySize * i] };
+			if (!utils::data::IsNulled(dep, header.dependencySize)) {
+				LOG_WARNING("deps[{}] = {}", i, utils::data::AsHex(dep, header.dependencySize));
+			}
+		
+		}
+		// AssetNameOffset seem to contain the asset hashed names with a 0x78 padding (0x80), probably remnant from a char name[0x80]
 		// SourceChecksumOffset and checksumOffset are 128 bits values for each entries (checksumSize?)
 
-		//LOG_INFO("checksumOffset");
-		//if (header.checksumOffset) {
-		//	reader.Goto(header.checksumOffset);
-		//	byte buff[0x100];
-		//	reader.Read(&buff[0], sizeof(buff));
-		//
-		//	utils::data::WriteHex(std::cout, header.checksumOffset, buff, sizeof(buff));
-		//}
 
 		if (header.entryCount) {
 			if (header.entrySize != 0x30) {
@@ -204,10 +199,24 @@ namespace {
 				return tool::BASIC_ERROR;
 			}
 			SndAssetBankEntryBo4 entry;
-			reader.Goto(header.entryOffset);
 
+			byte checksumbuff[0x100];
+			byte srcchecksumbuff[sizeof(checksumbuff)];
+			byte assetname[0x80];
+			byte emptyAssetname[0x80]{};
+			assert(sizeof(checksumbuff) <= header.checksumSize);
 			for (size_t i = 0; i < header.entryCount; i++) {
+				reader.Goto(header.entryOffset + (i * header.entrySize));
 				entry.Read(reader);
+
+				reader.Goto(header.checksumOffset + (i * header.checksumSize));
+				reader.Read(&checksumbuff[0], header.checksumSize);
+
+				reader.Goto(header.SourceChecksumOffset + (i * header.checksumSize));
+				reader.Read(&srcchecksumbuff[0], header.checksumSize);
+
+				reader.Goto(header.AssetNameOffset + (i * sizeof(assetname)));
+				reader.Read(&assetname[0], sizeof(assetname));
 
 				const char* name{ hashutils::ExtractPtr(entry.id) };
 				if (!name) name = utils::va("hashed/snd/%s/file_%llx", lang[0] ? lang : "all", entry.id);
@@ -215,15 +224,27 @@ namespace {
 				std::filesystem::path of{ std::filesystem::path{"output_ff/snd/"} / std::format("{}{}", name, SndAssetFormatExt(entry.format)) };
 
 				LOG_INFO(
-					"dump {}"
-					" - {} off:0x{:x}+0x{:x}:0x{:x}"
-					" fc:0x{:x} or:0x{:x} fri:0x{:x} cc:0x{:x} lp:0x{:x} uk:0x{:x} 0x{:x}"
-					,
+					"dump {} ({})",
 					of.string(),
-					SndAssetFormatName(entry.format),
-					entry.offset, entry.size, entry.offset + entry.size,
-					entry.frameCount, entry.order, entry.frameRateIndex, entry.channelCount, entry.looping, entry.unk24, entry.unk2c
+					SndAssetFormatName(entry.format)
 				);
+				LOG_INFO(
+					" - off:0x{:x}+0x{:x}:0x{:x}"
+					" fc:0x{:x} or:0x{:x} fri:0x{:x} cc:0x{:x} lp:0x{:x} unk24:0x{:x} unk3c:0x{:x}"
+					,
+					entry.offset, entry.size, entry.offset + entry.size,
+					entry.frameCount, entry.order, entry.frameRateIndex, entry.channelCount, entry.looping, entry.unk24, entry.unk3c
+				);
+				LOG_INFO(" - checksum f:{} / s:{}",
+					utils::data::ArrayAsString<byte>(checksumbuff, header.checksumSize, "", "", "", [](const byte& b) -> std::string { return std::format("{:02x}", (int)b); }),
+					utils::data::ArrayAsString<byte>(srcchecksumbuff, header.checksumSize, "", "", "", [](const byte& b) -> std::string { return std::format("{:02x}", (int)b); })
+				);
+				if (std::memcmp(&emptyAssetname[8], &assetname[8], sizeof(emptyAssetname) - 8) || *(uint64_t*)assetname != entry.id) {
+					LOG_WARNING(" - assetname {} / {}",
+						utils::data::ArrayAsString<byte>(assetname, sizeof(assetname), "", "", "", [](const byte& b) -> std::string { return std::format("{:02x}", (int)b); }),
+						hashutils::ExtractTmp("hash", *(uint64_t*)assetname)
+					);
+				}
 
 				reader.PushLocation();
 				reader.Goto(entry.offset);

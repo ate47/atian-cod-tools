@@ -25,4 +25,5 @@ namespace utils::data {
 
 		return ss.str();
 	}
+	bool IsNulled(const void* buff, size_t size);
 }

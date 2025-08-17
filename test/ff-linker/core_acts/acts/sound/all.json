@@ -1,0 +1,12 @@
+{
+    "loaded": [
+        {
+            "file": "acts/sound/hello.flac",
+            "format": "FLAC",
+            "frameRateIndex": 0,
+            "order": 0,
+            "channelCount": 1,
+            "looping": false
+        }
+    ]
+}

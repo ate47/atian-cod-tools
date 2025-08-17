@@ -30,6 +30,8 @@ namespace core::config {
 		inline double GetDouble(const std::string& path, double defaultValue = 0) { return GetDouble(path.c_str(), defaultValue); }
 		std::string GetString(const char* path, const char* defaultValue = "");
 		inline std::string GetString(const std::string& path, const char* defaultValue = "") { return GetString(path.c_str(), defaultValue); }
+		inline std::string GetString(const char* path, const std::string& defaultValue) { return GetString(path, defaultValue.c_str()); }
+		inline std::string GetString(const std::string& path, const std::string& defaultValue) { return GetString(path.c_str(), defaultValue.c_str()); }
 		bool GetBool(const char* path, bool defaultValue = false);
 		inline bool GetBool(const std::string& path, bool defaultValue = false) { return GetBool(path.c_str(), defaultValue); }
 		int64_t GetEnum(const char* path, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue = 0);

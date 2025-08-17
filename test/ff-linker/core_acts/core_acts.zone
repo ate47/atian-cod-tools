@@ -49,6 +49,9 @@ bgcache,cache.csv
 // add a localize list file
 localizelist,acts/localize.json
 
+// sound
+sound,acts/sound/all.json
+sound,acts/sound/fr.json
 
 // dev stuff
 #ifndef CI

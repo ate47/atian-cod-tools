@@ -63,7 +63,7 @@ namespace {
 				{
 					json.BeginObject();
 					json.WriteFieldNameString("key");
-					json.WriteValueNumber(key->xpakEntry.key);
+					json.WriteValueHash(key->xpakEntry.key);
 					json.WriteFieldNameString("offset");
 					json.WriteValueNumber(key->xpakEntry.offset);
 					json.WriteFieldNameString("size");
@@ -84,10 +84,11 @@ namespace {
 					json.WriteValueNumber(key->xpakEntry.adjacentRight);
 					json.EndObject();
 				}
-				json.WriteFieldNameString("size");
-				json.WriteValueNumber(key->size);
-				json.WriteFieldNameString("keyFlags");
-				json.WriteValueNumber((size_t)key->keyFlags);
+				json.WriteFieldValueNumber("size", key->size);
+				if (key->unk38) json.WriteFieldValueNumber("unk38", key->unk38);
+				if (key->unk44) json.WriteFieldValueNumber("unk44", key->unk44);
+				if (key->unk46) json.WriteFieldValueNumber("unk46", (int)key->unk46);
+				json.WriteFieldValueNumber("keyFlags", (size_t)key->keyFlags);
 
 				json.EndObject();
 			}

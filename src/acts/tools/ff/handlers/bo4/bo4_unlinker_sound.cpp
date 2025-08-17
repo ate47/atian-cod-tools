@@ -10,13 +10,13 @@ namespace {
 
 	struct StreamKey;
 
-	struct UnkSndBank {
+	struct SndBankStreamKeys {
 		StreamKey* streamKey1;
 		byte* data1;
 		uint32_t len1;
-		StreamKey* streamKey2;
-		byte* data2;
-		uint32_t len2;
+		StreamKey* fileKey;
+		byte* fileData;
+		uint32_t fileLen;
 	};
 
 	struct SndIndexEntry {
@@ -178,9 +178,9 @@ namespace {
 		uint64_t unkb0;
 		uint32_t unkc0_count;
 		uint64_t unkc0;
-		UnkSndBank unkc8;
-		UnkSndBank unkf8;
-		uint64_t unk128;
+		SndBankStreamKeys streamKeysSABL;
+		SndBankStreamKeys streamKeysSABS;
+		bool patchZone;
 	};
 	static_assert(sizeof(SndBank) == 0x130);
 
@@ -207,6 +207,7 @@ namespace {
 			if (asset->gameLanguage) json.WriteFieldValueString("gameLanguage", asset->gameLanguage);
 			if (asset->soundLanguage) json.WriteFieldValueString("soundLanguage", asset->soundLanguage);
 			json.WriteFieldValueXHash("nameHash", asset->nameHash);
+			json.WriteFieldValueBool("patchZone", asset->patchZone);
 
 			json.WriteFieldNameString("alias");
 			json.BeginArray();
@@ -381,18 +382,18 @@ namespace {
 			}
 			json.EndArray();
 
-			auto WriteSndStream = [&json](const char* name, UnkSndBank* bnk) {
+			auto WriteSndStream = [&json](const char* name, SndBankStreamKeys* bnk) {
 				json.WriteFieldNameString(name);
 				json.BeginObject();
 				json.WriteFieldValueXAsset("streamKey1", games::bo4::pool::ASSET_TYPE_STREAMKEY, bnk->streamKey1);
 				json.WriteFieldValueNumber("dataSize1", bnk->len1);
-				json.WriteFieldValueXAsset("streamKey2", games::bo4::pool::ASSET_TYPE_STREAMKEY, bnk->streamKey2);
-				json.WriteFieldValueNumber("dataSize2", bnk->len2);
+				json.WriteFieldValueXAsset("fileKey", games::bo4::pool::ASSET_TYPE_STREAMKEY, bnk->fileKey);
+				json.WriteFieldValueNumber("fileLen", bnk->fileLen);
 				json.EndObject();
 			};
 
-			WriteSndStream("stream1", &asset->unkc8);
-			WriteSndStream("stream2", &asset->unkf8);
+			WriteSndStream("streamKeysSABL", &asset->streamKeysSABL);
+			WriteSndStream("streamKeysSABS", &asset->streamKeysSABS);
 
 			json.EndObject();
 

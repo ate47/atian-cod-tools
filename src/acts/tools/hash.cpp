@@ -8,6 +8,11 @@
 #include <tools/hashes/hash_scanner.hpp>
 #include <tools/hashes/text_expand.hpp>
 #include <tools/hash.hpp>
+#undef small
+#include <md5.h>
+#include <crc_cpp.h>
+#include <sha1.h>
+#include <sha256.h>
 
 namespace hash {
 	HashAlg HashAlg::algs[10]
@@ -1349,6 +1354,58 @@ namespace hash {
 			return tool::OK;
 		}
 
+		template<typename o,typename crc32>
+		o CRCVal(std::vector<byte>& buff) {
+			crc32 crc;
+
+			for (byte b : buff) {
+				crc.update(b);
+			}
+
+			return crc.final();
+		}
+
+		int crctest(int argc, const char* argv[]) {
+			if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+
+			for (size_t i = 2; i < argc; i++) {
+				std::vector<byte> buff{ utils::ReadFile<std::vector<byte>>(argv[i]) };
+				
+				LOG_INFO("{}", argv[i]);
+				LOG_INFO("32: 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+					CRCVal<uint32_t, crc_cpp::crc32>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_c>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_d>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_posix>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_jamcrc>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_bzip2>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_mpeg2>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_q>(buff),
+					CRCVal<uint32_t, crc_cpp::crc32_xfer>(buff)
+				);
+				LOG_INFO("64: 0x{:x}",
+					CRCVal<uint64_t, crc_cpp::crc64_ecma>(buff)
+				);
+				SHA1 sha1{};
+				sha1.add(buff.data(), buff.size());
+				SHA256 sha256{};
+				sha256.add(buff.data(), buff.size());
+				MD5 md5{};
+				md5.add(buff.data(), buff.size());
+
+				LOG_INFO("sha1:{} / sha256:{}",
+					sha1.getHash(),
+					sha256.getHash()
+				);
+				LOG_INFO("md5:{}",
+					md5.getHash()
+				);
+
+			}
+
+			return tool::OK;
+		}
+
 		ADD_TOOL_UI(hash, L"Hash", Render, Update, Resize);
 		ADD_TOOL_NUI(hash, "Hash", hash_nui);
 		ADD_TOOL_NUI(hashsearch, "Hash Searcher", hashsearch_nui);
@@ -1359,6 +1416,7 @@ namespace hash {
 		ADD_TOOL(h64, "hash", " (string)*", "hash strings", nullptr, hash64);
 		ADD_TOOL(ht7, "hash", " (string)*", "hash strings", nullptr, hasht7);
 		ADD_TOOL(httest, "hash", " (string)*", "hash strings", nullptr, httest);
+		ADD_TOOL(crctest, "hash", " (file)*", "crc test", crctest);
 		ADD_TOOL(fnv1acrack, "hash", " [string] [hash] [iv]", "crack fnv1a key, base iv: 100000001b3, 10000000233", nullptr, fnv1acrack);
 		ADD_TOOL(fnv1acrack2, "hash", " [csv] [iv]", "crack fnv1a key (one key based)", nullptr, fnv1acrack2);
 		ADD_TOOL(fnv1acrack3, "hash", " [csv] [iv]", "crack fnv1a keys (first char based)", nullptr, fnv1acrack3);

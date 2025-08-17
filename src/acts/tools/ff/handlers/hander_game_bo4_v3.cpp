@@ -152,7 +152,10 @@ namespace fastfile::handlers::bo4 {
 
 				gcx.linkedAssets[xasset->type][hash->name] = xasset->header;
 			}
-			LOG_DEBUG("Loading asset {}/{} -> {}/{}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header, XBlockLocPtr(baseHeader));
+			LOG_DEBUG("Loading asset {}({})/{}({:x}) -> {}/{}", 
+				XAssetNameFromId(xasset->type), (int)xasset->type, hashutils::ExtractTmp("hash", hash->name), hash->name,
+				xasset->header, XBlockLocPtr(baseHeader)
+			);
 
 			if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[xasset->type])) return xasset; // ignore
 			if (xasset->header) {
