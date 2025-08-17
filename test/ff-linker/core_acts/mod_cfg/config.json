@@ -11,6 +11,12 @@
         },
         {
             "name": "en_core_acts"
+        },
+        {
+            "name": "core_acts.en"
+        },
+        {
+            "name": "core_acts.fr"
         }
     ],
     "redirects": [
