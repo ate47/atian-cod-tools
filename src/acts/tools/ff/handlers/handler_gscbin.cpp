@@ -29,7 +29,7 @@ namespace {
 			sfSearch.bytecode = 0xFFFFFFFFFFFFFFFE;
 			sfMask.bytecode = 0xFFFFFFFFFFFFFFFE;
 
-			std::filesystem::path outDir{ opt.m_output / "sf" };
+			std::filesystem::path outDir{ opt.m_output / "scriptfile" };
 
 			size_t off{};
 			while (true) {
@@ -93,5 +93,7 @@ namespace {
 		}
 	};
 
+#ifndef CI_BUILD
 	utils::ArrayAdder<GscBinFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+#endif // CI_BUILD
 }

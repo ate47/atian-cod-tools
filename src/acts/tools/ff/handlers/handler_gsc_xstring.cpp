@@ -154,6 +154,8 @@ namespace {
 			}
 		}
 	};
-
+#ifndef CI_BUILD
 	utils::ArrayAdder<GscXStringFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+#endif // CI_BUILD
+
 }

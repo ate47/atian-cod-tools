@@ -8,9 +8,9 @@
 #include <tools/compatibility/acti_crypto_keys.hpp>
 #include <hook/error.hpp>
 #include <hook/memory.hpp>
-#include <bdiff.hpp>
 #include <games/bo4/t8_errors.hpp>
 #include <wincrypt.h>
+#include <tools/ff/fastfile_bdiff.hpp>
 
 namespace {
 
@@ -140,6 +140,26 @@ namespace {
 
             utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(pheader.platform.compression) };
 
+			ctx.hasGSCBin = false;
+			switch (pheader.platform.platform) {
+			case fastfile::XFILE_PC: {
+				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
+				break;
+			}
+			case fastfile::XFILE_XBOX: {
+				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_XBOX;
+				break;
+			}
+			case fastfile::XFILE_PLAYSTATION: {
+				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PLAYSTATION;
+				break;
+			}
+			case fastfile::XFILE_DEV: {
+				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC_ALPHA;
+				break;
+			}
+			}
+
             size_t idx{};
             while (true) {
                 size_t loc{ reader.Loc() };
@@ -263,10 +283,10 @@ namespace {
 					typedef uint8_t* vcDiffCB_t(size_t offset, size_t size, size_t* pOffset);
 					typedef uint8_t* vcDestCB_t(size_t size);
 					struct BDiffState {
-						bool headerRead{};
-						bool error{};
-						bool eof{};
-						unsigned int features{};
+						bool headerRead;
+						bool error;
+						bool eof;
+						unsigned int features;
 					};
 
 
@@ -279,7 +299,7 @@ namespace {
 						core::bytebuffer::ByteBuffer* ffbb{};
 						core::bytebuffer::ByteBuffer* fdbb{};
 
-						bool (*bdiff)(BDiffState* diffState, vcSourceCB_t* sourceDataCB, vcDiffCB_t* patchDataCB, vcDestCB_t* destDataCB) {};
+						bool (*bdiff)(void* data, vcSourceCB_t* sourceDataCB, vcDiffCB_t* patchDataCB, vcDestCB_t* destDataCB) {};
 
 						std::vector<byte> destData{};
 
@@ -292,15 +312,53 @@ namespace {
 							destWindowLastSize = 0;
 						}
 					} bdiffStates{};
-					if (!bdiffStates.bdiff) {
-						hook::library::ScanResult bdiffOff{ opt.GetGame(true).FindAnyScan(
-							"bdiff",
-							"40 53 55 41 54 41 56 B8", // cw/cod2020
-							"40 55 41 54 41 56 41 57 B8" // bo4
-						) };
 
-						LOG_TRACE("find bdiff: {}", hook::library::CodePointer{ bdiffOff.location });
-						bdiffStates.bdiff = reinterpret_cast<decltype(bdiffStates.bdiff)>(bdiffOff.location);
+					if (!bdiffStates.bdiff) {
+						if (opt.exebdiff) { // lib not working with treyarch
+							hook::library::Library game{ opt.GetGame(true) };
+							hook::library::ScanResult bdiffOff{ game.FindAnyScan(
+								"bdiff",
+								"40 53 55 41 54 41 56 B8", // cw/cod2020
+								"40 53 55 57 41 57 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 80", // bo3
+								"40 55 41 54 41 56 41 57 B8" // bo4
+							) };
+
+							LOG_TRACE("find bdiff: {}", hook::library::CodePointer{ bdiffOff.location });
+							bdiffStates.bdiff = reinterpret_cast<decltype(bdiffStates.bdiff)>(bdiffOff.location);
+						}
+						else {
+							struct BDiffLibData {
+								vcSourceCB_t* sourceDataCB;
+								vcDiffCB_t* patchDataCB;
+								vcDestCB_t* destDataCB;
+							};
+							bdiffStates.bdiff = [](void* diffState, vcSourceCB_t* sourceDataCB, vcDiffCB_t* patchDataCB, vcDestCB_t* destDataCB)->bool {
+								BDiffLibData state{};
+								state.sourceDataCB = sourceDataCB;
+								state.patchDataCB = patchDataCB;
+								state.destDataCB = destDataCB;
+								fastfile::bdiff::BDiffState* diffInfo{ (fastfile::bdiff::BDiffState*)diffState };
+								diffInfo->state = &state;
+								diffInfo->type = fastfile::bdiff::BDT_TREYARCH;
+
+								if (!fastfile::bdiff::bdiff(
+									diffInfo,
+									[](void* data, size_t offset, size_t size) -> uint8_t* {
+										return ((BDiffLibData*)data)->sourceDataCB(offset, size);
+									},
+									[](void* data, size_t offset, size_t size, size_t* pOffset) -> uint8_t* {
+										return ((BDiffLibData*)data)->patchDataCB(offset, size, pOffset);
+									},
+									[](void* data, size_t size) -> uint8_t* {
+										return ((BDiffLibData*)data)->destDataCB(size);
+									}
+								)) {
+									LOG_ERROR("bdiff error: {}", diffInfo->error);
+									return false;
+								}
+								return true;
+							};
+						}
 					}
 
 					bdiffStates.bdiffHeader = bdiffHeader;
@@ -316,7 +374,10 @@ namespace {
 					bdiffStates.fdbb = &fdbb;
 					bdiffStates.ffbb = &ffbb;
 
-					BDiffState state{};
+					union {
+						BDiffState exe;
+						fastfile::bdiff::BDiffState acts;
+					} state{};
 					bdiffStates.patchWindowOffsetLast = 0;
 					do {
 						if (!bdiffStates.fdbb->CanRead(0x400)) {
@@ -363,7 +424,7 @@ namespace {
 								throw std::runtime_error(std::format("vcDestCB_t: dest window too small 0x{:x} < 0x{:x}", bdiffStates.bdiffHeader->maxDestWindowSize, size));
 							}
 						)) {
-							throw std::runtime_error(std::format("bdiff error: 0x{:x}", state.features));
+							throw std::runtime_error("bdiff error");
 						}
 					} while (bdiffStates.destWindowLastSize);
 					bdiffStates.SyncData();

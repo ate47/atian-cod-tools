@@ -3,6 +3,7 @@
 #include <core/bytebuffer.hpp>
 #include <core/memory_allocator.hpp>
 #include <tools/ff/fastfile_zone.hpp>
+#include <tools/gsc_opcodes_load.hpp>
 #include <utils/compress_utils.hpp>
 
 namespace fastfile {
@@ -120,6 +121,8 @@ namespace fastfile {
 		// 0x10 to have more without recompiling
 		XBlockInfo blockSizes[0x10]{};
 		size_t blocksCount{};
+		bool hasGSCBin{};
+		tool::gsc::opcode::Platform gscPlatform{ tool::gsc::opcode::PLATFORM_PC };
 	};
 
 	class FastFileOption {
@@ -127,6 +130,7 @@ namespace fastfile {
 		bool m_help{};
 		bool m_fd{};
 		bool m_fdIgnoreMissing{};
+		bool exebdiff{};
 		bool alpha{};
 		bool m_header{};
 		bool print_handlers{};

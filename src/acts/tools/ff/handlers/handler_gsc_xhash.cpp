@@ -193,5 +193,7 @@ namespace {
 		}
 	};
 
+#ifndef CI_BUILD
 	utils::ArrayAdder<GscXHashFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+#endif // CI_BUILD
 }

@@ -8,7 +8,7 @@
 #include <games/bo4/pool.hpp>
 #include <utils/compress_utils.hpp>
 #include <utils/data_utils.hpp>
-#include <bdiff.hpp>
+#include <tools/ff/fastfile_bdiff.hpp>
 
 namespace {
 	enum IWFFVersion {
@@ -233,6 +233,10 @@ namespace {
 			bool secure{};
 
 			utils::compress::CompressionAlgorithm alg{};
+
+			ctx.hasGSCBin = header->headerVersion <= IWFV_MW22;
+			ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
+
 			switch (header->headerVersion) {
 			case IWFV_MW22: {
 				ffHeaderSize = 0xc0;
@@ -515,8 +519,9 @@ namespace {
 					}
 				} bdiffStates{};
 
-				bdiff::diffInfo diffInfo{};
+				fastfile::bdiff::BDiffState diffInfo{};
 				diffInfo.state = &bdiffStates;
+				diffInfo.type = fastfile::bdiff::BDT_IW;
 
 				bdiffStates.destWindowSize = 0x480000; //bdiffHeader->maxDestWindowSize + bdiffHeader->maxSourceWindowSize + 2 * (bdiffHeader->maxDiffWindowSize + 0x80000);
 				bdiffStates.outwindow.resize(bdiffStates.destWindowSize);
@@ -535,7 +540,7 @@ namespace {
 						break; // can't read header
 					}
 					LOG_TRACE("Pre bdiff");
-					if (!bdiff::bdiff_internal(
+					if (!fastfile::bdiff::bdiff(
 						&diffInfo,
 						[](void* data, size_t offset, size_t size) -> uint8_t* {
 							BdiffStateData* state{ (BdiffStateData*)data };
@@ -597,7 +602,7 @@ namespace {
 								LOG_INFO("Dump bdifferr patch into {}", decfile.string());
 							}
 						}
-						throw std::runtime_error("bdiff error");
+						throw std::runtime_error(std::format("bdiff error: {}", diffInfo.error));
 					}
 				} while (bdiffStates.destWindowLastSize);
 				bdiffStates.SyncData();
