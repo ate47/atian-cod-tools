@@ -298,7 +298,7 @@ namespace fastfile::bdiff {
             VCDF_UNK1 = 1,
             VCDF_UNK2 = 2,
             VCDF_MASK12 = VCDF_UNK2 | VCDF_UNK1,
-            VCDF_UNK4 = 4,
+            VCDF_SOURCE_SEGMENT_RELATIVE = 4,
             VCDF_CHECKSUM = 8,
         };
 
@@ -446,34 +446,34 @@ namespace fastfile::bdiff {
             state->error = "Invalid flag";
             return false;
         }
-        size_t unkvbyte0{};
-        byte* block{};
+        size_t sourceSegmentOffset{};
+        byte* sourceSegment{};
         if (flags & VCDF_MASK12) {
-            unkvbyte0 = ReadULEB128(&bdiffData);
+            sourceSegmentOffset = ReadULEB128(&bdiffData);
             size_t sourceSegmentLocationEx{ ReadULEB128(&bdiffData) };
             size_t sourceSegmentLocation;
-            if (flags & VCDF_UNK4) {
+            if (flags & VCDF_SOURCE_SEGMENT_RELATIVE) {
                 sourceSegmentLocation = ReadULEB128(&bdiffData);
             }
             else {
                 sourceSegmentLocation = sourceSegmentLocationEx;
             }
 
-            size_t sizeUnk{ sourceSegmentLocationEx - sourceSegmentLocation };
-            block = &sourceDataCB(state->state, sourceSegmentLocation, sizeUnk + unkvbyte0)[sizeUnk];
+            size_t sourceSegmentStart{ sourceSegmentLocationEx - sourceSegmentLocation };
+            sourceSegment = &sourceDataCB(state->state, sourceSegmentLocation, sourceSegmentStart + sourceSegmentOffset)[sourceSegmentStart];
         }
 
-        size_t unkvbyte2{ ReadULEB128(&bdiffData) };
+        size_t patchDataLen{ ReadULEB128(&bdiffData) };
 
-        bdiffData = patchDataCB(
+        byte* patchData{ patchDataCB(
             state->state,
             offset + bdiffData - bdiffDataStart,
-            unkvbyte2 + ((flags >> 1) & 4),
+            patchDataLen + (flags & VCDF_CHECKSUM ? 4 : 0),
             &offset
-        );
-        bdiffDataStart = bdiffData;
+        ) };
+        byte* patchDataStart{ patchData };
 
-        size_t patchDestLen{ ReadULEB128(&bdiffData) };
+        size_t patchDestLen{ ReadULEB128(&patchData) };
         byte* patchDest{ destDataCB(state->state, patchDestLen) };
         byte* patchDestStart{ patchDest };
         if (!patchDest) {
@@ -481,18 +481,18 @@ namespace fastfile::bdiff {
             return false;
         }
 
-        if (*(bdiffData++)) {
-            state->error = "Invalid patch data"; // ??
+        if (*(patchData++)) {
+            state->error = "Invalid patch data";
             return false;
         }
 
         VcdState vcd{};
-        size_t instructionOffset{ ReadULEB128(&bdiffData) };
-        size_t instructionSize{ ReadULEB128(&bdiffData) };
-        size_t instructionCheckOffset{ ReadULEB128(&bdiffData) };
+        size_t instructionOffset{ ReadULEB128(&patchData) };
+        size_t instructionSize{ ReadULEB128(&patchData) };
+        size_t instructionCheckOffset{ ReadULEB128(&patchData) };
 
-        byte* instructionData{ &bdiffData[instructionOffset] };
-        byte* instructionDataEnd{ &bdiffData[instructionOffset + instructionSize] };
+        byte* instructionData{ &patchData[instructionOffset] };
+        byte* instructionDataEnd{ &patchData[instructionOffset + instructionSize] };
         byte* instructionCheck{ &instructionDataEnd[instructionCheckOffset] };
 
         vcd.pAddr = instructionDataEnd;
@@ -508,49 +508,47 @@ namespace fastfile::bdiff {
                 size_t ilen{ inst.size };
                 if (!ilen && inst.op != VCDI_NOOP) ilen = ReadULEB128(&instructionData);
 
-                LOG_TRACE(
-                    "r:0x{:03x} 0x{:02x} inst[{}] = "
-                    "(VCDI_{}, m:{}, s:0x{:x}/0x{:x})"
-                    " 0x{:x}/0x{:x}"
-                    " 0x{:x}",
-                    instructionDataEnd - instructionData, (int)opcode, i, 
-                    vcdInstructionCodeNames[inst.op], inst.mode, inst.size, ilen,
-                    patchDest - patchDestStart, patchDestLen,
-                    bdiffData - bdiffDataStart
-                );
-
-                if (inst.op == VCDI_NOOP) {
-                    continue; // ignore
-                }
+                //LOG_TRACE(
+                //    "r:0x{:03x} 0x{:02x} inst[{}] = "
+                //    "(VCDI_{}, m:{}, s:0x{:x}/0x{:x})"
+                //    " 0x{:x}/0x{:x}"
+                //    " 0x{:x}",
+                //    instructionDataEnd - instructionData, (int)opcode, i, 
+                //    vcdInstructionCodeNames[inst.op], inst.mode, inst.size, ilen,
+                //    patchDest - patchDestStart, patchDestLen,
+                //    patchData - patchDataStart
+                //);
 
                 switch (inst.op) {
+                case VCDI_NOOP: // 0 no op
+                    break;
                 case VCDI_ADD: { // 1 add to block
-                    std::memmove(patchDest, bdiffData, ilen);
-                    bdiffData += ilen;
+                    std::memmove(patchDest, patchData, ilen);
+                    patchData += ilen;
                     patchDest += ilen;
                     break;
                 }
                 case VCDI_RUN: { // 2 empty a block
-                    byte runchar{ *(bdiffData++) };
+                    byte runchar{ *(patchData++) };
                     std::memset(patchDest, runchar, ilen);
                     patchDest += ilen;
                     break;
                 }
                 case VCDI_COPY: { // 3 copy existing block
-                    size_t address{ AddressDecode(&vcd, unkvbyte0 + patchDest - patchDestStart, inst.mode) };
+                    size_t address{ AddressDecode(&vcd, sourceSegmentOffset + patchDest - patchDestStart, inst.mode) };
 
                     byte* readLoc;
-                    if (address < unkvbyte0) {
-                        if (!block) {
-                            state->error = "Missing block information";
+                    if (address < sourceSegmentOffset) {
+                        if (!sourceSegment) {
+                            state->error = "Missing source segment";
                             return false;
                         }
-                        readLoc = &block[address];
-                        LOG_TRACE("VCDI_COPY(0x{:x}, b:0x{:x}, 0x{:x})", patchDest - patchDestStart, address, ilen);
+                        readLoc = &sourceSegment[address];
+                        //LOG_TRACE("VCDI_COPY(0x{:x}, b:0x{:x}, 0x{:x})", patchDest - patchDestStart, address, ilen);
                     }
                     else {
-                        readLoc = &patchDestStart[address - unkvbyte0];
-                        LOG_TRACE("VCDI_COPY(0x{:x}, d:0x{:x}, 0x{:x})", patchDest - patchDestStart, address - unkvbyte0, ilen);
+                        readLoc = &patchDestStart[address - sourceSegmentOffset];
+                        //LOG_TRACE("VCDI_COPY(0x{:x}, d:0x{:x}, 0x{:x})", patchDest - patchDestStart, address - sourceSegmentOffset, ilen);
                     }
 
                     memmove2(patchDest, readLoc, ilen);
@@ -584,7 +582,7 @@ namespace fastfile::bdiff {
             }
         }
 
-        patchDataCB(state->state, instructionCheck - bdiffDataStart + offset, 0, nullptr);
+        patchDataCB(state->state, instructionCheck - patchDataStart + offset, 0, nullptr);
         return true;
     }
 
