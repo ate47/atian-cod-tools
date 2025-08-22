@@ -11,6 +11,7 @@ namespace fastfile::bdiff {
         bool headerRead;
         const char* error;
         void* state;
+        uint32_t lastChecksum{};
         BDiffType type;
     };
     typedef uint8_t* vcSourceCB_t(void* state, size_t offset, size_t size);
