@@ -206,10 +206,10 @@ namespace fastfile {
 		case fastfile::IWFFC_LZ4_HC:
 			return utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION;
 		case IWFFC_ZLIB_SIZE:
-		case IWFFC_ZLIB_SPEED:
 		case IWFFC_HW_ZLIB_SIZE:
 		case IWFFC_PS4_ZLIB_SIZE:
 			return utils::compress::COMP_ZLIB | utils::compress::COMP_HIGH_COMPRESSION;
+		case IWFFC_ZLIB_SPEED:
 		case IWFFC_HW_ZLIB_SPEED:
 		case IWFFC_PS4_ZLIB_SPREED:
 			return utils::compress::COMP_ZLIB;
