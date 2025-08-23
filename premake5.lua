@@ -407,7 +407,6 @@ project "AtianCodTools"
         "deps/hash-library/",
         "deps/hksc/etc/",
         "deps/hksc/src/",
-        "deps/bdiff/",
         "deps/crc_cpp/include/",
     }
 
@@ -419,7 +418,6 @@ project "AtianCodTools"
         "ANTLR4CPP_STATIC",
         "CASCLIB_NO_AUTO_LINK_LIBRARY",
         "ACTS_COMMON_DLL",
-        "BDIFF_STATIC",
     }
     
     links { "antlr4-runtime" }
@@ -442,7 +440,6 @@ project "AtianCodTools"
     links { "hashlibrary" }
     links { "xxhash" }
     links { "hksc" }
-    links { "bdiff" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
@@ -459,7 +456,6 @@ project "AtianCodTools"
     dependson "hashlibrary"
     dependson "xxhash"
     dependson "hksc"
-    dependson "bdiff"
 
 project "AtianCodToolsCLI"
     kind "ConsoleApp"
@@ -1113,28 +1109,3 @@ group "deps"
         includedirs {
             "deps/hksc/src/"
         }
-        
-        
-
-    project "bdiff"
-        language "C++"
-        kind "StaticLib"
-        characterset "MBCS"
-
-        targetname "bdiff"
-        targetdir "%{wks.location}/bin/"
-        objdir "%{wks.location}/obj/"
-
-        files {
-            "deps/bdiff/*.cpp",
-            "deps/bdiff/*.inc",
-            "deps/bdiff/*.hpp"
-        }
-        defines {
-            "BDIFF_STATIC",
-        }
-
-        includedirs {
-            "deps/bdiff/src/"
-        }
-        
