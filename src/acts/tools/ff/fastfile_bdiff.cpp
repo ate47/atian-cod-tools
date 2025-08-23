@@ -1,6 +1,7 @@
 #include<includes.hpp>
 #include <tools/ff/fastfile_bdiff.hpp>
 #include <xxhash.h>
+#include <hook/error.hpp>
 
 namespace fastfile::bdiff {
     namespace {
@@ -507,8 +508,8 @@ namespace fastfile::bdiff {
 
         if (flags & VCDF_CHECKSUM) {
             // check checksum
-            int32_t realChecksum{ *(int32_t*)instructionCheck };
-            instructionCheck += 4;
+            uint32_t realChecksum{ *(uint32_t*)instructionCheck };
+            instructionCheck += sizeof(uint32_t);
 
             switch (state->type) {
             case BDT_TREYARCH: {
@@ -517,6 +518,7 @@ namespace fastfile::bdiff {
                     state->error = utils::va("Data is corrupt. %x != %x", realChecksum, calculatedChecksum);
                     return false;
                 }
+                LOG_TRACE("validated bdiff checksum {:x}", realChecksum);
                 break;
             }
             case BDT_IW: {
@@ -526,12 +528,13 @@ namespace fastfile::bdiff {
                     state->error = utils::va("Data is corrupt. %x != %x (last=%x)", realChecksum, calculatedChecksum, state->lastChecksum);
                     return false;
                 }
-                state->lastChecksum = realChecksum;
+                LOG_TRACE("validated bdiff checksum {:x}", realChecksum);
                 break;
             }
             default:
                 break;
             }
+            state->lastChecksum = realChecksum;
         }
 
         // set the offset to the next bdiff block
@@ -539,4 +542,108 @@ namespace fastfile::bdiff {
         return true;
     }
 
+
+    class DiffState {
+        std::vector<byte> outwindow{};
+        byte* destWindow{};
+        size_t destWindowSize{};
+        size_t patchWindowOffsetLast{};
+        size_t destWindowLastSize{};
+        core::bytebuffer::ByteBuffer* sourceData{};
+        core::bytebuffer::ByteBuffer* patchData{};
+
+        std::vector<byte>* destdata{};
+
+    public:
+        DiffState(size_t winsize, core::bytebuffer::ByteBuffer* sourceData, core::bytebuffer::ByteBuffer* patchData, std::vector<byte>* destdata)
+        : sourceData(sourceData), patchData(patchData), destdata(destdata) {
+            outwindow.resize(winsize);
+            destWindow = outwindow.data();
+        }
+
+        void SyncData() {
+            if (!destWindowLastSize) return;
+
+            LOG_TRACE("Sync 0x{:x} bytes", destWindowLastSize);
+            utils::WriteValue(*destdata, destWindow, destWindowLastSize);
+
+            destWindowLastSize = 0;
+        }
+
+        byte* LoadSourceData(size_t offset, size_t size) {
+            sourceData->Goto(offset);
+            if (!sourceData->CanRead(size)) {
+                hook::error::DumpStackTraceFrom();
+                throw std::runtime_error(std::format("vcSourceCB_t: read too much at 0x{:x}/0x{:x}", sourceData->Loc(), size));
+            }
+            LOG_TRACE("vcSourceCB_t: read 0x{:x}:0x{:x}", sourceData->Loc(), size);
+            return sourceData->ReadPtr<uint8_t>(size);
+        }
+
+        byte* LoadPatchData(size_t offset, size_t size, size_t* pOffset) {
+            if (offset) {
+                patchWindowOffsetLast = offset;
+            }
+            else {
+                offset = patchWindowOffsetLast;
+            }
+            if (pOffset) *pOffset = offset;
+
+            patchData->Goto(offset);
+            if (!patchData->CanRead(size)) {
+                hook::error::DumpStackTraceFrom();
+                throw std::runtime_error(std::format("vcDiffCB_t: read too much at 0x{:x}/0x{:x}", patchData->Loc(), size));
+            }
+            LOG_TRACE("vcDiffCB_t: read 0x{:x}:0x{:x}", patchData->Loc(), size);
+            return patchData->ReadPtr<uint8_t>(size);
+        }
+
+        byte* LoadDestData(size_t size) {
+            SyncData();
+            destWindowLastSize = size;
+            if (size > outwindow.size()) {
+                // allocate what we need
+                LOG_TRACE("vcDestCB_t: resize to 0x{:x}", size);
+                outwindow.resize(size);
+                destWindow = outwindow.data();
+            }
+            LOG_TRACE("vcDestCB_t: give 0x{:x}", size);
+            return destWindow;
+        }
+
+        constexpr size_t GetLastSize() const { return destWindowLastSize; };
+    };
+
+    std::vector<byte> bdiff(core::bytebuffer::ByteBuffer* sourceData, core::bytebuffer::ByteBuffer* patchData, BDiffType type, size_t winsize) {
+        std::vector<byte> destdata{};
+        DiffState bdiffStates{ winsize, sourceData, patchData, &destdata };
+
+        fastfile::bdiff::BDiffState state{};
+        state.state = &bdiffStates;
+        state.type = type;
+        do {
+            if (!patchData->CanRead(state.headerRead ? 0x400 : 0x405)) {
+                break; // can't read header
+            }
+            LOG_TRACE("Pre bdiff");
+            if (!bdiff(&state,
+                [](void* state, size_t offset, size_t size) -> uint8_t* {
+                    return ((DiffState*)state)->LoadSourceData(offset, size);
+                },
+                [](void* state, size_t offset, size_t size, size_t* pOffset) -> uint8_t* {
+                    return ((DiffState*)state)->LoadPatchData(offset, size, pOffset);
+                },
+                [](void* state, size_t size) -> uint8_t* {
+                    return ((DiffState*)state)->LoadDestData(size);
+                }
+            )) {
+                throw std::runtime_error(std::format("bdiff error: {}", state.error));
+            }
+        } while (bdiffStates.GetLastSize());
+
+        bdiffStates.SyncData();
+
+        LOG_TRACE("bdiff end size: 0x{:x}", destdata.size());
+        return destdata;
+    }
 }

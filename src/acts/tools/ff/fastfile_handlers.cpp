@@ -427,9 +427,6 @@ namespace fastfile {
 			else if (!_strcmpi("--dumpXStrings", arg)) {
 				dumpXStrings = true;
 			}
-			else if (!_strcmpi("--exebdiff", arg)) {
-				exebdiff = true;
-			}
 			else if (!_strcmpi("--dumpBinaryAssets", arg)) {
 				dumpBinaryAssets = true;
 			}
@@ -491,7 +488,6 @@ namespace fastfile {
 		LOG_INFO("--assertContainer      : Use acts as a container for other software");
 		LOG_INFO("--archiveDDL           : dump archived ddl (bo6)");
 		LOG_INFO("--alpha                : Is alpha file");
-		LOG_DEBUG("--exebdiff             : Use exe bdiff");
 		
 	}
 

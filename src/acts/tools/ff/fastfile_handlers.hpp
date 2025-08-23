@@ -130,7 +130,6 @@ namespace fastfile {
 		bool m_help{};
 		bool m_fd{};
 		bool m_fdIgnoreMissing{};
-		bool exebdiff{};
 		bool alpha{};
 		bool m_header{};
 		bool print_handlers{};

@@ -279,158 +279,14 @@ namespace {
 						}
 					}
 
-					typedef uint8_t* vcSourceCB_t(size_t offset, size_t size);
-					typedef uint8_t* vcDiffCB_t(size_t offset, size_t size, size_t* pOffset);
-					typedef uint8_t* vcDestCB_t(size_t size);
-					struct BDiffState {
-						bool headerRead;
-						bool error;
-						bool eof;
-						unsigned int features;
-					};
-
-
-					static struct {
-						BDiffHeader* bdiffHeader{};
-						byte* destWindow{};
-						size_t destWindowSize{};
-						size_t patchWindowOffsetLast{};
-						size_t destWindowLastSize{};
-						core::bytebuffer::ByteBuffer* ffbb{};
-						core::bytebuffer::ByteBuffer* fdbb{};
-
-						bool (*bdiff)(void* data, vcSourceCB_t* sourceDataCB, vcDiffCB_t* patchDataCB, vcDestCB_t* destDataCB) {};
-
-						std::vector<byte> destData{};
-
-						void SyncData() {
-							if (!destWindowLastSize) return;
-
-							LOG_TRACE("Sync 0x{:x} bytes", destWindowLastSize);
-							utils::WriteValue(destData, destWindow, destWindowLastSize);
-
-							destWindowLastSize = 0;
-						}
-					} bdiffStates{};
-
-					if (!bdiffStates.bdiff) {
-						if (opt.exebdiff) { // lib not working with treyarch
-							hook::library::Library game{ opt.GetGame(true) };
-							hook::library::ScanResult bdiffOff{ game.FindAnyScan(
-								"bdiff",
-								"40 53 55 41 54 41 56 B8", // cw/cod2020
-								"40 53 55 57 41 57 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 80", // bo3
-								"40 55 41 54 41 56 41 57 B8" // bo4
-							) };
-
-							LOG_TRACE("find bdiff: {}", hook::library::CodePointer{ bdiffOff.location });
-							bdiffStates.bdiff = reinterpret_cast<decltype(bdiffStates.bdiff)>(bdiffOff.location);
-						}
-						else {
-							struct BDiffLibData {
-								vcSourceCB_t* sourceDataCB;
-								vcDiffCB_t* patchDataCB;
-								vcDestCB_t* destDataCB;
-							};
-							bdiffStates.bdiff = [](void* diffState, vcSourceCB_t* sourceDataCB, vcDiffCB_t* patchDataCB, vcDestCB_t* destDataCB)->bool {
-								BDiffLibData state{};
-								state.sourceDataCB = sourceDataCB;
-								state.patchDataCB = patchDataCB;
-								state.destDataCB = destDataCB;
-								fastfile::bdiff::BDiffState* diffInfo{ (fastfile::bdiff::BDiffState*)diffState };
-								diffInfo->state = &state;
-								diffInfo->type = fastfile::bdiff::BDT_TREYARCH;
-
-								if (!fastfile::bdiff::bdiff(
-									diffInfo,
-									[](void* data, size_t offset, size_t size) -> uint8_t* {
-										return ((BDiffLibData*)data)->sourceDataCB(offset, size);
-									},
-									[](void* data, size_t offset, size_t size, size_t* pOffset) -> uint8_t* {
-										return ((BDiffLibData*)data)->patchDataCB(offset, size, pOffset);
-									},
-									[](void* data, size_t size) -> uint8_t* {
-										return ((BDiffLibData*)data)->destDataCB(size);
-									}
-								)) {
-									LOG_ERROR("bdiff error: {}", diffInfo->error);
-									return false;
-								}
-								return true;
-							};
-						}
-					}
-
-					bdiffStates.bdiffHeader = bdiffHeader;
-					std::vector<byte> outwindow{};
-					bdiffStates.destWindowSize = bdiffHeader->maxDestWindowSize + bdiffHeader->maxSourceWindowSize + 2 * (bdiffHeader->maxDiffWindowSize + 0x80000);
-					outwindow.resize(bdiffStates.destWindowSize);
-					bdiffStates.destWindow = outwindow.data();
-					bdiffStates.destData.clear();
-					bdiffStates.destWindowLastSize = 0;
 
 					core::bytebuffer::ByteBuffer ffbb{ ffdata };
 					core::bytebuffer::ByteBuffer fdbb{ uncompress.get(), fdDecompressedSize };
-					bdiffStates.fdbb = &fdbb;
-					bdiffStates.ffbb = &ffbb;
 
-					union {
-						BDiffState exe;
-						fastfile::bdiff::BDiffState acts;
-					} state{};
-					bdiffStates.patchWindowOffsetLast = 0;
-					do {
-						if (!bdiffStates.fdbb->CanRead(0x400)) {
-							break; // can't read header
-						}
-						LOG_TRACE("Pre bdiff");
-						if (!bdiffStates.bdiff(&state,
-							[](size_t offset, size_t size) -> uint8_t* {
-								// vcSourceCB_t
-								bdiffStates.ffbb->Goto(offset);
-								if (!bdiffStates.ffbb->CanRead(size)) {
-									hook::error::DumpStackTraceFrom();
-									throw std::runtime_error(std::format("vcSourceCB_t: read too much at 0x{:x}/0x{:x}", bdiffStates.ffbb->Loc(), size));
-								}
-								LOG_TRACE("vcSourceCB_t: read 0x{:x}:0x{:x}", bdiffStates.ffbb->Loc(), size);
-								return bdiffStates.ffbb->ReadPtr<uint8_t>(size);
-							},
-							[](size_t offset, size_t size, size_t* pOffset) -> uint8_t* {
-								if (offset) {
-									bdiffStates.patchWindowOffsetLast = offset;
-								}
-								else {
-									offset = bdiffStates.patchWindowOffsetLast;
-								}
-								if (pOffset) *pOffset = offset;
-
-								// vcDiffCB_t
-								bdiffStates.fdbb->Goto(offset);
-								if (!bdiffStates.fdbb->CanRead(size)) {
-									hook::error::DumpStackTraceFrom();
-									throw std::runtime_error(std::format("vcDiffCB_t: read too much at 0x{:x}/0x{:x}", bdiffStates.fdbb->Loc(), size));
-								}
-								LOG_TRACE("vcDiffCB_t: read 0x{:x}:0x{:x}", bdiffStates.fdbb->Loc(), size);
-								return bdiffStates.fdbb->ReadPtr<uint8_t>(size);
-							},
-							[](size_t size) -> uint8_t* {
-								// vcDestCB_t
-								bdiffStates.SyncData();
-								bdiffStates.destWindowLastSize = size;
-								LOG_TRACE("vcDestCB_t: give 0x{:x}", size);
-								if (size <= bdiffStates.bdiffHeader->maxDestWindowSize) {
-									return bdiffStates.destWindow;
-								}
-								throw std::runtime_error(std::format("vcDestCB_t: dest window too small 0x{:x} < 0x{:x}", bdiffStates.bdiffHeader->maxDestWindowSize, size));
-							}
-						)) {
-							throw std::runtime_error("bdiff error");
-						}
-					} while (bdiffStates.destWindowLastSize);
-					bdiffStates.SyncData();
-					LOG_TRACE("end size: 0x{:x}", bdiffStates.destData.size());
-
-					ffdata = bdiffStates.destData;
+					ffdata = fastfile::bdiff::bdiff(
+						&ffbb, &fdbb, fastfile::bdiff::BDiffType::BDT_TREYARCH, 
+						bdiffHeader->maxDestWindowSize + bdiffHeader->maxSourceWindowSize + 2 * (bdiffHeader->maxDiffWindowSize + 0x80000)
+					);
 
 					if (opt.dump_decompressed) {
 						std::filesystem::path of{ ctx.file };
@@ -439,7 +295,7 @@ namespace {
 						decfile.replace_extension(".fd.patch.dec");
 
 						std::filesystem::create_directories(decfile.parent_path());
-						if (!utils::WriteFile(decfile, bdiffStates.destData)) {
+						if (!utils::WriteFile(decfile, ffdata)) {
 							LOG_ERROR("Can't dump {}", decfile.string());
 						}
 						else {

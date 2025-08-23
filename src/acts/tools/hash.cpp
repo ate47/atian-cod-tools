@@ -8,6 +8,7 @@
 #include <tools/hashes/hash_scanner.hpp>
 #include <tools/hashes/text_expand.hpp>
 #include <tools/hash.hpp>
+#include <xxhash.h>
 #undef small
 #include <md5.h>
 #include <crc_cpp.h>
@@ -1397,10 +1398,20 @@ namespace hash {
 					sha1.getHash(),
 					sha256.getHash()
 				);
+				LOG_INFO("sha1:{} / sha256:{}",
+					sha1.getHash(),
+					sha256.getHash()
+				);
 				LOG_INFO("md5:{}",
 					md5.getHash()
 				);
+				uint64_t xx64{ XXH64(buff.data(), buff.size(), 0) };
+				uint32_t xx64r{ (uint32_t)(xx64 ^ (xx64 >> 32)) };
+				uint32_t xx32{ XXH32(buff.data(), buff.size(), 0) };
 
+				LOG_INFO("xxh64:{:x} xxh64r:{:x} xxh32:{:x}",
+					xx64, xx64r, xx32
+				);
 			}
 
 			return tool::OK;
