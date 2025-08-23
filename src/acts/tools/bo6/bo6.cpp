@@ -159,6 +159,7 @@ namespace {
 
 		bo6GscData.pool.clear();
 
+		mod->NullFunc("40 53 48 83 EC ?? 33 C0 66 C7 81 ?? ?? ?? ?? ?? ?? 48 89 81");
 		mod->Redirect("4C 8B 4A 08 4D 85 C9 74 35", Bo6LoadFuncs<false>);
 		mod->Redirect("4C 8B 4A 08 4D 85 C9 74 3F", Bo6LoadFuncs<true>);
 
