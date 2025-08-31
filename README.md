@@ -94,7 +94,7 @@ See the wiki to know how to use the features
 - `gsc` (DEC): `scriptparsetree`, `gscobj`, `scriptfile`
 
 - **EXE**: Requires executable
-- **DEC**: Requires when decompiling scripts with pre-decode required
+- **DEC**: Requires executable when decompiling scripts with pre-decode required
 
 ## Fast File Linker
 
