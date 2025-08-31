@@ -26,7 +26,7 @@ namespace deps::oodle {
                 va_list va{};
                 va_start(va, fmt);
 
-                core::logs::log(core::logs::LVL_INFO, filename, len, utils::vap(fmt, va));
+                core::logs::log(core::logs::LVL_INFO, filename, len, utils::vap(fmt, va), false);
 
                 va_end(va);
             }
@@ -158,12 +158,13 @@ namespace deps::oodle {
     }
 
     int Oodle::Decompress(
-        const void* src, uint32_t srcLen, void* dest, uint32_t destLen, OodleFuzeSafe fuzeSafe, OodleCheckCrcValues checkCrc, OodleVerbosity verbosity, OodleThreadPhase threadPhase) const {
+        const void* src, uint32_t srcLen, void* dest, uint32_t destLen, OodleFuzeSafe fuzeSafe, OodleCheckCrcValues checkCrc, OodleVerbosity verbosity, OodleThreadPhase threadPhase,
+        byte* decBufBase, uint64_t decBufSize, OodleDecompressCallback fpCallback , void* callbackUserData, byte* decoderMemory, uint64_t decoderMemorySize) const {
         if (!OodleLZ_Decompress) {
             throw std::runtime_error("Oodle not loaded");
         }
 
-        return OodleLZ_Decompress(src, srcLen, dest, destLen, fuzeSafe, checkCrc, verbosity, nullptr, 0, 0, nullptr, nullptr, 0, threadPhase);
+        return OodleLZ_Decompress(src, srcLen, dest, destLen, fuzeSafe, checkCrc, verbosity, decBufBase, decBufSize, fpCallback, callbackUserData, decoderMemory, decoderMemorySize, threadPhase);
     }
 
 }

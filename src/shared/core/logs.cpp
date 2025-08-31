@@ -84,14 +84,14 @@ namespace core::logs {
 #endif
 		return bt;
 	}
-	void log(loglevel level, const char* file, size_t line, const char* str) {
+	void log(loglevel level, const char* file, size_t line, const char* str, bool endl) {
 		if (getlevel() > level) {
 			return;
 		}
-		log(level, name(level), file, line, str);
+		log(level, name(level), file, line, str, endl);
 	}
 
-	void log(loglevel level, const char* header, const char* file, size_t line, const char* str) {
+	void log(loglevel level, const char* header, const char* file, size_t line, const char* str, bool endl) {
 		core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
 
 		if (file && cfg.log.paths.size()) {
@@ -149,7 +149,7 @@ namespace core::logs {
 			if (color) {
 				out << cli::clicolor::Reset();
 			}
-			out << "\n";
+			if (endl) out << "\n";
 			};
 
 		auto* lf = logfile();

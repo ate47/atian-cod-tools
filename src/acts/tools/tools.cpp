@@ -39,6 +39,7 @@ namespace tool {
 			map["compatibility"] = { "compatibility", "Compatibility tools", true, {} };
 			map["fastfile"] = { "fastfile", "Fastfile tools", true, {} };
 			map["lua"] = { "lua", "LUA tools", true, {} };
+			map["deathloop"] = { "deathloop", "DEATHLOOP tools", true, {} };
 		}
 
 		return map;

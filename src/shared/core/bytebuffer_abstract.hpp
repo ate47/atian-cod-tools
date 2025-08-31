@@ -41,6 +41,11 @@ namespace core::bytebuffer {
 		}
 
 		template<typename Type>
+		bool CanRead() const {
+			return CanRead(sizeof(Type));
+		}
+
+		template<typename Type>
 		void Align() {
 			Align(sizeof(Type));
 		}

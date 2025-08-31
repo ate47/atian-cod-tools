@@ -55,6 +55,12 @@ namespace deps::oodle {
         OODLE_COMPL_OPTIMAL5 = 9,
     };
 
+    enum OodleDecompressCallbackRet : int {
+        OodleDecompressCallbackRet_Continue = 0,
+        OodleDecompressCallbackRet_Cancel = 1,
+        OodleDecompressCallbackRet_Invalid = 2
+    };
+
     typedef int(*POodleLZ_Compress)(
         OodleCompressor compressor,
         const void* src, 
@@ -68,6 +74,16 @@ namespace deps::oodle {
         int32_t scratchSize
     );
 
+    typedef OodleDecompressCallbackRet(*OodleDecompressCallback)(
+        void* userdata, 
+        const void* rawBuf,
+        int32_t rawLen,
+        const void* compBuf,
+        int32_t compBufferSize,
+        int32_t rawDone,
+        int32_t compUsed
+    );
+
     typedef int32_t(*POodleLZ_Decompress)(
         const void* src, 
         uint32_t srcLen, 
@@ -78,7 +94,7 @@ namespace deps::oodle {
         OodleVerbosity verbosity,
         byte* decBufBase,
         uint64_t decBufSize,
-        uint64_t fpCallback,
+        OodleDecompressCallback fpCallback,
         void* callbackUserData,
         byte* decoderMemory,
         uint64_t decoderMemorySize,
@@ -137,7 +153,8 @@ namespace deps::oodle {
         int Decompress(
             const void* src, uint32_t srcLen, void* dest, uint32_t destLen,
             OodleFuzeSafe fuzeSafe = OODLE_FS_NO, OodleCheckCrcValues checkCrc = OODLE_CRC_NO, OodleVerbosity verbosity = OODLE_VERB_NONE,
-            OodleThreadPhase threadPhase = OODLE_TP_Unthreaded) const;
+            OodleThreadPhase threadPhase = OODLE_TP_Unthreaded, byte* decBufBase = nullptr, uint64_t decBufSize = 0,
+            OodleDecompressCallback fpCallback = nullptr, void* callbackUserData = nullptr, byte* decoderMemory = nullptr, uint64_t decoderMemorySize = 0) const;
     };
 
     Oodle& GetInstance();
