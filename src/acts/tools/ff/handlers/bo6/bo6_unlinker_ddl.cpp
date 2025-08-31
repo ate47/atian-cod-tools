@@ -3,93 +3,95 @@
 
 namespace {
 	using namespace fastfile::handlers::bo6;
+
+	struct DDLDef;
+	struct DDLStruct;
+	struct DDLEnum;
+	struct DDLDef;
+
+	struct DDL {
+		XHash64 name;
+		DDLDef* def;
+	};
+	static_assert(sizeof(DDL) == 0x10);
+
+	struct DDLDef {
+		uint64_t version;
+		const char* nameStr;
+		uint64_t unk10;
+		uint64_t archiveId;
+		DDLStruct* structList;
+		DDLEnum* enumList;
+		DDLDef* next;
+		uint32_t headerBitSize;
+		uint32_t headerByteSize;
+		int32_t structsCount;
+		int16_t enumsCount;
+		uint64_t unk48;
+		uint64_t unk50;
+	};
+	static_assert(sizeof(DDLDef) == 0x58);
+
+	enum DDLType : byte {
+		DDL_INVALID_TYPE = 0xFF,
+		DDL_BYTE_TYPE = 0x0,
+		DDL_SHORT_TYPE = 0x1,
+		DDL_UINT_TYPE = 0x2,
+		DDL_INT_TYPE = 0x3,
+		DDL_UINT64_TYPE = 0x4,
+		DDL_HASH_TYPE = 0x5,
+		DDL_FLOAT_TYPE = 0x6,
+		DDL_FIXEDPOINT_TYPE = 0x7,
+		DDL_STRING_TYPE = 0x8,
+		DDL_STRUCT_TYPE = 0x9,
+		DDL_ENUM_TYPE = 0xA,
+		DDL_PAD_TYPE = 0xB,
+		DDL_HASH_RESOURCE_TYPE = 0xC,
+	};
+
+	struct DDLMember {
+		const char* name;
+		int32_t bitSize;
+		uint32_t intSize;
+		uint32_t offset;
+		int32_t maxIntValue;
+		int16_t arraySize;
+		uint16_t externalIndex;
+		int16_t hashTableIndex;
+		DDLType type;
+		byte isArray;
+	};
+	struct DDLHash {
+		uint64_t hash;
+		int index;
+	};
+
+	struct DDLHashTable {
+		DDLHash* list;
+		int count;
+		int max;
+	};
+
+	struct DDLStruct {
+		const char* name;
+		int bitSize;
+		int memberCount;
+		DDLMember* members;
+		DDLHashTable hashTableLower;
+		DDLHashTable hashTableUpper;
+	};
+	struct DDLEnum {
+		const char* name;
+		DDLHashTable list;
+		const char** members;
+		uint16_t count;
+		DDLType type;
+	};
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 
-			struct DDLDef;
-			struct DDLStruct;
-			struct DDLEnum;
-			struct DDLDef;
-
-			struct DDL {
-				XHash64 name;
-				DDLDef* def;
-			};
-
-			struct DDLDef {
-				uint64_t version;
-				const char* nameStr;
-				uint64_t unk10;
-				uint64_t archiveId;
-				DDLStruct* structList;
-				DDLEnum* enumList;
-				DDLDef* next;
-				uint32_t headerBitSize;
-				uint32_t headerByteSize;
-				int32_t structsCount;
-				int16_t enumsCount;
-				uint64_t unk48;
-				uint64_t unk50;
-			};
-			static_assert(sizeof(DDLDef) == 0x58);
-
-			enum DDLType : byte {
-				DDL_INVALID_TYPE = 0xFF,
-				DDL_BYTE_TYPE = 0x0,
-				DDL_SHORT_TYPE = 0x1,
-				DDL_UINT_TYPE = 0x2,
-				DDL_INT_TYPE = 0x3,
-				DDL_UINT64_TYPE = 0x4,
-				DDL_HASH_TYPE = 0x5,
-				DDL_FLOAT_TYPE = 0x6,
-				DDL_FIXEDPOINT_TYPE = 0x7,
-				DDL_STRING_TYPE = 0x8,
-				DDL_STRUCT_TYPE = 0x9,
-				DDL_ENUM_TYPE = 0xA,
-				DDL_PAD_TYPE = 0xB,
-				DDL_HASH_RESOURCE_TYPE = 0xC,
-			};
-
-			struct DDLMember {
-				const char* name;
-				int32_t bitSize;
-				uint32_t intSize;
-				uint32_t offset;
-				int32_t maxIntValue;
-				int16_t arraySize;
-				uint16_t externalIndex;
-				int16_t hashTableIndex;
-				DDLType type;
-				byte isArray;
-			};
-			struct DDLHash {
-				uint64_t hash;
-				int index;
-			};
-
-			struct DDLHashTable {
-				DDLHash* list;
-				int count;
-				int max;
-			};
-
-			struct DDLStruct {
-				const char* name;
-				int bitSize;
-				int memberCount;
-				DDLMember* members;
-				DDLHashTable hashTableLower;
-				DDLHashTable hashTableUpper;
-			};
-			struct DDLEnum {
-				const char* name;
-				DDLHashTable list;
-				const char** members;
-				uint16_t count;
-				DDLType type;
-			};
 			DDL* asset{ (DDL*)ptr };
 
 			if (!asset->def) {
@@ -302,5 +304,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_DDL };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_DDL, sizeof(DDL) };
 }

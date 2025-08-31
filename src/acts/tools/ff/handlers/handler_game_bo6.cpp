@@ -10,6 +10,7 @@
 #include <tools/bo6/bo6.hpp>
 #include <decryptutils.hpp>
 #include <tools/ff/handlers/handler_game_bo6.hpp>
+#include <tools/compatibility/scobalula_wnigen.hpp>
 #include <utils/enumlist.hpp>
 
 
@@ -189,6 +190,11 @@ namespace fastfile::handlers::bo6 {
 		LoadStreamObjectVtable dbLoadStreamVTable{ LoadStreamImpl, ErrorStub, ErrorStub, ErrorStub , ErrorStub };
 		DBLoadCtxVT dbLoadCtxVTable{ AllocStreamPos, PushStreamPos, PopStreamPos, PreAssetRead, PostAssetRead };
 
+		struct XStringOutCTX {
+			std::filesystem::path path;
+			std::map<std::string, std::unordered_set<uint64_t>> map{};
+		};
+
 		struct {
 			BO6FFHandler* handler{};
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
@@ -198,6 +204,8 @@ namespace fastfile::handlers::bo6 {
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
+			T10RAssetType assetLoadStack[0x100];
+			size_t assetLoadStackTop{};
 			int streamPosStack[64]{};
 			int streamPosStackIndex{};
 			size_t loaded{};
@@ -206,11 +214,13 @@ namespace fastfile::handlers::bo6 {
 			AssetList assets{};
 			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
 			HashedType typeMaps[0x200];
+			const char* typeNames[0x200];
 			T10RAssetType typeExeToActs[0x200];
 			size_t typeActsToExe[T10RAssetType::T10R_ASSET_COUNT];
 			size_t typeMapsCount;
 			std::unordered_map<uint64_t, void*> streamLocations{};
 			std::vector<const char*>* xstringLocs{};
+			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
 			utils::OutFileCE* outAsset{};
 			utils::EnumList<T10RAssetType, T10RAssetType::T10R_ASSET_COUNT> handleList{ PoolIdRelease };
 
@@ -271,6 +281,7 @@ namespace fastfile::handlers::bo6 {
 							type->type = (T10RAssetType)i;
 							type->name = lib.Rebase<const char>(poolNames[i]);
 							type->hash = (uint32_t)hash::HashX32(type->name);
+							typeNames[i] = type->name;
 
 							T10RAssetType mapId{ bo6::PoolIdRelease(type->name) };
 							if (mapId != T10R_ASSET_COUNT) {
@@ -315,6 +326,9 @@ namespace fastfile::handlers::bo6 {
 
 		void LoadXFileData(DBLoadCtx* context, void* ptr, int64_t len) {
 			LOG_TRACE("LoadXFileData({}, {}) {}", ptr, len, hook::library::CodePointer{ _ReturnAddress() });
+			if (!gcx.reader->CanRead(len)) {
+				hook::error::DumpStackTraceFrom();
+			}
 			gcx.reader->Read(ptr, len);
 		}
 
@@ -387,10 +401,18 @@ namespace fastfile::handlers::bo6 {
 
 		void PreAssetRead(DBLoadCtx* ctx, T10RAssetType type) {
 			LOG_TRACE("PreAssetRead({}) {}", type, hook::library::CodePointer{ _ReturnAddress() });
+			if (gcx.assetLoadStackTop == ARRAYSIZE(gcx.assetLoadStack)) {
+				throw std::runtime_error("PreAssetRead stack overflow");
+			}
+			gcx.assetLoadStack[gcx.assetLoadStackTop++] = type;
 		}
 
 		void PostAssetRead(DBLoadCtx* ctx) {
 			LOG_TRACE("PostAssetRead() {}", hook::library::CodePointer{ _ReturnAddress() });
+			if (!gcx.assetLoadStackTop) {
+				throw std::runtime_error("PostAssetRead stack underflow");
+			}
+			gcx.assetLoadStackTop--;
 		}
 
 
@@ -418,13 +440,19 @@ namespace fastfile::handlers::bo6 {
 				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
 				auto it{ map.find(type) };
 				if (it != map.end()) {
-					if constexpr (!hasRelativeLoads) {
-						if (!it->second->requiresRelativeLoads) {
-							it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
-						}
+					size_t itemSize{ gcx.poolInfo[type].itemSize };
+					if (it->second->assetSize != itemSize) {
+						LOG_ERROR("Can't check size of asset entry {}: 0x{:x} != 0x{:x}", gcx.typeNames[type], it->second->assetSize, itemSize);
 					}
 					else {
-						it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
+						if constexpr (!hasRelativeLoads) {
+							if (!it->second->requiresRelativeLoads) {
+								it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
+							}
+						}
+						else {
+							it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
+						}
 					}
 				}
 			}
@@ -560,16 +588,26 @@ namespace fastfile::handlers::bo6 {
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
 				}
+
+				if (opt.dumpXStrings) {
+					std::filesystem::path path{ opt.m_output / "bo6" / "xstrings_all.wni" };
+					gcx.xstrOutGlb = std::make_unique<XStringOutCTX>(path);
+				}
+			}
+			void Cleanup() override {
+				if (gcx.xstrOutGlb) {
+					LOG_INFO("Dump xstrings to {}", gcx.xstrOutGlb->path.string());
+					if (compatibility::scobalula::wnigen::CompressWNIFile(gcx.xstrOutGlb->map, gcx.xstrOutGlb->path)) {
+						LOG_ERROR("Failed to create wni file");
+					}
+					gcx.xstrOutGlb = nullptr;
+				}
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
 				gcx.ctx = &ctx;
 				gcx.reader = &reader;
 				gcx.streamLocations.clear();
-
-				//HwBp::Set(&gcx.reader, 8, HwBp::When::Written);
-				std::filesystem::path out{ opt.m_output / "bo6" / "data" };
-				std::filesystem::create_directories(out);
 
 				if (!reader.CanRead(sizeof(gcx.assets))) {
 					LOG_WARNING("empty fastfile, ignored");
@@ -585,12 +623,19 @@ namespace fastfile::handlers::bo6 {
 
 				gcx.allocator.FreeAll();
 
+				gcx.xstringLocs = nullptr;
 				std::vector<const char*> xstringLocs{};
 				if (opt.dumpXStrings) {
 					gcx.xstringLocs = &xstringLocs;
 				}
 
-				std::filesystem::path outStrings{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
+				std::string fftype{ ctx.ffname };
+				size_t fdd{ fftype.find('_') };
+				if (fdd != std::string::npos) {
+					fftype.resize(fdd);
+				}
+
+				std::filesystem::path outStrings{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
 
 				{
 					gcx.scrStringMap.clear();
@@ -662,11 +707,6 @@ namespace fastfile::handlers::bo6 {
 					return;
 				}
 
-				std::string fftype{ ctx.ffname };
-				size_t fdd{ fftype.find('_') };
-				if (fdd != std::string::npos) {
-					fftype.resize(fdd);
-				}
 				std::filesystem::path outAssets{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "assets" / fftype / std::format("{}.csv", ctx.ffname) };
 				{
 					std::filesystem::create_directories(outAssets.parent_path());
@@ -687,34 +727,41 @@ namespace fastfile::handlers::bo6 {
 						v->PreXFileLoading(*gcx.opt, ctx);
 					}
 
-					if (!gcx.handleList.Empty()) {
-						// check that we match at least one required type
-						bool anySee{};
-						for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
-							Asset* asset{ gcx.assets.assets + i };
-
-							if (gcx.handleList[gcx.GetMappedType(asset->type)->type]) {
-								anySee = true;
-								break;
-							}
-						}
-
-						if (!anySee) return;
-					}
+					//if (!gcx.handleList.Empty()) {
+					//	// check that we match at least one required type
+					//	bool anySee{};
+					//	for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
+					//		Asset* asset{ gcx.assets.assets + i };
+					//
+					//		if (gcx.handleList[gcx.GetMappedType(asset->type)->type]) {
+					//			anySee = true;
+					//			break;
+					//		}
+					//	}
+					//
+					//	if (!anySee) return;
+					//}
 
 					bool err{};
+					size_t assetId;
 					try {
-						for (size_t i = 0; i < gcx.assets.assetsCount; i++) {
-							Asset* asset{ gcx.assets.assets + i };
+						for (assetId = 0; assetId < gcx.assets.assetsCount; assetId++) {
+							Asset* asset{ gcx.assets.assets + assetId };
 
 							const HashedType* type{ gcx.GetMappedType(asset->type) };
 
-							LOG_DEBUG("load #{} -> {}", i, type->name);
+							LOG_DEBUG("load #{} -> {}", assetId, type->name);
 							gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
 						}
 
 					} catch (std::runtime_error& e) {
 						LOG_ERROR("can't dump ff {}", e.what());
+					}
+					if (gcx.assetLoadStackTop && assetId != gcx.assets.assetsCount) {
+						LOG_ERROR("Asset load stack ({}) - asset:#{}/{}", gcx.assetLoadStackTop, assetId + 1, gcx.assets.assetsCount);
+						for (size_t i = gcx.assetLoadStackTop; i; i--) {
+							LOG_ERROR("- {} - {}", i, PoolNameRelease(gcx.assetLoadStack[i - 1]));
+						}
 					}
 
 					for (auto& [k, v] : GetWorkers()) {
@@ -729,16 +776,35 @@ namespace fastfile::handlers::bo6 {
 					std::filesystem::path ostr{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(ostr.parent_path());
 					utils::OutFileCE sos{ ostr };
-					sos << "xhash,xhashres,str";
+					sos << "xhash,xhashasset,xhashomnvar,str";
 					for (const char* s : *gcx.xstringLocs) {
 						if (!s) continue;
+						byte b;
+						if (!hook::memory::ReadMemorySafe((void*)s, &b, 1)) {
+							LOG_ERROR("Can't read string");
+							continue;
+						}
+
+						uint64_t xh{ hash::Hash64A(s) };
+						uint64_t xha{ hash::HashIWAsset(s) };
+						uint64_t xho{ hash::HashT10OmnVar(s) };
 						sos 
 							<< "\n"
-							<< std::hex << "hash_" << hash::Hash64A(s) << ","
-							<< std::hex << "hash_" << hash::HashIWAsset(s) << ","
+							<< std::hex << "hash_" << xh << ","
+							<< std::hex << "hash_" << xha << ","
+							<< std::hex << "hash_" << xho << ","
 							<< utils::FormattedString{ s };
+
+						if (gcx.xstrOutGlb) {
+							std::unordered_set<uint64_t>& h{ gcx.xstrOutGlb->map[s] };
+							// add our hashes
+							h.insert(xh);
+							h.insert(xha);
+							h.insert(xho);
+						}
 					}
 					LOG_INFO("XStrings names dump into {}", ostr.string());
+					gcx.xstringLocs = nullptr;
 				}
 
 				LOG_DEBUG("done reading {}", ctx.ffname);
@@ -753,6 +819,9 @@ namespace fastfile::handlers::bo6 {
 	std::unordered_map<bo6::T10RAssetType, Worker*>& GetWorkers() {
 		static std::unordered_map<bo6::T10RAssetType, Worker*> workers{};
 		return workers;
+	}
+	std::vector<const char*>* GetXStrings() {
+		return gcx.xstringLocs;
 	}
 
 	const char* GetPoolName(uint32_t hash) {

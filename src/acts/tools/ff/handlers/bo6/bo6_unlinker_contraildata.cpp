@@ -4,18 +4,17 @@
 namespace {
 	using namespace fastfile::handlers::bo6;
 
+	struct ContrailData {
+		XHash64 name;
+		ParticleSystem* particleSystem1;
+		ParticleSystem* particleSystem2;
+		scriptbundle::ScriptBundleObjectData bundle;
+	};
+
+	static_assert(sizeof(ContrailData) == 0x38);
+
 	class ImplWorker : public Worker {
-
 		using Worker::Worker;
-		struct ContrailData
-		{
-			XHash64 name;
-			ParticleSystem* particleSystem1;
-			ParticleSystem* particleSystem2;
-			scriptbundle::ScriptBundleObjectData bundle;
-		};
-
-		static_assert(sizeof(ContrailData) == 0x38);
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ContrailData* asset{ (ContrailData*)ptr };
@@ -44,5 +43,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_CONTRAILDATA };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_CONTRAILDATA, sizeof(ContrailData) };
 }

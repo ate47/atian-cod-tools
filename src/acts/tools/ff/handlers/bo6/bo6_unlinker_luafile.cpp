@@ -4,28 +4,29 @@
 
 namespace {
 	using namespace fastfile::handlers::bo6;
+	struct LuaFile {
+		uint64_t name;
+		uint64_t unk10_count;
+		uint64_t* unk10;
+		uint64_t unk18;
+		uint64_t unk20;
+		uint64_t unk28;
+		LuaFile** unk30;
+		uint16_t unk30_count;
+		uint16_t unk3a;
+		int32_t len;
+		byte* buffer;
+		uint32_t unk50_count;
+		void* unk50;
+		uint32_t unk60_count;
+		void* unk60;
+	};
+	static_assert(sizeof(LuaFile) == 0x68);
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			struct LuaFile {
-				uint64_t name;
-				uint64_t unk10_count;
-				uint64_t* unk10;
-				uint64_t unk18;
-				uint64_t unk20;
-				uint64_t unk28;
-				LuaFile** unk30;
-				uint16_t unk30_count;
-				uint16_t unk3a;
-				int32_t len;
-				byte* buffer;
-				uint32_t unk50_count;
-				void* unk50;
-				uint32_t unk60_count;
-				void* unk60;
-			};
-			static_assert(sizeof(LuaFile) == 0x68);
 			LuaFile* asset{ (LuaFile*)ptr };
 
 			const char* n{ hashutils::ExtractPtr(asset->name) };
@@ -46,5 +47,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_LUAFILE };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_LUAFILE, sizeof(LuaFile) };
 }

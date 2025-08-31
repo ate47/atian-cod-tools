@@ -30,17 +30,19 @@ namespace {
 	}
 
 	using namespace fastfile::handlers::bo6;
+
+	struct RawFile {
+		uint64_t name;
+		uint32_t type;
+		uint32_t compressedLen;
+		uint32_t uncompressedLen;
+		byte* data;
+	}; static_assert(sizeof(RawFile) == 0x20);
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			struct RawFile {
-				uint64_t name;
-				uint32_t type;
-				uint32_t compressedLen;
-				uint32_t uncompressedLen;
-				byte* data;
-			}; static_assert(sizeof(RawFile) == 0x20);
 			RawFile* asset{ (RawFile*)ptr };
 
 			const char* n{ hashutils::ExtractPtr(asset->name) };
@@ -69,5 +71,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_RAWFILE };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_RAWFILE, sizeof(RawFile) };
 }

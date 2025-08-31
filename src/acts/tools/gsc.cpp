@@ -578,6 +578,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 if (gDumpStrings) {
                     gDumpStringsStore.insert(s);
                 }
+                if (ctx.gdctx.stringsLoc) {
+                    ctx.gdctx.stringsLoc->push_back(s);
+                }
                 uint32_t ref = ctx.AddStringValue(s);
                 const auto* vars = reinterpret_cast<const uint32_t*>(&unk2c[1]);
 
@@ -666,6 +669,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             else {
                 rcstr = "<invalid>";
             }
+            if (ctx.gdctx.stringsLoc) {
+                ctx.gdctx.stringsLoc->push_back(rcstr);
+            }
             if (gDumpStrings) {
                 gDumpStringsStore.insert(rcstr);
             }
@@ -736,6 +742,10 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                 if (!ctx.opt.m_noStrDecrypt) {
                     s1 = DecryptString(s1);
                     s2 = DecryptString(s2);
+                }
+                if (ctx.gdctx.stringsLoc) {
+                    ctx.gdctx.stringsLoc->push_back(s1);
+                    ctx.gdctx.stringsLoc->push_back(s2);
                 }
                 if (gDumpStrings) {
                     gDumpStringsStore.insert(s1);
@@ -944,6 +954,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
         else {
             rcstr = "<invalid>";
         }
+        if (ctx.gdctx.stringsLoc) {
+            ctx.gdctx.stringsLoc->push_back(rcstr);
+        }
         if (gDumpStrings) {
             gDumpStringsStore.insert(rcstr);
         }
@@ -977,6 +990,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
             if (gDumpStrings) {
                 gDumpStringsStore.insert(s1);
             }
+            if (ctx.gdctx.stringsLoc) {
+                ctx.gdctx.stringsLoc->push_back(s1);
+            }
 
             const uint32_t* vars = reinterpret_cast<const uint32_t*>(&animt[1]);
             for (size_t j = 0; j < animt->num_tree_address; j++) {
@@ -993,6 +1009,9 @@ int GSCOBJHandler::PatchCode(T8GSCOBJContext& ctx) {
                     uint32_t ref2 = ctx.AddStringValue(v);
                     if (gDumpStrings) {
                         gDumpStringsStore.insert(v);
+                    }
+                    if (ctx.gdctx.stringsLoc) {
+                        ctx.gdctx.stringsLoc->push_back(v);
                     }
 
                     uint32_t rloc = (uint32_t)vars2[1];

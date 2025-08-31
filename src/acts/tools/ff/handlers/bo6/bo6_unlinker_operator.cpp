@@ -270,8 +270,8 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATOR };
-	utils::MapAdder<ImplSkinWorker, bo6::T10RAssetType, Worker> impls{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATORSKIN };
-	utils::MapAdder<ImplReacWorker, bo6::T10RAssetType, Worker> implr{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_REACTIVEOPERATOR };
-	utils::MapAdder<ImplListWorker, bo6::T10RAssetType, Worker> impll{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATORLIST };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATOR, sizeof(Operator) };
+	utils::MapAdder<ImplSkinWorker, bo6::T10RAssetType, Worker> impls{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATORSKIN, sizeof(OperatorSkin) };
+	utils::MapAdder<ImplReacWorker, bo6::T10RAssetType, Worker> implr{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_REACTIVEOPERATOR, sizeof(ReactiveOperator) };
+	utils::MapAdder<ImplListWorker, bo6::T10RAssetType, Worker> impll{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATORLIST, sizeof(OperatorList) };
 }

@@ -4,15 +4,21 @@
 
 namespace {
 	using namespace fastfile::handlers::bo6;
+	struct GscObj {
+		uint64_t name;
+		uint32_t len;
+		byte* buffer;
+	}; static_assert(sizeof(GscObj) == 0x18);
+	struct GscGdb {
+		uint64_t name;
+		uint32_t len;
+		byte* buffer;
+	}; static_assert(sizeof(GscGdb) == 0x18);
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			struct GscObj {
-				uint64_t name;
-				uint32_t len;
-				byte* buffer;
-			}; static_assert(sizeof(GscObj) == 0x18);
 			GscObj* asset{ (GscObj*)ptr };
 
 			std::filesystem::path outFile{ opt.m_output / "bo6" / "gscobj" / std::format("script_{:x}.gscc", asset->name) };
@@ -37,18 +43,9 @@ namespace {
 				std::filesystem::path outSource{ opt.m_output / "bo6" / "source" };
 				std::string outSourceStr{ outSource.string() };
 				gdctx.opt.m_outputDir = outSourceStr.data();
+				gdctx.stringsLoc = GetXStrings();
 
-				std::vector<byte> scriptData;
-				byte* alignedAlloc{ utils::Aligned(asset->buffer, 0x20) };
-
-				if (asset->buffer != alignedAlloc) {
-					// we clone the buffer to align it
-					utils::Allocate(scriptData, asset->len + 0x20);
-					alignedAlloc = utils::Aligned(scriptData.data(), 0x20);
-					std::memcpy(alignedAlloc, asset->buffer, asset->len);
-				}
-
-				int r{ tool::gsc::DecompileGsc(alignedAlloc, asset->len, outFile, gdctx) };
+				int r{ tool::gsc::DecompileGsc(asset->buffer, asset->len, outFile, gdctx) };
 
 				if (r) {
 					LOG_ERROR("Error when decompiling script");
@@ -57,5 +54,23 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_GSCOBJ };
+	class ImplWorkerGdb : public Worker {
+		using Worker::Worker;
+
+		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
+			GscGdb* asset{ (GscGdb*)ptr };
+
+			std::filesystem::path outFile{ opt.m_output / "bo6" / "gscobj" / std::format("script_{:x}.gsc.gdb", asset->name) };
+
+			std::filesystem::create_directories(outFile.parent_path());
+			LOG_INFO("Dump gscgdb {} len: 0x{:x}", outFile.string(), asset->len);
+
+			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
+				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+		}
+	};
+
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_GSCOBJ, sizeof(GscObj) };
+	utils::MapAdder<ImplWorkerGdb, bo6::T10RAssetType, Worker> implGdb{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_GSCGDB, sizeof(GscGdb) };
 }

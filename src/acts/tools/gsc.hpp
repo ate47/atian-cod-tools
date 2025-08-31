@@ -841,6 +841,7 @@ namespace tool::gsc {
         std::unordered_map<uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>> vtables{};
         std::unordered_map<NameLocated, GscExportInformation, NameLocatedHash, NameLocatedEquals> exportInfos{};
         std::unordered_map<uint64_t, std::unordered_set<uint32_t>>* opcodesLocs{};
+        std::vector<const char*>* stringsLoc{};
 
         bool WarningType(GscDecompilerGlobalContextWarn warn);
     };

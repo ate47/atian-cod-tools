@@ -3,13 +3,14 @@
 
 namespace {
 	using namespace fastfile::handlers::bo6;
+
+	struct Localize {
+		uint64_t name;
+		const char* val;
+	}; static_assert(sizeof(Localize) == 0x10);
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
-
-		struct Localize {
-			uint64_t name;
-			const char* val;
-		}; static_assert(sizeof(Localize) == 0x10);
 
 		std::vector<Localize*> vals{};
 
@@ -62,5 +63,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_LOCALIZE };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_LOCALIZE, sizeof(Localize) };
 }

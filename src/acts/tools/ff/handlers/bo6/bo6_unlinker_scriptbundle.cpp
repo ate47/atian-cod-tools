@@ -232,5 +232,5 @@ namespace fastfile::handlers::bo6::scriptbundle {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_SCRIPTBUNDLE };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_SCRIPTBUNDLE, sizeof(ScriptBundle) };
 }

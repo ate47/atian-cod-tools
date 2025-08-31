@@ -4,38 +4,27 @@
 
 namespace {
 	using namespace fastfile::handlers::bo6;
+	union NetConstString {
+		const char* str;
+		XHash64 hash;
+	};
+
+	struct NetConstStrings {
+		uint64_t name;
+		uint32_t unk8;
+		byte unk0c;
+		bool useHash;
+		uint32_t unk10;
+		uint32_t stringsCount;
+		uint32_t unk18;
+		NetConstString* strings;
+	}; static_assert(sizeof(NetConstStrings) == 0x28);
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 		using ScriptBundle = scriptbundle::ScriptBundle;
 
-		struct FootStepsFxTable;
-		struct FoliagesFXTable;
-		struct HandPlantsFXTable;
-		struct AiImpactVFXTable;
-		struct ParticleSystem;
-		struct Dismemberment;
-		struct CalloutMarkerPing;
-		struct WeaponAccuracy;
-		struct Character;
-
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			union NetConstString {
-				const char* str;
-				XHash64 hash;
-			};
-
-
-
-			struct NetConstStrings {
-				uint64_t name;
-				uint32_t unk8;
-				byte unk0c;
-				bool useHash;
-				uint32_t unk10;
-				uint32_t stringsCount;
-				uint32_t unk18;
-				NetConstString* strings;
-			}; static_assert(sizeof(NetConstStrings) == 0x28);
 			NetConstStrings* asset{ (NetConstStrings*)ptr };
 			BO6JsonWriter json{};
 
@@ -79,5 +68,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_NETCONSTSTRINGS };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_NETCONSTSTRINGS, sizeof(NetConstStrings) };
 }

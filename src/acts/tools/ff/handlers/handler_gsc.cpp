@@ -28,6 +28,7 @@ namespace {
 
             gdctx.opt.m_platform = fastfile::GetCurrentContext().gscPlatform;
             gdctx.opt.m_dcomp = true;
+            gdctx.opt.m_splitByVm = true;
             std::filesystem::path outSource{ opt.m_output / "gsc_decomp" };
             std::string outSourceStr{ outSource.string() };
             gdctx.opt.m_outputDir = outSourceStr.data();

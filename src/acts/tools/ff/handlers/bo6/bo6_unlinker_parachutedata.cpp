@@ -4,17 +4,17 @@
 namespace {
 	using namespace fastfile::handlers::bo6;
 
-	class ImplWorker : public Worker {
+	struct ParachuteData {
+		XHash64 name;
+		Camo* camo;
+		XModel* viewModel;
+		XModel* worldModel;
+		scriptbundle::ScriptBundleObjectData bundle;
+	};
+	static_assert(sizeof(ParachuteData) == 0x40);
 
+	class ImplWorker : public Worker {
 		using Worker::Worker;
-		struct ParachuteData {
-			XHash64 name;
-			Camo* camo;
-			XModel* viewModel;
-			XModel* worldModel;
-			scriptbundle::ScriptBundleObjectData bundle;
-		};
-		static_assert(sizeof(ParachuteData) == 0x40);
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ParachuteData* asset{ (ParachuteData*)ptr };
@@ -44,5 +44,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_PARACHUTEDATA };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_PARACHUTEDATA, sizeof(ParachuteData) };
 }

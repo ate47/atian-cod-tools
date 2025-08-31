@@ -2,23 +2,23 @@
 #include <tools/ff/handlers/handler_game_bo6.hpp>
 
 namespace {
-
 	using namespace fastfile::handlers::bo6;
+
+	struct KeyValuePair {
+		const char* value;
+		uint32_t key;
+	};
+	struct KeyValuePairs {
+		uint64_t name;
+		KeyValuePair* kv;
+		int32_t count;
+	};
+
+	static_assert(sizeof(KeyValuePairs) == 0x18);
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			struct KeyValuePair {
-				const char* value;
-				uint32_t key;
-			};
-			struct KeyValuePairs {
-				uint64_t name;
-				KeyValuePair* kv;
-				int32_t count;
-			};
-			
-			static_assert(sizeof(KeyValuePairs) == 0x18);
 			KeyValuePairs* asset{ (KeyValuePairs*)ptr };
 
 
@@ -41,6 +41,6 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_KEYVALUEPAIRS };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_KEYVALUEPAIRS, sizeof(KeyValuePairs) };
 
 }

@@ -2,61 +2,60 @@
 #include <tools/ff/handlers/handler_game_bo6.hpp>
 
 namespace {
-
 	using namespace fastfile::handlers::bo6;
+	// tablelookupbyrow  26a6c8cb862c750f
+	enum StringTableType : byte {
+		STT_UNK0 = 0x0,
+		STT_STRING = 0x1,
+		STT_INT64 = 0x2,
+		STT_FLOAT = 0x3,
+		STT_BOOL = 0x4,
+		STT_XHASH = 0x5,
+		STT_XHASH_RES = 0x6,
+		STT_XHASH_DVAR = 0x7,
+		STT_XHASH_OMNVAR = 0x8,
+		STT_XHASH_32 = 0x9,
+		STT_XHASH_LOCALIZED = 0xa,
+		STT_XHASH_B = 0xb,
+	};
+
+	union StringTableValue {
+		uint64_t u64;
+		int64_t i64;
+		uint32_t u32;
+		float f;
+		const char* str;
+		bool b;
+	};
+
+	struct StringTableOutput {
+		StringTableValue output;
+		uint32_t unk8;
+		StringTableType type;
+	}; static_assert(sizeof(StringTableOutput) == 0x10);
+
+	struct StringTableColumn {
+		StringTableType type;
+		uint16_t rows_count;
+		uint16_t unk8_count;
+		uint16_t* unk8_row;
+		uint16_t* offsets_row;
+		uint16_t* unk18;
+		void* data;
+	}; static_assert(sizeof(StringTableColumn) == 0x28);
+
+	struct StringTable {
+		uint64_t name;
+		int32_t columnCount;
+		int32_t rowCount;
+		int32_t cellscount;
+		StringTableColumn* columns;
+		uint64_t* cells;
+	}; static_assert(sizeof(StringTable) == 0x28);
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			// tablelookupbyrow  26a6c8cb862c750f
-			enum StringTableType : byte {
-				STT_UNK0 = 0x0,
-				STT_STRING = 0x1,
-				STT_INT64 = 0x2,
-				STT_FLOAT = 0x3,
-				STT_BOOL = 0x4,
-				STT_XHASH = 0x5,
-				STT_XHASH_RES = 0x6,
-				STT_XHASH_DVAR = 0x7,
-				STT_XHASH_OMNVAR = 0x8,
-				STT_XHASH_32 = 0x9,
-				STT_XHASH_LOCALIZED = 0xa,
-				STT_XHASH_B = 0xb,
-			};
-
-			union StringTableValue {
-				uint64_t u64;
-				int64_t i64;
-				uint32_t u32;
-				float f;
-				const char* str;
-				bool b;
-			};
-
-			struct StringTableOutput {
-				StringTableValue output;
-				uint32_t unk8;
-				StringTableType type;
-			}; static_assert(sizeof(StringTableOutput) == 0x10);
-
-			struct StringTableColumn {
-				StringTableType type;
-				uint16_t rows_count;
-				uint16_t unk8_count;
-				uint16_t* unk8_row;
-				uint16_t* offsets_row;
-				uint16_t* unk18;
-				void* data;
-			}; static_assert(sizeof(StringTableColumn) == 0x28);
-
-			struct StringTable {
-				uint64_t name;
-				int32_t columnCount;
-				int32_t rowCount;
-				int32_t cellscount;
-				StringTableColumn* columns;
-				uint64_t* cells;
-			}; static_assert(sizeof(StringTable) == 0x28);
 			StringTable* asset{ (StringTable*)ptr };
 
 			const char* n{ hashutils::ExtractPtr(asset->name) };
@@ -200,6 +199,6 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_STRINGTABLE };
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_STRINGTABLE, sizeof(StringTable) };
 
 }

@@ -4,61 +4,129 @@
 
 namespace {
 	using namespace fastfile::handlers::bo6;
+	struct AiShootStyles {
+		XHash64 name;
+		ScriptBundle** bundles;
+		int32_t count;
+		uint32_t unk14;
+	};
+	struct AiTokenTypes {
+		XHash64 name;
+		ScriptBundle** bundles;
+		int32_t count;
+		uint32_t unk14;
+	};
+	struct AiTokenStealingDefinitions {
+		XHash64 name;
+		ScriptBundle** bundles;
+		int32_t count;
+		uint32_t unk14;
+	};
+	struct AiTokenDefinitions {
+		XHash64 name;
+		ScriptBundle** bundles;
+		int32_t count;
+		uint32_t unk14;
+	};
+
+
+
+	template<typename Asset>
+	class ImplWorkerBundleList : public Worker {
+		static_assert(sizeof(Asset) == 0x18 && "Bad bundlelist asset size");
+
+		const char* type;
+		const char* dir;
+	public:
+		ImplWorkerBundleList(const char* type, const char* dir) : Worker(sizeof(Asset)), type(type), dir(dir) {};
+
+		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
+			Asset& asset{ *(Asset*)ptr };
+			if (!asset.count) {
+				LOG_INFO("ignore empty asset {}", hashutils::ExtractTmp("hash", asset.name));
+				return;
+			}
+			BO6JsonWriter json{};
+
+			json.BeginObject();
+
+			json.WriteFieldValueXHash("name", asset.name);
+			json.WriteFieldValueXAssetArray("bundles", T10RAssetType::T10R_ASSET_SCRIPTBUNDLE, asset.count, asset.bundles);
+			if (asset.unk14) json.WriteFieldValueNumber("unk14", asset.unk14);
+
+			json.EndObject();
+
+
+			std::filesystem::path outFile{
+				opt.m_output / "bo6" / "source" / "tables" / dir
+				/ std::format("{}.json", hashutils::ExtractTmp("file", asset.name))
+			};
+			std::filesystem::create_directories(outFile.parent_path());
+			LOG_INFO("Dump {} {}", outFile.string(), type);
+
+			if (!json.WriteToFile(outFile)) {
+				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+		}
+	};
+
+
+
+	struct AITypeCharacters {
+		Character** characters;
+		float* odds;
+		XHash32 unk10;
+		int32_t charactersCount;
+		int32_t unk18;
+		int32_t unk1c;
+	};
+
+	struct AIType {
+		XHash64 name;
+		XHash64 unk08;
+		uint64_t unk10;
+		XHash64 unk18;
+		uint64_t unk20;
+		XHash64 unk28;
+		XHash64 unk30;
+		FootStepsFxTable* footStepsFxTable;
+		FoliagesFXTable* foliagesFXTable;
+		HandPlantsFXTable* handPlantsFXTable;
+		AiImpactVFXTable* aiImpactVFXTable;
+		ParticleSystem* particleSystem1;
+		ParticleSystem* particleSystem2;
+		Dismemberment* dismemberment;
+		const char* typeSuffix;
+		WeaponAccuracy* weaponAccuracy;
+		uint64_t unk80;
+		uint64_t unk88;
+		uint64_t unk90;
+		ScriptBundle* bundle;
+		CalloutMarkerPing* calloutMarkerPing;
+		uint64_t unka8;
+		uint64_t unkb0;
+		uint64_t unkb8;
+		uint64_t unkc0;
+		AITypeCharacters characters;
+		uint64_t unke8;
+		uint64_t unkf0;
+		ScrString_t species;
+		uint64_t unk100;
+		uint64_t unk108;
+		uint64_t unk110;
+		uint64_t unk118;
+		uint64_t unk120;
+		uint64_t unk128;
+		uint64_t unk130;
+		uint64_t unk138;
+		uint64_t unk140;
+	};
+	; static_assert(sizeof(AIType) == 0x148);
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 		using ScriptBundle = scriptbundle::ScriptBundle;
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			struct AITypeCharacters {
-				Character** characters;
-				float* odds;
-				XHash32 unk10;
-				int32_t charactersCount;
-				int32_t unk18;
-				int32_t unk1c;
-			};
-
-			struct AIType {
-				XHash64 name;
-				XHash64 unk08;
-				uint64_t unk10;
-				XHash64 unk18;
-				uint64_t unk20;
-				XHash64 unk28;
-				XHash64 unk30;
-				FootStepsFxTable* footStepsFxTable;
-				FoliagesFXTable* foliagesFXTable;
-				HandPlantsFXTable* handPlantsFXTable;
-				AiImpactVFXTable* aiImpactVFXTable;
-				ParticleSystem* particleSystem1;
-				ParticleSystem* particleSystem2;
-				Dismemberment* dismemberment;
-				const char* typeSuffix;
-				WeaponAccuracy* weaponAccuracy;
-				uint64_t unk80;
-				uint64_t unk88;
-				uint64_t unk90;
-				ScriptBundle* bundle;
-				CalloutMarkerPing* calloutMarkerPing;
-				uint64_t unka8;
-				uint64_t unkb0;
-				uint64_t unkb8;
-				uint64_t unkc0;
-				AITypeCharacters characters;
-				uint64_t unke8;
-				uint64_t unkf0;
-				ScrString_t species;
-				uint64_t unk100;
-				uint64_t unk108;
-				uint64_t unk110;
-				uint64_t unk118;
-				uint64_t unk120;
-				uint64_t unk128;
-				uint64_t unk130;
-				uint64_t unk138;
-				uint64_t unk140;
-			};
-			; static_assert(sizeof(AIType) == 0x148);
 			AIType& asset{ *(AIType*)ptr };
 			BO6JsonWriter json{};
 
@@ -129,7 +197,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "aitype"
+				opt.m_output / "bo6" / "source" / "tables" / "ai" / "type"
 				/ fastfile::GetCurrentContext().ffname
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset.name))
 			};
@@ -142,5 +210,17 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AITYPE };
+	utils::MapAdder<ImplWorkerBundleList<AiShootStyles>, bo6::T10RAssetType, Worker> implAiShootStyles{ 
+		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AISHOOTSTYLESLIST, "aishootstyleslist", "ai/shootstyleslist"
+	};
+	utils::MapAdder<ImplWorkerBundleList<AiTokenTypes>, bo6::T10RAssetType, Worker> implAiTokenTypes{ 
+		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AI_TOKEN_TYPES, "ai_token_types", "ai/token/types" 
+	};
+	utils::MapAdder<ImplWorkerBundleList<AiTokenStealingDefinitions>, bo6::T10RAssetType, Worker> implAiTokenStealingDefinitions{
+		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AI_TOKEN_STEALING_DEFINITIONS, "ai_token_stealing_definitions", "ai/token/stealingdefinitions"
+	};
+	utils::MapAdder<ImplWorkerBundleList<AiTokenDefinitions>, bo6::T10RAssetType, Worker> implAiTokenDefinitions{ 
+		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AI_TOKEN_DEFINITIONS, "ai_token_definitions", "ai/token/definitions" 
+	};
+	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AITYPE, sizeof(AIType) };
 }

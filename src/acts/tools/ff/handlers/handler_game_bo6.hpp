@@ -27,6 +27,7 @@ namespace fastfile::handlers::bo6 {
 	struct FootStepVFX;
 	struct Camo;
 	struct Material;
+	struct ScriptBundle;
 
 	typedef const char* XString;
 	
@@ -41,8 +42,9 @@ namespace fastfile::handlers::bo6 {
 	class Worker {
 	public:
 		bool requiresRelativeLoads;
+		size_t assetSize;
 
-		Worker(bool requiresRelativeLoads = false) : requiresRelativeLoads(requiresRelativeLoads) {}
+		Worker(size_t assetSize, bool requiresRelativeLoads = false) : requiresRelativeLoads(requiresRelativeLoads), assetSize(assetSize) {}
 		virtual void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) = 0;
 		virtual void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 		virtual void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
@@ -153,5 +155,6 @@ namespace fastfile::handlers::bo6 {
 		}
 	};
 
+	std::vector<const char*>* GetXStrings();
 	std::unordered_map<bo6::T10RAssetType, Worker*>& GetWorkers();
 }
