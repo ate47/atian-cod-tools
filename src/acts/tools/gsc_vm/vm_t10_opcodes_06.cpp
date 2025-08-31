@@ -145,6 +145,35 @@ namespace {
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetBuiltinMethod, 0x3a); // 18
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetAnimation, 0x4c); // 20
 		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetAnimationTree, 0xa0);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLevelFieldVariable, 0xa5);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SetLevelFieldVariable, 0x91);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableCached0, 0x09);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableCached1, 0x0a);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableCached2, 0x0b);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableCached3, 0x0c);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableCached4, 0x0d);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableCached5, 0x0e);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLevelFieldVariableRef, 0x3e);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_CastBool, 0x87);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalVariableObjectCached, 0x86);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalLocalArrayCached, 0x8f);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalSelfFieldVar, 0x61);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_GetSelfObject, 0x89);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_ClearFieldVariable, 0x3c);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalAnimFieldVar, 0x8b);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_ScriptMethodCallPointer, 0x1b);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_Switch, 0xa3);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EndSwitch, 0x99);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalAnimFieldVarRef, 0x10);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SetAnimFieldVar, 0x48);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SetSelfFieldVar, 0x93);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_ClearArray, 0x27);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalSelfFieldVarRef, 0x7e);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_GetVector, 0x6b);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetLevelGRef, 0x70);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalArrayCachedField, 0x43);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetGameRef, 0x7b);
+		t106->RegisterOpCode(PLATFORM_PC, OPCODE_Breakpoint, 0x02);
 	}
 }
 REGISTER_GSC_VM_OPCODES(bo6_06, OpCode);
