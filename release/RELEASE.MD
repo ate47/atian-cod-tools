@@ -1,22 +1,41 @@
 - acts
   - fastfile
-    - linker
-      - bo4
-        - add bgcache zone entry without using a gsc file
-        - add rawstring linker
-      - cw
-        - basic fastfile linker test
-        - rawfile linker
-    - reader
-      - fixup luaxhash ff handler
-      - better cw decompressor
-      - iw header dumper
-  - error de/encoder: add option for alternative errors (bo4/cw)
-  - better name injection for bo3 gsc injector
-  - fix bytebuffer error
-  - allow to use #define with values in preprocessor
-- acts-shield-plugin
-  - use project-bo4/acts directory instead of acts
-  - use project-bo4/acts/zone directory for hooked zone files
-- acts-ui
-  - t89 error encoder option to use alternative coder
+    - bo6
+      - netconststrings, objectstore, operator, operatorlist, operatorskin, reactiveoperator, ai unlinkers
+      - aggregate scriptbundle dumped files
+      - better ff handling
+      - decompile gscobj when unlinking
+      - check size in unlinker
+    - bo4
+      - objective, aitype, structuredtable, storagefile and storagefilelist unlinkers
+      - objective, hashlist, structuredtable linker
+      - wip sound linker
+      - split localized data into different fastfile in linker
+      - fix ttf linker
+      - better logs in the linker
+      - fix gfximage bad colors in linker
+    - cw
+      - rawfile linker
+      - wip unlinker rawfile, luafile, kvp unlinkers
+    - support .ff.zone files
+    - add regex -w option to filter fastfile names
+    - reimplement bdiff, no more exe required, no treyarch issues and crc checks
+  - dumper
+    - cordycep mwiii
+      - dump luafiles using their names
+    - remove cordycep bo6, please use bo6 fastfile unlinker
+  - gsc decompiler
+    - use .gsc.gdb or .csc.gdb files during decompilation
+    - option to generate .gdb files with decompilation
+    - set treyarch formatter as default
+  - add all bo6 opcodes (comp+decomp), useless because the game is online only
+  - fix gsct to work with the same vm, but different platform
+  - bo4luanames to dump bo4 lua function names
+  - test bf2 and deathloop files
+  - add #define in preprocessor
+  - option to disable handling in hks lua decompiler
+  - fix bo6 gsc and lua funcs dump
+- shield-plugin
+  - create Acts object in lua vm
+  - some lua error logs
+  - redirect sab files
