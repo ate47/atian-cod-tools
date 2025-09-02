@@ -5,7 +5,10 @@ namespace core::bytebuffer {
 
 	class AbstractByteBuffer {
 		size_t locstack[BYTE_BUFFER_MAX_LOC_STACK];
+		std::endian endianstack[BYTE_BUFFER_MAX_LOC_STACK];
 		size_t locstackIdx{};
+		size_t endianstackIdx{};
+		std::endian endian{ std::endian::native };
 	public:
 		virtual bool CanRead(size_t size) const = 0;
 		virtual void ReadImpl(void* to, size_t size) = 0;
@@ -13,6 +16,13 @@ namespace core::bytebuffer {
 		virtual size_t Length() const = 0;
 		virtual size_t Remaining() const = 0;
 		virtual size_t Loc() const = 0;
+
+		void SetEndian(std::endian endian) {
+			this->endian = endian;
+		}
+		constexpr std::endian GetEndian() const {
+			return endian;
+		}
 
 		void PushLocation() {
 			if (locstackIdx == BYTE_BUFFER_MAX_LOC_STACK) throw std::runtime_error("byte buffer stack overflow");
@@ -22,6 +32,16 @@ namespace core::bytebuffer {
 		void PopLocation() {
 			if (!locstackIdx) throw std::runtime_error("byte buffer stack underflow");
 			Goto(locstack[--locstackIdx]);
+		}
+
+		void PushEndian() {
+			if (endianstackIdx == BYTE_BUFFER_MAX_LOC_STACK) throw std::runtime_error("byte buffer endian stack overflow");
+			endianstack[endianstackIdx++] = endian;
+		}
+
+		void PopEndian() {
+			if (!endianstackIdx) throw std::runtime_error("byte buffer endian stack underflow");
+			endian = endianstack[--endianstackIdx];
 		}
 
 		bool End() const {
@@ -77,6 +97,15 @@ namespace core::bytebuffer {
 			T t;
 			Read(&t, sizeof(T));
 			return t;
+		}
+
+		template<typename T>
+		T ReadNumber() {
+			T v{ Read<T>() };
+			if (endian != std::endian::native) {
+				utils::SwapByte(&v, sizeof(v));
+			}
+			return v;
 		}
 
 		template<typename T>
