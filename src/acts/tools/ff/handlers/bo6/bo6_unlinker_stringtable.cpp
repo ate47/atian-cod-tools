@@ -15,8 +15,8 @@ namespace {
 		STT_XHASH_DVAR = 0x7,
 		STT_XHASH_OMNVAR = 0x8,
 		STT_XHASH_32 = 0x9,
-		STT_XHASH_LOCALIZED = 0xa,
-		STT_XHASH_B = 0xb,
+		STT_XHASH_SCR = 0xa,
+		STT_XHASH_LOCALIZED = 0xb,
 	};
 
 	union StringTableValue {
@@ -39,7 +39,7 @@ namespace {
 		uint16_t rows_count;
 		uint16_t unk8_count;
 		uint16_t* unk8_row;
-		uint16_t* offsets_row;
+		int16_t* offsets_row;
 		uint16_t* unk18;
 		void* data;
 	}; static_assert(sizeof(StringTableColumn) == 0x28);
@@ -98,7 +98,7 @@ namespace {
 					case STT_XHASH_DVAR: os << "xhashdvar"; break;
 					case STT_XHASH_32: os << "xhash32"; break;
 					case STT_XHASH_OMNVAR: os << "xhashomnvar"; break;
-					case STT_XHASH_B: os << "unkb"; break;
+					case STT_XHASH_SCR: os << "xhashscr"; break;
 					default: os << "unk" << std::dec << col->type; break;
 					}
 				}
@@ -108,12 +108,13 @@ namespace {
 						if (j) {
 							os << ",";
 						}
-						StringTableColumn* column = asset->columns + j;
+						StringTableColumn* column{ &asset->columns[j] };
+
 						if (!column->data) {
 							continue;
 						}
 						
-						int16_t rowIndex = column->offsets_row[i];
+						int16_t rowIndex{ column->offsets_row[i] };
 
 						int elemSize;
 						switch (column->type) {
@@ -123,7 +124,7 @@ namespace {
 						case STT_XHASH_LOCALIZED:
 						case STT_XHASH_DVAR:
 						case STT_XHASH_OMNVAR:
-						case STT_XHASH_B:
+						case STT_XHASH_SCR:
 						case STT_INT64:
 							elemSize = 8;
 							break;
@@ -164,7 +165,7 @@ namespace {
 							os << "%#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
 						case STT_XHASH_LOCALIZED:
-							os << "r#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
+							os << "&#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
 						case STT_XHASH_DVAR:
 							os << "@#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
@@ -172,8 +173,8 @@ namespace {
 						case STT_XHASH_OMNVAR:
 							os << "o#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
-						case STT_XHASH_B:
-							os << "?b#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
+						case STT_XHASH_SCR:
+							os << "s#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
 						case STT_INT64:
 							os << std::dec << *(int64_t*)value;
