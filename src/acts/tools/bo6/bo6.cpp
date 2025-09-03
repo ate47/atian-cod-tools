@@ -528,7 +528,32 @@ namespace {
 		LOG_INFO("Dump into output_bo6/offass.csv");
 		return tool::OK;
 	}
+	int bo6_hash_ffstr(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+		hook::module_mapper::Module mod{ true };
+		if (!mod.Load(argv[2], false)) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
+
+		DB_HashScrStringName = mod->ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48", "gcx.DB_HashScrStringName")
+			.GetPtr<decltype(DB_HashScrStringName)>();
+
+		for (size_t i = 3; i < argc; i++) {
+			uint64_t h{ DB_HashScrStringName(argv[i], std::strlen(argv[i]), hash::IV_DEFAULT) };
+			LOG_INFO("{}={:x}", argv[i], h);
+		}
+
+		return tool::OK;
+	}
+
+
+
 	ADD_TOOL(bo6_data_dump, "bo6", " [exe]", "Dump common data from an exe dump", bo6_data_dump);
+	ADD_TOOL(bo6_hash_ffstr, "bo6", " [exe] [str]+", "Hash strings using DB_HashScrStringName", bo6_hash_ffstr);
 	ADD_TOOL(bo6_test_hash_types, "dev", " [exe]", "Dump int map for types", bo6_test_hash_types);
 	ADD_TOOL(bo6_gsc_dump, "bo6", " [exe]", "Dump gsc function data from an exe dump", bo6_gsc_dump);
 	ADD_TOOL(bo6_lua_dump, "bo6", " [exe] [func]", "Dump lua function data from an exe dump", bo6_lua_dump);
