@@ -8,6 +8,9 @@ namespace {
 	template<typename T, T val>
 	T ReturnStub() { return val; }
 
+	// UNUSED, NOW EVERYTHING IS IN radiant/keys.csv AND THE TYPES ARE XHASHES
+#pragma region radiantkeys
+
 
 	enum RadianKeysType : byte {
 		RKT_UNK0 = 0,
@@ -72,6 +75,7 @@ namespace {
 		return tool::OK;
 	}
 
+#pragma endregion
 
 	int lua_file_delta(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 3)) {
@@ -558,6 +562,6 @@ namespace {
 	ADD_TOOL(bo6_gsc_dump, "bo6", " [exe]", "Dump gsc function data from an exe dump", bo6_gsc_dump);
 	ADD_TOOL(bo6_lua_dump, "bo6", " [exe] [func]", "Dump lua function data from an exe dump", bo6_lua_dump);
 	ADD_TOOL(bo6_asset_sizes, "bo6", " [exe]", "Dump asset sizes", bo6_asset_sizes);
-	ADD_TOOL(bo6_radiant_keys, "bo6", " [keys] [out]", "Read bo6 radiant keys", bo6_radiant_keys);
+	ADD_TOOL(bo6_radiant_keys, "bo6", " [keys] [out]", "Read bo6 old radiant keys format", bo6_radiant_keys);
 	ADD_TOOL(lua_file_delta, "dev", " [a1] [a2] [offset]", "Lua file delta", lua_file_delta);
 }
