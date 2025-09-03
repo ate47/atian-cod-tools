@@ -64,9 +64,6 @@ namespace {
 		IdxType type{ GetIdxType(argv[2]) };
 		std::filesystem::path in{ argv[3] };
 		std::filesystem::path dir{ argv[4] };
-		std::filesystem::path out{ dir / in.filename() };
-		std::filesystem::create_directories(dir);
-		out.replace_extension(".index.txt");
 
 		if (!type) {
 			LOG_ERROR("Invalid type");
@@ -90,6 +87,9 @@ namespace {
 			reader.Read(v.data(), len);
 			return v;
 		};
+		std::filesystem::path out{ dir / in.filename() };
+		std::filesystem::create_directories(dir);
+		out.replace_extension(".index.txt");
 		LOG_INFO("dump to {}", out.string());
 		utils::OutFileCE os{ out, true };
 
@@ -173,6 +173,7 @@ namespace {
 			uint32_t numEntries{ reader.ReadNumber<uint32_t>() };
 
 			reader.SetEndian(std::endian::little);
+			std::set<std::string> types{};
 
 			for (size_t i = 0; i < numEntries; i++) {
 				uint32_t id{ reader.ReadNumber<uint32_t>() };
@@ -214,6 +215,17 @@ namespace {
 
 				os
 					<< "," << kty << "," << filename << "," << path << "\n";
+
+				types.insert(kty);
+			}
+
+			std::filesystem::path ftout{ dir / in.filename() };
+			ftout.replace_extension(".index.types.txt");
+			LOG_INFO("dump types {}", ftout.string());
+			utils::OutFileCE ftos{ ftout, true };
+
+			for (const std::string& t : types) {
+				ftos << t << "\n";
 			}
 			break;
 		}
@@ -248,27 +260,27 @@ namespace {
 			std::vector<byte> buff{ utils::ReadFile<std::vector<byte>>(masterIndex) };
 			core::bytebuffer::ByteBuffer reader{ buff };
 
-reader.SetEndian(std::endian::big);
-uint32_t magic{ reader.ReadNumber<uint32_t>() };
+			reader.SetEndian(std::endian::big);
+			uint32_t magic{ reader.ReadNumber<uint32_t>() };
 
-if ((magic & 0xFFFFFF) != 0x534552) {
-	LOG_ERROR("Bad magic");
-	return tool::BASIC_ERROR;
-}
+			if ((magic & 0xFFFFFF) != 0x534552) {
+				LOG_ERROR("Bad magic");
+				return tool::BASIC_ERROR;
+			}
 
-uint16_t u1{ reader.ReadNumber<uint16_t>() };
-
-
-std::string indexFile{ ReadSizedString(reader) };
-masterResourcesIndex = in / indexFile;
+			uint16_t u1{ reader.ReadNumber<uint16_t>() };
 
 
-uint16_t numEntries{ reader.ReadNumber<uint16_t>() };
-files.reserve(numEntries);
+			std::string indexFile{ ReadSizedString(reader) };
+			masterResourcesIndex = in / indexFile;
 
-for (size_t i = 0; i < numEntries; i++) {
-	files.emplace_back(ReadSizedString(reader));
-}
+
+			uint16_t numEntries{ reader.ReadNumber<uint16_t>() };
+			files.reserve(numEntries);
+
+			for (size_t i = 0; i < numEntries; i++) {
+				files.emplace_back(ReadSizedString(reader));
+			}
 		}
 		LOG_INFO("loaded with {} entries", files.size());
 
@@ -365,10 +377,6 @@ for (size_t i = 0; i < numEntries; i++) {
 						utils::WriteFile(of, data, rf.compressedSize);
 					}
 
-
-					// rf.offset
-					// rf.decompressedSize
-					// rf.compressedSize
 					LOG_INFO("Dump {}{}", of.string(), oodleCompressed ? " (decompressed)" : "");
 				}
 			}
