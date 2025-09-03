@@ -39,7 +39,7 @@ namespace {
 		uint16_t rows_count;
 		uint16_t unk8_count;
 		uint16_t* unk8_row;
-		int16_t* offsets_row;
+		uint16_t* offsets_row;
 		uint16_t* unk18;
 		void* data;
 	}; static_assert(sizeof(StringTableColumn) == 0x28);
@@ -114,7 +114,7 @@ namespace {
 							continue;
 						}
 						
-						int16_t rowIndex{ column->offsets_row[i] };
+						uint16_t rowIndex{ column->offsets_row[i] };
 
 						int elemSize;
 						switch (column->type) {
