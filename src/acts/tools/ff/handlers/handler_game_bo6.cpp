@@ -440,7 +440,7 @@ namespace fastfile::handlers::bo6 {
 				if (it != map.end()) {
 					size_t itemSize{ gcx.poolInfo[type].itemSize };
 					if (it->second->assetSize != itemSize) {
-						LOG_ERROR("Can't check size of asset entry {}: 0x{:x} != 0x{:x}", gcx.typeNames[type], it->second->assetSize, itemSize);
+						LOG_ERROR("Can't check size of asset entry {}({}): 0x{:x} != 0x{:x}", gcx.typeNames[type], (int)type, it->second->assetSize, itemSize);
 					}
 					else {
 						if constexpr (!hasRelativeLoads) {
@@ -585,6 +585,7 @@ namespace fastfile::handlers::bo6 {
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B", "EmptyStub<18>").location, EmptyStub<18>); // libshared
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "EmptyStub<19>").location, EmptyStub<19>); // libshared, TODO: better
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
+				Red(scan.ScanSingle("49 8B C0 4C 8B 02", "EmptyStub<7>").location, EmptyStub<21>); // model
 
 
 				if (scan.foundMissing) {

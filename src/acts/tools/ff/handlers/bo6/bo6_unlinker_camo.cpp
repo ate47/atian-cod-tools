@@ -124,8 +124,15 @@ namespace {
 		uint64_t unk490;
 		uint64_t unk498;
 		uint64_t unk4a0;
+		uint64_t unk4a8;
+		uint64_t unk4b0;
+		uint64_t unk4b8;
+		uint64_t unk4c0;
+		uint64_t unk4c8;
+		uint64_t unk4d0;
+		uint64_t unk4d8;
 	};
-	static_assert(sizeof(Camo) == 0x4a8);
+	static_assert(sizeof(Camo) == 0x4e0);
 
 	class ImplWorker : public Worker {
 

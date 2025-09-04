@@ -120,8 +120,10 @@ namespace {
 		uint64_t unk130;
 		uint64_t unk138;
 		uint64_t unk140;
+		GfxImage* unk148;
+		GfxImage* unk150;
 	};
-	; static_assert(sizeof(AIType) == 0x148);
+	; static_assert(sizeof(AIType) == 0x158);
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 		using ScriptBundle = scriptbundle::ScriptBundle;
@@ -145,6 +147,8 @@ namespace {
 			json.WriteFieldValueXAsset("dismemberment", T10HashAssetType::T10H_ASSET_DISMEMBERMENT, asset.dismemberment);
 			json.WriteFieldValueXAsset("weaponAccuracy", T10HashAssetType::T10H_ASSET_WEAPONACCURACY, asset.weaponAccuracy);
 			json.WriteFieldValueXAsset("calloutMarkerPing", T10HashAssetType::T10H_ASSET_CALLOUTMARKERPING, asset.calloutMarkerPing);
+			json.WriteFieldValueXAsset("unk148", T10HashAssetType::T10H_ASSET_IMAGE, asset.unk148);
+			json.WriteFieldValueXAsset("unk150", T10HashAssetType::T10H_ASSET_IMAGE, asset.unk150);
 			json.WriteFieldValueXAsset("bundle", T10HashAssetType::T10H_ASSET_SCRIPTBUNDLE, asset.bundle);
 			json.WriteFieldValueXHash("characters.unk10", asset.characters.unk10);
 			if (asset.characters.unk18) json.WriteFieldValueNumber("characters.unk18", asset.characters.unk18);
