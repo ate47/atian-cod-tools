@@ -592,6 +592,19 @@ namespace fastfile::handlers::bo6 {
 					throw std::runtime_error("Can't find some patterns");
 				}
 
+				for (auto& [hashType, worker] : GetWorkers()) {
+					T10AssetType type{ GetExePoolId(hashType) };
+					if (type == gcx.typeMapsCount) {
+						LOG_ERROR("type {} was removed", PoolName(hashType));
+					}
+					else {
+						size_t trueLen{ gcx.poolInfo[type].itemSize };
+						if (worker->assetSize != trueLen) {
+							LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
+						}
+					}
+				}
+
 				if (opt.dumpXStrings) {
 					std::filesystem::path path{ opt.m_output / "bo6" / "xstrings_all.wni" };
 					gcx.xstrOutGlb = std::make_unique<XStringOutCTX>(path);
