@@ -139,15 +139,15 @@ namespace {
 
 			json.WriteFieldValueXHash("name", asset->name);
 			json.WriteFieldValueScrString("scrName", asset->scrName);
-			json.WriteFieldValueXAsset("image", T10R_ASSET_IMAGE, asset->image);
-			json.WriteFieldValueXAssetArray("image1", T10R_ASSET_IMAGE, ARRAYSIZE(asset->image1), asset->image1);
-			json.WriteFieldValueXAssetArray("image2", T10R_ASSET_IMAGE, ARRAYSIZE(asset->image2), asset->image2);
-			json.WriteFieldValueXAssetArray("image3", T10R_ASSET_IMAGE, ARRAYSIZE(asset->image3), asset->image3);
-			json.WriteFieldValueXAssetArray("image4", T10R_ASSET_IMAGE, ARRAYSIZE(asset->image4), asset->image4);
-			json.WriteFieldValueXAssetArray("image5", T10R_ASSET_IMAGE, ARRAYSIZE(asset->image5), asset->image5);
-			json.WriteFieldValueXAsset("particleSystem1", T10R_ASSET_PARTICLESYSTEM, asset->particleSystem1);
-			json.WriteFieldValueXAsset("particleSystem2", T10R_ASSET_PARTICLESYSTEM, asset->particleSystem2);
-			json.WriteFieldValueXAsset("materialAnimation", T10R_ASSET_MATERIALANIMATION, asset->materialAnimation);
+			json.WriteFieldValueXAsset("image", T10H_ASSET_IMAGE, asset->image);
+			json.WriteFieldValueXAssetArray("image1", T10H_ASSET_IMAGE, ARRAYSIZE(asset->image1), asset->image1);
+			json.WriteFieldValueXAssetArray("image2", T10H_ASSET_IMAGE, ARRAYSIZE(asset->image2), asset->image2);
+			json.WriteFieldValueXAssetArray("image3", T10H_ASSET_IMAGE, ARRAYSIZE(asset->image3), asset->image3);
+			json.WriteFieldValueXAssetArray("image4", T10H_ASSET_IMAGE, ARRAYSIZE(asset->image4), asset->image4);
+			json.WriteFieldValueXAssetArray("image5", T10H_ASSET_IMAGE, ARRAYSIZE(asset->image5), asset->image5);
+			json.WriteFieldValueXAsset("particleSystem1", T10H_ASSET_PARTICLESYSTEM, asset->particleSystem1);
+			json.WriteFieldValueXAsset("particleSystem2", T10H_ASSET_PARTICLESYSTEM, asset->particleSystem2);
+			json.WriteFieldValueXAsset("materialAnimation", T10H_ASSET_MATERIALANIMATION, asset->materialAnimation);
 
 			
 			if (opt.testDump) {
@@ -278,5 +278,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_CAMO, sizeof(Camo) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_CAMO, sizeof(Camo) };
 }

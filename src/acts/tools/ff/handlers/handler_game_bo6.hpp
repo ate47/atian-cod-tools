@@ -52,7 +52,10 @@ namespace fastfile::handlers::bo6 {
 
 	const char* GetPoolName(uint32_t hash);
 	const char* GetScrString(ScrString_t id);
-	uint64_t GetXAssetName(T10RAssetType type, void* handle);
+	T10HashAssetType GetHashType(T10AssetType type);
+	T10AssetType GetExePoolId(const char* name);
+	T10AssetType GetExePoolId(T10HashAssetType name);
+	uint64_t GetXAssetName(T10HashAssetType type, void* handle);
 
 	class BO6JsonWriter : public utils::raw_file_extractor::JsonWriter {
 	public:
@@ -111,7 +114,7 @@ namespace fastfile::handlers::bo6 {
 			JsonWriter::EndArray();
 		}
 
-		void WriteFieldValueXAsset(const char* name, T10RAssetType type, void* val) {
+		void WriteFieldValueXAsset(const char* name, T10HashAssetType type, void* val) {
 			if (!val) return;
 			XHash64 hname{ GetXAssetName(type, val) };
 			if (hname) {
@@ -119,7 +122,7 @@ namespace fastfile::handlers::bo6 {
 			}
 		}
 
-		void WriteFieldValueXAsset(uint64_t hash, T10RAssetType type, void* val) {
+		void WriteFieldValueXAsset(uint64_t hash, T10HashAssetType type, void* val) {
 			if (!val) return;
 			XHash64 hname{ GetXAssetName(type, val) };
 			if (hname) {
@@ -127,7 +130,7 @@ namespace fastfile::handlers::bo6 {
 			}
 		}
 
-		void WriteFieldValueXAssetArray(const char* name, T10RAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
+		void WriteFieldValueXAssetArray(const char* name, T10HashAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
 			void** val{ (void**)handle };
 			if (ignoreEmpty && (!count || !*val)) return;
 
@@ -141,7 +144,7 @@ namespace fastfile::handlers::bo6 {
 			JsonWriter::EndArray();
 		}
 
-		void WriteFieldValueXAssetArray(uint64_t hash, T10RAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
+		void WriteFieldValueXAssetArray(uint64_t hash, T10HashAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
 			void** val{ (void**)handle };
 			if (ignoreEmpty && (!count || !*val)) return;
 			JsonWriter::WriterFieldNameHash(hash);
@@ -156,5 +159,5 @@ namespace fastfile::handlers::bo6 {
 	};
 
 	std::vector<const char*>* GetXStrings();
-	std::unordered_map<bo6::T10RAssetType, Worker*>& GetWorkers();
+	std::unordered_map<bo6::T10HashAssetType, Worker*>& GetWorkers();
 }

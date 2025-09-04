@@ -88,9 +88,9 @@ namespace {
 			json.WriteFieldValueXHash("defaultSkin", asset->defaultSkin);
 			json.WriteFieldValueXHash("gasMask", asset->gasMask);
 			json.WriteFieldValueXHash("genderHash", asset->genderHash);
-			json.WriteFieldValueXAsset("xboneSet", bo6::T10R_ASSET_XBONESET, asset->xboneSet);
-			json.WriteFieldValueXAsset("portraitImage", bo6::T10R_ASSET_IMAGE, asset->portraitImage);
-			json.WriteFieldValueXAsset("iconMinimap", bo6::T10R_ASSET_IMAGE, asset->iconMinimap);
+			json.WriteFieldValueXAsset("xboneSet", bo6::T10H_ASSET_XBONESET, asset->xboneSet);
+			json.WriteFieldValueXAsset("portraitImage", bo6::T10H_ASSET_IMAGE, asset->portraitImage);
+			json.WriteFieldValueXAsset("iconMinimap", bo6::T10H_ASSET_IMAGE, asset->iconMinimap);
 			json.WriteFieldValueNumber("lootid", asset->lootid);
 			if (asset->dialog) json.WriteFieldValueString("dialog", asset->dialog);
 			if (asset->gender) json.WriteFieldValueString("gender", asset->gender);
@@ -109,7 +109,7 @@ namespace {
 				for (size_t i = 0; i < asset->operatorSkinsCount; i++) {
 					OperatorSkin* skin{ asset->operatorSkins[i] };
 					if (skin) {
-						json.WriteValueHash(GetXAssetName(bo6::T10R_ASSET_OPERATORSKIN, skin));
+						json.WriteValueHash(GetXAssetName(bo6::T10H_ASSET_OPERATORSKIN, skin));
 					}
 					else {
 						json.WriteValueNull();
@@ -156,10 +156,10 @@ namespace {
 			if (asset->unk89) json.WriteFieldValueBool("unk89", asset->unk89);
 			if (asset->unk8a) json.WriteFieldValueBool("unk8a", asset->unk8a);
 			json.WriteFieldValueNumber("lootid", asset->lootid);
-			json.WriteFieldValueXAsset("image", bo6::T10R_ASSET_IMAGE, asset->image);
-			json.WriteFieldValueXAsset("model68", bo6::T10R_ASSET_XMODEL, asset->model68);
-			json.WriteFieldValueXAsset("model70", bo6::T10R_ASSET_XMODEL, asset->model70);
-			json.WriteFieldValueXAsset("particleSystem", bo6::T10R_ASSET_PARTICLESYSTEM, asset->particleSystem);
+			json.WriteFieldValueXAsset("image", bo6::T10H_ASSET_IMAGE, asset->image);
+			json.WriteFieldValueXAsset("model68", bo6::T10H_ASSET_XMODEL, asset->model68);
+			json.WriteFieldValueXAsset("model70", bo6::T10H_ASSET_XMODEL, asset->model70);
+			json.WriteFieldValueXAsset("particleSystem", bo6::T10H_ASSET_PARTICLESYSTEM, asset->particleSystem);
 			if (asset->unk60) json.WriteFieldValueString("unk60", asset->unk60);
 
 
@@ -198,7 +198,7 @@ namespace {
 				for (size_t i = 0; i < asset->operatorsCount; i++) {
 					Operator* skin{ asset->operators[i] };
 					if (skin) {
-						json.WriteValueHash(GetXAssetName(bo6::T10R_ASSET_OPERATOR, skin));
+						json.WriteValueHash(GetXAssetName(bo6::T10H_ASSET_OPERATOR, skin));
 					}
 					else {
 						json.WriteValueNull();
@@ -234,7 +234,7 @@ namespace {
 
 			json.WriteFieldValueXHash("name", asset->name);
 
-			auto DumpArray = [&json](const char* name, bo6::T10RAssetType type, void** package, size_t count) {
+			auto DumpArray = [&json](const char* name, bo6::T10HashAssetType type, void** package, size_t count) {
 				if (package) {
 					json.WriteFieldNameString(name);
 					json.BeginArray();
@@ -250,10 +250,10 @@ namespace {
 					json.EndArray();
 				}
 			};
-			DumpArray("reactiveVFXPackage1", bo6::T10R_ASSET_REACTIVEVFXPACKAGE, (void**)asset->reactiveVFXPackage1, asset->reactiveVFXPackage1Count);
-			DumpArray("reactiveVFXPackage2", bo6::T10R_ASSET_REACTIVEVFXPACKAGE, (void**)asset->reactiveVFXPackage2, asset->reactiveVFXPackage2Count);
-			DumpArray("reactiveAudioPackage1", bo6::T10R_ASSET_REACTIVEAUDIOPACKAGE, (void**)asset->reactiveAudioPackage1, asset->reactiveAudioPackage1Count);
-			DumpArray("reactiveAudioPackage2", bo6::T10R_ASSET_REACTIVEAUDIOPACKAGE, (void**)asset->reactiveAudioPackage2, asset->reactiveAudioPackage2Count);
+			DumpArray("reactiveVFXPackage1", bo6::T10H_ASSET_REACTIVEVFXPACKAGE, (void**)asset->reactiveVFXPackage1, asset->reactiveVFXPackage1Count);
+			DumpArray("reactiveVFXPackage2", bo6::T10H_ASSET_REACTIVEVFXPACKAGE, (void**)asset->reactiveVFXPackage2, asset->reactiveVFXPackage2Count);
+			DumpArray("reactiveAudioPackage1", bo6::T10H_ASSET_REACTIVEAUDIOPACKAGE, (void**)asset->reactiveAudioPackage1, asset->reactiveAudioPackage1Count);
+			DumpArray("reactiveAudioPackage2", bo6::T10H_ASSET_REACTIVEAUDIOPACKAGE, (void**)asset->reactiveAudioPackage2, asset->reactiveAudioPackage2Count);
 			json.EndObject();
 
 
@@ -270,8 +270,8 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATOR, sizeof(Operator) };
-	utils::MapAdder<ImplSkinWorker, bo6::T10RAssetType, Worker> impls{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATORSKIN, sizeof(OperatorSkin) };
-	utils::MapAdder<ImplReacWorker, bo6::T10RAssetType, Worker> implr{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_REACTIVEOPERATOR, sizeof(ReactiveOperator) };
-	utils::MapAdder<ImplListWorker, bo6::T10RAssetType, Worker> impll{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OPERATORLIST, sizeof(OperatorList) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_OPERATOR, sizeof(Operator) };
+	utils::MapAdder<ImplSkinWorker, bo6::T10HashAssetType, Worker> impls{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_OPERATORSKIN, sizeof(OperatorSkin) };
+	utils::MapAdder<ImplReacWorker, bo6::T10HashAssetType, Worker> implr{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_REACTIVEOPERATOR, sizeof(ReactiveOperator) };
+	utils::MapAdder<ImplListWorker, bo6::T10HashAssetType, Worker> impll{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_OPERATORLIST, sizeof(OperatorList) };
 }

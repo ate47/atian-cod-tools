@@ -68,5 +68,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_NETCONSTSTRINGS, sizeof(NetConstStrings) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_NETCONSTSTRINGS, sizeof(NetConstStrings) };
 }

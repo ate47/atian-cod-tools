@@ -54,7 +54,7 @@ namespace {
 			json.WriteFieldValueXString("ddlName", asset->ddlName);
 			json.WriteFieldValueXString("category", asset->category);
 			json.WriteFieldValueXString("env", asset->env);
-			json.WriteFieldValueXAssetArray("objectStoreDDLConfigs", bo6::T10R_ASSET_OBJECTSTOREDDLCONFIG, asset->objectStoreDDLConfigsCount, asset->objectStoreDDLConfigs);
+			json.WriteFieldValueXAssetArray("objectStoreDDLConfigs", bo6::T10H_ASSET_OBJECTSTOREDDLCONFIG, asset->objectStoreDDLConfigsCount, asset->objectStoreDDLConfigs);
 
 			if (asset->operators) {
 				json.WriteFieldNameString("operators");
@@ -112,5 +112,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_STORAGEFILE, sizeof(StorageFile) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_STORAGEFILE, sizeof(StorageFile) };
 }

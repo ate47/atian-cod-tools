@@ -51,7 +51,7 @@ namespace {
 			json.BeginObject();
 
 			json.WriteFieldValueXHash("name", asset.name);
-			json.WriteFieldValueXAssetArray("bundles", T10RAssetType::T10R_ASSET_SCRIPTBUNDLE, asset.count, asset.bundles);
+			json.WriteFieldValueXAssetArray("bundles", T10HashAssetType::T10H_ASSET_SCRIPTBUNDLE, asset.count, asset.bundles);
 			if (asset.unk14) json.WriteFieldValueNumber("unk14", asset.unk14);
 
 			json.EndObject();
@@ -136,16 +136,16 @@ namespace {
 			json.WriteFieldValueXString("typeSuffix", asset.typeSuffix);
 			json.WriteFieldValueScrString("species", asset.species);
 			
-			json.WriteFieldValueXAsset("footStepsFxTable", T10RAssetType::T10R_ASSET_FOOTSTEPSFXTABLE, asset.footStepsFxTable);
-			json.WriteFieldValueXAsset("foliagesFXTable", T10RAssetType::T10R_ASSET_FOLIAGESFXTABLE, asset.foliagesFXTable);
-			json.WriteFieldValueXAsset("handPlantsFXTable", T10RAssetType::T10R_ASSET_HANDPLANTSFXTABLE, asset.handPlantsFXTable);
-			json.WriteFieldValueXAsset("aiImpactVFXTable", T10RAssetType::T10R_ASSET_AIIMPACTVFXTABLE, asset.aiImpactVFXTable);
-			json.WriteFieldValueXAsset("particleSystem1", T10RAssetType::T10R_ASSET_PARTICLESYSTEM, asset.particleSystem1);
-			json.WriteFieldValueXAsset("particleSystem2", T10RAssetType::T10R_ASSET_PARTICLESYSTEM, asset.particleSystem2);
-			json.WriteFieldValueXAsset("dismemberment", T10RAssetType::T10R_ASSET_DISMEMBERMENT, asset.dismemberment);
-			json.WriteFieldValueXAsset("weaponAccuracy", T10RAssetType::T10R_ASSET_WEAPONACCURACY, asset.weaponAccuracy);
-			json.WriteFieldValueXAsset("calloutMarkerPing", T10RAssetType::T10R_ASSET_CALLOUTMARKERPING, asset.calloutMarkerPing);
-			json.WriteFieldValueXAsset("bundle", T10RAssetType::T10R_ASSET_SCRIPTBUNDLE, asset.bundle);
+			json.WriteFieldValueXAsset("footStepsFxTable", T10HashAssetType::T10H_ASSET_FOOTSTEPSFXTABLE, asset.footStepsFxTable);
+			json.WriteFieldValueXAsset("foliagesFXTable", T10HashAssetType::T10H_ASSET_FOLIAGESFXTABLE, asset.foliagesFXTable);
+			json.WriteFieldValueXAsset("handPlantsFXTable", T10HashAssetType::T10H_ASSET_HANDPLANTSFXTABLE, asset.handPlantsFXTable);
+			json.WriteFieldValueXAsset("aiImpactVFXTable", T10HashAssetType::T10H_ASSET_AIIMPACTVFXTABLE, asset.aiImpactVFXTable);
+			json.WriteFieldValueXAsset("particleSystem1", T10HashAssetType::T10H_ASSET_PARTICLESYSTEM, asset.particleSystem1);
+			json.WriteFieldValueXAsset("particleSystem2", T10HashAssetType::T10H_ASSET_PARTICLESYSTEM, asset.particleSystem2);
+			json.WriteFieldValueXAsset("dismemberment", T10HashAssetType::T10H_ASSET_DISMEMBERMENT, asset.dismemberment);
+			json.WriteFieldValueXAsset("weaponAccuracy", T10HashAssetType::T10H_ASSET_WEAPONACCURACY, asset.weaponAccuracy);
+			json.WriteFieldValueXAsset("calloutMarkerPing", T10HashAssetType::T10H_ASSET_CALLOUTMARKERPING, asset.calloutMarkerPing);
+			json.WriteFieldValueXAsset("bundle", T10HashAssetType::T10H_ASSET_SCRIPTBUNDLE, asset.bundle);
 			json.WriteFieldValueXHash("characters.unk10", asset.characters.unk10);
 			if (asset.characters.unk18) json.WriteFieldValueNumber("characters.unk18", asset.characters.unk18);
 			if (asset.characters.unk1c) json.WriteFieldValueNumber("characters.unk1c", asset.characters.unk1c);
@@ -153,7 +153,7 @@ namespace {
 			json.BeginArray();
 			for (size_t i = 0; i < asset.characters.charactersCount; i++) {
 				json.BeginObject();
-				if (asset.characters.characters) json.WriteFieldValueXAsset("character", T10RAssetType::T10R_ASSET_CHARACTER, asset.characters.characters[i]);
+				if (asset.characters.characters) json.WriteFieldValueXAsset("character", T10HashAssetType::T10H_ASSET_CHARACTER, asset.characters.characters[i]);
 				if (asset.characters.odds) json.WriteFieldValueNumber("odd", asset.characters.odds[i]);
 				json.EndObject();
 			}
@@ -210,17 +210,17 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorkerBundleList<AiShootStyles>, bo6::T10RAssetType, Worker> implAiShootStyles{ 
-		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AISHOOTSTYLESLIST, "aishootstyleslist", "ai/shootstyleslist"
+	utils::MapAdder<ImplWorkerBundleList<AiShootStyles>, bo6::T10HashAssetType, Worker> implAiShootStyles{ 
+		GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_AISHOOTSTYLESLIST, "aishootstyleslist", "ai/shootstyleslist"
 	};
-	utils::MapAdder<ImplWorkerBundleList<AiTokenTypes>, bo6::T10RAssetType, Worker> implAiTokenTypes{ 
-		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AI_TOKEN_TYPES, "ai_token_types", "ai/token/types" 
+	utils::MapAdder<ImplWorkerBundleList<AiTokenTypes>, bo6::T10HashAssetType, Worker> implAiTokenTypes{ 
+		GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_AI_TOKEN_TYPES, "ai_token_types", "ai/token/types" 
 	};
-	utils::MapAdder<ImplWorkerBundleList<AiTokenStealingDefinitions>, bo6::T10RAssetType, Worker> implAiTokenStealingDefinitions{
-		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AI_TOKEN_STEALING_DEFINITIONS, "ai_token_stealing_definitions", "ai/token/stealingdefinitions"
+	utils::MapAdder<ImplWorkerBundleList<AiTokenStealingDefinitions>, bo6::T10HashAssetType, Worker> implAiTokenStealingDefinitions{
+		GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_AI_TOKEN_STEALING_DEFINITIONS, "ai_token_stealing_definitions", "ai/token/stealingdefinitions"
 	};
-	utils::MapAdder<ImplWorkerBundleList<AiTokenDefinitions>, bo6::T10RAssetType, Worker> implAiTokenDefinitions{ 
-		GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AI_TOKEN_DEFINITIONS, "ai_token_definitions", "ai/token/definitions" 
+	utils::MapAdder<ImplWorkerBundleList<AiTokenDefinitions>, bo6::T10HashAssetType, Worker> implAiTokenDefinitions{ 
+		GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_AI_TOKEN_DEFINITIONS, "ai_token_definitions", "ai/token/definitions" 
 	};
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_AITYPE, sizeof(AIType) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_AITYPE, sizeof(AIType) };
 }

@@ -61,7 +61,7 @@ namespace {
 			json.BeginObject();
 
 			json.WriteFieldValueXHash("name", asset->name);
-			json.WriteFieldValueXAssetArray("storageFiles", bo6::T10R_ASSET_STORAGEFILE, asset->storageFilesCount, asset->storageFiles);
+			json.WriteFieldValueXAssetArray("storageFiles", bo6::T10H_ASSET_STORAGEFILE, asset->storageFilesCount, asset->storageFiles);
 			json.EndObject();
 
 
@@ -88,7 +88,7 @@ namespace {
 			json.BeginObject();
 
 			json.WriteFieldValueXHash("name", asset->name);
-			json.WriteFieldValueXAssetArray("storageFiles", bo6::T10R_ASSET_STORAGEFILE, asset->storageFilesCount, asset->storageFiles);
+			json.WriteFieldValueXAssetArray("storageFiles", bo6::T10H_ASSET_STORAGEFILE, asset->storageFilesCount, asset->storageFiles);
 			json.EndObject();
 
 
@@ -149,7 +149,7 @@ namespace {
 					if (!ff) break;
 
 					json.BeginObject();
-					json.WriteFieldValueXAsset("storageFile", bo6::T10R_ASSET_STORAGEFILE, ff->file);
+					json.WriteFieldValueXAsset("storageFile", bo6::T10H_ASSET_STORAGEFILE, ff->file);
 					json.WriteFieldValueXHash("unk8", ff->unk8);
 					json.EndObject();
 				}
@@ -164,7 +164,7 @@ namespace {
 						continue;
 					}
 					json.BeginObject();
-					json.WriteFieldValueXAsset("storageFile", bo6::T10R_ASSET_STORAGEFILE, asset->unk18[i]->file);
+					json.WriteFieldValueXAsset("storageFile", bo6::T10H_ASSET_STORAGEFILE, asset->unk18[i]->file);
 					json.WriteFieldValueXHash("name", asset->unk18[i]->name);
 					json.WriteFieldValueNumber("unk8", asset->unk18[i]->unk8);
 					json.EndObject();
@@ -187,8 +187,8 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> implp{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OBJECTSTOREPROJECT, sizeof(ObjectStoreProject) };
-	utils::MapAdder<ImplWorkerDDLCfg, bo6::T10RAssetType, Worker> impldc{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OBJECTSTOREDDLCONFIG, sizeof(ObjectStoreDDLConfig) };
-	utils::MapAdder<ImplWorkerDDLCfgGrp, bo6::T10RAssetType, Worker> impldcg{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OBJECTSTOREDDLCONFIGGROUP, sizeof(ObjectStoreDDLConfigGroup) };
-	utils::MapAdder<ImplWorkerGM, bo6::T10RAssetType, Worker> implg{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_OBJECTSTOREGAMEMODE, sizeof(ObjectStoreGamemode) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> implp{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_OBJECTSTOREPROJECT, sizeof(ObjectStoreProject) };
+	utils::MapAdder<ImplWorkerDDLCfg, bo6::T10HashAssetType, Worker> impldc{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_OBJECTSTOREDDLCONFIG, sizeof(ObjectStoreDDLConfig) };
+	utils::MapAdder<ImplWorkerDDLCfgGrp, bo6::T10HashAssetType, Worker> impldcg{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_OBJECTSTOREDDLCONFIGGROUP, sizeof(ObjectStoreDDLConfigGroup) };
+	utils::MapAdder<ImplWorkerGM, bo6::T10HashAssetType, Worker> implg{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_OBJECTSTOREGAMEMODE, sizeof(ObjectStoreGamemode) };
 }

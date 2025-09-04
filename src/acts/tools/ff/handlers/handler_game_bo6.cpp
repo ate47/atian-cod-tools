@@ -46,7 +46,7 @@ namespace fastfile::handlers::bo6 {
 		class BO6FFHandler;
 
 		struct Asset {
-			uint32_t type; // T10RAssetType
+			uint32_t type; // T10HashAssetType
 			void* handle;
 		};
 
@@ -63,8 +63,8 @@ namespace fastfile::handlers::bo6 {
 
 
 		struct HashedType {
-			uint32_t hash;
-			T10RAssetType type;
+			T10HashAssetType hash;
+			T10AssetType type;
 			const char* name;
 		};
 
@@ -74,7 +74,7 @@ namespace fastfile::handlers::bo6 {
 			void*(__fastcall* AllocStreamPos)(DBLoadCtx* ctx, int align);
 			void(__fastcall* PushStreamPos)(DBLoadCtx* ctx, int type);
 			void(__fastcall* PopStreamPos)(DBLoadCtx* ctx);
-			void(__fastcall* PreAssetRead)(DBLoadCtx* ctx, T10RAssetType type);
+			void(__fastcall* PreAssetRead)(DBLoadCtx* ctx, T10AssetType type);
 			void(__fastcall* PostAssetRead)(DBLoadCtx* ctx);
 		};
 
@@ -183,7 +183,7 @@ namespace fastfile::handlers::bo6 {
 		void* AllocStreamPos(DBLoadCtx* ctx, int align);
 		void PushStreamPos(DBLoadCtx* ctx, int type);
 		void PopStreamPos(DBLoadCtx* ctx);
-		void PreAssetRead(DBLoadCtx* ctx, T10RAssetType type);
+		void PreAssetRead(DBLoadCtx* ctx, T10AssetType type);
 		void PostAssetRead(DBLoadCtx* ctx);
 
 
@@ -195,6 +195,8 @@ namespace fastfile::handlers::bo6 {
 			std::map<std::string, std::unordered_set<uint64_t>> map{};
 		};
 
+		constexpr T10AssetType MAX_ASSET_COUNT = (T10AssetType)512;
+
 		struct {
 			BO6FFHandler* handler{};
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
@@ -204,31 +206,35 @@ namespace fastfile::handlers::bo6 {
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
-			T10RAssetType assetLoadStack[0x100];
+			T10HashAssetType assetLoadStack[0x100];
 			size_t assetLoadStackTop{};
 			int streamPosStack[64]{};
 			int streamPosStackIndex{};
 			size_t loaded{};
 			core::memory_allocator::MemoryAllocator allocator{};
-			std::unordered_map<uint64_t, void*> linkedAssets[T10RAssetType::T10R_ASSET_COUNT]{};
+			std::unordered_map<T10HashAssetType, std::unordered_map<uint64_t, void*>> linkedAssets{};
 			AssetList assets{};
 			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
-			HashedType typeMaps[0x200];
-			const char* typeNames[0x200];
-			T10RAssetType typeExeToActs[0x200];
-			size_t typeActsToExe[T10RAssetType::T10R_ASSET_COUNT];
-			size_t typeMapsCount;
+			HashedType typeMaps[MAX_ASSET_COUNT];
+			size_t typeMapsCount{};
+			const char* typeNames[MAX_ASSET_COUNT];
+			T10HashAssetType typeExeToActs[MAX_ASSET_COUNT];
+			std::unordered_map<T10HashAssetType, T10AssetType> typeActsToExe{};
 			std::unordered_map<uint64_t, void*> streamLocations{};
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
 			utils::OutFileCE* outAsset{};
-			utils::EnumList<T10RAssetType, T10RAssetType::T10R_ASSET_COUNT> handleList{ PoolIdRelease };
+			utils::EnumList<T10AssetType, MAX_ASSET_COUNT> handleList{ GetExePoolId };
 
 			void InitTypeMaps(hook::library::Library& lib) {
-				// that:
+				// Build a type map, this map will give the ability to map the hashed id to the exe ids
+				// A similar map exists in the game, but we should reimplement it
+				
 				// acts exe_pool_dumper .\output_bo6\Cordycep-2.5.8.0\Data\Dumps\cod_dump.exe  physicslibrary string
+				// first and last pool names
 				constexpr const char* first = "physicslibrary";
 				constexpr const char* last = "string";
+
 				for (hook::library::ScanResult& firstStringOffsetRes : lib.ScanString(first)) {
 					uintptr_t firstStringOffset{ firstStringOffsetRes.GetPtr<uintptr_t>() };
 					LOG_TRACE("try string \"{}\" -> 0x{:x}", first, lib.Rloc(firstStringOffset));
@@ -270,28 +276,18 @@ namespace fastfile::handlers::bo6 {
 							continue;
 						}
 
-						// set default value
-						for (size_t i = 0; i < ARRAYSIZE(typeExeToActs); i++) {
-							typeExeToActs[i] = T10RAssetType::T10R_ASSET_COUNT;
-						}
-
 						typeMapsCount = count;
 						for (size_t i = 0; i < count; i++) {
+							T10AssetType tid{ (T10AssetType)i };
 							HashedType* type = &typeMaps[i];
-							type->type = (T10RAssetType)i;
+							type->type = tid;
 							type->name = lib.Rebase<const char>(poolNames[i]);
-							type->hash = (uint32_t)hash::HashX32(type->name);
+							type->hash = PoolId(type->name);
 							typeNames[i] = type->name;
 
-							T10RAssetType mapId{ bo6::PoolIdRelease(type->name) };
-							if (mapId != T10R_ASSET_COUNT) {
-								// map this id to acts
-								typeExeToActs[i] = mapId;
-								typeActsToExe[mapId] = i;
-							}
-							else {
-								typeActsToExe[i] = count;
-							}
+							// map this id to acts
+							typeExeToActs[tid] = type->hash;
+							typeActsToExe[type->hash] = tid;
 						}
 
 						// sort it for better usage
@@ -399,16 +395,16 @@ namespace fastfile::handlers::bo6 {
 			gcx.streamPosStackIndex--;
 		}
 
-		void PreAssetRead(DBLoadCtx* ctx, T10RAssetType type) {
-			LOG_TRACE("PreAssetRead({}) {}", type, hook::library::CodePointer{ _ReturnAddress() });
+		void PreAssetRead(DBLoadCtx* ctx, T10AssetType type) {
+			LOG_TRACE("PreAssetRead({}) {}", PoolName(GetHashType(type)), hook::library::CodePointer{_ReturnAddress()});
 			if (gcx.assetLoadStackTop == ARRAYSIZE(gcx.assetLoadStack)) {
 				throw std::runtime_error("PreAssetRead stack overflow");
 			}
-			gcx.assetLoadStack[gcx.assetLoadStackTop++] = type;
+			gcx.assetLoadStack[gcx.assetLoadStackTop++] = GetHashType(type);
 		}
 
 		void PostAssetRead(DBLoadCtx* ctx) {
-			LOG_TRACE("PostAssetRead() {}", hook::library::CodePointer{ _ReturnAddress() });
+			LOG_TRACE("PostAssetRead({}) {}", gcx.assetLoadStackTop ? PoolName(gcx.assetLoadStack[gcx.assetLoadStackTop - 1]) : "invalid", hook::library::CodePointer{ _ReturnAddress() });
 			if (!gcx.assetLoadStackTop) {
 				throw std::runtime_error("PostAssetRead stack underflow");
 			}
@@ -425,20 +421,22 @@ namespace fastfile::handlers::bo6 {
 			return gcx.GetMappedType(hash)->type;
 		}
 
-		void* DB_LinkGenericXAsset(DBLoadCtx* ctx, T10RAssetType type, void** handle) {
-			uint64_t hash{ GetXAssetName(type, handle ? *handle : 0) };
+		void* DB_LinkGenericXAsset(DBLoadCtx* ctx, T10AssetType type, void** handle) {
+			T10HashAssetType hashType{ GetHashType(type) };
+			uint64_t hash{ GetXAssetName(hashType, handle ? *handle : 0) };
 			const char* name{ hashutils::ExtractTmp("hash", hash) };
-			*(gcx.outAsset) << "\n" << type << ",#" << name;
-			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", type, name, hook::library::CodePointer{_ReturnAddress()});
+			const char* poolName{ PoolName(hashType) };
+			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{_ReturnAddress()});
+			*(gcx.outAsset) << "\n" << type << ",#" << poolName;
 
-			if (*handle) {
-				gcx.linkedAssets[type][*(uint64_t*)*handle] = *handle;
+			if (handle && *handle) {
+				gcx.linkedAssets[hashType][hash] = *handle;
 			}
 
 			if (handle && !(gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))) {
 
-				std::unordered_map<bo6::T10RAssetType, Worker*>& map{ GetWorkers() };
-				auto it{ map.find(type) };
+				std::unordered_map<bo6::T10HashAssetType, Worker*>& map{ GetWorkers() };
+				auto it{ map.find(hashType) };
 				if (it != map.end()) {
 					size_t itemSize{ gcx.poolInfo[type].itemSize };
 					if (it->second->assetSize != itemSize) {
@@ -460,18 +458,20 @@ namespace fastfile::handlers::bo6 {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_LinkGenericXAssetEx(T10RAssetType type, uint64_t name, void** handle) {
-			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", type, hashutils::ExtractTmp("hash", name), hook::library::CodePointer{_ReturnAddress()});
+		void* DB_LinkGenericXAssetEx(T10AssetType type, uint64_t name, void** handle) {
+			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{_ReturnAddress()});
 			if (handle) {
 				return *handle;
 			}
-			auto it{ gcx.linkedAssets[type].find(name) };
-			if (it != gcx.linkedAssets[type].end()) {
+			T10HashAssetType hashType{ GetHashType(type) };
+			auto it{ gcx.linkedAssets[hashType].find(name) };
+			if (it != gcx.linkedAssets[hashType].end()) {
 				return it->second;
 			}
 			// create a fake asset
 			void* asset{ gcx.allocator.Alloc(gcx.poolInfo[type].itemSize) };
 			gcx.poolInfo[type].SetAssetName(asset, name, hashutils::ExtractPtr(name));
+			gcx.linkedAssets[hashType][name] = asset;
 			return asset;
 		}
 
@@ -513,11 +513,6 @@ namespace fastfile::handlers::bo6 {
 					throw std::runtime_error("Can't load decryption module");
 				}
 
-				gcx.handleList.Clear();
-				if (opt.assetTypes) {
-					gcx.handleList.LoadConfig(opt.assetTypes);
-				}
-
 #ifdef CI_BUILD
 				LOG_WARNING("You are using the bo6 handler, for now Black Ops 6 is still under");
 				LOG_WARNING("Development and it might not work after a game update.");
@@ -525,9 +520,16 @@ namespace fastfile::handlers::bo6 {
 				LOG_WARNING("for the BattleNet or the Gamepass version.");
 #endif
 
-				gcx.InitTypeMaps(lib);
+				// should be done before the handleList to have the hashes loaded
+				gcx.InitTypeMaps(lib); 
 
-				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?").GetRelative<int32_t, LoadStreamObject*>(3) };
+				// load the asset filter config 
+				gcx.handleList.Clear();
+				if (opt.assetTypes) {
+					gcx.handleList.LoadConfig(opt.assetTypes);
+				}
+
+				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3)};
 				loadStreamObj->__vtb = &dbLoadStreamVTable;
 
 				//E8 ? ? ? ? 80 3E 00 74 1E
@@ -750,7 +752,7 @@ namespace fastfile::handlers::bo6 {
 
 							const HashedType* type{ gcx.GetMappedType(asset->type) };
 
-							LOG_DEBUG("load #{} -> {}", assetId, type->name);
+							LOG_DEBUG("load #{} -> {}({})", assetId, type->name, (int)type->type);
 							gcx.Load_Asset((DBLoadCtx*)&vt, false, asset);
 						}
 
@@ -760,7 +762,7 @@ namespace fastfile::handlers::bo6 {
 					if (gcx.assetLoadStackTop && assetId != gcx.assets.assetsCount) {
 						LOG_ERROR("Asset load stack ({}) - asset:#{}/{}", gcx.assetLoadStackTop, assetId + 1, gcx.assets.assetsCount);
 						for (size_t i = gcx.assetLoadStackTop; i; i--) {
-							LOG_ERROR("- {} - {}", i, PoolNameRelease(gcx.assetLoadStack[i - 1]));
+							LOG_ERROR("- {} - {}", i, PoolName(gcx.assetLoadStack[i - 1]));
 						}
 					}
 
@@ -816,8 +818,8 @@ namespace fastfile::handlers::bo6 {
 		utils::ArrayAdder<BO6FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 	}
 
-	std::unordered_map<bo6::T10RAssetType, Worker*>& GetWorkers() {
-		static std::unordered_map<bo6::T10RAssetType, Worker*> workers{};
+	std::unordered_map<bo6::T10HashAssetType, Worker*>& GetWorkers() {
+		static std::unordered_map<bo6::T10HashAssetType, Worker*> workers{};
 		return workers;
 	}
 	std::vector<const char*>* GetXStrings() {
@@ -838,7 +840,26 @@ namespace fastfile::handlers::bo6 {
 		return c;
 	}
 
-	uint64_t GetXAssetName(T10RAssetType type, void* handle) {
+	T10HashAssetType GetHashType(T10AssetType type) {
+		return PoolId(gcx.typeNames[type]);
+	}
+
+	T10AssetType GetExePoolId(const char* name) {
+		return GetExePoolId(PoolId(name));
+	}
+	T10AssetType GetExePoolId(T10HashAssetType name) {
+		auto it{ gcx.typeActsToExe.find(name) };
+		if (it == gcx.typeActsToExe.end()) {
+			return (T10AssetType)gcx.typeMapsCount;
+		}
+		return it->second;
+	}
+
+	uint64_t GetXAssetName(T10HashAssetType htype, void* handle) {
+		T10AssetType type{ GetExePoolId(htype) };
+		if (type == gcx.typeMapsCount) {
+			throw std::runtime_error(std::format("INVALID HASH TYPE ID {}", PoolName(htype)));
+		}
 		return gcx.poolInfo[type].GetAssetName(handle);
 	}
 }

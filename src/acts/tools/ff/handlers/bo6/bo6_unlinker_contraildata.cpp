@@ -23,8 +23,8 @@ namespace {
 			json.BeginObject();
 
 			json.WriteFieldValueXHash("name", asset->name);
-			json.WriteFieldValueXAsset("particleSystem1", T10R_ASSET_PARTICLESYSTEM, asset->particleSystem1);
-			json.WriteFieldValueXAsset("particleSystem2", T10R_ASSET_PARTICLESYSTEM, asset->particleSystem2);
+			json.WriteFieldValueXAsset("particleSystem1", T10H_ASSET_PARTICLESYSTEM, asset->particleSystem1);
+			json.WriteFieldValueXAsset("particleSystem2", T10H_ASSET_PARTICLESYSTEM, asset->particleSystem2);
 			json.WriteFieldNameString("bundle");
 			scriptbundle::WriteData(json, asset->bundle);
 			json.EndObject();
@@ -43,5 +43,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_CONTRAILDATA, sizeof(ContrailData) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_CONTRAILDATA, sizeof(ContrailData) };
 }

@@ -247,7 +247,7 @@ namespace hook::library {
 				if (i == mask.size()) {
 					res.emplace_back(current + off);
 					if (single) {
-						LOG_TRACE("Pattern find -> {}", (void*)res[0].location);
+						LOG_TRACE("Pattern find -> {}", (hook::library::CodePointer)res[0].location);
 						return res;
 					}
 				}

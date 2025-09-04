@@ -71,6 +71,6 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10RAssetType, Worker> impl{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_GSCOBJ, sizeof(GscObj) };
-	utils::MapAdder<ImplWorkerGdb, bo6::T10RAssetType, Worker> implGdb{ GetWorkers(), bo6::T10RAssetType::T10R_ASSET_GSCGDB, sizeof(GscGdb) };
+	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_GSCOBJ, sizeof(GscObj) };
+	utils::MapAdder<ImplWorkerGdb, bo6::T10HashAssetType, Worker> implGdb{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_GSCGDB, sizeof(GscGdb) };
 }
