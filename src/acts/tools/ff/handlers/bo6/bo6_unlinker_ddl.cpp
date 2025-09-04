@@ -51,6 +51,7 @@ namespace {
 
 	struct DDLMember {
 		const char* name;
+		XHash64 nameHashed;
 		int32_t bitSize;
 		uint32_t intSize;
 		uint32_t offset;
@@ -141,7 +142,7 @@ namespace {
 					os << "// missing struct pointer\n";
 					return;
 				}
-
+				*os << std::flush;
 
 				DDLStruct* structList{ def.structList };
 				DDLEnum* enumList{ def.enumList };
@@ -224,7 +225,7 @@ namespace {
 							}
 
 
-							os << " " << member.name;
+							os << " " << (member.name ? member.name : hashutils::ExtractTmp("hash", member.nameHashed));
 
 							if (member.isArray) {
 								if (member.hashTableIndex >= 0 && member.hashTableIndex < def.enumsCount) {
@@ -239,11 +240,12 @@ namespace {
 							}
 
 							os << ";\n";
+							*os << std::flush;
 						}
 
 					}
-					else if (!stct.members) {
-						LOG_ERROR("Missing struct members pointer");
+					else if (stct.memberCount) {
+						LOG_ERROR("Missing struct members pointer with {} member(s)", stct.memberCount);
 						utils::Padding(os, 1) << "// missing struct members pointer\n";
 					}
 					return true;
