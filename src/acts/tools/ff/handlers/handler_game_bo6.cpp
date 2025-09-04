@@ -638,6 +638,7 @@ namespace fastfile::handlers::bo6 {
 				gcx.opt->assetNames.clear();
 
 				gcx.allocator.FreeAll();
+				gcx.linkedAssets.clear();
 
 				gcx.xstringLocs = nullptr;
 				std::vector<const char*> xstringLocs{};
