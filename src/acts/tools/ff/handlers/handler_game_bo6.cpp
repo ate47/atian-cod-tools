@@ -17,6 +17,7 @@
 namespace fastfile::handlers::bo6 {
 	using namespace ::bo6;
 	constexpr bool hasRelativeLoads = false;
+	constexpr bool traceData = false;
 
 	enum StreamPointerFlag : uint64_t {
 		SPF_CREATE_REF = 1ull << 61, // create a offset with the data as name
@@ -326,10 +327,24 @@ namespace fastfile::handlers::bo6 {
 				hook::error::DumpStackTraceFrom();
 			}
 			gcx.reader->Read(ptr, len);
+
+			if constexpr (traceData) {
+				size_t s{ std::min<size_t>(len, 0x40 * 8) };
+				byte* p{ (byte*)ptr };
+				while (s > 0) {
+					size_t ss{ std::min<size_t>(s, 0x40) };
+					LOG_TRACE("{:03x} : {}", p - (byte*)ptr, utils::data::AsHex(p, ss));
+					p += ss;
+					s -= ss;
+				}
+			}
 		}
 
 		bool LoadStream(DBLoadCtx* context, bool atStreamStart, void* ptr, int64_t len) {
 			LOG_TRACE("LoadStream({}, {}, {}) {}", atStreamStart, ptr, len, hook::library::CodePointer{ _ReturnAddress() });
+			if (!atStreamStart || !len) {
+				return true;
+			}
 			if (!gcx.streamPosStackIndex) throw std::runtime_error("empty streampos stack");
 
 			int block{ gcx.streamPosStack[gcx.streamPosStackIndex - 1] };

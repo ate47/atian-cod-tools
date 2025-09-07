@@ -17,6 +17,7 @@
 namespace fastfile::handlers::bo6sp {
 	using namespace ::bo6;
 	constexpr bool hasRelativeLoads = false;
+	constexpr bool traceData = false;
 
 	enum StreamPointerFlag : uint64_t {
 		SPF_CREATE_REF = 1ull << 61, // create a offset with the data as name
@@ -251,10 +252,24 @@ namespace fastfile::handlers::bo6sp {
 			}
 			gcx.reader->Read(ptr, len);
 			*gcx.db_streamData = gcx.reader->Ptr();
+
+			if constexpr (traceData) {
+				size_t s{ std::min<size_t>(len, 0x40 * 2) };
+				byte* p{ (byte*)ptr };
+				while (s > 0) {
+					size_t ss{ std::min<size_t>(s, 0x40) };
+					LOG_TRACE("{:03x} : {}", p - (byte*)ptr, utils::data::AsHex(p, ss));
+					p += ss;
+					s -= ss;
+				}
+			}
 		}
 
 		bool LoadStream(bool atStreamStart, void* ptr, int64_t len) {
 			LOG_TRACE("LoadStream({}, {}, 0x{:x}/0x{:x}) {}", atStreamStart, ptr, len, gcx.reader->Remaining(), hook::library::CodePointer{_ReturnAddress()});
+			if (!atStreamStart || !len) {
+				return true;
+			}
 			if (!gcx.streamPosStackIndex) {
 				hook::error::DumpStackTraceFrom();
 				throw std::runtime_error("empty streampos stack");
@@ -288,7 +303,7 @@ namespace fastfile::handlers::bo6sp {
 		}
 
 		void Load_CustomScriptString(uint32_t* pstr) {
-			LOG_TRACE("Load_CustomScriptString({}) {}", (void*)pstr, hook::library::CodePointer{ _ReturnAddress() });
+			//LOG_TRACE("Load_CustomScriptString({}) {}", (void*)pstr, hook::library::CodePointer{ _ReturnAddress() });
 			// nothing to do
 		}
 
@@ -498,6 +513,7 @@ namespace fastfile::handlers::bo6sp {
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? 48", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_STREAMINGINFO>);
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_COMPUTESHADER>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_COMPUTESHADER>);
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_LIBSHADER>);
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 83", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_DLOGSCHEMA>);
 
 				
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 8B 42 ?? 48 8B DA C1 E8 ?? A8 ?? 75 13", "EmptyStub<7>").location, EmptyStub<7>);
