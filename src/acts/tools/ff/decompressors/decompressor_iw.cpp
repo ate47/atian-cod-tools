@@ -497,6 +497,7 @@ namespace {
 				}
 
 				LOG_TRACE("Loaded {} 0x{:x} bytes", fpdata.size(), fpdata.size());
+				LOG_TRACE("rem: sd:0x{:x} pd:0x{:x}", reader.Remaining(), fpreader.Remaining());
 
 				core::bytebuffer::ByteBuffer ffbb{ ffdata };
 				core::bytebuffer::ByteBuffer fdbb{ fpdata };

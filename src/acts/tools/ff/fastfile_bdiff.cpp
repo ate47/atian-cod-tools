@@ -545,6 +545,7 @@ namespace fastfile::bdiff {
 
     class DiffState {
         std::vector<byte> outwindow{};
+        byte tmpPatch[0x405];
         byte* destWindow{};
         size_t destWindowSize{};
         size_t patchWindowOffsetLast{};
@@ -591,6 +592,14 @@ namespace fastfile::bdiff {
 
             patchData->Goto(offset);
             if (!patchData->CanRead(size)) {
+                if (sizeof(tmpPatch) >= size) {
+                    // use the tmp patch data
+                    size_t loaded{ patchData->Remaining() };
+                    patchData->Read(tmpPatch, loaded);
+                    std::memset(&tmpPatch[loaded], 0, sizeof(tmpPatch) - loaded);
+                    return tmpPatch;
+                }
+
                 hook::error::DumpStackTraceFrom();
                 throw std::runtime_error(std::format("vcDiffCB_t: read too much at 0x{:x}/0x{:x}", patchData->Loc(), size));
             }
@@ -622,8 +631,8 @@ namespace fastfile::bdiff {
         state.state = &bdiffStates;
         state.type = type;
         do {
-            if (!patchData->CanRead(state.headerRead ? 0x400 : 0x405)) {
-                break; // can't read header
+            if (!patchData->CanRead(1)) {
+                break; // empty no more data
             }
             LOG_TRACE("Pre bdiff");
             if (!bdiff(&state,
