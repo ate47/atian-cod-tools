@@ -630,10 +630,7 @@ namespace fastfile::bdiff {
         fastfile::bdiff::BDiffState state{};
         state.state = &bdiffStates;
         state.type = type;
-        do {
-            if (!patchData->CanRead(1)) {
-                break; // empty no more data
-            }
+        while (patchData->CanRead(1)) {
             LOG_TRACE("Pre bdiff");
             if (!bdiff(&state,
                 [](void* state, size_t offset, size_t size) -> uint8_t* {
@@ -648,7 +645,7 @@ namespace fastfile::bdiff {
             )) {
                 throw std::runtime_error(std::format("bdiff error: {}", state.error));
             }
-        } while (bdiffStates.GetLastSize());
+        }
 
         bdiffStates.SyncData();
 

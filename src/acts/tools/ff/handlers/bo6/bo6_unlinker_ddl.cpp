@@ -62,6 +62,8 @@ namespace {
 		DDLType type;
 		byte isArray;
 	};
+	static_assert(sizeof(DDLMember) == 0x28);
+
 	struct DDLHash {
 		uint64_t hash;
 		int index;
