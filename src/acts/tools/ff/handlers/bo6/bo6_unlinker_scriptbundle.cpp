@@ -83,28 +83,28 @@ namespace fastfile::handlers::bo6::scriptbundle {
 			json.EndObject();
 			break;
 		}
-		case SBT_HASH:
+		case SBT_XHASH:
 			json.WriteValueHash(def.value.hash, "#");
 			break;
-		case SBT_IHASH:
-			json.WriteValueHash(def.value.hash, "r#");
-			break;
-		case SBT_HASH_TAG:
-			json.WriteValueHash(def.value.hash32, "t#");
-			break;
-		case SBT_HASH_DVAR:
-			json.WriteValueHash(def.value.hash, "@#");
-			break;
-		case SBT_HASH_RESOURCE:
-			json.WriteValueHash(def.value.hash, "%#");
-			break;
-		case SBT_HASH_SCR:
+		case SBT_LOCALIZED:
 			json.WriteValueHash(def.value.hash, "&#");
 			break;
-		case SBT_HASH_UNK10:
+		case SBT_XHASH_32:
+			json.WriteValueHash(def.value.hash32, "x32#");
+			break;
+		case SBT_XHASH_DVAR:
+			json.WriteValueHash(def.value.hash, "@#");
+			break;
+		case SBT_XHASH_ASSET:
+			json.WriteValueHash(def.value.hash, "%#");
+			break;
+		case SBT_XHASH_SCR:
+			json.WriteValueHash(def.value.hash, "s#");
+			break;
+		case SBT_XHASH_UNK10:
 			json.WriteValueHash(def.value.hash, "?10#");
 			break;
-		case SBT_HASH_UNK11:
+		case SBT_XHASH_UNK11:
 			json.WriteValueHash(def.value.hash, "?11#");
 			break;
 		default:
