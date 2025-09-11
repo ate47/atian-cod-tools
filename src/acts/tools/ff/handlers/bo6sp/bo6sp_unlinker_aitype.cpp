@@ -43,7 +43,7 @@ namespace {
 		uint64_t unk10;
 		XHash64 enemySelectorAsset;
 		uint64_t unk20;
-		XHash64 unitType;
+		XHash64 animationStateMachineAsset;
 		XHash64 behaviorTreeAsset;
 		FootStepsFxTable* footstepsFxTable;
 		FoliagesFXTable* foliagesFxTable;
@@ -85,7 +85,7 @@ namespace {
 			json.WriteFieldValueXHash("name", asset.name);
 			json.WriteFieldValueXString("typeSuffix", asset.typeSuffix);
 			json.WriteFieldValueScrString("species", asset.species);
-			json.WriteFieldValueXHash("unitType", asset.unitType);
+			json.WriteFieldValueXHash("animationStateMachineAsset", asset.animationStateMachineAsset);
 			json.WriteFieldValueXHash("coverSelectorAsset", asset.coverSelectorAsset);
 			json.WriteFieldValueXHash("behaviorTreeAsset", asset.behaviorTreeAsset);
 			json.WriteFieldValueXHash("enemySelectorAsset", asset.enemySelectorAsset);
