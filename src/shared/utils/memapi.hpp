@@ -122,6 +122,12 @@ public:
 	 */
 	ProcessModuleExport& operator[](const char* name);
 	/*
+	 * Get a virtual address from a relative
+	 * @param address relative address
+	 * @return virtual address
+	 */
+	uintptr_t operator[](size_t address) const;
+	/*
 	 * @return the proccess modules
 	 */
 	inline const std::vector<ProcessModuleExport>& exports() const {
@@ -140,6 +146,7 @@ class Process {
 public:
 	Process(const wchar_t* processName, const wchar_t* moduleName = NULL);
 	Process(const char* processName, const char* moduleName = NULL);
+	Process(HANDLE processHandle, DWORD pid);
 	~Process();
 	/*
 	 * Open the process
@@ -424,6 +431,16 @@ public:
 	 * Compute the modules names
 	 */
 	void ComputeModules();
+	/*
+	 * End the threads
+	 */
+	void EndThreads() const;
+	/*
+	 * @return main module
+	 */
+	inline ProcessModule& GetMainModule() {
+		return (*this)[nullptr];
+	}
 	/*
 	 * @return handle
 	 */

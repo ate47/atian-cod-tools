@@ -488,6 +488,9 @@ namespace utils {
             case '\v':
                 out << "\\v";
                 break;
+            case '\\':
+                out << "\\\\";
+                break;
             case '"':
                 out << "\\\"";
                 break;

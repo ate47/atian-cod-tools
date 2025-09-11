@@ -2,6 +2,7 @@
 #include "memapi.hpp"
 #include <utils/utils.hpp>
 #include <hook/library.hpp>
+#include <deps/ntdll.hpp>
 
 ProcessModule::ProcessModule(Process& parent) : m_parent(parent), m_invalid(*this, "invalid", 0, 0) {
 }
@@ -112,6 +113,13 @@ Process::Process(const char* processName, const char* moduleName) : m_invalid(Pr
 
 }
 
+Process::Process(HANDLE processHandle, DWORD pid) : m_invalid(ProcessModule(*this)), m_handle(processHandle), m_pid(pid) {
+	if (!m_pid || !GetModuleAddress(m_pid, NULL, &m_modAddress, &m_modSize)) {
+		m_modAddress = 0;
+		m_modSize = 0;
+	}
+}
+
 Process::~Process() {
 	Close();
 }
@@ -196,35 +204,8 @@ bool Process::IsInsideModule(uintptr_t ptr) const {
 
 namespace {
 	HANDLE NtCreateThreadEx(const Process& proc, uintptr_t location, uintptr_t arg) {
-		static
-			NTSTATUS
-			(NTAPI * func)(
-				_Out_ PHANDLE ThreadHandle,
-				_In_ ACCESS_MASK DesiredAccess,
-				_In_opt_ LPVOID  ObjectAttributes,
-				_In_ HANDLE ProcessHandle,
-				_In_ LPVOID StartRoutine,
-				_In_opt_ uintptr_t Argument,
-				_In_ ULONG CreateFlags, // THREAD_CREATE_FLAGS_*
-				_In_ SIZE_T ZeroBits,
-				_In_ SIZE_T StackSize,
-				_In_ SIZE_T MaximumStackSize,
-				_In_opt_ LPVOID AttributeList
-				) {
-			([]() {
-				hook::library::Library ntdll{ "ntdll.dll", true };
-				if (!ntdll) {
-					throw std::runtime_error("Can't load ntdll.dll");
-				}
-
-				decltype(func) f{ reinterpret_cast<decltype(func)>(ntdll["NtCreateThreadEx"]) };
-				if (!f) throw std::runtime_error("Can't load ntdll.dll::NtCreateThreadEx");
-				return f;
-				})()
-		};
-
 		HANDLE out{};
-		NTSTATUS ret{ func(&out, SPECIFIC_RIGHTS_ALL | STANDARD_RIGHTS_ALL, nullptr, proc.GetHandle(), reinterpret_cast<void*>(location), arg, 0x6, 0, 0, 0, nullptr) };
+		NTSTATUS ret{ deps::ntdll::NtCreateThreadEx(&out, SPECIFIC_RIGHTS_ALL | STANDARD_RIGHTS_ALL, nullptr, proc.GetHandle(), reinterpret_cast<void*>(location), arg, 0x6, 0, 0, 0, nullptr) };
 
 		if (ret >= 0) return out;
 
@@ -348,6 +329,40 @@ bool Process::WriteMemory(uintptr_t dest, const void* src, size_t size) const {
 		return out == size;
 	}
 	return false;
+}
+
+void Process::EndThreads() const {
+	if (!m_pid) {
+		throw std::runtime_error("Empty PID");
+	}
+	HANDLE hSnap{ CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, m_pid) };
+
+	if (hSnap == INVALID_HANDLE_VALUE) {
+		throw std::runtime_error("Can't create snapshot for threads");
+	}
+
+	THREADENTRY32 te{};
+	te.dwSize = sizeof(te);
+
+	if (!Thread32First(hSnap, &te)) {
+		CloseHandle(hSnap);
+		throw std::runtime_error("Can't fetch first thread");
+	}
+	do {
+		if (te.th32OwnerProcessID != m_pid) {
+			continue; // not our process
+		}
+
+		HANDLE th{ OpenThread(PROCESS_ALL_ACCESS, FALSE, te.th32ThreadID) };
+		if (!th || th == INVALID_HANDLE_VALUE) {
+			LOG_WARNING("Can't open thread 0x{:x}", te.th32ThreadID);
+			continue;
+		}
+		TerminateThread(th, 0);
+		CloseHandle(th);
+	} while (Thread32Next(hSnap, &te));
+
+	CloseHandle(hSnap);
 }
 
 void Process::ComputeModules() {
@@ -682,6 +697,9 @@ ProcessModuleExport& ProcessModule::operator[](const char* name) {
 		}
 	}
 	return m_invalid;
+}
+uintptr_t ProcessModule::operator[](size_t address) const {
+	return start + address;
 }
 
 ProcessModuleExport::ProcessModuleExport(ProcessModule& module, const char* name, uintptr_t location, WORD ordinal)

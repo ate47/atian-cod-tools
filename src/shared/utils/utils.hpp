@@ -735,3 +735,5 @@ namespace utils {
 }
 
 std::ostream& operator<<(std::ostream& stream, const utils::FormattedString& fs);
+template<>
+struct std::formatter<utils::FormattedString, char> : utils::BasicFormatter<utils::FormattedString> {};
