@@ -88,6 +88,12 @@ namespace fastfile::handlers::bo6sp {
 			JsonWriter::WriteFieldValueString(name, GetScrString(val));
 		}
 
+
+		void WriteValueScrString(ScrString_t val) {
+			if (!val) return;
+			JsonWriter::WriteValueString(GetScrString(val));
+		}
+
 		void WriteFieldValueScrString(uint64_t hash, ScrString_t val) {
 			if (!val) return;
 			JsonWriter::WriteFieldValueString(hash, GetScrString(val));

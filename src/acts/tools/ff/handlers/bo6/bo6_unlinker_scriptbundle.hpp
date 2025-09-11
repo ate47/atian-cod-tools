@@ -61,7 +61,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 		SBT_XHASH_DVAR = 0xD,
 		SBT_XHASH_SCR = 0xE,
 		SBT_XHASH_ASSET = 0xF,
-		SBT_XHASH_UNK10 = 0x10,
+		SBT_XHASH_OMNVAR = 0x10,
 		SBT_XHASH_UNK11 = 0x11,
 		SBT_STRUCT_ANIMATION_2 = 0x12,
 	};

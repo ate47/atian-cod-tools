@@ -20,7 +20,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 			json.WriteValueNumber(def.value.float_val);
 			break;
 		case SBT_STRING:
-			json.WriteValueString(*def.value.str);
+			json.WriteValueString(std::format("{}", utils::FormattedString{ *def.value.str }));
 			break;
 		case SBT_STRUCT: {
 			WriteData(json, *def.value.obj);
@@ -101,11 +101,11 @@ namespace fastfile::handlers::bo6::scriptbundle {
 		case SBT_XHASH_SCR:
 			json.WriteValueHash(def.value.hash, "s#");
 			break;
-		case SBT_XHASH_UNK10:
-			json.WriteValueHash(def.value.hash, "?10#");
+		case SBT_XHASH_OMNVAR:
+			json.WriteValueHash(def.value.hash, "o#");
 			break;
 		case SBT_XHASH_UNK11:
-			json.WriteValueHash(def.value.hash, "?11#");
+			json.WriteValueHash(def.value.hash, "?11#"); // both lua and gsc are reading it as xhash
 			break;
 		default:
 			json.WriteValueString(utils::va("bad type 0x%x", def.type));
