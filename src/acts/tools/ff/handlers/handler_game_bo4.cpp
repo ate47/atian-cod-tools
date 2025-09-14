@@ -9,6 +9,7 @@
 #include <games/bo4/pool.hpp>
 #include <decryptutils.hpp>
 #include <tools/ff/handlers/handler_game_bo4.hpp>
+#include <tools/ff/handlers/handler_game_bo4_load.hpp>
 
 
 namespace fastfile::handlers::bo4 {

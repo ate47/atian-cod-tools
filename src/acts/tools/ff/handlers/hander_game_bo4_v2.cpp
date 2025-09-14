@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#if false
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/ff/fastfile_dump.hpp>
 #include <tools/utils/data_utils.hpp>
@@ -9,6 +10,7 @@
 #include <games/bo4/pool.hpp>
 #include <decryptutils.hpp>
 #include <tools/ff/handlers/handler_game_bo4.hpp>
+#include <tools/ff/handlers/handler_game_bo4_load.hpp>
 
 
 namespace fastfile::handlers::bo4 {
@@ -528,3 +530,4 @@ namespace fastfile::handlers::bo4 {
 		utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 	}
 }
+#endif // #if false

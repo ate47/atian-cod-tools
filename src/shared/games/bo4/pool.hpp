@@ -427,6 +427,7 @@ namespace games::bo4::pool {
      */
     const char* BGCacheNameFromId(BGCacheTypes id);
 
+    size_t GetAssetSize(XAssetType type);
     size_t GetAssetNameOffset(XAssetType type);
     XHash* GetAssetName(XAssetType type, void* asset, size_t size = 0);
     const char* GetTeamName(team_t team);

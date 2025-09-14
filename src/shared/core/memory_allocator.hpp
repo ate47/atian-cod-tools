@@ -1,5 +1,5 @@
 #pragma once
-
+#include <utils/utils.hpp>
 
 namespace core::memory_allocator {
 
@@ -48,6 +48,11 @@ namespace core::memory_allocator {
 			void* ptr = new byte[size * count];
 			ptrs.emplace_back([](void* p) { delete[] static_cast<byte*>(p); }, (void*)ptr);
 			return (T*)ptr;
+		}
+
+		template<typename T = void>
+		T* AllocAligned(size_t size, size_t align) {
+			return (T*)utils::Aligned(Alloc<T>(size + align - 1), align);
 		}
 
 		template<typename T>
