@@ -12,6 +12,39 @@
 #include <tools/ff/fastfile_bdiff.hpp>
 
 namespace {
+	struct XFileBO4_0x27F {
+		uint8_t magic[8];
+		uint32_t version;
+		uint8_t server;
+		fastfile::FastFileCompression compression;
+		uint8_t platform;
+		uint8_t encrypted;
+		uint64_t timestamp;
+		uint32_t changelist;
+		uint32_t archiveChecksum[4];
+		char builder[32];
+		uint32_t metaVersion;
+		char mergeFastfile[64];
+		char missionFastFiles[16][64];
+		uint64_t size;
+		uint64_t externalSize;
+		uint64_t memMappedOffset;
+		uint64_t blockSize[9];
+		uint64_t unk4f0;
+		uint64_t unk4f8;
+		uint64_t unk500;
+		uint64_t unk508;
+		uint64_t unk510s;
+		uint64_t unk518s;
+		uint64_t unk520pa;
+		byte pad0[392];
+		char unkSign[64];
+		char fastfileName[64];
+		uint8_t signature[256];
+		uint8_t aesIV[16];
+	}; static_assert(sizeof(XFileBO4_0x27F) == 0x840);
+
+
 	void ErrorStub(uint32_t errcode) {
 		throw std::runtime_error(games::bo4::errors::TranslateError(errcode));
 	}
@@ -69,19 +102,31 @@ namespace {
 				blockSizeLoc = 0x4A8;
 				ctx.blocksCount = 9;
 				break;
-			case 0x27F: // Black Ops 4
+			case 0x27F:// Black Ops 4
 				fastFileSize = 0x840;
 				decompressedSizeLoc = 0x490;
 				fastfileNameLoc = 0x6F0;
 				blockSizeLoc = 0x4A8;
 				ctx.blocksCount = 9;
 				xhashType = true;
+				if (opt.m_header) {
+					if (!reader.CanRead(sizeof(XFileBO4_0x27F))) {
+						throw std::runtime_error("Can't read XFile header");
+					}
+					XFileBO4_0x27F* xfile{ reader.Ptr<XFileBO4_0x27F>() };
+
+					LOG_INFO(
+						"archive checksum: 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+						xfile->archiveChecksum[0], xfile->archiveChecksum[1], xfile->archiveChecksum[2], xfile->archiveChecksum[3]
+					);
+				}
 				break;
 			default:
 				throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", header->version));
 			}
 			ctx.hasGSCBin = false;
 			switch (header->platform) {
+			case fastfile::XFILE_DEV:
 			case fastfile::XFILE_PC: {
 				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
 				break;
@@ -92,10 +137,6 @@ namespace {
 			}
 			case fastfile::XFILE_PLAYSTATION: {
 				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PLAYSTATION;
-				break;
-			}
-			case fastfile::XFILE_DEV: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC_ALPHA;
 				break;
 			}
 			}
@@ -280,6 +321,15 @@ namespace {
 					if (opt.m_header) {
 						LOG_INFO("s:0x{:x}, version:{}, flags:0x{:x} 0x{:x} 0x{:x} 0x{:x}, decompSize:0x{:x}",
 							bdiffHeader->size, bdiffHeader->version, bdiffHeader->flags, bdiffHeader->maxDestWindowSize, bdiffHeader->maxSourceWindowSize, bdiffHeader->maxDiffWindowSize, fdDecompressedSize);
+						
+						if (newXFileHeader->version == 0x27f) {
+							XFileBO4_0x27F* xfile{ (XFileBO4_0x27F*)newXFileHeader };
+
+							LOG_INFO(
+								"archive checksum: 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+								xfile->archiveChecksum[0], xfile->archiveChecksum[1], xfile->archiveChecksum[2], xfile->archiveChecksum[3]
+							);
+						}
 					}
 
 					if (bdiffHeader->size != bdiffHeaderSize) {
