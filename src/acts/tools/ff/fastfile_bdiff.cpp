@@ -645,6 +645,9 @@ namespace fastfile::bdiff {
             )) {
                 throw std::runtime_error(std::format("bdiff error: {}", state.error));
             }
+            if (!bdiffStates.GetLastSize()) {
+                break;
+            }
         }
 
         bdiffStates.SyncData();

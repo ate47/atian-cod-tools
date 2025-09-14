@@ -518,6 +518,18 @@ namespace tool::hash::scanner {
 			else if (!_strcmpi(n, "bo6sp")) {
 				data.funcs = HASH_BLACKOPS6_SP;
 			}
+			else if (!_strcmpi(n, "bo6scr")) {
+				data.funcs = HASH_SCR_T10;
+			}
+			else if (!_strcmpi(n, "bo6spscr")) {
+				data.funcs = HASH_SCR_T10_SP;
+			}
+			else if (!_strcmpi(n, "iwscr")) {
+				data.funcs = HASH_SCR_JUP;
+			}
+			else if (!_strcmpi(n, "iwres")) {
+				data.funcs = HASH_RES;
+			}
 			else if (!_strcmpi(n, "bo6all")) {
 				data.funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
 			}
