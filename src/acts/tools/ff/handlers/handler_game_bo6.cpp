@@ -808,7 +808,6 @@ namespace fastfile::handlers::bo6 {
 					std::filesystem::path ostr{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(ostr.parent_path());
 					utils::OutFileCE sos{ ostr };
-					sos << "xhash,xhashasset,xhashomnvar,str";
 					for (const char* s : *gcx.xstringLocs) {
 						if (!s) continue;
 						byte b;
@@ -817,22 +816,21 @@ namespace fastfile::handlers::bo6 {
 							continue;
 						}
 
-						uint64_t xh{ hash::Hash64A(s) };
-						uint64_t xha{ hash::HashIWAsset(s) };
-						uint64_t xho{ hash::HashT10OmnVar(s) };
-						sos 
+						sos
+							<< utils::FormattedString{ s }
 							<< "\n"
-							<< std::hex << "hash_" << xh << ","
-							<< std::hex << "hash_" << xha << ","
-							<< std::hex << "hash_" << xho << ","
-							<< utils::FormattedString{ s };
+							;
 
 						if (gcx.xstrOutGlb) {
-							std::unordered_set<uint64_t>& h{ gcx.xstrOutGlb->map[s] };
+							std::string lcs{ s };
+							utils::LowerCase(lcs.data());
+							std::unordered_set<uint64_t>& h{ gcx.xstrOutGlb->map[lcs] };
 							// add our hashes
-							h.insert(xh);
-							h.insert(xha);
-							h.insert(xho);
+							h.insert(hash::Hash64A(s));
+							h.insert(hash::HashIWAsset(s));
+							h.insert(hash::HashT10OmnVar(s));
+							h.insert(hash::HashT10Scr(s));
+							h.insert(hash::HashT10ScrSP(s));
 						}
 					}
 					LOG_INFO("XStrings names dump into {}", ostr.string());
