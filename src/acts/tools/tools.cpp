@@ -523,6 +523,13 @@ void RegisterActsTool(const char* name, const char* filename, size_t line, const
 	GetExToolAlloc().push_back(std::make_unique<tool::toolfunctiondata>(name, filename, line, category, usage, description, func));
 }
 
+void RegisterActsCategory(const char* name, const char* description, bool visible) {
+	tool::toolcategory& cat{ tool::toolsCategories()[name] };
+	cat.description = description;
+	cat.m_name = name;
+	cat.visible = visible;
+}
+
 ADD_TOOL(list, "acts", "", "list all the tools", nullptr, list);
 ADD_TOOL(help, "acts", "", "list all the tools", nullptr, help);
 ADD_TOOL(info, "acts", "", "acts info", nullptr, info);

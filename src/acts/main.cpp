@@ -24,7 +24,7 @@ namespace {
 		newData.reserve((size_t)argc - 1); // remove start because we know we have at least one param
 		newData.push_back(argv[0]);
 
-		auto& opt = actscli::options();
+		actscli::ActsOptions& opt{ actscli::options() };
 		size_t i = 1;
 		for (; i < argc; i++) {
 			const char* arg = argv[i];
@@ -111,7 +111,7 @@ namespace {
 					LOG_ERROR("Missing value for param: {}!", arg);
 					return false;
 				}
-				auto* val = argv[++i];
+				const char* val{ argv[++i] };
 
 				if (!val[0] || val[1]) {
 					LOG_ERROR("Invalid log value for param: {}/{}", arg, val);
@@ -307,7 +307,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	srand((unsigned int)time(nullptr));
 
 	bool cli{ hInstance == nullptr };
-	auto& profiler = actscli::GetProfiler();
+	actslib::profiler::Profiler& profiler{ actscli::GetProfiler() };
 
 	// by default we don't display heavy logs in cli
 
@@ -360,7 +360,7 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	}
 	hook::error::InstallErrorHooks();
 
-	auto& opt = actscli::options();
+	actscli::ActsOptions& opt{ actscli::options() };
 
 	if (!hInstance) {
 		bool cfgTitle{ core::config::GetBool("cli.showTitle", true) };
@@ -409,12 +409,9 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 
 	std::vector<std::filesystem::path> packFiles{};
 
-	utils::GetFileRecurse(packFilePath, packFiles, [](const std::filesystem::path& p) {
-		auto s = p.string();
-		return s.ends_with(".acpf");
-	});
+	utils::GetFileRecurseExt(packFilePath, packFiles, ".acpf\0");
 
-	for (const auto& acpf : packFiles) {
+	for (const std::filesystem::path& acpf : packFiles) {
 		if (!actscli::LoadPackFile(acpf)) {
 			LOG_ERROR("Error when loading ACTS pack file {}", acpf.string());
 			return tool::BASIC_ERROR;
