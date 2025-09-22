@@ -7,8 +7,8 @@ namespace hash {
 		std::function<uint64_t(const char* text)> hashFunc;
 		char buffer[0x20]{ 0 };
 		bool selected{};
-
-		static HashAlg algs[10];
+		
+		static HashAlg algs[12];
 		static void SyncAlgCfg();
 	};
 

@@ -16,7 +16,7 @@
 #include <sha256.h>
 
 namespace hash {
-	HashAlg HashAlg::algs[10]
+	HashAlg HashAlg::algs[12]
 	{
 		{ "h64", "XHash", [](const char* text) -> uint64_t { return hash::Hash64A(text); } },
 		{ "res", "IW XHashAsset", [](const char* text) -> uint64_t { return hash::HashIWAsset(text); } },
@@ -28,6 +28,8 @@ namespace hash {
 		{ "tag", "XHash32", [](const char* text) -> uint64_t { return hash::HashX32(text); } },
 		{ "dvar", "XHashDvar", [](const char* text) -> uint64_t { return hash::HashIWDVar(text); } },
 		{ "omnvar", "XHashOmnvar", [](const char* text) -> uint64_t { return hash::HashT10OmnVar(text); } },
+		{ "xxh64", "XXH64", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), 0); } },
+		{ "xxh64iv", "XXH64 (IV)", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), hash::IV_DEFAULT); } },
 	};
 
 	void HashAlg::SyncAlgCfg() {
