@@ -123,7 +123,7 @@ namespace {
 	};
 
 	std::ostream& operator<<(std::ostream& os, const TripleID& id) {
-		return os << "(" << id.s << "," << id.p << "," << id.o << ")";
+		return os << "(s=" << id.s << ",p=" << id.p << ",o=" << id.o << ")";
 	}
 }
 template<>
@@ -245,6 +245,7 @@ namespace {
 			if (seqY.GetNumEntries() != bitY.GetNumEntries()) {
 				throw std::runtime_error(std::format("Invalid num entries for seqy/bity: {} != {}", seqY.GetNumEntries(), bitY.GetNumEntries()));
 			}
+			LOG_DEBUG("remaining: 0x{:x}", buff.Remaining());
 		}
 		const SequenceLog& GetSeqY() const { return seqY; }
 		const Bitmap64& GetBitY() const { return bitY; }
@@ -389,6 +390,7 @@ namespace {
 			.ComputeOptions(2, argc, argv);
 
 		if (opts.ParamsCount() < 2 || opt.showHelp) {
+			opts.PrintOptions();
 			return tool::BAD_USAGE;
 		}
 
@@ -403,7 +405,7 @@ namespace {
 
 		core::bytebuffer::ByteBuffer buff{ (byte*)mmap.begin(), mmap.size() };
 		
-		HDTBitmapTriplesIndex idx{ buff, opt.mapBitmap };
+		HDTBitmapTriplesIndex idx{ buff, !opt.mapBitmap };
 
 		if (opt.checkIntegrity) {
 			TripleID tid{};
@@ -414,7 +416,7 @@ namespace {
 			while (it) {
 				const TripleID& next{ *it };
 				if (!(tid < next)) {
-					LOG_ERROR("Invalid order at idx#{} {} >= {}", id, tid, next);
+					LOG_ERROR("Invalid order at idx#{} prev={} >= next={}", id, tid, next);
 					return tool::BASIC_ERROR;
 				}
 
