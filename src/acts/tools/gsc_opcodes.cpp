@@ -241,6 +241,9 @@ uint64_t VmInfo::HashField(const char* value) const {
 	if (hash::TryHashPattern(value, t)) {
 		return t;
 	}
+	if (HasFlag(VmFlags::VMF_HASH_ACTS)) {
+		return hash::Hash64A(value);
+	}
 	if (HasFlag(VmFlags::VMF_HASH_CER)) {
 		return hash::HashT10Scr(value);
 	}

@@ -5,9 +5,9 @@ namespace core::actsinfo {
 #ifdef CI_BUILD
 
     // Version used for the release
-    constexpr const char* VERSION = "2.12.0";
-    constexpr const wchar_t* VERSIONW = L"2.12.0";
-    constexpr unsigned int VERSION_ID = 0x200c000;
+    constexpr const char* VERSION = "2.13.1";
+    constexpr const wchar_t* VERSIONW = L"2.13.1";
+    constexpr unsigned int VERSION_ID = 0x200d001;
 
 #else
 
@@ -15,8 +15,8 @@ namespace core::actsinfo {
 #ifdef PRERELEASE_BUILD
 
     // prerelease
-    constexpr const char* VERSION = "2.12.0-pre";
-    constexpr const wchar_t* VERSIONW = L"2.12.0-pre";
+    constexpr const char* VERSION = "2.13.1-pre";
+    constexpr const wchar_t* VERSIONW = L"2.13.1-pre";
 
 #else
 

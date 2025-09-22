@@ -13,6 +13,7 @@
 #include "tools/gsc_gdb.hpp"
 #include "tools/gsc_iw.hpp"
 #include "actscli.hpp"
+#include <acts_vm.hpp>
 
 using namespace tool::gsc;
 using namespace tool::gsc::opcode;
@@ -1100,6 +1101,20 @@ struct H64CERGSCExportReader : GSCExportReader {
     uint64_t GetNamespace() override { return exp->name_space; };
     uint64_t GetFileNamespace() override { return exp->file_name_space; };
     uint64_t GetChecksum() override { return 0; };
+    uint32_t GetAddress() override { return exp->address; };
+    uint8_t GetParamCount() override { return exp->param_count; };
+    uint8_t GetFlags() override { return exp->flags; };
+    size_t SizeOf() override { return sizeof(*exp); };
+};
+
+struct ACTSExportReader : GSCExportReader {
+    acts::vm::ScriptExport* exp{};
+
+    void SetHandle(void* handle) override { exp = (acts::vm::ScriptExport*)handle; };
+    uint64_t GetName() override { return exp->name; };
+    uint64_t GetNamespace() override { return exp->name_space; };
+    uint64_t GetFileNamespace() override { return exp->data; };
+    uint64_t GetChecksum() override { return exp->checksum; };
     uint32_t GetAddress() override { return exp->address; };
     uint8_t GetParamCount() override { return exp->param_count; };
     uint8_t GetFlags() override { return exp->flags; };
@@ -3474,6 +3489,9 @@ int tool::gsc::ComputeSize(GSCExportReader& exp, byte* gscFile, Platform plt, Vm
 }
 
 std::unique_ptr<GSCExportReader> tool::gsc::CreateExportReader(VmInfo* vmInfo) {
+    if (vmInfo->HasFlag(VmFlags::VMF_HASH_ACTS)) {
+        return std::make_unique<ACTSExportReader>();
+    }
     if (vmInfo->HasFlag(VmFlags::VMF_GSCBIN)) {
         return std::make_unique<BINGSCExportReader>();
     }

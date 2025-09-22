@@ -37,6 +37,7 @@ namespace tool::gsc::opcode {
 		VMF_FUNC_REF_24 = 1 << 28,
 		VMF_SWITCH_32 = 1 << 29,
 		VMF_UNIQUE_HASH = 1 << 30,
+		VMF_HASH_ACTS = 1 << 31,
 	};
 	enum VmOperatorFunctionData : uint64_t {
 		VPFD_NONE = 0,

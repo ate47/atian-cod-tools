@@ -6,203 +6,265 @@
 
 
 namespace acts::vm::opcodes {
-	constexpr size_t HANDLERS_MAX_OP = 0x100;
-	typedef void(*OpcodeHandler)(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool* terminated);
-	OpcodeHandler handlers[HANDLERS_MAX_OP];
-
-
-	void InvalidOpCodeHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool* terminated) {
-		*terminated = true;
-		vm->Error("Invalid opcode", true);
-	}
-
-	void NopHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread*, bool*) {
-		// nop
-	}
-
-	void ExportNoParamsHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		if (thread->top->type != VT_PRECALL) {
-			do {
-				vm->ReleaseVariable(thread->top--);
-			} while (thread->top->type != VT_PRECALL);
-			vm->Error("Called function with too many parameters", false);
-		}
-	}
-
-	void ExportParamsHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		byte vars{ *(thread->codePos++) };
-
-		VmVar* top{ thread->top };
-		for (size_t i = 0; i < vars; i++) {
-			uint32_t* baseName{ thread->SetAlignedData<uint32_t>() };
-			uint32_t name = *baseName;
-			thread->codePos = (byte*)(baseName + 1);
-
-
-			// TODO: register var, check stack
-
+	namespace {
+		inline void InvalidOpCodeHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool* terminated) {
+			*terminated = true;
+			vm->Error("Invalid opcode", true);
 		}
 
-		if (top->type != VT_PRECALL) {
-			do {
-				vm->ReleaseVariable(thread->top--);
-			} while (thread->top->type != VT_PRECALL);
-			vm->Error("Called function with too many parameters", false);
+		inline void NopHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread*, bool*) {
+			// nop
 		}
-	}
 
-	void GetIntHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
-		int64_t* base{ thread->SetAlignedData<int64_t>() };
-		int64_t i{ *base };
-		thread->codePos = (byte*)(base + 1);
-		VmVar* top{ thread->top++ };
-		top->val.i = i;
-		top->type = VT_INTEGER;
-	}
-
-	void GetFloatHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
-		float* base{ thread->SetAlignedData<float>() };
-		float f{ *base };
-		thread->codePos = (byte*)(base + 1);
-		VmVar* top{ thread->top++ };
-		top->val.f = f;
-		top->type = VT_FLOAT;
-	}
-
-	void GetHashHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
-		uint64_t* base{ thread->SetAlignedData<uint64_t>() };
-		uint64_t h{ *base };
-		thread->codePos = (byte*)(base + 1);
-		VmVar* top{ thread->top++ };
-		top->val.hash = h;
-		top->type = VT_HASH;
-	}
-
-	void GetUndefinedHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
-		VmVar* top{ thread->top++ };
-		top->val.i = 0;
-		top->type = VT_UNDEFINED;
-	}
-
-	void IsDefinedHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		VmVar* top{ thread->top };
-		vm->ReleaseVariable(thread->top);
-		top->val.b = thread->top->type != VT_UNDEFINED;
-		top->type = VT_INTEGER;
-	}
-
-	void DecTopHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		vm->ReleaseVariable(thread->top--);
-	}
-
-	void PreCallHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
-		VmVar* top{ thread->top++ };
-		top->val.i = 0;
-		top->type = VT_PRECALL;
-	}
-	void JumpHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
-		int16_t* base{ thread->SetAlignedData<int16_t>() };
-		int16_t delta{ *base };
-		thread->codePos = (byte*)(base + 1);
-
-		thread->codePos += delta;
-	}
-	void DevBlockHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		int16_t* base{ thread->SetAlignedData<int16_t>() };
-		int16_t delta{ *base };
-		thread->codePos = (byte*)(base + 1);
-		if (!vm->Cfg().enabledDevBlocks) {
-			thread->codePos += delta;
+		inline void ExportNoParamsHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			if (thread->top->type != VT_LOCATION) {
+				do {
+					vm->ReleaseVariable(thread->top--);
+				} while (thread->top->type != VT_LOCATION);
+				vm->Error("Called function with too many parameters", false);
+			}
 		}
-	}
-	void JumpIfDefinedHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
-		int16_t* base{ thread->SetAlignedData<int16_t>() };
-		int16_t delta{ *base };
-		thread->codePos = (byte*)(base + 1);
 
-		if (thread->top->type != VT_UNDEFINED) {
-			thread->codePos += delta;
-		}
-		else {
-			thread->top--;
-		}
-	}
-	void JumpIfTrueHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		int16_t* base{ thread->SetAlignedData<int16_t>() };
-		int16_t delta{ *base };
-		thread->codePos = (byte*)(base + 1);
-		if (vm->CastToBool(thread->top--)) {
-			thread->codePos += delta;
-		}
-	}
-	void JumpIfFalseHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		int16_t* base{ thread->SetAlignedData<int16_t>() };
-		int16_t delta{ *base };
-		thread->codePos = (byte*)(base + 1);
-		if (!vm->CastToBool(thread->top--)) {
-			thread->codePos += delta;
-		}
-	}
-	void JumpIfTrueExprHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		int16_t* base{ thread->SetAlignedData<int16_t>() };
-		int16_t delta{ *base };
-		thread->codePos = (byte*)(base + 1);
-		if (vm->CastToBool(thread->top)) {
-			thread->codePos += delta;
-		}
-		else {
-			thread->top--;
-		}
-	}
-	void JumpIfFalseExprHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
-		int16_t* base{ thread->SetAlignedData<int16_t>() };
-		int16_t delta{ *base };
-		thread->codePos = (byte*)(base + 1);
-		if (!vm->CastToBool(thread->top)) {
-			thread->codePos += delta;
-		}
-		else {
-			thread->top--;
-		}
-	}
+		inline void ExportParamsHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			byte vars{ *(thread->codePos++) };
 
-	static int handlersSet{
-		([]() -> int {
-			// Set default array
-			for (size_t i = 0; i < HANDLERS_MAX_OP; i++) {
-				handlers[i] = InvalidOpCodeHandler;
+			VmVar* top{ thread->top };
+			for (size_t i = 0; i < vars; i++) {
+				uint64_t* baseName{ thread->SetData<uint64_t>() };
+				uint64_t name = *baseName;
+				thread->codePos = (byte*)(baseName + 1);
+
+
+				// TODO: register var, check stack
+
 			}
 
-			handlers[OpCodeId::OPCODE_NOP] = NopHandler;
-			handlers[OpCodeId::OPCODE_EXPORT_NO_PARAMS] = ExportNoParamsHandler;
-			handlers[OpCodeId::OPCODE_EXPORT_PARAMS] = ExportParamsHandler;
-			//handlers[OpCodeId::OPCODE_END] = InvalidOpCodeHandler; // todo
-			handlers[OpCodeId::OPCODE_GET_INT] = GetIntHandler;
-			handlers[OpCodeId::OPCODE_GET_FLOAT] = GetFloatHandler;
-			handlers[OpCodeId::OPCODE_GET_HASH] = GetHashHandler;
-			handlers[OpCodeId::OPCODE_GET_UNDEFINED] = GetUndefinedHandler;
+			if (top->type != VT_LOCATION) {
+				do {
+					vm->ReleaseVariable(thread->top--);
+				} while (thread->top->type != VT_LOCATION);
+				vm->Error("Called function with too many parameters", false);
+			}
+		}
 
-			handlers[OpCodeId::OPCODE_IS_DEFINED] = IsDefinedHandler;
-			handlers[OpCodeId::OPCODE_DEC_TOP] = DecTopHandler;
-			handlers[OpCodeId::OPCODE_PRE_CALL] = PreCallHandler;
+		inline void GetIntHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			int64_t* base{ thread->SetData<int64_t>() };
+			int64_t i{ *base };
+			thread->codePos = (byte*)(base + 1);
+			VmVar* top{ thread->top++ };
+			top->val.i = i;
+			top->type = VT_INTEGER;
+		}
 
-			handlers[OpCodeId::OPCODE_JUMP] = JumpHandler;
-			handlers[OpCodeId::OPCODE_DEV_BLOCK] = DevBlockHandler;
-			handlers[OpCodeId::OPCODE_JUMP_IF_TRUE] = JumpIfTrueHandler;
-			handlers[OpCodeId::OPCODE_JUMP_IF_FALSE] = JumpIfFalseHandler;
-			handlers[OpCodeId::OPCODE_JUMP_IF_TRUE_EXPR] = JumpIfTrueExprHandler;
-			handlers[OpCodeId::OPCODE_JUMP_IF_FALSE_EXPR] = JumpIfFalseExprHandler;
-			handlers[OpCodeId::OPCODE_JUMP_IF_DEFINED] = JumpIfDefinedHandler;
-			
-			return 0;
-		})()
-	};
+		inline void GetFloatHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			float* base{ thread->SetData<float>() };
+			float f{ *base };
+			thread->codePos = (byte*)(base + 1);
+			VmVar* top{ thread->top++ };
+			top->val.f = f;
+			top->type = VT_FLOAT;
+		}
+
+		inline void GetHashHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			uint64_t* base{ thread->SetData<uint64_t>() };
+			uint64_t h{ *base };
+			thread->codePos = (byte*)(base + 1);
+			VmVar* top{ thread->top++ };
+			top->val.hash = h;
+			top->type = VT_HASH;
+		}
+
+		inline void GetUndefinedHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* top{ thread->top++ };
+			top->val.i = 0;
+			top->type = VT_UNDEFINED;
+		}
+
+		inline void GetStringHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmRef* base{ thread->SetData<VmRef>() };
+			VmRef ref{ *base };
+			thread->codePos = (byte*)(base + 1);
+			VmVar* top{ thread->top++ };
+			top->val.ref = ref;
+			top->type = VT_STRING;
+			vm->IncRef(top);
+		}
+
+		inline void GetBuiltinFunction(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			uint16_t* base{ thread->SetData<uint16_t>() };
+			uint16_t builtin{ *base };
+			thread->codePos = (byte*)(base + 1);
+
+			VmVar* top{ thread->top++ };
+			top->val.builtinFunc = builtin;
+			top->type = VT_BUILTIN_FUNCTION;
+		}
+
+		inline void GetScriptFunction(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			uint32_t* base{ thread->SetData<uint32_t>() };
+			uint32_t ref{ *base };
+			thread->codePos = (byte*)(base + 1);
+
+			VmVar* top{ thread->top++ };
+			top->val.scriptFunc = ref;
+			top->type = VT_SCRIPT_FUNCTION;
+		}
+
+		inline void IsDefinedHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* top{ thread->top };
+			vm->ReleaseVariable(thread->top);
+			top->val.b = thread->top->type != VT_UNDEFINED;
+			top->type = VT_INTEGER;
+		}
+
+		inline void DecTopHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			vm->ReleaseVariable(thread->top--);
+		}
+
+		inline void PreCallHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* top{ thread->top++ };
+			top->val.loc = thread->codePos;
+			top->type = VT_LOCATION;
+		}
+
+		inline void JumpHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			int16_t* base{ thread->SetData<int16_t>() };
+			int16_t delta{ *base };
+			thread->codePos = (byte*)(base + 1);
+
+			thread->codePos += delta;
+		}
+
+		inline void DevBlockHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			int16_t* base{ thread->SetData<int16_t>() };
+			int16_t delta{ *base };
+			thread->codePos = (byte*)(base + 1);
+			if (!vm->Cfg().enabledDevBlocks) {
+				thread->codePos += delta;
+			}
+		}
+
+		inline void JumpIfDefinedHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
+			int16_t* base{ thread->SetData<int16_t>() };
+			int16_t delta{ *base };
+			thread->codePos = (byte*)(base + 1);
+
+			if (thread->top->type != VT_UNDEFINED) {
+				thread->codePos += delta;
+			}
+			else {
+				thread->top--;
+			}
+		}
+
+		inline void JumpIfTrueHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			int16_t* base{ thread->SetData<int16_t>() };
+			int16_t delta{ *base };
+			thread->codePos = (byte*)(base + 1);
+			if (vm->CastToBool(thread->top--)) {
+				thread->codePos += delta;
+			}
+		}
+
+		inline void JumpIfFalseHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			int16_t* base{ thread->SetData<int16_t>() };
+			int16_t delta{ *base };
+			thread->codePos = (byte*)(base + 1);
+			if (!vm->CastToBool(thread->top--)) {
+				thread->codePos += delta;
+			}
+		}
+
+		inline void JumpIfTrueExprHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			int16_t* base{ thread->SetData<int16_t>() };
+			int16_t delta{ *base };
+			thread->codePos = (byte*)(base + 1);
+			if (vm->CastToBool(thread->top)) {
+				thread->codePos += delta;
+			}
+			else {
+				thread->top--;
+			}
+		}
+
+		inline void JumpIfFalseExprHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			int16_t* base{ thread->SetData<int16_t>() };
+			int16_t delta{ *base };
+			thread->codePos = (byte*)(base + 1);
+			if (!vm->CastToBool(thread->top)) {
+				thread->codePos += delta;
+			}
+			else {
+				thread->top--;
+			}
+		}
+	}
 
 	void HandleOpCode(OpCode opcode, acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool* terminated) {
-		if (opcode >= HANDLERS_MAX_OP) {
+		switch (opcode) {
+		case OpCodeId::OPCODE_NOP:
+			NopHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_EXPORT_NO_PARAMS:
+			ExportNoParamsHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_EXPORT_PARAMS:
+			ExportParamsHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_INT:
+			GetIntHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_FLOAT:
+			GetFloatHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_HASH:
+			GetHashHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_UNDEFINED:
+			GetUndefinedHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_STRING:
+			GetStringHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_BUILTIN_FUNCTION:
+			GetBuiltinFunction(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_FUNCTION:
+			GetScriptFunction(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_IS_DEFINED:
+			IsDefinedHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_DEC_TOP:
+			DecTopHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_PRE_CALL:
+			PreCallHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_JUMP:
+			JumpHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_DEV_BLOCK:
+			DevBlockHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_JUMP_IF_TRUE:
+			JumpIfTrueHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_JUMP_IF_FALSE:
+			JumpIfFalseHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_JUMP_IF_TRUE_EXPR:
+			JumpIfTrueExprHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_JUMP_IF_FALSE_EXPR:
+			JumpIfFalseExprHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_JUMP_IF_DEFINED:
+			JumpIfDefinedHandler(vm, thread, terminated);
+			break;
+		default:
 			InvalidOpCodeHandler(vm, thread, terminated);
-			return;
+			break;
 		}
-		handlers[opcode](vm, thread, terminated);
 	}
 }

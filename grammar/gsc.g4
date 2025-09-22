@@ -9,7 +9,7 @@ namespace: '#namespace' IDENTIFIER ';';
 filenamespace: '#file' (IDENTIFIER | PATH) ';';
 constexpr: ('#constexpr' | '#define') IDENTIFIER '=' expression ';';
 
-class_def: 'class' IDENTIFIER (':' IDENTIFIER (',' IDENTIFIER)* )? '{' class_var* function* '}';
+class_def: 'class' IDENTIFIER (':' IDENTIFIER (',' IDENTIFIER)* )? '{' (class_var | function)* '}';
 class_var: ('var' IDENTIFIER ('=' expression)? ';');
 
 

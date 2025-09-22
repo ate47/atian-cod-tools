@@ -14,10 +14,18 @@ namespace {
 
     class ACTSF1GSCOBJHandler : public GSCOBJHandler {
     public:
-        ACTSF1GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_FOREACH_TYPE_5) {}
-        
+        ACTSF1GSCOBJHandler(byte* file, size_t fileSize) : GSCOBJHandler(file, fileSize, GOHF_FOREACH_TYPE_5 | GOHF_STRING_NAMES) {}
+
         uint64_t GetName() override {
-            return Ptr<ActScript>()->name;
+            const char* name{ Ptr<ActScript>()->GetName() };
+            hashutils::Add(name);
+            return hash::Hash64(name);
+        }
+        void SetName(uint64_t name) override {
+            throw std::runtime_error("can't get string name for this vm");
+        }
+        void SetNameString(uint32_t name) override {
+            Ptr<ActScript>()->name_offset = name;
         }
         uint16_t GetExportsCount() override {
             return Ptr<ActScript>()->exports_count;
@@ -77,9 +85,6 @@ namespace {
             return 0; // Ptr<ActScript>()->animtree_offset;
         };
 
-        void SetName(uint64_t name) override {
-            Ptr<ActScript>()->name = name;
-        }
         void SetHeader() override {
             Ref<uint64_t>() = ACTSCRIPT_MAGIC;
         }
@@ -114,7 +119,7 @@ namespace {
             //Ptr<ActScript>()->devblock_string_offset = val;
         }
         void SetFileSize(uint32_t val) override {
-            Ptr<ActScript>()->fileSize = val;
+            Ptr<ActScript>()->file_size = val;
         }
         void SetCSEGOffset(uint32_t val) override {
             Ptr<ActScript>()->cseg_offset = val;
@@ -144,13 +149,13 @@ namespace {
         void SetGVarsOffset(uint32_t val) override {}
 
         size_t GetImportSize() override {
-            return sizeof(tool::gsc::IW23GSCImport);
+            return sizeof(ScriptImport);
         }
         size_t GetExportSize() override {
-            return sizeof(tool::gsc::IW23GSCExport);
+            return sizeof(ScriptExport);
         }
         size_t GetStringSize() override {
-            return sizeof(tool::gsc::T8GSCString);
+            return sizeof(ScriptString);
         }
         size_t GetGVarSize() override {
             return 0;
@@ -162,14 +167,77 @@ namespace {
             return sizeof(tool::gsc::GSC_ANIMTREE_ITEM);
         }
         void WriteExport(byte* data, const tool::gsc::IW23GSCExport& item) override {
-            *reinterpret_cast<tool::gsc::IW23GSCExport*>(data) = item;
+            ScriptExport* exp{ (ScriptExport*)data };
+            exp->address = item.address;
+            exp->checksum = (uint32_t)item.checksum;
+            exp->name = item.name;
+            exp->name_space = item.name_space;
+            exp->data = item.file_name_space;
+            exp->param_count = item.param_count;
+            exp->flags = item.flags;
         }
         void WriteImport(byte* data, const tool::gsc::IW23GSCImport& item) override {
-            *reinterpret_cast<tool::gsc::IW23GSCImport*>(data) = item;
+            ScriptImport* imp{ (ScriptImport*)data };
+            imp->name = item.name;
+            imp->name_space = item.name_space;
+            imp->num_address = item.num_address;
+            imp->param_count = item.param_count;
+            imp->flags = item.flags;
+        }
+        byte RemapFlagsImport(byte flags) override {
+            byte nflags{};
+            switch (flags & ScriptImportFlags::SIF_TYPE_MASK) {
+            case ScriptImportFlags::SIF_GET: nflags |= FUNC_METHOD; break;
+            case ScriptImportFlags::SIF_FUNCTION: nflags |= FUNCTION; break;
+            case ScriptImportFlags::SIF_FUNCTION_THREAD: nflags |= FUNCTION_THREAD; break;
+            case ScriptImportFlags::SIF_FUNCTION_CHILDTHREAD: nflags |= FUNCTION_CHILDTHREAD; break;
+            case ScriptImportFlags::SIF_METHOD: nflags |= METHOD; break;
+            case ScriptImportFlags::SIF_METHOD_THREAD: nflags |= METHOD_THREAD; break;
+            case ScriptImportFlags::SIF_METHOD_CHILDTHREAD: nflags |= METHOD_CHILDTHREAD; break;
+            case ScriptImportFlags::SIF_FUNCTION_BUILTIN: nflags |= ACTS_CALL_BUILTIN_FUNCTION; break;
+            case ScriptImportFlags::SIF_METHOD_BUILTIN: nflags |= ACTS_CALL_BUILTIN_METHOD; break;
+            case ScriptImportFlags::SIF_GET_BUILTIN: nflags |= ACTS_GET_BUILTIN_FUNCTION; break;
+            default: nflags |= flags & 0xF; break; // wtf?
+            }
+            return nflags;
+        }
+        byte MapFlagsImportToInt(byte flags) override {
+            byte nflags{};
+
+            switch (flags & 0xF) {
+            case FUNC_METHOD: nflags |= ScriptImportFlags::SIF_GET; break;
+            case FUNCTION: nflags |= ScriptImportFlags::SIF_FUNCTION; break;
+            case FUNCTION_THREAD: nflags |= ScriptImportFlags::SIF_FUNCTION_THREAD; break;
+            case FUNCTION_CHILDTHREAD: nflags |= ScriptImportFlags::SIF_FUNCTION_CHILDTHREAD; break;
+            case METHOD: nflags |= ScriptImportFlags::SIF_METHOD; break;
+            case METHOD_THREAD: nflags |= ScriptImportFlags::SIF_METHOD_THREAD; break;
+            case METHOD_CHILDTHREAD: nflags |= ScriptImportFlags::SIF_METHOD_CHILDTHREAD; break;
+            case ACTS_CALL_BUILTIN_FUNCTION: nflags |= ScriptImportFlags::SIF_FUNCTION_BUILTIN; break;
+            case ACTS_CALL_BUILTIN_METHOD: nflags |= ScriptImportFlags::SIF_METHOD_BUILTIN; break;
+            case ACTS_GET_BUILTIN_FUNCTION:
+            case ACTS_GET_BUILTIN_METHOD: nflags |= ScriptImportFlags::SIF_GET_BUILTIN; break;
+            default: nflags |= flags & 0xF; break; // wtf?
+            }
+
+            return nflags;
+        }
+        byte RemapFlagsExport(byte flags) override {
+            byte nflags{};
+            if (flags & ScriptExportFlags::SEF_AUTOEXEC) nflags |= T8GSCExportFlags::AUTOEXEC;
+            if (flags & ScriptExportFlags::SEF_PRIVATE) nflags |= T8GSCExportFlags::PRIVATE;
+            return nflags;
+        }
+        byte MapFlagsExportToInt(byte flags) override {
+            byte nflags{};
+            if (flags & T8GSCExportFlags::AUTOEXEC) nflags |= ScriptExportFlags::SEF_AUTOEXEC;
+            if (flags & T8GSCExportFlags::PRIVATE) nflags |= ScriptExportFlags::SEF_PRIVATE;
+            return nflags;
         }
         void WriteGVar(byte* data, const tool::gsc::T8GSCGlobalVar& item) override {}
         void WriteString(byte* data, const tool::gsc::T8GSCString& item) override {
-            *reinterpret_cast<tool::gsc::T8GSCString*>(data) = item;
+            ScriptString* str{ (ScriptString*)data };
+            str->address = item.string;
+            str->num_address = item.num_address;
         }
         void WriteAnimTreeSingle(byte* data, const tool::gsc::GSC_USEANIMTREE_ITEM& item) override {
             *reinterpret_cast<tool::gsc::GSC_USEANIMTREE_ITEM*>(data) = item;
@@ -181,10 +249,10 @@ namespace {
             return 0; // no checksum
         }
         void SetChecksum(uint64_t val) override {
-            // Ptr<ActScript>()->checksum = (uint32_t)val;
+            Ptr<ActScript>()->checksum = (uint32_t)val;
         }
         uint32_t GetChecksum() override {
-            return 0; // Ptr<GscObj23>()->checksum;
+            return Ptr<ActScript>()->checksum;
         }
         const char* GetDefaultName(bool client) override {
             if (client) {
