@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <core/memory_allocator.hpp>
 #include <core/config.hpp>
+#include <cli/cli_options.hpp>
 #include <tools/tools_nui.hpp>
 #include "hash_scanner.hpp"
 #include <tools/hash.hpp>
@@ -80,14 +81,24 @@ namespace tool::hash::scanner {
 	namespace {
 
 		int strscan(int argc, const char* argv[]) {
-			if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
-			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
+			cli::options::CliOptions opts{};
+			bool help{};
+			const char* regex{ "([0-9a-zA-Z_]+)" };
+			opts
+				.addOption(&help, "show help", "--help", "", "-h")
+				.addOption(&regex, "regex", "--regex", " [regex]", "-r");
+
+			if (!opts.ComputeOptions(2, argc, argv) || help || opts.NotEnoughParam(2)) {
+				opts.PrintOptions();
+				return help ? tool::OK : tool::BAD_USAGE;
+			}
+
+			std::vector<std::filesystem::path> files{ GetHashFiles(opts[0]) };
 			LOG_TRACE("{} file(s) loaded...", files.size());
 
-			static std::regex pattern{ "([0-9a-zA-Z_]+)" };
+			std::regex pattern{ regex };
 
-			utils::OutFileCE os{ argv[3], true };
-
+			utils::OutFileCE os{ opts[1], true };
 
 			std::unordered_set<uint64_t> hashes{};
 
@@ -108,7 +119,8 @@ namespace tool::hash::scanner {
 					else {
 						hashes.insert(h);
 					}
-					os << match[1] << "\n";
+					
+					os << utils::LowerCase(sh.data()) << "\n";
 				}
 			}
 

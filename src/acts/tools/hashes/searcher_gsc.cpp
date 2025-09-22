@@ -38,12 +38,18 @@ namespace {
 					LOG_ERROR("Can't read {}", path.string());
 					continue;
 				}
+				std::vector<const char*> gscstr{};
+				ctx.stringsLoc = &gscstr;
 
 				int r{ tool::gsc::DecompileGsc((byte*)bufferAlign, bufferSizeAlign, path, ctx) };
 				if (r) {
 					res = r;
 					LOG_WARNING("Error when decompiling {}", path.string());
 					continue;
+				}
+
+				for (const char* str : gscstr) {
+					scriptStrings.emplace_back(alloc.CloneStr(str));
 				}
 
 				uint64_t magic{ *(uint64_t*)bufferAlign };
@@ -54,56 +60,12 @@ namespace {
 				}
 
 				std::shared_ptr<tool::gsc::GSCOBJHandler> reader{ (*builder)((byte*)bufferAlign, bufferSizeAlign) };
+				
 				const char* extName{ hashutils::ExtractPtr(reader->GetName()) };
 				if (extName) {
 					scriptPaths.emplace_back(extName);
 					scriptStrings.emplace_back(extName);
 				}
-
-				size_t stringsCount{ reader->GetStringsCount() };
-				if (stringsCount) {
-					tool::gsc::T8GSCString* strings{ reader->Ptr<tool::gsc::T8GSCString>(reader->GetStringsOffset()) };
-
-					for (size_t i = 0; i < stringsCount; i++) {
-						if (magic == tool::gsc::opcode::VMI_T8_36) {
-							scriptStrings.emplace_back(alloc.CloneStr(acts::decryptutils::DecryptStringT8(reader->Ptr<char>(strings->string))));
-						}
-						else {
-							scriptStrings.emplace_back(alloc.CloneStr(acts::decryptutils::DecryptString(reader->Ptr<char>(strings->string))));
-						}
-
-						// skip addresses
-						strings = (tool::gsc::T8GSCString*)((uint32_t*)(strings + 1) + strings->num_address);
-					}
-				}
-
-				size_t animDoubleCount{ reader->GetAnimTreeDoubleCount() };
-
-				if (animDoubleCount) {
-					tool::gsc::GSC_ANIMTREE_ITEM* anims{ reader->Ptr<tool::gsc::GSC_ANIMTREE_ITEM>(reader->GetAnimTreeDoubleOffset()) };
-
-					for (size_t i = 0; i < animDoubleCount; i++) {
-						scriptStrings.emplace_back(alloc.CloneStr(acts::decryptutils::DecryptString(reader->Ptr<char>(anims->address_str1))));
-						scriptStrings.emplace_back(alloc.CloneStr(acts::decryptutils::DecryptString(reader->Ptr<char>(anims->address_str2))));
-
-						// skip addresses
-						anims = (tool::gsc::GSC_ANIMTREE_ITEM*)((uint32_t*)(anims + 1) + anims->num_address);
-					}
-				}
-
-				size_t animSingleCount{ reader->GetAnimTreeSingleCount() };
-
-				if (animSingleCount) {
-					tool::gsc::GSC_USEANIMTREE_ITEM* anims{ reader->Ptr<tool::gsc::GSC_USEANIMTREE_ITEM>(reader->GetAnimTreeSingleOffset()) };
-
-					for (size_t i = 0; i < animSingleCount; i++) {
-						scriptStrings.emplace_back(alloc.CloneStr(acts::decryptutils::DecryptString(reader->Ptr<char>(anims->address))));
-
-						// skip addresses
-						anims = (tool::gsc::GSC_USEANIMTREE_ITEM*)((uint32_t*)(anims + 1) + anims->num_address);
-					}
-				}
-
 			}
 			if (res) return res;
 		}
@@ -124,7 +86,7 @@ namespace {
 		LOG_INFO("{} string(s) loaded", scriptStrings.size());
 		LOG_INFO("{} script path(s) loaded", scriptPaths.size());
 		LOG_INFO("{} hash(es) loaded", hashes.size());
-		utils::OutFileCE os{ argv[3] };
+		utils::OutFileCE os{ argv[3], false, std::ios::app | std::ios::out };
 		if (!os) {
 			LOG_ERROR("Can't open {}", argv[3]);
 			return tool::BASIC_ERROR;
@@ -187,10 +149,15 @@ namespace {
 			}
 		};
 
+		size_t count{ scriptStrings.size() };
+		size_t steps{ std::max<size_t>(count / 100, 1) };
+		size_t id{};
 		for (const char* loadedString : scriptStrings) {
-			char* w;
+			if ((id++ % steps) == 0) {
+				LOG_TRACE("completed {}% ({}/{})", 100 * id / count, id, count);
+			}
 
-			w = utils::CloneString(loadedString);
+			char* w{ utils::CloneString(loadedString) };
 
 			size_t len{ std::strlen(w) };
 
