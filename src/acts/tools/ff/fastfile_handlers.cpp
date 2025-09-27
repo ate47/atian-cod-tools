@@ -433,6 +433,9 @@ namespace fastfile {
 			else if (!_strcmpi("--dumpAssetNames", arg)) {
 				dumpAssetNames = true;
 			}
+			else if (!_strcmpi("--dumpCompiledZone", arg)) {
+				dumpCompiledZone = true;
+			}
 			else if (!_strcmpi("--testDump", arg)) {
 				testDump = true;
 			}
@@ -466,6 +469,8 @@ namespace fastfile {
 	}
 
 	void FastFileOption::PrintHelp() {
+		LOG_INFO("some tools might not be available for each handler");
+		LOG_INFO("");
 		LOG_INFO("-h --help              : Print help");
 		LOG_INFO("-o --output [d]        : Output dir");
 		LOG_INFO("-w --wildcard [wc]     : Wildcard to match for the filename");
@@ -473,7 +478,7 @@ namespace fastfile {
 		LOG_INFO("-r --handler           : Handler to use (use --handlers to print)");
 		LOG_INFO("-R --handlers          : Print handlers");
 		LOG_INFO("-D --decompressors     : Print decompressors");
-		LOG_INFO("-d --dump              : Dump decompressed (if available)");
+		LOG_INFO("-d --dump              : Dump decompressed");
 		LOG_INFO("-C --casc [c]          : Use casc db");
 		LOG_INFO("-g --game [g]          : exe");
 		LOG_INFO("-p --patch             : Use patch files (fd/fp)");
@@ -483,6 +488,7 @@ namespace fastfile {
 		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
 		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
 		LOG_INFO("--dumpAssetNames       : Dump binary assets");
+		LOG_INFO("--dumpCompiledZone     : Dump compiled zone file");
 		LOG_INFO("--disableScriptsDecomp : Disable GSC script decompilation");
 		LOG_INFO("--dumpXStrings         : Dump XStrings");
 		LOG_INFO("--assertContainer      : Use acts as a container for other software");
@@ -491,23 +497,30 @@ namespace fastfile {
 		
 	}
 
-	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init, bool needDecrypt) {
+	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init, bool needDecrypt, const char* defaultName) {
 		if (init) *init = false;
 
-		if (!game) {
+		std::filesystem::path exe;
+		if (game) {
+			exe = game;
+		}
+		else if (defaultName) {
+			exe = utils::GetProgDir() / "deps" / defaultName;
+		}
+		else {
 			if (crashError) {
 				throw std::runtime_error("No game module specified");
 			}
-			return (HMODULE)0;
+			return { (HMODULE)0 };
 		}
 
 		if (!gameMod) {
-			if (!gameMod.Load(game)) {
-				throw std::runtime_error(std::format("Can't load {}", game));
+			if (!gameMod.Load(exe)) {
+				throw std::runtime_error(std::format("Can't load {}", exe.string()));
 			}
 
 			if (needDecrypt && !acts::decryptutils::LoadDecryptModule(gameMod)) {
-				throw std::runtime_error(std::format("Can't load {}: Can't find DecryptString", game));
+				throw std::runtime_error(std::format("Can't load {}: Can't find DecryptString", exe.string()));
 			}
 
 			if (init) *init = true;

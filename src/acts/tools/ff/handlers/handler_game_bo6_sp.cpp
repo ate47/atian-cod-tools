@@ -439,7 +439,7 @@ namespace fastfile::handlers::bo6sp {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true) };
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "sp24-cod_dump.exe") };
 				hook::scan_container::ScanContainer scan{ lib, true };
 				scan.Sync();
 
@@ -664,8 +664,6 @@ namespace fastfile::handlers::bo6sp {
 					gcx.outAsset = &assetsOs;
 					assetsOs << "type,name";
 					gcx.assets.assets = reader.ReadPtr<Asset>(gcx.assets.assetsCount);
-
-					hook::library::Library lib{ opt.GetGame(true) };
 
 					for (auto& [k, v] : GetWorkers()) {
 						if constexpr (!hasRelativeLoads) {

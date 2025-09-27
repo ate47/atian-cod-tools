@@ -141,6 +141,7 @@ namespace fastfile {
 		bool dumpBinaryAssetsMap{};
 		bool dumpAssetNames{};
 		bool dumpXStrings{};
+		bool dumpCompiledZone{};
 		bool testDump{};
 		bool archiveDDL{};
 		const char* m_casc{};
@@ -160,7 +161,7 @@ namespace fastfile {
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
 		void PrintHelp();
 
-		hook::library::Library GetGame(bool crashError, bool* init = nullptr, bool needDecrypt = false);
+		hook::library::Library GetGame(bool crashError, bool* init = nullptr, bool needDecrypt = false, const char* defaultName = nullptr);
 		std::vector<std::string> GetFileRecurse(const char* path);
 		bool ReadFile(const char* path, std::vector<byte>& buff);
 

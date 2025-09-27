@@ -518,7 +518,7 @@ namespace fastfile::handlers::bo6 {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true) };
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "cod_dump.exe") };
 				hook::scan_container::ScanContainer scan{ lib, true };
 				scan.Sync();
 
@@ -746,8 +746,6 @@ namespace fastfile::handlers::bo6 {
 					gcx.outAsset = &assetsOs;
 					assetsOs << "type,name";
 					gcx.assets.assets = reader.ReadPtr<Asset>(gcx.assets.assetsCount);
-
-					hook::library::Library lib{ opt.GetGame(true) };
 
 					DBLoadCtx loadCtx{};
 					DBLoadCtxVT* vt = &dbLoadCtxVTable;

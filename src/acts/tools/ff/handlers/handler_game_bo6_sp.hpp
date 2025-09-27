@@ -29,6 +29,7 @@ namespace fastfile::handlers::bo6sp {
 	struct Camo;
 	struct Material;
 	struct ScriptBundle;
+	struct PlayerSpawnSettings;
 
 	typedef const char* XString;
 

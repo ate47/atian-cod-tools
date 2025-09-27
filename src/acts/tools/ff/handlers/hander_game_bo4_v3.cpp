@@ -2,6 +2,7 @@
 #include <utils/enumlist.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/ff/fastfile_dump.hpp>
+#include <tools/ff/fastfile_compiled_zone.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <hook/module_mapper.hpp>
 #include <hook/memory.hpp>
@@ -44,6 +45,7 @@ namespace fastfile::handlers::bo4 {
 			utils::OutFileCE* outAssetNames{};
 			size_t loaded{};
 			core::memory_allocator::MemoryAllocator allocator{};
+			std::unique_ptr<fastfile::compiled_zone::CompiledZone> compiledZone{};
 			std::unordered_map<uint64_t, void*> linkedAssets[XAssetType::ASSET_TYPE_COUNT]{};
 			XAssetList_0 assetList{};
 			bool isRunning{};
@@ -504,7 +506,7 @@ namespace fastfile::handlers::bo4 {
 					gcx.handleList.LoadConfig(opt.assetTypes);
 				}
 
-				hook::library::Library lib{ opt.GetGame(true) };
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps4_dump.exe") };
 
 				gcx.Load_XAssetHeader = reinterpret_cast<decltype(gcx.Load_XAssetHeader)>(lib[0x2E35D50]);
 
@@ -572,9 +574,15 @@ namespace fastfile::handlers::bo4 {
 				std::filesystem::path out{ opt.m_output / "bo4" / "data" };
 				std::filesystem::create_directories(out);
 				gcx.isRunning = true;
-				utils::CloseEnd isrce{ [] {
+				utils::CloseEnd end{ [] {
 					gcx.isRunning = false;
+					gcx.compiledZone = nullptr;
+					errorCtx.lastAsset = nullptr;
 				} };
+
+				if (opt.dumpCompiledZone) {
+					gcx.compiledZone = std::make_unique<fastfile::compiled_zone::CompiledZone>();
+				}
 
 				gcx.loaded = 0;
 				gcx.allocator.FreeAll();
@@ -648,7 +656,7 @@ namespace fastfile::handlers::bo4 {
 						errorCtx.assetIdx = i;
 						const char* assType{ XAssetNameFromId(ass->type) };
 						LOG_DEBUG("{}/{} Load asset {} (0x{:x}) {}", i, assetList.assetCount, assType, (int)ass->type, ass->header);
-						if (!opt.noAssetDump || opt.testDump) {
+						if (!opt.noAssetDump || opt.testDump || opt.dumpCompiledZone) {
 #ifndef CI_BUILD
 							//if (i >= 110100) core::logs::setlevel(core::logs::LVL_TRACE_PATH);
 #endif
@@ -683,6 +691,11 @@ namespace fastfile::handlers::bo4 {
 
 				DB_PopStreamPos();
 				LOG_INFO("Loaded {} asset(s)", gcx.loaded);
+
+				if (gcx.compiledZone) {
+					std::filesystem::path outCZ{ gcx.opt->m_output / "bo4" / "compiled" / std::format("{}.zonec", ctx.ffname) };
+					gcx.compiledZone->DumpDebug(outCZ);
+				}
 			}
 		};
 
