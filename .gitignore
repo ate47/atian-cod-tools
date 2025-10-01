@@ -38,6 +38,11 @@ scripts/antlr4.jar
 # Private stuff
 src/acts/tools/gsc_vm/vm_private_*.cpp
 src/**/_private_*.cpp
+# wait
+src/acts/tools/ff/handlers/handler_game_bo7.cpp
+src/acts/tools/ff/handlers/handler_game_bo7.hpp
+src/acts/tools/ff/handlers/bo7/*
+src/acts/tools/bo7/*
 # VS
 /.vs/
 /.vscode/

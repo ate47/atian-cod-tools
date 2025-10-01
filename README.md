@@ -56,6 +56,7 @@ See the wiki to know how to use the features
 | Black Ops 6 (T10)        | 11  | Dc         | ✅        | all         | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 12  | Dc         | ✅        | all         | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
 | Black Ops 6 (T10)        | 14  | Dc         | ✅        | all+old     | [ate47/bo6-source](https://github.com/ate47/bo6-source)       |
+| Black Ops 7 (T11)        | 14  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 
 - \* : Some source repositories might not be public yet.
 - **Dc**: With pre-decode, see the [Using encrypted scripts in the wiki](https://github.com/ate47/atian-cod-tools/wiki/GSC-Decompiler#using-encrypted-scripts).
