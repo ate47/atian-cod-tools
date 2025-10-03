@@ -3,11 +3,11 @@
 namespace utils {
 	template<typename Type, Type invalidValue, size_t maxValue = (size_t)invalidValue>
 	class EnumList {
-		Type(*Lookup)(const char* type);
+		std::function<Type(const char* type)> Lookup;
 		uint8_t buffer[((maxValue - 1) >> 3) + 1]{};
 		bool empty{};
 	public:
-		EnumList(Type(*lookup)(const char* type)) : Lookup(lookup) {}
+		EnumList(std::function<Type(const char* type)> Lookup) : Lookup(Lookup) {}
 
 		void Clear() {
 			std::memset(buffer, 0, sizeof(buffer));
@@ -33,7 +33,7 @@ namespace utils {
 		}
 
 		void Add(const char* name) {
-			Type t{ Lookup(name) };
+			Type t{ Lookup ? Lookup(name) : invalidValue };
 
 			if (t == invalidValue) {
 				throw std::runtime_error(std::format("Invalid enum name '{}'", name));

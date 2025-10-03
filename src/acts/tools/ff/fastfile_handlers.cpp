@@ -618,9 +618,9 @@ namespace fastfile {
 	int fastfile(int argc, const char* argv[]) {
 		FastFileOption opt{};
 
-		if (!opt.Compute(argv, 2, argc) || opt.m_help || (opt.files.empty() && !(opt.print_handlers || opt.print_decompressors))) {
+		if (!opt.Compute(argv, 2, argc) || opt.m_help || (opt.files.empty() && !(opt.handler || opt.print_handlers || opt.print_decompressors))) {
 			opt.PrintHelp();
-			if (opt.files.empty()) {
+			if (opt.files.empty() && !opt.handler) {
 				LOG_ERROR("Missing entry");
 				return tool::BASIC_ERROR;
 			}

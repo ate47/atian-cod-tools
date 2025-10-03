@@ -79,7 +79,7 @@ See the wiki to know how to use the features
 
 **Supported fastfile formats**
 
-- `iw` : MW19, MWII, MWIII, BO6.
+- `iw` : MW19, MWII, MWIII, BO6, BO7.
 - `t9` (EXE) : CW, COD2020.
 - `t78` (EXE) : BO4, BO4(old), BO4(dev), BO3.
 - `zone` : `.ff.zone` files
