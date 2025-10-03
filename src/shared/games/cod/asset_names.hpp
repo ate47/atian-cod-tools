@@ -167,7 +167,7 @@ namespace games::cod::asset_names {
 				{
 					utils::OutFileCE os{ f, true };
 
-					os << "const char* " << opts->assetTypeName << "[] {";
+					os << "const char* " << opts->assetNames << "[] {";
 					for (size_t i = 0; i < typeMapsCount; i++) {
 						os << "\n    \"" << typeNames[i] << "\" // " << std::hex << i;
 					}
