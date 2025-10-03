@@ -365,9 +365,10 @@ namespace fastfile::handlers::bo6sp {
 				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "bo6";
-				dumpOpts.dumpHashedHeader = false;
+				dumpOpts.assetHashedName = "T10HashAssetType";
 				dumpOpts.assetTypeName = "T10AssetType";
 				dumpOpts.assetPrefix = "T10_ASSET_";
+				dumpOpts.assetHashedPrefix = "T10H_ASSET_";
 				gcx.assetNames.DumpFiles(opt.m_output / "bo6sp" / "code", &dumpOpts);
 
 				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3) };

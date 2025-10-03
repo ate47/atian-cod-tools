@@ -21,9 +21,10 @@ namespace games::cod::asset_names {
 		const char* assetTypeName{ "AssetType" };
 		const char* assetHashedName{ "AssetHashed" };
 		const char* assetNames{ "poolNames" };
+		core::logs::loglevel logLevel{ core::logs::LVL_DEBUG };
 	};
 
-	template<typename AssetHashed, typename AssetId>
+	template<typename AssetHashed = uint32_t, typename AssetId = uint32_t>
 	class AssetNames {
 		struct HashedType {
 			AssetHashed hash;
@@ -81,8 +82,10 @@ namespace games::cod::asset_names {
 					size_t count{};
 					while (true) {
 						if (!poolNames[count]) {
-							LOG_TRACE("Can't find last pool name"); // cw?
-							count = 0;
+							if (last) {
+								LOG_ERROR("Can't find last pool name"); // cw?
+								count = 0;
+							}
 							break;
 						}
 						const char* cc = lib.Rebase<const char>(poolNames[count]);
@@ -158,7 +161,7 @@ namespace games::cod::asset_names {
 						os << "," << typeNames[i];
 					}
 				}
-				LOG_DEBUG("Dump assets data to {}", f.string());
+				LOG_LVLF(opts->logLevel, "Dump assets data to {}", f.string());
 			}
 
 			if (opts->dumpTypeNames) {
@@ -173,7 +176,7 @@ namespace games::cod::asset_names {
 					}
 					os << "\n};";
 				}
-				LOG_DEBUG("Dump assets data to {}", f.string());
+				LOG_LVLF(opts->logLevel, "Dump assets data to {}", f.string());
 			}
 
 			if (opts->dumpTypeHeader) {
@@ -189,7 +192,7 @@ namespace games::cod::asset_names {
 					}
 					os << "\n};\n\n";
 				}
-				LOG_DEBUG("Dump assets data to {}", f.string());
+				LOG_LVLF(opts->logLevel, "Dump assets data to {}", f.string());
 			}
 
 			if (opts->dumpHashedHeader) {
@@ -205,7 +208,7 @@ namespace games::cod::asset_names {
 					}
 					os << "\n};\n";
 				}
-				LOG_DEBUG("Dump assets data to {}", f.string());
+				LOG_LVLF(opts->logLevel, "Dump assets data to {}", f.string());
 			}
 
 		}
