@@ -40,7 +40,6 @@ namespace games::cod::asset_names {
 		size_t typeMapsCount{};
 		const char* typeNames[MAX_ASSET_COUNT]{};
 		AssetHashed typeExeToActs[MAX_ASSET_COUNT]{};
-		std::unordered_map<AssetHashed, AssetId> typeActsToExe{};
 		utils::EnumList<AssetId, (AssetId)MAX_ASSET_COUNT> handleList;
 
 	public:
@@ -98,7 +97,7 @@ namespace games::cod::asset_names {
 						continue;
 					}
 
-					if (count > ARRAYSIZE(typeMaps)) {
+					if (count > MAX_ASSET_COUNT) {
 						LOG_TRACE("Too many candidates: {}", count);
 						continue;
 					}
@@ -114,7 +113,6 @@ namespace games::cod::asset_names {
 
 						// map this id to acts
 						typeExeToActs[tid] = type->hash;
-						typeActsToExe[type->hash] = tid;
 					}
 
 					// sort it for better usage
@@ -232,7 +230,6 @@ namespace games::cod::asset_names {
 			return (AssetId)typeMapsCount;
 		}
 
-
 		/*
 		 * test if an asset type config with LoadAssetConfig should be handled
 		 * @param type type
@@ -253,7 +250,6 @@ namespace games::cod::asset_names {
 			}
 			return typeNames[type];
 		}
-
 
 		/*
 		 * Get the name of a hashed type
@@ -283,24 +279,12 @@ namespace games::cod::asset_names {
 		}
 
 		/*
-		 * Get a type from its hashed type
-		 * @param name name
-		 * @return type or invalid value
-		 */
-		AssetId GetExePoolId(AssetHashed name) {
-			auto it{ typeActsToExe.find(name) };
-			if (it == typeActsToExe.end()) {
-				return (AssetId)typeMapsCount;
-			}
-			return it->second;
-		}
-
-		/*
 		 * Get a config from an hashed value
 		 * @param val value
-		 * @return hash info or throw exception
+		 * @param failMissing throw std::runtime_error in case of error
+		 * @return hash info or throw exception if failMissing=true or nullptr
 		 */
-		const HashedType* GetMappedType(AssetHashed val) const {
+		const HashedType* GetMappedType(AssetHashed val, bool failMissing = true) const {
 			size_t min{}, max{ typeMapsCount };
 
 			while (min < max) {
@@ -315,7 +299,25 @@ namespace games::cod::asset_names {
 					return &typeMaps[mid];
 				}
 			}
-			throw std::runtime_error(std::format("Invalid asset type name {}", hashutils::ExtractTmp("hash", val)));
+
+			if (failMissing) {
+				throw std::runtime_error(std::format("Invalid asset type name {}", hashutils::ExtractTmp("hash", val)));
+			}
+
+			return nullptr;
+		}
+
+		/*
+		 * Get a type from its hashed type
+		 * @param name name
+		 * @return type or invalid value
+		 */
+		AssetId GetExePoolId(AssetHashed name) {
+			const HashedType* ht{ GetMappedType(name, false) };
+			if (!ht) {
+				return (AssetId)typeMapsCount;
+			}
+			return ht->type;
 		}
 	};
 }
