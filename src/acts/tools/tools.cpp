@@ -33,6 +33,7 @@ namespace tool {
 			map["mwiii"] = { "mwiii", "Modern Warfare III tools", true, {} };
 			map["bo3"] = { "bo3", "Black Ops 3 tools", true, {} };
 			map["bo6"] = { "bo6", "Black Ops 6 tools", true, {} };
+			map["bo7"] = { "bo7", "Black Ops 7 tools", true, {} };
 			map["ps4"] = { "ps4", "PS4 tools", true, {} };
 			map["common"] = { "common", "Common tools", true, {} };
 			map["dev"] = { "dev", "Dev tools", false, {} };

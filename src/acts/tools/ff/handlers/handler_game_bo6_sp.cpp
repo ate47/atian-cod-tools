@@ -12,6 +12,7 @@
 #include <decryptutils.hpp>
 #include <tools/ff/handlers/handler_game_bo6_sp.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
+#include <tools/ff/fastfile_names_store.hpp>
 
 
 namespace fastfile::handlers::bo6sp {
@@ -145,6 +146,7 @@ namespace fastfile::handlers::bo6sp {
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
 			games::cod::asset_names::AssetNames<T10HashAssetType, T10AssetType> assetNames{ "physicslibrary", "string", bo6::PoolId };
+			fastfile::names_store::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
 		} gcx{};
 
@@ -268,7 +270,7 @@ namespace fastfile::handlers::bo6sp {
 				gcx.linkedAssets[hashType][hash] = *handle;
 			}
 
-			if (handle && !(gcx.opt->noAssetDump || !gcx.assetNames.ShouldHandle(type))) {
+			if (handle && !(gcx.opt->noAssetDump || !gcx.assetNames.ShouldHandle(type) || !gcx.namesStore.Contains(hash, true))) {
 
 				std::unordered_map<bo6::T10HashAssetType, Worker*>& map{ GetWorkers() };
 				auto it{ map.find(hashType) };
@@ -362,7 +364,6 @@ namespace fastfile::handlers::bo6sp {
 
 				// should be done before the handleList to have the hashes loaded
 				gcx.assetNames.InitMap(lib);
-				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "bo6";
 				dumpOpts.assetHashedName = "T10HashAssetType";
@@ -370,6 +371,8 @@ namespace fastfile::handlers::bo6sp {
 				dumpOpts.assetPrefix = "T10_ASSET_";
 				dumpOpts.assetHashedPrefix = "T10H_ASSET_";
 				gcx.assetNames.DumpFiles(opt.m_output / "bo6sp" / "code", &dumpOpts);
+				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
+				gcx.namesStore.LoadConfig(opt.assets);
 
 				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3) };
 				loadStreamObj->__vtb = &dbLoadStreamVTable;
@@ -445,6 +448,7 @@ namespace fastfile::handlers::bo6sp {
 				}
 			}
 			void Cleanup() override {
+				gcx.namesStore.WarnMissings();
 				if (gcx.xstrOutGlb) {
 					LOG_INFO("Dump xstrings to {}", gcx.xstrOutGlb->path.string());
 					if (compatibility::scobalula::wnigen::CompressWNIFile(gcx.xstrOutGlb->map, gcx.xstrOutGlb->path)) {

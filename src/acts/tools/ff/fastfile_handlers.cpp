@@ -412,6 +412,13 @@ namespace fastfile {
 				}
 				wildcard = args[++i];
 			}
+			else if (!strcmp("-n", arg) || !_strcmpi("--name", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				assets = args[++i];
+			}
 			else if (!strcmp("-D", arg) || !_strcmpi("--decompressors", arg)) {
 				print_decompressors = true;
 			}
@@ -435,6 +442,9 @@ namespace fastfile {
 			}
 			else if (!_strcmpi("--dumpCompiledZone", arg)) {
 				dumpCompiledZone = true;
+			}
+			else if (!_strcmpi("--graphic", arg)) {
+				graphic = true;
 			}
 			else if (!_strcmpi("--testDump", arg)) {
 				testDump = true;
@@ -483,7 +493,8 @@ namespace fastfile {
 		LOG_INFO("-g --game [g]          : exe");
 		LOG_INFO("-p --patch             : Use patch files (fd/fp)");
 		LOG_INFO("-i --fd-ignore         : Ignore missing fd file");
-		LOG_INFO("-a --assets [g]        : Set the assets to dump by name (by default all)");
+		LOG_INFO("-a --assets [g]        : Set the asset types to dump by name (by default all)");
+		LOG_INFO("-n --name [n]          : Set the assets to dump by name (by default all)");
 		LOG_INFO("--noAssetDump          : No asset dump");
 		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
 		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
@@ -491,6 +502,7 @@ namespace fastfile {
 		LOG_INFO("--dumpCompiledZone     : Dump compiled zone file");
 		LOG_INFO("--disableScriptsDecomp : Disable GSC script decompilation");
 		LOG_INFO("--dumpXStrings         : Dump XStrings");
+		LOG_INFO("--graphic              : Dump graphic assets (do not share graphic assets)");
 		LOG_INFO("--assertContainer      : Use acts as a container for other software");
 		LOG_INFO("--archiveDDL           : dump archived ddl (bo6)");
 		LOG_INFO("--alpha                : Is alpha file");

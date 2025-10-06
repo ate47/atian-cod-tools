@@ -144,10 +144,12 @@ namespace fastfile {
 		bool dumpCompiledZone{};
 		bool testDump{};
 		bool archiveDDL{};
+		bool graphic{};
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};
 		const char* wildcard{};
+		const char* assets{};
 		bool disableScriptsDecomp{};
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };
