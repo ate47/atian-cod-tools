@@ -100,7 +100,7 @@ namespace hash {
 			return 0;
 		}
 
-		uint64_t base = Hash64A(pattern, (start ^ *str) * iv, iv);
+		uint64_t base = Hash64A(pattern, (start ^ lowerc(*str)) * iv, iv);
 		return Hash64A(str + 1, base, iv);
 	}
 
