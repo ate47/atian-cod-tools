@@ -18,6 +18,31 @@ namespace {
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
+		void GenDefaultXHashes(fastfile::FastFileContext* ctx) override {
+			if (!ctx) {
+				return; // no base ones
+			}
+
+			const char* gamemodes[]{ "mp", "zm", "sp" };
+
+			const char* names[][2]{
+				{ "", "" },
+				{ "", "_fx" },
+				{ "", "_lighting" },
+				{ "", "_precache" },
+				{ "", "_code" },
+				{ "", "_audio" },
+				{ "gen/", "_art" }
+			};
+
+			for (const char* gamemode : gamemodes) {
+				for (auto& [prefix, suffix] : names) {
+					const char* str{ utils::va("scripts/%s/maps/%s/%s%s%s.gsc", gamemode, ctx->ffname, prefix, ctx->ffname, suffix) };
+					hashutils::AddPrecomputed(hash::HashIWAsset(str), str, true);
+				}
+			}
+		}
+
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			GscObj* asset{ (GscObj*)ptr };
 

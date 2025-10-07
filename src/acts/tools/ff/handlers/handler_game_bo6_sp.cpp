@@ -440,6 +440,7 @@ namespace fastfile::handlers::bo6sp {
 							LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
 						}
 					}
+					worker->GenDefaultXHashes(nullptr);
 				}
 
 				if (opt.dumpXStrings) {
@@ -488,6 +489,10 @@ namespace fastfile::handlers::bo6sp {
 				size_t fdd{ fftype.find('_') };
 				if (fdd != std::string::npos) {
 					fftype.resize(fdd);
+				}
+
+				for (auto& [hashType, worker] : GetWorkers()) {
+					worker->GenDefaultXHashes(&ctx);
 				}
 
 				std::filesystem::path outStrings{ gcx.opt->m_output / "bo6sp" / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
