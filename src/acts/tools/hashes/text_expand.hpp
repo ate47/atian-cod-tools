@@ -5,7 +5,7 @@ namespace tool::hash::text_expand {
 	constexpr const char dict_number[] = "0123456789";
 	constexpr const char dict_alpha[] = "abcdefghijklmnopqrstuvwxyz";
 	constexpr const char dict_alpha_number[] = "abcdefghijklmnopqrstuvwxyz0123456789";
-	constexpr const char cdict[] = "abcdefghijklmnopqrstuvwxyz0123456789_/";
+	constexpr const char cdict[] = "_abcdefghijklmnopqrstuvwxyz0123456789_/";
 
 	struct AsyncStop {
 		std::mutex mutex{};

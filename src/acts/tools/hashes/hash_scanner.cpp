@@ -359,6 +359,7 @@ namespace tool::hash::scanner {
 		public:
 			std::ofstream output;
 			std::unordered_set<uint64_t> hashes{};
+			std::unordered_set<uint64_t> done{};
 			std::mutex mtx{};
 			uint64_t funcs{};
 			const char* prefix{};
@@ -419,6 +420,9 @@ namespace tool::hash::scanner {
 				}
 				auto it = hashes.find(v & hashutils::MASK60);
 				if (it != hashes.end()) {
+					std::lock_guard lg{ mtx };
+					if (done.contains(v)) return;
+					done.insert(v);
 					std::ostringstream oss{};
 					if constexpr (prefix) {
 						oss << this->prefix;
@@ -436,7 +440,6 @@ namespace tool::hash::scanner {
 					std::string strs{ oss.str() };
 
 					{
-						std::lock_guard lg{ mtx };
 
 						output << std::hex << v << "," << strs << std::endl;
 						LOG_INFO("{:x},{}", v, strs);
