@@ -1,11 +1,20 @@
 - acts
   - fastfile
+    - bo6 campaign
+      - add bo6sp fastfile handler
+      - asset unlinker for ddl, luafile, scriptbundle, aitype, gscobj, ncs, rawfile and stringtable
+      - generate default hashes
     - bo6
-      - update asset unlinkers to new version
-      - use hashed types instead of static types
-      - add warning when sizes are unconsistent
-      - fix stringtable unlinker when csv has more than 32k rows
-      - fix stringtable unlinker format with localized and xhashscr values
-  - deathloop
-    - index dumper
-    - file extraction tool
+      - change bundle format dump
+      - add dump for a wni file and xstrings
+      - generate default hashes
+    - bo4
+      - asset unlinker for localized entry
+      - better info header
+      - fix ff bdiff
+    - option to filter by name
+  - add exe_dump to dump exe
+  - add game_dump to dump game and dll to deps
+  - fix some hash bruteforce issues
+  - fix hash secures when first character is uppercase
+  - some fixes and refactoring
