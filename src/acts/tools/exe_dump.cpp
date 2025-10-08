@@ -27,6 +27,46 @@ namespace tool::exe_dump {
 		}
 	}
 
+	void CopyMemorySafe(Process& proc, void* dest, uintptr_t src, size_t len) {
+		// copy function considering the page accesses
+		MEMORY_BASIC_INFORMATION64 page{};
+		uintptr_t current{};
+		uintptr_t end{ src + len };
+
+		// search first page
+		do {
+			current = (uintptr_t)page.BaseAddress + page.RegionSize;
+			VirtualQueryEx(proc.GetHandle(), (LPCVOID)current, reinterpret_cast<PMEMORY_BASIC_INFORMATION>(&page), sizeof(MEMORY_BASIC_INFORMATION));
+		} while (page.BaseAddress + page.RegionSize < src);
+
+		// equals or before, read first page
+		uintptr_t baseLen{ std::min<size_t>(page.BaseAddress + page.RegionSize - src, len) };
+		if (baseLen) {
+			if (!(page.State != MEM_COMMIT || page.Protect == PAGE_NOACCESS || (page.Protect & PAGE_GUARD))) {
+				proc.ReadMemoryEx(dest, src, baseLen);
+			}
+		}
+		current = (uintptr_t)page.BaseAddress + page.RegionSize;
+
+		byte* destb{ (byte*)dest };
+
+		while (current < end) {
+			VirtualQueryEx(proc.GetHandle(), (LPCVOID)current, reinterpret_cast<PMEMORY_BASIC_INFORMATION>(&page), sizeof(MEMORY_BASIC_INFORMATION));
+			current = (uintptr_t)page.BaseAddress;
+
+			if (page.State != MEM_COMMIT || page.Protect == PAGE_NOACCESS || (page.Protect & PAGE_GUARD)) {
+				current += page.RegionSize;
+				continue;
+			}
+			size_t offset{ current - src };
+			size_t readLen{ std::min<size_t>(page.RegionSize, len - offset) };
+			byte* to{ &destb[offset] };
+
+			proc.ReadMemoryEx(to, current, readLen);
+			current += page.RegionSize;
+		}
+	}
+
 
 	void DumpProcess(Process& proc, const std::filesystem::path& out, DumpProcessOpt* opt) {
 		proc.ComputeModules();
@@ -83,20 +123,20 @@ namespace tool::exe_dump {
 			LOG_INFO("NumberOfRvaAndSizes: 0x{:x}", ntHeader.OptionalHeader.NumberOfRvaAndSizes);
 		}
 
-		size_t max{ dosHeader.e_lfanew  + sizeof(ntHeader) };
+		size_t headersSize{ dosHeader.e_lfanew + ntHeader.FileHeader.SizeOfOptionalHeader + offsetof(decltype(ntHeader), OptionalHeader) };
+
+		size_t max{ headersSize };
 		max = std::max<size_t>(ntHeader.OptionalHeader.SizeOfImage, max);
 		for (IMAGE_DATA_DIRECTORY& dir : ntHeader.OptionalHeader.DataDirectory) {
 			max = std::max<size_t>(dir.VirtualAddress + dir.Size, max);
 		}
 		
 		std::unique_ptr<byte[]> exeData{ std::make_unique<byte[]>(max) };
-		if (!proc.ReadMemory(exeData.get(), main.start, max)) {
-			throw std::runtime_error(std::format("{} Can't read exe data", proc));
-		}
-		core::bytebuffer::ByteBuffer reader{ exeData.get(), max };
+
+
+		CopyMemorySafe(proc, exeData.get(), main.start, max);
 
 		PIMAGE_NT_HEADERS mntHeader{ (PIMAGE_NT_HEADERS)&exeData[dosHeader.e_lfanew] };
-
 		PIMAGE_SECTION_HEADER sections{ IMAGE_FIRST_SECTION(mntHeader) };
 
 		char nameBuff[9];
@@ -128,46 +168,71 @@ namespace tool::exe_dump {
 
 				LOG_TRACE("check {}", name);
 
-				PIMAGE_THUNK_DATA thunks{ (PIMAGE_THUNK_DATA)&exeData[imports->FirstThunk] };
-				PIMAGE_THUNK_DATA originalThunks{ (PIMAGE_THUNK_DATA)&exeData[imports->OriginalFirstThunk] };
 
-				while (originalThunks->u1.Function) {
-					IMAGE_THUNK_DATA& thunk{ *thunks++ };
-					IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
+				std::unordered_map<uintptr_t, IMAGE_THUNK_DATA> iatCaches{};
+				{
+					// cache iat names
 
-					ProcessModuleExport* func;
-					const char* id;
-					if (originalThunk.u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
-						//func = dep[(const char*)IMAGE_ORDINAL64(originalThunk.u1.Ordinal)];
-						//if (!func) {
-						//	LOG_WARNING("Can't find {}::ord<{}>", dep, IMAGE_ORDINAL64(originalThunk.u1.Ordinal));
-						//	continue;
-						//}
-						continue; // flemme
-					}
-					else {
-						id = (const char*)&exeData[originalThunk.u1.Function + 2];
-						func = &mod[id];
-					}
-					if (!func) {
-						LOG_WARNING("Can't find import entry {}::{}", name, id);
-						continue;
-					}
-					uintptr_t pad{ *(uintptr_t*)&thunk };
-					LOG_TRACE("{}::{} {:x} ({:x})", 
-						name, func->m_name.get(), pad - mod.start, pad);
-					if (pad != func->m_location) {
-						LOG_WARNING("invalid import entry: {}::{} {:x} != {:x} ({:x} != {:x})",
-							name, id, pad - mod.start, func->m_location - mod.start, pad, func->m_location);
+					PIMAGE_THUNK_DATA thunks{ (PIMAGE_THUNK_DATA)&exeData[imports->FirstThunk] };
+					PIMAGE_THUNK_DATA originalThunks{ (PIMAGE_THUNK_DATA)&exeData[imports->OriginalFirstThunk] };
+
+					while (originalThunks->u1.Function) {
+						IMAGE_THUNK_DATA& thunk{ *thunks++ };
+						IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
+
+						ProcessModuleExport* func;
+						const char* id;
+						if (originalThunk.u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
+							//func = dep[(const char*)IMAGE_ORDINAL64(originalThunk.u1.Ordinal)];
+							//if (!func) {
+							//	LOG_WARNING("Can't find {}::ord<{}>", dep, IMAGE_ORDINAL64(originalThunk.u1.Ordinal));
+							//	continue;
+							//}
+							continue; // flemme
+						}
+						else {
+							id = (const char*)&exeData[originalThunk.u1.Function + 2];
+							func = &mod[id];
+						}
+						if (!func) {
+							LOG_WARNING("Can't find import entry {}::{}", name, id);
+							continue;
+						}
+
+						//LOG_TRACE("{} {} {:x}", *func, (void*)func->m_location, (uint64_t)originalThunk.u1.Ordinal);
+						iatCaches[func->m_location] = originalThunk;
 					}
 				}
+				// remap them
+				{
+					PIMAGE_THUNK_DATA thunks{ (PIMAGE_THUNK_DATA)&exeData[imports->FirstThunk] };
+					PIMAGE_THUNK_DATA originalThunks{ (PIMAGE_THUNK_DATA)&exeData[imports->OriginalFirstThunk] };
+					size_t patchs{};
+					while (originalThunks->u1.Function) {
+						IMAGE_THUNK_DATA& thunk{ *thunks++ };
+						IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
 
+						uintptr_t val{ *(uintptr_t*)&thunk };
+
+						auto it{ iatCaches.find(val) };
+						if (it != iatCaches.end()) {
+							if (originalThunk.u1.Ordinal != it->second.u1.Ordinal) {
+								LOG_TRACE("patched iat 0x{:x} -> 0x{:x}", originalThunk.u1.Ordinal, it->second.u1.Ordinal);
+								originalThunk = it->second;
+								patchs++;
+							}
+						}
+					}
+					if (patchs) LOG_DEBUG("patched {} IAT issue(s)", patchs);
+				}
 			}
 		}
 
 		if (opt->searchIAT) {
 			// TODO: patch
 			throw std::runtime_error("searchIAT not implemented");
+
+			core::bytebuffer::ByteBuffer reader{ exeData.get(), max };
 			proc.ComputeModules();
 			std::vector<ProcessModule>& modules{ proc.modules() };
 			for (size_t i = 0; i < modules.size(); i++){
@@ -192,21 +257,24 @@ namespace tool::exe_dump {
 		}
 	}
 	void DumpProcessExe(const std::filesystem::path& in, const std::filesystem::path& out, DumpProcessOpt* opt) {
-		std::wstring instr{ in.wstring() };
+		std::filesystem::path abs{ std::filesystem::absolute(in) };
+		std::wstring instr{ abs.wstring() };
 		LOG_TRACE("dump process {} -> {}", in.string(), out.string());
 
 		HANDLE ht;
-		if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &ht)) {
-			LUID luid;
-			if (LookupPrivilegeValueA(nullptr, SE_DEBUG_NAME, &luid)) {
-				TOKEN_PRIVILEGES tp{};
-				tp.PrivilegeCount = 1;
-				tp.Privileges->Luid = luid;
-				tp.Privileges->Attributes = SE_PRIVILEGE_ENABLED;
-				AdjustTokenPrivileges(ht, FALSE, &tp, NULL, NULL, NULL);
-			}
-			CloseHandle(ht);
+		if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &ht)) {
+			throw std::runtime_error("Can't adjust process token");
 		}
+		LUID luid;
+		if (!LookupPrivilegeValueA(nullptr, SE_DEBUG_NAME, &luid)) {
+			throw std::runtime_error("Can't find " SE_DEBUG_NAME " value");
+		}
+		TOKEN_PRIVILEGES tp{};
+		tp.PrivilegeCount = 1;
+		tp.Privileges->Luid = luid;
+		tp.Privileges->Attributes = SE_PRIVILEGE_ENABLED;
+		AdjustTokenPrivileges(ht, FALSE, &tp, NULL, NULL, NULL);
+		CloseHandle(ht);
 
 		SHELLEXECUTEINFOW shellExeInfo{};
 		shellExeInfo.cbSize = sizeof(shellExeInfo);
@@ -230,7 +298,7 @@ namespace tool::exe_dump {
 			&si,
 			&pi
 		)) {
-			throw std::runtime_error(std::format("Can't start process {}", in.string()));
+			throw std::runtime_error(std::format("Can't start process {} / 0x{:x}", abs.string(), GetLastError()));
 		}
 		Process proc{ pi.hProcess, pi.dwProcessId };
 
@@ -255,7 +323,6 @@ namespace tool::exe_dump {
 			break;
 		}
 	}
-
 
 	namespace {
 		int exe_dump(int argc, const char* argv[]) {
@@ -307,10 +374,11 @@ namespace tool::exe_dump {
 			{ "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
 			{ "bo6", "../cod.exe", "../oo2core_8_win64.dll\0", { .rebuildIAT = true } },
 			{ "bo6sp", "sp24-cod.exe", "oo2core_8_win64.dll\0", {} },
+			{ "bo7", "cod25-cod_dump.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
 			//{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
 		};
 
-		int game_install(int argc, const char* argv[]) {
+		int game_dump(int argc, const char* argv[]) {
 			if (tool::NotEnoughParam(argc, 1)) {
 				LOG_INFO("Available games:");
 
@@ -371,6 +439,6 @@ namespace tool::exe_dump {
 
 
 		ADD_TOOL(exe_dump, "common", "[exe] (out)", "Dump exe", exe_dump);
-		ADD_TOOL(game_install, "common", "[id] [path]", "Install game exe to acts", game_install);
+		ADD_TOOL(game_dump, "common", "[id] [path]", "Dump game exe to acts", game_dump);
 	}
 }

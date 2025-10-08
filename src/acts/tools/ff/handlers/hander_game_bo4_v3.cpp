@@ -506,7 +506,7 @@ namespace fastfile::handlers::bo4 {
 					gcx.handleList.LoadConfig(opt.assetTypes);
 				}
 
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps4_dump.exe") };
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps4_dump.exe", "bo4") };
 
 				gcx.Load_XAssetHeader = reinterpret_cast<decltype(gcx.Load_XAssetHeader)>(lib[0x2E35D50]);
 

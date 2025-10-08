@@ -509,7 +509,7 @@ namespace fastfile {
 		
 	}
 
-	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init, bool needDecrypt, const char* defaultName) {
+	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init, bool needDecrypt, const char* defaultName, const char* dumperName) {
 		if (init) *init = false;
 
 		std::filesystem::path exe;
@@ -528,7 +528,12 @@ namespace fastfile {
 
 		if (!gameMod) {
 			if (!gameMod.Load(exe)) {
-				throw std::runtime_error(std::format("Can't load {}", exe.string()));
+				if (dumperName) {
+					throw std::runtime_error(std::format("Can't load {}, you can dump the exe using 'acts game_dump {} path/to/game'", exe.string(), dumperName));
+				}
+				else {
+					throw std::runtime_error(std::format("Can't load {}", exe.string()));
+				}
 			}
 
 			if (needDecrypt && !acts::decryptutils::LoadDecryptModule(gameMod)) {

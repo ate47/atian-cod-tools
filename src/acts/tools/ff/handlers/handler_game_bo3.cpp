@@ -289,7 +289,7 @@ namespace {
 		}
 
 		void Init(fastfile::FastFileOption& opt) override {
-			hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps3_dump.exe") };
+			hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps3_dump.exe", "bo3") };
 
 			bo3FFHandlerContext.handleList.Clear();
 			if (opt.assetTypes) {

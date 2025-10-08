@@ -231,13 +231,16 @@ bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 	if (m_handle) {
 		DWORD oldProtect{};
 		if (!SetMemoryProtection(src, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
+			LOG_DEBUG("ReadMemory: can't SetMemoryProtection");
 			return false;
 		}
 		size_t out = 0;
 		if (!ReadProcessMemory(m_handle, reinterpret_cast<void*>(src), dest, size, &out)) {
+			LOG_DEBUG("ReadMemory: can't read");
 			return false;
 		}
 		if (!SetMemoryProtection(src, size, oldProtect, oldProtect)) {
+			LOG_DEBUG("ReadMemory: can't SetMemoryProtection back");
 			return false;
 		}
 		return out == size;
@@ -246,7 +249,7 @@ bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 }
 void Process::ReadMemoryEx(void* dest, uintptr_t src, size_t size) const {
 	if (!ReadMemory(dest, src, size)) {
-		throw std::runtime_error(utils::va("can't read memory at 0x%llx 0x%llx bytes", src, size));
+		throw std::runtime_error(std::format("can't read memory at 0x{:x} 0x{:x} bytes", src, size));
 	}
 }
 

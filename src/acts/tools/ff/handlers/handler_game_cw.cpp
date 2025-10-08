@@ -296,7 +296,7 @@ namespace fastfile::handlers::cw {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOpsColdWar_dump.exe") };
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOpsColdWar_dump.exe", "cw") };
 				hook::scan_container::ScanContainer scan{ lib, true };
 				scan.Sync();
 

@@ -367,7 +367,7 @@ namespace fastfile::handlers::bo4 {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps4_dump.exe")};
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps4_dump.exe", "bo4")};
 
 				gcx.opt = &opt;
 

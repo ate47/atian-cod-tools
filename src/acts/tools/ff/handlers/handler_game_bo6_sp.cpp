@@ -345,7 +345,7 @@ namespace fastfile::handlers::bo6sp {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "sp24-cod_dump.exe") };
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "sp24-cod_dump.exe", "bo6sp") };
 				hook::scan_container::ScanContainer scan{ lib, true };
 				scan.Sync();
 
