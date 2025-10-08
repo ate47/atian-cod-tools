@@ -638,20 +638,24 @@ void ProcessModule::ComputeExports() {
 	IMAGE_DOS_HEADER dosHeader;
 
 	if (!m_parent.ReadMemory(&dosHeader, start, sizeof(dosHeader)) || dosHeader.e_magic != IMAGE_DOS_SIGNATURE) {
-		std::cerr << "Can't read dos module header\n";
+		std::cerr << "Can't read dos module header for " << this->name << "\n";
 		return;
 	}
 	IMAGE_NT_HEADERS ntHeader;
 
 	if (!m_parent.ReadMemory(&ntHeader, start + dosHeader.e_lfanew, sizeof(ntHeader)) || ntHeader.Signature != IMAGE_NT_SIGNATURE) {
-		std::cerr << "Can't read nt module header\n";
+		std::cerr << "Can't read nt module header for " << this->name << "\n";
 		return;
 	}
 
 	IMAGE_EXPORT_DIRECTORY exports;
 
+	if (!ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size) {
+		return; // nothing
+	}
+
 	if (!m_parent.ReadMemory(&exports, start + ntHeader.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress, sizeof(exports))) {
-		std::cerr << "Can't read module exports\n";
+		std::cerr << "Can't read module exports for " << this->name << "\n";
 		return;
 	}
 
@@ -660,7 +664,7 @@ void ProcessModule::ComputeExports() {
 
 	auto names = std::make_unique<DWORD[]>(exports.NumberOfNames);
 	if (!m_parent.ReadMemory(&names[0], start + exports.AddressOfNames, sizeof(names[0]) * exports.NumberOfNames)) {
-		std::cerr << "Can't read module exports names\n";
+		std::cerr << "Can't read module exports names for " << this->name << "\n";
 		return;
 	}
 	auto ordinals = std::make_unique<WORD[]>(exports.NumberOfNames);

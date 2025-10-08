@@ -96,11 +96,11 @@ public:
 	int64_t GetRelativeOffset(uintptr_t ptr) const;
 	// @return if the module is invalid
 	inline bool operator!() const {
-		return handle == INVALID_HANDLE_VALUE;
+		return handle == INVALID_HANDLE_VALUE || !handle;
 	}
 	// @return if the module is valid
 	inline bool operatorbool() const {
-		return handle != INVALID_HANDLE_VALUE;
+		return handle != INVALID_HANDLE_VALUE && handle;
 	}
 
 	/*
@@ -425,6 +425,12 @@ public:
 	 * @return the proccess modules
 	 */
 	inline const std::vector<ProcessModule>& modules() const {
+		return m_modules;
+	}
+	/*
+	 * @return the proccess modules
+	 */
+	inline std::vector<ProcessModule>& modules() {
 		return m_modules;
 	}
 	/*

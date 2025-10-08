@@ -2,10 +2,11 @@
 
 namespace tool::exe_dump {
 	struct DumpProcessOpt {
+		bool dumpHeader{};
 		// rebuild the IAT table when mixed by AC
-		bool rebuildIAT{}; // todo
+		bool rebuildIAT{};
 		// create IAT table elements by scanning the values in the loaded data when mixed by AC
-		bool searchIAT{}; // todo
+		bool searchIAT{};
 	};
 	/*
 	 * Dump a process

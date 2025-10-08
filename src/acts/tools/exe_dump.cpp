@@ -3,6 +3,7 @@
 #include <tools/exe_dump.hpp>
 #include <cli/cli_options.hpp>
 #include <cli/clicolor.hpp>
+#include <core/bytebuffer.hpp>
 
 namespace tool::exe_dump {
 	const char* ImageDirName(size_t id) {
@@ -44,44 +45,151 @@ namespace tool::exe_dump {
 			throw std::runtime_error(std::format("{} Can't read nt module header", proc));
 		}
 
-
-		LOG_DEBUG("0x{:x}", dosHeader.e_lfanew);
-
-		for (size_t i = 0; i < ARRAYSIZE(ntHeader.OptionalHeader.DataDirectory); i++) {
-			IMAGE_DATA_DIRECTORY* dir{ &ntHeader.OptionalHeader.DataDirectory[i] };
-			LOG_DEBUG("{} 0x{:x}:0x{:x}", ImageDirName(i), dir->VirtualAddress, dir->Size);
+		if (opt->dumpHeader) {
+			LOG_INFO("----- dir addresses -----");
+			for (size_t i = 0; i < ARRAYSIZE(ntHeader.OptionalHeader.DataDirectory); i++) {
+				IMAGE_DATA_DIRECTORY* dir{ &ntHeader.OptionalHeader.DataDirectory[i] };
+				LOG_INFO("{} 0x{:x}:0x{:x}", ImageDirName(i), dir->VirtualAddress, dir->Size);
+			}
+			LOG_INFO("--------- header --------");
+			LOG_INFO("Magic: 0x{:x}", ntHeader.OptionalHeader.Magic);
+			LOG_INFO("MajorLinkerVersion: 0x{:x}", ntHeader.OptionalHeader.MajorLinkerVersion);
+			LOG_INFO("MinorLinkerVersion: 0x{:x}", ntHeader.OptionalHeader.MinorLinkerVersion);
+			LOG_INFO("SizeOfCode: 0x{:x}", ntHeader.OptionalHeader.SizeOfCode);
+			LOG_INFO("SizeOfInitializedData: 0x{:x}", ntHeader.OptionalHeader.SizeOfInitializedData);
+			LOG_INFO("SizeOfUninitializedData: 0x{:x}", ntHeader.OptionalHeader.SizeOfUninitializedData);
+			LOG_INFO("AddressOfEntryPoint: 0x{:x}", ntHeader.OptionalHeader.AddressOfEntryPoint);
+			LOG_INFO("BaseOfCode: 0x{:x}", ntHeader.OptionalHeader.BaseOfCode);
+			LOG_INFO("ImageBase: 0x{:x}", ntHeader.OptionalHeader.ImageBase);
+			LOG_INFO("SectionAlignment: 0x{:x}", ntHeader.OptionalHeader.SectionAlignment);
+			LOG_INFO("FileAlignment: 0x{:x}", ntHeader.OptionalHeader.FileAlignment);
+			LOG_INFO("MajorOperatingSystemVersion: 0x{:x}", ntHeader.OptionalHeader.MajorOperatingSystemVersion);
+			LOG_INFO("MinorOperatingSystemVersion: 0x{:x}", ntHeader.OptionalHeader.MinorOperatingSystemVersion);
+			LOG_INFO("MajorImageVersion: 0x{:x}", ntHeader.OptionalHeader.MajorImageVersion);
+			LOG_INFO("MinorImageVersion: 0x{:x}", ntHeader.OptionalHeader.MinorImageVersion);
+			LOG_INFO("MajorSubsystemVersion: 0x{:x}", ntHeader.OptionalHeader.MajorSubsystemVersion);
+			LOG_INFO("MinorSubsystemVersion: 0x{:x}", ntHeader.OptionalHeader.MinorSubsystemVersion);
+			LOG_INFO("Win32VersionValue: 0x{:x}", ntHeader.OptionalHeader.Win32VersionValue);
+			LOG_INFO("SizeOfImage: 0x{:x}", ntHeader.OptionalHeader.SizeOfImage);
+			LOG_INFO("SizeOfHeaders: 0x{:x}", ntHeader.OptionalHeader.SizeOfHeaders);
+			LOG_INFO("CheckSum: 0x{:x}", ntHeader.OptionalHeader.CheckSum);
+			LOG_INFO("Subsystem: 0x{:x}", ntHeader.OptionalHeader.Subsystem);
+			LOG_INFO("DllCharacteristics: 0x{:x}", ntHeader.OptionalHeader.DllCharacteristics);
+			LOG_INFO("SizeOfStackReserve: 0x{:x}", ntHeader.OptionalHeader.SizeOfStackReserve);
+			LOG_INFO("SizeOfStackCommit: 0x{:x}", ntHeader.OptionalHeader.SizeOfStackCommit);
+			LOG_INFO("SizeOfHeapReserve: 0x{:x}", ntHeader.OptionalHeader.SizeOfHeapReserve);
+			LOG_INFO("SizeOfHeapCommit: 0x{:x}", ntHeader.OptionalHeader.SizeOfHeapCommit);
+			LOG_INFO("LoaderFlags: 0x{:x}", ntHeader.OptionalHeader.LoaderFlags);
+			LOG_INFO("NumberOfRvaAndSizes: 0x{:x}", ntHeader.OptionalHeader.NumberOfRvaAndSizes);
 		}
-		LOG_DEBUG("--------- header --------");
-		LOG_DEBUG("Magic: 0x{:x}", ntHeader.OptionalHeader.Magic);
-		LOG_DEBUG("MajorLinkerVersion: 0x{:x}", ntHeader.OptionalHeader.MajorLinkerVersion);
-		LOG_DEBUG("MinorLinkerVersion: 0x{:x}", ntHeader.OptionalHeader.MinorLinkerVersion);
-		LOG_DEBUG("SizeOfCode: 0x{:x}", ntHeader.OptionalHeader.SizeOfCode);
-		LOG_DEBUG("SizeOfInitializedData: 0x{:x}", ntHeader.OptionalHeader.SizeOfInitializedData);
-		LOG_DEBUG("SizeOfUninitializedData: 0x{:x}", ntHeader.OptionalHeader.SizeOfUninitializedData);
-		LOG_DEBUG("AddressOfEntryPoint: 0x{:x}", ntHeader.OptionalHeader.AddressOfEntryPoint);
-		LOG_DEBUG("BaseOfCode: 0x{:x}", ntHeader.OptionalHeader.BaseOfCode);
-		LOG_DEBUG("ImageBase: 0x{:x}", ntHeader.OptionalHeader.ImageBase);
-		LOG_DEBUG("SectionAlignment: 0x{:x}", ntHeader.OptionalHeader.SectionAlignment);
-		LOG_DEBUG("FileAlignment: 0x{:x}", ntHeader.OptionalHeader.FileAlignment);
-		LOG_DEBUG("MajorOperatingSystemVersion: 0x{:x}", ntHeader.OptionalHeader.MajorOperatingSystemVersion);
-		LOG_DEBUG("MinorOperatingSystemVersion: 0x{:x}", ntHeader.OptionalHeader.MinorOperatingSystemVersion);
-		LOG_DEBUG("MajorImageVersion: 0x{:x}", ntHeader.OptionalHeader.MajorImageVersion);
-		LOG_DEBUG("MinorImageVersion: 0x{:x}", ntHeader.OptionalHeader.MinorImageVersion);
-		LOG_DEBUG("MajorSubsystemVersion: 0x{:x}", ntHeader.OptionalHeader.MajorSubsystemVersion);
-		LOG_DEBUG("MinorSubsystemVersion: 0x{:x}", ntHeader.OptionalHeader.MinorSubsystemVersion);
-		LOG_DEBUG("Win32VersionValue: 0x{:x}", ntHeader.OptionalHeader.Win32VersionValue);
-		LOG_DEBUG("SizeOfImage: 0x{:x}", ntHeader.OptionalHeader.SizeOfImage);
-		LOG_DEBUG("SizeOfHeaders: 0x{:x}", ntHeader.OptionalHeader.SizeOfHeaders);
-		LOG_DEBUG("CheckSum: 0x{:x}", ntHeader.OptionalHeader.CheckSum);
-		LOG_DEBUG("Subsystem: 0x{:x}", ntHeader.OptionalHeader.Subsystem);
-		LOG_DEBUG("DllCharacteristics: 0x{:x}", ntHeader.OptionalHeader.DllCharacteristics);
-		LOG_DEBUG("SizeOfStackReserve: 0x{:x}", ntHeader.OptionalHeader.SizeOfStackReserve);
-		LOG_DEBUG("SizeOfStackCommit: 0x{:x}", ntHeader.OptionalHeader.SizeOfStackCommit);
-		LOG_DEBUG("SizeOfHeapReserve: 0x{:x}", ntHeader.OptionalHeader.SizeOfHeapReserve);
-		LOG_DEBUG("SizeOfHeapCommit: 0x{:x}", ntHeader.OptionalHeader.SizeOfHeapCommit);
-		LOG_DEBUG("LoaderFlags: 0x{:x}", ntHeader.OptionalHeader.LoaderFlags);
-		LOG_DEBUG("NumberOfRvaAndSizes: 0x{:x}", ntHeader.OptionalHeader.NumberOfRvaAndSizes);
+
+		size_t max{ dosHeader.e_lfanew  + sizeof(ntHeader) };
+		max = std::max<size_t>(ntHeader.OptionalHeader.SizeOfImage, max);
+		for (IMAGE_DATA_DIRECTORY& dir : ntHeader.OptionalHeader.DataDirectory) {
+			max = std::max<size_t>(dir.VirtualAddress + dir.Size, max);
+		}
 		
+		std::unique_ptr<byte[]> exeData{ std::make_unique<byte[]>(max) };
+		if (!proc.ReadMemory(exeData.get(), main.start, max)) {
+			throw std::runtime_error(std::format("{} Can't read exe data", proc));
+		}
+		core::bytebuffer::ByteBuffer reader{ exeData.get(), max };
+
+		PIMAGE_NT_HEADERS mntHeader{ (PIMAGE_NT_HEADERS)&exeData[dosHeader.e_lfanew] };
+
+		PIMAGE_SECTION_HEADER sections{ IMAGE_FIRST_SECTION(mntHeader) };
+
+		char nameBuff[9];
+		nameBuff[8] = 0;
+		for (size_t i = 0; i < mntHeader->FileHeader.NumberOfSections; i++) {
+			PIMAGE_SECTION_HEADER sec{ &sections[i] };
+			if (opt->dumpHeader) {
+				std::memcpy(nameBuff, &sec->Name, sizeof(sec->Name));
+				LOG_INFO("section '{}' va:0x{:x} sr:0x{:x} pr:0x{:x}", nameBuff, sec->VirtualAddress, sec->SizeOfRawData, sec->PointerToRawData);
+			}
+			// patch address
+			sec->PointerToRawData = sec->VirtualAddress;
+		}
+
+		if (opt->rebuildIAT) {
+			proc.ComputeModules();
+
+			PIMAGE_DATA_DIRECTORY dir{ &mntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
+
+			PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)&exeData[dir->VirtualAddress] };
+			for (; imports->Name; imports++) {
+
+				const char* name{ (const char*)&exeData[imports->Name] };
+				ProcessModule& mod{ proc[name] };
+				if (!mod) {
+					continue; // not loaded, ignore
+				}
+				mod.ComputeExports();
+
+				LOG_TRACE("check {}", name);
+
+				PIMAGE_THUNK_DATA thunks{ (PIMAGE_THUNK_DATA)&exeData[imports->FirstThunk] };
+				PIMAGE_THUNK_DATA originalThunks{ (PIMAGE_THUNK_DATA)&exeData[imports->OriginalFirstThunk] };
+
+				while (originalThunks->u1.Function) {
+					IMAGE_THUNK_DATA& thunk{ *thunks++ };
+					IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
+
+					ProcessModuleExport* func;
+					const char* id;
+					if (originalThunk.u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
+						//func = dep[(const char*)IMAGE_ORDINAL64(originalThunk.u1.Ordinal)];
+						//if (!func) {
+						//	LOG_WARNING("Can't find {}::ord<{}>", dep, IMAGE_ORDINAL64(originalThunk.u1.Ordinal));
+						//	continue;
+						//}
+						continue; // flemme
+					}
+					else {
+						id = (const char*)&exeData[originalThunk.u1.Function + 2];
+						func = &mod[id];
+					}
+					if (!func) {
+						LOG_WARNING("Can't find import entry {}::{}", name, id);
+						continue;
+					}
+					uintptr_t pad{ *(uintptr_t*)&thunk };
+					LOG_TRACE("{}::{} {:x} ({:x})", 
+						name, func->m_name.get(), pad - mod.start, pad);
+					if (pad != func->m_location) {
+						LOG_WARNING("invalid import entry: {}::{} {:x} != {:x} ({:x} != {:x})",
+							name, id, pad - mod.start, func->m_location - mod.start, pad, func->m_location);
+					}
+				}
+
+			}
+		}
+
+		if (opt->searchIAT) {
+			// TODO: patch
+			throw std::runtime_error("searchIAT not implemented");
+			proc.ComputeModules();
+			std::vector<ProcessModule>& modules{ proc.modules() };
+			for (size_t i = 0; i < modules.size(); i++){
+				ProcessModule& mod{ modules[i] };
+				LOG_INFO("loading iat... {} {}% ({}/{})", mod.name, i * 100 / modules.size(), i + 1, modules.size());
+				mod.ComputeExports();
+				for (const ProcessModuleExport& exp : mod.exports()) {
+					uintptr_t loc{ exp.m_location };
+					for (size_t rva : reader.FindAll(&loc, sizeof(loc))) {
+						LOG_INFO("found iat {} at 0x{:x}", exp.m_name.get(), rva);
+
+						// TODO: find if != from IAT table
+					}
+				}
+			}
+
+
+		}
+
+		if (!utils::WriteFile(out, exeData.get(), max)) {
+			throw std::runtime_error(std::format("{} Can't write to {}", proc, out.string()));
+		}
 	}
 	void DumpProcessExe(const std::filesystem::path& in, const std::filesystem::path& out, DumpProcessOpt* opt) {
 		std::wstring instr{ in.wstring() };
@@ -156,6 +264,7 @@ namespace tool::exe_dump {
 			cli::options::CliOptions opts{};
 			opts.addOption(&opt.rebuildIAT, "rebuild IAT table", "--rebuildIAT");
 			opts.addOption(&opt.searchIAT, "search IAT table", "--searchIAT");
+			opts.addOption(&opt.dumpHeader, "dump header", "--header", "", "-H");
 			opts.addOption(&showHelp, "help", "--help", "", "-h");
 
 			if (!opts.ComputeOptions(2, argc, argv) || showHelp || opts.NotEnoughParam(1)) {
@@ -177,6 +286,8 @@ namespace tool::exe_dump {
 
 			DumpProcessExe(exePath, outPath, &opt);
 
+			LOG_INFO("dump into {}", outPath.string());
+
 			return tool::OK;
 		}
 
@@ -196,7 +307,7 @@ namespace tool::exe_dump {
 			{ "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
 			{ "bo6", "../cod.exe", "../oo2core_8_win64.dll\0", { .rebuildIAT = true } },
 			{ "bo6sp", "sp24-cod.exe", "oo2core_8_win64.dll\0", {} },
-			{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
+			//{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
 		};
 
 		int game_install(int argc, const char* argv[]) {
