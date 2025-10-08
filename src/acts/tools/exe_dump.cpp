@@ -369,12 +369,12 @@ namespace tool::exe_dump {
 			{ "bo3", "BlackOps3.exe", "", {} },
 			{ "bo4", "BlackOps4.exe", "oo2core_6_win64.dll\0", {} },
 			{ "cw", "BlackOpsColdWar.exe", "oo2core_8_win64.dll\0", {} },
-			{ "mw19", "ModernWarfare.exe", "oo2core_7_win64.dll\0", {} },
-			{ "mw3", "cod23-cod.exe", "oo2core_8_win64.dll\0", {} },
-			{ "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
 			{ "bo6", "../cod.exe", "../oo2core_8_win64.dll\0", { .rebuildIAT = true } },
 			{ "bo6sp", "sp24-cod.exe", "oo2core_8_win64.dll\0", {} },
-			{ "bo7", "cod25-cod_dump.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
+			{ "bo7", "cod25-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
+			//{ "mw19", "ModernWarfare.exe", "oo2core_7_win64.dll\0", {} },
+			//{ "mw3", "cod23-cod.exe", "oo2core_8_win64.dll\0", {} },
+			//{ "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
 			//{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
 		};
 
@@ -422,21 +422,26 @@ namespace tool::exe_dump {
 
 			std::filesystem::create_directories(depsDir);
 
+			LOG_INFO("Dumping {}...", cfg->id);
+
+			LOG_INFO("----------");
 			const char* dllName{ cfg->ddls };
 			while (*dllName) {
 				std::filesystem::path dllPath{ path / dllName };
 				std::filesystem::path depsPath{ depsDir / dllName };
 				std::filesystem::copy_file(dllPath, depsPath, std::filesystem::copy_options::skip_existing);
-				LOG_INFO("install dll {}", dllName);
+				LOG_INFO("installed dll {} to {}", dllName, depsPath.string());
 				dllName += std::strlen(dllName) + 1;
 			}
 
 			DumpProcessExe(path / cfg->exe, outPath, &cfg->opt);
+			LOG_INFO("dumped {} to {}", cfg->exe, outPath.string());
 
-			LOG_INFO("game {} installed, it can now be used.", cfg->id);
+			LOG_INFO("----------");
+
+			LOG_INFO("game {} dumped, it can now be used.", cfg->id);
 			return tool::OK;
 		}
-
 
 		ADD_TOOL(exe_dump, "common", "[exe] (out)", "Dump exe", exe_dump);
 		ADD_TOOL(game_dump, "common", "[id] [path]", "Dump game exe to acts", game_dump);
