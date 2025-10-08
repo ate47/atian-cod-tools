@@ -103,7 +103,9 @@ namespace acts::vm {
 	};
 
 	typedef uint32_t VmRef;
+	typedef uint32_t FieldRef;
 	constexpr VmRef INVALID_STR_REF = static_cast<VmRef>(-1);
+	constexpr FieldRef INVALID_FIELD_REF = static_cast<FieldRef>(-1);
 	constexpr uint16_t BAD_BUILTIN_ID = static_cast<uint16_t>(-1);
 	constexpr uint16_t FLAG_BUILTIN_METHOD = 0x8000;
 	constexpr uint32_t BAD_SCRIPTFUNC_ID = static_cast<uint32_t>(-1);
@@ -132,6 +134,7 @@ namespace acts::vm {
 		VT_INTEGER,
 		VT_FLOAT,
 		VT_HASH,
+		VT_PRECALL,
 		VT_LOCATION,
 
 		VT_SCRIPT_FUNCTION,
@@ -153,11 +156,17 @@ namespace acts::vm {
 		byte* loc;
 		uint16_t builtinFunc;
 		uint32_t scriptFunc;
+		FieldRef field;
 	};
 
 	struct VmVar {
 		VmVarType type;
 		VmVarValue val;
+	};
+
+	struct VmField {
+		VmVar var;
+		VmVarValue data;
 	};
 
 	struct VmVector {
@@ -189,7 +198,7 @@ namespace acts::vm {
 
 	struct VmFunctionFrame {
 		size_t numVars{};
-		VmVar* topVars{};
+		FieldRef varFields[0x100];
 	};
 
 	struct VmExecutionThread {
@@ -200,6 +209,7 @@ namespace acts::vm {
 		size_t waitTime{};
 		VmVar stack[0x1000];
 		VmVar* top;
+		FieldRef field{};
 		VmFunctionFrame* frame{};
 		byte* codePos;
 
@@ -232,6 +242,7 @@ namespace acts::vm {
 
 
 	class ActsVm {
+	public:
 		BuiltinCall callFuncs[0x100]{};
 		BuiltinCall callMethods[0x100]{};
 		size_t callMethodsCount{};
@@ -239,6 +250,8 @@ namespace acts::vm {
 		VmExecutionThread threads[0x100]{};
 		VmExecutionThread* currentThread{};
 		core::memory_allocator::MemoryAllocatorStatic<0x20000, VmRef> alloc{};
+		VmField fields[0x4000]{};
+		FieldRef fieldFree{ INVALID_FIELD_REF };
 		VmRef stringStart[0x200]{};
 		ActScript defaultScript{};
 		ActsVmConfig cfg;
@@ -246,7 +259,6 @@ namespace acts::vm {
 		size_t topScripts{};
 		ScriptInfo linkedScripts[0x400];
 		size_t linkedScriptsCount{};
-	public:
 		ActsVm(ActsVmConfig cfg);
 
 		VmExecutionThread* AllocThread(byte* codePos);
@@ -265,6 +277,10 @@ namespace acts::vm {
 		void LoadScript(const char* name);
 		void Execute();
 		void ReleaseVariable(VmVar* var);
+		void CleanupFrame();
+		void CreateVar(VmVar* val);
+		FieldRef CreateField(VmVar* value);
+		void ReleaseField(FieldRef field);
 		size_t GetScriptInfoId(const ScriptInfo* info);
 		VmRef CreateString(const char* str, size_t numRefs = 1);
 		VmString* GetStringEntry(VmRef ref);
@@ -276,6 +292,8 @@ namespace acts::vm {
 		constexpr const ActsVmConfig& Cfg() {
 			return cfg;
 		}
+		void SetRefValue(FieldRef ref, VmVar* var);
+		void GetRefValue(FieldRef ref, VmVar* outVar);
 		void RegisterBuiltin(BuiltinCallback callback, uint64_t name, uint32_t minArgs, uint32_t maxArgs, bool isMethod);
 		BuiltinCall* GetBuiltin(uint16_t builtin);
 		uint32_t FindScriptFunction(const char* file, uint64_t namesp, uint64_t name);

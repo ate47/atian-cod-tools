@@ -13,9 +13,13 @@ namespace acts::vm {
 		"FLOAT",
 		"HASH",
 		"PRECALL",
+		"LOCATION",
+		"SCRIPT_FUNCTION",
+		"BUILTIN_FUNCTION",
 		"ARRAY",
 		"VECTOR",
 		"STRUCT",
+		"STRING",
 	};
 
 	const char* VmVarTypeName(VmVarType type) {
@@ -26,6 +30,15 @@ namespace acts::vm {
 	}
 	ActsVm::ActsVm(ActsVmConfig cfg) : cfg(cfg) {
 		*(uint64_t*)defaultScript.magic = acts::vm::ACTSCRIPT_MAGIC;
+
+		fieldFree = (FieldRef)0;
+
+		for (size_t i = 0; i < ARRAYSIZE(fields) - 1; i++) {
+			fields[i].data.field = (FieldRef)i;
+		}
+
+		// last one isn't valid
+		fields[ARRAYSIZE(fields) - 1].data.field = INVALID_FIELD_REF;
 	}
 
 	void ActsVm::AssertThreadStarted() {
@@ -143,6 +156,61 @@ namespace acts::vm {
 		var->val.i = 0;
 		var->type = VT_UNDEFINED;
 	}
+	FieldRef ActsVm::CreateField(VmVar* value) {
+		if (fieldFree == INVALID_FIELD_REF) {
+			Error("Can't allocate field", true);
+			return INVALID_FIELD_REF;
+		}
+		FieldRef r{ fieldFree };
+
+		fieldFree = fields[r].data.field;
+		if (value) {
+			fields[r].var = *value;
+			value->type = VT_UNDEFINED;
+			value->val.i = 0;
+		}
+		else {
+			fields[r].var.val.i = 0;
+			fields[r].var.type = VT_UNDEFINED;
+			fields[r].data.i = 0;
+		}
+
+		return r;
+	}
+
+	void ActsVm::CleanupFrame() {
+		VmFunctionFrame* frame{ currentThread->frame };
+		// cleanup the vars
+		for (size_t i = 0; i < frame->numVars; i++) {
+			ReleaseField(currentThread->frame->varFields[i]);
+		}
+		frame->numVars = 0;
+	}
+	void ActsVm::CreateVar(VmVar* val) {
+		FieldRef vref;
+
+		// register var
+		if (!val || val->type == VT_LOCATION) {
+			// use default param
+			vref = CreateField(nullptr);
+		}
+		else {
+			// use stack val
+			vref = CreateField(val);
+		}
+
+		currentThread->frame->varFields[currentThread->frame->numVars++] = vref;
+	}
+	void ActsVm::ReleaseField(FieldRef field) {
+		if (field == INVALID_FIELD_REF) {
+			return; // invalid, nothing to do
+		}
+		// free the value and set the fieldFree value
+		ReleaseVariable(&fields[field].var);
+		fields[field].data.field = fieldFree;
+
+		fieldFree = field;
+	}
 
 	VmString* ActsVm::GetStringEntry(VmRef ref) {
 		return (VmString*)alloc.DataByRef(ref);
@@ -244,6 +312,34 @@ namespace acts::vm {
 		Error(utils::va("Can't cast var to bool: type %s", VmVarTypeName(var->type)), false);
 		ReleaseVariable(var);
 		return false;
+	}
+
+	void ActsVm::SetRefValue(FieldRef ref, VmVar* var) {
+		if (ref == INVALID_FIELD_REF) {
+			// not a valid ref
+			Error("Invalid field ref", false);
+			return;
+		}
+
+		ReleaseVariable(&fields[ref].var);
+
+		if (var) {
+			fields[ref].var = *var;
+			*var = {};
+		}
+		else {
+			fields[ref].var = {};
+		}
+	}
+
+	void ActsVm::GetRefValue(FieldRef ref, VmVar* outVar) {
+		if (ref == INVALID_FIELD_REF) {
+			// not a valid ref
+			Error("Invalid field ref", false);
+			return;
+		}
+
+		*outVar = fields[ref].var;
 	}
 
 	void ActsVm::Error(const char* msg, bool terminate) {

@@ -28,22 +28,41 @@ namespace acts::vm::opcodes {
 		inline void ExportParamsHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
 			byte vars{ *(thread->codePos++) };
 
-			VmVar* top{ thread->top };
 			for (size_t i = 0; i < vars; i++) {
 				uint64_t* baseName{ thread->SetData<uint64_t>() };
-				uint64_t name = *baseName;
+				uint64_t name{ *baseName };
 				thread->codePos = (byte*)(baseName + 1);
 
-
-				// TODO: register var, check stack
-
+				// register var
+				VmVar* var;
+				if (thread->top->type == VT_LOCATION) {
+					// no value
+					var = nullptr;
+				}
+				else {
+					// use stack val
+					var = thread->top--;
+				}
+				vm->CreateVar(var);
 			}
 
-			if (top->type != VT_LOCATION) {
+			if (thread->top->type != VT_LOCATION) {
 				do {
 					vm->ReleaseVariable(thread->top--);
 				} while (thread->top->type != VT_LOCATION);
 				vm->Error("Called function with too many parameters", false);
+			}
+		}
+
+		inline void RegisterVarsHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			byte vars{ *(thread->codePos++) };
+
+			for (size_t i = 0; i < vars; i++) {
+				uint64_t* baseName{ thread->SetData<uint64_t>() };
+				uint64_t name{ *baseName };
+				thread->codePos = (byte*)(baseName + 1);
+
+				vm->CreateVar(nullptr);
 			}
 		}
 
@@ -124,7 +143,7 @@ namespace acts::vm::opcodes {
 		inline void PreCallHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
 			VmVar* top{ thread->top++ };
 			top->val.loc = thread->codePos;
-			top->type = VT_LOCATION;
+			top->type = VT_PRECALL;
 		}
 
 		inline void JumpHandler(acts::vm::ActsVm*, acts::vm::VmExecutionThread* thread, bool*) {
@@ -198,6 +217,172 @@ namespace acts::vm::opcodes {
 				thread->top--;
 			}
 		}
+
+		inline void GetVarRefHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			byte* base{ thread->SetData<byte>() };
+			byte id{ *base };
+			thread->codePos = base + 1;
+			thread->field = thread->frame->varFields[id];
+		}
+
+		inline void GetVarHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool* terminated) {
+			GetVarRefHandler(vm, thread, terminated);
+			VmVar* top{ thread->top++ };
+			*top = {};
+			vm->GetRefValue(thread->field, top);
+		}
+
+		inline void SetRefValueHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			vm->SetRefValue(thread->field, thread->top--);
+		}
+
+
+		inline void NotHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER) {
+				a->val.i = (a->val.i) ? 0 : 1;
+			}
+			else if (a->type == VT_FLOAT) {
+				a->type = VT_INTEGER;
+				a->val.i = (a->val.f) ? 0 : 1;
+			}
+			else {
+				vm->Error(utils::va("NotHandler: Invalid type, expected float or int, got %s", VmVarTypeName(a->type)), false);
+				vm->ReleaseVariable(a);
+				a->val.i = 0;
+				a->type = VT_INTEGER;
+			}
+		}
+
+
+		inline void BitNotHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER) {
+				a->val.i = ~a->val.i;
+			}
+			else {
+				vm->Error(utils::va("BitNotHandler: Invalid type, expected int, got %s", VmVarTypeName(a->type)), false);
+				vm->ReleaseVariable(a);
+				a->val.i = 0;
+				a->type = VT_INTEGER;
+			}
+		}
+
+		inline void BitXorHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* b{ thread->top-- };
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER && b->type == VT_INTEGER) {
+				a->val.i = a->val.i ^ b->val.i;
+			}
+			else {
+				vm->Error(utils::va("BitXorHandler: Invalid type, expected int, got %s/%s", VmVarTypeName(a->type), VmVarTypeName(b->type)), false);
+				vm->ReleaseVariable(a);
+				vm->ReleaseVariable(b);
+				a->val.i = 0;
+				a->type = VT_INTEGER;
+				b->val.i = 0;
+				b->type = VT_INTEGER;
+			}
+		}
+
+		inline void BitOrHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* b{ thread->top-- };
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER && b->type == VT_INTEGER) {
+				a->val.i = a->val.i | b->val.i;
+			}
+			else {
+				vm->Error(utils::va("BitOrHandler: Invalid type, expected int, got %s/%s", VmVarTypeName(a->type), VmVarTypeName(b->type)), false);
+				vm->ReleaseVariable(a);
+				vm->ReleaseVariable(b);
+				a->val.i = 0;
+				a->type = VT_INTEGER;
+				b->val.i = 0;
+				b->type = VT_INTEGER;
+			}
+		}
+
+		inline void BitAndHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* b{ thread->top-- };
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER && b->type == VT_INTEGER) {
+				a->val.i = a->val.i & b->val.i;
+			}
+			else {
+				vm->Error(utils::va("BitAndHandler: Invalid type, expected int, got %s/%s", VmVarTypeName(a->type), VmVarTypeName(b->type)), false);
+				vm->ReleaseVariable(a);
+				vm->ReleaseVariable(b);
+				a->val.i = 0;
+				a->type = VT_INTEGER;
+				b->val.i = 0;
+				b->type = VT_INTEGER;
+			}
+		}
+
+		inline void BitShiftLeftHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* b{ thread->top-- };
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER && b->type == VT_INTEGER) {
+				a->val.i = a->val.i << b->val.i;
+			}
+			else {
+				vm->Error(utils::va("BitShiftLeftHandler: Invalid type, expected int, got %s/%s", VmVarTypeName(a->type), VmVarTypeName(b->type)), false);
+				vm->ReleaseVariable(a);
+				vm->ReleaseVariable(b);
+				a->val.i = 0;
+				a->type = VT_INTEGER;
+				b->val.i = 0;
+				b->type = VT_INTEGER;
+			}
+		}
+
+		inline void BitShiftRightHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* b{ thread->top-- };
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER && b->type == VT_INTEGER) {
+				a->val.i = a->val.i >> b->val.i;
+			}
+			else {
+				vm->Error(utils::va("BitShiftRightHandler: Invalid type, expected int, got %s/%s", VmVarTypeName(a->type), VmVarTypeName(b->type)), false);
+				vm->ReleaseVariable(a);
+				vm->ReleaseVariable(b);
+				a->val.i = 0;
+				a->type = VT_INTEGER;
+				b->val.i = 0;
+				b->type = VT_INTEGER;
+			}
+		}
+
+		inline void ModulusHandler(acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool*) {
+			VmVar* b{ thread->top-- };
+			VmVar* a{ thread->top };
+
+			if (a->type == VT_INTEGER && b->type == VT_INTEGER) {
+				if (b->val.i) {
+					a->val.i = a->val.i % b->val.i;
+					return;
+				}
+				else {
+					vm->Error("ModulusHandler: Divide by 0", false);
+				}
+			}
+			else {
+				vm->Error(utils::va("ModulusHandler: Invalid type, expected int, got %s/%s", VmVarTypeName(a->type), VmVarTypeName(b->type)), false);
+			}
+			vm->ReleaseVariable(a);
+			vm->ReleaseVariable(b);
+			a->val.i = 0;
+			a->type = VT_INTEGER;
+			b->val.i = 0;
+			b->type = VT_INTEGER;
+		}
 	}
 
 	void HandleOpCode(OpCode opcode, acts::vm::ActsVm* vm, acts::vm::VmExecutionThread* thread, bool* terminated) {
@@ -210,6 +395,9 @@ namespace acts::vm::opcodes {
 			break;
 		case OpCodeId::OPCODE_EXPORT_PARAMS:
 			ExportParamsHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_REGISTER_VARS:
+			RegisterVarsHandler(vm, thread, terminated);
 			break;
 		case OpCodeId::OPCODE_GET_INT:
 			GetIntHandler(vm, thread, terminated);
@@ -262,6 +450,55 @@ namespace acts::vm::opcodes {
 		case OpCodeId::OPCODE_JUMP_IF_DEFINED:
 			JumpIfDefinedHandler(vm, thread, terminated);
 			break;
+		case OpCodeId::OPCODE_GET_VAR:
+			GetVarHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_GET_VAR_REF:
+			GetVarRefHandler(vm, thread, terminated);
+			break;
+		case OpCodeId::OPCODE_SET_REF_VALUE:
+			SetRefValueHandler(vm, thread, terminated);
+			break;
+
+		// op
+		case OPCODE_OP_NOT:
+			NotHandler(vm, thread, terminated); 
+			break;
+		case OPCODE_OP_BIT_XOR: 
+			BitXorHandler(vm, thread, terminated);
+			break;
+		case OPCODE_OP_BIT_OR:
+			BitOrHandler(vm, thread, terminated);
+			break;
+		case OPCODE_OP_BIT_AND:
+			BitAndHandler(vm, thread, terminated);
+			break;
+		case OPCODE_OP_BIT_NOT:
+			BitNotHandler(vm, thread, terminated);
+			break;
+		case OPCODE_OP_BIT_SHIFT_LEFT:
+			BitShiftLeftHandler(vm, thread, terminated);
+			break;
+		case OPCODE_OP_BIT_SHIFT_RIGHT:
+			BitShiftRightHandler(vm, thread, terminated);
+			break;
+		case OPCODE_OP_MODULUS:
+			ModulusHandler(vm, thread, terminated);
+			break;
+		case OPCODE_OP_PLUS:
+		case OPCODE_OP_MINUS:
+		case OPCODE_OP_MULTIPLY:
+		case OPCODE_OP_DIVIDE:
+		case OPCODE_OP_LOWER_THAN:
+		case OPCODE_OP_GREATER_THAN:
+		case OPCODE_OP_LOWER_OR_EQUAL_THAN:
+		case OPCODE_OP_GREATER_OR_EQUAL_THAN:
+		case OPCODE_OP_LOWER_OR_SUPER_EQUAL_THAN:
+		case OPCODE_OP_GREATER_OR_SUPER_EQUAL_THAN:
+		case OPCODE_OP_EQUAL:
+		case OPCODE_OP_NOT_EQUAL:
+		case OPCODE_OP_SUPER_EQUAL:
+		case OPCODE_OP_SUPER_NOT_EQUAL:
 		default:
 			InvalidOpCodeHandler(vm, thread, terminated);
 			break;

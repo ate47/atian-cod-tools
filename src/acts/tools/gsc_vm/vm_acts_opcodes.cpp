@@ -7,7 +7,7 @@
 namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
-		VmInfo* af1 = RegisterVM(VMI_ACTS_F1, "ACTS VM", "f1", "acts", VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_HASH_ACTS | VmFlags::VMF_HASH64 | VmFlags::VMF_IW_LIKE);
+		VmInfo* af1 = RegisterVM(VMI_ACTS_F1, "ACTS VM", "f1", "acts", VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_HASH_ACTS | VmFlags::VMF_HASH64 | VmFlags::VMF_IW_LIKE);
 		af1->RegisterVmName("f1");
 		af1->AddPlatform(PLATFORM_PC);
 		af1->RegisterVMHashOPCode('#', OPCODE_GetHash, 8, [](const char* str) { return hash::Hash64A(str); });
@@ -32,6 +32,7 @@ namespace {
 		af1->RegisterOpCode(PLATFORM_PC, OPCODE_ScriptMethodCall, acts::vm::opcodes::OPCODE_CALL_METHOD);
 		af1->RegisterOpCode(PLATFORM_PC, OPCODE_CallBuiltinMethod, acts::vm::opcodes::OPCODE_CALL_BUILTIN_METHOD);
 		af1->RegisterOpCode(PLATFORM_PC, OPCODE_PreScriptCall, acts::vm::opcodes::OPCODE_PRE_CALL);
+		af1->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, acts::vm::opcodes::OPCODE_REGISTER_VARS);
 
 		af1->RegisterOpCode(PLATFORM_PC, OPCODE_GetFloat, acts::vm::opcodes::OPCODE_GET_FLOAT);
 		af1->RegisterOpCode(PLATFORM_PC, OPCODE_GetInteger, acts::vm::opcodes::OPCODE_GET_INT);

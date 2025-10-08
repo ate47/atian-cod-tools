@@ -20,6 +20,7 @@ namespace acts::vm::opcodes {
 		OPCODE_CALL_BUILTIN_FUNCTION = 0x1a,
 		OPCODE_CALL_BUILTIN_METHOD = 0x1b,
 		OPCODE_PRE_CALL = 0x1c,
+		OPCODE_REGISTER_VARS = 0x1d,
 
 		// jump
 		OPCODE_JUMP = 0x20,
