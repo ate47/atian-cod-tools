@@ -295,12 +295,13 @@ namespace fastfile::handlers::bo6sp {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_LinkGenericXAssetEx(T10AssetType type, uint64_t name, void** handle) {
+		void* DB_LinkGenericXAssetEx(T10AssetType type, uint64_t name, void* handle) {
 			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
-			if (handle) {
-				return *handle;
-			}
 			T10HashAssetType hashType{ GetHashType(type) };
+			if (handle) {
+				gcx.linkedAssets[hashType][name] = handle;
+				return handle;
+			}
 			auto it{ gcx.linkedAssets[hashType].find(name) };
 			if (it != gcx.linkedAssets[hashType].end()) {
 				return it->second;
