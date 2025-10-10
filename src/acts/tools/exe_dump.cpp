@@ -428,7 +428,7 @@ namespace tool::exe_dump {
 			const char* dllName{ cfg->ddls };
 			while (*dllName) {
 				std::filesystem::path dllPath{ path / dllName };
-				std::filesystem::path depsPath{ depsDir / dllName };
+				std::filesystem::path depsPath{ depsDir / dllPath.filename()};
 				std::filesystem::copy_file(dllPath, depsPath, std::filesystem::copy_options::skip_existing);
 				LOG_INFO("installed dll {} to {}", dllName, depsPath.string());
 				dllName += std::strlen(dllName) + 1;
