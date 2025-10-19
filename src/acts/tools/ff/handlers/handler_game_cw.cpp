@@ -32,8 +32,6 @@ namespace fastfile::handlers::cw {
 			BOCWFFHandler* handler{};
 			void (*Load_XAsset)(bool atStreamStart, XAsset_0* asset) {};
 			int (*DB_GetXAssetTypeSize)(XAssetType type) {};
-			//CWXHash (*DB_GetXAssetName)(XAssetType type, const void* header) {};
-			char* (*DecryptString)(char*) {};
 			void* (*DB_AllocStreamPos)(int alignement) {};
 			void (*DB_PushStreamPos)(XFileBlock type) {};
 			void (*DB_IncStreamPos)(size_t size) {};
@@ -43,6 +41,7 @@ namespace fastfile::handlers::cw {
 			void (*DB_AllocXBlocks)(size_t* blockSize, const char* filename, const char* filename2, XBlock* blocks, int side, int* loaded);
 			void (*DB_InitStreams)(XBlock* blocks);
 			XBlock loadBlocks[XFileBlock::XFILE_BLOCK_COUNT];
+			utils::OutFileCE* outAsset{};
 
 			fastfile::FastFileOption* opt{};
 			std::vector<char*> xstrings{};
@@ -66,7 +65,7 @@ namespace fastfile::handlers::cw {
 		char* c{ gcx.assetList.strings[id] };
 		if (!c) return "";
 		if (!IsValidHandle(c)) return GetValidString(c);
-		return gcx.DecryptString(c);
+		return acts::decryptutils::DecryptString(c);
 	}
 
 	const char* XFileBlockName(XFileBlock id) {
@@ -194,12 +193,7 @@ namespace fastfile::handlers::cw {
 			int assetSize{ gcx.DB_GetXAssetTypeSize(type) };
 			CWXHash* phash{ header ? cw::GetAssetName(type, header, assetSize) : nullptr };
 			CWXHash hash{ phash ? *phash : 0 };
-			if (hash && gcx.opt->dumpAssetNames) {
-				if (gcx.opt->assetNames.size() < type) {
-					gcx.opt->assetNames.resize(type + 10);
-				}
-				gcx.opt->assetNames[type].insert((uint64_t)hash);
-			}
+			*(gcx.outAsset) << "\n" << cw::PoolName(type) << ",#" << hashutils::ExtractTmp("hash", hash);
 
 			//const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
 			//*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
@@ -266,14 +260,8 @@ namespace fastfile::handlers::cw {
 			throw std::runtime_error(std::format("{} ErrorStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset));
 		}
 
-		template<size_t off, bool error = false>
-		void RemoveStub(hook::library::Library& lib) {
-			if constexpr (error) {
-				hook::memory::RedirectJmp(lib[off], &ErrorStub<off>);
-			}
-			else {
-				hook::memory::RedirectJmp(lib[off], &EmptyStub<off>);
-			}
+		int Return3Stub() {
+			return 3;
 		}
 
 		void* PMem_Alloc(size_t size, size_t alignment, void* loaded, int pool, int stack) {
@@ -305,9 +293,9 @@ namespace fastfile::handlers::cw {
 					gcx.handleList.LoadConfig(opt.assetTypes);
 				}
 
-				//if (!acts::decryptutils::LoadDecryptModule(lib)) {
-				//	throw std::runtime_error("Can't load decrypt module");
-				//}
+				if (!acts::decryptutils::LoadDecryptModule(lib)) {
+					throw std::runtime_error("Can't load decrypt module");
+				}
 
 				gcx.opt = &opt;
 
@@ -316,8 +304,6 @@ namespace fastfile::handlers::cw {
 				gcx.Load_XAsset = scan.ScanSingle("E8 ? ? ? ? 48 83 C3 ? 8D 4E ? E8 ? ? ? ? 8B F1 84 C0 75 06", "gcx.Load_XAsset").GetRelative<int32_t, decltype(gcx.Load_XAsset)>(1);
 				__GCX_LOAD_PATTERN(gcx.DB_GetXAssetTypeSize, "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 8B");
 				//__GCX_LOAD_PATTERN(gcx.DB_GetXAssetName, "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 48 8B");
-				
-				__GCX_LOAD_PATTERN(gcx.DecryptString, "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6");
 
 				__GCX_LOAD_PATTERN(gcx.Load_Stream, "48 89 5C 24 ? 57 48 83 EC ? 49 8B D8 4C 8B CA 40 B7 ? 84 C9 74 46 48 85 DB 74 41 48 63 05 ? ? ? ? 83 F8 ? 77 2D 48 8D 15 71");
 				__GCX_LOAD_PATTERN(gcx.DB_PopStreamPos, "44 8B 05 ? ? ? ? 4C 8D 0D ? ? ? ? 48 63");
@@ -354,6 +340,10 @@ namespace fastfile::handlers::cw {
 				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 49").location);
 				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 83 C6 ? 48 83 C3 ? 49 83 EE ? 75 BA").GetRelative<int32_t, void*>(1));
 				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 83 EF 80 48 83 EB 80 48 83 EE ? 75 BA").GetRelative<int32_t, void*>(1));
+				hook::memory::RedirectJmp(scan.ScanSingle("E8 ?? ?? ?? ?? 8B F0 83 FD", "Unk_navmesh").GetRelative<int32_t, void*>(1), Return3Stub);
+				hook::memory::Nulled(scan.ScanSingle("E8 ?? ?? ?? ?? 48 8D 93 ?? ?? ?? ?? 48 8B CB 48 83 C4 ?? 5B E9 ?? ?? ?? ?? 48 83 C4", "Unk_vehicleassembly").GetRelative<int32_t, void*>(1));
+				hook::memory::Nulled(scan.ScanSingle("48 85 C9 0F 84 CF 00 00 00 41", "Unk_ClipMap").location);
+				hook::memory::Nulled(scan.ScanSingle("48 85 C9 0F 84 84 00 00 00 53", "Unk_GfxMap").location);
 
 
 				// the link functions are inlined for these assets, we need to patch them
@@ -362,12 +352,13 @@ namespace fastfile::handlers::cw {
 				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 48 8B 11 48 8B F9 B1", "DB_LinkSoundBank").location, DB_LinkCustomAsset<ASSET_TYPE_SOUND_BANK>);
 				hook::memory::RedirectJmp(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 83 7B ? ? 74 37", "DB_LinkDestructibleDef").GetRelative<int32_t, void*>(1), DB_LinkCustomAsset<ASSET_TYPE_DESTRUCTIBLEDEF>);
 				hook::memory::RedirectJmp(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 8D 4B ? E8 ? ? ? ? 48 83 C3", "DB_LinkDynModel").GetRelative<int32_t, void*>(1), DB_LinkCustomAsset<ASSET_TYPE_DYNMODEL>);
-				// fixme: find scan
-				hook::memory::RedirectJmp(lib[0x9E1A420], DB_LinkCustomAsset<ASSET_TYPE_VEHICLE>);
-				hook::memory::RedirectJmp(lib[0xBF4C710], DB_LinkCustomAsset<ASSET_TYPE_NAVMESH>);
-				hook::memory::RedirectJmp(lib[0xC9695E0], DB_LinkCustomAsset<ASSET_TYPE_VEHICLEASSEMBLY>);
-				hook::memory::RedirectJmp(lib[0xC7BBA30], DB_LinkCustomAsset<ASSET_TYPE_CLIP_MAP>);
-				hook::memory::RedirectJmp(lib[0xC559210], DB_LinkCustomAsset<ASSET_TYPE_GFX_MAP>);
+				
+				// old rvas, removed by other scans, but I keep them to be sure
+				//hook::memory::RedirectJmp(lib[0x9E1A420], DB_LinkCustomAsset<ASSET_TYPE_VEHICLE>);
+				//hook::memory::RedirectJmp(lib[0xBF4C710], DB_LinkCustomAsset<ASSET_TYPE_NAVMESH>);
+				//hook::memory::RedirectJmp(lib[0xC9695E0], DB_LinkCustomAsset<ASSET_TYPE_VEHICLEASSEMBLY>);
+				//hook::memory::RedirectJmp(lib[0xC7BBA30], DB_LinkCustomAsset<ASSET_TYPE_CLIP_MAP>);
+				//hook::memory::RedirectJmp(lib[0xC559210], DB_LinkCustomAsset<ASSET_TYPE_GFX_MAP>);
 				
 				
 #undef __GCX_LOAD_PATTERN
@@ -429,14 +420,14 @@ namespace fastfile::handlers::cw {
 								if (assetList.strings[i] == (const char*)0xFFFFFFFFFFFFFFFF) {
 									assetList.strings[i] = AllocStreamPos<char>();
 									Load_XStringCustom(&assetList.strings[i]);
-									LOG_TRACE("- {}/{} \"{}\"", i, assetList.stringsCount, gcx.DecryptString(assetList.strings[i]));
+									LOG_TRACE("- {}/{} \"{}\"", i, assetList.stringsCount, acts::decryptutils::DecryptString(assetList.strings[i]));
 								}
 								else {
 									gcx.DB_ConvertOffsetToPointer((void**)&assetList.strings[i]);
-									LOG_TRACE("- {}/{} \"{}\" (offset)", i, assetList.stringsCount, gcx.DecryptString(assetList.strings[i]));
+									LOG_TRACE("- {}/{} \"{}\" (offset)", i, assetList.stringsCount, acts::decryptutils::DecryptString(assetList.strings[i]));
 								}
 
-								char* scrstr{ gcx.DecryptString(assetList.strings[i]) };
+								char* scrstr{ acts::decryptutils::DecryptString(assetList.strings[i]) };
 								hashutils::AddPrecomputed(hash::Hash64(scrstr), scrstr, true);
 								os << scrstr << "\n";
 							}
@@ -456,6 +447,13 @@ namespace fastfile::handlers::cw {
 
 				gcx.DB_PopStreamPos();
 
+
+				std::filesystem::path outAssets{ gcx.opt->m_output / "cw" / "source" / "tables" / "data" / "assets" / std::format("{}.csv", ctx.ffname) };
+				std::filesystem::create_directories(outAssets.parent_path());
+				utils::OutFileCE assetsOs{ outAssets };
+				gcx.outAsset = &assetsOs;
+				assetsOs << "type,name";
+
 				if (assetList.assets) {
 					assetList.assets = AllocStreamPos<XAsset_0, 8>();
 					gcx.Load_Stream(true, assetList.assets, sizeof(*assetList.assets) * assetList.assetCount);
@@ -472,23 +470,7 @@ namespace fastfile::handlers::cw {
 						gcx.Load_XAsset(false, &assetList.assets[i]);
 					}
 
-					if (gcx.opt->dumpAssetNames) {
-						std::filesystem::path outAssets{ gcx.opt->m_output / "cw" / "source" / "tables" / "data" / "assets" / std::format("{}.csv", ctx.ffname) };
-						{
-							std::filesystem::create_directories(outAssets.parent_path());
-							utils::OutFileCE osa{ outAssets };
-							osa << "type,name";
-
-							size_t n{ std::min<size_t>(gcx.opt->assetNames.size(), XAssetType::ASSET_TYPE_COUNT) };
-
-							for (size_t i = 0; i < n; i++) {
-								for (uint64_t h : gcx.opt->assetNames[i]) {
-									osa << "\n" << cw::PoolName((XAssetType)i) << ",#" << hashutils::ExtractTmp("hash", h);
-								}
-							}
-						}
-						LOG_INFO("Dumped assets into {}", outAssets.string());
-					}
+					LOG_INFO("Dumped assets into {}", outAssets.string());
 					if (!opt.noAssetDump) {
 						for (auto& [t, w] : GetWorkers()) {
 							w->PostXFileLoading(opt, ctx);
@@ -503,7 +485,7 @@ namespace fastfile::handlers::cw {
 
 
 						for (char* xstr : gcx.xstrings) {
-							os << gcx.DecryptString(xstr) << "\n";
+							os << acts::decryptutils::DecryptString(xstr) << "\n";
 						}
 						LOG_INFO("Dump xstrings into {}", outStrings.string());
 					}
