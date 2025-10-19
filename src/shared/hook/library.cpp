@@ -363,6 +363,62 @@ namespace hook::library {
 			}
 		}
 	}
+	bool ScanMatch(void* ptr, const char* scan) {
+		std::vector<uint8_t> mask{};
+		std::vector<uint8_t> searched{};
+		bool mid{ true };
+		const char* str{ scan };
+		while (*str) {
+			char c = *(str++);
+			if (isspace(c)) {
+				continue;
+			}
+
+			mid = !mid;
+
+			if (c == '?') {
+				if (mid) {
+					throw std::runtime_error(utils::va("Wildcard pattern in half byte! %s", scan));
+				}
+				if (str[0] == '?') {
+					// test if we are in a packed context
+					if (!str[1] || isspace(str[1])) {
+						str++; // consume both ??
+					}
+				}
+				// consume both
+				mid = !mid;
+				mask.push_back(0);
+				searched.push_back(0);
+				continue;
+			}
+
+			auto b = utils::ctob(c);
+
+			if (mid) {
+				*(mask.end() - 1) |= 0xF;
+				*(searched.end() - 1) |= b;
+			}
+			else {
+				mask.push_back(0xF0);
+				searched.push_back(b << 4);
+			}
+		}
+
+		// reversed because we set it by default to 0
+		if (!mid) {
+			throw std::runtime_error(utils::va("Scan pattern has half byte! %s", scan));
+		}
+
+		byte* loc{ (byte*)ptr };
+		for (size_t i = 0; i < searched.size(); i++) {
+			if ((loc[i] & mask[i]) != searched[i]) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	void SaveScanContainer() {
 		std::vector<byte> file{};

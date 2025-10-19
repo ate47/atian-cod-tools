@@ -38,6 +38,25 @@ namespace hook::library {
 	void InitScanContainer(const char* name);
 
 	/*
+	 * Test a scan against a ptr
+	 * @param ptr ptr
+	 * @param scan scan
+	 * @return scan match
+	 */
+	bool ScanMatch(void* ptr, const char* scan);
+
+
+	template<typename Type, typename TypeOut = byte*>
+	constexpr TypeOut GetRelativeFrom(void* location, size_t offset, size_t from) {
+		return reinterpret_cast<TypeOut>((byte*)location + from + *(Type*)((byte*)location + offset));
+	}
+
+	template<typename Type, typename TypeOut = byte*>
+	constexpr TypeOut GetRelative(void* location, size_t offset) {
+		return GetRelativeFrom<Type, TypeOut>(location, offset, offset + sizeof(Type));
+	}
+
+	/*
 	 * Save the scan container
 	 */
 	void SaveScanContainer();
