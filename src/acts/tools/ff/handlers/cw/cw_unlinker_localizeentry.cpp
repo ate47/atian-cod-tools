@@ -55,7 +55,7 @@ namespace {
 						}
 					}
 					else {
-						os << "\"" << utils::FormattedString{ acts::decryptutils::DecryptString((char*)loc->val) } << "\"";
+						os << "\"" << utils::FormattedString{ (char*)loc->val } << "\"";
 					}
 				}
 

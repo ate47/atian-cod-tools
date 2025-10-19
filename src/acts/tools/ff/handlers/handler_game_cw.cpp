@@ -169,17 +169,19 @@ namespace fastfile::handlers::cw {
 		}
 
 		void Load_XStringCustom(char** str) {
-			size_t size;
-			char* ptr{ gcx.reader->ReadString(&size) };
+			size_t skip;
+			char* ptr{ acts::decryptutils::DecryptString(gcx.reader->ReadString(&skip)) };
 			//LOG_TRACE("{} Load_XStringCustom({}, 0x{:x}) -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr((void*)str), size, gcx.reader->Loc());
 			//LOG_TRACE("- {}", utils::data::AsHex(ptr, size + 1));
+			// write decrypted string
+			size_t size{ std::strlen(ptr) };
 			AssertCanWrite(*str, size + 1);
 			std::memcpy(*str, ptr, size + 1);
 			if (gcx.opt->dumpXStrings) {
 				gcx.xstrings.push_back(*str);
 			}
-			hashutils::AddPrecomputed(hash::Hash64(*str), *str);
-			gcx.DB_IncStreamPos(size + 1);
+			hashutils::AddPrecomputed(hash::Hash64(ptr), ptr, true);
+			gcx.DB_IncStreamPos(skip + 1);
 		}
 
 		XAssetRef* DB_LinkXAssetEntry(XAssetType type, void* header) {
@@ -420,14 +422,14 @@ namespace fastfile::handlers::cw {
 								if (assetList.strings[i] == (const char*)0xFFFFFFFFFFFFFFFF) {
 									assetList.strings[i] = AllocStreamPos<char>();
 									Load_XStringCustom(&assetList.strings[i]);
-									LOG_TRACE("- {}/{} \"{}\"", i, assetList.stringsCount, acts::decryptutils::DecryptString(assetList.strings[i]));
+									LOG_TRACE("- {}/{} \"{}\"", i, assetList.stringsCount, assetList.strings[i]);
 								}
 								else {
 									gcx.DB_ConvertOffsetToPointer((void**)&assetList.strings[i]);
-									LOG_TRACE("- {}/{} \"{}\" (offset)", i, assetList.stringsCount, acts::decryptutils::DecryptString(assetList.strings[i]));
+									LOG_TRACE("- {}/{} \"{}\" (offset)", i, assetList.stringsCount, assetList.strings[i]);
 								}
 
-								char* scrstr{ acts::decryptutils::DecryptString(assetList.strings[i]) };
+								char* scrstr{ assetList.strings[i] };
 								hashutils::AddPrecomputed(hash::Hash64(scrstr), scrstr, true);
 								os << scrstr << "\n";
 							}
@@ -485,7 +487,7 @@ namespace fastfile::handlers::cw {
 
 
 						for (char* xstr : gcx.xstrings) {
-							os << acts::decryptutils::DecryptString(xstr) << "\n";
+							os << xstr << "\n";
 						}
 						LOG_INFO("Dump xstrings into {}", outStrings.string());
 					}
