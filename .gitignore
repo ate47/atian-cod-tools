@@ -42,7 +42,6 @@ src/**/_private_*.cpp
 src/acts/tools/ff/handlers/handler_game_bo7.cpp
 src/acts/tools/ff/handlers/handler_game_bo7.hpp
 src/acts/tools/ff/handlers/bo7/*
-src/acts/tools/bo7/*
 # VS
 /.vs/
 /.vscode/
