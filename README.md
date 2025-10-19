@@ -80,19 +80,17 @@ See the wiki to know how to use the features
 **Supported fastfile formats**
 
 - `iw` : MW19, MWII, MWIII, BO6, BO7.
-- `t9` (EXE) : CW, COD2020.
-- `t78` (EXE) : BO4, BO4(old), BO4(dev), BO3.
+- `t9` : CW, COD2020.
+- `t78` : BO4, BO4(old), BO4(dev), BO3.
 - `zone` : `.ff.zone` files
-
-- **EXE**: Requires executable load patch files
 
 **Supported pools**
 
 - `bo3` (EXE): `string`, `rawfile`, `scriptparsetree`
-- `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`
-- `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`
-- `bo6` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`
-- `bo6sp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `stringtable`
+- `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry`
+- `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`
+- `bo6` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`
+- `bo6sp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize`
 - `gsc` (DEC): `scriptparsetree`, `gscobj`, `scriptfile`
 
 - **EXE**: Requires executable
