@@ -270,7 +270,7 @@ namespace tool::hash::text_expand {
 						uint64_t h{ ::hash::Hash64A(buff) };
 						MapVal& v{ map.map[h] };
 						std::memcpy(v.str, buff, sizeof(v.str));
-						LOG_TRACE("add val '{}'", v.str);
+						//LOG_TRACE("add val '{}'", v.str);
 					}
 				}
 			}
@@ -284,7 +284,7 @@ namespace tool::hash::text_expand {
 				uint64_t h{ ::hash::Hash64A(str) };
 				std::lock_guard lg{ map.mtx };
 				auto it{ map.map.find(h) };
-				LOG_TRACE("check entry {}", str);
+				//LOG_TRACE("check entry {}", str);
 
 
 				ASSERT_VAL(std::format("missing entry for key '{}'", str), it != map.map.end());
@@ -296,7 +296,7 @@ namespace tool::hash::text_expand {
 			as.running = false;
 
 			for (auto& [k, v] : map.map) {
-				LOG_TRACE("check val {}", v.str);
+				//LOG_TRACE("check val {}", v.str);
 				ASSERT_VAL(std::format("missing val for key {}", v.str), v.tests);
 			}
 		}

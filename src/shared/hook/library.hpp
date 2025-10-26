@@ -519,6 +519,8 @@ namespace hook::library {
 			if (error != NO_ERROR) {
 				throw std::runtime_error(utils::va("Can't commit clear detour %p -> %p", base));
 			}
+
+			origin = base = to = nullptr;
 		}
 
 		constexpr operator bool() const {

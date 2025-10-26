@@ -244,19 +244,23 @@ namespace {
 
 				break;
 			}
-			case IWFV_MW23:
+			case IWFV_MW23: {
+				ffHeaderSize = sizeof(ffHeader.mwiii);
+				reader.Read(&ffHeader.mwiii, sizeof(ffHeader.mwiii));
+
+				ctx.blocksCount = 16;
+
+				uint64_t* blockSizes{ ffHeader.mwiii.blockSize };
+				for (size_t i = 0; i < ctx.blocksCount; i++) {
+					ctx.blockSizes[i].size = blockSizes[i];
+				}
+
+				break;
+			}
 			case IWFV_BO6: {
 				ffHeaderSize = 0xe0;
 				reader.Read(&ffHeader.__size, ffHeaderSize);
-
-				//ctx.blocksCount = 16;
-				//
-				//
-				//uint64_t* blockSizes{ (uint64_t*)&ffHeader.__size[0x50] };
-				//for (size_t i = 0; i < ctx.blocksCount; i++) {
-				//	ctx.blockSizes[i].size = blockSizes[i];
-				//}
-				//
+				// the bo6 handlers don't need to allocate the blocks, so no need to read them
 				break;
 			}
 			default:
@@ -294,7 +298,7 @@ namespace {
 				alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
 			}
 
-			LOG_DEBUG("loaded bo6 header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], reader.Loc());
+			LOG_DEBUG("loaded header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], reader.Loc());
 
 
 			size_t offset{};
@@ -384,6 +388,19 @@ namespace {
 				}
 				default:
 					throw std::runtime_error(std::format("patch version not supported 0x{:x}", fpHeader->headerVersion));
+				}
+
+				switch (header->headerVersion) {
+				case IWFV_MW23: {
+					ctx.blocksCount = 16;
+
+					uint64_t* blockSizes{ newHeader.mwiii.blockSize };
+					for (size_t i = 0; i < ctx.blocksCount; i++) {
+						ctx.blockSizes[i].size = blockSizes[i];
+					}
+
+					break;
+				}
 				}
 
 				if (opt.m_header) {

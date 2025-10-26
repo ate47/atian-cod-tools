@@ -81,6 +81,8 @@ namespace utils::compress {
 		return CompressBuffer(alg, data.data(), data.size(), out);
 	}
 
+	int DecompressAll(CompressionAlgorithm alg, std::vector<byte>& vec, const void* src, size_t srcSize);
+
 	CompressionAlgorithm GetConfigName(const char* cfg);
 }
 template<>

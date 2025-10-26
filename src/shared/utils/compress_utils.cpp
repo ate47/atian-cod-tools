@@ -230,6 +230,90 @@ namespace utils::compress {
 
 	}
 
+	namespace {
+		int DecompressZLib(std::vector<byte>& vec, const void* src, size_t srcSize) {
+			z_stream strm{};
+
+			int err;
+
+			err = inflateInit(&strm);
+
+			if (err != Z_OK) {
+				throw std::runtime_error("Can't init zlib stream");
+			}
+			strm.next_in = (Bytef*)src;
+			strm.avail_in = (uInt)srcSize;
+
+			constexpr uInt chunkSize = 0x1000;
+			byte chunk[chunkSize];
+
+			do {
+				strm.next_out = chunk;
+				strm.avail_out = chunkSize;
+
+				err = inflate(&strm, Z_NO_FLUSH);
+
+				if (err == Z_STREAM_ERROR || err == Z_DATA_ERROR || err == Z_MEM_ERROR) {
+					inflateEnd(&strm);
+					return DecompressResult::DCOMP_UNKNOWN_ERROR;
+				}
+
+				vec.insert(vec.end(), chunk, &chunk[chunkSize - strm.avail_out]);
+			} while (err != Z_STREAM_END);
+
+			inflateEnd(&strm);
+
+			if (err == Z_STREAM_END) {
+				return (int)vec.size();
+			}
+
+			return DecompressResult::DCOMP_UNKNOWN_ERROR;
+		}
+
+		int DecompressLZ4(std::vector<byte>& vec, const void* src, size_t srcSize) {
+			LZ4_streamDecode_t strm{};
+
+			LZ4_setStreamDecode(&strm, nullptr, 0);
+
+			constexpr uInt chunkSize = 0x1000;
+			byte chunk[chunkSize];
+
+
+			while (true) {
+				int decodedBytes{ LZ4_decompress_safe_continue(&strm, (const char*)src, (char*)chunk, (int)srcSize, chunkSize) };
+
+				if (decodedBytes < 0) {
+					return DecompressResult::DCOMP_UNKNOWN_ERROR;
+				}
+
+				vec.insert(vec.end(), chunk, &chunk[decodedBytes]);
+
+				if (!decodedBytes) {
+					return (int)vec.size();
+				}
+			}
+		}
+
+
+
+	}
+
+	int DecompressAll(CompressionAlgorithm alg, std::vector<byte>& vec, const void* src, size_t srcSize) {
+		switch (alg) {
+		case COMP_NONE:
+			vec.resize(srcSize);
+			std::memcpy(vec.data(), src, srcSize);
+			return (int)srcSize;
+		case COMP_ZLIB:
+			return DecompressZLib(vec, src, srcSize);
+		case COMP_LZ4:
+			return DecompressLZ4(vec, src, srcSize);
+
+		default:
+			throw std::runtime_error(std::format("DecompressAll not supported for {}", alg));
+		}
+	}
+
 	const char* GetCompressionName(CompressionAlgorithm alg, const char* defaultValue) {
 		CompressionAlgorithm type{ alg & (COMP_TYPE_MASK | COMP_OODLE_TYPE_MASK) };
 		bool hc{ (alg & COMP_HIGH_COMPRESSION) == 0 };

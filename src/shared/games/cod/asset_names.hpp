@@ -170,7 +170,7 @@ namespace games::cod::asset_names {
 
 					os << "const char* " << opts->assetNames << "[] {";
 					for (size_t i = 0; i < typeMapsCount; i++) {
-						os << "\n    \"" << typeNames[i] << "\" // " << std::hex << i;
+						os << "\n    \"" << typeNames[i] << "\", // " << std::hex << i;
 					}
 					os << "\n};";
 				}
@@ -266,7 +266,7 @@ namespace games::cod::asset_names {
 		 * @return hashed value
 		 */
 		AssetHashed GetHashType(AssetId type) {
-			return PoolId(typeNames[type]);
+			return PoolId(GetTypeName(type));
 		}
 
 		/*

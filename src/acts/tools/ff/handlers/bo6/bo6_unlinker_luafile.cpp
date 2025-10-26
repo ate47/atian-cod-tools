@@ -41,7 +41,22 @@ namespace {
 			LOG_INFO("Dump luafile {} len: 0x{:x}", outFile.string(), asset->len);
 			if (!asset->len && std::filesystem::exists(outFile)) return; // ignore empty files
 
-			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
+			std::vector<byte> decompressedFile{};
+
+			size_t len{ (size_t)asset->len };
+			byte* buffer{ asset->buffer };
+
+			//int end{ utils::compress::DecompressAll(utils::compress::COMP_ZLIB, decompressedFile, buffer, len) };
+			//
+			//if (end < 0) {
+			//	LOG_ERROR("Error when decompressing {}, using compressed file: {}", outFile.string(), utils::compress::DecompressResultName(end));
+			//}
+			//else {
+			//	buffer = decompressedFile.data();
+			//	len = decompressedFile.size();
+			//}
+
+			if (!utils::WriteFile(outFile, buffer, len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
 		}
