@@ -1,3 +1,11 @@
 - acts
-  - fix DB_LinkGenericXAssetEx when using empty assets
-  - fix game_dump dll deps copy with relative paths
+	- fastfile
+		- cw
+			- localizeentry pool
+			- better scan support
+		- mwii handler (scriptfile, rawfile)
+		- mwiii/mwiii sp handlers (gscobj, rawfile)
+		- remove bo4dev, bo4v1 and luaxhash (useless)
+		- sort ff handlers with print
+	- fix cw decrypt with `--decrypt-mod`
+	- add bo7 tools `bo7_cststr_dump`, `bo7_ncs_dump`, `bo7_lua_dump`
