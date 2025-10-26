@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <tools/ff/handlers/handler_game_mwiii.hpp>
+#include <tools/ff/handlers/handler_game_mwiii_sp.hpp>
 #include <utils/compress_utils.hpp>
 
 namespace {
@@ -29,7 +29,7 @@ namespace {
 		return ".raw";
 	}
 
-	using namespace fastfile::handlers::mwiii;
+	using namespace fastfile::handlers::mwiiisp;
 
 	struct RawFile {
 		uint64_t name;

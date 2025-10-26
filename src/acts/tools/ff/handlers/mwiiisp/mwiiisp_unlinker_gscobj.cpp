@@ -1,9 +1,9 @@
 #include <includes.hpp>
-#include <tools/ff/handlers/handler_game_mwiii.hpp>
+#include <tools/ff/handlers/handler_game_mwiii_sp.hpp>
 #include <tools/gsc_decompiler.hpp>
 
 namespace {
-	using namespace fastfile::handlers::mwiii;
+	using namespace fastfile::handlers::mwiiisp;
 	struct GscObj {
 		uint64_t name;
 		uint32_t len;

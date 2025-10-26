@@ -4,13 +4,13 @@
 #include <tools/utils/raw_file_extractor.hpp>
 #include <tools/sp23/sp23.hpp>
 
-namespace fastfile::handlers::mwiii {
+namespace fastfile::handlers::mwiiisp {
 	// used for fast changes
-	constexpr const char* gamePath = "mwiii";
-	constexpr const char* gameExe = "cod23-cod_dump.exe";
-	constexpr const char* gameDumpId = "mw3";
-	constexpr const char* handlerId = "mwiii";
-	constexpr const char* handlerName = "Modern Warfare III";
+	constexpr const char* gamePath = "mwiiisp";
+	constexpr const char* gameExe = "sp23-cod_dump.exe";
+	constexpr const char* gameDumpId = "mw3sp";
+	constexpr const char* handlerId = "mwiiisp";
+	constexpr const char* handlerName = "Modern Warfare III Campaign";
 
 	using namespace ::sp23;
 

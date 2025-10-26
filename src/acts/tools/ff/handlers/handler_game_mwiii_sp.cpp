@@ -11,12 +11,12 @@
 #include <tools/ff/fastfile_asset_pool.hpp>
 #include <tools/sp23/sp23.hpp>
 #include <decryptutils.hpp>
-#include <tools/ff/handlers/handler_game_mwiii.hpp>
+#include <tools/ff/handlers/handler_game_mwiii_sp.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/ff/fastfile_names_store.hpp>
 
 
-namespace fastfile::handlers::mwiii {
+namespace fastfile::handlers::mwiiisp {
 	using namespace ::sp23;
 	constexpr bool hasRelativeLoads = false;
 	constexpr bool traceData = false;
@@ -359,11 +359,11 @@ namespace fastfile::handlers::mwiii {
 
 				gcx.Load_Asset = scan.ScanSingle("E8 ?? ?? ?? ?? FF 43 14 FF C7 3B 7B 10 72 D3 33 F6", "gcx.Load_Asset").GetRelative<int32_t, decltype(gcx.Load_Asset)>(1);
 				gcx.DB_InitLoadStreamBlocks = scan.ScanSingle("48 8B D1 48 8D 05 ?? ?? ?? ?? 41 B8 02", "gcx.DB_InitLoadStreamBlocks").GetPtr<decltype(gcx.DB_InitLoadStreamBlocks)>();
-				gcx.Load_ScriptStringList = scan.ScanSingle("48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 FA", "gcx.Load_ScriptStringList").GetPtr<decltype(gcx.Load_ScriptStringList)>();
+				gcx.Load_ScriptStringList = scan.ScanSingle("48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 F7", "gcx.Load_ScriptStringList").GetPtr<decltype(gcx.Load_ScriptStringList)>();
 				gcx.DB_PatchMem_FixStreamAlignment = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? ?? 4C", "gcx.DB_PatchMem_FixStreamAlignment").GetPtr<decltype(gcx.DB_PatchMem_FixStreamAlignment)>();
 				gcx.DB_PushStreamPos = scan.ScanSingle("48 83 EC 28 8B 15 ?? ?? ?? ?? 4C", "gcx.DB_PushStreamPos").GetPtr<decltype(gcx.DB_PushStreamPos)>();
 				gcx.DB_PopStreamPos = scan.ScanSingle("E8 ?? ?? ?? ?? 48 83 7E 17 00", "gcx.DB_PopStreamPos").GetRelative<int32_t, decltype(gcx.DB_PopStreamPos)>(1);
-				gcx.streamPos = scan.ScanSingle("48 89 05 ?? ?? ?? ?? 5B", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
+				gcx.streamPos = scan.ScanSingle("48 89 0D ?? ?? ?? ?? 41 8B 80", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
 				gcx.rewind = scan.ScanSingle("4D 8B 84 D3 ?? ?? ?? ?? 49 8B D1", "gcx.rewind").GetRelative<int32_t, RewindData**>(4);
 				gcx.streamPosIndex = (XFileBlock*)(scan.ScanSingle("83 3D ?? ?? ?? ?? ?? 75 0C 4C 8B C7", "gcx.streamPosIndex").GetRelative<int32_t, byte*>(2) + 1);
 				gcx.unkFixStreamAlign = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? 00 4C 8D 1D ?? ?? ?? ?? 4C 8B C9", "gcx.unkFixStreamAlign").GetRelative<int32_t, byte*>(4);
@@ -374,7 +374,7 @@ namespace fastfile::handlers::mwiii {
 					if (from) {
 						hook::memory::RedirectJmp(from, to);
 					}
-				};
+					};
 
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 49 8B D8 4C 8B CA", "LoadStreamTA").location, LoadStreamTA);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 39 BA", "Load_StringName").location, Load_String); // str
@@ -398,6 +398,12 @@ namespace fastfile::handlers::mwiii {
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0E", "DB_LinkGenericXAssetCustom<JUPH_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_LIBSHADER>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 88", "DB_LinkGenericXAssetCustom<JUPH_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_LinkGenericXAssetCustom<JUPH_ASSET_XMODEL>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_XMODEL>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 18", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 16", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D0", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDTABLE>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDTABLE>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D2", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDSUBMIX>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDSUBMIX>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 DA", "DB_LinkGenericXAssetCustom<JUPH_ASSET_REVERBPRESET>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_REVERBPRESET>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 F5", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDMASTERPRESET>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDMASTERPRESET>);
 
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
@@ -526,7 +532,7 @@ namespace fastfile::handlers::mwiii {
 							continue;
 						}
 						gcx.assets.strings[i] = acts::decryptutils::DecryptString((char*)str);
-						stringsOs 
+						stringsOs
 							<< std::dec << std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i << "\t"
 							<< str << "\n";
 					}
