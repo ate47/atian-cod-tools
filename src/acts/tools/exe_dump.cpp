@@ -373,6 +373,7 @@ namespace tool::exe_dump {
 			{ "bo6sp", "sp24-cod.exe", "oo2core_8_win64.dll\0", {} },
 			{ "bo7", "cod25-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
 			//{ "mw19", "ModernWarfare.exe", "oo2core_7_win64.dll\0", {} },
+			{ "mw2", "cod22-cod.exe", "oo2core_8_win64.dll\0", {} },
 			{ "mw3", "../cod23-cod.exe", "../oo2core_8_win64.dll\0", {} },
 			{ "mw3hq", "cod23-cod.exe", "oo2core_8_win64.dll\0", {} },
 			{ "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },

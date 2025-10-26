@@ -69,6 +69,23 @@ namespace {
 	};
 	static_assert(sizeof(DB_FFHeaderMW19) == 0xa0);
 
+	struct DB_FFHeaderMWII {
+		byte magic[8];
+		unsigned int headerVersion;
+		unsigned int xfileVersion;
+		uint32_t flags;
+		uint32_t fileSize;
+		uint64_t timestamp;
+		uint64_t unk20;
+		uint64_t unk28;
+		uint64_t size;
+		uint64_t preloadWalkSize;
+		uint64_t blockSize[16];
+		uint64_t unkc0;
+		uint64_t unkc8;
+		uint64_t unkd0;
+	}; static_assert(sizeof(DB_FFHeaderMWII) == 0xd8);
+
 	struct DB_FFHeaderMWIII {
 		byte magic[8];
 		unsigned int headerVersion;
@@ -112,6 +129,7 @@ namespace {
 
 	union IWFastFileHeader {
 		DB_FFHeader header;
+		DB_FFHeaderMWII mwii;
 		DB_FFHeaderMWIII mwiii;
 		DB_FFHeaderBO6 bo6;
 		byte __size[0xe0]{};
@@ -239,9 +257,15 @@ namespace {
 
 			switch (header->headerVersion) {
 			case IWFV_MW22: {
-				ffHeaderSize = 0xc0;
-				reader.Read(&ffHeader.__size, ffHeaderSize);
+				ffHeaderSize = sizeof(ffHeader.mwii);
+				reader.Read(&ffHeader.mwiii, sizeof(ffHeader.mwii));
 
+				ctx.blocksCount = 16;
+
+				uint64_t* blockSizes{ ffHeader.mwii.blockSize };
+				for (size_t i = 0; i < ctx.blocksCount; i++) {
+					ctx.blockSizes[i].size = blockSizes[i];
+				}
 				break;
 			}
 			case IWFV_MW23: {
@@ -391,6 +415,16 @@ namespace {
 				}
 
 				switch (header->headerVersion) {
+				case IWFV_MW22: {
+					ctx.blocksCount = 16;
+
+					uint64_t* blockSizes{ newHeader.mwii.blockSize };
+					for (size_t i = 0; i < ctx.blocksCount; i++) {
+						ctx.blockSizes[i].size = blockSizes[i];
+					}
+
+					break;
+				}
 				case IWFV_MW23: {
 					ctx.blocksCount = 16;
 

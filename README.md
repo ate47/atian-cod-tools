@@ -89,8 +89,9 @@ See the wiki to know how to use the features
 - `bo3` (EXE): `string`, `rawfile`, `scriptparsetree`
 - `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry`
 - `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`
-- `mwiii` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`,
-- `mwiiisp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`,
+- `mwii` (EXE): `string`, `rawfile`, `scriptfile` (gscbin)
+- `mwiii` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`
+- `mwiiisp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`
 - `bo6` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`
 - `bo6sp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize`
 - `gsc` (DEC): `scriptparsetree`, `gscobj`, `scriptfile`

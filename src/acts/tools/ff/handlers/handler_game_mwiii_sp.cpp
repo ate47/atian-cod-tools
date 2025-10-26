@@ -534,7 +534,7 @@ namespace fastfile::handlers::mwiiisp {
 						gcx.assets.strings[i] = acts::decryptutils::DecryptString((char*)str);
 						stringsOs
 							<< std::dec << std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i << "\t"
-							<< str << "\n";
+							<< gcx.assets.strings[i] << "\n";
 					}
 				}
 

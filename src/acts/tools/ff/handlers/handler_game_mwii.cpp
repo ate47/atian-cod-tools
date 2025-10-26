@@ -1,5 +1,4 @@
 #include <includes.hpp>
-
 #include <games/cod/asset_names.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/ff/fastfile_dump.hpp>
@@ -9,15 +8,15 @@
 #include <hook/error.hpp>
 #include <hook/scan_container.hpp>
 #include <tools/ff/fastfile_asset_pool.hpp>
-#include <tools/sp23/sp23.hpp>
+#include <tools/mw22/mw22.hpp>
 #include <decryptutils.hpp>
-#include <tools/ff/handlers/handler_game_mwiii.hpp>
+#include <tools/ff/handlers/handler_game_mwii.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/ff/fastfile_names_store.hpp>
 
 
-namespace fastfile::handlers::mwiii {
-	using namespace ::sp23;
+namespace fastfile::handlers::mwii {
+	using namespace tool::mw22;
 	constexpr bool hasRelativeLoads = false;
 	constexpr bool traceData = false;
 
@@ -53,36 +52,6 @@ namespace fastfile::handlers::mwiii {
 		};
 		static_assert(sizeof(AssetList) == 0x20);
 
-		struct HashedType {
-			HandlerHashedAssetType hash;
-			HandlerAssetType type;
-			const char* name;
-		};
-
-		union LoadStreamObjectData;
-
-		struct LoadStreamObjectVtable {
-			bool(__fastcall* LoadStream)(LoadStreamObjectData* that, bool* atStreamStart, void** data, int64_t* len);
-			void(__fastcall* copy2)(LoadStreamObjectData* that);
-			void(__fastcall* copy3)(LoadStreamObjectData* that);
-			void(__fastcall* f4)(LoadStreamObjectData* that);
-			void(__fastcall* nulled)(LoadStreamObjectData* that);
-		};
-
-		union LoadStreamObjectData {
-			struct {
-				bool(*LoadStream)(bool atStreamStart, void* ptr, size_t len);
-				uint64_t unk08;
-				uint64_t unk10;
-				uint64_t unk18;
-			} loadStream;
-		};
-		static_assert(sizeof(LoadStreamObjectData) == 0x20);
-		struct LoadStreamObject {
-			LoadStreamObjectVtable* __vtb;
-			LoadStreamObjectData data;
-		};
-
 		struct AssetPoolInfo {
 			uint32_t itemSize;
 			uint32_t unk4;
@@ -94,15 +63,6 @@ namespace fastfile::handlers::mwiii {
 			byte unk28;
 			byte unk29;
 		};
-
-
-		bool LoadStreamImpl(LoadStreamObjectData* that, bool* atStreamStart, void** data, int64_t* len);
-		void ErrorStub(LoadStreamObjectData* that) {
-			throw std::runtime_error(std::format("Error loadstream {}", hook::library::CodePointer{ _ReturnAddress() }));
-		}
-
-
-		LoadStreamObjectVtable dbLoadStreamVTable{ LoadStreamImpl, ErrorStub, ErrorStub, ErrorStub , ErrorStub };
 
 		struct XStringOutCTX {
 			std::filesystem::path path;
@@ -132,9 +92,11 @@ namespace fastfile::handlers::mwiii {
 
 
 		struct {
-			void (*Load_Asset)(bool atStreamStart, Asset* asset) {};
+			void (*Load_Asset)(bool loaded) {};
+			Asset** loadAsset{};
 			void (*DB_InitLoadStreamBlocks)(XBlock* blocks) {};
-			void (*Load_ScriptStringList)(bool atStreamStart, AssetList* list) {};
+			void (*Load_ScriptStringList)(bool loaded) {};
+			AssetList** loadStringList{};
 			void (*DB_PatchMem_FixStreamAlignment)(int align) {};
 			void (*DB_PopStreamPos)() {};
 			void (*DB_PushStreamPos)(XFileBlock type) {};
@@ -203,9 +165,9 @@ namespace fastfile::handlers::mwiii {
 			*gcx.streamPos += len;
 		}
 
-		bool LoadStreamTA(bool atStreamStart, void* ptr, int64_t len) {
-			LOG_TRACE("LoadStreamTA({}, {}, 0x{:x}/0x{:x}) {}", atStreamStart, ptr, len, gcx.reader->Remaining(), hook::library::CodePointer{ _ReturnAddress() });
-			if (!atStreamStart || !len) {
+		bool LoadStreamTA(bool loadData, void* ptr, int64_t len) {
+			LOG_TRACE("LoadStreamTA({}, {}, 0x{:x}/0x{:x}) {}", loadData, ptr, len, gcx.reader->Remaining(), hook::library::CodePointer{ _ReturnAddress() });
+			if (loadData || !len) {
 				return true;
 			}
 
@@ -236,7 +198,7 @@ namespace fastfile::handlers::mwiii {
 			// nothing to do
 		}
 
-		void PreAssetRead(HandlerAssetType type) {
+		void PreAssetRead(HandlerAssetType type, void* ptr) {
 			LOG_TRACE("PreAssetRead({}) {}", PoolName(GetHashType(type)), hook::library::CodePointer{ _ReturnAddress() });
 			if (gcx.assetLoadStackTop == ARRAYSIZE(gcx.assetLoadStack)) {
 				throw std::runtime_error("PreAssetRead stack overflow");
@@ -250,12 +212,6 @@ namespace fastfile::handlers::mwiii {
 			}
 			LOG_TRACE("PostAssetRead({}) {}", gcx.assetLoadStackTop ? PoolName(gcx.assetLoadStack[gcx.assetLoadStackTop - 1]) : "invalid", hook::library::CodePointer{ _ReturnAddress() });
 			gcx.assetLoadStackTop--;
-		}
-
-
-		bool LoadStreamImpl(LoadStreamObjectData* that, bool* atStreamStart, void** data, int64_t* len) {
-			// redirect to custom version
-			return LoadStreamTA(*atStreamStart, *data, *len);
 		}
 
 		void* DB_LinkGenericXAsset(HandlerAssetType type, void** handle) {
@@ -343,28 +299,27 @@ namespace fastfile::handlers::mwiii {
 				// should be done before the handleList to have the hashes loaded
 				gcx.assetNames.InitMap(lib);
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
-				dumpOpts.baseFileName = "mwiii";
-				dumpOpts.assetHashedName = "JupHashAssetType";
-				dumpOpts.assetTypeName = "JupAssetType";
-				dumpOpts.assetPrefix = "JUP_ASSET_";
-				dumpOpts.assetHashedPrefix = "JUPH_ASSET_";
+				dumpOpts.baseFileName = "mwii";
+				dumpOpts.assetHashedName = "IW9HashAssetType";
+				dumpOpts.assetTypeName = "IW9AssetType";
+				dumpOpts.assetPrefix = "IW9_ASSET_";
+				dumpOpts.assetHashedPrefix = "IW9H_ASSET_";
 				gcx.assetNames.DumpFiles(opt.m_output / gamePath / "code", &dumpOpts);
 				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
 				gcx.namesStore.LoadConfig(opt.assets);
 
-				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3) };
-				loadStreamObj->__vtb = &dbLoadStreamVTable;
-
 				scan.ignoreMissing = true;
 
-				gcx.Load_Asset = scan.ScanSingle("E8 ?? ?? ?? ?? FF 43 14 FF C7 3B 7B 10 72 D3 33 F6", "gcx.Load_Asset").GetRelative<int32_t, decltype(gcx.Load_Asset)>(1);
+				gcx.Load_Asset = scan.ScanSingle("48 89 05 ?? ?? ?? ?? E8 ?? ?? ?? ?? FF 43 14 FF C7 3B 7B 10 72 CC", "gcx.Load_Asset").GetRelative<int32_t, decltype(gcx.Load_Asset)>(8);
+				gcx.loadAsset = scan.ScanSingle("48 89 05 ?? ?? ?? ?? E8 ?? ?? ?? ?? FF 43 14 FF C7 3B 7B 10 72 CC", "gcx.loadAsset").GetRelative<int32_t, Asset**>(3);
 				gcx.DB_InitLoadStreamBlocks = scan.ScanSingle("48 8B D1 48 8D 05 ?? ?? ?? ?? 41 B8 02", "gcx.DB_InitLoadStreamBlocks").GetPtr<decltype(gcx.DB_InitLoadStreamBlocks)>();
-				gcx.Load_ScriptStringList = scan.ScanSingle("48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 FA", "gcx.Load_ScriptStringList").GetPtr<decltype(gcx.Load_ScriptStringList)>();
+				gcx.Load_ScriptStringList = scan.ScanSingle("48 89 1D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 40 88 70 04", "gcx.Load_ScriptStringList").GetRelative<int32_t, decltype(gcx.Load_ScriptStringList)>(8);
+				gcx.loadStringList = scan.ScanSingle("48 89 1D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 40 88 70 04", "gcx.loadStringList").GetRelative<int32_t, AssetList**>(3);
 				gcx.DB_PatchMem_FixStreamAlignment = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? ?? 4C", "gcx.DB_PatchMem_FixStreamAlignment").GetPtr<decltype(gcx.DB_PatchMem_FixStreamAlignment)>();
 				gcx.DB_PushStreamPos = scan.ScanSingle("48 83 EC 28 8B 15 ?? ?? ?? ?? 4C", "gcx.DB_PushStreamPos").GetPtr<decltype(gcx.DB_PushStreamPos)>();
-				gcx.DB_PopStreamPos = scan.ScanSingle("E8 ?? ?? ?? ?? 48 83 7E 17 00", "gcx.DB_PopStreamPos").GetRelative<int32_t, decltype(gcx.DB_PopStreamPos)>(1);
-				gcx.streamPos = scan.ScanSingle("48 89 05 ?? ?? ?? ?? 5B", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
-				gcx.rewind = scan.ScanSingle("4D 8B 84 D3 ?? ?? ?? ?? 49 8B D1", "gcx.rewind").GetRelative<int32_t, RewindData**>(4);
+				gcx.DB_PopStreamPos = scan.ScanSingle("E8 ?? ?? ?? ?? 8D 4E 0E E8 ?? ?? ?? ?? 48 83 7B 18 00", "gcx.DB_PopStreamPos").GetRelative<int32_t, decltype(gcx.DB_PopStreamPos)>(1);
+				gcx.streamPos = scan.ScanSingle("48 89 15 ?? ?? ?? ?? 41 8B 80", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
+				gcx.rewind = scan.ScanSingle("49 8B 84 CB ?? ?? ?? ?? 48 85 C0 74 06", "gcx.rewind").GetRelative<int32_t, RewindData**>(4);
 				gcx.streamPosIndex = (XFileBlock*)(scan.ScanSingle("83 3D ?? ?? ?? ?? ?? 75 0C 4C 8B C7", "gcx.streamPosIndex").GetRelative<int32_t, byte*>(2) + 1);
 				gcx.unkFixStreamAlign = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? 00 4C 8D 1D ?? ?? ?? ?? 4C 8B C9", "gcx.unkFixStreamAlign").GetRelative<int32_t, byte*>(4);
 				gcx.poolInfo = (AssetPoolInfo*)(scan.ScanSingle("40 53 48 63 C9 48 8D 1D ? ? ? ?", "poolInfo")
@@ -376,28 +331,39 @@ namespace fastfile::handlers::mwiii {
 					}
 				};
 
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 49 8B D8 4C 8B CA", "LoadStreamTA").location, LoadStreamTA);
+				Red(scan.ScanSingle("83 F9 01 74 44", "LoadStreamTA").location, LoadStreamTA);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 39 BA", "Load_StringName").location, Load_String); // str
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B 31 48 8B F9 48 8B CE", "Load_String").location, Load_String);
-				Red(scan.ScanSingle("40 53 48 83 EC 40 48 89 74 24 50 48 8B DA", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
+				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 20 48 8B DA", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
 				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 44 8B 01", "Load_CustomScriptString").location, Load_CustomScriptString);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 8B 05", "PreAssetRead").location, PreAssetRead);
-				Red(scan.ScanAny("E9 ?? ?? ?? ?? 48 83 C4 ?? 5F 5B 5D", "PostAssetRead").GetRelative<int32_t, void*>(1), PostAssetRead);
+				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 8B 05", "PreAssetRead").location, PreAssetRead);
+				Red(scan.ScanAny("E8 ?? ?? ?? ?? 49 8B 06 48 8D 54 24 70", "PostAssetRead").GetRelative<int32_t, void*>(1), PostAssetRead);
 
-				Red(scan.ScanSingle("4C 8B DC 53 56 41 55 48 81 EC A0", "EmptyStub<550B9E0>").location, EmptyStub<0x550B9E0>);
+
+				Red(scan.ScanSingle("40 53 48 83 EC 20 8B 42 14", "EmptyStub<2F66760>").location, EmptyStub<0x2F66760>);
+				Red(scan.ScanSingle("4C 8B DC 49 89 5B 20 41 56 48 81 EC A0 00 00 00 4C", "EmptyStub<4A658E0>").location, EmptyStub<0x4A658E0>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 8B 42 14", "EmptyStub<3880AA0>").location, EmptyStub<0x3880AA0>);
 				Red(scan.ScanSingle("48 8B C4 53 48 81 EC C0 00 00 00 44", "EmptyStub<55C12B0>").location, EmptyStub<0x55C12B0>);
 				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 30 48 8B F9 48 8B DA B9", "EmptyStub<305EDB0>").location, EmptyStub<0x305EDB0>);
 				Red(scan.ScanSingle("49 8B C0 4C 8B CA 4C 8B 01", "EmptyStub<38811F0>").location, EmptyStub<0x38811F0>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 8B 41 0C 48 8B DA", "EmptyStub<56A03E0>").location, EmptyStub<0x56A03E0>);
+				Red(scan.ScanSingle("4C 8B DC 57 41 56 48 81 EC 58", "EmptyStub<4C26DF0>").location, EmptyStub<0x4C26DF0>);
+				Red(scan.ScanSingle("48 8B C4 53 41 57 48 83 EC 58 44", "EmptyStub<2DA9A70>").location, EmptyStub<0x2DA9A70>);
+				Red(scan.ScanSingle("4C 8B DC 49 89 5B 20 41 56 48 81 EC A0 00 00 00 48", "EmptyStub<4A65A60>").location, EmptyStub<0x4A65A60>);
+				Red(scan.ScanSingle("48 89 5C 24 18 48 89 6C 24 20 56 41 54 41 55 41 56 41 57 48 83 EC 40", "EmptyStub<49C7E80>").location, EmptyStub<0x49C7E80>);
+				Red(scan.ScanSingle("40 55 53 56 57 41 56 48 8D 6C 24 D0 48 81 EC 30 01 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 D0", "EmptyStub<2DA96B0>").location, EmptyStub<0x2DA96B0>);
+				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 20 48 8B F9 48 8B DA B9 FE FF", "EmptyStub<2789EE0>").location, EmptyStub<0x2789EE0>);
+				Red(scan.ScanSingle("48 89 5C 24 08 55 48 8D 6C 24 A9 48 81 EC C0 00 00 00 45", "EmptyStub<4C84DA0>").location, EmptyStub<0x4C84DA0>);
+				Red(scan.ScanSingle("48 8B 0D ?? ?? ?? ?? 0F B7 81 ?? ?? ?? ?? 66 89 44", "EmptyStub<2F6B980>").location, EmptyStub<0x2F6B980>);
+				Red(scan.ScanSingle("48 89 5C 24 08 57 48 81 EC 90 00 00 00 89", "EmptyStub<6A4BA20>").location, EmptyStub<0x6A4BA20>);
+				Red(scan.ScanSingle("E8 ?? ?? ?? ?? 84 C0 75 0F 66 C7 05", "EmptyStub<4D2F290>").GetRelative<int32_t, void*>(1), EmptyStub<0x4D2F290>);
 
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 25", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANK>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANK>);
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 27", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 50", "DB_LinkGenericXAssetCustom<JUPH_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_STREAMINGINFO>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C", "DB_LinkGenericXAssetCustom<JUPH_ASSET_COMPUTESHADER>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_COMPUTESHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0E", "DB_LinkGenericXAssetCustom<JUPH_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_LIBSHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 88", "DB_LinkGenericXAssetCustom<JUPH_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_LinkGenericXAssetCustom<JUPH_ASSET_XMODEL>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_XMODEL>);
+				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 25", "DB_LinkGenericXAssetCustom<IW9H_ASSET_SOUNDBANK>").location, DB_LinkGenericXAssetCustom<IW9H_ASSET_SOUNDBANK>);
+				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 27", "DB_LinkGenericXAssetCustom<IW9H_ASSET_SOUNDBANKTRANSIENT>").location, DB_LinkGenericXAssetCustom<IW9H_ASSET_SOUNDBANKTRANSIENT>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_LinkGenericXAssetCustom<IW9H_ASSET_XMODEL>").location, DB_LinkGenericXAssetCustom<IW9H_ASSET_XMODEL>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C", "DB_LinkGenericXAssetCustom<IW9H_ASSET_COMPUTESHADER>").location, DB_LinkGenericXAssetCustom<IW9H_ASSET_COMPUTESHADER>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0D", "DB_LinkGenericXAssetCustom<IW9H_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<IW9H_ASSET_LIBSHADER>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 57", "DB_LinkGenericXAssetCustom<IW9H_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<IW9H_ASSET_STREAMINGINFO>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 8e", "DB_LinkGenericXAssetCustom<IW9H_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<IW9H_ASSET_DLOGSCHEMA>);
 
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
@@ -516,7 +482,8 @@ namespace fastfile::handlers::mwiii {
 					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE stringsOs{ outStrings };
 					gcx.DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
-					gcx.Load_ScriptStringList(false, &gcx.assets);
+					*gcx.loadStringList = &gcx.assets;
+					gcx.Load_ScriptStringList(true);
 					gcx.DB_PopStreamPos();
 
 					// decrypt and print the strings
@@ -526,7 +493,7 @@ namespace fastfile::handlers::mwiii {
 							continue;
 						}
 						gcx.assets.strings[i] = acts::decryptutils::DecryptString((char*)str);
-						stringsOs 
+						stringsOs
 							<< std::dec << std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i << "\t"
 							<< gcx.assets.strings[i] << "\n";
 					}
@@ -549,7 +516,7 @@ namespace fastfile::handlers::mwiii {
 					gcx.DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 					gcx.DB_PatchMem_FixStreamAlignment(7);
 					gcx.assets.assets = (Asset*)*gcx.streamPos;
-					LoadStreamTA(true, gcx.assets.assets, sizeof(gcx.assets.assets[0]) * gcx.assets.assetsCount);
+					LoadStreamTA(false, gcx.assets.assets, sizeof(gcx.assets.assets[0]) * gcx.assets.assetsCount);
 
 					for (auto& [k, v] : GetWorkers()) {
 						if constexpr (!hasRelativeLoads) {
@@ -565,7 +532,8 @@ namespace fastfile::handlers::mwiii {
 							Asset* asset{ &gcx.assets.assets[assetId] };
 
 							LOG_DEBUG("load #{} -> {}({})", assetId, PoolName(GetHashType(asset->type)), (int)asset->type);
-							gcx.Load_Asset(false, asset);
+							*gcx.loadAsset = asset;
+							gcx.Load_Asset(true);
 						}
 
 					}
