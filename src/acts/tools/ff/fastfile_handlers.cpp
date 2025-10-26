@@ -651,6 +651,12 @@ namespace fastfile {
 			if (opt.print_handlers) {
 				LOG_INFO("Handlers:");
 
+				std::vector<FFHandler*>& vec{ GetHandlers() };
+
+				std::sort(vec.begin(), vec.end(), [](FFHandler* a, FFHandler* b) {
+					return _strcmpi(a->name, b->name) < 0;
+				});
+
 				for (FFHandler* handler : GetHandlers()) {
 					LOG_INFO("{:10} - {}", handler->name, handler->description);
 				}
@@ -658,9 +664,14 @@ namespace fastfile {
 
 			if (opt.print_decompressors) {
 				LOG_INFO("Decompressors:");
+				std::vector<FFDecompressor*>& vec{ GetDecompressors() };
+
+				std::sort(vec.begin(), vec.end(), [](FFDecompressor* a, FFDecompressor* b) {
+					return _strcmpi(a->name, b->name) < 0;
+				});
 
 				for (FFDecompressor* decompr : GetDecompressors()) {
-					LOG_INFO("{:20} - 0x{:x}/0x{:x}", decompr->name, decompr->magic, decompr->mask);
+					LOG_INFO("{:20}", decompr->name);
 				}
 			}
 			return tool::OK;
