@@ -30,6 +30,7 @@ namespace {
 				{ "", "_fx" },
 				{ "", "_lighting" },
 				{ "", "_precache" },
+				{ "", "_ob" },
 				{ "", "_code" },
 				{ "", "_audio" },
 				{ "gen/", "_art" }
