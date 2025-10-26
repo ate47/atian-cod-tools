@@ -241,5 +241,5 @@ namespace {
 		}
 	};
 
-	utils::ArrayAdder<BO4DevFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+	//utils::ArrayAdder<BO4DevFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 }

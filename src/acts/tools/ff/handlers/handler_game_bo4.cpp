@@ -517,7 +517,7 @@ namespace fastfile::handlers::bo4 {
 			}
 		};
 
-		utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+		//utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 	}
 	std::unordered_map<games::bo4::pool::XAssetType, Worker*>& GetWorkers() {
 		static std::unordered_map<games::bo4::pool::XAssetType, Worker*> map{};

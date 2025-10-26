@@ -92,5 +92,5 @@ namespace {
         }
     };
 
-    utils::ArrayAdder<LuaXHashFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+    // utils::ArrayAdder<LuaXHashFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 }
