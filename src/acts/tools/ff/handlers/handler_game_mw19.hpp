@@ -17,9 +17,6 @@ namespace fastfile::handlers::mw19 {
 	typedef IW8PoolType HandlerAssetType;
 	typedef IW8HashAssetType HandlerHashedAssetType;
 
-	typedef uint64_t XHash64;
-	typedef uint32_t XHash32;
-
 	struct GfxImage;
 	struct MaterialAnimation;
 	struct ParticleSystem;
@@ -68,31 +65,15 @@ namespace fastfile::handlers::mw19 {
 	HandlerHashedAssetType GetHashType(HandlerAssetType type);
 	HandlerAssetType GetExePoolId(const char* name);
 	HandlerAssetType GetExePoolId(HandlerHashedAssetType name);
-	uint64_t GetXAssetName(HandlerHashedAssetType type, void* handle);
+	XString GetXAssetName(HandlerHashedAssetType type, void* handle);
 
 	class HandlerJsonWriter : public utils::raw_file_extractor::JsonWriter {
 	public:
 		using utils::raw_file_extractor::JsonWriter::JsonWriter;
 
-		void WriteFieldValueXHash(const char* name, XHash64 val) {
-			if (!val) return;
-			JsonWriter::WriteFieldValueHash(name, val);
-		}
-
-		void WriteFieldValueXHash(uint64_t hash, XHash64 val) {
-			if (!val) return;
-			JsonWriter::WriteFieldValueHash(hash, val);
-		}
-
-
 		void WriteFieldValueXString(const char* name, XString val) {
 			if (!val) return;
 			JsonWriter::WriteFieldValueString(name, val);
-		}
-
-		void WriteFieldValueXString(uint64_t hash, XString val) {
-			if (!val) return;
-			JsonWriter::WriteFieldValueString(hash, val);
 		}
 
 		void WriteFieldValueScrString(const char* name, ScrString_t val) {
@@ -106,11 +87,6 @@ namespace fastfile::handlers::mw19 {
 			JsonWriter::WriteValueString(GetScrString(val));
 		}
 
-		void WriteFieldValueScrString(uint64_t hash, ScrString_t val) {
-			if (!val) return;
-			JsonWriter::WriteFieldValueString(hash, GetScrString(val));
-		}
-
 		void WriteFieldValueScrStringArray(const char* name, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
 			if (ignoreEmpty && (!count || !*val)) return;
 			JsonWriter::WriteFieldNameString(name);
@@ -122,30 +98,11 @@ namespace fastfile::handlers::mw19 {
 			JsonWriter::EndArray();
 		}
 
-		void WriteFieldValueScrStringArray(uint64_t hash, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
-			if (ignoreEmpty && (!count || !*val)) return;
-			JsonWriter::WriterFieldNameHash(hash);
-			JsonWriter::BeginArray();
-			for (size_t i = 0; i < count; i++) {
-				if (!val[i]) break;
-				JsonWriter::WriteValueString(GetScrString(val[i]));
-			}
-			JsonWriter::EndArray();
-		}
-
 		void WriteFieldValueXAsset(const char* name, HandlerHashedAssetType type, void* val) {
 			if (!val) return;
-			XHash64 hname{ GetXAssetName(type, val) };
+			XString hname{ GetXAssetName(type, val) };
 			if (hname) {
-				WriteFieldValueXHash(name, hname);
-			}
-		}
-
-		void WriteFieldValueXAsset(uint64_t hash, HandlerHashedAssetType type, void* val) {
-			if (!val) return;
-			XHash64 hname{ GetXAssetName(type, val) };
-			if (hname) {
-				WriteFieldValueXHash(hash, hname);
+				WriteFieldValueXString(name, hname);
 			}
 		}
 
@@ -158,20 +115,7 @@ namespace fastfile::handlers::mw19 {
 
 			for (size_t i = 0; i < count; i++) {
 				if (!val[i]) break;
-				JsonWriter::WriteValueHash(GetXAssetName(type, val[i]));
-			}
-			JsonWriter::EndArray();
-		}
-
-		void WriteFieldValueXAssetArray(uint64_t hash, HandlerHashedAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
-			void** val{ (void**)handle };
-			if (ignoreEmpty && (!count || !*val)) return;
-			JsonWriter::WriterFieldNameHash(hash);
-			JsonWriter::BeginArray();
-
-			for (size_t i = 0; i < count; i++) {
-				if (!val[i]) break;
-				JsonWriter::WriteValueHash(GetXAssetName(type, val[i]));
+				JsonWriter::WriteValueString(GetXAssetName(type, val[i]));
 			}
 			JsonWriter::EndArray();
 		}

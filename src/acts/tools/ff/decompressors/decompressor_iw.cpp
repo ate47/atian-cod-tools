@@ -59,7 +59,8 @@ namespace {
 		uint32_t unk1c;
 		uint64_t size;
 		uint64_t preloadWalkSize;
-		uint64_t blockSize[11];
+		uint64_t blockSize[8];
+		EncryptionHeader encryption;
 	}; static_assert(sizeof(DB_FFHeaderMW19) == 0x88);
 
 	struct DB_FFHeaderMWII {
@@ -259,7 +260,7 @@ namespace {
 				ffHeaderSize = sizeof(ffHeader.mw19);
 				reader.Read(&ffHeader.mw19, sizeof(ffHeader.mw19));
 				secureType = ST_MW19;
-				ctx.blocksCount = 11;
+				ctx.blocksCount = 8;
 				endSize = ffHeader.mw19.size;
 
 				uint64_t* blockSizes{ ffHeader.mw19.blockSize };
@@ -494,7 +495,7 @@ namespace {
 
 				switch (header->headerVersion) {
 				case IWFV_MW19: {
-					ctx.blocksCount = 11;
+					ctx.blocksCount = 8;
 					//endSize = ...;
 					blockSizes = newHeader.mw19.blockSize;
 					break;
