@@ -498,7 +498,7 @@ namespace fastfile::handlers::mwiiisp {
 
 				LoadXFileData(&gcx.assets, sizeof(gcx.assets));
 
-				LOG_INFO("assets: {}, strings: {}", gcx.assets.assetsCount, gcx.assets.stringsCount);
+				LOG_DEBUG("assets: {}, strings: {}", gcx.assets.assetsCount, gcx.assets.stringsCount);
 
 
 				std::vector<const char*> xstringLocs{};

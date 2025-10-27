@@ -472,7 +472,7 @@ namespace fastfile::handlers::bo6sp {
 
 				reader.Read(&gcx.assets, sizeof(gcx.assets));
 
-				LOG_INFO("assets: {}, strings: {}", gcx.assets.assetsCount, gcx.assets.stringsCount);
+				LOG_DEBUG("assets: {}, strings: {}", gcx.assets.assetsCount, gcx.assets.stringsCount);
 
 
 				gcx.opt->assetNames.clear();

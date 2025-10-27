@@ -1,6 +1,5 @@
 #include <includes.hpp>
 #include <games/cod/asset_names.hpp>
-#include <tools/ff/fastfile_handlers.hpp>
 #include <tools/ff/fastfile_dump.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <hook/module_mapper.hpp>
@@ -8,12 +7,10 @@
 #include <hook/error.hpp>
 #include <hook/scan_container.hpp>
 #include <tools/ff/fastfile_asset_pool.hpp>
-#include <tools/mw22/mw22.hpp>
 #include <decryptutils.hpp>
 #include <tools/ff/handlers/handler_game_mwii.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/ff/fastfile_names_store.hpp>
-
 
 namespace fastfile::handlers::mwii {
 	using namespace tool::mw22;
@@ -24,16 +21,6 @@ namespace fastfile::handlers::mwii {
 		template<size_t offset = 0>
 		void EmptyStub() {
 			LOG_TRACE("{} EmptyStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset);
-		}
-		template<size_t offset = 0>
-		void ErrorStub() {
-			hook::error::DumpStackTraceFrom();
-			throw std::runtime_error(std::format("{} ErrorStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset));
-		}
-		template<size_t offset = 0, typename T, T value>
-		T ReturnStub() {
-			LOG_TRACE("{} ReturnStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset);
-			return value;
 		}
 
 		struct Asset {
@@ -251,24 +238,6 @@ namespace fastfile::handlers::mwii {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_LinkGenericXAssetEx(HandlerAssetType type, uint64_t name, void* handle) {
-			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
-			HandlerHashedAssetType hashType{ GetHashType(type) };
-			if (handle) {
-				gcx.linkedAssets[hashType][name] = handle;
-				return handle;
-			}
-			auto it{ gcx.linkedAssets[hashType].find(name) };
-			if (it != gcx.linkedAssets[hashType].end()) {
-				return it->second;
-			}
-			// create a fake asset
-			void* asset{ gcx.allocator.Alloc(gcx.poolInfo[type].itemSize) };
-			gcx.poolInfo[type].SetAssetName(asset, name, hashutils::ExtractPtr(name));
-			gcx.linkedAssets[hashType][name] = asset;
-			return asset;
-		}
-
 		template<HandlerHashedAssetType type>
 		void* DB_LinkGenericXAssetCustom(void** handle) {
 			return DB_LinkGenericXAsset(GetExePoolId(type), handle);
@@ -458,7 +427,7 @@ namespace fastfile::handlers::mwii {
 
 				LoadXFileData(&gcx.assets, sizeof(gcx.assets));
 
-				LOG_INFO("assets: {}, strings: {}", gcx.assets.assetsCount, gcx.assets.stringsCount);
+				LOG_DEBUG("assets: {}, strings: {}", gcx.assets.assetsCount, gcx.assets.stringsCount);
 
 
 				std::vector<const char*> xstringLocs{};
