@@ -547,11 +547,11 @@ return tool::OK;
 
     }
 
-    const char* PoolName(IW19PoolType type) {
+    const char* PoolNameOld(IW19PoolType type) {
         return type >= 0 && type < ARRAYSIZE(IW19PoolNames) ? IW19PoolNames[type] : "<invalid>";
     }
 
-    IW19PoolType PoolId(const char* name) {
+    IW19PoolType PoolIdOld(const char* name) {
         for (size_t i = 0; i < ARRAYSIZE(IW19PoolNames); i++) {
             if (!_strcmpi(IW19PoolNames[i], name)) {
                 return (IW19PoolType)i;
@@ -559,6 +559,150 @@ return tool::OK;
         }
         return IW19_ASSETTYPE_COUNT;
     }
+
+    namespace {
+        const char* poolNames[]{
+            "physicslibrary", // 0
+            "physicssfxeventasset", // 1
+            "physicsvfxeventasset", // 2
+            "physicsasset", // 3
+            "physicsfxpipeline", // 4
+            "physicsfxshape", // 5
+            "physicsdebugdata", // 6
+            "xanim", // 7
+            "xmodelsurfs", // 8
+            "xmodel", // 9
+            "mayhem", // a
+            "material", // b
+            "computeshader", // c
+            "libshader", // d
+            "vertexshader", // e
+            "hullshader", // f
+            "domainshader", // 10
+            "pixelshader", // 11
+            "techset", // 12
+            "image", // 13
+            "soundglobals", // 14
+            "soundbank", // 15
+            "soundbanktransient", // 16
+            "col_map", // 17
+            "com_map", // 18
+            "glass_map", // 19
+            "aipaths", // 1a
+            "navmesh", // 1b
+            "tacgraph", // 1c
+            "map_ents", // 1d
+            "fx_map", // 1e
+            "gfx_map", // 1f
+            "gfx_map_trzone", // 20
+            "iesprofile", // 21
+            "lightdef", // 22
+            "gradingclut", // 23
+            "ui_map", // 24
+            "fogspline", // 25
+            "animclass", // 26
+            "playeranim", // 27
+            "gesture", // 28
+            "localize", // 29
+            "attachment", // 2a
+            "weapon", // 2b
+            "vfx", // 2c
+            "impactfx", // 2d
+            "surfacefx", // 2e
+            "aitype", // 2f
+            "mptype", // 30
+            "character", // 31
+            "xmodelalias", // 32
+            "rawfile", // 33
+            "scriptfile", // 34
+            "scriptdebugdata", // 35
+            "stringtable", // 36
+            "leaderboarddef", // 37
+            "virtualleaderboarddef", // 38
+            "ddl", // 39
+            "tracer", // 3a
+            "vehicle", // 3b
+            "addon_map_ents", // 3c
+            "netconststrings", // 3d
+            "luafile", // 3e
+            "scriptable", // 3f
+            "equipsndtable", // 40
+            "vectorfield", // 41
+            "particlesimanimation", // 42
+            "streaminginfo", // 43
+            "laser", // 44
+            "ttf", // 45
+            "suit", // 46
+            "suitanimpackage", // 47
+            "camera", // 48
+            "hudoutline", // 49
+            "spaceshiptarget", // 4a
+            "rumble", // 4b
+            "rumblegraph", // 4c
+            "animpkg", // 4d
+            "sfxpkg", // 4e
+            "vfxpkg", // 4f
+            "footstepvfx", // 50
+            "behaviortree", // 51
+            "aianimset", // 52
+            "aiasm", // 53
+            "proceduralbones", // 54
+            "dynamicbones", // 55
+            "reticle", // 56
+            "xanimcurve", // 57
+            "coverselector", // 58
+            "enemyselector", // 59
+            "clientcharacter", // 5a
+            "clothasset", // 5b
+            "cinematicmotion", // 5c
+            "accessory", // 5d
+            "locdmgtable", // 5e
+            "bulletpenetration", // 5f
+            "scriptbundle", // 60
+            "blendspace2d", // 61
+            "xcam", // 62
+            "camo", // 63
+            "xcompositemodel", // 64
+            "xmodeldetailcollision", // 65
+            "streamkey", // 66
+            "streamtreeoverride", // 67
+            "keyvaluepairs", // 68
+            "stterrain", // 69
+            "nativescriptpatch", // 6a
+            "collisiontile", // 6b
+            "execution", // 6c
+            "carryobject", // 6d
+            "soundbanklist", // 6e
+            "decalvolumematerial", // 6f
+            "decalvolumemask", // 70
+            "dynentitylist", // 71
+            "fx_map_trzone", // 72
+            "dlogschema", // 73
+            "edgelist", // 74
+            "triggereffect", // 75
+            "weapontrigger", // 76
+            "dwidata", // 77
+        };
+    }
+
+    const char* PoolName(IW8HashAssetType type) {
+        static std::unordered_map<uint32_t, const char*> maps{};
+        if (maps.empty()) {
+            for (const char* s : poolNames) {
+                maps[PoolId(s)] = s;
+            }
+        }
+        auto it{ maps.find(type) };
+        if (it == maps.end()) {
+            return hashutils::ExtractTmp("hash", type);
+        }
+        return it->second;
+    }
+
+    IW8HashAssetType PoolId(const char* name) {
+        return (IW8HashAssetType)hash::HashX32(name);
+    }
+
     int gscopaquemw19(int argc, const char* argv[]) {
         if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
 

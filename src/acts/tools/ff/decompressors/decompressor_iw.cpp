@@ -18,6 +18,7 @@ namespace {
 		IWFV_BO6 = 0x19,
 
 
+		IWFV_MW19_PATCH = 0x06,
 		IWFV_BO6_PATCH = 0x12,
 	};
 
@@ -42,32 +43,24 @@ namespace {
 	};
 	static_assert(sizeof(DB_FFHeader) == 0x38);
 
-	struct EncryptionHeader
-	{
+	struct EncryptionHeader {
 		unsigned int isEncrypted;
 		unsigned __int8 IV[16];
 	};
-
-	struct __declspec(align(8)) XFileMw19 {
-		unsigned __int64 size;
-		unsigned __int64 preloadWalkSize;
-		unsigned __int64 blockSize[11];
-		EncryptionHeader encryption;
-	};
+	static_assert(sizeof(EncryptionHeader) == 0x14);
 
 	struct DB_FFHeaderMW19 {
-		char magic[8];
-		unsigned int headerVersion;
-		unsigned int xfileVersion;
-		bool dashCompressBuild;
-		bool dashEncryptBuild;
-		byte transientFileType[1];
-		unsigned int residentPartSize;
-		unsigned int residentHash;
-		unsigned int alwaysLoadedPartSize;
-		XFileMw19 xfileHeader;
-	};
-	static_assert(sizeof(DB_FFHeaderMW19) == 0xa0);
+		byte magic[8];
+		uint32_t headerVersion;
+		uint32_t xfileVersion;
+		uint32_t flags;
+		uint32_t fileSize;
+		uint32_t unk18;
+		uint32_t unk1c;
+		uint64_t size;
+		uint64_t preloadWalkSize;
+		uint64_t blockSize[11];
+	}; static_assert(sizeof(DB_FFHeaderMW19) == 0x88);
 
 	struct DB_FFHeaderMWII {
 		byte magic[8];
@@ -81,9 +74,7 @@ namespace {
 		uint64_t size;
 		uint64_t preloadWalkSize;
 		uint64_t blockSize[16];
-		uint64_t unkc0;
-		uint64_t unkc8;
-		uint64_t unkd0;
+		EncryptionHeader encryption;
 	}; static_assert(sizeof(DB_FFHeaderMWII) == 0xd8);
 
 	struct DB_FFHeaderMWIII {
@@ -129,6 +120,7 @@ namespace {
 
 	union IWFastFileHeader {
 		DB_FFHeader header;
+		DB_FFHeaderMW19 mw19;
 		DB_FFHeaderMWII mwii;
 		DB_FFHeaderMWIII mwiii;
 		DB_FFHeaderBO6 bo6;
@@ -246,9 +238,16 @@ namespace {
 
 			DB_FFHeader* header{ reader.Ptr<DB_FFHeader>() };
 
+			enum SecureType {
+				ST_NONE = 0,
+				ST_MW19,
+				ST_MW22
+			};
+
 			IWFastFileHeader ffHeader{};
 			size_t ffHeaderSize{};
-			bool secure{};
+			SecureType secureType{};
+			size_t endSize{ std::string::npos };
 
 			utils::compress::CompressionAlgorithm alg{};
 
@@ -256,10 +255,24 @@ namespace {
 			ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
 
 			switch (header->headerVersion) {
+			case IWFV_MW19: {
+				ffHeaderSize = sizeof(ffHeader.mw19);
+				reader.Read(&ffHeader.mw19, sizeof(ffHeader.mw19));
+				secureType = ST_MW19;
+				ctx.blocksCount = 11;
+				endSize = ffHeader.mw19.size;
+
+				uint64_t* blockSizes{ ffHeader.mw19.blockSize };
+				for (size_t i = 0; i < ctx.blocksCount; i++) {
+					ctx.blockSizes[i].size = blockSizes[i];
+				}
+
+				break;
+			}
 			case IWFV_MW22: {
 				ffHeaderSize = sizeof(ffHeader.mwii);
-				reader.Read(&ffHeader.mwiii, sizeof(ffHeader.mwii));
-
+				reader.Read(&ffHeader.mwii, sizeof(ffHeader.mwii));
+				secureType = ST_MW22;
 				ctx.blocksCount = 16;
 
 				uint64_t* blockSizes{ ffHeader.mwii.blockSize };
@@ -271,7 +284,7 @@ namespace {
 			case IWFV_MW23: {
 				ffHeaderSize = sizeof(ffHeader.mwiii);
 				reader.Read(&ffHeader.mwiii, sizeof(ffHeader.mwiii));
-
+				secureType = ST_MW22;
 				ctx.blocksCount = 16;
 
 				uint64_t* blockSizes{ ffHeader.mwiii.blockSize };
@@ -282,9 +295,16 @@ namespace {
 				break;
 			}
 			case IWFV_BO6: {
-				ffHeaderSize = 0xe0;
-				reader.Read(&ffHeader.__size, ffHeaderSize);
-				// the bo6 handlers don't need to allocate the blocks, so no need to read them
+				ffHeaderSize = sizeof(ffHeader.bo6);
+				reader.Read(&ffHeader.bo6, sizeof(ffHeader.bo6));
+				secureType = ST_MW22;
+				ctx.blocksCount = 16;
+
+				uint64_t* blockSizes{ ffHeader.bo6.blockSize };
+				for (size_t i = 0; i < ctx.blocksCount; i++) {
+					ctx.blockSizes[i].size = blockSizes[i];
+				}
+
 				break;
 			}
 			default:
@@ -295,25 +315,75 @@ namespace {
 				PrintHeader(&ffHeader.header, "ff::header", true);
 			}
 
-			bool found{};
-			while (reader.CanRead(sizeof(uint32_t))) {
-				if (*reader.Ptr<uint32_t>() == 0x43574902) {
-					found = true;
-					break;
-				}
-				reader.Skip(1);
-			}
-			if (!found) {
-				throw std::runtime_error("can't find iwc");
-			}
-			reader.Skip<uint32_t>(); // skip IWC
-
-			secure = reader.Read<uint32_t>() == 0x66665749;
-			if (secure) {
-				reader.Skip(0x8000);
-			}
 			byte data[4];
-			reader.Read(data, sizeof(data));
+			bool secure{};
+			switch (secureType) {
+			case ST_MW19: {
+				if (reader.Read<uint32_t>() == 0x66665749) {
+					secure = true;
+					reader.Skip(0x7ffc);
+					if (reader.Read<uint32_t>() != 0x43574902) {
+						throw std::runtime_error(std::format("invalid iwc after RSA block at 0x{:x}", reader.Loc()));
+					}
+					constexpr size_t secureChunkSize = 0x800000;
+					constexpr size_t rsaBlockSize = 0x4000;
+
+					size_t dataStart{ reader.Loc() + 4 };
+					reader.Goto(dataStart - 8);// iwc + data
+					byte* patchData{ reader.Ptr<byte>() };
+
+					if (reader.CanRead(secureChunkSize + rsaBlockSize)) {
+						// skip first chunk + rsa block
+						reader.Skip(secureChunkSize + rsaBlockSize);
+						LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
+						patchData += secureChunkSize;
+
+						while (reader.CanRead(1)) {
+							size_t chunkSize{ std::min<size_t>(secureChunkSize, reader.Remaining()) };
+							byte* chunk{ reader.ReadPtr<byte>(chunkSize) };
+							std::memmove(patchData, chunk, chunkSize);
+							patchData += chunkSize;
+							LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, reader.Loc());
+							if (chunkSize == secureChunkSize && reader.CanRead(rsaBlockSize)) {
+								reader.Skip(rsaBlockSize);
+							}
+						}
+
+						reader.Goto(0);
+						byte* start{ reader.Ptr<byte>() };
+						size_t newSize{ (size_t)(patchData - start) };
+						LOG_TRACE("new size 0x{:x}", newSize);
+						reader = { start, newSize };
+					}
+
+					reader.Goto(dataStart);
+				}
+				reader.Read(data, sizeof(data));
+				break;
+			}
+			case ST_MW22: {
+				bool found{};
+				while (reader.CanRead(sizeof(uint32_t))) {
+					if (*reader.Ptr<uint32_t>() == 0x43574902) {
+						found = true;
+						break;
+					}
+					reader.Skip(1);
+				}
+				if (!found) {
+					throw std::runtime_error("can't find iwc");
+				}
+				reader.Skip<uint32_t>(); // skip IWC
+				if (reader.Read<uint32_t>() == 0x66665749) {
+					secure = true;
+					reader.Skip(0x8000);
+				}
+				reader.Read(data, sizeof(data));
+				break;
+			}
+			default:
+				throw std::runtime_error(std::format("no secure handler for 0x{:x}", header->headerVersion));
+			}
 
 			if (data[3] >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
 				throw std::runtime_error("Can't find compression type");
@@ -324,7 +394,6 @@ namespace {
 
 			LOG_DEBUG("loaded header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], reader.Loc());
 
-
 			size_t offset{};
 			size_t count{};
 			ffdata.clear();
@@ -332,11 +401,17 @@ namespace {
 			while (reader.CanRead(sizeof(uint32_t) * 3)) {
 				size_t id{ count++ };
 
-				if (secure) {
+				if (secure && secureType == ST_MW22) {
 					if ((id & 0x1ff) == 0x1ff) {
 						if (!reader.CanRead(0x4000)) break;
 						reader.Skip(0x4000);
 					}
+				}
+				if (endSize != std::string::npos && endSize <= offset) {
+					if (endSize != offset) {
+						LOG_WARNING("extracted more than expected 0x{:x} != 0x{:x}", endSize, offset);
+					}
+					break;
 				}
 
 				size_t loc{ reader.Loc() };
@@ -401,6 +476,7 @@ namespace {
 
 				// load patch headers
 				switch (fpHeader->headerVersion) {
+				case IWFV_MW19_PATCH:
 				case IWFV_BO6_PATCH: {
 					fpreader.Read(&prevHeader, ffHeaderSize);
 					fpreader.Read(&newHeader, ffHeaderSize);
@@ -413,28 +489,32 @@ namespace {
 				default:
 					throw std::runtime_error(std::format("patch version not supported 0x{:x}", fpHeader->headerVersion));
 				}
+				size_t endSize{ std::string::npos };
+				uint64_t* blockSizes{};
 
 				switch (header->headerVersion) {
+				case IWFV_MW19: {
+					ctx.blocksCount = 11;
+					//endSize = ...;
+					blockSizes = newHeader.mw19.blockSize;
+					break;
+				}
 				case IWFV_MW22: {
 					ctx.blocksCount = 16;
-
-					uint64_t* blockSizes{ newHeader.mwii.blockSize };
-					for (size_t i = 0; i < ctx.blocksCount; i++) {
-						ctx.blockSizes[i].size = blockSizes[i];
-					}
-
+					blockSizes = newHeader.mwii.blockSize;
 					break;
 				}
 				case IWFV_MW23: {
 					ctx.blocksCount = 16;
+					blockSizes = newHeader.mwiii.blockSize;
+					break;
+				}
+				}
 
-					uint64_t* blockSizes{ newHeader.mwiii.blockSize };
+				if (blockSizes) {
 					for (size_t i = 0; i < ctx.blocksCount; i++) {
 						ctx.blockSizes[i].size = blockSizes[i];
 					}
-
-					break;
-				}
 				}
 
 				if (opt.m_header) {
@@ -451,6 +531,49 @@ namespace {
 
 				// goto data
 				switch (header->headerVersion) { 
+				case IWFV_MW19: {
+					if (fpreader.Read<uint32_t>() == 0x66665749) {
+						secure = true;
+						fpreader.Skip(0x7ffc);
+						if (fpreader.Read<uint32_t>() != 0x43574902) {
+							throw std::runtime_error(std::format("invalid iwc after RSA block at 0x{:x}", fpreader.Loc()));
+						}
+						constexpr size_t secureChunkSize = 0x800000;
+						constexpr size_t rsaBlockSize = 0x4000;
+
+						size_t dataStart{ fpreader.Loc() + 4 };
+						fpreader.Goto(dataStart - 8);// iwc + data
+						byte* patchData{ fpreader.Ptr<byte>() };
+
+						if (fpreader.CanRead(secureChunkSize + rsaBlockSize)) {
+							// skip first chunk + rsa block
+							fpreader.Skip(secureChunkSize + rsaBlockSize);
+							LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
+							patchData += secureChunkSize;
+
+							while (fpreader.CanRead(1)) {
+								size_t chunkSize{ std::min<size_t>(secureChunkSize, fpreader.Remaining()) };
+								byte* chunk{ fpreader.ReadPtr<byte>(chunkSize) };
+								std::memmove(patchData, chunk, chunkSize);
+								patchData += chunkSize;
+								LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, fpreader.Loc());
+								if (chunkSize == secureChunkSize && fpreader.CanRead(rsaBlockSize)) {
+									fpreader.Skip(rsaBlockSize);
+								}
+							}
+
+							fpreader.Goto(0);
+							byte* start{ fpreader.Ptr<byte>() };
+							size_t newSize{ (size_t)(patchData - start) };
+							LOG_TRACE("new size 0x{:x}", newSize);
+							fpreader = { start, newSize };
+						}
+
+						fpreader.Goto(dataStart);
+					}
+					fpreader.Read(data, sizeof(data));
+					break;
+				}
 				case IWFV_MW22:
 				case IWFV_MW23:
 				case IWFV_BO6: {
@@ -498,7 +621,7 @@ namespace {
 				while (fpreader.CanRead(sizeof(uint32_t) * 3)) {
 					size_t id{ countfp++ };
 
-					if (secure) {
+					if (secure && secureType == ST_MW22) {
 						if ((id & 0x1ff) == 0x1ff) {
 							if (!fpreader.CanRead(0x4000)) break;
 							fpreader.Skip(0x4000);
@@ -510,6 +633,10 @@ namespace {
 					fastfile::XBlockCompressionBlockHeader* block{ fpreader.ReadPtr<fastfile::XBlockCompressionBlockHeader>() };
 
 					if (!block->compressedSize) break; // done
+
+					if (secureType == ST_MW19 && block->encryptionCTR) {
+						break; // fixme: find better
+					}
 
 					uint32_t alignedSize{ utils::Aligned<uint32_t>(block->compressedSize) };
 

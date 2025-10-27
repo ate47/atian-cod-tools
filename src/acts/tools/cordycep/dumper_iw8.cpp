@@ -69,7 +69,7 @@ namespace {
 					return false;
 				}
 				else {
-					tool::mw19::IW19PoolType assetType = tool::mw19::PoolId(arg);
+					tool::mw19::IW19PoolType assetType = tool::mw19::PoolIdOld(arg);
 
 					if (assetType == tool::mw19::IW19_ASSETTYPE_COUNT) {
 						if (std::isdigit(arg[0])) {
@@ -161,7 +161,7 @@ namespace {
 			int du = ForEachEntry(proc, pools[type], func);
 
 			if (du < 0) {
-				LOG_ERROR("Error reading pool: {}", tool::mw19::PoolName(type));
+				LOG_ERROR("Error reading pool: {}", tool::mw19::PoolNameOld(type));
 			}
 			else {
 				total += du;
