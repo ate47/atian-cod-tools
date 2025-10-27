@@ -10,7 +10,7 @@ namespace {
         size_t count{};
         bool anyDbg{};
     public:
-        GscFFHandler() : fastfile::FFHandler("GSC", "Dump gsc scripts") {
+        GscFFHandler() : fastfile::FFHandler("gsc", "GSC Scripts") {
         }
         void Init(fastfile::FastFileOption& opt) override {
             count = 0;
