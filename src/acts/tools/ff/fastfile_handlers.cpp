@@ -412,6 +412,13 @@ namespace fastfile {
 				}
 				wildcard = args[++i];
 			}
+			else if (!strcmp("-I", arg) || !_strcmpi("--ignore", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				ignore = args[++i];
+			}
 			else if (!strcmp("-n", arg) || !_strcmpi("--name", arg)) {
 				if (i + 1 == endIndex) {
 					std::cerr << "Missing value for param: " << arg << "!\n";
@@ -484,6 +491,7 @@ namespace fastfile {
 		LOG_INFO("-h --help              : Print help");
 		LOG_INFO("-o --output [d]        : Output dir");
 		LOG_INFO("-w --wildcard [wc]     : Wildcard to match for the filename");
+		LOG_INFO("-I --ignore [path]     : Ignore a path");
 		LOG_INFO("-H --header            : Dump header info");
 		LOG_INFO("-r --handler           : Handler to use (use --handlers to print)");
 		LOG_INFO("-R --handlers          : Print handlers");
@@ -654,7 +662,7 @@ namespace fastfile {
 				std::vector<FFHandler*>& vec{ GetHandlers() };
 
 				std::sort(vec.begin(), vec.end(), [](FFHandler* a, FFHandler* b) {
-					return _strcmpi(a->name, b->name) < 0;
+					return _strcmpi(a->description, b->description) < 0;
 				});
 
 				for (FFHandler* handler : GetHandlers()) {
@@ -704,6 +712,15 @@ namespace fastfile {
 
 				if (rbegin == std::sregex_iterator() || rbegin->length() != rfilename.size()) {
 					continue; // nothing else
+				}
+
+				if (opt.ignore) {
+					std::filesystem::path ffpath{ filename };
+					std::filesystem::path ignoreDir{ opt.ignore };
+
+					if (utils::IsSubDir(ignoreDir, ffpath)) {
+						continue; // ignore sub paths
+					}
 				}
 
 				cc.count++;

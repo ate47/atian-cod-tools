@@ -454,8 +454,14 @@ namespace utils {
         std::filesystem::path::iterator chit{ child.begin() };
 
         while (prit != parent.end()) {
-            if (chit == child.end()) return false; // too small
-            if (*prit != *chit) return false; // not same
+            if (chit == child.end()) {
+                return false; // too small
+            }
+            std::string prpath{ prit->string() };
+            std::string chpath{ prit->string() };
+            if (_strcmpi(prpath.data(), chpath.data())) {
+                return false; // not same
+            }
             prit++; 
             chit++;
         }
