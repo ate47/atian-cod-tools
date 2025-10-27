@@ -502,6 +502,22 @@ namespace hook::library {
 		return res;
 	}
 
+	// return if a library can safely be loaded in acts or if PatchIAT should ignore the refs
+	static bool IsLibrarySafe(const char* name) {
+		static const char* safeLibs[] {
+			"oo2core_6_win64.dll",
+			"oo2core_7_win64.dll",
+			"oo2core_8_win64.dll",
+			"ntdll.dll",
+		};
+		return std::find_if(
+			std::begin(safeLibs), 
+			std::end(safeLibs), 
+			[name](const char* lib) {
+			return !_strcmpi(lib, name); 
+		});
+	}
+
 	void hook::library::Library::PatchIAT() {
 		IMAGE_DATA_DIRECTORY& dir{ GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
 		if (!dir.VirtualAddress || dir.Size <= 0) return; // nothing to patch
@@ -519,7 +535,14 @@ namespace hook::library {
 
 			if (core::logs::getlevel() <= core::logs::LVL_TRACE) osnames << " " << name;
 
-			hook::library::Library dep{ name, false, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS };
+			hook::library::Library dep;
+			
+			if (IsLibrarySafe(name)) {
+				dep = { name, false };
+			}
+			else {
+				dep = { name, false, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS };
+			}
 
 			if (!dep) {
 				osnames << "<missing>";
