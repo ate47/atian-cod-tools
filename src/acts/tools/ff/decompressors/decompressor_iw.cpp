@@ -320,45 +320,63 @@ namespace {
 			bool secure{};
 			switch (secureType) {
 			case ST_MW19: {
-				if (reader.Read<uint32_t>() == 0x66665749) {
-					secure = true;
-					reader.Skip(0x7ffc);
-					if (reader.Read<uint32_t>() != 0x43574902) {
-						throw std::runtime_error(std::format("invalid iwc after RSA block at 0x{:x}", reader.Loc()));
+				constexpr size_t secureChunkSize = 0x800000;
+				constexpr size_t rsaBlockSize = 0x4000;
+				bool found{};
+				while (reader.CanRead(sizeof(uint32_t))) {
+					if (*reader.Ptr<uint32_t>() == 0x43574902) {
+						found = true;
+						break;
 					}
-					constexpr size_t secureChunkSize = 0x800000;
-					constexpr size_t rsaBlockSize = 0x4000;
-
-					size_t dataStart{ reader.Loc() + 4 };
-					reader.Goto(dataStart - 8);// iwc + data
-					byte* patchData{ reader.Ptr<byte>() };
-
-					if (reader.CanRead(secureChunkSize + rsaBlockSize)) {
-						// skip first chunk + rsa block
-						reader.Skip(secureChunkSize + rsaBlockSize);
-						LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
-						patchData += secureChunkSize;
-
-						while (reader.CanRead(1)) {
-							size_t chunkSize{ std::min<size_t>(secureChunkSize, reader.Remaining()) };
-							byte* chunk{ reader.ReadPtr<byte>(chunkSize) };
-							std::memmove(patchData, chunk, chunkSize);
-							patchData += chunkSize;
-							LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, reader.Loc());
-							if (chunkSize == secureChunkSize && reader.CanRead(rsaBlockSize)) {
-								reader.Skip(rsaBlockSize);
-							}
+					reader.Skip(1);
+				}
+				if (!found) {
+					throw std::runtime_error("can't find iwc");
+				}
+				size_t rsaEnd{ reader.Loc() };
+				if (rsaEnd > rsaBlockSize * 2) {
+					// go at rsa start
+					reader.Goto(rsaEnd - rsaBlockSize * 2);
+					if (reader.Read<uint32_t>() == 0x66665749) {
+						secure = true;
+						reader.Skip(0x7ffc);
+						if (reader.Read<uint32_t>() != 0x43574902) {
+							throw std::runtime_error(std::format("invalid iwc after RSA block at 0x{:x}", reader.Loc()));
 						}
 
-						reader.Goto(0);
-						byte* start{ reader.Ptr<byte>() };
-						size_t newSize{ (size_t)(patchData - start) };
-						LOG_TRACE("new size 0x{:x}", newSize);
-						reader = { start, newSize };
-					}
+						size_t dataStart{ reader.Loc() + 4 };
+						reader.Goto(dataStart - 8);// iwc + data
+						byte* patchData{ reader.Ptr<byte>() };
 
-					reader.Goto(dataStart);
+						if (reader.CanRead(secureChunkSize + rsaBlockSize)) {
+							// skip first chunk + rsa block
+							reader.Skip(secureChunkSize + rsaBlockSize);
+							LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
+							patchData += secureChunkSize;
+
+							while (reader.CanRead(1)) {
+								size_t chunkSize{ std::min<size_t>(secureChunkSize, reader.Remaining()) };
+								byte* chunk{ reader.ReadPtr<byte>(chunkSize) };
+								std::memmove(patchData, chunk, chunkSize);
+								patchData += chunkSize;
+								LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, reader.Loc());
+								if (chunkSize == secureChunkSize && reader.CanRead(rsaBlockSize)) {
+									reader.Skip(rsaBlockSize);
+								}
+							}
+
+							reader.Goto(0);
+							byte* start{ reader.Ptr<byte>() };
+							size_t newSize{ (size_t)(patchData - start) };
+							LOG_TRACE("new size 0x{:x}", newSize);
+							reader = { start, newSize };
+						}
+					}
+					else {
+						LOG_TRACE("no rsa header");
+					}
 				}
+				reader.Goto(rsaEnd + 8); // iwc + data
 				reader.Read(data, sizeof(data));
 				break;
 			}
@@ -533,45 +551,64 @@ namespace {
 				// goto data
 				switch (header->headerVersion) { 
 				case IWFV_MW19: {
-					if (fpreader.Read<uint32_t>() == 0x66665749) {
-						secure = true;
-						fpreader.Skip(0x7ffc);
-						if (fpreader.Read<uint32_t>() != 0x43574902) {
-							throw std::runtime_error(std::format("invalid iwc after RSA block at 0x{:x}", fpreader.Loc()));
+					constexpr size_t secureChunkSize = 0x800000;
+					constexpr size_t rsaBlockSize = 0x4000;
+					bool found{};
+					while (fpreader.CanRead(sizeof(uint32_t))) {
+						if (*fpreader.Ptr<uint32_t>() == 0x43574902) {
+							found = true;
+							break;
 						}
-						constexpr size_t secureChunkSize = 0x800000;
-						constexpr size_t rsaBlockSize = 0x4000;
+						fpreader.Skip(1);
+					}
+					if (!found) {
+						throw std::runtime_error("can't find iwc");
+					}
 
-						size_t dataStart{ fpreader.Loc() + 4 };
-						fpreader.Goto(dataStart - 8);// iwc + data
-						byte* patchData{ fpreader.Ptr<byte>() };
-
-						if (fpreader.CanRead(secureChunkSize + rsaBlockSize)) {
-							// skip first chunk + rsa block
-							fpreader.Skip(secureChunkSize + rsaBlockSize);
-							LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
-							patchData += secureChunkSize;
-
-							while (fpreader.CanRead(1)) {
-								size_t chunkSize{ std::min<size_t>(secureChunkSize, fpreader.Remaining()) };
-								byte* chunk{ fpreader.ReadPtr<byte>(chunkSize) };
-								std::memmove(patchData, chunk, chunkSize);
-								patchData += chunkSize;
-								LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, fpreader.Loc());
-								if (chunkSize == secureChunkSize && fpreader.CanRead(rsaBlockSize)) {
-									fpreader.Skip(rsaBlockSize);
-								}
+					size_t rsaEnd{ fpreader.Loc() };
+					if (rsaEnd > rsaBlockSize * 2) {
+						// go at rsa start
+						fpreader.Goto(rsaEnd - rsaBlockSize * 2);
+						if (fpreader.Read<uint32_t>() == 0x66665749) {
+							secure = true;
+							fpreader.Skip(0x7ffc);
+							if (fpreader.Read<uint32_t>() != 0x43574902) {
+								throw std::runtime_error(std::format("invalid iwc after RSA block at 0x{:x}", fpreader.Loc()));
 							}
 
-							fpreader.Goto(0);
-							byte* start{ fpreader.Ptr<byte>() };
-							size_t newSize{ (size_t)(patchData - start) };
-							LOG_TRACE("new size 0x{:x}", newSize);
-							fpreader = { start, newSize };
-						}
+							size_t dataStart{ fpreader.Loc() + 4 };
+							fpreader.Goto(dataStart - 8);// iwc + data
+							byte* patchData{ fpreader.Ptr<byte>() };
 
-						fpreader.Goto(dataStart);
+							if (fpreader.CanRead(secureChunkSize + rsaBlockSize)) {
+								// skip first chunk + rsa block
+								fpreader.Skip(secureChunkSize + rsaBlockSize);
+								LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
+								patchData += secureChunkSize;
+
+								while (fpreader.CanRead(1)) {
+									size_t chunkSize{ std::min<size_t>(secureChunkSize, fpreader.Remaining()) };
+									byte* chunk{ fpreader.ReadPtr<byte>(chunkSize) };
+									std::memmove(patchData, chunk, chunkSize);
+									patchData += chunkSize;
+									LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, fpreader.Loc());
+									if (chunkSize == secureChunkSize && fpreader.CanRead(rsaBlockSize)) {
+										fpreader.Skip(rsaBlockSize);
+									}
+								}
+
+								fpreader.Goto(0);
+								byte* start{ fpreader.Ptr<byte>() };
+								size_t newSize{ (size_t)(patchData - start) };
+								LOG_TRACE("new size 0x{:x}", newSize);
+								fpreader = { start, newSize };
+							}
+						}
+						else {
+							LOG_TRACE("no rsa header");
+						}
 					}
+					fpreader.Goto(rsaEnd + 8); // iwc + data
 					fpreader.Read(data, sizeof(data));
 					break;
 				}
