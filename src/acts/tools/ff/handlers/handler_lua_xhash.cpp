@@ -5,7 +5,7 @@ namespace {
 
     class LuaXHashFFHandler : public fastfile::FFHandler {
     public:
-        LuaXHashFFHandler() : fastfile::FFHandler("LuaXHash", "Dump lua ui scripts xhash based") {
+        LuaXHashFFHandler() : fastfile::FFHandler("LuaXHash", "Dump lua ui scripts xhash based", true) {
         }
 
         void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& buff, fastfile::FastFileContext& ctx) override {

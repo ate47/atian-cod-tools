@@ -8,7 +8,7 @@ namespace {
         size_t count{};
         bool anyDbg{};
 	public:
-		GscXHashFFHandler() : fastfile::FFHandler("gscxhash", "GSC Scripts XHash based") {
+		GscXHashFFHandler() : fastfile::FFHandler("gscxhash", "GSC Scripts XHash based", true) {
 		}
         void Init(fastfile::FastFileOption& opt) override {
             count = 0;

@@ -6,7 +6,7 @@ namespace {
 
 	class GscXStringFFHandler : public fastfile::FFHandler {
 	public:
-		GscXStringFFHandler() : fastfile::FFHandler("gscxstring", "GSC Scripts XString based") {
+		GscXStringFFHandler() : fastfile::FFHandler("gscxstring", "GSC Scripts XString based", true) {
 		}
 
 		void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& decReader, fastfile::FastFileContext& ctx) override {

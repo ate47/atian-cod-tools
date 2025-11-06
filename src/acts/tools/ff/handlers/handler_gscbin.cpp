@@ -6,7 +6,7 @@ namespace {
 
 	class GscBinFFHandler : public fastfile::FFHandler {
 	public:
-		GscBinFFHandler() : fastfile::FFHandler("gscbin", "GSC Scripts GSCBIN based") {
+		GscBinFFHandler() : fastfile::FFHandler("gscbin", "GSC Scripts GSCBIN based", true) {
 		}
 
 		void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& decReader, fastfile::FastFileContext& ctx) override {

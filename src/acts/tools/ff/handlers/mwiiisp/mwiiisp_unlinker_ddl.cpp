@@ -1,8 +1,8 @@
 #include <includes.hpp>
-#include <tools/ff/handlers/handler_game_bo6_sp.hpp>
+#include <tools/ff/handlers/handler_game_mwiii_sp.hpp>
 
 namespace {
-	using namespace fastfile::handlers::bo6sp;
+	using namespace fastfile::handlers::mwiiisp;
 
 	struct DDLDef;
 	struct DDLStruct;
@@ -46,7 +46,6 @@ namespace {
 		DDL_STRUCT_TYPE = 0x9,
 		DDL_ENUM_TYPE = 0xA,
 		DDL_PAD_TYPE = 0xB,
-		DDL_HASH_RESOURCE_TYPE = 0xC,
 	};
 
 	struct DDLMember {
@@ -89,6 +88,8 @@ namespace {
 		uint16_t count;
 		DDLType type;
 	};
+	static_assert(sizeof(DDLEnum) == 0x28);
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
@@ -114,7 +115,7 @@ namespace {
 
 			if (!dfilename) dfilename = utils::va("hashed/ddl/file_%llx.ddl", asset->name);
 
-			std::filesystem::path outFile{ opt.m_output / "bo6sp" / "source" / dfilename };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "source" / dfilename };
 			std::filesystem::create_directories(outFile.parent_path());
 			utils::OutFileCE os{ outFile };
 
@@ -193,7 +194,6 @@ namespace {
 							}
 							case DDL_UINT64_TYPE: os << "uint64"; break;
 							case DDL_HASH_TYPE: os << "hash"; break;
-							case DDL_HASH_RESOURCE_TYPE: os << "hashres"; break;
 							case DDL_FLOAT_TYPE: {
 								if (member.intSize == 32) {
 									os << "float";
@@ -298,13 +298,10 @@ namespace {
 				if (!def.next) {
 					break;
 				}
-
-				if (def.next) {
-					ndef = def.next;
-				}
+				ndef = def.next;
 			}
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_DDL, sizeof(DDL) };
+	utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::JUPH_ASSET_DDL, sizeof(DDL) };
 }

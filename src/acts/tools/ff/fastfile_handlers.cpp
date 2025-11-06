@@ -687,6 +687,10 @@ namespace fastfile {
 
 		if (opt.handler) {
 			opt.handler->Init(opt);
+
+			if (!opt.files.empty() && !opt.m_fd && !opt.handler->noPatchOk) {
+				LOG_WARNING("-p option not specified, it might cause an error with patched fastfiles");
+			}
 		}
 
 		FFLoadContext cc{};

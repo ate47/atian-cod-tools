@@ -286,8 +286,9 @@ namespace fastfile {
 	public:
 		const char* name;
 		const char* description;
+		bool noPatchOk;
 
-		FFHandler(const char* name, const char* description) : name(name), description(description) {
+		FFHandler(const char* name, const char* description, bool noPatchOk = false) : name(name), description(description), noPatchOk(noPatchOk) {
 		}
 
 		virtual void Init(FastFileOption& opt) {}
