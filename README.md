@@ -62,24 +62,11 @@ See the wiki to know how to use the features
 - **Dc**: With pre-decode, see the [Using encrypted scripts in the wiki](https://github.com/ate47/atian-cod-tools/wiki/GSC-Decompiler#using-encrypted-scripts).
 - **Ex**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
 
-## Dumper
-
-**Supported pools**
-
-- Black Ops 3: `scriptbundle`, `stringtable`, `structuredtable`, `rawfile`, `scriptparsetree`.
-- Black Ops 4: `weapon`, `customizationtable`, `rawfile`, `stringtable`, `structuredtable`, `ddl`, `scriptparsetree`, `scriptparsetreeforced`, `scriptbundle`, `scriptbundlelist`, `ttf`, `bgcache`, `maptable`, `maptablelist`, `maptableloadingimages`, `maptablepreviewimages`, `playerrolecategory`, `playerrolecategorytable`, `gametypetable`, `unlockableitem`, `unlockableitemtable`, `playlists`, `hierarchicaltasknetwork`, `storagefile`, `storagefilelist`, `storeproduct`, `storecategory`, `storecategorylist`, `rank`, `ranktable`, `prestige`, `prestigetable`, `labelstore`, `labelstorelist`, `rawstring`.
-- Black Ops Cold War (DEC): `rawfile`, `rawfilepreproc`, `rawtextfile`, `stringtable`, `scriptparsetree`, `scriptbundle`.
-- Modern Warfare 2019 (COR): `scriptfile`.
-- Modern Warfare III (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `luafile`, `ddl`.
-
-- **DEC**: Requires pre-decode
-- **COR**: Using [Cordycep](https://github.com/Scobalula/Cordycep).
-
 ## Fast File Reader
 
 **Supported fastfile formats**
 
-- `iw` : MWII, MWIII, BO6, BO7.
+- `iw` : MW19, MWII, MWIII, BO6, BO7.
 - `t9` : CW, COD2020.
 - `t78` : BO4, BO4(old), BO4(dev), BO3.
 - `zone` : `.ff.zone` files
@@ -89,9 +76,10 @@ See the wiki to know how to use the features
 - `bo3` (EXE): `string`, `rawfile`, `scriptparsetree`
 - `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry`
 - `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`
-- `mwii` (EXE): `string`, `rawfile`, `scriptfile` (gscbin)
-- `mwiii` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`
-- `mwiiisp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`
+- `mwii` (EXE): `string`, `rawfile`, `scriptfile` (gscbin), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
+- `mwiisp` (EXE): `string`, `rawfile`, `scriptfile` (gscbin)
+- `mwiii` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
+- `mwiiisp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
 - `bo6` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`
 - `bo6sp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize`
 - `gsc` (DEC): `scriptparsetree`, `gscobj`, `scriptfile`
@@ -105,6 +93,19 @@ See the wiki to know how to use the features
 
 - `bo4`: `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`, `ttf`, `bgcache`
 - `cw`: `rawfile`
+
+## Dumper
+
+**Supported pools**
+
+- Black Ops 3: `scriptbundle`, `stringtable`, `structuredtable`, `rawfile`, `scriptparsetree`.
+- Black Ops 4: `weapon`, `customizationtable`, `rawfile`, `stringtable`, `structuredtable`, `ddl`, `scriptparsetree`, `scriptparsetreeforced`, `scriptbundle`, `scriptbundlelist`, `ttf`, `bgcache`, `maptable`, `maptablelist`, `maptableloadingimages`, `maptablepreviewimages`, `playerrolecategory`, `playerrolecategorytable`, `gametypetable`, `unlockableitem`, `unlockableitemtable`, `playlists`, `hierarchicaltasknetwork`, `storagefile`, `storagefilelist`, `storeproduct`, `storecategory`, `storecategorylist`, `rank`, `ranktable`, `prestige`, `prestigetable`, `labelstore`, `labelstorelist`, `rawstring`.
+- Black Ops Cold War (DEC): `rawfile`, `rawfilepreproc`, `rawtextfile`, `stringtable`, `scriptparsetree`, `scriptbundle`.
+- Modern Warfare 2019 (COR): `scriptfile`.
+- Modern Warfare III (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `luafile`, `ddl`.
+
+- **DEC**: Requires pre-decode
+- **COR**: Using [Cordycep](https://github.com/Scobalula/Cordycep).
 
 ## ACTS Lib
 

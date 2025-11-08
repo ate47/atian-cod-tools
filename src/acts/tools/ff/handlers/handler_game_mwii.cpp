@@ -97,9 +97,6 @@ namespace fastfile::handlers::mwii {
 			std::unique_ptr<RewindData[]> rewindBuffer{};
 			std::unique_ptr<XBlock[]> blocks{};
 
-			HandlerHashedAssetType assetLoadStack[0x100];
-			size_t assetLoadStackTop{};
-
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
@@ -174,7 +171,8 @@ namespace fastfile::handlers::mwii {
 			LOG_TRACE("{} Load_String()", hook::library::CodePointer{ _ReturnAddress() });
 			size_t size;
 			char* ptr{ gcx.reader->ReadString(&size) };
-			std::memcpy(*str, ptr, size + 1);
+			ptr = acts::decryptutils::DecryptString(ptr);
+			std::memcpy(*str, ptr, std::strlen(ptr) + 1);
 			hashutils::Add(*str, true, true);
 			DB_IncStreamPos(size + 1);
 			if (gcx.xstringLocs) gcx.xstringLocs->push_back(*str);
@@ -184,23 +182,6 @@ namespace fastfile::handlers::mwii {
 			//LOG_TRACE("Load_CustomScriptString({}) {}", (void*)pstr, hook::library::CodePointer{ _ReturnAddress() });
 			// nothing to do
 		}
-
-		void PreAssetRead(HandlerAssetType type, void* ptr) {
-			LOG_TRACE("PreAssetRead({}) {}", PoolName(GetHashType(type)), hook::library::CodePointer{ _ReturnAddress() });
-			if (gcx.assetLoadStackTop == ARRAYSIZE(gcx.assetLoadStack)) {
-				throw std::runtime_error("PreAssetRead stack overflow");
-			}
-			gcx.assetLoadStack[gcx.assetLoadStackTop++] = GetHashType(type);
-		}
-
-		void PostAssetRead() {
-			if (!gcx.assetLoadStackTop) {
-				throw std::runtime_error("PostAssetRead stack underflow");
-			}
-			LOG_TRACE("PostAssetRead({}) {}", gcx.assetLoadStackTop ? PoolName(gcx.assetLoadStack[gcx.assetLoadStackTop - 1]) : "invalid", hook::library::CodePointer{ _ReturnAddress() });
-			gcx.assetLoadStackTop--;
-		}
-
 		void* DB_LinkGenericXAsset(HandlerAssetType type, void** handle) {
 			HandlerHashedAssetType hashType{ GetHashType(type) };
 			uint64_t hash{ GetXAssetName(hashType, handle ? *handle : 0) };
@@ -305,8 +286,6 @@ namespace fastfile::handlers::mwii {
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B 31 48 8B F9 48 8B CE", "Load_String").location, Load_String);
 				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 20 48 8B DA", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
 				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 44 8B 01", "Load_CustomScriptString").location, Load_CustomScriptString);
-				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 8B 05", "PreAssetRead").location, PreAssetRead);
-				Red(scan.ScanAny("E8 ?? ?? ?? ?? 49 8B 06 48 8D 54 24 70", "PostAssetRead").GetRelative<int32_t, void*>(1), PostAssetRead);
 
 
 				Red(scan.ScanSingle("40 53 48 83 EC 20 8B 42 14", "EmptyStub<2F66760>").location, EmptyStub<0x2F66760>);
@@ -461,7 +440,6 @@ namespace fastfile::handlers::mwii {
 						if (!str) {
 							continue;
 						}
-						gcx.assets.strings[i] = acts::decryptutils::DecryptString((char*)str);
 						stringsOs
 							<< std::dec << std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i << "\t"
 							<< gcx.assets.strings[i] << "\n";
@@ -508,12 +486,6 @@ namespace fastfile::handlers::mwii {
 					}
 					catch (std::runtime_error& e) {
 						LOG_ERROR("can't dump ff {}", e.what());
-					}
-					if (gcx.assetLoadStackTop && assetId != gcx.assets.assetsCount) {
-						LOG_ERROR("Asset load stack ({}) - asset:#{}/{}", gcx.assetLoadStackTop, assetId + 1, gcx.assets.assetsCount);
-						for (size_t i = gcx.assetLoadStackTop; i; i--) {
-							LOG_ERROR("- {} - {}", i, PoolName(gcx.assetLoadStack[i - 1]));
-						}
 					}
 
 					for (auto& [k, v] : GetWorkers()) {

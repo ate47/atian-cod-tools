@@ -1,7 +1,7 @@
 #pragma once
 #include <tools/utils/raw_file_extractor.hpp>
 
-namespace fastfile::handlers::mwiiisp::scriptbundle {
+namespace fastfile::handlers::mwii::scriptbundle {
 	struct ScriptBundleObjectData;
 	struct ScriptBundleObjectDef;
 	struct ScriptBundleObject;
@@ -14,14 +14,13 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 		SBT_LOCALIZED = 0x4,
 		SBT_STRING = 0x5,
 		SBT_STRUCT = 0x6,
-		SBT_ARRAY_INDEXED = 0x7,
-		SBT_ARRAY = 0x8,
-		SBT_STRUCT_ANIMATION = 0x9,
-		SBT_STRUCT_ANIMATION_TREE = 0xA,
-		SBT_XHASH = 0xB,
-		SBT_XHASH_32 = 0xC,
-		SBT_XHASH_DVAR = 0xD,
-		SBT_XHASH_ASSET = 0xE,
+		SBT_ARRAY = 0x7,
+		SBT_STRUCT_ANIMATION = 0x8,
+		SBT_STRUCT_ANIMATION_TREE = 0x9,
+		SBT_XHASH = 0xA,
+		SBT_XHASH_32 = 0xB,
+		SBT_XHASH_DVAR = 0xC,
+		SBT_XHASH_ASSET = 0xD,
 	};
 
 	struct ScriptBundleObjectStruct {
@@ -37,6 +36,13 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 	};
 	static_assert(sizeof(ScriptBundleObjectData) == 0x20);
 
+	struct ScriptBundleObjectDefValueArray {
+		uint32_t count;
+		int32_t id;
+		ScriptBundleObjectDef* defs;
+	};
+	static_assert(sizeof(ScriptBundleObjectDefValueArray) == 0x10);
+
 	struct ScriptBundleObjectDefValueAnim {
 		int32_t nameIndex;
 		int32_t id;
@@ -45,12 +51,6 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 	};
 	static_assert(sizeof(ScriptBundleObjectDefValueAnim) == 0x18);
 
-	struct ScriptBundleObjectDefValueArray {
-		uint32_t count;
-		int32_t id;
-		ScriptBundleObjectDef* defs;
-	};
-	static_assert(sizeof(ScriptBundleObjectDefValueArray) == 0x10);
 
 	union ScriptBundleObjectDefValue {
 		int32_t intval;

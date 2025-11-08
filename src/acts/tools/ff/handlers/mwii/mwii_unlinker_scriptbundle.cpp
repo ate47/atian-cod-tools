@@ -1,10 +1,10 @@
 #include <includes.hpp>
-#include <tools/ff/handlers/handler_game_mwiii_sp.hpp>
-#include <tools/ff/handlers/mwiiisp/mwiiisp_unlinker_scriptbundle.hpp>
+#include <tools/ff/handlers/handler_game_mwii.hpp>
+#include <tools/ff/handlers/mwii/mwii_unlinker_scriptbundle.hpp>
 
 
-namespace fastfile::handlers::mwiiisp::scriptbundle {
-	using namespace fastfile::handlers::mwiiisp;
+namespace fastfile::handlers::mwii::scriptbundle {
+	using namespace fastfile::handlers::mwii;
 
 	static void WriteString(utils::raw_file_extractor::JsonWriter& json, const char* prefix, size_t offset, byte* rawData, size_t rawDataLen) {
 		if (offset >= rawDataLen) {
@@ -66,17 +66,6 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 		case SBT_STRUCT_ANIMATION_TREE:
 			WriteString(json, "animtree#", def.value.id, rawData, rawDataLen);
 			break;
-		case SBT_ARRAY_INDEXED: {
-			json.BeginArray();
-
-			for (size_t i = 0; i < def.value.strct.defsCount; i++) {
-				json.WriterFieldNameHash(def.value.strct.defs[i].name0);
-				WriteDef(json, def.value.strct.defs[i].def, rawData, rawDataLen);
-			}
-
-			json.EndArray();
-			break;
-		}
 		case SBT_XHASH:
 			json.WriteValueHash(def.value.hash, "#");
 			break;
@@ -193,5 +182,5 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::JUPH_ASSET_SCRIPTBUNDLE, sizeof(ScriptBundle) };
+	utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::IW9H_ASSET_SCRIPTBUNDLE, sizeof(ScriptBundle) };
 }

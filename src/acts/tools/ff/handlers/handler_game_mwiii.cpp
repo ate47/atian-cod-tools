@@ -504,7 +504,6 @@ namespace fastfile::handlers::mwiii {
 						if (!str) {
 							continue;
 						}
-						gcx.assets.strings[i] = acts::decryptutils::DecryptString((char*)str);
 						stringsOs 
 							<< std::dec << std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i << "\t"
 							<< gcx.assets.strings[i] << "\n";
