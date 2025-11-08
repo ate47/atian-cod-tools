@@ -159,6 +159,8 @@ namespace {
 				break;
 			}
 			}
+			// fixme
+			ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
 
             size_t idx{};
             while (true) {
