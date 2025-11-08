@@ -2,85 +2,81 @@
 #include <tools/utils/raw_file_extractor.hpp>
 
 namespace fastfile::handlers::mwiiisp::scriptbundle {
-
-
-	struct ScriptBundleObject;
+	struct ScriptBundleObjectData;
 	struct ScriptBundleObjectDef;
-	struct ScriptBundleObjectDefValueArrayIndexedVal;
+	struct ScriptBundleObject;
 
 	enum ScriptBundleObjectDefType : byte {
 		SBT_UNDEFINED = 0x0,
-		SBT_INT1 = 0x1,
-		SBT_INT2 = 0x2,
+		SBT_BOOL = 0x1,
+		SBT_INTEGER = 0x2,
 		SBT_FLOAT = 0x3,
-		SBT_ISTRING = 0x4,
+		SBT_LOCALIZED = 0x4,
 		SBT_STRING = 0x5,
 		SBT_STRUCT = 0x6,
 		SBT_ARRAY_INDEXED = 0x7,
 		SBT_ARRAY = 0x8,
 		SBT_STRUCT_ANIMATION = 0x9,
-		SBT_STRUCT_NAMEID = 0xA,
-		SBT_HASH = 0xB,
-		SBT_HASH_TAG = 0xC,
-		SBT_HASH_DVAR = 0xD,
-		SBT_HASH_RESOURCE = 0xE,
+		SBT_XHASH = 0xA,
+		SBT_XHASH_32 = 0xB,
+		SBT_XHASH_DVAR = 0xC,
+		SBT_XHASH_SCR = 0xD,
+		SBT_XHASH_ASSET = 0xE,
 	};
 
-	struct ScriptBundleObjectDefValueAnim
-	{
-		int32_t name_offset;
+	struct ScriptBundleObjectStruct {
+		uint32_t defsCount;
+		ScriptBundleObject* defs;
+	};
+	static_assert(sizeof(ScriptBundleObjectStruct) == 0x10);
+
+	struct ScriptBundleObjectData {
+		int32_t dataSize;
+		byte* data;
+		ScriptBundleObjectStruct bundle;
+	};
+	static_assert(sizeof(ScriptBundleObjectData) == 0x20);
+
+	struct ScriptBundleObjectDefValueAnim {
+		int32_t nameIndex;
 		int32_t id;
 		uint64_t unk8;
-		uint64_t anim;
+		XHash64 anim;
 	};
+	static_assert(sizeof(ScriptBundleObjectDefValueAnim) == 0x18);
 
-	struct ScriptBundleObjectDefValueArray
-	{
-		int32_t count;
+	struct ScriptBundleObjectDefValueArray {
+		uint32_t count;
 		int32_t id;
 		ScriptBundleObjectDef* defs;
 	};
+	static_assert(sizeof(ScriptBundleObjectDefValueArray) == 0x10);
 
-	struct ScriptBundleObjectDefValueArrayIndexed
-	{
-		int32_t count;
-		int32_t id;
-		ScriptBundleObjectDefValueArrayIndexedVal* vals;
-	};
-
-	union ScriptBundleObjectDefValue
-	{
-		int32_t int_val;
-		float float_val;
+	union ScriptBundleObjectDefValue {
+		int32_t intval;
+		float floatval;
 		uint32_t id;
-		uint64_t hash;
-		uint32_t hash_tag;
+		XHash64 hash;
+		XHash32 hash32;
 		ScriptBundleObjectDefValueAnim anim;
 		ScriptBundleObjectDefValueArray array;
-		ScriptBundleObjectDefValueArrayIndexed arrayIndexed;
-		uint8_t data[24];
+		ScriptBundleObjectStruct strct;
+		byte __pad[0x18];
 	};
+	static_assert(sizeof(ScriptBundleObjectDefValue) == 0x18);
 
 	struct ScriptBundleObjectDef {
 		ScriptBundleObjectDefType type;
-		uint8_t pad[7];
 		ScriptBundleObjectDefValue value;
 	};
+	static_assert(sizeof(ScriptBundleObjectDef) == 0x20);
 
 	struct ScriptBundleObject {
-		uint64_t name0;
-		uint64_t name;
+		XHash64 name0;
+		XHash64 name;
 		ScriptBundleObjectDef def;
 	};
-
-	struct ScriptBundleObjectDefValueArrayIndexedVal {
-		uint64_t name1;
-		uint64_t name2;
-		ScriptBundleObjectDef* def;
-		uint64_t unk18;
-		uint64_t unk20;
-		uint64_t unk28;
-	};
+	static_assert(sizeof(ScriptBundleObject) == 0x30);
 
 	struct ScriptBundle {
 		XHash64 name;
@@ -88,27 +84,11 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 		ScriptBundleObjectData data;
 	};
 	static_assert(sizeof(ScriptBundle) == 0x30);
-	
-	
-	struct ScriptBundleObjectData {
-		uint32_t count;
-		XHash64* rawdata;
-		XHash64* names;
-		ScriptBundleObjectDef* defs;
-	};
-	static_assert(sizeof(ScriptBundleObjectData) == 0x20);
 
 
-	//struct ScriptBundle {
-	//	uint64_t name;
-	//	uint64_t unk8;
-	//	uint64_t unk10;
-	//	uint8_t* rawdata;
-	//	uint32_t count;
-	//	ScriptBundleObject* objects;
-	//};
 
-	bool WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle);
-	bool WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def);
-	bool WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data);
+	void WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle);
+	void WriteStruct(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen);
+	void WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data);
+	void WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen);
 }

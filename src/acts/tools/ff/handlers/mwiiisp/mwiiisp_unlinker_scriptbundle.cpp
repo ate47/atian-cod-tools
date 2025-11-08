@@ -1,51 +1,50 @@
 #include <includes.hpp>
-/*
 #include <tools/ff/handlers/handler_game_mwiii_sp.hpp>
 #include <tools/ff/handlers/mwiiisp/mwiiisp_unlinker_scriptbundle.hpp>
+
 
 namespace fastfile::handlers::mwiiisp::scriptbundle {
 	using namespace fastfile::handlers::mwiiisp;
 
-	bool WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def) {
+	static void WriteString(utils::raw_file_extractor::JsonWriter& json, const char* prefix, size_t offset, byte* rawData, size_t rawDataLen) {
+		if (offset >= rawDataLen) {
+			json.WriteValueString(std::format("invalid:0x%llx", offset));
+		}
+		else {
+			json.WriteValueString(std::format("{}{}", prefix, utils::FormattedString{ (char*)(&rawData[offset]) }));
+		}
+	}
+
+	void WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen) {
 		switch (def.type) {
 		case SBT_UNDEFINED:
 			json.WriteValueLiteral("undefined");
 			break;
 		case SBT_BOOL:
-			json.WriteValueBool(def.value.int_val);
+			json.WriteValueBool(def.value.intval);
 			break;
 		case SBT_INTEGER:
-			json.WriteValueNumber(def.value.int_val);
+			json.WriteValueNumber(def.value.intval);
 			break;
 		case SBT_FLOAT:
-			json.WriteValueNumber(def.value.float_val);
+			json.WriteValueNumber(def.value.floatval);
 			break;
 		case SBT_STRING:
-			json.WriteValueString(std::format("{}", utils::FormattedString{ *def.value.str }));
+			WriteString(json, "", def.value.id, rawData, rawDataLen);
 			break;
 		case SBT_LOCALIZED:
-			json.WriteValueString(std::format("&{}", utils::FormattedString{ *def.value.str }));
+			WriteString(json, "&", def.value.id, rawData, rawDataLen);
 			break;
 		case SBT_STRUCT: {
-			WriteData(json, *def.value.obj);
-			break;
-		}
-		case SBT_ARRAY_INDEXED: {
-			json.BeginArray();
-			ScriptBundleObjectDefValueArrayIndexed* arrayIndexed{ def.value.arrayIndexed };
-			for (size_t i = 0; i < arrayIndexed->count; i++) {
-				json.WriterFieldNameHash(arrayIndexed->names1[i]);
-				if (!WriteDef(json, arrayIndexed->vals[i])) return false;
-			}
-			json.EndArray();
+			WriteStruct(json, def.value.strct, rawData, rawDataLen);
 			break;
 		}
 		case SBT_ARRAY: {
 			json.BeginArray();
-			ScriptBundleObjectDefValueArray* array{ def.value.array };
+			ScriptBundleObjectDefValueArray* array{ &def.value.array };
 
 			for (size_t i = 0; i < array->count; i++) {
-				if (!WriteDef(json, array->defs[i])) return false;
+				WriteDef(json, array->defs[i], rawData, rawDataLen);
 			}
 
 			json.EndArray();
@@ -53,10 +52,10 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 		}
 		case SBT_STRUCT_ANIMATION: {
 			json.BeginObject();
-			ScriptBundleObjectDefValueAnim* anim{ def.value.anim };
+			ScriptBundleObjectDefValueAnim* anim{ &def.value.anim };
 			json.WriteFieldValueString("type", "anim");
 			json.WriteFieldNameString("name");
-			json.WriteValueString(*anim->name_offset);
+			WriteString(json, "", anim->nameIndex, rawData, rawDataLen);
 			if (anim->anim) {
 				json.WriteFieldNameString("id");
 				json.WriteValueHash(anim->anim, "anim#");
@@ -64,14 +63,15 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 			json.EndObject();
 			break;
 		}
-		case SBT_STRUCT_NAMEID: {
-			json.BeginObject();
-			ScriptBundleObjectDefValueNameId* nameId{ def.value.nameId };
-			json.WriteFieldNameString("name");
-			json.WriteValueString(*nameId->name);
-			json.WriteFieldNameString("id");
-			json.WriteValueNumber(nameId->id);
-			json.EndObject();
+		case SBT_ARRAY_INDEXED: {
+			json.BeginArray();
+
+			for (size_t i = 0; i < def.value.strct.defsCount; i++) {
+				json.WriterFieldNameHash(def.value.strct.defs[i].name0);
+				WriteDef(json, def.value.strct.defs[i].def, rawData, rawDataLen);
+			}
+
+			json.EndArray();
 			break;
 		}
 		case SBT_XHASH:
@@ -91,24 +91,26 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 			break;
 		default:
 			json.WriteValueString(utils::va("bad type 0x%x", def.type));
-			return false;
+			break;
 		}
-		return true;
 	}
-	bool WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data) {
+	void WriteStruct(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen) {
 		json.BeginObject();
 
-		for (size_t i = 0; i < data.count; i++) {
-			json.WriterFieldNameHash(data.names[i]);
-			if (!WriteDef(json, data.defs[i])) return false;
+		for (size_t i = 0; i < data.defsCount; i++) {
+			json.WriterFieldNameHash(data.defs[i].name);
+			WriteDef(json, data.defs[i].def, rawData, rawDataLen);
 		}
 
 		json.EndObject();
-		return true;
 	}
 
-	bool WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
-		return WriteData(json, bundle->data);
+	void WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data) {
+		WriteStruct(json, data.bundle, data.data, data.dataSize);
+	}
+
+	void WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
+		WriteData(json, bundle->data);
 	}
 
 	class ImplWorker : public Worker {
@@ -127,29 +129,8 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 			const char* ename{ hashutils::ExtractPtr(asset->name) };
 
 			if (!ename) {
-				const char* cname{ hashutils::ExtractPtr(asset->category) };
-				if (cname) {
-					constexpr uint64_t nameHash = hash::Hash64("name");
-					for (size_t i = 0; i < asset->data.count; i++) {
-						if ((asset->data.names[i] & hash::MASK60) == (nameHash & hash::MASK60)) {
-							ScriptBundleObjectDef* def{ asset->data.defs + i };
-							if (def->type == SBT_STRING) {
-								// try to craft the
-								const char* like{ utils::va("%s:%s", cname, def->value.str) };
-								if (hash::HashIWAsset(like) == asset->name) {
-									hashutils::Add(like, true, true);
-								}
-								break;
-							}
-						}
-					}
-
-
-				}
-				if (!ename) {
-					bundles[asset->category].emplace_back(*asset);
-					return; // we don't know the name, combine it
-				}
+				bundles[asset->category].emplace_back(*asset);
+				return;
 			}
 
 			char* name{ utils::MapString(utils::va("%s.json", ename), [](char c) -> char { return c == ':' ? '/' : c; }) };
@@ -171,7 +152,9 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 			LOG_INFO("Dump scriptbundle {}", outFile.string());
 
-			if (!WriteData(json, asset->data) || !json.WriteToFile(outFile)) {
+			WriteData(json, asset->data);
+
+			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}
 		}
@@ -198,10 +181,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 				for (ScriptBundle& bundle : vec) {
 					json.WriterFieldNameHash(bundle.name);
-					if (!WriteBundle(json, &bundle)) {
-						LOG_ERROR("Error when dumping {} into {}", hashutils::ExtractTmp("hash", bundle.name), outFile.string());
-						return;
-					}
+					WriteBundle(json, &bundle);
 				}
 
 				json.EndObject();
@@ -215,4 +195,3 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 	utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::JUPH_ASSET_SCRIPTBUNDLE, sizeof(ScriptBundle) };
 }
-*/
