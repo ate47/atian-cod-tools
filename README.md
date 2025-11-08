@@ -19,7 +19,6 @@ See the wiki to know how to use the features
 
 - [Atian Tools](#atian-tools)
 	- [GSC Compiler/Decompiler](#gsc-compilerdecompiler)
-	- [Dumper](#dumper)
 	- [Fast File Reader](#fast-file-reader)
 	- [Fast File Linker](#fast-file-linker)
 	- [ACTS Lib](#acts-lib)
@@ -28,7 +27,6 @@ See the wiki to know how to use the features
 	- [Related repositories](#related-repositories)
 	- [Lookup](#lookup)
 	- [Credits](#credits)
-
 
 ## GSC Compiler/Decompiler
 
@@ -71,8 +69,8 @@ See the wiki to know how to use the features
 | Modern Warfare 2019   | ✅      | ❌        | |
 | Black Ops Cold War    | ✅      | `cw`      | `rawfile`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`|
 | Vanguard              | ✅      | ❌        | |
-| Modern Warfare II     | ✅      | `mwii`    | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
-| Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Modern Warfare II     | ✅      | `mwii`    | `rawfile`, `scriptfile` (Compiled), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `scriptfile` (Compiled), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern Warfare III    | ✅      | `mwiii`   | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern&nbsp;Warfare&nbsp;III&nbsp;SP | ✅      | `mwiiisp` | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Black Ops 6           | ✅      | `bo6`     | `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize` |
@@ -83,23 +81,10 @@ The `gsc` handler can read  `scriptparsetree`, `gscobj` or `scriptfile` pools fr
 
 ## Fast File Linker
 
-**Supported pools**
-
-- `bo4`: `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`, `ttf`, `bgcache`
-- `cw`: `rawfile`
-
-## Dumper
-
-**Supported pools**
-
-- Black Ops 3: `scriptbundle`, `stringtable`, `structuredtable`, `rawfile`, `scriptparsetree`.
-- Black Ops 4: `weapon`, `customizationtable`, `rawfile`, `stringtable`, `structuredtable`, `ddl`, `scriptparsetree`, `scriptparsetreeforced`, `scriptbundle`, `scriptbundlelist`, `ttf`, `bgcache`, `maptable`, `maptablelist`, `maptableloadingimages`, `maptablepreviewimages`, `playerrolecategory`, `playerrolecategorytable`, `gametypetable`, `unlockableitem`, `unlockableitemtable`, `playlists`, `hierarchicaltasknetwork`, `storagefile`, `storagefilelist`, `storeproduct`, `storecategory`, `storecategorylist`, `rank`, `ranktable`, `prestige`, `prestigetable`, `labelstore`, `labelstorelist`, `rawstring`.
-- Black Ops Cold War (DEC): `rawfile`, `rawfilepreproc`, `rawtextfile`, `stringtable`, `scriptparsetree`, `scriptbundle`.
-- Modern Warfare 2019 (COR): `scriptfile`.
-- Modern Warfare III (COR): `gscobj`, `scriptbundle`, `stringtable`, `localize`, `luafile`, `ddl`.
-
-- **DEC**: Requires pre-decode
-- **COR**: Using [Cordycep](https://github.com/Scobalula/Cordycep).
+| Game                  | Linker   | Pools      |
+| --------------------- | --------- | ---------- |
+| Black Ops 3           | `bo4`     | `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`, `ttf`, `bgcache` |
+| Black&nbsp;Ops&nbsp;Cold&nbsp;War    | `cw`     | `rawfile` |
 
 ## ACTS Lib
 
