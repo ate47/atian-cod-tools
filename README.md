@@ -64,28 +64,22 @@ See the wiki to know how to use the features
 
 ## Fast File Reader
 
-**Supported fastfile formats**
+| Game                  | Reader | Handler   | Pools      |
+| --------------------- | ------ | --------- | ---------- |
+| Black Ops 3           | ✅      | `bo3`     | `rawfile`, `scriptparsetree` |
+| Black Ops 4           | ✅      | `bo4`     | `rawfile`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry` |
+| Modern Warfare 2019   | ✅      | ❌        | |
+| Black Ops Cold War    | ✅      | `cw`      | `rawfile`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`|
+| Vanguard              | ✅      | ❌        | |
+| Modern Warfare II     | ✅      | `mwii`    | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Modern Warfare III    | ✅      | `mwiii`   | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Modern Warfare III SP | ✅      | `mwiiisp` | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Black Ops 6           | ✅      | `bo6`     | `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize` |
+| Black Ops 6 SP        | ✅      | `bo6sp`   | `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize` |
+| Black Ops 7           | ✅      | |
 
-- `iw` : MW19, MWII, MWIII, BO6, BO7.
-- `t9` : CW, COD2020.
-- `t78` : BO4, BO4(old), BO4(dev), BO3.
-- `zone` : `.ff.zone` files
-
-**Supported pools**
-
-- `bo3` (EXE): `string`, `rawfile`, `scriptparsetree`
-- `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry`
-- `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`
-- `mwii` (EXE): `string`, `rawfile`, `scriptfile` (gscbin), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
-- `mwiisp` (EXE): `string`, `rawfile`, `scriptfile` (gscbin), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
-- `mwiii` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
-- `mwiiisp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
-- `bo6` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`
-- `bo6sp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize`
-- `gsc` (DEC): `scriptparsetree`, `gscobj`, `scriptfile`
-
-- **EXE**: Requires executable
-- **DEC**: Requires executable when decompiling scripts with pre-decode required
+The `gsc` handler can read  `scriptparsetree`, `gscobj` or `scriptfile` pools from decompressed fastfiles.
 
 ## Fast File Linker
 
