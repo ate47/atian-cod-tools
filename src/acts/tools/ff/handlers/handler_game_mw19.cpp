@@ -85,9 +85,6 @@ namespace fastfile::handlers::mw19 {
 			std::unique_ptr<RewindStreamData[]> rewindBuffer{};
 			std::unique_ptr<XBlock[]> blocks{};
 
-			HandlerHashedAssetType assetLoadStack[0x100];
-			size_t assetLoadStackTop{};
-
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
@@ -165,22 +162,6 @@ namespace fastfile::handlers::mw19 {
 			// nothing to do
 		}
 
-		void PreAssetRead(HandlerAssetType type, void* ptr) {
-			LOG_TRACE("PreAssetRead({}) {}", PoolName(GetHashType(type)), hook::library::CodePointer{ _ReturnAddress() });
-			if (gcx.assetLoadStackTop == ARRAYSIZE(gcx.assetLoadStack)) {
-				throw std::runtime_error("PreAssetRead stack overflow");
-			}
-			gcx.assetLoadStack[gcx.assetLoadStackTop++] = GetHashType(type);
-		}
-
-		void PostAssetRead() {
-			if (!gcx.assetLoadStackTop) {
-				throw std::runtime_error("PostAssetRead stack underflow");
-			}
-			LOG_TRACE("PostAssetRead({}) {}", gcx.assetLoadStackTop ? PoolName(gcx.assetLoadStack[gcx.assetLoadStackTop - 1]) : "invalid", hook::library::CodePointer{ _ReturnAddress() });
-			gcx.assetLoadStackTop--;
-		}
-
 		void* DB_LinkGenericXAsset(HandlerAssetType type, void** handle) {
 			HandlerHashedAssetType hashType{ GetHashType(type) };
 			const char* poolName{ GetPoolName(hashType) };
@@ -222,6 +203,7 @@ namespace fastfile::handlers::mw19 {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
+				hook::error::InstallErrorHooks(true); // arxan
 				hook::library::Library lib{ opt.GetGame(true, nullptr, false, gameExe, gameDumpId) };
 				hook::scan_container::ScanContainer scan{ lib, true };
 				scan.Sync();
@@ -279,10 +261,8 @@ namespace fastfile::handlers::mw19 {
 				Red(scan.ScanSingle("48 89 5C 24 10 56 57 41 56 48 83 EC 20 8B", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
 				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 4C 63 01", "Load_CustomScriptString").location, Load_CustomScriptString);
 				Red(scan.ScanSingle("E8 ?? ?? ?? ?? 48 01 3D", "LoadXFileData").GetRelative<int32_t, void*>(1), LoadXFileData);
-				Red(scan.ScanSingle("8B 05 ?? ?? ?? ?? 4C 8B 05 ?? ?? ?? ?? 44", "PreAssetRead").location, PreAssetRead);
-				Red(scan.ScanSingle("E9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 7C 24 48", "PostAssetRead").GetRelative<int32_t, void*>(1), PostAssetRead);
 
-
+				/*
 				Red(scan.ScanSingle("48 8B C4 53 48 81 EC C0 00 00 00 44", "EmptyStub<55C12B0>").location, EmptyStub<0x55C12B0>);
 				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 30 48 8B F9 48 8B DA B9", "EmptyStub<305EDB0>").location, EmptyStub<0x305EDB0>);
 				Red(scan.ScanSingle("49 8B C0 4C 8B CA 4C 8B 01", "EmptyStub<38811F0>").location, EmptyStub<0x38811F0>);
@@ -295,6 +275,8 @@ namespace fastfile::handlers::mw19 {
 				Red(scan.ScanSingle("4C 8B DC 55 53 57 41 55 41 56 41 57 48", "EmptyStub<7>").location, EmptyStub<7>);
 				Red(scan.ScanSingle("48 8B C4 48 89 58 08 48 89 70 10 57 48 81 EC B0 00 00 00 48", "EmptyStub<8>").location, EmptyStub<8>);
 				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 70 48 8D 05 ?? ?? ?? ?? 89 4C 24 44 48 89 44 24 50 49 8B F8 33 C0 C7 44 24 40 98", "EmptyStub<10>").location, EmptyStub<10>);
+				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 83 EC 70 8B D9", "EmptyStub<11>").location, EmptyStub<11>);
+				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 70 48 8D 05 ?? ?? ?? ?? 89 4C 24 44 48 89 44 24 50 49 8B F8 33 C0 C7 44 24 40 20", "EmptyStub<12>").location, EmptyStub<12>);
 
 				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 01 48 8B F9 48 89 44 24 30 B9 15", "DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANK>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANK>);
 				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 01 48 8B F9 48 89 44 24 30 B9 16", "DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANKTRANSIENT>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANKTRANSIENT>);
@@ -303,7 +285,7 @@ namespace fastfile::handlers::mw19 {
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0D", "DB_LinkGenericXAssetCustom<IW8H_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_LIBSHADER>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 43", "DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 73", "DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>);
-
+				*/
 
 				LOG_INFO("{}", lib);
 
@@ -473,11 +455,6 @@ namespace fastfile::handlers::mw19 {
 						for (assetId = 0; assetId < gcx.assets.assetsCount; assetId++) {
 							Asset* asset{ &gcx.assets.assets[assetId] };
 
-							if (assetId == 2077) {
-								core::logs::setlevel(core::logs::LVL_TRACE_PATH);
-								core::logs::setbasiclog(false);
-							}
-
 							LOG_DEBUG("load #{} -> {}({}/0x{:x}) {}", assetId, PoolName(GetHashType(asset->type)), (int)asset->type, (int)asset->type, asset->handle);
 							*gcx.loadAsset = asset;
 							gcx.Load_Asset(true);
@@ -486,12 +463,6 @@ namespace fastfile::handlers::mw19 {
 					}
 					catch (std::runtime_error& e) {
 						LOG_ERROR("can't dump ff {}", e.what());
-					}
-					if (gcx.assetLoadStackTop && assetId != gcx.assets.assetsCount) {
-						LOG_ERROR("Asset load stack ({}) - asset:#{}/{}", gcx.assetLoadStackTop, assetId + 1, gcx.assets.assetsCount);
-						for (size_t i = gcx.assetLoadStackTop; i; i--) {
-							LOG_ERROR("- {} - {}", i, PoolName(gcx.assetLoadStack[i - 1]));
-						}
 					}
 
 					for (auto& [k, v] : GetWorkers()) {

@@ -215,11 +215,12 @@ namespace hook::error {
 		}
 
 		void WINAPI EmptySetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter) {
-			if (core::logs::getlevel() > core::logs::LVL_TRACE) {
+			if (HAS_LOG_LEVEL(core::logs::LVL_TRACE)) {
 				return;
 			}
 
 			LOG_TRACE("Tried to insert hook from {} / {}", PtrInfo(lpTopLevelExceptionFilter), PtrInfo(_ReturnAddress()));
+			hook::error::DumpStackTraceFrom(core::logs::LVL_TRACE);
 		}
 
 	}
