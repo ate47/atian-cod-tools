@@ -1,11 +1,8 @@
 - acts
 	- fastfile
-		- cw
-			- localizeentry pool
-			- better scan support
-		- mwii handler (scriptfile, rawfile)
-		- mwiii/mwiii sp handlers (gscobj, rawfile)
-		- remove bo4dev, bo4v1 and luaxhash (useless)
-		- sort ff handlers with print
-	- fix cw decrypt with `--decrypt-mod`
-	- add bo7 tools `bo7_cststr_dump`, `bo7_ncs_dump`, `bo7_lua_dump`
+		- mwiisp handler (scriptfile, rawfile, luafile, stringtable, ddl, scriptbundle, localize)
+		- mwii handler (luafile, stringtable, ddl, scriptbundle, localize)
+		- mwiii/ sp handlers (luafile, stringtable, ddl, scriptbundle, localize)
+		- reduce logs
+		- mw19 fastfile decompression
+	- fix oodle dll loading 
