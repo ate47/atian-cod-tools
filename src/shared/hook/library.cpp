@@ -515,7 +515,7 @@ namespace hook::library {
 			std::end(safeLibs), 
 			[name](const char* lib) {
 			return !_strcmpi(lib, name); 
-		});
+		}) != std::end(safeLibs);
 	}
 
 	void hook::library::Library::PatchIAT() {
