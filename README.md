@@ -77,7 +77,7 @@ See the wiki to know how to use the features
 - `bo4` (EXE): `string`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry`
 - `cw` (EXE): `string`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`
 - `mwii` (EXE): `string`, `rawfile`, `scriptfile` (gscbin), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
-- `mwiisp` (EXE): `string`, `rawfile`, `scriptfile` (gscbin)
+- `mwiisp` (EXE): `string`, `rawfile`, `scriptfile` (gscbin), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
 - `mwiii` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
 - `mwiiisp` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize`
 - `bo6` (EXE): `string`, `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`
