@@ -50,7 +50,7 @@ namespace {
 						}
 					}
 					else {
-						os << "\"" << utils::FormattedString{ loc->val } << "\"";
+						os << "\"" << utils::FormattedStringJson{ loc->val } << "\"";
 					}
 				}
 

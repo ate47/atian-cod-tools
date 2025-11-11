@@ -55,7 +55,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "netconststrings"
+				opt.m_output / gamePath / "source" / "tables" / "netconststrings"
 				/ fastfile::GetCurrentContext().ffname
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};

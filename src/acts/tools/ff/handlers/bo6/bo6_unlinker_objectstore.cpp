@@ -66,7 +66,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "objectstore" / "project"
+				opt.m_output / gamePath / "source" / "tables" / "objectstore" / "project"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
@@ -93,7 +93,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "objectstore" / "ddlconfig"
+				opt.m_output / gamePath / "source" / "tables" / "objectstore" / "ddlconfig"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
@@ -119,7 +119,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "objectstore" / "ddlconfig" / "group"
+				opt.m_output / gamePath / "source" / "tables" / "objectstore" / "ddlconfig" / "group"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
@@ -175,7 +175,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "objectstore" / "gamemode"
+				opt.m_output / gamePath / "source" / "tables" / "objectstore" / "gamemode"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());

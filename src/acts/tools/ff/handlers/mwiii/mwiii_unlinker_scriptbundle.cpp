@@ -20,10 +20,10 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 			json.WriteValueNumber(def.value.float_val);
 			break;
 		case SBT_STRING:
-			json.WriteValueString(std::format("{}", utils::FormattedString{ *def.value.str }));
+			json.WriteValueString(std::format("{}", utils::FormattedStringJson{ *def.value.str }));
 			break;
 		case SBT_LOCALIZED:
-			json.WriteValueString(std::format("&{}", utils::FormattedString{ *def.value.str }));
+			json.WriteValueString(std::format("&{}", utils::FormattedStringJson{ *def.value.str }));
 			break;
 		case SBT_STRUCT: {
 			WriteData(json, *def.value.obj);

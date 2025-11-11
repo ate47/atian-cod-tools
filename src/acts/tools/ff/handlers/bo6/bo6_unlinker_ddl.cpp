@@ -115,7 +115,7 @@ namespace {
 
 			if (!dfilename) dfilename = utils::va("hashed/ddl/file_%llx.ddl", asset->name);
 
-			std::filesystem::path outFile{ opt.m_output / "bo6" / "source" / dfilename };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "source" / dfilename };
 			std::filesystem::create_directories(outFile.parent_path());
 			utils::OutFileCE os{ outFile };
 

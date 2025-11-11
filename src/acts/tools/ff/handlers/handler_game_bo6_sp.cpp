@@ -624,7 +624,7 @@ namespace fastfile::handlers::bo6sp {
 						}
 
 						sos
-							<< utils::FormattedString{ s }
+							<< utils::FormattedStringJson{ s }
 							<< "\n"
 							;
 

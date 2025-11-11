@@ -46,7 +46,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			GscObj* asset{ (GscObj*)ptr };
 
-			std::filesystem::path outFile{ opt.m_output / "bo6" / "gscobj" / std::format("script_{:x}.gscc", asset->name) };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "gscobj" / std::format("script_{:x}.gscc", asset->name) };
 
 			std::filesystem::create_directories(outFile.parent_path());
 			LOG_INFO("Dump gscobj {} len: 0x{:x}", outFile.string(), asset->len);
@@ -58,14 +58,14 @@ namespace {
 			if (!opt.disableScriptsDecomp) {
 				tool::gsc::GscDecompilerGlobalContext gdctx{};
 
-				std::filesystem::path outSourceGDB{ opt.m_output / "bo6" / "source" / "gdb" };
+				std::filesystem::path outSourceGDB{ opt.m_output / gamePath / "source" / "gdb" };
 				std::string outSourceGDBStr{ outSourceGDB.string() };
 				gdctx.opt.m_generateGdbData = true;
 				gdctx.opt.m_generateGdbBaseData = false;
 				gdctx.opt.m_dbgOutputDir = outSourceGDBStr.data();
-				gdctx.opt.m_platform = fastfile::GetCurrentContext().gscPlatform;
+				gdctx.opt.m_platform = tool::gsc::opcode::PLATFORM_BO6;
 				gdctx.opt.m_dcomp = true;
-				std::filesystem::path outSource{ opt.m_output / "bo6" / "source" };
+				std::filesystem::path outSource{ opt.m_output / gamePath / "source" };
 				std::string outSourceStr{ outSource.string() };
 				gdctx.opt.m_outputDir = outSourceStr.data();
 				gdctx.stringsLoc = GetXStrings();
@@ -85,7 +85,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			GscGdb* asset{ (GscGdb*)ptr };
 
-			std::filesystem::path outFile{ opt.m_output / "bo6" / "gscobj" / std::format("script_{:x}.gsc.gdb", asset->name) };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "gscobj" / std::format("script_{:x}.gsc.gdb", asset->name) };
 
 			std::filesystem::create_directories(outFile.parent_path());
 			LOG_INFO("Dump gscgdb {} len: 0x{:x}", outFile.string(), asset->len);

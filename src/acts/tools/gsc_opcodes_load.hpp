@@ -102,7 +102,9 @@ namespace tool::gsc::opcode {
 		PLATFORM_XBOX = 3,
 		PLATFORM_PC_ALPHA = 4,
 		PLATFORM_ACTS_TEST = 5,
-		PLATFORM_OLD = 6,
+		PLATFORM_BO6_V1 = 6,
+		PLATFORM_BO6 = 7,
+		PLATFORM_BO7 = 8,
 		PLATFORM_COUNT,
 	};
 
@@ -465,6 +467,8 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_DecRef,
 		OPCODE_IW_EvalLocalVariableRefCached0,
 		OPCODE_IW_AppendToArray,
+
+		OPCODE_SAT_GetOmnVarHash,
 
 		OPCODE_COUNT,
 	};

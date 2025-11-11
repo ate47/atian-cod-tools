@@ -4,13 +4,13 @@
 #include <tools/utils/raw_file_extractor.hpp>
 #include <tools/mw19/mw19.hpp>
 
-namespace fastfile::handlers::mw19 {
+namespace fastfile::handlers::vg {
 	// used for fast changes
-	constexpr const char* gamePath = "mw19";
-	constexpr const char* gameExe = "ModernWarfare_dump.exe";
-	constexpr const char* gameDumpId = "mw19";
-	constexpr const char* handlerId = "mw19";
-	constexpr const char* handlerName = "Modern Warfare (2019)";
+	constexpr const char* gamePath = "vg";
+	constexpr const char* gameExe = "Vanguard_dump.exe";
+	constexpr const char* gameDumpId = "vg";
+	constexpr const char* handlerId = "vg";
+	constexpr const char* handlerName = "Vanguard";
 
 	using namespace tool::mw19;
 

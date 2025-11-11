@@ -86,6 +86,7 @@ namespace hook::library {
 		 */
 		template<typename Type, typename TypeOut = byte*>
 		constexpr TypeOut GetRelativeFrom(size_t offset, size_t from) const {
+			if (!location) return nullptr;
 			return reinterpret_cast<TypeOut>(location + from + Get<Type>(offset));
 		}
 

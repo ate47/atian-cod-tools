@@ -5,6 +5,11 @@
 
 namespace fastfile::handlers::bo6 {
 	using namespace ::bo6;
+	constexpr const char* gamePath = "bo6";
+	constexpr const char* gameExe = "cod_dump.exe";
+	constexpr const char* gameDumpId = "bo6";
+	constexpr const char* handlerId = "bo6";
+	constexpr const char* handlerName = "Black Ops 6";
 
 	typedef uint64_t XHash64;
 	typedef uint32_t XHash32;

@@ -424,7 +424,13 @@ namespace utils {
 
 	std::ostream& PrintFormattedString(std::ostream& out, const char* str, size_t len = 0);
 
+	std::ostream& PrintFormattedStringJson(std::ostream& out, const char* str, size_t len = 0);
+
 	struct FormattedString {
+		const char* str;
+		size_t len{};
+	};
+	struct FormattedStringJson {
 		const char* str;
 		size_t len{};
 	};
@@ -735,5 +741,9 @@ namespace utils {
 }
 
 std::ostream& operator<<(std::ostream& stream, const utils::FormattedString& fs);
+std::ostream& operator<<(std::ostream& stream, const utils::FormattedStringJson& fs);
 template<>
 struct std::formatter<utils::FormattedString, char> : utils::BasicFormatter<utils::FormattedString> {};
+
+template<>
+struct std::formatter<utils::FormattedStringJson, char> : utils::BasicFormatter<utils::FormattedStringJson> {};

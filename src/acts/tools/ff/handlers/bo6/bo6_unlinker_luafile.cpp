@@ -35,7 +35,7 @@ namespace {
 				n = utils::va("hashed/luafile/file_%llx.lua", asset->name);
 			}
 
-			std::filesystem::path outFile{ opt.m_output / "bo6" / "luafile" / n };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "luafile" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
 			LOG_INFO("Dump luafile {} len: 0x{:x}", outFile.string(), asset->len);

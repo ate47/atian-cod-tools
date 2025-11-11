@@ -11,7 +11,7 @@ namespace fastfile::handlers::mwiisp::scriptbundle {
 			json.WriteValueString(std::format("invalid:0x%llx", offset));
 		}
 		else {
-			json.WriteValueString(std::format("{}{}", prefix, utils::FormattedString{ (char*)(&rawData[offset]) }));
+			json.WriteValueString(std::format("{}{}", prefix, utils::FormattedStringJson{ (char*)(&rawData[offset]) }));
 		}
 	}
 

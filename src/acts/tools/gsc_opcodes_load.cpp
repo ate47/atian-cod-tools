@@ -348,6 +348,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCode(OPCODE_JumpOnDefined, "JumpOnDefined");
 			RegisterOpCode(OPCODE_JumpOnDefinedExpr, "JumpOnDefinedExpr");
 			RegisterOpCode(OPCODE_T10_GetScrHash, "GetScrHash");
+			RegisterOpCode(OPCODE_SAT_GetOmnVarHash, "GetOmnVarHash");
 			RegisterOpCode(OPCODE_T10_FlatArgs, "FlatArgs");
 			RegisterOpCode(OPCODE_T10_GreaterThanOrSuperEqualTo, "GreaterThanOrSuperEqualTo");
 			RegisterOpCode(OPCODE_T10_LowerThanOrSuperEqualTo, "LowerThanOrSuperEqualTo");

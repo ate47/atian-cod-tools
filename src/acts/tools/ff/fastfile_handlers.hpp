@@ -151,6 +151,7 @@ namespace fastfile {
 		const char* wildcard{};
 		const char* ignore{};
 		const char* assets{};
+		const char* translation{};
 		bool disableScriptsDecomp{};
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };
@@ -159,6 +160,8 @@ namespace fastfile {
 		FFHandler* handler{};
 		hook::module_mapper::Module gameMod{};
 		std::vector<std::set<uint64_t>> assetNames{};
+		std::unordered_map<uint64_t, const char*> translationKeys{};
+		core::memory_allocator::MemoryAllocator alloc{};
 
 		~FastFileOption();
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
@@ -167,6 +170,9 @@ namespace fastfile {
 		hook::library::Library GetGame(bool crashError, bool* init = nullptr, bool needDecrypt = false, const char* defaultName = nullptr, const char* dumperName = nullptr);
 		std::vector<std::string> GetFileRecurse(const char* path);
 		bool ReadFile(const char* path, std::vector<byte>& buff);
+		const char* GetTranslation(uint64_t key);
+		const char* GetTranslation(const char* key);
+		void LoadTranslationKeys();
 
 
 		inline bool ReadFile(const std::string& path, std::vector<byte>& buff) {
@@ -287,6 +293,7 @@ namespace fastfile {
 		const char* name;
 		const char* description;
 		bool noPatchOk;
+		size_t forceNumXBlocks{};
 
 		FFHandler(const char* name, const char* description, bool noPatchOk = false) : name(name), description(description), noPatchOk(noPatchOk) {
 		}

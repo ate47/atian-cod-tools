@@ -273,7 +273,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "camo"
+				opt.m_output / gamePath / "source" / "tables" / "camo"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());

@@ -100,8 +100,14 @@ namespace tool::gsc::opcode {
 		if (!_strcmpi("acts", name) || !_strcmpi("test", name)) {
 			return PLATFORM_ACTS_TEST;
 		}
-		if (!_strcmpi("old", name)) {
-			return PLATFORM_OLD;
+		if (!_strcmpi("bo6_v1", name)) {
+			return PLATFORM_BO6_V1;
+		}
+		if (!_strcmpi("bo6", name)) {
+			return PLATFORM_BO6;
+		}
+		if (!_strcmpi("bo7", name)) {
+			return PLATFORM_BO7;
 		}
 		return PLATFORM_UNKNOWN;
 	}
@@ -162,7 +168,9 @@ namespace tool::gsc::opcode {
 		{"xbox", "Xbox"},
 		{"pc_alpha", "Alpha"},
 		{"test", "Test"},
-		{"old", "Old"},
+		{"bo6_v1", "Black Ops 6 (V1)"},
+		{"bo6", "Black Ops 6"},
+		{"bo7", "Black Ops 7"},
 	};
 	static_assert(ARRAYSIZE(platformNames) == PLATFORM_COUNT && "platform(s) added without names");
 
@@ -6002,6 +6010,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetLocalizedHash, "IW_GetLocalizedHash", "&", true));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "IW_GetTagHash", "t", false));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "T10_GetScrHash", "#", true, true));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_SAT_GetOmnVarHash, "SAT_GetOmnVarHash", "o", true));
 			
 			RegisterOpCodeHandler(new OPCodeInfoIWSwitch());
 			RegisterOpCodeHandler(new OPCodeInfoIWEndSwitch());

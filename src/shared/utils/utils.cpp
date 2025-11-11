@@ -494,6 +494,9 @@ namespace utils {
             case '\v':
                 out << "\\v";
                 break;
+            case '\f':
+                out << "\\f";
+                break;
             case '\\':
                 out << "\\\\";
                 break;
@@ -505,6 +508,54 @@ namespace utils {
                     out << "\\x" << std::hex << std::setfill('0') << std::setw(2) << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
                 }
                 else {
+                    out << *str;
+                }
+                break;
+            }
+        }
+        return out;
+    }
+
+    std::ostream& PrintFormattedStringJson(std::ostream& out, const char* str, size_t len) {
+        if (!str) {
+            return out << "nullptr";
+        }
+
+        for (size_t i = 0; (!len && *str) || (len && i < len); str++, i++) {
+            switch (*str) {
+            case '\n':
+                out << "\\n";
+                break;
+            case '\r':
+                out << "\\r";
+                break;
+            case '\t':
+                out << "\\t";
+                break;
+            case '\a':
+                out << "\\a";
+                break;
+            case '\b':
+                out << "\\b";
+                break;
+            case '\v':
+                out << "\\v";
+                break;
+            case '\f':
+                out << "\\f";
+                break;
+            case '\\':
+                out << "\\\\";
+                break;
+            case '"':
+                out << "\\\"";
+                break;
+            default:
+                if (*str >= 0 && *str < 0x20) {
+                    out << "\\u" << std::hex << std::setfill('0') << std::setw(4) << (unsigned int)(*reinterpret_cast<const byte*>(str)) << std::dec;
+                }
+                else {
+                // todo: handle utf8 to us \uxxxx
                     out << *str;
                 }
                 break;
@@ -537,4 +588,7 @@ namespace utils {
 }
 std::ostream& operator<<(std::ostream& stream, const utils::FormattedString& fs) {
     return utils::PrintFormattedString(stream, fs.str, fs.len);
+}
+std::ostream& operator<<(std::ostream& stream, const utils::FormattedStringJson& fs) {
+    return utils::PrintFormattedStringJson(stream, fs.str, fs.len);
 }

@@ -1275,6 +1275,12 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             LOG_ERROR("Bad vm 0x{:x} for file {}", vmVal, path);
             return tool::BASIC_ERROR;
         }
+
+        if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_PLATFORM) && (!opt.m_platform || opt.m_platform == tool::gsc::opcode::PLATFORM_PC)) {
+            LOG_INFO("This VM requires a platform");
+            return tool::BASIC_ERROR;
+
+        }
     }
     hashutils::ReadDefaultFile();
 

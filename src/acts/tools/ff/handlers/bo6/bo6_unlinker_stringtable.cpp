@@ -64,7 +64,7 @@ namespace {
 				n = utils::va("hashed/stringtable/file_%llx.csv", asset->name);
 			}
 
-			std::filesystem::path outFile{ opt.m_output / "bo6" / "source" / n };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
 			LOG_INFO("Dump stringtable {} ({:x}) ({}x{})", outFile.string(), asset->name, asset->rowCount, asset->columnCount);

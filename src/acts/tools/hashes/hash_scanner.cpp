@@ -247,11 +247,18 @@ namespace tool::hash::scanner {
 
 			HashData data{ argv[3] };
 			const char* n{ argv[4] };
-			if (argc >= 6 && argv[5][0]) data.prefix = argv[5];
-			if (argc >= 7 && argv[6][0]) data.suffix = argv[6];
+			if (argc >= 6 && argv[5][0]) {
+				data.prefix = argv[5];
+				LOG_DEBUG("prefix: {}", data.prefix);
+			}
+			if (argc >= 7 && argv[6][0]) {
+				data.suffix = argv[6];
+				LOG_DEBUG("suffix: {}", data.suffix);
+			}
 			if (argc >= 8 && argv[7][0]) {
 				data.dict = argv[7];
 				data.dictSize = std::strlen(data.dict);
+				LOG_DEBUG("dict: {}", data.dict);
 			}
 
 			if (!_strcmpi(n, "bo4")) {

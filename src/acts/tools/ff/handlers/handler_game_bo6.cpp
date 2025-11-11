@@ -8,7 +8,6 @@
 #include <hook/error.hpp>
 #include <hook/scan_container.hpp>
 #include <tools/ff/fastfile_asset_pool.hpp>
-#include <tools/bo6/bo6.hpp>
 #include <decryptutils.hpp>
 #include <tools/ff/handlers/handler_game_bo6.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
@@ -45,7 +44,7 @@ namespace fastfile::handlers::bo6 {
 		}
 
 		
-		class BO6FFHandler;
+		class FFHandlerImpl;
 
 		struct Asset {
 			union {
@@ -203,7 +202,6 @@ namespace fastfile::handlers::bo6 {
 		constexpr T10AssetType MAX_ASSET_COUNT = (T10AssetType)512;
 
 		struct {
-			BO6FFHandler* handler{};
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
 			AssetPoolInfo* poolInfo{};
 			uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
@@ -419,15 +417,14 @@ namespace fastfile::handlers::bo6 {
 			gcx.streamLocations[val & StreamPointerFlag::SPF_DATA_MASK] = ptr;
 		}
 
-		class BO6FFHandler : public fastfile::FFHandler {
+		class FFHandlerImpl : public fastfile::FFHandler {
 		public:
 			// -w "((mp|zm)_t10|ingame|code|global).*"
-			BO6FFHandler() : fastfile::FFHandler("bo6", "Black Ops 6") {
-				gcx.handler = this;
+			FFHandlerImpl() : fastfile::FFHandler(handlerId, handlerName) {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "cod_dump.exe", "bo6") };
+				hook::library::Library lib{ opt.GetGame(true, nullptr, false, gameExe, gameDumpId) };
 				hook::scan_container::ScanContainer scan{ lib, true };
 				scan.Sync();
 
@@ -438,7 +435,7 @@ namespace fastfile::handlers::bo6 {
 				}
 
 #ifdef CI_BUILD
-				LOG_WARNING("You are using the bo6 handler, for now Black Ops 6 is still under");
+				LOG_WARNING("You are using the {} handler, for now {} is still under", handlerId, handlerName);
 				LOG_WARNING("Development and it might not work after a game update.");
 				LOG_WARNING("This handler was developed for the Steam version and might not");
 				LOG_WARNING("work for the BattleNet or the Gamepass version.");
@@ -534,7 +531,7 @@ namespace fastfile::handlers::bo6 {
 				}
 
 				if (opt.dumpXStrings) {
-					std::filesystem::path path{ opt.m_output / "bo6" / "xstrings_all.wni" };
+					std::filesystem::path path{ opt.m_output / gamePath / "xstrings_all.wni" };
 					gcx.xstrOutGlb = std::make_unique<XStringOutCTX>(path);
 				}
 			}
@@ -585,7 +582,7 @@ namespace fastfile::handlers::bo6 {
 					worker->GenDefaultXHashes(&ctx);
 				}
 
-				std::filesystem::path outStrings{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
+				std::filesystem::path outStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
 
 				{
 					gcx.scrStringMap.clear();
@@ -641,7 +638,7 @@ namespace fastfile::handlers::bo6 {
 
 				gcx.assets.unk10 = reader.ReadPtr<uint32_t>(gcx.assets.unk10_count);
 				// idk
-				//std::filesystem::path outUnk{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "unk" / std::format("{}.csv", ctx.ffname) };
+				//std::filesystem::path outUnk{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "unk" / std::format("{}.csv", ctx.ffname) };
 				//{
 				//	std::filesystem::create_directories(outUnk.parent_path());
 				//	utils::OutFileCE stringsOs{ outUnk };
@@ -657,7 +654,7 @@ namespace fastfile::handlers::bo6 {
 					return;
 				}
 
-				std::filesystem::path outAssets{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "assets" / fftype / std::format("{}.csv", ctx.ffname) };
+				std::filesystem::path outAssets{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "assets" / fftype / std::format("{}.csv", ctx.ffname) };
 				{
 					std::filesystem::create_directories(outAssets.parent_path());
 					utils::OutFileCE assetsOs{ outAssets };
@@ -721,7 +718,7 @@ namespace fastfile::handlers::bo6 {
 				}
 				LOG_INFO("Asset names dump into {}", outAssets.string());
 				if (gcx.xstringLocs) {
-					std::filesystem::path ostr{ gcx.opt->m_output / "bo6" / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::path ostr{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(ostr.parent_path());
 					utils::OutFileCE sos{ ostr };
 					for (const char* s : *gcx.xstringLocs) {
@@ -733,7 +730,7 @@ namespace fastfile::handlers::bo6 {
 						}
 
 						sos
-							<< utils::FormattedString{ s }
+							<< utils::FormattedStringJson{ s }
 							<< "\n"
 							;
 
@@ -759,7 +756,7 @@ namespace fastfile::handlers::bo6 {
 		};
 
 		
-		utils::ArrayAdder<BO6FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+		utils::ArrayAdder<FFHandlerImpl, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 	}
 
 	std::unordered_map<bo6::T10HashAssetType, Worker*>& GetWorkers() {
@@ -800,6 +797,7 @@ namespace fastfile::handlers::bo6 {
 		if (type == gcx.assetNames.InvalidId()) {
 			throw std::runtime_error(std::format("INVALID HASH TYPE ID {}", PoolName(htype)));
 		}
+		if (!handle) return 0;
 		return gcx.poolInfo[type].GetAssetName(handle);
 	}
 }

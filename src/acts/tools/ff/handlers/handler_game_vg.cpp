@@ -8,11 +8,11 @@
 #include <hook/scan_container.hpp>
 #include <tools/ff/fastfile_asset_pool.hpp>
 #include <decryptutils.hpp>
-#include <tools/ff/handlers/handler_game_mw19.hpp>
+#include <tools/ff/handlers/handler_game_vg.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/ff/fastfile_names_store.hpp>
 
-namespace fastfile::handlers::mw19 {
+namespace fastfile::handlers::vg {
 	using namespace tool::mw19;
 	constexpr bool hasRelativeLoads = false;
 	constexpr bool traceData = false;
@@ -44,9 +44,9 @@ namespace fastfile::handlers::mw19 {
 			std::map<std::string, std::unordered_set<uint64_t>> map{};
 		};
 		enum XFileBlock {
-			XFILE_BLOCK_MEMMAPPED = 4,
-			XFILE_BLOCK_VIRTUAL = 5,
-			XFILE_BLOCK_COUNT = 8,
+			XFILE_BLOCK_MEMMAPPED = 6,
+			XFILE_BLOCK_VIRTUAL = 7,
+			XFILE_BLOCK_COUNT = 10,
 		};
 
 		struct RewindStreamData {
@@ -201,7 +201,7 @@ namespace fastfile::handlers::mw19 {
 		class FFHandlerImpl : public fastfile::FFHandler {
 		public:
 			FFHandlerImpl() : fastfile::FFHandler(handlerId, handlerName) {
-				forceNumXBlocks = 8;
+				forceNumXBlocks = XFILE_BLOCK_COUNT;
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
@@ -224,11 +224,11 @@ namespace fastfile::handlers::mw19 {
 				// should be done before the handleList to have the hashes loaded
 				gcx.assetNames.InitMap(lib);
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
-				dumpOpts.baseFileName = "mw19";
-				dumpOpts.assetHashedName = "IW8HashAssetType";
-				dumpOpts.assetTypeName = "IW8AssetType";
-				dumpOpts.assetPrefix = "IW8_ASSET_";
-				dumpOpts.assetHashedPrefix = "IW8H_ASSET_";
+				dumpOpts.baseFileName = "vg";
+				dumpOpts.assetHashedName = "S4HashAssetType";
+				dumpOpts.assetTypeName = "S4AssetType";
+				dumpOpts.assetPrefix = "S4_ASSET_";
+				dumpOpts.assetHashedPrefix = "S4H_ASSET_";
 				gcx.assetNames.DumpFiles(opt.m_output / gamePath / "code", &dumpOpts);
 				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
 				gcx.namesStore.LoadConfig(opt.assets);
@@ -243,51 +243,63 @@ namespace fastfile::handlers::mw19 {
 				gcx.DB_PatchMem_FixStreamAlignment = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? ?? 4C", "gcx.DB_PatchMem_FixStreamAlignment").GetPtr<decltype(gcx.DB_PatchMem_FixStreamAlignment)>();
 				gcx.DB_PushStreamPos = scan.ScanSingle("8B 15 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 05", "gcx.DB_PushStreamPos").GetPtr<decltype(gcx.DB_PushStreamPos)>();
 				gcx.DB_PopStreamPos = scan.ScanSingle("44 8B 05 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 15 ?? ?? ?? ?? 41 FF", "gcx.DB_PopStreamPos").GetPtr<decltype(gcx.DB_PopStreamPos)>();
-				
 				gcx.streamPos = scan.ScanSingle("48 89 15 ?? ?? ?? ?? 41 8B 80", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
 				gcx.rewind = scan.ScanSingle("8B C1 4C 8D 15 ?? ?? ?? ?? 4D 8B 14 C2", "gcx.rewind").GetRelative<int32_t, RewindStreamData**>(5);
 				gcx.streamPosIndex = scan.ScanSingle("44 8B 05 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 15 ?? ?? ?? ?? 41 FF", "gcx.streamPosIndex").GetRelative<int32_t, XFileBlock*>(16);
 				gcx.s_rewindPostload = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? 00 4C 8D 1D ?? ?? ?? ?? 4C 8B C9", "gcx.s_rewindPostload").GetRelative<int32_t, byte*>(4) + 1;
 
+				LOG_TRACE("gcx.Load_Asset = {}", hook::library::CodePointer{ gcx.Load_Asset });
+				LOG_TRACE("gcx.loadAsset = {}", hook::library::CodePointer{ gcx.loadAsset });
+				LOG_TRACE("gcx.DB_InitLoadStreamBlocks = {}", hook::library::CodePointer{ gcx.DB_InitLoadStreamBlocks });
+				LOG_TRACE("gcx.Load_ScriptStringList = {}", hook::library::CodePointer{ gcx.Load_ScriptStringList });
+				LOG_TRACE("gcx.loadStringList = {}", hook::library::CodePointer{ gcx.loadStringList });
+				LOG_TRACE("gcx.DB_PatchMem_FixStreamAlignment = {}", hook::library::CodePointer{ gcx.DB_PatchMem_FixStreamAlignment });
+				LOG_TRACE("gcx.DB_PushStreamPos = {}", hook::library::CodePointer{ gcx.DB_PushStreamPos });
+				LOG_TRACE("gcx.DB_PopStreamPos = {}", hook::library::CodePointer{ gcx.DB_PopStreamPos });
+				LOG_TRACE("gcx.streamPos = {}", hook::library::CodePointer{ gcx.streamPos });
+				LOG_TRACE("gcx.rewind = {}", hook::library::CodePointer{ gcx.rewind });
+				LOG_TRACE("gcx.streamPosIndex = {}", hook::library::CodePointer{ gcx.streamPosIndex });
+				LOG_TRACE("gcx.s_rewindPostload = {}", hook::library::CodePointer{ gcx.s_rewindPostload });
+
 				auto Red = [](void* from, void* to) {
 					if (from) {
 						hook::memory::RedirectJmp(from, to);
 					}
-				};
+					};
 
 				Red(scan.ScanSingle("83 F9 01 74 44 53", "LoadStreamTA").location, LoadStreamTA);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 39 BA", "Load_StringName").location, Load_String);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B 31 48 8B F9 48 8B CE", "Load_String").location, Load_String);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 56 57 41 56 48 83 EC 20 8B", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
 				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 4C 63 01", "Load_CustomScriptString").location, Load_CustomScriptString);
-				Red(scan.ScanSingle("E8 ?? ?? ?? ?? 48 01 3D", "LoadXFileData").GetRelative<int32_t, void*>(1), LoadXFileData);
+				Red(scan.ScanSingle("E8 ?? ?? ?? ?? 80 3F 00 74 23", "LoadXFileData").GetRelative<int32_t, void*>(1), LoadXFileData);
 
-				Red(scan.ScanSingle("48 83 EC 58 83 39", "EmptyStub<0>").location, EmptyStub<0>);
-				Red(scan.ScanSingle("40 55 56 57 41 56 41 57 48 8D AC 24 C0", "EmptyStub<1>").location, EmptyStub<1>);
+				//Red(scan.ScanSingle("48 83 EC 58 83 39", "EmptyStub<0>").location, EmptyStub<0>);
+				//Red(scan.ScanSingle("40 55 56 57 41 56 41 57 48 8D AC 24 C0", "EmptyStub<1>").location, EmptyStub<1>);
 				Red(scan.ScanSingle("40 53 48 81 EC 90 00 00 00 48 8B 84", "EmptyStub<2>").location, EmptyStub<2>);
-				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 40 49 8B E9", "EmptyStub<3>").location, EmptyStub<3>);
-				Red(scan.ScanSingle("48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 40 48 63 3D", "EmptyStub<4>").location, EmptyStub<4>);
+				//Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 40 49 8B E9", "EmptyStub<3>").location, EmptyStub<3>);
+				//Red(scan.ScanSingle("48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 40 48 63 3D", "EmptyStub<4>").location, EmptyStub<4>);
 				Red(scan.ScanSingle("40 53 56 41 57 B8", "EmptyStub<5>").location, EmptyStub<5>);
-				Red(scan.ScanSingle("48 8B C4 53 48 81 EC C0 00 00 00 44", "EmptyStub<6>").location, EmptyStub<6>);
-				Red(scan.ScanSingle("4C 8B DC 55 53 57 41 55 41 56 41 57 48", "EmptyStub<7>").location, EmptyStub<7>);
+				//Red(scan.ScanSingle("48 8B C4 53 48 81 EC C0 00 00 00 44", "EmptyStub<6>").location, EmptyStub<6>);
+				//Red(scan.ScanSingle("4C 8B DC 55 53 57 41 55 41 56 41 57 48", "EmptyStub<7>").location, EmptyStub<7>);
 				Red(scan.ScanSingle("48 8B C4 48 89 58 08 48 89 70 10 57 48 81 EC B0 00 00 00 48", "EmptyStub<8>").location, EmptyStub<8>);
 				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 30 48 8B F9 48 8B DA B9", "EmptyStub<9>").location, EmptyStub<9>);
-				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 70 48 8D 05 ?? ?? ?? ?? 89 4C 24 44 48 89 44 24 50 49 8B F8 33 C0 C7 44 24 40 98", "EmptyStub<10>").location, EmptyStub<10>);
-				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 83 EC 70 8B D9", "EmptyStub<11>").location, EmptyStub<11>);
-				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 70 48 8D 05 ?? ?? ?? ?? 89 4C 24 44 48 89 44 24 50 49 8B F8 33 C0 C7 44 24 40 20", "EmptyStub<12>").location, EmptyStub<12>);
-				Red(scan.ScanSingle("48 89 6C 24 18 57 41 56 41 57 48 81 EC 80 00 00 00 48", "EmptyStub<13>").location, EmptyStub<13>);
+				//Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 70 48 8D 05 ?? ?? ?? ?? 89 4C 24 44 48 89 44 24 50 49 8B F8 33 C0 C7 44 24 40 98", "EmptyStub<10>").location, EmptyStub<10>);
+				//Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 83 EC 70 8B D9", "EmptyStub<11>").location, EmptyStub<11>);
+				//Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 70 48 8D 05 ?? ?? ?? ?? 89 4C 24 44 48 89 44 24 50 49 8B F8 33 C0 C7 44 24 40 20", "EmptyStub<12>").location, EmptyStub<12>);
+				//Red(scan.ScanSingle("48 89 6C 24 18 57 41 56 41 57 48 81 EC 80 00 00 00 48", "EmptyStub<13>").location, EmptyStub<13>);
 				Red(scan.ScanSingle("40 53 55 56 57 41 56 48 81 EC A0 00 00 00 48", "EmptyStub<14>").location, EmptyStub<14>);
 				Red(scan.ScanSingle("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 40 49 8B F1 41", "EmptyStub<15>").location, EmptyStub<15>);
 				Red(scan.ScanSingle("49 8B C0 4C 8B CA 4C 8B 01", "EmptyStub<16>").location, EmptyStub<16>);
 				Red(scan.ScanSingle("48 89 74 24 10 48 89 7C 24 18 41 56 48 83 EC 20 33 FF 48 8D 51", "EmptyStub<17>").location, EmptyStub<17>);
 
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 01 48 8B F9 48 89 44 24 30 B9 15", "DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANK>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANK>);
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 01 48 8B F9 48 89 44 24 30 B9 16", "DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANKTRANSIENT>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANKTRANSIENT>);
+				//Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 01 48 8B F9 48 89 44 24 30 B9 16", "DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANK>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANK>);
+				//Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 01 48 8B F9 48 89 44 24 30 B9 17", "DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANKTRANSIENT>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_SOUNDBANKTRANSIENT>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_LinkGenericXAssetCustom<IW8H_ASSET_XMODEL>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_XMODEL>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C", "DB_LinkGenericXAssetCustom<IW8H_ASSET_COMPUTESHADER>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_COMPUTESHADER>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0D", "DB_LinkGenericXAssetCustom<IW8H_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_LIBSHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 43", "DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 73", "DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 45", "DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 7B", "DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>);
 
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
@@ -322,9 +334,9 @@ namespace fastfile::handlers::mw19 {
 								LOG_ERROR("Offset: 0x{:x} -> 0x{:x}", gcx.reader->Loc(), gcx.reader->Remaining());
 							}
 						}
-					});
+						});
 
-				});
+					});
 			}
 			void Cleanup() override {
 				gcx.namesStore.WarnMissings();
@@ -376,7 +388,7 @@ namespace fastfile::handlers::mw19 {
 				for (size_t i = 0; i < ctx.blocksCount; i++) {
 					gcx.rewind[i] = &gcx.rewindBuffer[i];
 				}
-				
+
 				// setup memory blocks
 				for (size_t i = 0; i < ctx.blocksCount; i++) {
 					size_t len{ ctx.blockSizes[i].size };
@@ -501,7 +513,7 @@ namespace fastfile::handlers::mw19 {
 						}
 
 						sos
-							<< utils::FormattedStringJson{ s }
+							<< utils::FormattedString{ s }
 							<< "\n"
 							;
 

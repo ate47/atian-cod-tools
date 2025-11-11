@@ -123,7 +123,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "operator"
+				opt.m_output / gamePath / "source" / "tables" / "operator"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
@@ -168,7 +168,7 @@ namespace {
 			json.EndObject();
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "operator" / "skin"
+				opt.m_output / gamePath / "source" / "tables" / "operator" / "skin"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
@@ -211,7 +211,7 @@ namespace {
 			json.EndObject();
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "operator" / "list"
+				opt.m_output / gamePath / "source" / "tables" / "operator" / "list"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
@@ -258,7 +258,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "operator" / "reactive"
+				opt.m_output / gamePath / "source" / "tables" / "operator" / "reactive"
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());

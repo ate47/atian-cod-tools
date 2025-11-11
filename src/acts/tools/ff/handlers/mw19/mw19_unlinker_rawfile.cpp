@@ -1,43 +1,16 @@
 #include <includes.hpp>
-#include <tools/ff/handlers/handler_game_bo6.hpp>
+#include <tools/ff/handlers/handler_game_mw19.hpp>
 #include <utils/compress_utils.hpp>
 
 namespace {
-	const char* RawFileTypeName(uint32_t type) {
-		static bool load{};
-		if (!load) {
-			const char* exts[]{
-				".json",
-				".cfg",
-				".tif",
-				".bin",
-				".png",
-				".ttf",
-				".txt",
-				".news",
-				".graph",
-			};
-			load = true;
-
-			for (const char* name : exts) {
-				hashutils::AddPrecomputed(hash::HashX32(name), name, false, false);
-			}
-
-		}
-		const char* ext{ hashutils::ExtractPtr(type) };
-		if (ext) return ext;
-		return ".raw";
-	}
-
-	using namespace fastfile::handlers::bo6;
+	using namespace fastfile::handlers::mw19;
 
 	struct RawFile {
-		uint64_t name;
-		uint32_t type;
+		XString name;
 		uint32_t compressedLen;
 		uint32_t uncompressedLen;
 		byte* data;
-	}; static_assert(sizeof(RawFile) == 0x20);
+	}; static_assert(sizeof(RawFile) == 0x18);
 
 	class ImplWorker : public Worker {
 		using Worker::Worker;
@@ -45,16 +18,12 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			RawFile* asset{ (RawFile*)ptr };
 
-			const char* n{ hashutils::ExtractPtr(asset->name) };
-
-			if (!n) {
-				n = utils::va("hashed/rawfile/file_%llx%s", asset->name, RawFileTypeName(asset->type));
-			}
+			const char* n{ ValidateName(asset->name) };
 
 			std::filesystem::path outFile{ opt.m_output / gamePath / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump raw file {} type: 0x{:x} len: 0x{:x}", outFile.string(), asset->type, asset->uncompressedLen);
+			LOG_INFO("Dump raw file {} len: 0x{:x}", outFile.string(), asset->uncompressedLen);
 			if (!asset->uncompressedLen && std::filesystem::exists(outFile)) return; // ignore empty files
 			std::unique_ptr<byte[]> decomp{ std::make_unique<byte[]>(asset->uncompressedLen + 1) };
 
@@ -71,5 +40,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, bo6::T10HashAssetType, Worker> impl{ GetWorkers(), bo6::T10HashAssetType::T10H_ASSET_RAWFILE, sizeof(RawFile) };
+	utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::IW8H_ASSET_RAWFILE, sizeof(RawFile) };
 }

@@ -58,7 +58,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / dir
+				opt.m_output / gamePath / "source" / "tables" / dir
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset.name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
@@ -201,7 +201,7 @@ namespace {
 
 
 			std::filesystem::path outFile{
-				opt.m_output / "bo6" / "source" / "tables" / "ai" / "type"
+				opt.m_output / gamePath / "source" / "tables" / "ai" / "type"
 				/ fastfile::GetCurrentContext().ffname
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset.name))
 			};

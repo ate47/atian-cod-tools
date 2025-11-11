@@ -260,7 +260,7 @@ namespace {
 				ffHeaderSize = sizeof(ffHeader.mw19);
 				reader.Read(&ffHeader.mw19, sizeof(ffHeader.mw19));
 				secureType = ST_MW19;
-				ctx.blocksCount = 8;
+				ctx.blocksCount = opt.handler && opt.handler->forceNumXBlocks ? opt.handler->forceNumXBlocks : 8;
 				endSize = ffHeader.mw19.size;
 
 				uint64_t* blockSizes{ ffHeader.mw19.blockSize };
@@ -513,7 +513,7 @@ namespace {
 
 				switch (header->headerVersion) {
 				case IWFV_MW19: {
-					ctx.blocksCount = 8;
+					ctx.blocksCount = opt.handler && opt.handler->forceNumXBlocks ? opt.handler->forceNumXBlocks : 8;
 					//endSize = ...;
 					blockSizes = newHeader.mw19.blockSize;
 					break;

@@ -1,43 +1,38 @@
 #include <includes.hpp>
-#include <tools/ff/handlers/handler_game_bo4.hpp>
-#include <utils/decrypt.hpp>
-
+#include <tools/ff/handlers/handler_game_mw19.hpp>
 
 namespace {
-	using namespace fastfile::handlers::bo4;
+	using namespace fastfile::handlers::mw19;
 
 	struct Localize {
-		const char* val;
-		XHash name;
-	}; static_assert(sizeof(Localize) == 0x18);
+		XString name;
+		XString val;
+	}; static_assert(sizeof(Localize) == 0x10);
 
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
-		std::vector<Localize*> vals{};
+		std::vector<Localize> vals{};
 
-		void Unlink(fastfile::FastFileOption& opt, void* ptr) override {
-			vals.push_back((Localize*)ptr);
+		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
+			vals.emplace_back(*(Localize*)ptr);
 		}
 		void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
 			vals.clear(); // cleanup for errors?
 		}
 		void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
 			if (vals.empty()) return; // nothing to dump
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "localize" / std::format("{}.json", ctx.ffname) };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "localize" / std::format("{}.json", ctx.ffname) };
 			std::filesystem::create_directories(outFile.parent_path());
 			utils::OutFileCE os{ outFile, true };
 
 			os << "{";
 			size_t invalid{};
-			size_t i{};
-			for (Localize* loc : vals) {
-				if (!loc->val) {
-					continue;
-				}
-				if (i++) os << ",";
+			for (size_t i = 0; i < vals.size(); i++) {
+				Localize* loc{ &vals[i] };
+				if (i) os << ",";
 				os << "\n";
-				utils::Padding(os, 1) << "\"" << hashutils::ExtractTmp("hash", loc->name) << "\": ";
+				utils::Padding(os, 1) << "\"" << ValidateName(loc->name) << "\": ";
 				if (!loc->val) {
 					os << "null";
 					invalid++;
@@ -55,7 +50,7 @@ namespace {
 						}
 					}
 					else {
-						os << "\"" << utils::FormattedStringJson{ decrypt::DecryptString((char*)loc->val)} << "\"";
+						os << "\"" << utils::FormattedStringJson{ loc->val } << "\"";
 					}
 				}
 
@@ -68,5 +63,5 @@ namespace {
 		}
 	};
 
-	utils::MapAdder<ImplWorker, games::bo4::pool::XAssetType, Worker> impl{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_LOCALIZE_ENTRY };
+	utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::IW8H_ASSET_LOCALIZE, sizeof(Localize) };
 }

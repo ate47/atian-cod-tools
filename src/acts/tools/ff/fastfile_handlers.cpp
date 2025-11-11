@@ -9,6 +9,7 @@
 #include <core/actsinfo.hpp>
 #include <HwBpLib.h>
 #include <regex>
+#include <rapidjson/document.h>
 
 
 namespace fastfile {
@@ -426,6 +427,14 @@ namespace fastfile {
 				}
 				assets = args[++i];
 			}
+			else if (!strcmp("-t", arg) || !_strcmpi("--translate", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				translation = args[++i];
+				LoadTranslationKeys();
+			}
 			else if (!strcmp("-D", arg) || !_strcmpi("--decompressors", arg)) {
 				print_decompressors = true;
 			}
@@ -503,6 +512,7 @@ namespace fastfile {
 		LOG_INFO("-i --fd-ignore         : Ignore missing fd file");
 		LOG_INFO("-a --assets [g]        : Set the asset types to dump by name (by default all)");
 		LOG_INFO("-n --name [n]          : Set the assets to dump by name (by default all)");
+		LOG_INFO("-t --translate [t]     : Load translation directory");
 		LOG_INFO("--noAssetDump          : No asset dump");
 		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
 		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
@@ -618,6 +628,70 @@ namespace fastfile {
 
 		return utils::ReadFile(path, buff);
 	}
+	const char* FastFileOption::GetTranslation(uint64_t key) {
+		auto it{ translationKeys.find(key & hash::MASK60) };
+
+		if (it == translationKeys.end()) {
+			return hashutils::ExtractTmp("hash", key);
+		}
+
+		return it->second;
+	}
+	const char* FastFileOption::GetTranslation(const char* key) {
+		auto it{ translationKeys.find(hash::HashIWAsset(key) & hash::MASK60)};
+
+		if (it == translationKeys.end()) {
+			return key;
+		}
+
+		return it->second;
+	}
+	void FastFileOption::LoadTranslationKeys() {
+		std::vector<std::filesystem::path> paths{};
+		utils::GetFileRecurseExt(translation, paths, ".json\0");
+
+		size_t loaded{};
+		for (const std::filesystem::path& path : paths) {
+			std::string json{};
+			LOG_TRACE("read file {}", path.string());
+
+			if (!utils::ReadFile(path, json)) {
+				LOG_WARNING("Error when loading translation {}: can't read data", path.string());
+				continue;
+			}
+			rapidjson::Document main;
+
+			main.Parse(json.data());
+			if (main.HasParseError()) {
+				LOG_WARNING("Error when loading translation {}: can't parse data: {}", path.string(), (int)main.GetParseError());
+				continue;
+			}
+			
+
+
+			for (auto it = main.MemberBegin(); it != main.MemberEnd(); it++) {
+				
+				const char* str{ it->name.GetString() };
+				if (!it->value.IsString()) {
+					continue; // invalid
+				}
+				const char* all{ alloc.CloneStr(it->value.GetString()) };
+				uint64_t hash;
+				if (hash::TryHashPattern(str, hash)) {
+					LOG_TRACE("{} {}", hash & hash::MASK60, all);
+					translationKeys[hash & hash::MASK60] = all;
+				}
+				else {
+					translationKeys[hash::HashIWAsset(str) & hash::MASK60] = all;
+					translationKeys[hash::HashX64(str) & hash::MASK60] = all;
+				}
+				loaded++;
+			}
+
+		}
+		LOG_INFO("loaded {} translation key(s)", loaded);
+	}
+
 	void FastFileOption::AddAssetName(int type, uint64_t name) {
 		if (!dumpAssetNames) return;
 

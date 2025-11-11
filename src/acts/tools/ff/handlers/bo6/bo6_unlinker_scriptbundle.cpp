@@ -20,7 +20,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 			json.WriteValueNumber(def.value.float_val);
 			break;
 		case SBT_STRING:
-			json.WriteValueString(std::format("{}", utils::FormattedString{ *def.value.str }));
+			json.WriteValueString(std::format("{}", utils::FormattedStringJson{ *def.value.str }));
 			break;
 		case SBT_STRUCT: {
 			WriteData(json, *def.value.obj);
@@ -181,7 +181,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 				name[catcut] = '/';
 			}
 
-			std::filesystem::path outFile{ opt.m_output / "bo6" / "source" / "scriptbundle" / name };
+			std::filesystem::path outFile{ opt.m_output / gamePath / "source" / "scriptbundle" / name };
 
 
 			std::filesystem::create_directories(outFile.parent_path());
@@ -200,7 +200,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 
 			for (auto& [cat, vec] : bundles) {
 				std::filesystem::path outFile{ 
-					opt.m_output / "bo6" / "source" / "scriptbundle" 
+					opt.m_output / gamePath / "source" / "scriptbundle" 
 					/ (cat ? hashutils::ExtractTmp("hash", cat) : "default") / "hashed"
 					/ std::format("{}.json", ctx.ffname)
 				};
