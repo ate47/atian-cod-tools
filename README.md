@@ -73,8 +73,8 @@ See the wiki to know how to use the features
 | Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `scriptfile` (Compiled), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern Warfare III    | ✅      | `mwiii`   | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern&nbsp;Warfare&nbsp;III&nbsp;SP | ✅      | `mwiiisp` | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
-| Black Ops 6           | ✅      | `bo6`     | `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize` |
-| Black Ops 6 SP        | ✅      | `bo6sp`   | `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize`, `soundbank` |
+| Black Ops 6           | ✅      | `bo6`     | `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`, `soundbank` |
+| Black Ops 6 SP        | ✅      | `bo6sp`   | `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize` |
 | Black Ops 7           | ✅      | ❌ |
 
 The `gsc` handler can read  `scriptparsetree`, `gscobj` or `scriptfile` pools from decompressed fastfiles.
@@ -83,7 +83,7 @@ The `gsc` handler can read  `scriptparsetree`, `gscobj` or `scriptfile` pools fr
 
 | Game                  | Linker   | Pools      |
 | --------------------- | --------- | ---------- |
-| Black Ops 3           | `bo4`     | `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`, `ttf`, `bgcache` |
+| Black Ops 4           | `bo4`     | `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `localize`, `ttf`, `bgcache` |
 | Black&nbsp;Ops&nbsp;Cold&nbsp;War    | `cw`     | `rawfile` |
 
 ## ACTS Lib
