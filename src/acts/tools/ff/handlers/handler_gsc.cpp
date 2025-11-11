@@ -51,6 +51,7 @@ namespace {
         }
 
         bool HandleScriptFile(fastfile::FastFileOption & opt, core::bytebuffer::ByteBuffer & buff, fastfile::FastFileContext & ctx) {
+            if (!ctx.hasGSCBin) return false;
             struct ScriptFile {
                 uint64_t name;
                 int32_t compressedLen;
