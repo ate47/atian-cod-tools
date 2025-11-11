@@ -1,8 +1,11 @@
 - acts
+    - fix library loading
 	- fastfile
-		- mwiisp handler (scriptfile, rawfile, luafile, stringtable, ddl, scriptbundle, localize)
-		- mwii handler (luafile, stringtable, ddl, scriptbundle, localize)
-		- mwiii/ sp handlers (luafile, stringtable, ddl, scriptbundle, localize)
-		- reduce logs
-		- mw19 fastfile decompression
-	- fix oodle dll loading 
+		- disable cold war auto spt platform
+		- add soundbank ff unlinker in bo6 handler
+		- use json format instead of C format for json dumps
+		- add translation option
+	- gsc
+		- add bo7 to compiler/decompiler
+		- force usage of `bo6_v1`, `bo6` and `bo7` for vm-iw14 in decompiler
+	- fix bo6 and bo7 exe dump
