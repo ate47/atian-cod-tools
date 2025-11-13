@@ -119,10 +119,15 @@ namespace fastfile {
 		};
 
 		fastfile::FastFileContext* currentCtx{};
+		fastfile::FastFileOption* currentOpt{};
 	}
 
 	fastfile::FastFileContext& GetCurrentContext() {
 		return *currentCtx;
+	}
+
+	fastfile::FastFileOption& GetCurrentOptions() {
+		return *currentOpt;
 	}
 
 	const char* GetFastFileCompressionName(FastFileCompression comp) {
@@ -629,6 +634,10 @@ namespace fastfile {
 		return utils::ReadFile(path, buff);
 	}
 	const char* FastFileOption::GetTranslation(uint64_t key) {
+		if (!(key & hash::MASK60)) {
+			return "";
+		}
+
 		auto it{ translationKeys.find(key & hash::MASK60) };
 
 		if (it == translationKeys.end()) {
@@ -727,7 +736,8 @@ namespace fastfile {
 				return tool::OK;
 			}
 		}
-		
+
+		currentOpt = &opt;
 
 		if (opt.print_handlers || opt.print_decompressors) {
 			if (opt.print_handlers) {
@@ -874,6 +884,7 @@ namespace fastfile {
 				currentCtx = nullptr;
 			}
 		}
+		currentOpt = nullptr;
 
 		if (cc.lastDecompressor) {
 			cc.lastDecompressor->Cleanup();

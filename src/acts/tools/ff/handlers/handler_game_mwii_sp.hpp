@@ -175,6 +175,19 @@ namespace fastfile::handlers::mwiisp {
 			}
 			JsonWriter::EndArray();
 		}
+
+		void WriteValueLocalized(XHash64 val) {
+			fastfile::FastFileOption& opt{ fastfile::GetCurrentOptions() };
+			JsonWriter::WriteValueString(std::format("&#{}", utils::FormattedStringJson{ opt.GetTranslation(val) }));
+		}
+
+		void WriteFieldValueLocalized(const char* name, XHash64 val) {
+			if (!val) {
+				return;
+			}
+			JsonWriter::WriteFieldNameString(name);
+			WriteValueLocalized(val);
+		}
 	};
 
 	std::vector<const char*>* GetXStrings();

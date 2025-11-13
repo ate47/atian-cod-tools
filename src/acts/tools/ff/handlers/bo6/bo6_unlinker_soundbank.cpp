@@ -108,7 +108,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			SndBank* asset{ (SndBank*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			bool anyTranslation{};
 

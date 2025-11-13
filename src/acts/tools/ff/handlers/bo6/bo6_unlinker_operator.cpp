@@ -80,7 +80,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 
 			Operator* asset{ (Operator*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 
@@ -140,7 +140,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 
 			OperatorSkin* asset{ (OperatorSkin*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 
@@ -185,7 +185,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 
 			OperatorList* asset{ (OperatorList*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 
@@ -228,7 +228,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 
 			ReactiveOperator* asset{ (ReactiveOperator*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 

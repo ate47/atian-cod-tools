@@ -36,7 +36,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			AIEventList* asset{ (AIEventList*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 

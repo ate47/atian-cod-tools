@@ -56,7 +56,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ObjectStoreProject* asset{ (ObjectStoreProject*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 
@@ -83,7 +83,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ObjectStoreDDLConfig* asset{ (ObjectStoreDDLConfig*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 
@@ -110,7 +110,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ObjectStoreDDLConfigGroup* asset{ (ObjectStoreDDLConfigGroup*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 			json.WriteFieldValueXHash("name", asset->name);
@@ -137,7 +137,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ObjectStoreGamemode* asset{ (ObjectStoreGamemode*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 

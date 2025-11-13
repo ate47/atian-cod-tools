@@ -46,7 +46,7 @@ namespace {
 				LOG_INFO("ignore empty asset {}", hashutils::ExtractTmp("hash", asset.name));
 				return;
 			}
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 
@@ -130,7 +130,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			AIType& asset{ *(AIType*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 

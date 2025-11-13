@@ -89,7 +89,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 	};
 	static_assert(sizeof(ScriptBundle) == 0x30);
 
-	bool WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle);
-	bool WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def);
-	bool WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data);
+	bool WriteBundle(HandlerJsonWriter& json, ScriptBundle* bundle);
+	bool WriteDef(HandlerJsonWriter& json, ScriptBundleObjectDef& def);
+	bool WriteData(HandlerJsonWriter& json, ScriptBundleObjectData& data);
 }

@@ -165,7 +165,7 @@ namespace {
 							os << "%#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
 							break;
 						case STT_XHASH_LOCALIZED:
-							os << "&#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);
+							os << "&#" << opt.GetTranslation(*(uint64_t*)value);
 							break;
 						case STT_XHASH_DVAR:
 							os << "@#" << hashutils::ExtractTmp("hash", *(uint64_t*)value);

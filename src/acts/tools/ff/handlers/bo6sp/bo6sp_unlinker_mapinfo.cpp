@@ -38,7 +38,7 @@ namespace {
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			MapInfo* asset{ (MapInfo*)ptr };
-			BO6JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			json.BeginObject();
 

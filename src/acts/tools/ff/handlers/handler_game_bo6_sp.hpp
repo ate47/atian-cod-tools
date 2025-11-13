@@ -60,7 +60,7 @@ namespace fastfile::handlers::bo6sp {
 	T10AssetType GetExePoolId(T10HashAssetType name);
 	uint64_t GetXAssetName(T10HashAssetType type, void* handle);
 
-	class BO6JsonWriter : public utils::raw_file_extractor::JsonWriter {
+	class HandlerJsonWriter : public utils::raw_file_extractor::JsonWriter {
 	public:
 		using utils::raw_file_extractor::JsonWriter::JsonWriter;
 
@@ -164,6 +164,19 @@ namespace fastfile::handlers::bo6sp {
 				JsonWriter::WriteValueHash(GetXAssetName(type, val[i]));
 			}
 			JsonWriter::EndArray();
+		}
+
+		void WriteValueLocalized(XHash64 val) {
+			fastfile::FastFileOption& opt{ fastfile::GetCurrentOptions() };
+			JsonWriter::WriteValueString(std::format("&#{}", utils::FormattedStringJson{ opt.GetTranslation(val) }));
+		}
+
+		void WriteFieldValueLocalized(const char* name, XHash64 val) {
+			if (!val) {
+				return;
+			}
+			JsonWriter::WriteFieldNameString(name);
+			WriteValueLocalized(val);
 		}
 	};
 

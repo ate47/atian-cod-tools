@@ -1438,9 +1438,11 @@ private:
 	bool m_hash64;
 	bool m_isInlined;
 	bool m_canInline;
+	bool m_localized;
 public:
-	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true, bool isInlined = false, bool canInline = false)
-		: m_type(type), m_hash64(hash64), m_isInlined(isInlined), m_canInline(canInline), OPCodeInfo(id, name) {}
+	OPCodeInfoGetHash(OPCode id, const char* name, const char* type, bool hash64 = true, bool isInlined = false, bool canInline = false, bool localized = false)
+		: m_type(type), m_hash64(hash64), m_isInlined(isInlined), m_canInline(canInline), m_localized(localized), OPCodeInfo(id, name) {
+	}
 
 	int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 		if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
@@ -1454,7 +1456,7 @@ public:
 		auto& bytecode = context.m_bcl;
 
 		uint64_t hash;
-		
+
 		if (m_hash64) {
 			hash = context.Read<uint64_t>(bytecode);
 			bytecode += 8;
@@ -1466,10 +1468,18 @@ public:
 
 		if (context.m_runDecompiler) {
 
-			context.PushASMCNode(new ASMContextNodeHash(hash, m_isInlined || (m_canInline && objctx.m_vmInfo->IsScrHash(hash)), m_type));
+			context.PushASMCNode(new ASMContextNodeHash(hash, m_isInlined || (m_canInline && objctx.m_vmInfo->IsScrHash(hash)), m_type, m_localized));
 		}
 
-		out << m_type << "\"" << hashutils::ExtractTmp("hash", hash) << "\" (" << m_type << std::hex << hash << ")" << std::endl;
+		out << m_type << "\"";
+		if (m_localized && objctx.gdctx.opt.LookupLocalizedFunc) {
+			out << utils::FormattedString{ objctx.gdctx.opt.LookupLocalizedFunc(hash) };
+		}
+		else {
+			out << hashutils::ExtractTmp("hash", hash);
+		}
+		out << "\" (" << m_type << std::hex << hash << ")" << std::endl;
+		
 
 		return 0;
 	}
@@ -6007,7 +6017,7 @@ namespace tool::gsc::opcode {
 			RegisterOpCodeHandler(new OPCodeInfoClearLocalVariableCached(OPCODE_IW_ClearLocalVariableCached0, "IW_ClearLocalVariableCached0", 0));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetDVarHash, "IW_GetDVarHash", "@"));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetResourceHash, "IW_GetResourceHash", "%"));
-			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetLocalizedHash, "IW_GetLocalizedHash", "&", true));
+			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetLocalizedHash, "IW_GetLocalizedHash", "&", true, false, false, true));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_IW_GetTagHash, "IW_GetTagHash", "t", false));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_T10_GetScrHash, "T10_GetScrHash", "#", true, true));
 			RegisterOpCodeHandler(new OPCodeInfoGetHash(OPCODE_SAT_GetOmnVarHash, "SAT_GetOmnVarHash", "o", true));

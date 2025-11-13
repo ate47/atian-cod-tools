@@ -15,6 +15,10 @@ namespace {
 		byte* buffer;
 	}; static_assert(sizeof(GscGdb) == 0x18);
 
+	const char* LookupLocalizedImpl(uint64_t hash) {
+		return fastfile::GetCurrentOptions().GetTranslation(hash);
+	}
+
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
@@ -69,6 +73,9 @@ namespace {
 				std::filesystem::path outSource{ opt.m_output / gamePath / "source" };
 				std::string outSourceStr{ outSource.string() };
 				gdctx.opt.m_outputDir = outSourceStr.data();
+				if (opt.translation) {
+					gdctx.opt.LookupLocalizedFunc = LookupLocalizedImpl;
+				}
 				gdctx.stringsLoc = GetXStrings();
 
 				int r{ tool::gsc::DecompileGsc(asset->buffer, asset->len, outFile, gdctx) };

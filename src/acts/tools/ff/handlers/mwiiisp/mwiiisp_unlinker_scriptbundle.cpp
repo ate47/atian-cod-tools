@@ -6,16 +6,22 @@
 namespace fastfile::handlers::mwiiisp::scriptbundle {
 	using namespace fastfile::handlers::mwiiisp;
 
-	static void WriteString(utils::raw_file_extractor::JsonWriter& json, const char* prefix, size_t offset, byte* rawData, size_t rawDataLen) {
+	static void WriteString(HandlerJsonWriter& json, const char* prefix, size_t offset, byte* rawData, size_t rawDataLen, bool localized) {
 		if (offset >= rawDataLen) {
 			json.WriteValueString(std::format("invalid:0x%llx", offset));
 		}
 		else {
-			json.WriteValueString(std::format("{}{}", prefix, utils::FormattedStringJson{ (char*)(&rawData[offset]) }));
+			const char* str{ (char*)(&rawData[offset]) };
+			if (localized) {
+				json.WriteValueLocalized(str);
+			}
+			else {
+				json.WriteValueString(std::format("{}{}", prefix, utils::FormattedStringJson{ str }));
+			}
 		}
 	}
 
-	void WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen) {
+	void WriteDef(HandlerJsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen) {
 		switch (def.type) {
 		case SBT_UNDEFINED:
 			json.WriteValueLiteral("undefined");
@@ -30,10 +36,10 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 			json.WriteValueNumber(def.value.floatval);
 			break;
 		case SBT_STRING:
-			WriteString(json, "", def.value.id, rawData, rawDataLen);
+			WriteString(json, "", def.value.id, rawData, rawDataLen, false);
 			break;
 		case SBT_LOCALIZED:
-			WriteString(json, "&", def.value.id, rawData, rawDataLen);
+			WriteString(json, "&", def.value.id, rawData, rawDataLen, true);
 			break;
 		case SBT_STRUCT: {
 			WriteStruct(json, def.value.strct, rawData, rawDataLen);
@@ -55,7 +61,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 			ScriptBundleObjectDefValueAnim* anim{ &def.value.anim };
 			json.WriteFieldValueString("type", "anim");
 			json.WriteFieldNameString("name");
-			WriteString(json, "", anim->nameIndex, rawData, rawDataLen);
+			WriteString(json, "", anim->nameIndex, rawData, rawDataLen, false);
 			if (anim->anim) {
 				json.WriteFieldNameString("id");
 				json.WriteValueHash(anim->anim, "anim#");
@@ -64,7 +70,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 			break;
 		}
 		case SBT_STRUCT_ANIMATION_TREE:
-			WriteString(json, "animtree#", def.value.id, rawData, rawDataLen);
+			WriteString(json, "animtree#", def.value.id, rawData, rawDataLen, false);
 			break;
 		case SBT_ARRAY_INDEXED: {
 			json.BeginArray();
@@ -94,7 +100,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 			break;
 		}
 	}
-	void WriteStruct(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen) {
+	void WriteStruct(HandlerJsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen) {
 		json.BeginObject();
 
 		for (size_t i = 0; i < data.defsCount; i++) {
@@ -105,11 +111,11 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 		json.EndObject();
 	}
 
-	void WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data) {
+	void WriteData(HandlerJsonWriter& json, ScriptBundleObjectData& data) {
 		WriteStruct(json, data.bundle, data.data, data.dataSize);
 	}
 
-	void WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
+	void WriteBundle(HandlerJsonWriter& json, ScriptBundle* bundle) {
 		WriteData(json, bundle->data);
 	}
 
@@ -148,7 +154,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			LOG_INFO("Dump scriptbundle {}", outFile.string());
 
@@ -171,7 +177,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 				std::filesystem::create_directories(outFile.parent_path());
 
-				utils::raw_file_extractor::JsonWriter json{};
+				HandlerJsonWriter json{};
 
 				std::sort(vec.begin(), vec.end(), [](ScriptBundle& a, ScriptBundle& b) -> bool { return a.name < b.name; });
 

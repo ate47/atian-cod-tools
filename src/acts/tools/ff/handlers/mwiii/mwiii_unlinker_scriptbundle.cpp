@@ -5,7 +5,7 @@
 namespace fastfile::handlers::mwiii::scriptbundle {
 	using namespace fastfile::handlers::mwiii;
 
-	bool WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def) {
+	bool WriteDef(HandlerJsonWriter& json, ScriptBundleObjectDef& def) {
 		switch (def.type) {
 		case SBT_UNDEFINED:
 			json.WriteValueLiteral("undefined");
@@ -23,7 +23,7 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 			json.WriteValueString(std::format("{}", utils::FormattedStringJson{ *def.value.str }));
 			break;
 		case SBT_LOCALIZED:
-			json.WriteValueString(std::format("&{}", utils::FormattedStringJson{ *def.value.str }));
+			json.WriteValueLocalized(*def.value.str);
 			break;
 		case SBT_STRUCT: {
 			WriteData(json, *def.value.obj);
@@ -94,7 +94,7 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 		}
 		return true;
 	}
-	bool WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data) {
+	bool WriteData(HandlerJsonWriter& json, ScriptBundleObjectData& data) {
 		json.BeginObject();
 
 		for (size_t i = 0; i < data.count; i++) {
@@ -106,7 +106,7 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 		return true;
 	}
 
-	bool WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
+	bool WriteBundle(HandlerJsonWriter& json, ScriptBundle* bundle) {
 		return WriteData(json, bundle->data);
 	}
 
@@ -166,7 +166,7 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			LOG_INFO("Dump scriptbundle {}", outFile.string());
 
@@ -187,7 +187,7 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 
 				std::filesystem::create_directories(outFile.parent_path());
 
-				utils::raw_file_extractor::JsonWriter json{};
+				HandlerJsonWriter json{};
 
 				std::sort(vec.begin(), vec.end(), [](ScriptBundle& a, ScriptBundle& b) -> bool { return a.name < b.name; });
 

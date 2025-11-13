@@ -140,11 +140,16 @@ namespace tool::gsc::opcode {
 		uint64_t m_value;
 		bool m_canonid;
 		const char* m_type;
-		ASMContextNodeHash(uint64_t value, bool canonid = false, const char* type = "#") : m_type(type), ASMContextNode(PRIORITY_VALUE, TYPE_CONST_HASH), m_value(value), m_canonid(canonid) {
+		bool m_localized;
+		ASMContextNodeHash(uint64_t value, bool canonid = false, const char* type = "#", bool localized = false) : 
+			m_type(type), ASMContextNode(PRIORITY_VALUE, TYPE_CONST_HASH), m_value(value), m_canonid(canonid), m_localized(localized) {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			if (m_canonid) {
+			if (m_localized && ctx.opt.LookupLocalizedFunc) {
+				out << m_type << "\"" << utils::FormattedString(ctx.opt.LookupLocalizedFunc(m_value)) << '"' << std::flush;
+			}
+			else if (m_canonid) {
 				out << m_type << "" << hashutils::ExtractTmp("var", m_value) << std::flush;
 			}
 			else {
@@ -153,7 +158,7 @@ namespace tool::gsc::opcode {
 		}
 
 		ASMContextNode* Clone0() const override {
-			return new ASMContextNodeHash(m_value, m_canonid, m_type);
+			return new ASMContextNodeHash(m_value, m_canonid, m_type, m_localized);
 		}
 
 		int64_t GetIntConst() const override {

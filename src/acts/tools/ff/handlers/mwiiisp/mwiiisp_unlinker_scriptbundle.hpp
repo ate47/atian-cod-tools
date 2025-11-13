@@ -87,8 +87,8 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 
 
-	void WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle);
-	void WriteStruct(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen);
-	void WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data);
-	void WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen);
+	void WriteBundle(HandlerJsonWriter& json, ScriptBundle* bundle);
+	void WriteStruct(HandlerJsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen);
+	void WriteData(HandlerJsonWriter& json, ScriptBundleObjectData& data);
+	void WriteDef(HandlerJsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen);
 }

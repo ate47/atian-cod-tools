@@ -127,6 +127,7 @@ namespace tool::gsc {
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
         opcode::VMId m_vm{ opcode::VMId::VMI_UNKNOWN };
         const formatter::FormatterInfo* m_formatter{};
+        const char* (*LookupLocalizedFunc)(uint64_t hash) {};
 
 
         std::vector<const char*> m_inputFiles{};
@@ -223,7 +224,7 @@ namespace tool::gsc {
             TYPE_SWITCH_POSTCOMPUTE,
             TYPE_TRY_PRECOMPUTE,
             TYPE_CATCH_PRECOMPUTE,
-
+            
             TYPE_CONST_HASH,
             TYPE_STRING,
             TYPE_VECTOR,

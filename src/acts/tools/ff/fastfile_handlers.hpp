@@ -323,6 +323,7 @@ namespace fastfile {
 	FFCompressor* FindCompressor(const char* name);
 	FFLinker* FindLinker(const char* name);
 	fastfile::FastFileContext& GetCurrentContext();
+	fastfile::FastFileOption& GetCurrentOptions();
 
 	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp);
 	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileIWCompression comp);

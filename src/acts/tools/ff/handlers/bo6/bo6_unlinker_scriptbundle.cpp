@@ -5,7 +5,7 @@
 namespace fastfile::handlers::bo6::scriptbundle {
 	using namespace fastfile::handlers::bo6;
 
-	bool WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def) {
+	bool WriteDef(HandlerJsonWriter& json, ScriptBundleObjectDef& def) {
 		switch (def.type) {
 		case SBT_UNDEFINED:
 			json.WriteValueLiteral("undefined");
@@ -87,7 +87,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 			json.WriteValueHash(def.value.hash, "#");
 			break;
 		case SBT_LOCALIZED:
-			json.WriteValueHash(def.value.hash, "&#");
+			json.WriteValueLocalized(def.value.hash);
 			break;
 		case SBT_XHASH_32:
 			json.WriteValueHash(def.value.hash32, "x32#");
@@ -113,7 +113,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 		}
 		return true;
 	}
-	bool WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data) {
+	bool WriteData(HandlerJsonWriter& json, ScriptBundleObjectData& data) {
 		json.BeginObject();
 
 		for (size_t i = 0; i < data.count; i++) {
@@ -125,7 +125,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 		return true;
 	}
 
-	bool WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
+	bool WriteBundle(HandlerJsonWriter& json, ScriptBundle* bundle) {
 		return WriteData(json, bundle->data);
 	}
 
@@ -186,7 +186,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			HandlerJsonWriter json{};
 
 			LOG_INFO("Dump scriptbundle {}", outFile.string());
 
@@ -207,7 +207,7 @@ namespace fastfile::handlers::bo6::scriptbundle {
 
 				std::filesystem::create_directories(outFile.parent_path());
 
-				utils::raw_file_extractor::JsonWriter json{};
+				HandlerJsonWriter json{};
 
 				std::sort(vec.begin(), vec.end(), [](ScriptBundle* a, ScriptBundle* b) -> bool { return a->name < b->name; });
 
