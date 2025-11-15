@@ -139,6 +139,15 @@ namespace {
 		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_IW_GetAnimationTree, 0x57);
 		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_IW_GetGameRef, 0x86);
 		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_ScriptThreadCallPointerEndOn, 0x7e);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_GetLongInteger, 0x8b);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_T10_TryEnd, 0x91);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_T10_Try, 0x2a);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_IW_GetTagHash, 0x9e);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_T10_GetVector2, 0x45);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_T10_GetVector4, 0x73);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_IW_GetThread, 0x07);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_IW_GetAnim, 0xc);
+		t1014->RegisterOpCode(PLATFORM_BO7, OPCODE_T10_Vector4, 0x1e);
 
 
 	}
