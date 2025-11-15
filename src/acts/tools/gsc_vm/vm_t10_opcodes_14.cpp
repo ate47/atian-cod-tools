@@ -7,10 +7,9 @@ namespace {
 	using namespace tool::gsc::opcode;
 	void OpCode() {
 		VmInfo* t1014 = RegisterVM(VMI_T10_14, "Call of Duty: Black Ops 6", "t10", "bo6", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED | VmFlags::VMF_NO_PLATFORM); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS
-		t1014->RegisterVmName("cer", "sat", "t10", "blackops6", "blackops7", "bo7");
+		t1014->RegisterVmName("cer", "t10", "blackops6");
 		t1014->AddPlatform(PLATFORM_BO6);
 		t1014->AddPlatform(PLATFORM_BO6_V1);
-		t1014->AddPlatform(PLATFORM_BO7);
 		t1014->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
 		t1014->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
 		t1014->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
@@ -29,7 +28,6 @@ namespace {
 		t1014->RegisterVMHashOPCode('%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hash::HashIWAsset(str); });
 		t1014->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashX32(str); });
 		t1014->RegisterVMHashOPCode('s', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10Scr(str); });
-		t1014->RegisterVMHashOPCode('o', OPCODE_SAT_GetOmnVarHash, 8, [](const char* str) { return hash::HashT10OmnVar(str); });
 		t1014->RegisterDevCall("assert", "assertmsg", "function_79901b4637c83c86", "assertex", "println", "print");
 		t1014->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "xhash", "xhashasset", "istring");
 

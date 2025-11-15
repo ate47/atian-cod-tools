@@ -28,7 +28,6 @@ namespace actscli {
 		const char* decryptStringExec{};
 		bool heavyHashes{};
 		bool forceError{};
-		bool noPrivate{};
 		ActsType type{ ACTS_CLI };
 		bool exitAfterEnd{};
 		bool debug{};

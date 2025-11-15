@@ -15,10 +15,11 @@ namespace tool::gsc::vm {
             static std::unordered_map<uint64_t, GscGdb*> gdbReaders{};
             return gdbReaders;
         }
-        std::vector<GscVmOpCode*>& GscOpCodes() {
-            static std::vector<GscVmOpCode*> gscOpCodes{};
-            return gscOpCodes;
-        }
+    }
+
+    std::unordered_map<uint64_t, GscVmOpCode*>& GscOpCodes() {
+        static std::unordered_map<uint64_t, GscVmOpCode*> gscOpCodes{};
+        return gscOpCodes;
     }
 
     GscVm::GscVm(uint64_t vm, std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)> func) : vm(vm), func(func) {
@@ -30,10 +31,6 @@ namespace tool::gsc::vm {
         std::function<bool(GscDecompilerGDBData* gdb, std::string& data)> saver)
         : magic(magic), load(load), saver(saver) {
         GdbReaders()[magic] = this;
-    }
-
-    GscVmOpCode::GscVmOpCode(const char* id, std::function<void()> func, bool priv) : func(func), id(id), priv(priv) {
-        GscOpCodes().emplace_back(this);
     }
 
     std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(uint64_t vm) {
@@ -58,32 +55,52 @@ namespace tool::gsc::vm {
         return it->second;
     }
 
+
+    void GscVmOpCode::RegisterAndDeps() {
+        if (state == GVOLS_LOADED) {
+            return;
+        }
+        if (state == GVOLS_LOADING) {
+            throw std::runtime_error(std::format("Can't register vm opcode {}: recursive loading", id));
+        }
+
+        state = GVOLS_LOADING;
+
+        if (deps) {
+            std::unordered_map<uint64_t, GscVmOpCode*>& opcodes{ GscOpCodes() };
+
+            auto it{ opcodes.find(hash::Hash64(deps)) };
+            if (it == opcodes.end()) {
+                throw std::runtime_error(std::format("Can't register vm opcode {}: deps {} doesn't exist", id, deps));
+            }
+
+            it->second->RegisterAndDeps();
+        }
+
+        // load the values
+        func();
+
+        state = GVOLS_LOADED;
+    }
+
     void RegisterVmOpCodes() {
-        auto& opcodes{ GscOpCodes() };
+        std::unordered_map<uint64_t, GscVmOpCode*>& opcodes{ GscOpCodes() };
         if (core::logs::getlevel() <= core::logs::loglevel::LVL_TRACE) {
             std::ostringstream oss{};
 
-            for (GscVmOpCode* opcode : opcodes) {
+            for (auto& [name, opcode] : opcodes) {
                 oss << " " << opcode->id;
+                if (opcode->deps) {
+                    oss << "<" << opcode->deps << ">";
+                }
             }
 
             LOG_LVLF(core::logs::LVL_TRACE, "Registering opcodes for{}", oss.str());
         }
         actslib::profiler::Profiler pl{ "vmReg" };
 
-        // register public
-        for (GscVmOpCode* opcode : opcodes) {
-            if (!opcode->priv) {
-                opcode->func();
-            }
-        }
-        // register private, this is a lazy way to fix private private opcodes vm depending on public vm
-        if (!actscli::options().noPrivate) {
-            for (GscVmOpCode* opcode : opcodes) {
-                if (opcode->priv) {
-                    opcode->func();
-                }
-            }
+        for (auto& [name, opcode] : opcodes) {
+            opcode->RegisterAndDeps();
         }
         pl.Stop();
         LOG_TRACE("Registered opcodes {}ms", pl.GetCurrent().GetMillis());

@@ -55,9 +55,6 @@ namespace {
 			else if (!_strcmpi("--heavy-hashes", arg)) {
 				opt.heavyHashes = true;
 			}
-			else if (!_strcmpi("--no-private", arg)) {
-				opt.noPrivate = true;
-			}
 			else if (!_strcmpi("--decrypt-mod", arg)) {
 				if (i + 1 == argc) {
 					LOG_ERROR("Missing value for param: {}!", arg);
@@ -286,7 +283,6 @@ namespace {
 		LOG_DEBUG("--hashprefix [p]    : Ignore the default prefix");
 		LOG_DEBUG("--heavy-hashes      : Heavy hashes format");
 		LOG_DEBUG("-F --force-error    : Force error");
-		LOG_TRACE("--no-private        : No private tools");
 	}
 }
 

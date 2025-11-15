@@ -3,6 +3,15 @@
 #include <tools/gsc.hpp>
 
 namespace tool::gsc::vm {
+	class GscVmOpCode;
+	class GscVm;
+	class GscGdb;
+
+	std::unordered_map<uint64_t, GscVmOpCode*>& GscOpCodes();
+	std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(uint64_t vm);
+	GscGdb* GetGdbReader(uint64_t magic);
+	void RegisterVmOpCodes();
+
 	class GscVm {
 	public:
 		uint64_t vm;
@@ -20,19 +29,28 @@ namespace tool::gsc::vm {
 			std::function<bool(GscDecompilerGDBData* gdb, std::string& data)> saver
 		);
 	};
+	enum GscVmOpCodeLoadState {
+		GVOLS_UNLOADED = 0,
+		GVOLS_LOADING,
+		GVOLS_LOADED
+	};
+
 	class GscVmOpCode {
 	public:
 		const char* id;
+		const char* deps;
 		std::function<void()> func;
-		bool priv;
-		GscVmOpCode(const char* id, std::function<void()> func, bool priv = false);
-	};
+		GscVmOpCodeLoadState state{ GVOLS_UNLOADED };
 
-	std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(uint64_t vm);
-	GscGdb* GetGdbReader(uint64_t magic);
-	void RegisterVmOpCodes();
+		GscVmOpCode(const char* id, std::function<void()> func, const char* deps = nullptr) : func(func), id(id), deps(deps) {
+			GscOpCodes()[hash::Hash64(id)] = this;
+		}
+
+		void RegisterAndDeps();
+	};
 }
 #define REGISTER_GSC_VM(_vm, cls) static tool::gsc::vm::GscVm __GscVm##_vm(_vm, [](byte* file, size_t fileSize) { return std::make_shared<cls>(file, fileSize); })
 #define REGISTER_GDB_HANDLE(magic, func, save) static tool::gsc::vm::GscGdb __GscGdb##magic(magic, func, save)
+// id, func(, deps)
 #define REGISTER_GSC_VM_OPCODES(id, func) static tool::gsc::vm::GscVmOpCode __GscVmOpCode##id(#id, func)
-#define REGISTER_GSC_VM_OPCODES_PRIVATE(id, func) static tool::gsc::vm::GscVmOpCode __GscVmOpCode##id(#id, func, true)
+#define REGISTER_GSC_VM_OPCODES_DEPS(id, func, dep) static tool::gsc::vm::GscVmOpCode __GscVmOpCode##id(#id, func, #dep)
