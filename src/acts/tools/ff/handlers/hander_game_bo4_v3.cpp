@@ -371,6 +371,9 @@ namespace fastfile::handlers::bo4 {
 		LOG_TRACE("{} Load_XStringCustom({}, 0x{:x}) -> 0x{:x} / {}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr((void*)str), size, gcx.reader->Loc(), acts::decryptutils::DecryptStringT8(ptr));
 		AssertCanWrite(*str, size + 1);
 		std::memcpy(*str, ptr, size + 1);
+		const char* ds{ acts::decryptutils::DecryptStringT8(*str) };
+		std::memmove(*str, ds, std::strlen(ds) + 1);
+		hashutils::AddPrecomputed(hash::Hash64(ds), ds, true);
 		if (gcx.opt->dumpXStrings) {
 			gcx.xstrings.push_back(*str);
 		}
@@ -624,9 +627,7 @@ namespace fastfile::handlers::bo4 {
 						for (size_t i = 0; i < assetList.stringsCount; i++) {
 							Load_String(false, &assetList.strings[i]);
 							if (assetList.strings[i]) {
-								char* scrstr{ acts::decryptutils::DecryptStringT8(assetList.strings[i]) };
-								hashutils::AddPrecomputed(hash::Hash64(scrstr), scrstr, true);
-								os << scrstr << "\n";
+								os << assetList.strings[i] << "\n";
 							}
 						}
 						LOG_INFO("Dump strings into {}", outStrings.string());

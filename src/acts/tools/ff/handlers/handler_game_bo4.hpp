@@ -38,6 +38,21 @@ namespace fastfile::handlers::bo4 {
 	struct VehicleFxDef;
 	struct XModel;
 	struct VehicleSoundDef;
+	struct WeaponCamo;
+	struct WeaponAttachment;
+	struct WeaponAttachmentUnique;
+	struct WeaponTunables;
+	struct SharedWeaponSounds;
+	struct XAnim;
+	struct TagFxSet;
+	struct XCam;
+	struct LaserDef;
+	struct BeamDef;
+	struct FlameTable;
+	struct BallisticDesc;
+	struct Objective;
+	struct FxImpactTable;
+	struct SoundsImpactTable;
 	typedef FxEffectDef* FxEffectDefHandle;
 	typedef Material* MaterialHandle;
 
@@ -94,6 +109,16 @@ namespace fastfile::handlers::bo4 {
 			JsonWriter::WriteFieldValueHash(hash, val);
 		}
 
+		void WriteFieldValueXString(const char* name, const char* val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(name, val);
+		}
+
+		void WriteFieldValueXString(uint64_t hash, const char* val) {
+			if (!val) return;
+			JsonWriter::WriteFieldValueString(hash, val);
+		}
+
 		void WriteFieldValueXAsset(const char* name, games::bo4::pool::XAssetType type, void* val) {
 			if (!val) return;
 			XHash* hname{ games::bo4::pool::GetAssetName(type, val) };
@@ -111,7 +136,7 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		void WriteFieldValueScrStringArray(const char* name, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
-			if (ignoreEmpty && (!count || !*val)) return;
+			if (ignoreEmpty && (!count || !val || !*val)) return;
 			JsonWriter::WriteFieldNameString(name);
 			JsonWriter::BeginArray();
 			for (size_t i = 0; i < count; i++) {
@@ -156,7 +181,7 @@ namespace fastfile::handlers::bo4 {
 
 		void WriteFieldValueXAssetArray(const char* name, games::bo4::pool::XAssetType type, size_t count, void* handle, bool ignoreEmpty = true) {
 			void** val{ (void**)handle };
-			if (ignoreEmpty && (!count || !*val)) return;
+			if (ignoreEmpty && (!count || !val || !*val)) return;
 			size_t off{ games::bo4::pool::GetAssetNameOffset(type) };
 
 			JsonWriter::WriteFieldNameString(name);

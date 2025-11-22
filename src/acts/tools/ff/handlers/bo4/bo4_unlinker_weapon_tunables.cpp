@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/ff/handlers/handler_game_bo4.hpp>
 #include <tools/utils/raw_file_extractor.hpp>
+#include <tools/utils/data_utils.hpp>
 #include <tools/pool_weapon_structs.hpp>
 
 namespace {
@@ -946,7 +947,17 @@ namespace {
 			static_assert(sizeof(WeaponTunables) == 0x1218);
 			WeaponTunables* asset{ (WeaponTunables*)ptr };
 
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "weapon" / "tunables" / std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name))};
+			constexpr size_t postWeaponDefNameField = offsetof(WeaponTunables, name) + sizeof(WeaponTunables::name);
+			constexpr size_t testLen = sizeof(WeaponTunables) - postWeaponDefNameField;
+
+			if (utils::data::IsNulled(&((byte*)ptr)[postWeaponDefNameField], testLen)) {
+				LOG_INFO("ignore empty weapontunables {}", hashutils::ExtractTmp("file", asset->name.name));
+				return;
+			}
+
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "weapontunables"
+				/ fastfile::GetCurrentContext().ffname
+				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name)) };
 			std::filesystem::create_directories(outFile.parent_path());
 
 			utils::raw_file_extractor::JsonWriter json{};

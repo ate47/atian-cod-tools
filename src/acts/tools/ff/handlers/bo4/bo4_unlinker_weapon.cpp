@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/ff/handlers/handler_game_bo4.hpp>
 #include <tools/utils/raw_file_extractor.hpp>
+#include <tools/utils/data_utils.hpp>
 
 namespace {
 	using namespace fastfile::handlers::bo4;
@@ -8,7 +9,7 @@ namespace {
 	class ImplWorker : public Worker {
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			struct WeaponDefObj21329beb {
-				uintptr_t model; // XModel* 
+				XModel* model;
 				uint64_t unk8;
 				uint64_t unk10;
 				uint64_t unk18;
@@ -17,15 +18,6 @@ namespace {
 				uint64_t unk30;
 				uint64_t unk38;
 				uint64_t unk40;
-			};
-			enum eModes : int {
-				MODE_ZOMBIES = 0x0,
-				MODE_MULTIPLAYER = 0x1,
-				MODE_CAMPAIGN = 0x2,
-				MODE_WARZONE = 0x3,
-				MODE_COUNT = 0x4,
-				MODE_INVALID = 0x4,
-				MODE_FIRST = 0x0,
 			};
 
 			struct WeaponDef {
@@ -38,7 +30,7 @@ namespace {
 				XHash unk60;
 				XHash unk70;
 				XHash streamkey;
-				XHash unk90;
+				XHash sound90;
 				XHash sounda0;
 				XHash soundb0;
 				XHash soundc0;
@@ -169,23 +161,23 @@ namespace {
 				XHash sound890;
 				uint64_t unk8a0;
 				uint64_t unk8a8;
-				const char* unk8b0;
-				uintptr_t* unk8b8; // XAnim**
-				uintptr_t* unk8c0; // XAnim**
-				ScrString_t* unk8c8;
-				ScrString_t* unk8d0;
-				ScrString_t* unk8d8;
+				const char* luigiReticleWidget;
+				XAnim** unk8b8;
+				XAnim** unk8c0;
+				ScrString_t(*unk8c8)[64];
+				ScrString_t(*unk8d0)[64];
+				ScrString_t(*unk8d8)[2];
 				uint64_t unk8e0;
-				uintptr_t unk8e8; // XCam*
-				uintptr_t unk8f0; // XCam*
-				uintptr_t unk8f8; // XCam*
+				XCam* cacWeaponXCam;
+				XCam* cacAttachmentsXCam;
+				XCam* weaponIconXCam;
 				uint64_t unk900;
 				uint64_t unk908;
 				uint64_t unk910;
 				uint64_t unk918;
 				uint64_t unk920;
 				uint64_t unk928;
-				uintptr_t unk930; // TagFxSet*
+				TagFxSet* unk930;
 				vec2_t* accuracyGraphKnots[2];
 				uint64_t unk948;
 				uint64_t unk950;
@@ -213,18 +205,18 @@ namespace {
 				uint64_t unka10;
 				uint64_t unka18;
 				uint64_t unka20;
-				uintptr_t weaponCamo; // WeaponCamo*
+				WeaponCamo* weaponCamo;
 				uint64_t unka30;
 				uint64_t unka38;
-				uintptr_t attachments; // WeaponAttachmentPtr*
-				uintptr_t attachmentUniques; // WeaponAttachmentUniquePtr*
+				WeaponAttachment (*attachments)[64];
+				WeaponAttachmentUnique (*attachmentUniques)[128];
 				uint64_t unka50;
-				uintptr_t tunables1; // WeaponTunables*
-				uintptr_t tunables2; // WeaponTunables*
-				uintptr_t unka68; // XAnim*
-				uintptr_t viewmodel; // XModel*
-				uintptr_t frontendmodel; // XModel*
-				uintptr_t unka80; // XModel*
+				WeaponTunables* tunables1;
+				WeaponTunables* tunables2;
+				XAnim* unka68;
+				XModel** viewmodel;
+				XModel** frontendmodel;
+				XModel* handModel;
 				uint64_t unka88;
 				uint64_t unka90;
 				uint64_t unka98;
@@ -265,144 +257,144 @@ namespace {
 				uint64_t unkbb0;
 				uint64_t unkbb8;
 				uint64_t unkbc0;
-				uintptr_t unkbc8; // FxEffectDefHandle 
-				uintptr_t unkbd0; // FxEffectDefHandle 
-				uintptr_t unkbd8; // FxEffectDefHandle 
-				uintptr_t unkbe0; // FxEffectDefHandle 
-				uintptr_t unkbe8; // FxEffectDefHandle 
-				uintptr_t viewPersistentEffectSet; // TagFxSet*
-				uintptr_t worldPersistentEffectSet; // TagFxSet*
-				uintptr_t enemyDeathFxSet; // TagFxSet*
-				uintptr_t unkc08; // FxEffectDefHandle 
-				uintptr_t unkc10; // SharedWeaponSoundsPtr 
+				FxEffectDef* unkbc8;
+				FxEffectDef* unkbd0;
+				FxEffectDef* unkbd8;
+				FxEffectDef* unkbe0;
+				FxEffectDef* unkbe8;
+				TagFxSet* viewPersistentEffectSet;
+				TagFxSet* worldPersistentEffectSet;
+				TagFxSet* enemyDeathFxSet;
+				FxEffectDef* unkc08;
+				SharedWeaponSounds* sharedWeaponSounds;
 				uint64_t unkc18;
-				uintptr_t tagFXSetFirstPerson[4]; // TagFxSet* 
-				uintptr_t tagFXSetThirdPerson[4]; // TagFxSet* 
-				uintptr_t gadgetIconAvailable; // GfxImageHandle 
-				uintptr_t gadgetIconUnavailable; // GfxImageHandle 
-				uintptr_t unkc70; // GfxImageHandle 
-				uintptr_t unkc78; // GfxImageHandle 
-				uintptr_t unkc80; // FxEffectDefHandle 
-				uintptr_t unkc88; // FxEffectDefHandle 
-				uintptr_t unkc90; // FxEffectDefHandle 
-				uintptr_t unkc98; // FxEffectDefHandle 
-				uintptr_t unkca0; // FxEffectDefHandle 
-				uintptr_t unkca8; // FxEffectDefHandle 
-				uintptr_t unkcb0; // GfxImageHandle 
-				uintptr_t unkcb8; // GfxImageHandle 
+				TagFxSet* tagFXSetFirstPerson[4];
+				TagFxSet* tagFXSetThirdPerson[4];
+				GfxImage* gadgetIconAvailable;
+				GfxImage* gadgetIconUnavailable;
+				GfxImage* unkc70;
+				GfxImage* unkc78;
+				FxEffectDef* unkc80;
+				FxEffectDef* unkc88;
+				FxEffectDef* unkc90;
+				FxEffectDef* unkc98;
+				FxEffectDef* unkca0;
+				FxEffectDef* unkca8;
+				GfxImage* reticleCenter;
+				GfxImage* reticleSide;
 				uint64_t unkcc0;
-				uintptr_t worldModel; // XModel**
-				uintptr_t unkcd0; // XModel**
-				uintptr_t stowedmodel; // XModel**
-				uintptr_t clipmodel; // XModel**
+				XModel** worldModel;
+				XModel** unkcd0;
+				XModel** stowedmodel;
+				XModel** clipmodel;
 				XHash* unkce8;
 				XHash* unkcf0;
-				uintptr_t unkcf8; // GfxImageHandle*
-				uintptr_t unkd00; // GfxImageHandle*
-				uintptr_t unkd08; // GfxImageHandle*
+				GfxImage** unkcf8;
+				GfxImage** unkd00;
+				GfxImage** unkd08;
 				XHash* unkd10;
 				uint64_t unkd18;
 				uint64_t unkd20;
-				uintptr_t unkd28; // XModel* 
-				uintptr_t var_22082a57; // XModel* 
-				uintptr_t unkd38; // GfxImageHandle 
-				uintptr_t unkd40; // GfxImageHandle 
-				uintptr_t unkd48; // GfxImageHandle 
-				uintptr_t unkd50; // GfxImageHandle 
-				uintptr_t unkd58; // GfxImageHandle 
-				uintptr_t unkd60; // MaterialHandle 
-				uintptr_t unkd68; // MaterialHandle 
-				uintptr_t unkd70; // MaterialHandle 
-				uintptr_t unkd78; // MaterialHandle 
-				uintptr_t unkd80; // MaterialHandle 
-				uintptr_t unkd88; // GfxImageHandle 
-				uintptr_t unkd90; // GfxImageHandle 
-				uintptr_t unkd98; // GfxImageHandle 
-				uintptr_t unkda0; // GfxImageHandle 
-				uintptr_t unkda8; // GfxImageHandle 
-				uintptr_t unkdb0; // GfxImageHandle 
-				uintptr_t unkdb8; // GfxImageHandle 
-				uintptr_t unkdc0; // RumbleInfoPtr 
-				uintptr_t unkdc8; // RumbleInfoPtr 
-				uintptr_t unkdd0; // RumbleInfoPtr 
-				uintptr_t unkdd8; // RumbleInfoPtr 
-				uintptr_t unkde0; // RumbleInfoPtr 
-				uintptr_t unkde8; // RumbleInfoPtr 
-				uintptr_t unkdf0; // RumbleInfoPtr 
-				uintptr_t unkdf8; // RumbleInfoPtr 
-				uintptr_t unke00; // RumbleInfoPtr 
-				uintptr_t unke08; // RumbleInfoPtr 
-				uintptr_t unke10; // RumbleInfoPtr 
-				uintptr_t unke18; // RumbleInfoPtr 
-				uintptr_t unke20; // RumbleInfoPtr 
-				uintptr_t unke28; // RumbleInfoPtr 
-				uintptr_t unke30; // LaserDefPtr 
-				uintptr_t unke38; // LaserDefPtr 
-				uintptr_t unke40; // LaserDefPtr 
-				uintptr_t flameTableFirstPerson; // FlameTablePtr 
-				uintptr_t flameTableThirdPerson; // FlameTablePtr 
-				uintptr_t unke58; // BeamDef* 
-				uintptr_t unke60; // BeamDef* 
-				uintptr_t unke68; // BeamDef* 
-				uintptr_t unke70; // BeamDef* 
-				uintptr_t unke78; // BeamDef* 
-				uintptr_t unke80; // BeamDef* 
-				uintptr_t unke88; // BeamDef* 
-				uintptr_t unke90; // GfxImageHandle 
-				uintptr_t unke98; // GfxImageHandle 
-				uintptr_t unkea0; // GfxImageHandle 
-				uintptr_t unkea8; // BallisticDesc* 
-				uintptr_t unkeb0; // GfxImageHandle 
-				uintptr_t weaponHeadObjective; // Objective* 
-				uintptr_t crateObjective; // Objective* 
-				uintptr_t projectilemodel; // XModel* 
-				uintptr_t projectileModelEnemy; // XModel* 
-				uintptr_t unked8; // FxEffectDefHandle 
-				uintptr_t unkee0; // FxEffectDefHandle 
-				uintptr_t unkee8; // FxEffectDefHandle 
-				uintptr_t unkef0; // FxEffectDefHandle 
-				uintptr_t var_4bcd08b0; // XModel* 
-				uintptr_t unkf00; // FxEffectDefHandle 
-				uintptr_t unkf08; // FxEffectDefHandle 
-				uintptr_t unkf10; // FxEffectDefHandle 
-				uintptr_t unkf18; // FxEffectDefHandle 
-				uintptr_t underwaterExplosionSurfaceFX[3]; // FxEffectDefHandle 
-				uintptr_t unkf38; // FxEffectDefHandle 
-				uintptr_t unkf40; // FxEffectDefHandle 
-				uintptr_t unkf48; // FxEffectDefHandle 
-				uintptr_t unkf50; // FxEffectDefHandle 
-				uintptr_t unkf58; // FxEffectDefHandle 
-				uintptr_t unkf60; // FxEffectDefHandle 
-				uintptr_t unkf68; // FxEffectDefHandle 
-				uintptr_t unkf70; // FxEffectDefHandle 
-				uintptr_t var_96850284; // TagFxSet* 
-				uintptr_t var_26f68e75; // TagFxSet* 
-				uintptr_t unkf88; // FxEffectDefHandle 
-				uintptr_t unkf90; // FxEffectDefHandle 
-				uintptr_t unkf98; // FxEffectDefHandle 
-				uintptr_t unkfa0; // FxEffectDefHandle 
+				XModel* unkd28;
+				XModel* var_22082a57;
+				GfxImage* inventoryIcon;
+				GfxImage* inventoryIconZm;
+				GfxImage* hudIcon;
+				GfxImage* reticleSeekingLockOn;
+				GfxImage* reticleLockOn;
+				Material* reticlePivotLocked;
+				Material* reticlePivotInvalid;
+				Material* reticlePivotTarget;
+				Material* reticlePivotSides;
+				Material* reticlePivotLine;
+				GfxImage* unkd88;
+				GfxImage* unkd90;
+				GfxImage* unkd98;
+				GfxImage* unkda0;
+				GfxImage* unkda8;
+				GfxImage* unkdb0;
+				GfxImage* unkdb8;
+				RumbleInfo* fireRumble;
+				RumbleInfo* unkdc8;
+				RumbleInfo* unkdd0;
+				RumbleInfo* meleeImpactRumble;
+				RumbleInfo* unkde0;
+				RumbleInfo* unkde8;
+				RumbleInfo* unkdf0;
+				RumbleInfo* unkdf8;
+				RumbleInfo* unke00;
+				RumbleInfo* unke08;
+				RumbleInfo* unke10;
+				RumbleInfo* unke18;
+				RumbleInfo* unke20;
+				RumbleInfo* unke28;
+				LaserDef* unke30;
+				LaserDef* unke38;
+				LaserDef* unke40;
+				FlameTable* flameTableFirstPerson;
+				FlameTable* flameTableThirdPerson;
+				BeamDef* unke58;
+				BeamDef* unke60;
+				BeamDef* unke68;
+				BeamDef* unke70;
+				BeamDef* unke78;
+				BeamDef* unke80;
+				BeamDef* unke88;
+				GfxImage* unke90;
+				GfxImage* unke98;
+				GfxImage* unkea0;
+				BallisticDesc* ballisticDesc;
+				GfxImage* unkeb0;
+				Objective* weaponHeadObjective;
+				Objective* crateObjective;
+				XModel* projectilemodel;
+				XModel* projectileModelEnemy;
+				FxEffectDef* unked8;
+				FxEffectDef* unkee0;
+				FxEffectDef* unkee8;
+				FxEffectDef* unkef0;
+				XModel* var_4bcd08b0;
+				FxEffectDef* unkf00;
+				FxEffectDef* unkf08;
+				FxEffectDef* unkf10;
+				FxEffectDef* unkf18;
+				FxEffectDef* underwaterExplosionSurfaceFX[3];
+				FxEffectDef* unkf38;
+				FxEffectDef* unkf40;
+				FxEffectDef* unkf48;
+				FxEffectDef* unkf50;
+				FxEffectDef* unkf58;
+				FxEffectDef* unkf60;
+				FxEffectDef* unkf68;
+				FxEffectDef* unkf70;
+				TagFxSet* var_96850284;
+				TagFxSet* var_26f68e75;
+				FxEffectDef* unkf88;
+				FxEffectDef* unkf90;
+				FxEffectDef* unkf98;
+				FxEffectDef* unkfa0;
 				uint64_t unkfa8;
 				uint64_t unkfb0;
-				uintptr_t unkfb8; // FxImpactTablePtr 
-				uintptr_t unkfc0; // FxImpactTablePtr 
-				uintptr_t unkfc8; // FxImpactTablePtr 
-				uintptr_t unkfd0; // FxImpactTablePtr 
-				uintptr_t unkfd8; // FxImpactTablePtr 
-				uintptr_t unkfe0; // SoundsImpactTable* 
-				uintptr_t unkfe8; // SoundsImpactTable* 
-				uintptr_t unkff0; // SoundsImpactTable* 
-				uintptr_t unkff8; // SoundsImpactTable* 
-				uintptr_t unk1000; // SoundsImpactTable* 
-				uintptr_t unk1008; // ScriptBundle* 
-				uintptr_t unk1010; // ScriptBundle* 
-				uintptr_t unk1018; // ScriptBundle* 
-				uintptr_t customsettings; // ScriptBundle* 
-				uintptr_t shrapnelsettings; // ScriptBundle* 
-				uintptr_t var_2e4a8800; // ScriptBundle* 
-				uintptr_t unk1038; // GfxImageHandle 
-				uintptr_t unk1040; // GfxImageHandle 
-				uintptr_t unk1048; // GfxImageHandle 
-				uintptr_t var_8456d4d; // ScriptBundle* 
+				FxImpactTable* normalImpactFX;
+				FxImpactTable* exitImpactFX;
+				FxImpactTable* bounceImpactFX;
+				FxImpactTable* dudImpactFX;
+				FxImpactTable* unkfd8;
+				SoundsImpactTable* normalImpactSounds;
+				SoundsImpactTable* exitImpactSounds;
+				SoundsImpactTable* bounceImpactSounds;
+				SoundsImpactTable* dudImpactSounds;
+				SoundsImpactTable* unk1000;
+				ScriptBundle* unk1008;
+				ScriptBundle* turretAnimSettings;
+				ScriptBundle* killcamSettings;
+				ScriptBundle* customsettings;
+				ScriptBundle* shrapnelsettings;
+				ScriptBundle* var_2e4a8800;
+				GfxImage* unk1038;
+				GfxImage* unk1040;
+				GfxImage* unk1048;
+				ScriptBundle* var_8456d4d;
 				uint64_t unk1058;
 				uint64_t unk1060;
 				uint64_t unk1068;
@@ -441,11 +433,11 @@ namespace {
 				uint64_t unk1170;
 				uint64_t unk1178;
 				uint32_t unk1180;
-				ScrString_t unk1184;
-				ScrString_t unk1188;
+				ScrString_t worldModelTagRight;
+				ScrString_t worldModelTagLeft;
 				ScrString_t unk118c;
 				ScrString_t unk1190;
-				ScrString_t unk1194;
+				ScrString_t stowedModelTag;
 				ScrString_t unk1198;
 				ScrString_t unk119c;
 				ScrString_t unk11a0;
@@ -565,341 +557,388 @@ namespace {
 				WeaponDefObj21329beb var_21329beb[4];
 			};
 			static_assert(sizeof(WeaponDef) == 0x1550);
-
 			WeaponDef* asset{ (WeaponDef*)ptr };
 
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "weapon" / std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name)) };
+			// refs
+			constexpr size_t postWeaponDefNameField = offsetof(WeaponDef, name) + sizeof(WeaponDef::name);
+			constexpr size_t testLen = sizeof(WeaponDef) - postWeaponDefNameField;
+			
+			if (utils::data::IsNulled(&((byte*)ptr)[postWeaponDefNameField], testLen)) {
+				LOG_INFO("ignore empty weapondef {}", hashutils::ExtractTmp("file", asset->name.name));
+				return;
+			}
+
+			const char* baseWeaponStr{ hashutils::ExtractPtr(asset->baseWeapon) };
+
+			if (baseWeaponStr) {
+				// load default hashes
+				static const char* suffixes[]{
+					"_wz", "_zm", "_mp", "_cp", // gamemode values
+					"_gold", "_operator", // wz weapons
+					"_tunables", "_tunables_wz", "_tunables_zm", "_tunables_mp", // tunables
+				};
+				static const char* prefixes[]{
+					"weapon/" // localize
+				};
+
+				for (const char* suffix : suffixes) {
+					const char* s{ utils::va("%s%s", baseWeaponStr, suffix) };
+					hashutils::AddPrecomputed(hash::Hash64(s), s, true);
+				}
+
+				for (const char* prefix : prefixes) {
+					const char* s{ utils::va("%s%s", prefix, baseWeaponStr) };
+					hashutils::AddPrecomputed(hash::Hash64(s), s, true);
+				}
+			}
+
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "weapon" 
+				/ fastfile::GetCurrentContext().ffname
+				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name)) };
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			BO4JsonWriter json{};
 
 			LOG_INFO("Dump weapon {}", outFile.string());
 
+
 			json.BeginObject();
 			{
-				auto AddXHash = [&json](const char* name, uint64_t hash, bool onlyValue = false) {
-					if (hash) {
-						if (!onlyValue) {
-							json.WriteFieldNameString(name);
-						}
-						json.WriteValueHash(hash);
-					}
-					else if (onlyValue) {
-						json.WriteValueHash(hash);
-					}
-				};
-				auto AddXAssetRef = [&json, &AddXHash](const char* name, XAssetType type, uintptr_t ptr, bool onlyValue = false) {
-					if (!ptr) return; // ignore
-					if ((ptr & 0xF000000000000000ull) || (ptr < 0x10000)) {
-						// ref, error
+				
+				json.WriteFieldValueXHash("name", asset->name);
+				json.WriteFieldValueXHash("baseWeapon", asset->baseWeapon);
+				json.WriteFieldValueXHash("displayname", asset->displayname);
 
-						json.WriteFieldNameString(name);
-						json.WriteValueString(utils::va("<invalidref:0x%llx>", ptr));
-						return;
-					}
-
-					size_t off{ GetAssetNameOffset(type) };
-
-					XHash& hash{ *reinterpret_cast<XHash*>(ptr + off) };
-					AddXHash(name, hash, onlyValue);
-				};
-				AddXHash("name", asset->name);
-				AddXHash("baseWeapon", asset->baseWeapon);
-				AddXHash("displayname", asset->displayname);
-				AddXHash("unk30", asset->unk30);
-				AddXHash("unk40", asset->unk40);
-				AddXHash("unk50", asset->unk50);
-				AddXHash("unk60", asset->unk60);
-				AddXHash("unk70", asset->unk70);
-				AddXHash("streamkey", asset->streamkey);
-				AddXHash("unk90", asset->unk90);
-				AddXHash("sounda0", asset->sounda0);
-				AddXHash("soundb0", asset->soundb0);
-				AddXHash("soundc0", asset->soundc0);
-				AddXHash("firesounddistant", asset->firesounddistant);
-				AddXHash("firesound", asset->firesound);
-				AddXHash("firesoundplayer", asset->firesoundplayer);
-				AddXHash("sound100", asset->sound100);
-				AddXHash("sound110", asset->sound110);
-				AddXHash("sound120", asset->sound120);
-				AddXHash("sound130", asset->sound130);
-				AddXHash("sound140", asset->sound140);
-				AddXHash("sound150", asset->sound150);
-				AddXHash("sound160", asset->sound160);
-				AddXHash("sound170", asset->sound170);
-				AddXHash("sound180", asset->sound180);
-				AddXHash("sound190", asset->sound190);
-				AddXHash("sound1a0", asset->sound1a0);
-				AddXHash("sound1b0", asset->sound1b0);
-				AddXHash("sound1c0", asset->sound1c0);
-				AddXHash("sound1d0", asset->sound1d0);
-				AddXHash("sound1e0", asset->sound1e0);
-				AddXHash("sound1f0", asset->sound1f0);
-				AddXHash("sound200", asset->sound200);
-				AddXHash("sound210", asset->sound210);
-				AddXHash("sound220", asset->sound220);
-				AddXHash("sound230", asset->sound230);
-				AddXHash("sound240", asset->sound240);
-				AddXHash("sound250", asset->sound250);
-				AddXHash("sound260", asset->sound260);
-				AddXHash("sound270", asset->sound270);
-				AddXHash("sound280", asset->sound280);
-				AddXHash("sound290", asset->sound290);
-				AddXHash("sound2a0", asset->sound2a0);
-				AddXHash("sound2b0", asset->sound2b0);
-				AddXHash("sound2c0", asset->sound2c0);
-				AddXHash("sound2d0", asset->sound2d0);
-				AddXHash("sound2e0", asset->sound2e0);
-				AddXHash("sound2f0", asset->sound2f0);
-				AddXHash("sound300", asset->sound300);
-				AddXHash("sound310", asset->sound310);
-				AddXHash("sound320", asset->sound320);
-				AddXHash("sound330", asset->sound330);
-				AddXHash("sound340", asset->sound340);
-				AddXHash("sound350", asset->sound350);
-				AddXHash("sound360", asset->sound360);
-				AddXHash("sound370", asset->sound370);
-				AddXHash("sound380", asset->sound380);
-				AddXHash("gadgetreadysound", asset->gadgetreadysound);
-				AddXHash("var_1f7ccc3b", asset->var_1f7ccc3b);
-				AddXHash("sound3b0", asset->sound3b0);
-				AddXHash("sound3c0", asset->sound3c0);
-				AddXHash("sound3d0", asset->sound3d0);
-				AddXHash("sound3e0", asset->sound3e0);
-				AddXHash("sound3f0", asset->sound3f0);
-				AddXHash("sound400", asset->sound400);
-				AddXHash("sound410", asset->sound410);
-				AddXHash("gadgetreadysoundplayer", asset->gadgetreadysoundplayer);
-				AddXHash("var_fb22040b", asset->var_fb22040b);
-				AddXHash("sound440", asset->sound440);
-				AddXHash("sound450", asset->sound450);
-				AddXHash("sound460", asset->sound460);
-				AddXHash("sound470", asset->sound470);
-				AddXHash("sound480", asset->sound480);
-				AddXHash("sound490", asset->sound490);
-				AddXHash("sound4a0", asset->sound4a0);
-				AddXHash("sound4b0", asset->sound4b0);
-				AddXHash("sound4c0", asset->sound4c0);
-				AddXHash("sound4d0", asset->sound4d0);
-				AddXHash("sound4e0", asset->sound4e0);
-				AddXHash("sound4f0", asset->sound4f0);
-				AddXHash("sound500", asset->sound500);
-				AddXHash("sound510", asset->sound510);
-				AddXHash("sound520", asset->sound520);
-				AddXHash("sound530", asset->sound530);
-				AddXHash("sound540", asset->sound540);
-				AddXHash("sound550", asset->sound550);
-				AddXHash("sound560", asset->sound560);
-				AddXHash("sound570", asset->sound570);
-				AddXHash("sound580", asset->sound580);
-				AddXHash("sound590", asset->sound590);
-				AddXHash("sound5a0", asset->sound5a0);
-				AddXHash("sound5b0", asset->sound5b0);
-				AddXHash("sound5c0", asset->sound5c0);
-				AddXHash("sound5d0", asset->sound5d0);
-				AddXHash("sound5e0", asset->sound5e0);
-				AddXHash("sound5f0", asset->sound5f0);
-				AddXHash("sound600", asset->sound600);
-				AddXHash("sound610", asset->sound610);
-				AddXHash("sound620", asset->sound620);
-				AddXHash("sound630", asset->sound630);
-				AddXHash("sound640", asset->sound640);
-				AddXHash("sound650", asset->sound650);
-				AddXHash("sound660", asset->sound660);
-				AddXHash("sound670", asset->sound670);
-				AddXHash("sound680", asset->sound680);
-				AddXHash("sound690", asset->sound690);
-				AddXHash("sound6a0", asset->sound6a0);
-				AddXHash("sound6b0", asset->sound6b0);
-				AddXHash("sound6c0", asset->sound6c0);
-				AddXHash("lockonseekersearchsound", asset->lockonseekersearchsound);
-				AddXHash("lockonseekerlockedsound", asset->lockonseekerlockedsound);
-				AddXHash("lockontargetlockedsound", asset->lockontargetlockedsound);
-				AddXHash("lockontargetfiredonsound", asset->lockontargetfiredonsound);
-				AddXHash("sound710", asset->sound710);
-				AddXHash("sound720", asset->sound720);
-				AddXHash("sound730", asset->sound730);
-				AddXHash("sound740", asset->sound740);
-				AddXHash("var_8a03df2b", asset->var_8a03df2b);
-				AddXHash("var_2f3ca476", asset->var_2f3ca476);
-				AddXHash("var_5c29f743", asset->var_5c29f743);
-				AddXHash("projexplosionsound", asset->projexplosionsound);
-				AddXHash("projexplosionsoundplayer", asset->projexplosionsoundplayer);
-				AddXHash("projsmokestartsound", asset->projsmokestartsound);
-				AddXHash("projsmokeloopsound", asset->projsmokeloopsound);
-				AddXHash("projsmokeendsound", asset->projsmokeendsound);
-				AddXHash("sound7d0", asset->sound7d0);
-				AddXHash("sound7e0", asset->sound7e0);
-				AddXHash("sound7f0", asset->sound7f0);
-				AddXHash("sound800", asset->sound800);
-				AddXHash("sound810", asset->sound810);
-				AddXHash("sound820", asset->sound820);
-				AddXHash("sound830", asset->sound830);
-				AddXHash("sound840", asset->sound840);
-				AddXHash("sound850", asset->sound850);
-				AddXHash("sound860", asset->sound860);
-				AddXHash("hitsound", asset->hitsound);
-				AddXHash("sound880", asset->sound880);
-				AddXHash("sound890", asset->sound890);
-
-				AddXAssetRef("tunables1", ASSET_TYPE_WEAPON_TUNABLES, asset->tunables1);
-				AddXAssetRef("tunables2", ASSET_TYPE_WEAPON_TUNABLES, asset->tunables2);
-				AddXAssetRef("weaponCamo", ASSET_TYPE_WEAPON_CAMO, asset->weaponCamo);
-				AddXAssetRef("xcam_8e8", ASSET_TYPE_XCAM, asset->unk8e8);
-				AddXAssetRef("xcam_8f0", ASSET_TYPE_XCAM, asset->unk8f0);
-				AddXAssetRef("xcam_8f8", ASSET_TYPE_XCAM, asset->unk8f8);
-				AddXAssetRef("attachments", ASSET_TYPE_ATTACHMENT, asset->attachments);
-				AddXAssetRef("attachmentUniques", ASSET_TYPE_ATTACHMENT_UNIQUE, asset->attachmentUniques);
-				AddXAssetRef("xanim_a68", ASSET_TYPE_ATTACHMENT_UNIQUE, asset->unka68);
-				AddXAssetRef("viewmodel", ASSET_TYPE_XMODEL, asset->viewmodel);
-				AddXAssetRef("frontendmodel", ASSET_TYPE_XMODEL, asset->frontendmodel);
-				AddXAssetRef("model_a80", ASSET_TYPE_XMODEL, asset->unka80);
-
-				AddXAssetRef("fx_bc8", ASSET_TYPE_FX, asset->unkbc8);
-				AddXAssetRef("fx_bd0", ASSET_TYPE_FX, asset->unkbd0);
-				AddXAssetRef("fx_bd8", ASSET_TYPE_FX, asset->unkbd8);
-				AddXAssetRef("fx_be0", ASSET_TYPE_FX, asset->unkbe0);
-				AddXAssetRef("fx_be8", ASSET_TYPE_FX, asset->unkbe8);
-
-				AddXAssetRef("viewPersistentEffectSet", ASSET_TYPE_TAGFX, asset->viewPersistentEffectSet);
-				AddXAssetRef("worldPersistentEffectSet", ASSET_TYPE_TAGFX, asset->worldPersistentEffectSet);
-				AddXAssetRef("enemyDeathFxSet", ASSET_TYPE_TAGFX, asset->enemyDeathFxSet);
-				AddXAssetRef("fx_c08", ASSET_TYPE_FX, asset->unkc08);
-				AddXAssetRef("sharedWeaponSounds_c08", ASSET_TYPE_SHAREDWEAPONSOUNDS, asset->unkc10);
-				json.WriteFieldNameString("tagFXSetFirstPerson");
-				json.BeginArray();
-				for (size_t i = 0; i < 4; i++) {
-					AddXAssetRef("", ASSET_TYPE_TAGFX, asset->tagFXSetFirstPerson[i], true);
+				json.WriteFieldValueXHash("xhash_30", asset->unk30);
+				json.WriteFieldValueXHash("xhash_40", asset->unk40);
+				json.WriteFieldValueXHash("xhash_50", asset->unk50);
+				json.WriteFieldValueXHash("xhash_60", asset->unk60);
+				json.WriteFieldValueXHash("xhash_70", asset->unk70);
+				if (asset->luigiReticleWidget && *asset->luigiReticleWidget) {
+					json.WriteFieldValueString("luigiReticleWidget", asset->luigiReticleWidget);
 				}
-				json.EndArray();
-				json.WriteFieldNameString("tagFXSetThirdPerson");
-				json.BeginArray();
-				for (size_t i = 0; i < 4; i++) {
-					AddXAssetRef("", ASSET_TYPE_TAGFX, asset->tagFXSetThirdPerson[i], true);
-				}
-				json.EndArray();
-				AddXAssetRef("gadgetIconAvailable", ASSET_TYPE_IMAGE, asset->gadgetIconAvailable);
-				AddXAssetRef("gadgetIconUnavailable", ASSET_TYPE_IMAGE, asset->gadgetIconUnavailable);
-				AddXAssetRef("image_c70", ASSET_TYPE_IMAGE, asset->unkc70);
-				AddXAssetRef("image_c78", ASSET_TYPE_IMAGE, asset->unkc78);
-				AddXAssetRef("fx_c80", ASSET_TYPE_FX, asset->unkc80);
-				AddXAssetRef("fx_c88", ASSET_TYPE_FX, asset->unkc88);
-				AddXAssetRef("fx_c90", ASSET_TYPE_FX, asset->unkc90);
-				AddXAssetRef("fx_c98", ASSET_TYPE_FX, asset->unkc98);
-				AddXAssetRef("fx_ca0", ASSET_TYPE_FX, asset->unkca0);
-				AddXAssetRef("fx_ca8", ASSET_TYPE_FX, asset->unkca8);
-				AddXAssetRef("image_cb0", ASSET_TYPE_IMAGE, asset->unkcb0);
-				AddXAssetRef("image_cb8", ASSET_TYPE_IMAGE, asset->unkcb8);
-				//uintptr_t worldModel; // XModel**
-				//uintptr_t unkcd0; // XModel**
-				//uintptr_t stowedmodel; // XModel**
-				//uintptr_t clipmodel; // XModel**
-				//uintptr_t unkcf8; // GfxImageHandle*
-				//uintptr_t unkd00; // GfxImageHandle*
-				//uintptr_t unkd08; // GfxImageHandle*
-				AddXAssetRef("unkd28", ASSET_TYPE_XMODEL, asset->unkd28);
-				AddXAssetRef("var_22082a57", ASSET_TYPE_XMODEL, asset->var_22082a57);
-				AddXAssetRef("image_d38", ASSET_TYPE_IMAGE, asset->unkd38);
-				AddXAssetRef("image_d40", ASSET_TYPE_IMAGE, asset->unkd40);
-				AddXAssetRef("image_d48", ASSET_TYPE_IMAGE, asset->unkd48);
-				AddXAssetRef("image_d50", ASSET_TYPE_IMAGE, asset->unkd50);
-				AddXAssetRef("image_d58", ASSET_TYPE_IMAGE, asset->unkd58);
-				AddXAssetRef("material_d60", ASSET_TYPE_MATERIAL, asset->unkd60);
-				AddXAssetRef("material_d68", ASSET_TYPE_MATERIAL, asset->unkd68);
-				AddXAssetRef("material_d70", ASSET_TYPE_MATERIAL, asset->unkd70);
-				AddXAssetRef("material_d78", ASSET_TYPE_MATERIAL, asset->unkd78);
-				AddXAssetRef("material_d80", ASSET_TYPE_MATERIAL, asset->unkd80);
-				AddXAssetRef("image_d88", ASSET_TYPE_IMAGE, asset->unkd88);
-				AddXAssetRef("image_d90", ASSET_TYPE_IMAGE, asset->unkd90);
-				AddXAssetRef("image_d98", ASSET_TYPE_IMAGE, asset->unkd98);
-				AddXAssetRef("image_da0", ASSET_TYPE_IMAGE, asset->unkda0);
-				AddXAssetRef("image_da8", ASSET_TYPE_IMAGE, asset->unkda8);
-				AddXAssetRef("image_db0", ASSET_TYPE_IMAGE, asset->unkdb0);
-				AddXAssetRef("image_db8", ASSET_TYPE_IMAGE, asset->unkdb8);
-				AddXAssetRef("rumble_dc0", ASSET_TYPE_RUMBLE, asset->unkdc0);
-				AddXAssetRef("rumble_dc8", ASSET_TYPE_RUMBLE, asset->unkdc8);
-				AddXAssetRef("rumble_dd0", ASSET_TYPE_RUMBLE, asset->unkdd0);
-				AddXAssetRef("rumble_dd8", ASSET_TYPE_RUMBLE, asset->unkdd8);
-				AddXAssetRef("rumble_de0", ASSET_TYPE_RUMBLE, asset->unkde0);
-				AddXAssetRef("rumble_de8", ASSET_TYPE_RUMBLE, asset->unkde8);
-				AddXAssetRef("rumble_df0", ASSET_TYPE_RUMBLE, asset->unkdf0);
-				AddXAssetRef("rumble_df8", ASSET_TYPE_RUMBLE, asset->unkdf8);
-				AddXAssetRef("rumble_e00", ASSET_TYPE_RUMBLE, asset->unke00);
-				AddXAssetRef("rumble_e08", ASSET_TYPE_RUMBLE, asset->unke08);
-				AddXAssetRef("rumble_e10", ASSET_TYPE_RUMBLE, asset->unke10);
-				AddXAssetRef("rumble_e18", ASSET_TYPE_RUMBLE, asset->unke18);
-				AddXAssetRef("rumble_e20", ASSET_TYPE_RUMBLE, asset->unke20);
-				AddXAssetRef("rumble_e28", ASSET_TYPE_RUMBLE, asset->unke28);
-				AddXAssetRef("laser_e30", ASSET_TYPE_LASER, asset->unke30);
-				AddXAssetRef("laser_e38", ASSET_TYPE_LASER, asset->unke38);
-				AddXAssetRef("laser_e40", ASSET_TYPE_LASER, asset->unke40);
-				AddXAssetRef("flameTableFirstPerson", ASSET_TYPE_FLAMETABLE, asset->flameTableFirstPerson);
-				AddXAssetRef("flameTableThirdPerson", ASSET_TYPE_FLAMETABLE, asset->flameTableThirdPerson);
-				AddXAssetRef("beam_e58", ASSET_TYPE_BEAM, asset->unke58);
-				AddXAssetRef("beam_e60", ASSET_TYPE_BEAM, asset->unke60);
-				AddXAssetRef("beam_e68", ASSET_TYPE_BEAM, asset->unke68);
-				AddXAssetRef("beam_e70", ASSET_TYPE_BEAM, asset->unke70);
-				AddXAssetRef("beam_e78", ASSET_TYPE_BEAM, asset->unke78);
-				AddXAssetRef("beam_e80", ASSET_TYPE_BEAM, asset->unke80);
-				AddXAssetRef("beam_e88", ASSET_TYPE_BEAM, asset->unke88);
-				AddXAssetRef("image_e90", ASSET_TYPE_IMAGE, asset->unke90);
-				AddXAssetRef("image_e98", ASSET_TYPE_IMAGE, asset->unke98);
-				AddXAssetRef("image_ea0", ASSET_TYPE_IMAGE, asset->unkea0);
-				AddXAssetRef("ballisticDesc_ea8", ASSET_TYPE_BALLISTICDESC, asset->unkea8);
-				AddXAssetRef("image_eb0", ASSET_TYPE_IMAGE, asset->unkeb0);
-				AddXAssetRef("weaponHeadObjective", ASSET_TYPE_OBJECTIVE, asset->weaponHeadObjective);
-				AddXAssetRef("crateObjective", ASSET_TYPE_OBJECTIVE, asset->crateObjective);
-				AddXAssetRef("projectilemodel", ASSET_TYPE_XMODEL, asset->projectilemodel);
-				AddXAssetRef("projectileModelEnemy", ASSET_TYPE_XMODEL, asset->projectileModelEnemy);
-				AddXAssetRef("fx_ed8", ASSET_TYPE_FX, asset->unked8);
-				AddXAssetRef("fx_ee0", ASSET_TYPE_FX, asset->unkee0);
-				AddXAssetRef("fx_ee8", ASSET_TYPE_FX, asset->unkee8);
-				AddXAssetRef("fx_ef0", ASSET_TYPE_FX, asset->unkef0);
-				AddXAssetRef("var_4bcd08b0", ASSET_TYPE_XMODEL, asset->var_4bcd08b0);
-				AddXAssetRef("fx_f00", ASSET_TYPE_FX, asset->unkf00);
-				AddXAssetRef("fx_f08", ASSET_TYPE_FX, asset->unkf08);
-				AddXAssetRef("fx_f10", ASSET_TYPE_FX, asset->unkf10);
-				AddXAssetRef("fx_f18", ASSET_TYPE_FX, asset->unkf18);
-				json.WriteFieldNameString("underwaterExplosionSurfaceFX");
-				json.BeginArray();
-				for (size_t i = 0; i < 3; i++) {
-					AddXAssetRef("", ASSET_TYPE_FX, asset->underwaterExplosionSurfaceFX[i], true);
-				}
-				json.EndArray();
-				AddXAssetRef("fx_f38", ASSET_TYPE_FX, asset->unkf38);
-				AddXAssetRef("fx_f40", ASSET_TYPE_FX, asset->unkf40);
-				AddXAssetRef("fx_f48", ASSET_TYPE_FX, asset->unkf48);
-				AddXAssetRef("fx_f50", ASSET_TYPE_FX, asset->unkf50);
-				AddXAssetRef("fx_f58", ASSET_TYPE_FX, asset->unkf58);
-				AddXAssetRef("fx_f60", ASSET_TYPE_FX, asset->unkf60);
-				AddXAssetRef("fx_f68", ASSET_TYPE_FX, asset->unkf68);
-				AddXAssetRef("fx_f70", ASSET_TYPE_FX, asset->unkf70);
-				AddXAssetRef("var_96850284", ASSET_TYPE_TAGFX, asset->var_96850284);
-				AddXAssetRef("var_26f68e75", ASSET_TYPE_TAGFX, asset->var_26f68e75);
-				AddXAssetRef("fx_f88", ASSET_TYPE_FX, asset->unkf88);
-				AddXAssetRef("fx_f90", ASSET_TYPE_FX, asset->unkf90);
-				AddXAssetRef("fx_f98", ASSET_TYPE_FX, asset->unkf98);
-				AddXAssetRef("fx_fa0", ASSET_TYPE_FX, asset->unkfa0);
-				//uintptr_t unkfb8; // FxImpactTablePtr 
-				//uintptr_t unkfc0; // FxImpactTablePtr 
-				//uintptr_t unkfc8; // FxImpactTablePtr 
-				//uintptr_t unkfd0; // FxImpactTablePtr 
-				//uintptr_t unkfd8; // FxImpactTablePtr 
-				//uintptr_t unkfe0; // SoundsImpactTable* 
-				//uintptr_t unkfe8; // SoundsImpactTable* 
-				//uintptr_t unkff0; // SoundsImpactTable* 
-				//uintptr_t unkff8; // SoundsImpactTable* 
-				//uintptr_t unk1000; // SoundsImpactTable* 
-				AddXAssetRef("scriptbundle_1008", ASSET_TYPE_SCRIPTBUNDLE, asset->unk1008);
-				AddXAssetRef("scriptbundle_1010", ASSET_TYPE_SCRIPTBUNDLE, asset->unk1010);
-				AddXAssetRef("scriptbundle_1018", ASSET_TYPE_SCRIPTBUNDLE, asset->unk1018);
-				AddXAssetRef("customsettings", ASSET_TYPE_SCRIPTBUNDLE, asset->customsettings);
-				AddXAssetRef("shrapnelsettings", ASSET_TYPE_SCRIPTBUNDLE, asset->shrapnelsettings);
-				AddXAssetRef("var_2e4a8800", ASSET_TYPE_SCRIPTBUNDLE, asset->var_2e4a8800);
-				AddXAssetRef("image_1038", ASSET_TYPE_IMAGE, asset->unk1038);
-				AddXAssetRef("image_1040", ASSET_TYPE_IMAGE, asset->unk1040);
-				AddXAssetRef("image_1048", ASSET_TYPE_IMAGE, asset->unk1048);
-				AddXAssetRef("var_8456d4d", ASSET_TYPE_SCRIPTBUNDLE, asset->var_8456d4d);
+				json.WriteFieldValueXHash("streamkey", asset->streamkey);
+
+				json.WriteFieldValueScrStringArray("scrstr_8c8", ARRAYSIZE(*asset->unk8c8), *asset->unk8c8);
+				json.WriteFieldValueScrStringArray("scrstr_8d0", ARRAYSIZE(*asset->unk8d0), *asset->unk8d0);
+				json.WriteFieldValueScrStringArray("scrstr_8d8", ARRAYSIZE(*asset->unk8d8), *asset->unk8d8);
+
+				json.WriteFieldValueScrString("worldModelTagRight", asset->worldModelTagRight);
+				json.WriteFieldValueScrString("worldModelTagLeft", asset->worldModelTagLeft);
+				json.WriteFieldValueScrString("scrstr_118c", asset->unk118c);
+				json.WriteFieldValueScrString("scrstr_1190", asset->unk1190);
+				json.WriteFieldValueScrString("stowedModelTag", asset->stowedModelTag);
+				json.WriteFieldValueScrString("scrstr_1198", asset->unk1198);
+				json.WriteFieldValueScrString("scrstr_119c", asset->unk119c);
+				json.WriteFieldValueScrString("scrstr_11a0", asset->unk11a0);
+				json.WriteFieldValueScrString("scrstr_11a4", asset->unk11a4);
+				json.WriteFieldValueScrString("scrstr_11a8", asset->unk11a8);
+				json.WriteFieldValueScrString("scrstr_11ac", asset->unk11ac);
+				json.WriteFieldValueScrString("scrstr_11b0", asset->unk11b0);
+				json.WriteFieldValueScrString("scrstr_11b4", asset->unk11b4);
+
+				json.WriteFieldValueNumber("weaponstarthitpoints", asset->weaponstarthitpoints);
+				json.WriteFieldValueNumber("soundrattlerangemin", asset->soundrattlerangemin);
+				json.WriteFieldValueNumber("soundrattlerangemax", asset->soundrattlerangemax);
+				json.WriteFieldValueNumber("grenadeweapon", asset->grenadeweapon);
+				json.WriteFieldValueNumber("dualwieldweapon", asset->dualwieldweapon);
+				json.WriteFieldValueNumber("dualWieldWeaponIndex", asset->dualWieldWeaponIndex);
+				json.WriteFieldValueNumber("altWeaponIndex", asset->altWeaponIndex);
+				json.WriteFieldValueNumber("itemIndex", asset->itemIndex);
+				json.WriteFieldValueNumber(0x5b73038c, asset->var_5b73038c);
+				json.WriteFieldValueNumber("weaponheadobjectiveheight", asset->weaponheadobjectiveheight);
+				json.WriteFieldValueString("sessionMode", GetEModeName(asset->sessionMode));
+				json.WriteFieldValueBool("bDrawOffhandModelInHand", asset->bDrawOffhandModelInHand);
+				json.WriteFieldValueBool("lockonseekersearchsoundloops", asset->lockonseekersearchsoundloops);
+				json.WriteFieldValueBool("lockonseekerlockedsoundloops", asset->lockonseekerlockedsoundloops);
+				json.WriteFieldValueBool("lockontargetlockedsoundloops", asset->lockontargetlockedsoundloops);
+				json.WriteFieldValueBool(0x965cc0b3, asset->var_965cc0b3);
+				json.WriteFieldValueBool("lockontargetfiredonsoundloops", asset->lockontargetfiredonsoundloops);
+				json.WriteFieldValueBool("forcedamageshellshockandrumble", asset->forcedamageshellshockandrumble);
+
+				json.WriteFieldValueXHash("sound90", asset->sound90);
+				json.WriteFieldValueXHash("sounda0", asset->sounda0);
+				json.WriteFieldValueXHash("soundb0", asset->soundb0);
+				json.WriteFieldValueXHash("soundc0", asset->soundc0);
+				json.WriteFieldValueXHash("firesounddistant", asset->firesounddistant);
+				json.WriteFieldValueXHash("firesound", asset->firesound);
+				json.WriteFieldValueXHash("firesoundplayer", asset->firesoundplayer);
+				json.WriteFieldValueXHash("sound100", asset->sound100);
+				json.WriteFieldValueXHash("sound110", asset->sound110);
+				json.WriteFieldValueXHash("sound120", asset->sound120);
+				json.WriteFieldValueXHash("sound130", asset->sound130);
+				json.WriteFieldValueXHash("sound140", asset->sound140);
+				json.WriteFieldValueXHash("sound150", asset->sound150);
+				json.WriteFieldValueXHash("sound160", asset->sound160);
+				json.WriteFieldValueXHash("sound170", asset->sound170);
+				json.WriteFieldValueXHash("sound180", asset->sound180);
+				json.WriteFieldValueXHash("sound190", asset->sound190);
+				json.WriteFieldValueXHash("sound1a0", asset->sound1a0);
+				json.WriteFieldValueXHash("sound1b0", asset->sound1b0);
+				json.WriteFieldValueXHash("sound1c0", asset->sound1c0);
+				json.WriteFieldValueXHash("sound1d0", asset->sound1d0);
+				json.WriteFieldValueXHash("sound1e0", asset->sound1e0);
+				json.WriteFieldValueXHash("sound1f0", asset->sound1f0);
+				json.WriteFieldValueXHash("sound200", asset->sound200);
+				json.WriteFieldValueXHash("sound210", asset->sound210);
+				json.WriteFieldValueXHash("sound220", asset->sound220);
+				json.WriteFieldValueXHash("sound230", asset->sound230);
+				json.WriteFieldValueXHash("sound240", asset->sound240);
+				json.WriteFieldValueXHash("sound250", asset->sound250);
+				json.WriteFieldValueXHash("sound260", asset->sound260);
+				json.WriteFieldValueXHash("sound270", asset->sound270);
+				json.WriteFieldValueXHash("sound280", asset->sound280);
+				json.WriteFieldValueXHash("sound290", asset->sound290);
+				json.WriteFieldValueXHash("sound2a0", asset->sound2a0);
+				json.WriteFieldValueXHash("sound2b0", asset->sound2b0);
+				json.WriteFieldValueXHash("sound2c0", asset->sound2c0);
+				json.WriteFieldValueXHash("sound2d0", asset->sound2d0);
+				json.WriteFieldValueXHash("sound2e0", asset->sound2e0);
+				json.WriteFieldValueXHash("sound2f0", asset->sound2f0);
+				json.WriteFieldValueXHash("sound300", asset->sound300);
+				json.WriteFieldValueXHash("sound310", asset->sound310);
+				json.WriteFieldValueXHash("sound320", asset->sound320);
+				json.WriteFieldValueXHash("sound330", asset->sound330);
+				json.WriteFieldValueXHash("sound340", asset->sound340);
+				json.WriteFieldValueXHash("sound350", asset->sound350);
+				json.WriteFieldValueXHash("sound360", asset->sound360);
+				json.WriteFieldValueXHash("sound370", asset->sound370);
+				json.WriteFieldValueXHash("sound380", asset->sound380);
+				json.WriteFieldValueXHash("gadgetreadysound", asset->gadgetreadysound);
+				json.WriteFieldValueXHash(0x1f7ccc3b, asset->var_1f7ccc3b);
+				json.WriteFieldValueXHash("sound3b0", asset->sound3b0);
+				json.WriteFieldValueXHash("sound3c0", asset->sound3c0);
+				json.WriteFieldValueXHash("sound3d0", asset->sound3d0);
+				json.WriteFieldValueXHash("sound3e0", asset->sound3e0);
+				json.WriteFieldValueXHash("sound3f0", asset->sound3f0);
+				json.WriteFieldValueXHash("sound400", asset->sound400);
+				json.WriteFieldValueXHash("sound410", asset->sound410);
+				json.WriteFieldValueXHash("gadgetreadysoundplayer", asset->gadgetreadysoundplayer);
+				json.WriteFieldValueXHash(0xfb22040b, asset->var_fb22040b);
+				json.WriteFieldValueXHash("sound440", asset->sound440);
+				json.WriteFieldValueXHash("sound450", asset->sound450);
+				json.WriteFieldValueXHash("sound460", asset->sound460);
+				json.WriteFieldValueXHash("sound470", asset->sound470);
+				json.WriteFieldValueXHash("sound480", asset->sound480);
+				json.WriteFieldValueXHash("sound490", asset->sound490);
+				json.WriteFieldValueXHash("sound4a0", asset->sound4a0);
+				json.WriteFieldValueXHash("sound4b0", asset->sound4b0);
+				json.WriteFieldValueXHash("sound4c0", asset->sound4c0);
+				json.WriteFieldValueXHash("sound4d0", asset->sound4d0);
+				json.WriteFieldValueXHash("sound4e0", asset->sound4e0);
+				json.WriteFieldValueXHash("sound4f0", asset->sound4f0);
+				json.WriteFieldValueXHash("sound500", asset->sound500);
+				json.WriteFieldValueXHash("sound510", asset->sound510);
+				json.WriteFieldValueXHash("sound520", asset->sound520);
+				json.WriteFieldValueXHash("sound530", asset->sound530);
+				json.WriteFieldValueXHash("sound540", asset->sound540);
+				json.WriteFieldValueXHash("sound550", asset->sound550);
+				json.WriteFieldValueXHash("sound560", asset->sound560);
+				json.WriteFieldValueXHash("sound570", asset->sound570);
+				json.WriteFieldValueXHash("sound580", asset->sound580);
+				json.WriteFieldValueXHash("sound590", asset->sound590);
+				json.WriteFieldValueXHash("sound5a0", asset->sound5a0);
+				json.WriteFieldValueXHash("sound5b0", asset->sound5b0);
+				json.WriteFieldValueXHash("sound5c0", asset->sound5c0);
+				json.WriteFieldValueXHash("sound5d0", asset->sound5d0);
+				json.WriteFieldValueXHash("sound5e0", asset->sound5e0);
+				json.WriteFieldValueXHash("sound5f0", asset->sound5f0);
+				json.WriteFieldValueXHash("sound600", asset->sound600);
+				json.WriteFieldValueXHash("sound610", asset->sound610);
+				json.WriteFieldValueXHash("sound620", asset->sound620);
+				json.WriteFieldValueXHash("sound630", asset->sound630);
+				json.WriteFieldValueXHash("sound640", asset->sound640);
+				json.WriteFieldValueXHash("sound650", asset->sound650);
+				json.WriteFieldValueXHash("sound660", asset->sound660);
+				json.WriteFieldValueXHash("sound670", asset->sound670);
+				json.WriteFieldValueXHash("sound680", asset->sound680);
+				json.WriteFieldValueXHash("sound690", asset->sound690);
+				json.WriteFieldValueXHash("sound6a0", asset->sound6a0);
+				json.WriteFieldValueXHash("sound6b0", asset->sound6b0);
+				json.WriteFieldValueXHash("sound6c0", asset->sound6c0);
+				json.WriteFieldValueXHash("lockonseekersearchsound", asset->lockonseekersearchsound);
+				json.WriteFieldValueXHash("lockonseekerlockedsound", asset->lockonseekerlockedsound);
+				json.WriteFieldValueXHash("lockontargetlockedsound", asset->lockontargetlockedsound);
+				json.WriteFieldValueXHash("lockontargetfiredonsound", asset->lockontargetfiredonsound);
+				json.WriteFieldValueXHash("sound710", asset->sound710);
+				json.WriteFieldValueXHash("sound720", asset->sound720);
+				json.WriteFieldValueXHash("sound730", asset->sound730);
+				json.WriteFieldValueXHash("sound740", asset->sound740);
+				json.WriteFieldValueXHash(0x8a03df2b, asset->var_8a03df2b);
+				json.WriteFieldValueXHash(0x2f3ca476, asset->var_2f3ca476);
+				json.WriteFieldValueXHash(0x5c29f743, asset->var_5c29f743);
+				json.WriteFieldValueXHash("projexplosionsound", asset->projexplosionsound);
+				json.WriteFieldValueXHash("projexplosionsoundplayer", asset->projexplosionsoundplayer);
+				json.WriteFieldValueXHash("projsmokestartsound", asset->projsmokestartsound);
+				json.WriteFieldValueXHash("projsmokeloopsound", asset->projsmokeloopsound);
+				json.WriteFieldValueXHash("projsmokeendsound", asset->projsmokeendsound);
+				json.WriteFieldValueXHash("sound7d0", asset->sound7d0);
+				json.WriteFieldValueXHash("sound7e0", asset->sound7e0);
+				json.WriteFieldValueXHash("sound7f0", asset->sound7f0);
+				json.WriteFieldValueXHash("sound800", asset->sound800);
+				json.WriteFieldValueXHash("sound810", asset->sound810);
+				json.WriteFieldValueXHash("sound820", asset->sound820);
+				json.WriteFieldValueXHash("sound830", asset->sound830);
+				json.WriteFieldValueXHash("sound840", asset->sound840);
+				json.WriteFieldValueXHash("sound850", asset->sound850);
+				json.WriteFieldValueXHash("sound860", asset->sound860);
+				json.WriteFieldValueXHash("hitsound", asset->hitsound);
+				json.WriteFieldValueXHash("sound880", asset->sound880);
+				json.WriteFieldValueXHash("sound890", asset->sound890);
+
+				json.WriteFieldValueXAsset("tunables1", ASSET_TYPE_WEAPON_TUNABLES, asset->tunables1);
+				json.WriteFieldValueXAsset("tunables2", ASSET_TYPE_WEAPON_TUNABLES, asset->tunables2);
+				json.WriteFieldValueXAsset("weaponCamo", ASSET_TYPE_WEAPON_CAMO, asset->weaponCamo);
+				json.WriteFieldValueXAsset("cacWeaponXCam", ASSET_TYPE_XCAM, asset->cacWeaponXCam);
+				json.WriteFieldValueXAsset("cacAttachmentsXCam", ASSET_TYPE_XCAM, asset->cacAttachmentsXCam);
+				json.WriteFieldValueXAsset("weaponIconXCam", ASSET_TYPE_XCAM, asset->weaponIconXCam);
+				json.WriteFieldValueXAssetArray("attachments", ASSET_TYPE_ATTACHMENT, ARRAYSIZE(*asset->attachments), asset->attachments);
+				json.WriteFieldValueXAssetArray("attachmentUniques", ASSET_TYPE_ATTACHMENT_UNIQUE, ARRAYSIZE(*asset->attachmentUniques), asset->attachmentUniques);
+				json.WriteFieldValueXAsset("xanim_a68", ASSET_TYPE_XANIM, asset->unka68);
+				json.WriteFieldValueXAsset("sharedWeaponSounds", ASSET_TYPE_SHAREDWEAPONSOUNDS, asset->sharedWeaponSounds);
+				json.WriteFieldValueXAsset("ballisticDesc", ASSET_TYPE_BALLISTICDESC, asset->ballisticDesc);
+				json.WriteFieldValueXAsset("weaponHeadObjective", ASSET_TYPE_OBJECTIVE, asset->weaponHeadObjective);
+				json.WriteFieldValueXAsset("crateObjective", ASSET_TYPE_OBJECTIVE, asset->crateObjective);
+				json.WriteFieldValueXAsset("flameTableFirstPerson", ASSET_TYPE_FLAMETABLE, asset->flameTableFirstPerson);
+				json.WriteFieldValueXAsset("flameTableThirdPerson", ASSET_TYPE_FLAMETABLE, asset->flameTableThirdPerson);
+
+				json.WriteFieldValueXAsset("scriptbundle_1008", ASSET_TYPE_SCRIPTBUNDLE, asset->unk1008);
+				json.WriteFieldValueXAsset("turretAnimSettings", ASSET_TYPE_SCRIPTBUNDLE, asset->turretAnimSettings);
+				json.WriteFieldValueXAsset("killcamSettings", ASSET_TYPE_SCRIPTBUNDLE, asset->killcamSettings);
+				json.WriteFieldValueXAsset("customsettings", ASSET_TYPE_SCRIPTBUNDLE, asset->customsettings);
+				json.WriteFieldValueXAsset("shrapnelsettings", ASSET_TYPE_SCRIPTBUNDLE, asset->shrapnelsettings);
+				json.WriteFieldValueXAsset(0x2e4a8800, ASSET_TYPE_SCRIPTBUNDLE, asset->var_2e4a8800);
+				json.WriteFieldValueXAsset(0x8456d4d, ASSET_TYPE_SCRIPTBUNDLE, asset->var_8456d4d);
+
+				json.WriteFieldValueXAsset("handModel", ASSET_TYPE_XMODEL, asset->handModel);
+				json.WriteFieldValueXAsset("model_d28", ASSET_TYPE_XMODEL, asset->unkd28);
+				json.WriteFieldValueXAsset(0x22082a57, ASSET_TYPE_XMODEL, asset->var_22082a57);
+				json.WriteFieldValueXAsset("projectilemodel", ASSET_TYPE_XMODEL, asset->projectilemodel);
+				json.WriteFieldValueXAsset("projectileModelEnemy", ASSET_TYPE_XMODEL, asset->projectileModelEnemy);
+				json.WriteFieldValueXAsset(0x4bcd08b0, ASSET_TYPE_XMODEL, asset->var_4bcd08b0);
+				json.WriteFieldValueXAssetArray("viewmodel", ASSET_TYPE_XMODEL, asset->var_5b73038c, asset->viewmodel);
+				json.WriteFieldValueXAssetArray("frontendmodel", ASSET_TYPE_XMODEL, asset->var_5b73038c, asset->frontendmodel);
+				json.WriteFieldValueXAssetArray("worldModel", ASSET_TYPE_XMODEL, asset->var_5b73038c, asset->worldModel);
+				json.WriteFieldValueXAssetArray("models_cd0", ASSET_TYPE_XMODEL, asset->var_5b73038c, asset->unkcd0);
+				json.WriteFieldValueXAssetArray("stowedmodel", ASSET_TYPE_XMODEL, asset->var_5b73038c, asset->stowedmodel);
+				json.WriteFieldValueXAssetArray("clipmodel", ASSET_TYPE_XMODEL, asset->var_5b73038c, asset->clipmodel);
+
+				json.WriteFieldValueXAsset("gadgetIconAvailable", ASSET_TYPE_IMAGE, asset->gadgetIconAvailable);
+				json.WriteFieldValueXAsset("gadgetIconUnavailable", ASSET_TYPE_IMAGE, asset->gadgetIconUnavailable);
+				json.WriteFieldValueXAsset("image_c70", ASSET_TYPE_IMAGE, asset->unkc70);
+				json.WriteFieldValueXAsset("image_c78", ASSET_TYPE_IMAGE, asset->unkc78);
+				json.WriteFieldValueXAsset("reticleCenter", ASSET_TYPE_IMAGE, asset->reticleCenter);
+				json.WriteFieldValueXAsset("reticleSide", ASSET_TYPE_IMAGE, asset->reticleSide);
+				json.WriteFieldValueXAssetArray("images_cf8", ASSET_TYPE_IMAGE, asset->var_5b73038c, asset->unkcf8);
+				json.WriteFieldValueXAssetArray("images_d00", ASSET_TYPE_IMAGE, asset->var_5b73038c, asset->unkd00);
+				json.WriteFieldValueXAssetArray("images_d08", ASSET_TYPE_IMAGE, asset->var_5b73038c, asset->unkd08);
+				json.WriteFieldValueXAsset("inventoryIcon", ASSET_TYPE_IMAGE, asset->inventoryIcon);
+				json.WriteFieldValueXAsset("inventoryIconZm", ASSET_TYPE_IMAGE, asset->inventoryIconZm);
+				json.WriteFieldValueXAsset("hudIcon", ASSET_TYPE_IMAGE, asset->hudIcon);
+				json.WriteFieldValueXAsset("reticleSeekingLockOn", ASSET_TYPE_IMAGE, asset->reticleSeekingLockOn);
+				json.WriteFieldValueXAsset("reticleLockOn", ASSET_TYPE_IMAGE, asset->reticleLockOn);
+				json.WriteFieldValueXAsset("image_d88", ASSET_TYPE_IMAGE, asset->unkd88);
+				json.WriteFieldValueXAsset("image_d90", ASSET_TYPE_IMAGE, asset->unkd90);
+				json.WriteFieldValueXAsset("image_d98", ASSET_TYPE_IMAGE, asset->unkd98);
+				json.WriteFieldValueXAsset("image_da0", ASSET_TYPE_IMAGE, asset->unkda0);
+				json.WriteFieldValueXAsset("image_da8", ASSET_TYPE_IMAGE, asset->unkda8);
+				json.WriteFieldValueXAsset("image_db0", ASSET_TYPE_IMAGE, asset->unkdb0);
+				json.WriteFieldValueXAsset("image_db8", ASSET_TYPE_IMAGE, asset->unkdb8);
+				json.WriteFieldValueXAsset("image_e90", ASSET_TYPE_IMAGE, asset->unke90);
+				json.WriteFieldValueXAsset("image_e98", ASSET_TYPE_IMAGE, asset->unke98);
+				json.WriteFieldValueXAsset("image_ea0", ASSET_TYPE_IMAGE, asset->unkea0);
+				json.WriteFieldValueXAsset("image_eb0", ASSET_TYPE_IMAGE, asset->unkeb0);
+				json.WriteFieldValueXAsset("image_1038", ASSET_TYPE_IMAGE, asset->unk1038);
+				json.WriteFieldValueXAsset("image_1040", ASSET_TYPE_IMAGE, asset->unk1040);
+				json.WriteFieldValueXAsset("image_1048", ASSET_TYPE_IMAGE, asset->unk1048);
+
+				json.WriteFieldValueXAsset("fireRumble", ASSET_TYPE_RUMBLE, asset->fireRumble);
+				json.WriteFieldValueXAsset("rumble_dc8", ASSET_TYPE_RUMBLE, asset->unkdc8);
+				json.WriteFieldValueXAsset("rumble_dd0", ASSET_TYPE_RUMBLE, asset->unkdd0);
+				json.WriteFieldValueXAsset("meleeImpactRumble", ASSET_TYPE_RUMBLE, asset->meleeImpactRumble);
+				json.WriteFieldValueXAsset("rumble_de0", ASSET_TYPE_RUMBLE, asset->unkde0);
+				json.WriteFieldValueXAsset("rumble_de8", ASSET_TYPE_RUMBLE, asset->unkde8);
+				json.WriteFieldValueXAsset("rumble_df0", ASSET_TYPE_RUMBLE, asset->unkdf0);
+				json.WriteFieldValueXAsset("rumble_df8", ASSET_TYPE_RUMBLE, asset->unkdf8);
+				json.WriteFieldValueXAsset("rumble_e00", ASSET_TYPE_RUMBLE, asset->unke00);
+				json.WriteFieldValueXAsset("rumble_e08", ASSET_TYPE_RUMBLE, asset->unke08);
+				json.WriteFieldValueXAsset("rumble_e10", ASSET_TYPE_RUMBLE, asset->unke10);
+				json.WriteFieldValueXAsset("rumble_e18", ASSET_TYPE_RUMBLE, asset->unke18);
+				json.WriteFieldValueXAsset("rumble_e20", ASSET_TYPE_RUMBLE, asset->unke20);
+				json.WriteFieldValueXAsset("rumble_e28", ASSET_TYPE_RUMBLE, asset->unke28);
+
+				json.WriteFieldValueXAsset("laser_e30", ASSET_TYPE_LASER, asset->unke30);
+				json.WriteFieldValueXAsset("laser_e38", ASSET_TYPE_LASER, asset->unke38);
+				json.WriteFieldValueXAsset("laser_e40", ASSET_TYPE_LASER, asset->unke40);
+
+				json.WriteFieldValueXAsset("beam_e58", ASSET_TYPE_BEAM, asset->unke58);
+				json.WriteFieldValueXAsset("beam_e60", ASSET_TYPE_BEAM, asset->unke60);
+				json.WriteFieldValueXAsset("beam_e68", ASSET_TYPE_BEAM, asset->unke68);
+				json.WriteFieldValueXAsset("beam_e70", ASSET_TYPE_BEAM, asset->unke70);
+				json.WriteFieldValueXAsset("beam_e78", ASSET_TYPE_BEAM, asset->unke78);
+				json.WriteFieldValueXAsset("beam_e80", ASSET_TYPE_BEAM, asset->unke80);
+				json.WriteFieldValueXAsset("beam_e88", ASSET_TYPE_BEAM, asset->unke88);
+
+
+				json.WriteFieldValueXAsset("reticlePivotLocked", ASSET_TYPE_MATERIAL, asset->reticlePivotLocked);
+				json.WriteFieldValueXAsset("reticlePivotInvalid", ASSET_TYPE_MATERIAL, asset->reticlePivotInvalid);
+				json.WriteFieldValueXAsset("reticlePivotTarget", ASSET_TYPE_MATERIAL, asset->reticlePivotTarget);
+				json.WriteFieldValueXAsset("reticlePivotSides", ASSET_TYPE_MATERIAL, asset->reticlePivotSides);
+				json.WriteFieldValueXAsset("reticlePivotLine", ASSET_TYPE_MATERIAL, asset->reticlePivotLine);
+
+				json.WriteFieldValueXAsset("fx_bc8", ASSET_TYPE_FX, asset->unkbc8);
+				json.WriteFieldValueXAsset("fx_bd0", ASSET_TYPE_FX, asset->unkbd0);
+				json.WriteFieldValueXAsset("fx_bd8", ASSET_TYPE_FX, asset->unkbd8);
+				json.WriteFieldValueXAsset("fx_be0", ASSET_TYPE_FX, asset->unkbe0);
+				json.WriteFieldValueXAsset("fx_be8", ASSET_TYPE_FX, asset->unkbe8);
+				json.WriteFieldValueXAsset("fx_c08", ASSET_TYPE_FX, asset->unkc08);
+				json.WriteFieldValueXAsset("fx_c80", ASSET_TYPE_FX, asset->unkc80);
+				json.WriteFieldValueXAsset("fx_c88", ASSET_TYPE_FX, asset->unkc88);
+				json.WriteFieldValueXAsset("fx_c90", ASSET_TYPE_FX, asset->unkc90);
+				json.WriteFieldValueXAsset("fx_c98", ASSET_TYPE_FX, asset->unkc98);
+				json.WriteFieldValueXAsset("fx_ca0", ASSET_TYPE_FX, asset->unkca0);
+				json.WriteFieldValueXAsset("fx_ca8", ASSET_TYPE_FX, asset->unkca8);
+				json.WriteFieldValueXAsset("fx_ed8", ASSET_TYPE_FX, asset->unked8);
+				json.WriteFieldValueXAsset("fx_ee0", ASSET_TYPE_FX, asset->unkee0);
+				json.WriteFieldValueXAsset("fx_ee8", ASSET_TYPE_FX, asset->unkee8);
+				json.WriteFieldValueXAsset("fx_ef0", ASSET_TYPE_FX, asset->unkef0);
+				json.WriteFieldValueXAsset("fx_f00", ASSET_TYPE_FX, asset->unkf00);
+				json.WriteFieldValueXAsset("fx_f08", ASSET_TYPE_FX, asset->unkf08);
+				json.WriteFieldValueXAsset("fx_f10", ASSET_TYPE_FX, asset->unkf10);
+				json.WriteFieldValueXAsset("fx_f18", ASSET_TYPE_FX, asset->unkf18);
+				json.WriteFieldValueXAssetArray("underwaterExplosionSurfaceFX", ASSET_TYPE_FX, ARRAYSIZE(asset->underwaterExplosionSurfaceFX), asset->underwaterExplosionSurfaceFX);
+				json.WriteFieldValueXAsset("fx_f38", ASSET_TYPE_FX, asset->unkf38);
+				json.WriteFieldValueXAsset("fx_f40", ASSET_TYPE_FX, asset->unkf40);
+				json.WriteFieldValueXAsset("fx_f48", ASSET_TYPE_FX, asset->unkf48);
+				json.WriteFieldValueXAsset("fx_f50", ASSET_TYPE_FX, asset->unkf50);
+				json.WriteFieldValueXAsset("fx_f58", ASSET_TYPE_FX, asset->unkf58);
+				json.WriteFieldValueXAsset("fx_f60", ASSET_TYPE_FX, asset->unkf60);
+				json.WriteFieldValueXAsset("fx_f68", ASSET_TYPE_FX, asset->unkf68);
+				json.WriteFieldValueXAsset("fx_f70", ASSET_TYPE_FX, asset->unkf70);
+				json.WriteFieldValueXAsset("fx_f88", ASSET_TYPE_FX, asset->unkf88);
+				json.WriteFieldValueXAsset("fx_f90", ASSET_TYPE_FX, asset->unkf90);
+				json.WriteFieldValueXAsset("fx_f98", ASSET_TYPE_FX, asset->unkf98);
+				json.WriteFieldValueXAsset("fx_fa0", ASSET_TYPE_FX, asset->unkfa0);
+
+				json.WriteFieldValueXAsset("viewPersistentEffectSet", ASSET_TYPE_TAGFX, asset->viewPersistentEffectSet);
+				json.WriteFieldValueXAsset("worldPersistentEffectSet", ASSET_TYPE_TAGFX, asset->worldPersistentEffectSet);
+				json.WriteFieldValueXAsset("enemyDeathFxSet", ASSET_TYPE_TAGFX, asset->enemyDeathFxSet);
+				json.WriteFieldValueXAssetArray("tagFXSetFirstPerson", ASSET_TYPE_TAGFX, ARRAYSIZE(asset->tagFXSetFirstPerson), asset->tagFXSetFirstPerson);
+				json.WriteFieldValueXAssetArray("tagFXSetThirdPerson", ASSET_TYPE_TAGFX, ARRAYSIZE(asset->tagFXSetThirdPerson), asset->tagFXSetThirdPerson);
+				json.WriteFieldValueXAsset(0x96850284, ASSET_TYPE_TAGFX, asset->var_96850284);
+				json.WriteFieldValueXAsset(0x26f68e75, ASSET_TYPE_TAGFX, asset->var_26f68e75);
+
+				json.WriteFieldValueXAsset("normalImpactFX", ASSET_TYPE_IMPACT_FX, asset->normalImpactFX);
+				json.WriteFieldValueXAsset("exitImpactFX", ASSET_TYPE_IMPACT_FX, asset->exitImpactFX);
+				json.WriteFieldValueXAsset("bounceImpactFX", ASSET_TYPE_IMPACT_FX, asset->bounceImpactFX);
+				json.WriteFieldValueXAsset("dudImpactFX", ASSET_TYPE_IMPACT_FX, asset->dudImpactFX);
+				json.WriteFieldValueXAsset("fxImpact_fd8", ASSET_TYPE_IMPACT_FX, asset->unkfd8);
+
+				json.WriteFieldValueXAsset("normalImpactSounds", ASSET_TYPE_IMPACT_SOUND, asset->normalImpactSounds);
+				json.WriteFieldValueXAsset("exitImpactSounds", ASSET_TYPE_IMPACT_SOUND, asset->exitImpactSounds);
+				json.WriteFieldValueXAsset("bounceImpactSounds", ASSET_TYPE_IMPACT_SOUND, asset->bounceImpactSounds);
+				json.WriteFieldValueXAsset("dudImpactSounds", ASSET_TYPE_IMPACT_SOUND, asset->dudImpactSounds);
+				json.WriteFieldValueXAsset("soundsImpact_1000", ASSET_TYPE_IMPACT_SOUND, asset->unk1000);
 
 			}
 			json.EndObject();
