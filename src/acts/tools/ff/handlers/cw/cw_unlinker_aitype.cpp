@@ -418,7 +418,7 @@ namespace {
 			json.WriteFieldValueXAsset("footstepFXTable1", cw::ASSET_TYPE_SURFACEFXTABLE, asset.footstepFXTable1);
 			json.WriteFieldValueXAsset("footstepFXTable2", cw::ASSET_TYPE_SURFACEFXTABLE, asset.footstepFXTable2);
 			json.WriteFieldValueXAsset("tacticalModeIcon", cw::ASSET_TYPE_IMAGE, asset.tacticalModeIcon);
-			json.WriteFieldValueXAssetArray("character", cw::ASSET_TYPE_charACTER, ARRAYSIZE(asset.character), &asset.character[0]);
+			json.WriteFieldValueXAssetArray("character", cw::ASSET_TYPE_CHARACTER, ARRAYSIZE(asset.character), &asset.character[0]);
 
 			json.WriteFieldValueBool("nameHashed", asset.namedHashed);
 			if (asset.unk8a0) json.WriteFieldValueHash("unk8a0", asset.unk8a0);

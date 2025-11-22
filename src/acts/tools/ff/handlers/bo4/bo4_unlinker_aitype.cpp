@@ -275,7 +275,7 @@ namespace {
 				json.BeginArray();
 
 				for (size_t i = 0; i < asset.numCharacters; i++) {
-					json.WriteValueHash(games::bo4::pool::GetAssetName(games::bo4::pool::ASSET_TYPE_charACTER, asset.character[i])->name);
+					json.WriteValueHash(games::bo4::pool::GetAssetName(games::bo4::pool::ASSET_TYPE_CHARACTER, asset.character[i])->name);
 				}
 
 				json.EndArray();

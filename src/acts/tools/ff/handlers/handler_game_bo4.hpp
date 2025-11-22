@@ -20,6 +20,8 @@ namespace fastfile::handlers::bo4 {
 	struct ScriptBundle;
 	struct Character;
 	struct FootstepTableDef;
+	struct PlayerSoundsTable;
+	struct PlayerFXTable;
 	struct SurfaceFXTableDef;
 	struct AnimMappingTable;
 	struct AimTable;
@@ -53,6 +55,8 @@ namespace fastfile::handlers::bo4 {
 	struct Objective;
 	struct FxImpactTable;
 	struct SoundsImpactTable;
+	struct XModelAlias;
+	struct RagdollDef;
 	typedef FxEffectDef* FxEffectDefHandle;
 	typedef Material* MaterialHandle;
 
