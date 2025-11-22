@@ -125,6 +125,26 @@ namespace fastfile {
 		tool::gsc::opcode::Platform gscPlatform{ tool::gsc::opcode::PLATFORM_PC };
 	};
 
+	enum GameId : uint16_t {
+		GID_INVALID = 0,
+		GID_BO3,
+		GID_IW,
+		GID_WWII,
+		GID_BO4,
+		GID_MW19,
+		GID_CW,
+		GID_VG,
+		GID_MWII,
+		GID_MWIII,
+		GID_BO6,
+		GID_BO7,
+	};
+
+	enum GameRevId : uint16_t {
+		GRID_DEFAULT = 0,
+		GRID_BO6_PRE_ALPHA,
+	};
+
 	class FastFileOption {
 	public:
 		bool m_help{};
@@ -134,6 +154,8 @@ namespace fastfile {
 		bool m_header{};
 		bool print_handlers{};
 		bool print_decompressors{};
+		bool print_gameId{};
+		bool print_revId{};
 		bool dump_decompressed{};
 		bool noAssetDump{};
 		bool assertContainer{};
@@ -145,6 +167,8 @@ namespace fastfile {
 		bool testDump{};
 		bool archiveDDL{};
 		bool graphic{};
+		GameId m_gameId{};
+		GameRevId m_gameRevId{};
 		const char* m_casc{};
 		const char* game{};
 		const char* exec{};
@@ -308,10 +332,13 @@ namespace fastfile {
 	const char* GetFastFileCompressionName(FastFileIWCompression comp);
 	const char* GetFastFileCompressionName(FastFileCompression comp);
 	const char* GetFastFilePlatformName(FastFilePlatform comp);
+	const char* GetGameIdName(GameId id);
+	const char* GetGameRevIdName(GameRevId rev);
 
 	FastFileIWCompression GetFastFileIWCompression(const char* name);
 	FastFileCompression GetFastFileCompression(const char* name);
 	FastFilePlatform GetFastFilePlatform(const char* name);
+	GameRevId GetGameRevId(const char* name);
 
 	std::vector<FFDecompressor*>& GetDecompressors();
 	std::vector<FFHandler*>& GetHandlers();

@@ -117,6 +117,27 @@ namespace fastfile {
 			"playstation",
 			"dev",
 		};
+		const char* gameIdNames[]{
+			"invalid",
+			"bo3",
+			"iw",
+			"wwii",
+			"bo4",
+			"mw19",
+			"cw",
+			"vg",
+			"mwii",
+			"mwiii",
+			"bo6",
+			"bo7",
+		};
+
+		const char* gameRevIdNames[]{
+			"default",
+			"bo6_pre_alpha",
+		};
+
+		
 
 		fastfile::FastFileContext* currentCtx{};
 		fastfile::FastFileOption* currentOpt{};
@@ -151,6 +172,21 @@ namespace fastfile {
 		}
 		return ffPltNames[plt];
 	}
+
+	const char* GetGameIdName(GameId plt) {
+		if (plt >= ARRAYSIZE(gameIdNames) || plt < 0) {
+			return "unknown";
+		}
+		return gameIdNames[plt];
+	}
+
+	const char* GetGameRevIdName(GameId plt) {
+		if (plt >= ARRAYSIZE(gameRevIdNames) || plt < 0) {
+			return "unknown";
+		}
+		return gameRevIdNames[plt];
+	}
+
 	FastFileIWCompression GetFastFileIWCompression(const char* name) {
 		for (size_t i = 0; i < ARRAYSIZE(iwFFNames); i++) {
 			if (!_strcmpi(iwFFNames[i], name)) {
@@ -176,6 +212,24 @@ namespace fastfile {
 			}
 		}
 		return FastFilePlatform::XFILE_PLATFORM_COUNT;
+	}
+
+	GameId GetGameId(const char* name) {
+		for (size_t i = 0; i < ARRAYSIZE(gameIdNames); i++) {
+			if (!_strcmpi(gameIdNames[i], name)) {
+				return (GameId)i;
+			}
+		}
+		return GameId::GID_INVALID;
+	}
+
+	GameRevId GetGameRevId(const char* name) {
+		for (size_t i = 0; i < ARRAYSIZE(gameRevIdNames); i++) {
+			if (!_strcmpi(gameRevIdNames[i], name)) {
+				return (GameRevId)i;
+			}
+		}
+		return GameRevId::GRID_DEFAULT;
 	}
 
 	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp) {
@@ -485,6 +539,34 @@ namespace fastfile {
 			else if (!_strcmpi("--disableScriptsDecomp", arg)) {
 				disableScriptsDecomp = true;
 			}
+			else if (!_strcmpi("--print-gameid", arg)) {
+				print_gameId = true;
+			}
+			else if (!_strcmpi("--print-gamerevid", arg)) {
+				print_revId = true;
+			}
+			else if (!_strcmpi("--gameId", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				const char* gid{ args[++i] };
+				if (!(m_gameId = GetGameId(gid))) {
+					LOG_ERROR("Can't find game id for name '{}'", gid);
+					return false;
+				}
+			}
+			else if (!_strcmpi("--gameRevId", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				const char* grid{ args[++i] };
+				if (!(m_gameRevId = GetGameRevId(grid))) {
+					LOG_ERROR("Can't find game rev id for name '{}'", grid);
+					return false;
+				}
+			}
 			else if (!strcmp("-i", arg) || !_strcmpi("--fd-ignore", arg)) {
 				m_fdIgnoreMissing = true;
 			}
@@ -529,6 +611,10 @@ namespace fastfile {
 		LOG_INFO("--assertContainer      : Use acts as a container for other software");
 		LOG_INFO("--archiveDDL           : dump archived ddl (bo6)");
 		LOG_INFO("--alpha                : Is alpha file");
+		LOG_INFO("--print-gameid         : Print game ids list");
+		LOG_INFO("--print-gamerevid      : Print game rev ids list");
+		LOG_INFO("--gameId [g]           : Game id (might be required by some handlers)");
+		LOG_INFO("--gameRevId [g]        : Game rev id (might be required by some handlers)");
 		
 	}
 
@@ -726,7 +812,7 @@ namespace fastfile {
 	int fastfile(int argc, const char* argv[]) {
 		FastFileOption opt{};
 
-		if (!opt.Compute(argv, 2, argc) || opt.m_help || (opt.files.empty() && !(opt.handler || opt.print_handlers || opt.print_decompressors))) {
+		if (!opt.Compute(argv, 2, argc) || opt.m_help || (opt.files.empty() && !(opt.handler || opt.print_handlers || opt.print_decompressors || opt.print_gameId || opt.print_revId))) {
 			opt.PrintHelp();
 			if (opt.files.empty() && !opt.handler) {
 				LOG_ERROR("Missing entry");
@@ -739,7 +825,7 @@ namespace fastfile {
 
 		currentOpt = &opt;
 
-		if (opt.print_handlers || opt.print_decompressors) {
+		if (opt.print_handlers || opt.print_decompressors || opt.print_gameId || opt.print_revId) {
 			if (opt.print_handlers) {
 				LOG_INFO("Handlers:");
 
@@ -760,12 +846,29 @@ namespace fastfile {
 
 				std::sort(vec.begin(), vec.end(), [](FFDecompressor* a, FFDecompressor* b) {
 					return _strcmpi(a->name, b->name) < 0;
-				});
+					});
 
 				for (FFDecompressor* decompr : GetDecompressors()) {
 					LOG_INFO("{:20}", decompr->name);
 				}
 			}
+
+			if (opt.print_gameId) {
+				LOG_INFO("Game Ids:");
+
+				for (const char* name : gameIdNames) {
+					LOG_INFO("- {}", name);
+				}
+			}
+
+			if (opt.print_revId) {
+				LOG_INFO("Game rev Ids:");
+
+				for (const char* name : gameRevIdNames) {
+					LOG_INFO("- {}", name);
+				}
+			}
+
 			return tool::OK;
 		}
 
