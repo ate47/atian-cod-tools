@@ -59,7 +59,26 @@ namespace fastfile::linker::bo4 {
 		}
 		LOG_TRACE("Hash path {} -> 0x{:x}", path.string(), r);
 		return r;
+	}
 
+	void BO4LinkContext::LinkEmptyAsset(BO4FFContext& ff, XAssetType type, uint64_t name) {
+		ff.data.PushStream(XFILE_BLOCK_TEMP);
+
+		size_t len{ games::bo4::pool::GetAssetSize(type) };
+
+		if (!len) {
+			LOG_WARNING("linking empty asset");
+		}
+		else {
+			// alloc empty asset
+			size_t off{ ff.data.AllocData(len) };
+
+			// set the name
+			size_t nameOff{ games::bo4::pool::GetAssetNameOffset(type) };
+			ff.data.GetData<XHash>(off + nameOff)->name = name;
+		}
+
+		ff.data.PopStream();
 	}
 
 	class FFLinkerBO4 : public FFLinker {

@@ -5,6 +5,9 @@
 #include <games/bo4/pool.hpp>
 
 namespace fastfile::linker::bo4 {
+
+	using XAssetType = games::bo4::pool::XAssetType;
+	using BGCacheTypes = games::bo4::pool::BGCacheTypes;
 	typedef uint32_t ScrString_t;
 	enum XFileBlock : __int32 {
 		XFILE_BLOCK_TEMP = 0x0,
@@ -22,7 +25,7 @@ namespace fastfile::linker::bo4 {
 
 
 	struct XAsset {
-		games::bo4::pool::XAssetType type;
+		XAssetType type;
 		uintptr_t header; // XAssetHeader
 	};
 
@@ -39,7 +42,7 @@ namespace fastfile::linker::bo4 {
 
 	struct BO4FFContext {
 		fastfile::linker::data::LinkerData data{ XFILE_BLOCK_COUNT, XFILE_BLOCK_TEMP, XFILE_BLOCK_TEMP_PRELOAD };
-		std::unordered_map<games::bo4::pool::BGCacheTypes, std::unordered_set<uint64_t>> bgcache{};
+		std::unordered_map<BGCacheTypes, std::unordered_set<uint64_t>> bgcache{};
 		uint64_t ffnameHash{};
 		const char* ffname{};
 	};
@@ -57,6 +60,10 @@ namespace fastfile::linker::bo4 {
 		inline uint64_t HashXHash(const std::string& str, bool ignoreTop = false) { return HashXHash(str.data(), ignoreTop); }
 		inline uint64_t HashScr(const std::string& str) { return HashScr(str.data()); }
 		uint64_t HashPathName(const std::filesystem::path& path);
+		void LinkEmptyAsset(BO4FFContext& ff, XAssetType type, uint64_t name);
+		inline void LinkEmptyAsset(XAssetType type, uint64_t name) {
+			LinkEmptyAsset(mainFF, type, name);
+		}
 	};
 
 	struct GfxImage;
@@ -72,4 +79,7 @@ namespace fastfile::linker::bo4 {
 	};
 
 	std::vector<LinkerWorker*>& GetWorkers();
+
+	bool LinkGfxImagePtr(BO4LinkContext& ctx, const char* gfximage, uint64_t* hashOut = nullptr);
+	bool LinkWeaponTunablesPtr(BO4LinkContext& ctx, const char* wt, uint64_t* hashOut = nullptr);
 }

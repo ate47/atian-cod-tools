@@ -1,7 +1,6 @@
 #include <includes.hpp>
 #include <tools/ff/linkers/linker_bo4.hpp>
 #include <tools/ff/linkers/bo4/linker_bo4_scriptbundle.hpp>
-#include <tools/ff/linkers/bo4/linker_bo4_gfx_image.hpp>
 
 namespace {
 	using namespace fastfile::linker::bo4;
@@ -188,9 +187,9 @@ namespace {
 				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
 				// link images
-				if (!waypointImage.empty() && !image::LinkGfxImagePtr(ctx, waypointImage.data())) continue;
-				if (!objectiveImage.empty() && !image::LinkGfxImagePtr(ctx, objectiveImage.data())) continue;
-				if (!subObjectiveImage.empty() && !image::LinkGfxImagePtr(ctx, subObjectiveImage.data())) continue;
+				if (!waypointImage.empty() && !LinkGfxImagePtr(ctx, waypointImage.data())) continue;
+				if (!objectiveImage.empty() && !LinkGfxImagePtr(ctx, objectiveImage.data())) continue;
+				if (!subObjectiveImage.empty() && !LinkGfxImagePtr(ctx, subObjectiveImage.data())) continue;
 
 				// link bundle
 				auto bundle = objCfg.main.FindMember("bundle");

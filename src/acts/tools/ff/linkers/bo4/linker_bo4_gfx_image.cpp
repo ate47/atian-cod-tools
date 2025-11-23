@@ -1,11 +1,10 @@
 #include <includes.hpp>
 #include <tools/ff/linkers/linker_bo4.hpp>
-#include <tools/ff/linkers/bo4/linker_bo4_gfx_image.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
 #include <stb_image.h>
 
-namespace fastfile::linker::bo4::image {
+namespace fastfile::linker::bo4 {
 	enum GfxPixelFormat : int32_t {
 		GFX_PF_INVALID = 0x0,
 		GFX_PF_R8G8B8A8_T1 = 28,

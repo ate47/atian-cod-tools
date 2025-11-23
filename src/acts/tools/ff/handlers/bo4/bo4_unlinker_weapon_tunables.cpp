@@ -69,14 +69,14 @@ namespace {
 				uint64_t unk0;
 				uint64_t unk8;
 				uint64_t unk10;
-				uint64_t unk18;
+				const char* luigiLockOnWidget;
 				const char* var_f56ac2bd;
 				const char* spawninfluencer;
 				XHash var_77b46a8c;
 				XHash name;
-				XHash unk50;
-				XHash unk60;
-				XHash unk70;
+				XHash ammoType;
+				XHash description;
+				XHash ammoScriptBundle;
 				uint64_t unk80;
 				uint64_t unk88;
 				uint64_t unk90;
@@ -975,6 +975,8 @@ namespace {
 				w.Write("ammoCountClipRelative", asset->ammoCountClipRelative);
 				w.Write("ammoindex", asset->ammoindex);
 				w.Write("ammoregen", asset->ammoregen);
+				w.Write("ammoScriptBundle", asset->ammoScriptBundle);
+				w.Write("ammoType", asset->ammoType);
 				w.Write("anyplayercanretrieve", asset->anyplayercanretrieve);
 				w.Write("bAltWeaponDisableSwitching", asset->bAltWeaponDisableSwitching);
 				w.Write("bDieOnRespawn", asset->bDieOnRespawn);
@@ -991,6 +993,7 @@ namespace {
 				w.Write("damagetoownerscalar", asset->damagetoownerscalar);
 				w.Write("decoy", asset->decoy);
 				w.Write("deployable", asset->deployable);
+				w.Write("description", asset->description);
 				w.Write("destroyablebytrophysystem", asset->destroyablebytrophysystem);
 				w.Write("destroysequipment", asset->destroysequipment);
 				w.Write("disabledeploy", asset->disabledeploy);
@@ -1082,6 +1085,7 @@ namespace {
 				w.Write("lockonradius", asset->lockonradius);
 				w.Write("lockonscreenradius", asset->lockonscreenradius);
 				w.Write("lockontype", LockOnTypeName(asset->lockontype));
+				w.Write("luigiLockOnWidget", asset->luigiLockOnWidget);
 				w.Write("maxdist", asset->maxdist);
 				w.Write("maxgibdistance", asset->maxgibdistance);
 				w.Write("maxheal", asset->maxheal);
@@ -1232,10 +1236,6 @@ namespace {
 				w.WriteUnk("unk0", asset->unk0);
 				w.WriteUnk("unk8", asset->unk8);
 				w.WriteUnk("unk10", asset->unk10);
-				w.WriteUnk("unk18", asset->unk18);
-				w.WriteUnk("unk50", asset->unk50);
-				w.WriteUnk("unk60", asset->unk60);
-				w.WriteUnk("unk70", asset->unk70);
 				w.WriteUnk("unk80", asset->unk80);
 				w.WriteUnk("unk88", asset->unk88);
 				w.WriteUnk("unk90", asset->unk90);
