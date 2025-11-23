@@ -26,4 +26,8 @@ namespace utils::data {
 		return ss.str();
 	}
 	bool IsNulled(const void* buff, size_t size);
+	template<typename T>
+	bool IsNulled(const T& buff) {
+		return IsNulled(&buff, sizeof(buff));
+	}
 }

@@ -395,31 +395,53 @@ namespace {
 				GfxImage* unk1040;
 				GfxImage* unk1048;
 				ScriptBundle* var_8456d4d;
-				uint64_t unk1058;
-				uint64_t unk1060;
-				uint64_t unk1068;
-				uint64_t unk1070;
-				uint64_t unk1078;
-				uint64_t unk1080;
-				uint64_t unk1088;
-				uint64_t unk1090;
-				uint64_t unk1098;
-				uint64_t unk10a0;
-				uint64_t unk10a8;
-				uint64_t unk10b0;
-				uint64_t unk10b8;
-				uint64_t unk10c0;
-				uint64_t unk10c8;
-				uint64_t unk10d0;
-				uint64_t unk10d8;
-				uint64_t unk10e0;
-				uint64_t unk10e8;
-				uint64_t unk10f0;
-				uint64_t unk10f8;
-				uint64_t unk1100;
-				uint64_t unk1108;
-				uint64_t unk1110;
-				uint64_t unk1118;
+				float unk1058;
+				float unk105c;
+				float unk1060;
+				float unk1064;
+				float unk1068;
+				float unk106c;
+				uint32_t unk1070;
+				float unk1074;
+				float unk1078;
+				uint32_t unk107c;
+				float unk1080;
+				uint32_t unk1084;
+				float unk1088;
+				float unk108c;
+				float unk1090;
+				uint32_t unk1094;
+				uint64_t unk1098; // ?
+				float unk10a0;
+				uint32_t unk10a4;
+				float unk10a8;
+				float unk10ac;
+				uint64_t unk10b0; // ?
+				uint64_t unk10b8; // ?
+				uint32_t unk10c0;
+				float unk10c4;
+				float unk10c8;
+				float unk10cc;
+				float unk10d0;
+				float unk10d4;
+				float unk10d8;
+				float unk10dc;
+				float unk10e0;
+				float unk10e4;
+				float unk10e8;
+				float unk10ec;
+				float unk10f0;
+				float unk10f4;
+				float unk10f8;
+				float unk10fc;
+				float unk1100;
+				uint32_t unk1104;
+				float unk1108;
+				uint32_t unk110c;
+				uint32_t unk1110;
+				float unk1114;
+				float unk1118;
+				uint32_t unk111c;
 				uint64_t unk1120;
 				uint64_t unk1128;
 				uint64_t unk1130;
@@ -652,9 +674,16 @@ namespace {
 				json.WriteFieldValueBool("lockonseekersearchsoundloops", asset->lockonseekersearchsoundloops);
 				json.WriteFieldValueBool("lockonseekerlockedsoundloops", asset->lockonseekerlockedsoundloops);
 				json.WriteFieldValueBool("lockontargetlockedsoundloops", asset->lockontargetlockedsoundloops);
-				json.WriteFieldValueBool(0x965cc0b3, asset->var_965cc0b3);
 				json.WriteFieldValueBool("lockontargetfiredonsoundloops", asset->lockontargetfiredonsoundloops);
 				json.WriteFieldValueBool("forcedamageshellshockandrumble", asset->forcedamageshellshockandrumble);
+				json.WriteFieldValueBool(0x965cc0b3, asset->var_965cc0b3);
+				json.WriteFieldValueBool(0x50d2316b, asset->var_50d2316b);
+				json.WriteFieldValueBool(0x83b1dc1, asset->var_83b1dc1);
+				json.WriteFieldValueBool(0x2cf49821, asset->var_2cf49821);
+				json.WriteFieldValueBool(0xd2751f9d, asset->var_d2751f9d);
+				json.WriteFieldValueBool(0x554be9f7, asset->var_554be9f7);
+				json.WriteFieldValueString("accuracyGraphKnotCount", std::format("{} {}", asset->accuracyGraphKnotCount[0], asset->accuracyGraphKnotCount[1]));
+
 
 				json.WriteFieldValueXHash("sound90", asset->sound90);
 				json.WriteFieldValueXHash("sounda0", asset->sounda0);
@@ -940,6 +969,199 @@ namespace {
 				json.WriteFieldValueXAsset("dudImpactSounds", ASSET_TYPE_IMPACT_SOUND, asset->dudImpactSounds);
 				json.WriteFieldValueXAsset("soundsImpact_1000", ASSET_TYPE_IMPACT_SOUND, asset->unk1000);
 
+
+				if (asset->var_21329beb[0].model) {
+					json.WriterFieldNameHash(0x21329beb);
+					json.BeginArray();
+					for (WeaponDefObj21329beb& arr : asset->var_21329beb) {
+						if (!arr.model) break;
+						json.BeginObject();
+						json.WriteFieldValueXAsset("model", ASSET_TYPE_XMODEL, arr.model);
+						json.EndObject();
+					}
+
+					json.EndArray();
+				}
+
+
+				if (opt.testDump) {
+					
+					json.WriteFieldValueNumber("unk1058", asset->unk1058);
+					json.WriteFieldValueNumber("unk105c", asset->unk105c);
+					json.WriteFieldValueNumber("unk1060", asset->unk1060);
+					json.WriteFieldValueNumber("unk1064", asset->unk1064);
+					json.WriteFieldValueNumber("unk1068", asset->unk1068);
+					json.WriteFieldValueNumber("unk106c", asset->unk106c);
+					json.WriteFieldValueUnknown("unk1070", asset->unk1070);
+					json.WriteFieldValueNumber("unk1074", asset->unk1074);
+					json.WriteFieldValueNumber("unk1078", asset->unk1078);
+					json.WriteFieldValueUnknown("unk107c", asset->unk107c);
+					json.WriteFieldValueNumber("unk1080", asset->unk1080);
+					json.WriteFieldValueUnknown("unk1084", asset->unk1084);
+					json.WriteFieldValueNumber("unk1088", asset->unk1088);
+					json.WriteFieldValueNumber("unk108c", asset->unk108c);
+					json.WriteFieldValueNumber("unk1090", asset->unk1090);
+					json.WriteFieldValueUnknown("unk1094", asset->unk1094);
+					json.WriteFieldValueUnknown("unk1098", asset->unk1098);
+					json.WriteFieldValueNumber("unk10a0", asset->unk10a0);
+					json.WriteFieldValueUnknown("unk10a4", asset->unk10a4);
+					json.WriteFieldValueNumber("unk10a8", asset->unk10a8);
+					json.WriteFieldValueNumber("unk10ac", asset->unk10ac);
+					json.WriteFieldValueUnknown("unk10b0", asset->unk10b0);
+					json.WriteFieldValueUnknown("unk10b8", asset->unk10b8);
+					json.WriteFieldValueUnknown("unk10c0", asset->unk10c0);
+					json.WriteFieldValueNumber("unk10c4", asset->unk10c4);
+					json.WriteFieldValueNumber("unk10c8", asset->unk10c8);
+					json.WriteFieldValueNumber("unk10cc", asset->unk10cc);
+					json.WriteFieldValueNumber("unk10d0", asset->unk10d0);
+					json.WriteFieldValueNumber("unk10d4", asset->unk10d4);
+					json.WriteFieldValueNumber("unk10d8", asset->unk10d8);
+					json.WriteFieldValueNumber("unk10dc", asset->unk10dc);
+					json.WriteFieldValueNumber("unk10e0", asset->unk10e0);
+					json.WriteFieldValueNumber("unk10e4", asset->unk10e4);
+					json.WriteFieldValueNumber("unk10e8", asset->unk10e8);
+					json.WriteFieldValueNumber("unk10ec", asset->unk10ec);
+					json.WriteFieldValueNumber("unk10f0", asset->unk10f0);
+					json.WriteFieldValueNumber("unk10f4", asset->unk10f4);
+					json.WriteFieldValueNumber("unk10f8", asset->unk10f8);
+					json.WriteFieldValueNumber("unk10fc", asset->unk10fc);
+					json.WriteFieldValueNumber("unk1100", asset->unk1100);
+					json.WriteFieldValueUnknown("unk1104", asset->unk1104);
+					json.WriteFieldValueNumber("unk1108", asset->unk1108);
+					json.WriteFieldValueUnknown("unk110c", asset->unk110c);
+					json.WriteFieldValueUnknown("unk1110", asset->unk1110);
+					json.WriteFieldValueNumber("unk1114", asset->unk1114);
+					json.WriteFieldValueNumber("unk1118", asset->unk1118);
+					json.WriteFieldValueUnknown("unk111c", asset->unk111c);
+
+
+
+					json.WriteFieldValueUnknown("unk1120", asset->unk1120);
+					json.WriteFieldValueUnknown("unk1128", asset->unk1128);
+					json.WriteFieldValueUnknown("unk1130", asset->unk1130);
+					json.WriteFieldValueUnknown("unk1138", asset->unk1138);
+					json.WriteFieldValueUnknown("unk1140", asset->unk1140);
+					json.WriteFieldValueUnknown("unk1148", asset->unk1148);
+					json.WriteFieldValueUnknown("unk1150", asset->unk1150);
+					json.WriteFieldValueUnknown("unk1158", asset->unk1158);
+					json.WriteFieldValueUnknown("unk1160", asset->unk1160);
+					json.WriteFieldValueUnknown("unk1168", asset->unk1168);
+					json.WriteFieldValueUnknown("unk1170", asset->unk1170);
+					json.WriteFieldValueUnknown("unk1178", asset->unk1178);
+					json.WriteFieldValueUnknown("unk1180", asset->unk1180);
+					json.WriteFieldValueUnknown("unk11b8", asset->unk11b8);
+					json.WriteFieldValueUnknown("unk11c0", asset->unk11c0);
+					json.WriteFieldValueUnknown("unk11c8", asset->unk11c8);
+					json.WriteFieldValueUnknown("unk11d0", asset->unk11d0);
+					json.WriteFieldValueUnknown("unk11d8", asset->unk11d8);
+					json.WriteFieldValueUnknown("unk11e0", asset->unk11e0);
+					json.WriteFieldValueUnknown("unk11e8", asset->unk11e8);
+					json.WriteFieldValueUnknown("unk11f0", asset->unk11f0);
+					json.WriteFieldValueUnknown("unk11f8", asset->unk11f8);
+					json.WriteFieldValueUnknown("unk1200", asset->unk1200);
+					json.WriteFieldValueUnknown("unk1208", asset->unk1208);
+					json.WriteFieldValueUnknown("unk1210", asset->unk1210);
+					json.WriteFieldValueUnknown("unk1218", asset->unk1218);
+					json.WriteFieldValueUnknown("unk1220", asset->unk1220);
+					json.WriteFieldValueUnknown("unk1228", asset->unk1228);
+					json.WriteFieldValueUnknown("unk1230", asset->unk1230);
+					json.WriteFieldValueUnknown("unk1238", asset->unk1238);
+					json.WriteFieldValueUnknown("unk1240", asset->unk1240);
+					json.WriteFieldValueUnknown("unk1248", asset->unk1248);
+					json.WriteFieldValueUnknown("unk1250", asset->unk1250);
+					json.WriteFieldValueUnknown("unk1258", asset->unk1258);
+					json.WriteFieldValueUnknown("unk1260", asset->unk1260);
+					json.WriteFieldValueUnknown("unk1268", asset->unk1268);
+					json.WriteFieldValueUnknown("unk1270", asset->unk1270);
+					json.WriteFieldValueUnknown("unk1278", asset->unk1278);
+					json.WriteFieldValueUnknown("unk1280", asset->unk1280);
+					json.WriteFieldValueUnknown("unk1288", asset->unk1288);
+					json.WriteFieldValueUnknown("unk1290", asset->unk1290);
+					json.WriteFieldValueUnknown("unk1298", asset->unk1298);
+					json.WriteFieldValueUnknown("unk12a0", asset->unk12a0);
+					json.WriteFieldValueUnknown("unk12a8", asset->unk12a8);
+					json.WriteFieldValueUnknown("unk12b0", asset->unk12b0);
+					json.WriteFieldValueUnknown("unk12b8", asset->unk12b8);
+					json.WriteFieldValueUnknown("unk12c0", asset->unk12c0);
+					json.WriteFieldValueUnknown("unk12c8", asset->unk12c8);
+					json.WriteFieldValueUnknown("unk12d0", asset->unk12d0);
+					json.WriteFieldValueUnknown("unk12d8", asset->unk12d8);
+					json.WriteFieldValueUnknown("unk12e0", asset->unk12e0);
+					json.WriteFieldValueUnknown("unk12e8", asset->unk12e8);
+					json.WriteFieldValueUnknown("unk12f0", asset->unk12f0);
+					json.WriteFieldValueUnknown("unk12f8", asset->unk12f8);
+					json.WriteFieldValueUnknown("unk1300", asset->unk1300);
+					json.WriteFieldValueUnknown("unk1308", asset->unk1308);
+					json.WriteFieldValueUnknown("unk1310", asset->unk1310);
+					json.WriteFieldValueUnknown("unk1318", asset->unk1318);
+					json.WriteFieldValueUnknown("unk1320", asset->unk1320);
+					json.WriteFieldValueUnknown("unk1328", asset->unk1328);
+					json.WriteFieldValueUnknown("unk1330", asset->unk1330);
+					json.WriteFieldValueUnknown("unk1338", asset->unk1338);
+					json.WriteFieldValueUnknown("unk1344", asset->unk1344);
+					json.WriteFieldValueUnknown("unk1348", asset->unk1348);
+					json.WriteFieldValueUnknown("unk1354", asset->unk1354);
+					json.WriteFieldValueUnknown("unk135c", asset->unk135c);
+					json.WriteFieldValueUnknown("unk1360", asset->unk1360);
+					json.WriteFieldValueUnknown("unk1368", asset->unk1368);
+					json.WriteFieldValueUnknown("unk1370", asset->unk1370);
+					json.WriteFieldValueUnknown("unk1380", asset->unk1380);
+					json.WriteFieldValueUnknown("unk1390", asset->unk1390);
+					json.WriteFieldValueUnknown("unk1398", asset->unk1398);
+					json.WriteFieldValueUnknown("unk13a0", asset->unk13a0);
+					json.WriteFieldValueUnknown("unk13a8", asset->unk13a8);
+					json.WriteFieldValueUnknown("unk13b0", asset->unk13b0);
+					json.WriteFieldValueUnknown("unk13b8", asset->unk13b8);
+					json.WriteFieldValueUnknown("unk13c0", asset->unk13c0);
+					json.WriteFieldValueUnknown("unk13cc", asset->unk13cc);
+					json.WriteFieldValueUnknown("unk13d0", asset->unk13d0);
+					json.WriteFieldValueUnknown("unk13d6", asset->unk13d6);
+					json.WriteFieldValueUnknown("unk13d8", asset->unk13d8);
+					json.WriteFieldValueUnknown("unk13da", asset->unk13da);
+					json.WriteFieldValueUnknown("unk13e0", asset->unk13e0);
+					json.WriteFieldValueUnknown("unk13e5", asset->unk13e5);
+					json.WriteFieldValueUnknown("unk13e6", asset->unk13e6);
+					json.WriteFieldValueUnknown("unk13e8", asset->unk13e8);
+					json.WriteFieldValueUnknown("unk13eb", asset->unk13eb);
+					json.WriteFieldValueUnknown("unk13ec", asset->unk13ec);
+					json.WriteFieldValueUnknown("unk13f0", asset->unk13f0);
+					json.WriteFieldValueUnknown("unk13f7", asset->unk13f7);
+					json.WriteFieldValueUnknown("unk13f8", asset->unk13f8);
+					json.WriteFieldValueUnknown("unk1400", asset->unk1400);
+					json.WriteFieldValueUnknown("unk1408", asset->unk1408);
+					json.WriteFieldValueUnknown("unk1410", asset->unk1410);
+					json.WriteFieldValueUnknown("unk1418", asset->unk1418);
+					json.WriteFieldValueUnknown("unk1420", asset->unk1420);
+					json.WriteFieldValueUnknown("unk1428", asset->unk1428);
+
+					if (!utils::data::IsNulled(asset->var_21329beb)) {
+						json.WriterFieldNameHash(0x21329beb);
+						json.BeginArray();
+						for (WeaponDefObj21329beb& arr : asset->var_21329beb) {
+							json.BeginObject();
+							json.WriteFieldValueXAsset("model", ASSET_TYPE_XMODEL, arr.model);
+
+							if (opt.testDump) {
+								json.WriteFieldValueUnknown("arr:unk8", arr.unk8);
+								json.WriteFieldValueUnknown("arr:unk10", arr.unk10);
+								json.WriteFieldValueUnknown("arr:unk18", arr.unk18);
+								json.WriteFieldValueUnknown("arr:unk20", arr.unk20);
+								json.WriteFieldValueUnknown("arr:unk28", arr.unk28);
+								json.WriteFieldValueUnknown("arr:unk30", arr.unk30);
+								json.WriteFieldValueUnknown("arr:unk38", arr.unk38);
+								json.WriteFieldValueUnknown("arr:unk40", arr.unk40);
+							}
+							json.EndObject();
+						}
+
+						json.EndArray();
+					}
+
+				}
+				/*
+				
+				WeaponDefObj21329beb var_21329beb[4];
+				*/
 			}
 			json.EndObject();
 
