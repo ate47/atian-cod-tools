@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <cli/cli_options.hpp>
 #include <tools/gsc.hpp>
 #include <tools/gsc_decompiler.hpp>
 #include <decryptutils.hpp>
@@ -6,12 +7,39 @@
 
 namespace {
 	int searcher_gsc(int argc, const char* argv[]) {
-		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+		struct {
+			bool help{};
+			const char* splt{};
+			tool::gsc::opcode::Platform plt{ tool::gsc::opcode::PLATFORM_PC };
+		} opt{};
+		cli::options::CliOptions opts{};
+
+		opts
+			.addOption(&opt.help, "show help", "--help", "", "-h")
+			.addOption(&opt.splt, "platform", "--plt", " [p]", "-p")
+			;
+
+		if (!opts.ComputeOptions(2, argc, argv) || opt.help) {
+			opts.PrintOptions();
+			return tool::OK;
+		}
+
+		if (opts.NotEnoughParam(2)) {
+			return tool::BAD_USAGE;
+		}
+
+		if (opt.splt) {
+			opt.plt = tool::gsc::opcode::PlatformOf(opt.splt);
+			if (!opt.splt) {
+				LOG_ERROR("Invalid platform: {}", opt.splt);
+				return tool::BAD_USAGE;
+			}
+		}
 
 		LOG_INFO("Load common scripts");
 		hashutils::ReadDefaultFile();
 		std::vector<std::filesystem::path> scripts{};
-		utils::GetFileRecurseExt(argv[2], scripts, ".gscc\0.cscc\0");
+		utils::GetFileRecurseExt(opts[0], scripts, ".gscc\0.cscc\0");
 
 		if (scripts.empty()) {
 			LOG_ERROR("Can't find any script");
@@ -21,6 +49,7 @@ namespace {
 		tool::gsc::GscDecompilerGlobalContext ctx{};
 		ctx.noDump = true;
 		ctx.opt.m_header = true;
+		ctx.opt.m_platform = opt.plt;
 		std::unordered_set<uint64_t> hashes{};
 		std::vector<byte> scriptData{};
 		std::vector<const char*> scriptStrings{};
@@ -86,9 +115,9 @@ namespace {
 		LOG_INFO("{} string(s) loaded", scriptStrings.size());
 		LOG_INFO("{} script path(s) loaded", scriptPaths.size());
 		LOG_INFO("{} hash(es) loaded", hashes.size());
-		utils::OutFileCE os{ argv[3], false, std::ios::app | std::ios::out };
+		utils::OutFileCE os{ opts[1], false, std::ios::app | std::ios::out };
 		if (!os) {
-			LOG_ERROR("Can't open {}", argv[3]);
+			LOG_ERROR("Can't open {}", opts[1]);
 			return tool::BASIC_ERROR;
 		}
 
