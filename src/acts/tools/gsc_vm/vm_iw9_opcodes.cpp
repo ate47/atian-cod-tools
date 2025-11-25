@@ -13,4 +13,4 @@ namespace {
 
 
 }
-REGISTER_GSC_VM_OPCODES(gscbin, OpCode);
+REGISTER_GSC_VM_OPCODES(mw22, OpCode);

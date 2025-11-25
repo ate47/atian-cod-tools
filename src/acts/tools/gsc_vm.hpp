@@ -42,9 +42,7 @@ namespace tool::gsc::vm {
 		std::function<void()> func;
 		GscVmOpCodeLoadState state{ GVOLS_UNLOADED };
 
-		GscVmOpCode(const char* id, std::function<void()> func, const char* deps = nullptr) : func(func), id(id), deps(deps) {
-			GscOpCodes()[hash::Hash64(id)] = this;
-		}
+		GscVmOpCode(const char* id, std::function<void()> func, const char* deps = nullptr);
 
 		void RegisterAndDeps();
 	};

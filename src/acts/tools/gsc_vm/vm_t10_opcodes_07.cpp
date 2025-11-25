@@ -211,4 +211,4 @@ namespace {
 		t107->RegisterOpCode(PLATFORM_PC, OPCODE_Jump, 0xa9);
 	}
 }
-REGISTER_GSC_VM_OPCODES(bo6, OpCode);
+REGISTER_GSC_VM_OPCODES(bo6_07, OpCode);

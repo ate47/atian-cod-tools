@@ -55,6 +55,14 @@ namespace tool::gsc::vm {
         return it->second;
     }
 
+    GscVmOpCode::GscVmOpCode(const char* id, std::function<void()> func, const char* deps) : func(func), id(id), deps(deps) {
+        std::unordered_map<uint64_t, GscVmOpCode*>& opcodes{ GscOpCodes() };
+        GscVmOpCode*& ptr{ opcodes[hash::Hash64(id)] };
+        if (ptr) {
+            LOG_WARNING("registering twice vm {}", id);
+        }
+        ptr = this;
+    }
 
     void GscVmOpCode::RegisterAndDeps() {
         if (state == GVOLS_LOADED) {

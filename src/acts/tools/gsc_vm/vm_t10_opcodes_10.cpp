@@ -165,4 +165,4 @@ namespace {
 		t1010->RegisterOpCode(PLATFORM_PC, OPCODE_Undefined, 0x6a);
 	}
 }
-REGISTER_GSC_VM_OPCODES(bo6, OpCode);
+REGISTER_GSC_VM_OPCODES(bo6_10, OpCode);

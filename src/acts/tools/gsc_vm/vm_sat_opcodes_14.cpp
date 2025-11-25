@@ -152,4 +152,4 @@ namespace {
 
 	}
 }
-REGISTER_GSC_VM_OPCODES_DEPS(bo7, OpCode, bo6);
+REGISTER_GSC_VM_OPCODES_DEPS(bo7_14, OpCode, bo6_14);

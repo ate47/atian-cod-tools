@@ -172,4 +172,4 @@ namespace {
 		t10d->RegisterOpCode(PLATFORM_PC, OPCODE_GetWorldObject, 0x77);
 	}
 }
-REGISTER_GSC_VM_OPCODES(bo6, OpCode);
+REGISTER_GSC_VM_OPCODES(bo6_0d, OpCode);

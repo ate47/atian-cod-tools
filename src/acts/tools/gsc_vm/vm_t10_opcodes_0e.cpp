@@ -141,4 +141,4 @@ namespace {
 		t10e->RegisterOpCode(PLATFORM_PC, OPCODE_IW_EvalAnimFieldVarRef, 0x55);
 	}
 }
-REGISTER_GSC_VM_OPCODES(bo6, OpCode);
+REGISTER_GSC_VM_OPCODES(bo6_0e, OpCode);

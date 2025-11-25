@@ -31,4 +31,4 @@ namespace {
 		t1013->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector", "xhash", "xhashasset", "istring");
 	}
 }
-REGISTER_GSC_VM_OPCODES(bo6, OpCode);
+REGISTER_GSC_VM_OPCODES(bo6_13, OpCode);

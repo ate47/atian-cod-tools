@@ -172,4 +172,4 @@ namespace {
 		t10c->RegisterOpCode(PLATFORM_PC, OPCODE_Bit_Xor, 0x97);
 	}
 }
-REGISTER_GSC_VM_OPCODES(bo6, OpCode);
+REGISTER_GSC_VM_OPCODES(bo6_0c, OpCode);
