@@ -5638,6 +5638,49 @@ namespace tool::gsc::opcode {
 
 		return svmIt->second;
 	}
+	Platform VmInfo::FindPlatform(VMExpectedValue* values, size_t count) const {
+		if (!count || !values) {
+			return {};
+		}
+
+		size_t valids[opcode::Platform::PLATFORM_COUNT]{};
+
+		for (size_t i = 0; i < count; i++) {
+			VMExpectedValue& ev{ values[i] };
+
+			auto it{ opcodemap.find(ev.value) };
+			if (it == opcodemap.end()) {
+				return {}; // no opcode value
+			}
+
+			bool anyMatch{};
+			for (auto& [plt, opcode] : it->second) {
+				if (opcode != ev.opcode) {
+					continue;
+				}
+				valids[plt]++;
+				anyMatch = true;
+			}
+
+			if (!anyMatch) {
+				return {}; // no platform matching
+			}
+		}
+
+		Platform res{};
+
+		for (size_t i = 0; i < opcode::Platform::PLATFORM_COUNT; i++) {
+			// check that we have only one platform missing
+			if (valids[i] == count) {
+				if (res) {
+					return {}; // duplicated
+				}
+				res = (opcode::Platform)i;
+			}
+		}
+
+		return res;
+	}
 
 	void VmInfo::RegisterDatatypeRenamed(const char* datatype, const char* trueName) {
 		dataType[hash::Hash64(datatype)] = trueName;

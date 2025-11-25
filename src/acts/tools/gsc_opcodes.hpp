@@ -74,6 +74,11 @@ namespace tool::gsc::opcode {
 		std::function<uint64_t(const char*)> hashFunc;
 	};
 
+	struct VMExpectedValue {
+		OPCode opcode;
+		uint16_t value;
+	};
+
 	class OPCodeInfo;
 	struct VmInfo {
 		uint64_t vmMagic{};
@@ -169,6 +174,7 @@ namespace tool::gsc::opcode {
 			return HashFilePath(value.c_str());
 		}
 		Platform RemapSamePlatform(Platform origin) const;
+		Platform FindPlatform(VMExpectedValue* values, size_t count) const;
 
 		void RegisterVMGlobalVariable(const char* name, OPCode getOpCode = OPCODE_Undefined);
 		void RegisterVMOperatorFunction(const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255);

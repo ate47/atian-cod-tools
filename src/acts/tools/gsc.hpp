@@ -1178,6 +1178,7 @@ namespace tool::gsc {
         // Patch script to prepare disasm
         virtual int PatchCode(T8GSCOBJContext& ctx);
         virtual int PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout);
+        virtual opcode::Platform ComputePlatform(T8GSCOBJContext& ctx);
     };
 
     std::function<std::shared_ptr<GSCOBJHandler>(byte*,size_t)>* GetGscReader(uint64_t vm);

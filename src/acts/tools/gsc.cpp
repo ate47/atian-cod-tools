@@ -557,6 +557,11 @@ uint32_t GSCOBJHandler::GetTokensOffset() {
 int GSCOBJHandler::PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout) {
     return tool::OK;
 }
+
+opcode::Platform GSCOBJHandler::ComputePlatform(T8GSCOBJContext& ctx) {
+    return PLATFORM_UNKNOWN; // can't compute platform for that
+}
+
 std::pair<const char*, size_t> GSCOBJHandler::GetStringHeader(size_t len) {
     return { "", 0 }; // no encryption header by default
 }
@@ -1275,12 +1280,6 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
             LOG_ERROR("Bad vm 0x{:x} for file {}", vmVal, path);
             return tool::BASIC_ERROR;
         }
-
-        if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_PLATFORM) && (!opt.m_platform || opt.m_platform == tool::gsc::opcode::PLATFORM_PC)) {
-            LOG_INFO("This VM requires a platform");
-            return tool::BASIC_ERROR;
-
-        }
     }
     hashutils::ReadDefaultFile();
 
@@ -1359,6 +1358,14 @@ int tool::gsc::DecompileGsc(byte* data, size_t size, std::filesystem::path fsPat
     if (ctx.SwitchEndian()) {
         scriptfile->SwitchHeaderEndian();
         endianSwapped = true;
+    }
+
+    if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_NO_PLATFORM) && (!ctx.currentPlatform || ctx.currentPlatform == tool::gsc::opcode::PLATFORM_PC)) {
+        ctx.currentPlatform = scriptfile->ComputePlatform(ctx);
+        if (!ctx.currentPlatform) {
+            LOG_INFO("This VM requires a platform which can't be computed");
+            return tool::BASIC_ERROR;
+        }
     }
 
     // required for gscbin

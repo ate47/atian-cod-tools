@@ -1583,6 +1583,25 @@ namespace {
         byte GetVTableImportFlags() override {
             return 0x15;
         }
+        opcode::Platform ComputePlatform(T8GSCOBJContext& ctx) override {
+            // we know that the first func is a crc emit
+            if (!GetExportsCount()) {
+                return opcode::PLATFORM_PC; // no exports, so no value to check
+            }
+            ctx.exp->SetHandle(Ptr(GetExportsOffset()));
+            if (!IsVTableImportFlags(ctx.exp->GetFlags())) {
+                return {}; // invalid func
+            }
+            byte* bytecode{ Ptr(ctx.exp->GetAddress()) };
+
+            VMExpectedValue expectedValues[]{
+                { OPCODE_CheckClearParams, bytecode[0] },
+                { OPCODE_PreScriptCall, bytecode[1] },
+                { OPCODE_GetString, bytecode[2] },
+            };
+
+            return ctx.m_vmInfo->FindPlatform(expectedValues, ARRAYSIZE(expectedValues));
+        }
     };
 
 }
