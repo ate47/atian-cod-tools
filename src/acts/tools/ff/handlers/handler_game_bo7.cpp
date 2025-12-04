@@ -404,7 +404,7 @@ namespace fastfile::handlers::bo7 {
 				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 49 8B D9", "LoadStreamTA").location, LoadStreamTA);
 				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", "Load_String").location, Load_String);
 				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41", "Load_StringName").location, Load_String); // str
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA", "DB_AddAsset").location, DB_AddAsset);
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B F2 48 8B F9 E8 ?? ?? ?? ?? 4C", "DB_AddAsset").location, DB_AddAsset);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_AddAssetRef").location, DB_AddAssetRef);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8", "Load_CustomScriptString").location, Load_CustomScriptString);
 
@@ -562,7 +562,8 @@ namespace fastfile::handlers::bo7 {
 				LOG_INFO("String dump into {}", outStrings.string());
 				LOG_DEBUG("string end at 0x{:x}", reader.Loc());
 
-				gcx.assets.unk10 = reader.ReadPtr<uint32_t>(gcx.assets.unk10_count);
+				// finally moved to a runtime memory block
+				// gcx.assets.unk10 = reader.ReadPtr<uint32_t>(gcx.assets.unk10_count);
 
 				if (!gcx.assets.assetsCount) {
 					LOG_INFO("no assets to load");

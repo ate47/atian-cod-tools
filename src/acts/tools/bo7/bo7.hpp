@@ -27,7 +27,6 @@ namespace tool::bo7 {
         SATH_ASSET_SOUNDGLOBALCONTEXT = hash::HashX32("soundglobalcontext"),
         SATH_ASSET_SOUNDGLOBALWHIZBY = hash::HashX32("soundglobalwhizby"),
         SATH_ASSET_SOUNDGLOBALBULLETCRACK = hash::HashX32("soundglobalbulletcrack"),
-        SATH_ASSET_SOUNDGLOBALPERK = hash::HashX32("soundglobalperk"),
         SATH_ASSET_SOUNDGLOBALOCCLUSION = hash::HashX32("soundglobalocclusion"),
         SATH_ASSET_SOUNDGLOBALSURFACEINFO = hash::HashX32("soundglobalsurfaceinfo"),
         SATH_ASSET_SOUNDGLOBALCURVE = hash::HashX32("soundglobalcurve"),
@@ -209,7 +208,7 @@ namespace tool::bo7 {
         SATH_ASSET_MATERIALSFXTABLE = hash::HashX32("materialsfxtable"),
         SATH_ASSET_FOOTSTEPSFXTABLE = hash::HashX32("footstepsfxtable"),
         SATH_ASSET_REACTIVESTAGESET = hash::HashX32("reactivestageset"),
-        SATH_ASSET_FOLIAGESFXTABLE = hash::HashX32("foliagesfxtable"),
+        SATH_ASSET_FOLIAGEIMPACTSFXTABLE = hash::HashX32("foliageimpactsfxtable"),
         SATH_ASSET_IMPACTSFXTABLE = hash::HashX32("impactsfxtable"),
         SATH_ASSET_AIIMPACTVFXTABLE = hash::HashX32("aiimpactvfxtable"),
         SATH_ASSET_TYPEINFO = hash::HashX32("typeinfo"),
@@ -371,7 +370,19 @@ namespace tool::bo7 {
         SATH_ASSET_BULLETCRACKSFX = hash::HashX32("bulletcracksfx"),
         SATH_ASSET_HEATMAPRADAR = hash::HashX32("heatmapradar"),
         SATH_ASSET_UNLOCKFEEDITEM = hash::HashX32("unlockfeeditem"),
-        SATH_ASSET_SHOCK = hash::HashX32("shock")
+        SATH_ASSET_CODCASTERGAMEPLAYSTAT = hash::HashX32("codcastergameplaystat"),
+        SATH_ASSET_SNDCHANNELS = hash::HashX32("sndchannels"),
+        SATH_ASSET_OMNVARLIST = hash::HashX32("omnvarlist"),
+        SATH_ASSET_MATERIALFLOATTABLE = hash::HashX32("materialfloattable"),
+        SATH_ASSET_HYPERPOSEGAMEFEATURES = hash::HashX32("hyperposegamefeatures"),
+        SATH_ASSET_XANIMPAYLOAD = hash::HashX32("xanimpayload"),
+        SATH_ASSET_GRENADEUTILITYSPEC = hash::HashX32("grenadeutilityspec"),
+        SATH_ASSET_SPATIALCINEMATICS = hash::HashX32("spatialcinematics"),
+        SATH_ASSET_FOOTSTEPDECALDESCRIPTION = hash::HashX32("footstepdecaldescription"),
+        SATH_ASSET_VEHICLEREVSFX = hash::HashX32("vehiclerevsfx"),
+        SATH_ASSET_SHOCK = hash::HashX32("shock"),
+        SATH_ASSET_SPIKEPROFILERCONFIG = hash::HashX32("spikeprofilerconfig"),
+        SATH_ASSET_SPIKEPROFILERSETTINGS = hash::HashX32("spikeprofilersettings"),
     };
 
     const char* PoolName(SatHashAssetType type);
