@@ -1,11 +1,11 @@
 - acts
-    - fix library loading
 	- fastfile
-		- disable cold war auto spt platform
-		- add soundbank ff unlinker in bo6 handler
-		- use json format instead of C format for json dumps
-		- add translation option
+		- bo7 handler
+		- bo4
+			- characterbodytype and character unlinkers 
+			- better weapon and weapontunables unlinkers
+		- assetlist ids dumper
+		- add translation extraction for bo6, bo7 and mwiii unlinkers usable with -t [dir]
 	- gsc
-		- add bo7 to compiler/decompiler
-		- force usage of `bo6_v1`, `bo6` and `bo7` for vm-iw14 in decompiler
-	- fix bo6 and bo7 exe dump
+		- do not ask platform for bo67 decompiler
+	- fix search_gsc when a platform is required
