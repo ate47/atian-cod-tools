@@ -70,8 +70,9 @@ namespace hashutils {
 	 * @param str string
 	 * @param async run async
 	 * @param clone clone string
+	 * @return allocated string or str if clone = false
 	 */
-	void AddPrecomputed(uint64_t value, const char* str, bool async = false, bool clone = true);
+	const char* AddPrecomputed(uint64_t value, const char* str, bool async = false, bool clone = true);
 	/*
 	 * Extract a hash into a buffer
 	 * @param type Hash type

@@ -8,6 +8,34 @@ namespace {
 	using namespace fastfile::handlers::bo4;
 
 	class ScriptParseTreeWorker : public Worker {
+
+		void GenDefaultXHashes(fastfile::FastFileContext* ctx) override {
+			if (!ctx) {
+				return; // no base ones
+			}
+
+			const char* mapname{ ctx->ffname };
+			std::string gamemode{ mapname };
+			size_t fdd{ gamemode.find('_') };
+			if (fdd != std::string::npos) {
+				gamemode.resize(fdd);
+			}
+
+			const char* suffixes[]{
+				"", "_fx", "_scripted", "_sound"
+			};
+			const char* types[]{
+				"gsc", "csc"
+			};
+
+			for (const char* suffix : suffixes) {
+				for (const char* type : types) {
+					const char* str{ utils::va("scripts/%s/%s%s.%s", gamemode, ctx->ffname, suffix, type) };
+					hashutils::AddPrecomputed(hash::Hash64(str), str, true);
+				}
+			}
+		}
+
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			struct ScriptParseTree {
 				XHash name;

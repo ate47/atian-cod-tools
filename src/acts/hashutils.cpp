@@ -409,9 +409,9 @@ namespace hashutils {
 		}
 		return true;
 	}
-	void AddPrecomputed(uint64_t value, const char* str, bool async, bool clone) {
+	const char* AddPrecomputed(uint64_t value, const char* str, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		core::hashes::AddPrecomputed(value, str, clone);
+		return core::hashes::AddPrecomputed(value, str, clone);
 	}
 
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {

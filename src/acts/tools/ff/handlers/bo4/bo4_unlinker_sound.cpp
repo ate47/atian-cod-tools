@@ -185,6 +185,22 @@ namespace {
 	static_assert(sizeof(SndBank) == 0x130);
 
 	class ImplWorker : public Worker {
+
+		void GenDefaultXHashes(fastfile::FastFileContext* ctx) override {
+			if (!ctx) {
+				return; // no base ones
+			}
+
+			const char* suffixes[]{
+				"all", "bp", "ea", "en", "es", "fj", "fr", "ge", "it", "ko", "ms", "po", "ru"
+			};
+
+			for (const char* suffix : suffixes) {
+				const char* str{ utils::va("%s.%s", ctx->ffname, suffix) };
+				hashutils::AddPrecomputed(hash::Hash64(str), str, true);
+			}
+		}
+
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			SndBank* asset{ (SndBank*)ptr };
 

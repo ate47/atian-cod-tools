@@ -24,8 +24,12 @@ namespace core::hashes {
 		alloc.FreeAll();
 	}
 
-	void AddPrecomputed(uint64_t value, const char* str, bool clone) {
-		defstrings.emplace(value & hash::MASK60, clone ? core::hashes::CloneHashStr(str) : str);
+	const char* AddPrecomputed(uint64_t value, const char* str, bool clone) {
+		if (clone) {
+			str = core::hashes::CloneHashStr(str);
+		}
+		defstrings.emplace(value & hash::MASK60, str);
+		return str;
 	}
 	
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {

@@ -426,15 +426,18 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		if (hash && hash->name) {
-			*gcx.outAssetNames << XAssetNameFromId(xasset->type) << ",#" << hashutils::ExtractTmp("hash", hash->name);
+			bool defaultAsset{ (hash->name & ~hash::MASK63) != 0 };
+			if (defaultAsset) hash->name &= hash::MASK63;
+			*gcx.outAssetNames << XAssetNameFromId(xasset->type) << "," << (defaultAsset ? "d" : "") << "#" << hashutils::ExtractTmp("hash", hash->name);
 			**gcx.outAssetNames << std::endl;
 
 			gcx.linkedAssets[xasset->type][hash->name] = xasset->header;
+
+			LOG_DEBUG("Loading asset {}({})/{}({:x}) -> {}/{}", 
+				XAssetNameFromId(xasset->type), (int)xasset->type, hashutils::ExtractTmp("hash", hash->name), hash->name,
+				xasset->header, XBlockLocPtr(baseHeader)
+			);
 		}
-		LOG_DEBUG("Loading asset {}({})/{}({:x}) -> {}/{}", 
-			XAssetNameFromId(xasset->type), (int)xasset->type, hashutils::ExtractTmp("hash", hash->name), hash->name,
-			xasset->header, XBlockLocPtr(baseHeader)
-		);
 
 		if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[xasset->type])) return xasset; // ignore
 		if (xasset->header) {
@@ -611,6 +614,10 @@ namespace fastfile::handlers::bo4 {
 				DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 
 				gcx.opt->assetNames.clear();
+
+				for (auto& [hashType, worker] : GetWorkers()) {
+					worker->GenDefaultXHashes(&ctx);
+				}
 
 				if (assetList.strings) {
 					assetList.strings = AllocStreamPos<char*>();

@@ -31,8 +31,9 @@ namespace core::hashes {
 	 * @param value hash value
 	 * @param str unhashed value
 	 * @param clone clone the unhashed value
+	 * @return allocated string or str if clone = false
 	 */
-	void AddPrecomputed(uint64_t value, const char* str, bool clone = true);
+	const char* AddPrecomputed(uint64_t value, const char* str, bool clone = true);
 	
 	/*
 	 * Extract a string pointer

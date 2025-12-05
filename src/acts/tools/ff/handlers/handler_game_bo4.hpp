@@ -75,6 +75,7 @@ namespace fastfile::handlers::bo4 {
 	public:
 		const bool ignoreFull;
 		Worker(bool ignoreFull = false) : ignoreFull(ignoreFull) {}
+		virtual void GenDefaultXHashes(fastfile::FastFileContext* ctx) {}
 		virtual void Unlink(fastfile::FastFileOption& opt, void* ptr) = 0;
 		virtual void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 		virtual void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
