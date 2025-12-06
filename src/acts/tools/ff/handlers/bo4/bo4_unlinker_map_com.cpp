@@ -1,25 +1,10 @@
 #include <includes.hpp>
-#include <tools/ff/handlers/handler_game_bo4.hpp>
+#include <tools/ff/handlers/bo4/bo4_unlinker_map.hpp>
 #include <tools/utils/raw_file_extractor.hpp>
 #include <tools/utils/data_utils.hpp>
 
-namespace {
-	using namespace fastfile::handlers::bo4;
+namespace fastfile::handlers::bo4::map {
 	using namespace games::bo4::pool;
-
-	/*
-		com_map,#maps/core/core_frontend.d3dbsp
-		game_map,#maps/core/core_frontend.d3dbsp
-		glasses,#maps/core/core_frontend.d3dbsp
-		triggerlist,#maps/core/core_frontend.d3dbsp
-		cpu_occlusion_data,#maps/core/core_frontend.d3dbsp
-		terraingfx,#maps/core/core_frontend.d3dbsp
-		lighting,#maps/core/core_frontend.d3dbsp
-		gfx_map,#maps/core/core_frontend.d3dbsp
-		staticlevelfxlist,#maps/core/core_frontend.d3dbsp
-		entitylist,#maps/core/core_frontend.d3dbsp
-		col_map,#maps/core/core_frontend.d3dbsp
-	*/
 
 	struct ComProbeTriggerData {
 		int32_t probeID;

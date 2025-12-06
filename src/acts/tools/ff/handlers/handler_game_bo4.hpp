@@ -117,7 +117,7 @@ namespace fastfile::handlers::bo4 {
 
 		void WriteFieldValueXString(const char* name, const char* val) {
 			if (!val) return;
-			JsonWriter::WriteFieldValueString(name, val);
+			JsonWriter::WriteFieldValueString(name, std::format("{}", utils::FormattedStringJson{ val }));
 		}
 
 		void WriteFieldValueXString(uint64_t hash, const char* val) {
@@ -140,6 +140,31 @@ namespace fastfile::handlers::bo4 {
 				WriteFieldValueXHash(hash, *hname);
 			}
 		}
+
+		void WriteFieldValueVector(const char* name, vec2_t& vec) {
+			this->WriteFieldValueString(name, std::format("{} {}", vec[0], vec[1]));
+		}
+
+		void WriteFieldValueVector(uint64_t hash, vec2_t& vec) {
+			this->WriteFieldValueString(hash, std::format("{} {}", vec[0], vec[1]));
+		}
+
+		void WriteFieldValueVector(const char* name, vec3_t& vec) {
+			this->WriteFieldValueString(name, std::format("{} {} {}", vec[0], vec[1], vec[2]));
+		}
+
+		void WriteFieldValueVector(uint64_t hash, vec3_t& vec) {
+			this->WriteFieldValueString(hash, std::format("{} {} {}", vec[0], vec[1], vec[2]));
+		}
+
+		void WriteFieldValueVector(const char* name, vec4_t& vec) {
+			this->WriteFieldValueString(name, std::format("{} {} {} {}", vec[0], vec[1], vec[2], vec[3]));
+		}
+
+		void WriteFieldValueVector(uint64_t hash, vec4_t& vec) {
+			this->WriteFieldValueString(hash, std::format("{} {} {} {}", vec[0], vec[1], vec[2], vec[3]));
+		}
+
 
 		void WriteValueXAsset(games::bo4::pool::XAssetType type, void* val) {
 			if (!val) {
