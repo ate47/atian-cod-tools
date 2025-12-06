@@ -113,6 +113,8 @@ namespace games::cod::asset_names {
 
 						// map this id to acts
 						typeExeToActs[tid] = type->hash;
+						// add precomputed values
+						hashutils::AddPrecomputed(type->hash, type->name, true);
 					}
 
 					// sort it for better usage
