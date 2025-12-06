@@ -245,10 +245,14 @@ namespace fastfile::linker::bo4 {
 				ctx.mainFF.data.WriteData(header);
 
 				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.mainFF.data.Align(8);
-				ctx.mainFF.data.WriteData(forcedServerScripts.data(), forcedServerScripts.size() * sizeof(forcedServerScripts[0]));
-				ctx.mainFF.data.Align(8);
-				ctx.mainFF.data.WriteData(forcedClientScripts.data(), forcedClientScripts.size() * sizeof(forcedClientScripts[0]));
+				if (header.gscScripts) {
+					ctx.mainFF.data.Align(8);
+					ctx.mainFF.data.WriteData(forcedServerScripts.data(), forcedServerScripts.size() * sizeof(forcedServerScripts[0]));
+				}
+				if (header.cscScripts) {
+					ctx.mainFF.data.Align(8);
+					ctx.mainFF.data.WriteData(forcedClientScripts.data(), forcedClientScripts.size() * sizeof(forcedClientScripts[0]));
+				}
 				ctx.mainFF.data.PopStream();
 
 				ctx.mainFF.data.PopStream();
