@@ -241,7 +241,6 @@ namespace fastfile::linker::bo4 {
 				if (forcedServerScripts.size()) header.gscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
 				if (forcedClientScripts.size()) header.cscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
 
-				// todo: implement gdb compiler
 				ctx.mainFF.data.WriteData(header);
 
 				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
