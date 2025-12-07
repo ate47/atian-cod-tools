@@ -264,7 +264,6 @@ namespace {
 				uint8_t digest[20]{};
 
 				int stat{};
-				LOG_TRACE("import key {}/{}...", rsaKeyName, sizeof(rsa->key));
 
 				unsigned long digestSize{ sizeof(digest) };
 				if ((r == rsa_decrypt_key(signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {

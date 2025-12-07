@@ -124,9 +124,41 @@ namespace {
 			if (pheader.version != 0x64) {
 				throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", pheader.version));
 			}
+			compatibility::acti::crypto_keys::AesKeyLocal* aeskey{};
+
 			if (pheader.platform.encrypted) {
-				throw std::runtime_error("Encrypted Fast file version not supported");
+				aeskey = compatibility::acti::crypto_keys::GetKeyByName(pheader.ff.fastfileName, compatibility::acti::crypto_keys::VER_BO4);
+				compatibility::acti::crypto_keys::RsaKeyLocal* rsa{ compatibility::acti::crypto_keys::GetRSAKeyByName("bo4")};
+
+				if (!aeskey || !rsa) {
+					throw std::runtime_error(std::format("Missing key set for ff {}", pheader.ff.fastfileName));
+				}
+
+				int shaHash{ find_hash("sha256") };
+
+				if (shaHash == -1) {
+					throw std::runtime_error(std::format("Missing sha256 for ff {}", pheader.ff.fastfileName));
+				}
+
+				rsa_key rsakey{};
+
+				int r;
+
+				if ((r = rsa_import(rsa->key, sizeof(rsa->key), &rsakey)) != CRYPT_OK) {
+					throw std::runtime_error(std::format("Failed to import key {} for ff {}", error_to_string(r), pheader.ff.fastfileName));
+				}
+
+				uint8_t digest[20]{};
+
+				int stat{};
+
+				unsigned long digestSize{ sizeof(digest) };
+				if ((r == rsa_decrypt_key(pheader.ff.signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
+					throw std::runtime_error(std::format("Failed to import decrypt key {} for ff {}", error_to_string(r), pheader.ff.fastfileName));
+				}
+				rsa_free(&rsakey);
 			}
+
 
 			const char* ffname = pheader.ff.fastfileName;
 			sprintf_s(ctx.ffname, "%s", ffname);
@@ -162,6 +194,9 @@ namespace {
 			// fixme
 			ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
 
+			byte aesIV[0x10];
+			std::memcpy(aesIV, pheader.ff.aesIV, sizeof(aesIV));
+
             size_t idx{};
             while (true) {
                 size_t loc{ reader.Loc() };
@@ -185,6 +220,25 @@ namespace {
 
                 size_t unloc{ utils::Allocate(ffdata, block->uncompressedSize) };
                 byte* decompressed{ &ffdata[unloc] };
+
+				if (pheader.platform.encrypted) {
+					symmetric_CTR ctr{};
+					int aesCipher{ find_cipher("aes") };
+					if (aesCipher == -1) {
+						throw std::runtime_error(std::format("Missing aes for ff {}", ctx.ffname));
+					}
+					int r;
+
+					if ((r = ctr_start(aesCipher, aesIV, aeskey->key, sizeof(aeskey->key), 0, 0, &ctr)) != CRYPT_OK) {
+						throw std::runtime_error(std::format("Failed to start ctr for ff {}/{}", error_to_string(r), ctx.ffname));
+					}
+
+					if ((r = ctr_decrypt(blockBuff, blockBuff, block->alignedSize, &ctr)) != CRYPT_OK) {
+						throw std::runtime_error(std::format("Can't decrypt block 0x{:x}: {}", loc, error_to_string(r)));
+					}
+
+					*((uint64_t*)&aesIV[0]) += block->compressedSize;
+				}
 
                 if (!utils::compress::Decompress(alg, decompressed, block->uncompressedSize, blockBuff, block->compressedSize)) {
                     throw std::runtime_error(std::format("Can't decompress block 0x{:x}", loc));
