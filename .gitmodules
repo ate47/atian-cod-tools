@@ -92,3 +92,9 @@
 [submodule "deps/crc_cpp"]
 	path = deps/crc_cpp
 	url = https://github.com/AshleyRoll/crc_cpp
+[submodule "deps/libtomcrypt"]
+	path = deps/libtomcrypt
+	url = https://github.com/libtom/libtomcrypt.git
+[submodule "deps/libtommath"]
+	path = deps/libtommath
+	url = https://github.com/libtom/libtommath.git

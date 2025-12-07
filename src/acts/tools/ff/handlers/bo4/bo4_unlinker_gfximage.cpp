@@ -42,7 +42,7 @@ namespace {
 			uint64_t unk48;
 			uint64_t unk50;
 			uint32_t imageFlags;
-			uint32_t unk5c;
+			uint32_t hash;
 			uint32_t totalSize;
 			GfxPixelFormat imageFormat;
 			uint16_t width;
@@ -81,58 +81,56 @@ namespace {
 			if (keys.empty()) return; // nothing to dump
 
 
-			utils::raw_file_extractor::JsonWriter json{};
-
-			json.BeginObject();
-
-			for (GfxImage* asset : keys) {
-				json.WriterFieldNameHash(asset->name);
-				json.BeginObject();
-				json.WriteFieldNameString("name"); json.WriteValueHash(asset->name);
-				json.WriteFieldNameString("unk0"); json.WriteValueString(std::format("{}", (void*)asset->unk0));
-				json.WriteFieldNameString("dxgiAdapter"); json.WriteValueString(std::format("{}", (void*)asset->dxgiAdapter));
-				json.WriteFieldNameString("unk10"); json.WriteValueString(std::format("{}", (void*)asset->unk10));
-				json.WriteFieldNameString("pixels"); json.WriteValueString(std::format("{}", (void*)asset->pixels));
-				json.WriteFieldNameString("streamedParts"); json.WriteValueString(std::format("{}", (void*)asset->streamedParts));
-				json.WriteFieldNameString("unk38"); json.WriteValueString(std::format("{}", asset->unk38));
-				json.WriteFieldNameString("unk40"); json.WriteValueString(std::format("{}", asset->unk40));
-				json.WriteFieldNameString("unk48"); json.WriteValueString(std::format("{}", asset->unk48));
-				json.WriteFieldNameString("unk50"); json.WriteValueString(std::format("{}", asset->unk50));
-				json.WriteFieldNameString("imageFlags"); json.WriteValueString(std::format("{}", asset->imageFlags));
-				json.WriteFieldNameString("unk5c"); json.WriteValueString(std::format("{}", asset->unk5c));
-				json.WriteFieldNameString("totalSize"); json.WriteValueString(std::format("{}", asset->totalSize));
-				json.WriteFieldNameString("imageFormat"); json.WriteValueString(std::format("{}", (int)asset->imageFormat));
-				json.WriteFieldNameString("width"); json.WriteValueString(std::format("{}", asset->width));
-				json.WriteFieldNameString("height"); json.WriteValueString(std::format("{}", asset->height));
-				json.WriteFieldNameString("depth"); json.WriteValueString(std::format("{}", asset->depth));
-				json.WriteFieldNameString("unk6e"); json.WriteValueString(std::format("{}", asset->unk6e));
-				json.WriteFieldNameString("unk70"); json.WriteValueString(std::format("{}", asset->unk70));
-				json.WriteFieldNameString("unk71"); json.WriteValueString(std::format("{}", asset->unk71));
-				json.WriteFieldNameString("unk72"); json.WriteValueString(std::format("{}", asset->unk72));
-				json.WriteFieldNameString("unk74"); json.WriteValueString(std::format("{}", asset->unk74));
-				json.WriteFieldNameString("unk76"); json.WriteValueString(std::format("{}", asset->unk76));
-				json.WriteFieldNameString("alignment"); json.WriteValueString(std::format("{}", asset->alignment));
-				json.WriteFieldNameString("unk78"); json.WriteValueString(std::format("{}", asset->unk78));
-				json.WriteFieldNameString("mapType"); json.WriteValueString(std::format("{}", (int)asset->mapType));
-				json.WriteFieldNameString("levelCount"); json.WriteValueString(std::format("{}", asset->levelCount));
-				json.WriteFieldNameString("await_stream"); json.WriteValueString(std::format("{}", asset->await_stream));
-				json.WriteFieldNameString("streaming"); json.WriteValueString(std::format("{}", asset->streaming));
-				json.WriteFieldNameString("streamedParts_count"); json.WriteValueString(std::format("{}", asset->streamedParts_count));
-				json.WriteFieldNameString("unk7e"); json.WriteValueString(std::format("{}", asset->unk7e));
-				json.WriteFieldNameString("unk7f"); json.WriteValueString(std::format("{}", asset->unk7f));
-				json.WriteFieldNameString("unk80"); json.WriteValueString(std::format("{}", asset->unk80));
-				json.EndObject();
-			}
-
-			json.EndObject();
-
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "data" / "gfx" / "image" / std::format("{}.json", ctx.ffname) };
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "graphics" / "image" / std::format("{}.csv", ctx.ffname) };
 			std::filesystem::create_directories(outFile.parent_path());
 			LOG_INFO("Dump gfximage {} ({})", outFile.string(), keys.size());
 
-			if (!json.WriteToFile(outFile)) {
+			utils::OutFileCE os{ outFile };
+			if (!os) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
+				return;
 			}
+
+			os << "name,unk0,dxgiAdapter,unk10,pixels,streamedParts,unk38,unk40,unk48,unk50,imageFlags,hash,totalSize,imageFormat,width,height,depth,"
+				"unk6e, unk70, unk71, unk72, unk74, unk76, alignment, unk78, mapType, levelCount, await_stream, streaming, streamedParts_count, unk7e, unk7f, unk80\n";
+			for (GfxImage* asset : keys) {
+				os << hashutils::ExtractTmp("hash", asset->name) 
+					<< std::hex
+					<< "," << (((void*)asset->unk0)) 
+					<< "," << (((void*)asset->dxgiAdapter)) 
+					<< "," << (((void*)asset->unk10)) 
+					<< "," << (((void*)asset->pixels)) 
+					<< "," << (((void*)asset->streamedParts)) 
+					<< "," << ((asset->unk38)) 
+					<< "," << ((asset->unk40)) 
+					<< "," << ((asset->unk48))
+					<< "," << ((asset->unk50)) 
+					<< "," << ((asset->imageFlags)) 
+					<< "," << ((asset->hash))
+					<< "," << ((asset->totalSize))
+					<< "," << (((int)asset->imageFormat)) 
+					<< "," << ((asset->width))
+					<< "," << ((asset->height)) 
+					<< "," << ((asset->depth)) 
+					<< "," << ((asset->unk6e)) 
+					<< "," << (((int)asset->unk70)) 
+					<< "," << (((int)asset->unk71)) 
+					<< "," << ((asset->unk72))
+					<< "," << ((asset->unk74)) 
+					<< "," << (((int)asset->unk76))
+					<< "," << (((int)asset->alignment))
+					<< "," << (((int)asset->unk78))
+					<< "," << (((int)asset->mapType)) 
+					<< "," << (((int)asset->levelCount))
+					<< "," << (((int)asset->await_stream))
+					<< "," << (((int)asset->streaming))
+					<< "," << (((int)asset->streamedParts_count))
+					<< "," << (((int)asset->unk7e))
+					<< "," << (((int)asset->unk7f)) 
+					<< "," << ((asset->unk80))
+					<< "\n";
+			}
+
 
 		}
 	};

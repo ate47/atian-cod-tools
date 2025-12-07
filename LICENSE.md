@@ -28,6 +28,8 @@ This software depends on libraries with a different License.
 - Modifed version of [Jake-NotTheMuss/hksc](https://github.com/Jake-NotTheMuss/hksc) ([ate47/hksc/t8](https://github.com/ate47/hksc/tree/test_t8)) - [MIT License](https://github.com/Jake-NotTheMuss/hksc/blob/master/COPYRIGHT)
 - [Cyan4973/xxHash](https://github.com/Cyan4973/xxHash) - [BSD 2-Clause License](https://github.com/Cyan4973/xxHash/blob/dev/LICENSE).
 - [AshleyRoll/crc_cpp](https://github.com/AshleyRoll/crc_cpp) - [MIT license](https://github.com/AshleyRoll/crc_cpp/blob/main/LICENSE).
+- [libtom/libtommath](https://github.com/libtom/libtommath) - [LibTom license](https://github.com/libtom/libtommath/blob/main/LICENSE).
+- [libtom/libtomcrypt](https://github.com/libtom/libtomcrypt) - [LibTom license](https://github.com/libtom/libtomcrypt/blob/main/LICENSE).
 
 ## GPL-3 part dependencies
 

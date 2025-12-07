@@ -2,6 +2,7 @@
 #include <hook/module_mapper.hpp>
 #include <hook/error.hpp>
 #include <deps/oodle.hpp>
+#include <deps/base64.hpp>
 
 namespace {
 	struct {
@@ -77,5 +78,87 @@ namespace {
 		return tool::OK;
 	}
 
+	int bo4_dump_rsa_key(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 3)) return tool::BAD_USAGE;
+
+		hook::module_mapper::Module mod{ true };
+		if (!mod.Load(argv[2])) {
+			LOG_ERROR("Can't map module {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+		size_t off;
+		if (!_strcmpi(argv[4], "bo4")) {
+			off = 0x28B6DB0;
+		}
+		else if (!_strcmpi(argv[4], "bo3")) {
+			off = 0x13ECFF0;
+		}
+		else if (!_strcmpi(argv[4], "cod2020")) {
+			off = 0xAEA290;
+		}
+		else if (!_strcmpi(argv[4], "cw")) {
+			off = 0xC7BDCC0;
+		}
+		else {
+			LOG_ERROR("Bad type");
+			return tool::BAD_USAGE;
+		}
+
+
+		void(*DB_LoadRsaKey)(byte*) { mod->Get<void(byte*)>(off) };
+
+		byte buffer[270];
+		DB_LoadRsaKey(buffer);
+		utils::OutFileCE os{ argv[3], true };
+
+		os << "byte rsa_key[] {";
+		for (size_t i = 0; i < ARRAYSIZE(buffer); i++) {
+			if (!(i & 0xf)) {
+				os << "\n";
+			}
+			os << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << ", ";
+
+		}
+		os << "\n};";
+		LOG_INFO("dump to {}", argv[3]);
+
+		return tool::OK;
+	}
+
+	int bo4_keys_csv(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+		utils::InFileCE is{ argv[2], true };
+		utils::OutFileCE os{ argv[3], true };
+
+		std::string line;
+		while (is->good() && std::getline(*is, line)) {
+			size_t idx{ line.find(',') };
+
+			if (idx == std::string::npos) {
+				continue;
+			}
+
+			std::string name{ line.begin(), line.begin() + idx };
+			std::string key{ line.begin() + idx + 1, line.end() };
+
+			std::string val{ base64_decode(key) };
+
+
+			os << "REGISTER_ACTI_KEY(" << name << ", VER_INVALID";
+
+			for (size_t i = 0; i < val.size(); i++) {
+				os << ", 0x" << std::hex << std::setfill('0') << std::setw(2) << (((uint32_t)val[i]) & 0xff);
+			}
+			os << ");\n";
+		}
+		
+		return tool::OK;
+	}
+
+
 	ADD_TOOL(bo4_exe_mapper, "bo4", "[exe] [gamedir]", "test bo4 mapping", bo4_exe_mapper);
+	ADD_TOOL(bo4_dump_rsa_key, "bo4", "[exe] [output] [id]", "dump rsa key", bo4_dump_rsa_key);
+	ADD_TOOL(bo4_keys_csv, "bo4", "[csv] [out]", "dump rsa keys from csv", bo4_keys_csv);
 }

@@ -7,11 +7,55 @@
 #include <games/bo4/pool.hpp>
 #include <games/bo4/t8_errors.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>
-#include <bcrypt.h>
 #include <tools/utils/data_utils.hpp>
 #include <tools/ff/fastfile_bdiff.hpp>
 
 namespace {
+	struct XFileBO3 {
+		uint8_t magic[8];
+		uint32_t version;
+		uint8_t server;
+		fastfile::FastFileCompression compression;
+		uint8_t platform;
+		uint8_t encrypted;
+		uint64_t timestamp;
+		uint32_t changelist;
+		uint32_t archiveChecksum[4];
+		char builder[32];
+		uint32_t metaVersion;
+		char mergeFastfile[64];
+		uint64_t size;
+		uint64_t externalSize;
+		uint64_t memMappedOffset;
+		uint64_t blockSize[10];
+		char fastfileName[64];
+		uint8_t signature[256];
+		uint8_t aesIV[16];
+	}; static_assert(sizeof(XFileBO3) == 0x248);
+
+	struct XFileBO4_Dev {
+		uint8_t magic[8];
+		uint32_t version;
+		uint8_t server;
+		fastfile::FastFileCompression compression;
+		uint8_t platform;
+		uint8_t encrypted;
+		uint64_t timestamp;
+		uint32_t changelist;
+		uint32_t archiveChecksum[4];
+		char builder[32];
+		uint32_t metaVersion;
+		char mergeFastfile[64];
+		char missionFastFiles[16][64];
+		uint64_t size;
+		uint64_t externalSize;
+		uint64_t memMappedOffset;
+		uint64_t blockSize[8];
+		int8_t fastfileName[64];
+		uint8_t signature[256];
+		uint8_t aesIV[16];
+	}; static_assert(sizeof(XFileBO4_Dev) == 0x638);
+
 	struct XFileBO4_0x27F {
 		uint8_t magic[8];
 		uint32_t version;
@@ -71,28 +115,36 @@ namespace {
 			size_t decompressedSizeLoc;
 			size_t fastfileNameLoc;
 			size_t blockSizeLoc;
+			size_t signLoc{};
 			size_t aesIVLoc{};
-			size_t aesIVSize{};
+			compatibility::acti::crypto_keys::KeyVersion keyVersion{};
+			const char* rsaKeyName{};
 
 			bool xhashType{};
 
 			// todo: probably we can scan the data and find the chunks
 			switch (header->version) {
 			case 0x251: // Black ops 3
-				fastFileSize = 0x248;
-				decompressedSizeLoc = 0x90;
-				fastfileNameLoc = 0xF8;
-				blockSizeLoc = 0xA8;
-				ctx.blocksCount = 10;
+				fastFileSize = sizeof(XFileBO3);
+				decompressedSizeLoc = offsetof(XFileBO3, size);
+				fastfileNameLoc = offsetof(XFileBO3, fastfileName);
+				signLoc = offsetof(XFileBO3, signature);
+				aesIVLoc = offsetof(XFileBO3, aesIV);
+				blockSizeLoc = offsetof(XFileBO3, blockSize);
+				rsaKeyName = "bo3";
+				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
+				ctx.blocksCount = ARRAYSIZE(XFileBO3::blockSize);
 				break;
 			case 0x265: // Black ops 4 Dev
-				fastFileSize = 0x638;
-				decompressedSizeLoc = 0x490;
-				fastfileNameLoc = 0x4E8;
-				aesIVLoc = 0x628;
-				aesIVSize = 16;
-				blockSizeLoc = 0x4A8;
-				ctx.blocksCount = 8;
+				fastFileSize = sizeof(XFileBO4_Dev);
+				decompressedSizeLoc = offsetof(XFileBO4_Dev, size);
+				fastfileNameLoc = offsetof(XFileBO4_Dev, fastfileName);
+				signLoc = offsetof(XFileBO4_Dev, signature);
+				aesIVLoc = offsetof(XFileBO4_Dev, aesIV);
+				blockSizeLoc = offsetof(XFileBO4_Dev, blockSize);
+				rsaKeyName = "bo4dev";
+				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
+				ctx.blocksCount = ARRAYSIZE(XFileBO4_Dev::blockSize);
 				break;
 			case 0x27E: // Black Ops 4 Old
 				fastFileSize = 0x840;
@@ -103,11 +155,15 @@ namespace {
 				ctx.blocksCount = 9;
 				break;
 			case 0x27F:// Black Ops 4
-				fastFileSize = 0x840;
-				decompressedSizeLoc = 0x490;
-				fastfileNameLoc = 0x6F0;
-				blockSizeLoc = 0x4A8;
-				ctx.blocksCount = 9;
+				fastFileSize = sizeof(XFileBO4_0x27F);
+				decompressedSizeLoc = offsetof(XFileBO4_0x27F, size);
+				fastfileNameLoc = offsetof(XFileBO4_0x27F, fastfileName);
+				blockSizeLoc = offsetof(XFileBO4_0x27F, blockSize);
+				ctx.blocksCount = ARRAYSIZE(XFileBO4_0x27F::blockSize);
+				signLoc = offsetof(XFileBO4_0x27F, signature);
+				aesIVLoc = offsetof(XFileBO4_0x27F, aesIV);
+				rsaKeyName = "bo4";
+				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
 				xhashType = true;
 				if (opt.m_header) {
 					if (!reader.CanRead(sizeof(XFileBO4_0x27F))) {
@@ -156,11 +212,14 @@ namespace {
 				hashutils::Add(ctx.ffname, true, true);
 			}
 
-			byte* aesIV{};
-			if (aesIVLoc) {
-				if (!aesIVSize) throw std::runtime_error("Missing aesIVSize value");
+			byte aesIV[0x10];
+			byte* signature{};
+
+			if (aesIVLoc && signLoc) {
+				reader.Goto(signLoc);
+				signature = reader.ReadPtr<byte>(0x100);
 				reader.Goto(aesIVLoc);
-				aesIV = reader.ReadPtr<byte>(aesIVSize);
+				reader.Read(&aesIV, sizeof(aesIV));
 			}
 
 			if (opt.m_header) {
@@ -174,48 +233,44 @@ namespace {
 			}
 
 			reader.Goto(fastFileSize);
-
-
-			BCRYPT_ALG_HANDLE hAlgorithm{};
-			BCRYPT_KEY_HANDLE hKey{};
-			utils::CloseEnd hProvCE{ [hAlgorithm, hKey] {
-				if (hKey) BCryptDestroyKey(hKey);
-				if (hAlgorithm) BCryptCloseAlgorithmProvider(hAlgorithm, 0);
-			} };
+			compatibility::acti::crypto_keys::AesKeyLocal* aeskey{};
 
 			if (header->encrypted) {
-				if (!aesIV) {
-					throw std::runtime_error(std::format("No aesIV location for this fast file version 0x{:x}", header->version));
+				// import aes key
+				if (!aesIV || !rsaKeyName) {
+					throw std::runtime_error(std::format("Missing decrypt data for this fast file version 0x{:x}", header->version));
 				}
-				NTSTATUS status;
-				compatibility::acti::crypto_keys::AesKeyLocal* key{ compatibility::acti::crypto_keys::GetKeyByName(ctx.ffname) };
+				aeskey = compatibility::acti::crypto_keys::GetKeyByName(ctx.ffname, keyVersion);
+				compatibility::acti::crypto_keys::RsaKeyLocal* rsa{ compatibility::acti::crypto_keys::GetRSAKeyByName(rsaKeyName) };
 
-				if (!key) {
-					throw std::runtime_error(std::format("Missing aes key for ff {}", ctx.ffname));
-				}
-
-				status = BCryptOpenAlgorithmProvider(&hAlgorithm, BCRYPT_AES_ALGORITHM, NULL, 0);
-				if (status < 0) {
-					throw std::runtime_error(std::format("Can't acquire algorithm provider {}", status));
+				if (!aeskey || !rsa) {
+					throw std::runtime_error(std::format("Missing key set for ff {}/{}", ctx.ffname, rsaKeyName));
 				}
 
-				struct Aes256Blob {
-					BCRYPT_KEY_DATA_BLOB_HEADER header;
-					BYTE key[32];
-				};
-				Aes256Blob blob{};
-				blob.header.dwMagic = BCRYPT_KEY_DATA_BLOB_MAGIC;
-				blob.header.dwVersion = 1;
-				blob.header.cbKeyData = sizeof(blob.key);
+				int shaHash{ find_hash("sha256") };
 
-				static_assert(sizeof(blob.key) == sizeof(key->key));
-				std::memcpy(blob.key, key->key, sizeof(blob.key));
-
-
-				status = BCryptImportKey(hAlgorithm, NULL, BCRYPT_KEY_DATA_BLOB, &hKey, NULL, 0, (PUCHAR)&blob, sizeof(blob), 0);
-				if (status < 0) {
-					throw std::runtime_error(std::format("Failed to import key {}", status));
+				if (shaHash == -1) {
+					throw std::runtime_error(std::format("Missing sha256 for ff {}/{}", ctx.ffname, rsaKeyName));
 				}
+
+				rsa_key rsakey{};
+
+				int r;
+
+				if ((r = rsa_import(rsa->key, sizeof(rsa->key), &rsakey)) != CRYPT_OK) {
+					throw std::runtime_error(std::format("Failed to import key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+				}
+
+				uint8_t digest[20]{};
+
+				int stat{};
+				LOG_TRACE("import key {}/{}...", rsaKeyName, sizeof(rsa->key));
+
+				unsigned long digestSize{ sizeof(digest) };
+				if ((r == rsa_decrypt_key(signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
+					throw std::runtime_error(std::format("Failed to import decrypt key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+				}
+				rsa_free(&rsakey);
 			}
 
 			utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(header->compression) };
@@ -233,7 +288,7 @@ namespace {
 					LOG_ERROR("bad block position: 0x{:x} != 0x{:x}", loc, block->offset);
 					break;
 				}
-				idx++;
+				size_t blockId{ idx++ };
 
 				if (!block->uncompressedSize) {
 					reader.Align(0x800000);
@@ -254,19 +309,22 @@ namespace {
 				offset += block->uncompressedSize;
 
 				if (header->encrypted) {
-					DWORD comp{ block->compressedSize };
-					//if (!CryptDecrypt(hKey, hHash, true, 0, blockBuff, &comp)) {
-					//	throw std::runtime_error(std::format("Can't read decrypt chunk 0x{:x}", GetLastError()));
-					//}
-					DWORD decryptedDataSize{};
-					NTSTATUS status = BCryptDecrypt(hKey, blockBuff, block->alignedSize, NULL, aesIV, (ULONG)aesIVSize, NULL, 0, &decryptedDataSize, BCRYPT_BLOCK_PADDING);
+					symmetric_CTR ctr{};
+					int aesCipher{ find_cipher("aes") };
+					if (aesCipher == -1) {
+						throw std::runtime_error(std::format("Missing aes for ff {}/{}", ctx.ffname, rsaKeyName));
+					}
+					int r;
 
-					if (status < 0) {
-						throw std::runtime_error(std::format("Can't decrypt block {:x}", status));
+					if ((r = ctr_start(aesCipher, aesIV, aeskey->key, sizeof(aeskey->key), 0, 0, &ctr)) != CRYPT_OK) {
+						throw std::runtime_error(std::format("Failed to start ctr {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
 					}
 
-					LOG_TRACE("decryptedDataSize=0x{:x}", decryptedDataSize);
-					continue;
+					if ((r = ctr_decrypt(blockBuff, blockBuff, block->alignedSize, &ctr)) != CRYPT_OK) {
+						throw std::runtime_error(std::format("Can't decrypt block 0x{:x}: {}", loc, error_to_string(r)));
+					}
+
+					*((uint64_t*)&aesIV[0]) += block->compressedSize;
 				}
 
 				if (!utils::compress::Decompress(alg, decompressed, block->uncompressedSize, blockBuff, block->compressedSize)) {

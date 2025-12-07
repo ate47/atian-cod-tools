@@ -2,6 +2,7 @@
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/utils/raw_file_extractor.hpp>
 #include <games/bo4/pool.hpp>
+#include <deps/mio.hpp>
 
 namespace fastfile::handlers::bo4 {
 	struct ScrString_t {

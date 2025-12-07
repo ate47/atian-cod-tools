@@ -117,6 +117,8 @@ try {
     Copy-Item "deps/hksc/COPYRIGHT" "$base/licenses/hksc.md" > $null
     Copy-Item "deps/crc_cpp/LICENSE" "$base/licenses/crc_cpp.txt" > $null
     Copy-Item "deps/xxHash/LICENSE" "$base/licenses/xxHash.txt" > $null
+    Copy-Item "deps/libtommath/LICENSE" "$base/licenses/libtommath.txt" > $null
+    Copy-Item "deps/libtomcrypt/LICENSE" "$base/licenses/libtomcrypt.txt" > $null
 
     "Put the game dependencies in this directory." > "$base/bin/deps/README.md"
 

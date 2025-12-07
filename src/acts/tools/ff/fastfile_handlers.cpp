@@ -13,6 +13,7 @@
 
 
 namespace fastfile {
+
 	std::vector<FFDecompressor*>& GetDecompressors() {
 		static std::vector<FFDecompressor*> handlers{};
 		return handlers;
@@ -137,6 +138,13 @@ namespace fastfile {
 			"bo6_pre_alpha",
 		};
 
+		void RegisterCrypts() {
+			int r;
+			if ((r = register_hash(&sha256_desc)) != CRYPT_OK) throw std::runtime_error(std::format("Can't register sha256_desc {}", error_to_string(r)));
+			if ((r = register_cipher(&aes_desc)) != CRYPT_OK) throw std::runtime_error(std::format("Can't register aes_desc {}", error_to_string(r)));
+			if ((r = crypt_mp_init("ltm")) != CRYPT_OK) throw std::runtime_error(std::format("Can't init ltm {}", error_to_string(r)));
+
+		}
 		
 
 		fastfile::FastFileContext* currentCtx{};
@@ -880,6 +888,8 @@ namespace fastfile {
 			}
 		}
 
+		RegisterCrypts();
+
 		FFLoadContext cc{};
 
 		utils::CloseEnd hce{ [&opt, &cc] {
@@ -1070,6 +1080,7 @@ namespace fastfile {
 			}
 			return tool::OK;
 		}
+		RegisterCrypts();
 
 		for (const char* file : opt.files) {
 			try {

@@ -5,6 +5,8 @@
 #include <tools/ff/fastfile_zone.hpp>
 #include <tools/gsc_opcodes_load.hpp>
 #include <utils/compress_utils.hpp>
+#define LTC_NO_PROTOTYPES
+#include <tomcrypt.h>
 
 namespace fastfile {
 	template<typename T>
