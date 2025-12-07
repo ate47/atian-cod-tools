@@ -24,7 +24,6 @@ jobs:
       matrix:
         cfg:
           - Release
-          - Debug
         platform:
           - x64
     steps:
