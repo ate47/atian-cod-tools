@@ -151,6 +151,9 @@ namespace {
 				uint8_t digest[20]{};
 
 				int stat{};
+				//if ((r = rsa_verify_hash(pheader.ff.signature, 0x100, digest, sizeof(digest), shaHash, 8, &stat, &rsakey)) != CRYPT_OK) {
+				//	throw std::runtime_error(std::format("Hash verify error {} for ff {}", error_to_string(r), ctx.ffname));
+				//}
 
 				unsigned long digestSize{ sizeof(digest) };
 				if ((r == rsa_decrypt_key(pheader.ff.signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {

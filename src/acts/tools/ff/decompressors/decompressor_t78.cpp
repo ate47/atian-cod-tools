@@ -11,6 +11,25 @@
 #include <tools/ff/fastfile_bdiff.hpp>
 
 namespace {
+	struct XFileBO3_x132 {
+		uint8_t magic[8];
+		uint32_t version;
+		uint8_t server;
+		uint8_t compression;
+		uint8_t platform;
+		uint8_t encrypted;
+		uint64_t timestamp;
+		uint32_t changelist;
+		uint32_t archiveChecksum[4];
+		char builder[32];
+		uint64_t size;
+		uint64_t externalSize;
+		uint64_t blockSize[9];
+		int8_t fastfileName[64];
+		uint8_t signature[256];
+		uint8_t aesIV[16];
+	}; static_assert(sizeof(XFileBO3_x132) == 0x1F8);
+
 	struct XFileBO3 {
 		uint8_t magic[8];
 		uint32_t version;
@@ -124,6 +143,17 @@ namespace {
 
 			// todo: probably we can scan the data and find the chunks
 			switch (header->version) {
+			case 0x132: // Black ops 3 alpha
+				fastFileSize = sizeof(XFileBO3_x132);
+				decompressedSizeLoc = offsetof(XFileBO3_x132, size);
+				fastfileNameLoc = offsetof(XFileBO3_x132, fastfileName);
+				signLoc = offsetof(XFileBO3_x132, signature);
+				aesIVLoc = offsetof(XFileBO3_x132, aesIV);
+				blockSizeLoc = offsetof(XFileBO3_x132, blockSize);
+				rsaKeyName = "bo3dev";
+				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
+				ctx.blocksCount = ARRAYSIZE(XFileBO3_x132::blockSize);
+				break;
 			case 0x251: // Black ops 3
 				fastFileSize = sizeof(XFileBO3);
 				decompressedSizeLoc = offsetof(XFileBO3, size);
@@ -264,6 +294,9 @@ namespace {
 				uint8_t digest[20]{};
 
 				int stat{};
+				if ((r = rsa_verify_hash(signature, 0x100, digest, sizeof(digest), shaHash, 8, &stat, &rsakey)) != CRYPT_OK) {
+					throw std::runtime_error(std::format("Hash verify error {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+				}
 
 				unsigned long digestSize{ sizeof(digest) };
 				if ((r == rsa_decrypt_key(signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
