@@ -143,17 +143,17 @@ namespace {
 
 			// todo: probably we can scan the data and find the chunks
 			switch (header->version) {
-			case 0x132: // Black ops 3 alpha
-				fastFileSize = sizeof(XFileBO3_x132);
-				decompressedSizeLoc = offsetof(XFileBO3_x132, size);
-				fastfileNameLoc = offsetof(XFileBO3_x132, fastfileName);
-				signLoc = offsetof(XFileBO3_x132, signature);
-				aesIVLoc = offsetof(XFileBO3_x132, aesIV);
-				blockSizeLoc = offsetof(XFileBO3_x132, blockSize);
-				rsaKeyName = "bo3dev";
-				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
-				ctx.blocksCount = ARRAYSIZE(XFileBO3_x132::blockSize);
-				break;
+			//case 0x132: // Black ops 3 alpha
+			//	fastFileSize = sizeof(XFileBO3_x132);
+			//	decompressedSizeLoc = offsetof(XFileBO3_x132, size);
+			//	fastfileNameLoc = offsetof(XFileBO3_x132, fastfileName);
+			//	signLoc = offsetof(XFileBO3_x132, signature);
+			//	aesIVLoc = offsetof(XFileBO3_x132, aesIV);
+			//	blockSizeLoc = offsetof(XFileBO3_x132, blockSize);
+			//	rsaKeyName = "bo3dev";
+			//	keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
+			//	ctx.blocksCount = ARRAYSIZE(XFileBO3_x132::blockSize);
+			//	break;
 			case 0x251: // Black ops 3
 				fastFileSize = sizeof(XFileBO3);
 				decompressedSizeLoc = offsetof(XFileBO3, size);
