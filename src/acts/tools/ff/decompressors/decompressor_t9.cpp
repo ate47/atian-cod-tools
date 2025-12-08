@@ -283,8 +283,8 @@ namespace {
 						DumpHeader(baseXFileHdr, "ff header");
 					}
 
-					if (std::memcmp(&baseXFileHdr, &pheader, sizeof(baseXFileHdr))) {
-						throw std::runtime_error("The patch file is for this fast file");
+					if (std::memcmp(&baseXFileHdr.ff.signature, &pheader.ff.signature, sizeof(pheader.ff.signature))) {
+						throw std::runtime_error("The patch file is not for this fast file");
 					}
 
 					for (size_t i = 0; i < ctx.blocksCount; i++) {
@@ -364,7 +364,10 @@ namespace {
 
 				}
 				else {
-					throw std::runtime_error(std::format("No patch file {}", fdfile.string()));
+					if (!opt.m_fdIgnoreMissing) {
+						throw std::runtime_error(std::format("No patch file {}", fdfile.string()));
+					}
+					LOG_INFO("No patch file {}", fdfile.string());
 				}
 			}
         }

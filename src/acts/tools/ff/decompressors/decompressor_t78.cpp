@@ -427,7 +427,7 @@ namespace {
 					}
 
 					if (std::memcmp(baseXFileHdr, header, fastFileSize)) {
-						throw std::runtime_error("The patch file is for this fast file");
+						throw std::runtime_error("The patch file is not for this fast file");
 					}
 
 					if (bdiffHeader->maxDiffWindowSize < 0x10000) bdiffHeader->maxDiffWindowSize = 0x10000;
