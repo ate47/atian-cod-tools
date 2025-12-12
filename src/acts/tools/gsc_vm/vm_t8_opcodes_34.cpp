@@ -8,6 +8,7 @@ namespace {
 	void OpCode() {
 		VmInfo* vt834 = RegisterVM(VMI_T8_34, "Call of Duty: Black ops 4 (34)", "t8", "bo4_34", VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM );
 		vt834->RegisterVmName("t8_34", "blackops4_34");
+		vt834->AddPlatform(PLATFORM_PC);
 		vt834->AddPlatform(PLATFORM_PLAYSTATION);
 		vt834->SetMaxOpCode(0x1FFF);
 		vt834->SetModToolFlag(0x1000);
@@ -39,6 +40,25 @@ namespace {
 		vt834->RegisterDatatype("functionptr", "scriptfunctionptr", "codefunctionptr", "string", "array", "weapon", "int", "float", "vec", "class", "struct", "hash");
 		vt834->RegisterDatatypeRenamed("function", "functionptr");
 		vt834->SetCompilerHookFunctionName("isprofilebuild");
+
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_Abort, 0x0);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_Nop, 0x1);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_Breakpoint, 0x2);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_AutoBreakpoint, 0x3);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_ErrorBreakpoint, 0x4);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_WatchBreakpoint, 0x5);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_NotifyBreakpoint, 0x6);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_ThreadEndBreakpoint, 0x7);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_EvalLocalVariableCachedDebug, 0x8);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_EvalLocalVariableRefCachedDebug, 0x9);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_PushVar, 0xa);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_PushEntityVar, 0xb);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_ClearParams, 0xc);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_CheckClearParams, 0xd);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_PreScriptCall, 0xe);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_CallBuiltinFunction, 0xf);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_CallBuiltinMethod, 0x10);
+		vt834->RegisterOpCode(PLATFORM_PC, OPCODE_End, 0x11);
 
 		vt834->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Abort, 0x0);
 		vt834->RegisterOpCode(PLATFORM_PLAYSTATION, OPCODE_Nop, 0x1);
