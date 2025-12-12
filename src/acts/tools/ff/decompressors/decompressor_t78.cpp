@@ -9,6 +9,7 @@
 #include <tools/compatibility/acti_crypto_keys.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <tools/ff/fastfile_bdiff.hpp>
+#include <zlib.h>
 
 namespace {
 	struct XFileBO3_x132 {
@@ -138,22 +139,23 @@ namespace {
 			size_t aesIVLoc{};
 			compatibility::acti::crypto_keys::KeyVersion keyVersion{};
 			const char* rsaKeyName{};
+			bool noStreamInfo{};
 
 			bool xhashType{};
 
-			// todo: probably we can scan the data and find the chunks
 			switch (header->version) {
-			//case 0x132: // Black ops 3 alpha
-			//	fastFileSize = sizeof(XFileBO3_x132);
-			//	decompressedSizeLoc = offsetof(XFileBO3_x132, size);
-			//	fastfileNameLoc = offsetof(XFileBO3_x132, fastfileName);
-			//	signLoc = offsetof(XFileBO3_x132, signature);
-			//	aesIVLoc = offsetof(XFileBO3_x132, aesIV);
-			//	blockSizeLoc = offsetof(XFileBO3_x132, blockSize);
-			//	rsaKeyName = "bo3dev";
-			//	keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
-			//	ctx.blocksCount = ARRAYSIZE(XFileBO3_x132::blockSize);
-			//	break;
+			case 0x132: // Black ops 3 alpha
+				fastFileSize = sizeof(XFileBO3_x132);
+				decompressedSizeLoc = offsetof(XFileBO3_x132, size);
+				fastfileNameLoc = offsetof(XFileBO3_x132, fastfileName);
+				signLoc = offsetof(XFileBO3_x132, signature);
+				aesIVLoc = offsetof(XFileBO3_x132, aesIV);
+				blockSizeLoc = offsetof(XFileBO3_x132, blockSize);
+				rsaKeyName = "bo3dev";
+				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
+				noStreamInfo = true;
+				ctx.blocksCount = ARRAYSIZE(XFileBO3_x132::blockSize);
+				break;
 			case 0x251: // Black ops 3
 				fastFileSize = sizeof(XFileBO3);
 				decompressedSizeLoc = offsetof(XFileBO3, size);
@@ -308,11 +310,86 @@ namespace {
 			utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(header->compression) };
 
 			ffdata.resize(decompressedSize);
+			LOG_TRACE("decompressing 0x{:x}... bytes", decompressedSize);
 
 			size_t idx{};
 			size_t offset{};
 			while (offset < decompressedSize) {
 				size_t loc{ reader.Loc() };
+
+				if (noStreamInfo) {
+					uint32_t compressedSize{ reader.Read<uint32_t>() };
+
+					if (!compressedSize) {
+						break;
+					}
+
+					byte* blockBuff{ reader.ReadPtr<byte>(compressedSize) };
+
+					LOG_TRACE("Decompressing {}{} block 0x{:x} 0x{:x} at 0x{:x}/0x{:x}",
+						header->encrypted ? "encrypted " : "",
+						fastfile::GetFastFileCompressionName(header->compression),
+						loc, compressedSize, offset, reader.Remaining()
+					);
+
+					byte* decompressed{ &ffdata[offset] };
+					size_t decompressedRemaining{ decompressedSize - offset };
+
+					if (header->encrypted) {
+						symmetric_CTR ctr{};
+						int aesCipher{ find_cipher("aes") };
+						if (aesCipher == -1) {
+							throw std::runtime_error(std::format("Missing aes for ff {}/{}", ctx.ffname, rsaKeyName));
+						}
+						int r;
+
+						if ((r = ctr_start(aesCipher, aesIV, aeskey->key, sizeof(aeskey->key), 0, 0, &ctr)) != CRYPT_OK) {
+							throw std::runtime_error(std::format("Failed to start ctr {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+						}
+
+						if ((r = ctr_decrypt(blockBuff, blockBuff, compressedSize, &ctr)) != CRYPT_OK) {
+							throw std::runtime_error(std::format("Can't decrypt block 0x{:x}: {}", loc, error_to_string(r)));
+						}
+
+						*((uint64_t*)&aesIV[0]) += compressedSize;
+					}
+
+					switch (alg) {
+					case utils::compress::COMP_NONE: {
+						if (decompressedRemaining < compressedSize) {
+							throw std::runtime_error(std::format("Can't decompress none 0x{:x} < 0x{:x}", decompressedRemaining, compressedSize));
+						}
+						std::memcpy(decompressed, blockBuff, compressedSize);
+						offset += compressedSize;
+						break;
+					}
+					case utils::compress::COMP_ZLIB: {
+						z_stream zs{};
+
+						if (inflateInit2(&zs, -15) != Z_OK) {
+							throw std::runtime_error(std::format("Can't init zstream {}", zs.msg ? zs.msg : "<err>"));
+						}
+
+						zs.next_in = (z_const Bytef*)blockBuff;
+						zs.avail_in = (uInt)compressedSize;
+						zs.next_out = (Bytef*)decompressed;
+						zs.avail_out = (uInt)decompressedRemaining;
+						int e{ inflate(&zs, Z_FULL_FLUSH) };
+						if (e != Z_STREAM_END) {
+							throw std::runtime_error(std::format("Can't inflate zstream {}: {}", e, zs.msg ? zs.msg : ""));
+						}
+
+						offset += zs.total_out;
+
+						inflateEnd(&zs);
+						break;
+					}
+					default:
+						throw std::runtime_error(std::format("Unknown algorithm: {}", alg));
+					}
+
+					continue;
+				}
 
 				fastfile::DBStreamHeader* block{ reader.ReadPtr<fastfile::DBStreamHeader>() };
 
