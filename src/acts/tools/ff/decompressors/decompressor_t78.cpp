@@ -178,13 +178,28 @@ namespace {
 				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
 				ctx.blocksCount = ARRAYSIZE(XFileBO4_Dev::blockSize);
 				break;
-			case 0x27E: // Black Ops 4 Old
 				fastFileSize = 0x840;
 				xhashType = true;
 				fastfileNameLoc = 0x6F0;
 				decompressedSizeLoc = 0x490;
 				blockSizeLoc = 0x4A8;
+				signLoc = 0x730;
+				aesIVLoc = 0x830;
+				rsaKeyName = "bo4";
+				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
 				ctx.blocksCount = 9;
+				break;
+			case 0x27E: // Black Ops 4 Old
+				fastFileSize = sizeof(XFileBO4_0x27F);
+				decompressedSizeLoc = offsetof(XFileBO4_0x27F, size);
+				fastfileNameLoc = offsetof(XFileBO4_0x27F, fastfileName);
+				blockSizeLoc = offsetof(XFileBO4_0x27F, blockSize);
+				ctx.blocksCount = ARRAYSIZE(XFileBO4_0x27F::blockSize);
+				signLoc = offsetof(XFileBO4_0x27F, signature);
+				aesIVLoc = offsetof(XFileBO4_0x27F, aesIV);
+				rsaKeyName = "bo4_old";
+				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
+				xhashType = true;
 				break;
 			case 0x27F:// Black Ops 4
 				fastFileSize = sizeof(XFileBO4_0x27F);
@@ -269,42 +284,48 @@ namespace {
 
 			if (header->encrypted) {
 				// import aes key
-				if (!aesIV || !rsaKeyName) {
+				if (!aesIV) {
 					throw std::runtime_error(std::format("Missing decrypt data for this fast file version 0x{:x}", header->version));
 				}
 				aeskey = compatibility::acti::crypto_keys::GetKeyByName(ctx.ffname, keyVersion);
-				compatibility::acti::crypto_keys::RsaKeyLocal* rsa{ compatibility::acti::crypto_keys::GetRSAKeyByName(rsaKeyName) };
 
-				if (!aeskey || !rsa) {
+				if (!aeskey) {
 					throw std::runtime_error(std::format("Missing key set for ff {}/{}", ctx.ffname, rsaKeyName));
 				}
+				if (rsaKeyName) {
+					compatibility::acti::crypto_keys::RsaKeyLocal* rsa{ compatibility::acti::crypto_keys::GetRSAKeyByName(rsaKeyName) };
+					if (rsa) {
+						int shaHash{ find_hash("sha256") };
 
-				int shaHash{ find_hash("sha256") };
+						if (shaHash == -1) {
+							throw std::runtime_error(std::format("Missing sha256 for ff {}/{}", ctx.ffname, rsaKeyName));
+						}
 
-				if (shaHash == -1) {
-					throw std::runtime_error(std::format("Missing sha256 for ff {}/{}", ctx.ffname, rsaKeyName));
+						rsa_key rsakey{};
+
+						int r;
+
+						if ((r = rsa_import(rsa->key, sizeof(rsa->key), &rsakey)) != CRYPT_OK) {
+							throw std::runtime_error(std::format("Failed to import key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+						}
+
+						uint8_t digest[20]{};
+
+						int stat{};
+						if ((r = rsa_verify_hash(signature, 0x100, digest, sizeof(digest), shaHash, 8, &stat, &rsakey)) != CRYPT_OK) {
+							throw std::runtime_error(std::format("Hash verify error {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+						}
+
+						unsigned long digestSize{ sizeof(digest) };
+						if ((r == rsa_decrypt_key(signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
+							throw std::runtime_error(std::format("Failed to import decrypt key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+						}
+						rsa_free(&rsakey);
+					}
+					else {
+						LOG_WARNING("Missing rsa key for ff {}/{}", ctx.ffname, rsaKeyName)
+					}
 				}
-
-				rsa_key rsakey{};
-
-				int r;
-
-				if ((r = rsa_import(rsa->key, sizeof(rsa->key), &rsakey)) != CRYPT_OK) {
-					throw std::runtime_error(std::format("Failed to import key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
-				}
-
-				uint8_t digest[20]{};
-
-				int stat{};
-				if ((r = rsa_verify_hash(signature, 0x100, digest, sizeof(digest), shaHash, 8, &stat, &rsakey)) != CRYPT_OK) {
-					throw std::runtime_error(std::format("Hash verify error {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
-				}
-
-				unsigned long digestSize{ sizeof(digest) };
-				if ((r == rsa_decrypt_key(signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
-					throw std::runtime_error(std::format("Failed to import decrypt key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
-				}
-				rsa_free(&rsakey);
 			}
 
 			utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(header->compression) };
