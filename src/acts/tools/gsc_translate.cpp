@@ -122,7 +122,7 @@ namespace {
 
 		hashutils::ReadDefaultFile();
 
-		std::unordered_map<const OPCodeInfo*, std::unordered_set<uint16_t>> opcodeMapping{};
+		std::unordered_map<const OPCodeInfo*, std::set<uint16_t>> opcodeMapping{};
 
 		std::unique_ptr<GSCExportReader> oer{ tool::gsc::CreateExportReader(oldVm) };
 		std::unique_ptr<GSCExportReader> ner{ tool::gsc::CreateExportReader(newVm) };

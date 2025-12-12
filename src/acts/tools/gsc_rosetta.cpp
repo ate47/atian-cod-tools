@@ -394,6 +394,64 @@ namespace {
 		return tool::OK;
 	}
 
+	int vtabledumreadexemt(int argc, const char* argv[]) {
+		using namespace tool::gsc::opcode;
+		if (tool::NotEnoughParam(argc, 5)) {
+			return tool::BAD_USAGE;
+		}
+
+		size_t maxOpCode{ std::strtoull(argv[3], nullptr, 16) };
+		uintptr_t loc{ std::strtoull(argv[4], nullptr, 16) };
+		uintptr_t locmt{ std::strtoull(argv[5], nullptr, 16) };
+		uint64_t offset{ tool::NotEnoughParam(argc, 6) ? 0 : std::strtoull(argv[7], nullptr, 16) };
+
+		LOG_TRACE("set maxopcode to {}/0x{:x}", argv[3], maxOpCode);
+
+		std::vector<byte> buffer{};
+
+		hook::module_mapper::Module mod{ true };
+
+		if (!mod.Load(argv[2], false)) {
+			LOG_ERROR("Can't read {}!", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+		std::map<uintptr_t, std::vector<size_t>> map{};
+		uintptr_t* codes = (uintptr_t*)mod->Get<uintptr_t>(loc);
+
+		for (size_t i = 0; i < maxOpCode; i++) {
+			map[codes[i]].push_back(i);
+		}
+		uintptr_t* codesMt = (uintptr_t*)mod->Get<uintptr_t>(locmt);
+
+		for (size_t i = 0; i < maxOpCode; i++) {
+			map[codesMt[i]].push_back(i | maxOpCode);
+		}
+		{
+			utils::OutFileCE os{ argv[6] };
+
+			if (!os) {
+				LOG_ERROR("Can't open {}", argv[6]);
+				return tool::BASIC_ERROR;
+			}
+
+			for (const auto& [loc, map] : map) {
+				os << std::hex << std::setfill('0') << std::setw(3) << (offset + map[0]) << ":" << mod->Rloc(loc) << " -> {";
+				for (size_t i = 0; i < map.size(); i++) {
+					if (i) {
+						os << ", ";
+					}
+					os << std::hex << "0x" << (offset + map[i]);
+				}
+				os << "}\n";
+			}
+
+			LOG_INFO("Dump into {}", argv[6]);
+		}
+
+		return tool::OK;
+	}
+	
 	int vtdrexerebase(int argc, const char* argv[]) {
 		using namespace tool::gsc::opcode;
 		if (tool::NotEnoughParam(argc, 7)) {
@@ -684,6 +742,7 @@ ADD_TOOL(rosetta, "gsc", " [rosetta_file] [compiled script dump]", "Compute the 
 ADD_TOOL(gscfreq, "gsc", "", "Frequency of opcodes", gscfreq);
 ADD_TOOL(vtdr, "dev_gsc", " [dump] [maxOpCodes] [output]", "Dump opcode vtable", vtabledumread);
 ADD_TOOL(vtdrexe, "dev_gsc", " [exe] [maxOpCodes] [loc] [output] (start)", "Dump opcode vtable from exe", vtabledumreadexe);
+ADD_TOOL(vtdrexemt, "dev_gsc", " [exe] [maxOpCodes] [loc] [locmt] [output] (start)", "Dump opcode vtable from exe with mt", vtabledumreadexemt);
 ADD_TOOL(vtdrrebase, "dev_gsc", " [maxOpCodes] [output] [ori] [dest] [vm] [plt] (start)", "Dump opcode vtable from exe and rebase them", vtdrrebase);
 ADD_TOOL(vtdrexerebase, "dev_gsc", " [exe] [maxOpCodes] [output] [locori] [locdest] [vm] [plt] (start)", "Dump opcode vtable from exe and rebase them", vtdrexerebase);
 ADD_TOOL(gscmap, "gsc", " [in] [out] [origin] [dest]", "Map a script from one platform to another", gscmap);
