@@ -58,6 +58,7 @@ scriptparsetree*
 output*
 /pool/
 /poolcw/
+/proxy/
 vm_codes.db2
 bgpool
 
