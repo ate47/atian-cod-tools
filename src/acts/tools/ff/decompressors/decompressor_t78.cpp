@@ -156,6 +156,7 @@ namespace {
 				noStreamInfo = true;
 				ctx.blocksCount = ARRAYSIZE(XFileBO3_x132::blockSize);
 				break;
+			case 0x1fb: // Black ops 3 beta
 			case 0x251: // Black ops 3
 				fastFileSize = sizeof(XFileBO3);
 				decompressedSizeLoc = offsetof(XFileBO3, size);
@@ -313,12 +314,12 @@ namespace {
 
 						int stat{};
 						if ((r = rsa_verify_hash(signature, 0x100, digest, sizeof(digest), shaHash, 8, &stat, &rsakey)) != CRYPT_OK) {
-							throw std::runtime_error(std::format("Hash verify error {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+							LOG_WARNING("Hash verify error {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName);
 						}
 
 						unsigned long digestSize{ sizeof(digest) };
 						if ((r == rsa_decrypt_key(signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
-							throw std::runtime_error(std::format("Failed to import decrypt key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
+							LOG_WARNING("Failed to import decrypt key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName);
 						}
 						rsa_free(&rsakey);
 					}
