@@ -33,6 +33,7 @@ See the wiki to know how to use the features
 
 | Name                     | Rev | Decompiler | Compiler | Type(s)      | Source\*                                                      |
 | ------------------------ | --- | ---------- | -------- | ------------ | ------------------------------------------------------------- |
+| Black Ops 3 (T7)         | 1A  | ✅          | ✅        | pc           | None       |
 | Black Ops 3 (T7)         | 1B  | Partial    | ✅        | pc           | [ate47/oldcod-source](https://github.com/ate47/oldcod-source)       |
 | Black Ops 3 (T7)         | 1C  | ✅          | ✅        | pc,ps4       | [ate47/bo3-source](https://github.com/ate47/bo3-source)       |
 | Black Ops 4 (T8)         | 31  | ✅          | ✅        | ps4          | [ate47/oldcod-source](https://github.com/ate47/oldcod-source) |
