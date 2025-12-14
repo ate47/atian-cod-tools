@@ -576,6 +576,11 @@ namespace {
 					PrintHeader(&newHeader.header, "fp::newHeader", true);
 				}
 
+				if (!fpreader.CanRead(1)) {
+					ffdata = {};
+					return;
+				}
+
 				// goto data
 				switch (header->headerVersion) { 
 				case IWFV_MW19: {
