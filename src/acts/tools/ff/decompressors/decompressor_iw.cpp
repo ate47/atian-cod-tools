@@ -11,6 +11,8 @@
 #include <tools/ff/fastfile_bdiff.hpp>
 
 namespace {
+	constexpr uint64_t IW_FF_MAGIC_MASK = 0xFFFFFF00FFFFFFFF;
+	constexpr uint64_t IW_FF_MAGIC = 0x3030310066665749;
 	enum IWFFVersion {
 		IWFV_MW19 = 0x0B,
 		IWFV_MW22 = 0x17,
@@ -198,7 +200,7 @@ namespace {
 		std::unique_ptr<byte[]> decryptBuffer;
 
 	public:
-		IWFFDecompressor() : fastfile::FFDecompressor("IW", 0x3030317066665749, 0xFFFFFF00FFFFFFFF) {}
+		IWFFDecompressor() : fastfile::FFDecompressor("IW", IW_FF_MAGIC, IW_FF_MAGIC_MASK) {}
 
 		void Init(fastfile::FastFileOption& opt) override {
 			//DB_UnpackHeader = game->ScanSingle("40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 88 B4").GetPtr<decltype(DB_UnpackHeader)>();
@@ -246,7 +248,6 @@ namespace {
 			};
 
 			IWFastFileHeader ffHeader{};
-			size_t ffHeaderSize{};
 			SecureType secureType{};
 			size_t endSize{ std::string::npos };
 
@@ -257,7 +258,6 @@ namespace {
 
 			switch (header->headerVersion) {
 			case IWFV_MW19: {
-				ffHeaderSize = sizeof(ffHeader.mw19);
 				reader.Read(&ffHeader.mw19, sizeof(ffHeader.mw19));
 				secureType = ST_MW19;
 				ctx.blocksCount = opt.handler && opt.handler->forceNumXBlocks ? opt.handler->forceNumXBlocks : 8;
@@ -271,7 +271,6 @@ namespace {
 				break;
 			}
 			case IWFV_MW22: {
-				ffHeaderSize = sizeof(ffHeader.mwii);
 				reader.Read(&ffHeader.mwii, sizeof(ffHeader.mwii));
 				secureType = ST_MW22;
 				ctx.blocksCount = 16;
@@ -283,7 +282,6 @@ namespace {
 				break;
 			}
 			case IWFV_MW23: {
-				ffHeaderSize = sizeof(ffHeader.mwiii);
 				reader.Read(&ffHeader.mwiii, sizeof(ffHeader.mwiii));
 				secureType = ST_MW22;
 				ctx.blocksCount = 16;
@@ -296,7 +294,6 @@ namespace {
 				break;
 			}
 			case IWFV_BO6: {
-				ffHeaderSize = sizeof(ffHeader.bo6);
 				reader.Read(&ffHeader.bo6, sizeof(ffHeader.bo6));
 				secureType = ST_MW22;
 				ctx.blocksCount = 16;
@@ -310,6 +307,11 @@ namespace {
 			}
 			default:
 				throw std::runtime_error(std::format("version not supported 0x{:x}", header->headerVersion));
+			}
+
+			LOG_DEBUG("blocks sizes:");
+			for (size_t i = 0; i < ctx.blocksCount; i++) {
+				LOG_DEBUG("blocks[{}] = 0x{:x}", i, ctx.blockSizes[i].size);
 			}
 
 			if (opt.m_header) {
@@ -485,13 +487,34 @@ namespace {
 				if (!fpreader.CanRead(8) || *fpreader.Ptr<uint64_t>() != 0x3030316466665749) {
 					throw std::runtime_error(std::format("Can't read {}: bad magic", fpfile.string()));
 				}
-				if (!fpreader.CanRead(sizeof(DB_FFHeader))) {
+				if (!fpreader.CanRead(sizeof(DB_FFHeader) + sizeof(uint64_t))) { // fp header + prevHeader magic
 					throw std::runtime_error("Can't read XFile header");
 				}
 
 				DB_FFHeader* fpHeader{ fpreader.ReadPtr<DB_FFHeader>() };
 				IWFastFileHeader prevHeader{};
 				IWFastFileHeader newHeader{};
+
+				if ((*fpreader.Ptr<uint64_t>() & IW_FF_MAGIC_MASK) != IW_FF_MAGIC) {
+					throw std::runtime_error("Invalid prevHeader magic");
+				}
+
+				uint64_t iwMagic{ IW_FF_MAGIC };
+				uint64_t iwMagicMask{ IW_FF_MAGIC_MASK };
+
+				size_t newHeaderLocation{ fpreader.FindMasked(&iwMagic, &iwMagicMask, sizeof(iwMagic), 8) };
+
+				if (newHeaderLocation == std::string::npos) {
+					throw std::runtime_error("Can't find newHeader magic");
+				}
+
+				size_t ffHeaderSize{ newHeaderLocation - fpreader.Loc() };
+
+				LOG_DEBUG("ffHeaderSize: 0x{:x}", ffHeaderSize);
+
+				if (ffHeaderSize > sizeof(IWFastFileHeader)) {
+					throw std::runtime_error(std::format("Computed ffHeaderSize too big: 0x{:x}", ffHeaderSize));
+				}
 
 				// load patch headers
 				switch (fpHeader->headerVersion) {
@@ -533,6 +556,11 @@ namespace {
 				if (blockSizes) {
 					for (size_t i = 0; i < ctx.blocksCount; i++) {
 						ctx.blockSizes[i].size = blockSizes[i];
+					}
+
+					LOG_DEBUG("patched blocks sizes:");
+					for (size_t i = 0; i < ctx.blocksCount; i++) {
+						LOG_DEBUG("blocks[{}] = 0x{:x}", i, ctx.blockSizes[i].size);
 					}
 				}
 
