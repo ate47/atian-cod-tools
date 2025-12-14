@@ -68,7 +68,7 @@ See the wiki to know how to use the features
 | Black Ops 4           | ✅      | `bo4`     | `rawfile`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry` |
 | Modern Warfare 2019   | ✅      | ❌        | |
 | Black Ops Cold War    | ✅      | `cw`      | `rawfile`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`|
-| Vanguard              | ✅      | ❌        | |
+| Vanguard              | ✅      | `vg`      | `rawfile`, `scriptfile` (Compiled), `luafile`, `localize` |
 | Modern Warfare II     | ✅      | `mwii`    | `rawfile`, `scriptfile` (Compiled), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `scriptfile` (Compiled), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern Warfare III    | ✅      | `mwiii`   | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |

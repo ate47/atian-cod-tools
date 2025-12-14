@@ -75,6 +75,9 @@ namespace fastfile::handlers::vg {
 			void (*DB_PatchMem_FixStreamAlignment)(int align) {};
 			void (*DB_PopStreamPos)() {};
 			void (*DB_PushStreamPos)(XFileBlock type) {};
+			void (*DB_AddAsset2)(Asset* asset) {};
+			void (*DB_PatchMem_InitRewind)() {};
+			uint32_t(*DB_GetAssetSize)(HandlerAssetType type) {};
 
 			size_t lastBlockCount{};
 			byte** streamPos{};
@@ -143,6 +146,9 @@ namespace fastfile::handlers::vg {
 				if (*gcx.streamPosIndex != XFileBlock::XFILE_BLOCK_MEMMAPPED) {
 					LoadXFileData(ptr, len);
 				}
+				else {
+					std::memset(ptr, 0, len);
+				}
 
 				DB_IncStreamPos(len);
 			}
@@ -167,13 +173,19 @@ namespace fastfile::handlers::vg {
 		void* DB_LinkGenericXAsset(HandlerAssetType type, void** handle) {
 			HandlerHashedAssetType hashType{ GetHashType(type) };
 			const char* poolName{ GetPoolName(hashType) };
-			if (!handle) {
-				LOG_DEBUG("DB_LinkGenericXAsset({}, null)", poolName);
+			if (!handle || !*handle) {
+				LOG_WARNING("DB_LinkGenericXAsset({}, null) {}", poolName, hook::library::CodePointer{ _ReturnAddress() });
 				return nullptr; // wtf?
 			}
 			XString name{ GetXAssetName(hashType, *handle) };
-			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
-			*(gcx.outAsset) << "\n" << poolName << "," << name;
+
+			size_t assetSize{ gcx.DB_GetAssetSize(type) };
+			void* data{ gcx.allocator.Alloc(assetSize) };
+			std::memcpy(data, *handle, assetSize);
+			*handle = data;
+
+			LOG_TRACE("DB_LinkGenericXAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
+			*(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			if (!(gcx.opt->noAssetDump || !gcx.assetNames.ShouldHandle(type) || !gcx.namesStore.Contains(hash::HashIWAsset(name), true))) {
 
@@ -190,6 +202,12 @@ namespace fastfile::handlers::vg {
 					}
 				}
 			}
+
+			Asset linkedAsset{};
+			linkedAsset.type = type;
+			linkedAsset.handle = *handle;
+
+			gcx.DB_AddAsset2(&linkedAsset);
 
 			return *handle;
 		}
@@ -244,6 +262,9 @@ namespace fastfile::handlers::vg {
 				gcx.DB_PatchMem_FixStreamAlignment = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? ?? 4C", "gcx.DB_PatchMem_FixStreamAlignment").GetPtr<decltype(gcx.DB_PatchMem_FixStreamAlignment)>();
 				gcx.DB_PushStreamPos = scan.ScanSingle("8B 15 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 05", "gcx.DB_PushStreamPos").GetPtr<decltype(gcx.DB_PushStreamPos)>();
 				gcx.DB_PopStreamPos = scan.ScanSingle("44 8B 05 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 15 ?? ?? ?? ?? 41 FF", "gcx.DB_PopStreamPos").GetPtr<decltype(gcx.DB_PopStreamPos)>();
+				gcx.DB_AddAsset2 = scan.ScanSingle("41 54 48 83 EC 40 80", "gcx.DB_AddAsset2").GetPtr<decltype(gcx.DB_AddAsset2)>();
+				gcx.DB_GetAssetSize = scan.ScanSingle("E8 ?? ?? ?? ?? 49 8B 14 24 48 8B 0E", "gcx.DB_GetAssetSize").GetRelative<int32_t, decltype(gcx.DB_GetAssetSize)>(1);
+				gcx.DB_PatchMem_InitRewind = scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 33 C9 48 85", "gcx.DB_PatchMem_InitRewind").GetPtr<decltype(gcx.DB_PatchMem_InitRewind)>();
 				gcx.streamPos = scan.ScanSingle("48 89 15 ?? ?? ?? ?? 41 8B 80", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
 				gcx.rewind = scan.ScanSingle("8B C1 4C 8D 15 ?? ?? ?? ?? 4D 8B 14 C2", "gcx.rewind").GetRelative<int32_t, RewindStreamData**>(5);
 				gcx.streamPosIndex = scan.ScanSingle("44 8B 05 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 15 ?? ?? ?? ?? 41 FF", "gcx.streamPosIndex").GetRelative<int32_t, XFileBlock*>(16);
@@ -257,6 +278,8 @@ namespace fastfile::handlers::vg {
 				LOG_TRACE("gcx.DB_PatchMem_FixStreamAlignment = {}", hook::library::CodePointer{ gcx.DB_PatchMem_FixStreamAlignment });
 				LOG_TRACE("gcx.DB_PushStreamPos = {}", hook::library::CodePointer{ gcx.DB_PushStreamPos });
 				LOG_TRACE("gcx.DB_PopStreamPos = {}", hook::library::CodePointer{ gcx.DB_PopStreamPos });
+				LOG_TRACE("gcx.DB_AddAsset2 = {}", hook::library::CodePointer{ gcx.DB_AddAsset2 });
+				LOG_TRACE("gcx.DB_PatchMem_InitRewind = {}", hook::library::CodePointer{ gcx.DB_PatchMem_InitRewind });
 				LOG_TRACE("gcx.streamPos = {}", hook::library::CodePointer{ gcx.streamPos });
 				LOG_TRACE("gcx.rewind = {}", hook::library::CodePointer{ gcx.rewind });
 				LOG_TRACE("gcx.streamPosIndex = {}", hook::library::CodePointer{ gcx.streamPosIndex });
@@ -312,11 +335,10 @@ namespace fastfile::handlers::vg {
 						LOG_ERROR("type {} was removed", PoolName(hashType));
 					}
 					else {
-						//size_t trueLen{ gcx.poolInfo[type].itemSize };
-						//if (worker->assetSize != trueLen) {
-						//	LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
-						//}
-						// the game has been out for 6 years, learn how to code
+						size_t trueLen{ gcx.DB_GetAssetSize(type) };
+						if (worker->assetSize != trueLen) {
+							LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
+						}
 					}
 					worker->GenDefaultXHashes(nullptr);
 				}
@@ -335,7 +357,7 @@ namespace fastfile::handlers::vg {
 								LOG_ERROR("Offset: 0x{:x} -> 0x{:x}", gcx.reader->Loc(), gcx.reader->Remaining());
 							}
 						}
-						});
+					});
 
 					});
 			}
@@ -386,6 +408,7 @@ namespace fastfile::handlers::vg {
 
 				// setup rewind buffers
 				std::memset(gcx.rewindBuffer.get(), 0, sizeof(gcx.rewindBuffer[0]) * ctx.blocksCount);
+				LOG_DEBUG("rewing: {}", (void*)gcx.rewindBuffer.get());
 				for (size_t i = 0; i < ctx.blocksCount; i++) {
 					gcx.rewind[i] = &gcx.rewindBuffer[i];
 				}
@@ -400,11 +423,11 @@ namespace fastfile::handlers::vg {
 					else {
 						gcx.blocks[i].data = nullptr;
 					}
-
-					LOG_DEBUG("Block size {} = 0x{:x}", i, len);
 				}
+
 				gcx.DB_InitLoadStreamBlocks(gcx.blocks.get());
 				*gcx.s_rewindPostload = 1;
+				gcx.DB_PatchMem_InitRewind();
 
 				LoadXFileData(&gcx.assets, sizeof(gcx.assets));
 
@@ -427,6 +450,7 @@ namespace fastfile::handlers::vg {
 				}
 
 				std::filesystem::path outStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
+				gcx.DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 				{
 					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE stringsOs{ outStrings };
@@ -462,7 +486,6 @@ namespace fastfile::handlers::vg {
 					utils::OutFileCE assetsOs{ outAssets };
 					gcx.outAsset = &assetsOs;
 					assetsOs << "type,name";
-					gcx.DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 					gcx.DB_PatchMem_FixStreamAlignment(7);
 					gcx.assets.assets = (Asset*)*gcx.streamPos;
 					LoadStreamTA(false, gcx.assets.assets, sizeof(gcx.assets.assets[0]) * gcx.assets.assetsCount);
@@ -479,8 +502,13 @@ namespace fastfile::handlers::vg {
 					try {
 						for (assetId = 0; assetId < gcx.assets.assetsCount; assetId++) {
 							Asset* asset{ &gcx.assets.assets[assetId] };
-							// if (assetId == 1822) core::logs::setlevel(core::logs::LVL_TRACE_PATH);
-							LOG_DEBUG("load #{} -> {}({}/0x{:x}) {}", assetId, PoolName(GetHashType(asset->type)), (int)asset->type, (int)asset->type, asset->handle);
+							/*
+							if (assetId == 13012) {
+								core::logs::setlevel(core::logs::LVL_TRACE_PATH);
+								core::logs::setbasiclog(false);
+							}
+							//*/
+							LOG_TRACE("load #{} -> {}({}/0x{:x}) {}", assetId, PoolName(GetHashType(asset->type)), (int)asset->type, (int)asset->type, asset->handle);
 							*gcx.loadAsset = asset;
 							gcx.currentAsset = assetId;
 							gcx.Load_Asset(true);
@@ -498,8 +526,8 @@ namespace fastfile::handlers::vg {
 						}
 						v->PostXFileLoading(*gcx.opt, ctx);
 					}
-					gcx.DB_PopStreamPos();
 				}
+				gcx.DB_PopStreamPos();
 				LOG_INFO("Asset names dump into {}", outAssets.string());
 				if (gcx.xstringLocs) {
 					std::filesystem::path ostr{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
@@ -536,10 +564,7 @@ namespace fastfile::handlers::vg {
 
 		};
 
-
-#ifndef CI_BUILD
 		utils::ArrayAdder<FFHandlerImpl, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
-#endif // CI_BUILD
 	}
 
 	std::unordered_map<HandlerHashedAssetType, Worker*>& GetWorkers() {
