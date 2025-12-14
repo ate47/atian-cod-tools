@@ -39,6 +39,7 @@ namespace fastfile::handlers::vg {
 	struct PlayerSpawnSettings;
 
 	typedef const char* XString;
+	typedef uint64_t XHash64;
 
 	struct ScrString_t {
 		uint32_t id;
