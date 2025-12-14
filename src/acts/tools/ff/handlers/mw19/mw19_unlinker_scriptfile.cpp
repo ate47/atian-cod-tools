@@ -47,5 +47,5 @@ namespace {
 		}
 	};
 
-	// utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::IW8H_ASSET_SCRIPTFILE, sizeof(ScriptFile) };
+	utils::MapAdder<ImplWorker, HandlerHashedAssetType, Worker> impl{ GetWorkers(), HandlerHashedAssetType::IW8H_ASSET_SCRIPTFILE, sizeof(ScriptFile) };
 }

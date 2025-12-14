@@ -76,7 +76,7 @@ namespace fastfile::handlers::vg {
 			void (*DB_PopStreamPos)() {};
 			void (*DB_PushStreamPos)(XFileBlock type) {};
 			void (*DB_AddAsset2)(Asset* asset) {};
-			void (*DB_PatchMem_InitRewind)() {};
+			void (*DB_PatchMem_BeginLoad)() {};
 			uint32_t(*DB_GetAssetSize)(HandlerAssetType type) {};
 
 			size_t lastBlockCount{};
@@ -192,10 +192,8 @@ namespace fastfile::handlers::vg {
 				std::unordered_map<HandlerHashedAssetType, Worker*>& map{ GetWorkers() };
 				auto it{ map.find(hashType) };
 				if (it != map.end()) {
-					if constexpr (!hasRelativeLoads) {
-						if (!it->second->requiresRelativeLoads) {
-							it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
-						}
+					if (it->second->assetSize != assetSize) {
+						LOG_ERROR("Can't check size of asset entry {}({}): 0x{:x} != 0x{:x}", gcx.assetNames.GetTypeName(type), (int)type, it->second->assetSize, assetSize);
 					}
 					else {
 						it->second->Unlink(*gcx.opt, *gcx.ctx, *handle);
@@ -264,7 +262,7 @@ namespace fastfile::handlers::vg {
 				gcx.DB_PopStreamPos = scan.ScanSingle("44 8B 05 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 15 ?? ?? ?? ?? 41 FF", "gcx.DB_PopStreamPos").GetPtr<decltype(gcx.DB_PopStreamPos)>();
 				gcx.DB_AddAsset2 = scan.ScanSingle("41 54 48 83 EC 40 80", "gcx.DB_AddAsset2").GetPtr<decltype(gcx.DB_AddAsset2)>();
 				gcx.DB_GetAssetSize = scan.ScanSingle("E8 ?? ?? ?? ?? 49 8B 14 24 48 8B 0E", "gcx.DB_GetAssetSize").GetRelative<int32_t, decltype(gcx.DB_GetAssetSize)>(1);
-				gcx.DB_PatchMem_InitRewind = scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 33 C9 48 85", "gcx.DB_PatchMem_InitRewind").GetPtr<decltype(gcx.DB_PatchMem_InitRewind)>();
+				gcx.DB_PatchMem_BeginLoad = scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 33 C9 48 85", "gcx.DB_PatchMem_BeginLoad").GetPtr<decltype(gcx.DB_PatchMem_BeginLoad)>();
 				gcx.streamPos = scan.ScanSingle("48 89 15 ?? ?? ?? ?? 41 8B 80", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
 				gcx.rewind = scan.ScanSingle("8B C1 4C 8D 15 ?? ?? ?? ?? 4D 8B 14 C2", "gcx.rewind").GetRelative<int32_t, RewindStreamData**>(5);
 				gcx.streamPosIndex = scan.ScanSingle("44 8B 05 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 8B 15 ?? ?? ?? ?? 41 FF", "gcx.streamPosIndex").GetRelative<int32_t, XFileBlock*>(16);
@@ -279,7 +277,7 @@ namespace fastfile::handlers::vg {
 				LOG_TRACE("gcx.DB_PushStreamPos = {}", hook::library::CodePointer{ gcx.DB_PushStreamPos });
 				LOG_TRACE("gcx.DB_PopStreamPos = {}", hook::library::CodePointer{ gcx.DB_PopStreamPos });
 				LOG_TRACE("gcx.DB_AddAsset2 = {}", hook::library::CodePointer{ gcx.DB_AddAsset2 });
-				LOG_TRACE("gcx.DB_PatchMem_InitRewind = {}", hook::library::CodePointer{ gcx.DB_PatchMem_InitRewind });
+				LOG_TRACE("gcx.DB_PatchMem_BeginLoad = {}", hook::library::CodePointer{ gcx.DB_PatchMem_BeginLoad });
 				LOG_TRACE("gcx.streamPos = {}", hook::library::CodePointer{ gcx.streamPos });
 				LOG_TRACE("gcx.rewind = {}", hook::library::CodePointer{ gcx.rewind });
 				LOG_TRACE("gcx.streamPosIndex = {}", hook::library::CodePointer{ gcx.streamPosIndex });
@@ -427,7 +425,7 @@ namespace fastfile::handlers::vg {
 
 				gcx.DB_InitLoadStreamBlocks(gcx.blocks.get());
 				*gcx.s_rewindPostload = 1;
-				gcx.DB_PatchMem_InitRewind();
+				gcx.DB_PatchMem_BeginLoad();
 
 				LoadXFileData(&gcx.assets, sizeof(gcx.assets));
 
