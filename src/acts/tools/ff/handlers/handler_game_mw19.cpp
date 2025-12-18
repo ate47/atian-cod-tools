@@ -314,7 +314,7 @@ namespace fastfile::handlers::mw19 {
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_LinkGenericXAssetCustom<IW8H_ASSET_XMODEL>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_XMODEL>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C", "DB_LinkGenericXAssetCustom<IW8H_ASSET_COMPUTESHADER>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_COMPUTESHADER>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0D", "DB_LinkGenericXAssetCustom<IW8H_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_LIBSHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 18", "DB_LinkGenericXAssetCustom<IW8_ASSET_COM_MAP>").location, DB_LinkGenericXAssetCustom<IW8_ASSET_COM_MAP>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 18", "DB_LinkGenericXAssetCustom<IW8_ASSET_COM_MAP>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_COM_MAP>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 1F", "DB_LinkGenericXAssetCustom<IW8H_ASSET_GFX_MAP>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_GFX_MAP>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 43", "DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_STREAMINGINFO>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 73", "DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<IW8H_ASSET_DLOGSCHEMA>);
