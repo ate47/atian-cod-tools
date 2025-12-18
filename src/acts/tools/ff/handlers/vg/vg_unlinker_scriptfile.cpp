@@ -19,15 +19,47 @@ namespace {
 	class ImplWorker : public Worker {
 		using Worker::Worker;
 
+		std::vector<ScriptFile*> hashed{};
+
+		void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
+			hashed.clear();
+		}
+		void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
+			if (hashed.empty()) {
+				return;
+			}
+
+
+			std::filesystem::path outFile{ opt.m_output / gamePath / "scriptfile" / "names" / std::format("{}.csv", ctx.ffname) };
+			std::filesystem::create_directories(outFile.parent_path());
+			utils::OutFileCE os{ outFile, true };
+
+			for (ScriptFile* sf : hashed) {
+				uint64_t id{};
+				try {
+					id = std::strtoull(sf->name, nullptr, 10);
+				}
+				catch (...) {}
+
+				if (id) {
+					os << sf->name
+						<< ",0x" << std::hex << std::setw(4) << std::setfill('0') << id
+						<< ",#" << hashutils::ExtractTmp("script", sf->nameHashed) << "\n";
+				}
+			}
+			hashed.clear();
+		}
+
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ScriptFile* asset{ (ScriptFile*)ptr };
 
 			const char* n{ ValidateName(asset->name) };
 			std::string_view nv{ n };
 
-			if (!nv.ends_with(".gsc") && asset->nameHashed) {
+			if (!nv.ends_with(".gsc") && !nv.ends_with(".csc") && asset->nameHashed) {
 				// if the file doesn't have an extension, it probably a stripped one (ex: 1968)
 				// we use the hashed name instead (scripts/mp/audio.gsc)
+				hashed.push_back(asset);
 				n = hashutils::ExtractPtr(asset->nameHashed);
 				if (!n) {
 					n = utils::va("hashed/script_%llx.gsc", asset->nameHashed);
