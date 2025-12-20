@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <tools/ff/handlers/handler_game_mw19.hpp>
+#include <tools/gsc_iw.hpp>
 #include <compatibility/xensik_gscbin.hpp>
 #include <compatibility/xensik_decompiler.hpp>
 
@@ -22,12 +23,41 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			ScriptFile* asset{ (ScriptFile*)ptr };
 
-			const char* n{ ValidateName(asset->name) };
+			const char* assetName{ ValidateName(asset->name) };
+			std::string_view assetNameView{ assetName };
+
+			const char* n{};
+			if (!assetNameView.ends_with(".gsc") && !assetNameView.ends_with(".csc")) {
+				// if the file doesn't have an extension, it is probably a stripped one (ex: 1968)
+				// we can see if have the token for the script
+				uint32_t id{};
+				try {
+					id = std::strtoul(assetName, nullptr, 10);
+				}
+				catch (...) {}
+				if (id) {
+					const char* nn{ tool::gsc::iw::GetOpaqueStringForVm(tool::gsc::opcode::VMI_IW_BIN_MW19, id, false) };
+					if (nn) {
+						std::string_view nnv{ nn };
+						// for some reasons it doesn't work for some scripts
+						if (nnv.ends_with(".gsc") || nnv.ends_with(".csc") || nnv.ends_with(".gsh")) {
+							n = nn;
+						}
+					}
+				}
+
+				if (!n) {
+					n = utils::va("scripts/opaque/%s.gsc", assetName);
+				}
+			}
+			else {
+				n = assetName;
+			}
 
 			std::filesystem::path outFile{ opt.m_output / gamePath / "scriptfile" / n };
 			outFile.replace_extension(".gscbin");
 
-			LOG_INFO("Dump scriptfile {}", outFile.string());
+			LOG_INFO("Dump scriptfile {} ({})", outFile.string(), assetName);
 
 			if constexpr (compatibility::xensik::decompiler::available) {
 				if (!opt.disableScriptsDecomp) {
