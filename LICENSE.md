@@ -1,10 +1,8 @@
-This software is composed of two parts, acts-gpl using the [GPL-3 license](licenses/gpl3.md) and the other modules using the [MIT](licenses/mit.md) license.
+This software can be distributed with the [GPL-3 license](licenses/gpl3.md) or with the [MIT license](licenses/mit.md).
 
-The acts-gpl module is using the MIT module, but the other modules aren't using the GPL-3. (Because it's a f**** cancer)
+## General dependencies
 
-## MIT part dependencies
-
-This software depends on libraries with a different License.
+This software depends on other libraries.
 
 - [ANTLR/ANTLR-4](https://github.com/antlr/antlr4) - [BSD-3-Clause license](https://github.com/antlr/antlr4/blob/master/LICENSE.txt).
 - [Microsoft/Detours](https://github.com/microsoft/Detours) - [MIT license](https://github.com/microsoft/Detours/blob/main/LICENSE.md).
@@ -31,10 +29,9 @@ This software depends on libraries with a different License.
 - [libtom/libtommath](https://github.com/libtom/libtommath) - [LibTom license](https://github.com/libtom/libtommath/blob/main/LICENSE).
 - [libtom/libtomcrypt](https://github.com/libtom/libtomcrypt) - [LibTom license](https://github.com/libtom/libtomcrypt/blob/main/LICENSE).
 
-## GPL-3 part dependencies
+## GPL-3 dependencies
 
-The GPL-3 module depends on other libraries.
+If this software is released as a GPL-3 license, it also depends on these libraries.
 
-- [itself](https://github.com/ate47/atian-cod-tools) - [MIT license](licenses/mit.md)
-- [Scobalula/Cordycep](https://github.com/Scobalula/Cordycep) - [GNU GPL-3 license](https://github.com/Scobalula/Cordycep/blob/main/LICENSE.md)
-- [nlohmann/json](https://github.com/nlohmann/json) - [MIT license](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)
+- [libtom/libtomcrypt](https://github.com/libtom/libtomcrypt) - [LibTom license](https://github.com/libtom/libtomcrypt/blob/main/LICENSE).
+- [xensik/gsc](https://github.com/xensik/gsc) - [GPL-3 license](https://github.com/xensik/gsc-tool/blob/dev/LICENSE).

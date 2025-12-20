@@ -98,3 +98,7 @@
 [submodule "deps/libtommath"]
 	path = deps/libtommath
 	url = https://github.com/libtom/libtommath.git
+[submodule "deps/gsc-tool"]
+	path = deps/gsc-tool
+	url = https://github.com/xensik/gsc-tool
+	branch = feature/hash-extraction

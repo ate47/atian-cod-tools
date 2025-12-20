@@ -1,6 +1,8 @@
 param(
     [switch]
-    $ci
+    $ci,
+    [switch]
+    $gpl
 )
 
 
@@ -17,16 +19,22 @@ try {
     Write-Host "-- Install packages"
     vcpkg install "@.\packages.txt"
 
-    #Write-Host "-- Create jit-lua projects"
-    #Push-Location deps\jit-lua
-    #premake5 vs2022
-    #Pop-Location
-
     Write-Host "-- Create solution"
     if ($ci) {
-        premake5 vs2022 --ci-build
-    } else {
-        premake5 vs2022
+        if ($gpl) {
+            premake5 vs2022 --ci-build --gpl-build
+        }
+        else {
+            premake5 vs2022 --ci-build
+        }
+    }
+    else {
+        if ($gpl) {
+            premake5 vs2022 --gpl-build
+        }
+        else {
+            premake5 vs2022
+        }
     }
 }
 finally {

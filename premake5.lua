@@ -3,6 +3,10 @@ newoption {
    description = "CI build define"
 }
 newoption {
+   trigger = "gpl-build",
+   description = "GPL build define"
+}
+newoption {
    trigger = "prerelease-build",
    description = "CI prerelease build define"
 }
@@ -38,6 +42,11 @@ function buildinfo()
     file:write("\n#endif // CI_BUILD\n")
     file:write("}\n")
     file:close()
+    
+    -- write gsc-tool version
+    local file = assert(io.open("deps/gsc-tool/include/xsk/version.hpp", "w"))
+    file:write("#define XSK_VERSION_STR    \"ACTS_" .. version .. "\"\n")
+    file:close()
 end
 
 function patch_dogshit(original, dest)
@@ -66,6 +75,9 @@ workspace "AtianCodTools"
 
     filter { "options:ci-build" }
         defines { "CI_BUILD" }
+
+    filter { "options:gpl-build" }
+        defines { "GPL_BUILD" }
 
     filter { "options:prerelease-build" }
         defines { "PRERELEASE_BUILD" }
@@ -130,6 +142,13 @@ project "ACTSSharedLibrary"
     dependson "lz4"
     dependson "zstd"
     dependson "zlib"
+
+    filter { "options:gpl-build" }
+        links { "xsk-arc" }
+        links { "xsk-gsc" }
+        dependson "xsk-arc"
+        dependson "xsk-gsc"
+        includedirs { "deps/gsc-tool/include/xsk" }
 
 project "ACTSLibrary"
     kind "StaticLib"
@@ -488,49 +507,6 @@ project "AtianCodToolsCLI"
     }
     links { "AtianCodTools" }
     dependson "AtianCodTools"
-    
-project "AtianCodToolsGPL"
-    kind "ConsoleApp"
-    language "C++"
-    cppdialect "C++20"
-    characterset "MBCS"
-    targetdir "%{wks.location}/bin/"
-    objdir "%{wks.location}/obj/"
-
-    targetname "acts-gpl"
-    
-    files {
-        "./resources/cli-gpl/**",
-        "./src/acts-gpl/**.hpp",
-        "./src/acts-gpl/**.h",
-        "./src/acts-gpl/**.cpp"
-    }
-    defines { 
-        "ACTS_GPL_SHIT"
-    }
-
-    includedirs {
-        "src/cli",
-        "src/acts",
-        "src/acts-gpl",
-		"deps/Detours/src/",
-        "src/shared",
-        "deps/cordycep/src/Parasyte/",
-        "deps/crc_cpp/include/",
-    }
-
-    vpaths {
-        ["*"] = "*"
-    }
-    links { "AtianCodTools" }
-    links { "ACTSSharedLibrary" }
-    links { "detours" }
-    links "cordycep"
-    dependson "AtianCodTools"
-    dependson { "ACTSSharedLibrary" }
-    dependson { "detours" }
-    dependson "cordycep"
-    
 
 project "AtianCodToolsUI"
     kind "WindowedApp"
@@ -1158,4 +1134,54 @@ group "deps"
 
         includedirs {
             "deps/libtommath/"
+        }
+    
+    project "xsk-arc"
+        language "C++"
+        cppdialect "C++20"
+        kind "StaticLib"
+        characterset "MBCS"
+        warnings "Off"
+
+        targetname "xskarc"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/gsc-tool/src/arc/**.h",
+            "deps/gsc-tool/src/arc/**.hpp",
+            "deps/gsc-tool/src/arc/**.cpp"
+        }
+
+        defines { 
+            "XSK_NO_COMPILED_HASH" 
+        }
+
+        includedirs {
+            "deps/gsc-tool/include",
+        }
+
+    project "xsk-gsc"
+        language "C++"
+        cppdialect "C++20"
+        kind "StaticLib"
+        characterset "MBCS"
+        warnings "Off"
+
+        targetname "xskarc"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/gsc-tool/src/gsc/**.h",
+            "deps/gsc-tool/src/gsc/**.hpp",
+            "deps/gsc-tool/src/gsc/**.cpp"
+        }
+
+        defines { 
+            "XSK_NO_COMPILED_HASH" 
+        }
+        
+        includedirs {
+            "deps/gsc-tool/include",
         }
