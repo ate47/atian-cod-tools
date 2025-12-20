@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/ff/handlers/handler_game_mw19.hpp>
 #include <compatibility/xensik_gscbin.hpp>
+#include <compatibility/xensik_decompiler.hpp>
 
 namespace {
 	using namespace fastfile::handlers::mw19;
@@ -27,6 +28,24 @@ namespace {
 			outFile.replace_extension(".gscbin");
 
 			LOG_INFO("Dump scriptfile {}", outFile.string());
+
+			if constexpr (compatibility::xensik::decompiler::available) {
+				if (!opt.disableScriptsDecomp) {
+					std::filesystem::path outSource{ opt.m_output / gamePath / "source" / n };
+					if (!outSource.has_extension()) {
+						outSource.replace_extension(".gsc");
+					}
+
+					compatibility::xensik::decompiler::ScriptFileInformation nfo{};
+					nfo.vm = tool::gsc::opcode::VMI_IW_BIN_MW19;
+					nfo.FillScriptFile(asset);
+
+					if (!compatibility::xensik::decompiler::DecompileScript(&nfo, outSource)) {
+						LOG_ERROR("Error when decompiling script");
+					}
+				}
+			}
+
 
 			std::filesystem::create_directories(outFile.parent_path());
 			utils::OutFileCE os{ outFile, false, std::ios::binary };
