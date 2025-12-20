@@ -25,17 +25,32 @@ function buildinfo()
     file:write("    constexpr unsigned int DEV_VERSION_ID = 0xFFFFFFFF;\n")
     file:write("#ifdef CI_BUILD\n\n")
     file:write("    // Version used for the release\n")
+    file:write("#ifdef GPL_BUILD\n")
+    file:write("    constexpr const char* VERSION = \"" .. version .. "-gpl\";\n")
+    file:write("    constexpr const wchar_t* VERSIONW = L\"" .. version .. "-gpl\";\n")
+    file:write("#else\n")
     file:write("    constexpr const char* VERSION = \"" .. version .. "\";\n")
     file:write("    constexpr const wchar_t* VERSIONW = L\"" .. version .. "\";\n")
+    file:write("#endif // GPL_BUILD\n")
     file:write("    constexpr unsigned int VERSION_ID = 0x" .. versionid .. ";\n")
     file:write("\n#else\n\n")
     file:write("\n#ifdef PRERELEASE_BUILD\n\n")
     file:write("    // prerelease\n")
+    file:write("#ifdef GPL_BUILD\n")
+    file:write("    constexpr const char* VERSION = \"" .. version .. "-gpl-pre\";\n")
+    file:write("    constexpr const wchar_t* VERSIONW = L\"" .. version .. "-gpl-pre\";\n")
+    file:write("#else\n")
     file:write("    constexpr const char* VERSION = \"" .. version .. "-pre\";\n")
     file:write("    constexpr const wchar_t* VERSIONW = L\"" .. version .. "-pre\";\n")
+    file:write("#endif // GPL_BUILD\n")
     file:write("\n#else\n\n")
+    file:write("#ifdef GPL_BUILD\n")
+    file:write("    constexpr const char* VERSION = \"Dev-gpl\";\n")
+    file:write("    constexpr const wchar_t* VERSIONW = L\"Dev-gpl\";\n")
+    file:write("#else\n")
     file:write("    constexpr const char* VERSION = \"Dev\";\n")
     file:write("    constexpr const wchar_t* VERSIONW = L\"Dev\";\n")
+    file:write("#endif // GPL_BUILD\n")
     file:write("\n#endif // PRERELEASE_BUILD\n")
     file:write("    // Disable updater\n")
     file:write("    constexpr unsigned int VERSION_ID = DEV_VERSION_ID;\n")
@@ -70,8 +85,8 @@ workspace "AtianCodTools"
     platforms "x64"
 
     buildinfo()
-    patch_dogshit("patch/cordycep/log.h", "deps/cordycep/src/Parasyte/Log.h")
-    patch_dogshit("patch/cordycep/log.cpp", "deps/cordycep/src/Parasyte/Log.cpp")
+    --patch_dogshit("patch/cordycep/log.h", "deps/cordycep/src/Parasyte/Log.h")
+    --patch_dogshit("patch/cordycep/log.cpp", "deps/cordycep/src/Parasyte/Log.cpp")
 
     filter { "options:ci-build" }
         defines { "CI_BUILD" }
@@ -142,13 +157,6 @@ project "ACTSSharedLibrary"
     dependson "lz4"
     dependson "zstd"
     dependson "zlib"
-
-    filter { "options:gpl-build" }
-        links { "xsk-arc" }
-        links { "xsk-gsc" }
-        dependson "xsk-arc"
-        dependson "xsk-gsc"
-        includedirs { "deps/gsc-tool/include/xsk" }
 
 project "ACTSLibrary"
     kind "StaticLib"
@@ -479,6 +487,13 @@ project "AtianCodTools"
     dependson "xxhash"
     dependson "hksc"
     dependson "libtomcrypt"
+    
+    filter { "options:gpl-build" }
+        links { "xsk-arc" }
+        links { "xsk-gsc" }
+        dependson "xsk-arc"
+        dependson "xsk-gsc"
+        includedirs { "deps/gsc-tool/include/" }
 
 project "AtianCodToolsCLI"
     kind "ConsoleApp"
@@ -964,40 +979,40 @@ group "deps"
             "deps/glfw/src",
             "deps/glfw/include"
         }
-    project "cordycep"
-        language "C++"
-        kind "StaticLib"
-        cppdialect "C++20"
-        characterset "MBCS"
-
-        targetname "Cordycep"
-        targetdir "%{wks.location}/bin/"
-        objdir "%{wks.location}/obj/"
-
-        pchheader "pch.h"
-        pchsource "./deps/cordycep/src/Parasyte/pch.cpp"
-
-        files {
-            "deps/cordycep/src/Parasyte/**.cpp",
-            "deps/cordycep/src/Parasyte/**.h"
-        }
-
-        includedirs {
-            "deps/cordycep/src/Parasyte/",
-            "deps/casclib/src/",
-            "deps/lz4/lib/",
-		    "deps/zlib/",
-            "deps/tomlplusplus/include/",
-            "deps/nlohmann-json/single_include",
-		    "deps/Detours/src/",
-            "deps/deps-detour",
-        }
-        dependson { "casclib" }
-        dependson { "lz4" }
-        dependson { "zlib" }
-        links { "casclib" }
-        links { "lz4" }
-        links { "zlib" }
+    --project "cordycep"
+    --    language "C++"
+    --    kind "StaticLib"
+    --    cppdialect "C++20"
+    --    characterset "MBCS"
+--
+    --    targetname "Cordycep"
+    --    targetdir "%{wks.location}/bin/"
+    --    objdir "%{wks.location}/obj/"
+--
+    --    pchheader "pch.h"
+    --    pchsource "./deps/cordycep/src/Parasyte/pch.cpp"
+--
+    --    files {
+    --        "deps/cordycep/src/Parasyte/**.cpp",
+    --        "deps/cordycep/src/Parasyte/**.h"
+    --    }
+--
+    --    includedirs {
+    --        "deps/cordycep/src/Parasyte/",
+    --        "deps/casclib/src/",
+    --        "deps/lz4/lib/",
+	--	    "deps/zlib/",
+    --        "deps/tomlplusplus/include/",
+    --        "deps/nlohmann-json/single_include",
+	--	    "deps/Detours/src/",
+    --        "deps/deps-detour",
+    --    }
+    --    dependson { "casclib" }
+    --    dependson { "lz4" }
+    --    dependson { "zlib" }
+    --    links { "casclib" }
+    --    links { "lz4" }
+    --    links { "zlib" }
     project "zstd"
         language "C"
         kind "StaticLib"
@@ -1136,20 +1151,49 @@ group "deps"
             "deps/libtommath/"
         }
     
+    project "xsk-utils"
+        language "C++"
+        cppdialect "C++20"
+        kind "StaticLib"
+        characterset "MBCS"
+        warnings "Off"
+        buildoptions "/bigobj"
+        buildoptions "/Zc:__cplusplus"
+
+        targetname "xsk-utils"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/gsc-tool/include/xsk/utils/**.h",
+            "deps/gsc-tool/include/xsk/utils/**.hpp",
+            "deps/gsc-tool/src/utils/**.cpp"
+        }
+
+        includedirs {
+            "deps/gsc-tool/include",
+            "deps/zlib/",
+        }
+
+        dependson { "zlib" }
+        links { "zlib" }
+
     project "xsk-arc"
         language "C++"
         cppdialect "C++20"
         kind "StaticLib"
         characterset "MBCS"
         warnings "Off"
+        buildoptions "/bigobj"
+        buildoptions "/Zc:__cplusplus"
 
-        targetname "xskarc"
+        targetname "xsk-arc"
         targetdir "%{wks.location}/bin/"
         objdir "%{wks.location}/obj/"
 
         files {
-            "deps/gsc-tool/src/arc/**.h",
-            "deps/gsc-tool/src/arc/**.hpp",
+            "deps/gsc-tool/include/xsk/arc/**.h",
+            "deps/gsc-tool/include/xsk/arc/**.hpp",
             "deps/gsc-tool/src/arc/**.cpp"
         }
 
@@ -1161,20 +1205,25 @@ group "deps"
             "deps/gsc-tool/include",
         }
 
+        dependson { "xsk-utils" }
+        links { "xsk-utils" }
+
     project "xsk-gsc"
         language "C++"
         cppdialect "C++20"
         kind "StaticLib"
         characterset "MBCS"
         warnings "Off"
+        buildoptions "/bigobj"
+        buildoptions "/Zc:__cplusplus"
 
-        targetname "xskarc"
+        targetname "xsk-gsc"
         targetdir "%{wks.location}/bin/"
         objdir "%{wks.location}/obj/"
 
         files {
-            "deps/gsc-tool/src/gsc/**.h",
-            "deps/gsc-tool/src/gsc/**.hpp",
+            "deps/gsc-tool/include/xsk/gsc/**.h",
+            "deps/gsc-tool/include/xsk/gsc/**.hpp",
             "deps/gsc-tool/src/gsc/**.cpp"
         }
 
@@ -1185,3 +1234,6 @@ group "deps"
         includedirs {
             "deps/gsc-tool/include",
         }
+        
+        dependson { "xsk-utils" }
+        links { "xsk-utils" }

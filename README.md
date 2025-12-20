@@ -68,14 +68,16 @@ See the wiki to know how to use the features
 | Black Ops 4           | ✅      | `bo4`     | `rawfile`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `bgcache`, `keyvaluepairs`, `luafile`, `rawstring`, `scriptbundle`, `scriptparsetreeforced`, `streamkey`, `stringtable`, `weapon`, `weapon_tunables`, `localize`, `structuredtable`, `localizeentry` |
 | Modern Warfare 2019   | ✅      | ❌        | |
 | Black Ops Cold War    | ✅      | `cw`      | `rawfile`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`|
-| Vanguard              | ✅      | `vg`      | `rawfile`, `scriptfile` (Compiled), `luafile`, `localize` |
-| Modern Warfare II     | ✅      | `mwii`    | `rawfile`, `scriptfile` (Compiled), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
-| Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `scriptfile` (Compiled), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Vanguard              | ✅      | `vg`      | `rawfile`, `scriptfile` (gpl\*), `luafile`, `localize` |
+| Modern Warfare II     | ✅      | `mwii`    | `rawfile`, `scriptfile` (gpl\*), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
+| Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `scriptfile` (gpl\*), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern Warfare III    | ✅      | `mwiii`   | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern&nbsp;Warfare&nbsp;III&nbsp;SP | ✅      | `mwiiisp` | `rawfile`, `gscobj`, `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Black Ops 6           | ✅      | `bo6`     | `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`, `soundbank`, `banktransient` |
 | Black Ops 6 SP        | ✅      | `bo6sp`   | `rawfile`, `gscobj`, `gscgdb`, `stringtable`, `ddl`, `scriptbundle`, `netconststrings`, `luafile`, `aitype`, `localize` |
 | Black Ops 7           | ✅      | `bo7`     | `rawfile`, `gscobj`, `gscgdb`, `luafile`, `aitype`, `scriptbundle`, `stringtable`, `keyvaluepairs`, `netconststrings`, `operator`, `operatorlist`, `reactiveoperator`, `operatorskin`, `spray`, `contraildata`, `parachutedata`, `ddl`, `aishootstyleslist`, `ai_token_types`, `ai_token_stealing_definitions`, `ai_token_definitions`, `localize`, `soundbank`, `banktransient` |
+
+- gpl\*: Only working within the GPL-3 distribution using [xensik/gsc-tool](https://github.com/xensik/gsc-tool).
 
 The `gsc` handler can read  `scriptparsetree`, `gscobj` or `scriptfile` pools from decompressed fastfiles.
 

@@ -20,6 +20,8 @@ try {
     # Create structure
     New-Item "$base" -ItemType Directory > $null
     New-Item "$base/licenses" -ItemType Directory > $null
+    New-Item "$base/licenses/gpl3" -ItemType Directory > $null
+    New-Item "$base/licenses/all" -ItemType Directory > $null
     New-Item "$base/bin" -ItemType Directory > $null
     New-Item "$base/bin/package_index" -ItemType Directory > $null
     New-Item "$base/bin/deps" -ItemType Directory > $null
@@ -94,31 +96,32 @@ try {
     Copy-Item "licenses/mit.md" "$base/licenses/mit.md" > $null
     Copy-Item "licenses/gpl3.md" "$base/licenses/gpl3.md" > $null
     # licenses
-    Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/antlr4.txt" > $null
-    Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/detours.md" > $null
-    Copy-Item "deps/zlib/LICENSE" "$base/licenses/zlib.txt" > $null
-    Copy-Item "deps/asmjit/LICENSE.md" "$base/licenses/asmjit.md" > $null
-    Copy-Item "deps/casclib/LICENSE" "$base/licenses/casclib.txt" > $null
-    Copy-Item "deps/lz4/lib/LICENSE" "$base/licenses/lz4.txt" > $null
-    Copy-Item "licenses/mio.md" "$base/licenses/mio.md" > $null
-    Copy-Item "licenses/xorstr.md" "$base/licenses/xorstr.md" > $null
-    Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/imgui.txt" > $null
-    Copy-Item "deps/hw_break/LICENSE" "$base/licenses/hw_break.txt" > $null
-    Copy-Item "deps/rapidjson/license.txt" "$base/licenses/rapidjson.txt" > $null
-    Copy-Item "deps/rapidcsv/LICENSE" "$base/licenses/rapidcsv.txt" > $null
-    Copy-Item "deps/curl/COPYING" "$base/licenses/curl.txt" > $null
-    Copy-Item "deps/glfw/LICENSE.md" "$base/licenses/glfw.md" > $null
-    Copy-Item "deps/thread-pool/LICENSE.txt" "$base/licenses/thread-pool.txt" > $null
-    Copy-Item "deps/stb/LICENSE" "$base/licenses/stb.txt" > $null
-    Copy-Item "deps/tomlplusplus/LICENSE" "$base/licenses/tomlplusplus.txt" > $null
-    Copy-Item "deps/miniz-cpp/LICENSE.md" "$base/licenses/miniz-cpp.md" > $null
-    Copy-Item "deps/zstd/LICENSE" "$base/licenses/zstd.md" > $null
-    Copy-Item "deps/hash-library/LICENSE" "$base/licenses/hash-library.md" > $null
-    Copy-Item "deps/hksc/COPYRIGHT" "$base/licenses/hksc.md" > $null
-    Copy-Item "deps/crc_cpp/LICENSE" "$base/licenses/crc_cpp.txt" > $null
-    Copy-Item "deps/xxHash/LICENSE" "$base/licenses/xxHash.txt" > $null
-    Copy-Item "deps/libtommath/LICENSE" "$base/licenses/libtommath.txt" > $null
-    Copy-Item "deps/libtomcrypt/LICENSE" "$base/licenses/libtomcrypt.txt" > $null
+    Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/all/antlr4.txt" > $null
+    Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/all/detours.md" > $null
+    Copy-Item "deps/zlib/LICENSE" "$base/licenses/all/zlib.txt" > $null
+    Copy-Item "deps/asmjit/LICENSE.md" "$base/licenses/all/asmjit.md" > $null
+    Copy-Item "deps/casclib/LICENSE" "$base/licenses/all/casclib.txt" > $null
+    Copy-Item "deps/lz4/lib/LICENSE" "$base/licenses/all/lz4.txt" > $null
+    Copy-Item "licenses/mio.md" "$base/licenses/all/mio.md" > $null
+    Copy-Item "licenses/xorstr.md" "$base/licenses/all/xorstr.md" > $null
+    Copy-Item "deps/imgui/LICENSE.txt" "$base/licenses/all/imgui.txt" > $null
+    Copy-Item "deps/hw_break/LICENSE" "$base/licenses/all/hw_break.txt" > $null
+    Copy-Item "deps/rapidjson/license.txt" "$base/licenses/all/rapidjson.txt" > $null
+    Copy-Item "deps/rapidcsv/LICENSE" "$base/licenses/all/rapidcsv.txt" > $null
+    Copy-Item "deps/curl/COPYING" "$base/licenses/all/curl.txt" > $null
+    Copy-Item "deps/glfw/LICENSE.md" "$base/licenses/all/glfw.md" > $null
+    Copy-Item "deps/thread-pool/LICENSE.txt" "$base/licenses/all/thread-pool.txt" > $null
+    Copy-Item "deps/stb/LICENSE" "$base/licenses/all/stb.txt" > $null
+    Copy-Item "deps/tomlplusplus/LICENSE" "$base/licenses/all/tomlplusplus.txt" > $null
+    Copy-Item "deps/miniz-cpp/LICENSE.md" "$base/licenses/all/miniz-cpp.md" > $null
+    Copy-Item "deps/zstd/LICENSE" "$base/licenses/all/zstd.md" > $null
+    Copy-Item "deps/hash-library/LICENSE" "$base/licenses/all/hash-library.md" > $null
+    Copy-Item "deps/hksc/COPYRIGHT" "$base/licenses/all/hksc.md" > $null
+    Copy-Item "deps/crc_cpp/LICENSE" "$base/licenses/all/crc_cpp.txt" > $null
+    Copy-Item "deps/xxHash/LICENSE" "$base/licenses/all/xxHash.txt" > $null
+    Copy-Item "deps/libtommath/LICENSE" "$base/licenses/all/libtommath.txt" > $null
+    Copy-Item "deps/libtomcrypt/LICENSE" "$base/licenses/all/libtomcrypt.txt" > $null
+    Copy-Item "deps/gsc-tool/LICENSE" "$base/licenses/gpl3/gsc-tool.txt" > $null
 
     "Put the game dependencies in this directory." > "$base/bin/deps/README.md"
 

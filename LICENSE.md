@@ -33,5 +33,4 @@ This software depends on other libraries.
 
 If this software is released as a GPL-3 license, it also depends on these libraries.
 
-- [libtom/libtomcrypt](https://github.com/libtom/libtomcrypt) - [LibTom license](https://github.com/libtom/libtomcrypt/blob/main/LICENSE).
 - [xensik/gsc](https://github.com/xensik/gsc) - [GPL-3 license](https://github.com/xensik/gsc-tool/blob/dev/LICENSE).
