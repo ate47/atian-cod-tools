@@ -85,7 +85,7 @@ namespace fastfile::handlers::mw19 {
 			byte* s_rewindPostload{};
 			std::unique_ptr<RewindStreamData[]> rewindBuffer{};
 			std::unique_ptr<XBlock[]> blocks{};
-
+			hook::library::Detour DB_ResolvePackedOffsetAddress_Detour{};
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
@@ -143,7 +143,7 @@ namespace fastfile::handlers::mw19 {
 		}
 
 		void LoadStreamTA(bool loadData, void* ptr, int64_t len) {
-			LOG_TRACE("LoadStreamTA({}, {}, 0x{:x}/0x{:x}) {}", loadData, ptr, len, gcx.reader->Remaining(), hook::library::CodePointer{ _ReturnAddress() });
+			LOG_TRACE("LoadStreamTA({}, {}, loc:0x{:x}/len:0x{:x}/rem:0x{:x}) {}", loadData, ptr, gcx.reader->Loc(), len, gcx.reader->Remaining(), hook::library::CodePointer{_ReturnAddress()});
 
 			if (!loadData && len) {
 				if (*gcx.streamPosIndex != XFileBlock::XFILE_BLOCK_MEMMAPPED) {
@@ -155,6 +155,16 @@ namespace fastfile::handlers::mw19 {
 
 				DB_IncStreamPos(len);
 			}
+		}
+		byte* DB_ResolvePackedOffsetAddress(uint64_t* offset) {
+			uint64_t xblock{ (*offset >> 32) & 0xf };
+			uint64_t index{ (*offset - 1) & hash::MASK32 };
+
+			if (xblock >= XFILE_BLOCK_COUNT || gcx.blocks[xblock].size <= index) {
+				ThrowFastFileError("DB_ResolvePackedOffsetAddress: Invalid offset: 0x{:x}::0x{:x}", xblock, index);
+			}
+
+			return gcx.DB_ResolvePackedOffsetAddress_Detour.Call<byte*>(offset);
 		}
 
 		void Load_String(char** str) {
@@ -289,6 +299,7 @@ namespace fastfile::handlers::mw19 {
 				Red(scan.ScanSingle("48 89 5C 24 10 56 57 41 56 48 83 EC 20 8B", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
 				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 4C 63 01", "Load_CustomScriptString").location, Load_CustomScriptString);
 				Red(scan.ScanSingle("E8 ?? ?? ?? ?? 48 01 3D", "LoadXFileData").GetRelative<int32_t, void*>(1), LoadXFileData);
+				gcx.DB_ResolvePackedOffsetAddress_Detour.Create(scan.ScanSingle("E8 ?? ?? ?? ?? E9 9F 00 00 00 E8 ?? ?? ?? ?? 4C 8B 3D", "DB_ResolvePackedOffsetAddress").GetRelative<int32_t, void*>(1), DB_ResolvePackedOffsetAddress);
 
 				Red(scan.ScanSingle("48 83 EC 58 83 39", "EmptyStub<0>").location, EmptyStub<0>);
 				Red(scan.ScanSingle("40 55 56 57 41 56 41 57 48 8D AC 24 C0", "EmptyStub<1>").location, EmptyStub<1>);
@@ -368,6 +379,10 @@ namespace fastfile::handlers::mw19 {
 				// cleanup data
 				gcx.rewindBuffer = nullptr;
 				gcx.blocks = nullptr;
+
+				if (gcx.DB_ResolvePackedOffsetAddress_Detour) {
+					gcx.DB_ResolvePackedOffsetAddress_Detour.Clear();
+				}
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {

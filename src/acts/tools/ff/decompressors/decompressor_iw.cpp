@@ -63,6 +63,10 @@ namespace {
 		uint64_t preloadWalkSize;
 		uint64_t blockSize[8];
 		EncryptionHeader encryption;
+
+		void Print() {
+			LOG_INFO("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", size, fileSize, preloadWalkSize);
+		}
 	}; static_assert(sizeof(DB_FFHeaderMW19) == 0x88);
 
 	struct DB_FFHeaderMWII {
@@ -114,8 +118,7 @@ namespace {
 		EncryptionHeader encrypt;
 
 		void Print() {
-			LOG_INFO("size:0x{:x}", size);
-			LOG_INFO("preloadWalkSize:0x{:x}", preloadWalkSize);
+			LOG_INFO("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", size, fileSize, preloadWalkSize);
 			LOG_INFO("Blocks: {}", utils::data::ArrayAsString<uint64_t>(blockSize, ARRAYSIZE(blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
 			LOG_INFO("isEncrypted: {}", encrypt.isEncrypted ? "true" : "false");
 		}
@@ -145,23 +148,30 @@ namespace {
 		LOG_INFO("version: 0x{:x} / 0x{:x}", header->headerVersion, header->xfileVersion);
 		LOG_INFO("flags: 0x{:x}, plt: {}", header->flags, type);
 
-		LOG_INFO("unk14:0x{:x}", header->unk14);
-		LOG_INFO("unk18:0x{:x}({}) / unk1c:0x{:x}/({})", header->unk18, header->unk18, header->unk1c, header->unk1c);
-		LOG_INFO("unk20:0x{:x}({}) / unk24:0x{:x}/({})", header->unk20, header->unk20, header->unk24, header->unk24);
-		LOG_INFO("unk28:0x{:x}({}) / unk2c:0x{:x}/({})", header->unk28, header->unk28, header->unk2c, header->unk2c);
-		LOG_INFO("unk30:0x{:x}({}) / unk34:0x{:x}/({})", header->unk30, header->unk30, header->unk34, header->unk34);
-
 		if (ffHeader) {
 			switch (header->headerVersion) {
 			case IWFV_BO6:
 				switch (header->xfileVersion) {
 				case 1:
 					((IWFastFileHeader*)header)->bo6.Print();
-					return;
+					break;
+				default:
+					LOG_WARNING("Unknown header data: headerVersion=0x{:x}/xfileVersion=0x{:x}", header->headerVersion, header->xfileVersion);
+					break;
 				}
 				break;
+			case IWFV_MW19:
+				((IWFastFileHeader*)header)->mw19.Print();
+				return;
+			default:
+				LOG_INFO("unk14:0x{:x}", header->unk14);
+				LOG_INFO("unk18:0x{:x}({}) / unk1c:0x{:x}/({})", header->unk18, header->unk18, header->unk1c, header->unk1c);
+				LOG_INFO("unk20:0x{:x}({}) / unk24:0x{:x}/({})", header->unk20, header->unk20, header->unk24, header->unk24);
+				LOG_INFO("unk28:0x{:x}({}) / unk2c:0x{:x}/({})", header->unk28, header->unk28, header->unk2c, header->unk2c);
+				LOG_INFO("unk30:0x{:x}({}) / unk34:0x{:x}/({})", header->unk30, header->unk30, header->unk34, header->unk34);
+				LOG_WARNING("Unknown header data: headerVersion=0x{:x}/xfileVersion=0x{:x}", header->headerVersion, header->xfileVersion);
+				break;
 			}
-			LOG_WARNING("Unknown header data");
 		}
 	}
 
