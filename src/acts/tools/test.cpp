@@ -181,9 +181,19 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int gettime(int argc, const char* argv[]) {
+		LOG_INFO("ts .......... {}", (uint64_t)utils::GetTimestamp());
+		LOG_INFO("seconds ..... {}", utils::FormattedTimestamp{ utils::GetTimestamp() / 1000, false });
+		LOG_INFO("millis ...... {}", utils::FormattedTimestamp{ utils::GetTimestamp() });
+		LOG_INFO("iso seconds . {}", utils::FormattedTimestamp{ utils::GetTimestamp() / 1000, false, true });
+		LOG_INFO("iso millis .. {}", utils::FormattedTimestamp{ utils::GetTimestamp(), true, true });
+		return tool::OK;
+	}
 }
 
 ADD_TOOL(test, "dev", "", "Tests", nullptr, test);
+ADD_TOOL(gettime, "dev", "", "time Test", gettime);
 ADD_TOOL(strtouint64, "common", " (str)*", "Convert string to number", strtouint64);
 ADD_TOOL(uint64tostr, "common", " (number)*", "Convert number to string", uint64tostr);
 ADD_TOOL(memalloctest, "dev", "", "Tests", nullptr, memalloctest);

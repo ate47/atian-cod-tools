@@ -6,8 +6,14 @@
  */
 namespace utils {
 	typedef long long Timestamp;
+
+	struct FormattedTimestamp {
+		Timestamp ts;
+		bool isMillis{ true };
+		bool useIso{};
+	};
 	/*
-	 * Get current timestamp
+	 * Get current timestamp in millis
 	 * @return timestamp
 	 */
 	Timestamp GetTimestamp();
@@ -741,9 +747,13 @@ namespace utils {
 }
 
 std::ostream& operator<<(std::ostream& stream, const utils::FormattedString& fs);
+std::ostream& operator<<(std::ostream& stream, const utils::FormattedTimestamp& ts);
 std::ostream& operator<<(std::ostream& stream, const utils::FormattedStringJson& fs);
 template<>
 struct std::formatter<utils::FormattedString, char> : utils::BasicFormatter<utils::FormattedString> {};
 
 template<>
 struct std::formatter<utils::FormattedStringJson, char> : utils::BasicFormatter<utils::FormattedStringJson> {};
+
+template<>
+struct std::formatter<utils::FormattedTimestamp, char> : utils::BasicFormatter<utils::FormattedTimestamp> {};

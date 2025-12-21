@@ -586,6 +586,19 @@ namespace utils {
         return 0;
     }
 }
+std::ostream& operator<<(std::ostream& stream, const utils::FormattedTimestamp& timestamp) {
+    std::time_t ts{ timestamp.isMillis ? timestamp.ts / 1000 : timestamp.ts };
+    std::tm tm{};
+    localtime_s(&tm, &ts);
+    stream << std::put_time(&tm, timestamp.useIso ? "%Y-%m-%dT%H:%M:%S" : "%Y-%m-%d %H:%M:%S");
+    if (timestamp.isMillis) {
+        stream << "." << std::setfill('0') << std::setw(3) << std::dec << (timestamp.ts % 1000);
+    }
+    if (timestamp.useIso) {
+        stream << "Z";
+    }
+    return stream;
+}
 std::ostream& operator<<(std::ostream& stream, const utils::FormattedString& fs) {
     return utils::PrintFormattedString(stream, fs.str, fs.len);
 }
