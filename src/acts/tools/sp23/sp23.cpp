@@ -3,6 +3,7 @@
 #include "sp23.hpp"
 #include <decryptutils.hpp>
 #include <actslib/actslib.hpp>
+#include <hook/module_mapper.hpp>
 
 namespace {
 	enum StringTableCellType : byte {
@@ -423,6 +424,30 @@ namespace {
 			catch (std::exception& e) {
 				std::cerr << e.what() << "\n";
 			}
+		}
+
+		return tool::OK;
+	}
+
+	int getmw23_checksums(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+		hook::module_mapper::Module mod{ true };
+		if (!mod.Load(argv[2])) {
+			LOG_ERROR("Can't map module {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+
+
+		void (*DB_LoadExeFFChecksum)(uint32_t * checksums) { mod->ScanSingle("E8 ?? ?? ?? ?? 8B 43 04 39 44 24 38").GetRelative<int32_t, decltype(DB_LoadExeFFChecksum)>(1) };
+
+		uint32_t checksums[4]{};
+
+		DB_LoadExeFFChecksum(checksums);
+
+		LOG_INFO("checksums: ");
+		for (size_t i = 0; i < ARRAYSIZE(checksums); i++) {
+			LOG_INFO("checksums[{}] = 0x{:x}", i, checksums[i]);
 		}
 
 		return tool::OK;
@@ -964,6 +989,7 @@ namespace sp23 {
 	JupHashAssetType PoolId(const char* name) {
 		return (JupHashAssetType)hash::HashX32(name);
 	}
+	
 }
 #ifndef CI_BUILD
 ADD_TOOL(local23, "mwiii", " [file]", "decrypt local dump 23", nullptr, decryptlocalize);
@@ -973,3 +999,4 @@ ADD_TOOL(strbytestest, "mwiii", "", "test strings", nullptr, strbytestest);
 
 #endif
 ADD_TOOL(hash23, "mwiii", " [str]", "hash using iw values", nullptr, hash23);
+ADD_TOOL(getmw23_checksums, "mwiii", " [exe]", "find checksum", getmw23_checksums);

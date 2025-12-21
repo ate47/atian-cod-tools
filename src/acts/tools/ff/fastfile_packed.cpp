@@ -69,8 +69,16 @@ namespace fastfile::packed {
 
 				LOG_TRACE("ff header iw deps: {} 0x{:x}", iwDeps.fastfileHash ? hashutils::ExtractTmp("hash", iwDeps.fastfileHash) : "", iwDeps.unk8);
 				break;
+			case ST_IW_UNK_0xc95c6b9c:
+				ReadInto(reader, &iw0xc95c6b9c);
 
-			case ST_IW_UNK_0xfd3d473d: // 0x18
+				LOG_TRACE("ff header iw 0xc95c6b9c: loaded:{} '{}'", iw0xc95c6b9c.loaded ? "true" : "false", hashutils::ExtractTmp("hash", iw0xc95c6b9c.unk8));
+				break;
+			case ST_IW_FASTFILE_CHECKSUM:
+				ReadInto(reader, &iwChecksums);
+
+				LOG_TRACE("ff header iw checksums: loaded:{} 0x{:x} 0x{:x} 0x{:x} 0x{:x}", iwChecksums.loaded ? "true" : "false", iwChecksums.checksum[0], iwChecksums.checksum[1], iwChecksums.checksum[2], iwChecksums.checksum[3]);
+				break;
 			case ST_IW_UNK_0x671833c0: // 0x4
 			case ST_IW_UNK_0xb1eb41e6: // 0x8
 			{

@@ -9,6 +9,7 @@
 #include <utils/compress_utils.hpp>
 #include <utils/data_utils.hpp>
 #include <tools/ff/fastfile_bdiff.hpp>
+#include <tools/ff/fastfile_packed.hpp>
 
 namespace {
 	constexpr uint64_t IW_FF_MAGIC_MASK = 0xFFFFFF00FFFFFFFF;
@@ -86,8 +87,8 @@ namespace {
 
 	struct DB_FFHeaderMWIII {
 		byte magic[8];
-		unsigned int headerVersion;
-		unsigned int xfileVersion;
+		uint32_t headerVersion;
+		uint32_t xfileVersion;
 		uint32_t flags;
 		uint32_t fileSize;
 		uint64_t timestamp;
@@ -99,6 +100,15 @@ namespace {
 		uint64_t preloadWalkSize;
 		uint64_t blockSize[16];
 		EncryptionHeader encrypt;
+
+
+		void Print() {
+			LOG_INFO("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", size, fileSize, preloadWalkSize);
+			LOG_INFO("timestamp:{}, unk20:0x{:x}({}) / unk24:0x{:x}/({})", timestamp, unk20, unk20, unk24, unk24);
+			LOG_INFO("unk28:0x{:x} unk30:0x{:x}", unk28, unk30);
+			LOG_INFO("Blocks: {}", utils::data::ArrayAsString<uint64_t>(blockSize, ARRAYSIZE(blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
+			LOG_INFO("isEncrypted: {}", encrypt.isEncrypted ? "true" : "false");
+		}
 	}; static_assert(sizeof(DB_FFHeaderMWIII) == 0xe0);
 
 	struct DB_FFHeaderBO6 {
@@ -163,6 +173,9 @@ namespace {
 			case IWFV_MW19:
 				((IWFastFileHeader*)header)->mw19.Print();
 				return;
+			case IWFV_MW23:
+				((IWFastFileHeader*)header)->mwiii.Print();
+				return;
 			default:
 				LOG_INFO("unk14:0x{:x}", header->unk14);
 				LOG_INFO("unk18:0x{:x}({}) / unk1c:0x{:x}/({})", header->unk18, header->unk18, header->unk1c, header->unk1c);
@@ -171,6 +184,33 @@ namespace {
 				LOG_INFO("unk30:0x{:x}({}) / unk34:0x{:x}/({})", header->unk30, header->unk30, header->unk34, header->unk34);
 				LOG_WARNING("Unknown header data: headerVersion=0x{:x}/xfileVersion=0x{:x}", header->headerVersion, header->xfileVersion);
 				break;
+			}
+		}
+	}
+	void ReadTafHeader(core::bytebuffer::ByteBuffer& reader, const char* type) {
+		if (reader.CanRead(sizeof(uint32_t))) {
+			LOG_INFO("---- {}{} pack header{} ----", cli::clicolor::COLOR_RED, type, cli::clicolor::CD_RESET);
+			uint32_t tafMagic{ *reader.Ptr<uint32_t>() };
+
+			if (tafMagic == fastfile::packed::MAGIC || tafMagic == fastfile::packed::MAGIC_A) {
+
+				fastfile::packed::PackedFastFileReader packHeader{};
+				// packed data
+				packHeader.ReadHeader(reader);
+				fastfile::packed::PFFIWChecksums& iwChecksums{ packHeader.iwChecksums };
+				fastfile::packed::PFFIW_0xc95c6b9c& iw0xc95c6b9c{ packHeader.iw0xc95c6b9c };
+
+				if (iwChecksums.loaded) {
+					LOG_INFO(
+						"ff header iw checksums: loaded:{} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+						iwChecksums.loaded ? "true" : "false",
+						iwChecksums.checksum[0], iwChecksums.checksum[1], iwChecksums.checksum[2], iwChecksums.checksum[3]
+					);
+				}
+
+				if (iw0xc95c6b9c.loaded) {
+					LOG_INFO("ff header iw 0xc95c6b9c: {} 0x{:x}", iw0xc95c6b9c.loaded ? "true" : "false", iw0xc95c6b9c.unk8);
+				}
 			}
 		}
 	}
@@ -326,6 +366,7 @@ namespace {
 
 			if (opt.m_header) {
 				PrintHeader(&ffHeader.header, "ff::header", true);
+				ReadTafHeader(reader, "ff");
 			}
 
 			byte data[4];
@@ -576,14 +617,9 @@ namespace {
 
 				if (opt.m_header) {
 					PrintHeader(fpHeader, "fp::header", false);
-				}
-
-				if (opt.m_header) {
 					PrintHeader(&prevHeader.header, "fp::prevHeader", true);
-				}
-
-				if (opt.m_header) {
 					PrintHeader(&newHeader.header, "fp::newHeader", true);
+					ReadTafHeader(fpreader, "fp");
 				}
 
 				if (!fpreader.CanRead(1)) {

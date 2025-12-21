@@ -15,7 +15,8 @@ namespace fastfile::packed {
 		ST_FASTFILE_INFO = 0xC7708CDAu,
 		ST_UNK_0x1CE68F50u = 0x1CE68F50u,
 
-		ST_IW_UNK_0xfd3d473d = 0xfd3d473d,
+		ST_IW_FASTFILE_CHECKSUM = 0xfd3d473d,
+		ST_IW_UNK_0xc95c6b9c = 0xc95c6b9c,
 		ST_IW_UNK_0x671833c0 = 0x671833c0,
 		ST_IW_UNK_0xb1eb41e6 = 0xb1eb41e6,
 		ST_IW_UNK_0x2de89214 = 0x2de89214,
@@ -59,6 +60,15 @@ namespace fastfile::packed {
 		uint64_t fastfileHash;
 		uint64_t unk8;
 	};
+	struct PFFIW_0xc95c6b9c {
+		bool loaded;
+		uint64_t unk8;
+	};
+
+	struct PFFIWChecksums {
+		bool loaded;
+		uint32_t checksum[4];
+	};
 
 	class PackedFastFileReader {
 	public:
@@ -72,6 +82,8 @@ namespace fastfile::packed {
 		PFFSizeData size{};
 
 		PFFIWDeps iwDeps{};
+		PFFIW_0xc95c6b9c iw0xc95c6b9c{};
+		PFFIWChecksums iwChecksums{};
 
 		void ReadHeader(core::bytebuffer::AbstractByteBuffer& reader);
 	};
