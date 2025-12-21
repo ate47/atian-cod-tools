@@ -258,12 +258,12 @@ namespace fastfile::handlers::bo6sp {
 			return LoadStream(*atStreamStart, *data, *len);
 		}
 
-		void* DB_LinkGenericXAsset(T10AssetType type, void** handle) {
+		void* DB_AddAsset(T10AssetType type, void** handle) {
 			T10HashAssetType hashType{ GetHashType(type) };
 			uint64_t hash{ GetXAssetName(hashType, handle ? *handle : 0) };
 			const char* name{ hashutils::ExtractTmp("hash", hash) };
 			const char* poolName{ PoolName(hashType) };
-			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
+			LOG_DEBUG("DB_AddAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
 			*(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			if (handle && *handle) {
@@ -295,8 +295,8 @@ namespace fastfile::handlers::bo6sp {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_LinkGenericXAssetEx(T10AssetType type, uint64_t name, void* handle) {
-			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
+		void* DB_AddAssetRef(T10AssetType type, uint64_t name, void* handle) {
+			LOG_DEBUG("DB_AddAssetRef({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
 			T10HashAssetType hashType{ GetHashType(type) };
 			if (handle) {
 				gcx.linkedAssets[hashType][name] = handle;
@@ -314,8 +314,8 @@ namespace fastfile::handlers::bo6sp {
 		}
 
 		template<T10HashAssetType type>
-		void* DB_LinkGenericXAssetCustom(void** handle) {
-			return DB_LinkGenericXAsset(GetExePoolId(type), handle);
+		void* DB_AddAssetCustom(void** handle) {
+			return DB_AddAsset(GetExePoolId(type), handle);
 		}
 
 		uint32_t* Unk_Align_Ret() {
@@ -397,8 +397,8 @@ namespace fastfile::handlers::bo6sp {
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 49 8B D8 4C 8B CA", "LoadStream").location, LoadStream);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B 31 48 8B F9 48 8B CE", "Load_String").location, Load_String);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 39 BA", "Load_StringName").location, Load_String); // str
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B DA 8B F9 E8 ?? ?? ?? ?? 4C 8D", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_LinkGenericXAssetEx").location, DB_LinkGenericXAssetEx);
+				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B DA 8B F9 E8 ?? ?? ?? ?? 4C 8D", "DB_AddAsset").location, DB_AddAsset);
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_AddAssetRef").location, DB_AddAssetRef);
 				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 44 8B 01", "Load_CustomScriptString").location, Load_CustomScriptString);
 				Red(scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? ?? 4C", "AllocStreamPos").location, AllocStreamPos);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 8B 05", "PreAssetRead").location, PreAssetRead);
@@ -413,12 +413,12 @@ namespace fastfile::handlers::bo6sp {
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 05 ?? ?? ?? ?? 48 8B FA 33", "DB_LoadStreamOffset").location, DB_LoadStreamOffset); // 2E25100
 
 				// remove
-				Red(scan.ScanSingle("40 57 48 83 EC ?? 48 8B 11 48 8B F9 B9 ?? ?? ?? ?? 48 89 54 24 ?? E8 ?? ?? ?? ?? 48 8B D0 48 C1 EA ?? 84 D2 75 5A 48 BA FF FF FF FF FF FF FF 7F 48 23 C2 48 BA 68", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_SOUNDBANK>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_SOUNDBANK>);
-				Red(scan.ScanSingle("40 57 48 83 EC ?? 48 8B 11 48 8B F9 B9 ?? ?? ?? ?? 48 89 54 24 ?? E8 ?? ?? ?? ?? 48 8B D0 48 C1 EA ?? 84 D2 75 5A 48 BA FF FF FF FF FF FF FF 7F 48 23 C2 48 BA 06", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_SOUNDBANKTRANSIENT>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_SOUNDBANKTRANSIENT>);
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? 48", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_STREAMINGINFO>);
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_COMPUTESHADER>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_COMPUTESHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_LIBSHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 83", "DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<bo6::T10H_ASSET_DLOGSCHEMA>);
+				Red(scan.ScanSingle("40 57 48 83 EC ?? 48 8B 11 48 8B F9 B9 ?? ?? ?? ?? 48 89 54 24 ?? E8 ?? ?? ?? ?? 48 8B D0 48 C1 EA ?? 84 D2 75 5A 48 BA FF FF FF FF FF FF FF 7F 48 23 C2 48 BA 68", "DB_AddAssetCustom<bo6::T10H_ASSET_SOUNDBANK>").location, DB_AddAssetCustom<bo6::T10H_ASSET_SOUNDBANK>);
+				Red(scan.ScanSingle("40 57 48 83 EC ?? 48 8B 11 48 8B F9 B9 ?? ?? ?? ?? 48 89 54 24 ?? E8 ?? ?? ?? ?? 48 8B D0 48 C1 EA ?? 84 D2 75 5A 48 BA FF FF FF FF FF FF FF 7F 48 23 C2 48 BA 06", "DB_AddAssetCustom<bo6::T10H_ASSET_SOUNDBANKTRANSIENT>").location, DB_AddAssetCustom<bo6::T10H_ASSET_SOUNDBANKTRANSIENT>);
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? 48", "DB_AddAssetCustom<bo6::T10H_ASSET_STREAMINGINFO>").location, DB_AddAssetCustom<bo6::T10H_ASSET_STREAMINGINFO>);
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", "DB_AddAssetCustom<bo6::T10H_ASSET_COMPUTESHADER>").location, DB_AddAssetCustom<bo6::T10H_ASSET_COMPUTESHADER>);
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "DB_AddAssetCustom<bo6::T10H_ASSET_LIBSHADER>").location, DB_AddAssetCustom<bo6::T10H_ASSET_LIBSHADER>);
+				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 01 48 8D 54 24 ?? 48 8B D9 48 89 44 24 ?? B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 83", "DB_AddAssetCustom<bo6::T10H_ASSET_DLOGSCHEMA>").location, DB_AddAssetCustom<bo6::T10H_ASSET_DLOGSCHEMA>);
 
 				
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 8B 42 ?? 48 8B DA C1 E8 ?? A8 ?? 75 13", "EmptyStub<7>").location, EmptyStub<7>);

@@ -133,7 +133,7 @@ namespace fastfile::handlers::mwiiisp {
 
 		struct {
 			void (*Load_Asset)(bool atStreamStart, Asset* asset) {};
-			void (*DB_InitLoadStreamBlocks)(XBlock* blocks) {};
+			void (*DB_InitStreams)(XBlock* blocks) {};
 			void (*Load_ScriptStringList)(bool atStreamStart, AssetList* list) {};
 			void (*DB_PatchMem_FixStreamAlignment)(int align) {};
 			void (*DB_PopStreamPos)() {};
@@ -240,12 +240,12 @@ namespace fastfile::handlers::mwiiisp {
 			return LoadStreamTA(*atStreamStart, *data, *len);
 		}
 
-		void* DB_LinkGenericXAsset(HandlerAssetType type, void** handle) {
+		void* DB_AddAsset(HandlerAssetType type, void** handle) {
 			HandlerHashedAssetType hashType{ GetHashType(type) };
 			uint64_t hash{ GetXAssetName(hashType, handle ? *handle : 0) };
 			const char* name{ hashutils::ExtractTmp("hash", hash) };
 			const char* poolName{ GetPoolName(hashType) };
-			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
+			LOG_DEBUG("DB_AddAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
 			*(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			if (handle && *handle) {
@@ -277,27 +277,9 @@ namespace fastfile::handlers::mwiiisp {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_LinkGenericXAssetEx(HandlerAssetType type, uint64_t name, void* handle) {
-			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
-			HandlerHashedAssetType hashType{ GetHashType(type) };
-			if (handle) {
-				gcx.linkedAssets[hashType][name] = handle;
-				return handle;
-			}
-			auto it{ gcx.linkedAssets[hashType].find(name) };
-			if (it != gcx.linkedAssets[hashType].end()) {
-				return it->second;
-			}
-			// create a fake asset
-			void* asset{ gcx.allocator.Alloc(gcx.poolInfo[type].itemSize) };
-			gcx.poolInfo[type].SetAssetName(asset, name, hashutils::ExtractPtr(name));
-			gcx.linkedAssets[hashType][name] = asset;
-			return asset;
-		}
-
 		template<HandlerHashedAssetType type>
-		void* DB_LinkGenericXAssetCustom(void** handle) {
-			return DB_LinkGenericXAsset(GetExePoolId(type), handle);
+		void* DB_AddAssetCustom(void** handle) {
+			return DB_AddAsset(GetExePoolId(type), handle);
 		}
 
 		class FFHandlerImpl : public fastfile::FFHandler {
@@ -340,7 +322,7 @@ namespace fastfile::handlers::mwiiisp {
 				scan.ignoreMissing = true;
 
 				gcx.Load_Asset = scan.ScanSingle("E8 ?? ?? ?? ?? FF 43 14 FF C7 3B 7B 10 72 D3 33 F6", "gcx.Load_Asset").GetRelative<int32_t, decltype(gcx.Load_Asset)>(1);
-				gcx.DB_InitLoadStreamBlocks = scan.ScanSingle("48 8B D1 48 8D 05 ?? ?? ?? ?? 41 B8 02", "gcx.DB_InitLoadStreamBlocks").GetPtr<decltype(gcx.DB_InitLoadStreamBlocks)>();
+				gcx.DB_InitStreams = scan.ScanSingle("48 8B D1 48 8D 05 ?? ?? ?? ?? 41 B8 02", "gcx.DB_InitStreams").GetPtr<decltype(gcx.DB_InitStreams)>();
 				gcx.Load_ScriptStringList = scan.ScanSingle("48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 F7", "gcx.Load_ScriptStringList").GetPtr<decltype(gcx.Load_ScriptStringList)>();
 				gcx.DB_PatchMem_FixStreamAlignment = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? ?? 4C", "gcx.DB_PatchMem_FixStreamAlignment").GetPtr<decltype(gcx.DB_PatchMem_FixStreamAlignment)>();
 				gcx.DB_PushStreamPos = scan.ScanSingle("48 83 EC 28 8B 15 ?? ?? ?? ?? 4C", "gcx.DB_PushStreamPos").GetPtr<decltype(gcx.DB_PushStreamPos)>();
@@ -361,7 +343,7 @@ namespace fastfile::handlers::mwiiisp {
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 49 8B D8 4C 8B CA", "LoadStreamTA").location, LoadStreamTA);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 39 BA", "Load_StringName").location, Load_String); // str
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B 31 48 8B F9 48 8B CE", "Load_String").location, Load_String);
-				Red(scan.ScanSingle("40 53 48 83 EC 40 48 89 74 24 50 48 8B DA", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
+				Red(scan.ScanSingle("40 53 48 83 EC 40 48 89 74 24 50 48 8B DA", "DB_AddAsset").location, DB_AddAsset);
 				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 44 8B 01", "Load_CustomScriptString").location, Load_CustomScriptString);
 
 				Red(scan.ScanSingle("4C 8B DC 53 56 41 55 48 81 EC A0", "EmptyStub<550B9E0>").location, EmptyStub<0x550B9E0>);
@@ -371,19 +353,19 @@ namespace fastfile::handlers::mwiiisp {
 				Red(scan.ScanSingle("49 8B C0 4C 8B CA 4C 8B 01", "EmptyStub<38811F0>").location, EmptyStub<0x38811F0>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 8B 41 0C 48 8B DA", "EmptyStub<56A03E0>").location, EmptyStub<0x56A03E0>);
 
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 25", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANK>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANK>);
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 27", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 50", "DB_LinkGenericXAssetCustom<JUPH_ASSET_STREAMINGINFO>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_STREAMINGINFO>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C", "DB_LinkGenericXAssetCustom<JUPH_ASSET_COMPUTESHADER>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_COMPUTESHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0E", "DB_LinkGenericXAssetCustom<JUPH_ASSET_LIBSHADER>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_LIBSHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 88", "DB_LinkGenericXAssetCustom<JUPH_ASSET_DLOGSCHEMA>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_LinkGenericXAssetCustom<JUPH_ASSET_XMODEL>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_XMODEL>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 18", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 16", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D0", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDTABLE>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDTABLE>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D2", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDSUBMIX>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SOUNDSUBMIX>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 DA", "DB_LinkGenericXAssetCustom<JUPH_ASSET_REVERBPRESET>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_REVERBPRESET>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 F5", "DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDMASTERPRESET>").location, DB_LinkGenericXAssetCustom<JUPH_ASSET_SNDMASTERPRESET>);
+				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 25", "DB_AddAssetCustom<JUPH_ASSET_SOUNDBANK>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDBANK>);
+				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 27", "DB_AddAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 50", "DB_AddAssetCustom<JUPH_ASSET_STREAMINGINFO>").location, DB_AddAssetCustom<JUPH_ASSET_STREAMINGINFO>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C", "DB_AddAssetCustom<JUPH_ASSET_COMPUTESHADER>").location, DB_AddAssetCustom<JUPH_ASSET_COMPUTESHADER>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0E", "DB_AddAssetCustom<JUPH_ASSET_LIBSHADER>").location, DB_AddAssetCustom<JUPH_ASSET_LIBSHADER>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 88", "DB_AddAssetCustom<JUPH_ASSET_DLOGSCHEMA>").location, DB_AddAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_AddAssetCustom<JUPH_ASSET_XMODEL>").location, DB_AddAssetCustom<JUPH_ASSET_XMODEL>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 18", "DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 16", "DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D0", "DB_AddAssetCustom<JUPH_ASSET_SNDTABLE>").location, DB_AddAssetCustom<JUPH_ASSET_SNDTABLE>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D2", "DB_AddAssetCustom<JUPH_ASSET_SOUNDSUBMIX>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDSUBMIX>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 DA", "DB_AddAssetCustom<JUPH_ASSET_REVERBPRESET>").location, DB_AddAssetCustom<JUPH_ASSET_REVERBPRESET>);
+				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 F5", "DB_AddAssetCustom<JUPH_ASSET_SNDMASTERPRESET>").location, DB_AddAssetCustom<JUPH_ASSET_SNDMASTERPRESET>);
 
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
@@ -473,7 +455,7 @@ namespace fastfile::handlers::mwiiisp {
 
 					LOG_DEBUG("Block size {} = 0x{:x}", i, len);
 				}
-				gcx.DB_InitLoadStreamBlocks(gcx.blocks.get());
+				gcx.DB_InitStreams(gcx.blocks.get());
 				*gcx.unkFixStreamAlign = 1;
 
 				LoadXFileData(&gcx.assets, sizeof(gcx.assets));

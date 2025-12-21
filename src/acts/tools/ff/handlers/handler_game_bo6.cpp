@@ -342,12 +342,12 @@ namespace fastfile::handlers::bo6 {
 			return gcx.assetNames.GetMappedType(hash)->type;
 		}
 
-		void* DB_LinkGenericXAsset(DBLoadCtx* ctx, T10AssetType type, void** handle) {
+		void* DB_AddAsset(DBLoadCtx* ctx, T10AssetType type, void** handle) {
 			T10HashAssetType hashType{ GetHashType(type) };
 			uint64_t hash{ GetXAssetName(hashType, handle ? *handle : 0) };
 			const char* name{ hashutils::ExtractTmp("hash", hash) };
 			const char* poolName{ PoolName(hashType) };
-			LOG_DEBUG("DB_LinkGenericXAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{_ReturnAddress()});
+			LOG_DEBUG("DB_AddAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{_ReturnAddress()});
 			*(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			if (handle && *handle) {
@@ -379,8 +379,8 @@ namespace fastfile::handlers::bo6 {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_LinkGenericXAssetEx(T10AssetType type, uint64_t name, void* handle) {
-			LOG_DEBUG("DB_LinkGenericXAssetEx({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{_ReturnAddress()});
+		void* DB_AddAssetRef(T10AssetType type, uint64_t name, void* handle) {
+			LOG_DEBUG("DB_AddAssetRef({}, '{}') {}", PoolName(GetHashType(type)), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{_ReturnAddress()});
 			T10HashAssetType hashType{ GetHashType(type) };
 			if (handle) {
 				gcx.linkedAssets[hashType][name] = handle;
@@ -479,8 +479,8 @@ namespace fastfile::handlers::bo6 {
 				Red(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9", "LoadStream").location, LoadStream);
 				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", "Load_String").location, Load_String);
 				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41", "Load_StringName").location, Load_String); // str
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA", "DB_LinkGenericXAsset").location, DB_LinkGenericXAsset);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_LinkGenericXAssetEx").location, DB_LinkGenericXAssetEx);
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA", "DB_AddAsset").location, DB_AddAsset);
+				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_AddAssetRef").location, DB_AddAssetRef);
 				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8", "Load_CustomScriptString").location, Load_CustomScriptString);
 
 				// Stream delta, todo
