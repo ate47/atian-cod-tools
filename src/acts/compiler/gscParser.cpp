@@ -263,7 +263,7 @@ void gscParserInitialize() {
   	392,393,1,0,0,0,393,394,5,5,0,0,394,47,1,0,0,0,395,400,7,4,0,0,396,397,
   	5,7,0,0,397,398,3,112,56,0,398,399,5,8,0,0,399,401,1,0,0,0,400,396,1,
   	0,0,0,400,401,1,0,0,0,401,49,1,0,0,0,402,403,7,5,0,0,403,404,5,7,0,0,
-  	404,405,3,112,56,0,405,406,5,8,0,0,406,51,1,0,0,0,407,408,5,106,0,0,408,
+  	404,405,3,112,56,0,405,406,5,8,0,0,406,51,1,0,0,0,407,408,7,1,0,0,408,
   	410,5,31,0,0,409,407,1,0,0,0,409,410,1,0,0,0,410,411,1,0,0,0,411,427,
   	5,106,0,0,412,413,5,25,0,0,413,414,5,25,0,0,414,415,3,58,29,0,415,416,
   	5,26,0,0,416,417,5,26,0,0,417,427,1,0,0,0,418,419,5,25,0,0,419,420,5,
@@ -1677,7 +1677,7 @@ gscParser::Expression_listContext* gscParser::expression_list() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8923644032) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4022232991) != 0)) {
+      ((1ULL << (_la - 81)) & 4290668447) != 0)) {
       setState(269);
       expression();
       setState(274);
@@ -1752,7 +1752,7 @@ gscParser::Statement_blockContext* gscParser::statement_block() {
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 1096737412612226) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4026427295) != 0)) {
+      ((1ULL << (_la - 81)) & 4294862751) != 0)) {
       setState(280);
       statement();
       setState(285);
@@ -1968,7 +1968,7 @@ gscParser::Statement_dev_blockContext* gscParser::statement_dev_block() {
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 1096737412612226) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4026427295) != 0)) {
+      ((1ULL << (_la - 81)) & 4294862751) != 0)) {
       setState(303);
       statement();
       setState(308);
@@ -2043,7 +2043,7 @@ gscParser::Statement_forContext* gscParser::statement_for() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8923644032) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4022232991) != 0)) {
+      ((1ULL << (_la - 81)) & 4290668447) != 0)) {
       setState(313);
       expression();
     }
@@ -2055,7 +2055,7 @@ gscParser::Statement_forContext* gscParser::statement_for() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8923644032) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4022232991) != 0)) {
+      ((1ULL << (_la - 81)) & 4290668447) != 0)) {
       setState(317);
       expression();
     }
@@ -2067,7 +2067,7 @@ gscParser::Statement_forContext* gscParser::statement_for() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8923644032) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4022232991) != 0)) {
+      ((1ULL << (_la - 81)) & 4290668447) != 0)) {
       setState(321);
       expression();
     }
@@ -2468,7 +2468,7 @@ gscParser::Statement_switchContext* gscParser::statement_switch() {
       _la = _input->LA(1);
       while ((((_la & ~ 0x3fULL) == 0) &&
         ((1ULL << _la) & 1096737412612226) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 81)) & 4026427295) != 0)) {
+        ((1ULL << (_la - 81)) & 4294862751) != 0)) {
         setState(372);
         statement();
         setState(377);
@@ -2764,6 +2764,10 @@ tree::TerminalNode* gscParser::Function_componentContext::IDENTIFIER(size_t i) {
   return getToken(gscParser::IDENTIFIER, i);
 }
 
+tree::TerminalNode* gscParser::Function_componentContext::PATH() {
+  return getToken(gscParser::PATH, 0);
+}
+
 gscParser::ExpressionContext* gscParser::Function_componentContext::expression() {
   return getRuleContext<gscParser::ExpressionContext>(0);
 }
@@ -2784,6 +2788,7 @@ std::any gscParser::Function_componentContext::accept(tree::ParseTreeVisitor *vi
 gscParser::Function_componentContext* gscParser::function_component() {
   Function_componentContext *_localctx = _tracker.createInstance<Function_componentContext>(_ctx, getState());
   enterRule(_localctx, 52, gscParser::RuleFunction_component);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2804,7 +2809,16 @@ gscParser::Function_componentContext* gscParser::function_component() {
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 37, _ctx)) {
       case 1: {
         setState(407);
-        match(gscParser::IDENTIFIER);
+        _la = _input->LA(1);
+        if (!(_la == gscParser::IDENTIFIER
+
+        || _la == gscParser::PATH)) {
+        _errHandler->recoverInline(this);
+        }
+        else {
+          _errHandler->reportMatch(this);
+          consume();
+        }
         setState(408);
         match(gscParser::T__30);
         break;
@@ -5991,7 +6005,7 @@ gscParser::Array_defContext* gscParser::array_def() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8923644032) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4022232991) != 0)) {
+      ((1ULL << (_la - 81)) & 4290668447) != 0)) {
       setState(783);
       _errHandler->sync(this);
 
@@ -6110,7 +6124,7 @@ gscParser::Struct_defContext* gscParser::struct_def() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8923644032) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4022232991) != 0)) {
+      ((1ULL << (_la - 81)) & 4290668447) != 0)) {
       setState(806);
       expression();
       setState(807);
@@ -6214,7 +6228,7 @@ gscParser::Class_initContext* gscParser::class_init() {
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 8923644032) != 0) || ((((_la - 81) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 81)) & 4022232991) != 0)) {
+      ((1ULL << (_la - 81)) & 4290668447) != 0)) {
       setState(829);
       expression();
       setState(834);

@@ -180,11 +180,11 @@ namespace {
             switch (flags & 0xF) {
             case FUNC_METHOD: nflags |= 0x5; break;
             case FUNCTION: nflags |= 0x4; break;
-            case METHOD: nflags |= 0x7; break;
-            case METHOD_CHILDTHREAD:
+            case FUNCTION_THREAD: nflags |= 0x6; break;
             case FUNCTION_CHILDTHREAD: nflags |= 0x1; break;
-            case FUNCTION_THREAD:
+            case METHOD: nflags |= 0x7; break;
             case METHOD_THREAD: nflags |= 0x2; break;
+            case METHOD_CHILDTHREAD:
             case ACTS_CALL_BUILTIN_FUNCTION: nflags |= 0x8; break;
             case ACTS_CALL_BUILTIN_METHOD: nflags |= 0x9; break;
             case ACTS_GET_BUILTIN_FUNCTION: nflags |= 0xa; break;

@@ -63,7 +63,7 @@ nop_def: ('nop' | 'Nop') ('(' number ')')?;
 devop_def: ('DevOp' | 'devop' | 'Devop') '(' number ')';
 
 function_component: 
-	( IDENTIFIER '::')? IDENTIFIER 
+	( (IDENTIFIER | PATH) '::')? IDENTIFIER 
 	| '[' '[' expression ']' ']' 
 	| '[' '[' expression ']' ']' '->' IDENTIFIER
 	;

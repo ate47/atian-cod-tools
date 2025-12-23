@@ -43,6 +43,8 @@ function autoexec __init__system__() {
     
     self iprintln("unpack: " + v1 + v2 + v3);
 
+    scripts\common\test::loadtest();
+
 }
 
 function test() {

@@ -467,6 +467,7 @@ namespace acts::compiler {
         FCF_POINTER_CLASS = 0x10,
         FCF_BUILTIN = 0x20,
         FCF_GETTER = 0x40,
+        FCF_BULL_PATH = 0x80,
     };
 
     class AscmNodeFunctionCall : public AscmNodeOpCode {
@@ -1606,7 +1607,7 @@ namespace acts::compiler {
         }
 
 
-        void AddInclude(std::string& data) {
+        void AddInclude(const std::string& data) {
             includes.insert(data);
         }
 
@@ -4327,8 +4328,22 @@ namespace acts::compiler {
 
                     obj.AddHash(funcName);
                     funcHash = obj.vmInfo->HashField(funcName.c_str());
-                    
-                    if (utils::EqualIgnoreCase("compiler", funcNspName)) {
+
+                    if (IS_TERMINAL_TYPE(functionComp->children[0], gscParser::PATH)) { 
+                        // does not accept hashed file names
+                        if (!obj.vmInfo->HasFlag(VmFlags::VMF_FULL_FILE_NAMESPACE)) {
+                            // technically we can assume that the filename and the namespace are the same, but it wouldn't be
+                            // a good thing to allow.
+                            obj.info.PrintLineMessage(core::logs::LVL_ERROR, paramsList, "");
+                            return false;
+                        }
+
+                        obj.AddInclude(funcNspName);
+                        obj.AddHash(funcNspName);
+                        importFlags |= tool::gsc::ACTS_USE_FULL_NAMESPACE;
+                        funcNspHash = obj.vmInfo->HashField(funcNspName.c_str());
+                    }
+                    else if (utils::EqualIgnoreCase("compiler", funcNspName)) {
                         compilerCallHash = funcHash;
                         importFlags |= tool::gsc::GET_CALL;
                         funcNspHash = obj.currentNamespace;
