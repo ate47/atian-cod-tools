@@ -3,9 +3,12 @@
 #include <tools/ff/fastfile_handlers.hpp>
 #include <tools/ff/linkers/linker_bo4.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
+#include <tools/compatibility/acti_crypto_keys.hpp>
+#include <utils/data_utils.hpp>
 
 namespace {
 	using namespace fastfile;
+	using namespace compatibility::acti::crypto_keys;
 	struct XFile {
 		uint8_t magic[8];
 		uint32_t version;
@@ -63,13 +66,44 @@ namespace {
 				}
 
 			}
+
 			utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(compression) };
 			if (ctx.zone.GetConfigBool("compression.high", false)) {
 				alg = alg | utils::compress::COMP_HIGH_COMPRESSION;
 			}
 			uint32_t chunkSize = (uint32_t)(ctx.opt.chunkSize ? ctx.opt.chunkSize : 0x3fee0);
 
+			int aesCipher{};
+
+			if (ctx.opt.encrypt) {
+				if ((aesCipher = find_cipher("aes")) == -1) {
+					throw std::runtime_error("Missing aes cipher");
+				}
+			}
+
+
 			for (fastfile::FastFile& ff : ctx.fastfiles) {
+
+
+				AesKeyLocal* aesKey{};
+				uint8_t aesIV[16]{};
+				uint8_t aesVal[16]{};
+				
+				if (ctx.opt.encrypt) {
+					aesKey = GetKeyByName(ff.ffname, KeyVersion::VER_BO4);
+
+
+					if (!aesKey) {
+						LOG_WARNING("Missing bo4 AES key for file {}, it won't be encrypted", ff.ffname);
+					}
+					else {
+						utils::data::FillRandomBuffer(aesIV, sizeof(aesIV));
+					}
+				}
+				// clone iv for later
+				std::memcpy(aesVal, aesIV, sizeof(aesVal));
+
+
 				std::vector<byte> out{};
 				utils::Allocate<XFile>(out);
 
@@ -101,8 +135,24 @@ namespace {
 					h.compressedSize = (uint32_t)compressBuffer.size();
 					h.alignedSize = (uint32_t)alignedSize;
 
+					byte* compressedData{ compressBuffer.data() };
+					if (aesKey) {
+						symmetric_CTR ctr{};
+
+						int r;
+
+						if ((r = ctr_start(aesCipher, aesVal, aesKey->key, sizeof(aesKey->key), 0, 0, &ctr)) != CRYPT_OK) {
+							throw std::runtime_error(std::format("Failed to start ctr {} for ff {}", error_to_string(r), ff.ffname));
+						}
+
+						if ((r = ctr_encrypt(compressedData, compressedData, h.compressedSize, &ctr)) != CRYPT_OK) {
+							throw std::runtime_error(std::format("Can't encrypt block 0x{:x}: {}", idx, error_to_string(r)));
+						}
+						*((uint64_t*)&aesVal[0]) += h.compressedSize;
+					}
+
 					// write compressed chunk
-					std::memcpy(&out[blockOffset + sizeof(fastfile::DBStreamHeader)], compressBuffer.data(), compressBuffer.size());
+					std::memcpy(&out[blockOffset + sizeof(fastfile::DBStreamHeader)], compressedData, h.compressedSize);
 
 
 					// move to the next buffer
@@ -131,9 +181,10 @@ namespace {
 				header.platform = ctx.opt.platform;
 				header.server = ctx.opt.server;
 				header.timestamp = utils::GetTimestamp() / 1000;
-				header.encrypted = false;
 				header.size = ff.linkedData.size();
 				header.compression = compression;
+				header.encrypted = aesKey != nullptr;
+				std::memcpy(header.aesIV, aesIV, sizeof(aesIV));
 
 
 				//header.unk4f0 = 0xFFFFFFFFF;

@@ -1,7 +1,13 @@
 #include <includes.hpp>
 #include "acti_crypto_keys.hpp"
+#include <core/memory_allocator.hpp>
+#include <deps/base64.hpp>
 
 namespace compatibility::acti::crypto_keys {
+	namespace {
+		core::memory_allocator::MemoryAllocator alloc{};
+	}
+
 
 	std::vector<AesKeyLocal*>& GetKeys() {
 		static std::vector<AesKeyLocal*> keys{};
@@ -20,6 +26,12 @@ namespace compatibility::acti::crypto_keys {
 		return nullptr;
 	}
 
+	KeyVersion GetKeyVersionByName(const char* version) {
+		if (!_strcmpi(version, "bo3")) return KeyVersion::VER_BO3;
+		if (!_strcmpi(version, "bo4")) return KeyVersion::VER_BO4;
+		return KeyVersion::VER_INVALID;
+	}
+
 	AesKeyLocal* GetKeyByName(const char* filename, KeyVersion version) {
 		for (AesKeyLocal* k : GetKeys()) {
 			if (!_strcmpi(filename, k->fileName) && k->version == version) {
@@ -27,6 +39,64 @@ namespace compatibility::acti::crypto_keys {
 			}
 		}
 		return nullptr;
+	}
+
+	void LoadKeys(const std::filesystem::path& path) {
+		utils::InFileCE is{ path };
+		if (!is) {
+			return; // no file
+		}
+
+		std::string line;
+		size_t idx{};
+		size_t added{};
+		while (*is && std::getline(*is, line)) {
+			idx++;
+			if (line.empty() || line[0] == '#') {
+				continue;
+			}
+
+			size_t cut1{ line.find(',') };
+			size_t cut2{ cut1 != std::string::npos ? line.find(',', cut1 + 1) : cut1 };
+
+			if (cut2 == std::string::npos) {
+				LOG_WARNING("invalid line {}::{}: a line should contain 3 parts (NAME,TYPE,KEY)", path.string(), idx);
+				continue;
+			}
+
+			char* file{ line.data() };
+			file[cut1] = 0;
+			file[cut2] = 0;
+
+			char* typeStr{ &file[cut1 + 1] };
+			char* key{ &file[cut2 + 1] };
+
+			// LOG_DEBUG("add aes: {}/{}/{} ({}/{})", file, typeStr, key, cut1, cut2);
+
+			KeyVersion type{ GetKeyVersionByName(typeStr) };
+
+			if (!type) {
+				LOG_WARNING("invalid line {}::{}: invalid aes key type: {}", path.string(), idx, typeStr);
+				continue;
+			}
+
+			std::string dec{ base64_decode(key) };
+			if (dec.size() != sizeof(AesKeyLocal::key)) {
+				LOG_WARNING("invalid line {}::{}: invalid aes key len", path.string(), idx, typeStr);
+				continue;
+			}
+
+			AesKeyLocal* newKey{ alloc.Alloc<AesKeyLocal>() };
+			newKey->fileName = alloc.CloneStr(file);
+			newKey->version = type;
+			std::memcpy(newKey->key, dec.data(), sizeof(newKey->key));
+			GetKeys().push_back(newKey);
+			added++;
+		}
+
+		if (added) {
+			LOG_TRACE("loaded {} new AES keys", added);
+		}
 	}
 
 	// bo3 keys

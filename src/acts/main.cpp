@@ -9,6 +9,7 @@
 #include "actslib/logging.hpp"
 #include "acts.hpp"
 #include "main_ui.hpp"
+#include <tools/compatibility/acti_crypto_keys.hpp>
 #include "tools/tools_nui.hpp"
 #include <core/config.hpp>
 #include <core/updater.hpp>
@@ -220,12 +221,19 @@ namespace {
 				}
 				opt.wniFiles = argv[++i];
 			}
-			else if (!strcmp("-D", arg) || !_strcmpi("--db2-files", arg)) {
+			else if (!strcmp("-w", arg) || !_strcmpi("--wni-files", arg)) {
 				if (i + 1 == argc) {
 					LOG_ERROR("Missing value for param: {}!", arg);
 					return false;
 				}
-				opt.seriousDBFile = argv[++i];
+				opt.wniFiles = argv[++i];
+			}
+			else if (!_strcmpi("--aes-keys", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				opt.aesKeys = argv[++i];
 			}
 			else if (!strcmp("-H", arg) || !_strcmpi("--no-install", arg)) {
 				opt.installDirHashes = false;
@@ -275,6 +283,7 @@ namespace {
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
+		LOG_INFO(" --aes-keys [f]     : Set default AES keys file, default: '{}'", compatibility::acti::crypto_keys::DEFAULT_KEY_FILE);
 		LOG_INFO(" -W --work          : Tell which work to use: repl, cli");
 		LOG_INFO(" --noUpdater        : Disable updater");
 		
@@ -417,6 +426,10 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	if (opt.decryptStringExec && !acts::decryptutils::LoadDecrypt(opt.decryptStringExec)) {
 		return tool::BASIC_ERROR;
 	}
+
+	// load aes keys
+	std::filesystem::path aesKeyFile{ opt.aesKeys ? std::filesystem::path{ opt.aesKeys } : utils::GetProgDir() / compatibility::acti::crypto_keys::DEFAULT_KEY_FILE };
+	compatibility::acti::crypto_keys::LoadKeys(aesKeyFile);
 
 	if (
 		opt.type == actscli::ACTS_NUI

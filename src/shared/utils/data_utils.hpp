@@ -6,6 +6,8 @@ namespace utils::data {
 
 	std::string AsHex(const void* buff, size_t size);
 
+	void FillRandomBuffer(void* buff, size_t size);
+
 	template<typename T>
 	std::string ArrayAsString(
 		const T* array, size_t count, 

@@ -13,6 +13,7 @@ namespace actscli {
 		bool showHelp{};
 		const char* defaultHashFile{};
 		const char* packFile{};
+		const char* aesKeys{};
 		bool noDefaultHash{};
 		bool noIWHash{};
 		bool markHash{};

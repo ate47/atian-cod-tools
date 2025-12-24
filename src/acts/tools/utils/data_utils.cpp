@@ -60,6 +60,16 @@ namespace utils::data {
 		return ss.str();
 	}
 
+	void FillRandomBuffer(void* _buff, size_t size) {
+		byte* buff{ (byte*)_buff };
+		std::random_device rd;
+		std::mt19937 gen{ rd() };
+		std::uniform_int_distribution distrib{ 0, 0xFF };
+		for (size_t i = 0; i < size; i++) {
+			buff[i] = (byte)distrib(gen);
+		}
+	}
+
 	bool IsNulled(const void* buff, size_t size) {
 		switch (size) {
 		case 1:

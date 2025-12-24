@@ -371,6 +371,9 @@ namespace fastfile {
 			else if (!strcmp("-C", arg) || !_strcmpi("--compressors", arg)) {
 				printCompressors = true;
 			}
+			else if (!strcmp("-e", arg) || !_strcmpi("--encrypt", arg)) {
+				encrypt = true;
+			}
 			else if (!_strcmpi("--server", arg)) {
 				server = true;
 			}
@@ -404,6 +407,7 @@ namespace fastfile {
 		LOG_INFO("-L --linkers          : Print linkers");
 		LOG_INFO("-c --compressor       : Compressor to use");
 		LOG_INFO("-C --compressors      : Print compressors");
+		LOG_INFO("-e --encrypt          : Encrypt fastfile, requires AES key");
 		LOG_INFO("--chunkSize [size]    : Set chunk sizes");
 		LOG_INFO("-H --high-compression : Use high compression (if available)");
 	}
