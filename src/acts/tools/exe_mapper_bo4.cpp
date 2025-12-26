@@ -125,6 +125,46 @@ namespace {
 
 		return tool::OK;
 	}
+	int bo4_dump_rsa_key_loc(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 3)) return tool::BAD_USAGE;
+
+		hook::module_mapper::Module mod{ true };
+		if (!mod.Load(argv[2])) {
+			LOG_ERROR("Can't map module {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+
+
+		byte* (*DB_LoadRsaKey)();
+
+		size_t bufferSize;
+		if (!_strcmpi(argv[4], "mw3")) {
+			DB_LoadRsaKey = mod->ScanSingle("E8 ?? ?? ?? ?? 4C 8D 44 24 60 BA 0E 01 00 00", "DB_GetRsaKey").GetRelative<int32_t, decltype(DB_LoadRsaKey)>(1);
+			bufferSize = 270;
+		}
+		else {
+			LOG_ERROR("Bad type");
+			return tool::BAD_USAGE;
+		}
+
+		
+		byte* buffer{ DB_LoadRsaKey() };
+		utils::OutFileCE os{ argv[3], true };
+
+		os << "byte rsa_key[] {";
+		for (size_t i = 0; i < bufferSize; i++) {
+			if (!(i & 0xf)) {
+				os << "\n";
+			}
+			os << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i] << ", ";
+
+		}
+		os << "\n};";
+		LOG_INFO("dump to {}", argv[3]);
+
+		return tool::OK;
+	}
 
 	int bo4_keys_csv(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
@@ -160,5 +200,6 @@ namespace {
 
 	ADD_TOOL(bo4_exe_mapper, "bo4", "[exe] [gamedir]", "test bo4 mapping", bo4_exe_mapper);
 	ADD_TOOL(bo4_dump_rsa_key, "bo4", "[exe] [output] [id]", "dump rsa key", bo4_dump_rsa_key);
+	ADD_TOOL(bo4_dump_rsa_key_loc, "bo4", "[exe] [output] [id]", "dump rsa key", bo4_dump_rsa_key_loc);
 	ADD_TOOL(bo4_keys_csv, "bo4", "[csv] [out]", "dump rsa keys from csv", bo4_keys_csv);
 }
