@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
-#include <tools/ff/fastfile_packed.hpp>
+#include <tools/ff/fastfile_flexible.hpp>
 #include <games/bo4/pool.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <utils/compress_utils.hpp>
@@ -99,11 +99,15 @@ namespace {
 
 	}
 
-	void DumpHeader(fastfile::packed::PackedFastFileReader& data, const char* title) {
+	void DumpHeader(fastfile::flexible::FlexibleFastFileReader& data, const char* title) {
+		uint32_t trVersion{ data.GetTrVersion() };
+		fastfile::flexible::PFPlatformData& trPlatform{ data.GetTrPlatformData() };
+		fastfile::flexible::PFFFastFileInfo& trFastfileInfo{ data.GetTrFastFileInfo() };
+		fastfile::flexible::PFFBuildData& trBuildData{ data.GetTrBuildData() };
 		LOG_INFO("{}: v{} server:{}, comp:{}, plt:{} enc:{}, bld:{}", 
-			data.ff.fastfileName, data.version, data.platform.server ? "true" : "false",
-			fastfile::GetFastFileCompressionName(data.platform.compression), fastfile::GetFastFilePlatformName(data.platform.platform),
-			data.platform.server ? "true" : "false", data.build.builderName
+			trFastfileInfo.fastfileName, trVersion, trPlatform.server ? "true" : "false",
+			fastfile::GetFastFileCompressionName(trPlatform.compression), fastfile::GetFastFilePlatformName(trPlatform.platform),
+			trPlatform.server ? "true" : "false", trBuildData.builderName
 		);
 	}
 
@@ -112,7 +116,7 @@ namespace {
         T9FFDecompressor() : fastfile::FFDecompressor("Black Ops Cold War", 0x46464154, fastfile::MASK32) {}
 
         void LoadFastFile(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx, std::vector<byte>& ffdata) {
-			fastfile::packed::PackedFastFileReader pheader{};
+			fastfile::flexible::FlexibleFastFileReader pheader{};
 
 			pheader.ReadHeader(reader);
 
@@ -120,24 +124,31 @@ namespace {
 				DumpHeader(pheader, "header");
 			}
 
+			uint32_t trVersion{ pheader.GetTrVersion() };
 
-			if (pheader.version != 0x64) {
-				throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", pheader.version));
+			if (trVersion != 0x64) {
+				throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", trVersion));
 			}
+
+			fastfile::flexible::PFPlatformData& trPlatform{ pheader.GetTrPlatformData() };
+			fastfile::flexible::PFFFastFileInfo& trFastfileInfo{ pheader.GetTrFastFileInfo() };
+			uint64_t* trBlocks{ pheader.GetTrXBlocks() };
+			size_t trBlocksCount{ pheader.GetTrXBlocksCount() };
+
 			compatibility::acti::crypto_keys::AesKeyLocal* aeskey{};
 
-			if (pheader.platform.encrypted) {
-				aeskey = compatibility::acti::crypto_keys::GetKeyByName(pheader.ff.fastfileName, compatibility::acti::crypto_keys::VER_BO4);
+			if (trPlatform.encrypted) {
+				aeskey = compatibility::acti::crypto_keys::GetKeyByName(trFastfileInfo.fastfileName, compatibility::acti::crypto_keys::VER_BO4);
 				compatibility::acti::crypto_keys::RsaKeyLocal* rsa{ compatibility::acti::crypto_keys::GetRSAKeyByName("bo4")};
 
 				if (!aeskey || !rsa) {
-					throw std::runtime_error(std::format("Missing key set for ff {}", pheader.ff.fastfileName));
+					throw std::runtime_error(std::format("Missing key set for ff {}", trFastfileInfo.fastfileName));
 				}
 
 				int shaHash{ find_hash("sha256") };
 
 				if (shaHash == -1) {
-					throw std::runtime_error(std::format("Missing sha256 for ff {}", pheader.ff.fastfileName));
+					throw std::runtime_error(std::format("Missing sha256 for ff {}", trFastfileInfo.fastfileName));
 				}
 
 				rsa_key rsakey{};
@@ -145,38 +156,38 @@ namespace {
 				int r;
 
 				if ((r = rsa_import(rsa->key, sizeof(rsa->key), &rsakey)) != CRYPT_OK) {
-					throw std::runtime_error(std::format("Failed to import key {} for ff {}", error_to_string(r), pheader.ff.fastfileName));
+					throw std::runtime_error(std::format("Failed to import key {} for ff {}", error_to_string(r), trFastfileInfo.fastfileName));
 				}
 
 				uint8_t digest[20]{};
 
 				int stat{};
-				//if ((r = rsa_verify_hash(pheader.ff.signature, 0x100, digest, sizeof(digest), shaHash, 8, &stat, &rsakey)) != CRYPT_OK) {
+				//if ((r = rsa_verify_hash(trFastfileInfo.signature, 0x100, digest, sizeof(digest), shaHash, 8, &stat, &rsakey)) != CRYPT_OK) {
 				//	throw std::runtime_error(std::format("Hash verify error {} for ff {}", error_to_string(r), ctx.ffname));
 				//}
 
 				unsigned long digestSize{ sizeof(digest) };
-				if ((r == rsa_decrypt_key(pheader.ff.signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
-					throw std::runtime_error(std::format("Failed to import decrypt key {} for ff {}", error_to_string(r), pheader.ff.fastfileName));
+				if ((r == rsa_decrypt_key(trFastfileInfo.signature, 0x100, digest, &digestSize, nullptr, 0, shaHash, &stat, &rsakey)) != CRYPT_OK) {
+					throw std::runtime_error(std::format("Failed to import decrypt key {} for ff {}", error_to_string(r), trFastfileInfo.fastfileName));
 				}
 				rsa_free(&rsakey);
 			}
 
 
-			const char* ffname = pheader.ff.fastfileName;
+			const char* ffname = trFastfileInfo.fastfileName;
 			sprintf_s(ctx.ffname, "%s", ffname);
 			// add the ff name for the lookup
 			hashutils::Add(ctx.ffname, true, true);
 
-			ctx.blocksCount = pheader.blocksCount;
+			ctx.blocksCount = trBlocksCount;
 			for (size_t i = 0; i < ctx.blocksCount; i++) {
-				ctx.blockSizes[i].size = pheader.blockSizes[i];
+				ctx.blockSizes[i].size = trBlocks[i];
 			}
 
-            utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(pheader.platform.compression) };
+            utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(trPlatform.compression) };
 
 			ctx.hasGSCBin = false;
-			switch (pheader.platform.platform) {
+			switch (trPlatform.platform) {
 			case fastfile::XFILE_PC: {
 				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
 				break;
@@ -198,7 +209,7 @@ namespace {
 			ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
 
 			byte aesIV[0x10];
-			std::memcpy(aesIV, pheader.ff.aesIV, sizeof(aesIV));
+			std::memcpy(aesIV, trFastfileInfo.aesIV, sizeof(aesIV));
 
             size_t idx{};
             while (true) {
@@ -219,12 +230,12 @@ namespace {
                 }
 
                 byte* blockBuff{ reader.ReadPtr<byte>(block->alignedSize) };
-                LOG_TRACE("Decompressing block 0x{:x} {}(0x{:x}/0x{:x} -> 0x{:x})", loc, pheader.platform.encrypted ? "encrypted " : "", block->compressedSize, block->alignedSize, block->uncompressedSize);
+                LOG_TRACE("Decompressing block 0x{:x} {}(0x{:x}/0x{:x} -> 0x{:x})", loc, trPlatform.encrypted ? "encrypted " : "", block->compressedSize, block->alignedSize, block->uncompressedSize);
 
                 size_t unloc{ utils::Allocate(ffdata, block->uncompressedSize) };
                 byte* decompressed{ &ffdata[unloc] };
 
-				if (pheader.platform.encrypted) {
+				if (trPlatform.encrypted) {
 					symmetric_CTR ctr{};
 					int aesCipher{ find_cipher("aes") };
 					if (aesCipher == -1) {
@@ -269,10 +280,16 @@ namespace {
 
 					BDiffHeader* bdiffHeader{ fdreader.ReadPtr<BDiffHeader>() };
 
-					fastfile::packed::PackedFastFileReader newXFileHeader{};
-					fastfile::packed::PackedFastFileReader baseXFileHdr{};
+					fastfile::flexible::FlexibleFastFileReader newXFileHeader{};
+					fastfile::flexible::FlexibleFastFileReader baseXFileHdr{};
 					newXFileHeader.ReadHeader(fdreader);
 					baseXFileHdr.ReadHeader(fdreader);
+
+					fastfile::flexible::PFPlatformData& newXFileHeaderPlatform{ newXFileHeader.GetTrPlatformData() };
+					fastfile::flexible::PFFSizeData& newXFileHeaderSizeData{ newXFileHeader.GetTrSizeData() };
+					fastfile::flexible::PFFFastFileInfo& baseXFileHdrFastfileInfo{ baseXFileHdr.GetTrFastFileInfo() };
+					uint64_t* newXFileHeaderBlocks{ newXFileHeader.GetTrXBlocks() };
+					size_t newXFileHeaderBlocksCount{ newXFileHeader.GetTrXBlocksCount() };
 					
 					
 					// patch header B96310
@@ -283,13 +300,13 @@ namespace {
 						DumpHeader(baseXFileHdr, "ff header");
 					}
 
-					if (std::memcmp(&baseXFileHdr.ff.signature, &pheader.ff.signature, sizeof(pheader.ff.signature))) {
+					if (std::memcmp(&baseXFileHdrFastfileInfo.signature, &trFastfileInfo.signature, sizeof(trFastfileInfo.signature))) {
 						throw std::runtime_error("The patch file is not for this fast file");
 					}
 
 					for (size_t i = 0; i < ctx.blocksCount; i++) {
-						LOG_DEBUG("New size for block {} 0x{:x} -> 0x{:x}", i, ctx.blockSizes[i].size, newXFileHeader.blockSizes[i]);
-						ctx.blockSizes[i].size = newXFileHeader.blockSizes[i];
+						LOG_DEBUG("New size for block {} 0x{:x} -> 0x{:x}", i, ctx.blockSizes[i].size, newXFileHeaderBlocks[i]);
+						ctx.blockSizes[i].size = newXFileHeaderBlocks[i];
 					}
 
 					if (bdiffHeader->maxDiffWindowSize < 0x10000) bdiffHeader->maxDiffWindowSize = 0x10000;
@@ -297,13 +314,13 @@ namespace {
 					if (bdiffHeader->maxSourceWindowSize < 0x10000) bdiffHeader->maxSourceWindowSize = 0x10000;
 
 					size_t compressedSize{ fdreader.Remaining() };
-					size_t fdDecompressedSize{ newXFileHeader.size.size };
+					size_t fdDecompressedSize{ newXFileHeaderSizeData.size };
 
-					LOG_TRACE("Decompressing patch {} 0x{:x}: 0x{:x} -> 0x{:x}", fastfile::GetFastFileCompressionName(newXFileHeader.platform.compression), fdreader.Loc(), compressedSize, fdDecompressedSize);
+					LOG_TRACE("Decompressing patch {} 0x{:x}: 0x{:x} -> 0x{:x}", fastfile::GetFastFileCompressionName(newXFileHeaderPlatform.compression), fdreader.Loc(), compressedSize, fdDecompressedSize);
 					auto uncompress{ std::make_unique<byte[]>(fdDecompressedSize) };
 
 					utils::compress::CompressionAlgorithm alg{};
-					switch (newXFileHeader.platform.compression) {
+					switch (newXFileHeaderPlatform.compression) {
 					case fastfile::XFILE_BDELTA_UNCOMP:
 						alg = utils::compress::COMP_NONE;
 						break;
@@ -314,11 +331,11 @@ namespace {
 						alg = utils::compress::COMP_LZMA;
 						break;
 					default:
-						throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)newXFileHeader.platform.compression));
+						throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)newXFileHeaderPlatform.compression));
 					}
 
 					if (!utils::compress::Decompress(alg, uncompress.get(), fdDecompressedSize, fdreader.ReadPtr<byte>(compressedSize), compressedSize)) {
-						throw std::runtime_error(std::format("Error when decompressing fd data for type {}", fastfile::GetFastFileCompressionName(newXFileHeader.platform.compression)));
+						throw std::runtime_error(std::format("Error when decompressing fd data for type {}", fastfile::GetFastFileCompressionName(newXFileHeaderPlatform.compression)));
 					}
 
 					LOG_TRACE("Decompressed 0x{:x} byte(s) from patch file", fdDecompressedSize);

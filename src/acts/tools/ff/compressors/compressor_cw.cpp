@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
-#include <tools/ff/fastfile_packed.hpp>
+#include <tools/ff/fastfile_flexible.hpp>
 #include <tools/ff/linkers/linker_cw.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 
@@ -40,23 +40,23 @@ namespace {
 			uint32_t chunkSize = (uint32_t)(ctx.opt.chunkSize ? ctx.opt.chunkSize : 0x3fee0);
 			for (fastfile::FastFile& ff : ctx.fastfiles) {
 				std::vector<byte> out{};
-				fastfile::packed::HeaderPacker packer{ out };
+				fastfile::flexible::FlexibleFastFileWriter hwriter{ out };
 
 				struct {
 					uint32_t version{};
-					fastfile::packed::PFFBuildData build{};
-					fastfile::packed::PFFFastFileInfo ff{};
-					fastfile::packed::PFFSizeData size{};
-					fastfile::packed::PFPlatformData platform{};
+					fastfile::flexible::PFFBuildData build{};
+					fastfile::flexible::PFFFastFileInfo ff{};
+					fastfile::flexible::PFFSizeData size{};
+					fastfile::flexible::PFPlatformData platform{};
 					uint64_t blockSizes[fastfile::linker::cw::XFILE_BLOCK_COUNT]{};
 
 				} header;
-				packer.AddBlock(fastfile::packed::ST_VERSION, &header.version, sizeof(header.version));
-				packer.AddBlock(fastfile::packed::ST_PLATFORM_DATA, &header.platform, sizeof(header.platform));
-				packer.AddBlock(fastfile::packed::ST_BUILD_DATA, &header.build, sizeof(header.build));
-				packer.AddBlock(fastfile::packed::ST_BLOCK_SIZES, &header.blockSizes, sizeof(header.blockSizes));
-				packer.AddBlock(fastfile::packed::ST_SIZE_DATA, &header.size, sizeof(header.size));
-				packer.AddBlock(fastfile::packed::ST_FASTFILE_INFO, &header.ff, sizeof(header.ff));
+				hwriter.AddBlock(fastfile::flexible::ST_VERSION, &header.version, sizeof(header.version));
+				hwriter.AddBlock(fastfile::flexible::ST_PLATFORM_DATA, &header.platform, sizeof(header.platform));
+				hwriter.AddBlock(fastfile::flexible::ST_BUILD_DATA, &header.build, sizeof(header.build));
+				hwriter.AddBlock(fastfile::flexible::ST_BLOCK_SIZES, &header.blockSizes, sizeof(header.blockSizes));
+				hwriter.AddBlock(fastfile::flexible::ST_SIZE_DATA, &header.size, sizeof(header.size));
+				hwriter.AddBlock(fastfile::flexible::ST_FASTFILE_INFO, &header.ff, sizeof(header.ff));
 
 
 				// write blocks
@@ -142,7 +142,7 @@ namespace {
 
 				// todo: write other data
 
-				packer.WriteEnd();
+				hwriter.WriteEnd();
 
 				std::filesystem::path outputFileFF{ ctx.opt.m_output / "zone" / std::format("{}.ff", ff.ffname) };
 

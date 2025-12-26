@@ -4,12 +4,11 @@
 #include <hook/error.hpp>
 #include <tools/fastfile.hpp>
 #include <tools/ff/fastfile_handlers.hpp>
-#include <tools/ff/fastfile_packed.hpp>
+#include <tools/ff/fastfile_flexible.hpp>
 #include <games/bo4/pool.hpp>
 #include <utils/compress_utils.hpp>
 #include <utils/data_utils.hpp>
 #include <tools/ff/fastfile_bdiff.hpp>
-#include <tools/ff/fastfile_packed.hpp>
 
 namespace {
 	constexpr uint64_t IW_FF_MAGIC_MASK = 0xFFFFFF00FFFFFFFF;
@@ -192,24 +191,30 @@ namespace {
 			LOG_INFO("---- {}{} pack header{} ----", cli::clicolor::COLOR_RED, type, cli::clicolor::CD_RESET);
 			uint32_t tafMagic{ *reader.Ptr<uint32_t>() };
 
-			if (tafMagic == fastfile::packed::MAGIC || tafMagic == fastfile::packed::MAGIC_A) {
+			if (tafMagic == fastfile::flexible::MAGIC || tafMagic == fastfile::flexible::MAGIC_A) {
 
-				fastfile::packed::PackedFastFileReader packHeader{};
-				// packed data
-				packHeader.ReadHeader(reader);
-				fastfile::packed::PFFIWChecksums& iwChecksums{ packHeader.iwChecksums };
-				fastfile::packed::PFFIW_0xc95c6b9c& iw0xc95c6b9c{ packHeader.iw0xc95c6b9c };
+				fastfile::flexible::FlexibleFastFileReader freader{};
+				// flexible data
+				freader.ReadHeader(reader);
 
-				if (iwChecksums.loaded) {
+				fastfile::flexible::PFFIWDeps* deps{ freader.GetChunkVal<fastfile::flexible::PFFIWDeps>(fastfile::flexible::ST_IW_DEPS, false) };
+				fastfile::flexible::PFFIWChecksums* checksums{ freader.GetChunkVal<fastfile::flexible::PFFIWChecksums>(fastfile::flexible::ST_IW_FASTFILE_CHECKSUM, false) };
+				fastfile::flexible::PFFIW_0xc95c6b9c* iw0xc95c6b9c{ freader.GetChunkVal<fastfile::flexible::PFFIW_0xc95c6b9c>(fastfile::flexible::ST_IW_UNK_0xc95c6b9c, false) };
+
+				if (deps) {
+					LOG_INFO("ff header iw deps: 0x{:x} 0x{:x}", deps->fastfileHash, deps->unk8);
+				}
+
+				if (checksums) {
 					LOG_INFO(
 						"ff header iw checksums: loaded:{} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
-						iwChecksums.loaded ? "true" : "false",
-						iwChecksums.checksum[0], iwChecksums.checksum[1], iwChecksums.checksum[2], iwChecksums.checksum[3]
+						checksums->loaded ? "true" : "false",
+						checksums->checksum[0], checksums->checksum[1], checksums->checksum[2], checksums->checksum[3]
 					);
 				}
 
-				if (iw0xc95c6b9c.loaded) {
-					LOG_INFO("ff header iw 0xc95c6b9c: {} 0x{:x}", iw0xc95c6b9c.loaded ? "true" : "false", iw0xc95c6b9c.unk8);
+				if (iw0xc95c6b9c) {
+					LOG_INFO("ff header iw 0xc95c6b9c: {} 0x{:x}", iw0xc95c6b9c->loaded ? "true" : "false", iw0xc95c6b9c->unk8);
 				}
 			}
 		}
