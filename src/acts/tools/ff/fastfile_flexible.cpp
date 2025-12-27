@@ -104,17 +104,26 @@ namespace fastfile::flexible {
 		utils::WriteValue<uint32_t>(data, len);
 		size_t off{ utils::Allocate(data, len) };
 		
-		chunks.emplace_back(type, off, ptr, len);
+		if (chunksCount == ARRAYSIZE(chunks)) {
+			throw std::runtime_error("too many flexible chunks to write");
+		}
+
+		FlexibleWriteChunk& chunk{ chunks[chunksCount++] };
+		chunk.type = type;
+		chunk.offset = off;
+		chunk.buffer = ptr;
+		chunk.size = len;
 	}
 
 	void FlexibleFastFileWriter::WriteEnd(TAFASecureInfo* secureInfo) {
 		uint32_t* header{ (uint32_t*)data.data() };
 		// complete header
 		header[0] = magic;
-		header[1] = (uint32_t)chunks.size();
+		header[1] = (uint32_t)chunksCount;
 
 		// write chunks
-		for (PackChunk& chunk : chunks) {
+		for (size_t i = 0; i < chunksCount; i++) {
+			FlexibleWriteChunk& chunk{ chunks[i] };
 			std::memcpy(&data[chunk.offset], chunk.buffer, chunk.size);
 		}
 
@@ -128,7 +137,8 @@ namespace fastfile::flexible {
 				sha256.add(header, sizeof(header));
 
 				uint32_t block[2];
-				for (PackChunk& chunk : chunks) {
+				for (size_t i = 0; i < chunksCount; i++) {
+					FlexibleWriteChunk& chunk{ chunks[i] };
 					block[0] = (uint32_t)chunk.type;
 					block[1] = (uint32_t)chunk.size;
 					sha256.add(block, sizeof(block));

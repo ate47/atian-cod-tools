@@ -125,7 +125,7 @@ namespace fastfile::flexible {
 		PFFIW_0xc95c6b9c& GetIWUnkc95c6b9c() { return *GetChunkVal<PFFIW_0xc95c6b9c>(SectionType::ST_IW_UNK_0xc95c6b9c, true); }
 	};
 
-	struct PackChunk {
+	struct FlexibleWriteChunk {
 		SectionType type;
 		size_t offset;
 		const void* buffer;
@@ -136,7 +136,8 @@ namespace fastfile::flexible {
 	public:
 		uint32_t magic;
 		std::vector<byte>& data;
-		std::vector<PackChunk> chunks{};
+		FlexibleWriteChunk chunks[0x10]{};
+		size_t chunksCount{};
 		size_t hashOffset{};
 		FlexibleFastFileWriter(std::vector<byte>& data, uint32_t magic);
 		void AddBlock(SectionType type, const void* ptr, uint32_t len);
