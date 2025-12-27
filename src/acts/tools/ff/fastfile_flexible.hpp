@@ -1,4 +1,5 @@
 #pragma once
+#include <tools/ff/fastfile_handlers.hpp>
 #include <core/bytebuffer.hpp>
 
 namespace fastfile::flexible {
@@ -84,11 +85,11 @@ namespace fastfile::flexible {
 
 		void ReadHeader(core::bytebuffer::ByteBuffer& reader);
 
-		FlexibleFastFileChunk* GetChunk(SectionType type, bool failMissing);
+		FlexibleFastFileChunk* GetChunk(SectionType type, bool failMissing, size_t checkSize = 0);
 
 		template<typename T>
 		T* GetChunkVal(SectionType type, bool failMissing) {
-			FlexibleFastFileChunk* ch{ GetChunk(type, failMissing) };
+			FlexibleFastFileChunk* ch{ GetChunk(type, failMissing, sizeof(T)) };
 			if (!ch) {
 				return nullptr;
 			}

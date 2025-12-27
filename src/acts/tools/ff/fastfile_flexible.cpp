@@ -31,9 +31,12 @@ namespace fastfile::flexible {
 			LOG_TRACE("loaded chunk 0x{:x} of size 0x{:x} at 0x{:x}", (uint32_t)chunk->type, chunk->size, loc);
 		}
 	}
-	FlexibleFastFileChunk* FlexibleFastFileReader::GetChunk(SectionType type, bool failMissing) {
+	FlexibleFastFileChunk* FlexibleFastFileReader::GetChunk(SectionType type, bool failMissing, size_t checkSize) {
 		for (size_t i = 0; i < chunksCount; i++) {
 			if (chunks[i].type == type) {
+				if (checkSize && chunks[i].size < checkSize) {
+					throw std::runtime_error(std::format("Section too small {:x} size:0x{:x} < wanted:0x{:x}", (uint32_t)type, chunks[i].size, checkSize));
+				}
 				return &chunks[i];
 			}
 		}
