@@ -113,7 +113,7 @@ namespace {
 
 	class T9FFDecompressor : public fastfile::FFDecompressor {
 	public:
-        T9FFDecompressor() : fastfile::FFDecompressor("Black Ops Cold War", 0x46464154, fastfile::MASK32) {}
+        T9FFDecompressor() : fastfile::FFDecompressor("Black Ops Cold War", fastfile::flexible::MAGIC, fastfile::MASK32) {}
 
         void LoadFastFile(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx, std::vector<byte>& ffdata) {
 			fastfile::flexible::FlexibleFastFileReader pheader{};

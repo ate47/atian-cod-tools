@@ -217,16 +217,19 @@ namespace {
 			}
 		}
 	}
-	void ReadTafHeader(core::bytebuffer::ByteBuffer& reader, const char* type) {
+	void ReadTafHeader(core::bytebuffer::ByteBuffer& reader, const char* type, const char* filename) {
 		if (reader.CanRead(sizeof(uint32_t))) {
 			LOG_INFO("---- {}{} pack header{} ----", cli::clicolor::COLOR_RED, type, cli::clicolor::CD_RESET);
 			uint32_t tafMagic{ *reader.Ptr<uint32_t>() };
 
-			if (tafMagic == fastfile::flexible::MAGIC || tafMagic == fastfile::flexible::MAGIC_A) {
+			if (fastfile::flexible::IsFlexibleDataMagic(tafMagic)) {
 
 				fastfile::flexible::FlexibleFastFileReader freader{};
+				fastfile::flexible::TAFASecureInfo secure{};
+				secure.fastfileName = filename;
+				secure.rsaKeyName = "iw";
 				// flexible data
-				freader.ReadHeader(reader);
+				freader.ReadHeader(reader, &secure);
 
 				fastfile::flexible::PFFIWDeps* deps{ freader.GetChunkVal<fastfile::flexible::PFFIWDeps>(fastfile::flexible::ST_IW_DEPS, false) };
 				fastfile::flexible::PFFIWChecksums* checksums{ freader.GetChunkVal<fastfile::flexible::PFFIWChecksums>(fastfile::flexible::ST_IW_FASTFILE_CHECKSUM, false) };
@@ -314,15 +317,6 @@ namespace {
 					fileFPBuff.clear();
 				}
 			}
-
-
-			std::filesystem::path ffnamet{ ctx.file };
-			ffnamet.replace_extension();
-			ffnamet = ffnamet.filename();
-			std::string ffnamets{ ffnamet.string() };
-			sprintf_s(ctx.ffname, "%s", ffnamets.data());
-
-			hashutils::Add(ctx.ffname, true, true);
 			
 
 			DB_FFHeader* header{ reader.Ptr<DB_FFHeader>() };
@@ -402,7 +396,7 @@ namespace {
 
 			if (opt.m_header) {
 				PrintHeader(&ffHeader.header, "ff::header", true);
-				ReadTafHeader(reader, "ff");
+				ReadTafHeader(reader, "ff", ctx.ffname);
 			}
 			XBlockCompressDataHeader compressDataHeader{};
 			bool secure{};
@@ -654,7 +648,7 @@ namespace {
 					PrintHeader(fpHeader, "fp::header", false);
 					PrintHeader(&prevHeader.header, "fp::prevHeader", true);
 					PrintHeader(&newHeader.header, "fp::newHeader", true);
-					ReadTafHeader(fpreader, "fp");
+					ReadTafHeader(fpreader, "fp", ctx.ffname);
 				}
 
 				if (!fpreader.CanRead(1)) {

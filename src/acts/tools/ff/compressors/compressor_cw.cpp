@@ -40,7 +40,7 @@ namespace {
 			uint32_t chunkSize = (uint32_t)(ctx.opt.chunkSize ? ctx.opt.chunkSize : 0x3fee0);
 			for (fastfile::FastFile& ff : ctx.fastfiles) {
 				std::vector<byte> out{};
-				fastfile::flexible::FlexibleFastFileWriter hwriter{ out };
+				fastfile::flexible::FlexibleFastFileWriter hwriter{ out, fastfile::flexible::MAGIC };
 
 				struct {
 					uint32_t version{};

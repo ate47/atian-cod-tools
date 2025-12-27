@@ -967,6 +967,15 @@ namespace fastfile {
 						handler->Init(opt);
 					}
 
+
+					std::filesystem::path ffnamet{ filename };
+					ffnamet.replace_extension();
+					ffnamet = ffnamet.filename();
+					std::string ffnamets{ ffnamet.string() };
+					sprintf_s(ctx.ffname, "%s", ffnamets.data());
+
+					hashutils::Add(ctx.ffname, true, true);
+
 					LOG_INFO("Loading {}... ({})", filename, handler->name);
 
 					handler->LoadFastFile(opt, reader, ctx, cc.ffdata);

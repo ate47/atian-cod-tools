@@ -3,9 +3,24 @@
 #include <core/bytebuffer.hpp>
 
 namespace fastfile::flexible {
-
 	constexpr uint32_t MAGIC = 0x46464154;
-	constexpr uint32_t MAGIC_A = 0x41464154;
+	constexpr uint32_t MAGIC_V2 = 0x41464154;
+
+	constexpr bool IsFlexibleDataMagic(uint32_t magic) {
+		return magic == MAGIC || magic == MAGIC_V2;
+	}
+	struct TAFASecureInfo {
+		const char* rsaKeyName;
+		const char* fastfileName;
+	};
+
+	struct TAFASignature {
+		uint32_t magic;
+		byte hash[0x20];
+		byte signature[0x100];
+	};
+	static_assert(sizeof(TAFASignature) == 0x124);
+
 	enum SectionType : uint32_t {
 		ST_VERSION = 0x39CB44F1u,
 		ST_PLATFORM_DATA = 0x2C2381CFu,
@@ -83,7 +98,7 @@ namespace fastfile::flexible {
 		FlexibleFastFileChunk chunks[0x10];
 		size_t chunksCount{};
 
-		void ReadHeader(core::bytebuffer::ByteBuffer& reader);
+		void ReadHeader(core::bytebuffer::ByteBuffer& reader, TAFASecureInfo* secureInf = nullptr);
 
 		FlexibleFastFileChunk* GetChunk(SectionType type, bool failMissing, size_t checkSize = 0);
 
@@ -111,6 +126,7 @@ namespace fastfile::flexible {
 	};
 
 	struct PackChunk {
+		SectionType type;
 		size_t offset;
 		const void* buffer;
 		size_t size;
@@ -118,10 +134,12 @@ namespace fastfile::flexible {
 
 	class FlexibleFastFileWriter {
 	public:
+		uint32_t magic;
 		std::vector<byte>& data;
 		std::vector<PackChunk> chunks{};
-		FlexibleFastFileWriter(std::vector<byte>& data);
+		size_t hashOffset{};
+		FlexibleFastFileWriter(std::vector<byte>& data, uint32_t magic);
 		void AddBlock(SectionType type, const void* ptr, uint32_t len);
-		void WriteEnd();
+		void WriteEnd(TAFASecureInfo* secureInfo = nullptr);
 	};
 }
