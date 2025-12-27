@@ -27,6 +27,37 @@ namespace {
 	constexpr char FFMagicType(byte* b) {
 		return b[5];
 	}
+	struct sha256Val {
+		byte value[0x20];
+	};
+	static_assert(sizeof(sha256Val) == 0x20);
+
+	struct XBlockCompressDataHeader {
+		uint32_t unk0;
+		byte unk4;
+		byte unk5;
+		byte unk6;
+		fastfile::FastFileIWCompression compression;
+	};
+	static_assert(sizeof(XBlockCompressDataHeader) == 8);
+
+	struct FS_Header {
+		byte magic[8];
+		uint32_t unk8;
+		byte iv[0x20];
+		byte signature[0x100];
+		char name[0x40];
+		uint32_t __pad16c;
+		sha256Val rsaBlockHashes[1];
+		byte __pad[0x3e70];
+	};
+	static_assert(sizeof(FS_Header) == 0x4000);
+
+	struct FS_RSAChunk {
+		sha256Val hashes[0x200];
+	};
+	static_assert(sizeof(FS_RSAChunk) == 0x4000);
+
 
 	struct DB_FFHeader {
 		byte magic[8];
@@ -373,8 +404,7 @@ namespace {
 				PrintHeader(&ffHeader.header, "ff::header", true);
 				ReadTafHeader(reader, "ff");
 			}
-
-			byte data[4];
+			XBlockCompressDataHeader compressDataHeader{};
 			bool secure{};
 			switch (secureType) {
 			case ST_MW19: {
@@ -434,8 +464,8 @@ namespace {
 						LOG_TRACE("no rsa header");
 					}
 				}
-				reader.Goto(rsaEnd + 8); // iwc + data
-				reader.Read(data, sizeof(data));
+				reader.Goto(rsaEnd + 4); // iwc + data
+				reader.Read(&compressDataHeader, sizeof(compressDataHeader));
 				break;
 			}
 			case ST_MW22: {
@@ -451,25 +481,25 @@ namespace {
 					throw std::runtime_error("can't find iwc");
 				}
 				reader.Skip<uint32_t>(); // skip IWC
-				if (reader.Read<uint32_t>() == 0x66665749) {
+				if (reader.CanRead(sizeof(uint32_t)) && *reader.Ptr<uint32_t>() == 0x66665749) {
 					secure = true;
-					reader.Skip(0x8000);
+					reader.Skip(sizeof(FS_Header) + sizeof(FS_RSAChunk));
 				}
-				reader.Read(data, sizeof(data));
+				reader.Read(&compressDataHeader, sizeof(compressDataHeader));
 				break;
 			}
 			default:
 				throw std::runtime_error(std::format("no secure handler for 0x{:x}", header->headerVersion));
 			}
 
-			if (data[3] >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
+			if (compressDataHeader.compression >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
 				throw std::runtime_error("Can't find compression type");
 			}
 			else {
-				alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+				alg = fastfile::GetFastFileCompressionAlgorithm(compressDataHeader.compression);
 			}
 
-			LOG_DEBUG("loaded header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], reader.Loc());
+			LOG_DEBUG("loaded header secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)compressDataHeader.compression, reader.Loc());
 
 			size_t offset{};
 			size_t count{};
@@ -480,8 +510,8 @@ namespace {
 
 				if (secure && secureType == ST_MW22) {
 					if ((id & 0x1ff) == 0x1ff) {
-						if (!reader.CanRead(0x4000)) break;
-						reader.Skip(0x4000);
+						if (!reader.CanRead(sizeof(FS_RSAChunk))) break;
+						reader.Skip<FS_RSAChunk>();
 					}
 				}
 				if (endSize != std::string::npos && endSize <= offset) {
@@ -692,8 +722,8 @@ namespace {
 							LOG_TRACE("no rsa header");
 						}
 					}
-					fpreader.Goto(rsaEnd + 8); // iwc + data
-					fpreader.Read(data, sizeof(data));
+					fpreader.Goto(rsaEnd + 4); // iwc + data
+					fpreader.Read(&compressDataHeader, sizeof(compressDataHeader));
 					break;
 				}
 				case IWFV_MW22:
@@ -713,22 +743,21 @@ namespace {
 					}
 					fpreader.Skip<uint32_t>(); // skip IWC
 
-					secure = fpreader.Read<uint32_t>() == 0x66665749;
+					secure = fpreader.CanRead(sizeof(uint32_t)) && *fpreader.Ptr<uint32_t>() == 0x66665749;
 					if (secure) {
-						fpreader.Skip(0x8000);
+						fpreader.Skip(sizeof(FS_Header) + sizeof(FS_RSAChunk));
 					}
-					byte data[4];
-					fpreader.Read(data, sizeof(data));
+					fpreader.Read(&compressDataHeader, sizeof(compressDataHeader));
 
 
-					if (data[3] >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
+					if (compressDataHeader.compression >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
 						throw std::runtime_error("Can't find patch compression type");
 					}
 					else {
-						alg = fastfile::GetFastFileCompressionAlgorithm((fastfile::FastFileIWCompression)data[3]);
+						alg = fastfile::GetFastFileCompressionAlgorithm(compressDataHeader.compression);
 					}
 
-					LOG_DEBUG("loaded bo6 patch secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)data[3], fpreader.Loc());
+					LOG_DEBUG("loaded bo6 patch secure:{}, alg:{}({})  0x{:x}", secure, alg, (int)compressDataHeader.compression, fpreader.Loc());
 					break;
 				}
 				default:
