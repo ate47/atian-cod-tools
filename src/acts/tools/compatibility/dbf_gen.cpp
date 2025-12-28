@@ -4,11 +4,11 @@
 #include <games/bo4/pool.hpp>
 #include <dbflib.hpp>
 #include <rapidcsv.h>
-#include "tools/pool.hpp"
+#include <tools/bo4/pool.hpp>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
-#include <compiler/gsc_compiler.hpp>
+#include <tools/gsc/compiler/gsc_compiler.hpp>
 
 
 namespace {
@@ -332,18 +332,18 @@ namespace {
 				}
 				else {
 					// compile file
-					acts::compiler::CompilerConfig cfg{};
+					tool::gsc::compiler::CompilerConfig cfg{};
 					char namePatt[0x100];
 					sprintf_s(namePatt, "hash_%llx", name);
 
 					cfg.name = namePatt;
 					cfg.platform = tool::gsc::opcode::PLATFORM_PC;
 					cfg.vm = tool::gsc::opcode::VMI_T8_36;
-					cfg.detourType = acts::compiler::DETOUR_ACTS;
+					cfg.detourType = tool::gsc::compiler::DETOUR_ACTS;
 					cfg.processorOpt.defines.insert("_DFG_GEN");
 
 					try {
-						acts::compiler::CompileGsc(path, buffer, cfg);
+						tool::gsc::compiler::CompileGsc(path, buffer, cfg);
 					}
 					catch (std::runtime_error& re) {
 						LOG_ERROR("Can't compile {}: {}", path.string(), re.what());

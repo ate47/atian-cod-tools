@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tools/gsc_opcodes.hpp"
+#include "tools/gsc/gsc_opcodes.hpp"
 
 namespace compatibility::serious::db2 {
     constexpr auto VM_CODES_DB = "vm_codes.db2";

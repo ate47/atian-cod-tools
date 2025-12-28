@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <tools/cordycep_dump.hpp>
+#include <tools/cordycep/cordycep_dump.hpp>
 #include <tools/mw19/mw19.hpp>
 #include "compatibility/xensik_gscbin.hpp"
 

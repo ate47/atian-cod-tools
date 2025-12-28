@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include "custom_ees.hpp"
-#include "tools/dump.hpp"
-#include "tools/gsc.hpp"
+#include <tools/bo4/dump.hpp>
+#include "tools/gsc/gsc.hpp"
 #include <games/bo4/offsets.hpp>
 
 using namespace games::bo4;

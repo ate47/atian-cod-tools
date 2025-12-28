@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include "tools/gsc_opcodes.hpp"
+#include "tools/gsc/gsc_opcodes.hpp"
 #include "compatibility/serious_db2.hpp"
 
 

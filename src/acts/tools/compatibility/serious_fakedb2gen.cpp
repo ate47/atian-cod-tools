@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include "compatibility/serious_db2.hpp"
-#include "tools/gsc.hpp"
+#include "tools/gsc/gsc.hpp"
 
 namespace {
 	using namespace tool::gsc::opcode;

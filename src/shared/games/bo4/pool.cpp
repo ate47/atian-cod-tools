@@ -1,5 +1,5 @@
 #include <includes_shared.hpp>
-#include "pool.hpp"
+#include <games/bo4/pool.hpp>
 
 namespace games::bo4::pool {
 	namespace {

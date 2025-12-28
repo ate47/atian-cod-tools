@@ -1,7 +1,7 @@
 #pragma once
 #include <utils/compress_utils.hpp>
 #include <core/memory_allocator.hpp>
-#include <tools/gsc_opcodes.hpp>
+#include <tools/gsc/gsc_opcodes.hpp>
 
 namespace compatibility::acts_acef {
 	constexpr utils::compress::CompressionAlgorithm DEFAULT_COMPRESS = utils::compress::COMP_ZSTD;

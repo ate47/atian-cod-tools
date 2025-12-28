@@ -2,7 +2,7 @@
 #include <tools/sp23/sp23.hpp>
 #include <tools/tools_nui.hpp>
 #include <core/config.hpp>
-#include <tools/gsc.hpp>
+#include <tools/gsc/gsc.hpp>
 #include <tools/ps4/codtool.hpp>
 
 namespace tool::ps4::codtool {

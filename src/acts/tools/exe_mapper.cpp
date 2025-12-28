@@ -8,8 +8,8 @@
 #include <utils/decrypt.hpp>
 #include <DbgHelp.h>
 #pragma comment(lib, "imagehlp.lib")
-#include "tools/gsc.hpp"
-#include "tools/pool.hpp"
+#include "tools/gsc/gsc.hpp"
+#include <tools/bo4/pool.hpp>
 #include "tools/bo6/bo6.hpp"
 #include <core/memory_allocator.hpp>
 #include <decryptutils.hpp>

@@ -31,9 +31,9 @@ try {
         java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor -Werror
         AddPrecompHeader
     
-        New-Item -ItemType Directory src\acts\compiler -ErrorAction Ignore > $null
-        Move-Item .antlr4\grammar\*.cpp src\acts\compiler -Force
-        Move-Item .antlr4\grammar\*.h src\acts\compiler -Force
+        New-Item -ItemType Directory src\acts\tools\gsc\compiler -ErrorAction Ignore > $null
+        Move-Item .antlr4\grammar\*.cpp src\acts\tools\gsc\compiler -Force
+        Move-Item .antlr4\grammar\*.h src\acts\tools\gsc\compiler -Force
     }
     
     if ($ddl) {

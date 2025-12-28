@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include "tools/gsc.hpp"
+#include "tools/gsc/gsc.hpp"
 #include "sp23.hpp"
 #include <decryptutils.hpp>
 #include <actslib/actslib.hpp>

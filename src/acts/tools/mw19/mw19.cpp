@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <tools/gsc.hpp>
+#include <tools/gsc/gsc.hpp>
 #include <core/bytebuffer.hpp>
 #include <hook/module_mapper.hpp>
 #include <compatibility/xensik_gscbin.hpp>

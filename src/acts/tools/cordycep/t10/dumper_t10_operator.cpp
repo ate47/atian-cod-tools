@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <tools/pool.hpp>
+#include <tools/bo4/pool.hpp>
 #include <tools/cordycep/t10/dumper_t10.hpp>
 #include <tools/cordycep/t10/dumper_t10_scriptbundle.hpp>
 #include <tools/utils/raw_file_extractor.hpp>

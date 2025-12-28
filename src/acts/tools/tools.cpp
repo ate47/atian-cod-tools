@@ -3,7 +3,7 @@
 #include <actscli.hpp>
 #include <core/config.hpp>
 #include <tools/tools_ui.hpp>
-#include <tools/gsc_opcodes.hpp>
+#include <tools/gsc/gsc_opcodes.hpp>
 #include <acts.hpp>
 
 namespace tool {

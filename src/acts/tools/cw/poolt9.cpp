@@ -1,7 +1,7 @@
 #include <includes.hpp>
-#include "tools/dump.hpp"
-#include "tools/pool.hpp"
-#include "tools/gsc.hpp"
+#include <tools/bo4/pool.hpp>
+#include <tools/bo4/dump.hpp>
+#include "tools/gsc/gsc.hpp"
 #include "tools/cw/cw.hpp"
 #include "tools/cw/poolt9.hpp"
 #include <games/bo4/scriptinstance.hpp>

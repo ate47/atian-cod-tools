@@ -4,7 +4,7 @@
 #include "adl/adlParser.h"
 #include "adl/adlVisitor.h"
 #include "adl/adl.hpp"
-#include "compiler/preprocessor.hpp"
+#include <core/preprocessor.hpp>
 
 namespace acts::compiler::adl {
     using namespace antlr4;
@@ -23,7 +23,7 @@ namespace acts::compiler::adl {
         const char* def{};
         const char* data{};
         const char* output{};
-        preprocessor::PreProcessorOption processorOpt{};
+        core::preprocessor::PreProcessorOption processorOpt{};
 
         bool Compute(const char** args, INT startIndex, INT endIndex) {
             // default values
@@ -274,7 +274,7 @@ namespace acts::compiler::adl {
     }
 
 
-    bool CompileAdl(preprocessor::PreProcessorOption& preproc, const std::string& filename, std::string& data, ADLData& output) {
+    bool CompileAdl(core::preprocessor::PreProcessorOption& preproc, const std::string& filename, std::string& data, ADLData& output) {
         std::filesystem::path filePath{ filename };
 
         LOG_DEBUG("Load ADL file {}", filename);

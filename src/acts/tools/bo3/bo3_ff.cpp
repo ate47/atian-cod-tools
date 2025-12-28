@@ -2,7 +2,7 @@
 #include <core/bytebuffer.hpp>
 #include <deps/oodle.hpp>
 #include "pools.hpp"
-#include <tools/gsc_opcodes_load.hpp>
+#include <tools/gsc/gsc_opcodes_load.hpp>
 
 namespace {
 	int ffrbo3(int argc, const char* argv[]) {

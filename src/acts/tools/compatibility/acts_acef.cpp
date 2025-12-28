@@ -5,7 +5,7 @@
 #include <core/memory_allocator.hpp>
 #include <tools/compatibility/acts_acef.hpp>
 #include <rapidcsv.h>
-#include <tools/gsc.hpp>
+#include <tools/gsc/gsc.hpp>
 #include <regex>
 
 namespace compatibility::acts_acef {

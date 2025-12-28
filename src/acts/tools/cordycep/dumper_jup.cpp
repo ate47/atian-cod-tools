@@ -1,8 +1,9 @@
 #include <includes.hpp>
-#include <tools/cordycep_dump.hpp>
+#include <tools/cordycep/cordycep_dump.hpp>
 #include "tools/sp23/sp23.hpp"
 #include "tools/hashes/compiled_files.hpp"
-#include "tools/pool.hpp"
+#include <tools/bo4/pool.hpp>
+
 
 namespace {
 	using namespace compatibility::scobalula::csi;

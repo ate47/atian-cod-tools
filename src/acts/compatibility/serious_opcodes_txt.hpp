@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tools/gsc_opcodes.hpp"
+#include "tools/gsc/gsc_opcodes.hpp"
 
 namespace compatibility::serious::txt {
     constexpr const char* OP_INVALID = "op_invalid";

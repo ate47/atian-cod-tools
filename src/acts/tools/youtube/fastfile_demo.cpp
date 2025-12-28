@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <core/bytebuffer.hpp>
 #include <utils/compress_utils.hpp>
-#include <tools/ff/fastfile_handlers.hpp>
+#include <tools/fastfile/fastfile_handlers.hpp>
 
 /*
  List:
@@ -131,8 +131,8 @@ namespace {
 			LOG_INFO("{} {}", (int)list->assets[i].type, list->assets[i].header);
 
 			//Load_XAsset(false, &list->assets[i]);
-			// 0xffffffffffffffff (-1) -> après
-			// 0xfffffffffffffffe (-2) -> après + insérer un pointer
+			// 0xffffffffffffffff (-1) -> aprï¿½s
+			// 0xfffffffffffffffe (-2) -> aprï¿½s + insï¿½rer un pointer
 			// reste -> lire pointer - 1
 			// 0 = nullptr
 			//LOG_INFO("str {}", list->strings[i]);

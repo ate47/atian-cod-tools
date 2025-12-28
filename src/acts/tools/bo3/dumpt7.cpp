@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include "pools.hpp"
 #include "bo3.hpp"
-#include "tools/gsc.hpp"
+#include "tools/gsc/gsc.hpp"
 
 static const char* t7names[]{
 	"physpreset",

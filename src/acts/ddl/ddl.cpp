@@ -3,7 +3,7 @@
 #include "ddlLexer.h"
 #include "ddlParser.h"
 #include "ddlVisitor.h"
-#include "compiler/preprocessor.hpp"
+#include <core/preprocessor.hpp>
 
 using namespace antlr4;
 using namespace antlr4::tree;
@@ -33,7 +33,7 @@ public:
     bool m_help{};
     const char* m_ddl{};
     const char* m_bin{};
-    acts::compiler::preprocessor::PreProcessorOption m_processorOpt{};
+    core::preprocessor::PreProcessorOption m_processorOpt{};
 
     bool Compute(const char** args, INT startIndex, INT endIndex) {
         // default values

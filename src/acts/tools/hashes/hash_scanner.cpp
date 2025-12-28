@@ -4,7 +4,7 @@
 #include <cli/cli_options.hpp>
 #include <tools/tools_nui.hpp>
 #include "hash_scanner.hpp"
-#include <tools/hash.hpp>
+#include <tools/hashes/hash.hpp>
 #include "text_expand.hpp"
 #include <regex>
 #include <future>

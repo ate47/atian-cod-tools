@@ -2,8 +2,8 @@
 #include <hook/module_mapper.hpp>
 #include <tools/cw/cw.hpp>
 #include <tools/cw/pool_cod2020.hpp>
-#include <tools/gsc_vm/vm_t9.hpp>
-//#include "tools/gsc.hpp"
+#include <tools/gsc/vm/vm_t9.hpp>
+//#include "tools/gsc/gsc.hpp"
 
 static const char* cwBgNames[]{
 	"invalid",

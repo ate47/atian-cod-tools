@@ -1,8 +1,8 @@
 #include <includes.hpp>
 #include "actscli.hpp"
-#include "tools/gsc.hpp"
-#include "tools/gsc_opcodes.hpp"
-#include "tools/gsc_opcodes_load.hpp"
+#include "tools/gsc/gsc.hpp"
+#include "tools/gsc/gsc_opcodes.hpp"
+#include "tools/gsc/gsc_opcodes_load.hpp"
 #include <core/updater.hpp>
 #include <hook/scan_container.hpp>
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <tools/bo6/bo6.hpp>
 #include <core/memory_allocator.hpp>
-#include <tools/cordycep_dump.hpp>
+#include <tools/cordycep/cordycep_dump.hpp>
 
 namespace tool::cordycep::dump::t10 {
 	typedef uint32_t ScrString;

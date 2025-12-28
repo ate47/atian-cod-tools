@@ -1,0 +1,242 @@
+#include <includes.hpp>
+#include <tools/fastfile/handlers/handler_game_bo7.hpp>
+#include <tools/fastfile/handlers/bo7/bo7_unlinker_scriptbundle.hpp>
+
+namespace fastfile::handlers::bo7::scriptbundle {
+	using namespace fastfile::handlers::bo7;
+
+	void WriteDef(HandlerJsonWriter& json, ScriptBundleObjectDef& def) {
+		switch (def.type) {
+		case SBT_UNDEFINED:
+			json.WriteValueLiteral("undefined");
+			break;
+		case SBT_BOOL:
+			json.WriteValueBool(def.value.int_val);
+			break;
+		case SBT_INTEGER:
+			json.WriteValueNumber(def.value.int_val);
+			break;
+		case SBT_FLOAT:
+			json.WriteValueNumber(def.value.float_val);
+			break;
+		case SBT_STRING:
+			json.WriteValueString(std::format("{}", utils::FormattedStringJson{ *def.value.str }));
+			break;
+		case SBT_STRUCT: {
+			WriteData(json, *def.value.obj);
+			break;
+		}
+		case SBT_ARRAY_INDEXED: {
+			json.BeginArray();
+			ScriptBundleObjectDefValueArrayIndexed* arrayIndexed{ def.value.arrayIndexed };
+			for (size_t i = 0; i < arrayIndexed->count; i++) {
+				json.WriterFieldNameHash(arrayIndexed->names[i]);
+				WriteDef(json, arrayIndexed->defs[i]);
+			}
+			json.EndArray();
+			break;
+		}
+		case SBT_ARRAY: {
+			json.BeginArray();
+			ScriptBundleObjectDefValueArray* array{ def.value.array };
+			
+			for (size_t i = 0; i < array->count; i++) {
+				if (!array->values) {
+					json.WriteValueNull();
+					continue;
+				}
+
+				ScriptBundleObjectDef defx{};
+				defx.type = array->type;
+				defx.value = array->values[i];
+					
+				WriteDef(json, defx);
+			}
+
+			json.EndArray();
+			break;
+		}
+		case SBT_STRUCT_ANIMATION: {
+			json.BeginObject();
+			ScriptBundleObjectDefValueAnim* anim{ def.value.anim };
+			json.WriteFieldValueString("type", "anim");
+			json.WriteFieldNameString("name");
+			json.WriteValueString(*anim->name_offset);
+			if (anim->anim) {
+				json.WriteFieldNameString("id");
+				json.WriteValueHash(anim->anim, "anim#");
+			}
+			json.EndObject();
+			break;
+		}
+		case SBT_STRUCT_ANIMATION_2: {
+			json.BeginObject();
+			json.WriteFieldValueString("type", "anim2");
+			ScriptBundleObjectDefValueAnim* anim{ def.value.anim };
+			json.WriteFieldNameString("name");
+			json.WriteValueString(*anim->name_offset);
+			if (anim->anim) {
+				json.WriteFieldNameString("id");
+				json.WriteValueHash(anim->anim, "anim#");
+			}
+			json.EndObject();
+			break;
+		}
+		case SBT_STRUCT_NAMEID: {
+			json.BeginObject();
+			ScriptBundleObjectDefValueNameId* nameId{ def.value.nameId };
+			json.WriteFieldNameString("name");
+			json.WriteValueString(*nameId->name);
+			json.WriteFieldNameString("id");
+			json.WriteValueNumber(nameId->id);
+			json.EndObject();
+			break;
+		}
+		case SBT_XHASH:
+			json.WriteValueHash(def.value.hash, "#");
+			break;
+		case SBT_LOCALIZED:
+			json.WriteValueLocalized(def.value.hash);
+			break;
+		case SBT_XHASH_32:
+			json.WriteValueHash(def.value.hash32, "x32#");
+			break;
+		case SBT_XHASH_DVAR:
+			json.WriteValueHash(def.value.hash, "@#");
+			break;
+		case SBT_XHASH_ASSET:
+			json.WriteValueHash(def.value.hash, "%#");
+			break;
+		case SBT_XHASH_SCR:
+			json.WriteValueHash(def.value.hash, "s#");
+			break;
+		case SBT_XHASH_OMNVAR:
+			json.WriteValueHash(def.value.hash, "o#");
+			break;
+		case SBT_XHASH_UNK11:
+			json.WriteValueHash(def.value.hash, "?11#"); // both lua and gsc are reading it as xhash
+			break;
+		default:
+			json.WriteValueString(utils::va("bad type 0x%x", def.type));
+			break;
+		}
+	}
+	void WriteData(HandlerJsonWriter& json, ScriptBundleObjectData& data) {
+		json.BeginObject();
+
+		for (size_t i = 0; i < data.count; i++) {
+			json.WriterFieldNameHash(data.names[i]);
+			WriteDef(json, data.defs[i]);
+		}
+
+		json.EndObject();
+	}
+
+	void WriteBundle(HandlerJsonWriter& json, ScriptBundle* bundle) {
+		WriteData(json, bundle->data);
+	}
+
+	class ImplWorker : public Worker {
+		using Worker::Worker;
+
+		std::unordered_map<uint64_t, std::vector<ScriptBundle*>> bundles{};
+
+		void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
+			bundles.clear();
+		}
+
+		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
+			ScriptBundle* asset{ (ScriptBundle*)ptr };
+
+			// most likely added because it is inside the scr strings
+			const char* ename{ hashutils::ExtractPtr(asset->name) };
+
+			if (!ename) {
+				/*
+				const char* cname{ hashutils::ExtractPtr(asset->category) };
+				if (cname) {
+					constexpr uint64_t nameHash = hash::Hash64("name");
+					for (size_t i = 0; i < asset->data.count; i++) {
+						if (asset->data.names[i] == nameHash) {
+							ScriptBundleObjectDef* def{ asset->data.defs + i };
+							if (def->type == SBT_STRING) {
+								// try to craft the
+								const char* like{ utils::va("%s:%s", cname, def->value.str) };
+								if (hash::HashIWAsset(like) == asset->name) {
+									hashutils::Add(like, true, true);
+								}
+								break;
+							}
+						}
+					}
+
+
+				}*/
+				if (!ename) {
+					bundles[asset->category].push_back(asset);
+					return; // we don't know the name, combine it
+				}
+			}
+
+			char* name{ utils::MapString(utils::va("%s.json", ename), [](char c) -> char { return c == ':' ? '/' : c; }) };
+
+			std::string_view sw{ name };
+			size_t catcut{ sw.find('/') };
+			if (catcut != std::string::npos) {
+				name[catcut] = 0;
+				hashutils::AddPrecomputed(hash::Hash64(name), name); // add category to know categories
+				name[catcut] = '/';
+			}
+
+			std::filesystem::path outFile{ opt.m_output / "bo7" / "source" / "scriptbundle" / name };
+
+
+			std::filesystem::create_directories(outFile.parent_path());
+
+			HandlerJsonWriter json{};
+
+			LOG_INFO("Dump scriptbundle {}", outFile.string());
+
+			WriteData(json, asset->data);
+
+			if (!json.WriteToFile(outFile)) {
+				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+		}
+
+		void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
+			if (bundles.empty()) return;
+
+			for (auto& [cat, vec] : bundles) {
+				std::filesystem::path outFile{
+					opt.m_output / "bo7" / "source" / "scriptbundle"
+					/ (cat ? hashutils::ExtractTmp("hash", cat) : "default") / "hashed"
+					/ std::format("{}.json", ctx.ffname)
+				};
+
+				std::filesystem::create_directories(outFile.parent_path());
+
+				HandlerJsonWriter json{};
+
+				std::sort(vec.begin(), vec.end(), [](ScriptBundle* a, ScriptBundle* b) -> bool { return a->name < b->name; });
+
+				LOG_INFO("Dump {} hashed scriptbundle(s) {}", vec.size(), outFile.string());
+
+				json.BeginObject();
+
+				for (ScriptBundle* bundle : vec) {
+					json.WriterFieldNameHash(bundle->name);
+					WriteBundle(json, bundle);
+				}
+
+				json.EndObject();
+
+				if (!json.WriteToFile(outFile)) {
+					LOG_ERROR("Error when dumping {}", outFile.string());
+				}
+			}
+		}
+	};
+
+	utils::MapAdder<ImplWorker, SatHashAssetType, Worker> impl{ GetWorkers(), SatHashAssetType::SATH_ASSET_SCRIPTBUNDLE, sizeof(ScriptBundle) };
+}

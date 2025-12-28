@@ -1,5 +1,5 @@
 #pragma once
-#include <tools/gsc_opcodes_load.hpp>
+#include <tools/gsc/gsc_opcodes_load.hpp>
 
 namespace compatibility::xensik::decompiler {
 #ifdef GPL_BUILD
