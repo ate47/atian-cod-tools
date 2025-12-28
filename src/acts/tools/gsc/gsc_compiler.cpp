@@ -1,8 +1,8 @@
 #include <includes.hpp>
-#include "gscBaseVisitor.h"
-#include "gscLexer.h"
-#include "gscParser.h"
-#include "gscVisitor.h"
+#include <tools/gsc/compiler/gscBaseVisitor.h>
+#include <tools/gsc/compiler/gscLexer.h>
+#include <tools/gsc/compiler/gscParser.h>
+#include <tools/gsc/compiler/gscVisitor.h>
 #include <gsc/gsc_acts_debug.hpp>
 #include "gsc_compiler.hpp"
 #include <core/preprocessor.hpp>

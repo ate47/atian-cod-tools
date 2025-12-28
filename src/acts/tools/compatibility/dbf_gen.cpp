@@ -8,7 +8,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
-#include <tools/gsc/compiler/gsc_compiler.hpp>
+#include <tools/gsc/gsc_compiler.hpp>
 
 
 namespace {

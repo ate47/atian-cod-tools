@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 #include <tools/gsc/gsc.hpp>
-#include <tools/gsc/compiler/gsc_compiler.hpp>
+#include <tools/gsc/gsc_compiler.hpp>
 
 namespace fastfile::linker::bo4 {
 	class ScriptParseTreeWorker : public LinkerWorker {
