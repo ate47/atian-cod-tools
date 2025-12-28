@@ -201,6 +201,8 @@ namespace tool::hash::scanner {
 			HASH_SCR_T10 = 1ull << 4,
 			HASH_SCR_T10_SP = 1ull << 5,
 			HASH_SCR_T89 = 1ull << 6,
+			HASH_FNVA32 = 1ull << 7,
+			HASH_PRIME = 1ull << 8,
 
 			HASH_BLACKOPS4 = HASH_FNVA,
 			HASH_BLACKOPS4SCR = HASH_SCR_T89,
@@ -288,6 +290,12 @@ namespace tool::hash::scanner {
 			else if (!_strcmpi(n, "fnva")) {
 				data.funcs = HASH_FNVA;
 			}
+			else if (!_strcmpi(n, "fnva32")) {
+				data.funcs = HASH_FNVA32;
+			}
+			else if (!_strcmpi(n, "prime")) {
+				data.funcs = HASH_PRIME;
+			}
 			else if (!_strcmpi(n, "all")) {
 				data.funcs = HASH_ALL;
 			}
@@ -312,6 +320,8 @@ namespace tool::hash::scanner {
 			if (!data.prefix && !data.suffix) {
 				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 					if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(str), str);
+					if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(str), str);
+					if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(str), str);
 					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(str), str);
 					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSP(str), str);
 					if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89Scr(str), str);
@@ -325,6 +335,8 @@ namespace tool::hash::scanner {
 					// prefix + suffix
 					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 						if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(data->suffix, ::hash::Hash64A(str, ::hash::Hash64A(data->prefix))), str);
+						if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(data->suffix, ::hash::HashX32(str, ::hash::HashX32(data->prefix))), str);
+						if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(data->suffix, ::hash::HashPrime(str, ::hash::HashPrime(data->prefix))), str);
 						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(data->suffix, ::hash::HashT10Scr(str, ::hash::HashT10Scr(data->prefix))), str);
 						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(data->suffix, ::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(data->prefix)))), str);
 						if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(data->suffix, ::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(data->prefix)))), str);
@@ -337,6 +349,8 @@ namespace tool::hash::scanner {
 					// prefix only
 					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 						if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(str, ::hash::Hash64A(data->prefix)), str);
+						if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(str, ::hash::HashX32(data->prefix)), str);
+						if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(str, ::hash::HashPrime(data->prefix)), str);
 						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(str, ::hash::HashT10Scr(data->prefix)), str);
 						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(data->prefix))), str);
 						if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(data->prefix))), str);
@@ -350,6 +364,8 @@ namespace tool::hash::scanner {
 				// suffix only
 				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
 					if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(data->suffix, ::hash::Hash64A(str)), str);
+					if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(data->suffix, ::hash::HashX32(str)), str);
+					if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(data->suffix, ::hash::HashPrime(str)), str);
 					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(data->suffix, ::hash::HashT10Scr(str)), str);
 					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(data->suffix, ::hash::HashT10ScrSPPre(str))), str);
 					if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(data->suffix, ::hash::HashT89ScrPre(str))), str);
@@ -457,6 +473,8 @@ namespace tool::hash::scanner {
 			template<bool prefix, bool suffix, bool midc>
 			inline void TestHashes(const char** str) {
 				class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return ::hash::Hash64A(str, base); } };
+				class HashFnv1a32 { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_32_PRIME) { return ::hash::HashX32(str, base); } };
+				class HashPrime { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 5381) { return ::hash::HashPrime(str, (uint32_t)base); } };
 				class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10Scr(str, base); } };
 				class HashT10ScrSP { public:
 					static constexpr uint64_t Hash(const char* str, uint64_t base = 0x1C2F2E3C8A257D07) { return ::hash::HashT10ScrSPPre(str, base); }
@@ -470,6 +488,8 @@ namespace tool::hash::scanner {
 				class HashIWAsset { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return ::hash::HashIWAsset(str, base); } };
 				class HashIWDVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashIWDVar(str, base); } };
 				TestHash<HashFnv1a, prefix, suffix, midc>(HASH_FNVA, str);
+				TestHash<HashFnv1a32, prefix, suffix, midc>(HASH_FNVA32, str);
+				TestHash<HashPrime, prefix, suffix, midc>(HASH_PRIME, str);
 				TestHash<HashT10Scr, prefix, suffix, midc>(HASH_SCR_T10, str);
 				TestHash<HashT10ScrSP, prefix, suffix, midc, true>(HASH_SCR_T10_SP, str);
 				TestHash<HashT89Scr, prefix, suffix, midc, true>(HASH_SCR_T89, str);
@@ -557,6 +577,15 @@ namespace tool::hash::scanner {
 			}
 			else if (!_strcmpi(n, "iw")) {
 				data.funcs = HASH_IW;
+			}
+			else if (!_strcmpi(n, "FNVA")) {
+				data.funcs = HASH_FNVA;
+			}
+			else if (!_strcmpi(n, "FNVA32")) {
+				data.funcs = HASH_FNVA32;
+			}
+			else if (!_strcmpi(n, "prime")) {
+				data.funcs = HASH_PRIME;
 			}
 			else if (!_strcmpi(n, "all")) {
 				data.funcs = HASH_ALL;
