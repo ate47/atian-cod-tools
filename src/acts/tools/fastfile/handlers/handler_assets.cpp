@@ -107,11 +107,7 @@ namespace fastfile::handlers::assets {
 					throw std::runtime_error(std::format("Invalid gameid {}", GetGameIdName(opt.m_gameId)));
 				}
 
-				std::string fftype{ ctx.ffname };
-				size_t fdd{ fftype.find('_') };
-				if (fdd != std::string::npos) {
-					fftype.resize(fdd);
-				}
+				const char* fftype{ ctx.GetFFType() };
 				std::filesystem::path outStrings{ opt.m_output / "assetlist" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
 
 				if (gcx.list.strings) {

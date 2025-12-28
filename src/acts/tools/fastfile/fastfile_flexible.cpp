@@ -75,12 +75,9 @@ namespace fastfile::flexible {
 
 
 	}
-	FlexibleFastFileChunk* FlexibleFastFileReader::GetChunk(SectionType type, bool failMissing, size_t checkSize) {
+	FlexibleFastFileChunk* FlexibleFastFileReader::GetChunk(SectionType type, bool failMissing) {
 		for (size_t i = 0; i < chunksCount; i++) {
 			if (chunks[i].type == type) {
-				if (checkSize && chunks[i].size < checkSize) {
-					throw std::runtime_error(std::format("Section too small {:x} size:0x{:x} < wanted:0x{:x}", (uint32_t)type, chunks[i].size, checkSize));
-				}
 				return &chunks[i];
 			}
 		}

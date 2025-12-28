@@ -93,10 +93,6 @@ namespace {
 		uint64_t preloadWalkSize;
 		uint64_t blockSize[8];
 		EncryptionHeader encryption;
-
-		void Print() {
-			LOG_INFO("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", size, fileSize, preloadWalkSize);
-		}
 	}; static_assert(sizeof(DB_FFHeaderMW19) == 0x88);
 
 	struct DB_FFHeaderMWII {
@@ -129,15 +125,6 @@ namespace {
 		uint64_t preloadWalkSize;
 		uint64_t blockSize[16];
 		EncryptionHeader encrypt;
-
-
-		void Print() {
-			LOG_INFO("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", size, fileSize, preloadWalkSize);
-			LOG_INFO("timestamp:{}, unk20:0x{:x}({}) / unk24:0x{:x}/({})", timestamp, unk20, unk20, unk24, unk24);
-			LOG_INFO("unk28:0x{:x} unk30:0x{:x}", unk28, unk30);
-			LOG_INFO("Blocks: {}", utils::data::ArrayAsString<uint64_t>(blockSize, ARRAYSIZE(blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
-			LOG_INFO("isEncrypted: {}", encrypt.isEncrypted ? "true" : "false");
-		}
 	}; static_assert(sizeof(DB_FFHeaderMWIII) == 0xe0);
 
 	struct DB_FFHeaderBO6 {
@@ -155,12 +142,6 @@ namespace {
 		uint64_t preloadWalkSize;
 		uint64_t blockSize[16];
 		EncryptionHeader encrypt;
-
-		void Print() {
-			LOG_INFO("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", size, fileSize, preloadWalkSize);
-			LOG_INFO("Blocks: {}", utils::data::ArrayAsString<uint64_t>(blockSize, ARRAYSIZE(blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
-			LOG_INFO("isEncrypted: {}", encrypt.isEncrypted ? "true" : "false");
-		}
 	}; static_assert(sizeof(DB_FFHeaderBO6) == 0xe0);
 
 	union IWFastFileHeader {
@@ -181,18 +162,32 @@ namespace {
 		}
 	}
 
-	void PrintHeader(DB_FFHeader* header, const char* title, bool ffHeader) {
+	void WriteHeaderFile_(utils::OutFileCE& header, std::string&& str) {
+		if (*header) {
+			header << str << "\n";
+		}
+		else {
+			LOG_INFO("{}", str);
+		}
+	}
+#define WriteHeaderFile(...) WriteHeaderFile_(hos, std::format(__VA_ARGS__))
+
+
+	void PrintHeader(utils::OutFileCE& hos, DB_FFHeader* header, const char* title, bool ffHeader) {
 		char type{ FFMagicType(header->magic) };
-		LOG_INFO("---- {}{} header {}{} ----", cli::clicolor::COLOR_RED, ffHeader ? "ff" : "fp", title, cli::clicolor::CD_RESET);
-		LOG_INFO("version: 0x{:x} / 0x{:x}", header->headerVersion, header->xfileVersion);
-		LOG_INFO("flags: 0x{:x}, plt: {}", header->flags, type);
+		WriteHeaderFile("---- {}{} header {}{} ----", cli::clicolor::COLOR_RED, ffHeader ? "ff" : "fp", title, cli::clicolor::CD_RESET);
+		WriteHeaderFile("version: 0x{:x} / 0x{:x}", header->headerVersion, header->xfileVersion);
+		WriteHeaderFile("flags: 0x{:x}, plt: {}", header->flags, type);
 
 		if (ffHeader) {
+			IWFastFileHeader& h{ *(IWFastFileHeader*)header };
 			switch (header->headerVersion) {
 			case IWFV_BO6:
 				switch (header->xfileVersion) {
 				case 1:
-					((IWFastFileHeader*)header)->bo6.Print();
+					WriteHeaderFile("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", h.bo6.size, h.bo6.fileSize, h.bo6.preloadWalkSize);
+					WriteHeaderFile("Blocks: {}", utils::data::ArrayAsString<uint64_t>(h.bo6.blockSize, ARRAYSIZE(h.bo6.blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
+					WriteHeaderFile("isEncrypted: {}", h.bo6.encrypt.isEncrypted ? "true" : "false");
 					break;
 				default:
 					LOG_WARNING("Unknown header data: headerVersion=0x{:x}/xfileVersion=0x{:x}", header->headerVersion, header->xfileVersion);
@@ -200,25 +195,30 @@ namespace {
 				}
 				break;
 			case IWFV_MW19:
-				((IWFastFileHeader*)header)->mw19.Print();
+				WriteHeaderFile("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", h.mw19.size, h.mw19.fileSize, h.mw19.preloadWalkSize);
 				return;
 			case IWFV_MW23:
-				((IWFastFileHeader*)header)->mwiii.Print();
+				WriteHeaderFile("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", h.mwiii.size, h.mwiii.fileSize, h.mwiii.preloadWalkSize);
+				WriteHeaderFile("timestamp:{}, unk20:0x{:x}({}) / unk24:0x{:x}/({})", h.mwiii.timestamp, h.mwiii.unk20, h.mwiii.unk20, h.mwiii.unk24, h.mwiii.unk24);
+				WriteHeaderFile("unk28:0x{:x} unk30:0x{:x}", h.mwiii.unk28, h.mwiii.unk30);
+				WriteHeaderFile("Blocks: {}", utils::data::ArrayAsString<uint64_t>(h.mwiii.blockSize, ARRAYSIZE(h.mwiii.blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
+				WriteHeaderFile("isEncrypted: {}", h.mwiii.encrypt.isEncrypted ? "true" : "false");
 				return;
 			default:
-				LOG_INFO("unk14:0x{:x}", header->unk14);
-				LOG_INFO("unk18:0x{:x}({}) / unk1c:0x{:x}/({})", header->unk18, header->unk18, header->unk1c, header->unk1c);
-				LOG_INFO("unk20:0x{:x}({}) / unk24:0x{:x}/({})", header->unk20, header->unk20, header->unk24, header->unk24);
-				LOG_INFO("unk28:0x{:x}({}) / unk2c:0x{:x}/({})", header->unk28, header->unk28, header->unk2c, header->unk2c);
-				LOG_INFO("unk30:0x{:x}({}) / unk34:0x{:x}/({})", header->unk30, header->unk30, header->unk34, header->unk34);
+				WriteHeaderFile("unk14:0x{:x}", header->unk14);
+				WriteHeaderFile("unk18:0x{:x}({}) / unk1c:0x{:x}/({})", header->unk18, header->unk18, header->unk1c, header->unk1c);
+				WriteHeaderFile("unk20:0x{:x}({}) / unk24:0x{:x}/({})", header->unk20, header->unk20, header->unk24, header->unk24);
+				WriteHeaderFile("unk28:0x{:x}({}) / unk2c:0x{:x}/({})", header->unk28, header->unk28, header->unk2c, header->unk2c);
+				WriteHeaderFile("unk30:0x{:x}({}) / unk34:0x{:x}/({})", header->unk30, header->unk30, header->unk34, header->unk34);
 				LOG_WARNING("Unknown header data: headerVersion=0x{:x}/xfileVersion=0x{:x}", header->headerVersion, header->xfileVersion);
 				break;
 			}
 		}
 	}
-	void ReadTafHeader(core::bytebuffer::ByteBuffer& reader, const char* type, const char* filename) {
+
+	void ReadTafHeader(utils::OutFileCE& hos, core::bytebuffer::ByteBuffer& reader, const char* type, const char* filename) {
 		if (reader.CanRead(sizeof(uint32_t))) {
-			LOG_INFO("---- {}{} pack header{} ----", cli::clicolor::COLOR_RED, type, cli::clicolor::CD_RESET);
+			WriteHeaderFile("---- {}{} pack header{} ----", cli::clicolor::COLOR_RED, type, cli::clicolor::CD_RESET);
 			uint32_t tafMagic{ *reader.Ptr<uint32_t>() };
 
 			if (fastfile::flexible::IsFlexibleDataMagic(tafMagic)) {
@@ -230,24 +230,48 @@ namespace {
 				// flexible data
 				freader.ReadHeader(reader, &secure);
 
-				fastfile::flexible::PFFIWDeps* deps{ freader.GetChunkVal<fastfile::flexible::PFFIWDeps>(fastfile::flexible::ST_IW_DEPS, false) };
-				fastfile::flexible::PFFIWChecksums* checksums{ freader.GetChunkVal<fastfile::flexible::PFFIWChecksums>(fastfile::flexible::ST_IW_FASTFILE_CHECKSUM, false) };
-				fastfile::flexible::PFFIW_0xc95c6b9c* iw0xc95c6b9c{ freader.GetChunkVal<fastfile::flexible::PFFIW_0xc95c6b9c>(fastfile::flexible::ST_IW_UNK_0xc95c6b9c, false) };
-
-				if (deps) {
-					LOG_INFO("ff header iw deps: 0x{:x} 0x{:x}", deps->fastfileHash, deps->unk8);
-				}
-
-				if (checksums) {
-					LOG_INFO(
-						"ff header iw checksums: loaded:{} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
-						checksums->loaded ? "true" : "false",
-						checksums->checksum[0], checksums->checksum[1], checksums->checksum[2], checksums->checksum[3]
-					);
-				}
-
-				if (iw0xc95c6b9c) {
-					LOG_INFO("ff header iw 0xc95c6b9c: {} 0x{:x}", iw0xc95c6b9c->loaded ? "true" : "false", iw0xc95c6b9c->unk8);
+				for (fastfile::flexible::FlexibleFastFileChunk& chunk : freader) {
+					switch (chunk.type) {
+					case fastfile::flexible::ST_IW_FASTFILE_CHECKSUM: {
+						fastfile::flexible::PFFIWChecksums& checksums{ chunk.GetVal<fastfile::flexible::PFFIWChecksums>() };
+						WriteHeaderFile(
+							"ff header iw checksums: loaded:{} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+							checksums.loaded ? "true" : "false",
+							checksums.checksum[0], checksums.checksum[1], checksums.checksum[2], checksums.checksum[3]
+						);
+						break;
+					}
+					case fastfile::flexible::ST_IW_DEPS: {
+						fastfile::flexible::PFFIWDeps& deps{ chunk.GetVal<fastfile::flexible::PFFIWDeps>() };
+						WriteHeaderFile("ff header iw deps: 0x{:x} 0x{:x}", deps.fastfileHash, deps.unk8);
+						break;
+					}
+					case fastfile::flexible::ST_IW_UNK_0xc95c6b9c: {
+						fastfile::flexible::PFFIW_0xc95c6b9c& iw0xc95c6b9c{ chunk.GetVal<fastfile::flexible::PFFIW_0xc95c6b9c>() };
+						WriteHeaderFile("ff header iw 0xc95c6b9c: {} 0x{:x}", iw0xc95c6b9c.loaded ? "true" : "false", iw0xc95c6b9c.unk8);
+						break;
+					}
+					default: {
+						std::string view;
+						switch (chunk.size) {
+						case 1: view = std::format("0x{:x}", (int)chunk.GetVal<byte>()); break;
+						case 2: view = std::format("0x{:x}", chunk.GetVal<uint16_t>()); break;
+						case 4: view = std::format("0x{:x}", chunk.GetVal<uint32_t>()); break;
+						case 8: view = std::format("0x{:x}", chunk.GetVal<uint64_t>()); break;
+						default: {
+							if (chunk.size & 7) {
+								view = utils::data::AsHex(chunk.buffer, chunk.size);
+							}
+							else {
+								view = utils::data::ArrayAsString<uint64_t>((uint64_t*)chunk.buffer, chunk.size / 8, ",", "", "", [](const uint64_t& v) { return std::format("0x{:x}", v); });
+							}
+							break;
+						}
+						}
+						WriteHeaderFile("ff header iw 0x{:x}, size=0x{:x} {}", (uint32_t)chunk.type, chunk.size, view);
+						break;
+					}
+					}
 				}
 			}
 		}
@@ -326,6 +350,18 @@ namespace {
 				ST_MW22
 			};
 
+			utils::OutFileCE hos{};
+
+			if (opt.headerDump) {
+				std::filesystem::path headerDumpLoc{ std::filesystem::path{opt.headerDump} / ctx.GetFFType() / std::format("{}.txt", ctx.ffname) };
+				std::filesystem::create_directories(headerDumpLoc.parent_path());
+				hos->open(headerDumpLoc);
+				if (!hos) {
+					throw std::runtime_error(std::format("Can't open {}", headerDumpLoc.string()));
+				}
+				LOG_INFO("dump header into {}...", headerDumpLoc.string());
+			}
+
 			IWFastFileHeader ffHeader{};
 			SecureType secureType{};
 			size_t endSize{ std::string::npos };
@@ -394,8 +430,8 @@ namespace {
 			}
 
 			if (opt.m_header) {
-				PrintHeader(&ffHeader.header, "ff::header", true);
-				ReadTafHeader(reader, "ff", ctx.ffname);
+				PrintHeader(hos, &ffHeader.header, "ff::header", true);
+				ReadTafHeader(hos, reader, "ff", ctx.ffname);
 			}
 			XBlockCompressDataHeader compressDataHeader{};
 			bool secure{};
@@ -556,7 +592,7 @@ namespace {
 			}
 
 			if (opt.m_header) {
-				LOG_INFO("Decompressed size: 0x{:x}", ffdata.size());
+				WriteHeaderFile("Decompressed size: 0x{:x}", ffdata.size());
 			}
 
 			if (hasFdFile) {
@@ -644,10 +680,10 @@ namespace {
 				}
 
 				if (opt.m_header) {
-					PrintHeader(fpHeader, "fp::header", false);
-					PrintHeader(&prevHeader.header, "fp::prevHeader", true);
-					PrintHeader(&newHeader.header, "fp::newHeader", true);
-					ReadTafHeader(fpreader, "fp", ctx.ffname);
+					PrintHeader(hos, fpHeader, "fp::header", false);
+					PrintHeader(hos, &prevHeader.header, "fp::prevHeader", true);
+					PrintHeader(hos, &newHeader.header, "fp::newHeader", true);
+					ReadTafHeader(hos, fpreader, "fp", ctx.ffname);
 				}
 
 				if (!fpreader.CanRead(1)) {
@@ -844,7 +880,7 @@ namespace {
 
 			}
 			if (opt.m_header) {
-				LOG_INFO("Decompressed size: 0x{:x}", ffdata.size());
+				WriteHeaderFile("Decompressed size: 0x{:x}", ffdata.size());
 			}
 		}
 

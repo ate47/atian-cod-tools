@@ -120,11 +120,14 @@ namespace fastfile {
 	struct FastFileContext {
 		const char* file;
 		char ffname[0x100]{};
+		char fftype[0x100]{};
 		// 0x10 to have more without recompiling
 		XBlockInfo blockSizes[0x10]{};
 		size_t blocksCount{};
 		bool hasGSCBin{};
 		tool::gsc::opcode::Platform gscPlatform{ tool::gsc::opcode::PLATFORM_PC };
+
+		const char* GetFFType();
 	};
 
 	enum GameId : uint16_t {
@@ -178,6 +181,7 @@ namespace fastfile {
 		const char* ignore{};
 		const char* assets{};
 		const char* translation{};
+		const char* headerDump{};
 		bool disableScriptsDecomp{};
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };

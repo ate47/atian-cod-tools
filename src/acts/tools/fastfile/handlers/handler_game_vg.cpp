@@ -437,16 +437,11 @@ namespace fastfile::handlers::vg {
 					gcx.xstringLocs = &xstringLocs;
 				}
 
-				std::string fftype{ ctx.ffname };
-				size_t fdd{ fftype.find('_') };
-				if (fdd != std::string::npos) {
-					fftype.resize(fdd);
-				}
-
 				for (auto& [hashType, worker] : GetWorkers()) {
 					worker->GenDefaultXHashes(&ctx);
 				}
 
+				const char* fftype{ ctx.GetFFType() };
 				std::filesystem::path outStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
 				gcx.DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
 				{

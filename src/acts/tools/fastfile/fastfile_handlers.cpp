@@ -515,6 +515,13 @@ namespace fastfile {
 			else if (!_strcmpi("--header", arg) || !strcmp("-H", arg)) {
 				m_header = true;
 			}
+			else if (!_strcmpi("--headerDump", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				headerDump = args[++i];
+			}
 			else if (!_strcmpi("--noAssetDump", arg)) {
 				noAssetDump = true;
 			}
@@ -601,6 +608,7 @@ namespace fastfile {
 		LOG_INFO("-w --wildcard [wc]     : Wildcard to match for the filename");
 		LOG_INFO("-I --ignore [path]     : Ignore a path");
 		LOG_INFO("-H --header            : Dump header info");
+		LOG_INFO("--headerDump [d]       : Dump header info into a directory");
 		LOG_INFO("-r --handler           : Handler to use (use --handlers to print)");
 		LOG_INFO("-R --handlers          : Print handlers");
 		LOG_INFO("-D --decompressors     : Print decompressors");
@@ -667,6 +675,36 @@ namespace fastfile {
 		return *gameMod;
 	}
 
+	size_t CountDiv(const char* name) {
+		size_t c{};
+		for (; *name; name++) {
+			if (*name == '_') c++;
+		}
+		return c;
+	}
+
+	const char* FastFileContext::GetFFType() {
+		if (!fftype[0]) {
+			std::string_view ffv{ ffname };
+			size_t div{ CountDiv(ffname) };
+			size_t sub{ div > 6 ? 2ull : 1ull };
+			size_t fdd{};
+			for (size_t i = 0; i < sub; i++) {
+				fdd = ffv.find('_', fdd ? fdd + 1 : fdd);
+				if (fdd == std::string::npos) {
+					fdd = ffv.size();
+				}
+			}
+			
+			std::memcpy(fftype, ffname, fdd);
+			for (size_t i = 0; i < fdd; i++) {
+				if (fftype[i] == '_') {
+					fftype[i] = '/';
+				}
+			}
+		}
+		return fftype;
+	}
 	std::vector<std::string> FastFileOption::GetFileRecurse(const char* path) {
 		std::vector<std::string> res{};
 		if (cascStorage) {
