@@ -3,6 +3,7 @@
 #include <hook/error.hpp>
 #include <hook/memory.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
+#include <tools/fastfile/fastfile_data_tre.hpp>
 #include <games/bo4/pool.hpp>
 #include <games/bo4/t8_errors.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>

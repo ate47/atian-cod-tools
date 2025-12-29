@@ -233,6 +233,13 @@ namespace games::cod::asset_names {
 		}
 
 		/*
+		 * @return the types count
+		 */
+		constexpr size_t TypesCount() const {
+			return typeMapsCount;
+		}
+
+		/*
 		 * test if an asset type config with LoadAssetConfig should be handled
 		 * @param type type
 		 * @return if the type should be handled

@@ -88,6 +88,10 @@ namespace fastfile::flexible {
 		return nullptr;
 	}
 
+	void FlexibleFastFileReader::Clear() {
+		chunksCount = 0;
+	}
+
 	FlexibleFastFileWriter::FlexibleFastFileWriter(std::vector<byte>& data, uint32_t magic) : data(data), magic(magic) {
 		utils::Allocate(data, sizeof(uint32_t) * 2); // magic + numBlock
 		if (magic == MAGIC_V2) {

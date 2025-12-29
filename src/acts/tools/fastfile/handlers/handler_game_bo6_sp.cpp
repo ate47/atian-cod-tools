@@ -150,6 +150,14 @@ namespace fastfile::handlers::bo6sp {
 			utils::OutFileCE* outAsset{};
 		} gcx{};
 
+		void AddBootsLimitAssetNames() {
+			for (size_t i = 0; i < gcx.assetNames.TypesCount(); i++) {
+				const char* n{ gcx.assetNames.GetTypeName((T10AssetType)i) };
+				if (!n) continue;
+				hashutils::AddPrecomputed(hash::Hash64A(n, 0xDA800D9CA00C6B4F), n, true);
+			}
+		}
+
 
 		void LoadXFileData(void* ptr, int64_t len) {
 			LOG_TRACE("LoadXFileData({}, 0x{:x}/0x{:x}) {}", ptr, len, gcx.reader->Remaining(), hook::library::CodePointer{_ReturnAddress()});
@@ -365,6 +373,7 @@ namespace fastfile::handlers::bo6sp {
 
 				// should be done before the handleList to have the hashes loaded
 				gcx.assetNames.InitMap(lib);
+				AddBootsLimitAssetNames();
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "bo6";
 				dumpOpts.assetHashedName = "T10HashAssetType";

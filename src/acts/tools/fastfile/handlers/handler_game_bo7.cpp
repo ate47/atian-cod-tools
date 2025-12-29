@@ -149,6 +149,14 @@ namespace fastfile::handlers::bo7 {
 			utils::OutFileCE* outAsset{};
 		} gcx{};
 
+		void AddBootsLimitAssetNames() {
+			for (size_t i = 0; i < gcx.assetNames.TypesCount(); i++) {
+				const char* n{ gcx.assetNames.GetTypeName((HandlerAssetType)i) };
+				if (!n) continue;
+				uint64_t h{ hash::Hash64A(n, 0xDA800D9CA00C6B4FULL, 0x100000001B3) };
+				n = hashutils::AddPrecomputed(h, n, true);
+			}
+		}
 
 		void LoadXFileData(DBLoadCtx* context, void* ptr, int64_t len) {
 			LOG_TRACE("LoadXFileData({}, {}) {}", ptr, len, hook::library::CodePointer{ _ReturnAddress() });
@@ -365,6 +373,7 @@ namespace fastfile::handlers::bo7 {
 
 				// should be done before the handleList to have the hashes loaded
 				gcx.assetNames.InitMap(lib);
+				AddBootsLimitAssetNames();
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "bo7";
 				dumpOpts.assetHashedName= "SatHashedAssetType";

@@ -2,6 +2,7 @@
 #include <core/bytebuffer.hpp>
 #include <utils/compress_utils.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
+#include <tools/fastfile/fastfile_data_tre.hpp>
 
 /*
  List:

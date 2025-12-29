@@ -76,42 +76,6 @@ namespace fastfile {
 	}
 
 	namespace {
-		const char* tFFNames[]{
-			"none",
-			"zlib",
-			"zlib_hc",
-			"lz4",
-			"lz4_hc",
-			"bdelta_uncomp",
-			"bdelta_zlib",
-			"bdelta_lzma",
-			"oodle_kraken",
-			"oodle_mermaid",
-			"oodle_selkie",
-			"oodle_lzna",
-		};
-		const char* iwFFNames[]{
-			"invalid",
-			"none",
-			"zlib_size",
-			"zlib_speed",
-			"lz4_hc",
-			"lz4",
-			"oodle_kraken_size",
-			"oodle_kraken_speed",
-			"hw_zlib_size",
-			"hw_zlib_speed",
-			"ps4_zlib_size",
-			"ps4_zlib_spreed",
-			"oodle_leviathan_size",
-			"oodle_leviathan_speed",
-			"oodle_mermaid_size",
-			"oodle_mermaid_speed",
-			"oodle_selkie_size",
-			"oodle_selkie_speed",
-			"zstd_size",
-			"zstd_speed",
-		};
 		const char* ffPltNames[]{
 			"pc",
 			"xbox",
@@ -159,19 +123,13 @@ namespace fastfile {
 		return *currentOpt;
 	}
 
-	const char* GetFastFileCompressionName(FastFileCompression comp) {
-		if (comp >= ARRAYSIZE(tFFNames) || comp < 0) {
-			return "unknown";
+	FastFilePlatform GetFastFilePlatform(const char* name) {
+		for (size_t i = 0; i < ARRAYSIZE(ffPltNames); i++) {
+			if (!_strcmpi(ffPltNames[i], name)) {
+				return (FastFilePlatform)i;
+			}
 		}
-		return tFFNames[comp];
-	}
-
-	const char* GetFastFileCompressionName(FastFileIWCompression comp) {
-
-		if (comp >= ARRAYSIZE(iwFFNames) || comp < 0) {
-			return "unknown";
-		}
-		return iwFFNames[comp];
+		return FastFilePlatform::XFILE_PLATFORM_COUNT;
 	}
 
 	const char* GetFastFilePlatformName(FastFilePlatform plt) {
@@ -195,33 +153,6 @@ namespace fastfile {
 		return gameRevIdNames[plt];
 	}
 
-	FastFileIWCompression GetFastFileIWCompression(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(iwFFNames); i++) {
-			if (!_strcmpi(iwFFNames[i], name)) {
-				return (FastFileIWCompression)i;
-			}
-		}
-		return FastFileIWCompression::IWFFC_COUNT;
-	}
-
-	FastFileCompression GetFastFileCompression(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(tFFNames); i++) {
-			if (!_strcmpi(tFFNames[i], name)) {
-				return (FastFileCompression)i;
-			}
-		}
-		return FastFileCompression::XFILE_COMPRESSION_COUNT;
-	}
-
-	FastFilePlatform GetFastFilePlatform(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(ffPltNames); i++) {
-			if (!_strcmpi(ffPltNames[i], name)) {
-				return (FastFilePlatform)i;
-			}
-		}
-		return FastFilePlatform::XFILE_PLATFORM_COUNT;
-	}
-
 	GameId GetGameId(const char* name) {
 		for (size_t i = 0; i < ARRAYSIZE(gameIdNames); i++) {
 			if (!_strcmpi(gameIdNames[i], name)) {
@@ -238,72 +169,6 @@ namespace fastfile {
 			}
 		}
 		return GameRevId::GRID_DEFAULT;
-	}
-
-	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp) {
-		switch (comp) {
-		case fastfile::XFILE_UNCOMPRESSED:
-			return utils::compress::COMP_NONE;
-		case fastfile::XFILE_ZLIB:
-			return utils::compress::COMP_ZLIB;
-		case fastfile::XFILE_ZLIB_HC:
-			return utils::compress::COMP_ZLIB | utils::compress::COMP_HIGH_COMPRESSION;
-		case fastfile::XFILE_LZ4:
-			return utils::compress::COMP_LZ4;
-		case fastfile::XFILE_LZ4_HC:
-			return utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION;
-		case fastfile::XFILE_OODLE_KRAKEN:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_KRAKEN;
-		case fastfile::XFILE_OODLE_MERMAID:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_MERMAID;
-		case fastfile::XFILE_OODLE_SELKIE:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_SELKIE;
-		case fastfile::XFILE_OODLE_LZNA:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_LZNA;
-		default:
-			throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)comp));
-		}
-	}
-
-	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileIWCompression comp) {
-		switch (comp) {
-		case fastfile::IWFFC_NONE:
-			return utils::compress::COMP_NONE;
-		case fastfile::IWFFC_LZ4:
-			return utils::compress::COMP_LZ4;
-		case fastfile::IWFFC_LZ4_HC:
-			return utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION;
-		case IWFFC_ZLIB_SIZE:
-		case IWFFC_HW_ZLIB_SIZE:
-		case IWFFC_PS4_ZLIB_SIZE:
-			return utils::compress::COMP_ZLIB | utils::compress::COMP_HIGH_COMPRESSION;
-		case IWFFC_ZLIB_SPEED:
-		case IWFFC_HW_ZLIB_SPEED:
-		case IWFFC_PS4_ZLIB_SPREED:
-			return utils::compress::COMP_ZLIB;
-		case IWFFC_OODLE_KRAKEN_SIZE:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_KRAKEN | utils::compress::COMP_HIGH_COMPRESSION;
-		case IWFFC_OODLE_KRAKEN_SPEED:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_KRAKEN;
-		case IWFFC_OODLE_LEVIATHAN_SIZE:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_LEVIATHAN | utils::compress::COMP_HIGH_COMPRESSION;
-		case IWFFC_OODLE_LEVIATHAN_SPEED:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_LEVIATHAN;
-		case IWFFC_OODLE_MERMAID_SIZE:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_MERMAID | utils::compress::COMP_HIGH_COMPRESSION;
-		case IWFFC_OODLE_MERMAID_SPEED:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_MERMAID;
-		case IWFFC_OODLE_SELKIE_SIZE:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_SELKIE | utils::compress::COMP_HIGH_COMPRESSION;
-		case IWFFC_OODLE_SELKIE_SPEED:
-			return utils::compress::COMP_OODLE | utils::compress::COMP_OODLE_TYPE_SELKIE;
-		case IWFFC_ZSTD_SIZE:
-			return utils::compress::COMP_ZSTD | utils::compress::COMP_HIGH_COMPRESSION;
-		case IWFFC_ZSTD_SPEED:
-			return utils::compress::COMP_ZSTD;
-		default:
-			throw std::runtime_error(std::format("No fastfile decompressor for type {}", (int)comp));
-		}
 	}
 
 	FastFileLinkerOption::~FastFileLinkerOption() {}

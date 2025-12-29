@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
+#include <tools/fastfile/fastfile_data_tre.hpp>
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>

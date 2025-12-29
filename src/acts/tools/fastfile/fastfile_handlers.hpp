@@ -7,6 +7,7 @@
 #include <utils/compress_utils.hpp>
 #define LTC_NO_PROTOTYPES
 #include <tomcrypt.h>
+#include <tools/fastfile/fastfile_flexible.hpp>
 
 namespace fastfile {
 	template<typename T>
@@ -19,12 +20,13 @@ namespace fastfile {
 	// data after, expect to allocate a virtual alias
 	constexpr uintptr_t ALLOC_REF_PTR = static_cast<uintptr_t>(-2);
 
-	struct DBStreamHeader {
-		uint32_t compressedSize;
-		uint32_t uncompressedSize;
-		uint32_t alignedSize;
-		uint32_t offset;
-	}; static_assert(sizeof(DBStreamHeader) == 0x10);
+	enum FastFilePlatform : byte {
+		XFILE_PC = 0x0,
+		XFILE_XBOX = 0x1,
+		XFILE_PLAYSTATION = 0x2,
+		XFILE_DEV = 0x3,
+		XFILE_PLATFORM_COUNT = 0x4,
+	};
 
 	struct XBlockCompressionBlockHeader {
 		uint32_t compressedSize;
@@ -32,21 +34,6 @@ namespace fastfile {
 		uint32_t encryptionCTR;
 	}; static_assert(sizeof(XBlockCompressionBlockHeader) == 0xc);
 
-	enum FastFileCompression : byte {
-		XFILE_UNCOMPRESSED = 0x0,
-		XFILE_ZLIB = 0x1,
-		XFILE_ZLIB_HC = 0x2,
-		XFILE_LZ4 = 0x3,
-		XFILE_LZ4_HC = 0x4,
-		XFILE_BDELTA_UNCOMP = 0x5,
-		XFILE_BDELTA_ZLIB = 0x6,
-		XFILE_BDELTA_LZMA = 0x7,
-		XFILE_OODLE_KRAKEN = 0x8,
-		XFILE_OODLE_MERMAID = 0x9,
-		XFILE_OODLE_SELKIE = 0xA,
-		XFILE_OODLE_LZNA = 0xB,
-		XFILE_COMPRESSION_COUNT = 0xC,
-	};
 
 	enum FastFileIWCompression : byte {
 		IWFFC_INVALID = 0,
@@ -78,36 +65,6 @@ namespace fastfile {
 		// DEV ERROR 664 -> Unknown block compression type
 	};
 
-	enum FastFilePlatform : byte {
-		XFILE_PC = 0x0,
-		XFILE_XBOX = 0x1,
-		XFILE_PLAYSTATION = 0x2,
-		XFILE_DEV = 0x3,
-		XFILE_PLATFORM_COUNT = 0x4,
-	};
-
-
-	struct TXFileHeader {
-		uint8_t magic[8];
-		uint32_t version;
-		uint8_t server;
-		fastfile::FastFileCompression compression;
-		fastfile::FastFilePlatform platform;
-		uint8_t encrypted;
-		uint64_t timestamp;
-		uint32_t changelist;
-		uint32_t archiveChecksum[4];
-		char builder[32];
-	};
-	struct TX32FileHeader {
-		uint8_t magic[4];
-		uint32_t version;
-		uint8_t server;
-		fastfile::FastFileCompression compression;
-		uint8_t platform;
-		uint8_t encrypted;
-	};
-
 	class FFHandler;
 	class FFCompressor;
 	class FFLinker;
@@ -121,6 +78,7 @@ namespace fastfile {
 		const char* file;
 		char ffname[0x100]{};
 		char fftype[0x100]{};
+		fastfile::flexible::FlexibleFastFileReader flexibleHeaderData{};
 		// 0x10 to have more without recompiling
 		XBlockInfo blockSizes[0x10]{};
 		size_t blocksCount{};
@@ -335,15 +293,10 @@ namespace fastfile {
 
 		virtual void Handle(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx) = 0;
 	};
-
-	const char* GetFastFileCompressionName(FastFileIWCompression comp);
-	const char* GetFastFileCompressionName(FastFileCompression comp);
 	const char* GetFastFilePlatformName(FastFilePlatform comp);
 	const char* GetGameIdName(GameId id);
 	const char* GetGameRevIdName(GameRevId rev);
 
-	FastFileIWCompression GetFastFileIWCompression(const char* name);
-	FastFileCompression GetFastFileCompression(const char* name);
 	FastFilePlatform GetFastFilePlatform(const char* name);
 	GameRevId GetGameRevId(const char* name);
 
@@ -358,7 +311,4 @@ namespace fastfile {
 	FFLinker* FindLinker(const char* name);
 	fastfile::FastFileContext& GetCurrentContext();
 	fastfile::FastFileOption& GetCurrentOptions();
-
-	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp);
-	utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileIWCompression comp);
 }

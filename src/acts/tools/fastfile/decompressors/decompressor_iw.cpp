@@ -3,7 +3,7 @@
 #include <hook/memory.hpp>
 #include <hook/error.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
-#include <tools/fastfile/fastfile_flexible.hpp>
+#include <tools/fastfile/fastfile_data_iw.hpp>
 #include <games/bo4/pool.hpp>
 #include <utils/compress_utils.hpp>
 #include <utils/data_utils.hpp>
@@ -186,6 +186,7 @@ namespace {
 				switch (header->xfileVersion) {
 				case 1:
 					WriteHeaderFile("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", h.bo6.size, h.bo6.fileSize, h.bo6.preloadWalkSize);
+					WriteHeaderFile("unk18:0x{:x} unk20:0x{:x} unk24:0x{:x} unk28:0x{:x} unk30:0x{:x}", h.bo6.unk18, h.bo6.unk20, h.bo6.unk24, h.bo6.unk28, h.bo6.unk30);
 					WriteHeaderFile("Blocks: {}", utils::data::ArrayAsString<uint64_t>(h.bo6.blockSize, ARRAYSIZE(h.bo6.blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
 					WriteHeaderFile("isEncrypted: {}", h.bo6.encrypt.isEncrypted ? "true" : "false");
 					break;
@@ -216,63 +217,61 @@ namespace {
 		}
 	}
 
-	void ReadTafHeader(utils::OutFileCE& hos, core::bytebuffer::ByteBuffer& reader, const char* type, const char* filename) {
-		if (reader.CanRead(sizeof(uint32_t))) {
-			WriteHeaderFile("---- {}{} pack header{} ----", cli::clicolor::COLOR_RED, type, cli::clicolor::CD_RESET);
-			uint32_t tafMagic{ *reader.Ptr<uint32_t>() };
-
-			if (fastfile::flexible::IsFlexibleDataMagic(tafMagic)) {
-
-				fastfile::flexible::FlexibleFastFileReader freader{};
-				fastfile::flexible::TAFASecureInfo secure{};
-				secure.fastfileName = filename;
-				secure.rsaKeyName = "iw";
-				// flexible data
-				freader.ReadHeader(reader, &secure);
-
-				for (fastfile::flexible::FlexibleFastFileChunk& chunk : freader) {
-					switch (chunk.type) {
-					case fastfile::flexible::ST_IW_FASTFILE_CHECKSUM: {
-						fastfile::flexible::PFFIWChecksums& checksums{ chunk.GetVal<fastfile::flexible::PFFIWChecksums>() };
-						WriteHeaderFile(
-							"ff header iw checksums: loaded:{} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
-							checksums.loaded ? "true" : "false",
-							checksums.checksum[0], checksums.checksum[1], checksums.checksum[2], checksums.checksum[3]
-						);
-						break;
-					}
-					case fastfile::flexible::ST_IW_DEPS: {
-						fastfile::flexible::PFFIWDeps& deps{ chunk.GetVal<fastfile::flexible::PFFIWDeps>() };
-						WriteHeaderFile("ff header iw deps: 0x{:x} 0x{:x}", deps.fastfileHash, deps.unk8);
-						break;
-					}
-					case fastfile::flexible::ST_IW_UNK_0xc95c6b9c: {
-						fastfile::flexible::PFFIW_0xc95c6b9c& iw0xc95c6b9c{ chunk.GetVal<fastfile::flexible::PFFIW_0xc95c6b9c>() };
-						WriteHeaderFile("ff header iw 0xc95c6b9c: {} 0x{:x}", iw0xc95c6b9c.loaded ? "true" : "false", iw0xc95c6b9c.unk8);
-						break;
-					}
-					default: {
-						std::string view;
-						switch (chunk.size) {
-						case 1: view = std::format("0x{:x}", (int)chunk.GetVal<byte>()); break;
-						case 2: view = std::format("0x{:x}", chunk.GetVal<uint16_t>()); break;
-						case 4: view = std::format("0x{:x}", chunk.GetVal<uint32_t>()); break;
-						case 8: view = std::format("0x{:x}", chunk.GetVal<uint64_t>()); break;
-						default: {
-							if (chunk.size & 7) {
-								view = utils::data::AsHex(chunk.buffer, chunk.size);
-							}
-							else {
-								view = utils::data::ArrayAsString<uint64_t>((uint64_t*)chunk.buffer, chunk.size / 8, ",", "", "", [](const uint64_t& v) { return std::format("0x{:x}", v); });
-							}
-							break;
-						}
-						}
-						WriteHeaderFile("ff header iw 0x{:x}, size=0x{:x} {}", (uint32_t)chunk.type, chunk.size, view);
-						break;
-					}
-					}
+	void DumpTafHeader(utils::OutFileCE& hos, fastfile::flexible::FlexibleFastFileReader& freader, const char* type) {
+		if (freader.begin() == freader.end()) {
+			return; // no data
+		}
+		WriteHeaderFile("---- {}{} pack header{} ----", cli::clicolor::COLOR_RED, type, cli::clicolor::CD_RESET);
+		for (fastfile::flexible::FlexibleFastFileChunk& chunk : freader) {
+			switch (chunk.type) {
+			case fastfile::flexible::ST_IW_FASTFILE_CHECKSUM: {
+				fastfile::flexible::PFFIWChecksums& checksums{ chunk.GetVal<fastfile::flexible::PFFIWChecksums>() };
+				WriteHeaderFile(
+					"ff header iw checksums: loaded:{} 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
+					checksums.loaded ? "true" : "false",
+					checksums.checksum[0], checksums.checksum[1], checksums.checksum[2], checksums.checksum[3]
+				);
+				break;
+			}
+			case fastfile::flexible::ST_IW_DEPS: {
+				fastfile::flexible::PFFIWDeps& deps{ chunk.GetVal<fastfile::flexible::PFFIWDeps>() };
+				WriteHeaderFile("ff header iw deps: 0x{:x} 0x{:x}", deps.fastfileHash, deps.unk8);
+				break;
+			}
+			case fastfile::flexible::ST_IW_UNK_0xc95c6b9c: {
+				fastfile::flexible::PFFIW_0xc95c6b9c& iw0xc95c6b9c{ chunk.GetVal<fastfile::flexible::PFFIW_0xc95c6b9c>() };
+				WriteHeaderFile("ff header iw 0xc95c6b9c: {} 0x{:x}", iw0xc95c6b9c.loaded ? "true" : "false", iw0xc95c6b9c.unk8);
+				break;
+			}
+			case fastfile::flexible::ST_IW_BOOT_INFO: {
+				fastfile::flexible::PFFIWBootInfo& info{ chunk.GetVal<fastfile::flexible::PFFIWBootInfo>() };
+				WriteHeaderFile("ff header iw boot info: {}/{} (0x{:x}/0x{:x})", hashutils::ExtractTmp("hash", info.projectName), hashutils::ExtractTmp("hash", info.unk8), info.unk10, info.unk18);
+				for (size_t i = 0; i < info.count; i++) {
+					fastfile::flexible::PFFIWBootInfoAssetLimit& limit{ info.assetLimits[i] };
+					WriteHeaderFile("-- limit {} : 0x{:x} ({})", hashutils::ExtractTmp("hash", limit.assetName), limit.limit, limit.limit);
 				}
+				break;
+			}
+			default: {
+				std::string view;
+				switch (chunk.size) {
+				case 1: view = std::format("0x{:x}", (int)chunk.GetVal<byte>()); break;
+				case 2: view = std::format("0x{:x}", chunk.GetVal<uint16_t>()); break;
+				case 4: view = std::format("0x{:x}", chunk.GetVal<uint32_t>()); break;
+				case 8: view = std::format("0x{:x}", chunk.GetVal<uint64_t>()); break;
+				default: {
+					if (chunk.size & 7) {
+						view = utils::data::AsHex(chunk.buffer, chunk.size);
+					}
+					else {
+						view = utils::data::ArrayAsString<uint64_t>((uint64_t*)chunk.buffer, chunk.size / 8, ",", "", "", [](const uint64_t& v) { return std::format("0x{:x}", v); });
+					}
+					break;
+				}
+				}
+				WriteHeaderFile("ff header iw 0x{:x}, size=0x{:x} {}", (uint32_t)chunk.type, chunk.size, view);
+				break;
+			}
 			}
 		}
 	}
@@ -429,9 +428,18 @@ namespace {
 				LOG_DEBUG("blocks[{}] = 0x{:x}", i, ctx.blockSizes[i].size);
 			}
 
+
+			if (reader.CanRead(sizeof(uint32_t)) && fastfile::flexible::IsFlexibleDataMagic(*reader.Ptr<uint32_t>())) {
+				// read flexible data
+				fastfile::flexible::TAFASecureInfo secure{};
+				secure.fastfileName = ctx.ffname;
+				secure.rsaKeyName = "iw";
+				ctx.flexibleHeaderData.ReadHeader(reader, &secure);
+			}
+
 			if (opt.m_header) {
 				PrintHeader(hos, &ffHeader.header, "ff::header", true);
-				ReadTafHeader(hos, reader, "ff", ctx.ffname);
+				DumpTafHeader(hos, ctx.flexibleHeaderData, "ff");
 			}
 			XBlockCompressDataHeader compressDataHeader{};
 			bool secure{};
@@ -679,11 +687,20 @@ namespace {
 					}
 				}
 
+
+				if (fpreader.CanRead(sizeof(uint32_t)) && fastfile::flexible::IsFlexibleDataMagic(*fpreader.Ptr<uint32_t>())) {
+					// read flexible data
+					fastfile::flexible::TAFASecureInfo secure{};
+					secure.fastfileName = ctx.ffname;
+					secure.rsaKeyName = "iw";
+					ctx.flexibleHeaderData.ReadHeader(fpreader, &secure);
+				}
+
 				if (opt.m_header) {
 					PrintHeader(hos, fpHeader, "fp::header", false);
 					PrintHeader(hos, &prevHeader.header, "fp::prevHeader", true);
 					PrintHeader(hos, &newHeader.header, "fp::newHeader", true);
-					ReadTafHeader(hos, fpreader, "fp", ctx.ffname);
+					DumpTafHeader(hos, ctx.flexibleHeaderData, "fp");
 				}
 
 				if (!fpreader.CanRead(1)) {

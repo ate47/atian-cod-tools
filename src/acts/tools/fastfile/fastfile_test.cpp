@@ -2,6 +2,7 @@
 #include <core/bytebuffer.hpp>
 #include <utils/data_utils.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
+#include <tools/fastfile/fastfile_data_tre.hpp>
 #include <sha256.h>
 
 namespace {

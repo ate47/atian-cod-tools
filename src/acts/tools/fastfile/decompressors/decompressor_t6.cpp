@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <deps/oodle.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
+#include <tools/fastfile/fastfile_data_tre.hpp>
 #include <games/bo4/pool.hpp>
 #include <Salsa20.h>
 

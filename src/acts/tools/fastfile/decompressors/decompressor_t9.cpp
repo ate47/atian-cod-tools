@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
-#include <tools/fastfile/fastfile_flexible.hpp>
+#include <tools/fastfile/fastfile_data_tre.hpp>
 #include <games/bo4/pool.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <utils/compress_utils.hpp>
@@ -100,9 +100,9 @@ namespace {
 
 	void DumpHeader(fastfile::flexible::FlexibleFastFileReader& data, const char* title) {
 		uint32_t trVersion{ data.GetTrVersion() };
-		fastfile::flexible::PFPlatformData& trPlatform{ data.GetTrPlatformData() };
-		fastfile::flexible::PFFFastFileInfo& trFastfileInfo{ data.GetTrFastFileInfo() };
-		fastfile::flexible::PFFBuildData& trBuildData{ data.GetTrBuildData() };
+		fastfile::flexible::PFPlatformData& trPlatform{ GetTrPlatformData(data) };
+		fastfile::flexible::PFFFastFileInfo& trFastfileInfo{ GetTrFastFileInfo(data) };
+		fastfile::flexible::PFFBuildData& trBuildData{ GetTrBuildData(data) };
 		LOG_INFO("{}: v{} server:{}, comp:{}, plt:{} enc:{}, bld:{}", 
 			trFastfileInfo.fastfileName, trVersion, trPlatform.server ? "true" : "false",
 			fastfile::GetFastFileCompressionName(trPlatform.compression), fastfile::GetFastFilePlatformName(trPlatform.platform),
@@ -129,8 +129,8 @@ namespace {
 				throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", trVersion));
 			}
 
-			fastfile::flexible::PFPlatformData& trPlatform{ pheader.GetTrPlatformData() };
-			fastfile::flexible::PFFFastFileInfo& trFastfileInfo{ pheader.GetTrFastFileInfo() };
+			fastfile::flexible::PFPlatformData& trPlatform{ GetTrPlatformData(pheader) };
+			fastfile::flexible::PFFFastFileInfo& trFastfileInfo{ GetTrFastFileInfo(pheader) };
 			uint64_t* trBlocks{ pheader.GetTrXBlocks() };
 			size_t trBlocksCount{ pheader.GetTrXBlocksCount() };
 
@@ -284,9 +284,9 @@ namespace {
 					newXFileHeader.ReadHeader(fdreader);
 					baseXFileHdr.ReadHeader(fdreader);
 
-					fastfile::flexible::PFPlatformData& newXFileHeaderPlatform{ newXFileHeader.GetTrPlatformData() };
-					fastfile::flexible::PFFSizeData& newXFileHeaderSizeData{ newXFileHeader.GetTrSizeData() };
-					fastfile::flexible::PFFFastFileInfo& baseXFileHdrFastfileInfo{ baseXFileHdr.GetTrFastFileInfo() };
+					fastfile::flexible::PFPlatformData& newXFileHeaderPlatform{ GetTrPlatformData(newXFileHeader) };
+					fastfile::flexible::PFFSizeData& newXFileHeaderSizeData{ GetTrSizeData(newXFileHeader) };
+					fastfile::flexible::PFFFastFileInfo& baseXFileHdrFastfileInfo{ GetTrFastFileInfo(baseXFileHdr) };
 					uint64_t* newXFileHeaderBlocks{ newXFileHeader.GetTrXBlocks() };
 					size_t newXFileHeaderBlocksCount{ newXFileHeader.GetTrXBlocksCount() };
 					

@@ -10,6 +10,7 @@
 #include <future>
 #include <BS_thread_pool.hpp>
 #include <actslib/profiler.hpp>
+#include <xxhash.h>
 
 namespace tool::hash::scanner {
 
@@ -210,6 +211,7 @@ namespace tool::hash::scanner {
 			HASH_BLACKOPS6_SP = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10_SP,
 			HASH_IW = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_JUP,
 			HASH_ALL = ~0ull,
+			HASH_ALL32 = HASH_FNVA32 | HASH_PRIME | HASH_SCR_T89,
 		};
 
 
@@ -298,6 +300,9 @@ namespace tool::hash::scanner {
 			}
 			else if (!_strcmpi(n, "all")) {
 				data.funcs = HASH_ALL;
+			}
+			else if (!_strcmpi(n, "all32")) {
+				data.funcs = HASH_ALL32;
 			}
 			else {
 				LOG_WARNING("Invalid name {}, use all hashes", n);
@@ -589,6 +594,9 @@ namespace tool::hash::scanner {
 			}
 			else if (!_strcmpi(n, "all")) {
 				data.funcs = HASH_ALL;
+			}
+			else if (!_strcmpi(n, "all32")) {
+				data.funcs = HASH_ALL32;
 			}
 			else {
 				LOG_WARNING("Invalid name {}, use all hashes", n);
