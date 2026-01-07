@@ -228,6 +228,10 @@ namespace {
 			default:
 				throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", header->version));
 			}
+			if (opt.rsaKey) {
+				rsaKeyName = opt.rsaKey;
+			}
+
 			ctx.hasGSCBin = false;
 			switch (header->platform) {
 			case fastfile::XFILE_DEV:
@@ -306,7 +310,7 @@ namespace {
 
 						int r;
 
-						if ((r = rsa_import(rsa->key, sizeof(rsa->key), &rsakey)) != CRYPT_OK) {
+						if ((r = rsa_import(rsa->key, (unsigned long)rsa->len, &rsakey)) != CRYPT_OK) {
 							throw std::runtime_error(std::format("Failed to import key {} for ff {}/{}", error_to_string(r), ctx.ffname, rsaKeyName));
 						}
 

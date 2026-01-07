@@ -140,6 +140,7 @@ namespace fastfile {
 		const char* assets{};
 		const char* translation{};
 		const char* headerDump{};
+		const char* rsaKey{};
 		bool disableScriptsDecomp{};
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };

@@ -235,6 +235,13 @@ namespace {
 				}
 				opt.aesKeys = argv[++i];
 			}
+			else if (!_strcmpi("--rsa-keys", arg)) {
+				if (i + 1 == argc) {
+					LOG_ERROR("Missing value for param: {}!", arg);
+					return false;
+				}
+				opt.rsaKeys = argv[++i];
+			}
 			else if (!strcmp("-H", arg) || !_strcmpi("--no-install", arg)) {
 				opt.installDirHashes = false;
 			}
@@ -283,7 +290,8 @@ namespace {
 		LOG_INFO(" -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)", hashutils::DEFAULT_HASH_FILE);
 		LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
 		LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
-		LOG_INFO(" --aes-keys [f]     : Set default AES keys file, default: '{}'", compatibility::acti::crypto_keys::DEFAULT_KEY_FILE);
+		LOG_INFO(" --aes-keys [f]     : Set default AES keys file, default: '{}'", compatibility::acti::crypto_keys::DEFAULT_AES_KEY_FILE);
+		LOG_INFO(" --rsa-keys [f]     : Set default RSA keys file, default: '{}'", compatibility::acti::crypto_keys::DEFAULT_RSA_KEY_FILE);
 		LOG_INFO(" -W --work          : Tell which work to use: repl, cli");
 		LOG_INFO(" --noUpdater        : Disable updater");
 		
@@ -428,8 +436,11 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 	}
 
 	// load aes keys
-	std::filesystem::path aesKeyFile{ opt.aesKeys ? std::filesystem::path{ opt.aesKeys } : utils::GetProgDir() / compatibility::acti::crypto_keys::DEFAULT_KEY_FILE };
-	compatibility::acti::crypto_keys::LoadKeys(aesKeyFile);
+	std::filesystem::path aesKeyFile{ opt.aesKeys ? std::filesystem::path{ opt.aesKeys } : utils::GetProgDir() / compatibility::acti::crypto_keys::DEFAULT_AES_KEY_FILE };
+	compatibility::acti::crypto_keys::LoadAesKeys(aesKeyFile);
+	// load rsa keys
+	std::filesystem::path rsaKeyFile{ opt.rsaKeys ? std::filesystem::path{ opt.rsaKeys } : utils::GetProgDir() / compatibility::acti::crypto_keys::DEFAULT_RSA_KEY_FILE };
+	compatibility::acti::crypto_keys::LoadRsaKeys(rsaKeyFile);
 
 	if (
 		opt.type == actscli::ACTS_NUI

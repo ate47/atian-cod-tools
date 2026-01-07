@@ -138,7 +138,7 @@ namespace {
 
 			if (trPlatform.encrypted) {
 				aeskey = compatibility::acti::crypto_keys::GetKeyByName(trFastfileInfo.fastfileName, compatibility::acti::crypto_keys::VER_BO4);
-				compatibility::acti::crypto_keys::RsaKeyLocal* rsa{ compatibility::acti::crypto_keys::GetRSAKeyByName("bo4")};
+				compatibility::acti::crypto_keys::RsaKeyLocal* rsa{ compatibility::acti::crypto_keys::GetRSAKeyByName(opt.rsaKey ? opt.rsaKey : "bo4")};
 
 				if (!aeskey || !rsa) {
 					throw std::runtime_error(std::format("Missing key set for ff {}", trFastfileInfo.fastfileName));
@@ -154,7 +154,7 @@ namespace {
 
 				int r;
 
-				if ((r = rsa_import(rsa->key, sizeof(rsa->key), &rsakey)) != CRYPT_OK) {
+				if ((r = rsa_import(rsa->key, (unsigned long)rsa->len, &rsakey)) != CRYPT_OK) {
 					throw std::runtime_error(std::format("Failed to import key {} for ff {}", error_to_string(r), trFastfileInfo.fastfileName));
 				}
 

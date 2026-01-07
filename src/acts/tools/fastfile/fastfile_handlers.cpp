@@ -371,6 +371,13 @@ namespace fastfile {
 				translation = args[++i];
 				LoadTranslationKeys();
 			}
+			else if (!strcmp("-k", arg) || !_strcmpi("--rsa-key", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				rsaKey = args[++i];
+			}
 			else if (!strcmp("-D", arg) || !_strcmpi("--decompressors", arg)) {
 				print_decompressors = true;
 			}
@@ -485,6 +492,7 @@ namespace fastfile {
 		LOG_INFO("-a --assets [g]        : Set the asset types to dump by name (by default all)");
 		LOG_INFO("-n --name [n]          : Set the assets to dump by name (by default all)");
 		LOG_INFO("-t --translate [t]     : Load translation directory");
+		LOG_INFO("-k --rsa-key [k]       : Set the rsa public key (by default game's key)");
 		LOG_INFO("--noAssetDump          : No asset dump");
 		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
 		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
