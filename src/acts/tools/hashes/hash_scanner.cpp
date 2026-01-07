@@ -577,6 +577,9 @@ namespace tool::hash::scanner {
 			else if (!_strcmpi(n, "iwres")) {
 				data.funcs = HASH_RES;
 			}
+			else if (!_strcmpi(n, "iwdvar")) {
+				data.funcs = HASH_DVAR;
+			}
 			else if (!_strcmpi(n, "bo6all")) {
 				data.funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
 			}
