@@ -230,7 +230,7 @@ void Process::FreeMemory(uintptr_t ptr, size_t size) const {
 bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 	if (m_handle) {
 		DWORD oldProtect{};
-		if (!SetMemoryProtection(src, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
+		if (!ignoreProtection && !SetMemoryProtection(src, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
 			LOG_DEBUG("ReadMemory: can't SetMemoryProtection");
 			return false;
 		}
@@ -239,7 +239,7 @@ bool Process::ReadMemory(void* dest, uintptr_t src, size_t size) const {
 			LOG_DEBUG("ReadMemory: can't read");
 			return false;
 		}
-		if (!SetMemoryProtection(src, size, oldProtect, oldProtect)) {
+		if (!ignoreProtection && !SetMemoryProtection(src, size, oldProtect, oldProtect)) {
 			LOG_DEBUG("ReadMemory: can't SetMemoryProtection back");
 			return false;
 		}
@@ -320,13 +320,13 @@ bool Process::WriteMemory(uintptr_t dest, const void* src, size_t size) const {
 		size_t out = 0;
 		DWORD oldProtect{};
 		int data{};
-		if (!SetMemoryProtection(dest, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
+		if (!ignoreProtection && !SetMemoryProtection(dest, size, PAGE_EXECUTE_READWRITE, oldProtect)) {
 			return false;
 		}
 		if (!WriteProcessMemory(m_handle, reinterpret_cast<void*>(dest), src, size, &out)) {
 			return false;
 		}
-		if (!SetMemoryProtection(dest, size, oldProtect, oldProtect)) {
+		if (!ignoreProtection && !SetMemoryProtection(dest, size, oldProtect, oldProtect)) {
 			return false;
 		}
 		return out == size;

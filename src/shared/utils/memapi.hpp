@@ -419,8 +419,6 @@ public:
 	 * @return if the location is inside the module
 	 */
 	bool IsInsideModule(uintptr_t ptr) const;
-	// process pid
-	DWORD m_pid;
 	/*
 	 * @return the proccess modules
 	 */
@@ -453,6 +451,12 @@ public:
 	inline HANDLE GetHandle() const {
 		return m_handle;
 	}
+	/*
+	 * @return pid
+	 */
+	inline DWORD GetProcessId() const {
+		return m_pid;
+	}
 
 	/*
 	 * Scan for a pattern inside the main module
@@ -464,15 +468,28 @@ public:
 		return (*this)[nullptr].Scan(pattern, start);
 	}
 
+	/*
+	 * Set if the reader should ignore the protection
+	 * @param ignoreProtection value
+	 */
+	void SetIgnoreProtection(bool ignoreProtection) {
+		this->ignoreProtection = ignoreProtection;
+	}
+
 	friend std::ostream& operator<<(std::ostream& os, const Process& obj);
+	friend std::wostream& operator<<(std::wostream& os, const Process& obj);
 private:
 	static DWORD GetProcId(const wchar_t* name);
 	static bool GetModuleAddress(DWORD pid, const wchar_t* name, uintptr_t* hModule, DWORD* modSize);
+
+	// process pid
+	DWORD m_pid;
 	std::vector<ProcessModule> m_modules{};
 	ProcessModule m_invalid;
 	uintptr_t m_modAddress{};
 	DWORD m_modSize{};
 	HANDLE m_handle{};
+	bool ignoreProtection;
 };
 
 std::ostream& operator<<(std::ostream& os, const Process& obj);

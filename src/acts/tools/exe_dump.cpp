@@ -130,7 +130,7 @@ namespace tool::exe_dump {
 		for (IMAGE_DATA_DIRECTORY& dir : ntHeader.OptionalHeader.DataDirectory) {
 			max = std::max<size_t>(dir.VirtualAddress + dir.Size, max);
 		}
-		
+
 		std::unique_ptr<byte[]> exeData{ std::make_unique<byte[]>(max) };
 
 
@@ -235,7 +235,7 @@ namespace tool::exe_dump {
 			core::bytebuffer::ByteBuffer reader{ exeData.get(), max };
 			proc.ComputeModules();
 			std::vector<ProcessModule>& modules{ proc.modules() };
-			for (size_t i = 0; i < modules.size(); i++){
+			for (size_t i = 0; i < modules.size(); i++) {
 				ProcessModule& mod{ modules[i] };
 				LOG_INFO("loading iat... {} {}% ({}/{})", mod.name, i * 100 / modules.size(), i + 1, modules.size());
 				mod.ComputeExports();
@@ -256,6 +256,55 @@ namespace tool::exe_dump {
 			throw std::runtime_error(std::format("{} Can't write to {}", proc, out.string()));
 		}
 	}
+
+	const char* DebugEventName(DWORD id) {
+		switch (id) {
+		case EXCEPTION_DEBUG_EVENT: return "EXCEPTION_DEBUG_EVENT";
+		case CREATE_THREAD_DEBUG_EVENT: return "CREATE_THREAD_DEBUG_EVENT";
+		case CREATE_PROCESS_DEBUG_EVENT: return "CREATE_PROCESS_DEBUG_EVENT";
+		case EXIT_THREAD_DEBUG_EVENT: return "EXIT_THREAD_DEBUG_EVENT";
+		case EXIT_PROCESS_DEBUG_EVENT: return "EXIT_PROCESS_DEBUG_EVENT";
+		case LOAD_DLL_DEBUG_EVENT: return "LOAD_DLL_DEBUG_EVENT";
+		case UNLOAD_DLL_DEBUG_EVENT: return "UNLOAD_DLL_DEBUG_EVENT";
+		case OUTPUT_DEBUG_STRING_EVENT: return "OUTPUT_DEBUG_STRING_EVENT";
+		case RIP_EVENT: return "RIP_EVENT";
+		default: return utils::va("DBG_UNK_%x", id);
+		}
+	}
+
+	void RenderDebugEvent(core::logs::loglevel lvl, DEBUG_EVENT& ev, Process& proc) {
+		if (!HAS_LOG_LEVEL(lvl)) {
+			return; // no render
+		}
+
+		proc.ComputeModules();
+
+		switch (ev.dwDebugEventCode) {
+		case EXCEPTION_DEBUG_EVENT: {
+			EXCEPTION_RECORD& rec{ ev.u.Exception.ExceptionRecord };
+			LOG_LVLF(lvl, "EXCEPTION_DEBUG_EVENT");
+			LOG_LVLF(lvl, "ExceptionCode ............ 0x{:x}", rec.ExceptionCode);
+			LOG_LVLF(lvl, "ExceptionFlags ........... 0x{:x}", rec.ExceptionFlags);
+			LOG_LVLF(lvl, "ExceptionAddress ......... {}", ProcessLocation{ proc, (uintptr_t)rec.ExceptionAddress });
+			for (size_t i = 0; i < rec.NumberParameters; i++) {
+				LOG_LVLF(lvl, "ExceptionInformation[{}] . 0x{:x}", i, (uint64_t)rec.ExceptionInformation[i]);
+			}
+			break;
+		}
+		case CREATE_THREAD_DEBUG_EVENT: {
+			LOG_LVLF(lvl, "CREATE_THREAD_DEBUG_EVENT: {}", ProcessLocation{ proc, (uintptr_t)ev.u.CreateThread.lpStartAddress });
+			break;
+		}
+		case CREATE_PROCESS_DEBUG_EVENT: {
+			LOG_LVLF(lvl, "CREATE_PROCESS_DEBUG_EVENT: {}", ProcessLocation{ proc, (uintptr_t)ev.u.CreateProcessInfo.lpStartAddress });
+			break;
+		}
+		default:
+			LOG_LVLF(lvl, "{}", DebugEventName(ev.dwDebugEventCode));
+			break;
+		}
+	}
+
 	void DumpProcessExe(const std::filesystem::path& in, const std::filesystem::path& out, DumpProcessOpt* opt) {
 		std::filesystem::path abs{ std::filesystem::absolute(in) };
 		std::wstring instr{ abs.wstring() };
@@ -311,6 +360,8 @@ namespace tool::exe_dump {
 				continue;
 			}
 
+			RenderDebugEvent(core::logs::LVL_TRACE, ev, proc);
+
 			if (ev.dwDebugEventCode != EXIT_THREAD_DEBUG_EVENT
 				&& !(ev.dwDebugEventCode == EXCEPTION_DEBUG_EVENT && (
 					ev.u.Exception.ExceptionRecord.ExceptionCode == EXCEPTION_ACCESS_VIOLATION
@@ -319,7 +370,10 @@ namespace tool::exe_dump {
 				continue;
 			}
 
-			DumpProcess(proc, out, opt);
+			LOG_TRACE("received end dbg event");
+			if (!opt->noDump) {
+				DumpProcess(proc, out, opt);
+			}
 			break;
 		}
 	}
@@ -332,6 +386,7 @@ namespace tool::exe_dump {
 			opts.addOption(&opt.rebuildIAT, "rebuild IAT table", "--rebuildIAT");
 			opts.addOption(&opt.searchIAT, "search IAT table", "--searchIAT");
 			opts.addOption(&opt.dumpHeader, "dump header", "--header", "", "-H");
+			opts.addOption(&opt.noDump, "no dump (debug)", "--noDump");
 			opts.addOption(&showHelp, "help", "--help", "", "-h");
 
 			if (!opts.ComputeOptions(2, argc, argv) || showHelp || opts.NotEnoughParam(1)) {

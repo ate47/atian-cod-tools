@@ -225,7 +225,7 @@ namespace {
 
             Process game{ L"blackops4" };
 
-            if (!game || game.m_pid != injectedScript.lastInjectionPID || !game.Open()) {
+            if (!game || game.GetProcessId() != injectedScript.lastInjectionPID || !game.Open()) {
                 Button_Enable(revertButton, FALSE);
                 return; // no need to open the handle if the pid is not the same
             }
@@ -240,7 +240,7 @@ namespace {
             }
             injectedScript.injected = false;
 
-            if (game.m_pid != injectedScript.lastInjectionPID) {
+            if (game.GetProcessId() != injectedScript.lastInjectionPID) {
                 return; // not injected in this game
             }
 
@@ -632,7 +632,7 @@ namespace {
             }
 
             injectedScript.injected = true;
-            injectedScript.lastInjectionPID = game.m_pid;
+            injectedScript.lastInjectionPID = game.GetProcessId();
             injectedScript.injectedScript = scriptAllocation;
             injectedScript.injectedScriptSize = scriptAllocationSize;
 

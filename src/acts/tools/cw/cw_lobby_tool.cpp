@@ -125,8 +125,8 @@ namespace {
 
 		uintptr_t loc;
 
-		if (storage.lastPid != cw.m_pid) {
-			storage.lastPid = cw.m_pid;
+		if (storage.lastPid != cw.GetProcessId()) {
+			storage.lastPid = cw.GetProcessId();
 			storage.scans.clear();
 
 			loc = cw.Scan(sig);

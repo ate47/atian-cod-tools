@@ -31,7 +31,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		std::cout << argv[2] << ": " << std::dec << proc.m_pid << "\n";
+		std::cout << argv[2] << ": " << std::dec << proc.GetProcessId() << "\n";
 
 		int (*func)(Process & proc, int argc, const char* argv[]) = nullptr;
 

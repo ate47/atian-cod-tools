@@ -275,10 +275,10 @@ namespace {
 				}
 
 				// remove previous data
-				if (currentPID == bo4.m_pid) {
+				if (currentPID == bo4.GetProcessId()) {
 					bo4.FreeMemory(currentData, currentDataSize);
 				}
-				currentPID = bo4.m_pid;
+				currentPID = bo4.GetProcessId();
 				currentData = allocated;
 				currentDataSize = rfile.size();
 			}

@@ -7,6 +7,8 @@ namespace tool::exe_dump {
 		bool rebuildIAT{};
 		// create IAT table elements by scanning the values in the loaded data when mixed by AC
 		bool searchIAT{};
+		// do not dump the exe (debug)
+		bool noDump{};
 	};
 	/*
 	 * Dump a process

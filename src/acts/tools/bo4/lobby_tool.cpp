@@ -383,12 +383,12 @@ namespace {
 			}
 
 			// remove previous data
-			if (bo4.m_pid == oldPid && oldAlloc) {
+			if (bo4.GetProcessId() == oldPid && oldAlloc) {
 				bo4.FreeMemory(oldAlloc, oldAllocSize);
 				oldAlloc = 0;
 			}
 
-			oldPid = bo4.m_pid;
+			oldPid = bo4.GetProcessId();
 			oldAlloc = alloc;
 			oldAllocSize = sizeOut;
 
