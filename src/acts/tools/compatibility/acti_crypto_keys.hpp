@@ -1,8 +1,8 @@
 #pragma once
 
 namespace compatibility::acti::crypto_keys {
-	constexpr const char* DEFAULT_RSA_KEY_FILE = "keys.csv";
-	constexpr const char* DEFAULT_AES_KEY_FILE = "keys_aes.csv";
+	constexpr const char* DEFAULT_RSA_KEY_FILE = "keys_rsa.csv";
+	constexpr const char* DEFAULT_AES_KEY_FILE = "keys.csv";
 	enum KeyVersion {
 		VER_INVALID = 0,
 		VER_BO3,
