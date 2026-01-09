@@ -106,7 +106,7 @@ namespace hook::library {
 		loc = "";
 		return nullptr;
 	}
-	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single) {
+	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single, const char* name) {
 		size_t pl{ std::strlen(pattern) };
 		std::string patStr{};
 		patStr.resize((pl + 1) * 3 + 1);
@@ -117,10 +117,10 @@ namespace hook::library {
 			std::snprintf(&patStrPtr[3 * i], 4, "%02x ", (uint32_t)pattern[i]);
 		}
 
-		return ScanLibrary(hmod, patStrPtr, single);
+		return ScanLibrary(hmod, patStrPtr, single, name);
 	}
 
-	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single) {
+	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single, const char* name) {
 		std::vector<ScanResult> res{};
 
 
@@ -143,7 +143,7 @@ namespace hook::library {
 
 			if (c == '?') {
 				if (mid) {
-					throw std::runtime_error(utils::va("Wildcard pattern in half byte! %s", pattern));
+					throw std::runtime_error(std::format("Wildcard pattern in half byte! {} ({})", pattern, name ? name : "no name"));
 				}
 				if (str[0] == '?') {
 					// test if we are in a packed context
@@ -172,7 +172,7 @@ namespace hook::library {
 
 		// reversed because we set it by default to 0
 		if (!mid) {
-			throw std::runtime_error(utils::va("Scan pattern has half byte! %s", pattern));
+			throw std::runtime_error(std::format("Scan pattern has half byte! {} ({})", pattern, name ? name : "no name"));
 		}
 
 		auto it1 = mask.begin();
@@ -188,7 +188,7 @@ namespace hook::library {
 		}
 
 		if (!mask.size()) {
-			throw std::runtime_error(utils::va("Empty pattern! %s", pattern));
+			throw std::runtime_error(std::format("Empty pattern! {} ({})", pattern, name ? name : "no name"));
 		}
 
 		// clear end
@@ -203,7 +203,7 @@ namespace hook::library {
 		}
 
 		if (!mask.size()) {
-			throw std::runtime_error(utils::va("Empty pattern! %s", pattern));
+			throw std::runtime_error(std::format("Empty pattern! {} ({})", pattern, name ? name : "no name"));
 		}
 
 		library::Library lib{ hmod };
@@ -211,11 +211,11 @@ namespace hook::library {
 		constexpr size_t lazySize = 0x10000000;
 
 		if (lazySize < mask.size()) {
-			throw std::runtime_error(utils::va("Pattern too big! %s", pattern)); // wtf?
+			throw std::runtime_error(utils::va("Pattern too big! {} ({})", pattern, pattern, name ? name : "no name")); // wtf?
 		}
 
 
-		LOG_TRACE("Start searching of pattern {}", pattern);
+		LOG_TRACE("Start searching of pattern {} ({})", pattern, name ? name : "no name");
 		byte* start{ (byte*)*lib };
 		byte* end{ (byte*)lib[lazySize - mask.size()] };
 

@@ -148,28 +148,31 @@ namespace hook::library {
 	 * @param hmod module
 	 * @param pattern pattern
 	 * @param single single search
+	 * @param name name
 	 * @return matches
 	 */
-	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single = false);
+	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single = false, const char* name = nullptr);
 
 	/*
 	 * Scan the memory to find a string
 	 * @param hmod module
 	 * @param pattern pattern
 	 * @param single single search
+	 * @param name name
 	 * @return matches
 	 */
-	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single = false);
+	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single = false, const char* name = nullptr);
 
 	/*
 	 * Scan the memory to find data
 	 * @param hmod module
 	 * @param pattern pattern
 	 * @param single single search
+	 * @param name name
 	 * @return matches
 	 */
 	template<typename T>
-	std::vector<ScanResult> ScanLibraryNumber(HMODULE hmod, T val, bool single = false) {
+	std::vector<ScanResult> ScanLibraryNumber(HMODULE hmod, T val, bool single = false, const char* name = nullptr) {
 		char buff[sizeof(T) * 3 + 1]{};
 
 		byte* ptr{ (byte*)&val };
@@ -179,7 +182,7 @@ namespace hook::library {
 			patStrPtr += std::snprintf(patStrPtr, 4, "%02x ", (int)ptr[i]);
 		}
 
-		return ScanLibrary(hmod, buff, single);
+		return ScanLibrary(hmod, buff, single, name);
 	}
 	class LibraryModule;
 	class Detour;
@@ -288,13 +291,13 @@ namespace hook::library {
 			return process::PImageDosHeader(hmod);
 		}
 
-		inline std::vector<ScanResult> Scan(const char* pattern, bool single = false) const {
-			return ScanLibrary(hmod, pattern, single);
+		inline std::vector<ScanResult> Scan(const char* pattern, bool single = false, const char* name = nullptr) const {
+			return ScanLibrary(hmod, pattern, single, name);
 		}
 
 
 		ScanResult ScanSingle(const char* pattern, const char* name = nullptr) const {
-			auto res = Scan(pattern);
+			auto res = Scan(pattern, false, name);
 
 			if (res.empty()) {
 				throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : pattern));
@@ -308,7 +311,7 @@ namespace hook::library {
 
 
 		ScanResult ScanAny(const char* pattern, const char* name = nullptr) const {
-			auto res = Scan(pattern, true);
+			auto res = Scan(pattern, true, name);
 
 			if (res.empty()) {
 				throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : pattern));
@@ -368,28 +371,28 @@ namespace hook::library {
 			return FindAnyScan(name, args...);
 		}
 
-		inline std::vector<ScanResult> ScanString(const char* str, bool single = false) const {
-			return ScanLibraryString(hmod, str, single);
+		inline std::vector<ScanResult> ScanString(const char* str, bool single = false, const char* name = nullptr) const {
+			return ScanLibraryString(hmod, str, single, name);
 		}
 
 		ScanResult ScanStringSingle(const char* str, const char* name = nullptr) const {
-			auto res = ScanString(str);
+			auto res = ScanString(str, false, name);
 
 			if (res.empty()) {
-				throw std::runtime_error(utils::va("Can't find string %s", name ? name : str));
+				throw std::runtime_error(std::format("Can't find string {}", name ? name : str));
 			}
 			if (res.size() != 1) {
-				throw std::runtime_error(utils::va("Too many finds for string %s", name ? name : str));
+				throw std::runtime_error(std::format("Too many finds for string {}", name ? name : str));
 			}
 
 			return res[0];
 		}
 
 		ScanResult ScanStringAny(const char* str, const char* name = nullptr) const {
-			auto res = ScanString(str, true);
+			auto res = ScanString(str, true, name);
 
 			if (res.empty()) {
-				throw std::runtime_error(utils::va("Can't find string %s", name ? name : str));
+				throw std::runtime_error(std::format("Can't find string {}", name ? name : str));
 			}
 
 			return res[0];

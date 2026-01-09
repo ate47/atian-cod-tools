@@ -37,7 +37,7 @@ namespace acts::decryptutils {
 		};
 
 		for (auto& cfg : knownScans) {
-			std::vector<hook::library::ScanResult> res = lib.Scan(cfg.pattern);
+			std::vector<hook::library::ScanResult> res = lib.Scan(cfg.pattern, false, cfg.id);
 
 			if (res.size() != 1) {
 				if (res.size() > 1) {

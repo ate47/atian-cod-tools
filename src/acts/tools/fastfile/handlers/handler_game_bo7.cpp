@@ -54,18 +54,39 @@ namespace fastfile::handlers::bo7 {
 			Asset* assets;
 		};
 
+		enum XFileBlock : int {
+			XFILE_BLOCK_MEMMAPPED = 11,
+			XFILE_BLOCK_VIRTUAL = 15,
+			XFILE_BLOCK_COUNT = 16,
+		};
+
 		struct DBLoadCtx;
 		struct DBLoadCtxVT {
+			void (*unk0)(DBLoadCtx* ctx, byte a1);
 			void* (__fastcall* AllocStreamPos)(DBLoadCtx* ctx, int align);
-			void(__fastcall* PushStreamPos)(DBLoadCtx* ctx, int type);
+			void(__fastcall* PushStreamPos)(DBLoadCtx* ctx, XFileBlock type);
 			void(__fastcall* PopStreamPos)(DBLoadCtx* ctx);
 			void(__fastcall* PreAssetRead)(DBLoadCtx* ctx, HandlerAssetType type);
 			void(__fastcall* PostAssetRead)(DBLoadCtx* ctx);
 		};
+		struct XZoneTemporaryLoadData {
+			// todo instead of in vector patch
+		};
+
+		struct DBLoadCtxData {
+			byte __pad[392];
+			XFileBlock streamPosIndex;
+			uint32_t unk194;
+			byte __pad198[1080];
+			XZoneTemporaryLoadData* tempData;
+			byte __pad5d8[56];
+			void* unk608;
+			byte unk610;
+		};
 
 		struct DBLoadCtx {
 			DBLoadCtxVT* __vtb;
-			// DBLoadCtxData data;
+			DBLoadCtxData data;
 		};
 
 		union LoadStreamObjectData;
@@ -109,15 +130,18 @@ namespace fastfile::handlers::bo7 {
 		void ErrorStub(LoadStreamObjectData* that) {
 			throw std::runtime_error(std::format("Error loadstream {}", hook::library::CodePointer{ _ReturnAddress() }));
 		}
+		void DBLoadCtxUnk0(DBLoadCtx* ctx, byte a1) {
+			throw std::runtime_error(std::format("DBLoadCtxUnk0 {}", hook::library::CodePointer{ _ReturnAddress() }));
+		}
 		void* AllocStreamPos(DBLoadCtx* ctx, int align);
-		void PushStreamPos(DBLoadCtx* ctx, int type);
+		void PushStreamPos(DBLoadCtx* ctx, XFileBlock type);
 		void PopStreamPos(DBLoadCtx* ctx);
 		void PreAssetRead(DBLoadCtx* ctx, HandlerAssetType type);
 		void PostAssetRead(DBLoadCtx* ctx);
 
 
 		LoadStreamObjectVtable dbLoadStreamVTable{ LoadStreamImpl, ErrorStub, ErrorStub, ErrorStub , ErrorStub };
-		DBLoadCtxVT dbLoadCtxVTable{ AllocStreamPos, PushStreamPos, PopStreamPos, PreAssetRead, PostAssetRead };
+		DBLoadCtxVT dbLoadCtxVTable{ DBLoadCtxUnk0, AllocStreamPos, PushStreamPos, PopStreamPos, PreAssetRead, PostAssetRead };
 
 		struct XStringOutCTX {
 			std::filesystem::path path;
@@ -134,7 +158,7 @@ namespace fastfile::handlers::bo7 {
 			core::bytebuffer::ByteBuffer* reader{};
 			HandlerHashedAssetType assetLoadStack[0x100];
 			size_t assetLoadStackTop{};
-			int streamPosStack[64]{};
+			XFileBlock streamPosStack[64]{};
 			int streamPosStackIndex{};
 			size_t loaded{};
 			core::memory_allocator::MemoryAllocator allocator{};
@@ -184,9 +208,9 @@ namespace fastfile::handlers::bo7 {
 			}
 			if (!gcx.streamPosStackIndex) throw std::runtime_error("empty streampos stack");
 
-			int block{ gcx.streamPosStack[gcx.streamPosStackIndex - 1] };
+			XFileBlock block{ gcx.streamPosStack[gcx.streamPosStackIndex - 1] };
 
-			if (block == 11) {
+			if (block == XFILE_BLOCK_MEMMAPPED) {
 				return false;
 			}
 			else {
@@ -242,8 +266,8 @@ namespace fastfile::handlers::bo7 {
 			}
 		}
 
-		void PushStreamPos(DBLoadCtx* ctx, int type) {
-			LOG_TRACE("PushStreamPos({}) {}", type, hook::library::CodePointer{ _ReturnAddress() });
+		void PushStreamPos(DBLoadCtx* ctx, XFileBlock type) {
+			LOG_TRACE("PushStreamPos({}) {}", (int)type, hook::library::CodePointer{ _ReturnAddress() });
 			gcx.streamPosStack[gcx.streamPosStackIndex++] = type;
 		}
 
@@ -444,6 +468,15 @@ namespace fastfile::handlers::bo7 {
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "EmptyStub<19>").location, EmptyStub<19>); // libshared, TODO: better
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
 				Red(scan.ScanSingle("49 8B C0 4C 8B 02", "EmptyStub<7>").location, EmptyStub<21>); // model
+
+				void (*ErrorStub)(uint32_t code, int a2, const char* msg, int a4) {
+					[](uint32_t code, int a2, const char* msg, int a4) -> void {
+
+						throw std::runtime_error(std::format("Error 0x{:x} : {}", code, msg ? msg : "no message"));
+					}
+				};
+
+				Red(scan.ScanSingle("40 55 53 57 41 54 41 55 41 56 48 8D AC 24 58", "Error").location, ErrorStub);
 
 
 				if (scan.foundMissing) {
