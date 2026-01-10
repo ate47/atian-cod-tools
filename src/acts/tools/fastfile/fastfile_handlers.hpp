@@ -136,6 +136,7 @@ namespace fastfile {
 		const char* game{};
 		const char* exec{};
 		const char* wildcard{};
+		const char* ignoreWildcard{};
 		const char* ignore{};
 		const char* assets{};
 		const char* translation{};

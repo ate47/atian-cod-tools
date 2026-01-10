@@ -349,6 +349,13 @@ namespace fastfile {
 				}
 				wildcard = args[++i];
 			}
+			else if (!strcmp("-W", arg) || !_strcmpi("--ignore-wildcard", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+				ignoreWildcard = args[++i];
+			}
 			else if (!strcmp("-I", arg) || !_strcmpi("--ignore", arg)) {
 				if (i + 1 == endIndex) {
 					std::cerr << "Missing value for param: " << arg << "!\n";
@@ -475,39 +482,40 @@ namespace fastfile {
 	void FastFileOption::PrintHelp() {
 		LOG_INFO("some tools might not be available for each handler");
 		LOG_INFO("");
-		LOG_INFO("-h --help              : Print help");
-		LOG_INFO("-o --output [d]        : Output dir");
-		LOG_INFO("-w --wildcard [wc]     : Wildcard to match for the filename");
-		LOG_INFO("-I --ignore [path]     : Ignore a path");
-		LOG_INFO("-H --header            : Dump header info");
-		LOG_INFO("--headerDump [d]       : Dump header info into a directory");
-		LOG_INFO("-r --handler           : Handler to use (use --handlers to print)");
-		LOG_INFO("-R --handlers          : Print handlers");
-		LOG_INFO("-D --decompressors     : Print decompressors");
-		LOG_INFO("-d --dump              : Dump decompressed");
-		LOG_INFO("-C --casc [c]          : Use casc db");
-		LOG_INFO("-g --game [g]          : exe");
-		LOG_INFO("-p --patch             : Use patch files (fd/fp)");
-		LOG_INFO("-i --fd-ignore         : Ignore missing fd file");
-		LOG_INFO("-a --assets [g]        : Set the asset types to dump by name (by default all)");
-		LOG_INFO("-n --name [n]          : Set the assets to dump by name (by default all)");
-		LOG_INFO("-t --translate [t]     : Load translation directory");
-		LOG_INFO("-k --rsa-key [k]       : Set the rsa public key (by default game's key)");
-		LOG_INFO("--noAssetDump          : No asset dump");
-		LOG_INFO("--dumpBinaryAssets     : Dump binary assets");
-		LOG_INFO("--dumpBinaryAssetsMap  : Dump binary assets map");
-		LOG_INFO("--dumpAssetNames       : Dump binary assets");
-		LOG_INFO("--dumpCompiledZone     : Dump compiled zone file");
-		LOG_INFO("--disableScriptsDecomp : Disable GSC script decompilation");
-		LOG_INFO("--dumpXStrings         : Dump XStrings");
-		LOG_INFO("--graphic              : Dump graphic assets (do not share graphic assets)");
-		LOG_INFO("--assertContainer      : Use acts as a container for other software");
-		LOG_INFO("--archiveDDL           : dump archived ddl (bo6)");
-		LOG_INFO("--alpha                : Is alpha file");
-		LOG_INFO("--print-gameid         : Print game ids list");
-		LOG_INFO("--print-gamerevid      : Print game rev ids list");
-		LOG_INFO("--gameId [g]           : Game id (might be required by some handlers)");
-		LOG_INFO("--gameRevId [g]        : Game rev id (might be required by some handlers)");
+		LOG_INFO("-h --help                 : Print help");
+		LOG_INFO("-o --output [d]           : Output dir");
+		LOG_INFO("-w --wildcard [wc]        : Wildcard to match for the filename");
+		LOG_INFO("-W --ignore-wildcard [wc] : Wildcard to match for the filename to ignore");
+		LOG_INFO("-I --ignore [path]        : Ignore a path");
+		LOG_INFO("-H --header               : Dump header info");
+		LOG_INFO("--headerDump [d]          : Dump header info into a directory");
+		LOG_INFO("-r --handler              : Handler to use (use --handlers to print)");
+		LOG_INFO("-R --handlers             : Print handlers");
+		LOG_INFO("-D --decompressors        : Print decompressors");
+		LOG_INFO("-d --dump                 : Dump decompressed");
+		LOG_INFO("-C --casc [c]             : Use casc db");
+		LOG_INFO("-g --game [g]             : exe");
+		LOG_INFO("-p --patch                : Use patch files (fd/fp)");
+		LOG_INFO("-i --fd-ignore            : Ignore missing fd file");
+		LOG_INFO("-a --assets [g]           : Set the asset types to dump by name (by default all)");
+		LOG_INFO("-n --name [n]             : Set the assets to dump by name (by default all)");
+		LOG_INFO("-t --translate [t]        : Load translation directory");
+		LOG_INFO("-k --rsa-key [k]          : Set the rsa public key (by default game's key)");
+		LOG_INFO("--noAssetDump             : No asset dump");
+		LOG_INFO("--dumpBinaryAssets        : Dump binary assets");
+		LOG_INFO("--dumpBinaryAssetsMap     : Dump binary assets map");
+		LOG_INFO("--dumpAssetNames          : Dump binary assets");
+		LOG_INFO("--dumpCompiledZone        : Dump compiled zone file");
+		LOG_INFO("--disableScriptsDecomp    : Disable GSC script decompilation");
+		LOG_INFO("--dumpXStrings            : Dump XStrings");
+		LOG_INFO("--graphic                 : Dump graphic assets (do not share graphic assets)");
+		LOG_INFO("--assertContainer         : Use acts as a container for other software");
+		LOG_INFO("--archiveDDL              : dump archived ddl (bo6)");
+		LOG_INFO("--alpha                   : Is alpha file");
+		LOG_INFO("--print-gameid            : Print game ids list");
+		LOG_INFO("--print-gamerevid         : Print game rev ids list");
+		LOG_INFO("--gameId [g]              : Game id (might be required by some handlers)");
+		LOG_INFO("--gameRevId [g]           : Game rev id (might be required by some handlers)");
 		
 	}
 
@@ -813,6 +821,7 @@ namespace fastfile {
 		} };
 
 		std::regex wildcard{ opt.wildcard ? opt.wildcard : ".*" };
+		std::regex ignoreWildcard{ opt.ignoreWildcard ? opt.ignoreWildcard : "." };
 
 		for (const char* f : opt.files) {
 			for (std::string& filename : opt.GetFileRecurse(f)) {
@@ -824,10 +833,19 @@ namespace fastfile {
 				flpname = flpname.filename();
 				std::string rfilename{ flpname.string() };
 				utils::MapString(rfilename.data(), [](char c) -> char {return c == '\\' ? '/' : c; });
-				std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), wildcard };
+				if (opt.wildcard) {
+					std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), wildcard };
 
-				if (rbegin == std::sregex_iterator() || rbegin->length() != rfilename.size()) {
-					continue; // nothing else
+					if (rbegin == std::sregex_iterator() || rbegin->length() != rfilename.size()) {
+						continue; // doesn't match, we ignore it
+					}
+				}
+				if (opt.ignoreWildcard) {
+					std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), ignoreWildcard };
+
+					if (rbegin != std::sregex_iterator() && rbegin->length() == rfilename.size()) {
+						continue; // match, we ignore it
+					}
 				}
 
 				if (opt.ignore) {
