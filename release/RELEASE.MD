@@ -1,44 +1,12 @@
 - acts
 	- fastfile
-		- vg handler (Vanguard)
-			- add handler
-			- scriptfile, localize, luafile and rawfile unlinkers
-			- use xhash to dump scriptfiles
-		- mw19 handler
-			- add handler
-			- scriptfile, localize, luafile and rawfile unlinkers
-			- use opaque strings to dump scriptfiles
-			- fix crash when DB_ResolvePackedOffsetAddress can't find address
-		- bo4 handler
-			- add default xhashes
-			- entitylist, triggerlist unlinkers
-			- wip com_map and gfx_map unlinkers
-		- bo4 linker
-			- fix ScriptParseTreeForced linker alignment issue
-			- add fastfile encryption with custom AES key
-		- t78 decompressor
-			- add fastfile decryption
-			- add bo3 ff1fb decompression
-			- add bo3 ff132 decompression
-			- add signature check
-		- t9 decompressor
-			- add fastfile decryption
-			- add signature check
-			- fix error log message
-		- iw decompressor
-			- fix vanguard decompression
-		- fix issue with asset types being hashed in the data dump
-		- fix issue with empty iw patch fastfiles
-	- gsc
-		- add t7 vm1a pc decompiler/compiler
-		- add some t7 vm1a ps4 opcodes
-		- add t8 vm34 pc opcodes
-		- allow to use filenamespace in jup compiler
-	- clumpdump tool to dump bo3 clump containers
-	- add xxh32 to hash tool
-	- allow to create keys.csv file in acts install to add custom AES keys
-	- tools to dump RSA keys
-	- fix an issue with string decryption in cod2020
-	- some name refactoring
-- ci
-	- remove Debug build
+		- use hash validation in flexible header (mwiii, bo6 and bo7)
+		- fix bo7 dumper
+		- `-W` option to ignore fastfile using regex
+		- `-l` option to reduce the fastfile reader logs
+	- exe dumper debug tests
+	- add dvar, fnv1a32 and prime to hash scanners
+	- tool to create rsa keys
+	- allow to add custom rsa keys using the keys_rsa.csv file_
+	- refactor some units
+	- tool to sort and validate csv hash files for HashIndex
