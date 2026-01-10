@@ -43,6 +43,11 @@ namespace fastfile::handlers::bo7 {
 			void* handle;
 		};
 
+		struct XBlock {
+			byte* data;
+			uint64_t size;
+		};
+
 		struct AssetList {
 			uint32_t stringsCount;
 			bool stringsLoaded;
@@ -69,9 +74,39 @@ namespace fastfile::handlers::bo7 {
 			void(__fastcall* PreAssetRead)(DBLoadCtx* ctx, HandlerAssetType type);
 			void(__fastcall* PostAssetRead)(DBLoadCtx* ctx);
 		};
-		struct XZoneTemporaryLoadData {
-			// todo instead of in vector patch
+		struct HashRef {
+			HashRef* next;
+			uint64_t name;
+			void* value;
 		};
+
+		struct DBLoadCtxRewind {
+			uint64_t unk0;
+			uint64_t unk8;
+			HashRef* freeHead;
+			uint64_t unk18;
+			uint64_t unk20;
+			uint64_t unk28;
+			uint64_t unk30;
+			HashRef** hashedRefs;
+			uint64_t numBlocks;
+			uint64_t numRefs;
+		};
+
+		struct XZoneTemporaryLoadData {
+			byte __pad[0x14cc8];
+			XBlock xblocks[16];
+			uint64_t unk14dc8;
+			DBLoadCtxRewind* rewind;
+			uint64_t unk14dd8;
+			uint64_t unk14de0;
+			uint64_t unk14de8;
+		};
+		static_assert(sizeof(XZoneTemporaryLoadData) == 0x14df0);
+
+
+		constexpr size_t numHashBlocks = 0x100;
+		constexpr size_t numHashBlocksAlloc = numHashBlocks * 0x400;
 
 		struct DBLoadCtxData {
 			byte __pad[392];
@@ -82,6 +117,14 @@ namespace fastfile::handlers::bo7 {
 			byte __pad5d8[56];
 			void* unk608;
 			byte unk610;
+			byte __safepad0[0x100];
+			XZoneTemporaryLoadData _allocTempData{};
+			byte __safepad1[0x100];
+			DBLoadCtxRewind _allocRewind{};
+			byte __safepad2[0x100];
+			HashRef* _allocHashRefsStarts[numHashBlocks];
+			HashRef _allocHashRefs[numHashBlocksAlloc];
+			byte __safepad3[0x100];
 		};
 
 		struct DBLoadCtx {
@@ -125,7 +168,6 @@ namespace fastfile::handlers::bo7 {
 			byte unk29;
 		};
 
-
 		bool LoadStreamImpl(LoadStreamObjectData* that, DBLoadCtx* context, bool* atStreamStart, void** data, int64_t* len);
 		void ErrorStub(LoadStreamObjectData* that) {
 			throw std::runtime_error(std::format("Error loadstream {}", hook::library::CodePointer{ _ReturnAddress() }));
@@ -149,23 +191,27 @@ namespace fastfile::handlers::bo7 {
 		};
 
 		struct {
+			void (*DB_LoadStreamOffset)(DBLoadCtx* ctx, uint64_t val, void** pptr);
+			void (*DB_RegisterStreamOffset)(DBLoadCtx* ctx, uint64_t val, void* ptr);
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
 			AssetPoolInfo* poolInfo{};
 			uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
-
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
+
+			size_t lastBlockCount{};
 			HandlerHashedAssetType assetLoadStack[0x100];
 			size_t assetLoadStackTop{};
 			XFileBlock streamPosStack[64]{};
 			int streamPosStackIndex{};
 			size_t loaded{};
+			std::unique_ptr<DBLoadCtx> loadCtx{};
 			core::memory_allocator::MemoryAllocator allocator{};
+
 			std::unordered_map<HandlerHashedAssetType, std::unordered_map<uint64_t, void*>> linkedAssets{};
 			AssetList assets{};
 			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
-			std::unordered_map<uint64_t, void*> streamLocations{};
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
 			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ "physicssfxeventasset", "string", bo7::PoolId };
@@ -356,21 +402,6 @@ namespace fastfile::handlers::bo7 {
 			return &data;
 		}
 
-		void DB_LoadStreamOffset(DBLoadCtx* ctx, uint64_t val, void** pptr) {
-			void*& ref{ gcx.streamLocations[val & StreamPointerFlag::SPF_DATA_MASK] };
-			if (ref) {
-				*pptr = ref;
-			}
-			else {
-				LOG_WARNING("missing val for DB_LoadStreamOffset {:x}", val);
-				*pptr = nullptr;
-			}
-		}
-
-		void DB_RegisterStreamOffset(DBLoadCtx* ctx, uint64_t val, void* ptr) {
-			gcx.streamLocations[val & StreamPointerFlag::SPF_DATA_MASK] = ptr;
-		}
-
 		class FFHandlerImpl : public fastfile::FFHandler {
 		public:
 			// -w "((mp|zm)_t10|ingame|code|global).*"
@@ -408,6 +439,9 @@ namespace fastfile::handlers::bo7 {
 				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
 				gcx.namesStore.LoadConfig(opt.assets);
 
+				gcx.loadCtx = std::make_unique<DBLoadCtx>();
+				gcx.loadCtx->__vtb = &dbLoadCtxVTable;
+
 				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3) };
 				loadStreamObj->__vtb = &dbLoadStreamVTable;
 
@@ -443,9 +477,11 @@ namespace fastfile::handlers::bo7 {
 
 				// Stream delta, todo
 				Red(scan.ScanSingle("4C 8B DC 56 48 83 EC ?? 4C", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "DB_RegisterStreamOffset").location, DB_RegisterStreamOffset); //2E24F20
+				gcx.DB_RegisterStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "gcx.DB_RegisterStreamOffset")
+					.GetPtr<decltype(gcx.DB_RegisterStreamOffset)>();
+				gcx.DB_LoadStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "gcx.DB_LoadStreamOffset")
+					.GetPtr<decltype(gcx.DB_LoadStreamOffset)>();
 				Red(scan.ScanSingle("40 56 48 83 EC ?? 4C 8B D2", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "DB_LoadStreamOffset").location, DB_LoadStreamOffset); // 2E25100
 
 				// idk
 				Red(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", "ReturnStub<4, bool, false>").location, ReturnStub<4, bool, false>);
@@ -517,12 +553,34 @@ namespace fastfile::handlers::bo7 {
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
 				gcx.ctx = &ctx;
 				gcx.reader = &reader;
-				gcx.streamLocations.clear();
 
 				if (!reader.CanRead(sizeof(gcx.assets))) {
 					LOG_WARNING("empty fastfile, ignored");
 					return;
 				}
+
+				// setup load ctx data
+				DBLoadCtx* loadCtx{ gcx.loadCtx.get() };
+				std::memset(&loadCtx->data, 0, sizeof(loadCtx->data));
+				XZoneTemporaryLoadData* tempData{ &loadCtx->data._allocTempData };
+				loadCtx->data.tempData = tempData;
+				DBLoadCtxRewind* rewind{ &loadCtx->data._allocRewind };
+				loadCtx->data.tempData->rewind = rewind;
+				rewind->numBlocks = numHashBlocks;
+				rewind->hashedRefs = loadCtx->data._allocHashRefsStarts;
+
+				// setup the hashmap, we need to do it because their compiler decided to inline some shits
+				for (size_t i = 0; i < numHashBlocks; i++) {
+					rewind->hashedRefs[i] = (HashRef*)&rewind->hashedRefs[i];
+				}
+
+				HashRef* freeHead{ loadCtx->data._allocHashRefs };
+				rewind->freeHead = freeHead;
+				rewind->numRefs = 0;
+				for (size_t i = 1; i < numHashBlocksAlloc; i++) {
+					freeHead[i - 1].next = &freeHead[i];
+				}
+
 
 				reader.Read(&gcx.assets, sizeof(gcx.assets));
 
@@ -559,14 +617,14 @@ namespace fastfile::handlers::bo7 {
 							if (stroff & StreamPointerFlag::SPF_NEXT) {
 								str = acts::decryptutils::DecryptString(reader.ReadString());
 								if (stroff & StreamPointerFlag::SPF_CREATE_REF) {
-									DB_RegisterStreamOffset(nullptr, stroff, (void*)str);
+									gcx.DB_RegisterStreamOffset(loadCtx, stroff, (void*)str);
 									//LOG_INFO("store offset {:x} -> {}", stroff, str);
 								}
 								hashutils::Add(str, true, true);
 								if (gcx.xstringLocs) gcx.xstringLocs->push_back(str);
 							}
 							else {
-								DB_LoadStreamOffset(nullptr, stroff, (void**)&str);
+								gcx.DB_LoadStreamOffset(loadCtx, stroff, (void**)&str);
 							}
 						}
 						else {
@@ -615,8 +673,6 @@ namespace fastfile::handlers::bo7 {
 					assetsOs << "type,name";
 					gcx.assets.assets = reader.ReadPtr<Asset>(gcx.assets.assetsCount);
 
-					DBLoadCtx loadCtx{};
-					loadCtx.__vtb = &dbLoadCtxVTable;
 
 					for (auto& [k, v] : GetWorkers()) {
 						if (!v->graphic || opt.graphic) {
@@ -632,7 +688,7 @@ namespace fastfile::handlers::bo7 {
 							const auto* type{ gcx.assetNames.GetMappedType(asset->type.hash) };
 
 							LOG_DEBUG("load #{} -> {}({})", assetId, type->name, (int)type->type);
-							gcx.Load_Asset(&loadCtx, false, asset);
+							gcx.Load_Asset(loadCtx, false, asset);
 						}
 
 					}
