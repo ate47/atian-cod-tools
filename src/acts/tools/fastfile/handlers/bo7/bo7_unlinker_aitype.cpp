@@ -181,7 +181,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
 			Asset& asset{ *(Asset*)ptr };
 			if (!asset.count) {
-				LOG_INFO("ignore empty asset {}", hashutils::ExtractTmp("hash", asset.name));
+				LOG_OPT_INFO("ignore empty asset {}", hashutils::ExtractTmp("hash", asset.name));
 				return;
 			}
 			HandlerJsonWriter json{};
@@ -200,7 +200,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset.name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump {} {}", outFile.string(), type);
+			LOG_OPT_INFO("Dump {} {}", outFile.string(), type);
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -339,7 +339,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset.name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump aitype {}", outFile.string());
+			LOG_OPT_INFO("Dump aitype {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

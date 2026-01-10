@@ -67,7 +67,7 @@ namespace {
 			std::filesystem::create_directories(outFile.parent_path());
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump arenaseasons {}", outFile.string());
+			LOG_OPT_INFO("Dump arenaseasons {}", outFile.string());
 
 			json.BeginObject();
 			json.WriteFieldValueHash("unk0", asset->unk0);

@@ -215,7 +215,7 @@ namespace {
 
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump sound {}", outFile.string());
+			LOG_OPT_INFO("Dump sound {}", outFile.string());
 			json.BeginObject();
 
 			if (asset->name) json.WriteFieldValueString("name", asset->name);

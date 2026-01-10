@@ -266,7 +266,7 @@ namespace fastfile::handlers::bo4::scriptbundle {
 
 			utils::raw_file_extractor::JsonWriter json{};
 
-			LOG_INFO("Dump scriptbundle {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptbundle {}", outFile.string());
 			bool error{};
 			WriteObject(json, asset->sbObjectsArray, error);
 
@@ -286,7 +286,7 @@ namespace fastfile::handlers::bo4::scriptbundle {
 
 			utils::raw_file_extractor::JsonWriter json{};
 
-			LOG_INFO("Dump scriptbundlelist {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptbundlelist {}", outFile.string());
 
 			json.BeginObject();
 

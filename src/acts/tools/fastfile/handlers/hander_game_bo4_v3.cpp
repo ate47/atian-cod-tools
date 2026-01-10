@@ -637,7 +637,7 @@ namespace fastfile::handlers::bo4 {
 								os << assetList.strings[i] << "\n";
 							}
 						}
-						LOG_INFO("Dump strings into {}", outStrings.string());
+						LOG_OPT_INFO("Dump strings into {}", outStrings.string());
 					}
 				}
 
@@ -676,7 +676,7 @@ namespace fastfile::handlers::bo4 {
 					}
 					errorCtx.lastAsset = nullptr;
 
-					LOG_INFO("Dumped assets into {}", outAssets.string());
+					LOG_OPT_INFO("Dumped assets into {}", outAssets.string());
 					if (!opt.noAssetDump) {
 						for (auto& [t, w] : GetWorkers()) {
 							w->PostXFileLoading(opt, ctx);
@@ -693,12 +693,12 @@ namespace fastfile::handlers::bo4 {
 						for (char* xstr : gcx.xstrings) {
 							os << acts::decryptutils::DecryptStringT8(xstr) << "\n";
 						}
-						LOG_INFO("Dump xstrings into {}", outStrings.string());
+						LOG_OPT_INFO("Dump xstrings into {}", outStrings.string());
 					}
 				}
 
 				DB_PopStreamPos();
-				LOG_INFO("Loaded {} asset(s)", gcx.loaded);
+				LOG_OPT_INFO("Loaded {} asset(s)", gcx.loaded);
 
 				if (gcx.compiledZone) {
 					std::filesystem::path outCZ{ gcx.opt->m_output / "bo4" / "compiled" / std::format("{}.zonec", ctx.ffname) };

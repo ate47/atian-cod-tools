@@ -116,7 +116,7 @@ namespace {
 			std::filesystem::create_directories(outFile.parent_path());
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump objective {}", outFile.string());
+			LOG_OPT_INFO("Dump objective {}", outFile.string());
 
 			json.BeginObject();
 

@@ -332,7 +332,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump netconststrings {}", outFile.string());
+			LOG_OPT_INFO("Dump netconststrings {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

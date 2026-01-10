@@ -351,7 +351,7 @@ namespace {
 				for (size_t i = 0; i < assetList.stringsCount; i++) {
 					os << assetList.strings[i] << "\n";
 				}
-				LOG_INFO("Dump strings into {}", outStrings.string());
+				LOG_OPT_INFO("Dump strings into {}", outStrings.string());
 			}
 
 			if (assetList.unk18) {
@@ -359,7 +359,7 @@ namespace {
 			}
 
 			if (!assetList.assetCount) {
-				LOG_INFO("no asset");
+				LOG_OPT_INFO("no asset");
 				return;
 			}
 
@@ -409,7 +409,7 @@ namespace {
 					std::filesystem::path assetOut{ binout / std::format("{:04}_{}.bin", i, assType) };
 
 					if (utils::WriteFile(assetOut, rawAsset)) {
-						LOG_INFO("Dump asset {}", assetOut.string());
+						LOG_OPT_INFO("Dump asset {}", assetOut.string());
 					}
 					else {
 						LOG_ERROR("Error when dumping {}", assetOut.string());
@@ -417,7 +417,7 @@ namespace {
 				}
 			}
 
-			LOG_INFO("{} asset(s) loaded (0x{:x})", bo3FFHandlerContext.loaded, bo3FFHandlerContext.loaded);
+			LOG_OPT_INFO("{} asset(s) loaded (0x{:x})", bo3FFHandlerContext.loaded, bo3FFHandlerContext.loaded);
 
 			// xstrings
 			if (opt.dumpXStrings) {
@@ -429,7 +429,7 @@ namespace {
 				for (char* xstr : bo3FFHandlerContext.xstrings) {
 					os << xstr << "\n";
 				}
-				LOG_INFO("Dump xstrings into {}", outStrings.string());
+				LOG_OPT_INFO("Dump xstrings into {}", outStrings.string());
 			}
 
 		}

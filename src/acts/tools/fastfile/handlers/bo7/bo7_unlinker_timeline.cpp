@@ -100,7 +100,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump timeline {}", outFile.string());
+			LOG_OPT_INFO("Dump timeline {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

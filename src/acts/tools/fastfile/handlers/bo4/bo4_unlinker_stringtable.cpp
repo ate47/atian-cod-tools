@@ -62,7 +62,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump {}", outFile.string());
+			LOG_OPT_INFO("Dump {}", outFile.string());
 
 			if (!(asset->columnCount * asset->rowCount) && std::filesystem::exists(outFile)) return; // ignore empty files
 

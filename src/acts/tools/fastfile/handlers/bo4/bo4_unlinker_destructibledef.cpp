@@ -68,7 +68,7 @@ namespace {
 			std::filesystem::create_directories(outDir);
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump destructibledef {}", outFile.string());
+			LOG_OPT_INFO("Dump destructibledef {}", outFile.string());
 
 			json.BeginObject();
 			json.WriteFieldValueXHash("name", asset->name);

@@ -124,7 +124,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset.name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump storagefile {}", outFile.string());
+			LOG_OPT_INFO("Dump storagefile {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping storagefile {}", outFile.string());
@@ -146,7 +146,7 @@ namespace {
 				LOG_ERROR("Error when dumping storagefilelist {}", outFile.string());
 				return;
 			}
-			LOG_INFO("Dump storagefilelist {}", outFile.string());
+			LOG_OPT_INFO("Dump storagefilelist {}", outFile.string());
 
 			os << "name";
 

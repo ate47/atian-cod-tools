@@ -183,7 +183,7 @@ namespace {
 				for (size_t i = 0; i < assetList.stringList.count; i++) {
 					os << assetList.stringList.strings[i] << "\n";
 				}
-				LOG_INFO("Dump strings into {}", outStrings.string());
+				LOG_OPT_INFO("Dump strings into {}", outStrings.string());
 			}
 
 			if (!assetList.assetCount) {

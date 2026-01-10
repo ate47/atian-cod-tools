@@ -37,7 +37,7 @@ namespace {
 				LOG_ERROR("Can't write to {}", outFile.string());
 				return;
 			}
-			LOG_INFO("Dump {} {}", type, outFile.string());
+			LOG_OPT_INFO("Dump {} {}", type, outFile.string());
 		}
 	};
 

@@ -61,7 +61,7 @@ namespace {
 
 			}
 			os << "\n}";
-			LOG_INFO("Dump localizes {} into {}", vals.size(), outFile.string());
+			LOG_OPT_INFO("Dump localizes {} into {}", vals.size(), outFile.string());
 			if (invalid) LOG_ERROR("Found {} invalid entry(ies)", invalid);
 
 			vals.clear(); // cleanup

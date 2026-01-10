@@ -70,7 +70,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump objectstore project {}", outFile.string());
+			LOG_OPT_INFO("Dump objectstore project {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -97,7 +97,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump objectstore ddlconfig {}", outFile.string());
+			LOG_OPT_INFO("Dump objectstore ddlconfig {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -123,7 +123,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump objectstore ddlconfig group {}", outFile.string());
+			LOG_OPT_INFO("Dump objectstore ddlconfig group {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -179,7 +179,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump objectstore project {}", outFile.string());
+			LOG_OPT_INFO("Dump objectstore project {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

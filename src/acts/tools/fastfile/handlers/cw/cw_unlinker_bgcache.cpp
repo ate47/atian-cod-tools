@@ -39,7 +39,7 @@ namespace {
 				return;
 			}
 
-			LOG_INFO("Dump bgcache {}", outFile.string());
+			LOG_OPT_INFO("Dump bgcache {}", outFile.string());
 
 			os << "type,name";
 

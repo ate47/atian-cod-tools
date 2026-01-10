@@ -16,7 +16,7 @@ namespace {
         }
 
         void Cleanup() override {
-            if (count) LOG_INFO("{} file(s) dumped", count);
+            if (count) LOG_OPT_INFO("{} file(s) dumped", count);
             if (anyDbg) LOG_WARNING("Debug file found");
         }
 
@@ -123,7 +123,7 @@ namespace {
                         LOG_ERROR("Can't write {}", outFile.string());
                     }
                     else {
-                        LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(obj->name));
+                        LOG_OPT_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(obj->name));
                         count++;
                     }
 
@@ -182,7 +182,7 @@ namespace {
                         LOG_ERROR("Can't write {}", outFile.string());
                     }
                     else {
-                        LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(entry->name));
+                        LOG_OPT_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(entry->name));
                         count++;
                     }
 

@@ -83,7 +83,7 @@ namespace {
 
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "graphics" / "image" / std::format("{}.csv", ctx.ffname) };
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump gfximage {} ({})", outFile.string(), keys.size());
+			LOG_OPT_INFO("Dump gfximage {} ({})", outFile.string(), keys.size());
 
 			utils::OutFileCE os{ outFile };
 			if (!os) {

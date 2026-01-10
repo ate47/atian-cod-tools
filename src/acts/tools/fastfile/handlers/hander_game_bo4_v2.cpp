@@ -480,7 +480,7 @@ namespace fastfile::handlers::bo4 {
 								}
 							}
 						}
-						LOG_INFO("Dump strings into {}", outStrings.string());
+						LOG_OPT_INFO("Dump strings into {}", outStrings.string());
 					}
 				}
 
@@ -524,7 +524,7 @@ namespace fastfile::handlers::bo4 {
 				}
 
 				DB_PopStreamPos();
-				LOG_INFO("Loaded {} asset(s)", gcx.loaded);
+				LOG_OPT_INFO("Loaded {} asset(s)", gcx.loaded);
 			}
 		};
 		utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };

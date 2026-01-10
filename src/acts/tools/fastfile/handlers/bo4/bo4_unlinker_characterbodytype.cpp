@@ -59,7 +59,7 @@ namespace {
 			constexpr size_t testLen = sizeof(CharacterBodyType) - postWeaponDefNameField;
 
 			if (utils::data::IsNulled(&((byte*)ptr)[postWeaponDefNameField], testLen)) {
-				LOG_INFO("ignore empty character {}", hashutils::ExtractTmp("file", asset->name.name));
+				LOG_OPT_INFO("ignore empty character {}", hashutils::ExtractTmp("file", asset->name.name));
 				return;
 			}
 
@@ -70,7 +70,7 @@ namespace {
 
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump characterbodytype {}", outFile.string());
+			LOG_OPT_INFO("Dump characterbodytype {}", outFile.string());
 
 
 			json.BeginObject();

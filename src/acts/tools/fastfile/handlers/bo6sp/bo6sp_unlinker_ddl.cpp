@@ -104,7 +104,7 @@ namespace {
 
 			if (ndef->nameStr) {
 				if (!opt.archiveDDL && std::string_view{ hashutils::CleanPath(utils::CloneString(ndef->nameStr)) }.starts_with("ddl\\cer\\archive")) {
-					LOG_INFO("Ignore archive {}", ndef->nameStr);
+					LOG_OPT_INFO("Ignore archive {}", ndef->nameStr);
 					return;
 				}
 				hashutils::AddPrecomputed(hash::HashIWAsset(ndef->nameStr), ndef->nameStr, true);
@@ -125,7 +125,7 @@ namespace {
 
 			const char* filename = hashutils::ExtractTmpPath("ddl", asset->name);
 
-			LOG_INFO("Dump ddl {} -> {}", filename, outFile.string());
+			LOG_OPT_INFO("Dump ddl {} -> {}", filename, outFile.string());
 			os << "// file .... " << filename << "\n\n";
 
 			while (true) {

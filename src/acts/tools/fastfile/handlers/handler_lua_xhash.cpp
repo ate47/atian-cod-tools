@@ -80,7 +80,7 @@ namespace {
                             LOG_ERROR("Can't write {}", outFile.string());
                         }
                         else {
-                            LOG_INFO("Dump {}", outFile.string());
+                            LOG_OPT_INFO("Dump {}", outFile.string());
                         }
                     }
                 }

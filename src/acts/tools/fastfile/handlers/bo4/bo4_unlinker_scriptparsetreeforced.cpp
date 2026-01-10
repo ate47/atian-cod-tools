@@ -30,7 +30,7 @@ namespace {
 				return;
 			}
 
-			LOG_INFO("Dump scriptparsetreeforced {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptparsetreeforced {}", outFile.string());
 
 			os << "vm,name";
 

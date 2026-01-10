@@ -54,7 +54,7 @@ namespace {
 
 			utils::raw_file_extractor::JsonWriter json{};
 
-			LOG_INFO("Dump sprayorgestureitem {}", outFile.string());
+			LOG_OPT_INFO("Dump sprayorgestureitem {}", outFile.string());
 			json.BeginObject();
 
 			json.WriteFieldNameString("name");
@@ -153,7 +153,7 @@ namespace {
 
 			}
 
-			LOG_INFO("Dump sprayorgesturelist {}", outFile.string());
+			LOG_OPT_INFO("Dump sprayorgesturelist {}", outFile.string());
 
 			os << "type,name";
 

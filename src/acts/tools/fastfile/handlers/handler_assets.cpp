@@ -113,7 +113,7 @@ namespace fastfile::handlers::assets {
 				if (gcx.list.strings) {
 					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE stringsOs{ outStrings };
-					LOG_INFO("dump {}", outStrings.string());
+					LOG_OPT_INFO("dump {}", outStrings.string());
 					gcx.list.strings = reader.ReadPtr<const char*>(gcx.list.stringsCount);
 
 					for (size_t i = 0; i < gcx.list.stringsCount; i++) {
@@ -142,7 +142,7 @@ namespace fastfile::handlers::assets {
 						// dump ids
 						std::filesystem::create_directories(outPreAssets.parent_path());
 						utils::OutFileCE assetsOs{ outPreAssets };
-						LOG_INFO("dump {}", outPreAssets.string());
+						LOG_OPT_INFO("dump {}", outPreAssets.string());
 						assetsOs << "type,ref";
 
 						for (size_t i = 0; i < gcx.list.assetsCount; i++) {

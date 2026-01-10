@@ -21,7 +21,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump raw file {} 0x{:x}", outFile.string(), asset->len);
+			LOG_OPT_INFO("Dump raw file {} 0x{:x}", outFile.string(), asset->len);
 			if (!asset->len && std::filesystem::exists(outFile)) return; // ignore empty files
 			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

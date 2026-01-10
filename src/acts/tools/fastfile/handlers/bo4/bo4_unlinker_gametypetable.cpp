@@ -59,7 +59,7 @@ namespace {
 			std::filesystem::path outDir{ opt.m_output / "bo4" / "source" / "tables" / "gametype" / name };
 			std::filesystem::create_directories(outDir);
 
-			LOG_INFO("Dump gametypetable {}", outDir.string());
+			LOG_OPT_INFO("Dump gametypetable {}", outDir.string());
 			{
 				std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "gametype" / std::format("{}.json", name) };
 				BO4JsonWriter json{};
@@ -108,7 +108,7 @@ namespace {
 					if (!utils::WriteFile(outFileF0, entry->unkf0, entry->unkf0_count)) {
 						LOG_ERROR("Error when dumping {}", outFileF0.string());
 					}
-					LOG_INFO("Dump {}", outFileF0.string());
+					LOG_OPT_INFO("Dump {}", outFileF0.string());
 				}
 
 				if (entry->settingsCount) {

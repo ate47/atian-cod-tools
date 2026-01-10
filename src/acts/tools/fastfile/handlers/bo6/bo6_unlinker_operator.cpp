@@ -127,7 +127,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump operator {}", outFile.string());
+			LOG_OPT_INFO("Dump operator {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -172,7 +172,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump operatorskin {}", outFile.string());
+			LOG_OPT_INFO("Dump operatorskin {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -215,7 +215,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump operatorlist {}", outFile.string());
+			LOG_OPT_INFO("Dump operatorlist {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -262,7 +262,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump reactiveoperator {}", outFile.string());
+			LOG_OPT_INFO("Dump reactiveoperator {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

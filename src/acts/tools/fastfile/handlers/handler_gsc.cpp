@@ -18,7 +18,7 @@ namespace {
         }
 
         void Cleanup() override {
-            if (count) LOG_INFO("{} file(s) dumped", count);
+            if (count) LOG_OPT_INFO("{} file(s) dumped", count);
             if (anyDbg) LOG_WARNING("Debug file found");
         }
 
@@ -130,7 +130,7 @@ namespace {
                     utils::WriteValue(os, bytecodeData, sf.bytecodeLen);
                 }
 
-                LOG_INFO("Dump {}", outFile.string());
+                LOG_OPT_INFO("Dump {}", outFile.string());
                 any = true;
             }
             return any;
@@ -193,7 +193,7 @@ namespace {
                         LOG_ERROR("Error when dumping");
                     }
                     else {
-                        LOG_INFO("Dump into {}", outFile.string());
+                        LOG_OPT_INFO("Dump into {}", outFile.string());
                     }
                     any = true;
                     DecompFile(opt, data, spt.len, outFile);
@@ -238,7 +238,7 @@ namespace {
                     }
 
 
-                    LOG_INFO("dbg {} -> 0x{:x}", name, spt.gdbLen);
+                    LOG_OPT_INFO("dbg {} -> 0x{:x}", name, spt.gdbLen);
 
                     if (!buff.CanRead(spt.gdbLen)) {
                         continue; // bad size
@@ -259,7 +259,7 @@ namespace {
                             LOG_ERROR("Error when dumping");
                         }
                         else {
-                            LOG_INFO("Dump into {}", outFile.string());
+                            LOG_OPT_INFO("Dump into {}", outFile.string());
                         }
                     }
 
@@ -275,7 +275,7 @@ namespace {
                             LOG_ERROR("Error when dumping");
                         }
                         else {
-                            LOG_INFO("Dump into {}", outFile.string());
+                            LOG_OPT_INFO("Dump into {}", outFile.string());
                         }
                         any = true;
                     }
@@ -384,7 +384,7 @@ namespace {
                         LOG_ERROR("Can't write {}", outFile.string());
                     }
                     else {
-                        LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(obj->name));
+                        LOG_OPT_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(obj->name));
                         count++;
                     }
                     any = true;
@@ -445,7 +445,7 @@ namespace {
                         LOG_ERROR("Can't write {}", outFile.string());
                     }
                     else {
-                        LOG_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(entry->name));
+                        LOG_OPT_INFO("Dump {} ({})", outFile.string(), hashutils::ExtractTmpScript(entry->name));
                         count++;
                     }
 

@@ -538,7 +538,7 @@ namespace fastfile::handlers::bo7 {
 			void Cleanup() override {
 				gcx.namesStore.WarnMissings();
 				if (gcx.xstrOutGlb) {
-					LOG_INFO("Dump xstrings to {}", gcx.xstrOutGlb->path.string());
+					LOG_OPT_INFO("Dump xstrings to {}", gcx.xstrOutGlb->path.string());
 					if (compatibility::scobalula::wnigen::CompressWNIFile(gcx.xstrOutGlb->map, gcx.xstrOutGlb->path)) {
 						LOG_ERROR("Failed to create wni file");
 					}
@@ -614,7 +614,7 @@ namespace fastfile::handlers::bo7 {
 								str = acts::decryptutils::DecryptString(reader.ReadString());
 								if (stroff & StreamPointerFlag::SPF_CREATE_REF) {
 									gcx.DB_RegisterStreamOffset(loadCtx, stroff, (void*)str);
-									//LOG_INFO("store offset {:x} -> {}", stroff, str);
+									//LOG_OPT_INFO("store offset {:x} -> {}", stroff, str);
 								}
 								hashutils::Add(str, true, true);
 								if (gcx.xstringLocs) gcx.xstringLocs->push_back(str);
@@ -650,14 +650,14 @@ namespace fastfile::handlers::bo7 {
 					}
 				}
 
-				LOG_INFO("String dump into {}", outStrings.string());
+				LOG_OPT_INFO("String dump into {}", outStrings.string());
 				LOG_DEBUG("string end at 0x{:x}", reader.Loc());
 
 				// finally moved to a runtime memory block
 				// gcx.assets.unk10 = reader.ReadPtr<uint32_t>(gcx.assets.unk10_count);
 
 				if (!gcx.assets.assetsCount) {
-					LOG_INFO("no assets to load");
+					LOG_OPT_INFO("no assets to load");
 					return;
 				}
 
@@ -704,7 +704,7 @@ namespace fastfile::handlers::bo7 {
 						}
 					}
 				}
-				LOG_INFO("Asset names dump into {}", outAssets.string());
+				LOG_OPT_INFO("Asset names dump into {}", outAssets.string());
 				if (gcx.xstringLocs) {
 					std::filesystem::path ostr{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(ostr.parent_path());
@@ -731,7 +731,7 @@ namespace fastfile::handlers::bo7 {
 							h.insert(hash::HashT10ScrSP(s));
 						}
 					}
-					LOG_INFO("XStrings names dump into {}", ostr.string());
+					LOG_OPT_INFO("XStrings names dump into {}", ostr.string());
 					gcx.xstringLocs = nullptr;
 				}
 

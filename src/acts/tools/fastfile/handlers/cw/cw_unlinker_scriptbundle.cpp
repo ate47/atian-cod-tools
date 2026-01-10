@@ -262,9 +262,9 @@ namespace fastfile::handlers::cw::scriptbundle {
 
 			utils::raw_file_extractor::JsonWriter json{};
 
-			LOG_INFO("Dump scriptbundle {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptbundle {}", outFile.string());
 			if (!asset->sbObjectsArray.sbObjectCount) {
-				LOG_INFO("ignore empty asset->sbObjectsArray");
+				LOG_OPT_INFO("ignore empty asset->sbObjectsArray");
 				return;
 			}
 			bool error{};
@@ -286,7 +286,7 @@ namespace fastfile::handlers::cw::scriptbundle {
 
 			utils::raw_file_extractor::JsonWriter json{};
 
-			LOG_INFO("Dump scriptbundlelist {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptbundlelist {}", outFile.string());
 
 			json.BeginObject();
 

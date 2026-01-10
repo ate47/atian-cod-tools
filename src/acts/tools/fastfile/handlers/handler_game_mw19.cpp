@@ -369,7 +369,7 @@ namespace fastfile::handlers::mw19 {
 			void Cleanup() override {
 				gcx.namesStore.WarnMissings();
 				if (gcx.xstrOutGlb) {
-					LOG_INFO("Dump xstrings to {}", gcx.xstrOutGlb->path.string());
+					LOG_OPT_INFO("Dump xstrings to {}", gcx.xstrOutGlb->path.string());
 					if (compatibility::scobalula::wnigen::CompressWNIFile(gcx.xstrOutGlb->map, gcx.xstrOutGlb->path)) {
 						LOG_ERROR("Failed to create wni file");
 					}
@@ -475,11 +475,11 @@ namespace fastfile::handlers::mw19 {
 					}
 				}
 
-				LOG_INFO("String dump into {} ({})", outStrings.string(), gcx.assets.stringsCount);
+				LOG_OPT_INFO("String dump into {} ({})", outStrings.string(), gcx.assets.stringsCount);
 				LOG_DEBUG("string end at 0x{:x}", reader.Loc());
 
 				if (!gcx.assets.assetsCount) {
-					LOG_INFO("no assets to load");
+					LOG_OPT_INFO("no assets to load");
 					return;
 				}
 
@@ -521,7 +521,7 @@ namespace fastfile::handlers::mw19 {
 					}
 					gcx.DB_PopStreamPos();
 				}
-				LOG_INFO("Asset names dump into {}", outAssets.string());
+				LOG_OPT_INFO("Asset names dump into {}", outAssets.string());
 				if (gcx.xstringLocs) {
 					std::filesystem::path ostr{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "xstrings" / fftype / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(ostr.parent_path());
@@ -548,7 +548,7 @@ namespace fastfile::handlers::mw19 {
 							h.insert(hash::HashIWAsset(s));
 						}
 					}
-					LOG_INFO("XStrings names dump into {}", ostr.string());
+					LOG_OPT_INFO("XStrings names dump into {}", ostr.string());
 					gcx.xstringLocs = nullptr;
 				}
 

@@ -57,7 +57,7 @@ namespace {
 
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump weaponcamo {}", outFile.string());
+			LOG_OPT_INFO("Dump weaponcamo {}", outFile.string());
 			json.BeginObject();
 
 			json.WriteFieldValueXHash("name", asset->name);

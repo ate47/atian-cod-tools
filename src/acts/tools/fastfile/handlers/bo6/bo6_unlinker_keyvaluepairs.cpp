@@ -25,7 +25,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo6" / "source" / "tables" / "keyvaluepairs" / std::format("{}.csv", hashutils::ExtractTmp("file", asset->name)) };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump keyvaluepairs {}", outFile.string());
+			LOG_OPT_INFO("Dump keyvaluepairs {}", outFile.string());
 
 			utils::OutFileCE os{ outFile };
 

@@ -156,7 +156,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 			HandlerJsonWriter json{};
 
-			LOG_INFO("Dump scriptbundle {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptbundle {}", outFile.string());
 
 			WriteData(json, asset->data);
 
@@ -181,7 +181,7 @@ namespace fastfile::handlers::mwiiisp::scriptbundle {
 
 				std::sort(vec.begin(), vec.end(), [](ScriptBundle& a, ScriptBundle& b) -> bool { return a.name < b.name; });
 
-				LOG_INFO("Dump {} hashed scriptbundle(s) {}", vec.size(), outFile.string());
+				LOG_OPT_INFO("Dump {} hashed scriptbundle(s) {}", vec.size(), outFile.string());
 
 				json.BeginObject();
 

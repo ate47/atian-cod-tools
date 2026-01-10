@@ -96,7 +96,7 @@ namespace {
 			json.EndArray();
 			json.EndObject();
 
-			LOG_INFO("Dump streamkey({}) {}", keys.size(), outFile.string());
+			LOG_OPT_INFO("Dump streamkey({}) {}", keys.size(), outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

@@ -87,7 +87,7 @@ namespace {
 					utils::WriteValue(os, bytecodeData, sf.bytecodeLen);
 				}
 
-				LOG_INFO("Dump {}", outFile.string());
+				LOG_OPT_INFO("Dump {}", outFile.string());
 					
 			}
 		}

@@ -174,7 +174,7 @@ namespace fastfile::handlers::bo4::map {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / name / "triggerlist.json" };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump triggerlist {}", outFile.string());
+			LOG_OPT_INFO("Dump triggerlist {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

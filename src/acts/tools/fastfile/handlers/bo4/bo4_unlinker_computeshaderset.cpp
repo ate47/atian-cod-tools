@@ -86,7 +86,7 @@ namespace {
 			std::filesystem::create_directories(outDir);
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump computeshaderset {}", outFile.string());
+			LOG_OPT_INFO("Dump computeshaderset {}", outFile.string());
 
 			json.BeginObject();
 			json.WriteFieldValueXHash("name", asset->name);
@@ -127,7 +127,7 @@ namespace {
 						LOG_ERROR("Can't write {}", outCode.string());
 					}
 					else {
-						LOG_INFO("Dump dxbc {}", outCode.string());
+						LOG_OPT_INFO("Dump dxbc {}", outCode.string());
 					}
 					json.WriteFieldValueString("code", codeFileName);
 

@@ -375,7 +375,7 @@ namespace fastfile::handlers::cw {
 				std::filesystem::create_directories(out);
 
 				if (!reader.CanRead(sizeof(gcx.assetList))) {
-					LOG_INFO("empty, ignored");
+					LOG_OPT_INFO("empty, ignored");
 					return;
 				}
 
@@ -434,7 +434,7 @@ namespace fastfile::handlers::cw {
 								os << scrstr << "\n";
 							}
 						}
-						LOG_INFO("Dump {} (0x{:x}) strings into {}", assetList.stringsCount, assetList.stringsCount, outStrings.string());
+						LOG_OPT_INFO("Dump {} (0x{:x}) strings into {}", assetList.stringsCount, assetList.stringsCount, outStrings.string());
 					}
 				}
 
@@ -472,7 +472,7 @@ namespace fastfile::handlers::cw {
 						gcx.Load_XAsset(false, &assetList.assets[i]);
 					}
 
-					LOG_INFO("Dumped assets into {}", outAssets.string());
+					LOG_OPT_INFO("Dumped assets into {}", outAssets.string());
 					if (!opt.noAssetDump) {
 						for (auto& [t, w] : GetWorkers()) {
 							w->PostXFileLoading(opt, ctx);
@@ -489,12 +489,12 @@ namespace fastfile::handlers::cw {
 						for (char* xstr : gcx.xstrings) {
 							os << xstr << "\n";
 						}
-						LOG_INFO("Dump xstrings into {}", outStrings.string());
+						LOG_OPT_INFO("Dump xstrings into {}", outStrings.string());
 					}
 				}
 
 				gcx.DB_PopStreamPos();
-				LOG_INFO("Loaded {} asset(s)", gcx.loaded);
+				LOG_OPT_INFO("Loaded {} asset(s)", gcx.loaded);
 			}
 		};
 

@@ -25,7 +25,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "cw" / "luafile" / name };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump luafile {} len: 0x{:x}", outFile.string(), asset->len);
+			LOG_OPT_INFO("Dump luafile {} len: 0x{:x}", outFile.string(), asset->len);
 
 			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

@@ -30,7 +30,7 @@ namespace {
 
 			}
 
-			LOG_INFO("Dump keyvaluepairs {}", outFile.string());
+			LOG_OPT_INFO("Dump keyvaluepairs {}", outFile.string());
 
 			os << "key,value";
 

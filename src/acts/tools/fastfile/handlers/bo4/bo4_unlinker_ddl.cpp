@@ -273,7 +273,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump {}", outFile.string());
+			LOG_OPT_INFO("Dump {}", outFile.string());
 
 			utils::OutFileCE os{ outFile };
 

@@ -26,7 +26,7 @@ namespace {
 
 			std::filesystem::path outFile{ outDir / std::format("vm_{:x}/{}c", *(uint64_t*)spt->buffer, spt->name) };
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump scriptparsetree {} 0x{:x} ({})", outFile.string(), spt->len, spt->name);
+			LOG_OPT_INFO("Dump scriptparsetree {} 0x{:x} ({})", outFile.string(), spt->len, spt->name);
 			if (!utils::WriteFile(outFile, spt->buffer, spt->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 				return;

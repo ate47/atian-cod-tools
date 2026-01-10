@@ -204,7 +204,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name))
 			};
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump sound{} {}", type, outFile.string());
+			LOG_OPT_INFO("Dump sound{} {}", type, outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -214,7 +214,7 @@ namespace {
 				std::filesystem::path outDialogs{ outFile };
 				outDialogs.replace_extension(".txt");
 
-				LOG_INFO("Dump sound{} {}", type, outDialogs.string());
+				LOG_OPT_INFO("Dump sound{} {}", type, outDialogs.string());
 
 				utils::OutFileCE os{ outDialogs };
 				if (!os) {

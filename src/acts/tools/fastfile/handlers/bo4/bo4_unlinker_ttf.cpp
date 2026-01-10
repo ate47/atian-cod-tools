@@ -41,8 +41,8 @@ namespace {
 			BO4JsonWriter json{};
 
 
-			LOG_INFO("Dump ttf {}", outFile.string());
-			LOG_INFO("Dump graphic ttf {}", outFileGraphic.string());
+			LOG_OPT_INFO("Dump ttf {}", outFile.string());
+			LOG_OPT_INFO("Dump graphic ttf {}", outFileGraphic.string());
 
 			json.BeginObject();
 			json.WriteFieldValueXHash("name", asset->name);

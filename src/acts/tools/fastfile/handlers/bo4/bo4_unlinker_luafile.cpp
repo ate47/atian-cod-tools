@@ -21,7 +21,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "luafile" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump lua file {} 0x{:x}", outFile.string(), asset->len);
+			LOG_OPT_INFO("Dump lua file {} 0x{:x}", outFile.string(), asset->len);
 			if (!utils::WriteFile(outFile, asset->buffer, asset->len)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
 			}

@@ -31,7 +31,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / gamePath / "scriptfile" / n };
 			outFile.replace_extension(".gscbin");
 
-			LOG_INFO("Dump scriptfile {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptfile {}", outFile.string());
 
 			if constexpr (compatibility::xensik::decompiler::available) {
 				if (!opt.disableScriptsDecomp) {

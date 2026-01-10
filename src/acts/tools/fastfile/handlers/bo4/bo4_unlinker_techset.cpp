@@ -42,7 +42,7 @@ namespace {
 			std::filesystem::create_directories(outFile.parent_path());
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump techset {}", outFile.string());
+			LOG_OPT_INFO("Dump techset {}", outFile.string());
 
 			json.BeginObject();
 			json.WriteFieldValueXHash("name", asset->name);

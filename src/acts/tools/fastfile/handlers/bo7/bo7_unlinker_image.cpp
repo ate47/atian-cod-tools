@@ -75,7 +75,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / gamePath / "graphics" / "image" / std::format("{}.json", hashutils::ExtractTmp("hash", asset->name)) };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump image {}", outFile.string());
+			LOG_OPT_INFO("Dump image {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

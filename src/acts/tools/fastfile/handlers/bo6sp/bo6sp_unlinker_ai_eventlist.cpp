@@ -78,7 +78,7 @@ namespace {
 			};
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump ai_eventlist {}", outFile.string());
+			LOG_OPT_INFO("Dump ai_eventlist {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

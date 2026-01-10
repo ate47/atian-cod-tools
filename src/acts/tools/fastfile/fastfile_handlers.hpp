@@ -130,6 +130,7 @@ namespace fastfile {
 		bool testDump{};
 		bool archiveDDL{};
 		bool graphic{};
+		bool reducedLogs{};
 		GameId m_gameId{};
 		GameRevId m_gameRevId{};
 		const char* m_casc{};
@@ -314,3 +315,5 @@ namespace fastfile {
 	fastfile::FastFileContext& GetCurrentContext();
 	fastfile::FastFileOption& GetCurrentOptions();
 }
+
+#define LOG_OPT_INFO(...) if (!fastfile::GetCurrentOptions().reducedLogs) LOG_INFO(__VA_ARGS__)

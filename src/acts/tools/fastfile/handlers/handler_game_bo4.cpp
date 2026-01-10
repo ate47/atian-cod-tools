@@ -381,11 +381,11 @@ namespace fastfile::handlers::bo4 {
 						assetList.strings[i] = scrstr;
 						os << scrstr << "\n";
 					}
-					LOG_INFO("Dump strings into {}", outStrings.string());
+					LOG_OPT_INFO("Dump strings into {}", outStrings.string());
 				}
 
 				if (!assetList.assetCount) {
-					LOG_INFO("no asset");
+					LOG_OPT_INFO("no asset");
 					return;
 				}
 
@@ -448,7 +448,7 @@ namespace fastfile::handlers::bo4 {
 						std::filesystem::path assetOut{ binout / std::format("{:04}_{}.bin", i, assType) };
 
 						if (utils::WriteFile(assetOut, rawAsset)) {
-							LOG_INFO("Dump asset {}", assetOut.string());
+							LOG_OPT_INFO("Dump asset {}", assetOut.string());
 						}
 						else {
 							LOG_ERROR("Error when dumping {}", assetOut.string());
@@ -486,14 +486,14 @@ namespace fastfile::handlers::bo4 {
 					std::filesystem::path binmapout{ bindir / std::format("{}.map", ctx.ffname) };
 
 					if (utils::WriteFile(binmapout, mapData)) {
-						LOG_INFO("Dump asset {}", binmapout.string());
+						LOG_OPT_INFO("Dump asset {}", binmapout.string());
 					}
 					else {
 						LOG_ERROR("Error when dumping {}", binmapout.string());
 					}
 				}
 
-				LOG_INFO("{} asset(s) loaded (0x{:x})", bo4FFHandlerContext.loaded, bo4FFHandlerContext.loaded);
+				LOG_OPT_INFO("{} asset(s) loaded (0x{:x})", bo4FFHandlerContext.loaded, bo4FFHandlerContext.loaded);
 
 			}
 
@@ -512,7 +512,7 @@ namespace fastfile::handlers::bo4 {
 							}
 						}
 					}
-					LOG_INFO("Dumped assets into {}", outAssets.string());
+					LOG_OPT_INFO("Dumped assets into {}", outAssets.string());
 				}
 			}
 		};

@@ -66,7 +66,7 @@ namespace {
 						LOG_ERROR("Error when dumping");
 					}
 					else {
-						LOG_INFO("Dump into {}", outFile.string());
+						LOG_OPT_INFO("Dump into {}", outFile.string());
 					}
 				}
 			}
@@ -110,7 +110,7 @@ namespace {
 					}
 
 
-					LOG_INFO("dbg {} -> 0x{:x}", name, spt.gdbLen);
+					LOG_OPT_INFO("dbg {} -> 0x{:x}", name, spt.gdbLen);
 
 					if (!decReader.CanRead(spt.gdbLen)) {
 						continue; // bad size
@@ -131,7 +131,7 @@ namespace {
 							LOG_ERROR("Error when dumping");
 						}
 						else {
-							LOG_INFO("Dump into {}", outFile.string());
+							LOG_OPT_INFO("Dump into {}", outFile.string());
 						}
 					}
 
@@ -147,7 +147,7 @@ namespace {
 							LOG_ERROR("Error when dumping");
 						}
 						else {
-							LOG_INFO("Dump into {}", outFile.string());
+							LOG_OPT_INFO("Dump into {}", outFile.string());
 						}
 					}
 				}

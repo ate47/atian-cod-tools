@@ -134,7 +134,7 @@ namespace fastfile::handlers::bo4::scriptbundle {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / n };
 			std::filesystem::create_directories(outFile.parent_path());
 
-			LOG_INFO("Dump structuredtable {}", outFile.string());
+			LOG_OPT_INFO("Dump structuredtable {}", outFile.string());
 
 			if (!json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());

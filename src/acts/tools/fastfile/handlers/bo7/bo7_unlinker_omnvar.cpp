@@ -34,7 +34,7 @@ namespace {
 				os << "\n#" << hashutils::ExtractTmp("hash", var->name) << ",#" << hashutils::ExtractTmp("hash", var->val);
 			}
 
-			LOG_INFO("Dump omnvars {} into {}", vals.size(), outFile.string());
+			LOG_OPT_INFO("Dump omnvars {} into {}", vals.size(), outFile.string());
 
 			vals.clear(); // cleanup
 		}

@@ -122,7 +122,7 @@ namespace {
 
 			BO4JsonWriter json{};
 
-			LOG_INFO("Dump dlogevent {}", outFile.string());
+			LOG_OPT_INFO("Dump dlogevent {}", outFile.string());
 
 			auto WriteType = [&json](const char* name, DLogEventUnkFieldMemberType type) {
 

@@ -66,7 +66,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / gamePath / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump stringtable {} ({:x}) ({}x{})", outFile.string(), asset->name, asset->rowCount, asset->columnCount);
+			LOG_OPT_INFO("Dump stringtable {} ({:x}) ({}x{})", outFile.string(), asset->name, asset->rowCount, asset->columnCount);
 
 			utils::OutFileCE os{ outFile };
 

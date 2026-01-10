@@ -30,7 +30,7 @@ namespace {
 
 			}
 
-			LOG_INFO("Dump rawstring({}) {}", assets.size(), outFile.string());
+			LOG_OPT_INFO("Dump rawstring({}) {}", assets.size(), outFile.string());
 
 			os << "name,string";
 

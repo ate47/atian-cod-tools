@@ -121,7 +121,7 @@ namespace {
 
 			const char* filename = hashutils::ExtractTmpPath("ddl", entry.name);
 
-			LOG_INFO("Dump {} -> {}", filename, loc.string());
+			LOG_OPT_INFO("Dump {} -> {}", filename, loc.string());
 			os << "// file .... " << filename << "\n\n";
 			if (entry.depends_name) {
 				os << "#redirect " << hashutils::ExtractTmp("hash", entry.depends_name) << ";\n\n";

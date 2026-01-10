@@ -951,7 +951,7 @@ namespace {
 			constexpr size_t testLen = sizeof(WeaponTunables) - postWeaponDefNameField;
 
 			if (utils::data::IsNulled(&((byte*)ptr)[postWeaponDefNameField], testLen)) {
-				LOG_INFO("ignore empty weapontunables {}", hashutils::ExtractTmp("file", asset->name.name));
+				LOG_OPT_INFO("ignore empty weapontunables {}", hashutils::ExtractTmp("file", asset->name.name));
 				return;
 			}
 
@@ -962,7 +962,7 @@ namespace {
 
 			utils::raw_file_extractor::JsonWriter json{};
 
-			LOG_INFO("Dump weapontunables {}", outFile.string());
+			LOG_OPT_INFO("Dump weapontunables {}", outFile.string());
 
 			json.BeginObject();
 			{

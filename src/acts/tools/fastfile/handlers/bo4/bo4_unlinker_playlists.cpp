@@ -163,7 +163,7 @@ namespace {
 
 			std::filesystem::path outDir{ opt.m_output / "bo4" / "source" / "tables" / "playlists" / hashutils::ExtractTmp("file", asset->name) };
 			std::filesystem::create_directories(outDir);
-			LOG_INFO("Dump playlists {}", outDir.string());
+			LOG_OPT_INFO("Dump playlists {}", outDir.string());
 			{
 
 				BO4JsonWriter json{};

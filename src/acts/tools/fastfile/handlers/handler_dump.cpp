@@ -19,7 +19,7 @@ namespace {
 				LOG_ERROR("Can't dump {}", decfile.string());
 			}
 			else {
-				LOG_INFO("Dump into {}", decfile.string());
+				LOG_OPT_INFO("Dump into {}", decfile.string());
 			}
 		}
 	};

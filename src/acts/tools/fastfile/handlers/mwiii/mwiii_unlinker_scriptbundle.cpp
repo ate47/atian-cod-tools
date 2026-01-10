@@ -168,7 +168,7 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 
 			HandlerJsonWriter json{};
 
-			LOG_INFO("Dump scriptbundle {}", outFile.string());
+			LOG_OPT_INFO("Dump scriptbundle {}", outFile.string());
 
 			if (!WriteData(json, asset->data) || !json.WriteToFile(outFile)) {
 				LOG_ERROR("Error when dumping {}", outFile.string());
@@ -191,7 +191,7 @@ namespace fastfile::handlers::mwiii::scriptbundle {
 
 				std::sort(vec.begin(), vec.end(), [](ScriptBundle& a, ScriptBundle& b) -> bool { return a.name < b.name; });
 
-				LOG_INFO("Dump {} hashed scriptbundle(s) {}", vec.size(), outFile.string());
+				LOG_OPT_INFO("Dump {} hashed scriptbundle(s) {}", vec.size(), outFile.string());
 
 				json.BeginObject();
 

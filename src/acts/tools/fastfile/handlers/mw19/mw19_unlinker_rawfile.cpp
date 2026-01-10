@@ -23,7 +23,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / gamePath / "source" / n };
 
 			std::filesystem::create_directories(outFile.parent_path());
-			LOG_INFO("Dump raw file {} len: 0x{:x}", outFile.string(), asset->uncompressedLen);
+			LOG_OPT_INFO("Dump raw file {} len: 0x{:x}", outFile.string(), asset->uncompressedLen);
 			if (!asset->uncompressedLen && std::filesystem::exists(outFile)) return; // ignore empty files
 			std::unique_ptr<byte[]> decomp{ std::make_unique<byte[]>(asset->uncompressedLen + 1) };
 
