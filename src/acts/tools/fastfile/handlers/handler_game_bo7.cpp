@@ -379,13 +379,9 @@ namespace fastfile::handlers::bo7 {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_AddAssetRef(HandlerAssetType type, uint64_t name, void* handle) {
-			LOG_DEBUG("DB_AddAssetRef({}, '{}') {}", gcx.assetNames.GetTypeName(type), hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
+		void* DB_AddAssetRef(HandlerAssetType type, uint64_t name, void* strName) {
+			LOG_DEBUG("DB_AddAssetRef({}, '{}') {}", gcx.assetNames.GetTypeName(type), strName ? strName : hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
 			HandlerHashedAssetType hashType{ gcx.assetNames.GetHashType(type) };
-			if (handle) {
-				gcx.linkedAssets[hashType][name] = handle;
-				return handle;
-			}
 			auto it{ gcx.linkedAssets[hashType].find(name) };
 			if (it != gcx.linkedAssets[hashType].end()) {
 				return it->second;
@@ -555,7 +551,7 @@ namespace fastfile::handlers::bo7 {
 				gcx.reader = &reader;
 
 				if (!reader.CanRead(sizeof(gcx.assets))) {
-					LOG_WARNING("empty fastfile, ignored");
+					LOG_DEBUG("empty fastfile, ignored");
 					return;
 				}
 
