@@ -1,5 +1,7 @@
 #pragma once
-#include "gsc.hpp"
+#include <core/async.hpp>
+#include <tools/gsc/gsc.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_object.hpp>
 
 namespace tool::gsc::opcode {
 	size_t SizeNoEmptyNode(const std::vector<ASMContextStatement>& statements);
@@ -141,7 +143,7 @@ namespace tool::gsc::opcode {
 		bool m_canonid;
 		const char* m_type;
 		bool m_localized;
-		ASMContextNodeHash(uint64_t value, bool canonid = false, const char* type = "#", bool localized = false) : 
+		ASMContextNodeHash(uint64_t value, bool canonid = false, const char* type = "#", bool localized = false) :
 			m_type(type), ASMContextNode(PRIORITY_VALUE, TYPE_CONST_HASH), m_value(value), m_canonid(canonid), m_localized(localized) {
 		}
 
@@ -232,7 +234,7 @@ namespace tool::gsc::opcode {
 			new ASMContextNodeValue<float>(x, TYPE_FLOAT),
 			new ASMContextNodeValue<float>(y, TYPE_FLOAT),
 			new ASMContextNodeValue<float>(z, TYPE_FLOAT)
-			) {
+		) {
 		}
 		~ASMContextNodeVector() {
 			delete m_x;
@@ -323,11 +325,12 @@ namespace tool::gsc::opcode {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			
+
 			if (m_str1 && *m_str1) {
 				// anim ref
 				out << "%" << utils::FormattedString(m_str1) << "::" << utils::FormattedString(m_str2);
-			} else {
+			}
+			else {
 				// animtree
 				out << "$" << utils::FormattedString(m_str2);
 			}
@@ -346,11 +349,12 @@ namespace tool::gsc::opcode {
 		}
 
 		void Dump(std::ostream& out, DecompContext& ctx) const override {
-			
+
 			if (m_name) {
 				// anim ref
 				out << "%" << utils::FormattedString(m_name);
-			} else {
+			}
+			else {
 				// animtree
 				out << "#animtree";
 			}
@@ -1079,7 +1083,7 @@ namespace tool::gsc::opcode {
 			else if (start < m_operands.size()) {
 				out << " "; // at least one param
 			}
-			
+
 			for (size_t i = start; i < m_operands.size(); i++) {
 				const auto& operand = m_operands[i];
 				if (i != start) {
@@ -1677,7 +1681,7 @@ namespace tool::gsc::opcode {
 					out << "NO_ORIGIN";
 				}
 				out << ">";
-			} 
+			}
 			else if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
 				out << " ";
 			}
@@ -1902,44 +1906,44 @@ namespace tool::gsc::opcode {
 					}
 					out << ">";
 				}
-	 else if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
-	  out << " ";
-	}
-	if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
-		out << "( ;; )";
-	}
-	else {
-		out << "(;;)";
-	}
+				else if (!(ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NO_SPACE_AFTER_CONTROL))) {
+					out << " ";
+				}
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_SPACE_BEFOREAFTER_PARAMS)) {
+					out << "( ;; )";
+				}
+				else {
+					out << "(;;)";
+				}
 
-	if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
-		ctx.WritePadding(out << "\n", true);
-	}
-	else {
-		out << " ";
-	}
-	}
-	m_block->Dump(out, ctx);
-	}
+				if (ctx.opt.m_formatter->HasFlag(tool::gsc::formatter::FFL_NEWLINE_AFTER_BLOCK_START)) {
+					ctx.WritePadding(out << "\n", true);
+				}
+				else {
+					out << " ";
+				}
+			}
+			m_block->Dump(out, ctx);
+		}
 
-	void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
-		m_block->ApplySubBlocks(func, ctx);
-	}
+		void ApplySubBlocks(const std::function<void(ASMContextNodeBlock* block, ASMContext& ctx)>& func, ASMContext& ctx) override {
+			m_block->ApplySubBlocks(func, ctx);
+		}
 
-	void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override {
-		if (m_condition) {
-			func(m_condition, ctx);
-			m_condition->ApplySubNodes(func, ctx);
+		void ApplySubNodes(const std::function<void(ASMContextNode*& node, SubNodeContext& ctx)>& func, SubNodeContext& ctx) override {
+			if (m_condition) {
+				func(m_condition, ctx);
+				m_condition->ApplySubNodes(func, ctx);
+			}
+			if (m_originJump) {
+				func(m_originJump, ctx);
+				m_originJump->ApplySubNodes(func, ctx);
+			}
+			if (m_block) {
+				func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
+				m_block->ApplySubNodes(func, ctx);
+			}
 		}
-		if (m_originJump) {
-			func(m_originJump, ctx);
-			m_originJump->ApplySubNodes(func, ctx);
-		}
-		if (m_block) {
-			func(reinterpret_cast<ASMContextNode*&>(m_block), ctx);
-			m_block->ApplySubNodes(func, ctx);
-		}
-	}
 	};
 
 	class ASMContextNodeIfElse : public ASMContextNode {

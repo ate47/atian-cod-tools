@@ -4,7 +4,7 @@
 #include "tools/cw/cw.hpp"
 #include "tools/bo3/bo3.hpp"
 #include "tools/bo6/bo6.hpp"
-#include "tools/gsc/gsc.hpp"
+#include <tools/gsc/decompiler/gsc_decompiler_object.hpp>
 #include "mods/custom_ees.hpp"
 #include "tools/utils/ps4_process.hpp"
 #include <core/config.hpp>

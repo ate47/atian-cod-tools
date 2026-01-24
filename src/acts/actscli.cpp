@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include "actscli.hpp"
-#include "tools/gsc/gsc.hpp"
+#include "tools/gsc/gsc_decompiler.hpp"
 #include "tools/gsc/gsc_opcodes.hpp"
 #include "tools/gsc/gsc_opcodes_load.hpp"
 #include <core/updater.hpp>

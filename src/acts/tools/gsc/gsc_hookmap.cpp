@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <core/memory_allocator.hpp>
 #include <tools/bo4/dump.hpp>
-#include "tools/gsc/gsc.hpp"
+#include <tools/gsc/decompiler/gsc_decompiler_object.hpp>
 
 namespace {
     int gschook(Process& _, int argc, const char* argv[]) {

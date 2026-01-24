@@ -4927,17 +4927,18 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
             }
         }
 
-        std::cout << "Decompiling dumped GSC scripts...\n";
-
-        const char* argvinfo[] = {
-            argv[0],
-            "gscinfo",
-            "-g", // run decompiler
-            "scriptparsetree", // decompile directory
-            "-o", opt.m_output, // output dir
-        };
-
-        tool::gsc::gscinfo(proc, ARRAYSIZE(argvinfo), argvinfo);
+        // todo: replace with decompiler call
+        //std::cout << "Decompiling dumped GSC scripts...\n";
+        //
+        //const char* argvinfo[] = {
+        //    argv[0],
+        //    "gscinfo",
+        //    "-g", // run decompiler
+        //    "scriptparsetree", // decompile directory
+        //    "-o", opt.m_output, // output dir
+        //};
+        //
+        //tool::gsc::gscinfo(ARRAYSIZE(argvinfo), argvinfo);
     }
     if (ShouldHandle(ASSET_TYPE_UNLOCKABLE_ITEM)) {
         struct UnlockableItemTableElem {

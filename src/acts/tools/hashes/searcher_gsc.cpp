@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <cli/cli_options.hpp>
 #include <tools/gsc/gsc.hpp>
-#include <tools/gsc/gsc_decompiler.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_object.hpp>
 #include <decryptutils.hpp>
 #include <core/memory_allocator.hpp>
 

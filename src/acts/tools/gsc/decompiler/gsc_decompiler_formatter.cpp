@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <tools/gsc/gsc_formatter.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_formatter.hpp>
 
 namespace tool::gsc::formatter {
 	namespace {

@@ -3,7 +3,12 @@
 #include "gsc_opcodes_load.hpp"
 #include <unordered_map>
 
-namespace tool::gsc::opcode {
+namespace tool::gsc {
+	class T8GSCOBJContext;
+}
+namespace tool::gsc::opcode{
+	class ASMContext;
+
 	enum VmFlags : uint64_t {
 		VMF_NONE = 0,
 		VMF_ALIGN = 1,
@@ -224,6 +229,16 @@ namespace tool::gsc::opcode {
 		}
 
 	};
+
+	class OPCodeInfo {
+	public:
+		OPCode m_id;
+		const char* m_name;
+
+		OPCodeInfo(OPCode id, const char* name);
+		virtual int Dump(std::ostream& out, uint16_t value, tool::gsc::opcode::ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const;
+	};
+
 	const std::unordered_map<uint64_t, VmInfo>& GetVMMaps();
 	bool IsValidVmMagic(uint64_t magic, VmInfo*& info, bool registerOpCodes = true);
 	bool IsValidVm(uint64_t vm, VmInfo*& info, bool registerOpCodes = true);

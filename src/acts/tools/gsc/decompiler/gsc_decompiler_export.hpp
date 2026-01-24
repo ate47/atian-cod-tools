@@ -15,5 +15,5 @@ namespace tool::gsc {
         virtual uint32_t GetSize() { return 0; };
     };
 
-	std::unique_ptr<GSCExportReader> CreateExportReader(tool::gsc::opcode::VmInfo* vmInfo);
+    std::unique_ptr<GSCExportReader> CreateExportReader(tool::gsc::opcode::VmInfo* vmInfo);
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <core/bytebuffer.hpp>
-#include <tools/gsc/gsc.hpp>
+#include <tools/gsc/gsc_decompiler.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_object.hpp>
 
 namespace tool::gsc::vm {
 	class GscVmOpCode;

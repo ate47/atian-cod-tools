@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <tools/gsc/gsc_export.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_export.hpp>
 #include <tools/gsc/gsc.hpp>
 #include <tools/gsc/gsc_iw.hpp>
 #include <acts_vm.hpp>

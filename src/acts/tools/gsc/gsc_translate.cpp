@@ -3,7 +3,7 @@
 #include <core/memory_allocator.hpp>
 #include <tools/gsc/gsc.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
-#include <tools/gsc/gsc_decompiler.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_object.hpp>
 
 namespace {
 	using namespace tool::gsc::opcode;
