@@ -979,40 +979,6 @@ group "deps"
             "deps/glfw/src",
             "deps/glfw/include"
         }
-    --project "cordycep"
-    --    language "C++"
-    --    kind "StaticLib"
-    --    cppdialect "C++20"
-    --    characterset "MBCS"
---
-    --    targetname "Cordycep"
-    --    targetdir "%{wks.location}/bin/"
-    --    objdir "%{wks.location}/obj/"
---
-    --    pchheader "pch.h"
-    --    pchsource "./deps/cordycep/src/Parasyte/pch.cpp"
---
-    --    files {
-    --        "deps/cordycep/src/Parasyte/**.cpp",
-    --        "deps/cordycep/src/Parasyte/**.h"
-    --    }
---
-    --    includedirs {
-    --        "deps/cordycep/src/Parasyte/",
-    --        "deps/casclib/src/",
-    --        "deps/lz4/lib/",
-	--	    "deps/zlib/",
-    --        "deps/tomlplusplus/include/",
-    --        "deps/nlohmann-json/single_include",
-	--	    "deps/Detours/src/",
-    --        "deps/deps-detour",
-    --    }
-    --    dependson { "casclib" }
-    --    dependson { "lz4" }
-    --    dependson { "zlib" }
-    --    links { "casclib" }
-    --    links { "lz4" }
-    --    links { "zlib" }
     project "zstd"
         language "C"
         kind "StaticLib"
@@ -1151,89 +1117,91 @@ group "deps"
             "deps/libtommath/"
         }
     
-    project "xsk-utils"
-        language "C++"
-        cppdialect "C++20"
-        kind "StaticLib"
-        characterset "MBCS"
-        warnings "Off"
-        buildoptions "/bigobj"
-        buildoptions "/Zc:__cplusplus"
+    if _OPTIONS["gpl-build"] then
+        project "xsk-utils"
+            language "C++"
+            cppdialect "C++20"
+            kind "StaticLib"
+            characterset "MBCS"
+            warnings "Off"
+            buildoptions "/bigobj"
+            buildoptions "/Zc:__cplusplus"
 
-        targetname "xsk-utils"
-        targetdir "%{wks.location}/bin/"
-        objdir "%{wks.location}/obj/"
+            targetname "xsk-utils"
+            targetdir "%{wks.location}/bin/"
+            objdir "%{wks.location}/obj/"
 
-        files {
-            "deps/gsc-tool/include/xsk/utils/**.h",
-            "deps/gsc-tool/include/xsk/utils/**.hpp",
-            "deps/gsc-tool/src/utils/**.cpp"
-        }
+            files {
+                "deps/gsc-tool/include/xsk/utils/**.h",
+                "deps/gsc-tool/include/xsk/utils/**.hpp",
+                "deps/gsc-tool/src/utils/**.cpp"
+            }
 
-        includedirs {
-            "deps/gsc-tool/include",
-            "deps/zlib/",
-        }
+            includedirs {
+                "deps/gsc-tool/include",
+                "deps/zlib/",
+            }
 
-        dependson { "zlib" }
-        links { "zlib" }
+            dependson { "zlib" }
+            links { "zlib" }
 
-    project "xsk-arc"
-        language "C++"
-        cppdialect "C++20"
-        kind "StaticLib"
-        characterset "MBCS"
-        warnings "Off"
-        buildoptions "/bigobj"
-        buildoptions "/Zc:__cplusplus"
+        project "xsk-arc"
+            language "C++"
+            cppdialect "C++20"
+            kind "StaticLib"
+            characterset "MBCS"
+            warnings "Off"
+            buildoptions "/bigobj"
+            buildoptions "/Zc:__cplusplus"
 
-        targetname "xsk-arc"
-        targetdir "%{wks.location}/bin/"
-        objdir "%{wks.location}/obj/"
+            targetname "xsk-arc"
+            targetdir "%{wks.location}/bin/"
+            objdir "%{wks.location}/obj/"
 
-        files {
-            "deps/gsc-tool/include/xsk/arc/**.h",
-            "deps/gsc-tool/include/xsk/arc/**.hpp",
-            "deps/gsc-tool/src/arc/**.cpp"
-        }
+            files {
+                "deps/gsc-tool/include/xsk/arc/**.h",
+                "deps/gsc-tool/include/xsk/arc/**.hpp",
+                "deps/gsc-tool/src/arc/**.cpp"
+            }
 
-        defines { 
-            "XSK_NO_COMPILED_HASH" 
-        }
+            defines { 
+                "XSK_NO_COMPILED_HASH" 
+            }
 
-        includedirs {
-            "deps/gsc-tool/include",
-        }
+            includedirs {
+                "deps/gsc-tool/include",
+            }
 
-        dependson { "xsk-utils" }
-        links { "xsk-utils" }
+            dependson { "xsk-utils" }
+            links { "xsk-utils" }
 
-    project "xsk-gsc"
-        language "C++"
-        cppdialect "C++20"
-        kind "StaticLib"
-        characterset "MBCS"
-        warnings "Off"
-        buildoptions "/bigobj"
-        buildoptions "/Zc:__cplusplus"
+        project "xsk-gsc"
+            language "C++"
+            cppdialect "C++20"
+            kind "StaticLib"
+            characterset "MBCS"
+            warnings "Off"
+            buildoptions "/bigobj"
+            buildoptions "/Zc:__cplusplus"
 
-        targetname "xsk-gsc"
-        targetdir "%{wks.location}/bin/"
-        objdir "%{wks.location}/obj/"
+            targetname "xsk-gsc"
+            targetdir "%{wks.location}/bin/"
+            objdir "%{wks.location}/obj/"
 
-        files {
-            "deps/gsc-tool/include/xsk/gsc/**.h",
-            "deps/gsc-tool/include/xsk/gsc/**.hpp",
-            "deps/gsc-tool/src/gsc/**.cpp"
-        }
+            files {
+                "deps/gsc-tool/include/xsk/gsc/**.h",
+                "deps/gsc-tool/include/xsk/gsc/**.hpp",
+                "deps/gsc-tool/src/gsc/**.cpp"
+            }
 
-        defines { 
-            "XSK_NO_COMPILED_HASH" 
-        }
-        
-        includedirs {
-            "deps/gsc-tool/include",
-        }
-        
-        dependson { "xsk-utils" }
-        links { "xsk-utils" }
+            defines { 
+                "XSK_NO_COMPILED_HASH" 
+            }
+            
+            includedirs {
+                "deps/gsc-tool/include",
+            }
+            
+            dependson { "xsk-utils" }
+            links { "xsk-utils" }
+    end
