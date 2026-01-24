@@ -1834,10 +1834,11 @@ namespace tool::gsc {
                     LOG_ERROR("Missing value for param: {}!", arg);
                     return false;
                 }
-                m_formatter = &formatter::GetFromName(args[++i]);
+                m_formatter = formatter::GetFromName(args[++i]);
 
-                if (_strcmpi(m_formatter->name, args[i])) {
-                    LOG_ERROR("Unknown formatter: {}! Use {}", args[i], m_formatter->name);
+                if (!m_formatter) {
+                    m_formatter = &formatter::GetDefaultFormatter();
+                    LOG_ERROR("Unknown formatter: {}!", args[i]);
                     return false;
                 }
             }

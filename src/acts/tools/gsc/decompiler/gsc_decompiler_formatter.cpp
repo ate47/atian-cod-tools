@@ -38,13 +38,21 @@ namespace tool::gsc::formatter {
 						}
 
 
-						FormatterFlags flag{ FlagFromName(line.data()) };
-						if (flag == FFL_INVALID) {
+						const FormatterFlagInfo* flag{ FlagInfoFromName(line.data()) };
+						if (!flag) {
 							LOG_ERROR("Invalid format name: {}, use gscdf to get the format names list", line);
 							anyError = true;
+							continue;
 						}
 
-						flags |= flag;
+						if (flag->mask && (flag->mask & flags)) {
+							const char* nameOther{ FlagName((FormatterFlags)(flag->mask & flags)) };
+							LOG_ERROR("Can't use format {}, not compatible with {}", flag->name, nameOther ? nameOther : "<error>" );
+							anyError = true;
+							continue;
+						}
+
+						flags |= flag->value;
 					}
 				}
 
@@ -61,7 +69,7 @@ namespace tool::gsc::formatter {
 		FormatterInfo actsOldFormatter{ "acts_old", FFL_DEFAULT };
 		FormatterInfo seriousFormatter{ "serious", FFL_NEWLINE_AFTER_BLOCK_START | FFL_NO_SPACE_AFTER_CONTROL | FFL_ONE_LINE_HEADER_COMMENTS | FFL_NOERROR_STR | FFL_SWITCH_PAD_CASES | FFL_SWITCH_FORCE_BLOCKS | FFL_FUNC_HEADER_FORMAT_SERIOUS };
 		FormatterInfo xenFormatter{ "xen", FFL_NEWLINE_AFTER_BLOCK_START | FFL_SPACE_BEFOREAFTER_PARAMS | FFL_NOERROR_STR | FFL_NO_FUNCTION_TITLE | FFL_BLOCK_INLINE | FFL_NEWLINES_BETWEEN_BLOCKS | FFL_LINE_AFTER_COPYRIGHT | FFL_NO_BOOL_ANALYSIS | FFL_SWITCH_PAD_CASES | FFL_FUNC_HEADER_FORMAT_NONE };
-		FormatterInfo treyarchFormatter{ "treyarch", FFL_NEWLINE_AFTER_BLOCK_START | FFL_SPACE_BEFOREAFTER_PARAMS | FFL_NEWLINES_BETWEEN_BLOCKS | FFL_LINE_AFTER_COPYRIGHT | FFL_SWITCH_PAD_CASES | FFL_ANIM_REAL | FFL_FUNC_HEADER_FORMAT_ACTS };
+		FormatterInfo treyarchFormatter{ "treyarch", FFL_NEWLINE_AFTER_BLOCK_START | FFL_SPACE_BEFOREAFTER_PARAMS | FFL_NEWLINES_BETWEEN_BLOCKS | FFL_LINE_AFTER_COPYRIGHT | FFL_SWITCH_PAD_CASES | FFL_ANIM_REAL };
 		FormatterInfo iwFormatter{ "iw", FFL_NEWLINE_AFTER_BLOCK_START | FFL_SPACE_BEFOREAFTER_PARAMS | FFL_NO_FUNCTION_TITLE | FFL_NEWLINES_BETWEEN_BLOCKS | FFL_LINE_AFTER_COPYRIGHT | FFL_SWITCH_PAD_CASES };
 
 		std::vector<FormatterInfo*> formatters{
@@ -73,40 +81,35 @@ namespace tool::gsc::formatter {
 			&customFormatter,
 		};
 
-		struct FormatterFlagInfo {
-			const char* name;
-			FormatterFlags value;
-			const char* desc;
-		} flagInfo[]{
-			{ "NO_SPACE_AFTER_CONTROL", FFL_NO_SPACE_AFTER_CONTROL, "no space after controls (if, for, etc.)" },
-			{ "NEWLINE_AFTER_BLOCK_START", FFL_NEWLINE_AFTER_BLOCK_START, "new line after block start" },
-			{ "SPACE_BEFOREAFTER_PARAMS", FFL_SPACE_BEFOREAFTER_PARAMS, "use space between params" },
-			{ "ONE_LINE_HEADER_COMMENTS", FFL_ONE_LINE_HEADER_COMMENTS, "use /**/ instead of // for decompiler comments" },
-			{ "NOERROR_STR", FFL_NOERROR_STR, "use \"\" in missing strings (error/dev)"},
-			{ "NO_FUNCTION_TITLE", FFL_NO_FUNCTION_TITLE, "do not add the \"function\" prefix for function definition" },
-			{ "BLOCK_INLINE", FFL_BLOCK_INLINE, "inline block when too small" },
-			{ "NEWLINES_BETWEEN_BLOCKS", FFL_NEWLINES_BETWEEN_BLOCKS, "add empty line between instruction blocks and controls" },
-			{ "LINE_AFTER_COPYRIGHT", FFL_LINE_AFTER_COPYRIGHT, "add empty line between copyright and the script"},
-			{ "NO_BOOL_ANALYSIS", FFL_NO_BOOL_ANALYSIS, "disable boolean analysis" },
-			{ "SWITCH_PAD_CASES", FFL_SWITCH_PAD_CASES, "add padding in switch cases" },
-			{ "SWITCH_FORCE_BLOCKS", FFL_SWITCH_FORCE_BLOCKS, "use block for switch cases"},
-			{ "FUNC_HEADER_FORMAT_ACTS", FFL_FUNC_HEADER_FORMAT_ACTS, "use acts function header format (default)" },
-			{ "FUNC_HEADER_FORMAT_SERIOUS", FFL_FUNC_HEADER_FORMAT_SERIOUS, "use serious function header format" },
-			{ "FUNC_HEADER_FORMAT_NONE", FFL_FUNC_HEADER_FORMAT_NONE, "remove function header" },
+		FormatterFlagInfo flagInfo[]{
+			{ "NO_SPACE_AFTER_CONTROL", FFL_NO_SPACE_AFTER_CONTROL, FFL_EMPTY_MASK, "no space after controls (if, for, etc.)"},
+			{ "NEWLINE_AFTER_BLOCK_START", FFL_NEWLINE_AFTER_BLOCK_START, FFL_EMPTY_MASK, "new line after block start" },
+			{ "SPACE_BEFOREAFTER_PARAMS", FFL_SPACE_BEFOREAFTER_PARAMS, FFL_EMPTY_MASK, "use space between params" },
+			{ "ONE_LINE_HEADER_COMMENTS", FFL_ONE_LINE_HEADER_COMMENTS, FFL_EMPTY_MASK, "use /**/ instead of // for decompiler comments" },
+			{ "NOERROR_STR", FFL_NOERROR_STR, FFL_EMPTY_MASK, "use \"\" in missing strings (error/dev)"},
+			{ "NO_FUNCTION_TITLE", FFL_NO_FUNCTION_TITLE, FFL_EMPTY_MASK, "do not add the \"function\" prefix for function definition" },
+			{ "BLOCK_INLINE", FFL_BLOCK_INLINE, FFL_EMPTY_MASK, "inline block when too small" },
+			{ "NEWLINES_BETWEEN_BLOCKS", FFL_NEWLINES_BETWEEN_BLOCKS, FFL_EMPTY_MASK, "add empty line between instruction blocks and controls" },
+			{ "LINE_AFTER_COPYRIGHT", FFL_LINE_AFTER_COPYRIGHT, FFL_EMPTY_MASK, "add empty line between copyright and the script"},
+			{ "NO_BOOL_ANALYSIS", FFL_NO_BOOL_ANALYSIS, FFL_EMPTY_MASK, "disable boolean analysis" },
+			{ "SWITCH_PAD_CASES", FFL_SWITCH_PAD_CASES, FFL_EMPTY_MASK, "add padding in switch cases" },
+			{ "SWITCH_FORCE_BLOCKS", FFL_SWITCH_FORCE_BLOCKS, FFL_EMPTY_MASK, "use block for switch cases"},
+			{ "FUNC_HEADER_FORMAT_SERIOUS", FFL_FUNC_HEADER_FORMAT_SERIOUS, FFL_FUNC_HEADER_FORMAT_MASK, "use serious function header format" },
+			{ "FUNC_HEADER_FORMAT_NONE", FFL_FUNC_HEADER_FORMAT_NONE, FFL_FUNC_HEADER_FORMAT_MASK, "remove function header" },
 			// { "FUNC_HEADER_FORMAT_TYPE_4", FFL_FUNC_HEADER_FORMAT_TYPE_4, "unused" },
-			{ "SWITCH_FORCE_BLOCKS_PADDING", FFL_SWITCH_FORCE_BLOCKS_PADDING, "add new line between switch blocks" },
-			{ "ANIM_REAL", FFL_ANIM_REAL, "render #animtree and %anim instead of %animtree::anim" },
+			{ "SWITCH_FORCE_BLOCKS_PADDING", FFL_SWITCH_FORCE_BLOCKS_PADDING, FFL_EMPTY_MASK, "add new line between switch blocks" },
+			{ "ANIM_REAL", FFL_ANIM_REAL, FFL_EMPTY_MASK, "render #animtree and %anim instead of %animtree::anim" },
 		};
 	}
 
-	FormatterFlags FlagFromName(const char* name) {
+	const FormatterFlagInfo* FlagInfoFromName(const char* name) {
 		for (FormatterFlagInfo& info : flagInfo) {
 			if (!_strcmpi(name, info.name)) {
-				return info.value;
+				return &info;
 			}
 		}
 
-		return FFL_INVALID;
+		return nullptr;
 	}
 
 	const char* FlagName(FormatterFlags flag) {
@@ -123,17 +126,17 @@ namespace tool::gsc::formatter {
 		return treyarchFormatter.InitAndGet();
 	}
 
-	const FormatterInfo& GetFromName(const char* name) {
+	const FormatterInfo* GetFromName(const char* name) {
 		if (!name) {
-			return GetDefaultFormatter();
+			return &GetDefaultFormatter();
 		}
 
 		for (FormatterInfo* fmt : formatters) {
 			if (!_strcmpi(name, fmt->name)) {
-				return fmt->InitAndGet();
+				return &fmt->InitAndGet();
 			}
 		}
-		return GetDefaultFormatter();
+		return nullptr;
 	}
 
 	const std::vector<FormatterInfo*>& GetFormatters() {
@@ -152,5 +155,47 @@ namespace tool::gsc::formatter {
 		return tool::OK;
 	}
 
-	ADD_TOOL(gscdf, "gsc", "", "gsc decompiler formatter info", gscdf);
+	int gscdfp(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 1)) {
+			LOG_INFO("formatters list ():", formatters.size());
+
+			for (const FormatterInfo* fmt : formatters) {
+				LOG_INFO("{}", fmt->name);
+			}
+
+			return tool::OK;
+		}
+
+		const FormatterInfo* formatter{ GetFromName(argv[2]) };
+
+		if (!formatter) {
+			LOG_ERROR("Invalid formatter name: {}", argv[2]);
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Format(s) for formatter {}", formatter->name);
+		uint64_t flags{ formatter->flags };
+
+		if (!flags) {
+			LOG_INFO("default format");
+		}
+
+		for (const FormatterFlagInfo& flag : flagInfo) {
+			if (!flag.value) {
+				continue; // default
+			}
+			if (flag.mask) {
+				if ((flags & flag.mask) != flag.value) continue;
+			}
+			else {
+				if ((flags & flag.value) != flag.value) continue;
+			}
+			LOG_INFO("{}", flag.name);
+		}
+
+		return tool::OK;
+	}
+
+	ADD_TOOL(gscdf, "gsc", "", "GSC decompiler formatter info", gscdf);
+	ADD_TOOL(gscdfp, "gsc", " [format]", "Print GSC decompiler formatter info", gscdfp);
 }

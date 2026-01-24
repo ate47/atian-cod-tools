@@ -3,6 +3,7 @@
 namespace tool::gsc::formatter {
 	enum FormatterFlags : uint64_t {
 		FFL_DEFAULT = 0,
+		FFL_EMPTY_MASK = 0,
 		FFL_NO_SPACE_AFTER_CONTROL = 1,
 		FFL_NEWLINE_AFTER_BLOCK_START = 1 << 1,
 		FFL_SPACE_BEFOREAFTER_PARAMS = 1 << 2,
@@ -18,15 +19,20 @@ namespace tool::gsc::formatter {
 		FFL_FUNC_HEADER_FORMAT1 = 1 << 12,
 		FFL_FUNC_HEADER_FORMAT2 = 1 << 13,
 		FFL_FUNC_HEADER_FORMAT_MASK = FFL_FUNC_HEADER_FORMAT1 | FFL_FUNC_HEADER_FORMAT2,
-		FFL_FUNC_HEADER_FORMAT_ACTS = 0,
 		FFL_FUNC_HEADER_FORMAT_SERIOUS = FFL_FUNC_HEADER_FORMAT1,
 		FFL_FUNC_HEADER_FORMAT_NONE = FFL_FUNC_HEADER_FORMAT2,
 		FFL_FUNC_HEADER_FORMAT_TYPE_4 = FFL_FUNC_HEADER_FORMAT1 | FFL_FUNC_HEADER_FORMAT2,
 		FFL_SWITCH_FORCE_BLOCKS_PADDING = 1 << 14,
 		FFL_ANIM_REAL = 1 << 15,
-
-		FFL_INVALID = ~0ull,
 	};
+
+	struct FormatterFlagInfo {
+		const char* name;
+		FormatterFlags value;
+		uint64_t mask;
+		const char* desc;
+	};
+
 	class FormatterInfo {
 	public:
 		const char* name;
@@ -62,10 +68,10 @@ namespace tool::gsc::formatter {
 	};
 
 
-	FormatterFlags FlagFromName(const char* name);
+	const FormatterFlagInfo* FlagInfoFromName(const char* name);
 	const char* FlagName(FormatterFlags flag);
 	const FormatterInfo& GetDefaultFormatter();
-	const FormatterInfo& GetFromName(const char* name);
+	const FormatterInfo* GetFromName(const char* name);
 	const std::vector<FormatterInfo*>& GetFormatters();
 
 }
