@@ -5,28 +5,45 @@
 namespace {
 	using namespace fastfile::handlers::bo7;
 
-	struct GfxImageUnk {
-		uint64_t unk0;
-		uint64_t unk8;
-		uint64_t unk10;
-
+	struct GfxImagePacked {
+		uint64_t packed;
 	};
+
+	struct GfxImageUnk {
+		uint64_t id;
+		uint64_t unk8;
+		GfxImagePacked packed;
+	};
+	static_assert(sizeof(GfxImageUnk) == 0x18);
+	union GfxImageAtlasSize {
+		struct {
+			byte rowCount;
+			byte colCount;
+		} unpack;
+		uint16_t packed;
+	};
+
 	struct GfxImage {
 		XHash64 name;
-		void* data;
-		uint64_t unk10;
-		uint32_t unk38_count;
-		uint32_t unk1c;
-		uint64_t unk20;
-		uint16_t dataLen;
+		byte* packedAtlasData;
+		uint32_t textureId;
+		uint32_t flags;
+		uint32_t totalSize;
+		uint32_t semanticSpecific;
+		uint16_t width;
+		uint16_t height;
+		uint16_t depth;
+		uint16_t numElements;
+		GfxImageAtlasSize atlasInfo;
 		uint16_t unk2a;
 		byte unk2c;
 		byte unk2d;
-		byte unk2e;
+		byte unk30_count;
 		byte unk2f;
 		GfxImageUnk* unk30;
-		void* unk38;
+		void* pixels;
 	};
+
 	static_assert(sizeof(GfxImage) == 0x40);
 
 	class ImplWorker : public Worker {
@@ -40,31 +57,35 @@ namespace {
 			json.BeginObject();
 
 			json.WriteFieldValueXHash("name", asset->name);
-			json.WriteFieldValueHash("data", (uint64_t)asset->data);
-			json.WriteFieldValueNumber("asset->dataLen", asset->dataLen);
-			json.WriteFieldValueHash("unk38", (uint64_t)asset->unk38);
-			json.WriteFieldValueNumber("asset->unk38_count", asset->unk38_count);
+			json.WriteFieldValueHash("packedAtlasData", (uint64_t)asset->packedAtlasData);
+			json.WriteFieldValueNumber("atlasInfo", asset->atlasInfo.packed);
+			json.WriteFieldValueHash("pixels", (uint64_t)asset->pixels);
+			json.WriteFieldValueNumber("textureId", asset->textureId);
+			json.WriteFieldValueNumber("flags", asset->flags);
+			json.WriteFieldValueNumber("totalSize", asset->totalSize);
+			json.WriteFieldValueNumber("semanticSpecific", asset->semanticSpecific);
+			json.WriteFieldValueNumber("width", asset->width);
+			json.WriteFieldValueNumber("height", asset->height);
+			json.WriteFieldValueNumber("depth", asset->depth);
+			json.WriteFieldValueNumber("numElements", asset->numElements);
 
-			json.WriteFieldValueUnknown("unk10", asset->unk10);
-			json.WriteFieldValueUnknown("unk1c", asset->unk1c);
-			json.WriteFieldValueUnknown("unk20", asset->unk20);
 			json.WriteFieldValueUnknown("unk2a", asset->unk2a);
 			json.WriteFieldValueUnknown("unk2c", asset->unk2c);
 			json.WriteFieldValueUnknown("unk2d", asset->unk2d);
-			json.WriteFieldValueUnknown("unk2e", asset->unk2e);
 			json.WriteFieldValueUnknown("unk2f", asset->unk2f);
+			json.WriteFieldValueUnknown("unk30_count", asset->unk30_count);
 
 			if (asset->unk30) {
 				json.WriteFieldNameString("unk30");
 				json.BeginArray();
-				size_t len{ (size_t)(asset->unk2e & 0xf) };
+				size_t len{ (size_t)(asset->unk30_count & 0xf) };
 				for (size_t i = 0; i < len; i++) {
 					GfxImageUnk* unk{ &asset->unk30[i] };
 					json.BeginObject();
 
-					json.WriteFieldValueUnknown("unk30:unk0", unk->unk0);
+					json.WriteFieldValueXHash("unk30:id", unk->id);
 					json.WriteFieldValueUnknown("unk30:unk8", unk->unk8);
-					json.WriteFieldValueUnknown("unk30:unk10", unk->unk10);
+					json.WriteFieldValueUnknown("unk30:packed", unk->packed.packed);
 					json.EndObject();
 				}
 				json.EndArray();
