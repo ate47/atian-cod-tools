@@ -74,6 +74,7 @@ namespace {
 				std::filesystem::path outSource{ opt.m_output / gamePath / "source" };
 				std::string outSourceStr{ outSource.string() };
 				gdctx.opt.m_outputDir = outSourceStr.data();
+				gdctx.opt.m_formatter = opt.gscFormatter;
 				if (opt.translation) {
 					gdctx.opt.LookupLocalizedFunc = LookupLocalizedImpl;
 				}

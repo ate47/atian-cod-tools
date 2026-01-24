@@ -32,6 +32,7 @@ namespace {
             std::filesystem::path outSource{ opt.m_output / "gsc_decomp" };
             std::string outSourceStr{ outSource.string() };
             gdctx.opt.m_outputDir = outSourceStr.data();
+            gdctx.opt.m_formatter = opt.gscFormatter;
 
             std::vector<byte> scriptData;
             byte* alignedAlloc{ utils::Aligned(file, 0x20) };

@@ -1834,13 +1834,14 @@ namespace tool::gsc {
                     LOG_ERROR("Missing value for param: {}!", arg);
                     return false;
                 }
-                m_formatter = formatter::GetFromName(args[++i]);
+                const formatter::FormatterInfo* fmt{ formatter::GetFromName(args[++i]) };
 
-                if (!m_formatter) {
-                    m_formatter = &formatter::GetDefaultFormatter();
+                if (!fmt) {
                     LOG_ERROR("Unknown formatter: {}!", args[i]);
                     return false;
                 }
+
+                m_formatter = fmt;
             }
             else if (!strcmp("-v", arg) || !_strcmpi("--vm", arg)) {
                 if (i + 1 == endIndex) {

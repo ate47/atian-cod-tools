@@ -41,6 +41,7 @@ namespace {
 				std::filesystem::path outSource{ opt.m_output / "cw" / "source" };
 				std::string outSourceStr{ outSource.string() };
 				gdctx.opt.m_outputDir = outSourceStr.data();
+				gdctx.opt.m_formatter = opt.gscFormatter;
 
 				std::vector<byte> scriptData;
 				byte* alignedAlloc{ utils::Aligned(asset->buffer, 0x20) };

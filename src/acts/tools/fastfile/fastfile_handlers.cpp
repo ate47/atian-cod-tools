@@ -278,6 +278,10 @@ namespace fastfile {
 	}
 
 
+	FastFileOption::FastFileOption() {
+		gscFormatter = &tool::gsc::formatter::GetDefaultFormatter();
+	}
+
 	FastFileOption::~FastFileOption() {
 		if (cascStorage) {
 			CascCloseStorage(cascStorage);
@@ -437,6 +441,21 @@ namespace fastfile {
 			else if (!_strcmpi("--dumpBinaryAssetsMap", arg)) {
 				dumpBinaryAssetsMap = true;
 			}
+			else if (!_strcmpi("--scriptsFormatter", arg)) {
+				if (i + 1 == endIndex) {
+					std::cerr << "Missing value for param: " << arg << "!\n";
+					return false;
+				}
+
+				const tool::gsc::formatter::FormatterInfo* fmt{ tool::gsc::formatter::GetFromName(args[++i]) };
+
+				if (!fmt) {
+					LOG_ERROR("Unknown gsc formatter: {}!", args[i]);
+					return false;
+				}
+
+				gscFormatter = fmt;
+			}
 			else if (!_strcmpi("--disableScriptsDecomp", arg)) {
 				disableScriptsDecomp = true;
 			}
@@ -510,6 +529,7 @@ namespace fastfile {
 		LOG_INFO("--dumpBinaryAssetsMap     : Dump binary assets map");
 		LOG_INFO("--dumpAssetNames          : Dump binary assets");
 		LOG_INFO("--dumpCompiledZone        : Dump compiled zone file");
+		LOG_INFO("--scriptsFormatter [f]    : Set formatter for GSC decompiler");
 		LOG_INFO("--disableScriptsDecomp    : Disable GSC script decompilation");
 		LOG_INFO("--dumpXStrings            : Dump XStrings");
 		LOG_INFO("--graphic                 : Dump graphic assets (do not share graphic assets)");

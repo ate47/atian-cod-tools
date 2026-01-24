@@ -4,6 +4,7 @@
 #include <core/memory_allocator.hpp>
 #include <tools/fastfile/fastfile_zone.hpp>
 #include <tools/gsc/gsc_opcodes_load.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_formatter.hpp>
 #include <utils/compress_utils.hpp>
 #define LTC_NO_PROTOTYPES
 #include <tomcrypt.h>
@@ -153,7 +154,9 @@ namespace fastfile {
 		std::vector<std::set<uint64_t>> assetNames{};
 		std::unordered_map<uint64_t, const char*> translationKeys{};
 		core::memory_allocator::MemoryAllocator alloc{};
+		const tool::gsc::formatter::FormatterInfo* gscFormatter{};
 
+		FastFileOption();
 		~FastFileOption();
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
 		void PrintHelp();
