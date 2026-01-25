@@ -1482,9 +1482,4 @@ namespace tool::gsc {
     void tool::gsc::GSCOBJHandler::DumpExperimental(std::ostream& asmout, const GscInfoOption& opt, T8GSCOBJContext& ctx) {
     }
 
-    std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* tool::gsc::GetGscReader(uint64_t vm) {
-        return tool::gsc::vm::GetGscReader(vm); // moved
-    }
-
-
 }

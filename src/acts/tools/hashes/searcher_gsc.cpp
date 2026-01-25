@@ -82,7 +82,7 @@ namespace {
 				}
 
 				uint64_t magic{ *(uint64_t*)bufferAlign };
-				auto* builder{ tool::gsc::GetGscReader(magic) };
+				auto* builder{ tool::gsc::vm::GetGscReader(magic) };
 				if (!builder) {
 					LOG_WARNING("No reader for magic {:x}", magic);
 					continue;

@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <tools/bo3/bo3.hpp>
 #include <tools/bo3/pools.hpp>
-#include <tools/gsc/vm/vm_t7.hpp>
+#include <tools/gsc/data/gsc_data_t7.hpp>
 #include <core/bytebuffer.hpp>
 
 namespace bo3 {

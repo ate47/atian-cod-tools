@@ -2,7 +2,8 @@
 #include <tools/gsc/gsc_decompiler.hpp>
 #include <tools/gsc/decompiler/gsc_decompiler_asm.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
-#include <tools/gsc/vm/vm_jup.hpp>
+#include <tools/gsc/gsc_vm.hpp>
+#include <tools/gsc/data/gsc_data_jup.hpp>
 
 namespace tool::gsc {
     struct T8GSCExport;
@@ -170,6 +171,11 @@ namespace tool::gsc {
         DVA_NOT,
         DVA_BAD,
     };
+
+    namespace opcode {
+        struct DecompContext;
+        class ASMContext;
+    }
 
     void DumpFunctionHeader(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx, int padding, const char* forceName, const char** currentAnimTree);
     int DumpAsm(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx, tool::gsc::opcode::ASMContext& asmctx);
@@ -416,7 +422,5 @@ namespace tool::gsc {
         virtual int PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout);
         virtual opcode::Platform ComputePlatform(T8GSCOBJContext& ctx);
     };
-
-    std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* GetGscReader(uint64_t vm);
 
 }

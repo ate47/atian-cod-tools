@@ -137,14 +137,14 @@ namespace tool::gsc {
         }
         hashutils::ReadDefaultFile();
 
-        auto readerBuilder = GetGscReader(vmVal);
+        tool::gsc::vm::GscVm* readerBuilder = tool::gsc::vm::GetGscReader(vmVal);
 
         if (!readerBuilder) {
             LOG_ERROR("No handler available for vm 0x{:x} for file {}", vmVal, path);
             return tool::BASIC_ERROR;
         }
 
-        ctx.scriptfile = (*readerBuilder)(data, size);
+        ctx.scriptfile = readerBuilder->NewHandler(data, size);
         ctx.exp = CreateExportReader(ctx.m_vmInfo);
 
         GSCOBJHandler* scriptfile{ ctx.scriptfile.get() };
@@ -253,7 +253,7 @@ namespace tool::gsc {
                 dbgReader.Goto(0);
 
                 try {
-                    dbgreader->load(ctx, dbgReader, dbgHeader);
+                    dbgreader->DbgLoad(ctx, dbgReader, dbgHeader);
                 }
                 catch (std::runtime_error& err) {
                     LOG_WARNING("Can't parse gdb data {}", err.what());
@@ -2323,7 +2323,7 @@ namespace tool::gsc {
                 tool::gsc::vm::GscGdb* reader{ tool::gsc::vm::GetGdbReader(gdb->gdb) };
                 if (!reader) continue; // can't find reader
                 std::string bytes{};
-                bool r{ reader->saver(gdb, bytes) };
+                bool r{ reader->DbgSave(gdb, bytes) };
                 char* n{ utils::va("%s.gdb", hashutils::ExtractTmp("script", fn)) };
                 n = utils::MapString(n, [](char c) -> char { return c == '\\' ? '/' : c; });
                 if (!r) {

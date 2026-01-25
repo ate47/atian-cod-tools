@@ -27,14 +27,14 @@ namespace {
             return false;
         }
         
-        auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
+        tool::gsc::vm::GscVm* readerBuilder = tool::gsc::vm::GetGscReader(vmInfo->vmMagic);
 
         if (!readerBuilder) {
             LOG_ERROR("No GSC handler available for {}", vmInfo->name);
             return tool::BASIC_ERROR;
         }
 
-        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)((byte*)mainBuff.data(), mainBuff.size()) };
+        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ readerBuilder->NewHandler((byte*)mainBuff.data(), mainBuff.size()) };
 
         if (!handler->IsValidHeader(mainBuff.size())) {
             LOG_ERROR("Invalid header for vm {}", vmInfo->name);
@@ -225,14 +225,14 @@ namespace {
                 continue;
             }
 
-            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
+            tool::gsc::vm::GscVm* readerBuilder = tool::gsc::vm::GetGscReader(vmInfo->vmMagic);
 
             if (!readerBuilder) {
                 LOG_ERROR("{} : No GSC handler available for {}", file.string(), vmInfo->name);
                 continue;
             }
 
-            std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)((byte*)mainBuff.data(), mainBuff.size()) };
+            std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ readerBuilder->NewHandler((byte*)mainBuff.data(), mainBuff.size()) };
 
             if (!handler->IsValidHeader(mainBuff.size())) {
                 LOG_ERROR("{} : Invalid header for vm {}", file.string(), vmInfo->name);
@@ -260,14 +260,14 @@ namespace {
         for (auto& [vmInfo, scs] : dataset) {
             LOG_INFO("Searching linking issues for {}...", vmInfo->name);
 
-            auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
+            tool::gsc::vm::GscVm* readerBuilder = tool::gsc::vm::GetGscReader(vmInfo->vmMagic);
 
             if (!readerBuilder) {
                 LOG_ERROR("No GSC handler available for {}", vmInfo->name);
                 continue;
             }
 
-            std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)(nullptr, 0) };
+            std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ readerBuilder->NewHandler(nullptr, 0) };
             std::unique_ptr<tool::gsc::GSCExportReader> exportReader = tool::gsc::CreateExportReader(vmInfo);
 
             for (auto& [name, sc] : scs) {

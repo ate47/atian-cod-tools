@@ -248,14 +248,14 @@ namespace tool::gsc::compiler {
         }
 
         VmInfo* vmInfo{ opt.config.GetVm() };
-        auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
+        tool::gsc::vm::GscVm* readerBuilder = tool::gsc::vm::GetGscReader(vmInfo->vmMagic);
 
         if (!readerBuilder) {
             LOG_ERROR("No GSC handler available for {}", vmInfo->name);
             return tool::BASIC_ERROR;
         }
 
-        std::shared_ptr<tool::gsc::GSCOBJHandler> handler {(*readerBuilder)(nullptr, 0)};
+        std::shared_ptr<tool::gsc::GSCOBJHandler> handler { readerBuilder->NewHandler(nullptr, 0) };
 
         auto produceFile = [&opt, &handler](bool client, std::vector<std::filesystem::path>& inputs) -> int {
             opt.config.clientScript = client;
@@ -517,13 +517,13 @@ namespace tool::gsc::compiler {
 
         gscParser::ProgContext* prog = parser.prog();
 
-        auto* readerBuilder = tool::gsc::GetGscReader(vmInfo->vmMagic);
+        tool::gsc::vm::GscVm* readerBuilder = tool::gsc::vm::GetGscReader(vmInfo->vmMagic);
 
         if (!readerBuilder) {
             throw std::runtime_error(std::format("No GSC handler available for {}", vmInfo->name));
         }
 
-        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)(nullptr, 0) };
+        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ readerBuilder->NewHandler(nullptr, 0) };
 
         CompileObject obj{ config, config.clientScript ? FILE_CSC : FILE_GSC, info, handler };
 

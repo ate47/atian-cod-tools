@@ -712,13 +712,13 @@ namespace {
                 else {
                     notif = std::format("Vm: {} (0x{:x})", nfo->name, nfo->vmMagic);
 
-                    auto* readerBuilder = tool::gsc::GetGscReader(nfo->vmMagic);
+                    tool::gsc::vm::GscVm* readerBuilder = tool::gsc::vm::GetGscReader(nfo->vmMagic);
 
                     if (!readerBuilder) {
                         notif += "\nNo GSC handler available";
                     }
                     else {
-                        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ (*readerBuilder)((byte*)file.data(), file.length()) };
+                        std::shared_ptr<tool::gsc::GSCOBJHandler> handler{ readerBuilder->NewHandler((byte*)file.data(), file.length()) };
 
                         if (!handler->IsValidHeader(file.length())) {
                             notif += "\nInvalid header";

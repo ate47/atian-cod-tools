@@ -276,7 +276,7 @@ namespace {
 				continue; // ignore
 			}
 
-			auto* hbuilder{ tool::gsc::GetGscReader(nfo->vmMagic) };
+			auto* hbuilder{ tool::gsc::vm::GetGscReader(nfo->vmMagic) };
 
 			if (!hbuilder) {
 				LOG_ERROR("Can't read {}: No gsc handler builder for vm {}", path.string(), nfo->name);

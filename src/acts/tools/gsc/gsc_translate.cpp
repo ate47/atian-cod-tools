@@ -82,14 +82,14 @@ namespace {
 					throw std::runtime_error(std::format("Multiple magic detected 0x{:x} and 0x{:x}", magic, vm->vmMagic));
 				}
 
-				std::function<std::shared_ptr<GSCOBJHandler>(byte*, size_t)>* readerbuilder{ tool::gsc::GetGscReader(magic) };
+				tool::gsc::vm::GscVm* readerbuilder{ tool::gsc::vm::GetGscReader(magic) };
 
 				if (!readerbuilder) {
 					LOG_ERROR("Missing reader builder");
 					continue;
 				}
 
-				data.reader = (*readerbuilder)(data.buffer.data(), data.buffer.size());
+				data.reader = readerbuilder->NewHandler(data.buffer.data(), data.buffer.size());
 
 				if (!data.reader->IsValidHeader(data.buffer.size())) {
 					continue;
