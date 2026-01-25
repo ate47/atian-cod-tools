@@ -245,7 +245,6 @@ namespace tool::gsc::opcode{
 	const OPCodeInfo* LookupOpCode(uint64_t vm, Platform platform, uint16_t opcode);
 	std::pair<bool, uint16_t> GetOpCodeId(uint64_t vm, Platform platform, OPCode opcode, bool modTool = false);
 	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode, bool modTool = false);
-	void RegisterOpCodeHandler(const OPCodeInfo* info);
 	VmInfo* RegisterVM(uint64_t vm, const char* name, const char* codeName, const char* internalName, uint64_t flags);
 	VmInfo* GetVm(uint64_t vm);
 	void RegisterOpCodes();
