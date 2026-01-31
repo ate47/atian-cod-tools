@@ -192,6 +192,16 @@ namespace utils::compress {
 		return false;
 	}
 
+	std::unique_ptr<byte[]> Compress(CompressionAlgorithm alg, const void* src, size_t srcSize, size_t* compressSize) {
+		std::unique_ptr<byte[]> res{ std::make_unique<byte[]>(*compressSize = GetCompressSize(alg, srcSize)) };
+
+		if (!Compress(alg, res.get(), compressSize, src, srcSize)) {
+			throw std::runtime_error(std::format("Error when compressing {} data", alg));
+		}
+
+		return res;
+	}
+
 	size_t GetCompressSize(CompressionAlgorithm alg, size_t srcSize) {
 		switch (GetCompressionType(alg)) {
 		case COMP_NONE:
