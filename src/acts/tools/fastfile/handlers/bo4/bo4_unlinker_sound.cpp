@@ -186,7 +186,7 @@ namespace {
 
 	class ImplWorker : public Worker {
 
-		void GenDefaultXHashes(fastfile::FastFileContext* ctx) override {
+		void PreLoadWorker(fastfile::FastFileContext* ctx) override {
 			if (!ctx) {
 				return; // no base ones
 			}

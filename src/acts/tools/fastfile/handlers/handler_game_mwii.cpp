@@ -317,6 +317,12 @@ namespace fastfile::handlers::mwii {
 					throw std::runtime_error("Can't find some patterns");
 				}
 
+				if (!opt.noWorkerPreload) {
+					for (auto& [hashType, worker] : GetWorkers()) {
+						worker->PreLoadWorker(nullptr);
+					}
+				}
+
 				for (auto& [hashType, worker] : GetWorkers()) {
 					HandlerAssetType type{ GetExePoolId(hashType) };
 					if (type == gcx.assetNames.InvalidId()) {
@@ -328,7 +334,6 @@ namespace fastfile::handlers::mwii {
 							LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
 						}
 					}
-					worker->GenDefaultXHashes(nullptr);
 				}
 
 				if (opt.dumpXStrings) {
@@ -414,8 +419,10 @@ namespace fastfile::handlers::mwii {
 					gcx.xstringLocs = &xstringLocs;
 				}
 
-				for (auto& [hashType, worker] : GetWorkers()) {
-					worker->GenDefaultXHashes(&ctx);
+				if (!opt.noWorkerPreload) {
+					for (auto& [hashType, worker] : GetWorkers()) {
+						worker->PreLoadWorker(&ctx);
+					}
 				}
 
 				const char* fftype{ ctx.GetFFType() };

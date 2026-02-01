@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/bo7/bo7.hpp>
 #include <core/bytebuffer.hpp>
+#include <core/strings.hpp>
 #include <hook/module_mapper.hpp>
 #include <games/cod/asset_names.hpp>
 
@@ -511,17 +512,14 @@ namespace tool::bo7 {
             return tool::BASIC_ERROR;
         }
 
-        games::cod::asset_names::AssetNames<SatHashAssetType, SatAssetType> names{ "physicssfxeventasset", "string", bo7::PoolId };
+        games::cod::asset_names::AssetNames<SatHashAssetType, SatAssetType> names{ "physicssfxeventasset", "string" };
 
         names.InitMap(*mod);
 
         LOG_INFO("Loaded");
 
-        void* stub{ mod->ScanSingle("E8 ?? ?? ?? ?? 48 BA EA C8 1A 47 1B 60 F9 08", "BoLoadLuaFunc").GetRelative<int32_t>(1) }; // BoLoadLuaFunc(luastate*, 0xhash, func)
-        void* stubStr{ mod->ScanSingle("E8 ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 49 8B CD", "BoLoadLuaFuncStr").GetRelative<int32_t>(1) }; // BoLoadLuaFuncStr(luastate*, "str", func)
-
         // init data
-        mod->ScanSingle("40 55 53 56 57 41 56 41 57 48 8D 6C 24 D1 48 81 EC ?? ?? ?? ?? 48 B8")
+        mod->ScanSingle("48 89 5C 24 10 48 89 7C 24 18 55 48 8B EC 48 83 EC 20 48 8D")
             .GetPtr<void(*)()>()();
 
         struct NCSInfo {
@@ -536,13 +534,13 @@ namespace tool::bo7 {
 
 
 
-        NCSInfo* nsci{ (NCSInfo*)&mod->ScanSingle("48 8D 3D ?? ?? ?? ?? BE ?? ?? ?? ?? 4C 8D 25 ?? ?? ?? ?? 4C 8D 2D").GetRelative<int32_t>(3)[-(int)offsetof(NCSInfo, name)] };
+        NCSInfo* nsci{ mod->ScanSingle("48 89 05 ?? ?? ?? ?? C6 45 10 00 E8 ?? ?? ?? ?? 33 FF").GetRelative<int32_t, NCSInfo*>(3) };
         LOG_INFO("load info at {}", hook::library::CodePointer{ nsci });
 
         utils::OutFileCE os{ argv[3], true };
         os << "id,name,type,precache,bundleCategory,unk24";
 
-        for (size_t i = 0; i < 88; i++) {
+        for (size_t i = 0; i < 90; i++) {
             os
                 << "\n" << std::dec << i
                 << "," << utils::PtrOrElse(nsci[i].name, "null")
@@ -579,18 +577,6 @@ namespace tool::bo7 {
         constStrings.strings[id] = string;
         *ret = id;
         return ret;
-    }
-
-
-    // Get the cpp identifier for a pool name
-    const char* GetCppIdentifier(std::string& str) {
-        return utils::MapString(str.data(), [](char c) -> char {
-            if (!(c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) {
-                return '_'; // remap bad char
-            }
-
-            return c;
-        });
     }
 
     int bo7_cststr_dump(int argc, const char* argv[]) {
@@ -643,7 +629,7 @@ namespace tool::bo7 {
                 continue;
             }
             
-            const char* def{ GetCppIdentifier(it->second) };
+            const char* def{ core::strings::GetCppIdentifier(it->second.data()) };
             size_t cnt{ counts[hash::Hash64A(def)]++ };
 
             utils::Padding(os, 1) << "ScrString_t ";

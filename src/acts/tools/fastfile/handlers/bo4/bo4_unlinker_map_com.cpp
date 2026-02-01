@@ -60,7 +60,7 @@ namespace fastfile::handlers::bo4::map {
 	static_assert(sizeof(ComWorld) == 0x60);
 
 	class ComWorldWorker : public Worker {
-		void GenDefaultXHashes(fastfile::FastFileContext* ctx) override {
+		void PreLoadWorker(fastfile::FastFileContext* ctx) override {
 			if (!ctx) {
 				return; // no base ones
 			}

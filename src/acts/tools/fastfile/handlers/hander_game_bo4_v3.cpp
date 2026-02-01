@@ -616,7 +616,7 @@ namespace fastfile::handlers::bo4 {
 				gcx.opt->assetNames.clear();
 
 				for (auto& [hashType, worker] : GetWorkers()) {
-					worker->GenDefaultXHashes(&ctx);
+					worker->PreLoadWorker(&ctx);
 				}
 
 				if (assetList.strings) {

@@ -54,7 +54,7 @@ namespace fastfile::handlers::mw19 {
 		size_t assetSize;
 
 		Worker(size_t assetSize, bool requiresRelativeLoads = false) : requiresRelativeLoads(requiresRelativeLoads), assetSize(assetSize) {}
-		virtual void GenDefaultXHashes(fastfile::FastFileContext* ctx) {}
+		virtual void PreLoadWorker(fastfile::FastFileContext* ctx) {}
 		virtual void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) = 0;
 		virtual void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 		virtual void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}

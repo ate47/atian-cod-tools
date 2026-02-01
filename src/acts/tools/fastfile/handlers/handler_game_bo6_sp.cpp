@@ -450,7 +450,7 @@ namespace fastfile::handlers::bo6sp {
 							LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
 						}
 					}
-					worker->GenDefaultXHashes(nullptr);
+					worker->PreLoadWorker(nullptr);
 				}
 
 				if (opt.dumpXStrings) {
@@ -495,8 +495,10 @@ namespace fastfile::handlers::bo6sp {
 					gcx.xstringLocs = &xstringLocs;
 				}
 
-				for (auto& [hashType, worker] : GetWorkers()) {
-					worker->GenDefaultXHashes(&ctx);
+				if (!opt.noWorkerPreload) {
+					for (auto& [hashType, worker] : GetWorkers()) {
+						worker->PreLoadWorker(&ctx);
+					}
 				}
 
 				const char* fftype{ ctx.GetFFType() };

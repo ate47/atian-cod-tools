@@ -12,6 +12,7 @@ namespace hook::scan_container {
 	}
 
 	std::filesystem::path GetContainerPath(uint32_t uid) {
+		if (!uid) return {};
 		return GetContainersPath() / std::format("store_{:x}.scan", uid);
 	}
 
@@ -25,8 +26,19 @@ namespace hook::scan_container {
 
 	constexpr uint32_t CONTAINER_MAGIC = 0x30435341;
 
+	void ScanContainer::Load(hook::library::Library lib) {
+		if (lib != this->lib && this->lib) {
+			if (savePost) {
+				Save(); // save previous data
+			}
+		}
+		this->lib = lib;
+		uid = lib.GetUID();
+		scanPath = GetContainerPath(uid);
+	}
+
 	void ScanContainer::Sync(bool force) {
-		if (sync && !force) return;
+		if (!lib || (sync && !force)) return;
 		results.clear();
 		sync = true;
 		utils::InFileCE is{ scanPath, false, std::ios::binary };
@@ -57,6 +69,7 @@ namespace hook::scan_container {
 	}
 
 	void ScanContainer::Save() {
+		if (!lib || !anyUpdate) return;
 		std::filesystem::create_directories(scanPath.parent_path());
 		utils::OutFileCE os{ scanPath, true, std::ios::binary };
 		utils::WriteValue<uint32_t>(os, CONTAINER_MAGIC);
@@ -69,6 +82,7 @@ namespace hook::scan_container {
 				utils::WriteValue<uint32_t>(os, rva);
 			}
 		}
+		anyUpdate = false;
 	}
 
 	std::vector<hook::library::ScanResult> ScanContainer::Scan(const char* path, const char* name) {
@@ -95,6 +109,8 @@ namespace hook::scan_container {
 		for (hook::library::ScanResult& rva : r) {
 			val.res.emplace_back((uint32_t)lib.Rloc(rva.location));
 		}
+
+		anyUpdate = true;
 
 		return r;
 	}

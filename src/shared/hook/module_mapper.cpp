@@ -16,6 +16,7 @@ namespace hook::module_mapper {
 		std::filesystem::path ap{ absolute ? std::filesystem::absolute(path) : path };
 		std::string p{ ap.string() };
 		lib.SetModule(LoadLibraryExA(p.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | DONT_RESOLVE_DLL_REFERENCES));
+		scanContainer.Load(lib);
 
 		if (!lib) return false;
 		
@@ -32,7 +33,11 @@ namespace hook::module_mapper {
 		// free and set the module to null
 		lib.Free();
 		lib.ClearModule();
+		scanContainer.Load(lib);
 	}
 
-
+	hook::scan_container::ScanContainer& Module::GetScanContainer() {
+		scanContainer.Sync(false);
+		return scanContainer;
+	}
 }

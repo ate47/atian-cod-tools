@@ -78,7 +78,7 @@ namespace {
 		bool isTransient;
 	public:
 
-		void GenDefaultXHashes(fastfile::FastFileContext* ctx) override {
+		void PreLoadWorker(fastfile::FastFileContext* ctx) override {
 
 			// todo: add all languages
 			const char* languages[]{ "ens", "eng", "fra" };

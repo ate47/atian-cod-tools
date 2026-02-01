@@ -269,6 +269,7 @@ namespace hook::library {
 	}
 
 	uint32_t hook::library::Library::GetUID() const {
+		if (!hmod) return 0;
 		utils::crc::CRC32 crc{};
 
 		PIMAGE_OPTIONAL_HEADER ohd{ GetOptHeader() };

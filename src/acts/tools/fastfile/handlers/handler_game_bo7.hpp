@@ -2,6 +2,7 @@
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/utils/raw_file_extractor.hpp>
 #include <tools/bo7/bo7.hpp>
+#include <games/cod/asset_names.hpp>
 
 namespace fastfile::handlers::bo7 {
 	using namespace tool::bo7;
@@ -10,6 +11,10 @@ namespace fastfile::handlers::bo7 {
 	constexpr const char* gameDumpId = "bo7";
 	constexpr const char* handlerId = "bo7";
 	constexpr const char* handlerName = "Black Ops 7";
+	constexpr const char* hppName = "SatAssetType";
+	constexpr const char* hppHashedName = "SatHashedAssetType";
+	constexpr const char* hppPrefix = "SAT_ASSET_";
+	constexpr const char* hppHashedPrefix = "SATH_ASSET_";
 
 	typedef SatAssetType HandlerAssetType;
 	typedef SatHashAssetType HandlerHashedAssetType;
@@ -50,7 +55,7 @@ namespace fastfile::handlers::bo7 {
 		size_t assetSize;
 
 		Worker(size_t assetSize, bool graphic = false) : graphic(graphic), assetSize(assetSize) {}
-		virtual void GenDefaultXHashes(fastfile::FastFileContext* ctx) {}
+		virtual void PreLoadWorker(fastfile::FastFileContext* ctx) {}
 		virtual void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) = 0;
 		virtual void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
 		virtual void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) {}
@@ -58,6 +63,7 @@ namespace fastfile::handlers::bo7 {
 
 	const char* GetScrString(ScrString_t id);
 	uint64_t GetXAssetName(HandlerHashedAssetType type, void* handle);
+	games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType>& GetAssetNames();
 
 	class HandlerJsonWriter : public utils::raw_file_extractor::JsonWriter {
 	public:

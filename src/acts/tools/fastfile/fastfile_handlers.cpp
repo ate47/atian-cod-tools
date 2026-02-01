@@ -395,6 +395,9 @@ namespace fastfile {
 			else if (!strcmp("-l", arg) || !_strcmpi("--reduced-logs", arg)) {
 				reducedLogs = true;
 			}
+			else if (!_strcmpi("--noWorkerPreload", arg)) {
+				noWorkerPreload = true;
+			}
 			else if (!strcmp("-d", arg) || !_strcmpi("--dump", arg)) {
 				dump_decompressed = true;
 			}
@@ -531,6 +534,7 @@ namespace fastfile {
 		LOG_INFO("--dumpCompiledZone        : Dump compiled zone file");
 		LOG_INFO("--scriptsFormatter [f]    : Set formatter for GSC decompiler");
 		LOG_INFO("--disableScriptsDecomp    : Disable GSC script decompilation");
+		LOG_INFO("--noWorkerPreload         : Disable worker preload");
 		LOG_INFO("--dumpXStrings            : Dump XStrings");
 		LOG_INFO("--graphic                 : Dump graphic assets (do not share graphic assets)");
 		LOG_INFO("--assertContainer         : Use acts as a container for other software");
@@ -543,7 +547,7 @@ namespace fastfile {
 		
 	}
 
-	hook::library::Library FastFileOption::GetGame(bool crashError, bool* init, bool needDecrypt, const char* defaultName, const char* dumperName) {
+	hook::module_mapper::Module& FastFileOption::GetGameModule(bool crashError, bool* init, bool needDecrypt, const char* defaultName, const char* dumperName) {
 		if (init) *init = false;
 
 		std::filesystem::path exe;
@@ -557,7 +561,8 @@ namespace fastfile {
 			if (crashError) {
 				throw std::runtime_error("No game module specified");
 			}
-			return { (HMODULE)0 };
+			gameMod.Free();
+			return gameMod;
 		}
 
 		if (!gameMod) {
@@ -577,7 +582,13 @@ namespace fastfile {
 			if (init) *init = true;
 		}
 
-		return *gameMod;
+		return gameMod;
+	}
+	hook::module_mapper::Module& FastFileOption::GetGameModule() {
+		if (!gameMod) {
+			throw std::runtime_error("no game module loaded for context");
+		}
+		return gameMod;
 	}
 
 	size_t CountDiv(const char* name) {

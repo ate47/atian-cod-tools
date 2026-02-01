@@ -322,9 +322,14 @@ namespace fastfile::handlers::vg {
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 45", "DB_AddAssetCustom<IW8H_ASSET_STREAMINGINFO>").location, DB_AddAssetCustom<IW8H_ASSET_STREAMINGINFO>);
 				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 7B", "DB_AddAssetCustom<IW8H_ASSET_DLOGSCHEMA>").location, DB_AddAssetCustom<IW8H_ASSET_DLOGSCHEMA>);
 
-
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
+				}
+
+				if (!opt.noWorkerPreload) {
+					for (auto& [hashType, worker] : GetWorkers()) {
+						worker->PreLoadWorker(nullptr);
+					}
 				}
 
 				for (auto& [hashType, worker] : GetWorkers()) {
@@ -338,7 +343,6 @@ namespace fastfile::handlers::vg {
 							LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
 						}
 					}
-					worker->GenDefaultXHashes(nullptr);
 				}
 
 				if (opt.dumpXStrings) {
@@ -437,8 +441,10 @@ namespace fastfile::handlers::vg {
 					gcx.xstringLocs = &xstringLocs;
 				}
 
-				for (auto& [hashType, worker] : GetWorkers()) {
-					worker->GenDefaultXHashes(&ctx);
+				if (!opt.noWorkerPreload) {
+					for (auto& [hashType, worker] : GetWorkers()) {
+						worker->PreLoadWorker(&ctx);
+					}
 				}
 
 				const char* fftype{ ctx.GetFFType() };

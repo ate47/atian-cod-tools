@@ -132,6 +132,7 @@ namespace fastfile {
 		bool archiveDDL{};
 		bool graphic{};
 		bool reducedLogs{};
+		bool noWorkerPreload{};
 		GameId m_gameId{};
 		GameRevId m_gameRevId{};
 		const char* m_casc{};
@@ -161,7 +162,11 @@ namespace fastfile {
 		bool Compute(const char** args, size_t startIndex, size_t endIndex);
 		void PrintHelp();
 
-		hook::library::Library GetGame(bool crashError, bool* init = nullptr, bool needDecrypt = false, const char* defaultName = nullptr, const char* dumperName = nullptr);
+		hook::module_mapper::Module& GetGameModule(bool crashError, bool* init = nullptr, bool needDecrypt = false, const char* defaultName = nullptr, const char* dumperName = nullptr);
+		inline hook::library::Library GetGame(bool crashError, bool* init = nullptr, bool needDecrypt = false, const char* defaultName = nullptr, const char* dumperName = nullptr) {
+			return *GetGameModule(crashError, init, needDecrypt, defaultName, dumperName);
+		}
+		hook::module_mapper::Module& GetGameModule();
 		std::vector<std::string> GetFileRecurse(const char* path);
 		bool ReadFile(const char* path, std::vector<byte>& buff);
 		const char* GetTranslation(uint64_t key);

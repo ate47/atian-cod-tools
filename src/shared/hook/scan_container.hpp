@@ -18,30 +18,39 @@ namespace hook::scan_container {
 	};
 
 	class ScanContainer {
-		hook::library::Library lib;
-		uint32_t uid;
+		hook::library::Library lib{};
+		uint32_t uid{};
 		std::filesystem::path scanPath;
 		std::unordered_map<uint64_t, ResultValue> results{};
 		bool savePost;
 		bool sync{};
+		bool anyUpdate{};
 
 	public:
 		bool ignoreMissing{};
 		bool foundMissing{};
 
+		ScanContainer(bool savePost = false) : savePost(savePost) {
+		}
+
 		ScanContainer(hook::library::Library lib, bool savePost = false)
-			: lib(lib), uid(lib.GetUID()), savePost(savePost) {
-			scanPath = GetContainerPath(uid);
+			: savePost(savePost) {
+			Load(lib);
 		}
 		~ScanContainer() {
 			if (savePost) Save();
 		}
 
+		void Load(hook::library::Library lib);
 		void Sync(bool force = false);
 		void Save();
 
 		std::vector<hook::library::ScanResult> Scan(const char* path, const char* name = nullptr);
 		hook::library::ScanResult ScanSingle(const char* path, const char* name = nullptr);
 		hook::library::ScanResult ScanAny(const char* path, const char* name = nullptr);
+
+		inline const hook::library::Library& GetLibrary() const {
+			return lib;
+		}
 	};
 }

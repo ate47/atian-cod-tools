@@ -1,3 +1,5 @@
+#pragma once
+#include <core/strings.hpp>
 #include <utils/enumlist.hpp>
 #include <utils/hash_mini.hpp>
 #include <hook/library.hpp>
@@ -126,19 +128,6 @@ namespace games::cod::asset_names {
 			throw std::runtime_error("Can't scan asset pool names");
 		}
 
-		// Get the cpp identifier for a pool name
-		static const char* GetCppIdentifier(const char* name) {
-			return utils::MapString(utils::CloneString(name), [](char c) -> char {
-				c = std::toupper(c);
-
-				if (!(c == '_' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
-					return '_'; // remap bad char
-				}
-
-				return c;
-			});
-		}
-
 		/*
 		 * Dump asset info in a directory
 		 * @param dir dump directory
@@ -187,7 +176,7 @@ namespace games::cod::asset_names {
 
 					os << "enum " << opts->assetTypeName << " : uint32_t {";
 					for (size_t i = 0; i < typeMapsCount; i++) {
-						os << "\n    " << opts->assetPrefix << GetCppIdentifier(typeNames[i])
+						os << "\n    " << opts->assetPrefix << GetCppName((AssetId)i)
 							<< " = 0x" << std::hex << i << ", // " << typeNames[i];
 					}
 					os << "\n};\n\n";
@@ -203,7 +192,7 @@ namespace games::cod::asset_names {
 
 					os << "enum " << opts->assetHashedName << " : uint32_t {";
 					for (size_t i = 0; i < typeMapsCount; i++) {
-						os << "\n    " << opts->assetHashedPrefix << GetCppIdentifier(typeNames[i])
+						os << "\n    " << opts->assetHashedPrefix << GetCppName((AssetId)i)
 							<< " = 0x" << std::hex << PoolId(typeNames[i]) << ", // " << typeNames[i];
 					}
 					os << "\n};\n";
@@ -258,6 +247,16 @@ namespace games::cod::asset_names {
 				return "invalid";
 			}
 			return typeNames[type];
+		}
+
+		/*
+		 * Get the cpp name of a type
+		 * @param type type
+		 * @return name
+		 */
+		const char* GetCppName(AssetId type) {
+			const char* typeName{ GetTypeName(type) };
+			return core::strings::GetCppIdentifier(typeName);
 		}
 
 		/*

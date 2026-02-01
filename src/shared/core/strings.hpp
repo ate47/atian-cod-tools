@@ -16,4 +16,6 @@ namespace core::strings {
 		TrimIdx<T>(str, start, end);
 		return { &str[start], &str[end] };
 	}
+
+	const char* GetCppIdentifier(const char* name);
 }
