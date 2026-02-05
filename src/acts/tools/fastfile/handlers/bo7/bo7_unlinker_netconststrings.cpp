@@ -15,6 +15,110 @@ namespace {
 		"level_entities",
 	};
 
+
+	// get a better name for the keys
+	std::unordered_map<uint64_t, const char*> knownKeys{
+		{ hash::Hash64("aid"), "ai_interaction" },
+		{ hash::Hash64("ait"), "ai_type" },
+		{ hash::Hash64("anm"), "anim" },
+		{ hash::Hash64("asc"), "asset_stream_collection" },
+		{ hash::Hash64("atr"), "anim_tree" },
+		{ hash::Hash64("bs2"), "blend_space_2d" },
+		{ hash::Hash64("cam"), "camera" },
+		{ hash::Hash64("ccr"), "client_character" },
+		{ hash::Hash64("cha"), "character" },
+		{ hash::Hash64("cin"), "cinematic_motion" },
+		{ hash::Hash64("cmo"), "camo" },
+		{ hash::Hash64("cmp"), "callout_marker_ping" },
+		{ hash::Hash64("cnv"), "conversation" },
+		{ hash::Hash64("cob"), "carry_object" },
+		{ hash::Hash64("con"), "contrail_data" },
+		{ hash::Hash64("csc"), "cinematic_scene" },
+		{ hash::Hash64("cur"), "curve" },
+		{ hash::Hash64("eca"), "esc_asset" },
+		{ hash::Hash64("emo"), "emote" },
+		{ hash::Hash64("exx"), "execution" },
+		{ hash::Hash64("gbp"), "generic_blueprint" },
+		{ hash::Hash64("ges"), "gesture" },
+		{ hash::Hash64("gpr"), "gameprops" },
+		{ hash::Hash64("gwt"), "grapple_weapon_tunables" },
+		{ hash::Hash64("hbs"), "scriptbundle_health_bar_settings" },
+		{ hash::Hash64("hic"), "head_icon" },
+		{ hash::Hash64("hnt"), "hint_string" },
+		{ hash::Hash64("hol"), "hud_outline" },
+		{ hash::Hash64("hwc"), "hwconfig" },
+		{ hash::Hash64("img"), "image" },
+		{ hash::Hash64("isk"), "impulse_motion" },
+		{ hash::Hash64("loc"), "localized" },
+		{ hash::Hash64("lue"), "lui_elems" },
+		{ hash::Hash64("lui"), "lui" },
+		{ hash::Hash64("mat"), "material" },
+		{ hash::Hash64("mdl"), "xmodel" },
+		{ hash::Hash64("mft"), "material_float_table" },
+		{ hash::Hash64("mfx"), "material_sfx_table" },
+		{ hash::Hash64("mic"), "minimap_icon" },
+		{ hash::Hash64("mov"), "moving_platform" },
+		{ hash::Hash64("nms"), "ai_anim_set" },
+		{ hash::Hash64("obj"), "objective" },
+		{ hash::Hash64("par"), "parachute_data" },
+		{ hash::Hash64("particlesystem"), "particle_system" },
+		{ hash::Hash64("pas"), "player_asm" },
+		{ hash::Hash64("pfb"), "pbg_postfx_bundle" },
+		{ hash::Hash64("pla"), "player_look_at_profile" },
+		{ hash::Hash64("pnv"), "pbg_postfx_bundle_nvt" },
+		{ hash::Hash64("qed"), "netconststrings" },
+		{ hash::Hash64("rmb"), "rumble" },
+		{ hash::Hash64("rmg"), "rumble_graph" },
+		{ hash::Hash64("rop"), "reactive_operator" },
+		{ hash::Hash64("sbactivitydefinition"), "scriptbundle_activity_definition" },
+		{ hash::Hash64("sbc"), "scriptbundle_hovercard" },
+		{ hash::Hash64("sbd"), "scriptable" },
+		{ hash::Hash64("sbe"), "scriptbundle_equipment" },
+		{ hash::Hash64("sbgobblegum"), "scriptbundle_gobblegum" },
+		{ hash::Hash64("sbh"), "scriptbundle_splash" },
+		{ hash::Hash64("sbitemspawnentry"), "scriptbundle_item_spawn_entry" },
+		{ hash::Hash64("sbk"), "scriptbundle_killstreak" },
+		{ hash::Hash64("sbmiscmessages"), "scriptbundle_misc_message" },
+		{ hash::Hash64("sbmissiondata"), "scriptbundle_mission_data" },
+		{ hash::Hash64("sbmissionstep"), "scriptbundle_mission_step" },
+		{ hash::Hash64("sbprecache_vehiclebundle"), "scriptbundle_vehicle" },
+		{ hash::Hash64("sbs"), "scriptbundle_super" },
+		{ hash::Hash64("sbscene"), "scriptbundle_scene" },
+		{ hash::Hash64("sbspawnselectionmaptableentry"), "scriptbundle_spawn_selection_maptable_entry" },
+		{ hash::Hash64("sbtalkinggun"), "scriptbundle_talking_gun" },
+		{ hash::Hash64("sbuiactivityinfo"), "scriptbundle_ui_activity_info" },
+		{ hash::Hash64("sbwc"), "scriptbundle_weapon_charms_data" },
+		{ hash::Hash64("sev"), "sound_event" },
+		{ hash::Hash64("shk"), "shock" },
+		{ hash::Hash64("sic"), "status_icon" },
+		{ hash::Hash64("skw"), "shockwave" },
+		{ hash::Hash64("spr"), "spray" },
+		{ hash::Hash64("stk"), "sticker" },
+		{ hash::Hash64("sut"), "suit" },
+		{ hash::Hash64("tag"), "tag" },
+		{ hash::Hash64("tre"), "trigger_effect" },
+		{ hash::Hash64("vcm"), "vehicle_camo" },
+		{ hash::Hash64("veh"), "vehicle" },
+		{ hash::Hash64("void"), "void" },
+		{ hash::Hash64("vsf"), "vision_suffix" },
+		{ hash::Hash64("vrs"), "vehicle_rev_sfx" },
+		{ hash::Hash64("vsn"), "vision" },
+		{ hash::Hash64("vss"), "volumetric_smoke_settings" },
+		{ hash::Hash64("wep"), "weapon" },
+		{ hash::Hash64("wma"), "world_model_attachment" },
+		{ hash::Hash64("xac"), "anim_curve" },
+		{ hash::Hash64("xca"), "xcam" },
+		{ hash::Hash64("xcm"), "xcomposite_model" },
+	};
+
+	const char* MapKnownKey(const char* keyname) {
+		auto it{ knownKeys.find(hash::Hash64(keyname)) };
+		if (it != knownKeys.end()) {
+			return it->second;
+		}
+		return keyname;
+	}
+
 	typedef uint32_t NetConstStringsType;
 
 	enum NetConstStringsSource : byte {
@@ -115,7 +219,7 @@ constexpr const char* name = #def;
 
 			nscCsvOs << "id,name,type,precache,bundleCategory,unk24";
 			nscCppOs 
-				<< "#include \"" << gameDumpId << "_ncs_ids.hpp\"\n\n"
+				<< "#include \"" << gameDumpId << "_ncs.hpp\"\n\n"
 				<< "NCSInfo s_netConstStringTypeAssetData[] {";
 
 			nschppOs
@@ -145,7 +249,7 @@ constexpr const char* name = #def;
 					<< ", .unk20 = " << info[i].unk20
 					<< ", .unk24 = " << (info[i].unk24 ? "true" : "false")
 					<< " },";
-				nschppOs << "\n    NCST_" << core::strings::GetCppIdentifier(info[i].name) << " = 0x" << std::hex << i << ", // " << info[i].name << " " << std::dec << i << " " << assetNames.GetTypeName(info[i].type);
+				nschppOs << "\n    NCST_" << core::strings::GetCppIdentifier(MapKnownKey(info[i].name)) << " = 0x" << std::hex << i << ", // " << info[i].name << " " << std::dec << i << " " << assetNames.GetTypeName(info[i].type);
 				
 			}
 			nschppOs << "\n    NCST_COUNT = 0x" << std::hex << i << ", // " << std::dec << i;
@@ -159,7 +263,7 @@ constexpr const char* name = #def;
 				if (type == infoCount) {
 					return "void";
 				}
-				return info[type].name;
+				return MapKnownKey(info[type].name);
 			}
 			return utils::va("%d", (int)type);
 		}
