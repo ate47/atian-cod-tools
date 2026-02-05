@@ -93,7 +93,7 @@ namespace fastfile::handlers::bo7 {
 		};
 
 		struct XZoneTemporaryLoadData {
-			byte __pad[0x14cc8];
+			byte __pad[0x14ce8];
 			XBlock xblocks[16];
 			uint64_t unk14dc8;
 			DBLoadCtxRewind* rewind;
@@ -101,7 +101,7 @@ namespace fastfile::handlers::bo7 {
 			uint64_t unk14de0;
 			uint64_t unk14de8;
 		};
-		static_assert(sizeof(XZoneTemporaryLoadData) == 0x14df0);
+		static_assert(sizeof(XZoneTemporaryLoadData) == 0x14e10);
 
 
 		constexpr size_t numHashBlocks = 0x100;
@@ -438,10 +438,12 @@ namespace fastfile::handlers::bo7 {
 				gcx.loadCtx = std::make_unique<DBLoadCtx>();
 				gcx.loadCtx->__vtb = &dbLoadCtxVTable;
 
-				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3) };
-				loadStreamObj->__vtb = &dbLoadStreamVTable;
-
 				scan.ignoreMissing = true;
+
+				LoadStreamObject* loadStreamObj{ scan.ScanAny("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(25) };
+				if (loadStreamObj) {
+					loadStreamObj->__vtb = &dbLoadStreamVTable;
+				}
 
 				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "gcx.Load_Asset")
 					.GetPtr<decltype(gcx.Load_Asset)>();
