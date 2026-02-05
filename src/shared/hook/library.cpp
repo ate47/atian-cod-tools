@@ -106,6 +106,24 @@ namespace hook::library {
 		loc = "";
 		return nullptr;
 	}
+	const char* CreateScanPattern(const void* data, size_t len) {
+		std::string patStr{};
+		patStr.resize((len + 1) * 3 + 1);
+		const byte* bd{ (byte*)data };
+
+		char* patStrPtr{ patStr.data() };
+
+		for (size_t i = 0; i < len; i++) {
+			std::snprintf(&patStrPtr[3 * i], 4, "%02x ", (uint32_t)bd[i]);
+		}
+
+		return patStrPtr;
+	}
+
+	const char* CreateScanPatternString(const char* str) {
+		return CreateScanPattern(str, std::strlen(str) + 1);
+	}
+
 	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single, const char* name) {
 		size_t pl{ std::strlen(pattern) };
 		std::string patStr{};

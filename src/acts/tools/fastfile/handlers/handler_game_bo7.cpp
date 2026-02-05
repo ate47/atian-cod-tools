@@ -406,13 +406,12 @@ namespace fastfile::handlers::bo7 {
 			void Init(fastfile::FastFileOption& opt) override {
 				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe, gameDumpId) };
 
-				hook::library::Library lib{ mod.GetLibrary() };
 				hook::library::ScanLogger& logger{ mod.GetScanLogger() };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 
 				gcx.opt = &opt;
 
-				if (!acts::decryptutils::LoadDecryptModule(lib)) {
+				if (!acts::decryptutils::LoadDecryptModule(mod)) {
 					throw std::runtime_error("Can't load decryption module");
 				}
 
@@ -424,7 +423,7 @@ namespace fastfile::handlers::bo7 {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(lib);
+				gcx.assetNames.InitMap(mod);
 				AddBootsLimitAssetNames();
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = gameDumpId;

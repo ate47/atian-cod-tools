@@ -56,6 +56,14 @@ namespace hook::library {
 		return GetRelativeFrom<Type, TypeOut>(location, offset, offset + sizeof(Type));
 	}
 
+	const char* CreateScanPattern(const void* data, size_t len);
+	const char* CreateScanPatternString(const char* str);
+
+	template<typename T>
+	const char* CreateScanPattern(const T& val) {
+		return CreateScanPattern(&val, sizeof(val));
+	}
+
 	/*
 	 * Save the scan container
 	 */

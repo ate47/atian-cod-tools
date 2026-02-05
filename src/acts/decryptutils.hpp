@@ -22,9 +22,7 @@ namespace acts::decryptutils {
 	 * Load a decryption implementation from an already loaded module
 	 * @param mod the module
 	 */
-	inline bool LoadDecryptModule(const hook::module_mapper::Module& mod) {
-		return LoadDecryptModule(*mod);
-	}
+	bool LoadDecryptModule(hook::module_mapper::Module& mod);
 
 	enum T8Decryption {
 		T8D_X1_LATEST = 0,

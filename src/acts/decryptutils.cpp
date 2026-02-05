@@ -19,7 +19,8 @@ namespace acts::decryptutils {
 
 		return DecryptStringImpl(str);
 	}
-	bool LoadDecryptModule(const hook::library::Library& lib) {
+
+	static bool LoadDecryptModule0(std::function<std::vector<hook::library::ScanResult>(const char* path, const char* name)> ScanFunc) {
 		DecryptStringImpl = nullptr;
 
 		struct {
@@ -37,7 +38,7 @@ namespace acts::decryptutils {
 		};
 
 		for (auto& cfg : knownScans) {
-			std::vector<hook::library::ScanResult> res = lib.Scan(cfg.pattern, false, cfg.id);
+			std::vector<hook::library::ScanResult> res{ ScanFunc(cfg.pattern, cfg.id) };
 
 			if (res.size() != 1) {
 				if (res.size() > 1) {
@@ -47,11 +48,24 @@ namespace acts::decryptutils {
 			}
 
 			DecryptStringImpl = res[0].GetPtr<char* (*)(char* str)>();
-			LOG_TRACE("Loaded DecryptStringImpl=0x{:x} ({})", lib.Rloc(DecryptStringImpl), cfg.id);
+			if (res[0].entry) {
+				// rename it to DecryptString if we want to dump the scans
+				res[0].entry->name = "DecryptString";
+			}
+			LOG_TRACE("Loaded DecryptStringImpl={} ({})", hook::library::CodePointer{ DecryptStringImpl }, cfg.id);
 			return true; // loaded
 		}
 
 		return false;
+	}
+
+	bool LoadDecryptModule(hook::module_mapper::Module& mod) {
+		hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+		return LoadDecryptModule0([&scan](const char* path, const char* name) { return scan.Scan(path, name); });
+	}
+
+	bool LoadDecryptModule(const hook::library::Library& lib) {
+		return LoadDecryptModule0([&lib](const char* path, const char* name) { return lib.Scan(path, false, name); });
 	}
 
 	bool LoadDecrypt(const std::filesystem::path& exec) {

@@ -3,6 +3,8 @@
 #include <utils/enumlist.hpp>
 #include <utils/hash_mini.hpp>
 #include <hook/library.hpp>
+#include <hook/scan_container.hpp>
+#include <hook/module_mapper.hpp>
 
 /*
  * Container for pool names. Creates a mapping between hashed ids and game ids
@@ -56,15 +58,12 @@ namespace games::cod::asset_names {
 			handleList{ [this](const char* type) { return GetExePoolId(type); } } {
 		}
 
-		/*
-		 * Create a type map using a game, throw an exception if it fails
-		 * @param lib game library
-		 */
-		void InitMap(const hook::library::Library& lib) {
-			for (hook::library::ScanResult& firstStringOffsetRes : lib.ScanString(first)) {
+		template<typename Type>
+		void InitMap0(Type scan, const hook::library::Library& lib) {
+			for (hook::library::ScanResult& firstStringOffsetRes : scan.ScanString(first)) {
 				uintptr_t firstStringOffset{ firstStringOffsetRes.GetPtr<uintptr_t>() };
 				LOG_TRACE("try string \"{}\" -> 0x{:x}", first, lib.Rloc(firstStringOffset));
-				for (hook::library::ScanResult& poolNamesRes : lib.ScanNumber(firstStringOffset)) {
+				for (hook::library::ScanResult& poolNamesRes : scan.ScanNumber(firstStringOffset)) {
 					uintptr_t poolNamesOffset{ poolNamesRes.GetPtr<uintptr_t>() };
 
 					uintptr_t* poolNames{ reinterpret_cast<uintptr_t*>(poolNamesOffset) };
@@ -104,6 +103,10 @@ namespace games::cod::asset_names {
 						continue;
 					}
 
+					if (poolNamesRes.entry) {
+						poolNamesRes.entry->name = "g_assetNames";
+					}
+
 					typeMapsCount = count;
 					for (size_t i = 0; i < count; i++) {
 						AssetId tid{ (AssetId)i };
@@ -126,6 +129,23 @@ namespace games::cod::asset_names {
 				}
 			}
 			throw std::runtime_error("Can't scan asset pool names");
+		}
+
+
+		/*
+		 * Create a type map using a game, throw an exception if it fails
+		 * @param lib game library
+		 */
+		void InitMap(const hook::library::Library& lib) {
+			InitMap0(lib, lib);
+		}
+
+		/*
+		 * Create a type map using a game, throw an exception if it fails
+		 * @param mod game module
+		 */
+		void InitMap(hook::module_mapper::Module& mod) {
+			InitMap0(mod.GetScanContainer(), mod.GetLibrary());
 		}
 
 		/*

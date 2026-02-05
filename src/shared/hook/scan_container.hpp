@@ -50,6 +50,33 @@ namespace hook::scan_container {
 		hook::library::ScanResult ScanSingle(const char* path, const char* name = nullptr);
 		hook::library::ScanResult ScanAny(const char* path, const char* name = nullptr);
 
+		std::vector<hook::library::ScanResult> ScanString(const char* str, const char* name = nullptr) {
+			return Scan(hook::library::CreateScanPatternString(str), name);
+		}
+
+		hook::library::ScanResult ScanStringSingle(const char* str, const char* name = nullptr) {
+			return ScanSingle(hook::library::CreateScanPatternString(str), name);
+		}
+
+		hook::library::ScanResult ScanStringAny(const char* str, const char* name = nullptr) {
+			return ScanAny(hook::library::CreateScanPatternString(str), name);
+		}
+
+		template<typename T>
+		std::vector<hook::library::ScanResult> ScanNumber(T val, const char* name = nullptr) {
+			return Scan(hook::library::CreateScanPattern(val), name);
+		}
+
+		template<typename T>
+		hook::library::ScanResult ScanNumberSingle(T val, const char* name = nullptr) {
+			return ScanSingle(hook::library::CreateScanPattern(val), name);
+		}
+
+		template<typename T>
+		hook::library::ScanResult ScanNumberAny(T val, const char* name = nullptr) {
+			return ScanAny(hook::library::CreateScanPattern(val), name);
+		}
+
 		inline const hook::library::Library& GetLibrary() const {
 			return lib;
 		}

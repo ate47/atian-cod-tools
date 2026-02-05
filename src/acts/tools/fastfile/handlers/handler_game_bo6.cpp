@@ -431,13 +431,13 @@ namespace fastfile::handlers::bo6 {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, gameExe, gameDumpId) };
-				hook::scan_container::ScanContainer scan{ lib, true };
-				scan.Sync();
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe, gameDumpId) };
+				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+				const hook::library::Library& lib{ mod.GetLibrary()};
 
 				gcx.opt = &opt;
 
-				if (!acts::decryptutils::LoadDecryptModule(lib)) {
+				if (!acts::decryptutils::LoadDecryptModule(mod)) {
 					throw std::runtime_error("Can't load decryption module");
 				}
 
