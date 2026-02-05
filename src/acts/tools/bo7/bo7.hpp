@@ -208,7 +208,7 @@ namespace tool::bo7 {
         SATH_ASSET_MATERIALSFXTABLE = hash::HashX32("materialsfxtable"),
         SATH_ASSET_FOOTSTEPSFXTABLE = hash::HashX32("footstepsfxtable"),
         SATH_ASSET_REACTIVESTAGESET = hash::HashX32("reactivestageset"),
-        SATH_ASSET_FOLIAGEIMPACTSFXTABLE = hash::HashX32("foliageimpactsfxtable"),
+        SATH_ASSET_FOLIAGEIMPACTFXTABLE = hash::HashX32("foliageimpactfxtable"),
         SATH_ASSET_IMPACTSFXTABLE = hash::HashX32("impactsfxtable"),
         SATH_ASSET_AIIMPACTVFXTABLE = hash::HashX32("aiimpactvfxtable"),
         SATH_ASSET_TYPEINFO = hash::HashX32("typeinfo"),

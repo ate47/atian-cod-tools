@@ -230,7 +230,7 @@ namespace {
 			json.WriteFieldValueXHash("behaviorTreeAsset", asset.behaviorTreeAsset);
 
 			json.WriteFieldValueXAsset("footStepsFxTable", SatHashAssetType::SATH_ASSET_FOOTSTEPSFXTABLE, asset.footStepSFxTable);
-			json.WriteFieldValueXAsset("foliagesFXTable", SatHashAssetType::SATH_ASSET_FOLIAGEIMPACTSFXTABLE, asset.foliageSFXTable);
+			json.WriteFieldValueXAsset("foliagesFXTable", SatHashAssetType::SATH_ASSET_FOLIAGEIMPACTFXTABLE, asset.foliageSFXTable);
 			json.WriteFieldValueXAsset("handPlantsFXTable", SatHashAssetType::SATH_ASSET_HANDPLANTSFXTABLE, asset.handPlantSFXTable);
 			json.WriteFieldValueXAsset("aiImpactVFXTable", SatHashAssetType::SATH_ASSET_AIIMPACTVFXTABLE, asset.aiImpactVFXTable);
 			json.WriteFieldValueXAsset("dismemberment", SatHashAssetType::SATH_ASSET_DISMEMBERMENT, asset.dismemberment);

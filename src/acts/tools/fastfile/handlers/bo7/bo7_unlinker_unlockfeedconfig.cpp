@@ -35,11 +35,11 @@ namespace {
 		XHash64* types;
 		uint64_t unlockFeedItemsCount;
 		XHash64* unlockFeedItems;
-		XHash64 __pad[196];
+		XHash64 __pad[193];
 	};
 
 
-	static_assert(sizeof(UnlockFeedConfig) == 0x6c8);
+	static_assert(sizeof(UnlockFeedConfig) == 0x6b0);
 
 	class ImplWorker : public Worker {
 		using Worker::Worker;
