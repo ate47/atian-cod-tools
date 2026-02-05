@@ -5,7 +5,6 @@
 namespace hook::module_mapper {
 
 	Module::Module(bool freeOnExit) : freeOnExit(freeOnExit) {
-
 	}
 	Module::~Module() {
 		if (freeOnExit) Free();
@@ -17,6 +16,8 @@ namespace hook::module_mapper {
 		std::string p{ ap.string() };
 		lib.SetModule(LoadLibraryExA(p.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | DONT_RESOLVE_DLL_REFERENCES));
 		scanContainer.Load(lib);
+		scanContainer.logger = &logger;
+		logger.Clean();
 
 		if (!lib) return false;
 		
@@ -34,10 +35,15 @@ namespace hook::module_mapper {
 		lib.Free();
 		lib.ClearModule();
 		scanContainer.Load(lib);
+		logger.Clean();
 	}
 
 	hook::scan_container::ScanContainer& Module::GetScanContainer() {
 		scanContainer.Sync(false);
 		return scanContainer;
+	}
+
+	hook::library::ScanLogger& Module::GetScanLogger() {
+		return logger;
 	}
 }

@@ -95,7 +95,7 @@ namespace hook::scan_container {
 			if (val.res.size()) LOG_TRACE("ScanContainer: Value: {}:0x{:x}", lib, val.res[0] );
 			res.reserve(val.res.size());
 			for (uint32_t rva : val.res) {
-				res.emplace_back((byte*)lib[rva]);
+				res.emplace_back((byte*)lib[rva], logger ? logger->AllocEntry(name) : nullptr);
 			}
 			return res;
 		}
@@ -107,6 +107,9 @@ namespace hook::scan_container {
 		val.loaded = true;
 
 		for (hook::library::ScanResult& rva : r) {
+			if (logger) {
+				rva.entry = logger->AllocEntry(name);
+			}
 			val.res.emplace_back((uint32_t)lib.Rloc(rva.location));
 		}
 

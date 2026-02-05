@@ -441,6 +441,72 @@ namespace hook::library {
 
 	}
 
+	ScanEntry* ScanLogger::AllocEntry(const char* name) {
+		if (entryCount == ARRAYSIZE(entries)) {
+			LOG_WARNING("too many entries in ScanLogger");
+			return nullptr;
+		}
+		ScanEntry* e{ &entries[entryCount++] };
+		e->name = name;
+		return e;
+	}
+
+	void ScanLogger::WriteLogs(std::filesystem::path out, ScanLoggerLogsOpt* opt) {
+		std::filesystem::create_directories(out);
+		std::filesystem::path infoFilePath{ out / std::format("{}_scans.csv", opt->base) };
+		std::filesystem::path idaScriptPath{ out / std::format("{}_scans.idc", opt->base) };
+
+		std::unordered_map<const char*, std::vector<ScanEntry*>> entryMap{};
+
+		// group by name
+		for (size_t i = 0; i < entryCount; i++) {
+			ScanEntry* e{ &entries[i] };
+			if (!e->name) {
+				continue;
+			}
+			entryMap[e->name].push_back(e);
+		}
+		{
+			// scan file
+			utils::OutFileCE infoFile{ infoFilePath };
+
+			infoFile << "name,offsets";
+			for (auto& [name, es] : entryMap) {
+				infoFile << "\n" << name << ",";
+				for (size_t i = 0; i < es.size(); i++) {
+					if (i) infoFile << ";";
+					infoFile << hook::library::CodePointer{ es[i]->location };
+				}
+			}
+		}
+		{
+			// script to add to ida to load the 
+			utils::OutFileCE idaScript{ idaScriptPath };
+
+			idaScript 
+				<< "#include <idc/idc.idc>\n\n"
+				   "static main() {\n";
+			utils::Padding(idaScript, 1) << "auto base = get_imagebase();\n";
+			for (auto& [name, es] : entryMap) {
+				if (es.size() > 1) {
+					continue;
+				}
+				byte* loc{ es[0]->location };
+				hook::library::Library library{ GetLibraryInfo(loc) };
+				if (!library) {
+					continue;
+				}
+				size_t rva{ (size_t)(loc - (byte*)*library) };
+				utils::Padding(idaScript, 1) << "set_name(base + 0x" << std::hex << rva << ", \"" << name << "\", SN_CHECK);\n";
+			}
+			idaScript << "}\n";
+		}
+	}
+
+	void ScanLogger::Clean() {
+		entryCount = 0;
+	}
+
 	static Library main{};
 	std::vector<ScanResult> QueryScanContainer(const char* name, const char* pattern, bool single) {
 		auto it = container.deltas.find(name);

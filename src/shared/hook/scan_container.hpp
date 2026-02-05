@@ -27,6 +27,7 @@ namespace hook::scan_container {
 		bool anyUpdate{};
 
 	public:
+		hook::library::ScanLogger* logger{};
 		bool ignoreMissing{};
 		bool foundMissing{};
 

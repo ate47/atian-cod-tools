@@ -404,10 +404,11 @@ namespace fastfile::handlers::bo7 {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::module_mapper::Module mod{ opt.GetGameModule(true, nullptr, false, gameExe, gameDumpId) };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe, gameDumpId) };
 
 				hook::library::Library lib{ mod.GetLibrary() };
-				hook::scan_container::ScanContainer scan{ mod.GetScanContainer() };
+				hook::library::ScanLogger& logger{ mod.GetScanLogger() };
+				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 
 				gcx.opt = &opt;
 
@@ -445,17 +446,17 @@ namespace fastfile::handlers::bo7 {
 					loadStreamObj->__vtb = &dbLoadStreamVTable;
 				}
 
-				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "gcx.Load_Asset")
+				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "Load_Asset")
 					.GetPtr<decltype(gcx.Load_Asset)>();
-				gcx.DB_HashScrStringName = scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48", "gcx.DB_HashScrStringName")
+				gcx.DB_HashScrStringName = scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48", "DB_HashScrStringName")
 					.GetPtr<decltype(gcx.DB_HashScrStringName)>();
 
 				gcx.poolInfo = (AssetPoolInfo*)(scan.ScanSingle("4C 8D 1D ? ? ? ? 49 8B C0 49 8B D1", "poolInfo")
 					.GetRelative<int32_t>(3) - offsetof(AssetPoolInfo, SetAssetName));
 
-				LOG_TRACE("gcx.poolInfo = {}", hook::library::CodePointer{ gcx.poolInfo });
-				LOG_TRACE("gcx.Load_Asset = {}", hook::library::CodePointer{ gcx.Load_Asset });
-				LOG_TRACE("gcx.DB_HashScrStringName = {}", hook::library::CodePointer{ gcx.DB_HashScrStringName });
+				LOG_TRACE("poolInfo = {}", hook::library::CodePointer{ gcx.poolInfo });
+				LOG_TRACE("Load_Asset = {}", hook::library::CodePointer{ gcx.Load_Asset });
+				LOG_TRACE("DB_HashScrStringName = {}", hook::library::CodePointer{ gcx.DB_HashScrStringName });
 				LOG_TRACE("loadStreamObj = {}", hook::library::CodePointer{ loadStreamObj });
 
 				auto Red = [](void* from, void* to) {
@@ -475,9 +476,9 @@ namespace fastfile::handlers::bo7 {
 
 				// Stream delta, todo
 				Red(scan.ScanSingle("4C 8B DC 56 48 83 EC ?? 4C", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
-				gcx.DB_RegisterStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "gcx.DB_RegisterStreamOffset")
+				gcx.DB_RegisterStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "DB_RegisterStreamOffset")
 					.GetPtr<decltype(gcx.DB_RegisterStreamOffset)>();
-				gcx.DB_LoadStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "gcx.DB_LoadStreamOffset")
+				gcx.DB_LoadStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "DB_LoadStreamOffset")
 					.GetPtr<decltype(gcx.DB_LoadStreamOffset)>();
 				Red(scan.ScanSingle("40 56 48 83 EC ?? 4C 8B D2", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
 
@@ -512,8 +513,14 @@ namespace fastfile::handlers::bo7 {
 
 				Red(scan.ScanSingle("40 55 53 57 41 54 41 55 41 56 48 8D AC 24 58", "Error").location, ErrorStub);
 
+				auto SaveScan = [&mod, &scan, &logger, &opt] {
+					scan.Save();
+					hook::library::ScanLoggerLogsOpt logsOpt{};
+					logsOpt.base = gameDumpId;
+					logger.WriteLogs(opt.m_output / gamePath / "code", &logsOpt);
+				};
 
-				scan.Save(); // we might crash before the end of the context
+				SaveScan(); // we might crash before the end of the context
 
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
@@ -525,7 +532,7 @@ namespace fastfile::handlers::bo7 {
 					}
 				}
 
-				scan.Save();
+				SaveScan();
 
 				for (auto& [hashType, worker] : GetWorkers()) {
 					HandlerAssetType type{ gcx.assetNames.GetExePoolId(hashType) };

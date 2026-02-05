@@ -5,7 +5,7 @@
 #include <utils/utils.hpp>
 
 namespace hook::library {
-	struct ScanResult;
+	class ScanResult;
 	/*
 	 * @return module from an address
 	 */
@@ -61,9 +61,37 @@ namespace hook::library {
 	 */
 	void SaveScanContainer();
 
+	struct ScanEntry {
+		const char* name;
+		byte* location{};
+	};
+
+	struct ScanLoggerLogsOpt {
+		const char* base{ "scan" };
+	};
+
+	// Scan logger
+	struct ScanLogger {
+		ScanEntry entries[0x400]{};
+		size_t entryCount{};
+
+		ScanEntry* AllocEntry(const char* name);
+		void WriteLogs(std::filesystem::path out, ScanLoggerLogsOpt* opt = nullptr);
+		void Clean();
+	};
+
 	// Scan result
-	struct ScanResult {
+	class ScanResult {
+	public:
 		byte* location;
+		ScanEntry* entry;
+
+		ScanResult(byte* location = nullptr, ScanEntry* entry = nullptr) 
+			: location(location), entry(entry){
+			if (entry) {
+				entry->location = location; // base value
+			}
+		}
 
 		/*
 		 * Get an element from this location
@@ -72,7 +100,8 @@ namespace hook::library {
 		 * @return element
 		 */
 		template<typename Type>
-		constexpr Type Get(size_t offset = 0) const {
+		inline Type Get(size_t offset = 0) const {
+			if (entry) entry->location = location + offset;
 			return *reinterpret_cast<Type*>(location + offset);
 		}
 
@@ -85,9 +114,14 @@ namespace hook::library {
 		 * @return pointer
 		 */
 		template<typename Type, typename TypeOut = byte*>
-		constexpr TypeOut GetRelativeFrom(size_t offset, size_t from) const {
-			if (!location) return nullptr;
-			return reinterpret_cast<TypeOut>(location + from + Get<Type>(offset));
+		inline TypeOut GetRelativeFrom(size_t offset, size_t from) const {
+			if (!location) {
+				if (entry) entry->location = nullptr;
+				return nullptr;
+			}
+			byte* loc{ location + from + Get<Type>(offset) };
+			if (entry) entry->location = loc;
+			return reinterpret_cast<TypeOut>(loc);
 		}
 
 		/*
@@ -110,6 +144,7 @@ namespace hook::library {
 		 */
 		template<typename Type = void*>
 		constexpr Type GetPtr(size_t offset = 0) const {
+			if (entry) entry->location = location + offset;
 			return reinterpret_cast<Type>(location + offset);
 		}
 	};
