@@ -670,7 +670,7 @@ namespace fastfile {
 
 			buff.clear();
 			if (!data.FileSize) {
-				return true; // nothing to read
+				return false; // nothing to read
 			}
 			buff.resize(data.FileSize);
 			HANDLE fhandle;
@@ -683,7 +683,7 @@ namespace fastfile {
 			return CascReadFile(fhandle, buff.data(), (DWORD)data.FileSize, &read) && read == data.FileSize;
 		}
 
-		return utils::ReadFile(path, buff);
+		return utils::ReadFile(path, buff) && !buff.empty();
 	}
 	const char* FastFileOption::GetTranslation(uint64_t key) {
 		if (!(key & hash::MASK60)) {
