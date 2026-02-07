@@ -9,6 +9,7 @@ try {
     $base = (Get-Item $PSScriptRoot).parent
     Set-Location ($base.Fullname)
     
+    scripts\copyscans.ps1
 
     $base = "build/package/acts"
 
@@ -82,6 +83,9 @@ try {
     # Binaries
     Copy-Item "build/bin/*.exe" "$base/bin" > $null
     Copy-Item "build/bin/*.dll" "$base/bin" > $null
+
+    # Scans
+    Copy-Item "build/bin/scan_paths" "$base/bin/scan_paths" -Recurse > $null
     
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null

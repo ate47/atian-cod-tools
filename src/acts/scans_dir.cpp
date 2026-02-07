@@ -7,7 +7,7 @@ namespace acts::scan_dir {
 		actscli::ActsOptions& opts{ actscli::options() };
 		std::string scanpath{ core::config::GetString("scan.scandir", "") };
 		if (scanpath.empty()) {
-			return utils::GetProgDir();
+			return utils::GetProgDir() / "scan_paths";
 		}
 		return scanpath;
 	}
