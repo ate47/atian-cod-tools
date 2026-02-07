@@ -648,14 +648,14 @@ namespace hook::library {
 				if (originalThunk.u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
 					func = dep[(const char*)IMAGE_ORDINAL64(originalThunk.u1.Ordinal)];
 					if (!func) {
-						LOG_WARNING("Can't find {}::ord<{}>", dep, IMAGE_ORDINAL64(originalThunk.u1.Ordinal));
+						LOG_DEBUG("Can't find {}::ord<{}>", dep, IMAGE_ORDINAL64(originalThunk.u1.Ordinal));
 						continue;
 					}
 				}
 				else {
 					func = dep[Get<const char>(originalThunk.u1.Function + 2)];
 					if (!func) {
-						LOG_WARNING("Can't find {}::{}", dep, Get<const char>(originalThunk.u1.Function + 2));
+						LOG_DEBUG("Can't find {}::{}", dep, Get<const char>(originalThunk.u1.Function + 2));
 						continue;
 					}
 				}
