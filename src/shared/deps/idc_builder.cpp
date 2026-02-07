@@ -24,7 +24,10 @@ namespace deps::idc_builder {
 	}
 
 	void IdcBuilder::AddAddress(size_t rva, const char* name, const char* type) {
-		addresses.emplace_back(rva, alloc.CloneStr(name), type ? alloc.CloneStr(type) : nullptr);
+		AddAddressEx(rva, name, nullptr, type);
+	}
+	void IdcBuilder::AddAddressEx(size_t rva, const char* name, const char* flags, const char* type) {
+		addresses.emplace_back(rva, alloc.CloneStr(name), type ? alloc.CloneStr(type) : nullptr, flags ? alloc.CloneStr(flags) : nullptr);
 	}
 
 	EnumDefinition& IdcBuilder::GetEnumDef(IdcEnumId id) {
@@ -102,7 +105,12 @@ namespace deps::idc_builder {
 			utils::Padding(os, 1) << "auto base = get_imagebase();\n\n";
 
 			for (AddressDefinition& def : addresses) {
-				utils::Padding(os, 1) << "MakeName(base + 0x" << std::hex << def.rva << ", \"" << def.name << "\");\n";
+				if (def.flags) {
+					utils::Padding(os, 1) << "MakeNameEx(base + 0x" << std::hex << def.rva << ", \"" << def.name << "\", " << def.flags << "); \n";
+				}
+				else {
+					utils::Padding(os, 1) << "MakeName(base + 0x" << std::hex << def.rva << ", \"" << def.name << "\");\n";
+				}
 				if (def.type) {
 					utils::Padding(os, 1) << "SetType(base + 0x" << std::hex << def.rva << ", \"" << def.type << "\");\n";
 				}

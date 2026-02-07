@@ -22,6 +22,7 @@ namespace deps::idc_builder {
 		size_t rva;
 		const char* name;
 		const char* type;
+		const char* flags;
 	};
 
 	typedef size_t IdcEnumId;
@@ -51,6 +52,10 @@ namespace deps::idc_builder {
 		void AddAddress(size_t rva, const char* name, const char* type = nullptr);
 		// add a name to a rva, might have a type, the rva will obtained from deps::idc_builder::GetRva
 		inline void AddAddress(void* loc, const char* name, const char* type = nullptr) { AddAddress(GetRva(loc), name, type); }
+		// add a name to a rva, might have a type
+		void AddAddressEx(size_t rva, const char* name, const char* flags, const char* type = nullptr);
+		// add a name to a rva, might have a type, the rva will obtained from deps::idc_builder::GetRva
+		inline void AddAddressEx(void* loc, const char* name, const char* flags, const char* type = nullptr) { AddAddressEx(GetRva(loc), name, flags, type); }
 		// create an enum type
 		IdcEnumId AddEnum(const char* name, bool force = false);
 		// add member to an enum type
