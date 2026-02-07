@@ -501,9 +501,10 @@ namespace hook::library {
 			// script to add to ida to load the 
 			utils::OutFileCE idaScript{ idaScriptPath };
 
-			idaScript 
-				<< "#include <idc/idc.idc>\n\n"
-				   "static main() {\n";
+			idaScript
+				<< "#include <idc/idc.idc>\n\n";
+			if (opt->headerWriter) opt->headerWriter(idaScript);
+			idaScript << "static main() {\n";
 			utils::Padding(idaScript, 1) << "auto base = get_imagebase();\n";
 			for (auto& [name, es] : entryMap) {
 				if (es.size() > 1) {
@@ -515,8 +516,9 @@ namespace hook::library {
 					continue;
 				}
 				size_t rva{ (size_t)(loc - (byte*)*library) };
-				utils::Padding(idaScript, 1) << "set_name(base + 0x" << std::hex << rva << ", \"" << name << "\", SN_CHECK);\n";
+				utils::Padding(idaScript, 1) << "MakeName(base + 0x" << std::hex << rva << ", \"" << name << "\");\n";
 			}
+			if (opt->inMainWriter) opt->inMainWriter(idaScript);
 			idaScript << "}\n";
 		}
 	}

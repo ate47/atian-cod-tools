@@ -397,6 +397,128 @@ namespace fastfile::handlers::bo7 {
 			return &data;
 		}
 
+
+		size_t GetRva(void* loc) {
+			hook::library::Library library{ hook::library::GetLibraryInfo(loc) };
+			if (!library) {
+				return 0;
+			}
+			return (size_t)((byte*)loc - (byte*)*library);
+		}
+
+		// gen code data section for the
+		void GenCodeData(hook::module_mapper::Module& mod, fastfile::FastFileOption& opt, hook::library::ScanLoggerLogsOpt& loggerOpt) {
+			hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+			hook::library::ScanLogger& logger{ mod.GetScanLogger() };
+
+
+			void* Load_AssetType{ scan.ScanSingle("E8 ?? ?? ?? ?? 4C 8D 43 08 4C 8B CB 33 D2 48 8B CF E8 ?? ?? ?? ?? 48 8B 5C 24 50", "Load_AssetType").GetRelative<int32_t>(1) };
+			void* Load_AssetHeader{ scan.ScanSingle("E8 ?? ?? ?? ?? 4C 8D 43 08 4C 8B CB 33 D2 48 8B CF E8 ?? ?? ?? ?? 48 8B 5C 24 50", "Load_AssetHeader").GetRelative<int32_t>(18) };
+
+
+			if (!hook::library::ScanMatch(Load_AssetHeader, "41 8b 01 85 c0 0f 84 ?? ?? ?? ??")) {
+				throw std::runtime_error("Load_AssetHeader has an invalid structure for code data generation");
+			}
+
+			// find the Load_XXXXPtr functions
+			std::unordered_map<size_t, byte*> loadPtrFuncs{};
+			byte* assetLoader{ (byte*)Load_AssetHeader + 3 };
+			while (true) {
+				if (*assetLoader == 0xc3) {
+					break; // ret
+				}
+
+				size_t assetId;
+				if (assetLoader[0] == 0x85 && assetLoader[1] == 0xc0) { // test eax,eax
+					assetId = 0;
+					assetLoader += 2;
+				}
+				else if (assetLoader[0] == 0x83 && assetLoader[1] == 0xf8) { // cmp eax,0xXX
+					assetId = (size_t)assetLoader[2];
+					assetLoader += 3;
+				}
+				else if (assetLoader[0] == 0x3d) { // cmp eax,0xXXXXXXXX
+					assetId = *(uint32_t*)&assetLoader[1];
+					assetLoader += 5;
+				}
+				else {
+					throw std::runtime_error(std::format("Unknown cmp asm 0x{:x} {}", (int)*assetLoader, hook::library::CodePointer{ assetLoader }));
+				}
+
+				if (assetLoader[0] != 0x0f || assetLoader[1] != 0x84) {
+					throw std::runtime_error(std::format("Unknown jmp asm 0x{:x} {}", (int)*assetLoader, hook::library::CodePointer{ assetLoader }));
+				}
+
+				loadPtrFuncs[assetId] = hook::library::GetRelative<int32_t>(assetLoader, 2);
+				assetLoader += 6;
+
+
+				if (assetId == std::string::npos) {
+					break;
+				}
+			}
+			loggerOpt.headerWriter = [](utils::OutFileCE& idaScript) {
+				idaScript
+					<< "// create struct if it doesn't exist\n"
+					<< "#define AddStrucOpt(name) if (GetStrucIdByName(name) == -1) AddStruc(0, name)\n"
+					<< "// Asset type\n"
+					<< "#define AssetType         " << hppName << "\n"
+					<< "// Asset type as string\n"
+					<< "#define AssetTypeStr      \"" << hppName << "\"\n"
+					<< "\n";
+			};
+
+			loggerOpt.inMainWriter = [loadPtrFuncs](utils::OutFileCE& idaScript) {
+				idaScript << "\n";					
+				utils::Padding(idaScript, 1) << "Message(\"Create structures...\\n\");\n";
+				utils::Padding(idaScript, 1) << "AddStrucOpt(\"DBLoadCtx\");\n";
+				size_t assetMax{ gcx.assetNames.TypesCount() };
+				for (size_t i = 0; i < assetMax; i++) {
+					char* typeName{ utils::CloneString(gcx.assetNames.GetTypeName((HandlerAssetType)i)) };
+					*typeName = toupper(*typeName); // make the first char upper for the type
+					utils::Padding(idaScript, 1) << "AddStrucOpt(\"" << typeName << "\");" << std::endl;
+				}
+
+				utils::Padding(idaScript, 1) << "Message(\"Create asset type enum...\\n\");\n";
+				utils::Padding(idaScript, 1) << "if (GetEnum(AssetTypeStr) == -1) {\n";
+				utils::Padding(idaScript, 2) << "auto assetTypeId = AddEnum(0, AssetTypeStr, 0x20);\n";
+				utils::Padding(idaScript, 2) << "if (assetTypeId == -1) {\n";
+				utils::Padding(idaScript, 3) << "Message(\"Can't create asset type asset!\\n\");\n";
+				utils::Padding(idaScript, 3) << "return;\n";
+				utils::Padding(idaScript, 2) << "}\n";
+				for (size_t i = 0; i < assetMax; i++) {
+					utils::Padding(idaScript, 2) << "AddConst(assetTypeId, \"" << hppPrefix << gcx.assetNames.GetCppName((HandlerAssetType)i) << "\", " << std::dec << i << ");\n";
+				}
+				utils::Padding(idaScript, 1) << "}\n";
+
+				utils::Padding(idaScript, 1) << "Message(\"Create typed functions...\\n\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_AssetType\"), \"void Load_AssetType(DBLoadCtx* ctx, AssetType* type)\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAsset\"), \"void* DB_AddAsset(DBLoadCtx* ctx, AssetType type, void** handle)\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAssetRef\"), \"void* DB_AddAssetRef(AssetType type, uint64_t name, void* strName)\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"LoadStreamTA\"), \"bool LoadStreamTA(DBLoadCtx * context, bool atStreamStart, void* ptr, int64_t len)\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_String\"), \"void Load_String(DBLoadCtx * context, char** pstr)\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_StringName\"), \"void Load_StringName(DBLoadCtx * context, char** pstr)\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_CustomScriptString\"), \"void Load_CustomScriptString(DBLoadCtx * context, uint32_t * pstr)\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_LoadStreamOffset\"), \"void DB_LoadStreamOffset(DBLoadCtx * ctx, uint64_t val, void** pptr);\");\n";
+				utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_RegisterStreamOffset\"), \"void DB_RegisterStreamOffset(DBLoadCtx * ctx, uint64_t val, void* ptr);\");\n";
+
+				utils::Padding(idaScript, 1) << "// create Load_TypePtr functions\n";
+				for (auto& [assetId, func] : loadPtrFuncs) {
+					size_t rva{ GetRva(func) };
+					const char* name{ gcx.assetNames.GetTypeName((HandlerAssetType)assetId) };
+					char* typeName{ utils::CloneString(name) };
+					*typeName = toupper(*typeName); // make the first char upper for the type
+
+					// name the function
+					utils::Padding(idaScript, 1) << "MakeName(base + 0x" << std::hex << rva << ", \"Load_" << typeName << "Ptr\");\n";
+					// type the function
+					utils::Padding(idaScript, 1) << "SetType(base + 0x" << std::hex << rva << ", \"void Load_" << typeName << "Ptr(DBLoadCtx* ctx, bool atStreamStart, " << typeName << "** handle)\");\n";
+
+				}
+
+			};
+		}
+
 		class FFHandlerImpl : public fastfile::FFHandler {
 		public:
 			// -w "((mp|zm)_t10|ingame|code|global).*"
@@ -512,10 +634,11 @@ namespace fastfile::handlers::bo7 {
 
 				Red(scan.ScanSingle("40 55 53 57 41 54 41 55 41 56 48 8D AC 24 58", "Error").location, ErrorStub);
 
-				auto SaveScan = [&mod, &scan, &logger, &opt] {
+				hook::library::ScanLoggerLogsOpt logsOpt{};
+				logsOpt.base = gameDumpId;
+
+				auto SaveScan = [&mod, &scan, &logger, &opt, &logsOpt] {
 					scan.Save();
-					hook::library::ScanLoggerLogsOpt logsOpt{};
-					logsOpt.base = gameDumpId;
 					logger.WriteLogs(opt.m_output / gamePath / "code", &logsOpt);
 				};
 
@@ -528,6 +651,12 @@ namespace fastfile::handlers::bo7 {
 				if (!opt.noWorkerPreload) {
 					for (auto& [hashType, worker] : GetWorkers()) {
 						worker->PreLoadWorker(nullptr);
+					}
+					try {
+						GenCodeData(mod, opt, logsOpt);
+					}
+					catch (std::runtime_error& e) {
+						LOG_ERROR("Can't fully gen code data: {}", e.what());
 					}
 				}
 

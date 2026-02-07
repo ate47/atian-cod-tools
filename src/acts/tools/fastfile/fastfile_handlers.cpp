@@ -414,6 +414,9 @@ namespace fastfile {
 			else if (!_strcmpi("--noAssetDump", arg)) {
 				noAssetDump = true;
 			}
+			else if (!_strcmpi("--largeCodeSection", arg)) {
+				largeCodeSection = true;
+			}
 			else if (!_strcmpi("--dumpXStrings", arg)) {
 				dumpXStrings = true;
 			}
@@ -528,6 +531,7 @@ namespace fastfile {
 		LOG_INFO("-k --rsa-key [k]          : Set the rsa public key (by default game's key)");
 		LOG_INFO("-l --reduced-logs         : Reduce the logs");
 		LOG_INFO("--noAssetDump             : No asset dump");
+		LOG_INFO("--largeCodeSection        : Use all code generators");
 		LOG_INFO("--dumpBinaryAssets        : Dump binary assets");
 		LOG_INFO("--dumpBinaryAssetsMap     : Dump binary assets map");
 		LOG_INFO("--dumpAssetNames          : Dump binary assets");

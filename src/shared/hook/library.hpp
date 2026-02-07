@@ -76,6 +76,8 @@ namespace hook::library {
 
 	struct ScanLoggerLogsOpt {
 		const char* base{ "scan" };
+		std::function<void(utils::OutFileCE& os)> headerWriter{};
+		std::function<void(utils::OutFileCE& os)> inMainWriter{};
 	};
 
 	// Scan logger
@@ -84,7 +86,7 @@ namespace hook::library {
 		size_t entryCount{};
 
 		ScanEntry* AllocEntry(const char* name);
-		void WriteLogs(std::filesystem::path out, ScanLoggerLogsOpt* opt = nullptr);
+		void WriteLogs(std::filesystem::path out, ScanLoggerLogsOpt* opt);
 		void Clean();
 	};
 

@@ -133,6 +133,7 @@ namespace fastfile {
 		bool graphic{};
 		bool reducedLogs{};
 		bool noWorkerPreload{};
+		bool largeCodeSection{};
 		GameId m_gameId{};
 		GameRevId m_gameRevId{};
 		const char* m_casc{};
