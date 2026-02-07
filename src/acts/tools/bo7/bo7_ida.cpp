@@ -2,6 +2,7 @@
 #include <deps/idc_builder.hpp>
 #include <hook/module_mapper.hpp>
 #include <games/cod/asset_names.hpp>
+#include <scans_dir.hpp>
 
 namespace {
 
@@ -50,17 +51,18 @@ namespace {
 		deps::idc_builder::IdcBuilder idcBuilder{};
 
 		hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+		acts::scan_dir::ScanDir dir{ "bo7", scan };
 
 		iwGscData.pool.clear();
-		LOG_INFO("loading data...");
+		LOG_INFO("Loading data...");
 
-		void* Scr_RegisterGscFunction{ scan.ScanSingle("4C 8B 4A 08 4D 85 C9 74 35", "Scr_RegisterGscFunction").location };
-		void* Scr_RegisterGscMethod{ scan.ScanSingle("4C 8B 4A 08 4D 85 C9 74 3F", "Scr_RegisterGscMethod").location };
-		void* Scr_RegisterGscIgnored{ scan.ScanSingle("40 53 48 83 EC ?? 33 C0 66 C7 81 ?? ?? ?? ?? ?? ?? 48 89 81").location };
-		void* Scr_RegisterGscSortIgnored{ scan.ScanSingle("40 53 48 83 EC 20 80 B9 ?? ?? ?? ?? ?? 48 8B D9 75 20").location };
-		std::vector<hook::library::ScanResult> Scr_RegisterGens{ mod->Scan("48 89 5C 24 08 55 48 8B EC 48 83 EC 40 48 8B D9 E8 ? ? ? ? ? ? ? ?") };
-		void* Load_AssetType{ scan.ScanSingle("E8 ?? ?? ?? ?? 4C 8D 43 08 4C 8B CB 33 D2 48 8B CF E8 ?? ?? ?? ?? 48 8B 5C 24 50", "Load_AssetType").GetRelative<int32_t>(1) };
-		void* Load_AssetHeader{ scan.ScanSingle("E8 ?? ?? ?? ?? 4C 8D 43 08 4C 8B CB 33 D2 48 8B CF E8 ?? ?? ?? ?? 48 8B 5C 24 50", "Load_AssetHeader").GetRelative<int32_t>(18) };
+		void* Scr_RegisterGscFunction{ dir.GetPointer("Scr_RegisterGscFunction") };
+		void* Scr_RegisterGscMethod{ dir.GetPointer("Scr_RegisterGscMethod") };
+		void* Scr_RegisterGscIgnored{ dir.GetPointer("$Scr_RegisterGscIgnored") };
+		void* Scr_RegisterGscSortIgnored{ dir.GetPointer("$Scr_RegisterGscSortIgnored") };
+		void* Load_AssetType{ dir.GetPointer("Load_AssetType") };
+		void* Load_AssetHeader{ dir.GetPointer("Load_AssetHeader") };
+		std::vector<void(*)(byte*)> Scr_RegisterGens{ dir.GetPointerArray<void(*)(byte*)>("$Scr_RegisterGens") };
 
 
 		if (scan.foundMissing) {
@@ -83,13 +85,13 @@ namespace {
 
 		std::unique_ptr<byte[]> tmpData{ std::make_unique<byte[]>(len) };
 
-		for (hook::library::ScanResult& Scr_RegisterGen : Scr_RegisterGens) {
-			LOG_INFO("Loading gsc registry function: {}", hook::library::CodePointer{ Scr_RegisterGen.location });
+		for (auto Scr_RegisterGen : Scr_RegisterGens) {
+			LOG_INFO("Loading gsc registry function: {}", hook::library::CodePointer{ Scr_RegisterGen });
 
 			iwGscData.pool.emplace_back();
 			iwGscData.functions = &iwGscData.pool[iwGscData.pool.size() - 1];
 
-			Scr_RegisterGen.GetPtr<void(*)(byte*)>()(tmpData.get());
+			Scr_RegisterGen(tmpData.get());
 		}
 
 		for (size_t i = 0; i < iwGscData.pool.size(); i++) {
@@ -103,7 +105,7 @@ namespace {
 			}
 		}
 
-		games::cod::asset_names::AssetNames<size_t, size_t> assets{ "physicssfxeventasset", "string" };
+		static games::cod::asset_names::AssetNames<size_t, size_t> assets{ "physicssfxeventasset", "string" };
 		LOG_INFO("Loading asset names");
 		assets.InitMap(mod);
 
@@ -154,15 +156,6 @@ namespace {
 		}
 
 		idcBuilder.AddStruct("DBLoadCtx");
-		idcBuilder.AddAddress(Load_AssetType, "Load_AssetType", "void Load_AssetType(DBLoadCtx* ctx, AssetType* type)\");");
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAsset\"), \"void* DB_AddAsset(DBLoadCtx* ctx, AssetType type, void** handle)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAssetRef\"), \"void* DB_AddAssetRef(AssetType type, uint64_t name, void* strName)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"LoadStreamTA\"), \"bool LoadStreamTA(DBLoadCtx * context, bool atStreamStart, void* ptr, int64_t len)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_String\"), \"void Load_String(DBLoadCtx * context, char** pstr)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_StringName\"), \"void Load_StringName(DBLoadCtx * context, char** pstr)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_CustomScriptString\"), \"void Load_CustomScriptString(DBLoadCtx * context, uint32_t * pstr)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_LoadStreamOffset\"), \"void DB_LoadStreamOffset(DBLoadCtx * ctx, uint64_t val, void** pptr);\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_RegisterStreamOffset\"), \"void DB_RegisterStreamOffset(DBLoadCtx * ctx, uint64_t val, void* ptr);\");\n";
 
 		for (auto& [assetId, func] : loadPtrFuncs) {
 			const char* name{ assets.GetTypeName(assetId) };
@@ -176,11 +169,18 @@ namespace {
 			);
 
 		}
-
-		idcBuilder.AddHeader("This file was generated using atian-cod-tools' bo7_ida tool");
+		idcBuilder.AddAddress(Load_AssetType, "Load_AssetType", "void Load_AssetType(DBLoadCtx* ctx, AssetType* type)\");");
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAsset\"), \"void* DB_AddAsset(DBLoadCtx* ctx, AssetType type, void** handle)\");\n";
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAssetRef\"), \"void* DB_AddAssetRef(AssetType type, uint64_t name, void* strName)\");\n";
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"LoadStreamTA\"), \"bool LoadStreamTA(DBLoadCtx * context, bool atStreamStart, void* ptr, int64_t len)\");\n";
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_String\"), \"void Load_String(DBLoadCtx * context, char** pstr)\");\n";
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_StringName\"), \"void Load_StringName(DBLoadCtx * context, char** pstr)\");\n";
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_CustomScriptString\"), \"void Load_CustomScriptString(DBLoadCtx * context, uint32_t * pstr)\");\n";
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_LoadStreamOffset\"), \"void DB_LoadStreamOffset(DBLoadCtx * ctx, uint64_t val, void** pptr);\");\n";
+		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_RegisterStreamOffset\"), \"void DB_RegisterStreamOffset(DBLoadCtx * ctx, uint64_t val, void* ptr);\");\n";
 
 		idcBuilder.WriteIdcFile(idcFile);
-		LOG_INFO("created {}", idcFile.string());
+		LOG_INFO("Created {}", idcFile.string());
 
         return tool::OK;
     }

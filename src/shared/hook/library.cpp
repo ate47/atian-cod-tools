@@ -460,12 +460,10 @@ namespace hook::library {
 	}
 
 	ScanEntry* ScanLogger::AllocEntry(const char* name) {
-		if (entryCount == ARRAYSIZE(entries)) {
-			LOG_WARNING("too many entries in ScanLogger");
-			return nullptr;
-		}
-		ScanEntry* e{ &entries[entryCount++] };
-		e->name = name;
+		if (!name) return nullptr;
+		ScanEntry* e{ alloc.New<ScanEntry>() };
+		entries.push_back(e);
+		e->name = alloc.CloneStr(name);
 		return e;
 	}
 
@@ -477,8 +475,7 @@ namespace hook::library {
 		std::unordered_map<const char*, std::vector<ScanEntry*>> entryMap{};
 
 		// group by name
-		for (size_t i = 0; i < entryCount; i++) {
-			ScanEntry* e{ &entries[i] };
+		for (ScanEntry* e : entries) {
 			if (!e->name) {
 				continue;
 			}
@@ -524,7 +521,7 @@ namespace hook::library {
 	}
 
 	void ScanLogger::Clean() {
-		entryCount = 0;
+		entries.clear();
 	}
 
 	static Library main{};

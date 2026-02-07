@@ -1,5 +1,6 @@
 #pragma once
 #include <detours.h>
+#include <core/memory_allocator.hpp>
 #include <hook/process.hpp>
 #include <hook/memory.hpp>
 #include <utils/utils.hpp>
@@ -81,9 +82,14 @@ namespace hook::library {
 	};
 
 	// Scan logger
-	struct ScanLogger {
-		ScanEntry entries[0x400]{};
-		size_t entryCount{};
+	class ScanLogger {
+	public:
+		core::memory_allocator::MemoryAllocator alloc{};
+		std::vector<ScanEntry*> entries{};
+
+		ScanLogger() {}
+		ScanLogger(const ScanLogger& other) = delete;
+		ScanLogger(ScanLogger&& other) = delete;
 
 		ScanEntry* AllocEntry(const char* name);
 		void WriteLogs(std::filesystem::path out, ScanLoggerLogsOpt* opt);

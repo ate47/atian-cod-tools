@@ -1,0 +1,45 @@
+{
+    "Scr_RegisterGscFunction": {
+        "scan": "4C 8B 4A 08 4D 85 C9 74 35",
+        "type": "Absolute",
+        "single": false
+    },
+    "Scr_RegisterGscMethod": {
+        "scan": "4C 8B 4A 08 4D 85 C9 74 3F",
+        "type": "Absolute",
+        "single": false
+    },
+    "$Scr_RegisterGscIgnored": {
+        "scan": "40 53 48 83 EC ?? 33 C0 66 C7 81 ?? ?? ?? ?? ?? ?? 48 89 81",
+        "type": "Absolute",
+        "single": false
+    },
+    "$Scr_RegisterGscSortIgnored": {
+        "scan": "40 53 48 83 EC 20 80 B9 ?? ?? ?? ?? ?? 48 8B D9 75 20",
+        "type": "Absolute",
+        "single": false
+    },
+    "$Scr_RegisterGens": {
+        "scan": "48 89 5C 24 08 55 48 8B EC 48 83 EC 40 48 8B D9 E8 ? ? ? ? ? ? ? ?",
+        "type": "Absolute",
+        "single": false
+    },
+    "Load_AssetType": {
+        "scan": "E8 ?? ?? ?? ?? 4C 8D 43 08 4C 8B CB 33 D2 48 8B CF E8 ?? ?? ?? ?? 48 8B 5C 24 50",
+        "offset": 1,
+        "type": "Relative",
+        "single": true
+    },
+    "Load_AssetHeader": {
+        "scan": "E8 ?? ?? ?? ?? 4C 8D 43 08 4C 8B CB 33 D2 48 8B CF E8 ?? ?? ?? ?? 48 8B 5C 24 50",
+        "offset": 18,
+        "type": "Relative",
+        "single": true
+    },
+    "loadStreamObj": {
+        "scan": "4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48",
+        "offset": 25,
+        "type": "Relative",
+        "single": false
+    }
+}

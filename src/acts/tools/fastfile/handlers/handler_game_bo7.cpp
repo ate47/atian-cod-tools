@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <scans_dir.hpp>
 #include <games/cod/asset_names.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/fastfile/fastfile_dump.hpp>
@@ -417,6 +418,7 @@ namespace fastfile::handlers::bo7 {
 
 				hook::library::ScanLogger& logger{ mod.GetScanLogger() };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+				acts::scan_dir::ScanDir scanDir{ gameDumpId, scan };
 
 				gcx.opt = &opt;
 

@@ -19,6 +19,8 @@ try {
     Write-Host "-- Install packages"
     vcpkg install "@.\packages.txt"
 
+    .\scripts\copyscans.ps1
+
     Write-Host "-- Create solution"
     if ($ci) {
         if ($gpl) {
