@@ -1,5 +1,5 @@
 {
-    "module": "cod23-cod_dump.exe",
+    "module": "sp23-cod_dump.exe",
     "cdecls": [
         {
             "decl": "struct Asset { AssetType type; void* handle; };"
@@ -60,7 +60,7 @@
             "single": true
         },
         "Load_ScriptStringList": {
-            "scan": "48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 FA",
+            "scan": "48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 F7",
             "ctype": "void Load_ScriptStringList(bool atStreamStart, AssetList* list)",
             "type": "Absolute",
             "single": true
@@ -115,7 +115,7 @@
             "single": true
         },
         "streamPos": {
-            "scan": "48 89 05 ?? ?? ?? ?? 5B",
+            "scan": "48 89 0D ?? ?? ?? ?? 41 8B 80",
             "ctype": "byte* streamPos",
             "offset": 3,
             "type": "Relative",
@@ -189,6 +189,42 @@
         "DB_LinkXModel": {
             "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09",
             "ctype": "void* DB_LinkXModel(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkSoundGlobalContext": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 18",
+            "ctype": "void* DB_LinkSoundGlobalContext(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkSoundGlobalVolMod": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 16",
+            "ctype": "void* DB_LinkSoundGlobalVolMod(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkSndTable": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D0",
+            "ctype": "void* DB_LinkSndTable(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkSoundSubmix": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D2",
+            "ctype": "void* DB_LinkSoundSubmix(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkReverbPreset": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 DA",
+            "ctype": "void* DB_LinkReverbPreset(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkSndMasterPreset": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 F5",
+            "ctype": "void* DB_LinkSndMasterPreset(void** handle)",
             "type": "Absolute",
             "single": true
         }

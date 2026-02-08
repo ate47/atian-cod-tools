@@ -214,7 +214,7 @@ namespace fastfile::handlers::bo7 {
 			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
-			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ "physicssfxeventasset", "string", bo7::PoolId };
+			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ bo7::PoolId };
 			fastfile::names_store::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
 		} gcx{};
@@ -436,7 +436,7 @@ namespace fastfile::handlers::bo7 {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(mod);
+				gcx.assetNames.InitMap(mod, "physicssfxeventasset", "string");
 				AddBootsLimitAssetNames();
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = gameDumpId;

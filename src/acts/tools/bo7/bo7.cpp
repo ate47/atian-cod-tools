@@ -512,9 +512,9 @@ namespace tool::bo7 {
             return tool::BASIC_ERROR;
         }
 
-        games::cod::asset_names::AssetNames<SatHashAssetType, SatAssetType> names{ "physicssfxeventasset", "string" };
+        games::cod::asset_names::AssetNames<SatHashAssetType, SatAssetType> names{};
 
-        names.InitMap(*mod);
+        names.InitMap(*mod, "physicssfxeventasset", "string");
 
         LOG_INFO("Loaded");
 

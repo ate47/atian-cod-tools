@@ -157,7 +157,7 @@ namespace fastfile::handlers::mwiii {
 			AssetList assets{};
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
-			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ "physicslibrary", "string", PoolId };
+			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{};
 			fastfile::names_store::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
 		} gcx{};
@@ -305,7 +305,7 @@ namespace fastfile::handlers::mwiii {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(mod);
+				gcx.assetNames.InitMap(mod, "physicslibrary", "string");
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = gameDumpId;
 				dumpOpts.assetHashedName = "JupHashAssetType";

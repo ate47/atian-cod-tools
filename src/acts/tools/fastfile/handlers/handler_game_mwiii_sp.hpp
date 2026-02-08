@@ -7,7 +7,6 @@
 namespace fastfile::handlers::mwiiisp {
 	// used for fast changes
 	constexpr const char* gamePath = "mwiiisp";
-	constexpr const char* gameExe = "sp23-cod_dump.exe";
 	constexpr const char* gameDumpId = "mw3sp";
 	constexpr const char* handlerId = "mwiiisp";
 	constexpr const char* handlerName = "Modern Warfare III Campaign";

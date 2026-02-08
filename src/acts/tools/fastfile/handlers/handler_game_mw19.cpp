@@ -97,7 +97,7 @@ namespace fastfile::handlers::mw19 {
 			std::unordered_map<uint64_t, void*> streamLocations{};
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
-			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ "physicslibrary", "string", PoolId };
+			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ PoolId };
 			fastfile::names_store::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
 		} gcx{};
@@ -251,7 +251,7 @@ namespace fastfile::handlers::mw19 {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(lib);
+				gcx.assetNames.InitMap(lib, "physicslibrary", "string");
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "mw19";
 				dumpOpts.assetHashedName = "IW8HashAssetType";

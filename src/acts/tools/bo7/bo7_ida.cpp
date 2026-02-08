@@ -107,9 +107,9 @@ namespace {
 			}
 		}
 
-		static games::cod::asset_names::AssetNames<size_t, size_t> assets{ "physicssfxeventasset", "string" };
+		static games::cod::asset_names::AssetNames<size_t, size_t> assets{};
 		LOG_INFO("Loading asset names");
-		assets.InitMap(mod);
+		assets.InitMap(mod, "physicssfxeventasset", "string");
 
 		size_t count{ assets.TypesCount() };
 		deps::idc_builder::IdcEnumId assetTypeId{ idcBuilder.AddEnum("AssetType", true) };

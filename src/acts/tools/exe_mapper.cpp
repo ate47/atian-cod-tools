@@ -157,7 +157,7 @@ namespace {
 		const char* last{ argv[4][0] ? argv[4] : nullptr };
 		std::filesystem::path dir{ tool::NotEnoughParam(argc, 4) ? exe.parent_path() : argv[5] };
 
-		games::cod::asset_names::AssetNames assets{ first, last };
+		games::cod::asset_names::AssetNames assets{};
 		games::cod::asset_names::AssetDumpFileOptions opts{};
 		opts.logLevel = core::logs::LVL_INFO;
 
@@ -165,7 +165,7 @@ namespace {
 			opts.assetPrefix = argv[6];
 		}
 
-		assets.InitMap(*mod);
+		assets.InitMap(mod, first, last);
 		assets.DumpFiles(dir, &opts);
 
 		return tool::OK;

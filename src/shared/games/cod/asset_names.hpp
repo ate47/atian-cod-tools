@@ -36,8 +36,6 @@ namespace games::cod::asset_names {
 			const char* name;
 		};
 
-		const char* first;
-		const char* last;
 		AssetHashed(*PoolId)(const char* id);
 
 		HashedType typeMaps[MAX_ASSET_COUNT]{};
@@ -53,13 +51,12 @@ namespace games::cod::asset_names {
 		 * @param last post last asset type name
 		 * @param PoolId hash function for asset names, default to hash::HashX32
 		 */
-		AssetNames(const char* first, const char* last, AssetHashed(*PoolId)(const char* id) = [](const char* id) { return (AssetHashed)hash::HashX32(id); })
-			: first(first), last(last), PoolId(PoolId),
+		AssetNames(AssetHashed(*PoolId)(const char* id) = [](const char* id) { return (AssetHashed)hash::HashX32(id); }) : PoolId(PoolId),
 			handleList{ [this](const char* type) { return GetExePoolId(type); } } {
 		}
 
 		template<typename Type>
-		void InitMap0(Type scan, const hook::library::Library& lib) {
+		void InitMap0(Type scan, const hook::library::Library& lib, const char* first, const char* last) {
 			for (hook::library::ScanResult& firstStringOffsetRes : scan.ScanString(first)) {
 				uintptr_t firstStringOffset{ firstStringOffsetRes.GetPtr<uintptr_t>() };
 				LOG_TRACE("try string \"{}\" -> 0x{:x}", first, lib.Rloc(firstStringOffset));
@@ -135,17 +132,22 @@ namespace games::cod::asset_names {
 		/*
 		 * Create a type map using a game, throw an exception if it fails
 		 * @param lib game library
+		 * @param first first string to match
+		 * @param last last string to match
+		 * @param lib game library
 		 */
-		void InitMap(const hook::library::Library& lib) {
-			InitMap0(lib, lib);
+		void InitMap(const hook::library::Library& lib, const char* first, const char* last) {
+			InitMap0(lib, lib, first, last);
 		}
 
 		/*
 		 * Create a type map using a game, throw an exception if it fails
 		 * @param mod game module
+		 * @param first first string to match
+		 * @param last last string to match
 		 */
-		void InitMap(hook::module_mapper::Module& mod) {
-			InitMap0(mod.GetScanContainer(), mod.GetLibrary());
+		void InitMap(hook::module_mapper::Module& mod, const char* first, const char* last) {
+			InitMap0(mod.GetScanContainer(), mod.GetLibrary(), first, last);
 		}
 
 		/*

@@ -1,5 +1,5 @@
 #include <includes.hpp>
-
+#include <game_data.hpp>
 #include <games/cod/asset_names.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/fastfile/fastfile_dump.hpp>
@@ -159,7 +159,7 @@ namespace fastfile::handlers::mwiiisp {
 			std::unordered_map<uint64_t, void*> streamLocations{};
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
-			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ "physicslibrary", "string", PoolId };
+			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{};
 			fastfile::names_store::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
 		} gcx{};
@@ -288,13 +288,16 @@ namespace fastfile::handlers::mwiiisp {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, gameExe, gameDumpId) };
-				hook::scan_container::ScanContainer scan{ lib, true };
+				acts::game_data::GameData game{ gameDumpId };
+				std::string gameExe{ game.Config().GetString("module") };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), gameDumpId) };
+				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+				game.SetScanContainer(&scan);;
 				scan.Sync();
 
 				gcx.opt = &opt;
 
-				if (!acts::decryptutils::LoadDecryptModule(lib)) {
+				if (!acts::decryptutils::LoadDecryptModule(mod)) {
 					throw std::runtime_error("Can't load decryption module");
 				}
 
@@ -305,7 +308,7 @@ namespace fastfile::handlers::mwiiisp {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(lib);
+				gcx.assetNames.InitMap(mod, "physicslibrary", "string");
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "mwiii";
 				dumpOpts.assetHashedName = "JupHashAssetType";
@@ -316,56 +319,45 @@ namespace fastfile::handlers::mwiiisp {
 				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
 				gcx.namesStore.LoadConfig(opt.assets);
 
-				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3) };
-				loadStreamObj->__vtb = &dbLoadStreamVTable;
-
 				scan.ignoreMissing = true;
 
-				gcx.Load_Asset = scan.ScanSingle("E8 ?? ?? ?? ?? FF 43 14 FF C7 3B 7B 10 72 D3 33 F6", "gcx.Load_Asset").GetRelative<int32_t, decltype(gcx.Load_Asset)>(1);
-				gcx.DB_InitStreams = scan.ScanSingle("48 8B D1 48 8D 05 ?? ?? ?? ?? 41 B8 02", "gcx.DB_InitStreams").GetPtr<decltype(gcx.DB_InitStreams)>();
-				gcx.Load_ScriptStringList = scan.ScanSingle("48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 F7", "gcx.Load_ScriptStringList").GetPtr<decltype(gcx.Load_ScriptStringList)>();
-				gcx.DB_PatchMem_FixStreamAlignment = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? ?? 4C", "gcx.DB_PatchMem_FixStreamAlignment").GetPtr<decltype(gcx.DB_PatchMem_FixStreamAlignment)>();
-				gcx.DB_PushStreamPos = scan.ScanSingle("48 83 EC 28 8B 15 ?? ?? ?? ?? 4C", "gcx.DB_PushStreamPos").GetPtr<decltype(gcx.DB_PushStreamPos)>();
-				gcx.DB_PopStreamPos = scan.ScanSingle("E8 ?? ?? ?? ?? 48 83 7E 17 00", "gcx.DB_PopStreamPos").GetRelative<int32_t, decltype(gcx.DB_PopStreamPos)>(1);
-				gcx.streamPos = scan.ScanSingle("48 89 0D ?? ?? ?? ?? 41 8B 80", "gcx.streamPos").GetRelative<int32_t, byte**>(3);
-				gcx.rewind = scan.ScanSingle("4D 8B 84 D3 ?? ?? ?? ?? 49 8B D1", "gcx.rewind").GetRelative<int32_t, RewindData**>(4);
-				gcx.streamPosIndex = (XFileBlock*)(scan.ScanSingle("83 3D ?? ?? ?? ?? ?? 75 0C 4C 8B C7", "gcx.streamPosIndex").GetRelative<int32_t, byte*>(2) + 1);
-				gcx.unkFixStreamAlign = scan.ScanSingle("40 53 80 3D ?? ?? ?? ?? 00 4C 8D 1D ?? ?? ?? ?? 4C 8B C9", "gcx.unkFixStreamAlign").GetRelative<int32_t, byte*>(4);
-				gcx.poolInfo = (AssetPoolInfo*)(scan.ScanSingle("40 53 48 63 C9 48 8D 1D ? ? ? ?", "poolInfo")
-					.GetRelative<int32_t>(8) - offsetof(AssetPoolInfo, SetAssetName));
+				LoadStreamObject* loadStreamObj{ game.GetPointer<decltype(loadStreamObj)>("loadStreamObj") };
+				if (loadStreamObj) {
+					loadStreamObj->__vtb = &dbLoadStreamVTable;
+				}
 
-				auto Red = [](void* from, void* to) {
-					if (from) {
-						hook::memory::RedirectJmp(from, to);
-					}
-					};
+				gcx.Load_Asset = game.GetPointer<decltype(gcx.Load_Asset)>("Load_Asset");
+				gcx.DB_InitStreams = game.GetPointer<decltype(gcx.DB_InitStreams)>("DB_InitStreams");
+				gcx.Load_ScriptStringList = game.GetPointer<decltype(gcx.Load_ScriptStringList)>("Load_ScriptStringList");
+				gcx.DB_PatchMem_FixStreamAlignment = game.GetPointer<decltype(gcx.DB_PatchMem_FixStreamAlignment)>("DB_PatchMem_FixStreamAlignment");
+				gcx.DB_PushStreamPos = game.GetPointer<decltype(gcx.DB_PushStreamPos)>("DB_PushStreamPos");
+				gcx.DB_PopStreamPos = game.GetPointer<decltype(gcx.DB_PopStreamPos)>("DB_PopStreamPos");
+				gcx.streamPos = game.GetPointer<decltype(gcx.streamPos)>("streamPos");
+				gcx.rewind = game.GetPointer<decltype(gcx.rewind)>("rewind");
+				gcx.streamPosIndex = game.GetPointer<decltype(gcx.streamPosIndex)>("streamPosIndex");
+				gcx.unkFixStreamAlign = game.GetPointer<decltype(gcx.unkFixStreamAlign)>("$unkFixStreamAlign");
+				gcx.poolInfo = game.GetPointer<decltype(gcx.poolInfo)>("poolInfo");
 
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 49 8B D8 4C 8B CA", "LoadStreamTA").location, LoadStreamTA);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 39 BA", "Load_StringName").location, Load_String); // str
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B 31 48 8B F9 48 8B CE", "Load_String").location, Load_String);
-				Red(scan.ScanSingle("40 53 48 83 EC 40 48 89 74 24 50 48 8B DA", "DB_AddAsset").location, DB_AddAsset);
-				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 44 8B 01", "Load_CustomScriptString").location, Load_CustomScriptString);
+				game.Redirect("LoadStreamTA", LoadStreamTA);
+				game.Redirect("Load_StringName", Load_String);
+				game.Redirect("Load_String", Load_String);
+				game.Redirect("DB_AddXAsset", DB_AddAsset);
+				game.Redirect("Load_CustomScriptString", Load_CustomScriptString);
 
-				Red(scan.ScanSingle("4C 8B DC 53 56 41 55 48 81 EC A0", "EmptyStub<550B9E0>").location, EmptyStub<0x550B9E0>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 8B 42 14", "EmptyStub<3880AA0>").location, EmptyStub<0x3880AA0>);
-				Red(scan.ScanSingle("48 8B C4 53 48 81 EC C0 00 00 00 44", "EmptyStub<55C12B0>").location, EmptyStub<0x55C12B0>);
-				Red(scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 30 48 8B F9 48 8B DA B9", "EmptyStub<305EDB0>").location, EmptyStub<0x305EDB0>);
-				Red(scan.ScanSingle("49 8B C0 4C 8B CA 4C 8B 01", "EmptyStub<38811F0>").location, EmptyStub<0x38811F0>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 8B 41 0C 48 8B DA", "EmptyStub<56A03E0>").location, EmptyStub<0x56A03E0>);
-
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 25", "DB_AddAssetCustom<JUPH_ASSET_SOUNDBANK>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDBANK>);
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 27", "DB_AddAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 50", "DB_AddAssetCustom<JUPH_ASSET_STREAMINGINFO>").location, DB_AddAssetCustom<JUPH_ASSET_STREAMINGINFO>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C", "DB_AddAssetCustom<JUPH_ASSET_COMPUTESHADER>").location, DB_AddAssetCustom<JUPH_ASSET_COMPUTESHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0E", "DB_AddAssetCustom<JUPH_ASSET_LIBSHADER>").location, DB_AddAssetCustom<JUPH_ASSET_LIBSHADER>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 88", "DB_AddAssetCustom<JUPH_ASSET_DLOGSCHEMA>").location, DB_AddAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09", "DB_AddAssetCustom<JUPH_ASSET_XMODEL>").location, DB_AddAssetCustom<JUPH_ASSET_XMODEL>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 18", "DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 16", "DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D0", "DB_AddAssetCustom<JUPH_ASSET_SNDTABLE>").location, DB_AddAssetCustom<JUPH_ASSET_SNDTABLE>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 D2", "DB_AddAssetCustom<JUPH_ASSET_SOUNDSUBMIX>").location, DB_AddAssetCustom<JUPH_ASSET_SOUNDSUBMIX>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 DA", "DB_AddAssetCustom<JUPH_ASSET_REVERBPRESET>").location, DB_AddAssetCustom<JUPH_ASSET_REVERBPRESET>);
-				Red(scan.ScanSingle("40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 F5", "DB_AddAssetCustom<JUPH_ASSET_SNDMASTERPRESET>").location, DB_AddAssetCustom<JUPH_ASSET_SNDMASTERPRESET>);
+				game.Redirect("DB_LinkSoundBank", DB_AddAssetCustom<JUPH_ASSET_SOUNDBANK>);
+				game.Redirect("DB_LinkSoundBankTransient", DB_AddAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>);
+				game.Redirect("DB_LinkStreamingInfo", DB_AddAssetCustom<JUPH_ASSET_STREAMINGINFO>);
+				game.Redirect("DB_LinkComputeshader", DB_AddAssetCustom<JUPH_ASSET_COMPUTESHADER>);
+				game.Redirect("DB_LinkLibShader", DB_AddAssetCustom<JUPH_ASSET_LIBSHADER>);
+				game.Redirect("DB_LinkDLogSchema", DB_AddAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
+				game.Redirect("DB_LinkXModel", DB_AddAssetCustom<JUPH_ASSET_XMODEL>);
+				game.Redirect("DB_LinkSoundGlobalContext", DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALCONTEXT>);
+				game.Redirect("DB_LinkSoundGlobalVolMod", DB_AddAssetCustom<JUPH_ASSET_SOUNDGLOBALVOLMOD>);
+				game.Redirect("DB_LinkSndTable", DB_AddAssetCustom<JUPH_ASSET_SNDTABLE>);
+				game.Redirect("DB_LinkSoundSubmix", DB_AddAssetCustom<JUPH_ASSET_SOUNDSUBMIX>);
+				game.Redirect("DB_LinkReverbPreset", DB_AddAssetCustom<JUPH_ASSET_REVERBPRESET>);
+				game.Redirect("DB_LinkSndMasterPreset", DB_AddAssetCustom<JUPH_ASSET_SNDMASTERPRESET>);
+				game.ApplyNullScans("fastfile");
 
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
