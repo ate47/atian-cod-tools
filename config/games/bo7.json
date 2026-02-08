@@ -96,6 +96,60 @@
             "offset": 3,
             "postOffset": -32,
             "single": true
+        },
+        "GetMappedTypeStub": {
+            "scan": "40 56 41 56 48 83 EC ? 48 8B 15",
+            "ctype": "AssetType GetMappedTypeStub(uint32_t hashedType)",
+            "type": "Absolute",
+            "single": true
+        },
+        "LoadStreamTA": {
+            "scan": "48 89 5C 24 10 57 48 83 EC 20 49 8B D9",
+            "ctype": "bool LoadStreamTA(DBLoadCtx* context, bool atStreamStart, void* ptr, int64_t len)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_String": {
+            "scan": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2",
+            "ctype": "void Load_String(DBLoadCtx* context, char** pstr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_StringName": {
+            "scan": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41",
+            "ctype": "void Load_StringName(DBLoadCtx* context, char** pstr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_AddAsset": {
+            "scan": "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B F2 48 8B F9 E8 ?? ?? ?? ?? 4C",
+            "ctype": "void* DB_AddAsset(DBLoadCtx* ctx, AssetType type, void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_AddAssetRef": {
+            "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B",
+            "ctype": "void* DB_AddAssetRef(AssetType type, uint64_t name, void* strName)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_CustomScriptString": {
+            "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8",
+            "ctype": "void Load_CustomScriptString(DBLoadCtx* context, uint32_t* pstr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LoadStreamOffset": {
+            "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA",
+            "ctype": "void DB_LoadStreamOffset(DBLoadCtx* ctx, uint64_t val, void** pptr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_RegisterStreamOffset": {
+            "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA",
+            "ctype": "void DB_RegisterStreamOffset(DBLoadCtx* ctx, uint64_t val, void* ptr)",
+            "type": "Absolute",
+            "single": true
         }
     }
 }

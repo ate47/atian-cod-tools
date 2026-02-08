@@ -472,21 +472,19 @@ namespace fastfile::handlers::bo7 {
 					}
 				};
 
-				Red(scan.ScanSingle("40 56 41 56 48 83 EC ? 48 8B 15", "GetMappedTypeStub").location, GetMappedTypeStub);
+				Red(game.GetPointer("GetMappedTypeStub"), GetMappedTypeStub);
+				Red(game.GetPointer("LoadStreamTA"), LoadStreamTA);
+				Red(game.GetPointer("Load_String"), Load_String);
+				Red(game.GetPointer("Load_StringName"), Load_String);
+				Red(game.GetPointer("DB_AddAsset"), DB_AddAsset);
+				Red(game.GetPointer("DB_AddAssetRef"), DB_AddAssetRef);
+				Red(game.GetPointer("Load_CustomScriptString"), Load_CustomScriptString);
 
-				Red(scan.ScanSingle("48 89 5C 24 10 57 48 83 EC 20 49 8B D9", "LoadStreamTA").location, LoadStreamTA);
-				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", "Load_String").location, Load_String);
-				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41", "Load_StringName").location, Load_String); // str
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B F2 48 8B F9 E8 ?? ?? ?? ?? 4C", "DB_AddAsset").location, DB_AddAsset);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_AddAssetRef").location, DB_AddAssetRef);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8", "Load_CustomScriptString").location, Load_CustomScriptString);
 
+				gcx.DB_RegisterStreamOffset = game.GetPointer<decltype(gcx.DB_RegisterStreamOffset)>("DB_RegisterStreamOffset");
+				gcx.DB_LoadStreamOffset = game.GetPointer<decltype(gcx.DB_LoadStreamOffset)>("DB_LoadStreamOffset");
 				// Stream delta, todo
 				Red(scan.ScanSingle("4C 8B DC 56 48 83 EC ?? 4C", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
-				gcx.DB_RegisterStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "DB_RegisterStreamOffset")
-					.GetPtr<decltype(gcx.DB_RegisterStreamOffset)>();
-				gcx.DB_LoadStreamOffset = scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "DB_LoadStreamOffset")
-					.GetPtr<decltype(gcx.DB_LoadStreamOffset)>();
 				Red(scan.ScanSingle("40 56 48 83 EC ?? 4C 8B D2", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
 
 				// idk
@@ -510,15 +508,6 @@ namespace fastfile::handlers::bo7 {
 				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "EmptyStub<19>").location, EmptyStub<19>); // libshared, TODO: better
 				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
 				Red(scan.ScanSingle("49 8B C0 4C 8B 02", "EmptyStub<7>").location, EmptyStub<21>); // model
-
-				void (*ErrorStub)(uint32_t code, int a2, const char* msg, int a4) {
-					[](uint32_t code, int a2, const char* msg, int a4) -> void {
-
-						throw std::runtime_error(std::format("Error 0x{:x} : {}", code, msg ? msg : "no message"));
-					}
-				};
-
-				Red(scan.ScanSingle("40 55 53 57 41 54 41 55 41 56 48 8D AC 24 58", "Error").location, ErrorStub);
 
 				hook::library::ScanLoggerLogsOpt logsOpt{};
 				logsOpt.base = gameDumpId;

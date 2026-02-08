@@ -97,13 +97,15 @@ namespace {
 			Scr_RegisterGen(tmpData.get());
 		}
 
+		idcBuilder.AddStruct("scrContext_t");
+
 		for (size_t i = 0; i < iwGscData.pool.size(); i++) {
 			std::vector<GscFuncContainerDataType>& pool{ iwGscData.pool[i] };
 			for (size_t j = 0; j < pool.size(); j++) {
 				GscFuncContainerDataType& container{ pool[j] };
 				for (size_t k = 0; k < container.data.count; k++) {
 					GscFunction& func{ container.data.functions[k] };
-					idcBuilder.AddAddressEx(func.func, utils::va("GScr_%s", hashutils::ExtractTmp(container.isMethod ? "function" : "method", func.name)), "SN_CHECK | SN_NOWARN");
+					idcBuilder.AddAddressEx(func.func, utils::va("GScr_%s", hashutils::ExtractTmp(container.isMethod ? "function" : "method", func.name)), "SN_CHECK | SN_NOWARN", "void func(scrContext_t* ctx)");
 				}
 			}
 		}
