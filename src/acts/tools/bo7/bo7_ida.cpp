@@ -61,12 +61,11 @@ namespace {
 
 		void* Scr_RegisterGscFunction{ game.GetPointer("Scr_RegisterGscFunction") };
 		void* Scr_RegisterGscMethod{ game.GetPointer("Scr_RegisterGscMethod") };
-		void* Scr_RegisterGscIgnored{ game.GetPointer("$Scr_RegisterGscIgnored") };
-		void* Scr_RegisterGscSortIgnored{ game.GetPointer("$Scr_RegisterGscSortIgnored") };
 		void* Load_AssetType{ game.GetPointer("Load_AssetType") };
 		void* Load_AssetHeader{ game.GetPointer("Load_AssetHeader") };
 		std::vector<void(*)(byte*)> Scr_RegisterGens{ game.GetPointerArray<void(*)(byte*)>("$Scr_RegisterGens") };
 
+		game.ApplyNullScans("gsc");
 
 		if (scan.foundMissing) {
 			LOG_ERROR("Missing pattern when searching functions");
@@ -79,8 +78,6 @@ namespace {
 
 		hashutils::ReadDefaultFile();
 
-		hook::memory::Nulled(Scr_RegisterGscIgnored);
-		hook::memory::Nulled(Scr_RegisterGscSortIgnored);
 		hook::memory::RedirectJmp(Scr_RegisterGscFunction, IWLoadFuncs<false>);
 		hook::memory::RedirectJmp(Scr_RegisterGscMethod, IWLoadFuncs<true>);
 

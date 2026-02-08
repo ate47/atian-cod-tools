@@ -33,15 +33,15 @@ namespace acts::game_data {
 		return *scan;
 	}
 
-	ScanData GameData::GetScan(const char* id) {
+	ScanData GameData::GetScan(const char* id, const char* parent) {
 		ScanData res{};
 		res.name = id;
-		res.ctype = cfg.GetString(std::format("scans.{}.ctype", id), "");
-		res.path = cfg.GetString(std::format("scans.{}.scan", id), "");
-		res.single = cfg.GetBool(std::format("scans.{}.single", id), false);
-		res.offset = (size_t)cfg.GetInteger(std::format("scans.{}.offset", id), 0);
-		res.postOffset = cfg.GetInteger(std::format("scans.{}.postOffset", id), 0);
-		res.type = cfg.GetEnumVal<ScanType>(std::format("scans.{}.type", id), scanTypeInfo, ARRAYSIZE(scanTypeInfo), SCT_UNKNOWN);
+		res.ctype = cfg.GetString(std::format("{}.{}.ctype", parent, id), "");
+		res.path = cfg.GetString(std::format("{}.{}.scan", parent, id), "");
+		res.single = cfg.GetBool(std::format("{}.{}.single", parent, id), false);
+		res.offset = (size_t)cfg.GetInteger(std::format("{}.{}.offset", parent, id), 0);
+		res.postOffset = cfg.GetInteger(std::format("{}.{}.postOffset", parent, id), 0);
+		res.type = cfg.GetEnumVal<ScanType>(std::format("{}.{}.type", parent, id), scanTypeInfo, ARRAYSIZE(scanTypeInfo), SCT_UNKNOWN);
 
 
 		if (res.path.empty()) {
@@ -52,6 +52,21 @@ namespace acts::game_data {
 		}
 
 		return res;
+	}
+
+	void GameData::ApplyNullScans(const char* id) {
+		std::string parent{ std::format("nullscans.{}", id) };
+		rapidjson::Value& nullScans{ cfg.GetVal(parent.data(), 0, cfg.main) };
+		if (!nullScans.IsObject()) {
+			throw std::runtime_error(std::format("Invalid nullscan type in {}: {} is an object", dirname, id));
+		}
+
+		for (auto& [k, v] : nullScans.GetObj()) {
+			void* loc{ GetPointer(k.GetString(), parent.data()) };
+			if (loc) {
+				hook::memory::Nulled(loc);
+			}
+		}
 	}
 
 	void GameData::AddTypesToIdc(deps::idc_builder::IdcBuilder& builder) {

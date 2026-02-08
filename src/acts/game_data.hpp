@@ -40,13 +40,14 @@ namespace acts::game_data {
 
 		void AddTypesToIdc(deps::idc_builder::IdcBuilder& builder);
 		void ScanAllToIdc(deps::idc_builder::IdcBuilder& builder);
-		ScanData GetScan(const char* id);
+		void ApplyNullScans(const char* id);
+		ScanData GetScan(const char* id, const char* parent = "scans");
 		void SetScanContainer(hook::scan_container::ScanContainer* container) { scan = container; }
 		hook::scan_container::ScanContainer& GetScanContainer();
 
 		template<typename Type = void*>
-		Type GetPointer(const char* id) {
-			ScanData data{ GetScan(id) };
+		Type GetPointer(const char* id, const char* parent = "scans") {
+			ScanData data{ GetScan(id, parent) };
 			hook::scan_container::ScanContainer& scan{ GetScanContainer() };
 			hook::library::ScanResult res{
 				data.single ? scan.ScanSingle(data.path.data(), data.name[0] == '$' ? nullptr : data.name.data())
@@ -61,8 +62,8 @@ namespace acts::game_data {
 		}
 
 		template<typename Type = void*>
-		std::vector<Type> GetPointerArray(const char* id) {
-			ScanData data{ GetScan(id) };
+		std::vector<Type> GetPointerArray(const char* id, const char* parent = "scans") {
+			ScanData data{ GetScan(id, parent) };
 			hook::scan_container::ScanContainer& scan{ GetScanContainer() };
 			std::vector<hook::library::ScanResult> sres{ scan.Scan(data.path.data(), data.name[0] == '$' ? nullptr : data.name.data()) };
 

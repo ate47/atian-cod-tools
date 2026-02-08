@@ -483,31 +483,10 @@ namespace fastfile::handlers::bo7 {
 
 				gcx.DB_RegisterStreamOffset = game.GetPointer<decltype(gcx.DB_RegisterStreamOffset)>("DB_RegisterStreamOffset");
 				gcx.DB_LoadStreamOffset = game.GetPointer<decltype(gcx.DB_LoadStreamOffset)>("DB_LoadStreamOffset");
-				// Stream delta, todo
-				Red(scan.ScanSingle("4C 8B DC 56 48 83 EC ?? 4C", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
-				Red(scan.ScanSingle("40 56 48 83 EC ?? 4C 8B D2", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
+				Red(game.GetPointer("$Unk_Align_Ret"), Unk_Align_Ret); // 2DE3CC0
+				Red(game.GetPointer("$Unk_RetFalse"), ReturnStub<4, bool, false>);
 
-				// idk
-				Red(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", "ReturnStub<4, bool, false>").location, ReturnStub<4, bool, false>);
-				Red(scan.ScanSingle("C5 FB 10 02 44", "EmptyStub<5>").location, EmptyStub<5>); // 2DE3F00
-				Red(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 04 40 48", "Unk_Align_Ret").location, Unk_Align_Ret); // 2DE3CC0
-
-				// remove
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 41 8B 40 ?? 49", "EmptyStub<7>").location, EmptyStub<7>); // image
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9", "EmptyStub<8>").location, EmptyStub<8>);
-				Red(scan.ScanSingle("48 89 5C 24 ? 55 48 8D 6C 24 A9 48 81 EC ? ? ? ? 41", "EmptyStub<9>").location, EmptyStub<9>);
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 8B 42 ?? 49", "EmptyStub<10>").location, EmptyStub<10>);
-				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 0F B7 80", "EmptyStub<11>").location, EmptyStub<11>); // sound
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F", "EmptyStub<12>").location, EmptyStub<12>); // sound
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 81 61", "EmptyStub<13>").location, EmptyStub<13>); // model
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2", "EmptyStub<14>").location, EmptyStub<14>); // streaminginfo
-				Red(scan.ScanSingle("48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75", "EmptyStub<15>").location, EmptyStub<15>); // computeshaders
-				//Red(scan.ScanSingle("48 89 5C 24 ? 55 56 57 41 57", "EmptyStub<16>").location, EmptyStub<16>); // computeshaders
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", "EmptyStub<17>").location, EmptyStub<17>); // computeshaders, TODO: better
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B", "EmptyStub<18>").location, EmptyStub<18>); // libshared
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "EmptyStub<19>").location, EmptyStub<19>); // libshared, TODO: better
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
-				Red(scan.ScanSingle("49 8B C0 4C 8B 02", "EmptyStub<7>").location, EmptyStub<21>); // model
+				game.ApplyNullScans("fastfile");
 
 				hook::library::ScanLoggerLogsOpt logsOpt{};
 				logsOpt.base = gameDumpId;
