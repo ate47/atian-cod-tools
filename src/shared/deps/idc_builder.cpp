@@ -73,17 +73,18 @@ namespace deps::idc_builder {
 
 		if (enums.size()) {
 			utils::Padding(os << "\n", 1) << "// enums\n";
-			for (EnumDefinition& def : enums) {
+			for (size_t i = 0; i < enums.size(); i++) {
+				EnumDefinition& def{ enums[i] };
 				int pad{ 1 };
 				if (!def.force) {
 					utils::Padding(os, pad) << "if (GetEnum(\"" << def.name << "\") == -1) {\n";
 					pad++;
 				}
 
-				utils::Padding(os, pad) << "auto enumId = AddEnum(0, \"" << def.name << "\");\n";
+				utils::Padding(os, pad) << "auto enumId" << std::dec << i << " = AddEnum(0, \"" << def.name << "\", 0x20);\n";
 
 				for (EnumValueDefinition& val : def.values) {
-					utils::Padding(os, pad) << "AddConst(enumId, \"" << val.name << "\", " << std::dec << val.val << ");\n";
+					utils::Padding(os, pad) << "AddConst(enumId" << std::dec << i << ", \"" << val.name << "\", " << val.val << ");\n";
 				}
 
 				if (!def.force) {
