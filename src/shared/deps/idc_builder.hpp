@@ -2,6 +2,11 @@
 #include <core/memory_allocator.hpp>
 
 namespace deps::idc_builder {
+	struct CDeclDefinition {
+		const char* value;
+		const char* flags;
+	};
+
 	struct StructDefinition {
 		const char* name;
 		bool force;
@@ -41,6 +46,7 @@ namespace deps::idc_builder {
 		// member configuration
 		std::vector<EnumDefinition> enums{};
 		std::vector<StructDefinition> structs{};
+		std::vector<CDeclDefinition> cdecls{};
 		std::vector<AddressDefinition> addresses{};
 		std::vector<const char*> headers{};
 	public:
@@ -48,8 +54,10 @@ namespace deps::idc_builder {
 		IdcBuilder(const IdcBuilder& other) = delete;
 		IdcBuilder(IdcBuilder&& other) = delete;
 
-		// add a name to a rva, might have a type
+		// add a name to a rva, might have a typep
 		void AddAddress(size_t rva, const char* name, const char* type = nullptr);
+		// add a c declaration
+		void AddCDecl(const char* decl, const char* flags = nullptr);
 		// add a name to a rva, might have a type, the rva will obtained from deps::idc_builder::GetRva
 		inline void AddAddress(void* loc, const char* name, const char* type = nullptr) { AddAddress(GetRva(loc), name, type); }
 		// add a name to a rva, might have a type

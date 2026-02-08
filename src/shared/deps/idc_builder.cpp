@@ -26,8 +26,13 @@ namespace deps::idc_builder {
 	void IdcBuilder::AddAddress(size_t rva, const char* name, const char* type) {
 		AddAddressEx(rva, name, nullptr, type);
 	}
+
 	void IdcBuilder::AddAddressEx(size_t rva, const char* name, const char* flags, const char* type) {
 		addresses.emplace_back(rva, alloc.CloneStr(name), type ? alloc.CloneStr(type) : nullptr, flags ? alloc.CloneStr(flags) : nullptr);
+	}
+
+	void IdcBuilder::AddCDecl(const char* decl, const char* flags) {
+		cdecls.emplace_back(decl, flags);
 	}
 
 	EnumDefinition& IdcBuilder::GetEnumDef(IdcEnumId id) {
@@ -69,19 +74,39 @@ namespace deps::idc_builder {
 			os << "\n";
 		}
 
-		os << "static main() {";
+		os <<
+			"static ClearEnum(eid) {\n"
+			"    auto mid = GetFirstConst(eid, -1);\n"
+			"    Message(\"clear enum %s%s...\\n\", GetEnumName(eid), mid == -1 ? \" (empty)\" : \"\");\n"
+			"    while (mid != -1) {\n"
+			"        auto value = GetConstValue(mid);\n"
+			"        auto bmask = GetConstBmask(mid);\n"
+			"        DelConst(eid, value, bmask);\n"
+			"        mid = GetNextConst(eid, value, bmask);\n"
+	        "     }\n"
+			"}\n"
+			"\n"
+			"static main() {";
 
 		if (enums.size()) {
 			utils::Padding(os << "\n", 1) << "// enums\n";
 			for (size_t i = 0; i < enums.size(); i++) {
 				EnumDefinition& def{ enums[i] };
 				int pad{ 1 };
-				if (!def.force) {
-					utils::Padding(os, pad) << "if (GetEnum(\"" << def.name << "\") == -1) {\n";
-					pad++;
-				}
+				utils::Padding(os, pad) << "auto enumId" << std::dec << i << " = GetEnum(\"" << def.name << "\");\n";
 
-				utils::Padding(os, pad) << "auto enumId" << std::dec << i << " = AddEnum(0, \"" << def.name << "\", 0x20);\n";
+				utils::Padding(os, pad) << "if (enumId" << std::dec << i << " == -1) {\n";
+				pad++;
+				// create missing enum
+				utils::Padding(os, pad) << "enumId" << std::dec << i << " = AddEnum(0, \"" << def.name << "\", 0x20);\n";
+				if (def.force) {
+					pad--;
+					utils::Padding(os, pad) << "} else {\n";
+					pad++;
+					utils::Padding(os, pad) << "ClearEnum(enumId" << std::dec << i << ");\n";
+					pad--;
+					utils::Padding(os, pad) << "}\n";
+				}
 
 				for (EnumValueDefinition& val : def.values) {
 					utils::Padding(os, pad) << "AddConst(enumId" << std::dec << i << ", \"" << val.name << "\", " << val.val << ");\n";
@@ -98,6 +123,13 @@ namespace deps::idc_builder {
 			utils::Padding(os << "\n", 1) << "// structs\n";
 			for (StructDefinition& def : structs) {
 				utils::Padding(os, 1) << (def.force ? "AddStruc" : "AddStrucOpt") << "(0, \"" << def.name << "\");\n";
+			}
+		}
+
+		if (cdecls.size()) {
+			utils::Padding(os << "\n", 1) << "// cdecls\n";
+			for (CDeclDefinition& def : cdecls) {
+				utils::Padding(os, 1) << "ParseTypes" << "(\"" << def.value << "\", " << (def.flags ? def.flags : "0") << ");\n";
 			}
 		}
 

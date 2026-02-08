@@ -71,62 +71,92 @@ namespace acts::game_data {
 
 	void GameData::AddTypesToIdc(deps::idc_builder::IdcBuilder& builder) {
 		rapidjson::Value& ctypesVal{ cfg.GetVal("ctypes", 0, cfg.main) };
-		if (!ctypesVal.IsArray()) {
-			return; // not an array
-		}
-		for (rapidjson::Value& ctype : ctypesVal.GetArray()) {
-			if (!ctype.IsObject()) {
-				LOG_WARNING("Invalid ctype in {}: Not an object", dirname);
-				continue;
-			}
-			auto obj{ ctype.GetObj() };
-			auto nameIt{ obj.FindMember("name") };
-			auto typeIt{ obj.FindMember("type") };
+		rapidjson::Value& cdeclsVal{ cfg.GetVal("cdecls", 0, cfg.main) };
+		if (ctypesVal.IsArray()) {
+			for (rapidjson::Value& ctype : ctypesVal.GetArray()) {
+				if (!ctype.IsObject()) {
+					LOG_WARNING("Invalid ctype in {}: Not an object", dirname);
+					continue;
+				}
+				auto obj{ ctype.GetObj() };
+				auto nameIt{ obj.FindMember("name") };
+				auto typeIt{ obj.FindMember("type") };
 
-			if (nameIt == obj.MemberEnd() || !nameIt->value.IsString()) {
-				LOG_WARNING("Invalid ctype in {}: missing valid name", dirname);
-				continue;
-			}
-			const char* name{ nameIt->value.GetString() };
+				if (nameIt == obj.MemberEnd() || !nameIt->value.IsString()) {
+					LOG_WARNING("Invalid ctype in {}: missing valid name", dirname);
+					continue;
+				}
+				const char* name{ nameIt->value.GetString() };
 
-			if (typeIt == obj.MemberEnd() || !typeIt->value.IsString()) {
-				LOG_WARNING("Invalid ctype in {}: missing valid type for {}", dirname, name);
-				continue;
-			}
+				if (typeIt == obj.MemberEnd() || !typeIt->value.IsString()) {
+					LOG_WARNING("Invalid ctype in {}: missing valid type for {}", dirname, name);
+					continue;
+				}
 
-			CTypeType type{ core::config::ParseEnumValue<CTypeType>(typeIt->value.GetString(), cTypeInfo, ARRAYSIZE(cTypeInfo)) };
+				CTypeType type{ core::config::ParseEnumValue<CTypeType>(typeIt->value.GetString(), cTypeInfo, ARRAYSIZE(cTypeInfo)) };
 
-			if (!type) {
-				LOG_WARNING("Invalid ctype in {}: bad type for {}", dirname, name);
-				continue;
-			}
+				if (!type) {
+					LOG_WARNING("Invalid ctype in {}: bad type for {}", dirname, name);
+					continue;
+				}
 
-			switch (type) {
-			case CTT_STRUCT:
-				builder.AddStruct(name);
-				break;
-			case CTT_ENUM: {
-				deps::idc_builder::IdcEnumId id{ builder.AddEnum(name) };
-				auto fieldsIt{ obj.FindMember("fields") };
-				if (fieldsIt != obj.MemberEnd()) {
-					if (!fieldsIt->value.IsObject()) {
-						LOG_WARNING("Invalid ctype in {}: 'fields' should be an object for {}", dirname, name);
-						continue;
-					}
-
-					for (auto& [key, val] : fieldsIt->value.GetObj()) {
-
-						const char* fieldName{ key.GetString() };
-						if (!val.IsInt64()) {
-							LOG_WARNING("Invalid ctype in {}: field {} isn't an int {}", dirname, fieldName, name);
+				switch (type) {
+				case CTT_STRUCT:
+					builder.AddStruct(name);
+					break;
+				case CTT_ENUM: {
+					deps::idc_builder::IdcEnumId id{ builder.AddEnum(name) };
+					auto fieldsIt{ obj.FindMember("fields") };
+					if (fieldsIt != obj.MemberEnd()) {
+						if (!fieldsIt->value.IsObject()) {
+							LOG_WARNING("Invalid ctype in {}: 'fields' should be an object for {}", dirname, name);
 							continue;
 						}
-						builder.AddEnumMember(id, fieldName, val.GetInt64());
+
+						for (auto& [key, val] : fieldsIt->value.GetObj()) {
+
+							const char* fieldName{ key.GetString() };
+							if (!val.IsInt64()) {
+								LOG_WARNING("Invalid ctype in {}: field {} isn't an int {}", dirname, fieldName, name);
+								continue;
+							}
+							builder.AddEnumMember(id, fieldName, val.GetInt64());
+						}
 					}
 				}
+					break;
+				default: throw std::runtime_error(std::format("CTYPE TYPE NOT IMPLEMENTED : {}", (int)type));
+				}
 			}
-				break;
-			default: throw std::runtime_error(std::format("CTYPE TYPE NOT IMPLEMENTED : {}", (int)type));
+		}
+		if (cdeclsVal.IsArray()) {
+			for (rapidjson::Value& cdeclVal : cdeclsVal.GetArray()) {
+				if (!cdeclVal.IsObject()) {
+					LOG_WARNING("Invalid cdecl in {}: Not an object", dirname);
+					continue;
+				}
+				auto obj{ cdeclVal.GetObj() };
+				auto declIt{ obj.FindMember("decl") };
+				auto flagsIt{ obj.FindMember("flags") };
+
+				if (declIt == obj.MemberEnd() || !declIt->value.IsString()) {
+					LOG_WARNING("Invalid cdecl in {}: missing valid decl", dirname);
+					continue;
+				}
+				const char* decl{ declIt->value.GetString() };
+
+				const char* flags;
+				if (flagsIt != obj.MemberEnd()) {
+					if (!flagsIt->value.IsString()) {
+						LOG_WARNING("Invalid cdecl in {}: bad type for decl {}", dirname, decl);
+						continue;
+					}
+					flags = flagsIt->value.GetString();
+				} else {
+					flags = nullptr;
+				}
+
+				builder.AddCDecl(decl, flags);
 			}
 		}
 	}

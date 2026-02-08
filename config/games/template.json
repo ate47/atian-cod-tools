@@ -1,4 +1,9 @@
 {
+    "cdecls": [
+        {
+            "decl": "struct MyCStruct { int a; MyEnum b; MyStruct str; };"
+        }
+    ],
     "ctypes": [
         {
             "name": "MyEnum",
