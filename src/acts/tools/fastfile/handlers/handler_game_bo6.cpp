@@ -432,9 +432,10 @@ namespace fastfile::handlers::bo6 {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe, gameDumpId) };
-				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				acts::game_data::GameData game{ gameDumpId };
+				std::string gameExe{ game.Config().GetString("module") };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), gameDumpId) };
+				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				game.SetScanContainer(&scan);
 
 				gcx.opt = &opt;

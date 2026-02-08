@@ -7,7 +7,6 @@
 namespace fastfile::handlers::bo7 {
 	using namespace tool::bo7;
 	constexpr const char* gamePath = "bo7";
-	constexpr const char* gameExe = "cod_dump.exe";
 	constexpr const char* gameDumpId = "bo7";
 	constexpr const char* handlerId = "bo7";
 	constexpr const char* handlerName = "Black Ops 7";

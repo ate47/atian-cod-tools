@@ -554,7 +554,7 @@ namespace fastfile {
 		if (game) {
 			exe = game;
 		}
-		else if (defaultName) {
+		else if (defaultName && *defaultName) {
 			exe = utils::GetProgDir() / "deps" / defaultName;
 		}
 		else {
@@ -567,7 +567,7 @@ namespace fastfile {
 
 		if (!gameMod) {
 			if (!gameMod.Load(exe)) {
-				if (dumperName) {
+				if (dumperName && *dumperName) {
 					throw std::runtime_error(std::format("Can't load {}, you can dump the exe using 'acts game_dump {} path/to/game'", exe.string(), dumperName));
 				}
 				else {

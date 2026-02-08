@@ -1,0 +1,230 @@
+{
+    "module": "cod23-cod_dump.exe",
+    "cdecls": [
+        {
+            "decl": "struct Asset { AssetType type; void* handle; };"
+        },
+        {
+            "decl": "struct XBlock { byte* data; uint64_t size; };"
+        },
+        {
+            "decl": "struct AssetList { uint32_t stringsCount; bool stringsLoaded; const char** strings; uint32_t assetsCount; uint32_t assetsLoaded; Asset* assets; };"
+        }
+    ],
+    "ctypes": [
+        {
+            "name": "AssetType",
+            "type": "Enum"
+        },
+        {
+            "name": "RewindData",
+            "type": "Struct"
+        },
+        {
+            "name": "LoadStreamObject",
+            "type": "Struct"
+        },
+        {
+            "name": "AssetPoolInfo",
+            "type": "Struct"
+        },
+        {
+            "name": "XFileBlock",
+            "type": "Enum",
+            "fields": {
+                "XFILE_BLOCK_MEMMAPPED": 11,
+                "XFILE_BLOCK_VIRTUAL": 15,
+                "XFILE_BLOCK_COUNT": 16
+            }
+        }
+    ],
+    "scans": {
+        "loadStreamObj": {
+            "scan": "48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?",
+            "ctype": "LoadStreamObject loadStreamObj",
+            "offset": 3,
+            "type": "Relative",
+            "single": false
+        },
+        "Load_Asset": {
+            "scan": "E8 ?? ?? ?? ?? FF 43 14 FF C7 3B 7B 10 72 D3 33 F6",
+            "ctype": "void Load_Asset(bool atStreamStart, Asset* asset)",
+            "offset": 1,
+            "type": "Relative",
+            "single": true
+        },
+        "DB_InitStreams": {
+            "scan": "48 8B D1 48 8D 05 ?? ?? ?? ?? 41 B8 02",
+            "ctype": "void DB_InitStreams(XBlock* blocks)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_ScriptStringList": {
+            "scan": "48 89 5C 24 20 57 48 83 EC 20 0F B6 D9 48 8B FA B9 FA",
+            "ctype": "void Load_ScriptStringList(bool atStreamStart, AssetList* list)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_PatchMem_FixStreamAlignment": {
+            "scan": "40 53 80 3D ?? ?? ?? ?? ?? 4C",
+            "ctype": "void DB_PatchMem_FixStreamAlignment(int align)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_PushStreamPos": {
+            "scan": "48 83 EC 28 8B 15 ?? ?? ?? ?? 4C",
+            "ctype": "void DB_PushStreamPos(XFileBlock type)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_PopStreamPos": {
+            "scan": "E8 ?? ?? ?? ?? 48 83 7E 17 00",
+            "ctype": "void DB_PopStreamPos()",
+            "offset": 1,
+            "type": "Relative",
+            "single": true
+        },
+        "LoadStreamTA": {
+            "scan": "40 53 48 83 EC ?? 49 8B D8 4C 8B CA",
+            "ctype": "bool LoadStreamTA(bool atStreamStart, void* ptr, int64_t len)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_StringName": {
+            "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 39 BA",
+            "ctype": "void Load_StringName(char** str)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_String": {
+            "scan": "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B 31 48 8B F9 48 8B CE",
+            "ctype": "void Load_String(char** str)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_AddXAsset": {
+            "scan": "40 53 48 83 EC 40 48 89 74 24 50 48 8B DA",
+            "ctype": "void* DB_AddXAsset(AssetType type, void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_CustomScriptString": {
+            "scan": "48 8B 05 ?? ?? ?? ?? 44 8B 01",
+            "ctype": "void Load_CustomScriptString(uint32_t* pstr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "streamPos": {
+            "scan": "48 89 05 ?? ?? ?? ?? 5B",
+            "ctype": "byte* streamPos",
+            "offset": 3,
+            "type": "Relative",
+            "single": true
+        },
+        "rewind": {
+            "scan": "4D 8B 84 D3 ?? ?? ?? ?? 49 8B D1",
+            "ctype": "RewindData* rewind",
+            "offset": 4,
+            "type": "Relative",
+            "single": true
+        },
+        "streamPosIndex": {
+            "scan": "83 3D ?? ?? ?? ?? ?? 75 0C 4C 8B C7",
+            "ctype": "XFileBlock streamPosIndex",
+            "offset": 2,
+            "postOffset": 1,
+            "type": "Relative",
+            "single": true
+        },
+        "$unkFixStreamAlign": {
+            "scan": "40 53 80 3D ?? ?? ?? ?? 00 4C 8D 1D ?? ?? ?? ?? 4C 8B C9",
+            "offset": 4,
+            "type": "Relative",
+            "single": true
+        },
+        "poolInfo": {
+            "scan": "40 53 48 63 C9 48 8D 1D ? ? ? ?",
+            "ctype": "AssetPoolInfo poolInfo",
+            "type": "Relative",
+            "offset": 8,
+            "postOffset": -32,
+            "single": true
+        },
+        "DB_LinkSoundBank": {
+            "scan": "48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 25",
+            "ctype": "void* DB_LinkSoundBank(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkSoundBankTransient": {
+            "scan": "48 89 5C 24 10 57 48 83 EC 20 48 8B 11 48 8B F9 B9 27",
+            "ctype": "void* DB_LinkSoundBankTransient(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkStreamingInfo": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 50",
+            "ctype": "void* DB_LinkStreamingInfo(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkComputeshader": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0C",
+            "ctype": "void* DB_LinkComputeshader(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkLibShader": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 0E",
+            "ctype": "void* DB_LinkLibShader(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkDLogSchema": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 88",
+            "ctype": "void* DB_LinkDLogSchema(void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LinkXModel": {
+            "scan": "40 53 48 83 EC 20 48 8B 01 48 8D 54 24 30 48 8B D9 48 89 44 24 30 B9 09",
+            "ctype": "void* DB_LinkXModel(void** handle)",
+            "type": "Absolute",
+            "single": true
+        }
+    },
+    "nullscans": {
+        "fastfile": {
+            "u0": {
+                "scan": "4C 8B DC 53 56 41 55 48 81 EC A0",
+                "type": "Absolute",
+                "single": true
+            },
+            "u1": {
+                "scan": "40 53 48 83 EC 20 8B 42 14",
+                "type": "Absolute",
+                "single": true
+            },
+            "u2": {
+                "scan": "48 8B C4 53 48 81 EC C0 00 00 00 44",
+                "type": "Absolute",
+                "single": true
+            },
+            "u3": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 30 48 8B F9 48 8B DA B9",
+                "type": "Absolute",
+                "single": true
+            },
+            "u4": {
+                "scan": "49 8B C0 4C 8B CA 4C 8B 01",
+                "type": "Absolute",
+                "single": true
+            },
+            "u5": {
+                "scan": "40 53 48 83 EC 20 8B 41 0C 48 8B DA",
+                "type": "Absolute",
+                "single": true
+            }
+        }
+    }
+}

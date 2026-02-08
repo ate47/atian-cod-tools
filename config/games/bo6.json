@@ -1,4 +1,5 @@
 {
+    "module": "cod24-cod_dump.exe",
     "cdecls": [
         {
             "decl": "struct Asset { AssetType type; void* handle; };"
@@ -20,6 +21,15 @@
         {
             "name": "AssetPoolInfo",
             "type": "Struct"
+        },
+        {
+            "name": "XFileBlock",
+            "type": "Enum",
+            "fields": {
+                "XFILE_BLOCK_MEMMAPPED": 11,
+                "XFILE_BLOCK_VIRTUAL": 15,
+                "XFILE_BLOCK_COUNT": 16
+            }
         }
     ],
     "scans": {
