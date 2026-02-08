@@ -1,0 +1,211 @@
+{
+    "ctypes": [
+        {
+            "name": "AssetType",
+            "type": "Enum"
+        },
+        {
+            "name": "Asset",
+            "type": "Struct"
+        },
+        {
+            "name": "DBLoadCtx",
+            "type": "Struct"
+        },
+        {
+            "name": "LoadStreamObject",
+            "type": "Struct"
+        },
+        {
+            "name": "AssetPoolInfo",
+            "type": "Struct"
+        }
+    ],
+    "scans": {
+        "loadStreamObj": {
+            "scan": "48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?",
+            "ctype": "LoadStreamObject loadStreamObj",
+            "offset": 3,
+            "type": "Relative",
+            "single": false
+        },
+        "Load_Asset": {
+            "scan": "4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48",
+            "ctype": "void Load_Asset(DBLoadCtx* ctx, bool atStreamStart, Asset* asset)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_HashScrStringName": {
+            "scan": "48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48",
+            "ctype": "uint64_t DB_HashScrStringName(const char* str, size_t len, uint64_t iv)",
+            "type": "Absolute",
+            "single": true
+        },
+        "poolInfo": {
+            "scan": "40 53 48 63 C9 48 8D 1D ? ? ? ?",
+            "ctype": "AssetPoolInfo poolInfo",
+            "type": "Relative",
+            "offset": 8,
+            "postOffset": -32,
+            "single": true
+        },
+        "GetMappedTypeStub": {
+            "scan": "40 56 41 56 48 83 EC ? 48 8B 15",
+            "ctype": "AssetType GetMappedTypeStub(uint32_t hashedType)",
+            "type": "Absolute",
+            "single": true
+        },
+        "LoadStreamTA": {
+            "scan": "48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9",
+            "ctype": "bool LoadStreamTA(DBLoadCtx* context, bool atStreamStart, void* ptr, int64_t len)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_String": {
+            "scan": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2",
+            "ctype": "void Load_String(DBLoadCtx* context, char** pstr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_StringName": {
+            "scan": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41",
+            "ctype": "void Load_StringName(DBLoadCtx* context, char** pstr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_AddAsset": {
+            "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA",
+            "ctype": "void* DB_AddAsset(DBLoadCtx* ctx, AssetType type, void** handle)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_AddAssetRef": {
+            "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B",
+            "ctype": "void* DB_AddAssetRef(AssetType type, uint64_t name, void* strName)",
+            "type": "Absolute",
+            "single": true
+        },
+        "Load_CustomScriptString": {
+            "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8",
+            "ctype": "void Load_CustomScriptString(DBLoadCtx* context, uint32_t* pstr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_LoadStreamOffset": {
+            "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA",
+            "ctype": "void DB_LoadStreamOffset(DBLoadCtx* ctx, uint64_t val, void** pptr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "DB_RegisterStreamOffset": {
+            "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA",
+            "ctype": "void DB_RegisterStreamOffset(DBLoadCtx* ctx, uint64_t val, void* ptr)",
+            "type": "Absolute",
+            "single": true
+        },
+        "$Unk_Align_Ret": {
+            "scan": "8B 81 ?? ?? ?? ?? 48 8D 04 40 48",
+            "type": "Absolute",
+            "single": true
+        },
+        "$Unk_RetFalse": {
+            "scan": "8B 81 ?? ?? ?? ?? 48 8D 14 40 83",
+            "type": "Absolute",
+            "single": true
+        }
+    },
+    "nullscans": {
+        "fastfile": {
+            "$StreamDelta1": {
+                "scan": "4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B",
+                "type": "Absolute",
+                "single": true
+            },
+            "$StreamDelta2": {
+                "scan": "4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33",
+                "type": "Absolute",
+                "single": true
+            },
+            "$u1": {
+                "scan": "C5 FB 10 02 44",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadImage": {
+                "scan": "40 53 48 83 EC ?? 41 8B 40 ?? 49",
+                "type": "Absolute",
+                "single": true
+            },
+            "$u2": {
+                "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9",
+                "type": "Absolute",
+                "single": true
+            },
+            "$u3": {
+                "scan": "48 89 5C 24 ? 55 48 8D 6C 24 A9 48 81 EC ? ? ? ? 41",
+                "type": "Absolute",
+                "single": true
+            },
+            "$u4": {
+                "scan": "40 53 48 83 EC ?? 8B 42 ?? 49",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadSound": {
+                "scan": "48 8B 05 ?? ?? ?? ?? 0F B7 80",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadSound2": {
+                "scan": "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadModel": {
+                "scan": "40 53 48 83 EC ?? 81 61",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadModel2": {
+                "scan": "49 8B C0 4C 8B 02",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadStreamingInfo": {
+                "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadComputeShaders": {
+                "scan": "48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadComputeShaders2": {
+                "scan": "48 89 5C 24 ? 55 56 57 41 57",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadComputeShaders3": {
+                "scan": "40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadLibShared": {
+                "scan": "40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadLibShared2": {
+                "scan": "40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8",
+                "type": "Absolute",
+                "single": true
+            },
+            "$LoadDlogSchema": {
+                "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33",
+                "type": "Absolute",
+                "single": true
+            }
+        }
+    }
+}

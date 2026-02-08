@@ -12,6 +12,7 @@
 #include <tools/fastfile/handlers/handler_game_bo6.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/fastfile/fastfile_names_store.hpp>
+#include <game_data.hpp>
 
 
 namespace fastfile::handlers::bo6 {
@@ -433,7 +434,8 @@ namespace fastfile::handlers::bo6 {
 			void Init(fastfile::FastFileOption& opt) override {
 				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe, gameDumpId) };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
-				const hook::library::Library& lib{ mod.GetLibrary()};
+				acts::game_data::GameData game{ gameDumpId };
+				game.SetScanContainer(&scan);
 
 				gcx.opt = &opt;
 
@@ -449,32 +451,29 @@ namespace fastfile::handlers::bo6 {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(lib);
+				gcx.assetNames.InitMap(mod);
 				AddBootsLimitAssetNames();
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
-				dumpOpts.baseFileName = "bo6";
+				dumpOpts.baseFileName = gameDumpId;
 				dumpOpts.assetHashedName = "T10HashAssetType";
 				dumpOpts.assetTypeName = "T10AssetType";
 				dumpOpts.assetPrefix = "T10_ASSET_";
 				dumpOpts.assetHashedPrefix = "T10H_ASSET_";
-				gcx.assetNames.DumpFiles(opt.m_output / "bo6" / "code", &dumpOpts);
+				gcx.assetNames.DumpFiles(opt.m_output / gameDumpId / "code", &dumpOpts);
 				gcx.assetNames.LoadAssetConfig(opt.assetTypes);
 				gcx.namesStore.LoadConfig(opt.assets);
 
-				LoadStreamObject* loadStreamObj{ lib.ScanAny("48 8B 05 ? ? ? ? 4C 8D 4C 24 ? 48 C7 44 24 ? ? ? ? ? 4C 8D 44 24 ? 48 89 6C 24 ?", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(3)};
-				loadStreamObj->__vtb = &dbLoadStreamVTable;
-
-				//E8 ? ? ? ? 80 3E 00 74 1E
-				//lib.Redirect("48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA 48 8B CA E8 ? ? ? ? 48 8B 0D", LoadXFileData);
-				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "gcx.Load_Asset")
-					.GetPtr<decltype(gcx.Load_Asset)>();
-				gcx.DB_HashScrStringName = scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48", "gcx.DB_HashScrStringName")
-					.GetPtr<decltype(gcx.DB_HashScrStringName)>();
-
-				gcx.poolInfo = (AssetPoolInfo*)(scan.ScanSingle("40 53 48 63 C9 48 8D 1D ? ? ? ?", "poolInfo")
-					.GetRelative<int32_t>(8) - offsetof(AssetPoolInfo, SetAssetName));
-
+				LoadStreamObject* loadStreamObj{ game.GetPointer<LoadStreamObject*>("loadStreamObj") };
+				if (loadStreamObj) {
+					loadStreamObj->__vtb = &dbLoadStreamVTable;
+				}
 				scan.ignoreMissing = true;
+
+				gcx.Load_Asset = game.GetPointer<decltype(gcx.Load_Asset)>("Load_Asset");
+				gcx.DB_HashScrStringName = game.GetPointer<decltype(gcx.DB_HashScrStringName)>("DB_HashScrStringName");
+
+				gcx.poolInfo = game.GetPointer<decltype(gcx.poolInfo)>("poolInfo");
+
 
 				auto Red = [](void* from, void* to) {
 					if (from) {
@@ -482,42 +481,20 @@ namespace fastfile::handlers::bo6 {
 					}
 				};
 
-				Red(scan.ScanSingle("40 56 41 56 48 83 EC ? 48 8B 15", "GetMappedTypeStub").location, GetMappedTypeStub);
+				Red(game.GetPointer("GetMappedTypeStub"), GetMappedTypeStub);
 
-				Red(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F9 4D 8B C8 48 8B D9", "LoadStream").location, LoadStream);
-				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2", "Load_String").location, Load_String);
-				Red(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41", "Load_StringName").location, Load_String); // str
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B D8 8B EA", "DB_AddAsset").location, DB_AddAsset);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 49 8B E8 48 8B DA 8B", "DB_AddAssetRef").location, DB_AddAssetRef);
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8", "Load_CustomScriptString").location, Load_CustomScriptString);
+				Red(game.GetPointer("LoadStreamTA"), LoadStream);
+				Red(game.GetPointer("Load_String"), Load_String);
+				Red(game.GetPointer("Load_StringName"), Load_String); // str
+				Red(game.GetPointer("DB_AddAsset"), DB_AddAsset);
+				Red(game.GetPointer("DB_AddAssetRef"), DB_AddAssetRef);
+				Red(game.GetPointer("Load_CustomScriptString"), Load_CustomScriptString);
+				Red(game.GetPointer("DB_LoadStreamOffset"), DB_LoadStreamOffset); // 2E25100
+				Red(game.GetPointer("DB_RegisterStreamOffset"), DB_RegisterStreamOffset); //2E24F20
+				Red(game.GetPointer("$Unk_RetFalse"), ReturnStub<4, bool, false>);
+				Red(game.GetPointer("$Unk_Align_Ret"), Unk_Align_Ret); // 2DE3CC0
 
-				// Stream delta, todo
-				Red(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 1B", "EmptyStub<0>").location, EmptyStub<0>); // 2DD6730
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 56 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 48 8B DA", "DB_RegisterStreamOffset").location, DB_RegisterStreamOffset); //2E24F20
-				Red(scan.ScanSingle("4C 8B DC 48 83 EC ?? 8B 05 ?? ?? ?? ?? 4C 8B C1 85 C0 0F 84 33", "EmptyStub<2>").location, EmptyStub<2>); // 2DD63E0
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 48 8B 81 ?? ?? ?? ?? 4C 8B CA", "DB_LoadStreamOffset").location, DB_LoadStreamOffset); // 2E25100
-
-				// idk
-				Red(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 14 40 83", "ReturnStub<4, bool, false>").location, ReturnStub<4, bool, false>);
-				Red(scan.ScanSingle("C5 FB 10 02 44", "EmptyStub<5>").location, EmptyStub<5>); // 2DE3F00
-				Red(scan.ScanSingle("8B 81 ?? ?? ?? ?? 48 8D 04 40 48", "Unk_Align_Ret").location, Unk_Align_Ret); // 2DE3CC0
-
-				// remove
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 41 8B 40 ?? 49", "EmptyStub<7>").location, EmptyStub<7>); // image
-				Red(scan.ScanSingle("48 89 5C 24 ?? 57 48 83 EC ?? 49 8B D8 48 8B FA B9", "EmptyStub<8>").location, EmptyStub<8>);
-				Red(scan.ScanSingle("48 89 5C 24 ? 55 48 8D 6C 24 A9 48 81 EC ? ? ? ? 41", "EmptyStub<9>").location, EmptyStub<9>);
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 8B 42 ?? 49", "EmptyStub<10>").location, EmptyStub<10>);
-				Red(scan.ScanSingle("48 8B 05 ?? ?? ?? ?? 0F B7 80", "EmptyStub<11>").location, EmptyStub<11>); // sound
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 41 0F B7 D8 0F", "EmptyStub<12>").location, EmptyStub<12>); // sound
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 81 61", "EmptyStub<13>").location, EmptyStub<13>); // model
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2", "EmptyStub<14>").location, EmptyStub<14>); // streaminginfo
-				Red(scan.ScanSingle("48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75", "EmptyStub<15>").location, EmptyStub<15>); // computeshaders
-				Red(scan.ScanSingle("48 89 5C 24 ? 55 56 57 41 57", "EmptyStub<16>").location, EmptyStub<16>); // computeshaders
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B", "EmptyStub<17>").location, EmptyStub<17>); // computeshaders, TODO: better
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B", "EmptyStub<18>").location, EmptyStub<18>); // libshared
-				Red(scan.ScanSingle("40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8", "EmptyStub<19>").location, EmptyStub<19>); // libshared, TODO: better
-				Red(scan.ScanSingle("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33", "EmptyStub<20>").location, EmptyStub<20>); // dlogschema
-				Red(scan.ScanSingle("49 8B C0 4C 8B 02", "EmptyStub<7>").location, EmptyStub<21>); // model
+				game.ApplyNullScans("fastfile");
 
 
 				if (scan.foundMissing) {

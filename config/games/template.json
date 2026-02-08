@@ -1,0 +1,51 @@
+{
+    "ctypes": [
+        {
+            "name": "MyEnum",
+            "type": "Enum",
+            "fields": {
+                "MYE_MY_FIELD_0": 0,
+                "MYE_MY_FIELD_1": 1,
+                "MYE_MY_FIELD_2": 2,
+                "MYE_MY_FIELD_4": 4
+            }
+        },
+        {
+            "name": "MyStruct",
+            "type": "Struct"
+        }
+    ],
+    "scans": {
+        "MyAbsoluteAddress": {
+            "scan": "EF CD AB 90 78 56 34 12",
+            "ctype": "void MyAbsoluteAddress(MyStruct* myStruct, MyEnum myEnum)",
+            "type": "Absolute",
+            "offset": 0,
+            "single": true
+        },
+        "MyRelativeAddress": {
+            "scan": "12 34 56 E8 ?? ?? ?? ?? 90 AB CD EF",
+            "ctype": "MyStruct* MyRelativeAddress()",
+            "type": "Relative",
+            "offset": 4,
+            "postOffset": 0,
+            "single": false
+        },
+        "$MyUnamedAddress": {
+            "scan": "12 34 56 E8 ?? ?? ?? ?? 90 AB CD EF",
+            "type": "Relative",
+            "offset": 4,
+            "postOffset": 0,
+            "single": false
+        }
+    },
+    "nullscans": {
+        "myNullscans": {
+            "$nulledFunction": {
+                "scan": "40 53 48 83 EC ?? 33 C0 66 C7 81 ?? ?? ?? ?? ?? ?? 48 89 81",
+                "type": "Absolute",
+                "single": false
+            }
+        }
+    }
+}

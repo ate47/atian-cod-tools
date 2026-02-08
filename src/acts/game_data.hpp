@@ -50,10 +50,14 @@ namespace acts::game_data {
 		Type GetPointer(const char* id, const char* parent = "scans") {
 			ScanData data{ GetScan(id, parent) };
 			hook::scan_container::ScanContainer& scan{ GetScanContainer() };
+			bool nullName{ data.name[0] == '$' };
 			hook::library::ScanResult res{
-				data.single ? scan.ScanSingle(data.path.data(), data.name[0] == '$' ? nullptr : data.name.data())
-				: scan.ScanAny(data.path.data(), data.name[0] == '$' ? nullptr : data.name.data())
+				data.single ? scan.ScanSingle(data.path.data(), nullName ? nullptr : data.name.data())
+				: scan.ScanAny(data.path.data(), nullName ? nullptr : data.name.data())
 			};
+			if (nullName && !res.location) {
+				LOG_ERROR("Can't find pattern {}::{}.{} : {}", dirname, parent, id, data.name);
+			}
 
 			switch (data.type) {
 			case SCT_ABSOLUTE: return res.GetPtr<Type>(data.offset + data.postOffset);
