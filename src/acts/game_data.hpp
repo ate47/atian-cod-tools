@@ -40,6 +40,7 @@ namespace acts::game_data {
 
 		void AddTypesToIdc(deps::idc_builder::IdcBuilder& builder);
 		void ScanAllToIdc(deps::idc_builder::IdcBuilder& builder);
+		void ScanToIdc(deps::idc_builder::IdcBuilder& builder, const char* parent);
 		void ApplyNullScans(const char* id);
 		ScanData GetScan(const char* id, const char* parent = "scans");
 		void SetScanContainer(hook::scan_container::ScanContainer* container) { scan = container; }

@@ -45,10 +45,10 @@ namespace acts::game_data {
 
 
 		if (res.path.empty()) {
-			throw std::runtime_error(std::format("can't find scan path for {}::{}", dirname, id));
+			throw std::runtime_error(std::format("can't find scan path for {}::{}.{}", dirname, parent, id));
 		}
 		if (!res.type) {
-			throw std::runtime_error(std::format("invalid scan type for {}::{}", dirname, id));
+			throw std::runtime_error(std::format("invalid scan type for {}::{}.{}", dirname, parent, id));
 		}
 
 		return res;
@@ -130,17 +130,16 @@ namespace acts::game_data {
 			}
 		}
 	}
-
-	void GameData::ScanAllToIdc(deps::idc_builder::IdcBuilder& builder) {
+	void GameData::ScanToIdc(deps::idc_builder::IdcBuilder& builder, const char* parent) {
 		hook::scan_container::ScanContainer& container{ GetScanContainer() };
 
-		rapidjson::Value& scansVal{ cfg.GetVal("scans", 0, cfg.main) };
+		rapidjson::Value& scansVal{ cfg.GetVal(parent, 0, cfg.main) };
 		if (!scansVal.IsObject()) {
 			return; // not an object
 		}
-		
+
 		for (auto& [k, v] : scansVal.GetObj()) {
-			ScanData data{ GetScan(k.GetString()) };
+			ScanData data{ GetScan(k.GetString(), parent) };
 			if (data.name.empty() || data.name[0] == '$') {
 				continue; // unused
 			}
@@ -153,5 +152,16 @@ namespace acts::game_data {
 
 			builder.AddAddressEx(array[0], data.name.data(), "SN_CHECK | SN_NOWARN", data.ctype.empty() ? nullptr : data.ctype.data());
 		}
+	}
+
+	void GameData::ScanAllToIdc(deps::idc_builder::IdcBuilder& builder) {
+		ScanToIdc(builder, "scans");
+		rapidjson::Value& nullscans{ cfg.GetVal("nullscans", 0, cfg.main) };
+		if (nullscans.IsObject()) {
+			for (auto& [k, v] : nullscans.GetObj()) {
+				ScanToIdc(builder, utils::va("nullscans.%s", k.GetString()));
+			}
+		}
+
 	}
 }
