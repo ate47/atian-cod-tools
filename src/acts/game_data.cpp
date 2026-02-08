@@ -33,6 +33,20 @@ namespace acts::game_data {
 		return *scan;
 	}
 
+	void GameData::Redirect(const char* id, void* to, const char* parent) {
+		void* from{ GetPointer(id, parent) };
+		if (from) {
+			hook::memory::RedirectJmp(from, to);
+		}
+	}
+
+	void GameData::Nulled(const char* id, const char* parent) {
+		void* loc{ GetPointer(id, parent) };
+		if (loc) {
+			hook::memory::Nulled(loc);
+		}
+	}
+
 	ScanData GameData::GetScan(const char* id, const char* parent) {
 		ScanData res{};
 		res.name = id;
@@ -62,10 +76,7 @@ namespace acts::game_data {
 		}
 
 		for (auto& [k, v] : nullScans.GetObj()) {
-			void* loc{ GetPointer(k.GetString(), parent.data()) };
-			if (loc) {
-				hook::memory::Nulled(loc);
-			}
+			Nulled(k.GetString(), parent.data());
 		}
 	}
 
@@ -185,7 +196,7 @@ namespace acts::game_data {
 	}
 
 	void GameData::ScanAllToIdc(deps::idc_builder::IdcBuilder& builder) {
-		ScanToIdc(builder, "scans");
+		ScanToIdc(builder, BASE_PARENT);
 		rapidjson::Value& nullscans{ cfg.GetVal("nullscans", 0, cfg.main) };
 		if (nullscans.IsObject()) {
 			for (auto& [k, v] : nullscans.GetObj()) {

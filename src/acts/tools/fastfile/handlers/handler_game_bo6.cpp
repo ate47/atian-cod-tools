@@ -474,26 +474,17 @@ namespace fastfile::handlers::bo6 {
 
 				gcx.poolInfo = game.GetPointer<decltype(gcx.poolInfo)>("poolInfo");
 
-
-				auto Red = [](void* from, void* to) {
-					if (from) {
-						hook::memory::RedirectJmp(from, to);
-					}
-				};
-
-				Red(game.GetPointer("GetMappedTypeStub"), GetMappedTypeStub);
-
-				Red(game.GetPointer("LoadStreamTA"), LoadStream);
-				Red(game.GetPointer("Load_String"), Load_String);
-				Red(game.GetPointer("Load_StringName"), Load_String); // str
-				Red(game.GetPointer("DB_AddAsset"), DB_AddAsset);
-				Red(game.GetPointer("DB_AddAssetRef"), DB_AddAssetRef);
-				Red(game.GetPointer("Load_CustomScriptString"), Load_CustomScriptString);
-				Red(game.GetPointer("DB_LoadStreamOffset"), DB_LoadStreamOffset); // 2E25100
-				Red(game.GetPointer("DB_RegisterStreamOffset"), DB_RegisterStreamOffset); //2E24F20
-				Red(game.GetPointer("$Unk_RetFalse"), ReturnStub<4, bool, false>);
-				Red(game.GetPointer("$Unk_Align_Ret"), Unk_Align_Ret); // 2DE3CC0
-
+				game.Redirect("GetMappedTypeStub", GetMappedTypeStub);
+				game.Redirect("LoadStreamTA", LoadStream);
+				game.Redirect("Load_String", Load_String);
+				game.Redirect("Load_StringName", Load_String); // str
+				game.Redirect("DB_AddAsset", DB_AddAsset);
+				game.Redirect("DB_AddAssetRef", DB_AddAssetRef);
+				game.Redirect("Load_CustomScriptString", Load_CustomScriptString);
+				game.Redirect("DB_LoadStreamOffset", DB_LoadStreamOffset); // 2E25100
+				game.Redirect("DB_RegisterStreamOffset", DB_RegisterStreamOffset); //2E24F20
+				game.Redirect("$Unk_RetFalse", ReturnStub<4, bool, false>);
+				game.Redirect("$Unk_Align_Ret", Unk_Align_Ret); // 2DE3CC0
 				game.ApplyNullScans("fastfile");
 
 

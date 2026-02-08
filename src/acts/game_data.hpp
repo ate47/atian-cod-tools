@@ -4,6 +4,7 @@
 #include <deps/idc_builder.hpp>
 
 namespace acts::game_data {
+	constexpr const char* BASE_PARENT = "scans";
 	std::filesystem::path GetBaseDir();
 
 	enum CTypeType {
@@ -29,25 +30,41 @@ namespace acts::game_data {
 	};
 
 	class GameData {
-	public:
 		core::config::Config cfg;
-		const char* dirname;
 		hook::scan_container::ScanContainer* scan{};
-
+		const char* dirname;
+	public:
 		GameData(const char* dirname);
 		GameData(const GameData& other) = delete;
 		GameData(GameData&& other) = delete;
 
-		void AddTypesToIdc(deps::idc_builder::IdcBuilder& builder);
-		void ScanAllToIdc(deps::idc_builder::IdcBuilder& builder);
-		void ScanToIdc(deps::idc_builder::IdcBuilder& builder, const char* parent);
-		void ApplyNullScans(const char* id);
-		ScanData GetScan(const char* id, const char* parent = "scans");
+		// set the scan container
 		void SetScanContainer(hook::scan_container::ScanContainer* container) { scan = container; }
+		// get the scan container, fail if none set
 		hook::scan_container::ScanContainer& GetScanContainer();
+		// Data config
+		core::config::Config& Config() { return cfg; };
+		// Get name
+		const char* GetName() const { return dirname; };
 
+		// add all types to idc builder
+		void AddTypesToIdc(deps::idc_builder::IdcBuilder& builder);
+		// add all scans to idc builder
+		void ScanAllToIdc(deps::idc_builder::IdcBuilder& builder);
+		// add all scans from a pool to idc builder
+		void ScanToIdc(deps::idc_builder::IdcBuilder& builder, const char* parent = BASE_PARENT);
+		// apply all the null scall of a pool
+		void ApplyNullScans(const char* id);
+		// get scan data from its id
+		ScanData GetScan(const char* id, const char* parent = BASE_PARENT);
+		// redirect a scan to a location
+		void Redirect(const char* id, void* to, const char* parent = BASE_PARENT);
+		// null a scan
+		void Nulled(const char* id, const char* parent = BASE_PARENT);
+
+		// Get a pointer from a scan
 		template<typename Type = void*>
-		Type GetPointer(const char* id, const char* parent = "scans") {
+		Type GetPointer(const char* id, const char* parent = BASE_PARENT) {
 			ScanData data{ GetScan(id, parent) };
 			hook::scan_container::ScanContainer& scan{ GetScanContainer() };
 			bool nullName{ data.name[0] == '$' };
@@ -66,8 +83,9 @@ namespace acts::game_data {
 			}
 		}
 
+		// Get a pointers array from a scan
 		template<typename Type = void*>
-		std::vector<Type> GetPointerArray(const char* id, const char* parent = "scans") {
+		std::vector<Type> GetPointerArray(const char* id, const char* parent = BASE_PARENT) {
 			ScanData data{ GetScan(id, parent) };
 			hook::scan_container::ScanContainer& scan{ GetScanContainer() };
 			std::vector<hook::library::ScanResult> sres{ scan.Scan(data.path.data(), data.name[0] == '$' ? nullptr : data.name.data()) };

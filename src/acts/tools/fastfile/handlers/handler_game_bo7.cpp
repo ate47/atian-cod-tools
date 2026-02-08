@@ -455,6 +455,8 @@ namespace fastfile::handlers::bo7 {
 				LoadStreamObject* loadStreamObj{ game.GetPointer<LoadStreamObject*>("loadStreamObj") };
 				gcx.Load_Asset = game.GetPointer<decltype(gcx.Load_Asset)>("Load_Asset");
 				gcx.DB_HashScrStringName = game.GetPointer<decltype(gcx.DB_HashScrStringName)>("DB_HashScrStringName");
+				gcx.DB_RegisterStreamOffset = game.GetPointer<decltype(gcx.DB_RegisterStreamOffset)>("DB_RegisterStreamOffset");
+				gcx.DB_LoadStreamOffset = game.GetPointer<decltype(gcx.DB_LoadStreamOffset)>("DB_LoadStreamOffset");
 				gcx.poolInfo = game.GetPointer<decltype(gcx.poolInfo)>("poolInfo");
 
 				if (loadStreamObj) {
@@ -466,26 +468,15 @@ namespace fastfile::handlers::bo7 {
 				LOG_TRACE("DB_HashScrStringName = {}", hook::library::CodePointer{ gcx.DB_HashScrStringName });
 				LOG_TRACE("loadStreamObj = {}", hook::library::CodePointer{ loadStreamObj });
 
-				auto Red = [](void* from, void* to) {
-					if (from) {
-						hook::memory::RedirectJmp(from, to);
-					}
-				};
-
-				Red(game.GetPointer("GetMappedTypeStub"), GetMappedTypeStub);
-				Red(game.GetPointer("LoadStreamTA"), LoadStreamTA);
-				Red(game.GetPointer("Load_String"), Load_String);
-				Red(game.GetPointer("Load_StringName"), Load_String);
-				Red(game.GetPointer("DB_AddAsset"), DB_AddAsset);
-				Red(game.GetPointer("DB_AddAssetRef"), DB_AddAssetRef);
-				Red(game.GetPointer("Load_CustomScriptString"), Load_CustomScriptString);
-
-
-				gcx.DB_RegisterStreamOffset = game.GetPointer<decltype(gcx.DB_RegisterStreamOffset)>("DB_RegisterStreamOffset");
-				gcx.DB_LoadStreamOffset = game.GetPointer<decltype(gcx.DB_LoadStreamOffset)>("DB_LoadStreamOffset");
-				Red(game.GetPointer("$Unk_Align_Ret"), Unk_Align_Ret); // 2DE3CC0
-				Red(game.GetPointer("$Unk_RetFalse"), ReturnStub<4, bool, false>);
-
+				game.Redirect("GetMappedTypeStub", GetMappedTypeStub);
+				game.Redirect("LoadStreamTA", LoadStreamTA);
+				game.Redirect("Load_String", Load_String);
+				game.Redirect("Load_StringName", Load_String);
+				game.Redirect("DB_AddAsset", DB_AddAsset);
+				game.Redirect("DB_AddAssetRef", DB_AddAssetRef);
+				game.Redirect("Load_CustomScriptString", Load_CustomScriptString);
+				game.Redirect("$Unk_Align_Ret", Unk_Align_Ret); // 2DE3CC0
+				game.Redirect("$Unk_RetFalse", ReturnStub<4, bool, false>);
 				game.ApplyNullScans("fastfile");
 
 				hook::library::ScanLoggerLogsOpt logsOpt{};
