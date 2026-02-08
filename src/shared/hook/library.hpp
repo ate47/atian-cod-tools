@@ -127,15 +127,16 @@ namespace hook::library {
 		 * @param TypeOut return type
 		 * @param offset location offset
 		 * @param from relative start offset
+		 * @param after offset added after the resolve
 		 * @return pointer
 		 */
 		template<typename Type, typename TypeOut = byte*>
-		inline TypeOut GetRelativeFrom(size_t offset, size_t from) const {
+		inline TypeOut GetRelativeFrom(size_t offset, size_t from, int64_t after = 0) const {
 			if (!location) {
 				if (entry) entry->location = nullptr;
 				return nullptr;
 			}
-			byte* loc{ location + from + Get<Type>(offset) };
+			byte* loc{ location + from + Get<Type>(offset) + after };
 			if (entry) entry->location = loc;
 			return reinterpret_cast<TypeOut>(loc);
 		}
@@ -145,11 +146,12 @@ namespace hook::library {
 		 * @param Type offset read type
 		 * @param TypeOut return type
 		 * @param offset location offset
+		 * @param after offset added after the resolve
 		 * @return pointer
 		 */
 		template<typename Type, typename TypeOut = byte*>
-		constexpr TypeOut GetRelative(size_t offset) const {
-			return GetRelativeFrom<Type, TypeOut>(offset, offset + sizeof(Type));
+		constexpr TypeOut GetRelative(size_t offset, int64_t after = 0) const {
+			return GetRelativeFrom<Type, TypeOut>(offset, offset + sizeof(Type), after);
 		}
 
 		/*

@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <scans_dir.hpp>
+#include <game_data.hpp>
 #include <games/cod/asset_names.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/fastfile/fastfile_dump.hpp>
@@ -418,7 +418,8 @@ namespace fastfile::handlers::bo7 {
 
 				hook::library::ScanLogger& logger{ mod.GetScanLogger() };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
-				acts::scan_dir::ScanDir scanDir{ gameDumpId, scan };
+				acts::game_data::GameData game{ gameDumpId };
+				game.SetScanContainer(&scan);
 
 				gcx.opt = &opt;
 
@@ -451,18 +452,14 @@ namespace fastfile::handlers::bo7 {
 
 				scan.ignoreMissing = true;
 
-				LoadStreamObject* loadStreamObj{ scan.ScanAny("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "loadStreamObj").GetRelative<int32_t, LoadStreamObject*>(25) };
+				LoadStreamObject* loadStreamObj{ game.GetPointer<LoadStreamObject*>("loadStreamObj") };
+				gcx.Load_Asset = game.GetPointer<decltype(gcx.Load_Asset)>("Load_Asset");
+				gcx.DB_HashScrStringName = game.GetPointer<decltype(gcx.DB_HashScrStringName)>("DB_HashScrStringName");
+				gcx.poolInfo = game.GetPointer<decltype(gcx.poolInfo)>("poolInfo");
+
 				if (loadStreamObj) {
 					loadStreamObj->__vtb = &dbLoadStreamVTable;
 				}
-
-				gcx.Load_Asset = scan.ScanSingle("4C 8B DC 49 89 5B ? 57 48 83 EC ? 49 8B D8 48 8B F9 84 D2 74 3C 48 8B 05 ? ? ? ? 4D 8D 4B E8 49 C7 43 ? ? ? ? ? 4D 8D 43 ? 49 89 5B E8 48 8B D1 C6 44 24 ? ? 48 8D 0D ? ? ? ? 4C 8B 10 49 8D 43 ? 49 89 43 D8 41 FF D2 84 C0 74 1C 48", "Load_Asset")
-					.GetPtr<decltype(gcx.Load_Asset)>();
-				gcx.DB_HashScrStringName = scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48", "DB_HashScrStringName")
-					.GetPtr<decltype(gcx.DB_HashScrStringName)>();
-
-				gcx.poolInfo = (AssetPoolInfo*)(scan.ScanSingle("4C 8D 1D ? ? ? ? 49 8B C0 49 8B D1", "poolInfo")
-					.GetRelative<int32_t>(3) - offsetof(AssetPoolInfo, SetAssetName));
 
 				LOG_TRACE("poolInfo = {}", hook::library::CodePointer{ gcx.poolInfo });
 				LOG_TRACE("Load_Asset = {}", hook::library::CodePointer{ gcx.Load_Asset });

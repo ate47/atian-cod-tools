@@ -2,7 +2,7 @@
 #include <deps/idc_builder.hpp>
 #include <hook/module_mapper.hpp>
 #include <games/cod/asset_names.hpp>
-#include <scans_dir.hpp>
+#include <game_data.hpp>
 
 namespace {
 
@@ -51,18 +51,21 @@ namespace {
 		deps::idc_builder::IdcBuilder idcBuilder{};
 
 		hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
-		acts::scan_dir::ScanDir dir{ "bo7", scan };
+		acts::game_data::GameData game{ "bo7" };
+		game.SetScanContainer(&scan);
+		game.AddTypesToIdc(idcBuilder);
+		game.ScanAllToIdc(idcBuilder);
 
 		iwGscData.pool.clear();
 		LOG_INFO("Loading data...");
 
-		void* Scr_RegisterGscFunction{ dir.GetPointer("Scr_RegisterGscFunction") };
-		void* Scr_RegisterGscMethod{ dir.GetPointer("Scr_RegisterGscMethod") };
-		void* Scr_RegisterGscIgnored{ dir.GetPointer("$Scr_RegisterGscIgnored") };
-		void* Scr_RegisterGscSortIgnored{ dir.GetPointer("$Scr_RegisterGscSortIgnored") };
-		void* Load_AssetType{ dir.GetPointer("Load_AssetType") };
-		void* Load_AssetHeader{ dir.GetPointer("Load_AssetHeader") };
-		std::vector<void(*)(byte*)> Scr_RegisterGens{ dir.GetPointerArray<void(*)(byte*)>("$Scr_RegisterGens") };
+		void* Scr_RegisterGscFunction{ game.GetPointer("Scr_RegisterGscFunction") };
+		void* Scr_RegisterGscMethod{ game.GetPointer("Scr_RegisterGscMethod") };
+		void* Scr_RegisterGscIgnored{ game.GetPointer("$Scr_RegisterGscIgnored") };
+		void* Scr_RegisterGscSortIgnored{ game.GetPointer("$Scr_RegisterGscSortIgnored") };
+		void* Load_AssetType{ game.GetPointer("Load_AssetType") };
+		void* Load_AssetHeader{ game.GetPointer("Load_AssetHeader") };
+		std::vector<void(*)(byte*)> Scr_RegisterGens{ game.GetPointerArray<void(*)(byte*)>("$Scr_RegisterGens") };
 
 
 		if (scan.foundMissing) {
@@ -110,7 +113,7 @@ namespace {
 		assets.InitMap(mod);
 
 		size_t count{ assets.TypesCount() };
-		deps::idc_builder::IdcEnumId assetTypeId{ idcBuilder.AddEnum("AssetType") };
+		deps::idc_builder::IdcEnumId assetTypeId{ idcBuilder.AddEnum("AssetType", true) };
 		for (size_t i = 0; i < count; i++) {
 			idcBuilder.AddEnumMember(assetTypeId, utils::va("ASSET_TYPE_%s", assets.GetCppName(i)), (int64_t)i);
 		}
@@ -155,8 +158,6 @@ namespace {
 			}
 		}
 
-		idcBuilder.AddStruct("DBLoadCtx");
-
 		for (auto& [assetId, func] : loadPtrFuncs) {
 			const char* name{ assets.GetTypeName(assetId) };
 			char* typeName{ utils::CloneString(name) };
@@ -169,15 +170,6 @@ namespace {
 			);
 
 		}
-		idcBuilder.AddAddress(Load_AssetType, "Load_AssetType", "void Load_AssetType(DBLoadCtx* ctx, AssetType* type)\");");
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAsset\"), \"void* DB_AddAsset(DBLoadCtx* ctx, AssetType type, void** handle)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_AddAssetRef\"), \"void* DB_AddAssetRef(AssetType type, uint64_t name, void* strName)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"LoadStreamTA\"), \"bool LoadStreamTA(DBLoadCtx * context, bool atStreamStart, void* ptr, int64_t len)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_String\"), \"void Load_String(DBLoadCtx * context, char** pstr)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_StringName\"), \"void Load_StringName(DBLoadCtx * context, char** pstr)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"Load_CustomScriptString\"), \"void Load_CustomScriptString(DBLoadCtx * context, uint32_t * pstr)\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_LoadStreamOffset\"), \"void DB_LoadStreamOffset(DBLoadCtx * ctx, uint64_t val, void** pptr);\");\n";
-		//utils::Padding(idaScript, 1) << "SetType(LocByName(\"DB_RegisterStreamOffset\"), \"void DB_RegisterStreamOffset(DBLoadCtx * ctx, uint64_t val, void* ptr);\");\n";
 
 		idcBuilder.WriteIdcFile(idcFile);
 		LOG_INFO("Created {}", idcFile.string());

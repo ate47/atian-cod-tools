@@ -15,6 +15,14 @@ namespace core::config {
 		int64_t enumValue;
 	};
 
+
+	int64_t ParseEnumValue(const char* value, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue = {}, const char* path = nullptr);
+
+	template <typename T>
+	inline T ParseEnumValue(const char* value, ConfigEnumData* data, size_t dataCount, T defaultEnumValue = {}, const char* path = nullptr) {
+		return (T)ParseEnumValue(value, data, dataCount, (int64_t)defaultEnumValue, path);
+	}
+
 	class Config {
 	public:
 		const std::filesystem::path configFile;

@@ -9,6 +9,27 @@ namespace core::config {
 	namespace {
 		std::filesystem::path mainConfigFile{ MAIN_CONFIG_FILE };
 	}
+	int64_t ParseEnumValue(const char* value, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue, const char* path) {
+		if (!value || !*value) {
+			return defaultEnumValue;
+		}
+
+		for (size_t i = 0; i < dataCount; i++) {
+			if (!_strcmpi(value, data[i].name)) {
+				return data[i].enumValue;
+			}
+		}
+
+		if (path) {
+			LOG_WARNING("Invalid enum config for path '{}': '{}'", path, value);
+		}
+		else {
+			LOG_WARNING("Invalid enum config: '{}'", value);
+		}
+
+		return defaultEnumValue;
+	}
+
 	rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& Config::GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
 		static rapidjson::Value nullAnswer{ rapidjson::kNullType };
 		if (!path || !*path || loc.IsNull()) {
@@ -165,21 +186,8 @@ namespace core::config {
 				break;
 			}
 		}
-		std::string val{ this->GetString(path, defaultValueStr) };
-
-		if (val.empty()) {
-			return defaultEnumValue;
-		}
-
-		for (size_t i = 0; i < dataCount; i++) {
-			if (!_strcmpi(val.c_str(), data[i].name)) {
-				return data[i].enumValue;
-			}
-		}
-
-		LOG_WARNING("Invalid enum config for path '{}': '{}'", path, val);
-
-		return defaultEnumValue;
+		std::string val{ this->GetString(path)};
+		return ParseEnumValue(val.data(), data, dataCount, defaultEnumValue, path);
 	}
 
 	void Config::SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) {
