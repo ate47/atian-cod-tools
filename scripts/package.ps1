@@ -85,7 +85,7 @@ try {
     Copy-Item "build/bin/*.dll" "$base/bin" > $null
 
     # Scans
-    Copy-Item "build/bin/games" "$base/bin/games" -Recurse > $null
+    Copy-Item "build/bin/games" "$base/bin" -Recurse > $null
     
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null

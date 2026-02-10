@@ -7,7 +7,7 @@ try {
     Set-Location ($base.Fullname)
     
     Write-Host "-- Copy scans"
-    Copy-Item -Recurse "config\games" "build\bin\games"
+    Copy-Item -Recurse "config\games" "build\bin" -ErrorAction Ignore > $null
 }
 finally {
     $prevPwd | Set-Location
