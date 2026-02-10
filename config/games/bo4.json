@@ -1,0 +1,197 @@
+{
+    "module": "BlackOps4_dump.exe",
+    "scans": {
+		"Load_XAssetHeader": {
+            "scan": "0x2E35D50",
+            "type": "Offset"
+        },
+		"Load_Stream": {
+            "scan": "0x2EBC050",
+            "type": "Offset"
+        },
+		"DB_PopStreamPos": {
+            "scan": "0x2EBBE20",
+            "type": "Offset"
+        },
+		"DB_PushStreamPos": {
+            "scan": "0x2EBBEA0",
+            "type": "Offset"
+        },
+		"DB_IncStreamPos": {
+            "scan": "0x2EBBBE0",
+            "type": "Offset"
+        },
+		"DB_AllocStreamPos": {
+            "scan": "0x2EBBBA0",
+            "type": "Offset"
+        },
+		"DB_ConvertOffsetToPointer": {
+            "scan": "0x2EBBFF0",
+            "type": "Offset"
+        },
+		"DB_ConvertOffsetToAlias": {
+            "scan": "0x2EBBFB0",
+            "type": "Offset"
+        },
+		"DB_GetOffsetData": {
+            "scan": "0x2EBC020",
+            "type": "Offset"
+        },
+		"DB_InsertPointer": {
+            "scan": "0x2EBBCC0",
+            "type": "Offset"
+        },
+		"DB_AllocXBlocks": {
+            "scan": "0x2EB5870",
+            "type": "Offset"
+        },
+		"DB_InitStreams": {
+            "scan": "0x2EBBBF0",
+            "type": "Offset"
+        },
+		"DB_LoadXFileData": {
+            "scan": "0x2E0E130",
+            "type": "Offset"
+        },
+		"Load_XStringCustom": {
+            "scan": "0x2EBC110",
+            "type": "Offset"
+        },
+		"DB_LinkXAssetEntry": {
+            "scan": "0x2EB84F0",
+            "type": "Offset"
+        },
+		"DB_FindXAssetHeader": {
+            "scan": "0x2EB75B0",
+            "type": "Offset"
+        }
+    },
+    "nullscans": {
+        "fastfile": {
+            "$Load_ScriptStringCustom1": {
+                "scan": "0x2EBC480",
+                "type": "Offset"
+            },
+            "$Load_ScriptStringCustom2": {
+                "scan": "0x2EBC430",
+                "type": "Offset"
+            },
+            "$Load_ScriptStringCustom3": {
+                "scan": "0x2EBC540",
+                "type": "Offset"
+            },
+			"$Com_Error_": {
+                "scan": "0x288B110",
+                "type": "Offset"
+            },
+			"$Load_GfxImageAdapter": {
+                "scan": "0x35BA450",
+                "type": "Offset"
+            },
+			"$Load_SndBankAsset": {
+                "scan": "0x3CA8870",
+                "type": "Offset"
+            },
+			"$Load_SndBankAsset1": {
+                "scan": "0x3CA88C0",
+                "type": "Offset"
+            },
+            "$unk0": {
+                "scan": "0x22B7AF0",
+                "type": "Offset"
+            },
+            "$unk1": {
+                "scan": "0x22B7B00",
+                "type": "Offset"
+            },
+            "$unk2": {
+                "scan": "0x2EBBDC0",
+                "type": "Offset"
+            },
+            "$unk3": {
+                "scan": "0x2EBBF40",
+                "type": "Offset"
+            },
+			"$unk4": {
+                "scan": "0x35FC100",
+                "type": "Offset"
+            },
+			"$unk5": {
+                "scan": "0x3733C90",
+                "type": "Offset"
+            },
+			"$unk6": {
+                "scan": "0x35FB980",
+                "type": "Offset"
+            },
+			"$unk7": {
+                "scan": "0x35FC060",
+                "type": "Offset"
+            },
+			"$unk8": {
+                "scan": "0x35FBFC0",
+                "type": "Offset"
+            },
+			"$unk9": {
+                "scan": "0x35FBDD0",
+                "type": "Offset"
+            },
+			"$unk10": {
+                "scan": "0x3600EA0",
+                "type": "Offset"
+            },
+			"$unk11": {
+                "scan": "0x370BD10",
+                "type": "Offset"
+            },
+			"$unk12": {
+                "scan": "0x353AE00",
+                "type": "Offset"
+            },
+			"$unk13": {
+                "scan": "0x3700CE0",
+                "type": "Offset"
+            },
+			"$unk14": {
+                "scan": "0x3DC46F0",
+                "type": "Offset"
+            },
+			"$unk15": {
+                "scan": "0x3CBBE00",
+                "type": "Offset"
+            },
+			"$unk16": {
+                "scan": "0x353AF10",
+                "type": "Offset"
+            },
+			"$unk17": {
+                "scan": "0x353ADD0",
+                "type": "Offset"
+            },
+			"$unk18": {
+                "scan": "0x3729A70",
+                "type": "Offset"
+            },
+			"$unk19": {
+                "scan": "0x35FBC90",
+                "type": "Offset"
+            },
+			"$unk20": {
+                "scan": "0x35FBF20",
+                "type": "Offset"
+            },
+			"$unk21": {
+                "scan": "0x35FBE80",
+                "type": "Offset"
+            },
+			"$unk22": {
+                "scan": "0x35FBD30",
+                "type": "Offset"
+            },
+			"$unk23": {
+                "scan": "0x35FCE50",
+                "type": "Offset"
+            }
+        }
+    }
+}

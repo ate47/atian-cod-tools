@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <game_data.hpp>
 #include <utils/enumlist.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/bo3/pools.hpp>
@@ -267,50 +268,34 @@ namespace {
 		}
 
 		void Init(fastfile::FastFileOption& opt) override {
-			hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps3_dump.exe", "bo3") };
+			acts::game_data::GameData game{ "bo3" };
+			std::string gameExe{ game.Config().GetString("module") };
+			hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), "bo3") };
+			hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+			game.SetScanContainer(&scan);
+			scan.Sync();
 
 			bo3FFHandlerContext.handleList.Clear();
 			if (opt.assetTypes) {
 				bo3FFHandlerContext.handleList.LoadConfig(opt.assetTypes);
 			}
 
-			bo3FFHandlerContext.varXAsset = lib.Get<XAsset_0*>(0x940E838);
-			bo3FFHandlerContext.Load_XAsset = reinterpret_cast<decltype(bo3FFHandlerContext.Load_XAsset)>(lib[0x140E200]);
-			bo3FFHandlerContext.DB_GetXAssetName = reinterpret_cast<decltype(bo3FFHandlerContext.DB_GetXAssetName)>(lib[0x13E9D80]);
+			game.Get("varXAsset", &bo3FFHandlerContext.varXAsset);
+			game.Get("Load_XAsset", &bo3FFHandlerContext.Load_XAsset);
+			game.Get("DB_GetXAssetName", &bo3FFHandlerContext.DB_GetXAssetName);
 
-			hook::memory::RedirectJmp(lib[0x14266D0], Load_StreamStub);
-			hook::memory::RedirectJmp(lib[0x1426390], DB_AllocStreamPos);
-			hook::memory::RedirectJmp(lib[0x1426190], Load_SimpleAsset_Internal);
-			hook::memory::RedirectJmp(lib[0x1426620], DB_ConvertOffsetToAlias);
-			hook::memory::RedirectJmp(lib[0x1426650], DB_ConvertOffsetToPointer);
-			hook::memory::RedirectJmp(lib[0x14263B0], DB_IncStreamPos);
-			hook::memory::RedirectJmp(lib[0x1426460], DB_InsertPointer);
-			hook::memory::RedirectJmp(lib[0x14267E0], Load_XStringCustom);
-			hook::memory::RedirectJmp(lib[0x1426500], DB_PopStreamPos);
-			hook::memory::RedirectJmp(lib[0x1426580], DB_PushStreamPos);
+			game.Redirect("Load_StreamStub", Load_StreamStub);
+			game.Redirect("DB_AllocStreamPos", DB_AllocStreamPos);
+			game.Redirect("Load_SimpleAsset_Internal", Load_SimpleAsset_Internal);
+			game.Redirect("DB_ConvertOffsetToAlias", DB_ConvertOffsetToAlias);
+			game.Redirect("DB_ConvertOffsetToPointer", DB_ConvertOffsetToPointer);
+			game.Redirect("DB_IncStreamPos", DB_IncStreamPos);
+			game.Redirect("DB_InsertPointer", DB_InsertPointer);
+			game.Redirect("Load_XStringCustom", Load_XStringCustom);
+			game.Redirect("DB_PopStreamPos", DB_PopStreamPos);
+			game.Redirect("DB_PushStreamPos", DB_PushStreamPos);
 
-			hook::memory::RedirectJmp(lib[0x141F4C0], EmptyStub); // link image
-			hook::memory::RedirectJmp(lib[0x1CB6F20], EmptyStub); // load texture
-			hook::memory::RedirectJmp(lib[0x1426800], EmptyStub); // Load_ScriptStringCustom, use idx
-			hook::memory::RedirectJmp(lib[0x14261B0], EmptyStub); // Load_SndBankAsset
-			hook::memory::RedirectJmp(lib[0x1CD4190], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD45B0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD4550], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD4380], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD4430], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD47C0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1D27810], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1D17660], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x22728B0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x22728F0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8C050], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x14260C0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8C190], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1426160], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1426090], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x14260F0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1C8BFB0], EmptyStub); // unk
-			hook::memory::RedirectJmp(lib[0x1CD4610], EmptyStub); // unk
+			game.ApplyNullScans("fastfile");
 			
 			// write pool data to disk
 			if (opt.assertContainer) {

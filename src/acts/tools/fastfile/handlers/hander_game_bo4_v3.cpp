@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <game_data.hpp>
 #include <utils/enumlist.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/fastfile/fastfile_dump.hpp>
@@ -512,58 +513,32 @@ namespace fastfile::handlers::bo4 {
 					gcx.handleList.LoadConfig(opt.assetTypes);
 				}
 
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps4_dump.exe", "bo4") };
+				acts::game_data::GameData game{ "bo4" };
+				std::string gameExe{ game.Config().GetString("module") };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), "bo4") };
+				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+				game.SetScanContainer(&scan);
+				scan.Sync();
 
-				gcx.Load_XAssetHeader = reinterpret_cast<decltype(gcx.Load_XAssetHeader)>(lib[0x2E35D50]);
+				game.Get("Load_XAssetHeader", &gcx.Load_XAssetHeader);
 
-				hook::memory::RedirectJmp(lib[0x2EBC050], Load_Stream);
-				hook::memory::RedirectJmp(lib[0x2EBBE20], DB_PopStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBEA0], DB_PushStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBBE0], DB_IncStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBBA0], DB_AllocStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBFF0], DB_ConvertOffsetToPointer);
-				hook::memory::RedirectJmp(lib[0x2EBBFB0], DB_ConvertOffsetToAlias);
-				hook::memory::RedirectJmp(lib[0x2EBC020], DB_GetOffsetData);
-				hook::memory::RedirectJmp(lib[0x2EBBCC0], DB_InsertPointer);
-				hook::memory::RedirectJmp(lib[0x2EB5870], DB_AllocXBlocks);
-				hook::memory::RedirectJmp(lib[0x2EBBBF0], DB_InitStreams);
+				game.Redirect("Load_Stream", Load_Stream);
+				game.Redirect("DB_PopStreamPos", DB_PopStreamPos);
+				game.Redirect("DB_PushStreamPos", DB_PushStreamPos);
+				game.Redirect("DB_IncStreamPos", DB_IncStreamPos);
+				game.Redirect("DB_AllocStreamPos", DB_AllocStreamPos);
+				game.Redirect("DB_ConvertOffsetToPointer", DB_ConvertOffsetToPointer);
+				game.Redirect("DB_ConvertOffsetToAlias", DB_ConvertOffsetToAlias);
+				game.Redirect("DB_GetOffsetData", DB_GetOffsetData);
+				game.Redirect("DB_InsertPointer", DB_InsertPointer);
+				game.Redirect("DB_AllocXBlocks", DB_AllocXBlocks);
+				game.Redirect("DB_InitStreams", DB_InitStreams);
+				game.Redirect("DB_LoadXFileData", DB_LoadXFileData);
+				game.Redirect("Load_XStringCustom", Load_XStringCustom);
+				game.Redirect("DB_LinkXAssetEntry", DB_LinkXAssetEntry);
+				game.Redirect("DB_FindXAssetHeader", DB_FindXAssetHeader);
 
-				hook::memory::RedirectJmp(lib[0x2E0E130], DB_LoadXFileData);
-				hook::memory::RedirectJmp(lib[0x2EBC110], Load_XStringCustom);
-				hook::memory::RedirectJmp(lib[0x2EB84F0], DB_LinkXAssetEntry);
-				hook::memory::RedirectJmp(lib[0x2EB75B0], DB_FindXAssetHeader);
-
-				RemoveStub<0x2EBC480>(lib); // Load_ScriptStringCustom1
-				RemoveStub<0x2EBC430>(lib); // Load_ScriptStringCustom2
-				RemoveStub<0x2EBC540>(lib); // Load_ScriptStringCustom3
-				RemoveStub<0x22B7AF0>(lib); // unk
-				RemoveStub<0x22B7B00>(lib); // unk
-				RemoveStub<0x2EBBDC0, true>(lib); // not sure
-				RemoveStub<0x2EBBF40, true>(lib); // not sure
-				RemoveStub<0x288B110, true>(lib); // Com_Error_
-				RemoveStub<0x35BA450>(lib); // Load_GfxImageAdapter
-				RemoveStub<0x3CA8870>(lib); // Load_SndBankAsset
-				RemoveStub<0x3CA88C0>(lib); // Load_SndBankAsset
-				RemoveStub<0x35FC100>(lib); // unk
-				RemoveStub<0x3733C90>(lib); // unk
-				RemoveStub<0x35FB980>(lib); // load texture
-				RemoveStub<0x35FC060>(lib); // unk
-				RemoveStub<0x35FBFC0>(lib); // unk
-				RemoveStub<0x35FBDD0>(lib); // unk
-				RemoveStub<0x3600EA0>(lib); // unk
-				RemoveStub<0x370BD10>(lib); // unk
-				RemoveStub<0x353AE00>(lib); // unk
-				RemoveStub<0x3700CE0>(lib); // unk
-				RemoveStub<0x3DC46F0>(lib); // unk
-				RemoveStub<0x3CBBE00>(lib); // unk
-				RemoveStub<0x353AF10>(lib); // unk
-				RemoveStub<0x353ADD0>(lib); // unk
-				RemoveStub<0x3729A70>(lib); // unk
-				RemoveStub<0x35FBC90>(lib); // unk
-				RemoveStub<0x35FBF20>(lib); // unk
-				RemoveStub<0x35FBE80>(lib); // unk
-				RemoveStub<0x35FBD30>(lib); // unk
-				RemoveStub<0x35FCE50>(lib); // unk
+				game.ApplyNullScans("fastfile");
 
 
 			}

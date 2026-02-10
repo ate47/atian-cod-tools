@@ -6,6 +6,7 @@
 namespace acts::game_data {
 	constexpr const char* BASE_PARENT = "scans";
 	std::filesystem::path GetBaseDir();
+	size_t ParseOffsetScan(const std::string& scan);
 
 	enum CTypeType {
 		CTT_UNKNOWN = 0,
@@ -17,6 +18,7 @@ namespace acts::game_data {
 		SCT_UNKNOWN = 0,
 		SCT_RELATIVE,
 		SCT_ABSOLUTE,
+		SCT_OFFSET,
 	};
 
 	struct ScanData {
@@ -61,6 +63,11 @@ namespace acts::game_data {
 		void Redirect(const char* id, void* to, const char* parent = BASE_PARENT);
 		// null a scan
 		void Nulled(const char* id, const char* parent = BASE_PARENT);
+		// get a pointer
+		template<typename T>
+		void Get(const char* id, T* ptr, const char* parent = BASE_PARENT) {
+			*ptr = GetPointer<T>(id, parent);
+		}
 
 		// Get a pointer from a scan
 		template<typename Type = void*>
@@ -68,6 +75,11 @@ namespace acts::game_data {
 			ScanData data{ GetScan(id, parent) };
 			hook::scan_container::ScanContainer& scan{ GetScanContainer() };
 			bool nullName{ data.name[0] == '$' };
+
+			if (data.type == SCT_OFFSET) {
+				return (Type)scan.GetLibrary().Get<void>(data.offset + data.postOffset);
+			}
+
 			hook::library::ScanResult res{
 				data.single ? scan.ScanSingle(data.path.data(), nullName ? nullptr : data.name.data())
 				: scan.ScanAny(data.path.data(), nullName ? nullptr : data.name.data())
@@ -88,6 +100,11 @@ namespace acts::game_data {
 		std::vector<Type> GetPointerArray(const char* id, const char* parent = BASE_PARENT) {
 			ScanData data{ GetScan(id, parent) };
 			hook::scan_container::ScanContainer& scan{ GetScanContainer() };
+
+			if (data.type == SCT_OFFSET) {
+				return { (Type)scan.GetLibrary()[data.offset + data.postOffset] };
+			}
+
 			std::vector<hook::library::ScanResult> sres{ scan.Scan(data.path.data(), data.name[0] == '$' ? nullptr : data.name.data()) };
 
 			if (data.single && sres.size() > 1) {

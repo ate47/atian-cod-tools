@@ -10,6 +10,7 @@ namespace acts::game_data {
 	static core::config::ConfigEnumData scanTypeInfo[]{
 		{ "Relative", SCT_RELATIVE },
 		{ "Absolute", SCT_ABSOLUTE },
+		{ "Offset", SCT_OFFSET },
 	};
 
 
@@ -20,6 +21,23 @@ namespace acts::game_data {
 			return utils::GetProgDir() / "games";
 		}
 		return scanpath;
+	}
+	size_t ParseOffsetScan(const std::string& scan) {
+		size_t val;
+		try {
+			size_t idx{};
+			if (scan.starts_with("0x")) {
+				idx = 2;
+			}
+			val = std::strtoull(scan.data() + idx, nullptr, 16);
+		}
+		catch (...) {
+			val = 0;
+		}
+		if (!val) {
+			throw std::runtime_error(std::format("Can't parse offset: {}", scan));
+		}
+		return val;
 	}
 
 	GameData::GameData(const char* dirname)
@@ -63,6 +81,9 @@ namespace acts::game_data {
 		}
 		if (!res.type) {
 			throw std::runtime_error(std::format("invalid scan type for {}::{}.{}", dirname, parent, id));
+		}
+		if (res.type = SCT_OFFSET) {
+			res.offset += ParseOffsetScan(res.path);
 		}
 
 		return res;
