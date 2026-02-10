@@ -86,6 +86,7 @@ try {
 
     # Scans
     Copy-Item "build/bin/games" "$base/bin" -Recurse > $null
+    Remove-Item -Force -ErrorAction Ignore "$base/bin/games/template.json" > $null
     
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
