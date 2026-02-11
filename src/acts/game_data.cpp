@@ -82,7 +82,7 @@ namespace acts::game_data {
 		if (!res.type) {
 			throw std::runtime_error(std::format("invalid scan type for {}::{}.{}", dirname, parent, id));
 		}
-		if (res.type = SCT_OFFSET) {
+		if (res.type == SCT_OFFSET) {
 			res.offset += ParseOffsetScan(res.path);
 		}
 
