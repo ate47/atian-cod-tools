@@ -269,8 +269,7 @@ namespace {
 
 		void Init(fastfile::FastFileOption& opt) override {
 			acts::game_data::GameData game{ "bo3" };
-			std::string gameExe{ game.Config().GetString("module") };
-			hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), "bo3") };
+			hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "bo3") };
 			hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 			game.SetScanContainer(&scan);
 			scan.Sync();

@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <game_data.hpp>
 #include <utils/enumlist.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/fastfile/fastfile_dump.hpp>
@@ -286,86 +287,54 @@ namespace fastfile::handlers::cw {
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOpsColdWar_dump.exe", "cw") };
-				hook::scan_container::ScanContainer scan{ lib, true };
-				scan.Sync();
+				acts::game_data::GameData game{ "cw" };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "cw")};
+				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+				game.SetScanContainer(&scan);
 
 				gcx.handleList.Clear();
 				if (opt.assetTypes) {
 					gcx.handleList.LoadConfig(opt.assetTypes);
 				}
 
-				if (!acts::decryptutils::LoadDecryptModule(lib)) {
+				if (!acts::decryptutils::LoadDecryptModule(mod)) {
 					throw std::runtime_error("Can't load decrypt module");
 				}
 
 				gcx.opt = &opt;
 
-				bool err{};
-#define __GCX_LOAD_PATTERN(_func, _pattern) try { _func = scan.ScanSingle(_pattern, #_func).GetPtr<decltype(_func)>(); } catch (std::exception& e) { LOG_ERROR("{}", e.what()); err = true; }
-				gcx.Load_XAsset = scan.ScanSingle("E8 ? ? ? ? 48 83 C3 ? 8D 4E ? E8 ? ? ? ? 8B F1 84 C0 75 06", "gcx.Load_XAsset").GetRelative<int32_t, decltype(gcx.Load_XAsset)>(1);
-				__GCX_LOAD_PATTERN(gcx.DB_GetXAssetTypeSize, "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 8B");
-				//__GCX_LOAD_PATTERN(gcx.DB_GetXAssetName, "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 48 8B");
+				scan.ignoreMissing = true;
 
-				__GCX_LOAD_PATTERN(gcx.Load_Stream, "48 89 5C 24 ? 57 48 83 EC ? 49 8B D8 4C 8B CA 40 B7 ? 84 C9 74 46 48 85 DB 74 41 48 63 05 ? ? ? ? 83 F8 ? 77 2D 48 8D 15 71");
-				__GCX_LOAD_PATTERN(gcx.DB_PopStreamPos, "44 8B 05 ? ? ? ? 4C 8D 0D ? ? ? ? 48 63");
-				__GCX_LOAD_PATTERN(gcx.DB_PushStreamPos, "40 53 48 83 EC 20 8B D9 83 F9 09");
-				__GCX_LOAD_PATTERN(gcx.DB_IncStreamPos, "48 01 0D ? ? ? ? C3");
-				__GCX_LOAD_PATTERN(gcx.DB_AllocStreamPos, "4C 8B 05 ? ? ? ? 48 63 D1 48");
-				__GCX_LOAD_PATTERN(gcx.DB_ConvertOffsetToPointer, "4C 8B 01 49 FF C8 49 8B C0 48 C1 E8 ? 48 8D 14 40 48 B8 FF FF FF FF FF FF FF 0F 4C 23 C0 48 8B 05 ? ? ? ? 4C");
-				__GCX_LOAD_PATTERN(gcx.DB_AllocXBlocks, "40 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 05 ? ? ? ? 48 33 C4 48 89 84 24 ? ? ? ? 8B");
-				__GCX_LOAD_PATTERN(gcx.DB_InitStreams, "33 D2 48 89 0D ? ? ? ? 48");
+				game.Get("Load_XAsset", &gcx.Load_XAsset);
+				game.Get("DB_GetXAssetTypeSize", &gcx.DB_GetXAssetTypeSize);
+				game.Get("Load_Stream", &gcx.Load_Stream);
+				game.Get("DB_PopStreamPos", &gcx.DB_PopStreamPos);
+				game.Get("DB_PushStreamPos", &gcx.DB_PushStreamPos);
+				game.Get("DB_IncStreamPos", &gcx.DB_IncStreamPos);
+				game.Get("DB_AllocStreamPos", &gcx.DB_AllocStreamPos);
+				game.Get("DB_ConvertOffsetToPointer", &gcx.DB_ConvertOffsetToPointer);
+				game.Get("DB_AllocXBlocks", &gcx.DB_AllocXBlocks);
+				game.Get("DB_InitStreams", &gcx.DB_InitStreams);
 
-				hook::memory::RedirectJmp(scan.ScanSingle("85 D2 0F 8E 45 01 00 00 41", "DB_LoadXFileData").location, DB_LoadXFileData);
-				hook::memory::RedirectJmp(scan.ScanSingle("E8 ? ? ? ? EB 08 48 8B CF E8 ? ? ? ? 33 C9", "Load_XStringCustom").GetRelative<int32_t>(1), Load_XStringCustom);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 05 ? ? ? ? 48 33 C4 48 89 84 24 ? ? ? ? 48 8B EA", "DB_LinkXAssetEntry").location, DB_LinkXAssetEntry);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D AC 24 80 D0", "DB_FindXAssetHeader").location, DB_FindXAssetHeader);
-				hook::memory::RedirectJmp(scan.ScanSingle("44 89 4C 24 ? 4C 89 44 24 ? 48 89 54 24 ? 48 89 4C 24 ? 57", "PMem_Alloc").location, PMem_Alloc);
-
-				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 8B 03 48 85 C0 74 2B", "Load_ScriptStringCustom1").GetRelative<int32_t, void*>(1));
-				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 8B 43 ? 48 85 C0 74 54", "Load_ScriptStringCustom2").GetRelative<int32_t, void*>(1));
-				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? EB 09 48 8D 4B ? E8 ? ? ? ? 48 83 7B ? ? 0F 84 DA 00 00 00").GetRelative<int32_t, void*>(1));
-
-				hook::memory::Nulled(scan.ScanSingle("48 83 EC ? 48 8B 01 4C 8B D2").location);
-				hook::memory::Nulled(scan.ScanSingle("40 53 48 83 EC ? 48 8D 4A").location);
-				hook::memory::Nulled(scan.ScanSingle("40 53 48 83 EC ? 48 8B 19 41").location);
-				hook::memory::Nulled(scan.ScanSingle("48 83 EC ? 48 85 D2 74 30").location);
-				hook::memory::Nulled(scan.ScanSingle("48 85 D2 0F 84 81 00 00 00 48 89").location);
-				hook::memory::Nulled(scan.ScanSingle("48 85 D2 0F 84 9A 00").location);
-				hook::memory::Nulled(scan.ScanSingle("48 85 C9 0F 84 26 02 00 00 48").location);
-				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 35 ? ? ? ? 33").location);
-				hook::memory::Nulled(scan.ScanSingle("48 8B 81 ? ? ? ? 48 85 C0 74 10 48").location);
-				hook::memory::Nulled(scan.ScanSingle("48 85 C9 0F 84 84 00 00 00 53").location);
-				hook::memory::Nulled(scan.ScanSingle("40 53 48 83 EC ? 48 8B D9 E8 ? ? ? ? 84 C0 74 1F BA").location);
-				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 55 41 54 41 55 41 56 41 57 48 8D 6C 24 C9 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 45 ? 4C 8B 29").location);
-				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 57 41 56 41 57 48 83 EC ? 4C 8B 35").location);
-				hook::memory::Nulled(scan.ScanSingle("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 49").location);
-				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 83 C6 ? 48 83 C3 ? 49 83 EE ? 75 BA").GetRelative<int32_t, void*>(1));
-				hook::memory::Nulled(scan.ScanSingle("E8 ? ? ? ? 48 83 EF 80 48 83 EB 80 48 83 EE ? 75 BA").GetRelative<int32_t, void*>(1));
-				hook::memory::RedirectJmp(scan.ScanSingle("E8 ?? ?? ?? ?? 8B F0 83 FD", "Unk_navmesh").GetRelative<int32_t, void*>(1), Return3Stub);
-				hook::memory::Nulled(scan.ScanSingle("E8 ?? ?? ?? ?? 48 8D 93 ?? ?? ?? ?? 48 8B CB 48 83 C4 ?? 5B E9 ?? ?? ?? ?? 48 83 C4", "Unk_vehicleassembly").GetRelative<int32_t, void*>(1));
-				hook::memory::Nulled(scan.ScanSingle("48 85 C9 0F 84 CF 00 00 00 41", "Unk_ClipMap").location);
-				hook::memory::Nulled(scan.ScanSingle("48 85 C9 0F 84 84 00 00 00 53", "Unk_GfxMap").location);
-
+				game.Redirect("DB_LoadXFileData", DB_LoadXFileData);
+				game.Redirect("Load_XStringCustom", Load_XStringCustom);
+				game.Redirect("DB_LinkXAssetEntry", DB_LinkXAssetEntry);
+				game.Redirect("DB_FindXAssetHeader", DB_FindXAssetHeader);
+				game.Redirect("PMem_Alloc", PMem_Alloc);
+				game.Redirect("$UnkNavMesh", Return3Stub);
 
 				// the link functions are inlined for these assets, we need to patch them
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 84 D2 75 0D 48 8B 11 B1 ? E8 ? ? ? ? 48 89 07 48 8B 3F 48 8D 9F ? ? ? ?", "DB_LinkWeapon").location, DB_LinkCustomAsset<ASSET_TYPE_WEAPON>);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 48 89 6C 24 ? 48 8B D9", "DB_LinkAttachmentUnique").location, DB_LinkCustomAsset<ASSET_TYPE_ATTACHMENTUNIQUE>);
-				hook::memory::RedirectJmp(scan.ScanSingle("48 89 5C 24 ? 57 48 83 EC ? 48 8B 11 48 8B F9 B1", "DB_LinkSoundBank").location, DB_LinkCustomAsset<ASSET_TYPE_SOUND_BANK>);
-				hook::memory::RedirectJmp(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 83 7B ? ? 74 37", "DB_LinkDestructibleDef").GetRelative<int32_t, void*>(1), DB_LinkCustomAsset<ASSET_TYPE_DESTRUCTIBLEDEF>);
-				hook::memory::RedirectJmp(scan.ScanSingle("E8 ? ? ? ? E8 ? ? ? ? 48 8D 4B ? E8 ? ? ? ? 48 83 C3", "DB_LinkDynModel").GetRelative<int32_t, void*>(1), DB_LinkCustomAsset<ASSET_TYPE_DYNMODEL>);
-				
-				// old rvas, removed by other scans, but I keep them to be sure
-				//hook::memory::RedirectJmp(lib[0x9E1A420], DB_LinkCustomAsset<ASSET_TYPE_VEHICLE>);
-				//hook::memory::RedirectJmp(lib[0xBF4C710], DB_LinkCustomAsset<ASSET_TYPE_NAVMESH>);
-				//hook::memory::RedirectJmp(lib[0xC9695E0], DB_LinkCustomAsset<ASSET_TYPE_VEHICLEASSEMBLY>);
-				//hook::memory::RedirectJmp(lib[0xC7BBA30], DB_LinkCustomAsset<ASSET_TYPE_CLIP_MAP>);
-				//hook::memory::RedirectJmp(lib[0xC559210], DB_LinkCustomAsset<ASSET_TYPE_GFX_MAP>);
-				
-				
-#undef __GCX_LOAD_PATTERN
+				game.Redirect("DB_LinkWeapon", DB_LinkCustomAsset<ASSET_TYPE_WEAPON>);
+				game.Redirect("DB_LinkAttachmentUnique", DB_LinkCustomAsset<ASSET_TYPE_ATTACHMENTUNIQUE>);
+				game.Redirect("DB_LinkSoundBank", DB_LinkCustomAsset<ASSET_TYPE_SOUND_BANK>);
+				game.Redirect("DB_LinkDestructibleDef", DB_LinkCustomAsset<ASSET_TYPE_DESTRUCTIBLEDEF>);
+				game.Redirect("DB_LinkDynModel", DB_LinkCustomAsset<ASSET_TYPE_DYNMODEL>);
 
-				if (err) throw std::runtime_error("can't init");
+				game.ApplyNullScans("fastfile");
+
+				if (scan.foundMissing) {
+					throw std::runtime_error("Can't find some patterns");
+				}
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {

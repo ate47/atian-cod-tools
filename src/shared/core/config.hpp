@@ -36,7 +36,13 @@ namespace core::config {
 		inline int64_t GetInteger(const std::string& path, int64_t defaultValue = 0) { return GetInteger(path.c_str(), defaultValue); }
 		double GetDouble(const char* path, double defaultValue = 0);
 		inline double GetDouble(const std::string& path, double defaultValue = 0) { return GetDouble(path.c_str(), defaultValue); }
-		std::string GetString(const char* path, const char* defaultValue = "");
+		const char* GetCString(const char* path, const char* defaultValue = nullptr);
+		inline const char* GetCString(const std::string& path, const char* defaultValue = nullptr) { return GetCString(path.c_str(), defaultValue); }
+		inline const char* GetCString(const char* path, const std::string& defaultValue) { return GetCString(path, defaultValue.c_str()); }
+		inline const char* GetCString(const std::string& path, const std::string& defaultValue) { return GetCString(path.c_str(), defaultValue.c_str()); }
+		inline std::string GetString(const char* path, const char* defaultValue = "") {
+			return GetCString(path, defaultValue);
+		}
 		inline std::string GetString(const std::string& path, const char* defaultValue = "") { return GetString(path.c_str(), defaultValue); }
 		inline std::string GetString(const char* path, const std::string& defaultValue) { return GetString(path, defaultValue.c_str()); }
 		inline std::string GetString(const std::string& path, const std::string& defaultValue) { return GetString(path.c_str(), defaultValue.c_str()); }
@@ -92,6 +98,12 @@ namespace core::config {
 	}
 	inline double GetDouble(const std::string& path, double defaultValue = 0) {
 		return GetMainConfig().GetDouble(path, defaultValue);
+	}
+	inline const char* GetCString(const char* path, const char* defaultValue = "") {
+		return GetMainConfig().GetCString(path, defaultValue);
+	}
+	inline const char* GetCString(const std::string& path, const char* defaultValue = "") {
+		return GetMainConfig().GetCString(path, defaultValue);
 	}
 	inline std::string GetString(const char* path, const char* defaultValue = "") {
 		return GetMainConfig().GetString(path, defaultValue);

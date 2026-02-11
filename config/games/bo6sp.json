@@ -1,5 +1,7 @@
 {
     "module": "sp24-cod_dump.exe",
+    "firstAssetName": "physicslibrary",
+    "endAssetName": "string",
     "cdecls": [
         {
             "decl": "struct Asset { AssetType type; void* handle; };"

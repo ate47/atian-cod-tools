@@ -514,8 +514,7 @@ namespace fastfile::handlers::bo4 {
 				}
 
 				acts::game_data::GameData game{ "bo4" };
-				std::string gameExe{ game.Config().GetString("module") };
-				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), "bo4") };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "bo4") };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				game.SetScanContainer(&scan);
 				scan.Sync();

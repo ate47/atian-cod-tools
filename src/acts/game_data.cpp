@@ -11,6 +11,7 @@ namespace acts::game_data {
 		{ "Relative", SCT_RELATIVE },
 		{ "Absolute", SCT_ABSOLUTE },
 		{ "Offset", SCT_OFFSET },
+		{ "GetOffset32", SCT_GET_OFFSET32 },
 	};
 
 
@@ -63,6 +64,22 @@ namespace acts::game_data {
 		if (loc) {
 			hook::memory::Nulled(loc);
 		}
+	}
+
+	void GameData::Detour(const char* id, hook::library::Detour& detour, void* to, const char* parent) {
+		void* loc{ GetPointer(id, parent) };
+		if (loc) {
+			detour.Create(loc, to);
+		}
+		
+	}
+
+	const char* GameData::GetModuleName() {
+		const char* dump{ cfg.GetCString("module") };
+		if (!dump) {
+			throw std::runtime_error(std::format("Missing game data module for {}", dirname));
+		}
+		return dump;
 	}
 
 	ScanData GameData::GetScan(const char* id, const char* parent) {

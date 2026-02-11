@@ -142,6 +142,16 @@ namespace games::cod::asset_names {
 
 		/*
 		 * Create a type map using a game, throw an exception if it fails
+		 * @param scan scan container
+		 * @param first first string to match
+		 * @param last last string to match
+		 */
+		void InitMap(hook::scan_container::ScanContainer& scan, const char* first, const char* last) {
+			InitMap0(scan, scan.GetLibrary(), first, last);
+		}
+
+		/*
+		 * Create a type map using a game, throw an exception if it fails
 		 * @param mod game module
 		 * @param first first string to match
 		 * @param last last string to match
@@ -149,6 +159,7 @@ namespace games::cod::asset_names {
 		void InitMap(hook::module_mapper::Module& mod, const char* first, const char* last) {
 			InitMap0(mod.GetScanContainer(), mod.GetLibrary(), first, last);
 		}
+
 
 		/*
 		 * Dump asset info in a directory

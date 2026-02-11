@@ -356,8 +356,7 @@ namespace fastfile::handlers::bo6sp {
 
 			void Init(fastfile::FastFileOption& opt) override {
 				acts::game_data::GameData game{ "bo6sp"};
-				std::string gameExe{ game.Config().GetString("module") };
-				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), "bo6sp") };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "bo6sp") };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				game.SetScanContainer(&scan);
 				scan.Sync();
@@ -376,7 +375,7 @@ namespace fastfile::handlers::bo6sp {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(mod, "physicslibrary", "string");
+				game.InitAssetNames(gcx.assetNames);
 				AddBootsLimitAssetNames();
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "bo6";

@@ -289,8 +289,7 @@ namespace fastfile::handlers::mwiiisp {
 
 			void Init(fastfile::FastFileOption& opt) override {
 				acts::game_data::GameData game{ gameDumpId };
-				std::string gameExe{ game.Config().GetString("module") };
-				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), gameDumpId) };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), gameDumpId) };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				game.SetScanContainer(&scan);;
 				scan.Sync();
@@ -308,7 +307,7 @@ namespace fastfile::handlers::mwiiisp {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(mod, "physicslibrary", "string");
+				game.InitAssetNames(gcx.assetNames);
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = "mwiii";
 				dumpOpts.assetHashedName = "JupHashAssetType";

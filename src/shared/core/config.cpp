@@ -126,7 +126,7 @@ namespace core::config {
 		return val.GetDouble();
 	}
 
-	std::string Config::GetString(const char* path, const char* defaultValue) {
+	const char* Config::GetCString(const char* path, const char* defaultValue) {
 		rapidjson::Value& val = GetVal(path, 0, main);
 
 		if (val.IsNull() || !val.IsString()) {

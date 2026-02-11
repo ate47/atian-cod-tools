@@ -415,8 +415,7 @@ namespace fastfile::handlers::bo7 {
 
 			void Init(fastfile::FastFileOption& opt) override {
 				acts::game_data::GameData game{ gameDumpId };
-				std::string gameExe{ game.Config().GetString("module") };
-				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, gameExe.data(), gameDumpId)};
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), gameDumpId)};
 
 				hook::library::ScanLogger& logger{ mod.GetScanLogger() };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
@@ -436,7 +435,7 @@ namespace fastfile::handlers::bo7 {
 #endif
 
 				// should be done before the handleList to have the hashes loaded
-				gcx.assetNames.InitMap(mod, "physicssfxeventasset", "string");
+				game.InitAssetNames(gcx.assetNames);
 				AddBootsLimitAssetNames();
 				games::cod::asset_names::AssetDumpFileOptions dumpOpts{};
 				dumpOpts.baseFileName = gameDumpId;
@@ -469,6 +468,7 @@ namespace fastfile::handlers::bo7 {
 				LOG_TRACE("DB_HashScrStringName = {}", hook::library::CodePointer{ gcx.DB_HashScrStringName });
 				LOG_TRACE("loadStreamObj = {}", hook::library::CodePointer{ loadStreamObj });
 
+				game.ApplyNullScans("fastfile");
 				game.Redirect("GetMappedTypeStub", GetMappedTypeStub);
 				game.Redirect("LoadStreamTA", LoadStreamTA);
 				game.Redirect("Load_String", Load_String);
@@ -478,7 +478,6 @@ namespace fastfile::handlers::bo7 {
 				game.Redirect("Load_CustomScriptString", Load_CustomScriptString);
 				game.Redirect("$Unk_Align_Ret", Unk_Align_Ret); // 2DE3CC0
 				game.Redirect("$Unk_RetFalse", ReturnStub<4, bool, false>);
-				game.ApplyNullScans("fastfile");
 
 				hook::library::ScanLoggerLogsOpt logsOpt{};
 				logsOpt.base = gameDumpId;
