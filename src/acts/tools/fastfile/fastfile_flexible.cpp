@@ -51,7 +51,17 @@ namespace fastfile::flexible {
 
 			block[0] = magic;
 			block[1] = (uint32_t)chunksCount;
-			sha256.add(secureInfo->fastfileName, std::strlen(secureInfo->fastfileName));
+			std::string_view fnv{ secureInfo->fastfileName };
+			// ffotd are named ffotd_tu?_?????.ff, but the suffix is removed
+			size_t ffotd{ fnv.find("ffotd") };
+			size_t size;
+			if (ffotd != std::string::npos) {
+				size = ffotd + 5;
+			}
+			else {
+				size = fnv.length();
+			}
+			sha256.add(secureInfo->fastfileName, size);
 			sha256.add(block, sizeof(block));
 
 			for (size_t i = 0; i < chunksCount; i++) {
