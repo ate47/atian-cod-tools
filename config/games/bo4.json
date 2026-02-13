@@ -91,6 +91,11 @@
             "type": "Relative",
             "offset": 1,
             "single": true
+        },
+        "Load_XHash": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 83 7E 10 00 74 1F B9 1F 00 00 00",
+            "type": "Relative",
+            "offset": 9
         }
     },
     "nullscans": {

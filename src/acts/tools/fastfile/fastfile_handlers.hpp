@@ -127,6 +127,7 @@ namespace fastfile {
 		bool dumpBinaryAssetsMap{};
 		bool dumpAssetNames{};
 		bool dumpXStrings{};
+		bool dumpXHash{};
 		bool dumpCompiledZone{};
 		bool testDump{};
 		bool archiveDDL{};

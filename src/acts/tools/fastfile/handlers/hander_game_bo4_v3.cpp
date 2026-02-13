@@ -44,6 +44,7 @@ namespace fastfile::handlers::bo4 {
 			byte* data{};
 			size_t dataLen{};
 			utils::OutFileCE* outAssetNames{};
+			utils::OutFileCE* outXHash{};
 			size_t loaded{};
 			core::memory_allocator::MemoryAllocator allocator{};
 			std::unique_ptr<fastfile::compiled_zone::CompiledZone> compiledZone{};
@@ -491,6 +492,12 @@ namespace fastfile::handlers::bo4 {
 			}
 		}
 
+		void Load_XHash(XHash* hash) {
+			if (gcx.outXHash && *hash) {
+				*gcx.outXHash << hashutils::ExtractTmp("hash", hash->name) << "\n";
+			}
+		}
+
 		class BO4FFHandler : public fastfile::FFHandler {
 		public:
 			BO4FFHandler() : fastfile::FFHandler("bo4", "Black Ops 4") {
@@ -513,7 +520,13 @@ namespace fastfile::handlers::bo4 {
 				game.SetScanContainer(&scan);
 				scan.Sync();
 
+				scan.ignoreMissing = true;
+
 				game.Get("Load_XAsset", &gcx.Load_XAsset);
+				void* Load_XHash{};
+				if (opt.dumpXHash) {
+					game.Get("Load_XHash", &Load_XHash);
+				}
 
 				game.Redirect("Load_Stream", Load_Stream);
 				game.Redirect("DB_PopStreamPos", DB_PopStreamPos);
@@ -533,6 +546,30 @@ namespace fastfile::handlers::bo4 {
 
 				game.ApplyNullScans("fastfile");
 
+
+				if (scan.foundMissing) {
+					throw std::runtime_error("Can't find some patterns");
+				}
+
+				if (opt.dumpXHash) {
+					// this one is quite heavy, so only when required
+					// Load_XHash is empty, so we can't jump from it
+					void* trampoline{ hook::memory::AllocateNear(Load_XHash, 0x10) };
+					hook::memory::RedirectJmp(trampoline, fastfile::handlers::bo4::Load_XHash, true);
+
+					size_t patchedXHash{};
+					std::vector<hook::library::ScanResult> calls{ scan.Scan("E8 ?? ?? ?? ??") };
+
+					for (hook::library::ScanResult& res : calls) {
+						if (res.GetRelative<int32_t>(1) == (byte*)Load_XHash) {
+							void* call{ res.GetPtr(1) };
+							int32_t delta{ (int32_t)((byte*)trampoline - (byte*)call - sizeof(delta)) };
+							hook::process::WriteMemSafe(call, &delta, sizeof(delta));
+							patchedXHash++;
+						}
+					}
+					LOG_TRACE("patched {}/{} Load_XHash call(s)", patchedXHash, calls.size());
+				}
 
 			}
 			void Cleanup() override {
@@ -607,6 +644,21 @@ namespace fastfile::handlers::bo4 {
 						}
 						LOG_OPT_INFO("Dump strings into {}", outStrings.string());
 					}
+				}
+
+				utils::OutFileCE osxhash{};
+				if (opt.dumpXHash) {
+					std::filesystem::path outXHash{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xhash" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::create_directories(outXHash.parent_path());
+					osxhash->open(outXHash.string());
+					if (!osxhash) {
+						ThrowFastFileError("Can't open {}", outXHash.string());
+					}
+					gcx.outXHash = &osxhash;
+					LOG_OPT_INFO("Dump xhashes into {}", outXHash.string());
+				}
+				else {
+					gcx.outXHash = {};
 				}
 
 				DB_PopStreamPos();

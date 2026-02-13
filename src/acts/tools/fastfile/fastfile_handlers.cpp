@@ -417,6 +417,9 @@ namespace fastfile {
 			else if (!_strcmpi("--dumpXStrings", arg)) {
 				dumpXStrings = true;
 			}
+			else if (!_strcmpi("--dumpXHash", arg)) {
+				dumpXHash = true;
+			}
 			else if (!_strcmpi("--dumpBinaryAssets", arg)) {
 				dumpBinaryAssets = true;
 			}
