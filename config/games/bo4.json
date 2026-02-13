@@ -1,196 +1,258 @@
 {
     "module": "BlackOps4_dump.exe",
     "scans": {
-        "Load_XAssetHeader": {
-            "scan": "0x2E35D50",
-            "type": "Offset"
+        "Load_XAsset": {
+            "scan": "E8 ?? ?? ?? ?? 48 83 C3 10 80 3D ?? ?? ?? ?? ?? 75 07",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "Load_Stream": {
-            "scan": "0x2EBC050",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 8B FE 45 85 FF 7E 22",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_PopStreamPos": {
-            "scan": "0x2EBBE20",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 8B 05 ?? ?? ?? ?? FF C8 89 05 ?? ?? ?? ?? F6 05",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_PushStreamPos": {
-            "scan": "0x2EBBEA0",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 48 8B 7C 24 60 48 8B D7 33 C9 E8 ?? ?? ?? ?? E8",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_IncStreamPos": {
-            "scan": "0x2EBBBE0",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 0F B6 C3 48 83 C4 20 5B C3 B0 01",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_AllocStreamPos": {
-            "scan": "0x2EBBBA0",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 48 89 47 18 48 8B CF",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_ConvertOffsetToPointer": {
-            "scan": "0x2EBBFF0",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 48 8D 4B 18 E8 ?? ?? ?? ?? 45 33 F6 48 8D 7B 38 33 C9",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_ConvertOffsetToAlias": {
-            "scan": "0x2EBBFB0",
-            "type": "Offset"
+            "scan": "4C 8B 01 49 FF C8 49 8B C0 48 C1 E8 3C 48 8D 14 40 48 B8 FF FF FF FF FF FF FF 0F 4C 23 C0 48 8B 05 ?? ?? ?? ?? 48",
+            "type": "Absolute",
+            "single": true
         },
         "DB_GetOffsetData": {
-            "scan": "0x2EBC020",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 48 89 44 24 28 0F 10 44 24 20 0F 11 46 20 33 C9",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_InsertPointer": {
-            "scan": "0x2EBBCC0",
-            "type": "Offset"
+            "scan": "48 89 5C 24 08 48 63 15",
+            "type": "Absolute",
+            "single": true
         },
         "DB_AllocXBlocks": {
-            "scan": "0x2EB5870",
-            "type": "Offset"
+            "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 50 4C 8B",
+            "type": "Absolute",
+            "single": true
         },
         "DB_InitStreams": {
-            "scan": "0x2EBBBF0",
-            "type": "Offset"
+            "scan": "33 D2 48 89 0D ?? ?? ?? ?? 48",
+            "type": "Absolute",
+            "single": true
         },
         "DB_LoadXFileData": {
-            "scan": "0x2E0E130",
-            "type": "Offset"
+            "scan": "85 D2 0F 8E 56 01 00 00 41 54 41 56 48 83 EC 38 48 89 5C 24",
+            "type": "Absolute",
+            "single": true
         },
         "Load_XStringCustom": {
-            "scan": "0x2EBC110",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? EB 09 48 8D 4F 48 E8 ?? ?? ?? ?? 33 C9",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_LinkXAssetEntry": {
-            "scan": "0x2EB84F0",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 48 8B 50 08 48 89 13",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "DB_FindXAssetHeader": {
-            "scan": "0x2EB75B0",
-            "type": "Offset"
+            "scan": "E8 ?? ?? ?? ?? 48 85 C0 75 1B 48 8B CB E8",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         }
     },
     "nullscans": {
         "fastfile": {
             "$Load_ScriptStringCustom1": {
-                "scan": "0x2EBC480",
-                "type": "Offset"
+                "scan": "E8 ?? ?? ?? ?? 48 83 C7 60 49 83 EE 01 75 8B",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
             },
             "$Load_ScriptStringCustom2": {
-                "scan": "0x2EBC430",
-                "type": "Offset"
+                "scan": "E8 ?? ?? ?? ?? 48 8D 4D 18 E8 ?? ?? ?? ?? 33 C9",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
             },
             "$Load_ScriptStringCustom3": {
-                "scan": "0x2EBC540",
-                "type": "Offset"
+                "scan": "E8 ?? ?? ?? ?? 48 83 C3 04 48 83 EE 01 75 EE 8D 4E 01",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
             },
             "$Com_Error_": {
-                "scan": "0x288B110",
-                "type": "Offset"
+                "scan": "E8 ?? ?? ?? ?? EB 1B 8B 03",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
             },
             "$Load_GfxImageAdapter": {
-                "scan": "0x35BA450",
-                "type": "Offset"
+                "scan": "40 53 48 83 EC 20 48 8D 4A",
+                "type": "Absolute",
+                "single": true
             },
             "$Load_SndBankAsset": {
-                "scan": "0x3CA8870",
-                "type": "Offset"
+                "scan": "48 89 5C 24 08 57 48 83 EC 30 8B DA 48 8B F9 E8 ?? ?? ?? ?? 84",
+                "type": "Absolute",
+                "single": true
             },
             "$Load_SndBankAsset1": {
-                "scan": "0x3CA88C0",
-                "type": "Offset"
+                "scan": "40 53 48 83 EC 20 48 8B D9 E8 ?? ?? ?? ?? 84 C0 74 1F",
+                "type": "Absolute",
+                "single": true
             },
             "$unk0": {
-                "scan": "0x22B7AF0",
-                "type": "Offset"
+                "scan": "E8 ?? ?? ?? ?? 48 83 EF 80 48 83 EB 80 48 83 EE 01",
+                "type": "Relative",
+                "offset": 1
             },
             "$unk1": {
-                "scan": "0x22B7B00",
-                "type": "Offset"
+                "scan": "E8 ?? ?? ?? ?? 48 83 C6 70 48 83 C3 70 48 83 ED 01",
+                "type": "Relative",
+                "offset": 1
             },
             "$unk2": {
-                "scan": "0x2EBBDC0",
-                "type": "Offset"
+                "scan": "48 8B 05 ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? 0F 10",
+                "type": "Absolute",
+                "single": true
             },
             "$unk3": {
-                "scan": "0x2EBBF40",
-                "type": "Offset"
+                "scan": "48 8B 0D ?? ?? ?? ?? 48 8D 41 48",
+                "type": "Absolute",
+                "single": true
             },
             "$unk4": {
-                "scan": "0x35FC100",
-                "type": "Offset"
+                "scan": "4C 8B DC 41 56 48 83 EC 50 48 83 39 00 48 8B C2",
+                "type": "Absolute",
+                "single": true
             },
             "$unk5": {
-                "scan": "0x3733C90",
-                "type": "Offset"
+                "scan": "40 53 48 83 EC 20 48 8B 19 48 83 7B 20 FF 74 27",
+                "type": "Absolute",
+                "single": true
             },
             "$unk6": {
-                "scan": "0x35FB980",
-                "type": "Offset"
+                "scan": "4C 8B DC 53 55 56 57 41 55 41 56 48 81 EC 58 04",
+                "type": "Absolute",
+                "single": true
             },
             "$unk7": {
-                "scan": "0x35FC060",
-                "type": "Offset"
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 89 74 24 50 48 8B F9 48 8D 72 10 48 C7 06 00 00 00 00 45 0F B6 48 03 41 80 F9 01 74 55",
+                "type": "Absolute",
+                "single": true
             },
             "$unk8": {
-                "scan": "0x35FBFC0",
-                "type": "Offset"
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 89 74 24 50 48 8B F9 48 8D 72 10 48 C7 06 00 00 00 00 45 0F B6 48 03 41 80 F9 01 74 58 44 3A 0D ?? ?? ?? ?? 75 4F 41 80 F9 02 0F 94 C0 0F B6 D0 B8 02 00 00 00 41 80 F9 03 0F 44 D0 41 84 50 04 0F 95 C1 E8 ?? ?? ?? ?? 0F B6 D8 88 44 24 48 48 83 3F 00 74 17 83 7F 08 00 76 11 4C 8B C6 48 8B D7 B9 01",
+                "type": "Absolute",
+                "single": true
             },
             "$unk9": {
-                "scan": "0x35FBDD0",
-                "type": "Offset"
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 89 6C 24 50 48 89 74 24 58 48 8B F9",
+                "type": "Absolute",
+                "single": true
             },
             "$unk10": {
-                "scan": "0x3600EA0",
-                "type": "Offset"
+                "scan": "48 89 5C 24 08 48 89 7C 24 10 55 48 8D 6C 24 A9 48 81 EC A0 00 00 00",
+                "type": "Absolute",
+                "single": true
             },
             "$unk11": {
-                "scan": "0x370BD10",
-                "type": "Offset"
+                "scan": "F6 41 47 02 74 25 0F B6 41 46 84 C0 74 1D 0F B6 C0 48 8D",
+                "type": "Absolute",
+                "single": true
             },
             "$unk12": {
-                "scan": "0x353AE00",
-                "type": "Offset"
+                "scan": "48 85 D2 0F 84 05 01 00 00 55 56 57 41 56 48 8B EC",
+                "type": "Absolute",
+                "single": true
             },
             "$unk13": {
-                "scan": "0x3700CE0",
-                "type": "Offset"
+                "scan": "40 53 48 83 EC 30 48 8B 19 41 B9 01 00 00 00 C7 44 24",
+                "type": "Absolute",
+                "single": true
             },
             "$unk14": {
-                "scan": "0x3DC46F0",
-                "type": "Offset"
+                "scan": "40 55 41 56 41 57 48 83 EC 40 48 8D 6C 24 20 48 89 5D",
+                "type": "Absolute",
+                "single": true
             },
             "$unk15": {
-                "scan": "0x3CBBE00",
-                "type": "Offset"
+                "scan": "48 8B 81 88 00 00 00 48 85 C0 74 10 48 89 50 38 48 8B",
+                "type": "Absolute",
+                "single": true
             },
             "$unk16": {
-                "scan": "0x353AF10",
-                "type": "Offset"
+                "scan": "48 85 D2 0F 84 74 01 00 00 55 53 56 57 41 56 48 8D 6C",
+                "type": "Absolute",
+                "single": true
             },
             "$unk17": {
-                "scan": "0x353ADD0",
-                "type": "Offset"
+                "scan": "48 83 EC 38 41 8B C0 4C 8B C2 48 85 D2 74 1A",
+                "type": "Absolute",
+                "single": true
             },
             "$unk18": {
-                "scan": "0x3729A70",
-                "type": "Offset"
+                "scan": "48 89 6C 24 18 56 48 83 EC 20 48 8B 31 48 8B EA 48 83 7E 40 00",
+                "type": "Absolute",
+                "single": true
             },
             "$unk19": {
-                "scan": "0x35FBC90",
-                "type": "Offset"
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 89 74 24 50 48 8B F9 48 8D 72 10 48 C7 06 00 00 00 00 44",
+                "type": "Absolute",
+                "single": true
             },
             "$unk20": {
-                "scan": "0x35FBF20",
-                "type": "Offset"
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 89 74 24 50 48 8B F9 48 8D 72 10 48 C7 06 00 00 00 00 45 0F B6 48 03 41 80 F9 01 74 58 44 3A 0D ?? ?? ?? ?? 75 4F 41 80 F9 02 0F 94 C0 0F B6 D0 B8 02 00 00 00 41 80 F9 03 0F 44 D0 41 84 50 04 0F 95 C1 E8 ?? ?? ?? ?? 0F B6 D8 88 44 24 48 48 83 3F 00 74 17 83 7F 08 00 76 11 4C 8B C6 48 8B D7 B9 03",
+                "type": "Absolute",
+                "single": true
             },
             "$unk21": {
-                "scan": "0x35FBE80",
-                "type": "Offset"
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 89 74 24 50 48 8B F9 48 8D 72 10 48 C7 06 00 00 00 00 45 0F B6 48 03 41 80 F9 01 74 58 44 3A 0D ?? ?? ?? ?? 75 4F 41 80 F9 02 0F 94 C0 0F B6 D0 B8 02 00 00 00 41 80 F9 03 0F 44 D0 41 84 50 04 0F 95 C1 E8 ?? ?? ?? ?? 0F B6 D8 88 44 24 48 48 83 3F 00 74 17 83 7F 08 00 76 11 4C 8B C6 48 8B D7 B9 04",
+                "type": "Absolute",
+                "single": true
             },
             "$unk22": {
-                "scan": "0x35FBD30",
-                "type": "Offset"
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 89 74 24 50 48 8B F9 48 8D 72 10 48 C7 06 00 00 00 00 45 0F B6 48 03 41 80 F9 01 74 58 44 3A 0D ?? ?? ?? ?? 75 4F 41 80 F9 02 0F 94 C0 0F B6 D0 B8 02 00 00 00 41 80 F9 03 0F 44 D0 41 84 50 04 0F 95 C1 E8 ?? ?? ?? ?? 0F B6 D8 88 44 24 48 48 83 3F 00 74 17 83 7F 08 00 76 11 4C 8B C6 48 8B D7 B9 05",
+                "type": "Absolute",
+                "single": true
             },
             "$unk23": {
-                "scan": "0x35FCE50",
-                "type": "Offset"
+                "scan": "0F B6 05 ?? ?? ?? ?? 84 C0 0F 84 12 04 00 00 4C 8B 41 28 0F B6",
+                "type": "Absolute",
+                "single": true
             }
         }
     }

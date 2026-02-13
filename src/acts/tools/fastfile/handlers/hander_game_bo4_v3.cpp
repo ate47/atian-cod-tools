@@ -35,7 +35,7 @@ namespace fastfile::handlers::bo4 {
 
 		struct {
 			BO4FFHandler* handler{};
-			void (*Load_XAssetHeader)(bool atStreamStart, void** header, XAsset_0* asset) {};
+			void (*Load_XAsset)(bool atStreamStart, XAsset_0* asset) {};
 
 			fastfile::FastFileOption* opt{};
 			std::vector<char*> xstrings{};
@@ -491,12 +491,6 @@ namespace fastfile::handlers::bo4 {
 			}
 		}
 
-		void Load_XAsset(bool atStreamStart, XAsset_0* asset) {
-			if (!atStreamStart || Load_Stream(true, asset, sizeof(*asset))) {
-				gcx.Load_XAssetHeader(atStreamStart, &asset->header, asset);
-			}
-		}
-
 		class BO4FFHandler : public fastfile::FFHandler {
 		public:
 			BO4FFHandler() : fastfile::FFHandler("bo4", "Black Ops 4") {
@@ -519,7 +513,7 @@ namespace fastfile::handlers::bo4 {
 				game.SetScanContainer(&scan);
 				scan.Sync();
 
-				game.Get("Load_XAssetHeader", &gcx.Load_XAssetHeader);
+				game.Get("Load_XAsset", &gcx.Load_XAsset);
 
 				game.Redirect("Load_Stream", Load_Stream);
 				game.Redirect("DB_PopStreamPos", DB_PopStreamPos);
@@ -642,7 +636,7 @@ namespace fastfile::handlers::bo4 {
 #ifndef CI_BUILD
 							//if (i >= 110100) core::logs::setlevel(core::logs::LVL_TRACE_PATH);
 #endif
-							Load_XAsset(false, ass);
+							gcx.Load_XAsset(false, ass);
 							continue;
 						}
 

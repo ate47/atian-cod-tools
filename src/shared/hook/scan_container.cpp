@@ -91,7 +91,7 @@ namespace hook::scan_container {
 
 		if (val.loaded) {
 			std::vector<hook::library::ScanResult> res{};
-			LOG_TRACE("ScanContainer: Use cached {} ({})", path, name ? name : "no name");
+			LOG_TRACE("ScanContainer: Use cached {} ({}/{} res)", path, name ? name : "no name", val.res.size());
 			if (val.res.size()) LOG_TRACE("ScanContainer: Value: {}:0x{:x}", lib, val.res[0] );
 			res.reserve(val.res.size());
 			for (uint32_t rva : val.res) {
