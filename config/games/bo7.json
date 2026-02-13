@@ -180,13 +180,13 @@
                 "type": "Absolute",
                 "single": true
             },
-            "$u1": {
-                "scan": "C5 FB 10 02 44",
+            "$LoadImage": {
+                "scan": "40 53 48 83 EC ?? 41 8B 40 ?? 49",
                 "type": "Absolute",
                 "single": true
             },
-            "$LoadImage": {
-                "scan": "40 53 48 83 EC ?? 41 8B 40 ?? 49",
+            "$u1": {
+                "scan": "C5 FB 10 02 44 8B 42 08 FF",
                 "type": "Absolute",
                 "single": true
             },
@@ -226,16 +226,11 @@
                 "single": true
             },
             "$LoadStreamingInfo": {
-                "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 0F B6 F2",
+                "scan": "48 89 5C 24 08 48 89 6C 24 18 48 89 74 24 20 57 41 56 41 57 48 83 EC 20 0F",
                 "type": "Absolute",
                 "single": true
             },
-            "$LoadComputeShaders": {
-                "scan": "48 83 EC ?? E8 ?? ?? ?? ?? 83 F8 FF 75",
-                "type": "Absolute",
-                "single": true
-            },
-            "$LoadComputeShaders2": {
+            "DB_LoadComputeShaders": {
                 "scan": "40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 89 03 E8 ?? ?? ?? ?? 48 8B",
                 "type": "Absolute",
                 "single": true
