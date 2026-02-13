@@ -41,6 +41,23 @@ namespace acts::game_data {
 		return val;
 	}
 
+	std::vector<std::string> GetAllGameData() {
+		std::vector<std::filesystem::path> paths{};
+		utils::GetFileRecurseExt(GetBaseDir(), paths, ".json\0", true);
+		std::vector<std::string> r{};
+
+		for (std::filesystem::path& path : paths) {
+			path.replace_extension();
+			std::string name{ path.string() };
+			if (name.rfind("template") != std::string::npos) {
+				continue;
+			}
+			r.emplace_back(name);
+		}
+
+		return r;
+	}
+
 	GameData::GameData(const char* dirname)
 		: cfg(GetBaseDir() / std::format("{}.json", dirname)), dirname(dirname) {
 		if (!cfg.SyncConfig(false)) {
@@ -116,6 +133,40 @@ namespace acts::game_data {
 		for (auto& [k, v] : nullScans.GetObj()) {
 			Nulled(k.GetString(), parent.data());
 		}
+	}
+	// validate all scans
+	bool GameData::ValidateScans() {
+		hook::scan_container::ScanContainer& scan{ GetScanContainer() };
+		bool oldFoundMissing{ scan.foundMissing };
+		bool oldIgnoreMissing{ scan.foundMissing };
+		scan.foundMissing = false;
+		scan.ignoreMissing = true;
+		{
+			rapidjson::Value& scansVal{ cfg.GetVal(BASE_PARENT, 0, cfg.main) };
+			if (scansVal.IsObject()) {
+				for (auto& [k, v] : scansVal.GetObj()) {
+					GetPointerArray(k.GetString(), BASE_PARENT);
+				}
+			}
+		}
+		rapidjson::Value& nullscans{ cfg.GetVal("nullscans", 0, cfg.main) };
+		if (nullscans.IsObject()) {
+			for (auto& [k, v] : nullscans.GetObj()) {
+				const char* parent{ k.GetString() };
+				std::string base{ std::format("nullscans.{}", parent) };
+
+				rapidjson::Value& scansVal{ cfg.GetVal(base.data(), 0, cfg.main)};
+				if (scansVal.IsObject()) {
+					for (auto& [k, v] : scansVal.GetObj()) {
+						GetPointerArray(k.GetString(), base.data());
+					}
+				}
+			}
+		}
+		bool err{ scan.foundMissing };
+		scan.foundMissing = oldFoundMissing;
+		scan.ignoreMissing = oldIgnoreMissing;
+		return !err;
 	}
 
 	void GameData::AddTypesToIdc(deps::idc_builder::IdcBuilder& builder) {

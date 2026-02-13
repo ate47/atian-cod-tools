@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <game_data.hpp>
 #include <games/cod/asset_names.hpp>
 #include <games/bo4/scriptinstance.hpp>
 #include <utils/io_utils.hpp>
@@ -462,9 +463,49 @@ namespace {
 		return tool::OK;
 	}
 
+	int game_validate(int argc, const char* argv[]) {
+		std::vector<std::string> names{};
+
+		if (tool::NotEnoughParam(argc, 1) || !_strcmpi("all", argv[2])) {
+			names = acts::game_data::GetAllGameData();
+		}
+		else {
+			names.push_back(argv[2]);
+		}
+		int r{ tool::OK };
+		for (const std::string& name : names) {
+			acts::game_data::GameData game{ name.data() };
+			hook::module_mapper::Module mod{ true };
+			const char* exe{ game.GetModuleName() };
+			std::filesystem::path path{ utils::GetProgDir() / "deps" / exe };
+			LOG_INFO("Loading {} - {}", name, exe);
+
+			if (!mod.Load(path)) {
+				LOG_ERROR("Can't load module");
+				r = tool::BASIC_ERROR;
+				continue;
+			}
+
+			hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+			game.SetScanContainer(&scan);
+			bool err{ !game.ValidateScans() };
+
+			if (err) {
+				LOG_ERROR("Found error in {}", name);
+				r = tool::BASIC_ERROR;
+				continue;
+			}
+
+			LOG_INFO("Game data ok");
+		}
+
+		return r;
+	}
+
 
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
 	ADD_TOOL(exe_scan, "dev", "[exe] [pattern]", "Scan exe", exe_scan);
+	ADD_TOOL(game_validate, "dev", " [game=all]", "Validate scans for an exe", game_validate);
 	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
 	ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);

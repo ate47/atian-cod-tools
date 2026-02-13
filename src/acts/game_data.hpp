@@ -8,6 +8,7 @@ namespace acts::game_data {
 	constexpr const char* BASE_PARENT = "scans";
 	std::filesystem::path GetBaseDir();
 	size_t ParseOffsetScan(const std::string& scan);
+	std::vector<std::string> GetAllGameData();
 
 	enum CTypeType {
 		CTT_UNKNOWN = 0,
@@ -51,6 +52,8 @@ namespace acts::game_data {
 		// Get name
 		const char* GetName() const { return dirname; };
 
+		// validate all scans
+		bool ValidateScans();
 		// add all types to idc builder
 		void AddTypesToIdc(deps::idc_builder::IdcBuilder& builder);
 		// add all scans to idc builder
