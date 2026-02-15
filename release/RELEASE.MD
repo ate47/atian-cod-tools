@@ -1,12 +1,18 @@
 - acts
 	- fastfile
-		- use hash validation in flexible header (mwiii, bo6 and bo7)
-		- fix bo7 dumper
-		- `-W` option to ignore fastfile using regex
-		- `-l` option to reduce the fastfile reader logs
-	- exe dumper debug tests
-	- add dvar, fnv1a32 and prime to hash scanners
-	- tool to create rsa keys
-	- allow to add custom rsa keys using the keys_rsa.csv file_
-	- refactor some units
-	- tool to sort and validate csv hash files for HashIndex
+	  - bo4 handler
+		- dump Load_XHash calls
+		- remove v1 and v2 handlers code
+	  - bo7 handler
+		- fix scans
+		- add ncs hash loader
+	  - add option to set gsc decompiler format
+	  - reduce scan load time
+	  - fix issue with empty fp files with iw decompressor (XGP)
+	- custom gsc decompiler formatter
+	- add gscdfp tool to dump format
+	- add bo7 idc tool for ida
+	- remove warnings when loading bad IATs
+	- put scan in a separate directory to quickly fix them
+	- tool to validate scan directory
+	- code refactor and improvements
