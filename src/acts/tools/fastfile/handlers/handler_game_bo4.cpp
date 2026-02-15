@@ -1,6 +1,9 @@
 #include <includes.hpp>
+#include <game_data.hpp>
+#include <utils/enumlist.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/fastfile/fastfile_dump.hpp>
+#include <tools/fastfile/fastfile_compiled_zone.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <hook/module_mapper.hpp>
 #include <hook/memory.hpp>
@@ -19,531 +22,725 @@ namespace fastfile::handlers::bo4 {
 
 		class BO4FFHandler;
 
-		struct XAssetEntry {
-			XAsset_0 asset;
-			byte zoneIndex;
-			bool inuse;
-			uint32_t nextHash;
-			uint32_t nextType;
+		struct StreamPosInfo {
+			byte* pos;
+			XFileBlock index;
 		};
 
-		struct StreamRead {
-			core::bytebuffer::ByteBuffer buff;
-			XFileBlock index;
+		struct SafeLoc {
+			const char* name;
+			byte* buffer;
+			size_t len;
 		};
 
 		struct {
 			BO4FFHandler* handler{};
-			XAsset_0** varXAsset{};
-			byte* pos[XFILE_BLOCK_COUNT]{};
-			size_t remaining[XFILE_BLOCK_COUNT]{};
 			void (*Load_XAsset)(bool atStreamStart, XAsset_0* asset) {};
-			const char* (*DB_GetXAssetName)(XAssetType type, void** header) {};
+
 			fastfile::FastFileOption* opt{};
-			size_t loaded{};
-			utils::OutFileCE* osassets{};
+			std::vector<char*> xstrings{};
 			fastfile::FastFileContext* ctx{};
-			//core::bytebuffer::ByteBuffer* reader{};
-			fastfile::pool::FFAssetPool pool{};
-			XAssetList_0* assetList{};
+			core::bytebuffer::ByteBuffer* reader{};
+			byte* data{};
+			size_t dataLen{};
+			utils::OutFileCE* outAssetNames{};
+			utils::OutFileCE* outXHash{};
+			size_t loaded{};
+			core::memory_allocator::MemoryAllocator allocator{};
+			std::unique_ptr<fastfile::compiled_zone::CompiledZone> compiledZone{};
+			std::unordered_map<uint64_t, void*> linkedAssets[XAssetType::ASSET_TYPE_COUNT]{};
+			XAssetList_0 assetList{};
+			bool isRunning{};
+			utils::EnumList<XAssetType, XAssetType::ASSET_TYPE_COUNT> handleList{ games::bo4::pool::XAssetIdFromName };
 
-			std::vector<StreamRead> readers{};
+			// replace data
+			XBlock* g_streamBlocks{};
+			byte* g_streamPos{};
+			XFileBlock g_streamPosIndex{};
+			byte* g_streamRead[XFileBlock::XFILE_BLOCK_COUNT2]{};
+			byte* g_streamPosArray[XFileBlock::XFILE_BLOCK_COUNT2]{};
+			int g_streamPosStackIdx{};
+			XBlock g_loadblocks[XFileBlock::XFILE_BLOCK_COUNT2]{};
+			std::vector<SafeLoc> safeLocs{};
+			StreamPosInfo g_streamPosStack[64]{};
+		} gcx{};
 
-			StreamRead& Top() {
-				if (readers.empty()) throw std::runtime_error("No reader");
-				return readers[readers.size() - 1];
+		struct {
+			XAsset_0* lastAsset{};
+			size_t assetIdx{};
+		} errorCtx;
+		void PrintErrorContext() {
+			if (!gcx.isRunning) {
+				return;
 			}
-			core::bytebuffer::ByteBuffer& Reader() {
-				return Top().buff;
-			}
 
-			size_t Loc() {
-				size_t loc{};
-				for (StreamRead& r : readers) {
-					loc += r.buff.Loc();
-				}
-				return loc;
+			LOG_ERROR("ERROR WHEN DUMPING DATA");
+			if (errorCtx.lastAsset) {
+				LOG_ERROR("last asset: {} / {}", XAssetNameFromId(errorCtx.lastAsset->type), errorCtx.lastAsset->header);
+				LOG_ERROR("index: {} / {}", errorCtx.assetIdx, gcx.assetList.assetCount);
+				LOG_ERROR("gcx.g_streamPosStackIdx = {}", gcx.g_streamPosStackIdx);
 			}
-		} bo4FFHandlerContext{};
-
-		void DB_IncStreamPos(int size) {
-			LOG_TRACE("{} DB_IncStreamPos(0x{:x}) -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, size, bo4FFHandlerContext.Loc());
-			/*
-			auto& top{ bo4FFHandlerContext.Top() };
-			if (bo4FFHandlerContext.remaining[top.index] < size) {
-				throw std::runtime_error(std::format("IncStreamPos after end for {}", XFileBlockName(top.index)));
-			}
-
-			bo4FFHandlerContext.remaining[top.index] -= size;
-			bo4FFHandlerContext.pos[top.index] += size;
-			*/
 		}
 
-		bool Load_Stream(bool atStreamStart, void* ptr, uint32_t size) {
-			auto& top{ bo4FFHandlerContext.Top() };
-			LOG_TRACE("{} Load_Stream({}, {}, 0x{:x}) from 0x{:x}/{}", hook::library::CodePointer{ _ReturnAddress() }, atStreamStart, ptr, size, bo4FFHandlerContext.Loc(), XFileBlockName(top.index));
-			bool ret;
-			if (atStreamStart && size) {
-				switch (top.index) {
-				case XFILE_BLOCK_TEMP:
-				case XFILE_BLOCK_TEMP_PRELOAD:
-				case XFILE_BLOCK_VIRTUAL:
-				case XFILE_BLOCK_PHYSICAL:
-				case XFILE_BLOCK_MEMMAPPED:
-				case XFILE_BLOCK_MEMMAPPED2:
-					if (!top.buff.CanRead(size)) {
-						LOG_ERROR("Can't read for index {}", XFileBlockName(top.index));
-						hook::error::DumpStackTraceFrom();
-					}
-					top.buff.Read(ptr, size);
-					ret = true;
-					break;
-				case XFILE_BLOCK_RUNTIME_VIRTUAL:
-				case XFILE_BLOCK_RUNTIME_PHYSICAL:
-					std::memset(ptr, 0, size);
-					DB_IncStreamPos(size);
-					ret = false;
-					break;
-				case XFILE_BLOCK_STREAMER:
-				case XFILE_BLOCK_STREAMER_CPU:
-					DB_IncStreamPos(size);
-					ret = false;
-					break;
-				default:
-					throw std::runtime_error(std::format("Invalid stream index {}", (int)top.index));
+		inline void DECLSPEC_NORETURN ThrowFastFileError_(const std::string& msg) {
+			LOG_LVL(core::logs::LVL_ERROR, msg);
+			PrintErrorContext();
+			hook::error::DumpStackTraceFrom();
+			throw std::runtime_error("fastfile error");
+		}
+
+#define ThrowFastFileError(...) ThrowFastFileError_(std::format(__VA_ARGS__))
+
+		const char* XBlockLocPtr(void* ptr) {
+			byte* p{ (byte*)ptr };
+			for (size_t i = 0; i < XFILE_BLOCK_COUNT2; i++) {
+				if (p >= gcx.ctx->blockSizes[i].data && p < gcx.ctx->blockSizes[i].data + gcx.ctx->blockSizes[i].size) {
+					size_t rloc{ (size_t)(p - gcx.ctx->blockSizes[i].data) };
+					return utils::va("%s+0x%llx/0x%llx", XFileBlockName((XFileBlock)i), rloc, gcx.ctx->blockSizes[i].size);
 				}
+			}
+			return utils::va("%p", ptr);
+		}
+
+		byte* Mem_AllocAligned(const char* id, size_t size, size_t alignment, bool streamed) {
+			static byte empty{};
+			if (!size || streamed) {
+				return &empty;
+			}
+			byte* d{ gcx.allocator.AllocAligned<byte>(size, alignment) };
+			gcx.safeLocs.emplace_back(id, d, size);
+			return d;
+		}
+	}
+
+	void DB_AllocXBlocks(size_t* blockSize, XBlock* blocks) {
+		gcx.safeLocs.clear();
+		gcx.safeLocs.emplace_back("assetList", (byte*)&gcx.assetList, sizeof(gcx.assetList));
+		//gcx.safeLocs.emplace_back("decompressed", gcx.data, gcx.dataLen);
+		for (size_t i = 0; i < XFILE_BLOCK_COUNT; i++) {
+			XFileBlock block{ (XFileBlock)i };
+
+			blocks[block].data = nullptr;
+			blocks[block].size = blockSize[block];
+
+			if (!blocks[block].size) {
+				continue;
+			}
+
+			switch (GetXFileBlockMemLocation(block)) {
+			case XFILE_BLOCK_LOC_VIRTUAL:
+				blocks[block].size += 0xF;
+				blocks[block].data = Mem_AllocAligned(XFileBlockName(block), blocks[block].size, 0x10000, false);
+				break;
+			case XFILE_BLOCK_LOC_PHYSICAL:
+			case XFILE_BLOCK_LOC_STREAM_CPU:
+			case XFILE_BLOCK_LOC_STREAM_MMAP:
+				blocks[block].data = Mem_AllocAligned(XFileBlockName(block), blocks[block].size, 0x10000, false);
+				break;
+			case XFILE_BLOCK_LOC_STREAM_DEV:
+				blocks[block].data = Mem_AllocAligned(XFileBlockName(block), blocks[block].size, 0x10000, true);
+				break;
+			}
+		}
+	}
+
+	void DB_InitStreams(XBlock* blocks) {
+		gcx.g_streamBlocks = blocks;
+		gcx.g_streamPos = blocks[XFILE_BLOCK_TEMP].data;
+		gcx.g_streamPosIndex = XFILE_BLOCK_TEMP;
+		gcx.g_streamPosArray[XFILE_BLOCK_TEMP] = nullptr;
+		gcx.g_streamRead[XFILE_BLOCK_TEMP] = 0;
+
+		for (size_t i = 1; i < XFILE_BLOCK_COUNT; i++) {
+			gcx.g_streamRead[i] = 0;
+			gcx.g_streamPosArray[i] = blocks[i].data;
+		}
+	}
+
+	static void AssertCanWrite(void* ptr, size_t len) {
+		if (!len) {
+			return;
+		}
+		byte* p{ (byte*)ptr };
+		for (const SafeLoc& loc : gcx.safeLocs) {
+			if (p >= loc.buffer && p < loc.buffer + loc.len) {
+				size_t rloc{ (size_t)(p - loc.buffer) };
+				if (rloc + len > loc.len) {
+					ThrowFastFileError("AssertCanWrite: Can't read {}:0x{:x}+0x{:x}, remaining 0x{:x} at {}", loc.name, rloc, len, (int64_t)loc.len - rloc, ptr);
+				}
+				return;
+			}
+		}
+		ThrowFastFileError("AssertCanWrite: Can't read 0x{:x} at {} (outside data)", len, ptr);
+	}
+
+	void DB_LoadXFileData(void* pos, size_t size) {
+		//LOG_TRACE("{} DB_LoadXFileData({}, 0x{:x}) -> {}/0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr(pos), size);
+		if (!gcx.reader->CanRead(size)) {
+			hook::error::DumpStackTraceFrom();
+		}
+		byte* p;
+		if (pos) {
+			AssertCanWrite(pos, size);
+			gcx.reader->Read(pos, size);
+			p = (byte*)pos;
+		}
+		else {
+			p = gcx.reader->ReadPtr<byte>(size);
+		}
+
+		size_t s{ std::min<size_t>(size, 0x40 * 8) };
+		while (s > 0) {
+			size_t ss{ std::min<size_t>(s, 0x40) };
+			LOG_TRACE("{:03x} : {}", p - (byte*)pos, utils::data::AsHex(p, ss));
+			p += ss;
+			s -= ss;
+		}
+	}
+
+	void DB_IncStreamPos(size_t size) {
+		gcx.g_streamPos += size;
+	}
+
+	bool Load_Stream(bool atStreamStart, void* ptr, size_t size) {
+		LOG_TRACE("Load_Stream({}, {}, {}) {}", atStreamStart ? "true" : "false", ptr, size, hook::library::CodePointer{ _ReturnAddress() });
+		if (!atStreamStart || !size) {
+			return true;
+		}
+
+		switch (gcx.g_streamPosIndex) {
+		case XFILE_BLOCK_TEMP:
+		case XFILE_BLOCK_TEMP_PRELOAD:
+		case XFILE_BLOCK_VIRTUAL:
+		case XFILE_BLOCK_PHYSICAL:
+		case XFILE_BLOCK_MEMMAPPED:
+		case XFILE_BLOCK_MEMMAPPED2:
+			DB_LoadXFileData(ptr, size);
+			DB_IncStreamPos(size);
+			return true;
+		case XFILE_BLOCK_RUNTIME_VIRTUAL:
+		case XFILE_BLOCK_RUNTIME_PHYSICAL:
+			memset(ptr, 0, size);
+			DB_IncStreamPos(size);
+			return false;
+		case XFILE_BLOCK_STREAMER:
+		case XFILE_BLOCK_STREAMER_CPU:
+			DB_IncStreamPos(size);
+			return false;
+		default:
+			DB_IncStreamPos(size);
+			return true;
+		}
+	}
+
+	void* DB_AllocStreamPos(int align) {
+		LOG_TRACE("DB_AllocStreamPos({}) {}", align, hook::library::CodePointer{ _ReturnAddress() });
+		byte* streamPos{ gcx.g_streamPos };
+		byte* newLoc{ utils::Aligned(gcx.g_streamPos, (size_t)align + 1) };
+		gcx.g_streamPos = newLoc;
+		// add align padding
+		gcx.g_streamRead[gcx.g_streamPosIndex] += newLoc - streamPos;
+		return newLoc;
+	}
+
+	void DB_PopStreamPos() {
+		LOG_TRACE("DB_PopStreamPos() {}", hook::library::CodePointer{ _ReturnAddress() });
+		if (!gcx.g_streamPosStackIdx) {
+			ThrowFastFileError("DB_PopStreamPos error: Empty pos stack");
+		}
+
+		int newidx{ --gcx.g_streamPosStackIdx };
+		byte* pos;
+		switch (gcx.g_streamPosIndex) {
+		case XFILE_BLOCK_TEMP:
+			pos = gcx.g_streamPosStack[newidx].pos;
+			gcx.g_streamPos = pos;
+			break;
+		case XFILE_BLOCK_TEMP_PRELOAD:
+			pos = utils::Aligned(gcx.g_streamPos, 0x10);
+			gcx.g_streamPos = pos;
+			break;
+		default:
+			pos = gcx.g_streamPos;
+			break;
+		}
+
+		XFileBlock index{ gcx.g_streamPosStack[newidx].index };
+		if (index != gcx.g_streamPosIndex) {
+			gcx.g_streamPosArray[gcx.g_streamPosIndex] = pos;
+			gcx.g_streamPos = gcx.g_streamPosArray[index];
+			gcx.g_streamPosIndex = index;
+		}
+	}
+
+	bool DB_EnableMemMappedData() {
+		return false;
+	}
+
+	void DB_PushStreamPos(XFileBlock index) {
+		LOG_TRACE("DB_PushStreamPos({}) {}", XFileBlockName(index), hook::library::CodePointer{ _ReturnAddress() });
+		XFileBlock prevIndex{ gcx.g_streamPosIndex };
+		XFileBlock newIndex{ index };
+
+		if (index == XFILE_BLOCK_MEMMAPPED) {
+			if (!DB_EnableMemMappedData()) {
+				newIndex = gcx.g_streamPosIndex;
+			}
+		}
+
+		if (newIndex == XFILE_BLOCK_MEMMAPPED2) {
+			newIndex = XFILE_BLOCK_MEMMAPPED;
+		}
+
+		int stackIndex{ gcx.g_streamPosStackIdx++ };
+		if (stackIndex == ARRAYSIZE(gcx.g_streamPosStack)) {
+			ThrowFastFileError("DB_PushStreamPos error: Full pos stack");
+		}
+		gcx.g_streamPosStack[stackIndex].index = prevIndex;
+
+		byte* pos;
+		if (newIndex == prevIndex) {
+			pos = gcx.g_streamPos;
+		}
+		else {
+			gcx.g_streamPosIndex = newIndex;
+			gcx.g_streamPosArray[prevIndex] = gcx.g_streamPos;
+			pos = gcx.g_streamPosArray[newIndex];
+			gcx.g_streamPos = pos;
+		}
+		gcx.g_streamPosStack[stackIndex].pos = pos;
+	}
+
+	const void** DB_InsertPointer() {
+		LOG_TRACE("DB_InsertPointer() {}", hook::library::CodePointer{ _ReturnAddress() });
+		XFileBlock index{ gcx.g_streamPosIndex };
+		int posStackLoc{ gcx.g_streamPosStackIdx };
+		gcx.g_streamPosStack[gcx.g_streamPosStackIdx].index = gcx.g_streamPosIndex;
+
+		byte* pos;
+		if (index == XFILE_BLOCK_VIRTUAL) {
+			pos = gcx.g_streamPos;
+		}
+		else {
+			// we swap to BLOCK_VIRTUAL to create the pointer
+			gcx.g_streamPosArray[index] = gcx.g_streamPos;
+			index = XFILE_BLOCK_VIRTUAL;
+			pos = gcx.g_streamPosArray[XFILE_BLOCK_VIRTUAL];
+			gcx.g_streamPosIndex = XFILE_BLOCK_VIRTUAL;
+		}
+
+		gcx.g_streamPosStackIdx = posStackLoc;
+		gcx.g_streamPosStack[posStackLoc].pos = pos;
+
+		// add alignment, but not the pointer data, maybe a mistake from them
+		byte* oldPos{ pos };
+		pos = utils::Aligned<void*>(pos);
+		gcx.g_streamRead[XFILE_BLOCK_VIRTUAL] += pos - oldPos;
+		gcx.g_streamPos = pos + sizeof(void*);
+
+		XFileBlock currentIndex{ gcx.g_streamPosStack[posStackLoc].index };
+		if (currentIndex != index) {
+			gcx.g_streamPosArray[index] = gcx.g_streamPos;
+			gcx.g_streamPosIndex = currentIndex;
+			gcx.g_streamPos = gcx.g_streamPosArray[currentIndex];
+		}
+		return (const void**)pos;
+	}
+
+
+	void* DB_GetOffsetData(uint64_t ref) {
+		XFileBlock block{ (XFileBlock)((ref - 1) >> 60) };
+		uint64_t offset{ (ref - 1) & ~0xF000000000000000 };
+
+		void* loc{ &gcx.g_streamBlocks[block].data[offset] };
+		LOG_TRACE("DB_GetOffsetData(0x{:x}, {}, 0x{:x}) -> {} {}", ref, XFileBlockName(block), offset, loc, hook::library::CodePointer{ _ReturnAddress() });
+		return loc;
+	}
+
+	void DB_ConvertOffsetToPointer(void** data) {
+		LOG_TRACE("DB_ConvertOffsetToPointer() {}", hook::library::CodePointer{ _ReturnAddress() });
+		*data = DB_GetOffsetData(*(uint64_t*)data);
+	}
+
+	void DB_ConvertOffsetToAlias(void** data) {
+		LOG_TRACE("DB_ConvertOffsetToAlias() {}", hook::library::CodePointer{ _ReturnAddress() });
+		*data = *(void**)DB_GetOffsetData(*(uint64_t*)data);
+	}
+
+	void Load_XStringCustom(char** str) {
+		size_t size;
+		char* ptr{ gcx.reader->ReadString(&size) };
+		LOG_TRACE("{} Load_XStringCustom({}, 0x{:x}) -> 0x{:x} / {}", hook::library::CodePointer{ _ReturnAddress() }, XBlockLocPtr((void*)str), size, gcx.reader->Loc(), acts::decryptutils::DecryptStringT8(ptr));
+		AssertCanWrite(*str, size + 1);
+		std::memcpy(*str, ptr, size + 1);
+		const char* ds{ acts::decryptutils::DecryptStringT8(*str) };
+		std::memmove(*str, ds, std::strlen(ds) + 1);
+		hashutils::AddPrecomputed(hash::Hash64(ds), ds, true);
+		if (gcx.opt->dumpXStrings) {
+			gcx.xstrings.push_back(*str);
+		}
+		DB_IncStreamPos(size + 1);
+	}
+
+	void Load_String(bool atStreamStart, char** handle) {
+		if (*handle) {
+			if (*handle == (char*)0xFFFFFFFFFFFFFFFF) {
+				*handle = AllocStreamPos<char>();
+				Load_XStringCustom(handle);
 			}
 			else {
-				ret = true;
+				DB_ConvertOffsetToPointer((void**)handle);
 			}
+		}
+	}
 
-			byte* p{ (byte*)ptr };
-			size_t s{ std::min<size_t>(size, 0x40 * 8) };
-			while (s > 0) {
-				size_t ss{ std::min<size_t>(s, 0x40) };
-				LOG_TRACE("{:03x} : {}", p - (byte*)ptr, utils::data::AsHex(p, ss));
-				p += ss;
-				s -= ss;
-			}
-			return ret;
+	void Load_SimpleAsset_Internal(void** header, games::bo4::pool::XAssetType type) {
+		XAsset_0 newEntry{};
+		newEntry.type = type;
+		newEntry.header = *header;
+		*header = DB_LinkXAssetEntry(&newEntry, false)->header;
+	}
+
+	XAsset_0* DB_LinkXAssetEntry(XAsset_0* xasset, bool allowOverride) {
+		gcx.loaded++;
+
+		if (gcx.opt->assertContainer) {
+			// todo: add header name
+			//bo4FFHandlerContext.pool.AddAssetHeader(xasset->type, 0, xasset->header);
 		}
 
-		void* DB_AllocStreamPos(int alignment) {
-			/*
-			LOG_TRACE("{} DB_AllocStreamPos(0x{:x}) -> 0x{:x} / {}", hook::library::CodePointer{ _ReturnAddress() }, alignment + 1, bo4FFHandlerContext.Loc(), bo4FFHandlerContext.Reader().Ptr<void>());
-			auto& top{ bo4FFHandlerContext.Top() };
+		XHash* hash{ xasset->header ? games::bo4::pool::GetAssetName(xasset->type, xasset->header, 0) : nullptr };
 
-			byte* currentLoc{ bo4FFHandlerContext.pos[top.index] };
-			byte* alignedLoc{ utils::Aligned(currentLoc, alignment + 1) };
-			size_t size{ (size_t)(alignedLoc - currentLoc) };
+		//const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
+		//*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
+		size_t assetSize{ games::bo4::pool::GetAssetSize(xasset->type) };
+		if (!assetSize) {
+			LOG_ERROR("Can't link {}: empty asset type", games::bo4::pool::XAssetNameFromId(xasset->type));
+			return xasset;
+		}
+		void* baseHeader{ xasset->header };
+		void* linkedHeader{ gcx.allocator.Alloc(assetSize) };
 
-			if (bo4FFHandlerContext.remaining[top.index] < size) {
-				throw std::runtime_error(std::format("DB_AllocStreamPos aligned after end for {}", XFileBlockName(top.index)));
-			}
+		if (xasset->header) {
+			std::memcpy(linkedHeader, xasset->header, assetSize);
 
-			bo4FFHandlerContext.remaining[top.index] -= size;
-			bo4FFHandlerContext.pos[top.index] += size;
-			return alignedLoc;
-			*/
-			LOG_TRACE("{} DB_AllocStreamPos(0x{:x}) -> 0x{:x} / {}", hook::library::CodePointer{ _ReturnAddress() }, alignment + 1, bo4FFHandlerContext.Loc(), bo4FFHandlerContext.Reader().Ptr<void>());
-			return bo4FFHandlerContext.Reader().Ptr();
+			xasset->header = linkedHeader;
 		}
 
-		XAsset_0* DB_LinkXAssetEntry(XAsset_0* xasset, bool allowOverride) {
-			bo4FFHandlerContext.loaded++;
+		if (hash && hash->name) {
+			bool defaultAsset{ (hash->name & ~hash::MASK63) != 0 };
+			if (defaultAsset) hash->name &= hash::MASK63;
+			*gcx.outAssetNames << XAssetNameFromId(xasset->type) << "," << (defaultAsset ? "d" : "") << "#" << hashutils::ExtractTmp("hash", hash->name);
+			**gcx.outAssetNames << std::endl;
 
-			if (bo4FFHandlerContext.opt->assertContainer) {
-				// todo: add header name
-				bo4FFHandlerContext.pool.AddAssetHeader(xasset->type, 0, xasset->header);
-			}
+			gcx.linkedAssets[xasset->type][hash->name] = xasset->header;
 
-			XHash* hash{ xasset->header ? games::bo4::pool::GetAssetName(xasset->type, xasset->header, 0) : nullptr };
-			const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->name) : "<unknown>" };
+			LOG_DEBUG("Loading asset {}({})/{}({:x}) -> {}/{}",
+				XAssetNameFromId(xasset->type), (int)xasset->type, hashutils::ExtractTmp("hash", hash->name), hash->name,
+				xasset->header, XBlockLocPtr(baseHeader)
+			);
+		}
 
-			*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
-			if (hash && hash->name) {
-				bo4FFHandlerContext.opt->AddAssetName(xasset->type, hash->name);
-			}
-
-			LOG_DEBUG("Loading asset {}/{} -> {}", XAssetNameFromId(xasset->type), hashutils::ExtractTmp("hash", hash->name), xasset->header);
-
-			if (bo4FFHandlerContext.opt->noAssetDump) return xasset; // ignore
+		if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[xasset->type])) return xasset; // ignore
+		if (xasset->header) {
 			auto& workers{ fastfile::handlers::bo4::GetWorkers() };
 			auto it{ workers.find(xasset->type) };
 			if (it != workers.end()) {
 				try {
-					it->second->Unlink(*bo4FFHandlerContext.opt, xasset->header);
+					if (!it->second->ignoreFull || !gcx.handleList.Empty()) {
+						it->second->Unlink(*gcx.opt, xasset->header);
+					}
 				}
 				catch (std::runtime_error& e) {
 					LOG_ERROR("Can't dump asset asset {}/{}: {}", XAssetNameFromId(xasset->type), (void*)xasset->header, e.what());
 				}
 			}
-			return xasset;
 		}
-		void DB_PopStreamPos() {
-			size_t delta{ bo4FFHandlerContext.Reader().Loc() };
-			bo4FFHandlerContext.readers.pop_back();
-			bo4FFHandlerContext.Reader().Skip(delta);
-			LOG_TRACE("{} DB_PopStreamPos -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, bo4FFHandlerContext.Loc());
-		}
-		void DB_PushStreamPos(XFileBlock index) {
-			core::bytebuffer::ByteBuffer& top{ bo4FFHandlerContext.Reader() };
-			XFileBlock old{ bo4FFHandlerContext.Top().index };
-			//if (index == XFILE_BLOCK_MEMMAPPED) {
-			//	index = old;
-			//}
-			//if (index == XFILE_BLOCK_MEMMAPPED2) {
-			//	index = XFILE_BLOCK_MEMMAPPED;
-			//}
-			bo4FFHandlerContext.readers.emplace_back(core::bytebuffer::ByteBuffer{ top.Ptr(), top.Remaining() }, index);
-			LOG_TRACE("{} DB_PushStreamPos({}) -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName(index), bo4FFHandlerContext.Loc());
-		}
-
-		void DB_ConvertOffsetToAlias(uint64_t* data) {
-			XFileBlock block{ (XFileBlock)((*data - 1) >> 60) };
-			uint64_t val{ (*data - 1) & ~0xF000000000000000ull };
-			LOG_TRACE("{} DB_ConvertOffsetToAlias {}/{:x} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName(block), val, bo4FFHandlerContext.Loc());
-			//*reinterpret_cast<void**>(data) = *(void**)(bo4FFHandlerContext.ctx->blockSizes[block].data + val);
-		}
-
-		void DB_ConvertOffsetToPointer(uint64_t* data) {
-			XFileBlock block{ (XFileBlock)((*data - 1) >> 60) };
-			uint64_t val{ (*data - 1) & ~0xF000000000000000ull };
-			LOG_TRACE("{} DB_ConvertOffsetToPointer {}/{:x} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName(block), val, bo4FFHandlerContext.Loc());
-			//*reinterpret_cast<void**>(data) = bo4FFHandlerContext.ctx->blockSizes[block].data + val;
-		}
-
-		uint64_t DB_ConvertOffsetToUnk(uint64_t data) {
-			XFileBlock block{ (XFileBlock)((data - 1) >> 60) };
-			uint64_t val{ (data - 1) & ~0xF000000000000000ull };
-
-			LOG_TRACE("{} DB_ConvertOffsetToUnk {}/{:x} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, XFileBlockName(block), val, bo4FFHandlerContext.Loc());
-
-			return data; // bo4FFHandlerContext.ctx->blockSizes[block].data + val;
-		}
-
-		void** DB_InsertPointer() {
-			//void** ptr{ bo4FFHandlerContext.Reader().Ptr<void*>() };
-
-			//LOG_TRACE("{} DB_InsertPointer {} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, (void*)ptr, bo4FFHandlerContext.Loc());
-			return nullptr;
-			/*
-			auto& top{ bo4FFHandlerContext.Top() };
-
-			byte* currentLoc{ bo4FFHandlerContext.pos[XFILE_BLOCK_VIRTUAL] };
-			byte* alignedLoc{ utils::Aligned<void**>(currentLoc) };
-			size_t size{ (size_t)(alignedLoc - currentLoc) };
-
-			if (bo4FFHandlerContext.remaining[XFILE_BLOCK_VIRTUAL] < size) {
-				throw std::runtime_error(std::format("DB_AllocStreamPos aligned after end for {}", XFileBlockName(top.index)));
-			}
-
-			bo4FFHandlerContext.remaining[XFILE_BLOCK_VIRTUAL] -= size;
-			bo4FFHandlerContext.pos[XFILE_BLOCK_VIRTUAL] += size;
-
-			//LOG_TRACE("{} DB_InsertPointer {} -> 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, (void*)ptr, bo4FFHandlerContext.Loc());
-			return (void**)alignedLoc;
-			*/
-		}
+		return xasset;
+	}
+	namespace {
 
 		void* DB_FindXAssetHeader(XAssetType type, XHash* name, bool errorIfMissing, int waitTime) {
+			if (!name || name->name) return nullptr;
+			auto it{ gcx.linkedAssets[type].find(name->name) };
+
+			if (it != gcx.linkedAssets[type].end()) {
+				return it->second;
+			}
+
+			LOG_WARNING("MISSING XASSET {} : {}", XAssetNameFromId(type), hashutils::ExtractTmp("hash", name->name));
+
 			return nullptr;
 		}
 
+		template<size_t offset = 0>
 		void EmptyStub() {
-			LOG_TRACE("{} EmptyStub", hook::library::CodePointer{ _ReturnAddress() });
+			LOG_TRACE("{} EmptyStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset);
+		}
+		template<size_t offset = 0>
+		void ErrorStub() {
+			ThrowFastFileError("{} ErrorStub<0x{:x}>", hook::library::CodePointer{ _ReturnAddress() }, offset);
 		}
 
-		void Load_XStringCustom(char** str) {
-			LOG_TRACE("{} Load_XStringCustom({}) 0x{:x}", hook::library::CodePointer{ _ReturnAddress() }, (void*)*str, bo4FFHandlerContext.Loc());
-			auto& top{ bo4FFHandlerContext.Reader() };
-			size_t size;
-			const char* ptr{ top.ReadString(&size) };
-			if (ptr != *str) {
-				std::memcpy(*str, ptr, size + 1);
+		template<size_t off, bool error = false>
+		void RemoveStub(hook::library::Library& lib) {
+			if constexpr (error) {
+				hook::memory::RedirectJmp(lib[off], &ErrorStub<off>);
 			}
-			LOG_DEBUG("str {}", *str);
-			DB_IncStreamPos((int)size);
+			else {
+				hook::memory::RedirectJmp(lib[off], &EmptyStub<off>);
+			}
+		}
+
+		void Load_XHash(XHash* hash) {
+			if (gcx.outXHash && *hash) {
+				*gcx.outXHash << hashutils::ExtractTmp("hash", hash->name) << "\n";
+			}
 		}
 
 		class BO4FFHandler : public fastfile::FFHandler {
 		public:
-			BO4FFHandler() : fastfile::FFHandler("bo4v1", "Black Ops 4 (v1)") {
-				bo4FFHandlerContext.handler = this;
+			BO4FFHandler() : fastfile::FFHandler("bo4", "Black Ops 4") {
+				gcx.handler = this;
+
+				hook::error::AddErrorDumper(PrintErrorContext);
 			}
 
 			void Init(fastfile::FastFileOption& opt) override {
-				hook::library::Library lib{ opt.GetGame(true, nullptr, false, "BlackOps4_dump.exe", "bo4") };
+				gcx.opt = &opt;
 
-				bo4FFHandlerContext.opt = &opt;
-
-				bo4FFHandlerContext.Load_XAsset = reinterpret_cast<decltype(bo4FFHandlerContext.Load_XAsset)>(lib[0x2E35D10]);
-
-				hook::memory::RedirectJmp(lib[0x2EB75B0], DB_FindXAssetHeader);
-				hook::memory::RedirectJmp(lib[0x2EB84F0], DB_LinkXAssetEntry);
-				hook::memory::RedirectJmp(lib[0x2EBBBA0], DB_AllocStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBBE0], DB_IncStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBCC0], DB_InsertPointer);
-				hook::memory::RedirectJmp(lib[0x2EBBE20], DB_PopStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBEA0], DB_PushStreamPos);
-				hook::memory::RedirectJmp(lib[0x2EBBFB0], DB_ConvertOffsetToAlias);
-				hook::memory::RedirectJmp(lib[0x2EBBFF0], DB_ConvertOffsetToPointer);
-				hook::memory::RedirectJmp(lib[0x2EBC020], DB_ConvertOffsetToUnk);
-				hook::memory::RedirectJmp(lib[0x2EBC050], Load_Stream);
-				hook::memory::RedirectJmp(lib[0x2EBC110], Load_XStringCustom);
-
-				hook::memory::RedirectJmp(lib[0x2EBC480], EmptyStub); //Load_ScrStringPtr
-				hook::memory::RedirectJmp(lib[0x2EBC430], EmptyStub); //Load_ScriptStringCustom
-				hook::memory::RedirectJmp(lib[0x35BA450], EmptyStub); // Load_GfxImageAdapter
-				hook::memory::RedirectJmp(lib[0x3CA8870], EmptyStub); // Load_SndBankAsset
-				hook::memory::RedirectJmp(lib[0x3CA88C0], EmptyStub); // Load_SndBankAsset
-				hook::memory::RedirectJmp(lib[0x35FC100], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x3733C90], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FB980], EmptyStub); // load texture
-				hook::memory::RedirectJmp(lib[0x35FC060], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FBFC0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FBDD0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x3600EA0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x370BD10], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x353AE00], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x3700CE0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x3DC46F0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x3CBBE00], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x353AF10], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x353ADD0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x3729A70], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FBC90], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FBF20], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FBE80], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FBD30], EmptyStub); // unk
-			
-				hook::memory::RedirectJmp(lib[0x22B7AF0], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x22B7B00], EmptyStub); // unk
-				hook::memory::RedirectJmp(lib[0x35FCE50], EmptyStub); // unk
-
-				
-				// write pool data to disk
-				if (opt.assertContainer) {
-					bo4FFHandlerContext.pool.csiHeader.gameId = compatibility::scobalula::csi::CG_BO4;
-					bo4FFHandlerContext.pool.csiHeader.WriteCsi(compatibility::scobalula::csi::ActsCsiLocation());
+				gcx.handleList.Clear();
+				if (opt.assetTypes) {
+					gcx.handleList.LoadConfig(opt.assetTypes);
 				}
+
+				acts::game_data::GameData game{ "bo4" };
+				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "bo4") };
+				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+				game.SetScanContainer(&scan);
+				scan.Sync();
+
+				scan.ignoreMissing = true;
+
+				game.Get("Load_XAsset", &gcx.Load_XAsset);
+				void* Load_XHash{};
+				if (opt.dumpXHash) {
+					game.Get("Load_XHash", &Load_XHash);
+				}
+
+				game.Redirect("Load_Stream", Load_Stream);
+				game.Redirect("DB_PopStreamPos", DB_PopStreamPos);
+				game.Redirect("DB_PushStreamPos", DB_PushStreamPos);
+				game.Redirect("DB_IncStreamPos", DB_IncStreamPos);
+				game.Redirect("DB_AllocStreamPos", DB_AllocStreamPos);
+				game.Redirect("DB_ConvertOffsetToPointer", DB_ConvertOffsetToPointer);
+				game.Redirect("DB_ConvertOffsetToAlias", DB_ConvertOffsetToAlias);
+				game.Redirect("DB_GetOffsetData", DB_GetOffsetData);
+				game.Redirect("DB_InsertPointer", DB_InsertPointer);
+				game.Redirect("DB_AllocXBlocks", DB_AllocXBlocks);
+				game.Redirect("DB_InitStreams", DB_InitStreams);
+				game.Redirect("DB_LoadXFileData", DB_LoadXFileData);
+				game.Redirect("Load_XStringCustom", Load_XStringCustom);
+				game.Redirect("DB_LinkXAssetEntry", DB_LinkXAssetEntry);
+				game.Redirect("DB_FindXAssetHeader", DB_FindXAssetHeader);
+
+				game.ApplyNullScans("fastfile");
+
+
+				if (scan.foundMissing) {
+					throw std::runtime_error("Can't find some patterns");
+				}
+
+				if (opt.dumpXHash) {
+					// this one is quite heavy, so only when required
+					// Load_XHash is empty, so we can't jump from it
+					void* trampoline{ hook::memory::AllocateNear(Load_XHash, 0x10) };
+					hook::memory::RedirectJmp(trampoline, fastfile::handlers::bo4::Load_XHash, true);
+
+					size_t patchedXHash{};
+					std::vector<hook::library::ScanResult> calls{ scan.Scan("E8 ?? ?? ?? ??") };
+
+					for (hook::library::ScanResult& res : calls) {
+						if (res.GetRelative<int32_t>(1) == (byte*)Load_XHash) {
+							void* call{ res.GetPtr(1) };
+							int32_t delta{ (int32_t)((byte*)trampoline - (byte*)call - sizeof(delta)) };
+							hook::process::WriteMemSafe(call, &delta, sizeof(delta));
+							patchedXHash++;
+						}
+					}
+					LOG_TRACE("patched {}/{} Load_XHash call(s)", patchedXHash, calls.size());
+				}
+
+			}
+			void Cleanup() override {
+				gcx.isRunning = false;
 			}
 
 			void Handle(fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, fastfile::FastFileContext& ctx) override {
+				gcx.ctx = &ctx;
+				gcx.reader = &reader;
+				gcx.data = reader.Ptr();
+				gcx.dataLen = reader.Remaining();
 				std::filesystem::path out{ opt.m_output / "bo4" / "data" };
 				std::filesystem::create_directories(out);
-				SetFFContext(&ctx);
+				gcx.isRunning = true;
+				utils::CloseEnd end{ [] {
+					gcx.isRunning = false;
+					gcx.compiledZone = nullptr;
+					errorCtx.lastAsset = nullptr;
+				} };
 
-
-				XAssetList_0& assetList{ *reader.ReadPtr<XAssetList_0>() };
-
-				static char emptyStr[1]{};
-
-				std::vector<fastfile::dump::BinXAsset> assetMap{};
-				size_t stringsOffsetStart{ reader.Loc() };
-
-				hashutils::ReadDefaultFile();
-				// add hashes
-				hashutils::AddPrecomputed(hash::Hash64(ctx.ffname), ctx.ffname, true);
-
-				if (assetList.stringsCount) {
-					//reader.Align<void*>();
-					assetList.strings = reader.ReadPtr<char*>(assetList.stringsCount);
-
-					for (size_t i = 0; i < assetList.stringsCount; i++) {
-						if (fastfile::IsSame(assetList.strings[i], -1)) {
-							assetList.strings[i] = reader.ReadString();
-							hashutils::AddPrecomputed(hash::Hash64(assetList.strings[i]), assetList.strings[i], true);
-						}
-						else {
-
-							assetList.strings[i] = emptyStr;
-						}
-					}
+				if (opt.dumpCompiledZone) {
+					gcx.compiledZone = std::make_unique<fastfile::compiled_zone::CompiledZone>();
 				}
 
-				// allocate the blocks
-				/*
-				*/
-				// TODO: use the blocks, better to rewrite the handler itself
+				gcx.loaded = 0;
+				gcx.allocator.FreeAll();
+				gcx.linkedAssets->clear();
 
+				size_t blockSizes[XFILE_BLOCK_COUNT]{};
 
-				SetAssetList(&assetList);
-				size_t stringsOffsetEnd{ reader.Loc() };
-				{
-					std::filesystem::path outStrings{ out / std::format("{}_strings.txt", ctx.ffname) };
+				// alloc the blocks
+				for (size_t i = 0; i < XFILE_BLOCK_COUNT; i++) {
+					blockSizes[i] = ctx.blockSizes[i].size;
+					LOG_DEBUG("Block size {} = 0x{:x}", XFileBlockName((XFileBlock)i), blockSizes[i]);
+				}
+
+				DB_AllocXBlocks(blockSizes, gcx.g_loadblocks);
+				DB_InitStreams(gcx.g_loadblocks);
+
+				DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
+				gcx.xstrings.clear();
+
+				XAssetList_0& assetList{ gcx.assetList };
+				DB_LoadXFileData(&assetList, sizeof(assetList));
+				DB_PushStreamPos(XFILE_BLOCK_VIRTUAL);
+
+				gcx.opt->assetNames.clear();
+
+				for (auto& [hashType, worker] : GetWorkers()) {
+					worker->PreLoadWorker(&ctx);
+				}
+
+				if (assetList.strings) {
+					assetList.strings = AllocStreamPos<char*>();
+
+					LOG_TRACE("Log strings... {}", (void*)assetList.strings);
+					std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE os{ outStrings };
 					if (!os) {
-						throw std::runtime_error(std::format("Can't open {}", outStrings.string()));
+						ThrowFastFileError("Can't open {}", outStrings.string());
 					}
-					for (size_t i = 0; i < assetList.stringsCount; i++) {
-						char* scrstr{ acts::decryptutils::DecryptStringT8(assetList.strings[i]) };
-						assetList.strings[i] = scrstr;
-						os << scrstr << "\n";
-					}
-					LOG_OPT_INFO("Dump strings into {}", outStrings.string());
-				}
 
-				if (!assetList.assetCount) {
-					LOG_OPT_INFO("no asset");
-					return;
-				}
-
-				LOG_DEBUG("assets: 0x{:x}", reader.Loc());
-				// fixme: for some reasons, we have a bad alignment in the uncompressed buffer, this should be fixed before reading
-				// it seems to be linked with the PushStreamPos types, a virtual/physical will set a particular align
-				// I suggest to use a stack with custom buffers
-				//reader.Align<void*>(); 
-				assetList.assets = reader.ReadPtr<XAsset_0>(assetList.assetCount);
-				LOG_DEBUG("assets data 0x{:x}", reader.Loc());
-
-				std::filesystem::path outAssets{ out / std::format("{}_assets.csv", ctx.ffname) };
-				utils::OutFileCE osa{ outAssets };
-				if (!osa) {
-					throw std::runtime_error(std::format("Can't open {}", outAssets.string()));
-				}
-				osa << "type,name";
-				bo4FFHandlerContext.readers.emplace_back(reader, XFILE_BLOCK_TEMP);
-				bo4FFHandlerContext.osassets = &osa;
-				bo4FFHandlerContext.loaded = 0;
-				bo4FFHandlerContext.ctx = &ctx;
-
-				std::filesystem::path bindir{ opt.m_output / "bo4" / "binary" };
-				std::filesystem::path binout{ bindir / ctx.ffname };
-				if (opt.dumpBinaryAssets) {
-					std::filesystem::create_directories(binout);
-				}
-				else if (opt.dumpBinaryAssetsMap) {
-					std::filesystem::create_directories(bindir);
-				}
-
-				bo4FFHandlerContext.opt->assetNames.clear();
-
-				if (!opt.noAssetDump) {
-					for (auto& [t, w] : GetWorkers()) {
-						w->PreXFileLoading(opt, ctx);
-					}
-				}
-
-				for (size_t i = 0; i < assetList.assetCount; i++) {
-					XAsset_0& asset{ assetList.assets[i] };
-
-					const char* assType{ XAssetNameFromId(asset.type) };
-					LOG_DEBUG("Load asset {} (0x{:x})", assType, (int)asset.type);
-
-
-					size_t originLoc{ bo4FFHandlerContext.Loc() };
-					bo4FFHandlerContext.Load_XAsset(false, &asset);
-					size_t len{ bo4FFHandlerContext.Loc() - originLoc };
-
-					LOG_DEBUG("asset {} loaded (0x{:x}:0x{:x})", assType, originLoc, len);
-
-					if (opt.dumpBinaryAssets) {
-						std::vector<byte> rawAsset{};
-
-						utils::WriteValue(rawAsset, &asset, sizeof(asset));
-						reader.Goto(originLoc);
-						utils::WriteValue(rawAsset, reader.ReadPtr<byte>(len), len);
-
-						std::filesystem::path assetOut{ binout / std::format("{:04}_{}.bin", i, assType) };
-
-						if (utils::WriteFile(assetOut, rawAsset)) {
-							LOG_OPT_INFO("Dump asset {}", assetOut.string());
-						}
-						else {
-							LOG_ERROR("Error when dumping {}", assetOut.string());
-						}
-					}
-					if (opt.dumpBinaryAssetsMap) {
-						assetMap.emplace_back((uint32_t)asset.type, (uint32_t)i, originLoc, len);
-					}
-				}
-
-				if (!opt.noAssetDump) {
-					for (auto& [t, w] : GetWorkers()) {
-						w->PostXFileLoading(opt, ctx);
-					}
-				}
-
-				size_t eofLoc{ bo4FFHandlerContext.Loc() };
-				if (eofLoc != reader.Length()) {
-					LOG_WARNING("eof at 0x{:x} != 0x{:x}", eofLoc, reader.Length());
-				}
-
-				if (opt.dumpBinaryAssetsMap) {
-					std::vector<byte> mapData{};
-
-					fastfile::dump::BinXAssetListHeader& header{ utils::Allocate<fastfile::dump::BinXAssetListHeader>(mapData) };
-					header.magic = fastfile::dump::BIN_MAGIC;
-					header.stringsCount = assetList.stringsCount;
-					header.stringsOffsetStart = stringsOffsetStart;
-					header.stringsOffsetEnd = stringsOffsetEnd;
-					header.assetOffset = mapData.size();
-					header.assetCount = assetMap.size();
-
-					utils::WriteValue(mapData, assetMap.data(), sizeof(assetMap[0]) * assetMap.size());
-
-					std::filesystem::path binmapout{ bindir / std::format("{}.map", ctx.ffname) };
-
-					if (utils::WriteFile(binmapout, mapData)) {
-						LOG_OPT_INFO("Dump asset {}", binmapout.string());
-					}
-					else {
-						LOG_ERROR("Error when dumping {}", binmapout.string());
-					}
-				}
-
-				LOG_OPT_INFO("{} asset(s) loaded (0x{:x})", bo4FFHandlerContext.loaded, bo4FFHandlerContext.loaded);
-
-			}
-
-			void Cleanup() override {
-				if (bo4FFHandlerContext.opt->dumpAssetNames) {
-					std::filesystem::path outAssets{ bo4FFHandlerContext.opt->m_output / "bo4" / "assetnames.csv" };
-					{
-						utils::OutFileCE osa{ outAssets };
-						osa << "type,name";
-
-						size_t n{ std::min<size_t>(bo4FFHandlerContext.opt->assetNames.size(), games::bo4::pool::ASSET_TYPE_COUNT)};
-
-						for (size_t i = 0; i < n; i++) {
-							for (uint64_t h : bo4FFHandlerContext.opt->assetNames[i]) {
-								osa << "\n" << XAssetNameFromId((games::bo4::pool::XAssetType)i) << "," << hashutils::ExtractTmp("hash", h);
+					if (Load_Stream(true, assetList.strings, sizeof(*assetList.strings) * assetList.stringsCount)) {
+						for (size_t i = 0; i < assetList.stringsCount; i++) {
+							Load_String(false, &assetList.strings[i]);
+							if (assetList.strings[i]) {
+								os << assetList.strings[i] << "\n";
 							}
 						}
+						LOG_OPT_INFO("Dump strings into {}", outStrings.string());
 					}
+				}
+
+				utils::OutFileCE osxhash{};
+				if (opt.dumpXHash) {
+					std::filesystem::path outXHash{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xhash" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::create_directories(outXHash.parent_path());
+					osxhash->open(outXHash.string());
+					if (!osxhash) {
+						ThrowFastFileError("Can't open {}", outXHash.string());
+					}
+					gcx.outXHash = &osxhash;
+					LOG_OPT_INFO("Dump xhashes into {}", outXHash.string());
+				}
+				else {
+					gcx.outXHash = {};
+				}
+
+				DB_PopStreamPos();
+
+				if (assetList.assets) {
+					assetList.assets = AllocStreamPos<XAsset_0, 7>();
+					Load_Stream(true, assetList.assets, sizeof(*assetList.assets) * assetList.assetCount);
+
+					if (!opt.noAssetDump) {
+						for (auto& [t, w] : GetWorkers()) {
+							w->PreXFileLoading(opt, ctx);
+						}
+					}
+					std::filesystem::path outAssets{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "assets" / std::format("{}{}.csv", (opt.noAssetDump ? "unloaded_" : ""), ctx.ffname) };
+					std::filesystem::create_directories(outAssets.parent_path());
+					utils::OutFileCE osa{ outAssets };
+					osa << "type,name\n";
+					gcx.outAssetNames = &osa;
+
+					for (size_t i = 0; i < assetList.assetCount; i++) {
+						XAsset_0* ass{ &assetList.assets[i] };
+						errorCtx.lastAsset = ass;
+						errorCtx.assetIdx = i;
+						const char* assType{ XAssetNameFromId(ass->type) };
+						LOG_DEBUG("{}/{} Load asset {} (0x{:x}) {}", i, assetList.assetCount, assType, (int)ass->type, ass->header);
+						if (!opt.noAssetDump || opt.testDump || opt.dumpCompiledZone) {
+#ifndef CI_BUILD
+							//if (i >= 110100) core::logs::setlevel(core::logs::LVL_TRACE_PATH);
+#endif
+							gcx.Load_XAsset(false, ass);
+							continue;
+						}
+
+						osa << assType << ",0x" << ass->header << "\n";
+					}
+					errorCtx.lastAsset = nullptr;
+
 					LOG_OPT_INFO("Dumped assets into {}", outAssets.string());
+					if (!opt.noAssetDump) {
+						for (auto& [t, w] : GetWorkers()) {
+							w->PostXFileLoading(opt, ctx);
+						}
+					}
+
+					// xstrings
+					if (opt.dumpXStrings) {
+						std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xstrings" / std::format("{}.txt", ctx.ffname) };
+						std::filesystem::create_directories(outStrings.parent_path());
+						utils::OutFileCE os{ outStrings, true };
+
+
+						for (char* xstr : gcx.xstrings) {
+							os << acts::decryptutils::DecryptStringT8(xstr) << "\n";
+						}
+						LOG_OPT_INFO("Dump xstrings into {}", outStrings.string());
+					}
+				}
+
+				DB_PopStreamPos();
+				LOG_OPT_INFO("Loaded {} asset(s)", gcx.loaded);
+
+				if (gcx.compiledZone) {
+					std::filesystem::path outCZ{ gcx.opt->m_output / "bo4" / "compiled" / std::format("{}.zonec", ctx.ffname) };
+					gcx.compiledZone->DumpDebug(outCZ);
 				}
 			}
 		};
 
-		//utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
+		utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
 	}
 	std::unordered_map<games::bo4::pool::XAssetType, Worker*>& GetWorkers() {
 		static std::unordered_map<games::bo4::pool::XAssetType, Worker*> map{};
 		return map;
 	}
 
-	fastfile::FastFileContext* GetFFContext() {
-		return bo4FFHandlerContext.ctx;
-	}
-	void SetFFContext(fastfile::FastFileContext* ctx) {
-		bo4FFHandlerContext.ctx = ctx;
-	}
-
 	const char* GetScrString(ScrString_t id) {
-		if ((int)id >= bo4FFHandlerContext.assetList->stringsCount) {
-			LOG_WARNING("Can't get scr string: {} >= {}", id, bo4FFHandlerContext.assetList->stringsCount);
+		if ((int)id >= gcx.assetList.stringsCount) {
+			LOG_WARNING("Can't get scr string: {} >= {}", id, gcx.assetList.stringsCount);
 			return utils::va("<invalid:0x%x>", id);
 		}
-		char* c{ bo4FFHandlerContext.assetList->strings[id] };
+		char* c{ gcx.assetList.strings[id] };
 		if (!c) return "";
 		if (!IsValidHandle(c)) return GetValidString(c);
 		return acts::decryptutils::DecryptStringT8(c);
-	}
-
-	void SetAssetList(XAssetList_0* assetList) {
-		bo4FFHandlerContext.assetList = assetList;
 	}
 
 	const char* GetEModeName(eModes id) {

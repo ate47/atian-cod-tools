@@ -112,7 +112,7 @@ namespace {
 
 			Objective* asset{ (Objective*)ptr };
 
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "objective" / GetFFContext()->ffname / std::format("{}.json", hashutils::ExtractTmp("file", asset->name)) };
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "objective" / fastfile::GetCurrentContext().ffname / std::format("{}.json", hashutils::ExtractTmp("file", asset->name)) };
 			std::filesystem::create_directories(outFile.parent_path());
 			BO4JsonWriter json{};
 

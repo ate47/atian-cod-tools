@@ -83,8 +83,6 @@ namespace fastfile::handlers::bo4 {
 	};
 
 	std::unordered_map<games::bo4::pool::XAssetType, Worker*>& GetWorkers();
-	fastfile::FastFileContext* GetFFContext();
-	void SetFFContext(fastfile::FastFileContext* ctx);
 	const char* GetScrString(ScrString_t id);
 	const char* GetEModeName(eModes mode);
 

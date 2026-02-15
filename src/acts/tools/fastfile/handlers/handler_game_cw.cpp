@@ -368,7 +368,6 @@ namespace fastfile::handlers::cw {
 
 				XAssetList_0& assetList{ gcx.assetList };
 				DB_LoadXFileData(&assetList, sizeof(assetList));
-				//SetAssetList(&assetList);
 
 				gcx.opt->assetNames.clear();
 

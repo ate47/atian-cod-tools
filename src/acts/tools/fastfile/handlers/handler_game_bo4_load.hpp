@@ -44,7 +44,6 @@ namespace fastfile::handlers::bo4 {
 		uint64_t unk10;
 	};
 
-	void SetAssetList(XAssetList_0* assetList);
 	const char* XFileBlockName(XFileBlock id);
 	XFileBlockMemLocation GetXFileBlockMemLocation(XFileBlock id);
 	void DB_AllocXBlocks(size_t* blockSize, XBlock* blocks);
