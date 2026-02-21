@@ -1,0 +1,105 @@
+{{#_game_bo3_}}
+#using scripts\codescripts\struct;
+#using scripts\shared\callbacks_shared;
+#using scripts\shared\clientfield_shared;
+#using scripts\shared\system_shared;
+#using scripts\shared\util_shared;
+
+#namespace {{modid}};
+
+function autoexec __init__system__()
+{
+	system::register( "{{modid}}", &__init__, undefined, undefined );
+}
+
+function __init__()
+{
+	callback::on_connect( &on_player_connect );
+}
+
+function on_player_connect()
+{
+    self iprintln( "hello world" );
+}
+{{/_game_bo3_}}
+{{#_game_bo4_}}
+#using scripts\core_common\struct;
+#using scripts\core_common\callbacks_shared;
+#using scripts\core_common\clientfield_shared;
+#using scripts\core_common\system_shared;
+#using scripts\core_common\util_shared;
+
+#namespace {{modid}};
+
+function autoexec __init__system__()
+{
+	system::register( #"{{modid}}", &__init__, undefined, undefined );
+}
+
+function __init__()
+{
+	callback::on_connect( &on_player_connect );
+}
+
+function on_player_connect()
+{
+    self iprintln( "hello world" );
+}
+{{/_game_bo4_}}
+{{#_game_cw_}}
+#using scripts\core_common\struct;
+#using scripts\core_common\callbacks_shared;
+#using scripts\core_common\clientfield_shared;
+#using scripts\core_common\system_shared;
+#using scripts\core_common\util_shared;
+
+#namespace {{modid}};
+
+function autoexec __init__system__()
+{
+	system::register( #"{{modid}}", &__init__, undefined, undefined );
+}
+
+function __init__()
+{
+	callback::on_connect( &on_player_connect );
+}
+
+function on_player_connect()
+{
+    self iprintln( "hello world" );
+}
+{{/_game_cw_}}
+{{#_game_mwiii_}}
+#using scripts\common\system;
+#using scripts\engine\utility;
+#using scripts\common\callbacks;
+
+#namespace {{modid}};
+
+function autoexec __init__system__()
+{
+	system::register( #"{{modid}}", &__init__, undefined, undefined );
+}
+
+function __init__()
+{
+    level callback::add( "player_connect", &on_player_connect, undefined );
+}
+
+function on_player_connect()
+{
+    self iprintlnbold("Hello, World!");
+}
+
+{{/_game_mwiii_}}
+
+{{^_game_bo3_}}
+{{^_game_bo4_}}
+{{^_game_cw_}}
+{{^_game_mwiii_}}
+// no default script
+{{/_game_mwiii_}}
+{{/_game_cw_}}
+{{/_game_bo4_}}
+{{/_game_bo3_}}

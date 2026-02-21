@@ -1,0 +1,42 @@
+{
+    "description": "Generates GSC project",
+    "params": {
+        "game": {
+            "desc": "Game id",
+            "example": "bo4",
+            "validation": "bo3|bo4|cw"
+        },
+        "platform": {
+            "desc": "Platform id, e.g. 'pc', 'ps', etc.",
+            "required": false,
+            "default": "pc",
+            "example": "pc",
+            "validation": "pc|ps|pc_alpha|xbox"
+        },
+        "ps4ip": {
+            "desc": "PS4 IP address, required if platform is 'ps'",
+            "required": false,
+            "default": "",
+            "example": "192.168.1.10:9090"
+        },
+        "modid": {
+            "desc": "Mod ID",
+            "required": false,
+            "default": "demo_mod",
+            "example": "demo_mod",
+            "validation": "[a-z0-9A-Z_]+"
+        },
+        "gamemode": {
+            "desc": "Gamemode name, zm, mp or all",
+            "required": false,
+            "default": "zm",
+            "example": "zm",
+            "validation": "zm|mp|all"
+        }
+    },
+    "files": {
+        "gsc/gsc.mustache": "gsc.conf",
+        "gsc/scripts/default_script.mustache": "scripts/{{modid}}.gsc",
+        "gsc/.vscode/tasks.mustache": ".vscode/tasks.json"
+    }
+}

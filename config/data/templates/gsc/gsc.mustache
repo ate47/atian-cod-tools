@@ -1,0 +1,54 @@
+# This file is the configuration for your gsc project
+
+# Game and platform
+game={{game}}
+platform={{platform}}
+
+# If the platform is ps, the injector needs the ps4 IP
+ps4ip={{ps4ip}}
+
+{{#_game_bo3_}}
+# The script replaced by the injector
+script=scripts\shared\duplicaterender_mgr.gsc
+{{/_game_bo3_}}
+{{^_game_bo3_}}
+# The script to hook, it should be in memory when injecting.
+# When the game will load the script, it'll load your script
+# It is suggested to use these hook script names:
+# multiplayer . scripts\mp_common\bb.gsc
+# zombies ..... scripts\zm_common\load.gsc
+# all ......... scripts\core_common\load_shared.gsc
+{{#_gamemode_zm_}}
+script=scripts\zm_common\load.gsc
+{{/_gamemode_zm_}}
+{{#_gamemode_mp_}}
+script=scripts\mp_common\bb.gsc
+{{/_gamemode_mp_}}
+{{^_gamemode_zm_}}
+{{^_gamemode_mp_}}
+script=scripts\core_common\load_shared.gsc
+{{/_gamemode_mp_}}
+{{/_gamemode_zm_}}
+{{/_game_bo3_}}
+
+## Developer options
+
+# compute debug data
+#computeDevOption=false
+# define detour type
+#detour_type=ACTS
+# custom preprocessor symbols
+#symbols=EXAMPLE_SYMBOLS,EXAMPLE_VALUE=42
+# do no use the default checksum
+#noDefaultChecksum=false
+# obfuscate data from script
+#obfuscate=false
+# use #define for constexpr instead of preprocessor 
+# (serious t7 compiler compatibility)
+#defineAsConstExpr=false
+# do not inline the dev calls in a /# #/ block
+#noDevCallInline=false
+# use /# #/ as comment markers
+#devBlockAsComment=false
+# use the mod tool opcodes (if available)
+#useModToolOpCodes=false

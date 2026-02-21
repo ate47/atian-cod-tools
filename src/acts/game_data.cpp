@@ -14,15 +14,14 @@ namespace acts::game_data {
 		{ "GetOffset32", SCT_GET_OFFSET32 },
 	};
 
-
 	std::filesystem::path GetBaseDir() {
-		actscli::ActsOptions& opts{ actscli::options() };
-		std::string scanpath{ core::config::GetString("game.dir", "") };
+		std::string scanpath{ core::config::GetString("data.dir", "") };
 		if (scanpath.empty()) {
-			return utils::GetProgDir() / "games";
+			return utils::GetProgDir() / "data" / "games";
 		}
-		return scanpath;
+		return std::filesystem::path{ scanpath } / "games";
 	}
+
 	size_t ParseOffsetScan(const std::string& scan) {
 		size_t val;
 		try {

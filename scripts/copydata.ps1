@@ -6,8 +6,8 @@ try {
     $base = (Get-Item $PSScriptRoot).parent
     Set-Location ($base.Fullname)
     
-    Write-Host "-- Copy scans"
-    Copy-Item -Recurse "config\games" "build\bin" -ErrorAction Ignore > $null
+    Write-Host "-- Copy data"
+    Copy-Item -Recurse "config\data" "build\bin" -ErrorAction Ignore > $null
 }
 finally {
     $prevPwd | Set-Location

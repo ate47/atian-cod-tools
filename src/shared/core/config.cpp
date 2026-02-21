@@ -130,7 +130,9 @@ namespace core::config {
 		rapidjson::Value& val = GetVal(path, 0, main);
 
 		if (val.IsNull() || !val.IsString()) {
-			this->SetString(path, defaultValue);
+			if (defaultValue) {
+				this->SetString(path, defaultValue);
+			}
 			return defaultValue;
 		}
 		return val.GetString();

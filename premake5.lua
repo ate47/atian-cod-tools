@@ -436,6 +436,7 @@ project "AtianCodTools"
         "deps/hksc/src/",
         "deps/crc_cpp/include/",
         "deps/libtomcrypt/src/headers/",
+        "deps/mstch/include/",
     }
 
     vpaths {
@@ -470,6 +471,7 @@ project "AtianCodTools"
     links { "xxhash" }
     links { "hksc" }
     links { "libtomcrypt" }
+    links { "mstch" }
     dependson "detours"
     dependson "antlr4-runtime"
     dependson "ACTSSharedLibrary"
@@ -487,6 +489,7 @@ project "AtianCodTools"
     dependson "xxhash"
     dependson "hksc"
     dependson "libtomcrypt"
+    dependson "mstch"
     
     filter { "options:gpl-build" }
         links { "xsk-arc" }
@@ -1115,6 +1118,27 @@ group "deps"
 
         includedirs {
             "deps/libtommath/"
+        }
+        
+    project "mstch"
+        language "C++"
+        kind "StaticLib"
+        cppdialect "C++20"
+        characterset "MBCS"
+
+        targetname "mstch"
+        targetdir "%{wks.location}/bin/"
+        objdir "%{wks.location}/obj/"
+
+        files {
+            "deps/mstch/src/**.cpp",
+            "deps/mstch/src/**.hpp",
+            "deps/mstch/include/**.hpp"
+        }
+
+        includedirs {
+            "deps/mstch/include/",
+            "deps/mstch/src/"
         }
     
     if _OPTIONS["gpl-build"] then

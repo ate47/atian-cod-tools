@@ -19,7 +19,7 @@ try {
     Write-Host "-- Install packages"
     vcpkg install "@.\packages.txt"
 
-    .\scripts\copyscans.ps1
+    .\scripts\copydata.ps1
 
     Write-Host "-- Create solution"
     if ($ci) {

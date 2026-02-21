@@ -1,0 +1,27 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "inject",
+      "type": "shell",
+      "command": "{{acts_dir}}\\acts.exe",
+      "args": [ "build" ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "echo": false,
+        "clear": true,
+        "focus": true
+      },
+      "options": {
+        "cwd": "${workspaceRoot}"
+      }
+    }
+  ]
+}

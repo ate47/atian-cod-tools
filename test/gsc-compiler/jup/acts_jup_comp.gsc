@@ -1,6 +1,6 @@
 #using scripts\common\system;
 #using scripts\engine\utility;
-#using script_4c770a9a4ad7659c; // callback
+#using scripts\common\callbacks;
 
 #namespace acts;
 #file scripts\acts\acts;

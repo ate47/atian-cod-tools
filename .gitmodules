@@ -102,3 +102,7 @@
 	path = deps/gsc-tool
 	url = https://github.com/xensik/gsc-tool
 	branch = feature/hash-extraction
+[submodule "deps/mstch"]
+	path = deps/mstch
+	url = https://github.com/no1msd/mstch/
+	branch = no-boost
