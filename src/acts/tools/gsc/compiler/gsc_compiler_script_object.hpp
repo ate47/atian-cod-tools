@@ -58,6 +58,10 @@ namespace tool::gsc::compiler {
 
     class CompileObject {
     public:
+        union {
+            AscmNode* opcode;
+            uint32_t strlistener;
+        } crcData{};
         size_t devBlockDepth{};
         CompilerConfig& config;
         InputInfo& info;

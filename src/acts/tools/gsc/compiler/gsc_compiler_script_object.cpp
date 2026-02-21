@@ -466,12 +466,6 @@ namespace tool::gsc::compiler {
     }
 
     bool CompileObject::Compile(std::vector<byte>& data, std::vector<byte>* pdbgdata) {
-        union {
-            AscmNode* opcode;
-            uint32_t strlistener;
-
-        } crcData{};
-        bool forceDebugHeader{};
         if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
             // add the notify crc function for T9 38 vm
             constexpr const char* name = "$notif_checkum";
@@ -495,7 +489,6 @@ namespace tool::gsc::compiler {
             else {
                 f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint32_t>((uint32_t)(config.checksum), OPCODE_GetUnsignedInteger));
             }
-            //forceDebugHeader = true;
 
             auto gvarIt = vmInfo->globalvars.find(vmInfo->HashField("level"));
 
@@ -545,7 +538,6 @@ namespace tool::gsc::compiler {
             // add some padding so we can patch the crc at runtime (maybe one day it'll be 64 bits?)
             strdef.forceLen = CRC_LEN_PADDING;
             strdef.listeners.push_back(&crcData.strlistener);
-            //forceDebugHeader = true;
             f.m_nodes.push_back(getstr);
             f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_GetLevel));
             f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_Notify));
@@ -1000,7 +992,7 @@ namespace tool::gsc::compiler {
         }
 
 
-        if (forceDebugHeader || config.computeDevOption || config.detourType == DETOUR_ACTS) {
+        if (config.computeDevOption || (config.detourType == DETOUR_ACTS && !detourObjs.empty())) {
             if (!pdbgdata) {
                 LOG_WARNING("Trying to compile debug file, but no buffer was defined");
             }
