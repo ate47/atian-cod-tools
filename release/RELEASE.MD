@@ -1,18 +1,3 @@
 - acts
-	- fastfile
-	  - bo4 handler
-		- dump Load_XHash calls
-		- remove v1 and v2 handlers code
-	  - bo7 handler
-		- fix scans
-		- add ncs hash loader
-	  - add option to set gsc decompiler format
-	  - reduce scan load time
-	  - fix issue with empty fp files with iw decompressor (XGP)
-	- custom gsc decompiler formatter
-	- add gscdfp tool to dump format
-	- add bo7 idc tool for ida
-	- remove warnings when loading bad IATs
-	- put scan in a separate directory to quickly fix them
-	- tool to validate scan directory
-	- code refactor and improvements
+	- fix gsc compiler divide grammar
+	- add support for cdb files
