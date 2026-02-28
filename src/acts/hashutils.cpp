@@ -4,6 +4,7 @@
 #include <rapidcsv.h>
 #include "actscli.hpp"
 #include <deps/scobalula_wni.hpp>
+#include <deps/dzporter_cdb.hpp>
 #include <core/hashes/hash_store.hpp>
 #include <core/bytebuffer.hpp>
 #include <BS_thread_pool.hpp>
@@ -61,6 +62,21 @@ namespace hashutils {
 						return core::hashes::AllocHashMemory(len);
 					})) {
 					LOG_ERROR("Error when reading WNI files");
+				};
+			}
+
+
+			std::vector<std::filesystem::path> cdbpaths{};
+
+			utils::GetFileRecurseExt(wniPackageIndex, cdbpaths, ".cdb\0");
+
+			for (std::filesystem::path& p : cdbpaths) {
+				if (!deps::dzporter::cdb::ReadCDBFile(p, [](uint64_t hash, const char* str) {
+					AddPrecomputed(hash, str, true, false);
+					}, [](size_t len) -> void* {
+						return core::hashes::AllocHashMemory(len);
+					})) {
+					LOG_ERROR("Error when reading CDB files");
 				};
 			}
 
