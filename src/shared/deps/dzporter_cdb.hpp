@@ -12,5 +12,7 @@ namespace deps::dzporter::cdb {
 
 	bool ReadCDBFiles(std::filesystem::path p, std::function<void(uint64_t hash, const char* str)> each, void* (*allocMemory)(size_t len) = nullptr, std::mutex* loadMutex = nullptr);
 	bool ReadCDBFile(std::filesystem::path p, std::function<void(uint64_t hash, const char* str)> each, void* (*allocMemory)(size_t len) = nullptr, std::mutex* loadMutex = nullptr);
+	void CompressCDBFile(std::unordered_map<uint64_t, const char*>& dataMap, const std::filesystem::path& out);
+	void CompressCDBFile(std::map<std::string, std::unordered_set<uint64_t>>& dataMap, const std::filesystem::path& out);
 	void LoadHashFile(std::filesystem::path p);
 }
