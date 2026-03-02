@@ -38,19 +38,36 @@ namespace deps::dzporter::cdb {
 
 			core::bytebuffer::ByteBuffer dreader{ decompressed.get(), header.decompressedSize };
 
-			std::unique_ptr<const char* []> vals{ std::make_unique<const char* []>(header.entries) };
+			std::unique_ptr<size_t[]> refs{ std::make_unique<size_t[]>(header.entries) };
+			char* strsStart{ dreader.Ptr<char>() };
+
+			// skip the string entries, technically we can do that with
+			// dreader.Goto(decompressedSize - entries * sizeof(uint64_t))
+			// but I don't think we can trust anything from these people.
 
 			for (size_t i = 0; i < header.entries; i++) {
-				vals[i] = dreader.ReadString();
+				refs[i] = dreader.Loc();
+				dreader.ReadString();
 			}
 
-			std::unique_ptr<uint64_t[]> keys{ dreader.ReadArray<uint64_t>(header.entries) };
+			// we know the exact size of the strings, we can allocate them in one shot
+			char* strsizes;
+			if (allocMemory) {
+				size_t strVal{ dreader.Loc() };
+				strsizes = (char*)allocMemory(strVal);
+				std::memcpy(strsizes, strsStart, strVal);
+			}
+			else {
+				strsizes = strsStart;
+			}
+
+			uint64_t* keys{ dreader.ReadPtr<uint64_t>(header.entries) };
 
 			{
 				core::async::opt_lock_guard lg{ loadMutex };
 
 				for (size_t i = 0; i < header.entries; i++) {
-					each(keys[i], vals[i]);
+					each(keys[i], &strsizes[refs[i]]);
 				}
 			}
 		}
@@ -157,6 +174,6 @@ namespace deps::dzporter::cdb {
 	void LoadHashFile(std::filesystem::path p) {
 		ReadCDBFiles(p, [](uint64_t hash, const char* str) {
 			core::hashes::AddPrecomputed(hash, str, false);
-			}, core::hashes::AllocHashMemory);
+		}, core::hashes::AllocHashMemory);
 	}
 }
