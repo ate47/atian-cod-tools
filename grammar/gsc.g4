@@ -1,6 +1,16 @@
-grammar gsc;		
+// Grammar for GSC, used in Call of Duty modding. Should support most of the existing syntax.
+grammar gsc;
 
-prog: ('/#' | '#/' | function | include | precache | using_animtree | namespace | filenamespace | constexpr | class_def)* EOF;
+prog: (
+		// dev blocks
+		'/#' | '#/'
+		// function blocks
+		| function 
+		// object info
+		| include | precache | using_animtree | namespace | filenamespace | constexpr 
+		// class definitions (bo3 and later)
+		| class_def
+	)* EOF;
 
 include: ('#include' | '#using') (IDENTIFIER | PATH) ';';
 using_animtree: '#using_animtree' '(' STRING ')' ';';
@@ -13,16 +23,17 @@ class_def: 'class' IDENTIFIER (':' IDENTIFIER (',' IDENTIFIER)* )? '{' (class_va
 class_var: ('var' IDENTIFIER ('=' expression)? ';');
 
 
-function
-    : ('function')? 
-      ('private')? 
-	  ('autoexec' ('(' number ')')?)? 
-      ('event_handler' '[' IDENTIFIER ']')? 
+function: ('function')? // optional 'function' keyword for compatibility with some other compilers
+	  ('private')? 
+	  ('autoexec' ('(' number ')')?)? // allow number for the ordering of the autoexecs (serious syntax)
+	  ('event_handler' '[' IDENTIFIER ']')? // event handlers (bo4, cw, bo6 and later)
 	  detour_info?
-	  IDENTIFIER? '(' param_list ')' 
+	  IDENTIFIER? // the identifier is optional to allow for anonymous functions (lambdas and event handlers without names)
+	  '(' param_list ')' 
 	  ('=>')? // serious lambda definition
 	  statement_block;
 
+// detour info, the path is optional to allow for detours API functions
 detour_info: 'detour' IDENTIFIER ('<' PATH '>' '::' IDENTIFIER)?;
 
 param_list: (param_val (',' param_val)*)?;
@@ -59,6 +70,7 @@ statement_if: 'if' '(' expression ')' statement ('else' statement)?;
 statement_switch: 'switch' '(' expression ')' '{' (('case' const_expr | 'default') ':' (statement)*)+'}';
 statement_inst: (expression | operator_inst | statement_dowhile | function_call_exp | nop_def | devop_def | array_unpack) ';';
 
+// dev ops and nops for special supports
 nop_def: ('nop' | 'Nop') ('(' number ')')?;
 devop_def: ('DevOp' | 'devop' | 'Devop') '(' number ')';
 
@@ -70,6 +82,7 @@ function_component:
 
 operator_inst: BUILTIN (IDENTIFIER | expression)?;
 
+// iw format to unpack arrays into variables, e.g. [a,b,c] = myArray
 array_unpack: '[' IDENTIFIER (',' IDENTIFIER)* ']' '=' expression;
 
 expression:
@@ -161,6 +174,7 @@ const_expr_static:
 
 function_ref:
 	'&' (IDENTIFIER '::')? IDENTIFIER
+	// lazy link reference
 	| '@' IDENTIFIER '<' PATH '>' '::' IDENTIFIER
 	| '&' left_value
     ;
@@ -168,6 +182,7 @@ function_ref:
 // %str -> using_animtree %tree::str -> self define
 anim_ref: '%' IDENTIFIER ('::' IDENTIFIER) ?;
 
+// unused
 data_ref:  '@' '[' IDENTIFIER ',' IDENTIFIER ']' ;
 
 number: INTEGER10
