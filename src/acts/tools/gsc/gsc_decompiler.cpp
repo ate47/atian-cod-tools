@@ -416,10 +416,14 @@ namespace tool::gsc {
                     LOG_ERROR("Can't open output file {} ({})", asmfnamebuff, hashutils::ExtractTmpScript(scriptfile->GetName()));
                     return tool::BASIC_ERROR;
                 }
-                LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
+                if (!opt.m_noLogs) {
+                    LOG_INFO("Decompiling into '{}'{}...", asmfnamebuff, (gsicInfo.isGsic ? " (GSIC)" : ""));
+                }
             }
             else {
-                LOG_INFO("Decompiling '{}'{}...", hashutils::ExtractTmpScript(scriptfile->GetName()), (gsicInfo.isGsic ? " (GSIC)" : ""));
+                if (!opt.m_noLogs) {
+                    LOG_INFO("Decompiling '{}'{}...", hashutils::ExtractTmpScript(scriptfile->GetName()), (gsicInfo.isGsic ? " (GSIC)" : ""));
+                }
             }
         }
 
@@ -1574,7 +1578,9 @@ namespace tool::gsc {
 
             const char* gdbFile{ utils::va("%s.gdb", asmfnamebuffgdb) };
             std::ofstream gdbpos{ gdbFile };
-            LOG_INFO("Writing GDB into '{}'...", gdbFile);
+            if (!opt.m_noLogs) {
+                LOG_INFO("Writing GDB into '{}'...", gdbFile);
+            }
 
             if (!gdbpos) {
                 LOG_ERROR("Can't open {}", gdbFile);

@@ -274,6 +274,8 @@ namespace {
 			game.SetScanContainer(&scan);
 			scan.Sync();
 
+			scan.ignoreMissing = true;
+
 			bo3FFHandlerContext.handleList.Clear();
 			if (opt.assetTypes) {
 				bo3FFHandlerContext.handleList.LoadConfig(opt.assetTypes);
@@ -295,6 +297,11 @@ namespace {
 			game.Redirect("DB_PushStreamPos", DB_PushStreamPos);
 
 			game.ApplyNullScans("fastfile");
+
+			scan.Save();
+			if (scan.foundMissing) {
+				throw std::runtime_error("Can't find some patterns");
+			}
 			
 			// write pool data to disk
 			if (opt.assertContainer) {

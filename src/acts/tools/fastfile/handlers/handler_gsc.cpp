@@ -33,6 +33,7 @@ namespace {
             std::string outSourceStr{ outSource.string() };
             gdctx.opt.m_outputDir = outSourceStr.data();
             gdctx.opt.m_formatter = opt.gscFormatter;
+            gdctx.opt.m_noLogs = opt.reducedLogs;
 
             std::vector<byte> scriptData;
             byte* alignedAlloc{ utils::Aligned(file, 0x20) };

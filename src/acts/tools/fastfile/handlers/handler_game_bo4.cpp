@@ -546,7 +546,7 @@ namespace fastfile::handlers::bo4 {
 
 				game.ApplyNullScans("fastfile");
 
-
+				scan.Save();
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
 				}

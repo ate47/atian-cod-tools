@@ -487,7 +487,7 @@ namespace fastfile::handlers::bo6 {
 				game.Redirect("$Unk_Align_Ret", Unk_Align_Ret); // 2DE3CC0
 				game.ApplyNullScans("fastfile");
 
-
+				scan.Save();
 				if (scan.foundMissing) {
 					throw std::runtime_error("Can't find some patterns");
 				}
