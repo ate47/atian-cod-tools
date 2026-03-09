@@ -76,9 +76,23 @@ namespace acts::game_data {
 	}
 
 	void GameData::Nulled(const char* id, const char* parent) {
-		void* loc{ GetPointer(id, parent) };
-		if (loc) {
-			hook::memory::Nulled(loc);
+		if (cfg.GetBool(std::format("{}.{}.multiple", parent, id), false)) {
+			std::vector<void*> locs{ GetPointerArray(id, parent) };
+			if (locs.empty()) {
+				throw std::runtime_error(std::format("Missing scans for {}: {}::{}", dirname, parent, id));
+			}
+
+			for (void* loc : locs) {
+				if (loc) {
+					hook::memory::Nulled(loc);
+				}
+			}
+		}
+		else {
+			void* loc{ GetPointer(id, parent) };
+			if (loc) {
+				hook::memory::Nulled(loc);
+			}
 		}
 	}
 

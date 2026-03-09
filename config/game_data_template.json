@@ -50,6 +50,12 @@
                 "scan": "40 53 48 83 EC ?? 33 C0 66 C7 81 ?? ?? ?? ?? ?? ?? 48 89 81",
                 "type": "Absolute",
                 "single": false
+            },
+            "$nulledGroup": {
+                "scan": "40 53 48 83 EC",
+                "type": "Absolute",
+                "single": false,
+                "mutliple": true
             }
         }
     }
