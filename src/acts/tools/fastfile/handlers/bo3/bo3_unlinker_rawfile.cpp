@@ -12,7 +12,7 @@ namespace {
 			}; static_assert(sizeof(RawFile) == 0x18);
 			RawFile* asset{ (RawFile*)ptr };
 
-			if (!FixupName(asset->name)) {
+			if (!FixupName(asset->name) || !asset->len) {
 				return;
 			}
 

@@ -13,13 +13,31 @@
             "offset": 8,
             "single": true
         },
+        "varScriptStringList": {
+            "scan": "48 89 05 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 39 78 18",
+            "type": "Relative",
+            "offset": 3,
+            "single": true
+        },
+        "Load_ScriptStringList": {
+            "scan": "48 89 05 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 39 78 18",
+            "type": "Relative",
+            "offset": 8,
+            "single": true
+        },
         "DB_GetXAssetName": {
-            "scan": "E8 ?? ?? ?? ?? BA 23 00 00 00 4C 8D 05 ?? ?? ?? ?? 8D 4A E6 4C 8B C8 E8",
+            "scan": "E8 ?? ?? ?? ?? 33 F6 80 38 2C",
             "type": "Relative",
             "offset": 1,
             "single": true
         },
-        "Load_StreamStub": {
+        "g_streamPosIndex": {
+            "scan": "89 05 ?? ?? ?? ?? 89 05 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? 89 05",
+            "type": "Relative",
+            "offset": 2,
+            "single": true
+        },
+        "Load_Stream": {
             "scan": "E8 ?? ?? ?? ?? 84 C0 0F 84 9E 00 00 00 33 C9 48 89 5C 24 20 E8 ?? ?? ?? ??",
             "type": "Relative",
             "offset": 1
@@ -28,6 +46,12 @@
             "scan": "E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 89 01 48 89 05 ?? ?? ?? ?? 48 83 FB FE 75 ",
             "type": "Relative",
             "offset": 1
+        },
+        "DB_LinkXAssetEntry": {
+            "scan": "E8 ?? ?? ?? ?? 48 8D 2D ?? ?? ?? ?? 48 89 06",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         },
         "Load_SimpleAsset_Internal": {
             "scan": "BA 26 00 00 00 E8 ?? ?? ?? ?? 48 85 DB 74 0D 48 8B 05 ?? ?? ?? ?? 48 8B 08 48 89 0B",
@@ -71,16 +95,16 @@
             "scan": "E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 8B 19 48 85 DB 74 70 48 83 FB FD 77 13 E8",
             "type": "Relative",
             "offset": 1
+        },
+        "DB_InitStreams": {
+            "scan": "E8 ?? ?? ?? ?? B9 05 00 00 00 E8 ?? ?? ?? ?? 48 8D 0D",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         }
     },
     "nullscans": {
         "fastfile": {
-            "DB_LinkXAssetEntry": {
-                "scan": "E8 ?? ?? ?? ?? 48 8D 2D ?? ?? ?? ?? 48 89 06",
-                "type": "Relative",
-                "offset": 1,
-                "single": true
-            },
             "$DB_LoadTexture": {
                 "scan": "40 53 48 83 EC 20 48 8D 8A",
                 "type": "Absolute",
