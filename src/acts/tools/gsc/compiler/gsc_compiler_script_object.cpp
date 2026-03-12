@@ -543,6 +543,28 @@ namespace tool::gsc::compiler {
             f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_Notify));
             f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
         }
+        else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_XHASH)) {
+            // add the notify crc function for SAT 16 vm
+            constexpr const char* name = "$notif_checkum";
+            uint64_t nameHashed = vmInfo->HashField(name);
+            AddHash(name);
+            auto [res, err] = exports.try_emplace(nameHashed, *this, nameHashed, currentNamespace, fileNameSpace, vmInfo);
+
+            if (!err) {
+                LOG_ERROR("Can't register notif checksum export: {}", name);
+                return false;
+            }
+
+            FunctionObject& f = res->second;
+            f.autoexecOrder = INT64_MIN; // first
+            f.m_flags = tool::gsc::CLASS_VTABLE;
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_CheckClearParams));
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_PreScriptCall));
+            f.m_nodes.push_back(crcData.opcode = new AscmNodeData<uint64_t>(hash::Hash64A(utils::va("%d", config.checksum)), OPCODE_GetHash));
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_GetLevel));
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_IW_Notify));
+            f.m_nodes.push_back(new AscmNodeOpCode(OPCODE_End));
+        }
 
         // set builtin call types for jup VM
         if (!gscHandler->HasFlag(tool::gsc::GOHF_SUPPORT_GET_API_SCRIPT)) {

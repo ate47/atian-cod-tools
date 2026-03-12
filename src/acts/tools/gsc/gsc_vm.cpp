@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include "gsc_vm.hpp"
+#include <tools/gsc/gsc_vm.hpp>
 #include <tools/gsc/gsc.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <actscli.hpp>
@@ -34,6 +34,8 @@
 #include <tools/gsc/opcodes/gsc_opcodes_t10_13.hpp>
 #include <tools/gsc/opcodes/gsc_opcodes_t10_14.hpp>
 #include <tools/gsc/opcodes/gsc_opcodes_sat_14.hpp>
+#include <tools/gsc/opcodes/gsc_opcodes_sat_15.hpp>
+#include <tools/gsc/opcodes/gsc_opcodes_sat_16.hpp>
 
 // vm
 #include <tools/gsc/vm/gsc_vm_gscbin.hpp>
@@ -44,6 +46,7 @@
 #include <tools/gsc/vm/gsc_vm_t8.hpp>
 #include <tools/gsc/vm/gsc_vm_t9.hpp>
 #include <tools/gsc/vm/gsc_vm_t10.hpp>
+#include <tools/gsc/vm/gsc_vm_sat.hpp>
 
 // gdb
 #include <tools/gsc/gdb/gdb_acts.hpp>
@@ -98,6 +101,8 @@ namespace tool::gsc::vm {
                 RegisterGSCOBJHandler<T1010GSCOBJHandler<VMI_T10_12>>(VMI_T10_12);
                 RegisterGSCOBJHandler<T1010GSCOBJHandler<VMI_T10_13>>(VMI_T10_13);
                 RegisterGSCOBJHandler<T1010GSCOBJHandler<VMI_T10_14>>(VMI_T10_14);
+                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_T10_15>>(VMI_T10_15);
+                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_T10_16>>(VMI_T10_16);
 
                 // register GBD data
                 RegisterGDBOBJHandler<GscGdbActs>();
@@ -190,5 +195,7 @@ namespace tool::gsc::vm {
         OpCodeT1014Registry::OpCode();
 
         OpCodeSat14Registry::OpCode();
+        OpCodeSat15Registry::OpCode();
+        OpCodeSat16Registry::OpCode();
     }
 }

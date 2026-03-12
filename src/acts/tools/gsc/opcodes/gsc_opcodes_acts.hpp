@@ -1,7 +1,4 @@
 #pragma once
-#include <tools/gsc/gsc_vm.hpp>
-#include <tools/gsc/gsc.hpp>
-#include <tools/gsc/gsc_opcodes.hpp>
 #include <acts_vm_registry.hpp>
 
 namespace tool::gsc::opcode {

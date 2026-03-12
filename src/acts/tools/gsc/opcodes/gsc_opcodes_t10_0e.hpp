@@ -1,7 +1,4 @@
 #pragma once
-#include <tools/gsc/gsc_vm.hpp>
-#include <tools/gsc/gsc.hpp>
-#include <tools/gsc/gsc_opcodes.hpp>
 
 namespace tool::gsc::opcode {
 	class OpCodeT100ERegistry {
@@ -28,7 +25,7 @@ namespace tool::gsc::opcode {
 		t10e->RegisterVMHashOPCode('%', OPCODE_IW_GetResourceHash, 8, [](const char* str) { return hash::HashIWAsset(str); });
 		t10e->RegisterVMHashOPCode('t', OPCODE_IW_GetTagHash, 4, [](const char* str) { return hash::HashX32(str); });
 		t10e->RegisterVMHashOPCode('s', OPCODE_T10_GetScrHash, 8, [](const char* str) { return hash::HashT10ScrSP(str); });
-		t10e->RegisterDevCall("assert", "assertmsg", "assertex", "function_79901b4637c83c86", "println", "print");
+		t10e->RegisterDevCall("assert", "assertmsg", "assertex", "projectplanning_assertmsgcerberusorlater", "println", "print");
 		t10e->RegisterDatatype("builtinfunction", "builtinmethod", "function", "string", "istring", "struct", "int", "float", "vector");
 
 		t10e->RegisterOpCode(PLATFORM_PC, OPCODE_IW_RegisterMultipleVariables, 0x69);

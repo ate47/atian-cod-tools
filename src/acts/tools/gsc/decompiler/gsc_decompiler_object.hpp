@@ -215,6 +215,7 @@ namespace tool::gsc {
         GOHF_SWITCH_TYPE_V1 = 0x40000,
         GOHF_SWITCH_TYPE_V2 = 0x80000,
         GOHF_SWITCH_TYPE_V3 = 0x100000,
+        GOHF_NOTIFY_CRC_XHASH = 0x200000,
 
         GOHF_SWITCH_TYPE_IFTABLE = 0, // 000 default value
         GOHF_SWITCH_TYPE_T89 = GOHF_SWITCH_TYPE_V1, // 100
