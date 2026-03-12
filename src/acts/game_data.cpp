@@ -287,10 +287,11 @@ namespace acts::game_data {
 				continue; // unused
 			}
 
-			std::vector<void*> array{ GetPointerArray<void*>(data.name.data()) };
+			std::vector<void*> array{ GetPointerArray<void*>(data.name.data(), parent) };
 
-			if (array.size() != 1) {
-				continue; // too many or no found
+			if (array.empty()) {
+				LOG_ERROR("Missing {}", data.name);
+				continue; // no found
 			}
 
 			builder.AddAddressEx(array[0], data.name.data(), "SN_CHECK | SN_NOWARN", data.ctype.empty() ? nullptr : data.ctype.data());
@@ -298,13 +299,18 @@ namespace acts::game_data {
 	}
 
 	void GameData::ScanAllToIdc(deps::idc_builder::IdcBuilder& builder) {
+		hook::scan_container::ScanContainer& scan{ GetScanContainer() };
+		bool ignoreMissingOld = scan.ignoreMissing;
+		scan.ignoreMissing = true;
 		ScanToIdc(builder, BASE_PARENT);
 		rapidjson::Value& nullscans{ cfg.GetVal("nullscans", 0, cfg.main) };
 		if (nullscans.IsObject()) {
 			for (auto& [k, v] : nullscans.GetObj()) {
-				ScanToIdc(builder, utils::va("nullscans.%s", k.GetString()));
+				std::string parent{ std::format("nullscans.{}", k.GetString()) };
+				ScanToIdc(builder, parent.data());
 			}
 		}
+		scan.ignoreMissing = ignoreMissingOld;
 
 	}
 }
