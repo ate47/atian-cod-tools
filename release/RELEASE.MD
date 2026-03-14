@@ -1,3 +1,11 @@
 - acts
-	- fix gsc compiler divide grammar
-	- add support for cdb files
+	- fastfile
+		- bo7 handler fix
+		- use for bo3 handler to fix Steam and allow GP version
+		- also reduce logs within gsc decompiler calls
+	- gsc
+		- add support for vm sat16
+	- add options to download_hash_index to allow more usage
+	- fix allocation problem with cdb files
+	- fix issue with idc creation with null scans
+	- add Load_Type funcs to bo7_ida tool with better type names
