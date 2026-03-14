@@ -206,12 +206,9 @@ namespace fastfile::handlers::bo7 {
 		};
 
 		struct {
-			void (*DB_LoadStreamOffset)(DBLoadCtx* ctx, uint64_t val, void** pptr);
-			void (*DB_RegisterStreamOffset)(DBLoadCtx* ctx, uint64_t val, void* ptr);
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
 			void (*DB_LoadStringList)(DBLoadCtx* ctx, bool atStreamStart, AssetList* list) {};
 			void (*DB_LoadUnkList)(DBLoadCtx* ctx, bool atStreamStart, void* list) {};
-			//void** unkData0x200A8{};
 			LoadStreamObject* loadStreamObj{};
 			AssetPoolInfo* poolInfo{};
 			uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
@@ -494,8 +491,6 @@ namespace fastfile::handlers::bo7 {
 
 				game.Get("Load_Asset", &gcx.Load_Asset);
 				game.Get("DB_HashScrStringName", &gcx.DB_HashScrStringName);
-				game.Get("DB_RegisterStreamOffset", &gcx.DB_RegisterStreamOffset);
-				game.Get("DB_LoadStreamOffset", &gcx.DB_LoadStreamOffset);
 				game.Get("DB_LoadStringList", &gcx.DB_LoadStringList);
 				game.Get("$DB_LoadUnkList", &gcx.DB_LoadUnkList);
 				game.Get("loadStreamObj", &gcx.loadStreamObj);
