@@ -17,6 +17,14 @@
             "type": "Struct"
         },
         {
+            "name": "DBRewind",
+            "type": "Struct"
+        },
+        {
+            "name": "XZoneMemory",
+            "type": "Struct"
+        },
+        {
             "name": "LoadStreamObject",
             "type": "Struct"
         },
@@ -97,11 +105,85 @@
             "type": "Absolute",
             "single": true
         },
-        "LoadStreamTA": {
-            "scan": "48 89 5C 24 10 57 48 83 EC 20 49 8B D9",
-            "ctype": "bool LoadStreamTA(DBLoadCtx* context, bool atStreamStart, void* ptr, int64_t len)",
-            "type": "Absolute",
+        "DB_ReadXFile": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B D3 48 8B CF E8 ?? ?? ?? ?? 40 0F B6 C6",
+            "type": "Relative",
+            "offset": 1,
+            "single": true,
+            "ctype": "void DB_ReadXFile(DBLoadCtx *ctx, void* ptr, int64_t len)"
+        },
+        "DB_SkipXFile": {
+            "scan": "E8 ?? ?? ?? ?? 85 F6 75 37",
+            "type": "Relative",
+            "offset": 1,
+            "single": true,
+            "ctype": "void DB_SkipXFile(DBLoadCtx *ctx, int64_t len)"
+        },
+        "DB_RewindPrepare": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B 07 BA 07 00 00 00 48 8B CF FF 50 ?? 48 8D 54 24 30 48 8B CF 4C 8B C0 48 8B D8 E8 ?? ?? ?? ?? 44 8B 4E 08 4C 8B C3 B2 01 48 8B CF E8 ?? ?? ?? ?? 48 8D 54 24 30 48 8B CF E8",
+            "type": "Relative",
+            "offset": 1,
+            "ctype": "void DB_RewindPrepare(DBLoadCtx *ctx, DBRewind *rewind, void **pHandle, bool biHandle, __int32 state, bool a6)"
+        },
+        "DB_RewindSetData": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B 07 BA 07 00 00 00 48 8B CF FF 50 ?? 48 8D 54 24 30 48 8B CF 4C 8B C0 48 8B D8 E8 ?? ?? ?? ?? 44 8B 4E 08 4C 8B C3 B2 01 48 8B CF E8 ?? ?? ?? ?? 48 8D 54 24 30 48 8B CF E8",
+            "type": "Relative",
+            "offset": 34,
+            "ctype": "void DB_RewindSetData(DBLoadCtx *ctx, DBRewind *rewind, void *data)"
+        },
+        "DB_LoadRewindRef": {
+            "scan": "E8 ?? ?? ?? ?? 84 C0 0F 85 05 01 00 00 49 8B 17",
+            "type": "Relative",
+            "offset": 1,
             "single": true
+        },
+        "DB_AllocRewindRef": {
+            "scan": "E8 ?? ?? ?? ?? 4D 8B 0F 4C 8B E8",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
+        },
+        "DB_SaveRewindRef": {
+            "scan": "E8 ?? ?? ?? ?? 49 8B 0F 48 8B C1",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
+        },
+        "DB_InitLoadStreams": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B 4D 78 48 8B 81",
+            "type": "Relative",
+            "offset": 1,
+            "ctype": "void __fastcall DB_InitLoadStreams(DBLoadCtx *ctx, XZoneMemory *zoneMemory)"
+        },
+        "DB_LoadStringList": {
+            "scan": "E8 ?? ?? ?? ?? 4C 8D 65 18 44 88 7D 04 4D 8B C4 33 D2 49 8B CE E8",
+            "type": "Relative",
+            "offset": 1,
+            "ctype": "void DB_LoadStringList(DBLoadCtx *ctx, bool atStreamStart, AssetList *list)"
+        },
+        "$DB_LoadUnkList": {
+            "scan": "E8 ?? ?? ?? ?? 4C 8D 65 18 44 88 7D 04 4D 8B C4 33 D2 49 8B CE E8",
+            "type": "Relative",
+            "offset": 22,
+            "ctype": "void DB_LoadStringList(DBLoadCtx *ctx, bool atStreamStart, AssetList *list)"
+        },
+        "$unkData0x200A8": {
+            "scan": "48 89 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? C5 F9 EF C0 89 58 24",
+            "type": "Relative",
+            "offset": 3,
+            "single": true
+        },
+        "LoadStreamTA": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B 07 BA 07 00 00 00 48 8B CF FF 50 ?? 48 8D 54 24 30 48 8B CF 4C 8B C0 48 8B D8 E8 ?? ?? ?? ?? 44 8B 4E 08 4C 8B C3 B2 01 48 8B CF E8 ?? ?? ?? ?? 48 8D 54 24 30 48 8B CF E8",
+            "ctype": "bool LoadStreamTA(DBLoadCtx* context, bool atStreamStart, void* ptr, int64_t len)",
+            "type": "Relative",
+            "offset": 51
+        },
+        "DB_RewindEnd": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B 07 BA 07 00 00 00 48 8B CF FF 50 ?? 48 8D 54 24 30 48 8B CF 4C 8B C0 48 8B D8 E8 ?? ?? ?? ?? 44 8B 4E 08 4C 8B C3 B2 01 48 8B CF E8 ?? ?? ?? ?? 48 8D 54 24 30 48 8B CF E8",
+            "type": "Relative",
+            "offset": 64,
+            "ctype": "void DB_RewindEnd(DBLoadCtx *ctx, DBRewind *rewind)"
         },
         "Load_String": {
             "scan": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2",

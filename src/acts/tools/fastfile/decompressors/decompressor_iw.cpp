@@ -674,6 +674,11 @@ namespace {
 					blockSizes = newHeader.mwiii.blockSize;
 					break;
 				}
+				case IWFV_BO6: {
+					ctx.blocksCount = 16;
+					blockSizes = newHeader.bo6.blockSize;
+					break;
+				}
 				}
 
 				if (blockSizes) {

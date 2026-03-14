@@ -104,9 +104,17 @@ namespace fastfile::handlers::bo7 {
 		};
 		static_assert(sizeof(XZoneTemporaryLoadData) == 0x14e10);
 
-
 		constexpr size_t numHashBlocks = 0x100;
 		constexpr size_t numHashBlocksAlloc = numHashBlocks * 0x400;
+
+		struct XZoneMemory {
+			byte __pad0[120];
+			XZoneTemporaryLoadData* tempData;
+			uint64_t unk80;
+			uint64_t unk88;
+			uint64_t unk90;
+		};
+
 
 		struct DBLoadCtxData {
 			byte __pad[392];
@@ -114,9 +122,16 @@ namespace fastfile::handlers::bo7 {
 			uint32_t unk194;
 			byte __pad198[1080];
 			XZoneTemporaryLoadData* tempData;
-			byte __pad5d8[56];
-			void* unk608;
-			byte unk610;
+			XZoneMemory* zoneMemory;
+			uint64_t unk5d8;
+			uint32_t unk5e0;
+			byte __pad5e4[2595];
+			uint32_t unk1008;
+			uint64_t unk1010;
+			uint64_t unk1018;
+			uint64_t unk1020;
+			uint64_t unk1028;
+			uint64_t unk1030;
 			byte __safepad0[0x100];
 			XZoneTemporaryLoadData _allocTempData{};
 			byte __safepad1[0x100];
@@ -194,6 +209,10 @@ namespace fastfile::handlers::bo7 {
 			void (*DB_LoadStreamOffset)(DBLoadCtx* ctx, uint64_t val, void** pptr);
 			void (*DB_RegisterStreamOffset)(DBLoadCtx* ctx, uint64_t val, void* ptr);
 			void (*Load_Asset)(DBLoadCtx* ctx, bool atStreamStart, Asset* asset) {};
+			void (*DB_LoadStringList)(DBLoadCtx* ctx, bool atStreamStart, AssetList* list) {};
+			void (*DB_LoadUnkList)(DBLoadCtx* ctx, bool atStreamStart, void* list) {};
+			//void** unkData0x200A8{};
+			LoadStreamObject* loadStreamObj{};
 			AssetPoolInfo* poolInfo{};
 			uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
 			fastfile::FastFileOption* opt{};
@@ -228,8 +247,18 @@ namespace fastfile::handlers::bo7 {
 			}
 		}
 
-		void LoadXFileData(DBLoadCtx* context, void* ptr, int64_t len) {
-			LOG_TRACE("LoadXFileData({}, {}) {}", ptr, len, hook::library::CodePointer{ _ReturnAddress() });
+		void DB_SkipXFile(DBLoadCtx* context, int64_t len) {
+			LOG_TRACE("DB_SkipXFile({}) {}", len, hook::library::CodePointer{ _ReturnAddress() });
+
+			if (!gcx.reader->CanRead(len)) {
+				hook::error::DumpStackTraceFrom();
+			}
+			gcx.reader->Skip(len);
+		}
+
+
+		void DB_ReadXFile(DBLoadCtx* context, void* ptr, int64_t len) {
+			LOG_TRACE("DB_ReadXFile({}, {}) {}", ptr, len, hook::library::CodePointer{ _ReturnAddress() });
 			if (!gcx.reader->CanRead(len)) {
 				hook::error::DumpStackTraceFrom();
 			}
@@ -260,7 +289,7 @@ namespace fastfile::handlers::bo7 {
 				return false;
 			}
 			else {
-				LoadXFileData(context, ptr, len);
+				DB_ReadXFile(context, ptr, len);
 				return true;
 			}
 
@@ -284,7 +313,7 @@ namespace fastfile::handlers::bo7 {
 		void Load_CustomScriptString(DBLoadCtx* context, uint32_t* pstr) {
 			uint32_t low{ *pstr };
 			uint32_t high;
-			LoadXFileData(context, &high, sizeof(high));
+			DB_ReadXFile(context, &high, sizeof(high));
 
 			uint64_t strHash{ (uint64_t)low | ((uint64_t)high << 32) };
 			if (!strHash) {
@@ -398,6 +427,17 @@ namespace fastfile::handlers::bo7 {
 			return &data;
 		}
 
+		// I am not sure about the purpose of these, it seems like they want to store the references, but by ignoring them it works
+		bool DB_LoadRewindRef(uint64_t id, unsigned __int16 a2, bool isNoRef, void** pHandle, bool* p_canHaveOffset, byte* p_type, uint64_t* a7, uint64_t* a8) {
+			return false;
+		}
+		void* DB_AllocRewindRef(__int64 a1, __int64 a2, __int64 a3) {
+			return 0;
+		}
+		void DB_SaveRewindRef(uint64_t id, void* ref, unsigned __int8 memoryType, __int64 loc, unsigned __int8 a5, bool isNoRef, unsigned __int16 a7) {
+
+		}
+
 
 		size_t GetRva(void* loc) {
 			hook::library::Library library{ hook::library::GetLibraryInfo(loc) };
@@ -452,32 +492,30 @@ namespace fastfile::handlers::bo7 {
 
 				scan.ignoreMissing = true;
 
-				LoadStreamObject* loadStreamObj{ game.GetPointer<LoadStreamObject*>("loadStreamObj") };
-				gcx.Load_Asset = game.GetPointer<decltype(gcx.Load_Asset)>("Load_Asset");
-				gcx.DB_HashScrStringName = game.GetPointer<decltype(gcx.DB_HashScrStringName)>("DB_HashScrStringName");
-				gcx.DB_RegisterStreamOffset = game.GetPointer<decltype(gcx.DB_RegisterStreamOffset)>("DB_RegisterStreamOffset");
-				gcx.DB_LoadStreamOffset = game.GetPointer<decltype(gcx.DB_LoadStreamOffset)>("DB_LoadStreamOffset");
-				gcx.poolInfo = game.GetPointer<decltype(gcx.poolInfo)>("poolInfo");
+				game.Get("Load_Asset", &gcx.Load_Asset);
+				game.Get("DB_HashScrStringName", &gcx.DB_HashScrStringName);
+				game.Get("DB_RegisterStreamOffset", &gcx.DB_RegisterStreamOffset);
+				game.Get("DB_LoadStreamOffset", &gcx.DB_LoadStreamOffset);
+				game.Get("DB_LoadStringList", &gcx.DB_LoadStringList);
+				game.Get("$DB_LoadUnkList", &gcx.DB_LoadUnkList);
+				game.Get("loadStreamObj", &gcx.loadStreamObj);
+				game.Get("poolInfo", &gcx.poolInfo);
 
-				if (loadStreamObj) {
-					loadStreamObj->__vtb = &dbLoadStreamVTable;
-				}
-
-				LOG_TRACE("poolInfo = {}", hook::library::CodePointer{ gcx.poolInfo });
-				LOG_TRACE("Load_Asset = {}", hook::library::CodePointer{ gcx.Load_Asset });
-				LOG_TRACE("DB_HashScrStringName = {}", hook::library::CodePointer{ gcx.DB_HashScrStringName });
-				LOG_TRACE("loadStreamObj = {}", hook::library::CodePointer{ loadStreamObj });
-
-				game.ApplyNullScans("fastfile");
 				game.Redirect("GetMappedTypeStub", GetMappedTypeStub);
 				game.Redirect("LoadStreamTA", LoadStreamTA);
 				game.Redirect("Load_String", Load_String);
 				game.Redirect("Load_StringName", Load_String);
 				game.Redirect("DB_AddAsset", DB_AddAsset);
 				game.Redirect("DB_AddAssetRef", DB_AddAssetRef);
+				game.Redirect("DB_ReadXFile", DB_ReadXFile);
+				game.Redirect("DB_SkipXFile", DB_SkipXFile);
 				game.Redirect("Load_CustomScriptString", Load_CustomScriptString);
-				game.Redirect("$Unk_Align_Ret", Unk_Align_Ret); // 2DE3CC0
+				game.Redirect("DB_LoadRewindRef", DB_LoadRewindRef);
+				game.Redirect("DB_AllocRewindRef", DB_AllocRewindRef);
+				game.Redirect("DB_SaveRewindRef", DB_SaveRewindRef);
+				game.Redirect("$Unk_Align_Ret", Unk_Align_Ret);
 				game.Redirect("$Unk_RetFalse", ReturnStub<4, bool, false>);
+				game.ApplyNullScans("fastfile");
 
 				hook::library::ScanLoggerLogsOpt logsOpt{};
 				logsOpt.base = gameDumpId;
@@ -534,6 +572,11 @@ namespace fastfile::handlers::bo7 {
 				gcx.ctx = &ctx;
 				gcx.reader = &reader;
 
+				gcx.opt->assetNames.clear();
+
+				gcx.allocator.FreeAll();
+				gcx.linkedAssets.clear();
+
 				if (!reader.CanRead(sizeof(gcx.assets))) {
 					LOG_DEBUG("empty fastfile, ignored");
 					return;
@@ -561,16 +604,7 @@ namespace fastfile::handlers::bo7 {
 					freeHead[i - 1].next = &freeHead[i];
 				}
 
-
-				reader.Read(&gcx.assets, sizeof(gcx.assets));
-
-				LOG_DEBUG("assets: {}, strings: {}, unk: {}", gcx.assets.assetsCount, gcx.assets.stringsCount, gcx.assets.unk10_count);
-
-
-				gcx.opt->assetNames.clear();
-
-				gcx.allocator.FreeAll();
-				gcx.linkedAssets.clear();
+				gcx.loadStreamObj->__vtb = &dbLoadStreamVTable;
 
 				gcx.xstringLocs = nullptr;
 				std::vector<const char*> xstringLocs{};
@@ -584,6 +618,13 @@ namespace fastfile::handlers::bo7 {
 					}
 				}
 
+				DB_ReadXFile(loadCtx, &gcx.assets, sizeof(gcx.assets));
+				gcx.DB_LoadStringList(loadCtx, false, &gcx.assets);
+				gcx.DB_LoadUnkList(loadCtx, false, &gcx.assets.unk10);
+
+				LOG_DEBUG("assets: {}, strings: {}, unk: {}", gcx.assets.assetsCount, gcx.assets.stringsCount, gcx.assets.unk10_count);
+
+
 				const char* fftype{ ctx.GetFFType() };
 				std::filesystem::path outStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
 
@@ -591,22 +632,13 @@ namespace fastfile::handlers::bo7 {
 					gcx.scrStringMap.clear();
 					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE stringsOs{ outStrings };
-					gcx.assets.strings = reader.ReadPtr<const char*>(gcx.assets.stringsCount);
 					for (size_t i = 0; i < gcx.assets.stringsCount; i++) {
-						const char* str;
-						uint64_t stroff{ (uint64_t)gcx.assets.strings[i] };
-						if (stroff) {
-							if (stroff & StreamPointerFlag::SPF_NEXT) {
-								str = acts::decryptutils::DecryptString(reader.ReadString());
-								if (stroff & StreamPointerFlag::SPF_CREATE_REF) {
-									gcx.DB_RegisterStreamOffset(loadCtx, stroff, (void*)str);
-									//LOG_OPT_INFO("store offset {:x} -> {}", stroff, str);
-								}
-								hashutils::Add(str, true, true);
-								if (gcx.xstringLocs) gcx.xstringLocs->push_back(str);
-							}
-							else {
-								gcx.DB_LoadStreamOffset(loadCtx, stroff, (void**)&str);
+						const char* str{ gcx.assets.strings[i] };
+						if (str) {
+							str = acts::decryptutils::DecryptString((char*)str);
+							hashutils::Add(str, true, true);
+							if (gcx.xstringLocs) {
+								gcx.xstringLocs->push_back(str);
 							}
 						}
 						else {
@@ -615,24 +647,10 @@ namespace fastfile::handlers::bo7 {
 						gcx.assets.strings[i] = str;
 						uint64_t hash{ gcx.DB_HashScrStringName(str, std::strlen(str), hash::IV_DEFAULT) };
 						gcx.scrStringMap[hash] = (uint32_t)i;
-						stringsOs << std::dec << std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i << "\t" << std::setw(16) << std::setfill('0') << std::hex << hash << "\t";
-						if (stroff) {
-							if (stroff & StreamPointerFlag::SPF_NEXT) {
-								if (stroff & StreamPointerFlag::SPF_CREATE_REF) {
-									stringsOs << "[ref:" << std::setw(16) << std::setfill('0') << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
-								}
-								else {
-									stringsOs << "[next]";
-								}
-							}
-							else {
-								stringsOs << "[off:" << std::setw(16) << std::setfill('0') << std::hex << (stroff & StreamPointerFlag::SPF_DATA_MASK) << "]";
-							}
-						}
-						else {
-							stringsOs << "[null]";
-						}
-						stringsOs << "\t" << str << "\n";
+						stringsOs << std::dec
+							<< std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i 
+							<< "\t" << std::setw(16) << std::setfill('0') << std::hex << hash
+							<< "\t" << str << "\n";
 					}
 				}
 

@@ -158,7 +158,11 @@ namespace acts::game_data {
 			rapidjson::Value& scansVal{ cfg.GetVal(BASE_PARENT, 0, cfg.main) };
 			if (scansVal.IsObject()) {
 				for (auto& [k, v] : scansVal.GetObj()) {
-					GetPointerArray(k.GetString(), BASE_PARENT);
+					std::vector<void*> ptr{ GetPointerArray(k.GetString(), BASE_PARENT) };
+
+					if (ptr.size()) {
+						LOG_DEBUG("{} -> {}{}", k.GetString(), hook::library::CodePointer{ ptr[0] }, ptr.size() > 1 ? ", ..." : "");
+					}
 				}
 			}
 		}
@@ -171,7 +175,11 @@ namespace acts::game_data {
 				rapidjson::Value& scansVal{ cfg.GetVal(base.data(), 0, cfg.main)};
 				if (scansVal.IsObject()) {
 					for (auto& [k, v] : scansVal.GetObj()) {
-						GetPointerArray(k.GetString(), base.data());
+						std::vector<void*> ptr{ GetPointerArray(k.GetString(), base.data()) };
+
+						if (ptr.size()) {
+							LOG_DEBUG("{} -> {}{}", k.GetString(), hook::library::CodePointer{ ptr[0] }, ptr.size() > 1 ? ", ..." : "");
+						}
 					}
 				}
 			}
