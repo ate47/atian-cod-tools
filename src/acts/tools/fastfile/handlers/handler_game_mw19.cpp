@@ -537,10 +537,7 @@ namespace fastfile::handlers::mw19 {
 
 		};
 
-
-#ifndef CI_BUILD
 		utils::ArrayAdder<FFHandlerImpl, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
-#endif // CI_BUILD
 	}
 
 	std::unordered_map<HandlerHashedAssetType, Worker*>& GetWorkers() {

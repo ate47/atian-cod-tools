@@ -1,6 +1,7 @@
 - acts
 	- fastfile
 		- bo7 handler fix
+		- deploy missing mw19 handler
 		- use for bo3 handler to fix Steam and allow GP version
 		- also reduce logs within gsc decompiler calls
 	- gsc
