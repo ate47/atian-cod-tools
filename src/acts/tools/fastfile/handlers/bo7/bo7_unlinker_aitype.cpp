@@ -51,23 +51,12 @@ namespace {
 	};
 	static_assert(sizeof(AITypeVoiceList) == 0x20);
 
-	const char* AITypeWeaponTypeNames[]{
-		"primary",
-		"secondary",
-		"sidearm",
-		""
-	};
-
 	enum AITypeWeaponType : byte {
 		AITWT_PRIMARY = 0,
 		AITWT_SECONDARY,
 		AITWT_SIDEARM,
 		AITWT_COUNT,
 	};
-
-	const char* AITypeWeaponTypeName(AITypeWeaponType type) {
-		return type >= ARRAYSIZE(AITypeWeaponTypeNames) ? utils::va("unit_%u", type) : AITypeWeaponTypeNames[type];
-	}
 
 	enum AITypeUnitType : uint32_t {
 		AITUT_SOLDIER = 0,
@@ -78,24 +67,6 @@ namespace {
 		AITUT_SUICIDEBOMBER,
 		AITUT_COUNT,
 	};
-	const char* AITypeUnitTypeNames[]{ 
-		"soldier",
-		"civilian",
-		"dog",
-		"zombie",
-		"juggernaut",
-		"suicidebomber",
-	};
-
-	const char* AITypeUnitTypeName(AITypeUnitType type) {
-		return type >= ARRAYSIZE(AITypeUnitTypeNames) ? utils::va("unit_%u", type) : AITypeUnitTypeNames[type];
-	}
-
-	const char* AITypeTeamNames[]{
-		"free",
-		"axis",
-		"allies",
-	};
 
 	enum AITypeTeam : byte {
 		AITEAM_FREE = 0,
@@ -103,10 +74,6 @@ namespace {
 		AITEAM_ALLIES,
 		// after it depends on the mode
 	};
-
-	const char* AITypeTeamName(AITypeTeam team) {
-		return team >= ARRAYSIZE(AITypeTeamNames) ? utils::va("team_%u", team) : AITypeTeamNames[team];
-	}
 
 	struct AITypeWeapon {
 		XHash64 name;
@@ -152,6 +119,7 @@ namespace {
 		uint64_t unk120;
 		uint64_t unk128;
 		uint64_t unk130;
+		int32_t unk140;
 		int32_t voiceListCount;
 		int32_t scriptFilesCount;
 		int32_t weaponsCount;
@@ -159,7 +127,7 @@ namespace {
 		byte unk145;
 		byte unk146;
 		byte unk147;
-		uint64_t unk148;
+		uint32_t unk148;
 		uint64_t unk150;
 		uint64_t unk158;
 		GfxImage* unk160;
@@ -167,6 +135,38 @@ namespace {
 	}; static_assert(sizeof(AIType) == 0x170);
 
 
+	const char* AITypeWeaponTypeNames[]{
+		"primary",
+		"secondary",
+		"sidearm",
+		""
+	};
+
+	const char* AITypeWeaponTypeName(AITypeWeaponType type) {
+		return type >= ARRAYSIZE(AITypeWeaponTypeNames) ? utils::va("unit_%u", type) : AITypeWeaponTypeNames[type];
+	}
+	const char* AITypeUnitTypeNames[]{
+		"soldier",
+		"civilian",
+		"dog",
+		"zombie",
+		"juggernaut",
+		"suicidebomber",
+	};
+
+	const char* AITypeUnitTypeName(AITypeUnitType type) {
+		return type >= ARRAYSIZE(AITypeUnitTypeNames) ? utils::va("unit_%u", type) : AITypeUnitTypeNames[type];
+	}
+
+	const char* AITypeTeamNames[]{
+		"free",
+		"axis",
+		"allies",
+	};
+
+	const char* AITypeTeamName(AITypeTeam team) {
+		return team >= ARRAYSIZE(AITypeTeamNames) ? utils::va("team_%u", team) : AITypeTeamNames[team];
+	}
 
 
 	template<typename Asset>

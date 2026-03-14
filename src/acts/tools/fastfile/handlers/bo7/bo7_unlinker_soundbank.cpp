@@ -66,13 +66,12 @@ namespace {
 		XHash64 type;
 		SndBankAliases* aliases;
 		uint32_t* unk28;
-		uint64_t unk30;
 		uint64_t sndMusicSets;
 		uint32_t sndMusicSetsCount;
-		uint32_t unk44;
 		uint32_t count;
+		uint64_t unk44;
 	};
-	static_assert(sizeof(SndBank) == 0x50);
+	static_assert(sizeof(SndBank) == 0x48);
 
 	class ImplWorker : public Worker {
 		bool isTransient;
@@ -113,10 +112,6 @@ namespace {
 			json.WriteFieldValueXHash("unk8", asset->unk8);
 			json.WriteFieldValueXHash("language", asset->language);
 			json.WriteFieldValueXHash("type", asset->type);
-
-			if (opt.testDump) {
-				json.WriteFieldValueUnknown("unk30", asset->unk30);
-			}
 
 			if (asset->aliases) {
 				json.WriteFieldNameString("aliases");
