@@ -32,8 +32,8 @@ namespace {
 	using namespace fastfile::handlers::bo7;
 
 	struct RawFile {
-		uint64_t name;
-		uint32_t type;
+		XHash64 name;
+		XHash32 type;
 		uint32_t compressedLen;
 		uint32_t uncompressedLen;
 		byte* data;

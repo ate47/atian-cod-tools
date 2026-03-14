@@ -5,7 +5,7 @@ namespace {
 	using namespace fastfile::handlers::bo7;
 
 	struct Localize {
-		uint64_t name;
+		XHash64 name;
 		const char* val;
 	}; static_assert(sizeof(Localize) == 0x10);
 

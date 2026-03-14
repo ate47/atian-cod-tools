@@ -1,0 +1,1142 @@
+{
+    "__comment__": "This file contains a mapping of asset types to their names and optionally their C declarations.",
+    "accessory": {
+        "name": "Accessory"
+    },
+    "achievement": {
+        "name": "Achievement"
+    },
+    "achievementlist": {
+        "name": "AchievementList"
+    },
+    "ai_eventlist": {
+        "name": "AiEventList"
+    },
+    "ai_interaction": {
+        "name": "AiInteraction"
+    },
+    "ai_token_collections": {
+        "name": "AiTokenCollections"
+    },
+    "ai_token_definitions": {
+        "name": "AiTokenDefinitions"
+    },
+    "ai_token_stealing_definitions": {
+        "name": "AiTokenStealingDefinitions"
+    },
+    "ai_token_types": {
+        "name": "AiTokenTypes"
+    },
+    "aiactionsettings": {
+        "name": "AiActionSettings"
+    },
+    "aianimset": {
+        "name": "AiAnimSet"
+    },
+    "aianimsettings": {
+        "name": "AiAnimSettings"
+    },
+    "aiasm": {
+        "name": "AiAsm"
+    },
+    "aibcsoundaliastable": {
+        "name": "AiBcSoundAliasTable"
+    },
+    "aidebugdata": {
+        "name": "AiDebugData"
+    },
+    "aiimpactvfxtable": {
+        "name": "AiImpactVfxTable"
+    },
+    "aimarkup_generated": {
+        "name": "AiMarkupGenerated"
+    },
+    "aimarkup": {
+        "name": "AiMarkup"
+    },
+    "aiobstacle": {
+        "name": "AiObstacle"
+    },
+    "aipaths": {
+        "name": "AiPaths"
+    },
+    "airoutine": {
+        "name": "AiRoutine"
+    },
+    "aishootstyleslist": {
+        "name": "AiShootStylesList"
+    },
+    "aispline": {
+        "name": "AiSpline"
+    },
+    "aitype": {
+        "name": "AIType"
+    },
+    "ambientsfxpackage": {
+        "name": "AmbientSfxPackage"
+    },
+    "animpkg": {
+        "name": "AnimPkg"
+    },
+    "assetstreamcollection": {
+        "name": "AssetStreamCollection"
+    },
+    "atmosphericfog": {
+        "name": "AtmosphericFog"
+    },
+    "attachment": {
+        "name": "Attachment"
+    },
+    "attachmentblueprint": {
+        "name": "AttachmentBlueprint"
+    },
+    "battlechatterevent": {
+        "name": "BattleChatterEvent"
+    },
+    "battlechattertree": {
+        "name": "BattleChatterTree"
+    },
+    "behaviorsequencer": {
+        "name": "BehaviorSequencer"
+    },
+    "behaviortree": {
+        "name": "BehaviorTree"
+    },
+    "bestplaycam": {
+        "name": "BestPlayCam"
+    },
+    "blendspace2d": {
+        "name": "BlendSpace2D"
+    },
+    "bonefollowermappinggraph": {
+        "name": "BoneFollowerMappingGraph"
+    },
+    "bonetoggleparams": {
+        "name": "BoneToggleParams"
+    },
+    "botbtconstants": {
+        "name": "BotBTConstants"
+    },
+    "builddigest": {
+        "name": "BuildDigest"
+    },
+    "bullet_penetration": {
+        "name": "BulletPenetration"
+    },
+    "bulletcracksfx": {
+        "name": "BulletCracksSfx"
+    },
+    "bulletpenetrationset": {
+        "name": "BulletPenetrationSet"
+    },
+    "calloutmarkerping": {
+        "name": "CalloutMarkerPing"
+    },
+    "calloutmarkerpingmetadata": {
+        "name": "CalloutMarkerPingMetadata"
+    },
+    "calloutmarkerpingwheel": {
+        "name": "CalloutMarkerPingWheel"
+    },
+    "camera": {
+        "name": "Camera"
+    },
+    "camo": {
+        "name": "Camo"
+    },
+    "carryobject": {
+        "name": "CarryObject"
+    },
+    "character": {
+        "name": "Character"
+    },
+    "charcollbounds": {
+        "name": "CharCollBounds"
+    },
+    "cinematicmotion": {
+        "name": "CinematicMotion"
+    },
+    "cinematicscene": {
+        "name": "CinematicScene"
+    },
+    "clientcharacter": {
+        "name": "ClientCharacter"
+    },
+    "clothasset": {
+        "name": "ClothAsset"
+    },
+    "codcasterdata": {
+        "name": "CodCasterData"
+    },
+    "codcastergameplaystat": {
+        "name": "CodCasterGameplayStat"
+    },
+    "codcasterteamcustomization": {
+        "name": "CodCasterTeamCustomization"
+    },
+    "col_map": {
+        "name": "ColMap"
+    },
+    "collisiontile": {
+        "name": "CollisionTile"
+    },
+    "com_map": {
+        "name": "ComMap"
+    },
+    "compassdata": {
+        "name": "CompassData"
+    },
+    "computeshader": {
+        "name": "ComputeShader"
+    },
+    "contraildata": {
+        "name": "ContrailData"
+    },
+    "conversation": {
+        "name": "Conversation"
+    },
+    "coverselector": {
+        "name": "CoverSelector"
+    },
+    "curve": {
+        "name": "Curve"
+    },
+    "customdamagepattern": {
+        "name": "CustomDamagePattern"
+    },
+    "ddl": {
+        "name": "DDL"
+    },
+    "deatheffect": {
+        "name": "DeathEffect"
+    },
+    "decalvolumemask": {
+        "name": "DecalVolumeMask"
+    },
+    "decalvolumematerial": {
+        "name": "DecalVolumeMaterial"
+    },
+    "deployableweaponconfig": {
+        "name": "DeployableWeaponConfig"
+    },
+    "dismemberment": {
+        "name": "Dismemberment"
+    },
+    "dismembermenttype": {
+        "name": "DismembermentType"
+    },
+    "dlogschema": {
+        "name": "DlogSchema"
+    },
+    "downloadgroupset": {
+        "name": "DownloadGroupSet"
+    },
+    "dynamicbones": {
+        "name": "DynamicBones"
+    },
+    "dynentitylist": {
+        "name": "DynEntityList"
+    },
+    "ecsasset": {
+        "name": "EcsAsset"
+    },
+    "edgelist": {
+        "name": "EdgeList"
+    },
+    "emote": {
+        "name": "Emote"
+    },
+    "enemyselector": {
+        "name": "EnemySelector"
+    },
+    "equipmentsfx": {
+        "name": "EquipmentSfx"
+    },
+    "execution": {
+        "name": "Execution"
+    },
+    "fogspline": {
+        "name": "FogSpline"
+    },
+    "foliageimpactfxtable": {
+        "name": "FoliageImpactFxTable"
+    },
+    "foliagesfxtable": {
+        "name": "FoliageSfxTable"
+    },
+    "foliagevfxtable": {
+        "name": "FoliageVfxTable"
+    },
+    "font": {
+        "name": "Font"
+    },
+    "fonticon": {
+        "name": "FontIcon"
+    },
+    "footstepdecaldescription": {
+        "name": "FootstepDecalDescription"
+    },
+    "footstepsfxoverride": {
+        "name": "FootstepsFxOverride"
+    },
+    "footstepsfxtable": {
+        "name": "FootstepsFxTable"
+    },
+    "footstepsurfacetable": {
+        "name": "FootstepsSurfaceTable"
+    },
+    "footstepvfx": {
+        "name": "FootstepVfx"
+    },
+    "fx_map_trzone": {
+        "name": "FxMapTrzone"
+    },
+    "fx_map": {
+        "name": "FxMap"
+    },
+    "gamemode": {
+        "name": "GameMode"
+    },
+    "gameprops": {
+        "name": "GameProps"
+    },
+    "gametype": {
+        "name": "GameType"
+    },
+    "gametypestatdata": {
+        "name": "GameTypeStatData"
+    },
+    "gametypetable": {
+        "name": "GameTypeTable"
+    },
+    "genericblueprint": {
+        "name": "GenericBlueprint"
+    },
+    "gesture": {
+        "name": "Gesture"
+    },
+    "gfx_map_trzone": {
+        "name": "GfxMapTrzone"
+    },
+    "gfx_map": {
+        "name": "GfxMap"
+    },
+    "gfxumbratome": {
+        "name": "GfxUmbraTome"
+    },
+    "glass_map": {
+        "name": "GlassMap"
+    },
+    "gobo": {
+        "name": "Gobo"
+    },
+    "gradingclut": {
+        "name": "GradingClut"
+    },
+    "grappleweapontunables": {
+        "name": "GrappleWeaponTunables"
+    },
+    "grenadeutilityspec": {
+        "name": "GrenadeUtilitySpec"
+    },
+    "grounddeformationvis": {
+        "name": "GroundDeformationVis"
+    },
+    "gscgdb": {
+        "name": "GscGdb",
+        "cdecl": "struct GscGdb { XHash64 name; uint32_t len; byte* buffer; };"
+    },
+    "gscobj": {
+        "name": "GscObj",
+        "cdecl": "struct GscObj { XHash64 name; uint32_t len; byte* buffer; };"
+    },
+    "gunnyarchetype": {
+        "name": "GunnyArchetype"
+    },
+    "handplantsfxtable": {
+        "name": "HandplantSfxTable"
+    },
+    "heatmapradar": {
+        "name": "HeatmapRadar"
+    },
+    "hudoutline": {
+        "name": "HudOutline"
+    },
+    "hwconfig": {
+        "name": "HWConfig"
+    },
+    "hwconfigtieredgroup": {
+        "name": "HWConfigTieredGroup"
+    },
+    "hwconfiguratorinfo": {
+        "name": "HWConfiguratorInfo"
+    },
+    "hwconfigvar": {
+        "name": "HWConfigVar"
+    },
+    "hwconfigvargroup": {
+        "name": "HWConfigVarGroup"
+    },
+    "hyperpose": {
+        "name": "Hyperpose"
+    },
+    "hyperposeasmasset": {
+        "name": "HyperposeAsmAsset"
+    },
+    "hyperposegamefeatures": {
+        "name": "HyperposeGameFeatures"
+    },
+    "iesprofile": {
+        "name": "IESProfile"
+    },
+    "ikparameters": {
+        "name": "IKParameters"
+    },
+    "iktarget": {
+        "name": "IKTarget"
+    },
+    "image": {
+        "name": "GfxImage"
+    },
+    "impactfxtable": {
+        "name": "ImpactFxTable"
+    },
+    "impactsfxtable": {
+        "name": "ImpactSfxTable"
+    },
+    "impacttypetoimpactfxtable": {
+        "name": "ImpactTypeToImpactFxTable"
+    },
+    "importsettingconfig": {
+        "name": "ImportSettingConfig"
+    },
+    "impulsemotion": {
+        "name": "ImpulseMotion"
+    },
+    "indexedlisttype": {
+        "name": "IndexedListType"
+    },
+    "indoorexclusiontile": {
+        "name": "IndoorExclusionTile"
+    },
+    "keybinds": {
+        "name": "KeyBinds"
+    },
+    "keyvaluepairs": {
+        "name": "KeyValuePairs",
+        "cdecl": "struct KeyValuePair { const char* value; uint32_t key; }; struct KeyValuePairs { XHash64 name; KeyValuePair* kv; int32_t count; };"
+    },
+    "laser": {
+        "name": "Laser"
+    },
+    "leagueplayseasons": {
+        "name": "LeaguePlaySeasons"
+    },
+    "lensflare": {
+        "name": "LensFlare"
+    },
+    "libshader": {
+        "name": "LibShader"
+    },
+    "lightdef": {
+        "name": "LightDef"
+    },
+    "lightstate": {
+        "name": "LightState"
+    },
+    "localize": {
+        "name": "Localize",
+        "cdecl": "struct Localize { XHash64 name; const char* val; };"
+    },
+    "localizeassetentrydev": {
+        "name": "LocalizeAssetEntryDev",
+        "cdecl": "typedef Localize LocalizeAssetEntryDev;"
+    },
+    "locdmgtable": {
+        "name": "LocDmgTable"
+    },
+    "luadebugfile": {
+        "name": "LuaDebugFile"
+    },
+    "luafile": {
+        "name": "LuaFile"
+    },
+    "map_ents_trzone": {
+        "name": "MapEntsTrzone"
+    },
+    "map_ents": {
+        "name": "MapEnts"
+    },
+    "map_fx_objects": {
+        "name": "MapFxObjects"
+    },
+    "map_game_objects": {
+        "name": "MapGameObjects"
+    },
+    "map_subset_ai": {
+        "name": "MapSubsetAi"
+    },
+    "map_subset_entities": {
+        "name": "MapSubsetEntities"
+    },
+    "mapinfo": {
+        "name": "MapInfo"
+    },
+    "maptable": {
+        "name": "MapTable"
+    },
+    "mapvoxelizedstateformat": {
+        "name": "MapVoxelizedStateFormat"
+    },
+    "material": {
+        "name": "Material"
+    },
+    "materialanimation": {
+        "name": "MaterialAnimation"
+    },
+    "materialanimationparams": {
+        "name": "MaterialAnimationParams"
+    },
+    "materialcamoanimationparams": {
+        "name": "MaterialCamoAnimationParams"
+    },
+    "materialdebugdata": {
+        "name": "MaterialDebugData"
+    },
+    "materialflipbookparams": {
+        "name": "MaterialFlipbookParams"
+    },
+    "materialfloattable": {
+        "name": "MaterialFloatTable"
+    },
+    "materialsfxtable": {
+        "name": "MaterialSfxTable"
+    },
+    "materialstandard": {
+        "name": "MaterialStandard"
+    },
+    "materialtintanimationparams": {
+        "name": "MaterialTintAnimationParams"
+    },
+    "materialuvanimationparams": {
+        "name": "MaterialUvAnimationParams"
+    },
+    "materialuvdistortionparams": {
+        "name": "MaterialUvDistortionParams"
+    },
+    "mayhem": {
+        "name": "Mayhem"
+    },
+    "mldeformer": {
+        "name": "MLDeformer"
+    },
+    "mldeformerbinding": {
+        "name": "MLDeformerBinding"
+    },
+    "mlmodel": {
+        "name": "MLModel"
+    },
+    "motionmatchingfeatures": {
+        "name": "MotionMatchingFeatures"
+    },
+    "motionmatchingset": {
+        "name": "MotionMatchingSet"
+    },
+    "movie": {
+        "name": "Movie"
+    },
+    "movingplatform": {
+        "name": "MovingPlatform"
+    },
+    "nameplatesettings": {
+        "name": "NameplateSettings"
+    },
+    "navmesh": {
+        "name": "NavMesh"
+    },
+    "netconststrings": {
+        "name": "NetConstStrings"
+    },
+    "objective": {
+        "name": "Objective"
+    },
+    "objectivedata": {
+        "name": "ObjectiveData"
+    },
+    "objectstoreddlconfig": {
+        "name": "ObjectStoreDdlConfig"
+    },
+    "objectstoreddlconfiggroup": {
+        "name": "ObjectStoreDdlConfigGroup"
+    },
+    "objectstoregamemode": {
+        "name": "ObjectStoreGameMode"
+    },
+    "objectstoreproject": {
+        "name": "ObjectStoreProject"
+    },
+    "objectstoretitleidgroup": {
+        "name": "ObjectStoreTitleIdGroup"
+    },
+    "omnvar": {
+        "name": "OmnVar",
+        "cdecl": "struct OmnVar { XHash64 name; XHash64 val; };"
+    },
+    "omnvarlist": {
+        "name": "OmnVarList"
+    },
+    "operator": {
+        "name": "Operator"
+    },
+    "operatorlist": {
+        "name": "OperatorList"
+    },
+    "operatorskin": {
+        "name": "OperatorSkin"
+    },
+    "parachutedata": {
+        "name": "ParachuteData"
+    },
+    "particlesimanimation": {
+        "name": "ParticleSimAnimation"
+    },
+    "particlesystem": {
+        "name": "ParticleSystem"
+    },
+    "pbgbloom": {
+        "name": "PbgBloom"
+    },
+    "pbgcolor": {
+        "name": "PbgColor"
+    },
+    "pbgcurve": {
+        "name": "PbgCurve"
+    },
+    "pbgeffects": {
+        "name": "PbgEffects"
+    },
+    "pbgpostfxbundle": {
+        "name": "PbgPostFxBundle"
+    },
+    "pbgpostfxbundlenvt": {
+        "name": "PbgPostFxBundleNvt"
+    },
+    "perk": {
+        "name": "Perk"
+    },
+    "perlinnoise": {
+        "name": "PerlinNoise"
+    },
+    "physicsasset": {
+        "name": "PhysicsAsset"
+    },
+    "physicsbodyqualitylibrary": {
+        "name": "PhysicsBodyQualityLibrary"
+    },
+    "physicsbonegraph": {
+        "name": "PhysicsBoneGraph"
+    },
+    "physicsdebugdata": {
+        "name": "PhysicsDebugData"
+    },
+    "physicsfxpipeline": {
+        "name": "PhysicsFxPipeline"
+    },
+    "physicsfxshape": {
+        "name": "PhysicsFxShape"
+    },
+    "physicsglobaltypecompendium": {
+        "name": "PhysicsGlobalTypeCompendium"
+    },
+    "physicsmateriallibrary": {
+        "name": "PhysicsMaterialLibrary"
+    },
+    "physicsmotionpropertieslibrary": {
+        "name": "PhysicsMotionPropertiesLibrary"
+    },
+    "physicssfxeventasset": {
+        "name": "PhysicsSfxEventAsset"
+    },
+    "physicsvfxeventasset": {
+        "name": "PhysicsVfxEventAsset"
+    },
+    "playerlookatprofile": {
+        "name": "PlayerLookAtProfile"
+    },
+    "playerspawninfluencer": {
+        "name": "PlayerSpawnInfluencer"
+    },
+    "playerspawnsettings": {
+        "name": "PlayerSpawnSettings"
+    },
+    "posematchingasmconfig": {
+        "name": "PoseMatchingAsmConfig"
+    },
+    "posematchingtransitionset": {
+        "name": "PoseMatchingTransitionSet"
+    },
+    "proceduralbonelodsettings": {
+        "name": "ProceduralBoneLodSettings"
+    },
+    "proceduralbones": {
+        "name": "ProceduralBones"
+    },
+    "project": {
+        "name": "Project"
+    },
+    "projecttable": {
+        "name": "ProjectTable"
+    },
+    "radar": {
+        "name": "Radar"
+    },
+    "radianttelemetry": {
+        "name": "RadiantTelemetry"
+    },
+    "ragdollasset": {
+        "name": "RagdollAsset"
+    },
+    "rawfile": {
+        "name": "RawFile",
+        "cdecl": "struct RawFile { XHash64 name; XHash32 type; uint32_t compressedLen; uint32_t uncompressedLen; byte* buffer; };"
+    },
+    "reactiveaudiopackage": {
+        "name": "ReactiveAudioPackage"
+    },
+    "reactiveaudioparams": {
+        "name": "ReactiveAudioParams"
+    },
+    "reactiveoperator": {
+        "name": "ReactiveOperator"
+    },
+    "reactivestageset": {
+        "name": "ReactiveStageSet"
+    },
+    "reactivevfxpackage": {
+        "name": "ReactiveVfxPackage"
+    },
+    "reticle": {
+        "name": "Reticle"
+    },
+    "reverbpreset": {
+        "name": "ReverbPreset"
+    },
+    "rumble": {
+        "name": "Rumble"
+    },
+    "rumblegraph": {
+        "name": "RumbleGraph"
+    },
+    "scenario": {
+        "name": "Scenario"
+    },
+    "scriptable": {
+        "name": "Scriptable"
+    },
+    "scriptablevariant": {
+        "name": "ScriptableVariant"
+    },
+    "scriptbrushmodel": {
+        "name": "ScriptBrushModel"
+    },
+    "scriptbundle": {
+        "name": "ScriptBundle"
+    },
+    "settingcontext": {
+        "name": "SettingContext"
+    },
+    "sfxpkg": {
+        "name": "SfxPkg"
+    },
+    "shock": {
+        "name": "Shock"
+    },
+    "shockwave": {
+        "name": "Shockwave"
+    },
+    "sightconfig": {
+        "name": "SightConfig"
+    },
+    "sightconfigtemplate": {
+        "name": "SightConfigTemplate"
+    },
+    "sndacoustics": {
+        "name": "SndAcoustics"
+    },
+    "sndadsr": {
+        "name": "SndADSR"
+    },
+    "sndadsrzone": {
+        "name": "SndADSRZone"
+    },
+    "sndambient": {
+        "name": "SndAmbient"
+    },
+    "sndambientelement": {
+        "name": "SndAmbientElement"
+    },
+    "sndasset": {
+        "name": "SndAsset"
+    },
+    "sndbreathstate": {
+        "name": "SndBreathState"
+    },
+    "sndchannels": {
+        "name": "SndChannels"
+    },
+    "sndcontext": {
+        "name": "SndContext"
+    },
+    "sndcurve": {
+        "name": "SndCurve"
+    },
+    "sndfilter": {
+        "name": "SndFilter"
+    },
+    "sndfullocclusion": {
+        "name": "SndFullOcclusion"
+    },
+    "sndfutz": {
+        "name": "SndFutz"
+    },
+    "sndmasterpreset": {
+        "name": "SndMasterPreset"
+    },
+    "sndmodifier": {
+        "name": "SndModifier"
+    },
+    "sndmusicset": {
+        "name": "SndMusicSet"
+    },
+    "sndocclusion": {
+        "name": "SndOcclusion"
+    },
+    "sndocclusionsetting": {
+        "name": "SndOcclusionSetting"
+    },
+    "sndreverb": {
+        "name": "SndReverb"
+    },
+    "sndtable": {
+        "name": "SndTable"
+    },
+    "sndtimescale": {
+        "name": "SndTimeScale"
+    },
+    "sndvolmod": {
+        "name": "SndVolMod"
+    },
+    "sndweaponreflectiondeltatweaks": {
+        "name": "SndWeaponReflectionDeltaTweaks"
+    },
+    "sndzoneweather": {
+        "name": "SndZoneWeather"
+    },
+    "socialplayerprofile": {
+        "name": "SocialPlayerProfile"
+    },
+    "soundbank": {
+        "name": "SndBank"
+    },
+    "soundbanklist": {
+        "name": "SndBankList"
+    },
+    "soundbankpackage": {
+        "name": "SndBankPackage"
+    },
+    "soundbanktransient": {
+        "name": "SndBankTransient",
+        "cdecl": "typedef SndBank SndBankTransient;"
+    },
+    "soundcone": {
+        "name": "SndCone"
+    },
+    "soundevent": {
+        "name": "SndEvent"
+    },
+    "soundglobalbulletcrack": {
+        "name": "SndGlobalBulletCrack"
+    },
+    "soundglobalcontext": {
+        "name": "SndGlobalContext"
+    },
+    "soundglobalcurve": {
+        "name": "SndGlobalCurve"
+    },
+    "soundglobaldoppler": {
+        "name": "SndGlobalDoppler"
+    },
+    "soundglobalentchannel": {
+        "name": "SndGlobalEntChannel"
+    },
+    "soundglobalnametable": {
+        "name": "SndGlobalNameTable"
+    },
+    "soundglobalocclusion": {
+        "name": "SndGlobalOcclusion"
+    },
+    "soundglobalsurfaceinfo": {
+        "name": "SndGlobalSurfaceInfo"
+    },
+    "soundglobalvolmod": {
+        "name": "SndGlobalVolMod"
+    },
+    "soundglobalweaponreflect": {
+        "name": "SndGlobalWeaponReflect"
+    },
+    "soundglobalwhizby": {
+        "name": "SndGlobalWhizBy"
+    },
+    "soundspeakermap": {
+        "name": "SndSpeakerMap"
+    },
+    "soundsubmix": {
+        "name": "SndSubMix"
+    },
+    "spatialcinematics": {
+        "name": "SpatialCinematics"
+    },
+    "spikeprofilerconfig": {
+        "name": "SpikeProfilerConfig"
+    },
+    "spikeprofilersettings": {
+        "name": "SpikeProfilerSettings"
+    },
+    "spray": {
+        "name": "Spray"
+    },
+    "storagefile": {
+        "name": "StorageFile"
+    },
+    "streaminginfo": {
+        "name": "StreamingInfo"
+    },
+    "streamtreeasset": {
+        "name": "StreamTreeAsset"
+    },
+    "streamtreeoverride": {
+        "name": "StreamTreeOverride"
+    },
+    "stringtable": {
+        "name": "StringTable"
+    },
+    "stterrain": {
+        "name": "STTerrain"
+    },
+    "suit": {
+        "name": "Suit"
+    },
+    "suitanimpackage": {
+        "name": "SuitAnimPackage"
+    },
+    "surfacefx": {
+        "name": "SurfaceFX"
+    },
+    "tacgraph": {
+        "name": "TacGraph"
+    },
+    "techset": {
+        "name": "TechSet"
+    },
+    "timelapsesky": {
+        "name": "TimeLapseSky"
+    },
+    "timeline": {
+        "name": "TimeLine"
+    },
+    "tracer": {
+        "name": "Tracer"
+    },
+    "trackerfootstepfx": {
+        "name": "TrackerFootstepFX"
+    },
+    "triggereffect": {
+        "name": "TriggerEffect"
+    },
+    "ttf": {
+        "name": "TTF"
+    },
+    "ttlos": {
+        "name": "TTLOS"
+    },
+    "turretshootstyle": {
+        "name": "TurretShootStyle"
+    },
+    "typeinfo": {
+        "name": "TypeInfo"
+    },
+    "unlockfeedconfig": {
+        "name": "UnlockFeedConfig"
+    },
+    "unlockfeeditem": {
+        "name": "UnlockFeedItem"
+    },
+    "vectorfield": {
+        "name": "VectorField"
+    },
+    "vehicle": {
+        "name": "Vehicle"
+    },
+    "vehicleblueprint": {
+        "name": "VehicleBlueprint"
+    },
+    "vehiclerevsfx": {
+        "name": "VehicleRevSfx"
+    },
+    "vehicletrick": {
+        "name": "VehicleTrick"
+    },
+    "vehicletunables": {
+        "name": "VehicleTunables"
+    },
+    "vehleanoutanimcurveset": {
+        "name": "VehLeanOutAnimCurveSet"
+    },
+    "vfxpkg": {
+        "name": "VFXPkg"
+    },
+    "vhmdata": {
+        "name": "VHMData"
+    },
+    "visionset": {
+        "name": "VisionSet"
+    },
+    "volumetriccloud": {
+        "name": "VolumetricCloud"
+    },
+    "volumetricfog": {
+        "name": "VolumetricFog"
+    },
+    "volumetricheightmap": {
+        "name": "VolumetricHeightMap"
+    },
+    "volumetricsmokesettings": {
+        "name": "VolumetricSmokeSettings"
+    },
+    "vtmdata": {
+        "name": "VTMData"
+    },
+    "waterbuoyancy": {
+        "name": "WaterBuoyancy"
+    },
+    "watersystem": {
+        "name": "WaterSystem"
+    },
+    "watervis": {
+        "name": "WaterVis"
+    },
+    "weapon": {
+        "name": "WeaponDef"
+    },
+    "weaponaccuracy": {
+        "name": "WeaponAccuracy"
+    },
+    "weaponblueprint": {
+        "name": "WeaponBlueprint"
+    },
+    "weaponsndreflections": {
+        "name": "WeaponSndReflections"
+    },
+    "weaponsndreflectionzone": {
+        "name": "WeaponSndReflectionZone"
+    },
+    "weapontrigger": {
+        "name": "WeaponTrigger"
+    },
+    "weapontunables": {
+        "name": "WeaponTunables"
+    },
+    "weather": {
+        "name": "Weather"
+    },
+    "weatherdistantsfxpackage": {
+        "name": "WeatherDistantSfxPackage"
+    },
+    "weatherenvironmentsfxpackage": {
+        "name": "WeatherEnvironmentSfxPackage"
+    },
+    "weatherimpactsfxtable": {
+        "name": "WeatherImpactSfxTable"
+    },
+    "weathermap": {
+        "name": "WeatherMap"
+    },
+    "weatherprecipitationsfxpackage": {
+        "name": "WeatherPrecipitationSfxPackage"
+    },
+    "weathersoundthresholds": {
+        "name": "WeatherSoundThresholds"
+    },
+    "weatherstate": {
+        "name": "WeatherState"
+    },
+    "weathersurfacetypemapping": {
+        "name": "WeatherSurfaceTypeMapping"
+    },
+    "weathertile": {
+        "name": "WeatherTile"
+    },
+    "weatherwind": {
+        "name": "WeatherWind"
+    },
+    "whizbysfx": {
+        "name": "WhizbySfx"
+    },
+    "world_event_data": {
+        "name": "WorldEventData"
+    },
+    "worldmodelattachment": {
+        "name": "WorldModelAttachment"
+    },
+    "xanim": {
+        "name": "XAnim"
+    },
+    "xanimcurve": {
+        "name": "XAnimCurve"
+    },
+    "xanimnode": {
+        "name": "XAnimNode"
+    },
+    "xanimparammodifier": {
+        "name": "XAnimParamModifier"
+    },
+    "xanimpayload": {
+        "name": "XAnimPayload"
+    },
+    "xanimset": {
+        "name": "XAnimSet"
+    },
+    "xanimsetalias": {
+        "name": "XAnimSetAlias"
+    },
+    "xanimsetparameters": {
+        "name": "XAnimSetParameters"
+    },
+    "xanimsetstate": {
+        "name": "XAnimSetState"
+    },
+    "xanimtree": {
+        "name": "XAnimTree"
+    },
+    "xboneset": {
+        "name": "XBoneSet"
+    },
+    "xcam": {
+        "name": "XCam"
+    },
+    "xcompositemodel": {
+        "name": "XCompositeModel"
+    },
+    "xmodel": {
+        "name": "XModel"
+    },
+    "xmodeldetailcollision": {
+        "name": "XModelDetailCollision"
+    },
+    "xmodelsurfs": {
+        "name": "XModelSurfs"
+    },
+    "zivart": {
+        "name": "Zivart"
+    }
+}

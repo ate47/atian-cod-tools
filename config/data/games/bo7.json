@@ -5,6 +5,12 @@
     "cdecls": [
         {
             "decl": "struct Asset { AssetType type; void* handle; };"
+        },
+        {
+            "decl": "typedef uint64_t XHash64;"
+        },
+        {
+            "decl": "typedef uint32_t XHash32;"
         }
     ],
     "ctypes": [

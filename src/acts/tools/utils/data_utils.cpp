@@ -60,6 +60,18 @@ namespace utils::data {
 		return ss.str();
 	}
 
+	std::string AsHexArray(const void* buff, size_t size) {
+		std::stringstream ss{};
+
+		byte* ptr{ (byte*)buff };
+		for (size_t i = 0; i < size; i++) {
+			if (i) ss << " ";
+			ss << std::setw(2) << std::hex << std::setfill('0') << (int)ptr[i];
+		}
+
+		return ss.str();
+	}
+
 	void FillRandomBuffer(void* _buff, size_t size) {
 		byte* buff{ (byte*)_buff };
 		std::random_device rd;

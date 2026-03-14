@@ -9,7 +9,7 @@ namespace {
 		uint32_t key;
 	};
 	struct KeyValuePairs {
-		uint64_t name;
+		XHash64 name;
 		KeyValuePair* kv;
 		int32_t count;
 	};

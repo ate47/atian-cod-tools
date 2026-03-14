@@ -7,12 +7,12 @@ namespace {
 	using namespace tool::bo7;
 
 	struct GscObj {
-		uint64_t name;
+		XHash64 name;
 		uint32_t len;
 		byte* buffer;
 	}; static_assert(sizeof(GscObj) == 0x18);
 	struct GscGdb {
-		uint64_t name;
+		XHash64 name;
 		uint32_t len;
 		byte* buffer;
 	}; static_assert(sizeof(GscGdb) == 0x18);
