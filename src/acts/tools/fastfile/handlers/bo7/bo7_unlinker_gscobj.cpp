@@ -70,7 +70,7 @@ namespace {
 				gdctx.opt.m_generateGdbData = true;
 				gdctx.opt.m_generateGdbBaseData = false;
 				gdctx.opt.m_dbgOutputDir = outSourceGDBStr.data();
-				gdctx.opt.m_platform = tool::gsc::opcode::PLATFORM_BO7;
+				gdctx.opt.m_platform = tool::gsc::opcode::PLATFORM_PC;
 				gdctx.opt.m_dcomp = true;
 				std::filesystem::path outSource{ opt.m_output / gamePath / "source" };
 				std::string outSourceStr{ outSource.string() };

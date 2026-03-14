@@ -6,13 +6,13 @@ namespace core::actsinfo {
 
     // Version used for the release
 #ifdef GPL_BUILD
-    constexpr const char* VERSION = "2.21.0-gpl";
-    constexpr const wchar_t* VERSIONW = L"2.21.0-gpl";
+    constexpr const char* VERSION = "2.21.1-gpl";
+    constexpr const wchar_t* VERSIONW = L"2.21.1-gpl";
 #else
-    constexpr const char* VERSION = "2.21.0";
-    constexpr const wchar_t* VERSIONW = L"2.21.0";
+    constexpr const char* VERSION = "2.21.1";
+    constexpr const wchar_t* VERSIONW = L"2.21.1";
 #endif // GPL_BUILD
-    constexpr unsigned int VERSION_ID = 0x2015000;
+    constexpr unsigned int VERSION_ID = 0x2015001;
 
 #else
 
@@ -21,11 +21,11 @@ namespace core::actsinfo {
 
     // prerelease
 #ifdef GPL_BUILD
-    constexpr const char* VERSION = "2.21.0-gpl-pre";
-    constexpr const wchar_t* VERSIONW = L"2.21.0-gpl-pre";
+    constexpr const char* VERSION = "2.21.1-gpl-pre";
+    constexpr const wchar_t* VERSIONW = L"2.21.1-gpl-pre";
 #else
-    constexpr const char* VERSION = "2.21.0-pre";
-    constexpr const wchar_t* VERSIONW = L"2.21.0-pre";
+    constexpr const char* VERSION = "2.21.1-pre";
+    constexpr const wchar_t* VERSIONW = L"2.21.1-pre";
 #endif // GPL_BUILD
 
 #else
