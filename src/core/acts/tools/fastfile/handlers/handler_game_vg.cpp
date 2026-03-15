@@ -92,7 +92,6 @@ namespace fastfile::handlers::vg {
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
 			size_t loaded{};
-			core::memory_allocator::MemoryAllocator allocator{};
 			size_t currentAsset{};
 			AssetList assets{};
 			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
@@ -181,7 +180,7 @@ namespace fastfile::handlers::vg {
 			XString name{ GetXAssetName(hashType, *handle) };
 
 			size_t assetSize{ gcx.DB_GetAssetSize(type) };
-			void* data{ gcx.allocator.Alloc(assetSize) };
+			void* data{ gcx.ctx->zoneMemory.Alloc(assetSize) };
 			std::memcpy(data, *handle, assetSize);
 			*handle = data;
 
@@ -354,7 +353,6 @@ namespace fastfile::handlers::vg {
 
 				gcx.opt->assetNames.clear();
 
-				gcx.allocator.FreeAll();
 				gcx.xstringLocs = nullptr;
 
 				if (!ctx.blocksCount) {
@@ -389,7 +387,7 @@ namespace fastfile::handlers::vg {
 					size_t len{ ctx.blockSizes[i].size };
 					gcx.blocks[i].size = len;
 					if (len) {
-						gcx.blocks[i].data = gcx.allocator.AllocAligned<byte>(len, 0x100000);
+						gcx.blocks[i].data = ctx.zoneMemory.AllocAligned<byte>(len, 0x100000);
 					}
 					else {
 						gcx.blocks[i].data = nullptr;

@@ -152,7 +152,6 @@ namespace fastfile::handlers::mwiii {
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
 			size_t loaded{};
-			core::memory_allocator::MemoryAllocator allocator{};
 			std::unordered_map<HandlerHashedAssetType, std::unordered_map<uint64_t, void*>> linkedAssets{}; // todo: use me 
 			AssetList assets{};
 			std::vector<const char*>* xstringLocs{};
@@ -401,7 +400,6 @@ namespace fastfile::handlers::mwiii {
 
 				gcx.opt->assetNames.clear();
 
-				gcx.allocator.FreeAll();
 				gcx.linkedAssets.clear();
 				gcx.xstringLocs = nullptr;
 
@@ -436,7 +434,7 @@ namespace fastfile::handlers::mwiii {
 					size_t len{ ctx.blockSizes[i].size };
 					gcx.blocks[i].size = len;
 					if (len) {
-						gcx.blocks[i].data = gcx.allocator.AllocAligned<byte>(len, 0x100000);
+						gcx.blocks[i].data = ctx.zoneMemory.AllocAligned<byte>(len, 0x100000);
 					}
 					else {
 						gcx.blocks[i].data = nullptr;

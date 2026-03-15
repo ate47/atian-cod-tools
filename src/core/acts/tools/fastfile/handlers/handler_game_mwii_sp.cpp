@@ -101,7 +101,6 @@ namespace fastfile::handlers::mwiisp {
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
 			size_t loaded{};
-			core::memory_allocator::MemoryAllocator allocator{};
 			std::unordered_map<HandlerHashedAssetType, std::unordered_map<uint64_t, void*>> linkedAssets{};
 			AssetList assets{};
 			std::unordered_map<uint64_t, uint32_t> scrStringMap{};
@@ -345,7 +344,6 @@ namespace fastfile::handlers::mwiisp {
 
 				gcx.opt->assetNames.clear();
 
-				gcx.allocator.FreeAll();
 				gcx.linkedAssets.clear();
 				gcx.xstringLocs = nullptr;
 
@@ -380,7 +378,7 @@ namespace fastfile::handlers::mwiisp {
 					size_t len{ ctx.blockSizes[i].size };
 					gcx.blocks[i].size = len;
 					if (len) {
-						gcx.blocks[i].data = gcx.allocator.AllocAligned<byte>(len, 0x100000);
+						gcx.blocks[i].data = ctx.zoneMemory.AllocAligned<byte>(len, 0x100000);
 					}
 					else {
 						gcx.blocks[i].data = nullptr;
