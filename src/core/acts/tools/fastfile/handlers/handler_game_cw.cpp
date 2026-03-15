@@ -290,6 +290,7 @@ namespace fastfile::handlers::cw {
 
 			void Init(fastfile::FastFileOption& opt) override {
 				acts::game_data::GameData game{ "cw" };
+				commonFiles = game.GetCommonFastFiles();
 				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "cw")};
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				game.SetScanContainer(&scan);

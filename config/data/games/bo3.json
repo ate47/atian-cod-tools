@@ -1,5 +1,13 @@
 {
     "module": "BlackOps3_dump.exe",
+    "commonFastFiles": [
+        "zone/core_common.ff",
+        "zone/cp_common.ff",
+        "zone/cp_common_all.ff",
+        "zone/mp_common.ff",
+        "zone/zm_common.ff",
+        "zone/zm_common_all.ff"
+    ],
     "scans": {
         "varXAsset": {
             "scan": "48 89 35 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 83 C6 10 40 38 3D ?? ?? ?? ?? 75 07",

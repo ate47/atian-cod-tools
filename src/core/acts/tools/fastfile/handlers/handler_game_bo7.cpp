@@ -454,6 +454,7 @@ namespace fastfile::handlers::bo7 {
 
 			void Init(fastfile::FastFileOption& opt) override {
 				acts::game_data::GameData game{ gameDumpId };
+				commonFiles = game.GetCommonFastFiles();
 				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), gameDumpId)};
 
 				hook::library::ScanLogger& logger{ mod.GetScanLogger() };

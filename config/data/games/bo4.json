@@ -1,5 +1,17 @@
 {
     "module": "BlackOps4_dump.exe",
+    "commonFastFiles": [
+        "zone/core_common.ff",
+        "zone/mp_common.ff",
+        "zone/mp_common_all.ff",
+        "zone/mp_common_script.ff",
+        "zone/wz_common.ff",
+        "zone/wz_common_all.ff",
+        "zone/wz_common_script.ff",
+        "zone/zm_common.ff",
+        "zone/zm_common_all.ff",
+        "zone/zm_common_script.ff"
+    ],
     "scans": {
         "Load_XAsset": {
             "scan": "E8 ?? ?? ?? ?? 48 83 C3 10 80 3D ?? ?? ?? ?? ?? 75 07",

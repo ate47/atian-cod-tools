@@ -357,6 +357,7 @@ namespace fastfile::handlers::bo6sp {
 
 			void Init(fastfile::FastFileOption& opt) override {
 				acts::game_data::GameData game{ "bo6sp"};
+				commonFiles = game.GetCommonFastFiles();
 				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "bo6sp") };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				game.SetScanContainer(&scan);

@@ -2,6 +2,12 @@
     "module": "BlackOpsColdWar_dump.exe",
     "firstAssetName": "zone",
     "endAssetName": null,
+    "commonFastFiles": [
+        "zone/core_common.ff",
+        "zone/cp_common.ff",
+        "zone/mp_common.ff",
+        "zone/zm_common.ff"
+    ],
     "scans": {
         "Load_XAsset": {
             "scan": "E8 ? ? ? ? 48 83 C3 ? 8D 4E ? E8 ? ? ? ? 8B F1 84 C0 75 06",

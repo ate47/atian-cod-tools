@@ -308,6 +308,7 @@ namespace fastfile {
 		bool noPatchOk;
 		size_t forceNumXBlocks{};
 		compatibility::scobalula::csi::CordycepGame game{};
+		std::vector<std::string> commonFiles{};
 
 		FFHandler(const char* name, const char* description, compatibility::scobalula::csi::CordycepGame game,  bool noPatchOk = false)
 			: name(name), description(description), noPatchOk(noPatchOk), game(game) {

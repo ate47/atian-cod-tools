@@ -2,6 +2,24 @@
     "module": "cod23-cod_dump.exe",
     "firstAssetName": "physicslibrary",
     "endAssetName": "string",
+    "commonFastFiles": [
+        "code_post_gfx.ff",
+        "code_pre_gfx.ff",
+        "code_reloadable.ff",
+        "frontend_ui.ff",
+        "frontend_ui_boot.ff",
+        "global.ff",
+        "global_base_mp.ff",
+        "global_shared_mp.ff",
+        "global_stream_mp.ff",
+        "ingame.ff",
+        "ingame_base_mp.ff",
+        "ingame_bm.ff",
+        "ingame_br.ff",
+        "ingame_mp.ff",
+        "ingame_ob.ff",
+        "ingame_shared_mp.ff"
+    ],
     "cdecls": [
         {
             "decl": "struct Asset { AssetType type; void* handle; };"

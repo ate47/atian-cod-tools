@@ -10,6 +10,7 @@
 #include <HwBpLib.h>
 #include <regex>
 #include <core/config.hpp>
+#include <cli/clicolor.hpp>
 #include <xxhash.h>
 
 
@@ -666,7 +667,7 @@ namespace fastfile {
 			std::filesystem::path root{ gamePath };
 
 			std::vector<std::filesystem::path> files{};
-			utils::GetFileRecurse(root / path, files);
+			utils::GetFileRecurse(path[0] ? root / path : root, files);
 
 			for (const std::filesystem::path& file : files) {
 				res.push_back(file.string());
@@ -798,14 +799,6 @@ namespace fastfile {
 		HwBp::Set(ptr, len, HwBp::When::Written);
 	}
 
-	struct FFLoadContext {
-		std::vector<byte> buff{};
-		std::vector<byte> ffdata{};
-		size_t count{}, completed{};
-		FFDecompressor* lastDecompressor{};
-		byte pad[0x100];
-	};
-
 
 	using namespace compatibility::scobalula::csi;
 
@@ -936,6 +929,279 @@ namespace fastfile {
 		}
 	};
 
+	struct FFReplCmd {
+		const char* usage;
+		const char* description;
+		std::function<void(int argc, const char* argv[])> func{};
+	};
+
+	class FFLoadContext {
+	public:
+		FastFileOption& opt;
+		AssetPool assetPool;
+		std::vector<byte> buff{};
+		std::vector<byte> ffdata{};
+		size_t count{}, completed{};
+		FFDecompressor* lastDecompressor{};
+		byte pad[0x100]{};
+		std::unordered_map<std::string, FFReplCmd> cmds{};
+		bool runRepl{};
+
+		FFLoadContext(FastFileOption& opt) : opt(opt), assetPool(opt) {
+			cmds["exit"] = { "", "exit the process",
+				[this](int argc, const char* argv[]) {
+					runRepl = false;
+				}
+			};
+			cmds["help"] = { "", "show help",
+				[this](int argc, const char* argv[]) {
+					LOG_INFO("commands:");
+					for (auto& [name, data] : cmds) {
+						LOG_INFO("{}{}: {}", name, data.usage, data.description);
+					}
+				}
+			};
+			cmds["load"] = { " [filename]", "load fastfile",
+				[this](int argc, const char* argv[]) {
+					if (tool::NotEnoughParam(argc, 1)) {
+						LOG_ERROR("not enough param");
+					}
+					for (size_t i = 2; i < argc; i++) {
+						if (!LoadFastFile(argv[i])) {
+							LOG_ERROR("Nothing loaded for {}", argv[i]);
+						}
+					}
+					WriteIndex();
+				}
+			};
+			cmds["loadre"] = { " [wildcard] (ignorewc)", "load fastfile using regex",
+				[this](int argc, const char* argv[]) {
+					if (tool::NotEnoughParam(argc, 1)) {
+						LOG_ERROR("not enough param");
+						return;
+					}
+					if (!LoadFastFile("", argv[2], tool::NotEnoughParam(argc, 1) ? nullptr : argv[3])) {
+						LOG_ERROR("Nothing loaded for {}", argv[2]);
+					}
+					WriteIndex();
+				}
+			};
+			cmds["loadcommonfiles"] = { "", "load common fastfiles",
+				[this](int argc, const char* argv[]) {
+					if (!this->opt.handler || this->opt.handler->commonFiles.empty()) {
+						LOG_ERROR("no common files registered for this game");
+						return;
+					}
+					for (std::string& cf : this->opt.handler->commonFiles) {
+						if (!LoadFastFile(cf.data())) {
+							LOG_ERROR("Nothing loaded for {}", argv[2]);
+						}
+					}
+					WriteIndex();
+				}
+			};
+		}
+
+		~FFLoadContext() {
+			if (lastDecompressor) lastDecompressor->Cleanup();
+			if (opt.handler) opt.handler->Cleanup();
+		}
+
+		void Init() {
+			if (opt.workflow == FFW_ASSET_POOL) {
+				// ignore the asset loading
+				opt.assetTypes = "$assetpool_ignore";
+				opt.reducedLogs = true; // hide the asset and strings dump
+				currentAssetPool = &assetPool;
+			}
+			else {
+				currentAssetPool = nullptr;
+			}
+
+			if (opt.handler) {
+				opt.handler->Init(opt);
+				assetPool.game = opt.handler->game;
+
+				if (!opt.files.empty() && !opt.m_fd && !opt.handler->noPatchOk) {
+					LOG_WARNING("-p option not specified, it might cause an error with patched fastfiles");
+				}
+			}
+
+			RegisterCrypts();
+		}
+
+		void UpdateDecompressor(FFDecompressor* decompressor) {
+			if (lastDecompressor != decompressor) {
+				if (lastDecompressor) {
+					lastDecompressor->Cleanup();
+					lastDecompressor = decompressor;
+					//SetBP(&lastDecompressor, 8);
+				}
+				else {
+					lastDecompressor = decompressor;
+				}
+				decompressor->Init(opt);
+			}
+		}
+
+		void WriteIndex() {
+			LOG_INFO("loaded asset count: {}", assetPool.numAssets);
+			assetPool.WriteCsiFile();
+		}
+
+		void StartRepl() {
+			runRepl = true;
+			do {
+				std::string line{};
+
+				if (cli::clicolor::ConsoleAllowColor()) {
+					std::cout << cli::clicolor::Color(5, 1, 3) << "acts:" << core::actsinfo::VERSION << "> " << cli::clicolor::Color(5, 5, 5);
+					std::getline(std::cin, line);
+					std::cout << cli::clicolor::Reset();
+				}
+				else {
+					std::cout << "acts:" << core::actsinfo::VERSION << "> ";
+					std::getline(std::cin, line);
+				}
+
+				LOG_TRACE("Run line: {}", line);
+
+				int params{};
+				const char** cmds = tool::ReadParams(line, params);
+
+				if (!cmds || params < 2) {
+					continue;
+				}
+
+				auto it{ this->cmds.find(cmds[1]) };
+
+				if (it == this->cmds.end()) {
+					LOG_ERROR("Invalid command: '{}', type help for the list of commands", cmds[1]);
+					continue;
+				}
+
+				it->second.func(params, cmds);
+			} while (runRepl);
+		}
+
+		bool LoadFastFile(const char* f, const char* fWildcard = nullptr, const char* iWildcard = nullptr) {
+			std::regex wildcard{ fWildcard ? fWildcard : ".*" };
+			std::regex ignoreWildcard{ iWildcard ? iWildcard : "." };
+
+			bool anyLoaded{};
+			for (std::string& filename : opt.GetFileRecurse(f)) {
+				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone")) {
+					LOG_TRACE("Ignore {}", filename);
+					continue;
+				}
+				std::filesystem::path flpname{ filename };
+				flpname = flpname.filename();
+				std::string rfilename{ flpname.string() };
+				utils::MapString(rfilename.data(), [](char c) -> char {return c == '\\' ? '/' : c; });
+				if (fWildcard) {
+					std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), wildcard };
+
+					if (rbegin == std::sregex_iterator() || rbegin->length() != rfilename.size()) {
+						continue; // doesn't match, we ignore it
+					}
+				}
+				if (iWildcard) {
+					std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), ignoreWildcard };
+
+					if (rbegin != std::sregex_iterator() && rbegin->length() == rfilename.size()) {
+						continue; // match, we ignore it
+					}
+				}
+
+				if (opt.ignore) {
+					std::filesystem::path ffpath{ filename };
+					std::filesystem::path ignoreDir{ opt.ignore };
+
+					if (utils::IsSubDir(ignoreDir, ffpath)) {
+						continue; // ignore sub paths
+					}
+				}
+
+				count++;
+				anyLoaded = true;
+
+				if (!opt.ReadFile(filename.data(), buff)) {
+					LOG_ERROR("Can't read file {}", filename);
+					continue;
+				}
+
+				core::bytebuffer::ByteBuffer reader{ buff };
+
+				if (!reader.CanRead(sizeof(uint64_t))) {
+					LOG_ERROR("Can't read file {}: too small", filename);
+					continue;
+				}
+
+				ffdata.clear();
+				uint64_t magic{ *reader.Ptr<uint64_t>() };
+
+				try {
+					// we use a temporary memory block for reader because we don't need the memory after reading
+					// for the pools it needs to be static
+					core::memory_allocator::MemoryAllocator ffMemory{};
+					fastfile::FastFileContext ctx{ opt.workflow == FFW_ASSET_POOL ? assetPool.allocator : ffMemory };
+					ctx.file = filename.c_str();
+					currentCtx = &ctx;
+					FFDecompressor* decompressor{ FindDecompressor(filename, reader) };
+
+					if (!decompressor) {
+						LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);
+						continue;
+					}
+					UpdateDecompressor(decompressor);
+
+
+					std::filesystem::path ffnamet{ filename };
+					ffnamet.replace_extension();
+					ffnamet = ffnamet.filename();
+					std::string ffnamets{ ffnamet.string() };
+					sprintf_s(ctx.ffname, "%s", ffnamets.data());
+
+					hashutils::Add(ctx.ffname, true, true);
+
+					LOG_INFO("Loading {}... ({})", filename, decompressor->name);
+
+					decompressor->LoadFastFile(opt, reader, ctx, ffdata);
+
+					LOG_TRACE("Decompressed 0x{:x} byte(s)", ffdata.size());
+
+					if (opt.dump_decompressed) {
+						std::filesystem::path of{ ctx.file };
+						std::filesystem::path decfile{ opt.m_output / ctx.ffname };
+
+						decfile.replace_extension(".ff.dec");
+
+						std::filesystem::create_directories(decfile.parent_path());
+						if (!utils::WriteFile(decfile, ffdata.data(), ffdata.size())) {
+							LOG_ERROR("Can't dump {}", decfile.string());
+						}
+						else {
+							LOG_INFO("Dump into {}", decfile.string());
+						}
+					}
+
+					if (opt.handler) {
+						core::bytebuffer::ByteBuffer ffreader{ ffdata };
+						LOG_TRACE("Reading using {}", opt.handler->name);
+						opt.handler->Handle(opt, ffreader, ctx);
+					}
+					completed++;
+				}
+				catch (std::runtime_error& err) {
+					LOG_ERROR("Can't read {}: {}", filename, err.what());
+				}
+				currentCtx = nullptr;
+			}
+
+			return anyLoaded;
+		}
+	};
+
 	void AddAssetHeader(const char* name, void* header, uint32_t type, size_t size) {
 		AddAssetHeader(hash::Hash64A(name), header, type, size);
 	}
@@ -1024,7 +1290,7 @@ namespace fastfile {
 		currentOpt = &opt;
 
 		bool anyPrint{};
-		if (!opt.Compute(argv, 2, argc) || opt.m_help || (opt.files.empty() && !(anyPrint = PrintAny(opt)))) {
+		if (!opt.Compute(argv, 2, argc) || opt.m_help || (opt.files.empty() && !((anyPrint = PrintAny(opt)) || workflow == FFW_ASSET_POOL))) {
 			opt.PrintHelp();
 			if (opt.files.empty() && !opt.handler) {
 				LOG_ERROR("Missing entry");
@@ -1037,176 +1303,20 @@ namespace fastfile {
 			return tool::OK;
 		}
 
-		AssetPool assetPool{ opt };
+		FFLoadContext cc{ opt };
 
-		if (workflow == FFW_ASSET_POOL) {
-			// ignore the asset loading
-			opt.assetTypes = "$assetpool_ignore";
-			currentAssetPool = &assetPool;
-		}
-		else {
-			currentAssetPool = nullptr;
-		}
-
-		if (opt.handler) {
-			opt.handler->Init(opt);
-			assetPool.game = opt.handler->game;
-
-			if (!opt.files.empty() && !opt.m_fd && !opt.handler->noPatchOk) {
-				LOG_WARNING("-p option not specified, it might cause an error with patched fastfiles");
-			}
-		}
-
-		RegisterCrypts();
-
-		FFLoadContext cc{};
-
-		utils::CloseEnd hce{ [&opt, &cc] {
-			if (cc.lastDecompressor) cc.lastDecompressor->Cleanup();
-			if (opt.handler) opt.handler->Cleanup();
-		} };
-
-		std::regex wildcard{ opt.wildcard ? opt.wildcard : ".*" };
-		std::regex ignoreWildcard{ opt.ignoreWildcard ? opt.ignoreWildcard : "." };
+		cc.Init();
 
 		for (const char* f : opt.files) {
-			for (std::string& filename : opt.GetFileRecurse(f)) {
-				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone")) {
-					LOG_TRACE("Ignore {}", filename);
-					continue;
-				}
-				std::filesystem::path flpname{ filename };
-				flpname = flpname.filename();
-				std::string rfilename{ flpname.string() };
-				utils::MapString(rfilename.data(), [](char c) -> char {return c == '\\' ? '/' : c; });
-				if (opt.wildcard) {
-					std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), wildcard };
-
-					if (rbegin == std::sregex_iterator() || rbegin->length() != rfilename.size()) {
-						continue; // doesn't match, we ignore it
-					}
-				}
-				if (opt.ignoreWildcard) {
-					std::sregex_iterator rbegin{ rfilename.begin(), rfilename.end(), ignoreWildcard };
-
-					if (rbegin != std::sregex_iterator() && rbegin->length() == rfilename.size()) {
-						continue; // match, we ignore it
-					}
-				}
-
-				if (opt.ignore) {
-					std::filesystem::path ffpath{ filename };
-					std::filesystem::path ignoreDir{ opt.ignore };
-
-					if (utils::IsSubDir(ignoreDir, ffpath)) {
-						continue; // ignore sub paths
-					}
-				}
-
-				cc.count++;
-
-				if (!opt.ReadFile(filename.data(), cc.buff)) {
-					LOG_ERROR("Can't read file {}", filename);
-					continue;
-				}
-
-				core::bytebuffer::ByteBuffer reader{ cc.buff };
-
-				if (!reader.CanRead(sizeof(uint64_t))) {
-					LOG_ERROR("Can't read file {}: too small", filename);
-					continue;
-				}
-
-				cc.ffdata.clear();
-				uint64_t magic{ *reader.Ptr<uint64_t>() };
-
-				try {
-					// we use a temporary memory block for reader because we don't need the memory after reading
-					// for the pools it needs to be static
-					core::memory_allocator::MemoryAllocator ffMemory{};
-					fastfile::FastFileContext ctx{ workflow == FFW_ASSET_POOL ? assetPool.allocator : ffMemory };
-					ctx.file = filename.c_str();
-					currentCtx = &ctx;
-					FFDecompressor* decompressor{ FindDecompressor(filename, reader) };
-
-					if (!decompressor) {
-						LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);
-						continue;
-					}
-					if (cc.lastDecompressor != decompressor) {
-						if (cc.lastDecompressor) {
-							cc.lastDecompressor->Cleanup();
-							cc.lastDecompressor = decompressor;
-							//SetBP(&lastDecompressor, 8);
-						}
-						else {
-							cc.lastDecompressor = decompressor;
-						}
-						decompressor->Init(opt);
-					}
-
-
-					std::filesystem::path ffnamet{ filename };
-					ffnamet.replace_extension();
-					ffnamet = ffnamet.filename();
-					std::string ffnamets{ ffnamet.string() };
-					sprintf_s(ctx.ffname, "%s", ffnamets.data());
-
-					hashutils::Add(ctx.ffname, true, true);
-
-					LOG_INFO("Loading {}... ({})", filename, decompressor->name);
-
-					decompressor->LoadFastFile(opt, reader, ctx, cc.ffdata);
-
-					LOG_TRACE("Decompressed 0x{:x} byte(s)", cc.ffdata.size());
-
-					if (opt.dump_decompressed) {
-						std::filesystem::path of{ ctx.file };
-						std::filesystem::path decfile{ opt.m_output / ctx.ffname };
-
-						decfile.replace_extension(".ff.dec");
-
-						std::filesystem::create_directories(decfile.parent_path());
-						if (!utils::WriteFile(decfile, cc.ffdata.data(), cc.ffdata.size())) {
-							LOG_ERROR("Can't dump {}", decfile.string());
-						}
-						else {
-							LOG_INFO("Dump into {}", decfile.string());
-						}
-					}
-
-					if (opt.handler) {
-						core::bytebuffer::ByteBuffer ffreader{ cc.ffdata };
-						LOG_TRACE("Reading using {}", opt.handler->name);
-						opt.handler->Handle(opt, ffreader, ctx);
-					}
-					cc.completed++;
-				}
-				catch (std::runtime_error& err) {
-					LOG_ERROR("Can't read {}: {}", filename, err.what());
-				}
-				currentCtx = nullptr;
-			}
+			cc.LoadFastFile(f, opt.wildcard, opt.ignoreWildcard);
 		}
 
 		if (workflow == FFW_ASSET_POOL) {
-			LOG_INFO("{} asset synced", assetPool.numAssets);
-			assetPool.WriteCsiFile();
-
-			// todo: add repl instead of that
-			LOG_INFO("press enter to quit");
-			std::cin.get();
+			cc.WriteIndex();
+			cc.StartRepl();
 		}
-
 
 		currentOpt = nullptr;
-
-		if (cc.lastDecompressor) {
-			cc.lastDecompressor->Cleanup();
-		}
-		if (opt.handler) {
-			opt.handler->Cleanup();
-		}
 
 		size_t errors{ cc.count - cc.completed };
 		if (errors) {

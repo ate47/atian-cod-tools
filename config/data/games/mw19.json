@@ -2,6 +2,16 @@
     "module": "ModernWarfare_dump.exe",
     "firstAssetName": "physicslibrary",
     "endAssetName": "string",
+    "commonFastFiles": [
+        "code_post_gfx.ff",
+        "code_pre_gfx.ff",
+        "global.ff",
+        "global_core_mp.ff",
+        "global_cp.ff",
+        "global_mp.ff",
+        "global_sp.ff",
+        "global_stream_mp.ff"
+    ],
     "scans": {
         "Load_Asset": {
             "scan": "48 89 0D ?? ?? ?? ?? B9 01 00 00 00 E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? FF C3 FF 40 14 48 8B 05 ?? ?? ?? ?? 3B 58 10 72 B4 33 DB",

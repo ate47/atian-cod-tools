@@ -519,6 +519,7 @@ namespace fastfile::handlers::bo4 {
 				}
 
 				acts::game_data::GameData game{ "bo4" };
+				commonFiles = game.GetCommonFastFiles();
 				hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "bo4") };
 				hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 				game.SetScanContainer(&scan);

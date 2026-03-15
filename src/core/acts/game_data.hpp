@@ -64,6 +64,8 @@ namespace acts::game_data {
 		void ApplyNullScans(const char* id);
 		// Get dump filename
 		const char* GetModuleName();
+		// Get common fastfiles
+		std::vector<std::string> GetCommonFastFiles();
 		// get scan data from its id
 		ScanData GetScan(const char* id, const char* parent = BASE_PARENT);
 		// redirect a scan to a location

@@ -302,6 +302,7 @@ namespace {
 
 		void Init(fastfile::FastFileOption& opt) override {
 			acts::game_data::GameData game{ "bo3" };
+			commonFiles = game.GetCommonFastFiles();
 			hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "bo3") };
 			hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
 			game.SetScanContainer(&scan);

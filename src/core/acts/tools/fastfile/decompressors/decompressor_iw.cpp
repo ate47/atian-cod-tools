@@ -789,7 +789,7 @@ namespace {
 						fpreader.Skip(1);
 					}
 					if (!found) {
-						LOG_WARNING("can't find patch iwc, ignore");
+						LOG_DEBUG("can't find patch iwc, ignore");
 						return;
 					}
 					fpreader.Skip<uint32_t>(); // skip IWC

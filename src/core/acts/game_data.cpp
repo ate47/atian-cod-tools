@@ -111,6 +111,25 @@ namespace acts::game_data {
 		}
 		return dump;
 	}
+	std::vector<std::string> GameData::GetCommonFastFiles() {
+		rapidjson::Value& commonFastFiles{ cfg.GetVal("commonFastFiles", 0, cfg.main) };
+		if (!commonFastFiles.IsArray()) {
+			return {};
+		}
+		std::vector<std::string> files{};
+		for (rapidjson::Value& v : commonFastFiles.GetArray()) {
+			if (!v.IsString()) {
+				LOG_WARNING("Invalid commonFastFiles in {}", dirname);
+				continue;
+			}
+
+			files.emplace_back(v.GetString());
+		}
+		if (files.empty()) {
+			LOG_WARNING("empty commonFastFiles");
+		}
+		return files;
+	}
 
 	ScanData GameData::GetScan(const char* id, const char* parent) {
 		ScanData res{};
