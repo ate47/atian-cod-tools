@@ -18,7 +18,7 @@ function buildinfo()
     versionfile:close()
 
     -- set version
-    local file = assert(io.open("src/shared/core/actsinfo.hpp", "w"))
+    local file = assert(io.open("src/core/shared/core/actsinfo.hpp", "w"))
     file:write("#pragma once\n")
     file:write("namespace core::actsinfo {\n")
     file:write("    // Do not write in this file, it is updated by premake\n")
