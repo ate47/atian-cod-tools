@@ -2,7 +2,8 @@ param(
     [switch]
     $ci,
     [switch]
-    $gpl
+    $gpl,
+    $build = "vs2026"
 )
 
 
@@ -24,18 +25,18 @@ try {
     Write-Host "-- Create solution"
     if ($ci) {
         if ($gpl) {
-            premake5 vs2022 --ci-build --gpl-build
+            premake5 $build --ci-build --gpl-build
         }
         else {
-            premake5 vs2022 --ci-build
+            premake5 $build --ci-build
         }
     }
     else {
         if ($gpl) {
-            premake5 vs2022 --gpl-build
+            premake5 $build --gpl-build
         }
         else {
-            premake5 vs2022
+            premake5 $build
         }
     }
 }

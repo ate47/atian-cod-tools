@@ -31,7 +31,7 @@ jobs:
         with:
           submodules: true
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.3.1
+        uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
       - name: Get version
@@ -41,9 +41,9 @@ jobs:
       - name: Version
         run: "\"version: ${{ steps.get_version.outputs.version }}\""
       - name: Setup premake5
-        uses: abel0b/setup-premake@v2.3
+        uses: abel0b/setup-premake@v2.4
         with:
-          version: "5.0.0-beta2"
+          version: "5.0.0-beta8"
       - name: Create project
         shell: pwsh
         run: scripts/setup.ps1 -ci

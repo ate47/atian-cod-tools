@@ -65,7 +65,7 @@ namespace core::config {
 		}
 		template<typename... Args>
 		inline bool ScanString(const std::string& path, const char* format, Args... args) {
-			return ScanString<Args>(path.c_str(), format, args...);
+			return ScanString<Args...>(path.c_str(), format, args...);
 		}
 
 		void SetInteger(const char* path, int64_t defaultValue);
