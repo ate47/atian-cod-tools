@@ -49,7 +49,7 @@ jobs:
         run: scripts/setup.ps1 -ci
       - name: Build project
         shell: pwsh
-        run: msbuild build/AtianCodTools.sln /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
+        run: msbuild build/AtianCodTools.slnx /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
       - name: Run tests
         run: build/bin/acts.exe --noUpdater -l p -d -t utest
       - name: Package project
