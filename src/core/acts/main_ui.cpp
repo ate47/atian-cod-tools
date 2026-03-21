@@ -2,6 +2,7 @@
 #include <CommCtrl.h>
 #include <core/config.hpp>
 #include <hook/error.hpp>
+#include <core/actsinfo.hpp>
 #include "tools/tools_ui.hpp"
 
 namespace tool::ui {

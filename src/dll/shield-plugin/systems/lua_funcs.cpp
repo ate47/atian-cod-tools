@@ -7,6 +7,7 @@
 #include <core/updater.hpp>
 #include <hook/library.hpp>
 #include <systems/mods.hpp>
+#include <core/actsinfo.hpp>
 
 namespace systems::lua {
 	namespace {

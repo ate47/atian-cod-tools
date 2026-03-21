@@ -81,11 +81,11 @@ try {
     }
  
     # Binaries
-    Copy-Item "build/bin/*.exe" "$base/bin" > $null
-    Copy-Item "build/bin/*.dll" "$base/bin" > $null
+    Copy-Item "build/bin/Release/*.exe" "$base/bin" > $null
+    Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
 
     # Scans
-    Copy-Item "build/bin/data" "$base/bin" -Recurse > $null
+    Copy-Item "build/bin/Release/data" "$base/bin" -Recurse > $null
     
     # Clear test dlls
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
@@ -139,13 +139,13 @@ try {
         $split = $fileName.LastIndexOf(".exe")
 
         if ($split -ne -1) {
-            $pdbFile = "build/bin/$($fileName.SubString(0, $split)).pdb"
+            $pdbFile = "build/bin/Release/$($fileName.SubString(0, $split)).pdb"
         }
         else {
             $split = $fileName.LastIndexOf(".dll")
 
             if ($split -ne -1) {
-                $pdbFile = "build/bin/$($fileName.SubString(0, $split)).pdb"
+                $pdbFile = "build/bin/Release/$($fileName.SubString(0, $split)).pdb"
             } else {
                 continue
             }

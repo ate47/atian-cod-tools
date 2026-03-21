@@ -12,6 +12,7 @@
 #include <hook/library.hpp>
 #include <hook/process.hpp>
 #include <core/system.hpp>
+#include <core/actsinfo.hpp>
 #include "systems/core.hpp"
 #include "data/cw.hpp"
 #include "callbacks.hpp"

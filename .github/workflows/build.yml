@@ -31,19 +31,16 @@ jobs:
         with:
           submodules: true
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
         with:
           msbuild-architecture: x64
+          vs-version: '[18.0,)'
       - name: Get version
         id: get_version
         shell: pwsh
         run: "\"version=$(scripts/getversion.ps1)\" | Out-File $env:GITHUB_OUTPUT"
       - name: Version
         run: "\"version: ${{ steps.get_version.outputs.version }}\""
-      - name: Setup premake5
-        uses: abel0b/setup-premake@v2.4
-        with:
-          version: "5.0.0-beta8"
       - name: Create project
         shell: pwsh
         run: scripts/setup.ps1 -ci
@@ -51,7 +48,7 @@ jobs:
         shell: pwsh
         run: msbuild build/AtianCodTools.slnx /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
       - name: Run tests
-        run: build/bin/acts.exe --noUpdater -l p -d -t utest
+        run: build/bin/Release/acts.exe --noUpdater -l p -d -t utest
       - name: Package project
         if: matrix.cfg == 'Release'
         shell: pwsh

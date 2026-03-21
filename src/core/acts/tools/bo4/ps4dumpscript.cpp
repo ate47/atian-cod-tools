@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/bo4/dump.hpp>
 #include <games/bo4/pool.hpp>
+#include <core/actsinfo.hpp>
 
 using namespace games::bo4;
 

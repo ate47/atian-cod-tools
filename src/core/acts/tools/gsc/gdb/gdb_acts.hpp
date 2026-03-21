@@ -1,4 +1,5 @@
 #pragma once
+#include <core/actsinfo.hpp>
 #include <core/async.hpp>
 #include <core/updater.hpp>
 #include <tools/gsc/gsc_vm.hpp>

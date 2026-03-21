@@ -11,6 +11,7 @@
 #include "main_ui.hpp"
 #include <tools/compatibility/acti_crypto_keys.hpp>
 #include "tools/tools_nui.hpp"
+#include <core/actsinfo.hpp>
 #include <core/config.hpp>
 #include <core/updater.hpp>
 #include <core/shared_cfg_data.hpp>

@@ -9,6 +9,7 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl2.h>
+#include <core/actsinfo.hpp>
 #include "tools_nui.hpp"
 #include "tools_ui.hpp"
 #include "tools/nui/cascadia.hpp"

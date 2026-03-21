@@ -5,6 +5,7 @@
 #include <tools/tools_ui.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <acts.hpp>
+#include <core/actsinfo.hpp>
 
 namespace tool {
 	bool DisplayInvisibleTools() {
@@ -461,7 +462,7 @@ namespace {
 		hashutils::ReadDefaultFile();
 		tool::gsc::opcode::RegisterOpCodes();
 		LOG_INFO("----- acts");
-		LOG_INFO("version .. {} (0x{:x})", core::actsinfo::VERSION, core::actsinfo::VERSION_ID);
+		LOG_INFO("version .. {} (0x{:x}/0x{:x})", core::actsinfo::VERSION, core::actsinfo::BUILD_VERSION_ID, core::actsinfo::VERSION_ID);
 		LOG_INFO("tools .... {} ({} categories)", tool::tools().size(), tool::toolsCategories().size());
 		LOG_INFO("tools ui . {}", tool::ui::tools().size());
 		LOG_INFO("hash(es) . {}", hashutils::GetMap().size());

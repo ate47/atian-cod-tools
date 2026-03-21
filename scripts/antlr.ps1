@@ -31,29 +31,29 @@ try {
         java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor -Werror
         AddPrecompHeader
     
-        New-Item -ItemType Directory src\acts\tools\gsc\compiler\grammar -ErrorAction Ignore > $null
-        Move-Item .antlr4\grammar\*.cpp src\acts\tools\gsc\compiler\grammar -Force
-        Move-Item .antlr4\grammar\*.h src\acts\tools\gsc\compiler\grammar -Force
+        New-Item -ItemType Directory src\core\acts\tools\gsc\compiler\grammar -ErrorAction Ignore > $null
+        Move-Item .antlr4\grammar\*.cpp src\core\acts\tools\gsc\compiler\grammar -Force
+        Move-Item .antlr4\grammar\*.h src\core\acts\tools\gsc\compiler\grammar -Force
     }
     
     if ($ddl) {
         java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\ddl.g4 -no-listener -visitor -Werror
         AddPrecompHeader
     
-        New-Item -ItemType Directory src\acts\ddl -ErrorAction Ignore > $null
+        New-Item -ItemType Directory src\core\acts\ddl -ErrorAction Ignore > $null
 
-        Move-Item .antlr4\grammar\*.cpp src\acts\ddl -Force
-        Move-Item .antlr4\grammar\*.h src\acts\ddl -Force
+        Move-Item .antlr4\grammar\*.cpp src\core\acts\ddl -Force
+        Move-Item .antlr4\grammar\*.h src\core\acts\ddl -Force
     }
     
     if ($adl) {
         java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\adl.g4 -no-listener -visitor -Werror
         AddPrecompHeader
     
-        New-Item -ItemType Directory src\acts\adl -ErrorAction Ignore > $null
+        New-Item -ItemType Directory src\core\acts\adl -ErrorAction Ignore > $null
 
-        Move-Item .antlr4\grammar\*.cpp src\acts\adl -Force
-        Move-Item .antlr4\grammar\*.h src\acts\adl -Force
+        Move-Item .antlr4\grammar\*.cpp src\core\acts\adl -Force
+        Move-Item .antlr4\grammar\*.h src\core\acts\adl -Force
     }
 
 }

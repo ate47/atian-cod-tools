@@ -1,0 +1,4 @@
+#pragma once
+// Do not write in this file, it is updated by cmake
+
+#define XSK_VERSION_STR    "ACTS_${VERSION}"

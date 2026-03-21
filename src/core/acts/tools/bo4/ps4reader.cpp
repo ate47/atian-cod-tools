@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <core/actsinfo.hpp>
 
 namespace {
 	int ps4reader(Process& _, int argc, const char* argv[]) {

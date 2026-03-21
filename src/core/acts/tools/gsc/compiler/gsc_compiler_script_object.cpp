@@ -2,6 +2,7 @@
 #include <tools/gsc/compiler/gsc_compiler_parser.hpp>
 #include <tools/gsc/compiler/gsc_compiler_script_object.hpp>
 #include <gsc/gsc_acts_debug.hpp>
+#include <core/actsinfo.hpp>
 #include <utils/crc.hpp>
 
 namespace tool::gsc::compiler {

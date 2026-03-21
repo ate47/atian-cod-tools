@@ -3,7 +3,7 @@ param(
     $ci,
     [switch]
     $gpl,
-    $build = "vs2026"
+    $build = "Visual Studio 18 2026"
 )
 
 
@@ -25,18 +25,18 @@ try {
     Write-Host "-- Create solution"
     if ($ci) {
         if ($gpl) {
-            premake5 $build --ci-build --gpl-build
+            cmake -S . -B build -G $build -A x64  "-DCI_BUILD=ON" "-DGPL_BUILD=ON"
         }
         else {
-            premake5 $build --ci-build
+            cmake -S . -B build -G $build -A x64 "-DCI_BUILD=ON"
         }
     }
     else {
         if ($gpl) {
-            premake5 $build --gpl-build
+            cmake -S . -B build -G $build -A x64 "-DGPL_BUILD=ON"
         }
         else {
-            premake5 $build
+            cmake -S . -B build -G $build -A x64
         }
     }
 }
