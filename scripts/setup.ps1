@@ -3,6 +3,8 @@ param(
     $ci,
     [switch]
     $gpl,
+    [switch]
+    $fresh,
     $build = "Visual Studio 18 2026"
 )
 
@@ -23,22 +25,19 @@ try {
     .\scripts\copydata.ps1
 
     Write-Host "-- Create solution"
+    $params = @()
+
     if ($ci) {
-        if ($gpl) {
-            cmake -S . -B build -G $build -A x64  "-DCI_BUILD=ON" "-DGPL_BUILD=ON"
-        }
-        else {
-            cmake -S . -B build -G $build -A x64 "-DCI_BUILD=ON"
-        }
+        $params += @( "-DCI_BUILD=ON" )
     }
-    else {
-        if ($gpl) {
-            cmake -S . -B build -G $build -A x64 "-DGPL_BUILD=ON"
-        }
-        else {
-            cmake -S . -B build -G $build -A x64
-        }
+    if ($gpl) {
+        $params += @( "-DGPL_BUILD=ON" )
     }
+    if ($fresh) {
+        $params += @( "--fresh" )
+    }
+
+    cmake -S . -B build -G $build -A x64 @params
 }
 finally {
     $prevPwd | Set-Location
