@@ -20,21 +20,14 @@ jobs:
   build:
     name: ACTS (Windows)
     runs-on: windows-latest
-    strategy:
-      matrix:
-        cfg:
-          - Release
-        platform:
-          - x64
     steps:
       - uses: actions/checkout@v3.5.3
         with:
           submodules: true
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v3
+        uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
-          vs-version: '[18.0,)'
       - name: Get version
         id: get_version
         shell: pwsh
@@ -43,19 +36,18 @@ jobs:
         run: "\"version: ${{ steps.get_version.outputs.version }}\""
       - name: Create project
         shell: pwsh
-        run: scripts/setup.ps1 -ci
+        run: scripts/setup.ps1 -ci -build "Visual Studio 17 2022"
       - name: Build project
         shell: pwsh
-        run: msbuild build/AtianCodTools.slnx /p:Configuration=${{matrix.cfg}} /p:Platform=${{matrix.platform}}
+        run: msbuild build/AtianCodTools.sln /p:Configuration=Release /p:Platform=x64
       - name: Run tests
         run: build/bin/Release/acts.exe --noUpdater -l p -d -t utest
       - name: Package project
-        if: matrix.cfg == 'Release'
         shell: pwsh
         run: scripts/package.ps1
       - name: Upload dev release
         uses: ncipollo/release-action@v1
-        if: matrix.cfg == 'Release' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         with:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -69,7 +61,7 @@ jobs:
           name: "Dev build ${{ steps.get_version.outputs.version }}"
           body: "Latest dev build, [get the latest release build here](https://github.com/${{ github.repository }}/releases/latest)."
       - name: Upload release
-        if: inputs.release && matrix.cfg == 'Release' && github.ref == 'refs/heads/main'
+        if: inputs.release && github.ref == 'refs/heads/main'
         uses: ncipollo/release-action@v1
         with:
           commit: ${{ github.sha }}
