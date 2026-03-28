@@ -26,4 +26,4 @@ See the [Wiki](https://github.com/ate47/atian-cod-tools/wiki) to know how to use
 - [GSC Compiler](https://github.com/ate47/atian-cod-tools/wiki/GSC---Compiler)
 - [GSC Decompiler](https://github.com/ate47/atian-cod-tools/wiki/GSC---Decompiler)
 - [Fast Files Dumper](https://github.com/ate47/atian-cod-tools/wiki/Fast-Files---Dumper)
-- [Fast Files Dumper](https://github.com/ate47/atian-cod-tools/wiki/Fast-Files---Linker)
+- [Fast Files Linker](https://github.com/ate47/atian-cod-tools/wiki/Fast-Files---Linker)

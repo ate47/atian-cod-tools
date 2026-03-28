@@ -7,11 +7,12 @@
 #include <cli/clicolor.hpp>
 #include "hook/error.hpp"
 #include "actslib/logging.hpp"
-#include "acts.hpp"
+#include <acts_api.hpp>
+#include <acts.hpp>
+#include <core/actsinfo.hpp>
 #include "main_ui.hpp"
 #include <tools/compatibility/acti_crypto_keys.hpp>
 #include "tools/tools_nui.hpp"
-#include <core/actsinfo.hpp>
 #include <core/config.hpp>
 #include <core/updater.hpp>
 #include <core/shared_cfg_data.hpp>
@@ -160,10 +161,17 @@ namespace {
 					LOG_ERROR("Missing value for param: {}!", arg);
 					return false;
 				}
-				core::logs::setbasiclog(false);
-				actslib::logging::SetBasicLog(false);
-				core::logs::setfile(argv[++i]);
-				actslib::logging::SetLogFile(argv[i]);
+				const char* filename{ argv[++i] };
+				if (filename[0] == '-' && !filename[1]) {
+					core::logs::setfile(nullptr);
+					actslib::logging::SetLogFile(nullptr);
+				}
+				else {
+					core::logs::setbasiclog(false);
+					actslib::logging::SetBasicLog(false);
+					core::logs::setfile(filename);
+					actslib::logging::SetLogFile(filename);
+				}
 			}
 			else if (!_strcmpi("--mark-hash", arg)) {
 				opt.markHash = true;
@@ -316,19 +324,16 @@ void SetActsSharedConfig(void* cfg) {
 	core::shared_cfg::SetSharedConfigPtr(cfg);
 }
 
-int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
+int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 	core::config::SyncConfig(true);
 	srand((unsigned int)time(nullptr));
 
-	bool cli{ hInstance == nullptr };
-	actslib::profiler::Profiler& profiler{ actscli::GetProfiler() };
-
 	// by default we don't display heavy logs in cli
-
 	if (cli) {
 		core::logs::setbasiclog(true);
 		actslib::logging::SetBasicLog(true);
-	} else {
+	}
+	else {
 		static std::string uiLogs = [] {
 			std::filesystem::path path{ utils::GetProgDir() / "acts-ui.log" };
 			return path.string();
@@ -358,21 +363,36 @@ int MainActs(int argc, const char* _argv[], HINSTANCE hInstance, int nShowCmd) {
 		}
 	}
 
-	const char** argv;
-	if (ShouldHandleACTSOptions(argc, _argv)) {
+	if (version != core::actsinfo::BUILD_VERSION_ID) {
+		LOG_ERROR("Version mismatch: ACTS API version is {:x}, but ACTS common version is {:x}!", version, core::actsinfo::BUILD_VERSION_ID);
+		return -1;
+	}
+
+	if (ShouldHandleACTSOptions(*argc, *argv)) {
 		static std::vector<const char*> newargv{};
-		if (HandleACTSOptions(argc, _argv, newargv)) {
-			argv = newargv.data();
-			argc = (int)newargv.size();
+		if (HandleACTSOptions(*argc, *argv, newargv)) {
+			*argv = newargv.data();
+			*argc = (int)newargv.size();
 		}
 		else {
 			return -1;
 		}
 	}
-	else {
-		argv = _argv;
-	}
+
+	LOG_TRACE("Install error hooks");
+
 	hook::error::InstallErrorHooks();
+
+	return 0;
+}
+
+int MainActs(int argc, const char* argv[], HINSTANCE hInstance, int nShowCmd) {
+	bool cli{ hInstance == nullptr };
+	int r{ InitActsAPI(cli, &argc, &argv, core::actsinfo::BUILD_VERSION_ID) };
+	if (r) {
+		return r;
+	}
+	actslib::profiler::Profiler& profiler{ actscli::GetProfiler() };
 
 	actscli::ActsOptions& opt{ actscli::options() };
 

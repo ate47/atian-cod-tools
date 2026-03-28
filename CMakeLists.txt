@@ -6,6 +6,9 @@ option(CI_BUILD "CI build define" OFF)
 option(GPL_BUILD "GPL build define" OFF)
 option(PRERELEASE_BUILD "Prerelease build define" OFF)
 
+find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+
 # Read version information from the version file
 file(STRINGS "${CMAKE_SOURCE_DIR}/release/version" _VER_LINES)
 list(GET _VER_LINES 0 VERSION)
@@ -52,6 +55,12 @@ macro(append_common_defs target)
             CXX_STANDARD_REQUIRED ON
         )
         target_compile_options(${target} PRIVATE "/source-charset:windows-1252")
+    elseif ("${target_type}" STREQUAL "QT")
+        set_target_properties(${target} PROPERTIES
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED ON
+        )
+        qt_import_plugins("${target_type}")
     elseif("${target_type}" STREQUAL "C")
         set_target_properties(${target} PROPERTIES 
             LINKER_LANGUAGE C

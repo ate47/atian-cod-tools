@@ -5,7 +5,8 @@ param(
     $gpl,
     [switch]
     $fresh,
-    $build = "Visual Studio 18 2026"
+    $build = "Visual Studio 18 2026",
+    $msvc = "v143"
 )
 
 
@@ -37,7 +38,7 @@ try {
         $params += @( "--fresh" )
     }
 
-    cmake -S . -B build -G $build -A x64 @params
+    cmake -S . -B build -G $build -A x64 -T $msvc @params
 }
 finally {
     $prevPwd | Set-Location

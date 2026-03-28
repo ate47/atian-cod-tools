@@ -34,6 +34,14 @@ jobs:
         run: "\"version=$(scripts/getversion.ps1)\" | Out-File $env:GITHUB_OUTPUT"
       - name: Version
         run: "\"version: ${{ steps.get_version.outputs.version }}\""
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.11.0"
+          host: "windows"
+          target: "desktop"
+          arch: "win64_msvc2022_64"
+          cache: true
       - name: Create project
         shell: pwsh
         run: scripts/setup.ps1 -ci -build "Visual Studio 17 2022"
@@ -44,7 +52,7 @@ jobs:
         run: build/bin/Release/acts.exe --noUpdater -l p -d -t utest
       - name: Package project
         shell: pwsh
-        run: scripts/package.ps1
+        run: scripts/package.ps1 -deployQt
       - name: Upload dev release
         uses: ncipollo/release-action@v1
         if: github.ref == 'refs/heads/main'

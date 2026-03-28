@@ -1,4 +1,6 @@
 param(
+    [switch]
+    $deployQt
 )
 
 
@@ -83,6 +85,15 @@ try {
     # Binaries
     Copy-Item "build/bin/Release/*.exe" "$base/bin" > $null
     Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
+
+    if ($deployQt) {
+        $qtversion = windeployqt --version
+        Write-Host "Deploy Qt Version $qtversion"
+
+        Get-Content qtexe.txt | ForEach-Object {
+            windeployqt --no-compiler-runtime --release "$base/bin/$_"
+        }
+    }
 
     # Scans
     Copy-Item "build/bin/Release/data" "$base/bin" -Recurse > $null
