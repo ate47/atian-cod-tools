@@ -42,6 +42,9 @@ jobs:
           target: "desktop"
           arch: "win64_msvc2022_64"
           cache: true
+          use-official: true
+          email: ${{ secrets.QT_EMAIL }}
+          pw: ${{ secrets.QT_PASSWORD }}
       - name: Create project
         shell: pwsh
         run: scripts/setup.ps1 -ci -build "Visual Studio 17 2022"
