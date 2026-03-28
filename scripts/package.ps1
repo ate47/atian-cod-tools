@@ -110,6 +110,7 @@ try {
     Copy-Item "LICENSE.md" "$base/licenses.md" > $null
     Copy-Item "licenses/mit.md" "$base/licenses/mit.md" > $null
     Copy-Item "licenses/gpl3.md" "$base/licenses/gpl3.md" > $null
+    Copy-Item "licenses/lgpl3.md" "$base/licenses/lgpl3.md" > $null
     # licenses
     Copy-Item "deps/antlr4/LICENSE.txt" "$base/licenses/all/antlr4.txt" > $null
     Copy-Item "deps/Detours/LICENSE.md" "$base/licenses/all/detours.md" > $null

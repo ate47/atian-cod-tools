@@ -28,6 +28,7 @@ This software depends on other libraries.
 - [AshleyRoll/crc_cpp](https://github.com/AshleyRoll/crc_cpp) - [MIT license](https://github.com/AshleyRoll/crc_cpp/blob/main/LICENSE).
 - [libtom/libtommath](https://github.com/libtom/libtommath) - [LibTom license](https://github.com/libtom/libtommath/blob/main/LICENSE).
 - [libtom/libtomcrypt](https://github.com/libtom/libtomcrypt) - [LibTom license](https://github.com/libtom/libtomcrypt/blob/main/LICENSE).
+- [QT](https://www.qt.io/development/download-open-source) - [LGPL 3](https://www.gnu.org/licenses/lgpl-3.0.en.html)
 
 ## GPL-3 dependencies
 
