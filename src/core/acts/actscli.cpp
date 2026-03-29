@@ -539,6 +539,23 @@ namespace {
 		LOG_INFO("Removed scan containers");
 		return tool::OK;
 	}
+	
+	int updateinfo(int argc, const char* argv[]) {
+		const char* url{ core::updater::GetUpdateUrl() };
+		const char* zipUrl{ core::updater::GetUpdateZip() };
+		LOG_INFO("Version URL .... {}", url);
+		LOG_INFO("Data URL ....... {}", zipUrl);
+
+		core::updater::VersionData latestVersion{};
+		if (!latestVersion.ReadURL(url)) {
+			LOG_ERROR("Latest version . Can't fetch latest version info");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Latest version . {} (0x{:x})", latestVersion.name, latestVersion.v);
+
+		return tool::OK;
+	}
 }
 
 namespace actscli {
@@ -581,4 +598,5 @@ ADD_TOOL(echo, "acts", "", "echo", nullptr, echocli);
 ADD_TOOL(repl, "acts", "", "Use repl cli", nullptr, replcli);
 ADD_TOOL(forceupdate, "acts", "", "force update", forceupdate);
 ADD_TOOL(checkupdate, "acts", "", "check update", checkupdate);
+ADD_TOOL(updateinfo, "acts", "", "get update info", updateinfo);
 ADD_TOOL(cleanscans, "acts", "", "clean scan containers", cleanscans);

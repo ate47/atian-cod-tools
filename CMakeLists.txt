@@ -14,9 +14,17 @@ file(STRINGS "${CMAKE_SOURCE_DIR}/release/version" _VER_LINES)
 list(GET _VER_LINES 0 VERSION)
 list(GET _VER_LINES 1 VERSION_ID)
 
+file(STRINGS "${CMAKE_SOURCE_DIR}/release/updater" _UPDATER_LINES)
+list(GET _UPDATER_LINES 0 RELEASE_VERSION_FILE)
+list(GET _UPDATER_LINES 1 RELEASE_ZIP_FILE)
+
 message(STATUS "Building data for acts v${VERSION} (0x${VERSION_ID})")
 
 # Generate version information
+configure_file(
+    "${CMAKE_SOURCE_DIR}/cmake/updater_endpoint.hpp.in"
+    "${CMAKE_SOURCE_DIR}/src/core/shared/core/updater_endpoint.hpp"
+)
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/actsinfo.hpp.in"
     "${CMAKE_SOURCE_DIR}/src/core/shared/core/actsinfo.hpp"

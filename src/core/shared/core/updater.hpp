@@ -1,8 +1,6 @@
 #pragma once
 
 namespace core::updater {
-	constexpr const char* VERSION_ENDPOINT = "https://github.com/ate47/atian-cod-tools/releases/latest/download/version";
-	constexpr const char* ZIP_ENDPOINT = "https://github.com/ate47/atian-cod-tools/releases/latest/download/acts.zip";
 	constexpr const char* UPDATE_ZIP_NAME = "acts_update.zip";
 
     struct VersionData {
@@ -38,4 +36,14 @@ namespace core::updater {
 	 * @return string
 	 */
 	const char* GetVersionName(uint32_t v);
+
+	/*
+	 * @return the url to check for update version
+	 */
+	const char* GetUpdateUrl();
+
+	/*
+	 * @return the url to download update zip
+	 */
+	const char* GetUpdateZip();
 }

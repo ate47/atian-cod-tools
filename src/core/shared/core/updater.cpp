@@ -4,7 +4,8 @@
 #include <hook/library.hpp>
 #include <core/config.hpp>
 #include <core/actsinfo.hpp>
-#include "updater.hpp"
+#include <core/updater.hpp>
+#include <core/updater_endpoint.hpp>
 #include <deps/miniz.hpp>
 
 
@@ -62,7 +63,7 @@ namespace core::updater {
 
         if (!forceUpdate) {
             // Check if we need an update
-            std::string url = core::config::GetString("updater.versionUrl", VERSION_ENDPOINT);
+            const char* url{ GetUpdateUrl() };
             LOG_LVLF(lvl, "Fetching version from {}...", url);
 
             VersionData latestVersion{};
@@ -81,7 +82,7 @@ namespace core::updater {
             }
         }
 
-        std::string zip = core::config::GetString("updater.zipUrl", ZIP_ENDPOINT);
+        const char* zip{ GetUpdateZip() };
         LOG_INFO("Download latest version '{}'...", zip);
 
         std::string latest{};
@@ -237,9 +238,19 @@ namespace core::updater {
             return false;
         }
 
+		if (name.empty()) {
+            return false;
+        }
+		if (name[name.size() - 1] == '\r') {
+            name.pop_back();
+        }
+
         std::string line;
         if (!std::getline(ss, line, '\n')) {
             return false;
+        }
+        if (!line.empty() && line[line.size() - 1] == '\r') {
+            line.pop_back();
         }
         try {
             v = std::stoul(line, nullptr, 16);
@@ -275,5 +286,13 @@ namespace core::updater {
         int major{ (v >> 24) & 0xfff };
 
         return utils::va("%d.%d.%d", major, minor, patch);
+    }
+
+    const char* GetUpdateUrl() {
+        return core::config::GetCString("updater.versionUrl", VERSION_ENDPOINT);
+    }
+
+    const char* GetUpdateZip() {
+        return core::config::GetCString("updater.zipUrl", ZIP_ENDPOINT);
     }
 }

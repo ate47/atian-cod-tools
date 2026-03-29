@@ -1,0 +1,8 @@
+#pragma once
+
+namespace core::updater {
+    // Do not write in this file, it is updated by cmake
+
+    constexpr const char* VERSION_ENDPOINT = "${RELEASE_VERSION_FILE}";
+    constexpr const char* ZIP_ENDPOINT = "${RELEASE_ZIP_FILE}";
+}
