@@ -63,7 +63,7 @@ jobs:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: "latest_build"
-          artifacts: "build/package/acts.zip,build/package/acts-dev.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
+          artifacts: "build/package/acts.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
           artifactErrorsFailBuild: true
           makeLatest: false
           removeArtifacts: true
@@ -77,7 +77,7 @@ jobs:
         with:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "build/package/acts.zip,build/package/acts-dev.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
+          artifacts: "build/package/acts.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
           artifactErrorsFailBuild: true
           makeLatest: true
           tag: "${{ steps.get_version.outputs.version }}"
