@@ -48,7 +48,7 @@ jobs:
       - name: Create project
         shell: pwsh
         run: |
-          scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" zipEndpoint https://github.com/${{ github.repository }}/releases/latest/download/acts.zip"
+          scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip"
           scripts/setup.ps1 -ci -build "Visual Studio 17 2022"
       - name: Build project
         shell: pwsh
