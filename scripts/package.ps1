@@ -87,11 +87,16 @@ try {
     Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
 
     if ($deployQt) {
+        $qtActs = Get-Content "qt_acts.json" | ConvertFrom-Json
+
         $qtversion = windeployqt --version
         Write-Host "Deploy Qt Version $qtversion"
 
-        Get-Content qtexe.txt | ForEach-Object {
-            windeployqt --no-compiler-runtime --release "$base/bin/$_"
+        $qtActs.executables | ForEach-Object {
+            windeployqt @($qtActs.options) "$base/bin/$_"
+        }
+        $qtActs.delete | ForEach-Object {
+            Remove-Item "$base/bin/$_" -Recurse -Force -ErrorAction Ignore
         }
     }
 

@@ -50,6 +50,7 @@ else()
     add_custom_command(TARGET AtianCodToolsUI3 POST_BUILD
         COMMAND "${QT_BIN_DIR}/windeployqt.exe"
                 --no-compiler-runtime
+                --no-translations
                 --release
                 "$<TARGET_FILE:AtianCodToolsUI3>"
         COMMENT "Running windeployqt on AtianCodToolsUI3"

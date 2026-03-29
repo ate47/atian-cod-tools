@@ -1,0 +1,22 @@
+{
+    "executables": [
+        "acts-ui3.exe"
+    ],
+    "delete": [
+        "styles",
+        "imageformats/qgif.dll",
+        "imageformats/qjpeg.dll",
+        "iconengines",
+        "bearer",
+        "opengl32sw.dll",
+        "libEGL.dll",
+        "libGLESV2.dll",
+        "D3Dcompiler_47.dll"
+    ],
+    "options": [
+        "--no-compiler-runtime",
+        "--release",
+        "--no-translations",
+        "--no-quick-import"
+    ]
+}

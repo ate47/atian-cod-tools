@@ -70,8 +70,7 @@ int main(int argc, char* argv[]) {
 
     const char* argv2[]{
         argv[0],
-        "--platformpluginpath", workDirStr.data(),
-		 "--style", "fusion"
+        "--platformpluginpath", workDirStr.data()
     };
     int argc2 = ARRAYSIZE(argv2);
     QApplication app{ argc2, (char**)argv2};
