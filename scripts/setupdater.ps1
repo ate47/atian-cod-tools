@@ -1,9 +1,7 @@
 param(
     [string]
-    [ValidateNotNullOrEmpty]
     $versionEndpoint,
     [string]
-    [ValidateNotNullOrEmpty]
     $zipEndpoint
 )
 
