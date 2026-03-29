@@ -9,6 +9,8 @@ namespace core::shared_cfg {
 			const char* logfile{};
 			bool basiclog{};
 			std::ostream* outStream{};
+			std::ostream* cout{};
+			std::ostream* cerr{};
 
 			std::vector<std::string> paths{};
 		} log;

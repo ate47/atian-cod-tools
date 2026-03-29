@@ -5,8 +5,10 @@
 #include <core/shared_cfg_data.hpp>
 #include <QApplication>
 #include <QWidget>
+#include <QFile>
 #include <QDebug>
 #include <QLoggingCategory>
+#include <MainWindow.h>
 
 namespace {
     Q_STATIC_LOGGING_CATEGORY(lcActs, "acts");
@@ -46,13 +48,13 @@ namespace {
 }
 
 int main(int argc, char* argv[]) {
+    core::shared_cfg::SetSharedConfigPtr(GetActsSharedConfig());
     // load acts api data
     int r{ InitActsAPI(false, &argc, (const char***)&argv, core::actsinfo::BUILD_VERSION_ID) };
     if (r) {
 		MessageBoxA(NULL, "Failed to initialize ACTS API! Check the acts-ui.logs for more information.", "ACTS API Error", MB_OK | MB_ICONERROR);
         return r;
     }
-    core::shared_cfg::SetSharedConfigPtr(GetActsSharedConfig());
     if (core::logs::getlevel() <= core::logs::LVL_TRACE) {
 		// logs from QT are really verbose, so we only enable them if we're in trace mode
         QLoggingCategory::setFilterRules(
@@ -75,9 +77,9 @@ int main(int argc, char* argv[]) {
     int argc2 = ARRAYSIZE(argv2);
     QApplication app{ argc2, (char**)argv2};
 
-    QWidget window;
+    MainWindow window;
+
     window.setWindowTitle(QString::asprintf("Atian Tools UI3 %s", core::actsinfo::VERSION));
-    window.resize(400, 300);
     window.show();
 
     return app.exec();

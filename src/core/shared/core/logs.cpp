@@ -66,6 +66,11 @@ namespace core::logs {
 	void addoutstream(std::ostream* outStream) {
 		core::shared_cfg::GetSharedConfig().log.outStream = outStream;
 	}
+	void setstrstreams(std::ostream* cout, std::ostream* cerr) {
+		auto& logs{ core::shared_cfg::GetSharedConfig().log };
+		logs.cerr = cerr;
+		logs.cout = cout;
+	}
 	const char* logfile() {
 		return core::shared_cfg::GetSharedConfig().log.logfile;
 	}
@@ -162,8 +167,14 @@ namespace core::logs {
 		}
 		else {
 			static bool allowColor = cli::clicolor::ConsoleAllowColor();
+			auto& logs{ core::shared_cfg::GetSharedConfig().log };
 
-			f(level < LVL_WARNING ? std::cout : std::cerr, allowColor);
+			if (level < LVL_WARNING) {
+				f(logs.cout ? *logs.cout : std::cout, allowColor);
+			}
+			else {
+				f(logs.cout ? *logs.cerr : std::cerr, allowColor);
+			}
 		}
 		if (cfg.log.outStream) {
 			f(*cfg.log.outStream, false);

@@ -1,10 +1,18 @@
 # AtianCodToolsUI3
 file(GLOB_RECURSE ACTS_UI3_SOURCES
+    "${CMAKE_SOURCE_DIR}/src/exe/ui3/icons/*"
     "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.hpp"
+    "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.h"
     "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.ui"
+    "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.qrc"
     "${CMAKE_SOURCE_DIR}/resources/ui/*"
 )
+
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
 qt_add_executable(AtianCodToolsUI3 ${ACTS_UI3_SOURCES})
 source_group(
     TREE "${CMAKE_SOURCE_DIR}"
