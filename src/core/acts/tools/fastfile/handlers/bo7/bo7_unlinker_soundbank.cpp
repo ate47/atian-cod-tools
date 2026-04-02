@@ -65,13 +65,12 @@ namespace {
 		XHash64 language;
 		XHash64 type;
 		SndBankAliases* aliases;
-		uint32_t* unk28;
 		uint64_t sndMusicSets;
 		uint32_t sndMusicSetsCount;
 		uint32_t count;
 		uint64_t unk44;
 	};
-	static_assert(sizeof(SndBank) == 0x48);
+	static_assert(sizeof(SndBank) == 0x40);
 
 	class ImplWorker : public Worker {
 		bool isTransient;

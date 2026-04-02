@@ -380,8 +380,8 @@ namespace fastfile::handlers::bo7 {
 			uint64_t hash{ GetXAssetName(hashType, handle ? *handle : 0) };
 			const char* name{ hashutils::ExtractTmp("hash", hash) };
 			const char* poolName{ PoolName(hashType) };
-			size_t itemSize{ gcx.poolInfo[type].itemSize };
 			LOG_DEBUG("DB_AddAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
+			size_t itemSize{ gcx.poolInfo[type].itemSize };
 			if (gcx.opt->workflow == fastfile::FFW_READER) *(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			if (handle && *handle) {
@@ -428,13 +428,15 @@ namespace fastfile::handlers::bo7 {
 
 		// I am not sure about the purpose of these, it seems like they want to store the references, but by ignoring them it works
 		bool DB_LoadRewindRef(uint64_t id, unsigned __int16 a2, bool isNoRef, void** pHandle, bool* p_canHaveOffset, byte* p_type, uint64_t* a7, uint64_t* a8) {
+			LOG_TRACE("DB_LoadRewindRef(0x{:x}) {}", id, hook::library::CodePointer{ _ReturnAddress() });
 			return false;
 		}
 		void* DB_AllocRewindRef(__int64 a1, __int64 a2, __int64 a3) {
+			LOG_TRACE("DB_AllocRewindRef(0x{:x}) {}", a1, hook::library::CodePointer{ _ReturnAddress() });
 			return 0;
 		}
 		void DB_SaveRewindRef(uint64_t id, void* ref, unsigned __int8 memoryType, __int64 loc, unsigned __int8 a5, bool isNoRef, unsigned __int16 a7) {
-
+			LOG_TRACE("DB_SaveRewindRef(0x{:x}, {}) {}", id, ref, hook::library::CodePointer{ _ReturnAddress() });
 		}
 
 
