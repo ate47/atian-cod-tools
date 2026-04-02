@@ -5,9 +5,12 @@ project(AtianCodTools LANGUAGES CXX C)
 option(CI_BUILD "CI build define" OFF)
 option(GPL_BUILD "GPL build define" OFF)
 option(PRERELEASE_BUILD "Prerelease build define" OFF)
+option(NO_QT_BUILD "Disable QT projects" OFF)
 
-find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+if (NOT NO_QT_BUILD)
+    find_package(Qt6 REQUIRED COMPONENTS Core)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+endif()
 
 # Read version information from the version file
 file(STRINGS "${CMAKE_SOURCE_DIR}/release/version" _VER_LINES)

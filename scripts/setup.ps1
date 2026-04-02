@@ -5,6 +5,8 @@ param(
     $gpl,
     [switch]
     $fresh,
+    [switch]
+    $noQT,
     $build = "Visual Studio 18 2026",
     $msvc = "v143"
 )
@@ -34,8 +36,8 @@ try {
     if ($gpl) {
         $params += @( "-DGPL_BUILD=ON" )
     }
-    if ($fresh) {
-        $params += @( "--fresh" )
+    if ($noQT) {
+        $params += @( "-DNO_QT_BUILD=ON" )
     }
 
     cmake -S . -B build -G $build -A x64 -T $msvc @params
