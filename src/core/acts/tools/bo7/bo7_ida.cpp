@@ -145,9 +145,9 @@ namespace {
 			}
 		}
 
-		static games::cod::asset_names::AssetNames<size_t, size_t> assets{};
+		games::cod::asset_names::AssetNames<size_t, size_t> assets{};
 		LOG_INFO("Loading asset names");
-		assets.InitMap(mod, "physicssfxeventasset", "string");
+		game.InitAssetNames(assets);
 
 		if (!ignoreAssetType) {
 			size_t count{ assets.TypesCount() };

@@ -111,6 +111,10 @@ constexpr const char* name = #def;
 				LOG_WARNING("Can't load NSC string data: {}", err.what());
 				return;
 			}
+			if (scan.foundMissing) {
+				LOG_WARNING("Can't load NSC string data");
+				return;
+			}
 			LOG_TRACE("InitNCSInfo: {}", hook::library::CodePointer{ InitNCSInfo });
 			LOG_TRACE("s_netConstStringTypeAssetData: {}", hook::library::CodePointer{ s_netConstStringTypeAssetData });
 			

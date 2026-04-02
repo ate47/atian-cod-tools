@@ -108,6 +108,9 @@
     "blendspace2d": {
         "name": "BlendSpace2D"
     },
+    "bloodtraildecaldescription": {
+        "name": "BloodTrailDecalDescription"
+    },
     "bonefollowermappinggraph": {
         "name": "BoneFollowerMappingGraph"
     },
@@ -255,6 +258,9 @@
     "execution": {
         "name": "Execution"
     },
+    "fastfilemodule": {
+        "name": "FastFileModule"
+    },
     "fogspline": {
         "name": "FogSpline"
     },
@@ -297,6 +303,9 @@
     "gamemode": {
         "name": "GameMode"
     },
+    "gamemodeinit": {
+        "name": "GameModeInit"
+    },
     "gameprops": {
         "name": "GameProps"
     },
@@ -326,6 +335,9 @@
     },
     "glass_map": {
         "name": "GlassMap"
+    },
+    "glassmaterialsettings": {
+        "name": "GlassMaterialSettings"
     },
     "gobo": {
         "name": "Gobo"
@@ -364,6 +376,9 @@
     },
     "hwconfig": {
         "name": "HWConfig"
+    },
+    "hwconfiggroup": {
+        "name": "HWConfigGroup"
     },
     "hwconfigtieredgroup": {
         "name": "HWConfigTieredGroup"
@@ -478,6 +493,9 @@
     },
     "map_subset_entities": {
         "name": "MapSubsetEntities"
+    },
+    "map_subset_superterrain": {
+        "name": "MapSubsetSuperTerrain"
     },
     "mapinfo": {
         "name": "MapInfo"
@@ -603,6 +621,9 @@
     "particlesystem": {
         "name": "ParticleSystem"
     },
+    "pathdatatools": {
+        "name": "PathDataTools"
+    },
     "pbgbloom": {
         "name": "PbgBloom"
     },
@@ -683,6 +704,9 @@
     },
     "project": {
         "name": "Project"
+    },
+    "projectinit": {
+        "name": "ProjectInit"
     },
     "projecttable": {
         "name": "ProjectTable"
@@ -834,6 +858,9 @@
     },
     "socialplayerprofile": {
         "name": "SocialPlayerProfile"
+    },
+    "socullingocclusion": {
+        "name": "SOCullingOcclusion"
     },
     "soundbank": {
         "name": "SndBank"
@@ -1057,6 +1084,12 @@
     },
     "weatherimpactsfxtable": {
         "name": "WeatherImpactSfxTable"
+    },
+    "weatherlayer": {
+        "name": "WeatherLayer"
+    },
+    "weatherlayermask": {
+        "name": "WeatherLayerMask"
     },
     "weathermap": {
         "name": "WeatherMap"

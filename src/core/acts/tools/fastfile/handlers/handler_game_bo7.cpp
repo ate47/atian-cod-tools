@@ -64,16 +64,6 @@ namespace fastfile::handlers::bo7 {
 			XFILE_BLOCK_VIRTUAL = 15,
 			XFILE_BLOCK_COUNT = 16,
 		};
-
-		struct DBLoadCtx;
-		struct DBLoadCtxVT {
-			void (*unk0)(DBLoadCtx* ctx, byte a1);
-			void* (__fastcall* AllocStreamPos)(DBLoadCtx* ctx, int align);
-			void(__fastcall* PushStreamPos)(DBLoadCtx* ctx, XFileBlock type);
-			void(__fastcall* PopStreamPos)(DBLoadCtx* ctx);
-			void(__fastcall* PreAssetRead)(DBLoadCtx* ctx, HandlerAssetType type);
-			void(__fastcall* PostAssetRead)(DBLoadCtx* ctx);
-		};
 		struct HashRef {
 			HashRef* next;
 			uint64_t name;
@@ -140,6 +130,16 @@ namespace fastfile::handlers::bo7 {
 			HashRef* _allocHashRefsStarts[numHashBlocks];
 			HashRef _allocHashRefs[numHashBlocksAlloc];
 			byte __safepad3[0x100];
+		};
+
+		struct DBLoadCtx;
+		struct DBLoadCtxVT {
+			void (*unk0)(DBLoadCtx* ctx, byte a1);
+			void* (__fastcall* AllocStreamPos)(DBLoadCtx* ctx, int align);
+			void(__fastcall* PushStreamPos)(DBLoadCtx* ctx, XFileBlock type);
+			void(__fastcall* PopStreamPos)(DBLoadCtx* ctx);
+			void(__fastcall* PreAssetRead)(DBLoadCtx* ctx, HandlerAssetType type);
+			void(__fastcall* PostAssetRead)(DBLoadCtx* ctx);
 		};
 
 		struct DBLoadCtx {
@@ -545,7 +545,7 @@ namespace fastfile::handlers::bo7 {
 					else {
 						size_t trueLen{ gcx.poolInfo[type].itemSize };
 						if (worker->assetSize != trueLen) {
-							LOG_WARNING("type {} doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), worker->assetSize, trueLen);
+							LOG_WARNING("type {} (0x{:x}) doesn't have the expected size: acts:0x{:x} != exe:0x{:x}", PoolName(hashType), (int)type, worker->assetSize, trueLen);
 						}
 					}
 				}
@@ -627,8 +627,10 @@ namespace fastfile::handlers::bo7 {
 				}
 
 				DB_ReadXFile(loadCtx, &gcx.assets, sizeof(gcx.assets));
+				loadCtx->__vtb->PushStreamPos(loadCtx, XFILE_BLOCK_VIRTUAL);
 				gcx.DB_LoadStringList(loadCtx, false, &gcx.assets);
 				gcx.DB_LoadUnkList(loadCtx, false, &gcx.assets.unk10);
+				loadCtx->__vtb->PopStreamPos(loadCtx);
 
 				LOG_DEBUG("assets: {}, strings: {}, unk: {}", gcx.assets.assetsCount, gcx.assets.stringsCount, gcx.assets.unk10_count);
 

@@ -45,6 +45,7 @@ namespace games::cod::asset_names {
 		utils::EnumList<AssetId, (AssetId)MAX_ASSET_COUNT> handleList;
 
 	public:
+		bool trace{};
 		/*
 		 * Asset name constructor
 		 * @param first first asset type name
@@ -86,10 +87,15 @@ namespace games::cod::asset_names {
 							break;
 						}
 						const char* cc = lib.Rebase<const char>(poolNames[count]);
+						if (trace) {
+							LOG_TRACE("pool:{}", count);
+							LOG_TRACE("pool:{}", cc);
+						}
 						if (last && !_strcmpi(cc, last)) break;
 						count++;
 					}
 
+					LOG_TRACE("found {}", count)
 					if (count <= MIN_ASSET_COUNT) {
 						LOG_TRACE("Not enough candidates: {}", count);
 						continue;
@@ -103,7 +109,6 @@ namespace games::cod::asset_names {
 					if (poolNamesRes.entry) {
 						poolNamesRes.entry->name = "g_assetNames";
 					}
-
 					typeMapsCount = count;
 					for (size_t i = 0; i < count; i++) {
 						AssetId tid{ (AssetId)i };

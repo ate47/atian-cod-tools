@@ -1,7 +1,7 @@
 {
     "module": "cod_dump.exe",
     "firstAssetName": "physicssfxeventasset",
-    "endAssetName": "string",
+    "endAssetName": "assetlist",
     "commonFastFiles": [
         "code_post_gfx.ff",
         "code_pre_gfx.ff",
@@ -118,28 +118,28 @@
             "single": true
         },
         "poolInfo": {
-            "scan": "4C 8D 1D ? ? ? ? 49 8B C0 49 8B D1",
+            "scan": "48 8D 0D ?? ?? ?? ?? 48 8B DA 48 8D 04 40 48 03 C0 48 8B 04 C1",
             "ctype": "AssetPoolInfo poolInfo",
             "type": "Relative",
             "offset": 3,
-            "postOffset": -32,
+            "postOffset": -16,
             "single": true
         },
         "GetMappedTypeStub": {
-            "scan": "40 56 41 56 48 83 EC ? 48 8B 15",
+            "scan": "40 56 41 56 48 83 EC 28 4C 8B 05 ?? ?? ?? ?? 4C",
             "ctype": "AssetType GetMappedTypeStub(uint32_t hashedType)",
             "type": "Absolute",
             "single": true
         },
         "DB_ReadXFile": {
-            "scan": "E8 ?? ?? ?? ?? 48 8B D3 48 8B CF E8 ?? ?? ?? ?? 40 0F B6 C6",
+            "scan": "E8 ?? ?? ?? ?? 80 3E 00 74 1E",
             "type": "Relative",
             "offset": 1,
             "single": true,
             "ctype": "void DB_ReadXFile(DBLoadCtx *ctx, void* ptr, int64_t len)"
         },
         "DB_SkipXFile": {
-            "scan": "E8 ?? ?? ?? ?? 85 F6 75 37",
+            "scan": "E8 ?? ?? ?? ?? 48 8B 55 48 85 F6",
             "type": "Relative",
             "offset": 1,
             "single": true,
@@ -158,7 +158,7 @@
             "ctype": "void DB_RewindSetData(DBLoadCtx *ctx, DBRewind *rewind, void *data)"
         },
         "DB_LoadRewindRef": {
-            "scan": "E8 ?? ?? ?? ?? 84 C0 0F 85 05 01 00 00 49 8B 17",
+            "scan": "E8 ?? ?? ?? ?? 48 8B 55 48 0F B6 4D 68",
             "type": "Relative",
             "offset": 1,
             "single": true
@@ -182,13 +182,13 @@
             "ctype": "void __fastcall DB_InitLoadStreams(DBLoadCtx *ctx, XZoneMemory *zoneMemory)"
         },
         "DB_LoadStringList": {
-            "scan": "E8 ?? ?? ?? ?? 4C 8D 65 18 44 88 7D 04 4D 8B C4 33 D2 49 8B CE E8",
+            "scan": "E8 ?? ?? ?? ?? 4C 8D 63 18 44 88 7B 04 4D 8B C4 33 D2 48 8B CE E8 ?? ?? ?? ?? 48 8B 06 48 8B CE FF 50",
             "type": "Relative",
             "offset": 1,
             "ctype": "void DB_LoadStringList(DBLoadCtx *ctx, bool atStreamStart, AssetList *list)"
         },
         "$DB_LoadUnkList": {
-            "scan": "E8 ?? ?? ?? ?? 4C 8D 65 18 44 88 7D 04 4D 8B C4 33 D2 49 8B CE E8",
+            "scan": "E8 ?? ?? ?? ?? 4C 8D 63 18 44 88 7B 04 4D 8B C4 33 D2 48 8B CE E8 ?? ?? ?? ?? 48 8B 06 48 8B CE FF 50",
             "type": "Relative",
             "offset": 22,
             "ctype": "void DB_LoadStringList(DBLoadCtx *ctx, bool atStreamStart, AssetList *list)"
@@ -289,7 +289,7 @@
                 "single": true
             },
             "$LoadImage": {
-                "scan": "40 53 48 83 EC ?? 41 8B 40 ?? 49",
+                "scan": "40 53 48 83 EC 20 41 F6 40 14 04 49 8B D8 75",
                 "type": "Absolute",
                 "single": true
             },
@@ -344,17 +344,17 @@
                 "single": true
             },
             "$LoadLibShared": {
-                "scan": "40 53 48 83 EC ?? 48 8B D9 E8 ?? ?? ?? ?? 48 89 43 ?? 48 8B",
+                "scan": "48 83 EC 28 E8 ?? ?? ?? ?? 83 F8 FF 75 5A",
                 "type": "Absolute",
                 "single": true
             },
             "$LoadLibShared2": {
-                "scan": "40 53 48 83 EC ?? 48 8B 02 4C 8D 44 24 ?? 48 8B DA 48 89 44 24 ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 03 E8 ?? ?? ?? ?? E8",
+                "scan": "48 89 74 24 10 57 48 83 EC 20 8B FA 48 8B F1 83 FA FF 74 24 8B CA 48 89 5C 24 30 E8",
                 "type": "Absolute",
                 "single": true
             },
             "$LoadDlogSchema": {
-                "scan": "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 4C 24 ?? 56 57 41 54 41 56 41 57 48 83 EC ?? 45 33",
+                "scan": "48 89 4C 24 08 53 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 28 83",
                 "type": "Absolute",
                 "single": true
             }
