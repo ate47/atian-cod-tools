@@ -5,13 +5,9 @@
 #include <core/shared_cfg_data.hpp>
 #include <QApplication>
 #include <QWidget>
-#include <QFile>
-#include <QDebug>
-#include <QLoggingCategory>
 #include <MainWindow.h>
 
 namespace {
-    Q_STATIC_LOGGING_CATEGORY(lcActs, "acts");
 
     void ActsQTMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg) {
         core::logs::loglevel lvl;
