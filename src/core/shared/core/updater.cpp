@@ -25,7 +25,7 @@ namespace core::updater {
                 return false; // can't update dev version
             }
         }
-        return !core::config::GetBool("updater.disabled", false);
+        return !core::config::GetBool(actssec("updater.disabled"), false);
     }
 
 	bool CheckUpdate(bool forceUpdate, bool silent, bool ui) {

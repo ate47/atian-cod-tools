@@ -126,7 +126,7 @@ namespace hook::scan_container {
 				foundMissing = true;
 				return { nullptr };
 			}
-			throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : path));
+			throw std::runtime_error(utils::va(actssec("Can't find pattern %s"), name ? name : path));
 		}
 		if (res.size() != 1) {
 			if (ignoreMissing) {
@@ -134,7 +134,7 @@ namespace hook::scan_container {
 				foundMissing = true;
 				return { nullptr };
 			}
-			throw std::runtime_error(utils::va("Too many finds for pattern %s", name ? name : path));
+			throw std::runtime_error(utils::va(actssec("Too many finds for pattern %s"), name ? name : path));
 		}
 
 		return res[0];
@@ -148,7 +148,7 @@ namespace hook::scan_container {
 				foundMissing = true;
 				return { nullptr };
 			}
-			throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : path));
+			throw std::runtime_error(utils::va(actssec("Can't find pattern %s"), name ? name : path));
 		}
 
 		return res[0];

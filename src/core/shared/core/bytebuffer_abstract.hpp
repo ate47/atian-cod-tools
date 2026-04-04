@@ -1,4 +1,5 @@
 #pragma once
+#include <includes_shared.hpp>
 
 namespace core::bytebuffer {
 	constexpr size_t BYTE_BUFFER_MAX_LOC_STACK = 16;
@@ -25,22 +26,22 @@ namespace core::bytebuffer {
 		}
 
 		void PushLocation() {
-			if (locstackIdx == BYTE_BUFFER_MAX_LOC_STACK) throw std::runtime_error("byte buffer stack overflow");
+			if (locstackIdx == BYTE_BUFFER_MAX_LOC_STACK) throw std::runtime_error(actssec("byte buffer stack overflow"));
 			locstack[locstackIdx++] = Loc();
 		}
 
 		void PopLocation() {
-			if (!locstackIdx) throw std::runtime_error("byte buffer stack underflow");
+			if (!locstackIdx) throw std::runtime_error(actssec("byte buffer stack underflow"));
 			Goto(locstack[--locstackIdx]);
 		}
 
 		void PushEndian() {
-			if (endianstackIdx == BYTE_BUFFER_MAX_LOC_STACK) throw std::runtime_error("byte buffer endian stack overflow");
+			if (endianstackIdx == BYTE_BUFFER_MAX_LOC_STACK) throw std::runtime_error(actssec("byte buffer endian stack overflow"));
 			endianstack[endianstackIdx++] = endian;
 		}
 
 		void PopEndian() {
-			if (!endianstackIdx) throw std::runtime_error("byte buffer endian stack underflow");
+			if (!endianstackIdx) throw std::runtime_error(actssec("byte buffer endian stack underflow"));
 			endian = endianstack[--endianstackIdx];
 		}
 
@@ -92,7 +93,7 @@ namespace core::bytebuffer {
 		template<typename T>
 		T Read() {
 			if (!CanRead(sizeof(T))) {
-				throw std::runtime_error(utils::va("Reading too much at 0x%llx + 0x%llx > 0x%llx", Loc(), sizeof(T), End()));
+				throw std::runtime_error(utils::va(actssec("Reading too much at 0x%llx + 0x%llx > 0x%llx"), Loc(), sizeof(T), End()));
 			}
 			T t;
 			Read(&t, sizeof(T));
@@ -111,7 +112,7 @@ namespace core::bytebuffer {
 		template<typename T>
 		T Read(size_t len) {
 			if (!CanRead(len)) {
-				throw std::runtime_error(utils::va("Reading too much at 0x%llx + 0x%llx > 0x%llx", Loc(), len, End()));
+				throw std::runtime_error(utils::va(actssec("Reading too much at 0x%llx + 0x%llx > 0x%llx"), Loc(), len, End()));
 			}
 			T t;
 			size_t toread{ std::min<size_t>(sizeof(len), len) };
@@ -125,7 +126,7 @@ namespace core::bytebuffer {
 		template<typename T>
 		std::unique_ptr<T> ReadObject() {
 			if (!CanRead(sizeof(T))) {
-				throw std::runtime_error(utils::va("Reading too much at 0x%llx + 0x%llx > 0x%llx", Loc(), sizeof(T), End()));
+				throw std::runtime_error(utils::va(actssec("Reading too much at 0x%llx + 0x%llx > 0x%llx"), Loc(), sizeof(T), End()));
 			}
 			std::unique_ptr<T> t{ std::make_unique<T>() };
 			Read(t.get(), sizeof(T));
@@ -135,7 +136,7 @@ namespace core::bytebuffer {
 		template<typename T>
 		std::unique_ptr<T[]> ReadArray(size_t count) {
 			if (!CanRead(sizeof(T) * count)) {
-				throw std::runtime_error(utils::va("Reading too much at 0x%llx + 0x%llx > 0x%llx", Loc(), sizeof(T) * count, End()));
+				throw std::runtime_error(utils::va(actssec("Reading too much at 0x%llx + 0x%llx > 0x%llx"), Loc(), sizeof(T) * count, End()));
 			}
 			std::unique_ptr<T[]> t{std::make_unique<T[]>(count)};
 			Read(t.get(), sizeof(T) * count);

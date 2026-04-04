@@ -12,14 +12,14 @@ namespace hook::threads {
 		HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 
 		if (hSnap == INVALID_HANDLE_VALUE) {
-			throw std::runtime_error("Can't create snapshot for threads");
+			throw std::runtime_error(actssec("Can't create snapshot for threads"));
 		}
 		THREADENTRY32 te;
 		te.dwSize = sizeof(te);
 
 		if (!Thread32First(hSnap, &te)) {
 			CloseHandle(hSnap);
-			throw std::runtime_error("Can't fetch first thread");
+			throw std::runtime_error(actssec("Can't fetch first thread"));
 		}
 		do {
 			res.emplace_back(te.th32ThreadID, te.th32OwnerProcessID, te.dwFlags);

@@ -19,7 +19,7 @@ namespace hook::memory {
 
 			void* Allocate(size_t size) {
 				if (!CanAllocate(size)) {
-					throw std::exception(utils::va("Can't allocate into this container 0x%llx + 0x%llx > 0x%llx", used, size, capacity));
+					throw std::exception(utils::va(actssec("Can't allocate into this container 0x%llx + 0x%llx > 0x%llx"), used, size, capacity));
 				}
 
 				void* ptr = (byte*)container + used;
@@ -91,7 +91,7 @@ namespace hook::memory {
 			pageOffset++;
 
 			if (needsExit) {
-				throw std::exception(utils::va("Can't allocate near page %p", location));
+				throw std::exception(utils::va(actssec("Can't allocate near page %p"), location));
 			}
 		}
 	}
@@ -114,7 +114,7 @@ namespace hook::memory {
 		}
 		DWORD pageSize = GetSysInfo().dwPageSize;
 		if (pageSize < size) {
-			throw std::exception(utils::va("Can't allocate near %p of size 0x%llx: too big (0x%llx max)", location, size, GetSysInfo().dwPageSize));
+			throw std::exception(utils::va(actssec("Can't allocate near %p of size 0x%llx: too big (0x%llx max)"), location, size, GetSysInfo().dwPageSize));
 		}
 
 		void* pool = AllocateNearPage(location);
@@ -158,7 +158,7 @@ namespace hook::memory {
 			r64 = true;
 
 			if (!nearPtr) {
-				throw std::exception(utils::va("Can't jump from %p to %p: too far (0x%llx)", location, to, (byte*)location - (byte*)to));
+				throw std::exception(utils::va(actssec("Can't jump from %p to %p: too far (0x%llx)"), location, to, (byte*)location - (byte*)to));
 			}
 			RedirectJmp(location, nearPtr);
 			location = nearPtr;
@@ -263,7 +263,7 @@ namespace hook::memory {
 		auto err = jr.add(&out, &holder);
 
 		if (err || !out) {
-			throw std::runtime_error(utils::va("Error when assembling %lld", err));
+			throw std::runtime_error(utils::va(actssec("Error when assembling %lld"), err));
 		}
 		return out;
 	}

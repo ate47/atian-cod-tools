@@ -89,13 +89,29 @@ namespace core::logs {
 
 
 // convert filename to log id
+#ifndef ACTS_LOGS_NO_FILEPATH
+#define LOG_GET_LOG_REF_STR_DATA (std::array<char, 1>{0})
+#define LOG_GET_LOG_REF_STR ""
+#define LOG_GET_LOG_LINE 0
+#else
 #define LOG_GET_LOG_REF_STR_DATA (core::logs::GetLogFile<core::logs::GetLogFileLen(__FILE__), core::logs::GetLogFileSplit(__FILE__), core::logs::GetLogFileExt(__FILE__)>(__FILE__))
 #define LOG_GET_LOG_REF_STR (LOG_GET_LOG_REF_STR_DATA.data())
+#define LOG_GET_LOG_LINE __LINE__
+#endif
 #define HAS_LOG_LEVEL(LEVEL) (core::logs::getlevel() <= LEVEL)
-#define LOG_LVL(LEVEL, msg) if (HAS_LOG_LEVEL(LEVEL)) { constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA; core::logs::log(LEVEL, ___ff.data(), __LINE__, msg); }
+#define LOG_LVL(LEVEL, msg) if (HAS_LOG_LEVEL(LEVEL)) { constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA; core::logs::log(LEVEL, ___ff.data(), LOG_GET_LOG_LINE, msg); }
 #define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))
+#ifndef ACTS_LOGS_NO_DEBUG_LOGS
+#define LOG_TRACE(...) 
+#define LOG_DEBUG(...) 
+#else
 #define LOG_TRACE(...) LOG_LVLF(core::logs::loglevel::LVL_TRACE, __VA_ARGS__)
 #define LOG_DEBUG(...) LOG_LVLF(core::logs::loglevel::LVL_DEBUG, __VA_ARGS__)
+#endif
 #define LOG_ERROR(...) LOG_LVLF(core::logs::loglevel::LVL_ERROR, __VA_ARGS__)
 #define LOG_WARNING(...) LOG_LVLF(core::logs::loglevel::LVL_WARNING, __VA_ARGS__)
 #define LOG_INFO(...) LOG_LVLF(core::logs::loglevel::LVL_INFO, __VA_ARGS__)
+
+#define LOG_ERROR_s(str) LOG_LVL(core::logs::loglevel::LVL_ERROR, actssec(str))
+#define LOG_WARNING_s(str) LOG_LVL(core::logs::loglevel::LVL_WARNING, actssec(str))
+#define LOG_INFO_s(str) LOG_LVL(core::logs::loglevel::LVL_INFO, actssec(str))

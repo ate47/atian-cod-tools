@@ -32,21 +32,30 @@ namespace core::logs {
 		core::shared_cfg::GetSharedConfig().log.paths.clear();
 	}
 
+	struct {
+		const char* TRACE = actssec("TRACE");
+		const char* ERROR = actssec("ERROR");
+		const char* WARN = actssec("WARN.");
+		const char* INFO = actssec("INFO.");
+		const char* DEBUG = actssec("DEBUG");
+		const char* UKN = actssec("UKN..");
+	} _s;
+
 	const char* name(loglevel lvl) {
 		switch (lvl) {
 		case LVL_TRACE:
 		case LVL_TRACE_PATH:
-			return "TRACE";
+			return _s.TRACE;
 		case LVL_ERROR:
-			return "ERROR";
+			return _s.ERROR;
 		case LVL_WARNING:
-			return "WARN.";
+			return _s.WARN;
 		case LVL_INFO:
-			return "INFO.";
+			return _s.INFO;
 		case LVL_DEBUG:
-			return "DEBUG";
+			return _s.DEBUG;
 		default:
-			return "UKN..";
+			return _s.UKN;
 		}
 	}
 

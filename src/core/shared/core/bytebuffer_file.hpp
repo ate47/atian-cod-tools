@@ -18,7 +18,7 @@ namespace core::bytebuffer {
 			else {
 				this->fileend = fileend;
 			}
-			ValidateState("Can't create FileReader");
+			ValidateState(actssec("Can't create FileReader"));
 		}
 
 		void ValidateState(const char* err) {
@@ -46,12 +46,12 @@ namespace core::bytebuffer {
 
 		void ReadImpl(void* to, size_t size) override {
 			if (!CanRead(size)) {
-				throw std::runtime_error(utils::va("Reading pointer too much at 0x%llx + 0x%llx > 0x%llx", location, size, fileend));
+				throw std::runtime_error(utils::va(actssec("Reading pointer too much at 0x%llx + 0x%llx > 0x%llx"), location, size, fileend));
 			}
 
 			is.read((char*)to, size);
 
-			ValidateState("Invalid state after Read");
+			ValidateState(actssec("Invalid state after Read"));
 
 			location += size;
 		}
@@ -59,7 +59,7 @@ namespace core::bytebuffer {
 		void Goto(size_t loc) override {
 			size_t trueloc{ filestart + loc };
 			if (trueloc > fileend) {
-				throw std::runtime_error(utils::va("Goto after end 0x%llx + 0x%llx > 0x%llx", loc, fileend));
+				throw std::runtime_error(utils::va(actssec("Goto after end 0x%llx + 0x%llx > 0x%llx"), loc, fileend));
 			}
 			if (trueloc == fileend) {
 				is.seekg(0, std::ios::end);
@@ -68,7 +68,7 @@ namespace core::bytebuffer {
 				is.seekg(filestart + loc, std::ios::beg);
 			}
 
-			ValidateState("Invalid state after Goto");
+			ValidateState(actssec("Invalid state after Goto"));
 
 			location = is.tellg();
 		}

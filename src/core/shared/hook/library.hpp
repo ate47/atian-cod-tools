@@ -410,7 +410,7 @@ namespace hook::library {
 		}
 
 		ScanResult FindAnyScan(const char* name) const {
-			throw std::runtime_error(utils::va("Can't find patter %s", name ? name : "<multiple>"));
+			throw std::runtime_error(utils::va(actssec("Can't find patter %s"), name ? name : actssec("<multiple>")));
 		}
 
 		template<typename... Args>
@@ -432,10 +432,10 @@ namespace hook::library {
 			auto res = ScanString(str, false, name);
 
 			if (res.empty()) {
-				throw std::runtime_error(std::format("Can't find string {}", name ? name : str));
+				throw std::runtime_error(utils::va(actssec("Can't find string %s"), name ? name : str));
 			}
 			if (res.size() != 1) {
-				throw std::runtime_error(std::format("Too many finds for string {}", name ? name : str));
+				throw std::runtime_error(utils::va(actssec("Too many finds for string %s"), name ? name : str));
 			}
 
 			return res[0];
@@ -445,7 +445,7 @@ namespace hook::library {
 			auto res = ScanString(str, true, name);
 
 			if (res.empty()) {
-				throw std::runtime_error(std::format("Can't find string {}", name ? name : str));
+				throw std::runtime_error(utils::va(actssec("Can't find string %s"), name ? name : str));
 			}
 
 			return res[0];
@@ -462,10 +462,10 @@ namespace hook::library {
 			auto res = ScanNumber(val);
 
 			if (res.empty()) {
-				throw std::runtime_error(name ? utils::va("Can't find number %s", name) : utils::va("Can't find number %lld", val));
+				throw std::runtime_error(name ? utils::va(actssec("Can't find number %s"), name) : utils::va(actssec("Can't find number %lld"), val));
 			}
 			if (res.size() != 1) {
-				throw std::runtime_error(name ? utils::va("Too many finds for number %s", name) : utils::va("Too many finds for number %lld", val));
+				throw std::runtime_error(name ? utils::va(actssec("Too many finds for number %s"), name) : utils::va(actssec("Too many finds for number %lld"), val));
 			}
 
 			return res[0];
@@ -476,7 +476,7 @@ namespace hook::library {
 			auto res = ScanNumber(val, true);
 
 			if (res.empty()) {
-				throw std::runtime_error(name ? utils::va("Can't find number %s", name) : utils::va("Can't find number %lld", val));
+				throw std::runtime_error(name ? utils::va(actssec("Can't find number %s"), name) : utils::va(actssec("Can't find number %lld"), val));
 			}
 
 			return res[0];
@@ -561,7 +561,7 @@ namespace hook::library {
 			LONG error = DetourTransactionCommit();
 
 			if (error != NO_ERROR) {
-				throw std::runtime_error(utils::va("Can't commit detour %p -> %p", base, to));
+				throw std::runtime_error(utils::va(actssec("Can't commit detour %p -> %p"), base, to));
 			}
 		}
 
@@ -574,7 +574,7 @@ namespace hook::library {
 			LONG error = DetourTransactionCommit();
 
 			if (error != NO_ERROR) {
-				throw std::runtime_error(utils::va("Can't commit clear detour %p -> %p", base));
+				throw std::runtime_error(utils::va(actssec("Can't commit clear detour %p -> %p"), base));
 			}
 
 			origin = base = to = nullptr;

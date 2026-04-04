@@ -31,7 +31,7 @@ namespace utils::compress {
 		return lastoutput;
 	}
 	deps::oodle::OodleCompressor GetOodleCompressor(CompressionAlgorithm c) {
-		if (GetCompressionType(c) != COMP_OODLE) throw std::runtime_error("Not an oodle compressor");
+		if (GetCompressionType(c) != COMP_OODLE) throw std::runtime_error(actssec("Not an oodle compressor"));
 
 		switch (GetOodleCompressionType(c)) {
 			case COMP_OODLE_TYPE_KRAKEN: return deps::oodle::OODLE_COMP_KRAKEN;

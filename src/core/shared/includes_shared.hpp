@@ -37,3 +37,16 @@
 #ifdef ERROR
 #undef ERROR
 #endif
+
+
+#if __has_include(<xorstr.hpp>)
+#include <xorstr.hpp>
+
+#ifdef ACTS_SECURE_STRINGS
+#define actssec(str) xorstr_(str)
+#else
+#define actssec(str) str
+#endif
+#else
+#define actssec(str) str
+#endif

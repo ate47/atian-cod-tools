@@ -151,7 +151,7 @@ namespace hook::process {
 
 		// reversed because we set it by default to 0
 		if (!mid) {
-			throw std::runtime_error("Scan pattern has half byte!");
+			throw std::runtime_error(actssec("Scan pattern has half byte!"));
 		}
 
 		auto it1 = mask.begin();
@@ -167,7 +167,7 @@ namespace hook::process {
 		}
 
 		if (!mask.size()) {
-			throw std::runtime_error("Empty pattern!");
+			throw std::runtime_error(actssec("Empty pattern!"));
 		}
 
 		// clear end
@@ -182,7 +182,7 @@ namespace hook::process {
 		}
 
 		if (!mask.size()) {
-			throw std::runtime_error("Empty pattern!");
+			throw std::runtime_error(actssec("Empty pattern!"));
 		}
 
 		// pattern computed, scanning

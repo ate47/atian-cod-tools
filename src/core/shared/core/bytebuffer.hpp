@@ -1,5 +1,5 @@
 #pragma once
-#include "bytebuffer_abstract.hpp"
+#include <core/bytebuffer_abstract.hpp>
 
 namespace core::bytebuffer {
 
@@ -34,7 +34,7 @@ namespace core::bytebuffer {
 
 		void ReadImpl(void* to, size_t size) override {
 			if (!CanRead(size)) {
-				throw std::runtime_error(utils::va("Reading pointer too much at 0x%llx + 0x%llx > 0x%llx", Loc(), size, len));
+				throw std::runtime_error(utils::va(actssec("Reading pointer too much at 0x%llx + 0x%llx > 0x%llx"), Loc(), size, len));
 			}
 			
 			std::memmove(to, &buffer[pointer], size);
@@ -43,7 +43,7 @@ namespace core::bytebuffer {
 
 		void Goto(size_t loc) override {
 			if (loc > len) {
-				throw std::runtime_error(utils::va("Goto after end 0x%llx > 0x%llx", loc, len));
+				throw std::runtime_error(utils::va(actssec("Goto after end 0x%llx > 0x%llx"), loc, len));
 			}
 			pointer = loc;
 		}
@@ -56,7 +56,7 @@ namespace core::bytebuffer {
 		template<typename T>
 		T* ReadPtr(size_t count = 1) {
 			if (!CanRead(sizeof(T) * count)) {
-				throw std::runtime_error(utils::va("Reading too much at 0x%llx + 0x%llx > 0x%llx", Loc(), sizeof(T) * count, End()));
+				throw std::runtime_error(utils::va(actssec("Reading too much at 0x%llx + 0x%llx > 0x%llx"), Loc(), sizeof(T) * count, End()));
 			}
 			T* t = (T*)&buffer[pointer];
 			pointer += sizeof(T) * count;

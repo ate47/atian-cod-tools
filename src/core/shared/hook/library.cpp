@@ -55,13 +55,13 @@ namespace hook::library {
 		if (utils::ReadFile(library::GetLibraryPath(hmod), lib)) {
 			PIMAGE_DOS_HEADER dosHeader = reinterpret_cast<PIMAGE_DOS_HEADER>(lib.data());
 			if (lib.size() < sizeof(IMAGE_DOS_HEADER) || dosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
-				throw std::runtime_error("Bad dos signature for module");
+				throw std::runtime_error(actssec("Bad dos signature for module"));
 			}
 
 			PIMAGE_NT_HEADERS ntHeader = reinterpret_cast<PIMAGE_NT_HEADERS>(lib.data() + dosHeader->e_lfanew);
 
 			if (lib.size() < dosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS) || ntHeader->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC) {
-				throw std::runtime_error("Bad nt signature for module");
+				throw std::runtime_error(actssec("Bad nt signature for module"));
 			}
 			IMAGE_DATA_DIRECTORY& debugDirectory = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
 
@@ -93,7 +93,7 @@ namespace hook::library {
 
 				if (cvInfo) {
 					if (cvInfo->magic != 0x53445352) {
-						throw std::runtime_error("Bad magic for cv data");
+						throw std::runtime_error(actssec("Bad magic for cv data"));
 					}
 					auto& loc = located[hmodPtr];
 					loc = &cvInfo->pdbPath[0];
@@ -161,7 +161,7 @@ namespace hook::library {
 
 			if (c == '?') {
 				if (mid) {
-					throw std::runtime_error(std::format("Wildcard pattern in half byte! {} ({})", pattern, name ? name : "no name"));
+					throw std::runtime_error(utils::va(actssec("Wildcard pattern in half byte! %s (%s)"), pattern, name ? name : actssec("no name")));
 				}
 				if (str[0] == '?') {
 					// test if we are in a packed context
@@ -190,7 +190,7 @@ namespace hook::library {
 
 		// reversed because we set it by default to 0
 		if (!mid) {
-			throw std::runtime_error(std::format("Scan pattern has half byte! {} ({})", pattern, name ? name : "no name"));
+			throw std::runtime_error(utils::va(actssec("Scan pattern has half byte! %s (%s)"), pattern, name ? name : actssec("no name")));
 		}
 
 		auto it1 = mask.begin();
@@ -206,7 +206,7 @@ namespace hook::library {
 		}
 
 		if (!mask.size()) {
-			throw std::runtime_error(std::format("Empty pattern! {} ({})", pattern, name ? name : "no name"));
+			throw std::runtime_error(std::format(actssec("Empty pattern! %s (%s)"), pattern, name ? name : actssec("no name")));
 		}
 
 		// clear end
@@ -221,7 +221,7 @@ namespace hook::library {
 		}
 
 		if (!mask.size()) {
-			throw std::runtime_error(std::format("Empty pattern! {} ({})", pattern, name ? name : "no name"));
+			throw std::runtime_error(std::format(actssec("Empty pattern! %s (%s)"), pattern, name ? name : actssec("no name")));
 		}
 
 		library::Library lib{ hmod };
@@ -229,7 +229,7 @@ namespace hook::library {
 		constexpr size_t lazySize = 0x10000000;
 
 		if (lazySize < mask.size()) {
-			throw std::runtime_error(utils::va("Pattern too big! {} ({})", pattern, pattern, name ? name : "no name")); // wtf?
+			throw std::runtime_error(utils::va("Pattern too big! %s (%s)", pattern, pattern, name ? name : "no name")); // wtf?
 		}
 
 
@@ -343,7 +343,7 @@ namespace hook::library {
 		auto path = container.GetPath();
 
 		if (!utils::ReadFile(path, buff)) {
-			LOG_WARNING("No scan container found, the loading will take some time");
+			LOG_WARNING_s("No scan container found, the loading will take some time");
 			return; // empty, nothing to read
 		}
 
@@ -397,7 +397,7 @@ namespace hook::library {
 
 			if (c == '?') {
 				if (mid) {
-					throw std::runtime_error(utils::va("Wildcard pattern in half byte! %s", scan));
+					throw std::runtime_error(utils::va(actssec("Wildcard pattern in half byte! %s"), scan));
 				}
 				if (str[0] == '?') {
 					// test if we are in a packed context
@@ -426,7 +426,7 @@ namespace hook::library {
 
 		// reversed because we set it by default to 0
 		if (!mid) {
-			throw std::runtime_error(utils::va("Scan pattern has half byte! %s", scan));
+			throw std::runtime_error(utils::va(actssec("Scan pattern has half byte! %s"), scan));
 		}
 
 		byte* loc{ (byte*)ptr };
@@ -552,10 +552,10 @@ namespace hook::library {
 		auto res = QueryScanContainer(name, pattern, true);
 
 		if (res.empty()) {
-			throw std::runtime_error(utils::va("Can't find pattern %s", name ? name : pattern));
+			throw std::runtime_error(utils::va(actssec("Can't find pattern %s"), name ? name : pattern));
 		}
 		if (res.size() != 1) {
-			throw std::runtime_error(utils::va("Too many finds for pattern %s", name ? name : pattern));
+			throw std::runtime_error(utils::va(actssec("Too many finds for pattern %s"), name ? name : pattern));
 		}
 
 		return res[0];
