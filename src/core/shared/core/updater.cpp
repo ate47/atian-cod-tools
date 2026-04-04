@@ -1,12 +1,13 @@
 #include <includes_shared.hpp>
+#include <deps/miniz.hpp>
 #include <utils/io_utils.hpp>
+#include <core/config.hpp>
+#if defined(ACTS_HAS_MINIZ) && defined(ACTS_HAS_IO_UTILS)
+#include <core/updater.hpp>
 #include <utils/utils.hpp>
 #include <hook/library.hpp>
-#include <core/config.hpp>
 #include <core/actsinfo.hpp>
-#include <core/updater.hpp>
 #include <core/updater_endpoint.hpp>
-#include <deps/miniz.hpp>
 
 
 
@@ -230,6 +231,26 @@ namespace core::updater {
         }
         return false;
     }
+}
+#else
+
+namespace core::updater {
+    bool CheckUpdate(bool forceUpdate, bool silent, bool ui) {
+        return false;
+    }
+    void ApplyUpdate(bool ui) {
+		throw std::runtime_error("Updater not supported");
+    }
+
+    bool FindUpdate(bool cli) {
+        return false;
+    }
+}
+
+#endif
+
+
+namespace core::updater {
 
     bool VersionData::Read(const std::string& input) {
         std::stringstream ss{ input };
@@ -238,10 +259,10 @@ namespace core::updater {
             return false;
         }
 
-		if (name.empty()) {
+        if (name.empty()) {
             return false;
         }
-		if (name[name.size() - 1] == '\r') {
+        if (name[name.size() - 1] == '\r') {
             name.pop_back();
         }
 
@@ -276,6 +297,7 @@ namespace core::updater {
             return false;
         }
     }
+
     const char* GetVersionName(uint32_t v) {
         if (v == core::actsinfo::DEV_VERSION_ID) {
             return "DEV";

@@ -1,8 +1,10 @@
 #include <includes_shared.hpp>
-#include "config.hpp"
+#include <core/config.hpp>
+#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
+#endif
 #include <utils/utils.hpp>
 
 namespace core::config {
@@ -29,7 +31,9 @@ namespace core::config {
 
 		return defaultEnumValue;
 	}
+	Config::Config(const std::filesystem::path& path) : configFile(path.is_absolute() ? path : (utils::GetProgDir() / path)) {}
 
+#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
 	rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& Config::GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
 		static rapidjson::Value nullAnswer{ rapidjson::kNullType };
 		if (!path || !*path || loc.IsNull()) {
@@ -103,8 +107,6 @@ namespace core::config {
 		}
 
 	}
-
-	Config::Config(const std::filesystem::path& path) : configFile(path.is_absolute() ? path : (utils::GetProgDir() / path)) {}
 
 	int64_t Config::GetInteger(const char* path, int64_t defaultValue) {
 		rapidjson::Value& val = GetVal(path, 0, main);
@@ -188,8 +190,8 @@ namespace core::config {
 				break;
 			}
 		}
-		std::string val{ this->GetString(path)};
-		return ParseEnumValue(val.data(), data, dataCount, defaultEnumValue, path);
+		const char* val{ this->GetCString(path)};
+		return ParseEnumValue(val, data, dataCount, defaultEnumValue, path);
 	}
 
 	void Config::SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) {
@@ -225,6 +227,59 @@ namespace core::config {
 		std::string json{ buff.GetString() };
 		utils::WriteFile(utils::GetProgDir() / configFile, json);
 	}
+#else  // __ACTS_COMPRESS_HAS_RAPIDJSON
+// mock result when no rapidjson support, so that the rest of the code can compile and run without config support
+
+
+	int64_t Config::GetInteger(const char* path, int64_t defaultValue) {
+		return defaultValue;
+	}
+
+	double Config::GetDouble(const char* path, double defaultValue) {
+		return defaultValue;
+	}
+
+	const char* Config::GetCString(const char* path, const char* defaultValue) {
+		return defaultValue;
+	}
+
+	bool Config::ScanStringN(const char* path, const char* format, size_t count, ...) {
+		va_list va;
+		va_start(va, count);
+		va_end(va);
+		return false;
+	}
+
+	bool Config::GetBool(const char* path, bool defaultValue) {
+		return defaultValue;
+	}
+
+	void Config::SetInteger(const char* path, int64_t defaultValue) {
+	}
+
+	void Config::SetDouble(const char* path, double defaultValue) {
+	}
+
+	void Config::SetString(const char* path, const std::string& defaultValue) {
+	}
+
+	void Config::SetBool(const char* path, bool defaultValue) {
+	}
+	int64_t Config::GetEnum(const char* path, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue) {
+		return defaultEnumValue;
+	}
+
+	void Config::SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) {
+	}
+
+	bool Config::SyncConfig(bool save) {
+		return false;
+	}
+	void Config::SaveConfig() const {
+	}
+
+
+#endif // __ACTS_COMPRESS_HAS_RAPIDJSON
 
 	void SetMainConfig(const std::filesystem::path& path) {
 		mainConfigFile = path;
@@ -232,6 +287,9 @@ namespace core::config {
 
 	Config& GetMainConfig() {
 		static Config mainCfg{ mainConfigFile };
+#ifndef __ACTS_COMPRESS_HAS_RAPIDJSON
+		LOG_WARNING("Config support is not available because rapidjson is not supported. Default values will be used for all config entries, and changes to config will not be saved.");
+#endif // __ACTS_COMPRESS_HAS_RAPIDJSON
 		return mainCfg;
 	}
 }

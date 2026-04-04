@@ -1,10 +1,26 @@
 #include <includes_shared.hpp>
 #include <deps/oodle.hpp>
+#if __has_include(<zlib.h>)
 #include <zlib.h>
+#define __ACTS_COMPRESS_HAS_ZLIB
+#endif
+#if __has_include(<lz4.h>)
 #include <lz4.h>
+#define __ACTS_COMPRESS_HAS_LZ4
+
+#if __has_include(<lz4hc.h>)
 #include <lz4hc.h>
+#define __ACTS_COMPRESS_HAS_LZ4HC
+#endif
+
+#endif
+
+#if __has_include(<zstd.h>)
 #include <zstd.h>
-#include "compress_utils.hpp"
+#define __ACTS_COMPRESS_HAS_ZSTD
+#endif
+
+#include <utils/compress_utils.hpp>
 
 namespace utils::compress {
 	namespace {
@@ -46,6 +62,7 @@ namespace utils::compress {
 			}
 			std::memcpy(dest, src, srcSize);
 			return (int)srcSize;
+#ifdef __ACTS_COMPRESS_HAS_LZ4
 		case COMP_LZ4: {
 			int r{ LZ4_decompress_safe((const char*)src, (char*)dest, (int)srcSize, (int)destSize) };
 			lastoutput = r;
@@ -55,6 +72,7 @@ namespace utils::compress {
 			}
 			return r;
 		}
+#endif
 		case COMP_OODLE: {
 			deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
 
@@ -66,6 +84,7 @@ namespace utils::compress {
 			}
 			return r;
 		}
+#ifdef __ACTS_COMPRESS_HAS_ZLIB
 		case COMP_ZLIB: {
 			uLongf sizef = (uLongf)destSize;
 			uLongf sizef2{ (uLongf)srcSize };
@@ -80,6 +99,8 @@ namespace utils::compress {
 				return DecompressResult::DCOMP_UNKNOWN_ERROR;
 			}
 		}
+#endif
+#ifdef __ACTS_COMPRESS_HAS_ZSTD
 		case COMP_ZSTD: {
 			size_t ret{ ZSTD_decompress(dest, destSize, src, srcSize) };
 			if (ZSTD_isError(ret)) {
@@ -93,6 +114,7 @@ namespace utils::compress {
 			}
 			return (int)ret;
 		}
+#endif
 		default:
 			throw std::runtime_error(std::format("Can't decompress {}", alg));
 			return DecompressResult::DCOMP_BAD_ALGORITHM;
@@ -157,6 +179,7 @@ namespace utils::compress {
 			*destSize = r;
 			return true;
 		}
+#ifdef __ACTS_COMPRESS_HAS_ZLIB
 		case COMP_ZLIB: {
 			uLongf destSizef = (uLongf)*destSize;
 			int level{ alg & COMP_HIGH_COMPRESSION ? Z_BEST_COMPRESSION : Z_BEST_SPEED };
@@ -164,19 +187,25 @@ namespace utils::compress {
 			*destSize = destSizef;
 			return true;
 		}
-		case COMP_LZ4: {
+#endif
+#ifdef __ACTS_COMPRESS_HAS_LZ4
+		case COMP_LZ4:
+#ifdef __ACTS_COMPRESS_HAS_LZ4HC
 			if (alg & COMP_HIGH_COMPRESSION) {
 				int r{ LZ4_compress_HC((const char*)src, (char*)dest, (int)srcSize, (int)*destSize, LZ4HC_CLEVEL_MAX) };
 				if (r < 0) return false;
 				*destSize = r;
+				return true;
 			}
-			else {
+#endif
+			{
 				int r{ LZ4_compress_default((const char*)src, (char*)dest, (int)srcSize, (int)*destSize) };
 				if (r < 0) return false;
 				*destSize = r;
+				return true;
 			}
-			return true;
-		}
+#endif
+#ifdef __ACTS_COMPRESS_HAS_ZSTD
 		case COMP_ZSTD: {
 			int lvl{ alg & COMP_HIGH_COMPRESSION ? ZSTD_maxCLevel() : ZSTD_defaultCLevel() };
 			size_t r{ ZSTD_compress(dest, *destSize, src, srcSize, lvl) };
@@ -184,6 +213,7 @@ namespace utils::compress {
 			*destSize = r;
 			return true;
 		}
+#endif
 		default:
 			throw std::runtime_error(std::format("Can't compress alg {}", alg));
 			break;
@@ -206,18 +236,24 @@ namespace utils::compress {
 		switch (GetCompressionType(alg)) {
 		case COMP_NONE:
 			return srcSize;
+#ifdef __ACTS_COMPRESS_HAS_LZ4
 		case COMP_LZ4:
 			return LZ4_compressBound((int)srcSize);
+#endif
 		case COMP_OODLE: {
 			deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
 			return oodle.GetCompressedBufferSizeNeeded(GetOodleCompressor(alg), (int32_t)srcSize);
 		}
+#ifdef __ACTS_COMPRESS_HAS_ZLIB
 		case COMP_ZLIB: {
 			return compressBound((uLong)srcSize);
 		}
+#endif
+#ifdef __ACTS_COMPRESS_HAS_ZSTD
 		case COMP_ZSTD: {
 			return ZSTD_compressBound(srcSize);
 		}
+#endif
 		default:
 			throw std::runtime_error(std::format("Can't get compress size for alg {}", alg));
 		}
@@ -241,6 +277,7 @@ namespace utils::compress {
 	}
 
 	namespace {
+#ifdef __ACTS_COMPRESS_HAS_ZLIB
 		int DecompressZLib(std::vector<byte>& vec, const void* src, size_t srcSize) {
 			z_stream strm{};
 
@@ -279,7 +316,9 @@ namespace utils::compress {
 
 			return DecompressResult::DCOMP_UNKNOWN_ERROR;
 		}
+#endif
 
+#ifdef __ACTS_COMPRESS_HAS_LZ4
 		int DecompressLZ4(std::vector<byte>& vec, const void* src, size_t srcSize) {
 			LZ4_streamDecode_t strm{};
 
@@ -303,6 +342,7 @@ namespace utils::compress {
 				}
 			}
 		}
+#endif
 
 
 
@@ -314,10 +354,14 @@ namespace utils::compress {
 			vec.resize(srcSize);
 			std::memcpy(vec.data(), src, srcSize);
 			return (int)srcSize;
+#ifdef __ACTS_COMPRESS_HAS_ZLIB
 		case COMP_ZLIB:
 			return DecompressZLib(vec, src, srcSize);
+#endif
+#ifdef __ACTS_COMPRESS_HAS_LZ4
 		case COMP_LZ4:
 			return DecompressLZ4(vec, src, srcSize);
+#endif
 
 		default:
 			throw std::runtime_error(std::format("DecompressAll not supported for {}", alg));

@@ -35,6 +35,8 @@ namespace utils::compress {
 		COMP_OODLE_TYPE_MASK = 15ull << 9,
 	};
 
+	constexpr size_t MAX_LZ4_SIZE = 0x7E000000;
+
 	enum DecompressResult : int {
 		DCOMP_NOTHING = 0,
 		DCOMP_BAD_ALGORITHM = -1,

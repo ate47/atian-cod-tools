@@ -1,4 +1,7 @@
 #pragma once
+#if __has_include(<curl/curl.h>)
+#define ACTS_HAS_IO_UTILS
+#endif
 
 namespace utils::io {
 

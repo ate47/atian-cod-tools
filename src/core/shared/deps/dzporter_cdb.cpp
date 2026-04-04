@@ -1,6 +1,5 @@
 #include <includes_shared.hpp>
 #include <core/async.hpp>
-#include <lz4.h>
 #include <utils/compress_utils.hpp>
 #include <deps/dzporter_cdb.hpp>
 #include <core/bytebuffer.hpp>
@@ -94,7 +93,7 @@ namespace deps::dzporter::cdb {
 
 		utils::compress::CompressionAlgorithm alg{ utils::compress::COMP_LZ4 | utils::compress::COMP_HIGH_COMPRESSION };
 
-		if (rawdata.size() >= LZ4_MAX_INPUT_SIZE) {
+		if (rawdata.size() >= utils::compress::MAX_LZ4_SIZE) {
 			throw std::runtime_error("File too big.");
 		}
 

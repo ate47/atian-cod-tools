@@ -1,4 +1,6 @@
 #include <includes_shared.hpp>
+#include <utils/io_utils.hpp>
+#ifdef ACTS_HAS_IO_UTILS
 #define CURL_STRICTER
 #define CURL_STATICLIB
 #define CURL_DISABLE_DICT
@@ -17,7 +19,6 @@
 #define CURL_DISABLE_TFTP
 #include <curl/curl.h>
 #include <core/actsinfo.hpp>
-#include <utils/io_utils.hpp>
 #include <utils/utils.hpp>
 
 #pragma comment(lib, "wldap32")
@@ -115,3 +116,17 @@ namespace utils::io {
 
 
 }
+#else // !ACTS_HAS_IO_UTILS
+
+namespace utils::io {
+
+	bool DownloadFile(const std::string& url, std::string& buffer, bool append) {
+		return false;
+	}
+
+	bool DownloadFile(const std::string& url, std::vector<byte>& buffer, bool append) {
+		return false;
+	}
+
+}
+#endif
