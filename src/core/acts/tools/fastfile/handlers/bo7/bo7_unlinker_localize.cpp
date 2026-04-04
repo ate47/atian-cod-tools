@@ -72,10 +72,12 @@ namespace {
 	class ImplWorkerDev : public Worker {
 		using Worker::Worker;
 
-		std::vector<Localize*> vals{};
+		std::vector<Localize> vals{};
 
 		void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
-			vals.push_back((Localize*)ptr);
+			if (ptr) {
+				vals.push_back(*(Localize*)ptr);
+			}
 		}
 		void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
 			vals.clear(); // cleanup for errors?
@@ -88,8 +90,9 @@ namespace {
 
 			os << "name,val";
 			size_t invalid{};
+			LOG_OPT_INFO("Dump localizeassetentrydev entries {} into {}", vals.size(), outFile.string());
 			for (size_t i = 0; i < vals.size(); i++) {
-				Localize* loc{ vals[i] };
+				Localize* loc{ &vals[i] };
 				os << "\n#" << hashutils::ExtractTmp("hash", loc->name) << ",";
 				if (!loc->val) {
 					os << "null";
@@ -113,7 +116,6 @@ namespace {
 				}
 
 			}
-			LOG_OPT_INFO("Dump localizeassetentrydev entries {} into {}", vals.size(), outFile.string());
 			if (invalid) LOG_ERROR("Found {} invalid entry(ies)", invalid);
 
 			vals.clear(); // cleanup

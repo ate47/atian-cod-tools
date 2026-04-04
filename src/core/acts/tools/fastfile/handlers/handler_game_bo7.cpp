@@ -407,7 +407,7 @@ namespace fastfile::handlers::bo7 {
 			return handle ? *handle : nullptr;
 		}
 
-		void* DB_AddAssetRef(HandlerAssetType type, uint64_t name, void* strName) {
+		void* DB_AddAssetRef(HandlerAssetType type, uint64_t name, const char* strName) {
 			LOG_DEBUG("DB_AddAssetRef({}, '{}') {}", gcx.assetNames.GetTypeName(type), strName ? strName : hashutils::ExtractTmp("hash", name), hook::library::CodePointer{ _ReturnAddress() });
 			HandlerHashedAssetType hashType{ gcx.assetNames.GetHashType(type) };
 			auto it{ gcx.linkedAssets[hashType].find(name) };
