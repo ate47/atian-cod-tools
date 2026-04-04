@@ -10,6 +10,8 @@ namespace deps::ntdll {
             NtSuspendProcess = GetProc<decltype(NtSuspendProcess)>("NtSuspendProcess");
             NtResumeProcess = GetProc<decltype(NtResumeProcess)>("NtResumeProcess");
             NtCreateThreadEx = GetProc<decltype(NtCreateThreadEx)>("NtCreateThreadEx");
+            ZwContinue = GetProc<decltype(ZwContinue)>("ZwContinue");
+            KiUserExceptionDispatcher = GetProc<decltype(KiUserExceptionDispatcher)>("KiUserExceptionDispatcher");
         }
     public:
 
@@ -20,7 +22,11 @@ namespace deps::ntdll {
             LOG_TRACE("loaded {}::{}", ntdll, name);
             return proc;
         }
-
+        VOID(NTAPI* KiUserExceptionDispatcher)(
+            _In_ PEXCEPTION_RECORD ExceptionRecord,
+            _In_ PCONTEXT ContextRecord
+            );
+        NTSTATUS(NTAPI* ZwContinue)(PCONTEXT Context, BOOLEAN TestAlert);
         LONG(NTAPI* NtSuspendProcess)(IN HANDLE ProcessHandle);
         LONG(NTAPI* NtResumeProcess)(IN HANDLE ProcessHandle);
         NTSTATUS(NTAPI* NtCreateThreadEx)(
@@ -69,5 +75,16 @@ namespace deps::ntdll {
         _In_opt_ LPVOID AttributeList
     ) {
         return NtDll::GetInstance().NtCreateThreadEx(ThreadHandle, DesiredAccess, ObjectAttributes, ProcessHandle, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize, MaximumStackSize, AttributeList);
+    }
+
+    inline NTSTATUS ZwContinue(PCONTEXT Context, BOOLEAN TestAlert) {
+        return NtDll::GetInstance().ZwContinue(Context, TestAlert);
+    }
+
+    inline VOID KiUserExceptionDispatcher(
+        _In_ PEXCEPTION_RECORD ExceptionRecord,
+        _In_ PCONTEXT ContextRecord
+    ) {
+        return NtDll::GetInstance().KiUserExceptionDispatcher(ExceptionRecord, ContextRecord);
     }
 }
