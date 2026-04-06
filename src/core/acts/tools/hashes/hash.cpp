@@ -14,6 +14,7 @@
 #include <crc_cpp.h>
 #include <sha1.h>
 #include <sha256.h>
+#include <api/hash.hpp>
 
 namespace hash {
 	HashAlg HashAlg::algs[13]
@@ -1441,4 +1442,30 @@ namespace hash {
 		ADD_TOOL(bruteforcecustom, "hash", "", "", bruteforcecustom);
 		#endif
 	}
+}
+
+ACTS_COMMON_API acts::api::ActsAPIHash& ActsAPIHash() {
+	class ActsAPIHashImpl : public acts::api::ActsAPIHash {
+		acts::api::HashType hashes[ARRAYSIZE(hash::HashAlg::algs)]{};
+	public:
+		ActsAPIHashImpl() {
+			acts::api::HashType* h{ hashes };
+			for (hash::HashAlg& alg : hash::HashAlg::algs) {
+				h->id = alg.id;
+				h->desc = alg.desc;
+				h->hashFunc = alg.hashFunc;
+				h++;
+			}
+		}
+
+		acts::api::HashType* GetHashes() override {
+			return hashes;
+		}
+		size_t GetHashesCount() override {
+			return ARRAYSIZE(hashes);
+		}
+	};
+
+	static ActsAPIHashImpl impl{};
+	return impl;
 }

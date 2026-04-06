@@ -4,7 +4,7 @@ namespace hash {
 	struct HashAlg {
 		const char* id;
 		const char* desc;
-		std::function<uint64_t(const char* text)> hashFunc;
+		uint64_t(*hashFunc)(const char* text);
 		char buffer[0x20]{ 0 };
 		bool selected{};
 		

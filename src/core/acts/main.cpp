@@ -16,6 +16,7 @@
 #include <core/config.hpp>
 #include <core/updater.hpp>
 #include <core/shared_cfg_data.hpp>
+#include <api/version.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -314,6 +315,22 @@ namespace {
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
 	return TRUE; // ignore
+}
+acts::api::ActsAPIVersion& ActsAPIVersion() {
+	class ActsAPIVersionImpl : public acts::api::ActsAPIVersion {
+	public:
+		unsigned int GetBuildVersion() override {
+			return core::actsinfo::BUILD_VERSION_ID;
+		}
+		const char* GetVersion() override {
+			return core::actsinfo::VERSION;
+		}
+		unsigned int GetVersionId() override {
+			return core::actsinfo::VERSION_ID;
+		}
+	};
+	static ActsAPIVersionImpl impl{};
+	return impl;
 }
 
 void* GetActsSharedConfig() {

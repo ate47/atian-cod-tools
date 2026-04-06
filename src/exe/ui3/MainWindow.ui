@@ -46,7 +46,15 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuHashes">
+    <property name="title">
+     <string>Developer</string>
+    </property>
+    <addaction name="actionT89Error"/>
+    <addaction name="actionHash"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuHashes"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="toolBar">
@@ -69,6 +77,16 @@
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionHash">
+   <property name="text">
+    <string>Hash</string>
+   </property>
+  </action>
+  <action name="actionT89Error">
+   <property name="text">
+    <string>BO4/CW Errors</string>
    </property>
   </action>
  </widget>
