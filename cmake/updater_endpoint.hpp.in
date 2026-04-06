@@ -5,4 +5,6 @@ namespace core::updater {
 
     constexpr const char* VERSION_ENDPOINT = "${RELEASE_VERSION_FILE}";
     constexpr const char* ZIP_ENDPOINT = "${RELEASE_ZIP_FILE}";
+    constexpr const char* PROJECT = "${RELEASE_PROJECT}";
+    constexpr const char* PROJECT_URL = "${RELEASE_PROJECT_URL}";
 }

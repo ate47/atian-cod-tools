@@ -75,6 +75,12 @@ namespace core::logs {
 	void addoutstream(std::ostream* outStream) {
 		core::shared_cfg::GetSharedConfig().log.outStream = outStream;
 	}
+	void addoutcallback(logcallback callback) {
+		core::shared_cfg::GetSharedConfig().log.callback = callback;
+	}
+	void disablestdout(bool disabled) {
+		core::shared_cfg::GetSharedConfig().log.noStdLogs = disabled;
+	}
 	void setstrstreams(std::ostream* cout, std::ostream* cerr) {
 		auto& logs{ core::shared_cfg::GetSharedConfig().log };
 		logs.cerr = cerr;
@@ -119,6 +125,10 @@ namespace core::logs {
 				}
 			}
 			if (!match) return; // not matching our pattern
+		}
+
+		if (cfg.log.callback) {
+			cfg.log.callback(level, header, file, line, str, endl);
 		}
 
 		auto f = [&](std::ostream& out, bool color) {
@@ -179,10 +189,14 @@ namespace core::logs {
 			auto& logs{ core::shared_cfg::GetSharedConfig().log };
 
 			if (level < LVL_WARNING) {
-				f(logs.cout ? *logs.cout : std::cout, allowColor);
+				if (!logs.noStdLogs || logs.cout) {
+					f(logs.cout ? *logs.cout : std::cout, allowColor);
+				}
 			}
 			else {
-				f(logs.cout ? *logs.cerr : std::cerr, allowColor);
+				if (!logs.noStdLogs || logs.cerr) {
+					f(logs.cerr ? *logs.cerr : std::cerr, allowColor);
+				}
 			}
 		}
 		if (cfg.log.outStream) {

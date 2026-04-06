@@ -12,6 +12,7 @@ namespace core::logs {
 		LVL_ERROR = 4,
 	};
 
+	typedef void (*logcallback)(loglevel level, const char* header, const char* file, size_t line, const char* str, bool endl);
 
 	constexpr size_t GetLogFileSplit(const char* line) {
 		std::string_view sw{ line };
@@ -75,6 +76,8 @@ namespace core::logs {
 	const char* logfile();
 
 	void addoutstream(std::ostream* outStream);
+	void addoutcallback(logcallback callback);
+	void disablestdout(bool disabled);
 	void setstrstreams(std::ostream* cout, std::ostream* cerr);
 
 	void log(loglevel level, const char* header, const char* file, size_t line, const char* str, bool endl = true);
@@ -89,7 +92,7 @@ namespace core::logs {
 
 
 // convert filename to log id
-#ifndef ACTS_LOGS_NO_FILEPATH
+#ifdef ACTS_LOGS_NO_FILEPATH
 #define LOG_GET_LOG_REF_STR_DATA (std::array<char, 1>{0})
 #define LOG_GET_LOG_REF_STR ""
 #define LOG_GET_LOG_LINE 0
@@ -101,7 +104,7 @@ namespace core::logs {
 #define HAS_LOG_LEVEL(LEVEL) (core::logs::getlevel() <= LEVEL)
 #define LOG_LVL(LEVEL, msg) if (HAS_LOG_LEVEL(LEVEL)) { constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA; core::logs::log(LEVEL, ___ff.data(), LOG_GET_LOG_LINE, msg); }
 #define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))
-#ifndef ACTS_LOGS_NO_DEBUG_LOGS
+#ifdef ACTS_LOGS_NO_DEBUG_LOGS
 #define LOG_TRACE(...) 
 #define LOG_DEBUG(...) 
 #else

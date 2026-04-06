@@ -8,9 +8,11 @@ namespace core::shared_cfg {
 			core::logs::loglevel loglevel = core::logs::LVL_INFO;
 			const char* logfile{};
 			bool basiclog{};
+			bool noStdLogs{};
 			std::ostream* outStream{};
 			std::ostream* cout{};
 			std::ostream* cerr{};
+			core::logs::logcallback callback{};
 
 			std::vector<std::string> paths{};
 		} log;

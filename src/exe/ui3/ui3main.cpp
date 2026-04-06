@@ -74,9 +74,7 @@ int main(int argc, char* argv[]) {
     QApplication app{ argc2, (char**)argv2};
 
     MainWindow window;
-
-    window.setWindowTitle(QString::asprintf("Atian Tools UI3 %s", core::actsinfo::VERSION));
     window.show();
-
+    window.setWindowTitle(QString::asprintf("Atian Tools (%s)", core::actsinfo::VERSION));
     return app.exec();
 }

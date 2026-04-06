@@ -1,16 +1,16 @@
 # AtianCodToolsUI3
 if (NOT NO_QT_BUILD)
     file(GLOB_RECURSE ACTS_UI3_SOURCES
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/icons/*"
+        "${CMAKE_SOURCE_DIR}/src/exe/ui3/resources/*"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.hpp"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.h"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.cpp"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.ui"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.qrc"
         "${CMAKE_SOURCE_DIR}/resources/ui/*"
     )
 
     set(CMAKE_AUTOUIC ON)
+    set(CMAKE_AUTOUIC_VERBOSE ON)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
 
@@ -29,6 +29,7 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/core/acts"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3"
         "${CMAKE_SOURCE_DIR}/src/core/shared"
+        "${CMAKE_SOURCE_DIR}/deps/mstch/include/"
     )
 
     append_common_defs(AtianCodToolsUI3 QT)
@@ -38,11 +39,13 @@ if (NOT NO_QT_BUILD)
         ACTSSharedLibrary
         Qt6::Core
         Qt6::Widgets
+        mstch
     )
 
     add_dependencies(AtianCodToolsUI3 
         AtianCodTools 
         ACTSSharedLibrary
+        mstch
     )
 
     get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
@@ -55,14 +58,27 @@ if (NOT NO_QT_BUILD)
         add_custom_command(TARGET AtianCodToolsUI3 POST_BUILD
             COMMAND "${QT_BIN_DIR}/windeployqt.exe"
                     --version
-        )
-        add_custom_command(TARGET AtianCodToolsUI3 POST_BUILD
+
             COMMAND "${QT_BIN_DIR}/windeployqt.exe"
                     --no-compiler-runtime
                     --no-translations
                     --release
                     "$<TARGET_FILE:AtianCodToolsUI3>"
-            COMMENT "Running windeployqt on AtianCodToolsUI3"
+                            
+            COMMAND ${CMAKE_COMMAND} -E echo "Remove data in $<TARGET_FILE_DIR:AtianCodToolsUI3>"
+            COMMAND ${CMAKE_COMMAND} -E rm -rf 
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qjpeg.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qgif.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qsvg.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/Qt6Network.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/Qt6Svg.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/D3Dcompiler_47.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/dxcompiler.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/opengl32sw.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/icuuc.dll"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/networkinformation"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/tls"
+                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/generic"
         )
     endif()
 endif()
