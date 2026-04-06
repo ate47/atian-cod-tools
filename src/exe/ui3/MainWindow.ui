@@ -44,6 +44,9 @@
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionWiki"/>
+    <addaction name="separator"/>
+    <addaction name="actionDonate"/>
     <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menuHashes">
@@ -51,8 +54,8 @@
      <string>Developer</string>
     </property>
     <addaction name="actionT89Error"/>
-    <addaction name="actionHash"/>
     <addaction name="actionExecutable_Dumper"/>
+    <addaction name="actionHash"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuHashes"/>
@@ -71,21 +74,35 @@
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionExit">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::ApplicationExit"/>
+   </property>
    <property name="text">
     <string>Exit</string>
    </property>
   </action>
   <action name="actionAbout">
+   <property name="icon">
+    <iconset>
+     <normalon>:/images/icon.ico</normalon>
+    </iconset>
+   </property>
    <property name="text">
-    <string>About</string>
+    <string>About Atian Tools</string>
    </property>
   </action>
   <action name="actionHash">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::InputKeyboard"/>
+   </property>
    <property name="text">
     <string>Hash</string>
    </property>
   </action>
   <action name="actionT89Error">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DialogWarning"/>
+   </property>
    <property name="text">
     <string>BO4/CW Runtime Errors</string>
    </property>
@@ -95,7 +112,24 @@
     <string>Executable Dumper</string>
    </property>
   </action>
+  <action name="actionDonate">
+   <property name="icon">
+    <iconset>
+     <normalon>:/images/heart.svg</normalon>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Donate</string>
+   </property>
+  </action>
+  <action name="actionWiki">
+   <property name="text">
+    <string>Atian Tools Wiki</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources/resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

@@ -7,17 +7,27 @@
 #include <QProgressBar>
 #include <QLabel>
 #include <QTimer>
+#include <QDesktopServices>
 #include "MainWindow.h"
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     ui.setupUi(this);
     setWindowIcon(QIcon(":/images/icon.ico"));
+    // File
     connect(ui.actionExit, &QAction::triggered, this, &MainWindow::close);
-    connect(ui.actionAbout, &QAction::triggered, this, [this]() { LoadToolUi<InfoWidget>(); });
+
+    // Dev
     connect(ui.actionHash, &QAction::triggered, this, [this]() { LoadToolUi<HashWidget>(); });
     connect(ui.actionT89Error, &QAction::triggered, this, [this]() { LoadToolUi<T89ErrorWidget>(); });
     connect(ui.actionExecutable_Dumper, &QAction::triggered, this, [this]() { LoadToolUi<ExeDumperWidget>(); });
+
+    // Help
+    connect(ui.actionWiki, &QAction::triggered, this, [this]() { QDesktopServices::openUrl(QUrl::fromLocalFile("https://github.com/ate47/atian-cod-tools/wiki")); });
+    connect(ui.actionDonate, &QAction::triggered, this, [this]() { QDesktopServices::openUrl(QUrl::fromLocalFile("https://ko-fi.com/ate47")); });
+    connect(ui.actionAbout, &QAction::triggered, this, [this]() { LoadToolUi<InfoWidget>(); });
     setCentralWidget(ui.mdiArea);
+
+    ui.menubar->addSeparator();
 
 }
 MainWindow::~MainWindow() = default;

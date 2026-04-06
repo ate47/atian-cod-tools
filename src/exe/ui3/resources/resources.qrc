@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>images/icon.ico</file>
         <file>templates/about.mustache</file>
+        <file>images/heart.svg</file>
     </qresource>
 </RCC>

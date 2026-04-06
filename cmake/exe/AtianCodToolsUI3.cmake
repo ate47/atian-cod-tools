@@ -70,7 +70,6 @@ if (NOT NO_QT_BUILD)
             COMMAND ${CMAKE_COMMAND} -E rm -rf 
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qjpeg.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qgif.dll"
-                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qsvg.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/Qt6Network.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/Qt6Svg.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/D3Dcompiler_47.dll"
