@@ -4,6 +4,7 @@
 #include <cli/cli_options.hpp>
 #include <cli/clicolor.hpp>
 #include <core/bytebuffer.hpp>
+#include <api/process.hpp>
 
 namespace tool::exe_dump {
 	const char* ImageDirName(size_t id) {
@@ -507,4 +508,44 @@ namespace tool::exe_dump {
 		ADD_TOOL(exe_dump, "common", "[exe] (out)", "Dump exe", exe_dump);
 		ADD_TOOL(game_dump, "common", "[id] [path]", "Dump game exe to acts", game_dump);
 	}
+}
+
+ACTS_COMMON_API acts::api::ActsAPIProcess& ActsAPIProcess() {
+	class ActsAPIProcessImpl : public acts::api::ActsAPIProcess {
+	public:
+		bool DumpProcessExe(const char* in, const char* out, acts::api::DumpProcessOption* options) override {
+			tool::exe_dump::DumpProcessOpt opt{};
+			if (options) {
+				opt.rebuildIAT = options->rebuildIAT;
+			}
+			try {
+				std::filesystem::path exePath{ in };
+				std::filesystem::path outPath;
+				if (!out || !*out) {
+					outPath = exePath.filename();
+					outPath.replace_extension();
+					outPath = utils::GetProgDir() / "deps" / std::format("{}_dump.exe", outPath.string());
+				}
+				else {
+					outPath = out;
+				}
+
+				tool::exe_dump::DumpProcessExe(exePath, outPath, &opt);
+
+				if (options && options->outMessageSize) {
+					std::string outPathStr{ outPath.string() };
+					snprintf(options->outMessage, options->outMessageSize, "Dumped to %s", outPathStr.c_str());
+				}
+				return true;
+			}
+			catch (std::runtime_error& e) {
+				if (options && options->outMessageSize) {
+					strncpy_s(options->outMessage, options->outMessageSize, e.what(), _TRUNCATE);
+				}
+				return false;
+			}
+		}
+	};
+	static ActsAPIProcessImpl impl{};
+	return impl;
 }

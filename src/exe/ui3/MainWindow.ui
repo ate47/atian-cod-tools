@@ -52,6 +52,7 @@
     </property>
     <addaction name="actionT89Error"/>
     <addaction name="actionHash"/>
+    <addaction name="actionExecutable_Dumper"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuHashes"/>
@@ -86,7 +87,12 @@
   </action>
   <action name="actionT89Error">
    <property name="text">
-    <string>BO4/CW Errors</string>
+    <string>BO4/CW Runtime Errors</string>
+   </property>
+  </action>
+  <action name="actionExecutable_Dumper">
+   <property name="text">
+    <string>Executable Dumper</string>
    </property>
   </action>
  </widget>

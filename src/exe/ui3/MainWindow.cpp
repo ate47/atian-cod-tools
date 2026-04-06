@@ -1,7 +1,11 @@
 #include <ui_includes.hpp>
-#include <ui-tools/InfoWidget.h>
-#include <ui-tools/HashWidget.h>
-#include <ui-tools/T89ErrorWidget.h>
+#include <widgets/InfoWidget.h>
+#include <widgets/HashWidget.h>
+#include <widgets/T89ErrorWidget.h>
+#include <widgets/ExeDumperWidget.h>
+#include <QLayout>
+#include <QProgressBar>
+#include <QLabel>
 #include <QTimer>
 #include "MainWindow.h"
 
@@ -12,6 +16,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(ui.actionAbout, &QAction::triggered, this, [this]() { LoadToolUi<InfoWidget>(); });
     connect(ui.actionHash, &QAction::triggered, this, [this]() { LoadToolUi<HashWidget>(); });
     connect(ui.actionT89Error, &QAction::triggered, this, [this]() { LoadToolUi<T89ErrorWidget>(); });
+    connect(ui.actionExecutable_Dumper, &QAction::triggered, this, [this]() { LoadToolUi<ExeDumperWidget>(); });
     setCentralWidget(ui.mdiArea);
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <QMainWindow>
 #include <QMdiSubWindow>
+#include <QProgressBar>
 #include "ui_MainWindow.h"
 
 class MainWindow : public QMainWindow {
@@ -31,8 +32,10 @@ public:
             return;
         }
 
-        AddSubWindow(new T(this, ui.mdiArea));
+        AddSubWindow(new T(ui.mdiArea));
     }
 private:
     Ui::MainWindow ui;
 };
+
+MainWindow* GetMainWindow();

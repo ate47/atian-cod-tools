@@ -2,18 +2,32 @@
 #include <core/actsinfo.hpp>
 #include <core/updater_endpoint.hpp>
 #include <mstch/mstch.hpp>
-#include <QFile>
 #include <api/version.hpp>
 #include "InfoWidget.h"
+#include <QFile>
+#include <QTextBrowser>
+#include <QCoreApplication>
 
-InfoWidget::InfoWidget(QMainWindow* main, QWidget *parent)
-	: main(main), QWidget(parent) {
-	ui.setupUi(this);
+InfoWidget::InfoWidget(QWidget *parent) : QWidget(parent) {
+	setObjectName("InfoWidgetClass");
+	resize(600, 400);
+	QSizePolicy sizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed);
+	sizePolicy.setHorizontalStretch(0);
+	sizePolicy.setVerticalStretch(0);
+	sizePolicy.setHeightForWidth(hasHeightForWidth());
+	setSizePolicy(sizePolicy);
+	QTextBrowser* text{ new QTextBrowser(this) };
+	text->setObjectName("text");
+	text->setGeometry(QRect(0, 0, 600, 400));
+	setWindowTitle(QCoreApplication::translate("InfoWidgetClass", "About", nullptr));
+
+	QMetaObject::connectSlotsByName(this);
+
 	setFixedSize(600, 400);
 
-	ui.text->setAcceptRichText(true);
-	ui.text->setTextInteractionFlags(Qt::TextInteractionFlag::TextBrowserInteraction);
-	ui.text->setOpenExternalLinks(true);
+	text->setAcceptRichText(true);
+	text->setTextInteractionFlags(Qt::TextInteractionFlag::TextBrowserInteraction);
+	text->setOpenExternalLinks(true);
 
 	QFile aboutTemplate{ ":/templates/about.mustache" };
 
@@ -55,7 +69,7 @@ InfoWidget::InfoWidget(QMainWindow* main, QWidget *parent)
 	mstch::node context{ mstch::map_wrapper{ templateData } };
 	data = mstch::render(data, context);
 	aboutData = data.data();
-	ui.text->setHtml(aboutData);
+	text->setHtml(aboutData);
 }
 
 InfoWidget::~InfoWidget() {}

@@ -15,6 +15,7 @@
 #include <sha1.h>
 #include <sha256.h>
 #include <api/hash.hpp>
+#include <tools/coder/error_coder.hpp>
 
 namespace hash {
 	HashAlg HashAlg::algs[13]
@@ -1463,6 +1464,18 @@ ACTS_COMMON_API acts::api::ActsAPIHash& ActsAPIHash() {
 		}
 		size_t GetHashesCount() override {
 			return ARRAYSIZE(hashes);
+		}
+
+		void EncodeErrorCode(acts::api::ErrorCode& code, uint32_t val, bool alternative) override {
+			error_coder::Encode(code, val, alternative);
+		}
+
+		uint32_t DecodeErrorCode(const acts::api::ErrorCode& code) override {
+			return error_coder::Decode(code);
+		}
+
+		const char* ErrorCodeToStr(const acts::api::ErrorCode& code) override {
+			return error_coder::ToStr(code);
 		}
 	};
 

@@ -5,6 +5,7 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QLabel>
+#include <QCoreApplication>
 
 namespace {
 	QLineEdit* CreateQLineEditRow(const char* desc, bool editable, QVBoxLayout* parent) {
@@ -27,9 +28,11 @@ namespace {
 	}
 }
 
-HashWidget::HashWidget(QMainWindow* main, QWidget* parent)
-	: main(main), QWidget(parent) {
-	ui.setupUi(this);
+HashWidget::HashWidget(QWidget* parent) : QWidget(parent) {
+	setObjectName("HashWidgetClass");
+	resize(600, 400);
+	setWindowTitle(QCoreApplication::translate("HashWidgetClass", "Hash ", nullptr));
+	QMetaObject::connectSlotsByName(this);
 
 	QHBoxLayout* layout{ new QHBoxLayout(this) };
 	layout->setContentsMargins(0, 0, 0, 0); // optional, removes padding

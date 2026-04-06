@@ -8,6 +8,7 @@
 #include <MainWindow.h>
 
 namespace {
+    static MainWindow* mainWindow{};
 
     void ActsQTMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg) {
         core::logs::loglevel lvl;
@@ -43,6 +44,10 @@ namespace {
     }
 }
 
+MainWindow* GetMainWindow() {
+    return mainWindow;
+}
+
 int main(int argc, char* argv[]) {
     core::shared_cfg::SetSharedConfigPtr(GetActsSharedConfig());
     // load acts api data
@@ -74,6 +79,7 @@ int main(int argc, char* argv[]) {
     QApplication app{ argc2, (char**)argv2};
 
     MainWindow window;
+    mainWindow = &window;
     window.show();
     window.setWindowTitle(QString::asprintf("Atian Tools (%s)", core::actsinfo::VERSION));
     return app.exec();

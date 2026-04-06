@@ -10,7 +10,6 @@
 #endif
 #endif
 
-
 /*
  * Init ACTS common api
  */

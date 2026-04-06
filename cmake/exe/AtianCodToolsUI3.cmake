@@ -5,10 +5,8 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.hpp"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.h"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.cpp"
+        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/ExeDumperWidget.ui"
         "${CMAKE_SOURCE_DIR}/resources/ui/*"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/ui-tools/HashWidget.ui"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/ui-tools/InfoWidget.ui"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/ui-tools/T89ErrorWidget.ui"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/MainWindow.ui"
     )
 
