@@ -419,6 +419,13 @@ namespace tool::exe_dump {
 			const char* exe;
 			const char* ddls;
 			DumpProcessOpt opt;
+
+			void WriteDumpInfo(acts::api::GameDumpInformation& gopt) const {
+				gopt.id = id;
+				gopt.exe = exe;
+				gopt.ddls = ddls;
+				gopt.rebuildIAT = opt.rebuildIAT;
+			}
 		};
 
 		static GameConfig gameConfigs[]{
@@ -512,8 +519,16 @@ namespace tool::exe_dump {
 
 ACTS_COMMON_API acts::api::ActsAPIProcess& ActsAPIProcess() {
 	class ActsAPIProcessImpl : public acts::api::ActsAPIProcess {
+		acts::api::GameDumpInformation games[ARRAYSIZE(tool::exe_dump::gameConfigs)]{};
 	public:
-		bool DumpProcessExe(const char* in, const char* out, acts::api::DumpProcessOption* options) override {
+		ActsAPIProcessImpl() {
+			acts::api::GameDumpInformation* game{ games };
+			for (tool::exe_dump::GameConfig& cfg : tool::exe_dump::gameConfigs) {
+				cfg.WriteDumpInfo(*(game++));
+			}
+		}
+
+		ActsStatus DumpProcessExe(const char* in, const char* out, acts::api::DumpProcessOption* options) override {
 			tool::exe_dump::DumpProcessOpt opt{};
 			if (options) {
 				opt.rebuildIAT = options->rebuildIAT;
@@ -532,17 +547,93 @@ ACTS_COMMON_API acts::api::ActsAPIProcess& ActsAPIProcess() {
 
 				tool::exe_dump::DumpProcessExe(exePath, outPath, &opt);
 
-				if (options && options->outMessageSize) {
-					std::string outPathStr{ outPath.string() };
-					snprintf(options->outMessage, options->outMessageSize, "Dumped to %s", outPathStr.c_str());
-				}
-				return true;
+				std::string outPathStr{ outPath.string() };
+				ActsAPISetLastMessage("Dumped to %s", outPathStr.c_str());
+				return ActsStatus::ACTS_STATUS_OK;
 			}
 			catch (std::runtime_error& e) {
-				if (options && options->outMessageSize) {
-					strncpy_s(options->outMessage, options->outMessageSize, e.what(), _TRUNCATE);
+				ActsAPISetLastMessage("%s", e.what());
+				return ActsStatus::ACTS_STATUS_ERROR;
+			}
+		}
+
+		ActsStatus DumpProcess(uint32_t pid, const char* out, acts::api::DumpProcessOption* options) override {
+			try {
+				Process proc{ NULL, pid };
+
+				if (!proc.Open()) {
+					ActsAPISetLastMessage("Can't open process %ul", pid);
+					return ActsStatus::ACTS_STATUS_ERROR;
 				}
-				return false;
+				tool::exe_dump::DumpProcessOpt opt{};
+				if (options) {
+					opt.rebuildIAT = options->rebuildIAT;
+				}
+
+				std::filesystem::path outPath;
+				if (!out || !*out) {
+					proc.ComputeModules();
+					outPath = proc.GetMainModule().path;
+					outPath = outPath.filename();
+					outPath.replace_extension();
+					outPath = utils::GetProgDir() / "deps" / std::format("{}_dump.exe", outPath.string());
+				}
+				else {
+					outPath = out;
+				}
+
+				tool::exe_dump::DumpProcess(proc, outPath, &opt);
+
+				std::string outPathStr{ outPath.string() };
+				ActsAPISetLastMessage("Dumped to %s", outPathStr.c_str());
+				return ActsStatus::ACTS_STATUS_OK;
+			}
+			catch (std::runtime_error& e) {
+				ActsAPISetLastMessage("%s", e.what());
+				return ActsStatus::ACTS_STATUS_ERROR;
+			}
+		}
+		acts::api::GameDumpInformation* GetGameDumps() override {
+			return games;
+		}
+		size_t GetGameDumpsCount() override {
+			return ARRAYSIZE(games);
+		}
+		ActsStatus DumpGame(acts::api::GameDumpInformation& game, const char* root, const char* out) override {
+			try {
+				std::filesystem::path path{ root };
+				std::filesystem::path depsDir;
+				std::filesystem::path outPath;
+				if (!out || !*out) {
+					depsDir = utils::GetProgDir() / "deps";
+					outPath = game.exe;
+					outPath = outPath.filename();
+					outPath.replace_extension();
+					outPath = utils::GetProgDir() / "deps" / std::format("{}_dump.exe", outPath.string());
+				}
+				else {
+					outPath = out;
+					depsDir = outPath.parent_path();
+				}
+
+				const char* dllName{ game.ddls };
+				while (*dllName) {
+					std::filesystem::path dllPath{ path / dllName };
+					std::filesystem::path depsPath{ depsDir / dllPath.filename() };
+					std::filesystem::copy_file(dllPath, depsPath, std::filesystem::copy_options::skip_existing);
+					LOG_INFO("installed dll {} to {}", dllName, depsPath.string());
+					dllName += std::strlen(dllName) + 1;
+				}
+
+				tool::exe_dump::DumpProcessOpt opt{};
+				opt.rebuildIAT = game.rebuildIAT;
+
+				tool::exe_dump::DumpProcessExe(path / game.exe, outPath, &opt);
+				return ActsStatus::ACTS_STATUS_OK;
+			}
+			catch (std::runtime_error& e) {
+				ActsAPISetLastMessage("%s", e.what());
+				return ActsStatus::ACTS_STATUS_ERROR;
 			}
 		}
 	};

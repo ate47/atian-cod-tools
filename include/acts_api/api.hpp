@@ -13,3 +13,18 @@
 # define ACTS_COMMON_API ACTS_EXTERN_C __declspec(dllimport)
 #endif
 #endif
+
+enum ActsStatus : int32_t {
+	ACTS_STATUS_OK = 0,
+	ACTS_STATUS_ERROR = -1,
+};
+
+// test if an ActsStatus value is OK
+#define ACTS_OK(status) ((status) >= ACTS_STATUS_OK)
+// test if an ActsStatus value is not OK (error)
+#define ACTS_NOT_OK(status) ((status) < ACTS_STATUS_OK)
+
+// Get last API message for this thread
+ACTS_COMMON_API const char* ActsGetAPILastMessage();
+// Set the last API message for this thread
+ACTS_COMMON_API void ActsAPISetLastMessage(const char* fmt, ...);

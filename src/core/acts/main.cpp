@@ -404,6 +404,19 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 	return 0;
 }
 
+static thread_local char actsApiLastMessageBuffer[0x400]{};
+
+const char* ActsGetAPILastMessage() {
+	return actsApiLastMessageBuffer;
+}
+
+void ActsAPISetLastMessage(const char* fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	vsnprintf(actsApiLastMessageBuffer, sizeof(actsApiLastMessageBuffer), fmt, args);
+	va_end(args);
+}
+
 int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	int r{ InitActsAPI(cli, &argc, &argv, core::actsinfo::BUILD_VERSION_ID) };

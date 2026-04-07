@@ -51,15 +51,12 @@ ExeDumperWidget::ExeDumperWidget(QWidget *parent)
 
         bool rebuildIAT{ ui.rebuildIATCheck->isChecked() };
 
-        char message[0x400]{};
         acts::api::DumpProcessOption options{};
         options.rebuildIAT = rebuildIAT;
-        options.outMessage = message;
-        options.outMessageSize = sizeof(message);
 
         ActsAPIProcess().DumpProcessExe(execPath.constData(), dumpPath.constData(), &options);
 
-        ui.returnLabel->setText(message);
+        ui.returnLabel->setText(ActsGetAPILastMessage());
     });
 }
 
