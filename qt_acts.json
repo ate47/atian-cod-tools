@@ -3,7 +3,6 @@
         "acts-ui3.exe"
     ],
     "delete": [
-        "styles",
         "imageformats/qgif.dll",
         "imageformats/qjpeg.dll",
         "iconengines",
