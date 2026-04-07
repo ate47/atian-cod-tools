@@ -2,6 +2,7 @@
 #include <rapidcsv.h>
 #include <BS_thread_pool.hpp>
 #include <core/config.hpp>
+#include <core/hashes/hash_store.hpp>
 #include <actscli.hpp>
 #include <tools/tools_ui.hpp>
 #include <tools/tools_nui.hpp>
@@ -1476,6 +1477,38 @@ ACTS_COMMON_API acts::api::ActsAPIHash& ActsAPIHash() {
 
 		const char* ErrorCodeToStr(const acts::api::ErrorCode& code) override {
 			return error_coder::ToStr(code);
+		}
+
+		void* AllocHashMemory(size_t len) override {
+			return core::hashes::AllocHashMemory(len);
+		}
+
+		const char* CloneHashStr(const char* str) override {
+			return core::hashes::CloneHashStr(str);
+		}
+
+		void Clean() override {
+			core::hashes::Clean();
+		}
+
+		const char* AddPrecomputed(uint64_t value, const char* str, bool clone) override {
+			return core::hashes::AddPrecomputed(value, str, clone);
+		}
+
+		const char* ExtractPtr(uint64_t hash) override {
+			return core::hashes::ExtractPtr(hash);
+		}
+
+		bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) override {
+			return core::hashes::Extract(type, hash, out, outSize);
+		}
+
+		char* ExtractTmp(const char* type, uint64_t hash) override {
+			return core::hashes::ExtractTmp(type, hash);
+		}
+
+		void ReadDefaultHashFiles() override {
+			hashutils::ReadDefaultFile();
 		}
 	};
 

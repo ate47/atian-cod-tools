@@ -17,7 +17,7 @@ set_target_properties(AtianCodToolsCordycep PROPERTIES
 
 target_include_directories(AtianCodToolsCordycep PRIVATE
     "${CMAKE_SOURCE_DIR}/src/exe/cordycep"
-    "${CMAKE_SOURCE_DIR}/src/core/acts"
+    "${CMAKE_SOURCE_DIR}/include"
 )
 
 target_link_libraries(AtianCodToolsCordycep PRIVATE AtianCodTools)

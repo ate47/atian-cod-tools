@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 /*
  * Atian Tools Common API commons
  */

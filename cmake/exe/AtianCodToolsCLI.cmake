@@ -17,7 +17,7 @@ set_target_properties(AtianCodToolsCLI PROPERTIES
 
 target_include_directories(AtianCodToolsCLI PRIVATE
     "${CMAKE_SOURCE_DIR}/src/exe/cli"
-    "${CMAKE_SOURCE_DIR}/src/core/acts"
+    "${CMAKE_SOURCE_DIR}/include"
 )
 
 # link to library target names assumed to exist elsewhere

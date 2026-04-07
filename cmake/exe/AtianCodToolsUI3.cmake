@@ -27,7 +27,7 @@ if (NOT NO_QT_BUILD)
     )
 
     target_include_directories(AtianCodToolsUI3 PRIVATE
-        "${CMAKE_SOURCE_DIR}/src/core/acts"
+        "${CMAKE_SOURCE_DIR}/include"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3"
         "${CMAKE_SOURCE_DIR}/src/core/shared"
         "${CMAKE_SOURCE_DIR}/deps/mstch/include/"

@@ -4,11 +4,21 @@ file(GLOB_RECURSE ACTS_SOURCES
     "${CMAKE_SOURCE_DIR}/src/core/acts/*.h"
     "${CMAKE_SOURCE_DIR}/src/core/acts/*.hpp"
 )
+file(GLOB_RECURSE ACTS_INCLUDE_SOURCES
+    "${CMAKE_SOURCE_DIR}/include/*.h"
+    "${CMAKE_SOURCE_DIR}/include/*.hpp"
+)
 add_library(AtianCodTools SHARED)
-target_sources(AtianCodTools PRIVATE ${ACTS_SOURCES} ${ACTS_MISC})
+target_sources(AtianCodTools PRIVATE ${ACTS_SOURCES} ${ACTS_INCLUDE_SOURCES})
 source_group(
     TREE "${CMAKE_SOURCE_DIR}/src/core/acts"
+    PREFIX acts
     FILES ${ACTS_SOURCES}
+)
+source_group(
+    TREE "${CMAKE_SOURCE_DIR}/include"
+    PREFIX include
+    FILES ${ACTS_INCLUDE_SOURCES}
 )
 set_target_properties(AtianCodTools PROPERTIES
     OUTPUT_NAME "acts-common"
@@ -51,6 +61,7 @@ target_include_directories(AtianCodTools PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include/"
     "${CMAKE_SOURCE_DIR}/deps/libtomcrypt/src/headers/"
     "${CMAKE_SOURCE_DIR}/deps/mstch/include/"
+    "${CMAKE_SOURCE_DIR}/include"
 )
 
 target_link_libraries(AtianCodTools PRIVATE

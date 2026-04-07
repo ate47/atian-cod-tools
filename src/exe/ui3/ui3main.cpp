@@ -1,5 +1,4 @@
 #include <ui_includes.hpp>
-#include <acts.hpp>
 #include <acts_api/internal.hpp>
 #include <core/actsinfo.hpp>
 #include <core/shared_cfg_data.hpp>

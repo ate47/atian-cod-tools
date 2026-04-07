@@ -15,7 +15,7 @@ set_target_properties(AtianCodToolsUI PROPERTIES
 )
 
 target_include_directories(AtianCodToolsUI PRIVATE
-    "${CMAKE_SOURCE_DIR}/src/core/acts"
+    "${CMAKE_SOURCE_DIR}/include"
     "${CMAKE_SOURCE_DIR}/src/exe/ui"
     "${CMAKE_SOURCE_DIR}/src/core/shared"
     "${CMAKE_SOURCE_DIR}/deps/ps4debug/libdebug/cpp/include"

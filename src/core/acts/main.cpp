@@ -7,7 +7,7 @@
 #include <cli/clicolor.hpp>
 #include "hook/error.hpp"
 #include "actslib/logging.hpp"
-#include <acts.hpp>
+#include <acts_api/internal.hpp>
 #include <core/actsinfo.hpp>
 #include "main_ui.hpp"
 #include <tools/compatibility/acti_crypto_keys.hpp>
@@ -404,7 +404,7 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 	return 0;
 }
 
-int MainActs(int argc, const char* argv[], HINSTANCE hInstance, int nShowCmd) {
+int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	int r{ InitActsAPI(cli, &argc, &argv, core::actsinfo::BUILD_VERSION_ID) };
 	if (r) {
@@ -490,7 +490,7 @@ int MainActs(int argc, const char* argv[], HINSTANCE hInstance, int nShowCmd) {
 	}
 
 	if (hInstance || opt.type == actscli::ACTS_NUI) {
-		return tool::ui::MainActsUI(hInstance, nShowCmd); // no tool to run, life's easier if I put that here
+		return tool::ui::MainActsUI((HINSTANCE)hInstance, nShowCmd); // no tool to run, life's easier if I put that here
 	}
 
 	int output;
