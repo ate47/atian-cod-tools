@@ -14,7 +14,7 @@
 #include <crc_cpp.h>
 #include <sha1.h>
 #include <sha256.h>
-#include <api/hash.hpp>
+#include <acts_api/hash.hpp>
 #include <tools/coder/error_coder.hpp>
 
 namespace hash {

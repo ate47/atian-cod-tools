@@ -4,7 +4,7 @@
 #include <cli/cli_options.hpp>
 #include <cli/clicolor.hpp>
 #include <core/bytebuffer.hpp>
-#include <api/process.hpp>
+#include <acts_api/process.hpp>
 
 namespace tool::exe_dump {
 	const char* ImageDirName(size_t id) {

@@ -1,7 +1,7 @@
 #include <ui_includes.hpp>
 #include <utils/hash_mini.hpp>
 #include "HashWidget.h"
-#include <api/hash.hpp>
+#include <acts_api/hash.hpp>
 #include <QLayout>
 #include <QLineEdit>
 #include <QLabel>

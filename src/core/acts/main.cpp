@@ -7,7 +7,6 @@
 #include <cli/clicolor.hpp>
 #include "hook/error.hpp"
 #include "actslib/logging.hpp"
-#include <acts_api.hpp>
 #include <acts.hpp>
 #include <core/actsinfo.hpp>
 #include "main_ui.hpp"
@@ -16,7 +15,8 @@
 #include <core/config.hpp>
 #include <core/updater.hpp>
 #include <core/shared_cfg_data.hpp>
-#include <api/version.hpp>
+#include <acts_api/version.hpp>
+#include <acts_api/internal.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -385,17 +385,18 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 		return -1;
 	}
 
-	if (ShouldHandleACTSOptions(*argc, *argv)) {
-		static std::vector<const char*> newargv{};
-		if (HandleACTSOptions(*argc, *argv, newargv)) {
-			*argv = newargv.data();
-			*argc = (int)newargv.size();
-		}
-		else {
-			return -1;
+	if (argc && *argc && argv) {
+		if (ShouldHandleACTSOptions(*argc, *argv)) {
+			static std::vector<const char*> newargv{};
+			if (HandleACTSOptions(*argc, *argv, newargv)) {
+				*argv = newargv.data();
+				*argc = (int)newargv.size();
+			}
+			else {
+				return -1;
+			}
 		}
 	}
-
 	LOG_TRACE("Install error hooks");
 
 	hook::error::InstallErrorHooks();

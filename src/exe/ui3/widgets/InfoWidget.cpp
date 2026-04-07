@@ -2,7 +2,7 @@
 #include <core/actsinfo.hpp>
 #include <core/updater_endpoint.hpp>
 #include <mstch/mstch.hpp>
-#include <api/version.hpp>
+#include <acts_api/version.hpp>
 #include "InfoWidget.h"
 #include <QFile>
 #include <QTextBrowser>

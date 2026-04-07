@@ -26,6 +26,8 @@ try {
     New-Item "$base/licenses/gpl3" -ItemType Directory > $null
     New-Item "$base/licenses/all" -ItemType Directory > $null
     New-Item "$base/bin" -ItemType Directory > $null
+    New-Item "$base/include" -ItemType Directory > $null
+    New-Item "$base/lib" -ItemType Directory > $null
     New-Item "$base/bin/package_index" -ItemType Directory > $null
     New-Item "$base/bin/deps" -ItemType Directory > $null
 
@@ -85,6 +87,10 @@ try {
     # Binaries
     Copy-Item "build/bin/Release/*.exe" "$base/bin" > $null
     Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
+
+    # api
+    Copy-Item "build/bin/Release/acts-common.lib" "$base/lib" > $null
+    Copy-Item -Recurse "src/core/acts/acts_api" "$base/include" > $null
 
     if ($deployQt) {
         $qtActs = Get-Content "qt_acts.json" | ConvertFrom-Json
