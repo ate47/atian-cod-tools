@@ -1,7 +1,7 @@
 #include <ui_includes.hpp>
 #include <utils/hash_mini.hpp>
 #include "HashWidget.h"
-#include <acts_api/hash.hpp>
+#include <acts_api/hash.h>
 #include <QLayout>
 #include <QLineEdit>
 #include <QLabel>
@@ -42,13 +42,11 @@ HashWidget::HashWidget(QWidget* parent) : QWidget(parent) {
 	QVBoxLayout* customLayout{ new QVBoxLayout() };
 
 	// functions
-	acts::api::ActsAPIHash& hash{ ActsAPIHash() };
-	acts::api::HashType* types{ hash.GetHashes() };
-	size_t typesCount{ hash.GetHashesCount() };
+	ActsAPIHash_HashTypeList* types{ ActsAPIHash_GetHashesList() };
 
 	stringValue = CreateQLineEditRow("String", true, funcLayout);
-	for (size_t i = 0; i < typesCount; i++) {
-		acts::api::HashType& type{ types[i] };
+	for (size_t i = 0; i < types->count; i++) {
+		ActsAPIHash_HashType& type{ types->values[i] };
 		QLineEdit* edit{ CreateQLineEditRow(type.desc, false, funcLayout) };
 
 		stringValue->connect(stringValue, &QLineEdit::textChanged, [this, type, edit](const QString& text) {

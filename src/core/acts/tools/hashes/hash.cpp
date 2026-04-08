@@ -15,7 +15,7 @@
 #include <crc_cpp.h>
 #include <sha1.h>
 #include <sha256.h>
-#include <acts_api/hash.hpp>
+#include <acts_api/hash.h>
 #include <tools/coder/error_coder.hpp>
 
 namespace hash {
@@ -1446,72 +1446,66 @@ namespace hash {
 	}
 }
 
-ACTS_COMMON_API acts::api::ActsAPIHash& ActsAPIHash() {
-	class ActsAPIHashImpl : public acts::api::ActsAPIHash {
-		acts::api::HashType hashes[ARRAYSIZE(hash::HashAlg::algs)]{};
-	public:
-		ActsAPIHashImpl() {
-			acts::api::HashType* h{ hashes };
-			for (hash::HashAlg& alg : hash::HashAlg::algs) {
-				h->id = alg.id;
-				h->desc = alg.desc;
-				h->hashFunc = alg.hashFunc;
-				h++;
-			}
-		}
+ActsAPIHash_HashTypeList* ActsAPIHash_GetHashesList() {
+	static struct {
+		ActsAPIHash_HashType hashes[ARRAYSIZE(hash::HashAlg::algs)]{};
+		ActsAPIHash_HashTypeList list{};
+	} _h;
 
-		acts::api::HashType* GetHashes() override {
-			return hashes;
-		}
-		size_t GetHashesCount() override {
-			return ARRAYSIZE(hashes);
-		}
+	if (!_h.list.count) {
+		_h.list.values = _h.hashes;
 
-		void EncodeErrorCode(acts::api::ErrorCode& code, uint32_t val, bool alternative) override {
-			error_coder::Encode(code, val, alternative);
+		for (hash::HashAlg& alg : hash::HashAlg::algs) {
+			ActsAPIHash_HashType* h{ &_h.list.values[_h.list.count++] };
+			h->id = alg.id;
+			h->desc = alg.desc;
+			h->hashFunc = alg.hashFunc;
 		}
+	}
 
-		uint32_t DecodeErrorCode(const acts::api::ErrorCode& code) override {
-			return error_coder::Decode(code);
-		}
+	return &_h.list;
+}
 
-		const char* ErrorCodeToStr(const acts::api::ErrorCode& code) override {
-			return error_coder::ToStr(code);
-		}
+void ActsAPIHash_EncodeErrorCode(ActsAPIHash_ErrorCode* code, uint32_t val, bool alternative) {
+	error_coder::Encode(*code, val, alternative);
+}
 
-		void* AllocHashMemory(size_t len) override {
-			return core::hashes::AllocHashMemory(len);
-		}
+uint32_t ActsAPIHash_DecodeErrorCode(const ActsAPIHash_ErrorCode* code) {
+	return error_coder::Decode(*code);
+}
 
-		const char* CloneHashStr(const char* str) override {
-			return core::hashes::CloneHashStr(str);
-		}
+const char* ActsAPIHash_ErrorCodeToStr(const ActsAPIHash_ErrorCode* code) {
+	return error_coder::ToStr(*code);
+}
 
-		void Clean() override {
-			core::hashes::Clean();
-		}
+void* ActsAPIHash_AllocHashMemory(size_t len) {
+	return core::hashes::AllocHashMemory(len);
+}
 
-		const char* AddPrecomputed(uint64_t value, const char* str, bool clone) override {
-			return core::hashes::AddPrecomputed(value, str, clone);
-		}
+const char* ActsAPIHash_CloneHashStr(const char* str) {
+	return core::hashes::CloneHashStr(str);
+}
 
-		const char* ExtractPtr(uint64_t hash) override {
-			return core::hashes::ExtractPtr(hash);
-		}
+void ActsAPIHash_Clean() {
+	core::hashes::Clean();
+}
 
-		bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) override {
-			return core::hashes::Extract(type, hash, out, outSize);
-		}
+const char* ActsAPIHash_AddPrecomputed(uint64_t value, const char* str, bool clone) {
+	return core::hashes::AddPrecomputed(value, str, clone);
+}
 
-		char* ExtractTmp(const char* type, uint64_t hash) override {
-			return core::hashes::ExtractTmp(type, hash);
-		}
+const char* ActsAPIHash_ExtractPtr(uint64_t hash) {
+	return core::hashes::ExtractPtr(hash);
+}
 
-		void ReadDefaultHashFiles() override {
-			hashutils::ReadDefaultFile();
-		}
-	};
+bool ActsAPIHash_Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
+	return core::hashes::Extract(type, hash, out, outSize);
+}
 
-	static ActsAPIHashImpl impl{};
-	return impl;
+char* ActsAPIHash_ExtractTmp(const char* type, uint64_t hash) {
+	return core::hashes::ExtractTmp(type, hash);
+}
+
+void ActsAPIHash_ReadDefaultHashFiles() {
+	hashutils::ReadDefaultFile();
 }

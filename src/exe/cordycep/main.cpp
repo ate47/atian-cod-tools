@@ -1,4 +1,4 @@
-#include <acts_api/internal.hpp>
+#include <acts_api/internal.h>
 #include <vector>
 
 int main(int argc, const char* argv[]) {

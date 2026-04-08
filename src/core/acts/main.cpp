@@ -7,7 +7,7 @@
 #include <cli/clicolor.hpp>
 #include "hook/error.hpp"
 #include "actslib/logging.hpp"
-#include <acts_api/internal.hpp>
+#include <acts_api/internal.h>
 #include <core/actsinfo.hpp>
 #include "main_ui.hpp"
 #include <tools/compatibility/acti_crypto_keys.hpp>
@@ -15,8 +15,7 @@
 #include <core/config.hpp>
 #include <core/updater.hpp>
 #include <core/shared_cfg_data.hpp>
-#include <acts_api/version.hpp>
-#include <acts_api/internal.hpp>
+#include <acts_api/version.h>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -316,21 +315,15 @@ namespace {
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
 	return TRUE; // ignore
 }
-acts::api::ActsAPIVersion& ActsAPIVersion() {
-	class ActsAPIVersionImpl : public acts::api::ActsAPIVersion {
-	public:
-		unsigned int GetBuildVersion() override {
-			return core::actsinfo::BUILD_VERSION_ID;
-		}
-		const char* GetVersion() override {
-			return core::actsinfo::VERSION;
-		}
-		unsigned int GetVersionId() override {
-			return core::actsinfo::VERSION_ID;
-		}
-	};
-	static ActsAPIVersionImpl impl{};
-	return impl;
+
+unsigned int ActsAPIVersion_GetBuildVersion() {
+	return core::actsinfo::BUILD_VERSION_ID;
+}
+const char* ActsAPIVersion_GetVersion() {
+	return core::actsinfo::VERSION;
+}
+unsigned int ActsAPIVersion_GetVersionId() {
+	return core::actsinfo::VERSION_ID;
 }
 
 void* GetActsSharedConfig() {

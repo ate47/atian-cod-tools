@@ -1,5 +1,6 @@
-#pragma once
-#include "api.hpp"
+#ifndef __ACTS_API_INTERNAL_H__
+#define __ACTS_API_INTERNAL_H__
+#include "api.h"
 /*
  * Internal API used by Atian Tools
  */
@@ -44,3 +45,5 @@ ACTS_COMMON_API void* GetActsSharedConfig();
  * set the shared config
  */
 ACTS_COMMON_API void SetActsSharedConfig(void* cfg);
+
+#endif // __ACTS_API_INTERNAL_H__

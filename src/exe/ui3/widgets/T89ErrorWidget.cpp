@@ -1,6 +1,6 @@
 #include <ui_includes.hpp>
 #include "T89ErrorWidget.h"
-#include <acts_api/hash.hpp>
+#include <acts_api/hash.h>
 #include <QLabel>
 #include <QLayout>
 #include <QCoreApplication>
@@ -72,13 +72,11 @@ void T89ErrorWidget::ComputeEncode() {
 			throw std::runtime_error("Invalid code");
 		}
 
-		acts::api::ErrorCode code{};
+		ActsAPIHash_ErrorCode code{};
 
-		acts::api::ActsAPIHash& apiHash{ ActsAPIHash() };
+		ActsAPIHash_EncodeErrorCode(&code, err, alternative->isChecked());
 
-		apiHash.EncodeErrorCode(code, err, alternative->isChecked());
-
-		std::string res = apiHash.ErrorCodeToStr(code);
+		std::string res = ActsAPIHash_ErrorCodeToStr(&code);
 		errorCodeOut->setText(res.c_str());
 	}
 	catch (std::exception& e) {
@@ -125,9 +123,9 @@ void T89ErrorWidget::ComputeDecode() {
 			return;
 		}
 
-		acts::api::ErrorCode code{ words[0].c_str(), words[1].c_str(), words[2].c_str(), words[3].c_str() };
+		ActsAPIHash_ErrorCode code{ words[0].c_str(), words[1].c_str(), words[2].c_str(), words[3].c_str() };
 
-		uint32_t err = ActsAPIHash().DecodeErrorCode(code);
+		uint32_t err = ActsAPIHash_DecodeErrorCode(&code);
 
 		errorMessageOut->setText(QString::asprintf("%llu", err));
 	}

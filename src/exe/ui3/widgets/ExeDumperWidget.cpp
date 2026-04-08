@@ -1,7 +1,7 @@
 #include <ui_includes.hpp>
 #include "ExeDumperWidget.h"
 #include <QFileDialog>
-#include <acts_api/process.hpp>
+#include <acts_api/process.h>
 
 ExeDumperWidget::ExeDumperWidget(QWidget *parent)
 	: QWidget(parent)
@@ -51,10 +51,10 @@ ExeDumperWidget::ExeDumperWidget(QWidget *parent)
 
         bool rebuildIAT{ ui.rebuildIATCheck->isChecked() };
 
-        acts::api::DumpProcessOption options{};
+        ActsAPIProcess_DumpProcessOption options{};
         options.rebuildIAT = rebuildIAT;
 
-        ActsAPIProcess().DumpProcessExe(execPath.constData(), dumpPath.constData(), &options);
+        ActsAPIProcess_DumpProcessExe(execPath.constData(), dumpPath.constData(), &options);
 
         ui.returnLabel->setText(ActsGetAPILastMessage());
     });

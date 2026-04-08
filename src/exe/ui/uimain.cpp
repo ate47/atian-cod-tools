@@ -5,7 +5,7 @@
 #include <games/bo4/offsets.hpp>
 #include <utils/hash.hpp>
 #include <cli/clisync.hpp>
-#include <acts_api/internal.hpp>
+#include <acts_api/internal.h>
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \

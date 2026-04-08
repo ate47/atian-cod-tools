@@ -1,5 +1,5 @@
 #include <ui_includes.hpp>
-#include <acts_api/internal.hpp>
+#include <acts_api/internal.h>
 #include <core/actsinfo.hpp>
 #include <core/shared_cfg_data.hpp>
 #include <QApplication>

@@ -4,7 +4,7 @@
 #include <core/config.hpp>
 #include <tools/tools_ui.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
-#include <acts_api/internal.hpp>
+#include <acts_api/internal.h>
 #include <core/actsinfo.hpp>
 
 namespace tool {

@@ -2,7 +2,7 @@
 #include <core/actsinfo.hpp>
 #include <core/updater_endpoint.hpp>
 #include <mstch/mstch.hpp>
-#include <acts_api/version.hpp>
+#include <acts_api/version.h>
 #include "InfoWidget.h"
 #include <QFile>
 #include <QTextBrowser>
@@ -48,10 +48,8 @@ InfoWidget::InfoWidget(QWidget *parent) : QWidget(parent) {
 	templateData["version"] = core::actsinfo::VERSION;
 	templateData["build"] = std::format("0x{:x}", core::actsinfo::BUILD_VERSION_ID);
 
-	acts::api::ActsAPIVersion& apiVersion{ ActsAPIVersion() };
-
-	templateData["api_version"] = apiVersion.GetVersion();
-	templateData["api_build"] = std::format("0x{:x}", apiVersion.GetBuildVersion());
+	templateData["api_version"] = ActsAPIVersion_GetVersion();
+	templateData["api_build"] = std::format("0x{:x}", ActsAPIVersion_GetBuildVersion());
 
 #ifdef GPL_BUILD
 	templateData["license_type"] = "GNU General Public License v3";

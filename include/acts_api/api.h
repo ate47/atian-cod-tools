@@ -1,5 +1,6 @@
-#pragma once
-#include <cstdint>
+#ifndef __ACTS_API_API_H__
+#define __ACTS_API_API_H__
+#include <stdint.h>
 /*
  * Atian Tools Common API commons
  */
@@ -14,7 +15,7 @@
 #endif
 #endif
 
-enum ActsStatus : int32_t {
+enum ActsStatus {
 	ACTS_STATUS_OK = 0,
 	ACTS_STATUS_ERROR = -1,
 };
@@ -28,3 +29,5 @@ enum ActsStatus : int32_t {
 ACTS_COMMON_API const char* ActsGetAPILastMessage();
 // Set the last API message for this thread
 ACTS_COMMON_API void ActsAPISetLastMessage(const char* fmt, ...);
+
+#endif // __ACTS_API_API_H__
