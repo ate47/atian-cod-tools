@@ -23,7 +23,35 @@ list(GET _UPDATER_LINES 1 RELEASE_ZIP_FILE)
 list(GET _UPDATER_LINES 2 RELEASE_PROJECT)
 list(GET _UPDATER_LINES 3 RELEASE_PROJECT_URL)
 
-message(STATUS "Building data for acts v${VERSION} (0x${VERSION_ID})")
+if(CI_BUILD)
+    set(ACTSAVI_DEV "")
+    set(ACTSAVI_LDEV "")
+else()
+    set(ACTSAVI_DEV "dev-")
+    set(ACTSAVI_LDEV "L\"dev-\"")
+endif()
+
+if(GPL_BUILD)
+    set(ACTSAVI_GPL "-gpl")
+    set(ACTSAVI_LGPL "L\"-gpl\"")
+else()
+    set(ACTSAVI_GPL "")
+    set(ACTSAVI_LGPL "")
+endif()
+
+if(PRERELEASE_BUILD)
+    set(ACTSAVI_PRER "-pre")
+    set(ACTSAVI_LPRER "L\"-pre\"")
+else()
+    set(ACTSAVI_PRER "")
+    set(ACTSAVI_LPRER "")
+endif()
+
+set(ACTS_VERSION_STRING
+    "${ACTSAVI_DEV}${VERSION}${ACTSAVI_GPL}${ACTSAVI_PRER}"
+)
+
+message(STATUS "Building data for acts ${ACTS_VERSION_STRING} (0x${VERSION_ID})")
 
 # Generate version information
 configure_file(
@@ -33,6 +61,10 @@ configure_file(
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/actsinfo.hpp.in"
     "${CMAKE_SOURCE_DIR}/src/core/shared/core/actsinfo.hpp"
+)
+configure_file(
+    "${CMAKE_SOURCE_DIR}/cmake/version_info.h.in"
+    "${CMAKE_SOURCE_DIR}/include/acts_api/version_info.h"
 )
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/xsk_version.hpp.in"

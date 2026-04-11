@@ -326,6 +326,10 @@ unsigned int ActsAPIVersion_GetVersionId() {
 	return core::actsinfo::VERSION_ID;
 }
 
+ActsStatus ActsAPIVersion_ValidateVersion2(uint32_t buildVersion) {
+	return ACTS_API_BUILD_VERSION_ID == buildVersion ? ActsStatus::ACTS_STATUS_OK : ActsStatus::ACTS_STATUS_ERROR;
+}
+
 void* GetActsSharedConfig() {
 	return core::shared_cfg::GetSharedConfigPtr();
 }
