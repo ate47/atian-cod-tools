@@ -6,6 +6,7 @@ option(CI_BUILD "CI build define" OFF)
 option(GPL_BUILD "GPL build define" OFF)
 option(PRERELEASE_BUILD "Prerelease build define" OFF)
 option(NO_QT_BUILD "Disable QT projects" OFF)
+option(STATIC_ACTS "acts-common is compiled as a static library" OFF)
 
 if (NOT NO_QT_BUILD)
     find_package(Qt6 REQUIRED COMPONENTS Core)
@@ -128,6 +129,9 @@ if (GPL_BUILD)
     load_dir_recurse(deps-gpl)
 endif()
 load_dir_recurse(core)
-load_dir_recurse(dll)
-load_dir_recurse(exe)
+if (!STATIC_ACTS) {
+    # we do link the dll/exe only if the lib is not included
+    load_dir_recurse(dll)
+    load_dir_recurse(exe)
+}
 

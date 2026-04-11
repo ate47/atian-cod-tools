@@ -18,16 +18,17 @@ on:
 
 jobs:
   build:
-    name: ACTS (Windows)
+    name: Atian Tools Build
     runs-on: windows-latest
+    strategy:
+      matrix:
+        gen_type: ["library", "app"]
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
       - uses: actions/checkout@v3.5.3
         with:
           submodules: true
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
-        with:
-          msbuild-architecture: x64
       - name: Get version
         id: get_version
         shell: pwsh
@@ -36,6 +37,8 @@ jobs:
         run: "\"version: ${{ steps.get_version.outputs.version }}\""
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
+        # only install qt in shared context
+        if: matrix.gen_type == 'app'
         with:
           version: "6.11.0"
           host: "windows"
@@ -49,18 +52,46 @@ jobs:
         shell: pwsh
         run: |
           scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" -zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip" -projectUrl "https://github.com/${{ github.repository }}" -project "${{ github.repository }}" 
-          scripts/setup.ps1 -ci -build "Visual Studio 17 2022"
+          scripts/setup.ps1 -ci -build "Visual Studio 17 2022" -deployType "${{ matrix.gen_type }}"
       - name: Build project
         shell: pwsh
         run: msbuild build/AtianCodTools.sln /p:Configuration=Release /p:Platform=x64
       - name: Run tests
+        if: matrix.gen_type == 'APP'
         run: build/bin/Release/acts.exe --noUpdater -l p -d -t utest
+      - name: Pack artifacts
+        if: matrix.gen_type == 'APP'
+        run: scripts/copyartifacts.ps1 -outDirectory upload -deployQt
+      - name: Pack artifacts
+        if: matrix.gen_type != 'APP'
+        run: scripts/copyartifacts.ps1 -outDirectory upload
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: "acts-upload-${{ matrix.gen_type }}"
+          path: "upload"
+
+  release:
+    name: Atian Tools Release
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - build
+    steps:
+      - uses: actions/checkout@v3.5.3
+        with:
+          submodules: false
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build/bin/Release
+          pattern: acts-upload-*
+          merge-multiple: true
       - name: Package project
         shell: pwsh
-        run: scripts/package.ps1 -deployQt
+        run: scripts/package.ps1
       - name: Upload dev release
         uses: ncipollo/release-action@v1
-        if: github.ref == 'refs/heads/main'
         with:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -71,19 +102,19 @@ jobs:
           removeArtifacts: true
           replacesArtifacts: true
           allowUpdates: true
-          name: "Dev build ${{ steps.get_version.outputs.version }}"
+          name: "Dev build ${{ needs.build.outputs.version }}"
           body: "Latest dev build, [get the latest release build here](https://github.com/${{ github.repository }}/releases/latest)."
       - name: Upload release
-        if: inputs.release && github.ref == 'refs/heads/main'
+        if: inputs.release
         uses: ncipollo/release-action@v1
         with:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "build/package/acts.zip-library,build/package/acts-library.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
+          artifacts: "build/package/acts.zip,build/package/acts-library.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
           artifactErrorsFailBuild: true
           makeLatest: true
-          tag: "${{ steps.get_version.outputs.version }}"
-          name: "${{ steps.get_version.outputs.version }}"
+          tag: "${{ needs.build.outputs.version }}"
+          name: "${{ needs.build.outputs.version }}"
           bodyFile: release/RELEASE.MD
 
 

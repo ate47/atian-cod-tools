@@ -8,7 +8,8 @@ param(
     [switch]
     $noQT,
     $build = "Visual Studio 18 2026",
-    $msvc = "v143"
+    $msvc = "v143",
+    $deployType = "app"
 )
 
 
@@ -38,6 +39,9 @@ try {
     }
     if ($noQT) {
         $params += @( "-DNO_QT_BUILD=ON" )
+    }
+    if ("library" -eq $deployType) {
+        $params += @( "-DSTATIC_ACTS=ON" )
     }
 
     cmake -S . -B build -G $build -A x64 -T $msvc @params
