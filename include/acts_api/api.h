@@ -19,11 +19,14 @@
 #else // !__cplusplus
 #define ACTS_EXTERN_C extern
 #endif // __cplusplus
+
+#ifndef ACTS_COMMON_STATIC
 #ifdef ACTS_COMMON_DLL
 # define ACTS_COMMON_API ACTS_EXTERN_C __declspec(dllexport)
 #else // !ACTS_COMMON_DLL
 # define ACTS_COMMON_API ACTS_EXTERN_C __declspec(dllimport)
 #endif // ACTS_COMMON_DLL
+#endif // !ACTS_COMMON_STATIC
 #endif
 
 typedef enum {
