@@ -70,6 +70,7 @@ jobs:
         if: matrix.gen_type != 'APP'
         run: scripts/copyartifacts.ps1 -outDirectory upload
       - name: Upload build
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: "acts-upload-${{ matrix.gen_type }}"
@@ -100,7 +101,7 @@ jobs:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: "latest_build"
-          artifacts: "build/package/acts.zip-library,build/package/acts-library.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
+          artifacts: "build/package/acts.zip,build/package/acts-library.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
           artifactErrorsFailBuild: true
           makeLatest: false
           removeArtifacts: true
