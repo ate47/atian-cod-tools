@@ -42,6 +42,7 @@ try {
     }
     if ("library" -eq $deployType) {
         $params += @( "-DSTATIC_ACTS=ON" )
+        $params += @( "-DNO_QT_BUILD=ON" )
     }
 
     cmake -S . -B build -G $build -A x64 -T $msvc @params
