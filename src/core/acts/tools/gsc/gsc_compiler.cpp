@@ -2,6 +2,8 @@
 #include <tools/gsc/compiler/gsc_compiler_parser.hpp>
 #include <tools/gsc/compiler/gsc_compiler_script_object.hpp>
 #include <tools/gsc/gsc_compiler.hpp>
+#include <acts_api/gsc_compiler.h>
+#include <acts_api_impl/api_impl.hpp>
 
 namespace tool::gsc::compiler {
     using namespace tool::gsc::opcode;
@@ -547,4 +549,60 @@ namespace tool::gsc::compiler {
     }
 
     ADD_TOOL(gscc, "gsc", "", "GSC compiler", gscc);
+}
+
+namespace {
+    struct CompilerContext {
+        std::vector<std::filesystem::path> input;
+        tool::gsc::compiler::CompilerConfig config;
+    };
+}
+
+ActsHandle ActsAPIGscCompiler_CreateCompilerContext(
+    ActsAPIGsc_VmMagic vm, ActsAPIGsc_Platform platform,
+    const char* name, bool clientScript, ActsAPIGscCompiler_OptionalConfig* optCfg
+) {
+    CompilerContext* ctx{ ActsAPIImpl_New<CompilerContext>() };
+    ctx->config.platform = (tool::gsc::opcode::Platform)platform;
+    ctx->config.vm = (tool::gsc::opcode::VMId)vm;
+    ctx->config.clientScript = clientScript;
+    ctx->config.name = name;
+    if (optCfg) {
+        ctx->config.checksum = optCfg->checksum;
+        ctx->config.noDefaultChecksum = optCfg->noDefaultChecksum;
+        ctx->config.computeDevOption = optCfg->computeDevOption;
+        ctx->config.obfuscate = optCfg->obfuscate;
+        ctx->config.defineAsConstExpr = optCfg->defineAsConstExpr;
+        ctx->config.noDevCallInline = optCfg->noDevCallInline;
+        ctx->config.useModToolOpCodes = optCfg->useModToolOpCodes;
+    }
+    return ctx;
+}
+
+void ActsAPIGscCompiler_AddInput(ActsHandle context, const char* file, bool recurse) {
+    CompilerContext& ctx{ *(CompilerContext*)context };
+    if (recurse) {
+        if (ctx.config.clientScript) {
+            utils::GetFileRecurseExt(file, ctx.input, ".csc\0gcsc\0");
+        }
+        else {
+            utils::GetFileRecurseExt(file, ctx.input, ".gsc\0gcsc\0");
+        }
+    }
+    else {
+        ctx.input.emplace_back(file);
+    }
+}
+ActsStatus ActsAPIGscCompiler_Compile(ActsHandle context, void (*writerCallback)(void* ud, const uint8_t* data, size_t len), void* ud) {
+    CompilerContext& ctx{ *(CompilerContext*)context };
+    std::vector<byte> data{};
+    try {
+        tool::gsc::compiler::CompileGsc(ctx.input, data, ctx.config);
+    }
+    catch (std::runtime_error& err) {
+        ActsAPISetLastMessage("%s", err.what());
+        return ACTS_STATUS_ERROR;
+    }
+    writerCallback(ud, data.data(), data.size());
+    return ACTS_STATUS_OK;
 }

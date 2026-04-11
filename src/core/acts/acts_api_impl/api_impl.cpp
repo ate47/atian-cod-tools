@@ -34,7 +34,7 @@ void ActsAPISetLastMessage(const char* fmt, ...) {
 }
 
 void ActsAPICloseHandle(ActsHandle handle) {
-	if (IS_HANDLE_VALID(handle)) {
+	if (IS_ACTS_HANDLE_VALID(handle)) {
 		allocator.Free(handle);
 	}
 }

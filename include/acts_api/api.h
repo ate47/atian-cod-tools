@@ -35,9 +35,9 @@ typedef enum {
 // acts handle, should be closed with ActsAPICloseHandle
 typedef void* ActsHandle;
 
-#define INVALID_ACTS_HANDLE_VALUE ((ActsHandle)INVALID_HANDLE_VALUE)
+#define INVALID_ACTS_HANDLE_VALUE ((ActsHandle)0)
 // test if an ActsHandle is valid
-#define IS_HANDLE_VALID(handle) ((handle) && (handle) != INVALID_ACTS_HANDLE_VALUE)
+#define IS_ACTS_HANDLE_VALID(handle) ((handle) != INVALID_ACTS_HANDLE_VALUE)
 
 // test if an ActsStatus value is OK
 #define ACTS_OK(status) ((status) >= ACTS_STATUS_OK)
@@ -76,6 +76,6 @@ do { \
 // assert val, use #val as assertion message
 #define ACTS_API_ASSERT(val) ACTS_API_ASSERT_MESSAGE((val), #val)
 // assert that handle is a valid handle
-#define ACTS_API_ASSERT_VALID_HANDLE(handle) ACTS_API_ASSERT_MESSAGE(IS_HANDLE_VALID(handle), #handle " isn't a valid handle")
+#define ACTS_API_ASSERT_VALID_HANDLE(handle) ACTS_API_ASSERT_MESSAGE(IS_ACTS_HANDLE_VALID(handle), #handle " isn't a valid handle")
 
 #endif // __ACTS_API_API_H__
