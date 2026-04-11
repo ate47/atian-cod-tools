@@ -18,6 +18,7 @@
 enum ActsStatus {
 	ACTS_STATUS_OK = 0,
 	ACTS_STATUS_ERROR = -1,
+	ACTS_STATUS_ASSERTION_ERROR = -2,
 };
 
 // acts handle, should be closed with ActsAPICloseHandle
@@ -50,5 +51,20 @@ ACTS_COMMON_API void ActsAPISetLastMessage(const char* fmt, ...);
  */
 ACTS_COMMON_API void ActsAPICloseHandle(ActsHandle handle);
 
+
+// assert assertion or set message using ActsAPISetLastMessage and return ACTS_STATUS_ASSERTION_ERROR
+#define ACTS_API_ASSERT_MESSAGE(assertion, message) \
+do { \
+	if (!(assertion)) {\
+		ActsAPISetLastMessage("%s", message); \
+		return ACTS_STATUS_ASSERTION_ERROR; \
+	} \
+} while (0)
+// assert that val isn't null
+#define ACTS_API_ASSERT_NOT_NULL(val) ACTS_API_ASSERT_MESSAGE((val), #val " can't be null")
+// assert val, use #val as assertion message
+#define ACTS_API_ASSERT(val) ACTS_API_ASSERT_MESSAGE((val), #val)
+// assert that handle is a valid handle
+#define ACTS_API_ASSERT_VALID_HANDLE(handle) ACTS_API_ASSERT_MESSAGE(IS_HANDLE_VALID(handle), #handle " isn't a valid handle")
 
 #endif // __ACTS_API_API_H__

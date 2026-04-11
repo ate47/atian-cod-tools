@@ -397,8 +397,8 @@ namespace utils::compress {
 		if (!_strcmpi(cfg, "zstd")) return COMP_ZSTD;
 		if (!_strcmpi(cfg, "zstd_hc")) return COMP_ZSTD | COMP_HIGH_COMPRESSION;
 		if (!_strcmpi(cfg, "oodle")) return COMP_OODLE;
-		if (!_strcmpi(cfg, "oodle_hc")) return COMP_OODLE;
-		if (!_strcmpi(cfg, "oodle_kraken")) return COMP_OODLE | COMP_HIGH_COMPRESSION; 
+		if (!_strcmpi(cfg, "oodle_hc")) return COMP_OODLE | COMP_HIGH_COMPRESSION;
+		if (!_strcmpi(cfg, "oodle_kraken")) return COMP_OODLE | COMP_OODLE_TYPE_KRAKEN;
 		if (!_strcmpi(cfg, "oodle_kraken_hc")) return COMP_OODLE | COMP_OODLE_TYPE_KRAKEN | COMP_HIGH_COMPRESSION;
 		if (!_strcmpi(cfg, "oodle_leviathan")) return COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN; 
 		if (!_strcmpi(cfg, "oodle_leviathan_hc")) return COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN | COMP_HIGH_COMPRESSION;
