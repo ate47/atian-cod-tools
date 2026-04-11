@@ -61,13 +61,13 @@ jobs:
         shell: pwsh
         run: msbuild build/AtianCodTools.sln /p:Configuration=Release /p:Platform=x64
       - name: Run tests
-        if: matrix.gen_type == 'APP'
+        if: matrix.gen_type == 'app'
         run: build/bin/Release/acts.exe --noUpdater -l p -d -t utest
       - name: Pack artifacts
-        if: matrix.gen_type == 'APP'
+        if: matrix.gen_type == 'app'
         run: scripts/copyartifacts.ps1 -outDirectory upload -deployQt
       - name: Pack artifacts
-        if: matrix.gen_type != 'APP'
+        if: matrix.gen_type != 'app'
         run: scripts/copyartifacts.ps1 -outDirectory upload
       - name: Upload build
         if: github.ref == 'refs/heads/main'

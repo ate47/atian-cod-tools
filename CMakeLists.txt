@@ -130,7 +130,7 @@ if (GPL_BUILD)
 endif()
 load_dir_recurse(core)
 
-if (!STATIC_ACTS)
+if (NOT STATIC_ACTS)
     # we do link the dll/exe only if the lib is not included
     load_dir_recurse(dll)
     load_dir_recurse(exe)

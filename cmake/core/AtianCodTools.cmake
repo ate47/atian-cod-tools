@@ -9,15 +9,15 @@ file(GLOB_RECURSE ACTS_INCLUDE_SOURCES
     "${CMAKE_SOURCE_DIR}/include/*.hpp"
 )
 if(STATIC_ACTS)
-    add_library(AtianCodTools SHARED)
-    set_target_properties(AtianCodTools PROPERTIES
-        OUTPUT_NAME "acts-common"
-        FOLDER "Core"
-    )
-else()
     add_library(AtianCodTools STATIC)
     set_target_properties(AtianCodTools PROPERTIES
         OUTPUT_NAME "acts-common-static"
+        FOLDER "Core"
+    )
+else()
+    add_library(AtianCodTools SHARED)
+    set_target_properties(AtianCodTools PROPERTIES
+        OUTPUT_NAME "acts-common"
         FOLDER "Core"
     )
 endif()
