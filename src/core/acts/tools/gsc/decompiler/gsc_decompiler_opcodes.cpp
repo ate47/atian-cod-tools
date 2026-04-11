@@ -5035,25 +5035,14 @@ namespace tool::gsc::opcode {
 		} g_opcodes;
 	}
 
+	const OPCodeInfo* VmInfo::LookupOpCode(Platform platform, uint16_t opcode) {
+		auto ref = opcodemap.find(opcode);
 
-
-	const OPCodeInfo* LookupOpCode(uint64_t vm, Platform platform, uint16_t opcode) {
-		// build map
-		RegisterOpCodes();
-
-		VmInfo* info;
-
-		if (!(IsValidVm(vm, info))) {
+		if (ref == opcodemap.end()) {
 			return &g_opcodes.opUndefined;
 		}
 
-		auto ref = info->opcodemap.find(opcode);
-
-		if (ref == info->opcodemap.end()) {
-			return &g_opcodes.opUndefined;
-		}
-
-		auto ref2 = ref->second.find(info->RemapSamePlatform(platform));
+		auto ref2 = ref->second.find(RemapSamePlatform(platform));
 
 		if (ref2 == ref->second.end()) {
 			return &g_opcodes.opUndefined;
@@ -5066,6 +5055,20 @@ namespace tool::gsc::opcode {
 		}
 
 		return refHandler->second;
+	}
+
+
+	const OPCodeInfo* LookupOpCode(uint64_t vm, Platform platform, uint16_t opcode) {
+		// build map
+		RegisterOpCodes();
+
+		VmInfo* info;
+
+		if (!(IsValidVm(vm, info))) {
+			return &g_opcodes.opUndefined;
+		}
+
+		return info->LookupOpCode(platform, opcode);
 	}
 
 	void RegisterOpCodes() {

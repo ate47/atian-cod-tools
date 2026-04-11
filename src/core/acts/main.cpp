@@ -410,6 +410,12 @@ void ActsAPISetLastMessage(const char* fmt, ...) {
 	va_end(args);
 }
 
+void ActsAPICloseHandle(ActsHandle handle) {
+	if (IS_HANDLE_VALID(handle)) {
+		delete handle;
+	}
+}
+
 int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	int r{ InitActsAPI(cli, &argc, &argv, core::actsinfo::BUILD_VERSION_ID) };

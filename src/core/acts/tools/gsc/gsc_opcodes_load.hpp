@@ -109,6 +109,9 @@ namespace tool::gsc::opcode {
 		PLATFORM_BO6 = 7,
 		PLATFORM_BO7 = 8,
 		PLATFORM_COUNT,
+
+		// if any add is made, reflect it in :
+		// include\acts_api\gsc.h ActsAPIGsc_Platform
 	};
 
 	Platform PlatformOf(const char* name);

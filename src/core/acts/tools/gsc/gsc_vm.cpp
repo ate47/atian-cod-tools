@@ -3,6 +3,7 @@
 #include <tools/gsc/gsc.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <actscli.hpp>
+#include <acts_api/gsc.h>
 
 // opcodes
 #include <tools/gsc/opcodes/gsc_opcodes_acts.hpp>
@@ -198,4 +199,70 @@ namespace tool::gsc::vm {
         OpCodeSat15Registry::OpCode();
         OpCodeSat16Registry::OpCode();
     }
+}
+
+namespace {
+    struct ActsAPIGsc_GscVm {
+        tool::gsc::VmInfo* info;
+    };
+}
+ActsAPIGsc_VmMagic ActsAPIGsc_FindGscMagic(const char* name) {
+    tool::gsc::VMId id{ tool::gsc::VMOf(name) };
+    return (ActsAPIGsc_VmMagic)id;
+}
+
+ActsHandle ActsAPIGsc_FindGscVm(const char* name) {
+    return ActsAPIGsc_FindGscVmByMagic(ActsAPIGsc_FindGscMagic(name));
+}
+
+ActsHandle ActsAPIGsc_FindGscVmByMagic(ActsAPIGsc_VmMagic magic) {
+    tool::gsc::VmInfo* info{};
+
+    if (!tool::gsc::IsValidVmMagic(magic, info)) {
+        return INVALID_HANDLE_VALUE;
+    }
+
+    return new ActsAPIGsc_GscVm(info);
+}
+ActsAPIGsc_OpCode ActsAPIGsc_FindOpCodeByName(const char* name) {
+    return (ActsAPIGsc_OpCode)tool::gsc::OpCodeFromName(name);
+}
+const char* ActsAPIGsc_GetOpCodeName(ActsAPIGsc_OpCode opcode) {
+    return tool::gsc::OpCodeName((tool::gsc::OPCode)opcode);
+}
+uint64_t ActsAPIGsc_HashField(ActsHandle gscvm, const char* string) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->HashField(string);
+}
+uint64_t ActsAPIGsc_HashPath(ActsHandle gscvm, const char* string) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->HashPath(string);
+}
+ActsAPIGsc_VmMagic ActsAPIGsc_GetMagic(ActsHandle gscvm) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->vmMagic;
+}
+ActsAPIGsc_VmMagic ActsAPIGsc_GetGDBMagic(ActsHandle gscvm) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->gdbMagic;
+}
+const char* ActsAPIGsc_GetName(ActsHandle gscvm) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->name;
+}
+const char* ActsAPIGsc_GetCodeName(ActsHandle gscvm) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->codeName;
+}
+const char* ActsAPIGsc_GetInternalName(ActsHandle gscvm) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->internalName;
+}
+ActsAPIGsc_OpCode LookupOpCode(ActsHandle gscvm, ActsAPIGsc_Platform platform, ActsAPIGsc_OpCodeValue opcode) {
+    return (ActsAPIGsc_OpCode)((ActsAPIGsc_GscVm*)gscvm)->info->LookupOpCode((tool::gsc::opcode::Platform)platform, opcode)->m_id;
+}
+ActsStatus GetOpCode(ActsHandle gscvm, ActsAPIGsc_Platform platform, ActsAPIGsc_OpCode opcode, bool modTool, ActsAPIGsc_OpCodeValue* outValue) {
+    auto [ok, op] = ((ActsAPIGsc_GscVm*)gscvm)->info->GetOpCodeId((tool::gsc::opcode::Platform)platform, (tool::gsc::OPCode)opcode, modTool);
+    if (!ok) {
+        ActsAPISetLastMessage("Can't find opcode 0x%x (modtool=%s)", opcode, modTool ? "true" : "false");
+        return ACTS_STATUS_ERROR;
+    }
+    *outValue = (ActsAPIGsc_OpCodeValue)op;
+    return ACTS_STATUS_OK;
+}
+bool HasOpCode(ActsHandle gscvm, ActsAPIGsc_Platform platform, ActsAPIGsc_OpCode opcode, bool modTool) {
+    return ((ActsAPIGsc_GscVm*)gscvm)->info->HasOpCode((tool::gsc::opcode::Platform)platform, (tool::gsc::OPCode)opcode, modTool);
 }

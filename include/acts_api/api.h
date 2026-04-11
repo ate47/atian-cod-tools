@@ -20,14 +20,35 @@ enum ActsStatus {
 	ACTS_STATUS_ERROR = -1,
 };
 
+// acts handle, should be closed with ActsAPICloseHandle
+typedef void* ActsHandle;
+
+#define INVALID_ACTS_HANDLE_VALUE ((ActsHandle)INVALID_HANDLE_VALUE)
+// test if an ActsHandle is valid
+#define IS_HANDLE_VALID(handle) ((handle) && (handle) != INVALID_ACTS_HANDLE_VALUE)
+
 // test if an ActsStatus value is OK
 #define ACTS_OK(status) ((status) >= ACTS_STATUS_OK)
 // test if an ActsStatus value is not OK (error)
 #define ACTS_NOT_OK(status) ((status) < ACTS_STATUS_OK)
 
-// Get last API message for this thread
+/*
+ * @return Get last API message for this thread
+ */
 ACTS_COMMON_API const char* ActsGetAPILastMessage();
-// Set the last API message for this thread
+
+/*
+ * Get the last message for ActsGetAPILastMessage()
+ * @param fmt format
+ * @param ... format params
+ */
 ACTS_COMMON_API void ActsAPISetLastMessage(const char* fmt, ...);
+
+/*
+ * Close an ActsHandle
+ * @param handle handle
+ */
+ACTS_COMMON_API void ActsAPICloseHandle(ActsHandle handle);
+
 
 #endif // __ACTS_API_API_H__

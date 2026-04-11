@@ -399,6 +399,32 @@ namespace tool::gsc::opcode {
 		AddDevCallName(hash);
 	}
 
+	std::pair<bool, uint16_t> VmInfo::GetOpCodeId(Platform platform, OPCode opcode, bool modTool) {
+		if (modTool && modToolFlag == 0) {
+			return std::make_pair(false, 0); // no mod tool flag
+		}
+
+		auto& map{ modTool ? opcodemaplookupModTool : opcodemaplookup };
+
+		auto ref = map.find(opcode);
+
+		if (ref == map.end()) {
+			return std::make_pair(false, 0);
+		}
+
+		auto ref2 = ref->second.find(RemapSamePlatform(platform));
+
+		if (ref2 == ref->second.end() || ref2->second.empty()) {
+			return std::make_pair(false, 0);
+		}
+
+		return std::make_pair(true, ref2->second[rand() % ref2->second.size()]);
+	}
+	bool VmInfo::HasOpCode(Platform plt, OPCode opcode, bool modTool) {
+		auto [ok, id] = GetOpCodeId(plt, opcode, modTool);
+		return ok;
+	}
+
 	const std::unordered_map<uint64_t, VmInfo>& GetVMMaps() {
 		RegisterOpCodes();
 		return g_opcodeMap;
@@ -431,30 +457,13 @@ namespace tool::gsc::opcode {
 			return std::make_pair(false, 0);
 		}
 
-		if (modTool && info->modToolFlag == 0) {
-			return std::make_pair(false, 0); // no mod tool flag
-		}
-
-		auto& map{ modTool ? info->opcodemaplookupModTool : info->opcodemaplookup };
-
-		auto ref = map.find(opcode);
-
-		if (ref == map.end()) {
-			return std::make_pair(false, 0);
-		}
-
-		auto ref2 = ref->second.find(info->RemapSamePlatform(platform));
-
-		if (ref2 == ref->second.end() || ref2->second.empty()) {
-			return std::make_pair(false, 0);
-		}
-
-		return std::make_pair(true, ref2->second[rand() % ref2->second.size()]);
+		return info->GetOpCodeId(platform, opcode, modTool);
 	}
 
 	bool HasOpCode(uint64_t vm, Platform plt, OPCode opcode, bool modTool) {
 		auto [ok, id] = GetOpCodeId(vm, plt, opcode, modTool);
 		return ok;
 	}
+
 
 }

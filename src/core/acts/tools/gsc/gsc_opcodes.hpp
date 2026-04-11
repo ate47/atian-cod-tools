@@ -180,6 +180,9 @@ namespace tool::gsc::opcode{
 		}
 		Platform RemapSamePlatform(Platform origin) const;
 		Platform FindPlatform(VMExpectedValue* values, size_t count) const;
+		const OPCodeInfo* LookupOpCode(Platform platform, uint16_t opcode);
+		std::pair<bool, uint16_t> GetOpCodeId(Platform platform, OPCode opcode, bool modTool = false);
+		bool HasOpCode(Platform plt, OPCode opcode, bool modTool = false);
 
 		void RegisterVMGlobalVariable(const char* name, OPCode getOpCode = OPCODE_Undefined);
 		void RegisterVMOperatorFunction(const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255);
@@ -227,7 +230,6 @@ namespace tool::gsc::opcode{
 			RegisterDatatype(datatype);
 			RegisterDatatype(datatypes...);
 		}
-
 	};
 
 	class OPCodeInfo {
