@@ -1,7 +1,7 @@
-#using scripts/shared/array_shared;
-#using scripts/shared/flag_shared;
-#using scripts/shared/flagsys_shared;
-#using scripts/shared/util_shared;
+#using scripts\shared\array_shared;
+#using scripts\shared\flag_shared;
+#using scripts\shared\flagsys_shared;
+#using scripts\shared\util_shared;
 
 #namespace t7_vars;
 
@@ -10,11 +10,11 @@
 function demo()
 {
     // varaiable test
-    level endon( #t7varendon );
+    level endon( #"t7varendon" );
     istrings = &"test/acts_istring";
     atr = #animtree;
     an = %acts_anim;
-    hash = #hello;
+    hash = #"hello";
     str = "my string";
 
     // function calls
@@ -33,7 +33,7 @@ function demo()
         compiler::nprintln( "test" );
         compiler::nprintln(isprofilebuild());
     }
-    isprofilebuild(#nprintln, "test2");
+    isprofilebuild(#"nprintln", "test2");
 
     // va test
     PrintLn( "sum() = " + sumva( 1, 3, 5, 7, 9 ) );
