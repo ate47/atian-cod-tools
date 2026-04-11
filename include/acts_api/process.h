@@ -6,13 +6,13 @@
  */
 
 // ActsAPIProcess_DumpProcessExe options
-struct ActsAPIProcess_DumpProcessOption {
+typedef struct {
 	// rebuild the IAT table when mixed by AC
 	bool rebuildIAT;
-};
+} ActsAPIProcess_DumpProcessOption;
 
 // ActsAPIProcess_DumpGame options
-struct ActsAPIProcess_GameDumpInformation {
+typedef struct {
 	// dump id
 	const char* id;
 	// exe to dump
@@ -21,15 +21,15 @@ struct ActsAPIProcess_GameDumpInformation {
 	const char* ddls;
 	// needs rebuild IAT
 	bool rebuildIAT;
-};
+} ActsAPIProcess_GameDumpInformation;
 
 // ActsAPIProcess_DumpGame options list
-struct ActsAPIProcess_GameDumpInformationList {
+typedef struct {
 	// values
 	ActsAPIProcess_GameDumpInformation* values;
 	// count
 	size_t count;
-};
+} ActsAPIProcess_GameDumpInformationList;
 
 /*
  * Dump a process executable file

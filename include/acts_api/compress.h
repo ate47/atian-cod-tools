@@ -6,9 +6,9 @@
  */
 
  /* compression type */
-enum ActsAPICompress_Algorithm {
+typedef enum {
     COMP_INVALID = 0
-};
+} ActsAPICompress_Algorithm;
 
 /* compression type config */
 #define ACTS_API_COMPRESS_CONFIG_NONE "none"

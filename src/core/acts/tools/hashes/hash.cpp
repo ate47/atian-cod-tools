@@ -1466,6 +1466,15 @@ ActsAPIHash_HashTypeList* ActsAPIHash_GetHashesList() {
 	return &_h.list;
 }
 
+ActsAPIHash_HashFunction ActsAPIHash_GetHashFunction(const char* id) {
+	for (hash::HashAlg& alg : hash::HashAlg::algs) {
+		if (!_strcmpi(alg.id, id)) {
+			return alg.hashFunc;
+		}
+	}
+	return nullptr;
+}
+
 void ActsAPIHash_EncodeErrorCode(ActsAPIHash_ErrorCode* code, uint32_t val, bool alternative) {
 	error_coder::Encode(*code, val, alternative);
 }

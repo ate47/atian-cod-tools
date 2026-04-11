@@ -316,20 +316,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	return TRUE; // ignore
 }
 
-unsigned int ActsAPIVersion_GetBuildVersion() {
-	return core::actsinfo::BUILD_VERSION_ID;
-}
-const char* ActsAPIVersion_GetVersion() {
-	return core::actsinfo::VERSION;
-}
-unsigned int ActsAPIVersion_GetVersionId() {
-	return core::actsinfo::VERSION_ID;
-}
-
-ActsStatus ActsAPIVersion_ValidateVersion2(uint32_t buildVersion) {
-	return ACTS_API_BUILD_VERSION_ID == buildVersion ? ActsStatus::ACTS_STATUS_OK : ActsStatus::ACTS_STATUS_ERROR;
-}
-
 void* GetActsSharedConfig() {
 	return core::shared_cfg::GetSharedConfigPtr();
 }
@@ -399,25 +385,6 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 	hook::error::InstallErrorHooks();
 
 	return 0;
-}
-
-static thread_local char actsApiLastMessageBuffer[0x400]{};
-
-const char* ActsGetAPILastMessage() {
-	return actsApiLastMessageBuffer;
-}
-
-void ActsAPISetLastMessage(const char* fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	vsnprintf(actsApiLastMessageBuffer, sizeof(actsApiLastMessageBuffer), fmt, args);
-	va_end(args);
-}
-
-void ActsAPICloseHandle(ActsHandle handle) {
-	if (IS_HANDLE_VALID(handle)) {
-		delete handle;
-	}
 }
 
 int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {

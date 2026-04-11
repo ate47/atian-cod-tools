@@ -108,8 +108,10 @@ try {
     # Scans
     Copy-Item "build/bin/Release/data" "$base/bin" -Recurse > $null
     
-    # Clear test dlls
+    # Clear test dlls/exes
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
+    Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.exe" > $null
+    
     # Clear config data
     # Remove-Item build\bin\Release\acts.json
 

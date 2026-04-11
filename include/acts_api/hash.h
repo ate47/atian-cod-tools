@@ -5,23 +5,41 @@
  * Atian Tools Hash API
  */
 
+// hash function names
+#define ACTS_API_HASH_XHASH "h64"
+#define ACTS_API_HASH_IW9_XHASH_ASSET "res"
+#define ACTS_API_HASH_T89_XHASH_SCR "h32"
+#define ACTS_API_HASH_IW9_XHASH_SCR "iw9"
+#define ACTS_API_HASH_T10_XHASH_SCR "bo6"
+#define ACTS_API_HASH_T10_XHASH_SCR_SP "bo6sp"
+#define ACTS_API_HASH_T7_XHASH "t7"
+#define ACTS_API_HASH_XHASH_32 "tag"
+#define ACTS_API_HASH_XHASH_DVAR "dvar"
+#define ACTS_API_HASH_XHASH_OMNVAR "omnvar"
+#define ACTS_API_HASH_XXH32 "xxh32"
+#define ACTS_API_HASH_XXH64 "xxh64"
+#define ACTS_API_HASH_XXH64_IV "xxh64iv"
+
+// hash function
+typedef uint64_t (*ActsAPIHash_HashFunction)(const char* text);
+
 // Hash type
-struct ActsAPIHash_HashType {
+typedef struct {
 	// internal id
 	const char* id;
 	// hash description
 	const char* desc;
 	// hash function
-	uint64_t(*hashFunc)(const char* text);
-};
+	ActsAPIHash_HashFunction hashFunc;
+} ActsAPIHash_HashType;
 
 // Hash types list
-struct ActsAPIHash_HashTypeList {
+typedef struct {
 	// values
 	ActsAPIHash_HashType* values;
 	// count
 	size_t count;
-};
+} ActsAPIHash_HashTypeList;
 
 // Decoded error code (bo4/cw)
 typedef const char* ActsAPIHash_ErrorCode[4];
@@ -30,6 +48,12 @@ typedef const char* ActsAPIHash_ErrorCode[4];
  * @return the registered hashes list
  */
 ACTS_COMMON_API ActsAPIHash_HashTypeList* ActsAPIHash_GetHashesList();
+/*
+ * Get a registed hash function
+ * @param id hash function id
+ * @return the registered hashes list
+ */
+ACTS_COMMON_API ActsAPIHash_HashFunction ActsAPIHash_GetHashFunction(const char* id);
 /*
  * Encode a t89 error code
  * @param code output
@@ -72,7 +96,7 @@ ACTS_COMMON_API void ActsAPIHash_Clean();
  * @param clone clone the unhashed value
  * @return allocated string or str if clone = false
  */
-ACTS_COMMON_API const char* ActsAPIHash_AddPrecomputed(uint64_t value, const char* str, bool clone = true);
+ACTS_COMMON_API const char* ActsAPIHash_AddPrecomputed(uint64_t value, const char* str, bool ACTS_DEFAULT(clone, true));
 /*
  * Extract a string pointer
  * @param hash value to lookup

@@ -1,25 +1,36 @@
 #ifndef __ACTS_API_API_H__
 #define __ACTS_API_API_H__
 #include <stdint.h>
+#include <stdbool.h>
 /*
  * Atian Tools Common API commons
  */
 
 
+#if __cplusplus
+#define ACTS_DEFAULT(name, value) name = (value)
+#else // !__cplusplus
+#define ACTS_DEFAULT(name, value) name
+#endif // __cplusplus
+
 #ifndef ACTS_COMMON_API
+#if __cplusplus
 #define ACTS_EXTERN_C extern "C"
+#else // !__cplusplus
+#define ACTS_EXTERN_C extern
+#endif // __cplusplus
 #ifdef ACTS_COMMON_DLL
 # define ACTS_COMMON_API ACTS_EXTERN_C __declspec(dllexport)
-#else
+#else // !ACTS_COMMON_DLL
 # define ACTS_COMMON_API ACTS_EXTERN_C __declspec(dllimport)
-#endif
+#endif // ACTS_COMMON_DLL
 #endif
 
-enum ActsStatus {
+typedef enum {
 	ACTS_STATUS_OK = 0,
 	ACTS_STATUS_ERROR = -1,
 	ACTS_STATUS_ASSERTION_ERROR = -2,
-};
+} ActsStatus;
 
 // acts handle, should be closed with ActsAPICloseHandle
 typedef void* ActsHandle;

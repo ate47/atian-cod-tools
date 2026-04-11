@@ -4,6 +4,7 @@
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <actscli.hpp>
 #include <acts_api/gsc.h>
+#include <acts_api_impl/api_impl.hpp>
 
 // opcodes
 #include <tools/gsc/opcodes/gsc_opcodes_acts.hpp>
@@ -222,7 +223,7 @@ ActsHandle ActsAPIGsc_FindGscVmByMagic(ActsAPIGsc_VmMagic magic) {
         return INVALID_HANDLE_VALUE;
     }
 
-    return new ActsAPIGsc_GscVm(info);
+    return ActsAPIImpl_New<ActsAPIGsc_GscVm>(info);
 }
 ActsAPIGsc_OpCode ActsAPIGsc_FindOpCodeByName(const char* name) {
     return (ActsAPIGsc_OpCode)tool::gsc::OpCodeFromName(name);

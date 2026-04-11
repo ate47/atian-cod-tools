@@ -6,9 +6,9 @@
  */
 
 // acts opcode value
-enum ActsAPIGsc_OpCode {
+typedef enum {
 	OPCODE_Undefined = 0,
-};
+} ActsAPIGsc_OpCode;
 	
 // ingame opcode value
 typedef uint16_t ActsAPIGsc_OpCodeValue;
@@ -17,7 +17,7 @@ typedef uint64_t ActsAPIGsc_VmMagic;
 #define ActsAPIGsc_VmMagic_INVALID 0
 
 // vm platform
-enum ActsAPIGsc_Platform {
+typedef enum {
 	PLATFORM_UNKNOWN = 0,
 	PLATFORM_PC = 1,
 	PLATFORM_PLAYSTATION = 2,
@@ -28,7 +28,7 @@ enum ActsAPIGsc_Platform {
 	PLATFORM_BO6 = 7,
 	PLATFORM_BO7 = 8,
 	PLATFORM_COUNT,
-};
+} ActsAPIGsc_Platform;
 /*
  * Find a gsc magic by a vm name
  * @param name
