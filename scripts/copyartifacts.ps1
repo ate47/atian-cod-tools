@@ -4,15 +4,16 @@ param(
     $deployQt
 )
 
+# Delete previous builds
+Remove-Item -Recurse -Force -ErrorAction Ignore  "$outDirectory" > $null
+New-Item "$outDirectory" -ItemType Directory > $null
+$outDirectory = (Get-Item $outDirectory).FullName
+
 $prevPwd = $PWD
 
 try {
     $base = (Get-Item $PSScriptRoot).parent
     Set-Location ($base.Fullname)
-
-    # Delete previous builds
-    Remove-Item -Recurse -Force -ErrorAction Ignore  "$outDirectory" > $null
-    New-Item "$outDirectory" -ItemType Directory > $null
 
  
     # Binaries
