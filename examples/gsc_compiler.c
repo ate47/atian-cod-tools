@@ -14,7 +14,7 @@ void example_gsc() {
 	}
 
 	/*
-	 * The gsc api allows to compile gsc script
+	 * The gsc api allows to compile gsc scripts
 	 * #include <acts_api/gsc_compiler.h>
 	 */
 
