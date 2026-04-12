@@ -1,12 +1,18 @@
 - acts
 	- fastfile
 		- bo7 handler fix
-		- deploy missing mw19 handler
-		- use for bo3 handler to fix Steam and allow GP version
-		- also reduce logs within gsc decompiler calls
-	- gsc
-		- add support for vm sat16
-	- add options to download_hash_index to allow more usage
-	- fix allocation problem with cdb files
-	- fix issue with idc creation with null scans
-	- add Load_Type funcs to bo7_ida tool with better type names
+		- repl in fastfile asset tool
+	- missing data for bo7 game data
+	- some fixes
+	- some test tools
+	- reshape the common library architecture
+- acts library
+	- deploy acts-common as a library (C/C++ compatible)
+	- compress, config, gsc, gsc compiler, hash and process modules
+- acts ui3
+	- start moving acts nui to ui3
+	- widgets
+		- bo4/cw runtime errors
+		- dll auto injector
+		- exe dumper
+		- hash 
