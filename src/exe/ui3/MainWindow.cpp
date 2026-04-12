@@ -3,6 +3,7 @@
 #include <widgets/HashWidget.h>
 #include <widgets/T89ErrorWidget.h>
 #include <widgets/ExeDumperWidget.h>
+#include <widgets/ExeDllInjectorWidget.h>
 #include <QLayout>
 #include <QProgressBar>
 #include <QLabel>
@@ -20,6 +21,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(ui.actionHash, &QAction::triggered, this, [this]() { LoadToolUi<HashWidget>(); });
     connect(ui.actionT89Error, &QAction::triggered, this, [this]() { LoadToolUi<T89ErrorWidget>(); });
     connect(ui.actionExecutable_Dumper, &QAction::triggered, this, [this]() { LoadToolUi<ExeDumperWidget>(); });
+    connect(ui.actionDllInjector, &QAction::triggered, this, [this]() { LoadToolUi<ExeDllInjectorWidget>(); });
 
     // Help
     connect(ui.actionWiki, &QAction::triggered, this, [this]() { QDesktopServices::openUrl(QUrl::fromLocalFile("https://github.com/ate47/atian-cod-tools/wiki")); });

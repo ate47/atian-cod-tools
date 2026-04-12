@@ -6,6 +6,7 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.h"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.cpp"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/ExeDumperWidget.ui"
+        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/ExeDllInjectorWidget.ui"
         "${CMAKE_SOURCE_DIR}/resources/ui/*"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/MainWindow.ui"
     )

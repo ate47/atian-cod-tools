@@ -54,6 +54,7 @@
      <string>Developer</string>
     </property>
     <addaction name="actionT89Error"/>
+    <addaction name="actionDllInjector"/>
     <addaction name="actionExecutable_Dumper"/>
     <addaction name="actionHash"/>
    </widget>
@@ -125,6 +126,11 @@
   <action name="actionWiki">
    <property name="text">
     <string>Atian Tools Wiki</string>
+   </property>
+  </action>
+  <action name="actionDllInjector">
+   <property name="text">
+    <string>DLL Auto Injector</string>
    </property>
   </action>
  </widget>

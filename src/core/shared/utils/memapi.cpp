@@ -218,7 +218,8 @@ HANDLE Process::Exec(uintptr_t location, uintptr_t arg) const {
 	if (!m_handle) {
 		return INVALID_HANDLE_VALUE;
 	}
-	return NtCreateThreadEx(*this, location, arg);
+	//return NtCreateThreadEx(*this, location, arg);
+	return CreateRemoteThread(m_handle, nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(location), reinterpret_cast<void*>(arg), 0, nullptr);
 }
 
 void Process::FreeMemory(uintptr_t ptr, size_t size) const {
