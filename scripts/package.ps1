@@ -25,15 +25,14 @@ try {
     New-Item "$base/bin" -ItemType Directory > $null
     New-Item "$base/lib" -ItemType Directory > $null
 
- 
-    # Binaries
-    Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
 
     # api
+    Copy-Item "build/bin/Release/acts-common.dll" "$base/bin" > $null
     Copy-Item "build/bin/Release/acts-common.lib" "$base/lib" > $null
     Copy-Item "build/bin/Release/acts-common-static.lib" "$base/lib" -ErrorAction Ignore > $null
     Copy-Item -Recurse "include" "$base" > $null
     Copy-Item -Recurse "licenses" "$base" > $null
+    Copy-Item -Recurse "examples" "$base" > $null
 
     # Scans
     Copy-Item "build/bin/Release/data" "$base/bin" -Recurse > $null
@@ -46,12 +45,18 @@ try {
     # Remove-Item build\bin\Release\acts.json
 
     # Info data
-    Copy-Item "README.md" "$base/README.md" > $null
-    Copy-Item "release/version" "$base/bin/version" > $null
+    Copy-Item "LIBRARY.md" "$base/README.md" > $null
 
     # Compress library
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base-library.zip" > $null
     Write-Host "Packaged to '$base-library.zip'"
+
+    # Remove it from main build
+    Remove-Item "$base/bin/acts-common.dll" -ErrorAction Ignore > $null
+    Remove-Item "$base/README.md" -ErrorAction Ignore > $null
+    Remove-Item "$base/lib" -Recurse -ErrorAction Ignore > $null
+    Remove-Item "$base/include" -Recurse -ErrorAction Ignore > $null
+    Remove-Item "$base/examples" -Recurse -ErrorAction Ignore > $null
 
     # Build exec data
 
@@ -69,6 +74,12 @@ try {
         }
     }
 
+    # Info data
+    Copy-Item "README.md" "$base/README.md" > $null
+    Copy-Item "release/version" "$base/bin/version" > $null
+
+    # Binaries
+    Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
     Copy-Item "build/bin/Release/*.exe" "$base/bin" > $null
     New-Item "$base/bin/package_index" -ItemType Directory > $null
     New-Item "$base/bin/deps" -ItemType Directory > $null
