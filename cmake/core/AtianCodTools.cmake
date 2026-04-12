@@ -42,6 +42,7 @@ target_include_directories(AtianCodTools PRIVATE
     "${CMAKE_SOURCE_DIR}/src/core/vm"
     "${CMAKE_SOURCE_DIR}/deps/antlr4/runtime/Cpp/runtime/src/"
     "${CMAKE_SOURCE_DIR}/deps/zlib/"
+    "${CMAKE_SOURCE_DIR}/deps/zlib/contrib/minizip"
     "${CMAKE_SOURCE_DIR}/deps/ps4debug/libdebug/cpp/include/"
     "${CMAKE_SOURCE_DIR}/deps/ps4debug/kdebugger/include/"
     "${CMAKE_SOURCE_DIR}/deps/ps4debug/ps4-ksdk/include/"
@@ -79,6 +80,7 @@ target_link_libraries(AtianCodTools PRIVATE
     ACTSLibrary
     ACTSVM
     zlib
+    minizip
     libps4debug
     asmjit
     casclib
@@ -105,6 +107,7 @@ add_dependencies(AtianCodTools
     ACTSLibrary
     ACTSVM
     zlib
+    minizip
     libps4debug
     asmjit
     casclib

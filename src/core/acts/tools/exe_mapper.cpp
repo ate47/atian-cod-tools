@@ -130,6 +130,51 @@ namespace {
 
 		return tool::OK;
 	}
+	int exe_rva(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+
+		const char* exe{ argv[2] };
+		uint64_t rva{ (uint64_t)utils::ParseFormatInt(argv[3]) };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe);
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		LOG_INFO("Loaded, searching 0x{:x}", rva);
+
+		constexpr size_t maxSize = 0x20000000;
+		constexpr size_t blockSize = 0x4000;
+
+		const byte* toSearch{ mod->Get<byte>(rva) };
+
+		byte buffer[blockSize];
+		for (size_t r = 0; r < maxSize;) {
+			byte* base{ (byte*)mod->Get<byte>(r) };
+			if (!hook::memory::ReadMemorySafe(base, buffer, blockSize)) {
+				r += 0x100;
+				continue;
+			}
+
+			r += blockSize - 3;
+			
+			for (size_t i = 0; i < blockSize - 4; i++) {
+				int32_t rl{ *(int32_t*)&buffer[i] };
+				if (base + i + 4 + rl == toSearch) {
+					LOG_INFO("{}", hook::library::CodePointer{ base + i });
+				}
+			}
+		}
+
+
+		LOG_INFO("Done");
+
+		return tool::OK;
+	}
 	int exe_pool_dumper(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 3)) {
 			LOG_ERROR("Different values (first, last):");
@@ -505,6 +550,7 @@ namespace {
 
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
 	ADD_TOOL(exe_scan, "dev", "[exe] [pattern]", "Scan exe", exe_scan);
+	ADD_TOOL(exe_rva, "dev", "[exe] [rva]", "Find all rva for an exe", exe_rva);
 	ADD_TOOL(game_validate, "dev", " [game=all]", "Validate scans for an exe", game_validate);
 	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
