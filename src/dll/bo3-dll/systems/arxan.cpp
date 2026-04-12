@@ -343,4 +343,4 @@ namespace {
 }
 
 
-REGISTER_SYSTEM(arxan, PatchArxan, PatchArxanPre);
+REGISTER_SYSTEM(arxan, PatchArxanPre, PatchArxan);
