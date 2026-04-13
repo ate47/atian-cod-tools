@@ -24,6 +24,7 @@ target_include_directories(AtianCodToolsBO3DLL PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/rapidjson/include"
     "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
     "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src"
+    "${CMAKE_SOURCE_DIR}/deps/miniz-cpp/"
 )
 append_common_defs(AtianCodToolsBO3DLL)
 
