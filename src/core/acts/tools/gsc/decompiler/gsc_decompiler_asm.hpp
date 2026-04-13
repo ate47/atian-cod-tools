@@ -29,6 +29,7 @@ namespace tool::gsc {
             utils::LineStreamBuf* lineBuf{};
 
             std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc = false);
+            void MarkLine(std::ostream& out);
         };
         enum ASMContextNodePriority : UINT {
             PRIORITY_INST,

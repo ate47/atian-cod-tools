@@ -1531,6 +1531,9 @@ namespace tool::gsc {
                         asmout << " ";
                     }
                     asmctx.Dump(asmout, dctx);
+                    dctx.rloc = asmctx.FinalSize();
+                    dctx.MarkLine(asmout);
+
                     asmout << std::endl;
                 }
                 if (inDevBlock) {
@@ -2027,6 +2030,7 @@ namespace tool::gsc {
         LOG_INFO("--input-dbg [d]    : DBG input directory, default to none");
         LOG_INFO("-v --vm            : Only decompile a particular vm");
         LOG_INFO("-H --header        : Write file header");
+        LOG_INFO("--gdb-dump [zip]   : Write zip containing gdb data");
         LOG_INFO("-m --hashmap [f]   : Write hashmap in a file f");
         {
             std::ostringstream formats;
@@ -2077,6 +2081,7 @@ namespace tool::gsc {
         LOG_DEBUG("--vtable           : Do not hide and decompile vtable functions");
         LOG_DEBUG("--debug-hashes     : Debug hash alogrithm");
         LOG_DEBUG("--data-dump        : Dump data in asm");
+        LOG_DEBUG("--lc               : Write line count");
         LOG_DEBUG("-i --ignore[t + ]  : ignore step : ");
         LOG_DEBUG("                     a : all, d: devblocks, s : switch, e : foreach, w : while, i : if, f : for, r : return");
         LOG_DEBUG("                     R : bool return, c: class members, D: devblocks inline, S : special patterns");

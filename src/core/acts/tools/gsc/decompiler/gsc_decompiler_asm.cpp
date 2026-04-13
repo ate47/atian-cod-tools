@@ -768,16 +768,24 @@ namespace tool::gsc::opcode {
 	}
 
 
+	void DecompContext::MarkLine(std::ostream& out) {
+		if (gdbData && baseloc && lineBuf) {
+			// add these offset/line to the gdb output
+			uint32_t& l{ gdbData->lineInfos[lineBuf->line] };
+			uint32_t lineRloc{ baseloc + rloc };
+			if (l < lineRloc) {
+				l = lineRloc;
+
+				if (opt.m_lineCount) {
+					out << "/*" << std::dec << lineBuf->line << "/" << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (lineRloc) << "*/";
+				}
+			}
+		}
+	}
 
 	std::ostream& DecompContext::WritePadding(std::ostream& out, bool forceNoRLoc) {
 		utils::Padding(out, paddingPre);
-		if (gdbData && baseloc && lineBuf) {
-			// add these offset/line to the gdb output
-			gdbData->lineInfos[lineBuf->line] = baseloc + rloc;
-			if (opt.m_lineCount) {
-				out << "/*" << std::dec << lineBuf->line << "/" << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << (baseloc + rloc) << "*/";
-			}
-		}
+		MarkLine(out);
 		if (opt.m_func_rloc || opt.m_func_floc) {
 			out << "/*";
 			if (forceNoRLoc) {
@@ -941,6 +949,13 @@ namespace tool::gsc::opcode {
 				visibleId++;
 			}
 			if (hide && !ctx.opt.m_show_internal_blocks) {
+				// find the biggest offset to end the line
+				while (i < m_statements.size()) {
+					const auto& ref = m_statements[i++];
+					ctx.rloc = ref.location->rloc;
+					ctx.MarkLine(out);
+				}
+
 				// don't write hidden stuff
 				break;
 			}
