@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include "tools/tools_nui.hpp"
 #include <core/config.hpp>
 #include <tools/bo4/pool.hpp>
@@ -219,3 +220,4 @@ namespace {
 	}
 	// ADD_TOOL_NUI(bocw_lobby_tool, "BOCW Lobby tool", bocw_lobby_tool);
 }
+#endif // _WIN32

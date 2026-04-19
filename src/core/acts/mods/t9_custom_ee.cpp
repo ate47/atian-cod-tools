@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include "custom_ees.hpp"
 #include <tools/cw/cw.hpp>
 #include <tools/gsc/data/gsc_data_t9.hpp>
@@ -114,3 +115,6 @@ int t9customee(int argc, const char* argv[]) {
 	return ret;
 }
 ADD_MOD("t9cee", "Enable EEs in offline (cw)", t9customee);
+
+
+#endif // _WIN32

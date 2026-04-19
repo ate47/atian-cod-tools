@@ -105,6 +105,8 @@ namespace platform {
 	void DumpStackTraceFrom(core::logs::loglevel level, const void* location);
 	// install error hooks
 	void InstallErrorHooks(bool clearSetFunction);
+	// last error
+	uint32_t GetLastPlatformError();
 	
 	
 	//////////////////////// Process functions

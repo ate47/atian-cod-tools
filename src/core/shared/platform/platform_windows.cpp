@@ -1,10 +1,14 @@
+#ifdef _WIN32
 #define NO_PLATFORM_IMPLEMENT
 #include <platform/platform_windows.hpp>
 #include <conio.h>
 #include <TlHelp32.h>
 #include <DbgHelp.h>
 #pragma comment(lib, "imagehlp.lib")
+#if __has_include(<detours.h>)
+#define __ACTS_PLATFORM_HAS_DETOURS
 #include <detours.h>
+#endif
 #include <includes_shared.hpp>
 #include <process.h>
 #include <platform/platform.hpp>
@@ -488,6 +492,7 @@ namespace platform {
 
 
 	void CreateDetour(void** base, void* to) {
+#ifdef __ACTS_PLATFORM_HAS_DETOURS
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 
@@ -498,9 +503,13 @@ namespace platform {
 		if (error != NO_ERROR) {
 			throw std::runtime_error(utils::va(actssec("Can't commit detour %p -> %p"), base, to));
 		}
+#else
+		throw std::runtime_error("detours not available for this build");
+#endif
 	}
 
 	void ClearDetour(void* base, void* to) {
+#ifdef __ACTS_PLATFORM_HAS_DETOURS
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 
@@ -511,6 +520,9 @@ namespace platform {
 		if (error != NO_ERROR) {
 			throw std::runtime_error(utils::va(actssec("Can't commit clear detour %p -> %p"), base));
 		}
+#else
+throw std::runtime_error("detours not available for this build");
+#endif
 	}
 
 
@@ -784,6 +796,9 @@ namespace platform {
 			LOG_ERROR("Can't install error hooks: {}", e.what());
 		}
 	}
+	uint32_t GetLastPlatformError() {
+		return GetLastError();
+	}
 
 	bool CreatePlatformProcess(char* cmd, bool attachConsole) {
 		STARTUPINFOA si;
@@ -920,3 +935,7 @@ namespace platform {
 		return std::filesystem::absolute(szFileName).parent_path();
 	}
 }
+
+#else // !WIN32
+#include <includes_shared.hpp>
+#endif

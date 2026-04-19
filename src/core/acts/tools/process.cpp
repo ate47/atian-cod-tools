@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include <utils/memapi_calls.hpp>
 #include <tools/bo4/pool.hpp>
 
@@ -480,3 +481,5 @@ namespace {
 ADD_TOOL(crashproc, "dev", "", "", nullptr, crashproc);
 ADD_TOOL(procloop, "dev", "", "proc loop", nullptr, procloop);
 ADD_TOOL(proc, "dev", " (process) (s) [module] [function]", "process explorer", nullptr, processtool);
+
+#endif // _WIN32

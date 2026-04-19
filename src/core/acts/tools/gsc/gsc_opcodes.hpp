@@ -1,5 +1,4 @@
 #pragma once
-#include <Windows.h>
 #include "gsc_opcodes_load.hpp"
 #include <unordered_map>
 

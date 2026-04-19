@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include "tools/tools_ui.hpp"
 #include "tools/tools_nui.hpp"
 #include "tools/cw/cw.hpp"
@@ -754,3 +755,5 @@ namespace {
     ADD_TOOL_UI(gsc_inject, L"GSC Inject", Render, Update, Resize);
     ADD_TOOL_NUI(gsc_inject, "GSC Inject", gsc_inject);
 }
+
+#endif // _WIN32

@@ -16,36 +16,63 @@ set_target_properties(ACTSSharedLibrary PROPERTIES
 )
 target_precompile_headers(ACTSSharedLibrary PRIVATE "${CMAKE_SOURCE_DIR}/src/core/shared/includes_shared.hpp")
 
-target_include_directories(ACTSSharedLibrary PRIVATE
-    "${CMAKE_SOURCE_DIR}/src/core/shared"
-    "${CMAKE_SOURCE_DIR}/deps/asmjit/src"
-    "${CMAKE_SOURCE_DIR}/deps/Detours/src"
-    "${CMAKE_SOURCE_DIR}/deps/curl/include"
-    "${CMAKE_SOURCE_DIR}/deps/rapidjson/include"
-    "${CMAKE_SOURCE_DIR}/deps/miniz-cpp"
-    "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
-    "${CMAKE_SOURCE_DIR}/deps/lz4/lib"
-    "${CMAKE_SOURCE_DIR}/deps/zstd/lib"
-    "${CMAKE_SOURCE_DIR}/deps/zlib"
-    "${CMAKE_SOURCE_DIR}/deps/ps4debug/kdebugger/include"
-    "${CMAKE_SOURCE_DIR}/deps/ps4debug/ps4-ksdk/include"
-    "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include"
-)
-append_common_defs(ACTSSharedLibrary)
+if(ALL_PLATFORM_ACTS)
+    target_include_directories(ACTSSharedLibrary PRIVATE
+        "${CMAKE_SOURCE_DIR}/src/core/shared"
+        "${CMAKE_SOURCE_DIR}/deps/curl/include"
+        "${CMAKE_SOURCE_DIR}/deps/rapidjson/include"
+        "${CMAKE_SOURCE_DIR}/deps/miniz-cpp"
+        "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
+        "${CMAKE_SOURCE_DIR}/deps/lz4/lib"
+        "${CMAKE_SOURCE_DIR}/deps/zstd/lib"
+        "${CMAKE_SOURCE_DIR}/deps/zlib"
+    )
+    append_common_defs(ACTSSharedLibrary)
 
-target_link_libraries(ACTSSharedLibrary PRIVATE
-    asmjit
-    detours
-    libcurl
-    lz4
-    zstd
-    zlib
-)
-add_dependencies(ACTSSharedLibrary
-    asmjit
-    detours
-    libcurl
-    lz4
-    zstd
-    zlib
-)
+    target_link_libraries(ACTSSharedLibrary PRIVATE
+        libcurl
+        lz4
+        zstd
+        zlib
+    )
+    add_dependencies(ACTSSharedLibrary
+        libcurl
+        lz4
+        zstd
+        zlib
+    )
+else()
+    target_include_directories(ACTSSharedLibrary PRIVATE
+        "${CMAKE_SOURCE_DIR}/src/core/shared"
+        "${CMAKE_SOURCE_DIR}/deps/asmjit/src"
+        "${CMAKE_SOURCE_DIR}/deps/Detours/src"
+        "${CMAKE_SOURCE_DIR}/deps/curl/include"
+        "${CMAKE_SOURCE_DIR}/deps/rapidjson/include"
+        "${CMAKE_SOURCE_DIR}/deps/miniz-cpp"
+        "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
+        "${CMAKE_SOURCE_DIR}/deps/lz4/lib"
+        "${CMAKE_SOURCE_DIR}/deps/zstd/lib"
+        "${CMAKE_SOURCE_DIR}/deps/zlib"
+        "${CMAKE_SOURCE_DIR}/deps/ps4debug/kdebugger/include"
+        "${CMAKE_SOURCE_DIR}/deps/ps4debug/ps4-ksdk/include"
+        "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include"
+    )
+    append_common_defs(ACTSSharedLibrary)
+
+    target_link_libraries(ACTSSharedLibrary PRIVATE
+        asmjit
+        detours
+        libcurl
+        lz4
+        zstd
+        zlib
+    )
+    add_dependencies(ACTSSharedLibrary
+        asmjit
+        detours
+        libcurl
+        lz4
+        zstd
+        zlib
+    )
+endif()

@@ -296,8 +296,10 @@ namespace tool {
 			return tool::BASIC_ERROR;
 		}
 
-		Process proc(tool.m_game);
+
 		actscli::ActsOptions& opt = actscli::options();
+#ifdef _WIN32
+		Process proc(tool.m_game);
 
 		if (tool.m_game) {
 
@@ -308,10 +310,19 @@ namespace tool {
 			LOG_INFO("Find process {} {}", utils::WStrToStr(tool.m_game), proc);
 
 			if (!proc.Open()) {
-				LOG_ERROR("Can't open game process: 0x{:x}", GetLastError());
+				LOG_ERROR("Can't open game process: 0x{:x}", platform::GetLastPlatformError());
 				return -1;
 			}
 		}
+#else // !_WIN32
+		Process proc;
+
+		if (tool.m_game) {
+			LOG_ERROR("This version doesn't support process handling");
+			return -1;
+		}
+
+#endif // _WIN32
 
 		if (opt.dumpHashmap) {
 			hashutils::SaveExtracted(true, opt.dumpHashmapUnknown);
@@ -357,7 +368,7 @@ namespace tool {
 }
 
 namespace {
-	int list(Process& proc, int argc, const char* argv[]) {
+	int list(int argc, const char* argv[]) {
 		if (argc < 3) {
 			// show categories
 
@@ -415,11 +426,11 @@ namespace {
 		return tool::OK;
 	}
 
-	int help(Process& proc, int argc, const char* argv[]) {
-		return list(proc, argc, argv);
+	int help(int argc, const char* argv[]) {
+		return list(argc, argv);
 	}
 
-	int search(Process& proc, int argc, const char* argv[]) {
+	int search(int argc, const char* argv[]) {
 		if (!tool::search(argv + 2, argc - 2, [](const tool::toolfunctiondata* tool) {
 				LOG_INFO("- {}{} :{} {}", tool->m_name, tool->m_usage, HAS_LOG_LEVEL(core::logs::LVL_TRACE) ? std::format(" ({}@{})", tool->filename, tool->line) : "", tool->m_description);
 			})) {
@@ -429,7 +440,7 @@ namespace {
 		return tool::OK;
 	}
 #ifndef CI_BUILD
-	int color(Process& proc, int argc, const char* argv[]) {
+	int color(int argc, const char* argv[]) {
 		for (int b = 0; b < 6; b++) {
 			for (int i = 0; i < 6; i++) {
 				for (int j = 0; j < 6; j++) {
@@ -455,9 +466,9 @@ namespace {
 
 		return tool::OK;
 	}
-	ADD_TOOL(color, "dev", "", "color tool", nullptr, color);
+	ADD_TOOL(color, "dev", "", "color tool", color);
 #endif
-	int info(Process& proc, int argc, const char* argv[]) {
+	int info(int argc, const char* argv[]) {
 		LOG_INFO("Loading acts data...");
 		hashutils::ReadDefaultFile();
 		tool::gsc::opcode::RegisterOpCodes();
@@ -533,7 +544,7 @@ void RegisterActsCategory(const char* name, const char* description, bool visibl
 	cat.visible = visible;
 }
 
-ADD_TOOL(list, "acts", "", "list all the tools", nullptr, list);
-ADD_TOOL(help, "acts", "", "list all the tools", nullptr, help);
-ADD_TOOL(info, "acts", "", "acts info", nullptr, info);
-ADD_TOOL(search, "acts", " (args)*", "search a tool", nullptr, search);
+ADD_TOOL(list, "acts", "", "list all the tools", list);
+ADD_TOOL(help, "acts", "", "list all the tools", help);
+ADD_TOOL(info, "acts", "", "acts info", info);
+ADD_TOOL(search, "acts", " (args)*", "search a tool", search);

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(AtianCodTools LANGUAGES CXX C)
+unset(ALL_PLATFORM_ACTS CACHE)
+unset(STATIC_ACTS CACHE)
 
 # Define build options
 option(CI_BUILD "CI build define" OFF)
@@ -7,6 +9,19 @@ option(GPL_BUILD "GPL build define" OFF)
 option(PRERELEASE_BUILD "Prerelease build define" OFF)
 option(NO_QT_BUILD "Disable QT projects" OFF)
 option(STATIC_ACTS "acts-common is compiled as a static library" OFF)
+option(ALL_PLATFORM_ACTS "Compile cross platform modules only" OFF)
+
+
+set(ALL_PLATFORM_SAFE_SCRIPTS
+    ACTSLibrary.cmake
+    ACTSSharedLibrary.cmake
+    antlr4.cmake
+    libcurl.cmake
+    lz4.cmake
+    zlib.cmake
+    zstd.cmake
+)
+
 
 if (NOT NO_QT_BUILD)
     find_package(Qt6 REQUIRED COMPONENTS Core)
@@ -119,6 +134,15 @@ macro(load_dir_recurse id)
     file(GLOB DEP_SCRIPTS "${CMAKE_SOURCE_DIR}/cmake/${id}/*.cmake")
 
     foreach(script ${DEP_SCRIPTS})
+        if(ALL_PLATFORM_ACTS)
+            get_filename_component(script_name "${script}" NAME)
+
+            if(NOT script_name IN_LIST ALL_PLATFORM_SAFE_SCRIPTS)
+                message(STATUS "Skipping ${script} (not all platform)")
+                continue()
+            endif()
+        endif()
+
         message(STATUS "Loading ${script}")
         include(${script})
     endforeach()

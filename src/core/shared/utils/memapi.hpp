@@ -1,5 +1,5 @@
 #pragma once
-#ifdef WIN32
+#ifdef _WIN32
 #include <platform/platform_windows.hpp>
 #include <hook/process.hpp>
 #include <utils/utils.hpp>
@@ -511,7 +511,7 @@ struct std::formatter<ProcessModuleExport, char> : utils::BasicFormatter<Process
 template<>
 struct std::formatter<ProcessLocation, char> : utils::BasicFormatter<ProcessLocation> {};
 
-#else // !WIN32
+#else // !_WIN32
 class Process { public: };
 class ProcessModule { public: };
 class ProcessModuleExport { public: };

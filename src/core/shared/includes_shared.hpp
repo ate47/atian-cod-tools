@@ -14,6 +14,7 @@
 #include <functional>
 #include <random>
 #include <cstdint>
+#include <cstdarg>
 
 
 #if __has_include("asmjit/asmjit.h")

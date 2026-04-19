@@ -5,24 +5,31 @@ file(GLOB_RECURSE ACTS_GSC_SOURCES
     "${CMAKE_SOURCE_DIR}/src/core/gsc/*.cpp"
 )
 add_library(ACTSGSC STATIC)
-target_sources(ACTSGSC PRIVATE ${ACTS_GSC_SOURCES})
-source_group(
-    TREE "${CMAKE_SOURCE_DIR}/src/core/gsc"
-    FILES ${ACTS_GSC_SOURCES}
-)
 set_target_properties(ACTSGSC PROPERTIES
     OUTPUT_NAME "acts-gsc"
     FOLDER "Core"
 )
 
+target_sources(ACTSGSC PRIVATE ${ACTS_GSC_SOURCES})
+source_group(
+    TREE "${CMAKE_SOURCE_DIR}/src/core/gsc"
+    FILES ${ACTS_GSC_SOURCES}
+)
+
 target_include_directories(ACTSGSC PRIVATE
     "${CMAKE_SOURCE_DIR}/src/core/gsc"
     "${CMAKE_SOURCE_DIR}/src/core/shared"
+    "${CMAKE_SOURCE_DIR}/deps/antlr4/runtime/Cpp/runtime/src/"
+    "${CMAKE_SOURCE_DIR}/deps/zlib/"
 )
 append_common_defs(ACTSGSC)
 target_link_libraries(ACTSGSC PRIVATE
+    antlr4-runtime
     ACTSSharedLibrary
+    zlib
 )
 add_dependencies(ACTSGSC
+    antlr4-runtime
     ACTSSharedLibrary
+    zlib
 )

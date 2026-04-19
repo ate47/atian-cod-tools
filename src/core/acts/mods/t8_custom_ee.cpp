@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include "custom_ees.hpp"
 #include <tools/bo4/dump.hpp>
 #include "tools/gsc/gsc.hpp"
@@ -172,3 +173,6 @@ int t8customee(int argc, const char* argv[]) {
 }
 
 ADD_MOD("t8cee", "Enable EEs in custom mutation/offline/casual", t8customee);
+
+
+#endif // _WIN32

@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include "tools/tools_nui.hpp"
 #include <core/config.hpp>
 #include <tools/bo4/pool.hpp>
@@ -302,3 +303,5 @@ namespace {
 	ADD_TOOL_NUI(bo4_event_tool, "BO4 Events tool", bo4_event_tool);
 
 }
+
+#endif // _WIN32

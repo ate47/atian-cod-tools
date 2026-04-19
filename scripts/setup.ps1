@@ -7,6 +7,8 @@ param(
     $fresh,
     [switch]
     $noQT,
+    [switch]
+    $allPlatform,
     $build = "Visual Studio 18 2026",
     $msvc = "v143",
     $deployType = "app"
@@ -40,6 +42,10 @@ try {
     if ($noQT) {
         $params += @( "-DNO_QT_BUILD=ON" )
     }
+    if ($allPlatform) {
+        $params += @( "-DALL_PLATFORM_ACTS=ON" )
+    }
+
     if ("library" -eq $deployType) {
         $params += @( "-DSTATIC_ACTS=ON" )
         $params += @( "-DNO_QT_BUILD=ON" )

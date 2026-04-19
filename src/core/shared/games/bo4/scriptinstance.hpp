@@ -1,5 +1,4 @@
 #pragma once
-#include <Windows.h>
 
 namespace games::bo4::scriptinstance {
 	enum ScriptInstance : uint32_t {

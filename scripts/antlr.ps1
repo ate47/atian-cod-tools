@@ -30,10 +30,9 @@ try {
     if ($gsc) {
         java -jar scripts/antlr4.jar -o .antlr4 -Dlanguage=Cpp .\grammar\gsc.g4 -no-listener -visitor -Werror
         AddPrecompHeader
-    
-        New-Item -ItemType Directory src\core\acts\tools\gsc\compiler\grammar -ErrorAction Ignore > $null
-        Move-Item .antlr4\grammar\*.cpp src\core\acts\tools\gsc\compiler\grammar -Force
-        Move-Item .antlr4\grammar\*.h src\core\acts\tools\gsc\compiler\grammar -Force
+        New-Item -ItemType Directory src/core/gsc/compiler/grammar -ErrorAction Ignore > $null
+        Move-Item .antlr4\grammar\*.cpp src/core/gsc/compiler/grammar -Force
+        Move-Item .antlr4\grammar\*.h src/core/gsc/compiler/grammar -Force
     }
     
     if ($ddl) {

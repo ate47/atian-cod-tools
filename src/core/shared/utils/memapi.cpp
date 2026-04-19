@@ -1,6 +1,6 @@
 #include <includes_shared.hpp>
 #include <utils/memapi.hpp>
-#ifdef WIN32
+#ifdef _WIN32
 #include <TlHelp32.h>
 #include <utils/utils.hpp>
 #include <hook/library.hpp>

@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include <games/bo4/offsets.hpp>
 #include <games/bo4/pool.hpp>
 
@@ -300,3 +301,5 @@ static int custom_table_replace(int argc, const char* argv[]) {
 ADD_MOD("ctr", "replace table data", custom_table_replace);
 
 #endif
+
+#endif // _WIN32

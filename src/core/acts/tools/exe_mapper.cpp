@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#ifdef WIN32
+#ifdef _WIN32
 #include <platform/platform_windows.hpp>
 #include <game_data.hpp>
 #include <games/cod/asset_names.hpp>
@@ -561,4 +561,4 @@ namespace {
 
 }
 
-#endif // WIN32
+#endif // _WIN32

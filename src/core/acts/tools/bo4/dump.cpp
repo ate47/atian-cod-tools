@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include "tools/gsc/gsc.hpp"
 #include <games/bo4/pool.hpp>
 #include <tools/bo4/pool.hpp>
@@ -2235,3 +2236,6 @@ ADD_TOOL(dstorage, "bo4", " [output=storage.json]", "dump storage", L"BlackOps4.
 ADD_TOOL(dvehfields, "bo4", " [exe] [output=vehfields.csv]", "dump vehicle fields", dvehfields);
 ADD_TOOL(dmatbo4texturenames, "bo4", " [exe] [output=mttxtnames.csv]", "test hash", dmatbo4texturenames);
 ADD_TOOL(dmattesthash, "bo4", " [csv] [output=mttxtout.csv]", "test hash", dmattesthash);
+
+
+#endif // _WIN32

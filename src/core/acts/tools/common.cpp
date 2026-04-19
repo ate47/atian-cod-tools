@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 
 namespace {
 	bool CommonToolTest(int argc, const char* argv[], int& ret, const char* name) {
@@ -68,3 +69,6 @@ namespace {
 	REGISTER_COMMON_TOOL(dbg, "common", "", "vm debugger", "dbgbo4", "dbgcw");
 	REGISTER_COMMON_TOOL(dbg_link, "common", "", "debug linking error", "dbg_linkbo4");
 }
+
+
+#endif // _WIN32

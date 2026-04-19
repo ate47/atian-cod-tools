@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include <hook/library.hpp>
 #include <tools/exe_dump.hpp>
 #include <cli/cli_options.hpp>
@@ -637,3 +638,5 @@ ActsStatus ActsAPIProcess_DumpGame(ActsAPIProcess_GameDumpInformation& game, con
 		return ActsStatus::ACTS_STATUS_ERROR;
 	}
 }
+
+#endif // _WIN32

@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include <cli/clisync.hpp>
 
 namespace {
@@ -137,3 +138,5 @@ namespace {
 }
 ADD_MOD("t8dll", "Inject BO4 DLL", t8dll);
 ADD_MOD("t9dll", "Inject CW DLL", t9dll);
+
+#endif // _WIN32
