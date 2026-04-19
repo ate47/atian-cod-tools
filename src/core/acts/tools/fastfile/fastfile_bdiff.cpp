@@ -656,3 +656,7 @@ namespace fastfile::bdiff {
         return destdata;
     }
 }
+
+ACTS_COMMON_API bool ActsAPIFastFile_bdiff(ActsAPIFastFile_BDiffState* state, ActsAPIFastFile_sourceCallback* sourceDataCB, ActsAPIFastFile_diffCallback* patchDataCB, ActsAPIFastFile_destCallback* destDataCB) {
+    return fastfile::bdiff::bdiff(state, sourceDataCB, patchDataCB, destDataCB);
+}

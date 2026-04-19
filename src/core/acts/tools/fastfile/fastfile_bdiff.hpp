@@ -1,23 +1,15 @@
 #pragma once
 #include <core/bytebuffer.hpp>
+#include <acts_api/fastfile.h>
 
 namespace fastfile::bdiff {
     // used for the checksum
-    enum BDiffType {
-        BDT_UNKNOWN = 0,
-        BDT_TREYARCH = 1,
-        BDT_IW = 2,
-    };
-    struct BDiffState {
-        bool headerRead;
-        const char* error;
-        void* state;
-        uint32_t lastChecksum{};
-        BDiffType type;
-    };
-    typedef uint8_t* vcSourceCB_t(void* state, size_t offset, size_t size);
-    typedef uint8_t* vcDiffCB_t(void* state, size_t offset, size_t size, size_t* pOffset);
-    typedef uint8_t* vcDestCB_t(void* state, size_t size);
+	using BDiffType = ActsAPIFastFile_BDiffType;
+	using BDiffState = ActsAPIFastFile_BDiffState;
+
+    using vcSourceCB_t = ActsAPIFastFile_sourceCallback;
+    using vcDiffCB_t = ActsAPIFastFile_diffCallback;
+    using vcDestCB_t = ActsAPIFastFile_destCallback;
 
     bool bdiff(BDiffState* state, vcSourceCB_t* sourceDataCB, vcDiffCB_t* patchDataCB, vcDestCB_t* destDataCB);
 
