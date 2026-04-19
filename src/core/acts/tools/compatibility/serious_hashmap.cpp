@@ -15,7 +15,7 @@ namespace {
 		"t8",
 	};
 	SeriousHashMapType SeriousHashMapTypeOf(const char* name) {
-		for (size_t i = 1; i < ARRAYSIZE(SeriousHashMapTypeNames); i++) {
+		for (size_t i = 1; i < ACTS_ARRAYSIZE(SeriousHashMapTypeNames); i++) {
 			if (!_strcmpi(SeriousHashMapTypeNames[i], name)) {
 				return (SeriousHashMapType)i;
 			}
@@ -23,7 +23,7 @@ namespace {
 		return SHMT_UNKNOWN;
 	}
 	const char* SeriousHashMapTypeName(SeriousHashMapType type) {
-		if (type < 0 || type >= ARRAYSIZE(SeriousHashMapTypeNames)) {
+		if (type < 0 || type >= ACTS_ARRAYSIZE(SeriousHashMapTypeNames)) {
 			return SeriousHashMapTypeNames[0];
 		}
 		return SeriousHashMapTypeNames[type];

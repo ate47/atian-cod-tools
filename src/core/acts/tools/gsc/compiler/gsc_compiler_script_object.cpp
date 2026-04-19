@@ -341,7 +341,7 @@ namespace tool::gsc::compiler {
     }
 
     AscmNodeOpCode* CompileObject::CreateBiggestValue(int64_t val) {
-        for (size_t i = ARRAYSIZE(NumberOpCodes); i > 0; i--) {
+        for (size_t i = ACTS_ARRAYSIZE(NumberOpCodes); i > 0; i--) {
             const NumberOpCodesS& opcode{ NumberOpCodes[i - 1] };
             if (HasOpCode(opcode.opcode)) {
                 return BuildAscmNodeData(opcode, val);

@@ -21,7 +21,7 @@ namespace fastfile {
 	}
 
 	FastFileCompression GetFastFileCompression(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(tFFNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(tFFNames); i++) {
 			if (!_strcmpi(tFFNames[i], name)) {
 				return (FastFileCompression)i;
 			}
@@ -55,7 +55,7 @@ namespace fastfile {
 	}
 
 	const char* GetFastFileCompressionName(FastFileCompression comp) {
-		if (comp >= ARRAYSIZE(tFFNames) || comp < 0) {
+		if (comp >= ACTS_ARRAYSIZE(tFFNames) || comp < 0) {
 			return "unknown";
 		}
 		return tFFNames[comp];

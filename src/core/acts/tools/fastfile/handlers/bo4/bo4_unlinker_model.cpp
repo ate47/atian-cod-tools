@@ -109,7 +109,7 @@ namespace {
 			json.WriteFieldValueNumber("unk14e", (int)asset->unk14e);
 			json.WriteFieldValueNumber("unk14f", (int)asset->unk14f);
 
-			json.WriteFieldValueXAssetArray("meshes", games::bo4::pool::XAssetType::ASSET_TYPE_XMODELMESH, ARRAYSIZE(asset->meshes), asset->meshes);
+			json.WriteFieldValueXAssetArray("meshes", games::bo4::pool::XAssetType::ASSET_TYPE_XMODELMESH, ACTS_ARRAYSIZE(asset->meshes), asset->meshes);
 
 			json.WriteFieldNameString("bones");
 			json.BeginArray();

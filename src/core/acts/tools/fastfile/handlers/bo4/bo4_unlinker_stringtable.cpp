@@ -12,7 +12,7 @@ namespace {
 		STC_TYPE_INT = 0x4,
 		STC_TYPE_FLOAT = 0x5,
 		STC_TYPE_BOOL = 0x6,
-		STC_TYPE_HASHED7 = 0x7,
+		STC_TYPE_LOCALIZED = 0x7,
 		STC_TYPE_HASHED8 = 0x8,
 		STC_TYPE_UNK9 = 0x9,
 	};
@@ -99,7 +99,7 @@ namespace {
 						os << cell.value.str;
 						break;
 					case STC_TYPE_HASHED2:
-						os << "#" << hashutils::ExtractTmp("hash", cell.value.hash);
+						os << "#" << opt.GetTranslation(cell.value.hash);
 						break;
 					case STC_TYPE_INT:
 						os << std::dec << cell.value.i;
@@ -110,8 +110,8 @@ namespace {
 					case STC_TYPE_BOOL:
 						os << (cell.value.b ? "TRUE" : "FALSE");
 						break;
-					case STC_TYPE_HASHED7:
-						os << "7#" << hashutils::ExtractTmp("hash", cell.value.hash);
+					case STC_TYPE_LOCALIZED:
+						os << "&#" << opt.GetTranslation(cell.value.hash.name);
 						break;
 					case STC_TYPE_HASHED8:
 						os << "8#" << hashutils::ExtractTmp("hash", cell.value.hash);

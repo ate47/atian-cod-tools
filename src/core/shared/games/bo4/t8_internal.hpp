@@ -69,7 +69,7 @@ namespace games::bo4::t8internal {
 		uint32_t ui;
 		int64_t ll;
 		int32_t i;
-		FLOAT f;
+		float f;
 		ScrVarEntityInfo entVar;
 	};
 
@@ -78,8 +78,8 @@ namespace games::bo4::t8internal {
 		uint32_t ui;
 		int64_t ll;
 		int32_t i;
-		DOUBLE d;
-		FLOAT f;
+		double d;
+		float f;
 		uintptr_t ptr;
 		ScrVarEntityInfo entVar;
 		WeaponInfo weaponInfo;

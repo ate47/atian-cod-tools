@@ -210,7 +210,7 @@ namespace {
 			auto WritePlayListRule = [](BO4JsonWriter& json, PlaylistRule* rule) {
 				json.BeginObject();
 				const char* type;
-				if (rule->type < ARRAYSIZE(PlaylistRuleTypesNames)) {
+				if (rule->type < ACTS_ARRAYSIZE(PlaylistRuleTypesNames)) {
 					type = PlaylistRuleTypesNames[rule->type];
 				}
 				else {

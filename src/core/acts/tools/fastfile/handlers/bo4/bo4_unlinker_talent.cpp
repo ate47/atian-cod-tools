@@ -40,7 +40,7 @@ namespace {
 
 			json.WriteFieldNameString("perks");
 			json.BeginArray();
-			for (size_t i = 0; i < ARRAYSIZE(asset->perks); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(asset->perks); i++) {
 				json.WriteValueNumber(asset->perks[i]);
 			}
 			json.EndArray();

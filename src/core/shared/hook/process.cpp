@@ -1,6 +1,4 @@
 #include <includes_shared.hpp>
-#include <DbgHelp.h>
-#pragma comment(lib, "imagehlp.lib")
 #include "process.hpp"
 
 namespace hook::process {
@@ -16,87 +14,28 @@ namespace hook::process {
 		return reinterpret_cast<byte*>(BaseHandle());
 	}
 
-	HMODULE BaseHandle() {
-		static HMODULE ptr = NULL;
+	void* BaseHandle() {
+		static void* ptr = NULL;
 		if (!ptr) {
-			ptr = GetModuleHandleA(NULL);
+			ptr = platform::GetModulePointer();
 		}
 		return ptr;
 	}
 
-	PIMAGE_DOS_HEADER PImageDosHeader(HMODULE mod) {
-		return reinterpret_cast<PIMAGE_DOS_HEADER>(mod ? mod : BaseHandle());
-	}
-
 	void WriteMemSafe(void* dest, void* src, size_t len) {
-		DWORD old = 0;
-		VirtualProtect(dest, len, PAGE_EXECUTE_READWRITE, &old);
-
-		memcpy(dest, src, len);
-
-		VirtualProtect(dest, len, old, &old);
-		FlushInstructionCache(GetCurrentProcess(), dest, len);
+		platform::WriteMemSafe(dest, src, len);
 	}
 
-	PIMAGE_NT_HEADERS PImageNtHeader(HMODULE mod) {
-		return ImageNtHeader((mod ? mod : BaseHandle()));
+	void* LoadLib(const char* lib, int32_t flags) {
+		return platform::LoadShared(lib, flags);
 	}
 
-	PIMAGE_OPTIONAL_HEADER PImageOptHeader(HMODULE mod) {
-		return &(PImageNtHeader(mod)->OptionalHeader);
-	}
-
-	HMODULE LoadLib(const char* lib, DWORD flags) {
-		if (flags) {
-			return LoadLibraryExA(lib, nullptr, flags);
-		}
-		return LoadLibraryA(lib);
-	}
-
-	HMODULE LoadSysLib(const char* lib) {
-		char dir[MAX_PATH]{ 0 };
-		GetSystemDirectoryA(dir, sizeof(dir));
-
-		return LoadLib(std::format("{}/{}", dir, lib));
+	void* LoadSysLib(const char* lib) {
+		return platform::LoadSystemShared(lib);
 	}
 
 	void** GetImportAddrTableEntry(const char* lib, const char* entry) {
-		auto mod = GetModuleHandleA(lib);
-		if (!mod || !lib) {
-			return nullptr;
-		}
-
-		auto addr = GetProcAddress(mod, entry);
-		assert(addr && "can't find entry");
-
-		auto* base = BasePtr();
-		auto desc = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(base + PImageOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
-
-		for (;desc->Name; desc++) {
-			if (_strcmpi((const char*)&base[desc->Name], lib) != 0) {
-				continue;
-			}
-
-			auto* originalThunk = reinterpret_cast<PIMAGE_THUNK_DATA>(base + desc->OriginalFirstThunk);
-			auto* thunk = reinterpret_cast<PIMAGE_THUNK_DATA>(base + desc->FirstThunk);
-
-
-			for (; originalThunk->u1.AddressOfData; originalThunk++, thunk++) {
-				if (reinterpret_cast<decltype(addr)>(thunk->u1.Function) == addr) {
-					return reinterpret_cast<void**>(&thunk->u1.Function);
-				}
-
-				const size_t ordinal = originalThunk->u1.AddressOfData & 0xFFFFFFF;
-
-				if (ordinal <= 0xFFFF) {
-					if (GetProcAddress(mod, reinterpret_cast<char*>(ordinal)) == addr) {
-						return reinterpret_cast<void**>(&thunk->u1.Function);
-					}
-				}
-			}
-		}
-
-		return nullptr;
+		return platform::GetImportAddrTableEntry(lib, entry);
 	}
 
 	static byte ctob(char c) {
@@ -187,7 +126,7 @@ namespace hook::process {
 
 		// pattern computed, scanning
 		auto ptr = BasePtr();
-		auto il = PImageOptHeader()->SizeOfImage;
+		auto il = platform::ModuleInformationTmp().SizeOfImage();
 		if (il < mask.size()) {
 			// empty
 			return find;

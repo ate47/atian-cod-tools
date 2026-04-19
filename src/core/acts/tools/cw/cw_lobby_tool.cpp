@@ -178,7 +178,7 @@ namespace {
 		static std::string log{};
 
 		if (ImGui::BeginCombo("##gametype", gt + std::strlen(gt) + 1)) {
-			for (int n = 0; n < ARRAYSIZE(gametypes); n++) {
+			for (int n = 0; n < ACTS_ARRAYSIZE(gametypes); n++) {
 				bool isSelected = (gt == gametypes[n]);
 				if (ImGui::Selectable(gametypes[n] + std::strlen(gametypes[n]) + 1, isSelected)) {
 					gt = gametypes[n];
@@ -196,7 +196,7 @@ namespace {
 		}
 
 		if (ImGui::BeginCombo("##map", map + std::strlen(map) + 1)) {
-			for (int n = 0; n < ARRAYSIZE(maps); n++) {
+			for (int n = 0; n < ACTS_ARRAYSIZE(maps); n++) {
 				bool isSelected = (map == maps[n]);
 				if (ImGui::Selectable(maps[n] + std::strlen(maps[n]) + 1, isSelected)) {
 					map = maps[n];

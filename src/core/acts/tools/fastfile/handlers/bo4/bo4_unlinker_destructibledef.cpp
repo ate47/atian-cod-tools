@@ -86,7 +86,7 @@ namespace {
 				json.BeginObject();
 				json.WriteFieldNameString("stages");
 				json.BeginArray();
-				for (size_t j = 0; j < ARRAYSIZE(piece->stages); j++) {
+				for (size_t j = 0; j < ACTS_ARRAYSIZE(piece->stages); j++) {
 					DestructibleStage* stage{ piece->stages + j };
 
 					json.BeginObject();
@@ -94,7 +94,7 @@ namespace {
 					json.WriteFieldValueXAsset("physPreset", games::bo4::pool::XAssetType::ASSET_TYPE_PHYSPRESET, stage->physPreset);
 					json.WriteFieldValueXAsset("baseEffect", games::bo4::pool::XAssetType::ASSET_TYPE_FX, stage->baseEffect);
 					json.WriteFieldValueScrString("unk28", stage->unk28);
-					json.WriteFieldValueScrStringArray("unk2c", ARRAYSIZE(stage->unk2c), stage->unk2c);
+					json.WriteFieldValueScrStringArray("unk2c", ACTS_ARRAYSIZE(stage->unk2c), stage->unk2c);
 					json.WriteFieldValueScrString("unk3c", stage->unk3c);
 
 					json.EndObject();

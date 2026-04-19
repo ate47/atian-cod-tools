@@ -293,7 +293,7 @@ namespace fastfile::handlers::bo4 {
 		}
 
 		int stackIndex{ gcx.g_streamPosStackIdx++ };
-		if (stackIndex == ARRAYSIZE(gcx.g_streamPosStack)) {
+		if (stackIndex == ACTS_ARRAYSIZE(gcx.g_streamPosStack)) {
 			ThrowFastFileError("DB_PushStreamPos error: Full pos stack");
 		}
 		gcx.g_streamPosStack[stackIndex].index = prevIndex;
@@ -756,7 +756,7 @@ namespace fastfile::handlers::bo4 {
 			"WARZONE",
 		};
 
-		if (id >= ARRAYSIZE(names) || id < 0) {
+		if (id >= ACTS_ARRAYSIZE(names) || id < 0) {
 			return "unknown";
 		}
 		return names[id];
@@ -777,7 +777,7 @@ namespace fastfile::handlers::bo4 {
 			"MEMMAPPED2"
 		};
 
-		if (id >= ARRAYSIZE(names) || id < 0) {
+		if (id >= ACTS_ARRAYSIZE(names) || id < 0) {
 			return "unknown";
 		}
 		return names[id];

@@ -241,12 +241,12 @@ namespace fastfile::linker::bo4 {
 		"MPC",
 	};
 	const char* SndAssetFormatName(SndAssetFormat format) {
-		if (format < ARRAYSIZE(SndAssetFormatNames)) return SndAssetFormatNames[format];
+		if (format < ACTS_ARRAYSIZE(SndAssetFormatNames)) return SndAssetFormatNames[format];
 		return utils::va("Invalid:%d", (int)format);
 	}
 
 	SndAssetFormat SndAssetFormatId(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(SndAssetFormatNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(SndAssetFormatNames); i++) {
 			if (!_strcmpi(SndAssetFormatNames[i], name)) {
 				return (SndAssetFormat)i;
 			}

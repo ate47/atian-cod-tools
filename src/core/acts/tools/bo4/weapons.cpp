@@ -117,12 +117,12 @@ namespace {
 			of
 				<< "\n"
 				<< hashutils::ExtractTmp("var", field.canonId) << ","
-				<< (field.type < ARRAYSIZE(fieldTypeNames) ? fieldTypeNames[field.type] : "invalid") << ","
+				<< (field.type < ACTS_ARRAYSIZE(fieldTypeNames) ? fieldTypeNames[field.type] : "invalid") << ","
 				<< (field.isreadonly ? "true" : "false") << ","
 				<< std::hex
 				<< "0x" << field.ofs << ","
 				<< "0x" << field.size << ","
-				<< (field.weaponType < ARRAYSIZE(fieldNames) ? fieldNames[field.weaponType] : "invalid") << ","
+				<< (field.weaponType < ACTS_ARRAYSIZE(fieldNames) ? fieldNames[field.weaponType] : "invalid") << ","
 				;
 
 			proc.WriteLocation(of, field.getter);
@@ -284,13 +284,13 @@ namespace {
 					break;
 				}
 				if (!estimated) {
-					hof << "// can't read def type at " << std::hex << current << ", type=" << (f.type < ARRAYSIZE(fieldTypeNames) ? fieldTypeNames[f.type] : "invalid") << "\n";
+					hof << "// can't read def type at " << std::hex << current << ", type=" << (f.type < ACTS_ARRAYSIZE(fieldTypeNames) ? fieldTypeNames[f.type] : "invalid") << "\n";
 					current += f.size;
 					continue;
 				}
 
 				if (estimated != f.size) {
-					hof << "// can't read def type at " << std::hex << current << ", type=" << (f.type < ARRAYSIZE(fieldTypeNames) ? fieldTypeNames[f.type] : "invalid") << " for " << typeName << "\n";
+					hof << "// can't read def type at " << std::hex << current << ", type=" << (f.type < ACTS_ARRAYSIZE(fieldTypeNames) ? fieldTypeNames[f.type] : "invalid") << " for " << typeName << "\n";
 					current += f.size;
 					continue;
 				}

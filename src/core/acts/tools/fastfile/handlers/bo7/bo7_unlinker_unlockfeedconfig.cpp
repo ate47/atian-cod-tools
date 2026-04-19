@@ -134,7 +134,7 @@ namespace {
 					json.BeginObject();
 					json.WriteFieldValueXHash("name", data->name);
 					json.WriteFieldValueBool("other", data->other);
-					for (size_t i = 0; i < ARRAYSIZE(data->values); i++) {
+					for (size_t i = 0; i < ACTS_ARRAYSIZE(data->values); i++) {
 						json.WriteFieldValueXHash(utils::va("value%llu", i), data->values[i]);
 					}
 					json.EndObject();
@@ -147,7 +147,7 @@ namespace {
 
 			if (opt.testDump) {
 
-				for (size_t i = 0; i < ARRAYSIZE(asset->__pad); i++) {
+				for (size_t i = 0; i < ACTS_ARRAYSIZE(asset->__pad); i++) {
 					json.WriteFieldValueUnknown(utils::va("unk%x", offsetof(UnlockFeedConfig, __pad) + 8 * i), asset->__pad[i]);
 				}
 			}

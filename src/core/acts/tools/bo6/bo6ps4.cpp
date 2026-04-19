@@ -700,10 +700,10 @@ bo6::T10HashAssetType bo6::PoolId(const char* name) {
 }
 
 const char* bo6::PoolNameRelease(bo6::T10RAssetType type) {
-    return type >= 0 && type < ARRAYSIZE(poolNamesRelease) ? poolNamesRelease[type] : "<invalid>";
+    return type >= 0 && type < ACTS_ARRAYSIZE(poolNamesRelease) ? poolNamesRelease[type] : "<invalid>";
 }
 bo6::T10RAssetType bo6::PoolIdRelease(const char* name) {
-    for (size_t i = 0; i < ARRAYSIZE(poolNamesRelease); i++) {
+    for (size_t i = 0; i < ACTS_ARRAYSIZE(poolNamesRelease); i++) {
         if (!_strcmpi(poolNamesRelease[i], name)) {
             return (T10RAssetType)i;
         }
@@ -1237,12 +1237,12 @@ namespace {
 
     LRESULT Update(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (uMsg == WM_COMMAND) {
-            if (HIWORD(wParam) == EN_CHANGE) {
+            if (B_HIWORD(wParam) == EN_CHANGE) {
                 if (info.filePathEdit == (HWND)lParam) {
 
                     wchar_t path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(GetWindowTextW(info.filePathEdit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(GetWindowTextW(info.filePathEdit, &path[0], ACTS_ARRAYSIZE(path)))) {
                         core::config::SetString("ui.bo6.path", utils::WStrToStr(path));
                         core::config::SaveConfig();
                     }
@@ -1250,7 +1250,7 @@ namespace {
                 else if (info.ps4Edit == (HWND)lParam) {
                     wchar_t path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(GetWindowTextW(info.ps4Edit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(GetWindowTextW(info.ps4Edit, &path[0], ACTS_ARRAYSIZE(path)))) {
                         core::config::SetString("ui.ps4.ipd", utils::WStrToStr(path));
                         core::config::SaveConfig();
                     }
@@ -1258,7 +1258,7 @@ namespace {
                 else if (info.cbuffEdit == (HWND)lParam) {
                     wchar_t path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(GetWindowTextW(info.cbuffEdit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(GetWindowTextW(info.cbuffEdit, &path[0], ACTS_ARRAYSIZE(path)))) {
                         core::config::SetString("ui.bo6.cbuf", utils::WStrToStr(path));
                         core::config::SaveConfig();
                     }

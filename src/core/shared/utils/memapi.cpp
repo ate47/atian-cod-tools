@@ -1,5 +1,7 @@
 #include <includes_shared.hpp>
-#include "memapi.hpp"
+#include <utils/memapi.hpp>
+#ifdef WIN32
+#include <TlHelp32.h>
 #include <utils/utils.hpp>
 #include <hook/library.hpp>
 #include <deps/ntdll.hpp>
@@ -15,7 +17,7 @@ void ProcessMemory::Free() {
 	if (*this) proc.FreeMemory(ptr, size);
 }
 
-DWORD Process::GetProcId(const wchar_t* name) {
+int32_t Process::GetProcId(const wchar_t* name) {
 	DWORD pid = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (hSnap != INVALID_HANDLE_VALUE) {
@@ -34,7 +36,7 @@ DWORD Process::GetProcId(const wchar_t* name) {
 	return pid;
 }
 
-bool Process::GetModuleAddress(DWORD pid, const wchar_t* name, uintptr_t* hModule, DWORD* modSize) {
+bool Process::GetModuleAddress(int32_t pid, const wchar_t* name, uintptr_t* hModule, int32_t* modSize) {
 	*hModule = 0;
 	*modSize = 0;
 	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
@@ -258,9 +260,9 @@ const char* Process::ReadStringTmp(uintptr_t src, const char* defaultVal) const 
 	static char buffer[10][0x200];
 	static size_t bufferId{};
 
-	auto& buff = buffer[bufferId = (bufferId + 1) % ARRAYSIZE(buffer)];
+	auto& buff = buffer[bufferId = (bufferId + 1) % ACTS_ARRAYSIZE(buffer)];
 
-	if (ReadString(buff, src, ARRAYSIZE(buff)) < 0) {
+	if (ReadString(buff, src, ACTS_ARRAYSIZE(buff)) < 0) {
 		return defaultVal;
 	}
 
@@ -271,9 +273,9 @@ const wchar_t* Process::ReadStringTmpW(uintptr_t src, const wchar_t* defaultVal)
 	static wchar_t buffer[10][0x200];
 	static size_t bufferId{};
 
-	auto& buff = buffer[bufferId = (bufferId + 1) % ARRAYSIZE(buffer)];
+	auto& buff = buffer[bufferId = (bufferId + 1) % ACTS_ARRAYSIZE(buffer)];
 
-	if (ReadWString(buff, src, ARRAYSIZE(buff)) < 0) {
+	if (ReadWString(buff, src, ACTS_ARRAYSIZE(buff)) < 0) {
 		return defaultVal;
 	}
 
@@ -792,5 +794,9 @@ static void BuildTemplate() {
 
 	if (!ok2) return;
 }
+
+#endif
+
+#else // WIN32
 
 #endif

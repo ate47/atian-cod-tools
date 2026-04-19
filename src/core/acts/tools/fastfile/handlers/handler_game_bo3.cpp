@@ -68,7 +68,7 @@ namespace {
 			"MEMMAPPED"
 		};
 
-		if (id >= ARRAYSIZE(names) || id < 0) {
+		if (id >= ACTS_ARRAYSIZE(names) || id < 0) {
 			return "unknown";
 		}
 		return names[id];

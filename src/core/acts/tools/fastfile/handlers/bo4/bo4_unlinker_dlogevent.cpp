@@ -126,7 +126,7 @@ namespace {
 
 			auto WriteType = [&json](const char* name, DLogEventUnkFieldMemberType type) {
 
-				if (type < ARRAYSIZE(DLogEventUnkFieldMemberTypeNames)) {
+				if (type < ACTS_ARRAYSIZE(DLogEventUnkFieldMemberTypeNames)) {
 					json.WriteFieldValueString("type", DLogEventUnkFieldMemberTypeNames[type]);
 				}
 				else {

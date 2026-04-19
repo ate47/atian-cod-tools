@@ -328,7 +328,7 @@ namespace {
 	};
 
 	const char* ljErrorMsg(int err) {
-		if (err < 0 || err > ARRAYSIZE(ljErrors)) {
+		if (err < 0 || err > ACTS_ARRAYSIZE(ljErrors)) {
 			return "unknown";
 		}
 

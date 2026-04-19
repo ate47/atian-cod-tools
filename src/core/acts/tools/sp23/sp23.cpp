@@ -446,7 +446,7 @@ namespace {
 		DB_LoadExeFFChecksum(checksums);
 
 		LOG_INFO("checksums: ");
-		for (size_t i = 0; i < ARRAYSIZE(checksums); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(checksums); i++) {
 			LOG_INFO("checksums[{}] = 0x{:x}", i, checksums[i]);
 		}
 
@@ -706,12 +706,12 @@ namespace {
 }
 namespace sp23 {
 	const char* AssetTypeName(AssetType type) {
-		if (type >= ARRAYSIZE(assetNames)) return "undefined";
+		if (type >= ACTS_ARRAYSIZE(assetNames)) return "undefined";
 		return assetNames[type];
 	}
 
 	AssetType AssetTypeFromName(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(assetNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(assetNames); i++) {
 			if (!_strcmpi(name, assetNames[i])) {
 				return (AssetType)i;
 			}

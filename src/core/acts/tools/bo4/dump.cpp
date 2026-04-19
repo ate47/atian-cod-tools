@@ -357,7 +357,7 @@ int dumpfunctions(Process& proc, int argc, const char* argv[]) {
     // csv header
     out << "pool,func,minargs,maxargs,type,address\n";
 
-    const size_t funcPoolSize = ARRAYSIZE(tool::dump::functionPool);
+    const size_t funcPoolSize = ACTS_ARRAYSIZE(tool::dump::functionPool);
     const size_t maxSize = 1000;
     T8BuiltInFunc* buffer = new T8BuiltInFunc[maxSize];
     std::cout << std::dec << "reading: " << funcPoolSize << " pools\n";
@@ -608,7 +608,7 @@ namespace {
             std::unordered_map<uint32_t, ScrClassStruct_t*> structMap{};
 
             // build index to lookup ids
-            for (size_t j = 0; j < ARRAYSIZE(classMap[i]); j++) {
+            for (size_t j = 0; j < ACTS_ARRAYSIZE(classMap[i]); j++) {
                 auto& cls = classMap[i][j];
                 structMap[cls.id] = &cls;
                 structMap[cls.entArrayId] = &cls;
@@ -1935,13 +1935,13 @@ namespace {
             utils::Padding(out << "\n", 1) << "\"streamerworld\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(info->streamerworld)) << "\",";
         }
         
-        for (size_t i = 0; i < ARRAYSIZE(info->unk550); i++) {
+        for (size_t i = 0; i < ACTS_ARRAYSIZE(info->unk550); i++) {
             if (info->unk550[i]) {
                 utils::Padding(out << "\n", 1) << "\"lut" << i << "\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(info->unk550[i] + 0x20)) << "\",";
             }
         }
 
-        for (size_t i = 0; i < ARRAYSIZE(info->unk1a60); i++) {
+        for (size_t i = 0; i < ACTS_ARRAYSIZE(info->unk1a60); i++) {
             if (info->unk1a60[i]) {
                 utils::Padding(out << "\n", 1) << "\"unk1a60_" << i << "\": \"#" << hashutils::ExtractTmp("hash", proc.ReadMemory<uint64_t>(info->unk1a60[i] + 0x20)) << "\",";
             }

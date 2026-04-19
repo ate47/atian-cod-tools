@@ -114,7 +114,7 @@ static const char* t7names[]{
 using namespace bo3::pool;
 
 T7XAssetType bo3::pool::T7XAssetIdFromName(const char* name) {
-	for (size_t i = 0; i < ARRAYSIZE(t7names); i++) {
+	for (size_t i = 0; i < ACTS_ARRAYSIZE(t7names); i++) {
 		if (!_strcmpi(t7names[i], name)) {
 			return (T7XAssetType)i;
 		}

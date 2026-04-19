@@ -1,5 +1,6 @@
 #pragma once
-#include <Windows.h>
+#ifdef WIN32
+#include <platform/platform_windows.hpp>
 #include <hook/process.hpp>
 #include <utils/utils.hpp>
 
@@ -80,8 +81,8 @@ private:
 class ProcessModule {
 public:
 	Process& m_parent;
-	char name[MAX_MODULE_NAME32 + 1] = { 0 };
-	char path[MAX_PATH + 1] = { 0 };
+	char name[0x200] = { 0 };
+	char path[0x200] = { 0 };
 	uintptr_t start = 0;
 	DWORD size = 0;
 	HANDLE handle = 0;
@@ -454,7 +455,7 @@ public:
 	/*
 	 * @return pid
 	 */
-	inline DWORD GetProcessId() const {
+	inline int32_t GetProcessId() const {
 		return m_pid;
 	}
 
@@ -464,7 +465,7 @@ public:
 	 * @param start start location in the module
 	 * @return scan result or 0 for no search
 	 */
-	inline uintptr_t Scan(const char* pattern, DWORD start = 0) {
+	inline uintptr_t Scan(const char* pattern, int32_t start = 0) {
 		return (*this)[nullptr].Scan(pattern, start);
 	}
 
@@ -479,15 +480,15 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const Process& obj);
 	friend std::wostream& operator<<(std::wostream& os, const Process& obj);
 private:
-	static DWORD GetProcId(const wchar_t* name);
-	static bool GetModuleAddress(DWORD pid, const wchar_t* name, uintptr_t* hModule, DWORD* modSize);
+	static int32_t GetProcId(const wchar_t* name);
+	static bool GetModuleAddress(int32_t pid, const wchar_t* name, uintptr_t* hModule, int32_t* modSize);
 
 	// process pid
-	DWORD m_pid;
+	int32_t m_pid;
 	std::vector<ProcessModule> m_modules{};
 	ProcessModule m_invalid;
 	uintptr_t m_modAddress{};
-	DWORD m_modSize{};
+	int32_t m_modSize{};
 	HANDLE m_handle{};
 	bool ignoreProtection;
 };
@@ -509,3 +510,10 @@ template<>
 struct std::formatter<ProcessModuleExport, char> : utils::BasicFormatter<ProcessModuleExport> {};
 template<>
 struct std::formatter<ProcessLocation, char> : utils::BasicFormatter<ProcessLocation> {};
+
+#else // !WIN32
+class Process { public: };
+class ProcessModule { public: };
+class ProcessModuleExport { public: };
+class ProcessLocation { public: };
+#endif

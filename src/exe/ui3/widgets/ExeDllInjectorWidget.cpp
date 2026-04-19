@@ -27,7 +27,7 @@ ExeDllInjectorWidget::ExeDllInjectorWidget(QWidget *parent)
     ui.dllEdit->setText(ActsAPIConfig_GetString("ui.autoinjector.dll", ""));
     ui.exeEdit->setText(ActsAPIConfig_GetString("ui.autoinjector.exe", ""));
 
-    for (size_t i = 0; i < ARRAYSIZE(injects); i++) {
+    for (size_t i = 0; i < ACTS_ARRAYSIZE(injects); i++) {
         InjectGame& game{ injects[i] };
 
         QListWidgetItem* item{ new QListWidgetItem(game.name) };

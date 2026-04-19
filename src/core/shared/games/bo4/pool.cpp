@@ -365,7 +365,7 @@ namespace games::bo4::pool {
 	}
 
 	XAssetType XAssetIdFromName(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(xassetsNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(xassetsNames); i++) {
 			if (!_strcmpi(xassetsNames[i], name)) {
 				return (XAssetType)i;
 			}
@@ -383,7 +383,7 @@ namespace games::bo4::pool {
 	}
 
 	BGCacheTypes BGCacheIdFromName(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(bgcacheNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(bgcacheNames); i++) {
 			if (!_strcmpi(bgcacheNames[i], name)) {
 				return (BGCacheTypes)i;
 			}
@@ -440,7 +440,7 @@ namespace games::bo4::pool {
 		return 0;
 	}
 	size_t GetAssetSize(XAssetType type) {
-		if (type >= 0 && type < ARRAYSIZE(xsizes)) {
+		if (type >= 0 && type < ACTS_ARRAYSIZE(xsizes)) {
 			return xsizes[type];
 		}
 		return 0;
@@ -457,14 +457,14 @@ namespace games::bo4::pool {
 	}
 
 	const char* GetTeamName(team_t team) {
-		if (team >= 0 && team < ARRAYSIZE(teamNames)) {
+		if (team >= 0 && team < ACTS_ARRAYSIZE(teamNames)) {
 			return teamNames[team];
 		}
 
 		return "<invalid>";
 	}
 	team_t GetTeam(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(teamNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(teamNames); i++) {
 			if (!_strcmpi(teamNames[i], name)) {
 				return (team_t)i;
 			}
@@ -473,14 +473,14 @@ namespace games::bo4::pool {
 		return TEAM_INVALID;
 	}
 	const char* GetAIWeaponFireTypeName(AIWeaponFireType type) {
-		if (type >= 0 && type < ARRAYSIZE(aiWeaponFireTypeNames)) {
+		if (type >= 0 && type < ACTS_ARRAYSIZE(aiWeaponFireTypeNames)) {
 			return aiWeaponFireTypeNames[type];
 		}
 
 		return "<invalid>";
 	}
 	AIWeaponFireType GetAIWeaponFireType(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(aiWeaponFireTypeNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(aiWeaponFireTypeNames); i++) {
 			if (!_strcmpi(aiWeaponFireTypeNames[i], name)) {
 				return (AIWeaponFireType)i;
 			}
@@ -489,14 +489,14 @@ namespace games::bo4::pool {
 		return AI_WEAPON_FIRE_NUM_INVALID;
 	}
 	const char* GetAICategoryName(AICategory type) {
-		if (type >= 0 && type < ARRAYSIZE(aiCategoryNames)) {
+		if (type >= 0 && type < ACTS_ARRAYSIZE(aiCategoryNames)) {
 			return aiCategoryNames[type];
 		}
 
 		return "<invalid>";
 	}
 	AICategory GetAICategory(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(aiCategoryNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(aiCategoryNames); i++) {
 			if (!_strcmpi(aiCategoryNames[i], name)) {
 				return (AICategory)i;
 			}

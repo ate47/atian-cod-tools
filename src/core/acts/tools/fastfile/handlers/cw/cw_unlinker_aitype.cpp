@@ -27,7 +27,7 @@ namespace {
 		"BURST",
 		"SINGLE_SHOT",
 	};
-#define STATICARRAY_GET_SAFE(__arr, __idx) ((__idx) < ARRAYSIZE((__arr)) ? __arr[(__idx)] : utils::va("invalid:%d", (__idx)))
+#define STATICARRAY_GET_SAFE(__arr, __idx) ((__idx) < ACTS_ARRAYSIZE((__arr)) ? __arr[(__idx)] : utils::va("invalid:%d", (__idx)))
 
 	class ImplWorker : public Worker {
 		using Worker::Worker;
@@ -238,7 +238,7 @@ namespace {
 			json.WriteFieldValueScrString("tag1", asset.tag1);
 			json.WriteFieldValueScrString("tag2", asset.tag2);
 			json.WriteFieldValueScrString("tag3", asset.tag3);
-			json.WriteFieldValueScrStringArray("weakPointsTags", ARRAYSIZE(asset.weakPointsTags), asset.weakPointsTags);
+			json.WriteFieldValueScrStringArray("weakPointsTags", ACTS_ARRAYSIZE(asset.weakPointsTags), asset.weakPointsTags);
 
 
 			json.WriteFieldValueXHash("species", asset.species);
@@ -387,7 +387,7 @@ namespace {
 				}
 				json.EndArray();
 			}
-			json.WriteFieldValueXAssetArray("primaryWeapons", cw::ASSET_TYPE_WEAPON, ARRAYSIZE(asset.primaryWeapons), &asset.primaryWeapons[0]);
+			json.WriteFieldValueXAssetArray("primaryWeapons", cw::ASSET_TYPE_WEAPON, ACTS_ARRAYSIZE(asset.primaryWeapons), &asset.primaryWeapons[0]);
 			json.WriteFieldValueXAsset("secondaryWeapon", cw::ASSET_TYPE_WEAPON, asset.secondaryWeapon);
 			json.WriteFieldValueXAsset("sideArm", cw::ASSET_TYPE_WEAPON, asset.sideArm);
 			json.WriteFieldValueXAsset("meleeWeapon", cw::ASSET_TYPE_WEAPON, asset.meleeWeapon);
@@ -400,7 +400,7 @@ namespace {
 			json.WriteFieldValueXAsset("aiNames", cw::ASSET_TYPE_SCRIPTBUNDLE, asset.aiNames);
 			json.WriteFieldValueXAsset("aiNamesLocalized", cw::ASSET_TYPE_SCRIPTBUNDLE, asset.aiNamesLocalized);
 			json.WriteFieldValueXAsset("assassinationBundle", cw::ASSET_TYPE_SCRIPTBUNDLE, asset.assassinationBundle);
-			json.WriteFieldValueXAssetArray("aivsaiMeleeBundles", cw::ASSET_TYPE_SCRIPTBUNDLE, ARRAYSIZE(asset.aivsaiMeleeBundles), &asset.aivsaiMeleeBundles[0]);
+			json.WriteFieldValueXAssetArray("aivsaiMeleeBundles", cw::ASSET_TYPE_SCRIPTBUNDLE, ACTS_ARRAYSIZE(asset.aivsaiMeleeBundles), &asset.aivsaiMeleeBundles[0]);
 			json.WriteFieldValueXAsset("aiFxBundle", cw::ASSET_TYPE_SCRIPTBUNDLE, asset.aiFxBundle);
 			json.WriteFieldValueXAsset("aiNotetrackBoneMappingBundle", cw::ASSET_TYPE_SCRIPTBUNDLE, asset.aiNotetrackBoneMappingBundle);
 			json.WriteFieldValueXAsset("aiWeakpointSettings", cw::ASSET_TYPE_SCRIPTBUNDLE, asset.aiWeakpointSettings);
@@ -409,7 +409,7 @@ namespace {
 			json.WriteFieldValueXAsset("aimTable", cw::ASSET_TYPE_AIMTABLE, asset.aimTable);
 			json.WriteFieldValueXAsset("shootTable", cw::ASSET_TYPE_SHOOTTABLE, asset.shootTable);
 			json.WriteFieldValueNumber("animMappingTableDefault", asset.animMappingTableDefault);
-			json.WriteFieldValueXAssetArray("animMappingTables", cw::ASSET_TYPE_ANIMMAPPINGTABLE, ARRAYSIZE(asset.animMappingTables), &asset.animMappingTables[0]);
+			json.WriteFieldValueXAssetArray("animMappingTables", cw::ASSET_TYPE_ANIMMAPPINGTABLE, ACTS_ARRAYSIZE(asset.animMappingTables), &asset.animMappingTables[0]);
 			json.WriteFieldValueXAsset("animSelectorTable", cw::ASSET_TYPE_ANIMSELECTORTABLE, asset.animSelectorTable);
 			json.WriteFieldValueXAsset("animStateMachine", cw::ASSET_TYPE_ANIMSTATEMACHINE, asset.animStateMachine);
 			json.WriteFieldValueXAsset("behaviorTree", cw::ASSET_TYPE_BEHAVIORTREE, asset.behaviorTree);
@@ -418,7 +418,7 @@ namespace {
 			json.WriteFieldValueXAsset("footstepFXTable1", cw::ASSET_TYPE_SURFACEFXTABLE, asset.footstepFXTable1);
 			json.WriteFieldValueXAsset("footstepFXTable2", cw::ASSET_TYPE_SURFACEFXTABLE, asset.footstepFXTable2);
 			json.WriteFieldValueXAsset("tacticalModeIcon", cw::ASSET_TYPE_IMAGE, asset.tacticalModeIcon);
-			json.WriteFieldValueXAssetArray("character", cw::ASSET_TYPE_CHARACTER, ARRAYSIZE(asset.character), &asset.character[0]);
+			json.WriteFieldValueXAssetArray("character", cw::ASSET_TYPE_CHARACTER, ACTS_ARRAYSIZE(asset.character), &asset.character[0]);
 
 			json.WriteFieldValueBool("nameHashed", asset.namedHashed);
 			if (asset.unk8a0) json.WriteFieldValueHash("unk8a0", asset.unk8a0);
@@ -464,7 +464,7 @@ namespace {
 			}
 
 			json.WriteFieldValueBool("noCosmeticBones", asset.validations.noCosmeticBones);
-			json.WriteFieldValueScrStringArray("requiredBones", ARRAYSIZE(asset.validations.requiredBones), &asset.validations.requiredBones[0]);
+			json.WriteFieldValueScrStringArray("requiredBones", ACTS_ARRAYSIZE(asset.validations.requiredBones), &asset.validations.requiredBones[0]);
 			json.EndObject();
 
 			std::filesystem::path outFile{

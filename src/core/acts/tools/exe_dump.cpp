@@ -88,7 +88,7 @@ namespace tool::exe_dump {
 
 		if (opt->dumpHeader) {
 			LOG_INFO("----- dir addresses -----");
-			for (size_t i = 0; i < ARRAYSIZE(ntHeader.OptionalHeader.DataDirectory); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(ntHeader.OptionalHeader.DataDirectory); i++) {
 				IMAGE_DATA_DIRECTORY* dir{ &ntHeader.OptionalHeader.DataDirectory[i] };
 				LOG_INFO("{} 0x{:x}:0x{:x}", ImageDirName(i), dir->VirtualAddress, dir->Size);
 			}
@@ -584,12 +584,12 @@ ActsStatus ActsAPIProcess_DumpProcess(uint32_t pid, const char* out, ActsAPIProc
 }
 ActsAPIProcess_GameDumpInformationList* ActsAPIProcess_GetGameDumpsList() {
 	static struct {
-		ActsAPIProcess_GameDumpInformation games[ARRAYSIZE(tool::exe_dump::gameConfigs)]{};
+		ActsAPIProcess_GameDumpInformation games[ACTS_ARRAYSIZE(tool::exe_dump::gameConfigs)]{};
 		ActsAPIProcess_GameDumpInformationList list{};
 	} _s;
 
 	if (!_s.list.count) {
-		_s.list.count = ARRAYSIZE(tool::exe_dump::gameConfigs);
+		_s.list.count = ACTS_ARRAYSIZE(tool::exe_dump::gameConfigs);
 		_s.list.values = _s.games;
 
 		ActsAPIProcess_GameDumpInformation* game{ _s.games };

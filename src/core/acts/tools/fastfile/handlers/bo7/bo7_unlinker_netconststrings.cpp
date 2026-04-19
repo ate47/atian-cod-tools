@@ -230,7 +230,7 @@ constexpr const char* name = #def;
 
 			json.WriteFieldValueXHash("name", asset->name);
 			json.WriteFieldValueString("type", finder.GetTypeName(asset->type));
-			if (asset->source >= 0 && asset->source < ARRAYSIZE(sourceNames)) {
+			if (asset->source >= 0 && asset->source < ACTS_ARRAYSIZE(sourceNames)) {
 				json.WriteFieldValueString("source", sourceNames[asset->source]);
 			}
 			else {

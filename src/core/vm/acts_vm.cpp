@@ -23,7 +23,7 @@ namespace acts::vm {
 	};
 
 	const char* VmVarTypeName(VmVarType type) {
-		if (type < ARRAYSIZE(VmVarTypeNames)) {
+		if (type < ACTS_ARRAYSIZE(VmVarTypeNames)) {
 			return VmVarTypeNames[type];
 		}
 		return utils::va("UNKNOWN:%d", (int)type);
@@ -33,12 +33,12 @@ namespace acts::vm {
 
 		fieldFree = (FieldRef)0;
 
-		for (size_t i = 0; i < ARRAYSIZE(fields) - 1; i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(fields) - 1; i++) {
 			fields[i].data.field = (FieldRef)i;
 		}
 
 		// last one isn't valid
-		fields[ARRAYSIZE(fields) - 1].data.field = INVALID_FIELD_REF;
+		fields[ACTS_ARRAYSIZE(fields) - 1].data.field = INVALID_FIELD_REF;
 	}
 
 	void ActsVm::AssertThreadStarted() {
@@ -222,7 +222,7 @@ namespace acts::vm {
 
 	VmRef ActsVm::CreateString(const char* str, size_t numRefs) {
 		uint64_t h{ hash::Hash64A(str) };
-		size_t idx{ h & (ARRAYSIZE(stringStart) - 1) };
+		size_t idx{ h & (ACTS_ARRAYSIZE(stringStart) - 1) };
 
 		VmRef current{ stringStart[idx] };
 		VmString* prev{};
@@ -361,13 +361,13 @@ namespace acts::vm {
 	void ActsVm::RegisterBuiltin(BuiltinCallback callback, uint64_t name, uint32_t minArgs, uint32_t maxArgs, bool isMethod) {
 		BuiltinCall* call;
 		if (isMethod) {
-			if (callMethodsCount == ARRAYSIZE(callMethods)) {
+			if (callMethodsCount == ACTS_ARRAYSIZE(callMethods)) {
 				throw std::runtime_error("Can't register more function builtin, increase the limit in acts_vm.hpp");
 			}
 			call = &callMethods[callMethodsCount++];
 		}
 		else {
-			if (callFuncsCount == ARRAYSIZE(callFuncs)) {
+			if (callFuncsCount == ACTS_ARRAYSIZE(callFuncs)) {
 				throw std::runtime_error("Can't register more method builtin, increase the limit in acts_vm.hpp");
 			}
 			call = &callFuncs[callFuncsCount++];
@@ -432,7 +432,7 @@ namespace acts::vm {
 	VmVar* ActsVm::PushStack(size_t count) {
 		AssertThreadStarted();
 		if (!count) return currentThread->top;
-		if (currentThread->top + count > &currentThread->stack[ARRAYSIZE(currentThread->stack)]) {
+		if (currentThread->top + count > &currentThread->stack[ACTS_ARRAYSIZE(currentThread->stack)]) {
 			Error("Invalid push: too much data", true);
 		}
 		VmVar* ptr = currentThread->top;
@@ -583,7 +583,7 @@ namespace acts::vm {
 		}
 
 		// it is not linked, we need to allocate a new entry
-		if (linkedScriptsCount == ARRAYSIZE(linkedScripts)) {
+		if (linkedScriptsCount == ACTS_ARRAYSIZE(linkedScripts)) {
 			LOG_ERROR("Too many linked scripts");
 			return ActsVmLinkOutput::VMLO_ERROR_TOO_MANY;
 		}

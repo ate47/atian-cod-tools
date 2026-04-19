@@ -103,7 +103,7 @@ namespace {
 		}
 
 		if (showIndexes) {
-			LOG_INFO("hash indexes: ({})", ARRAYSIZE(hashIndexes));
+			LOG_INFO("hash indexes: ({})", ACTS_ARRAYSIZE(hashIndexes));
 			for (HashIndex& hi : hashIndexes) {
 				LOG_INFO("- {} : {}", hi.id, hi.desc);
 			}

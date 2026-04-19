@@ -61,7 +61,7 @@ namespace acts {
                     { "warning", core::logs::LVL_WARNING },
                     { "error", core::logs::LVL_ERROR} };
 
-                core::logs::setlevel(core::config::GetEnumVal<core::logs::loglevel>("logger.level", logNames, ARRAYSIZE(logNames), core::logs::LVL_INFO));
+                core::logs::setlevel(core::config::GetEnumVal<core::logs::loglevel>("logger.level", logNames, ACTS_ARRAYSIZE(logNames), core::logs::LVL_INFO));
 
                 core::config::SaveConfig();
 

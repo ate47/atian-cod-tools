@@ -275,11 +275,11 @@ static const char* cwPoolNames[]{
 
 
 const char* cw::PoolName(cw::XAssetType type) {
-	return type >= 0 && type < ARRAYSIZE(cwPoolNames) ? cwPoolNames[type] : "<invalid>";
+	return type >= 0 && type < ACTS_ARRAYSIZE(cwPoolNames) ? cwPoolNames[type] : "<invalid>";
 }
 
 cw::XAssetType cw::PoolId(const char* name) {
-	for (size_t i = 0; i < ARRAYSIZE(cwPoolNames); i++) {
+	for (size_t i = 0; i < ACTS_ARRAYSIZE(cwPoolNames); i++) {
 		if (!_strcmpi(cwPoolNames[i], name)) {
 			return (cw::XAssetType)i;
 		}
@@ -289,7 +289,7 @@ cw::XAssetType cw::PoolId(const char* name) {
 
 
 cw::BGCacheTypes cw::BgCacheId(const char* name) {
-	for (size_t i = 0; i < ARRAYSIZE(cwBgNames); i++) {
+	for (size_t i = 0; i < ACTS_ARRAYSIZE(cwBgNames); i++) {
 		if (!_strcmpi(cwBgNames[i], name)) {
 			return (cw::BGCacheTypes)i;
 		}
@@ -299,7 +299,7 @@ cw::BGCacheTypes cw::BgCacheId(const char* name) {
 }
 
 const char* cw::BgCacheName(cw::BGCacheTypes id) {
-	if (id >= 0 && id < ARRAYSIZE(cwBgNames)) {
+	if (id >= 0 && id < ACTS_ARRAYSIZE(cwBgNames)) {
 		return cwBgNames[id];
 	}
 
@@ -391,7 +391,7 @@ LABEL_61:
 			if (v18 > 0x97FA9C76) {
 				switch (v18) {
 				case 0xA2883D38:
-					*v14 = RotateRight8(*v14, v16);
+					*v14 = ROTR8(*v14, v16);
 					v19 = 0xA4E5D073;
 					break;
 				case 0xAA658ADF:
@@ -452,7 +452,7 @@ LABEL_61:
 				}
 				goto LABEL_61;
 			case 0xDCD7EDCu:
-				*v14 = RotateLeft8(*v14, v16);
+				*v14 = ROTL8(*v14, v16);
 				v19 = 0xAB8EE291;
 				break;
 			case 0x14BFC364u:

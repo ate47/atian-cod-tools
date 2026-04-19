@@ -51,7 +51,7 @@ namespace core::hashes {
 	std::pair<bool, char*> ExtractTmpPair(const char* type, uint64_t hash) {
 		static thread_local char buffer[10][0x600];
 		static thread_local size_t bufferIndex = 0;
-		bufferIndex = (bufferIndex + 1) % ARRAYSIZE(buffer);
+		bufferIndex = (bufferIndex + 1) % ACTS_ARRAYSIZE(buffer);
 		auto& buff = buffer[bufferIndex];
 		return { Extract(type, hash, buff, sizeof(buff)), buff };
 	}

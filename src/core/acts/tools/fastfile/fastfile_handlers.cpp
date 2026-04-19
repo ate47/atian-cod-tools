@@ -128,7 +128,7 @@ namespace fastfile {
 	}
 
 	FastFilePlatform GetFastFilePlatform(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(ffPltNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(ffPltNames); i++) {
 			if (!_strcmpi(ffPltNames[i], name)) {
 				return (FastFilePlatform)i;
 			}
@@ -137,28 +137,28 @@ namespace fastfile {
 	}
 
 	const char* GetFastFilePlatformName(FastFilePlatform plt) {
-		if (plt >= ARRAYSIZE(ffPltNames) || plt < 0) {
+		if (plt >= ACTS_ARRAYSIZE(ffPltNames) || plt < 0) {
 			return "unknown";
 		}
 		return ffPltNames[plt];
 	}
 
 	const char* GetGameIdName(GameId plt) {
-		if (plt >= ARRAYSIZE(gameIdNames) || plt < 0) {
+		if (plt >= ACTS_ARRAYSIZE(gameIdNames) || plt < 0) {
 			return "unknown";
 		}
 		return gameIdNames[plt];
 	}
 
 	const char* GetGameRevIdName(GameId plt) {
-		if (plt >= ARRAYSIZE(gameRevIdNames) || plt < 0) {
+		if (plt >= ACTS_ARRAYSIZE(gameRevIdNames) || plt < 0) {
 			return "unknown";
 		}
 		return gameRevIdNames[plt];
 	}
 
 	GameId GetGameId(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(gameIdNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(gameIdNames); i++) {
 			if (!_strcmpi(gameIdNames[i], name)) {
 				return (GameId)i;
 			}
@@ -167,7 +167,7 @@ namespace fastfile {
 	}
 
 	GameRevId GetGameRevId(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(gameRevIdNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(gameRevIdNames); i++) {
 			if (!_strcmpi(gameRevIdNames[i], name)) {
 				return (GameRevId)i;
 			}

@@ -326,7 +326,7 @@ namespace fastfile::handlers::bo6 {
 
 		void PreAssetRead(DBLoadCtx* ctx, T10AssetType type) {
 			LOG_TRACE("PreAssetRead({}) {}", PoolName(GetHashType(type)), hook::library::CodePointer{_ReturnAddress()});
-			if (gcx.assetLoadStackTop == ARRAYSIZE(gcx.assetLoadStack)) {
+			if (gcx.assetLoadStackTop == ACTS_ARRAYSIZE(gcx.assetLoadStack)) {
 				throw std::runtime_error("PreAssetRead stack overflow");
 			}
 			gcx.assetLoadStack[gcx.assetLoadStackTop++] = GetHashType(type);

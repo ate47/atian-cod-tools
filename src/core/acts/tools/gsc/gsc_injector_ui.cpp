@@ -178,8 +178,8 @@ namespace {
 
         memset(&buff, 0, sizeof(buff));
 
-        for (size_t k = 0; k < ARRAYSIZE(injections); k++) {
-            wcscpy_s(buff, ARRAYSIZE(buff), (const wchar_t*)injections[k]);
+        for (size_t k = 0; k < ACTS_ARRAYSIZE(injections); k++) {
+            wcscpy_s(buff, ACTS_ARRAYSIZE(buff), (const wchar_t*)injections[k]);
 
             SendMessage(info.hookPathEdit, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)buff);
         }
@@ -201,32 +201,32 @@ namespace {
 
     LRESULT Update(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (uMsg == WM_COMMAND) {
-            if (HIWORD(wParam) == CBN_SELCHANGE) {
+            if (B_HIWORD(wParam) == CBN_SELCHANGE) {
                 if (info.hookPathEdit == (HWND)lParam) {
                     DWORD sel = ComboBox_GetCurSel(info.hookPathEdit);
                     char path[MAX_PATH + 1];
 
                     if (SUCCEEDED(ComboBox_GetLBText(info.hookPathEdit, sel, path))) {
-                        path[ARRAYSIZE(path) - 1] = 0;
+                        path[ACTS_ARRAYSIZE(path) - 1] = 0;
                         core::config::SetString("ui.injector.hook", path);
                         core::config::SaveConfig();
                     }
                 }
-            } else if (HIWORD(wParam) == CBN_EDITUPDATE) {
+            } else if (B_HIWORD(wParam) == CBN_EDITUPDATE) {
                 if (info.hookPathEdit == (HWND)lParam) {
                     char path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(ComboBox_GetText(info.hookPathEdit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(ComboBox_GetText(info.hookPathEdit, &path[0], ACTS_ARRAYSIZE(path)))) {
                         core::config::SetString("ui.injector.hook", path);
                         core::config::SaveConfig();
                     }
                 }
-            } else if (HIWORD(wParam) == EN_CHANGE) {
+            } else if (B_HIWORD(wParam) == EN_CHANGE) {
                 if (info.filePathEdit == (HWND)lParam) {
 
                     char path[MAX_PATH + 1];
 
-                    if (SUCCEEDED(GetWindowText(info.filePathEdit, &path[0], ARRAYSIZE(path)))) {
+                    if (SUCCEEDED(GetWindowText(info.filePathEdit, &path[0], ACTS_ARRAYSIZE(path)))) {
                         core::config::SetString("ui.injector.path", path);
                         core::config::SaveConfig();
                     }

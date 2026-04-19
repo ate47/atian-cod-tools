@@ -3,7 +3,10 @@
 #include <core/config.hpp>
 #include <hook/library.hpp>
 #include <hook/process.hpp>
+#include <Windows.h>
 #include <winternl.h>
+#include <conio.h>
+#include <TlHelp32.h>
 
 namespace {
     // Helper struct: one pattern byte, with wildcard flag

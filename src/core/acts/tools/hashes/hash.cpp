@@ -900,7 +900,7 @@ namespace hash {
 
 		LRESULT Update(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			if (uMsg == WM_COMMAND) {
-				if (HIWORD(wParam) == EN_CHANGE) {
+				if (B_HIWORD(wParam) == EN_CHANGE) {
 					if (info.hashEdit == (HWND)lParam || info.hashFNV1AReverseValEdit == (HWND)lParam || info.hashFNV1AReverseIVEdit == (HWND)lParam) {
 						ComputeHashes();
 					}
@@ -1448,7 +1448,7 @@ namespace hash {
 
 ActsAPIHash_HashTypeList* ActsAPIHash_GetHashesList() {
 	static struct {
-		ActsAPIHash_HashType hashes[ARRAYSIZE(hash::HashAlg::algs)]{};
+		ActsAPIHash_HashType hashes[ACTS_ARRAYSIZE(hash::HashAlg::algs)]{};
 		ActsAPIHash_HashTypeList list{};
 	} _h;
 

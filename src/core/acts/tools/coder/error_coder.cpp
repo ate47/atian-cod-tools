@@ -215,7 +215,7 @@ namespace error_coder {
 	};
 
 	void Encode(ErrorCode& code, uint32_t val, bool alternative) {
-		for (size_t i = 0; i < ARRAYSIZE(errdata[alternative].sizes); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(errdata[alternative].sizes); i++) {
 			int log2Size = errdata[alternative].sizes[i];
 			int row = (int)(val & ((1 << log2Size) - 1));
 			val >>= log2Size;
@@ -236,7 +236,7 @@ namespace error_coder {
 		// check first word to know the type
 		size_t alternative{};
 
-		for (; alternative < ARRAYSIZE(errdata); alternative++) {
+		for (; alternative < ACTS_ARRAYSIZE(errdata); alternative++) {
 			const char** begin{ errdata[alternative].words[0]};
 			const char** end{ begin + (1ull << errdata[alternative].sizes[0]) };
 
@@ -247,7 +247,7 @@ namespace error_coder {
 			}
 		}
 
-		if (alternative == ARRAYSIZE(errdata)) {
+		if (alternative == ACTS_ARRAYSIZE(errdata)) {
 			throw std::exception(utils::va("Can't find error type for '%s'", code[0]));
 		}
 
@@ -546,7 +546,7 @@ namespace {
 
 	LRESULT Update(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (uMsg == WM_COMMAND) {
-			if (HIWORD(wParam) == EN_CHANGE) {
+			if (B_HIWORD(wParam) == EN_CHANGE) {
 				if (info.encodeEdit == (HWND)lParam) {
 					ComputeEncode();
 				}

@@ -24,7 +24,14 @@ namespace {
 		}
 		void PostXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
 			if (vals.empty()) return; // nothing to dump
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "localize" / std::format("{}.json", ctx.ffname) };
+
+			std::string fflang{ ctx.ffname };
+			size_t fdd{ fflang.find('_') };
+			if (fdd != std::string::npos) {
+				fflang.resize(fdd);
+			}
+
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "localize" / fflang / std::format("{}.json", ctx.ffname) };
 			std::filesystem::create_directories(outFile.parent_path());
 			utils::OutFileCE os{ outFile, true };
 
@@ -55,7 +62,7 @@ namespace {
 						}
 					}
 					else {
-						os << "\"" << utils::FormattedStringJson{ decrypt::DecryptString((char*)loc->val)} << "\"";
+						os << "\"" << utils::FormattedStringJson{ (char*)loc->val } << "\"";
 					}
 				}
 

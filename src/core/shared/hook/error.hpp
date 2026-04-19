@@ -2,6 +2,19 @@
 
 
 namespace hook::error {
+	struct ErrorConfig {
+		std::vector<void(*)()> dumpers{};
+		uint32_t mainThread{};
+		bool heavyDump{};
+
+		void* hmod{};
+		int showCmd{};
+		bool cont{};
+	};
+	/*
+	 * @return Error config
+	 */
+	ErrorConfig& GetErrorConfig();
 	/*
 	 * Get location info
 	 * @param location
@@ -20,11 +33,11 @@ namespace hook::error {
 	 */
 	void AddErrorDumper(void(*dumper)());
 	/*
-	 * Display UI error when an error is generated, HMODULE
+	 * Display UI error when an error is generated, void*
 	 * @param hmod module
 	 * @param showCmd show cmd param
 	 */
-	void InstallErrorUI(HMODULE hmod, int showCmd);
+	void InstallErrorUI(void* hmod, int showCmd);
 	/*
 	 * Print more error information inside the error hook
 	 */

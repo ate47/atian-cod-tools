@@ -98,7 +98,7 @@ namespace tool::gsc::compiler {
             return std::make_pair<>(utils::va("The var '%s' already exists", name.c_str()), &badVar);
         }
 
-        if (m_allocatedVar >= ARRAYSIZE(m_vars)) {
+        if (m_allocatedVar >= ACTS_ARRAYSIZE(m_vars)) {
             return std::make_pair<>(utils::va("Can't create var '%s': too much variable for function", name.c_str()), &badVar);
         }
 

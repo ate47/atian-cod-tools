@@ -424,13 +424,13 @@ namespace {
 
 		static const char* gt{ gametypes[0] };
 		static const char* map{ maps[0] };
-		static bool gts[ARRAYSIZE(wzgts)]{};
-		static bool gts2[ARRAYSIZE(wzgts2)]{};
+		static bool gts[ACTS_ARRAYSIZE(wzgts)]{};
+		static bool gts2[ACTS_ARRAYSIZE(wzgts2)]{};
 		static int gtsInit{ ([]() {
-			for (size_t i = 0; i < ARRAYSIZE(gts); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(gts); i++) {
 				gts[i] = core::config::GetBool(std::format("ui.bo4lobby.{}", wzgts[i] + 1), wzgts[i][0] == '1');
 			}
-			for (size_t i = 0; i < ARRAYSIZE(gts2); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(gts2); i++) {
 				gts2[i] = core::config::GetBool(std::format("ui.bo4lobby.{}", wzgts2[i] + 1), wzgts2[i][0] == '1');
 			}
 			return 0;
@@ -438,7 +438,7 @@ namespace {
 		static std::string log{};
 
 		if (ImGui::BeginCombo("##gametype", gt + std::strlen(gt) + 1)) {
-			for (int n = 0; n < ARRAYSIZE(gametypes); n++) {
+			for (int n = 0; n < ACTS_ARRAYSIZE(gametypes); n++) {
 				bool isSelected = (gt == gametypes[n]);
 				if (ImGui::Selectable(gametypes[n] + std::strlen(gametypes[n]) + 1, isSelected)) {
 					gt = gametypes[n];
@@ -457,7 +457,7 @@ namespace {
 		}
 
 		if (ImGui::BeginCombo("##map", map + std::strlen(map) + 1)) {
-			for (int n = 0; n < ARRAYSIZE(maps); n++) {
+			for (int n = 0; n < ACTS_ARRAYSIZE(maps); n++) {
 				bool isSelected = (map == maps[n]);
 				if (ImGui::Selectable(maps[n] + std::strlen(maps[n]) + 1, isSelected)) {
 					map = maps[n];
@@ -476,7 +476,7 @@ namespace {
 		ImGui::SeparatorText("Blackout config");
 
 		if (ImGui::BeginListBox("Items")) {
-			for (size_t i = 0; i < ARRAYSIZE(wzgts); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(wzgts); i++) {
 				if (ImGui::Checkbox(wzgts[i] + std::strlen(wzgts[i]) + 1, &gts[i])) {
 					// add cfg
 					core::config::SetBool(std::format("ui.bo4lobby.{}", wzgts[i] + 1), gts[i]);
@@ -490,14 +490,14 @@ namespace {
 
 			std::stringstream gtsCfg{};
 
-			for (size_t i = 0; i < ARRAYSIZE(wzgts); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(wzgts); i++) {
 				gtsCfg << "gts " << (wzgts[i] + 1) << " " << (gts[i] ? '1' : '0') << "\n";
 			}
 
 			CfgCbuf(gtsCfg.str(), log);
 		}
 		if (ImGui::BeginListBox("Options")) {
-			for (size_t i = 0; i < ARRAYSIZE(wzgts2); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(wzgts2); i++) {
 				if (ImGui::Checkbox(wzgts2[i] + std::strlen(wzgts2[i]) + 1, &gts2[i])) {
 					// add cfg
 					core::config::SetBool(std::format("ui.bo4lobby.{}", wzgts2[i] + 1), gts2[i]);
@@ -510,7 +510,7 @@ namespace {
 
 			std::stringstream gtsCfg{};
 
-			for (size_t i = 0; i < ARRAYSIZE(wzgts2); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(wzgts2); i++) {
 				gtsCfg << "gts " << (wzgts2[i] + 1) << " " << (gts2[i] ? '1' : '0') << "\n";
 			}
 

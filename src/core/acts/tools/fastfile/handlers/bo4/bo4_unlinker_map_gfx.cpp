@@ -858,8 +858,8 @@ namespace {
 			json.WriteFieldValueXAsset("lutMaterial", ASSET_TYPE_MATERIAL, asset.lutMaterial);
 			json.WriteFieldValueXAsset("lutMaterialALT", ASSET_TYPE_MATERIAL, asset.lutMaterialALT);
 			json.WriteFieldValueXAsset("volumeDecalRevealTexture", ASSET_TYPE_IMAGE, asset.volumeDecalRevealTexture);
-			json.WriteFieldValueXAssetArray("unk550", ASSET_TYPE_IMAGE, ARRAYSIZE(asset.unk550), asset.unk550);
-			json.WriteFieldValueXAssetArray("unk1a60", ASSET_TYPE_IMAGE, ARRAYSIZE(asset.unk1a60), asset.unk1a60);
+			json.WriteFieldValueXAssetArray("unk550", ASSET_TYPE_IMAGE, ACTS_ARRAYSIZE(asset.unk550), asset.unk550);
+			json.WriteFieldValueXAssetArray("unk1a60", ASSET_TYPE_IMAGE, ACTS_ARRAYSIZE(asset.unk1a60), asset.unk1a60);
 
 			json.EndObject();
 

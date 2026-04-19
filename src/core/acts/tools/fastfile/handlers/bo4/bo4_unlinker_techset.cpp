@@ -50,7 +50,7 @@ namespace {
 			json.WriteFieldValueHash("unk18", asset->unk18);
 			json.WriteFieldNameString("techniques");
 			json.BeginArray();
-			for (size_t i = 0; i < ARRAYSIZE(asset->techniques); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(asset->techniques); i++) {
 				MaterialTechnique* tech = asset->techniques[i];
 				if (!tech) {
 					json.WriteValueNull();

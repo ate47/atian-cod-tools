@@ -66,7 +66,7 @@ namespace fastfile {
 			} while (v14 < v15);
 		}
 		v17 = -1028477379 * ((-2048144777 * (v11 ^ (v11 >> 15))) ^ ((-2048144777 * (v11 ^ (v11 >> 15))) >> 13));
-		return v17 ^ HIWORD(v17);
+		return v17 ^ B_HIWORD(v17);
 	}
 
 }

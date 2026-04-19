@@ -281,7 +281,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v9 = -1162892232;
                             break;
                         case 0x998686B1:
-                            *v3 = RotateRight8(*v3, v6);
+                            *v3 = ROTR8(*v3, v6);
                             v9 = -81012143;
                             v2 = 0x8FDA4E3CB979DEFi64;
                             break;
@@ -317,7 +317,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                     switch (v8)
                     {
                     case 0x165C815Bu:
-                        *v3 = RotateLeft8(*v3, v6);
+                        *v3 = ROTL8(*v3, v6);
                         v9 = -1280872253;
                         v2 = 0x8FDA4E3CB979DEFi64;
                         break;
@@ -494,7 +494,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v12 = v11;
                             break;
                         case 0x62EDDABFu:
-                            *v10 = RotateLeft8(*v10, v13);
+                            *v10 = ROTL8(*v10, v13);
                             v16 = 265757373;
                             v2 = 0xD2265A27524C6F3i64;
                             break;
@@ -517,7 +517,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v16 = 12288102;
                             break;
                         case 0xBFC1D3Cu:
-                            *v10 = RotateRight8(*v10, v13);
+                            *v10 = ROTR8(*v10, v13);
                             v16 = 2035901171;
                             v2 = 0xD2265A27524C6F3i64;
                             break;
@@ -684,12 +684,12 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v23 = -834636385;
                         break;
                     case 0x5106EACCu:
-                        *v17 = RotateRight8(*v17, v20);
+                        *v17 = ROTR8(*v17, v20);
                         v23 = 239473335;
                         v2 = 0x9CB81477B161416i64;
                         break;
                     case 0x5249A8C7u:
-                        *v17 = RotateLeft8(*v17, v20);
+                        *v17 = ROTL8(*v17, v20);
                         v23 = -1412068589;
                         v2 = 0x9CB81477B161416i64;
                         break;
@@ -826,7 +826,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             switch (v29)
                             {
                             case 0xEE286F1A:
-                                *v24 = RotateLeft8(*v24, v26);
+                                *v24 = ROTL8(*v24, v26);
                                 v30 = -1921559572;
                                 v2 = 0x4381848D5AF2933i64;
                                 break;
@@ -891,7 +891,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                 }
                 else if (v29 == 1297997193)
                 {
-                    *v24 = RotateRight8(*v24, v26);
+                    *v24 = ROTR8(*v24, v26);
                     v30 = 59613559;
                     v2 = 0x4381848D5AF2933i64;
                 }
@@ -1051,7 +1051,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v37 = 35499232;
                             break;
                         case 0x7631F4ACu:
-                            *v31 = RotateRight8(*v31, v33);
+                            *v31 = ROTR8(*v31, v33);
                             v37 = -401481427;
                             v2 = 0x3F65D85C935DD998i64;
                             break;
@@ -1060,7 +1060,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v37 = 1739023773;
                             break;
                         case 0x9EBF6ACC:
-                            *v31 = RotateLeft8(*v31, v33);
+                            *v31 = ROTL8(*v31, v33);
                             v37 = 259406745;
                             v2 = 0x3F65D85C935DD998i64;
                             break;
@@ -1215,7 +1215,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         switch (v43)
                         {
                         case 0xA71B55CF:
-                            *v38 = RotateLeft8(*v38, v40);
+                            *v38 = ROTL8(*v38, v40);
                             v44 = -1572000749;
                             goto LABEL_436;
                         case 0xABACE3A7:
@@ -1223,7 +1223,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v44 = 1198469011;
                             break;
                         case 0xF4A81ECA:
-                            *v38 = RotateRight8(*v38, v40);
+                            *v38 = ROTR8(*v38, v40);
                             v44 = -1013896524;
                         LABEL_436:
                             v2 = 0x689E82D9D2C6275i64;
@@ -1441,7 +1441,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v51 = 431658695;
                             break;
                         case 0xAB3FE554:
-                            *v45 = RotateLeft8(*v45, v48);
+                            *v45 = ROTL8(*v45, v48);
                             v51 = 1520942164;
                             v2 = 0x7C7862ACBFDE728Ci64;
                             break;
@@ -1460,7 +1460,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                 {
                     if (v50 == 1709434402)
                     {
-                        *v45 = RotateRight8(*v45, v48);
+                        *v45 = ROTR8(*v45, v48);
                         v51 = -1511407254;
                         v2 = 0x7C7862ACBFDE728Ci64;
                         goto LABEL_510;
@@ -1665,7 +1665,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v58 = -1315018185;
                         break;
                     case 0x23CAF065u:
-                        *v52 = RotateRight8(*v52, v55);
+                        *v52 = ROTR8(*v52, v55);
                         v58 = 28718892;
                         v2 = 0x3AC5C4F1F90B35i64;
                         break;
@@ -1674,7 +1674,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v58 = 124575314;
                         break;
                     case 0x427FEC33u:
-                        *v52 = RotateLeft8(*v52, v55);
+                        *v52 = ROTL8(*v52, v55);
                         v58 = 183684957;
                         v2 = 0x3AC5C4F1F90B35i64;
                         break;
@@ -1876,7 +1876,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                                 v67 = 191045082;
                                 break;
                             case 0xC910AE5F:
-                                *v61 = RotateLeft8(*v61, v63);
+                                *v61 = ROTL8(*v61, v63);
                                 v67 = 1652943542;
                                 v2 = 0x6614AE11995502i64;
                                 break;
@@ -1894,7 +1894,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                     switch (v66)
                     {
                     case 0x3BCE2912u:
-                        *v61 = RotateRight8(*v61, v63);
+                        *v61 = ROTR8(*v61, v63);
                         v67 = 1830113338;
                         v2 = 0x6614AE11995502i64;
                         break;
@@ -2026,7 +2026,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v75 = 833332586;
                             goto LABEL_733;
                         case 0xCE3A192C:
-                            *v69 = RotateRight8(*v69, v71);
+                            *v69 = ROTR8(*v69, v71);
                             v75 = 1451483698;
                             v2 = 0x6412416FB593CF90i64;
                             break;
@@ -2108,7 +2108,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v75 = -520919001;
                             break;
                         case 0x4D2B645u:
-                            *v69 = RotateLeft8(*v69, v71);
+                            *v69 = ROTL8(*v69, v71);
                             v75 = 58444364;
                             v2 = 0x6412416FB593CF90i64;
                             break;
@@ -2254,7 +2254,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v83 = 1600099422;
                             break;
                         case 0x5D8B1F33u:
-                            *v77 = RotateRight8(*v77, v80);
+                            *v77 = ROTR8(*v77, v80);
                             v83 = -396669371;
                             v2 = 0x24B71D6314DC6B17i64;
                             break;
@@ -2320,7 +2320,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v83 = -1135564042;
                         break;
                     case 0x1048E22u:
-                        *v77 = RotateLeft8(*v77, v80);
+                        *v77 = ROTL8(*v77, v80);
                         v83 = 429832131;
                         v2 = 0x24B71D6314DC6B17i64;
                         break;
@@ -2449,7 +2449,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v90 = 766437527;
                         goto LABEL_883;
                     case 0xE4154924:
-                        *v84 = RotateLeft8(*v84, v86);
+                        *v84 = ROTL8(*v84, v86);
                         v90 = 11626748;
                         v2 = 0xBA623075F071EABi64;
                         break;
@@ -2516,7 +2516,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v90 = 1660315740;
                             break;
                         case 0xECE99F1u:
-                            *v84 = RotateRight8(*v84, v86);
+                            *v84 = ROTR8(*v84, v86);
                             v90 = 208324606;
                             v2 = 0xBA623075F071EABi64;
                             break;
@@ -2622,7 +2622,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v97 = -649320134;
                             break;
                         case 0xF3B6E59D:
-                            *v91 = RotateLeft8(*v91, v94);
+                            *v91 = ROTL8(*v91, v94);
                             v97 = -1529660721;
                             v2 = 0x48AC152B1907C8C0i64;
                             break;
@@ -2698,7 +2698,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v97 = -2021130885;
                         break;
                     case 0x63C54C11u:
-                        *v91 = RotateRight8(*v91, v94);
+                        *v91 = ROTR8(*v91, v94);
                         v97 = -971688657;
                         v2 = 0x48AC152B1907C8C0i64;
                         break;
@@ -2879,7 +2879,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v106 = 1542024789;
                             break;
                         case 0x705B4698u:
-                            *v100 = RotateRight8(*v100, v102);
+                            *v100 = ROTR8(*v100, v102);
                             v106 = 1552918218;
                             v2 = 0x3260DEAC281D7C95i64;
                             break;
@@ -2932,7 +2932,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v106 = -879134297;
                         break;
                     case 0x1BCF490u:
-                        *v100 = RotateLeft8(*v100, v102);
+                        *v100 = ROTL8(*v100, v102);
                         v106 = 1528544228;
                         v2 = 0x3260DEAC281D7C95i64;
                         break;
@@ -3058,7 +3058,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                             v113 = 1719181259;
                             break;
                         case 0x41E35DE7u:
-                            *v107 = RotateRight8(*v107, v109);
+                            *v107 = ROTR8(*v107, v109);
                             v113 = 2025531758;
                             v2 = 0x2571B2978DD26D68i64;
                             break;
@@ -3123,7 +3123,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v113 = 1021979457;
                         break;
                     case 0xBFEC59Bu:
-                        *v107 = RotateLeft8(*v107, v109);
+                        *v107 = ROTL8(*v107, v109);
                         v113 = 60511872;
                         v2 = 0x2571B2978DD26D68i64;
                         break;
@@ -3274,7 +3274,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v122 = 287095326;
                         break;
                     case 0x3105CB1Cu:
-                        *v116 = RotateRight8(*v116, v118);
+                        *v116 = ROTR8(*v116, v118);
                         v122 = 817665472;
                         v2 = 0xF0016A4A789F0i64;
                         break;
@@ -3283,7 +3283,7 @@ static byte* DecryptStringT8Old0(byte* str) {
                         v122 = -1644299470;
                         break;
                     case 0x785737D5u:
-                        *v116 = RotateLeft8(*v116, v118);
+                        *v116 = ROTL8(*v116, v118);
                         v122 = 1653260630;
                         v2 = 0xF0016A4A789F0i64;
                         break;

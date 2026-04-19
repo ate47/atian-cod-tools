@@ -14,7 +14,7 @@ namespace hook::module_mapper {
 		Free(); // free module if required
 		std::filesystem::path ap{ absolute ? std::filesystem::absolute(path) : path };
 		std::string p{ ap.string() };
-		lib.SetModule(LoadLibraryExA(p.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | DONT_RESOLVE_DLL_REFERENCES));
+		lib.SetModule(platform::LoadShared(p.c_str(), platform::LSF_SEARCH_DEFAULT_DIRS | platform::LSF_DONT_RESOLVE_REFERENCES));
 		scanContainer.Load(lib);
 		scanContainer.logger = &logger;
 		logger.Clean();

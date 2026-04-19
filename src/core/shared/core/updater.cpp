@@ -36,12 +36,12 @@ namespace core::updater {
         auto LogInfo = [ui](const std::string& fmt, bool canCancel) {
             if (ui) {
                 if (canCancel) {
-                    if (MessageBoxA(NULL, fmt.data(), "Updater", MB_ICONINFORMATION | MB_OKCANCEL) == IDCANCEL) {
+                    if (!platform::InfoMessageBox("Updater", fmt.data(), true, false)) {
                         return false;
                     }
                 }
                 else {
-                    MessageBoxA(NULL, fmt.data(), "Updater", MB_ICONINFORMATION | MB_OK);
+                    platform::InfoMessageBox("Updater", fmt.data(), false, false);
                 }
             }
             else {
@@ -104,38 +104,9 @@ namespace core::updater {
 
         LOG_INFO("Start updater with {}", zipOut.string());
 
-        std::wstring updaterOtherExeStr{ std::format(L"{} -U {}", updaterOtherExe.wstring(), ui ? L"-u" : L"") };
+        std::string updaterOtherExeStr{ std::format("{} -U {}", updaterOtherExe.string(), ui ? "-u" : "") };
 
-        STARTUPINFOW si;
-        PROCESS_INFORMATION pi;
-
-        ZeroMemory(&si, sizeof(si));
-        ZeroMemory(&pi, sizeof(pi));
-
-        si.cb = sizeof(si);
-
-        if (!CreateProcessW(
-            NULL,
-            updaterOtherExeStr.data(),
-            NULL,
-            NULL,
-            FALSE,
-            0,
-            NULL,
-            NULL,
-            &si,
-            &pi
-            )) {
-            LOG_ERROR("Can't create process {}", updaterOtherExe.string());
-            return false;
-        }
-
-        AttachConsole(pi.dwProcessId);
-
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-
-		return true;
+        return platform::CreatePlatformProcess(updaterOtherExeStr.data(), true);
 	}
 
     void ApplyUpdate(bool ui) {
@@ -183,7 +154,7 @@ namespace core::updater {
         LOG_INFO("{}", msg);
 
         if (ui) {
-            MessageBoxA(NULL, msg.data(), "Updater", MB_ICONINFORMATION | MB_OK);
+            platform::InfoMessageBox("Updater", msg.data(), false, false);
         }
     }
 

@@ -22,7 +22,7 @@ namespace {
 		if (data) {
 			v2 = len;
 			do {
-				crc = utils::crc::CRC32TableB::crcTable[*data++ ^ HIBYTE(crc)] ^ ((crc << 8) & 0xFFFFFFFF);
+				crc = utils::crc::CRC32TableB::crcTable[*data++ ^ B_HIBYTE(crc)] ^ ((crc << 8) & 0xFFFFFFFF);
 				--v2;
 			} while (v2);
 		}

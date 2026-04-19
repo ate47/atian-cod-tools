@@ -6,10 +6,7 @@ namespace hook::process {
     asmjit::JitRuntime& GetJitRuntime();
 #endif
     byte* BasePtr();
-    HMODULE BaseHandle();
-    PIMAGE_OPTIONAL_HEADER PImageOptHeader(HMODULE mod = 0);
-    PIMAGE_NT_HEADERS PImageNtHeader(HMODULE mod = 0);
-    PIMAGE_DOS_HEADER PImageDosHeader(HMODULE mod = 0);
+    void* BaseHandle();
 
     void WriteMemSafe(void* dest, void* src, size_t len);
 
@@ -23,13 +20,13 @@ namespace hook::process {
         return reinterpret_cast<Out*>(&BasePtr()[location]);
     }
 
-    HMODULE LoadLib(const char* lib, DWORD flags = 0);
-    inline HMODULE LoadLib(std::string lib, DWORD flags = 0) {
+    void* LoadLib(const char* lib, int32_t flags = 0);
+    inline void* LoadLib(std::string lib, int32_t flags = 0) {
         return LoadLib(lib.data(), flags);
     }
 
-    HMODULE LoadSysLib(const char* lib);
-    inline HMODULE LoadSysLib(std::string lib) {
+    void* LoadSysLib(const char* lib);
+    inline void* LoadSysLib(std::string lib) {
         return LoadSysLib(lib.data());
     }
 

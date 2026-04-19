@@ -258,7 +258,7 @@ namespace {
     };
 
     const char* GetAssetName(size_t type) {
-        return type < ARRAYSIZE(assetNames) ? assetNames[type] : "invalid";
+        return type < ACTS_ARRAYSIZE(assetNames) ? assetNames[type] : "invalid";
     }
 
     struct DB_AssetPool {
@@ -306,7 +306,7 @@ namespace {
         utils::ps4::PS4Process ps4{ ipd, "cod23-cod.elf" };
 
 
-        constexpr size_t poolscount = ARRAYSIZE(assetNames);
+        constexpr size_t poolscount = ACTS_ARRAYSIZE(assetNames);
         ps4.Notify("Hi");
         // current assettype is good enough
         /*

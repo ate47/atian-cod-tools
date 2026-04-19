@@ -30,14 +30,14 @@ namespace fastfile {
 
 	const char* GetFastFileCompressionName(FastFileIWCompression comp) {
 
-		if (comp >= ARRAYSIZE(iwFFNames) || comp < 0) {
+		if (comp >= ACTS_ARRAYSIZE(iwFFNames) || comp < 0) {
 			return "unknown";
 		}
 		return iwFFNames[comp];
 	}
 
 	FastFileIWCompression GetFastFileIWCompression(const char* name) {
-		for (size_t i = 0; i < ARRAYSIZE(iwFFNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(iwFFNames); i++) {
 			if (!_strcmpi(iwFFNames[i], name)) {
 				return (FastFileIWCompression)i;
 			}

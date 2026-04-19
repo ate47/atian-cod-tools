@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#ifdef WIN32
+#include <platform/platform_windows.hpp>
 #include <game_data.hpp>
 #include <games/cod/asset_names.hpp>
 #include <games/bo4/scriptinstance.hpp>
@@ -34,8 +36,7 @@ namespace {
 
 		LOG_INFO("Loaded");
 
-		LOG_INFO("{}", (void*)mod->GetNTHeader());
-		LOG_INFO("{:x}", mod->GetOptHeader()->ImageBase);
+		LOG_INFO("{:x}", mod->ModuleInformation().ImageBase());
 		LOG_INFO("{}", *mod);
 		LOG_INFO("{}", mod->Get<void>(0ull));
 
@@ -45,7 +46,7 @@ namespace {
 
 		hook::library::Library lib{ *mod };
 
-		IMAGE_DATA_DIRECTORY& dir{ lib.GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
+		IMAGE_DATA_DIRECTORY& dir{ platform::PImageOptHeader(*lib)->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
 		if (!dir.VirtualAddress || dir.Size <= 0) return 0; // nothing to patch
 
 		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)(lib[dir.VirtualAddress]) };
@@ -232,7 +233,7 @@ namespace {
 		}
 
 		LOG_INFO("Loaded");
-		LOG_INFO("base: {:x}", mod->GetOptHeader()->ImageBase);
+		LOG_INFO("base: {:x}", mod->ModuleInformation().ImageBase());
 
 		// Dump bo6 pool names
 		auto* pools{ mod->Get<uintptr_t>(0x8DFCC90) };
@@ -559,3 +560,5 @@ namespace {
 
 
 }
+
+#endif // WIN32

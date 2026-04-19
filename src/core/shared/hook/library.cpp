@@ -5,107 +5,22 @@
 #include <utils/crc.hpp>
 
 namespace hook::library {
-	HMODULE GetLibraryInfo(const void* address) {
-		HMODULE handle{};
-		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, reinterpret_cast<LPCSTR>(address), &handle);
-		return handle;
+	void* GetLibraryInfo(const void* address) {
+		return platform::GetModuleOfAddress(address);
 	}
 
-	const char* GetLibraryName(HMODULE hmod) {
-		if (!hmod) {
-			return "";
-		}
-
-		char name[MAX_PATH]{};
-		GetModuleFileNameA(hmod, name, sizeof(name));
-
-		std::string_view nv{ name };
-
-		size_t last = nv.find_last_of('\\');
-		if (last == std::string::npos) {
-			return utils::va("%s", name);
-		}
-
-		return utils::va("%s", name + last + 1);
+	const char* GetLibraryName(void* hmod) {
+		return platform::GetSharedName(hmod);
 	}
 
-	const char* GetLibraryPath(HMODULE hmod) {
-		if (!hmod) {
-			return "";
-		}
-
-		char name[MAX_PATH]{};
-		GetModuleFileNameA(hmod, name, sizeof(name));
-
-		return utils::va("%s", name);
+	const char* GetLibraryPath(void* hmod) {
+		return platform::GetSharedPath(hmod);
 	}
-	const char* LocatePDB(HMODULE hmod) {
-		static std::unordered_map<uintptr_t, std::string> located{};
-		uintptr_t hmodPtr = reinterpret_cast<uintptr_t>(hmod);
 
-		auto it = located.find(hmodPtr);
-
-		if (it != located.end()) {
-			const char* pdb = it->second.c_str();
-			return *pdb ? pdb : nullptr;
-		}
-
-		std::string lib{};
-
-		if (utils::ReadFile(library::GetLibraryPath(hmod), lib)) {
-			PIMAGE_DOS_HEADER dosHeader = reinterpret_cast<PIMAGE_DOS_HEADER>(lib.data());
-			if (lib.size() < sizeof(IMAGE_DOS_HEADER) || dosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
-				throw std::runtime_error(actssec("Bad dos signature for module"));
-			}
-
-			PIMAGE_NT_HEADERS ntHeader = reinterpret_cast<PIMAGE_NT_HEADERS>(lib.data() + dosHeader->e_lfanew);
-
-			if (lib.size() < dosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS) || ntHeader->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC) {
-				throw std::runtime_error(actssec("Bad nt signature for module"));
-			}
-			IMAGE_DATA_DIRECTORY& debugDirectory = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG];
-
-			DWORD offset{};
-			for (auto* sect = IMAGE_FIRST_SECTION(ntHeader), *end = sect + ntHeader->FileHeader.NumberOfSections; sect < end; sect++) {
-				if (debugDirectory.VirtualAddress >= sect->VirtualAddress && debugDirectory.VirtualAddress < sect->VirtualAddress + sect->Misc.VirtualSize) {
-					offset = debugDirectory.VirtualAddress - (sect->VirtualAddress - sect->PointerToRawData);
-					break; // we need to patch the virtual address
-				}
-			}
-
-			if (offset) {
-				auto* debugEntries = reinterpret_cast<PIMAGE_DEBUG_DIRECTORY>(lib.data() + offset);
-				size_t elems = debugDirectory.Size / sizeof(*debugEntries);
-				// https://www.openwatcom.org/ftp/devel/docs/CodeView.pdf
-				struct CodeViewData {
-					uint32_t magic;
-					uint8_t guid[16];
-					uint32_t age;
-					char pdbPath[1];
-				};
-				CodeViewData* cvInfo{};
-				for (size_t i = 0; i < elems; i++) {
-					if (debugEntries[i].Type == IMAGE_DEBUG_TYPE_CODEVIEW) {
-						cvInfo = reinterpret_cast<CodeViewData*>(lib.data() + (debugEntries + i)->PointerToRawData);
-						break;
-					}
-				}
-
-				if (cvInfo) {
-					if (cvInfo->magic != 0x53445352) {
-						throw std::runtime_error(actssec("Bad magic for cv data"));
-					}
-					auto& loc = located[hmodPtr];
-					loc = &cvInfo->pdbPath[0];
-					return loc.c_str();
-				}
-			}
-
-		}
-		auto& loc = located[hmodPtr];
-		loc = "";
-		return nullptr;
+	const char* LocatePDB(void* hmod) {
+		return platform::GetDebugPath(hmod);
 	}
+
 	const char* CreateScanPattern(const void* data, size_t len) {
 		std::string patStr{};
 		patStr.resize((len + 1) * 3 + 1);
@@ -124,7 +39,7 @@ namespace hook::library {
 		return CreateScanPattern(str, std::strlen(str) + 1);
 	}
 
-	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single, const char* name) {
+	std::vector<ScanResult> ScanLibraryString(void* hmod, const char* pattern, bool single, const char* name) {
 		size_t pl{ std::strlen(pattern) };
 		std::string patStr{};
 		patStr.resize((pl + 1) * 3 + 1);
@@ -138,7 +53,7 @@ namespace hook::library {
 		return ScanLibrary(hmod, patStrPtr, single, name);
 	}
 
-	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single, const char* name) {
+	std::vector<ScanResult> ScanLibrary(void* hmod, const char* pattern, bool single, const char* name) {
 		std::vector<ScanResult> res{};
 
 
@@ -234,35 +149,24 @@ namespace hook::library {
 
 
 		LOG_TRACE("Start searching of pattern {} ({})", pattern, name ? name : "no name");
-		byte* start{ (byte*)*lib };
-		byte* end{ (byte*)lib[lazySize - mask.size()] };
 
-		MEMORY_BASIC_INFORMATION64 page{};
-		page.RegionSize = 0;
-		byte* current{};
-		do {
-			current += page.RegionSize;
-			VirtualQuery(current, reinterpret_cast<PMEMORY_BASIC_INFORMATION>(&page), sizeof(MEMORY_BASIC_INFORMATION));
-			current = reinterpret_cast<byte*>(page.BaseAddress);
-		} while (current < start);
-
-		while (current < end) {
-			VirtualQuery(current, reinterpret_cast<PMEMORY_BASIC_INFORMATION>(&page), sizeof(MEMORY_BASIC_INFORMATION));
-			current = reinterpret_cast<byte*>(page.BaseAddress);
-
-			if (page.State != MEM_COMMIT || page.Protect == PAGE_NOACCESS || (page.Protect & PAGE_GUARD)) {
-				current += page.RegionSize;
-				continue;
+		for (platform::MemoryRegion& region : platform::EnumerateMemoryRegions(hmod)) {
+			if (!region.readable) {
+				continue; // can't read
 			}
 
-			for (size_t off = 0; off < page.RegionSize - mask.size(); off++) {
-				size_t i;
-				for (i = 0; i < mask.size(); i++) {
+			uint8_t* current = region.base;
+			size_t regionSize = region.size;
+
+			for (size_t off = 0; off + mask.size() <= regionSize; off++) {
+				bool match = true;
+				for (size_t i = 0; i < mask.size(); i++) {
 					if ((current[off + i] & mask[i]) != searched[i]) {
+						match = false;
 						break;
 					}
 				}
-				if (i == mask.size()) {
+				if (match) {
 					res.emplace_back(current + off);
 					if (single) {
 						LOG_TRACE("Pattern find -> {}", (hook::library::CodePointer)res[0].location);
@@ -270,8 +174,6 @@ namespace hook::library {
 					}
 				}
 			}
-
-			current += page.RegionSize;
 		}
 		LOG_TRACE("Pattern find -> {}", res.size());
 
@@ -288,20 +190,7 @@ namespace hook::library {
 
 	uint32_t hook::library::Library::GetUID() const {
 		if (!hmod) return 0;
-		utils::crc::CRC32 crc{};
-
-		PIMAGE_OPTIONAL_HEADER ohd{ GetOptHeader() };
-		PIMAGE_DOS_HEADER dhd{ GetDosHeader() };
-
-		crc.Update(GetPath());
-		crc.Update(ohd->SizeOfCode);
-		crc.Update(ohd->SizeOfHeaders);
-		crc.Update(ohd->SizeOfImage);
-		crc.Update(ohd->SizeOfInitializedData);
-		crc.Update(ohd->SizeOfUninitializedData);
-		crc.Update(dhd->e_cp);
-
-		return crc;
+		return ModuleInformation().GetUID();
 	}
 
 	hook::library::Detour hook::library::Library::CreateDetour(const char* pattern, void* to, const char* name) const {
@@ -571,97 +460,11 @@ namespace hook::library {
 	}
 
 	std::vector<const char*> hook::library::Library::GetIATModules() const {
-		std::vector<const char*> res{};
-
-		IMAGE_DATA_DIRECTORY& dir{ GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
-		if (!dir.VirtualAddress || dir.Size <= 0) return res; // nothing
-
-		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)((*this)[dir.VirtualAddress]) };
-
-		while (imports->Name) {
-			IMAGE_IMPORT_DESCRIPTOR& imp{ *imports++ };
-
-			res.push_back(Get<const char>(imp.Name));
-		}
-		return res;
-	}
-
-	// return if a library can safely be loaded in acts or if PatchIAT should ignore the refs
-	static bool IsLibrarySafe(const char* name) {
-		static const char* safeLibs[] {
-			"oo2core_6_win64.dll",
-			"oo2core_7_win64.dll",
-			"oo2core_8_win64.dll",
-			"ntdll.dll",
-		};
-		return std::find_if(
-			std::begin(safeLibs), 
-			std::end(safeLibs), 
-			[name](const char* lib) {
-			return !_strcmpi(lib, name); 
-		}) != std::end(safeLibs);
+		return platform::GetIATModules(*this);
 	}
 
 	void hook::library::Library::PatchIAT() {
-		IMAGE_DATA_DIRECTORY& dir{ GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT] };
-		if (!dir.VirtualAddress || dir.Size <= 0) return; // nothing to patch
-
-		PIMAGE_IMPORT_DESCRIPTOR imports{ (PIMAGE_IMPORT_DESCRIPTOR)((*this)[dir.VirtualAddress]) };
-		
-		LOG_TRACE("Loading imports 0x{:x}/0x{:x}", dir.VirtualAddress, dir.Size);
-
-		std::ostringstream osnames{};
-
-		while (imports->Name) {
-			IMAGE_IMPORT_DESCRIPTOR& imp{ *imports++ };
-
-			const char* name{ Get<const char>(imp.Name) };
-
-			if (core::logs::getlevel() <= core::logs::LVL_TRACE) osnames << " " << name;
-
-			hook::library::Library dep;
-			
-			if (IsLibrarySafe(name)) {
-				dep = { name, false };
-			}
-			else {
-				dep = { name, false, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS };
-			}
-
-			if (!dep) {
-				osnames << "<missing>";
-				LOG_TRACE("Can't load IAT lib {} to patch {}", name, *this);
-				continue;
-			}
-
-			IMAGE_THUNK_DATA* thunks{ Get<IMAGE_THUNK_DATA>(imp.FirstThunk) };
-			IMAGE_THUNK_DATA* originalThunks{ Get<IMAGE_THUNK_DATA>(imp.OriginalFirstThunk) };
-
-			while (originalThunks->u1.Function) {
-				IMAGE_THUNK_DATA& thunk{ *thunks++ };
-				IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
-
-				void* func;
-				if (originalThunk.u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
-					func = dep[(const char*)IMAGE_ORDINAL64(originalThunk.u1.Ordinal)];
-					if (!func) {
-						LOG_DEBUG("Can't find {}::ord<{}>", dep, IMAGE_ORDINAL64(originalThunk.u1.Ordinal));
-						continue;
-					}
-				}
-				else {
-					func = dep[Get<const char>(originalThunk.u1.Function + 2)];
-					if (!func) {
-						LOG_DEBUG("Can't find {}::{}", dep, Get<const char>(originalThunk.u1.Function + 2));
-						continue;
-					}
-				}
-
-				process::WriteMemSafe(&thunk, func);
-			}
-		}
-
-		LOG_TRACE("Loaded IAT for {}:{}", *this, osnames.str());
+		platform::PatchIAT(*this);
 	}
 
 	std::ostream& operator<<(std::ostream& out, const hook::library::CodePointer& ptr) {

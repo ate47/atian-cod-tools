@@ -121,8 +121,8 @@ namespace {
 			json.BeginObject();
 
 			json.WriteFieldValueXHash("name", asset->name);
-			json.WriteFieldValueString("hAlign", asset->hAlign >= ARRAYSIZE(HALIGN) ? "invalid" : HALIGN[asset->hAlign]);
-			json.WriteFieldValueString("vAlign", asset->vAlign >= ARRAYSIZE(VALIGN) ? "invalid" : VALIGN[asset->vAlign]);
+			json.WriteFieldValueString("hAlign", asset->hAlign >= ACTS_ARRAYSIZE(HALIGN) ? "invalid" : HALIGN[asset->hAlign]);
+			json.WriteFieldValueString("vAlign", asset->vAlign >= ACTS_ARRAYSIZE(VALIGN) ? "invalid" : VALIGN[asset->vAlign]);
 			json.WriteFieldValueString("waypointOffset", std::format("{}, {}, {}", asset->waypointOffset[0], asset->waypointOffset[1], asset->waypointOffset[2]));
 			json.WriteFieldValueBool("waypointShowDistance", asset->waypointShowDistance);
 			json.WriteFieldValueBool("waypointHideArrow", asset->waypointHideArrow);

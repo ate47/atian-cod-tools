@@ -16,7 +16,7 @@ namespace tool::ui {
 		WCHAR achTemp[256];
 		tci.mask = TCIF_TEXT;
 		tci.pszText = achTemp;
-		tci.cchTextMax = ARRAYSIZE(achTemp);
+		tci.cchTextMax = ACTS_ARRAYSIZE(achTemp);
 		int page = TabCtrl_GetCurSel(hwndTab);
 		if (!TabCtrl_GetItem(hwndTab, page, &tci)) {
 			tci.pszText = nullptr; // wtf?
@@ -109,8 +109,8 @@ namespace tool::ui {
 	std::wstring GetWindowTextVal(HWND hwnd) {
 		static thread_local WCHAR tmp[0x512];
 
-		if (SUCCEEDED(GetWindowTextW(hwnd, &tmp[0], ARRAYSIZE(tmp)))) {
-			tmp[ARRAYSIZE(tmp) - 1] = 0;
+		if (SUCCEEDED(GetWindowTextW(hwnd, &tmp[0], ACTS_ARRAYSIZE(tmp)))) {
+			tmp[ACTS_ARRAYSIZE(tmp) - 1] = 0;
 			return tmp;
 		}
 		return L"";

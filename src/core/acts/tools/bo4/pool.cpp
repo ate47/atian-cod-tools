@@ -123,7 +123,7 @@ const char* tool::pool::WeapInventoryTypeName(weapInventoryType_t t) {
         "ABILITY",
         "HEAVY",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::WeapTypeName(weapType_t t) {
     static const char* names[] = {
@@ -138,7 +138,7 @@ const char* tool::pool::WeapTypeName(weapType_t t) {
         "RIOTSHIELD",
         "SCRIPT",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::GadgetTypeName(gadgetType_e t) {
     static const char* names[] = {
@@ -201,7 +201,7 @@ const char* tool::pool::GadgetTypeName(gadgetType_e t) {
         "BARRIER_BUILDER",
         "SPAWN_BEACON",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::GuidedMissileTypeName(guidedMissileType_t t) {
     static const char* names[] = {
@@ -217,7 +217,7 @@ const char* tool::pool::GuidedMissileTypeName(guidedMissileType_t t) {
         "ROBOTECH",
         "DYNAMICIMPACTPOINT",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::OffhandClassName(OffhandClass t) {
     static const char* names[] = {
@@ -229,7 +229,7 @@ const char* tool::pool::OffhandClassName(OffhandClass t) {
         "SUPPLYDROP_MARKER",
         "GADGET",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::OffhandSlotName(OffhandSlot t) {
     static const char* names[] = {
@@ -244,7 +244,7 @@ const char* tool::pool::OffhandSlotName(OffhandSlot t) {
         "TAUNT",
         "SCRIPTED",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::LockOnTypeName(lockOnType_t t) {
     static const char* names[] = {
@@ -253,7 +253,7 @@ const char* tool::pool::LockOnTypeName(lockOnType_t t) {
         "AP_SINGLE",
         "AP_MULTI",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::WeapClassName(weapClass_t t) {
     static const char* names[] = {
@@ -273,7 +273,7 @@ const char* tool::pool::WeapClassName(weapClass_t t) {
         "PISTOL_SPREAD",
         "BALL",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 const char* tool::pool::ProjExplosionTypeName(projExplosionType_t t) {
     static const char* names[] = {
@@ -289,7 +289,7 @@ const char* tool::pool::ProjExplosionTypeName(projExplosionType_t t) {
         "BOLD",
         "SHRAPNEL_SPAN",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 
 const char* tool::pool::ImpactTypeName(ImpactType t) {
@@ -311,7 +311,7 @@ const char* tool::pool::ImpactTypeName(ImpactType t) {
         "BOLT",
         "BLADE",
     };
-    return t >= ARRAYSIZE(names) ? "invalid" : names[t];
+    return t >= ACTS_ARRAYSIZE(names) ? "invalid" : names[t];
 }
 
 #pragma endregion
@@ -4938,7 +4938,7 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
         //    "-o", opt.m_output, // output dir
         //};
         //
-        //tool::gsc::gscinfo(ARRAYSIZE(argvinfo), argvinfo);
+        //tool::gsc::gscinfo(ACTS_ARRAYSIZE(argvinfo), argvinfo);
     }
     if (ShouldHandle(ASSET_TYPE_UNLOCKABLE_ITEM)) {
         struct UnlockableItemTableElem {
@@ -5086,7 +5086,7 @@ int tool::pool::pooltool(Process& proc, int argc, const char* argv[]) {
                     if (j) out << ",";
                     utils::Padding(out << "\n", 2);;
 
-                    if (attachments[j] < ARRAYSIZE(attachmentsNames)) {
+                    if (attachments[j] < ACTS_ARRAYSIZE(attachmentsNames)) {
                         out << "\"" << attachmentsNames[attachments[j]] << "\"";
                     }
                     else {

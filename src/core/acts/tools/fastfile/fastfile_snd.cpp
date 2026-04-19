@@ -74,12 +74,12 @@ namespace {
 	};
 
 	const char* SndAssetFormatName(SndAssetFormat format) {
-		if (format < ARRAYSIZE(SndAssetFormatNames)) return SndAssetFormatNames[format];
+		if (format < ACTS_ARRAYSIZE(SndAssetFormatNames)) return SndAssetFormatNames[format];
 		return utils::va("Invalid:%d", (int)format);
 	}
 
 	const char* SndAssetFormatExt(SndAssetFormat format) {
-		if (format < ARRAYSIZE(SndAssetFormatExts)) return SndAssetFormatExts[format];
+		if (format < ACTS_ARRAYSIZE(SndAssetFormatExts)) return SndAssetFormatExts[format];
 		return ".bin";
 	}
 

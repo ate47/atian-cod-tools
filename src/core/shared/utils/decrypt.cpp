@@ -910,7 +910,7 @@ char* decrypt::DecryptString(char* str) {
 							v194 = 1726835370;
 							goto LABEL_614;
 						case 0x936108D4:
-							*v187 = RotateRight8(*v187, v190);
+							*v187 = ROTR8(*v187, v190);
 							v194 = 1988872691;
 							break;
 						case 0x96CB40A4:
@@ -951,7 +951,7 @@ char* decrypt::DecryptString(char* str) {
 							v194 = 1907878313;
 							goto LABEL_615;
 						case 0x5A9B2C7u:
-							*v187 = RotateLeft8(*v187, v190);
+							*v187 = ROTL8(*v187, v190);
 							v194 = 1467468906;
 							goto LABEL_615;
 						}
@@ -1087,7 +1087,7 @@ char* decrypt::DecryptString(char* str) {
 							v218 = 1693343965;
 							break;
 						case 0xEA5C6FDA:
-							*v211 = RotateLeft8(*v211, v214);
+							*v211 = ROTL8(*v211, v214);
 							v218 = 140108213;
 							break;
 						case 0xEF82401C:
@@ -1109,7 +1109,7 @@ char* decrypt::DecryptString(char* str) {
 							v218 = -717284540;
 							break;
 						case 0x61D58B50u:
-							*v211 = RotateRight8(*v211, v214);
+							*v211 = ROTR8(*v211, v214);
 							v218 = 1569366939;
 							break;
 						case 0x70DD7C19u:
@@ -1355,7 +1355,7 @@ char* decrypt::DecryptString(char* str) {
 						switch (v241)
 						{
 						case 0x47E61AC1u:
-							*v235 = RotateLeft8(*v235, v237);
+							*v235 = ROTL8(*v235, v237);
 							v242 = -1440194417;
 							break;
 						case 0x2E7A42Cu:
@@ -1373,7 +1373,7 @@ char* decrypt::DecryptString(char* str) {
 							v242 = 2076692857;
 							break;
 						case 0x29A80EB8u:
-							*v235 = RotateRight8(*v235, v237);
+							*v235 = ROTR8(*v235, v237);
 							v242 = 110304167;
 							break;
 						case 0x2F3B151Fu:
@@ -1531,7 +1531,7 @@ char* decrypt::DecryptString(char* str) {
 							v282 = 176565023;
 							break;
 						case 0x6DD4F5B7u:
-							*v275 = RotateRight8(*v275, v277);
+							*v275 = ROTR8(*v275, v277);
 							v282 = -1163701091;
 							break;
 						case 0x93F073A8:
@@ -1598,7 +1598,7 @@ char* decrypt::DecryptString(char* str) {
 							v280 = v276;
 							break;
 						case 0x9DB6799u:
-							*v275 = RotateLeft8(*v275, v277);
+							*v275 = ROTL8(*v275, v277);
 							v282 = -456204701;
 							break;
 						case 0xEAF2E71u:
@@ -1624,7 +1624,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v110 ^= v111;
-			v113 = RotateLeft8(*v112, v110);
+			v113 = ROTL8(*v112, v110);
 			*v112 = v113;
 			if (v113 != v110 + 25)
 				*v112 = (v110 + 25) ^ v113;
@@ -1754,15 +1754,15 @@ char* decrypt::DecryptString(char* str) {
 							v186 = -1669440401;
 							break;
 						case 0x5301695Cu:
-							*v179 = RotateRight8(*v179, v182);
+							*v179 = ROTR8(*v179, v182);
 							v186 = -752899722;
 							break;
 						case 0x721A668Du:
-							*v179 = RotateLeft8(*v179, v182);
+							*v179 = ROTL8(*v179, v182);
 							v186 = -710150247;
 							break;
 						case 0x72875891u:
-							v181 = 0x6367D22EC256B56Fi64 * (HIBYTE(v181) ^ v181);
+							v181 = 0x6367D22EC256B56Fi64 * (B_HIBYTE(v181) ^ v181);
 							v186 = 2022597659;
 							break;
 						case 0x801EC02A:
@@ -1987,7 +1987,7 @@ char* decrypt::DecryptString(char* str) {
 									v274 = -2083037378;
 									break;
 								case 0x3EF0727u:
-									*v267 = RotateLeft8(*v267, v270);
+									*v267 = ROTL8(*v267, v270);
 									v274 = 659959078;
 									break;
 								case 0xA840283u:
@@ -2023,7 +2023,7 @@ char* decrypt::DecryptString(char* str) {
 						v274 = 2144610294;
 						break;
 					case 0x4B16821Du:
-						*v267 = RotateRight8(*v267, v270);
+						*v267 = ROTR8(*v267, v270);
 						v274 = 13538254;
 						break;
 					}
@@ -2046,7 +2046,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v134 += encryptiontable[314 * (v134 & 7) + (v135 & 7)];
-			v137 = RotateRight8(*v136, v134);
+			v137 = ROTR8(*v136, v134);
 			*v136 = v137;
 			if (v137 != (byte)v134 + 97)
 				*v136 = v137 ^ (v134 + 97);
@@ -2134,7 +2134,7 @@ char* decrypt::DecryptString(char* str) {
 						switch (v257)
 						{
 						case 0xD6B8793B:
-							*v251 = RotateRight8(*v251, v253);
+							*v251 = ROTR8(*v251, v253);
 							v258 = 1251061496;
 							break;
 						case 0xD7406F51:
@@ -2188,7 +2188,7 @@ char* decrypt::DecryptString(char* str) {
 				}
 				else if (v257 == 1394534636)
 				{
-					*v251 = RotateLeft8(*v251, v253);
+					*v251 = ROTL8(*v251, v253);
 					v258 = 1960981833;
 				}
 				else if (v257 > 0x2DCB4CB9)
@@ -2253,7 +2253,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v114 *= encryptiontable[314 * (v114 % 3) + v115 % 0x9Du];
-			v117 = RotateLeft8(*v116, v114);
+			v117 = ROTL8(*v116, v114);
 			*v116 = v117;
 			if (v117 != (byte)(9 * (byte)v114))
 				*v116 = (byte)(9 * v114) ^ v117;
@@ -2271,7 +2271,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v138 ^= v139;
-			v141 = RotateLeft8(*v140, v138);
+			v141 = ROTL8(*v140, v138);
 			*v140 = v141;
 			if (v141 != v138 + 66)
 				*v140 = v141 ^ (v138 + 66);
@@ -2386,7 +2386,7 @@ char* decrypt::DecryptString(char* str) {
 							v170 = -1927388632;
 							break;
 						case 0x7CAC016Fu:
-							*v163 = RotateRight8(*v163, v166);
+							*v163 = ROTR8(*v163, v166);
 							v170 = -2139244965;
 							break;
 						case 0x8135982D:
@@ -2394,7 +2394,7 @@ char* decrypt::DecryptString(char* str) {
 							v170 = 1907792221;
 							break;
 						case 0x82C7DA4E:
-							*v163 = RotateLeft8(*v163, v166);
+							*v163 = ROTL8(*v163, v166);
 							v170 = 463121331;
 							break;
 						case 0x878B9A5B:
@@ -2478,7 +2478,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v43 += encryptiontable[314 * (v43 % 6) + v44 % 0x74u];
-			v46 = RotateLeft8(*v45, v43);
+			v46 = ROTL8(*v45, v43);
 			*v45 = v46;
 			if (v46 != (byte)v43 - 106)
 				*v45 = v46 ^ (v43 - 106);
@@ -2564,7 +2564,7 @@ char* decrypt::DecryptString(char* str) {
 		v5 = tmp + 2;
 		do {
 			v *= encryptiontable[i % 0x67 + 314 * (v % 6)];
-			*v5 = RotateLeft8(*v5, v);
+			*v5 = ROTL8(*v5, v);
 			uint8_t v2 = (uint8_t)(-105 * v);
 			if (*v5 != v2) {
 				*v5 ^= v2;
@@ -2584,7 +2584,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v74 *= (byte)v75;
-			v77 = RotateRight8(*v76, v74);
+			v77 = ROTR8(*v76, v74);
 			*v76 = v77;
 			if (v77 != v74 + 8)
 				*v76 = v77 ^ (v74 + 8);
@@ -2618,7 +2618,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v78 -= encryptiontable[314 * (v78 % 0xC) + v79 % 0x74u];
-			v81 = RotateLeft8(*v80, v78);
+			v81 = ROTL8(*v80, v78);
 			*v80 = v81;
 			if (v81 != (byte)v78 + 25)
 				*v80 = v81 ^ (v78 + 25);
@@ -2636,7 +2636,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v100 *= encryptiontable[314 * (v100 % 0xA) + v101 % 0x19u];
-			v103 = RotateRight8(*v102, v100);
+			v103 = ROTR8(*v102, v100);
 			*v102 = v103;
 			if (v103 != 21 - (byte)v100)
 				*v102 = (21 - v100) ^ v103;
@@ -2740,7 +2740,7 @@ char* decrypt::DecryptString(char* str) {
 						switch (v265)
 						{
 						case 0xBC695250:
-							*v259 = RotateRight8(*v259, v262);
+							*v259 = ROTR8(*v259, v262);
 							v266 = 536550495;
 							break;
 						case 0xD99E175E:
@@ -2783,7 +2783,7 @@ char* decrypt::DecryptString(char* str) {
 							v266 = -899720837;
 							break;
 						case 0xACB83DB9:
-							*v259 = RotateLeft8(*v259, v262);
+							*v259 = ROTL8(*v259, v262);
 							v266 = -113537965;
 							break;
 						}
@@ -2876,7 +2876,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v89 ^= encryptiontable[314 * (v90 % 6u) + v89 % 0x118];
-			v92 = RotateLeft8(*v91, v89);
+			v92 = ROTL8(*v91, v89);
 			*v91 = v92;
 			if (v92 != ((unsigned __int8)v89 ^ 0x16))
 				*v91 = v89 ^ v92 ^ 0x16;
@@ -2994,7 +2994,7 @@ char* decrypt::DecryptString(char* str) {
 								v234 = 968046988;
 								break;
 							case 0xB3AAD965:
-								*v227 = RotateLeft8(*v227, v229);
+								*v227 = ROTL8(*v227, v229);
 								v234 = 28641829;
 								break;
 							case 0xB6873191:
@@ -3075,7 +3075,7 @@ char* decrypt::DecryptString(char* str) {
 						v234 = 2052520792;
 						break;
 					case 0x536A5551u:
-						*v227 = RotateRight8(*v227, v229);
+						*v227 = ROTR8(*v227, v229);
 						v234 = -2028621401;
 						break;
 					}
@@ -3094,7 +3094,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v122 -= v123;
-			v125 = RotateLeft8(*v124, v122);
+			v125 = ROTL8(*v124, v122);
 			*v124 = v125;
 			if (v125 != (byte)(39 * v122))
 				*v124 = v125 ^ (byte)(39 * v122);
@@ -3112,7 +3112,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v126 += encryptiontable[314 * (v126 % 0xC) + v127 % 0xC1u];
-			v129 = RotateRight8(*v128, v126);
+			v129 = ROTR8(*v128, v126);
 			*v128 = v129;
 			if (v129 != (byte)(5 - (byte)v126))
 				*v128 = v129 ^ (byte)(5 - v126);
@@ -3130,7 +3130,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v96 *= encryptiontable[314 * (v96 % 0xC) + v97 % 0x34u];
-			v99 = RotateLeft8(*v98, v96);
+			v99 = ROTL8(*v98, v96);
 			*v98 = v99;
 			if (v99 != (byte)v96 + 19)
 				*v98 = (v96 + 19) ^ v99;
@@ -3222,7 +3222,7 @@ char* decrypt::DecryptString(char* str) {
 							v250 = -612259680;
 							break;
 						case 0xDD47C920:
-							*v243 = RotateLeft8(*v243, v246);
+							*v243 = ROTL8(*v243, v246);
 							v250 = 230282104;
 							break;
 						case 0xF1615F1F:
@@ -3302,7 +3302,7 @@ char* decrypt::DecryptString(char* str) {
 					switch (v249)
 					{
 					case 0xE74E653u:
-						*v243 = RotateRight8(*v243, v246);
+						*v243 = ROTR8(*v243, v246);
 						v250 = 289326716;
 						break;
 					case 0x42A627Au:
@@ -3407,7 +3407,7 @@ char* decrypt::DecryptString(char* str) {
 						switch (v201)
 						{
 						case 0xA2CED297:
-							v200 = 0x55A87B647770187i64 * (HIWORD(v200) ^ v200);
+							v200 = 0x55A87B647770187i64 * (B_HIWORD(v200) ^ v200);
 							v202 = -1735660707;
 							break;
 						case 0xAEB16D1C:
@@ -3424,7 +3424,7 @@ char* decrypt::DecryptString(char* str) {
 							v202 = -1897148688;
 							break;
 						case 0xFDDA4259:
-							*v195 = RotateRight8(*v195, v197);
+							*v195 = ROTR8(*v195, v197);
 							v202 = -702475041;
 							break;
 						}
@@ -3481,7 +3481,7 @@ char* decrypt::DecryptString(char* str) {
 						v202 = 1781501491;
 						break;
 					case 0x59DF9B39u:
-						*v195 = RotateLeft8(*v195, v197);
+						*v195 = ROTL8(*v195, v197);
 						v202 = -1645329321;
 						break;
 					}
@@ -3542,7 +3542,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v148 ^= encryptiontable[314 * (v149 % 0xBu) + (v148 & 0x1F)];
-			v151 = RotateRight8(*v150, v148);
+			v151 = ROTR8(*v150, v148);
 			*v150 = v151;
 			if (v151 != ((unsigned __int8)v148 ^ 0x62))
 				*v150 = v148 ^ v151 ^ 0x62;
@@ -3683,7 +3683,7 @@ char* decrypt::DecryptString(char* str) {
 					}
 					else if (v161 == -1099823966)
 					{
-						*v155 = RotateRight8(*v155, v158);
+						*v155 = ROTR8(*v155, v158);
 						v162 = 408266973;
 					}
 					else if (v161 > 0xA627AC7F)
@@ -3717,7 +3717,7 @@ char* decrypt::DecryptString(char* str) {
 							v162 = -2076219974;
 							break;
 						case 0x92B25BCD:
-							*v155 = RotateLeft8(*v155, v158);
+							*v155 = ROTL8(*v155, v158);
 							v162 = -1827663647;
 							break;
 						case 0xA45D42A2:
@@ -3773,7 +3773,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v118 ^= encryptiontable[314 * (v118 % 6) + v119 % 0x5Fu];
-			v121 = RotateLeft8(*v120, v118);
+			v121 = ROTL8(*v120, v118);
 			*v120 = v121;
 			if (v121 != (byte)(72 * (byte)v118))
 				*v120 = (byte)(72 * v118) ^ v121;
@@ -3791,7 +3791,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v130 += encryptiontable[314 * (v131 % 7u) + v130 % 0xB8];
-			v133 = RotateLeft8(*v132, v130);
+			v133 = ROTL8(*v132, v130);
 			*v132 = v133;
 			if (v133 != (byte)(20 * (byte)v130))
 				*v132 = v133 ^ (byte)(20 * v130);
@@ -3910,7 +3910,7 @@ char* decrypt::DecryptString(char* str) {
 							v226 = -572612646;
 							break;
 						case 0x5D3DAFA3u:
-							*v219 = RotateLeft8(*v219, v222);
+							*v219 = ROTL8(*v219, v222);
 							v226 = 434119339;
 							break;
 						case 0x6D1337FEu:
@@ -3935,7 +3935,7 @@ char* decrypt::DecryptString(char* str) {
 					switch (v225)
 					{
 					case 0x2801A853u:
-						*v219 = RotateRight8(*v219, v222);
+						*v219 = ROTR8(*v219, v222);
 						v226 = -1105790771;
 						break;
 					case 0x299590A7u:
@@ -4014,7 +4014,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v57 ^= v58;
-			v60 = RotateLeft8(*v59, v57);
+			v60 = ROTL8(*v59, v57);
 			*v59 = v60;
 			if (v60 != -124 - v57)
 				*v59 = (-124 - v57) ^ v60;
@@ -4048,7 +4048,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v47 += encryptiontable[314 * (v47 % 0xB) + v48 % 0x10Bu];
-			v50 = RotateRight8(*v49, v47);
+			v50 = ROTR8(*v49, v47);
 			*v49 = v50;
 			if (v50 != (byte)v47 - 109)
 				*v49 = (v47 - 109) ^ v50;
@@ -4114,7 +4114,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v85 *= encryptiontable[314 * (v85 % 9) + v86 % 0x41u];
-			v88 = RotateRight8(*v87, v85);
+			v88 = ROTR8(*v87, v85);
 			*v87 = v88;
 			if (v88 != (byte)(v85 + 83))
 				*v87 = (byte)(v85 + 83) ^ v88;
@@ -4132,7 +4132,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v39 += v40;
-			v42 = RotateLeft8(*v41, v39);
+			v42 = ROTL8(*v41, v39);
 			*v41 = v42;
 			if (v42 != (byte)(57 * v39))
 				*v41 = (byte)(57 * v39) ^ v42;
@@ -4182,7 +4182,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v67 -= encryptiontable[314 * (v67 % 6) + v68 % 0x10Fu];
-			v70 = RotateLeft8(*v69, v67);
+			v70 = ROTL8(*v69, v67);
 			*v69 = v70;
 			if (v70 != ((unsigned __int8)v67 ^ 0x22))
 				*v69 = v67 ^ v70 ^ 0x22;
@@ -4200,7 +4200,7 @@ char* decrypt::DecryptString(char* str) {
 		do
 		{
 			v35 += encryptiontable[314 * (v35 % 0xA) + v36 % 0x32u];
-			v38 = RotateRight8(*v37, v35);
+			v38 = ROTR8(*v37, v35);
 			*v37 = v38;
 			if (v38 != (byte)(33 * (byte)v35))
 				*v37 = v38 ^ (byte)(33 * v35);
@@ -4332,7 +4332,7 @@ char* decrypt::DecryptString(char* str) {
 							v178 = 315452074;
 							break;
 						case 0xFB828500:
-							*v171 = RotateRight8(*v171, v173);
+							*v171 = ROTR8(*v171, v173);
 							v178 = -1649622131;
 							break;
 						}
@@ -4380,7 +4380,7 @@ char* decrypt::DecryptString(char* str) {
 						v178 = -325545957;
 						break;
 					case 0x36FB9150u:
-						*v171 = RotateLeft8(*v171, v173);
+						*v171 = ROTL8(*v171, v173);
 						v178 = 515984963;
 						break;
 					case 0x4AA34519u:
@@ -4444,7 +4444,7 @@ char* decrypt::DecryptString(char* str) {
 			do
 			{
 				v16 += v17;
-				v19 = RotateRight8(*v18, v16);
+				v19 = ROTR8(*v18, v16);
 				*v18 = v19;
 				if (v19 != ((unsigned __int8)v16 ^ 0x97))
 					*v18 = v19 ^ v16 ^ 0x97;
@@ -4491,7 +4491,7 @@ LABEL_713:
 		}
 		if (v209 == 1041246957)
 		{
-			*v203 = RotateLeft8(*v203, v206);
+			*v203 = ROTL8(*v203, v206);
 			v210 = 429552485;
 		}
 		else if (v209 == 97297828)
@@ -4543,7 +4543,7 @@ LABEL_713:
 				v210 = 792851059;
 				break;
 			case 0xEDAE5609:
-				*v203 = RotateRight8(*v203, v206);
+				*v203 = ROTR8(*v203, v206);
 				v210 = 617472173;
 				break;
 			case 0xFEB39C86:

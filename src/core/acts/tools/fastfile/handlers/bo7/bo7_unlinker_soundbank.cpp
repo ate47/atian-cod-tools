@@ -150,7 +150,7 @@ namespace {
 								if (opt.testDump) {
 									// vector and data shits
 									json.WriteFieldValueUnknown("alias.info.unk28", info->unk28);
-									for (size_t i = 0; i < ARRAYSIZE(info->__pad); i++) {
+									for (size_t i = 0; i < ACTS_ARRAYSIZE(info->__pad); i++) {
 										json.WriteFieldValueUnknown(utils::va("alias.info.unk%02x", i * 8 + offsetof(SndAliasInfo, __pad)), info->__pad[i]);
 									}
 								}

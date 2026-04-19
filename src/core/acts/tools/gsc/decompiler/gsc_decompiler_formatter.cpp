@@ -146,7 +146,7 @@ namespace tool::gsc::formatter {
 	int gscdf(int argc, const char* argv[]) {
 		std::filesystem::path file{ utils::GetProgDir() / CUSTOM_FORMAT_FILE };
 
-		LOG_INFO("custom format names: ({})", ARRAYSIZE(flagInfo));
+		LOG_INFO("custom format names: ({})", ACTS_ARRAYSIZE(flagInfo));
 
 		for (FormatterFlagInfo& info : flagInfo) {
 			LOG_INFO("{}{}{} : {}", cli::clicolor::COLOR_RED, info.name, cli::clicolor::CD_RESET, info.desc);

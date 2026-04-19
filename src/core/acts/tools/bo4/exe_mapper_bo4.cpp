@@ -113,7 +113,7 @@ namespace {
 		utils::OutFileCE os{ argv[3], true };
 
 		os << "byte rsa_key[] {";
-		for (size_t i = 0; i < ARRAYSIZE(buffer); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(buffer); i++) {
 			if (!(i & 0xf)) {
 				os << "\n";
 			}

@@ -200,15 +200,7 @@ namespace {
 				static_assert(sizeof(archiveChecksum) == sizeof(header.archiveChecksum));
 				std::memcpy(header.archiveChecksum, archiveChecksum, sizeof(archiveChecksum));
 
-				// build data
-				TCHAR szBuffer[std::max<size_t>(MAX_COMPUTERNAME_LENGTH + 1, 16)];
-				DWORD dwSize = sizeof(szBuffer);
-				if (!GetComputerNameA(szBuffer, &dwSize)) {
-					LOG_WARNING("Can't get computer name");
-					strncpy_s(szBuffer, "ERROR", sizeof(szBuffer));
-				}
-
-				snprintf(header.builder, sizeof(header.builder), "%s", szBuffer);
+				platform::GetComputerInfoName(header.builder, sizeof(header.builder));
 				snprintf(header.fastfileName, sizeof(header.fastfileName), "%s", ff.ffname);
 
 				// blocks load data

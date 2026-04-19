@@ -576,7 +576,8 @@ namespace cw {
                 std::filesystem::path exepath{ main.GetPath()};
                 std::filesystem::remove(exepath.replace_extension(".start"));
                 // patch tls
-                auto& tlsDir = main.GetOptHeader()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
+                
+                auto& tlsDir = platform::PImageOptHeader(*main)->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
 
                 if (tlsDir.VirtualAddress && tlsDir.Size) {
                     IMAGE_TLS_DIRECTORY& tls = *reinterpret_cast<IMAGE_TLS_DIRECTORY*>(main[tlsDir.VirtualAddress]);

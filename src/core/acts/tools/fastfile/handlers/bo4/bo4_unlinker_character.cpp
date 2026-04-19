@@ -58,14 +58,14 @@ namespace {
 	};
 
 	const char* CharacterSkeletonName(CharacterSkeleton id) {
-		if (id >= ARRAYSIZE(characterSkeletonNames)) {
+		if (id >= ACTS_ARRAYSIZE(characterSkeletonNames)) {
 			return "unknown";
 		}
 		return characterSkeletonNames[id];
 	}
 
 	const char* CharacterVoiceName(CharacterVoice id) {
-		if (id >= ARRAYSIZE(characterVoiceNames)) {
+		if (id >= ACTS_ARRAYSIZE(characterVoiceNames)) {
 			return "unknown";
 		}
 		return characterVoiceNames[id];

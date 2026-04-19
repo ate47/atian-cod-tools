@@ -1581,7 +1581,7 @@ namespace tool::gsc {
                 { OPCODE_GetString, bytecode[2] },
             };
 
-            return ctx.m_vmInfo->FindPlatform(expectedValues, ARRAYSIZE(expectedValues));
+            return ctx.m_vmInfo->FindPlatform(expectedValues, ACTS_ARRAYSIZE(expectedValues));
         }
     };
 

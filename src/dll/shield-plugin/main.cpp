@@ -28,7 +28,7 @@ EXPORT void PBO4_PreStart() {
         { "error", core::logs::LVL_ERROR}
     };
 
-    core::logs::setlevel(core::config::GetEnumVal<core::logs::loglevel>("logger.level", logNames, ARRAYSIZE(logNames), core::logs::LVL_INFO));
+    core::logs::setlevel(core::config::GetEnumVal<core::logs::loglevel>("logger.level", logNames, ACTS_ARRAYSIZE(logNames), core::logs::LVL_INFO));
     hook::error::EnableHeavyDump();
     hook::error::InstallErrorHooks(true);
 

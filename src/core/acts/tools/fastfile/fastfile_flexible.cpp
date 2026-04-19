@@ -18,8 +18,8 @@ namespace fastfile::flexible {
 		if (!chunksCount) {
 			return;
 		}
-		if (chunksCount > ARRAYSIZE(chunks)) {
-			throw std::runtime_error(std::format("too many flexible data chunks 0x{:x} > 0x{:x}", chunksCount, ARRAYSIZE(chunks)));
+		if (chunksCount > ACTS_ARRAYSIZE(chunks)) {
+			throw std::runtime_error(std::format("too many flexible data chunks 0x{:x} > 0x{:x}", chunksCount, ACTS_ARRAYSIZE(chunks)));
 		}
 
 		FlexibleFastFileChunk* chunk{ chunks };
@@ -115,7 +115,7 @@ namespace fastfile::flexible {
 		utils::WriteValue<uint32_t>(data, len);
 		size_t off{ utils::Allocate(data, len) };
 		
-		if (chunksCount == ARRAYSIZE(chunks)) {
+		if (chunksCount == ACTS_ARRAYSIZE(chunks)) {
 			throw std::runtime_error("too many flexible chunks to write");
 		}
 

@@ -1,5 +1,7 @@
 #pragma once
 #include <hook/library.hpp>
+#ifdef _WIN32
+#include <Windows.h>
 
 namespace deps::ntdll {
 
@@ -88,3 +90,9 @@ namespace deps::ntdll {
         return NtDll::GetInstance().KiUserExceptionDispatcher(ExceptionRecord, ContextRecord);
     }
 }
+
+#else
+
+#error ntdll.hpp can't be used outside of windows
+
+#endif

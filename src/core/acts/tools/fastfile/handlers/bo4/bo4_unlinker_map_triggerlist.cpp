@@ -18,7 +18,7 @@ namespace fastfile::handlers::bo4::map {
 	};
 
 	const char* SpawnVarKeyTypeName(SpawnVarKeyType type) {
-		return type >= ARRAYSIZE(spawnVarKeyTypeNames) ? utils::va("unk_%d", type) : spawnVarKeyTypeNames[type];
+		return type >= ACTS_ARRAYSIZE(spawnVarKeyTypeNames) ? utils::va("unk_%d", type) : spawnVarKeyTypeNames[type];
 	}
 
 	typedef uint32_t contents_t;

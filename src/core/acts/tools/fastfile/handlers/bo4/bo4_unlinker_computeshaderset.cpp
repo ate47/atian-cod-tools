@@ -105,7 +105,7 @@ namespace {
 				json.WriteFieldNameString("methods");
 
 				json.BeginArray();
-				for (size_t i = 0; i < ARRAYSIZE(shader->methods); i++) {
+				for (size_t i = 0; i < ACTS_ARRAYSIZE(shader->methods); i++) {
 					MaterialComputeShaderMethod* method{ shader->methods + i };
 
 					if (!method->name) {

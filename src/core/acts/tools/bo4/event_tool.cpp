@@ -37,7 +37,7 @@ namespace {
 		static bool set2m;
 		static bool set2nb;
 		static bool set2xptier;
-		static const char* op1{ op1s[ARRAYSIZE(op1s) - 1] };
+		static const char* op1{ op1s[ACTS_ARRAYSIZE(op1s) - 1] };
 		static const char* op2{ op2s[0] };
 		static uintptr_t currentData{};
 		static size_t currentDataSize{};
@@ -79,7 +79,7 @@ namespace {
 		ImGui::SeparatorText("Main operation");
 
 		if (ImGui::BeginCombo("##op1", op1)) {
-			for (int n = 0; n < ARRAYSIZE(op1s); n++)
+			for (int n = 0; n < ACTS_ARRAYSIZE(op1s); n++)
 			{
 				bool isSelected = (op1 == op1s[n]);
 				if (ImGui::Selectable(op1s[n], isSelected)) {
@@ -94,7 +94,7 @@ namespace {
 		ImGui::SeparatorText("Operation 2");
 
 		if (ImGui::BeginCombo("##op2", op2)) {
-			for (int n = 0; n < ARRAYSIZE(op2s); n++)
+			for (int n = 0; n < ACTS_ARRAYSIZE(op2s); n++)
 			{
 				bool isSelected = (op2 == op2s[n]);
 				if (ImGui::Selectable(op2s[n], isSelected)) {

@@ -1,7 +1,4 @@
 #pragma once
-#include <Windows.h>
-#include <conio.h>
-#include <TlHelp32.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -16,6 +13,8 @@
 #include <cassert>
 #include <functional>
 #include <random>
+#include <cstdint>
+
 
 #if __has_include("asmjit/asmjit.h")
 #define ASMJIT_STATIC
@@ -27,16 +26,26 @@
 
 #include <core/logs.hpp>
 
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
+typedef uint8_t byte;
 
-#ifdef ERROR
-#undef ERROR
-#endif
+template <typename T, size_t N>
+constexpr char (*ActsArraySizeCounter(T(&)[N]))[N];
+
+#define ACTS_ARRAYSIZE(A) (sizeof(*ActsArraySizeCounter(A)))
+
+
+
+#define ROTL8(v,n)  (uint8_t)(((uint8_t)(v) << ((n) & 7)) | ((uint8_t)(v) >> (8  - ((n) & 7))))
+#define ROTR8(v,n)  (uint8_t)(((uint8_t)(v) >> ((n) & 7)) | ((uint8_t)(v) << (8  - ((n) & 7))))
+
+#define ROTL16(v,n) (uint16_t)(((uint16_t)(v) << ((n) & 15)) | ((uint16_t)(v) >> (16 - ((n) & 15))))
+#define ROTR16(v,n) (uint16_t)(((uint16_t)(v) >> ((n) & 15)) | ((uint16_t)(v) << (16 - ((n) & 15))))
+
+#define B_LOWORD(v) (uint16_t)((v) & 0xFFFFu)
+#define B_HIWORD(v) (uint16_t)(((v) >> 16) & 0xFFFFu)
+
+#define B_LOBYTE(v) (uint8_t)((v) & 0xFFu)
+#define B_HIBYTE(v) (uint8_t)(((v) >> 8) & 0xFFu)
 
 
 #if __has_include(<xorstr.hpp>)
@@ -49,4 +58,17 @@
 #endif
 #else
 #define actssec(str) str
+#endif
+
+#include <platform/platform.hpp>
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
+#ifdef ERROR
+#undef ERROR
 #endif

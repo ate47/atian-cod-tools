@@ -187,7 +187,7 @@ namespace {
 				case 1:
 					WriteHeaderFile("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", h.bo6.size, h.bo6.fileSize, h.bo6.preloadWalkSize);
 					WriteHeaderFile("unk18:0x{:x} unk20:0x{:x} unk24:0x{:x} unk28:0x{:x} unk30:0x{:x}", h.bo6.unk18, h.bo6.unk20, h.bo6.unk24, h.bo6.unk28, h.bo6.unk30);
-					WriteHeaderFile("Blocks: {}", utils::data::ArrayAsString<uint64_t>(h.bo6.blockSize, ARRAYSIZE(h.bo6.blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
+					WriteHeaderFile("Blocks: {}", utils::data::ArrayAsString<uint64_t>(h.bo6.blockSize, ACTS_ARRAYSIZE(h.bo6.blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
 					WriteHeaderFile("isEncrypted: {}", h.bo6.encrypt.isEncrypted ? "true" : "false");
 					break;
 				default:
@@ -202,7 +202,7 @@ namespace {
 				WriteHeaderFile("size:0x{:x} fileSize:0x{:x} preloadWalkSize:0x{:x}", h.mwiii.size, h.mwiii.fileSize, h.mwiii.preloadWalkSize);
 				WriteHeaderFile("timestamp:{}, unk20:0x{:x}({}) / unk24:0x{:x}/({})", h.mwiii.timestamp, h.mwiii.unk20, h.mwiii.unk20, h.mwiii.unk24, h.mwiii.unk24);
 				WriteHeaderFile("unk28:0x{:x} unk30:0x{:x}", h.mwiii.unk28, h.mwiii.unk30);
-				WriteHeaderFile("Blocks: {}", utils::data::ArrayAsString<uint64_t>(h.mwiii.blockSize, ARRAYSIZE(h.mwiii.blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
+				WriteHeaderFile("Blocks: {}", utils::data::ArrayAsString<uint64_t>(h.mwiii.blockSize, ACTS_ARRAYSIZE(h.mwiii.blockSize), ",", "", "", [](const uint64_t& blk) { return std::format("0x{:x}", blk); }));
 				WriteHeaderFile("isEncrypted: {}", h.mwiii.encrypt.isEncrypted ? "true" : "false");
 				return;
 			default:

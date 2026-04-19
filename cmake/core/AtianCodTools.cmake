@@ -78,6 +78,7 @@ target_link_libraries(AtianCodTools PRIVATE
     antlr4-runtime
     ACTSSharedLibrary
     ACTSLibrary
+    ACTSGSC
     ACTSVM
     zlib
     minizip
@@ -105,6 +106,7 @@ add_dependencies(AtianCodTools
     antlr4-runtime
     ACTSSharedLibrary
     ACTSLibrary
+    ACTSGSC
     ACTSVM
     zlib
     minizip

@@ -548,11 +548,11 @@ return tool::OK;
     }
 
     const char* PoolNameOld(IW19PoolType type) {
-        return type >= 0 && type < ARRAYSIZE(IW19PoolNames) ? IW19PoolNames[type] : "<invalid>";
+        return type >= 0 && type < ACTS_ARRAYSIZE(IW19PoolNames) ? IW19PoolNames[type] : "<invalid>";
     }
 
     IW19PoolType PoolIdOld(const char* name) {
-        for (size_t i = 0; i < ARRAYSIZE(IW19PoolNames); i++) {
+        for (size_t i = 0; i < ACTS_ARRAYSIZE(IW19PoolNames); i++) {
             if (!_strcmpi(IW19PoolNames[i], name)) {
                 return (IW19PoolType)i;
             }

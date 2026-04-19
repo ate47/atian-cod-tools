@@ -143,7 +143,7 @@ namespace {
 	};
 
 	const char* AITypeWeaponTypeName(AITypeWeaponType type) {
-		return type >= ARRAYSIZE(AITypeWeaponTypeNames) ? utils::va("unit_%u", type) : AITypeWeaponTypeNames[type];
+		return type >= ACTS_ARRAYSIZE(AITypeWeaponTypeNames) ? utils::va("unit_%u", type) : AITypeWeaponTypeNames[type];
 	}
 	const char* AITypeUnitTypeNames[]{
 		"soldier",
@@ -155,7 +155,7 @@ namespace {
 	};
 
 	const char* AITypeUnitTypeName(AITypeUnitType type) {
-		return type >= ARRAYSIZE(AITypeUnitTypeNames) ? utils::va("unit_%u", type) : AITypeUnitTypeNames[type];
+		return type >= ACTS_ARRAYSIZE(AITypeUnitTypeNames) ? utils::va("unit_%u", type) : AITypeUnitTypeNames[type];
 	}
 
 	const char* AITypeTeamNames[]{
@@ -165,7 +165,7 @@ namespace {
 	};
 
 	const char* AITypeTeamName(AITypeTeam team) {
-		return team >= ARRAYSIZE(AITypeTeamNames) ? utils::va("team_%u", team) : AITypeTeamNames[team];
+		return team >= ACTS_ARRAYSIZE(AITypeTeamNames) ? utils::va("team_%u", team) : AITypeTeamNames[team];
 	}
 
 

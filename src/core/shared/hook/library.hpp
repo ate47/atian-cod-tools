@@ -1,36 +1,36 @@
 #pragma once
-#include <detours.h>
 #include <core/memory_allocator.hpp>
 #include <hook/process.hpp>
 #include <hook/memory.hpp>
 #include <utils/utils.hpp>
+#include <platform/platform.hpp>
 
 namespace hook::library {
 	class ScanResult;
 	/*
 	 * @return module from an address
 	 */
-	HMODULE GetLibraryInfo(const void* address);
+	void* GetLibraryInfo(const void* address);
 
 	/*
 	 * Get the name of a library
 	 * @param hmod module
 	 * @return name without the path
 	 */
-	const char* GetLibraryName(HMODULE hmod);
+	const char* GetLibraryName(void* hmod);
 
 	/*
 	 * Get the path of a library
 	 * @param hmod module
 	 * @return path
 	 */
-	const char* GetLibraryPath(HMODULE hmod);
+	const char* GetLibraryPath(void* hmod);
 
 	/*
 	 * Locate the PDB of a module
 	 * @return pdb path or null
 	 */
-	const char* LocatePDB(HMODULE hmod);
+	const char* LocatePDB(void* hmod);
 
 	/*
 	 * Init a scan container
@@ -204,7 +204,7 @@ namespace hook::library {
 	 * @param name name
 	 * @return matches
 	 */
-	std::vector<ScanResult> ScanLibrary(HMODULE hmod, const char* pattern, bool single = false, const char* name = nullptr);
+	std::vector<ScanResult> ScanLibrary(void* hmod, const char* pattern, bool single = false, const char* name = nullptr);
 
 	/*
 	 * Scan the memory to find a string
@@ -214,7 +214,7 @@ namespace hook::library {
 	 * @param name name
 	 * @return matches
 	 */
-	std::vector<ScanResult> ScanLibraryString(HMODULE hmod, const char* pattern, bool single = false, const char* name = nullptr);
+	std::vector<ScanResult> ScanLibraryString(void* hmod, const char* pattern, bool single = false, const char* name = nullptr);
 
 	/*
 	 * Scan the memory to find data
@@ -225,7 +225,7 @@ namespace hook::library {
 	 * @return matches
 	 */
 	template<typename T>
-	std::vector<ScanResult> ScanLibraryNumber(HMODULE hmod, T val, bool single = false, const char* name = nullptr) {
+	std::vector<ScanResult> ScanLibraryNumber(void* hmod, T val, bool single = false, const char* name = nullptr) {
 		char buff[sizeof(T) * 3 + 1]{};
 
 		byte* ptr{ (byte*)&val };
@@ -242,30 +242,30 @@ namespace hook::library {
 
 	// Library information
 	class Library {
-		HMODULE hmod{};
+		void* hmod{};
 	public:
 		Library() : hmod(process::BaseHandle()) {
 		}
 
-		Library(HMODULE hmod) : hmod(hmod) {
+		Library(void* hmod) : hmod(hmod) {
 		}
 
 		Library(const char* name) : hmod(process::LoadLib(name)) {
 		}
 
-		Library(const char* name, bool system, DWORD flags = 0) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name, flags)) {
+		Library(const char* name, bool system, int32_t flags = 0) : hmod(system ? platform::LoadSystemShared(name, flags) : platform::LoadShared(name, flags)) {
 		}
 
-		Library(const std::string& name, bool system = false, DWORD flags = 0) : hmod(system ? process::LoadSysLib(name) : process::LoadLib(name, flags)) {
+		Library(const std::string& name, bool system = false, int32_t flags = 0) : hmod(system ? platform::LoadSystemShared(name, flags) : platform::LoadShared(name, flags)) {
 		}
 
-		Library(const std::filesystem::path& name, bool system = false, DWORD flags = 0) : hmod(system ? process::LoadSysLib(name.string()) : process::LoadLib(name.string(), flags)) {
+		Library(const std::filesystem::path& name, bool system = false, int32_t flags = 0) : hmod(system ? platform::LoadSystemShared(name.string(), flags) : platform::LoadShared(name.string(), flags)) {
 		}
 
 		Library(const Library& other) : hmod(other.hmod) {
 		}
 
-		void SetModule(HMODULE hmod) {
+		void SetModule(void* hmod) {
 			this->hmod = hmod;
 		}
 
@@ -273,29 +273,29 @@ namespace hook::library {
 			this->hmod = 0;
 		}
 
-		void SetModule(const char* name, bool system = false, DWORD flags = 0) {
-			HMODULE loaded{ GetModuleHandleA(name) };
+		void SetModule(const char* name, bool system = false, int32_t flags = 0) {
+			void* loaded{ platform::GetModulePointer(name) };
 			
 			if (loaded) {
 				SetModule(loaded);
 				return;
 			}
 
-			SetModule(system ? process::LoadSysLib(name) : process::LoadLib(name, flags));
+			SetModule(system ? platform::LoadSystemShared(name, flags) : platform::LoadShared(name, flags));
 		}
 
-		void SetModule(const std::string& name, bool system = false, DWORD flags = 0) {
+		void SetModule(const std::string& name, bool system = false, int32_t flags = 0) {
 			SetModule(name.data(), system, flags);
 		}
 
 
-		void SetModule(const std::filesystem::path& name, DWORD flags = 0) {
+		void SetModule(const std::filesystem::path& name, int32_t flags = 0) {
 			SetModule(name.string(), false, flags);
 		}
 
 		bool Free() {
 			if (!*this) return false;
-			return FreeLibrary(hmod);
+			return platform::FreeShared(hmod);
 		}
 
 		constexpr bool operator==(const Library& other) const {
@@ -315,7 +315,7 @@ namespace hook::library {
 		}
 
 		inline void* operator[](const char* name) const {
-			return GetProcAddress(hmod, name);
+			return platform::GetFunctionAddress(hmod, name);
 		}
 
 		inline const char* GetName() const {
@@ -332,16 +332,8 @@ namespace hook::library {
 
 		uint32_t GetUID() const;
 
-		inline PIMAGE_NT_HEADERS GetNTHeader() const {
-			return process::PImageNtHeader(hmod);
-		}
-
-		inline PIMAGE_OPTIONAL_HEADER GetOptHeader() const {
-			return process::PImageOptHeader(hmod);
-		}
-
-		inline PIMAGE_DOS_HEADER GetDosHeader() const {
-			return process::PImageDosHeader(hmod);
+		platform::ModuleInformation& ModuleInformation() const {
+			return platform::ModuleInformationTmp(hmod);
 		}
 
 		inline std::vector<ScanResult> Scan(const char* pattern, bool single = false, const char* name = nullptr) const {
@@ -494,7 +486,7 @@ namespace hook::library {
 
 		template<typename T>
 		T GetProc(const char* name) {
-			return (T)GetProcAddress(hmod, name);
+			return (T)platform::GetFunctionAddress(hmod, name);
 		}
 
 		std::vector<const char*> GetIATModules() const;
@@ -502,7 +494,7 @@ namespace hook::library {
 
 		template<typename T = void>
 		T* Rebase(uintptr_t origin) const {
-			return reinterpret_cast<T*>(origin - GetOptHeader()->ImageBase + reinterpret_cast<uintptr_t>(hmod));
+			return reinterpret_cast<T*>(origin - ModuleInformation().ImageBase() + reinterpret_cast<uintptr_t>(hmod));
 		}
 
 		template<typename T = void>
@@ -521,7 +513,7 @@ namespace hook::library {
 
 		template<typename T = uintptr_t>
 		T RlocBased(uintptr_t origin) const {
-			return (T)(origin - GetOptHeader()->ImageBase);
+			return (T)(origin - ModuleInformation().ImageBase());
 		}
 		template<typename T = uintptr_t, typename T2 = void>
 		T RlocBased(T2* origin) const {
@@ -550,32 +542,16 @@ namespace hook::library {
 		 * @param to destination
 		 */
 		void Create(void* base, void* to) {
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-
 			this->base = origin = base;
 			this->to = to;
-
-			DetourAttach(&(PVOID&)this->base, to);
-
-			LONG error = DetourTransactionCommit();
-
-			if (error != NO_ERROR) {
-				throw std::runtime_error(utils::va(actssec("Can't commit detour %p -> %p"), base, to));
-			}
+			platform::CreateDetour(&this->base, this->to);
 		}
 
+		/*
+		 * Clear the detour
+		 */
 		void Clear() {
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-
-			DetourDetach(&(PVOID&)this->base, this->to);
-
-			LONG error = DetourTransactionCommit();
-
-			if (error != NO_ERROR) {
-				throw std::runtime_error(utils::va(actssec("Can't commit clear detour %p -> %p"), base));
-			}
+			platform::ClearDetour(this->base, this->to);
 
 			origin = base = to = nullptr;
 		}

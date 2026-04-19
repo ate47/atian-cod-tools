@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     // load acts api data
     int r{ InitActsAPI(false, &argc, (const char***)&argv, core::actsinfo::BUILD_VERSION_ID) };
     if (r) {
-		MessageBoxA(NULL, "Failed to initialize ACTS API! Check the acts-ui.logs for more information.", "ACTS API Error", MB_OK | MB_ICONERROR);
+        platform::InfoMessageBox("ACTS API Error", "Failed to initialize ACTS API! Check the acts-ui.logs for more information.", false, true);
         return r;
     }
     if (core::logs::getlevel() <= core::logs::LVL_TRACE) {
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
         argv[0],
         "--platformpluginpath", workDirStr.data()
     };
-    int argc2 = ARRAYSIZE(argv2);
+    int argc2 = ACTS_ARRAYSIZE(argv2);
     QApplication app{ argc2, (char**)argv2};
 
     MainWindow window;

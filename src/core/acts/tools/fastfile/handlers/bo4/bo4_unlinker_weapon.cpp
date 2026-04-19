@@ -74,9 +74,9 @@ namespace fastfile::handlers::bo4::weapon {
 				json.WriteFieldValueXHash("weapon890", asset->weapon890);
 				json.WriteFieldValueXHash("streamkey", asset->streamkey);
 
-				json.WriteFieldValueScrStringArray("scrstr_8c8", ARRAYSIZE(*asset->unk8c8), *asset->unk8c8);
-				json.WriteFieldValueScrStringArray("scrstr_8d0", ARRAYSIZE(*asset->unk8d0), *asset->unk8d0);
-				json.WriteFieldValueScrStringArray("scrstr_8d8", ARRAYSIZE(*asset->unk8d8), *asset->unk8d8);
+				json.WriteFieldValueScrStringArray("scrstr_8c8", ACTS_ARRAYSIZE(*asset->unk8c8), *asset->unk8c8);
+				json.WriteFieldValueScrStringArray("scrstr_8d0", ACTS_ARRAYSIZE(*asset->unk8d0), *asset->unk8d0);
+				json.WriteFieldValueScrStringArray("scrstr_8d8", ACTS_ARRAYSIZE(*asset->unk8d8), *asset->unk8d8);
 
 				json.WriteFieldValueScrString("worldModelTagRight", asset->worldModelTagRight);
 				json.WriteFieldValueScrString("worldModelTagLeft", asset->worldModelTagLeft);
@@ -119,7 +119,7 @@ namespace fastfile::handlers::bo4::weapon {
 				if (asset->accuracyGraphKnotCount[0] || asset->accuracyGraphKnotCount[1]) {
 					json.WriteFieldNameString("accuracyGraphKnot");
 					json.BeginArray();
-					for (size_t i = 0; i < ARRAYSIZE(asset->accuracyGraphKnotCount); i++) {
+					for (size_t i = 0; i < ACTS_ARRAYSIZE(asset->accuracyGraphKnotCount); i++) {
 						int32_t count{ asset->accuracyGraphKnotCount[i] };
 
 						json.BeginArray();
@@ -267,8 +267,8 @@ namespace fastfile::handlers::bo4::weapon {
 				json.WriteFieldValueXAsset("cacWeaponXCam", ASSET_TYPE_XCAM, asset->cacWeaponXCam);
 				json.WriteFieldValueXAsset("cacAttachmentsXCam", ASSET_TYPE_XCAM, asset->cacAttachmentsXCam);
 				json.WriteFieldValueXAsset("weaponIconXCam", ASSET_TYPE_XCAM, asset->weaponIconXCam);
-				json.WriteFieldValueXAssetArray("attachments", ASSET_TYPE_ATTACHMENT, ARRAYSIZE(*asset->attachments), asset->attachments);
-				json.WriteFieldValueXAssetArray("attachmentUniques", ASSET_TYPE_ATTACHMENT_UNIQUE, ARRAYSIZE(*asset->attachmentUniques), asset->attachmentUniques);
+				json.WriteFieldValueXAssetArray("attachments", ASSET_TYPE_ATTACHMENT, ACTS_ARRAYSIZE(*asset->attachments), asset->attachments);
+				json.WriteFieldValueXAssetArray("attachmentUniques", ASSET_TYPE_ATTACHMENT_UNIQUE, ACTS_ARRAYSIZE(*asset->attachmentUniques), asset->attachmentUniques);
 				json.WriteFieldValueXAsset("xanim_a68", ASSET_TYPE_XANIM, asset->unka68);
 				json.WriteFieldValueXAsset("sharedWeaponSounds", ASSET_TYPE_SHAREDWEAPONSOUNDS, asset->sharedWeaponSounds);
 				json.WriteFieldValueXAsset("ballisticDesc", ASSET_TYPE_BALLISTICDESC, asset->ballisticDesc);
@@ -420,7 +420,7 @@ namespace fastfile::handlers::bo4::weapon {
 				json.WriteFieldValueXAsset("fx_f08", ASSET_TYPE_FX, asset->unkf08);
 				json.WriteFieldValueXAsset("fx_f10", ASSET_TYPE_FX, asset->unkf10);
 				json.WriteFieldValueXAsset("fx_f18", ASSET_TYPE_FX, asset->unkf18);
-				json.WriteFieldValueXAssetArray("underwaterExplosionSurfaceFX", ASSET_TYPE_FX, ARRAYSIZE(asset->underwaterExplosionSurfaceFX), asset->underwaterExplosionSurfaceFX);
+				json.WriteFieldValueXAssetArray("underwaterExplosionSurfaceFX", ASSET_TYPE_FX, ACTS_ARRAYSIZE(asset->underwaterExplosionSurfaceFX), asset->underwaterExplosionSurfaceFX);
 				json.WriteFieldValueXAsset("fx_f38", ASSET_TYPE_FX, asset->unkf38);
 				json.WriteFieldValueXAsset("fx_f40", ASSET_TYPE_FX, asset->unkf40);
 				json.WriteFieldValueXAsset("fx_f48", ASSET_TYPE_FX, asset->unkf48);
@@ -438,8 +438,8 @@ namespace fastfile::handlers::bo4::weapon {
 				json.WriteFieldValueXAsset("worldPersistentEffectSet", ASSET_TYPE_TAGFX, asset->worldPersistentEffectSet);
 				json.WriteFieldValueXAsset("enemyDeathFxSet", ASSET_TYPE_TAGFX, asset->enemyDeathFxSet);
 				json.WriteFieldValueXAsset("tagFXSet930", ASSET_TYPE_TAGFX, asset->tagFXSet930);
-				json.WriteFieldValueXAssetArray("tagFXSetFirstPerson", ASSET_TYPE_TAGFX, ARRAYSIZE(asset->tagFXSetFirstPerson), asset->tagFXSetFirstPerson);
-				json.WriteFieldValueXAssetArray("tagFXSetThirdPerson", ASSET_TYPE_TAGFX, ARRAYSIZE(asset->tagFXSetThirdPerson), asset->tagFXSetThirdPerson);
+				json.WriteFieldValueXAssetArray("tagFXSetFirstPerson", ASSET_TYPE_TAGFX, ACTS_ARRAYSIZE(asset->tagFXSetFirstPerson), asset->tagFXSetFirstPerson);
+				json.WriteFieldValueXAssetArray("tagFXSetThirdPerson", ASSET_TYPE_TAGFX, ACTS_ARRAYSIZE(asset->tagFXSetThirdPerson), asset->tagFXSetThirdPerson);
 				json.WriteFieldValueXAsset(0x96850284, ASSET_TYPE_TAGFX, asset->var_96850284);
 				json.WriteFieldValueXAsset(0x26f68e75, ASSET_TYPE_TAGFX, asset->var_26f68e75);
 

@@ -5,7 +5,7 @@
 namespace hook::module_mapper {
 	class Module {
 		bool freeOnExit{};
-		hook::library::Library lib{ (HMODULE)0 };
+		hook::library::Library lib{ (void*)0 };
 		hook::scan_container::ScanContainer scanContainer{ true };
 		hook::library::ScanLogger logger{};
 	public:

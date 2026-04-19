@@ -315,7 +315,7 @@ namespace {
 		}
 
 		LOG_INFO("Loaded");
-		LOG_INFO("base: {:x}", mod->GetOptHeader()->ImageBase);
+		LOG_INFO("base: {:x}", mod->ModuleInformation().ImageBase());
 
 		// Dump bo6 pool names
 		// I know it not that, but it's fine idc

@@ -29,7 +29,7 @@ namespace {
 		{"bo6", "Black Ops 6"},
 		{"bo7", "Black Ops 7"},
 	};
-	static_assert(ARRAYSIZE(platformNames) == PLATFORM_COUNT && "platform(s) added without names");
+	static_assert(ACTS_ARRAYSIZE(platformNames) == PLATFORM_COUNT && "platform(s) added without names");
 }
 namespace tool::gsc::opcode {
 	VMId VMOf(const char* name) {

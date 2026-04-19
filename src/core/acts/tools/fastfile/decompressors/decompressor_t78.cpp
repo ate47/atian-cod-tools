@@ -154,7 +154,7 @@ namespace {
 				rsaKeyName = "bo3dev";
 				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
 				noStreamInfo = true;
-				ctx.blocksCount = ARRAYSIZE(XFileBO3_x132::blockSize);
+				ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO3_x132::blockSize);
 				break;
 			case 0x1fb: // Black ops 3 beta
 			case 0x251: // Black ops 3
@@ -166,7 +166,7 @@ namespace {
 				blockSizeLoc = offsetof(XFileBO3, blockSize);
 				rsaKeyName = "bo3";
 				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
-				ctx.blocksCount = ARRAYSIZE(XFileBO3::blockSize);
+				ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO3::blockSize);
 				break;
 			case 0x265: // Black ops 4 Dev
 				fastFileSize = sizeof(XFileBO4_Dev);
@@ -177,7 +177,7 @@ namespace {
 				blockSizeLoc = offsetof(XFileBO4_Dev, blockSize);
 				rsaKeyName = "bo4dev";
 				keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
-				ctx.blocksCount = ARRAYSIZE(XFileBO4_Dev::blockSize);
+				ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO4_Dev::blockSize);
 				break;
 				fastFileSize = 0x840;
 				xhashType = true;
@@ -195,7 +195,7 @@ namespace {
 				decompressedSizeLoc = offsetof(XFileBO4_0x27F, size);
 				fastfileNameLoc = offsetof(XFileBO4_0x27F, fastfileName);
 				blockSizeLoc = offsetof(XFileBO4_0x27F, blockSize);
-				ctx.blocksCount = ARRAYSIZE(XFileBO4_0x27F::blockSize);
+				ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO4_0x27F::blockSize);
 				signLoc = offsetof(XFileBO4_0x27F, signature);
 				aesIVLoc = offsetof(XFileBO4_0x27F, aesIV);
 				rsaKeyName = "bo4_old";
@@ -207,7 +207,7 @@ namespace {
 				decompressedSizeLoc = offsetof(XFileBO4_0x27F, size);
 				fastfileNameLoc = offsetof(XFileBO4_0x27F, fastfileName);
 				blockSizeLoc = offsetof(XFileBO4_0x27F, blockSize);
-				ctx.blocksCount = ARRAYSIZE(XFileBO4_0x27F::blockSize);
+				ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO4_0x27F::blockSize);
 				signLoc = offsetof(XFileBO4_0x27F, signature);
 				aesIVLoc = offsetof(XFileBO4_0x27F, aesIV);
 				rsaKeyName = "bo4";

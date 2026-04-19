@@ -35,7 +35,7 @@ namespace deps::oodle {
 
     bool Oodle::LoadOodle(const char* libname) {
         FreeOodle();
-        oodle.SetModule(libname, false, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+        oodle.SetModule(libname, false, platform::LSF_SEARCH_DEFAULT_DIRS);
 
         if (!oodle) {
             LOG_ERROR("Can't load oodle lib {}", libname);
@@ -70,7 +70,7 @@ namespace deps::oodle {
 
         for (int i = 0; i < 10; i++) {
             std::string libname{ std::format(OO2CORE_PATTERN, i) };
-            oodle.SetModule(libname, false, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+            oodle.SetModule(libname, false, platform::LSF_SEARCH_DEFAULT_DIRS);
 
             if (!oodle) continue;
 

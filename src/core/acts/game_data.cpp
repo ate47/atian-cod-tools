@@ -139,7 +139,7 @@ namespace acts::game_data {
 		res.single = cfg.GetBool(std::format("{}.{}.single", parent, id), false);
 		res.offset = (size_t)cfg.GetInteger(std::format("{}.{}.offset", parent, id), 0);
 		res.postOffset = cfg.GetInteger(std::format("{}.{}.postOffset", parent, id), 0);
-		res.type = cfg.GetEnumVal<ScanType>(std::format("{}.{}.type", parent, id), scanTypeInfo, ARRAYSIZE(scanTypeInfo), SCT_UNKNOWN);
+		res.type = cfg.GetEnumVal<ScanType>(std::format("{}.{}.type", parent, id), scanTypeInfo, ACTS_ARRAYSIZE(scanTypeInfo), SCT_UNKNOWN);
 
 
 		if (res.path.empty()) {
@@ -233,7 +233,7 @@ namespace acts::game_data {
 					continue;
 				}
 
-				CTypeType type{ core::config::ParseEnumValue<CTypeType>(typeIt->value.GetString(), cTypeInfo, ARRAYSIZE(cTypeInfo)) };
+				CTypeType type{ core::config::ParseEnumValue<CTypeType>(typeIt->value.GetString(), cTypeInfo, ACTS_ARRAYSIZE(cTypeInfo)) };
 
 				if (!type) {
 					LOG_WARNING("Invalid ctype in {}: bad type for {}", dirname, name);

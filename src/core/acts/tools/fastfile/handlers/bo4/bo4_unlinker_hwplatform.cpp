@@ -48,7 +48,7 @@ namespace {
 			json.WriteFieldValueNumber("maxHeight", asset->maxHeight);
 			json.WriteFieldNameString("info");
 			json.BeginArray();
-			for (size_t i = 0; i < ARRAYSIZE(asset->unk10); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(asset->unk10); i++) {
 				HWPlatformUnk* sub{ asset->unk10 + i };
 				json.BeginArray();
 				for (size_t j = 0; j < sub->count; j++) {

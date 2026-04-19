@@ -667,7 +667,7 @@ namespace {
 		{
 			constexpr size_t len = 500;
 			auto fbuff = std::make_unique<tool::dump::T8BuiltInFunc[]>(len);
-			for (size_t i = 0; i < ARRAYSIZE(tool::dump::functionPool); i++) {
+			for (size_t i = 0; i < ACTS_ARRAYSIZE(tool::dump::functionPool); i++) {
 				const auto& pool = tool::dump::functionPool[i];
 				if (len < pool.size || !proc.ReadMemory(&fbuff[0], proc[pool.offset], sizeof(fbuff[0]) * pool.size)) {
 					assert(len >= pool.size && "pool too big");

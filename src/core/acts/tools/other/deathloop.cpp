@@ -23,7 +23,7 @@ namespace {
 		"rsc_deps"
 	};
 	IdxType GetIdxType(const char* cfg) {
-		for (size_t i = 0; i < ARRAYSIZE(IdxTypeNames); i++) {
+		for (size_t i = 0; i < ACTS_ARRAYSIZE(IdxTypeNames); i++) {
 			if (!_strcmpi(cfg, IdxTypeNames[i])) {
 				return (IdxType)i;
 			}
