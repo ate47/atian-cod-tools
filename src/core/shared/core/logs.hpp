@@ -102,7 +102,12 @@ namespace core::logs {
 #define LOG_GET_LOG_LINE __LINE__
 #endif
 #define HAS_LOG_LEVEL(LEVEL) (core::logs::getlevel() <= LEVEL)
-#define LOG_LVL(LEVEL, msg) if (HAS_LOG_LEVEL(LEVEL)) { constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA; core::logs::log(LEVEL, ___ff.data(), LOG_GET_LOG_LINE, msg); }
+#define LOG_LVL(LEVEL, msg) do { \
+	if (HAS_LOG_LEVEL(LEVEL)) { \
+		constexpr auto ___ff = LOG_GET_LOG_REF_STR_DATA; \
+		core::logs::log(LEVEL, ___ff.data(), LOG_GET_LOG_LINE, msg); \
+	} \
+} while(0)
 #define LOG_LVLF(LEVEL, ...) LOG_LVL(LEVEL, std::format(__VA_ARGS__))
 #ifdef ACTS_LOGS_NO_DEBUG_LOGS
 #define LOG_TRACE(...) 

@@ -837,7 +837,7 @@ throw std::runtime_error("detours not available for this build");
 
 	class WinModuleInformation : public ModuleInformation {
 	public:
-		HMODULE hmod;
+		HMODULE hmod{};
 		WinModuleInformation() {}
 		~WinModuleInformation() override {}
 

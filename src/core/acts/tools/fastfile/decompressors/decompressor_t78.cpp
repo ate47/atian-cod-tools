@@ -328,7 +328,7 @@ namespace {
 						rsa_free(&rsakey);
 					}
 					else {
-						LOG_WARNING("Missing rsa key for ff {}/{}", ctx.ffname, rsaKeyName)
+						LOG_WARNING("Missing rsa key for ff {}/{}", ctx.ffname, rsaKeyName);
 					}
 				}
 			}

@@ -1,6 +1,6 @@
 #include <includes.hpp>
-#include "tools_ui.hpp"
-#include "tools_nui.hpp"
+#include <tools/tools_ui.hpp>
+#include <tools/tools_nui.hpp>
 #include <core/actsinfo.hpp>
 
 namespace tool::ui {

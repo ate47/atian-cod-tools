@@ -47,7 +47,7 @@ namespace systems::lua {
 				if (it != luaHooks.end()) {
 					for (LuaHook& h : it->second) {
 						const char* str{ utils::va("x64:%llx.lua", h.hash) };
-						LOG_TRACE("hook luafile {} -> {}/({})", filename, h.filename, str)
+						LOG_TRACE("hook luafile {} -> {}/({})", filename, h.filename, str);
 						if (!bo4::Lua_CoD_LoadLuaFile(state, str)) {
 							LOG_ERROR("Error when hooking {}->{}", filename, h.filename);
 						}

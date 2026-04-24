@@ -1451,10 +1451,10 @@ namespace fastfile {
 		std::filesystem::path exePath{ szFileName };
 		exePath = exePath.filename();
 		if (exePath.string() != CORDYCEP_EXE) {
-			LOG_WARNING("** WARNING **********************")
+			LOG_WARNING("** WARNING **********************");
 			LOG_WARNING("Invalid exe name: {}", exePath.string(), CORDYCEP_EXE);
 			LOG_WARNING("please use {} to run this tool", CORDYCEP_EXE);
-			LOG_WARNING("*********************************")
+			LOG_WARNING("*********************************");
 		}
 
 		LOG_WARNING(

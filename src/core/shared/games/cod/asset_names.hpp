@@ -95,7 +95,7 @@ namespace games::cod::asset_names {
 						count++;
 					}
 
-					LOG_TRACE("found {}", count)
+					LOG_TRACE("found {}", count);
 					if (count <= MIN_ASSET_COUNT) {
 						LOG_TRACE("Not enough candidates: {}", count);
 						continue;
