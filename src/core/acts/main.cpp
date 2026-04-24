@@ -312,9 +312,13 @@ namespace {
 	}
 }
 
+#ifdef ACTS_COMMON_DLL
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
 	return TRUE; // ignore
 }
+
+#endif
 
 void* GetActsSharedConfig() {
 	return core::shared_cfg::GetSharedConfigPtr();
