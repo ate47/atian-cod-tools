@@ -10,7 +10,10 @@
 #include <future>
 #include <BS_thread_pool.hpp>
 #include <actslib/profiler.hpp>
+#include <actscli.hpp>
 #include <xxhash.h>
+#include <deps/scobalula_wni.hpp>
+#include <deps/dzporter_cdb.hpp>
 
 namespace tool::hash::scanner {
 
@@ -130,7 +133,7 @@ namespace tool::hash::scanner {
 			return tool::OK;
 		}
 
-		int hashscan(Process& proc, int argc, const char* argv[]) {
+		int hashscan(int argc, const char* argv[]) {
 			if (argc < 4) {
 				return tool::BAD_USAGE;
 			}
@@ -160,7 +163,7 @@ namespace tool::hash::scanner {
 			return tool::OK;
 		}
 
-		int scanlookup(Process& proc, int argc, const char* argv[]) {
+		int scanlookup(int argc, const char* argv[]) {
 			if (argc < 4) {
 				return tool::BAD_USAGE;
 			}
@@ -215,21 +218,91 @@ namespace tool::hash::scanner {
 		};
 
 
-		class HashData {
+		class AbstractHashData {
 		public:
 			std::ofstream output;
+			uint64_t funcs{};
+			size_t found{};
+
+
+			AbstractHashData(const char* file, const char* funcs) : output(file, std::ios::app) {
+				ReadFuncs(funcs);
+			}
+			~AbstractHashData() {
+				output.close();
+			}
+
+			constexpr bool UseFunc(VmHashes hash) const {
+				return (funcs & hash) != 0;
+			}
+
+			void ReadFuncs(const char* n) {
+				if (!_strcmpi(n, "bo4scr")) {
+					funcs = HASH_BLACKOPS4SCR;
+				}
+				else if (!_strcmpi(n, "bo4")) {
+					funcs = HASH_BLACKOPS4;
+				}
+				else if (!_strcmpi(n, "bo6")) {
+					funcs = HASH_BLACKOPS6;
+				}
+				else if (!_strcmpi(n, "bo6sp")) {
+					funcs = HASH_BLACKOPS6_SP;
+				}
+				else if (!_strcmpi(n, "bo6scr")) {
+					funcs = HASH_SCR_T10;
+				}
+				else if (!_strcmpi(n, "bo6spscr")) {
+					funcs = HASH_SCR_T10_SP;
+				}
+				else if (!_strcmpi(n, "iwscr")) {
+					funcs = HASH_SCR_JUP;
+				}
+				else if (!_strcmpi(n, "iwres")) {
+					funcs = HASH_RES;
+				}
+				else if (!_strcmpi(n, "iwdvar")) {
+					funcs = HASH_DVAR;
+				}
+				else if (!_strcmpi(n, "bo6all")) {
+					funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
+				}
+				else if (!_strcmpi(n, "iw")) {
+					funcs = HASH_IW;
+				}
+				else if (!_strcmpi(n, "FNVA")) {
+					funcs = HASH_FNVA;
+				}
+				else if (!_strcmpi(n, "FNVA32")) {
+					funcs = HASH_FNVA32;
+				}
+				else if (!_strcmpi(n, "prime")) {
+					funcs = HASH_PRIME;
+				}
+				else if (!_strcmpi(n, "all")) {
+					funcs = HASH_ALL;
+				}
+				else if (!_strcmpi(n, "all32")) {
+					funcs = HASH_ALL32;
+				}
+				else {
+					LOG_WARNING("Invalid name {}, use all hashes", n);
+					funcs = HASH_ALL;
+				}
+			}
+		};
+
+
+		class HashData : public AbstractHashData {
+		public:
 			std::unordered_set<uint64_t> hashes{};
 			std::mutex mtx{};
-			uint64_t funcs{};
 			const char* prefix{};
 			const char* suffix{};
 			const char* dict{ hash::text_expand::cdict };
 			size_t dictSize{ sizeof(hash::text_expand::cdict) - 1};
 
-			HashData(const char* file) : output(file, std::ios::app) {}
-			~HashData() {
-				output.close();
-			}
+			using AbstractHashData::AbstractHashData;
 
 			inline void TestHash(uint64_t v, const char* str) {
 				auto it = hashes.find(v & hashutils::MASK60);
@@ -237,20 +310,63 @@ namespace tool::hash::scanner {
 					std::lock_guard lg{ mtx };
 					output << std::hex << v << "," << (prefix ? prefix : "") << str << (suffix ? suffix : "") << std::endl;
 					LOG_INFO("{:x},{}{}{}", v, (prefix ? prefix : ""), str, (suffix ? suffix : ""));
+					found++;
 				}
 			}
-			constexpr bool UseFunc(VmHashes hash) {
-				return (funcs & hash) != 0;
+
+			inline void TestHashes(const char* str) {
+				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(str), str);
+				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(str), str);
+				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(str), str);
+				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(str), str);
+				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSP(str), str);
+				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89Scr(str), str);
+				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(str), str);
+				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(str), str);
+				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(str), str);
+			}
+
+			inline void TestHashes(const char* str, const char* prefix, const char* suffix) {
+				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(suffix, ::hash::Hash64A(str, ::hash::Hash64A(prefix))), str);
+				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(suffix, ::hash::HashX32(str, ::hash::HashX32(prefix))), str);
+				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(suffix, ::hash::HashPrime(str, ::hash::HashPrime(prefix))), str);
+				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(suffix, ::hash::HashT10Scr(str, ::hash::HashT10Scr(prefix))), str);
+				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix)))), str);
+				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(suffix, ::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(prefix)))), str);
+				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(suffix, ::hash::HashJupScr(str, ::hash::HashJupScr(prefix))), str);
+				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(suffix, ::hash::HashIWAsset(str, ::hash::HashIWAsset(prefix))), str);
+				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(suffix, ::hash::HashIWDVar(str, ::hash::HashIWDVar(prefix))), str);
+			}
+			inline void TestHashesPref(const char* str, const char* prefix) {
+				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(str, ::hash::Hash64A(prefix)), str);
+				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(str, ::hash::HashX32(prefix)), str);
+				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(str, ::hash::HashPrime(prefix)), str);
+				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(str, ::hash::HashT10Scr(prefix)), str);
+				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix))), str);
+				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(prefix))), str);
+				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(str, ::hash::HashJupScr(prefix)), str);
+				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(str, ::hash::HashIWAsset(prefix)), str);
+				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(str, ::hash::HashIWDVar(prefix)), str);
+			}
+			inline void TestHashesSuff(const char* str, const char* suffix) {
+				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(suffix, ::hash::Hash64A(str)), str);
+				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(suffix, ::hash::HashX32(str)), str);
+				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(suffix, ::hash::HashPrime(str)), str);
+				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(suffix, ::hash::HashT10Scr(str)), str);
+				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str))), str);
+				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(suffix, ::hash::HashT89ScrPre(str))), str);
+				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(suffix, ::hash::HashJupScr(str)), str);
+				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(suffix, ::hash::HashIWAsset(str)), str);
+				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(suffix, ::hash::HashIWDVar(str)), str);
 			}
 		};
 
-		int hashbrute(Process& proc, int argc, const char* argv[]) {
+		int hashbrute(int argc, const char* argv[]) {
 			if (argc < 5) {
 				return tool::BAD_USAGE;
 			}
 
-			HashData data{ argv[3] };
-			const char* n{ argv[4] };
+			HashData data{ argv[3], argv[4] };
 			if (argc >= 6 && argv[5][0]) {
 				data.prefix = argv[5];
 				LOG_DEBUG("prefix: {}", data.prefix);
@@ -263,50 +379,6 @@ namespace tool::hash::scanner {
 				data.dict = argv[7];
 				data.dictSize = std::strlen(data.dict);
 				LOG_DEBUG("dict: {}", data.dict);
-			}
-
-			if (!_strcmpi(n, "bo4")) {
-				data.funcs = HASH_BLACKOPS4;
-			}
-			else if (!_strcmpi(n, "bo4scr")) {
-				data.funcs = HASH_BLACKOPS4SCR;
-			}
-			else if (!_strcmpi(n, "bo6")) {
-				data.funcs = HASH_BLACKOPS6;
-			}
-			else if (!_strcmpi(n, "bo6sp")) {
-				data.funcs = HASH_BLACKOPS6_SP;
-			}
-			else if (!_strcmpi(n, "bo6all")) {
-				data.funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
-			}
-			else if (!_strcmpi(n, "iw")) {
-				data.funcs = HASH_IW;
-			}
-			else if (!_strcmpi(n, "iwres")) {
-				data.funcs = HASH_RES;
-			}
-			else if (!_strcmpi(n, "iwdvar")) {
-				data.funcs = HASH_DVAR;
-			}
-			else if (!_strcmpi(n, "fnva")) {
-				data.funcs = HASH_FNVA;
-			}
-			else if (!_strcmpi(n, "fnva32")) {
-				data.funcs = HASH_FNVA32;
-			}
-			else if (!_strcmpi(n, "prime")) {
-				data.funcs = HASH_PRIME;
-			}
-			else if (!_strcmpi(n, "all")) {
-				data.funcs = HASH_ALL;
-			}
-			else if (!_strcmpi(n, "all32")) {
-				data.funcs = HASH_ALL32;
-			}
-			else {
-				LOG_WARNING("Invalid name {}, use all hashes", n);
-				data.funcs = HASH_ALL;
 			}
 
 			LOG_TRACE("Load file(s)...");
@@ -324,84 +396,43 @@ namespace tool::hash::scanner {
 			LOG_INFO("Find {} hash(es)", data.hashes.size());
 			if (!data.prefix && !data.suffix) {
 				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
-					if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(str), str);
-					if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(str), str);
-					if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(str), str);
-					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(str), str);
-					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSP(str), str);
-					if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89Scr(str), str);
-					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(str), str);
-					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(str), str);
-					if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(str), str);
+					data->TestHashes(str);
 				}, &data, data.dict, data.dictSize);
 			}
 			else if (data.prefix) {
 				if (data.suffix) {
 					// prefix + suffix
 					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
-						if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(data->suffix, ::hash::Hash64A(str, ::hash::Hash64A(data->prefix))), str);
-						if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(data->suffix, ::hash::HashX32(str, ::hash::HashX32(data->prefix))), str);
-						if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(data->suffix, ::hash::HashPrime(str, ::hash::HashPrime(data->prefix))), str);
-						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(data->suffix, ::hash::HashT10Scr(str, ::hash::HashT10Scr(data->prefix))), str);
-						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(data->suffix, ::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(data->prefix)))), str);
-						if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(data->suffix, ::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(data->prefix)))), str);
-						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(data->suffix, ::hash::HashJupScr(str, ::hash::HashJupScr(data->prefix))), str);
-						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(data->suffix, ::hash::HashIWAsset(str, ::hash::HashIWAsset(data->prefix))), str);
-						if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(data->suffix, ::hash::HashIWDVar(str, ::hash::HashIWDVar(data->prefix))), str);
+						data->TestHashes(str, data->prefix, data->suffix);
 					}, &data, data.dict, data.dictSize);
 				}
 				else {
 					// prefix only
 					tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
-						if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(str, ::hash::Hash64A(data->prefix)), str);
-						if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(str, ::hash::HashX32(data->prefix)), str);
-						if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(str, ::hash::HashPrime(data->prefix)), str);
-						if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(str, ::hash::HashT10Scr(data->prefix)), str);
-						if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(data->prefix))), str);
-						if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(data->prefix))), str);
-						if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(str, ::hash::HashJupScr(data->prefix)), str);
-						if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(str, ::hash::HashIWAsset(data->prefix)), str);
-						if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(str, ::hash::HashIWDVar(data->prefix)), str);
+						data->TestHashesPref(str, data->prefix);
 					}, &data, data.dict, data.dictSize);
 				}
 			}
 			else {
 				// suffix only
 				tool::hash::text_expand::GetDynamicAsync<HashData>(~0, [](const char* str, HashData* data) {
-					if (data->UseFunc(HASH_FNVA)) data->TestHash(::hash::Hash64A(data->suffix, ::hash::Hash64A(str)), str);
-					if (data->UseFunc(HASH_FNVA32)) data->TestHash(::hash::HashX32(data->suffix, ::hash::HashX32(str)), str);
-					if (data->UseFunc(HASH_PRIME)) data->TestHash(::hash::HashPrime(data->suffix, ::hash::HashPrime(str)), str);
-					if (data->UseFunc(HASH_SCR_T10)) data->TestHash(::hash::HashT10Scr(data->suffix, ::hash::HashT10Scr(str)), str);
-					if (data->UseFunc(HASH_SCR_T10_SP)) data->TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(data->suffix, ::hash::HashT10ScrSPPre(str))), str);
-					if (data->UseFunc(HASH_SCR_T89)) data->TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(data->suffix, ::hash::HashT89ScrPre(str))), str);
-					if (data->UseFunc(HASH_SCR_JUP)) data->TestHash(::hash::HashJupScr(data->suffix, ::hash::HashJupScr(str)), str);
-					if (data->UseFunc(HASH_RES)) data->TestHash(::hash::HashIWAsset(data->suffix, ::hash::HashIWAsset(str)), str);
-					if (data->UseFunc(HASH_DVAR)) data->TestHash(::hash::HashIWDVar(data->suffix, ::hash::HashIWDVar(str)), str);
+					data->TestHashesSuff(str, data->suffix);
 				}, &data, data.dict, data.dictSize);
 			}
 
 			return tool::OK;
 		}
 
-		class HashDataDict {
+		class HashDataDict : public AbstractHashData {
 		public:
-			std::ofstream output;
 			std::unordered_set<uint64_t> hashes{};
 			std::unordered_set<uint64_t> done{};
 			std::mutex mtx{};
-			uint64_t funcs{};
 			const char* prefix{};
 			const char* suffix{};
 			const char* mid{ "_" };
 
-			HashDataDict(const char* file) : output(file, std::ios::app) {}
-			~HashDataDict() {
-				output.close();
-			}
-
-			constexpr bool UseFunc(VmHashes hash) {
-				return (funcs & hash) != 0;
-			}
+			using AbstractHashData::AbstractHashData;
 
 			template<typename Func, bool prefix, bool suffix, bool midc>
 			inline uint64_t HashMultiple(const char** str) {
@@ -451,6 +482,7 @@ namespace tool::hash::scanner {
 					std::lock_guard lg{ mtx };
 					if (done.contains(v)) return;
 					done.insert(v);
+					found++;
 					std::ostringstream oss{};
 					if constexpr (prefix) {
 						oss << this->prefix;
@@ -504,13 +536,12 @@ namespace tool::hash::scanner {
 			}
 		};
 
-		int hashbrutedict(Process& proc, int argc, const char* argv[]) {
+		int hashbrutedict(int argc, const char* argv[]) {
 			if (argc < 6) {
 				return tool::BAD_USAGE;
 			}
 
-			HashDataDict data{ argv[3] };
-			const char* n{ argv[4] };
+			HashDataDict data{ argv[3], argv[4] };
 			std::ifstream dictIs{ argv[5] };
 
 			if (!dictIs) {
@@ -553,60 +584,6 @@ namespace tool::hash::scanner {
 				LOG_INFO("count: {}", count);
 			}
 
-			if (!_strcmpi(n, "bo4scr")) {
-				data.funcs = HASH_BLACKOPS4SCR;
-			}
-			else if (!_strcmpi(n, "bo4")) {
-				data.funcs = HASH_BLACKOPS4;
-			}
-			else if (!_strcmpi(n, "bo6")) {
-				data.funcs = HASH_BLACKOPS6;
-			}
-			else if (!_strcmpi(n, "bo6sp")) {
-				data.funcs = HASH_BLACKOPS6_SP;
-			}
-			else if (!_strcmpi(n, "bo6scr")) {
-				data.funcs = HASH_SCR_T10;
-			}
-			else if (!_strcmpi(n, "bo6spscr")) {
-				data.funcs = HASH_SCR_T10_SP;
-			}
-			else if (!_strcmpi(n, "iwscr")) {
-				data.funcs = HASH_SCR_JUP;
-			}
-			else if (!_strcmpi(n, "iwres")) {
-				data.funcs = HASH_RES;
-			}
-			else if (!_strcmpi(n, "iwdvar")) {
-				data.funcs = HASH_DVAR;
-			}
-			else if (!_strcmpi(n, "bo6all")) {
-				data.funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
-			}
-			else if (!_strcmpi(n, "iw")) {
-				data.funcs = HASH_IW;
-			}
-			else if (!_strcmpi(n, "FNVA")) {
-				data.funcs = HASH_FNVA;
-			}
-			else if (!_strcmpi(n, "FNVA32")) {
-				data.funcs = HASH_FNVA32;
-			}
-			else if (!_strcmpi(n, "prime")) {
-				data.funcs = HASH_PRIME;
-			}
-			else if (!_strcmpi(n, "all")) {
-				data.funcs = HASH_ALL;
-			}
-			else if (!_strcmpi(n, "all32")) {
-				data.funcs = HASH_ALL32;
-			}
-			else {
-				LOG_WARNING("Invalid name {}, use all hashes", n);
-				data.funcs = HASH_ALL;
-			}
-
-			LOG_TRACE("Load file(s) for {} (0x{:x})...", n, data.funcs);
 			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
 			LOG_TRACE("{} file(s) loaded...", files.size());
 
@@ -831,11 +808,135 @@ namespace tool::hash::scanner {
 			if (c) tool::nui::SaveNextConfig();
 		}
 
+		int hashbrutedb(int argc, const char* argv[]) {
+			if (tool::NotEnoughParam(argc, 3)) {
+				return tool::BAD_USAGE;
+			}
 
-		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", nullptr, hashscan);
-		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", nullptr, scanlookup);
-		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", nullptr, hashbrute);
-		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix) (maxlen)", "brute search hashes in a directory with dictionary", nullptr, hashbrutedict);
+			const char* dir{ argv[2] };
+			HashData data{ argv[3], argv[4] };
+
+			std::filesystem::path database;
+			if (tool::NotEnoughParam(argc, 4)) {
+				actscli::ActsOptions& opt{ actscli::options() };
+				if (opt.wniFiles) {
+					database = opt.wniFiles;
+				}
+				else {
+					database = utils::GetProgDir() / deps::scobalula::wni::packageIndexDir;
+				}
+			}
+			else {
+				database = argv[5];
+			}
+
+			std::vector<std::filesystem::path> files{ GetHashFiles(dir) };
+			ScanHashes(files, data.hashes);
+
+			core::memory_allocator::MemoryAllocator memory{};
+
+			std::unordered_map<uint64_t, const char*> strings{};
+
+			// read known files (todo: add acef option)
+			if (!deps::scobalula::wni::ReadWNIFiles(database, 
+					[&strings](uint64_t hash, const char* str) {
+						strings[hash] = str;
+					}, [&memory](size_t len) -> void* {
+						return memory.Alloc(len);
+					}
+				)
+				|| !deps::dzporter::cdb::ReadCDBFiles(database, 
+					[&strings](uint64_t hash, const char* str) {
+						strings[hash] = str;
+					}, [&memory](size_t len) -> void* {
+						return memory.Alloc(len);
+					}
+				)
+				) {
+				LOG_ERROR("Error reading database {}", database.string());
+				return tool::BASIC_ERROR;
+			}
+
+			LOG_INFO("Loaded {} known hashes from database", strings.size());
+
+
+			std::unordered_set<uint64_t> doneChecks{};
+			for (auto& [k, _str] : strings) {
+				// we are using a custom allocator, so the strings are write-safe
+				char* str{ (char*)_str };
+
+				// test that we don't already have it in another hash function
+				data.TestHashes(str);
+
+
+				std::string_view sv{ str };
+
+				if (sv.ends_with(".gsc") || sv.ends_with(".csc") || sv.ends_with(".gsh") || sv.ends_with(".lua")) {
+					str[sv.size() - 4] = '\0';
+
+					// remove extention
+					data.TestHashes(str);
+
+					size_t pos{ sv.find_last_of("/\\") };
+					if (pos != std::string::npos) {
+						// test filename only
+						data.TestHashes(str + pos + 1);
+					}
+
+
+					// we put back the extention for the next test
+					str[sv.size() - 4] = '.';
+				}
+
+				size_t pathEnd{ sv.find_last_of("/\\") };
+
+				char* filename{};
+				if (pathEnd != std::string::npos) {
+					// test filename only
+					data.TestHashes(str + pathEnd + 1);
+					filename = str + pathEnd + 1;
+				}
+				else {
+					// not a path
+					filename = str;
+				}
+
+				constexpr const char* dividers = "/\\._-:";
+
+
+				/*
+				size_t div;
+				char* tokenLastToken{ str };
+				while ((div = sv.find_first_of(dividers)) != std::string::npos) {
+					char old{ str[div] };
+					str[div] = '\0';
+
+					uint64_t h{ ::hash::Hash64((const char*)tokenLastToken) };
+					if (!doneChecks.contains(h)) {
+						doneChecks.insert(h);
+						data.TestHashes(tokenLastToken);
+					}
+
+					str[div] = old;
+					tokenLastToken = str + div + 1;
+
+				}
+				*/
+
+			}
+
+			
+			LOG_INFO("found {} hash(es)", data.found);
+
+			return tool::OK;
+		}
+
+
+		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", hashscan);
+		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", scanlookup);
+		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", hashbrute);
+		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix) (maxlen)", "brute search hashes in a directory with dictionary", hashbrutedict);
+		ADD_TOOL(hashbrutedb, "hash", " [dir] [output] (type) (database)", "brute search hashes in a directory with database", hashbrutedb);
 		ADD_TOOL(strscan, "hash", " [dir] [output]", "brute search hashes in a directory with dictionary", strscan);
 		ADD_TOOL_NUI(hashscanner, "Hash Brute Searcher", hashscanner);
 	}

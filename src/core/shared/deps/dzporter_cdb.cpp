@@ -8,7 +8,7 @@
 
 namespace deps::dzporter::cdb {
 	namespace {
-		void CDBRead(core::bytebuffer::FileReader& reader, std::function<void(uint64_t hash, const char* str)>& each, void* (*allocMemory)(size_t len), std::mutex* loadMutex) {
+		void CDBRead(core::bytebuffer::FileReader& reader, std::function<void(uint64_t hash, const char* str)>& each, std::function<void* (size_t len)> allocMemory, std::mutex* loadMutex) {
 
 			NameDatabaseHeader header;
 			reader.Read(&header, sizeof(header));
@@ -138,7 +138,7 @@ namespace deps::dzporter::cdb {
 	}
 
 
-	bool ReadCDBFile(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, void* (*allocMemory)(size_t len), std::mutex* loadMutex) {
+	bool ReadCDBFile(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, std::function<void* (size_t len)> allocMemory, std::mutex* loadMutex) {
 		std::vector<byte> buff{};
 		LOG_DEBUG("Read {}", path.string());
 
@@ -159,7 +159,7 @@ namespace deps::dzporter::cdb {
 		}
 	}
 
-	bool ReadCDBFiles(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, void* (*allocMemory)(size_t len), std::mutex* loadMutex) {
+	bool ReadCDBFiles(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, std::function<void* (size_t len)> allocMemory, std::mutex* loadMutex) {
 		std::vector<std::filesystem::path> paths{};
 
 		utils::GetFileRecurseExt(path, paths, ".cdb\0");

@@ -8,7 +8,7 @@
 
 namespace deps::scobalula::wni {
 	namespace {
-		void WniRead(core::bytebuffer::FileReader& reader, std::function<void(uint64_t hash, const char* str)>& each, void* (*allocMemory)(size_t len), std::mutex* loadMutex) {
+		void WniRead(core::bytebuffer::FileReader& reader, std::function<void(uint64_t hash, const char* str)>& each, std::function<void* (size_t len)> allocMemory, std::mutex* loadMutex) {
 			if (reader.Read<uint32_t>() != WNI_MAGIC) {
 				throw std::runtime_error("Bad file magic");
 			}
@@ -55,7 +55,7 @@ namespace deps::scobalula::wni {
 			}
 		}
 	}
-	bool ReadWNIFile(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, void* (*allocMemory)(size_t len), std::mutex* loadMutex) {
+	bool ReadWNIFile(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, std::function<void* (size_t len)> allocMemory, std::mutex* loadMutex) {
 		std::vector<byte> buff{};
 		LOG_DEBUG("Read {}", path.string());
 
@@ -75,7 +75,7 @@ namespace deps::scobalula::wni {
 		}
 	}
 
-	bool ReadWNIFiles(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, void*(*allocMemory)(size_t len), std::mutex* loadMutex) {
+	bool ReadWNIFiles(std::filesystem::path path, std::function<void(uint64_t hash, const char* str)> each, std::function<void* (size_t len)> allocMemory, std::mutex* loadMutex) {
 		std::vector<std::filesystem::path> paths{};
 
 		utils::GetFileRecurseExt(path, paths, ".wni\0");
