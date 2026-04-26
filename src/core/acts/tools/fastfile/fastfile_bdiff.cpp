@@ -1,6 +1,7 @@
 #include<includes.hpp>
 #include <tools/fastfile/fastfile_bdiff.hpp>
 #include <xxhash.h>
+#include <acts_api_impl/api_impl.hpp>
 #include <hook/error.hpp>
 
 namespace fastfile::bdiff {
@@ -545,7 +546,7 @@ namespace fastfile::bdiff {
 
     class DiffState {
         std::vector<byte> outwindow{};
-        byte tmpPatch[0x405];
+        byte tmpPatch[0x405]{};
         byte* destWindow{};
         size_t destWindowSize{};
         size_t patchWindowOffsetLast{};
@@ -657,6 +658,28 @@ namespace fastfile::bdiff {
     }
 }
 
-ACTS_COMMON_API bool ActsAPIFastFile_bdiff(ActsAPIFastFile_BDiffState* state, ActsAPIFastFile_sourceCallback* sourceDataCB, ActsAPIFastFile_diffCallback* patchDataCB, ActsAPIFastFile_destCallback* destDataCB) {
+bool ActsAPIFastFile_bdiff(ActsAPIFastFile_BDiffState* state, ActsAPIFastFile_sourceCallback* sourceDataCB, ActsAPIFastFile_diffCallback* patchDataCB, ActsAPIFastFile_destCallback* destDataCB) {
     return fastfile::bdiff::bdiff(state, sourceDataCB, patchDataCB, destDataCB);
+}
+
+ActsStatus ActsAPIFastFile_bdiffData(
+    uint8_t* sourceData, size_t sourceDataLen,
+    uint8_t* patchData, size_t patchDataLen,
+    ActsHandle outData, ActsAPIFastFile_BDiffType type,
+    size_t winSize
+) {
+    ACTS_API_ASSERT(sourceData || !sourceDataLen);
+    ACTS_API_ASSERT(patchData || !patchDataLen);
+	ACTS_API_ASSERT_VALID_HANDLE(outData);
+
+	core::bytebuffer::ByteBuffer sourceDataBuf{ sourceData, sourceDataLen };
+	core::bytebuffer::ByteBuffer patchDataBuf{ patchData, patchDataLen };
+    try {
+        ActsAPIImpl_VectorData(outData) = fastfile::bdiff::bdiff(&sourceDataBuf, &patchDataBuf, type, winSize);
+        return ACTS_STATUS_OK;
+	}
+	catch (std::runtime_error& e) {
+		ActsAPISetLastMessage("%s", e.what());
+        return ACTS_STATUS_ERROR;
+    }
 }

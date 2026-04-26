@@ -16,6 +16,7 @@
 #include <core/updater.hpp>
 #include <core/shared_cfg_data.hpp>
 #include <acts_api/version.h>
+#include <extension/acts_plugins.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -371,6 +372,8 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 		LOG_ERROR("Version mismatch: ACTS API version is {:x}, but ACTS common version is {:x}!", version, core::actsinfo::BUILD_VERSION_ID);
 		return -1;
 	}
+
+	acts::plugins::LoadPlugins();
 
 	if (argc && *argc && argv) {
 		if (ShouldHandleACTSOptions(*argc, *argv)) {

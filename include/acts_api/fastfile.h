@@ -73,4 +73,25 @@ ACTS_COMMON_API bool ActsAPIFastFile_bdiff(
     ActsAPIFastFile_destCallback* destDataCB
 );
 
+#define DEFAULT_BDIFF_WINDOW_SIZE 0x100000
+
+/*
+ * Perform a binary difference between a source and a diff to create a destination data.
+ * @param sourceData source data buffer
+ * @param sourceDataLen source data buffer length
+ * @param patchData patch data buffer
+ * @param patchDataLen patch data buffer length
+ * @param outData VectorData handle
+ * @param type used for checksum validation. Use BDT_UNKNOWN if unknown
+ * @param winsize window size, used to reduce reallocation. Use DEFAULT_BDIFF_WINDOW_SIZE if unknown
+ * @return true if the diff was applied successfully, false otherwise with state->error set to an error message.
+ */
+ACTS_COMMON_API ActsStatus ActsAPIFastFile_bdiffData(
+    uint8_t* sourceData, size_t sourceDataLen,
+    uint8_t* patchData, size_t patchDataLen,
+    ActsHandle outData, ActsAPIFastFile_BDiffType ACTS_DEFAULT(type, BDT_UNKNOWN),
+    size_t ACTS_DEFAULT(winsize, DEFAULT_BDIFF_WINDOW_SIZE)
+);
+
+
 #endif // __ACTS_API_FASTFILE_H__

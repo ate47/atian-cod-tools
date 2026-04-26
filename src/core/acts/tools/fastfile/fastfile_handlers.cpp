@@ -11,11 +11,20 @@
 #include <regex>
 #include <core/config.hpp>
 #include <cli/clicolor.hpp>
+#include <acts_api/event.h>
 #include <xxhash.h>
 
 
 namespace fastfile {
 	class AssetPool;
+
+	void RegisterFastfileData() {
+		static std::once_flag of{};
+		std::call_once(of, []() {
+			ActsAPIEvent_RegisterFastFileData data{};
+			ActsAPIEvent_TriggerEvent(EVT_REGISTER_FASTFILE, &data);
+		});
+	}
 
 	std::vector<FFDecompressor*>& GetDecompressors() {
 		static std::vector<FFDecompressor*> handlers{};
@@ -43,6 +52,7 @@ namespace fastfile {
 	}
 
 	FFDecompressor* FindDecompressor(const std::filesystem::path& path, core::bytebuffer::ByteBuffer& data) {
+		RegisterFastfileData();
 		for (FFDecompressor* handler : GetDecompressors()) {
 			if (handler->MatchFile(path, data)) {
 				return handler;
@@ -52,6 +62,7 @@ namespace fastfile {
 	}
 
 	FFHandler* FindHandler(const char* name) {
+		RegisterFastfileData();
 		for (FFHandler* handler : GetHandlers()) {
 			if (!_strcmpi(name, handler->name)) {
 				return handler;
@@ -61,6 +72,7 @@ namespace fastfile {
 	}
 
 	FFCompressor* FindCompressor(const char* name) {
+		RegisterFastfileData();
 		for (FFCompressor* handler : GetCompressors()) {
 			if (!_strcmpi(name, handler->name)) {
 				return handler;
@@ -70,6 +82,7 @@ namespace fastfile {
 	}
 
 	FFLinker* FindLinker(const char* name) {
+		RegisterFastfileData();
 		for (FFLinker* handler : GetLinkers()) {
 			if (!_strcmpi(name, handler->name)) {
 				return handler;

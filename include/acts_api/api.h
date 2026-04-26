@@ -95,4 +95,5 @@ do { \
 // assert that handle is a valid handle
 #define ACTS_API_ASSERT_VALID_HANDLE(handle) ACTS_API_ASSERT_MESSAGE(IS_ACTS_HANDLE_VALID(handle), #handle " isn't a valid handle")
 
+#include "structs.h"
 #endif // __ACTS_API_API_H__

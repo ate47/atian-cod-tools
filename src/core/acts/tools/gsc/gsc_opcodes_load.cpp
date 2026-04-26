@@ -6,6 +6,7 @@
 #include "tools/gsc/gsc_opcodes_load.hpp"
 #include "tools/gsc/gsc_vm.hpp"
 #include <core/bytebuffer.hpp>
+#include <acts_api/event.h>
 #include <extension/acts_extension.hpp>
 
 namespace tool::gsc::opcode {
@@ -73,6 +74,10 @@ namespace tool::gsc::opcode {
 				}
 				LOG_TRACE("loaded {} custom opcodes for {}", numLoaded, nfo->internalName);
 			}
+
+
+			ActsAPIEvent_RegisterGscData data{};
+			ActsAPIEvent_TriggerEvent(EVT_REGISTER_GSC, &data);
 		});
 	}
 

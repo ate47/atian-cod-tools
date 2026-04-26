@@ -2,7 +2,11 @@
 #include <acts_api_impl/api_impl.hpp>
 #include <acts_api/api.h>
 #include <acts_api/version.h>
+#include <acts_api/event.h>
+#include <acts_api/structs.h>
 #include <core/actsinfo.hpp>
+#include <core/eventhandler.hpp>
+
 
 namespace {
 	thread_local char actsApiLastMessageBuffer[0x400]{};
@@ -45,4 +49,32 @@ ActsStatus ActsAPIVersion_ValidateVersion2(uint32_t buildVersion) {
 	}
 	ActsAPISetLastMessage("Unmatching build 0x%x != 0x%x", ACTS_API_BUILD_VERSION_ID, buildVersion);
 	return  ACTS_STATUS_ERROR;
+}
+
+void ActsAPIEvent_RegisterCallback(ActsAPIEvent_Type type, ActsAPIEvent_Callback callback) {
+	core::eventhandler::RegisterEventCallback(type, callback);
+}
+
+void ActsAPIEvent_TriggerEvent(ActsAPIEvent_Type type, void* data) {
+	core::eventhandler::RunEvent(type, data);
+}
+
+ActsHandle ActsAPIStructs_VectorData() {
+	return ActsAPIImpl_New<std::vector<byte>>();
+}
+
+uint8_t* ActsAPIStructs_VectorData_GetData(ActsHandle handle) {
+	return ActsAPIImpl_VectorData(handle).data();
+}
+
+size_t ActsAPIStructs_VectorData_Size(ActsHandle handle) {
+	return ActsAPIImpl_VectorData(handle).size();
+}
+
+void ActsAPIStructs_VectorData_Resize(ActsHandle handle, size_t len) {
+	ActsAPIImpl_VectorData(handle).resize(len);
+}
+
+void ActsAPIStructs_VectorData_AddData(ActsHandle handle, void* data, size_t len) {
+	utils::WriteValue(ActsAPIImpl_VectorData(handle), data, len);
 }
