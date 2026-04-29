@@ -34,7 +34,7 @@ namespace fastfile::handlers::bo4::weapon {
 		XHash weapon50;
 		XHash unk60;
 		XHash weapon70;
-		XHash streamkey;
+		XHash soundbank;
 		XHash sound90;
 		XHash sounda0;
 		XHash soundb0;

@@ -198,6 +198,8 @@ namespace {
 			for (const char* suffix : suffixes) {
 				const char* str{ utils::va("%s.%s", ctx->ffname, suffix) };
 				hashutils::AddPrecomputed(hash::Hash64(str), str, true);
+				const char* str2{ utils::va("%s_%s_stream", ctx->ffname, suffix) };
+				hashutils::AddPrecomputed(hash::Hash64(str2), str2, true);
 			}
 		}
 

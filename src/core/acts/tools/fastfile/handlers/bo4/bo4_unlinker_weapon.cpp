@@ -26,6 +26,7 @@ namespace fastfile::handlers::bo4::weapon {
 					"_wz", "_zm", "_mp", "_cp", // gamemode values
 					"_gold", "_operator", // wz weapons
 					"_tunables", "_tunables_wz", "_tunables_zm", "_tunables_mp", // tunables
+					"_soundbank", // sound bank
 				};
 				static const char* prefixes[]{
 					"weapon/" // localize
@@ -72,7 +73,7 @@ namespace fastfile::handlers::bo4::weapon {
 				json.WriteFieldValueXHash("weapon730Name", asset->weapon730Name);
 				json.WriteFieldValueXHash("weapon880", asset->weapon880);
 				json.WriteFieldValueXHash("weapon890", asset->weapon890);
-				json.WriteFieldValueXHash("streamkey", asset->streamkey);
+				json.WriteFieldValueXHash("soundbank", asset->soundbank);
 
 				json.WriteFieldValueScrStringArray("scrstr_8c8", ACTS_ARRAYSIZE(*asset->unk8c8), *asset->unk8c8);
 				json.WriteFieldValueScrStringArray("scrstr_8d0", ACTS_ARRAYSIZE(*asset->unk8d0), *asset->unk8d0);
