@@ -23,7 +23,9 @@ namespace platform {
 	int32_t LoadSharedFlagsToPlatform(int32_t flags) {
 		int32_t nflags{};
 
-		if ((flags & LSF_INVALID_MASK)) throw std::runtime_error("Unknown flags in LoadSharedFlagsToPlatform");
+		if ((flags & LSF_INVALID_MASK)) {
+			throw std::runtime_error(std::format("Unknown flags in LoadSharedFlagsToPlatform {}", flags));
+		}
 
 		if (flags & LSF_SEARCH_DEFAULT_DIRS) nflags |= LOAD_LIBRARY_SEARCH_DEFAULT_DIRS;
 		if (flags & LSF_DONT_RESOLVE_REFERENCES) nflags |= DONT_RESOLVE_DLL_REFERENCES;
@@ -273,7 +275,7 @@ namespace platform {
 				dep = { name, false };
 			}
 			else {
-				dep = { name, false, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS };
+				dep = { name, false, platform::LSF_SEARCH_DEFAULT_DIRS | platform::LSF_DONT_RESOLVE_REFERENCES };
 			}
 
 			if (!dep) {

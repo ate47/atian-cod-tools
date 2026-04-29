@@ -64,7 +64,7 @@ namespace {
 
 			if (core::logs::getlevel() <= core::logs::LVL_TRACE) osnames << " " << name;
 
-			hook::library::Library dep{ name, false, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS };
+			hook::library::Library dep{ name, false, platform::LSF_SEARCH_DEFAULT_DIRS | platform::LSF_DONT_RESOLVE_REFERENCES };
 
 			outVC << dep << ":\n";
 
