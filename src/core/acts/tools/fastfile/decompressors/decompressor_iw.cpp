@@ -368,7 +368,7 @@ namespace {
 			utils::compress::CompressionAlgorithm alg{};
 
 			ctx.hasGSCBin = header->headerVersion <= IWFV_MW22;
-			ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
+			ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PC;
 
 			switch (header->headerVersion) {
 			case IWFV_MW19: {

@@ -188,24 +188,24 @@ namespace {
 			ctx.hasGSCBin = false;
 			switch (trPlatform.platform) {
 			case fastfile::XFILE_PC: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PC;
 				break;
 			}
 			case fastfile::XFILE_XBOX: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_XBOX;
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_XBOX;
 				break;
 			}
 			case fastfile::XFILE_PLAYSTATION: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PLAYSTATION;
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PLAYSTATION;
 				break;
 			}
 			case fastfile::XFILE_DEV: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC_ALPHA;
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PC_ALPHA;
 				break;
 			}
 			}
 			// fixme
-			ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
+			ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PC;
 
 			byte aesIV[0x10];
 			std::memcpy(aesIV, trFastfileInfo.aesIV, sizeof(aesIV));

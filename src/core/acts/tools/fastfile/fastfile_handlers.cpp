@@ -295,7 +295,7 @@ namespace fastfile {
 	}
 
 
-	FastFileOption::FastFileOption() {
+	FastFileOption::FastFileOption() : ActsAPIFastFile_FastFileOption() {
 		gscFormatter = &tool::gsc::formatter::GetDefaultFormatter();
 	}
 
@@ -635,27 +635,9 @@ namespace fastfile {
 	}
 
 	const char* FastFileContext::GetFFType() {
-		if (!fftype[0]) {
-			std::string_view ffv{ ffname };
-			size_t div{ CountDiv(ffname) };
-			size_t sub{ div > 6 ? 2ull : 1ull };
-			size_t fdd{};
-			for (size_t i = 0; i < sub; i++) {
-				fdd = ffv.find('_', fdd ? fdd + 1 : fdd);
-				if (fdd == std::string::npos) {
-					fdd = ffv.size();
-				}
-			}
-			
-			std::memcpy(fftype, ffname, fdd);
-			for (size_t i = 0; i < fdd; i++) {
-				if (fftype[i] == '_') {
-					fftype[i] = '/';
-				}
-			}
-		}
-		return fftype;
+		return ActsAPIFastFile_FastFileContext_GetType(this);
 	}
+
 	std::vector<std::string> FastFileOption::GetFileRecurse(const char* path) {
 		std::vector<std::string> res{};
 		if (cascStorage) {
@@ -1157,7 +1139,7 @@ namespace fastfile {
 					// we use a temporary memory block for reader because we don't need the memory after reading
 					// for the pools it needs to be static
 					core::memory_allocator::MemoryAllocator ffMemory{};
-					fastfile::FastFileContext ctx{ opt.workflow == FFW_ASSET_POOL ? assetPool.allocator : ffMemory };
+					fastfile::FastFileContext ctx{ .zoneMemory=opt.workflow == FFW_ASSET_POOL ? assetPool.allocator : ffMemory };
 					ctx.file = filename.c_str();
 					currentCtx = &ctx;
 					FFDecompressor* decompressor{ FindDecompressor(filename, reader) };
@@ -1482,4 +1464,34 @@ namespace fastfile {
 	ADD_TOOL(fastfile, "common", "", "fastfile reader", fastfile);
 	ADD_TOOL(fastfilelinker, "common", "", "fastfile linker", fastfilelinker);
 	ADD_TOOL(fastfilecordycep, "internal", "", "internal tool for the cordycep acts", fastfilecordycep);
+}
+
+const char* ActsAPIFastFile_FastFileContext_GetType(ActsAPIFastFile_FastFileContext* context) {
+	if (!context->fftype[0]) {
+		std::string_view ffv{ context->ffname };
+		size_t div{ fastfile::CountDiv(context->ffname) };
+		size_t sub{ div > 6 ? 2ull : 1ull };
+		size_t fdd{};
+		for (size_t i = 0; i < sub; i++) {
+			fdd = ffv.find('_', fdd ? fdd + 1 : fdd);
+			if (fdd == std::string::npos) {
+				fdd = ffv.size();
+			}
+		}
+
+		std::memcpy(context->fftype, context->ffname, fdd);
+		for (size_t i = 0; i < fdd; i++) {
+			if (context->fftype[i] == '_') {
+				context->fftype[i] = '/';
+			}
+		}
+	}
+	return context->fftype;
+}
+ActsAPIFastFile_FastFileOption* ActsAPIFastFile_GetCurrentOption() {
+	return fastfile::currentOpt;
+}
+
+ActsAPIFastFile_FastFileContext* ActsAPIFastFile_GetCurrentContext() {
+	return fastfile::currentCtx;
 }

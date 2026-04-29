@@ -236,17 +236,20 @@ namespace {
 			switch (header->platform) {
 			case fastfile::XFILE_DEV:
 			case fastfile::XFILE_PC: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PC;
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PC;
 				break;
 			}
 			case fastfile::XFILE_XBOX: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_XBOX;
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_XBOX;
 				break;
 			}
 			case fastfile::XFILE_PLAYSTATION: {
-				ctx.gscPlatform = tool::gsc::opcode::PLATFORM_PLAYSTATION;
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PLAYSTATION;
 				break;
 			}
+			default:
+				ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PC;
+				break;
 			}
 
 			if (!reader.CanRead(fastFileSize)) {

@@ -26,7 +26,7 @@ namespace {
             if (opt.disableScriptsDecomp) return; // nothing to decomp
             tool::gsc::GscDecompilerGlobalContext gdctx{};
 
-            gdctx.opt.m_platform = fastfile::GetCurrentContext().gscPlatform;
+            gdctx.opt.m_platform = (tool::gsc::opcode::Platform)fastfile::GetCurrentContext().gscPlatform;
             gdctx.opt.m_dcomp = true;
             gdctx.opt.m_splitByVm = true;
             std::filesystem::path outSource{ opt.m_output / "gsc_decomp" };

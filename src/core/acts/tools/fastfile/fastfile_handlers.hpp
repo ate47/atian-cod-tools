@@ -10,6 +10,7 @@
 #include <tomcrypt.h>
 #include <tools/fastfile/fastfile_flexible.hpp>
 #include <compatibility/scobalula_csi.hpp>
+#include <acts_api/fastfile.h>
 
 namespace fastfile {
 	template<typename T>
@@ -71,25 +72,11 @@ namespace fastfile {
 	class FFCompressor;
 	class FFLinker;
 
-	struct XBlockInfo {
-		byte* data{};
-		size_t size{};
-	};
+	using XBlockInfo = ActsAPIFastFile_XBlockInfo;
 	
-	struct FastFileContext {
+	struct FastFileContext : ActsAPIFastFile_FastFileContext {
 		core::memory_allocator::MemoryAllocator& zoneMemory;
-		const char* file;
-		char ffname[0x100]{};
-		char fftype[0x100]{};
-		const char** scrStrings;
-		size_t scrStringsCount;
 		fastfile::flexible::FlexibleFastFileReader flexibleHeaderData{};
-		// 0x10 to have more without recompiling
-		XBlockInfo blockSizes[0x10]{};
-		size_t blocksCount{};
-		bool hasGSCBin{};
-		tool::gsc::opcode::Platform gscPlatform{ tool::gsc::opcode::PLATFORM_PC };
-
 		const char* GetFFType();
 	};
 
@@ -119,45 +106,15 @@ namespace fastfile {
 		FFW_ASSET_POOL
 	};
 
-	class FastFileOption {
+	class FastFileOption : public ActsAPIFastFile_FastFileOption {
 	public:
 		bool m_help{};
-		bool m_fd{};
-		bool m_fdIgnoreMissing{};
-		bool alpha{};
-		bool m_header{};
 		bool print_handlers{};
 		bool print_decompressors{};
 		bool print_gameId{};
 		bool print_revId{};
-		bool dump_decompressed{};
-		bool noAssetDump{};
-		bool assertContainer{};
-		bool dumpBinaryAssets{};
-		bool dumpBinaryAssetsMap{};
-		bool dumpAssetNames{};
-		bool dumpXStrings{};
-		bool dumpXHash{};
-		bool dumpCompiledZone{};
-		bool testDump{};
-		bool archiveDDL{};
-		bool graphic{};
-		bool reducedLogs{};
-		bool noWorkerPreload{};
 		GameId m_gameId{};
 		GameRevId m_gameRevId{};
-		const char* m_casc{};
-		const char* game{};
-		const char* gamePath{};
-		const char* exec{};
-		const char* wildcard{};
-		const char* ignoreWildcard{};
-		const char* ignore{};
-		const char* assets{};
-		const char* translation{};
-		const char* headerDump{};
-		const char* rsaKey{};
-		bool disableScriptsDecomp{};
 		HANDLE cascStorage{};
 		std::filesystem::path m_output{ "output_ff" };
 		std::vector<const char*> files{};
