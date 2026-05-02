@@ -1,18 +1,15 @@
 - acts
 	- fastfile
-		- bo7 handler fix
-		- repl in fastfile asset tool
-	- missing data for bo7 game data
-	- some fixes
-	- some test tools
-	- reshape the common library architecture
+		- more default xhash for bo4
+	- gsc
+		- add support for vm iw17 and iw18
+		- rename bo7 to bo7_16 and use iw18 for bo7
+		- fix debug line information generated at the end of a statements block
+	- add plugin support
+	- hashbrutedb tool
 - acts library
-	- deploy acts-common as a library (C/C++ compatible)
-	- compress, config, gsc, gsc compiler, hash and process modules
-- acts ui3
-	- start moving acts nui to ui3
-	- widgets
-		- bo4/cw runtime errors
-		- dll auto injector
-		- exe dumper
-		- hash 
+	- logs, tool and fastfile modules
+	- fix issue with DllMain still in the .lib file
+- acts dll bo3
+	- add dll
+	- fix zip reader to accept scriptgdb.zip
