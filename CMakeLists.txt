@@ -115,17 +115,22 @@ macro(append_common_defs target)
             CXX_STANDARD 20
             CXX_STANDARD_REQUIRED ON
         )
-        target_compile_options(${target} PRIVATE "/source-charset:windows-1252")
+        target_compile_options(${target} PRIVATE "/source-charset:windows-1252" /Zi)
+        target_link_options(${target} PRIVATE /DEBUG)
     elseif ("${target_type}" STREQUAL "QT")
         set_target_properties(${target} PROPERTIES
             CXX_STANDARD 20
             CXX_STANDARD_REQUIRED ON
         )
         qt_import_plugins("${target_type}")
+        target_compile_options(${target} PRIVATE /Zi)
+        target_link_options(${target} PRIVATE /DEBUG)
     elseif("${target_type}" STREQUAL "C")
         set_target_properties(${target} PROPERTIES 
             LINKER_LANGUAGE C
         )
+        target_compile_options(${target} PRIVATE /Zi)
+        target_link_options(${target} PRIVATE /DEBUG)
     endif()
 
 endmacro()
