@@ -23,13 +23,13 @@ namespace acts::plugins {
 				continue;
 			}
 			GetActsVersion pGetActsMinVersion{ (GetActsVersion)GetProcAddress(mod, "GetActsMinVersion") };
-			GetActsVersion pGetActsMaxVersion{ (GetActsVersion)GetProcAddress(mod, "GetActsMaxVersion") };
 			if (!pGetActsMinVersion) {
 				LOG_ERROR("Failed to find <uint32_t GetActsMinVersion()> in plugin {}: {}", name, GetLastError());
 				FreeLibrary(mod);
 				continue;
 			};
 
+			GetActsVersion pGetActsMaxVersion{ (GetActsVersion)GetProcAddress(mod, "GetActsMaxVersion") };
 			uint32_t minPluginVersion{ pGetActsMinVersion() };
 			uint32_t maxPluginVersion{ pGetActsMaxVersion ? pGetActsMaxVersion() : GetNextMajorVersion(minPluginVersion) };
 
@@ -38,6 +38,16 @@ namespace acts::plugins {
 				FreeLibrary(mod);
 				continue;
 			}
+
+#ifdef _MSC_VER
+			// if the plugin wants to use ABI unsafe functions, check for MSVC version mismatch
+			GetActsVersion pGetActsMSVCVersion{ (GetActsVersion)GetProcAddress(mod, "GetActsMSVCVersion") };
+			if (pGetActsMSVCVersion && pGetActsMSVCVersion() != _MSC_VER) {
+				LOG_ERROR("MSVC version mismatch in plugin {}: plugin MSVC version is 0x{:x}, but ACTS common MSVC version is 0x{:x}!", name, pGetActsMSVCVersion(), _MSC_VER);
+				FreeLibrary(mod);
+				continue;
+			}
+#endif
 
 			LoadPluginFunc pLoadActsPlugin{ (LoadPluginFunc)GetProcAddress(mod, "LoadActsPlugin") };
 
