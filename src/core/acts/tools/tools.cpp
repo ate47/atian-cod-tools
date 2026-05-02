@@ -5,6 +5,7 @@
 #include <tools/tools_ui.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <acts_api/internal.h>
+#include <acts_api/tool.h>
 #include <core/actsinfo.hpp>
 
 namespace tool {
@@ -542,6 +543,13 @@ void RegisterActsCategory(const char* name, const char* description, bool visibl
 	cat.description = description;
 	cat.m_name = name;
 	cat.visible = visible;
+}
+void ActsAPITool_RegisterActsTool_(const char* name, const char* filename, size_t line, const char* category, const char* usage, const char* description, int(*func)(int argc, const char* argv[])) {
+	RegisterActsTool(name, filename, line, category, usage, description, func);
+}
+
+void ActsAPITool_RegisterActsCategory(const char* name, const char* description, bool visible) {
+	RegisterActsCategory(name, description, visible);
 }
 
 ADD_TOOL(list, "acts", "", "list all the tools", list);
