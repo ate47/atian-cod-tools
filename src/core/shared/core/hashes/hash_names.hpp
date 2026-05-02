@@ -1,13 +1,14 @@
 #pragma once
 
-namespace fastfile::names_store {
+namespace core::hashes::names {
 	class NamesStore {
 		uint64_t(*HashAsset)(const char* name);
 		std::unordered_map<uint64_t, size_t> assets{};
 
 	public:
-		NamesStore(uint64_t(*HashAsset)(const char* name)) 
-			: HashAsset(HashAsset) {}
+		NamesStore(uint64_t(*HashAsset)(const char* name))
+			: HashAsset(HashAsset) {
+		}
 
 		void LoadConfig(const char* cfg) {
 			assets.clear();

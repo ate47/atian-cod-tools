@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/handlers/bo4/bo4_unlinker_map.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/utils/data_utils.hpp>
 
 namespace fastfile::handlers::bo4::map {

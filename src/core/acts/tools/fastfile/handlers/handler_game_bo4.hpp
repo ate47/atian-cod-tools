@@ -1,6 +1,6 @@
 #pragma once
 #include <tools/fastfile/fastfile_handlers.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <games/bo4/pool.hpp>
 #include <deps/mio.hpp>
 
@@ -90,9 +90,9 @@ namespace fastfile::handlers::bo4 {
 
 	const char* GetValidString(const char* handle, const char* defaultVal = nullptr);
 
-	class BO4JsonWriter : public utils::raw_file_extractor::JsonWriter {
+	class BO4JsonWriter : public core::hashes::raw_file_extractor::JsonWriter {
 	public:
-		using utils::raw_file_extractor::JsonWriter::JsonWriter;
+		using core::hashes::raw_file_extractor::JsonWriter::JsonWriter;
 
 		void WriteFieldValueScrString(const char* name, ScrString_t val) {
 			if (!val) return;

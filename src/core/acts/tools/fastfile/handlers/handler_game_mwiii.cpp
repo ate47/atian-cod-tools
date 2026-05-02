@@ -13,7 +13,7 @@
 #include <decryptutils.hpp>
 #include <tools/fastfile/handlers/handler_game_mwiii.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
-#include <tools/fastfile/fastfile_names_store.hpp>
+#include <core/hashes/hash_names.hpp>
 
 
 namespace fastfile::handlers::mwiii {
@@ -157,7 +157,7 @@ namespace fastfile::handlers::mwiii {
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
 			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{};
-			fastfile::names_store::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
+			core::hashes::names::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
 		} gcx{};
 

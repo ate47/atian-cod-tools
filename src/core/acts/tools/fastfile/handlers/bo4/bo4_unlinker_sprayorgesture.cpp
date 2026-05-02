@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <core/raw_file_json.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/fastfile/handlers/handler_game_bo4.hpp>
 #include <tools/fastfile/handlers/bo4/bo4_unlinker_scriptbundle.hpp>
 
@@ -52,7 +52,7 @@ namespace {
 				/ std::format("{}.json", n) };
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			LOG_OPT_INFO("Dump sprayorgestureitem {}", outFile.string());
 			json.BeginObject();

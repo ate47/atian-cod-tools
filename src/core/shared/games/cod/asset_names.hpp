@@ -1,5 +1,6 @@
 #pragma once
 #include <core/strings.hpp>
+#include <core/hashes/hash_store.hpp>
 #include <utils/enumlist.hpp>
 #include <utils/hash_mini.hpp>
 #include <hook/library.hpp>
@@ -121,7 +122,7 @@ namespace games::cod::asset_names {
 						// map this id to acts
 						typeExeToActs[tid] = type->hash;
 						// add precomputed values
-						hashutils::AddPrecomputed(type->hash, type->name, true);
+						core::hashes::AddPrecomputed(type->hash, type->name, true);
 					}
 
 					// sort it for better usage

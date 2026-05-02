@@ -1,6 +1,6 @@
 #pragma once
 #include <tools/fastfile/fastfile_handlers.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/cw/cw.hpp>
 
 namespace fastfile::handlers::cw {
@@ -92,9 +92,9 @@ namespace fastfile::handlers::cw {
 	bool IsValidHandle(const void* handle);
 	const char* GetValidString(const char* handle, const char* defaultVal = nullptr);
 
-	class BOCWJsonWriter : public utils::raw_file_extractor::JsonWriter {
+	class BOCWJsonWriter : public core::hashes::raw_file_extractor::JsonWriter {
 	public:
-		using utils::raw_file_extractor::JsonWriter::JsonWriter;
+		using core::hashes::raw_file_extractor::JsonWriter::JsonWriter;
 
 		void WriteFieldValueXHash(const char* name, CWXHash val) {
 			if (!val) return;

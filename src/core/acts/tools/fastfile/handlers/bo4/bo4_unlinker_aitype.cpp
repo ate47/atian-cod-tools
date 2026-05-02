@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/handlers/handler_game_bo4.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/utils/data_utils.hpp>
 
 namespace {
@@ -167,7 +167,7 @@ namespace {
 			static_assert(sizeof(AiType) == 0xf00);
 			AiType& asset{ *(AiType*)ptr };
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			json.BeginObject();
 

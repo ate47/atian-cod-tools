@@ -1,5 +1,5 @@
 #pragma once
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace fastfile::handlers::mwii::scriptbundle {
 	struct ScriptBundleObjectData;
@@ -87,8 +87,8 @@ namespace fastfile::handlers::mwii::scriptbundle {
 
 
 
-	void WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle);
-	void WriteStruct(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen);
-	void WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data);
-	void WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen);
+	void WriteBundle(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle);
+	void WriteStruct(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen);
+	void WriteData(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data);
+	void WriteDef(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen);
 }

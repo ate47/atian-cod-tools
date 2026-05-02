@@ -1495,3 +1495,29 @@ ActsAPIFastFile_FastFileOption* ActsAPIFastFile_GetCurrentOption() {
 ActsAPIFastFile_FastFileContext* ActsAPIFastFile_GetCurrentContext() {
 	return fastfile::currentCtx;
 }
+
+const char* ActsAPIFastFile_GetTranslation(uint64_t name) {
+	return fastfile::currentOpt ? fastfile::currentOpt->GetTranslation(name) : hashutils::ExtractTmp("hash", name);
+}
+
+void ActsAPIFastFile_AddAssetHeaderString(const char* name, void* header, uint32_t type, size_t size) {
+	fastfile::AddAssetHeader(name, header, type, size);
+}
+
+void ActsAPIFastFile_AddAssetHeaderHashed(uint64_t name, void* header, uint32_t type, size_t size) {
+	fastfile::AddAssetHeader(name, header, type, size);
+}
+
+const char* ActsAPIFastFile_GetScrString(uint32_t id) {
+	try {
+		return fastfile::GetScrString(id);
+	}
+	catch (std::runtime_error& err) {
+		ActsAPISetLastMessage("%s", err.what());
+		return "<error>";
+	}
+}
+
+uint32_t ActsAPIFastFile_RegisterScrString(const char* str, uint32_t prevId) {
+	return fastfile::RegisterScrString(str, prevId);
+}

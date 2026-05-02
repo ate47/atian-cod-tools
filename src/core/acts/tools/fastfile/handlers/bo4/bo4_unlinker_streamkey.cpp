@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/handlers/handler_game_bo4.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace {
 	using namespace fastfile::handlers::bo4;
@@ -49,7 +49,7 @@ namespace {
 			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "streamkey" / std::format("{}.json", ctx.ffname) };
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			json.BeginObject();
 			json.WriteFieldNameString("keys");

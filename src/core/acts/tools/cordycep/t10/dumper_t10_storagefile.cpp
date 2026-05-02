@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <tools/bo4/pool.hpp>
 #include <tools/cordycep/t10/dumper_t10.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace {
 	using namespace compatibility::scobalula::csi;
@@ -47,7 +47,7 @@ namespace {
 			std::filesystem::path loc{ ctx.outDir / "tables" / "storagefile" / std::format("{}.json", hashutils::ExtractTmp("file", data.name)) };
 			if (opt.m_ignoreOld && std::filesystem::exists(loc)) return true;
 			std::filesystem::create_directories(loc.parent_path());
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			LOG_INFO("Dump {}", loc.string());
 

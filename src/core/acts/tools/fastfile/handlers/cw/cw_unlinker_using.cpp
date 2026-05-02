@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <core/raw_file_json.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/fastfile/handlers/handler_game_cw.hpp>
 
 namespace {
@@ -37,7 +37,7 @@ namespace {
 
 				outFile = opt.m_output / "cw" / "source" / "tables" / "usings" / type / "hashed" / std::format("file_{:x}.{}.json", asset->name, ext);
 			}
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			json.BeginObject();
 			json.WriteFieldNameString("name"); json.WriteValueHash(asset->name);

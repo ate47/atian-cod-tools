@@ -1,6 +1,9 @@
 #include <includes.hpp>
 #include <actscli.hpp>
 #include <game_data.hpp>
+#include <decryptutils.hpp>
+#include <acts_api/config.h>
+#include <acts_api_impl/api_impl.hpp>
 
 namespace acts::game_data {
 	static core::config::ConfigEnumData cTypeInfo[]{
@@ -340,4 +343,121 @@ namespace acts::game_data {
 		scan.ignoreMissing = ignoreMissingOld;
 
 	}
+}
+
+namespace {
+	class GameDataImplInternal {
+	public:
+		acts::game_data::GameData gameData;
+		hook::module_mapper::Module gameModule{};
+
+		GameDataImplInternal(const char* dirname, bool loadGameModule, const char* customGameModule, bool loadDecrypt)
+			: gameData(dirname) {
+			if (loadGameModule) {
+				std::filesystem::path exe;
+				if (customGameModule) {
+					exe = customGameModule;
+				}
+				else {
+					const char* defaultName{ gameData.GetModuleName() };
+					if (defaultName && *defaultName) {
+						exe = utils::GetProgDir() / "deps" / defaultName;
+					}
+				}
+
+				if (!gameModule.Load(exe)) {
+					throw std::runtime_error(std::format("Can't load {}", exe.string()));
+				}
+
+				if (loadDecrypt && !acts::decryptutils::LoadDecryptModule(gameModule)) {
+					throw std::runtime_error(std::format("Can't load {}: Can't find DecryptString", exe.string()));
+				}
+			}
+		}
+	};
+}
+
+ActsHandle ActsAPIData_NewGameData(const char* dirname, bool loadGameModule, const char* customGameModule, bool loadDecrypt) {
+	try {
+		return ActsAPIImpl_New<GameDataImplInternal>(dirname, loadGameModule, customGameModule, loadDecrypt);
+	}
+	catch (std::exception& e) {
+		ActsAPISetLastMessage("%s", e.what());
+		return nullptr;
+	}
+}
+
+bool ActsAPIData_ValidateScans(ActsHandle gameData) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+	return impl.gameData.ValidateScans();
+}
+
+ActsStatus ActsAPIData_ApplyNullScans(ActsHandle gameData, const char* id) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+
+	try {
+		impl.gameData.ApplyNullScans(id);
+		return ACTS_STATUS_OK;
+	}
+	catch (std::exception& e) {
+		ActsAPISetLastMessage("%s", e.what());
+		return ACTS_STATUS_ERROR;
+	}
+}
+
+const char* ActsAPIData_GetModuleName(ActsHandle gameData) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+
+	try {
+		return impl.gameData.GetModuleName();
+	}
+	catch (std::exception& e) {
+		ActsAPISetLastMessage("%s", e.what());
+		return nullptr;
+	}
+}
+
+const char* ActsAPIData_GetConfigCString(ActsHandle gameData, const char* path) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+	return impl.gameData.Config().GetCString(path);
+}
+
+ActsStatus ActsAPIData_Redirect(ActsHandle gameData, const char* id, void* to, const char* parent) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+
+	try {
+		impl.gameData.Redirect(id, to, parent);
+		return ACTS_STATUS_OK;
+	}
+	catch (std::exception& e) {
+		ActsAPISetLastMessage("%s", e.what());
+		return ACTS_STATUS_ERROR;
+	}
+}
+
+ActsStatus ActsAPIData_Nulled(ActsHandle gameData, const char* id, const char* parent) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+
+	try {
+		impl.gameData.Nulled(id, parent);
+		return ACTS_STATUS_OK;
+	}
+	catch (std::exception& e) {
+		ActsAPISetLastMessage("%s", e.what());
+		return ACTS_STATUS_ERROR;
+	}
+}
+
+ActsStatus ActsAPIData_Get(ActsHandle gameData, const char* id, void** to, const char* parent) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+
+	try {
+		impl.gameData.Get<void*>(id, to, parent);
+		return ACTS_STATUS_OK;
+	}
+	catch (std::exception& e) {
+		ActsAPISetLastMessage("%s", e.what());
+		return ACTS_STATUS_ERROR;
+	}
+
 }

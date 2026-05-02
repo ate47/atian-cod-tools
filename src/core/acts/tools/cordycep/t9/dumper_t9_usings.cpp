@@ -1,5 +1,5 @@
 #include <includes.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/cordycep/t9/dumper_t9.hpp>
 
 namespace {
@@ -48,7 +48,7 @@ namespace {
 				loc = ctx.outDir / "tables" / "usings" / type / "hashed" / std::format("file_{:x}.{}.json", entry.name, ext);
 			}
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			json.BeginObject();
 			json.WriteFieldNameString("name"); json.WriteValueHash(entry.name);

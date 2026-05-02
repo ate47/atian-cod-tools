@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/handlers/handler_game_bo4.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/utils/data_utils.hpp>
 #include <tools/bo4/pool_weapon_structs.hpp>
 
@@ -9,9 +9,9 @@ namespace {
 	using namespace fastfile::handlers::bo4;
 
 	class WriteOpt {
-		utils::raw_file_extractor::JsonWriter& json;
+		core::hashes::raw_file_extractor::JsonWriter& json;
 	public:
-		WriteOpt(utils::raw_file_extractor::JsonWriter& json) : json(json) {}
+		WriteOpt(core::hashes::raw_file_extractor::JsonWriter& json) : json(json) {}
 		template<typename T>
 		void Write(const char* name, T val) {
 			json.WriteFieldNameString(name);
@@ -960,7 +960,7 @@ namespace {
 				/ std::format("{}.json", hashutils::ExtractTmp("file", asset->name.name)) };
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			LOG_OPT_INFO("Dump weapontunables {}", outFile.string());
 

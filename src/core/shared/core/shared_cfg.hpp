@@ -1,5 +1,6 @@
 #pragma once
 #include <core/logs.hpp>
+#include <core/memory_allocator.hpp>
 
 namespace core::shared_cfg {
 
@@ -16,6 +17,10 @@ namespace core::shared_cfg {
 
 			std::vector<std::string> paths{};
 		} log;
+		struct {
+			core::memory_allocator::MemoryAllocator alloc{};
+			std::unordered_map<uint64_t, const char*> defstrings{};
+		} hashes;
 	};
 
 	SharedCfg& GetSharedConfig();

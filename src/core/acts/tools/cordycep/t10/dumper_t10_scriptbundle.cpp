@@ -122,7 +122,7 @@ namespace tool::cordycep::dump::t10::scriptbundle {
 		return true;
 	}
 	
-	bool sbv2::WriteBundleDef(PoolOption& opt, utils::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectDef& def, std::function<const char* (uint64_t hash)>& GetLocalized) {
+	bool sbv2::WriteBundleDef(PoolOption& opt, core::hashes::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectDef& def, std::function<const char* (uint64_t hash)>& GetLocalized) {
 		switch (def.type) {
 		case SBT_UNDEFINED:
 			json.WriteValueLiteral("undefined");
@@ -239,7 +239,7 @@ namespace tool::cordycep::dump::t10::scriptbundle {
 		}
 		return true;
 	}
-	bool sbv2::WriteBundleData(PoolOption& opt, utils::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectData& data, std::function<const char* (uint64_t hash)>& GetLocalized) {
+	bool sbv2::WriteBundleData(PoolOption& opt, core::hashes::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectData& data, std::function<const char* (uint64_t hash)>& GetLocalized) {
 		json.BeginObject();
 		if (data.count) {
 			auto objects = proc.ReadMemoryArrayEx<ScriptBundleObjectDef>(data.defs, data.count);
@@ -323,7 +323,7 @@ namespace tool::cordycep::dump::t10::scriptbundle {
 
 				LOG_INFO("Dump {} -> {}", hashutils::ExtractTmp("hash", entry.name), out.string());
 
-				utils::raw_file_extractor::JsonWriter json{};
+				core::hashes::raw_file_extractor::JsonWriter json{};
 
 				sbv2::WriteBundleData(opt, json, proc, entry.data, ctx.GetLocalized);
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace fastfile::handlers::mwiiisp::scriptbundle {
 	struct ScriptBundleObjectData;

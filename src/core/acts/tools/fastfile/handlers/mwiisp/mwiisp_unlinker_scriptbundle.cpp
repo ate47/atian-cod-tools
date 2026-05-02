@@ -6,7 +6,7 @@
 namespace fastfile::handlers::mwiisp::scriptbundle {
 	using namespace fastfile::handlers::mwiisp;
 
-	static void WriteString(utils::raw_file_extractor::JsonWriter& json, const char* prefix, size_t offset, byte* rawData, size_t rawDataLen) {
+	static void WriteString(core::hashes::raw_file_extractor::JsonWriter& json, const char* prefix, size_t offset, byte* rawData, size_t rawDataLen) {
 		if (offset >= rawDataLen) {
 			json.WriteValueString(std::format("invalid:0x%llx", offset));
 		}
@@ -15,7 +15,7 @@ namespace fastfile::handlers::mwiisp::scriptbundle {
 		}
 	}
 
-	void WriteDef(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen) {
+	void WriteDef(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundleObjectDef& def, byte* rawData, size_t rawDataLen) {
 		switch (def.type) {
 		case SBT_UNDEFINED:
 			json.WriteValueLiteral("undefined");
@@ -83,7 +83,7 @@ namespace fastfile::handlers::mwiisp::scriptbundle {
 			break;
 		}
 	}
-	void WriteStruct(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen) {
+	void WriteStruct(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundleObjectStruct& data, byte* rawData, size_t rawDataLen) {
 		json.BeginObject();
 
 		for (size_t i = 0; i < data.defsCount; i++) {
@@ -94,11 +94,11 @@ namespace fastfile::handlers::mwiisp::scriptbundle {
 		json.EndObject();
 	}
 
-	void WriteData(utils::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data) {
+	void WriteData(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundleObjectData& data) {
 		WriteStruct(json, data.bundle, data.data, data.dataSize);
 	}
 
-	void WriteBundle(utils::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
+	void WriteBundle(core::hashes::raw_file_extractor::JsonWriter& json, ScriptBundle* bundle) {
 		WriteData(json, bundle->data);
 	}
 
@@ -137,7 +137,7 @@ namespace fastfile::handlers::mwiisp::scriptbundle {
 
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			LOG_OPT_INFO("Dump scriptbundle {}", outFile.string());
 
@@ -160,7 +160,7 @@ namespace fastfile::handlers::mwiisp::scriptbundle {
 
 				std::filesystem::create_directories(outFile.parent_path());
 
-				utils::raw_file_extractor::JsonWriter json{};
+				core::hashes::raw_file_extractor::JsonWriter json{};
 
 				std::sort(vec.begin(), vec.end(), [](ScriptBundle& a, ScriptBundle& b) -> bool { return a.name < b.name; });
 

@@ -1,7 +1,7 @@
 #pragma once
 #pragma once
 #include <tools/fastfile/fastfile_handlers.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/sp23/sp23.hpp>
 
 namespace fastfile::handlers::mwiii {
@@ -69,9 +69,9 @@ namespace fastfile::handlers::mwiii {
 	HandlerAssetType GetExePoolId(HandlerHashedAssetType name);
 	uint64_t GetXAssetName(HandlerHashedAssetType type, void* handle);
 
-	class HandlerJsonWriter : public utils::raw_file_extractor::JsonWriter {
+	class HandlerJsonWriter : public core::hashes::raw_file_extractor::JsonWriter {
 	public:
-		using utils::raw_file_extractor::JsonWriter::JsonWriter;
+		using core::hashes::raw_file_extractor::JsonWriter::JsonWriter;
 
 		void WriteFieldValueXHash(const char* name, XHash64 val) {
 			if (!val) return;

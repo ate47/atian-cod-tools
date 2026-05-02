@@ -1,7 +1,7 @@
 #include <includes.hpp>
 #include <tools/cordycep/t10/dumper_t10.hpp>
 #include <tools/cordycep/t10/dumper_t10_scriptbundle.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace {
 	using namespace compatibility::scobalula::csi;
@@ -103,7 +103,7 @@ namespace {
 				LOG_ERROR("Can't read {:x}", asset.Header);
 				return false;
 			}
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			// Dump pool
 			json.BeginObject();

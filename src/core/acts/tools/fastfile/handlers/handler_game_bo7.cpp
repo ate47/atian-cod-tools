@@ -8,7 +8,7 @@
 #include <hook/memory.hpp>
 #include <hook/error.hpp>
 #include <hook/scan_container.hpp>
-#include <tools/fastfile/fastfile_names_store.hpp>
+#include <core/hashes/hash_names.hpp>
 #include <decryptutils.hpp>
 #include <tools/fastfile/handlers/handler_game_bo7.hpp>
 #include <tools/fastfile/handlers/handler_iw_common.hpp>
@@ -231,7 +231,7 @@ namespace fastfile::handlers::bo7 {
 			std::vector<const char*>* xstringLocs{};
 			std::unique_ptr<XStringOutCTX> xstrOutGlb{};
 			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ bo7::PoolId };
-			fastfile::names_store::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
+			core::hashes::names::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
 		} gcx{};
 

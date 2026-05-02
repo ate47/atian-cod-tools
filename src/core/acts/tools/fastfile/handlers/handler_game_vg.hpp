@@ -1,7 +1,7 @@
 #pragma once
 #pragma once
 #include <tools/fastfile/fastfile_handlers.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/mw19/mw19.hpp>
 
 namespace fastfile::handlers::vg {
@@ -69,9 +69,9 @@ namespace fastfile::handlers::vg {
 	XString GetXAssetName(HandlerHashedAssetType type, void* handle);
 	XString ValidateName(XString name);
 
-	class HandlerJsonWriter : public utils::raw_file_extractor::JsonWriter {
+	class HandlerJsonWriter : public core::hashes::raw_file_extractor::JsonWriter {
 	public:
-		using utils::raw_file_extractor::JsonWriter::JsonWriter;
+		using core::hashes::raw_file_extractor::JsonWriter::JsonWriter;
 
 		void WriteFieldValueXString(const char* name, XString val) {
 			if (!val) return;

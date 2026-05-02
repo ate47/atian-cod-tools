@@ -1,6 +1,6 @@
 #pragma once
 #include <tools/fastfile/handlers/handler_game_bo4.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace fastfile::handlers::bo4::scriptbundle {
 	using namespace fastfile::handlers::bo4;
@@ -72,5 +72,5 @@ namespace fastfile::handlers::bo4::scriptbundle {
 		SB_ObjectsArray sbObjectsArray;
 	}; static_assert(sizeof(ScriptBundle) == 0x40);
 
-	void WriteObject(utils::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error);
+	void WriteObject(core::hashes::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error);
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace tool::cordycep::dump::t10::scriptbundle {
 	namespace sbv1 {
@@ -169,8 +169,8 @@ namespace tool::cordycep::dump::t10::scriptbundle {
 		};
 
 
-		bool WriteBundleDef(PoolOption& opt, utils::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectDef& def, std::function<const char* (uint64_t hash)>& GetLocalized);
-		bool WriteBundleData(PoolOption& opt, utils::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectData& data, std::function<const char* (uint64_t hash)>& GetLocalized);
+		bool WriteBundleDef(PoolOption& opt, core::hashes::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectDef& def, std::function<const char* (uint64_t hash)>& GetLocalized);
+		bool WriteBundleData(PoolOption& opt, core::hashes::raw_file_extractor::JsonWriter& json, Process& proc, ScriptBundleObjectData& data, std::function<const char* (uint64_t hash)>& GetLocalized);
 	}
 
 }

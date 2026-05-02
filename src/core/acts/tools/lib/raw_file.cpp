@@ -2,7 +2,7 @@
 #include <unit_test.hpp>
 #include <core/raw_file.hpp>
 #include <core/raw_file_json.hpp>
-#include "tools/utils/raw_file_extractor.hpp"
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace {
 	void rawfiletest() {
@@ -196,7 +196,7 @@ namespace {
 			return tool::BASIC_ERROR;
 		}
 
-		std::string data{ utils::raw_file_extractor::ExtractRawFile(buff) };
+		std::string data{ core::hashes::raw_file_extractor::ExtractRawFile(buff) };
 
 		utils::WriteFile(argv[3], data);
 

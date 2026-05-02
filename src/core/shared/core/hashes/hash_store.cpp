@@ -1,34 +1,32 @@
 #include <includes_shared.hpp>
 #include <core/memory_allocator.hpp>
 #include <core/hashes/hash_store.hpp>
+#include <core/shared_cfg.hpp>
 
 namespace core::hashes {
-	namespace {
-		core::memory_allocator::MemoryAllocator alloc{};
-		std::unordered_map<uint64_t, const char*> defstrings{};
-	}
 	const std::unordered_map<uint64_t, const char*>& GetMap() {
-		return defstrings;
+		return core::shared_cfg::GetSharedConfig().hashes.defstrings;
 	}
 	
 	void* AllocHashMemory(size_t len) {
-		return alloc.Alloc<byte>(len);
+		return core::shared_cfg::GetSharedConfig().hashes.alloc.Alloc<byte>(len);
 	}
 
 	const char* CloneHashStr(const char* str) {
-		return alloc.CloneStr(str);
+		return core::shared_cfg::GetSharedConfig().hashes.alloc.CloneStr(str);
 	}
 
 	void Clean() {
-		defstrings.clear();
-		alloc.FreeAll();
+		auto& hashes{ core::shared_cfg::GetSharedConfig().hashes };
+		hashes.defstrings.clear();
+		hashes.alloc.FreeAll();
 	}
 
 	const char* AddPrecomputed(uint64_t value, const char* str, bool clone) {
 		if (clone) {
 			str = core::hashes::CloneHashStr(str);
 		}
-		defstrings.emplace(value & hash::MASK60, str);
+		core::shared_cfg::GetSharedConfig().hashes.defstrings.emplace(value & hash::MASK60, str);
 		return str;
 	}
 	
@@ -39,8 +37,9 @@ namespace core::hashes {
 			}
 			return true;
 		}
-		const auto res = defstrings.find(hash & hash::MASK60);
-		if (res == defstrings.end()) {
+		auto& hashes{ core::shared_cfg::GetSharedConfig().hashes };
+		const auto res = hashes.defstrings.find(hash & hash::MASK60);
+		if (res == hashes.defstrings.end()) {
 			snprintf(out, outSize, "%s_%llx", type, hash);
 			return false;
 		}
@@ -62,8 +61,9 @@ namespace core::hashes {
 	}
 
 	const char* ExtractPtr(uint64_t hash) {
-		const auto res = defstrings.find(hash & hash::MASK60);
-		if (res == defstrings.end()) {
+		auto& hashes{ core::shared_cfg::GetSharedConfig().hashes };
+		const auto res = hashes.defstrings.find(hash & hash::MASK60);
+		if (res == hashes.defstrings.end()) {
 			return NULL;
 		}
 		return res->second;

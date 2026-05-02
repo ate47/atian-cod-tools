@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/handlers/handler_game_cw.hpp>
-#include <tools/utils/raw_file_extractor.hpp>
+#include <core/hashes/raw_file_extractor.hpp>
 
 namespace fastfile::handlers::cw::scriptbundle {
 	using namespace fastfile::handlers::cw;
@@ -85,7 +85,7 @@ namespace fastfile::handlers::cw::scriptbundle {
 		ScriptBundle* assets;
 	}; static_assert(sizeof(ScriptBundleList) == 0x18);
 
-	void WriteObject(utils::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error) {
+	void WriteObject(core::hashes::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error) {
 		json.BeginObject();
 
 		std::unordered_set<uint32_t> handles{};
@@ -260,7 +260,7 @@ namespace fastfile::handlers::cw::scriptbundle {
 
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			LOG_OPT_INFO("Dump scriptbundle {}", outFile.string());
 			if (!asset->sbObjectsArray.sbObjectCount) {
@@ -284,7 +284,7 @@ namespace fastfile::handlers::cw::scriptbundle {
 
 			std::filesystem::create_directories(outFile.parent_path());
 
-			utils::raw_file_extractor::JsonWriter json{};
+			core::hashes::raw_file_extractor::JsonWriter json{};
 
 			LOG_OPT_INFO("Dump scriptbundlelist {}", outFile.string());
 

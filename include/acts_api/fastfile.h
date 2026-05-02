@@ -264,5 +264,41 @@ ACTS_COMMON_API ActsAPIFastFile_FastFileContext* ActsAPIFastFile_GetCurrentConte
  * @return the fastfile type, should be valid until the end of the handler execution.
  */
 ACTS_COMMON_API const char* ActsAPIFastFile_FastFileContext_GetType(ActsAPIFastFile_FastFileContext* context);
+/*
+ * Get a translation for the current context
+ * @param translation key
+ * @return translation value, the unhashed value of name or a string version of name
+ */
+ACTS_COMMON_API const char* ActsAPIFastFile_GetTranslation(uint64_t name);
+
+/*
+ * Add an asset header to the current context
+ * @param name asset name
+ * @param header header pointer
+ * @param type asset type
+ * @param size asset type
+ */
+ACTS_COMMON_API void ActsAPIFastFile_AddAssetHeaderString(const char* name, void* header, uint32_t type, size_t size);
+/*
+ * Add an asset header to the current context
+ * @param name asset name
+ * @param header header pointer
+ * @param type asset type
+ * @param size asset type
+ */
+ACTS_COMMON_API void ActsAPIFastFile_AddAssetHeaderHashed(uint64_t name, void* header, uint32_t type, size_t size);
+/*
+ * Get a scr string
+ * @param id scr string id
+ * @return scr string
+ */
+ACTS_COMMON_API const char* ActsAPIFastFile_GetScrString(uint32_t id);
+/*
+ * Register a scr string
+ * @param str scr string
+ * @param prevId previous scr string id
+ * @return scr string id
+ */
+ACTS_COMMON_API uint32_t ActsAPIFastFile_RegisterScrString(const char* str, uint32_t prevId);
 
 #endif // __ACTS_API_FASTFILE_H__
