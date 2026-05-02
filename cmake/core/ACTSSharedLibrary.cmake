@@ -76,3 +76,20 @@ else()
         zlib
     )
 endif()
+
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/src/core/shared/
+        ${CMAKE_SOURCE_DIR}/deps/rapidjson/include
+        ${CMAKE_SOURCE_DIR}/deps/miniz-cpp
+    DESTINATION include
+)
+target_include_directories(ACTSSharedLibrary
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/core/shared/>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/deps/rapidjson/include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/deps/miniz-cpp>
+        $<INSTALL_INTERFACE:include>
+)
+
+install_common_defs(ACTSSharedLibrary ACTS::)

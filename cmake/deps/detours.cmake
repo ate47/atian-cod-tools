@@ -27,3 +27,10 @@ target_include_directories(detours PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/Detours/src"
 )
 append_common_defs(detours)
+
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/deps/Detours
+    DESTINATION include
+)
+install_common_defs(detours "")

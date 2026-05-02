@@ -130,6 +130,32 @@ macro(append_common_defs target)
 
 endmacro()
 
+macro(install_common_defs target nsp)
+    install(
+        TARGETS "${target}"
+        EXPORT "${target}Targets"
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+
+    install(
+        EXPORT "${target}Targets"
+        FILE "${target}Targets.cmake"
+        NAMESPACE ${nsp}
+        DESTINATION "lib/cmake/${target}"
+    )
+
+    install(
+        FILES "${CMAKE_SOURCE_DIR}/cmake/install/${target}Config.cmake"
+        DESTINATION "lib/cmake/${target}"
+    )
+endmacro()
+
+
+
+
+
 macro(load_dir_recurse id)
     file(GLOB DEP_SCRIPTS "${CMAKE_SOURCE_DIR}/cmake/${id}/*.cmake")
 

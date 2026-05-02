@@ -21,3 +21,10 @@ target_include_directories(lz4 PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/lz4/lib/"
 )
 append_common_defs(lz4 C)
+
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/deps/lz4/lib
+    DESTINATION include
+)
+install_common_defs(lz4 "")

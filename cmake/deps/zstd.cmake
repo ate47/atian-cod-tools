@@ -36,3 +36,10 @@ add_dependencies(zstd
     lz4
     zlib
 )
+
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/deps/zstd/lib
+    DESTINATION include
+)
+install_common_defs(zstd "")

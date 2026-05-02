@@ -16,6 +16,13 @@ set_target_properties(zlib PROPERTIES
 )
 append_common_defs(zlib C)
 
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/deps/zlib
+    DESTINATION include
+)
+install_common_defs(zlib "")
+
 # zlib-minizip
 file(GLOB ZLIB_MZ_SOURCES
     "${CMAKE_SOURCE_DIR}/deps/zlib/contrib/minizip/zip.c"

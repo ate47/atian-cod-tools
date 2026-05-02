@@ -142,3 +142,14 @@ if (GPL_BUILD)
         "${CMAKE_SOURCE_DIR}/deps/gsc-tool/include"
     )
 endif()
+
+install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+    DESTINATION include
+)
+target_include_directories(AtianCodTools
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+install_common_defs(AtianCodTools ACTS::)

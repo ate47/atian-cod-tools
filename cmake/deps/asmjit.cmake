@@ -17,7 +17,7 @@ set_target_properties(asmjit PROPERTIES
 )
 
 target_include_directories(asmjit PRIVATE
-    "${CMAKE_SOURCE_DIR}/deps/antlr4/runtime/Cpp/runtime/src"
+    "${CMAKE_SOURCE_DIR}/deps/asmjit/src"
 )
 append_common_defs(asmjit)
 target_compile_definitions(asmjit PRIVATE 
@@ -26,3 +26,10 @@ target_compile_definitions(asmjit PRIVATE
     ASMJIT_BUILD_RELEASE
     ASMJIT_NO_FOREIGN
 )
+
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/deps/asmjit/src
+    DESTINATION include
+)
+install_common_defs(asmjit "")

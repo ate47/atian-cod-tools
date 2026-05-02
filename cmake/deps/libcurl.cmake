@@ -48,3 +48,10 @@ target_compile_definitions(libcurl PRIVATE
 target_link_libraries(libcurl PRIVATE
     Crypt32.lib
 )
+
+install(
+    DIRECTORY
+        ${CMAKE_SOURCE_DIR}/deps/curl/include
+    DESTINATION include
+)
+install_common_defs(libcurl "")
