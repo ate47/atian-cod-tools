@@ -348,7 +348,7 @@ namespace games::cod::asset_names {
 			}
 
 			if (failMissing) {
-				throw std::runtime_error(std::format("Invalid asset type name {}", hashutils::ExtractTmp("hash", val)));
+				throw std::runtime_error(std::format("Invalid asset type name {}", core::hashes::ExtractTmp("hash", val)));
 			}
 
 			return nullptr;

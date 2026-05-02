@@ -1,4 +1,5 @@
 #pragma once
+#include <core/hashes/hash_store.hpp>
 
 namespace core::hashes::names {
 	class NamesStore {
@@ -33,7 +34,7 @@ namespace core::hashes::names {
 				uint64_t out;
 				if (!(hash::TryHashPattern(name, out) && out)) {
 					out = HashAsset(name); // can't reuse, use fonction
-					hashutils::AddPrecomputed(out, name);
+					core::hashes::AddPrecomputed(out, name);
 				}
 
 				assets[out] = 0;
@@ -60,7 +61,7 @@ namespace core::hashes::names {
 		void WarnMissings() {
 			for (const auto& [k, v] : assets) {
 				if (!v) {
-					LOG_WARNING("Unref asset {}", hashutils::ExtractTmp("hash", k));
+					LOG_WARNING("Unref asset {}", core::hashes::ExtractTmp("hash", k));
 				}
 			}
 		}
