@@ -1,6 +1,9 @@
 #include <includes.hpp>
 #include <core/actsinfo.hpp>
 
+constexpr uint32_t GetNextMajorVersion(uint32_t version) {
+	return (version & 0xFF000000) + 0x1000000;
+}
 
 namespace acts::plugins {
 	using LoadPluginFunc = void(*)();
@@ -19,17 +22,19 @@ namespace acts::plugins {
 				LOG_ERROR("Failed to load plugin {}: {}", name, GetLastError());
 				continue;
 			}
-			GetActsVersion pGetActsVersion{ (GetActsVersion)GetProcAddress(mod, "GetActsVersion") };
-			if (!pGetActsVersion) {
-				LOG_ERROR("Failed to find GetActsVersion in plugin {}: {}", name, GetLastError());
+			GetActsVersion pGetActsMinVersion{ (GetActsVersion)GetProcAddress(mod, "GetActsMinVersion") };
+			GetActsVersion pGetActsMaxVersion{ (GetActsVersion)GetProcAddress(mod, "GetActsMaxVersion") };
+			if (!pGetActsMinVersion) {
+				LOG_ERROR("Failed to find <uint32_t GetActsMinVersion()> in plugin {}: {}", name, GetLastError());
 				FreeLibrary(mod);
 				continue;
 			};
 
-			uint32_t pluginVersion{ pGetActsVersion() };
+			uint32_t minPluginVersion{ pGetActsMinVersion() };
+			uint32_t maxPluginVersion{ pGetActsMaxVersion ? pGetActsMaxVersion() : GetNextMajorVersion(minPluginVersion) };
 
-			if (pluginVersion != core::actsinfo::BUILD_VERSION_ID) {
-				LOG_ERROR("Version mismatch in plugin {}: plugin version is 0x{:x}, but ACTS common version is 0x{:x}!", name, pluginVersion, core::actsinfo::BUILD_VERSION_ID);
+			if (minPluginVersion > core::actsinfo::BUILD_VERSION_ID || maxPluginVersion < core::actsinfo::BUILD_VERSION_ID) {
+				LOG_ERROR("Version mismatch in plugin {}: plugin version is 0x{:x}-0x{:x}, but ACTS common version is 0x{:x}!", name, minPluginVersion, maxPluginVersion, core::actsinfo::BUILD_VERSION_ID);
 				FreeLibrary(mod);
 				continue;
 			}
