@@ -382,49 +382,9 @@ namespace hashutils {
 
 	bool Add(const char* str, bool ignoreCol, bool iw, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
-		// use the same string for all the hashes
-		if (clone) {
-			str = core::hashes::CloneHashStr(str);
-		}
-		AddPrecomputed(hash::Hash64(str), str, true, false);
-		if (iw) {
-			AddPrecomputed(hash::HashIWAsset(str), str, true, false);
-			AddPrecomputed(hash::HashJupScr(str), str, true, false);
-			AddPrecomputed(hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true, false);
-			AddPrecomputed(hash::HashIWDVar(str), str, true, false);
-			AddPrecomputed(hash::HashT10Scr(str), str, true, false);
-			AddPrecomputed(hash::HashT10ScrSP(str), str, true, false);
-			AddPrecomputed(hash::HashT10OmnVar(str), str, true, false);
-		}
-		bool cand32 = true;
-
-		for (const char* s = str; *s; s++) {
-			auto c = *s;
-			if (!(
-				(c >= 'A' && c <= 'Z')
-				|| (c >= 'a' && c <= 'z')
-				|| (c >= '0' && c <= '9')
-				|| c == '_')) {
-				cand32 = false; // a hash32 can only match [a-z0-9A-Z_]* in this context
-				break;
-			}
-		}
-
-		if (cand32) {
-			AddPrecomputed(hash::HashT7(str), str, true, false);
-
-			auto h = hash::HashT89Scr(str);
-			if (!ignoreCol) {
-				auto find = core::hashes::ExtractPtr(h);
-				if (find && _strcmpi(str, find)) {
-					LOG_WARNING("Coll '{}'='{}' #{:x}", str, find, h);
-					return false;
-				}
-			}
-			AddPrecomputed(h, str, true, false);
-		}
-		return true;
+		return core::hashes::Add(str, ignoreCol, iw, async, clone);
 	}
+
 	const char* AddPrecomputed(uint64_t value, const char* str, bool async, bool clone) {
 		core::async::opt_lock_guard lg{ GetMutex(async) };
 		return core::hashes::AddPrecomputed(value, str, clone);

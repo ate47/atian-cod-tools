@@ -35,6 +35,13 @@ typedef enum {
     CG_BO7 = 0x37504f4b43414c42, // call of duty black ops 7
 } ActsAPIFastFile_CordycepGame;
 
+// workflow used to read the fastfiles
+typedef enum {
+	FFW_NONE = 0, // default
+	FFW_READER = 1, // reader
+	FFW_ASSET_POOL = 2 // pool builder
+} ActsAPIFastFile_FastfileWorkflow;
+
 // state to keep between bdiff calls.
 typedef struct {
     // if the bdiff header has been read.
@@ -146,6 +153,12 @@ typedef struct {
 	const char* rsaKey;
 	// disable script decompilation (if available for the handler)
 	bool disableScriptsDecomp;
+	// asset types to dump
+	const char* assetTypes;
+	// output path
+	const char* outputPath;
+	// workflow used
+	ActsAPIFastFile_FastfileWorkflow workflow;
 } ActsAPIFastFile_FastFileOption;
 
 /*
@@ -218,7 +231,7 @@ ACTS_COMMON_API ActsStatus ActsAPIFastFile_bdiffData(
  * @param opt FastFile options
  * @param ud user data
  */
-typedef void (*ActsAPIFastFile_InitHandler)(ActsAPIFastFile_FastFileOption* opt, void* ud);
+typedef bool (*ActsAPIFastFile_InitHandler)(ActsAPIFastFile_FastFileOption* opt, void* ud);
 /*
  * Custom handler handle function, parse the decompressed data
  * @param opt FastFile options
@@ -227,7 +240,7 @@ typedef void (*ActsAPIFastFile_InitHandler)(ActsAPIFastFile_FastFileOption* opt,
  * @param dataLen decompressed data buffer length
  * @param ud user data
  */
-typedef void (*ActsAPIFastFile_HandleHandler)(ActsAPIFastFile_FastFileOption* opt, ActsAPIFastFile_FastFileContext* context, uint8_t* data, size_t dataLen, void* ud);
+typedef bool (*ActsAPIFastFile_HandleHandler)(ActsAPIFastFile_FastFileOption* opt, ActsAPIFastFile_FastFileContext* context, uint8_t* data, size_t dataLen, void* ud);
 /*
  * Custom handler cleanup function
  * @param ud user data
@@ -270,7 +283,12 @@ ACTS_COMMON_API const char* ActsAPIFastFile_FastFileContext_GetType(ActsAPIFastF
  * @return translation value, the unhashed value of name or a string version of name
  */
 ACTS_COMMON_API const char* ActsAPIFastFile_GetTranslation(uint64_t name);
-
+/*
+ * Allocate zone memory for the current context
+ * @param len memory length
+ * @return allocated memory, or nullptr if no context exists
+ */
+ACTS_COMMON_API uint8_t* ActsAPIFastFile_AllocateZoneMemory(size_t len);
 /*
  * Add an asset header to the current context
  * @param name asset name

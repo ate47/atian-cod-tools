@@ -274,7 +274,7 @@ namespace fastfile::handlers::bo6sp {
 			const char* poolName{ PoolName(hashType) };
 			size_t itemSize{ gcx.poolInfo[type].itemSize };
 			LOG_DEBUG("DB_AddAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
-			if (gcx.opt->workflow == fastfile::FFW_READER) *(gcx.outAsset) << "\n" << poolName << ",#" << name;
+			if (gcx.opt->workflow == FFW_READER) *(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			if (handle && *handle) {
 				gcx.linkedAssets[hashType][hash] = *handle;

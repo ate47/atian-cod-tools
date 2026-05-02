@@ -242,7 +242,7 @@ namespace fastfile::handlers::mwiii {
 			const char* name{ hashutils::ExtractTmp("hash", hash) };
 			const char* poolName{ GetPoolName(hashType) };
 			LOG_DEBUG("DB_AddXAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
-			if (gcx.opt->workflow == fastfile::FFW_READER) *(gcx.outAsset) << "\n" << poolName << ",#" << name;
+			if (gcx.opt->workflow == FFW_READER) *(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			if (handle && *handle) {
 				gcx.linkedAssets[hashType][hash] = *handle;

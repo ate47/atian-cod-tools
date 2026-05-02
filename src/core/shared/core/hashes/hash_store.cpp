@@ -22,6 +22,51 @@ namespace core::hashes {
 		hashes.alloc.FreeAll();
 	}
 
+	bool Add(const char* str, bool ignoreCol, bool iw, bool async, bool clone) {
+		// use the same string for all the hashes
+		if (clone) {
+			str = core::hashes::CloneHashStr(str);
+		}
+		AddPrecomputed(hash::Hash64(str), str, true);
+		if (iw) {
+			AddPrecomputed(hash::HashIWAsset(str), str, true);
+			AddPrecomputed(hash::HashJupScr(str), str, true);
+			AddPrecomputed(hash::Hash64(str, 0x811C9DC5, 0x1000193) & 0xFFFFFFFF, str, true);
+			AddPrecomputed(hash::HashIWDVar(str), str, true);
+			AddPrecomputed(hash::HashT10Scr(str), str, true);
+			AddPrecomputed(hash::HashT10ScrSP(str), str, true);
+			AddPrecomputed(hash::HashT10OmnVar(str), str, true);
+		}
+		bool cand32 = true;
+
+		for (const char* s = str; *s; s++) {
+			auto c = *s;
+			if (!(
+				(c >= 'A' && c <= 'Z')
+				|| (c >= 'a' && c <= 'z')
+				|| (c >= '0' && c <= '9')
+				|| c == '_')) {
+				cand32 = false; // a hash32 can only match [a-z0-9A-Z_]* in this context
+				break;
+			}
+		}
+
+		if (cand32) {
+			AddPrecomputed(hash::HashT7(str), str, true);
+
+			auto h = hash::HashT89Scr(str);
+			if (!ignoreCol) {
+				auto find = core::hashes::ExtractPtr(h);
+				if (find && _strcmpi(str, find)) {
+					LOG_WARNING("Coll '{}'='{}' #{:x}", str, find, h);
+					return false;
+				}
+			}
+			AddPrecomputed(h, str, true);
+		}
+		return true;
+	}
+
 	const char* AddPrecomputed(uint64_t value, const char* str, bool clone) {
 		if (clone) {
 			str = core::hashes::CloneHashStr(str);

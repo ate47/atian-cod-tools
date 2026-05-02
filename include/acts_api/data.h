@@ -21,6 +21,24 @@
 ACTS_COMMON_API ActsHandle ActsAPIData_NewGameData(const char* dirname, bool loadGameModule, const char* customGameModule, bool loadDecrypt);
 
 /*
+ * Set ignore missing scan value for the game data
+ * @param gameData game data handle
+ * @param ignore value to set
+ */
+ACTS_COMMON_API void ActsAPIData_IgnoreMissingScan(ActsHandle gameData, bool ignore);
+/*
+ * Get if we found missing scan values
+ * @param gameData game data handle
+ * @param cleanup cleanup the value after read
+ * @return true if the loaded scans were valid, false otherwise
+ */
+ACTS_COMMON_API bool ActsAPIData_HasMissingScan(ActsHandle gameData, bool cleanup);
+/*
+ * Save found scans
+ * @param gameData game data handle
+ */
+ACTS_COMMON_API void ActsAPIData_SaveScans(ActsHandle gameData);
+/*
  * Validate all scans in the config
  * @param gameData game data handle
  * @return true if the scans are valid, false otherwise
@@ -39,6 +57,12 @@ ACTS_COMMON_API ActsStatus ActsAPIData_ApplyNullScans(ActsHandle gameData, const
  * @return module name or null if unavailable
  */
 ACTS_COMMON_API const char* ActsAPIData_GetModuleName(ActsHandle gameData);
+/*
+ * Get the module base (if available)
+ * @param gameData game data handle
+ * @return module base or null if unavailable
+ */
+ACTS_COMMON_API void* ActsAPIData_GetModuleBase(ActsHandle gameData);
 /*
  * Get a config value
  * @param gameData game data handle

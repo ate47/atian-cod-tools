@@ -27,7 +27,6 @@ namespace {
 		assert(argc > 0);
 		newData.reserve((size_t)argc - 1); // remove start because we know we have at least one param
 		newData.push_back(argv[0]);
-
 		actscli::ActsOptions& opt{ actscli::options() };
 		size_t i = 1;
 		for (; i < argc; i++) {

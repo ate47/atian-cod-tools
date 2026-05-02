@@ -25,8 +25,8 @@ namespace {
 		}
 
 		void Init(fastfile::FastFileOption& opt) override {
-			if (pInit) {
-				pInit(&opt, ud);
+			if (pInit && !pInit(&opt, ud)) {
+				throw std::runtime_error("Failed to init fastfile handler");
 			}
 		}
 
@@ -37,8 +37,8 @@ namespace {
 		}
 
 		void Handle(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx) override {
-			if (pHandle) {
-				pHandle(&opt, &ctx, reader.Ptr(), reader.Remaining(), ud);
+			if (pHandle && !pHandle(&opt, &ctx, reader.Ptr(), reader.Remaining(), ud)) {
+				throw std::runtime_error("Failed to handle fastfile");
 			}
 		}
 	};

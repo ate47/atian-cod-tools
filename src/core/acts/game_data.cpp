@@ -3,6 +3,7 @@
 #include <game_data.hpp>
 #include <decryptutils.hpp>
 #include <acts_api/config.h>
+#include <acts_api/data.h>
 #include <acts_api_impl/api_impl.hpp>
 
 namespace acts::game_data {
@@ -61,7 +62,13 @@ namespace acts::game_data {
 	}
 
 	GameData::GameData(const char* dirname)
-		: cfg(GetBaseDir() / std::format("{}.json", dirname)), dirname(dirname) {
+		: dirname(dirname) {
+		if (*dirname == ':') {
+			cfg.SetConfigPath(utils::GetProgDir() / std::format("{}.json", dirname + 1));
+		}
+		else {
+			cfg.SetConfigPath(GetBaseDir() / std::format("{}.json", dirname));
+		}
 		if (!cfg.SyncConfig(false)) {
 			throw std::runtime_error(std::format("Can't find scan dir {}: {}", dirname, cfg.configFile.string()));
 		}
@@ -372,9 +379,20 @@ namespace {
 				if (loadDecrypt && !acts::decryptutils::LoadDecryptModule(gameModule)) {
 					throw std::runtime_error(std::format("Can't load {}: Can't find DecryptString", exe.string()));
 				}
+
+
+				gameData.SetScanContainer(&gameModule.GetScanContainer());
 			}
 		}
 	};
+}
+
+char* ActsAPIData_DecryptString(char* str) {
+	return acts::decryptutils::DecryptString(str);
+}
+
+bool ActsAPIData_LoadDecryptModule(char* path) {
+	return acts::decryptutils::LoadDecrypt(path);
 }
 
 ActsHandle ActsAPIData_NewGameData(const char* dirname, bool loadGameModule, const char* customGameModule, bool loadDecrypt) {
@@ -385,6 +403,26 @@ ActsHandle ActsAPIData_NewGameData(const char* dirname, bool loadGameModule, con
 		ActsAPISetLastMessage("%s", e.what());
 		return nullptr;
 	}
+}
+
+void ActsAPIData_IgnoreMissingScan(ActsHandle gameData, bool ignore) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+	impl.gameModule.GetScanContainer().ignoreMissing = ignore;
+}
+
+bool ActsAPIData_HasMissingScan(ActsHandle gameData, bool cleanup) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+	hook::scan_container::ScanContainer& scan{ impl.gameModule.GetScanContainer() };
+	bool r{ scan.foundMissing };
+	if (cleanup) {
+		scan.foundMissing = false;
+	}
+	return r;
+}
+void ActsAPIData_SaveScans(ActsHandle gameData) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+	hook::scan_container::ScanContainer& scan{ impl.gameModule.GetScanContainer() };
+	scan.Save();
 }
 
 bool ActsAPIData_ValidateScans(ActsHandle gameData) {
@@ -415,6 +453,11 @@ const char* ActsAPIData_GetModuleName(ActsHandle gameData) {
 		ActsAPISetLastMessage("%s", e.what());
 		return nullptr;
 	}
+}
+
+void* ActsAPIData_GetModuleBase(ActsHandle gameData) {
+	GameDataImplInternal& impl{ *(GameDataImplInternal*)gameData };
+	return *impl.gameModule.GetLibrary();
 }
 
 const char* ActsAPIData_GetConfigCString(ActsHandle gameData, const char* path) {

@@ -100,12 +100,6 @@ namespace fastfile {
 		GRID_BO6_PRE_ALPHA,
 	};
 
-	enum FastfileWorkflow {
-		FFW_NONE = 0,
-		FFW_READER,
-		FFW_ASSET_POOL
-	};
-
 	class FastFileOption : public ActsAPIFastFile_FastFileOption {
 	public:
 		bool m_help{};
@@ -116,16 +110,14 @@ namespace fastfile {
 		GameId m_gameId{};
 		GameRevId m_gameRevId{};
 		HANDLE cascStorage{};
-		std::filesystem::path m_output{ "output_ff" };
+		std::filesystem::path m_output;
 		std::vector<const char*> files{};
-		const char* assetTypes{};
 		FFHandler* handler{};
 		hook::module_mapper::Module gameMod{};
 		std::vector<std::set<uint64_t>> assetNames{};
 		std::unordered_map<uint64_t, const char*> translationKeys{};
 		core::memory_allocator::MemoryAllocator alloc{};
 		const tool::gsc::formatter::FormatterInfo* gscFormatter{};
-		FastfileWorkflow workflow{};
 
 		FastFileOption();
 		~FastFileOption();

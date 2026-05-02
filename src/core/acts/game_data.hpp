@@ -35,7 +35,7 @@ namespace acts::game_data {
 	};
 
 	class GameData {
-		core::config::Config cfg;
+		core::config::Config cfg{};
 		hook::scan_container::ScanContainer* scan{};
 		const char* dirname;
 	public:

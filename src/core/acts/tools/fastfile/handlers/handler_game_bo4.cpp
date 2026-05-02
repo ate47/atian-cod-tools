@@ -430,7 +430,7 @@ namespace fastfile::handlers::bo4 {
 		if (hash && hash->name) {
 			bool defaultAsset{ (hash->name & ~hash::MASK63) != 0 };
 			if (defaultAsset) hash->name &= hash::MASK63;
-			if (gcx.opt->workflow == fastfile::FFW_READER) {
+			if (gcx.opt->workflow == FFW_READER) {
 				*gcx.outAssetNames << XAssetNameFromId(xasset->type) << "," << (defaultAsset ? "d" : "") << "#" << hashutils::ExtractTmp("hash", hash->name);
 				**gcx.outAssetNames << std::endl;
 			}

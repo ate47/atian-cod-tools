@@ -196,7 +196,7 @@ namespace fastfile::handlers::cw {
 			int assetSize{ gcx.DB_GetXAssetTypeSize(type) };
 			CWXHash* phash{ header ? cw::GetAssetName(type, header, assetSize) : nullptr };
 			CWXHash hash{ phash ? *phash : 0 };
-			if (gcx.opt->workflow == fastfile::FFW_READER) *(gcx.outAsset) << "\n" << cw::PoolName(type) << ",#" << hashutils::ExtractTmp("hash", hash);
+			if (gcx.opt->workflow == FFW_READER) *(gcx.outAsset) << "\n" << cw::PoolName(type) << ",#" << hashutils::ExtractTmp("hash", hash);
 
 			//const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
 			//*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;

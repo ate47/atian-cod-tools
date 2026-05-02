@@ -318,7 +318,7 @@ namespace fastfile {
 					std::cerr << "Missing value for param: " << arg << "!\n";
 					return false;
 				}
-				m_output = args[++i];
+				m_output = outputPath = args[++i];
 			}
 			else if (!strcmp("-g", arg) || !_strcmpi("--game", arg)) {
 				if (i + 1 == endIndex) {
@@ -534,6 +534,9 @@ namespace fastfile {
 			else {
 				files.push_back(arg);
 			}
+		}
+		if (!outputPath) {
+			m_output = outputPath = "output_ff";
 		}
 		return true;
 	}
@@ -1279,7 +1282,7 @@ namespace fastfile {
 		return true;
 	}
 
-	int FastfileLoader(int argc, const char* argv[], FastfileWorkflow workflow) {
+	int FastfileLoader(int argc, const char* argv[], ActsAPIFastFile_FastfileWorkflow workflow) {
 		FastFileOption opt{};
 		opt.workflow = workflow;
 		currentOpt = &opt;
@@ -1498,6 +1501,13 @@ ActsAPIFastFile_FastFileContext* ActsAPIFastFile_GetCurrentContext() {
 
 const char* ActsAPIFastFile_GetTranslation(uint64_t name) {
 	return fastfile::currentOpt ? fastfile::currentOpt->GetTranslation(name) : hashutils::ExtractTmp("hash", name);
+}
+
+uint8_t* ActsAPIFastFile_AllocateZoneMemory(size_t len) {
+	if (!fastfile::currentCtx) {
+		return nullptr;
+	}
+	return fastfile::currentCtx->zoneMemory.Alloc<uint8_t>(len);
 }
 
 void ActsAPIFastFile_AddAssetHeaderString(const char* name, void* header, uint32_t type, size_t size) {

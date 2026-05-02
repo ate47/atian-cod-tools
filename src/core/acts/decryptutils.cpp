@@ -3,7 +3,6 @@
 #include <utils/decrypt_t8old.hpp>
 #include <hook/module_mapper.hpp>
 #include "decryptutils.hpp"
-#include <acts_api/data.h>
 
 namespace acts::decryptutils {
 
@@ -107,11 +106,4 @@ namespace acts::decryptutils {
 		}
 	}
 
-}
-char* ActsAPIData_DecryptString(char* str) {
-	return acts::decryptutils::DecryptString(str);
-}
-
-bool ActsAPIData_LoadDecryptModule(char* path) {
-	return acts::decryptutils::LoadDecrypt(path);
 }

@@ -31,8 +31,17 @@ namespace core::config {
 
 		return defaultEnumValue;
 	}
-	Config::Config(const std::filesystem::path& path) : configFile(path.is_absolute() ? path : (utils::GetProgDir() / path)) {}
+	Config::Config() {
+		SetConfigPath(mainConfigFile);
+	}
 
+	Config::Config(const std::filesystem::path& path) {
+		SetConfigPath(path);
+	}
+
+	void Config::SetConfigPath(std::filesystem::path path) {
+		configFile = path.is_absolute() ? path : (utils::GetProgDir() / path);
+	}
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
 	rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& Config::GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc) {
 		static rapidjson::Value nullAnswer{ rapidjson::kNullType };

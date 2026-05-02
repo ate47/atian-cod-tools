@@ -28,10 +28,11 @@ namespace core::config {
 
 	class Config {
 	public:
-		const std::filesystem::path configFile;
+		std::filesystem::path configFile;
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
 		rapidjson::GenericDocument<rapidjson::UTF8<>, rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator>> main{};
 #endif
+		Config();
 		Config(const std::filesystem::path& path);
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
 		rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc);
@@ -87,6 +88,7 @@ namespace core::config {
 
 		bool SyncConfig(bool save);
 		void SaveConfig() const;
+		void SetConfigPath(std::filesystem::path configFile);
 	};
 
 	void SetMainConfig(const std::filesystem::path& path);

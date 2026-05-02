@@ -25,7 +25,18 @@ namespace core::hashes {
 	 * @return the hash map
 	 */
 	const std::unordered_map<uint64_t, const char*>& GetMap();
-	
+
+	/*
+	 * Add a hash into the map
+	 * @param str string
+	 * @param ignoreCol ignore collisions
+	 * @param iw hash
+	 * @param async run async
+	 * @param clone clone string
+	 * @return if it collided with another string
+	 */
+	bool Add(const char* str, bool ignoreCol, bool iw, bool async, bool clone);
+
 	/*
 	 * Add a hash to the store
 	 * @param value hash value

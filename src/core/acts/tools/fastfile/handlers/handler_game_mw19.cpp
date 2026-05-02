@@ -197,7 +197,7 @@ namespace fastfile::handlers::mw19 {
 			*handle = data;
 
 			LOG_TRACE("DB_AddAsset({}, '{}') {}", poolName, name, hook::library::CodePointer{ _ReturnAddress() });
-			if (gcx.opt->workflow == fastfile::FFW_READER) *(gcx.outAsset) << "\n" << poolName << ",#" << name;
+			if (gcx.opt->workflow == FFW_READER) *(gcx.outAsset) << "\n" << poolName << ",#" << name;
 
 			fastfile::AddAssetHeader(name, handle ? *handle : nullptr, type, assetSize);
 
