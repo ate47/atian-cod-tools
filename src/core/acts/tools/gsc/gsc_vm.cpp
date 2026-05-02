@@ -105,10 +105,10 @@ namespace tool::gsc::vm {
                 RegisterGSCOBJHandler<T1010GSCOBJHandler<VMI_T10_12>>(VMI_T10_12);
                 RegisterGSCOBJHandler<T1010GSCOBJHandler<VMI_T10_13>>(VMI_T10_13);
                 RegisterGSCOBJHandler<T1010GSCOBJHandler<VMI_T10_14>>(VMI_T10_14);
-                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_T10_15>>(VMI_T10_15);
-                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_T10_16>>(VMI_T10_16);
-                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_T10_17>>(VMI_T10_17);
-                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_T10_18>>(VMI_T10_18);
+                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_15>>(VMI_SAT_15);
+                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_16>>(VMI_SAT_16);
+                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_17>>(VMI_SAT_17);
+                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_18>>(VMI_SAT_18);
 
                 // register GBD data
                 RegisterGDBOBJHandler<GscGdbActs>();
