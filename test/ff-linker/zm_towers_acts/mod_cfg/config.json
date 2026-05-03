@@ -1,0 +1,8 @@
+{
+    "modid": "zm_towers_test",
+    "fastfiles" : {
+        "zm_towers_acts": {
+            "type": "level"
+        }
+    }
+}

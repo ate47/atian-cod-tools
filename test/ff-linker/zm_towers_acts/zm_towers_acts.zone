@@ -1,0 +1,7 @@
+
+>game=bo4
+>name=zm_towers_acts
+>compression=oodle_kraken
+>compression.high=true
+
+scriptparsetree,!scripts/zm/zm_towers_acts.gsc

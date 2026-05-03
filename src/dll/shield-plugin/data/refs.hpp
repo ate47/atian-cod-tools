@@ -84,6 +84,7 @@ namespace bo4 {
 	// common
 	S_ANY Ref<const char* (int32_t lang)> SEH_GetLanguageNameAbbr{ 0x3CB1340_a };
 	S_ANY Ref<const dvar_t*> dvar_loc_language{ 0xF92B348_a };
+	S_ANY Ref<bool()> DB_Is4KEnabled{0x35D6EC0_a};
 
 	// mutex
 	class ScopedCriticalSection;

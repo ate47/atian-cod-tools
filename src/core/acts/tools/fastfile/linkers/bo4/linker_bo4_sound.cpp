@@ -544,9 +544,10 @@ namespace fastfile::linker::bo4 {
 				std::filesystem::path sabl{ dir / std::format("{}.sabl", name) };
 				std::filesystem::create_directories(dir);
 
+				size_t sabsSize{ CreateSabFile(sabs, soundLanguage, sndPlatform, streamEntries) };
 				size_t sablSize{ CreateSabFile(sabl, soundLanguage, sndPlatform, loadEntries) };
 
-				if (!sablSize) {
+				if (!sablSize || !sabsSize) {
 					ctx.error = true;
 					continue;
 				}

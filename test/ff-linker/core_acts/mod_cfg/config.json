@@ -1,24 +1,18 @@
 {
     "modid": "test",
-    "fastfile_hook": [
-        {
-            "name": "core_acts",
+    "fastfiles" : {
+        "core_acts": {
             "hook": "core_common",
-            "is_common": true
-        },
-        {
-            "name": "fr_core_acts"
-        },
-        {
-            "name": "en_core_acts"
-        },
-        {
-            "name": "core_acts.en"
-        },
-        {
-            "name": "core_acts.fr"
+            "type": "common",
+            "default_language": "en",
+            "files": [
+                "fr_core_acts",
+                "en_core_acts",
+                "core_acts.en",
+                "core_acts.fr"
+            ]
         }
-    ],
+    },
     "redirects": [
         {
             "type": "image",

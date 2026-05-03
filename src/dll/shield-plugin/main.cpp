@@ -33,7 +33,7 @@ EXPORT void PBO4_PreStart() {
     hook::error::InstallErrorHooks(true);
 
     hook::library::Library main{};
-    LOG_INFO("init acts dll pid={} name={}", GetCurrentProcessId(), main.GetName());
+    LOG_INFO("init acts {}(0x{:x}) dll pid={} name={}", core::actsinfo::VERSION, core::actsinfo::BUILD_VERSION_ID, GetCurrentProcessId(), main.GetName());
     core::system::Init();
 }
 
