@@ -15,8 +15,8 @@
 #include <core/config.hpp>
 #include <core/updater.hpp>
 #include <core/shared_cfg_data.hpp>
+#include <core/plugins.hpp>
 #include <acts_api/version.h>
-#include <extension/acts_plugins.hpp>
 
 namespace {
 	inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -372,8 +372,6 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 		return -1;
 	}
 
-	acts::plugins::LoadPlugins();
-
 	if (argc && *argc && argv) {
 		if (ShouldHandleACTSOptions(*argc, *argv)) {
 			static std::vector<const char*> newargv{};
@@ -389,6 +387,9 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 	LOG_TRACE("Install error hooks");
 
 	hook::error::InstallErrorHooks();
+
+	core::plugins::LoadPlugins();
+	core::plugins::CallForEachPlugin("LoadActsPlugin");
 
 	return 0;
 }
