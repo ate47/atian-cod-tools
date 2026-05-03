@@ -4,5 +4,6 @@
 #include <hook/refs.hpp>
 #include <utils/hash.hpp>
 #include <core/system.hpp>
+#include <utils/utils.hpp>
 
 #define EXPORT extern "C" __declspec(dllexport)
