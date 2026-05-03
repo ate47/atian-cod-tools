@@ -130,6 +130,75 @@ namespace systems::gsc::funcs {
 			}
 		}
 
+		void GScr_NewDebugHudElem(bo4::scriptInstance_t inst) {
+			LOG_WARNING("NewDebugHudElem not implemented");
+			bo4::ScrVm_AddStruct(inst); // create empty struct
+		}
+
+		void HECmd_SetText(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetText not implemented");
+		}
+
+		void HECmd_SetMaterial(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetMaterial not implemented");
+		}
+
+		void HECmd_SetTargetEnt(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetTargetEnt not implemented");
+		}
+
+		void HECmd_ClearTargetEnt(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_ClearTargetEnt not implemented");
+		}
+
+		void HECmd_SetTimer(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetTimer not implemented");
+		}
+
+		void HECmd_SetTenthsTimer(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetTenthsTimer not implemented");
+		}
+
+		void HECmd_SetValue(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetValue not implemented");
+		}
+
+		void HECmd_SetWaypoint(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetWaypoint not implemented");
+		}
+
+		void HECmd_FadeOverTime(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_FadeOverTime not implemented");
+		}
+
+		void HECmd_ScaleOverTime(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_ScaleOverTime not implemented");
+		}
+
+		void HECmd_MoveOverTime(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_MoveOverTime not implemented");
+		}
+
+		void HECmd_Destroy(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_Destroy not implemented");
+		}
+
+		void HECmd_SetPulseFX(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetPulseFX not implemented");
+		}
+
+		void HECmd_SetCOD7DecodeFX(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetCOD7DecodeFX not implemented");
+		}
+
+		void HECmd_SetPlayerNameString(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_SetPlayerNameString not implemented");
+		}
+
+		void HECmd_ChangeFontScaleOverTime(bo4::scriptInstance_t inst, void* ref) {
+			LOG_WARNING("HECmd_ChangeFontScaleOverTime not implemented");
+		}
+
 		bo4::BuiltinFunctionDef customFuncsGsc[] {
 			{ // ActsLog(message)
 				.canonId = hash::HashT89Scr("ActsLog"),
@@ -151,6 +220,127 @@ namespace systems::gsc::funcs {
 				.max_args = 3,
 				.actionFunc = Scr_ActsGetDetour,
 				.type = bo4::BUILTIN_DEFAULT,
+			},
+			{ // NewDebugHudElem(owner) -> helem
+				.canonId = hash::HashT89Scr("NewDebugHudElem"),
+				.min_args = 0,
+				.max_args = 1,
+				.actionFunc = GScr_NewDebugHudElem,
+				.type = bo4::BUILTIN_DEV,
+			},
+		};
+		bo4::BuiltinFunctionDef customMethodGsc[]{
+			{
+				.canonId = hash::HashT89Scr("settext"),
+				.min_args = 1,
+				.max_args = 0x7FFFFFFF,
+				.actionFunc = HECmd_SetText,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("setshader"),
+				.min_args = 1,
+				.max_args = 3,
+				.actionFunc = HECmd_SetMaterial,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("settargetent"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_SetTargetEnt,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("cleartargetent"),
+				.min_args = 0,
+				.max_args = 0,
+				.actionFunc = HECmd_ClearTargetEnt,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("settimer"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_SetTimer,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("settenthstimer"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_SetTenthsTimer,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("setvalue"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_SetValue,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("setwaypoint"),
+				.min_args = 1,
+				.max_args = 4,
+				.actionFunc = HECmd_SetWaypoint,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("fadeovertime"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_FadeOverTime,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("scaleovertime"),
+				.min_args = 3,
+				.max_args = 3,
+				.actionFunc = HECmd_ScaleOverTime,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("moveovertime"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_MoveOverTime,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("destroy"),
+				.min_args = 0,
+				.max_args = 0,
+				.actionFunc = HECmd_Destroy,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("setpulsefx"),
+				.min_args = 3,
+				.max_args = 3,
+				.actionFunc = HECmd_SetPulseFX,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("setcod7decodefx"),
+				.min_args = 3,
+				.max_args = 3,
+				.actionFunc = HECmd_SetCOD7DecodeFX,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("setplayernamestring"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_SetPlayerNameString,
+				.type = bo4::BUILTIN_DEFAULT
+			},
+			{
+				.canonId = hash::HashT89Scr("changefontscaleovertime"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = HECmd_ChangeFontScaleOverTime,
+				.type = bo4::BUILTIN_DEFAULT
 			},
 		};
 		bo4::BuiltinFunctionDef customFuncsCsc[] {
@@ -177,10 +367,20 @@ namespace systems::gsc::funcs {
 			},
 		};
 
+		bo4::BuiltinFunctionDef customMethodCsc[1]{
+			{
+				.canonId = 9999999, // mock
+			}
+		};
+
 		hook::library::Detour Scr_GetFunction_Detour;
 		hook::library::Detour Scr_GetFunctionReverseLookup_Detour;
+		hook::library::Detour Scr_GetMethod_Detour;
+		hook::library::Detour Scr_GetMethodReverseLookup_Detour;
 		hook::library::Detour CScr_GetFunction_Detour;
 		hook::library::Detour CScr_GetFunctionReverseLookup_Detour;
+		hook::library::Detour CScr_GetMethod_Detour;
+		hook::library::Detour CScr_GetMethodReverseLookup_Detour;
 
 		bool Scr_GetFunctionReverseLookup_Stub(void* func, uint32_t* hash, bool* isFunction) {
 			if (Scr_GetFunctionReverseLookup_Detour.Call<bool>(func, hash, isFunction)) {
@@ -195,8 +395,17 @@ namespace systems::gsc::funcs {
 				return true;
 			}
 
+			auto m = std::find_if(std::begin(customMethodGsc), std::end(customMethodGsc), [func](const bo4::BuiltinFunctionDef& def) { return def.actionFunc == func; });
+
+			if (m != std::end(customMethodGsc)) {
+				*hash = m->canonId;
+				*isFunction = false;
+				return true;
+			}
+
 			return false;
 		}
+
 		bool CScr_GetFunctionReverseLookup_Stub(void* func, uint32_t* hash, bool* isFunction) {
 			if (CScr_GetFunctionReverseLookup_Detour.Call<bool>(func, hash, isFunction)) {
 				return true;
@@ -207,6 +416,14 @@ namespace systems::gsc::funcs {
 			if (f != std::end(customFuncsCsc)) {
 				*hash = f->canonId;
 				*isFunction = true;
+				return true;
+			}
+
+			auto m = std::find_if(std::begin(customMethodCsc), std::end(customMethodCsc), [func](const bo4::BuiltinFunctionDef& def) { return def.actionFunc == func; });
+
+			if (m != std::end(customMethodCsc)) {
+				*hash = m->canonId;
+				*isFunction = false;
 				return true;
 			}
 
@@ -252,11 +469,53 @@ namespace systems::gsc::funcs {
 			return nullptr;
 		}
 
+		void* Scr_GetMethod_Stub(uint32_t name, int32_t* type, int32_t* min_args, int32_t* max_args) {
+			void* func = Scr_GetMethod_Detour.Call<void*>(name, type, min_args, max_args);
+
+			if (func) {
+				return func;
+			}
+
+			auto f = std::find_if(std::begin(customMethodGsc), std::end(customMethodGsc), [name](const bo4::BuiltinFunctionDef& func) { return func.canonId == name; });
+
+			if (f != std::end(customMethodGsc)) {
+				*type = f->type;
+				*min_args = f->min_args;
+				*max_args = f->max_args;
+
+				return f->actionFunc;
+			}
+
+			return nullptr;
+		}
+
+		void* CScr_GetMethod_Stub(uint32_t name, int32_t* type, int32_t* min_args, int32_t* max_args) {
+			void* func = CScr_GetMethod_Detour.Call<void*>(name, type, min_args, max_args);
+
+			if (func) {
+				return func;
+			}
+
+			auto f = std::find_if(std::begin(customMethodCsc), std::end(customMethodCsc), [name](const bo4::BuiltinFunctionDef& func) { return func.canonId == name; });
+
+			if (f != std::end(customMethodCsc)) {
+				*type = f->type;
+				*min_args = f->min_args;
+				*max_args = f->max_args;
+
+				return f->actionFunc;
+			}
+
+			return nullptr;
+		}
+
 		void PostInit(uint64_t uid) {
 			Scr_GetFunctionReverseLookup_Detour.Create(0x33AF8A0_a, Scr_GetFunctionReverseLookup_Stub);
 			CScr_GetFunctionReverseLookup_Detour.Create(0x1F132A0_a, CScr_GetFunctionReverseLookup_Stub);
 			Scr_GetFunction_Detour.Create(0x33AF840_a, Scr_GetFunction_Stub);
 			CScr_GetFunction_Detour.Create(0x1F13140_a, CScr_GetFunction_Stub);
+			CScr_GetMethod_Detour.Create(0x1F13650_a, CScr_GetMethod_Stub);
+			Scr_GetMethod_Detour.Create(0x33AFC20_a, Scr_GetMethod_Stub);
 		}
 
 

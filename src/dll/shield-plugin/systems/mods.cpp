@@ -698,15 +698,4 @@ namespace systems::mods {
 
 		REGISTER_SYSTEM(mods, ModsInit, ModsPostInit);
 	}
-
-	/*
-[19:05:32][ERROR][shield-plugin:systems:errors@37] Sys_Error(174350744,489448d31c1e29bc,hot) //PMem: failed to free memory en_core_acts/stack hot
-[19:05:32][ERROR][shield-plugin:systems:errors@42] --- Stack ---
-[00:14:56][ERROR][shared:hook:error@245] - acts-shield-plugin.dll 0x15226 (0x7ffdc5cf5226)
-[00:14:56][ERROR][shared:hook:error@245] - BlackOps4.exe 0x3c4066e (0x7ff76859066e) // PMem_EndAlloc2
-[00:14:56][ERROR][shared:hook:error@245] - BlackOps4.exe 0x3c403a7 (0x7ff7685903a7) // PMem_EndAlloc
-[00:14:56][ERROR][shared:hook:error@245] - BlackOps4.exe 0x2ebb3df (0x7ff76780b3df) // DB_UnloadXZoneMemory
-[00:14:56][ERROR][shared:hook:error@245] - BlackOps4.exe 0x2eba148 (0x7ff76780a148) // DB_ShutdownXAssets
-	
-	*/
 }
