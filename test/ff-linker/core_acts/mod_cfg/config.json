@@ -8,6 +8,7 @@
             "files": [
                 "fr_core_acts",
                 "en_core_acts",
+                "dbg_core_acts",
                 "core_acts.en",
                 "core_acts.fr"
             ]

@@ -135,6 +135,7 @@ namespace systems::mods {
 			DB_ZONE_MERGE = 0x10000,
 			DB_ZONE_MYCHANGES = 0x20000,
 			DB_FLAG_LOC = 0x80000,
+			DB_FLAG_PATCH = 0x100000,
 			DB_FLAG_RES = 0x400000,
 			DB_FLAG_IGNORE_MISSING = 0x800000,
 			DB_FLAG_NOAUTOFREE = 0x1000000,
@@ -298,10 +299,37 @@ namespace systems::mods {
 		int DB_ExpandZoneList_Stub(XZoneInfo* input, int inputCount, str64_t* names, XZoneInfo* output, int maxOutputCount) {
 			int count{ DB_ExpandZoneList_Detour.Call<int>(input, inputCount, names, output, maxOutputCount) };
 
+			// expand dbg_ zones
+			for (size_t i = 0; i < inputCount; i++) {
+				if (!input[i].name || (input[i].allocFlags & DB_FLAG_CUSTOM) == 0) {
+					continue; // no name or not our ff
+				}
+
+				if (CustomFileExists("dbg_", input[i].name, "ff")) {
+					if (count == maxOutputCount) {
+						LOG_WARNING("Can't add expand entry for dbg_{}", input[i].name);
+						continue; // not enought to allocate
+					}
+
+					XZoneInfo& c{ output[count] };
+					str64_t& name{ names[count] };
+					count++;
+
+					std::snprintf(name, sizeof(name), "dbg_%s", input[i].name);
+
+					c.name = name;
+					c.allocFlags = input[i].allocFlags | DB_FLAG_PATCH;
+					c.freeFlags = 0;
+					c.fileBuffer.data = nullptr;
+					c.fileBuffer.dataSize = 0;
+				}
+			}
+
+			int newCount{};
 			XZoneInfo* valid{ output };
 			XZoneInfo* current{ output };
 
-			int newCount{};
+
 			LOG_TRACE("DB_ExpandZoneList({}) -> {} {}", inputCount, count, hook::library::CodePointer{ _ReturnAddress() });
 			for (size_t i = 0; i < count; i++) {
 				XZoneInfo* c{ current++ };

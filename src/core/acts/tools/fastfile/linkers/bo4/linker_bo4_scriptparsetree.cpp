@@ -51,6 +51,8 @@ namespace fastfile::linker::bo4 {
 		}
 
 		static void AddGscDBGHeader(BO4LinkContext& ctx, std::vector<byte>& buffer, std::string& preproc, std::vector<byte>& dbgbuffer, const std::filesystem::path& path) {
+			BO4FFContext& dbgCtx{ ctx.GetFFContext("dbg_") };
+
 			if (buffer.size() < sizeof(tool::gsc::T8GSCOBJ)) {
 				LOG_ERROR("Can't read compiled gsc header for {}", path.string());
 				return;
@@ -64,9 +66,9 @@ namespace fastfile::linker::bo4 {
 				const char* src;
 			}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
 
-			ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, fastfile::linker::data::POINTER_NEXT);
+			dbgCtx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, fastfile::linker::data::POINTER_NEXT);
 
-			ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
+			dbgCtx.data.PushStream(XFILE_BLOCK_TEMP);
 			ScriptParseTreeDBG spt{};
 			spt.name.name = obj.name;
 			if (preproc.size()) {
@@ -77,23 +79,23 @@ namespace fastfile::linker::bo4 {
 				spt.gdb = (void*)fastfile::linker::data::POINTER_NEXT;
 				spt.gdbLen = (int32_t)dbgbuffer.size();
 			}
-			ctx.mainFF.data.WriteData(spt);
+			dbgCtx.data.WriteData(spt);
 
-			ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			dbgCtx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 			if (dbgbuffer.size()) {
-				ctx.mainFF.data.Align(0x20);
-				void* ptr{ ctx.mainFF.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
+				dbgCtx.data.Align(0x20);
+				void* ptr{ dbgCtx.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
 				std::memcpy(ptr, dbgbuffer.data(), dbgbuffer.size());
 			}
 
 			if (preproc.size()) {
-				ctx.mainFF.data.Align<char>();
-				void* ptr{ ctx.mainFF.data.AllocDataPtr<void>(preproc.size() + 1) };
+				dbgCtx.data.Align<char>();
+				void* ptr{ dbgCtx.data.AllocDataPtr<void>(preproc.size() + 1) };
 				std::memcpy(ptr, preproc.data(), preproc.size());
 			}
-			ctx.mainFF.data.PopStream();
+			dbgCtx.data.PopStream();
 
-			ctx.mainFF.data.PopStream();
+			dbgCtx.data.PopStream();
 			LOG_INFO("Added asset scriptparsetreedbg {} (hash_{:x})", path.string(), obj.name);
 		}
 
