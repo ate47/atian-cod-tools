@@ -215,7 +215,7 @@ namespace games::cod::asset_names {
 
 					os << "enum " << opts->assetTypeName << " : uint32_t {";
 					for (size_t i = 0; i < typeMapsCount; i++) {
-						os << "\n    " << opts->assetPrefix << GetCppName((AssetId)i)
+						os << "\n    " << opts->assetPrefix << core::strings::GetCppIdentifier(typeNames[i])
 							<< " = 0x" << std::hex << i << ", // " << typeNames[i];
 					}
 					os << "\n};\n\n";
@@ -226,13 +226,20 @@ namespace games::cod::asset_names {
 			if (opts->dumpHashedHeader) {
 				std::filesystem::path f{ dir / std::format("{}_hashes.hpp", opts->baseFileName) };
 
+				const char* sortedHashedName[MAX_ASSET_COUNT];
+				// sort the names because the ids are not relevant anymore
+				for (size_t i = 0; i < typeMapsCount; i++) {
+					sortedHashedName[i] = typeNames[i];
+				}
+				std::sort(&sortedHashedName[0], &sortedHashedName[typeMapsCount], [](const char* a, const char* b) { return strcmpi(a, b) < 0; });
+
 				{
 					utils::OutFileCE os{ f, true };
 
 					os << "enum " << opts->assetHashedName << " : uint32_t {";
 					for (size_t i = 0; i < typeMapsCount; i++) {
-						os << "\n    " << opts->assetHashedPrefix << GetCppName((AssetId)i)
-							<< " = 0x" << std::hex << PoolId(typeNames[i]) << ", // " << typeNames[i];
+						os << "\n    " << opts->assetHashedPrefix << core::strings::GetCppIdentifier(sortedHashedName[i])
+							<< " = 0x" << std::hex << PoolId(sortedHashedName[i]) << ", // " << sortedHashedName[i];
 					}
 					os << "\n};\n";
 				}
