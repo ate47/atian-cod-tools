@@ -24,6 +24,7 @@ namespace {
 		const char* unk90;
 		XModel* parachuteVM;
 		XModel* parachuteWM;
+		WeatherLayerMask* weatherLayerMask;
 		ParticleSystem* particleSystem;
 		float unkb0;
 		uint32_t lootid;
@@ -31,7 +32,7 @@ namespace {
 		bool unkb9;
 		bool unkba;
 	};
-	static_assert(sizeof(OperatorSkin) == 0xc0);
+	static_assert(sizeof(OperatorSkin) == 0xc8);
 
 	struct Operator {
 		XHash64 name;
@@ -45,8 +46,9 @@ namespace {
 		GfxImage* portraitImage;
 		GfxImage* iconMinimap;
 		const char* dialog;
+		XHash64 unkHash;
 		const char* gender;
-		XHash64 genderHash;
+		XHash64 unk_5e798df9018086fd;
 		XHash64 gasMask;
 		scriptbundle::ScriptBundleObjectData bundleData;
 		uint32_t lootid;
@@ -55,7 +57,7 @@ namespace {
 		bool unk96;
 		bool unk97;
 	};
-	static_assert(sizeof(Operator) == 0x98);
+	static_assert(sizeof(Operator) == 0xa0);
 
 	struct ReactiveOperator {
 		XHash64 name;
@@ -95,7 +97,8 @@ namespace {
 			json.WriteFieldValueXHash("defaultSkin", asset->defaultSkin);
 			json.WriteFieldValueXHash(0x2166b3eb7bbab0c9, asset->unk_2166b3eb7bbab0c9);
 			json.WriteFieldValueXHash("gasMask", asset->gasMask);
-			json.WriteFieldValueXHash("genderHash", asset->genderHash);
+			json.WriteFieldValueXHash(0x5e798df9018086fd, asset->unk_5e798df9018086fd);
+			json.WriteFieldValueXHash("unkHash", asset->unkHash);
 			json.WriteFieldValueXAsset("xboneSet", SATH_ASSET_XBONESET, asset->xboneSet);
 			json.WriteFieldValueXAsset("portraitImage", SATH_ASSET_IMAGE, asset->portraitImage);
 			json.WriteFieldValueXAsset("iconMinimap", SATH_ASSET_IMAGE, asset->iconMinimap);
@@ -174,6 +177,7 @@ namespace {
 			json.WriteFieldValueXAsset("icon", SATH_ASSET_IMAGE, asset->icon);
 			json.WriteFieldValueXAsset("parachuteVM", SATH_ASSET_XMODEL, asset->parachuteVM);
 			json.WriteFieldValueXAsset("parachuteWM", SATH_ASSET_XMODEL, asset->parachuteWM);
+			json.WriteFieldValueXAsset("weatherLayerMask", SATH_ASSET_WEATHERLAYERMASK, asset->weatherLayerMask);
 			json.WriteFieldValueXAsset("particleSystem", SATH_ASSET_PARTICLESYSTEM, asset->particleSystem);
 			json.WriteFieldValueXString("unk80", asset->unk90);
 

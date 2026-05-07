@@ -20,6 +20,7 @@ namespace fastfile::handlers::bo7 {
 
 	struct GfxImage;
 	struct MaterialAnimation;
+	struct WeatherLayerMask;
 	struct ParticleSystem;
 	struct FootStepSFXTable;
 	struct FoliageSFXTable;

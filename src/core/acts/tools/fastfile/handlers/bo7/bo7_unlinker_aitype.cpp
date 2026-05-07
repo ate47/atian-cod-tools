@@ -120,19 +120,20 @@ namespace {
 		uint64_t unk128;
 		uint64_t unk130;
 		int32_t unk140;
+		int32_t unk144;
 		int32_t voiceListCount;
 		int32_t scriptFilesCount;
 		int32_t weaponsCount;
 		AITypeTeam team;
-		byte unk145;
-		byte unk146;
-		byte unk147;
-		uint32_t unk148;
+		byte unk149;
+		byte unk14a;
+		byte unk14b;
 		uint64_t unk150;
 		uint64_t unk158;
-		GfxImage* unk160;
+		uint64_t unk160;
 		GfxImage* unk168;
-	}; static_assert(sizeof(AIType) == 0x170);
+		GfxImage* unk170;
+	}; static_assert(sizeof(AIType) == 0x178);
 
 
 	const char* AITypeWeaponTypeNames[]{
@@ -239,8 +240,8 @@ namespace {
 			json.WriteFieldValueXAsset("particleSystem1", SatHashAssetType::SATH_ASSET_PARTICLESYSTEM, asset.particleSystem1);
 			json.WriteFieldValueXAsset("particleSystem2", SatHashAssetType::SATH_ASSET_PARTICLESYSTEM, asset.particleSystem2);
 			json.WriteFieldValueXAsset("calloutMarkerPing", SatHashAssetType::SATH_ASSET_CALLOUTMARKERPING, asset.calloutMarkerPing);
-			json.WriteFieldValueXAsset("image160", SatHashAssetType::SATH_ASSET_IMAGE, asset.unk160);
-			json.WriteFieldValueXAsset("unk168", SatHashAssetType::SATH_ASSET_IMAGE, asset.unk168);
+			json.WriteFieldValueXAsset("image168", SatHashAssetType::SATH_ASSET_IMAGE, asset.unk168);
+			json.WriteFieldValueXAsset("image170", SatHashAssetType::SATH_ASSET_IMAGE, asset.unk170);
 			json.WriteFieldValueString("unitType", AITypeUnitTypeName(asset.unittype));
 			json.WriteFieldValueString("team", AITypeTeamName(asset.team));
 			json.WriteFieldValueXHash("characters.unk10", asset.characterTypes.unk10);
@@ -324,9 +325,10 @@ namespace {
 				json.WriteFieldValueUnknown("unk120", asset.unk120);
 				json.WriteFieldValueUnknown("unk128", asset.unk128);
 				json.WriteFieldValueUnknown("unk130", asset.unk130);
-				json.WriteFieldValueUnknown("unk148", asset.unk148);
+				json.WriteFieldValueUnknown("unk144", asset.unk144);
 				json.WriteFieldValueUnknown("unk150", asset.unk150);
 				json.WriteFieldValueUnknown("unk158", asset.unk158);
+				json.WriteFieldValueUnknown("unk160", asset.unk160);
 			}
 
 

@@ -182,13 +182,13 @@
             "ctype": "void __fastcall DB_InitLoadStreams(DBLoadCtx *ctx, XZoneMemory *zoneMemory)"
         },
         "DB_LoadStringList": {
-            "scan": "E8 ?? ?? ?? ?? 4C 8D 63 18 44 88 7B 04 4D 8B C4 33 D2 48 8B CE E8 ?? ?? ?? ?? 48 8B 06 48 8B CE FF 50",
+            "scan": "E8 ?? ?? ?? ?? 4C 8D ?? 18 44 88 ?? 04 4D 8B ?? 33 D2 48 8B CE E8 ?? ?? ?? ?? 48 8B 06 48 8B CE FF 50",
             "type": "Relative",
             "offset": 1,
             "ctype": "void DB_LoadStringList(DBLoadCtx *ctx, bool atStreamStart, AssetList *list)"
         },
         "$DB_LoadUnkList": {
-            "scan": "E8 ?? ?? ?? ?? 4C 8D 63 18 44 88 7B 04 4D 8B C4 33 D2 48 8B CE E8 ?? ?? ?? ?? 48 8B 06 48 8B CE FF 50",
+            "scan": "E8 ?? ?? ?? ?? 4C 8D ?? 18 44 88 ?? 04 4D 8B ?? 33 D2 48 8B CE E8 ?? ?? ?? ?? 48 8B 06 48 8B CE FF 50",
             "type": "Relative",
             "offset": 22,
             "ctype": "void DB_LoadStringList(DBLoadCtx *ctx, bool atStreamStart, AssetList *list)"
@@ -306,7 +306,8 @@
             "$u3": {
                 "scan": "48 89 5C 24 ? 55 48 8D 6C 24 A9 48 81 EC ? ? ? ? 41",
                 "type": "Absolute",
-                "single": true
+                "single": false,
+                "multiple": true
             },
             "$u4": {
                 "scan": "40 53 48 83 EC ?? 8B 42 ?? 49",
@@ -354,7 +355,7 @@
                 "single": true
             },
             "$LoadDlogSchema": {
-                "scan": "48 89 4C 24 08 53 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 28 83",
+                "scan": "48 89 5C 24 20 48 89 4C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20 45",
                 "type": "Absolute",
                 "single": true
             },

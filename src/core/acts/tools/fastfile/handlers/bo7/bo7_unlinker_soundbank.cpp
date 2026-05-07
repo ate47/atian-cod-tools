@@ -79,7 +79,7 @@ namespace {
 		void PreLoadWorker(fastfile::FastFileContext* ctx) override {
 
 			// todo: add all languages
-			const char* languages[]{ "ens", "eng", "fra" };
+			const char* languages[]{ "deu", "eng", "fra", "ita", "jp", "jpf", "jpp", "kop", "pop", "por", "rup", "sch", "scp", "sna", "spa", "tch", };
 			const char* types[]{ "all", "english", "french" };
 			if (!ctx) {
 				for (auto& type : types) {
