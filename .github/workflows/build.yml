@@ -52,6 +52,15 @@ jobs:
           use-official: true
           email: ${{ secrets.QT_EMAIL }}
           pw: ${{ secrets.QT_PASSWORD }}
+      # Install Khronos OpenCL SDK (headers + .lib only, no OpenCL.dll)
+      - name: Install OpenCL SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2025.07.23/OpenCL-SDK-v2025.07.23-Win-x64.zip" -OutFile "OpenCL-SDK.zip"
+          Expand-Archive OpenCL-SDK.zip -DestinationPath OpenCL-SDK
+          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_ROOT=$PWD/OpenCL-SDK"
+          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_INCLUDE_DIR=$PWD/OpenCL-SDK/include"
+          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_LIBRARY=$PWD/OpenCL-SDK/lib/OpenCL.lib"
       - name: Create project
         shell: pwsh
         run: |
