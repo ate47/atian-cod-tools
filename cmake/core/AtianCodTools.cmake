@@ -129,6 +129,12 @@ target_compile_definitions(AtianCodTools PRIVATE
     LTM_DESC
 )
 
+if (NOT NO_OPEN_CL_BUILD)
+    target_link_libraries(AtianCodTools PRIVATE 
+        OpenCL::OpenCL
+    )
+endif()
+
 if (GPL_BUILD)
     target_link_libraries(AtianCodTools PRIVATE
         xsk-arc

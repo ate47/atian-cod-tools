@@ -10,6 +10,8 @@ param(
     [switch]
     $noQT,
     [switch]
+    $noOpenCL,
+    [switch]
     $allPlatform,
     $build = "Visual Studio 18 2026",
     $msvc = "v143",
@@ -43,6 +45,9 @@ try {
     }
     if ($noQT) {
         $params += @( "-DNO_QT_BUILD=ON" )
+    }
+    if ($noOpenCL) {
+        $params += @( "-DNO_OPEN_CL_BUILD=ON" )
     }
     if ($allPlatform) {
         $params += @( "-DALL_PLATFORM_ACTS=ON" )

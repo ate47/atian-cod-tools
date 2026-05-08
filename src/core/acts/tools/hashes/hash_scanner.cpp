@@ -3,7 +3,7 @@
 #include <core/config.hpp>
 #include <cli/cli_options.hpp>
 #include <tools/tools_nui.hpp>
-#include "hash_scanner.hpp"
+#include <tools/hashes/hash_scanner.hpp>
 #include <tools/hashes/hash.hpp>
 #include "text_expand.hpp"
 #include <regex>
@@ -17,7 +17,7 @@
 
 namespace tool::hash::scanner {
 
-	void ScanHashes(const std::vector<std::filesystem::path>& files, std::unordered_set<uint64_t>& hashes) {
+	void ScanHashes(const std::vector<std::filesystem::path>& files, std::unordered_set<uint64_t>& hashes, uint64_t mask) {
 		static std::regex pattern{ "(hash|file|var|function|namespace|event|script|class|_id|x64)[:_]([0-9a-fA-F]{1,16})" };
 
 		BS::thread_pool pool{};
@@ -27,7 +27,7 @@ namespace tool::hash::scanner {
 
 		profiler.PushSection("Scan");
 		for (const std::filesystem::path& p : files) {
-			pool.detach_task([p, &mtx, &hashes] {
+			pool.detach_task([p, &mtx, &hashes, mask] {
 				std::unordered_set<uint64_t> read{};
 				std::string fns{ p.string() };
 				auto nrbegin = std::sregex_iterator(fns.begin(), fns.end(), pattern);
@@ -47,7 +47,7 @@ namespace tool::hash::scanner {
 				for (std::sregex_iterator it = rbegin; it != rend; ++it) {
 					std::smatch match = *it;
 
-					read.insert(std::stoull(match[2].str(), nullptr, 16));
+					read.insert(std::stoull(match[2].str(), nullptr, 16) & mask);
 				}
 
 				{
@@ -63,6 +63,33 @@ namespace tool::hash::scanner {
 		if (core::logs::getlevel() == core::logs::LVL_TRACE) {
 			profiler.WriteToStr(std::cout);
 		}
+	}
+
+	std::vector<const char*> ReadDict(std::filesystem::path file, std::string& store) {
+		store = utils::ReadFile<std::string>(file);
+		size_t offset{};
+		std::vector<const char*> dict{};
+		while (offset < store.length()) {
+			const char* str{ &store[offset] };
+			if (*str == '\r' || *str == '\n') {
+				offset++;
+				continue; // empty line
+			}
+
+			size_t next{ store.find_first_of("\n\r", offset) };
+			if (next != std::string::npos) {
+				store[next] = 0;
+			}
+			else {
+				next = store.length();
+			}
+
+			dict.push_back(str);
+
+			offset = next + 1;
+		}
+
+		return dict;
 	}
 
 	std::vector<std::filesystem::path> GetHashFiles(const std::filesystem::path& path) {
@@ -197,100 +224,6 @@ namespace tool::hash::scanner {
 
 			return tool::OK;
 		}
-		enum VmHashes : uint64_t {
-			HASH_FNVA = 1,
-			HASH_RES = 1ull << 1,
-			HASH_DVAR = 1ull << 2,
-			HASH_SCR_JUP = 1ull << 3,
-			HASH_SCR_T10 = 1ull << 4,
-			HASH_SCR_T10_SP = 1ull << 5,
-			HASH_SCR_T89 = 1ull << 6,
-			HASH_FNVA32 = 1ull << 7,
-			HASH_PRIME = 1ull << 8,
-
-			HASH_BLACKOPS4 = HASH_FNVA,
-			HASH_BLACKOPS4SCR = HASH_SCR_T89,
-			HASH_BLACKOPS6 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10,
-			HASH_BLACKOPS6_SP = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10_SP,
-			HASH_IW = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_JUP,
-			HASH_ALL = ~0ull,
-			HASH_ALL32 = HASH_FNVA32 | HASH_PRIME | HASH_SCR_T89,
-		};
-
-
-		class AbstractHashData {
-		public:
-			std::ofstream output;
-			uint64_t funcs{};
-			size_t found{};
-
-
-			AbstractHashData(const char* file, const char* funcs) : output(file, std::ios::app) {
-				ReadFuncs(funcs);
-			}
-			~AbstractHashData() {
-				output.close();
-			}
-
-			constexpr bool UseFunc(VmHashes hash) const {
-				return (funcs & hash) != 0;
-			}
-
-			void ReadFuncs(const char* n) {
-				if (!_strcmpi(n, "bo4scr")) {
-					funcs = HASH_BLACKOPS4SCR;
-				}
-				else if (!_strcmpi(n, "bo4")) {
-					funcs = HASH_BLACKOPS4;
-				}
-				else if (!_strcmpi(n, "bo6")) {
-					funcs = HASH_BLACKOPS6;
-				}
-				else if (!_strcmpi(n, "bo6sp")) {
-					funcs = HASH_BLACKOPS6_SP;
-				}
-				else if (!_strcmpi(n, "bo6scr")) {
-					funcs = HASH_SCR_T10;
-				}
-				else if (!_strcmpi(n, "bo6spscr")) {
-					funcs = HASH_SCR_T10_SP;
-				}
-				else if (!_strcmpi(n, "iwscr")) {
-					funcs = HASH_SCR_JUP;
-				}
-				else if (!_strcmpi(n, "iwres")) {
-					funcs = HASH_RES;
-				}
-				else if (!_strcmpi(n, "iwdvar")) {
-					funcs = HASH_DVAR;
-				}
-				else if (!_strcmpi(n, "bo6all")) {
-					funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
-				}
-				else if (!_strcmpi(n, "iw")) {
-					funcs = HASH_IW;
-				}
-				else if (!_strcmpi(n, "FNVA")) {
-					funcs = HASH_FNVA;
-				}
-				else if (!_strcmpi(n, "FNVA32")) {
-					funcs = HASH_FNVA32;
-				}
-				else if (!_strcmpi(n, "prime")) {
-					funcs = HASH_PRIME;
-				}
-				else if (!_strcmpi(n, "all")) {
-					funcs = HASH_ALL;
-				}
-				else if (!_strcmpi(n, "all32")) {
-					funcs = HASH_ALL32;
-				}
-				else {
-					LOG_WARNING("Invalid name {}, use all hashes", n);
-					funcs = HASH_ALL;
-				}
-			}
-		};
 
 
 		class HashData : public AbstractHashData {
@@ -509,21 +442,6 @@ namespace tool::hash::scanner {
 
 			template<bool prefix, bool suffix, bool midc>
 			inline void TestHashes(const char** str) {
-				class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return ::hash::Hash64A(str, base); } };
-				class HashFnv1a32 { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_32_PRIME) { return ::hash::HashX32(str, base); } };
-				class HashPrime { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 5381) { return ::hash::HashPrime(str, (uint32_t)base); } };
-				class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10Scr(str, base); } };
-				class HashT10ScrSP { public:
-					static constexpr uint64_t Hash(const char* str, uint64_t base = 0x1C2F2E3C8A257D07) { return ::hash::HashT10ScrSPPre(str, base); }
-					static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT10ScrSPPost(base); }
-				};
-				class HashT89Scr { public:
-					static constexpr uint64_t Hash(const char* str, uint64_t base = 0x4B9ACE2F) { return ::hash::HashT89ScrPre(str, (uint32_t)base); }
-					static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT89ScrPost((uint32_t)base); }
-				};
-				class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x79D6530B0BB9B5D1) { return ::hash::HashJupScr(str, base); } };
-				class HashIWAsset { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return ::hash::HashIWAsset(str, base); } };
-				class HashIWDVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashIWDVar(str, base); } };
 				TestHash<HashFnv1a, prefix, suffix, midc>(HASH_FNVA, str);
 				TestHash<HashFnv1a32, prefix, suffix, midc>(HASH_FNVA32, str);
 				TestHash<HashPrime, prefix, suffix, midc>(HASH_PRIME, str);
@@ -542,23 +460,10 @@ namespace tool::hash::scanner {
 			}
 
 			HashDataDict data{ argv[3], argv[4] };
-			std::ifstream dictIs{ argv[5] };
 
-			if (!dictIs) {
-				LOG_ERROR("Can't open {}", argv[5]);
-				return tool::BASIC_ERROR;
-			}
+			std::string dictBuffer;
+			std::vector<const char*> dictVec{ ReadDict(argv[5], dictBuffer) };
 
-			std::string line{};
-			core::memory_allocator::MemoryAllocator alloc{};
-
-			std::vector<const char*> dictVec{};
-
-			while (dictIs.good() && std::getline(dictIs, line)) {
-				dictVec.push_back((const char*)alloc.Alloc(line));
-			}
-			dictVec.push_back(nullptr);
-			dictIs.close();
 			if (argc >= 7 && argv[6][0]) {
 				data.prefix = argv[6];
 				LOG_INFO("prefix: {}", data.prefix);
@@ -595,7 +500,7 @@ namespace tool::hash::scanner {
 				data.hashes.insert(h & hashutils::MASK60);
 			}
 
-			LOG_INFO("Find {} hash(es)", data.hashes.size());
+			LOG_INFO("Find {} hash(es) for {} dict word(s)", data.hashes.size(), dictVec.size());
 
 			if (data.prefix || data.suffix) {
 				if (data.prefix && data.suffix) {
@@ -935,7 +840,7 @@ namespace tool::hash::scanner {
 		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", hashscan);
 		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", scanlookup);
 		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", hashbrute);
-		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [dict] (prefix) (suffix) (maxlen)", "brute search hashes in a directory with dictionary", hashbrutedict);
+		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [algorithm] [dict] (prefix=) (suffix=) (middle=_) (count=infinity)", "brute search hashes in a directory with dictionary", hashbrutedict);
 		ADD_TOOL(hashbrutedb, "hash", " [dir] [output] (type) (database)", "brute search hashes in a directory with database", hashbrutedb);
 		ADD_TOOL(strscan, "hash", " [dir] [output]", "brute search hashes in a directory with dictionary", strscan);
 		ADD_TOOL_NUI(hashscanner, "Hash Brute Searcher", hashscanner);

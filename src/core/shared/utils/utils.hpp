@@ -581,6 +581,17 @@ namespace utils {
 		~CloseEnd() { func(); };
 	};
 
+	template<typename T, typename R, R(close)(T t)>
+	class TClosable {
+		T t;
+	public:
+		TClosable(T t) : t(t) {}
+		TClosable(const TClosable<T, R, close>& other) = delete;
+		TClosable(TClosable<T, R, close>&& other) : t(other.t) { other.t = nullptr; }
+		~TClosable() { if (t) { close(t); } }
+		T& operator*() { return t; }
+	};
+
 	class OutFileCE {
 		std::ofstream os;
 
