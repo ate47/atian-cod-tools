@@ -20,24 +20,6 @@
 
 namespace hash {
 
-	constexpr uint64_t Hash64ACased(const char* str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
-		uint64_t hash = start;
-
-		for (const char* data = str; *data; data++) {
-			hash = (hash ^ *data) * iv;
-		}
-
-		return hash;
-	}
-
-	uint32_t crc32impl(const char* str) {
-		crc_cpp::crc32 crc{};
-		while (*str) {
-			crc.update(*(str++));
-		}
-		return crc.final();
-	}
-
 	HashAlg HashAlg::algs[14]
 	{
 		{ "h64", "XHash", [](const char* text) -> uint64_t { return hash::Hash64A(text); } },
@@ -53,7 +35,7 @@ namespace hash {
 		{ "xxh32", "XXH32", [](const char* text) -> uint64_t { return XXH32(text, std::strlen(text), 0); } },
 		{ "xxh64", "XXH64", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), 0); } },
 		{ "xxh64iv", "XXH64 (IV)", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), hash::IV_DEFAULT); } },
-		{ "crc32", "CRC32", [](const char* text) -> uint64_t { return crc32impl(text) & ::hash::MASK32; } },
+		{ "djb2", "DJB2", [](const char* text) -> uint64_t { return HashDJB2(text) & ::hash::MASK32; } },
 	};
 
 	void HashAlg::SyncAlgCfg() {

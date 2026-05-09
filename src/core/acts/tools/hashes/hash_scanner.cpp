@@ -296,6 +296,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(str), str);
 				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(str), str);
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(str), str);
+				if (UseFunc(HASH_DJB2)) TestHash(::hash::HashDJB2(str), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(str), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSP(str), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(str), str);
@@ -309,6 +310,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(suffix, ::hash::Hash64A(str, ::hash::Hash64A(prefix))), str);
 				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(suffix, ::hash::HashX32(str, ::hash::HashX32(prefix))), str);
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(suffix, ::hash::HashPrime(str, ::hash::HashPrime(prefix))), str);
+				if (UseFunc(HASH_DJB2)) TestHash(::hash::HashDJB2(suffix, ::hash::HashDJB2(str, ::hash::HashDJB2(prefix))), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(suffix, ::hash::HashT10Scr(str, ::hash::HashT10Scr(prefix))), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix)))), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(suffix, ::hash::HashT10OmnVar(str, ::hash::HashT10OmnVar(prefix))), str);
@@ -321,6 +323,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(str, ::hash::Hash64A(prefix)), str);
 				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(str, ::hash::HashX32(prefix)), str);
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(str, ::hash::HashPrime(prefix)), str);
+				if (UseFunc(HASH_DJB2)) TestHash(::hash::HashDJB2(str, ::hash::HashDJB2(prefix)), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(str, ::hash::HashT10Scr(prefix)), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix))), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(str, ::hash::HashT10OmnVar(prefix)), str);
@@ -333,6 +336,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(suffix, ::hash::Hash64A(str)), str);
 				if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(suffix, ::hash::HashX32(str)), str);
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(suffix, ::hash::HashPrime(str)), str);
+				if (UseFunc(HASH_DJB2)) TestHash(::hash::HashDJB2(suffix, ::hash::HashDJB2(str)), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(suffix, ::hash::HashT10Scr(str)), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str))), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(suffix, ::hash::HashT10OmnVar(str)), str);
@@ -494,6 +498,7 @@ namespace tool::hash::scanner {
 				TestHash<HashFnv1a, prefix, suffix, midc>(HASH_FNVA, str);
 				TestHash<HashFnv1a32, prefix, suffix, midc>(HASH_FNVA32, str);
 				TestHash<HashPrime, prefix, suffix, midc>(HASH_PRIME, str);
+				TestHash<HashDJB2, prefix, suffix, midc>(HASH_DJB2, str);
 				TestHash<HashT10Scr, prefix, suffix, midc>(HASH_SCR_T10, str);
 				TestHash<HashT10ScrSP, prefix, suffix, midc, true>(HASH_SCR_T10_SP, str);
 				TestHash<HashT10OmnVar, prefix, suffix, midc>(HASH_OMNVAR, str);

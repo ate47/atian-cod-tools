@@ -106,6 +106,16 @@ inline uint hash_HashPrime(__private const char* str, uint start, uint prime) {
     return h;
 }
 
+inline uint hash_HashDJB2(__private const char* str, uint start, uint prime) {
+    uint h = start;
+    const __private char* s = str;
+    while (*s) {
+        h = prime * h ^ (uint)(*s | 0x20);
+        s++;
+    }
+    return h;
+}
+
 // HashX64: 64-bit FNV1A, unmasked
 inline ulong hash_HashX64(__private const char* str, ulong start) {
     return hash_Hash64A_global(str, start, HASH_IV_DEFAULT);
@@ -205,6 +215,7 @@ inline ulong hash_HashT10OmnVar(__private const char* str, ulong start) {
 #define HASH_FNVA32      (1UL << 7)
 #define HASH_PRIME       (1UL << 8)
 #define HASH_OMNVAR      (1UL << 9)
+#define HASH_DJB2        (1UL << 10)
 #define MAX_WORD_LEN     256
 
 inline long binary_search(__global const ulong* arr,
@@ -352,6 +363,8 @@ inline int hash_compute(__private const char* word,
     TRY_HASH(HASH_SCR_T10_SP, hash_HashT10ScrSP(word));
     TRY_HASH(HASH_OMNVAR, hash_HashT10OmnVar(word, 0UL));
     TRY_HASH(HASH_SCR_T89, hash_HashT89Scr(word));
+    TRY_HASH(HASH_PRIME, hash_HashPrime(word, 5381, 33));
+    TRY_HASH(HASH_DJB2, hash_HashDJB2(word, 0, 33));
     TRY_HASH(HASH_FNVA32, hash_HashX32(word, HASH_FNV1A_32_PRIME));
 
 #undef TRY_HASH

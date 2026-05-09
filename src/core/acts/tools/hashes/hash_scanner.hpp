@@ -12,6 +12,7 @@ namespace tool::hash::scanner {
 		HASH_FNVA32 = 1ull << 7,
 		HASH_PRIME = 1ull << 8,
 		HASH_OMNVAR = 1ull << 9,
+		HASH_DJB2 = 1ull << 10,
 
 		HASH_BLACKOPS4 = HASH_FNVA,
 		HASH_BLACKOPS4SCR = HASH_SCR_T89,
@@ -20,12 +21,13 @@ namespace tool::hash::scanner {
 		HASH_BLACKOPS7 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10 | HASH_OMNVAR,
 		HASH_IW = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_JUP,
 		HASH_ALL = ~0ull,
-		HASH_ALL32 = HASH_FNVA32 | HASH_PRIME | HASH_SCR_T89,
+		HASH_ALL32 = HASH_FNVA32 | HASH_PRIME | HASH_SCR_T89 | HASH_DJB2,
 	};
 
 	class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return ::hash::Hash64A(str, base); } };
 	class HashFnv1a32 { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_32_PRIME) { return ::hash::HashX32(str, base); } };
 	class HashPrime { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 5381) { return ::hash::HashPrime(str, (uint32_t)base); } };
+	class HashDJB2 { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashDJB2(str, (uint32_t)base); } };
 	class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10Scr(str, base); } };
 	class HashT10OmnVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10OmnVar(str, base); } };
 	class HashT10ScrSP {
@@ -108,6 +110,9 @@ namespace tool::hash::scanner {
 			}
 			else if (!_strcmpi(n, "prime")) {
 				funcs = HASH_PRIME;
+			}
+			else if (!_strcmpi(n, "djb2")) {
+				funcs = HASH_DJB2;
 			}
 			else if (!_strcmpi(n, "all")) {
 				funcs = HASH_ALL;

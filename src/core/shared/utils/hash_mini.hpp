@@ -113,6 +113,14 @@ namespace hash {
 		return h;
 	}
 
+	constexpr uint32_t HashDJB2(const char* str, uint32_t start = 0, uint32_t prime = 33) {
+		uint32_t h{ start };
+		while (*str) {
+			h = prime * h ^ (*str++ | 0x20);
+		}
+		return h;
+	}
+
 	// Hash algorithms
 
 	constexpr uint64_t HashX64(const char* str, uint64_t start = FNV1A_PRIME) { return Hash64A(str, start); }
