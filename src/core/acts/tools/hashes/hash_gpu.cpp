@@ -216,23 +216,27 @@ namespace tool::hash::scanner {
 
             using AbstractHashData::AbstractHashData;
 
-            void TestHash(uint64_t val, const char* str) {
+            int TestHash(uint64_t val, const char* str) {
                 if (hashes.contains(val & ::hash::MASK60)) {
                     output << std::hex << val << "," << str << "\n";
                     LOG_INFO("{:x},{}", val, str);
+                    return 1;
                 }
+                return 0;
             }
 
-            void TestHash(const char* str) {
-                if (UseFunc(HASH_FNVA)) TestHash(::hash::Hash64A(str), str);
-                if (UseFunc(HASH_FNVA32)) TestHash(::hash::HashX32(str), str);
-                if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(str), str);
-                if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(str), str);
-                if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSP(str), str);
-                if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89Scr(str), str);
-                if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(str), str);
-                if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(str), str);
-                if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(str), str);
+            size_t TestHash(const char* str) {
+                size_t t{};
+                if (UseFunc(HASH_FNVA)) t += TestHash(::hash::Hash64A(str), str);
+                if (UseFunc(HASH_FNVA32)) t += TestHash(::hash::HashX32(str), str);
+                if (UseFunc(HASH_PRIME)) t += TestHash(::hash::HashPrime(str), str);
+                if (UseFunc(HASH_SCR_T10)) t += TestHash(::hash::HashT10Scr(str), str);
+                if (UseFunc(HASH_SCR_T10_SP)) t += TestHash(::hash::HashT10ScrSP(str), str);
+                if (UseFunc(HASH_SCR_T89)) t += TestHash(::hash::HashT89Scr(str), str);
+                if (UseFunc(HASH_SCR_JUP)) t += TestHash(::hash::HashJupScr(str), str);
+                if (UseFunc(HASH_RES)) t += TestHash(::hash::HashIWAsset(str), str);
+                if (UseFunc(HASH_DVAR)) t += TestHash(::hash::HashIWDVar(str), str);
+                return t;
             }
         };
 
@@ -389,6 +393,7 @@ namespace tool::hash::scanner {
             char wordBuff[0x200];
             actslib::profiler::Profiler profiler{ "hashbrutegpu" };
             profiler.Reset();
+            size_t total{};
 
             while (true) {
                 if (HAS_LOG_LEVEL(core::logs::LVL_TRACE)) {
@@ -411,6 +416,7 @@ namespace tool::hash::scanner {
                 }
                 if (startIndex) {
                     CLMem& prevBuf = useOutA ? gpuOutBufferB : gpuOutBufferA;
+                    // this was done during the last iteration, so we need to remove global to get the previous start index
 
                     gpu.EnqueueReadBufferEvent(prevBuf, false, outBufferHost.get(), outBufferHostSize, 1, &prevReadEvent, &readEvent);
 
@@ -420,12 +426,16 @@ namespace tool::hash::scanner {
                         if (!outBufferHost[i]) {
                             continue; // nothing
                         }
-                        // this was done during the last iteration, so we need to remove global to get the previous start index
-                        cl_ulong idx{ outBufferHost[i] - 1 + startIndex - global }; 
+                        // -1 because 0 is bad index
+                        cl_ulong idx{ outBufferHost[i] - 1 };
                         RebuildWord(idx, dictVec, prefix, mid, suffix, wordBuff, sizeof(wordBuff));
                         // we know that wordBuff is a string of a known hash, we need to find which one(s)
 
-                        hashData.TestHash(wordBuff);
+                        size_t found{ hashData.TestHash(wordBuff) };
+                        if (!found) {
+                            LOG_ERROR("CAN'T FIND RETURNED '{}', index={}:{}/{}", wordBuff, idx, i, hashesPerWork);
+                        }
+                        total += found;
                     }
                 }
                 if (prevReadEvent) {
@@ -442,7 +452,7 @@ namespace tool::hash::scanner {
                 useOutA = !useOutA;
             }
             profiler.Stop();
-            LOG_INFO("done {} hashes in {}ms {:.2}ns/hash", startIndex, profiler.GetMainSection().GetMillis(), 
+            LOG_INFO("found {} string(s) with {} hashes in {}ms {:.2}ns/hash", total, startIndex, profiler.GetMainSection().GetMillis(),
                 profiler.GetMainSection().GetMillis() * 1000000.0 / startIndex);
 
 			return tool::OK;

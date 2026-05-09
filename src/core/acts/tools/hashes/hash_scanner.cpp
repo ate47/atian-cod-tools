@@ -114,9 +114,11 @@ namespace tool::hash::scanner {
 		int strscan(int argc, const char* argv[]) {
 			cli::options::CliOptions opts{};
 			bool help{};
+			bool append{};
 			const char* regex{ "([0-9a-zA-Z_]+)" };
 			opts
 				.addOption(&help, "show help", "--help", "", "-h")
+				.addOption(&append, "append to file", "--append", "", "-a")
 				.addOption(&regex, "regex", "--regex", " [regex]", "-r");
 
 			if (!opts.ComputeOptions(2, argc, argv) || help || opts.NotEnoughParam(2)) {
@@ -129,7 +131,7 @@ namespace tool::hash::scanner {
 
 			std::regex pattern{ regex };
 
-			utils::OutFileCE os{ opts[1], true };
+			utils::OutFileCE os{ opts[1], true, append ? std::ios::out | std::ios::app : std::ios::out };
 
 			std::unordered_set<uint64_t> hashes{};
 
@@ -155,7 +157,50 @@ namespace tool::hash::scanner {
 				}
 			}
 
-			LOG_INFO("dump into {}", argv[3]);
+			LOG_INFO("dump into {}", opts[1]);
+
+			return tool::OK;
+		}
+
+		int strmerge(int argc, const char* argv[]) {
+			if (tool::NotEnoughParam(argc, 2)) {
+				return tool::BAD_USAGE;
+			}
+			const char* out{ argv[argc - 1] };
+			utils::OutFileCE os{ argv[argc - 1], true };
+			std::unordered_set<uint64_t> hashes{};
+
+			for (size_t i = 2; i < argc - 1; i++) {
+				std::string store{ utils::ReadFile<std::string>(argv[i]) };
+				LOG_INFO("reading {} with {} char(s)...", argv[i], store.length());
+				size_t offset{};
+				while (offset < store.length()) {
+					char* str{ &store[offset] };
+					if (*str == '\r' || *str == '\n') {
+						offset++;
+						continue; // empty line
+					}
+
+					size_t next{ store.find_first_of("\n\r", offset) };
+					if (next != std::string::npos) {
+						store[next] = 0;
+					}
+					else {
+						next = store.length();
+					}
+
+					uint64_t h{ ::hash::Hash64(str) };
+					if (!hashes.contains(h)) {
+						hashes.insert(h);
+						os << utils::LowerCase(str) << "\n";
+					}
+
+					offset = next + 1;
+				}
+
+			}
+
+			LOG_INFO("dump {} string(s) into {}", hashes.size(), argv[argc - 1]);
 
 			return tool::OK;
 		}
@@ -843,6 +888,7 @@ namespace tool::hash::scanner {
 		ADD_TOOL(hashbrutedict, "hash", " [dir] [output] [algorithm] [dict] (prefix=) (suffix=) (middle=_) (count=infinity)", "brute search hashes in a directory with dictionary", hashbrutedict);
 		ADD_TOOL(hashbrutedb, "hash", " [dir] [output] (type) (database)", "brute search hashes in a directory with database", hashbrutedb);
 		ADD_TOOL(strscan, "hash", " [dir] [output]", "brute search hashes in a directory with dictionary", strscan);
+		ADD_TOOL(strmerge, "hash", " [files]+ [output]", "merge string files", strmerge);
 		ADD_TOOL_NUI(hashscanner, "Hash Brute Searcher", hashscanner);
 	}
 
