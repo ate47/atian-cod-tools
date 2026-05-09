@@ -58,9 +58,14 @@ jobs:
         run: |
           Invoke-WebRequest -Uri "https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2025.07.23/OpenCL-SDK-v2025.07.23-Win-x64.zip" -OutFile "OpenCL-SDK.zip"
           Expand-Archive OpenCL-SDK.zip -DestinationPath OpenCL-SDK
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_ROOT=$PWD/OpenCL-SDK"
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_INCLUDE_DIR=$PWD/OpenCL-SDK/include"
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_LIBRARY=$PWD/OpenCL-SDK/lib/OpenCL.lib"
+
+          Write-Host "OpenCL_ROOT=$env:GITHUB_WORKSPACE/OpenCL-SDK-v2025.07.23-Win-x64/OpenCL-SDK"
+          Write-Host "OpenCL_INCLUDE_DIR=$env:GITHUB_WORKSPACE/OpenCL-SDK-v2025.07.23-Win-x64/OpenCL-SDK/include"
+          Write-Host "OpenCL_LIBRARY=$env:GITHUB_WORKSPACE/OpenCL-SDK-v2025.07.23-Win-x64/OpenCL-SDK/lib/OpenCL.lib"
+
+          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_ROOT=$env:GITHUB_WORKSPACE/OpenCL-SDK-v2025.07.23-Win-x64/OpenCL-SDK"
+          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_INCLUDE_DIR=$env:GITHUB_WORKSPACE/OpenCL-SDK-v2025.07.23-Win-x64/OpenCL-SDK/include"
+          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_LIBRARY=$env:GITHUB_WORKSPACE/OpenCL-SDK-v2025.07.23-Win-x64/OpenCL-SDK/lib/OpenCL.lib"
       - name: Create project
         shell: pwsh
         run: |
