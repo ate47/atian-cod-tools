@@ -232,6 +232,7 @@ namespace tool::hash::scanner {
                 if (UseFunc(HASH_PRIME)) t += TestHash(::hash::HashPrime(str), str);
                 if (UseFunc(HASH_SCR_T10)) t += TestHash(::hash::HashT10Scr(str), str);
                 if (UseFunc(HASH_SCR_T10_SP)) t += TestHash(::hash::HashT10ScrSP(str), str);
+                if (UseFunc(HASH_OMNVAR)) t += TestHash(::hash::HashT10OmnVar(str), str);
                 if (UseFunc(HASH_SCR_T89)) t += TestHash(::hash::HashT89Scr(str), str);
                 if (UseFunc(HASH_SCR_JUP)) t += TestHash(::hash::HashJupScr(str), str);
                 if (UseFunc(HASH_RES)) t += TestHash(::hash::HashIWAsset(str), str);

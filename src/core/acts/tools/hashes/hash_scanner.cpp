@@ -298,6 +298,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(str), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(str), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSP(str), str);
+				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(str), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89Scr(str), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(str), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(str), str);
@@ -310,6 +311,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(suffix, ::hash::HashPrime(str, ::hash::HashPrime(prefix))), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(suffix, ::hash::HashT10Scr(str, ::hash::HashT10Scr(prefix))), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix)))), str);
+				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(suffix, ::hash::HashT10OmnVar(str, ::hash::HashT10OmnVar(prefix))), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(suffix, ::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(prefix)))), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(suffix, ::hash::HashJupScr(str, ::hash::HashJupScr(prefix))), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(suffix, ::hash::HashIWAsset(str, ::hash::HashIWAsset(prefix))), str);
@@ -321,6 +323,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(str, ::hash::HashPrime(prefix)), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(str, ::hash::HashT10Scr(prefix)), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix))), str);
+				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(str, ::hash::HashT10OmnVar(prefix)), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(prefix))), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(str, ::hash::HashJupScr(prefix)), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(str, ::hash::HashIWAsset(prefix)), str);
@@ -332,6 +335,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_PRIME)) TestHash(::hash::HashPrime(suffix, ::hash::HashPrime(str)), str);
 				if (UseFunc(HASH_SCR_T10)) TestHash(::hash::HashT10Scr(suffix, ::hash::HashT10Scr(str)), str);
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str))), str);
+				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(suffix, ::hash::HashT10OmnVar(str)), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(suffix, ::hash::HashT89ScrPre(str))), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(suffix, ::hash::HashJupScr(str)), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(suffix, ::hash::HashIWAsset(str)), str);
@@ -492,6 +496,7 @@ namespace tool::hash::scanner {
 				TestHash<HashPrime, prefix, suffix, midc>(HASH_PRIME, str);
 				TestHash<HashT10Scr, prefix, suffix, midc>(HASH_SCR_T10, str);
 				TestHash<HashT10ScrSP, prefix, suffix, midc, true>(HASH_SCR_T10_SP, str);
+				TestHash<HashT10OmnVar, prefix, suffix, midc>(HASH_OMNVAR, str);
 				TestHash<HashT89Scr, prefix, suffix, midc, true>(HASH_SCR_T89, str);
 				TestHash<HashJupScr, prefix, suffix, midc>(HASH_SCR_JUP, str);
 				TestHash<HashIWAsset, prefix, suffix, midc>(HASH_RES, str);

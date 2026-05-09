@@ -11,11 +11,13 @@ namespace tool::hash::scanner {
 		HASH_SCR_T89 = 1ull << 6,
 		HASH_FNVA32 = 1ull << 7,
 		HASH_PRIME = 1ull << 8,
+		HASH_OMNVAR = 1ull << 9,
 
 		HASH_BLACKOPS4 = HASH_FNVA,
 		HASH_BLACKOPS4SCR = HASH_SCR_T89,
 		HASH_BLACKOPS6 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10,
 		HASH_BLACKOPS6_SP = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10_SP,
+		HASH_BLACKOPS7 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10 | HASH_OMNVAR,
 		HASH_IW = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_JUP,
 		HASH_ALL = ~0ull,
 		HASH_ALL32 = HASH_FNVA32 | HASH_PRIME | HASH_SCR_T89,
@@ -25,6 +27,7 @@ namespace tool::hash::scanner {
 	class HashFnv1a32 { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_32_PRIME) { return ::hash::HashX32(str, base); } };
 	class HashPrime { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 5381) { return ::hash::HashPrime(str, (uint32_t)base); } };
 	class HashT10Scr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10Scr(str, base); } };
+	class HashT10OmnVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10OmnVar(str, base); } };
 	class HashT10ScrSP {
 		public:
 		static constexpr uint64_t Hash(const char* str, uint64_t base = 0x1C2F2E3C8A257D07) { return ::hash::HashT10ScrSPPre(str, base); }
@@ -70,8 +73,11 @@ namespace tool::hash::scanner {
 			else if (!_strcmpi(n, "bo6sp")) {
 				funcs = HASH_BLACKOPS6_SP;
 			}
-			else if (!_strcmpi(n, "bo6scr")) {
+			else if (!_strcmpi(n, "bo6scr") || !_strcmpi(n, "bo7scr")) {
 				funcs = HASH_SCR_T10;
+			}
+			else if (!_strcmpi(n, "bo7")) {
+				funcs = HASH_BLACKOPS7;
 			}
 			else if (!_strcmpi(n, "bo6spscr")) {
 				funcs = HASH_SCR_T10_SP;
@@ -84,6 +90,9 @@ namespace tool::hash::scanner {
 			}
 			else if (!_strcmpi(n, "iwdvar")) {
 				funcs = HASH_DVAR;
+			}
+			else if (!_strcmpi(n, "iwomnvar")) {
+				funcs = HASH_OMNVAR;
 			}
 			else if (!_strcmpi(n, "bo6all")) {
 				funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
