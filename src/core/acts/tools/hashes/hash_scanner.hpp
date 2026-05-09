@@ -100,10 +100,10 @@ namespace tool::hash::scanner {
 			else if (!_strcmpi(n, "iw")) {
 				funcs = HASH_IW;
 			}
-			else if (!_strcmpi(n, "FNVA")) {
+			else if (!_strcmpi(n, "FNVA") || !_strcmpi(n, "x64")) {
 				funcs = HASH_FNVA;
 			}
-			else if (!_strcmpi(n, "FNVA32")) {
+			else if (!_strcmpi(n, "FNVA32") || !_strcmpi(n, "x32")) {
 				funcs = HASH_FNVA32;
 			}
 			else if (!_strcmpi(n, "prime")) {

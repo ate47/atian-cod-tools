@@ -19,7 +19,18 @@
 #include <tools/coder/error_coder.hpp>
 
 namespace hash {
-	HashAlg HashAlg::algs[13]
+
+	constexpr uint64_t Hash64ACased(const char* str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
+		uint64_t hash = start;
+
+		for (const char* data = str; *data; data++) {
+			hash = (hash ^ *data) * iv;
+		}
+
+		return hash;
+	}
+
+	HashAlg HashAlg::algs[14]
 	{
 		{ "h64", "XHash", [](const char* text) -> uint64_t { return hash::Hash64A(text); } },
 		{ "res", "IW XHashAsset", [](const char* text) -> uint64_t { return hash::HashIWAsset(text); } },
@@ -34,6 +45,7 @@ namespace hash {
 		{ "xxh32", "XXH32", [](const char* text) -> uint64_t { return XXH32(text, std::strlen(text), 0); } },
 		{ "xxh64", "XXH64", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), 0); } },
 		{ "xxh64iv", "XXH64 (IV)", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), hash::IV_DEFAULT); } },
+		{ "x32", "XHash32 (cased)", [](const char* text) -> uint64_t { return Hash64ACased(text, ::hash::IV_32_DEFAULT) & ::hash::MASK32; } },
 	};
 
 	void HashAlg::SyncAlgCfg() {

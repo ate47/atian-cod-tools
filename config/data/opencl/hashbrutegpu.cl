@@ -228,6 +228,48 @@ inline long binary_search(__global const ulong* arr,
     }
     return -1; // not found
 }
+
+inline int build_combinator_letter(ulong i,
+                                 uint lettersCount,
+                                 __global const char* dictChars,
+                                 __global const char* prefixStr,
+                                 __global const char* suffixStr,
+                                 __private char* outBuf,
+                                 uint outBufSize)
+{
+    uint pos = 0;
+
+    // 1. Prefix
+    if (prefixStr != 0) {
+        const __global char* p = prefixStr;
+        while (*p && pos < outBufSize - 1)
+            outBuf[pos++] = *p++;
+    }
+
+    // 2. Variable-length base-N combinator (1-based, CPU-compatible)
+    ulong x = i;
+
+    while (x > 0) {
+        ulong adj = x - 1UL;
+        uint idx = (uint)(adj % lettersCount);
+        x = adj / (ulong)lettersCount;
+
+        // Append letter
+        outBuf[pos++] = dictChars[idx];
+    }
+
+    // 3. Suffix
+    if (suffixStr != 0) {
+        const __global char* s = suffixStr;
+        while (*s && pos < outBufSize - 1)
+            outBuf[pos++] = *s++;
+    }
+
+    outBuf[pos] = 0;
+    return (int)pos;
+}
+
+
 inline int build_combinator_word(ulong i,
                                  uint wordsCount,
                                  __global const ulong* offsets,
@@ -328,7 +370,7 @@ inline int hash_compute(__private const char* word,
 // 8 wordsCount
 // 9 indexSize
 // 10 algoMask
-__kernel void hash_brute(
+__kernel void hash_brute_dict(
     __global const ulong* hashMap,
     __global const ulong* dictOffsets,
     __global const char*  dictData,
@@ -357,6 +399,63 @@ __kernel void hash_brute(
         dictData,
         prefixStr,
         middleStr,
+        suffixStr,
+        buf,
+        (uint)MAX_WORD_LEN
+    );
+    
+    if (len <= 0) {
+        outIndex[gid] = 0UL;
+        return;
+    }
+
+    // Check all enabled hashes against map
+    int matched = hash_compute(buf, hashMap, indexSize, algoMask);
+
+    if (matched) {
+        // index start at 1 because 0 = bad
+        outIndex[gid] = i + 1UL;
+    } else {
+        outIndex[gid] = 0UL;
+    }
+}
+
+
+// brute force hashes using kernel
+// 0 hashes to compute
+// 1 dictionary data
+// 2 prefix string
+// 3 suffix string
+// 4 out data
+// 5 startIndex
+// 6 lettersCount
+// 7 indexSize
+// 8 algoMask
+__kernel void hash_brute(
+    __global const ulong* hashMap,
+    __global const char*  dictData,
+    __global const char* prefixStr,
+    __global const char* suffixStr,
+    __global ulong*       outIndex,
+    ulong                 startIndex,
+    uint                  lettersCount,
+    uint                  indexSize,
+    ulong                 algoMask) {
+    ulong gid = get_global_id(0);
+    ulong i = startIndex + gid;
+
+    if (lettersCount == 0) {
+        outIndex[gid] = 0UL;
+        return;
+    }
+
+    // Build combinator word into private buffer
+    char buf[MAX_WORD_LEN];
+    int len = build_combinator_letter(
+        i,
+        lettersCount,
+        dictData,
+        prefixStr,
         suffixStr,
         buf,
         (uint)MAX_WORD_LEN

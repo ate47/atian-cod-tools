@@ -3,6 +3,7 @@
 #include <CL/cl.h>
 #include <core/config.hpp>
 #include <tools/hashes/hash_scanner.hpp>
+#include <tools/hashes/text_expand.hpp>
 #include <utils/data_utils.hpp>
 #include <actslib/profiler.hpp>
 
@@ -360,7 +361,7 @@ namespace tool::hash::scanner {
             std::string progData{};
             ReadData("hashbrutegpu", progData);
             CLProg prog{ gpu.CreateProgramWithSource(progData) };
-            CLKernel bruteKernel{ gpu.CreateKernel(prog, "hash_brute") };
+            CLKernel bruteKernel{ gpu.CreateKernel(prog, "hash_brute_dict") };
 
             cl_ulong algoMask{ (cl_ulong)hashData.funcs };
 
@@ -459,6 +460,202 @@ namespace tool::hash::scanner {
 			return tool::OK;
 		}
 
+
+        size_t RebuildWordLetters(
+            uint64_t index,
+            const char* dictVec,
+            const char* prefix,
+            const char* suffix,
+            size_t lettersCount,
+            char* outBuf,
+            size_t outBufSize) {
+            size_t pos = 0;
+
+            // 1. Prefix
+            if (prefix) {
+                for (const char* p = prefix; *p && pos < outBufSize - 1; ++p) {
+                    outBuf[pos++] = *p;
+                }
+            }
+
+            // 2. Combinator expansion (base-N)
+            uint64_t x = index;
+
+            while (x > 0) {
+                uint64_t j = x - 1;
+                uint64_t idx = j % lettersCount;
+                x = j / lettersCount;
+
+                // Append dictionary word
+                if (pos < outBufSize - 1) {
+                    outBuf[pos++] = dictVec[idx];
+                }
+            }
+
+            // 3. Suffix
+            if (suffix) {
+                for (const char* s = suffix; *s && pos < outBufSize - 1; ++s) {
+                    outBuf[pos++] = *s;
+                }
+            }
+
+            // Null-terminate
+            outBuf[pos] = '\0';
+            return pos;
+        }
+
+
+        int hashbrutegpu(int argc, const char* argv[]) {
+            if (tool::NotEnoughParam(argc, 3)) {
+                return tool::BAD_USAGE;
+            }
+
+
+            const char* map{ argv[2] };
+            GPUHashData hashData{ argv[3], argv[4] };
+            const char* prefix{ nullptr };
+            if (!tool::NotEnoughParam(argc, 4)) {
+                prefix = argv[5];
+                LOG_INFO("prefix: {}", prefix);
+            }
+            const char* suffix{ nullptr };
+            if (!tool::NotEnoughParam(argc, 5)) {
+                suffix = argv[6];
+                LOG_INFO("suffix: {}", suffix);
+            }
+            size_t count{ tool::NotEnoughParam(argc, 6) ? std::string::npos : utils::ParseFormatInt(argv[7]) };
+            const char* dict{ tool::NotEnoughParam(argc, 7) ? hash::text_expand::dict_alpha_number : argv[8] };
+
+            std::vector<byte> packedMap{};
+            std::vector<byte> packedDictIndex{};
+            cl_uint indexSize{ 0x1000 };
+            constexpr size_t hashesPerWork = 0x1000000;
+            PackMap(map, packedMap, indexSize, hashData.hashes);
+            cl_uint lettersCount{ (cl_uint)std::strlen(dict) };
+
+            size_t maxLen{ std::string::npos };
+            if (count != std::string::npos && count) {
+                maxLen = 1;
+                for (size_t i = 0; i < count; i++) {
+                    maxLen *= lettersCount;
+                }
+                maxLen++;
+                LOG_INFO("count: {}, (max {})", count, maxLen);
+            }
+
+            GPUData gpu{};
+
+            CLMem gpuMap{ gpu.CreateBuffer(CL_MEM_READ_ONLY, packedMap) };
+            CLMem gpuDict{ gpu.CreateBuffer(CL_MEM_READ_ONLY, dict) };
+
+            CLMem gpuOutBufferA{ gpu.CreateBuffer(CL_MEM_WRITE_ONLY, hashesPerWork * sizeof(cl_ulong)) };
+            CLMem gpuOutBufferB{ gpu.CreateBuffer(CL_MEM_WRITE_ONLY, hashesPerWork * sizeof(cl_ulong)) };
+            std::unique_ptr<cl_ulong[]> outBufferHost{ std::make_unique<cl_ulong[]>(hashesPerWork) };
+
+            CLMem gpuPrefix{ prefix && *prefix ? gpu.CreateBuffer(CL_MEM_READ_ONLY, prefix) : nullptr };
+            CLMem gpuSuffix{ suffix && *suffix ? gpu.CreateBuffer(CL_MEM_READ_ONLY, suffix) : nullptr };
+
+
+            std::string progData{};
+            ReadData("hashbrutegpu", progData);
+            CLProg prog{ gpu.CreateProgramWithSource(progData) };
+            CLKernel bruteKernel{ gpu.CreateKernel(prog, "hash_brute") };
+
+            cl_ulong algoMask{ (cl_ulong)hashData.funcs };
+
+            // 0 hashes to compute
+            gpu.SetKernelArg(bruteKernel, 0, sizeof(*gpuMap), &*gpuMap);
+            // 1 dictionary data
+            gpu.SetKernelArg(bruteKernel, 1, sizeof(*gpuDict), &*gpuDict);
+            // 2 prefix string
+            gpu.SetKernelArg(bruteKernel, 2, sizeof(*gpuPrefix), &*gpuPrefix);
+            // 3 suffix string
+            gpu.SetKernelArg(bruteKernel, 3, sizeof(*gpuSuffix), &*gpuSuffix);
+            // 4 out data
+            // 5 startIndex
+            // 6 lettersCount
+            gpu.SetKernelArg(bruteKernel, 6, sizeof(lettersCount), &lettersCount);
+            // 7 indexSize
+            gpu.SetKernelArg(bruteKernel, 7, sizeof(indexSize), &indexSize);
+            // 8 algoMask
+            gpu.SetKernelArg(bruteKernel, 8, sizeof(algoMask), &algoMask);
+
+            cl_ulong startIndex{};
+            bool useOutA{};
+            size_t global{ hashesPerWork };
+            constexpr size_t outBufferHostSize = hashesPerWork * sizeof(outBufferHost[0]);
+            cl_event kernelEvent{};
+            cl_event readEvent{};
+            cl_event prevReadEvent{};
+
+            char wordBuff[0x200];
+            actslib::profiler::Profiler profiler{ "hashbrutegpu" };
+            profiler.Reset();
+            size_t total{};
+
+            while (true) {
+                if (HAS_LOG_LEVEL(core::logs::LVL_TRACE)) {
+                    wordBuff[0] = 0;
+                    RebuildWordLetters(startIndex, dict, prefix, suffix, lettersCount, wordBuff, sizeof(wordBuff));
+                    LOG_TRACE("{} (0x{:x}+0x{:x}) {}", startIndex, startIndex, global, wordBuff);
+                }
+                if (startIndex < maxLen) {
+                    // pick buffer
+                    cl_mem outBuffer = useOutA ? *gpuOutBufferA : *gpuOutBufferB;
+
+                    // 4 out data
+                    gpu.SetKernelArg(bruteKernel, 4, sizeof(outBuffer), &outBuffer);
+                    // 5 startIndex
+                    gpu.SetKernelArg(bruteKernel, 5, sizeof(startIndex), &startIndex);
+
+                    // enqueue
+                    gpu.EnqueueNDRangeKernelEvent(bruteKernel, 1, nullptr, &global, 0, nullptr, &kernelEvent);
+
+                }
+                if (startIndex) {
+                    CLMem& prevBuf = useOutA ? gpuOutBufferB : gpuOutBufferA;
+                    // this was done during the last iteration, so we need to remove global to get the previous start index
+
+                    gpu.EnqueueReadBufferEvent(prevBuf, false, outBufferHost.get(), outBufferHostSize, 1, &prevReadEvent, &readEvent);
+
+                    clWaitForEvents(1, &readEvent);
+
+                    for (size_t i = 0; i < hashesPerWork; i++) {
+                        if (!outBufferHost[i]) {
+                            continue; // nothing
+                        }
+                        // -1 because 0 is bad index
+                        cl_ulong idx{ outBufferHost[i] - 1 };
+                        RebuildWordLetters(idx, dict, prefix, suffix, lettersCount, wordBuff, sizeof(wordBuff));
+                        // we know that wordBuff is a string of a known hash, we need to find which one(s)
+
+                        size_t found{ hashData.TestHash(wordBuff) };
+                        if (!found) {
+                            LOG_ERROR("CAN'T FIND RETURNED '{}', index={}:{}/{}", wordBuff, idx, i, hashesPerWork);
+                        }
+                        total += found;
+                    }
+                }
+                if (prevReadEvent) {
+                    clReleaseEvent(prevReadEvent);
+                }
+                prevReadEvent = kernelEvent;
+
+                if (startIndex >= maxLen) {
+                    break;
+                }
+                // goto next blocks
+                startIndex += global;
+                // swap buffers
+                useOutA = !useOutA;
+            }
+            profiler.Stop();
+            LOG_INFO("found {} string(s) with {} hashes in {}ms {:.2}ns/hash", total, startIndex, profiler.GetMainSection().GetMillis(),
+                profiler.GetMainSection().GetMillis() * 1000000.0 / startIndex);
+
+            return tool::OK;
+        }
+
         int gputest(int argc, const char* argv[]) {
             GPUData gpu{};
 
@@ -486,6 +683,7 @@ namespace tool::hash::scanner {
 
         // acts hashbrutegpu .\output_ff\bo7\source\scripts\ .\output_bo7\brute.txt bo6 .\output_bo6\dict.txt "" ""
 		ADD_TOOL(hashbrutedictgpu, "hash", " [dir] [output] [algorithm] [dict] (prefix=) (suffix=) (middle=_) (count=infinity)", "brute search hashes in a directory with dictionary with GPU", hashbrutedictgpu);
+		ADD_TOOL(hashbrutegpu, "hash", " [dir] [output] [algorithm] (prefix=) (suffix=) (count=infinity) (dict=all)", "brute search hashes in a directory with dictionary with GPU", hashbrutegpu);
 		ADD_TOOL(gputest, "dev", "", "test gpu", gputest);
 	}
 }
