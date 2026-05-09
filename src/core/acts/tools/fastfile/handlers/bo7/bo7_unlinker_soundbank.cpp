@@ -79,7 +79,7 @@ namespace {
 		void PreLoadWorker(fastfile::FastFileContext* ctx) override {
 
 			// todo: add all languages
-			const char* languages[]{ "deu", "eng", "fra", "ita", "jp", "jpf", "jpp", "kop", "pop", "por", "rup", "sch", "scp", "sna", "spa", "tch", };
+			const char* languages[]{ "ens", "deu", "eng", "fra", "ita", "jp", "jpf", "jpp", "kop", "pop", "por", "rup", "sch", "scp", "sna", "spa", "tch", };
 			const char* types[]{ "all", "english", "french" };
 			if (!ctx) {
 				for (auto& type : types) {
@@ -94,6 +94,8 @@ namespace {
 			for (auto& type : types) {
 				const char* str{ utils::va("%s.%s", ctx->ffname, type) };
 				hashutils::AddPrecomputed(hash::HashIWAsset(str), str, true);
+				const char* str2{ utils::va("merged_%s.%s", ctx->ffname, type) };
+				hashutils::AddPrecomputed(hash::HashIWAsset(str2), str2, true);
 			}
 		}
 
