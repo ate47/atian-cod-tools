@@ -12,6 +12,10 @@ namespace systems::mods {
 		static std::vector<ModLoadingHook*> hooks{};
 		return hooks;
 	}
+	std::vector<ModAssetLinkHook*>& GetModAssetLinkHooks() {
+		static std::vector<ModAssetLinkHook*> hooks{};
+		return hooks;
+	}
 
 	namespace {
 		std::filesystem::path moddir{ "project-bo4/acts/mods" };
@@ -161,11 +165,8 @@ namespace systems::mods {
 			XZoneBuffer fileBuffer;
 		};
 
-		struct XAsset {
-			bo4::XAssetType type;
-			byte unk1;
-			void* header;
-		};
+
+		using XAsset = bo4::XAsset;
 
 		typedef char str64_t[64];
 
@@ -457,7 +458,12 @@ namespace systems::mods {
 		}
 
 		void* DB_LinkXAssetEntry_Stub(XAsset* newEntry, bool allowOverride) {
+			for (mods::ModAssetLinkHook* hook : GetModAssetLinkHooks()) {
+				hook(newEntry);
+			}
+
 			void* entry{ DB_LinkXAssetEntry_Detour.Call<void*>(newEntry, allowOverride) };
+
 			if (loadFakeFastFile) {
 				LOG_DEBUG(
 					"DB_LinkXAssetEntry({}={}, {}, allowOverride={}) -> {}",

@@ -11,6 +11,7 @@ namespace bo4 {
 
 	struct XAsset {
 		XAssetType type;
+		byte unk1;
 		void* header;
 	}; static_assert(sizeof(XAsset) == 0x10);
 
