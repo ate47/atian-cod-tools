@@ -73,4 +73,5 @@ namespace fastfile::handlers::bo4::scriptbundle {
 	}; static_assert(sizeof(ScriptBundle) == 0x40);
 
 	void WriteObject(core::hashes::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error);
+	void WriteObject(core::hashes::raw_file_extractor::JsonWriter& json, const char* name, SB_ObjectsArray& arr);
 }

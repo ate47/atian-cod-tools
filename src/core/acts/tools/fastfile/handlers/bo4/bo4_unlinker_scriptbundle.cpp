@@ -124,17 +124,17 @@ namespace fastfile::handlers::bo4::scriptbundle {
 				if (handles.contains(obj.keyScrName)) continue; // ignore sub
 
 				const char* keyScrName{ hashutils::ExtractPtr(obj.keyScrName) }; // h32
-				if (!keyScrName || !*keyScrName) keyScrName = hashutils::ExtractPtr(obj.hashValue.name); // 64
+				if (!keyScrName || !*keyScrName) keyScrName = hashutils::ExtractPtr(obj.keyName.name); // 64
 
 				if (keyScrName && *keyScrName) {
 					json.WriteFieldNameString(keyScrName);
 				}
 				else {
-					if (obj.hashValue.name && obj.keyScrName) {
-						json.WriteFieldNameString(utils::va("hash_%llx:hash_%llx", obj.hashValue.name, obj.keyScrName));
+					if (obj.keyName.name && obj.keyScrName) {
+						json.WriteFieldNameString(utils::va("hash_%llx:hash_%llx", obj.keyName.name, obj.keyScrName));
 					}
-					else if (obj.hashValue.name) {
-						json.WriteFieldNameString(utils::va("hash_%llx", obj.hashValue.name));
+					else if (obj.keyName.name) {
+						json.WriteFieldNameString(utils::va("hash_%llx", obj.keyName.name));
 					}
 					else {
 						json.WriteFieldNameString(utils::va("hash_%llx", obj.keyScrName));
@@ -248,6 +248,14 @@ namespace fastfile::handlers::bo4::scriptbundle {
 		}
 
 		json.EndObject();
+	}
+
+	void WriteObject(core::hashes::raw_file_extractor::JsonWriter& json, const char* name, SB_ObjectsArray& arr) {
+		if (arr.sbObjects || arr.sbSubs) {
+			json.WriteFieldNameString(name);
+			bool err{};
+			WriteObject(json, arr, err);
+		}
 	}
 
 	class ScriptBundleWorker : public Worker {

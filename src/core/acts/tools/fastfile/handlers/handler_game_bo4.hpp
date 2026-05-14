@@ -59,6 +59,11 @@ namespace fastfile::handlers::bo4 {
 	struct XModelAlias;
 	struct RagdollDef;
 	struct GestureTable;
+	struct PlayerRoleTemplate;
+	struct CharacterBodyType;
+	struct CharMixer;
+	struct PlayerMovementTunables;
+	struct PlayerTalentTemplate;
 	typedef FxEffectDef* FxEffectDefHandle;
 	typedef Material* MaterialHandle;
 
@@ -172,6 +177,10 @@ namespace fastfile::handlers::bo4 {
 			}
 			XHash* hname{ games::bo4::pool::GetAssetName(type, val) };
 			WriteValueHash(*hname);
+		}
+
+		void WriteValueScrString(ScrString_t val) {
+			WriteValueString(GetScrString(val));
 		}
 
 		void WriteFieldValueScrStringArray(const char* name, size_t count, ScrString_t* val, bool ignoreEmpty = true) {

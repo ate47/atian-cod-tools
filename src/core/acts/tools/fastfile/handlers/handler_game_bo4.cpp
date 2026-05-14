@@ -426,10 +426,13 @@ namespace fastfile::handlers::bo4 {
 
 			xasset->header = linkedHeader;
 		}
+		bool defaultAsset{};
+		uint64_t name{};
 
 		if (hash && hash->name) {
-			bool defaultAsset{ (hash->name & ~hash::MASK63) != 0 };
+			defaultAsset = (hash->name & ~hash::MASK63) != 0;
 			if (defaultAsset) hash->name &= hash::MASK63;
+			name = hash->name;
 			if (gcx.opt->workflow == FFW_READER) {
 				*gcx.outAssetNames << XAssetNameFromId(xasset->type) << "," << (defaultAsset ? "d" : "") << "#" << hashutils::ExtractTmp("hash", hash->name);
 				**gcx.outAssetNames << std::endl;
@@ -442,11 +445,11 @@ namespace fastfile::handlers::bo4 {
 				xasset->header, XBlockLocPtr(baseHeader)
 			);
 		}
-
-		fastfile::AddAssetHeader(hash->name, xasset->header, xasset->type, 0);
+		
+		fastfile::AddAssetHeader(name, xasset->header, xasset->type, 0);
 
 		if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[xasset->type])) return xasset; // ignore
-		if (xasset->header) {
+		if (xasset->header && !defaultAsset) {
 			auto& workers{ fastfile::handlers::bo4::GetWorkers() };
 			auto it{ workers.find(xasset->type) };
 			if (it != workers.end()) {
