@@ -10,6 +10,9 @@ namespace fastfile::linker::bo4 {
 	}
 
 	uint32_t BO4LinkContext::HashScr(const char* str) {
+		if (!str) {
+			return 0;
+		}
 		uint64_t r;
 		if (hash::TryHashPattern(str, r)) {
 			return (uint32_t)r; // nothing to add
@@ -32,6 +35,9 @@ namespace fastfile::linker::bo4 {
 	}
 
 	uint64_t BO4LinkContext::HashXHash(const char* str, bool ignoreTop) {
+		if (!str) {
+			return 0;
+		}
 		if (ignoreTop && *str == '#') {
 			str++;
 		}

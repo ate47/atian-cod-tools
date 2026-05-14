@@ -26,17 +26,26 @@ namespace core::config {
 		return (T)ParseEnumValue(value, data, dataCount, (int64_t)defaultEnumValue, path);
 	}
 
-	class Config {
-	public:
-		std::filesystem::path configFile;
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
-		rapidjson::GenericDocument<rapidjson::UTF8<>, rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator>> main{};
+	using RapidJsonDocument = rapidjson::GenericDocument<rapidjson::UTF8<>, rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator>>;
+	using RapidJsonGeneric = rapidjson::GenericValue<RapidJsonDocument::EncodingType, RapidJsonDocument::AllocatorType>;
+
 #endif
-		Config();
-		Config(const std::filesystem::path& path);
+	class ConfigGeneric {
+	public:
+
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
-		rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& GetVal(const char* path, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc);
-		void SetVal(const char* path, rapidjson::Value& value, size_t off, rapidjson::GenericValue<decltype(Config::main)::EncodingType, decltype(Config::main)::AllocatorType>& loc);
+		RapidJsonDocument& main;
+		RapidJsonGeneric& base;
+
+		ConfigGeneric(RapidJsonDocument& main, RapidJsonGeneric& base) : main(main), base(base) {}
+		ConfigGeneric(const ConfigGeneric& other) noexcept : main(other.main), base(other.base) {}
+		ConfigGeneric(ConfigGeneric&& other) noexcept : main(other.main), base(other.base) {}
+
+		RapidJsonGeneric& GetVal(const char* path, size_t off, RapidJsonGeneric& loc);
+		void SetVal(const char* path, rapidjson::Value& value, size_t off, RapidJsonGeneric& loc);
+		ConfigGeneric GetSubVal(const char* path, size_t off, RapidJsonGeneric& loc);
+		ConfigGeneric GetSub(RapidJsonGeneric& loc);
 #endif
 
 		int64_t GetInteger(const char* path, int64_t defaultValue = 0);
@@ -85,6 +94,21 @@ namespace core::config {
 		inline void SetBool(const std::string& path, bool defaultValue) { SetBool(path.c_str(), defaultValue); }
 		void SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount);
 		inline void SetEnum(const std::string& path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) { SetEnum(path.c_str(), enumValue, data, dataCount); }
+
+	};
+
+	class Config : public ConfigGeneric {
+	public:
+		std::filesystem::path configFile;
+#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
+		RapidJsonDocument main{};
+#endif
+		Config();
+		Config(const std::filesystem::path& path);
+		Config(const Config& other);
+		Config(Config&& other) noexcept;
+		Config& operator=(const Config& other);
+		Config& operator=(Config&& other) noexcept;
 
 		bool SyncConfig(bool save);
 		void SaveConfig() const;
