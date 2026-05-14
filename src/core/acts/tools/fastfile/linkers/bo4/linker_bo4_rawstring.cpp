@@ -1,38 +1,35 @@
 #include <includes.hpp>
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 
-namespace fastfile::linker::bo4 {
-	class RawStringWorker : public LinkerWorker {
+namespace {
+	using namespace fastfile::linker::bo4;
+	struct RawString {
+		XHash name;
+		const char* str;
+	};
+	static_assert(sizeof(RawString) == 0x18);
+
+	class XAssetLinkerImpl : public XAssetLinker {
 	public:
-		RawStringWorker() : LinkerWorker("RawString") {}
+		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx) override {
-			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["rawstring"]) {
-				assval.handled = true;
-				struct RawString {
-					XHash name;
-					const char* str;
-				}; static_assert(sizeof(RawString) == 0x18);
+		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+			ff.data.PushStream(XFILE_BLOCK_TEMP);
+			RawString rf{};
 
-				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_RAWSTRING, fastfile::linker::data::POINTER_NEXT);
+			rf.name.name = ctx.HashPathName(id);
+			rf.str = (const char*)fastfile::linker::data::POINTER_NEXT;
+			ff.data.WriteData(rf);
 
-				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
-				RawString rf{};
+			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
+			ff.data.WriteData(id, std::strlen(id) + 1);
+			ff.data.PopStream();
 
-				rf.name.name = ctx.HashPathName(assval.value);
-				rf.str = (const char*)fastfile::linker::data::POINTER_NEXT;
-				ctx.mainFF.data.WriteData(rf);
+			ff.data.PopStream();
 
-				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				ctx.mainFF.data.WriteData(assval.value, std::strlen(assval.value) + 1);
-				ctx.mainFF.data.PopStream();
-
-				ctx.mainFF.data.PopStream();
-
-				LOG_INFO("Added asset rawstring {} (hash_{:x})", assval.value, rf.name.name);
-			}
+			LOG_INFO("Added asset rawstring {} (hash_{:x})", id, rf.name.name);
 		}
 	};
 
-	utils::ArrayAdder<RawStringWorker, LinkerWorker> impl{ GetWorkers() };
+	utils::MapAdder<XAssetLinkerImpl, XAssetType, XAssetLinker> impl{ GetWorkers(), XAssetType::ASSET_TYPE_RAWSTRING };
 }

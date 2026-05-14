@@ -10,6 +10,8 @@ namespace systems::test {
 	namespace {
 		struct PlayerRoleTemplate;
 		struct CharacterHead;
+		struct StoreProducts;
+		struct GfxImage;
 
 		struct PlayerRoleLevels {
 			bool enabled;
@@ -25,6 +27,19 @@ namespace systems::test {
 			CharacterHead* heads;
 		};
 		static_assert(sizeof(CustomizationTable) == 0x30);
+
+		struct StoreCategory {
+			const char* name2;
+			XHash name;
+			GfxImage* image;
+			XHash displayName;
+			byte productsCount;
+			StoreProducts** products;
+			bool visibility;
+		};
+		static_assert(sizeof(StoreCategory) == 0x48);
+
+
 
 		void ModAssetLinkHookCustomizationTable(bo4::XAsset* asset) {
 			if (!asset || asset->type != games::bo4::pool::ASSET_TYPE_CUSTOMIZATION_TABLE) {
@@ -48,6 +63,19 @@ namespace systems::test {
 			}
 		}
 
+		void ModAssetLinkHookStoreCategory(bo4::XAsset* asset) {
+			if (!asset || asset->type != games::bo4::pool::ASSET_TYPE_STORECATEGORY) {
+				return;
+			}
+
+			StoreCategory& cat{ *(StoreCategory*)asset->header };
+
+			if (!cat.visibility) {
+				LOG_DEBUG("patch StoreCategory::visibility {}", core::hashes::ExtractTmp("hash", cat.name));
+				cat.visibility = true;
+			}
+		}
+
 		void TestPostInit(uint64_t uid) {
 			if (core::config::GetBool("test.4k", false)) {
 				hook::memory::ReturnVal(bo4::DB_Is4KEnabled.ptr, true);
@@ -55,6 +83,10 @@ namespace systems::test {
 			if (core::config::GetBool("test.playerroole", false)) {
 				// enable all the playerroles -> (none + infected zombies in wz/mp)
 				systems::mods::GetModAssetLinkHooks().emplace_back(ModAssetLinkHookCustomizationTable);
+			}
+			if (core::config::GetBool("test.storecat", false)) {
+				// enable all the playerroles -> (none + infected zombies in wz/mp)
+				systems::mods::GetModAssetLinkHooks().emplace_back(ModAssetLinkHookStoreCategory);
 			}
 		}
 

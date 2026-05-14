@@ -21,7 +21,7 @@ namespace games::bo4::pool {
 			"gfx_map",
 			"fonticon",
 			"localizeentry",
-			"localize",
+			"localizelist",
 			"gesture",
 			"gesturetable",
 			"weapon",

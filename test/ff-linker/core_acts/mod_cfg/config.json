@@ -33,7 +33,7 @@
         {
             "type": "localizeentry",
             "origin": "hash_4ccf78cd6dd0333a",
-            "dest": "ACTS_SPRAY_DESC"
+            "dest": "ACTS/SPRAY_DESC"
         }
     ],
     "lua_hook": [

@@ -4,7 +4,8 @@
 #define STB_IMAGE_STATIC
 #include <stb_image.h>
 
-namespace fastfile::linker::bo4 {
+namespace {
+	using namespace fastfile::linker::bo4;
 	enum GfxPixelFormat : int32_t {
 		GFX_PF_INVALID = 0x0,
 		GFX_PF_R8G8B8A8_T1 = 28,
@@ -59,83 +60,70 @@ namespace fastfile::linker::bo4 {
 	};
 	static_assert(sizeof(GfxImage) == 0x88);
 
-	bool LinkGfxImagePtr(BO4LinkContext& ctx, const char* gfximage, uint64_t* hashOut) {
-		if (*gfximage == '#') gfximage++; // ignore start #
-		std::filesystem::path path{ ctx.linkCtx.input / "images" / gfximage };
-		std::filesystem::path filename{ path.filename() };
-		filename.replace_extension();
-		std::string name{ filename.string() };
-		uint64_t hash{ ctx.HashXHash(name.data()) };
-		std::string pathStr{ path.string() };
-		GfxImage gfx{};
-		gfx.name.name = hash;
-		if (hashOut) *hashOut = hash;
-
-		LOG_TRACE("Processing image {} ({}) 0x{:x}", name, path.string(), hash);
-		int x, y, channels;
-		stbi_uc* img{ stbi_load(pathStr.data(), &x, &y, &channels, 0) };
-
-		if (!img) {
-			ctx.error = true;
-			LOG_ERROR("Can't process image {}: {}", path.string(), stbi_failure_reason());
-			return false;
-		}
-
-		utils::CloseEnd imgce{ [img]() { stbi_image_free(img); } };
-
-
-		gfx.unk0 = 0;
-		gfx.totalSize = x * y * channels;
-		gfx.width = x;
-		gfx.height = y;
-		gfx.mapType = MAPTYPE_2D;
-		gfx.levelCount = 1;
-		gfx.depth = 1;
-		gfx.pixels = (byte*)fastfile::linker::data::POINTER_NEXT;
-
-		LOG_TRACE("Image: {}x{}x{}", x, y, channels);
-		switch (channels) {
-		case 4:
-			gfx.imageFormat = GFX_PF_R8G8B8A8_T2;
-			break;
-		default:
-			LOG_ERROR("Can't compile {} channels image", channels);
-			return false;
-		}
-
-		ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
-		// header
-		ctx.mainFF.data.WriteData(gfx);
-
-		ctx.mainFF.data.PushStream(XFILE_BLOCK_PHYSICAL);
-		// pixels
-		ctx.mainFF.data.Align(0xFF);
-		ctx.mainFF.data.WriteData(img, gfx.totalSize);
-
-		ctx.mainFF.data.PopStream();
-
-		ctx.mainFF.data.PopStream();
-
-		return true;
-	}
-
-
-	class GfxImageWorker : public LinkerWorker {
+	class XAssetLinkerImpl : public XAssetLinker {
 	public:
-		GfxImageWorker() : LinkerWorker("GfxImage", -1) {}
+		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx) override {
-			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["image"]) {
-				assval.handled = true;
+		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+			if (*id == '#') id++; // ignore start #
+			std::filesystem::path path{ ctx.linkCtx.input / "images" / id };
+			std::filesystem::path filename{ path.filename() };
+			filename.replace_extension();
+			std::string name{ filename.string() };
+			uint64_t hash{ ctx.HashXHash(name.data()) };
+			std::string pathStr{ path.string() };
+			GfxImage gfx{};
+			gfx.name.name = hash;
+			if (hashOut) *hashOut = hash;
 
-				uint64_t hashOut;
-				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_IMAGE, fastfile::linker::data::POINTER_NEXT);
-				if (LinkGfxImagePtr(ctx, assval.value, &hashOut)) {
-					LOG_INFO("Added asset gfximage {} (hash_{:x})", assval.value, hashOut);
-				}
+			LOG_TRACE("Processing image {} ({}) 0x{:x}", name, path.string(), hash);
+			int x, y, channels;
+			stbi_uc* img{ stbi_load(pathStr.data(), &x, &y, &channels, 0) };
+
+			if (!img) {
+				ctx.error = true;
+				LOG_ERROR("Can't process image {}: {}", path.string(), stbi_failure_reason());
+				return;
 			}
+
+			utils::CloseEnd imgce{ [img]() { stbi_image_free(img); } };
+
+
+			gfx.unk0 = 0;
+			gfx.totalSize = x * y * channels;
+			gfx.width = x;
+			gfx.height = y;
+			gfx.mapType = MAPTYPE_2D;
+			gfx.levelCount = 1;
+			gfx.depth = 1;
+			gfx.pixels = (byte*)fastfile::linker::data::POINTER_NEXT;
+
+			LOG_TRACE("Image: {}x{}x{}", x, y, channels);
+			switch (channels) {
+			case 4:
+				gfx.imageFormat = GFX_PF_R8G8B8A8_T2;
+				break;
+			default:
+				LOG_ERROR("Can't compile {} channels image", channels);
+				ctx.error = true;
+				return;
+			}
+
+			ff.data.PushStream(XFILE_BLOCK_TEMP);
+			// header
+			ff.data.WriteData(gfx);
+
+			ff.data.PushStream(XFILE_BLOCK_PHYSICAL);
+			// pixels
+			ff.data.Align(0xFF);
+			ff.data.WriteData(img, gfx.totalSize);
+
+			ff.data.PopStream();
+
+			ff.data.PopStream();
+			LOG_INFO("Added asset gfximage {} (hash_{:x})", id, hash);
 		}
 	};
 
-	utils::ArrayAdder<GfxImageWorker, LinkerWorker> impl{ GetWorkers() };
+	utils::MapAdder<XAssetLinkerImpl, XAssetType, XAssetLinker> impl{ GetWorkers(), XAssetType::ASSET_TYPE_IMAGE };
 }

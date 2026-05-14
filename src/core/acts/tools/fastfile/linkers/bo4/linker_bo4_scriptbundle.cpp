@@ -42,7 +42,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 		{ KVP_IMPACT_FX_TABLE, ET_XHASH, "impact_fx_table#" },
 	};
 
-	bool WriteArray(BO4LinkContext& ctx, rapidjson::Value& val, size_t arrayOffset) {
+	bool WriteArray(BO4LinkContext& ctx, rapidjson::Value& val, size_t arrayOffset, BO4FFContext& ff) {
 		size_t sbObjectsCount{};
 		size_t sbSubCount{};
 		if (!val.IsObject()) {
@@ -63,7 +63,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 		if (sbObjectsCount) {
 			size_t idxobj{};
-			size_t sbObjects{ ctx.mainFF.data.AllocData(sizeof(SB_Object) * sbObjectsCount) };
+			size_t sbObjects{ ff.data.AllocData(sizeof(SB_Object) * sbObjectsCount) };
 
 			for (auto& [k, v] : obj) {
 				if (v.IsArray()) {
@@ -71,7 +71,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 				}
 				const char* keyName{ k.GetString() };
 
-				SB_Object* sobj{ ctx.mainFF.data.GetData<SB_Object>(sbObjects) + idxobj++ };
+				SB_Object* sobj{ ff.data.GetData<SB_Object>(sbObjects) + idxobj++ };
 
 				// not good, what if the user wants a hashed key
 				sobj->keyName.name = ctx.HashXHash(keyName);
@@ -106,7 +106,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 							sobj->value.intVal = (int32_t)utils::ParseFormatInt(val);
 							break;
 						case ET_STRING:
-							sobj->stringRef = (ScrString_t)ctx.mainFF.data.AddString(val);
+							sobj->stringRef = (ScrString_t)ff.data.AddString(val);
 							break;
 						case ET_XHASH:
 							sobj->hashValue.name = ctx.HashXHash(val);
@@ -116,7 +116,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 					}
 
 					if (sobj->type == KVP_STRING) {
-						sobj->stringRef = (ScrString_t)ctx.mainFF.data.AddString(stringValue);
+						sobj->stringRef = (ScrString_t)ff.data.AddString(stringValue);
 						sobj->hashValue.name = ctx.HashXHash(stringValue);
 					}
 				
@@ -131,23 +131,23 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 		if (sbSubCount) {
 			size_t idxsub{};
-			size_t sbSub{ ctx.mainFF.data.AllocData(sizeof(SB_Sub) * sbSubCount) };
+			size_t sbSub{ ff.data.AllocData(sizeof(SB_Sub) * sbSubCount) };
 			for (auto& [k, v] : obj) {
 				if (!v.IsArray()) {
 					continue;
 				}
 				const char* keyName{ k.GetString() };
-				SB_Sub* ssub{ ctx.mainFF.data.GetData<SB_Sub>(sbSub) + idxsub++ };
-				ssub->keyname = (ScrString_t)ctx.mainFF.data.AddString(keyName);
+				SB_Sub* ssub{ ff.data.GetData<SB_Sub>(sbSub) + idxsub++ };
+				ssub->keyname = (ScrString_t)ff.data.AddString(keyName);
 				auto arr{ v.GetArray() };
 				ssub->size = (uint64_t)arr.Size();
 				ssub->item = (SB_ObjectsArray*)fastfile::linker::data::POINTER_NEXT;
 
 				// alloc sub elements
-				size_t subArray{ ctx.mainFF.data.AllocData(sizeof(SB_ObjectsArray) * ssub->size) };
+				size_t subArray{ ff.data.AllocData(sizeof(SB_ObjectsArray) * ssub->size) };
 
 				for (auto& el : arr) {
-					if (!WriteArray(ctx, el, subArray)) {
+					if (!WriteArray(ctx, el, subArray, ff)) {
 						return false;
 					}
 					subArray += sizeof(SB_ObjectsArray);
@@ -156,7 +156,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 		}
 
 		// we have enough data, we can link the header
-		SB_ObjectsArray* arr{ ctx.mainFF.data.GetData<SB_ObjectsArray>(arrayOffset) };
+		SB_ObjectsArray* arr{ ff.data.GetData<SB_ObjectsArray>(arrayOffset) };
 		if (sbObjectsCount) {
 			arr->sbObjects = (SB_Object*)fastfile::linker::data::POINTER_NEXT;
 			arr->sbObjectCount = sbObjectsCount;
@@ -168,20 +168,19 @@ namespace fastfile::linker::bo4::scriptbundle {
 		return true;
 	}
 
-	class ScriptBundleWorker : public LinkerWorker {
-	public:
-		ScriptBundleWorker() : LinkerWorker("ScriptBundle") {}
+	namespace {
+		class XAssetLinkerImpl : public XAssetLinker {
+		public:
+			using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx) override {
-			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["scriptbundle"]) {
-				std::filesystem::path rfpath{ std::format("{}.json", assval.value) };
-				assval.handled = true;
+			void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+				std::filesystem::path rfpath{ std::format("{}.json", id) };
 				std::filesystem::path path{ ctx.linkCtx.input / "scriptbundle" / rfpath };
 				std::string buffer{};
 				if (!utils::ReadFile(path, buffer)) {
-					LOG_ERROR("Can't read {}", path.string());
+					LOG_ERROR("Can't read scriptbundle {}", path.string());
 					ctx.error = true;
-					continue;
+					return;
 				}
 
 				std::filesystem::path fname{ rfpath.filename() };
@@ -193,7 +192,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 					if (rfpath.parent_path().has_parent_path()) {
 						LOG_ERROR("Can't load scriptbundle {}: too deep", name);
 						ctx.error = true;
-						continue;
+						return;
 					}
 					std::filesystem::path typeFile{ rfpath.parent_path().filename() };
 					type = typeFile.string();
@@ -209,24 +208,23 @@ namespace fastfile::linker::bo4::scriptbundle {
 				if (main.HasParseError()) {
 					LOG_ERROR("Can't parse {}", path.string());
 					ctx.error = true;
-					continue;
+					return;
 				}
 
-				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTBUNDLE, fastfile::linker::data::POINTER_NEXT);
+				ff.data.PushStream(XFILE_BLOCK_TEMP);
 
-				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
-
-				size_t header{ ctx.mainFF.data.AllocData(sizeof(ScriptBundle)) };
+				size_t header{ ff.data.AllocData(sizeof(ScriptBundle)) };
 				size_t arrayOffset{ header + offsetof(ScriptBundle, sbObjectsArray) };
 
-				ScriptBundle* bundle{ ctx.mainFF.data.GetData<ScriptBundle>(header) };
+				ScriptBundle* bundle{ ff.data.GetData<ScriptBundle>(header) };
 
 				// add name and type to bundle
 				bundle->name.name = ctx.HashXHash(name);
+				if (hashOut) *hashOut = bundle->name;
 				rapidjson::Value nameValue{};
 				nameValue.SetString(name.data(), main.GetAllocator());
 				main.AddMember(rapidjson::StringRef("name"), nameValue, main.GetAllocator());
-				
+
 				if (type.size()) {
 					bundle->bundleType.name = ctx.HashXHash(type);
 
@@ -235,21 +233,21 @@ namespace fastfile::linker::bo4::scriptbundle {
 					main.AddMember(rapidjson::StringRef("type"), typeValue, main.GetAllocator());
 				}
 
-				ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				if (!WriteArray(ctx, main, arrayOffset)) {
+				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				if (!WriteArray(ctx, main, arrayOffset, ff)) {
 					LOG_ERROR("Can't compile json object");
 					ctx.error = true;
-					continue;
+					return;
 				}
-				ctx.mainFF.data.PopStream();
+				ff.data.PopStream();
 
-				ctx.mainFF.data.PopStream();
+				ff.data.PopStream();
 
 
 				LOG_INFO("Added asset scriptbundle {} (hash_{:x})", rfpath.string(), bundle->name.name);
 			}
-		}
-	};
+		};
+	}
 
-	utils::ArrayAdder<ScriptBundleWorker, LinkerWorker> impl{ GetWorkers() };
+	utils::MapAdder<XAssetLinkerImpl, XAssetType, XAssetLinker> impl{ GetWorkers(), XAssetType::ASSET_TYPE_SCRIPTBUNDLE };
 }

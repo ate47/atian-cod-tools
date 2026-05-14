@@ -43,6 +43,8 @@ namespace fastfile::linker::bo4 {
 	struct BO4FFContext {
 		fastfile::linker::data::LinkerData data{ XFILE_BLOCK_COUNT, XFILE_BLOCK_TEMP, XFILE_BLOCK_TEMP_PRELOAD };
 		std::unordered_map<BGCacheTypes, std::unordered_set<uint64_t>> bgcache{};
+		std::vector<XHash> forcedServerScripts{};
+		std::vector<XHash> forcedClientScripts{};
 		uint64_t ffnameHash{};
 		const char* ffname{};
 	};
@@ -69,17 +71,18 @@ namespace fastfile::linker::bo4 {
 	struct GfxImage;
 	typedef float vec3_t[3];
 
-	class LinkerWorker {
+	class XAssetLinker {
 	public:
-		const char* id;
-		int priority;
-		LinkerWorker(const char* id, int priority = 0) : id(id), priority(priority) {}
+		// does LinkAsset add an asset if asked
+		bool isGrouped;
 
-		virtual void Compute(BO4LinkContext& ctx) = 0;
+		XAssetLinker(bool isGrouped = false) : isGrouped(isGrouped) {
+		}
+		virtual void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) = 0;
+		virtual void ComputeFinal(BO4LinkContext& ctx, BO4FFContext& ff) {}
 	};
 
-	std::vector<LinkerWorker*>& GetWorkers();
+	std::unordered_map<XAssetType, XAssetLinker*>& GetWorkers();
 
-	bool LinkGfxImagePtr(BO4LinkContext& ctx, const char* gfximage, uint64_t* hashOut = nullptr);
-	bool LinkWeaponTunablesPtr(BO4LinkContext& ctx, const char* wt, uint64_t* hashOut = nullptr);
+	void LinkAsset(XAssetType type, BO4LinkContext& ctx, const char* id, uint64_t* hashOut = nullptr, bool addAsset = false, BO4FFContext* ff = nullptr);
 }

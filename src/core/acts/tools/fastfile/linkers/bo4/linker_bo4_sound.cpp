@@ -1,7 +1,8 @@
 #include <includes.hpp>
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 
-namespace fastfile::linker::bo4 {
+namespace {
+	using namespace fastfile::linker::bo4;
 
 	struct XPakEntryInfo {
 		uint64_t key;
@@ -451,189 +452,186 @@ namespace fastfile::linker::bo4 {
 		}
 	}
 
-	class SoundWorker : public LinkerWorker {
+	class XAssetLinkerImpl : public XAssetLinker {
 	public:
-		SoundWorker() : LinkerWorker("Sound") {}
+		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx) override {
+		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
 			const char* sndPlatform{ ctx.linkCtx.zone.GetConfig("snd.platform", "pc") };
-			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["sound"]) {
-				assval.handled = true;
-				std::filesystem::path path{ ctx.linkCtx.input / assval.value };
-				core::config::Config scfg{ path };
-				if (!scfg.SyncConfig(false)) {
-					LOG_ERROR("Can't read {}", path.string());
+			std::filesystem::path path{ ctx.linkCtx.input / id };
+			core::config::Config scfg{ path };
+			if (!scfg.SyncConfig(false)) {
+				LOG_ERROR("Can't read {}", path.string());
+				ctx.error = true;
+				return;
+			}
+
+			std::string gameLanguage{ scfg.GetString("gameLanguage", "all") };
+			std::string soundLanguage{ scfg.GetString("soundLanguage", "all") };
+
+			BO4FFContext* pffctx;
+			if (soundLanguage == "all") {
+				pffctx = &ff;
+			}
+			else {
+				pffctx = &ctx.GetFFContext(utils::va("%s_", soundLanguage.c_str()));
+			}
+
+			BO4FFContext& ffctx{ *pffctx };
+
+			// shouldn't be set, but whatever
+			std::string zone{ scfg.GetString("zone", ff.ffname) };
+			std::string name{ scfg.GetString("name", std::format("{}.{}", zone, soundLanguage)) };
+
+			std::vector<SndAssetBankEntryBo4> streamEntries{};
+			std::vector<SndAssetBankEntryBo4> loadEntries{};
+
+			auto itLoaded{ scfg.main.FindMember("loaded") };
+			if (itLoaded != scfg.main.MemberEnd()) {
+				if (!itLoaded->value.IsArray()) {
+					LOG_ERROR("{}: loaded field must be an array", id);
 					ctx.error = true;
-					continue;
+					return;
 				}
-
-				std::string gameLanguage{ scfg.GetString("gameLanguage", "all") };
-				std::string soundLanguage{ scfg.GetString("soundLanguage", "all") };
-
-				BO4FFContext* pffctx;
-				if (soundLanguage == "all") {
-					pffctx = &ctx.mainFF;
-				}
-				else {
-					pffctx = &ctx.GetFFContext(utils::va("%s_", soundLanguage.c_str()));
-				}
-
-				BO4FFContext& ffctx{ *pffctx };
-
-				// shouldn't be set, but whatever
-				std::string zone{ scfg.GetString("zone", ctx.linkCtx.mainFFName) };
-				std::string name{ scfg.GetString("name", std::format("{}.{}", zone, soundLanguage)) };
-
-				std::vector<SndAssetBankEntryBo4> streamEntries{};
-				std::vector<SndAssetBankEntryBo4> loadEntries{};
-
-				auto itLoaded{ scfg.main.FindMember("loaded") };
-				if (itLoaded != scfg.main.MemberEnd()) {
-					if (!itLoaded->value.IsArray()) {
-						LOG_ERROR("{}: loaded field must be an array", assval.value);
-						ctx.error = true;
+				for (auto& v : itLoaded->value.GetArray()) {
+					if (!v.IsObject()) {
+						LOG_WARNING("{}: a loaded member isn't an object", id);
 						continue;
 					}
-					for (auto& v : itLoaded->value.GetArray()) {
-						if (!v.IsObject()) {
-							LOG_WARNING("{}: a loaded member isn't an object", assval.value);
-							continue;
-						}
-						auto obj{ v.GetObj() };
+					auto obj{ v.GetObj() };
 
 
-						if (!obj.HasMember("file") || !obj["file"].IsString()) {
-							LOG_WARNING("{}: a loaded member doesn't have a file name", assval.value);
-							continue;
-						}
-						const char* file{ obj["file"].GetString() };
-						if (!obj.HasMember("format") || !obj["format"].IsString()) {
-							LOG_WARNING("{}: {} doesn't have a file format", assval.value, file);
-							continue;
-						}
-						const char* format{ obj["format"].GetString() };
-						int order{ obj.HasMember("order") ? obj["order"].GetInt() : 0 };
-						int channelCount{ obj.HasMember("channelCount") ? obj["channelCount"].GetInt() : 0 };
-						bool looping{ obj.HasMember("looping") ? obj["looping"].GetBool() : false };
-
-						SndAssetBankEntryBo4 ent{};
-						ent.id = ctx.HashXHash(file, true);
-						ent.format = SndAssetFormatId(format);
-						if (ent.format == SND_ASSET_FORMAT_COUNT) {
-							LOG_WARNING("{}: {} doesn't have a valid file format '{}'", assval.value, file, format);
-							continue;
-						}
-
-						std::filesystem::path path{ ctx.linkCtx.input / file };
-						if (!utils::ReadFile(path, ent.buffer)) {
-							LOG_ERROR("Can't read {}", path.string());
-							ctx.error = true;
-							return;
-						}
-
-						LOG_INFO("Loaded sab entry {} (hash_{:x}/{})", path.string(), ent.id, format);
-						loadEntries.emplace_back(std::move(ent));
+					if (!obj.HasMember("file") || !obj["file"].IsString()) {
+						LOG_WARNING("{}: a loaded member doesn't have a file name", id);
+						continue;
 					}
+					const char* file{ obj["file"].GetString() };
+					if (!obj.HasMember("format") || !obj["format"].IsString()) {
+						LOG_WARNING("{}: {} doesn't have a file format", id, file);
+						continue;
+					}
+					const char* format{ obj["format"].GetString() };
+					int order{ obj.HasMember("order") ? obj["order"].GetInt() : 0 };
+					int channelCount{ obj.HasMember("channelCount") ? obj["channelCount"].GetInt() : 0 };
+					bool looping{ obj.HasMember("looping") ? obj["looping"].GetBool() : false };
+
+					SndAssetBankEntryBo4 ent{};
+					ent.id = ctx.HashXHash(file, true);
+					ent.format = SndAssetFormatId(format);
+					if (ent.format == SND_ASSET_FORMAT_COUNT) {
+						LOG_WARNING("{}: {} doesn't have a valid file format '{}'", id, file, format);
+						continue;
+					}
+
+					std::filesystem::path path{ ctx.linkCtx.input / file };
+					if (!utils::ReadFile(path, ent.buffer)) {
+						LOG_ERROR("Can't read {}", path.string());
+						ctx.error = true;
+						return;
+					}
+
+					LOG_INFO("Loaded sab entry {} (hash_{:x}/{})", path.string(), ent.id, format);
+					loadEntries.emplace_back(std::move(ent));
 				}
-
-				LOG_TRACE("load sndbank {}", path.string());
-
-				// todo: add that to the linker context instead of here
-				std::filesystem::path dir{ ctx.linkCtx.opt.m_output / "zone" / "snd" / soundLanguage };
-				std::filesystem::path sabs{ dir / std::format("{}.sabs", name) };
-				std::filesystem::path sabl{ dir / std::format("{}.sabl", name) };
-				std::filesystem::create_directories(dir);
-
-				size_t sabsSize{ CreateSabFile(sabs, soundLanguage, sndPlatform, streamEntries) };
-				size_t sablSize{ CreateSabFile(sabl, soundLanguage, sndPlatform, loadEntries) };
-
-				if (!sablSize || !sabsSize) {
-					ctx.error = true;
-					continue;
-				}
-
-				ffctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SOUND, fastfile::linker::data::POINTER_NEXT);
-
-				ffctx.data.PushStream(XFILE_BLOCK_TEMP);
-				SndBank sndbank{};
-				sndbank.nameHash.name = ctx.HashXHash(name);
-				sndbank.name = (const char*)fastfile::ALLOC_PTR;
-				sndbank.zone = (const char*)fastfile::ALLOC_PTR;
-				sndbank.gameLanguage = (const char*)fastfile::ALLOC_PTR;
-				sndbank.soundLanguage = (const char*)fastfile::ALLOC_PTR;
-
-				StreamKey loadStreamKey1{};
-				StreamKey loadStreamKeyFile{};
-				loadStreamKey1.name.name = ctx.HashXHash(std::format("{}_load_key1", name));
-				loadStreamKey1.xpakEntry.key = hash::Hash64("k", loadStreamKey1.name.name);
-				loadStreamKey1.data = (byte*)fastfile::ALLOC_PTR;
-				loadStreamKey1.keyFlags = (StreamKeyFlags)3;
-				loadStreamKey1.unk44 = 512;
-				loadStreamKey1.unk46 = 5;
-				loadStreamKey1.size = 0x1000;
-				sndbank.streamKeysSABL.streamKey1 = (StreamKey*)fastfile::ALLOC_PTR; 
-				sndbank.streamKeysSABL.data1 = (byte*)fastfile::ALLOC_PTR;
-				sndbank.streamKeysSABL.len1 = 0x1000;
-
-				loadStreamKeyFile.name.name = ctx.HashXHash(std::format("{}_load_keyfile", name));
-				loadStreamKeyFile.xpakEntry.key = hash::Hash64("k", loadStreamKeyFile.name.name);
-				loadStreamKeyFile.data = (byte*)fastfile::ALLOC_PTR;
-				loadStreamKeyFile.keyFlags = (StreamKeyFlags)1;
-				loadStreamKeyFile.unk44 = 512;
-				loadStreamKeyFile.unk46 = 5;
-				loadStreamKeyFile.size = (uint32_t)sablSize;
-				sndbank.streamKeysSABL.fileKey = (StreamKey*)fastfile::ALLOC_PTR;
-				sndbank.streamKeysSABL.fileData = (byte*)fastfile::ALLOC_PTR;
-				sndbank.streamKeysSABL.fileLen = (uint32_t)sablSize;
-
-				sndbank.patchZone = scfg.GetBool("patchZone");
-
-				ffctx.data.WriteData(sndbank);
-
-				ffctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
-
-				ffctx.data.WriteData(name);
-				ffctx.data.WriteData(zone);
-				ffctx.data.WriteData(gameLanguage);
-				ffctx.data.WriteData(soundLanguage);
-
-				// alias
-
-				// alias index
-
-				// reverbs
-
-				// ducks
-
-				// ambients
-
-				// scriptIdLookups
-
-				// unk90
-
-				// unka0
-
-				// unkb0
-
-				// unkc0
-
-				// stream keys
-
-				sndbank.streamKeysSABL.streamKey1 = &loadStreamKey1;
-				sndbank.streamKeysSABL.fileKey = &loadStreamKeyFile;
-				WriteStreamKeys(ffctx, sndbank.streamKeysSABL);
-				WriteStreamKeys(ffctx, sndbank.streamKeysSABS);
-
-				ffctx.data.PopStream();
-
-				ffctx.data.PopStream();
-
-
-
-				LOG_INFO("Added asset sound {} (hash_{:x})", name, sndbank.nameHash.name);
 			}
+
+			LOG_TRACE("load sndbank {}", path.string());
+
+			// todo: add that to the linker context instead of here
+			std::filesystem::path dir{ ctx.linkCtx.opt.m_output / "zone" / "snd" / soundLanguage };
+			std::filesystem::path sabs{ dir / std::format("{}.sabs", name) };
+			std::filesystem::path sabl{ dir / std::format("{}.sabl", name) };
+			std::filesystem::create_directories(dir);
+
+			size_t sabsSize{ CreateSabFile(sabs, soundLanguage, sndPlatform, streamEntries) };
+			size_t sablSize{ CreateSabFile(sabl, soundLanguage, sndPlatform, loadEntries) };
+
+			if (!sablSize || !sabsSize) {
+				ctx.error = true;
+				return;
+			}
+
+			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND, fastfile::linker::data::POINTER_NEXT);
+			ffctx.data.PushStream(XFILE_BLOCK_TEMP);
+			SndBank sndbank{};
+			sndbank.nameHash.name = ctx.HashXHash(name);
+			if (hashOut) *hashOut = sndbank.nameHash;
+			sndbank.name = (const char*)fastfile::ALLOC_PTR;
+			sndbank.zone = (const char*)fastfile::ALLOC_PTR;
+			sndbank.gameLanguage = (const char*)fastfile::ALLOC_PTR;
+			sndbank.soundLanguage = (const char*)fastfile::ALLOC_PTR;
+
+			StreamKey loadStreamKey1{};
+			StreamKey loadStreamKeyFile{};
+			loadStreamKey1.name.name = ctx.HashXHash(std::format("{}_load_key1", name));
+			loadStreamKey1.xpakEntry.key = hash::Hash64("k", loadStreamKey1.name.name);
+			loadStreamKey1.data = (byte*)fastfile::ALLOC_PTR;
+			loadStreamKey1.keyFlags = (StreamKeyFlags)3;
+			loadStreamKey1.unk44 = 512;
+			loadStreamKey1.unk46 = 5;
+			loadStreamKey1.size = 0x1000;
+			sndbank.streamKeysSABL.streamKey1 = (StreamKey*)fastfile::ALLOC_PTR; 
+			sndbank.streamKeysSABL.data1 = (byte*)fastfile::ALLOC_PTR;
+			sndbank.streamKeysSABL.len1 = 0x1000;
+
+			loadStreamKeyFile.name.name = ctx.HashXHash(std::format("{}_load_keyfile", name));
+			loadStreamKeyFile.xpakEntry.key = hash::Hash64("k", loadStreamKeyFile.name.name);
+			loadStreamKeyFile.data = (byte*)fastfile::ALLOC_PTR;
+			loadStreamKeyFile.keyFlags = (StreamKeyFlags)1;
+			loadStreamKeyFile.unk44 = 512;
+			loadStreamKeyFile.unk46 = 5;
+			loadStreamKeyFile.size = (uint32_t)sablSize;
+			sndbank.streamKeysSABL.fileKey = (StreamKey*)fastfile::ALLOC_PTR;
+			sndbank.streamKeysSABL.fileData = (byte*)fastfile::ALLOC_PTR;
+			sndbank.streamKeysSABL.fileLen = (uint32_t)sablSize;
+
+			sndbank.patchZone = scfg.GetBool("patchZone");
+
+			ffctx.data.WriteData(sndbank);
+
+			ffctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
+
+			ffctx.data.WriteData(name);
+			ffctx.data.WriteData(zone);
+			ffctx.data.WriteData(gameLanguage);
+			ffctx.data.WriteData(soundLanguage);
+
+			// alias
+
+			// alias index
+
+			// reverbs
+
+			// ducks
+
+			// ambients
+
+			// scriptIdLookups
+
+			// unk90
+
+			// unka0
+
+			// unkb0
+
+			// unkc0
+
+			// stream keys
+
+			sndbank.streamKeysSABL.streamKey1 = &loadStreamKey1;
+			sndbank.streamKeysSABL.fileKey = &loadStreamKeyFile;
+			WriteStreamKeys(ffctx, sndbank.streamKeysSABL);
+			WriteStreamKeys(ffctx, sndbank.streamKeysSABS);
+
+			ffctx.data.PopStream();
+
+			ffctx.data.PopStream();
+
+
+
+			LOG_INFO("Added asset sound {} (hash_{:x})", name, sndbank.nameHash.name);
 		}
 	};
 
-	utils::ArrayAdder<SoundWorker, LinkerWorker> impl{ GetWorkers() };
+	utils::MapAdder<XAssetLinkerImpl, XAssetType, XAssetLinker> impl{ GetWorkers(), XAssetType::ASSET_TYPE_SOUND, true };
 }

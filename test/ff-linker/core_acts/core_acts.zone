@@ -40,9 +40,6 @@ objective,acts/objective/acts_test_objective.json
 ttf,acts/cascadiacode_bold.ttf
 ttf,acts/cascadiamono_bold.ttf
 
-// hash list one string per line, prefix with # to have the scr hash
-hashlist,acts/hashlist.txt
-
 bgcache,cache.csv
 //rawstring,acts_test_string
 

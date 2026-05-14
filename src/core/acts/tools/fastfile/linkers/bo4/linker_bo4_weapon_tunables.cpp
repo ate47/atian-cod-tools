@@ -2,7 +2,8 @@
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 #include <tools/bo4/pool_weapon_structs.hpp>
 
-namespace fastfile::linker::bo4 {
+namespace {
+	using namespace fastfile::linker::bo4;
 	using namespace tool::pool;
 
 	struct WeaponTunables {
@@ -886,72 +887,55 @@ namespace fastfile::linker::bo4 {
 	};
 	static_assert(sizeof(WeaponTunables) == 0x1218);
 
-	bool LinkWeaponTunablesPtr(BO4LinkContext& ctx, const char* wt, uint64_t* hashOut) {
-		if (*wt == '#') wt++; // ignore start #
-		std::filesystem::path path{ ctx.linkCtx.input / wt };
-		std::filesystem::path rfpath{ path.filename() };
-		rfpath.replace_extension();
-
-		core::config::Config objCfg{ path };
-
-		if (!objCfg.SyncConfig(false)) {
-			LOG_ERROR("Can't read {}", path.string());
-			ctx.error = true;
-			return false;
-		}
-
-		ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
-		WeaponTunables tunables{};
-
-		std::string rfpathStr{ rfpath.string() };
-		std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
-		tunables.name.name = ctx.HashXHash(assetName, true);
-
-
-		tunables.var_77b46a8c.name = ctx.HashXHash(objCfg.GetString("var_77b46a8c"), true);
-		tunables.ammoType.name = ctx.HashXHash(objCfg.GetString("ammoType"), true);
-		tunables.ammoScriptBundle.name = ctx.HashXHash(objCfg.GetString("ammoScriptBundle"), true);
-		tunables.description.name = ctx.HashXHash(objCfg.GetString("description"), true);
-
-		size_t objData{ ctx.mainFF.data.WriteData(tunables) };
-		ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
-
-		// unk4c0
-		// luigiLockOnWidget;
-		// spawninfluencer;
-		// unk8
-		// unk10
-		// unk0
-		// var_f56ac2bd;
-
-
-
-
-		ctx.mainFF.data.PopStream();
-
-		ctx.mainFF.data.PopStream();
-
-
-		return true;
-	}
-
-
-	class WeaponTunablesWorker : public LinkerWorker {
+	class XAssetLinkerImpl : public XAssetLinker {
 	public:
-		WeaponTunablesWorker() : LinkerWorker("WeaponTunables") {}
+		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx) override {
-			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["weapontunables"]) {
-				assval.handled = true;
+		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+			std::filesystem::path path{ ctx.linkCtx.input / id };
+			std::filesystem::path rfpath{ path.filename() };
+			rfpath.replace_extension();
 
-				uint64_t hashOut;
-				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_WEAPON_TUNABLES, fastfile::linker::data::POINTER_NEXT);
-				if (LinkWeaponTunablesPtr(ctx, assval.value, &hashOut)) {
-					LOG_INFO("Added asset weapontunables {} (hash_{:x})", assval.value, hashOut);
-				}
+			core::config::Config objCfg{ path };
+
+			if (!objCfg.SyncConfig(false)) {
+				LOG_ERROR("Can't read {}", path.string());
+				ctx.error = true;
+				return;
 			}
+
+			ff.data.PushStream(XFILE_BLOCK_TEMP);
+			WeaponTunables tunables{};
+
+			std::string rfpathStr{ rfpath.string() };
+			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
+			tunables.name.name = ctx.HashXHash(assetName, true);
+
+
+			tunables.var_77b46a8c.name = ctx.HashXHash(objCfg.GetString("var_77b46a8c"), true);
+			tunables.ammoType.name = ctx.HashXHash(objCfg.GetString("ammoType"), true);
+			tunables.ammoScriptBundle.name = ctx.HashXHash(objCfg.GetString("ammoScriptBundle"), true);
+			tunables.description.name = ctx.HashXHash(objCfg.GetString("description"), true);
+
+			size_t objData{ ff.data.WriteData(tunables) };
+			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
+
+			// unk4c0
+			// luigiLockOnWidget;
+			// spawninfluencer;
+			// unk8
+			// unk10
+			// unk0
+			// var_f56ac2bd;
+
+
+
+
+			ff.data.PopStream();
+
+			ff.data.PopStream();
 		}
 	};
 
-	utils::ArrayAdder<WeaponTunablesWorker, LinkerWorker> impl{ GetWorkers() };
+	utils::MapAdder<XAssetLinkerImpl, XAssetType, XAssetLinker> impl{ GetWorkers(), XAssetType::ASSET_TYPE_WEAPON_TUNABLES };
 }

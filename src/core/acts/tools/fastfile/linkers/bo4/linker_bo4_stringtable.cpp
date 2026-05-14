@@ -2,7 +2,8 @@
 #include <rapidcsv.h>
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 
-namespace fastfile::linker::bo4 {
+namespace {
+	using namespace fastfile::linker::bo4;
 
 	union StringTableCellValue {
 		XHash hash;
@@ -48,121 +49,117 @@ namespace fastfile::linker::bo4 {
 	static_assert(sizeof(StringTable) == 0x40);
 
 
-	class StringTableWorker : public LinkerWorker {
+	class XAssetLinkerImpl : public XAssetLinker {
 	public:
-		StringTableWorker() : LinkerWorker("StringTable") {}
+		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx) override {
-			for (fastfile::zone::AssetData& assval : ctx.linkCtx.zone.assets["stringtable"]) {
-				std::filesystem::path rfpath{ assval.value };
-				assval.handled = true;
-				std::filesystem::path path{ ctx.linkCtx.input / rfpath };
-				utils::InFileCE is{ path };
-				if (!is) {
-					LOG_ERROR("Can't read {}", path.string());
-					ctx.error = true;
-					continue;
+		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+			std::filesystem::path rfpath{ id };
+			std::filesystem::path path{ ctx.linkCtx.input / rfpath };
+			utils::InFileCE is{ path };
+			if (!is) {
+				LOG_ERROR("Can't read {}", path.string());
+				ctx.error = true;
+				return;
+			}
+
+			rapidcsv::Document doc{};
+
+			doc.Load(is, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
+
+			ff.data.PushStream(XFILE_BLOCK_TEMP);
+			StringTable table{};
+			table.name.name = ctx.HashPathName(rfpath);
+			if (hashOut) *hashOut = table.name;
+			table.columnCount = (int32_t)doc.GetColumnCount();
+			table.rowCount = doc.GetRowCount() ? (int32_t)(doc.GetRowCount() - 1) : 0;
+			table.values = (StringTableVar*)fastfile::linker::data::POINTER_NEXT;
+
+			ff.data.WriteData(table);
+
+			if (table.rowCount) {
+				std::unique_ptr<StringTableCellType[]> types{ std::make_unique<StringTableCellType[]>(table.columnCount) };
+
+				// load the type header
+				for (size_t i = 0; i < table.columnCount; i++) {
+					const std::string type{ doc.GetCell<std::string>(i, 0) };
+
+					switch (hash::Hash64(type)) {
+					case hash::Hash64("UNDEFINED"): 
+						types[i] = STC_TYPE_UNDEFINED; 
+						break;
+					case hash::Hash64("STRING"): 
+						types[i] = STC_TYPE_STRING; 
+						break;
+					case hash::Hash64("HASH"):
+					case hash::Hash64("HASH2"):
+						types[i] = STC_TYPE_HASHED2; 
+						break;
+					case hash::Hash64("INT"): 
+						types[i] = STC_TYPE_INT; 
+						break;
+					case hash::Hash64("FLOAT"): 
+						types[i] = STC_TYPE_FLOAT; 
+						break;
+					case hash::Hash64("BOOL"): 
+						types[i] = STC_TYPE_BOOL; 
+						break;
+					case hash::Hash64("HASH7"): 
+						types[i] = STC_TYPE_HASHED7; 
+						break;
+					case hash::Hash64("HASH8"): 
+						types[i] = STC_TYPE_HASHED8; 
+						break;
+					default:
+						LOG_ERROR("Can't compile string table type {}", type);
+						return;
+					}
 				}
 
-				rapidcsv::Document doc{};
+				// load the values
+				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
+				size_t offVars{ ff.data.AllocData(sizeof(StringTableVar) * table.rowCount * table.columnCount) };
+				for (size_t i = 1; i <= table.rowCount; i++) {
+					for (size_t j = 0; j < table.columnCount; j++) {
+						const std::string val{ doc.GetCell<std::string>(j, i) };
+						StringTableVar& var{ ff.data.GetData<StringTableVar>(offVars)[(i - 1) * table.columnCount + j] };
+						var.type = types[j];
 
-				doc.Load(is, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
-
-				ctx.mainFF.data.AddAsset(games::bo4::pool::ASSET_TYPE_STRINGTABLE, fastfile::linker::data::POINTER_NEXT);
-
-				ctx.mainFF.data.PushStream(XFILE_BLOCK_TEMP);
-				StringTable table{};
-				table.name.name = ctx.HashPathName(rfpath);
-				table.columnCount = (int32_t)doc.GetColumnCount();
-				table.rowCount = doc.GetRowCount() ? (int32_t)(doc.GetRowCount() - 1) : 0;
-				table.values = (StringTableVar*)fastfile::linker::data::POINTER_NEXT;
-
-				ctx.mainFF.data.WriteData(table);
-
-				if (table.rowCount) {
-					std::unique_ptr<StringTableCellType[]> types{ std::make_unique<StringTableCellType[]>(table.columnCount) };
-
-					// load the type header
-					for (size_t i = 0; i < table.columnCount; i++) {
-						const std::string type{ doc.GetCell<std::string>(i, 0) };
-
-						switch (hash::Hash64(type)) {
-						case hash::Hash64("UNDEFINED"): 
-							types[i] = STC_TYPE_UNDEFINED; 
+						switch (var.type) {
+						case STC_TYPE_UNDEFINED:
+							// nothing to do
 							break;
-						case hash::Hash64("STRING"): 
-							types[i] = STC_TYPE_STRING; 
+						case STC_TYPE_STRING:
+							var.value.string_value = (const char*)fastfile::linker::data::POINTER_NEXT;
+							ff.data.WriteData(val);
 							break;
-						case hash::Hash64("HASH"):
-						case hash::Hash64("HASH2"):
-							types[i] = STC_TYPE_HASHED2; 
+						case STC_TYPE_HASHED2:
+						case STC_TYPE_HASHED7:
+						case STC_TYPE_HASHED8:
+							var.value.hash.name = ctx.HashXHash(val.data());
 							break;
-						case hash::Hash64("INT"): 
-							types[i] = STC_TYPE_INT; 
+						case STC_TYPE_INT:
+							var.value.int_value = utils::ParseFormatInt(val.data());
 							break;
-						case hash::Hash64("FLOAT"): 
-							types[i] = STC_TYPE_FLOAT; 
+						case STC_TYPE_FLOAT:
+							var.value.float_value = std::strtof(val.data(), nullptr);
 							break;
-						case hash::Hash64("BOOL"): 
-							types[i] = STC_TYPE_BOOL; 
-							break;
-						case hash::Hash64("HASH7"): 
-							types[i] = STC_TYPE_HASHED7; 
-							break;
-						case hash::Hash64("HASH8"): 
-							types[i] = STC_TYPE_HASHED8; 
+						case STC_TYPE_BOOL:
+							var.value.bool_value = utils::EqualIgnoreCase("true", val);
 							break;
 						default:
-							LOG_ERROR("Can't compile string table type {}", type);
-							return;
+							throw std::runtime_error("STRINGTABLE LINKER MISSING CASE");
 						}
 					}
-
-					// load the values
-					ctx.mainFF.data.PushStream(XFILE_BLOCK_VIRTUAL);
-					size_t offVars{ ctx.mainFF.data.AllocData(sizeof(StringTableVar) * table.rowCount * table.columnCount) };
-					for (size_t i = 1; i <= table.rowCount; i++) {
-						for (size_t j = 0; j < table.columnCount; j++) {
-							const std::string val{ doc.GetCell<std::string>(j, i) };
-							StringTableVar& var{ ctx.mainFF.data.GetData<StringTableVar>(offVars)[(i - 1) * table.columnCount + j] };
-							var.type = types[j];
-
-							switch (var.type) {
-							case STC_TYPE_UNDEFINED:
-								// nothing to do
-								break;
-							case STC_TYPE_STRING:
-								var.value.string_value = (const char*)fastfile::linker::data::POINTER_NEXT;
-								ctx.mainFF.data.WriteData(val);
-								break;
-							case STC_TYPE_HASHED2:
-							case STC_TYPE_HASHED7:
-							case STC_TYPE_HASHED8:
-								var.value.hash.name = ctx.HashXHash(val.data());
-								break;
-							case STC_TYPE_INT:
-								var.value.int_value = utils::ParseFormatInt(val.data());
-								break;
-							case STC_TYPE_FLOAT:
-								var.value.float_value = std::strtof(val.data(), nullptr);
-								break;
-							case STC_TYPE_BOOL:
-								var.value.bool_value = utils::EqualIgnoreCase("true", val);
-								break;
-							default:
-								throw std::runtime_error("STRINGTABLE LINKER MISSING CASE");
-							}
-						}
-					}
-					ctx.mainFF.data.PopStream();
 				}
-
-				ctx.mainFF.data.PopStream();
-
-				LOG_INFO("Added asset stringtable {} (hash_{:x})", rfpath.string(), table.name.name);
+				ff.data.PopStream();
 			}
+
+			ff.data.PopStream();
+
+			LOG_INFO("Added asset stringtable {} (hash_{:x})", rfpath.string(), table.name.name);
 		}
 	};
 
-	utils::ArrayAdder<StringTableWorker, LinkerWorker> impl{ GetWorkers() };
+	utils::MapAdder<XAssetLinkerImpl, XAssetType, XAssetLinker> impl{ GetWorkers(), XAssetType::ASSET_TYPE_STRINGTABLE };
 }

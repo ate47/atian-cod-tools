@@ -12,7 +12,7 @@
 
 #namespace echo_test;
 
-#precache( "string", "ACTS_SPRAY_DESC" );
+#precache( "string", "ACTS/SPRAY_DESC" );
 
 function private autoexec __init__system__()
 {
@@ -27,7 +27,7 @@ function private __pre_init__()
         callback::on_connect( &on_player_connect );
     }
     // test localization
-    ActsLog( #"ACTS_TEST_LOCALIZED_KEY" );
+    ActsLog( #"ACTS/TEST_LOCALIZED_KEY" );
 
     // test script bundles
 

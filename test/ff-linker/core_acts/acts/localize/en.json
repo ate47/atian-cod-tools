@@ -1,4 +1,4 @@
 {
     "language": "en",
-    "ACTS_TEST_LOCALIZED_KEY": "test translation key"
+    "ACTS/TEST_LOCALIZED_KEY": "test translation key"
 }

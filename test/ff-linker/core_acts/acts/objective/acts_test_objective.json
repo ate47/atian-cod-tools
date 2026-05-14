@@ -3,7 +3,7 @@
     "waypointOffset": "32, 65, 42",
     "hAlign": "CENTER",
     "vAlign": "CENTER",
-    "description": "ACTS_TEST_OBJECTIVE_DESC",
+    "description": "ACTS/TEST_OBJECTIVE_DESC",
     "waypointImage": "acts_hud_obj_waypoint.png",
     "objectiveImage": "acts_hud_obj_objective.png",
     "bundle": {

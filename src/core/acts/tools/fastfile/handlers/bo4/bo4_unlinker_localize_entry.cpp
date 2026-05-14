@@ -17,7 +17,11 @@ namespace {
 		std::vector<Localize*> vals{};
 
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) override {
-			vals.push_back((Localize*)ptr);
+			Localize* asset{ (Localize*)ptr };
+			if (asset) {
+				vals.push_back(asset);
+				LOG_DEBUG("read localized {}: {}", hashutils::ExtractTmp("hash", asset->name), asset->val);
+			}
 		}
 		void PreXFileLoading(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx) override {
 			vals.clear(); // cleanup for errors?
