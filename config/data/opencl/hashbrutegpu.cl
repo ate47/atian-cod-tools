@@ -216,6 +216,7 @@ inline ulong hash_HashT10OmnVar(__private const char* str, ulong start) {
 #define HASH_PRIME       (1UL << 8)
 #define HASH_OMNVAR      (1UL << 9)
 #define HASH_DJB2        (1UL << 10)
+#define HASH_T7          (1UL << 11)
 #define MAX_WORD_LEN     256
 
 inline long binary_search(__global const ulong* arr,
@@ -365,6 +366,7 @@ inline int hash_compute(__private const char* word,
     TRY_HASH(HASH_SCR_T89, hash_HashT89Scr(word));
     TRY_HASH(HASH_PRIME, hash_HashPrime(word, 5381, 33));
     TRY_HASH(HASH_DJB2, hash_HashDJB2(word, 0, 33));
+    TRY_HASH(HASH_T7, hash_HashT7(word));
     TRY_HASH(HASH_FNVA32, hash_HashX32(word, HASH_FNV1A_32_PRIME));
 
 #undef TRY_HASH

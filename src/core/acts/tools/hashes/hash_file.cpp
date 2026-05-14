@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <cli/cli_options.hpp>
+#include <tools/hashes/hash_scanner.hpp>
 
 namespace {
 	struct HashEntry {
@@ -145,5 +146,64 @@ namespace {
 		return r;
 	}
 
+	int mach_hashes(int argc, const char* argv[]) {
+		using namespace tool::hash::scanner;
+		if (tool::NotEnoughParam(argc, 2)) {
+			return tool::BAD_USAGE;
+		}
+
+		utils::InFileCE is{ argv[2], true };
+		uint64_t alg{ tool::hash::scanner::ReadVmHashes(argv[3]) };
+
+		uint64_t valids{};
+		uint64_t checked{};
+		std::string line{};
+		while (is->good() && std::getline(*is, line)) {
+			size_t cut{ line.find(',') };
+			if (cut == std::string::npos) {
+				continue; // bad line
+			}
+
+			char* l{ line.data() };
+			l[cut] = 0;
+			uint64_t hash{ std::strtoull(line.data(), nullptr, 16) & ::hash::MASK60 };
+
+			char* str{ &l[cut + 1] };
+			checked++;
+
+			if (!hash && !*str) {
+				valids++;
+				continue; // ok
+			}
+
+			size_t t{};
+			if ((alg & HASH_FNVA) && (::hash::Hash64A(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_FNVA32) && (::hash::HashX32(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_PRIME) && (::hash::HashPrime(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_DJB2) && (::hash::HashDJB2(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_SCR_T10) && (::hash::HashT10Scr(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_SCR_T10_SP) && (::hash::HashT10ScrSP(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_OMNVAR) && (::hash::HashT10OmnVar(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_SCR_T89) && (::hash::HashT89Scr(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_SCR_JUP) && (::hash::HashJupScr(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_RES) && (::hash::HashIWAsset(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_DVAR) && (::hash::HashIWDVar(str) & ::hash::MASK60) == hash) t++;
+			if ((alg & HASH_T7) && (::hash::HashT7(str) & ::hash::MASK60) == hash) t++;
+
+			if (!t) {
+				LOG_WARNING("MISSING .. {:x},{}", hash, str);
+			}
+			else if (t != 1) {
+				LOG_WARNING("TOO MANY . {:x},{}", hash, str);
+			} else {
+				valids++;
+			}
+		}
+		LOG_INFO("validate strings: {}/{} ({:.4}%)", valids, checked, 100.0 * valids / checked);
+
+		return valids == checked ? tool::OK : tool::BASIC_ERROR;
+	}
+
 	ADD_TOOL(sort_file, "hash", " [files]", "sort a csv hash file", sort_file);
+	ADD_TOOL(mach_hashes, "hash", " [files]", "match hashes in hash file", mach_hashes);
 }

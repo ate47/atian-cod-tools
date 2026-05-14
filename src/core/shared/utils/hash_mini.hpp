@@ -75,7 +75,7 @@ namespace hash {
 
 		return hash;
 	}
-	constexpr uint32_t HashT89ScrPre(const char* str, uint32_t start = 0x4B9ACE2F) {
+	constexpr uint32_t HashT89ScrPre(const char* str, uint32_t start = FNV1A_32_T7_PRIME) {
 		uint32_t hash{ start };
 
 		for (const char* data = str; *data; data++) {
@@ -88,6 +88,14 @@ namespace hash {
 
 	constexpr uint32_t HashT89ScrPost(uint32_t hash) {
 		return 0x8001 * ((9 * hash) ^ ((9 * hash) >> 11));
+	}
+
+	constexpr uint32_t HashT7Pre(const char* str, uint32_t start = FNV1A_32_T7_PRIME) {
+		return (uint32_t)(Hash64A(str, start, IV_32_DEFAULT) & MASK32);
+	}
+
+	constexpr uint32_t HashT7Post(uint32_t hash) {
+		return hash * IV_32_DEFAULT;
 	}
 
 	constexpr uint64_t Hash64(const char* str, uint64_t start = FNV1A_PRIME, uint64_t iv = IV_DEFAULT) {
@@ -126,7 +134,7 @@ namespace hash {
 	constexpr uint64_t HashX64(const char* str, uint64_t start = FNV1A_PRIME) { return Hash64A(str, start); }
 	constexpr uint64_t HashX63(const char* str, uint64_t start = FNV1A_PRIME) { return Hash64(str, start); }
 	constexpr uint64_t HashX32(const char* str, uint64_t start = FNV1A_32_PRIME) { return Hash64(str, start, IV_32_DEFAULT) & MASK32; }
-	constexpr uint32_t HashT7(const char* str) { return (uint32_t)(Hash64A(str, FNV1A_32_T7_PRIME, IV_32_DEFAULT) & MASK32) * IV_32_DEFAULT; }
+	constexpr uint32_t HashT7(const char* str) { return HashT7Post(HashT7Pre(str)); }
 	constexpr uint32_t HashT89Scr(const char* str) { return HashT89ScrPost(HashT89ScrPre(str)); }
 	constexpr uint64_t HashIWAsset(const char* str, uint64_t start = FNV1A_IW_ASSET_PRIME) { return Hash64(str, start); }
 	constexpr uint64_t HashJupScr(const char* str, uint64_t start = FNV1A_IW_SCR_PRIME) { return Hash64A(str, start, IV_TYPE2); }

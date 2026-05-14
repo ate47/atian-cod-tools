@@ -13,7 +13,9 @@ namespace tool::hash::scanner {
 		HASH_PRIME = 1ull << 8,
 		HASH_OMNVAR = 1ull << 9,
 		HASH_DJB2 = 1ull << 10,
+		HASH_T7 = 1ull << 11,
 
+		HASH_BLACKOPS3 = HASH_T7,
 		HASH_BLACKOPS4 = HASH_FNVA,
 		HASH_BLACKOPS4SCR = HASH_SCR_T89,
 		HASH_BLACKOPS6 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10,
@@ -21,10 +23,11 @@ namespace tool::hash::scanner {
 		HASH_BLACKOPS7 = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_T10 | HASH_OMNVAR,
 		HASH_IW = HASH_FNVA | HASH_RES | HASH_DVAR | HASH_SCR_JUP,
 		HASH_ALL = ~0ull,
-		HASH_ALL32 = HASH_FNVA32 | HASH_PRIME | HASH_SCR_T89 | HASH_DJB2,
+		HASH_ALL32 = HASH_FNVA32 | HASH_PRIME | HASH_SCR_T89 | HASH_DJB2 | HASH_T7,
 	};
+	uint64_t ReadVmHashes(const char* opt);
 
-	class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0xcbf29ce484222325LL) { return ::hash::Hash64A(str, base); } };
+	class HashFnv1a { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_PRIME) { return ::hash::Hash64A(str, base); } };
 	class HashFnv1a32 { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_32_PRIME) { return ::hash::HashX32(str, base); } };
 	class HashPrime { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 5381) { return ::hash::HashPrime(str, (uint32_t)base); } };
 	class HashDJB2 { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashDJB2(str, (uint32_t)base); } };
@@ -32,16 +35,21 @@ namespace tool::hash::scanner {
 	class HashT10OmnVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashT10OmnVar(str, base); } };
 	class HashT10ScrSP {
 		public:
-		static constexpr uint64_t Hash(const char* str, uint64_t base = 0x1C2F2E3C8A257D07) { return ::hash::HashT10ScrSPPre(str, base); }
+		static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_T10_SCR_OFFSET) { return ::hash::HashT10ScrSPPre(str, base); }
 		static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT10ScrSPPost(base); }
 	};
 	class HashT89Scr {
 		public:
-		static constexpr uint64_t Hash(const char* str, uint64_t base = 0x4B9ACE2F) { return ::hash::HashT89ScrPre(str, (uint32_t)base); }
+		static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_32_T7_PRIME) { return ::hash::HashT89ScrPre(str, (uint32_t)base); }
 		static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT89ScrPost((uint32_t)base); }
 	};
-	class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x79D6530B0BB9B5D1) { return ::hash::HashJupScr(str, base); } };
-	class HashIWAsset { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0x47F5817A5EF961BA) { return ::hash::HashIWAsset(str, base); } };
+	class HashT7 {
+		public:
+		static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_32_T7_PRIME) { return ::hash::HashT7Pre(str, (uint32_t)base); }
+		static constexpr uint64_t HashPost(uint64_t base) { return ::hash::HashT7Post((uint32_t)base); }
+	};
+	class HashJupScr { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_IW_SCR_PRIME) { return ::hash::HashJupScr(str, base); } };
+	class HashIWAsset { public: static constexpr uint64_t Hash(const char* str, uint64_t base = ::hash::FNV1A_IW_ASSET_PRIME) { return ::hash::HashIWAsset(str, base); } };
 	class HashIWDVar { public: static constexpr uint64_t Hash(const char* str, uint64_t base = 0) { return ::hash::HashIWDVar(str, base); } };
 
 	class AbstractHashData {
@@ -63,67 +71,7 @@ namespace tool::hash::scanner {
 		}
 
 		void ReadFuncs(const char* n) {
-			if (!_strcmpi(n, "bo4scr")) {
-				funcs = HASH_BLACKOPS4SCR;
-			}
-			else if (!_strcmpi(n, "bo4")) {
-				funcs = HASH_BLACKOPS4;
-			}
-			else if (!_strcmpi(n, "bo6")) {
-				funcs = HASH_BLACKOPS6;
-			}
-			else if (!_strcmpi(n, "bo6sp")) {
-				funcs = HASH_BLACKOPS6_SP;
-			}
-			else if (!_strcmpi(n, "bo6scr") || !_strcmpi(n, "bo7scr")) {
-				funcs = HASH_SCR_T10;
-			}
-			else if (!_strcmpi(n, "bo7")) {
-				funcs = HASH_BLACKOPS7;
-			}
-			else if (!_strcmpi(n, "bo6spscr")) {
-				funcs = HASH_SCR_T10_SP;
-			}
-			else if (!_strcmpi(n, "iwscr")) {
-				funcs = HASH_SCR_JUP;
-			}
-			else if (!_strcmpi(n, "iwres")) {
-				funcs = HASH_RES;
-			}
-			else if (!_strcmpi(n, "iwdvar")) {
-				funcs = HASH_DVAR;
-			}
-			else if (!_strcmpi(n, "iwomnvar")) {
-				funcs = HASH_OMNVAR;
-			}
-			else if (!_strcmpi(n, "bo6all")) {
-				funcs = HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
-			}
-			else if (!_strcmpi(n, "iw")) {
-				funcs = HASH_IW;
-			}
-			else if (!_strcmpi(n, "FNVA") || !_strcmpi(n, "x64")) {
-				funcs = HASH_FNVA;
-			}
-			else if (!_strcmpi(n, "FNVA32") || !_strcmpi(n, "x32")) {
-				funcs = HASH_FNVA32;
-			}
-			else if (!_strcmpi(n, "prime")) {
-				funcs = HASH_PRIME;
-			}
-			else if (!_strcmpi(n, "djb2")) {
-				funcs = HASH_DJB2;
-			}
-			else if (!_strcmpi(n, "all")) {
-				funcs = HASH_ALL;
-			}
-			else if (!_strcmpi(n, "all32")) {
-				funcs = HASH_ALL32;
-			}
-			else {
-				LOG_WARNING("Invalid name {}, use all hashes", n);
-				funcs = HASH_ALL;
-			}
+			funcs = ReadVmHashes(n);
 		}
 	};
 

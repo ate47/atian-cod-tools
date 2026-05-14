@@ -64,6 +64,72 @@ namespace tool::hash::scanner {
 			profiler.WriteToStr(std::cout);
 		}
 	}
+	uint64_t ReadVmHashes(const char* n) {
+		if (!_strcmpi(n, "bo4scr")) {
+			return  HASH_BLACKOPS4SCR;
+		}
+		else if (!_strcmpi(n, "bo3")) {
+			return  HASH_BLACKOPS3;
+		}
+		else if (!_strcmpi(n, "bo4")) {
+			return  HASH_BLACKOPS4;
+		}
+		else if (!_strcmpi(n, "bo6")) {
+			return  HASH_BLACKOPS6;
+		}
+		else if (!_strcmpi(n, "bo6sp")) {
+			return  HASH_BLACKOPS6_SP;
+		}
+		else if (!_strcmpi(n, "bo6scr") || !_strcmpi(n, "bo7scr")) {
+			return  HASH_SCR_T10;
+		}
+		else if (!_strcmpi(n, "bo7")) {
+			return  HASH_BLACKOPS7;
+		}
+		else if (!_strcmpi(n, "bo6spscr")) {
+			return  HASH_SCR_T10_SP;
+		}
+		else if (!_strcmpi(n, "iwscr")) {
+			return  HASH_SCR_JUP;
+		}
+		else if (!_strcmpi(n, "iwres")) {
+			return  HASH_RES;
+		}
+		else if (!_strcmpi(n, "iwdvar")) {
+			return  HASH_DVAR;
+		}
+		else if (!_strcmpi(n, "iwomnvar")) {
+			return  HASH_OMNVAR;
+		}
+		else if (!_strcmpi(n, "bo6all")) {
+			return  HASH_BLACKOPS6_SP | HASH_BLACKOPS6;
+		}
+		else if (!_strcmpi(n, "iw")) {
+			return  HASH_IW;
+		}
+		else if (!_strcmpi(n, "FNVA") || !_strcmpi(n, "x64")) {
+			return  HASH_FNVA;
+		}
+		else if (!_strcmpi(n, "FNVA32") || !_strcmpi(n, "x32")) {
+			return  HASH_FNVA32;
+		}
+		else if (!_strcmpi(n, "prime")) {
+			return  HASH_PRIME;
+		}
+		else if (!_strcmpi(n, "djb2")) {
+			return  HASH_DJB2;
+		}
+		else if (!_strcmpi(n, "all")) {
+			return  HASH_ALL;
+		}
+		else if (!_strcmpi(n, "all32")) {
+			return  HASH_ALL32;
+		}
+		else {
+			LOG_WARNING("Invalid name {}, use all hashes", n);
+			return  HASH_ALL;
+		}
+	}
 
 	std::vector<const char*> ReadDict(std::filesystem::path file, std::string& store) {
 		store = utils::ReadFile<std::string>(file);
@@ -301,6 +367,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSP(str), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(str), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89Scr(str), str);
+				if (UseFunc(HASH_T7)) TestHash(::hash::HashT7(str), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(str), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(str), str);
 				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(str), str);
@@ -315,6 +382,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix)))), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(suffix, ::hash::HashT10OmnVar(str, ::hash::HashT10OmnVar(prefix))), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(suffix, ::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(prefix)))), str);
+				if (UseFunc(HASH_T7)) TestHash(::hash::HashT7Post(::hash::HashT7Pre(suffix, ::hash::HashT7Pre(str, ::hash::HashT7Pre(prefix)))), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(suffix, ::hash::HashJupScr(str, ::hash::HashJupScr(prefix))), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(suffix, ::hash::HashIWAsset(str, ::hash::HashIWAsset(prefix))), str);
 				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(suffix, ::hash::HashIWDVar(str, ::hash::HashIWDVar(prefix))), str);
@@ -328,6 +396,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(str, ::hash::HashT10ScrSPPre(prefix))), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(str, ::hash::HashT10OmnVar(prefix)), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(str, ::hash::HashT89ScrPre(prefix))), str);
+				if (UseFunc(HASH_T7)) TestHash(::hash::HashT7Post(::hash::HashT7Pre(str, ::hash::HashT7Pre(prefix))), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(str, ::hash::HashJupScr(prefix)), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(str, ::hash::HashIWAsset(prefix)), str);
 				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(str, ::hash::HashIWDVar(prefix)), str);
@@ -341,6 +410,7 @@ namespace tool::hash::scanner {
 				if (UseFunc(HASH_SCR_T10_SP)) TestHash(::hash::HashT10ScrSPPost(::hash::HashT10ScrSPPre(suffix, ::hash::HashT10ScrSPPre(str))), str);
 				if (UseFunc(HASH_OMNVAR)) TestHash(::hash::HashT10OmnVar(suffix, ::hash::HashT10OmnVar(str)), str);
 				if (UseFunc(HASH_SCR_T89)) TestHash(::hash::HashT89ScrPost(::hash::HashT89ScrPre(suffix, ::hash::HashT89ScrPre(str))), str);
+				if (UseFunc(HASH_T7)) TestHash(::hash::HashT7Post(::hash::HashT7Pre(suffix, ::hash::HashT7Pre(str))), str);
 				if (UseFunc(HASH_SCR_JUP)) TestHash(::hash::HashJupScr(suffix, ::hash::HashJupScr(str)), str);
 				if (UseFunc(HASH_RES)) TestHash(::hash::HashIWAsset(suffix, ::hash::HashIWAsset(str)), str);
 				if (UseFunc(HASH_DVAR)) TestHash(::hash::HashIWDVar(suffix, ::hash::HashIWDVar(str)), str);
@@ -503,6 +573,7 @@ namespace tool::hash::scanner {
 				TestHash<HashT10ScrSP, prefix, suffix, midc, true>(HASH_SCR_T10_SP, str);
 				TestHash<HashT10OmnVar, prefix, suffix, midc>(HASH_OMNVAR, str);
 				TestHash<HashT89Scr, prefix, suffix, midc, true>(HASH_SCR_T89, str);
+				TestHash<HashT7, prefix, suffix, midc, true>(HASH_SCR_T89, str);
 				TestHash<HashJupScr, prefix, suffix, midc>(HASH_SCR_JUP, str);
 				TestHash<HashIWAsset, prefix, suffix, midc>(HASH_RES, str);
 				TestHash<HashIWDVar, prefix, suffix, midc>(HASH_DVAR, str);
