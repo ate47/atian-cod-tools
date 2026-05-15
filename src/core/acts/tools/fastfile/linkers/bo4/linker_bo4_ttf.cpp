@@ -40,27 +40,26 @@ namespace {
 			}; static_assert(sizeof(TTFDef) == 0x50);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			TTFDef ttf{};
+			TTFDef& ttf{ ff.data.AllocStreamRef<TTFDef>() };
 
 			ttf.name.name = ctx.HashXHash(defname);
 			if (hashOut) *hashOut = ttf.name;
 			ttf.filename.name = ctx.HashPathName(filenamePath);
-			ttf.file = (byte*)fastfile::linker::data::POINTER_NEXT;
+			ttf.file = (byte*)fastfile::linker::memory::POINTER_NEXT;
 			ttf.next = nullptr;
 			ttf.fileLen = (int32_t)buffer.size();
-			ttf.kerningCache = (TTFKerningEntry*)fastfile::linker::data::POINTER_NEXT;
+			ttf.kerningCache = (TTFKerningEntry*)fastfile::linker::memory::POINTER_NEXT;
 			ttf.kerningCacheCount = 0x4000;
-			ff.data.WriteData(ttf);
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 			ff.data.Align(0x10);
-			ff.data.WriteData(buffer.data(), buffer.size() + 1);
+			ff.data.WriteStream(buffer.data(), buffer.size() + 1);
 			ff.data.PopStream();
 
 			// alloc cache
 			ff.data.PushStream(XFILE_BLOCK_RUNTIME_VIRTUAL);
 			ff.data.Align<uint16_t>();
-			ff.data.AllocRuntimeData(ttf.kerningCacheCount * sizeof(TTFKerningEntry));
+			ff.data.AllocRuntime(ttf.kerningCacheCount * sizeof(TTFKerningEntry));
 			ff.data.PopStream();
 
 			ff.data.PopStream();

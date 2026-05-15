@@ -72,7 +72,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			ZBarrierDef zbarrier{};
+			ZBarrierDef& zbarrier{ ff.data.AllocStreamRef<ZBarrierDef>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
@@ -101,17 +101,14 @@ namespace {
 			zbarrier.taunts = (uint32_t)objCfg.GetInteger("taunts");
 			zbarrier.reachThroughAttacks = (uint32_t)objCfg.GetInteger("reachThroughAttacks");
 
+			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
+
 			const char* pCollisionModel{ objCfg.GetCString("pCollisionModel") };
 
 			if (pCollisionModel) {
-				zbarrier.pCollisionModel = (XModel*)fastfile::linker::data::POINTER_NEXT;
+				zbarrier.pCollisionModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
+				LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pCollisionModel, nullptr, false, &ff);
 			}
-
-			size_t objData{ ff.data.WriteData(zbarrier) };
-			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
-
-
-			if (pCollisionModel) LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pCollisionModel, nullptr, false, &ff);
 
 			rapidjson::Value& oboards{ objCfg.GetVal("boards", 0, objCfg.main) };
 			if (!oboards.IsNull()) {
@@ -133,8 +130,7 @@ namespace {
 				// link boards
 
 				for (auto& board : boards) {
-					ZBarrierDef* def{ ff.data.GetData<ZBarrierDef>(objData) };
-					ZBarrierBoard& zboard{ def->boards[def->numBoardsInBarrier++] };
+					ZBarrierBoard& zboard{ zbarrier.boards[zbarrier.numBoardsInBarrier++] };
 					core::config::ConfigGeneric cboard{ objCfg.GetSub(board) };
 
 					zboard.tearAnim.name = ctx.HashXHash(cboard.GetCString("tearAnim"), true);
@@ -161,22 +157,34 @@ namespace {
 					}
 
 					const char* pBoardModel{ cboard.GetCString("pBoardModel") };
+					if (pBoardModel) {
+						zboard.pBoardModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
+						LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pBoardModel, nullptr, false, &ff);
+					}
+
 					const char* pAlternateBoardModel{ cboard.GetCString("pAlternateBoardModel") };
+					if (pAlternateBoardModel) {
+						zboard.pAlternateBoardModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
+						LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pAlternateBoardModel, nullptr, false, &ff);
+					}
+
 					const char* pUpgradedBoardModel{ cboard.GetCString("pUpgradedBoardModel") };
+					if (pUpgradedBoardModel) {
+						zboard.pUpgradedBoardModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
+						LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pUpgradedBoardModel, nullptr, false, &ff);
+					}
+
 					const char* repairEffect1{ cboard.GetCString("repairEffect1") };
+					if (repairEffect1) {
+						zboard.repairEffect1 = (FxEffectDef*)fastfile::linker::memory::POINTER_NEXT;
+						LinkAsset(XAssetType::ASSET_TYPE_FX, ctx, repairEffect1, nullptr, false, &ff);
+					}
+
 					const char* repairEffect2{ cboard.GetCString("repairEffect2") };
-
-					if (pBoardModel) zboard.pBoardModel = (XModel*)fastfile::linker::data::POINTER_NEXT;
-					if (pAlternateBoardModel) zboard.pAlternateBoardModel = (XModel*)fastfile::linker::data::POINTER_NEXT;
-					if (pUpgradedBoardModel) zboard.pUpgradedBoardModel = (XModel*)fastfile::linker::data::POINTER_NEXT;
-					if (repairEffect1) zboard.repairEffect1 = (FxEffectDef*)fastfile::linker::data::POINTER_NEXT;
-					if (repairEffect2) zboard.repairEffect2 = (FxEffectDef*)fastfile::linker::data::POINTER_NEXT;
-
-					if (pBoardModel) LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pBoardModel, nullptr, false, &ff);
-					if (pAlternateBoardModel) LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pAlternateBoardModel, nullptr, false, &ff);
-					if (pUpgradedBoardModel) LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pUpgradedBoardModel, nullptr, false, &ff);
-					if (repairEffect1) LinkAsset(XAssetType::ASSET_TYPE_FX, ctx, repairEffect1, nullptr, false, &ff);
-					if (repairEffect2) LinkAsset(XAssetType::ASSET_TYPE_FX, ctx, repairEffect2, nullptr, false, &ff);
+					if (repairEffect2) {
+						zboard.repairEffect2 = (FxEffectDef*)fastfile::linker::memory::POINTER_NEXT;
+						LinkAsset(XAssetType::ASSET_TYPE_FX, ctx, repairEffect2, nullptr, false, &ff);
+					}
 				}
 
 			}

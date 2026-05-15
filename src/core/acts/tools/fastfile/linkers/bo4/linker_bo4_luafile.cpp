@@ -77,18 +77,17 @@ namespace {
 			}; static_assert(sizeof(LuaFile) == 0x20);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			LuaFile lf{};
+			LuaFile& lf{ ff.data.AllocStreamRef<LuaFile>() };
 
 			lf.name.name = ctx.HashPathName(rfpath);
 			if (hashOut) *hashOut = lf.name;
-			lf.buffer = (byte*)fastfile::linker::data::POINTER_NEXT;
+			lf.buffer = (byte*)fastfile::linker::memory::POINTER_NEXT;
 			lf.len = (uint32_t)outluac.size();
 			outluac.push_back(0);
-			ff.data.WriteData(lf);
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 			ff.data.Align(0x10);
-			ff.data.WriteData(outluac.data(), outluac.size());
+			ff.data.WriteStream(outluac.data(), outluac.size());
 			ff.data.PopStream();
 
 			ff.data.PopStream();

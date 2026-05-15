@@ -72,7 +72,11 @@ namespace {
 			std::string name{ filename.string() };
 			uint64_t hash{ ctx.HashXHash(name.data()) };
 			std::string pathStr{ path.string() };
-			GfxImage gfx{};
+
+
+			// header
+			ff.data.PushStream(XFILE_BLOCK_TEMP);
+			GfxImage& gfx{ ff.data.AllocStreamRef<GfxImage>() };
 			gfx.name.name = hash;
 			if (hashOut) *hashOut = hash;
 
@@ -96,7 +100,7 @@ namespace {
 			gfx.mapType = MAPTYPE_2D;
 			gfx.levelCount = 1;
 			gfx.depth = 1;
-			gfx.pixels = (byte*)fastfile::linker::data::POINTER_NEXT;
+			gfx.pixels = (byte*)fastfile::linker::memory::POINTER_NEXT;
 
 			LOG_TRACE("Image: {}x{}x{}", x, y, channels);
 			switch (channels) {
@@ -109,14 +113,10 @@ namespace {
 				return;
 			}
 
-			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			// header
-			ff.data.WriteData(gfx);
-
 			ff.data.PushStream(XFILE_BLOCK_PHYSICAL);
 			// pixels
 			ff.data.Align(0xFF);
-			ff.data.WriteData(img, gfx.totalSize);
+			ff.data.WriteStream(img, gfx.totalSize);
 
 			ff.data.PopStream();
 

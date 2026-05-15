@@ -112,7 +112,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			Objective obj{};
+			Objective& obj{ ff.data.AllocStreamRef<Objective>() };
 
 
 			static core::config::ConfigEnumData obvaCfg[]{
@@ -174,24 +174,30 @@ namespace {
 				return;
 			}
 
-			std::string waypointImage{ objCfg.GetString("waypointImage") };
-			std::string objectiveImage{ objCfg.GetString("objectiveImage") };
-			std::string subObjectiveImage{ objCfg.GetString("subObjectiveImage") };
-			if (!waypointImage.empty()) obj.waypointImage = (GfxImage*)fastfile::ALLOC_PTR;
-			if (!objectiveImage.empty()) obj.objectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
-			if (!subObjectiveImage.empty()) obj.subObjectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
 
-			size_t objData{ ff.data.WriteData(obj) };
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
+
 			// link images
-			if (!waypointImage.empty()) LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, waypointImage.data());
-			if (!objectiveImage.empty()) LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, objectiveImage.data());
-			if (!subObjectiveImage.empty()) LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, subObjectiveImage.data());
+			const char* waypointImage{ objCfg.GetCString("waypointImage") };
+			const char* objectiveImage{ objCfg.GetCString("objectiveImage") };
+			const char* subObjectiveImage{ objCfg.GetCString("subObjectiveImage") };
+			if (waypointImage) {
+				obj.waypointImage = (GfxImage*)fastfile::ALLOC_PTR;
+				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, waypointImage);
+			}
+			if (objectiveImage) {
+				obj.objectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
+				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, objectiveImage);
+			}
+			if (subObjectiveImage) {
+				obj.subObjectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
+				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, subObjectiveImage);
+			}
 
 			// link bundle
 			auto bundle = objCfg.main.FindMember("bundle");
-			if (bundle != objCfg.main.MemberEnd() && !scriptbundle::WriteArray(ctx, bundle->value, objData + offsetof(Objective, bundle), ff)) {
+			if (bundle != objCfg.main.MemberEnd() && !scriptbundle::WriteArray(ctx, bundle->value, obj.bundle, ff)) {
 				return;
 			}
 			ff.data.PopStream();
@@ -199,7 +205,6 @@ namespace {
 			ff.data.PopStream();
 
 			LOG_INFO("Added asset objective {} (hash_{:x})", assetName, obj.name.name);
-			return;
 		}
 	};
 

@@ -68,14 +68,12 @@ namespace {
 			doc.Load(is, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			StringTable table{};
+			StringTable& table{ ff.data.AllocStreamRef<StringTable>() };
 			table.name.name = ctx.HashPathName(rfpath);
 			if (hashOut) *hashOut = table.name;
 			table.columnCount = (int32_t)doc.GetColumnCount();
 			table.rowCount = doc.GetRowCount() ? (int32_t)(doc.GetRowCount() - 1) : 0;
-			table.values = (StringTableVar*)fastfile::linker::data::POINTER_NEXT;
-
-			ff.data.WriteData(table);
+			table.values = (StringTableVar*)fastfile::linker::memory::POINTER_NEXT;
 
 			if (table.rowCount) {
 				std::unique_ptr<StringTableCellType[]> types{ std::make_unique<StringTableCellType[]>(table.columnCount) };
@@ -118,11 +116,11 @@ namespace {
 
 				// load the values
 				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				size_t offVars{ ff.data.AllocData(sizeof(StringTableVar) * table.rowCount * table.columnCount) };
+				StringTableVar* vars{ ff.data.AllocStreamPtr<StringTableVar>(table.rowCount * table.columnCount) };
 				for (size_t i = 1; i <= table.rowCount; i++) {
 					for (size_t j = 0; j < table.columnCount; j++) {
 						const std::string val{ doc.GetCell<std::string>(j, i) };
-						StringTableVar& var{ ff.data.GetData<StringTableVar>(offVars)[(i - 1) * table.columnCount + j] };
+						StringTableVar& var{ vars[(i - 1) * table.columnCount + j] };
 						var.type = types[j];
 
 						switch (var.type) {
@@ -130,8 +128,8 @@ namespace {
 							// nothing to do
 							break;
 						case STC_TYPE_STRING:
-							var.value.string_value = (const char*)fastfile::linker::data::POINTER_NEXT;
-							ff.data.WriteData(val);
+							var.value.string_value = (const char*)fastfile::linker::memory::POINTER_NEXT;
+							ff.data.WriteStream(val);
 							break;
 						case STC_TYPE_HASHED2:
 						case STC_TYPE_HASHED7:

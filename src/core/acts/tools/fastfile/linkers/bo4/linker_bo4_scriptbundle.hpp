@@ -70,5 +70,5 @@ namespace fastfile::linker::bo4::scriptbundle {
 		SB_ObjectsArray sbObjectsArray;
 	}; static_assert(sizeof(ScriptBundle) == 0x40);
 
-	bool WriteArray(BO4LinkContext& ctx, rapidjson::Value& val, size_t arrayOffset, BO4FFContext& ff);
+	bool WriteArray(BO4LinkContext& ctx, rapidjson::Value& val, SB_ObjectsArray& array, BO4FFContext& ff);
 }

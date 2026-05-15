@@ -32,19 +32,18 @@ namespace {
 				return; // nothing to build
 			}
 
-			ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_BG_CACHE, fastfile::linker::data::POINTER_NEXT);
+			ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_BG_CACHE);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			BGCacheInfo bg{};
+			BGCacheInfo& bg{ ff.data.AllocStreamRef<BGCacheInfo>() };
 
 			bg.name.name = ff.ffnameHash;
-			bg.def = (BGCacheInfoDef*)fastfile::linker::data::POINTER_NEXT;
+			bg.def = (BGCacheInfoDef*)fastfile::linker::memory::POINTER_NEXT;
 			bg.defCount = (uint32_t)entries;
-			ff.data.WriteData(bg);
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 			ff.data.Align(8);
-			BGCacheInfoDef* defs{ ff.data.AllocDataPtr<BGCacheInfoDef>(sizeof(BGCacheInfoDef) * entries) };
+			BGCacheInfoDef* defs{ ff.data.AllocStreamPtr<BGCacheInfoDef>(entries) };
 
 			for (auto& [type, v] : ff.bgcache) {
 				for (auto& name : v) {

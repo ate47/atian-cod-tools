@@ -71,7 +71,7 @@ namespace {
 
 				ff.data.PushStream(XFILE_BLOCK_TEMP);
 
-				size_t stoff{ ff.data.AllocData(sizeof(StructuredTable)) };
+				StructuredTable& st{ ff.data.AllocStreamRef<StructuredTable>() };
 
 				std::vector<StructuredTableHeader> headers{};
 				std::vector<byte> headersStrings{};
@@ -98,7 +98,7 @@ namespace {
 								hh.index = (int32_t)columnCount++;
 								idx = columnCount;
 								hh.hash = hash;
-								hh.string = (const char*)fastfile::linker::data::POINTER_NEXT;
+								hh.string = (const char*)fastfile::linker::memory::POINTER_NEXT;
 								utils::WriteString(headersStrings, keystr);
 							}
 							// TODO: check collisions
@@ -130,7 +130,7 @@ namespace {
 						else if (val.IsString()) {
 							const char* valstr{ val.GetString() };
 							cell->type = STRUCTURED_TABLE_CELL_TYPE_STRING;
-							cell->value.str = (const char*)fastfile::linker::data::POINTER_NEXT;
+							cell->value.str = (const char*)fastfile::linker::memory::POINTER_NEXT;
 							cell->hash = hash::HashPrime(valstr);
 							utils::WriteString(cellsStrings, valstr);
 						}
@@ -142,32 +142,26 @@ namespace {
 					}
 				}
 
-				StructuredTable& st{ *ff.data.GetData<StructuredTable>(stoff) };
 				uint64_t hash{ ctx.HashPathName(rfpath) };
 				st.name.name = hash;
 				size_t cellCount{ rowCount * columnCount };
 				st.cellCount = (int32_t)(cellCount);
 				st.rowCount = (int32_t)rowCount;
 				st.columnCount = (int32_t)columnCount;
-				if (cellCount) {
-					st.cells = (StructuredTableCell*)fastfile::linker::data::POINTER_NEXT;
-					st.cellIndex = (int32_t*)fastfile::linker::data::POINTER_NEXT;
-				}
-				if (columnCount) {
-					st.headers = (StructuredTableHeader*)fastfile::linker::data::POINTER_NEXT;
-					st.headerIndex = (int32_t*)fastfile::linker::data::POINTER_NEXT;
-				}
+
 				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
 				if (cellCount) {
+					st.cells = (StructuredTableCell*)fastfile::linker::memory::POINTER_NEXT;
+					st.cellIndex = (int32_t*)fastfile::linker::memory::POINTER_NEXT;
 					// cells
 					ff.data.Align(8);
-					ff.data.WriteDataVector(cells);
-					ff.data.WriteDataVector(cellsStrings);
+					ff.data.WriteStream(cells);
+					ff.data.WriteStream(cellsStrings);
 
 					// cell index
 					ff.data.Align<uint32_t>();
-					uint32_t* cellIndex{ ff.data.AllocDataPtr<uint32_t>(cellCount * sizeof(uint32_t)) };
+					uint32_t* cellIndex{ ff.data.AllocStreamPtr<uint32_t>(cellCount) };
 					for (size_t i = 0; i < cellCount; i++) {
 						cellIndex[i] = (uint32_t)i;
 					}
@@ -178,14 +172,16 @@ namespace {
 				}
 
 				if (columnCount) {
+					st.headers = (StructuredTableHeader*)fastfile::linker::memory::POINTER_NEXT;
+					st.headerIndex = (int32_t*)fastfile::linker::memory::POINTER_NEXT;
 					// headers
 					ff.data.Align(8);
-					ff.data.WriteDataVector(headers);
-					ff.data.WriteDataVector(headersStrings);
+					ff.data.WriteStream(headers);
+					ff.data.WriteStream(headersStrings);
 
 					// header index
 					ff.data.Align<uint32_t>();
-					uint32_t* headerIndex{ ff.data.AllocDataPtr<uint32_t>(columnCount * sizeof(uint32_t)) };
+					uint32_t* headerIndex{ ff.data.AllocStreamPtr<uint32_t>(columnCount) };
 					for (size_t i = 0; i < columnCount; i++) {
 						headerIndex[i] = (uint32_t)i;
 					}

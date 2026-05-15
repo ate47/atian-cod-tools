@@ -905,7 +905,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			WeaponTunables tunables{};
+			WeaponTunables& tunables{ ff.data.AllocStreamRef<WeaponTunables>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
@@ -917,7 +917,6 @@ namespace {
 			tunables.ammoScriptBundle.name = ctx.HashXHash(objCfg.GetString("ammoScriptBundle"), true);
 			tunables.description.name = ctx.HashXHash(objCfg.GetString("description"), true);
 
-			size_t objData{ ff.data.WriteData(tunables) };
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
 			// unk4c0

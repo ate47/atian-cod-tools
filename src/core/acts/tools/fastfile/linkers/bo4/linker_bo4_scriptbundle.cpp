@@ -42,7 +42,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 		{ KVP_IMPACT_FX_TABLE, ET_XHASH, "impact_fx_table#" },
 	};
 
-	bool WriteArray(BO4LinkContext& ctx, rapidjson::Value& val, size_t arrayOffset, BO4FFContext& ff) {
+	bool WriteArray(BO4LinkContext& ctx, rapidjson::Value& val, SB_ObjectsArray& array, BO4FFContext& ff) {
 		size_t sbObjectsCount{};
 		size_t sbSubCount{};
 		if (!val.IsObject()) {
@@ -63,7 +63,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 		if (sbObjectsCount) {
 			size_t idxobj{};
-			size_t sbObjects{ ff.data.AllocData(sizeof(SB_Object) * sbObjectsCount) };
+			SB_Object* sbObjects{ ff.data.AllocStreamPtr<SB_Object>(sbObjectsCount) };
 
 			for (auto& [k, v] : obj) {
 				if (v.IsArray()) {
@@ -71,7 +71,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 				}
 				const char* keyName{ k.GetString() };
 
-				SB_Object* sobj{ ff.data.GetData<SB_Object>(sbObjects) + idxobj++ };
+				SB_Object* sobj{ sbObjects + idxobj++ };
 
 				// not good, what if the user wants a hashed key
 				sobj->keyName.name = ctx.HashXHash(keyName);
@@ -106,7 +106,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 							sobj->value.intVal = (int32_t)utils::ParseFormatInt(val);
 							break;
 						case ET_STRING:
-							sobj->stringRef = (ScrString_t)ff.data.AddString(val);
+							sobj->stringRef = (ScrString_t)ff.data.AddScrString(val);
 							break;
 						case ET_XHASH:
 							sobj->hashValue.name = ctx.HashXHash(val);
@@ -116,7 +116,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 					}
 
 					if (sobj->type == KVP_STRING) {
-						sobj->stringRef = (ScrString_t)ff.data.AddString(stringValue);
+						sobj->stringRef = (ScrString_t)ff.data.AddScrString(stringValue);
 						sobj->hashValue.name = ctx.HashXHash(stringValue);
 					}
 				
@@ -131,39 +131,38 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 		if (sbSubCount) {
 			size_t idxsub{};
-			size_t sbSub{ ff.data.AllocData(sizeof(SB_Sub) * sbSubCount) };
+			SB_Sub* sbSub{ ff.data.AllocStreamPtr<SB_Sub>(sbSubCount) };
 			for (auto& [k, v] : obj) {
 				if (!v.IsArray()) {
 					continue;
 				}
 				const char* keyName{ k.GetString() };
-				SB_Sub* ssub{ ff.data.GetData<SB_Sub>(sbSub) + idxsub++ };
-				ssub->keyname = (ScrString_t)ff.data.AddString(keyName);
+				SB_Sub* ssub{ sbSub + idxsub++ };
+				ssub->keyname = (ScrString_t)ff.data.AddScrString(keyName);
 				auto arr{ v.GetArray() };
 				ssub->size = (uint64_t)arr.Size();
-				ssub->item = (SB_ObjectsArray*)fastfile::linker::data::POINTER_NEXT;
+				ssub->item = (SB_ObjectsArray*)fastfile::linker::memory::POINTER_NEXT;
 
 				// alloc sub elements
-				size_t subArray{ ff.data.AllocData(sizeof(SB_ObjectsArray) * ssub->size) };
+				SB_ObjectsArray* subArray{ ff.data.AllocStreamPtr<SB_ObjectsArray>(ssub->size) };
 
 				for (auto& el : arr) {
-					if (!WriteArray(ctx, el, subArray, ff)) {
+					if (!WriteArray(ctx, el, *subArray, ff)) {
 						return false;
 					}
-					subArray += sizeof(SB_ObjectsArray);
+					subArray++;
 				}
 			}
 		}
 
 		// we have enough data, we can link the header
-		SB_ObjectsArray* arr{ ff.data.GetData<SB_ObjectsArray>(arrayOffset) };
 		if (sbObjectsCount) {
-			arr->sbObjects = (SB_Object*)fastfile::linker::data::POINTER_NEXT;
-			arr->sbObjectCount = sbObjectsCount;
+			array.sbObjects = (SB_Object*)fastfile::linker::memory::POINTER_NEXT;
+			array.sbObjectCount = sbObjectsCount;
 		}
 		if (sbSubCount) {
-			arr->sbSubs = (SB_Sub*)fastfile::linker::data::POINTER_NEXT;
-			arr->sbSubCount = sbSubCount;
+			array.sbSubs = (SB_Sub*)fastfile::linker::memory::POINTER_NEXT;
+			array.sbSubCount = sbSubCount;
 		}
 		return true;
 	}
@@ -213,10 +212,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 				ff.data.PushStream(XFILE_BLOCK_TEMP);
 
-				size_t header{ ff.data.AllocData(sizeof(ScriptBundle)) };
-				size_t arrayOffset{ header + offsetof(ScriptBundle, sbObjectsArray) };
-
-				ScriptBundle* bundle{ ff.data.GetData<ScriptBundle>(header) };
+				ScriptBundle* bundle{ ff.data.AllocStreamPtr<ScriptBundle>() };
 
 				// add name and type to bundle
 				bundle->name.name = ctx.HashXHash(name);
@@ -234,7 +230,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 				}
 
 				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				if (!WriteArray(ctx, main, arrayOffset, ff)) {
+				if (!WriteArray(ctx, main, bundle->sbObjectsArray, ff)) {
 					LOG_ERROR("Can't compile json object");
 					ctx.error = true;
 					return;

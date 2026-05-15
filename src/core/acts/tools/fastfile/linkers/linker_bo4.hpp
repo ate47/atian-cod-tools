@@ -1,7 +1,7 @@
 #pragma once
 #include <core/config.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
-#include <tools/fastfile/linkers/linker_data.hpp>
+#include <tools/fastfile/linkers/linker_memory.hpp>
 #include <games/bo4/pool.hpp>
 
 namespace fastfile::linker::bo4 {
@@ -40,8 +40,10 @@ namespace fastfile::linker::bo4 {
 		uintptr_t assets; // XAsset*
 	};
 
-	struct BO4FFContext {
-		fastfile::linker::data::LinkerData data{ XFILE_BLOCK_COUNT, XFILE_BLOCK_TEMP, XFILE_BLOCK_TEMP_PRELOAD };
+	class BO4FFContext {
+	public:
+		BO4FFContext();
+		fastfile::linker::memory::XBlockLinker data;
 		std::unordered_map<BGCacheTypes, std::unordered_set<uint64_t>> bgcache{};
 		std::vector<XHash> forcedServerScripts{};
 		std::vector<XHash> forcedClientScripts{};
@@ -62,10 +64,6 @@ namespace fastfile::linker::bo4 {
 		inline uint64_t HashXHash(const std::string& str, bool ignoreTop = false) { return HashXHash(str.data(), ignoreTop); }
 		inline uint64_t HashScr(const std::string& str) { return HashScr(str.data()); }
 		uint64_t HashPathName(const std::filesystem::path& path);
-		void LinkEmptyAsset(BO4FFContext& ff, XAssetType type, uint64_t name);
-		inline void LinkEmptyAsset(XAssetType type, uint64_t name) {
-			LinkEmptyAsset(mainFF, type, name);
-		}
 	};
 
 	struct GfxImage;

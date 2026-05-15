@@ -15,14 +15,13 @@ namespace {
 
 		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			RawString rf{};
+			RawString& rf{ ff.data.AllocStreamRef< RawString>() };
 
 			rf.name.name = ctx.HashPathName(id);
-			rf.str = (const char*)fastfile::linker::data::POINTER_NEXT;
-			ff.data.WriteData(rf);
+			rf.str = (const char*)fastfile::linker::memory::POINTER_NEXT;
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
-			ff.data.WriteData(id, std::strlen(id) + 1);
+			ff.data.WriteStream(id);
 			ff.data.PopStream();
 
 			ff.data.PopStream();

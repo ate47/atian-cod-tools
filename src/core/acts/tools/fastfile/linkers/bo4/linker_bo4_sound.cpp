@@ -406,7 +406,7 @@ namespace {
 
 	void WriteStreamKey(BO4FFContext& ffctx, StreamKey* key) {
 		ffctx.data.PushStream(XFILE_BLOCK_TEMP);
-		ffctx.data.WriteData(*key);
+		ffctx.data.WriteStream(key, sizeof(*key));
 
 		ffctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
@@ -416,19 +416,19 @@ namespace {
 		case 0: // stream
 			ffctx.data.PushStream(XFILE_BLOCK_STREAMER);
 			ffctx.data.Align(0x10000);
-			ffctx.data.AllocRuntimeData(key->size);
+			ffctx.data.AllocRuntime(key->size);
 			ffctx.data.PopStream();
 			break;
 		case 1: // stream cpu
 			ffctx.data.PushStream(XFILE_BLOCK_STREAMER_CPU);
 			ffctx.data.Align(0x10000);
-			ffctx.data.AllocRuntimeData(key->size);
+			ffctx.data.AllocRuntime(key->size);
 			ffctx.data.PopStream();
 			break;
 		case 2:
 		case 3:
 			ffctx.data.Align(0x10000);
-			ffctx.data.AllocData(key->size);
+			ffctx.data.AllocStream(key->size);
 			break;
 		}
 		ffctx.data.PopStream();
@@ -442,13 +442,13 @@ namespace {
 			WriteStreamKey(ffctx, key.streamKey1);
 		}
 		if (key.data1) {
-			ffctx.data.AllocData(key.len1);
+			ffctx.data.AllocStream(key.len1);
 		}
 		if (key.fileKey) {
 			WriteStreamKey(ffctx, key.fileKey);
 		}
 		if (key.fileData) {
-			ffctx.data.AllocData(key.fileLen);
+			ffctx.data.AllocStream(key.fileLen);
 		}
 	}
 
@@ -551,15 +551,16 @@ namespace {
 				return;
 			}
 
-			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND, fastfile::linker::data::POINTER_NEXT);
+			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND);
 			ffctx.data.PushStream(XFILE_BLOCK_TEMP);
-			SndBank sndbank{};
+			SndBank& sndbank{ ffctx.data.AllocStreamRef<SndBank>() };
 			sndbank.nameHash.name = ctx.HashXHash(name);
 			if (hashOut) *hashOut = sndbank.nameHash;
 			sndbank.name = (const char*)fastfile::ALLOC_PTR;
 			sndbank.zone = (const char*)fastfile::ALLOC_PTR;
 			sndbank.gameLanguage = (const char*)fastfile::ALLOC_PTR;
 			sndbank.soundLanguage = (const char*)fastfile::ALLOC_PTR;
+
 
 			StreamKey loadStreamKey1{};
 			StreamKey loadStreamKeyFile{};
@@ -570,7 +571,7 @@ namespace {
 			loadStreamKey1.unk44 = 512;
 			loadStreamKey1.unk46 = 5;
 			loadStreamKey1.size = 0x1000;
-			sndbank.streamKeysSABL.streamKey1 = (StreamKey*)fastfile::ALLOC_PTR; 
+			sndbank.streamKeysSABL.streamKey1 = &loadStreamKey1;
 			sndbank.streamKeysSABL.data1 = (byte*)fastfile::ALLOC_PTR;
 			sndbank.streamKeysSABL.len1 = 0x1000;
 
@@ -581,20 +582,18 @@ namespace {
 			loadStreamKeyFile.unk44 = 512;
 			loadStreamKeyFile.unk46 = 5;
 			loadStreamKeyFile.size = (uint32_t)sablSize;
-			sndbank.streamKeysSABL.fileKey = (StreamKey*)fastfile::ALLOC_PTR;
+			sndbank.streamKeysSABL.fileKey = &loadStreamKeyFile;
 			sndbank.streamKeysSABL.fileData = (byte*)fastfile::ALLOC_PTR;
 			sndbank.streamKeysSABL.fileLen = (uint32_t)sablSize;
 
 			sndbank.patchZone = scfg.GetBool("patchZone");
 
-			ffctx.data.WriteData(sndbank);
-
 			ffctx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
-			ffctx.data.WriteData(name);
-			ffctx.data.WriteData(zone);
-			ffctx.data.WriteData(gameLanguage);
-			ffctx.data.WriteData(soundLanguage);
+			ffctx.data.WriteStream(name);
+			ffctx.data.WriteStream(zone);
+			ffctx.data.WriteStream(gameLanguage);
+			ffctx.data.WriteStream(soundLanguage);
 
 			// alias
 
@@ -618,10 +617,12 @@ namespace {
 
 			// stream keys
 
-			sndbank.streamKeysSABL.streamKey1 = &loadStreamKey1;
-			sndbank.streamKeysSABL.fileKey = &loadStreamKeyFile;
 			WriteStreamKeys(ffctx, sndbank.streamKeysSABL);
 			WriteStreamKeys(ffctx, sndbank.streamKeysSABS);
+
+			// set the alloc ptr value
+			sndbank.streamKeysSABL.streamKey1 = (StreamKey*)fastfile::ALLOC_PTR;
+			sndbank.streamKeysSABL.fileKey = (StreamKey*)fastfile::ALLOC_PTR;
 
 			ffctx.data.PopStream();
 

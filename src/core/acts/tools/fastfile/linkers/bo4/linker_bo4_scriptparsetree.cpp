@@ -35,31 +35,27 @@ namespace {
 				const char* src;
 			}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
 
-			dbgCtx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, fastfile::linker::data::POINTER_NEXT);
+			dbgCtx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG);
 
 			dbgCtx.data.PushStream(XFILE_BLOCK_TEMP);
-			ScriptParseTreeDBG spt{};
+			ScriptParseTreeDBG& spt{ dbgCtx.data.AllocStreamRef<ScriptParseTreeDBG>() };
 			spt.name.name = obj.name;
-			if (preproc.size()) {
-				spt.src = (const char*)fastfile::linker::data::POINTER_NEXT;
-				spt.srcLen = (int32_t)preproc.size();
-			}
-			if (dbgbuffer.size()) {
-				spt.gdb = (void*)fastfile::linker::data::POINTER_NEXT;
-				spt.gdbLen = (int32_t)dbgbuffer.size();
-			}
-			dbgCtx.data.WriteData(spt);
 
 			dbgCtx.data.PushStream(XFILE_BLOCK_VIRTUAL);
 			if (dbgbuffer.size()) {
+				spt.gdb = (void*)fastfile::linker::memory::POINTER_NEXT;
+				spt.gdbLen = (int32_t)dbgbuffer.size();
 				dbgCtx.data.Align(0x20);
-				void* ptr{ dbgCtx.data.AllocDataPtr<void>(dbgbuffer.size() + 1) };
+				void* ptr{ dbgCtx.data.AllocStream(dbgbuffer.size() + 1)->As<void>() };
 				std::memcpy(ptr, dbgbuffer.data(), dbgbuffer.size());
 			}
 
 			if (preproc.size()) {
+				spt.src = (const char*)fastfile::linker::memory::POINTER_NEXT;
+				spt.srcLen = (int32_t)preproc.size();
+
 				dbgCtx.data.Align<char>();
-				void* ptr{ dbgCtx.data.AllocDataPtr<void>(preproc.size() + 1) };
+				void* ptr{ dbgCtx.data.AllocStream(preproc.size() + 1)->As<void>() };
 				std::memcpy(ptr, preproc.data(), preproc.size());
 			}
 			dbgCtx.data.PopStream();
@@ -164,17 +160,16 @@ namespace {
 			}; static_assert(sizeof(ScriptParseTree) == 0x20);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			ScriptParseTree spt{};
+			ScriptParseTree& spt{ ff.data.AllocStreamRef<ScriptParseTree>() };
 			spt.name.name = obj.name;
 			if (hashOut) *hashOut = spt.name;
-			spt.buffer = (void*)fastfile::linker::data::POINTER_NEXT;
+			spt.buffer = (void*)fastfile::linker::memory::POINTER_NEXT;
 			spt.len = (uint32_t)buffer.size();
-			ff.data.WriteData(spt);
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 			ff.data.Align(0x20);
-			ff.data.WriteData(buffer.data(), buffer.size());
-			ff.data.WriteData<byte>(0);
+			void* gscc{ ff.data.AllocStream(buffer.size() + 1)->As<void>() };
+			std::memcpy(gscc, buffer.data(), buffer.size());
 			ff.data.PopStream();
 
 			ff.data.PopStream();
@@ -207,26 +202,26 @@ namespace {
 					XHash* gscScripts;
 					XHash* cscScripts;
 				};
-				ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, fastfile::linker::data::POINTER_NEXT);
+				ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED);
 
 				ff.data.PushStream(XFILE_BLOCK_TEMP);
-				ScriptParseTreeForced header{};
+				ScriptParseTreeForced& header{ ff.data.AllocStreamRef<ScriptParseTreeForced>() };
 				header.name.name = ff.ffnameHash;
 				header.gscCount = (uint32_t)ff.forcedServerScripts.size();
 				header.cscCount = (uint32_t)ff.forcedClientScripts.size();
-				if (ff.forcedServerScripts.size()) header.gscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
-				if (ff.forcedClientScripts.size()) header.cscScripts = (XHash*)fastfile::linker::data::POINTER_NEXT;
 
-				ff.data.WriteData(header);
 
 				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				if (header.gscScripts) {
+				if (ff.forcedServerScripts.size()) {
+					header.gscScripts = (XHash*)fastfile::linker::memory::POINTER_NEXT;
 					ff.data.Align(8);
-					ff.data.WriteData(ff.forcedServerScripts.data(), ff.forcedServerScripts.size() * sizeof(ff.forcedServerScripts[0]));
+					ff.data.WriteStream(ff.forcedServerScripts.data(), ff.forcedServerScripts.size() * sizeof(ff.forcedServerScripts[0]));
 				}
-				if (header.cscScripts) {
+
+				if (ff.forcedClientScripts.size()) {
+					header.cscScripts = (XHash*)fastfile::linker::memory::POINTER_NEXT;
 					ff.data.Align(8);
-					ff.data.WriteData(ff.forcedClientScripts.data(), ff.forcedClientScripts.size() * sizeof(ff.forcedClientScripts[0]));
+					ff.data.WriteStream(ff.forcedClientScripts.data(), ff.forcedClientScripts.size() * sizeof(ff.forcedClientScripts[0]));
 				}
 				ff.data.PopStream();
 

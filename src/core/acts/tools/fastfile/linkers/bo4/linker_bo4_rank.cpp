@@ -74,7 +74,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			RankInfo rankinfo{};
+			RankInfo& rankinfo{ ff.data.AllocStreamRef<RankInfo>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
@@ -93,14 +93,17 @@ namespace {
 			const char* icon{ objCfg.GetCString("icon") };
 			const char* iconLarge{ objCfg.GetCString("iconLarge") };
 
-			if (icon) rankinfo.icon = (GfxImage*)fastfile::linker::data::POINTER_NEXT;
-			if (iconLarge) rankinfo.iconLarge = (GfxImage*)fastfile::linker::data::POINTER_NEXT;
 
-			size_t objData{ ff.data.WriteData(rankinfo) };
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
-			if (icon) LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, icon, nullptr, false, &ff);
-			if (iconLarge) LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, iconLarge, nullptr, false, &ff);
+			if (icon) {
+				rankinfo.icon = (GfxImage*)fastfile::linker::memory::POINTER_NEXT;
+				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, icon, nullptr, false, &ff);
+			}
+			if (iconLarge) {
+				rankinfo.iconLarge = (GfxImage*)fastfile::linker::memory::POINTER_NEXT;
+				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, iconLarge, nullptr, false, &ff);
+			}
 
 			rapidjson::Value& orewards{ objCfg.GetVal("rewards", 0, objCfg.main) };
 			if (!orewards.IsNull()) {
@@ -111,12 +114,11 @@ namespace {
 				}
 
 				auto rewards{ orewards.GetArray() };
-				RankInfo& prankInfo{ *ff.data.GetData<RankInfo>(objData) };
-				prankInfo.rewards = (RankInfoReward*)fastfile::linker::data::POINTER_NEXT;
-				prankInfo.rewardsCount = (uint64_t)rewards.Size();
+				rankinfo.rewards = (RankInfoReward*)fastfile::linker::memory::POINTER_NEXT;
+				rankinfo.rewardsCount = (uint64_t)rewards.Size();
 
 				ff.data.Align(8);
-				RankInfoReward* prewards{ ff.data.AllocDataPtr<RankInfoReward>(sizeof(RankInfoReward) * rewards.Size()) };
+				RankInfoReward* prewards{ ff.data.AllocStreamPtr<RankInfoReward>(rewards.Size()) };
 
 				for (auto& reward : rewards) {
 					core::config::ConfigGeneric creward{ objCfg.GetSub(reward) };

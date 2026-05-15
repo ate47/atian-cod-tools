@@ -3,6 +3,18 @@
 #include <core/preprocessor.hpp>
 
 namespace fastfile::linker::bo4 {
+	BO4FFContext::BO4FFContext() : data{ XFILE_BLOCK_COUNT } {
+		data.SetMode(fastfile::linker::memory::LM_DATA);
+		data.SetBlockType(XFILE_BLOCK_TEMP, fastfile::linker::memory::BLOCKTYPE_TEMP);
+		data.SetBlockType(XFILE_BLOCK_TEMP_PRELOAD, fastfile::linker::memory::BLOCKTYPE_TEMP);
+		data.SetBlockType(XFILE_BLOCK_RUNTIME_VIRTUAL, fastfile::linker::memory::BLOCKTYPE_RUNTIME);
+		data.SetBlockType(XFILE_BLOCK_RUNTIME_PHYSICAL, fastfile::linker::memory::BLOCKTYPE_RUNTIME);
+		data.SetBlockType(XFILE_BLOCK_VIRTUAL, fastfile::linker::memory::BLOCKTYPE_VIRTUAL);
+		data.SetBlockType(XFILE_BLOCK_PHYSICAL, fastfile::linker::memory::BLOCKTYPE_VIRTUAL);
+		data.SetBlockType(XFILE_BLOCK_STREAMER, fastfile::linker::memory::BLOCKTYPE_RUNTIME);
+		data.SetBlockType(XFILE_BLOCK_STREAMER_CPU, fastfile::linker::memory::BLOCKTYPE_RUNTIME);
+		data.SetBlockType(XFILE_BLOCK_MEMMAPPED, fastfile::linker::memory::BLOCKTYPE_UNKNOWN);
+	}
 	std::unordered_map<XAssetType, XAssetLinker*>& GetWorkers() {
 		// could be an array like in bo3 linker
 		static std::unordered_map<XAssetType, XAssetLinker*> workers{};
@@ -24,12 +36,13 @@ namespace fastfile::linker::bo4 {
 
 		return (uint32_t)r;
 	}
+
 	BO4FFContext& BO4LinkContext::GetFFContext(const char* prefix) {
 		BO4FFContext& sctx{ ffs[prefix] };
 		if (!sctx.ffnameHash) {
 			sctx.ffname = this->linkCtx.strs.CloneStr(utils::va("%s%s", prefix, mainFF.ffname));
 			sctx.ffnameHash = HashXHash(sctx.ffname);
-			sctx.data.SetMode(fastfile::linker::data::LM_DATA);
+			sctx.data.SetMode(fastfile::linker::memory::LM_DATA);
 		}
 		return sctx;
 	}
@@ -68,26 +81,6 @@ namespace fastfile::linker::bo4 {
 		return r;
 	}
 
-	void BO4LinkContext::LinkEmptyAsset(BO4FFContext& ff, XAssetType type, uint64_t name) {
-		ff.data.PushStream(XFILE_BLOCK_TEMP);
-
-		size_t len{ games::bo4::pool::GetAssetSize(type) };
-
-		if (!len) {
-			LOG_WARNING("linking empty asset");
-		}
-		else {
-			// alloc empty asset
-			size_t off{ ff.data.AllocData(len) };
-
-			// set the name
-			size_t nameOff{ games::bo4::pool::GetAssetNameOffset(type) };
-			ff.data.GetData<XHash>(off + nameOff)->name = name;
-		}
-
-		ff.data.PopStream();
-	}
-
 	class FFLinkerBO4 : public FFLinker {
 	public:
 		FFLinkerBO4() : FFLinker("Bo4", "Bo4 fastfile linker") {
@@ -97,7 +90,6 @@ namespace fastfile::linker::bo4 {
 			BO4LinkContext bo4ctx{ ctx };
 			bo4ctx.mainFF.ffname = ctx.mainFFName;
 			bo4ctx.mainFF.ffnameHash = bo4ctx.HashXHash(ctx.mainFFName);
-			bo4ctx.mainFF.data.SetMode(fastfile::linker::data::LM_DATA);
 
 			for (auto& [t, d] : ctx.zone.assets) {
 				XAssetType type{ games::bo4::pool::XAssetIdFromName(t.data()) };
@@ -126,40 +118,36 @@ namespace fastfile::linker::bo4 {
 			}
 
 			auto LinkFF = [&bo4ctx](BO4FFContext& ff, std::vector<byte>& data, size_t* blocks) {
-				if (!ff.data.blockTypes.empty()) {
-					throw std::runtime_error(std::format("LinkFF: ff {} is still in a stack, size: {}", ff.ffname, ff.data.blockTypes.size()));
-				}
-
-				ff.data.SetMode(fastfile::linker::data::LM_HEADER);
+				ff.data.SetMode(fastfile::linker::memory::LM_HEADER);
 
 				// add to ctx.data the assets/strings headers
 				XAssetList assetlist{};
 
 				// write header
-				assetlist.stringList.count = (int)ff.data.strings.size() + 1; // +1 for the null
-				assetlist.stringList.strings = fastfile::linker::data::POINTER_NEXT;
+				assetlist.stringList.count = (int)ff.data.scrStrings.size() + 1; // +1 for the null
+				assetlist.stringList.strings = fastfile::linker::memory::POINTER_NEXT;
 
 				if (ff.data.assets.size()) {
 					assetlist.assetCount = (int)ff.data.assets.size();
-					assetlist.assets = fastfile::linker::data::POINTER_NEXT;
+					assetlist.assets = fastfile::linker::memory::POINTER_NEXT;
 				}
 				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
-				ff.data.WriteData(assetlist);
+				ff.data.WriteStream(assetlist);
 
 				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 				// write string ref array
 				ff.data.Align<void*>();
 
-				ff.data.WriteData<void*>(nullptr); // empty str
-				for (size_t i = 0; i < ff.data.strings.size(); i++) {
-					ff.data.WriteData<void*>((void*)fastfile::linker::data::POINTER_NEXT);
+				ff.data.WriteStream<void*>(nullptr); // empty str
+				for (size_t i = 0; i < ff.data.scrStrings.size(); i++) {
+					ff.data.WriteStream<void*>((void*)fastfile::linker::memory::POINTER_NEXT);
 				}
 
 				// write strings
-				for (const char* str : ff.data.strings) {
+				for (const char* str : ff.data.scrStrings) {
 					ff.data.Align<char>();
-					ff.data.WriteData(str);
+					ff.data.WriteStream(str);
 				}
 				ff.data.PopStream();
 
@@ -173,15 +161,17 @@ namespace fastfile::linker::bo4 {
 					// write asset array
 
 					XAsset tmpAsset{};
-					for (const fastfile::linker::data::AssetData& asset : ff.data.assets) {
-						tmpAsset.type = (games::bo4::pool::XAssetType)asset.type;
-						tmpAsset.header = (uintptr_t)asset.header;
-						ff.data.WriteData(tmpAsset);
+					for (const fastfile::linker::memory::AssetData* asset : ff.data.assets) {
+						tmpAsset.type = (games::bo4::pool::XAssetType)asset->type;
+						tmpAsset.header = (uintptr_t)asset->header;
+						ff.data.WriteStream(tmpAsset);
 					}
 				}
 				ff.data.PopStream();
 
-				ff.data.Link(data, blocks);
+				ff.data.Link(blocks);
+
+				ff.data.WriteLinkedData(data);
 
 				LOG_INFO("Fastfile {} data linked with {} asset(s) and {} string(s)", ff.ffname, assetlist.assetCount, assetlist.stringList.count);
 			};
@@ -222,7 +212,7 @@ namespace fastfile::linker::bo4 {
 
 			// add the asset to the list if required
 			if (addAsset && !it->second->isGrouped) {
-				ff->data.AddAsset(type, fastfile::linker::data::POINTER_NEXT);
+				ff->data.AddAsset(type);
 			}
 
 			it->second->Compute(ctx, id, hashOut, *ff);
@@ -241,11 +231,11 @@ namespace fastfile::linker::bo4 {
 		}
 
 		if (addAsset) {
-			ff->data.AddAsset(type, fastfile::linker::data::POINTER_NEXT);
+			ff->data.AddAsset(type);
 		}
 		ff->data.PushStream(XFILE_BLOCK_TEMP);
 
-		void* emptyAsset{ ff->data.AllocDataPtr<void>(len) };
+		void* emptyAsset{ ff->data.AllocStream(len)->As<void>() };
 		XHash* h{ games::bo4::pool::GetAssetName(type, emptyAsset, len) };
 
 		if (!h) {
