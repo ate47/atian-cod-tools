@@ -246,6 +246,8 @@ namespace fastfile::linker::bo4 {
 		// we add the flag 63 to mark it as default
 		h->name = ctx.HashPathName(id) | ~hash::MASK63;
 
+		LOG_INFO("Add default asset {} {} (hash_{:x})", games::bo4::pool::XAssetNameFromId(type), id, h->name);
+
 		ff->data.PopStream();
 	}
 

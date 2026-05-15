@@ -53,6 +53,10 @@ sound,acts/sound/all.json
 sound,acts/sound/fr.json
 sound,acts/sound/en.json
 
+// it is possible to link an asset from another fastfile using a ',' before the asset name
+// an empty asset will be used if the asset isn't loaded elsewhere
+customizationtable,,wz_character_customization
+
 // dev stuff
 #ifndef CI
 include,core_acts_dev.zone
