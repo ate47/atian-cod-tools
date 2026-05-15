@@ -1,0 +1,15 @@
+{
+    "shortNameRef": "ACTS/RANK_1_SHORT",
+    "fullNameRef": "ACTS/RANK_1_FULL",
+    "ingameNameRef": "ACTS/RANK_1_INGAME",
+    "level": 1,
+    "minXp": 0,
+    "maxXp": 500,
+    "icon": ",acts_spray",
+    "iconLarge": ",acts_spray",
+    "rewards": [
+        {
+            "rewardName": "#acts_test"
+        }
+    ]
+}

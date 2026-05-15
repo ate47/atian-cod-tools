@@ -16,3 +16,11 @@
 >lua.defs=LUA_DEV,CI
 
 //asdzqzqd,missing_asset_test
+
+
+#ifdef TEST_RANKS
+
+ranktable,acts/ranktable.csv
+prestigetable,acts/prestigetable.csv
+
+#endif
