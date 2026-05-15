@@ -155,6 +155,7 @@ namespace fastfile {
 		std::filesystem::path m_output{ "output_ff" };
 		const char* ffname{};
 		std::vector<const char*> files{};
+		std::vector<const char*> defines{};
 		FFCompressor* compressor{};
 		FFLinker* linker{};
 		bool server{};
@@ -185,10 +186,7 @@ namespace fastfile {
 		FFCompressor* compressor{};
 		FFLinker* linker{};
 
-		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path zoneFile)
-			: opt(opt), zoneFile(zoneFile), input(std::filesystem::absolute(zoneFile).parent_path()),
-			  compressor(opt.compressor), linker(opt.linker) {
-		}
+		FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path zoneFile);
 
 		void ReadZoneFile();
 

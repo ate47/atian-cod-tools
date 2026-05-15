@@ -267,8 +267,11 @@ namespace fastfile {
 				chunkSize = (size_t)utils::ParseFormatInt(args[++i]);
 			}
 			else if (*arg == '-') {
-				std::cerr << "Invalid argument: " << arg << "!\n";
-				return false;
+				if (arg[1] != 'D') {
+					std::cerr << "Invalid argument: " << arg << "!\n";
+					return false;
+				}
+				defines.push_back(&arg[2]);
 			}
 			else {
 				files.push_back(arg);
@@ -1325,11 +1328,18 @@ namespace fastfile {
 
 		return tool::OK;
 	}
+	FastFileLinkerContext::FastFileLinkerContext(FastFileLinkerOption& opt, std::filesystem::path zoneFile)
+		: opt(opt), zoneFile(zoneFile), input(std::filesystem::absolute(zoneFile).parent_path()),
+		compressor(opt.compressor), linker(opt.linker) {
+	}
 
 	void FastFileLinkerContext::ReadZoneFile() {
+		for (const char* def : opt.defines) {
+			zone.preProcOpt.AddDefineConfig(def);
+		}
 		std::string zoneFileData{ utils::ReadFile<std::string>(zoneFile) };
 		zone.ParseFile(zoneFile, zoneFileData);
-
+		
 		if (!mainFFName) {
 			mainFFName = zone.GetConfig("name");
 		}
