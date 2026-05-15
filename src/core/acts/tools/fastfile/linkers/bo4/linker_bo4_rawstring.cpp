@@ -13,9 +13,9 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			RawString& rf{ ff.data.AllocStreamRef< RawString>() };
+			RawString& rf{ ff.data.AllocStreamRef<RawString>(ref) };
 
 			rf.name.name = ctx.HashPathName(id);
 			rf.str = (const char*)fastfile::linker::memory::POINTER_NEXT;

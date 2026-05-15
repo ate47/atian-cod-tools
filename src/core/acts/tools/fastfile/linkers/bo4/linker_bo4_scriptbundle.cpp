@@ -172,7 +172,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 		public:
 			using XAssetLinker::XAssetLinker;
 
-			void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+			void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 				std::filesystem::path rfpath{ std::format("{}.json", id) };
 				std::filesystem::path path{ ctx.linkCtx.input / "scriptbundle" / rfpath };
 				std::string buffer{};
@@ -212,17 +212,16 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 				ff.data.PushStream(XFILE_BLOCK_TEMP);
 
-				ScriptBundle* bundle{ ff.data.AllocStreamPtr<ScriptBundle>() };
+				ScriptBundle& bundle{ ff.data.AllocStreamRef<ScriptBundle>(ref) };
 
 				// add name and type to bundle
-				bundle->name.name = ctx.HashXHash(name);
-				if (hashOut) *hashOut = bundle->name;
+				bundle.name.name = ctx.HashXHash(name);
 				rapidjson::Value nameValue{};
 				nameValue.SetString(name.data(), main.GetAllocator());
 				main.AddMember(rapidjson::StringRef("name"), nameValue, main.GetAllocator());
 
 				if (type.size()) {
-					bundle->bundleType.name = ctx.HashXHash(type);
+					bundle.bundleType.name = ctx.HashXHash(type);
 
 					rapidjson::Value typeValue{};
 					typeValue.SetString(type.data(), main.GetAllocator());
@@ -230,7 +229,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 				}
 
 				ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
-				if (!WriteArray(ctx, main, bundle->sbObjectsArray, ff)) {
+				if (!WriteArray(ctx, main, bundle.sbObjectsArray, ff)) {
 					LOG_ERROR("Can't compile json object");
 					ctx.error = true;
 					return;
@@ -240,7 +239,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 				ff.data.PopStream();
 
 
-				LOG_INFO("Added asset scriptbundle {} (hash_{:x})", rfpath.string(), bundle->name.name);
+				LOG_INFO("Added asset scriptbundle {} (hash_{:x})", rfpath.string(), bundle.name.name);
 			}
 		};
 	}

@@ -58,7 +58,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -72,13 +72,12 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			ZBarrierDef& zbarrier{ ff.data.AllocStreamRef<ZBarrierDef>() };
+			ZBarrierDef& zbarrier{ ff.data.AllocStreamRef<ZBarrierDef>(ref) };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
 			zbarrier.name.name = ctx.HashXHash(assetName, true);
 			zbarrier.name.name = ctx.HashXHash(objCfg.GetCString("name"), true);
-			if (hashOut) *hashOut = zbarrier.name;
 			zbarrier.generalRepairSound1.name = ctx.HashXHash(objCfg.GetCString("generalRepairSound1"), true);
 			zbarrier.generalRepairSound2.name = ctx.HashXHash(objCfg.GetCString("generalRepairSound2"), true);
 			zbarrier.upgradedGeneralRepairSound1.name = ctx.HashXHash(objCfg.GetCString("upgradedGeneralRepairSound1"), true);
@@ -103,12 +102,7 @@ namespace {
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
-			const char* pCollisionModel{ objCfg.GetCString("pCollisionModel") };
-
-			if (pCollisionModel) {
-				zbarrier.pCollisionModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
-				LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pCollisionModel, nullptr, false, &ff);
-			}
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_XMODEL, objCfg.GetCString("pCollisionModel"), zbarrier.pCollisionModel, false, &ff);
 
 			rapidjson::Value& oboards{ objCfg.GetVal("boards", 0, objCfg.main) };
 			if (!oboards.IsNull()) {
@@ -156,35 +150,12 @@ namespace {
 						continue;
 					}
 
-					const char* pBoardModel{ cboard.GetCString("pBoardModel") };
-					if (pBoardModel) {
-						zboard.pBoardModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
-						LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pBoardModel, nullptr, false, &ff);
-					}
 
-					const char* pAlternateBoardModel{ cboard.GetCString("pAlternateBoardModel") };
-					if (pAlternateBoardModel) {
-						zboard.pAlternateBoardModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
-						LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pAlternateBoardModel, nullptr, false, &ff);
-					}
-
-					const char* pUpgradedBoardModel{ cboard.GetCString("pUpgradedBoardModel") };
-					if (pUpgradedBoardModel) {
-						zboard.pUpgradedBoardModel = (XModel*)fastfile::linker::memory::POINTER_NEXT;
-						LinkAsset(XAssetType::ASSET_TYPE_XMODEL, ctx, pUpgradedBoardModel, nullptr, false, &ff);
-					}
-
-					const char* repairEffect1{ cboard.GetCString("repairEffect1") };
-					if (repairEffect1) {
-						zboard.repairEffect1 = (FxEffectDef*)fastfile::linker::memory::POINTER_NEXT;
-						LinkAsset(XAssetType::ASSET_TYPE_FX, ctx, repairEffect1, nullptr, false, &ff);
-					}
-
-					const char* repairEffect2{ cboard.GetCString("repairEffect2") };
-					if (repairEffect2) {
-						zboard.repairEffect2 = (FxEffectDef*)fastfile::linker::memory::POINTER_NEXT;
-						LinkAsset(XAssetType::ASSET_TYPE_FX, ctx, repairEffect2, nullptr, false, &ff);
-					}
+					ctx.LinkAsset(XAssetType::ASSET_TYPE_XMODEL, cboard.GetCString("pBoardModel"), zboard.pBoardModel, false, &ff);
+					ctx.LinkAsset(XAssetType::ASSET_TYPE_XMODEL, cboard.GetCString("pAlternateBoardModel"), zboard.pAlternateBoardModel, false, &ff);
+					ctx.LinkAsset(XAssetType::ASSET_TYPE_XMODEL, cboard.GetCString("pUpgradedBoardModel"), zboard.pUpgradedBoardModel, false, &ff);
+					ctx.LinkAsset(XAssetType::ASSET_TYPE_FX, cboard.GetCString("repairEffect1"), zboard.repairEffect1, false, &ff);
+					ctx.LinkAsset(XAssetType::ASSET_TYPE_FX, cboard.GetCString("repairEffect2"), zboard.repairEffect2, false, &ff);
 				}
 
 			}

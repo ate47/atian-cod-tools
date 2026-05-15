@@ -59,7 +59,7 @@ namespace {
 			LOG_INFO("Added asset bgcache {} (hash_{:x})", ff.ffname, ff.ffnameHash);
 		}
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			utils::InFileCE is{ path };
 			if (!is) {

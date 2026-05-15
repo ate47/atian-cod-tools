@@ -10,7 +10,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			const char* preprocDefs{ ctx.linkCtx.zone.GetConfig("lua.defs", "") };
 
 			std::filesystem::path rfpath{ id };
@@ -77,10 +77,9 @@ namespace {
 			}; static_assert(sizeof(LuaFile) == 0x20);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			LuaFile& lf{ ff.data.AllocStreamRef<LuaFile>() };
+			LuaFile& lf{ ff.data.AllocStreamRef<LuaFile>(ref) };
 
 			lf.name.name = ctx.HashPathName(rfpath);
-			if (hashOut) *hashOut = lf.name;
 			lf.buffer = (byte*)fastfile::linker::memory::POINTER_NEXT;
 			lf.len = (uint32_t)outluac.size();
 			outluac.push_back(0);

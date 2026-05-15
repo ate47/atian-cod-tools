@@ -50,7 +50,8 @@ namespace fastfile::linker::memory {
 
 	struct AssetData {
 		size_t type;
-		uint64_t header;
+		void* header;
+		LinkerDataChunk* chunk{};
 	};
 
 	class XBlockLinker {
@@ -97,7 +98,7 @@ namespace fastfile::linker::memory {
 		// add a scr string
 		uint32_t AddScrString(const char* value);
 		// add an asset
-		void AddAsset(size_t type);
+		AssetData* AddAsset(size_t type);
 
 		template<typename Type>
 		LinkerDataChunk* WriteStream(const Type& data) {
@@ -112,12 +113,14 @@ namespace fastfile::linker::memory {
 			return AllocStream(sizeof(Type));
 		}
 		template<typename Type>
-		inline Type* AllocStreamPtr(size_t count = 1) {
-			return AllocStream(sizeof(Type) * count)->As<Type>();
+		inline Type* AllocStreamPtr(size_t count = 1, fastfile::linker::memory::LinkerDataChunk** out = nullptr) {
+			fastfile::linker::memory::LinkerDataChunk* stream{ AllocStream(sizeof(Type) * count) };
+			if (out) *out = stream;
+			return stream->As<Type>();
 		}
 		template<typename Type>
-		inline Type& AllocStreamRef() {
-			return *AllocStreamPtr<Type>();
+		inline Type& AllocStreamRef(fastfile::linker::memory::LinkerDataChunk** out = nullptr) {
+			return *AllocStreamPtr<Type>(1, out);
 		}
 		LinkerDataChunk* WriteStream(const char* str) {
 			return WriteStream(str, std::strlen(str) + 1);

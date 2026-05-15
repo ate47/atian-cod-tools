@@ -100,7 +100,8 @@ namespace fastfile::linker::bo4 {
 				}
 
 				for (fastfile::zone::AssetData& assetData : d) {
-					LinkAsset(type, bo4ctx, assetData.value, nullptr, true, &bo4ctx.mainFF);
+					void* ref{};
+					bo4ctx.LinkAsset(type, assetData.value, ref, true, &bo4ctx.mainFF);
 					assetData.handled = true;
 				}
 			}
@@ -189,66 +190,84 @@ namespace fastfile::linker::bo4 {
 
 	};
 
-	void LinkAsset(XAssetType type, BO4LinkContext& ctx, const char* id, uint64_t* hashOut, bool addAsset, BO4FFContext* ff) {
+	void BO4LinkContext::LinkAsset(XAssetType type, const char* id, void*& ref, bool addAsset, BO4FFContext* ff) {
+		if (!id) {
+			ref = nullptr;
+			return; // empty id = no asset to link
+		}
+
 		// ignore hash identifier
+		const char* real{ id };
 		if (*id == '#') {
 			id++;
 		}
+		bool defaultAsset{ *id == ',' };
+		if (defaultAsset) {
+			id++;
+		}
 
-		if (*id != ',') {
+		// assign default ff
+		if (!ff) {
+			ff = &mainFF;
+		}
+
+		// todo: we can probably check that we don't have this asset somewhere else
+		ref = (void*)fastfile::linker::memory::POINTER_NEXT;
+
+		fastfile::linker::memory::LinkerDataChunk* computedRef{};
+		fastfile::linker::memory::AssetData* asset{};
+		if (!defaultAsset) {
 			std::unordered_map<XAssetType, XAssetLinker*>& workers{ GetWorkers() };
 			auto it{ workers.find(type) };
 
 			if (it == workers.end()) {
 				LOG_ERROR("Can't find asset linker for type {}", games::bo4::pool::XAssetNameFromId(type));
-				ctx.error = true;
+				error = true;
 				return;
-			}
-
-			// assign default ff
-			if (!ff) {
-				ff = &ctx.mainFF;
 			}
 
 			// add the asset to the list if required
 			if (addAsset && !it->second->isGrouped) {
-				ff->data.AddAsset(type);
+				asset = ff->data.AddAsset(type);
 			}
 
-			it->second->Compute(ctx, id, hashOut, *ff);
-			return;
+			it->second->Compute(*this, id, &computedRef, *ff);
 		}
-		id++; // ','
+		else {
+			// create empty asset
 
-		// create empty asset
+			size_t len{ games::bo4::pool::GetAssetSize(type) };
 
-		size_t len{ games::bo4::pool::GetAssetSize(type) };
+			if (!len) {
+				LOG_ERROR("Can't link empty asset {}: '{}'", games::bo4::pool::XAssetNameFromId(type), real);
+				error = true;
+				return;
+			}
 
-		if (!len) {
-			LOG_ERROR("Can't link empty asset {}", games::bo4::pool::XAssetNameFromId(type));
-			ctx.error = true;
-			return;
+			if (addAsset) {
+				asset = ff->data.AddAsset(type);
+			}
+			ff->data.PushStream(XFILE_BLOCK_TEMP);
+
+			computedRef = ff->data.AllocStream(len);
+			void* emptyAsset{ computedRef->As<void>() };
+			XHash* h{ games::bo4::pool::GetAssetName(type, emptyAsset, len) };
+
+			if (!h) {
+				LOG_ERROR("Can't link asset {} with invalid name location: '{}'", games::bo4::pool::XAssetNameFromId(type), real);
+				error = true;
+				return;
+			}
+			// we add the flag 63 to mark it as default
+			h->name = HashPathName(id) | ~hash::MASK63;
+
+			LOG_INFO("Add default asset {} {} (hash_{:x})", games::bo4::pool::XAssetNameFromId(type), id, h->name);
+
+			ff->data.PopStream();
 		}
-
-		if (addAsset) {
-			ff->data.AddAsset(type);
+		if (asset) {
+			asset->chunk = computedRef;
 		}
-		ff->data.PushStream(XFILE_BLOCK_TEMP);
-
-		void* emptyAsset{ ff->data.AllocStream(len)->As<void>() };
-		XHash* h{ games::bo4::pool::GetAssetName(type, emptyAsset, len) };
-
-		if (!h) {
-			LOG_ERROR("Can't link asset {} with invalid name location", games::bo4::pool::XAssetNameFromId(type));
-			ctx.error = true;
-			return;
-		}
-		// we add the flag 63 to mark it as default
-		h->name = ctx.HashPathName(id) | ~hash::MASK63;
-
-		LOG_INFO("Add default asset {} {} (hash_{:x})", games::bo4::pool::XAssetNameFromId(type), id, h->name);
-
-		ff->data.PopStream();
 	}
 
 	utils::ArrayAdder<FFLinkerBO4, FFLinker> impl{ GetLinkers() };

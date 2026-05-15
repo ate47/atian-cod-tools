@@ -456,7 +456,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			const char* sndPlatform{ ctx.linkCtx.zone.GetConfig("snd.platform", "pc") };
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			core::config::Config scfg{ path };
@@ -553,9 +553,8 @@ namespace {
 
 			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND);
 			ffctx.data.PushStream(XFILE_BLOCK_TEMP);
-			SndBank& sndbank{ ffctx.data.AllocStreamRef<SndBank>() };
+			SndBank& sndbank{ ffctx.data.AllocStreamRef<SndBank>(ref) };
 			sndbank.nameHash.name = ctx.HashXHash(name);
-			if (hashOut) *hashOut = sndbank.nameHash;
 			sndbank.name = (const char*)fastfile::ALLOC_PTR;
 			sndbank.zone = (const char*)fastfile::ALLOC_PTR;
 			sndbank.gameLanguage = (const char*)fastfile::ALLOC_PTR;

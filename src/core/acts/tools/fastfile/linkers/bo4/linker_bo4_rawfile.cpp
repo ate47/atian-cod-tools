@@ -7,7 +7,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path rfpath{ id };
 			std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 			std::string buffer{};
@@ -24,10 +24,9 @@ namespace {
 			}; static_assert(sizeof(RawFile) == 0x20);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			RawFile& rf{ ff.data.AllocStreamRef<RawFile>() };
+			RawFile& rf{ ff.data.AllocStreamRef<RawFile>(ref) };
 
 			rf.name.name = ctx.HashPathName(rfpath);
-			if (hashOut) *hashOut = rf.name;
 			rf.buffer = (const char*)fastfile::linker::memory::POINTER_NEXT;
 			rf.len = (uint32_t)buffer.size();
 

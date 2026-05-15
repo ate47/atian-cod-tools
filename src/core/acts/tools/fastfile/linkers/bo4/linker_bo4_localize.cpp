@@ -14,7 +14,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path localizePath{ ctx.linkCtx.input / id };
 			core::config::Config localize{ localizePath };
 			localize.SyncConfig(false);

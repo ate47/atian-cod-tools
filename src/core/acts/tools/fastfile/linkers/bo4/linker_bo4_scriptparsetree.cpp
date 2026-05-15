@@ -64,7 +64,7 @@ namespace {
 			LOG_INFO("Added asset scriptparsetreedbg {} (hash_{:x})", path.string(), obj.name);
 		}
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			bool cfguseModToolOpcodes{ ctx.linkCtx.zone.GetConfigBool("gsc.opModTool", true) };
 			bool cfgGenDBG{ ctx.linkCtx.zone.GetConfigBool("gsc.gendbg", false) };
 			bool cfgDev{ ctx.linkCtx.zone.GetConfigBool("gsc.dev", false) };
@@ -160,9 +160,8 @@ namespace {
 			}; static_assert(sizeof(ScriptParseTree) == 0x20);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			ScriptParseTree& spt{ ff.data.AllocStreamRef<ScriptParseTree>() };
+			ScriptParseTree& spt{ ff.data.AllocStreamRef<ScriptParseTree>(ref) };
 			spt.name.name = obj.name;
-			if (hashOut) *hashOut = spt.name;
 			spt.buffer = (void*)fastfile::linker::memory::POINTER_NEXT;
 			spt.len = (uint32_t)buffer.size();
 

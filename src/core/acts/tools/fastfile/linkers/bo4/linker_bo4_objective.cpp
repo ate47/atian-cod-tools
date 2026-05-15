@@ -98,7 +98,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -112,7 +112,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			Objective& obj{ ff.data.AllocStreamRef<Objective>() };
+			Objective& obj{ ff.data.AllocStreamRef<Objective>(ref) };
 
 
 			static core::config::ConfigEnumData obvaCfg[]{
@@ -131,7 +131,6 @@ namespace {
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
 			obj.name.name = ctx.HashXHash(assetName, true);
-			if (hashOut) *hashOut = obj.name.name;
 			obj.waypointShowDistance = objCfg.GetBool("waypointShowDistance");
 			obj.waypointHideArrow = objCfg.GetBool("waypointHideArrow");
 			obj.waypointClamp = objCfg.GetBool("waypointClamp");
@@ -179,21 +178,9 @@ namespace {
 
 
 			// link images
-			const char* waypointImage{ objCfg.GetCString("waypointImage") };
-			const char* objectiveImage{ objCfg.GetCString("objectiveImage") };
-			const char* subObjectiveImage{ objCfg.GetCString("subObjectiveImage") };
-			if (waypointImage) {
-				obj.waypointImage = (GfxImage*)fastfile::ALLOC_PTR;
-				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, waypointImage);
-			}
-			if (objectiveImage) {
-				obj.objectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
-				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, objectiveImage);
-			}
-			if (subObjectiveImage) {
-				obj.subObjectiveImage = (GfxImage*)fastfile::ALLOC_PTR;
-				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, subObjectiveImage);
-			}
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("waypointImage"), obj.waypointImage);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("objectiveImage"), obj.objectiveImage);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("subObjectiveImage"), obj.subObjectiveImage);
 
 			// link bundle
 			auto bundle = objCfg.main.FindMember("bundle");

@@ -60,7 +60,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -74,13 +74,12 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			RankInfo& rankinfo{ ff.data.AllocStreamRef<RankInfo>() };
+			RankInfo& rankinfo{ ff.data.AllocStreamRef<RankInfo>(ref) };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
 			rankinfo.name.name = ctx.HashXHash(assetName, true);
 			rankinfo.name.name = ctx.HashXHash(objCfg.GetCString("name"), true);
-			if (hashOut) *hashOut = rankinfo.name;
 
 			rankinfo.shortNameRef.name = ctx.HashXHash(objCfg.GetCString("shortNameRef"), true);
 			rankinfo.fullNameRef.name = ctx.HashXHash(objCfg.GetCString("fullNameRef"), true);
@@ -96,14 +95,8 @@ namespace {
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);
 
-			if (icon) {
-				rankinfo.icon = (GfxImage*)fastfile::linker::memory::POINTER_NEXT;
-				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, icon, nullptr, false, &ff);
-			}
-			if (iconLarge) {
-				rankinfo.iconLarge = (GfxImage*)fastfile::linker::memory::POINTER_NEXT;
-				LinkAsset(XAssetType::ASSET_TYPE_IMAGE, ctx, iconLarge, nullptr, false, &ff);
-			}
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, icon, rankinfo.icon, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, iconLarge, rankinfo.iconLarge, false, &ff);
 
 			rapidjson::Value& orewards{ objCfg.GetVal("rewards", 0, objCfg.main) };
 			if (!orewards.IsNull()) {

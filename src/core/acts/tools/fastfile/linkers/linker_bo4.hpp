@@ -64,6 +64,13 @@ namespace fastfile::linker::bo4 {
 		inline uint64_t HashXHash(const std::string& str, bool ignoreTop = false) { return HashXHash(str.data(), ignoreTop); }
 		inline uint64_t HashScr(const std::string& str) { return HashScr(str.data()); }
 		uint64_t HashPathName(const std::filesystem::path& path);
+
+		void LinkAsset(XAssetType type, const char* id, void*& ref, bool addAsset = false, BO4FFContext* ff = nullptr);
+
+		template<typename T>
+		void LinkAsset(XAssetType type, const char* id, T*& ref, bool addAsset = false, BO4FFContext* ff = nullptr) {
+			LinkAsset(type, id, *(void**)&ref, addAsset, ff);
+		}
 	};
 
 	struct GfxImage;
@@ -76,11 +83,9 @@ namespace fastfile::linker::bo4 {
 
 		XAssetLinker(bool isGrouped = false) : isGrouped(isGrouped) {
 		}
-		virtual void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) = 0;
+		virtual void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) = 0;
 		virtual void ComputeFinal(BO4LinkContext& ctx, BO4FFContext& ff) {}
 	};
 
 	std::unordered_map<XAssetType, XAssetLinker*>& GetWorkers();
-
-	void LinkAsset(XAssetType type, BO4LinkContext& ctx, const char* id, uint64_t* hashOut = nullptr, bool addAsset = false, BO4FFContext* ff = nullptr);
 }

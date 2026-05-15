@@ -100,12 +100,13 @@ namespace fastfile::linker::memory {
 		return (uint32_t)scrStrings.size();
 	}
 
-	void XBlockLinker::AddAsset(size_t type) {
+	AssetData* XBlockLinker::AddAsset(size_t type) {
 		LOG_TRACE("XBlockLinker::AddAsset({})", type);
 		AssetData* asset{ alloc.New<AssetData>() };
-		asset->header = POINTER_NEXT;
+		asset->header = (void*)POINTER_NEXT;
 		asset->type = type;
 		assets.emplace_back(asset);
+		return asset;
 	}
 
 	void XBlockLinker::AssertBlock(size_t block) {

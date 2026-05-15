@@ -53,7 +53,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path rfpath{ id };
 			std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 			utils::InFileCE is{ path };
@@ -68,9 +68,8 @@ namespace {
 			doc.Load(is, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(','));
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			StringTable& table{ ff.data.AllocStreamRef<StringTable>() };
+			StringTable& table{ ff.data.AllocStreamRef<StringTable>(ref) };
 			table.name.name = ctx.HashPathName(rfpath);
-			if (hashOut) *hashOut = table.name;
 			table.columnCount = (int32_t)doc.GetColumnCount();
 			table.rowCount = doc.GetRowCount() ? (int32_t)(doc.GetRowCount() - 1) : 0;
 			table.values = (StringTableVar*)fastfile::linker::memory::POINTER_NEXT;

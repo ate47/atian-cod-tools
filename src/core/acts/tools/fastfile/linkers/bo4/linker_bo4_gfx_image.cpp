@@ -64,7 +64,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			if (*id == '#') id++; // ignore start #
 			std::filesystem::path path{ ctx.linkCtx.input / "images" / id };
 			std::filesystem::path filename{ path.filename() };
@@ -76,9 +76,8 @@ namespace {
 
 			// header
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			GfxImage& gfx{ ff.data.AllocStreamRef<GfxImage>() };
+			GfxImage& gfx{ ff.data.AllocStreamRef<GfxImage>(ref) };
 			gfx.name.name = hash;
-			if (hashOut) *hashOut = hash;
 
 			LOG_TRACE("Processing image {} ({}) 0x{:x}", name, path.string(), hash);
 			int x, y, channels;

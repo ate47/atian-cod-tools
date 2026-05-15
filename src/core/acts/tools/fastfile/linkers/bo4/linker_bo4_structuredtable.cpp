@@ -43,7 +43,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, uint64_t* hashOut, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
 			std::filesystem::path rfpath{ id };
 			std::filesystem::path path{ ctx.linkCtx.input / rfpath };
 			{
@@ -71,7 +71,7 @@ namespace {
 
 				ff.data.PushStream(XFILE_BLOCK_TEMP);
 
-				StructuredTable& st{ ff.data.AllocStreamRef<StructuredTable>() };
+				StructuredTable& st{ ff.data.AllocStreamRef<StructuredTable>(ref) };
 
 				std::vector<StructuredTableHeader> headers{};
 				std::vector<byte> headersStrings{};
