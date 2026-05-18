@@ -99,6 +99,8 @@ namespace fastfile::linker::memory {
 		uint32_t AddScrString(const char* value);
 		// add an asset
 		AssetData* AddAsset(size_t type);
+		// add a string
+		void AddXString(const char*& value, const char* val);
 
 		template<typename Type>
 		LinkerDataChunk* WriteStream(const Type& data) {

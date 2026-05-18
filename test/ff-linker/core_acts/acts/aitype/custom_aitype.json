@@ -1,0 +1,33 @@
+{
+    "csvInclude": "#",
+    "species": "#human",
+    "archeType": "#human",
+    "scoreType": "#human_lmg",
+    "movementType": "#human",
+    "femaleVersion": "#",
+    "compassIcon": "#t7_hud_waypoints_compassping_friendly_mp",
+    "serverFlowGraph": "#",
+    "clientFlowGraph": "#",
+    "accurateFire": false,
+    "aggressiveMode": true,
+    "hero": true,
+    "matureGib": false,
+    "restrictedGib": false,
+    "allowFriendlyFire": true,
+    "fixedNode": false,
+    "coverCrouch": {
+        "xOffset": 1,
+        "yOffset": 2,
+        "yawOffset": 3
+    },
+    "coverExposed": {
+        "xOffset": 4,
+        "yOffset": 5,
+        "yawOffset": 6
+    },
+    "coverLeft": {
+        "xOffset": 7,
+        "yOffset": 8,
+        "yawOffset": 9
+    }
+}

@@ -24,3 +24,9 @@ ranktable,acts/ranktable.csv
 prestigetable,acts/prestigetable.csv
 
 #endif
+
+#ifdef TEST_AITYPE
+
+aitype,acts/aitype/custom_aitype.json
+
+#endif

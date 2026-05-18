@@ -280,6 +280,15 @@ namespace {
 
 				json.EndArray();
 			}
+			if (asset.animMappingTables[0]) {
+				json.WriteFieldNameString("animMappingTables");
+				json.BeginArray();
+				for (AnimMappingTable* table : asset.animMappingTables) {
+					json.WriteValueHash(games::bo4::pool::GetAssetName(games::bo4::pool::ASSET_TYPE_ANIMMAPPINGTABLE, table)->name);
+				}
+
+				json.EndArray();
+			}
 			if (asset.secondaryWeapon) {
 				json.WriteFieldNameString("secondaryWeapon");
 				json.WriteValueHash(games::bo4::pool::GetAssetName(games::bo4::pool::ASSET_TYPE_WEAPON, asset.secondaryWeapon)->name);

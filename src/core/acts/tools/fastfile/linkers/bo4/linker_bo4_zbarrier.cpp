@@ -63,7 +63,7 @@ namespace {
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
 
-			core::config::Config objCfg{ path };
+			BO4Json objCfg{ path };
 
 			if (!objCfg.SyncConfig(false)) {
 				LOG_ERROR("Can't read {}", path.string());
@@ -139,17 +139,8 @@ namespace {
 					zboard.maxPause = (float)cboard.GetDouble("maxPause");
 					zboard.numRepsToPullProBoard = (uint32_t)cboard.GetInteger("numRepsToPullProBoard");
 
-					if (!cboard.ScanString("repairEffect1Offset", "%f, %f, %f", &zboard.repairEffect1Offset[0], &zboard.repairEffect1Offset[1], &zboard.repairEffect1Offset[2])) {
-						LOG_ERROR("Bad format for repairEffect1Offset \"123, 123, 123\"");
-						ctx.error = true;
-						continue;
-					}
-					if (!cboard.ScanString("repairEffect2Offset", "%f, %f, %f", &zboard.repairEffect2Offset[0], &zboard.repairEffect2Offset[1], &zboard.repairEffect2Offset[2])) {
-						LOG_ERROR("Bad format for repairEffect2Offset \"123, 123, 123\"");
-						ctx.error = true;
-						continue;
-					}
-
+					cboard.Load("repairEffect1Offset", zboard.repairEffect1Offset);
+					cboard.Load("repairEffect2Offset", zboard.repairEffect2Offset);
 
 					ctx.LinkAsset(XAssetType::ASSET_TYPE_XMODEL, cboard.GetCString("pBoardModel"), zboard.pBoardModel, false, &ff);
 					ctx.LinkAsset(XAssetType::ASSET_TYPE_XMODEL, cboard.GetCString("pAlternateBoardModel"), zboard.pAlternateBoardModel, false, &ff);

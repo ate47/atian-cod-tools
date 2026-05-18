@@ -103,7 +103,7 @@ namespace {
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
 
-			core::config::Config objCfg{ path };
+			BO4Json objCfg{ path };
 
 			if (!objCfg.SyncConfig(false)) {
 				LOG_ERROR("Can't read {}", path.string());
@@ -167,11 +167,7 @@ namespace {
 			obj.unk5c = (uint32_t)objCfg.GetInteger("unk5c", 0);
 			obj.unk60 = (float)objCfg.GetDouble("unk60", 70);
 			obj.unk64 = (float)objCfg.GetDouble("unk64", 40);
-			if (!objCfg.ScanString("waypointOffset", "%f, %f, %f", &obj.waypointOffset[0], &obj.waypointOffset[1], &obj.waypointOffset[2])) {
-				LOG_ERROR("Bad format for waypointOffset \"123, 123, 123\"");
-				ctx.error = true;
-				return;
-			}
+			objCfg.Load("waypointOffset", obj.waypointOffset);
 
 
 			ff.data.PushStream(XFILE_BLOCK_VIRTUAL);

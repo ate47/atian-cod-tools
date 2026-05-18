@@ -11,7 +11,7 @@ namespace core::config {
 	namespace {
 		std::filesystem::path mainConfigFile{ MAIN_CONFIG_FILE };
 	}
-	int64_t ParseEnumValue(const char* value, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue, const char* path) {
+	int64_t ParseEnumValue(const char* value, const ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue, const char* path) {
 		if (!value || !*value) {
 			return defaultEnumValue;
 		}
@@ -31,55 +31,19 @@ namespace core::config {
 
 		return defaultEnumValue;
 	}
-	Config::Config() : ConfigGeneric(main, main) {
-		SetConfigPath(mainConfigFile);
-	}
 
-	Config::Config(const std::filesystem::path& path) : ConfigGeneric(main, main) {
-		SetConfigPath(path);
-	}
-	Config::Config(const Config& other) : ConfigGeneric(this->main, this->main), configFile(other.configFile) {
-#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
-		// Deep copy JSON document
-		this->main.CopyFrom(other.main, this->main.GetAllocator());
-#endif
-	}
-
-	Config::Config(Config&& other) noexcept : ConfigGeneric(main, main), configFile(std::move(other.configFile)) {
-#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
-		main = std::move(other.main);
-#endif
-	}
-
-	Config& Config::operator=(const Config& other) {
-		if (this != &other) {
-			configFile = other.configFile;
-#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
-			main.CopyFrom(other.main, main.GetAllocator());
-#endif
-		}
-		return *this;
-	}
-
-	Config& Config::operator=(Config&& other) noexcept {
-		if (this != &other) {
-			configFile = std::move(other.configFile);
-#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
-			main = std::move(other.main);
-#endif
-		}
-		return *this;
-	}
-
-	void Config::SetConfigPath(std::filesystem::path path) {
-		configFile = path.is_absolute() ? path : (utils::GetProgDir() / path);
-	}
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
 
-	RapidJsonGeneric& ConfigGeneric::GetVal(const char* path, size_t off, RapidJsonGeneric& loc) {
+	RapidJsonGeneric& ConfigGenericRefs::GetVal(const char* path, size_t off, RapidJsonGeneric& loc) {
 		static rapidjson::Value nullAnswer{ rapidjson::kNullType };
 		if (!path || !*path || loc.IsNull()) {
 			return nullAnswer; // not a valid path/object
+		}
+		if (path[0] == '~' && !path[1]) {
+			return loc;
+		}
+		if (path[0] == '/' && !path[1]) {
+			return main;
 		}
 
 		std::string_view sv{ path + off };
@@ -108,15 +72,8 @@ namespace core::config {
 
 		return GetVal(path + off, idx + 1, val);
 	}
-	ConfigGeneric ConfigGeneric::GetSubVal(const char* path, size_t off, RapidJsonGeneric& loc) {
-		return GetSub(GetVal(path, off, loc));
-	}
 
-	ConfigGeneric ConfigGeneric::GetSub(RapidJsonGeneric& loc) {
-		return ConfigGeneric{ main, loc };
-	}
-
-	void ConfigGeneric::SetVal(const char* path, rapidjson::Value& value, size_t off, RapidJsonGeneric& loc) {
+	void ConfigGenericRefs::SetVal(const char* path, rapidjson::Value& value, size_t off, RapidJsonGeneric& loc) {
 		if (!path || !*path) {
 			LOG_WARNING("Using setval with invalid path");
 			return; // not a valid path
@@ -157,7 +114,7 @@ namespace core::config {
 
 	}
 
-	int64_t ConfigGeneric::GetInteger(const char* path, int64_t defaultValue) {
+	int64_t ConfigGenericRefs::GetInteger(const char* path, int64_t defaultValue) {
 		rapidjson::Value& val = GetVal(path, 0, base);
 
 		if (val.IsNull() || !val.IsNumber()) {
@@ -167,7 +124,17 @@ namespace core::config {
 		return val.GetInt64();
 	}
 
-	double ConfigGeneric::GetDouble(const char* path, double defaultValue) {
+	uint64_t ConfigGenericRefs::GetUnsignedInteger(const char* path, uint64_t defaultValue) {
+		rapidjson::Value& val = GetVal(path, 0, base);
+
+		if (val.IsNull() || !val.IsNumber()) {
+			this->SetUnsignedInteger(path, defaultValue);
+			return defaultValue;
+		}
+		return val.GetUint64();
+	}
+
+	double ConfigGenericRefs::GetDouble(const char* path, double defaultValue) {
 		rapidjson::Value& val = GetVal(path, 0, base);
 
 		if (val.IsNull() || !val.IsNumber()) {
@@ -177,7 +144,7 @@ namespace core::config {
 		return val.GetDouble();
 	}
 
-	const char* ConfigGeneric::GetCString(const char* path, const char* defaultValue) {
+	const char* ConfigGenericRefs::GetCString(const char* path, const char* defaultValue) {
 		rapidjson::Value& val = GetVal(path, 0, base);
 
 		if (val.IsNull() || !val.IsString()) {
@@ -189,7 +156,7 @@ namespace core::config {
 		return val.GetString();
 	}
 
-	bool ConfigGeneric::ScanStringN(const char* path, const char* format, size_t count, ...) {
+	bool ConfigGenericRefs::ScanStringN(const char* path, const char* format, size_t count, ...) {
 		va_list va;
 		va_start(va, count);
 		std::string v{ this->GetString(path) };
@@ -201,7 +168,7 @@ namespace core::config {
 		return r;
 	}
 
-	bool ConfigGeneric::GetBool(const char* path, bool defaultValue) {
+	bool ConfigGenericRefs::GetBool(const char* path, bool defaultValue) {
 		rapidjson::Value& val = GetVal(path, 0, base);
 
 		if (val.IsNull() || !val.IsBool()) {
@@ -211,27 +178,33 @@ namespace core::config {
 		return val.GetBool();
 	}
 
-	void ConfigGeneric::SetInteger(const char* path, int64_t defaultValue) {
+	void ConfigGenericRefs::SetInteger(const char* path, int64_t defaultValue) {
 		rapidjson::Value v{ defaultValue };
 		SetVal(path, v, 0, base);
 	}
 
-	void ConfigGeneric::SetDouble(const char* path, double defaultValue) {
+	void ConfigGenericRefs::SetUnsignedInteger(const char* path, uint64_t defaultValue) {
 		rapidjson::Value v{ defaultValue };
 		SetVal(path, v, 0, base);
 	}
 
-	void ConfigGeneric::SetString(const char* path, const std::string& defaultValue) {
+	void ConfigGenericRefs::SetDouble(const char* path, double defaultValue) {
+		rapidjson::Value v{ defaultValue };
+		SetVal(path, v, 0, base);
+	}
+
+	void ConfigGenericRefs::SetString(const char* path, const std::string& defaultValue) {
 		rapidjson::Value v{ rapidjson::kStringType };
 		v.SetString(defaultValue.c_str(), main.GetAllocator());
 		SetVal(path, v, 0, base);
 	}
 
-	void ConfigGeneric::SetBool(const char* path, bool defaultValue) {
+	void ConfigGenericRefs::SetBool(const char* path, bool defaultValue) {
 		rapidjson::Value v{ defaultValue };
 		SetVal(path, v, 0, base);
 	}
-	int64_t ConfigGeneric::GetEnum(const char* path, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue) {
+
+	int64_t ConfigGenericRefs::GetEnum(const char* path, const ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue) {
 		const char* defaultValueStr{ "" };
 		for (size_t i = 0; i < dataCount; i++) {
 			if (data[i].enumValue == defaultEnumValue) {
@@ -243,7 +216,7 @@ namespace core::config {
 		return ParseEnumValue(val, data, dataCount, defaultEnumValue, path);
 	}
 
-	void ConfigGeneric::SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) {
+	void ConfigGenericRefs::SetEnum(const char* path, int64_t enumValue, const ConfigEnumData* data, size_t dataCount) {
 		for (size_t i = 0; i < dataCount; i++) {
 			if (data[i].enumValue == enumValue) {
 				this->SetString(path, data[i].name);
@@ -253,72 +226,98 @@ namespace core::config {
 		LOG_WARNING("No enum value for path '{}': {}", path, enumValue);
 	}
 
-	bool Config::SyncConfig(bool save) {
-		std::string json{};
-
-		bool r{};
-		if (utils::ReadFile(utils::GetProgDir() / configFile, json)) {
-			main.Parse(json.data());
-			r = true;
-		}
-		// not reading isn't an error
-		if (save) {
-			this->SaveConfig();
-		}
-		return r;
+	ConfigGenericRefs::operator bool() const {
+		return !base.IsNull();
 	}
 
-	void Config::SaveConfig() const {
+	bool ParseJson(std::filesystem::path path, RapidJsonDocument& doc) {
+		std::string json{};
+		if (!utils::ReadFile(path, json)) {
+			return false;
+		}
+		doc.Parse(json.data());
+		return true;
+	}
+
+	void WriteJson(std::filesystem::path path, const RapidJsonGeneric& value) {
 		rapidjson::StringBuffer buff;
 		rapidjson::PrettyWriter<decltype(buff)> writer{ buff };
-		main.Accept(writer);
+		value.Accept(writer);
 
 		std::string json{ buff.GetString() };
-		utils::WriteFile(utils::GetProgDir() / configFile, json);
+		utils::WriteFile(path, json);
 	}
+
+	void __test() {
+		Config cfg{};
+
+		enum TestEnum {
+			TTE_K0 = 0,
+			TTE_K1 = 1,
+			TTE_K2 = 2,
+			TTE_K3 = 3,
+			TTE_K4 = 4,
+			TTE_K5 = 5,
+		};
+		TestEnum test[45];
+		cfg.Load("test", test);
+
+	}
+
 #else  // __ACTS_COMPRESS_HAS_RAPIDJSON
 // mock result when no rapidjson support, so that the rest of the code can compile and run without config support
 
 
-	int64_t ConfigGeneric::GetInteger(const char* path, int64_t defaultValue) {
+	int64_t ConfigGenericRefs::GetInteger(const char* path, int64_t defaultValue) {
 		return defaultValue;
 	}
 
-	double ConfigGeneric::GetDouble(const char* path, double defaultValue) {
+	uint64_t ConfigGenericRefs::GetUnsignedInteger(const char* path, uint64_t defaultValue) {
 		return defaultValue;
 	}
 
-	const char* ConfigGeneric::GetCString(const char* path, const char* defaultValue) {
+	double ConfigGenericRefs::GetDouble(const char* path, double defaultValue) {
 		return defaultValue;
 	}
 
-	bool ConfigGeneric::ScanStringN(const char* path, const char* format, size_t count, ...) {
+	const char* ConfigGenericRefs::GetCString(const char* path, const char* defaultValue) {
+		return defaultValue;
+	}
+
+	bool ConfigGenericRefs::ScanStringN(const char* path, const char* format, size_t count, ...) {
 		va_list va;
 		va_start(va, count);
 		va_end(va);
 		return false;
 	}
 
-	bool ConfigGeneric::GetBool(const char* path, bool defaultValue) {
+	bool ConfigGenericRefs::GetBool(const char* path, bool defaultValue) {
 		return defaultValue;
 	}
 
-	void ConfigGeneric::SetInteger(const char* path, int64_t defaultValue) {
+	void ConfigGenericRefs::SetInteger(const char* path, int64_t defaultValue) {
 	}
 
-	void ConfigGeneric::SetDouble(const char* path, double defaultValue) {
+	void ConfigGenericRefs::SetUnsignedInteger(const char* path, uint64_t defaultValue) {
 	}
 
-	void ConfigGeneric::SetString(const char* path, const std::string& defaultValue) {
+	void ConfigGenericRefs::SetDouble(const char* path, double defaultValue) {
 	}
 
-	void ConfigGeneric::SetBool(const char* path, bool defaultValue) {
+	void ConfigGenericRefs::SetString(const char* path, const std::string& defaultValue) {
 	}
-	int64_t ConfigGeneric::GetEnum(const char* path, ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue) {
+
+	void ConfigGenericRefs::SetBool(const char* path, bool defaultValue) {
+	}
+	int64_t ConfigGenericRefs::GetEnum(const char* path, const ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue) {
 		return defaultEnumValue;
 	}
 
-	void ConfigGeneric::SetEnum(const char* path, int64_t enumValue, ConfigEnumData* data, size_t dataCount) {
+	ConfigGenericRefs::operator bool() const {
+		return false;
+	}
+
+	void ConfigGenericRefs::SetEnum(const char* path, int64_t enumValue, const ConfigEnumData* data, size_t dataCount) {
 	}
 
 	bool Config::SyncConfig(bool save) {
@@ -332,6 +331,10 @@ namespace core::config {
 
 	void SetMainConfig(const std::filesystem::path& path) {
 		mainConfigFile = path;
+	}
+
+	const std::filesystem::path& GetMainConfigFile() {
+		return mainConfigFile;
 	}
 
 	Config& GetMainConfig() {

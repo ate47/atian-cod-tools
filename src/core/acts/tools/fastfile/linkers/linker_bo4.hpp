@@ -50,6 +50,9 @@ namespace fastfile::linker::bo4 {
 		uint64_t ffnameHash{};
 		const char* ffname{};
 	};
+	struct BO4LinkContext;
+
+	BO4LinkContext& GetLinkContext();
 
 	struct BO4LinkContext {
 		FastFileLinkerContext& linkCtx;
@@ -66,15 +69,115 @@ namespace fastfile::linker::bo4 {
 		uint64_t HashPathName(const std::filesystem::path& path);
 
 		void LinkAsset(XAssetType type, const char* id, void*& ref, bool addAsset = false, BO4FFContext* ff = nullptr);
+		size_t LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, void** array, size_t count, BO4FFContext* ff = nullptr);
+		void AddXHash(const char* val, XHash& value);
+		size_t AddXHashArray(const char* id, core::config::RapidJsonGeneric& cfg, XHash* array, size_t count);
+		void AddScrString(const char* val, ScrString_t& value, BO4FFContext& ff);
+		size_t AddScrStringArray(const char* id, core::config::RapidJsonGeneric& cfg, ScrString_t* array, size_t count, BO4FFContext& ff);
 
 		template<typename T>
 		void LinkAsset(XAssetType type, const char* id, T*& ref, bool addAsset = false, BO4FFContext* ff = nullptr) {
 			LinkAsset(type, id, *(void**)&ref, addAsset, ff);
 		}
+		template<typename T>
+		size_t LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, T** ref, size_t count, BO4FFContext* ff = nullptr) {
+			return LinkAssetArray(type, id, cfg, (void**)ref, count, ff);
+		}
+		inline void AddXHash(const std::string& str, XHash& value) {
+			AddXHash(str.data(), value);
+		}
+		inline void AddScrString(const std::string& str, ScrString_t& value, BO4FFContext& ff) {
+			AddScrString(str.data(), value, ff);
+		}
+
+		bool Assert(bool expr, const char* msg);
+		inline bool Assert(bool expr, const std::string& msg) {
+			return Assert(expr, msg.data());
+		}
 	};
 
 	struct GfxImage;
-	typedef float vec3_t[3];
+	typedef const char* XString;
+	struct vec2_t {
+		float x;
+		float y;
+	};
+	struct vec3_t {
+		float x;
+		float y;
+		float z;
+	};
+	struct vec4_t {
+		float x;
+		float y;
+		float z;
+		float w;
+	};
+
+	class BO4TypeGetter : public core::config::BaseTypeGetters {
+	public:
+		using BaseTypeGetters::Load;
+		template<typename CF = core::config::ConfigGeneric<BO4TypeGetter>>
+		static void Load(const char* path, CF& base, XHash& ref, XHash defaultValue) {
+			GetLinkContext().AddXHash(base.GetCString(path), ref);
+		}
+
+		template<typename CF = core::config::ConfigGeneric<BO4TypeGetter>>
+		static void Load(const char* path, CF& base, vec2_t& ref, vec2_t defaultValue) {
+			CF sub{ base.GetSubVal(path) };
+			if (!sub) return;
+
+			if (sub.base.IsString()) {
+				if (!base.ScanString(path, "%f, %f", &ref.x, &ref.y)) {
+					LOG_ERROR("Bad format for {} \"123, 123\"", path);
+					GetLinkContext().error = true;
+				}
+			}
+			else {
+				sub.Load("x", ref.x);
+				sub.Load("y", ref.y);
+			}
+		}
+
+		template<typename CF = core::config::ConfigGeneric<BO4TypeGetter>>
+		static void Load(const char* path, CF& base, vec3_t& ref, vec3_t defaultValue) {
+			CF sub{ base.GetSubVal(path) };
+			if (!sub) return;
+
+			if (sub.base.IsString()) {
+				if (!base.ScanString(path, "%f, %f, %f", &ref.x, &ref.y, &ref.z)) {
+					LOG_ERROR("Bad format for {} \"123, 123, 123\"", path);
+					GetLinkContext().error = true;
+				}
+			}
+			else {
+				sub.Load("x", ref.x);
+				sub.Load("y", ref.y);
+				sub.Load("z", ref.z);
+			}
+		}
+
+		template<typename CF = core::config::ConfigGeneric<BO4TypeGetter>>
+		static void Load(const char* path, CF& base, vec4_t& ref, vec4_t defaultValue) {
+			CF sub{ base.GetSubVal(path) };
+			if (!sub) return;
+
+			if (sub.base.IsString()) {
+				if (!base.ScanString(path, "%f, %f, %f, %f", &ref.x, &ref.y, &ref.z, &ref.w)) {
+					LOG_ERROR("Bad format for {} \"123, 123, 123, 123\"", path);
+					GetLinkContext().error = true;
+				}
+			}
+			else {
+				sub.Load("x", ref.x);
+				sub.Load("y", ref.y);
+				sub.Load("z", ref.z);
+				sub.Load("w", ref.w);
+			}
+		}
+	};
+
+	using BO4Json = core::config::ConfigDocument<BO4TypeGetter>;
 
 	class XAssetLinker {
 	public:

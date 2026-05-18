@@ -81,6 +81,15 @@ namespace fastfile::linker::bo4 {
 		return r;
 	}
 
+	static BO4LinkContext* linkContext{};
+
+	BO4LinkContext& GetLinkContext() {
+		if (!linkContext) {
+			throw std::runtime_error("No BO4LinkContext");
+		}
+		return *linkContext;
+	}
+
 	class FFLinkerBO4 : public FFLinker {
 	public:
 		FFLinkerBO4() : FFLinker("Bo4", "Bo4 fastfile linker") {
@@ -88,6 +97,8 @@ namespace fastfile::linker::bo4 {
 
 		void Link(FastFileLinkerContext& ctx) override {
 			BO4LinkContext bo4ctx{ ctx };
+			linkContext = &bo4ctx;
+			utils::CloseEnd linkContextCE{ [] {linkContext = nullptr; } };
 			bo4ctx.mainFF.ffname = ctx.mainFFName;
 			bo4ctx.mainFF.ffnameHash = bo4ctx.HashXHash(ctx.mainFFName);
 
@@ -230,8 +241,13 @@ namespace fastfile::linker::bo4 {
 			if (addAsset && !it->second->isGrouped) {
 				asset = ff->data.AddAsset(type);
 			}
-
-			it->second->Compute(*this, id, &computedRef, *ff);
+			try {
+				it->second->Compute(*this, id, &computedRef, *ff);
+			}
+			catch (std::runtime_error& e) {
+				error = true;
+				LOG_ERROR("Can't link asset {},{} : {}", games::bo4::pool::XAssetNameFromId(type), id, e.what());
+			}
 		}
 		else {
 			// create empty asset
@@ -268,6 +284,115 @@ namespace fastfile::linker::bo4 {
 		if (asset) {
 			asset->chunk = computedRef;
 		}
+	}
+
+	size_t BO4LinkContext::LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, void** array, size_t count, BO4FFContext* ff) {
+		if (cfg.IsNull()) {
+			return 0;
+		}
+		if (!cfg.IsArray()) {
+			LOG_ERROR("BO4LinkContext::LinkAssetArray: {} isn't an array", id);
+			error = true;
+			return 0;
+		}
+		auto arr{ cfg.GetArray() };
+		if (arr.Size() > count) {
+			LOG_ERROR("BO4LinkContext::LinkAssetArray: {} can't contain more than {} element(s)", id, count);
+			error = true;
+			return 0;
+		}
+
+		for (rapidjson::Value& v : arr) {
+			if (!v.IsString()) {
+				LOG_ERROR("BO4LinkContext::LinkAssetArray: {} can't contain a non string element", id);
+				error = true;
+				continue;
+			}
+
+			const char* str{ v.GetString() };
+			LinkAsset(type, str, *array, false, ff);
+			array++;
+		}
+
+		return arr.Size();
+	}
+
+	void BO4LinkContext::AddXHash(const char* val, XHash& value) {
+		value.name = HashXHash(val, true);
+	}
+
+	size_t BO4LinkContext::AddXHashArray(const char* id, core::config::RapidJsonGeneric& cfg, XHash* array, size_t count) {
+		if (cfg.IsNull()) {
+			return 0;
+		}
+		if (!cfg.IsArray()) {
+			LOG_ERROR("BO4LinkContext::AddXHashArray: {} isn't an array", id);
+			error = true;
+			return 0;
+		}
+		auto arr{ cfg.GetArray() };
+		if (arr.Size() > count) {
+			LOG_ERROR("BO4LinkContext::AddXHashArray: {} can't contain more than {} element(s)", id, count);
+			error = true;
+			return 0;
+		}
+
+		for (rapidjson::Value& v : arr) {
+			if (!v.IsString()) {
+				LOG_ERROR("BO4LinkContext::AddXHashArray: {} can't contain a non string element", id);
+				error = true;
+				continue;
+			}
+
+			const char* str{ v.GetString() };
+			AddXHash(str, *array);
+			array++;
+		}
+
+		return arr.Size();
+	}
+
+	void BO4LinkContext::AddScrString(const char* val, ScrString_t& value, BO4FFContext& ff) {
+		value = (ScrString_t)ff.data.AddScrString(val);
+	}
+
+	size_t BO4LinkContext::AddScrStringArray(const char* id, core::config::RapidJsonGeneric& cfg, ScrString_t* array, size_t count, BO4FFContext& ff) {
+		if (cfg.IsNull()) {
+			return 0;
+		}
+		if (!cfg.IsArray()) {
+			LOG_ERROR("BO4LinkContext::AddXHashArray: {} isn't an array", id);
+			error = true;
+			return 0;
+		}
+		auto arr{ cfg.GetArray() };
+		if (arr.Size() > count) {
+			LOG_ERROR("BO4LinkContext::AddXHashArray: {} can't contain more than {} element(s)", id, count);
+			error = true;
+			return 0;
+		}
+
+		for (rapidjson::Value& v : arr) {
+			if (!v.IsString()) {
+				LOG_ERROR("BO4LinkContext::AddXHashArray: {} can't contain a non string element", id);
+				error = true;
+				continue;
+			}
+
+			const char* str{ v.GetString() };
+			AddScrString(str, *array, ff);
+			array++;
+		}
+
+		return arr.Size();
+	}
+
+	bool BO4LinkContext::Assert(bool expr, const char* msg) {
+		if (!expr) {
+			LOG_ERROR("BO4LinkContext::Assert: {}", msg);
+			error = true;
+		}
+		return expr;
 	}
 
 	utils::ArrayAdder<FFLinkerBO4, FFLinker> impl{ GetLinkers() };

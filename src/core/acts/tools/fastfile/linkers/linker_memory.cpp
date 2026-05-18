@@ -109,6 +109,12 @@ namespace fastfile::linker::memory {
 		return asset;
 	}
 
+	void XBlockLinker::AddXString(const char*& value, const char* val) {
+		// todo: add relative string
+		value = (const char*)POINTER_NEXT;
+		this->WriteStream(val);
+	}
+
 	void XBlockLinker::AssertBlock(size_t block) {
 		if (block >= numblocks) {
 			throw std::runtime_error(std::format("XBlockLinker::AssertBlock: Invalid linker block {}: Too high", block));

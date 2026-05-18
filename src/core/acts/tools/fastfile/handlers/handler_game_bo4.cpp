@@ -589,8 +589,6 @@ namespace fastfile::handlers::bo4 {
 				gcx.reader = &reader;
 				gcx.data = reader.Ptr();
 				gcx.dataLen = reader.Remaining();
-				std::filesystem::path out{ opt.m_output / "bo4" / "data" };
-				std::filesystem::create_directories(out);
 				gcx.isRunning = true;
 				utils::CloseEnd end{ [] {
 					gcx.isRunning = false;
@@ -634,7 +632,7 @@ namespace fastfile::handlers::bo4 {
 					assetList.strings = AllocStreamPos<char*>();
 
 					LOG_TRACE("Log strings... {}", (void*)assetList.strings);
-					std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "strings" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "strings" / ctx.GetFFType() / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(outStrings.parent_path());
 					utils::OutFileCE os{ outStrings };
 					if (!os) {
@@ -654,7 +652,7 @@ namespace fastfile::handlers::bo4 {
 
 				utils::OutFileCE osxhash{};
 				if (opt.dumpXHash) {
-					std::filesystem::path outXHash{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xhash" / std::format("{}.txt", ctx.ffname) };
+					std::filesystem::path outXHash{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xhash" / ctx.GetFFType() / std::format("{}.txt", ctx.ffname) };
 					std::filesystem::create_directories(outXHash.parent_path());
 					osxhash->open(outXHash.string());
 					if (!osxhash) {
@@ -678,7 +676,7 @@ namespace fastfile::handlers::bo4 {
 							w->PreXFileLoading(opt, ctx);
 						}
 					}
-					std::filesystem::path outAssets{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "assets" / std::format("{}{}.csv", (opt.noAssetDump ? "unloaded_" : ""), ctx.ffname) };
+					std::filesystem::path outAssets{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "assets" / ctx.GetFFType() / std::format("{}{}.csv", (opt.noAssetDump ? "unloaded_" : ""), ctx.ffname) };
 					std::filesystem::create_directories(outAssets.parent_path());
 					utils::OutFileCE osa{ outAssets };
 					osa << "type,name\n";
@@ -711,7 +709,7 @@ namespace fastfile::handlers::bo4 {
 
 					// xstrings
 					if (opt.dumpXStrings) {
-						std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xstrings" / std::format("{}.txt", ctx.ffname) };
+						std::filesystem::path outStrings{ gcx.opt->m_output / "bo4" / "source" / "tables" / "data" / "xstrings" / ctx.GetFFType() / std::format("{}.txt", ctx.ffname) };
 						std::filesystem::create_directories(outStrings.parent_path());
 						utils::OutFileCE os{ outStrings, true };
 
