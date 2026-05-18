@@ -32,6 +32,7 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/exe/ui3"
         "${CMAKE_SOURCE_DIR}/src/core/shared"
         "${CMAKE_SOURCE_DIR}/deps/mstch/include/"
+        "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
     )
 
     append_common_defs(AtianCodToolsUI3 QT)

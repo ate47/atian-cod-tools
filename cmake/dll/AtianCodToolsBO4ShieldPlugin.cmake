@@ -23,6 +23,7 @@ target_include_directories(AtianCodToolsBO4ShieldPlugin PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/curl/include"
     "${CMAKE_SOURCE_DIR}/deps/rapidjson/include"
     "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
+    "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
     "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src"
 )
 append_common_defs(AtianCodToolsBO4ShieldPlugin)

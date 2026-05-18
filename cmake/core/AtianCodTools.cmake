@@ -71,6 +71,7 @@ target_include_directories(AtianCodTools PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include/"
     "${CMAKE_SOURCE_DIR}/deps/libtomcrypt/src/headers/"
     "${CMAKE_SOURCE_DIR}/deps/mstch/include/"
+    "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
     "${CMAKE_SOURCE_DIR}/include"
 )
 

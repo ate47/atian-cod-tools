@@ -106,3 +106,6 @@
 	path = deps/mstch
 	url = https://github.com/no1msd/mstch/
 	branch = no-boost
+[submodule "deps/magic_enum"]
+	path = deps/magic_enum
+	url = https://github.com/Neargye/magic_enum

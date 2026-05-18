@@ -26,6 +26,7 @@ if(ALL_PLATFORM_ACTS)
         "${CMAKE_SOURCE_DIR}/deps/lz4/lib"
         "${CMAKE_SOURCE_DIR}/deps/zstd/lib"
         "${CMAKE_SOURCE_DIR}/deps/zlib"
+        "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
     )
     append_common_defs(ACTSSharedLibrary)
 
@@ -55,6 +56,7 @@ else()
         "${CMAKE_SOURCE_DIR}/deps/zlib"
         "${CMAKE_SOURCE_DIR}/deps/ps4debug/kdebugger/include"
         "${CMAKE_SOURCE_DIR}/deps/ps4debug/ps4-ksdk/include"
+        "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
         "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include"
     )
     append_common_defs(ACTSSharedLibrary)
