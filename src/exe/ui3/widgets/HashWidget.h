@@ -2,6 +2,7 @@
 
 #include <QWidget>
 #include <QLineEdit>
+#include <QPushButton>
 
 class HashWidget : public QWidget
 {
@@ -12,11 +13,17 @@ public:
 	~HashWidget();
 
 	void ComputeCustom();
+	void ComputeLookup();
 private:
 	QLineEdit* stringValue;
 	QLineEdit* customOffset;
 	QLineEdit* customPrime;
 	QLineEdit* customReverseOffset;
+	QLineEdit* customDJB2ReverseOffset;
 	QLineEdit* customHash;
+	QLineEdit* customDJB2Hash;
+	QPushButton* hashLookupLoad;
+	QLineEdit* hashLookupIn;
+	QLineEdit* hashLookupOut;
 };
 

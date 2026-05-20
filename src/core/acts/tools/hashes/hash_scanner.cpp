@@ -181,10 +181,12 @@ namespace tool::hash::scanner {
 			cli::options::CliOptions opts{};
 			bool help{};
 			bool append{};
+			bool allFiles{};
 			const char* regex{ "([0-9a-zA-Z_]+)" };
 			opts
 				.addOption(&help, "show help", "--help", "", "-h")
 				.addOption(&append, "append to file", "--append", "", "-a")
+				.addOption(&allFiles, "all files", "--all", "", "-A")
 				.addOption(&regex, "regex", "--regex", " [regex]", "-r");
 
 			if (!opts.ComputeOptions(2, argc, argv) || help || opts.NotEnoughParam(2)) {
@@ -192,7 +194,13 @@ namespace tool::hash::scanner {
 				return help ? tool::OK : tool::BAD_USAGE;
 			}
 
-			std::vector<std::filesystem::path> files{ GetHashFiles(opts[0]) };
+			std::vector<std::filesystem::path> files;
+			if (allFiles) {
+				utils::GetFileRecurse(opts[0], files);
+			}
+			else {
+				files = GetHashFiles(opts[0]);
+			}
 			LOG_TRACE("{} file(s) loaded...", files.size());
 
 			std::regex pattern{ regex };

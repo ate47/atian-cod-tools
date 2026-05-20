@@ -1093,6 +1093,47 @@ namespace hash {
 
 			return tool::OK;
 		}
+
+		int dbjb2crack(Process& proc, int argc, const char* argv[]) {
+			if (argc < 5) {
+				return tool::BAD_USAGE;
+			}
+			// 0xc0eb9bd84c300f2b
+			const char* str = argv[2];
+			uint64_t key = std::strtoull(argv[3], nullptr, 16);
+			uint64_t iv = std::strtoull(argv[4], nullptr, 16);
+
+			LOG_DEBUG("Searching {} 0x{:x}/0x{:x}", str, key, iv);
+
+			uint64_t mask = 0xFFFF;
+			uint64_t found = 0;
+			uint64_t disc{};
+
+			while (found < 32) {
+				uint64_t k;
+				for (k = 0; k < 0x10000; k++) {
+					uint64_t v = (k << found) | disc;
+					if ((hash::HashDJB2(str, v, iv) & mask) == (key & mask)) {
+						LOG_TRACE("bit {}: {:x}", found, v);
+						break;
+					}
+				}
+				if (k == 0x10000) {
+					LOG_ERROR("Invalid key");
+					return tool::BASIC_ERROR;
+				}
+
+				disc |= (k & 0xF) << found;
+
+				found += 4;
+				mask = (mask << 4) | 0xF;
+			}
+
+			LOG_INFO("end .. 0x{:x}, 0x{:x}", disc, iv);
+			LOG_INFO("test . hash(\"{}\", 0x{:x}, 0x{:x}) = 0x{:x}", str, disc, iv, hash::Hash64A(str, disc, iv));
+
+			return tool::OK;
+		}
 		struct HashEntry {
 			std::string str;
 			uint64_t val;
@@ -1436,6 +1477,7 @@ namespace hash {
 		ADD_TOOL(ht7, "hash", " (string)*", "hash strings", nullptr, hasht7);
 		ADD_TOOL(httest, "hash", " (string)*", "hash strings", nullptr, httest);
 		ADD_TOOL(crctest, "hash", " (file)*", "crc test", crctest);
+		ADD_TOOL(dbjb2crack, "hash", " [string] [hash] [iv]", "crack dbjb2 key, base iv: 33", nullptr, dbjb2crack);
 		ADD_TOOL(fnv1acrack, "hash", " [string] [hash] [iv]", "crack fnv1a key, base iv: 100000001b3, 10000000233", nullptr, fnv1acrack);
 		ADD_TOOL(fnv1acrack2, "hash", " [csv] [iv]", "crack fnv1a key (one key based)", nullptr, fnv1acrack2);
 		ADD_TOOL(fnv1acrack3, "hash", " [csv] [iv]", "crack fnv1a keys (first char based)", nullptr, fnv1acrack3);
