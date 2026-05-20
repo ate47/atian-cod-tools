@@ -7,10 +7,10 @@ namespace fastfile::handlers::bo4::map {
 	/*
 		[ ] col_map (clipmap)
 		[~] com_map
-		[ ] cpu_occlusion_data
+		[~] cpu_occlusion_data
 		[x] entitylist
 		[ ] game_map
-		[ ] gfx_map
+		[~] gfx_map
 		[ ] glasses
 		[ ] lighting
 		[ ] staticlevelfxlist

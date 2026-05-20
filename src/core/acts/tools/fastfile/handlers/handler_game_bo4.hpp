@@ -169,6 +169,17 @@ namespace fastfile::handlers::bo4 {
 			this->WriteFieldValueString(hash, std::format("{} {} {} {}", vec[0], vec[1], vec[2], vec[3]));
 		}
 
+		void WriteValueVector(vec2_t& vec) {
+			this->WriteValueString(std::format("{} {}", vec[0], vec[1]));
+		}
+
+		void WriteValueVector(vec3_t& vec) {
+			this->WriteValueString(std::format("{} {} {}", vec[0], vec[1], vec[2]));
+		}
+
+		void WriteValueVector(vec4_t& vec) {
+			this->WriteValueString(std::format("{} {} {} {}", vec[0], vec[1], vec[2], vec[3]));
+		}
 
 		void WriteValueXAsset(games::bo4::pool::XAssetType type, void* val) {
 			if (!val) {

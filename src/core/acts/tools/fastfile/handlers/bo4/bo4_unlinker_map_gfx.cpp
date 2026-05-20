@@ -7,6 +7,16 @@ namespace {
 	using namespace fastfile::handlers::bo4;
 	using namespace games::bo4::pool;
 
+	struct GfxBrushModel;
+	struct GroupLodModel;
+	struct GfxWorldLighting;
+	struct StreamerWorld;
+
+	struct GfxVisArray {
+		uint32_t visDataCount;
+		byte* visData;
+	};
+
 	struct GfxVolumeDecal {
 		uint64_t id;
 		byte hidden;
@@ -24,18 +34,120 @@ namespace {
 		uint64_t unkd0;
 	};
 
-	struct static_model_info {
+	struct GfxStaticModelDrawInst {
 		XModel* model;
 		uint64_t unk8;
-		uint64_t unk10;
+		void* unk10;
 		uintptr_t unk18;
-		uint32_t unk20;
-		uint32_t name;
-		uint64_t unk28;
+		int32_t unk20;
+		ScrString_t name;
+		uint32_t unk28;
+		uint16_t unk2c;
+		uint16_t unk2e;
 		uint32_t unk30;
-		uint32_t unk34;
+		int32_t unk34;
 	};
 
+	struct GfxWorldDpvsStatic {
+		uint32_t smodelUpdateFrame;
+		uint32_t smodelCount;
+		uint64_t unk08;
+		uint64_t unk10;
+		uint64_t unk18;
+		uint64_t unk20;
+		uint64_t unk28;
+		uint64_t unk30;
+		uint64_t unk38;
+		GfxVisArray smodelVisData[4];
+		GfxVisArray surfaceVisData[4];
+		GfxVisArray volDecalVisData[4];
+		uint64_t unk100;
+		uint64_t unk108;
+		uint64_t unk110;
+		uint64_t unk118;
+		uint64_t unk120;
+		uint64_t unk128;
+		uint64_t unk130;
+		uint64_t unk138;
+		uint64_t unk140;
+		uint64_t unk148;
+		uint64_t unk150;
+		uint64_t unk158;
+		uint64_t unk160;
+		uint64_t unk168;
+		uint64_t unk170;
+		uint64_t unk178;
+		uint64_t unk180;
+		uint64_t unk188;
+		uint64_t unk190;
+		uint64_t unk198;
+		uint64_t unk1a0;
+		uint64_t unk1a8;
+		uint64_t unk1b0;
+		uint64_t unk1b8;
+		uint64_t unk1c0;
+		uint64_t unk1c8;
+		uint64_t unk1d0;
+		uint64_t unk1d8;
+		uint64_t unk1e0;
+		uint64_t unk1e8;
+		uint64_t unk1f0;
+		uint64_t unk1f8;
+		uint64_t unk200;
+		uint64_t unk208;
+		uint64_t unk210;
+		uint64_t unk218;
+		uint64_t unk220;
+		uint64_t unk228;
+		uint64_t unk230;
+		uint64_t unk238;
+		uint64_t unk240;
+		GfxStaticModelDrawInst* smodelDrawInsts;
+		uint64_t unk250;
+		uint64_t unk258;
+		uint64_t unk260;
+		uint64_t unk268;
+		uint64_t unk270;
+		uint64_t unk278;
+		uint64_t unk280;
+		uint64_t unk288;
+		uint64_t unk290;
+		uint64_t unk298;
+		uint64_t unk2a0;
+		uint64_t unk2a8;
+		uint64_t unk2b0;
+		uint64_t unk2b8;
+		uint64_t unk2c0;
+		uint64_t unk2c8;
+		uint64_t groupLodModelsCount;
+		GroupLodModel** groupLodModels;
+	};
+
+	struct GfxWorldDraw {
+		uint32_t blubIESprofileCNT;
+		GfxImage* blubIESprofileIMG;
+		int32_t cookieCount;
+		GfxImage* cookieArray;
+		uint32_t unk20;
+		uint32_t unk24;
+		uint64_t unk28;
+		uint64_t unk30;
+		uint64_t unk38;
+		uint64_t unk40;
+		uint64_t unk48;
+		uint64_t unk50;
+		uint64_t unk58;
+		uint64_t unk60;
+		uint64_t unk68;
+		uint64_t unk70;
+		uint32_t indexCount;
+		uint32_t unk7c;
+		uint16_t* indices;
+		uint64_t unk88;
+		uint64_t unk90;
+		uint64_t unk98;
+		uint64_t unka0;
+	};
 
 	struct GfxWorld {
 		XHash name;
@@ -60,133 +172,22 @@ namespace {
 		uint64_t unka0;
 		uint64_t unka8;
 		uint64_t unkb0;
-		uint64_t unkb8;
+		vec3_t* unkb8;
 		uint64_t unkc0;
 		uint64_t unkc8;
 		uint64_t unkd0;
-		uint64_t unkd8;
-		uint64_t unke0;
-		uint64_t unke8;
-		uint64_t unkf0;
-		uint64_t unkf8;
-		uint64_t unk100;
-		uint64_t unk108;
-		uint64_t unk110;
-		uint64_t unk118;
-		uint64_t unk120;
-		uint64_t unk128;
-		uint64_t unk130;
-		uint64_t unk138;
-		uint64_t unk140;
-		uint64_t unk148;
-		uint64_t unk150;
-		uint64_t unk158;
-		uint64_t unk160;
-		uint64_t unk168;
-		uint64_t unk170;
-		uint64_t unk178;
-		uint64_t unk180;
-		uint64_t unk188;
-		uint64_t unk190;
-		uint64_t unk198;
-		uint64_t unk1a0;
+		GfxWorldDraw draw;
+		int32_t modelCount;
+		uint32_t unk184;
+		GfxBrushModel* models;
+		vec3_t mins;
+		vec3_t maxs;
 		uint32_t checksum;
-		uint32_t unk1ac;
+		int32_t materialMemoryCount;
 		uint64_t unk1b0;
-		uint32_t unk1b8;
-		uint32_t static_model_count;
-		uint64_t unk1c0;
-		uint64_t unk1c8;
-		uint64_t unk1d0;
-		uint64_t unk1d8;
-		uint64_t unk1e0;
-		uint64_t unk1e8;
-		uint64_t unk1f0;
-		uint64_t unk1f8;
-		uint64_t unk200;
-		uint64_t unk208;
-		uint64_t unk210;
-		uint64_t unk218;
-		uint64_t unk220;
-		uint64_t unk228;
-		uint64_t unk230;
-		uint64_t unk238;
-		uint64_t unk240;
-		uint64_t unk248;
-		uint64_t unk250;
-		uint64_t unk258;
-		uint64_t unk260;
-		uint64_t unk268;
-		uint64_t unk270;
-		uint64_t unk278;
-		uint64_t unk280;
-		uint64_t unk288;
-		uint64_t unk290;
-		uint64_t unk298;
-		uint64_t unk2a0;
-		uint64_t unk2a8;
-		uint64_t unk2b0;
-		uint64_t unk2b8;
-		uint64_t unk2c0;
-		uint64_t unk2c8;
-		uint64_t unk2d0;
-		uint64_t unk2d8;
-		uint64_t unk2e0;
-		uint64_t unk2e8;
-		uint64_t unk2f0;
-		uint64_t unk2f8;
-		uint64_t unk300;
-		uint64_t unk308;
-		uint64_t unk310;
-		uint64_t unk318;
-		uint64_t unk320;
-		uint64_t unk328;
-		uint64_t unk330;
-		uint64_t unk338;
-		uint64_t unk340;
-		uint64_t unk348;
-		uint64_t unk350;
-		uint64_t unk358;
-		uint64_t unk360;
-		uint64_t unk368;
-		uint64_t unk370;
-		uint64_t unk378;
-		uint64_t unk380;
-		uint64_t unk388;
-		uint64_t unk390;
-		uint64_t unk398;
-		uint64_t unk3a0;
-		uint64_t unk3a8;
-		uint64_t unk3b0;
-		uint64_t unk3b8;
-		uint64_t unk3c0;
-		uint64_t unk3c8;
-		uint64_t unk3d0;
-		uint64_t unk3d8;
-		uint64_t unk3e0;
-		uint64_t unk3e8;
-		uint64_t unk3f0;
-		uint64_t unk3f8;
-		static_model_info* static_model;
-		uint64_t unk408;
-		uint64_t unk410;
-		uint64_t unk418;
-		uint64_t unk420;
-		uint64_t unk428;
-		uint64_t unk430;
-		uint64_t unk438;
-		uint64_t unk440;
-		uint64_t unk448;
-		uint64_t unk450;
-		uint64_t unk458;
-		uint64_t unk460;
-		uint64_t unk468;
-		uint64_t unk470;
-		uint64_t unk478;
-		uint64_t unk480;
-		uint64_t unk488;
-		uint64_t unk490;
-		void* unk498;
+		GfxWorldDpvsStatic dpvs;
+		uint32_t unk498;
+		uint32_t unk49c;
 		uint64_t unk4a0;
 		uint64_t unk4a8;
 		uint64_t unk4b0;
@@ -792,8 +793,8 @@ namespace {
 		uint64_t unk17e0;
 		uint64_t unk17e8;
 		uint64_t unk17f0;
-		byte* lighting;
-		byte* streamerworld;
+		GfxWorldLighting* lighting;
+		StreamerWorld* streamerworld;
 		uint64_t unk1808;
 		uint64_t unk1810;
 		uint64_t unk1818;
@@ -842,6 +843,7 @@ namespace {
 		byte* unk1a58;
 		GfxImage* unk1a60[10];
 	};
+
 	static_assert(sizeof(GfxWorld) == 0x1ab0);
 
 	class GfxWorldWorker : public Worker {
@@ -849,32 +851,88 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			GfxWorld& asset{ *(GfxWorld*)ptr };
 
-
-			BO4JsonWriter json{};
-
-			json.BeginObject();
-			json.WriteFieldValueXHash("name", asset.name);
-			json.WriteFieldValueXString("baseName", asset.baseName);
-			json.WriteFieldValueXAsset("lutMaterial", ASSET_TYPE_MATERIAL, asset.lutMaterial);
-			json.WriteFieldValueXAsset("lutMaterialALT", ASSET_TYPE_MATERIAL, asset.lutMaterialALT);
-			json.WriteFieldValueXAsset("volumeDecalRevealTexture", ASSET_TYPE_IMAGE, asset.volumeDecalRevealTexture);
-			json.WriteFieldValueXAssetArray("unk550", ASSET_TYPE_IMAGE, ACTS_ARRAYSIZE(asset.unk550), asset.unk550);
-			json.WriteFieldValueXAssetArray("unk1a60", ASSET_TYPE_IMAGE, ACTS_ARRAYSIZE(asset.unk1a60), asset.unk1a60);
-
-			json.EndObject();
-
 			const char* name{ hashutils::ExtractPtr(asset.name) };
 			if (!name) {
 				name = utils::va("maps/hashed/file_%llx.d3dbsp", asset.name.name);
 			}
 
-			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / name / "gfx_map.json" };
+			std::filesystem::path outDir{ opt.m_output / "bo4" / "source" / name };
 
-			std::filesystem::create_directories(outFile.parent_path());
-			LOG_OPT_INFO("Dump gfx_map {}", outFile.string());
+			std::filesystem::create_directories(outDir);
+			{
+				BO4JsonWriter json{};
+				json.BeginObject();
+				json.WriteFieldValueXHash("name", asset.name);
+				json.WriteFieldValueXString("baseName", asset.baseName);
+				json.WriteFieldValueVector("mins", asset.mins);
+				json.WriteFieldValueVector("maxs", asset.maxs);
+				json.WriteFieldValueNumber("checksum", asset.checksum);
+				json.WriteFieldValueXAsset("streamerworld", ASSET_TYPE_STREAMERWORLD, asset.streamerworld);
+				json.WriteFieldValueXAsset("lighting", ASSET_TYPE_LIGHTING, asset.lighting);
+				json.WriteFieldValueXAsset("lutMaterial", ASSET_TYPE_MATERIAL, asset.lutMaterial);
+				json.WriteFieldValueXAsset("lutMaterialALT", ASSET_TYPE_MATERIAL, asset.lutMaterialALT);
+				json.WriteFieldValueXAsset("volumeDecalRevealTexture", ASSET_TYPE_IMAGE, asset.volumeDecalRevealTexture);
+				json.WriteFieldValueXAssetArray("unk550", ASSET_TYPE_IMAGE, ACTS_ARRAYSIZE(asset.unk550), asset.unk550);
+				json.WriteFieldValueXAssetArray("unk1a60", ASSET_TYPE_IMAGE, ACTS_ARRAYSIZE(asset.unk1a60), asset.unk1a60);
+				{
+					json.WriteFieldNameString("draw");
+					json.BeginObject();
 
-			if (!json.WriteToFile(outFile)) {
-				LOG_ERROR("Error when dumping {}", outFile.string());
+					GfxWorldDraw& draw{ asset.draw };
+					json.WriteFieldValueNumber("blubIESprofileCNT", draw.blubIESprofileCNT);
+					json.WriteFieldValueXAsset("blubIESprofileIMG", ASSET_TYPE_IMAGE, draw.blubIESprofileIMG);
+					json.WriteFieldValueNumber("cookieCount", draw.cookieCount);
+					json.WriteFieldValueXAsset("cookieArray", ASSET_TYPE_IMAGE, draw.cookieArray);
+
+					json.EndObject();
+				}
+
+				json.EndObject();
+
+				std::filesystem::path outFile{ outDir / "gfx_map.json" };
+				if (!json.WriteToFile(outFile)) {
+					LOG_ERROR("Error when dumping {}", outFile.string());
+				}
+				LOG_OPT_INFO("Dump gfx_map {}", outFile.string());
+			}
+			{
+				BO4JsonWriter json{};
+				json.BeginObject();
+				GfxWorldDpvsStatic& dpvs{ asset.dpvs };
+
+				json.WriteFieldValueNumber("smodelUpdateFrame", dpvs.smodelUpdateFrame);
+				json.WriteFieldValueXAssetArray("groupLodModels", ASSET_TYPE_GROUPLODMODEL, dpvs.groupLodModelsCount, dpvs.groupLodModels);
+
+				if (dpvs.smodelDrawInsts) {
+					json.WriteFieldNameString("smodelDrawInsts");
+					json.BeginArray();
+					for (uint32_t i = 0; i < dpvs.smodelCount; i++) {
+						GfxStaticModelDrawInst& drawInst{ dpvs.smodelDrawInsts[i] };
+						json.BeginObject();
+						json.WriteFieldValueScrString("name", drawInst.name);
+						json.WriteFieldValueXAsset("model", ASSET_TYPE_XMODEL, drawInst.model);
+						json.WriteFieldValueUnknown("drawInst:unk8", drawInst.unk8);
+						json.WriteFieldValueUnknown("drawInst:unk10", drawInst.unk10);
+						json.WriteFieldValueUnknown("drawInst:unk18", drawInst.unk18);
+						json.WriteFieldValueUnknown("drawInst:unk20", drawInst.unk20);
+						json.WriteFieldValueUnknown("drawInst:unk28", drawInst.unk28);
+						json.WriteFieldValueUnknown("drawInst:unk2c", drawInst.unk2c);
+						json.WriteFieldValueNumber("drawInst:unk2e", drawInst.unk2e);
+						json.WriteFieldValueUnknown("drawInst:unk30", drawInst.unk30);
+						json.WriteFieldValueUnknown("drawInst:unk34", drawInst.unk34);
+
+						json.EndObject();
+					}
+					json.EndArray();
+				}
+
+				json.EndObject();
+
+				std::filesystem::path outFile{ outDir / "gfx_map_dpvs.json" };
+				if (!json.WriteToFile(outFile)) {
+					LOG_ERROR("Error when dumping {}", outFile.string());
+				}
+				LOG_OPT_INFO("Dump gfx_map {}", outFile.string());
 			}
 		}
 	};
