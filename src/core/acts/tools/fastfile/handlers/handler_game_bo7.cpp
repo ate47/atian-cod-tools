@@ -13,6 +13,7 @@
 #include <tools/fastfile/handlers/handler_game_bo7.hpp>
 #include <tools/fastfile/handlers/handler_iw_common.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
+#include <xxhash.h>
 
 
 namespace fastfile::handlers::bo7 {
@@ -211,7 +212,6 @@ namespace fastfile::handlers::bo7 {
 			void (*DB_LoadUnkList)(DBLoadCtx* ctx, bool atStreamStart, void* list) {};
 			LoadStreamObject* loadStreamObj{};
 			AssetPoolInfo* poolInfo{};
-			uint64_t(*DB_HashScrStringName)(const char* str, size_t len, uint64_t iv) {};
 			fastfile::FastFileOption* opt{};
 			fastfile::FastFileContext* ctx{};
 			core::bytebuffer::ByteBuffer* reader{};
@@ -499,7 +499,6 @@ namespace fastfile::handlers::bo7 {
 				scan.ignoreMissing = true;
 
 				game.Get("Load_Asset", &gcx.Load_Asset);
-				game.Get("DB_HashScrStringName", &gcx.DB_HashScrStringName);
 				game.Get("DB_LoadStringList", &gcx.DB_LoadStringList);
 				game.Get("$DB_LoadUnkList", &gcx.DB_LoadUnkList);
 				game.Get("loadStreamObj", &gcx.loadStreamObj);
@@ -665,7 +664,7 @@ namespace fastfile::handlers::bo7 {
 							str = "";
 						}
 						gcx.assets.strings[i] = str;
-						uint64_t hash{ gcx.DB_HashScrStringName(str, std::strlen(str), hash::IV_DEFAULT) };
+						uint64_t hash{ XXH3_64bits_withSeed(str, std::strlen(str), hash::IV_DEFAULT) };
 						gcx.scrStringMap[hash] = fastfile::RegisterScrString(str, (uint32_t)i);
 						stringsOs << std::dec
 							<< std::setfill(' ') << std::setw(utils::Log<10>(gcx.assets.stringsCount) + 1) << i 
@@ -780,11 +779,6 @@ namespace fastfile::handlers::bo7 {
 
 	const char* GetScrString(ScrString_t id) {
 		return fastfile::GetScrString(id.id);
-	}
-
-
-	uint64_t DB_HashScrStringName(const char* str, size_t len, uint64_t iv) {
-		return gcx.DB_HashScrStringName(str, len, iv);
 	}
 
 	uint64_t GetXAssetName(HandlerHashedAssetType htype, void* handle) {

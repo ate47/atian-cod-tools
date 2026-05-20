@@ -1467,6 +1467,25 @@ namespace hash {
 			return tool::OK;
 		}
 
+		int testhashxx(int argc, const char* argv[]) {
+			/*
+			
+			
+				hash_54d95c4:xpak_read_shared,codhq25_shared_tr_cdn_stub
+				hash_d728526b:xpak_read,code_post_gfx
+			*/
+			if (tool::NotEnoughParam(argc, 1)) return tool::BAD_USAGE;
+			for (size_t i = 2; i < argc; i++) {
+				uint64_t h3{ XXH3_64bits(argv[i], strlen(argv[i])) };
+				uint64_t h3s{ XXH3_64bits_withSeed(argv[i], strlen(argv[i]), hash::IV_DEFAULT) };
+				LOG_INFO("----");
+				LOG_INFO("{} = {:x},", argv[i], h3);
+				LOG_INFO("{} = {:x},", argv[i], (h3 & hash::MASK32));
+				LOG_INFO("{} = {:x},", argv[i], h3s);
+			}
+			return tool::OK;
+		}
+
 		ADD_TOOL_UI(hash, L"Hash", Render, Update, Resize);
 		ADD_TOOL_NUI(hash, "Hash", hash_nui);
 		ADD_TOOL_NUI(hashsearch, "Hash Searcher", hashsearch_nui);
@@ -1483,6 +1502,7 @@ namespace hash {
 		ADD_TOOL(fnv1acrack2, "hash", " [csv] [iv]", "crack fnv1a key (one key based)", nullptr, fnv1acrack2);
 		ADD_TOOL(fnv1acrack3, "hash", " [csv] [iv]", "crack fnv1a keys (first char based)", nullptr, fnv1acrack3);
 		ADD_TOOL(fnv1acrackcommon, "hash", " [hash1] [hash2] [len]", "try to find a common prefix and suffix of 2 hashes", fnv1acrackcommon);
+		ADD_TOOL(testhashxx, "dev", " [hash]", "", testhashxx);
 		ADD_TOOL(str, "hash", "", "check collisions in the string file", nullptr, collisiontool);
 		#ifndef CI_BUILD
 		ADD_TOOL(fakefnvds, "hash", " [csv] [key] [iv]", "gen fake fnv1a dataset", nullptr, fakefnvds);

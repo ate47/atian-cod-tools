@@ -111,9 +111,9 @@
             "type": "Absolute",
             "single": true
         },
-        "DB_HashScrStringName": {
+        "XXH3_64bits_withSeed": {
             "scan": "48 89 5C 24 ? 57 48 83 EC ? 49 8B F8 4C 8B DA 48 8B D9 48",
-            "ctype": "uint64_t DB_HashScrStringName(const char* str, size_t len, uint64_t iv)",
+            "ctype": "uint64_t XXH3_64bits_withSeed(const char* str, size_t len, uint64_t iv)",
             "type": "Absolute",
             "single": true
         },

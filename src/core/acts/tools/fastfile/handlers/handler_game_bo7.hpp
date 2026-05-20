@@ -185,5 +185,4 @@ namespace fastfile::handlers::bo7 {
 
 	std::vector<const char*>* GetXStrings();
 	std::unordered_map<HandlerHashedAssetType, Worker*>& GetWorkers();
-	uint64_t DB_HashScrStringName(const char* str, size_t len, uint64_t iv);
 }

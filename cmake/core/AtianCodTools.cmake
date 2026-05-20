@@ -49,6 +49,7 @@ target_include_directories(AtianCodTools PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/asmjit/src/"
     "${CMAKE_SOURCE_DIR}/deps/curl/include/"
     "${CMAKE_SOURCE_DIR}/deps/casclib/src/"
+    "${CMAKE_SOURCE_DIR}/deps/xxHash/"
     "${CMAKE_SOURCE_DIR}/deps/lz4/lib/"
     "${CMAKE_SOURCE_DIR}/deps/zstd/lib/"
     "${CMAKE_SOURCE_DIR}/deps/salsa20/Source/"

@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <tools/fastfile/handlers/handler_game_bo7.hpp>
+#include <xxhash.h>
 
 namespace {
 	using namespace fastfile::handlers::bo7;
@@ -31,7 +32,7 @@ namespace {
 				knownNames.reserve(ACTS_ARRAYSIZE(KnownKVPNames));
 
 				for (const char* name : KnownKVPNames) {
-					uint64_t h{ fastfile::handlers::bo7::DB_HashScrStringName(name, strlen(name), 0) };
+					uint64_t h{ XXH3_64bits_withSeed(name, strlen(name), 0) };
 					knownNames[(h & hash::MASK32)] = name;
 				}
 			}
