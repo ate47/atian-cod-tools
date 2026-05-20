@@ -7,7 +7,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-	void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+	void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path filenamePath{ id };
 			std::filesystem::path rfpath{ path.filename() };
@@ -40,7 +40,7 @@ namespace {
 			}; static_assert(sizeof(TTFDef) == 0x50);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			TTFDef& ttf{ ff.data.AllocStreamRef<TTFDef>(ref) };
+			TTFDef& ttf{ ff.data.AllocStreamRef<TTFDef>() };
 
 			ttf.name.name = ctx.HashXHash(defname);
 			ttf.filename.name = ctx.HashPathName(filenamePath);

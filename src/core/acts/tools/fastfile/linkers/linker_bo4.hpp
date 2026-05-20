@@ -49,6 +49,7 @@ namespace fastfile::linker::bo4 {
 		std::vector<XHash> forcedClientScripts{};
 		uint64_t ffnameHash{};
 		const char* ffname{};
+		std::unordered_map<uint64_t, fastfile::linker::memory::LinkerDataChunk*> allocatedAssets{};
 	};
 	struct BO4LinkContext;
 
@@ -68,20 +69,29 @@ namespace fastfile::linker::bo4 {
 		inline uint64_t HashScr(const std::string& str) { return HashScr(str.data()); }
 		uint64_t HashPathName(const std::filesystem::path& path);
 
-		void LinkAsset(XAssetType type, const char* id, void*& ref, bool addAsset = false, BO4FFContext* ff = nullptr);
-		size_t LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, void** array, size_t count, BO4FFContext* ff = nullptr);
+		void LinkAsset(XAssetType type, const char* id, void*& ref, bool addAsset, BO4FFContext* ff);
+		size_t LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, void** array, size_t count, BO4FFContext* ff);
 		void AddXHash(const char* val, XHash& value);
 		size_t AddXHashArray(const char* id, core::config::RapidJsonGeneric& cfg, XHash* array, size_t count);
 		void AddScrString(const char* val, ScrString_t& value, BO4FFContext& ff);
 		size_t AddScrStringArray(const char* id, core::config::RapidJsonGeneric& cfg, ScrString_t* array, size_t count, BO4FFContext& ff);
 
 		template<typename T>
-		void LinkAsset(XAssetType type, const char* id, T*& ref, bool addAsset = false, BO4FFContext* ff = nullptr) {
+		void LinkAsset(XAssetType type, const char* id, T*& ref, bool addAsset, BO4FFContext* ff) {
 			LinkAsset(type, id, *(void**)&ref, addAsset, ff);
 		}
 		template<typename T>
-		size_t LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, T** ref, size_t count, BO4FFContext* ff = nullptr) {
+		size_t LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, T** ref, size_t count, BO4FFContext* ff) {
 			return LinkAssetArray(type, id, cfg, (void**)ref, count, ff);
+		}
+		template<typename T, size_t count>
+		size_t LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, T*(&ref)[count], BO4FFContext* ff) {
+			T** p{ ref };
+			return LinkAssetArray(type, id, cfg, (void**)p, count, ff);
+		}
+		template<size_t count>
+		size_t AddScrStringArray(const char* id, core::config::RapidJsonGeneric& cfg, ScrString_t(&array)[count], BO4FFContext& ff) {
+			return AddScrStringArray(id, cfg, array, count, ff);
 		}
 		inline void AddXHash(const std::string& str, XHash& value) {
 			AddXHash(str.data(), value);
@@ -186,7 +196,7 @@ namespace fastfile::linker::bo4 {
 
 		XAssetLinker(bool isGrouped = false) : isGrouped(isGrouped) {
 		}
-		virtual void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) = 0;
+		virtual void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) = 0;
 		virtual void ComputeFinal(BO4LinkContext& ctx, BO4FFContext& ff) {}
 	};
 

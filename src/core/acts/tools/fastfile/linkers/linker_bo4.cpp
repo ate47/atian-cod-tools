@@ -3,7 +3,7 @@
 #include <core/preprocessor.hpp>
 
 namespace fastfile::linker::bo4 {
-	BO4FFContext::BO4FFContext() : data{ XFILE_BLOCK_COUNT } {
+	BO4FFContext::BO4FFContext() : data{ XFILE_BLOCK_COUNT, XFILE_BLOCK_VIRTUAL } {
 		data.SetMode(fastfile::linker::memory::LM_DATA);
 		data.SetBlockType(XFILE_BLOCK_TEMP, fastfile::linker::memory::BLOCKTYPE_TEMP);
 		data.SetBlockType(XFILE_BLOCK_TEMP_PRELOAD, fastfile::linker::memory::BLOCKTYPE_TEMP);
@@ -202,6 +202,12 @@ namespace fastfile::linker::bo4 {
 	};
 
 	void BO4LinkContext::LinkAsset(XAssetType type, const char* id, void*& ref, bool addAsset, BO4FFContext* ff) {
+		// assign default ff
+		if (!ff) {
+			ff = &mainFF;
+		}
+
+		LOG_DEBUG("BO4LinkContext::LinkAsset(type={}, id={}, addAsset={}, ff={})", games::bo4::pool::XAssetNameFromId(type), !id ? "nullptr" : id, addAsset ? "true" : "false", ff->ffname);
 		if (!id) {
 			ref = nullptr;
 			return; // empty id = no asset to link
@@ -217,13 +223,22 @@ namespace fastfile::linker::bo4 {
 			id++;
 		}
 
-		// assign default ff
-		if (!ff) {
-			ff = &mainFF;
-		}
+		uint64_t hash{ hash::Hash64(id) };
+		/*
+		auto ait{ ff->allocatedAssets.find(hash) };
 
-		// todo: we can probably check that we don't have this asset somewhere else
+		if (ait != ff->allocatedAssets.end()) {
+			// we already know this asset, we can link it there
+
+			// ait->second->refs.push_back(&ref); // fixme
+			LOG_INFO("Reuse existing {} {}", games::bo4::pool::XAssetNameFromId(type), id);
+			return;
+		}
+		*/
+
 		ref = (void*)fastfile::linker::memory::POINTER_NEXT;
+
+		fastfile::linker::memory::LinkerDataChunk* align{ ff->data.Align(8) }; // GetAlignment_XAsset
 
 		fastfile::linker::memory::LinkerDataChunk* computedRef{};
 		fastfile::linker::memory::AssetData* asset{};
@@ -239,10 +254,14 @@ namespace fastfile::linker::bo4 {
 
 			// add the asset to the list if required
 			if (addAsset && !it->second->isGrouped) {
-				asset = ff->data.AddAsset(type);
+				asset = ff->data.AddAsset(type, align);
 			}
 			try {
-				it->second->Compute(*this, id, &computedRef, *ff);
+				it->second->Compute(*this, id, *ff);
+
+				if (computedRef) {
+					ff->allocatedAssets[hash] = computedRef;
+				}
 			}
 			catch (std::runtime_error& e) {
 				error = true;
@@ -261,7 +280,7 @@ namespace fastfile::linker::bo4 {
 			}
 
 			if (addAsset) {
-				asset = ff->data.AddAsset(type);
+				asset = ff->data.AddAsset(type, align);
 			}
 			ff->data.PushStream(XFILE_BLOCK_TEMP);
 
@@ -280,9 +299,6 @@ namespace fastfile::linker::bo4 {
 			LOG_INFO("Add default asset {} {} (hash_{:x})", games::bo4::pool::XAssetNameFromId(type), id, h->name);
 
 			ff->data.PopStream();
-		}
-		if (asset) {
-			asset->chunk = computedRef;
 		}
 	}
 

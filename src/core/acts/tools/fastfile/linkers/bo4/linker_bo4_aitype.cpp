@@ -235,7 +235,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
@@ -244,13 +244,13 @@ namespace {
 			BO4JsonAI objCfg{ path };
 
 			if (!objCfg.SyncConfig(false)) {
-				LOG_ERROR("Can't read {}", path.string());
+				LOG_ERROR("Can't aitype read {}", path.string());
 				ctx.error = true;
 				return;
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			AiType& aitype{ ff.data.AllocStreamRef<AiType>(ref) };
+			AiType& aitype{ ff.data.AllocStreamRef<AiType>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
@@ -360,43 +360,36 @@ namespace {
 			aitype.numPrimaryWeapons = 
 				(uint32_t)ctx.LinkAssetArray(
 					XAssetType::ASSET_TYPE_WEAPON, "primaryWeapons", objCfg.GetVal("primaryWeapons", 0, objCfg.base), 
-					aitype.primaryWeapons, ACTS_ARRAYSIZE(aitype.primaryWeapons), &ff
+					aitype.primaryWeapons, &ff
 				);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("secondaryWeapon"), aitype.secondaryWeapon, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("sideArm"), aitype.sideArm, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("meleeWeapon"), aitype.meleeWeapon, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("grenadeWeapon"), aitype.grenadeWeapon, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("ammoPouch"), aitype.ammoPouch, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_FOOTSTEP_TABLE, objCfg.GetCString("footstepTable"), aitype.footstepTable, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SURFACEFX_TABLE, objCfg.GetCString("footstepFXTable1"), aitype.footstepFXTable1, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SURFACEFX_TABLE, objCfg.GetCString("footstepFXTable2"), aitype.footstepFXTable2, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("traversalExtents"), aitype.traversalExtents, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("secondaryWeapon"), aitype.secondaryWeapon, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("sideArm"), aitype.sideArm, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("meleeWeapon"), aitype.meleeWeapon, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("grenadeWeapon"), aitype.grenadeWeapon, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_WEAPON, objCfg.GetCString("ammoPouch"), aitype.ammoPouch, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_FOOTSTEP_TABLE, objCfg.GetCString("footstepTable"), aitype.footstepTable, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SURFACEFX_TABLE, objCfg.GetCString("footstepFXTable1"), aitype.footstepFXTable1, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SURFACEFX_TABLE, objCfg.GetCString("footstepFXTable2"), aitype.footstepFXTable2, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("traversalExtents"), aitype.traversalExtents, false, &ff);
 
 			aitype.numCharacters =
 				(uint32_t)ctx.LinkAssetArray(
 					XAssetType::ASSET_TYPE_CHARACTER, "character", objCfg.GetVal("character", 0, objCfg.base),
-					aitype.character, ACTS_ARRAYSIZE(aitype.character), &ff
+					aitype.character, &ff
 				);
 
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_BEHAVIORTREE, objCfg.GetCString("behaviorTree"), aitype.behaviorTree, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_ANIMSTATEMACHINE, objCfg.GetCString("animStateMachine"), aitype.animStateMachine, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_ANIMSELECTORTABLESET, objCfg.GetCString("animSelectorTable"), aitype.animSelectorTable, &ff);
-
-			ctx.LinkAssetArray(
-				XAssetType::ASSET_TYPE_ANIMMAPPINGTABLE, "animMappingTables", objCfg.GetVal("animMappingTables", 0, objCfg.base),
-				aitype.animMappingTables, ACTS_ARRAYSIZE(aitype.animMappingTables), &ff
-			);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_AIMTABLE, objCfg.GetCString("aimTable"), aitype.aimTable, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SHOOTTABLE, objCfg.GetCString("shootTable"), aitype.shootTable, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("assassinationBundle"), aitype.assassinationBundle, &ff);
-			ctx.LinkAssetArray(
-				XAssetType::ASSET_TYPE_SCRIPTBUNDLE, "aivsaiMeleeBundles", objCfg.GetVal("aivsaiMeleeBundles", 0, objCfg.base),
-				aitype.aivsaiMeleeBundles, ACTS_ARRAYSIZE(aitype.aivsaiMeleeBundles), &ff
-			);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("aiFxBundle"), aitype.aiFxBundle, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("aiNotetrackBoneMappingBundle"), aitype.aiNotetrackBoneMappingBundle, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("randomName"), aitype.randomName, &ff);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("aiSettingsBundle"), aitype.aiSettingsBundle, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_BEHAVIORTREE, objCfg.GetCString("behaviorTree"), aitype.behaviorTree, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_ANIMSTATEMACHINE, objCfg.GetCString("animStateMachine"), aitype.animStateMachine, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_ANIMSELECTORTABLESET, objCfg.GetCString("animSelectorTable"), aitype.animSelectorTable, false, &ff);
+			ctx.LinkAssetArray(XAssetType::ASSET_TYPE_ANIMMAPPINGTABLE, "animMappingTables", objCfg.GetVal("animMappingTables", 0, objCfg.base), aitype.animMappingTables, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_AIMTABLE, objCfg.GetCString("aimTable"), aitype.aimTable, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SHOOTTABLE, objCfg.GetCString("shootTable"), aitype.shootTable, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("assassinationBundle"), aitype.assassinationBundle, false, &ff);
+			ctx.LinkAssetArray(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, "aivsaiMeleeBundles", objCfg.GetVal("aivsaiMeleeBundles", 0, objCfg.base), aitype.aivsaiMeleeBundles, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("aiFxBundle"), aitype.aiFxBundle, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("aiNotetrackBoneMappingBundle"), aitype.aiNotetrackBoneMappingBundle, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("randomName"), aitype.randomName, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_SCRIPTBUNDLE, objCfg.GetCString("aiSettingsBundle"), aitype.aiSettingsBundle, false, &ff);
 
 			ff.data.PopStream();
 

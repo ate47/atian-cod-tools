@@ -27,6 +27,7 @@ prestigetable,acts/prestigetable.csv
 
 #ifdef TEST_AITYPE
 
+scriptbundle,acts/custom_aitype_testbundle
 aitype,acts/aitype/custom_aitype.json
 
 #endif

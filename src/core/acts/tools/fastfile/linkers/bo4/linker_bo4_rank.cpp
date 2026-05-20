@@ -68,7 +68,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -82,7 +82,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			RankInfo& rankinfo{ ff.data.AllocStreamRef<RankInfo>(ref) };
+			RankInfo& rankinfo{ ff.data.AllocStreamRef<RankInfo>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
@@ -137,7 +137,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -161,7 +161,7 @@ namespace {
 
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			RankTable& table{ ff.data.AllocStreamRef<RankTable>(ref) };
+			RankTable& table{ ff.data.AllocStreamRef<RankTable>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			table.name.name = ctx.HashXHash(rfpathStr, true);
@@ -191,7 +191,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -205,7 +205,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			PrestigeInfo& prestigeInfo{ ff.data.AllocStreamRef<PrestigeInfo>(ref) };
+			PrestigeInfo& prestigeInfo{ ff.data.AllocStreamRef<PrestigeInfo>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			std::string assetName{ objCfg.GetString("name", rfpathStr.c_str()) };
@@ -235,7 +235,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -259,7 +259,7 @@ namespace {
 
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			PrestigeTable& table{ ff.data.AllocStreamRef<PrestigeTable>(ref) };
+			PrestigeTable& table{ ff.data.AllocStreamRef<PrestigeTable>() };
 
 			std::string rfpathStr{ rfpath.string() };
 			table.name.name = ctx.HashXHash(rfpathStr, true);

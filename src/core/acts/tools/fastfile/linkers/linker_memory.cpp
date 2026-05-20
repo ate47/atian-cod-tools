@@ -2,10 +2,11 @@
 #include <tools/fastfile/linkers/linker_memory.hpp>
 
 namespace fastfile::linker::memory {
-	XBlockLinker::XBlockLinker(size_t numblocks) : numblocks(numblocks) {
+	XBlockLinker::XBlockLinker(size_t numblocks, size_t virtualBlock) : numblocks(numblocks), virtualBlock(virtualBlock) {
 		if (numblocks > LINKER_MAX_BLOCKS) {
 			throw std::runtime_error(std::format("numblocks={} > LINKER_MAX_BLOCKS={}", numblocks, LINKER_MAX_BLOCKS));
 		}
+		SetBlockType(virtualBlock, BLOCKTYPE_VIRTUAL);
 	}
 
 	void XBlockLinker::SetMode(LinkerMode mode) {
@@ -18,14 +19,24 @@ namespace fastfile::linker::memory {
 		linkerMode = mode;
 	}
 
-
 	void XBlockLinker::SetBlockType(size_t block, LinkerBlockType type) {
 		AssertBlock(block);
 		blocks[block].type = type;
 	}
+
 	LinkerDataChunk* XBlockLinker::AddChunk(LinkerDataChunkType type, size_t align, void* data, size_t size) {
 		LinkerDataChunk* chunk{ CreateChunk(type, align, data, size) };
-		GetBlock().data[linkerMode].emplace_back(chunk);
+		LinkerBlock& block{ GetBlock() };
+		if (!block.data[linkerMode]) {
+			// first
+			block.data[linkerMode] = chunk;
+			block.last[linkerMode] = chunk;
+		}
+		else {
+			block.last[linkerMode]->next = chunk;
+			chunk->last = block.last[linkerMode];
+			block.last[linkerMode] = chunk;
+		}
 		return chunk;
 	}
 	LinkerDataChunk* XBlockLinker::CreateChunk(LinkerDataChunkType type, size_t align, void* data, size_t size) {
@@ -61,8 +72,8 @@ namespace fastfile::linker::memory {
 		return blocks[blockStack[blockStackIndex]];
 	}
 
-	void XBlockLinker::Align(size_t align) {
-		AddChunk(LinkerDataChunkType::CHUNKTYPE_ALIGN, align, nullptr, 0);
+	LinkerDataChunk* XBlockLinker::Align(size_t align) {
+		return AddChunk(LinkerDataChunkType::CHUNKTYPE_ALIGN, align, nullptr, 0);
 	}
 
 	LinkerDataChunk* XBlockLinker::WriteStream(const void* data, size_t size) {
@@ -76,7 +87,18 @@ namespace fastfile::linker::memory {
 			throw std::runtime_error("XBlockLinker::AllocStream: Can't alloc data for a runtime xblock");
 		}
 		LinkerDataChunk* chunk{ AllocRuntime(size) };
-		zone[linkerMode].push_back(chunk);
+
+		if (!zone[linkerMode]) {
+			// first
+			zone[linkerMode] = chunk;
+			zoneLast[linkerMode] = chunk;
+		}
+		else {
+			zoneLast[linkerMode]->nextZone = chunk;
+			chunk->lastZone = zoneLast[linkerMode];
+			zoneLast[linkerMode] = chunk;
+		}
+
 		chunk->data = alloc.Alloc(size);
 		std::memset(chunk->data, 0, size);
 		return chunk;
@@ -100,11 +122,12 @@ namespace fastfile::linker::memory {
 		return (uint32_t)scrStrings.size();
 	}
 
-	AssetData* XBlockLinker::AddAsset(size_t type) {
-		LOG_TRACE("XBlockLinker::AddAsset({})", type);
+	AssetData* XBlockLinker::AddAsset(size_t type, LinkerDataChunk* align) {
+		LOG_DEBUG("XBlockLinker::AddAsset({})", type);
 		AssetData* asset{ alloc.New<AssetData>() };
 		asset->header = (void*)POINTER_NEXT;
 		asset->type = type;
+		asset->align = align;
 		assets.emplace_back(asset);
 		return asset;
 	}
@@ -132,46 +155,45 @@ namespace fastfile::linker::memory {
 		}
 	}
 
-	static size_t LoadChunkSize(size_t blockIndex, std::vector<LinkerDataChunk*>& chunks, size_t startSize) {
+	static size_t LoadChunkSize(size_t blockIndex, LinkerDataChunk* chunk, size_t startSize) {
 		size_t size{ startSize };
-		for (size_t i = 0; i < chunks.size(); i++) {
-			LinkerDataChunk& chunk{ chunks[i][0] };
+		for (; chunk; chunk = chunk->next) {
+			ApplyRefs(*chunk, blockIndex, size);
 
-			ApplyRefs(chunk, blockIndex, size);
-
-			switch (chunk.type) {
+			switch (chunk->type) {
 			case CHUNKTYPE_DATA:
-				size += chunk.size;
+				size += chunk->size;
 				break;
 			case CHUNKTYPE_ALIGN:
-				size = utils::Aligned<size_t>(size, chunk.align);
+				size = utils::Aligned<size_t>(size, chunk->align);
 				break;
 			case CHUNKTYPE_POP:
 			case CHUNKTYPE_PUSH:
 				break;
 			default:
-				throw std::runtime_error(std::format("Invalid chunk type: {}", (int)chunk.type));
+				throw std::runtime_error(std::format("Invalid chunk type: {}", (int)chunk->type));
 			}
 		}
 
 		return size;
 	}
-	static size_t LoadChunkSizeTemp(size_t blockIndex, std::vector<LinkerDataChunk*>& chunks, size_t maxSize) {
+	static size_t LoadChunkSizeTemp(size_t blockIndex, LinkerDataChunk* chunk, size_t maxSize) {
 		size_t size{};
 
 		std::stack<size_t> lens{};
 
-		for (size_t i = 0; i < chunks.size(); i++) {
-			LinkerDataChunk& chunk{ chunks[i][0]};
+		for (; chunk; chunk = chunk->next) {
+			if (!chunk->refs.empty()) {
+				LOG_WARNING("LoadChunkSizeTemp found a ref in TEMP block {}, it is probably an error.", blockIndex);
+			}
+			ApplyRefs(*chunk, blockIndex, size);
 
-			ApplyRefs(chunk, blockIndex, size);
-
-			switch (chunk.type) {
+			switch (chunk->type) {
 			case CHUNKTYPE_DATA:
-				size += chunk.size;
+				size += chunk->size;
 				break;
 			case CHUNKTYPE_ALIGN:
-				size = utils::Aligned<size_t>(size, chunk.align);
+				size = utils::Aligned<size_t>(size, chunk->align);
 				break;
 			case CHUNKTYPE_POP:
 				if (size > maxSize) {
@@ -184,7 +206,7 @@ namespace fastfile::linker::memory {
 				lens.push(size);
 				break;
 			default:
-				throw std::runtime_error(std::format("Invalid chunk type: {}", (int)chunk.type));
+				throw std::runtime_error(std::format("Invalid chunk type: {}", (int)chunk->type));
 			}
 		}
 
@@ -211,7 +233,7 @@ namespace fastfile::linker::memory {
 				block.finalSize = LoadChunkSize(i, block.data[LM_DATA], LoadChunkSize(i, block.data[LM_HEADER], 0));
 				break;
 			case BLOCKTYPE_UNKNOWN:
-				if (!block.data[LM_HEADER].empty() || !block.data[LM_DATA].empty()) {
+				if (block.data[LM_HEADER] || block.data[LM_DATA]) {
 					throw std::runtime_error(std::format("XBlockLinker::Link: block 0x{:x} was used, but the type isn't known", i));
 				}
 				break;
@@ -226,7 +248,7 @@ namespace fastfile::linker::memory {
 
 	void XBlockLinker::WriteLinkedData(std::vector<byte>& data) {
 		for (size_t i = 0; i < LM_COUNT; i++) {
-			for (LinkerDataChunk* chunk : zone[i]) {
+			for (LinkerDataChunk* chunk = zone[i]; chunk; chunk = chunk->nextZone) {
 				if (chunk->data && chunk->size) {
 					utils::WriteValue(data, chunk->data, chunk->size);
 				}

@@ -3,6 +3,8 @@
     "species": "#human",
     "archeType": "#human",
     "scoreType": "#human_lmg",
+    "assassinationBundle": "#acts/custom_aitype_testbundle",
+    "aiFxBundle": "#acts/custom_aitype_testbundle",
     "movementType": "#human",
     "femaleVersion": "#",
     "compassIcon": "#t7_hud_waypoints_compassping_friendly_mp",

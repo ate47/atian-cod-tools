@@ -29,6 +29,10 @@ namespace fastfile::linker::memory {
 	};
 
 	struct LinkerDataChunk {
+		LinkerDataChunk* next{};
+		LinkerDataChunk* nextZone{};
+		LinkerDataChunk* last{};
+		LinkerDataChunk* lastZone{};
 		LinkerDataChunkType type;
 		size_t align{};
 		void* data{};
@@ -43,7 +47,8 @@ namespace fastfile::linker::memory {
 
 
 	struct LinkerBlock {
-		std::vector<LinkerDataChunk*> data[LM_COUNT];
+		LinkerDataChunk* last[LM_COUNT]{};
+		LinkerDataChunk* data[LM_COUNT]{};
 		LinkerBlockType type{};
 		size_t finalSize{};
 	};
@@ -51,23 +56,26 @@ namespace fastfile::linker::memory {
 	struct AssetData {
 		size_t type;
 		void* header;
-		LinkerDataChunk* chunk{};
+		LinkerDataChunk* align{};
+		LinkerDataChunk* insertedZone{};
 	};
 
 	class XBlockLinker {
 		core::memory_allocator::MemoryAllocator alloc{};
 	public:
 		LinkerBlock blocks[LINKER_MAX_BLOCKS]{};
-		std::vector<LinkerDataChunk*> zone[LM_COUNT]{};
+		LinkerDataChunk* zone[LM_COUNT]{};
+		LinkerDataChunk* zoneLast[LM_COUNT]{};
 		LinkerMode linkerMode{};
 		size_t blockStack[LINKER_STACK_SIZE]{};
 		size_t blockStackIndex{};
 		std::vector<AssetData*> assets{};
 		std::vector<const char*> scrStrings{};
 		size_t numblocks;
+		size_t virtualBlock;
 
 		// a xblock linker
-		XBlockLinker(size_t numblocks);
+		XBlockLinker(size_t numblocks, size_t virtualBlock);
 		XBlockLinker(const XBlockLinker& other) = delete;
 		XBlockLinker(XBlockLinker&& other) = delete;
 
@@ -80,7 +88,7 @@ namespace fastfile::linker::memory {
 		// pop the block
 		void PopStream();
 		// align the stream
-		void Align(size_t align);
+		LinkerDataChunk* Align(size_t align);
 		// create a chunk
 		LinkerDataChunk* CreateChunk(LinkerDataChunkType type, size_t align, void* data, size_t size);
 		// add chunk to current block
@@ -98,7 +106,7 @@ namespace fastfile::linker::memory {
 		// add a scr string
 		uint32_t AddScrString(const char* value);
 		// add an asset
-		AssetData* AddAsset(size_t type);
+		AssetData* AddAsset(size_t type, LinkerDataChunk* align);
 		// add a string
 		void AddXString(const char*& value, const char* val);
 

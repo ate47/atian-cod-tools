@@ -172,7 +172,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 		public:
 			using XAssetLinker::XAssetLinker;
 
-			void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+			void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 				std::filesystem::path rfpath{ std::format("{}.json", id) };
 				std::filesystem::path path{ ctx.linkCtx.input / "scriptbundle" / rfpath };
 				std::string buffer{};
@@ -212,7 +212,7 @@ namespace fastfile::linker::bo4::scriptbundle {
 
 				ff.data.PushStream(XFILE_BLOCK_TEMP);
 
-				ScriptBundle& bundle{ ff.data.AllocStreamRef<ScriptBundle>(ref) };
+				ScriptBundle& bundle{ ff.data.AllocStreamRef<ScriptBundle>() };
 
 				// add name and type to bundle
 				bundle.name.name = ctx.HashXHash(name);

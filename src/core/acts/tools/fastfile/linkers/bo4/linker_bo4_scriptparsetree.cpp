@@ -35,7 +35,7 @@ namespace {
 				const char* src;
 			}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
 
-			dbgCtx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG);
+			dbgCtx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, dbgCtx.data.Align(8));
 
 			dbgCtx.data.PushStream(XFILE_BLOCK_TEMP);
 			ScriptParseTreeDBG& spt{ dbgCtx.data.AllocStreamRef<ScriptParseTreeDBG>() };
@@ -64,7 +64,7 @@ namespace {
 			LOG_INFO("Added asset scriptparsetreedbg {} (hash_{:x})", path.string(), obj.name);
 		}
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			bool cfguseModToolOpcodes{ ctx.linkCtx.zone.GetConfigBool("gsc.opModTool", true) };
 			bool cfgGenDBG{ ctx.linkCtx.zone.GetConfigBool("gsc.gendbg", false) };
 			bool cfgDev{ ctx.linkCtx.zone.GetConfigBool("gsc.dev", false) };
@@ -160,7 +160,7 @@ namespace {
 			}; static_assert(sizeof(ScriptParseTree) == 0x20);
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			ScriptParseTree& spt{ ff.data.AllocStreamRef<ScriptParseTree>(ref) };
+			ScriptParseTree& spt{ ff.data.AllocStreamRef<ScriptParseTree>() };
 			spt.name.name = obj.name;
 			spt.buffer = (void*)fastfile::linker::memory::POINTER_NEXT;
 			spt.len = (uint32_t)buffer.size();
@@ -201,7 +201,7 @@ namespace {
 					XHash* gscScripts;
 					XHash* cscScripts;
 				};
-				ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED);
+				ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, ff.data.Align(8));
 
 				ff.data.PushStream(XFILE_BLOCK_TEMP);
 				ScriptParseTreeForced& header{ ff.data.AllocStreamRef<ScriptParseTreeForced>() };

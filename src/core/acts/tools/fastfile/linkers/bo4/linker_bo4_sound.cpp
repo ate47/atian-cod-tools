@@ -456,7 +456,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			const char* sndPlatform{ ctx.linkCtx.zone.GetConfig("snd.platform", "pc") };
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			core::config::Config scfg{ path };
@@ -551,9 +551,9 @@ namespace {
 				return;
 			}
 
-			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND);
+			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND, ffctx.data.Align(8));
 			ffctx.data.PushStream(XFILE_BLOCK_TEMP);
-			SndBank& sndbank{ ffctx.data.AllocStreamRef<SndBank>(ref) };
+			SndBank& sndbank{ ffctx.data.AllocStreamRef<SndBank>() };
 			sndbank.nameHash.name = ctx.HashXHash(name);
 			sndbank.name = (const char*)fastfile::ALLOC_PTR;
 			sndbank.zone = (const char*)fastfile::ALLOC_PTR;

@@ -14,7 +14,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path localizePath{ ctx.linkCtx.input / id };
 			core::config::Config localize{ localizePath };
 			localize.SyncConfig(false);
@@ -42,7 +42,7 @@ namespace {
 				if (!std::strcmp(key, "language")) continue; // ignore language key
 
 				// todo: better localize format to support multilang
-				ffctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY);
+				ffctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY, ffctx.data.Align(8));
 
 				ffctx.data.PushStream(XFILE_BLOCK_TEMP);
 				LocalizeEntry& header{ ffctx.data.AllocStreamRef<LocalizeEntry>() };

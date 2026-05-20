@@ -98,7 +98,7 @@ namespace {
 	public:
 		using XAssetLinker::XAssetLinker;
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			std::filesystem::path rfpath{ path.filename() };
 			rfpath.replace_extension();
@@ -112,7 +112,7 @@ namespace {
 			}
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
-			Objective& obj{ ff.data.AllocStreamRef<Objective>(ref) };
+			Objective& obj{ ff.data.AllocStreamRef<Objective>() };
 
 
 			static core::config::ConfigEnumData obvaCfg[]{
@@ -174,9 +174,9 @@ namespace {
 
 
 			// link images
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("waypointImage"), obj.waypointImage);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("objectiveImage"), obj.objectiveImage);
-			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("subObjectiveImage"), obj.subObjectiveImage);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("waypointImage"), obj.waypointImage, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("objectiveImage"), obj.objectiveImage, false, &ff);
+			ctx.LinkAsset(XAssetType::ASSET_TYPE_IMAGE, objCfg.GetCString("subObjectiveImage"), obj.subObjectiveImage, false, &ff);
 
 			// link bundle
 			auto bundle = objCfg.main.FindMember("bundle");

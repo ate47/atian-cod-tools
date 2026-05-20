@@ -32,7 +32,7 @@ namespace {
 				return; // nothing to build
 			}
 
-			ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_BG_CACHE);
+			ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_BG_CACHE, ff.data.Align(8));
 
 			ff.data.PushStream(XFILE_BLOCK_TEMP);
 			BGCacheInfo& bg{ ff.data.AllocStreamRef<BGCacheInfo>() };
@@ -59,7 +59,7 @@ namespace {
 			LOG_INFO("Added asset bgcache {} (hash_{:x})", ff.ffname, ff.ffnameHash);
 		}
 
-		void Compute(BO4LinkContext& ctx, const char* id, fastfile::linker::memory::LinkerDataChunk** ref, BO4FFContext& ff) override {
+		void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) override {
 			std::filesystem::path path{ ctx.linkCtx.input / id };
 			utils::InFileCE is{ path };
 			if (!is) {
