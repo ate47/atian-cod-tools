@@ -20,7 +20,7 @@
 
 namespace hash {
 
-	HashAlg HashAlg::algs[14]
+	HashAlg HashAlg::algs[15]
 	{
 		{ "h64", "XHash", [](const char* text) -> uint64_t { return hash::Hash64A(text); } },
 		{ "res", "IW XHashAsset", [](const char* text) -> uint64_t { return hash::HashIWAsset(text); } },
@@ -36,6 +36,7 @@ namespace hash {
 		{ "xxh64", "XXH64", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), 0); } },
 		{ "xxh64iv", "XXH64 (IV)", [](const char* text) -> uint64_t { return XXH64(text, std::strlen(text), hash::IV_DEFAULT); } },
 		{ "djb2", "DJB2", [](const char* text) -> uint64_t { return HashDJB2(text) & ::hash::MASK32; } },
+		{ "kvp", "KVP", [](const char* text) -> uint64_t { return hash::HashKVP(text); } },
 	};
 
 	void HashAlg::SyncAlgCfg() {

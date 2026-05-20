@@ -300,7 +300,7 @@ namespace fastfile::handlers::bo7 {
 			} while (*str++);
 			char* decr{ acts::decryptutils::DecryptString(*pstr) };
 			if (gcx.outLoadedStrings) {
-				*gcx.outLoadedStrings << *pstr << "\n";
+				*gcx.outLoadedStrings << decr << "\n";
 			}
 			std::memcpy(*pstr, decr, std::strlen(decr) + 1);
 			if (gcx.xstringLocs) gcx.xstringLocs->push_back(*pstr);
@@ -626,6 +626,12 @@ namespace fastfile::handlers::bo7 {
 					gcx.xstringLocs = &xstringLocs;
 				}
 
+				const char* fftype{ ctx.GetFFType() };
+				std::filesystem::path outLoadedStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "loaded_strings" / fftype / std::format("{}.csv", ctx.ffname) };
+				utils::OutFileCE loadedStringsOs{ outLoadedStrings };
+				std::filesystem::create_directories(outLoadedStrings.parent_path());
+				gcx.outLoadedStrings = &loadedStringsOs;
+
 				if (!opt.noWorkerPreload) {
 					for (auto& [hashType, worker] : GetWorkers()) {
 						worker->PreLoadWorker(&ctx);
@@ -640,8 +646,6 @@ namespace fastfile::handlers::bo7 {
 
 				LOG_DEBUG("assets: {}, strings: {}, unk: {}", gcx.assets.assetsCount, gcx.assets.stringsCount, gcx.assets.unk10_count);
 
-
-				const char* fftype{ ctx.GetFFType() };
 				std::filesystem::path outStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "strings" / fftype / std::format("{}.txt", ctx.ffname) };
 
 				{
@@ -684,14 +688,10 @@ namespace fastfile::handlers::bo7 {
 				}
 
 				std::filesystem::path outAssets{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "assets" / fftype / std::format("{}.csv", ctx.ffname) };
-				std::filesystem::path outLoadedStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "loaded_strings" / fftype / std::format("{}.csv", ctx.ffname) };
 				{
 					std::filesystem::create_directories(outAssets.parent_path());
-					std::filesystem::create_directories(outLoadedStrings.parent_path());
 					utils::OutFileCE assetsOs{ outAssets };
-					utils::OutFileCE loadedStringsOs{ outLoadedStrings };
 					gcx.outAsset = &assetsOs;
-					gcx.outLoadedStrings = &loadedStringsOs;
 					assetsOs << "type,name";
 					gcx.assets.assets = reader.ReadPtr<Asset>(gcx.assets.assetsCount);
 
@@ -780,6 +780,11 @@ namespace fastfile::handlers::bo7 {
 
 	const char* GetScrString(ScrString_t id) {
 		return fastfile::GetScrString(id.id);
+	}
+
+
+	uint64_t DB_HashScrStringName(const char* str, size_t len, uint64_t iv) {
+		return gcx.DB_HashScrStringName(str, len, iv);
 	}
 
 	uint64_t GetXAssetName(HandlerHashedAssetType htype, void* handle) {

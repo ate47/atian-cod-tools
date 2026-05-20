@@ -139,6 +139,20 @@ inline uint hash_HashT7(__private const char* str) {
     return (uint)v;
 }
 
+// KVP Hash
+inline uint hash_HashKVP(__private const char* str, ulong start, ulong mul) {
+    if (str == 0 || *str == 0) {
+        return (ulong)0;
+    }
+    ulong acc = start;
+
+    while (*str) {
+        acc += (mul++) * hash_lowerc(*str++);
+    }
+
+    return (uint)(acc ^ ((acc ^ (acc >> 10)) >> 10));
+}
+
 // T89 script hash (pre + post)
 inline uint hash_HashT89Scr(__private const char* str) {
     uint pre = hash_HashT89ScrPre(str, (uint)HASH_FNV1A_32_T7_PRIME);
@@ -217,6 +231,7 @@ inline ulong hash_HashT10OmnVar(__private const char* str, ulong start) {
 #define HASH_OMNVAR      (1UL << 9)
 #define HASH_DJB2        (1UL << 10)
 #define HASH_T7          (1UL << 11)
+#define HASH_KVP         (1UL << 12)
 #define MAX_WORD_LEN     256
 
 inline long binary_search(__global const ulong* arr,
@@ -368,6 +383,7 @@ inline int hash_compute(__private const char* word,
     TRY_HASH(HASH_DJB2, hash_HashDJB2(word, 0, 33));
     TRY_HASH(HASH_T7, hash_HashT7(word));
     TRY_HASH(HASH_FNVA32, hash_HashX32(word, HASH_FNV1A_32_PRIME));
+    TRY_HASH(HASH_KVP, hash_HashKVP(word, 0, 119));
 
 #undef TRY_HASH
     return 0;

@@ -124,9 +124,21 @@ namespace hash {
 	constexpr uint32_t HashDJB2(const char* str, uint32_t start = 0, uint32_t prime = 33) {
 		uint32_t h{ start };
 		while (*str) {
-			h = prime * h ^ (*str++ | 0x20);
+			h = prime * h ^ lowerc(*str++);
 		}
 		return h;
+	}
+
+	constexpr uint64_t HashKVP(const char* str, uint64_t acc = 0, uint64_t mul = 119) {
+		if (!str || !*str) {
+			return 0;
+		}
+
+		while (*str) {
+			acc += (mul++) * lowerc(*str++);
+		}
+
+		return  acc ^ ((acc ^ (acc >> 10)) >> 10);
 	}
 
 	// Hash algorithms

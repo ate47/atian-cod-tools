@@ -119,6 +119,9 @@ namespace tool::hash::scanner {
 		else if (!_strcmpi(n, "djb2")) {
 			return  HASH_DJB2;
 		}
+		else if (!_strcmpi(n, "kvp")) {
+			return  HASH_KVP;
+		}
 		else if (!_strcmpi(n, "all")) {
 			return  HASH_ALL;
 		}
@@ -971,6 +974,37 @@ namespace tool::hash::scanner {
 		}
 
 
+		int kvphashscan(int argc, const char* argv[]) {
+			if (argc < 4) {
+				return tool::BAD_USAGE;
+			}
+			std::vector<std::filesystem::path> files{ GetHashFiles(argv[2]) };
+			LOG_TRACE("{} file(s) loaded...", files.size());
+			std::unordered_set<uint64_t> hashes{};
+			ScanHashes(files, hashes);
+			LOG_INFO("Find {} hash(es)", hashes.size());
+
+			LOG_INFO("read default file...");
+			hashutils::ReadDefaultFile();
+
+			utils::OutFileCE output{ argv[3], true, std::ios::app };
+
+
+			for (auto& [k, str] : hashutils::GetMap()) {
+				uint64_t v{ ::hash::HashKVP(str) };
+				auto it{ hashes.find(v) };
+				if (it == hashes.end()) {
+					continue;
+				}
+
+				output << std::hex << v << "," << str << "\n";
+				LOG_INFO("{:x},{}", v, str);
+			}
+
+			LOG_INFO("Dump into {}", argv[3]);
+			return tool::OK;
+		}
+
 		ADD_TOOL(hashscan, "hash", " [dir] [output]", "scan hashes in a directory", hashscan);
 		ADD_TOOL(scanlookup, "hash", " [dir] [output]", "scan hashes in a directory with lookup", scanlookup);
 		ADD_TOOL(hashbrute, "hash", " [dir] [output] (prefix) (suffix)", "brute search hashes in a directory", hashbrute);
@@ -978,6 +1012,7 @@ namespace tool::hash::scanner {
 		ADD_TOOL(hashbrutedb, "hash", " [dir] [output] (type) (database)", "brute search hashes in a directory with database", hashbrutedb);
 		ADD_TOOL(strscan, "hash", " [dir] [output]", "brute search hashes in a directory with dictionary", strscan);
 		ADD_TOOL(strmerge, "hash", " [files]+ [output]", "merge string files", strmerge);
+		ADD_TOOL(kvphashscan, "hash", " [files]+ [output]", "kvphashscan", kvphashscan);
 		ADD_TOOL_NUI(hashscanner, "Hash Brute Searcher", hashscanner);
 	}
 

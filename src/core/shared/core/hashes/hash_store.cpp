@@ -68,11 +68,14 @@ namespace core::hashes {
 	}
 
 	const char* AddPrecomputed(uint64_t value, const char* str, bool clone) {
-		if (clone) {
-			str = core::hashes::CloneHashStr(str);
+		auto& kstr{ core::shared_cfg::GetSharedConfig().hashes.defstrings[value & hash::MASK60] };
+		if (!kstr) {
+			if (clone) {
+				str = core::hashes::CloneHashStr(str);
+			}
+			kstr = str;
 		}
-		core::shared_cfg::GetSharedConfig().hashes.defstrings.emplace(value & hash::MASK60, str);
-		return str;
+		return kstr;
 	}
 	
 	bool Extract(const char* type, uint64_t hash, char* out, size_t outSize) {

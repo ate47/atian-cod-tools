@@ -176,6 +176,26 @@ namespace {
 
 		return tool::OK;
 	}
+	int exe_ret_string(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
+
+
+		const char* exe{ argv[2] };
+		uint64_t rva{ (uint64_t)utils::ParseFormatInt(argv[3]) };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe);
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+		const char* str{ mod->Get<const char* ()>(rva)() };
+
+		LOG_INFO("out={}", str);;
+
+		return tool::OK;
+	}
 	int exe_pool_dumper(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 3)) {
 			LOG_ERROR("Different values (first, last):");
@@ -552,6 +572,7 @@ namespace {
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
 	ADD_TOOL(exe_scan, "dev", "[exe] [pattern]", "Scan exe", exe_scan);
 	ADD_TOOL(exe_rva, "dev", "[exe] [rva]", "Find all rva for an exe", exe_rva);
+	ADD_TOOL(exe_ret_string, "dev", "[exe] [rva]", "Load a string from an exe", exe_ret_string);
 	ADD_TOOL(game_validate, "dev", " [game=all]", "Validate scans for an exe", game_validate);
 	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
 	ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);

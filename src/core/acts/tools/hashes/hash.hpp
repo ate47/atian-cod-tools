@@ -8,7 +8,7 @@ namespace hash {
 		char buffer[0x20]{ 0 };
 		bool selected{};
 		
-		static HashAlg algs[14];
+		static HashAlg algs[15];
 		static void SyncAlgCfg();
 	};
 

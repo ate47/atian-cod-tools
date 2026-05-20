@@ -33,6 +33,34 @@ namespace {
 
 		return name;
 	}
+
+	hook::library::Detour KeyValuePairs_GetNextValue_Detour;
+	hook::library::Detour KeyValuePairs_GetValue_Detour;
+
+	std::unordered_set<uint64_t> readKPS{};
+
+	void PrintKVP(void* origin, const char* keyName, XHash* namespaceKey) {
+		if (!keyName) {
+			return;
+		}
+		uint64_t hash{ hash::HashKVP(keyName) };
+		if (readKPS.contains(hash)) {
+			return;
+		}
+		readKPS.insert(hash);
+		LOG_INFO("KeyValuePairs: {}::{} (hash 0x{:x}) at {}",  namespaceKey ? core::hashes::ExtractTmp("hash", *namespaceKey) : "<null>", keyName, hash, hook::library::CodePointer{origin});
+	}
+
+	bool KeyValuePairs_GetNextValue_Stub(const char* keyName, XHash* namespaceKey, const char** outValue) {
+		PrintKVP(_ReturnAddress(), keyName, namespaceKey);
+		return KeyValuePairs_GetNextValue_Detour.Call<bool>(keyName, namespaceKey, outValue);
+	}
+
+	bool KeyValuePairs_GetValue_Stub(const char* keyName, XHash* optKvpName, const char** valueOut) {
+		PrintKVP(_ReturnAddress(), keyName, optKvpName);
+		return KeyValuePairs_GetValue_Detour.Call<bool>(keyName, optKvpName, valueOut);
+	}
+
 	hook::library::Detour DB_SHA256_Init_Detour;
 	hook::library::Detour DB_SHA256_Process_Detour;
 	hook::library::Detour DB_SHA256_Final_Detour;
@@ -78,6 +106,10 @@ namespace {
 			DB_SHA256_Init_Detour.Create(0x452E1F0_a, DB_SHA256_Init_Stub);
 			DB_SHA256_Process_Detour.Create(0x452E230_a, DB_SHA256_Process_Stub);
 			DB_SHA256_Final_Detour.Create(0x452E330_a, DB_SHA256_Final_Stub);
+		}
+		if (core::config::GetBool("test.kvptrace", false)) {
+			KeyValuePairs_GetNextValue_Detour.Create(0x5AB160_a, KeyValuePairs_GetNextValue_Stub);
+			KeyValuePairs_GetValue_Detour.Create(0x5AB2A0_a, KeyValuePairs_GetValue_Stub);
 		}
 	}
 

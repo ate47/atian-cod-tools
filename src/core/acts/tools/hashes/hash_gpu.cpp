@@ -240,6 +240,7 @@ namespace tool::hash::scanner {
                 if (UseFunc(HASH_RES)) t += TestHash(::hash::HashIWAsset(str), str);
                 if (UseFunc(HASH_DVAR)) t += TestHash(::hash::HashIWDVar(str), str);
                 if (UseFunc(HASH_T7)) t += TestHash(::hash::HashT7(str), str);
+                if (UseFunc(HASH_KVP)) t += TestHash(::hash::HashKVP(str), str);
                 return t;
             }
         };

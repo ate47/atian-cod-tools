@@ -336,6 +336,10 @@ namespace systems::mods {
 				XZoneInfo* c{ current++ };
 				bool zoneValid{ DB_ValidateXZoneInfo(c) };
 				LOG_TRACE("- {}(allocFlags=0x{:x} freeFlags=0x{:x}) {}", (c->name ? c->name : "<null>"), c->allocFlags, c->freeFlags, (zoneValid ? "" : " -> removed"));
+
+				if (c->name) {
+					core::hashes::AddPrecomputed(hash::Hash64(c->name), c->name, true);
+				}
 				if (!zoneValid) {
 					continue;
 				}
@@ -360,7 +364,12 @@ namespace systems::mods {
 			for (size_t i = 0; i < zoneCount; i++) {
 				if (!zoneInfo[i].name) continue;
 
-				auto it{ zoneHooks.hooks.find(hash::Hash64(zoneInfo[i].name)) };
+				uint64_t zoneHash{ hash::Hash64(zoneInfo[i].name) };
+
+				// better for logs
+				core::hashes::AddPrecomputed(zoneHash, zoneInfo[i].name, true);
+
+				auto it{ zoneHooks.hooks.find(zoneHash) };
 
 				if (it == zoneHooks.hooks.end()) continue; // nothing to hook
 
