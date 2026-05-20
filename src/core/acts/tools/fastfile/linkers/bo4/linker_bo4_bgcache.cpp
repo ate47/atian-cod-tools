@@ -32,9 +32,9 @@ namespace {
 				return; // nothing to build
 			}
 
+			ff.data.PushStream(XFILE_BLOCK_TEMP);
 			ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_BG_CACHE, ff.data.Align(8));
 
-			ff.data.PushStream(XFILE_BLOCK_TEMP);
 			BGCacheInfo& bg{ ff.data.AllocStreamRef<BGCacheInfo>() };
 
 			bg.name.name = ff.ffnameHash;

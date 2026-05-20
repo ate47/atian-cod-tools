@@ -551,8 +551,8 @@ namespace {
 				return;
 			}
 
-			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND, ffctx.data.Align(8));
 			ffctx.data.PushStream(XFILE_BLOCK_TEMP);
+			ffctx.data.AddAsset(XAssetType::ASSET_TYPE_SOUND, ffctx.data.Align(8));
 			SndBank& sndbank{ ffctx.data.AllocStreamRef<SndBank>() };
 			sndbank.nameHash.name = ctx.HashXHash(name);
 			sndbank.name = (const char*)fastfile::ALLOC_PTR;

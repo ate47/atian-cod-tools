@@ -35,9 +35,9 @@ namespace {
 				const char* src;
 			}; static_assert(sizeof(ScriptParseTreeDBG) == 0x28);
 
+			dbgCtx.data.PushStream(XFILE_BLOCK_TEMP);
 			dbgCtx.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEDBG, dbgCtx.data.Align(8));
 
-			dbgCtx.data.PushStream(XFILE_BLOCK_TEMP);
 			ScriptParseTreeDBG& spt{ dbgCtx.data.AllocStreamRef<ScriptParseTreeDBG>() };
 			spt.name.name = obj.name;
 
@@ -201,9 +201,9 @@ namespace {
 					XHash* gscScripts;
 					XHash* cscScripts;
 				};
+				ff.data.PushStream(XFILE_BLOCK_TEMP);
 				ff.data.AddAsset(games::bo4::pool::ASSET_TYPE_SCRIPTPARSETREEFORCED, ff.data.Align(8));
 
-				ff.data.PushStream(XFILE_BLOCK_TEMP);
 				ScriptParseTreeForced& header{ ff.data.AllocStreamRef<ScriptParseTreeForced>() };
 				header.name.name = ff.ffnameHash;
 				header.gscCount = (uint32_t)ff.forcedServerScripts.size();

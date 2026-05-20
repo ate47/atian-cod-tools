@@ -54,6 +54,7 @@ namespace fastfile::linker::memory {
 			throw std::runtime_error("XBlockLinker::PushStreamPos: Stack overflow");
 		}
 		blockStack[++blockStackIndex] = block;
+		LOG_TRACE("XBlockLinker::PushStream({}) {}", blockStack[blockStackIndex], blockStackIndex);
 		AddChunk(LinkerDataChunkType::CHUNKTYPE_PUSH, 0, nullptr, 0);
 	}
 
@@ -61,6 +62,7 @@ namespace fastfile::linker::memory {
 		if (blockStackIndex == 0) {
 			throw std::runtime_error("XBlockLinker::PopStreamPos: Stack underflow");
 		}
+		LOG_TRACE("XBlockLinker::PopStream({}) {}", blockStack[blockStackIndex], blockStackIndex);
 		AddChunk(LinkerDataChunkType::CHUNKTYPE_POP, 0, nullptr, 0);
 		blockStackIndex--;
 	}
@@ -73,6 +75,7 @@ namespace fastfile::linker::memory {
 	}
 
 	LinkerDataChunk* XBlockLinker::Align(size_t align) {
+		LOG_TRACE("XBlockLinker::Align(0x{:x}) {}({})", align, blockStack[blockStackIndex], blockStackIndex);
 		return AddChunk(LinkerDataChunkType::CHUNKTYPE_ALIGN, align, nullptr, 0);
 	}
 

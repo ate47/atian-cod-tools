@@ -237,6 +237,7 @@ namespace fastfile::linker::bo4 {
 		*/
 
 		ref = (void*)fastfile::linker::memory::POINTER_NEXT;
+		ff->data.PushStream(XFILE_BLOCK_TEMP);
 
 		fastfile::linker::memory::LinkerDataChunk* align{ ff->data.Align(8) }; // GetAlignment_XAsset
 
@@ -282,7 +283,6 @@ namespace fastfile::linker::bo4 {
 			if (addAsset) {
 				asset = ff->data.AddAsset(type, align);
 			}
-			ff->data.PushStream(XFILE_BLOCK_TEMP);
 
 			computedRef = ff->data.AllocStream(len);
 			void* emptyAsset{ computedRef->As<void>() };
@@ -298,8 +298,8 @@ namespace fastfile::linker::bo4 {
 
 			LOG_INFO("Add default asset {} {} (hash_{:x})", games::bo4::pool::XAssetNameFromId(type), id, h->name);
 
-			ff->data.PopStream();
 		}
+		ff->data.PopStream();
 	}
 
 	size_t BO4LinkContext::LinkAssetArray(XAssetType type, const char* id, core::config::RapidJsonGeneric& cfg, void** array, size_t count, BO4FFContext* ff) {

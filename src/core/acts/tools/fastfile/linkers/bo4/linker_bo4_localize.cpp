@@ -42,9 +42,9 @@ namespace {
 				if (!std::strcmp(key, "language")) continue; // ignore language key
 
 				// todo: better localize format to support multilang
+				ffctx.data.PushStream(XFILE_BLOCK_TEMP);
 				ffctx.data.AddAsset(games::bo4::pool::ASSET_TYPE_LOCALIZE_ENTRY, ffctx.data.Align(8));
 
-				ffctx.data.PushStream(XFILE_BLOCK_TEMP);
 				LocalizeEntry& header{ ffctx.data.AllocStreamRef<LocalizeEntry>() };
 
 				header.name.name = ctx.HashXHash(key);
